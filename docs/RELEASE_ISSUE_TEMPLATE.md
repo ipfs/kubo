@@ -49,6 +49,7 @@ Checklist:
   - [ ] Install ZSH ([instructions](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH#install-and-set-up-zsh-as-default)). It is needed by the changelog creation script.
   - [ ] Ensure you have `kubo` checked out under `$(go env GOPATH)/src/github.com/ipfs/kubo`. This is required by the changelog creation script.
     - If you want your clone to live in a different location, you can symlink it to the expected location by running `mkdir -p $(go env GOPATH)/src/github.com/ipfs && ln -s $(pwd) $(go env GOPATH)/src/github.com/ipfs/kubo`.
+  - [ ] Ensure that [README.md](https://github.com/ipfs/go-ipfs/tree/master/README.md) is up to date.
 - [ ] **Stage 1 - Initial Preparations**
   - [ ] Upgrade to the latest patch release of Go that CircleCI has published (currently used version: `1.19.1`)
     - [ ] See the list here: https://hub.docker.com/r/cimg/go/tags
@@ -65,10 +66,10 @@ Checklist:
       - The first run of the script might be poluted with `git clone` output.
     - [ ] Paste the output into the `### Changelog` section of the changelog file inside the `<details><summary></summary></details>` block.
     - [ ] Commit the changelog changes.
-  - [ ] Push the `release-vX.Y.Z` branch to GitHub (`git push origin release-vX.Y.Z`) and create a draft PR from that branch if it doesn't exist yet ([example](https://github.com/ipfs/kubo/pull/9306)).
+  - [ ] Push the `release-vX.Y.Z` branch to GitHub (`git push origin release-vX.Y.Z`) and create a draft PR targetting `release` branch if it doesn't exist yet ([example](https://github.com/ipfs/kubo/pull/9306)).
   - [ ] Wait for CI to run and complete PR checks. All checks should pass.
-  - [ ] Tag HEAD `release-vX.Y.Z` commit with `vX.Y.Z-rcN` (`git tag -s vX.Y.Z-rcN`, use "Pre-release 0.15.0-rc1" as the tag message)
-  - [ ] Push the `vX.Y.Z-rcN` tag to GitHub (`git push origin vX.Y.Z-rcN`; DO NOT USE `git push --tags` because it pushes all your local tags).
+  - [ ] Tag HEAD `release-vX.Y.Z` commit with `vX.Y.Z-rcN` (`git tag -s vX.Y.Z-rcN -m 'Pre-release X.Y.Z-rcn'`)
+  - [ ] Push the `vX.Y.Z-rcN` tag to GitHub (`git push origin vX.Y.Z-rcN`; DO NOT USE `git push --tags` because it pushes all your local tags).- - _START: steps that are also relevant for the final release_
   - [ ] Add artifacts to https://dist.ipfs.tech by making a PR against [ipfs/distributions](https://github.com/ipfs/distributions)
     - [ ] Clone the `ipfs/distributions` repo locally.
     - [ ] Create a new branch (`kubo-release-vX.Y.Z-rcn`) from `master`.
@@ -79,10 +80,12 @@ Checklist:
     - [ ] Inspect results, merge if CI is green and the diff looks ok
     - [ ] Wait for `master` branch to build. It will automatically update DNSLink at https://dist.ipfs.tech (~30min)
   - [ ] Publish the RC to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
+  - _insert additional steps that are relevant only for the final release here_
   - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.16.0-rc1))
     - Use `vX.Y.Z-rcN` as the tag.
     - Link to the release issue in the description.
     - Link to the relevant [changelog](https://github.com/ipfs/kubo/blob/master/docs/changelogs/) in the description.
+      - For the final release, keep the release notes as trim as possible (removing some of the top headers, like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0)
     - Check `This is a pre-release`.
   - [ ] Synchronize release artifacts by running [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow.
   - [ ] Announce the RC
@@ -98,6 +101,7 @@ Checklist:
       - [ ] FIL Slack #ipfs-chatter
       - [ ] Matrix
     - [ ] Mention [early testers](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) in the comment under the release issue ([example](https://github.com/ipfs/kubo/issues/9237#issuecomment-1258072509)).
+  - _STOP: steps that are also relevant for the final release_
 - [ ] **Stage 3 - Internal Testing**
   - [ ] Library Testing.
     - [ ] [interop](https://github.com/ipfs/interop)
@@ -127,7 +131,10 @@ Checklist:
         - If there is an unexpected variation in the trend, message the #bifrost channel on FIL Slack and ask for help investigation the cause.
   - [ ] IPFS Application Testing.
     - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop)
-      - [ ] Upgrade to the RC in [ipfs-desktop](https://github.com/ipfs-shipyard/ipfs-desktop) and push to a branch ([example](https://github.com/ipfs/ipfs-desktop/pull/1826/commits/b0a23db31ce942b46d95965ee6fe770fb24d6bde)), and open a draft PR to track through the final release ([example](https://github.com/ipfs/ipfs-desktop/pull/1826)), you have to check out the repo to update package-lock.json
+      - [ ] Upgrade to the RC in [ipfs-desktop](https://github.com/ipfs-shipyard/ipfs-desktop)
+      - [ ] Run `npm install` to update `package-lock.json`.
+      - [ ] Push to a branch ([example](https://github.com/ipfs/ipfs-desktop/pull/1826/commits/b0a23db31ce942b46d95965ee6fe770fb24d6bde))
+      - [ ] Open a draft PR to track through the final release ([example](https://github.com/ipfs/ipfs-desktop/pull/1826))
       - [ ] Ensure CI tests pass
     - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion)
       - Start kubo daemon of the version to release.
@@ -135,45 +142,41 @@ Checklist:
       - Start a fresh firefox instance using `firefox --profile $(mktemp -d)` (macos `/Applications/Firefox.app/Contents/MacOS/firefox --profile $(mktemp -d)`)
       - Install IPFS Companion from [vendor-specific store](https://github.com/ipfs/ipfs-companion/#readme).
       - Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
-- [ ] **Stage 4 - Community Prod Testing** - _ONLY FOR FINAL RELEASE_
-	  - [ ] Add a link from release notes to Discuss post (like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0 )
-	  - [ ] Keep the release notes as trim as possible (removing some of the top headers, like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0 )
-    - [ ] Ensure that [README.md](https://github.com/ipfs/go-ipfs/tree/master/README.md)  is up to date
-    - [ ] Update docs by merging the auto-created PR in https://github.com/ipfs/ipfs-docs/pulls (they are auto-created every 12 hours) (only for final releases, not RCs)
 - [ ] **Stage 5 - Release** - _ONLY FOR FINAL RELEASE_
-  - [ ] Final preparation
-    - [ ] Verify that version string in [`version.go`](https://github.com/ipfs/go-ipfs/tree/master/version.go) has been updated.
-    - [ ] Open a PR merging `release-vX.Y.Z` into the `release` branch.
-      - This should be reviewed by the person who most recently released a version of `go-ipfs`.
-	  - Use a merge commit (no rebase, no squash)
-    - [ ] Prepare the command to use for tagging the merge commit (on the `release` branch) with `vX.Y.Z`.
-      - Use `git tag -s` to ensure the tag is signed
-    - [ ] Have the tagging command reviewed by the person who most recently released a version of `go-ipfs`
-      - This is a dangerous operation, as it is difficult to reverse due to Go modules and automated Docker image publishing
-    - [ ] Push the tag
-      - Use `git push origin <tag>`
-      - DO NOT USE `git push --tags`, as it will push ALL of your local tags
-      - This should initiate a Docker build in GitHub Actions that publishes a `vX.Y.Z` tagged Docker image to DockerHub
-    - [ ] Release published
-      - [ ] to [dist.ipfs.tech](https://dist.ipfs.tech)
-      - [ ] to [npm-go-ipfs](https://www.npmjs.com/package/go-ipfs) (done by CI at [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
-      - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (done by CI at [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch [this job](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml) manually)
-         - [ ] Manually run [the release workflow](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml)
-         - [ ] Wait for Chocolatey to approve the release (usually takes a few hours)
-      - [ ] to [snap](https://snapcraft.io/ipfs) (done CI at [snap/snapcraft.yaml](https://github.com/ipfs/kubo/blob/master/snap/snapcraft.yaml))
-      - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
-        - [ ] After publishing the GitHub release, run the workflow to attach the release assets: https://github.com/ipfs/go-ipfs/actions/workflows/sync-release-assets.yml
-      - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
-    - [ ] Cut a new ipfs-desktop release
-  - [ ] Get a blog post created
-    - [Submit a request using this form](https://airtable.com/shrNH8YWole1xc70I).
-    - Notify marketing in #shared-pl-marketing-requests about the blog entry request (since the form gets spam).
-    - Don't mark this as done until the blog entry is live.
-  - [ ] Broadcasting (link to blog post)
-    - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests)
-    - [ ] [Reddit](https://reddit.com/r/ipfs)
-    - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
-      - A bot auto-posts this to Discord and Matrix
+  - [ ] Prepare the `release` branch.
+    - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `vX.Y.0`.
+    - [ ] Push the `release-vX.Y.Z` branch to GitHub (`git push origin release-vX.Y.Z`)
+    - [ ] Mark the PR created from `release-vX.Y.Z` as ready for review.
+      - [ ] Ensure the PR is targetting `release` branch.
+      - [ ] Ensure that CI is green.
+      - [ ] Have release reviewer review the PR.
+    - [ ] Merge the PR into `release` branch using the `Create a merge commit` (do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit).
+    - [ ] Checkout the `release` branch locally.
+      - Remember to pull the latest changes.
+    - [ ] Create a signed tag for the release.
+      - [ ] Have release reviewer review the subsequent tagging commits you intend to run.
+        - This is a dangerous operation, as it is difficult to reverse due to Go modules and automated Docker image publishing
+      - [ ] Tag HEAD `release` commit with `vX.Y.0` (`git tag -s vX.Y.0 -m 'Release X.Y.0'`)
+      - [ ] Push the `vX.Y.0` tag to GitHub (`git push origin vX.Y.0`; DO NOT USE `git push --tags` because it pushes all your local tags).
+    - [ ] Wait for [Publish docker image](https://github.com/ipfs/kubo/actions/workflows/docker-image.yml) workflow run initiated by the tag push to finish.
+  - [ ] Repeat _RC steps that are also relevant for the final release_ with these additional steps:
+    - [ ] Publish the release to [chocolatey](https://chocolatey.org/packages/go-ipfs) by running https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
+      - [ ] Wait for Chocolatey to approve the release (usually takes a few hours)
+    - [ ] Ensure the release is published to [snap](https://snapcraft.io/ipfs)
+    - [ ] Ensure the release is published to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
+  - [ ] Add a link from release notes to Discuss post (like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0)
+  - [ ] Update the draft PR created for [interop](https://github.com/ipfs/interop) to use the new release and mark it as ready for review.
+  - [ ] Update the draft PR created for [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop) to use the new release and mark it as ready for review.
+  - [ ] Update docs by merging the auto-created PR in https://github.com/ipfs/ipfs-docs/pulls ([example](https://github.com/ipfs/ipfs-docs/pull/1263)) (they are created automatically every 12 hours)
+  - [ ] Get the blog post created and shared
+    - [ ] Submit a request for blog post creation using [the form](https://airtable.com/shrNH8YWole1xc70I).
+      - Notify marketing in #shared-pl-marketing-requests about the blog entry request (since the form tends to go to spam).
+      - Don't mark this as done until the blog entry is live.
+    - [ ] Share the blog post
+      - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests)
+      - [ ] [Reddit](https://reddit.com/r/ipfs)
+      - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
+        - A bot auto-posts this to Discord and Matrix
 - [ ] **Stage 6 - Post-Release**
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
