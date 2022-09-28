@@ -31,10 +31,11 @@ test "$TEST_IMMEDIATE" = 1 && immediate=t
 . lib/test-lib-hashes.sh
 
 
-SHARNESS_LIB="lib/sharness/sharness.sh"
+ln -sf lib/sharness/sharness.sh .
+ln -sf lib/sharness/lib-sharness .
 
-. "$SHARNESS_LIB" || {
-  echo >&2 "Cannot source: $SHARNESS_LIB"
+. "sharness.sh" || {
+  echo >&2 "Cannot source: sharness.sh"
   echo >&2 "Please check Sharness installation."
   exit 1
 }
