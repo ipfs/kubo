@@ -35,9 +35,6 @@ jobs:
           repository: ipfs-shipyard/rb-pinning-service-api
           ref: 773c3adbb421c551d2d89288abac3e01e1f7c3a8
           path: rb-pinning-service-api
-      - uses: protocol/cache-go-action@v1
-        with:
-          name: ${{ github.job }}
       # check if docker compose (not docker-compose) is available on default gh runners
       - run: |
           (for i in {1..3}; do docker compose pull && break || sleep 5; done) &&
