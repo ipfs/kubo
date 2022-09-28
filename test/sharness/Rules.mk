@@ -42,7 +42,7 @@ $(d)/aggregate: $(T_$(d))
 	@(cd $(@D) && ./lib/test-aggregate-results.sh)
 .PHONY: $(d)/aggregate
 
-$(d)/test-results/sharness.xml: export TEST_GENERATE_JUNIT=1
+$(d)/test-results/sharness.xml: export TEST_JUNIT=1
 $(d)/test-results/sharness.xml: $(T_$(d))
 	@echo "*** $@ ***"
 	@(cd $(@D)/.. && ./lib/test-aggregate-junit-reports.sh)

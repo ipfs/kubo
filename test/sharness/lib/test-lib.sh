@@ -27,6 +27,7 @@ fi
 # to pass through in some cases.
 test "$TEST_VERBOSE" = 1 && verbose=t
 test "$TEST_IMMEDIATE" = 1 && immediate=t
+test "$TEST_JUNIT" = 1 && junit=t
 # source the common hashes first.
 . lib/test-lib-hashes.sh
 
@@ -111,6 +112,7 @@ if test "$TEST_VERBOSE" = 1; then
   echo '# TEST_NO_PLUGIN='"$TEST_NO_PLUGIN"
   echo '# TEST_EXPENSIVE='"$TEST_EXPENSIVE"
   echo '# TEST_OS='"$TEST_OS"
+  echo '# TEST_JUNIT='"$TEST_JUNIT"
 fi
 
 # source our generic test lib
