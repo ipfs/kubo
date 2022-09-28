@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
 #
-# We are using sharness (https://github.com/mlafeldt/sharness)
+# We are using sharness (https://github.com/pl-strflt/sharness/tree/feat/junit)
 # which was extracted from the Git test framework.
 
 # use the ipfs tool to test against
@@ -541,4 +541,3 @@ purge_blockstore() {
     [[ -z "$( ipfs repo gc )" ]]
   '
 }
-

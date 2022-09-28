@@ -1,4 +1,5 @@
 lib/sharness/
+lib/dependencies/
 test-results/
 trash directory.*.sh/
 plugins

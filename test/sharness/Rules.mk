@@ -43,9 +43,20 @@ $(d)/aggregate: $(T_$(d))
 .PHONY: $(d)/aggregate
 
 $(d)/test-results/sharness.xml: export TEST_GENERATE_JUNIT=1
-$(d)/test-results/sharness.xml: test_sharness_expensive
+$(d)/test-results/sharness.xml: $(T_$(d))
 	@echo "*** $@ ***"
-	@(cd $(@D)/.. && ./lib/gen-junit-report.sh)
+	@(cd $(@D)/.. && ./lib/test-aggregate-junit-reports.sh)
+.PHONY: $(d)/test-results/sharness.xml
+
+$(d)/test-results/sharness-html: $(d)/test-results/sharness.xml
+	@echo "*** $@ ***"
+	@(cd $(@D)/.. && ./lib/test-generate-junit-html.sh frames)
+.PHONY: $(d)/test-results/sharness-html
+
+$(d)/test-results/sharness.html: $(d)/test-results/sharness.xml
+	@echo "*** $@ ***"
+	@(cd $(@D)/.. && ./lib/test-generate-junit-html.sh no-frames)
+.PHONY: $(d)/test-results/sharness.html
 
 $(d)/clean-test-results:
 	rm -rf $(@D)/test-results
