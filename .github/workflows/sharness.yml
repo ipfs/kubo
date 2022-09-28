@@ -12,13 +12,6 @@ jobs:
   sharness:
     needs: [runner]
     runs-on: ${{ fromJSON(needs.runner.outputs.config).labels }}
-    env:
-      TEST_NO_DOCKER: 0
-      TEST_NO_FUSE: 1
-      TEST_VERBOSE: 1
-      TRAVIS: 1
-      GIT_PAGER: cat
-      IPFS_CHECK_RCMGR_DEFAULTS: 1
     defaults:
       run:
         shell: bash
@@ -45,19 +38,32 @@ jobs:
           name: ${{ github.job }}
       - run: echo "TEST_DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $GITHUB_ENV
       - run: |
-          echo TEST_DOCKER_HOST=$TEST_DOCKER_HOST &&
-            make -O -j '${{ fromJSON(needs.runner.outputs.config).parallel }}' >> test_sharness_expensive coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml test/sharness/test-results/sharness.html CONTINUE_ON_S_FAILURE=1 TEST_DOCKER_HOST=$TEST_DOCKER_HOST
+          make -O -j '${{ fromJSON(needs.runner.outputs.config).parallel }}' \
+            test_sharness_expensive \
+            coverage/sharness_tests.coverprofile \
+            test/sharness/test-results/sharness.xml \
+            test/sharness/test-results/sharness.html
         working-directory: kubo
+        env:
+          TEST_NO_DOCKER: 1
+          TEST_NO_FUSE: 1
+          TEST_VERBOSE: 1
+          TEST_JUNIT: 1
+          IPFS_CHECK_RCMGR_DEFAULTS: 1
+          CONTINUE_ON_S_FAILURE: 1
       - uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0
-        if: always()
+        if: failure() || success()
         with:
           name: sharness
           files: kubo/coverage/sharness_tests.coverprofile
       - run: find kubo/test/sharness/test-results -name 't*-*.sh.*.counts' | kubo/test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'
       - uses: actions/upload-artifact@v3
+        if: failure() || success()
         with:
-          name: sharness
-          path: |
-            kubo/test/sharness/test-results/sharness.xml
-            .junit
-        if: always()
+          name: sharness.xml
+          path: kubo/test/sharness/test-results/sharness.xml
+      - uses: actions/upload-artifact@v3
+        if: failure() || success()
+        with:
+          name: sharness.html
+          path: kubo/test/sharness/test-results/sharness.html
