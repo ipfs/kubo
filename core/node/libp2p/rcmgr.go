@@ -351,7 +351,6 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 // NetSetLimit sets new ResourceManager limits for the given scope. The limits take effect immediately, and are also persisted to the repo config.
 func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (rcmgr.BaseLimit, error) {
 	var result rcmgr.BaseLimit
-	defaults := rcmgr.DefaultLimits.AutoScale()
 
 	setLimit := func(s network.ResourceScope, l rcmgr.Limit) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
@@ -367,6 +366,8 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 	if err != nil {
 		return result, fmt.Errorf("reading config to set limit: %w", err)
 	}
+
+	defaults := adjustedDefaultLimits(cfg.Swarm)
 
 	if cfg.Swarm.ResourceMgr.Limits == nil {
 		cfg.Swarm.ResourceMgr.Limits = &rcmgr.LimitConfig{}
