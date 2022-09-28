@@ -32,6 +32,7 @@ type loggingScope struct {
 }
 
 var _ network.ResourceManager = (*loggingResourceManager)(nil)
+var _ rcmgr.ResourceManagerState = (*loggingResourceManager)(nil)
 
 func (n *loggingResourceManager) start(ctx context.Context) {
 	logInterval := n.logInterval
@@ -101,6 +102,40 @@ func (n *loggingResourceManager) OpenStream(p peer.ID, dir network.Direction) (n
 }
 func (n *loggingResourceManager) Close() error {
 	return n.delegate.Close()
+}
+
+func (n *loggingResourceManager) ListServices() []string {
+	rapi, ok := n.delegate.(rcmgr.ResourceManagerState)
+	if !ok {
+		return nil
+	}
+
+	return rapi.ListServices()
+}
+func (n *loggingResourceManager) ListProtocols() []protocol.ID {
+	rapi, ok := n.delegate.(rcmgr.ResourceManagerState)
+	if !ok {
+		return nil
+	}
+
+	return rapi.ListProtocols()
+}
+func (n *loggingResourceManager) ListPeers() []peer.ID {
+	rapi, ok := n.delegate.(rcmgr.ResourceManagerState)
+	if !ok {
+		return nil
+	}
+
+	return rapi.ListPeers()
+}
+
+func (n *loggingResourceManager) Stat() rcmgr.ResourceManagerStat {
+	rapi, ok := n.delegate.(rcmgr.ResourceManagerState)
+	if !ok {
+		return rcmgr.ResourceManagerStat{}
+	}
+
+	return rapi.Stat()
 }
 
 func (s *loggingScope) ReserveMemory(size int, prio uint8) error {
