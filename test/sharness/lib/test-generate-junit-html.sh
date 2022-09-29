@@ -2,8 +2,8 @@
 
 dependencies=(
   "url=https://sourceforge.net/projects/saxon/files/Saxon-HE/11/Java/SaxonHE11-4J.zip;md5=8a4783d307c32c898f8995b8f337fd6b"
-  "url=https://raw.githubusercontent.com/pl-strflt/ant/398d29d3fdc88a9f4124a45e87997c2154763d02/src/etc/junit-frames-saxon.xsl;md5=258b2d7a6c4d53dc22f33086d4fa0131"
-  "url=https://raw.githubusercontent.com/pl-strflt/ant/398d29d3fdc88a9f4124a45e87997c2154763d02/src/etc/junit-noframes-saxon.xsl;md5=d65690e83721b387bb6653390f08e8d8"
+  "url=https://raw.githubusercontent.com/pl-strflt/ant/c781f7d79b92cc55530245d9554682a47f46851e/src/etc/junit-frames-saxon.xsl;md5=6eb013566903a91e4959413f6ff144d0"
+  "url=https://raw.githubusercontent.com/pl-strflt/ant/c781f7d79b92cc55530245d9554682a47f46851e/src/etc/junit-noframes-saxon.xsl;md5=8d54882d5f9d32a7743ec675cc2e30ac"
 )
 
 dependenciesdir="lib/dependencies"
