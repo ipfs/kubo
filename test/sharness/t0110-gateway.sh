@@ -121,14 +121,14 @@ test_expect_success "GET invalid IPNS root returns 400 (Bad Request)" '
   test_curl_resp_http_code "http://127.0.0.1:$port/ipns/QmInvalid/pleaseDontAddMe" "HTTP/1.1 400 Bad Request"
 '
 
-test_expect_failure "GET IPNS path succeeds" '
+test_expect_success "GET IPNS path succeeds" '
   ipfs name publish --allow-offline "$HASH" &&
   PEERID=$(ipfs config Identity.PeerID) &&
   test_check_peerid "$PEERID" &&
   curl -sfo actual "http://127.0.0.1:$port/ipns/$PEERID"
 '
 
-test_expect_failure "GET IPNS path output looks good" '
+test_expect_success "GET IPNS path output looks good" '
   test_cmp expected actual
 '
 
