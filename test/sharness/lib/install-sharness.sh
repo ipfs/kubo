@@ -6,7 +6,7 @@
 #
 
 gitrepo=pl-strflt/sharness
-githash=a1f356d4ad6019faadb5877bfa0024067601ce65
+githash=604986df33c1a8f1bbfe14d7075840524a46da99
 
 if test ! -n "$clonedir" ; then
   clonedir=lib
