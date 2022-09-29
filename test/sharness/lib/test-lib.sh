@@ -109,12 +109,15 @@ expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
 
 if test "$TEST_VERBOSE" = 1; then
   echo '# TEST_VERBOSE='"$TEST_VERBOSE"
+  echo '# TEST_IMMEDIATE='"$TEST_IMMEDIATE"
   echo '# TEST_NO_FUSE='"$TEST_NO_FUSE"
+  echo '# TEST_NO_DOCKER='"$TEST_NO_DOCKER"
   echo '# TEST_NO_PLUGIN='"$TEST_NO_PLUGIN"
   echo '# TEST_EXPENSIVE='"$TEST_EXPENSIVE"
   echo '# TEST_OS='"$TEST_OS"
   echo '# TEST_JUNIT='"$TEST_JUNIT"
   echo '# TEST_NO_COLOR='"$TEST_NO_COLOR"
+  echo '# TEST_ULIMIT_PRESET='"$TEST_ULIMIT_PRESET"
 fi
 
 # source our generic test lib
