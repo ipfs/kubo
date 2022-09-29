@@ -27,7 +27,7 @@ fi
 # to pass through in some cases.
 test "$TEST_VERBOSE" = 1 && verbose=t
 test "$TEST_IMMEDIATE" = 1 && immediate=t
-test "$TEST_JUNIT" = 1 && junit=t
+test "$TEST_JUNIT" = 1 && junit=t && no_color=t
 # source the common hashes first.
 . lib/test-lib-hashes.sh
 

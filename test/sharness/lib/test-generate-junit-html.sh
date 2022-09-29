@@ -1,43 +1,54 @@
 #!/bin/sh
 
 dependencies=(
-  "url=https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/11.4/Saxon-HE-11.4.jar;md5=9f35652962ffe9b687fb7e3726600f03"
-  "url=https://raw.githubusercontent.com/pl-strflt/ant/2b021a50901ada753a3b62d1f90e5785b1f2beb1/src/etc/junit-frames-saxon.xsl;md5=f4c6f8912a45a9cf272fa1909720c316"
-  "url=https://raw.githubusercontent.com/pl-strflt/ant/2b021a50901ada753a3b62d1f90e5785b1f2beb1/src/etc/junit-noframes-saxon.xsl;md5=dd3d96f8a8cce4c386bfa017e948ad57"
+  "url=https://sourceforge.net/projects/saxon/files/Saxon-HE/11/Java/SaxonHE11-4J.zip;md5=8a4783d307c32c898f8995b8f337fd6b"
+  "url=https://raw.githubusercontent.com/pl-strflt/ant/398d29d3fdc88a9f4124a45e87997c2154763d02/src/etc/junit-frames-saxon.xsl;md5=258b2d7a6c4d53dc22f33086d4fa0131"
+  "url=https://raw.githubusercontent.com/pl-strflt/ant/398d29d3fdc88a9f4124a45e87997c2154763d02/src/etc/junit-noframes-saxon.xsl;md5=d65690e83721b387bb6653390f08e8d8"
 )
 
 dependenciesdir="lib/dependencies"
 mkdir -p "$dependenciesdir"
 
+get_md5() {
+  md5sum "$1" | cut -d ' ' -f 1
+}
+
 for dependency in "${dependencies[@]}"; do
   url="$(echo "$dependency" | cut -d ';' -f 1 | cut -d '=' -f 2)"
   md5="$(echo "$dependency" | cut -d ';' -f 2 | cut -d '=' -f 2)"
   filename="$(basename "$url")"
-  if test -f "$dependenciesdir/$filename" && test "$(md5sum "$dependenciesdir/$filename" | cut -d ' ' -f 1)" = "$md5"; then
+  if test -f "$dependenciesdir/$filename" && test "$(get_md5 "$dependenciesdir/$filename")" = "$md5"; then
     echo "Using cached $filename"
   else
     echo "Downloading $filename"
-    curl --retry 5 --no-progress-meter --output "$dependenciesdir/$filename" "$url"
-    if test "$(md5sum "$dependenciesdir/$filename" | cut -d ' ' -f 1)" != "$md5"; then
-      echo "$(md5sum "$dependenciesdir/$filename" | cut -d ' ' -f 1)"
-      echo "$md5"
-      echo "Downloaded $filename has wrong md5sum"
+    curl -L --max-redirs 5 --retry 5 --no-progress-meter --output "$dependenciesdir/$filename" "$url"
+    actual_md5="$(get_md5 "$dependenciesdir/$filename")"
+    if test "$actual_md5" != "$md5"; then
+      echo "Downloaded $filename has wrong md5sum ('$actual_md5' != '$md5')"
       exit 1
+    fi
+    dirname=${filename%.*}
+    extension=${filename#$dirname.}
+    if test "$extension" = "zip"; then
+      echo "Removing old $dependenciesdir/$dirname"
+      rm -rf "$dependenciesdir/$dirname"
+      echo "Unzipping $dependenciesdir/$filename"
+      unzip "$dependenciesdir/$filename" -d "$dependenciesdir/$dirname"
     fi
   fi
 done
 
 case "$1" in
   "frames")
-    java -jar lib/saxon/saxon-he-11.4.jar \
+    java -jar lib/dependencies/SaxonHE11-4J/saxon-he-11.4.jar \
       -s:test-results/sharness.xml \
-      -xsl:lib/ant/junit-frames-saxon.xsl \
-      output.dir=test-results/sharness-html
+      -xsl:lib/dependencies/junit-frames-saxon.xsl \
+      output.dir=$(pwd)/test-results/sharness-html
     ;;
   "no-frames")
-    java -jar lib/saxon/saxon-he-11.4.jar \
+    java -jar lib/dependencies/SaxonHE11-4J/saxon-he-11.4.jar \
       -s:test-results/sharness.xml \
-      -xsl:lib/ant/junit-noframes-saxon.xsl \
+      -xsl:lib/dependencies/junit-noframes-saxon.xsl \
       -o:test-results/sharness.html
     ;;
   *)
