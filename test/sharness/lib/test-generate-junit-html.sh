@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 dependencies=(
   "url=https://sourceforge.net/projects/saxon/files/Saxon-HE/11/Java/SaxonHE11-4J.zip;md5=8a4783d307c32c898f8995b8f337fd6b"
