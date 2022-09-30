@@ -405,7 +405,9 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 			Cid:  c,
 		}
 	}
-	dagnode.SetLinks(links)
+	if err := dagnode.SetLinks(links); err != nil {
+		return nil, err
+	}
 
 	return dagnode, nil
 }

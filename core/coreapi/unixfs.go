@@ -176,7 +176,10 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		md := dagtest.Mock()
 		emptyDirNode := ft.EmptyDirNode()
 		// Use the same prefix for the "empty" MFS root as for the file adder.
-		emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
+		err := emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
+		if err != nil {
+			return nil, err
+		}
 		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil)
 		if err != nil {
 			return nil, err

@@ -1245,7 +1245,10 @@ func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (
 		}
 
 		nd := dag.NodeWithData(ft.FilePBData(nil, 0))
-		nd.SetCidBuilder(builder)
+		err = nd.SetCidBuilder(builder)
+		if err != nil {
+			return nil, err
+		}
 		err = pdir.AddChild(fname, nd)
 		if err != nil {
 			return nil, err
