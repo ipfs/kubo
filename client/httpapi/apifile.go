@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
@@ -113,7 +112,7 @@ func (f *apiFile) Seek(offset int64, whence int) (int64, error) {
 	}
 
 	if f.at < offset && offset-f.at < forwardSeekLimit { //forward skip
-		r, err := io.CopyN(ioutil.Discard, f.r.Output, offset-f.at)
+		r, err := io.CopyN(io.Discard, f.r.Output, offset-f.at)
 
 		f.at += r
 		return f.at, err

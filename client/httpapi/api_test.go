@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -92,7 +91,7 @@ func (np *NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n i
 
 func (NodeProvider) makeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]iface.CoreAPI, error) {
 
-	dir, err := ioutil.TempDir("", "httpapi-tb-")
+	dir, err := os.MkdirTemp("", "httpapi-tb-")
 	if err != nil {
 		return nil, err
 	}

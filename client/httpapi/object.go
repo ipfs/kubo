@@ -5,13 +5,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
 	ft "github.com/ipfs/go-unixfs"
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )
@@ -71,7 +70,7 @@ func (api *ObjectAPI) Get(ctx context.Context, p path.Path) (ipld.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

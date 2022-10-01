@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 

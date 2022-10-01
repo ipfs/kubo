@@ -49,7 +49,6 @@ func parseErrNotFoundWithFallbackToError(msg error) error {
 	return msg
 }
 
-//lint:ignore ST1008 this function is not using the error as a mean to return failure but it massages it to return the correct type
 func parseErrNotFound(msg string) (error, bool) {
 	if msg == "" {
 		return nil, true // Fast path
@@ -72,7 +71,6 @@ func parseErrNotFound(msg string) (error, bool) {
 // - Double Quotes: "\"" this is for parsing %q and %#v formating
 const cidBreakSet = " \t\n\r\v\f;\""
 
-//lint:ignore ST1008 using error as values
 func parseIPLDErrNotFound(msg string) (error, bool) {
 	// The patern we search for is:
 	const ipldErrNotFoundKey = "ipld: could not find " /*CID*/
@@ -159,7 +157,6 @@ func (e blockstoreNotFoundMatchingIPLDErrNotFound) Is(err error) bool {
 	return ok
 }
 
-//lint:ignore ST1008 using error as values
 func parseBlockstoreNotFound(msg string) (error, bool) {
 	if !strings.Contains(msg, "blockstore: block not found") {
 		return nil, false
