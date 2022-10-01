@@ -109,11 +109,11 @@ Checklist:
       - [ ] Run `npm install` locally
       - [ ] Push the `kubo-release-vX.Y.Z-rcn` branch to GitHub and create a draft PR from that branch ([example](https://github.com/ipfs/interop/pull/511)).
     - [ ] [go-ipfs-api](https://github.com/ipfs/go-ipfs-api)
-      - [ ] Create a branch with kubo version pinned in the [test setup action](https://github.com/ipfs/go-ipfs-api/blob/master/.github/actions/go-test-setup/action.yml) ([example](https://github.com/ipfs/go-ipfs-api/commit/26aeb9075240e595d4a095a4e803767171eec06c)).
+      - [ ] Create a branch with kubo version pinned in the [test setup action](https://github.com/ipfs/go-ipfs-api/blob/master/.github/actions/go-test-setup/action.yml) ([example](https://github.com/ipfs/go-ipfs-api/commit/d156b808cc3aebafba65a38e5dd6993543a50e82)).
       - [ ] Ensure that CI is green.
       - [ ] Delete the branch.
     - [ ] [go-ipfs-http-client](https://github.com/ipfs/go-ipfs-http-client)
-      - [ ] Create a branch with kubo version pinned in the [test setup action](https://github.com/ipfs/go-ipfs-http-client/blob/master/.github/actions/go-test-setup/action.yml) ([example](https://github.com/ipfs/go-ipfs-http-client/commit/940886ca500e567c42660122f405432579ecad90)).
+      - [ ] Create a branch with kubo version pinned in the [test setup action](https://github.com/ipfs/go-ipfs-http-client/blob/master/.github/actions/go-test-setup/action.yml) ([example](https://github.com/ipfs/go-ipfs-http-client/commit/8a057960d26f1c60fffef09be3b05ec3f2e71bba)).
       - [ ] Ensure that CI is green.
       - [ ] Delete the branch.
     - [ ] [WebUI](https://github.com/ipfs-shipyard/ipfs-webui)
