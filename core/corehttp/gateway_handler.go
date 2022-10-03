@@ -876,7 +876,7 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 	// We only care about explicit, vendor-specific content-types.
 	for _, accept := range r.Header.Values("Accept") {
 		// respond to the very first ipld content type
-		if strings.HasPrefix(accept, "application/vnd.ipld") {
+		if strings.HasPrefix(accept, "application/vnd.ipld") || strings.HasPrefix(accept, "application/x-tar") {
 			mediatype, params, err := mime.ParseMediaType(accept)
 			if err != nil {
 				return "", nil, err
