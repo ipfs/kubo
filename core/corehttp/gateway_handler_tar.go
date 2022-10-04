@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	files "github.com/ipfs/go-ipfs-files"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
@@ -50,7 +49,7 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 	defer file.Close()
 
 	// Construct the TAR writer
-	tarw, err := files.NewTarWriter(w)
+	tarw, err := NewTarWriter(w)
 	if err != nil {
 		webError(w, "could not build tar writer", err, http.StatusInternalServerError)
 		return
