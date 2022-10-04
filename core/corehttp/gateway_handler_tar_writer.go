@@ -11,19 +11,21 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 )
 
-type TarWriter struct {
-	TarW *tar.Writer
-	root string
+// Adapted from: https://github.com/ipfs/go-ipfs-files/blob/master/tarwriter.go
+
+type BaseDirTarWriter struct {
+	TarW    *tar.Writer
+	baseDir string
 }
 
-// NewTarWriter wraps given io.Writer into a new tar writer
-func NewTarWriter(w io.Writer) (*TarWriter, error) {
-	return &TarWriter{
-		TarW: tar.NewWriter(w),
+func NewBaseDirTarWriter(w io.Writer, baseDir string) (*BaseDirTarWriter, error) {
+	return &BaseDirTarWriter{
+		TarW:    tar.NewWriter(w),
+		baseDir: baseDir,
 	}, nil
 }
 
-func (w *TarWriter) writeDir(f files.Directory, fpath string) error {
+func (w *BaseDirTarWriter) writeDir(f files.Directory, fpath string) error {
 	if err := writeDirHeader(w.TarW, fpath); err != nil {
 		return err
 	}
@@ -37,7 +39,7 @@ func (w *TarWriter) writeDir(f files.Directory, fpath string) error {
 	return it.Err()
 }
 
-func (w *TarWriter) writeFile(f files.File, fpath string) error {
+func (w *BaseDirTarWriter) writeFile(f files.File, fpath string) error {
 	size, err := f.Size()
 	if err != nil {
 		return err
@@ -55,15 +57,11 @@ func (w *TarWriter) writeFile(f files.File, fpath string) error {
 }
 
 // WriteNode adds a node to the archive.
-func (w *TarWriter) WriteFile(nd files.Node, fpath string) error {
-	if w.root == "" {
-		w.root = fpath
-	}
-
-	if !strings.HasPrefix(fpath, w.root) {
+func (w *BaseDirTarWriter) WriteFile(nd files.Node, fpath string) error {
+	if !strings.HasPrefix(fpath, w.baseDir) {
 		fpath = strings.Replace(fpath, ".", "", -1)
 		fpath = strings.Replace(fpath, "..", "", -1)
-		fpath = path.Join(w.root, fpath)
+		fpath = path.Join(w.baseDir, fpath)
 	}
 
 	switch nd := nd.(type) {
@@ -79,7 +77,7 @@ func (w *TarWriter) WriteFile(nd files.Node, fpath string) error {
 }
 
 // Close closes the tar writer.
-func (w *TarWriter) Close() error {
+func (w *BaseDirTarWriter) Close() error {
 	return w.TarW.Close()
 }
 

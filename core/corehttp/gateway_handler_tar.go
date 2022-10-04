@@ -49,7 +49,7 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 	defer file.Close()
 
 	// Construct the TAR writer
-	tarw, err := NewTarWriter(w)
+	tarw, err := NewBaseDirTarWriter(w, name)
 	if err != nil {
 		webError(w, "could not build tar writer", err, http.StatusInternalServerError)
 		return
