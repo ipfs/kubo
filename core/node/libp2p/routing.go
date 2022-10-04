@@ -14,9 +14,6 @@ import (
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
@@ -24,6 +21,9 @@ import (
 	namesys "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/routing"
 
 	"github.com/cenkalti/backoff/v4"
 	"go.uber.org/fx"
@@ -129,39 +129,6 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 	}
 }
 
-type delegatedRouterOut struct {
-	fx.Out
-
-	Routers       []Router                 `group:"routers,flatten"`
-	ContentRouter []routing.ContentRouting `group:"content-routers,flatten"`
-}
-
-func DelegatedRouting(routers map[string]config.Router) interface{} {
-	return func() (delegatedRouterOut, error) {
-		out := delegatedRouterOut{}
-
-		for _, v := range routers {
-			if !v.Enabled.WithDefault(true) {
-				continue
-			}
-
-			r, err := irouting.RoutingFromConfig(v)
-			if err != nil {
-				return out, err
-			}
-
-			out.Routers = append(out.Routers, Router{
-				Routing:  r,
-				Priority: irouting.GetPriority(v.Parameters),
-			})
-
-			out.ContentRouter = append(out.ContentRouter, r)
-		}
-
-		return out, nil
-	}
-}
-
 type p2pOnlineContentRoutingIn struct {
 	fx.In
 
@@ -195,24 +162,23 @@ type p2pOnlineRoutingIn struct {
 // Routing will get all routers obtained from different methods
 // (delegated routers, pub-sub, and so on) and add them all together
 // using a TieredRouter.
-func Routing(in p2pOnlineRoutingIn) irouting.TieredRouter {
+func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	routers := in.Routers
 
 	sort.SliceStable(routers, func(i, j int) bool {
 		return routers[i].Priority < routers[j].Priority
 	})
 
-	irouters := make([]routing.Routing, len(routers))
-	for i, v := range routers {
-		irouters[i] = v.Routing
+	var cRouters []*routinghelpers.ParallelRouter
+	for _, v := range routers {
+		cRouters = append(cRouters, &routinghelpers.ParallelRouter{
+			Timeout:     5 * time.Minute,
+			IgnoreError: true,
+			Router:      v.Routing,
+		})
 	}
 
-	return irouting.Tiered{
-		Tiered: routinghelpers.Tiered{
-			Routers:   irouters,
-			Validator: in.Validator,
-		},
-	}
+	return routinghelpers.NewComposableParallel(cRouters)
 }
 
 // OfflineRouting provides a special Router to the routers list when we are creating a offline node.
@@ -259,8 +225,8 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 	}, psRouter, nil
 }
 
-func AutoRelayFeeder(cfgPeering config.Peering) func(fx.Lifecycle, host.Host, AddrInfoChan, *ddht.DHT) {
-	return func(lc fx.Lifecycle, h host.Host, peerChan AddrInfoChan, dht *ddht.DHT) {
+func autoRelayFeeder(cfgPeering config.Peering, peerChan chan<- peer.AddrInfo) fx.Option {
+	return fx.Invoke(func(lc fx.Lifecycle, h host.Host, dht *ddht.DHT) {
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
 
@@ -333,5 +299,5 @@ func AutoRelayFeeder(cfgPeering config.Peering) func(fx.Lifecycle, host.Host, Ad
 				return nil
 			},
 		})
-	}
+	})
 }

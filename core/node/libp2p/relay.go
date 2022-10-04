@@ -1,11 +1,14 @@
 package libp2p
 
 import (
+	"context"
+
 	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
+	"go.uber.org/fx"
 )
 
 func RelayTransport(enableRelay bool) func() (opts Libp2pOpts, err error) {
@@ -43,28 +46,63 @@ func RelayService(enable bool, relayOpts config.RelayService) func() (opts Libp2
 	}
 }
 
-func AutoRelay(staticRelays []string, peerChan <-chan peer.AddrInfo) func() (opts Libp2pOpts, err error) {
-	return func() (opts Libp2pOpts, err error) {
-		var autoRelayOpts []autorelay.Option
-		if len(staticRelays) > 0 {
-			static := make([]peer.AddrInfo, 0, len(staticRelays))
-			for _, s := range staticRelays {
-				var addr *peer.AddrInfo
-				addr, err = peer.AddrInfoFromString(s)
-				if err != nil {
-					return
-				}
-				static = append(static, *addr)
-			}
-			autoRelayOpts = append(autoRelayOpts, autorelay.WithStaticRelays(static))
-			autoRelayOpts = append(autoRelayOpts, autorelay.WithCircuitV1Support())
-		}
-		if peerChan != nil {
-			autoRelayOpts = append(autoRelayOpts, autorelay.WithPeerSource(peerChan))
-		}
-		opts.Opts = append(opts.Opts, libp2p.EnableAutoRelay(autoRelayOpts...))
-		return
+func MaybeAutoRelay(staticRelays []string, cfgPeering config.Peering, enabled bool) fx.Option {
+	if !enabled {
+		return fx.Options()
 	}
+
+	if len(staticRelays) > 0 {
+		return fx.Provide(func() (opts Libp2pOpts, err error) {
+			if len(staticRelays) > 0 {
+				static := make([]peer.AddrInfo, 0, len(staticRelays))
+				for _, s := range staticRelays {
+					var addr *peer.AddrInfo
+					addr, err = peer.AddrInfoFromString(s)
+					if err != nil {
+						return
+					}
+					static = append(static, *addr)
+				}
+				opts.Opts = append(opts.Opts, libp2p.EnableAutoRelay(
+					autorelay.WithStaticRelays(static),
+					autorelay.WithCircuitV1Support(),
+				))
+			}
+			return
+		})
+	}
+
+	peerChan := make(chan peer.AddrInfo)
+	return fx.Options(
+		// Provide AutoRelay option
+		fx.Provide(func() (opts Libp2pOpts, err error) {
+			opts.Opts = append(opts.Opts, libp2p.EnableAutoRelay(autorelay.WithPeerSource(func(ctx context.Context, numPeers int) <-chan peer.AddrInfo {
+				// TODO(9257): make this code smarter (have a state and actually try to grow the search outward) instead of a long running task just polling our K cluster.
+				r := make(chan peer.AddrInfo)
+				go func() {
+					defer close(r)
+					for ; numPeers != 0; numPeers-- {
+						select {
+						case v, ok := <-peerChan:
+							if !ok {
+								return
+							}
+							select {
+							case r <- v:
+							case <-ctx.Done():
+								return
+							}
+						case <-ctx.Done():
+							return
+						}
+					}
+				}()
+				return r
+			}, 0)))
+			return
+		}),
+		autoRelayFeeder(cfgPeering, peerChan),
+	)
 }
 
 func HolePunching(flag config.Flag, hasRelayClient bool) func() (opts Libp2pOpts, err error) {

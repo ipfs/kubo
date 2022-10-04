@@ -3,7 +3,7 @@ package config
 import (
 	"encoding/base64"
 
-	ic "github.com/libp2p/go-libp2p-core/crypto"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
 )
 
 const IdentityTag = "Identity"

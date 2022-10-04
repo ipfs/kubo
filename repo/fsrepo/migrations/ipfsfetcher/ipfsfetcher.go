@@ -21,7 +21,7 @@ import (
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 const (
@@ -188,7 +188,7 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 	}
 
 	// configure the temporary node
-	cfg.Routing.Type = config.NewOptionalString("dhtclient")
+	cfg.Routing.Type = "dhtclient"
 
 	// Disable listening for inbound connections
 	cfg.Addresses.Gateway = []string{}

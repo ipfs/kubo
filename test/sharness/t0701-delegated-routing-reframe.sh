@@ -66,13 +66,81 @@ test_expect_success "no routers means findprovs returns no results" '
 
 test_kill_ipfs_daemon
 
+ipfs config Routing.Type --json '"custom"' || exit 1
+ipfs config Routing.Methods --json '{
+      "find-peers": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "find-providers": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "get-ipns": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "provide": {
+        "RouterName": "TestDelegatedRouter"
+      }
+    }' || exit 1
+
+test_expect_success "missing method params makes daemon fails" '
+  echo "Error: constructing the node (see log for full detail): method name \"put-ipns\" is missing from Routing.Methods config param" > expected_error &&
+  GOLOG_LOG_LEVEL=fatal ipfs daemon 2> actual_error || exit 0 &&
+  test_cmp expected_error actual_error
+'
+
+ipfs config Routing.Methods --json '{
+      "find-peers": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "find-providers": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "get-ipns": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "provide": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "put-ipns": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "NOT_SUPPORTED": {
+        "RouterName": "TestDelegatedRouter"
+      }
+    }' || exit 1
+
+test_expect_success "having wrong methods makes daemon fails" '
+  echo "Error: constructing the node (see log for full detail): method name \"NOT_SUPPORTED\" is not a supported method on Routing.Methods config param" > expected_error &&
+  GOLOG_LOG_LEVEL=fatal ipfs daemon 2> actual_error || exit 0 &&
+  test_cmp expected_error actual_error
+'
+
 # set Routing config to only use delegated routing via mocked reframe endpoint
+
+ipfs config Routing.Type --json '"custom"' || exit 1
 ipfs config Routing.Routers.TestDelegatedRouter --json '{
   "Type": "reframe",
   "Parameters": {
     "Endpoint": "http://127.0.0.1:5098/reframe"
   }
 }' || exit 1
+ipfs config Routing.Methods --json '{
+      "find-peers": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "find-providers": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "get-ipns": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "provide": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "put-ipns": {
+        "RouterName": "TestDelegatedRouter"
+      }
+    }' || exit 1
 
 test_expect_success "adding reframe endpoint to Routing.Routers config works" '
   echo "http://127.0.0.1:5098/reframe" > expected &&

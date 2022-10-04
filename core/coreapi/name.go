@@ -16,8 +16,8 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
-	ci "github.com/libp2p/go-libp2p-core/crypto"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	ci "github.com/libp2p/go-libp2p/core/crypto"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 type NameAPI CoreAPI
@@ -36,6 +36,8 @@ func (e *ipnsEntry) Name() string {
 func (e *ipnsEntry) Value() path.Path {
 	return e.value
 }
+
+type requestContextKey string
 
 // Publish announces new IPNS name and returns the new IPNS entry.
 func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.NamePublishOption) (coreiface.IpnsEntry, error) {
@@ -76,7 +78,7 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 
 	if options.TTL != nil {
 		// nolint: staticcheck // non-backward compatible change
-		ctx = context.WithValue(ctx, "ipns-publish-ttl", *options.TTL)
+		ctx = context.WithValue(ctx, requestContextKey("ipns-publish-ttl"), *options.TTL)
 	}
 
 	eol := time.Now().Add(options.ValidTime)

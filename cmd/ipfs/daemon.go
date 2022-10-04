@@ -59,6 +59,7 @@ const (
 	routingOptionDHTKwd       = "dht"
 	routingOptionDHTServerKwd = "dhtserver"
 	routingOptionNoneKwd      = "none"
+	routingOptionCustomKwd    = "custom"
 	routingOptionDefaultKwd   = "default"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
@@ -142,14 +143,15 @@ environment variable:
 
 Routing
 
-IPFS by default will use a DHT for content routing. There is a highly
-experimental alternative that operates the DHT in a 'client only' mode that
-can be enabled by running the daemon as:
+IPFS by default will use a DHT for content routing. There is an alternative
+that operates the DHT in a 'client only' mode that can be enabled by
+running the daemon as:
 
   ipfs daemon --routing=dhtclient
 
-This will later be transitioned into a config option once it gets out of the
-'experimental' stage.
+Or you can set routing to dhtclient in the config:
+
+  ipfs config Routing.Type dhtclient
 
 DEPRECATION NOTICE
 
@@ -400,7 +402,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd {
-		routingOption = cfg.Routing.Type.WithDefault(routingOptionDHTKwd)
+		routingOption = cfg.Routing.Type
+		if routingOption == "" {
+			routingOption = routingOptionDHTKwd
+		}
 	}
 	switch routingOption {
 	case routingOptionSupernodeKwd:
@@ -413,6 +418,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		ncfg.Routing = libp2p.DHTServerOption
 	case routingOptionNoneKwd:
 		ncfg.Routing = libp2p.NilRouterOption
+	case routingOptionCustomKwd:
+		ncfg.Routing = libp2p.ConstructDelegatedRouting(
+			cfg.Routing.Routers,
+			cfg.Routing.Methods,
+			cfg.Identity.PeerID,
+			cfg.Addresses.Swarm,
+			cfg.Identity.PrivKey,
+		)
 	default:
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
 	}
@@ -520,6 +533,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		"commit":  version.CurrentCommit,
 	}).Set(1)
 
+	// TODO(9285): make metrics more configurable
 	// initialize metrics collector
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
@@ -812,7 +826,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	}
 
 	if len(cfg.Gateway.PathPrefixes) > 0 {
-		log.Error("Support for X-Ipfs-Gateway-Prefix and Gateway.PathPrefixes is deprecated and will be removed in the next release. Please comment on the issue if you're using this feature: https://github.com/ipfs/kubo/issues/7702")
+		log.Fatal("Support for custom Gateway.PathPrefixes was removed: https://github.com/ipfs/go-ipfs/issues/7702")
 	}
 
 	node, err := cctx.ConstructNode()

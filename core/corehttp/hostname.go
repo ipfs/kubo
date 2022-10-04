@@ -13,7 +13,7 @@ import (
 	namesys "github.com/ipfs/go-namesys"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	dns "github.com/miekg/dns"
 
 	mbase "github.com/multiformats/go-multibase"
@@ -221,7 +221,8 @@ func HostnameOption() ServeOption {
 			if !cfg.Gateway.NoDNSLink && isDNSLinkName(r.Context(), coreAPI, host) {
 				// rewrite path and handle as DNSLink
 				r.URL.Path = "/ipns/" + stripPort(host) + r.URL.Path
-				childMux.ServeHTTP(w, withHostnameContext(r, host))
+				ctx := context.WithValue(r.Context(), requestContextKey("dnslink-hostname"), host)
+				childMux.ServeHTTP(w, withHostnameContext(r.WithContext(ctx), host))
 				return
 			}
 
@@ -242,6 +243,8 @@ type wildcardHost struct {
 	spec *config.GatewaySpec
 }
 
+type requestContextKey string
+
 // Extends request context to include hostname of a canonical gateway root
 // (subdomain root or dnslink fqdn)
 func withHostnameContext(r *http.Request, hostname string) *http.Request {
@@ -250,7 +253,7 @@ func withHostnameContext(r *http.Request, hostname string) *http.Request {
 	// Host header, subdomain gateways have more comples rules (knownSubdomainDetails)
 	// More: https://github.com/ipfs/dir-index-html/issues/42
 	// nolint: staticcheck // non-backward compatible change
-	ctx := context.WithValue(r.Context(), "gw-hostname", hostname)
+	ctx := context.WithValue(r.Context(), requestContextKey("gw-hostname"), hostname)
 	return r.WithContext(ctx)
 }
 

@@ -362,6 +362,113 @@ test_add_cat_file() {
       rm mountdir/same-file/hello.txt  &&
       rmdir mountdir/same-file
     '
+
+  ## --to-files with single source
+
+  test_expect_success "ipfs add --to-files /mfspath succeeds" '
+    mkdir -p mountdir && echo "Hello MFS!" > mountdir/mfs.txt &&
+    ipfs add mountdir/mfs.txt --to-files /ipfs-add-to-files >actual
+  '
+
+  test_expect_success "ipfs add --to-files output looks good" '
+    HASH_MFS="QmVT8bL3sGBA2TwvX8JPhrv5CYZL8LLLfW7mxkUjPZsgBr" &&
+    echo "added $HASH_MFS mfs.txt" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs files read succeeds" '
+    ipfs files read /ipfs-add-to-files >actual &&
+    ipfs files rm /ipfs-add-to-files
+  '
+
+  test_expect_success "ipfs cat output looks good" '
+    echo "Hello MFS!" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add --to-files requires argument" '
+    test_expect_code 1 ipfs add mountdir/mfs.txt --to-files >actual 2>&1 &&
+    test_should_contain "Error: missing argument for option \"to-files\"" actual
+  '
+
+  test_expect_success "ipfs add --to-files / (MFS root) works" '
+    echo "Hello MFS!" >expected &&
+    ipfs add mountdir/mfs.txt --to-files / &&
+    ipfs files read /mfs.txt >actual &&
+    test_cmp expected actual &&
+    ipfs files rm /mfs.txt &&
+    rm mountdir/mfs.txt
+  '
+
+  ## --to-files with multiple sources
+
+  test_expect_success "ipfs add file1 file2 --to-files /mfspath0 (without trailing slash) fails" '
+    mkdir -p test &&
+    echo "file1" > test/mfs1.txt &&
+    echo "file2" > test/mfs2.txt &&
+    test_expect_code 1 ipfs add test/mfs1.txt test/mfs2.txt --to-files /mfspath0 >actual 2>&1 &&
+    test_should_contain "MFS destination is a file: only one entry can be copied to \"/mfspath0\"" actual &&
+    ipfs files rm -r --force /mfspath0
+  '
+
+  test_expect_success "ipfs add file1 file2 --to-files /mfsfile1 (without trailing slash + with preexisting file) fails" '
+    echo test | ipfs files write --create /mfsfile1 &&
+    test_expect_code 1 ipfs add test/mfs1.txt test/mfs2.txt --to-files /mfsfile1 >actual 2>&1 &&
+    test_should_contain "Error: to-files: cannot put node in path \"/mfsfile1\"" actual &&
+    ipfs files rm -r --force /mfsfile1
+  '
+
+  test_expect_success "ipfs add file1 file2 --to-files /mfsdir1 (without trailing slash + with preexisting dir) fails" '
+    ipfs files mkdir -p /mfsdir1 &&
+    test_expect_code 1 ipfs add test/mfs1.txt test/mfs2.txt --to-files /mfsdir1 >actual 2>&1 &&
+    test_should_contain "Error: to-files: cannot put node in path \"/mfsdir1\"" actual &&
+    ipfs files rm -r --force /mfsdir1
+  '
+
+  test_expect_success "ipfs add file1 file2 --to-files /mfsdir2/ (with trailing slash) succeeds" '
+    ipfs files mkdir -p /mfsdir2 &&
+    test_expect_code 0 ipfs add --cid-version 1 test/mfs1.txt test/mfs2.txt --to-files /mfsdir2/ > actual 2>&1 &&
+    test_should_contain "added bafkreihm3rktn5z33luic3youqdsn326toaq3ekesmdvsa53sbrd3f5r3a mfs1.txt" actual &&
+    test_should_contain "added bafkreidh5zkhr2vnwa2luwmuj24xo6l3jhfgvkgtk5cyp43oxs7owzpxby mfs2.txt" actual &&
+    test_should_not_contain "Error" actual &&
+    ipfs files ls /mfsdir2/ > lsout &&
+    test_should_contain "mfs1.txt" lsout &&
+    test_should_contain "mfs2.txt" lsout &&
+    ipfs files rm -r --force /mfsdir2
+  '
+
+  test_expect_success "ipfs add file1 file2 --to-files /mfsfile2/ (with  trailing slash + with preexisting file) fails" '
+    echo test | ipfs files write --create /mfsfile2 &&
+    test_expect_code 1 ipfs add test/mfs1.txt test/mfs2.txt --to-files /mfsfile2/ >actual 2>&1 &&
+    test_should_contain "Error: to-files: MFS destination \"/mfsfile2/\" is not a directory" actual &&
+    ipfs files rm -r --force /mfsfile2
+  '
+
+  ## --to-files with recursive dir
+
+  # test MFS destination without trailing slash
+  test_expect_success "ipfs add with --to-files /mfs/subdir3 fails because /mfs/subdir3 exists" '
+    ipfs files mkdir -p /mfs/subdir3 &&
+    test_expect_code 1 ipfs add -r test --to-files /mfs/subdir3 >actual 2>&1 &&
+    test_should_contain "cannot put node in path \"/mfs/subdir3\": directory already has entry by that name" actual &&
+    ipfs files rm -r --force /mfs
+  '
+
+  # test recursive import of a dir  into MFS subdirectory
+  test_expect_success "ipfs add -r dir --to-files /mfs/subdir4/ succeeds (because of trailing slash)" '
+    ipfs files mkdir -p /mfs/subdir4 &&
+    ipfs add --cid-version 1 -r test --to-files /mfs/subdir4/ >actual 2>&1 &&
+    test_should_contain "added bafkreihm3rktn5z33luic3youqdsn326toaq3ekesmdvsa53sbrd3f5r3a test/mfs1.txt" actual &&
+    test_should_contain "added bafkreidh5zkhr2vnwa2luwmuj24xo6l3jhfgvkgtk5cyp43oxs7owzpxby test/mfs2.txt" actual &&
+    test_should_contain "added bafybeic7xwqwovt4g4bax6d3udp6222i63vj2rblpbim7uy2uw4a5gahha test" actual &&
+    test_should_not_contain "Error" actual
+    ipfs files ls /mfs/subdir4/ > lsout &&
+    test_should_contain "test" lsout &&
+    test_should_not_contain "mfs1.txt" lsout &&
+    test_should_not_contain "mfs2.txt" lsout &&
+    ipfs files rm -r --force /mfs
+  '
+
 }
 
 test_add_cat_5MB() {

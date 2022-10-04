@@ -152,6 +152,7 @@ Set the value of the 'Datastore.Path' key:
 // A pattern matches a part if and only if the pattern is "*" or the lowercase pattern equals the lowercase part.
 //
 // For example:
+//
 //	matchesGlobPrefix("foo.bar", []string{"*", "bar", "baz"}) returns true
 //	matchesGlobPrefix("foo.bar.baz", []string{"*", "bar"}) returns true
 //	matchesGlobPrefix("foo.bar", []string{"baz", "*"}) returns false

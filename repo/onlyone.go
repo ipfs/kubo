@@ -19,8 +19,8 @@ type OnlyOne struct {
 // that are unique across different concrete Repo implementations,
 // e.g. by creating a local type:
 //
-//     type repoKey string
-//     r, err := o.Open(repoKey(path), open)
+//	type repoKey string
+//	r, err := o.Open(repoKey(path), open)
 //
 // Call Repo.Close when done.
 func (o *OnlyOne) Open(key interface{}, open func() (Repo, error)) (Repo, error) {
