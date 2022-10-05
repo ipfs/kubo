@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	files "github.com/ipfs/go-ipfs-files"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
@@ -49,7 +50,7 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 	defer file.Close()
 
 	// Construct the TAR writer
-	tarw, err := NewBaseDirTarWriter(w, name)
+	tarw, err := files.NewTarWriter(w)
 	if err != nil {
 		webError(w, "could not build tar writer", err, http.StatusInternalServerError)
 		return
@@ -63,13 +64,13 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 		w.Header().Set("Last-Modified", modtime.UTC().Format(http.TimeFormat))
 	}
 
+	// Configure trailing error header in case it happens.
+	w.Header().Set("Trailer", "X-Stream-Error")
 	w.Header().Set("Content-Type", "application/x-tar")
 
 	if err := tarw.WriteFile(file, name); err != nil {
 		// We return error as a trailer, however it is not something browsers can access
-		// (https://github.com/mdn/browser-compat-data/issues/14703)
-		// Due to this, we suggest client always verify that
-		// the received CAR stream response is matching requested DAG selector
+		// (https://github.com/mdn/browser-compat-data/issues/14703).
 		w.Header().Set("X-Stream-Error", err.Error())
 		return
 	}
