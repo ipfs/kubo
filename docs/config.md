@@ -59,6 +59,7 @@ config file at runtime.
       - [`Gateway.PublicGateways: Paths`](#gatewaypublicgateways-paths)
       - [`Gateway.PublicGateways: UseSubdomains`](#gatewaypublicgateways-usesubdomains)
       - [`Gateway.PublicGateways: NoDNSLink`](#gatewaypublicgateways-nodnslink)
+      - [`Gateway.PublicGateways: UseInlinedDNSLink`](#gatewaypublicgateways-useinlineddnslink)
       - [Implicit defaults of `Gateway.PublicGateways`](#implicit-defaults-of-gatewaypublicgateways)
     - [`Gateway` recipes](#gateway-recipes)
   - [`Identity`](#identity)
@@ -764,6 +765,15 @@ HTTP header should be resolved. Overrides global setting.
 If `Paths` are defined, they take priority over DNSLink.
 
 Default: `false` (DNSLink lookup enabled by default for every defined hostname)
+
+Type: `bool`
+
+#### `Gateway.PublicGateways: UseInlinedDNSLink`
+
+A boolean to configure whether the DNSLink subdomain redirects use
+inlined DNS Link, such that it fits into a single DNS entry.
+
+Default: `false`
 
 Type: `bool`
 
