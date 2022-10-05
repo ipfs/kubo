@@ -76,27 +76,18 @@ As mentioned above, the API commands map to HTTP with:
 - the request body streams file data - reads files or stdin
   - multiple streams are muxed with multipart (todo: add tar stream support)
 
-To date, we have two different HTTP API clients:
-
-- [js-ipfs-api](https://github.com/ipfs/js-ipfs-api) - simple javascript
-  wrapper -- best to look at
-- [kubo/commands/http](https://github.com/ipfs/kubo/tree/916f987de2c35db71815b54bbb9a0a71df829838/commands/http) -
-  generalized transport based on the [command definitions](https://github.com/ipfs/kubo/tree/916f987de2c35db71815b54bbb9a0a71df829838/core/commands)
+You can see the latest [list of our HTTP clients here](http-clients.md)
 
 The Go implementation is good to answer harder questions, like how is multipart
 handled, or what headers should be set in edge conditions. But the javascript
 implementation is very concise, and easy to follow.
 
-#### Anatomy of node-ipfs-api
+#### Anatomy of `kubo-rpc-client`
 
-Currently, node-ipfs-api has three main files
-- [src/index.js](https://github.com/ipfs-inactive/js-ipfs-http-client/blob/66d1462bd02181d46e8baf4cd9d476b213426ad8/src/index.js) defines the functions clients of the API
-  module will use. uses `RequestAPI`, and translates function call parameters to
-  the API almost directly.
-- [src/get-files-stream.js](https://github.com/ipfs-inactive/js-ipfs-http-client/blob/66d1462bd02181d46e8baf4cd9d476b213426ad8/src/get-files-stream.js) implements the hardest part:
-  file streaming. This one uses multipart.
-- [src/request-api.js](https://github.com/ipfs-inactive/js-ipfs-http-client/blob/66d1462bd02181d46e8baf4cd9d476b213426ad8/src/request-api.js) generic function call to perform
-  the actual HTTP requests
+Currently, `kubo-rpc-client` has one main file, and folders where subcommands are implemented
+- [`src/index.js`](https://github.com/ipfs/js-kubo-rpc-client/blob/ef63c43a8dcc44d94683ed353def3ef906a6ffb5/src/index.js#L105-L143) defines the functions clients of the API
+  module will use. Translates function call parameters to the API almost directly.
+- [`src/*/*.js`](https://github.com/ipfs/js-kubo-rpc-client/tree/ef63c43a8dcc44d94683ed353def3ef906a6ffb5/src) folders within `src/` contain the logic for the relevant subcommand.
 
 ## Note on multipart + inspecting requests
 

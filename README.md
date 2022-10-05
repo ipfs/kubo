@@ -378,6 +378,10 @@ Basic proof of 'ipfs working' locally:
     # QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
     ipfs cat <that hash>
 
+### HTTP clients
+
+For programmatic interaction with Kubo, see our [list of HTTP/RPC clients](docs/http-clients.md).
+
 ### Troubleshooting
 
 If you have previously installed IPFS before and you are running into problems getting a newer version to work, try deleting (or backing up somewhere else) your IPFS config directory (~/.ipfs by default) and rerunning `ipfs init`. This will reinitialize the config file to its defaults and clear out the local datastore of any bad entries.
