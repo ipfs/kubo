@@ -18,6 +18,10 @@ type GatewaySpec struct {
 	// NoDNSLink configures this gateway to _not_ resolve DNSLink for the FQDN
 	// provided in `Host` HTTP header.
 	NoDNSLink bool
+
+	// UseInlinedDNSLink configures this gateway to always inline DNSLink entries
+	// into a single label in order to be DNS Safe.
+	UseInlinedDNSLink bool
 }
 
 // Gateway contains options for the HTTP gateway server.

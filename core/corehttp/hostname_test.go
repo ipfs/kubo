@@ -36,35 +36,39 @@ func TestToSubdomainURL(t *testing.T) {
 
 	for _, test := range []struct {
 		// in:
-		request    *http.Request
-		gwHostname string
-		path       string
+		request       *http.Request
+		gwHostname    string
+		inlineDNSLink bool
+		path          string
 		// out:
 		url string
 		err error
 	}{
 		// DNSLink
-		{httpRequest, "localhost", "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost/", nil},
+		{httpRequest, "localhost", false, "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost/", nil},
 		// Hostname with port
-		{httpRequest, "localhost:8080", "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost:8080/", nil},
+		{httpRequest, "localhost:8080", false, "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost:8080/", nil},
 		// CIDv0 → CIDv1base32
-		{httpRequest, "localhost", "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.localhost/", nil},
+		{httpRequest, "localhost", false, "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.localhost/", nil},
 		// CIDv1 with long sha512
-		{httpRequest, "localhost", "/ipfs/bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", "", errors.New("CID incompatible with DNS label length limit of 63: kf1siqrebi3vir8sab33hu5vcy008djegvay6atmz91ojesyjs8lx350b7y7i1nvyw2haytfukfyu2f2x4tocdrfa0zgij6p4zpl4u5oj")},
+		{httpRequest, "localhost", false, "/ipfs/bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", "", errors.New("CID incompatible with DNS label length limit of 63: kf1siqrebi3vir8sab33hu5vcy008djegvay6atmz91ojesyjs8lx350b7y7i1nvyw2haytfukfyu2f2x4tocdrfa0zgij6p4zpl4u5oj")},
 		// PeerID as CIDv1 needs to have libp2p-key multicodec
-		{httpRequest, "localhost", "/ipns/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", "http://k2k4r8n0flx3ra0y5dr8fmyvwbzy3eiztmtq6th694k5a3rznayp3e4o.ipns.localhost/", nil},
-		{httpRequest, "localhost", "/ipns/bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "http://k2k4r8l9ja7hkzynavdqup76ou46tnvuaqegbd04a4o1mpbsey0meucb.ipns.localhost/", nil},
+		{httpRequest, "localhost", false, "/ipns/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", "http://k2k4r8n0flx3ra0y5dr8fmyvwbzy3eiztmtq6th694k5a3rznayp3e4o.ipns.localhost/", nil},
+		{httpRequest, "localhost", false, "/ipns/bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "http://k2k4r8l9ja7hkzynavdqup76ou46tnvuaqegbd04a4o1mpbsey0meucb.ipns.localhost/", nil},
 		// PeerID: ed25519+identity multihash → CIDv1Base36
-		{httpRequest, "localhost", "/ipns/12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", "http://k51qzi5uqu5di608geewp3nqkg0bpujoasmka7ftkyxgcm3fh1aroup0gsdrna.ipns.localhost/", nil},
-		{httpRequest, "sub.localhost", "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.sub.localhost/", nil},
+		{httpRequest, "localhost", false, "/ipns/12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", "http://k51qzi5uqu5di608geewp3nqkg0bpujoasmka7ftkyxgcm3fh1aroup0gsdrna.ipns.localhost/", nil},
+		{httpRequest, "sub.localhost", false, "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.sub.localhost/", nil},
 		// HTTPS requires DNSLink name to fit in a single DNS label – see "Option C" from https://github.com/ipfs/in-web-browsers/issues/169
-		{httpRequest, "dweb.link", "/ipns/dnslink.long-name.example.com", "http://dnslink.long-name.example.com.ipns.dweb.link/", nil},
-		{httpsRequest, "dweb.link", "/ipns/dnslink.long-name.example.com", "https://dnslink-long--name-example-com.ipns.dweb.link/", nil},
-		{httpsProxiedRequest, "dweb.link", "/ipns/dnslink.long-name.example.com", "https://dnslink-long--name-example-com.ipns.dweb.link/", nil},
+		{httpRequest, "dweb.link", false, "/ipns/dnslink.long-name.example.com", "http://dnslink.long-name.example.com.ipns.dweb.link/", nil},
+		{httpsRequest, "dweb.link", false, "/ipns/dnslink.long-name.example.com", "https://dnslink-long--name-example-com.ipns.dweb.link/", nil},
+		{httpsProxiedRequest, "dweb.link", false, "/ipns/dnslink.long-name.example.com", "https://dnslink-long--name-example-com.ipns.dweb.link/", nil},
+		// HTTP requests can also be converted to fit into a single DNS label - https://github.com/ipfs/kubo/issues/9243
+		{httpRequest, "localhost", true, "/ipns/dnslink.long-name.example.com", "http://dnslink-long--name-example-com.ipns.localhost/", nil},
+		{httpRequest, "dweb.link", true, "/ipns/dnslink.long-name.example.com", "http://dnslink-long--name-example-com.ipns.dweb.link/", nil},
 	} {
-		url, err := toSubdomainURL(test.gwHostname, test.path, test.request, coreAPI)
+		url, err := toSubdomainURL(test.gwHostname, test.path, test.request, test.inlineDNSLink, coreAPI)
 		if url != test.url || !equalError(err, test.err) {
-			t.Errorf("(%s, %s) returned (%s, %v), expected (%s, %v)", test.gwHostname, test.path, url, err, test.url, test.err)
+			t.Errorf("(%s, %v, %s) returned (%s, %v), expected (%s, %v)", test.gwHostname, test.inlineDNSLink, test.path, url, err, test.url, test.err)
 		}
 	}
 }
