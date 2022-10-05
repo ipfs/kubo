@@ -44,14 +44,15 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 	ctx, span := tracing.Span(ctx, "CoreAPI.NameAPI", "Publish", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
 
-	if err := api.checkPublishAllowed(); err != nil {
-		return nil, err
-	}
-
 	options, err := caopts.NamePublishOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
+
+	if err := api.checkPublishAllowed(options.AllowWhileMounted); err != nil {
+		return nil, err
+	}
+
 	span.SetAttributes(
 		attribute.Bool("allowoffline", options.AllowOffline),
 		attribute.String("key", options.Key),
