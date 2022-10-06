@@ -26,6 +26,7 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p/core/routing"
+	mc "github.com/multiformats/go-multicodec"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -429,6 +430,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		logger.Debugw("serving car stream", "path", contentPath)
 		carVersion := formatParams["version"]
 		i.serveCAR(r.Context(), w, r, resolvedPath, contentPath, carVersion, begin)
+		return
+	case "application/vnd.ipld.dag-json":
+		logger.Debugw("serving dag-json", "path", contentPath)
+		i.serveJSON(r.Context(), w, r, resolvedPath, begin, "application/vnd.ipld.dag-json", uint64(mc.DagJson))
+		return
+	case "application/vnd.ipld.dag-cbor":
+		logger.Debugw("serving dag-cbor", "path", contentPath)
+		i.serveJSON(r.Context(), w, r, resolvedPath, begin, "application/vnd.ipld.dag-cbor", uint64(mc.DagCbor))
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
@@ -859,6 +868,10 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 			return "application/vnd.ipld.raw", nil, nil
 		case "car":
 			return "application/vnd.ipld.car", nil, nil
+		case "dag-json":
+			return "application/vnd.ipld.dag-json", nil, nil
+		case "dag-cbor":
+			return "application/vnd.ipld.dag-cbor", nil, nil
 		}
 	}
 	// Browsers and other user agents will send Accept header with generic types like:
