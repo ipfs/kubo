@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	ErrApiNotRunning = errors.New("api not running")
+	ErrApiNotRunning = errors.New("api not running") //nolint
 )
 
 // Repo represents all persistent data of a given ipfs node.
