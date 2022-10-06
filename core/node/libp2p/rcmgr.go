@@ -364,7 +364,7 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 
 	cfg, err := repo.Config()
 	if err != nil {
-		return result, fmt.Errorf("reading config to set limit: %w", err)
+		return result, fmt.Errorf("reading config to reset limit: %w", err)
 	}
 
 	defaults := adjustedDefaultLimits(cfg.Swarm)

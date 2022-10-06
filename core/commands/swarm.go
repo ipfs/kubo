@@ -389,7 +389,7 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 		cmds.FileArg("limit.json", false, false, "limits to be set").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(swarmResetLimitsOptionName, "reset all limits to default ones."),
+		cmds.BoolOption(swarmResetLimitsOptionName, "reset limit to default"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
