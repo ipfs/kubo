@@ -6,7 +6,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
-// This is the CLI root, used for executing commands accessible to CLI clients.
+// Root is the CLI root, used for executing commands accessible to CLI clients.
 // Some subcommands (like 'ipfs daemon' or 'ipfs init') are only accessible here,
 // and can't be called through the HTTP API.
 var Root = &cmds.Command{

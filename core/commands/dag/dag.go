@@ -223,7 +223,7 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 			// event should have only one of `Root` or `Stats` set, not both
 			if event.Root == nil {
 				if event.Stats == nil {
-					return fmt.Errorf("Unexpected message from DAG import")
+					return fmt.Errorf("unexpected message from DAG import")
 				}
 				stats, _ := req.Options[statsOptionName].(bool)
 				if stats {
@@ -233,7 +233,7 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 			}
 
 			if event.Stats != nil {
-				return fmt.Errorf("Unexpected message from DAG import")
+				return fmt.Errorf("unexpected message from DAG import")
 			}
 
 			enc, err := cmdenv.GetLowLevelCidEncoder(req)

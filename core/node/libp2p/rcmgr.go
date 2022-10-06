@@ -28,7 +28,7 @@ import (
 const NetLimitDefaultFilename = "limit.json"
 const NetLimitTraceFilename = "rcmgr.json.gz"
 
-var NoResourceMgrError = fmt.Errorf("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
+var ErrNoResourceMgr = fmt.Errorf("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
 
 func ResourceManager(cfg config.SwarmConfig) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
@@ -136,7 +136,7 @@ func NetStat(mgr network.ResourceManager, scope string) (NetStatOut, error) {
 	case scope == "all":
 		rapi, ok := mgr.(rcmgr.ResourceManagerState)
 		if !ok { // NullResourceManager
-			return result, NoResourceMgrError
+			return result, ErrNoResourceMgr
 		}
 
 		stat := rapi.Stat()
@@ -223,7 +223,7 @@ func NetLimit(mgr network.ResourceManager, scope string) (rcmgr.BaseLimit, error
 	getLimit := func(s network.ResourceScope) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok { // NullResourceManager
-			return NoResourceMgrError
+			return ErrNoResourceMgr
 		}
 		limit := limiter.Limit()
 		switch l := limit.(type) {
@@ -271,7 +271,7 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 	setLimit := func(s network.ResourceScope) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok { // NullResourceManager
-			return NoResourceMgrError
+			return ErrNoResourceMgr
 		}
 
 		limiter.SetLimit(&limit)

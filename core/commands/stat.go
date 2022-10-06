@@ -132,8 +132,8 @@ Example:
 					return err
 				}
 			} else if tfound {
-				protoId := protocol.ID(tstr)
-				stats := nd.Reporter.GetBandwidthForProtocol(protoId)
+				protoID := protocol.ID(tstr)
+				stats := nd.Reporter.GetBandwidthForProtocol(protoID)
 				if err := res.Emit(&stats); err != nil {
 					return err
 				}
