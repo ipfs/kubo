@@ -67,6 +67,7 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 
 	w.Header().Set("Content-Type", "application/vnd.ipld.car; version=1")
 	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
+	w.Header().Set("Trailer", "X-Stream-Error")
 
 	// Same go-car settings as dag.export command
 	store := dagStore{dag: i.api.Dag(), ctx: ctx}
