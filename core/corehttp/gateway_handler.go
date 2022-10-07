@@ -432,12 +432,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		i.serveCAR(r.Context(), w, r, resolvedPath, contentPath, carVersion, begin)
 		return
 	case "application/vnd.ipld.dag-json":
+	case "application/json":
 		logger.Debugw("serving dag-json", "path", contentPath)
-		i.serveJSON(r.Context(), w, r, resolvedPath, begin, "application/vnd.ipld.dag-json", uint64(mc.DagJson))
+		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat, uint64(mc.DagJson))
 		return
 	case "application/vnd.ipld.dag-cbor":
+	case "application/cbor":
 		logger.Debugw("serving dag-cbor", "path", contentPath)
-		i.serveJSON(r.Context(), w, r, resolvedPath, begin, "application/vnd.ipld.dag-cbor", uint64(mc.DagCbor))
+		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat, uint64(mc.DagCbor))
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
@@ -870,8 +872,12 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 			return "application/vnd.ipld.car", nil, nil
 		case "dag-json":
 			return "application/vnd.ipld.dag-json", nil, nil
+		case "json":
+			return "application/json", nil, nil
 		case "dag-cbor":
 			return "application/vnd.ipld.dag-cbor", nil, nil
+		case "cbor":
+			return "application/cbor", nil, nil
 		}
 	}
 	// Browsers and other user agents will send Accept header with generic types like:
@@ -879,7 +885,9 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 	// We only care about explciit, vendor-specific content-types.
 	for _, accept := range r.Header.Values("Accept") {
 		// respond to the very first ipld content type
-		if strings.HasPrefix(accept, "application/vnd.ipld") {
+		if strings.HasPrefix(accept, "application/vnd.ipld") ||
+			strings.HasPrefix(accept, "application/json") ||
+			strings.HasPrefix(accept, "application/cbor") {
 			mediatype, params, err := mime.ParseMediaType(accept)
 			if err != nil {
 				return "", nil, err
