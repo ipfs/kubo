@@ -126,6 +126,9 @@ func (ph *peerHandler) reconnect() {
 		if ph.reconnectTimer != nil {
 			// Only counts if the reconnectTimer still exists. If not, a
 			// connection _was_ somehow established.
+			if !ph.reconnectTimer.Stop() {
+				<-ph.reconnectTimer.C
+			}
 			ph.reconnectTimer.Reset(ph.nextBackoff())
 		}
 		// Otherwise, someone else has stopped us so we can assume that

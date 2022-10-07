@@ -95,6 +95,9 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 		if tmo == nil {
 			tmo = time.NewTimer(configPollInterval)
 		} else {
+			if !tmo.Stop() {
+				<-tmo.C
+			}
 			tmo.Reset(configPollInterval)
 		}
 		select {
