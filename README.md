@@ -7,7 +7,7 @@
 
 ## What is Kubo?
 
-Kubo was the first is the most widely used IPFS implementation today. Implementing the *Interplanetary Filesystem* - the Web3 standard and contender to replace https. Thus powered by IPLD's data models and the libp2p for network communication. Kubo is written in Go.
+Kubo was the first IPFS implementation and is the most widely used one today. Implementing the *Interplanetary Filesystem* - the Web3 standard and contender to replace https. Thus powered by IPLD's data models and the libp2p for network communication. Kubo is written in Go.
 
 Featureset
 - Runs an IPFS-Node as a network service
