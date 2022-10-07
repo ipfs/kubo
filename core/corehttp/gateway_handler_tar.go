@@ -64,14 +64,27 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 		w.Header().Set("Last-Modified", modtime.UTC().Format(http.TimeFormat))
 	}
 
-	// Configure trailing error header in case it happens.
-	w.Header().Set("Trailer", "X-Stream-Error")
 	w.Header().Set("Content-Type", "application/x-tar")
 
-	if err := tarw.WriteFile(file, name); err != nil {
-		// We return error as a trailer, however it is not something browsers can access
-		// (https://github.com/mdn/browser-compat-data/issues/14703).
-		w.Header().Set("X-Stream-Error", err.Error())
+	if tarErr := tarw.WriteFile(file, name); tarErr != nil {
+		// There are no good ways of showing an error during a stream. Therefore, we try
+		// to hijack the connection to forcefully close it, causing a network error.
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			// If we could not Hijack the connection, we write the original error. This will hopefully
+			// corrupt the generated TAR file, such that the client will receive an error unpacking.
+			webError(w, "could not build tar archive", tarErr, http.StatusInternalServerError)
+			return
+		}
+
+		conn, _, err := hj.Hijack()
+		if err != nil {
+			// Deliberately pass the original tar error here instead of the hijacking error.
+			webError(w, "could not build tar archive", tarErr, http.StatusInternalServerError)
+			return
+		}
+
+		conn.Close()
 		return
 	}
 }

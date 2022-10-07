@@ -44,15 +44,11 @@ test_expect_success "Add directories with relative paths to test with" '
 '
 
 test_expect_success "GET TAR with relative paths outside root fails" '
-  curl -i "http://127.0.0.1:$GWAY_PORT/ipfs/$OUTSIDE_ROOT_HASH?format=tar" > curl_output_filename &&
-  grep -q "Trailer: X-Stream-Error" curl_output_filename &&
-  grep -q "X-Stream-Error:" curl_output_filename
+  ! curl "http://127.0.0.1:$GWAY_PORT/ipfs/$OUTSIDE_ROOT_HASH?format=tar"
 '
 
 test_expect_success "GET TAR with relative paths inside root works" '
-  curl -i "http://127.0.0.1:$GWAY_PORT/ipfs/$INSIDE_ROOT_HASH?format=tar" > curl_output_filename &&
-  grep -q "Trailer: X-Stream-Error" curl_output_filename &&
-  ! grep -q "X-Stream-Error:" curl_output_filename
+  curl "http://127.0.0.1:$GWAY_PORT/ipfs/$INSIDE_ROOT_HASH?format=tar" | tar -x
 '
 
 test_kill_ipfs_daemon
