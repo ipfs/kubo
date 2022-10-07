@@ -63,11 +63,12 @@ ipfs peers in the internet.
 }
 
 const (
-	swarmVerboseOptionName     = "verbose"
-	swarmStreamsOptionName     = "streams"
-	swarmLatencyOptionName     = "latency"
-	swarmDirectionOptionName   = "direction"
-	swarmResetLimitsOptionName = "reset"
+	swarmVerboseOptionName           = "verbose"
+	swarmStreamsOptionName           = "streams"
+	swarmLatencyOptionName           = "latency"
+	swarmDirectionOptionName         = "direction"
+	swarmResetLimitsOptionName       = "reset"
+	swarmUsedResourcesPercentageName = "min-used-limit-perc"
 )
 
 type peeringResult struct {
@@ -340,6 +341,9 @@ The output of this command is JSON.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("scope", true, false, "scope of the stat report"),
 	},
+	Options: []cmds.Option{
+		cmds.IntOption(swarmUsedResourcesPercentageName, "Display only resources that are using above the specified percentage"),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -353,8 +357,10 @@ The output of this command is JSON.
 		if len(req.Arguments) != 1 {
 			return fmt.Errorf("must specify exactly one scope")
 		}
+
+		percentage, _ := req.Options[swarmUsedResourcesPercentageName].(int)
 		scope := req.Arguments[0]
-		result, err := libp2p.NetStat(node.ResourceManager, scope)
+		result, err := libp2p.NetStat(node.ResourceManager, scope, percentage)
 		if err != nil {
 			return err
 		}
@@ -378,6 +384,7 @@ var swarmLimitCmd = &cmds.Command{
 		Tagline: "Get or set resource limits for a scope.",
 		LongDescription: `Get or set resource limits for a scope.
 The scope can be one of the following:
+- all           -- all limits actually being applied.
 - system        -- limits for the system aggregate resource usage.
 - transient     -- limits for the transient resource usage.
 - svc:<service> -- limits for the resource usage of a specific service.
@@ -435,19 +442,19 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 			}
 		}
 
-		var result rcmgr.BaseLimit
+		var result interface{}
 		_, reset := req.Options[swarmResetLimitsOptionName]
 		if reset {
 			result, err = libp2p.NetResetLimit(node.ResourceManager, node.Repo, scope)
-			if err != nil {
-				return err
-			}
+		} else if scope == "all" {
+			result, err = libp2p.NetLimitAll(node.ResourceManager)
 		} else {
 			// get scope limit
 			result, err = libp2p.NetLimit(node.ResourceManager, scope)
-			if err != nil {
-				return err
-			}
+		}
+
+		if err != nil {
+			return err
 		}
 
 		b := new(bytes.Buffer)
