@@ -76,7 +76,9 @@ test_expect_success "GET TAR with relative paths outside root fails" '
 '
 
 test_expect_success "GET TAR with relative paths inside root works" '
-  curl "http://127.0.0.1:$GWAY_PORT/ipfs/$INSIDE_ROOT_CID?format=tar" | tar -x
+  rm -rf outputDir && mkdir outputDir &&
+  curl "http://127.0.0.1:$GWAY_PORT/ipfs/$INSIDE_ROOT_CID?format=tar" | tar -x -C outputDir &&
+  test -f outputDir/$INSIDE_ROOT_CID/foobar/file
 '
 
 test_kill_ipfs_daemon
