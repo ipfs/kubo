@@ -23,6 +23,14 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	// Get Unixfs file
+	file, err := i.api.Unixfs().Get(ctx, resolvedPath)
+	if err != nil {
+		webError(w, "ipfs cat "+html.EscapeString(contentPath.String()), err, http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
 	// Set Cache-Control and read optional Last-Modified time
 	modtime := addCacheControlHeaders(w, r, contentPath, resolvedPath.Cid())
 
@@ -40,14 +48,6 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 		name = resolvedPath.Cid().String() + ".tar"
 	}
 	setContentDispositionHeader(w, name, "attachment")
-
-	// Get Unixfs file
-	file, err := i.api.Unixfs().Get(ctx, resolvedPath)
-	if err != nil {
-		webError(w, "ipfs cat "+html.EscapeString(contentPath.String()), err, http.StatusNotFound)
-		return
-	}
-	defer file.Close()
 
 	// Construct the TAR writer
 	tarw, err := files.NewTarWriter(w)
