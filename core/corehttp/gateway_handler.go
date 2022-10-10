@@ -431,13 +431,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		carVersion := formatParams["version"]
 		i.serveCAR(r.Context(), w, r, resolvedPath, contentPath, carVersion, begin)
 		return
-	case "application/vnd.ipld.dag-json":
-	case "application/json":
+	case "application/vnd.ipld.dag-json", "application/json":
 		logger.Debugw("serving dag-json", "path", contentPath)
 		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat, uint64(mc.DagJson))
 		return
-	case "application/vnd.ipld.dag-cbor":
-	case "application/cbor":
+	case "application/vnd.ipld.dag-cbor", "application/cbor":
 		logger.Debugw("serving dag-cbor", "path", contentPath)
 		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat, uint64(mc.DagCbor))
 		return
