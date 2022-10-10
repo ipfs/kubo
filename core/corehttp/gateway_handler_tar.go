@@ -66,7 +66,8 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 
 	w.Header().Set("Content-Type", "application/x-tar")
 
-	if tarErr := tarw.WriteFile(file, name); tarErr != nil {
+	// The TAR has a top-level directory (or file) named by the CID.
+	if tarErr := tarw.WriteFile(file, resolvedPath.Cid().String()); tarErr != nil {
 		// There are no good ways of showing an error during a stream. Therefore, we try
 		// to hijack the connection to forcefully close it, causing a network error.
 		hj, ok := w.(http.Hijacker)
