@@ -13,7 +13,7 @@ INSIDE_ROOT_HASH="bafybeibfevfxlvxp5vxobr5oapczpf7resxnleb7tkqmdorc4gl5cdva3y"
 
 test_expect_success "Add directory to test with" '
   ipfs dag import ../t0122-gateway-tar-data/foo.car > import_output &&
-  grep -q $FOO_HASH import_output
+  test_should_contain $FOO_HASH import_output
 '
 
 test_expect_success "GET TAR with format=tar and extract" '
@@ -26,21 +26,19 @@ test_expect_success "GET TAR with 'Accept: application/x-tar' and extract" '
 
 test_expect_success "GET TAR with format=tar has expected Content-Type" '
   curl -svX GET "http://127.0.0.1:$GWAY_PORT/ipfs/$FOO_HASH?format=tar" > curl_output_filename 2>&1 &&
-  cat curl_output_filename &&
-  grep "< Content-Type: application/x-tar" curl_output_filename
+  test_should_contain "< Content-Type: application/x-tar" curl_output_filename
 '
 
 test_expect_success "GET TAR with 'Accept: application/x-tar' has expected Content-Type" '
   curl -svX GET -H "Accept: application/x-tar" "http://127.0.0.1:$GWAY_PORT/ipfs/$FOO_HASH" > curl_output_filename 2>&1 &&
-  cat curl_output_filename &&
-  grep "< Content-Type: application/x-tar" curl_output_filename
+  test_should_contain "< Content-Type: application/x-tar" curl_output_filename
 '
 
 test_expect_success "Add directories with relative paths to test with" '
   ipfs dag import ../t0122-gateway-tar-data/outside-root.car > import_output &&
-  grep -q $OUTSIDE_ROOT_HASH import_output &&
+  test_should_contain $OUTSIDE_ROOT_HASH import_output &&
   ipfs dag import ../t0122-gateway-tar-data/inside-root.car > import_output &&
-  grep -q $INSIDE_ROOT_HASH import_output
+  test_should_contain $INSIDE_ROOT_HASH import_output
 '
 
 test_expect_success "GET TAR with relative paths outside root fails" '
