@@ -1,5 +1,7 @@
 package config
 
+const DefaultUseInlinedDNSLink = false
+
 type GatewaySpec struct {
 	// Paths is explicit list of path prefixes that should be handled by
 	// this gateway. Example: `["/ipfs", "/ipns", "/api"]`
@@ -21,7 +23,7 @@ type GatewaySpec struct {
 
 	// UseInlinedDNSLink configures this gateway to always inline DNSLink entries
 	// into a single label in order to be DNS Safe.
-	UseInlinedDNSLink bool
+	UseInlinedDNSLink Flag
 }
 
 // Gateway contains options for the HTTP gateway server.

@@ -84,7 +84,8 @@ func HostnameOption() ServeOption {
 					if gw.UseSubdomains {
 						// Yes, redirect if applicable
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
-						newURL, err := toSubdomainURL(host, r.URL.Path, r, gw.UseInlinedDNSLink, coreAPI)
+						useInlinedDNSLink := gw.UseInlinedDNSLink.WithDefault(config.DefaultUseInlinedDNSLink)
+						newURL, err := toSubdomainURL(host, r.URL.Path, r, useInlinedDNSLink, coreAPI)
 						if err != nil {
 							http.Error(w, err.Error(), http.StatusBadRequest)
 							return
@@ -132,6 +133,9 @@ func HostnameOption() ServeOption {
 				// Assemble original path prefix.
 				pathPrefix := "/" + ns + "/" + rootID
 
+				// Retrieve whether or not we should inline DNSLink.
+				useInlinedDNSLink := gw.UseInlinedDNSLink.WithDefault(config.DefaultUseInlinedDNSLink)
+
 				// Does this gateway _handle_ subdomains AND this path?
 				if !(gw.UseSubdomains && hasPrefix(pathPrefix, gw.Paths...)) {
 					// If not, resource does not exist, return 404
@@ -149,7 +153,7 @@ func HostnameOption() ServeOption {
 					}
 					if !strings.HasPrefix(r.Host, dnsCID) {
 						dnsPrefix := "/" + ns + "/" + dnsCID
-						newURL, err := toSubdomainURL(gwHostname, dnsPrefix+r.URL.Path, r, gw.UseInlinedDNSLink, coreAPI)
+						newURL, err := toSubdomainURL(gwHostname, dnsPrefix+r.URL.Path, r, useInlinedDNSLink, coreAPI)
 						if err != nil {
 							http.Error(w, err.Error(), http.StatusBadRequest)
 							return
@@ -165,7 +169,7 @@ func HostnameOption() ServeOption {
 					// Do we need to fix multicodec in PeerID represented as CIDv1?
 					if isPeerIDNamespace(ns) {
 						if rootCID.Type() != cid.Libp2pKey {
-							newURL, err := toSubdomainURL(gwHostname, pathPrefix+r.URL.Path, r, gw.UseInlinedDNSLink, coreAPI)
+							newURL, err := toSubdomainURL(gwHostname, pathPrefix+r.URL.Path, r, useInlinedDNSLink, coreAPI)
 							if err != nil {
 								http.Error(w, err.Error(), http.StatusBadRequest)
 								return
