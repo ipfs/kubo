@@ -150,7 +150,7 @@ config file at runtime.
       - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
       - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
       - [`Swarm.Transports.Network.WebTransport`](#swarmtransportsnetworkwebtransport)
-      - [How to enable WebTransport](#how-to-enable-webtransport)
+        - [How to enable WebTransport](#how-to-enable-webtransport)
     - [`Swarm.Transports.Security`](#swarmtransportssecurity)
       - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
       - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
@@ -1985,7 +1985,7 @@ Default: Disabled
 Type: `flag`
 
 
-#### How to enable WebTransport
+##### How to enable WebTransport
 
 Thoses steps are temporary and wont be needed once we make it enabled by default.
 
