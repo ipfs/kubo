@@ -209,7 +209,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	logger.Debugw("request processed", "tplDataDNSLink", dnslink, "tplDataSize", size, "tplDataBackLink", backLink, "tplDataHash", hash)
 
 	if err := listingTemplate.Execute(w, tplData); err != nil {
-		internalWebError(w, err)
+		closeConnWithError(w, err)
 		return
 	}
 

@@ -46,7 +46,11 @@ func (i *gatewayHandler) serveRawBlock(ctx context.Context, w http.ResponseWrite
 
 	// ServeContent will take care of
 	// If-None-Match+Etag, Content-Length and range requests
-	_, dataSent, _ := ServeContent(w, r, name, modtime, content)
+	_, dataSent, err := ServeContent(w, r, name, modtime, content)
+
+	if err != nil {
+		closeConnWithError(w, err)
+	}
 
 	if dataSent {
 		// Update metrics

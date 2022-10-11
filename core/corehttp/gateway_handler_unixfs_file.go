@@ -94,7 +94,11 @@ func (i *gatewayHandler) serveFile(ctx context.Context, w http.ResponseWriter, r
 
 	// ServeContent will take care of
 	// If-None-Match+Etag, Content-Length and range requests
-	_, dataSent, _ := ServeContent(w, r, name, modtime, content)
+	_, dataSent, err := ServeContent(w, r, name, modtime, content)
+
+	if err != nil {
+		closeConnWithError(w, err)
+	}
 
 	// Was response successful?
 	if dataSent {
