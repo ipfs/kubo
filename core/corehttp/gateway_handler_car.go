@@ -67,7 +67,6 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 
 	w.Header().Set("Content-Type", "application/vnd.ipld.car; version=1")
 	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
-	w.Header().Set("Trailer", "X-Stream-Error")
 
 	// Same go-car settings as dag.export command
 	store := dagStore{dag: i.api.Dag(), ctx: ctx}
@@ -77,11 +76,7 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 	car := gocar.NewSelectiveCar(ctx, store, []gocar.Dag{dag}, gocar.TraverseLinksOnlyOnce())
 
 	if err := car.Write(w); err != nil {
-		// We return error as a trailer, however it is not something browsers can access
-		// (https://github.com/mdn/browser-compat-data/issues/14703)
-		// Due to this, we suggest client always verify that
-		// the received CAR stream response is matching requested DAG selector
-		w.Header().Set("X-Stream-Error", err.Error())
+		closeConnWithError(w, err)
 		return
 	}
 
