@@ -775,7 +775,7 @@ inlined DNS Link, such that it fits into a single DNS entry.
 
 Default: `false`
 
-Type: `bool`
+Type: `flag`
 
 #### Implicit defaults of `Gateway.PublicGateways`
 
