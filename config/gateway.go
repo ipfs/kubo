@@ -21,8 +21,9 @@ type GatewaySpec struct {
 	// provided in `Host` HTTP header.
 	NoDNSLink bool
 
-	// UseInlinedDNSLink configures this gateway to always inline DNSLink entries
-	// into a single label in order to be DNS Safe.
+	// UseInlinedDNSLink configures this gateway to always inline DNSLink names
+	// (FQDN) into a single DNS label in order to interop with wildcard TLS certs
+	// and Origin per CID isolation provided by rules like https://publicsuffix.org
 	UseInlinedDNSLink Flag
 }
 

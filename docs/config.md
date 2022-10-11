@@ -150,7 +150,7 @@ config file at runtime.
       - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
       - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
       - [`Swarm.Transports.Network.WebTransport`](#swarmtransportsnetworkwebtransport)
-        - [`How to enable WebTransport`](#how-to-enable-webtransport)
+      - [How to enable WebTransport](#how-to-enable-webtransport)
     - [`Swarm.Transports.Security`](#swarmtransportssecurity)
       - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
       - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
@@ -770,8 +770,19 @@ Type: `bool`
 
 #### `Gateway.PublicGateways: UseInlinedDNSLink`
 
-A boolean to configure whether the DNSLink subdomain redirects use
-inlined DNS Link, such that it fits into a single DNS entry.
+An optional flag to explicitly configure whether subdomain gateway's redirects
+(enabled by `UseSubdomains: true`) should always inline a DNSLink name (FQDN)
+into a single DNS label:
+
+```
+example.com/ipns/example.net → example-net.ipns.example.com
+```
+
+DNSLink name inlining allows for HTTPS on public subdomain gateways with single
+label wildcard TLS certs (also enabled when passing `X-Forwarded-Proto: https`),
+and provides disjoint Origin per root CID when special rules like
+https://publicsuffix.org, or a custom localhost logic in browsers like Brave
+has to be applied.
 
 Default: `false`
 
