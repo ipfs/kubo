@@ -116,12 +116,12 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 		}
 	}
 
-	coreApi, err := coreapi.NewCoreAPI(node)
+	coreAPI, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fs, err := NewFileSystem(node.Context(), coreApi, "", "")
+	fs, err := NewFileSystem(node.Context(), coreAPI, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

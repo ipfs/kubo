@@ -21,9 +21,9 @@ import (
 	"github.com/ipfs/kubo/repo/fsrepo"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	inet "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
+	inet "github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
@@ -336,7 +336,7 @@ The output of this command is JSON.
 		}
 
 		if node.ResourceManager == nil {
-			return libp2p.NoResourceMgrError
+			return libp2p.ErrNoResourceMgr
 		}
 
 		if len(req.Arguments) != 1 {
@@ -394,7 +394,7 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 		}
 
 		if node.ResourceManager == nil {
-			return libp2p.NoResourceMgrError
+			return libp2p.ErrNoResourceMgr
 		}
 
 		scope := req.Arguments[0]

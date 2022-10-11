@@ -22,8 +22,8 @@ import (
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	migrations "github.com/ipfs/kubo/repo/fsrepo/migrations"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 var KeyCmd = &cmds.Command{
@@ -56,7 +56,7 @@ publish'.
 
 type KeyOutput struct {
 	Name string
-	Id   string
+	Id   string //nolint
 }
 
 type KeyOutputList struct {
@@ -67,7 +67,7 @@ type KeyOutputList struct {
 type KeyRenameOutput struct {
 	Was       string
 	Now       string
-	Id        string
+	Id        string //nolint
 	Overwrite bool
 }
 

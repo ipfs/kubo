@@ -6,7 +6,7 @@ import (
 	"github.com/ipfs/go-graphsync/network"
 	"github.com/ipfs/go-graphsync/storeutil"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	libp2p "github.com/libp2p/go-libp2p-core"
+	libp2p "github.com/libp2p/go-libp2p/core"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/kubo/core/node/helpers"

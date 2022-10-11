@@ -9,7 +9,7 @@ type DNS struct {
 	// https://en.wikipedia.org/wiki/DNS_over_HTTPS
 	//
 	// Example:
-	// - Custom resolver for ENS:          `eth.` → `https://eth.link/dns-query`
+	// - Custom resolver for ENS:          `eth.` → `https://dns.eth.limo/dns-query`
 	// - Override the default OS resolver: `.`    → `https://doh.applied-privacy.net/query`
 	Resolvers map[string]string
 	// MaxCacheTTL is the maximum duration DNS entries are valid in the cache.

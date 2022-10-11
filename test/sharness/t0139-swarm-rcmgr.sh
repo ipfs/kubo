@@ -55,6 +55,10 @@ test_expect_success 'ResourceMgr enabled: swarm limit' '
   jq -e .StreamsOutbound < json
 '
 
+test_expect_success 'connected: swarm stats all working properly' '
+  test_expect_code 0 ipfs swarm stats all
+'
+
 # every scope has the same fields, so we only inspect System
 test_expect_success 'ResourceMgr enabled: swarm stats' '
   ipfs swarm stats all --enc=json | tee json &&

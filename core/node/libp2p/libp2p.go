@@ -10,9 +10,9 @@ import (
 
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	"go.uber.org/fx"
 )
@@ -25,7 +25,6 @@ type Libp2pOpts struct {
 	Opts []libp2p.Option `group:"libp2p"`
 }
 
-// Misc options
 var UserAgent = simpleOpt(libp2p.UserAgent(version.GetUserAgentVersion()))
 
 func ConnectionManager(low, high int, grace time.Duration) func() (opts Libp2pOpts, err error) {

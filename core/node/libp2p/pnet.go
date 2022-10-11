@@ -9,8 +9,8 @@ import (
 	"github.com/ipfs/kubo/repo"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/pnet"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/pnet"
 	"go.uber.org/fx"
 	"golang.org/x/crypto/salsa20"
 	"golang.org/x/crypto/sha3"

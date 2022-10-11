@@ -9,7 +9,7 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p"
-	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 
 	"github.com/wI2L/jsondiff"
 )
@@ -155,7 +155,7 @@ func checkImplicitDefaults() {
 		}
 
 		if !ok {
-			log.Errorf("===> OOF! go-libp2p reduced DefaultServiceLimits\n" +
+			log.Errorf("===> OOF! go-libp2p changed DefaultServiceLimits\n" +
 				"=> See the aboce reduced values for info.\n" +
 				"=> go-libp2p SetDefaultServiceLimits update needs a review:\n" +
 				"Please inspect if changes impact go-ipfs users, and update expectedDefaultServiceLimits in rcmgr_defaults.go to remove this message",
@@ -181,7 +181,7 @@ func jsonDiff(old []byte, updated []byte) ([]string, error) {
 	return changes, nil
 }
 
-// https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.1.5/limit_defaults.go#L49
+// https://github.com/libp2p/go-libp2p/blob/v0.22.0/p2p/host/resource-manager/limit_defaults.go#L343
 const expectedDefaultLimits = `{
   "SystemBaseLimit": {
     "Streams": 2048,
@@ -376,7 +376,7 @@ const expectedDefaultLimits = `{
     "ConnsInbound": 1,
     "ConnsOutbound": 1,
     "FD": 1,
-    "Memory": 1048576
+    "Memory": 33554432
   },
   "ConnLimitIncrease": {
     "Streams": 0,

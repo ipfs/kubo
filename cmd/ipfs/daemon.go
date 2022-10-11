@@ -59,9 +59,10 @@ const (
 	routingOptionDHTKwd       = "dht"
 	routingOptionDHTServerKwd = "dhtserver"
 	routingOptionNoneKwd      = "none"
+	routingOptionCustomKwd    = "custom"
 	routingOptionDefaultKwd   = "default"
 	unencryptTransportKwd     = "disable-transport-encryption"
-	unrestrictedApiAccessKwd  = "unrestricted-api"
+	unrestrictedAPIAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
 	enablePubSubKwd           = "enable-pubsub-experiment"
 	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
@@ -142,14 +143,15 @@ environment variable:
 
 Routing
 
-IPFS by default will use a DHT for content routing. There is a highly
-experimental alternative that operates the DHT in a 'client only' mode that
-can be enabled by running the daemon as:
+IPFS by default will use a DHT for content routing. There is an alternative
+that operates the DHT in a 'client only' mode that can be enabled by
+running the daemon as:
 
   ipfs daemon --routing=dhtclient
 
-This will later be transitioned into a config option once it gets out of the
-'experimental' stage.
+Or you can set routing to dhtclient in the config:
+
+  ipfs config Routing.Type dhtclient
 
 DEPRECATION NOTICE
 
@@ -172,7 +174,7 @@ Headers.
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
-		cmds.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes"),
+		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow API access to unlisted hashes"),
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
@@ -400,7 +402,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd {
-		routingOption = cfg.Routing.Type.WithDefault(routingOptionDHTKwd)
+		routingOption = cfg.Routing.Type
+		if routingOption == "" {
+			routingOption = routingOptionDHTKwd
+		}
 	}
 	switch routingOption {
 	case routingOptionSupernodeKwd:
@@ -413,6 +418,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		ncfg.Routing = libp2p.DHTServerOption
 	case routingOptionNoneKwd:
 		ncfg.Routing = libp2p.NilRouterOption
+	case routingOptionCustomKwd:
+		ncfg.Routing = libp2p.ConstructDelegatedRouting(
+			cfg.Routing.Routers,
+			cfg.Routing.Methods,
+			cfg.Identity.PeerID,
+			cfg.Addresses.Swarm,
+			cfg.Identity.PrivKey,
+		)
 	default:
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
 	}
@@ -520,6 +533,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		"commit":  version.CurrentCommit,
 	}).Set(1)
 
+	// TODO(9285): make metrics more configurable
 	// initialize metrics collector
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
@@ -640,7 +654,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 	// because this would open up the api to scripting vulnerabilities.
 	// only the webui objects are allowed.
 	// if you know what you're doing, go ahead and pass --unrestricted-api.
-	unrestricted, _ := req.Options[unrestrictedApiAccessKwd].(bool)
+	unrestricted, _ := req.Options[unrestrictedAPIAccessKwd].(bool)
 	gatewayOpt := corehttp.GatewayOption(false, corehttp.WebUIPaths...)
 	if unrestricted {
 		gatewayOpt = corehttp.GatewayOption(true, "/ipfs", "/ipns")
@@ -673,8 +687,8 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		return nil, fmt.Errorf("serveHTTPApi: ConstructNode() failed: %s", err)
 	}
 
-	if err := node.Repo.SetAPIAddr(listeners[0].Multiaddr()); err != nil {
-		return nil, fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %s", err)
+	if err := node.Repo.SetAPIAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr())); err != nil {
+		return nil, fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %w", err)
 	}
 
 	errc := make(chan error)
@@ -693,6 +707,19 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 	}()
 
 	return errc, nil
+}
+
+func rewriteMaddrToUseLocalhostIfItsAny(maddr ma.Multiaddr) ma.Multiaddr {
+	first, rest := ma.SplitFirst(maddr)
+
+	switch {
+	case first.Equal(manet.IP4Unspecified):
+		return manet.IP4Loopback.Encapsulate(rest)
+	case first.Equal(manet.IP6Unspecified):
+		return manet.IP6Loopback.Encapsulate(rest)
+	default:
+		return maddr // not ip
+	}
 }
 
 // printSwarmAddrs prints the addresses of the host
@@ -799,7 +826,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	}
 
 	if len(cfg.Gateway.PathPrefixes) > 0 {
-		log.Error("Support for X-Ipfs-Gateway-Prefix and Gateway.PathPrefixes is deprecated and will be removed in the next release. Please comment on the issue if you're using this feature: https://github.com/ipfs/kubo/issues/7702")
+		log.Fatal("Support for custom Gateway.PathPrefixes was removed: https://github.com/ipfs/go-ipfs/issues/7702")
 	}
 
 	node, err := cctx.ConstructNode()
@@ -808,7 +835,11 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	}
 
 	if len(listeners) > 0 {
-		if err := node.Repo.SetGatewayAddr(listeners[0].Addr()); err != nil {
+		addr, err := manet.ToNetAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr()))
+		if err != nil {
+			return nil, fmt.Errorf("serveHTTPGateway: manet.ToIP() failed: %w", err)
+		}
+		if err := node.Repo.SetGatewayAddr(addr); err != nil {
 			return nil, fmt.Errorf("serveHTTPGateway: SetGatewayAddr() failed: %w", err)
 		}
 	}
@@ -831,7 +862,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	return errc, nil
 }
 
-//collects options and opens the fuse mountpoint
+// collects options and opens the fuse mountpoint
 func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 	cfg, err := cctx.GetConfig()
 	if err != nil {

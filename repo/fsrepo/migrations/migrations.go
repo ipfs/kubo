@@ -166,6 +166,8 @@ func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetch
 			if newIpfsFetcher != nil {
 				fetchers = append(fetchers, newIpfsFetcher(distPath))
 			}
+		case "":
+			// Ignore empty string
 		default:
 			u, err := url.Parse(src)
 			if err != nil {
@@ -179,8 +181,6 @@ func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetch
 				return nil, errors.New("bad gateway address: url scheme must be http or https")
 			}
 			fetchers = append(fetchers, &RetryFetcher{NewHttpFetcher(distPath, u.String(), httpUserAgent, 0), numTriesPerHTTP})
-		case "":
-			// Ignore empty string
 		}
 	}
 

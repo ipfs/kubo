@@ -30,7 +30,7 @@ type mount struct {
 
 // Mount mounts a fuse fs.FS at a given location, and returns a Mount instance.
 // parent is a ContextGroup to bind the mount's ContextGroup to.
-func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allow_other bool) (Mount, error) {
+func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allowOther bool) (Mount, error) {
 	var conn *fuse.Conn
 	var err error
 
@@ -39,7 +39,7 @@ func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allow_other bo
 		fuse.AsyncRead(),
 	}
 
-	if allow_other {
+	if allowOther {
 		mountOpts = append(mountOpts, fuse.AllowOther())
 	}
 	conn, err = fuse.Mount(mountpoint, mountOpts...)

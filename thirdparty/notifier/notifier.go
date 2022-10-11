@@ -14,23 +14,21 @@ import (
 // their own Notifiee interfaces to ensure type-safety
 // of notifications:
 //
-//  type RocketNotifiee interface{
-//    Countdown(r Rocket, countdown time.Duration)
-//    LiftedOff(Rocket)
-//    ReachedOrbit(Rocket)
-//    Detached(Rocket, Capsule)
-//    Landed(Rocket)
-//  }
-//
+//	type RocketNotifiee interface{
+//	  Countdown(r Rocket, countdown time.Duration)
+//	  LiftedOff(Rocket)
+//	  ReachedOrbit(Rocket)
+//	  Detached(Rocket, Capsule)
+//	  Landed(Rocket)
+//	}
 type Notifiee interface{}
 
 // Notifier is a notification dispatcher. It's meant
 // to be composed, and its zero-value is ready to be used.
 //
-//  type Rocket struct {
-//    notifier notifier.Notifier
-//  }
-//
+//	type Rocket struct {
+//	  notifier notifier.Notifier
+//	}
 type Notifier struct {
 	mu   sync.RWMutex // guards notifiees
 	nots map[Notifiee]struct{}
@@ -51,17 +49,16 @@ func RateLimited(limit int) *Notifier {
 // Notify signs up Notifiee e for notifications. This function
 // is meant to be called behind your own type-safe function(s):
 //
-//   // generic function for pattern-following
-//   func (r *Rocket) Notify(n Notifiee) {
-//     r.notifier.Notify(n)
-//   }
+//	// generic function for pattern-following
+//	func (r *Rocket) Notify(n Notifiee) {
+//	  r.notifier.Notify(n)
+//	}
 //
-//   // or as part of other functions
-//   func (r *Rocket) Onboard(a Astronaut) {
-//     r.astronauts = append(r.austronauts, a)
-//     r.notifier.Notify(a)
-//   }
-//
+//	// or as part of other functions
+//	func (r *Rocket) Onboard(a Astronaut) {
+//	  r.astronauts = append(r.austronauts, a)
+//	  r.notifier.Notify(a)
+//	}
 func (n *Notifier) Notify(e Notifiee) {
 	n.mu.Lock()
 	if n.nots == nil { // so that zero-value is ready to be used.
@@ -74,17 +71,16 @@ func (n *Notifier) Notify(e Notifiee) {
 // StopNotify stops notifying Notifiee e. This function
 // is meant to be called behind your own type-safe function(s):
 //
-//   // generic function for pattern-following
-//   func (r *Rocket) StopNotify(n Notifiee) {
-//     r.notifier.StopNotify(n)
-//   }
+//	// generic function for pattern-following
+//	func (r *Rocket) StopNotify(n Notifiee) {
+//	  r.notifier.StopNotify(n)
+//	}
 //
-//   // or as part of other functions
-//   func (r *Rocket) Detach(c Capsule) {
-//     r.notifier.StopNotify(c)
-//     r.capsule = nil
-//   }
-//
+//	// or as part of other functions
+//	func (r *Rocket) Detach(c Capsule) {
+//	  r.notifier.StopNotify(c)
+//	  r.capsule = nil
+//	}
 func (n *Notifier) StopNotify(e Notifiee) {
 	n.mu.Lock()
 	if n.nots != nil { // so that zero-value is ready to be used.
@@ -97,22 +93,22 @@ func (n *Notifier) StopNotify(e Notifiee) {
 // This is done by calling the given function with each notifiee. It is
 // meant to be called with your own type-safe notification functions:
 //
-//  func (r *Rocket) Launch() {
-//    r.notifyAll(func(n Notifiee) {
-//      n.Launched(r)
-//    })
-//  }
+//	func (r *Rocket) Launch() {
+//	  r.notifyAll(func(n Notifiee) {
+//	    n.Launched(r)
+//	  })
+//	}
 //
-//  // make it private so only you can use it. This function is necessary
-//  // to make sure you only up-cast in one place. You control who you added
-//  // to be a notifiee. If Go adds generics, maybe we can get rid of this
-//  // method but for now it is like wrapping a type-less container with
-//  // a type safe interface.
-//  func (r *Rocket) notifyAll(notify func(Notifiee)) {
-//    r.notifier.NotifyAll(func(n notifier.Notifiee) {
-//      notify(n.(Notifiee))
-//    })
-//  }
+//	// make it private so only you can use it. This function is necessary
+//	// to make sure you only up-cast in one place. You control who you added
+//	// to be a notifiee. If Go adds generics, maybe we can get rid of this
+//	// method but for now it is like wrapping a type-less container with
+//	// a type safe interface.
+//	func (r *Rocket) notifyAll(notify func(Notifiee)) {
+//	  r.notifier.NotifyAll(func(n notifier.Notifiee) {
+//	    notify(n.(Notifiee))
+//	  })
+//	}
 //
 // Note well: each notification is launched in its own goroutine, so they
 // can be processed concurrently, and so that whatever the notification does

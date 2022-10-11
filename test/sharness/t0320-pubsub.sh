@@ -158,7 +158,7 @@ test_expect_success 'pubsub cmd fails because it was disabled via cli flag' '
 '
 
 test_expect_success "pubsub cmd produces error" '
-  echo "Error: experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use." > expected &&
+  echo "Error: experimental pubsub feature not enabled, run daemon with --enable-pubsub-experiment to use" > expected &&
   test_cmp expected pubsub_cmd_out
 '
 

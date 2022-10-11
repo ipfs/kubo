@@ -29,7 +29,7 @@ added QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe testData/d1/128
 added QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN testData/d1/a
 added QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd testData/d2/1024
 added QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL testData/d2/a
-added QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn testData/d2/bad\u007fname.txt
+added QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn testData/d2/bad\x7fname.txt
 added QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH testData/f1
 added QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M testData/f2
 added QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss testData/d1
@@ -54,7 +54,7 @@ QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5 f2
 Qmf9nCpkCfa8Gtz5m1NJMeHBWcBozKRcbdom338LukPAjy:
 QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024 1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 6    a
-QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8    bad\u007fname.txt
+QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8    bad\x7fname.txt
 
 QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
 QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 128 128
@@ -78,7 +78,7 @@ QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M f2
 Qmf9nCpkCfa8Gtz5m1NJMeHBWcBozKRcbdom338LukPAjy:
 QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL a
-QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn bad\u007fname.txt
+QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn bad\x7fname.txt
 
 QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
 QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 128
@@ -104,7 +104,7 @@ Qmf9nCpkCfa8Gtz5m1NJMeHBWcBozKRcbdom338LukPAjy:
 Hash                                           Size Name
 QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024 1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 6    a
-QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8    bad\u007fname.txt
+QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8    bad\x7fname.txt
 
 QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
 Hash                                           Size Name
@@ -145,7 +145,7 @@ added QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe testData/d1/128
 added QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN testData/d1/a
 added QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd testData/d2/1024
 added QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL testData/d2/a
-added QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn testData/d2/bad\u007fname.txt
+added QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn testData/d2/bad\x7fname.txt
 added QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH testData/f1
 added QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M testData/f2
 added QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss testData/d1
@@ -170,7 +170,7 @@ QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5         f2
 Qmf9nCpkCfa8Gtz5m1NJMeHBWcBozKRcbdom338LukPAjy:
 QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024      1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 6         a
-QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8         bad\u007fname.txt
+QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8         bad\x7fname.txt
 
 QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
 QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 128       128
@@ -194,7 +194,7 @@ QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M f2
 Qmf9nCpkCfa8Gtz5m1NJMeHBWcBozKRcbdom338LukPAjy:
 QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL a
-QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn bad\u007fname.txt
+QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn bad\x7fname.txt
 
 QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
 QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 128
@@ -220,7 +220,7 @@ Qmf9nCpkCfa8Gtz5m1NJMeHBWcBozKRcbdom338LukPAjy:
 Hash                                           Size      Name
 QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024      1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 6         a
-QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8         bad\u007fname.txt
+QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8         bad\x7fname.txt
 
 QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
 Hash                                           Size      Name

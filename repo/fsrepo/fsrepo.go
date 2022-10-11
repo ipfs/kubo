@@ -35,7 +35,7 @@ const LockFile = "repo.lock"
 
 var log = logging.Logger("fsrepo")
 
-// version number that we are currently expecting to see
+// RepoVersion is the version number that we are currently expecting to see
 var RepoVersion = 12
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
@@ -383,7 +383,7 @@ func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	}
 	// Remove the temp file when rename return error
 	if err1 := os.Remove(filepath.Join(r.path, "."+apiFile+".tmp")); err1 != nil {
-		return fmt.Errorf("File Rename error: %s, File remove error: %s", err.Error(),
+		return fmt.Errorf("file Rename error: %s, file remove error: %s", err.Error(),
 			err1.Error())
 	}
 	return err
@@ -422,7 +422,7 @@ func (r *FSRepo) SetGatewayAddr(addr net.Addr) error {
 	}
 	// Remove the temp file when rename return error
 	if err1 := os.Remove(tmpPath); err1 != nil {
-		return fmt.Errorf("File Rename error: %w, File remove error: %s", err, err1.Error())
+		return fmt.Errorf("file Rename error: %w, file remove error: %s", err, err1.Error())
 	}
 	return err
 }
@@ -582,17 +582,17 @@ func (r *FSRepo) BackupConfig(prefix string) (string, error) {
 // SetConfig updates the FSRepo's config. The user must not modify the config
 // object after calling this method.
 // FIXME: There is an inherent contradiction with storing non-user-generated
-//  Go config.Config structures as user-generated JSON nested maps. This is
-//  evidenced by the issue of `omitempty` property of fields that aren't defined
-//  by the user and Go still needs to initialize them to its default (which
-//  is not reflected in the repo's config file, see
-//  https://github.com/ipfs/kubo/issues/8088 for more details).
-//  In general we should call this API with a JSON nested maps as argument
-//  (`map[string]interface{}`). Many calls to this function are forced to
-//  synthesize the config.Config struct from their available JSON map just to
-//  satisfy this (causing incompatibilities like the `omitempty` one above).
-//  We need to comb SetConfig calls and replace them when possible with a
-//  JSON map variant.
+// Go config.Config structures as user-generated JSON nested maps. This is
+// evidenced by the issue of `omitempty` property of fields that aren't defined
+// by the user and Go still needs to initialize them to its default (which
+// is not reflected in the repo's config file, see
+// https://github.com/ipfs/kubo/issues/8088 for more details).
+// In general we should call this API with a JSON nested maps as argument
+// (`map[string]interface{}`). Many calls to this function are forced to
+// synthesize the config.Config struct from their available JSON map just to
+// satisfy this (causing incompatibilities like the `omitempty` one above).
+// We need to comb SetConfig calls and replace them when possible with a
+// JSON map variant.
 func (r *FSRepo) SetConfig(updated *config.Config) error {
 
 	// packageLock is held to provide thread-safety.

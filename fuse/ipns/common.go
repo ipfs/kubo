@@ -7,7 +7,7 @@ import (
 	path "github.com/ipfs/go-path"
 	ft "github.com/ipfs/go-unixfs"
 	"github.com/ipfs/kubo/core"
-	ci "github.com/libp2p/go-libp2p-core/crypto"
+	ci "github.com/libp2p/go-libp2p/core/crypto"
 )
 
 // InitializeKeyspace sets the ipns record for the given key to

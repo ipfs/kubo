@@ -262,6 +262,38 @@ func (d OptionalDuration) String() string {
 var _ json.Unmarshaler = (*OptionalDuration)(nil)
 var _ json.Marshaler = (*OptionalDuration)(nil)
 
+type Duration struct {
+	time.Duration
+}
+
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.String())
+}
+
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	var v interface{}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	switch value := v.(type) {
+	case float64:
+		d.Duration = time.Duration(value)
+		return nil
+	case string:
+		var err error
+		d.Duration, err = time.ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		return nil
+	default:
+		return fmt.Errorf("unable to parse duration, expected a duration string or a float, but got %T", v)
+	}
+}
+
+var _ json.Unmarshaler = (*Duration)(nil)
+var _ json.Marshaler = (*Duration)(nil)
+
 // OptionalInteger represents an integer that has a default value
 //
 // When encoded in json, Default is encoded as "null"
