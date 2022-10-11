@@ -391,16 +391,6 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 	case strings.HasPrefix(scope, config.ResourceMgrServiceScopePrefix):
 		svc := strings.TrimPrefix(scope, config.ResourceMgrServiceScopePrefix)
 
-		if svc == "" {
-			// reset defaults
-			err = mgr.ViewSystem(func(s network.ResourceScope) error { return setLimit(s, &defaults.ServiceDefault) })
-			setConfigFunc = func() rcmgr.BaseLimit {
-				configLimits.ServiceDefault = defaults.ServiceDefault
-				return defaults.ServiceDefault
-			}
-			break
-		}
-
 		err = mgr.ViewService(svc, func(s network.ServiceScope) error { return setLimit(s, &defaults.ServiceDefault) })
 		setConfigFunc = func() rcmgr.BaseLimit {
 			if configLimits.Service == nil {
@@ -411,17 +401,6 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 		}
 	case strings.HasPrefix(scope, config.ResourceMgrProtocolScopePrefix):
 		proto := strings.TrimPrefix(scope, config.ResourceMgrProtocolScopePrefix)
-
-		if proto == "" {
-			// reset defaults
-			err = mgr.ViewSystem(func(s network.ResourceScope) error { return setLimit(s, &defaults.ProtocolDefault) })
-			setConfigFunc = func() rcmgr.BaseLimit {
-				configLimits.ProtocolDefault = defaults.ProtocolDefault
-
-				return defaults.ProtocolDefault
-			}
-			break
-		}
 
 		err = mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error { return setLimit(s, &defaults.ProtocolDefault) })
 		setConfigFunc = func() rcmgr.BaseLimit {
@@ -434,17 +413,6 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 		}
 	case strings.HasPrefix(scope, config.ResourceMgrPeerScopePrefix):
 		p := strings.TrimPrefix(scope, config.ResourceMgrPeerScopePrefix)
-
-		if p == "" {
-			// reset defaults
-			err = mgr.ViewSystem(func(s network.ResourceScope) error { return setLimit(s, &defaults.PeerDefault) })
-			setConfigFunc = func() rcmgr.BaseLimit {
-				configLimits.PeerDefault = defaults.PeerDefault
-
-				return defaults.PeerDefault
-			}
-			break
-		}
 
 		var pid peer.ID
 		pid, err = peer.Decode(p)
