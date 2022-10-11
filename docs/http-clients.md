@@ -1,6 +1,6 @@
 # HTTP Clients
 
-To date, we have four different HTTP API clients:
+To date, we have four different HTTP RPC clients:
 
 - [kubo-rpc-client](https://github.com/ipfs/js-kubo-rpc-client) - Official JS client for talking to Kubo over HTTP
 - [ipfs-http-client](https://github.com/ipfs/js-ipfs/tree/master/packages/ipfs-http-client) - http client for js-ipfs -- Use when talking to [`js-ipfs`](https://github.com/ipfs/js-ipfs/tree/master/packages/ipfs)
