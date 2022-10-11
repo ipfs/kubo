@@ -84,7 +84,7 @@ func HostnameOption() ServeOption {
 					if gw.UseSubdomains {
 						// Yes, redirect if applicable
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
-						useInlinedDNSLink := gw.UseInlinedDNSLink.WithDefault(config.DefaultUseInlinedDNSLink)
+						useInlinedDNSLink := gw.InlineDNSLink.WithDefault(config.DefaultInlineDNSLink)
 						newURL, err := toSubdomainURL(host, r.URL.Path, r, useInlinedDNSLink, coreAPI)
 						if err != nil {
 							http.Error(w, err.Error(), http.StatusBadRequest)
@@ -134,7 +134,7 @@ func HostnameOption() ServeOption {
 				pathPrefix := "/" + ns + "/" + rootID
 
 				// Retrieve whether or not we should inline DNSLink.
-				useInlinedDNSLink := gw.UseInlinedDNSLink.WithDefault(config.DefaultUseInlinedDNSLink)
+				useInlinedDNSLink := gw.InlineDNSLink.WithDefault(config.DefaultInlineDNSLink)
 
 				// Does this gateway _handle_ subdomains AND this path?
 				if !(gw.UseSubdomains && hasPrefix(pathPrefix, gw.Paths...)) {

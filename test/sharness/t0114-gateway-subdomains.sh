@@ -331,12 +331,12 @@ test_localhost_gateway_response_should_contain \
 ipfs config --json Gateway.PublicGateways '{
   "localhost": {
     "UseSubdomains": true,
-    "UseInlinedDNSLink": true,
+    "InlineDNSLink": true,
     "Paths": ["/ipfs", "/ipns", "/api"]
   },
   "example.com": {
     "UseSubdomains": true,
-    "UseInlinedDNSLink": true,
+    "InlineDNSLink": true,
     "Paths": ["/ipfs", "/ipns", "/api"]
   }
 }' || exit 1

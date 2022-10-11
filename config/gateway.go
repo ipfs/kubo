@@ -1,6 +1,6 @@
 package config
 
-const DefaultUseInlinedDNSLink = false
+const DefaultInlineDNSLink = false
 
 type GatewaySpec struct {
 	// Paths is explicit list of path prefixes that should be handled by
@@ -21,10 +21,10 @@ type GatewaySpec struct {
 	// provided in `Host` HTTP header.
 	NoDNSLink bool
 
-	// UseInlinedDNSLink configures this gateway to always inline DNSLink names
+	// InlineDNSLink configures this gateway to always inline DNSLink names
 	// (FQDN) into a single DNS label in order to interop with wildcard TLS certs
 	// and Origin per CID isolation provided by rules like https://publicsuffix.org
-	UseInlinedDNSLink Flag
+	InlineDNSLink Flag
 }
 
 // Gateway contains options for the HTTP gateway server.

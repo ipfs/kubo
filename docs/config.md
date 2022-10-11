@@ -59,7 +59,7 @@ config file at runtime.
       - [`Gateway.PublicGateways: Paths`](#gatewaypublicgateways-paths)
       - [`Gateway.PublicGateways: UseSubdomains`](#gatewaypublicgateways-usesubdomains)
       - [`Gateway.PublicGateways: NoDNSLink`](#gatewaypublicgateways-nodnslink)
-      - [`Gateway.PublicGateways: UseInlinedDNSLink`](#gatewaypublicgateways-useinlineddnslink)
+      - [`Gateway.PublicGateways: InlineDNSLink`](#gatewaypublicgateways-inlinednslink)
       - [Implicit defaults of `Gateway.PublicGateways`](#implicit-defaults-of-gatewaypublicgateways)
     - [`Gateway` recipes](#gateway-recipes)
   - [`Identity`](#identity)
@@ -768,14 +768,14 @@ Default: `false` (DNSLink lookup enabled by default for every defined hostname)
 
 Type: `bool`
 
-#### `Gateway.PublicGateways: UseInlinedDNSLink`
+#### `Gateway.PublicGateways: InlineDNSLink`
 
 An optional flag to explicitly configure whether subdomain gateway's redirects
 (enabled by `UseSubdomains: true`) should always inline a DNSLink name (FQDN)
 into a single DNS label:
 
 ```
-example.com/ipns/example.net → example-net.ipns.example.com
+//example.com/ipns/example.net → HTTP 301 → //example-net.ipns.example.com
 ```
 
 DNSLink name inlining allows for HTTPS on public subdomain gateways with single
