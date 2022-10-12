@@ -7,7 +7,7 @@ import (
 	"github.com/ipfs/go-bitswap/network"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"
 	"go.uber.org/fx"
@@ -15,19 +15,24 @@ import (
 	"github.com/ipfs/kubo/core/node/helpers"
 )
 
+// Docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#internalbitswap
 const (
-	// Docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#internalbitswap
 	DefaultEngineBlockstoreWorkerCount = 128
 	DefaultTaskWorkerCount             = 8
 	DefaultEngineTaskWorkerCount       = 8
 	DefaultMaxOutstandingBytesPerPeer  = 1 << 20
 )
 
-// OnlineExchange creates new LibP2P backed block exchange (BitSwap)
-func OnlineExchange(cfg *config.Config, provide bool) interface{} {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt irouting.TieredRouter, bs blockstore.GCBlockstore) exchange.Interface {
-		bitswapNetwork := network.NewFromIpfsHost(host, rt)
+type bitswapOptionsOut struct {
+	fx.Out
 
+	BitswapOpts []bitswap.Option `group:"bitswap-options,flatten"`
+}
+
+// BitswapOptions creates configuration options for Bitswap from the config file
+// and whether to provide data.
+func BitswapOptions(cfg *config.Config, provide bool) interface{} {
+	return func() bitswapOptionsOut {
 		var internalBsCfg config.InternalBitswap
 		if cfg.Internal.Bitswap != nil {
 			internalBsCfg = *cfg.Internal.Bitswap
@@ -40,13 +45,34 @@ func OnlineExchange(cfg *config.Config, provide bool) interface{} {
 			bitswap.EngineTaskWorkerCount(int(internalBsCfg.EngineTaskWorkerCount.WithDefault(DefaultEngineTaskWorkerCount))),
 			bitswap.MaxOutstandingBytesPerPeer(int(internalBsCfg.MaxOutstandingBytesPerPeer.WithDefault(DefaultMaxOutstandingBytesPerPeer))),
 		}
-		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, opts...)
+
+		return bitswapOptionsOut{BitswapOpts: opts}
+	}
+}
+
+type onlineExchangeIn struct {
+	fx.In
+
+	Mctx        helpers.MetricsCtx
+	Host        host.Host
+	Rt          irouting.ProvideManyRouter
+	Bs          blockstore.GCBlockstore
+	BitswapOpts []bitswap.Option `group:"bitswap-options"`
+}
+
+// OnlineExchange creates new LibP2P backed block exchange (BitSwap).
+// Additional options to bitswap.New can be provided via the "bitswap-options"
+// group.
+func OnlineExchange() interface{} {
+	return func(in onlineExchangeIn, lc fx.Lifecycle) exchange.Interface {
+		bitswapNetwork := network.NewFromIpfsHost(in.Host, in.Rt)
+
+		exch := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetwork, in.Bs, in.BitswapOpts...)
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
 				return exch.Close()
 			},
 		})
 		return exch
-
 	}
 }

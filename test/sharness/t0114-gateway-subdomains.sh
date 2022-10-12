@@ -324,6 +324,38 @@ test_localhost_gateway_response_should_contain \
   "Ref"
 
 ## ============================================================================
+## Test DNSLink inlining on HTTP gateways
+## ============================================================================
+
+# set explicit subdomain gateway config for the hostname
+ipfs config --json Gateway.PublicGateways '{
+  "localhost": {
+    "UseSubdomains": true,
+    "InlineDNSLink": true,
+    "Paths": ["/ipfs", "/ipns", "/api"]
+  },
+  "example.com": {
+    "UseSubdomains": true,
+    "InlineDNSLink": true,
+    "Paths": ["/ipfs", "/ipns", "/api"]
+  }
+}' || exit 1
+# restart daemon to apply config changes
+test_kill_ipfs_daemon
+test_launch_ipfs_daemon_without_network
+
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain with DNS inlining" \
+  "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
+  "Location: http://en-wikipedia--on--ipfs-org.ipns.localhost:$GWAY_PORT/wiki"
+
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipns/{fqdn} redirects to DNSLink in subdomain with DNS inlining" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
+  "Location: http://en-wikipedia--on--ipfs-org.ipns.example.com/wiki"
+
+## ============================================================================
 ## Test subdomain-based requests with a custom hostname config
 ## (origin per content root at http://*.example.com)
 ## ============================================================================

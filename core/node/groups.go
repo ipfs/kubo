@@ -165,7 +165,6 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.ContentRouting),
 
 		fx.Provide(libp2p.BaseRouting(cfg.Experimental.AcceleratedDHTClient)),
-		fx.Provide(libp2p.DelegatedRouting(cfg.Routing.Routers)),
 		maybeProvide(libp2p.PubsubRouter, bcfg.getOpt("ipnsps")),
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
@@ -289,7 +288,8 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	shouldBitswapProvide := !cfg.Experimental.StrategicProviding
 
 	return fx.Options(
-		fx.Provide(OnlineExchange(cfg, shouldBitswapProvide)),
+		fx.Provide(BitswapOptions(cfg, shouldBitswapProvide)),
+		fx.Provide(OnlineExchange()),
 		maybeProvide(Graphsync, cfg.Experimental.GraphsyncEnabled),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize)),

@@ -104,6 +104,8 @@ type Transports struct {
 		TCP       Flag `json:",omitempty"`
 		Websocket Flag `json:",omitempty"`
 		Relay     Flag `json:",omitempty"`
+		// except WebTransport which is experimental and optin.
+		WebTransport Flag `json:",omitempty"`
 	}
 
 	// Security specifies the transports used to encrypt insecure network

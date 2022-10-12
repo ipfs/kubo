@@ -122,12 +122,12 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	}
 	defer catter.Close()
 
-	adderApi, err := coreapi.NewCoreAPI(adder)
+	adderAPI, err := coreapi.NewCoreAPI(adder)
 	if err != nil {
 		return err
 	}
 
-	catterApi, err := coreapi.NewCoreAPI(catter)
+	catterAPI, err := coreapi.NewCoreAPI(catter)
 	if err != nil {
 		return err
 	}
@@ -147,12 +147,12 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	added, err := adderApi.Unixfs().Add(ctx, files.NewBytesFile(data))
+	added, err := adderAPI.Unixfs().Add(ctx, files.NewBytesFile(data))
 	if err != nil {
 		return err
 	}
 
-	readerCatted, err := catterApi.Unixfs().Get(ctx, added)
+	readerCatted, err := catterAPI.Unixfs().Get(ctx, added)
 	if err != nil {
 		return err
 	}

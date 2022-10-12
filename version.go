@@ -11,9 +11,9 @@ import (
 var CurrentCommit string
 
 // CurrentVersionNumber is the current application's version literal
-const CurrentVersionNumber = "0.16.0-dev"
+const CurrentVersionNumber = "0.17.0-dev"
 
-const ApiVersion = "/kubo/" + CurrentVersionNumber + "/"
+const ApiVersion = "/kubo/" + CurrentVersionNumber + "/" //nolint
 
 // GetUserAgentVersion is the libp2p user agent used by go-ipfs.
 //

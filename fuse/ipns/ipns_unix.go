@@ -147,25 +147,25 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.K
 }
 
 // Attr returns file attributes.
-func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
+func (r *Root) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Root Attr")
 	a.Mode = os.ModeDir | 0111 // -rw+x
 	return nil
 }
 
 // Lookup performs a lookup under this node.
-func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
+func (r *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
 		return nil, fuse.ENOENT
 	}
 
-	if lnk, ok := s.LocalLinks[name]; ok {
+	if lnk, ok := r.LocalLinks[name]; ok {
 		return lnk, nil
 	}
 
-	nd, ok := s.LocalDirs[name]
+	nd, ok := r.LocalDirs[name]
 	if ok {
 		switch nd := nd.(type) {
 		case *Directory:
@@ -179,7 +179,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 	// other links go through ipns resolution and are symlinked into the ipfs mountpoint
 	ipnsName := "/ipns/" + name
-	resolved, err := s.Ipfs.Name().Resolve(ctx, ipnsName)
+	resolved, err := r.Ipfs.Name().Resolve(ctx, ipnsName)
 	if err != nil {
 		log.Warnf("ipns: namesys resolve error: %s", err)
 		return nil, fuse.ENOENT
@@ -189,7 +189,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, errors.New("invalid path from ipns record")
 	}
 
-	return &Link{s.IpfsRoot + "/" + strings.TrimPrefix(resolved.String(), "/ipfs/")}, nil
+	return &Link{r.IpfsRoot + "/" + strings.TrimPrefix(resolved.String(), "/ipfs/")}, nil
 }
 
 func (r *Root) Close() error {
@@ -270,8 +270,8 @@ func (fi *FileNode) Attr(ctx context.Context, a *fuse.Attr) error {
 }
 
 // Lookup performs a lookup under this node.
-func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
-	child, err := s.dir.Child(name)
+func (d *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
+	child, err := d.dir.Child(name)
 	if err != nil {
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT
@@ -290,8 +290,8 @@ func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 }
 
 // ReadDirAll reads the link structure as directory entries
-func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	listing, err := dir.dir.List(ctx)
+func (d *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
+	listing, err := d.dir.List(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -401,8 +401,8 @@ func (fi *File) Forget() {
 	}
 }
 
-func (dir *Directory) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
-	child, err := dir.dir.Mkdir(req.Name)
+func (d *Directory) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
+	child, err := d.dir.Mkdir(req.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -451,15 +451,15 @@ func (fi *File) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
 	return fi.fi.Close()
 }
 
-func (dir *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
+func (d *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
 	// New 'empty' file
 	nd := dag.NodeWithData(ft.FilePBData(nil, 0))
-	err := dir.dir.AddChild(req.Name, nd)
+	err := d.dir.AddChild(req.Name, nd)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	child, err := dir.dir.Child(req.Name)
+	child, err := d.dir.Child(req.Name)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -483,8 +483,8 @@ func (dir *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp 
 	return nodechild, &File{fi: fd}, nil
 }
 
-func (dir *Directory) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
-	err := dir.dir.Unlink(req.Name)
+func (d *Directory) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
+	err := d.dir.Unlink(req.Name)
 	if err != nil {
 		return fuse.ENOENT
 	}
@@ -492,13 +492,13 @@ func (dir *Directory) Remove(ctx context.Context, req *fuse.RemoveRequest) error
 }
 
 // Rename implements NodeRenamer
-func (dir *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
-	cur, err := dir.dir.Child(req.OldName)
+func (d *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
+	cur, err := d.dir.Child(req.OldName)
 	if err != nil {
 		return err
 	}
 
-	err = dir.dir.Unlink(req.OldName)
+	err = d.dir.Unlink(req.OldName)
 	if err != nil {
 		return err
 	}

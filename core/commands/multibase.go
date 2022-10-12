@@ -105,11 +105,11 @@ This command expects multibase inside of a file or via stdin:
 		if err != nil {
 			return fmt.Errorf("failed to access file: %w", err)
 		}
-		encoded_data, err := io.ReadAll(file)
+		encodedData, err := io.ReadAll(file)
 		if err != nil {
 			return fmt.Errorf("failed to read file contents: %w", err)
 		}
-		_, data, err := mbase.Decode(string(encoded_data))
+		_, data, err := mbase.Decode(string(encodedData))
 		if err != nil {
 			return fmt.Errorf("failed to decode multibase: %w", err)
 		}
@@ -156,11 +156,11 @@ but one can customize used base with -b:
 		if err != nil {
 			return fmt.Errorf("failed to access file: %w", err)
 		}
-		encoded_data, err := io.ReadAll(file)
+		encodedData, err := io.ReadAll(file)
 		if err != nil {
 			return fmt.Errorf("failed to read file contents: %w", err)
 		}
-		_, data, err := mbase.Decode(string(encoded_data))
+		_, data, err := mbase.Decode(string(encodedData))
 		if err != nil {
 			return fmt.Errorf("failed to decode multibase: %w", err)
 		}

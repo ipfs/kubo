@@ -16,7 +16,7 @@ const (
 )
 
 // HttpFetcher fetches files over HTTP
-type HttpFetcher struct {
+type HttpFetcher struct { //nolint
 	distPath  string
 	gateway   string
 	limit     int64
@@ -30,7 +30,7 @@ var _ Fetcher = (*HttpFetcher)(nil)
 // Specifying "" for distPath sets the default IPNS path.
 // Specifying "" for gateway sets the default.
 // Specifying 0 for fetchLimit sets the default, -1 means no limit.
-func NewHttpFetcher(distPath, gateway, userAgent string, fetchLimit int64) *HttpFetcher {
+func NewHttpFetcher(distPath, gateway, userAgent string, fetchLimit int64) *HttpFetcher { //nolint
 	f := &HttpFetcher{
 		distPath: LatestIpfsDist,
 		gateway:  defaultGatewayURL,

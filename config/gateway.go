@@ -1,5 +1,7 @@
 package config
 
+const DefaultInlineDNSLink = false
+
 type GatewaySpec struct {
 	// Paths is explicit list of path prefixes that should be handled by
 	// this gateway. Example: `["/ipfs", "/ipns", "/api"]`
@@ -18,6 +20,11 @@ type GatewaySpec struct {
 	// NoDNSLink configures this gateway to _not_ resolve DNSLink for the FQDN
 	// provided in `Host` HTTP header.
 	NoDNSLink bool
+
+	// InlineDNSLink configures this gateway to always inline DNSLink names
+	// (FQDN) into a single DNS label in order to interop with wildcard TLS certs
+	// and Origin per CID isolation provided by rules like https://publicsuffix.org
+	InlineDNSLink Flag
 }
 
 // Gateway contains options for the HTTP gateway server.

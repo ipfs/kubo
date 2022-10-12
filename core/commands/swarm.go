@@ -336,7 +336,7 @@ The output of this command is JSON.
 		}
 
 		if node.ResourceManager == nil {
-			return libp2p.NoResourceMgrError
+			return libp2p.ErrNoResourceMgr
 		}
 
 		if len(req.Arguments) != 1 {
@@ -394,7 +394,7 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 		}
 
 		if node.ResourceManager == nil {
-			return libp2p.NoResourceMgrError
+			return libp2p.ErrNoResourceMgr
 		}
 
 		scope := req.Arguments[0]
