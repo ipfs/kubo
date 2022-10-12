@@ -1124,6 +1124,6 @@ func abortConn(w http.ResponseWriter) {
 
 	err = conn.Close()
 	if err != nil {
-	  panic(http.ErrAbortHandler)
+		panic(http.ErrAbortHandler)
 	}
 }
