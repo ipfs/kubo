@@ -347,3 +347,101 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 
 	return nil
 }
+
+// NetResetLimit resets ResourceManager limits to defaults. The limits take effect immediately, and are also persisted to the repo config.
+func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (rcmgr.BaseLimit, error) {
+	var result rcmgr.BaseLimit
+
+	setLimit := func(s network.ResourceScope, l rcmgr.Limit) error {
+		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
+		if !ok {
+			return ErrNoResourceMgr
+		}
+
+		limiter.SetLimit(l)
+		return nil
+	}
+
+	cfg, err := repo.Config()
+	if err != nil {
+		return result, fmt.Errorf("reading config to reset limit: %w", err)
+	}
+
+	defaults := adjustedDefaultLimits(cfg.Swarm)
+
+	if cfg.Swarm.ResourceMgr.Limits == nil {
+		cfg.Swarm.ResourceMgr.Limits = &rcmgr.LimitConfig{}
+	}
+	configLimits := cfg.Swarm.ResourceMgr.Limits
+
+	var setConfigFunc func() rcmgr.BaseLimit
+	switch {
+	case scope == config.ResourceMgrSystemScope:
+		err = mgr.ViewSystem(func(s network.ResourceScope) error { return setLimit(s, &defaults.System) })
+		setConfigFunc = func() rcmgr.BaseLimit {
+			configLimits.System = defaults.System
+			return defaults.System
+		}
+	case scope == config.ResourceMgrTransientScope:
+		err = mgr.ViewTransient(func(s network.ResourceScope) error { return setLimit(s, &defaults.Transient) })
+		setConfigFunc = func() rcmgr.BaseLimit {
+			configLimits.Transient = defaults.Transient
+			return defaults.Transient
+		}
+	case strings.HasPrefix(scope, config.ResourceMgrServiceScopePrefix):
+		svc := strings.TrimPrefix(scope, config.ResourceMgrServiceScopePrefix)
+
+		err = mgr.ViewService(svc, func(s network.ServiceScope) error { return setLimit(s, &defaults.ServiceDefault) })
+		setConfigFunc = func() rcmgr.BaseLimit {
+			if configLimits.Service == nil {
+				configLimits.Service = map[string]rcmgr.BaseLimit{}
+			}
+			configLimits.Service[svc] = defaults.ServiceDefault
+			return defaults.ServiceDefault
+		}
+	case strings.HasPrefix(scope, config.ResourceMgrProtocolScopePrefix):
+		proto := strings.TrimPrefix(scope, config.ResourceMgrProtocolScopePrefix)
+
+		err = mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error { return setLimit(s, &defaults.ProtocolDefault) })
+		setConfigFunc = func() rcmgr.BaseLimit {
+			if configLimits.Protocol == nil {
+				configLimits.Protocol = map[protocol.ID]rcmgr.BaseLimit{}
+			}
+			configLimits.Protocol[protocol.ID(proto)] = defaults.ProtocolDefault
+
+			return defaults.ProtocolDefault
+		}
+	case strings.HasPrefix(scope, config.ResourceMgrPeerScopePrefix):
+		p := strings.TrimPrefix(scope, config.ResourceMgrPeerScopePrefix)
+
+		var pid peer.ID
+		pid, err = peer.Decode(p)
+		if err != nil {
+			return result, fmt.Errorf("invalid peer ID: %q: %w", p, err)
+		}
+
+		err = mgr.ViewPeer(pid, func(s network.PeerScope) error { return setLimit(s, &defaults.PeerDefault) })
+		setConfigFunc = func() rcmgr.BaseLimit {
+			if configLimits.Peer == nil {
+				configLimits.Peer = map[peer.ID]rcmgr.BaseLimit{}
+			}
+			configLimits.Peer[pid] = defaults.PeerDefault
+
+			return defaults.PeerDefault
+		}
+	default:
+		return result, fmt.Errorf("invalid scope %q", scope)
+	}
+
+	if err != nil {
+		return result, fmt.Errorf("resetting new limits on resource manager: %w", err)
+	}
+
+	result = setConfigFunc()
+
+	if err := repo.SetConfig(cfg); err != nil {
+		return result, fmt.Errorf("writing new limits to repo config: %w", err)
+	}
+
+	return result, nil
+}

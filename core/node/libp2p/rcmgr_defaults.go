@@ -21,7 +21,6 @@ import (
 func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.LimitConfig {
 	// Run checks to avoid introducing regressions
 	if os.Getenv("IPFS_CHECK_RCMGR_DEFAULTS") != "" {
-		// FIXME: Broken. Being tracked in https://github.com/ipfs/go-ipfs/issues/8949.
 		checkImplicitDefaults()
 	}
 	defaultLimits := rcmgr.DefaultLimits
