@@ -12,21 +12,25 @@
 # Meta
 * Release owner: @who
 * Release reviewer: @who
-* Expected RC date: week of 2022-MM-DD
-* 🚢 Expected final release date: 2022-MM-DD
+* Expected RC date: week of YYYY-MM-DD
+* 🚢 Expected final release date: YYYY-MM-DD
 * Accompanying PR for improving the release process: (example: https://github.com/ipfs/kubo/pull/9100)
 
 See the [Kubo release process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4) for more info.
 
 # Kubo X.Y.Z Release
 
-We're happy to announce Kubo X.Y.Z, bla bla...
+We're happy to announce Kubo X.Y.Z!
 
-As usual, this release includes important fixes, some of which may be critical for security. Unless the fix addresses a bug being exploited in the wild, the fix will _not_ be called out in the release notes. Please make sure to update ASAP. See our [release process](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md#security-fix-policy) for details.
+As usual, this release includes important fixes, some of which may be critical for security. Unless the fix addresses a bug being exploited in the wild, the fix will _not_ be called out in the release notes. Please make sure to update ASAP. See our [security fix policy](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md#security-fix-policy) for details.
 
 ## 🗺 What's left for release
 
 <List of items with PRs and/or Issues to be considered for this release>
+
+### Required
+
+### Nice to have
 
 ## 🔦 Highlights
 
@@ -39,13 +43,13 @@ Checklist:
 - [ ] **Stage 0 - Prerequisites**
   - [ ] Ensure that the `What's left for release` section has all the checkboxes checked. If that's not the case, discuss the open items with Kubo maintainers and update the release schedule accordingly.
   - [ ] Create `docs-release-vX.Y.Z` branch, open a draft PR and keep updating `docs/RELEASE_ISSUE_TEMPLATE.md` on that branch as you go.
-  - [ ] Ensure you have [GPG key generated]() and [added to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account). This will enable you to created signed tags.
+  - [ ] Ensure you have a [GPG key generated](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key) and [added to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account). This will enable you to created signed tags.
   - [ ] Ensure you have [admin access](https://discuss.ipfs.tech/g/admins) to [IPFS Discourse](https://discuss.ipfs.tech/). Admin access is required to globally pin posts and create banners. @2color might be able to assist you.
   - [ ] Access to [#bifrost](https://filecoinproject.slack.com/archives/C03MMMF606T) channel in FIL Slack might come in handy. Ask the release reviewer to invite you over.
-  - [ ] Access to [##shared-pl-marketing-requests](https://filecoinproject.slack.com/archives/C018EJ8LWH1) channel in FIL Slack will be required to request social shares. Ask the release reviewer to invite you over.
+  - [ ] Access to [#shared-pl-marketing-requests](https://filecoinproject.slack.com/archives/C018EJ8LWH1) channel in FIL Slack will be required to request social shares. Ask the release reviewer to invite you over.
   - [ ] After the release is deployed to our internal infrastructure, you're going to need read access to [IPFS network metrics](https://github.com/protocol/pldw/blob/624f47cf4ec14ad2cec6adf601a9f7b203ef770d/docs/sources/ipfs.md#ipfs-network-metrics) dashboards. Open an access request in https://github.com/protocol/pldw/issues/new/choose if you don't have it yet ([example](https://github.com/protocol/pldw/issues/158)).
   - [ ] You're also going to need NPM installed on your system. See [here](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) for instructions.
-  - [ ] Prepare changelog proposal in [docs/changelogs/vX.Y.md](docs/changelogs).
+  - [ ] Prepare changelog proposal in [docs/changelogs/vX.Y.md](https://github.com/ipfs/kubo/blob/master/docs/changelogs/).
     - Skip filling out the `### Changelog` section (the one where which lists all the commits and contributors) for now. We will populate it after the release branch is cut.
   - [ ] Install ZSH ([instructions](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH#install-and-set-up-zsh-as-default)). It is needed by the changelog creation script.
   - [ ] Ensure you have `kubo` checked out under `$(go env GOPATH)/src/github.com/ipfs/kubo`. This is required by the changelog creation script.
@@ -72,7 +76,7 @@ Checklist:
     - [ ] Clone the `ipfs/distributions` repo locally.
     - [ ] Create a new branch (`kubo-release-vX.Y.Z-rcn`) from `master`.
     - [ ] Run `./dist.sh add-version kubo vX.Y.Z-rcN` to add the new version to the `versions` file ([instructions](https://github.com/ipfs/distributions#usage)).
-      - If you're adding a new RC, `dist.sh` will print _WARNING: not marking pre-release kubo vX.Y.Z-rc1n as the current version._.
+      - `dist.sh` will print _WARNING: not marking pre-release kubo vX.Y.Z-rc1n as the current version._.
     - [ ] Push the `kubo-release-vX.Y.Z-rcn` branch to GitHub and create a PR from that branch ([example](https://github.com/ipfs/distributions/pull/760)).
     - [ ] Ask for a review from the release reviewer.
     - [ ] Enable auto-merge for the PR.
@@ -81,7 +85,6 @@ Checklist:
       - `master` build will publish the artifacts to https://dist.ipfs.io in around 30 minutes
     - [ ] Ensure that the artifacts are available at https://dist.ipfs.io
   - [ ] Publish the RC to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
-  - _insert additional steps that are relevant only for the final release here_
   - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.16.0-rc1))
     - Use `vX.Y.Z-rcN` as the tag.
     - Link to the release issue in the description.
@@ -122,9 +125,9 @@ Checklist:
       - [ ] Ensure that CI is green.
   - [ ] Infrastructure Testing.
     - [ ] Open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ([example](https://github.com/protocol/bifrost-infra/issues/2109)).
-      - Spell out all that we want updated - gateways, the bootstraper and the cluster/preload nodes
-      - Mention @protocol/bifrost-team in the issue if you opened it prior to the release
-      - [Optional] Reply under a message about the issue in the #bifrost channel on FIL Slack once the RC is out. Send the message to the channel.
+      - [ ] Spell out all that we want updated - gateways, the bootstraper and the cluster/preload nodes
+      - [ ] Mention @protocol/bifrost-team in the issue if you opened it prior to the release
+      - [ ] [Optional] Reply under a message about the issue in the #bifrost channel on FIL Slack once the RC is out. Send the message to the channel.
       - [ ] Check [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) every day.
         - Compare the metrics trends week over week.
         - If there is an unexpected variation in the trend, message the #bifrost channel on FIL Slack and ask for help investigation the cause.
@@ -136,11 +139,11 @@ Checklist:
       - [ ] Open a draft PR to track through the final release ([example](https://github.com/ipfs/ipfs-desktop/pull/1826))
       - [ ] Ensure CI tests pass
     - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion)
-      - Start kubo daemon of the version to release.
-      - Start a fresh chromium or chrome instance using `chromium --user-data-dir=$(mktemp -d)` (macos `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --user-data-dir=$(mktemp -d)`)
-      - Start a fresh firefox instance using `firefox --profile $(mktemp -d)` (macos `/Applications/Firefox.app/Contents/MacOS/firefox --profile $(mktemp -d)`)
-      - Install IPFS Companion from [vendor-specific store](https://github.com/ipfs/ipfs-companion/#readme).
-      - Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
+      - [ ] Start kubo daemon of the version to release.
+      - [ ] Start a fresh chromium or chrome instance using `chromium --user-data-dir=$(mktemp -d)` (macos `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --user-data-dir=$(mktemp -d)`)
+      - [ ] Start a fresh firefox instance using `firefox --profile $(mktemp -d)` (macos `/Applications/Firefox.app/Contents/MacOS/firefox --profile $(mktemp -d)`)
+      - [ ] Install IPFS Companion from [vendor-specific store](https://github.com/ipfs/ipfs-companion/#readme).
+      - [ ] Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
 - [ ] **Stage 5 - Release** - _ONLY FOR FINAL RELEASE_
   - [ ] Prepare the `release` branch.
     - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `vX.Y.Z`.
@@ -155,7 +158,7 @@ Checklist:
       - [ ] Ensure that CI is green.
       - [ ] Have release reviewer review the PR.
     - [ ] Merge the PR into `release` branch using the `Create a merge commit` (do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit).
-      - Note: do not delete the `release-vX.Y.Z` branch.
+      - Do not delete the `release-vX.Y.Z` branch.
     - [ ] Checkout the `release` branch locally.
       - Remember to pull the latest changes.
     - [ ] Create a signed tag for the release.
@@ -185,6 +188,7 @@ Checklist:
       - Keep the release notes as trim as possible (e.g. remove top headers where possible, [example](https://github.com/ipfs/kubo/releases/tag/v0.15.0))
   - [ ] Synchronize release artifacts by running [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow.
   - [ ] Announce the release
+    - [ ] Add a link to the release to this release issue as a comment.
     - [ ] Create a new post on [IPFS Discourse](https://discuss.ipfs.tech). ([example](https://discuss.ipfs.tech/t/kubo-v0-16-0-release-is-out/15286))
       - Use `Kubo vX.Y.Z Release is out!` as the title.
       - Use `kubo` and `go-ipfs` as topics.
@@ -209,34 +213,16 @@ Checklist:
     - [ ] Share the blog post
       - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests)
       - [ ] [Reddit](https://reddit.com/r/ipfs)
-      - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
-        - A bot auto-posts this to Discord and Matrix
 - [ ] **Stage 6 - Post-Release**
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
-  - [ ] Make sure any last-minute changelog updates from the blog post make it back into the CHANGELOG.
-  - [ ] Mark PR draft created for IPFS Desktop as ready for review.
-  - [ ] Mark PR draft created from `docs-release-vX.Y.Z` as ready for review.
+  - [ ] Close this release issue.
 
 ## ⁉️ Do you have questions?
 
 The best place to ask your questions about IPFS, how it works and what you can do with it is at [discuss.ipfs.io](http://discuss.ipfs.io). We are also available at the `#ipfs` channel on Freenode, which is also [accessible through our Matrix bridge](https://riot.im/app/#/room/#freenode_#ipfs:matrix.org).
 
-## Release improvements for next time
-
-< Add any release improvements that were observed this cycle here so they can get incorporated into future releases. >
-
-## Items for a separate comment
-
-< Do these as a separate comment to avoid the main issue from getting too large and checkbox updates taking too long. >
-
-### Changelog
-
-< changelog generated by bin/mkreleaselog > (add it to a separated comment if it is too big)
-
-### ❤️ Contributors
-
-< list generated by bin/mkreleaselog >
+## How to contribute?
 
 Would you like to contribute to the IPFS project and don't know how? Well, there are a few places you can get started:
 
