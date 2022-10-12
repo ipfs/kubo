@@ -378,9 +378,9 @@ Basic proof of 'ipfs working' locally:
     # QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
     ipfs cat <that hash>
 
-### HTTP clients
+### HTTP/RPC clients
 
-For programmatic interaction with Kubo, see our [list of HTTP/RPC clients](docs/http-clients.md).
+For programmatic interaction with Kubo, see our [list of HTTP/RPC clients](docs/http-rpc-clients.md).
 
 ### Troubleshooting
 
