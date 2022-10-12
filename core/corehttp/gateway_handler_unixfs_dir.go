@@ -39,10 +39,10 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 		webError(w, "failed to parse request path", err, http.StatusInternalServerError)
 		return
 	}
-	originalUrlPath := requestURI.Path
+	originalURLPath := requestURI.Path
 
 	// Ensure directory paths end with '/'
-	if originalUrlPath[len(originalUrlPath)-1] != '/' {
+	if originalURLPath[len(originalURLPath)-1] != '/' {
 		// don't redirect to trailing slash if it's go get
 		// https://github.com/ipfs/kubo/pull/3963
 		goget := r.URL.Query().Get("go-get") == "1"
@@ -53,7 +53,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 				suffix = suffix + "?" + r.URL.RawQuery
 			}
 			// /ipfs/cid/foo?bar must be redirected to /ipfs/cid/foo/?bar
-			redirectURL := originalUrlPath + suffix
+			redirectURL := originalURLPath + suffix
 			logger.Debugw("directory location moved permanently", "status", http.StatusMovedPermanently)
 			http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
 			return
@@ -125,7 +125,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 		di := directoryItem{
 			Size:      "", // no size because we did not fetch child nodes
 			Name:      link.Name,
-			Path:      gopath.Join(originalUrlPath, link.Name),
+			Path:      gopath.Join(originalURLPath, link.Name),
 			Hash:      hash,
 			ShortHash: shortHash(hash),
 		}
@@ -149,7 +149,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 
 	// construct the correct back link
 	// https://github.com/ipfs/kubo/issues/1365
-	var backLink string = originalUrlPath
+	backLink := originalURLPath
 
 	// don't go further up than /ipfs/$hash/
 	pathSplit := path.SplitList(contentPath.String())

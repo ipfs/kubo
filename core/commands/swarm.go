@@ -63,10 +63,11 @@ ipfs peers in the internet.
 }
 
 const (
-	swarmVerboseOptionName   = "verbose"
-	swarmStreamsOptionName   = "streams"
-	swarmLatencyOptionName   = "latency"
-	swarmDirectionOptionName = "direction"
+	swarmVerboseOptionName     = "verbose"
+	swarmStreamsOptionName     = "streams"
+	swarmLatencyOptionName     = "latency"
+	swarmDirectionOptionName   = "direction"
+	swarmResetLimitsOptionName = "reset"
 )
 
 type peeringResult struct {
@@ -336,7 +337,7 @@ The output of this command is JSON.
 		}
 
 		if node.ResourceManager == nil {
-			return libp2p.NoResourceMgrError
+			return libp2p.ErrNoResourceMgr
 		}
 
 		if len(req.Arguments) != 1 {
@@ -387,6 +388,9 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 		cmds.StringArg("scope", true, false, "scope of the limit"),
 		cmds.FileArg("limit.json", false, false, "limits to be set").EnableStdin(),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption(swarmResetLimitsOptionName, "reset limit to default"),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -394,7 +398,7 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 		}
 
 		if node.ResourceManager == nil {
-			return libp2p.NoResourceMgrError
+			return libp2p.ErrNoResourceMgr
 		}
 
 		scope := req.Arguments[0]
@@ -418,10 +422,19 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 			}
 		}
 
-		// get scope limit
-		result, err := libp2p.NetLimit(node.ResourceManager, scope)
-		if err != nil {
-			return err
+		var result rcmgr.BaseLimit
+		_, reset := req.Options[swarmResetLimitsOptionName]
+		if reset {
+			result, err = libp2p.NetResetLimit(node.ResourceManager, node.Repo, scope)
+			if err != nil {
+				return err
+			}
+		} else {
+			// get scope limit
+			result, err = libp2p.NetLimit(node.ResourceManager, scope)
+			if err != nil {
+				return err
+			}
 		}
 
 		b := new(bytes.Buffer)

@@ -56,7 +56,7 @@ publish'.
 
 type KeyOutput struct {
 	Name string
-	Id   string
+	Id   string //nolint
 }
 
 type KeyOutputList struct {
@@ -67,7 +67,7 @@ type KeyOutputList struct {
 type KeyRenameOutput struct {
 	Was       string
 	Now       string
-	Id        string
+	Id        string //nolint
 	Overwrite bool
 }
 

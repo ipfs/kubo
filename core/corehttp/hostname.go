@@ -84,7 +84,8 @@ func HostnameOption() ServeOption {
 					if gw.UseSubdomains {
 						// Yes, redirect if applicable
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
-						newURL, err := toSubdomainURL(host, r.URL.Path, r, coreAPI)
+						useInlinedDNSLink := gw.InlineDNSLink.WithDefault(config.DefaultInlineDNSLink)
+						newURL, err := toSubdomainURL(host, r.URL.Path, r, useInlinedDNSLink, coreAPI)
 						if err != nil {
 							http.Error(w, err.Error(), http.StatusBadRequest)
 							return
@@ -132,6 +133,9 @@ func HostnameOption() ServeOption {
 				// Assemble original path prefix.
 				pathPrefix := "/" + ns + "/" + rootID
 
+				// Retrieve whether or not we should inline DNSLink.
+				useInlinedDNSLink := gw.InlineDNSLink.WithDefault(config.DefaultInlineDNSLink)
+
 				// Does this gateway _handle_ subdomains AND this path?
 				if !(gw.UseSubdomains && hasPrefix(pathPrefix, gw.Paths...)) {
 					// If not, resource does not exist, return 404
@@ -149,7 +153,7 @@ func HostnameOption() ServeOption {
 					}
 					if !strings.HasPrefix(r.Host, dnsCID) {
 						dnsPrefix := "/" + ns + "/" + dnsCID
-						newURL, err := toSubdomainURL(gwHostname, dnsPrefix+r.URL.Path, r, coreAPI)
+						newURL, err := toSubdomainURL(gwHostname, dnsPrefix+r.URL.Path, r, useInlinedDNSLink, coreAPI)
 						if err != nil {
 							http.Error(w, err.Error(), http.StatusBadRequest)
 							return
@@ -165,7 +169,7 @@ func HostnameOption() ServeOption {
 					// Do we need to fix multicodec in PeerID represented as CIDv1?
 					if isPeerIDNamespace(ns) {
 						if rootCID.Type() != cid.Libp2pKey {
-							newURL, err := toSubdomainURL(gwHostname, pathPrefix+r.URL.Path, r, coreAPI)
+							newURL, err := toSubdomainURL(gwHostname, pathPrefix+r.URL.Path, r, useInlinedDNSLink, coreAPI)
 							if err != nil {
 								http.Error(w, err.Error(), http.StatusBadRequest)
 								return
@@ -451,7 +455,7 @@ func toDNSLinkFQDN(dnsLabel string) (fqdn string) {
 }
 
 // Converts a hostname/path to a subdomain-based URL, if applicable.
-func toSubdomainURL(hostname, path string, r *http.Request, ipfs iface.CoreAPI) (redirURL string, err error) {
+func toSubdomainURL(hostname, path string, r *http.Request, inlineDNSLink bool, ipfs iface.CoreAPI) (redirURL string, err error) {
 	var scheme, ns, rootID, rest string
 
 	query := r.URL.RawQuery
@@ -554,7 +558,7 @@ func toSubdomainURL(hostname, path string, r *http.Request, ipfs iface.CoreAPI) 
 		// can be loaded from a subdomain gateway with a wildcard TLS cert if
 		// represented as a single DNS label:
 		// https://my-v--long-example-com.ipns.dweb.link
-		if isHTTPS && ns == "ipns" && strings.Contains(rootID, ".") {
+		if (inlineDNSLink || isHTTPS) && ns == "ipns" && strings.Contains(rootID, ".") {
 			if isDNSLinkName(r.Context(), ipfs, rootID) {
 				// my.v-long.example.com → my-v--long-example-com
 				dnsLabel, err := toDNSLinkDNSLabel(rootID)
