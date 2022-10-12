@@ -67,6 +67,7 @@ const (
 	swarmStreamsOptionName   = "streams"
 	swarmLatencyOptionName   = "latency"
 	swarmDirectionOptionName = "direction"
+	swarmResetOptionName     = "reset"
 )
 
 type peeringResult struct {
@@ -387,6 +388,9 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 		cmds.StringArg("scope", true, false, "scope of the limit"),
 		cmds.FileArg("limit.json", false, false, "limits to be set").EnableStdin(),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption(swarmResetOptionName, "reset resource manager limits to default"),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -396,6 +400,8 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 		if node.ResourceManager == nil {
 			return libp2p.ErrNoResourceMgr
 		}
+
+		reset, _ := req.Options[swarmResetOptionName].(bool)
 
 		scope := req.Arguments[0]
 
@@ -415,6 +421,13 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 			}
 			if err := it.Err(); err != nil {
 				return fmt.Errorf("error opening limit JSON file: %w", err)
+			}
+		}
+
+		if reset {
+			err = libp2p.ResetLimit(node.ResourceManager, node.Repo, scope)
+			if err != nil {
+				return err
 			}
 		}
 
