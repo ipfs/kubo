@@ -76,7 +76,7 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 	car := gocar.NewSelectiveCar(ctx, store, []gocar.Dag{dag}, gocar.TraverseLinksOnlyOnce())
 
 	if err := car.Write(w); err != nil {
-		closeConnWithError(w, err)
+		abortConn(w)
 		return
 	}
 

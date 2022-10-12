@@ -1105,28 +1105,21 @@ func (i *gatewayHandler) setCommonHeaders(w http.ResponseWriter, r *http.Request
 	return nil
 }
 
-// closeConnWithError forcefully closes an HTTP/1.x connection, leading to a network
-// error on the user side. If it is not possible to forcefully close the connection,
-// we call webError which prints the error to the client, leading to a corrupt file.
-// This is a way of showing the client that there was an error while streaming the contents.
-// Currently, there are no great ways of telling the client that an error occurred while
-// streaming in HTTP.
-func closeConnWithError(w http.ResponseWriter, err error) {
-	// There are no good ways of showing an error during a stream. Therefore, we try
-	// to hijack the connection to forcefully close it, causing a network error.
+// abortConn forcefully closes an HTTP connection, leading to a network error on the
+// client side. This is a way of showing the client that there was an error while streaming
+// the contents since there are no good ways of showing an error during a stream.
+func abortConn(w http.ResponseWriter) {
 	hj, ok := w.(http.Hijacker)
 	if !ok {
-		// If we could not Hijack the connection, we write the original error. This will hopefully
-		// corrupt the generated TAR file, such that the client will receive an error unpacking.
-		webError(w, "could not build tar archive", err, http.StatusInternalServerError)
-		return
+		// If we could not Hijack the connection (such as in HTTP/2.x) connections, we
+		// panic using http.ErrAbortHandler, which aborts the response.
+		// https://pkg.go.dev/net/http#ErrAbortHandler
+		panic(http.ErrAbortHandler)
 	}
 
-	conn, _, hijackErr := hj.Hijack()
-	if hijackErr != nil {
-		// Deliberately pass the original tar error here instead of the hijacking error.
-		webError(w, "could not build tar archive", err, http.StatusInternalServerError)
-		return
+	conn, _, err := hj.Hijack()
+	if err != nil {
+		panic(http.ErrAbortHandler)
 	}
 
 	conn.Close()

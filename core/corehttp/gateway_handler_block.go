@@ -49,7 +49,8 @@ func (i *gatewayHandler) serveRawBlock(ctx context.Context, w http.ResponseWrite
 	_, dataSent, err := ServeContent(w, r, name, modtime, content)
 
 	if err != nil {
-		closeConnWithError(w, err)
+		abortConn(w)
+		return
 	}
 
 	if dataSent {

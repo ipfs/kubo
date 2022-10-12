@@ -97,7 +97,8 @@ func (i *gatewayHandler) serveFile(ctx context.Context, w http.ResponseWriter, r
 	_, dataSent, err := ServeContent(w, r, name, modtime, content)
 
 	if err != nil {
-		closeConnWithError(w, err)
+		abortConn(w)
+		return
 	}
 
 	// Was response successful?
