@@ -61,9 +61,8 @@ jobs:
           npm init -y
           npm install ipfs@^0.61.0
           npm install ipfs-interop@^8.0.10
-          npm install mocha-circleci-reporter@0.0.3
         working-directory: interop
-      - run: npx ipfs-interop
+      - run: npx ipfs-interop -- -t node
         env:
           LIBP2P_TCP_REUSEPORT: false
           LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
