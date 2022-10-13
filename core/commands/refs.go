@@ -54,7 +54,7 @@ with the following format:
 
 List all references recursively by using the flag '-r'.
 
-NOTE: Kubo will try to fetch the blocks of the passed path if they can't be found in the local store.
+NOTE: Like most other commands, Kubo will try to fetch the blocks of the passed path if they can't be found in the local store if it is running in online mode.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
