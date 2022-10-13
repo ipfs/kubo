@@ -1,12 +1,14 @@
+name: Inspect environment
+
 on:
   workflow_call:
     outputs:
       config:
         description: "The runner's configuration"
-        value: ${{ jobs.runner.outputs.config }}
+        value: ${{ jobs.choose.outputs.config }}
 
 jobs:
-  runner:
+  choose:
     runs-on: ubuntu-latest
     outputs:
       config: ${{ steps.config.outputs.result }}

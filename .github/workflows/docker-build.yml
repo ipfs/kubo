@@ -1,3 +1,5 @@
+name: Build Docker image
+
 on:
   workflow_dispatch:
   pull_request:

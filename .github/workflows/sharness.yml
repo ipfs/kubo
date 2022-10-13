@@ -1,3 +1,5 @@
+name: Sharness
+
 on:
   workflow_dispatch:
   pull_request:

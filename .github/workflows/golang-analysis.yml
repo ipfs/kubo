@@ -1,8 +1,15 @@
-on: [push, pull_request]
 name: Go Checks
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - 'master'
 
 jobs:
   unit:
+    if: github.repository == 'galorgh/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     name: All
     steps:

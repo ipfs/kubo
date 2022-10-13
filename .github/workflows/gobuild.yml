@@ -1,3 +1,5 @@
+name: Go Build
+
 on:
   workflow_dispatch:
   pull_request:
