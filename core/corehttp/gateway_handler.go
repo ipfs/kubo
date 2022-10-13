@@ -26,7 +26,6 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p/core/routing"
-	mc "github.com/multiformats/go-multicodec"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -431,29 +430,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		carVersion := formatParams["version"]
 		i.serveCAR(r.Context(), w, r, resolvedPath, contentPath, carVersion, begin)
 		return
-	case "application/json":
-		if resolvedPath.Cid().Prefix().Codec == uint64(mc.Json) {
-			logger.Debugw("serving json", "path", contentPath)
-			i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat, uint64(mc.Json))
-			return
-		}
-		fallthrough
-	case "application/vnd.ipld.dag-json":
-		logger.Debugw("serving dag-json", "path", contentPath)
-		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat, uint64(mc.DagJson))
+	case "application/json", "application/vnd.ipld.dag-json",
+		"application/cbor", "application/vnd.ipld.dag-cbor":
+		logger.Debugw("serving codec", "format", responseFormat, "path", contentPath)
+		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat)
 		return
-	case "application/cbor":
-		if resolvedPath.Cid().Prefix().Codec == uint64(mc.Cbor) {
-			logger.Debugw("serving cbor", "path", contentPath)
-			i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat, uint64(mc.Cbor))
-			return
-		}
-		fallthrough
-	case "application/vnd.ipld.dag-cbor":
-		logger.Debugw("serving dag-cbor", "path", contentPath)
-		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat, uint64(mc.DagCbor))
-		return
-	default: // catch-all for unsuported application/vnd.*
+	default: // catch-all for unsupported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
 		webError(w, "failed respond with requested content type", err, http.StatusBadRequest)
 		return

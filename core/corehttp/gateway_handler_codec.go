@@ -12,15 +12,35 @@ import (
 	"github.com/ipfs/kubo/tracing"
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/multicodec"
+	mc "github.com/multiformats/go-multicodec"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
 var unixEpochTime = time.Unix(0, 0)
 
-func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, ctype string, codec uint64) {
-	ctx, span := tracing.Span(ctx, "Gateway", "ServeCodec", trace.WithAttributes(attribute.String("path", resolvedPath.String()), attribute.String("ctype", ctype)))
+// contentTypeToCodecs maps the HTTP Content Type to the respective
+// possible codecs. If the original data is in one of those codecs,
+// we stream the raw bytes. Otherwise, we encode in the last codec
+// of the list.
+var contentTypeToCodecs = map[string][]uint64{
+	"application/json":              {uint64(mc.Json), uint64(mc.DagJson)},
+	"application/vnd.ipld.dag-json": {uint64(mc.DagJson)},
+	"application/cbor":              {uint64(mc.Cbor), uint64(mc.DagCbor)},
+	"application/vnd.ipld.dag-cbor": {uint64(mc.DagCbor)},
+}
+
+func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, contentType string) {
+	ctx, span := tracing.Span(ctx, "Gateway", "ServeCodec", trace.WithAttributes(attribute.String("path", resolvedPath.String()), attribute.String("contentType", contentType)))
 	defer span.End()
+
+	codecs, ok := contentTypeToCodecs[contentType]
+	if !ok {
+		// This is never supposed to happen unless function is called with wrong parameters.
+		err := fmt.Errorf("unsupported content type: %s", contentType)
+		webError(w, err.Error(), err, http.StatusInternalServerError)
+		return
+	}
 
 	// Set Cache-Control and read optional Last-Modified time
 	modtime := addCacheControlHeaders(w, r, contentPath, resolvedPath.Cid())
@@ -32,13 +52,21 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	}
 
 	addContentDispositionHeader(w, r, contentPath)
-	w.Header().Set("Content-Type", ctype)
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
 	obj, err := i.api.Dag().Get(ctx, resolvedPath.Cid())
 	if err != nil {
 		webError(w, "ipfs dag get "+html.EscapeString(resolvedPath.String()), err, http.StatusInternalServerError)
 		return
+	}
+
+	// If the data is already encoded with the possible codecs, just stream it out.
+	for _, codec := range codecs {
+		if resolvedPath.Cid().Prefix().Codec == codec {
+			_, _ = w.Write(obj.RawData())
+			return
+		}
 	}
 
 	universal, ok := obj.(ipldlegacy.UniversalNode)
@@ -48,7 +76,8 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	}
 	finalNode := universal.(ipld.Node)
 
-	encoder, err := multicodec.LookupEncoder(codec)
+	// Otherwise convert it using the last codec of the list.
+	encoder, err := multicodec.LookupEncoder(codecs[len(codecs)-1])
 	if err != nil {
 		webError(w, "todo", err, http.StatusInternalServerError)
 		return
