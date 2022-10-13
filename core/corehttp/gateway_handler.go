@@ -432,7 +432,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	case "application/json", "application/vnd.ipld.dag-json",
 		"application/cbor", "application/vnd.ipld.dag-cbor":
-		logger.Debugw("serving codec", "format", responseFormat, "path", contentPath)
+		logger.Debugw("serving codec", "path", contentPath)
 		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat)
 		return
 	default: // catch-all for unsupported application/vnd.*
