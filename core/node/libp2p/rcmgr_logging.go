@@ -15,17 +15,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type action string
-
-var (
-	reserveMemory  action = "ReserveMemory"
-	openConnection action = "OpenConnection"
-	openStream     action = "OpenStream"
-	setPeer        action = "SetPeer"
-	setProtocol    action = "SetProtocol"
-	setService     action = "SetService"
-)
-
 type loggingResourceManager struct {
 	clock       clock.Clock
 	logger      *zap.SugaredLogger
@@ -33,14 +22,14 @@ type loggingResourceManager struct {
 	logInterval time.Duration
 
 	mut               sync.Mutex
-	limitExceededErrs map[action]uint64
+	limitExceededErrs map[string]int
 	previousErrors    bool
 }
 
 type loggingScope struct {
 	logger    *zap.SugaredLogger
 	delegate  network.ResourceScope
-	countErrs func(error, action)
+	countErrs func(error)
 }
 
 var _ network.ResourceManager = (*loggingResourceManager)(nil)
@@ -59,13 +48,11 @@ func (n *loggingResourceManager) start(ctx context.Context) {
 			case <-ticker.C:
 				n.mut.Lock()
 				errs := n.limitExceededErrs
-				n.limitExceededErrs = make(map[action]uint64)
+				n.limitExceededErrs = make(map[string]int)
 
-				for act, count := range errs {
-					if count != 0 {
-						n.previousErrors = true
-						n.logger.Errorf("Resource limits were exceeded %d times on %q, consider inspecting logs and raising the resource manager limits.", count, act)
-					}
+				for e, count := range errs {
+					n.previousErrors = true
+					n.logger.Errorf("Resource limits were exceeded %d times with error %q. Consider inspecting logs and raising the resource manager limits.", count, e)
 				}
 
 				if len(errs) == 0 && n.previousErrors {
@@ -81,13 +68,19 @@ func (n *loggingResourceManager) start(ctx context.Context) {
 	}()
 }
 
-func (n *loggingResourceManager) countErrs(err error, act action) {
+func (n *loggingResourceManager) countErrs(err error) {
 	if errors.Is(err, network.ErrResourceLimitExceeded) {
 		n.mut.Lock()
 		if n.limitExceededErrs == nil {
-			n.limitExceededErrs = make(map[action]uint64)
+			n.limitExceededErrs = make(map[string]int)
 		}
-		n.limitExceededErrs[act]++
+
+		// we need to unwrap the error to get the limit scope and the kind of reached limit
+		eout := errors.Unwrap(err)
+		if eout != nil {
+			n.limitExceededErrs[eout.Error()]++
+		}
+
 		n.mut.Unlock()
 	}
 }
@@ -117,12 +110,12 @@ func (n *loggingResourceManager) ViewPeer(p peer.ID, f func(network.PeerScope) e
 }
 func (n *loggingResourceManager) OpenConnection(dir network.Direction, usefd bool, remote ma.Multiaddr) (network.ConnManagementScope, error) {
 	connMgmtScope, err := n.delegate.OpenConnection(dir, usefd, remote)
-	n.countErrs(err, openConnection)
+	n.countErrs(err)
 	return connMgmtScope, err
 }
 func (n *loggingResourceManager) OpenStream(p peer.ID, dir network.Direction) (network.StreamManagementScope, error) {
 	connMgmtScope, err := n.delegate.OpenStream(p, dir)
-	n.countErrs(err, openStream)
+	n.countErrs(err)
 	return connMgmtScope, err
 }
 func (n *loggingResourceManager) Close() error {
@@ -165,7 +158,7 @@ func (n *loggingResourceManager) Stat() rcmgr.ResourceManagerStat {
 
 func (s *loggingScope) ReserveMemory(size int, prio uint8) error {
 	err := s.delegate.ReserveMemory(size, prio)
-	s.countErrs(err, reserveMemory)
+	s.countErrs(err)
 	return err
 }
 func (s *loggingScope) ReleaseMemory(size int) {
@@ -194,7 +187,7 @@ func (s *loggingScope) PeerScope() network.PeerScope {
 }
 func (s *loggingScope) SetPeer(p peer.ID) error {
 	err := s.delegate.(network.ConnManagementScope).SetPeer(p)
-	s.countErrs(err, setPeer)
+	s.countErrs(err)
 	return err
 }
 func (s *loggingScope) ProtocolScope() network.ProtocolScope {
@@ -202,7 +195,7 @@ func (s *loggingScope) ProtocolScope() network.ProtocolScope {
 }
 func (s *loggingScope) SetProtocol(proto protocol.ID) error {
 	err := s.delegate.(network.StreamManagementScope).SetProtocol(proto)
-	s.countErrs(err, setProtocol)
+	s.countErrs(err)
 	return err
 }
 func (s *loggingScope) ServiceScope() network.ServiceScope {
@@ -210,7 +203,7 @@ func (s *loggingScope) ServiceScope() network.ServiceScope {
 }
 func (s *loggingScope) SetService(srv string) error {
 	err := s.delegate.(network.StreamManagementScope).SetService(srv)
-	s.countErrs(err, setService)
+	s.countErrs(err)
 	return err
 }
 func (s *loggingScope) Limit() rcmgr.Limit {

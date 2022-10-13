@@ -173,7 +173,7 @@ func NetStat(mgr network.ResourceManager, scope string, percentage int) (NetStat
 				ls := limits.Peers[p.Pretty()]
 				fstat := compareScopes(&stat, &ls, percentage)
 				if fstat != nil {
-					result.Protocols[p.Pretty()] = *fstat
+					result.Peers[p.Pretty()] = *fstat
 				}
 			}
 		}
