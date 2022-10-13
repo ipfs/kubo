@@ -423,7 +423,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	case "application/vnd.ipld.raw":
 		logger.Debugw("serving raw block", "path", contentPath)
-		i.serveRawBlock(r.Context(), w, r, resolvedPath, contentPath, begin)
+		i.serveRawBlock(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat)
 		return
 	case "application/vnd.ipld.car":
 		logger.Debugw("serving car stream", "path", contentPath)

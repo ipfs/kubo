@@ -42,6 +42,15 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 
+	// If the data is already encoded with the possible codecs, we can defer execution to
+	// serveRawBlock, which will simply stream the raw data of this block.
+	for _, codec := range codecs {
+		if resolvedPath.Cid().Prefix().Codec == codec {
+			i.serveRawBlock(ctx, w, r, resolvedPath, contentPath, begin, contentType)
+			return
+		}
+	}
+
 	// Set Cache-Control and read optional Last-Modified time
 	modtime := addCacheControlHeaders(w, r, contentPath, resolvedPath.Cid())
 
@@ -59,14 +68,6 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	if err != nil {
 		webError(w, "ipfs dag get "+html.EscapeString(resolvedPath.String()), err, http.StatusInternalServerError)
 		return
-	}
-
-	// If the data is already encoded with the possible codecs, just stream it out.
-	for _, codec := range codecs {
-		if resolvedPath.Cid().Prefix().Codec == codec {
-			_, _ = w.Write(obj.RawData())
-			return
-		}
 	}
 
 	universal, ok := obj.(ipldlegacy.UniversalNode)
