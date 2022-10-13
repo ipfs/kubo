@@ -56,7 +56,7 @@ func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.
 				}
 			}
 		default:
-			return errors.New("Cannot get migrations from unknown fetcher type")
+			return errors.New("cannot get migrations from unknown fetcher type")
 		}
 	}
 
@@ -118,9 +118,9 @@ func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.A
 	fmt.Printf("connected to migration peer %q\n", peerInfo)
 
 	if pin {
-		pinApi := ipfs.Pin()
+		pinAPI := ipfs.Pin()
 		for _, ipfsPath := range paths {
-			err := pinApi.Add(ctx, ipfsPath)
+			err := pinAPI.Add(ctx, ipfsPath)
 			if err != nil {
 				return err
 			}

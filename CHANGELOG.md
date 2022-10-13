@@ -1,5 +1,6 @@
 # Kubo Changelogs
 
+- [v0.16](docs/changelogs/v0.16.md)
 - [v0.15](docs/changelogs/v0.15.md)
 - [v0.14](docs/changelogs/v0.14.md)
 - [v0.13](docs/changelogs/v0.13.md)

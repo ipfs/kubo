@@ -28,7 +28,7 @@ const (
 	// Default maximum download size
 	defaultFetchLimit = 1024 * 1024 * 512
 
-	tempNodeTcpAddr = "/ip4/127.0.0.1/tcp/0"
+	tempNodeTCPAddr = "/ip4/127.0.0.1/tcp/0"
 )
 
 type IpfsFetcher struct {
@@ -188,12 +188,12 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 	}
 
 	// configure the temporary node
-	cfg.Routing.Type = config.NewOptionalString("dhtclient")
+	cfg.Routing.Type = "dhtclient"
 
 	// Disable listening for inbound connections
 	cfg.Addresses.Gateway = []string{}
 	cfg.Addresses.API = []string{}
-	cfg.Addresses.Swarm = []string{tempNodeTcpAddr}
+	cfg.Addresses.Swarm = []string{tempNodeTCPAddr}
 
 	if len(bootstrap) != 0 {
 		cfg.Bootstrap = bootstrap

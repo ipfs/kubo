@@ -63,10 +63,11 @@ ipfs peers in the internet.
 }
 
 const (
-	swarmVerboseOptionName   = "verbose"
-	swarmStreamsOptionName   = "streams"
-	swarmLatencyOptionName   = "latency"
-	swarmDirectionOptionName = "direction"
+	swarmVerboseOptionName     = "verbose"
+	swarmStreamsOptionName     = "streams"
+	swarmLatencyOptionName     = "latency"
+	swarmDirectionOptionName   = "direction"
+	swarmResetLimitsOptionName = "reset"
 )
 
 type peeringResult struct {
@@ -122,6 +123,9 @@ var swarmPeeringAddCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+		if !node.IsOnline {
+			return ErrNotOnline
+		}
 
 		for _, addrinfo := range addInfos {
 			node.Peering.AddPeer(addrinfo)
@@ -153,6 +157,10 @@ var swarmPeeringLsCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+		if !node.IsOnline {
+			return ErrNotOnline
+		}
+
 		peers := node.Peering.ListPeers()
 		return cmds.EmitOnce(res, addrInfos{Peers: peers})
 	},
@@ -189,6 +197,9 @@ var swarmPeeringRmCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+		if !node.IsOnline {
+			return ErrNotOnline
+		}
 
 		for _, arg := range req.Arguments {
 			id, err := peer.Decode(arg)
@@ -206,7 +217,7 @@ var swarmPeeringRmCmd = &cmds.Command{
 	Type: peeringResult{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, pr *peeringResult) error {
-			fmt.Fprintf(w, "add %s %s\n", pr.ID.String(), pr.Status)
+			fmt.Fprintf(w, "remove %s %s\n", pr.ID.String(), pr.Status)
 			return nil
 		}),
 	},
@@ -336,7 +347,7 @@ The output of this command is JSON.
 		}
 
 		if node.ResourceManager == nil {
-			return libp2p.NoResourceMgrError
+			return libp2p.ErrNoResourceMgr
 		}
 
 		if len(req.Arguments) != 1 {
@@ -387,6 +398,9 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 		cmds.StringArg("scope", true, false, "scope of the limit"),
 		cmds.FileArg("limit.json", false, false, "limits to be set").EnableStdin(),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption(swarmResetLimitsOptionName, "reset limit to default"),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -394,7 +408,7 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 		}
 
 		if node.ResourceManager == nil {
-			return libp2p.NoResourceMgrError
+			return libp2p.ErrNoResourceMgr
 		}
 
 		scope := req.Arguments[0]
@@ -418,10 +432,19 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 			}
 		}
 
-		// get scope limit
-		result, err := libp2p.NetLimit(node.ResourceManager, scope)
-		if err != nil {
-			return err
+		var result rcmgr.BaseLimit
+		_, reset := req.Options[swarmResetLimitsOptionName]
+		if reset {
+			result, err = libp2p.NetResetLimit(node.ResourceManager, node.Repo, scope)
+			if err != nil {
+				return err
+			}
+		} else {
+			// get scope limit
+			result, err = libp2p.NetLimit(node.ResourceManager, scope)
+			if err != nil {
+				return err
+			}
 		}
 
 		b := new(bytes.Buffer)
@@ -840,7 +863,7 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -876,7 +899,7 @@ var swarmFiltersAddCmd = &cmds.Command{
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -932,7 +955,7 @@ var swarmFiltersRmCmd = &cmds.Command{
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 

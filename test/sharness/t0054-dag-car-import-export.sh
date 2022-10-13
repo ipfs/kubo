@@ -263,4 +263,14 @@ test_expect_success "version 2 import output as expected" '
   test_cmp_sorted version_2_import_expected version_2_import_actual
 '
 
+test_expect_success "'ipfs dag import' decode IPLD dag-json works" '
+  HASH=$(echo "dag-json content" | ipfs add -Q) &&
+  # We dont pipe because that doesnt release the repo lock
+  ipfs dag get $HASH > dag-json.out &&
+  NEW_HASH=$(ipfs dag put --store-codec dag-json dag-json.out) &&
+  ipfs dag export $NEW_HASH > dag-json.car &&
+  ipfs dag import dag-json.car &&
+  rm dag-json.out dag-json.car
+'
+
 test_done

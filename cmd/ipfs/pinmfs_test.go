@@ -98,7 +98,7 @@ func TestPinMFSRootNodeError(t *testing.T) {
 }
 
 func TestPinMFSService(t *testing.T) {
-	cfg_invalid_interval := &config.Config{
+	cfgInvalidInterval := &config.Config{
 		Pinning: config.Pinning{
 			RemoteServices: map[string]config.RemotePinningService{
 				"disabled": {
@@ -119,7 +119,7 @@ func TestPinMFSService(t *testing.T) {
 			},
 		},
 	}
-	cfg_valid_unnamed := &config.Config{
+	cfgValidUnnamed := &config.Config{
 		Pinning: config.Pinning{
 			RemoteServices: map[string]config.RemotePinningService{
 				"valid_unnamed": {
@@ -134,7 +134,7 @@ func TestPinMFSService(t *testing.T) {
 			},
 		},
 	}
-	cfg_valid_named := &config.Config{
+	cfgValidNamed := &config.Config{
 		Pinning: config.Pinning{
 			RemoteServices: map[string]config.RemotePinningService{
 				"valid_named": {
@@ -149,9 +149,9 @@ func TestPinMFSService(t *testing.T) {
 			},
 		},
 	}
-	testPinMFSServiceWithError(t, cfg_invalid_interval, "remote pinning service \"invalid_interval\" has invalid MFS.RepinInterval")
-	testPinMFSServiceWithError(t, cfg_valid_unnamed, "error while listing remote pins: empty response from remote pinning service")
-	testPinMFSServiceWithError(t, cfg_valid_named, "error while listing remote pins: empty response from remote pinning service")
+	testPinMFSServiceWithError(t, cfgInvalidInterval, "remote pinning service \"invalid_interval\" has invalid MFS.RepinInterval")
+	testPinMFSServiceWithError(t, cfgValidUnnamed, "error while listing remote pins: empty response from remote pinning service")
+	testPinMFSServiceWithError(t, cfgValidNamed, "error while listing remote pins: empty response from remote pinning service")
 }
 
 func testPinMFSServiceWithError(t *testing.T, cfg *config.Config, expectedErrorPrefix string) {

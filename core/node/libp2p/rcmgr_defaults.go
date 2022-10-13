@@ -21,7 +21,6 @@ import (
 func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.LimitConfig {
 	// Run checks to avoid introducing regressions
 	if os.Getenv("IPFS_CHECK_RCMGR_DEFAULTS") != "" {
-		// FIXME: Broken. Being tracked in https://github.com/ipfs/go-ipfs/issues/8949.
 		checkImplicitDefaults()
 	}
 	defaultLimits := rcmgr.DefaultLimits
@@ -155,7 +154,7 @@ func checkImplicitDefaults() {
 		}
 
 		if !ok {
-			log.Errorf("===> OOF! go-libp2p reduced DefaultServiceLimits\n" +
+			log.Errorf("===> OOF! go-libp2p changed DefaultServiceLimits\n" +
 				"=> See the aboce reduced values for info.\n" +
 				"=> go-libp2p SetDefaultServiceLimits update needs a review:\n" +
 				"Please inspect if changes impact go-ipfs users, and update expectedDefaultServiceLimits in rcmgr_defaults.go to remove this message",
@@ -376,7 +375,7 @@ const expectedDefaultLimits = `{
     "ConnsInbound": 1,
     "ConnsOutbound": 1,
     "FD": 1,
-    "Memory": 1048576
+    "Memory": 33554432
   },
   "ConnLimitIncrease": {
     "Streams": 0,

@@ -23,9 +23,9 @@ import (
 	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
-const offlineIdErrorMessage = "'ipfs id' cannot query information on remote peers without a running daemon; if you only want to convert --peerid-base, pass --offline option."
+const offlineIDErrorMessage = "'ipfs id' cannot query information on remote peers without a running daemon; if you only want to convert --peerid-base, pass --offline option"
 
-type IdOutput struct {
+type IdOutput struct { //nolint
 	ID              string
 	PublicKey       string
 	Addresses       []string
@@ -52,6 +52,7 @@ If no peer is specified, prints out information for local peers.
 <pver>: Protocol version.
 <pubkey>: Public key.
 <addrs>: Addresses (newline delimited).
+<protocols>: Libp2p Protocol registrations (newline delimited).
 
 EXAMPLE:
 
@@ -97,7 +98,7 @@ EXAMPLE:
 
 		offline, _ := req.Options[OfflineOption].(bool)
 		if !offline && !n.IsOnline {
-			return errors.New(offlineIdErrorMessage)
+			return errors.New(offlineIDErrorMessage)
 		}
 
 		if !offline {
@@ -106,7 +107,7 @@ EXAMPLE:
 			switch err {
 			case nil:
 			case kb.ErrLookupFailure:
-				return errors.New(offlineIdErrorMessage)
+				return errors.New(offlineIDErrorMessage)
 			default:
 				return err
 			}
@@ -217,7 +218,7 @@ func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (interface{}, error) {
 		info.Protocols = node.PeerHost.Mux().Protocols()
 		sort.Strings(info.Protocols)
 	}
-	info.ProtocolVersion = identify.LibP2PVersion
+	info.ProtocolVersion = identify.DefaultProtocolVersion
 	info.AgentVersion = version.GetUserAgentVersion()
 	return info, nil
 }

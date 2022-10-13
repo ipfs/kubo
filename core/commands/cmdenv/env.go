@@ -27,7 +27,7 @@ func GetNode(env interface{}) (*core.IpfsNode, error) {
 }
 
 // GetApi extracts CoreAPI instance from the environment.
-func GetApi(env cmds.Environment, req *cmds.Request) (coreiface.CoreAPI, error) {
+func GetApi(env cmds.Environment, req *cmds.Request) (coreiface.CoreAPI, error) { //nolint
 	ctx, ok := env.(*commands.Context)
 	if !ok {
 		return nil, fmt.Errorf("expected env to be of type %T, got %T", ctx, env)

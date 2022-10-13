@@ -117,8 +117,8 @@ func init() {
 
 	// custom template-escaping function to escape a full path, including '#' and '?'
 	urlEscape := func(rawUrl string) string {
-		pathUrl := url.URL{Path: rawUrl}
-		return pathUrl.String()
+		pathURL := url.URL{Path: rawUrl}
+		return pathURL.String()
 	}
 
 	// Directory listing template

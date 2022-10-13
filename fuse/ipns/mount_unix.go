@@ -12,7 +12,7 @@ import (
 
 // Mount mounts ipns at a given location, and returns a mount.Mount instance.
 func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
-	coreApi, err := coreapi.NewCoreAPI(ipfs)
+	coreAPI, err := coreapi.NewCoreAPI(ipfs)
 	if err != nil {
 		return nil, err
 	}
@@ -22,12 +22,12 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
 		return nil, err
 	}
 
-	allow_other := cfg.Mounts.FuseAllowOther
+	allowOther := cfg.Mounts.FuseAllowOther
 
-	fsys, err := NewFileSystem(ipfs.Context(), coreApi, ipfsmp, ipnsmp)
+	fsys, err := NewFileSystem(ipfs.Context(), coreAPI, ipfsmp, ipnsmp)
 	if err != nil {
 		return nil, err
 	}
 
-	return mount.NewMount(ipfs.Process, fsys, ipnsmp, allow_other)
+	return mount.NewMount(ipfs.Process, fsys, ipnsmp, allowOther)
 }

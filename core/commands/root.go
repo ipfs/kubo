@@ -25,7 +25,7 @@ const (
 	DebugOption      = "debug"
 	LocalOption      = "local" // DEPRECATED: use OfflineOption
 	OfflineOption    = "offline"
-	ApiOption        = "api"
+	ApiOption        = "api" //nolint
 )
 
 var Root = &cmds.Command{
@@ -118,7 +118,6 @@ The CLI will exit with one of the following values:
 	},
 }
 
-// commandsDaemonCmd is the "ipfs commands" command for daemon
 var CommandsDaemonCmd = CommandsCmd(Root)
 
 var rootSubcommands = map[string]*cmds.Command{
