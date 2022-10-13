@@ -67,25 +67,7 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 	w.Header().Set("Content-Type", "application/x-tar")
 
 	// The TAR has a top-level directory (or file) named by the CID.
-	if tarErr := tarw.WriteFile(file, resolvedPath.Cid().String()); tarErr != nil {
-		// There are no good ways of showing an error during a stream. Therefore, we try
-		// to hijack the connection to forcefully close it, causing a network error.
-		hj, ok := w.(http.Hijacker)
-		if !ok {
-			// If we could not Hijack the connection, we write the original error. This will hopefully
-			// corrupt the generated TAR file, such that the client will receive an error unpacking.
-			webError(w, "could not build tar archive", tarErr, http.StatusInternalServerError)
-			return
-		}
-
-		conn, _, err := hj.Hijack()
-		if err != nil {
-			// Deliberately pass the original tar error here instead of the hijacking error.
-			webError(w, "could not build tar archive", tarErr, http.StatusInternalServerError)
-			return
-		}
-
-		conn.Close()
-		return
+	if err := tarw.WriteFile(file, resolvedPath.Cid().String()); err != nil {
+		abortConn(w)
 	}
 }

@@ -1085,3 +1085,26 @@ func (i *gatewayHandler) setCommonHeaders(w http.ResponseWriter, r *http.Request
 
 	return nil
 }
+
+// abortConn forcefully closes an HTTP connection, leading to a network error on the
+// client side. This is a way of showing the client that there was an error while streaming
+// the contents since there are no good ways of showing an error during a stream.
+func abortConn(w http.ResponseWriter) {
+	hj, ok := w.(http.Hijacker)
+	if !ok {
+		// If we could not Hijack the connection (such as in HTTP/2.x) connections, we
+		// panic using http.ErrAbortHandler, which aborts the response.
+		// https://pkg.go.dev/net/http#ErrAbortHandler
+		panic(http.ErrAbortHandler)
+	}
+
+	conn, _, err := hj.Hijack()
+	if err != nil {
+		panic(http.ErrAbortHandler)
+	}
+
+	err = conn.Close()
+	if err != nil {
+		panic(http.ErrAbortHandler)
+	}
+}
