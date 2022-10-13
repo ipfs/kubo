@@ -1,9 +1,11 @@
 package corehttp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"html"
+	"io"
 	"net/http"
 	"time"
 
@@ -42,27 +44,42 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 
-	// If the data is already encoded with the possible codecs, we can defer execution to
-	// serveRawBlock, which will simply stream the raw data of this block.
+	// Set Cache-Control and read optional Last-Modified time
+	modtime := addCacheControlHeaders(w, r, contentPath, resolvedPath.Cid())
+	name := addContentDispositionHeader(w, r, contentPath)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+
+	// If the data is already encoded with the possible codecs, we can just stream the raw
+	// data. serveRawBlock cannot be directly used here as it sets different headers.
 	for _, codec := range codecs {
 		if resolvedPath.Cid().Prefix().Codec == codec {
-			i.serveRawBlock(ctx, w, r, resolvedPath, contentPath, begin, contentType)
+
+			blockCid := resolvedPath.Cid()
+			blockReader, err := i.api.Block().Get(ctx, resolvedPath)
+			if err != nil {
+				webError(w, "ipfs block get "+blockCid.String(), err, http.StatusInternalServerError)
+				return
+			}
+			block, err := io.ReadAll(blockReader)
+			if err != nil {
+				webError(w, "ipfs block get "+blockCid.String(), err, http.StatusInternalServerError)
+				return
+			}
+			content := bytes.NewReader(block)
+
+			// ServeContent will take care of
+			// If-None-Match+Etag, Content-Length and range requests
+			_, _, _ = ServeContent(w, r, name, modtime, content)
 			return
 		}
 	}
-
-	// Set Cache-Control and read optional Last-Modified time
-	modtime := addCacheControlHeaders(w, r, contentPath, resolvedPath.Cid())
 
 	// Sets correct Last-Modified header. This code is borrowed from the standard
 	// library (net/http/server.go) as we cannot use serveFile.
 	if !(modtime.IsZero() || modtime.Equal(unixEpochTime)) {
 		w.Header().Set("Last-Modified", modtime.UTC().Format(http.TimeFormat))
 	}
-
-	addContentDispositionHeader(w, r, contentPath)
-	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("X-Content-Type-Options", "nosniff")
 
 	obj, err := i.api.Dag().Get(ctx, resolvedPath.Cid())
 	if err != nil {

@@ -14,7 +14,7 @@ import (
 )
 
 // serveRawBlock returns bytes behind a raw block
-func (i *gatewayHandler) serveRawBlock(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, contentType string) {
+func (i *gatewayHandler) serveRawBlock(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time) {
 	ctx, span := tracing.Span(ctx, "Gateway", "ServeRawBlock", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
 	blockCid := resolvedPath.Cid()
@@ -41,7 +41,7 @@ func (i *gatewayHandler) serveRawBlock(ctx context.Context, w http.ResponseWrite
 
 	// Set remaining headers
 	modtime := addCacheControlHeaders(w, r, contentPath, blockCid)
-	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Type", "application/vnd.ipld.raw")
 	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
 
 	// ServeContent will take care of
