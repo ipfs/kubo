@@ -72,6 +72,28 @@ test_codec_unixfs () {
 test_codec_unixfs "DAG-JSON" "json"
 test_codec_unixfs "DAG-CBOR" "cbor"
 
+test_codec () {
+  name=$1
+  format=$2
+
+  test_expect_success "GET $name with format=$format produces correct output" '
+    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
+    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=$format" > curl_output 2>&1 &&
+    ipfs dag get --output-codec $format $CID > ipfs_dag_get_output 2>&1 &&
+    test_cmp ipfs_dag_get_output curl_output
+  '
+
+  test_expect_success "GET $name with format=dag-$format produces correct output" '
+    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
+    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=dag-$format" > curl_output 2>&1 &&
+    ipfs dag get --output-codec dag-$format $CID > ipfs_dag_get_output 2>&1 &&
+    test_cmp ipfs_dag_get_output curl_output
+  '
+}
+
+test_codec "JSON" "json"
+test_codec "CBOR" "cbor"
+
 test_kill_ipfs_daemon
 
 test_done
