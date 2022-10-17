@@ -33,7 +33,7 @@ orbit db is a p2p database on top of ipfs node
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"kvcreate": OrbitCreateCmd,
+		"dbcreate": OrbitCreateCmd,
 		"kvput":    OrbitPutCmd,
 		"kvget":    OrbitGetCmd,
 		"kvdel":    OrbitDelCmd,
@@ -63,12 +63,21 @@ var OrbitCreateCmd = &cmds.Command{
 
 		switch storeType {
 		case "keyval":
-			dbAddress, err := CreateKV(req.Context, api)
+			dbAddress, err := CreateKeyValue(req.Context, api)
 			if err != nil {
 				return err
 			}
 
-			if err := res.Emit(&dbAddress); err != nil {
+			if err := res.Emit(&DBAddress{dbAddress}); err != nil {
+				return err
+			}
+		case "docs":
+			dbAddress, err := CreateDocs(req.Context, api)
+			if err != nil {
+				return err
+			}
+
+			if err := res.Emit(&DBAddress{dbAddress}); err != nil {
 				return err
 			}
 		}
@@ -253,7 +262,7 @@ var OrbitDelCmd = &cmds.Command{
 	},
 }
 
-func CreateKV(ctx context.Context, api iface.CoreAPI) (string, error) {
+func CreateKeyValue(ctx context.Context, api iface.CoreAPI) (string, error) {
 	datastore := filepath.Join(os.Getenv("HOME"), ".ipfs", "orbitdb")
 	if _, err := os.Stat(datastore); os.IsNotExist(err) {
 		os.MkdirAll(filepath.Dir(datastore), 0755)
@@ -266,14 +275,10 @@ func CreateKV(ctx context.Context, api iface.CoreAPI) (string, error) {
 		return "", err
 	}
 
-	KvStore, err := db.KeyValue(ctx, "", &orbitdb.CreateDBOptions{})
+	store, err := db.KeyValue(ctx, "", &orbitdb.CreateDBOptions{})
 	if err != nil {
 		return "", err
 	}
-
-	// for remote db only
-	// deprecated
-	// evs := KvStore.Subscribe(ctx)
 
 	sub, err := db.EventBus().Subscribe(new(stores.EventReady))
 	if err != nil {
@@ -294,7 +299,53 @@ func CreateKV(ctx context.Context, api iface.CoreAPI) (string, error) {
 			for ev := range sub.Out() {
 				switch ev.(type) {
 				case *stores.EventReady:
-					dbAddress = KvStore.Address().String()
+					dbAddress = store.Address().String()
+				}
+			}
+		}
+	}()
+
+	return dbAddress, err
+}
+
+func CreateDocs(ctx context.Context, api iface.CoreAPI) (string, error) {
+	datastore := filepath.Join(os.Getenv("HOME"), ".ipfs", "orbitdb")
+	if _, err := os.Stat(datastore); os.IsNotExist(err) {
+		os.MkdirAll(filepath.Dir(datastore), 0755)
+	}
+
+	db, err := orbitdb.NewOrbitDB(ctx, api, &orbitdb.NewOrbitDBOptions{
+		Directory: &datastore,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	store, err := db.Docs(ctx, "", &orbitdb.CreateDBOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	sub, err := db.EventBus().Subscribe(new(stores.EventReady))
+	if err != nil {
+		return "", err
+	}
+
+	defer sub.Close()
+
+	err = connectToPeers(api, ctx)
+	if err != nil {
+		return "", err
+	}
+
+	var dbAddress string
+
+	go func() {
+		for {
+			for ev := range sub.Out() {
+				switch ev.(type) {
+				case *stores.EventReady:
+					dbAddress = store.Address().String()
 				}
 			}
 		}
