@@ -130,6 +130,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"filestore": FileStoreCmd,
 	"get":       GetCmd,
 	"pubsub":    PubsubCmd,
+	"orbit":     OrbitCmd,
 	"repo":      RepoCmd,
 	"stats":     StatsCmd,
 	"bootstrap": BootstrapCmd,

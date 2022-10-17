@@ -72,6 +72,8 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 		c.SetAllowCredentials(strings.ToLower(v) == "true")
 	}
 
+	c.AddAllowedHeaders("Content-Disposition")
+
 	c.Headers = make(map[string][]string, len(nc.API.HTTPHeaders)+1)
 
 	// Copy these because the config is shared and this function is called
