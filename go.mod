@@ -87,7 +87,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.7.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multibase v0.1.1
-	github.com/multiformats/go-multicodec v0.6.0
+	github.com/multiformats/go-multicodec v0.7.0
 	github.com/multiformats/go-multihash v0.2.1
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
