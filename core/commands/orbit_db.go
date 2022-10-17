@@ -21,7 +21,7 @@ import (
 )
 
 const dbAddressKeyValue = "/orbitdb/bafyreibe2lnmluj2y4byq6dnb4jbyxinvfbiz5lj7myasprln5pqtmcarm/demand_supply"
-const dbAddressDocs = ""
+const dbAddressDocs = "/orbitdb/bafyreihjgftbxrabuhfjn7diwtlz67hnhu2jsivds5arhqqb3xybov7eku/issue"
 
 var OrbitCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -392,10 +392,7 @@ func ConnectDocs(ctx context.Context, api iface.CoreAPI, onReady func(address st
 		return db, nil, err
 	}
 
-	docsStore, err := db.Create(ctx, "issue", "docstore", &orbitdb.CreateDBOptions{})
-	dbAddress := docsStore.Address().String()
-
-	store, err := db.Docs(ctx, dbAddress, &orbitdb.CreateDBOptions{})
+	store, err := db.Docs(ctx, dbAddressDocs, &orbitdb.CreateDBOptions{})
 	if err != nil {
 		return db, nil, err
 	}
