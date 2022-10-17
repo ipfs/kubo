@@ -94,6 +94,20 @@ test_codec () {
 test_codec "JSON" "json"
 test_codec "CBOR" "cbor"
 
+test_expect_success "GET JSON as CBOR produces DAG-CBOR output" '
+  CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec json) &&
+  curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=cbor" > curl_output 2>&1 &&
+  ipfs dag get --output-codec dag-cbor $CID > ipfs_dag_get_output 2>&1 &&
+  test_cmp ipfs_dag_get_output curl_output
+'
+
+test_expect_success "GET CBOR as JSON produces DAG-JSON output" '
+  CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec cbor) &&
+  curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=json" > curl_output 2>&1 &&
+  ipfs dag get --output-codec dag-json $CID > ipfs_dag_get_output 2>&1 &&
+  test_cmp ipfs_dag_get_output curl_output
+'
+
 test_kill_ipfs_daemon
 
 test_done
