@@ -19,7 +19,11 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
-const dbAddress = "/orbitdb/bafyreibe2lnmluj2y4byq6dnb4jbyxinvfbiz5lj7myasprln5pqtmcarm/demand_supply"
+type DBAddress struct {
+	string
+}
+
+// const dbAddress = "/orbitdb/bafyreibe2lnmluj2y4byq6dnb4jbyxinvfbiz5lj7myasprln5pqtmcarm/demand_supply"
 
 var OrbitCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -29,10 +33,49 @@ orbit db is a p2p database on top of ipfs node
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"kvput": OrbitPutCmd,
-		"kvget": OrbitGetCmd,
-		"kvdel": OrbitDelCmd,
+		"kvcreate": OrbitCreateCmd,
+		"kvput":    OrbitPutCmd,
+		"kvget":    OrbitGetCmd,
+		"kvdel":    OrbitDelCmd,
 	},
+}
+
+var OrbitCreateCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Create Orbit DB",
+		ShortDescription: `Create the Orbit database
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("storeType", true, false, "Store type to be created"),
+	},
+	PreRun: urlArgsEncoder,
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+		if err := urlArgsDecoder(req, env); err != nil {
+			return err
+		}
+
+		storeType := req.Arguments[0]
+
+		switch storeType {
+		case "keyval":
+			dbAddress, err := CreateKV(req.Context, api)
+			if err != nil {
+				return err
+			}
+
+			if err := res.Emit(&dbAddress); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	},
+	Type: DBAddress{},
 }
 
 var OrbitPutCmd = &cmds.Command{
@@ -42,6 +85,8 @@ var OrbitPutCmd = &cmds.Command{
 `,
 	},
 	Arguments: []cmds.Argument{
+		cmds.StringArg("dbAddress", true, false, "The database address"),
+		cmds.StringArg("storeType", true, false, "Store type to be created"),
 		cmds.StringArg("key", true, false, "Key"),
 		cmds.FileArg("value", true, false, "Value").EnableStdin(),
 	},
@@ -55,7 +100,9 @@ var OrbitPutCmd = &cmds.Command{
 			return err
 		}
 
-		key := req.Arguments[0]
+		dbAddress := req.Arguments[0]
+		storeType := req.Arguments[1]
+		key := req.Arguments[2]
 
 		// read data passed as a file
 		file, err := cmdenv.GetFileArg(req.Files.Entries())
@@ -69,16 +116,19 @@ var OrbitPutCmd = &cmds.Command{
 			return err
 		}
 
-		db, store, err := Connect(req.Context, api, func(address string) {})
-		if err != nil {
-			return err
-		}
+		switch storeType {
+		case "keyval":
+			db, store, err := ConnectKV(req.Context, dbAddress, api, func(address string) {})
+			if err != nil {
+				return err
+			}
 
-		defer db.Close()
+			defer db.Close()
 
-		_, err = store.Put(req.Context, key, data)
-		if err != nil {
-			return err
+			_, err = store.Put(req.Context, key, data)
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -92,6 +142,8 @@ var OrbitGetCmd = &cmds.Command{
 `,
 	},
 	Arguments: []cmds.Argument{
+		cmds.StringArg("dbAddress", true, false, "The database address"),
+		cmds.StringArg("storeType", true, false, "Store type to be created"),
 		cmds.StringArg("key", true, false, "Key to get related value"),
 	},
 	PreRun: urlArgsEncoder,
@@ -104,32 +156,37 @@ var OrbitGetCmd = &cmds.Command{
 			return err
 		}
 
-		key := req.Arguments[0]
+		dbAddress := req.Arguments[0]
+		storeType := req.Arguments[1]
+		key := req.Arguments[2]
 
-		db, store, err := Connect(req.Context, api, func(address string) {})
-		if err != nil {
-			return err
-		}
-
-		defer db.Close()
-
-		if len(key) > 0 {
-			val, err := store.Get(req.Context, key)
+		switch storeType {
+		case "keyval":
+			db, store, err := ConnectKV(req.Context, dbAddress, api, func(address string) {})
 			if err != nil {
 				return err
 			}
 
-			if err := res.Emit(&val); err != nil {
-				return err
-			}
-		} else {
-			val := store.All()
-			if err != nil {
-				return err
-			}
+			defer db.Close()
 
-			if err := res.Emit(&val); err != nil {
-				return err
+			if key == "all" {
+				val := store.All()
+				if err != nil {
+					return err
+				}
+
+				if err := res.Emit(&val); err != nil {
+					return err
+				}
+			} else {
+				val, err := store.Get(req.Context, key)
+				if err != nil {
+					return err
+				}
+
+				if err := res.Emit(&val); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -145,6 +202,8 @@ var OrbitDelCmd = &cmds.Command{
 `,
 	},
 	Arguments: []cmds.Argument{
+		cmds.StringArg("dbAddress", true, false, "The database address"),
+		cmds.StringArg("storeType", true, false, "Store type to be created"),
 		cmds.StringArg("key", true, false, "Key to delete related value"),
 	},
 	PreRun: urlArgsEncoder,
@@ -157,28 +216,33 @@ var OrbitDelCmd = &cmds.Command{
 			return err
 		}
 
-		key := req.Arguments[0]
+		dbAddress := req.Arguments[0]
+		storeType := req.Arguments[1]
+		key := req.Arguments[2]
 
-		db, store, err := Connect(req.Context, api, func(address string) {})
-		if err != nil {
-			return err
-		}
-
-		defer db.Close()
-
-		if len(key) > 0 {
-			_, err := store.Delete(req.Context, key)
-			if err != nil {
-				return err
-			}
-		} else {
-			val := store.All()
+		switch storeType {
+		case "keyval":
+			db, store, err := ConnectKV(req.Context, dbAddress, api, func(address string) {})
 			if err != nil {
 				return err
 			}
 
-			for i := range val {
-				_, err := store.Delete(req.Context, i)
+			defer db.Close()
+
+			if key == "all" {
+				val := store.All()
+				if err != nil {
+					return err
+				}
+
+				for i := range val {
+					_, err := store.Delete(req.Context, i)
+					if err != nil {
+						return err
+					}
+				}
+			} else {
+				_, err := store.Delete(req.Context, key)
 				if err != nil {
 					return err
 				}
@@ -189,7 +253,57 @@ var OrbitDelCmd = &cmds.Command{
 	},
 }
 
-func Connect(ctx context.Context, api iface.CoreAPI, onReady func(address string)) (orbitdb.OrbitDB, orbitdb.KeyValueStore, error) {
+func CreateKV(ctx context.Context, api iface.CoreAPI) (string, error) {
+	datastore := filepath.Join(os.Getenv("HOME"), ".ipfs", "orbitdb")
+	if _, err := os.Stat(datastore); os.IsNotExist(err) {
+		os.MkdirAll(filepath.Dir(datastore), 0755)
+	}
+
+	db, err := orbitdb.NewOrbitDB(ctx, api, &orbitdb.NewOrbitDBOptions{
+		Directory: &datastore,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	KvStore, err := db.KeyValue(ctx, "", &orbitdb.CreateDBOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	// for remote db only
+	// deprecated
+	// evs := KvStore.Subscribe(ctx)
+
+	sub, err := db.EventBus().Subscribe(new(stores.EventReady))
+	if err != nil {
+		return "", err
+	}
+
+	defer sub.Close()
+
+	err = connectToPeers(api, ctx)
+	if err != nil {
+		return "", err
+	}
+
+	var dbAddress string
+
+	go func() {
+		for {
+			for ev := range sub.Out() {
+				switch ev.(type) {
+				case *stores.EventReady:
+					dbAddress = KvStore.Address().String()
+				}
+			}
+		}
+	}()
+
+	return dbAddress, err
+}
+
+func ConnectKV(ctx context.Context, dbAddress string, api iface.CoreAPI, onReady func(address string)) (orbitdb.OrbitDB, orbitdb.KeyValueStore, error) {
 	datastore := filepath.Join(os.Getenv("HOME"), ".ipfs", "orbitdb")
 	if _, err := os.Stat(datastore); os.IsNotExist(err) {
 		os.MkdirAll(filepath.Dir(datastore), 0755)
@@ -208,7 +322,15 @@ func Connect(ctx context.Context, api iface.CoreAPI, onReady func(address string
 	}
 
 	// for remote db only
-	evs := KvStore.Subscribe(ctx)
+	// deprecated
+	// evs := KvStore.Subscribe(ctx)
+
+	sub, err := db.EventBus().Subscribe(new(stores.EventReady))
+	if err != nil {
+		return db, nil, err
+	}
+
+	defer sub.Close()
 
 	err = connectToPeers(api, ctx)
 	if err != nil {
@@ -217,7 +339,7 @@ func Connect(ctx context.Context, api iface.CoreAPI, onReady func(address string
 
 	go func() {
 		for {
-			for ev := range evs {
+			for ev := range sub.Out() {
 				switch ev.(type) {
 				case *stores.EventReady:
 					dbURI := KvStore.Address().String()
