@@ -392,7 +392,10 @@ func ConnectDocs(ctx context.Context, api iface.CoreAPI, onReady func(address st
 		return db, nil, err
 	}
 
-	store, err := db.Docs(ctx, dbAddressDocs, &orbitdb.CreateDBOptions{})
+	docsStore, err := db.Create(ctx, "issues", "documents", &orbitdb.CreateDBOptions{})
+	dbAddress := docsStore.Address().String()
+
+	store, err := db.Docs(ctx, dbAddress, &orbitdb.CreateDBOptions{})
 	if err != nil {
 		return db, nil, err
 	}
