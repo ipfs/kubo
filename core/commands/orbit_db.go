@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -216,6 +217,11 @@ var OrbitPutDocsCmd = &cmds.Command{
 			return err
 		}
 
+		dd := make(map[string]interface{})
+		if err := json.Unmarshal([]byte(data), &dd); err != nil {
+			panic(err)
+		}
+
 		db, store, err := ConnectDocs(req.Context, api, func(address string) {})
 		if err != nil {
 			return err
@@ -223,7 +229,7 @@ var OrbitPutDocsCmd = &cmds.Command{
 
 		defer db.Close()
 
-		_, err = store.Put(req.Context, data)
+		_, err = store.Put(req.Context, dd)
 		if err != nil {
 			return err
 		}
