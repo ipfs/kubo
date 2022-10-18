@@ -300,7 +300,7 @@ var OrbitQueryDocsCmd = &cmds.Command{
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "Key to query"),
-		cmds.StringArg("value", true, false, "Value to query"),
+		cmds.StringArg("query", true, false, "Value to query"),
 	},
 	PreRun: urlArgsEncoder,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -313,7 +313,7 @@ var OrbitQueryDocsCmd = &cmds.Command{
 		}
 
 		key := req.Arguments[0]
-		val := req.Arguments[1]
+		query := req.Arguments[1]
 
 		db, store, err := ConnectDocs(req.Context, api, func(address string) {})
 		if err != nil {
@@ -324,7 +324,7 @@ var OrbitQueryDocsCmd = &cmds.Command{
 
 		q, err := store.Query(req.Context, func(e interface{}) (bool, error) {
 			issue := e.(map[string]interface{})
-			if issue[key] == val {
+			if issue[key] == query {
 				return true, nil
 			}
 			return false, nil
