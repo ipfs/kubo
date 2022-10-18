@@ -32,12 +32,13 @@ orbit db is a p2p database on top of ipfs node
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"kvput":   OrbitPutKVCmd,
-		"kvget":   OrbitGetKVCmd,
-		"kvdel":   OrbitDelKVCmd,
-		"docsput": OrbitPutDocsCmd,
-		"docsget": OrbitGetDocsCmd,
-		"docsdel": OrbitDelDocsCmd,
+		"kvput":     OrbitPutKVCmd,
+		"kvget":     OrbitGetKVCmd,
+		"kvdel":     OrbitDelKVCmd,
+		"docsput":   OrbitPutDocsCmd,
+		"docsget":   OrbitGetDocsCmd,
+		"docsquery": OrbitQueryDocsCmd,
+		"docsdel":   OrbitDelDocsCmd,
 	},
 }
 
@@ -284,6 +285,57 @@ var OrbitGetDocsCmd = &cmds.Command{
 			if err := res.Emit(&val[0]); err != nil {
 				return err
 			}
+		}
+
+		return nil
+	},
+	Type: []byte{},
+}
+
+var OrbitQueryDocsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Query docs by key and value",
+		ShortDescription: `Query docs store by key and value
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "Key to query"),
+		cmds.StringArg("value", true, false, "Value to query"),
+	},
+	PreRun: urlArgsEncoder,
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+		if err := urlArgsDecoder(req, env); err != nil {
+			return err
+		}
+
+		key := req.Arguments[0]
+		val := req.Arguments[1]
+
+		db, store, err := ConnectDocs(req.Context, api, func(address string) {})
+		if err != nil {
+			return err
+		}
+
+		defer db.Close()
+
+		q, err := store.Query(req.Context, func(e interface{}) (bool, error) {
+			issue := e.(map[string]interface{})
+			if issue[key] == val {
+				return true, nil
+			}
+			return false, nil
+		})
+
+		if err != nil {
+			return err
+		}
+
+		if err := res.Emit(&q); err != nil {
+			return err
 		}
 
 		return nil
