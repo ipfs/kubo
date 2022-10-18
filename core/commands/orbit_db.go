@@ -321,11 +321,12 @@ var OrbitQueryDocsCmd = &cmds.Command{
 		}
 
 		defer db.Close()
+
 		results := make(map[string]interface{})
 		_, err = store.Query(req.Context, func(e interface{}) (bool, error) {
 			issue := e.(map[string]interface{})
 			if issue[key] == query {
-				results[key] = issue[key]
+				results = issue
 				return true, nil
 			}
 			return false, nil
