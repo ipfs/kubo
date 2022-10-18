@@ -272,7 +272,7 @@ var OrbitGetDocsCmd = &cmds.Command{
 				return err
 			}
 
-			if err := res.Emit(&val); err != nil {
+			if err := res.Emit(&val[0]); err != nil {
 				return err
 			}
 		} else {
