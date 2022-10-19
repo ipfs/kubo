@@ -62,7 +62,7 @@ Checklist:
     - [ ] [ipfs/kubo](https://github.com/ipfs/kubo): [example PR](https://github.com/ipfs/kubo/pull/8599)
     - [ ] [ipfs/ipfs-docs](https://github.com/ipfs/ipfs-docs): [example PR](https://github.com/ipfs/ipfs-docs/pull/1298)
   - [ ] Fork a new branch (`release-vX.Y.Z`) from `master`.
-  - [ ] Bump the version in `version.go` in the `master` branch to `vX.(Y+1).0-dev`.
+  - [ ] Bump the version in `version.go` in the `master` branch to `vX.(Y+1).0-dev` via a PR ([example](https://github.com/ipfs/kubo/pull/9305)).
 - [ ] **Stage 2 - Release Candidate** - _if any [non-trivial](docs/releases.md#footnotes) changes need to be included in the release, return to this stage_
   - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `vX.Y.Z-rcN`.
   - [ ] If applicable, add new commits to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
@@ -102,7 +102,7 @@ Checklist:
     - [ ] Check if Discourse post was automatically copied to:
       - [ ] IPFS Discord #ipfs-chatter
       - [ ] FIL Slack #ipfs-chatter
-      - [ ] Matrix
+      - [ ] Matrix https://matrix.to/#/#ipfs-chatter:ipfs.io
     - [ ] Mention [early testers](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) in the comment under the release issue ([example](https://github.com/ipfs/kubo/issues/9237#issuecomment-1258072509)).
 - [ ] **Stage 3 - Internal Testing**
   - [ ] Library Testing.
@@ -208,10 +208,10 @@ Checklist:
     - [ ] Merge the auto-created PR in https://github.com/ipfs/ipfs-docs/pulls ([example](https://github.com/ipfs/ipfs-docs/pull/1263))
   - [ ] Get the blog post created and shared
     - [ ] Submit a request for blog post creation using [the form](https://airtable.com/shrNH8YWole1xc70I).
-      - Notify marketing in #shared-pl-marketing-requests about the blog entry request (since the form tends to go to spam).
+      - Notify marketing in #shared-pl-marketing-requests about the blog entry request (since the form tends to go to spam; [example]([example](https://filecoinproject.slack.com/archives/C018EJ8LWH1/p1664885305374909))).
       - Don't mark this as done until the blog entry is live.
     - [ ] Share the blog post
-      - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests)
+      - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests; [example](https://filecoinproject.slack.com/archives/C018EJ8LWH1/p1664903524843269?thread_ts=1664885305.374909&cid=C018EJ8LWH1))
       - [ ] [Reddit](https://reddit.com/r/ipfs)
 - [ ] **Stage 6 - Post-Release**
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
