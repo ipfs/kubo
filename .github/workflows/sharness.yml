@@ -88,6 +88,18 @@ jobs:
         with:
           name: sharness.xml
           path: kubo/test/sharness/test-results/sharness.xml
+      - name: Upload partial XMLs
+        if: failure() || success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: sharness.xml.parts
+          path: kubo/test/sharness/test-results/*.xml.part
+      - name: Upload partial counts
+        if: failure() || success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: sharness.counts
+          path: kubo/test/sharness/test-results/*.counts
       - name: Add aggregate results to the summary
         if: failure() || success()
         run: |
