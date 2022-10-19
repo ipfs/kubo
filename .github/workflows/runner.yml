@@ -1,4 +1,4 @@
-name: Inspect environment
+name: '[EXPERIMENTAL] Inspect environment'
 
 on:
   workflow_call:

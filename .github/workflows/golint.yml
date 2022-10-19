@@ -1,4 +1,4 @@
-name: Go Lint
+name: '[EXPERIMENTAL] Go Lint'
 
 on:
   workflow_dispatch:
