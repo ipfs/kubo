@@ -20,12 +20,14 @@ jobs:
             if (`${context.repo.owner}/${context.repo.repo}` === 'ipfs/kubo') {
               return {
                 labels: ['self-hosted', 'linux', 'x64', 'kubo'],
-                parallel: 10
+                parallel: 10,
+                aws: true
               }
             } else {
               return {
                 labels: ['ubuntu-latest'],
-                parallel: 3
+                parallel: 3,
+                aws: false
               }
             }
       - run: echo ${{ steps.config.outputs.result }}

@@ -18,34 +18,44 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-go@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19.1
-      - uses: actions/checkout@v3
+      - name: Checkout Kubo
+        uses: actions/checkout@v3
         with:
           path: kubo
-      - run: sudo apt install socat net-tools libxml2-utils
-      - uses: actions/checkout@v3
+      - name: Install missing tools
+        run: sudo apt install socat net-tools libxml2-utils
+      - name: Checkout IPFS Pinning Service API
+        uses: actions/checkout@v3
         with:
           repository: ipfs-shipyard/rb-pinning-service-api
           ref: 773c3adbb421c551d2d89288abac3e01e1f7c3a8
           path: rb-pinning-service-api
-      # check if docker compose (not docker-compose) is available on default gh runners
-      - run: |
+      # TODO: check if docker compose (not docker-compose) is available on default gh runners
+      - name: Start IPFS Pinning Service API
+        run: |
           (for i in {1..3}; do docker compose pull && break || sleep 5; done) &&
             docker compose up -d
         working-directory: rb-pinning-service-api
-      - uses: protocol/cache-go-action@v1
+      - name: Restore Go Cache
+        uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
-      - run: echo "TEST_DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $GITHUB_ENV
-      - run: |
-          make -O -j '${{ fromJSON(needs.runner.outputs.config).parallel }}' \
+      - name: Find IPFS Pinning Service API address
+        run: echo "TEST_DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $GITHUB_ENV
+      - name: Run Sharness tests (quiet)
+        run: |
+          make -O -j "$PARALLEL" \
             test_sharness_expensive \
             coverage/sharness_tests.coverprofile \
             test/sharness/test-results/sharness.xml \
             test/sharness/test-results/sharness.html \
-            test/sharness/test-results/sharness-html
+            test/sharness/test-results/sharness-html \
+            > test/sharness/test-results/sharness.txt \
+            2> >(tee -a test/sharness/test-results/sharness.txt)
         working-directory: kubo
         env:
           TEST_NO_DOCKER: 0
@@ -55,31 +65,61 @@ jobs:
           TEST_JUNIT: 1
           IPFS_CHECK_RCMGR_DEFAULTS: 1
           CONTINUE_ON_S_FAILURE: 1
-      - uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0
+          PARALLEL: ${{ fromJSON(needs.runner.outputs.config).parallel }}
+      - name: Upload coverage report
+        uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0
         if: failure() || success()
         with:
           name: sharness
           files: kubo/coverage/sharness_tests.coverprofile
-      - run: find kubo/test/sharness/test-results -name 't*-*.sh.*.counts' | kubo/test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'
-      - id: one-page
-        uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
+      - name: Aggregate results
+        run: find kubo/test/sharness/test-results -name 't*-*.sh.*.counts' | kubo/test/sharness/lib/sharness/aggregate-results.sh > kubo/test/sharness/test-results/summary.txt
+      - name: Check for failures in aggregate results
+        run: grep 'failed\s*0' kubo/test/sharness/test-results/summary.txt
+      - name: Upload stdout and stderr
         if: failure() || success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: sharness.txt
+          path: kubo/test/sharness/test-results/sharness.txt
+      - name: Add aggregate results to the summary
+        if: failure() || success()
+        run: |
+          echo "# Summary" >> $GITHUB_STEP_SUMMARY
+          echo >> $GITHUB_STEP_SUMMARY
+          cat kubo/test/sharness/test-results/summary.txt >> $GITHUB_STEP_SUMMARY
+      - name: Upload one-page HTML report to S3
+        id: one-page
+        uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
+        if: fromJSON(needs.runner.outputs.config).aws && (failure() || success())
         with:
           source: kubo/test/sharness/test-results/sharness.html
           destination: sharness.html
-      - id: full
+      - name: Upload one-page HTML report
+        if: (! fromJSON(needs.runner.outputs.config).aws) && (failure() || success())
+        uses: actions/upload-artifact@v6
+        with:
+          name: sharness.html
+          path: kubo/test/sharness/test-results/sharness.html
+      - name: Upload full HTML report to S3
+        id: full
         uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
-        if: failure() || success()
+        if: fromJSON(needs.runner.outputs.config).aws && (failure() || success())
         with:
           source: kubo/test/sharness/test-results/sharness-html
           destination: sharness-html/
-      - if: failure() || success()
-        run: |
-          echo "$MD" >> $GITHUB_STEP_SUMMARY
+      - name: Upload full HTML report
+        if: (! fromJSON(needs.runner.outputs.config).aws) && (failure() || success())
+        uses: actions/upload-artifact@v6
+        with:
+          name: sharness-html
+          path: kubo/test/sharness/test-results/sharness-html
+      - name: Add S3 links to the summary
+        if: fromJSON(needs.runner.outputs.config).aws && (failure() || success())
+        run: echo "$MD" >> $GITHUB_STEP_SUMMARY
         env:
           MD: |
             # HTML Reports
 
             - View the [one page HTML report](${{ steps.one-page.outputs.url }})
             - View the [full HTML report](${{ steps.full.outputs.url }}index.html)
-
