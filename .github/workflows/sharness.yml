@@ -44,7 +44,8 @@ jobs:
             test_sharness_expensive \
             coverage/sharness_tests.coverprofile \
             test/sharness/test-results/sharness.xml \
-            test/sharness/test-results/sharness.html
+            test/sharness/test-results/sharness.html \
+            test/sharness/test-results/sharness-html
         working-directory: kubo
         env:
           TEST_NO_DOCKER: 0
@@ -60,13 +61,30 @@ jobs:
           name: sharness
           files: kubo/coverage/sharness_tests.coverprofile
       - run: find kubo/test/sharness/test-results -name 't*-*.sh.*.counts' | kubo/test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'
-      - uses: actions/upload-artifact@v3
+      - id: one-page
+        uses: pl-strflt/tf-aws-github-runner/.github/actions/upload-artifact@main
         if: failure() || success()
         with:
-          name: sharness.xml
+          source: kubo/test/sharness/test-results/sharness.html
+          destination: sharness.html
+      - id: full
+        uses: pl-strflt/tf-aws-github-runner/.github/actions/upload-artifact@main
+        if: failure() || success()
+        with:
+          source: kubo/test/sharness/test-results/sharness-html
+          destination: sharness-html/
+      - if: failure() || success()
+        run: |
+          echo "$MD" >> $GITHUB_STEP_SUMMARY
+        env:
+          MD: |
+            # HTML Reports
+
+            - View the [one page HTML report](${{ steps.one-page.outputs.url }})
+            - View the [full HTML report](${{ steps.full.outputs.url }}index.html)
+      - uses: dorny/test-reporter@c9b3d0e2bd2a4e96aaf424dbaa31c46b42318226 # v1.6.0
+        if: failure() || success()
+        with:
+          name: Sharness JUnit
           path: kubo/test/sharness/test-results/sharness.xml
-      - uses: actions/upload-artifact@v3
-        if: failure() || success()
-        with:
-          name: sharness.html
-          path: kubo/test/sharness/test-results/sharness.html
+          reporter: java-junit
