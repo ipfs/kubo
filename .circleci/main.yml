@@ -144,7 +144,7 @@ jobs:
         path: /tmp/circleci-test-results
   sharness:
     machine:
-        image: ubuntu-2004:202010-01
+        image: ubuntu-2204:2022.10.1
     resource_class: << pipeline.parameters.resource_class >>
     working_directory: ~/ipfs/kubo
     environment:
