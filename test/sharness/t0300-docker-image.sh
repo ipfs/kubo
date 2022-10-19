@@ -79,9 +79,9 @@ test_expect_success "check that init script configs were applied" '
 '
 
 test_expect_success "simple ipfs add/cat can be run in docker container" '
-  expected="Hello Worlds" &&
+  echo "Hello Worlds" > expected &&
   HASH=$(docker_exec "$DOC_ID" "echo $(cat expected) | ipfs add | cut -d'"' '"' -f2") &&
-  docker_exec "$DOC_ID" "ipfs cat $HASH" >actual &&
+  (docker_exec "$DOC_ID" "ipfs cat $HASH" | tee actual) &&
   test_cmp expected actual
 '
 
