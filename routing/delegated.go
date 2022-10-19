@@ -23,6 +23,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/routing"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multicodec"
+	"go.opencensus.io/stats/view"
 )
 
 var log = logging.Logger("routing/delegated")
@@ -177,6 +178,11 @@ func reframeRoutingFromConfig(conf config.Router, extraReframe *ExtraReframePara
 	}
 
 	var c *drc.Client
+
+	err = view.Register(drc.DefaultViews...)
+	if err != nil {
+		return nil, fmt.Errorf("registering delegated routing views: %w", err)
+	}
 
 	// this path is for tests only
 	if extraReframe == nil {
