@@ -54,8 +54,8 @@ jobs:
             test/sharness/test-results/sharness.xml \
             test/sharness/test-results/sharness.html \
             test/sharness/test-results/sharness-html \
-            > test/sharness/test-results/sharness.txt \
-            2> >(tee -a test/sharness/test-results/sharness.txt)
+            > sharness.out \
+            2> >(tee -a sharness.out)
         working-directory: kubo
         env:
           TEST_NO_DOCKER: 0
@@ -80,8 +80,8 @@ jobs:
         if: failure() || success()
         uses: actions/upload-artifact@v3
         with:
-          name: sharness.txt
-          path: kubo/test/sharness/test-results/sharness.txt
+          name: sharness.out
+          path: kubo/sharness.out
       - name: Add aggregate results to the summary
         if: failure() || success()
         run: |
