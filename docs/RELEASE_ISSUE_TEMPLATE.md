@@ -41,6 +41,9 @@ As usual, this release includes important fixes, some of which may be critical f
 Checklist:
 
 - [ ] **Stage 0 - Prerequisites**
+  - [ ] Open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ahead of the release ([example](https://github.com/protocol/bifrost-infra/issues/2109)).
+    - [ ] Spell out all that we want updated - gateways, the bootstraper and the cluster/preload nodes
+    - [ ] Mention @protocol/bifrost-team in the issue and let them know the expected date of the release
   - [ ] Ensure that the `What's left for release` section has all the checkboxes checked. If that's not the case, discuss the open items with Kubo maintainers and update the release schedule accordingly.
   - [ ] Create `docs-release-vX.Y.Z` branch, open a draft PR and keep updating `docs/RELEASE_ISSUE_TEMPLATE.md` on that branch as you go.
   - [ ] Ensure you have a [GPG key generated](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key) and [added to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account). This will enable you to created signed tags.
@@ -69,9 +72,11 @@ Checklist:
       - Note: `release-*` branches are protected. You can do all needed updates on a separated branch (e.g. `wip-release-vX.Y.Z`) and when everything is settled push to `release-vX.Y.Z`
   - [ ] Push the `release-vX.Y.Z` branch to GitHub (`git push origin release-vX.Y.Z`) and create a draft PR targetting `release` branch if it doesn't exist yet ([example](https://github.com/ipfs/kubo/pull/9306)).
   - [ ] Wait for CI to run and complete PR checks. All checks should pass.
-  - [ ] Tag HEAD `release-vX.Y.Z` commit with `vX.Y.Z-rcN` (`git tag -s vX.Y.Z-rcN -m 'Pre-release X.Y.Z-rcn'`)
-  - [ ] Run `git show vX.Y.Z-rcN` to ensure the tag is correct.
-  - [ ] Push the `vX.Y.Z-rcN` tag to GitHub (`git push origin vX.Y.Z-rcN`; DO NOT USE `git push --tags` because it pushes all your local tags).
+  - [ ] Create a signed tag for the release candidate.
+    - [ ] This is a dangerous operation, as it is difficult to reverse due to Go modules and automated Docker image publishing. Remember to verify the commands you intend to run for items marked with ⚠️ with the release reviewer.
+    - [ ] ⚠️ Tag HEAD `release-vX.Y.Z` commit with `vX.Y.Z-rcN` (`git tag -s vX.Y.Z-rcN -m 'Pre-release X.Y.Z-rcn'`)
+    - [ ] Run `git show vX.Y.Z` to ensure the tag is correct.
+    - [ ] ⚠️ Push the `vX.Y.Z` tag to GitHub (`git push origin vX.Y.Z`; DO NOT USE `git push --tags` because it pushes all your local tags).
   - [ ] Add artifacts to https://dist.ipfs.tech by making a PR against [ipfs/distributions](https://github.com/ipfs/distributions)
     - [ ] Clone the `ipfs/distributions` repo locally.
     - [ ] Create a new branch (`kubo-release-vX.Y.Z-rcn`) from `master`.
@@ -124,13 +129,12 @@ Checklist:
       - [ ] Run [CI workflow](https://github.com/ipfs/ipfs-webui/actions/workflows/ci.yml) with `vX.Y.Z-rcN` for the `kubo-version` input.
       - [ ] Ensure that CI is green.
   - [ ] Infrastructure Testing.
-    - [ ] Open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ([example](https://github.com/protocol/bifrost-infra/issues/2109)).
-      - [ ] Spell out all that we want updated - gateways, the bootstraper and the cluster/preload nodes
-      - [ ] Mention @protocol/bifrost-team in the issue if you opened it prior to the release
+    - [ ] Update the issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ([example](https://github.com/protocol/bifrost-infra/issues/2109)).
+      - [ ] Mention @protocol/bifrost-team in the issue to let them know the release is ready
       - [ ] [Optional] Reply under a message about the issue in the #bifrost channel on FIL Slack once the RC is out. Send the message to the channel.
-      - [ ] Check [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) every day.
-        - Compare the metrics trends week over week.
-        - If there is an unexpected variation in the trend, message the #bifrost channel on FIL Slack and ask for help investigation the cause.
+    - [ ] Check [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) every day.
+      - Compare the metrics trends week over week.
+      - If there is an unexpected variation in the trend, message the #bifrost channel on FIL Slack and ask for help investigation the cause.
   - [ ] IPFS Application Testing.
     - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop)
       - [ ] Upgrade to the RC in [ipfs-desktop](https://github.com/ipfs-shipyard/ipfs-desktop)
@@ -162,11 +166,10 @@ Checklist:
     - [ ] Checkout the `release` branch locally.
       - Remember to pull the latest changes.
     - [ ] Create a signed tag for the release.
-      - [ ] Have release reviewer review the subsequent tagging commits you intend to run.
-        - This is a dangerous operation, as it is difficult to reverse due to Go modules and automated Docker image publishing
-      - [ ] Tag HEAD `release` commit with `vX.Y.Z` (`git tag -s vX.Y.Z -m 'Release X.Y.Z'`)
+      - [ ] This is a dangerous operation, as it is difficult to reverse due to Go modules and automated Docker image publishing. Remember to verify the commands you intend to run for items marked with ⚠️ with the release reviewer.
+      - [ ] ⚠️ Tag HEAD `release` commit with `vX.Y.Z` (`git tag -s vX.Y.Z -m 'Release X.Y.Z'`)
       - [ ] Run `git show vX.Y.Z` to ensure the tag is correct.
-      - [ ] Push the `vX.Y.Z` tag to GitHub (`git push origin vX.Y.Z`; DO NOT USE `git push --tags` because it pushes all your local tags).
+      - [ ] ⚠️ Push the `vX.Y.Z` tag to GitHub (`git push origin vX.Y.Z`; DO NOT USE `git push --tags` because it pushes all your local tags).
   - [ ] Publish the release.
     - [ ] Wait for [Publish docker image](https://github.com/ipfs/kubo/actions/workflows/docker-image.yml) workflow run initiated by the tag push to finish.
     - [ ] Add artifacts to https://dist.ipfs.tech by making a PR against [ipfs/distributions](https://github.com/ipfs/distributions)
@@ -217,10 +220,6 @@ Checklist:
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
   - [ ] Close this release issue.
-
-## ⁉️ Do you have questions?
-
-The best place to ask your questions about IPFS, how it works and what you can do with it is at [discuss.ipfs.io](http://discuss.ipfs.io). We are also available at the `#ipfs` channel on Freenode, which is also [accessible through our Matrix bridge](https://riot.im/app/#/room/#freenode_#ipfs:matrix.org).
 
 ## How to contribute?
 
