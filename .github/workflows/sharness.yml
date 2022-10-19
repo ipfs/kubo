@@ -75,12 +75,6 @@ jobs:
         run: find kubo/test/sharness/test-results -name 't*-*.sh.*.counts' | kubo/test/sharness/lib/sharness/aggregate-results.sh > kubo/test/sharness/test-results/summary.txt
       - name: Check for failures in aggregate results
         run: grep 'failed\s*0' kubo/test/sharness/test-results/summary.txt
-      - name: Upload aggregate XML
-        if: failure() || success()
-        uses: actions/upload-artifact@v3
-        with:
-          name: sharness.xml
-          path: kubo/test/sharness/test-results/sharness.xml
       - name: Add aggregate results to the summary
         if: failure() || success()
         run: |
