@@ -62,13 +62,13 @@ jobs:
           files: kubo/coverage/sharness_tests.coverprofile
       - run: find kubo/test/sharness/test-results -name 't*-*.sh.*.counts' | kubo/test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'
       - id: one-page
-        uses: pl-strflt/tf-aws-github-runner/.github/actions/upload-artifact@main
+        uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
         if: failure() || success()
         with:
           source: kubo/test/sharness/test-results/sharness.html
           destination: sharness.html
       - id: full
-        uses: pl-strflt/tf-aws-github-runner/.github/actions/upload-artifact@main
+        uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
         if: failure() || success()
         with:
           source: kubo/test/sharness/test-results/sharness-html
