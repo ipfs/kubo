@@ -162,7 +162,7 @@ jobs:
         tar xfz go1.19.1.linux-amd64.tar.gz
         echo "export PATH=$(pwd)/go/bin:\$PATH" >> ~/.bashrc
     - run: go version
-    - run: sudo apt install socat net-tools
+    - run: sudo apt install socat net-tools libxml2-utils
     - checkout
 
     - run:
