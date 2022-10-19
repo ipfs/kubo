@@ -86,5 +86,6 @@ jobs:
         if: failure() || success()
         with:
           name: Sharness JUnit
-          path: kubo/test/sharness/test-results/sharness.xml
+          path: test/sharness/test-results/sharness.xml
           reporter: java-junit
+          working-directory: kubo
