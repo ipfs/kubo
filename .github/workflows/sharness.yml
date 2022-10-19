@@ -78,7 +78,7 @@ jobs:
         run: grep 'failed\s*0' kubo/test/sharness/test-results/summary.txt
       - name: Upload stdout and stderr
         if: failure() || success()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v3
         with:
           name: sharness.txt
           path: kubo/test/sharness/test-results/sharness.txt
@@ -97,7 +97,7 @@ jobs:
           destination: sharness.html
       - name: Upload one-page HTML report
         if: (! fromJSON(needs.runner.outputs.config).aws) && (failure() || success())
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v3
         with:
           name: sharness.html
           path: kubo/test/sharness/test-results/sharness.html
@@ -110,7 +110,7 @@ jobs:
           destination: sharness-html/
       - name: Upload full HTML report
         if: (! fromJSON(needs.runner.outputs.config).aws) && (failure() || success())
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v3
         with:
           name: sharness-html
           path: kubo/test/sharness/test-results/sharness-html
