@@ -10,7 +10,7 @@ on:
 jobs:
   runner:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    uses: galorgh/kubo/.github/workflows/runner.yml@github-actions
+    uses: ipfs/kubo/.github/workflows/runner.yml@master
   gobuild:
     needs: [runner]
     runs-on: ${{ fromJSON(needs.runner.outputs.config).labels }}

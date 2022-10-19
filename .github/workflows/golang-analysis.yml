@@ -9,7 +9,7 @@ on:
 
 jobs:
   unit:
-    if: github.repository == 'galorgh/kubo' || github.event_name == 'workflow_dispatch'
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     name: All
     steps:
