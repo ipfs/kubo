@@ -274,11 +274,11 @@ PS> choco install go-ipfs
 
 #### Scoop
 
-Scoop provides kubo as `go-ipfs` in its 'extras' bucket.
+Scoop provides kubo as `kubo` in its 'extras' bucket.
 
 ```Powershell
 PS> scoop bucket add extras
-PS> scoop install go-ipfs
+PS> scoop install kubo
 ```
 
 ### Unofficial macOS packages
