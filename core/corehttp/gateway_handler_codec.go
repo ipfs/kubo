@@ -14,6 +14,7 @@ import (
 	"github.com/ipfs/kubo/tracing"
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/multicodec"
+	"github.com/ipld/go-ipld-prime/traversal"
 	mc "github.com/multiformats/go-multicodec"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -94,6 +95,16 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 	finalNode := universal.(ipld.Node)
+
+	if len(resolvedPath.Remainder()) > 0 {
+		remainderPath := ipld.ParsePath(resolvedPath.Remainder())
+
+		finalNode, err = traversal.Get(finalNode, remainderPath)
+		if err != nil {
+			webError(w, err.Error(), err, http.StatusInternalServerError)
+			return
+		}
+	}
 
 	// Otherwise convert it using the last codec of the list.
 	encoder, err := multicodec.LookupEncoder(codecs[len(codecs)-1])
