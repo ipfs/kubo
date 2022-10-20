@@ -372,9 +372,9 @@ var OrbitDelDocsCmd = &cmds.Command{
 		defer db.Close()
 
 		if key == "all" {
-			var issues map[string]interface{}
+			var issues []map[string]interface{}
 			_, err := store.Query(req.Context, func(e interface{}) (bool, error) {
-				issues = e.(map[string]interface{})
+				issues = append(issues, e.(map[string]interface{}))
 				return true, nil
 			})
 
@@ -382,12 +382,14 @@ var OrbitDelDocsCmd = &cmds.Command{
 				return err
 			}
 
-			for i := range issues {
-				if i == "_id" {
-					id := fmt.Sprint(issues[i])
-					_, err := store.Delete(req.Context, id)
-					if err != nil {
-						return err
+			for _, is := range issues {
+				for i := range is {
+					if i == "_id" {
+						id := fmt.Sprint(is[i])
+						_, err := store.Delete(req.Context, id)
+						if err != nil {
+							return err
+						}
 					}
 				}
 			}
