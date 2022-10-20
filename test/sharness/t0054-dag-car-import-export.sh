@@ -263,4 +263,32 @@ test_expect_success "version 2 import output as expected" '
   test_cmp_sorted version_2_import_expected version_2_import_actual
 '
 
+test_expect_success "'ipfs dag import' decode IPLD 'dag-json' codec works" '
+  NEW_HASH=$(echo "{ \"test\": \"dag-json\" }" | ipfs dag put --store-codec dag-json) &&
+  ipfs dag export $NEW_HASH > dag-json.car &&
+  ipfs dag import dag-json.car &&
+  rm dag-json.car
+'
+
+test_expect_success "'ipfs dag import' decode IPLD 'dag-cbor' codec works" '
+  NEW_HASH=$(echo "{ \"test\": \"dag-cbor\" }" | ipfs dag put --store-codec dag-cbor) &&
+  ipfs dag export $NEW_HASH > dag-cbor.car &&
+  ipfs dag import dag-cbor.car &&
+  rm dag-cbor.car
+'
+
+test_expect_success "'ipfs dag import' decode IPLD 'json' codec works" '
+  NEW_HASH=$(echo "{ \"test\": \"json\" }" | ipfs dag put --store-codec json) &&
+  ipfs dag export $NEW_HASH > json.car &&
+  ipfs dag import json.car &&
+  rm json.car
+'
+
+test_expect_success "'ipfs dag import' decode IPLD 'cbor' codec works" '
+  NEW_HASH=$(echo "{ \"test\": \"cbor\" }" | ipfs dag put --store-codec cbor) &&
+  ipfs dag export $NEW_HASH > cbor.car &&
+  ipfs dag import cbor.car &&
+  rm cbor.car
+'
+
 test_done
