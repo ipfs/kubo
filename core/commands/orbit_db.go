@@ -384,7 +384,8 @@ var OrbitDelDocsCmd = &cmds.Command{
 
 			for i := range issues {
 				if i == "_id" {
-					_, err := store.Delete(req.Context, i)
+					id := fmt.Sprint(issues[i])
+					_, err := store.Delete(req.Context, id)
 					if err != nil {
 						return err
 					}
