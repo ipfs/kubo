@@ -372,9 +372,21 @@ var OrbitDelDocsCmd = &cmds.Command{
 		defer db.Close()
 
 		if key == "all" {
-			_, err := store.Delete(req.Context, "")
+			var issues map[string]interface{}
+			_, err := store.Query(req.Context, func(e interface{}) (bool, error) {
+				issues = e.(map[string]interface{})
+				return true, nil
+			})
+
 			if err != nil {
 				return err
+			}
+
+			for i := range issues {
+				_, err := store.Delete(req.Context, i)
+				if err != nil {
+					return err
+				}
 			}
 		} else {
 			_, err := store.Delete(req.Context, key)
