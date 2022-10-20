@@ -89,7 +89,8 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 
 	universal, ok := obj.(ipldlegacy.UniversalNode)
 	if !ok {
-		webError(w, "todo", fmt.Errorf("%T is not a valid IPLD node", obj), http.StatusInternalServerError)
+		err = fmt.Errorf("%T is not a valid IPLD node", obj)
+		webError(w, err.Error(), err, http.StatusInternalServerError)
 		return
 	}
 	finalNode := universal.(ipld.Node)
@@ -97,7 +98,7 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	// Otherwise convert it using the last codec of the list.
 	encoder, err := multicodec.LookupEncoder(codecs[len(codecs)-1])
 	if err != nil {
-		webError(w, "todo", err, http.StatusInternalServerError)
+		webError(w, err.Error(), err, http.StatusInternalServerError)
 		return
 	}
 
