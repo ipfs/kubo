@@ -383,9 +383,11 @@ var OrbitDelDocsCmd = &cmds.Command{
 			}
 
 			for i := range issues {
-				_, err := store.Delete(req.Context, i)
-				if err != nil {
-					return err
+				if i == "_id" {
+					_, err := store.Delete(req.Context, i)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		} else {
