@@ -13,22 +13,31 @@ type completionCommand struct {
 	FullName     string
 	Description  string
 	Subcommands  []*completionCommand
+	Flags        []*singleOption
+	Options      []*singleOption
 	ShortFlags   []string
 	ShortOptions []string
 	LongFlags    []string
 	LongOptions  []string
-	Indent       string // A number of spaces for indent
+	IsFinal      bool
+}
+
+type singleOption struct {
+	LongNames   []string
+	ShortNames  []string
+	Description string
 }
 
 func commandToCompletions(name string, fullName string, cmd *cmds.Command) *completionCommand {
 	parsed := &completionCommand{
-		Name: name,
-		FullName: fullName,
+		Name:        name,
+		FullName:    fullName,
 		Description: cmd.Helptext.Tagline,
+		IsFinal:     len(cmd.Subcommands) == 0,
 	}
 	for name, subCmd := range cmd.Subcommands {
 		parsed.Subcommands = append(parsed.Subcommands,
-			commandToCompletions(name, fullName + " " + name, subCmd))
+			commandToCompletions(name, fullName+" "+name, subCmd))
 	}
 	sort.Slice(parsed.Subcommands, func(i, j int) bool {
 		return parsed.Subcommands[i].Name < parsed.Subcommands[j].Name
@@ -36,21 +45,33 @@ func commandToCompletions(name string, fullName string, cmd *cmds.Command) *comp
 
 	for _, opt := range cmd.Options {
 		if opt.Type() == cmds.Bool {
+			flag := &singleOption{
+				Description: opt.Description(),
+			}
 			parsed.LongFlags = append(parsed.LongFlags, opt.Name())
+			flag.LongNames = append(flag.LongNames, opt.Name())
 			for _, name := range opt.Names() {
 				if len(name) == 1 {
 					parsed.ShortFlags = append(parsed.ShortFlags, name)
+					flag.ShortNames = append(flag.ShortNames, name)
 					break
 				}
 			}
+			parsed.Flags = append(parsed.Flags, flag)
 		} else {
+			myOpt := &singleOption{
+				Description: opt.Description(),
+			}
+			myOpt.LongNames = append(myOpt.LongNames, opt.Name())
 			parsed.LongOptions = append(parsed.LongOptions, opt.Name())
 			for _, name := range opt.Names() {
 				if len(name) == 1 {
 					parsed.ShortOptions = append(parsed.ShortOptions, name)
+					myOpt.ShortNames = append(myOpt.ShortNames, name)
 					break
 				}
 			}
+			parsed.Options = append(parsed.Options, myOpt)
 		}
 	}
 	sort.Slice(parsed.LongFlags, func(i, j int) bool {
@@ -141,32 +162,39 @@ complete -o nosort -o nospace -o default -F _ipfs ipfs
 `))
 
 	fishCommandTemplate := template.Must(template.New("command").Parse(`
-{{- if .ShortFlags -}}
-    complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from {{ .FullName }}' {{ range .ShortFlags }}-s {{.}} {{end}}
+{{- if .IsFinal -}}
+complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from{{ .FullName }}' -F
 {{ end -}}
-{{- if .ShortOptions -}}
-    complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from {{ .FullName }}' -r {{ range .ShortOptions }}-s {{.}} {{end}}
+{{- range .Flags -}}
+    complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from{{ $.FullName }}' {{ range .ShortNames }}-s {{.}} {{end}}{{ range .LongNames }}-l {{.}} {{end}}-d "{{ .Description }}"
 {{ end -}}
-{{- if .LongFlags -}}
-    complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from {{ .FullName }}' {{ range .LongFlags }}-l {{.}} {{end}}
+{{- range .Options -}}
+    complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from{{ $.FullName }}' -r {{ range .ShortNames }}-s {{.}} {{end}}{{ range .LongNames }}-l {{.}} {{end}}-d "{{ .Description }}"
 {{ end -}}
-{{- if .LongOptions -}}
-    complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from {{ .FullName }}' -r {{ range .LongOptions }}-l {{.}} {{end}}
-{{ end }}
 
 {{- range .Subcommands }}
-# {{ .FullName }}
-complete -c ipfs -n '__fish_ipfs_use_subcommand {{ .FullName }}' -a {{ .Name }} -d "{{ .Description }}"
+#{{ .FullName }}
+complete -c ipfs -n '__fish_ipfs_use_subcommand{{ .FullName }}' -a {{ .Name }} -d "{{ .Description }}"
 {{ template "command" . }}
 {{ end -}}
-
-	`));
+	`))
 	fishCompletionTemplate = template.Must(fishCommandTemplate.New("root").Parse(`#!/usr/bin/env fish
+
+# function __fish_ipfs_seen_all_subcommands_from
+# 	set -l cmd (commandline -poc)
+# 	set -e cmd[1]
+# 	for c in $argv
+# 	    if not contains -- $c $cmd
+# 		  return 1
+#         end
+# 	end
+# 	return 0
+# end
+
 
 function __fish_ipfs_seen_all_subcommands_from
 	set -l cmd (commandline -poc)
 	set -e cmd[1]
-	# for c in $argv
 	for i in $cmd
 	    switch $i
 		    case '-*'
@@ -186,16 +214,17 @@ end
 
 function __fish_ipfs_use_subcommand
     __fish_ipfs_seen_all_subcommands_from $argv[1..-2]
+	# set -e argv[-1]
 end
 
-# complete -c ipfs -o nosort -o nospace -o default -F _ipfs ipfs
+complete -c ipfs -l help -d "Show the full command help text."
+
 complete -c ipfs --keep-order --no-files
 
 {{ template "command" . }}
 `))
 
 }
-
 
 // writeBashCompletions generates a bash completion script for the given command tree.
 func writeBashCompletions(cmd *cmds.Command, out io.Writer) error {
