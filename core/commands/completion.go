@@ -179,19 +179,6 @@ complete -c ipfs -n '__fish_ipfs_use_subcommand{{ .FullName }}' -a {{ .Name }} -
 {{ end -}}
 	`))
 	fishCompletionTemplate = template.Must(fishCommandTemplate.New("root").Parse(`#!/usr/bin/env fish
-
-# function __fish_ipfs_seen_all_subcommands_from
-# 	set -l cmd (commandline -poc)
-# 	set -e cmd[1]
-# 	for c in $argv
-# 	    if not contains -- $c $cmd
-# 		  return 1
-#         end
-# 	end
-# 	return 0
-# end
-
-
 function __fish_ipfs_seen_all_subcommands_from
 	set -l cmd (commandline -poc)
 	set -e cmd[1]
@@ -205,9 +192,6 @@ function __fish_ipfs_seen_all_subcommands_from
             case '*'
                 return 1
         end
-		# if string match --quiet -- $i $argv[1]
-		#     set argv $argv[2..]
-		# end
 	end
 	test -z "$argv"
 end
