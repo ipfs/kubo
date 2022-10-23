@@ -180,6 +180,18 @@ complete -c ipfs -n '__fish_ipfs_use_subcommand{{ .FullName }}' -a {{ .Name }} -
 	`))
 	fishCompletionTemplate = template.Must(fishCommandTemplate.New("root").Parse(`#!/usr/bin/env fish
 function __fish_ipfs_seen_all_subcommands_from
+     set -l cmd (commandline -poc)
+     set -e cmd[1]
+     for c in $argv
+         if not contains -- $c $cmd
+               return 1
+        end
+     end
+     return 0
+end
+
+function __fish_ipfs_use_subcommand
+	set -e argv[-1]
 	set -l cmd (commandline -poc)
 	set -e cmd[1]
 	for i in $cmd
@@ -194,11 +206,6 @@ function __fish_ipfs_seen_all_subcommands_from
         end
 	end
 	test -z "$argv"
-end
-
-function __fish_ipfs_use_subcommand
-    __fish_ipfs_seen_all_subcommands_from $argv[1..-2]
-	# set -e argv[-1]
 end
 
 complete -c ipfs -l help -d "Show the full command help text."
