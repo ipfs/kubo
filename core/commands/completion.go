@@ -10,19 +10,25 @@ import (
 
 type completionCommand struct {
 	Name         string
+	FullName     string
+	Description  string
 	Subcommands  []*completionCommand
 	ShortFlags   []string
 	ShortOptions []string
 	LongFlags    []string
 	LongOptions  []string
+	Indent       string // A number of spaces for indent
 }
 
-func commandToCompletions(name string, cmd *cmds.Command) *completionCommand {
+func commandToCompletions(name string, fullName string, cmd *cmds.Command) *completionCommand {
 	parsed := &completionCommand{
 		Name: name,
+		FullName: fullName,
+		Description: cmd.Helptext.Tagline,
 	}
 	for name, subCmd := range cmd.Subcommands {
-		parsed.Subcommands = append(parsed.Subcommands, commandToCompletions(name, subCmd))
+		parsed.Subcommands = append(parsed.Subcommands,
+			commandToCompletions(name, fullName + " " + name, subCmd))
 	}
 	sort.Slice(parsed.Subcommands, func(i, j int) bool {
 		return parsed.Subcommands[i].Name < parsed.Subcommands[j].Name
@@ -62,7 +68,7 @@ func commandToCompletions(name string, cmd *cmds.Command) *completionCommand {
 	return parsed
 }
 
-var bashCompletionTemplate *template.Template
+var bashCompletionTemplate, fishCompletionTemplate *template.Template
 
 func init() {
 	commandTemplate := template.Must(template.New("command").Parse(`
@@ -133,10 +139,72 @@ _ipfs() {
 }
 complete -o nosort -o nospace -o default -F _ipfs ipfs
 `))
+
+	fishCommandTemplate := template.Must(template.New("command").Parse(`
+{{- if .ShortFlags -}}
+    complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from {{ .FullName }}' {{ range .ShortFlags }}-s {{.}} {{end}}
+{{ end -}}
+{{- if .ShortOptions -}}
+    complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from {{ .FullName }}' -r {{ range .ShortOptions }}-s {{.}} {{end}}
+{{ end -}}
+{{- if .LongFlags -}}
+    complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from {{ .FullName }}' {{ range .LongFlags }}-l {{.}} {{end}}
+{{ end -}}
+{{- if .LongOptions -}}
+    complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from {{ .FullName }}' -r {{ range .LongOptions }}-l {{.}} {{end}}
+{{ end }}
+
+{{- range .Subcommands }}
+# {{ .FullName }}
+complete -c ipfs -n '__fish_ipfs_use_subcommand {{ .FullName }}' -a {{ .Name }} -d "{{ .Description }}"
+{{ template "command" . }}
+{{ end -}}
+
+	`));
+	fishCompletionTemplate = template.Must(fishCommandTemplate.New("root").Parse(`#!/usr/bin/env fish
+
+function __fish_ipfs_seen_all_subcommands_from
+	set -l cmd (commandline -poc)
+	set -e cmd[1]
+	# for c in $argv
+	for i in $cmd
+	    switch $i
+		    case '-*'
+			    continue
+            case $argv[1]
+                set argv $argv[2..]
+                continue
+            case '*'
+                return 1
+        end
+		# if string match --quiet -- $i $argv[1]
+		#     set argv $argv[2..]
+		# end
+	end
+	test -z "$argv"
+end
+
+function __fish_ipfs_use_subcommand
+    __fish_ipfs_seen_all_subcommands_from $argv[1..-2]
+end
+
+# complete -c ipfs -o nosort -o nospace -o default -F _ipfs ipfs
+complete -c ipfs --keep-order --no-files
+
+{{ template "command" . }}
+`))
+
 }
+
 
 // writeBashCompletions generates a bash completion script for the given command tree.
 func writeBashCompletions(cmd *cmds.Command, out io.Writer) error {
-	cmds := commandToCompletions("ipfs", cmd)
+	cmds := commandToCompletions("ipfs", "", cmd)
 	return bashCompletionTemplate.Execute(out, cmds)
+}
+
+// writeFishCompletions generates a fish completion script for the given command tree.
+func writeFishCompletions(cmd *cmds.Command, out io.Writer) error {
+	cmds := commandToCompletions("ipfs", "", cmd)
+	return fishCompletionTemplate.Execute(out, cmds)
 }
