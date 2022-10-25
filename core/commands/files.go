@@ -1432,7 +1432,7 @@ Examples:
 
 		var ts time.Time
 		if mtime != 0 {
-			ts = time.Unix(int64(mtime), int64(nsecs)).UTC()
+			ts = time.Unix(mtime, int64(nsecs)).UTC()
 		} else {
 			ts = time.Now().UTC()
 		}
