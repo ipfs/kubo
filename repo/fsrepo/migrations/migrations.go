@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -15,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/kubo/config"
 )
 
 const (
@@ -63,7 +62,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 
 		logger.Println("Need", len(missing), "migrations, downloading.")
 
-		tmpDir, err := ioutil.TempDir("", "migrations")
+		tmpDir, err := os.MkdirTemp("", "migrations")
 		if err != nil {
 			return err
 		}
@@ -115,12 +114,12 @@ func ExeName(name string) string {
 // ReadMigrationConfig reads the Migration section of the IPFS config, avoiding
 // reading anything other than the Migration section. That way, we're free to
 // make arbitrary changes to all _other_ sections in migrations.
-func ReadMigrationConfig(repoRoot string) (*config.Migration, error) {
+func ReadMigrationConfig(repoRoot string, userConfigFile string) (*config.Migration, error) {
 	var cfg struct {
 		Migration config.Migration
 	}
 
-	cfgPath, err := config.Filename(repoRoot)
+	cfgPath, err := config.Filename(repoRoot, userConfigFile)
 	if err != nil {
 		return nil, err
 	}
@@ -155,17 +154,20 @@ func ReadMigrationConfig(repoRoot string) (*config.Migration, error) {
 // downloadSources,
 func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetcher func(string) Fetcher) (Fetcher, error) {
 	const httpUserAgent = "go-ipfs"
+	const numTriesPerHTTP = 3
 
 	var fetchers []Fetcher
 	for _, src := range downloadSources {
 		src := strings.TrimSpace(src)
 		switch src {
 		case "HTTPS", "https", "HTTP", "http":
-			fetchers = append(fetchers, NewHttpFetcher(distPath, "", httpUserAgent, 0))
+			fetchers = append(fetchers, &RetryFetcher{NewHttpFetcher(distPath, "", httpUserAgent, 0), numTriesPerHTTP})
 		case "IPFS", "ipfs":
 			if newIpfsFetcher != nil {
 				fetchers = append(fetchers, newIpfsFetcher(distPath))
 			}
+		case "":
+			// Ignore empty string
 		default:
 			u, err := url.Parse(src)
 			if err != nil {
@@ -178,9 +180,7 @@ func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetch
 			default:
 				return nil, errors.New("bad gateway address: url scheme must be http or https")
 			}
-			fetchers = append(fetchers, NewHttpFetcher(distPath, u.String(), httpUserAgent, 0))
-		case "":
-			// Ignore empty string
+			fetchers = append(fetchers, &RetryFetcher{NewHttpFetcher(distPath, u.String(), httpUserAgent, 0), numTriesPerHTTP})
 		}
 	}
 

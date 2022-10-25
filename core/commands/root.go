@@ -3,12 +3,12 @@ package commands
 import (
 	"errors"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	dag "github.com/ipfs/go-ipfs/core/commands/dag"
-	name "github.com/ipfs/go-ipfs/core/commands/name"
-	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
-	"github.com/ipfs/go-ipfs/core/commands/pin"
-	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	dag "github.com/ipfs/kubo/core/commands/dag"
+	name "github.com/ipfs/kubo/core/commands/name"
+	ocmd "github.com/ipfs/kubo/core/commands/object"
+	"github.com/ipfs/kubo/core/commands/pin"
+	unixfs "github.com/ipfs/kubo/core/commands/unixfs"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
@@ -19,11 +19,13 @@ var log = logging.Logger("core/commands")
 var ErrNotOnline = errors.New("this command must be run in online mode. Try running 'ipfs daemon' first")
 
 const (
-	ConfigOption  = "config"
-	DebugOption   = "debug"
-	LocalOption   = "local" // DEPRECATED: use OfflineOption
-	OfflineOption = "offline"
-	ApiOption     = "api"
+	RepoDirOption    = "repo-dir"
+	ConfigFileOption = "config-file"
+	ConfigOption     = "config"
+	DebugOption      = "debug"
+	LocalOption      = "local" // DEPRECATED: use OfflineOption
+	OfflineOption    = "offline"
+	ApiOption        = "api" //nolint
 )
 
 var Root = &cmds.Command{
@@ -50,30 +52,31 @@ TEXT ENCODING COMMANDS
 
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
-  mount         Mount an IPFS read-only mount point
-  resolve       Resolve any type of name
+  shutdown      Shut down the daemon process
+  resolve       Resolve any type of content path
   name          Publish and resolve IPNS names
   key           Create and list IPNS name keypairs
-  dns           Resolve DNS links
   pin           Pin objects to local storage
   repo          Manipulate the IPFS repository
   stats         Various operational stats
-  p2p           Libp2p stream mounting
+  p2p           Libp2p stream mounting (experimental)
   filestore     Manage the filestore (experimental)
+  mount         Mount an IPFS read-only mount point (experimental)
 
 NETWORK COMMANDS
   id            Show info about IPFS peers
   bootstrap     Add or remove bootstrap peers
   swarm         Manage connections to the p2p network
   dht           Query the DHT for values or peers
+  routing       Issue routing commands
   ping          Measure the latency of a connection
-  diag          Print diagnostics
   bitswap       Inspect bitswap state
   pubsub        Send and receive messages via pubsub
 
 TOOL COMMANDS
   config        Manage configuration
   version       Show IPFS version information
+  diag          Generate diagnostic reports
   update        Download and apply go-ipfs updates
   commands      List all available commands
   log           Manage and show logs of running daemon
@@ -95,7 +98,9 @@ The CLI will exit with one of the following values:
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(ConfigOption, "c", "Path to the configuration file to use."),
+		cmds.StringOption(RepoDirOption, "Path to the repository directory to use."),
+		cmds.StringOption(ConfigFileOption, "Path to the configuration file to use."),
+		cmds.StringOption(ConfigOption, "c", "[DEPRECATED] Path to the configuration file to use."),
 		cmds.BoolOption(DebugOption, "D", "Operate in debug mode."),
 		cmds.BoolOption(cmds.OptLongHelp, "Show the full command help text."),
 		cmds.BoolOption(cmds.OptShortHelp, "Show a short version of the command help text."),
@@ -113,7 +118,6 @@ The CLI will exit with one of the following values:
 	},
 }
 
-// commandsDaemonCmd is the "ipfs commands" command for daemon
 var CommandsDaemonCmd = CommandsCmd(Root)
 
 var rootSubcommands = map[string]*cmds.Command{
@@ -132,6 +136,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"config":    ConfigCmd,
 	"dag":       dag.DagCmd,
 	"dht":       DhtCmd,
+	"routing":   RoutingCmd,
 	"diag":      DiagCmd,
 	"dns":       DNSCmd,
 	"id":        IDCmd,
@@ -149,7 +154,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"swarm":     SwarmCmd,
 	"tar":       TarCmd,
 	"file":      unixfs.UnixFSCmd,
-	"update":    ExternalBinary("Please see https://git.io/fjylH for installation instructions."),
+	"update":    ExternalBinary("Please see https://github.com/ipfs/ipfs-update/blob/master/README.md#install for installation instructions."),
 	"urlstore":  urlStoreCmd,
 	"version":   VersionCmd,
 	"shutdown":  daemonShutdownCmd,

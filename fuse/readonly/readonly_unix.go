@@ -14,7 +14,6 @@ import (
 	fuse "bazil.org/fuse"
 	fs "bazil.org/fuse/fs"
 	"github.com/ipfs/go-cid"
-	core "github.com/ipfs/go-ipfs/core"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	mdag "github.com/ipfs/go-merkledag"
@@ -22,6 +21,7 @@ import (
 	"github.com/ipfs/go-path/resolver"
 	ft "github.com/ipfs/go-unixfs"
 	uio "github.com/ipfs/go-unixfs/io"
+	core "github.com/ipfs/kubo/core"
 	ipldprime "github.com/ipld/go-ipld-prime"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 )
@@ -180,21 +180,17 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	case os.ErrNotExist, mdag.ErrLinkNotFound:
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT
+	case nil:
+		// noop
 	default:
 		log.Errorf("fuse lookup %q: %s", name, err)
 		return nil, fuse.EIO
-	case nil:
-		// noop
 	}
 
 	nd, err := s.Ipfs.DAG.Get(ctx, link.Cid)
-	switch err {
-	case ipld.ErrNotFound:
-	default:
+	if err != nil && !ipld.IsNotFound(err) {
 		log.Errorf("fuse lookup %q: %s", name, err)
 		return nil, err
-	case nil:
-		// noop
 	}
 
 	return &Node{Ipfs: s.Ipfs, Nd: nd}, nil

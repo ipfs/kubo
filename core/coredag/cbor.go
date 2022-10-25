@@ -2,7 +2,6 @@ package coredag
 
 import (
 	"io"
-	"io/ioutil"
 
 	ipldcbor "github.com/ipfs/go-ipld-cbor"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -18,7 +17,7 @@ func cborJSONParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) 
 }
 
 func cborRawParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

@@ -1,5 +1,5 @@
 # Note: when updating the go minor version here, also update the go-channel in snap/snapcraft.yml
-FROM golang:1.16.12-buster
+FROM golang:1.19.1-buster
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Install deps
@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
   ca-certificates \
   fuse
 
-ENV SRC_DIR /go-ipfs
+ENV SRC_DIR /kubo
 
 # Download packages first so they can be cached.
 COPY go.mod go.sum $SRC_DIR/
@@ -25,7 +25,7 @@ ARG IPFS_PLUGINS
 # Also: fix getting HEAD commit hash via git rev-parse.
 RUN cd $SRC_DIR \
   && mkdir -p .git/objects \
-  && make build GOTAGS=openssl IPFS_PLUGINS=$IPFS_PLUGINS
+  && GOFLAGS=-buildvcs=false make build GOTAGS=openssl IPFS_PLUGINS=$IPFS_PLUGINS
 
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
@@ -51,9 +51,10 @@ FROM busybox:1.31.1-glibc
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
-ENV SRC_DIR /go-ipfs
+ENV SRC_DIR /kubo
 COPY --from=0 $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
 COPY --from=0 $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
+COPY --from=0 $SRC_DIR/bin/container_init_run /usr/local/bin/container_init_run
 COPY --from=0 /tmp/su-exec/su-exec-static /sbin/su-exec
 COPY --from=0 /tmp/tini /sbin/tini
 COPY --from=0 /bin/fusermount /usr/local/bin/fusermount
@@ -93,6 +94,10 @@ RUN mkdir -p $IPFS_PATH \
 RUN mkdir /ipfs /ipns \
   && chown ipfs:users /ipfs /ipns
 
+# Create the init scripts directory
+RUN mkdir /container-init.d \
+  && chown ipfs:users /container-init.d
+
 # Expose the fs-repo as a volume.
 # start_ipfs initializes an fs-repo if none is mounted.
 # Important this happens after the USER directive so permissions are correct.
@@ -106,10 +111,10 @@ ENV IPFS_LOGGING ""
 # 2. The API and Gateway are accessible from outside the container.
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/start_ipfs"]
 
-# Heathcheck for the container
+# Healthcheck for the container
 # QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn is the CID of empty folder
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD ipfs dag stat /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn || exit 1 
+  CMD ipfs dag stat /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn || exit 1
 
 # Execute the daemon subcommand by default
 CMD ["daemon", "--migrate=true", "--agent-version-suffix=docker"]

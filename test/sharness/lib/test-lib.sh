@@ -388,6 +388,15 @@ test_should_contain() {
   fi
 }
 
+test_should_not_contain() {
+  test "$#" = 2 || error "bug in the test script: not 2 parameters to test_should_not_contain"
+  if grep -q "$1" "$2"
+  then
+    echo "'$2' contains undesired value '$1'"
+    return 1
+  fi
+}
+
 test_str_contains() {
   find=$1
   shift
@@ -520,3 +529,16 @@ findprovs_expect() {
     test_cmp findprovsOut expected
   '
 }
+
+purge_blockstore() {
+  ipfs pin ls --quiet --type=recursive | ipfs pin rm &>/dev/null
+  ipfs repo gc --silent &>/dev/null
+
+  test_expect_success "pinlist empty" '
+    [[ -z "$( ipfs pin ls )" ]]
+  '
+  test_expect_success "nothing left to gc" '
+    [[ -z "$( ipfs repo gc )" ]]
+  '
+}
+

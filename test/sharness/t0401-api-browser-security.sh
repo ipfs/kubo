@@ -39,6 +39,22 @@ test_expect_success "browser is able to access API if Origin is the API port on 
   grep "HTTP/1.1 200 OK" curl_output && grep "$PEERID" curl_output
 '
 
+test_expect_success "Random browser extension is unable to access RPC API due to invalid Origin" '
+  curl -sD - -X POST -A "Mozilla" -H "Origin: chrome-extension://invalidextensionid" "http://127.0.0.1:$API_PORT/api/v0/id" >curl_output &&
+  grep "HTTP/1.1 403 Forbidden" curl_output
+'
+
+test_expect_success "Companion extension is able to access RPC API on localhost" '
+  curl -sD - -X POST -A "Mozilla" -H "Origin: chrome-extension://nibjojkomfdiaoajekhjakgkdhaomnch" "http://127.0.0.1:$API_PORT/api/v0/id" >curl_output &&
+  cat curl_output &&
+  grep "HTTP/1.1 200 OK" curl_output && grep "$PEERID" curl_output
+'
+
+test_expect_success "Companion beta extension is able to access API on localhost" '
+  curl -sD - -X POST -A "Mozilla" -H "Origin: chrome-extension://hjoieblefckbooibpepigmacodalfndh" "http://127.0.0.1:$API_PORT/api/v0/id" >curl_output &&
+  grep "HTTP/1.1 200 OK" curl_output && grep "$PEERID" curl_output
+'
+
 test_kill_ipfs_daemon
 
 test_expect_success "setting CORS in API.HTTPHeaders works via CLI" "
@@ -48,6 +64,14 @@ test_expect_success "setting CORS in API.HTTPHeaders works via CLI" "
 "
 
 test_launch_ipfs_daemon
+
+test_expect_success "Companion extension is able to access RPC API even when custom Access-Control-Allow-Origin is set" '
+  ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin | grep -q valid.example.com  &&
+  curl -sD - -X POST -A "Mozilla" -H "Origin: chrome-extension://nibjojkomfdiaoajekhjakgkdhaomnch" "http://127.0.0.1:$API_PORT/api/v0/id" >curl_output &&
+  cat curl_output &&
+  grep "HTTP/1.1 200 OK" curl_output &&
+  grep "$PEERID" curl_output
+'
 
 # https://developer.mozilla.org/en-US/docs/Glossary/Preflight_request
 test_expect_success "OPTIONS with preflight request to API with CORS allowlist succeeds" '

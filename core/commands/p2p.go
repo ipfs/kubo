@@ -10,14 +10,14 @@ import (
 	"text/tabwriter"
 	"time"
 
-	core "github.com/ipfs/go-ipfs/core"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	p2p "github.com/ipfs/go-ipfs/p2p"
+	core "github.com/ipfs/kubo/core"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	p2p "github.com/ipfs/kubo/p2p"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
+	protocol "github.com/libp2p/go-libp2p/core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 )
@@ -59,6 +59,7 @@ var resolveTimeout = 10 * time.Second
 
 // P2PCmd is the 'ipfs p2p' command
 var P2PCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Libp2p stream mounting.",
 		ShortDescription: `
@@ -78,6 +79,7 @@ are refined`,
 }
 
 var p2pForwardCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Forward connections to libp2p service.",
 		ShortDescription: `
@@ -179,6 +181,7 @@ func parseIpfsAddr(addr string) (*peer.AddrInfo, error) {
 }
 
 var p2pListenCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Create libp2p service.",
 		ShortDescription: `
@@ -280,6 +283,7 @@ const (
 )
 
 var p2pLsCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "List active p2p listeners.",
 	},
@@ -343,6 +347,7 @@ const (
 )
 
 var p2pCloseCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Stop listening for new connections to forward.",
 	},
@@ -427,6 +432,7 @@ var p2pCloseCmd = &cmds.Command{
 
 // p2pStreamCmd is the 'ipfs p2p stream' command
 var p2pStreamCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline:          "P2P stream management.",
 		ShortDescription: "Create and manage p2p streams",
@@ -439,6 +445,7 @@ var p2pStreamCmd = &cmds.Command{
 }
 
 var p2pStreamLsCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "List active p2p streams.",
 	},
@@ -488,6 +495,7 @@ var p2pStreamLsCmd = &cmds.Command{
 }
 
 var p2pStreamCloseCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Close active p2p stream.",
 	},

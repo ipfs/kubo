@@ -10,11 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	"github.com/cheggaaa/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
+	ipld "github.com/ipfs/go-ipld-format"
+	mfs "github.com/ipfs/go-mfs"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	mh "github.com/multiformats/go-multihash"
@@ -67,6 +69,7 @@ const (
 	hashOptionName        = "hash"
 	inlineOptionName      = "inline"
 	inlineLimitOptionName = "inline-limit"
+	toFilesOptionName     = "to-files"
 
 	preserveModeOptionName  = "preserve-mode"
 	preserveMtimeOptionName = "preserve-mtime"
@@ -107,6 +110,20 @@ You can now refer to the added file in a gateway, like so:
 
   /ipfs/QmaG4FuMqEBnQNn3C8XJ5bpW8kLs7zq2ZXgHptJHbKDDVx/example.jpg
 
+Files imported with 'ipfs add' are protected from GC (implicit '--pin=true'),
+but it is up to you to remember the returned CID to get the data back later.
+
+Passing '--to-files' creates a reference in Files API (MFS), making it easier
+to find it in the future:
+
+  > ipfs files mkdir -p /myfs/dir
+  > ipfs add example.jpg --to-files /myfs/dir/
+  > ipfs files ls /myfs/dir/
+  example.jpg
+
+See 'ipfs files --help' to learn more about using MFS
+for keeping track of added files and directories.
+
 The chunker option, '-s', specifies the chunking strategy that dictates
 how to break files into blocks. Blocks with same content can
 be deduplicated. Different chunking strategies will produce different
@@ -135,10 +152,16 @@ You can now check what blocks have been created by:
   QmerURi9k4XzKCaaPbsK6BL5pMEjF7PGphjDvkkjDtsVf3 868
   QmQB28iwSriSUSMqG2nXDTLtdPHgWb4rebBrU7Q1j4vxPv 338
 
-Finally, a note on hash determinism. While not guaranteed, adding the same
-file/directory with the same flags will almost always result in the same output
-hash. However, almost all of the flags provided by this command (other than pin,
-only-hash, and progress/status related flags) will change the final hash.
+Finally, a note on hash (CID) determinism and 'ipfs add' command.
+
+Almost all the flags provided by this command will change the final CID, and
+new flags may be added in the future. It is not guaranteed for the implicit
+defaults of 'ipfs add' to remain the same in future Kubo releases, or for other
+IPFS software to use the same import parameters as Kubo.
+
+If you need to back up or transport content-addressed data using a non-IPFS
+medium, CID can be preserved with CAR files.
+See 'dag export' and 'dag import' for more information.
 `,
 	},
 
@@ -160,7 +183,6 @@ only-hash, and progress/status related flags) will change the final hash.
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash").WithDefault("size-262144"),
-		cmds.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
@@ -168,6 +190,8 @@ only-hash, and progress/status related flags) will change the final hash.
 		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
+		cmds.BoolOption(pinOptionName, "Pin locally to protect added files from garbage collection.").WithDefault(true),
+		cmds.StringOption(toFilesOptionName, "Add reference to Files API (MFS) at the provided path."),
 		cmds.BoolOption(preserveModeOptionName, "Apply permissions to created UnixFS entries"),
 		cmds.BoolOption(preserveMtimeOptionName, "Apply modification time to created UnixFS entries"),
 		cmds.UintOption(modeOptionName, "File mode to apply to created UnixFS entries"),
@@ -213,6 +237,7 @@ only-hash, and progress/status related flags) will change the final hash.
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
+		toFilesStr, toFilesSet := req.Options[toFilesOptionName].(string)
 		preserveMode, _ := req.Options[preserveModeOptionName].(bool)
 		preserveMtime, _ := req.Options[preserveMtimeOptionName].(bool)
 		mode, _ := req.Options[modeOptionName].(uint)
@@ -221,7 +246,10 @@ only-hash, and progress/status related flags) will change the final hash.
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
-			return fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
+			return fmt.Errorf("unrecognized hash function: %q", strings.ToLower(hashFunStr))
+		}
+		if _, err := mh.GetHasher(hashFunCode); err != nil {
+			return err
 		}
 
 		enc, err := cmdenv.GetCidEncoder(req)
@@ -280,7 +308,12 @@ only-hash, and progress/status related flags) will change the final hash.
 
 		opts = append(opts, nil) // events option placeholder
 
+		ipfsNode, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
 		var added int
+		var fileAddedToMFS bool
 		addit := toadd.Entries()
 		for addit.Next() {
 			_, dir := addit.Node().(files.Directory)
@@ -291,7 +324,65 @@ only-hash, and progress/status related flags) will change the final hash.
 			go func() {
 				var err error
 				defer close(events)
-				_, err = api.Unixfs().Add(req.Context, addit.Node(), opts...)
+				pathAdded, err := api.Unixfs().Add(req.Context, addit.Node(), opts...)
+				if err != nil {
+					errCh <- err
+					return
+				}
+
+				// creating MFS pointers when optional --to-files is set
+				if toFilesSet {
+					if toFilesStr == "" {
+						toFilesStr = "/"
+					}
+					toFilesDst, err := checkPath(toFilesStr)
+					if err != nil {
+						errCh <- fmt.Errorf("%s: %w", toFilesOptionName, err)
+						return
+					}
+					dstAsDir := toFilesDst[len(toFilesDst)-1] == '/'
+
+					if dstAsDir {
+						mfsNode, err := mfs.Lookup(ipfsNode.FilesRoot, toFilesDst)
+						// confirm dst exists
+						if err != nil {
+							errCh <- fmt.Errorf("%s: MFS destination directory %q does not exist: %w", toFilesOptionName, toFilesDst, err)
+							return
+						}
+						// confirm dst is a dir
+						if mfsNode.Type() != mfs.TDir {
+							errCh <- fmt.Errorf("%s: MFS destination %q is not a directory", toFilesOptionName, toFilesDst)
+							return
+						}
+						// if MFS destination is a dir, append filename to the dir path
+						toFilesDst += path.Base(addit.Name())
+					}
+
+					// error if we try to overwrite a preexisting file destination
+					if fileAddedToMFS && !dstAsDir {
+						errCh <- fmt.Errorf("%s: MFS destination is a file: only one entry can be copied to %q", toFilesOptionName, toFilesDst)
+						return
+					}
+
+					_, err = mfs.Lookup(ipfsNode.FilesRoot, path.Dir(toFilesDst))
+					if err != nil {
+						errCh <- fmt.Errorf("%s: MFS destination parent %q %q does not exist: %w", toFilesOptionName, toFilesDst, path.Dir(toFilesDst), err)
+						return
+					}
+
+					var nodeAdded ipld.Node
+					nodeAdded, err = api.Dag().Get(req.Context, pathAdded.Cid())
+					if err != nil {
+						errCh <- err
+						return
+					}
+					err = mfs.PutNode(ipfsNode.FilesRoot, toFilesDst, nodeAdded)
+					if err != nil {
+						errCh <- fmt.Errorf("%s: cannot put node in path %q: %w", toFilesOptionName, toFilesDst, err)
+						return
+					}
+					fileAddedToMFS = true
+				}
 				errCh <- err
 			}()
 

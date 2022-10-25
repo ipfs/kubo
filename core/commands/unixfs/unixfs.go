@@ -5,17 +5,12 @@ import (
 )
 
 var UnixFSCmd = &cmds.Command{
+	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/pull/7755
 	Helptext: cmds.HelpText{
 		Tagline: "Interact with IPFS objects representing Unix filesystems.",
 		ShortDescription: `
-'ipfs file' provides a familiar interface to file systems represented
-by IPFS objects, which hides ipfs implementation details like layout
-objects (e.g. fanout and chunking).
-`,
-		LongDescription: `
-'ipfs file' provides a familiar interface to file systems represented
-by IPFS objects, which hides ipfs implementation details like layout
-objects (e.g. fanout and chunking).
+Old interface to file systems represented by UnixFS.
+Superseded by modern alternatives: 'ipfs ls' and 'ipfs files'
 `,
 	},
 

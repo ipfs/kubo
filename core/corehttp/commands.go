@@ -9,15 +9,15 @@ import (
 	"strconv"
 	"strings"
 
-	version "github.com/ipfs/go-ipfs"
-	oldcmds "github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/core"
-	corecommands "github.com/ipfs/go-ipfs/core/commands"
+	version "github.com/ipfs/kubo"
+	oldcmds "github.com/ipfs/kubo/commands"
+	"github.com/ipfs/kubo/core"
+	corecommands "github.com/ipfs/kubo/core/commands"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdsHttp "github.com/ipfs/go-ipfs-cmds/http"
-	config "github.com/ipfs/go-ipfs-config"
 	path "github.com/ipfs/go-path"
+	config "github.com/ipfs/kubo/config"
 )
 
 var (
@@ -44,6 +44,11 @@ var defaultLocalhostOrigins = []string{
 	"https://[::1]:<port>",
 	"http://localhost:<port>",
 	"https://localhost:<port>",
+}
+
+var companionBrowserExtensionOrigins = []string{
+	"chrome-extension://nibjojkomfdiaoajekhjakgkdhaomnch", // ipfs-companion
+	"chrome-extension://hjoieblefckbooibpepigmacodalfndh", // ipfs-companion-beta
 }
 
 func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
@@ -80,14 +85,13 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 			c.Headers[h] = v
 		}
 	}
-	c.Headers["Server"] = []string{"go-ipfs/" + version.CurrentVersionNumber}
+	c.Headers["Server"] = []string{"kubo/" + version.CurrentVersionNumber}
 }
 
 func addCORSDefaults(c *cmdsHttp.ServerConfig) {
-	// by default use localhost origins
-	if len(c.AllowedOrigins()) == 0 {
-		c.SetAllowedOrigins(defaultLocalhostOrigins...)
-	}
+	// always safelist certain origins
+	c.AppendAllowedOrigins(defaultLocalhostOrigins...)
+	c.AppendAllowedOrigins(companionBrowserExtensionOrigins...)
 
 	// by default, use GET, PUT, POST
 	if len(c.AllowedMethods()) == 0 {
@@ -159,7 +163,7 @@ func CommandsROOption(cctx oldcmds.Context) ServeOption {
 	return commandsOption(cctx, corecommands.RootRO, true)
 }
 
-// CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/go-ipfs/`
+// CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/kubo/` or `/go-ipfs/`
 func CheckVersionOption() ServeOption {
 	daemonVersion := version.ApiVersion
 
@@ -173,8 +177,8 @@ func CheckVersionOption() ServeOption {
 				// backwards compatibility to previous version check
 				if len(pth) >= 2 && pth[1] != "version" {
 					clientVersion := r.UserAgent()
-					// skips check if client is not go-ipfs
-					if strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
+					// skips check if client is not kubo (go-ipfs)
+					if (strings.Contains(clientVersion, "/go-ipfs/") || strings.Contains(clientVersion, "/kubo/")) && daemonVersion != clientVersion {
 						http.Error(w, fmt.Sprintf("%s (%s != %s)", errAPIVersionMismatch, daemonVersion, clientVersion), http.StatusBadRequest)
 						return
 					}

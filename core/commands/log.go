@@ -105,6 +105,7 @@ subsystems of a running daemon.
 }
 
 var logTailCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Read the event log.",
 		ShortDescription: `

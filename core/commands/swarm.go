@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -10,15 +12,18 @@ import (
 	"sync"
 	"time"
 
-	commands "github.com/ipfs/go-ipfs/commands"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	repo "github.com/ipfs/go-ipfs/repo"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/kubo/commands"
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo/fsrepo"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
-	inet "github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	inet "github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
@@ -52,14 +57,17 @@ ipfs peers in the internet.
 		"filters":    swarmFiltersCmd,
 		"peers":      swarmPeersCmd,
 		"peering":    swarmPeeringCmd,
+		"stats":      swarmStatsCmd, // libp2p Network Resource Manager
+		"limit":      swarmLimitCmd, // libp2p Network Resource Manager
 	},
 }
 
 const (
-	swarmVerboseOptionName   = "verbose"
-	swarmStreamsOptionName   = "streams"
-	swarmLatencyOptionName   = "latency"
-	swarmDirectionOptionName = "direction"
+	swarmVerboseOptionName     = "verbose"
+	swarmStreamsOptionName     = "streams"
+	swarmLatencyOptionName     = "latency"
+	swarmDirectionOptionName   = "direction"
+	swarmResetLimitsOptionName = "reset"
 )
 
 type peeringResult struct {
@@ -72,7 +80,7 @@ var swarmPeeringCmd = &cmds.Command{
 		Tagline: "Modify the peering subsystem.",
 		ShortDescription: `
 'ipfs swarm peering' manages the peering subsystem. 
-Peers in the peering subsystem is maintained to be connected, reconnected 
+Peers in the peering subsystem are maintained to be connected, reconnected 
 on disconnect with a back-off.
 The changes are not saved to the config.
 `,
@@ -115,6 +123,9 @@ var swarmPeeringAddCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+		if !node.IsOnline {
+			return ErrNotOnline
+		}
 
 		for _, addrinfo := range addInfos {
 			node.Peering.AddPeer(addrinfo)
@@ -146,6 +157,10 @@ var swarmPeeringLsCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+		if !node.IsOnline {
+			return ErrNotOnline
+		}
+
 		peers := node.Peering.ListPeers()
 		return cmds.EmitOnce(res, addrInfos{Peers: peers})
 	},
@@ -182,6 +197,9 @@ var swarmPeeringRmCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+		if !node.IsOnline {
+			return ErrNotOnline
+		}
 
 		for _, arg := range req.Arguments {
 			id, err := peer.Decode(arg)
@@ -199,7 +217,7 @@ var swarmPeeringRmCmd = &cmds.Command{
 	Type: peeringResult{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, pr *peeringResult) error {
-			fmt.Fprintf(w, "add %s %s\n", pr.ID.String(), pr.Status)
+			fmt.Fprintf(w, "remove %s %s\n", pr.ID.String(), pr.Status)
 			return nil
 		}),
 	},
@@ -302,6 +320,144 @@ var swarmPeersCmd = &cmds.Command{
 		}),
 	},
 	Type: connInfos{},
+}
+
+var swarmStatsCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Report resource usage for a scope.",
+		LongDescription: `Report resource usage for a scope.
+The scope can be one of the following:
+- system        -- reports the system aggregate resource usage.
+- transient     -- reports the transient resource usage.
+- svc:<service> -- reports the resource usage of a specific service.
+- proto:<proto> -- reports the resource usage of a specific protocol.
+- peer:<peer>   -- reports the resource usage of a specific peer.
+- all           -- reports the resource usage for all currently active scopes.
+
+The output of this command is JSON.
+`},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("scope", true, false, "scope of the stat report"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		if node.ResourceManager == nil {
+			return libp2p.ErrNoResourceMgr
+		}
+
+		if len(req.Arguments) != 1 {
+			return fmt.Errorf("must specify exactly one scope")
+		}
+		scope := req.Arguments[0]
+		result, err := libp2p.NetStat(node.ResourceManager, scope)
+		if err != nil {
+			return err
+		}
+
+		b := new(bytes.Buffer)
+		enc := json.NewEncoder(b)
+		err = enc.Encode(result)
+		if err != nil {
+			return err
+		}
+		return cmds.EmitOnce(res, b)
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: HumanJSONEncoder,
+	},
+}
+
+var swarmLimitCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Get or set resource limits for a scope.",
+		LongDescription: `Get or set resource limits for a scope.
+The scope can be one of the following:
+- system        -- limits for the system aggregate resource usage.
+- transient     -- limits for the transient resource usage.
+- svc:<service> -- limits for the resource usage of a specific service.
+- proto:<proto> -- limits for the resource usage of a specific protocol.
+- peer:<peer>   -- limits for the resource usage of a specific peer.
+
+The output of this command is JSON.
+
+It is possible to use this command to inspect and tweak limits at runtime:
+
+	$ ipfs swarm limit system > limit.json
+	$ vi limit.json
+	$ ipfs swarm limit system limit.json
+
+Changes made via command line are persisted in the Swarm.ResourceMgr.Limits field of the $IPFS_PATH/config file.
+`},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("scope", true, false, "scope of the limit"),
+		cmds.FileArg("limit.json", false, false, "limits to be set").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(swarmResetLimitsOptionName, "reset limit to default"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		if node.ResourceManager == nil {
+			return libp2p.ErrNoResourceMgr
+		}
+
+		scope := req.Arguments[0]
+
+		//  set scope limit to new values (when limit.json is passed as a second arg)
+		if req.Files != nil {
+			var newLimit rcmgr.BaseLimit
+			it := req.Files.Entries()
+			if it.Next() {
+				file := files.FileFromEntry(it)
+				if file == nil {
+					return errors.New("expected a JSON file")
+				}
+				if err := json.NewDecoder(file).Decode(&newLimit); err != nil {
+					return fmt.Errorf("decoding JSON as ResourceMgrScopeConfig: %w", err)
+				}
+				return libp2p.NetSetLimit(node.ResourceManager, node.Repo, scope, newLimit)
+			}
+			if err := it.Err(); err != nil {
+				return fmt.Errorf("error opening limit JSON file: %w", err)
+			}
+		}
+
+		var result rcmgr.BaseLimit
+		_, reset := req.Options[swarmResetLimitsOptionName]
+		if reset {
+			result, err = libp2p.NetResetLimit(node.ResourceManager, node.Repo, scope)
+			if err != nil {
+				return err
+			}
+		} else {
+			// get scope limit
+			result, err = libp2p.NetLimit(node.ResourceManager, scope)
+			if err != nil {
+				return err
+			}
+		}
+
+		b := new(bytes.Buffer)
+		enc := json.NewEncoder(b)
+		err = enc.Encode(result)
+		if err != nil {
+			return err
+		}
+		return cmds.EmitOnce(res, b)
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: HumanJSONEncoder,
+	},
 }
 
 type streamInfo struct {
@@ -707,7 +863,7 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -743,7 +899,7 @@ var swarmFiltersAddCmd = &cmds.Command{
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -799,7 +955,7 @@ var swarmFiltersRmCmd = &cmds.Command{
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 

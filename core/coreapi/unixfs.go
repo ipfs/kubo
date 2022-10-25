@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/tracing"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
+	"github.com/ipfs/kubo/core/coreunix"
 
 	blockservice "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
@@ -15,7 +19,6 @@ import (
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
-	dag "github.com/ipfs/go-merkledag"
 	merkledag "github.com/ipfs/go-merkledag"
 	dagtest "github.com/ipfs/go-merkledag/test"
 	mfs "github.com/ipfs/go-mfs"
@@ -54,10 +57,29 @@ func getOrCreateNilNode() (*core.IpfsNode, error) {
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
 func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (path.Resolved, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.UnixfsAPI", "Add")
+	defer span.End()
+
 	settings, prefix, err := options.UnixfsAddOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
+
+	span.SetAttributes(
+		attribute.String("chunker", settings.Chunker),
+		attribute.Int("cidversion", settings.CidVersion),
+		attribute.Bool("inline", settings.Inline),
+		attribute.Int("inlinelimit", settings.InlineLimit),
+		attribute.Bool("rawleaves", settings.RawLeaves),
+		attribute.Bool("rawleavesset", settings.RawLeavesSet),
+		attribute.Int("layout", int(settings.Layout)),
+		attribute.Bool("pin", settings.Pin),
+		attribute.Bool("onlyhash", settings.OnlyHash),
+		attribute.Bool("fscache", settings.FsCache),
+		attribute.Bool("nocopy", settings.NoCopy),
+		attribute.Bool("silent", settings.Silent),
+		attribute.Bool("progress", settings.Progress),
+	)
 
 	cfg, err := api.repo.Config()
 	if err != nil {
@@ -73,7 +95,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	//}
 
 	if settings.NoCopy && !(cfg.Experimental.FilestoreEnabled || cfg.Experimental.UrlstoreEnabled) {
-		return nil, fmt.Errorf("either the filestore or the urlstore must be enabled to use nocopy, see: https://git.io/vNItf")
+		return nil, fmt.Errorf("either the filestore or the urlstore must be enabled to use nocopy, see: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#ipfs-filestore")
 	}
 
 	addblockstore := api.blockstore
@@ -94,7 +116,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	}
 
 	bserv := blockservice.New(addblockstore, exch) // hash security 001
-	dserv := dag.NewDAGService(bserv)
+	dserv := merkledag.NewDAGService(bserv)
 
 	// add a sync call to the DagService
 	// this ensures that data written to the DagService is persisted to the underlying datastore
@@ -182,6 +204,9 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 }
 
 func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.UnixfsAPI", "Get", trace.WithAttributes(attribute.String("path", p.String())))
+	defer span.End()
+
 	ses := api.core().getSession(ctx)
 
 	nd, err := ses.ResolveNode(ctx, p)
@@ -195,10 +220,15 @@ func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
 // `<link base58 hash> <link size in bytes> <link name>`
 func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...options.UnixfsLsOption) (<-chan coreiface.DirEntry, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.UnixfsAPI", "Ls", trace.WithAttributes(attribute.String("path", p.String())))
+	defer span.End()
+
 	settings, err := options.UnixfsLsOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
+
+	span.SetAttributes(attribute.Bool("resolvechildren", settings.ResolveChildren))
 
 	ses := api.core().getSession(ctx)
 	uses := (*UnixfsAPI)(ses)
@@ -220,6 +250,13 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...options.Unixf
 }
 
 func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, settings *options.UnixfsLsSettings) coreiface.DirEntry {
+	ctx, span := tracing.Span(ctx, "CoreAPI.UnixfsAPI", "ProcessLink")
+	defer span.End()
+	if linkres.Link != nil {
+		span.SetAttributes(attribute.String("linkname", linkres.Link.Name), attribute.String("cid", linkres.Link.Cid.String()))
+
+	}
+
 	if linkres.Err != nil {
 		return coreiface.DirEntry{Err: linkres.Err}
 	}
@@ -268,7 +305,7 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 }
 
 func (api *UnixfsAPI) lsFromLinksAsync(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, error) {
-	out := make(chan coreiface.DirEntry)
+	out := make(chan coreiface.DirEntry, uio.DefaultShardWidth)
 
 	go func() {
 		defer close(out)

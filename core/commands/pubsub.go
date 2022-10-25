@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"sort"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	mbase "github.com/multiformats/go-multibase"
 	"github.com/pkg/errors"
 
@@ -17,6 +16,7 @@ import (
 )
 
 var PubsubCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "An experimental publish-subscribe system on ipfs.",
 		ShortDescription: `
@@ -46,6 +46,7 @@ type pubsubMessage struct {
 }
 
 var PubsubSubCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Subscribe to messages on a given topic.",
 		ShortDescription: `
@@ -73,7 +74,7 @@ TOPIC AND DATA ENCODING
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("topic", true, false, "Name of topic to subscribe to."),
+		cmds.StringArg("topic", true, false, "Name of topic to subscribe to (multibase encoded when sent over HTTP RPC)."),
 	},
 	PreRun: urlArgsEncoder,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -144,6 +145,7 @@ TOPIC AND DATA ENCODING
 }
 
 var PubsubPubCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Publish data to a given pubsub topic.",
 		ShortDescription: `
@@ -167,7 +169,7 @@ HTTP RPC ENCODING
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("topic", true, false, "Topic to publish to."),
+		cmds.StringArg("topic", true, false, "Topic to publish to (multibase encoded when sent over HTTP RPC)."),
 		cmds.FileArg("data", true, false, "The data to be published.").EnableStdin(),
 	},
 	PreRun: urlArgsEncoder,
@@ -188,7 +190,7 @@ HTTP RPC ENCODING
 			return err
 		}
 		defer file.Close()
-		data, err := ioutil.ReadAll(file)
+		data, err := io.ReadAll(file)
 		if err != nil {
 			return err
 		}
@@ -199,6 +201,7 @@ HTTP RPC ENCODING
 }
 
 var PubsubLsCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "List subscribed topics by name.",
 		ShortDescription: `
@@ -270,6 +273,7 @@ func safeTextListEncoder(req *cmds.Request, w io.Writer, list *stringList) error
 }
 
 var PubsubPeersCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "List peers we are currently pubsubbing with.",
 		ShortDescription: `
@@ -332,7 +336,7 @@ TOPIC AND DATA ENCODING
 
 // TODO: move to cmdenv?
 // Encode binary data to be passed as multibase string in URL arguments.
-// (avoiding issues described in https://github.com/ipfs/go-ipfs/issues/7939)
+// (avoiding issues described in https://github.com/ipfs/kubo/issues/7939)
 func urlArgsEncoder(req *cmds.Request, env cmds.Environment) error {
 	encoder, _ := mbase.EncoderByName("base64url")
 	for n, arg := range req.Arguments {
@@ -342,7 +346,7 @@ func urlArgsEncoder(req *cmds.Request, env cmds.Environment) error {
 }
 
 // Decode binary data passed as multibase string in URL arguments.
-// (avoiding issues described in https://github.com/ipfs/go-ipfs/issues/7939)
+// (avoiding issues described in https://github.com/ipfs/kubo/issues/7939)
 func urlArgsDecoder(req *cmds.Request, env cmds.Environment) error {
 	for n, arg := range req.Arguments {
 		encoding, data, err := mbase.Decode(arg)
@@ -351,7 +355,7 @@ func urlArgsDecoder(req *cmds.Request, env cmds.Environment) error {
 		}
 
 		// Enforce URL-safe encoding is used for data passed via URL arguments
-		// - without this we get data corruption similar to https://github.com/ipfs/go-ipfs/issues/7939
+		// - without this we get data corruption similar to https://github.com/ipfs/kubo/issues/7939
 		// - we can't just deny base64, because there may be other bases that
 		//   are not URL-safe – better to force base64url which is known to be
 		//   safe in URL context

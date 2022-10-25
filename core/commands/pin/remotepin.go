@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 	"text/tabwriter"
@@ -16,14 +17,14 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	logging "github.com/ipfs/go-log"
 	pinclient "github.com/ipfs/go-pinning-service-http-client"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/libp2p/go-libp2p-core/host"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
+	"github.com/libp2p/go-libp2p/core/host"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 var log = logging.Logger("core/commands/cmdenv")
@@ -128,7 +129,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "Path to object(s) to be pinned."),
+		cmds.StringArg("ipfs-path", true, false, "CID or Path to be pinned."),
 	},
 	Options: []cmds.Option{
 		pinServiceNameOption,
@@ -185,6 +186,8 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 				return err
 			}
 			opts = append(opts, pinclient.PinOpts.WithOrigins(addrs...))
+		} else if isInBlockstore && !node.IsOnline && cmds.GetEncoding(req, cmds.Text) == cmds.Text {
+			fmt.Fprintf(os.Stdout, "WARNING: the local node is offline and remote pinning may fail if there is no other provider for this CID\n")
 		}
 
 		// Execute remote pin request
@@ -211,27 +214,27 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 
 		// Block unless --background=true is passed
 		if !req.Options[pinBackgroundOptionName].(bool) {
-			requestId := ps.GetRequestId()
+			requestID := ps.GetRequestId()
 			for {
-				ps, err = c.GetStatusByID(ctx, requestId)
+				ps, err = c.GetStatusByID(ctx, requestID)
 				if err != nil {
-					return fmt.Errorf("failed to check pin status for requestid=%q due to error: %v", requestId, err)
+					return fmt.Errorf("failed to check pin status for requestid=%q due to error: %v", requestID, err)
 				}
-				if ps.GetRequestId() != requestId {
-					return fmt.Errorf("failed to check pin status for requestid=%q, remote service sent unexpected requestid=%q", requestId, ps.GetRequestId())
+				if ps.GetRequestId() != requestID {
+					return fmt.Errorf("failed to check pin status for requestid=%q, remote service sent unexpected requestid=%q", requestID, ps.GetRequestId())
 				}
 				s := ps.GetStatus()
 				if s == pinclient.StatusPinned {
 					break
 				}
 				if s == pinclient.StatusFailed {
-					return fmt.Errorf("remote service failed to pin requestid=%q", requestId)
+					return fmt.Errorf("remote service failed to pin requestid=%q", requestID)
 				}
 				tmr := time.NewTimer(time.Second / 2)
 				select {
 				case <-tmr.C:
 				case <-ctx.Done():
-					return fmt.Errorf("waiting for pin interrupted, requestid=%q remains on remote service", requestId)
+					return fmt.Errorf("waiting for pin interrupted, requestid=%q remains on remote service", requestID)
 				}
 			}
 		}
@@ -662,8 +665,8 @@ TIP: pass '--enc=json' for more useful JSON output.
 
 type ServiceDetails struct {
 	Service     string
-	ApiEndpoint string
-	Stat        *Stat `json:",omitempty"` // present only when --stat not passed
+	ApiEndpoint string //nolint
+	Stat        *Stat  `json:",omitempty"` // present only when --stat not passed
 }
 
 type Stat struct {
@@ -758,7 +761,7 @@ func normalizeEndpoint(endpoint string) (string, error) {
 		return "", fmt.Errorf("service endpoint must be a valid HTTP URL")
 	}
 
-	// cleanup trailing and duplicate slashes (https://github.com/ipfs/go-ipfs/issues/7826)
+	// cleanup trailing and duplicate slashes (https://github.com/ipfs/kubo/issues/7826)
 	uri.Path = gopath.Clean(uri.Path)
 	uri.Path = strings.TrimSuffix(uri.Path, ".")
 	uri.Path = strings.TrimSuffix(uri.Path, "/")

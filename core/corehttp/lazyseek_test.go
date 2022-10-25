@@ -3,7 +3,6 @@ package corehttp
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 )
@@ -12,14 +11,14 @@ type badSeeker struct {
 	io.ReadSeeker
 }
 
-var badSeekErr = fmt.Errorf("I'm a bad seeker")
+var errBadSeek = fmt.Errorf("bad seeker")
 
 func (bs badSeeker) Seek(offset int64, whence int) (int64, error) {
 	off, err := bs.ReadSeeker.Seek(0, io.SeekCurrent)
 	if err != nil {
 		panic(err)
 	}
-	return off, badSeekErr
+	return off, errBadSeek
 }
 
 func TestLazySeekerError(t *testing.T) {
@@ -37,7 +36,7 @@ func TestLazySeekerError(t *testing.T) {
 	}
 
 	// shouldn't have actually seeked.
-	b, err := ioutil.ReadAll(s)
+	b, err := io.ReadAll(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +52,7 @@ func TestLazySeekerError(t *testing.T) {
 	if off != 0 {
 		t.Fatal("expected to seek to the start")
 	}
-	b, err = ioutil.ReadAll(s)
+	b, err = io.ReadAll(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,11 +69,11 @@ func TestLazySeekerError(t *testing.T) {
 		t.Fatal("expected to seek to the start")
 	}
 	// right here...
-	b, err = ioutil.ReadAll(s)
+	b, err = io.ReadAll(s)
 	if err == nil {
 		t.Fatalf("expected an error, got output %s", string(b))
 	}
-	if err != badSeekErr {
+	if err != errBadSeek {
 		t.Fatalf("expected a bad seek error, got %s", err)
 	}
 	if len(b) != 0 {
@@ -120,7 +119,7 @@ func TestLazySeeker(t *testing.T) {
 	}
 
 	expectSeek(io.SeekEnd, 0, s.size, "")
-	b, err := ioutil.ReadAll(s)
+	b, err := io.ReadAll(s)
 	if err != nil {
 		t.Fatal(err)
 	}

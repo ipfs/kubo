@@ -167,7 +167,7 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 	verboseCidError := func(err error) error {
 		if strings.Contains(err.Error(), verifcid.ErrBelowMinimumHashLength.Error()) ||
 			strings.Contains(err.Error(), verifcid.ErrPossiblyInsecureHashFunction.Error()) {
-			err = fmt.Errorf("\"%s\"\nPlease run 'ipfs pin verify'"+
+			err = fmt.Errorf("\"%s\"\nPlease run 'ipfs pin verify'"+ //nolint
 				" to list insecure hashes. If you want to read them,"+
 				" please downgrade your go-ipfs to 0.4.13\n", err)
 			log.Error(err)
@@ -233,7 +233,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 
 	bestEffortGetLinks := func(ctx context.Context, cid cid.Cid) ([]*ipld.Link, error) {
 		links, err := ipld.GetLinks(ctx, ng, cid)
-		if err != nil && err != ipld.ErrNotFound {
+		if err != nil && !ipld.IsNotFound(err) {
 			errors = true
 			select {
 			case output <- Result{Error: &CannotFetchLinksError{cid, err}}:

@@ -3,11 +3,11 @@ package ipns
 import (
 	"context"
 
-	"github.com/ipfs/go-ipfs/core"
 	nsys "github.com/ipfs/go-namesys"
 	path "github.com/ipfs/go-path"
 	ft "github.com/ipfs/go-unixfs"
-	ci "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/ipfs/kubo/core"
+	ci "github.com/libp2p/go-libp2p/core/crypto"
 )
 
 // InitializeKeyspace sets the ipns record for the given key to

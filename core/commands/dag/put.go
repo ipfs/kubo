@@ -6,8 +6,9 @@ import (
 
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipld/go-ipld-prime/multicodec"
 	basicnode "github.com/ipld/go-ipld-prime/node/basic"
 
@@ -100,6 +101,10 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 		ln := ipldlegacy.LegacyNode{
 			Block: blk,
 			Node:  n,
+		}
+
+		if err := cmdutils.CheckBlockSize(req, uint64(bd.Len())); err != nil {
+			return err
 		}
 
 		if err := b.Add(req.Context, &ln); err != nil {

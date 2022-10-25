@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	cid "github.com/ipfs/go-cid"
 	pin "github.com/ipfs/go-ipfs-pinner"
@@ -20,6 +19,9 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/tracing"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const inputLimit = 2 << 20
@@ -37,6 +39,9 @@ type Node struct {
 }
 
 func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (ipld.Node, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "New")
+	defer span.End()
+
 	options, err := caopts.ObjectNewOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -60,12 +65,20 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 }
 
 func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.ObjectPutOption) (ipath.Resolved, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Put")
+	defer span.End()
+
 	options, err := caopts.ObjectPutOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
+	span.SetAttributes(
+		attribute.Bool("pin", options.Pin),
+		attribute.String("datatype", options.DataType),
+		attribute.String("inputenc", options.InputEnc),
+	)
 
-	data, err := ioutil.ReadAll(io.LimitReader(src, inputLimit+10))
+	data, err := io.ReadAll(io.LimitReader(src, inputLimit+10))
 	if err != nil {
 		return nil, err
 	}
@@ -130,10 +143,15 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 }
 
 func (api *ObjectAPI) Get(ctx context.Context, path ipath.Path) (ipld.Node, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Get", trace.WithAttributes(attribute.String("path", path.String())))
+	defer span.End()
 	return api.core().ResolveNode(ctx, path)
 }
 
 func (api *ObjectAPI) Data(ctx context.Context, path ipath.Path) (io.Reader, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Data", trace.WithAttributes(attribute.String("path", path.String())))
+	defer span.End()
+
 	nd, err := api.core().ResolveNode(ctx, path)
 	if err != nil {
 		return nil, err
@@ -148,6 +166,9 @@ func (api *ObjectAPI) Data(ctx context.Context, path ipath.Path) (io.Reader, err
 }
 
 func (api *ObjectAPI) Links(ctx context.Context, path ipath.Path) ([]*ipld.Link, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Links", trace.WithAttributes(attribute.String("path", path.String())))
+	defer span.End()
+
 	nd, err := api.core().ResolveNode(ctx, path)
 	if err != nil {
 		return nil, err
@@ -163,6 +184,9 @@ func (api *ObjectAPI) Links(ctx context.Context, path ipath.Path) ([]*ipld.Link,
 }
 
 func (api *ObjectAPI) Stat(ctx context.Context, path ipath.Path) (*coreiface.ObjectStat, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Stat", trace.WithAttributes(attribute.String("path", path.String())))
+	defer span.End()
+
 	nd, err := api.core().ResolveNode(ctx, path)
 	if err != nil {
 		return nil, err
@@ -186,10 +210,18 @@ func (api *ObjectAPI) Stat(ctx context.Context, path ipath.Path) (*coreiface.Obj
 }
 
 func (api *ObjectAPI) AddLink(ctx context.Context, base ipath.Path, name string, child ipath.Path, opts ...caopts.ObjectAddLinkOption) (ipath.Resolved, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "AddLink", trace.WithAttributes(
+		attribute.String("base", base.String()),
+		attribute.String("name", name),
+		attribute.String("child", child.String()),
+	))
+	defer span.End()
+
 	options, err := caopts.ObjectAddLinkOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
+	span.SetAttributes(attribute.Bool("create", options.Create))
 
 	baseNd, err := api.core().ResolveNode(ctx, base)
 	if err != nil {
@@ -227,6 +259,12 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base ipath.Path, name string,
 }
 
 func (api *ObjectAPI) RmLink(ctx context.Context, base ipath.Path, link string) (ipath.Resolved, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "RmLink", trace.WithAttributes(
+		attribute.String("base", base.String()),
+		attribute.String("link", link)),
+	)
+	defer span.End()
+
 	baseNd, err := api.core().ResolveNode(ctx, base)
 	if err != nil {
 		return nil, err
@@ -253,10 +291,16 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base ipath.Path, link string) 
 }
 
 func (api *ObjectAPI) AppendData(ctx context.Context, path ipath.Path, r io.Reader) (ipath.Resolved, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "AppendData", trace.WithAttributes(attribute.String("path", path.String())))
+	defer span.End()
+
 	return api.patchData(ctx, path, r, true)
 }
 
 func (api *ObjectAPI) SetData(ctx context.Context, path ipath.Path, r io.Reader) (ipath.Resolved, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "SetData", trace.WithAttributes(attribute.String("path", path.String())))
+	defer span.End()
+
 	return api.patchData(ctx, path, r, false)
 }
 
@@ -271,7 +315,7 @@ func (api *ObjectAPI) patchData(ctx context.Context, path ipath.Path, r io.Reade
 		return nil, dag.ErrNotProtobuf
 	}
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
@@ -290,6 +334,12 @@ func (api *ObjectAPI) patchData(ctx context.Context, path ipath.Path, r io.Reade
 }
 
 func (api *ObjectAPI) Diff(ctx context.Context, before ipath.Path, after ipath.Path) ([]coreiface.ObjectChange, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Diff", trace.WithAttributes(
+		attribute.String("before", before.String()),
+		attribute.String("after", after.String()),
+	))
+	defer span.End()
+
 	beforeNd, err := api.core().ResolveNode(ctx, before)
 	if err != nil {
 		return nil, err

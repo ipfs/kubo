@@ -44,6 +44,20 @@ test_dag_cmd() {
     test $EXPHASH = $IPLDHASH
   '
 
+test_expect_success "'ipfs dag put' check block size" '
+    dd if=/dev/zero bs=2MB count=1 > 2-MB-file &&
+    test_expect_code 1 ipfs dag put --input-codec=raw --store-codec=raw 2-MB-file >dag_put_out 2>&1
+  '
+
+  test_expect_success "ipfs dag put output has the correct error" '
+    grep "produced block is over 1MiB" dag_put_out
+  '
+
+  test_expect_success "ipfs dag put --allow-big-block=true works" '
+    test_expect_code 0 ipfs dag put --input-codec=raw --store-codec=raw 2-MB-file --allow-big-block=true &&
+    rm 2-MB-file
+  '
+
   test_expect_success "can add an ipld object using dag-json to dag-json" '
     IPLDHASH=$(cat ipld_object | ipfs dag put --input-codec dag-json --store-codec dag-json)
   '

@@ -3,11 +3,12 @@ package repo
 import (
 	"context"
 	"errors"
+	"net"
 
 	filestore "github.com/ipfs/go-filestore"
 	keystore "github.com/ipfs/go-ipfs-keystore"
 
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/kubo/config"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -49,6 +50,8 @@ func (m *Mock) GetStorageUsage(_ context.Context) (uint64, error) { return 0, ni
 func (m *Mock) Close() error { return m.D.Close() }
 
 func (m *Mock) SetAPIAddr(addr ma.Multiaddr) error { return errTODO }
+
+func (m *Mock) SetGatewayAddr(addr net.Addr) error { return errTODO }
 
 func (m *Mock) Keystore() keystore.Keystore { return m.K }
 

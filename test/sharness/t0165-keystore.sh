@@ -63,23 +63,27 @@ ipfs key rm key_ed25519
     echo $rsahash > rsa_key_id
   '
 
+  test_key_import_export_all_formats rsa_key
+
   test_expect_success "create a new ed25519 key" '
     edhash=$(ipfs key gen generated_ed25519_key --type=ed25519)
     echo $edhash > ed25519_key_id
   '
 
-  test_expect_success "export and import rsa key" '
-    ipfs key export generated_rsa_key &&
-    ipfs key rm generated_rsa_key &&
-    ipfs key import generated_rsa_key generated_rsa_key.key > roundtrip_rsa_key_id &&
-    test_cmp rsa_key_id roundtrip_rsa_key_id
+  test_key_import_export_all_formats ed25519_key
+
+  test_openssl_compatibility_all_types
+
+  INVALID_KEY=../t0165-keystore-data/openssl_secp384r1.pem
+  test_expect_success "import key type we don't generate fails" '
+    test_must_fail ipfs key import restricted-type -f pem-pkcs8-cleartext $INVALID_KEY 2>&1 | tee key_exp_out &&
+    grep -q "Error: key type \*crypto.ECDSAPrivateKey is not allowed to be imported" key_exp_out &&
+    rm key_exp_out
   '
 
-  test_expect_success "export and import ed25519 key" '
-    ipfs key export generated_ed25519_key &&
-    ipfs key rm generated_ed25519_key &&
-    ipfs key import generated_ed25519_key generated_ed25519_key.key > roundtrip_ed25519_key_id &&
-    test_cmp ed25519_key_id roundtrip_ed25519_key_id
+  test_expect_success "import key type we don't generate succeeds with flag" '
+    ipfs key import restricted-type --allow-any-key-type -f pem-pkcs8-cleartext $INVALID_KEY  > /dev/null  &&
+    ipfs key rm restricted-type
   '
 
   test_expect_success "test export file option" '
@@ -176,14 +180,14 @@ ipfs key rm key_ed25519
   '
 
   # export works directly on the keystore present in IPFS_PATH
-  test_expect_success "export and import ed25519 key while daemon is running" '
-    edhash=$(ipfs key gen exported_ed25519_key --type=ed25519)
+  test_expect_success "prepare ed25519 key while daemon is running" '
+    edhash=$(ipfs key gen generated_ed25519_key --type=ed25519)
     echo $edhash > ed25519_key_id
-    ipfs key export exported_ed25519_key &&
-    ipfs key rm exported_ed25519_key &&
-    ipfs key import exported_ed25519_key exported_ed25519_key.key > roundtrip_ed25519_key_id &&
-    test_cmp ed25519_key_id roundtrip_ed25519_key_id
   '
+
+  test_key_import_export_all_formats ed25519_key
+
+  test_openssl_compatibility_all_types
 
   test_expect_success "key export over HTTP /api/v0/key/export is not possible" '
     ipfs key gen nohttpexporttest_key --type=ed25519 &&
@@ -213,6 +217,64 @@ test_check_ed25519_sk() {
     return 1
   }
 }
+
+test_key_import_export_all_formats() {
+  KEY_NAME=$1
+  test_key_import_export $KEY_NAME pem-pkcs8-cleartext
+  test_key_import_export $KEY_NAME libp2p-protobuf-cleartext
+}
+
+test_key_import_export() {
+  local KEY_NAME FORMAT
+  KEY_NAME=$1
+  FORMAT=$2
+  ORIG_KEY="generated_$KEY_NAME"
+  if [ $FORMAT == "pem-pkcs8-cleartext" ]; then
+    FILE_EXT="pem"
+  else
+    FILE_EXT="key"
+  fi
+
+  test_expect_success "export and import $KEY_NAME with format $FORMAT" '
+    ipfs key export $ORIG_KEY --format=$FORMAT &&
+    ipfs key rm $ORIG_KEY &&
+    ipfs key import $ORIG_KEY $ORIG_KEY.$FILE_EXT --format=$FORMAT > imported_key_id &&
+    test_cmp ${KEY_NAME}_id imported_key_id
+  '
+}
+
+# Test the entire import/export cycle with a openssl-generated key.
+# 1. Import openssl key with PEM format.
+# 2. Export key with libp2p format.
+# 3. Reimport key.
+# 4. Now exported with PEM format.
+# 5. Compare with original openssl key.
+# 6. Clean up.
+test_openssl_compatibility() {
+  local KEY_NAME FORMAT
+  KEY_NAME=$1
+
+  test_expect_success "import and export $KEY_NAME with all formats" '
+    ipfs key import test-openssl -f pem-pkcs8-cleartext $KEY_NAME > /dev/null &&
+    ipfs key export test-openssl -f libp2p-protobuf-cleartext -o $KEY_NAME.libp2p.key &&
+    ipfs key rm test-openssl &&
+
+    ipfs key import test-openssl -f libp2p-protobuf-cleartext $KEY_NAME.libp2p.key > /dev/null &&
+    ipfs key export test-openssl -f pem-pkcs8-cleartext -o $KEY_NAME.ipfs-exported.pem &&
+    ipfs key rm test-openssl &&
+
+    test_cmp $KEY_NAME $KEY_NAME.ipfs-exported.pem &&
+
+    rm $KEY_NAME.libp2p.key &&
+    rm $KEY_NAME.ipfs-exported.pem
+  '
+}
+
+test_openssl_compatibility_all_types() {
+  test_openssl_compatibility ../t0165-keystore-data/openssl_ed25519.pem
+  test_openssl_compatibility ../t0165-keystore-data/openssl_rsa.pem
+}
+
 
 test_key_cmd
 

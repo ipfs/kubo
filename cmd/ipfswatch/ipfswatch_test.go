@@ -1,3 +1,4 @@
+//go:build !plan9
 // +build !plan9
 
 package main
@@ -5,7 +6,7 @@ package main
 import (
 	"testing"
 
-	"github.com/ipfs/go-ipfs/thirdparty/assert"
+	"github.com/ipfs/kubo/thirdparty/assert"
 )
 
 func TestIsHidden(t *testing.T) {

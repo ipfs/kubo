@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs/core"
-	mock "github.com/ipfs/go-ipfs/core/mock"
-	libp2p2 "github.com/ipfs/go-ipfs/core/node/libp2p"
+	"github.com/ipfs/kubo/core"
+	mock "github.com/ipfs/kubo/core/mock"
+	libp2p2 "github.com/ipfs/kubo/core/node/libp2p"
 
-	corenet "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
+	corenet "github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 
 	ma "github.com/multiformats/go-multiaddr"
@@ -72,7 +72,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	defer cancel()
 
 	// create network
-	mn := mocknet.New(ctx)
+	mn := mocknet.New()
 	mn.SetLinkDefaults(mocknet.LinkOptions{
 		Latency:   conf.NetworkLatency,
 		Bandwidth: math.MaxInt32,
@@ -209,9 +209,9 @@ WanStartupWait:
 	for {
 		select {
 		case err := <-testPeer.DHT.WAN.RefreshRoutingTable():
-			//if err != nil {
+			// if err != nil {
 			//	fmt.Printf("Error refreshing routing table: %v\n", err)
-			//}
+			// }
 			if testPeer.DHT.WAN.RoutingTable() == nil ||
 				testPeer.DHT.WAN.RoutingTable().Size() == 0 ||
 				err != nil {

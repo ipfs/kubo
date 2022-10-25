@@ -7,13 +7,15 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ipld "github.com/ipfs/go-ipld-format"
+	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	gocar "github.com/ipld/go-car"
+	gocarv2 "github.com/ipld/go-car/v2"
 )
 
 func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -89,7 +91,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 
 			if block, err := node.Blockstore.Get(req.Context, c); err != nil {
 				ret.PinErrorMsg = err.Error()
-			} else if nd, err := ipld.Decode(block); err != nil {
+			} else if nd, err := ipldlegacy.DecodeNode(req.Context, block); err != nil {
 				ret.PinErrorMsg = err.Error()
 			} else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
 				ret.PinErrorMsg = err.Error()
@@ -159,17 +161,12 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 		err := func() error {
 			defer file.Close()
 
-			car, err := gocar.NewCarReader(file)
+			car, err := gocarv2.NewBlockReader(file)
 			if err != nil {
 				return err
 			}
 
-			// Be explicit here, until the spec is finished
-			if car.Header.Version != 1 {
-				return errors.New("only car files version 1 supported at present")
-			}
-
-			for _, c := range car.Header.Roots {
+			for _, c := range car.Roots {
 				roots[c] = struct{}{}
 			}
 
@@ -180,9 +177,12 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 				} else if block == nil {
 					break
 				}
+				if err := cmdutils.CheckBlockSize(req, uint64(len(block.RawData()))); err != nil {
+					return err
+				}
 
 				// the double-decode is suboptimal, but we need it for batching
-				nd, err := ipld.Decode(block)
+				nd, err := ipldlegacy.DecodeNode(req.Context, block)
 				if err != nil {
 					return err
 				}

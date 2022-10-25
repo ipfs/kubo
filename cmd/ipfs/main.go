@@ -12,19 +12,20 @@ import (
 	"runtime/pprof"
 	"time"
 
-	util "github.com/ipfs/go-ipfs/cmd/ipfs/util"
-	oldcmds "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
-	corecmds "github.com/ipfs/go-ipfs/core/commands"
-	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
-	loader "github.com/ipfs/go-ipfs/plugin/loader"
-	repo "github.com/ipfs/go-ipfs/repo"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	util "github.com/ipfs/kubo/cmd/ipfs/util"
+	oldcmds "github.com/ipfs/kubo/commands"
+	core "github.com/ipfs/kubo/core"
+	corecmds "github.com/ipfs/kubo/core/commands"
+	corehttp "github.com/ipfs/kubo/core/corehttp"
+	loader "github.com/ipfs/kubo/plugin/loader"
+	repo "github.com/ipfs/kubo/repo"
+	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
+	"github.com/ipfs/kubo/tracing"
+	"go.opentelemetry.io/otel"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-cmds/cli"
 	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
-	config "github.com/ipfs/go-ipfs-config"
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
 	loggables "github.com/libp2p/go-libp2p-loggables"
@@ -71,21 +72,30 @@ func main() {
 	os.Exit(mainRet())
 }
 
-func mainRet() int {
+func printErr(err error) int {
+	fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+	return 1
+}
+
+func mainRet() (exitCode int) {
 	rand.Seed(time.Now().UnixNano())
 	ctx := logging.ContextWithLoggable(context.Background(), loggables.Uuid("session"))
 	var err error
 
-	// we'll call this local helper to output errors.
-	// this is so we control how to print errors in one place.
-	printErr := func(err error) {
-		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+	tp, err := tracing.NewTracerProvider(ctx)
+	if err != nil {
+		return printErr(err)
 	}
+	defer func() {
+		if err := tp.Shutdown(ctx); err != nil {
+			exitCode = printErr(err)
+		}
+	}()
+	otel.SetTracerProvider(tp)
 
 	stopFunc, err := profileIfEnabled()
 	if err != nil {
-		printErr(err)
-		return 1
+		return printErr(err)
 	}
 	defer stopFunc() // to be executed as late as possible
 
@@ -138,7 +148,6 @@ func mainRet() int {
 		// this is so that we can construct the node lazily.
 		return &oldcmds.Context{
 			ConfigRoot: repoPath,
-			LoadConfig: loadConfig,
 			ReqLog:     &oldcmds.ReqLog{},
 			Plugins:    plugins,
 			ConstructNode: func() (n *core.IpfsNode, err error) {
@@ -294,7 +303,7 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 }
 
 func getRepoPath(req *cmds.Request) (string, error) {
-	repoOpt, found := req.Options["config"].(string)
+	repoOpt, found := req.Options[corecmds.RepoDirOption].(string)
 	if found && repoOpt != "" {
 		return repoOpt, nil
 	}
@@ -304,10 +313,6 @@ func getRepoPath(req *cmds.Request) (string, error) {
 		return "", err
 	}
 	return repoPath, nil
-}
-
-func loadConfig(path string) (*config.Config, error) {
-	return fsrepo.ConfigAt(path)
 }
 
 // startProfiling begins CPU profiling and returns a `stop` function to be

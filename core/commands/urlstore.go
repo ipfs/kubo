@@ -6,7 +6,7 @@ import (
 	"net/url"
 
 	filestore "github.com/ipfs/go-filestore"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
@@ -23,6 +23,7 @@ var urlStoreCmd = &cmds.Command{
 }
 
 var urlAdd = &cmds.Command{
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
 		Tagline: "Add URL via urlstore.",
 		LongDescription: `

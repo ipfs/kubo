@@ -5,19 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreapi"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
+	files "github.com/ipfs/go-ipfs-files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core/coreapi"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // addMigrations adds any migration downloaded by the fetcher to the IPFS node
@@ -37,7 +36,7 @@ func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.
 			if err != nil {
 				return err
 			}
-		case *migrations.HttpFetcher:
+		case *migrations.HttpFetcher, *migrations.RetryFetcher: // https://github.com/ipfs/kubo/issues/8780
 			// Add the downloaded migration files directly
 			if migrations.DownloadDirectory != "" {
 				var paths []string
@@ -57,7 +56,7 @@ func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.
 				}
 			}
 		default:
-			return errors.New("Cannot get migrations from unknown fetcher type")
+			return errors.New("cannot get migrations from unknown fetcher type")
 		}
 	}
 
@@ -119,9 +118,9 @@ func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.A
 	fmt.Printf("connected to migration peer %q\n", peerInfo)
 
 	if pin {
-		pinApi := ipfs.Pin()
+		pinAPI := ipfs.Pin()
 		for _, ipfsPath := range paths {
-			err := pinApi.Add(ctx, ipfsPath)
+			err := pinAPI.Add(ctx, ipfsPath)
 			if err != nil {
 				return err
 			}
@@ -154,7 +153,7 @@ func ipfsGet(ctx context.Context, ufs coreiface.UnixfsAPI, ipfsPath ipath.Path) 
 	if !ok {
 		return fmt.Errorf("not a file node: %q", ipfsPath)
 	}
-	_, err = io.Copy(ioutil.Discard, fnd)
+	_, err = io.Copy(io.Discard, fnd)
 	if err != nil {
 		return fmt.Errorf("cannot read migration: %w", err)
 	}

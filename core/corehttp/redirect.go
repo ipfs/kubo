@@ -4,7 +4,7 @@ import (
 	"net"
 	"net/http"
 
-	core "github.com/ipfs/go-ipfs/core"
+	core "github.com/ipfs/kubo/core"
 )
 
 func RedirectOption(path string, redirect string) ServeOption {
@@ -24,5 +24,5 @@ type redirectHandler struct {
 }
 
 func (i *redirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, i.path, 302)
+	http.Redirect(w, r, i.path, http.StatusFound)
 }

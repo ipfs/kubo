@@ -6,8 +6,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
+	"github.com/cheggaaa/pb"
 	"github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/interface-go-ipfs-core"
@@ -32,6 +33,7 @@ var CatCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.Int64Option(offsetOptionName, "o", "Byte offset to begin reading from."),
 		cmds.Int64Option(lengthOptionName, "l", "Maximum number of bytes to read."),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data.").WithDefault(true),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -96,8 +98,16 @@ var CatCmd = &cmds.Command{
 
 				switch val := v.(type) {
 				case io.Reader:
-					bar, reader := progressBarForReader(os.Stderr, val, int64(res.Length()))
-					bar.Start()
+					reader := val
+
+					req := res.Request()
+					progress, _ := req.Options[progressOptionName].(bool)
+					if progress {
+						var bar *pb.ProgressBar
+						bar, reader = progressBarForReader(os.Stderr, val, int64(res.Length()))
+						bar.Start()
+						defer bar.Finish()
+					}
 
 					err = re.Emit(reader)
 					if err != nil {

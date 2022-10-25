@@ -1,15 +1,15 @@
-# Publishing go-ipfs as a snap
+# Publishing Kubo as a snap
 
-> Snap is the default package manager for ubuntu since the release of 20.04. This doc captures what we know about building go-ipfs as a snap package and publishing it to the snapstore.
+> Snap is the default package manager for ubuntu since the release of 20.04. This doc captures what we know about building Kubo as a snap package and publishing it to the snapstore.
 
-The go-ipfs snap is defined in [snap/snapcraft.yaml](https://github.com/ipfs/go-ipfs/blob/master/snap/snapcraft.yaml). For more detail on our snapcraft.yaml see: https://github.com/ipfs-shipyard/ipfs-snap
+The Kubo snap is defined in [snap/snapcraft.yaml](https://github.com/ipfs/go-ipfs/blob/master/snap/snapcraft.yaml). For more detail on our snapcraft.yaml see: https://github.com/ipfs-shipyard/ipfs-snap
 
-- go-ipfs is published as `ipfs` to the snapcraft store, see: https://snapcraft.io/ipfs
+- Kubo is published as `ipfs` to the snapcraft store, see: https://snapcraft.io/ipfs
 - ipfs-desktop is published as `ipfs-desktop`, from CI, here: https://github.com/ipfs-shipyard/ipfs-desktop/blob/master/.github/workflows/snapcraft.yml
 
-For go-ipfs we deliberately lean on the Canonical lauchpad.net build environment so as it simplifies creating builds for more architectures, which has been requested by user numerous times.
+For Kubo we deliberately lean on the Canonical lauchpad.net build environment so as it simplifies creating builds for more architectures, which has been requested by user numerous times.
 
-Linux user can install go-ipfs with:
+Linux user can install Kubo with:
 
 ```
 $ snap install ipfs
@@ -21,7 +21,7 @@ Apps installed via Snapcraft are auto-updating by default. Snapcraft uses 'Relea
 $ snap install --edge ipfs
 ```
 
-<img width="1072" alt="Dashboard for managaing go-ipfs snap release channels for go-ipfs" src="https://user-images.githubusercontent.com/58871/95761096-bcb34580-0ca3-11eb-8ce7-2496b2456335.png">
+<img width="1072" alt="Dashboard for managaing Kubo snap release channels for go-ipfs" src="https://user-images.githubusercontent.com/58871/95761096-bcb34580-0ca3-11eb-8ce7-2496b2456335.png">
 
 ## Known issues
 
@@ -51,7 +51,7 @@ $ brew install snapcraft
 
 ### Build and test
 
-**Build** out a snap package for go-ipfs by running the following from this project
+**Build** out a snap package for Kubo by running the following from this project
 
 ```console
 $ snapcraft
@@ -81,7 +81,7 @@ go-ipfs version: 0.7.0-dev
 
 ### Building in Docker
 
-[ipfs-shipyard/ipfs-snap](https://github.com/ipfs-shipyard/ipfs-snap) includes a Dockerfile that creates an image that can build go-ipfs from source and package it as a snap. It starts with `snapcore/snapcraft:stable` and adds in `go` and just enough tools to allow snapcraft to build go-ipfs. It is published to dockerhub as `ipfs/ipfs-snap-builder`.
+[ipfs-shipyard/ipfs-snap](https://github.com/ipfs-shipyard/ipfs-snap) includes a Dockerfile that creates an image that can build Kubo from source and package it as a snap. It starts with `snapcore/snapcraft:stable` and adds in `go` and just enough tools to allow snapcraft to build go-ipfs. It is published to dockerhub as `ipfs/ipfs-snap-builder`.
 
 ```console
 $ docker run -v $(pwd):/my-snap ipfs/ipfs-snap-builder:latest sh -c "apt update && cd /my-snap && snapcraft --debug"
@@ -99,16 +99,16 @@ The following snap release channels are published automatically:
 
 ### Edge via snapcraft.io
 
-The snapcraft store watches the default branch of the go-ipfs repo, and updates the snap for the `edge` channel. This service is configured automatically by snapcraft. It's neat, but it doesn't allow us to watch any branch other than the default.
+The snapcraft store watches the default branch of the Kubo repo, and updates the snap for the `edge` channel. This service is configured automatically by snapcraft. It's neat, but it doesn't allow us to watch any branch other than the default.
 
 <img width="1072" alt="Screenshot 2020-10-12 at 15 56 07" src="https://user-images.githubusercontent.com/58871/95761075-b755fb00-0ca3-11eb-99d4-95e5f42cb48a.png">
 
 
 ### Stable via launchpad.net
 
-The `stable` channel is published automatically via launchpad.net. There is a mirror of the go-ipfs repo at https://launchpad.net/go-ipfs that is sync'd with the github repo every few hours (at canonical's leisure).
+The `stable` channel is published automatically via launchpad.net. There is a mirror of the Kubo repo at https://launchpad.net/go-ipfs that is sync'd with the github repo every few hours (at canonical's leisure).
 
-A snap build configuration called `ipfs-stable` is set up to watch the `release` branch on go-ipfs and publish it to the `stable` snap channel.
+A snap build configuration called `ipfs-stable` is set up to watch the `release` branch on Kubo and publish it to the `stable` snap channel.
 
 The key configuration points are:
 
@@ -126,7 +126,7 @@ Automatically build when branch changes: true
     Source snap channels for automatic builds:
         # tell snapcraft what version of snapcraft to use when building.
         # NOTE: At time of writing we use the default `core18` platform for the 
-        # go-ipfs snap. If you specify others here, a build error occurs, which 
+        # Kubo snap. If you specify others here, a build error occurs, which 
         # I think is mainly due to a launchpad ux bug here.
         core: ""
         core18: stable
@@ -164,7 +164,7 @@ Processors:
 
 If we wish to publish release candidates to the snap store, we can do that by creating a new snap build config
 
-1. Find the `release-vX.X` branch in the lauchpad.net mirror of the go-ipfs repo.
+1. Find the `release-vX.X` branch in the lauchpad.net mirror of the Kubo repo.
     - e.g. https://code.launchpad.net/~ipfs/go-ipfs/+git/go-ipfs/+ref/release-v0.7.0
 2. Click "Create snap package"
 3. Fill out the form using the same values as listed above for the stable channel, but:
@@ -196,6 +196,6 @@ At the time of writing the launchpad maintainers are:
 ## References
 
 - Walkthrough of publishing a snap package via snapcraft and launchpad: https://www.youtube.com/watch?v=X_U-pcvBFrU
-- For more details on the go-ipfs snapcraft.yaml see: https://github.com/ipfs-shipyard/ipfs-snap
+- For more details on the Kubo snapcraft.yaml see: https://github.com/ipfs-shipyard/ipfs-snap
 - publishing to multiple channels via build.snapcraft.io: https://forum.snapcraft.io/t/maintaining-and-publishing-multiple-to-multiple-channels-via-build-snapcraft-io/12455
 - How node.js manages snaps: https://github.com/ipfs/go-ipfs/issues/7679#issuecomment-695914986

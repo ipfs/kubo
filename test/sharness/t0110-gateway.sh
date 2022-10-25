@@ -72,7 +72,15 @@ test_expect_success "GET IPFS directory file output looks good" '
 
 test_expect_success "GET IPFS directory with index.html returns redirect to add trailing slash" "
   curl -sI -o response_without_slash \"http://127.0.0.1:$port/ipfs/$HASH2/dirwithindex?query=to-remember\"  &&
+  test_should_contain \"HTTP/1.1 301 Moved Permanently\" response_without_slash &&
   test_should_contain \"Location: /ipfs/$HASH2/dirwithindex/?query=to-remember\" response_without_slash
+"
+
+# This enables go get to parse go-import meta tags from index.html files stored in IPFS
+# https://github.com/ipfs/kubo/pull/3963
+test_expect_success "GET IPFS directory with index.html and no trailing slash returns expected output when go-get is passed" "
+  curl -s -o response_with_slash \"http://127.0.0.1:$port/ipfs/$HASH2/dirwithindex?go-get=1\"  &&
+  test_should_contain \"hello i am a webpage\" response_with_slash
 "
 
 test_expect_success "GET IPFS directory with index.html and trailing slash returns expected output" "
@@ -80,8 +88,12 @@ test_expect_success "GET IPFS directory with index.html and trailing slash retur
   test_should_contain \"hello i am a webpage\" response_with_slash
 "
 
-test_expect_success "GET IPFS nonexistent file returns code expected (404)" '
+test_expect_success "GET IPFS nonexistent file returns 404 (Not Found)" '
   test_curl_resp_http_code "http://127.0.0.1:$port/ipfs/$HASH2/pleaseDontAddMe" "HTTP/1.1 404 Not Found"
+'
+
+test_expect_success "GET IPFS invalid CID returns 400 (Bad Request)" '
+  test_curl_resp_http_code "http://127.0.0.1:$port/ipfs/QmInvalid/pleaseDontAddMe" "HTTP/1.1 400 Bad Request"
 '
 
 # https://github.com/ipfs/go-ipfs/issues/8230
@@ -91,10 +103,22 @@ test_expect_success "GET IPFS inlined zero-length data object returns ok code (2
   test_should_contain "Content-Length: 0" empty_ok_response
 '
 
+# https://github.com/ipfs/kubo/issues/9238
+test_expect_success "GET IPFS inlined zero-length data object with byte range returns ok code (200)" '
+  curl -sD - "http://127.0.0.1:$port/ipfs/bafkqaaa" -H "Range: bytes=0-1048575" > empty_ok_response &&
+  test_should_contain "HTTP/1.1 200 OK" empty_ok_response &&
+  test_should_contain "Content-Length: 0" empty_ok_response &&
+  test_should_contain "Content-Type: text/plain" empty_ok_response
+'
+
 test_expect_success "GET /ipfs/ipfs/{cid} returns redirect to the valid path" '
   curl -sD - "http://127.0.0.1:$port/ipfs/ipfs/bafkqaaa?query=to-remember" > response_with_double_ipfs_ns &&
   test_should_contain "<meta http-equiv=\"refresh\" content=\"10;url=/ipfs/bafkqaaa?query=to-remember\" />" response_with_double_ipfs_ns &&
   test_should_contain "<link rel=\"canonical\" href=\"/ipfs/bafkqaaa?query=to-remember\" />" response_with_double_ipfs_ns
+'
+
+test_expect_success "GET invalid IPNS root returns 400 (Bad Request)" '
+  test_curl_resp_http_code "http://127.0.0.1:$port/ipns/QmInvalid/pleaseDontAddMe" "HTTP/1.1 400 Bad Request"
 '
 
 test_expect_failure "GET IPNS path succeeds" '
@@ -163,6 +187,19 @@ test_expect_success "test failure conditions of mutex pprof endpoint" '
     test_must_fail curl -f -X GET "http://127.0.0.1:$apiport/debug/pprof-mutex/?fraction=-1"
 '
 
+curl_pprofblock() {
+  curl -f -X POST "http://127.0.0.1:$apiport/debug/pprof-block/?rate=$1"
+}
+
+test_expect_success "set blocking profiler rate for pprof (0 so it doesn't enable)" '
+  curl_pprofblock 0
+'
+
+test_expect_success "test failure conditions of mutex block endpoint" '
+  test_must_fail curl_pprofblock &&
+  test_must_fail curl_pprofblock that_is_string &&
+  test_must_fail curl -f -X GET "http://127.0.0.1:$apiport/debug/pprof-block/?rate=0"
+'
 
 test_expect_success "setup index hash" '
   mkdir index &&
@@ -249,7 +286,7 @@ test_expect_success "try fetching it from gateway" '
 
 test_expect_success "Add compact blocks" '
   ipfs block put ../t0110-gateway-data/foo.block &&
-  FOO2_HASH=$(ipfs block put ../t0110-gateway-data/foofoo.block) &&
+  FOO2_HASH=$(ipfs block put --cid-codec=dag-pb ../t0110-gateway-data/foofoo.block) &&
   printf "foofoo" > expected
 '
 
@@ -258,10 +295,25 @@ test_expect_success "GET compact blocks succeeds" '
   test_cmp expected actual
 '
 
+test_expect_success "Verify gateway file" '
+  cat "$IPFS_PATH/gateway" > gateway_file_actual &&
+  echo -n "http://$GWAY_ADDR" > gateway_daemon_actual &&
+  test_cmp gateway_daemon_actual gateway_file_actual
+'
+
 test_kill_ipfs_daemon
 
-
 GWPORT=32563
+
+test_expect_success "Verify gateway file diallable while on unspecified" '
+  ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/$GWPORT &&
+  test_launch_ipfs_daemon &&
+  cat "$IPFS_PATH/gateway" > gateway_file_actual &&
+  echo -n "http://127.0.0.1:$GWPORT" > gateway_file_expected &&
+  test_cmp gateway_file_expected gateway_file_actual
+'
+
+test_kill_ipfs_daemon
 
 test_expect_success "set up iptb testbed" '
   iptb testbed create -type localipfs -count 5 -force -init &&

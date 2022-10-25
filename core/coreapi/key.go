@@ -11,8 +11,11 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ipfs/kubo/tracing"
+	crypto "github.com/libp2p/go-libp2p/core/crypto"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type KeyAPI CoreAPI
@@ -40,6 +43,9 @@ func (k *key) ID() peer.ID {
 // Generate generates new key, stores it in the keystore under the specified
 // name and returns a base58 encoded multihash of its public key.
 func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.KeyGenerateOption) (coreiface.Key, error) {
+	_, span := tracing.Span(ctx, "CoreAPI.KeyAPI", "Generate", trace.WithAttributes(attribute.String("name", name)))
+	defer span.End()
+
 	options, err := caopts.KeyGenerateOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -97,6 +103,9 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 
 // List returns a list keys stored in keystore.
 func (api *KeyAPI) List(ctx context.Context) ([]coreiface.Key, error) {
+	_, span := tracing.Span(ctx, "CoreAPI.KeyAPI", "List")
+	defer span.End()
+
 	keys, err := api.repo.Keystore().List()
 	if err != nil {
 		return nil, err
@@ -128,10 +137,14 @@ func (api *KeyAPI) List(ctx context.Context) ([]coreiface.Key, error) {
 // Rename renames `oldName` to `newName`. Returns the key and whether another
 // key was overwritten, or an error.
 func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, opts ...caopts.KeyRenameOption) (coreiface.Key, bool, error) {
+	_, span := tracing.Span(ctx, "CoreAPI.KeyAPI", "Rename", trace.WithAttributes(attribute.String("oldname", oldName), attribute.String("newname", newName)))
+	defer span.End()
+
 	options, err := caopts.KeyRenameOptions(opts...)
 	if err != nil {
 		return nil, false, err
 	}
+	span.SetAttributes(attribute.Bool("force", options.Force))
 
 	ks := api.repo.Keystore()
 
@@ -187,6 +200,9 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 
 // Remove removes keys from keystore. Returns ipns path of the removed key.
 func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Key, error) {
+	_, span := tracing.Span(ctx, "CoreAPI.KeyAPI", "Remove", trace.WithAttributes(attribute.String("name", name)))
+	defer span.End()
+
 	ks := api.repo.Keystore()
 
 	if name == "self" {

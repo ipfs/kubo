@@ -1,5 +1,5 @@
 # golang utilities
-GO_MIN_VERSION = 1.15.2
+GO_MIN_VERSION = 1.18
 export GO111MODULE=on
 
 
@@ -12,7 +12,7 @@ GOTFLAGS ?=
 unexport GOFLAGS
 # Override so we can combine with the user's go flags.
 # Try to make building as reproducible as possible by stripping the go path.
-override GOFLAGS += "-asmflags=all='-trimpath=$(GOPATH)'" "-gcflags=all='-trimpath=$(GOPATH)'"
+override GOFLAGS += "-trimpath"
 
 ifeq ($(tarball-is),1)
 	GOFLAGS += -mod=vendor
@@ -26,10 +26,10 @@ TEST_GO :=
 TEST_GO_BUILD :=
 CHECK_GO :=
 
-go-pkg-name=$(shell $(GOCC) list $(go-tags) github.com/ipfs/go-ipfs/$(1))
+go-pkg-name=$(shell $(GOCC) list $(go-tags) github.com/ipfs/kubo/$(1))
 go-main-name=$(notdir $(call go-pkg-name,$(1)))$(?exe)
 go-curr-pkg-tgt=$(d)/$(call go-main-name,$(d))
-go-pkgs=$(shell $(GOCC) list github.com/ipfs/go-ipfs/...)
+go-pkgs=$(shell $(GOCC) list github.com/ipfs/kubo/...)
 
 go-tags=$(if $(GOTAGS), -tags="$(call join-with,$(space),$(GOTAGS))")
 go-flags-with-tags=$(GOFLAGS)$(go-tags)
@@ -70,7 +70,7 @@ test_go_fmt:
 TEST_GO += test_go_fmt
 
 test_go_lint: test/bin/golangci-lint
-	golangci-lint run ./...
+	golangci-lint run --timeout=3m ./...
 .PHONY: test_go_lint
 
 test_go: $(TEST_GO)
