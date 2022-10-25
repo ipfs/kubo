@@ -21,8 +21,8 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
-const dbAddressKeyValue = "/orbitdb/bafyreibe2lnmluj2y4byq6dnb4jbyxinvfbiz5lj7myasprln5pqtmcarm/demand_supply"
-const dbAddressDocs = "/orbitdb/bafyreihjgftbxrabuhfjn7diwtlz67hnhu2jsivds5arhqqb3xybov7eku/issue"
+const dbAddressDemandSupply = "/orbitdb/bafyreibe2lnmluj2y4byq6dnb4jbyxinvfbiz5lj7myasprln5pqtmcarm/demand_supply"
+const dbAddressIssue = "/orbitdb/bafyreihjgftbxrabuhfjn7diwtlz67hnhu2jsivds5arhqqb3xybov7eku/issue"
 
 var OrbitCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -49,6 +49,7 @@ var OrbitPutKVCmd = &cmds.Command{
 `,
 	},
 	Arguments: []cmds.Argument{
+		cmds.StringArg("dbAddress", true, false, "DB address or name"),
 		cmds.StringArg("key", true, false, "Key"),
 	},
 	PreRun: urlArgsEncoder,
@@ -61,7 +62,8 @@ var OrbitPutKVCmd = &cmds.Command{
 			return err
 		}
 
-		key := req.Arguments[0]
+		dbAddress := req.Arguments[0]
+		key := req.Arguments[1]
 
 		// read data passed as a file
 		file, err := cmdenv.GetFileArg(req.Files.Entries())
@@ -75,7 +77,7 @@ var OrbitPutKVCmd = &cmds.Command{
 			return err
 		}
 
-		db, store, err := ConnectKV(req.Context, api, func(address string) {})
+		db, store, err := ConnectKV(req.Context, dbAddress, api, func(address string) {})
 		if err != nil {
 			return err
 		}
@@ -98,6 +100,7 @@ var OrbitGetKVCmd = &cmds.Command{
 `,
 	},
 	Arguments: []cmds.Argument{
+		cmds.StringArg("dbAddress", true, false, "DB address or name"),
 		cmds.StringArg("key", true, false, "Key to get related value"),
 	},
 	PreRun: urlArgsEncoder,
@@ -110,9 +113,10 @@ var OrbitGetKVCmd = &cmds.Command{
 			return err
 		}
 
-		key := req.Arguments[0]
+		dbAddress := req.Arguments[0]
+		key := req.Arguments[1]
 
-		db, store, err := ConnectKV(req.Context, api, func(address string) {})
+		db, store, err := ConnectKV(req.Context, dbAddress, api, func(address string) {})
 		if err != nil {
 			return err
 		}
@@ -148,6 +152,7 @@ var OrbitDelKVCmd = &cmds.Command{
 `,
 	},
 	Arguments: []cmds.Argument{
+		cmds.StringArg("dbAddress", true, false, "DB address or name"),
 		cmds.StringArg("key", true, false, "Key to delete related value"),
 	},
 	PreRun: urlArgsEncoder,
@@ -160,9 +165,10 @@ var OrbitDelKVCmd = &cmds.Command{
 			return err
 		}
 
-		key := req.Arguments[0]
+		dbAddress := req.Arguments[0]
+		key := req.Arguments[1]
 
-		db, store, err := ConnectKV(req.Context, api, func(address string) {})
+		db, store, err := ConnectKV(req.Context, dbAddress, api, func(address string) {})
 		if err != nil {
 			return err
 		}
@@ -195,8 +201,10 @@ var OrbitPutDocsCmd = &cmds.Command{
 		ShortDescription: `Key value store put
 `,
 	},
-	Arguments: []cmds.Argument{},
-	PreRun:    urlArgsEncoder,
+	Arguments: []cmds.Argument{
+		cmds.StringArg("dbAddress", true, false, "DB address or name"),
+	},
+	PreRun: urlArgsEncoder,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
@@ -223,7 +231,9 @@ var OrbitPutDocsCmd = &cmds.Command{
 			panic(err)
 		}
 
-		db, store, err := ConnectDocs(req.Context, api, func(address string) {})
+		dbAddress := req.Arguments[0]
+
+		db, store, err := ConnectDocs(req.Context, dbAddress, api, func(address string) {})
 		if err != nil {
 			return err
 		}
@@ -246,6 +256,7 @@ var OrbitGetDocsCmd = &cmds.Command{
 `,
 	},
 	Arguments: []cmds.Argument{
+		cmds.StringArg("dbAddress", true, false, "DB address or name"),
 		cmds.StringArg("key", true, false, "Key to get related value"),
 	},
 	PreRun: urlArgsEncoder,
@@ -258,9 +269,10 @@ var OrbitGetDocsCmd = &cmds.Command{
 			return err
 		}
 
-		key := req.Arguments[0]
+		dbAddress := req.Arguments[0]
+		key := req.Arguments[1]
 
-		db, store, err := ConnectDocs(req.Context, api, func(address string) {})
+		db, store, err := ConnectDocs(req.Context, dbAddress, api, func(address string) {})
 		if err != nil {
 			return err
 		}
@@ -299,6 +311,7 @@ var OrbitQueryDocsCmd = &cmds.Command{
 `,
 	},
 	Arguments: []cmds.Argument{
+		cmds.StringArg("dbAddress", true, false, "DB address or name"),
 		cmds.StringArg("key", true, false, "Key to query"),
 		cmds.StringArg("query", true, false, "Value to query"),
 	},
@@ -312,10 +325,11 @@ var OrbitQueryDocsCmd = &cmds.Command{
 			return err
 		}
 
-		key := req.Arguments[0]
-		query := req.Arguments[1]
+		dbAddress := req.Arguments[0]
+		key := req.Arguments[1]
+		query := req.Arguments[2]
 
-		db, store, err := ConnectDocs(req.Context, api, func(address string) {})
+		db, store, err := ConnectDocs(req.Context, dbAddress, api, func(address string) {})
 		if err != nil {
 			return err
 		}
@@ -350,6 +364,7 @@ var OrbitDelDocsCmd = &cmds.Command{
 `,
 	},
 	Arguments: []cmds.Argument{
+		cmds.StringArg("dbAddress", true, false, "DB address or name"),
 		cmds.StringArg("key", true, false, "Key to delete related value"),
 	},
 	PreRun: urlArgsEncoder,
@@ -362,9 +377,10 @@ var OrbitDelDocsCmd = &cmds.Command{
 			return err
 		}
 
-		key := req.Arguments[0]
+		dbAddress := req.Arguments[0]
+		key := req.Arguments[1]
 
-		db, store, err := ConnectDocs(req.Context, api, func(address string) {})
+		db, store, err := ConnectDocs(req.Context, dbAddress, api, func(address string) {})
 		if err != nil {
 			return err
 		}
@@ -404,7 +420,7 @@ var OrbitDelDocsCmd = &cmds.Command{
 	},
 }
 
-func ConnectKV(ctx context.Context, api iface.CoreAPI, onReady func(address string)) (orbitdb.OrbitDB, orbitdb.KeyValueStore, error) {
+func ConnectKV(ctx context.Context, dbAddress string, api iface.CoreAPI, onReady func(address string)) (orbitdb.OrbitDB, orbitdb.KeyValueStore, error) {
 	datastore := filepath.Join(os.Getenv("HOME"), ".ipfs", "orbitdb")
 	if _, err := os.Stat(datastore); os.IsNotExist(err) {
 		os.MkdirAll(filepath.Dir(datastore), 0755)
@@ -417,7 +433,16 @@ func ConnectKV(ctx context.Context, api iface.CoreAPI, onReady func(address stri
 		return db, nil, err
 	}
 
-	store, err := db.KeyValue(ctx, dbAddressKeyValue, &orbitdb.CreateDBOptions{})
+	if dbAddress != dbAddressDemandSupply {
+		_, err = db.Create(ctx, dbAddress, "keyvalue", &orbitdb.CreateDBOptions{})
+		if err != nil {
+			return db, nil, err
+		}
+
+		return db, nil, nil
+	}
+
+	store, err := db.KeyValue(ctx, dbAddress, &orbitdb.CreateDBOptions{})
 	if err != nil {
 		return db, nil, err
 	}
@@ -454,7 +479,7 @@ func ConnectKV(ctx context.Context, api iface.CoreAPI, onReady func(address stri
 	return db, store, nil
 }
 
-func ConnectDocs(ctx context.Context, api iface.CoreAPI, onReady func(address string)) (orbitdb.OrbitDB, orbitdb.DocumentStore, error) {
+func ConnectDocs(ctx context.Context, dbAddress string, api iface.CoreAPI, onReady func(address string)) (orbitdb.OrbitDB, orbitdb.DocumentStore, error) {
 	datastore := filepath.Join(os.Getenv("HOME"), ".ipfs", "orbitdb")
 	if _, err := os.Stat(datastore); os.IsNotExist(err) {
 		os.MkdirAll(filepath.Dir(datastore), 0755)
@@ -467,7 +492,16 @@ func ConnectDocs(ctx context.Context, api iface.CoreAPI, onReady func(address st
 		return db, nil, err
 	}
 
-	store, err := db.Docs(ctx, dbAddressDocs, &orbitdb.CreateDBOptions{})
+	if dbAddress != dbAddressIssue {
+		_, err = db.Create(ctx, dbAddress, "docstore", &orbitdb.CreateDBOptions{})
+		if err != nil {
+			return db, nil, err
+		}
+
+		return db, nil, nil
+	}
+
+	store, err := db.Docs(ctx, dbAddress, &orbitdb.CreateDBOptions{})
 	if err != nil {
 		return db, nil, err
 	}
