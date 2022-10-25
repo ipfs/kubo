@@ -22,6 +22,7 @@ import (
 )
 
 const dbAddressDemandSupply = "/orbitdb/bafyreibe2lnmluj2y4byq6dnb4jbyxinvfbiz5lj7myasprln5pqtmcarm/demand_supply"
+const dbAddressCitizenReputation = "/orbitdb/bafyreihyrjsnjxbmqotdkwh4kbaeupwcs5urhhkwl4gwvcdhz4hoi27nnm/citizen_reputation"
 const dbAddressIssue = "/orbitdb/bafyreihjgftbxrabuhfjn7diwtlz67hnhu2jsivds5arhqqb3xybov7eku/issue"
 
 var OrbitCmd = &cmds.Command{
@@ -433,7 +434,7 @@ func ConnectKV(ctx context.Context, dbAddress string, api iface.CoreAPI, onReady
 		return db, nil, err
 	}
 
-	if dbAddress != dbAddressDemandSupply {
+	if dbAddress != dbAddressDemandSupply && dbAddress != dbAddressCitizenReputation {
 		_, err = db.Create(ctx, dbAddress, "keyvalue", &orbitdb.CreateDBOptions{})
 		if err != nil {
 			return db, nil, err
