@@ -21,7 +21,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
-const dbAddressDemandSupply = "/orbitdb/bafyreibe2lnmluj2y4byq6dnb4jbyxinvfbiz5lj7myasprln5pqtmcarm/demand_supply"
+const dbAddressDemandSupply = "/orbitdb/bafyreievdr2zevioeg7esxw4whj75xbb7e6kn3fw3sjdo62fx2ukwwflri/demand_supply"
 const dbAddressCitizenReputation = "/orbitdb/bafyreihyrjsnjxbmqotdkwh4kbaeupwcs5urhhkwl4gwvcdhz4hoi27nnm/citizen_reputation"
 const dbAddressIssue = "/orbitdb/bafyreihjgftbxrabuhfjn7diwtlz67hnhu2jsivds5arhqqb3xybov7eku/issue"
 
@@ -493,7 +493,7 @@ func ConnectDocs(ctx context.Context, dbAddress string, api iface.CoreAPI, onRea
 		return db, nil, err
 	}
 
-	if dbAddress != dbAddressIssue {
+	if dbAddress != dbAddressIssue && dbAddress != dbAddressDemandSupply {
 		_, err = db.Create(ctx, dbAddress, "docstore", &orbitdb.CreateDBOptions{})
 		if err != nil {
 			return db, nil, err
