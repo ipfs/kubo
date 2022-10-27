@@ -22,7 +22,7 @@ import (
 )
 
 const dbAddressDemandSupply = "/orbitdb/bafyreia6t57n2uyfgpwpjqsztoxiiluc5xwcidfrfulc4i2quyd65uhmpe/demand_supply"
-const dbAddressCitizenReputation = "/orbitdb/bafyreihyrjsnjxbmqotdkwh4kbaeupwcs5urhhkwl4gwvcdhz4hoi27nnm/citizen_reputation"
+const dbAddressCitizenReputation = "/orbitdb/bafyreide5xex6dwtdg45eserwx2ib2cjeqpfu4hcjnik26hzvl525rwqoy/citizen_reputation"
 const dbAddressIssue = "/orbitdb/bafyreihjgftbxrabuhfjn7diwtlz67hnhu2jsivds5arhqqb3xybov7eku/issue"
 
 var OrbitCmd = &cmds.Command{
