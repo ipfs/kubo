@@ -434,7 +434,7 @@ func ConnectKV(ctx context.Context, dbAddress string, api iface.CoreAPI, onReady
 		return db, nil, err
 	}
 
-	if dbAddress != dbAddressDemandSupply && dbAddress != dbAddressCitizenReputation {
+	if dbAddress != dbAddressDemandSupply {
 		_, err = db.Create(ctx, dbAddress, "keyvalue", &orbitdb.CreateDBOptions{})
 		if err != nil {
 			return db, nil, err
@@ -493,7 +493,7 @@ func ConnectDocs(ctx context.Context, dbAddress string, api iface.CoreAPI, onRea
 		return db, nil, err
 	}
 
-	if dbAddress != dbAddressIssue && dbAddress != dbAddressDemandSupply {
+	if dbAddress != dbAddressIssue && dbAddress != dbAddressCitizenReputation {
 		_, err = db.Create(ctx, dbAddress, "docstore", &orbitdb.CreateDBOptions{})
 		if err != nil {
 			return db, nil, err
