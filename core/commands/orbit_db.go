@@ -21,7 +21,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
-const dbAddressDemandSupply = "/orbitdb/bafyreievdr2zevioeg7esxw4whj75xbb7e6kn3fw3sjdo62fx2ukwwflri/demand_supply"
+const dbAddressDemandSupply = "/orbitdb/bafyreia6t57n2uyfgpwpjqsztoxiiluc5xwcidfrfulc4i2quyd65uhmpe/demand_supply"
 const dbAddressCitizenReputation = "/orbitdb/bafyreihyrjsnjxbmqotdkwh4kbaeupwcs5urhhkwl4gwvcdhz4hoi27nnm/citizen_reputation"
 const dbAddressIssue = "/orbitdb/bafyreihjgftbxrabuhfjn7diwtlz67hnhu2jsivds5arhqqb3xybov7eku/issue"
 
