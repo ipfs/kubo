@@ -5,18 +5,23 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-ipfs/test/cli/harness"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBashCompletion(t *testing.T) {
-	h := harness.New(t)
+	h := harness.NewForTest(t)
 
-	res := h.IPFS("commands", "completion", "bash")
+	res := h.MustRunIPFS("commands", "completion", "bash")
 
 	length := len(res.Stdout.String())
 	if length < 100 {
-		t.Fatalf("expected a long Bash completion file, but gone one of length %d", length)
+		t.Fatalf("expected a long Bash completion file, but got one of length %d", length)
 	}
 
-	completionFile := h.WriteToTemp(res.Stdout.String())
-	h.Sh(fmt.Sprintf("source %s && type -t _ipfs", completionFile))
+	t.Run("completion file can be loaded in bash", func(t *testing.T) {
+		RequiresLinux(t)
+		completionFile := h.WriteToTemp(res.Stdout.String())
+		res = h.Sh(fmt.Sprintf("source %s && type -t _ipfs", completionFile))
+		assert.NoError(t, res.Err)
+	})
 }

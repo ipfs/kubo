@@ -2,79 +2,109 @@ package harness
 
 import (
 	"bufio"
-	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Harness is used within the context of a single test, setting up the test environment, tracking state, and cleaning up.
 type Harness struct {
-	T *testing.T
+	Dir     string
+	IPFSBin string
 
-	IPFSBin        string
-	Expensive      bool
-	RequiresFuse   bool
-	RequiresDocker bool
-	RequiresPlugin bool
+	IPFSMountpoint string
+	IPNSMountpoint string
+	IPFSPath       string
+	APIFile        string
 
-	skip   bool
-	tmpDir string
+	Runner *Runner
+	Daemon *Daemon
+	IPTB   *IPTB
+
+	// // Environment variables that are set on every process run through the harness.
+	// Env map[string]string
+	// Dir string
+
+	skip bool
 }
 
-func New(t *testing.T, options ...func(h *Harness)) *Harness {
-	h := &Harness{
-		T: t,
-	}
-
-	relPath := filepath.FromSlash("../../cmd/ipfs/ipfs")
-	absPath, err := filepath.Abs(relPath)
-	if err != nil {
-		panic(fmt.Sprintf("unable to find absolute path of %s: %s", relPath, err))
-	}
-	h.IPFSBin = absPath
-
-	for _, o := range options {
-		o(h)
-	}
-	if os.Getenv("TEST_NO_DOCKER") == "1" && h.RequiresDocker {
-		h.T.SkipNow()
-	}
-	if os.Getenv("TEST_NO_FUSE") == "1" && h.RequiresFuse {
-		h.T.SkipNow()
-	}
-	if (os.Getenv("TEST_EXPENSIVE") == "1" && !h.Expensive) || testing.Short() {
-		h.T.SkipNow()
-	}
-	if os.Getenv("TEST_NO_PLUGIN") == "1" && h.RequiresPlugin {
-		h.T.SkipNow()
-	}
-
-	tmpDir, err := os.MkdirTemp("", "")
-	if err != nil {
-		panic(fmt.Sprintf("error creating temp dir: %s", err))
-	}
-	h.tmpDir = tmpDir
-
+// NewForTest constructs a harness that cleans up after the given test is done.
+func NewForTest(t *testing.T, options ...func(h *Harness)) *Harness {
+	h := New(options...)
 	t.Cleanup(h.Cleanup)
-
 	return h
 }
 
-type RunResult struct {
-	Stdout  *bytes.Buffer
-	Stderr  *bytes.Buffer
-	Err     error
-	ExitErr *exec.ExitError
-	Cmd     *exec.Cmd
+func New(options ...func(h *Harness)) *Harness {
+	h := &Harness{Runner: &Runner{Env: osEnviron()}}
+
+	absIPFSPath := absPath(filepath.FromSlash("../../cmd/ipfs/ipfs"))
+	absIPTBPath := absPath(filepath.FromSlash("../bin/iptb"))
+
+	h.IPFSBin = absIPFSPath
+
+	tmpDir, err := os.MkdirTemp("", "")
+	if err != nil {
+		log.Panicf("error creating temp dir: %s", err)
+	}
+	h.Dir = tmpDir
+	h.Runner.Dir = h.Dir
+
+	h.IPFSMountpoint = filepath.Join(h.Dir, "ipfs")
+	h.IPNSMountpoint = filepath.Join(h.Dir, "ipns")
+
+	h.IPFSPath = filepath.Join(h.Dir, ".ipfs")
+	h.Runner.Env["IPFS_PATH"] = h.IPFSPath
+
+	h.APIFile = filepath.Join(h.IPFSPath, "api")
+
+	daemonEnv := osEnviron()
+	daemonEnv["IPFS_PATH"] = h.IPFSPath
+	h.Daemon = &Daemon{
+		Runner:  &Runner{Env: daemonEnv},
+		IPFSBin: h.IPFSBin,
+		APIFile: h.APIFile,
+	}
+
+	iptbRoot := filepath.Join(h.Dir, ".iptb")
+	iptbEnv := osEnviron()
+	iptbEnv["IPTB_ROOT"] = iptbRoot
+	h.IPTB = &IPTB{
+		IPTBRoot: iptbRoot,
+		IPTBBin:  absIPTBPath,
+		IPFSBin:  absIPFSPath,
+		Runner:   &Runner{Env: iptbEnv},
+	}
+
+	// apply any customizations
+	// this should happen after all initialization
+	for _, o := range options {
+		o(h)
+	}
+
+	return h
+}
+func absPath(rel string) string {
+	abs, err := filepath.Abs(rel)
+	if err != nil {
+		log.Panicf("unable to find absolute path of %s: %s", rel, err)
+	}
+	return abs
 }
 
-func (h *Harness) IPFS(args ...string) *RunResult {
-	return h.Run(h.IPFSBin, args...)
+func osEnviron() map[string]string {
+	m := map[string]string{}
+	for _, entry := range os.Environ() {
+		split := strings.Split(entry, "=")
+		m[split[0]] = split[1]
+	}
+	return m
 }
 
 func SplitLines(s string) []string {
@@ -86,92 +116,15 @@ func SplitLines(s string) []string {
 	return lines
 }
 
-func (h *Harness) IPFSCommands() []string {
-	res := h.IPFS("commands").Stdout.String()
-	res = strings.TrimSpace(res)
-	split := SplitLines(res)
-	var cmds []string
-	for _, line := range split {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "ipfs" {
-			continue
-		}
-		cmds = append(cmds, trimmed)
-	}
-	return cmds
-}
-
-func (h *Harness) Run(cmdName string, args ...string) *RunResult {
-	return h.RunOpts(cmdName, args)
-}
-
-// Run a command and return the result.
-// The options are applied just before the command is run.
-// Fails the test if the command fails.
-func (h *Harness) RunOpts(cmdName string, args []string, opts ...func(*exec.Cmd)) *RunResult {
-	cmd := exec.Command(cmdName, args...)
-	stdoutBuf := bytes.Buffer{}
-	stderrBuf := bytes.Buffer{}
-	cmd.Stdout = &stdoutBuf
-	cmd.Stderr = &stderrBuf
-
-	for _, o := range opts {
-		o(cmd)
-	}
-
-	h.T.Logf("running: '%s', args: '%v'", cmdName, args)
-
-	err := cmd.Run()
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			h.T.Logf("%s returned error when testing completion, code: %d, err: %s", cmdName, exitErr.ExitCode(), exitErr.Error())
-			h.T.Log("stdout:", stdoutBuf.String())
-			h.T.Log("stderr:", stderrBuf.String())
-			h.T.FailNow()
-		} else {
-			h.T.Fatalf("unable to run %s: %s", cmdName, err)
-		}
-	}
-	return &RunResult{
-		Stdout: &stdoutBuf,
-		Stderr: &stderrBuf,
-		Cmd:    cmd,
-	}
-}
-
-func (h *Harness) RunNoFail(cmdName string, args []string) *RunResult {
-	cmd := exec.Command(cmdName, args...)
-	stdoutBuf := bytes.Buffer{}
-	stderrBuf := bytes.Buffer{}
-	cmd.Stdout = &stdoutBuf
-	cmd.Stderr = &stderrBuf
-
-	h.T.Logf("running: '%s', args: '%v'", cmdName, args)
-
-	err := cmd.Run()
-	exitErr, _ := err.(*exec.ExitError)
-	return &RunResult{
-		Stdout:  &stdoutBuf,
-		Stderr:  &stderrBuf,
-		Cmd:     cmd,
-		Err:     err,
-		ExitErr: exitErr,
-	}
-}
-
-func (h *Harness) Sh(expr string) *RunResult {
-	return h.Run("bash", "-c", expr)
-}
-
 func (h *Harness) WriteToTemp(contents string) string {
 	f, err := os.CreateTemp("", "")
 	if err != nil {
-		panic(err)
+		log.Panicf("creating temp file: %s", err)
 	}
 	f.WriteString(contents)
 	err = f.Close()
 	if err != nil {
-		panic(err)
+		log.Panicf("closing temp file: %s", err)
 	}
 	return f.Name()
 }
@@ -180,18 +133,64 @@ func (h *Harness) WriteToTemp(contents string) string {
 // The filename should be a relative path.
 func (h *Harness) WriteFile(filename, contents string) {
 	if filepath.IsAbs(filename) {
-		panic(fmt.Sprintf("%s must be a relative path", filename))
+		log.Panicf("%s must be a relative path", filename)
 	}
-	absPath := filepath.Join(h.tmpDir, filename)
+	absPath := filepath.Join(h.Runner.Dir, filename)
 	err := ioutil.WriteFile(absPath, []byte(contents), 0644)
 	if err != nil {
-		panic(err)
+		log.Panicf("writing '%s' ('%s'): %s", filename, absPath, err)
 	}
 }
 
+func WaitForFile(path string, timeout time.Duration) error {
+	start := time.Now()
+	timer := time.NewTimer(timeout)
+	ticker := time.NewTicker(1 * time.Millisecond)
+	defer timer.Stop()
+	defer ticker.Stop()
+	for {
+		select {
+		case <-timer.C:
+			end := time.Now()
+			return fmt.Errorf("timeout waiting for %s after %v", path, end.Sub(start))
+		case <-ticker.C:
+			_, err := os.Stat(path)
+			if err == nil {
+				return nil
+			}
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			return fmt.Errorf("error waiting for %s: %w", path, err)
+		}
+	}
+}
+
+func (h *Harness) Mkdirs(paths ...string) {
+	for _, path := range paths {
+		if filepath.IsAbs(path) {
+			log.Panicf("%s must be a relative path when making dirs", path)
+		}
+		absPath := filepath.Join(h.Runner.Dir, path)
+		err := os.MkdirAll(absPath, 0777)
+		if err != nil {
+			log.Panicf("recursively making dirs under %s: %s", absPath, err)
+		}
+	}
+}
+
+func (h *Harness) Sh(expr string) RunResult {
+	return h.Runner.Run(RunRequest{
+		Path: "bash",
+		Args: []string{"-c", expr},
+	})
+}
+
 func (h *Harness) Cleanup() {
-	err := os.RemoveAll(h.tmpDir)
+	h.Daemon.Stop()
+	h.IPTB.Stop()
+	err := os.RemoveAll(h.Dir)
 	if err != nil {
-		panic(fmt.Sprintf("error removing temp dir: %s", err))
+		log.Panicf("removing temp dir %s: %s", h.Dir, err)
 	}
 }
