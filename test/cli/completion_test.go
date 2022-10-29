@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/test/cli/harness"
+	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBashCompletion(t *testing.T) {
+	t.Parallel()
 	h := harness.NewForTest(t)
 
 	res := h.MustRunIPFS("commands", "completion", "bash")

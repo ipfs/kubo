@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/blang/semver/v4"
-	"github.com/ipfs/go-ipfs/test/cli/harness"
+	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
 	gomod "golang.org/x/mod/module"
 )
@@ -25,6 +25,7 @@ func parseVersionOutput(s string) semver.Version {
 }
 
 func TestCurDirIsWritable(t *testing.T) {
+	t.Parallel()
 	h := harness.NewForTest(t)
 	h.WriteFile("test.txt", "It works!")
 }
@@ -48,7 +49,7 @@ func TestIPFSVersionAll(t *testing.T) {
 	h := harness.NewForTest(t)
 	res := h.MustRunIPFS("version", "--all").Stdout.String()
 	res = strings.TrimSpace(res)
-	assert.Contains(t, res, "go-ipfs version")
+	assert.Contains(t, res, "Kubo version")
 	assert.Contains(t, res, "Repo version")
 	assert.Contains(t, res, "System version")
 	assert.Contains(t, res, "Golang version")
@@ -61,7 +62,7 @@ func TestIPFSVersionDeps(t *testing.T) {
 	res = strings.TrimSpace(res)
 	lines := SplitLines(res)
 
-	assert.Equal(t, "github.com/ipfs/go-ipfs@(devel)", lines[0])
+	assert.Equal(t, "github.com/ipfs/kubo@(devel)", lines[0])
 
 	for _, depLine := range lines[1:] {
 		split := strings.Split(depLine, " => ")
@@ -69,7 +70,7 @@ func TestIPFSVersionDeps(t *testing.T) {
 			splitModVers := strings.Split(moduleVersion, "@")
 			modPath := splitModVers[0]
 			modVers := splitModVers[1]
-			assert.NoError(t, gomod.Check(modPath, modVers))
+			assert.NoError(t, gomod.Check(modPath, modVers), "path: %s, version: %s", modPath, modVers)
 		}
 	}
 }
@@ -85,6 +86,7 @@ func TestIPFSCommands(t *testing.T) {
 }
 
 func TestAllSubcommandsAcceptHelp(t *testing.T) {
+	t.Parallel()
 	h := harness.NewForTest(t)
 	wg := sync.WaitGroup{}
 	for _, cmd := range h.IPFSCommands() {
@@ -119,6 +121,7 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 		"shutdown": true,
 		"tar":      true,
 		"urlstore": true,
+		"dns":      true,
 	}
 
 	helpMsg := strings.TrimSpace(h.MustRunIPFS("--help").Stdout.String())
@@ -203,6 +206,7 @@ func TestCommandDocsWidth(t *testing.T) {
 }
 
 func TestAllCommandsFailWhenPassedBadFlag(t *testing.T) {
+	t.Parallel()
 	h := harness.NewForTest(t)
 
 	wg := sync.WaitGroup{}
@@ -222,6 +226,7 @@ func TestAllCommandsFailWhenPassedBadFlag(t *testing.T) {
 }
 
 func TestCommandsFlags(t *testing.T) {
+	t.Parallel()
 	h := harness.NewForTest(t)
 	resStr := h.MustRunIPFS("commands", "--flags").Stdout.String()
 	assert.Contains(t, resStr, "ipfs pin add --recursive / ipfs pin add -r")

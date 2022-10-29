@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs/test/cli/harness"
+	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
 )
 
