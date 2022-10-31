@@ -249,7 +249,7 @@ var filesStatCmd = &cmds.Command{
 			}
 			var mtime string
 			if out.Mtime > 0 {
-				mtime = time.Unix(out.Mtime, int64(out.MtimeNsecs)).Format("2 Jan 2006, 15:04:05 MST")
+				mtime = time.Unix(out.Mtime, int64(out.MtimeNsecs)).UTC().Format("2 Jan 2006, 15:04:05 MST")
 			}
 
 			s = strings.Replace(s, "<hash>", out.Hash, -1)
@@ -257,11 +257,11 @@ var filesStatCmd = &cmds.Command{
 			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
 			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
 			s = strings.Replace(s, "<type>", out.Type, -1)
-			s = strings.Replace(s, "<mode>", mode.String(), -1)
+			s = strings.Replace(s, "<mode>", strings.ToLower(mode.String()), -1)
 			s = strings.Replace(s, "<mtime>", mtime, -1)
 			s = strings.Replace(s, "<mtime-secs>", strconv.FormatInt(out.Mtime, 10), -1)
 			s = strings.Replace(s, "<mtime-nsecs>", strconv.Itoa(out.MtimeNsecs), -1)
-			s = strings.Replace(s, "<mode-octal>", strconv.FormatInt(int64(out.Mode), 8), -1)
+			s = strings.Replace(s, "<mode-octal>", "0"+strconv.FormatInt(int64(out.Mode&0x1FF), 8), -1)
 
 			fmt.Fprintln(w, s)
 
@@ -350,6 +350,8 @@ func statProtoNode(n *dag.ProtoNode, enc cidenc.Encoder, cid cid.Cid, cumulsize 
 
 	if mode := d.Mode(); mode != 0 {
 		stat.Mode = uint32(mode)
+	} else if d.Type() == ft.TSymlink {
+		stat.Mode = uint32(os.ModeSymlink | 0x1FF)
 	}
 
 	if mt := d.ModTime(); !mt.IsZero() {
