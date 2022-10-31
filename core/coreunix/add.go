@@ -400,13 +400,13 @@ func (adder *Adder) addSymlink(path string, l *files.Symlink) error {
 		return err
 	}
 
-	if adder.PreserveMtime {
+	if !adder.FileMtime.IsZero() {
 		fsn, err := unixfs.FSNodeFromBytes(sdata)
 		if err != nil {
 			return err
 		}
 
-		fsn.SetModTime(l.ModTime())
+		fsn.SetModTime(adder.FileMtime)
 		if sdata, err = fsn.GetBytes(); err != nil {
 			return err
 		}
@@ -448,7 +448,7 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 	log.Infof("adding directory: %s", path)
 
 	// if we need to store mode or modification time then create a new root which includes that data
-	if toplevel && (adder.PreserveMode || adder.PreserveMtime) {
+	if toplevel && (adder.FileMode != 0 || !adder.FileMtime.IsZero()) {
 		nd := unixfs.EmptyDirNodeWithStat(adder.FileMode, adder.FileMtime)
 		nd.SetCidBuilder(adder.CidBuilder)
 		mr, err := mfs.NewRoot(ctx, adder.dagService, nd, nil)
