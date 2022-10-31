@@ -101,6 +101,9 @@ test_file() {
   '
 
   test_expect_success "cannot set mode on symbolic link" '
+    HASH=$(ipfs add -q --hash=sha2-256 --mtime=$CUSTOM_MTIME --mode=$CUSTOM_MODE "$TESTLINK") &&
+    ACTUAL=$(ipfs files stat --format="<mode>" /ipfs/$HASH) &&
+    test "$ACTUAL" = "lrwxrwxrwx"
   '
 
 
@@ -293,7 +296,6 @@ test_directory() {
 
   test_expect_success "can recursively set directory mode [$1]" '
     HASHES=($(ipfs add -qr --hash=sha2-256 --mode=0753 "$TESTDIR"|sort)) &&
-    echo "${HASHES[*]}" &&
     test "${HASHES[*]}" = "${HASH_DIR_CUSTOM_MODE[*]}"
   '
 
@@ -344,35 +346,35 @@ test_stat_template() {
   test_expect_success "can stat $2 string mode [$1]" '
     touch "$STAT_TARGET" &&
     HASH=$(ipfs add -qr --hash=sha2-256 --mode="$STAT_MODE_OCTAL" "$STAT_TARGET") &&
-    EXPECTED=$(ipfs files stat --format="<mode>" /ipfs/$HASH) &&
-    test "$EXPECTED" = "$STAT_MODE_STRING"
+    ACTUAL=$(ipfs files stat --format="<mode>" /ipfs/$HASH) &&
+    test "$ACTUAL" = "$STAT_MODE_STRING"
   '
   test_expect_success "can stat $2 octal mode [$1]" '
     touch "$STAT_TARGET" &&
     HASH=$(ipfs add -qr --hash=sha2-256 --mode="$STAT_MODE_OCTAL" "$STAT_TARGET") &&
-    EXPECTED=$(ipfs files stat --format="<mode-octal>" /ipfs/$HASH) &&
-    test "$EXPECTED" = "$STAT_MODE_OCTAL"
+    ACTUAL=$(ipfs files stat --format="<mode-octal>" /ipfs/$HASH) &&
+    test "$ACTUAL" = "$STAT_MODE_OCTAL"
   '
 
   test_expect_success "can stat $2 modification time string [$1]" '
     touch "$STAT_TARGET" &&
     HASH=$(ipfs add -qr --hash=sha2-256 --mtime=$CUSTOM_MTIME "$STAT_TARGET") &&
-    EXPECTED=$(ipfs files stat --format="<mtime>" /ipfs/$HASH) &&
-    test "$EXPECTED" = "24 Oct 2020, 11:42:00 UTC"
+    ACTUAL=$(ipfs files stat --format="<mtime>" /ipfs/$HASH) &&
+    test "$ACTUAL" = "24 Oct 2020, 11:42:00 UTC"
   '
 
   test_expect_success "can stat $2 modification time seconds [$1]" '
     touch "$STAT_TARGET" &&
     HASH=$(ipfs add -qr --hash=sha2-256 --mtime=$CUSTOM_MTIME "$STAT_TARGET") &&
-    EXPECTED=$(ipfs files stat --format="<mtime-secs>" /ipfs/$HASH) &&
-    test $EXPECTED -eq $CUSTOM_MTIME
+    ACTUAL=$(ipfs files stat --format="<mtime-secs>" /ipfs/$HASH) &&
+    test $ACTUAL -eq $CUSTOM_MTIME
   '
 
   test_expect_success "can stat $2 modification time nanoseconds [$1]" '
     touch "$STAT_TARGET" &&
     HASH=$(ipfs add -qr --hash=sha2-256 --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$STAT_TARGET") &&
-    EXPECTED=$(ipfs files stat --format="<mtime-nsecs>" /ipfs/$HASH) &&
-    test $EXPECTED -eq $CUSTOM_MTIME_NSECS
+    ACTUAL=$(ipfs files stat --format="<mtime-nsecs>" /ipfs/$HASH) &&
+    test $ACTUAL -eq $CUSTOM_MTIME_NSECS
   '
 }
 
@@ -398,8 +400,8 @@ test_stat() {
   STAT_TARGET="mountdir/statfile$1"
   test_expect_success "can chain stat template [$1]" '
     HASH=$(ipfs add -q --hash=sha2-256 --mode=0644 --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$STAT_TARGET") &&
-    EXPECTED=$(ipfs files stat --format="<mtime> <mtime-secs> <mtime-nsecs> <mode> <mode-octal>" /ipfs/$HASH) &&
-    test "$EXPECTED" = "24 Oct 2020, 11:42:00 UTC 1603539720 54321 -rw-r--r-- 0644"
+    ACTUAL=$(ipfs files stat --format="<mtime> <mtime-secs> <mtime-nsecs> <mode> <mode-octal>" /ipfs/$HASH) &&
+    test "$ACTUAL" = "24 Oct 2020, 11:42:00 UTC 1603539720 54321 -rw-r--r-- 0644"
   '
 }
 
