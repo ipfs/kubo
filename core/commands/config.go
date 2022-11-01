@@ -332,7 +332,7 @@ can't be undone.
 		}
 		defer file.Close()
 
-		return replaceConfig(r, file)
+		return replaceConfig(r, io.LimitReader(file, 32*1024*1024)) // 32MiB
 	},
 }
 
