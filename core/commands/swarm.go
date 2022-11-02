@@ -422,7 +422,10 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 				if file == nil {
 					return errors.New("expected a JSON file")
 				}
-				if err := json.NewDecoder(file).Decode(&newLimit); err != nil {
+
+				r := io.LimitReader(file, 32*1024*1024) // 32MiB
+
+				if err := json.NewDecoder(r).Decode(&newLimit); err != nil {
 					return fmt.Errorf("decoding JSON as ResourceMgrScopeConfig: %w", err)
 				}
 				return libp2p.NetSetLimit(node.ResourceManager, node.Repo, scope, newLimit)
