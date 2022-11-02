@@ -34,7 +34,8 @@ system (not just for the daemon logs, but all commands):
 	Subcommands: map[string]*cmds.Command{
 		"level": logLevelCmd,
 		"ls":    logLsCmd,
-		"tail":  logTailCmd,
+		// FIXME: Re-enable `ipfs log tail` command. Tracked in https://github.com/ipfs/kubo/issues/9245
+		// "tail":  logTailCmd,
 	},
 }
 
@@ -110,6 +111,8 @@ var logTailCmd = &cmds.Command{
 		Tagline: "Read the event log.",
 		ShortDescription: `
 Outputs event log messages (not other log messages) as they are generated.
+
+Currently broken. Follow https://github.com/ipfs/kubo/issues/9245 for updates.
 `,
 	},
 
