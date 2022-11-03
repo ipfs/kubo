@@ -34,8 +34,7 @@ system (not just for the daemon logs, but all commands):
 	Subcommands: map[string]*cmds.Command{
 		"level": logLevelCmd,
 		"ls":    logLsCmd,
-		// FIXME: Re-enable `ipfs log tail` command. Tracked in https://github.com/ipfs/kubo/issues/9245
-		// "tail":  logTailCmd,
+		"tail":  logTailCmd,
 	},
 }
 
