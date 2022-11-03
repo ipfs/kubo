@@ -1,6 +1,9 @@
 on: [push, pull_request]
 name: Go Checks
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
   unit:
     runs-on: ubuntu-latest
