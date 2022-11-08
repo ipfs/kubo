@@ -37,7 +37,7 @@ require (
 	github.com/ipfs/go-ipfs-cmds v0.8.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.2.0
 	github.com/ipfs/go-ipfs-exchange-offline v0.3.0
-	github.com/ipfs/go-ipfs-files v0.1.2-0.20221005143422-2acf76c5d599
+	github.com/ipfs/go-ipfs-files v0.1.2-0.20221107134911-619bbe4ac790
 	github.com/ipfs/go-ipfs-keystore v0.0.2
 	github.com/ipfs/go-ipfs-pinner v0.2.1
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
