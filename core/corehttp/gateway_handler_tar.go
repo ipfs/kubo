@@ -69,7 +69,7 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 	// The TAR has a top-level directory (or file) named by the CID.
 	if err := tarw.WriteFile(file, resolvedPath.Cid().String()); err != nil {
 		w.Header().Set("X-Stream-Error", err.Error())
-		w.Write([]byte(err.Error()))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 }
