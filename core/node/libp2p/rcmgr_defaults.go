@@ -4,10 +4,10 @@ import (
 	"math"
 
 	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/node/libp2p/fd"
 	"github.com/libp2p/go-libp2p"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/pbnjay/memory"
-	"golang.org/x/sys/unix"
 )
 
 // We are doing some magic when parsing config files (we are using a map[string]interface{} to compare config files).
@@ -94,7 +94,7 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) rcmgr.LimitConfig {
 	}
 
 	if cfg.ResourceMgr.MaxFileDescriptors == 0 {
-		cfg.ResourceMgr.MaxFileDescriptors = getNumFDs() / 2
+		cfg.ResourceMgr.MaxFileDescriptors = fd.GetNumFDs() / 2
 	}
 
 	scalingLimitConfig := rcmgr.ScalingLimitConfig{
@@ -203,13 +203,4 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) rcmgr.LimitConfig {
 	}
 
 	return defaultLimitConfig
-}
-
-func getNumFDs() int {
-	var l unix.Rlimit
-	if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &l); err != nil {
-		log.Errorw("failed to get fd limit", "error", err)
-		return 0
-	}
-	return int(l.Cur)
 }
