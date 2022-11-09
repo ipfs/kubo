@@ -98,6 +98,7 @@ config file at runtime.
     - [`Pubsub.Enabled`](#pubsubenabled)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
+    - [`Pubsub.SeenMessagesTTL`](#pubsubseenmessagesttl)
   - [`Peering`](#peering)
     - [`Peering.Peers`](#peeringpeers)
   - [`Reprovider`](#reprovider)
@@ -1199,6 +1200,15 @@ intentionally re-using the real message's message ID.
 Default: `false`
 
 Type: `bool`
+
+### `Pubsub.SeenMessagesTTL`
+
+Configures the duration after which a previously seen Pubsub Message ID can be
+forgotten about.
+
+Default: see `TimeCacheDuration` from [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub)
+
+Type: `optionalDuration`
 
 ## `Peering`
 
