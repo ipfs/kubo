@@ -846,13 +846,10 @@ func getEtag(r *http.Request, cid cid.Cid) string {
 	responseFormat, _, err := customResponseFormat(r)
 	if err == nil && responseFormat != "" {
 		// application/vnd.ipld.foo → foo
-		f := responseFormat[strings.LastIndex(responseFormat, ".")+1:]
-		// Etag: "cid.foo" (gives us nice compression together with Content-Disposition in block (raw) and car responses)
-		suffix = `.` + f + suffix
-		// Since different TAR implementations may produce different byte-for-byte responses, we define a weak Etag.
-		if responseFormat == "application/x-tar" {
-			prefix = "W/" + prefix
-		}
+		// application/x-bar → x-bar
+		shortFormat := responseFormat[strings.LastIndexAny(responseFormat, "/.")+1:]
+		// Etag: "cid.shortFmt" (gives us nice compression together with Content-Disposition in block (raw) and car responses)
+		suffix = `.` + shortFormat + suffix
 	}
 	// TODO: include selector suffix when https://github.com/ipfs/kubo/issues/8769 lands
 	return prefix + cid.String() + suffix

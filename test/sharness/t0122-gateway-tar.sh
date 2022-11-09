@@ -35,11 +35,15 @@ test_expect_success "GET TAR with 'Accept: application/x-tar' and extract" '
 
 test_expect_success "GET TAR with format=tar has expected Content-Type" '
   curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=tar" > curl_output_filename 2>&1 &&
+  test_should_contain "Content-Disposition: attachment;" curl_output_filename &&
+  test_should_contain "Etag: W/\"$FILE_CID.x-tar" curl_output_filename &&
   test_should_contain "Content-Type: application/x-tar" curl_output_filename
 '
 
 test_expect_success "GET TAR with 'Accept: application/x-tar' has expected Content-Type" '
   curl -sD - -H "Accept: application/x-tar" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output_filename 2>&1 &&
+  test_should_contain "Content-Disposition: attachment;" curl_output_filename &&
+  test_should_contain "Etag: W/\"$FILE_CID.x-tar" curl_output_filename &&
   test_should_contain "Content-Type: application/x-tar" curl_output_filename
 '
 
@@ -59,7 +63,7 @@ test_expect_success "GET TAR has expected root directory" '
   test_cmp expected outputDir/$DIR_CID/ą/ę/file-źł.txt
 '
 
-test_expect_success "GET TAR with explicit ?filename= succeeds with proper header" "
+test_expect_success "GET TAR with explicit ?filename= succeeds with modified Content-Disposition header" "
   curl -fo actual -D actual_headers 'http://127.0.0.1:$GWAY_PORT/ipfs/$DIR_CID?filename=testтест.tar&format=tar' &&
   grep -F 'Content-Disposition: attachment; filename=\"test____.tar\"; filename*=UTF-8'\'\''test%D1%82%D0%B5%D1%81%D1%82.tar' actual_headers
 "

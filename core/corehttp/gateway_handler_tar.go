@@ -31,11 +31,21 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 	}
 	defer file.Close()
 
+	rootCid := resolvedPath.Cid()
+
 	// Set Cache-Control and read optional Last-Modified time
-	modtime := addCacheControlHeaders(w, r, contentPath, resolvedPath.Cid())
+	modtime := addCacheControlHeaders(w, r, contentPath, rootCid)
+
+	// Weak Etag W/ because we can't guarantee byte-for-byte identical
+	// responses, but still want to benefit from HTTP Caching. Two TAR
+	// responses for the same CID will be logically equivalent,
+	// but when TAR is streamed, then in theory, files and directories
+	// may arrive in different order (depends on TAR lib and filesystem/inodes).
+	etag := `W/` + getEtag(r, rootCid)
+	w.Header().Set("Etag", etag)
 
 	// Finish early if Etag match
-	if r.Header.Get("If-None-Match") == getEtag(r, resolvedPath.Cid()) {
+	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -45,7 +55,7 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 	if urlFilename := r.URL.Query().Get("filename"); urlFilename != "" {
 		name = urlFilename
 	} else {
-		name = resolvedPath.Cid().String() + ".tar"
+		name = rootCid.String() + ".tar"
 	}
 	setContentDispositionHeader(w, name, "attachment")
 
@@ -65,10 +75,17 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 	}
 
 	w.Header().Set("Content-Type", "application/x-tar")
+	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
 
 	// The TAR has a top-level directory (or file) named by the CID.
-	if err := tarw.WriteFile(file, resolvedPath.Cid().String()); err != nil {
+	if err := tarw.WriteFile(file, rootCid.String()); err != nil {
 		w.Header().Set("X-Stream-Error", err.Error())
+		// Trailer headers do not work in web browsers
+		// (see https://github.com/mdn/browser-compat-data/issues/14703)
+		// and we have limited options around error handling in browser contexts.
+		// To improve UX/DX, we finish response stream with error message, allowing client to
+		// (1) detect error by having corrupted TAR
+		// (2) be able to reason what went wrong by instecting the tail of TAR stream
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
