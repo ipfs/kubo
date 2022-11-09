@@ -33,7 +33,7 @@ func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.LimitConfig {
 			ConnsInbound:  rcmgr.DefaultLimits.SystemBaseLimit.ConnsInbound, // same as libp2p default
 			ConnsOutbound: math.MaxInt,
 
-			// Don't limit streams.  Rely on connection and memory limits.
+			// Don't limit streams.  Rely on peer and transient limits.
 			Streams:         math.MaxInt,
 			StreamsInbound:  math.MaxInt,
 			StreamsOutbound: math.MaxInt,
@@ -48,7 +48,7 @@ func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.LimitConfig {
 		AllowlistedSystemBaseLimit:    infiniteBaseLimit,
 		AllowlistedTransientBaseLimit: infiniteBaseLimit,
 
-		// Keep it simple by not having Service, ServicePeer, Protocol, ProtocolPeer, Peer, Conn, or Stream limits.
+		// Keep it simple by not having Service, ServicePeer, Protocol, ProtocolPeer, Conn, or Stream limits.
 		ServiceBaseLimit:      infiniteBaseLimit,
 		ServicePeerBaseLimit:  infiniteBaseLimit,
 		ProtocolBaseLimit:     infiniteBaseLimit,
@@ -60,9 +60,9 @@ func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.LimitConfig {
 		PeerBaseLimit: rcmgr.BaseLimit{
 			Streams:         math.MaxInt,
 			StreamsOutbound: math.MaxInt,
-			StreamsInbound:  1,
+			StreamsInbound:  rcmgr.DefaultLimits.PeerBaseLimit.StreamsInbound,
 			Conns:           math.MaxInt,
-			ConnsInbound:    1,
+			ConnsInbound:    rcmgr.DefaultLimits.PeerBaseLimit.ConnsInbound,
 			ConnsOutbound:   math.MaxInt,
 			FD:              rcmgr.DefaultLimits.PeerBaseLimit.FD,
 			Memory:          rcmgr.DefaultLimits.PeerBaseLimit.Memory,
