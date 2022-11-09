@@ -32,7 +32,6 @@ default_environment: &default_environment
   CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
   CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
   GIT_PAGER: cat
-  IPFS_CHECK_RCMGR_DEFAULTS: 1
 
 executors:
   golang:
