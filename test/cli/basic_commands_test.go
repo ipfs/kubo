@@ -9,6 +9,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/ipfs/kubo/test/cli/harness"
+	. "github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
 	gomod "golang.org/x/mod/module"
 )
@@ -33,11 +34,12 @@ func TestCurDirIsWritable(t *testing.T) {
 func TestIPFSVersionCommandMatchesFlag(t *testing.T) {
 	t.Parallel()
 	h := harness.NewForTest(t)
-	commandVersionStr := h.MustRunIPFS("version").Stdout.String()
+	node := h.Cluster.InitSingle()
+	commandVersionStr := node.MustRunIPFS("version").Stdout.String()
 	commandVersionStr = strings.TrimSpace(commandVersionStr)
 	commandVersion := parseVersionOutput(commandVersionStr)
 
-	flagVersionStr := h.MustRunIPFS("--version").Stdout.String()
+	flagVersionStr := node.MustRunIPFS("--version").Stdout.String()
 	flagVersionStr = strings.TrimSpace(flagVersionStr)
 	flagVersion := parseVersionOutput(flagVersionStr)
 
@@ -47,7 +49,8 @@ func TestIPFSVersionCommandMatchesFlag(t *testing.T) {
 func TestIPFSVersionAll(t *testing.T) {
 	t.Parallel()
 	h := harness.NewForTest(t)
-	res := h.MustRunIPFS("version", "--all").Stdout.String()
+	node := h.Cluster.InitSingle()
+	res := node.MustRunIPFS("version", "--all").Stdout.String()
 	res = strings.TrimSpace(res)
 	assert.Contains(t, res, "Kubo version")
 	assert.Contains(t, res, "Repo version")
@@ -58,7 +61,8 @@ func TestIPFSVersionAll(t *testing.T) {
 func TestIPFSVersionDeps(t *testing.T) {
 	t.Parallel()
 	h := harness.NewForTest(t)
-	res := h.MustRunIPFS("version", "deps").Stdout.String()
+	node := h.Cluster.InitSingle()
+	res := node.MustRunIPFS("version", "deps").Stdout.String()
 	res = strings.TrimSpace(res)
 	lines := SplitLines(res)
 
@@ -78,8 +82,8 @@ func TestIPFSVersionDeps(t *testing.T) {
 func TestIPFSCommands(t *testing.T) {
 	t.Parallel()
 	h := harness.NewForTest(t)
-	t.Cleanup(h.Cleanup)
-	cmds := h.IPFSCommands()
+	node := h.Cluster.InitSingle()
+	cmds := node.IPFSCommands()
 	assert.Contains(t, cmds, "ipfs add")
 	assert.Contains(t, cmds, "ipfs daemon")
 	assert.Contains(t, cmds, "ipfs update")
@@ -88,14 +92,15 @@ func TestIPFSCommands(t *testing.T) {
 func TestAllSubcommandsAcceptHelp(t *testing.T) {
 	t.Parallel()
 	h := harness.NewForTest(t)
+	node := h.Cluster.InitSingle()
 	wg := sync.WaitGroup{}
-	for _, cmd := range h.IPFSCommands() {
+	for _, cmd := range node.IPFSCommands() {
 		wg.Add(1)
 		go func(cmd string) {
 			defer wg.Done()
 			splitCmd := strings.Split(cmd, " ")[1:]
-			h.MustRunIPFS(StrConcat("help", splitCmd)...)
-			h.MustRunIPFS(StrConcat(splitCmd, "--help")...)
+			node.MustRunIPFS(StrConcat("help", splitCmd)...)
+			node.MustRunIPFS(StrConcat(splitCmd, "--help")...)
 		}(cmd)
 	}
 	wg.Wait()
@@ -104,7 +109,8 @@ func TestAllSubcommandsAcceptHelp(t *testing.T) {
 func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 	t.Parallel()
 	h := harness.NewForTest(t)
-	cmds := h.IPFSCommands()
+	node := h.Cluster.InitSingle()
+	cmds := node.IPFSCommands()
 	var rootCmds []string
 	for _, cmd := range cmds {
 		splitCmd := strings.Split(cmd, " ")
@@ -124,7 +130,7 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 		"dns":      true,
 	}
 
-	helpMsg := strings.TrimSpace(h.MustRunIPFS("--help").Stdout.String())
+	helpMsg := strings.TrimSpace(node.MustRunIPFS("--help").Stdout.String())
 	for _, rootCmd := range rootCmds {
 		if _, ok := notInHelp[rootCmd]; ok {
 			continue
@@ -137,6 +143,7 @@ func TestCommandDocsWidth(t *testing.T) {
 	t.SkipNow()
 
 	h := harness.NewForTest(t)
+	node := h.Cluster.InitSingle()
 
 	// require new commands to explicitly opt in to longer lines
 	allowList := map[string]bool{
@@ -187,7 +194,7 @@ func TestCommandDocsWidth(t *testing.T) {
 		"ipfs repo fsck":                true,
 	}
 	wg := sync.WaitGroup{}
-	for _, cmd := range h.IPFSCommands() {
+	for _, cmd := range node.IPFSCommands() {
 		if _, ok := allowList[cmd]; ok {
 			continue
 		}
@@ -195,9 +202,9 @@ func TestCommandDocsWidth(t *testing.T) {
 		go func(cmd string) {
 			defer wg.Done()
 			splitCmd := strings.Split(cmd, " ")
-			resStr := h.MustRunIPFS(StrConcat(splitCmd[1:], "--help")...)
+			resStr := node.MustRunIPFS(StrConcat(splitCmd[1:], "--help")...)
 			res := strings.TrimSpace(resStr.Stdout.String())
-			for i, line := range harness.SplitLines(res) {
+			for i, line := range SplitLines(res) {
 				assert.LessOrEqualf(t, len(line), 80, cmd, i)
 			}
 		}(cmd)
@@ -208,9 +215,10 @@ func TestCommandDocsWidth(t *testing.T) {
 func TestAllCommandsFailWhenPassedBadFlag(t *testing.T) {
 	t.Parallel()
 	h := harness.NewForTest(t)
+	node := h.Cluster.InitSingle()
 
 	wg := sync.WaitGroup{}
-	for _, cmd := range h.IPFSCommands() {
+	for _, cmd := range node.IPFSCommands() {
 		wg.Add(1)
 		go func(cmd string) {
 			defer wg.Done()
@@ -228,7 +236,8 @@ func TestAllCommandsFailWhenPassedBadFlag(t *testing.T) {
 func TestCommandsFlags(t *testing.T) {
 	t.Parallel()
 	h := harness.NewForTest(t)
-	resStr := h.MustRunIPFS("commands", "--flags").Stdout.String()
+	node := h.Cluster.InitSingle()
+	resStr := node.MustRunIPFS("commands", "--flags").Stdout.String()
 	assert.Contains(t, resStr, "ipfs pin add --recursive / ipfs pin add -r")
 	assert.Contains(t, resStr, "ipfs id --format / ipfs id -f")
 	assert.Contains(t, resStr, "ipfs repo gc --quiet / ipfs repo gc -q")

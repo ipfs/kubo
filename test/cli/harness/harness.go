@@ -1,16 +1,16 @@
 package harness
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	logging "github.com/ipfs/go-log/v2"
 )
 
 // Harness is used within the context of a single test, setting up the test environment, tracking state, and cleaning up.
@@ -18,20 +18,23 @@ type Harness struct {
 	Dir     string
 	IPFSBin string
 
-	IPFSMountpoint string
-	IPNSMountpoint string
-	IPFSPath       string
-	APIFile        string
+	// IPFSMountpoint string
+	// IPNSMountpoint string
+	// IPFSPath       string
+	// APIFile string
 
-	Runner *Runner
-	Daemon *Daemon
-	IPTB   *IPTB
+	Runner  *Runner
+	Cluster *Cluster
 
 	// // Environment variables that are set on every process run through the harness.
 	// Env map[string]string
 	// Dir string
 
 	skip bool
+}
+
+func EnableDebugLogging() {
+	logging.SetLogLevel("testharness", "DEBUG")
 }
 
 // NewForTest constructs a harness that cleans up after the given test is done.
@@ -45,7 +48,6 @@ func New(options ...func(h *Harness)) *Harness {
 	h := &Harness{Runner: &Runner{Env: osEnviron()}}
 
 	absIPFSPath := absPath(filepath.FromSlash("../../cmd/ipfs/ipfs"))
-	absIPTBPath := absPath(filepath.FromSlash("../bin/iptb"))
 
 	h.IPFSBin = absIPFSPath
 
@@ -56,30 +58,28 @@ func New(options ...func(h *Harness)) *Harness {
 	h.Dir = tmpDir
 	h.Runner.Dir = h.Dir
 
-	h.IPFSMountpoint = filepath.Join(h.Dir, "ipfs")
-	h.IPNSMountpoint = filepath.Join(h.Dir, "ipns")
+	// h.IPFSMountpoint = filepath.Join(h.Dir, "ipfs")
+	// h.IPNSMountpoint = filepath.Join(h.Dir, "ipns")
 
-	h.IPFSPath = filepath.Join(h.Dir, ".ipfs")
-	h.Runner.Env["IPFS_PATH"] = h.IPFSPath
+	// h.IPFSPath = filepath.Join(h.Dir, ".ipfs")
+	// h.Runner.Env["IPFS_PATH"] = h.IPFSPath
 
-	h.APIFile = filepath.Join(h.IPFSPath, "api")
+	// h.APIFile = filepath.Join(h.IPFSPath, "api")
 
-	daemonEnv := osEnviron()
-	daemonEnv["IPFS_PATH"] = h.IPFSPath
-	h.Daemon = &Daemon{
-		Runner:  &Runner{Env: daemonEnv},
-		IPFSBin: h.IPFSBin,
-		APIFile: h.APIFile,
-	}
+	// daemonEnv := osEnviron()
+	// daemonEnv["IPFS_PATH"] = h.IPFSPath
+	// h.Daemon = &Daemon{
+	// 	Runner:  &Runner{Env: daemonEnv},
+	// 	IPFSBin: h.IPFSBin,
+	// 	APIFile: h.APIFile,
+	// }
 
-	iptbRoot := filepath.Join(h.Dir, ".iptb")
+	clusterRoot := filepath.Join(h.Dir, ".cluster")
 	iptbEnv := osEnviron()
-	iptbEnv["IPTB_ROOT"] = iptbRoot
-	h.IPTB = &IPTB{
-		IPTBRoot: iptbRoot,
-		IPTBBin:  absIPTBPath,
-		IPFSBin:  absIPFSPath,
-		Runner:   &Runner{Env: iptbEnv},
+	h.Cluster = &Cluster{
+		ClusterRoot: clusterRoot,
+		IPFSBin:     absIPFSPath,
+		Runner:      &Runner{Env: iptbEnv},
 	}
 
 	// apply any customizations
@@ -105,15 +105,6 @@ func osEnviron() map[string]string {
 		m[split[0]] = split[1]
 	}
 	return m
-}
-
-func SplitLines(s string) []string {
-	var lines []string
-	scanner := bufio.NewScanner(strings.NewReader(s))
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	return lines
 }
 
 // WriteToTemp writes the given contents to a guaranteed-unique temp file, returning its path.
@@ -194,8 +185,8 @@ func (h *Harness) Sh(expr string) RunResult {
 }
 
 func (h *Harness) Cleanup() {
-	h.Daemon.Stop()
-	h.IPTB.Stop()
+	h.Cluster.Stop()
+	// TODO: don't do this if test fails, not sure how?
 	err := os.RemoveAll(h.Dir)
 	if err != nil {
 		log.Panicf("removing temp dir %s: %s", h.Dir, err)

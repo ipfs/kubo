@@ -1,10 +1,8 @@
 package harness
 
 import (
-	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os/exec"
 	"strings"
 )
@@ -32,17 +30,26 @@ type RunRequest struct {
 }
 
 type RunResult struct {
-	Stdout  *bytes.Buffer
-	Stderr  *bytes.Buffer
+	Stdout  *Buffer
+	Stderr  *Buffer
 	Err     error
 	ExitErr *exec.ExitError
 	Cmd     *exec.Cmd
 }
 
+func environToMap(environ []string) map[string]string {
+	m := map[string]string{}
+	for _, e := range environ {
+		kv := strings.Split(e, "=")
+		m[kv[0]] = kv[1]
+	}
+	return m
+}
+
 func (r *Runner) Run(req RunRequest) RunResult {
 	cmd := exec.Command(req.Path, req.Args...)
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
+	stdout := &Buffer{}
+	stderr := &Buffer{}
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.Dir = r.Dir
@@ -59,7 +66,7 @@ func (r *Runner) Run(req RunRequest) RunResult {
 		req.RunFunc = (*exec.Cmd).Run
 	}
 
-	log.Printf("running %v", cmd.Args)
+	log.Debugf("running %v", cmd.Args)
 
 	err := req.RunFunc(cmd)
 
@@ -86,17 +93,17 @@ func (r *Runner) MustRun(req RunRequest) RunResult {
 
 func (r *Runner) AssertNoError(result RunResult) {
 	if result.ExitErr != nil {
-		log.Fatalf("'%s' returned error, code: %d, err: %s\nstdout:%s\nstderr:%s\n",
+		log.Panicf("'%s' returned error, code: %d, err: %s\nstdout:%s\nstderr:%s\n",
 			result.Cmd.Args, result.ExitErr.ExitCode(), result.ExitErr.Error(), result.Stdout.String(), result.Stderr.String())
 
 	}
 	if result.Err != nil {
-		log.Fatalf("unable to run %s: %s", result.Cmd.Path, result.Err)
+		log.Panicf("unable to run %s: %s", result.Cmd.Path, result.Err)
 
 	}
 }
 
-func (r *Runner) RunWithEnv(env map[string]string) CmdOpt {
+func RunWithEnv(env map[string]string) CmdOpt {
 	return func(cmd *exec.Cmd) {
 		for k, v := range env {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
@@ -104,12 +111,29 @@ func (r *Runner) RunWithEnv(env map[string]string) CmdOpt {
 	}
 }
 
-func (r *Runner) RunWithStdin(reader io.Reader) CmdOpt {
+func RunWithPath(path string) CmdOpt {
+	return func(cmd *exec.Cmd) {
+		var newEnv []string
+		for _, env := range cmd.Env {
+			e := strings.Split(env, "=")
+			if e[0] == "PATH" {
+				paths := strings.Split(e[1], ":")
+				paths = append(paths, path)
+				e[1] = strings.Join(paths, ":")
+				fmt.Printf("path: %s\n", strings.Join(e, "="))
+			}
+			newEnv = append(newEnv, strings.Join(e, "="))
+		}
+		cmd.Env = newEnv
+	}
+}
+
+func RunWithStdin(reader io.Reader) CmdOpt {
 	return func(cmd *exec.Cmd) {
 		cmd.Stdin = reader
 	}
 }
 
-func (r *Runner) RunWithStdinStr(s string) CmdOpt {
-	return r.RunWithStdin(strings.NewReader(s))
+func RunWithStdinStr(s string) CmdOpt {
+	return RunWithStdin(strings.NewReader(s))
 }

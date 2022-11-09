@@ -1,9 +1,7 @@
 package harness
 
 import (
-	"bytes"
-	"io/ioutil"
-	"log"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -19,8 +17,8 @@ type Daemon struct {
 	APIFile string
 
 	cmd    *exec.Cmd
-	stdout *bytes.Buffer
-	stderr *bytes.Buffer
+	stdout *Buffer
+	stderr *Buffer
 
 	started bool
 	mut     sync.Mutex
@@ -75,7 +73,7 @@ func (d *Daemon) API() API {
 	if !d.started {
 		log.Panic("cannot get API info of unstarted daemon")
 	}
-	multiaddrBytes, err := ioutil.ReadFile(d.APIFile)
+	multiaddrBytes, err := os.ReadFile(d.APIFile)
 	if err != nil {
 		log.Panicf("reading api file '%s': %s", d.APIFile, err)
 	}

@@ -1,4 +1,4 @@
-package cli
+package testutils
 
 import (
 	"bufio"
@@ -42,4 +42,15 @@ func StrConcat(args ...interface{}) []string {
 		panic(fmt.Sprintf("arg '%v' must be a string or string slice, but is '%T'", a, a))
 	}
 	return res
+}
+
+// PreviewStr returns a preview of s, which is a prefix for logging that avoids dumping a huge string to logs.
+func PreviewStr(s string) string {
+	suffix := "..."
+	previewLength := 10
+	if len(s) < previewLength {
+		previewLength = len(s)
+		suffix = ""
+	}
+	return s[0:previewLength] + suffix
 }
