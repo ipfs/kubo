@@ -35,7 +35,7 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 		var manager network.ResourceManager
 		var opts Libp2pOpts
 
-		enabled := cfg.ResourceMgr.Enabled.WithDefault(false)
+		enabled := cfg.ResourceMgr.Enabled.WithDefault(true)
 
 		//  ENV overrides Config (if present)
 		switch os.Getenv("LIBP2P_RCMGR") {
