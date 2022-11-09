@@ -24,6 +24,7 @@ import (
 const dbAddressDemandSupply = "/orbitdb/bafyreia6t57n2uyfgpwpjqsztoxiiluc5xwcidfrfulc4i2quyd65uhmpe/demand_supply"
 const dbAddressCitizenReputation = "/orbitdb/bafyreide5xex6dwtdg45eserwx2ib2cjeqpfu4hcjnik26hzvl525rwqoy/citizen_reputation"
 const dbAddressIssue = "/orbitdb/bafyreihjgftbxrabuhfjn7diwtlz67hnhu2jsivds5arhqqb3xybov7eku/issue"
+const dbAddressEvent = "/orbitdb/bafyreifhynz6quosu65iszr46b6jw3qlfdpgbvqwincnqc72hvhwkan3bm/event"
 
 var OrbitCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -493,7 +494,7 @@ func ConnectDocs(ctx context.Context, dbAddress string, api iface.CoreAPI, onRea
 		return db, nil, err
 	}
 
-	if dbAddress != dbAddressIssue && dbAddress != dbAddressCitizenReputation {
+	if dbAddress != dbAddressIssue && dbAddress != dbAddressCitizenReputation && dbAddress != dbAddressEvent {
 		_, err = db.Create(ctx, dbAddress, "docstore", &orbitdb.CreateDBOptions{})
 		if err != nil {
 			return db, nil, err
