@@ -6,7 +6,11 @@ test_description="Test ipfs swarm ResourceMgr config and commands"
 
 test_init_ipfs
 
-# test correct behavior when resource manager is disabled (default behavior)
+test_expect_success 'Disable resource manager' '
+  ipfs config --bool Swarm.ResourceMgr.Enabled false
+'
+
+# test correct behavior when resource manager is disabled
 test_launch_ipfs_daemon
 
 test_expect_success 'Swarm limit should fail since RM is disabled' '

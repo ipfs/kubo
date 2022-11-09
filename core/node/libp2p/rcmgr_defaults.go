@@ -8,15 +8,22 @@ import (
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 )
 
+// We are doing some magic when parsing config files (we are using a map[string]interface{} to compare config files).
+// When you don't have a type the JSON Parse function cast numbers to float64 by default,
+// losing precision when writing the final number. So if we use math.MaxInt as our infinite number,
+// after writing the config file we will have 9223372036854776000 instead of 9223372036854775807,
+// making the parsing process fail.
+const bigEnough = math.MaxInt / 2
+
 var infiniteBaseLimit = rcmgr.BaseLimit{
-	Streams:         math.MaxInt,
-	StreamsInbound:  math.MaxInt,
-	StreamsOutbound: math.MaxInt,
-	Conns:           math.MaxInt,
-	ConnsInbound:    math.MaxInt,
-	ConnsOutbound:   math.MaxInt,
-	FD:              math.MaxInt,
-	Memory:          math.MaxInt,
+	Streams:         bigEnough,
+	StreamsInbound:  bigEnough,
+	StreamsOutbound: bigEnough,
+	Conns:           bigEnough,
+	ConnsInbound:    bigEnough,
+	ConnsOutbound:   bigEnough,
+	FD:              bigEnough,
+	Memory:          bigEnough,
 }
 
 // This file defines implicit limit defaults used when Swarm.ResourceMgr.Enabled
@@ -29,14 +36,14 @@ func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.LimitConfig {
 			Memory: rcmgr.DefaultLimits.SystemBaseLimit.Memory,
 			FD:     rcmgr.DefaultLimits.SystemBaseLimit.FD,
 
-			Conns:         math.MaxInt,                                      // just limit on the inbound
+			Conns:         bigEnough,                                        // just limit on the inbound
 			ConnsInbound:  rcmgr.DefaultLimits.SystemBaseLimit.ConnsInbound, // same as libp2p default
-			ConnsOutbound: math.MaxInt,
+			ConnsOutbound: bigEnough,
 
 			// Don't limit streams.  Rely on peer and transient limits.
-			Streams:         math.MaxInt,
-			StreamsInbound:  math.MaxInt,
-			StreamsOutbound: math.MaxInt,
+			Streams:         bigEnough,
+			StreamsInbound:  bigEnough,
+			StreamsOutbound: bigEnough,
 		},
 
 		// Just go with what libp2p does
@@ -58,12 +65,12 @@ func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.LimitConfig {
 
 		// Limit connections per peer. Really important to mitigate flooding attacks from a peer.
 		PeerBaseLimit: rcmgr.BaseLimit{
-			Streams:         math.MaxInt,
-			StreamsOutbound: math.MaxInt,
+			Streams:         bigEnough,
+			StreamsOutbound: bigEnough,
 			StreamsInbound:  rcmgr.DefaultLimits.PeerBaseLimit.StreamsInbound,
-			Conns:           math.MaxInt,
+			Conns:           bigEnough,
 			ConnsInbound:    rcmgr.DefaultLimits.PeerBaseLimit.ConnsInbound,
-			ConnsOutbound:   math.MaxInt,
+			ConnsOutbound:   bigEnough,
 			FD:              rcmgr.DefaultLimits.PeerBaseLimit.FD,
 			Memory:          rcmgr.DefaultLimits.PeerBaseLimit.Memory,
 		},
