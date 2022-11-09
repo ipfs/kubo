@@ -2,6 +2,7 @@ package fsrepo_test
 
 import (
 	"encoding/json"
+        "io/ioutil"
 	"os"
 	"reflect"
 	"testing"
