@@ -1818,17 +1818,19 @@ Type: `flag`
 
 #### `Swarm.ResourceMgr.MaxMemory`
 
-Define the maximum amount of memory used by libp2p.
+The maximum amount of memory that the libp2p resource manager will allow.
 
-Default: `[TOTAL_MEMORY]/8`
-Type: `integer64`
+Default: `[TOTAL_SYSTEM_MEMORY]/8`
+Type: `optionalBytes`
 
 #### `Swarm.ResourceMgr.MaxFileDescriptors`
 
-Define the maximum amount of file descriptors used by libp2p.
+Define the maximum number of file descriptors that libp2p can use. 
 
-Default `[TOTAL_FILE_DESCRIPTORS]/2`
-Type: `integer`
+This param is ignored on Windows.
+
+Default `[TOTAL_SYSTEM_FILE_DESCRIPTORS]/2`
+Type: `optionalInteger`
 
 #### `Swarm.ResourceMgr.Limits`
 

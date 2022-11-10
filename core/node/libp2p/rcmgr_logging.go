@@ -23,7 +23,6 @@ type loggingResourceManager struct {
 
 	mut               sync.Mutex
 	limitExceededErrs map[string]int
-	previousErrors    bool
 }
 
 type loggingScope struct {
@@ -51,17 +50,11 @@ func (n *loggingResourceManager) start(ctx context.Context) {
 				n.limitExceededErrs = make(map[string]int)
 
 				for e, count := range errs {
-					n.previousErrors = true
 					n.logger.Errorf("Resource limits were exceeded %d times with error %q.", count, e)
 				}
 
 				if len(errs) != 0 {
 					n.logger.Errorf("Consider inspecting logs and raising the resource manager limits. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#swarmresourcemgr")
-				}
-
-				if len(errs) == 0 && n.previousErrors {
-					n.previousErrors = false
-					n.logger.Errorf("Resrouce limits are no longer being exceeded.")
 				}
 
 				n.mut.Unlock()

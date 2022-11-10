@@ -9,10 +9,6 @@ import (
 
 	"github.com/benbjohnson/clock"
 	logging "github.com/ipfs/go-log/v2"
-	config "github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/core/node/helpers"
-	"github.com/ipfs/kubo/repo"
-
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -21,8 +17,11 @@ import (
 	rcmgrObs "github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 	"github.com/multiformats/go-multiaddr"
 	"go.opencensus.io/stats/view"
-
 	"go.uber.org/fx"
+
+	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/repo"
 )
 
 const NetLimitDefaultFilename = "limit.json"
@@ -53,7 +52,10 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
 			}
 
-			limits := createDefaultLimitConfig(cfg)
+			limits, err := createDefaultLimitConfig(cfg)
+			if err != nil {
+				return nil, opts, err
+			}
 
 			if cfg.ResourceMgr.Limits != nil {
 				l := *cfg.ResourceMgr.Limits
@@ -259,7 +261,7 @@ func scopeToLimit(s *network.ScopeStat) *rcmgr.BaseLimit {
 	}
 }
 
-// compareLimits copares stat and limit.
+// compareLimits compares stat and limit.
 // If any of the stats value are equals or above the specified percentage,
 // stat object is returned.
 func compareLimits(stat, limit *rcmgr.BaseLimit, percentage int) *rcmgr.BaseLimit {
@@ -511,7 +513,10 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 		return result, fmt.Errorf("reading config to reset limit: %w", err)
 	}
 
-	defaults := createDefaultLimitConfig(cfg.Swarm)
+	defaults, err := createDefaultLimitConfig(cfg.Swarm)
+	if err != nil {
+		return result, fmt.Errorf("creating default limit config: %w", err)
+	}
 
 	if cfg.Swarm.ResourceMgr.Limits == nil {
 		cfg.Swarm.ResourceMgr.Limits = &rcmgr.LimitConfig{}

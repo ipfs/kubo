@@ -3,11 +3,13 @@ package libp2p
 import (
 	"math"
 
-	"github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/core/node/libp2p/fd"
+	"github.com/dustin/go-humanize"
 	"github.com/libp2p/go-libp2p"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/pbnjay/memory"
+
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/node/libp2p/fd"
 )
 
 // We are doing some magic when parsing config files (we are using a map[string]interface{} to compare config files).
@@ -87,20 +89,20 @@ var noLimitIncrease = rcmgr.BaseLimitIncrease{
 //     maxMemory, maxFD, or maxConns with Swarm.HighWater.ConnMgr.
 //  3. Power user - They specify all the limits they want set via Swarm.ResourceMgr.Limits
 //     and we don't do any defaults/overrides. We pass that config blindly into libp2p resource manager.
-func createDefaultLimitConfig(cfg config.SwarmConfig) rcmgr.LimitConfig {
-
-	if cfg.ResourceMgr.MaxMemory == 0 {
-		cfg.ResourceMgr.MaxMemory = int64(memory.TotalMemory()) / 8
+func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error) {
+	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 8)
+	maxMemoryString := cfg.ResourceMgr.MaxMemory.WithDefault(maxMemoryDefaultString)
+	maxMemory, err := humanize.ParseBytes(maxMemoryString)
+	if err != nil {
+		return rcmgr.LimitConfig{}, err
 	}
 
-	if cfg.ResourceMgr.MaxFileDescriptors == 0 {
-		cfg.ResourceMgr.MaxFileDescriptors = fd.GetNumFDs() / 2
-	}
+	numFD := cfg.ResourceMgr.MaxFileDescriptors.WithDefault(int64(fd.GetNumFDs()) / 2)
 
 	scalingLimitConfig := rcmgr.ScalingLimitConfig{
 		SystemBaseLimit: rcmgr.BaseLimit{
-			Memory: cfg.ResourceMgr.MaxMemory,
-			FD:     cfg.ResourceMgr.MaxFileDescriptors,
+			Memory: int64(maxMemory),
+			FD:     int(numFD),
 
 			// By default, we just limit connections on the inbound side.
 			// Note that the limit gets adjusted below if "cfg.ConnMgr.HighWater" is set.
@@ -165,7 +167,7 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) rcmgr.LimitConfig {
 		// This doesn't protect us against intentional DoS attacks since an attacker can easily spin up multiple peers.
 		// We specify this limit against unintentional DoS attacks (e.g., a peer has a bug and is sending too much traffic intentionally).
 		// In that case we want to keep that peer's resource consumption contained.
-		// To keep this simple, we only constrain inbound connections and connections.
+		// To keep this simple, we only constrain inbound connections and streams.
 		PeerBaseLimit: rcmgr.BaseLimit{
 			Memory:          bigEnough,
 			FD:              bigEnough,
@@ -193,7 +195,7 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) rcmgr.LimitConfig {
 	// Whatever limits libp2p has specifically tuned for its protocols/services we'll apply.
 	libp2p.SetDefaultServiceLimits(&scalingLimitConfig)
 
-	defaultLimitConfig := scalingLimitConfig.Scale(cfg.ResourceMgr.MaxMemory, cfg.ResourceMgr.MaxFileDescriptors)
+	defaultLimitConfig := scalingLimitConfig.Scale(int64(maxMemory), int(numFD))
 
 	// If a high water mark is set:
 	if cfg.ConnMgr.Type == "basic" {
@@ -202,5 +204,5 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) rcmgr.LimitConfig {
 		log.Info("adjusted default resource manager System.Conns limits to match ConnMgr.HighWater value of %s", cfg.ConnMgr.HighWater)
 	}
 
-	return defaultLimitConfig
+	return defaultLimitConfig, nil
 }

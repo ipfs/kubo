@@ -81,13 +81,13 @@ test_expect_success 'connected: swarm stats all working properly' '
 test_expect_success 'ResourceMgr enabled: swarm stats' '
   ipfs swarm stats all --enc=json | tee json &&
   jq -e .System.Memory < json &&
+  jq -e .System.FD < json &&
   jq -e .System.Conns < json &&
   jq -e .System.ConnsInbound < json &&
   jq -e .System.ConnsOutbound < json &&
-  jq -e .System.FD < json &&
+  jq -e .System.Streams < json &&
   jq -e .System.StreamsInbound < json &&
   jq -e .System.StreamsOutbound < json &&
-  jq -e .System.Streams < json &&
   jq -e .Transient.Memory < json
 '
 
