@@ -430,12 +430,16 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		carVersion := formatParams["version"]
 		i.serveCAR(r.Context(), w, r, resolvedPath, contentPath, carVersion, begin)
 		return
+	case "application/x-tar":
+		logger.Debugw("serving tar file", "path", contentPath)
+		i.serveTAR(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
+		return
 	case "application/json", "application/vnd.ipld.dag-json",
 		"application/cbor", "application/vnd.ipld.dag-cbor":
 		logger.Debugw("serving codec", "path", contentPath)
 		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat)
 		return
-	default: // catch-all for unsupported application/vnd.*
+	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
 		webError(w, "failed respond with requested content type", err, http.StatusBadRequest)
 		return
@@ -847,9 +851,10 @@ func getEtag(r *http.Request, cid cid.Cid) string {
 	responseFormat, _, err := customResponseFormat(r)
 	if err == nil && responseFormat != "" {
 		// application/vnd.ipld.foo → foo
-		f := responseFormat[strings.LastIndex(responseFormat, ".")+1:]
-		// Etag: "cid.foo" (gives us nice compression together with Content-Disposition in block (raw) and car responses)
-		suffix = `.` + f + suffix
+		// application/x-bar → x-bar
+		shortFormat := responseFormat[strings.LastIndexAny(responseFormat, "/.")+1:]
+		// Etag: "cid.shortFmt" (gives us nice compression together with Content-Disposition in block (raw) and car responses)
+		suffix = `.` + shortFormat + suffix
 	}
 	// TODO: include selector suffix when https://github.com/ipfs/kubo/issues/8769 lands
 	return prefix + cid.String() + suffix
@@ -864,6 +869,8 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 			return "application/vnd.ipld.raw", nil, nil
 		case "car":
 			return "application/vnd.ipld.car", nil, nil
+		case "tar":
+			return "application/x-tar", nil, nil
 		case "dag-json":
 			return "application/vnd.ipld.dag-json", nil, nil
 		case "json":
@@ -876,10 +883,11 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 	}
 	// Browsers and other user agents will send Accept header with generic types like:
 	// Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
-	// We only care about explciit, vendor-specific content-types.
+	// We only care about explicit, vendor-specific content-types.
 	for _, accept := range r.Header.Values("Accept") {
 		// respond to the very first ipld content type
 		if strings.HasPrefix(accept, "application/vnd.ipld") ||
+			strings.HasPrefix(accept, "application/x-tar") ||
 			strings.HasPrefix(accept, "application/json") ||
 			strings.HasPrefix(accept, "application/cbor") {
 			mediatype, params, err := mime.ParseMediaType(accept)
