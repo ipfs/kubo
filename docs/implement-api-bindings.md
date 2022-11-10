@@ -82,13 +82,6 @@ The Go implementation is good to answer harder questions, like how is multipart
 handled, or what headers should be set in edge conditions. But the javascript
 implementation is very concise, and easy to follow.
 
-#### Anatomy of `kubo-rpc-client`
-
-Currently, `kubo-rpc-client` has one main file, and folders where subcommands are implemented
-- [`src/index.js`](https://github.com/ipfs/js-kubo-rpc-client/blob/ef63c43a8dcc44d94683ed353def3ef906a6ffb5/src/index.js#L105-L143) defines the functions clients of the API
-  module will use. Translates function call parameters to the API almost directly.
-- [`src/*/*.js`](https://github.com/ipfs/js-kubo-rpc-client/tree/ef63c43a8dcc44d94683ed353def3ef906a6ffb5/src) folders within `src/` contain the logic for the relevant subcommand.
-
 ## Note on multipart + inspecting requests
 
 Despite all the generalization spoken about above, the IPFS API is actually very
