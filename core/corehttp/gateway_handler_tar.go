@@ -79,14 +79,6 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 
 	// The TAR has a top-level directory (or file) named by the CID.
 	if err := tarw.WriteFile(file, rootCid.String()); err != nil {
-		w.Header().Set("X-Stream-Error", err.Error())
-		// Trailer headers do not work in web browsers
-		// (see https://github.com/mdn/browser-compat-data/issues/14703)
-		// and we have limited options around error handling in browser contexts.
-		// To improve UX/DX, we finish response stream with error message, allowing client to
-		// (1) detect error by having corrupted TAR
-		// (2) be able to reason what went wrong by instecting the tail of TAR stream
-		_, _ = w.Write([]byte(err.Error()))
-		return
+		abortConn(w)
 	}
 }
