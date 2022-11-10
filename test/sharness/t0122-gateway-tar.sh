@@ -76,8 +76,7 @@ test_expect_success "Add CARs with relative paths to test with" '
 '
 
 test_expect_success "GET TAR with relative paths outside root fails" '
-  curl -o - "http://127.0.0.1:$GWAY_PORT/ipfs/$OUTSIDE_ROOT_CID?format=tar" > curl_output_filename &&
-  test_should_contain "relative UnixFS paths outside the root are now allowed" curl_output_filename
+  ! curl "http://127.0.0.1:$GWAY_PORT/ipfs/$OUTSIDE_ROOT_CID?format=tar"
 '
 
 test_expect_success "GET TAR with relative paths inside root works" '
