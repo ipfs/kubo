@@ -14,7 +14,7 @@
 * Release reviewer: @who
 * Expected RC date: week of YYYY-MM-DD
 * 🚢 Expected final release date: YYYY-MM-DD
-* Accompanying PR for improving the release process: (example: https://github.com/ipfs/kubo/pull/9100)
+* Accompanying PR for improving the release process: (example: https://github.com/ipfs/kubo/pull/9391)
 
 See the [Kubo release process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4) for more info.
 
@@ -41,11 +41,13 @@ As usual, this release includes important fixes, some of which may be critical f
 Checklist:
 
 - [ ] **Stage 0 - Prerequisites**
-  - [ ] Open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ahead of the release ([example](https://github.com/protocol/bifrost-infra/issues/2109)).
+  - [ ] Open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ahead of the release ([example](https://github.com/protocol/bifrost-infra/issues/2109)).  **Idealy, do this multiple days in advance of the RC** to give Bifrost the heads up that asks will be coming their way.
     - [ ] Spell out all that we want updated - gateways, the bootstraper and the cluster/preload nodes
     - [ ] Mention @protocol/bifrost-team in the issue and let them know the expected date of the release
+    * Issue link: 
   - [ ] Ensure that the `What's left for release` section has all the checkboxes checked. If that's not the case, discuss the open items with Kubo maintainers and update the release schedule accordingly.
-  - [ ] Create `docs-release-vX.Y.Z` branch, open a draft PR and keep updating `docs/RELEASE_ISSUE_TEMPLATE.md` on that branch as you go.
+  - [ ] Create `docs-release-vX.Y.Z` branch, open a draft PR and keep updating `docs/RELEASE_ISSUE_TEMPLATE.md` on that branch as you go ([example](https://github.com/ipfs/kubo/pull/9391)).
+    - [ ] Link it in the "Meta" section above.
   - [ ] Ensure you have a [GPG key generated](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key) and [added to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account). This will enable you to created signed tags.
   - [ ] Ensure you have [admin access](https://discuss.ipfs.tech/g/admins) to [IPFS Discourse](https://discuss.ipfs.tech/). Admin access is required to globally pin posts and create banners. @2color might be able to assist you.
   - [ ] Access to [#bifrost](https://filecoinproject.slack.com/archives/C03MMMF606T) channel in FIL Slack might come in handy. Ask the release reviewer to invite you over.
@@ -54,11 +56,12 @@ Checklist:
   - [ ] You're also going to need NPM installed on your system. See [here](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) for instructions.
   - [ ] Prepare changelog proposal in [docs/changelogs/vX.Y.md](https://github.com/ipfs/kubo/blob/master/docs/changelogs/).
     - Skip filling out the `### Changelog` section (the one where which lists all the commits and contributors) for now. We will populate it after the release branch is cut.
+    - PR link: 
   - [ ] Install ZSH ([instructions](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH#install-and-set-up-zsh-as-default)). It is needed by the changelog creation script.
   - [ ] Ensure you have `kubo` checked out under `$(go env GOPATH)/src/github.com/ipfs/kubo`. This is required by the changelog creation script.
     - If you want your clone to live in a different location, you can symlink it to the expected location by running `mkdir -p $(go env GOPATH)/src/github.com/ipfs && ln -s $(pwd) $(go env GOPATH)/src/github.com/ipfs/kubo`.
   - [ ] Ensure that [README.md](https://github.com/ipfs/go-ipfs/tree/master/README.md) is up to date.
-- [ ] **Stage 1 - Initial Preparations**
+- [ ] **Stage 1 - Initial Preparations** 
   - [ ] Upgrade to the latest patch release of Go that CircleCI has published (currently used version: `1.19.1`)
     - [ ] See the list here: https://hub.docker.com/r/cimg/go/tags
     - [ ] [ipfs/distributions](https://github.com/ipfs/distributions): bump [this version](https://github.com/ipfs/distributions/blob/master/.tool-versions#L2)
@@ -108,7 +111,7 @@ Checklist:
       - [ ] IPFS Discord #ipfs-chatter
       - [ ] FIL Slack #ipfs-chatter
       - [ ] Matrix https://matrix.to/#/#ipfs-chatter:ipfs.io
-    - [ ] Mention [early testers](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) in the comment under the release issue ([example](https://github.com/ipfs/kubo/issues/9237#issuecomment-1258072509)).
+    - [ ] Mention [early testers](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) in the comment under the release issue ([example](https://github.com/ipfs/kubo/issues/9319#issuecomment-1311002478)).
 - [ ] **Stage 3 - Internal Testing**
   - [ ] Library Testing.
     - [ ] [interop](https://github.com/ipfs/interop)
@@ -226,7 +229,5 @@ Checklist:
 Would you like to contribute to the IPFS project and don't know how? Well, there are a few places you can get started:
 
 - Check the issues with the `help wanted` label in the [ipfs/kubo repo](https://github.com/ipfs/kubo/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22)
-- Join an IPFS All Hands, introduce yourself and let us know where you would like to contribute - https://github.com/ipfs/team-mgmt/#weekly-ipfs-all-hands
-- Hack with IPFS and show us what you made! The All Hands call is also the perfect venue for demos, join in and show us what you built
-- Join the discussion at [discuss.ipfs.io](https://discuss.ipfs.io/) and help users finding their answers.
-- Join the [🚀 IPFS Core Implementations Weekly Sync 🛰](https://github.com/ipfs/team-mgmt/issues/992) and be part of the action!
+- Join the discussion at [discuss.ipfs.tech](https://discuss.ipfs.tech/) and help users finding their answers.
+- See other options at https://docs.ipfs.tech/community/
