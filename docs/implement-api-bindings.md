@@ -76,7 +76,7 @@ As mentioned above, the API commands map to HTTP with:
 - the request body streams file data - reads files or stdin
   - multiple streams are muxed with multipart (todo: add tar stream support)
 
-You can see the latest [list of our HTTP clients here](http-clients.md)
+You can see the latest [list of our HTTP RPC clients here](http-rpc-clients.md)
 
 The Go implementation is good to answer harder questions, like how is multipart
 handled, or what headers should be set in edge conditions. But the javascript
