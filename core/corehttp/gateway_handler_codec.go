@@ -20,8 +20,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var unixEpochTime = time.Unix(0, 0)
-
 // contentTypeToCodecs maps the HTTP Content Type to the respective
 // possible codecs. If the original data is in one of those codecs,
 // we stream the raw bytes. Otherwise, we encode in the last codec
