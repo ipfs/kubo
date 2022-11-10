@@ -36,7 +36,7 @@ default_environment: &default_environment
 executors:
   golang:
     docker:
-      - image: cimg/go:1.19.1
+      - image: cimg/go:1.19.3
     working_directory: ~/ipfs/kubo
     environment:
       <<: *default_environment
@@ -61,7 +61,7 @@ executors:
       E2E_IPFSD_TYPE: go
   dockerizer:
     docker:
-      - image: cimg/go:1.19.1
+      - image: cimg/go:1.19.3
     environment:
       IMAGE_NAME: ipfs/kubo
       WIP_IMAGE_TAG: wip
@@ -222,7 +222,7 @@ jobs:
       - *store_gomod
   interop:
     docker:
-      - image: cimg/go:1.19.1-node
+      - image: cimg/go:1.19.3-node
     parallelism: 4
     resource_class: large
     steps:
