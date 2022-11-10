@@ -1835,8 +1835,8 @@ struct from [go-libp2p-resource-manager](https://github.com/libp2p/go-libp2p/tre
 Current resource usage and a list of services, protocols, and peers can be
 obtained via `ipfs swarm stats --help`
 
-It is also possible to adjust some runtime limits via `ipfs stats limit --help`.
-Changes made via `stats limit` are persisted in `Swarm.ResourceMgr.Limits`.
+It is also possible to adjust some runtime limits via `ipfs swarm limit --help`.
+Changes made via `ipfs swarm limit` are persisted in `Swarm.ResourceMgr.Limits`.
 
 Default: `{}` (use the safe implicit defaults)
 
