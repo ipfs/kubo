@@ -505,9 +505,6 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, k2.Cid().String()) {
 		t.Fatalf("expected hash in directory listing")
 	}
-	if !strings.Contains(s, "<button class=\"type-icon\" title=\"Copy CID\" onclick=\"copyText(") {
-		t.Fatalf("expected button to copy CID in directory listing")
-	}
 
 	// make request to directory listing at root
 	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)

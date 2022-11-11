@@ -32,8 +32,9 @@ button {
 	vertical-align: middle;
 }
 
-button:hover svg {
-	fill: #00b0e9;
+button:hover {
+	background-color: #00b0e9;
+	cursor: pointer;
 }
 
 strong {
