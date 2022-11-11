@@ -33,6 +33,10 @@ type NodeAPI interface {
 	// Dag returns an implementation of Dag API
 	Dag() coreiface.APIDagService
 
+	// Routing returns an implementation of Routing API.
+	// Used for returning signed IPNS records, see IPIP-0328
+	Routing() coreiface.RoutingAPI
+
 	// ResolvePath resolves the path using Unixfs resolver
 	ResolvePath(context.Context, path.Path) (path.Resolved, error)
 }
