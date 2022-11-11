@@ -7,6 +7,7 @@ import (
 	"html"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
@@ -14,7 +15,6 @@ import (
 	"github.com/ipfs/kubo/tracing"
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/multicodec"
-	"github.com/ipld/go-ipld-prime/traversal"
 	mc "github.com/multiformats/go-multicodec"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -43,6 +43,14 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 
+	// We do not support paths for non-UnixFS codecs. If we have a path, return 404.
+	path := strings.TrimSuffix(resolvedPath.String(), "/")
+	if strings.Count(path, "/") > 2 {
+		err := fmt.Errorf("%s not found", resolvedPath.String())
+		webError(w, err.Error(), err, http.StatusNotFound)
+		return
+	}
+
 	// Set Cache-Control and read optional Last-Modified time
 	modtime := addCacheControlHeaders(w, r, contentPath, resolvedPath.Cid())
 	name := addContentDispositionHeader(w, r, contentPath)
@@ -53,7 +61,6 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	// data. serveRawBlock cannot be directly used here as it sets different headers.
 	for _, codec := range codecs {
 		if resolvedPath.Cid().Prefix().Codec == codec {
-
 			blockCid := resolvedPath.Cid()
 			blockReader, err := i.api.Block().Get(ctx, resolvedPath)
 			if err != nil {
@@ -93,16 +100,6 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 	finalNode := universal.(ipld.Node)
-
-	if len(resolvedPath.Remainder()) > 0 {
-		remainderPath := ipld.ParsePath(resolvedPath.Remainder())
-
-		finalNode, err = traversal.Get(finalNode, remainderPath)
-		if err != nil {
-			webError(w, err.Error(), err, http.StatusInternalServerError)
-			return
-		}
-	}
 
 	// Otherwise convert it using the last codec of the list.
 	encoder, err := multicodec.LookupEncoder(codecs[len(codecs)-1])

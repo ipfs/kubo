@@ -129,18 +129,24 @@ test_expect_success "Add CARs for path traversal and DAG-PB representation tests
   test_should_contain $DAG_PB_CID import_output
 '
 
-test_expect_success "GET DAG-JSON traverses multiple links" '
-  curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo/bar?format=dag-json" > curl_output 2>&1 &&
-  jq --sort-keys . curl_output > actual &&
-  echo "{ \"hello\": \"this is not a link\" }" | jq --sort-keys . > expected &&
-  test_cmp expected actual
+test_expect_success "GET JSON traversal returns 404" '
+  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo/bar?format=json" > curl_output 2>&1 &&
+  test_should_contain "404 Not Found" curl_output
 '
 
-test_expect_success "GET DAG-CBOR traverses multiple links" '
-  curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo/bar?format=dag-json" > curl_output 2>&1 &&
-  jq --sort-keys . curl_output > actual &&
-  echo "{ \"hello\": \"this is not a link\" }" | jq --sort-keys . > expected &&
-  test_cmp expected actual
+test_expect_success "GET CBOR traversal returns 404" '
+  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo/bar?format=cbor" > curl_output 2>&1 &&
+  test_should_contain "404 Not Found" curl_output
+'
+
+test_expect_success "GET DAG-JSON traversal returns 404" '
+  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo/bar?format=dag-json" > curl_output 2>&1 &&
+  test_should_contain "404 Not Found" curl_output
+'
+
+test_expect_success "GET DAG-CBOR traversal returns 404" '
+  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo/bar?format=dag-json" > curl_output 2>&1 &&
+  test_should_contain "404 Not Found" curl_output
 '
 
 test_expect_success "GET DAG-PB has expected output" '
