@@ -2,13 +2,15 @@
 #
 test_description="Test ipfs swarm ResourceMgr config and commands"
 
-export IPFS_CHECK_RCMGR_DEFAULTS=1
-
 . lib/test-lib.sh
 
 test_init_ipfs
 
-# test correct behavior when resource manager is disabled (default behavior)
+test_expect_success 'Disable resource manager' '
+  ipfs config --bool Swarm.ResourceMgr.Enabled false
+'
+
+# test correct behavior when resource manager is disabled
 test_launch_ipfs_daemon
 
 test_expect_success 'Swarm limit should fail since RM is disabled' '
@@ -79,11 +81,13 @@ test_expect_success 'connected: swarm stats all working properly' '
 test_expect_success 'ResourceMgr enabled: swarm stats' '
   ipfs swarm stats all --enc=json | tee json &&
   jq -e .System.Memory < json &&
-  jq -e .System.NumConnsInbound < json &&
-  jq -e .System.NumConnsOutbound < json &&
-  jq -e .System.NumFD < json &&
-  jq -e .System.NumStreamsInbound < json &&
-  jq -e .System.NumStreamsOutbound < json &&
+  jq -e .System.FD < json &&
+  jq -e .System.Conns < json &&
+  jq -e .System.ConnsInbound < json &&
+  jq -e .System.ConnsOutbound < json &&
+  jq -e .System.Streams < json &&
+  jq -e .System.StreamsInbound < json &&
+  jq -e .System.StreamsOutbound < json &&
   jq -e .Transient.Memory < json
 '
 
