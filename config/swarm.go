@@ -144,8 +144,8 @@ type ResourceMgr struct {
 	Enabled Flag               `json:",omitempty"`
 	Limits  *rcmgr.LimitConfig `json:",omitempty"`
 
-	MaxMemory          OptionalString  `json:",omitempty"`
-	MaxFileDescriptors OptionalInteger `json:",omitempty"`
+	MaxMemory          *OptionalString  `json:",omitempty"`
+	MaxFileDescriptors *OptionalInteger `json:",omitempty"`
 
 	// A list of multiaddrs that can bypass normal system limits (but are still
 	// limited by the allowlist scope). Convenience config around
