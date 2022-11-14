@@ -44,6 +44,9 @@ type CoreAPI interface {
 	// PubSub returns an implementation of PubSub API
 	PubSub() PubSubAPI
 
+	// Routing returns an implementation of Routing API
+	Routing() RoutingAPI
+
 	// ResolvePath resolves the path using Unixfs resolver
 	ResolvePath(context.Context, path.Path) (path.Resolved, error)
 
