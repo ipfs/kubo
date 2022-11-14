@@ -32,7 +32,6 @@ default_environment: &default_environment
   CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
   CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
   GIT_PAGER: cat
-  IPFS_CHECK_RCMGR_DEFAULTS: 1
 
 executors:
   golang:
@@ -162,7 +161,7 @@ jobs:
         tar xfz go1.19.1.linux-amd64.tar.gz
         echo "export PATH=$(pwd)/go/bin:\$PATH" >> ~/.bashrc
     - run: go version
-    - run: sudo apt install socat net-tools libxml2-utils
+    - run: sudo apt install socat net-tools fish libxml2-utils
     - checkout
 
     - run:

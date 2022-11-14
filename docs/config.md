@@ -141,6 +141,8 @@ config file at runtime.
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
+      - [`Swarm.ResourceMgr.MaxMemory`](#swarmresourcemgrmaxmemory)
+      - [`Swarm.ResourceMgr.MaxFileDescriptors`](#swarmresourcemgrmaxfiledescriptors)
       - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
       - [`Swarm.ResourceMgr.Allowlist`](#swarmresourcemgrallowlist)
     - [`Swarm.Transports`](#swarmtransports)
@@ -1800,35 +1802,42 @@ Type: `duration`
 
 ### `Swarm.ResourceMgr`
 
-**EXPERIMENTAL: `Swarm.ResourceMgr` configuration will change in future release**
-
 The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme) allows setting limits per a scope,
 and tracking recource usage over time.
 
 #### `Swarm.ResourceMgr.Enabled`
-
-**EXPERIMENTAL: `Swarm.ResourceMgr` is in active development, enable it only if you want to provide maintainers with feedback**
-
 
 Enables the libp2p Network Resource Manager and auguments the default limits
 using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
 
 Various `*rcmgr_*` metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
 
-Default: `false`
+Default: `true`
 
 Type: `flag`
 
+#### `Swarm.ResourceMgr.MaxMemory`
+
+The maximum amount of memory that the libp2p resource manager will allow.
+
+Default: `[TOTAL_SYSTEM_MEMORY]/8`
+Type: `optionalBytes`
+
+#### `Swarm.ResourceMgr.MaxFileDescriptors`
+
+Define the maximum number of file descriptors that libp2p can use. 
+
+This param is ignored on Windows.
+
+Default `[TOTAL_SYSTEM_FILE_DESCRIPTORS]/2`
+Type: `optionalInteger`
+
 #### `Swarm.ResourceMgr.Limits`
 
-**EXPERIMENTAL: `Swarm.ResourceMgr.Limits` configuration will change in future release, exposed here only for convenience**
+Map of resource limits [per scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes).
 
-Map of resource limits [per scope](https://github.com/libp2p/go-libp2p-resource-manager#resource-scopes).
-
-The map supports fields from [`BasicLimiterConfig`](https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.3.0/limit_config.go#L165-L185)
-struct from [go-libp2p-resource-manager](https://github.com/libp2p/go-libp2p-resource-manager#readme).
-
-**Example: (format may change in future release)**
+The map supports fields from [`ScalingLimitConfig`](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit_defaults.go#L21-L59)
+struct from [go-libp2p-resource-manager](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#readme).
 
 ```json
 {
@@ -1855,8 +1864,8 @@ struct from [go-libp2p-resource-manager](https://github.com/libp2p/go-libp2p-res
 Current resource usage and a list of services, protocols, and peers can be
 obtained via `ipfs swarm stats --help`
 
-It is also possible to adjust some runtime limits via `ipfs stats limit --help`.
-Changes made via `stats limit` are persisted in `Swarm.ResourceMgr.Limits`.
+It is also possible to adjust some runtime limits via `ipfs swarm limit --help`.
+Changes made via `ipfs swarm limit` are persisted in `Swarm.ResourceMgr.Limits`.
 
 Default: `{}` (use the safe implicit defaults)
 
@@ -1865,7 +1874,7 @@ Type: `object[string->object]`
 #### `Swarm.ResourceMgr.Allowlist`
 
 A list of multiaddrs that can bypass normal system limits (but are still limited by the allowlist scope).
-Convenience config around [go-libp2p-resource-manager#Allowlist.Add](https://pkg.go.dev/github.com/libp2p/go-libp2p-resource-manager#Allowlist.Add).
+Convenience config around [go-libp2p-resource-manager#Allowlist.Add](https://pkg.go.dev/github.com/libp2p/go-libp2p/p2p/host/resource-manager#Allowlist.Add).
 
 Default: `[]`
 

@@ -142,9 +142,12 @@ cat <<EOF > codecs_expect
   241  dash-tx
   250  swarm-manifest
   251  swarm-feed
+  252  beeson
   297  dag-json
   496  swhid-1-snp
   512  json
+46083  urdca-2015-canon
+46593  json-jcs
 EOF
 
 cat <<EOF > supported_codecs_expect
