@@ -27,7 +27,7 @@ jobs:
         with:
           path: kubo
       - name: Install missing tools
-        run: sudo apt install socat net-tools libxml2-utils
+        run: sudo apt install socat net-tools fish libxml2-utils
       - name: Checkout IPFS Pinning Service API
         uses: actions/checkout@v3
         with:
