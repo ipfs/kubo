@@ -89,7 +89,7 @@ var noLimitIncrease = rcmgr.BaseLimitIncrease{
 //     maxMemory, maxFD, or maxConns with Swarm.HighWater.ConnMgr.
 //  3. Power user - They specify all the limits they want set via Swarm.ResourceMgr.Limits
 //     and we don't do any defaults/overrides. We pass that config blindly into libp2p resource manager.
-func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error) {
+func createDefaultLimitConfig(cfg config.SwarmConfig, acceleratedDHT bool) (rcmgr.LimitConfig, error) {
 	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 8)
 	maxMemoryString := cfg.ResourceMgr.MaxMemory.WithDefault(maxMemoryDefaultString)
 	maxMemory, err := humanize.ParseBytes(maxMemoryString)
@@ -132,9 +132,29 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 			StreamsOutbound: 0,
 		},
 
-		// Just go with what libp2p does
-		TransientBaseLimit:     rcmgr.DefaultLimits.TransientBaseLimit,
-		TransientLimitIncrease: rcmgr.DefaultLimits.TransientLimitIncrease,
+		TransientBaseLimit: rcmgr.BaseLimit{
+			Streams:         bigEnough,
+			StreamsInbound:  rcmgr.DefaultLimits.TransientBaseLimit.StreamsInbound,
+			StreamsOutbound: bigEnough,
+			Conns:           bigEnough,
+			ConnsInbound:    rcmgr.DefaultLimits.TransientBaseLimit.ConnsInbound,
+			ConnsOutbound:   bigEnough,
+			FD:              rcmgr.DefaultLimits.TransientBaseLimit.FD,
+			Memory:          rcmgr.DefaultLimits.TransientBaseLimit.Memory,
+		},
+
+		TransientLimitIncrease: rcmgr.BaseLimitIncrease{
+			Memory:     rcmgr.DefaultLimits.TransientLimitIncrease.Memory,
+			FDFraction: rcmgr.DefaultLimits.TransientLimitIncrease.FDFraction,
+
+			Conns:         0,
+			ConnsInbound:  rcmgr.DefaultLimits.TransientLimitIncrease.ConnsInbound,
+			ConnsOutbound: 0,
+
+			Streams:         0,
+			StreamsInbound:  rcmgr.DefaultLimits.TransientLimitIncrease.StreamsInbound,
+			StreamsOutbound: 0,
+		},
 
 		// Lets get out of the way of the allow list functionality.
 		// If someone specified "Swarm.ResourceMgr.Allowlist" we should let it go through.
@@ -197,8 +217,8 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 
 	defaultLimitConfig := scalingLimitConfig.Scale(int64(maxMemory), int(numFD))
 
-	// If a high water mark is set:
-	if cfg.ConnMgr.Type == "basic" {
+	// If a high water mark is set (ignore when using accelerated DHT):
+	if cfg.ConnMgr.Type == "basic" && !acceleratedDHT {
 		// set the connection limit higher than high water mark so that the ConnMgr has "space and time" to close "least useful" connections.
 		defaultLimitConfig.System.Conns = 2 * cfg.ConnMgr.HighWater
 		log.Info("adjusted default resource manager System.Conns limits to match ConnMgr.HighWater value of %s", cfg.ConnMgr.HighWater)
