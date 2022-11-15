@@ -141,14 +141,16 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 		},
 
 		TransientBaseLimit: rcmgr.BaseLimit{
-			Streams:         bigEnough,
-			StreamsInbound:  rcmgr.DefaultLimits.TransientBaseLimit.StreamsInbound,
-			StreamsOutbound: bigEnough,
+			Memory:          rcmgr.DefaultLimits.TransientBaseLimit.Memory,
+			FD:              rcmgr.DefaultLimits.TransientBaseLimit.FD,
+			
 			Conns:           bigEnough,
 			ConnsInbound:    rcmgr.DefaultLimits.TransientBaseLimit.ConnsInbound,
 			ConnsOutbound:   bigEnough,
-			FD:              rcmgr.DefaultLimits.TransientBaseLimit.FD,
-			Memory:          rcmgr.DefaultLimits.TransientBaseLimit.Memory,
+			
+			Streams:         bigEnough,
+			StreamsInbound:  rcmgr.DefaultLimits.TransientBaseLimit.StreamsInbound,
+			StreamsOutbound: bigEnough,
 		},
 
 		TransientLimitIncrease: rcmgr.BaseLimitIncrease{
