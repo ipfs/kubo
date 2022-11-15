@@ -57,9 +57,6 @@ var noLimitIncrease = rcmgr.BaseLimitIncrease{
 //   - cfg.ResourceMgr.MaxFileDescriptors:  This is the maximum number of file descriptors to allow libp2p to use.
 //     libp2p's resource manager will prevent additional file descriptor consumption while this limit is hit.
 //     If this value isn't specified, the maximum between 1/2 of system FD limit and 4096 is used.
-//   - Swarm.ConnMgr.HighWater: If a connection manager is specified, libp2p's resource manager
-//     will allow 2x more connections than the HighWater mark
-//     so the connection manager has "space and time" to close "least useful" connections.
 //
 // With these inputs defined, limits are created at the system, transient, and peer scopes.
 // Other scopes are ignored (by being set to infinity).
@@ -89,7 +86,18 @@ var noLimitIncrease = rcmgr.BaseLimitIncrease{
 //     maxMemory, maxFD, or maxConns with Swarm.HighWater.ConnMgr.
 //  3. Power user - They specify all the limits they want set via Swarm.ResourceMgr.Limits
 //     and we don't do any defaults/overrides. We pass that config blindly into libp2p resource manager.
-func createDefaultLimitConfig(cfg config.SwarmConfig, acceleratedDHT bool) (rcmgr.LimitConfig, error) {
+//
+// Note that within libp2p. Swarm.ConnMgr settings have no impact on libp2p's resource manager limits.
+// See https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/README.md#connmanager-vs-resource-manager
+// and https://github.com/libp2p/go-libp2p/issues/1640
+// We also don't layer on extra logic in this function because SystemBaseLimit.Conns is already "bigEnough".
+// There is headroom for the connection manager to apply any Swarm.ConnMgr.HighWater mark.
+// We're keeping things simple by avoiding any interaction between libp2p's resource manager and connection manager.
+// For example we don't set SystemBaseLimit.Conns to be related to Swarm.ConnMgr.HighWater.
+// SystemBaseLimit.Conns is "bigEnough" and won't won't limit total connections.
+// (We will limit SystemBaseLimit.ConnsInbound though.)
+// The Swarm.ConnMgr can manage connections based on Swarm.ConnMgr.HighWater.
+func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error) {
 	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 8)
 	maxMemoryString := cfg.ResourceMgr.MaxMemory.WithDefault(maxMemoryDefaultString)
 	maxMemory, err := humanize.ParseBytes(maxMemoryString)
@@ -216,13 +224,6 @@ func createDefaultLimitConfig(cfg config.SwarmConfig, acceleratedDHT bool) (rcmg
 	libp2p.SetDefaultServiceLimits(&scalingLimitConfig)
 
 	defaultLimitConfig := scalingLimitConfig.Scale(int64(maxMemory), int(numFD))
-
-	// If a high water mark is set (ignore when using accelerated DHT):
-	if cfg.ConnMgr.Type == "basic" && !acceleratedDHT {
-		// set the connection limit higher than high water mark so that the ConnMgr has "space and time" to close "least useful" connections.
-		defaultLimitConfig.System.Conns = 2 * cfg.ConnMgr.HighWater
-		log.Info("adjusted default resource manager System.Conns limits to match ConnMgr.HighWater value of %s", cfg.ConnMgr.HighWater)
-	}
 
 	return defaultLimitConfig, nil
 }
