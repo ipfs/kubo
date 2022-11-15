@@ -1206,6 +1206,16 @@ Type: `bool`
 Configures the duration after which a previously seen Pubsub Message ID can be
 forgotten about.
 
+A smaller value for this parameter means that Pubsub messages in the cache will
+be garbage collected sooner, which can result in a smaller cache. At the same
+time, if there are slower nodes in the network that forward older messages,
+this can cause more duplicates to be propagated through the network. 
+
+Conversely, a larger value for this parameter means that Pubsub messages in the
+cache will be garbage collected later, which can result in a larger cache for
+the same traffic pattern. However, it is less likely that duplicates will be
+propagated through the network.
+
 Default: see `TimeCacheDuration` from [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub)
 
 Type: `optionalDuration`
