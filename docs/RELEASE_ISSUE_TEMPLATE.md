@@ -428,6 +428,7 @@ Checklist:
     - Copy the relevant [changelog](https://github.com/ipfs/kubo/blob/release/docs/changelogs/) into the release description.
       - Keep the release notes as trim as possible (e.g. remove top headers where possible, [example](https://github.com/ipfs/kubo/releases/tag/v0.15.0))
   - [ ] Synchronize release artifacts by running [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow.
+  - [ ] TODO: https://github.com/protocol/bifrost-infra/issues/2184#issuecomment-1315279257
   - [ ] Announce the release
     - [ ] Add a link to the release to this release issue as a comment.
     - [ ] Create a new post on [IPFS Discourse](https://discuss.ipfs.tech). ([example](https://discuss.ipfs.tech/t/kubo-v0-16-0-release-is-out/15286))
