@@ -57,7 +57,7 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
-	// If the data is already encoded with the possible codecs, we can just stream the raw
+	// If the data is already encoded with supported and compatible codec, we can just stream the raw
 	// data. serveRawBlock cannot be directly used here as it sets different headers.
 	for _, codec := range codecs {
 		if resolvedPath.Cid().Prefix().Codec == codec {
