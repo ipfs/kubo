@@ -29,7 +29,7 @@ const NetLimitTraceFilename = "rcmgr.json.gz"
 
 var ErrNoResourceMgr = fmt.Errorf("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
 
-func ResourceManager(cfg config.SwarmConfig) interface{} {
+func ResourceManager(cfg config.SwarmConfig, acceleratedDHT bool) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 		var manager network.ResourceManager
 		var opts Libp2pOpts
@@ -52,7 +52,7 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
 			}
 
-			limits, err := createDefaultLimitConfig(cfg)
+			limits, err := createDefaultLimitConfig(cfg, acceleratedDHT)
 			if err != nil {
 				return nil, opts, err
 			}
@@ -513,7 +513,7 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 		return result, fmt.Errorf("reading config to reset limit: %w", err)
 	}
 
-	defaults, err := createDefaultLimitConfig(cfg.Swarm)
+	defaults, err := createDefaultLimitConfig(cfg.Swarm, cfg.Experimental.AcceleratedDHTClient)
 	if err != nil {
 		return result, fmt.Errorf("creating default limit config: %w", err)
 	}
