@@ -1299,8 +1299,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 Map of additional Routers.
 
 Allows for extending the default routing (DHT) with alternative Router
-implementations, such as custom DHTs and delegated routing based
-on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme).
+implementations.
 
 The map key is a name of a Router, and the value is its configuration.
 
@@ -1316,7 +1315,7 @@ It specifies the routing type that will be created.
 
 Currently supported types:
 
-- `reframe` (delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme))
+- `reframe` **(DEPRECATED)** (delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme))
 - `dht`
 - `parallel` and `sequential`: Helpers that can be used to run several routers sequentially or in parallel.
 
@@ -1328,7 +1327,7 @@ Type: `string`
 
 Parameters needed to create the specified router. Supported params per router type:
 
-Reframe:
+Reframe **(DEPRECATED)**:
   - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
 
 DHT:
@@ -1351,21 +1350,6 @@ Sequential:
     - `IgnoreErrors:bool`: It will specify if that router should be ignored if an error occurred.
   - `Timeout:duration`: Global timeout.  It accepts strings compatible with Go `time.ParseDuration(string)`.
 
-**Examples:**
-
-To add router provided by _Store the Index_ team at [cid.contact](https://cid.contact):
-
-```console
-$ ipfs config Routing.Routers.CidContact --json '{
-  "Type": "reframe",
-  "Parameters": {
-    "Endpoint": "https://cid.contact/reframe"
-  }
-}'
-```
-
-Anyone can create and run their own Reframe endpoint, and experiment with custom routing logic. See [`someguy`](https://github.com/aschmahmann/someguy) example, which proxies requests to BOTH the IPFS Public DHT AND an Indexer node. Protocol Labs provides a public instance at `https://routing.delegate.ipfs.io/reframe`.
-
 Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->string]`
@@ -1381,38 +1365,10 @@ Type: `object[string->object]`
 
 **Examples:**
 
-To use the previously added `CidContact` reframe router on all methods:
-
-```console
-$ ipfs config Routing.Methods --json '{
-      "find-peers": {
-        "RouterName": "CidContact"
-      },
-      "find-providers": {
-        "RouterName": "CidContact"
-      },
-      "get-ipns": {
-        "RouterName": "CidContact"
-      },
-      "provide": {
-        "RouterName": "CidContact"
-      },
-      "put-ipns": {
-        "RouterName": "CidContact"
-      }
-    }'
-```
-Complete example using 3 Routers, reframe, DHT and parallel.
+Complete example using 2 Routers, DHT (LAN/WAN) and parallel.
 
 ```
 $ ipfs config Routing.Type --json '"custom"'
-
-$ ipfs config Routing.Routers.CidContact --json '{
-  "Type": "reframe",
-  "Parameters": {
-    "Endpoint": "https://cid.contact/reframe"
-  }
-}'
 
 $ ipfs config Routing.Routers.WanDHT --json '{
   "Type": "dht",
@@ -1423,12 +1379,21 @@ $ ipfs config Routing.Routers.WanDHT --json '{
   }
 }'
 
+$ ipfs config Routing.Routers.LanDHT --json '{
+  "Type": "dht",
+  "Parameters": {
+    "Mode": "auto",
+    "PublicIPNetwork": false,
+    "AcceleratedDHTClient": false
+  }
+}'
+
 $ ipfs config Routing.Routers.ParallelHelper --json '{
   "Type": "parallel",
   "Parameters": {
     "Routers": [
         {
-        "RouterName" : "CidContact",
+        "RouterName" : "LanDHT",
         "IgnoreErrors" : true,
         "Timeout": "3s"
         },
@@ -1453,7 +1418,7 @@ ipfs config Routing.Methods --json '{
         "RouterName": "ParallelHelper"
       },
       "provide": {
-        "RouterName": "WanDHT"
+        "RouterName": "ParallelHelper"
       },
       "put-ipns": {
         "RouterName": "ParallelHelper"
