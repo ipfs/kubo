@@ -348,24 +348,6 @@ Checklist:
       - [ ] Matrix https://matrix.to/#/#ipfs-chatter:ipfs.io
     - [ ] Mention [early testers](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) in the comment under the release issue ([example](https://github.com/ipfs/kubo/issues/9319#issuecomment-1311002478)).
 - [ ] **Stage 3 - Internal Testing**
-  - [ ] Library Testing.
-    - [ ] [interop](https://github.com/ipfs/interop)
-      - [ ] Clone the `ipfs/interop` repo locally.
-      - [ ] Create a new branch (`kubo-release-vX.Y.Z-rcn`) from `master`.
-      - [ ] Update `go-ipfs` version to `vX.Y.Z-rcN` in [package.json](https://github.com/ipfs/interop/blob/master/package.json).
-      - [ ] Run `npm install` locally
-      - [ ] Push the `kubo-release-vX.Y.Z-rcn` branch to GitHub and create a draft PR from that branch ([example](https://github.com/ipfs/interop/pull/511)).
-    - [ ] [go-ipfs-api](https://github.com/ipfs/go-ipfs-api)
-      - [ ] Create a branch with kubo version pinned in the [test setup action](https://github.com/ipfs/go-ipfs-api/blob/master/.github/actions/go-test-setup/action.yml) ([example](https://github.com/ipfs/go-ipfs-api/commit/d156b808cc3aebafba65a38e5dd6993543a50e82)).
-      - [ ] Ensure that CI is green.
-      - [ ] Delete the branch.
-    - [ ] [go-ipfs-http-client](https://github.com/ipfs/go-ipfs-http-client)
-      - [ ] Create a branch with kubo version pinned in the [test setup action](https://github.com/ipfs/go-ipfs-http-client/blob/master/.github/actions/go-test-setup/action.yml) ([example](https://github.com/ipfs/go-ipfs-http-client/commit/8a057960d26f1c60fffef09be3b05ec3f2e71bba)).
-      - [ ] Ensure that CI is green.
-      - [ ] Delete the branch.
-    - [ ] [WebUI](https://github.com/ipfs-shipyard/ipfs-webui)
-      - [ ] Run [CI workflow](https://github.com/ipfs/ipfs-webui/actions/workflows/ci.yml) with `vX.Y.Z-rcN` for the `kubo-version` input.
-      - [ ] Ensure that CI is green.
   - [ ] Infrastructure Testing.
     - [ ] Update the issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ([example](https://github.com/protocol/bifrost-infra/issues/2109)).
       - [ ] Mention @protocol/bifrost-team in the issue to let them know the release is ready
@@ -380,12 +362,45 @@ Checklist:
       - [ ] Push to a branch ([example](https://github.com/ipfs/ipfs-desktop/pull/1826/commits/b0a23db31ce942b46d95965ee6fe770fb24d6bde))
       - [ ] Open a draft PR to track through the final release ([example](https://github.com/ipfs/ipfs-desktop/pull/1826))
       - [ ] Ensure CI tests pass
+        <details>
+        # checkout new branch
+        git checkout -b kubo-release-v0.17.0
+
+        # replace the go-ipfs version in package.json
+        sed -i 's/"go-ipfs": ".*"/"go-ipfs": "0.17.0-rc1"/' package.json
+
+        # update package-lock.json
+        npm install
+
+        # commit the change
+        git add package.json package-lock.json
+        git commit -m "chore: bump kubo version to v0.17.0-rc1"
+
+        # push the change
+        git push origin kubo-release-v0.17.0
+
+        # open a PR
+        gh api /repos/ipfs/ipfs-desktop/pulls \
+          --method POST \
+          -f title='chore: bump kubo version to v0.17.0-rc1' \
+          -f head='kubo-release-v0.17.0' \
+          -f base='main' \
+          -f title='chore: bump kubo version to v0.17.0' \
+          -F draft=true
+        </details>
     - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion)
       - [ ] Start kubo daemon of the version to release.
       - [ ] Start a fresh chromium or chrome instance using `chromium --user-data-dir=$(mktemp -d)` (macos `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --user-data-dir=$(mktemp -d)`)
       - [ ] Start a fresh firefox instance using `firefox --profile $(mktemp -d)` (macos `/Applications/Firefox.app/Contents/MacOS/firefox --profile $(mktemp -d)`)
       - [ ] Install IPFS Companion from [vendor-specific store](https://github.com/ipfs/ipfs-companion/#readme).
       - [ ] Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
+        <details>
+        curl --retry 5 --no-progress-meter --output kubo.tar.gz https://dist.ipfs.tech/kubo/v0.17.0-rc1/kubo_v0.17.0-rc1_darwin-arm64.tar.gz
+        tar -xzvf kubo.tar.gz
+        export IPFS_PATH=$(mktemp -d)
+        ./kubo/ipfs init
+        ./kubo/ipfs daemon &
+        </details>
 - [ ] **Stage 5 - Release** - _ONLY FOR FINAL RELEASE_
   - [ ] Prepare the `release` branch.
     - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `vX.Y.Z`.
