@@ -26,25 +26,25 @@ test_headers () {
   name=$1
   format=$2
 
-  test_expect_success "GET $name with format=dag-$format has expected Content-Type" '
+  test_expect_success "GET UnixFS as $name with format=dag-$format has expected Content-Type" '
     curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=dag-$format" > curl_output 2>&1 &&
     test_should_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output &&
     test_should_not_contain "Content-Type: application/$format" curl_output
   '
 
-  test_expect_success "GET $name with 'Accept: application/vnd.ipld.dag-$format' has expected Content-Type" '
+  test_expect_success "GET UnixFS as $name with 'Accept: application/vnd.ipld.dag-$format' has expected Content-Type" '
     curl -sD - -H "Accept: application/vnd.ipld.dag-$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
     test_should_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output &&
     test_should_not_contain "Content-Type: application/$format" curl_output
   '
 
-  test_expect_success "GET $name with format=$format has expected Content-Type" '
+  test_expect_success "GET UnixFS as $name with format=$format has expected Content-Type" '
     curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=$format" > curl_output 2>&1 &&
     test_should_contain "Content-Type: application/$format" curl_output &&
     test_should_not_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
   '
 
-  test_expect_success "GET $name with 'Accept: application/$format' has expected Content-Type" '
+  test_expect_success "GET UnixFS as $name with 'Accept: application/$format' has expected Content-Type" '
     curl -sD - -H "Accept: application/$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
     test_should_contain "Content-Type: application/$format" curl_output &&
     test_should_not_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
@@ -58,19 +58,19 @@ test_dag_pb () {
   name=$1
   format=$2
 
-  test_expect_success "GET DAG-PB $name has expected output for file" '
+  test_expect_success "GET UnixFS as $name has expected output for file" '
     curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=dag-$format" > curl_output 2>&1 &&
     ipfs dag get --output-codec dag-$format $FILE_CID > ipfs_dag_get_output 2>&1 &&
     test_cmp ipfs_dag_get_output curl_output
   '
 
-  test_expect_success "GET DAG-PB $name has expected output for directory" '
+  test_expect_success "GET UnixFS as $name has expected output for directory" '
     curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DIR_CID?format=dag-$format" > curl_output 2>&1 &&
     ipfs dag get --output-codec dag-$format $DIR_CID > ipfs_dag_get_output 2>&1 &&
     test_cmp ipfs_dag_get_output curl_output
   '
 
-  test_expect_success "GET DAG-PB $name with format=dag-$format and format=$format produce same output" '
+  test_expect_success "GET UnixFS as $name with format=dag-$format and format=$format produce same output" '
     curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DIR_CID?format=dag-$format" > curl_output_1 2>&1 &&
     curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DIR_CID?format=$format" > curl_output_2 2>&1 &&
     test_cmp curl_output_1 curl_output_2
@@ -83,6 +83,19 @@ test_dag_pb "DAG-CBOR" "cbor"
 test_cmp_dag_get () {
   name=$1
   format=$2
+
+  test_expect_success "GET $name without Accept or format= has expected Content-Type" '
+    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
+    curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output 2>&1 &&
+    test_should_contain "Content-Type: application/$format" curl_output
+  '
+
+  test_expect_success "GET $name without Accept or format= produces correct output" '
+    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
+    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output 2>&1 &&
+    ipfs dag get --output-codec $format $CID > ipfs_dag_get_output 2>&1 &&
+    test_cmp ipfs_dag_get_output curl_output
+  '
 
   test_expect_success "GET $name with format=$format produces correct output" '
     CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
@@ -116,8 +129,8 @@ test_expect_success "GET CBOR as JSON produces DAG-JSON output" '
   test_cmp ipfs_dag_get_output curl_output
 '
 
-DAG_CBOR_TRAVERSAL_CID="bafyreiehxu373cu3v5gyxyxfsfjryscs7sq6fh3unqcqgqhdfn3n43vrgu"
-DAG_JSON_TRAVERSAL_CID="baguqeeraoaeabj5hdfcmpkzfeiwtfwb3qbvfwzbiknqn7itcwsb2fdtu7eta"
+DAG_CBOR_TRAVERSAL_CID="bafyreibs4utpgbn7uqegmd2goqz4bkyflre2ek2iwv743fhvylwi4zeeim"
+DAG_JSON_TRAVERSAL_CID="baguqeeram5ujjqrwheyaty3w5gdsmoz6vittchvhk723jjqxk7hakxkd47xq"
 DAG_PB_CID="bafybeiegxwlgmoh2cny7qlolykdf7aq7g6dlommarldrbm7c4hbckhfcke"
 
 test_expect_success "Add CARs for path traversal and DAG-PB representation tests" '
@@ -129,32 +142,37 @@ test_expect_success "Add CARs for path traversal and DAG-PB representation tests
   test_should_contain $DAG_PB_CID import_output
 '
 
-test_expect_success "GET JSON traversal returns 404" '
-  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo/bar?format=json" > curl_output 2>&1 &&
-  test_should_contain "404 Not Found" curl_output
+test_expect_success "GET DAG-JSON traversal returns 400 if there is path remainder" '
+  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_JSON_TRAVERSAL_CID/foo?format=dag-json" > curl_output 2>&1 &&
+  test_should_contain "400 Bad Request" curl_output
 '
 
-test_expect_success "GET CBOR traversal returns 404" '
-  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo/bar?format=cbor" > curl_output 2>&1 &&
-  test_should_contain "404 Not Found" curl_output
-'
-
-test_expect_success "GET DAG-JSON traversal returns 404" '
-  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo/bar?format=dag-json" > curl_output 2>&1 &&
-  test_should_contain "404 Not Found" curl_output
-'
-
-test_expect_success "GET DAG-CBOR traversal returns 404" '
-  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo/bar?format=dag-json" > curl_output 2>&1 &&
-  test_should_contain "404 Not Found" curl_output
-'
-
-test_expect_success "GET DAG-PB has expected output" '
-  curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_PB_CID?format=dag-json" > curl_output 2>&1 &&
+test_expect_success "GET DAG-JSON traverses multiple links" '
+  curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_JSON_TRAVERSAL_CID/foo/link/bar?format=dag-json" > curl_output 2>&1 &&
   jq --sort-keys . curl_output > actual &&
-  test_cmp ../t0123-gateway-json-cbor/dag-pb.json actual
+  echo "{ \"hello\": \"this is not a link\" }" | jq --sort-keys . > expected &&
+  test_cmp expected actual
 '
+
+test_expect_success "GET DAG-CBOR traversal returns 400 if there is path remainder" '
+  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo?format=dag-cbor" > curl_output 2>&1 &&
+  test_should_contain "400 Bad Request" curl_output
+'
+
+test_expect_success "GET DAG-CBOR traverses multiple links" '
+  curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo/link/bar?format=dag-json" > curl_output 2>&1 &&
+  jq --sort-keys . curl_output > actual &&
+  echo "{ \"hello\": \"this is not a link\" }" | jq --sort-keys . > expected &&
+  test_cmp expected actual
+'
+
+# test_expect_success "GET DAG-PB has expected output" '
+#   curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_PB_CID?format=dag-json" > curl_output 2>&1 &&
+#   jq --sort-keys . curl_output > actual &&
+#   test_cmp ../t0123-gateway-json-cbor/dag-pb.json actual
+# '
 
 test_kill_ipfs_daemon
 
 test_done
+

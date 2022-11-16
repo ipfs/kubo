@@ -26,6 +26,7 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p/core/routing"
+	mc "github.com/multiformats/go-multicodec"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -417,9 +418,15 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	// Support custom response formats passed via ?format or Accept HTTP header
 	switch responseFormat {
-	case "": // The implicit response format is UnixFS
-		logger.Debugw("serving unixfs", "path", contentPath)
-		i.serveUnixFS(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
+	case "":
+		switch resolvedPath.Cid().Prefix().Codec {
+		case uint64(mc.Json), uint64(mc.DagJson), uint64(mc.Cbor), uint64(mc.DagCbor):
+			logger.Debugw("serving codec", "path", contentPath)
+			i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat)
+		default:
+			logger.Debugw("serving unixfs", "path", contentPath)
+			i.serveUnixFS(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
+		}
 		return
 	case "application/vnd.ipld.raw":
 		logger.Debugw("serving raw block", "path", contentPath)
