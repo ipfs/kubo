@@ -1808,10 +1808,11 @@ Type: `optionalDuration`
 
 ### `Swarm.ResourceMgr`
 
-The [libp2p Netowrk Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme) allows setting limits per [Resource Scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes),
+The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#readme) allows setting limits per [Resource Scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes),
 and tracking recource usage over time.
 
-** Levels of Configuration **
+##### Levels of Configuration
+
 libp2p's resource manager provides tremendous flexibility but also adds a lot of complexity.
 There are these levels of limit configuration for resource management protection:
 1. "The user who does nothing" - In this case they get some sane defaults discussed below
@@ -1823,7 +1824,8 @@ There are these levels of limit configuration for resource management protection
    The "knobs"/inputs are `Swarm.ResourceMgr.MaxMemory` and `Swarm.ResourceMgr.MaxFileDescriptors` as described below. 
 3. "Power user" - They specify all the default limits from below they want override via `Swarm.ResourceMgr.Limits`;
 
-** Default Limits **
+##### Default Limits
+
 With these inputs defined, [resource manager limits](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#limits) are created at the 
 [system](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#the-system-scope), 
 [transient](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#the-transient-scope), 
