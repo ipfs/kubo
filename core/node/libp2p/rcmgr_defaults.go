@@ -44,59 +44,8 @@ var noLimitIncrease = rcmgr.BaseLimitIncrease{
 // This file defines implicit limit defaults used when Swarm.ResourceMgr.Enabled
 
 // createDefaultLimitConfig creates LimitConfig to pass to libp2p's resource manager.
-// libp2p's resource manager provides tremendous flexibility but also adds a lot of complexity.
-// The intent of the default config here is to provide good defaults,
-// and where the defaults aren't good enough,
-// to expose a good set of higher-level "knobs" to users to satisfy most use cases
-// without requiring users to wade into all the intricacies of libp2p's resource manager.
-//
-// The inputs one can specify in SwarmConfig are:
-//   - cfg.ResourceMgr.MaxMemory:  This is the max amount of memory in bytes to allow libp2p to use.
-//     libp2p's resource manager will prevent additional resource creation while this limit is hit.
-//     If this value isn't specified, 1/8th of the total system memory is used.
-//   - cfg.ResourceMgr.MaxFileDescriptors:  This is the maximum number of file descriptors to allow libp2p to use.
-//     libp2p's resource manager will prevent additional file descriptor consumption while this limit is hit.
-//     If this value isn't specified, the maximum between 1/2 of system FD limit and 4096 is used.
-//
-// With these inputs defined, limits are created at the system, transient, and peer scopes.
-// Other scopes are ignored (by being set to infinity).
-// The reason these scopes are chosen is because:
-//   - system - This gives us the coarse-grained control we want so we can reason about the system as a whole.
-//     It is the backstop, and allows us to reason about resource consumption more easily
-//     since don't have think about the interaction of many other scopes.
-//   - transient - Limiting connections that are in process of being established provides backpressure so not too much work queues up.
-//   - peer - The peer scope doesn't protect us against intentional DoS attacks.
-//     It's just as easy for an attacker to send 100 requests/second with 1 peerId vs. 10 requests/second with 10 peers.
-//     We are reliant on the system scope for protection here in the malicious case.
-//     The reason for having a peer scope is to protect against unintentional DoS attacks
-//     (e.g., bug in a peer which is causing it to "misbehave").
-//     In the unintional case, we want to make sure a "misbehaving" node doesn't consume more resources than necessary.
-//
-// Within these scopes, limits are just set on memory, FD, and inbound connections/streams.
-// Limits are set based on the inputs above.
-// We trust this node to behave properly and thus ignore outbound connection/stream limits.
-// We apply any limits that libp2p has for its protocols/services
-// since we assume libp2p knows best here.
-//
-// This leaves 3 levels of resource management protection:
-//  1. The user who does nothing and uses defaults - In this case they get some sane defaults
-//     based on the amount of memory and file descriptors their system has.
-//     This should protect the node from many attacks.
-//  2. Slightly more advanced user - They can tweak the above by passing in config on
-//     maxMemory, maxFD, or maxConns with Swarm.HighWater.ConnMgr.
-//  3. Power user - They specify all the limits they want set via Swarm.ResourceMgr.Limits
-//     and we don't do any defaults/overrides. We pass that config blindly into libp2p resource manager.
-//
-// Note that within libp2p. Swarm.ConnMgr settings have no impact on libp2p's resource manager limits.
-// See https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/README.md#connmanager-vs-resource-manager
-// and https://github.com/libp2p/go-libp2p/issues/1640
-// We also don't layer on extra logic in this function because SystemBaseLimit.Conns is already "bigEnough".
-// There is headroom for the connection manager to apply any Swarm.ConnMgr.HighWater mark.
-// We're keeping things simple by avoiding any interaction between libp2p's resource manager and connection manager.
-// For example we don't set SystemBaseLimit.Conns to be related to Swarm.ConnMgr.HighWater.
-// SystemBaseLimit.Conns is "bigEnough" and won't won't limit total connections.
-// (We will limit SystemBaseLimit.ConnsInbound though.)
-// The Swarm.ConnMgr can manage connections based on Swarm.ConnMgr.HighWater.
+// The defaults follow the documentation in docs/config.md.
+// Any changes in the logic here should be reflected there.
 func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error) {
 	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 8)
 	maxMemoryString := cfg.ResourceMgr.MaxMemory.WithDefault(maxMemoryDefaultString)
@@ -113,7 +62,6 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 			FD:     int(numFD),
 
 			// By default, we just limit connections on the inbound side.
-			// Note that the limit gets adjusted below if "cfg.ConnMgr.HighWater" is set.
 			Conns:         bigEnough,
 			ConnsInbound:  rcmgr.DefaultLimits.SystemBaseLimit.ConnsInbound, // same as libp2p default
 			ConnsOutbound: bigEnough,
