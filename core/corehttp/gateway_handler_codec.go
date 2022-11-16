@@ -127,15 +127,15 @@ func (i *gatewayHandler) serverCodecHTML(ctx context.Context, w http.ResponseWri
 			<pre>%s</pre>
 			<p>Please follow the following links to download the document in other formats:</p>
 			<ul>
-				<li><a href="?format=dag-json">DAG-JSON</a></li>
-				<li><a href="?format=dag-cbor">DAG-CBOR</a></li>
-				<li><a href="?format=raw">Raw</a></li>
+				<li><a href="?format=dag-json">Download in DAG-JSON</a> (<a href="https://ipld.io/specs/codecs/dag-json/spec/">format specification</a>)</li>
+				<li><a href="?format=dag-cbor">Download in DAG-CBOR</a> (<a href="https://ipld.io/specs/codecs/dag-cbor/spec/">format specification</a>)</li>
+				<li><a href="?format=raw">Download Raw Block</a></li>
 			</ul>
 		</body>
 	</html>
 `, contentPath.String())
 
-	w.Write([]byte(body))
+	_, _ = w.Write([]byte(body))
 }
 
 func (i *gatewayHandler) serveCodecRaw(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, contentType string) {
@@ -204,7 +204,7 @@ func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.Respons
 		w.Header().Set("Last-Modified", modtime.UTC().Format(http.TimeFormat))
 	}
 
-	w.Write(buf.Bytes())
+	_, _ = w.Write(buf.Bytes())
 }
 
 func setCodecContentDisposition(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentType string) string {

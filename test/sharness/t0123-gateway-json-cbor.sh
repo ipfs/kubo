@@ -142,6 +142,11 @@ test_expect_success "Add CARs for path traversal and DAG-PB representation tests
   test_should_contain $DAG_PB_CID import_output
 '
 
+test_expect_success "GET DAG-JSON with Accept: text/html returns HTML" '
+  curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_JSON_TRAVERSAL_CID" > curl_output 2>&1 &&
+  test_should_contain "Content-Type: text/html" curl_output
+'
+
 test_expect_success "GET DAG-JSON traversal returns 400 if there is path remainder" '
   curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_JSON_TRAVERSAL_CID/foo?format=dag-json" > curl_output 2>&1 &&
   test_should_contain "400 Bad Request" curl_output
@@ -152,6 +157,11 @@ test_expect_success "GET DAG-JSON traverses multiple links" '
   jq --sort-keys . curl_output > actual &&
   echo "{ \"hello\": \"this is not a link\" }" | jq --sort-keys . > expected &&
   test_cmp expected actual
+'
+
+test_expect_success "GET DAG-CBOR with Accept: text/html returns HTML" '
+  curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID" > curl_output 2>&1 &&
+  test_should_contain "Content-Type: text/html" curl_output
 '
 
 test_expect_success "GET DAG-CBOR traversal returns 400 if there is path remainder" '
