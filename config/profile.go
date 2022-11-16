@@ -178,9 +178,13 @@ fetching may be degraded.
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
 			c.Reprovider.Interval = "0"
 
-			c.Swarm.ConnMgr.LowWater = 20
-			c.Swarm.ConnMgr.HighWater = 40
-			c.Swarm.ConnMgr.GracePeriod = time.Minute.String()
+			lowWater := int64(20)
+			highWater := int64(40)
+			gracePeriod := time.Minute
+			c.Swarm.ConnMgr.Type = NewOptionalString("basic")
+			c.Swarm.ConnMgr.LowWater = &OptionalInteger{value: &lowWater}
+			c.Swarm.ConnMgr.HighWater = &OptionalInteger{value: &highWater}
+			c.Swarm.ConnMgr.GracePeriod = &OptionalDuration{&gracePeriod}
 			return nil
 		},
 	},
