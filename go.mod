@@ -49,6 +49,7 @@ require (
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.1.1
 	github.com/ipfs/go-ipns v0.3.0
+	github.com/ipfs/go-libipfs v0.0.0-20221130104825-592a45ae3796
 	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipfs/go-merkledag v0.8.1
@@ -62,7 +63,6 @@ require (
 	github.com/ipfs/go-unixfsnode v1.4.0
 	github.com/ipfs/go-verifcid v0.0.2
 	github.com/ipfs/interface-go-ipfs-core v0.7.0
-	github.com/ipfs/tar-utils v0.0.2
 	github.com/ipld/go-car v0.4.0
 	github.com/ipld/go-car/v2 v2.4.0
 	github.com/ipld/go-codec-dagpb v1.4.1
@@ -84,7 +84,7 @@ require (
 	github.com/libp2p/go-socket-activation v0.1.0
 	github.com/miekg/dns v1.1.50
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/multiformats/go-multiaddr v0.7.0
+	github.com/multiformats/go-multiaddr v0.8.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multibase v0.1.1
 	github.com/multiformats/go-multicodec v0.7.0
@@ -93,7 +93,7 @@ require (
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
