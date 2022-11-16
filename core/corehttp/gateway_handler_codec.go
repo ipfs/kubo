@@ -40,6 +40,15 @@ var contentTypeToCodecs = map[string][]uint64{
 	"application/vnd.ipld.dag-cbor": {uint64(mc.DagCbor)},
 }
 
+// contentTypeToExtension maps the HTTP Content Type to the respective file
+// extension, to apply them when downloading the file.
+var contentTypeToExtension = map[string]string{
+	"application/json":              ".json",
+	"application/vnd.ipld.dag-json": ".dag-json",
+	"application/cbor":              ".cbor",
+	"application/vnd.ipld.dag-cbor": ".dag-cbor",
+}
+
 func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, requestedContentType string) {
 	ctx, span := tracing.Span(ctx, "Gateway", "ServeCodec", trace.WithAttributes(attribute.String("path", resolvedPath.String()), attribute.String("requestedContentType", requestedContentType)))
 	defer span.End()
@@ -108,12 +117,30 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 }
 
 func (i *gatewayHandler) serverCodecHTML(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path) {
-	w.Write([]byte("TODO"))
+	body := fmt.Sprintf(`<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8" />
+		</head>
+		<body>
+			<p>The document you are trying to access cannot be previewed in the browser:</p>
+			<pre>%s</pre>
+			<p>Please follow the following links to download the document in other formats:</p>
+			<ul>
+				<li><a href="?format=dag-json">DAG-JSON</a></li>
+				<li><a href="?format=dag-cbor">DAG-CBOR</a></li>
+				<li><a href="?format=raw">Raw</a></li>
+			</ul>
+		</body>
+	</html>
+`, contentPath.String())
+
+	w.Write([]byte(body))
 }
 
 func (i *gatewayHandler) serveCodecRaw(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, contentType string) {
 	modtime := addCacheControlHeaders(w, r, contentPath, resolvedPath.Cid())
-	name := addContentDispositionHeader(w, r, contentPath)
+	name := setCodecContentDisposition(w, r, resolvedPath, contentType)
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
@@ -167,6 +194,7 @@ func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.Respons
 
 	// Set Cache-Control and read optional Last-Modified time
 	modtime := addCacheControlHeaders(w, r, contentPath, resolvedPath.Cid())
+	setCodecContentDisposition(w, r, resolvedPath, contentType)
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
@@ -177,4 +205,20 @@ func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.Respons
 	}
 
 	w.Write(buf.Bytes())
+}
+
+func setCodecContentDisposition(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentType string) string {
+	var name string
+	if urlFilename := r.URL.Query().Get("filename"); urlFilename != "" {
+		name = urlFilename
+	} else {
+		ext, ok := contentTypeToExtension[contentType]
+		if !ok {
+			// Should never happen.
+			ext = ".bin"
+		}
+		name = resolvedPath.Cid().String() + ext
+	}
+	setContentDispositionHeader(w, name, "attachment")
+	return name
 }
