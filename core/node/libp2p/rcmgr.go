@@ -52,22 +52,18 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
 			}
 
-			limitConfig, err := createDefaultLimitConfig(cfg)
+			limits, err := createDefaultLimitConfig(cfg)
 			if err != nil {
 				return nil, opts, err
 			}
 
-			// The logic for defaults and overriding with specified SwarmConfig.ResourceMgr.Limits
-			// is documented in docs/config.md.
-			// Any changes here should be reflected there.
 			if cfg.ResourceMgr.Limits != nil {
 				l := *cfg.ResourceMgr.Limits
-				// This effectively overrides the computed default LimitConfig with any vlues from cfg.ResourceMgr.Limits
-				l.Apply(limitConfig)
-				limitConfig = l
+				l.Apply(limits)
+				limits = l
 			}
 
-			limiter := rcmgr.NewFixedLimiter(limitConfig)
+			limiter := rcmgr.NewFixedLimiter(limits)
 
 			str, err := rcmgrObs.NewStatsTraceReporter()
 			if err != nil {
