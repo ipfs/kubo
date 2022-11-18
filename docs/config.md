@@ -1853,10 +1853,17 @@ We trust this node to behave properly and thus don't limit *outbound* connection
 We apply any limits that libp2p has for its protocols/services
 since we assume libp2p knows best here.
 
-** libp2p resource monitoring **
+##### Active Limits
+A dump of what limits were computed and are actually being used by the resource manager
+can be obtained by `ipfs swarm limit all`.
+
+##### libp2p resource monitoring
 For [monitoring libp2p resource usage](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#monitoring), 
 various `*rcmgr_*` metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`).  
 There are also [pre-built Grafana dashboards](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager/obs/grafana-dashboards) that can be added to a Grafana instance. 
+
+A textual view of current resource usage and a list of services, protocols, and peers can be
+obtained via `ipfs swarm stats --help`
 
 #### `Swarm.ResourceMgr.Enabled`
 
@@ -1934,9 +1941,6 @@ Example #2: setting a specific <key,value> limit
   }
 }
 ```
-
-Current resource usage and a list of services, protocols, and peers can be
-obtained via `ipfs swarm stats --help`
 
 It is also possible to adjust some runtime limits via `ipfs swarm limit --help`.
 Changes made via `ipfs swarm limit` are persisted in `Swarm.ResourceMgr.Limits`.
