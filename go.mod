@@ -15,6 +15,7 @@ require (
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gabriel-vasile/mimetype v1.4.1
+	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ipfs/go-bitswap v0.10.2
 	github.com/ipfs/go-block-format v0.0.3
@@ -75,7 +76,6 @@ require (
 	github.com/libp2p/go-libp2p-http v0.2.1
 	github.com/libp2p/go-libp2p-kad-dht v0.18.0
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
-	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-pubsub v0.8.1
 	github.com/libp2p/go-libp2p-pubsub-router v0.5.0
 	github.com/libp2p/go-libp2p-record v0.2.0
@@ -149,7 +149,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
