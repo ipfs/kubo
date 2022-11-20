@@ -37,7 +37,7 @@ func Transports(tptConfig config.Transports) interface{} {
 				)
 			}
 			// TODO(9290): Make WithMetrics configurable
-			opts.Opts = append(opts.Opts, libp2p.Transport(quic.NewTransport, quic.WithMetrics()))
+			opts.Opts = append(opts.Opts, libp2p.Transport(quic.NewTransport))
 		}
 
 		// TODO(9292): Remove the false && to allows it enabled by default

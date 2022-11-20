@@ -19,7 +19,7 @@ import (
 	"go.opencensus.io/stats/view"
 	"go.uber.org/fx"
 
-	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 )
@@ -113,7 +113,7 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 			manager = lrm
 		} else {
 			fmt.Println("go-libp2p resource manager protection disabled")
-			manager = network.NullResourceManager
+			manager = &network.NullResourceManager{}
 		}
 
 		opts.Opts = append(opts.Opts, libp2p.ResourceManager(manager))
