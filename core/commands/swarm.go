@@ -1134,7 +1134,7 @@ func updateAndPersistConfig(env cmds.Environment, update func(*config.Config)) e
 	}
 	update(cfg)
 	if err := r.SetConfig(cfg); err != nil {
-		return fmt.Errorf("error removing peers from repo config: %w", err)
+		return fmt.Errorf("error setting config: %w", err)
 	}
 	return nil
 }
