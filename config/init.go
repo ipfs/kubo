@@ -79,14 +79,6 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			Interval: "12h",
 			Strategy: "all",
 		},
-		Swarm: SwarmConfig{
-			ConnMgr: ConnMgr{
-				LowWater:    DefaultConnMgrLowWater,
-				HighWater:   DefaultConnMgrHighWater,
-				GracePeriod: DefaultConnMgrGracePeriod.String(),
-				Type:        "basic",
-			},
-		},
 		Pinning: Pinning{
 			RemoteServices: map[string]RemotePinningService{},
 		},
@@ -113,6 +105,10 @@ const DefaultConnMgrLowWater = 600
 // DefaultConnMgrGracePeriod is the default value for the connection managers
 // grace period
 const DefaultConnMgrGracePeriod = time.Second * 20
+
+// DefaultConnMgrType is the default value for the connection managers
+// type.
+const DefaultConnMgrType = "basic"
 
 func addressesConfig() Addresses {
 	return Addresses{

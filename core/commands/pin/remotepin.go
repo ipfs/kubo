@@ -129,7 +129,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "Path to object(s) to be pinned."),
+		cmds.StringArg("ipfs-path", true, false, "CID or Path to be pinned."),
 	},
 	Options: []cmds.Option{
 		pinServiceNameOption,
