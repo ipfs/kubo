@@ -13,7 +13,6 @@ import (
 	verifcid "github.com/ipfs/go-verifcid"
 	ipldmulticodec "github.com/ipld/go-ipld-prime/multicodec"
 	mbase "github.com/multiformats/go-multibase"
-	"github.com/multiformats/go-multicodec"
 	mc "github.com/multiformats/go-multicodec"
 	mhash "github.com/multiformats/go-multihash"
 )
@@ -71,7 +70,7 @@ The optional format string is a printf style format string:
 		opts.fmtStr = fmtStr
 
 		if codecStr != "" {
-			var codec multicodec.Code
+			var codec mc.Code
 			err := codec.Set(codecStr)
 			if err != nil {
 				return err

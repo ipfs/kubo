@@ -167,7 +167,7 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 	verboseCidError := func(err error) error {
 		if strings.Contains(err.Error(), verifcid.ErrBelowMinimumHashLength.Error()) ||
 			strings.Contains(err.Error(), verifcid.ErrPossiblyInsecureHashFunction.Error()) {
-			err = fmt.Errorf("\"%s\"\nPlease run 'ipfs pin verify'"+
+			err = fmt.Errorf("\"%s\"\nPlease run 'ipfs pin verify'"+ //nolint
 				" to list insecure hashes. If you want to read them,"+
 				" please downgrade your go-ipfs to 0.4.13\n", err)
 			log.Error(err)

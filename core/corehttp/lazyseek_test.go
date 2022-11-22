@@ -11,14 +11,14 @@ type badSeeker struct {
 	io.ReadSeeker
 }
 
-var badSeekErr = fmt.Errorf("I'm a bad seeker")
+var errBadSeek = fmt.Errorf("bad seeker")
 
 func (bs badSeeker) Seek(offset int64, whence int) (int64, error) {
 	off, err := bs.ReadSeeker.Seek(0, io.SeekCurrent)
 	if err != nil {
 		panic(err)
 	}
-	return off, badSeekErr
+	return off, errBadSeek
 }
 
 func TestLazySeekerError(t *testing.T) {
@@ -73,7 +73,7 @@ func TestLazySeekerError(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected an error, got output %s", string(b))
 	}
-	if err != badSeekErr {
+	if err != errBadSeek {
 		t.Fatalf("expected a bad seek error, got %s", err)
 	}
 	if len(b) != 0 {

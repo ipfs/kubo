@@ -77,7 +77,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 
 		AddAccessControlHeaders(headers)
 
-		offlineApi, err := api.WithOptions(options.Api.Offline(true))
+		offlineAPI, err := api.WithOptions(options.Api.Offline(true))
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +86,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 			Headers:               headers,
 			Writable:              writable,
 			FastDirIndexThreshold: int(cfg.Gateway.FastDirIndexThreshold.WithDefault(100)),
-		}, api, offlineApi)
+		}, api, offlineAPI)
 
 		gateway = otelhttp.NewHandler(gateway, "Gateway.Request")
 

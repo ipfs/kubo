@@ -32,8 +32,9 @@ const (
 	profileOptionName   = "profile"
 )
 
+// nolint
 var errRepoExists = errors.New(`ipfs configuration file already exists!
-Reinitializing would overwrite your keys.
+Reinitializing would overwrite your keys
 `)
 
 var initCmd = &cmds.Command{

@@ -32,7 +32,6 @@ default_environment: &default_environment
   CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
   CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
   GIT_PAGER: cat
-  IPFS_CHECK_RCMGR_DEFAULTS: 1
 
 executors:
   golang:
@@ -160,7 +159,7 @@ jobs:
         tar xfz go1.19.1.linux-amd64.tar.gz
         echo "export PATH=$(pwd)/go/bin:\$PATH" >> ~/.bashrc
     - run: go version
-    - run: sudo apt install socat net-tools
+    - run: sudo apt install socat net-tools fish
     - checkout
 
     - run:
@@ -225,7 +224,7 @@ jobs:
     docker:
       - image: cimg/go:1.19.1-node
     parallelism: 4
-    resource_class: large
+    resource_class: 2xlarge+
     steps:
       - *make_out_dirs
       - attach_workspace:
@@ -325,6 +324,7 @@ jobs:
             - ~/.cache/go-build/
   ipfs-webui:
     executor: node-browsers
+    resource_class: 2xlarge+
     steps:
       - *make_out_dirs
       - attach_workspace:

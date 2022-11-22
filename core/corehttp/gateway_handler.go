@@ -39,7 +39,7 @@ const (
 )
 
 var (
-	onlyAscii = regexp.MustCompile("[[:^ascii:]]")
+	onlyASCII = regexp.MustCompile("[[:^ascii:]]")
 	noModtime = time.Unix(0, 0) // disables Last-Modified header if passed as modtime
 )
 
@@ -68,7 +68,7 @@ type redirectTemplateData struct {
 type gatewayHandler struct {
 	config     GatewayConfig
 	api        NodeAPI
-	offlineApi NodeAPI
+	offlineAPI NodeAPI
 
 	// generic metrics
 	firstContentBlockGetMetric *prometheus.HistogramVec
@@ -214,15 +214,15 @@ func newGatewayHistogramMetric(name string, help string) *prometheus.HistogramVe
 
 // NewGatewayHandler returns an http.Handler that can act as a gateway to IPFS content
 // offlineApi is a version of the API that should not make network requests for missing data
-func NewGatewayHandler(c GatewayConfig, api NodeAPI, offlineApi NodeAPI) http.Handler {
-	return newGatewayHandler(c, api, offlineApi)
+func NewGatewayHandler(c GatewayConfig, api NodeAPI, offlineAPI NodeAPI) http.Handler {
+	return newGatewayHandler(c, api, offlineAPI)
 }
 
-func newGatewayHandler(c GatewayConfig, api NodeAPI, offlineApi NodeAPI) *gatewayHandler {
+func newGatewayHandler(c GatewayConfig, api NodeAPI, offlineAPI NodeAPI) *gatewayHandler {
 	i := &gatewayHandler{
 		config:     c,
 		api:        api,
-		offlineApi: offlineApi,
+		offlineAPI: offlineAPI,
 		// Improved Metrics
 		// ----------------------------
 		// Time till the first content block (bar in /ipfs/cid/foo/bar)
@@ -429,6 +429,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		logger.Debugw("serving car stream", "path", contentPath)
 		carVersion := formatParams["version"]
 		i.serveCAR(r.Context(), w, r, resolvedPath, contentPath, carVersion, begin)
+		return
+	case "application/x-tar":
+		logger.Debugw("serving tar file", "path", contentPath)
+		i.serveTAR(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
@@ -683,7 +687,7 @@ func addContentDispositionHeader(w http.ResponseWriter, r *http.Request, content
 // Set Content-Disposition to arbitrary filename and disposition
 func setContentDispositionHeader(w http.ResponseWriter, filename string, disposition string) {
 	utf8Name := url.PathEscape(filename)
-	asciiName := url.PathEscape(onlyAscii.ReplaceAllLiteralString(filename, "_"))
+	asciiName := url.PathEscape(onlyASCII.ReplaceAllLiteralString(filename, "_"))
 	w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"; filename*=UTF-8''%s", disposition, asciiName, utf8Name))
 }
 
@@ -842,9 +846,10 @@ func getEtag(r *http.Request, cid cid.Cid) string {
 	responseFormat, _, err := customResponseFormat(r)
 	if err == nil && responseFormat != "" {
 		// application/vnd.ipld.foo → foo
-		f := responseFormat[strings.LastIndex(responseFormat, ".")+1:]
-		// Etag: "cid.foo" (gives us nice compression together with Content-Disposition in block (raw) and car responses)
-		suffix = `.` + f + suffix
+		// application/x-bar → x-bar
+		shortFormat := responseFormat[strings.LastIndexAny(responseFormat, "/.")+1:]
+		// Etag: "cid.shortFmt" (gives us nice compression together with Content-Disposition in block (raw) and car responses)
+		suffix = `.` + shortFormat + suffix
 	}
 	// TODO: include selector suffix when https://github.com/ipfs/kubo/issues/8769 lands
 	return prefix + cid.String() + suffix
@@ -859,14 +864,17 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 			return "application/vnd.ipld.raw", nil, nil
 		case "car":
 			return "application/vnd.ipld.car", nil, nil
+		case "tar":
+			return "application/x-tar", nil, nil
 		}
 	}
 	// Browsers and other user agents will send Accept header with generic types like:
 	// Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
-	// We only care about explciit, vendor-specific content-types.
+	// We only care about explicit, vendor-specific content-types.
 	for _, accept := range r.Header.Values("Accept") {
 		// respond to the very first ipld content type
-		if strings.HasPrefix(accept, "application/vnd.ipld") {
+		if strings.HasPrefix(accept, "application/vnd.ipld") ||
+			strings.HasPrefix(accept, "application/x-tar") {
 			mediatype, params, err := mime.ParseMediaType(accept)
 			if err != nil {
 				return "", nil, err
@@ -933,7 +941,7 @@ func (i *gatewayHandler) handlePathResolution(w http.ResponseWriter, r *http.Req
 // https://github.com/ipfs/specs/blob/main/http-gateways/PATH_GATEWAY.md#cache-control-request-header
 func (i *gatewayHandler) handleOnlyIfCached(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) (requestHandled bool) {
 	if r.Header.Get("Cache-Control") == "only-if-cached" {
-		_, err := i.offlineApi.Block().Stat(r.Context(), contentPath)
+		_, err := i.offlineAPI.Block().Stat(r.Context(), contentPath)
 		if err != nil {
 			if r.Method == http.MethodHead {
 				w.WriteHeader(http.StatusPreconditionFailed)

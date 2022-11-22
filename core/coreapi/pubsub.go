@@ -97,7 +97,7 @@ func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 
 func (api *PubSubAPI) checkNode() (routing.Routing, error) {
 	if api.pubSub == nil {
-		return nil, errors.New("experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use.")
+		return nil, errors.New("experimental pubsub feature not enabled, run daemon with --enable-pubsub-experiment to use")
 	}
 
 	err := api.checkOnline(false)

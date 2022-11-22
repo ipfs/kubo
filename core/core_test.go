@@ -85,18 +85,18 @@ var errNotSupported = errors.New("method not supported")
 func TestDelegatedRoutingSingle(t *testing.T) {
 	require := require.New(t)
 
-	pId1, priv1, err := GeneratePeerID()
+	pID1, priv1, err := GeneratePeerID()
 	require.NoError(err)
 
-	pId2, _, err := GeneratePeerID()
+	pID2, _, err := GeneratePeerID()
 	require.NoError(err)
 
-	theID := path.Join("/ipns", string(pId1))
-	theErrorID := path.Join("/ipns", string(pId2))
+	theID := path.Join("/ipns", string(pID1))
+	theErrorID := path.Join("/ipns", string(pID2))
 
 	d := &delegatedRoutingService{
-		goodPeerID: pId1,
-		badPeerID:  pId2,
+		goodPeerID: pID1,
+		badPeerID:  pID2,
 		pk1:        priv1,
 	}
 
@@ -122,18 +122,18 @@ func TestDelegatedRoutingSingle(t *testing.T) {
 func TestDelegatedRoutingMulti(t *testing.T) {
 	require := require.New(t)
 
-	pId1, priv1, err := GeneratePeerID()
+	pID1, priv1, err := GeneratePeerID()
 	require.NoError(err)
 
-	pId2, priv2, err := GeneratePeerID()
+	pID2, priv2, err := GeneratePeerID()
 	require.NoError(err)
 
-	theID1 := path.Join("/ipns", string(pId1))
-	theID2 := path.Join("/ipns", string(pId2))
+	theID1 := path.Join("/ipns", string(pID1))
+	theID2 := path.Join("/ipns", string(pID2))
 
 	d1 := &delegatedRoutingService{
-		goodPeerID: pId1,
-		badPeerID:  pId2,
+		goodPeerID: pID1,
+		badPeerID:  pID2,
 		pk1:        priv1,
 		serviceID:  1,
 	}
@@ -141,8 +141,8 @@ func TestDelegatedRoutingMulti(t *testing.T) {
 	url1 := StartRoutingServer(t, d1)
 
 	d2 := &delegatedRoutingService{
-		goodPeerID: pId2,
-		badPeerID:  pId1,
+		goodPeerID: pID2,
+		badPeerID:  pID1,
 		pk1:        priv2,
 		serviceID:  2,
 	}

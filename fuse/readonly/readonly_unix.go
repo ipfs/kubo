@@ -180,11 +180,11 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	case os.ErrNotExist, mdag.ErrLinkNotFound:
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT
+	case nil:
+		// noop
 	default:
 		log.Errorf("fuse lookup %q: %s", name, err)
 		return nil, fuse.EIO
-	case nil:
-		// noop
 	}
 
 	nd, err := s.Ipfs.DAG.Get(ctx, link.Cid)

@@ -19,7 +19,6 @@ import (
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
-	dag "github.com/ipfs/go-merkledag"
 	merkledag "github.com/ipfs/go-merkledag"
 	dagtest "github.com/ipfs/go-merkledag/test"
 	mfs "github.com/ipfs/go-mfs"
@@ -117,7 +116,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	}
 
 	bserv := blockservice.New(addblockstore, exch) // hash security 001
-	dserv := dag.NewDAGService(bserv)
+	dserv := merkledag.NewDAGService(bserv)
 
 	// add a sync call to the DagService
 	// this ensures that data written to the DagService is persisted to the underlying datastore

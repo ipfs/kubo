@@ -43,6 +43,7 @@ var RepoCmd = &cmds.Command{
 		"version": repoVersionCmd,
 		"verify":  repoVerifyCmd,
 		"migrate": repoMigrateCmd,
+		"ls":      RefsLocalCmd,
 	},
 }
 

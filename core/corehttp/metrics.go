@@ -164,7 +164,7 @@ type IpfsNodeCollector struct {
 	Node *core.IpfsNode
 }
 
-func (_ IpfsNodeCollector) Describe(ch chan<- *prometheus.Desc) {
+func (IpfsNodeCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- peersTotalMetric
 }
 

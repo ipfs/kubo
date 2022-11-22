@@ -110,6 +110,8 @@ var logTailCmd = &cmds.Command{
 		Tagline: "Read the event log.",
 		ShortDescription: `
 Outputs event log messages (not other log messages) as they are generated.
+
+Currently broken. Follow https://github.com/ipfs/kubo/issues/9245 for updates.
 `,
 	},
 

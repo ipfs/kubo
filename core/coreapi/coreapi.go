@@ -158,7 +158,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 
 	n := api.nd
 
-	subApi := &CoreAPI{
+	subAPI := &CoreAPI{
 		nctx: n.Context(),
 
 		identity:   n.Identity,
@@ -190,14 +190,14 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		parentOpts: settings,
 	}
 
-	subApi.checkOnline = func(allowOffline bool) error {
+	subAPI.checkOnline = func(allowOffline bool) error {
 		if !n.IsOnline && !allowOffline {
 			return coreiface.ErrOffline
 		}
 		return nil
 	}
 
-	subApi.checkPublishAllowed = func() error {
+	subAPI.checkPublishAllowed = func() error {
 		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
 			return errors.New("cannot manually publish while IPNS is mounted")
 		}
@@ -218,39 +218,39 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 			return nil, fmt.Errorf("cannot specify negative resolve cache size")
 		}
 
-		subApi.routing = offlineroute.NewOfflineRouter(subApi.repo.Datastore(), subApi.recordValidator)
+		subAPI.routing = offlineroute.NewOfflineRouter(subAPI.repo.Datastore(), subAPI.recordValidator)
 
-		subApi.namesys, err = namesys.NewNameSystem(subApi.routing,
-			namesys.WithDatastore(subApi.repo.Datastore()),
-			namesys.WithDNSResolver(subApi.dnsResolver),
+		subAPI.namesys, err = namesys.NewNameSystem(subAPI.routing,
+			namesys.WithDatastore(subAPI.repo.Datastore()),
+			namesys.WithDNSResolver(subAPI.dnsResolver),
 			namesys.WithCache(cs))
 		if err != nil {
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
 
-		subApi.provider = provider.NewOfflineProvider()
+		subAPI.provider = provider.NewOfflineProvider()
 
-		subApi.peerstore = nil
-		subApi.peerHost = nil
-		subApi.recordValidator = nil
+		subAPI.peerstore = nil
+		subAPI.peerHost = nil
+		subAPI.recordValidator = nil
 	}
 
 	if settings.Offline || !settings.FetchBlocks {
-		subApi.exchange = offlinexch.Exchange(subApi.blockstore)
-		subApi.blocks = bserv.New(subApi.blockstore, subApi.exchange)
-		subApi.dag = dag.NewDAGService(subApi.blocks)
+		subAPI.exchange = offlinexch.Exchange(subAPI.blockstore)
+		subAPI.blocks = bserv.New(subAPI.blockstore, subAPI.exchange)
+		subAPI.dag = dag.NewDAGService(subAPI.blocks)
 	}
 
-	return subApi, nil
+	return subAPI, nil
 }
 
 // getSession returns new api backed by the same node with a read-only session DAG
 func (api *CoreAPI) getSession(ctx context.Context) *CoreAPI {
-	sesApi := *api
+	sesAPI := *api
 
 	// TODO: We could also apply this to api.blocks, and compose into writable api,
 	// but this requires some changes in blockservice/merkledag
-	sesApi.dag = dag.NewReadOnlyDagService(dag.NewSession(ctx, api.dag))
+	sesAPI.dag = dag.NewReadOnlyDagService(dag.NewSession(ctx, api.dag))
 
-	return &sesApi
+	return &sesAPI
 }

@@ -35,7 +35,7 @@ const LockFile = "repo.lock"
 
 var log = logging.Logger("fsrepo")
 
-// version number that we are currently expecting to see
+// RepoVersion is the version number that we are currently expecting to see
 var RepoVersion = 12
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
@@ -383,7 +383,7 @@ func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	}
 	// Remove the temp file when rename return error
 	if err1 := os.Remove(filepath.Join(r.path, "."+apiFile+".tmp")); err1 != nil {
-		return fmt.Errorf("File Rename error: %s, File remove error: %s", err.Error(),
+		return fmt.Errorf("file Rename error: %s, file remove error: %s", err.Error(),
 			err1.Error())
 	}
 	return err
@@ -422,7 +422,7 @@ func (r *FSRepo) SetGatewayAddr(addr net.Addr) error {
 	}
 	// Remove the temp file when rename return error
 	if err1 := os.Remove(tmpPath); err1 != nil {
-		return fmt.Errorf("File Rename error: %w, File remove error: %s", err, err1.Error())
+		return fmt.Errorf("file Rename error: %w, file remove error: %s", err, err1.Error())
 	}
 	return err
 }
