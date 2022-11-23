@@ -29,24 +29,28 @@ test_headers () {
   test_expect_success "GET UnixFS as $name with format=dag-$format has expected Content-Type" '
     curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=dag-$format" > curl_output 2>&1 &&
     test_should_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output &&
+    test_should_contain "Content-Disposition: attachment\; filename=\"${FILE_CID}.${format}\"" curl_output &&
     test_should_not_contain "Content-Type: application/$format" curl_output
   '
 
   test_expect_success "GET UnixFS as $name with 'Accept: application/vnd.ipld.dag-$format' has expected Content-Type" '
     curl -sD - -H "Accept: application/vnd.ipld.dag-$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
     test_should_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output &&
+    test_should_contain "Content-Disposition: attachment\; filename=\"${FILE_CID}.${format}\"" curl_output &&
     test_should_not_contain "Content-Type: application/$format" curl_output
   '
 
   test_expect_success "GET UnixFS as $name with format=$format has expected Content-Type" '
     curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=$format" > curl_output 2>&1 &&
     test_should_contain "Content-Type: application/$format" curl_output &&
+    test_should_contain "Content-Disposition: attachment\; filename=\"${FILE_CID}.${format}\"" curl_output &&
     test_should_not_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
   '
 
   test_expect_success "GET UnixFS as $name with 'Accept: application/$format' has expected Content-Type" '
     curl -sD - -H "Accept: application/$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
     test_should_contain "Content-Type: application/$format" curl_output &&
+    test_should_contain "Content-Disposition: attachment\; filename=\"${FILE_CID}.${format}\"" curl_output &&
     test_should_not_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
   '
 }
@@ -87,6 +91,7 @@ test_cmp_dag_get () {
   test_expect_success "GET $name without Accept or format= has expected Content-Type" '
     CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
     curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output 2>&1 &&
+    test_should_contain "Content-Disposition: attachment\; filename=\"${CID}.${format}\"" curl_output &&
     test_should_contain "Content-Type: application/$format" curl_output
   '
 
@@ -144,6 +149,7 @@ test_expect_success "Add CARs for path traversal and DAG-PB representation tests
 
 test_expect_success "GET DAG-JSON with Accept: text/html returns HTML" '
   curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_JSON_TRAVERSAL_CID" > curl_output 2>&1 &&
+  test_should_not_contain "Content-Disposition: attachment" curl_output &&
   test_should_contain "Content-Type: text/html" curl_output
 '
 
@@ -161,6 +167,7 @@ test_expect_success "GET DAG-JSON traverses multiple links" '
 
 test_expect_success "GET DAG-CBOR with Accept: text/html returns HTML" '
   curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID" > curl_output 2>&1 &&
+  test_should_not_contain "Content-Disposition: attachment" curl_output &&
   test_should_contain "Content-Type: text/html" curl_output
 '
 

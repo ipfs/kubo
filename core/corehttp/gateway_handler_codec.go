@@ -41,12 +41,12 @@ var contentTypeToCodecs = map[string][]uint64{
 }
 
 // contentTypeToExtension maps the HTTP Content Type to the respective file
-// extension, to apply them when downloading the file.
+// extension, used in Content-Disposition header when downloading the file.
 var contentTypeToExtension = map[string]string{
 	"application/json":              ".json",
-	"application/vnd.ipld.dag-json": ".dag-json",
+	"application/vnd.ipld.dag-json": ".json",
 	"application/cbor":              ".cbor",
-	"application/vnd.ipld.dag-cbor": ".dag-cbor",
+	"application/vnd.ipld.dag-cbor": ".cbor",
 }
 
 func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, requestedContentType string) {
