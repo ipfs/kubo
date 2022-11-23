@@ -208,17 +208,26 @@ func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.Respons
 }
 
 func setCodecContentDisposition(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentType string) string {
-	var name string
+	var dispType, name string
+
+	ext, ok := contentTypeToExtension[contentType]
+	if !ok {
+		// Should never happen.
+		ext = ".bin"
+	}
+
 	if urlFilename := r.URL.Query().Get("filename"); urlFilename != "" {
 		name = urlFilename
 	} else {
-		ext, ok := contentTypeToExtension[contentType]
-		if !ok {
-			// Should never happen.
-			ext = ".bin"
-		}
 		name = resolvedPath.Cid().String() + ext
 	}
-	setContentDispositionHeader(w, name, "attachment")
+
+	switch ext {
+	case ".json": // codecs that serialize to JSON can be rendered by browsers
+		dispType = "inline"
+	default: // everything else is assumed binary / opaque bytes
+		dispType = "attachment"
+	}
+	setContentDispositionHeader(w, name, dispType)
 	return name
 }
