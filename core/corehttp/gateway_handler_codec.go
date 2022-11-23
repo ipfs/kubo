@@ -69,7 +69,7 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 		acceptsHTML := strings.Contains(r.Header.Get("Accept"), "text/html")
 
 		if isDAG && acceptsHTML {
-			i.serverCodecHTML(ctx, w, r, resolvedPath, contentPath)
+			i.serveCodecHTML(ctx, w, r, resolvedPath, contentPath)
 		} else {
 			cidContentType, ok := codecToContentType[cidCodec]
 			if !ok {
@@ -116,24 +116,28 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	i.serveCodecConverted(ctx, w, r, resolvedPath, contentPath, requestedContentType, codecs[len(codecs)-1])
 }
 
-func (i *gatewayHandler) serverCodecHTML(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path) {
+func (i *gatewayHandler) serveCodecHTML(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path) {
+	codecName := mc.Code(resolvedPath.Cid().Prefix().Codec).String()
 	body := fmt.Sprintf(`<!DOCTYPE html>
 	<html lang="en">
 		<head>
 			<meta charset="utf-8" />
 		</head>
 		<body>
-			<p>The document you are trying to access cannot be previewed in the browser:</p>
-			<pre>%s</pre>
-			<p>Please follow the following links to download the document in other formats:</p>
+			<p>Requested CID <code>%q</code> uses <code>%q</code> codec.</p>
 			<ul>
-				<li><a href="?format=dag-json">Download in DAG-JSON</a> (<a href="https://ipld.io/specs/codecs/dag-json/spec/">format specification</a>)</li>
-				<li><a href="?format=dag-cbor">Download in DAG-CBOR</a> (<a href="https://ipld.io/specs/codecs/dag-cbor/spec/">format specification</a>)</li>
-				<li><a href="?format=raw">Download Raw Block</a></li>
+				<li><a href="?format=json" rel="nofollow">Preview as JSON</a> (<code>application/json</code>)</li>
+				<li>Download as
+					<ul>
+						<li><a href="?format=raw" rel="nofollow">Raw Block</a> (no conversion)</li>
+						<li><a href="?format=dag-json" rel="nofollow">DAG-JSON</a> (specs at <a href="https://ipld.io/specs/codecs/dag-json/spec/" rel="noreferrer nofollow">IPLD</a> and <a href="https://www.iana.org/assignments/media-types/application/vnd.ipld.dag-json" rel="noreferrer nofollow">IANA</a>)</li>
+						<li><a href="?format=dag-cbor" rel="nofollow">DAG-CBOR</a> (specs at <a href="https://ipld.io/specs/codecs/dag-cbor/spec/" rel="noreferrer nofollow">IPLD</a> and <a href="https://www.iana.org/assignments/media-types/application/vnd.ipld.dag-cbor" rel="noreferrer nofollow">IANA</a>)</li>
+					</ul>
+				</li>
 			</ul>
 		</body>
 	</html>
-`, contentPath.String())
+`, resolvedPath.Cid(), codecName)
 
 	_, _ = w.Write([]byte(body))
 }
