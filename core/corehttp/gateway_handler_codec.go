@@ -56,8 +56,8 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	// If the resolved path still has some remainder, return bad request.
 	if resolvedPath.Remainder() != "" {
 		path := strings.TrimSuffix(resolvedPath.String(), resolvedPath.Remainder())
-		err := fmt.Errorf("%s could not be fully resolved, try %s instead", resolvedPath.String(), path)
-		webError(w, "path has remainder", err, http.StatusBadRequest)
+		err := fmt.Errorf("%q of %q could not be returned: reading IPLD Kinds other than Links (CBOR Tag 42) is not implemented: try reading %q instead", resolvedPath.Remainder(), resolvedPath.String(), path)
+		webError(w, "unsupported pathing", err, http.StatusNotImplemented)
 		return
 	}
 

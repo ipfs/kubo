@@ -169,9 +169,10 @@ test_expect_success "GET DAG-JSON with Accept: text/html returns HTML" '
   test_should_contain "Content-Type: text/html" curl_output
 '
 
-test_expect_success "GET DAG-JSON traversal returns 400 if there is path remainder" '
-  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_JSON_TRAVERSAL_CID/foo?format=dag-json" > curl_output 2>&1 &&
-  test_should_contain "400 Bad Request" curl_output
+test_expect_success "GET DAG-JSON traversal returns 501 if there is path remainder" '
+  curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_JSON_TRAVERSAL_CID/foo?format=dag-json" > curl_output 2>&1 &&
+  test_should_contain "501 Not Implemented" curl_output &&
+  test_should_contain "reading IPLD Kinds other than Links (CBOR Tag 42) is not implemented" curl_output
 '
 
 test_expect_success "GET DAG-JSON traverses multiple links" '
@@ -187,9 +188,10 @@ test_expect_success "GET DAG-CBOR with Accept: text/html returns HTML" '
   test_should_contain "Content-Type: text/html" curl_output
 '
 
-test_expect_success "GET DAG-CBOR traversal returns 400 if there is path remainder" '
-  curl --head "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo?format=dag-cbor" > curl_output 2>&1 &&
-  test_should_contain "400 Bad Request" curl_output
+test_expect_success "GET DAG-CBOR traversal returns 501 if there is path remainder" '
+  curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_CBOR_TRAVERSAL_CID/foo?format=dag-cbor" > curl_output 2>&1 &&
+  test_should_contain "501 Not Implemented" curl_output &&
+  test_should_contain "reading IPLD Kinds other than Links (CBOR Tag 42) is not implemented" curl_output
 '
 
 test_expect_success "GET DAG-CBOR traverses multiple links" '
