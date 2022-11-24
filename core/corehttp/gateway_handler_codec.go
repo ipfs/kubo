@@ -12,6 +12,7 @@ import (
 
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	dih "github.com/ipfs/kubo/assets/dag-index-html"
 	"github.com/ipfs/kubo/tracing"
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/multicodec"
@@ -117,29 +118,16 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 }
 
 func (i *gatewayHandler) serveCodecHTML(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path) {
-	codecName := mc.Code(resolvedPath.Cid().Prefix().Codec).String()
-	body := fmt.Sprintf(`<!DOCTYPE html>
-	<html lang="en">
-		<head>
-			<meta charset="utf-8" />
-		</head>
-		<body>
-			<p>Requested CID <code>%q</code> uses <code>%q</code> codec.</p>
-			<ul>
-				<li><a href="?format=json" rel="nofollow">Preview as JSON</a> (<code>application/json</code>)</li>
-				<li>Download as
-					<ul>
-						<li><a href="?format=raw" rel="nofollow">Raw Block</a> (no conversion)</li>
-						<li><a href="?format=dag-json" rel="nofollow">DAG-JSON</a> (specs at <a href="https://ipld.io/specs/codecs/dag-json/spec/" rel="noreferrer nofollow">IPLD</a> and <a href="https://www.iana.org/assignments/media-types/application/vnd.ipld.dag-json" rel="noreferrer nofollow">IANA</a>)</li>
-						<li><a href="?format=dag-cbor" rel="nofollow">DAG-CBOR</a> (specs at <a href="https://ipld.io/specs/codecs/dag-cbor/spec/" rel="noreferrer nofollow">IPLD</a> and <a href="https://www.iana.org/assignments/media-types/application/vnd.ipld.dag-cbor" rel="noreferrer nofollow">IANA</a>)</li>
-					</ul>
-				</li>
-			</ul>
-		</body>
-	</html>
-`, resolvedPath.Cid(), codecName)
-
-	_, _ = w.Write([]byte(body))
+	// TODO: cache-control/etag like for DirIndex
+	cidCodec := mc.Code(resolvedPath.Cid().Prefix().Codec)
+	if err := dih.DagIndexTemplate.Execute(w, dih.DagIndexTemplateData{
+		Path:      contentPath.String(),
+		CID:       resolvedPath.Cid().String(),
+		CodecName: cidCodec.String(),
+		CodecHex:  fmt.Sprintf("0x%x", uint64(cidCodec)),
+	}); err != nil {
+		webError(w, "failed to generate HTML listing for this DAG: retry without 'Accept: text/html'", err, http.StatusInternalServerError)
+	}
 }
 
 func (i *gatewayHandler) serveCodecRaw(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, contentType string) {

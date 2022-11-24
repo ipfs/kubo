@@ -1,6 +1,6 @@
 # dir-index-html
 
-> Directory listing HTML for `go-ipfs` gateways
+> Directory listing HTML for HTTP gateway
 
 ![](https://user-images.githubusercontent.com/157609/88379209-ce6f0600-cda2-11ea-9620-20b9237bb441.png)
 
