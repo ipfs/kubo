@@ -88,9 +88,31 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 			StreamsOutbound: 0,
 		},
 
-		// Just go with what libp2p does
-		TransientBaseLimit:     rcmgr.DefaultLimits.TransientBaseLimit,
-		TransientLimitIncrease: rcmgr.DefaultLimits.TransientLimitIncrease,
+		TransientBaseLimit: rcmgr.BaseLimit{
+			Memory: rcmgr.DefaultLimits.TransientBaseLimit.Memory,
+			FD:     rcmgr.DefaultLimits.TransientBaseLimit.FD,
+
+			Conns:         bigEnough,
+			ConnsInbound:  rcmgr.DefaultLimits.TransientBaseLimit.ConnsInbound,
+			ConnsOutbound: bigEnough,
+
+			Streams:         bigEnough,
+			StreamsInbound:  rcmgr.DefaultLimits.TransientBaseLimit.StreamsInbound,
+			StreamsOutbound: bigEnough,
+		},
+
+		TransientLimitIncrease: rcmgr.BaseLimitIncrease{
+			Memory:     rcmgr.DefaultLimits.TransientLimitIncrease.Memory,
+			FDFraction: rcmgr.DefaultLimits.TransientLimitIncrease.FDFraction,
+
+			Conns:         0,
+			ConnsInbound:  rcmgr.DefaultLimits.TransientLimitIncrease.ConnsInbound,
+			ConnsOutbound: 0,
+
+			Streams:         0,
+			StreamsInbound:  rcmgr.DefaultLimits.TransientLimitIncrease.StreamsInbound,
+			StreamsOutbound: 0,
+		},
 
 		// Lets get out of the way of the allow list functionality.
 		// If someone specified "Swarm.ResourceMgr.Allowlist" we should let it go through.
