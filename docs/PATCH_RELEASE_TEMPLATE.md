@@ -24,8 +24,6 @@ This process handles patch releases from version `vX.Y.Z` to `vX.Y.Z+1` assuming
 - [ ] Release published
   - [ ] to [dist.ipfs.tech](https://dist.ipfs.tech)
   - [ ] to [npm-go-ipfs](https://www.npmjs.com/package/go-ipfs) (should be done by [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
-  - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (should be done by [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch [this job](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml) manually)
-  - [ ] to [snap](https://snapcraft.io/ipfs) (should happen automatically, see [snap/snapcraft.yaml](https://github.com/ipfs/kubo/blob/master/snap/snapcraft.yaml))
   - [ ] to [github](https://github.com/ipfs/kubo/releases)
   - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
 - [ ] Cut a new ipfs-desktop release

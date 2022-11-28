@@ -216,22 +216,7 @@ $ guix package -i go-ipfs
 
 #### Snap
 
-> ⚠️ **SNAP USE IS DISCOURAGED**
-> 
-> If you want something more sophisticated to escape the Snap confinement, we recommend using a different method to install Kubo so that it is not subject to snap confinement.
-
-
-With snap, in any of the [supported Linux distributions](https://snapcraft.io/docs/core/install):
-
-```
-$ sudo snap install ipfs
-```
-
-The snap sets `IPFS_PATH` to `SNAP_USER_COMMON`, which is usually `~/snap/ipfs/common`. If you want to use `~/.ipfs` instead, you can bind-mount it to `~/snap/ipfs/common` like this:
-
-```
-$ sudo mount --bind ~/.ipfs ~/snap/ipfs/common
-```
+No longer supported, see rationale in [kubo#8688](https://github.com/ipfs/kubo/issues/8688).
 
 #### MacPorts
 
@@ -266,11 +251,7 @@ $ brew install --formula ipfs
 
 #### Chocolatey
 
-[![Chocolatey Version](https://img.shields.io/chocolatey/v/go-ipfs?color=00a4ef&label=go-ipfs&logo=windows&style=flat-square&cacheSeconds=3600)](https://chocolatey.org/packages/go-ipfs)
-
-```Powershell
-PS> choco install go-ipfs
-```
+No longer supported, see rationale in [kubo#9341](https://github.com/ipfs/kubo/issues/9341).
 
 #### Scoop
 
