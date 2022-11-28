@@ -212,7 +212,7 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 	// Send message 2 with the same message ID as before
 	sendDupMsg = true
 	msgTxt = produceMessage()
-	consumeMessage(msgTxt, false) // should NOT find message
+	consumeMessage(msgTxt, false) // should NOT find message, because it got deduplicated (sent twice within the SeenMessagesTTL window)
 
 	// Wait for seen cache TTL time to let seen cache entries time out
 	time.Sleep(ttl)
@@ -232,7 +232,7 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 	// Send message 4 with the same message ID as before
 	sendDupMsg = true
 	msgTxt = produceMessage()
-	consumeMessage(msgTxt, true) // should find message
+	consumeMessage(msgTxt, true) // should find message again (time since the last read > SeenMessagesTTL, so it looks like a new message).
 
 	// Send message 5 with a new message ID
 	//
