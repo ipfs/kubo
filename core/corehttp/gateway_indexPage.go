@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"encoding/json"
 	"html/template"
 	"net/url"
 	"path"
@@ -121,6 +122,15 @@ func init() {
 		return pathURL.String()
 	}
 
+	// custom function to encode strings in json, to future-proof for new encoding
+	jsonEncode := func(rawString string) string {
+		encodedStr, err := json.Marshal(rawString)
+		if err != nil {
+			panic(err)
+		}
+		return string(encodedStr)
+	}
+
 	// Directory listing template
 	dirIndexBytes, err := assets.Asset.ReadFile("dir-index-html/dir-index.html")
 	if err != nil {
@@ -130,5 +140,6 @@ func init() {
 	listingTemplate = template.Must(template.New("dir").Funcs(template.FuncMap{
 		"iconFromExt": iconFromExt,
 		"urlEscape":   urlEscape,
+		"jsonEncode":  jsonEncode,
 	}).Parse(string(dirIndexBytes)))
 }

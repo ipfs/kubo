@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -94,6 +95,13 @@ func main() {
 			"urlEscape": func(rawUrl string) string {
 				pathUrl := url.URL{Path: rawUrl}
 				return pathUrl.String()
+			},
+			"jsonEncode": func(rawString string) string {
+				encodedStr, err := json.Marshal(rawString)
+				if err != nil {
+					panic(err)
+				}
+				return string(encodedStr)
 			},
 		}).ParseFiles(templateFile)
 		if err != nil {

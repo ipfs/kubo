@@ -83,9 +83,12 @@
         </td>
         <td class="no-linebreak">
           {{ if .Hash }}
-          <a class="ipfs-hash" translate="no" href={{ if $root.DNSLink }}"https://cid.ipfs.io/#{{ .Hash | urlEscape}}" target="_blank" rel="noreferrer noopener"{{ else }}"{{ $root.GatewayURL }}/ipfs/{{ .Hash | urlEscape}}?filename={{ .Name | urlEscape }}"{{ end }}>
+          <a class="ipfs-hash" translate="no" href={{ if $root.DNSLink }}"https://cid.ipfs.io/#{{ .Hash | urlEscape }}" title={{ .Hash | jsonEncode }} target="_blank" rel="noreferrer noopener"{{ else }}"{{ $root.GatewayURL }}/ipfs/{{ .Hash | urlEscape }}?filename={{ .Name | urlEscape }}"{{ end }}>
             {{ .ShortHash }}
           </a>
+          <button class="type-icon" title="Copy CID" onclick=copyText({{ .Hash | jsonEncode }})>
+            <div class="ipfs-_copy">&nbsp;</div>
+          </button>
           {{ end }}
         </td>
         <td class="no-linebreak">{{ .Size }}</td>
@@ -96,3 +99,8 @@
   </div>
 </body>
 </html>
+<script>
+  function copyText(text) {
+    navigator.clipboard.writeText(text);
+  }
+</script>

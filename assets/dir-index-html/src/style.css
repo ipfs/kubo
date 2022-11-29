@@ -25,6 +25,18 @@ a:visited {
 	color:#00b0e9
 }
 
+button {
+	padding: 0;
+	border: none;
+	background: none;
+	vertical-align: middle;
+}
+
+button:hover {
+	background-color: #00b0e9;
+	cursor: pointer;
+}
+
 strong {
 	font-weight:700
 }
