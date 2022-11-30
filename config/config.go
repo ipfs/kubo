@@ -4,13 +4,20 @@ package config
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/facebookgo/atomicfile"
 	"github.com/mitchellh/go-homedir"
 )
+
+// ErrNotInitialized is returned when we fail to read the config because the
+// repo doesn't exist.
+var ErrNotInitialized = errors.New("ipfs not initialized, please run 'ipfs init'")
 
 // Config is used to load ipfs config files.
 type Config struct {
@@ -101,35 +108,36 @@ func HumanOutput(value interface{}) ([]byte, error) {
 	if ok {
 		return []byte(strings.Trim(s, "\n")), nil
 	}
-	return Marshal(value)
-}
 
-// Marshal configuration with JSON
-func Marshal(value interface{}) ([]byte, error) {
-	// need to prettyprint, hence MarshalIndent, instead of Encoder
-	return json.MarshalIndent(value, "", "  ")
+	buf := new(bytes.Buffer)
+	if err := encodeConfigFile(buf, value); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 func FromMap(v map[string]interface{}) (*Config, error) {
 	buf := new(bytes.Buffer)
-	if err := json.NewEncoder(buf).Encode(v); err != nil {
+
+	if err := encodeConfigFile(buf, v); err != nil {
 		return nil, err
 	}
 	var conf Config
-	if err := json.NewDecoder(buf).Decode(&conf); err != nil {
-		return nil, fmt.Errorf("failure to decode config: %s", err)
+	if err := decodeConfigFile(buf, &conf); err != nil {
+		return nil, err
 	}
 	return &conf, nil
 }
 
 func ToMap(conf *Config) (map[string]interface{}, error) {
 	buf := new(bytes.Buffer)
-	if err := json.NewEncoder(buf).Encode(conf); err != nil {
+	if err := encodeConfigFile(buf, conf); err != nil {
 		return nil, err
 	}
 	var m map[string]interface{}
-	if err := json.NewDecoder(buf).Decode(&m); err != nil {
-		return nil, fmt.Errorf("failure to decode config: %s", err)
+	if err := decodeConfigFile(buf, &m); err != nil {
+		return nil, err
 	}
 	return m, nil
 }
@@ -139,13 +147,74 @@ func (c *Config) Clone() (*Config, error) {
 	var newConfig Config
 	var buf bytes.Buffer
 
-	if err := json.NewEncoder(&buf).Encode(c); err != nil {
-		return nil, fmt.Errorf("failure to encode config: %s", err)
+	if err := encodeConfigFile(&buf, c); err != nil {
+		return nil, err
 	}
-
-	if err := json.NewDecoder(&buf).Decode(&newConfig); err != nil {
-		return nil, fmt.Errorf("failure to decode config: %s", err)
+	if err := decodeConfigFile(&buf, &newConfig); err != nil {
+		return nil, err
 	}
 
 	return &newConfig, nil
+}
+
+// ReadConfigFile reads the config from `filename` into `cfg`.
+func ReadConfigFile(filename string, cfg interface{}) error {
+	f, err := os.Open(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = ErrNotInitialized
+		}
+		return err
+	}
+	defer f.Close()
+
+	return decodeConfigFile(f, cfg)
+}
+
+func decodeConfigFile(r io.Reader, cfg interface{}) error {
+	dec := json.NewDecoder(r)
+	if os.Getenv("IPFS_CONFIG_TOLERANT_MODE") == "" {
+		dec.DisallowUnknownFields()
+	}
+
+	if err := dec.Decode(cfg); err != nil {
+		return fmt.Errorf("failure to decode config: %s", err)
+	}
+
+	return nil
+}
+
+// WriteConfigFile writes the config from `cfg` into `filename`.
+func WriteConfigFile(filename string, cfg interface{}) error {
+	err := os.MkdirAll(filepath.Dir(filename), 0755)
+	if err != nil {
+		return err
+	}
+
+	f, err := atomicfile.New(filename, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return encodeConfigFile(f, cfg)
+}
+
+// encodeConfigFile encodes configuration with JSON
+func encodeConfigFile(w io.Writer, value interface{}) error {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "    ")
+
+	return enc.Encode(value)
+}
+
+// Load reads given file and returns the read config, or error.
+func Load(filename string) (*Config, error) {
+	var cfg Config
+	err := ReadConfigFile(filename, &cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cfg, err
 }

@@ -114,6 +114,13 @@ $ ipfs resolve -r /ipns/dnslink-test2.example.com
 /ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am
 ```
 
+## `IPFS_CONFIG_TOLERANT_MODE`
+
+Disables strict config valiadtion to allow unsupported fields on JSON config.
+
+Default: false
+
+
 ## `LIBP2P_TCP_REUSEPORT`
 
 Kubo tries to reuse the same source port for all connections to improve NAT

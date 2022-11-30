@@ -4,6 +4,8 @@ test_description="Test config command"
 
 . lib/test-lib.sh
 
+export IPFS_CONFIG_TOLERANT_MODE=true
+
 # we use a function so that we can run it both offline + online
 test_config_cmd_set() {
 
@@ -87,7 +89,7 @@ test_profile_apply_dry_run_not_alter() {
 }
 
 test_config_cmd() {
-  test_config_cmd_set "beep" "boop"
+   test_config_cmd_set "beep" "boop"
   test_config_cmd_set "beep1" "boop2"
   test_config_cmd_set "beep1" "boop2"
   test_config_cmd_set "--bool" "beep2" "true"
@@ -298,5 +300,8 @@ test_launch_ipfs_daemon
 test_config_cmd
 test_kill_ipfs_daemon
 
+# Be sure that on strict mode we can set config values that exist on Config struct
+export IPFS_CONFIG_TOLERANT_MODE=
+test_config_cmd_set "--json" "Discovery.MDNS.Enabled" "false"
 
 test_done

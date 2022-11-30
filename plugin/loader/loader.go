@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	config "github.com/ipfs/kubo/config"
-	cserialize "github.com/ipfs/kubo/config/serialize"
 	"github.com/ipld/go-ipld-prime/multicodec"
 
 	"github.com/ipfs/kubo/core"
@@ -97,9 +96,9 @@ type PluginLoader struct {
 func NewPluginLoader(repo string) (*PluginLoader, error) {
 	loader := &PluginLoader{plugins: make(map[string]plugin.Plugin, len(preloadPlugins)), repo: repo}
 	if repo != "" {
-		cfg, err := cserialize.Load(filepath.Join(repo, config.DefaultConfigFile))
+		cfg, err := config.Load(filepath.Join(repo, config.DefaultConfigFile))
 		switch err {
-		case cserialize.ErrNotInitialized:
+		case config.ErrNotInitialized:
 		case nil:
 			loader.config = cfg.Plugins
 		default:
