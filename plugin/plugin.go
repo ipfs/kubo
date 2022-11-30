@@ -1,5 +1,9 @@
 package plugin
 
+import (
+	"encoding/json"
+)
+
 // Environment is the environment passed into the plugin on init.
 type Environment struct {
 	// Path to the IPFS repo.
@@ -30,4 +34,8 @@ type Plugin interface {
 	// The plugin is passed an environment containing the path to the
 	// (possibly uninitialized) IPFS repo and the plugin's config.
 	Init(env *Environment) error
+}
+
+type ConfigInitializer interface {
+	Config(raw json.RawMessage) json.RawMessage
 }

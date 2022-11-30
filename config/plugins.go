@@ -1,5 +1,9 @@
 package config
 
+import (
+	"encoding/json"
+)
+
 type Plugins struct {
 	Plugins map[string]Plugin
 	// TODO: Loader Path? Leaving that out for now due to security concerns.
@@ -7,5 +11,5 @@ type Plugins struct {
 
 type Plugin struct {
 	Disabled bool
-	Config   interface{}
+	Config   json.RawMessage
 }

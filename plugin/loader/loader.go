@@ -8,9 +8,10 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/ipld/go-ipld-prime/multicodec"
+
 	config "github.com/ipfs/kubo/config"
 	cserialize "github.com/ipfs/kubo/config/serialize"
-	"github.com/ipld/go-ipld-prime/multicodec"
 
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
@@ -147,10 +148,24 @@ func (loader *PluginLoader) Load(pl plugin.Plugin) error {
 				"while trying to load dynamically: %s",
 			name, ppl.Version(), pl.Version())
 	}
+	if loader.config.Plugins == nil {
+		loader.config.Plugins = make(map[string]config.Plugin)
+	}
+
 	if loader.config.Plugins[name].Disabled {
 		log.Infof("not loading disabled plugin %s", name)
 		return nil
 	}
+
+	ci, ok := pl.(plugin.ConfigInitializer)
+	if ok {
+		cpl := loader.config.Plugins[name]
+		loader.config.Plugins[name] = config.Plugin{
+			Disabled: cpl.Disabled,
+			Config:   ci.Config(cpl.Config),
+		}
+	}
+
 	loader.plugins[name] = pl
 	return nil
 }
@@ -302,6 +317,10 @@ func (loader *PluginLoader) Start(node *core.IpfsNode) error {
 	}
 
 	return loader.transition(loaderStarting, loaderStarted)
+}
+
+func (loader *PluginLoader) PluginConfig() config.Plugins {
+	return loader.config
 }
 
 // Close stops all long-running plugins.
