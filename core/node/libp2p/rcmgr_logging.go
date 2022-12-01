@@ -50,7 +50,7 @@ func (n *loggingResourceManager) start(ctx context.Context) {
 				n.limitExceededErrs = make(map[string]int)
 
 				for e, count := range errs {
-					n.logger.Errorf("Resource limits were exceeded %d times with error %q.", count, e)
+					n.logger.Errorf("Protected from exceeding resource limits %d times: %q.", count, e)
 				}
 
 				if len(errs) != 0 {
