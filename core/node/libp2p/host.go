@@ -2,9 +2,11 @@ package libp2p
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/libp2p/go-libp2p"
 	record "github.com/libp2p/go-libp2p-record"
+	"github.com/libp2p/go-libp2p/core/event"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
@@ -85,6 +87,15 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 			return out.Host.Close()
 		},
 	})
+
+	events, err := out.Host.EventBus().Subscribe(event.WildcardSubscription)
+	if err != nil {
+		panic(err)
+	}
+
+	for e := range events.Out() {
+		fmt.Println(e)
+	}
 
 	return out, err
 }
