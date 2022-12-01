@@ -61,58 +61,21 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 			Memory: int64(maxMemory),
 			FD:     int(numFD),
 
-			// By default, we just limit connections on the inbound side.
 			Conns:         bigEnough,
-			ConnsInbound:  rcmgr.DefaultLimits.SystemBaseLimit.ConnsInbound, // same as libp2p default
+			ConnsInbound:  bigEnough,
 			ConnsOutbound: bigEnough,
 
 			// We limit streams since they not only take up memory and CPU.
 			// The Memory limit protects us on the memory side,
 			// but a StreamsInbound limit helps protect against unbound CPU consumption from stream processing.
 			Streams:         bigEnough,
-			StreamsInbound:  rcmgr.DefaultLimits.SystemBaseLimit.StreamsInbound,
+			StreamsInbound:  bigEnough,
 			StreamsOutbound: bigEnough,
 		},
-		// Most limits don't see an increase because they're already infinite/bigEnough or at their max value.
-		// The values that should scale based on the amount of memory allocated to libp2p need to increase accordingly.
-		SystemLimitIncrease: rcmgr.BaseLimitIncrease{
-			Memory:     rcmgr.DefaultLimits.SystemLimitIncrease.Memory,
-			FDFraction: rcmgr.DefaultLimits.SystemLimitIncrease.FDFraction,
+		SystemLimitIncrease: noLimitIncrease,
 
-			Conns:         0,
-			ConnsInbound:  rcmgr.DefaultLimits.SystemLimitIncrease.ConnsInbound,
-			ConnsOutbound: 0,
-
-			Streams:         0,
-			StreamsInbound:  rcmgr.DefaultLimits.SystemLimitIncrease.StreamsInbound,
-			StreamsOutbound: 0,
-		},
-
-		TransientBaseLimit: rcmgr.BaseLimit{
-			Memory: rcmgr.DefaultLimits.TransientBaseLimit.Memory,
-			FD:     rcmgr.DefaultLimits.TransientBaseLimit.FD,
-
-			Conns:         bigEnough,
-			ConnsInbound:  rcmgr.DefaultLimits.TransientBaseLimit.ConnsInbound,
-			ConnsOutbound: bigEnough,
-
-			Streams:         bigEnough,
-			StreamsInbound:  rcmgr.DefaultLimits.TransientBaseLimit.StreamsInbound,
-			StreamsOutbound: bigEnough,
-		},
-
-		TransientLimitIncrease: rcmgr.BaseLimitIncrease{
-			Memory:     rcmgr.DefaultLimits.TransientLimitIncrease.Memory,
-			FDFraction: rcmgr.DefaultLimits.TransientLimitIncrease.FDFraction,
-
-			Conns:         0,
-			ConnsInbound:  rcmgr.DefaultLimits.TransientLimitIncrease.ConnsInbound,
-			ConnsOutbound: 0,
-
-			Streams:         0,
-			StreamsInbound:  rcmgr.DefaultLimits.TransientLimitIncrease.StreamsInbound,
-			StreamsOutbound: 0,
-		},
+		TransientBaseLimit:     infiniteBaseLimit,
+		TransientLimitIncrease: noLimitIncrease,
 
 		// Lets get out of the way of the allow list functionality.
 		// If someone specified "Swarm.ResourceMgr.Allowlist" we should let it go through.

@@ -50,11 +50,11 @@ func (n *loggingResourceManager) start(ctx context.Context) {
 				n.limitExceededErrs = make(map[string]int)
 
 				for e, count := range errs {
-					n.logger.Errorf("Resource limits were exceeded %d times with error %q.", count, e)
+					n.logger.Warnf("Resource limits were exceeded %d times with error %q.", count, e)
 				}
 
 				if len(errs) != 0 {
-					n.logger.Errorf("Consider inspecting logs and raising the resource manager limits. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#swarmresourcemgr")
+					n.logger.Warnf("Consider inspecting logs and raising the resource manager limits. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#swarmresourcemgr")
 				}
 
 				n.mut.Unlock()
