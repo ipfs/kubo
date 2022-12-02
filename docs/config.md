@@ -141,6 +141,10 @@ config file at runtime.
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
+        - [Levels of Configuration](#levels-of-configuration)
+        - [Default Limits](#default-limits)
+        - [Active Limits](#active-limits)
+        - [libp2p resource monitoring](#libp2p-resource-monitoring)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.MaxMemory`](#swarmresourcemgrmaxmemory)
       - [`Swarm.ResourceMgr.MaxFileDescriptors`](#swarmresourcemgrmaxfiledescriptors)
@@ -1865,7 +1869,7 @@ This value is also used to scale the limit on various resources at various scope
 when the default limits (discuseed above) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
-Default: `[TOTAL_SYSTEM_MEMORY]/8`
+Default: `[TOTAL_SYSTEM_MEMORY]/2`
 Type: `optionalBytes`
 
 #### `Swarm.ResourceMgr.MaxFileDescriptors`
