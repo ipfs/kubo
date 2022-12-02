@@ -2,7 +2,7 @@ module github.com/ipfs/go-ipfs/testplans/bitswap
 
 require (
 	github.com/gopherjs/gopherjs v0.0.0-20190812055157-5d271430af9f // indirect
-	github.com/ipfs/go-bitswap v0.10.1
+	github.com/ipfs/go-bitswap v0.10.3-0.20221202175828-439d0243d58e
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-cid v0.2.0
 	github.com/ipfs/go-datastore v0.5.1

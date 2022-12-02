@@ -16,7 +16,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gabriel-vasile/mimetype v1.4.1
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/ipfs/go-bitswap v0.10.2
+	github.com/ipfs/go-bitswap v0.10.3-0.20221202180926-d559d50db30f
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-blockservice v0.4.0
 	github.com/ipfs/go-cid v0.3.2
@@ -93,7 +93,7 @@ require (
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
@@ -162,6 +162,7 @@ require (
 	github.com/ipfs/go-ipfs-ds-help v1.1.0 // indirect
 	github.com/ipfs/go-ipfs-pq v0.0.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.0.5 // indirect
+	github.com/ipfs/go-libipfs v0.0.0-20221202155526-d42c44b3fbf1 // indirect
 	github.com/ipfs/go-peertaskqueue v0.7.1 // indirect
 	github.com/ipld/edelweiss v0.2.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
