@@ -165,8 +165,12 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 
 ### Unofficial Linux packages
 
+<a href="https://repology.org/project/kubo/versions">
+    <img src="https://repology.org/badge/vertical-allrepos/kubo.svg" alt="Packaging status" align="right">
+</a>
+
 - [ArchLinux](#arch-linux)
-- [Nix](#nix)
+- [Nix](#nix-linux)
 - [Solus](#solus)
 - [openSUSE](#opensuse)
 - [Guix](#guix)
