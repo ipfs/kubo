@@ -201,7 +201,7 @@ test_config_cmd() {
 
   test_expect_success "'ipfs config Swarm.AddrFilters' looks good" '
     ipfs config Swarm.AddrFilters > actual_config &&
-    test $(cat actual_config | wc -l) = 1
+    test $(cat actual_config | wc -l) = 2
   '
 
   test_expect_success "copy ipfs config" '
@@ -218,7 +218,7 @@ test_config_cmd() {
 
   test_expect_success "'ipfs config Swarm.AddrFilters' looks good with server profile" '
     ipfs config Swarm.AddrFilters > actual_config &&
-    test $(cat actual_config | wc -l) = 18
+    test $(cat actual_config | wc -l) = 19
   '
 
   test_expect_success "'ipfs config profile apply local-discovery' works" '
@@ -227,7 +227,7 @@ test_config_cmd() {
 
   test_expect_success "'ipfs config Swarm.AddrFilters' looks good with applied local-discovery profile" '
     ipfs config Swarm.AddrFilters > actual_config &&
-    test $(cat actual_config | wc -l) = 1
+    test $(cat actual_config | wc -l) = 2
   '
 
   test_profile_apply_revert server local-discovery
@@ -301,7 +301,13 @@ test_config_cmd
 test_kill_ipfs_daemon
 
 # Be sure that on strict mode we can set config values that exist on Config struct
-export IPFS_CONFIG_TOLERANT_MODE=
-test_config_cmd_set "--json" "Discovery.MDNS.Enabled" "false"
+export IPFS_CONFIG_TOLERANT_MODE=''
+test_expect_success "set an exsisting field on config" '
+  ipfs config --json Discovery.MDNS.Enabled false
+'
+
+test_expect_success "set wrong field on config" '
+  test_must_fail ipfs config --json Discovery.MDNS.Enabledd false
+'
 
 test_done
