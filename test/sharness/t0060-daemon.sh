@@ -86,7 +86,9 @@ test_expect_success "ipfs daemon output looks good" '
   echo "WebUI: http://'$API_ADDR'/webui" >>expected_daemon &&
   echo "Gateway server listening on '$GWAY_MADDR'" >>expected_daemon &&
   echo "Daemon is ready" >>expected_daemon &&
-  test_cmp expected_daemon actual_daemon
+  grep -q "^Set GOMEMLIMIT to" actual_daemon &&
+  grep -v "^Set GOMEMLIMIT to" actual_daemon > actual_daemon_filtered &&
+  test_cmp expected_daemon actual_daemon_filtered
 '
 
 test_expect_success ".ipfs/ has been created" '
