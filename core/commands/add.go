@@ -210,9 +210,6 @@ See 'dag export' and 'dag import' for more information.
 		if !ok {
 			return fmt.Errorf("unrecognized hash function: %q", strings.ToLower(hashFunStr))
 		}
-		if _, err := mh.GetHasher(hashFunCode); err != nil {
-			return err
-		}
 
 		enc, err := cmdenv.GetCidEncoder(req)
 		if err != nil {
