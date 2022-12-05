@@ -48,7 +48,6 @@ var DagIndexTemplate = template.Must(template.New("redirect").Parse(`<!DOCTYPE h
 	<div id="content-header">
 	  <p>CID: <code translate="no">{{.CID}}</code><br/>
 	  Codec: <code translate="no">{{.CodecName}} ({{.CodecHex}})</code></p>
-	  <p><strong>This CID is not UnixFS</strong> (not a file, nor a directory)</p>
 	</div>
     <div class="table-responsive">
     <table>
