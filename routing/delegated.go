@@ -93,7 +93,7 @@ func parse(visited map[string]bool,
 	var router routing.Routing
 	var err error
 	switch cfg.Type {
-	case config.RouterTypeHttp:
+	case config.RouterTypeHTTP:
 		router, err = httpRoutingFromConfig(cfg.Router, extraHTTP)
 	case config.RouterTypeReframe:
 		router, err = reframeRoutingFromConfig(cfg.Router, extraHTTP)
@@ -158,7 +158,7 @@ type ExtraHTTPParams struct {
 }
 
 func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (routing.Routing, error) {
-	params := conf.Parameters.(*config.HttpRouterParams)
+	params := conf.Parameters.(*config.HTTPRouterParams)
 	if params.Endpoint == "" {
 		return nil, NewParamNeededErr("Endpoint", conf.Type)
 	}
