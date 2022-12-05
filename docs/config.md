@@ -98,6 +98,7 @@ config file at runtime.
     - [`Pubsub.Enabled`](#pubsubenabled)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
+    - [`Pubsub.SeenMessagesTTL`](#pubsubseenmessagesttl)
   - [`Peering`](#peering)
     - [`Peering.Peers`](#peeringpeers)
   - [`Reprovider`](#reprovider)
@@ -243,9 +244,15 @@ documented in `ipfs config profile --help`.
 
 - `lowpower`
 
-  Reduces daemon overhead on the system. May affect node
+  Reduces daemon overhead on the system. Affects node
   functionality - performance of content discovery and data
-  fetching may be degraded.
+  fetching may be degraded. Local data won't be announced on routing systems like DHT.
+
+  - `Swarm.ConnMgr` set to maintain minimum number of p2p connections at a time.
+  - Disables [`Reprovider`](#reprovider) service → no CID will be announced on DHT and other routing systems(!)
+  - Disables AutoNAT.
+
+  Use this profile with caution.
 
 ## Types
 
@@ -1194,6 +1201,25 @@ Default: `false`
 
 Type: `bool`
 
+### `Pubsub.SeenMessagesTTL`
+
+Configures the duration after which a previously seen Pubsub Message ID can be
+forgotten about.
+
+A smaller value for this parameter means that Pubsub messages in the cache will
+be garbage collected sooner, which can result in a smaller cache. At the same
+time, if there are slower nodes in the network that forward older messages,
+this can cause more duplicates to be propagated through the network. 
+
+Conversely, a larger value for this parameter means that Pubsub messages in the
+cache will be garbage collected later, which can result in a larger cache for
+the same traffic pattern. However, it is less likely that duplicates will be
+propagated through the network.
+
+Default: see `TimeCacheDuration` from [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub)
+
+Type: `optionalDuration`
+
 ## `Peering`
 
 Configures the peering subsystem. The peering subsystem configures Kubo to
@@ -1299,8 +1325,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 Map of additional Routers.
 
 Allows for extending the default routing (DHT) with alternative Router
-implementations, such as custom DHTs and delegated routing based
-on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme).
+implementations.
 
 The map key is a name of a Router, and the value is its configuration.
 
@@ -1316,7 +1341,7 @@ It specifies the routing type that will be created.
 
 Currently supported types:
 
-- `reframe` (delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme))
+- `reframe` **(DEPRECATED)** (delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme))
 - `dht`
 - `parallel` and `sequential`: Helpers that can be used to run several routers sequentially or in parallel.
 
@@ -1328,7 +1353,7 @@ Type: `string`
 
 Parameters needed to create the specified router. Supported params per router type:
 
-Reframe:
+Reframe **(DEPRECATED)**:
   - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
 
 DHT:
@@ -1351,21 +1376,6 @@ Sequential:
     - `IgnoreErrors:bool`: It will specify if that router should be ignored if an error occurred.
   - `Timeout:duration`: Global timeout.  It accepts strings compatible with Go `time.ParseDuration(string)`.
 
-**Examples:**
-
-To add router provided by _Store the Index_ team at [cid.contact](https://cid.contact):
-
-```console
-$ ipfs config Routing.Routers.CidContact --json '{
-  "Type": "reframe",
-  "Parameters": {
-    "Endpoint": "https://cid.contact/reframe"
-  }
-}'
-```
-
-Anyone can create and run their own Reframe endpoint, and experiment with custom routing logic. See [`someguy`](https://github.com/aschmahmann/someguy) example, which proxies requests to BOTH the IPFS Public DHT AND an Indexer node. Protocol Labs provides a public instance at `https://routing.delegate.ipfs.io/reframe`.
-
 Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->string]`
@@ -1381,38 +1391,10 @@ Type: `object[string->object]`
 
 **Examples:**
 
-To use the previously added `CidContact` reframe router on all methods:
-
-```console
-$ ipfs config Routing.Methods --json '{
-      "find-peers": {
-        "RouterName": "CidContact"
-      },
-      "find-providers": {
-        "RouterName": "CidContact"
-      },
-      "get-ipns": {
-        "RouterName": "CidContact"
-      },
-      "provide": {
-        "RouterName": "CidContact"
-      },
-      "put-ipns": {
-        "RouterName": "CidContact"
-      }
-    }'
-```
-Complete example using 3 Routers, reframe, DHT and parallel.
+Complete example using 2 Routers, DHT (LAN/WAN) and parallel.
 
 ```
 $ ipfs config Routing.Type --json '"custom"'
-
-$ ipfs config Routing.Routers.CidContact --json '{
-  "Type": "reframe",
-  "Parameters": {
-    "Endpoint": "https://cid.contact/reframe"
-  }
-}'
 
 $ ipfs config Routing.Routers.WanDHT --json '{
   "Type": "dht",
@@ -1423,12 +1405,21 @@ $ ipfs config Routing.Routers.WanDHT --json '{
   }
 }'
 
+$ ipfs config Routing.Routers.LanDHT --json '{
+  "Type": "dht",
+  "Parameters": {
+    "Mode": "auto",
+    "PublicIPNetwork": false,
+    "AcceleratedDHTClient": false
+  }
+}'
+
 $ ipfs config Routing.Routers.ParallelHelper --json '{
   "Type": "parallel",
   "Parameters": {
     "Routers": [
         {
-        "RouterName" : "CidContact",
+        "RouterName" : "LanDHT",
         "IgnoreErrors" : true,
         "Timeout": "3s"
         },
@@ -1453,7 +1444,7 @@ ipfs config Routing.Methods --json '{
         "RouterName": "ParallelHelper"
       },
       "provide": {
-        "RouterName": "WanDHT"
+        "RouterName": "ParallelHelper"
       },
       "put-ipns": {
         "RouterName": "ParallelHelper"
@@ -1730,7 +1721,8 @@ be configured to keep. Kubo currently supports two connection managers:
 * none: never close idle connections.
 * basic: the default connection manager.
 
-Default: basic
+By default, this section is empty and the implicit defaults defined below
+are used.
 
 #### `Swarm.ConnMgr.Type`
 
@@ -1739,8 +1731,7 @@ management) and `"basic"`.
 
 Default: "basic".
 
-Type: `string` (when unset or `""`, the default connection manager is applied
-and all `ConnMgr` fields are ignored).
+Type: `optionalString` (default when unset or empty)
 
 #### Basic Connection Manager
 
@@ -1779,7 +1770,7 @@ trim down to.
 
 Default: `600`
 
-Type: `integer`
+Type: `optionalInteger`
 
 ##### `Swarm.ConnMgr.HighWater`
 
@@ -1789,7 +1780,7 @@ towards this limit.
 
 Default: `900`
 
-Type: `integer`
+Type: `optionalInteger`
 
 ##### `Swarm.ConnMgr.GracePeriod`
 
@@ -1798,34 +1789,89 @@ by the connection manager.
 
 Default: `"20s"`
 
-Type: `duration`
+Type: `optionalDuration`
 
 ### `Swarm.ResourceMgr`
 
-The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme) allows setting limits per a scope,
+The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#readme) allows setting limits per [Resource Scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes),
 and tracking recource usage over time.
+
+##### Levels of Configuration
+
+libp2p's resource manager provides tremendous flexibility but also adds a lot of complexity.
+There are these levels of limit configuration for resource management protection:
+1. "The user who does nothing" - In this case they get some sane defaults discussed below
+   based on the amount of memory and file descriptors their system has.
+   This should protect the node from many attacks.
+2. "Slightly more advanced user" - They can tweak the default limits discussed below.  
+   Where the defaults aren't good enough, a good set of higher-level "knobs" are exposed to satisfy most use cases
+   without requiring users to wade into all the intricacies of libp2p's resource manager.
+   The "knobs"/inputs are `Swarm.ResourceMgr.MaxMemory` and `Swarm.ResourceMgr.MaxFileDescriptors` as described below. 
+3. "Power user" - They specify all the default limits from below they want override via `Swarm.ResourceMgr.Limits`;
+
+##### Default Limits
+
+With these inputs defined, [resource manager limits](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#limits) are created at the 
+[system](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#the-system-scope), 
+[transient](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#the-transient-scope), 
+and [peer](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#peer-scopes) scopes.
+Other scopes are ignored (by being set to "~infinity".
+
+The reason these scopes are chosen is because:
+- system - This gives us the coarse-grained control we want so we can reason about the system as a whole.
+  It is the backstop, and allows us to reason about resource consumption more easily
+  since don't have think about the interaction of many other scopes.
+- transient - Limiting connections that are in process of being established provides backpressure so not too much work queues up.
+- peer - The peer scope doesn't protect us against intentional DoS attacks.
+  It's just as easy for an attacker to send 100 requests/second with 1 peerId vs. 10 requests/second with 10 peers.
+  We are reliant on the system scope for protection here in the malicious case.
+  The reason for having a peer scope is to protect against unintentional DoS attacks
+  (e.g., bug in a peer which is causing it to "misbehave").
+  In the unintional case, we want to make sure a "misbehaving" node doesn't consume more resources than necessary.
+
+Within these scopes, limits are just set on 
+[memory](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#memory), 
+[file descriptors (FD)](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#file-descriptors), [*inbound* connections](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#connections),
+and [*inbound* streams](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#streams).
+Limits are set based on the inputs above.
+We trust this node to behave properly and thus don't limit *outbound* connection/stream limits.
+We apply any limits that libp2p has for its protocols/services
+since we assume libp2p knows best here.
+
+##### Active Limits
+A dump of what limits were computed and are actually being used by the resource manager
+can be obtained by `ipfs swarm limit all`.
+
+##### libp2p resource monitoring
+For [monitoring libp2p resource usage](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#monitoring), 
+various `*rcmgr_*` metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`).  
+There are also [pre-built Grafana dashboards](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager/obs/grafana-dashboards) that can be added to a Grafana instance. 
+
+A textual view of current resource usage and a list of services, protocols, and peers can be
+obtained via `ipfs swarm stats --help`
 
 #### `Swarm.ResourceMgr.Enabled`
 
-Enables the libp2p Network Resource Manager and auguments the default limits
-using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
-
-Various `*rcmgr_*` metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
+Enables the libp2p Resource Manager using limits based on the defaults and/or other configuration as discussed above.
 
 Default: `true`
-
 Type: `flag`
 
 #### `Swarm.ResourceMgr.MaxMemory`
 
-The maximum amount of memory that the libp2p resource manager will allow.
+This is the max amount of memory to allow libp2p to use.
+libp2p's resource manager will prevent additional resource creation while this limit is reached.
+This value is also used to scale the limit on various resources at various scopes 
+when the default limits (discuseed above) are used.
+For example, increasing this value will increase the default limit for incoming connections.
 
 Default: `[TOTAL_SYSTEM_MEMORY]/8`
 Type: `optionalBytes`
 
 #### `Swarm.ResourceMgr.MaxFileDescriptors`
 
-Define the maximum number of file descriptors that libp2p can use. 
+This is the maximum number of file descriptors to allow libp2p to use.
+libp2p's resource manager will prevent additional file descriptor consumption while this limit is reached.
 
 This param is ignored on Windows.
 
@@ -1836,21 +1882,26 @@ Type: `optionalInteger`
 
 Map of resource limits [per scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes).
 
-The map supports fields from [`ScalingLimitConfig`](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit_defaults.go#L21-L59)
-struct from [go-libp2p-resource-manager](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#readme).
+The map supports fields from the [`LimitConfig` struct](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit_defaults.go#L111).
 
+[`BaseLimit`s](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit.go#L89) can be set for any scope, and within the `BaseLimit`, all limit <key,value>s are optional.
+
+The `Swarm.ResourceMgr.Limits` override the default limits described above. 
+Any override `BaseLimits` or limit <key,value>s from `Swarm.ResourceMgr.Limits`
+that aren't specified will use the default limits.
+
+Example #1: setting limits for a specific scope
 ```json
 {
   "Swarm": {
     "ResourceMgr": {
-      "Enabled": true,
       "Limits": {
         "System": {
+          "Memory": 1073741824,
+          "FD": 512,
           "Conns": 1024,
           "ConnsInbound": 256,
           "ConnsOutbound": 1024,
-          "FD": 512,
-          "Memory": 1073741824,
           "Streams": 16384,
           "StreamsInbound": 4096,
           "StreamsOutbound": 16384
@@ -1861,13 +1912,25 @@ struct from [go-libp2p-resource-manager](https://github.com/libp2p/go-libp2p/tre
 }
 ```
 
-Current resource usage and a list of services, protocols, and peers can be
-obtained via `ipfs swarm stats --help`
+Example #2: setting a specific <key,value> limit
+```json
+{
+  "Swarm": {
+    "ResourceMgr": {
+      "Limits": {
+        "Transient": {
+          "ConnsOutbound": 256,
+        }
+      }
+    }
+  }
+}
+```
 
 It is also possible to adjust some runtime limits via `ipfs swarm limit --help`.
 Changes made via `ipfs swarm limit` are persisted in `Swarm.ResourceMgr.Limits`.
 
-Default: `{}` (use the safe implicit defaults)
+Default: `{}` (use the safe implicit defaults described above)
 
 Type: `object[string->object]`
 

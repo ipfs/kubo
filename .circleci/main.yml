@@ -227,7 +227,7 @@ jobs:
     docker:
       - image: cimg/go:1.19.1-node
     parallelism: 4
-    resource_class: large
+    resource_class: 2xlarge+
     steps:
       - *make_out_dirs
       - attach_workspace:
@@ -327,6 +327,7 @@ jobs:
             - ~/.cache/go-build/
   ipfs-webui:
     executor: node-browsers
+    resource_class: 2xlarge+
     steps:
       - *make_out_dirs
       - attach_workspace:

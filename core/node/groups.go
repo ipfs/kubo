@@ -38,33 +38,20 @@ var BaseLibP2P = fx.Options(
 )
 
 func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
-	// parse ConnMgr config
+	var connmgr fx.Option
 
-	grace := config.DefaultConnMgrGracePeriod
-	low := config.DefaultConnMgrLowWater
-	high := config.DefaultConnMgrHighWater
-
-	connmgr := fx.Options()
-
-	if cfg.Swarm.ConnMgr.Type != "none" {
-		switch cfg.Swarm.ConnMgr.Type {
-		case "":
-			// 'default' value is the basic connection manager
-			break
-		case "basic":
-			var err error
-			grace, err = time.ParseDuration(cfg.Swarm.ConnMgr.GracePeriod)
-			if err != nil {
-				return fx.Error(fmt.Errorf("parsing Swarm.ConnMgr.GracePeriod: %s", err))
-			}
-
-			low = cfg.Swarm.ConnMgr.LowWater
-			high = cfg.Swarm.ConnMgr.HighWater
-		default:
-			return fx.Error(fmt.Errorf("unrecognized ConnMgr.Type: %q", cfg.Swarm.ConnMgr.Type))
-		}
-
+	// set connmgr based on Swarm.ConnMgr.Type
+	connMgrType := cfg.Swarm.ConnMgr.Type.WithDefault(config.DefaultConnMgrType)
+	switch connMgrType {
+	case "none":
+		connmgr = fx.Options() // noop
+	case "", "basic":
+		grace := cfg.Swarm.ConnMgr.GracePeriod.WithDefault(config.DefaultConnMgrGracePeriod)
+		low := int(cfg.Swarm.ConnMgr.LowWater.WithDefault(config.DefaultConnMgrLowWater))
+		high := int(cfg.Swarm.ConnMgr.HighWater.WithDefault(config.DefaultConnMgrHighWater))
 		connmgr = fx.Provide(libp2p.ConnectionManager(low, high, grace))
+	default:
+		return fx.Error(fmt.Errorf("unrecognized Swarm.ConnMgr.Type: %q", connMgrType))
 	}
 
 	// parse PubSub config
@@ -77,6 +64,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		pubsubOptions = append(
 			pubsubOptions,
 			pubsub.WithMessageSigning(!cfg.Pubsub.DisableSigning),
+			pubsub.WithSeenMessagesTTL(cfg.Pubsub.SeenMessagesTTL.WithDefault(pubsub.TimeCacheDuration)),
 		)
 
 		switch cfg.Pubsub.Router {
