@@ -1,4 +1,4 @@
-<!-- Last updated by @galargh during [0.17.0 release](https://github.com/ipfs/kubo/issues/9319) -->
+<!-- Last updated by @galargh during [X.Y.Z release](https://github.com/ipfs/kubo/issues/9319) -->
 
 > Release Issue Template.  If doing a patch release, see [here](https://github.com/ipfs/kubo/blob/master/docs/PATCH_RELEASE_TEMPLATE.md)
 
@@ -49,7 +49,7 @@ Checklist:
           # create new issue in protocol/bifrost-infra
           gh api \
             --method POST \
-            --raw-field "title=Rollout Kubo v0.17.0-RC1" \
+            --raw-field "title=Rollout Kubo vX.Y.Z-RCN" \
             --raw-field "body=## What should be updated
 
             - [ ] Gateways
@@ -68,20 +68,20 @@ Checklist:
           # retrieve master ref for ipfs/kubo
           gh api /repos/ipfs/kubo/git/ref/heads/master
 
-          # create docs-release-v0.17.0 ref for ipfs/kubo
+          # create docs-release-vX.Y.Z ref for ipfs/kubo
           gh api \
             --method POST \
             /repos/ipfs/kubo/git/refs \
-            -f ref='refs/heads/docs-release-v0.17.0' \
+            -f ref='refs/heads/docs-release-vX.Y.Z' \
             -f sha='254d81a9d5595c3e637c7573d56125836d5f5055'
 
-          # create draft PR from docs-release-v0.17.0 to master for ipfs/kubo
-          # requires docs-release-v0.17.0 to be modified
+          # create draft PR from docs-release-vX.Y.Z to master for ipfs/kubo
+          # requires docs-release-vX.Y.Z to be modified
           gh api \
             --method POST \
             /repos/ipfs/kubo/pulls \
-            -f title='docs: release v0.17.0' \
-            -f head='docs-release-v0.17.0' \
+            -f title='docs: release vX.Y.Z' \
+            -f head='docs-release-vX.Y.Z' \
             -f base='master' \
             -f draft=true
         </details>
@@ -158,11 +158,11 @@ Checklist:
         # retrieve master ref for ipfs/kubo
         gh api /repos/ipfs/kubo/git/ref/heads/master
 
-        # create release-v0.17.0 ref for ipfs/kubo
+        # create release-vX.Y.Z ref for ipfs/kubo
         gh api \
           --method POST \
           /repos/ipfs/kubo/git/refs \
-          -f ref='refs/heads/release-v0.17.0' \
+          -f ref='refs/heads/release-vX.Y.Z' \
           -f sha='a4da8f6cc768c3e2cce9c2677a792b2c237066aa'
         </details>
   - [ ] Bump the version in `version.go` in the `master` branch to `vX.(Y+1).0-dev` via a PR ([example](https://github.com/ipfs/kubo/pull/9305)).
@@ -171,7 +171,7 @@ Checklist:
         git checkout -b bump-version
 
         # replace the version in version.go
-        sed -i 's/const CurrentVersionNumber = "0.17.0-dev"/const CurrentVersionNumber = "0.18.0-dev"/g' version.go
+        sed -i 's/const CurrentVersionNumber = ".*"/const CurrentVersionNumber = "0.18.0-dev"/g' version.go
 
         # commit the change
         git add version.go
@@ -188,17 +188,19 @@ Checklist:
           -f base='master'
         </details>
 - [ ] **Stage 2 - Release Candidate** - _if any [non-trivial](docs/releases.md#footnotes) changes need to be included in the release, return to this stage_
+  - [ ] If it's not a first RC, add new commits to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
+      - Note: `release-*` branches are protected. You can do all needed updates on a separated branch (e.g. `wip-release-vX.Y.Z`) and when everything is settled push to `release-vX.Y.Z`
   - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `vX.Y.Z-rcN`.
         <details>
         # checkout new branch
-        git checkout -b bump-release-version
+        git checkout -B bump-release-version
 
         # replace the version in version.go
-        sed -i 's/const CurrentVersionNumber = "0.17.0-dev"/const CurrentVersionNumber = "0.17.0-rc1"/g' version.go
+        sed -i 's/const CurrentVersionNumber = ".*"/const CurrentVersionNumber = "X.Y.Z-rcN"/g' version.go
 
         # commit the change
         git add version.go
-        git commit -m "chore: bump version to v0.17.0-rc1"
+        git commit -m "chore: bump version to vX.Y.Z-rcN"
 
         # push the change
         git push origin bump-release-version
@@ -206,19 +208,17 @@ Checklist:
         # open a PR
         gh api /repos/ipfs/kubo/pulls \
           --method POST \
-          -f title='chore: bump version to v0.17.0-rc1' \
+          -f title='chore: bump version to vX.Y.Z-rcN' \
           -f head='bump-release-version' \
-          -f base='release-v0.17.0'
+          -f base='release-vX.Y.Z'
         </details>
-  - [ ] If applicable, add new commits to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
-      - Note: `release-*` branches are protected. You can do all needed updates on a separated branch (e.g. `wip-release-vX.Y.Z`) and when everything is settled push to `release-vX.Y.Z`
-  - [ ] Push the `release-vX.Y.Z` branch to GitHub (`git push origin release-vX.Y.Z`) and create a draft PR targetting `release` branch if it doesn't exist yet ([example](https://github.com/ipfs/kubo/pull/9306)).
+  - [ ] If it's a first RC, create a draft PR targetting `release` branch if it doesn't exist yet ([example](https://github.com/ipfs/kubo/pull/9306)).
         <details>
         # open a PR
         gh api /repos/ipfs/kubo/pulls \
           --method POST \
-          -f title='wip: release v0.17.0' \
-          -f head='release-v0.17.0' \
+          -f title='wip: release vX.Y.Z' \
+          -f head='release-vX.Y.Z' \
           -f base='release' \
           -f draft=true
         </details>
@@ -228,41 +228,43 @@ Checklist:
     - [ ] ⚠️ Tag HEAD `release-vX.Y.Z` commit with `vX.Y.Z-rcN` (`git tag -s vX.Y.Z-rcN -m 'Pre-release X.Y.Z-rcn'`)
         <details>
         # create a signed tag
-        git tag -s v0.17.0-rc1 -m 'Pre-release 0.17.0-rc1'
+        git tag -s vX.Y.Z-rcN -m 'Pre-release X.Y.Z-rcN'
         </details>
-    - [ ] Run `git show vX.Y.Z-rc1` to ensure the tag is correct.
+    - [ ] Run `git show vX.Y.Z-rcN` to ensure the tag is correct.
         <details>
         # show the signed tag
-        git show v0.17.0-rc1
+        git show vX.Y.Z-rcN
         </details>
-    - [ ] ⚠️ Push the `vX.Y.Z-rc1` tag to GitHub (`git push origin vX.Y.Z-rc1`; DO NOT USE `git push --tags` because it pushes all your local tags).
+    - [ ] ⚠️ Push the `vX.Y.Z-rcN` tag to GitHub (`git push origin vX.Y.Z-rcN`; DO NOT USE `git push --tags` because it pushes all your local tags).
         <details>
         # show the signed tag
-        git push origin v0.17.0-rc1
+        git push origin vX.Y.Z-rcN
         </details>
   - [ ] Add artifacts to https://dist.ipfs.tech by making a PR against [ipfs/distributions](https://github.com/ipfs/distributions)
     - [ ] Clone the `ipfs/distributions` repo locally.
     - [ ] Create a new branch (`kubo-release-vX.Y.Z-rcn`) from `master`.
         <details>
         # checkout new branch
-        git checkout -b kubo-release-v0.17.0-rc1
+        git checkout -b kubo-release-vX.Y.Z-rcN
         </details>
     - [ ] Run `./dist.sh add-version kubo vX.Y.Z-rcN` to add the new version to the `versions` file ([instructions](https://github.com/ipfs/distributions#usage)).
-      - `dist.sh` will print _WARNING: not marking pre-release kubo vX.Y.Z-rc1n as the current version._.
+      - `dist.sh` will print _WARNING: not marking pre-release kubo vX.Y.Z-rcNn as the current version._.
         <details>
         # add new kubo version to dist
-        ./dist.sh add-version kubo v0.17.0-rc1
+        ./dist.sh add-version kubo vX.Y.Z-rcN
+        git add dists/*/versions
+        git commit -m "chore: add kubo vX.Y.Z-rcN"
         </details>
     - [ ] Push the `kubo-release-vX.Y.Z-rcn` branch to GitHub and create a PR from that branch ([example](https://github.com/ipfs/distributions/pull/760)).
         <details>
         # push the change
-        git push origin kubo-release-v0.17.0-rc1
+        git push origin kubo-release-vX.Y.Z-rcN
 
         # open a PR
         gh api /repos/ipfs/distributions/pulls \
           --method POST \
-          -f title='chore: add kubo v0.17.0-rc1' \
-          -f head='kubo-release-v0.17.0-rc1' \
+          -f title='chore: add kubo vX.Y.Z-rcN' \
+          -f head='kubo-release-vX.Y.Z-rcN' \
           -f base='master'
         </details>
     - [ ] Ask for a review from the release reviewer.
@@ -272,15 +274,15 @@ Checklist:
       - `master` build will publish the artifacts to https://dist.ipfs.io in around 30 minutes
         <details>
         # get pull id
-        id=$(gh api --method GET /repos/ipfs/distributions/pulls -f head='kubo-release-v0.17.0-rc1' --jq '.[0].id')
+        id=$(gh api --method GET /repos/ipfs/distributions/pulls -f head='kubo-release-vX.Y.Z-rcN' --jq '.[0].node_id')
 
         # enable automerge
-        gh api graphql -f pull="${id}" -f query='mutation($pull: ID!) { enablePullRequestAutoMerge(input: {pullRequestId: $pull, mergeMethod: SQUASH}) {} }'
+        gh api graphql -f pull="${id}" -f query='mutation($pull: ID!) { enablePullRequestAutoMerge(input: {pullRequestId: $pull, mergeMethod: SQUASH}) { pullRequest { autoMergeRequest { enabledAtenabledBy { login } } } } }'
         </details>
     - [ ] Ensure that the artifacts are available at https://dist.ipfs.io
         <details>
         # check if RC is available
-        curl --retry 5 --no-progress-meter https://dist.ipfs.tech/kubo/versions | grep -q v0.17.0-rc1
+        curl --retry 5 --no-progress-meter https://dist.ipfs.tech/kubo/versions | grep -q vX.Y.Z-rcN
         echo $?
         </details>
   - [ ] Publish the RC to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
@@ -304,10 +306,10 @@ Checklist:
 
       # check logs for version
       gh api /repos/ipfs/npm-go-ipfs/actions/jobs/9499319520/logs \
-        --method GET | grep -q '0.17.0-rc1'
+        --method GET | grep -q 'X.Y.Z-rcN'
       echo $?
       </details>
-  - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.16.0-rc1))
+  - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.16.0-rcN))
     - Use `vX.Y.Z-rcN` as the tag.
     - Link to the release issue in the description.
     - Link to the relevant [changelog](https://github.com/ipfs/kubo/blob/master/docs/changelogs/) in the description.
@@ -316,16 +318,16 @@ Checklist:
       # create a pre-release
       body='See the related issue: https://github.com/ipfs/kubo/issues/9319
 
-      And the draft changelog: [docs/changelogs/v0.17.md](https://github.com/ipfs/kubo/blob/release-v0.17.0/docs/changelogs/v0.17.md)'
+      And the draft changelog: [docs/changelogs/v0.17.md](https://github.com/ipfs/kubo/blob/release-vX.Y.Z/docs/changelogs/v0.17.md)'
       gh api /repos/ipfs/kubo/releases \
         --method POST \
-        -f tag_name='v0.17.0-rc1' \
-        -f name='v0.17.0-rc1' \
+        -f tag_name='vX.Y.Z-rcN' \
+        -f name='vX.Y.Z-rcN' \
         -f body="${body}" \
         -F draft=false \
         -F prerelease=true \
         -F generate_release_notes=false \
-        -F make_latest=false
+        -f make_latest=false
       </details>
   - [ ] Synchronize release artifacts by running [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow.
       <details>
@@ -335,7 +337,7 @@ Checklist:
         -f ref='master'
       </details>
   - [ ] Announce the RC
-    - [ ] Create a new post on [IPFS Discourse](https://discuss.ipfs.tech). ([example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248))
+    - [ ] Create a new post on [IPFS Discourse](https://discuss.ipfs.tech). ([example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rcN-release-candidate-is-out/15248))
       - Use `Kubo vX.Y.Z-rcn Release Candidate is out!` as the title.
       - Use `kubo` and `go-ipfs` as topics.
       - Repeat the title as a heading (`##`) in the description.
@@ -364,28 +366,28 @@ Checklist:
       - [ ] Ensure CI tests pass
         <details>
         # checkout new branch
-        git checkout -b kubo-release-v0.17.0
+        git checkout -b kubo-release-vX.Y.Z
 
         # replace the go-ipfs version in package.json
-        sed -i 's/"go-ipfs": ".*"/"go-ipfs": "0.17.0-rc1"/' package.json
+        sed -i 's/"go-ipfs": ".*"/"go-ipfs": "X.Y.Z-rcN"/' package.json
 
         # update package-lock.json
         npm install
 
         # commit the change
         git add package.json package-lock.json
-        git commit -m "chore: bump kubo version to v0.17.0-rc1"
+        git commit -m "chore: bump kubo version to vX.Y.Z-rcN"
 
         # push the change
-        git push origin kubo-release-v0.17.0
+        git push origin kubo-release-vX.Y.Z
 
         # open a PR
         gh api /repos/ipfs/ipfs-desktop/pulls \
           --method POST \
-          -f title='chore: bump kubo version to v0.17.0-rc1' \
-          -f head='kubo-release-v0.17.0' \
+          -f title='chore: bump kubo version to vX.Y.Z-rcN' \
+          -f head='kubo-release-vX.Y.Z' \
           -f base='main' \
-          -f title='chore: bump kubo version to v0.17.0' \
+          -f title='chore: bump kubo version to vX.Y.Z' \
           -F draft=true
         </details>
     - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion)
@@ -395,7 +397,7 @@ Checklist:
       - [ ] Install IPFS Companion from [vendor-specific store](https://github.com/ipfs/ipfs-companion/#readme).
       - [ ] Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
         <details>
-        curl --retry 5 --no-progress-meter --output kubo.tar.gz https://dist.ipfs.tech/kubo/v0.17.0-rc1/kubo_v0.17.0-rc1_darwin-arm64.tar.gz
+        curl --retry 5 --no-progress-meter --output kubo.tar.gz https://dist.ipfs.tech/kubo/vX.Y.Z-rcN/kubo_vX.Y.Z-rcN_darwin-arm64.tar.gz
         tar -xzvf kubo.tar.gz
         export IPFS_PATH=$(mktemp -d)
         ./kubo/ipfs init
@@ -403,7 +405,28 @@ Checklist:
         </details>
 - [ ] **Stage 5 - Release** - _ONLY FOR FINAL RELEASE_
   - [ ] Prepare the `release` branch.
-    - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `vX.Y.Z`.
+    - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `X.Y.Z`.
+        <details>
+        # checkout new branch
+        git checkout -b bump-version-vX.Y.Z
+
+        # replace the version in version.go
+        sed -i 's/const CurrentVersionNumber = ".*"/const CurrentVersionNumber = "X.Y.Z"/g' version.go
+
+        # commit the change
+        git add version.go
+        git commit -m "chore: bump version to vX.Y.Z"
+
+        # push the change
+        git push origin bump-version-vX.Y.Z
+
+        # open a PR
+        gh api /repos/ipfs/kubo/pulls \
+          --method POST \
+          -f title='chore: bump version to vX.Y.Z' \
+          -f head='bump-version-vX.Y.Z' \
+          -f base='release-vX.Y.Z'
+        </details>
     - [ ] Update the [docs/changelogs/vX.Y.md](docs/changelogs) with the new commits and contributors.
       - [ ] Run `./bin/mkreleaselog` twice to generate the changelog and copy the output.
       - The first run of the script might be poluted with `git clone` output.
@@ -418,31 +441,93 @@ Checklist:
       - Do not delete the `release-vX.Y.Z` branch.
     - [ ] Checkout the `release` branch locally.
       - Remember to pull the latest changes.
+      <details>
+      git checkout release
+      git pull
+      </details>
     - [ ] Create a signed tag for the release.
       - [ ] This is a dangerous operation, as it is difficult to reverse due to Go modules and automated Docker image publishing. Remember to verify the commands you intend to run for items marked with ⚠️ with the release reviewer.
       - [ ] ⚠️ Tag HEAD `release` commit with `vX.Y.Z` (`git tag -s vX.Y.Z -m 'Release X.Y.Z'`)
+      <details>
+        # create a signed tag
+        git tag -s vX.Y.Z -m 'Release X.Y.Z'
+        </details>
       - [ ] Run `git show vX.Y.Z` to ensure the tag is correct.
+        <details>
+        # show the signed tag
+        git show vX.Y.Z
+        </details>
       - [ ] ⚠️ Push the `vX.Y.Z` tag to GitHub (`git push origin vX.Y.Z`; DO NOT USE `git push --tags` because it pushes all your local tags).
+        <details>
+        # show the signed tag
+        git push origin vX.Y.Z
+        </details>
   - [ ] Publish the release.
     - [ ] Wait for [Publish docker image](https://github.com/ipfs/kubo/actions/workflows/docker-image.yml) workflow run initiated by the tag push to finish.
     - [ ] Add artifacts to https://dist.ipfs.tech by making a PR against [ipfs/distributions](https://github.com/ipfs/distributions)
       - [ ] Clone the `ipfs/distributions` repo locally.
       - [ ] Create a new branch (`kubo-release-vX.Y.Z`) from `master`.
+        <details>
+        # create a new branch
+        git checkout -b kubo-release-vX.Y.Z
+        </details>
       - [ ] Run `./dist.sh add-version kubo vX.Y.Z` to add the new version to the `versions` file ([instructions](https://github.com/ipfs/distributions#usage)).
+        <details>
+        # add new kubo version to dist
+        ./dist.sh add-version kubo vX.Y.Z
+        git add dists/*/versions
+        git commit -m "chore: add kubo vX.Y.Z"
+        </details>
       - [ ] Push the `kubo-release-vX.Y.Z` branch to GitHub and create a PR from that branch ([example](https://github.com/ipfs/distributions/pull/768)).
+        <details>
+        # push the change
+        git push origin kubo-release-vX.Y.Z
+
+        # open a PR
+        gh api /repos/ipfs/distributions/pulls \
+          --method POST \
+          -f title='chore: add kubo vX.Y.Z' \
+          -f head='kubo-release-vX.Y.Z' \
+          -f base='master'
+        </details>
       - [ ] Ask for a review from the release reviewer.
       - [ ] Enable auto-merge for the PR.
         - PR build will build the artifacts and generate a diff in around 30 minutes
         - PR will be merged automatically once the diff is approved
         - `master` build will publish the artifacts to https://dist.ipfs.io in around 30 minutes
+        <details>
+        # get pull id
+        id=$(gh api --method GET /repos/ipfs/distributions/pulls -f head='kubo-release-vX.Y.Z' --jq '.[0].node_id')
+
+        # enable automerge
+        gh api graphql -f pull="${id}" -f query='mutation($pull: ID!) { enablePullRequestAutoMerge(input: {pullRequestId: $pull, mergeMethod: SQUASH}) { pullRequest { autoMergeRequest { enabledBy { login } } } } }'
+        </details>
       - [ ] Ensure that the artifacts are available at https://dist.ipfs.io
     - [ ] Publish the release to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
   - [ ] Cut the release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.16.0))
     - Use `vX.Y.Z` as the tag.
-    - Link to the release issue in the description.
     - Copy the relevant [changelog](https://github.com/ipfs/kubo/blob/release/docs/changelogs/) into the release description.
-      - Keep the release notes as trim as possible (e.g. remove top headers where possible, [example](https://github.com/ipfs/kubo/releases/tag/v0.15.0))
+    - Keep the release notes as trim as possible (e.g. remove top headers where possible, [example](https://github.com/ipfs/kubo/releases/tag/v0.15.0))
+    <details>
+    # create the release
+    body="$(curl --retry 5 --no-progress-meter https://raw.githubusercontent.com/ipfs/kubo/release-vX.Y.Z/docs/changelogs/v0.17.md)"
+    gh api /repos/ipfs/kubo/releases \
+      --method POST \
+      -f tag_name='vX.Y.Z' \
+      -f name='vX.Y.Z' \
+      -f body="${body}" \
+      -F draft=false \
+      -F prerelease=false \
+      -F generate_release_notes=false \
+      -f make_latest=true
+    </details>
   - [ ] Synchronize release artifacts by running [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow.
+      <details>
+      # dispatch workflow
+      gh api /repos/ipfs/kubo/actions/workflows/sync-release-assets.yml/dispatches \
+        --method POST \
+        -f ref='master'
+      </details>
   - [ ] TODO: https://github.com/protocol/bifrost-infra/issues/2184#issuecomment-1315279257
   - [ ] Announce the release
     - [ ] Add a link to the release to this release issue as a comment.
@@ -462,11 +547,19 @@ Checklist:
   - [ ] Update the draft PR created for [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop) to use the new release and mark it as ready for review.
   - [ ] Update docs
     - [ ] Run https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml to generate a PR to the docs repo
+    <details>
+    # dispatch workflow
+    gh api /repos/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml/dispatches \
+      --method POST \
+      -f ref='main'
+    </details>
     - [ ] Merge the auto-created PR in https://github.com/ipfs/ipfs-docs/pulls ([example](https://github.com/ipfs/ipfs-docs/pull/1263))
-  - [ ] Get the blog post created and shared
+  - [ ] Get the blog post created
     - [ ] Submit a request for blog post creation using [the form](https://airtable.com/shrNH8YWole1xc70I).
-      - Notify marketing in #shared-pl-marketing-requests about the blog entry request (since the form tends to go to spam; [example]([example](https://filecoinproject.slack.com/archives/C018EJ8LWH1/p1664885305374909))).
-      - Don't mark this as done until the blog entry is live.
+      - Title: Just released: Kubo X.Y.Z!
+      - Link type: Release notes
+      - URL: https://github.com/ipfs/kubo/releases/tag/vX.Y.Z
+    - [ ] The post is live on https://blog.ipfs.io
     - [ ] Share the blog post
       - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests; [example](https://filecoinproject.slack.com/archives/C018EJ8LWH1/p1664903524843269?thread_ts=1664885305.374909&cid=C018EJ8LWH1))
       - [ ] [Reddit](https://reddit.com/r/ipfs)
