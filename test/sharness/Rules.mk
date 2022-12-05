@@ -72,16 +72,10 @@ $(d)/deps: $(SHARNESS_$(d)) $$(DEPS_$(d)) # use second expansion so coverage can
 test_sharness_deps: $(d)/deps
 .PHONY: test_sharness_deps
 
-test_sharness_short: $(d)/aggregate
-.PHONY: test_sharness_short
+test_sharness: $(d)/aggregate
+.PHONY: test_sharness
 
-
-test_sharness_expensive: export TEST_EXPENSIVE=1
-test_sharness_expensive: test_sharness_short
-.PHONY: test_sharness_expensive
-
-TEST += test_sharness_expensive
-TEST_SHORT += test_sharness_short
+TEST += test_sharness
 
 
 include mk/footer.mk

@@ -7,6 +7,9 @@ on:
     branches:
       - 'master'
 
+env:
+  GO_VERSION: 1.19.1
+
 jobs:
   prepare:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
@@ -24,7 +27,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v3
         with:
-          go-version: 1.19.1
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
       - uses: protocol/cache-go-action@v1
         with:
@@ -86,7 +89,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v3
         with:
-          go-version: 1.19.1
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/download-artifact@v3
         with:
           name: kubo
@@ -125,7 +128,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v3
         with:
-          go-version: 1.19.1
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/download-artifact@v3
         with:
           name: kubo

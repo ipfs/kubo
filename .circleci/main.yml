@@ -153,6 +153,7 @@ jobs:
         TEST_NO_FUSE: 1
         TEST_VERBOSE: 1
         TEST_JUNIT: 1
+        TEST_EXPENSIVE: 1
     steps:
     - run: sudo apt update
     - run: |
@@ -185,7 +186,7 @@ jobs:
         command: echo "export TEST_DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $BASH_ENV
     - run:
         echo TEST_DOCKER_HOST=$TEST_DOCKER_HOST &&
-        make -O -j << pipeline.parameters.make_jobs >> test_sharness_expensive coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml CONTINUE_ON_S_FAILURE=1 TEST_DOCKER_HOST=$TEST_DOCKER_HOST
+        make -O -j << pipeline.parameters.make_jobs >> test_sharness coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml CONTINUE_ON_S_FAILURE=1 TEST_DOCKER_HOST=$TEST_DOCKER_HOST
     - run:
         when: always
         command: bash <(curl -s https://codecov.io/bash) -cF sharness -X search -f coverage/sharness_tests.coverprofile
