@@ -1,4 +1,4 @@
-<!-- Last updated by @galargh during [X.Y.Z release](https://github.com/ipfs/kubo/issues/9319) -->
+<!-- Last updated by @galargh during [0.17.0 release](https://github.com/ipfs/kubo/issues/9319) -->
 
 > Release Issue Template.  If doing a patch release, see [here](https://github.com/ipfs/kubo/blob/master/docs/PATCH_RELEASE_TEMPLATE.md)
 
