@@ -79,8 +79,8 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 
 	var p interface{}
 	switch out.Type {
-	case RouterTypeHttp:
-		p = &HttpRouterParams{}
+	case RouterTypeHTTP:
+		p = &HTTPRouterParams{}
 	case RouterTypeReframe:
 		p = &ReframeRouterParams{}
 	case RouterTypeDHT:
@@ -107,7 +107,7 @@ type RouterType string
 
 const (
 	RouterTypeReframe    RouterType = "reframe"
-	RouterTypeHttp       RouterType = "http"
+	RouterTypeHTTP       RouterType = "http"
 	RouterTypeDHT        RouterType = "dht"
 	RouterTypeSequential RouterType = "sequential"
 	RouterTypeParallel   RouterType = "parallel"
@@ -139,7 +139,7 @@ type ReframeRouterParams struct {
 	Endpoint string
 }
 
-type HttpRouterParams struct {
+type HTTPRouterParams struct {
 	// Endpoint is the URL where the routing implementation will point to get the information.
 	Endpoint string
 
@@ -151,7 +151,7 @@ type HttpRouterParams struct {
 	MaxProvideConcurrency int
 }
 
-func (hrp *HttpRouterParams) FillDefaults() {
+func (hrp *HTTPRouterParams) FillDefaults() {
 	if hrp.MaxProvideBatchSize == 0 {
 		hrp.MaxProvideBatchSize = 100
 	}
