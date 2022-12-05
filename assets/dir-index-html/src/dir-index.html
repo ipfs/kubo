@@ -25,12 +25,12 @@
   <div id="page-header">
     <div id="page-header-logo" class="ipfs-logo">&nbsp;</div>
     <div id="page-header-menu">
-      <div class="menu-item-wide"><a href="https://ipfs.io" target="_blank" rel="noopener noreferrer">About IPFS</a></div>
-      <div class="menu-item-wide"><a href="https://ipfs.io#install" target="_blank" rel="noopener noreferrer">Install IPFS</a></div>
-      <div class="menu-item-narrow"><a href="https://ipfs.io" target="_blank" rel="noopener noreferrer">About</a></div>
-      <div class="menu-item-narrow"><a href="https://ipfs.io#install" target="_blank" rel="noopener noreferrer">Install</a></div>
+      <div class="menu-item-wide"><a href="https://ipfs.tech" target="_blank" rel="noopener noreferrer">About IPFS</a></div>
+      <div class="menu-item-wide"><a href="https://ipfs.tech#install" target="_blank" rel="noopener noreferrer">Install IPFS</a></div>
+      <div class="menu-item-narrow"><a href="https://ipfs.tech" target="_blank" rel="noopener noreferrer">About</a></div>
+      <div class="menu-item-narrow"><a href="https://ipfs.tech#install" target="_blank" rel="noopener noreferrer">Install</a></div>
       <div>
-        <a href="https://github.com/ipfs/go-ipfs/issues/new/choose" target="_blank" rel="noopener noreferrer" title="Report a bug">
+        <a href="https://github.com/ipfs/kubo/issues/new/choose" target="_blank" rel="noopener noreferrer" title="Report a bug">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18.4 21"><circle cx="7.5" cy="4.8" r="1"/><circle cx="11.1" cy="4.8" r="1"/><path d="M12.7 8.4c-0.5-1.5-1.9-2.5-3.5-2.5 -1.6 0-3 1-3.5 2.5H12.7z"/><path d="M8.5 9.7H5c-0.5 0.8-0.7 1.7-0.7 2.7 0 2.6 1.8 4.8 4.2 5.2V9.7z"/><path d="M13.4 9.7H9.9v7.9c2.4-0.4 4.2-2.5 4.2-5.2C14.1 11.4 13.9 10.5 13.4 9.7z"/><circle cx="15.7" cy="12.9" r="1"/><circle cx="15.1" cy="15.4" r="1"/><circle cx="15.3" cy="10.4" r="1"/><circle cx="2.7" cy="12.9" r="1"/><circle cx="3.3" cy="15.4" r="1"/><circle cx="3.1" cy="10.4" r="1"/></svg>
         </a>
       </div>
@@ -83,7 +83,7 @@
         </td>
         <td class="no-linebreak">
           {{ if .Hash }}
-          <a class="ipfs-hash" translate="no" href={{ if $root.DNSLink }}"https://cid.ipfs.io/#{{ .Hash | urlEscape}}" target="_blank" rel="noreferrer noopener"{{ else }}"{{ $root.GatewayURL }}/ipfs/{{ .Hash | urlEscape}}?filename={{ .Name | urlEscape }}"{{ end }}>
+          <a class="ipfs-hash" translate="no" href={{ if $root.DNSLink }}"https://cid.ipfs.tech/#{{ .Hash | urlEscape}}" target="_blank" rel="noreferrer noopener"{{ else }}"{{ $root.GatewayURL }}/ipfs/{{ .Hash | urlEscape}}?filename={{ .Name | urlEscape }}"{{ end }}>
             {{ .ShortHash }}
           </a>
           {{ end }}
