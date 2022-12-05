@@ -85,7 +85,7 @@ Checklist:
     - [ ] Clone the `ipfs/distributions` repo locally.
     - [ ] Create a new branch (`kubo-release-vX.Y.Z-rcn`) from `master`.
     - [ ] Run `./dist.sh add-version kubo vX.Y.Z-rcN` to add the new version to the `versions` file ([instructions](https://github.com/ipfs/distributions#usage)).
-      - `dist.sh` will print _WARNING: not marking pre-release kubo vX.Y.Z-rcNn as the current version._.
+      - `dist.sh` will print _WARNING: not marking pre-release kubo vX.Y.Z-rcN as the current version._.
     - [ ] Push the `kubo-release-vX.Y.Z-rcn` branch to GitHub and create a PR from that branch ([example](https://github.com/ipfs/distributions/pull/760)).
     - [ ] Ask for a review from the release reviewer.
     - [ ] Enable auto-merge for the PR.
@@ -94,14 +94,14 @@ Checklist:
       - `master` build will publish the artifacts to https://dist.ipfs.io in around 30 minutes
     - [ ] Ensure that the artifacts are available at https://dist.ipfs.io
   - [ ] Publish the RC to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
-  - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z-rcN))
+  - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0-rc1))
     - Use `vX.Y.Z-rcN` as the tag.
     - Link to the release issue in the description.
     - Link to the relevant [changelog](https://github.com/ipfs/kubo/blob/master/docs/changelogs/) in the description.
     - Check `This is a pre-release`.
   - [ ] Synchronize release artifacts by running [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow.
   - [ ] Announce the RC
-    - [ ] Create a new post on [IPFS Discourse](https://discuss.ipfs.tech). ([example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rcN-release-candidate-is-out/15248))
+    - [ ] Create a new post on [IPFS Discourse](https://discuss.ipfs.tech). ([example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248))
       - Use `Kubo vX.Y.Z-rcn Release Candidate is out!` as the title.
       - Use `kubo` and `go-ipfs` as topics.
       - Repeat the title as a heading (`##`) in the description.
