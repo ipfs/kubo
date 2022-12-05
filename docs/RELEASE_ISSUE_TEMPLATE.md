@@ -309,7 +309,7 @@ Checklist:
         --method GET | grep -q 'X.Y.Z-rcN'
       echo $?
       </details>
-  - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.16.0-rcN))
+  - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z-rcN))
     - Use `vX.Y.Z-rcN` as the tag.
     - Link to the release issue in the description.
     - Link to the relevant [changelog](https://github.com/ipfs/kubo/blob/master/docs/changelogs/) in the description.
@@ -318,7 +318,7 @@ Checklist:
       # create a pre-release
       body='See the related issue: https://github.com/ipfs/kubo/issues/9319
 
-      And the draft changelog: [docs/changelogs/v0.17.md](https://github.com/ipfs/kubo/blob/release-vX.Y.Z/docs/changelogs/v0.17.md)'
+      And the draft changelog: [docs/changelogs/vX.Y.md](https://github.com/ipfs/kubo/blob/release-vX.Y.Z/docs/changelogs/vX.Y.md)'
       gh api /repos/ipfs/kubo/releases \
         --method POST \
         -f tag_name='vX.Y.Z-rcN' \
@@ -504,13 +504,13 @@ Checklist:
         </details>
       - [ ] Ensure that the artifacts are available at https://dist.ipfs.io
     - [ ] Publish the release to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
-  - [ ] Cut the release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.16.0))
+  - [ ] Cut the release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0))
     - Use `vX.Y.Z` as the tag.
     - Copy the relevant [changelog](https://github.com/ipfs/kubo/blob/release/docs/changelogs/) into the release description.
-    - Keep the release notes as trim as possible (e.g. remove top headers where possible, [example](https://github.com/ipfs/kubo/releases/tag/v0.15.0))
+    - Keep the release notes as trim as possible (e.g. remove top headers where possible, [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0))
     <details>
     # create the release
-    body="$(curl --retry 5 --no-progress-meter https://raw.githubusercontent.com/ipfs/kubo/release-vX.Y.Z/docs/changelogs/v0.17.md)"
+    body="$(curl --retry 5 --no-progress-meter https://raw.githubusercontent.com/ipfs/kubo/release-vX.Y.Z/docs/changelogs/vX.Y.md)"
     gh api /repos/ipfs/kubo/releases \
       --method POST \
       -f tag_name='vX.Y.Z' \
@@ -542,7 +542,7 @@ Checklist:
       - [ ] IPFS Discord #ipfs-chatter
       - [ ] FIL Slack #ipfs-chatter
       - [ ] Matrix
-  - [ ] Add a link from release notes to Discuss post (like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0)
+  - [ ] Add a link from release notes to Discuss post (like we did here: https://github.com/ipfs/kubo/releases/tag/v0.17.0)
   - [ ] Update the draft PR created for [interop](https://github.com/ipfs/interop) to use the new release and mark it as ready for review.
   - [ ] Update the draft PR created for [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop) to use the new release and mark it as ready for review.
   - [ ] Update docs
@@ -560,9 +560,9 @@ Checklist:
       - Link type: Release notes
       - URL: https://github.com/ipfs/kubo/releases/tag/vX.Y.Z
     - [ ] The post is live on https://blog.ipfs.io
-    - [ ] Share the blog post
-      - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests; [example](https://filecoinproject.slack.com/archives/C018EJ8LWH1/p1664903524843269?thread_ts=1664885305.374909&cid=C018EJ8LWH1))
-      - [ ] [Reddit](https://reddit.com/r/ipfs)
+  - [ ] Share the link to the GitHub release
+    - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests; [example](https://filecoinproject.slack.com/archives/C018EJ8LWH1/p1664903524843269?thread_ts=1664885305.374909&cid=C018EJ8LWH1))
+    - [ ] [Reddit](https://reddit.com/r/ipfs)
 - [ ] **Stage 6 - Post-Release**
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
