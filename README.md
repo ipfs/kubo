@@ -7,7 +7,7 @@
 
 ## What is Kubo?
 
-Kubo was the first IPFS implementation and is the most widely used one today. Implementing the *Interplanetary Filesystem* - the Web3 standard and contender to replace https. Thus powered by IPLD's data models and the libp2p for network communication. Kubo is written in Go.
+Kubo was the first IPFS implementation and is the most widely used one today. Implementing the *Interplanetary Filesystem* - the Web3 standard for content-addressing, interoperable with HTTP. Thus powered by IPLD's data models and the libp2p for network communication. Kubo is written in Go.
 
 Featureset
 - Runs an IPFS-Node as a network service
@@ -216,22 +216,7 @@ $ guix package -i go-ipfs
 
 #### Snap
 
-> ⚠️ **SNAP USE IS DISCOURAGED**
-> 
-> If you want something more sophisticated to escape the Snap confinement, we recommend using a different method to install Kubo so that it is not subject to snap confinement.
-
-
-With snap, in any of the [supported Linux distributions](https://snapcraft.io/docs/core/install):
-
-```
-$ sudo snap install ipfs
-```
-
-The snap sets `IPFS_PATH` to `SNAP_USER_COMMON`, which is usually `~/snap/ipfs/common`. If you want to use `~/.ipfs` instead, you can bind-mount it to `~/snap/ipfs/common` like this:
-
-```
-$ sudo mount --bind ~/.ipfs ~/snap/ipfs/common
-```
+No longer supported, see rationale in [kubo#8688](https://github.com/ipfs/kubo/issues/8688).
 
 #### MacPorts
 
@@ -266,11 +251,7 @@ $ brew install --formula ipfs
 
 #### Chocolatey
 
-[![Chocolatey Version](https://img.shields.io/chocolatey/v/go-ipfs?color=00a4ef&label=go-ipfs&logo=windows&style=flat-square&cacheSeconds=3600)](https://chocolatey.org/packages/go-ipfs)
-
-```Powershell
-PS> choco install go-ipfs
-```
+No longer supported, see rationale in [kubo#9341](https://github.com/ipfs/kubo/issues/9341).
 
 #### Scoop
 
@@ -377,6 +358,10 @@ Basic proof of 'ipfs working' locally:
     # This should output a hash string that looks something like:
     # QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
     ipfs cat <that hash>
+
+### HTTP/RPC clients
+
+For programmatic interaction with Kubo, see our [list of HTTP/RPC clients](docs/http-rpc-clients.md).
 
 ### Troubleshooting
 

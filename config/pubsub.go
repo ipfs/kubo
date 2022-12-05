@@ -11,4 +11,8 @@ type PubsubConfig struct {
 
 	// Enable pubsub (--enable-pubsub-experiment)
 	Enabled Flag `json:",omitempty"`
+
+	// SeenMessagesTTL configures the duration after which a previously seen
+	// message ID can be forgotten about.
+	SeenMessagesTTL *OptionalDuration `json:",omitempty"`
 }
