@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
 )
 
 // Routing defines configuration options for libp2p routing
@@ -78,6 +79,8 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 
 	var p interface{}
 	switch out.Type {
+	case RouterTypeHttp:
+		p = &HttpRouterParams{}
 	case RouterTypeReframe:
 		p = &ReframeRouterParams{}
 	case RouterTypeDHT:
@@ -104,6 +107,7 @@ type RouterType string
 
 const (
 	RouterTypeReframe    RouterType = "reframe"
+	RouterTypeHttp       RouterType = "http"
 	RouterTypeDHT        RouterType = "dht"
 	RouterTypeSequential RouterType = "sequential"
 	RouterTypeParallel   RouterType = "parallel"
@@ -133,6 +137,28 @@ type ReframeRouterParams struct {
 	// Endpoint is the URL where the routing implementation will point to get the information.
 	// Usually used for reframe Routers.
 	Endpoint string
+}
+
+type HttpRouterParams struct {
+	// Endpoint is the URL where the routing implementation will point to get the information.
+	Endpoint string
+
+	// MaxProvideBatchSize determines the maximum amount of CIDs sent per batch.
+	// Servers might not accept more than 100 elements per batch. 100 elements by default.
+	MaxProvideBatchSize int
+
+	// MaxProvideConcurrency determines the number of threads used when providing content. GOMAXPROCS by default.
+	MaxProvideConcurrency int
+}
+
+func (hrp *HttpRouterParams) FillDefaults() {
+	if hrp.MaxProvideBatchSize == 0 {
+		hrp.MaxProvideBatchSize = 100
+	}
+
+	if hrp.MaxProvideConcurrency == 0 {
+		hrp.MaxProvideConcurrency = runtime.GOMAXPROCS(0)
+	}
 }
 
 type DHTRouterParams struct {
