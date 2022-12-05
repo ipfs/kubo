@@ -40,6 +40,12 @@ jobs:
   ipfs-interop:
     needs: [prepare]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        suites:
+          - 'exchange-files'
+          - 'files pin circuit ipns cid-version-agnostic ipns-pubsub pubsub'
+      fail-fast: false
     defaults:
       run:
         shell: bash
@@ -67,7 +73,7 @@ jobs:
           npm install ipfs@^0.61.0
           npm install ipfs-interop@^8.0.10
         working-directory: interop
-      - run: npx ipfs-interop -- -t node
+      - run: npx ipfs-interop -- -t node $(sed -e 's#[^ ]*#-f test/&.js#g' <<< '${{ matrix.suites }}')
         env:
           LIBP2P_TCP_REUSEPORT: false
           LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
