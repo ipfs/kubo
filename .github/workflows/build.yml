@@ -50,7 +50,7 @@ jobs:
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
       - run: |
-          echo "::set-output name=dir::$(npm config get cache)"
+          echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
         id: npm-cache-dir
       - uses: actions/cache@v3
         with:
@@ -169,7 +169,7 @@ jobs:
           repository: ipfs/ipfs-webui
           path: ipfs-webui
       - run: |
-          echo "::set-output name=dir::$(npm config get cache)"
+          echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
         id: npm-cache-dir
       - uses: actions/cache@v3
         with:
