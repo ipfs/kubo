@@ -64,6 +64,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		pubsubOptions = append(
 			pubsubOptions,
 			pubsub.WithMessageSigning(!cfg.Pubsub.DisableSigning),
+			pubsub.WithSeenMessagesTTL(cfg.Pubsub.SeenMessagesTTL.WithDefault(pubsub.TimeCacheDuration)),
 		)
 
 		switch cfg.Pubsub.Router {
