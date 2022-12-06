@@ -27,7 +27,7 @@ function serve_http_routing_response() {
     local body=$1
     local status_code=${2:-"200 OK"}
     local length=$((1 + ${#body}))
-    echo -e "HTTP/1.1 $status_code\nContent-Length: $length\nContent-Type: text/plain; charset=utf-8\n\n$body" > response
+    echo -e "HTTP/1.1 $status_code\nContent-Length: $length\nContent-Type: application/json\n\n$body" > response
 }
 function stop_http_routing_mock_endpoint() {
     exec 7<&-
