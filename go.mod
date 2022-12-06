@@ -5,7 +5,7 @@ require (
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0
 	github.com/benbjohnson/clock v1.3.0
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cenkalti/backoff/v4 v4.1.3
+	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/ceramicnetwork/go-dag-jose v0.1.0
 	github.com/cespare/xxhash v1.1.0
 	github.com/cheggaaa/pb v1.0.29
