@@ -221,35 +221,37 @@ var swarmPeeringRmCmd = &cmds.Command{
 			return ErrNotOnline
 		}
 
+		pids := make(map[peer.ID]struct{}, len(req.Arguments))
 		for _, arg := range req.Arguments {
 			id, err := peer.Decode(arg)
 			if err != nil {
 				return err
 			}
-
+			pids[id] = struct{}{}
 			node.Peering.RemovePeer(id)
 			if err = res.Emit(peeringResult{id, "success"}); err != nil {
 				return err
 			}
+		}
 
-			save, _ := req.Options[swarmSaveOptionName].(bool)
-			if save {
-				update := func(cfg *config.Config) {
-					var cfgOut []peer.AddrInfo
-					for _, p := range cfg.Peering.Peers {
-						if p.ID == id {
-							continue
-						}
-						cfgOut = append(cfgOut, p)
+		save, _ := req.Options[swarmSaveOptionName].(bool)
+		if save {
+			update := func(cfg *config.Config) {
+				var cfgOut []peer.AddrInfo
+				for _, p := range cfg.Peering.Peers {
+					if _, ok := pids[p.ID]; ok {
+						continue
 					}
 
-					cfg.Peering.Peers = cfgOut
+					cfgOut = append(cfgOut, p)
 				}
 
-				err := updateAndPersistConfig(env, update)
-				if err != nil {
-					return fmt.Errorf("unable to update and persist config change: %w", err)
-				}
+				cfg.Peering.Peers = cfgOut
+			}
+
+			err := updateAndPersistConfig(env, update)
+			if err != nil {
+				return fmt.Errorf("unable to update and persist config change: %w", err)
 			}
 		}
 
