@@ -143,7 +143,7 @@ var swarmPeeringAddCmd = &cmds.Command{
 		save, _ := req.Options[swarmSaveOptionName].(bool)
 		if save {
 			update := func(cfg *config.Config) {
-				cfg.Peering.Peers = node.Peering.ListPeers()
+				cfg.Peering.Peers = append(cfg.Peering.Peers, addInfos...)
 			}
 			err := updateAndPersistConfig(env, update)
 			if err != nil {
@@ -231,16 +231,25 @@ var swarmPeeringRmCmd = &cmds.Command{
 			if err = res.Emit(peeringResult{id, "success"}); err != nil {
 				return err
 			}
-		}
 
-		save, _ := req.Options[swarmSaveOptionName].(bool)
-		if save {
-			update := func(cfg *config.Config) {
-				cfg.Peering.Peers = node.Peering.ListPeers()
-			}
-			err := updateAndPersistConfig(env, update)
-			if err != nil {
-				return fmt.Errorf("unable to update and persist config change: %w", err)
+			save, _ := req.Options[swarmSaveOptionName].(bool)
+			if save {
+				update := func(cfg *config.Config) {
+					var cfgOut []peer.AddrInfo
+					for _, p := range cfg.Peering.Peers {
+						if p.ID == id {
+							continue
+						}
+						cfgOut = append(cfgOut, p)
+					}
+
+					cfg.Peering.Peers = cfgOut
+				}
+
+				err := updateAndPersistConfig(env, update)
+				if err != nil {
+					return fmt.Errorf("unable to update and persist config change: %w", err)
+				}
 			}
 		}
 
