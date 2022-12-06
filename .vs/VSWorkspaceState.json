@@ -1,7 +1,16 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\.circleci",
+    "\\.github",
+    "\\.github\\ISSUE_TEMPLATE",
+    "\\assets",
+    "\\blocks",
+    "\\plugin",
+    "\\profile",
+    "\\thirdparty",
+    "\\thirdparty\\assert"
   ],
-  "SelectedNode": "\\C:\\Users\\user\\Source\\Repos\\kubo",
+  "SelectedNode": "\\config",
   "PreviewInSolutionExplorer": false
 }

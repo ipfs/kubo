@@ -16,6 +16,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gabriel-vasile/mimetype v1.4.1
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/ipfs/go-bitswap v0.4.1-0.20210907152348-a19b05e23dbc
 	github.com/ipfs/go-bitswap v0.10.2
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-blockservice v0.4.0
