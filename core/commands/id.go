@@ -176,18 +176,18 @@ func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (interface{
 
 	protocols, _ := ps.GetProtocols(p) // don't care about errors here.
 	for _, p := range protocols {
-		info.Protocols = append(info.Protocols, string(p))
+		info.Protocols = append(info.Protocols, version.TrimVersion(string(p)))
 	}
 	sort.Strings(info.Protocols)
 
 	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
 		if vs, ok := v.(string); ok {
-			info.ProtocolVersion = vs
+			info.ProtocolVersion = version.TrimVersion(vs)
 		}
 	}
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
-			info.AgentVersion = vs
+			info.AgentVersion = version.TrimVersion(vs)
 		}
 	}
 

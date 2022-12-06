@@ -2,6 +2,7 @@ package ipfs
 
 import (
 	"fmt"
+	"regexp"
 	"runtime"
 
 	"github.com/ipfs/kubo/repo/fsrepo"
@@ -15,6 +16,8 @@ const CurrentVersionNumber = "0.18.0-dev"
 
 const ApiVersion = "/kubo/" + CurrentVersionNumber + "/" //nolint
 
+const maxVersionLen = 64
+
 // GetUserAgentVersion is the libp2p user agent used by go-ipfs.
 //
 // Note: This will end in `/` when no commit is available. This is expected.
@@ -26,13 +29,27 @@ func GetUserAgentVersion() string {
 		}
 		userAgent += userAgentSuffix
 	}
-	return userAgent
+	return TrimVersion(userAgent)
 }
 
 var userAgentSuffix string
+var onlyASCII = regexp.MustCompile("[[:^ascii:]]")
 
 func SetUserAgentSuffix(suffix string) {
-	userAgentSuffix = suffix
+	userAgentSuffix = TrimVersion(suffix)
+}
+
+func TrimVersion(version string) string {
+	ascii := onlyASCII.ReplaceAllLiteralString(version, "")
+	chars := 0
+	for i := range ascii {
+		if chars >= maxVersionLen {
+			ascii = ascii[:i]
+			break
+		}
+		chars++
+	}
+	return ascii
 }
 
 type VersionInfo struct {

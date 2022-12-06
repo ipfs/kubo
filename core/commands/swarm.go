@@ -13,6 +13,7 @@ import (
 	"time"
 
 	files "github.com/ipfs/go-ipfs-files"
+	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/commands"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -284,7 +285,7 @@ var swarmPeersCmd = &cmds.Command{
 				}
 
 				for _, s := range strs {
-					ci.Streams = append(ci.Streams, streamInfo{Protocol: string(s)})
+					ci.Streams = append(ci.Streams, streamInfo{Protocol: version.TrimVersion(string(s))})
 				}
 			}
 			sort.Sort(&ci)
