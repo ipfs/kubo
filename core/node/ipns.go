@@ -11,8 +11,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
-	"github.com/ipfs/go-namesys"
-	"github.com/ipfs/go-namesys/republisher"
+	"github.com/ipfs/go-libipfs/namesys"
+	"github.com/ipfs/go-libipfs/namesys/republisher"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
 )

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	namesys "github.com/ipfs/go-namesys"
+	namesys "github.com/ipfs/go-libipfs/namesys"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	namesys "github.com/ipfs/go-namesys"
+	namesys "github.com/ipfs/go-libipfs/namesys"
 	version "github.com/ipfs/kubo"
 	core "github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"

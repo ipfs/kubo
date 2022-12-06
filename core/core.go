@@ -43,8 +43,8 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
-	"github.com/ipfs/go-namesys"
-	ipnsrp "github.com/ipfs/go-namesys/republisher"
+	"github.com/ipfs/go-libipfs/namesys"
+	ipnsrp "github.com/ipfs/go-libipfs/namesys/republisher"
 	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/core/node/libp2p"

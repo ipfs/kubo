@@ -7,7 +7,7 @@ import (
 	"time"
 
 	keystore "github.com/ipfs/go-ipfs-keystore"
-	"github.com/ipfs/go-namesys"
+	"github.com/ipfs/go-libipfs/namesys"
 	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"

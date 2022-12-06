@@ -49,14 +49,13 @@ require (
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.1.1
 	github.com/ipfs/go-ipns v0.3.0
-	github.com/ipfs/go-libipfs v0.0.0-20221130104825-592a45ae3796
+	github.com/ipfs/go-libipfs v0.0.0-20221206141745-65fce156a68d
 	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipfs/go-merkledag v0.8.1
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.2.1
-	github.com/ipfs/go-namesys v0.5.0
 	github.com/ipfs/go-path v0.3.0
 	github.com/ipfs/go-pinning-service-http-client v0.1.2
 	github.com/ipfs/go-unixfs v0.4.1

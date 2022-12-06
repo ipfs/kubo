@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	cid "github.com/ipfs/go-cid"
-	namesys "github.com/ipfs/go-namesys"
+	namesys "github.com/ipfs/go-libipfs/namesys"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	"github.com/libp2p/go-libp2p/core/peer"
