@@ -141,6 +141,10 @@ config file at runtime.
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
+        - [Levels of Configuration](#levels-of-configuration)
+        - [Default Limits](#default-limits)
+        - [Active Limits](#active-limits)
+        - [libp2p resource monitoring](#libp2p-resource-monitoring)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.MaxMemory`](#swarmresourcemgrmaxmemory)
       - [`Swarm.ResourceMgr.MaxFileDescriptors`](#swarmresourcemgrmaxfiledescriptors)
@@ -1342,6 +1346,7 @@ It specifies the routing type that will be created.
 Currently supported types:
 
 - `reframe` **(DEPRECATED)** (delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme))
+- `http` simple delegated routing based on HTTP protocol. <!-- TODO add link to specs when we have them merged. -->
 - `dht`
 - `parallel` and `sequential`: Helpers that can be used to run several routers sequentially or in parallel.
 
@@ -1355,6 +1360,11 @@ Parameters needed to create the specified router. Supported params per router ty
 
 Reframe **(DEPRECATED)**:
   - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
+
+HTTP:
+  - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
+  - `MaxProvideBatchSize`: This number determines the maximum amount of CIDs sent per batch. Servers might not accept more than 100 elements per batch. 100 elements by default.
+  - `MaxProvideConcurrency`: It determines the number of threads used when providing content. GOMAXPROCS by default.
 
 DHT:
   - `"Mode"`: Mode used by the DHT. Possible values: "server", "client", "auto"
