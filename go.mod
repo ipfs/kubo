@@ -60,7 +60,7 @@ require (
 	github.com/ipfs/go-path v0.3.0
 	github.com/ipfs/go-pinning-service-http-client v0.1.2
 	github.com/ipfs/go-unixfs v0.4.1
-	github.com/ipfs/go-unixfsnode v1.4.0
+	github.com/ipfs/go-unixfsnode v1.5.0
 	github.com/ipfs/go-verifcid v0.0.2
 	github.com/ipfs/interface-go-ipfs-core v0.7.0
 	github.com/ipld/go-car v0.4.0
@@ -118,7 +118,6 @@ require (
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/Kubuxu/go-os-helper v0.0.1 // indirect
-	github.com/Stebalien/go-bitfield v0.0.1 // indirect
 	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a // indirect
 	github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
