@@ -59,7 +59,7 @@ Source: [core/node/libp2p/rcmgr_defaults.go](https://github.com/ipfs/kubo/blob/m
 Once Kubo has the [Computed Default Limits](#computed-default-limits), it then applies any user-supplied `Swarm.ResourceMgr.Limits` on top.  These become the [active limits](#how-does-one-see-the-active-limits).
 
 ### Infinite limits
-There isn't a way via config to specify infinite limits (see [go-libp2p#1935](https://github.com/libp2p/go-libp2p/issues/1935)).  For example, "-1" is not infinity.  To work around this, Kubo uses a magic number of "999999999999999999" to denote infinity since it's effectively infinite.  
+There isn't a way via config to specify infinite limits (see [go-libp2p#1935](https://github.com/libp2p/go-libp2p/issues/1935)).  For example, "-1" is not infinity.  To work around this, Kubo uses a magic number of "1000000000" to denote infinity since it's effectively infinite.  
 
 ## FAQ
 ### What do these "Protected from exceeding resource limits" log messages mean?
