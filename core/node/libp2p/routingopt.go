@@ -26,8 +26,7 @@ type RoutingOption func(
 
 // Default HTTP routers used in parallel to DHT when Routing.Type = "auto"
 var defaultHTTPRouters = []string{
-	"https://dev.cid.contact/routing/v1", // TODO: remove when cid.contact is ready
-	"https://cid.contact/routing/v1",     // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
+	"https://cid.contact/routing/v1", // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
 	// TODO: add an independent router from Cloudflare
 }
 
