@@ -1804,11 +1804,11 @@ Type: `optionalDuration`
 ### `Swarm.ResourceMgr`
 
 Learn more about Kubo's usage of [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#readme) 
-in the [dedciated resource management](./libp2p-resource-management.md) docs.
+in the [dedicated resource management docs](./libp2p-resource-management.md).
 
 #### `Swarm.ResourceMgr.Enabled`
 
-Enables the libp2p Resource Manager using limits based on the defaults and/or other configuration as discussed in [libp2p resource management](./libp2p-resource-management).md).
+Enables the libp2p Resource Manager using limits based on the defaults and/or other configuration as discussed in [libp2p resource management](./libp2p-resource-management.md).
 
 Default: `true`
 Type: `flag`
@@ -1818,7 +1818,7 @@ Type: `flag`
 This is the max amount of memory to allow libp2p to use.
 libp2p's resource manager will prevent additional resource creation while this limit is reached.
 This value is also used to scale the limit on various resources at various scopes 
-when the default limits (discussed in [libp2p resource management](./libp2p-resource-management)) are used.
+when the default limits (discussed in [libp2p resource management](./libp2p-resource-management.md)) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
 Default: `[TOTAL_SYSTEM_MEMORY]/4`
