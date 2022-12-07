@@ -47,7 +47,7 @@ var noLimitIncrease = rcmgr.BaseLimitIncrease{
 // The defaults follow the documentation in docs/config.md.
 // Any changes in the logic here should be reflected there.
 func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error) {
-	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 2)
+	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 4)
 	maxMemoryString := cfg.ResourceMgr.MaxMemory.WithDefault(maxMemoryDefaultString)
 	maxMemory, err := humanize.ParseBytes(maxMemoryString)
 	if err != nil {

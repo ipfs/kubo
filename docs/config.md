@@ -1869,7 +1869,7 @@ This value is also used to scale the limit on various resources at various scope
 when the default limits (discuseed above) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
-Default: `[TOTAL_SYSTEM_MEMORY]/2`
+Default: `[TOTAL_SYSTEM_MEMORY]/4`
 Type: `optionalBytes`
 
 #### `Swarm.ResourceMgr.MaxFileDescriptors`
