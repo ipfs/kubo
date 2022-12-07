@@ -96,11 +96,11 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 
 // DefaultConnMgrHighWater is the default value for the connection managers
 // 'high water' mark
-const DefaultConnMgrHighWater = 900
+const DefaultConnMgrHighWater = 150
 
 // DefaultConnMgrLowWater is the default value for the connection managers 'low
 // water' mark
-const DefaultConnMgrLowWater = 600
+const DefaultConnMgrLowWater = 50
 
 // DefaultConnMgrGracePeriod is the default value for the connection managers
 // grace period

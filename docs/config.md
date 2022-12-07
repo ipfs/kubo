@@ -1778,7 +1778,7 @@ The connection manager considers a connection idle if:
 LowWater is the number of connections that the basic connection manager will
 trim down to.
 
-Default: `600`
+Default: `50`
 
 Type: `optionalInteger`
 
@@ -1788,7 +1788,7 @@ HighWater is the number of connections that, when exceeded, will trigger a
 connection GC operation. Note: protected/recently formed connections don't count
 towards this limit.
 
-Default: `900`
+Default: `150`
 
 Type: `optionalInteger`
 
