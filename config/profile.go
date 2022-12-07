@@ -174,7 +174,7 @@ functionality - performance of content discovery and data
 fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
-			c.Routing.Type = "dhtclient"
+			c.Routing.Type = NewOptionalString("dhtclient") // TODO: replace 'dhtclient' with 'autoclient' that prioritizes HTTP and uses dhtclient only after some delay as a fallback
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
 			c.Reprovider.Interval = "0"
 

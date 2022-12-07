@@ -61,6 +61,7 @@ const (
 	routingOptionNoneKwd      = "none"
 	routingOptionCustomKwd    = "custom"
 	routingOptionDefaultKwd   = "default"
+	routingOptionAutoKwd      = "auto"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedAPIAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
@@ -89,7 +90,7 @@ For example, to change the 'Gateway' port:
 
   ipfs config Addresses.Gateway /ip4/127.0.0.1/tcp/8082
 
-The API address can be changed the same way:
+The RPC API address can be changed the same way:
 
   ipfs config Addresses.API /ip4/127.0.0.1/tcp/5002
 
@@ -100,14 +101,14 @@ other computers in the network, use 0.0.0.0 as the ip address:
 
   ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 
-Be careful if you expose the API. It is a security risk, as anyone could
+Be careful if you expose the RPC API. It is a security risk, as anyone could
 control your node remotely. If you need to control the node remotely,
 make sure to protect the port as you would other services or database
 (firewall, authenticated proxy, etc).
 
 HTTP Headers
 
-ipfs supports passing arbitrary headers to the API and Gateway. You can
+ipfs supports passing arbitrary headers to the RPC API and Gateway. You can
 do this by setting headers on the API.HTTPHeaders and Gateway.HTTPHeaders
 keys:
 
@@ -140,18 +141,6 @@ located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
 environment variable:
 
   export IPFS_PATH=/path/to/ipfsrepo
-
-Routing
-
-IPFS by default will use a DHT for content routing. There is an alternative
-that operates the DHT in a 'client only' mode that can be enabled by
-running the daemon as:
-
-  ipfs daemon --routing=dhtclient
-
-Or you can set routing to dhtclient in the config:
-
-  ipfs config Routing.Type dhtclient
 
 DEPRECATION NOTICE
 
@@ -402,14 +391,20 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd {
-		routingOption = cfg.Routing.Type
+		routingOption = cfg.Routing.Type.WithDefault(routingOptionAutoKwd)
 		if routingOption == "" {
-			routingOption = routingOptionDHTKwd
+			routingOption = routingOptionAutoKwd
 		}
 	}
 	switch routingOption {
 	case routingOptionSupernodeKwd:
 		return errors.New("supernode routing was never fully implemented and has been removed")
+	case routingOptionDefaultKwd, routingOptionAutoKwd:
+		ncfg.Routing = libp2p.ConstructDefaultRouting(
+			cfg.Identity.PeerID,
+			cfg.Addresses.Swarm,
+			cfg.Identity.PrivKey,
+		)
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = libp2p.DHTClientOption
 	case routingOptionDHTKwd:
