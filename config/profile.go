@@ -176,7 +176,7 @@ fetching may be degraded.
 		Transform: func(c *Config) error {
 			c.Routing.Type = "dhtclient"
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
-			c.Reprovider.Interval = "0"
+			c.Reprovider.Interval = NewOptionalDuration(0)
 
 			lowWater := int64(20)
 			highWater := int64(40)

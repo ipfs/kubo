@@ -76,8 +76,8 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			APICommands: []string{},
 		},
 		Reprovider: Reprovider{
-			Interval: "22h",
-			Strategy: "all",
+			Interval: nil,
+			Strategy: nil,
 		},
 		Pinning: Pinning{
 			RemoteServices: map[string]RemotePinningService{},
