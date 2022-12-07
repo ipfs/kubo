@@ -112,7 +112,7 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 			lrm.start(helpers.LifecycleCtx(mctx, lc))
 			manager = lrm
 		} else {
-			log.Debug("libp2p resource manager is disabled")
+			fmt.Println("go-libp2p resource manager protection disabled")
 			manager = network.NullResourceManager
 		}
 
