@@ -26,7 +26,6 @@ import (
 var logger = log.Logger("core:constructor")
 
 var BaseLibP2P = fx.Options(
-	fx.Provide(libp2p.UserAgent),
 	fx.Provide(libp2p.PNet),
 	fx.Provide(libp2p.ConnectionManager),
 	fx.Provide(libp2p.Host),
@@ -133,6 +132,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	// Gather all the options
 	opts := fx.Options(
 		BaseLibP2P,
+
+		// identify's AgentVersion (incl. optional agent-version-suffix)
+		fx.Provide(libp2p.UserAgent()),
 
 		// Services (resource management)
 		fx.Provide(libp2p.ResourceManager(cfg.Swarm)),
