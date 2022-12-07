@@ -360,6 +360,11 @@ The output of this command is JSON.
 
 		percentage, _ := req.Options[swarmUsedResourcesPercentageName].(int)
 		scope := req.Arguments[0]
+
+		if percentage != 0 && scope != "all" {
+			return fmt.Errorf("%q can only be used when scope is %q", swarmUsedResourcesPercentageName, "all")
+		}
+
 		result, err := libp2p.NetStat(node.ResourceManager, scope, percentage)
 		if err != nil {
 			return err

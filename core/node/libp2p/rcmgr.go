@@ -309,7 +309,7 @@ func abovePercentage(v1, v2, percentage int) bool {
 		return false
 	}
 
-	return int((v1/v2))*100 >= percentage
+	return int((float64(v1)/float64(v2))*100) >= percentage
 }
 
 func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {

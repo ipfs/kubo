@@ -62,6 +62,11 @@ test_expect_success 'ResourceMgr enabled: swarm limit reset' '
   test_cmp reset actual
 '
 
+test_expect_success 'Swarm stats system with filter should fail' '
+  test_expect_code 1 ipfs swarm stats system --min-used-limit-perc=99 2> actual &&
+  test_should_contain "Error: \"min-used-limit-perc\" can only be used when scope is \"all\"" actual
+'
+
 test_expect_success 'ResourceMgr enabled: swarm limit reset on map values' '
   ipfs swarm limit peer:12D3KooWL7i1T9VSPeF8AgQApbyM51GNKZsYPvNvL347aMDmvNzG --reset --enc=json 2> reset &&
   ipfs swarm limit peer:12D3KooWL7i1T9VSPeF8AgQApbyM51GNKZsYPvNvL347aMDmvNzG --enc=json 2> actual &&
