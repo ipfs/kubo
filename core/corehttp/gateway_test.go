@@ -498,9 +498,9 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
 	}
-	if !strings.Contains(s, "<a class=\"ipfs-hash\" translate=\"no\" href=\"https://cid.ipfs.io/#") {
+	if !strings.Contains(s, "<a class=\"ipfs-hash\" translate=\"no\" href=\"https://cid.ipfs.tech/#") {
 		// https://github.com/ipfs/dir-index-html/issues/42
-		t.Fatalf("expected links to cid.ipfs.io in CID column when on DNSLink website")
+		t.Fatalf("expected links to cid.ipfs.tech in CID column when on DNSLink website")
 	}
 	if !strings.Contains(s, k2.Cid().String()) {
 		t.Fatalf("expected hash in directory listing")
@@ -535,9 +535,9 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, "<a href=\"/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
 	}
-	if !strings.Contains(s, "<a class=\"ipfs-hash\" translate=\"no\" href=\"https://cid.ipfs.io/#") {
+	if !strings.Contains(s, "<a class=\"ipfs-hash\" translate=\"no\" href=\"https://cid.ipfs.tech/#") {
 		// https://github.com/ipfs/dir-index-html/issues/42
-		t.Fatalf("expected links to cid.ipfs.io in CID column when on DNSLink website")
+		t.Fatalf("expected links to cid.ipfs.tech in CID column when on DNSLink website")
 	}
 	if !strings.Contains(s, k.Cid().String()) {
 		t.Fatalf("expected hash in directory listing")

@@ -87,7 +87,10 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 		return adder.mroot, nil
 	}
 	rnode := unixfs.EmptyDirNode()
-	rnode.SetCidBuilder(adder.CidBuilder)
+	err := rnode.SetCidBuilder(adder.CidBuilder)
+	if err != nil {
+		return nil, err
+	}
 	mr, err := mfs.NewRoot(adder.ctx, adder.dagService, rnode, nil)
 	if err != nil {
 		return nil, err
@@ -384,7 +387,10 @@ func (adder *Adder) addSymlink(path string, l *files.Symlink) error {
 	}
 
 	dagnode := dag.NodeWithData(sdata)
-	dagnode.SetCidBuilder(adder.CidBuilder)
+	err = dagnode.SetCidBuilder(adder.CidBuilder)
+	if err != nil {
+		return err
+	}
 	err = adder.dagService.Add(adder.ctx, dagnode)
 	if err != nil {
 		return err

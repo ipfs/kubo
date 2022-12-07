@@ -1,8 +1,6 @@
 package libp2p
 
 import (
-	"math"
-
 	"github.com/dustin/go-humanize"
 	"github.com/libp2p/go-libp2p"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
@@ -16,8 +14,8 @@ import (
 // When you don't have a type the JSON Parse function cast numbers to float64 by default,
 // losing precision when writing the final number. So if we use math.MaxInt as our infinite number,
 // after writing the config file we will have 9223372036854776000 instead of 9223372036854775807,
-// making the parsing process fail.
-const bigEnough = math.MaxInt / 2
+// making the parsing process fail. Setting 1e9 (1000000000) as "no limit" value. It also avoids to overflow on 32 bit architectures.
+const bigEnough = 1e9
 
 var infiniteBaseLimit = rcmgr.BaseLimit{
 	Streams:         bigEnough,
