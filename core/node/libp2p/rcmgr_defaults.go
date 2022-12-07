@@ -69,8 +69,8 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 
 	scalingLimitConfig := rcmgr.ScalingLimitConfig{
 		SystemBaseLimit: rcmgr.BaseLimit{
-			Memory: rcmgr.DefaultLimits.SystemBaseLimit.Memory,
-			FD:     rcmgr.DefaultLimits.SystemBaseLimit.FD,
+			Memory: int64(maxMemory),
+			FD:     int(numFD),
 
 			// By default, we just limit connections on the inbound side.
 			Conns:         bigEnough,
@@ -87,8 +87,8 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 		// Most limits don't see an increase because they're already infinite/bigEnough or at their max value.
 		// The values that should scale based on the amount of memory allocated to libp2p need to increase accordingly.
 		SystemLimitIncrease: rcmgr.BaseLimitIncrease{
-			Memory:     rcmgr.DefaultLimits.SystemLimitIncrease.Memory,
-			FDFraction: rcmgr.DefaultLimits.SystemLimitIncrease.FDFraction,
+			Memory:     0,
+			FDFraction: 0,
 
 			Conns:         0,
 			ConnsInbound:  rcmgr.DefaultLimits.SystemLimitIncrease.ConnsInbound,
