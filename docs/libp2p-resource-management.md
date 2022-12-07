@@ -75,6 +75,8 @@ Specificaly the ``Swarm.ResourceMgr.Limits.System.ConnsInbound`` [active limit](
 This can be analyzed by viewing the limit with `ipfs swarm limit system` and comparing the usage with `ipfs swarm stats system`.
 `ConnsInbound` is likely close or at the limit value.
 
+The simiplest way to identify all resources across all scopes that are close to exceeding their limit is with a command like `ipfs swarm stats --min-used-limit-perc=90 all`.
+
 Sources:
 * [kubo resource manager logging](https://github.com/ipfs/kubo/blob/master/core/node/libp2p/rcmgr_logging.go)
 * [libp2p resource manager messages](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/scope.go)
