@@ -77,7 +77,7 @@ test_expect_success "ipfs gateway works with the correct allowed origin port" '
 '
 
 test_expect_success "ipfs daemon output looks good" '
-  STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" 
+  STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
   echo "Initializing daemon..." >expected_daemon &&
   ipfs version --all >> expected_daemon &&
   echo "" >>expected_daemon &&
