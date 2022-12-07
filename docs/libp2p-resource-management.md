@@ -1,25 +1,36 @@
-The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#readme) allows setting limits per [Resource Scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes)
+## Purpose
+The purpose of this document is to provide more information about the [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#readme) and how it's integrated into Kubo so that Kubo users can understand and configure it appropriately.
 
-##### Levels of Configuration
+## 🙋 Help!  The resource manager is protecting my node but I want to understand more 
+The resource manager is generally a *feature* to bound libp2p's resources, whether from bugs, unintentinoally misbehaving peers, or intentional Denial of Service attacks.
 
-libp2p's resource manager provides tremendous flexibility but also adds a lot of complexity.
-There are these levels of limit configuration for resource management protection:
-1. "The user who does nothing" - In this case they get some sane defaults discussed below
+Good places to start are:
+1. Understand [how the resource manager is configured](#levels-of-configuration).
+2. Understand [how to read the log message](#what-do-these-protected-from-exceeding-resource-limits-log-messages-mean)
+3. Confirm [the log message is from your local node](#what-are-the-application-error--cannot-reserve--messages)
+4. [Monitor resource usage](#how-does-one-monitor-libp2p-resource-usage) and compare them to the [active limits](#how-does-one-see-the-active-limits) with the  
+
+## Levels of Configuration
+See also the [`Swarm.ResourceMgr` config docs](./config.md#swarmresourcemgr).
+
+### Approach
+libp2p's resource manager provides tremendous flexibility but also adds complexity.  There are these levels of limit configuration for resource management protection:
+1. "The user who does nothing" - In this case Kubo attempts to give some sane defaults discussed below
    based on the amount of memory and file descriptors their system has.
    This should protect the node from many attacks.
 2. "Slightly more advanced user" - They can tweak the default limits discussed below.  
    Where the defaults aren't good enough, a good set of higher-level "knobs" are exposed to satisfy most use cases
    without requiring users to wade into all the intricacies of libp2p's resource manager.
    The "knobs"/inputs are `Swarm.ResourceMgr.MaxMemory` and `Swarm.ResourceMgr.MaxFileDescriptors` as described below. 
-3. "Power user" - They specify all the default limits from below they want override via `Swarm.ResourceMgr.Limits`;
+3. "Power user" - They specify overrides to computed default limits via `Swarm.ResourceMgr.Limits`;
 
-##### Default Limits
-
-With these inputs defined, [resource manager limits](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#limits) are created at the 
+### Computed Default Limits
+With the `Swarm.ResourceMgr.MaxMemory` and `Swarm.ResourceMgr.MaxFileDescriptors` inputs defined,
+[resource manager limits](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#limits) are created at the 
 [system](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#the-system-scope), 
 [transient](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#the-transient-scope), 
 and [peer](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#peer-scopes) scopes.
-Other scopes are ignored (by being set to "~infinity".
+Other scopes are ignored (by being set to "[~infinity](#infinite-limits])".
 
 The reason these scopes are chosen is because:
 - system - This gives us the coarse-grained control we want so we can reason about the system as a whole.
@@ -37,16 +48,66 @@ Within these scopes, limits are just set on
 [memory](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#memory), 
 [file descriptors (FD)](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#file-descriptors), [*inbound* connections](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#connections),
 and [*inbound* streams](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#streams).
-Limits are set based on the inputs above.
+Limits are set based on the `Swarm.ResourceMgr.MaxMemory` and `Swarm.ResourceMgr.MaxFileDescriptors` inputs above.
 We trust this node to behave properly and thus don't limit *outbound* connection/stream limits.
 We apply any limits that libp2p has for its protocols/services
 since we assume libp2p knows best here.
 
-##### Active Limits
-A dump of what limits were computed and are actually being used by the resource manager
+Source: [core/node/libp2p/rcmgr_defaults.go](https://github.com/ipfs/kubo/blob/master/core/node/libp2p/rcmgr_defaults.go)
+
+### User Supplied Override Limits
+Once Kubo has the [Computed Default Limits](#computed-default-limits), it then applies any user-supplied `Swarm.ResourceMgr.Limits` on top.  These become the [active limits](#how-does-one-see-the-active-limits).
+
+### Infinite limits
+There isn't a way via config to specify infinite limits (see [go-libp2p#1935](https://github.com/libp2p/go-libp2p/issues/1935)).  For example, "-1" is not infinity.  To work around this, Kubo uses a magic number of "999999999999999999" to denote infinity since it's effectively infinite.  
+
+## FAQ
+### What do these "Protected from exceeding resource limits" log messages mean?
+"Protected from exceeding resource limits" log messages denote that the resource manager is working and that it prevented additional resources being used beyond the set limits.  Per [libp2p code](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/scope.go), these messages take the form of "$scope: cannot resvere $limitKey".  
+
+As an example:
+
+> Protected from exceeding resource limits 2 times: "system: cannot reserve inbound connection: resource limit exceeded"
+
+This means that there were 2 recent occurences where the libp2p resource manager prevented an inbound connection at the "system" [scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes).  
+Specificaly the ``Swarm.ResourceMgr.Limits.System.ConnsInbound`` [active limit](#how-does-one-see-the-active-limits) was hit.  
+
+This can be analyzed by viewing the limit with `ipfs swarm limit system` and comparing the usage with `ipfs swarm stats system`.
+`ConnsInbound` is likely close or at the limit value.
+
+Sources:
+* [kubo resource manager logging](https://github.com/ipfs/kubo/blob/master/core/node/libp2p/rcmgr_logging.go)
+* [libp2p resource manager messages](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/scope.go)
+
+### What are the "Application error ... cannot reserve ..." messages?
+These are messages from a *remote* go-libp2p peer (likely another Kubo node) with the resource manager enabled on why it failed to establish a connection.  
+
+This can be confusing, but these `Application error ... cannot reserve ...` messages can occur even if your local node has the resoure manager disabled.
+
+You can distinguish resource manager messages originating from your local node if they're from the `resourcemanager` / `libp2p/rcmgr_logging.go` logger
+or you see the string that is unique to Kubo (and not in go-libp2p): "Protected from exceeding resource limits".
+
+There is a go-libp2p issue ([#1928](https://github.com/libp2p/go-libp2p/issues/1928)) to make it clearer that this is an error message originating from a remote peer.
+
+### How does the resource manager (ResourceMgr) relate to the connection manager (ConnMgr)?
+As discussed [here](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#connmanager-vs-resource-manager)
+these are separate systems in go-libp2p.
+Kubo also configures the ConnMgr separately from ResourceMgr.  There is no checking to make sure the limits between the systems are congruent.
+
+Ideally `Swarm.ConnMgr.HighWater` is less than `Swarm.ResourceMgr.Limits.System.ConnsInbound`.
+This is so the ConnMgr can kick in and cleanup connections based on connection priorities before the hard limits of the ResourceMgr are applied. 
+If `Swarm.ConnMgr.HighWater` is greater than `Swarm.ResourceMgr.Limits.System.ConnsInbound`,
+existing low priority idle connections can prevent new high priority connections from being established.
+The ResourceMgr doesn't know that the new connection is high priority and simply blocks it because of the limit its enforcing.  
+
+### How does one see the Active Limits?
+A dump of what limits are actually being used by the resource manager ([Computed Default Limits](#computed-default-limits) + [User Supplied Override Limits](#user-supplied-override-limits))
 can be obtained by `ipfs swarm limit all`.
 
-##### libp2p resource monitoring
+### How does one see the Computed Default Limits?
+This can be observed with an empty `Swarm.ResourceMgr.Limits` and then [seeing the active limits](#how-does-one-see-the-active-limits).
+
+### How does one monitor libp2p resource usage?
 For [monitoring libp2p resource usage](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#monitoring), 
 various `*rcmgr_*` metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`).  
 There are also [pre-built Grafana dashboards](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager/obs/grafana-dashboards) that can be added to a Grafana instance. 
@@ -54,95 +115,5 @@ There are also [pre-built Grafana dashboards](https://github.com/libp2p/go-libp2
 A textual view of current resource usage and a list of services, protocols, and peers can be
 obtained via `ipfs swarm stats --help`
 
-#### `Swarm.ResourceMgr.Enabled`
-
-Enables the libp2p Resource Manager using limits based on the defaults and/or other configuration as discussed above.
-
-Default: `true`
-Type: `flag`
-
-#### `Swarm.ResourceMgr.MaxMemory`
-
-This is the max amount of memory to allow libp2p to use.
-libp2p's resource manager will prevent additional resource creation while this limit is reached.
-This value is also used to scale the limit on various resources at various scopes 
-when the default limits (discuseed above) are used.
-For example, increasing this value will increase the default limit for incoming connections.
-
-Default: `[TOTAL_SYSTEM_MEMORY]/8`
-Type: `optionalBytes`
-
-#### `Swarm.ResourceMgr.MaxFileDescriptors`
-
-This is the maximum number of file descriptors to allow libp2p to use.
-libp2p's resource manager will prevent additional file descriptor consumption while this limit is reached.
-
-This param is ignored on Windows.
-
-Default `[TOTAL_SYSTEM_FILE_DESCRIPTORS]/2`
-Type: `optionalInteger`
-
-#### `Swarm.ResourceMgr.Limits`
-
-Map of resource limits [per scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes).
-
-The map supports fields from the [`LimitConfig` struct](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit_defaults.go#L111).
-
-[`BaseLimit`s](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit.go#L89) can be set for any scope, and within the `BaseLimit`, all limit <key,value>s are optional.
-
-The `Swarm.ResourceMgr.Limits` override the default limits described above. 
-Any override `BaseLimits` or limit <key,value>s from `Swarm.ResourceMgr.Limits`
-that aren't specified will use the default limits.
-
-Example #1: setting limits for a specific scope
-```json
-{
-  "Swarm": {
-    "ResourceMgr": {
-      "Limits": {
-        "System": {
-          "Memory": 1073741824,
-          "FD": 512,
-          "Conns": 1024,
-          "ConnsInbound": 256,
-          "ConnsOutbound": 1024,
-          "Streams": 16384,
-          "StreamsInbound": 4096,
-          "StreamsOutbound": 16384
-        }
-      }
-    }
-  }
-}
-```
-
-Example #2: setting a specific <key,value> limit
-```json
-{
-  "Swarm": {
-    "ResourceMgr": {
-      "Limits": {
-        "Transient": {
-          "ConnsOutbound": 256,
-        }
-      }
-    }
-  }
-}
-```
-
-It is also possible to adjust some runtime limits via `ipfs swarm limit --help`.
-Changes made via `ipfs swarm limit` are persisted in `Swarm.ResourceMgr.Limits`.
-
-Default: `{}` (use the safe implicit defaults described above)
-
-Type: `object[string->object]`
-
-#### `Swarm.ResourceMgr.Allowlist`
-
-A list of multiaddrs that can bypass normal system limits (but are still limited by the allowlist scope).
-Convenience config around [go-libp2p-resource-manager#Allowlist.Add](https://pkg.go.dev/github.com/libp2p/go-libp2p/p2p/host/resource-manager#Allowlist.Add).
-
-Default: `[]`
-
-Type: `array[string]` (multiaddrs)
+## History
+Kubo first [exposed this functionality in Kubo 0.13](./changelogs/v0.13.md#-libp2p-network-resource-manager-swarmresourcemgr), but it was disabled by default.  It was then enabled by default in [Kubo 0.17](./changelogs/v0.17.md#libp2p-resource-management-enabled-by-default).  Until that point, Kubo was vulnerable to unbound resource usage which could bring down nodes.  Introducing limits like this by default after the fact is tricky, which is why there have been changes and improvements afterwards.
