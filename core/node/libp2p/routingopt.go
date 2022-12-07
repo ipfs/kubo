@@ -57,8 +57,8 @@ func ConstructDefaultRouting(peerID string, addrs []string, privKey string) func
 		}
 		routers = append(routers, &routinghelpers.ParallelRouter{
 			Router:       dhtRouting,
-			IgnoreError:  false,           // TODO: confirm this is what we want
-			Timeout:      1 * time.Minute, // TODO: what value makes sense here?
+			IgnoreError:  false,
+			Timeout:      5 * time.Minute, // https://github.com/ipfs/kubo/pull/9475#discussion_r1042501333
 			ExecuteAfter: 0,
 		})
 
@@ -70,8 +70,8 @@ func ConstructDefaultRouting(peerID string, addrs []string, privKey string) func
 			}
 			routers = append(routers, &routinghelpers.ParallelRouter{
 				Router:       httpRouter,
-				IgnoreError:  true,            // TODO: confirm this is what we want
-				Timeout:      1 * time.Minute, // TODO: what value makes sense here?
+				IgnoreError:  true,             // https://github.com/ipfs/kubo/pull/9475#discussion_r1042507387
+				Timeout:      15 * time.Second, // 5x server value from https://github.com/ipfs/kubo/pull/9475#discussion_r1042428529
 				ExecuteAfter: 0,
 			})
 		}
