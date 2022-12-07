@@ -58,7 +58,7 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 
 	// We want to see this message on startup, that's why we are using fmt instead of log.
 	fmt.Printf(`
-Computing default go-libp2p Resource Manager limits based on: 
+Computing default go-libp2p Resource Manager limits based on:
     - 'Swarm.ResourceMgr.MaxMemory': %q
     - 'Swarm.ResourceMgr.MaxFileDescriptors': %d
 
