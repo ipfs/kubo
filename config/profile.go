@@ -176,7 +176,7 @@ fetching may be degraded.
 		Transform: func(c *Config) error {
 			c.Routing.Type = NewOptionalString("dhtclient") // TODO: replace 'dhtclient' with 'autoclient' that prioritizes HTTP and uses dhtclient only after some delay as a fallback
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
-			c.Reprovider.Interval = "0"
+			c.Reprovider.Interval = NewOptionalDuration(0)
 
 			lowWater := int64(20)
 			highWater := int64(40)

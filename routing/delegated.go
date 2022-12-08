@@ -187,7 +187,10 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 	transport.MaxIdleConnsPerHost = 100
 
 	delegateHTTPClient := &http.Client{
-		Transport: transport,
+		Transport: &drclient.ResponseBodyLimitedTransport{
+			RoundTripper: transport,
+			LimitBytes:   1 << 20,
+		},
 	}
 
 	key, err := decodePrivKey(extraHTTP.PrivKeyB64)

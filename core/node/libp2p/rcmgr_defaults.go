@@ -1,6 +1,8 @@
 package libp2p
 
 import (
+	"fmt"
+
 	"github.com/dustin/go-humanize"
 	"github.com/libp2p/go-libp2p"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
@@ -54,6 +56,17 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 
 	numFD := cfg.ResourceMgr.MaxFileDescriptors.WithDefault(int64(fd.GetNumFDs()) / 2)
 
+	// We want to see this message on startup, that's why we are using fmt instead of log.
+	fmt.Printf(`
+Computing default go-libp2p Resource Manager limits based on:
+    - 'Swarm.ResourceMgr.MaxMemory': %q
+    - 'Swarm.ResourceMgr.MaxFileDescriptors': %d
+
+Applying any user-supplied overrides on top.
+Run 'ipfs swarm limit all' to see the resulting limits.
+
+`, maxMemoryString, numFD)
+
 	scalingLimitConfig := rcmgr.ScalingLimitConfig{
 		SystemBaseLimit: rcmgr.BaseLimit{
 			Memory: int64(maxMemory),
@@ -74,8 +87,8 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 		// Most limits don't see an increase because they're already infinite/bigEnough or at their max value.
 		// The values that should scale based on the amount of memory allocated to libp2p need to increase accordingly.
 		SystemLimitIncrease: rcmgr.BaseLimitIncrease{
-			Memory:     rcmgr.DefaultLimits.SystemLimitIncrease.Memory,
-			FDFraction: rcmgr.DefaultLimits.SystemLimitIncrease.FDFraction,
+			Memory:     0,
+			FDFraction: 0,
 
 			Conns:         0,
 			ConnsInbound:  rcmgr.DefaultLimits.SystemLimitIncrease.ConnsInbound,

@@ -218,6 +218,11 @@ type OptionalDuration struct {
 	value *time.Duration
 }
 
+// NewOptionalDuration returns an OptionalDuration from a string
+func NewOptionalDuration(d time.Duration) *OptionalDuration {
+	return &OptionalDuration{value: &d}
+}
+
 func (d *OptionalDuration) UnmarshalJSON(input []byte) error {
 	switch string(input) {
 	case "null", "undefined", "\"null\"", "", "default", "\"\"", "\"default\"":
