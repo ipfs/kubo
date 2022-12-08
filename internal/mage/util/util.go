@@ -2,37 +2,53 @@ package util
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/google/go-github/v48/github"
 	"golang.org/x/oauth2"
-	"os"
 
 	"dagger.io/dagger"
 )
 
-func alpineBase(i string, c *dagger.Client) *dagger.Container {
-	return c.Container().
-		From(i).
-		WithExec([]string{"apk", "add", "build-base"}).
-		WithExec([]string{"apk", "add", "git"}).
-		WithWorkdir("/app")
+func WithGitSecrets(client *dagger.Client, container *dagger.Container) *dagger.Container {
+	secret := client.Host().EnvVariable("GITHUB_TOKEN").Secret()
+
+	return container.
+		WithSecretVariable("GITHUB_TOKEN", secret)
 }
 
-func NodeBase(c *dagger.Client) *dagger.Container {
-	return alpineBase("node:16-alpine", c)
-}
+func WithGit(container *dagger.Container) *dagger.Container {
+	token := os.Getenv("GITHUB_TOKEN")
+	// TODO: This should really be a secret
+	auth := base64.URLEncoding.EncodeToString([]byte("pat:" + token))
 
-func GoBase(c *dagger.Client) *dagger.Container {
-	return alpineBase("golang:1.19-alpine", c)
-}
-
-func WithSetHostVar(ctx context.Context, h *dagger.Host, varName string) *dagger.HostVariable {
-	hv := h.EnvVariable(varName)
-	if val, _ := hv.Secret().Plaintext(ctx); val == "" {
-		fmt.Fprintf(os.Stderr, "env var %s must be set", varName)
-		os.Exit(1)
+	name := os.Getenv("GITHUB_USER_NAME")
+	if name == "" {
+		name = "Kubo Mage"
 	}
-	return hv
+	email := os.Getenv("GITHUB_USER_EMAIL")
+	if email == "" {
+		email = "noreply+kubo-mage@ipfs.tech"
+	}
+
+	return container.
+		WithExec([]string{"apk", "add", "git"}).
+		WithExec([]string{"git", "config", "--global", "gc.auto", "0"}).
+		WithExec([]string{"git", "config", "--global", "core.sshCommand", ""}).
+		WithExec([]string{"git", "config", "--global", "http.https://github.com/.extraheader", "AUTHORIZATION: basic " + auth}).
+		WithExec([]string{"git", "config", "--global", "user.name", name}).
+		WithExec([]string{"git", "config", "--global", "user.email", email})
+}
+
+func WithCheckout(container *dagger.Container, owner, repo, branch, sha string) *dagger.Container {
+	return container.
+		WithExec([]string{"git", "init"}).
+		WithExec([]string{"git", "remote", "add", "origin", "https://github.com/" + owner + "/" + repo}).
+		WithExec([]string{"git", "-c", "protocol.version=2", "fetch", "--no-tags", "--prune", "--no-recurse-submodules", "--depth=1", "origin", "+" + sha + ":refs/remotes/origin/" + branch}).
+		WithExec([]string{"git", "checkout", "--force", "-B", branch, "refs/remotes/origin/" + branch})
 }
 
 func GitHubClient() (*github.Client, error) {
@@ -50,6 +66,9 @@ func GitHubClient() (*github.Client, error) {
 }
 
 func GetIssue(ctx context.Context, owner, repo, title string) (*github.Issue, error) {
+	fmt.Printf("Getting issue [owner: %s, repo: %s, title: %s]", owner, repo, title)
+	fmt.Println()
+
 	c, err := GitHubClient()
 	if err != nil {
 		return nil, err
@@ -81,6 +100,9 @@ func GetIssue(ctx context.Context, owner, repo, title string) (*github.Issue, er
 }
 
 func CreateIssue(ctx context.Context, owner, repo, title, body string) (*github.Issue, error) {
+	fmt.Printf("Creating issue [owner: %s, repo: %s, title: %s]", owner, repo, title)
+	fmt.Println()
+
 	c, err := GitHubClient()
 	if err != nil {
 		return nil, err
@@ -94,6 +116,9 @@ func CreateIssue(ctx context.Context, owner, repo, title, body string) (*github.
 }
 
 func GetIssueComment(ctx context.Context, owner, repo, title, body string) (*github.IssueComment, error) {
+	fmt.Printf("Getting issue comment [owner: %s, repo: %s, title: %s, body: %s]", owner, repo, title, body)
+	fmt.Println()
+
 	c, err := GitHubClient()
 	if err != nil {
 		return nil, err
@@ -132,6 +157,9 @@ func GetIssueComment(ctx context.Context, owner, repo, title, body string) (*git
 }
 
 func CreateIssueComment(ctx context.Context, owner, repo, title, body string) (*github.IssueComment, error) {
+	fmt.Printf("Creating issue comment [owner: %s, repo: %s, title: %s, body: %s]", owner, repo, title, body)
+	fmt.Println()
+
 	c, err := GitHubClient()
 	if err != nil {
 		return nil, err
@@ -152,26 +180,38 @@ func CreateIssueComment(ctx context.Context, owner, repo, title, body string) (*
 }
 
 func GetBranch(ctx context.Context, owner, repo, name string) (*github.Branch, error) {
+	fmt.Printf("Getting branch [owner: %s, repo: %s, name: %s]", owner, repo, name)
+	fmt.Println()
+
 	c, err := GitHubClient()
 	if err != nil {
 		return nil, err
 	}
 
 	branch, _, err := c.Repositories.GetBranch(ctx, owner, repo, name, false)
+	if err != nil && strings.Contains(err.Error(), "404 Not Found") {
+		return nil, nil
+	}
 	return branch, err
 }
 
-func CreateBranch(ctx context.Context, owner, repo, name, sha string) (*github.Branch, error) {
+func CreateBranch(ctx context.Context, owner, repo, name, source string) (*github.Branch, error) {
+	fmt.Printf("Creating branch [owner: %s, repo: %s, name: %s, source: %s]", owner, repo, name, source)
+	fmt.Println()
+
 	c, err := GitHubClient()
 	if err != nil {
 		return nil, err
 	}
 
+	r, _, err := c.Git.GetRef(ctx, owner, repo, "refs/heads/"+source)
+	if err != nil {
+		return nil, err
+	}
+
 	_, _, err = c.Git.CreateRef(ctx, owner, repo, &github.Reference{
-		Ref: github.String("refs/heads/" + name),
-		Object: &github.GitObject{
-			SHA: github.String(sha),
-		},
+		Ref:    github.String("refs/heads/" + name),
+		Object: r.GetObject(),
 	})
 	if err != nil {
 		return nil, err
@@ -181,6 +221,9 @@ func CreateBranch(ctx context.Context, owner, repo, name, sha string) (*github.B
 }
 
 func GetPR(ctx context.Context, owner, repo, head string) (*github.PullRequest, error) {
+	fmt.Printf("Getting PR [owner: %s, repo: %s, head: %s]", owner, repo, head)
+	fmt.Println()
+
 	c, err := GitHubClient()
 	if err != nil {
 		return nil, err
@@ -204,6 +247,9 @@ func GetPR(ctx context.Context, owner, repo, head string) (*github.PullRequest, 
 }
 
 func CreatePR(ctx context.Context, owner, repo, head, base, title, body string, draft bool) (*github.PullRequest, error) {
+	fmt.Printf("Creating PR [owner: %s, repo: %s, head: %s, base: %s, title: %s, body: %s, draft: %t]", owner, repo, head, base, title, body, draft)
+	fmt.Println()
+
 	c, err := GitHubClient()
 	if err != nil {
 		return nil, err
