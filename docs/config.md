@@ -1334,7 +1334,7 @@ There are multiple routing options: "auto", "none", "dht" and "custom".
 
 * If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the IPFS DHT (no HTTP routers).
 
-* If set to "custom", all default routers are disabled, and only onles defined in `Routing.Routers` will be used.
+* If set to "custom", all default routers are disabled, and only ones defined in `Routing.Routers` will be used.
 
 When the DHT is enabled, it can operate in two modes: client and server.
 
@@ -1388,7 +1388,6 @@ It specifies the routing type that will be created.
 
 Currently supported types:
 
-- `reframe` **(DEPRECATED)** (delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme))
 - `http` simple delegated routing based on HTTP protocol. <!-- TODO add link to specs when we have them merged. -->
 - `dht`
 - `parallel` and `sequential`: Helpers that can be used to run several routers sequentially or in parallel.
@@ -1400,9 +1399,6 @@ Type: `string`
 **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
 
 Parameters needed to create the specified router. Supported params per router type:
-
-Reframe **(DEPRECATED)**:
-  - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
 
 HTTP:
   - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
