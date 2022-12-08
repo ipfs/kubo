@@ -52,10 +52,13 @@
           {{ .Hash }}
         </div>
         {{ end }}
+        <p style="margin-bottom: 0">
+          <a rel="nofollow, noindex" href="?format=json">Preview as JSON.</a> Download as: <a rel="nofollow, noindex" href="?format=car">CAR</a>, <a rel="nofollow, noindex" href="?format=tar">TAR</a>, <a rel="nofollow, noindex" href="?format=dag-json">DAG-JSON</a>, <a rel="nofollow, noindex" href="?format=dag-cbor">DAG-CBOR</a>.
+        </p>
       </div>
       {{ if .Size }}
       <div class="no-linebreak flex-shrink-1 ml-auto">
-        <strong>&nbsp;{{ .Size }}</strong>
+        <strong title="Cumulative size of IPFS DAG (data + metadata)">&nbsp;{{ .Size }}</strong>
       </div>
       {{ end }}
     </div>
@@ -88,7 +91,7 @@
           </a>
           {{ end }}
         </td>
-        <td class="no-linebreak">{{ .Size }}</td>
+        <td class="no-linebreak" title="Cumulative size of IPFS DAG (data + metadata)">{{ .Size }}</td>
       </tr>
       {{ end }}
     </table>

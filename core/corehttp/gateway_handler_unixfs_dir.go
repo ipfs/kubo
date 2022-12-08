@@ -105,46 +105,35 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 		return
 	}
 
-	// Optimization 1:
-	// List children without fetching their root blocks (fast, but no size info)
-	results, err := i.api.Unixfs().Ls(ctx, resolvedPath, options.Unixfs.ResolveChildren(false))
+	// Optimization: use Unixfs.Ls without resolving children, but using the
+	// cumulative DAG size as the file size. This allows for a fast listing
+	// while keeping a good enough Size field.
+	results, err := i.api.Unixfs().Ls(ctx,
+		resolvedPath,
+		options.Unixfs.ResolveChildren(false),
+		options.Unixfs.UseCumulativeSize(true),
+	)
 	if err != nil {
 		internalWebError(w, err)
 		return
 	}
 
-	// storage for directory listing
 	dirListing := make([]directoryItem, 0, len(results))
-
 	for link := range results {
 		if link.Err != nil {
 			internalWebError(w, err)
 			return
 		}
+
 		hash := link.Cid.String()
 		di := directoryItem{
-			Size:      "", // no size because we did not fetch child nodes
+			Size:      humanize.Bytes(uint64(link.Size)),
 			Name:      link.Name,
 			Path:      gopath.Join(originalURLPath, link.Name),
 			Hash:      hash,
 			ShortHash: shortHash(hash),
 		}
 		dirListing = append(dirListing, di)
-	}
-
-	// Optimization 2: fetch sizes only for dirs below FastDirIndexThreshold
-	if len(dirListing) < i.config.FastDirIndexThreshold {
-		dirit := dir.Entries()
-		linkNo := 0
-		for dirit.Next() {
-			size := "?"
-			if s, err := dirit.Node().Size(); err == nil {
-				// Size may not be defined/supported. Continue anyways.
-				size = humanize.Bytes(uint64(s))
-			}
-			dirListing[linkNo].Size = size
-			linkNo++
-		}
 	}
 
 	// construct the correct back link
@@ -195,15 +184,14 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 
 	// See comment above where originalUrlPath is declared.
 	tplData := listingTemplateData{
-		GatewayURL:            gwURL,
-		DNSLink:               dnslink,
-		Listing:               dirListing,
-		Size:                  size,
-		Path:                  contentPath.String(),
-		Breadcrumbs:           breadcrumbs(contentPath.String(), dnslink),
-		BackLink:              backLink,
-		Hash:                  hash,
-		FastDirIndexThreshold: i.config.FastDirIndexThreshold,
+		GatewayURL:  gwURL,
+		DNSLink:     dnslink,
+		Listing:     dirListing,
+		Size:        size,
+		Path:        contentPath.String(),
+		Breadcrumbs: breadcrumbs(contentPath.String(), dnslink),
+		BackLink:    backLink,
+		Hash:        hash,
 	}
 
 	logger.Debugw("request processed", "tplDataDNSLink", dnslink, "tplDataSize", size, "tplDataBackLink", backLink, "tplDataHash", hash)

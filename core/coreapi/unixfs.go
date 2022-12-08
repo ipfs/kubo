@@ -271,32 +271,36 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 		lnk.Type = coreiface.TFile
 		lnk.Size = linkres.Link.Size
 	case cid.DagProtobuf:
-		if !settings.ResolveChildren {
-			break
-		}
-
-		linkNode, err := linkres.Link.GetNode(ctx, api.dag)
-		if err != nil {
-			lnk.Err = err
-			break
-		}
-
-		if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
-			d, err := ft.FSNodeFromBytes(pn.Data())
+		if settings.ResolveChildren {
+			linkNode, err := linkres.Link.GetNode(ctx, api.dag)
 			if err != nil {
 				lnk.Err = err
 				break
 			}
-			switch d.Type() {
-			case ft.TFile, ft.TRaw:
-				lnk.Type = coreiface.TFile
-			case ft.THAMTShard, ft.TDirectory, ft.TMetadata:
-				lnk.Type = coreiface.TDirectory
-			case ft.TSymlink:
-				lnk.Type = coreiface.TSymlink
-				lnk.Target = string(d.Data())
+
+			if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
+				d, err := ft.FSNodeFromBytes(pn.Data())
+				if err != nil {
+					lnk.Err = err
+					break
+				}
+				switch d.Type() {
+				case ft.TFile, ft.TRaw:
+					lnk.Type = coreiface.TFile
+				case ft.THAMTShard, ft.TDirectory, ft.TMetadata:
+					lnk.Type = coreiface.TDirectory
+				case ft.TSymlink:
+					lnk.Type = coreiface.TSymlink
+					lnk.Target = string(d.Data())
+				}
+				if !settings.UseCumulativeSize {
+					lnk.Size = d.FileSize()
+				}
 			}
-			lnk.Size = d.FileSize()
+		}
+
+		if settings.UseCumulativeSize {
+			lnk.Size = linkres.Link.Size
 		}
 	}
 

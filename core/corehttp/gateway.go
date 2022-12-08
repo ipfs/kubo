@@ -18,9 +18,8 @@ import (
 )
 
 type GatewayConfig struct {
-	Headers               map[string][]string
-	Writable              bool
-	FastDirIndexThreshold int
+	Headers  map[string][]string
+	Writable bool
 }
 
 // NodeAPI defines the minimal set of API services required by a gateway handler
@@ -83,9 +82,8 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 		}
 
 		gateway := NewGatewayHandler(GatewayConfig{
-			Headers:               headers,
-			Writable:              writable,
-			FastDirIndexThreshold: int(cfg.Gateway.FastDirIndexThreshold.WithDefault(100)),
+			Headers:  headers,
+			Writable: writable,
 		}, api, offlineAPI)
 
 		gateway = otelhttp.NewHandler(gateway, "Gateway.Request")
