@@ -105,11 +105,11 @@ config file at runtime.
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
   - [`Routing`](#routing)
+    - [`Routing.Type`](#routingtype)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
     - [`Routing: Methods`](#routing-methods)
-    - [`Routing.Type`](#routingtype)
   - [`Swarm`](#swarm)
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
@@ -1318,6 +1318,49 @@ Type: `string` (or unset for the default, which is "all")
 
 Contains options for content, peer, and IPNS routing mechanisms.
 
+### `Routing.Type`
+
+There are multiple routing options: "auto", "none", "dht" and "custom".
+
+* **DEFAULT:** If unset, or set to "auto", your node will use the IPFS DHT
+  and parallel HTTP routers listed below for additional speed.
+
+* If set to "none", your node will use _no_ routing system. You'll have to
+  explicitly connect to peers that have the content you're looking for.
+
+* If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the IPFS DHT (no HTTP routers).
+
+* If set to "custom", all default routers are disabled, and only ones defined in `Routing.Routers` will be used.
+
+When the DHT is enabled, it can operate in two modes: client and server.
+
+* In server mode, your node will query other peers for DHT records, and will
+  respond to requests from other peers (both requests to store records and
+  requests to retrieve records).
+
+* In client mode, your node will query the DHT as a client but will not respond
+  to requests from other peers. This mode is less resource-intensive than server
+  mode.
+
+When `Routing.Type` is set to `auto` or `dht`, your node will start as a DHT client, and
+switch to a DHT server when and if it determines that it's reachable from the
+public internet (e.g., it's not behind a firewall).
+
+To force a specific DHT-only mode, client or server, set `Routing.Type` to
+`dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
+unless you're sure your node is reachable from the public network.
+
+When `Routing.Type` is set to `auto` your node will accelerate some types of routing
+by leveraging HTTP endpoints compatible with [IPIP-337](https://github.com/ipfs/specs/pull/337)
+in addition to the IPFS DHT.
+By default, an instance of [IPNI](https://github.com/ipni/specs/blob/main/IPNI.md#readme)
+at https://cid.contact is used.
+Alternative routing rules can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
+
+Default: `auto` (DHT + IPNI)
+
+Type: `optionalString` (`null`/missing means the default)
+
 ### `Routing.Routers`
 
 **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
@@ -1341,9 +1384,8 @@ It specifies the routing type that will be created.
 
 Currently supported types:
 
-- `reframe` **(DEPRECATED)** (delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme))
-- `http` simple delegated routing based on HTTP protocol. <!-- TODO add link to specs when we have them merged. -->
-- `dht`
+- `http` simple delegated routing based on HTTP protocol from [IPIP-337](https://github.com/ipfs/specs/pull/337)
+- `dht` provides decentralized routing based on [libp2p's kad-dht](https://github.com/libp2p/specs/tree/master/kad-dht)
 - `parallel` and `sequential`: Helpers that can be used to run several routers sequentially or in parallel.
 
 Type: `string`
@@ -1353,9 +1395,6 @@ Type: `string`
 **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
 
 Parameters needed to create the specified router. Supported params per router type:
-
-Reframe **(DEPRECATED)**:
-  - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
 
 HTTP:
   - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
@@ -1458,46 +1497,6 @@ ipfs config Routing.Methods --json '{
     }'
 
 ```
-
-### `Routing.Type`
-
-There are three core routing options: "none", "dht" (default) and "custom".
-
-* If set to "none", your node will use _no_ routing system. You'll have to
-  explicitly connect to peers that have the content you're looking for.
-* If set to "dht" (or "dhtclient"/"dhtserver"), your node will use the IPFS DHT.
-* If set to "custom", `Routing.Routers` will be used.
-
-When the DHT is enabled, it can operate in two modes: client and server.
-
-* In server mode, your node will query other peers for DHT records, and will
-  respond to requests from other peers (both requests to store records and
-  requests to retrieve records).
-* In client mode, your node will query the DHT as a client but will not respond
-  to requests from other peers. This mode is less resource-intensive than server
-  mode.
-
-When `Routing.Type` is set to `dht`, your node will start as a DHT client, and
-switch to a DHT server when and if it determines that it's reachable from the
-public internet (e.g., it's not behind a firewall).
-
-To force a specific DHT mode, client or server, set `Routing.Type` to
-`dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
-unless you're sure your node is reachable from the public network.
-
-**Example:**
-
-```json
-{
-  "Routing": {
-    "Type": "dhtclient"
-  }
-}
-```
-
-Default: `dht`
-
-Type: `optionalString` (`null`/missing means the default)
 
 ## `Swarm`
 

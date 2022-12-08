@@ -157,6 +157,22 @@ type ExtraHTTPParams struct {
 	PrivKeyB64 string
 }
 
+func ConstructHTTPRouter(endpoint string, peerID string, addrs []string, privKey string) (routing.Routing, error) {
+	return httpRoutingFromConfig(
+		config.Router{
+			Type: "http",
+			Parameters: &config.HTTPRouterParams{
+				Endpoint: endpoint,
+			},
+		},
+		&ExtraHTTPParams{
+			PeerID:     peerID,
+			Addrs:      addrs,
+			PrivKeyB64: privKey,
+		},
+	)
+}
+
 func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (routing.Routing, error) {
 	params := conf.Parameters.(*config.HTTPRouterParams)
 	if params.Endpoint == "" {

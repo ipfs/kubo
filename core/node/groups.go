@@ -294,8 +294,8 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		OnlineProviders(
 			cfg.Experimental.StrategicProviding,
 			cfg.Experimental.AcceleratedDHTClient,
-			cfg.Reprovider.Strategy.WithDefault(DefaultReproviderStrategy),
-			cfg.Reprovider.Interval.WithDefault(DefaultReproviderInterval),
+			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
+			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
 		),
 	)
 }
@@ -312,8 +312,8 @@ func Offline(cfg *config.Config) fx.Option {
 		OfflineProviders(
 			cfg.Experimental.StrategicProviding,
 			cfg.Experimental.AcceleratedDHTClient,
-			cfg.Reprovider.Strategy.WithDefault(DefaultReproviderStrategy),
-			cfg.Reprovider.Interval.WithDefault(DefaultReproviderInterval),
+			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
+			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
 		),
 	)
 }
