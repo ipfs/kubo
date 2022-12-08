@@ -19,7 +19,7 @@ export IPFS_HTTP_ROUTERS="http://127.0.0.1:$ROUTER_PORT"
 test_launch_ipfs_daemon
 
 test_expect_success "start HTTP router proxy" '
-  socat TCP-LISTEN:$ROUTER_PORT,reuseaddr,fork,bind=127.0.0.1 STDOUT > http_requests &
+  socat TCP-LISTEN:$ROUTER_PORT,reuseaddr,fork,bind=127.0.0.1,retry=10 STDOUT > http_requests &
   NCPID=$!
   test_wait_for_file 50 100ms http_requests
 '
