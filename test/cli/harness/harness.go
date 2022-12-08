@@ -1,11 +1,14 @@
 package harness
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -74,8 +77,31 @@ func (h *Harness) IPFS(args ...string) *RunResult {
 	return h.Run(h.IPFSBin, args...)
 }
 
+func SplitLines(s string) []string {
+	var lines []string
+	scanner := bufio.NewScanner(strings.NewReader(s))
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines
+}
+
+func (h *Harness) IPFSCommands() []string {
+	res := h.IPFS("commands").Stdout.String()
+	res = strings.TrimSpace(res)
+	split := SplitLines(res)
+	var cmds []string
+	for _, line := range split {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "ipfs" {
+			continue
+		}
+		cmds = append(cmds, trimmed)
+	}
+	return cmds
+}
+
 func (h *Harness) Run(cmdName string, args ...string) *RunResult {
-	h.T.Helper()
 	return h.RunOpts(cmdName, args)
 }
 
@@ -113,6 +139,26 @@ func (h *Harness) RunOpts(cmdName string, args []string, opts ...func(*exec.Cmd)
 	}
 }
 
+func (h *Harness) RunNoFail(cmdName string, args []string) *RunResult {
+	cmd := exec.Command(cmdName, args...)
+	stdoutBuf := bytes.Buffer{}
+	stderrBuf := bytes.Buffer{}
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+
+	h.T.Logf("running: '%s', args: '%v'", cmdName, args)
+
+	err := cmd.Run()
+	exitErr, _ := err.(*exec.ExitError)
+	return &RunResult{
+		Stdout:  &stdoutBuf,
+		Stderr:  &stderrBuf,
+		Cmd:     cmd,
+		Err:     err,
+		ExitErr: exitErr,
+	}
+}
+
 func (h *Harness) Sh(expr string) *RunResult {
 	return h.Run("bash", "-c", expr)
 }
@@ -130,8 +176,20 @@ func (h *Harness) WriteToTemp(contents string) string {
 	return f.Name()
 }
 
+// WriteFile writes a file given a filename and its contents.
+// The filename should be a relative path.
+func (h *Harness) WriteFile(filename, contents string) {
+	if filepath.IsAbs(filename) {
+		panic(fmt.Sprintf("%s must be a relative path", filename))
+	}
+	absPath := filepath.Join(h.tmpDir, filename)
+	err := ioutil.WriteFile(absPath, []byte(contents), 0644)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (h *Harness) Cleanup() {
-	h.T.Log("cleaning up test")
 	err := os.RemoveAll(h.tmpDir)
 	if err != nil {
 		panic(fmt.Sprintf("error removing temp dir: %s", err))
