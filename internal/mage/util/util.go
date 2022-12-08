@@ -264,3 +264,21 @@ func CreatePR(ctx context.Context, owner, repo, head, base, title, body string, 
 	})
 	return pr, err
 }
+
+func GetFile(ctx context.Context, owner, repo, path, ref string) (*github.RepositoryContent, error) {
+	fmt.Printf("Getting file [owner: %s, repo: %s, path: %s, ref: %s]", owner, repo, path, ref)
+	fmt.Println()
+
+	c, err := GitHubClient()
+	if err != nil {
+		return nil, err
+	}
+
+	f, _, _, err := c.Repositories.GetContents(ctx, owner, repo, path, &github.RepositoryContentGetOptions{
+		Ref: ref,
+	})
+	if err != nil && strings.Contains(err.Error(), "404 Not Found") {
+		return nil, nil
+	}
+	return f, err
+}
