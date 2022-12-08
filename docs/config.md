@@ -141,10 +141,6 @@ config file at runtime.
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
-        - [Levels of Configuration](#levels-of-configuration)
-        - [Default Limits](#default-limits)
-        - [Active Limits](#active-limits)
-        - [libp2p resource monitoring](#libp2p-resource-monitoring)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.MaxMemory`](#swarmresourcemgrmaxmemory)
       - [`Swarm.ResourceMgr.MaxFileDescriptors`](#swarmresourcemgrmaxfiledescriptors)
@@ -1803,7 +1799,7 @@ Type: `optionalDuration`
 
 ### `Swarm.ResourceMgr`
 
-Learn more about Kubo's usage of [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#readme) 
+Learn more about Kubo's usage of libp2p Network Resource Manager
 in the [dedicated resource management docs](./libp2p-resource-management.md).
 
 #### `Swarm.ResourceMgr.Enabled`
@@ -1883,7 +1879,7 @@ Example #2: setting a specific <key,value> limit
 }
 ```
 
-It is also possible to adjust some runtime limits via `ipfs swarm limit --help`.
+It is also possible to inspect and adjust some runtime limits via `ipfs swarm stats --help` and `ipfs swarm limit --help`.
 Changes made via `ipfs swarm limit` are persisted in `Swarm.ResourceMgr.Limits`.
 
 Default: `{}` (use the [computed defaults](./libp2p-resource-management.md#computed-default-limits))

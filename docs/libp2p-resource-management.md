@@ -1,28 +1,52 @@
+# libp2p Network Resource Manager <small>(`Swarm.ResourceMgr`)</small>
+
 ## Purpose
 The purpose of this document is to provide more information about the [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#readme) and how it's integrated into Kubo so that Kubo users can understand and configure it appropriately.
 
-## 🙋 Help!  The resource manager is protecting my node but I want to understand more 
-The resource manager is generally a *feature* to bound libp2p's resources, whether from bugs, unintentinoally misbehaving peers, or intentional Denial of Service attacks.
+## 🙋 Help!  The resource manager is protecting my node but I want to understand more
+The resource manager is generally a *feature* to bound libp2p's resources, whether from bugs, unintentionally misbehaving peers, or intentional Denial of Service attacks.
 
 Good places to start are:
 1. Understand [how the resource manager is configured](#levels-of-configuration).
 2. Understand [how to read the log message](#what-do-these-protected-from-exceeding-resource-limits-log-messages-mean)
-3. Confirm [the log message is from your local node](#what-are-the-application-error--cannot-reserve--messages)
-4. [Monitor resource usage](#how-does-one-monitor-libp2p-resource-usage) and compare them to the [active limits](#how-does-one-see-the-active-limits) with the  
+3. Understand [how to inspect and change limits](#user-supplied-override-limits)
+
+## Table of Contents
+
+- [libp2p Network Resource Manager <small>(`Swarm.ResourceMgr`)</small>](#libp2p-network-resource-manager-smallswarmresourcemgrsmall)
+  - [Purpose](#purpose)
+  - [Levels of Configuration](#levels-of-configuration)
+    - [Approach](#approach)
+    - [Computed Default Limits](#computed-default-limits)
+    - [User Supplied Override Limits](#user-supplied-override-limits)
+    - [Infinite limits](#infinite-limits)
+  - [FAQ](#faq)
+    - [What do these "Protected from exceeding resource limits" log messages mean?](#what-do-these-protected-from-exceeding-resource-limits-log-messages-mean)
+    - [What are the "Application error ... cannot reserve ..." messages?](#what-are-the-application-error--cannot-reserve--messages)
+    - [How does the resource manager (ResourceMgr) relate to the connection manager (ConnMgr)?](#how-does-the-resource-manager-resourcemgr-relate-to-the-connection-manager-connmgr)
+    - [How does one see the Active Limits?](#how-does-one-see-the-active-limits)
+    - [How does one see the Computed Default Limits?](#how-does-one-see-the-computed-default-limits)
+    - [How does one monitor libp2p resource usage?](#how-does-one-monitor-libp2p-resource-usage)
+  - [History](#history)
 
 ## Levels of Configuration
+
 See also the [`Swarm.ResourceMgr` config docs](./config.md#swarmresourcemgr).
+
 
 ### Approach
 libp2p's resource manager provides tremendous flexibility but also adds complexity.  There are these levels of limit configuration for resource management protection:
+
 1. "The user who does nothing" - In this case Kubo attempts to give some sane defaults discussed below
    based on the amount of memory and file descriptors their system has.
    This should protect the node from many attacks.
-2. "Slightly more advanced user" - They can tweak the default limits discussed below.  
+  
+1. "Slightly more advanced user" - They can tweak the default limits discussed below.  
    Where the defaults aren't good enough, a good set of higher-level "knobs" are exposed to satisfy most use cases
    without requiring users to wade into all the intricacies of libp2p's resource manager.
    The "knobs"/inputs are `Swarm.ResourceMgr.MaxMemory` and `Swarm.ResourceMgr.MaxFileDescriptors` as described below. 
-3. "Power user" - They specify overrides to computed default limits via `Swarm.ResourceMgr.Limits`;
+
+1. "Power user" - They specify overrides to computed default limits via `ipfs swarm limit` and `Swarm.ResourceMgr.Limits`;
 
 ### Computed Default Limits
 With the `Swarm.ResourceMgr.MaxMemory` and `Swarm.ResourceMgr.MaxFileDescriptors` inputs defined,
@@ -33,11 +57,11 @@ and [peer](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-man
 Other scopes are ignored (by being set to "[~infinity](#infinite-limits])".
 
 The reason these scopes are chosen is because:
-- system - This gives us the coarse-grained control we want so we can reason about the system as a whole.
+- `system` - This gives us the coarse-grained control we want so we can reason about the system as a whole.
   It is the backstop, and allows us to reason about resource consumption more easily
   since don't have think about the interaction of many other scopes.
-- transient - Limiting connections that are in process of being established provides backpressure so not too much work queues up.
-- peer - The peer scope doesn't protect us against intentional DoS attacks.
+- `transient` - Limiting connections that are in process of being established provides backpressure so not too much work queues up.
+- `peer` - The peer scope doesn't protect us against intentional DoS attacks.
   It's just as easy for an attacker to send 100 requests/second with 1 peerId vs. 10 requests/second with 10 peers.
   We are reliant on the system scope for protection here in the malicious case.
   The reason for having a peer scope is to protect against unintentional DoS attacks
@@ -56,14 +80,35 @@ since we assume libp2p knows best here.
 Source: [core/node/libp2p/rcmgr_defaults.go](https://github.com/ipfs/kubo/blob/master/core/node/libp2p/rcmgr_defaults.go)
 
 ### User Supplied Override Limits
-Once Kubo has the [Computed Default Limits](#computed-default-limits), it then applies any user-supplied `Swarm.ResourceMgr.Limits` on top.  These become the [active limits](#how-does-one-see-the-active-limits).
+Once Kubo has the [Computed Default Limits](#computed-default-limits), it then applies any user-supplied [`Swarm.ResourceMgr.Limits`](https://github.com/ipfs/kubo/blob/master/docs/config.md#swarmresourcemgrlimits) on top.
+These become the [active limits](#how-does-one-see-the-active-limits).
+
+While `Swarm.ResourceMgr.Limits` can be edited directly, it is also possible to use `ipfs swarm limit` command to inspect and tweak specific limits at runtime.
+
+
+To see all resources that are close to hitting their respective limit:
+
+```console
+$ ipfs swarm stats --min-used-limit-perc=90 all
+```
+
+To modify limits for specific scope (e.g. `system`):
+
+```console
+$ ipfs swarm limit system > change.json
+$ vi change.json
+$ ipfs swarm limit system change.json
+```
+
+Learn more: `ipfs swarm limit --help`
 
 ### Infinite limits
 There isn't a way via config to specify infinite limits (see [go-libp2p#1935](https://github.com/libp2p/go-libp2p/issues/1935)).  For example, "-1" is not infinity.  To work around this, Kubo uses a magic number of "1000000000" to denote infinity since it's effectively infinite.  
 
 ## FAQ
+
 ### What do these "Protected from exceeding resource limits" log messages mean?
-"Protected from exceeding resource limits" log messages denote that the resource manager is working and that it prevented additional resources being used beyond the set limits.  Per [libp2p code](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/scope.go), these messages take the form of "$scope: cannot resvere $limitKey".  
+"Protected from exceeding resource limits" log messages denote that the resource manager is working and that it prevented additional resources being used beyond the set limits.  Per [libp2p code](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/scope.go), these messages take the form of "$scope: cannot reserve $limitKey".  
 
 As an example:
 
@@ -107,7 +152,8 @@ A dump of what limits are actually being used by the resource manager ([Computed
 can be obtained by `ipfs swarm limit all`.
 
 ### How does one see the Computed Default Limits?
-This can be observed with an empty `Swarm.ResourceMgr.Limits` and then [seeing the active limits](#how-does-one-see-the-active-limits).
+This can be observed with an empty [`Swarm.ResourceMgr.Limits`](https://github.com/ipfs/kubo/blob/master/docs/config.md#swarmresourcemgrlimits)
+and then [seeing the active limits](#how-does-one-see-the-active-limits).
 
 ### How does one monitor libp2p resource usage?
 For [monitoring libp2p resource usage](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#monitoring), 
