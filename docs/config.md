@@ -1388,8 +1388,8 @@ It specifies the routing type that will be created.
 
 Currently supported types:
 
-- `http` simple delegated routing based on HTTP protocol. <!-- TODO add link to specs when we have them merged. -->
-- `dht`
+- `http` simple delegated routing based on HTTP protocol from [IPIP-337](https://github.com/ipfs/specs/pull/337)
+- `dht` provides decentralized routing based on [libp2p's kad-dht](https://github.com/libp2p/specs/tree/master/kad-dht)
 - `parallel` and `sequential`: Helpers that can be used to run several routers sequentially or in parallel.
 
 Type: `string`
