@@ -22,7 +22,7 @@ test_expect_success 'use strategic providing' '
 startup_cluster ${NUM_NODES}
 
 test_expect_success 'add test object' '
-    HASH_0=$(echo "foo" | ipfsi 0 add -q)
+    HASH_0=$(date +"%FT%T.%N%z" | ipfsi 0 add -q)
 '
 
 findprovs_empty '$HASH_0'

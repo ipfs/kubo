@@ -18,9 +18,6 @@ import (
 	irouting "github.com/ipfs/kubo/routing"
 )
 
-const DefaultReproviderInterval = time.Hour * 22 // https://github.com/ipfs/kubo/pull/9326
-const DefaultReproviderStrategy = "all"
-
 // SIMPLE
 
 // ProviderQueue creates new datastore backed provider queue

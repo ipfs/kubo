@@ -174,7 +174,7 @@ functionality - performance of content discovery and data
 fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
-			c.Routing.Type = NewOptionalString("dhtclient") // TODO: replace 'dhtclient' with 'autoclient' that prioritizes HTTP and uses dhtclient only after some delay as a fallback
+			c.Routing.Type = NewOptionalString("dhtclient") // TODO: https://github.com/ipfs/kubo/issues/9480
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
 			c.Reprovider.Interval = NewOptionalDuration(0)
 
