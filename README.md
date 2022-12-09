@@ -198,7 +198,7 @@ You can also install the Package by using its attribute name, which is also `ipf
 [Package for Solus](https://dev.getsol.us/source/kubo/repository/master/)
 
 ```
-$ sudo eopkg install go-ipfs
+$ sudo eopkg install kubo
 ```
 
 You can also install it through the Solus software center.
