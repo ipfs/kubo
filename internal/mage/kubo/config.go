@@ -4,4 +4,5 @@ const (
 	Owner             = "ipfs"
 	Repo              = "kubo"
 	DefaultBranchName = "master"
+	ReleaseBranchName = "release"
 )

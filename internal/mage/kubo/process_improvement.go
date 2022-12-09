@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"dagger.io/dagger"
 	"github.com/ipfs/kubo/internal/mage/util"
@@ -29,6 +30,16 @@ This PR is to track the process improvement as identified during the %s release.
 }
 
 func (ProcessImprovement) CreateProcessImprovementPR(ctx context.Context, version string) error {
+	template, err := util.GetFile(ctx, Owner, Repo, "docs/RELEASE_ISSUE_TEMPLATE.md", DefaultBranchName)
+	if err != nil {
+		return err
+	}
+
+	if strings.Contains(*template.Content, version) {
+		fmt.Println("Process improvement has already been applied")
+		return nil
+	}
+
 	head := getProcessImprovementBranchName(version)
 
 	pr, err := util.GetPR(ctx, Owner, Repo, head)
@@ -66,23 +77,14 @@ func (ProcessImprovement) CreateProcessImprovementPR(ctx context.Context, versio
 	container = util.WithGit(container)
 	container = util.WithCheckout(container, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
 	container = container.WithExec([]string{"sed", "-i", "1s;.*;<!-- Last updated during [" + version + " release](" + ki.GetHTMLURL() + ") -->;", "docs/RELEASE_ISSUE_TEMPLATE.md"})
-	container = container.WithExec([]string{"git", "diff", "--name-only", "docs/RELEASE_ISSUE_TEMPLATE.md"})
+	container = container.WithExec([]string{"git", "add", "docs/RELEASE_ISSUE_TEMPLATE.md"})
+	container = container.WithExec([]string{"git", "commit", "-m", "'docs: update RELEASE_ISSUE_TEMPLATE.md'"})
+	container = container.WithExec([]string{"git", "push", "origin", head})
 
-	diff, err := container.Stdout(ctx)
+	stderr, err := container.Stderr(ctx)
 	if err != nil {
+		fmt.Println(stderr)
 		return err
-	}
-	if diff != "" {
-		fmt.Println("Updating docs/RELEASE_ISSUE_TEMPLATE.md")
-		container = container.WithExec([]string{"git", "add", "docs/RELEASE_ISSUE_TEMPLATE.md"})
-		container = container.WithExec([]string{"git", "commit", "-m", "'docs: update RELEASE_ISSUE_TEMPLATE.md'"})
-		container = container.WithExec([]string{"git", "push", "origin", head})
-
-		stderr, err := container.Stderr(ctx)
-		if err != nil {
-			fmt.Println(stderr)
-			return err
-		}
 	}
 
 	title := getProcessImprovementPRTitle(version)
