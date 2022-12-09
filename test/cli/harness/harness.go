@@ -3,7 +3,6 @@ package harness
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,16 +28,17 @@ type Harness struct {
 	// // Environment variables that are set on every process run through the harness.
 	// Env map[string]string
 	// Dir string
-
-	skip bool
 }
 
 func EnableDebugLogging() {
-	logging.SetLogLevel("testharness", "DEBUG")
+	err := logging.SetLogLevel("testharness", "DEBUG")
+	if err != nil {
+		panic(err)
+	}
 }
 
-// NewForTest constructs a harness that cleans up after the given test is done.
-func NewForTest(t *testing.T, options ...func(h *Harness)) *Harness {
+// NewT constructs a harness that cleans up after the given test is done.
+func NewT(t *testing.T, options ...func(h *Harness)) *Harness {
 	h := New(options...)
 	t.Cleanup(h.Cleanup)
 	return h
@@ -110,10 +110,13 @@ func osEnviron() map[string]string {
 // WriteToTemp writes the given contents to a guaranteed-unique temp file, returning its path.
 func (h *Harness) WriteToTemp(contents string) string {
 	f := h.TempFile()
-	f.WriteString(contents)
-	err := f.Close()
+	_, err := f.WriteString(contents)
 	if err != nil {
-		log.Panicf("closing temp file: %s", err)
+		log.Panicf("writing to temp file: %s", err.Error())
+	}
+	err = f.Close()
+	if err != nil {
+		log.Panicf("closing temp file: %s", err.Error())
 	}
 	return f.Name()
 }
@@ -122,7 +125,7 @@ func (h *Harness) WriteToTemp(contents string) string {
 func (h *Harness) TempFile() *os.File {
 	f, err := os.CreateTemp(h.Dir, "")
 	if err != nil {
-		log.Panicf("creating temp file: %s", err)
+		log.Panicf("creating temp file: %s", err.Error())
 	}
 	return f
 }
@@ -134,9 +137,9 @@ func (h *Harness) WriteFile(filename, contents string) {
 		log.Panicf("%s must be a relative path", filename)
 	}
 	absPath := filepath.Join(h.Runner.Dir, filename)
-	err := ioutil.WriteFile(absPath, []byte(contents), 0644)
+	err := os.WriteFile(absPath, []byte(contents), 0644)
 	if err != nil {
-		log.Panicf("writing '%s' ('%s'): %s", filename, absPath, err)
+		log.Panicf("writing '%s' ('%s'): %s", filename, absPath, err.Error())
 	}
 }
 

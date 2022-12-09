@@ -27,19 +27,19 @@ func parseVersionOutput(s string) semver.Version {
 
 func TestCurDirIsWritable(t *testing.T) {
 	t.Parallel()
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	h.WriteFile("test.txt", "It works!")
 }
 
 func TestIPFSVersionCommandMatchesFlag(t *testing.T) {
 	t.Parallel()
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	node := h.Cluster.InitSingle()
-	commandVersionStr := node.MustRunIPFS("version").Stdout.String()
+	commandVersionStr := node.IPFS("version").Stdout.String()
 	commandVersionStr = strings.TrimSpace(commandVersionStr)
 	commandVersion := parseVersionOutput(commandVersionStr)
 
-	flagVersionStr := node.MustRunIPFS("--version").Stdout.String()
+	flagVersionStr := node.IPFS("--version").Stdout.String()
 	flagVersionStr = strings.TrimSpace(flagVersionStr)
 	flagVersion := parseVersionOutput(flagVersionStr)
 
@@ -48,9 +48,9 @@ func TestIPFSVersionCommandMatchesFlag(t *testing.T) {
 
 func TestIPFSVersionAll(t *testing.T) {
 	t.Parallel()
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	node := h.Cluster.InitSingle()
-	res := node.MustRunIPFS("version", "--all").Stdout.String()
+	res := node.IPFS("version", "--all").Stdout.String()
 	res = strings.TrimSpace(res)
 	assert.Contains(t, res, "Kubo version")
 	assert.Contains(t, res, "Repo version")
@@ -60,9 +60,9 @@ func TestIPFSVersionAll(t *testing.T) {
 
 func TestIPFSVersionDeps(t *testing.T) {
 	t.Parallel()
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	node := h.Cluster.InitSingle()
-	res := node.MustRunIPFS("version", "deps").Stdout.String()
+	res := node.IPFS("version", "deps").Stdout.String()
 	res = strings.TrimSpace(res)
 	lines := SplitLines(res)
 
@@ -81,7 +81,7 @@ func TestIPFSVersionDeps(t *testing.T) {
 
 func TestIPFSCommands(t *testing.T) {
 	t.Parallel()
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	node := h.Cluster.InitSingle()
 	cmds := node.IPFSCommands()
 	assert.Contains(t, cmds, "ipfs add")
@@ -91,7 +91,7 @@ func TestIPFSCommands(t *testing.T) {
 
 func TestAllSubcommandsAcceptHelp(t *testing.T) {
 	t.Parallel()
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	node := h.Cluster.InitSingle()
 	wg := sync.WaitGroup{}
 	for _, cmd := range node.IPFSCommands() {
@@ -99,8 +99,8 @@ func TestAllSubcommandsAcceptHelp(t *testing.T) {
 		go func(cmd string) {
 			defer wg.Done()
 			splitCmd := strings.Split(cmd, " ")[1:]
-			node.MustRunIPFS(StrConcat("help", splitCmd)...)
-			node.MustRunIPFS(StrConcat(splitCmd, "--help")...)
+			node.IPFS(StrConcat("help", splitCmd)...)
+			node.IPFS(StrConcat(splitCmd, "--help")...)
 		}(cmd)
 	}
 	wg.Wait()
@@ -108,7 +108,7 @@ func TestAllSubcommandsAcceptHelp(t *testing.T) {
 
 func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 	t.Parallel()
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	node := h.Cluster.InitSingle()
 	cmds := node.IPFSCommands()
 	var rootCmds []string
@@ -130,7 +130,7 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 		"dns":      true,
 	}
 
-	helpMsg := strings.TrimSpace(node.MustRunIPFS("--help").Stdout.String())
+	helpMsg := strings.TrimSpace(node.IPFS("--help").Stdout.String())
 	for _, rootCmd := range rootCmds {
 		if _, ok := notInHelp[rootCmd]; ok {
 			continue
@@ -142,7 +142,7 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 func TestCommandDocsWidth(t *testing.T) {
 	t.SkipNow()
 
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	node := h.Cluster.InitSingle()
 
 	// require new commands to explicitly opt in to longer lines
@@ -202,7 +202,7 @@ func TestCommandDocsWidth(t *testing.T) {
 		go func(cmd string) {
 			defer wg.Done()
 			splitCmd := strings.Split(cmd, " ")
-			resStr := node.MustRunIPFS(StrConcat(splitCmd[1:], "--help")...)
+			resStr := node.IPFS(StrConcat(splitCmd[1:], "--help")...)
 			res := strings.TrimSpace(resStr.Stdout.String())
 			for i, line := range SplitLines(res) {
 				assert.LessOrEqualf(t, len(line), 80, cmd, i)
@@ -214,7 +214,7 @@ func TestCommandDocsWidth(t *testing.T) {
 
 func TestAllCommandsFailWhenPassedBadFlag(t *testing.T) {
 	t.Parallel()
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	node := h.Cluster.InitSingle()
 
 	wg := sync.WaitGroup{}
@@ -235,9 +235,9 @@ func TestAllCommandsFailWhenPassedBadFlag(t *testing.T) {
 
 func TestCommandsFlags(t *testing.T) {
 	t.Parallel()
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	node := h.Cluster.InitSingle()
-	resStr := node.MustRunIPFS("commands", "--flags").Stdout.String()
+	resStr := node.IPFS("commands", "--flags").Stdout.String()
 	assert.Contains(t, resStr, "ipfs pin add --recursive / ipfs pin add -r")
 	assert.Contains(t, resStr, "ipfs id --format / ipfs id -f")
 	assert.Contains(t, resStr, "ipfs repo gc --quiet / ipfs repo gc -q")

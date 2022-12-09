@@ -10,12 +10,8 @@ import (
 	. "github.com/ipfs/kubo/test/cli/testutils"
 )
 
-// func (h *Harness) MustRunIPFS(args ...string) RunResult {
-// 	return h.Runner.MustRun(RunRequest{Path: h.IPFSBin, Args: args})
-// }
-
 func (n *Node) IPFSCommands() []string {
-	res := n.MustRunIPFS("commands").Stdout.String()
+	res := n.IPFS("commands").Stdout.String()
 	res = strings.TrimSpace(res)
 	split := SplitLines(res)
 	var cmds []string
@@ -39,7 +35,7 @@ func (n *Node) SetIPFSConfig(key string, val interface{}, flags ...string) {
 	args := []string{"config", "--json"}
 	args = append(args, flags...)
 	args = append(args, key, valStr)
-	n.MustRunIPFS(args...)
+	n.IPFS(args...)
 
 	// validate the config was set correctly
 	var newVal string
@@ -50,7 +46,7 @@ func (n *Node) SetIPFSConfig(key string, val interface{}, flags ...string) {
 }
 
 func (n *Node) GetIPFSConfig(key string, val interface{}) {
-	res := n.MustRunIPFS("config", key)
+	res := n.IPFS("config", key)
 	valStr := strings.TrimSpace(res.Stdout.String())
 	// only when the result is a string is the result not well-formed JSON,
 	// so check the value type and add quotes if it's expected to be a string
@@ -62,7 +58,6 @@ func (n *Node) GetIPFSConfig(key string, val interface{}) {
 	if err != nil {
 		log.Fatalf("unmarshaling config for key '%s', value '%s': %s", key, valStr, err)
 	}
-	return
 }
 
 func (n *Node) IPFSAddStr(content string, args ...string) string {

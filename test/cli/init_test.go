@@ -11,7 +11,7 @@ import (
 
 func TestInitPerms(t *testing.T) {
 	t.Parallel()
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	badDir := filepath.Join(h.Dir, ".badipfs")
 	h.Runner.Env["IPFS_PATH"] = badDir
 

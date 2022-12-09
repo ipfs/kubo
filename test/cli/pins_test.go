@@ -9,6 +9,7 @@ import (
 	"github.com/ipfs/kubo/test/cli/harness"
 	. "github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPins(t *testing.T) {
@@ -25,7 +26,7 @@ func TestPins(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			h := harness.NewForTest(t)
+			h := harness.NewT(t)
 			node := h.Cluster.InitSingle()
 
 			f := h.TempFile()
@@ -43,10 +44,11 @@ func TestPins(t *testing.T) {
 
 				// validate the cid and store mapping from data -> cid
 				_, err := cid.Decode(cidStr)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				cids[s] = cidStr
 
-				f.WriteString(cidStr + "\n")
+				_, err = f.WriteString(cidStr + "\n")
+				require.NoError(t, err)
 			}
 
 			f.Close()
@@ -69,23 +71,23 @@ func TestPins(t *testing.T) {
 				}
 			})
 			t.Run("pin verify should succeed", func(t *testing.T) {
-				node.MustRunIPFS("pin", "verify")
+				node.IPFS("pin", "verify")
 			})
 			t.Run("'pin verify --verbose' should include all the cids", func(t *testing.T) {
-				verboseVerifyOut := node.MustRunIPFS(StrConcat(c.baseArgs, "pin", "verify", "--verbose")...).Stdout.String()
+				verboseVerifyOut := node.IPFS(StrConcat(c.baseArgs, "pin", "verify", "--verbose")...).Stdout.String()
 				for _, cid := range cids {
 					assert.Contains(t, verboseVerifyOut, fmt.Sprintf("%s ok", cid))
 				}
 
 			})
 			t.Run("ls output should contain the cids", func(t *testing.T) {
-				lsOut := node.MustRunIPFS(StrConcat("pin", "ls", c.lsArgs, c.baseArgs)...).Stdout.String()
+				lsOut := node.IPFS(StrConcat("pin", "ls", c.lsArgs, c.baseArgs)...).Stdout.String()
 				for _, cid := range cids {
 					assert.Contains(t, lsOut, cid)
 				}
 			})
 			t.Run("check 'pin ls hash' output", func(t *testing.T) {
-				lsHashOut := node.MustRunIPFS(StrConcat("pin", "ls", c.lsArgs, c.baseArgs, cids["b"])...)
+				lsHashOut := node.IPFS(StrConcat("pin", "ls", c.lsArgs, c.baseArgs, cids["b"])...)
 				lsHashOutStr := lsHashOut.Stdout.String()
 				assert.Equal(t, fmt.Sprintf("%s recursive\n", cids["b"]), lsHashOutStr)
 			})

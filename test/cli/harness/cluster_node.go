@@ -72,7 +72,13 @@ func (n *Node) WriteConfig(c *config.Config) {
 	}
 }
 
-func (n *Node) MustRunIPFS(args ...string) RunResult {
+func (n *Node) UpdateConfig(f func(c *config.Config)) {
+	cfg := n.ReadConfig()
+	f(cfg)
+	n.WriteConfig(cfg)
+}
+
+func (n *Node) IPFS(args ...string) RunResult {
 	res := n.RunIPFS(args...)
 	n.Runner.AssertNoError(res)
 	return res
@@ -180,7 +186,7 @@ func (n *Node) Stop() {
 	}
 	watch := make(chan struct{}, 1)
 	go func() {
-		n.daemon.Cmd.Process.Wait()
+		_, _ = n.daemon.Cmd.Process.Wait()
 		watch <- struct{}{}
 	}()
 	log.Debugf("signaling node %d with SIGTERM", n.ID)

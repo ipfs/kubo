@@ -11,15 +11,15 @@ import (
 func TestPing(t *testing.T) {
 	t.Parallel()
 
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	h.Cluster.Init(2)
 	h.Cluster.Run()
 	node1 := h.Cluster.Nodes[0]
 	node2 := h.Cluster.Nodes[1]
 
 	t.Run("other", func(t *testing.T) {
-		node1.MustRunIPFS("ping", "-n", "2", "--", node2.PeerID().String())
-		node2.MustRunIPFS("ping", "-n", "2", "--", node1.PeerID().String())
+		node1.IPFS("ping", "-n", "2", "--", node2.PeerID().String())
+		node2.IPFS("ping", "-n", "2", "--", node1.PeerID().String())
 	})
 
 	t.Run("ping unreachable peer", func(t *testing.T) {

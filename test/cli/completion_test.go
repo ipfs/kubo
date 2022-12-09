@@ -10,10 +10,10 @@ import (
 
 func TestBashCompletion(t *testing.T) {
 	t.Parallel()
-	h := harness.NewForTest(t)
+	h := harness.NewT(t)
 	node := h.Cluster.InitSingle()
 
-	res := node.MustRunIPFS("commands", "completion", "bash")
+	res := node.IPFS("commands", "completion", "bash")
 
 	length := len(res.Stdout.String())
 	if length < 100 {

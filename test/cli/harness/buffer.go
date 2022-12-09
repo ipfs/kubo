@@ -2,6 +2,7 @@ package harness
 
 import (
 	"bytes"
+	"strings"
 	"sync"
 )
 
@@ -24,6 +25,11 @@ func (b *Buffer) String() string {
 	b.m.Lock()
 	defer b.m.Unlock()
 	return b.b.String()
+}
+func (b *Buffer) Trimmed() string {
+	b.m.Lock()
+	defer b.m.Unlock()
+	return strings.TrimSpace(b.b.String())
 }
 func (b *Buffer) Bytes() []byte {
 	b.m.Lock()
