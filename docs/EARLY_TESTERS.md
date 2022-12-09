@@ -32,6 +32,7 @@ We will ask early testers to participate at two points in the process:
 - [ ] Charity Engine (@rytiss, @tristanolive)
 - [ ] Fission (@bmann)
 - [ ] OrbitDB (@aphelionz)
+- [ ] Brave ()
 
 ## How to sign up?
 
