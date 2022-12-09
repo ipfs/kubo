@@ -166,10 +166,12 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 
 ### Unofficial Linux packages
 
-- [Arch Linux](#arch-linux)
-- [Nix](#nix-linux)
+- [ArchLinux](#arch-linux)
+- [Nix](#nix)
 - [Solus](#solus)
 - [openSUSE](#opensuse)
+- [Guix](#guix)
+- [Snap](#snap)
 
 #### Arch Linux
 
@@ -193,8 +195,7 @@ You can also install the Package by using its attribute name, which is also `ipf
 
 #### Solus
 
-In solus, kubo (go-ipfs) is available in the main repository as
-[go-ipfs](https://dev.getsol.us/source/go-ipfs/repository/master/).
+[Package for Solus](https://dev.getsol.us/source/kubo/repository/master/)
 
 ```
 $ sudo eopkg install go-ipfs
@@ -208,11 +209,7 @@ You can also install it through the Solus software center.
 
 #### Guix
 
-GNU's functional package manager, [Guix](https://www.gnu.org/software/guix/), also provides a go-ipfs package:
-
-```
-$ guix package -i go-ipfs
-```
+[Community Package for go-ipfs](https://packages.guix.gnu.org/packages/go-ipfs/0.11.0/) is no out-of-date.
 
 #### Snap
 
