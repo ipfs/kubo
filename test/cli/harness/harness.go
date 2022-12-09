@@ -10,6 +10,7 @@ import (
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
+	. "github.com/ipfs/kubo/test/cli/testutils"
 )
 
 // Harness is used within the context of a single test, setting up the test environment, tracking state, and cleaning up.
@@ -47,10 +48,19 @@ func NewT(t *testing.T, options ...func(h *Harness)) *Harness {
 func New(options ...func(h *Harness)) *Harness {
 	h := &Harness{Runner: &Runner{Env: osEnviron()}}
 
-	absIPFSPath := absPath(filepath.FromSlash("../../cmd/ipfs/ipfs"))
+	// walk up to find the root dir, from which we can locate the binary
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	goMod := FindUp("go.mod", wd)
+	if goMod == "" {
+		panic("unable to find root dir")
+	}
+	rootDir := filepath.Dir(goMod)
+	h.IPFSBin = filepath.Join(rootDir, "cmd", "ipfs", "ipfs")
 
-	h.IPFSBin = absIPFSPath
-
+	// setup working dir
 	tmpDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		log.Panicf("error creating temp dir: %s", err)
@@ -78,7 +88,7 @@ func New(options ...func(h *Harness)) *Harness {
 	iptbEnv := osEnviron()
 	h.Cluster = &Cluster{
 		ClusterRoot: clusterRoot,
-		IPFSBin:     absIPFSPath,
+		IPFSBin:     h.IPFSBin,
 		Runner:      &Runner{Env: iptbEnv},
 	}
 
@@ -89,13 +99,6 @@ func New(options ...func(h *Harness)) *Harness {
 	}
 
 	return h
-}
-func absPath(rel string) string {
-	abs, err := filepath.Abs(rel)
-	if err != nil {
-		log.Panicf("unable to find absolute path of %s: %s", rel, err)
-	}
-	return abs
 }
 
 func osEnviron() map[string]string {
@@ -188,8 +191,10 @@ func (h *Harness) Sh(expr string) RunResult {
 }
 
 func (h *Harness) Cleanup() {
+	log.Debugf("cleaning up cluster")
 	h.Cluster.Stop()
 	// TODO: don't do this if test fails, not sure how?
+	log.Debugf("removing harness dir")
 	err := os.RemoveAll(h.Dir)
 	if err != nil {
 		log.Panicf("removing temp dir %s: %s", h.Dir, err)

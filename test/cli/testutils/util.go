@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -64,4 +65,26 @@ func ToJSONStr(m JSONObj) string {
 		panic(err)
 	}
 	return string(b)
+}
+
+// Searches for a file in a dir, then the parent dir, etc.
+// If the file is not found, an empty string is returned.
+func FindUp(name, dir string) string {
+	curDir := dir
+	for {
+		entries, err := os.ReadDir(curDir)
+		if err != nil {
+			panic(err)
+		}
+		for _, e := range entries {
+			if name == e.Name() {
+				return filepath.Join(curDir, name)
+			}
+		}
+		newDir := filepath.Dir(curDir)
+		if newDir == curDir {
+			return ""
+		}
+		curDir = newDir
+	}
 }

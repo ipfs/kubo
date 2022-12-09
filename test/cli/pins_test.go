@@ -55,7 +55,7 @@ func TestPins(t *testing.T) {
 
 			// pin the hashes from the file
 			hashFile := MustOpen(hashFileName)
-			res := h.Runner.MustRun(harness.RunRequest{
+			res := node.Runner.MustRun(harness.RunRequest{
 				Path:    h.IPFSBin,
 				Args:    StrConcat(c.baseArgs, "pin", "add"),
 				CmdOpts: []harness.CmdOpt{harness.RunWithStdin(hashFile)},
