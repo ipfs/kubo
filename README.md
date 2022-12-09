@@ -62,13 +62,13 @@ Before opening an issue, consider using one of the following locations to ensure
     - [openSUSE](#opensuse)
     - [Guix](#guix)
     - [Snap](#snap)
-  - [Unofficial MacOS packages](#unofficial-macos-packages)
-    - [MacPorts](#macports)
-    - [Nix](#nix-1)
-    - [Homebrew](#homebrew)  
   - [Unofficial Windows packages](#unofficial-windows-packages)
     - [Chocolatey](#chocolatey)
     - [Scoop](#scoop)
+  - [Unofficial MacOS packages](#unofficial-macos-packages)
+    - [MacPorts](#macports)
+    - [Nix](#nix-macos)
+    - [Homebrew](#homebrew)  
   - [Build from Source](#build-from-source)
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
@@ -218,6 +218,30 @@ $ guix package -i go-ipfs
 
 No longer supported, see rationale in [kubo#8688](https://github.com/ipfs/kubo/issues/8688).
 
+### Unofficial Windows packages
+
+- [Chocolatey](#chocolatey)
+- [Scoop](#scoop)
+
+#### Chocolatey
+
+No longer supported, see rationale in [kubo#9341](https://github.com/ipfs/kubo/issues/9341).
+
+#### Scoop
+
+Scoop provides kubo as `kubo` in its 'extras' bucket.
+
+```Powershell
+PS> scoop bucket add extras
+PS> scoop install kubo
+```
+
+### Unofficial macOS packages
+
+- [MacPorts](#macports)
+- [Nix](#nix-macos)
+- [Homebrew](#homebrew)
+
 #### MacPorts
 
 The package [ipfs](https://ports.macports.org/port/ipfs) currently points to kubo (go-ipfs) and is being maintained.
@@ -243,31 +267,6 @@ A Homebrew formula [ipfs](https://formulae.brew.sh/formula/ipfs) is maintained t
 ```
 $ brew install --formula ipfs
 ```
-
-### Unofficial Windows packages
-
-- [Chocolatey](#chocolatey)
-- [Scoop](#scoop)
-
-#### Chocolatey
-
-No longer supported, see rationale in [kubo#9341](https://github.com/ipfs/kubo/issues/9341).
-
-#### Scoop
-
-Scoop provides kubo as `kubo` in its 'extras' bucket.
-
-```Powershell
-PS> scoop bucket add extras
-PS> scoop install kubo
-```
-
-### Unofficial macOS packages
-
-- [MacPorts](#macports)
-- [Nix](#nix-macos)
-- [Homebrew](#homebrew)
-
 
 ### Build from Source
 
