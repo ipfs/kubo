@@ -2,6 +2,7 @@ package libp2p
 
 import (
 	"context"
+	"time"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/kubo/config"
@@ -23,6 +24,63 @@ type RoutingOption func(
 	...peer.AddrInfo,
 ) (routing.Routing, error)
 
+// Default HTTP routers used in parallel to DHT when Routing.Type = "auto"
+var defaultHTTPRouters = []string{
+	"https://cid.contact", // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
+	// TODO: add an independent router from Cloudflare
+}
+
+// ConstructDefaultRouting returns routers used when Routing.Type is unset or set to "auto"
+func ConstructDefaultRouting(peerID string, addrs []string, privKey string) func(
+	ctx context.Context,
+	host host.Host,
+	dstore datastore.Batching,
+	validator record.Validator,
+	bootstrapPeers ...peer.AddrInfo,
+) (routing.Routing, error) {
+	return func(
+		ctx context.Context,
+		host host.Host,
+		dstore datastore.Batching,
+		validator record.Validator,
+		bootstrapPeers ...peer.AddrInfo,
+	) (routing.Routing, error) {
+		// Defined routers will be queried in parallel (optimizing for response speed)
+		// Different trade-offs can be made by setting Routing.Type = "custom" with own Routing.Routers
+		var routers []*routinghelpers.ParallelRouter
+
+		// Run the default DHT routing (same as Routing.Type = "dht")
+		dhtRouting, err := DHTOption(ctx, host, dstore, validator, bootstrapPeers...)
+		if err != nil {
+			return nil, err
+		}
+		routers = append(routers, &routinghelpers.ParallelRouter{
+			Router:       dhtRouting,
+			IgnoreError:  false,
+			Timeout:      5 * time.Minute, // https://github.com/ipfs/kubo/pull/9475#discussion_r1042501333
+			ExecuteAfter: 0,
+		})
+
+		// Append HTTP routers for additional speed
+		for _, endpoint := range defaultHTTPRouters {
+			httpRouter, err := irouting.ConstructHTTPRouter(endpoint, peerID, addrs, privKey)
+			if err != nil {
+				return nil, err
+			}
+			routers = append(routers, &routinghelpers.ParallelRouter{
+				Router:       httpRouter,
+				IgnoreError:  true,             // https://github.com/ipfs/kubo/pull/9475#discussion_r1042507387
+				Timeout:      15 * time.Second, // 5x server value from https://github.com/ipfs/kubo/pull/9475#discussion_r1042428529
+				ExecuteAfter: 0,
+			})
+		}
+
+		routing := routinghelpers.NewComposableParallel(routers)
+		return routing, nil
+	}
+}
+
+// constructDHTRouting is used when Routing.Type = "dht"
 func constructDHTRouting(mode dht.ModeOpt) func(
 	ctx context.Context,
 	host host.Host,
@@ -49,6 +107,7 @@ func constructDHTRouting(mode dht.ModeOpt) func(
 	}
 }
 
+// ConstructDelegatedRouting is used when Routing.Type = "custom"
 func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs []string, privKey string) func(
 	ctx context.Context,
 	host host.Host,
@@ -71,7 +130,7 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 				Datastore:      dstore,
 				Context:        ctx,
 			},
-			&irouting.ExtraReframeParams{
+			&irouting.ExtraHTTPParams{
 				PeerID:     peerID,
 				Addrs:      addrs,
 				PrivKeyB64: privKey,

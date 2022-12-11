@@ -10,6 +10,8 @@ import (
 	"github.com/ipfs/go-datastore"
 	drc "github.com/ipfs/go-delegated-routing/client"
 	drp "github.com/ipfs/go-delegated-routing/gen/proto"
+	drclient "github.com/ipfs/go-libipfs/routing/http/client"
+	"github.com/ipfs/go-libipfs/routing/http/contentrouter"
 	logging "github.com/ipfs/go-log"
 	"github.com/ipfs/kubo/config"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -28,7 +30,7 @@ import (
 
 var log = logging.Logger("routing/delegated")
 
-func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTParams, extraReframe *ExtraReframeParams) (routing.Routing, error) {
+func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTParams, extraHTTP *ExtraHTTPParams) (routing.Routing, error) {
 	if err := methods.Check(); err != nil {
 		return nil, err
 	}
@@ -38,7 +40,7 @@ func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTPar
 
 	// Create all needed routers from method names
 	for mn, m := range methods {
-		router, err := parse(make(map[string]bool), createdRouters, m.RouterName, routers, extraDHT, extraReframe)
+		router, err := parse(make(map[string]bool), createdRouters, m.RouterName, routers, extraDHT, extraHTTP)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +69,7 @@ func parse(visited map[string]bool,
 	routerName string,
 	routersCfg config.Routers,
 	extraDHT *ExtraDHTParams,
-	extraReframe *ExtraReframeParams,
+	extraHTTP *ExtraHTTPParams,
 ) (routing.Routing, error) {
 	// check if we already created it
 	r, ok := createdRouters[routerName]
@@ -91,15 +93,17 @@ func parse(visited map[string]bool,
 	var router routing.Routing
 	var err error
 	switch cfg.Type {
+	case config.RouterTypeHTTP:
+		router, err = httpRoutingFromConfig(cfg.Router, extraHTTP)
 	case config.RouterTypeReframe:
-		router, err = reframeRoutingFromConfig(cfg.Router, extraReframe)
+		router, err = reframeRoutingFromConfig(cfg.Router, extraHTTP)
 	case config.RouterTypeDHT:
 		router, err = dhtRoutingFromConfig(cfg.Router, extraDHT)
 	case config.RouterTypeParallel:
 		crp := cfg.Parameters.(*config.ComposableRouterParams)
 		var pr []*routinghelpers.ParallelRouter
 		for _, cr := range crp.Routers {
-			ri, err := parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraReframe)
+			ri, err := parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraHTTP)
 			if err != nil {
 				return nil, err
 			}
@@ -118,7 +122,7 @@ func parse(visited map[string]bool,
 		crp := cfg.Parameters.(*config.ComposableRouterParams)
 		var sr []*routinghelpers.SequentialRouter
 		for _, cr := range crp.Routers {
-			ri, err := parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraReframe)
+			ri, err := parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraHTTP)
 			if err != nil {
 				return nil, err
 			}
@@ -147,13 +151,81 @@ func parse(visited map[string]bool,
 	return router, nil
 }
 
-type ExtraReframeParams struct {
+type ExtraHTTPParams struct {
 	PeerID     string
 	Addrs      []string
 	PrivKeyB64 string
 }
 
-func reframeRoutingFromConfig(conf config.Router, extraReframe *ExtraReframeParams) (routing.Routing, error) {
+func ConstructHTTPRouter(endpoint string, peerID string, addrs []string, privKey string) (routing.Routing, error) {
+	return httpRoutingFromConfig(
+		config.Router{
+			Type: "http",
+			Parameters: &config.HTTPRouterParams{
+				Endpoint: endpoint,
+			},
+		},
+		&ExtraHTTPParams{
+			PeerID:     peerID,
+			Addrs:      addrs,
+			PrivKeyB64: privKey,
+		},
+	)
+}
+
+func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (routing.Routing, error) {
+	params := conf.Parameters.(*config.HTTPRouterParams)
+	if params.Endpoint == "" {
+		return nil, NewParamNeededErr("Endpoint", conf.Type)
+	}
+
+	params.FillDefaults()
+
+	// Increase per-host connection pool since we are making lots of concurrent requests.
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.MaxIdleConns = 500
+	transport.MaxIdleConnsPerHost = 100
+
+	delegateHTTPClient := &http.Client{
+		Transport: &drclient.ResponseBodyLimitedTransport{
+			RoundTripper: transport,
+			LimitBytes:   1 << 20,
+		},
+	}
+
+	key, err := decodePrivKey(extraHTTP.PrivKeyB64)
+	if err != nil {
+		return nil, err
+	}
+
+	addrInfo, err := createAddrInfo(extraHTTP.PeerID, extraHTTP.Addrs)
+	if err != nil {
+		return nil, err
+	}
+
+	cli, err := drclient.New(
+		params.Endpoint,
+		drclient.WithHTTPClient(delegateHTTPClient),
+		drclient.WithIdentity(key),
+		drclient.WithProviderInfo(addrInfo.ID, addrInfo.Addrs),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	cr := contentrouter.NewContentRoutingClient(
+		cli,
+		contentrouter.WithMaxProvideBatchSize(params.MaxProvideBatchSize),
+		contentrouter.WithMaxProvideConcurrency(params.MaxProvideConcurrency),
+	)
+
+	return &httpRoutingWrapper{
+		ContentRouting:    cr,
+		ProvideManyRouter: cr,
+	}, nil
+}
+
+func reframeRoutingFromConfig(conf config.Router, extraReframe *ExtraHTTPParams) (routing.Routing, error) {
 	var dr drp.DelegatedRouting_Client
 
 	params := conf.Parameters.(*config.ReframeRouterParams)
@@ -223,27 +295,35 @@ func decodePrivKey(keyB64 string) (ic.PrivKey, error) {
 	return ic.UnmarshalPrivateKey(pk)
 }
 
-func createProvider(peerID string, addrs []string) (*drc.Provider, error) {
+func createAddrInfo(peerID string, addrs []string) (peer.AddrInfo, error) {
 	pID, err := peer.Decode(peerID)
 	if err != nil {
-		return nil, err
+		return peer.AddrInfo{}, err
 	}
 
 	var mas []ma.Multiaddr
 	for _, a := range addrs {
 		m, err := ma.NewMultiaddr(a)
 		if err != nil {
-			return nil, err
+			return peer.AddrInfo{}, err
 		}
 
 		mas = append(mas, m)
 	}
 
+	return peer.AddrInfo{
+		ID:    pID,
+		Addrs: mas,
+	}, nil
+}
+
+func createProvider(peerID string, addrs []string) (*drc.Provider, error) {
+	addrInfo, err := createAddrInfo(peerID, addrs)
+	if err != nil {
+		return nil, err
+	}
 	return &drc.Provider{
-		Peer: peer.AddrInfo{
-			ID:    pID,
-			Addrs: mas,
-		},
+		Peer: addrInfo,
 		ProviderProto: []drc.TransferProtocol{
 			{Codec: multicodec.TransportBitswap},
 		},

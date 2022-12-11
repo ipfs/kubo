@@ -112,7 +112,7 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 			lrm.start(helpers.LifecycleCtx(mctx, lc))
 			manager = lrm
 		} else {
-			log.Debug("libp2p resource manager is disabled")
+			fmt.Println("go-libp2p resource manager protection disabled")
 			manager = network.NullResourceManager
 		}
 
@@ -309,7 +309,7 @@ func abovePercentage(v1, v2, percentage int) bool {
 		return false
 	}
 
-	return int((v1/v2))*100 >= percentage
+	return int((float64(v1)/float64(v2))*100) >= percentage
 }
 
 func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {

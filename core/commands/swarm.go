@@ -337,12 +337,15 @@ The scope can be one of the following:
 - all           -- reports the resource usage for all currently active scopes.
 
 The output of this command is JSON.
+
+To see all resources that are close to hitting their respective limit, one can do something like:
+  ipfs swarm stats --min-used-limit-perc=90 all
 `},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("scope", true, false, "scope of the stat report"),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption(swarmUsedResourcesPercentageName, "Display only resources that are using above the specified percentage"),
+		cmds.IntOption(swarmUsedResourcesPercentageName, "Only display resources that are using above the specified percentage of their respective limit"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
@@ -360,6 +363,11 @@ The output of this command is JSON.
 
 		percentage, _ := req.Options[swarmUsedResourcesPercentageName].(int)
 		scope := req.Arguments[0]
+
+		if percentage != 0 && scope != "all" {
+			return fmt.Errorf("%q can only be used when scope is %q", swarmUsedResourcesPercentageName, "all")
+		}
+
 		result, err := libp2p.NetStat(node.ResourceManager, scope, percentage)
 		if err != nil {
 			return err
