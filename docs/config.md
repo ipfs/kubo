@@ -369,8 +369,9 @@ Supported Transports:
 
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
 * websocket - `/ipN/.../tcp/.../ws`
-* quic - `/ipN/.../udp/.../quic`
-* webtransport (*experiemental*) - `/ipN/.../udp/.../quic/webtransport` - require using a different port than the QUIC listener for now
+* quic (Draft-29) - `/ipN/.../udp/.../quic` - can share the same two tuple with `/quic-v1` and `/quic-v1/webtransport`
+* quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic` and `/quic-v1/webtransport`
+* webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic` and `/quic-v1`
 
 Default:
 ```json
@@ -378,7 +379,11 @@ Default:
   "/ip4/0.0.0.0/tcp/4001",
   "/ip6/::/tcp/4001",
   "/ip4/0.0.0.0/udp/4001/quic",
-  "/ip6/::/udp/4001/quic"
+  "/ip4/0.0.0.0/udp/4001/quic-v1",
+  "/ip4/0.0.0.0/udp/4001/quic-v1/webtransport",
+  "/ip6/::/udp/4001/quic",
+  "/ip6/::/udp/4001/quic-v1",
+  "/ip6/::/udp/4001/quic-v1/webtransport"
 ]
 ```
 
@@ -1209,7 +1214,7 @@ forgotten about.
 A smaller value for this parameter means that Pubsub messages in the cache will
 be garbage collected sooner, which can result in a smaller cache. At the same
 time, if there are slower nodes in the network that forward older messages,
-this can cause more duplicates to be propagated through the network. 
+this can cause more duplicates to be propagated through the network.
 
 Conversely, a larger value for this parameter means that Pubsub messages in the
 cache will be garbage collected later, which can result in a larger cache for
@@ -1812,7 +1817,7 @@ Type: `flag`
 
 This is the max amount of memory to allow libp2p to use.
 libp2p's resource manager will prevent additional resource creation while this limit is reached.
-This value is also used to scale the limit on various resources at various scopes 
+This value is also used to scale the limit on various resources at various scopes
 when the default limits (discussed in [libp2p resource management](./libp2p-resource-management.md)) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
@@ -1837,7 +1842,7 @@ The map supports fields from the [`LimitConfig` struct](https://github.com/libp2
 
 [`BaseLimit`s](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit.go#L89) can be set for any scope, and within the `BaseLimit`, all limit <key,value>s are optional.
 
-The `Swarm.ResourceMgr.Limits` override the default limits described above. 
+The `Swarm.ResourceMgr.Limits` override the default limits described above.
 Any override `BaseLimits` or limit <key,value>s from `Swarm.ResourceMgr.Limits`
 that aren't specified will use the [computed default limits](./libp2p-resource-management.md#computed-default-limits).
 
@@ -1992,37 +1997,15 @@ Since this runs on top of `HTTP/3` it uses `QUIC` under the hood.
 We expect it to perform worst than `QUIC` because of the extra overhead,
 this transport is really meant at agents that cannot do `TCP` or `QUIC` (like browsers).
 
-For now it is **disabled by default** and considered **experimental**.
-If you find issues running it please [report them to us](https://github.com/ipfs/kubo/issues/new).
-
-In the future Kubo will listen on WebTransport by default for anyone already listening on QUIC addresses.
-
 WebTransport is a new transport protocol currently under development by the IETF and the W3C, and already implemented by Chrome.
 Conceptually, it’s like WebSocket run over QUIC instead of TCP. Most importantly, it allows browsers to establish (secure!) connections to WebTransport servers without the need for CA-signed certificates,
 thereby enabling any js-libp2p node running in a browser to connect to any kubo node, with zero manual configuration involved.
 
 The previous alternative is websocket secure, which require installing a reverse proxy and TLS certificates manually.
 
-Default: Disabled
+Default: Enabled
 
 Type: `flag`
-
-
-##### How to enable WebTransport
-
-Thoses steps are temporary and wont be needed once we make it enabled by default.
-
-1. Enable the WebTransport transport:
-   `ipfs config Swarm.Transports.Network.WebTransport --json true`
-1. Add a listener address for WebTransport to your `Addresses.Swarm` key, for example:
-   ```json
-   [
-     "/ip4/0.0.0.0/tcp/4001",
-     "/ip4/0.0.0.0/udp/4001/quic",
-     "/ip4/0.0.0.0/udp/4002/quic/webtransport"
-   ]
-   ```
-1. Restart your daemon to apply the config changes.
 
 ### `Swarm.Transports.Security`
 

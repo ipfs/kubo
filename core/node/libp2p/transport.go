@@ -41,7 +41,7 @@ func Transports(tptConfig config.Transports) interface{} {
 		}
 
 		// TODO(9292): Remove the false && to allows it enabled by default
-		if tptConfig.Network.WebTransport.WithDefault(false && !privateNetworkEnabled) {
+		if tptConfig.Network.WebTransport.WithDefault(!privateNetworkEnabled) {
 			if privateNetworkEnabled {
 				return opts, fmt.Errorf(
 					"WebTransport transport does not support private networks, please disable Swarm.Transports.Network.WebTransport",
