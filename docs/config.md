@@ -672,7 +672,7 @@ Type: `string` (url)
 
 ### `Gateway.FastDirIndexThreshold`
 
-**REMOVED**: this option is [no longer necessary](https://github.com/ipfs/kubo/pull/9481).
+**REMOVED**: this option is [no longer necessary](https://github.com/ipfs/kubo/pull/9481). Ignored since  [Kubo 0.18](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.18.md).
 
 ### `Gateway.Writable`
 
