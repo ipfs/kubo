@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -94,4 +95,13 @@ func FindUp(name, dir string) string {
 		}
 		curDir = newDir
 	}
+}
+
+func RandomBytes(n int) []byte {
+	bytes := make([]byte, n)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		panic(err)
+	}
+	return bytes
 }
