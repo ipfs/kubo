@@ -2,7 +2,7 @@ include mk/header.mk
 
 GOCC ?= go
 
-$(d)/coverage_deps: $$(DEPS_GO)
+$(d)/coverage_deps: $$(DEPS_GO) cmd/ipfs/ipfs
 	rm -rf $(@D)/unitcover && mkdir $(@D)/unitcover
 	rm -rf $(@D)/sharnesscover && mkdir $(@D)/sharnesscover
 
