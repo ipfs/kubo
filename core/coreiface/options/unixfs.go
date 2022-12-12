@@ -39,7 +39,8 @@ type UnixfsAddSettings struct {
 }
 
 type UnixfsLsSettings struct {
-	ResolveChildren bool
+	ResolveChildren   bool
+	UseCumulativeSize bool
 }
 
 type UnixfsAddOption func(*UnixfsAddSettings) error
@@ -280,6 +281,13 @@ func (unixfsOpts) Nocopy(enable bool) UnixfsAddOption {
 func (unixfsOpts) ResolveChildren(resolve bool) UnixfsLsOption {
 	return func(settings *UnixfsLsSettings) error {
 		settings.ResolveChildren = resolve
+		return nil
+	}
+}
+
+func (unixfsOpts) UseCumulativeSize(use bool) UnixfsLsOption {
+	return func(settings *UnixfsLsSettings) error {
+		settings.UseCumulativeSize = use
 		return nil
 	}
 }
