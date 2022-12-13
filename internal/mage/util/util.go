@@ -379,3 +379,40 @@ func GetWorkflowRunLogs(ctx context.Context, owner, repo string, id int64) (stri
 	b, err := io.ReadAll(r.Body)
 	return string(b), err
 }
+
+func GetRelease(ctx context.Context, owner, repo, tag string) (*github.RepositoryRelease, error) {
+	fmt.Printf("Getting release [owner: %s, repo: %s, tag: %s]", owner, repo, tag)
+	fmt.Println()
+
+	c, err := GitHubClient()
+	if err != nil {
+		return nil, err
+	}
+
+	r, _, err := c.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
+	if err != nil {
+		return nil, nil
+	}
+	if strings.Contains(err.Error(), "404 Not Found") {
+		return nil, nil
+	}
+	return r, nil
+}
+
+func CreateRelease(ctx context.Context, owner, repo, tag, name, body string, prerelease bool) (*github.RepositoryRelease, error) {
+	fmt.Printf("Creating release [owner: %s, repo: %s, tag: %s]", owner, repo, tag)
+	fmt.Println()
+
+	c, err := GitHubClient()
+	if err != nil {
+		return nil, err
+	}
+
+	r, _, err := c.Repositories.CreateRelease(ctx, owner, repo, &github.RepositoryRelease{
+		TagName: &tag,
+		Name: &name,
+		Body: &body,
+		Prerelease: &prerelease,
+	})
+	return r, err
+}

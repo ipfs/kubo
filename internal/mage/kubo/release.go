@@ -15,6 +15,29 @@ import (
 
 type Release mg.Namespace
 
+func getGitHubReleaseName(version string) string {
+	return version
+}
+
+func getGitHubReleaseBody(version, url string) string {
+	mm := semver.MajorMinor(version)
+	rb := getReleaseBranchName(version)
+	return fmt.Sprintf(
+		`See the related issue: %s
+
+And the draft changelog: [docs/changelogs/%s.md](https://github.com/ipfs/kubo/blob/%s/docs/changelogs/%s.md)`,
+		url, mm, rb, mm)
+}
+
+func isGitHubReleasePrerelease(version string) (bool, error) {
+	v, err := sv.NewVersion(version)
+	if err != nil {
+		return true, err
+	}
+	pre := v.Prerelease()
+	return pre != "", nil
+}
+
 func getReleaseVersion(version string) (string, error) {
 	v, err := sv.NewVersion(version)
 	if err != nil {
@@ -166,5 +189,36 @@ func (Release) CheckCI(ctx context.Context, version string) error {
 	}
 
 	fmt.Println("All checks are successful")
+	return nil
+}
+
+func CreateGitHubRelease(ctx context.Context, version string) error {
+	r, err := util.GetRelease(ctx, Owner, Repo, version)
+	if err != nil {
+		return err
+	}
+	if r != nil {
+		fmt.Println("Release already exists")
+		return nil
+	}
+
+	ki, err := GetIssue(ctx, version)
+	if err != nil {
+		return err
+	}
+
+	name := getGitHubReleaseName(version)
+	body := getGitHubReleaseBody(version, ki.GetHTMLURL())
+	prerelease, err := isGitHubReleasePrerelease(version)
+	if err != nil {
+		return err
+	}
+
+	r, err = util.CreateRelease(ctx, Owner, Repo, version, name, body, prerelease)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Release created: %s", r.GetHTMLURL())
 	return nil
 }
