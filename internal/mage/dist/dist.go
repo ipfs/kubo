@@ -112,10 +112,6 @@ func (Dist) CreateDistPR(ctx context.Context, version string) error {
 }
 
 func (Dist) CheckIPFSTech(ctx context.Context, version string) error {
-	// The next line performs the following curl command:
-	// curl --retry 5 --no-progress-meter https://dist.ipfs.tech/kubo/versions | grep -q vX.Y.Z-rcN
-
-	// Make a HTTP request to the dist.ipfs.tech/kubo/versions file
 	r, err := http.Get("https://dist.ipfs.tech/kubo/versions")
 	if err != nil {
 		return err
@@ -125,7 +121,7 @@ func (Dist) CheckIPFSTech(ctx context.Context, version string) error {
 		return err
 	}
 	if ! strings.Contains(string(versions), version) {
-		return fmt.Errorf("Version %s not found in dist.ipfs.tech/kubo/versions", version)
+		return fmt.Errorf("version %s not found in dist.ipfs.tech/kubo/versions", version)
 	}
 
 	fmt.Println("Version found in dist.ipfs.tech/kubo/versions")

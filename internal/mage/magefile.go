@@ -15,4 +15,7 @@ import (
 
 	//mage:import kubo
 	_ "github.com/ipfs/kubo/internal/mage/kubo"
+
+	//mage:import npm
+	_ "github.com/ipfs/kubo/internal/mage/npm"
 )

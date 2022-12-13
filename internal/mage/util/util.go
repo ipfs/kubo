@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"net/http"
+	"io"
 
 	"github.com/google/go-github/v48/github"
 	"golang.org/x/oauth2"
@@ -313,4 +315,67 @@ func GetCheckRuns(ctx context.Context, owner, repo, ref string) ([]*github.Check
 		opt.Page = r.NextPage
 	}
 	return runs, nil
+}
+
+func CreateWorkflowRun(ctx context.Context, owner, repo, file, ref string) error {
+	fmt.Printf("Creating workflow run [owner: %s, repo: %s, file: %s, ref: %s]", owner, repo, file, ref)
+	fmt.Println()
+
+	c, err := GitHubClient()
+	if err != nil {
+		return err
+	}
+
+	_, err = c.Actions.CreateWorkflowDispatchEventByFileName(ctx, owner, repo, file, github.CreateWorkflowDispatchEventRequest{
+		Ref: ref,
+	})
+	return err
+}
+
+func GetWorkflowRun(ctx context.Context, owner, repo, file string, completed bool) (*github.WorkflowRun, error) {
+	fmt.Printf("Getting workflow run [owner: %s, repo: %s, file: %s, completed: %v]", owner, repo, file, completed)
+	fmt.Println()
+
+	c, err := GitHubClient()
+	if err != nil {
+		return nil, err
+	}
+
+	opt := &github.ListWorkflowRunsOptions{
+		ListOptions: github.ListOptions{PerPage: 1},
+	}
+	if completed {
+		opt.Status = "completed"
+	}
+	r, _, err := c.Actions.ListWorkflowRunsByFileName(ctx, owner, repo, file, opt)
+	if err != nil {
+		return nil, err
+	}
+	if len(r.WorkflowRuns) == 0 {
+		return nil, nil
+	}
+	return r.WorkflowRuns[0], nil
+}
+
+func GetWorkflowRunLogs(ctx context.Context, owner, repo string, id int64) (string, error) {
+	fmt.Printf("Getting workflow run logs [owner: %s, repo: %s, id: %v]", owner, repo, id)
+	fmt.Println()
+
+	c, err := GitHubClient()
+	if err != nil {
+		return "", err
+	}
+
+	url, _, err := c.Actions.GetWorkflowRunLogs(ctx, owner, repo, id, true)
+	if err != nil {
+		return "", err
+	}
+
+	r, err := http.Get(url.String())
+	if err != nil {
+		return "", err
+	}
+
+	b, err := io.ReadAll(r.Body)
+	return string(b), err
 }
