@@ -9,10 +9,19 @@ import (
 	"dagger.io/dagger"
 	"github.com/ipfs/kubo/internal/mage/util"
 	"github.com/magefile/mage/mg" // mg contains helpful utility functions, like Deps
+	sv "github.com/Masterminds/semver"
 	"golang.org/x/mod/semver"
 )
 
 type Release mg.Namespace
+
+func getReleaseVersion(version string) (string, error) {
+	v, err := sv.NewVersion(version)
+	if err != nil {
+		return "", err
+	}
+	return v.String(), nil
+}
 
 func getReleaseBranchName(version string) string {
 	return "release-" + semver.MajorMinor(version)
@@ -52,6 +61,11 @@ func (Release) CutReleaseBranch(ctx context.Context, version string) error {
 }
 
 func (Release) UpdateReleaseVersion(ctx context.Context, version string) error {
+	v, err := getReleaseVersion(version)
+	if err != nil {
+		return err
+	}
+
 	head := getReleaseBranchName(version)
 
 	branch, err := util.GetBranch(ctx, Owner, Repo, head)
@@ -67,7 +81,7 @@ func (Release) UpdateReleaseVersion(ctx context.Context, version string) error {
 		return err
 	}
 
-	if strings.Contains(*f.Content, version) {
+	if strings.Contains(*f.Content, v) {
 		fmt.Println("Release version already updated")
 		return nil
 	}
@@ -81,7 +95,7 @@ func (Release) UpdateReleaseVersion(ctx context.Context, version string) error {
 	container := c.Container().From("alpine:3.14.2")
 	container = util.WithGit(container)
 	container = util.WithCheckout(container, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
-	container = container.WithExec([]string{"sed", "-i", "s;const CurrentVersionNumber = \".*\";const CurrentVersionNumber = \"" + version + "\";", "version.go"})
+	container = container.WithExec([]string{"sed", "-i", "s;const CurrentVersionNumber = \".*\";const CurrentVersionNumber = \"" + v + "\";", "version.go"})
 
 	container = container.WithExec([]string{"git", "add", "version.go"})
 	container = container.WithExec([]string{"git", "commit", "-m", "chore: update version.go"})
