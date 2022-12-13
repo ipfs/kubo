@@ -42,7 +42,7 @@ func getOutstandingTasks(markdown string) ([]string, error) {
 		}
 		if node.Kind() == ast.KindHeading {
 			if node.(*ast.Heading).Level == 2 {
-				if string(node.Text(source)) == "🗺 What's left for release" {
+				if strings.Contains(string(node.Text(source)), "What's left for release") {
 					break
 				}
 			}
@@ -61,7 +61,7 @@ func getOutstandingTasks(markdown string) ([]string, error) {
 				return nil, fmt.Errorf("h1 not found")
 			}
 			if node.(*ast.Heading).Level == 3 {
-				if string(node.Text(source)) == "Required" {
+				if strings.Contains(string(node.Text(source)), "Required") {
 					break
 				}
 			}
