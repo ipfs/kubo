@@ -46,9 +46,9 @@ Checklist:
     - [ ] Mention @protocol/bifrost-team in the issue and let them know the expected date of the release
       - Issue link:
   - [ ] Ensure that the `What's left for release` section has all the checkboxes checked. If that's not the case, discuss the open items with Kubo maintainers and update the release schedule accordingly.
-      - `go run main.go kubo:issue:checkOutstandingTasks v0.18.0`
+    - `go run main.go kubo:issue:checkOutstandingTasks v0.18.0`
   - [ ] Create `docs-release-vX.Y.Z` branch, open a draft PR and keep updating `docs/RELEASE_ISSUE_TEMPLATE.md` on that branch as you go.
-      - [ ] Link it in the "Meta" section above.
+    - [ ] Link it in the "Meta" section above.
   - [ ] Ensure you have a [GPG key generated](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key) and [added to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account). This will enable you to created signed tags.
   - [ ] Ensure you have [admin access](https://discuss.ipfs.tech/g/admins) to [IPFS Discourse](https://discuss.ipfs.tech/). Admin access is required to globally pin posts and create banners. @2color might be able to assist you.
   - [ ] Access to [#bifrost](https://filecoinproject.slack.com/archives/C03MMMF606T) channel in FIL Slack might come in handy. Ask the release reviewer to invite you over.
@@ -70,24 +70,26 @@ Checklist:
     - [ ] [ipfs/kubo](https://github.com/ipfs/kubo): [example PR](https://github.com/ipfs/kubo/pull/8599)
     - [ ] [ipfs/ipfs-docs](https://github.com/ipfs/ipfs-docs): [example PR](https://github.com/ipfs/ipfs-docs/pull/1298) - only if the major version changed
   - [ ] Fork a new branch (`release-vX.Y.Z`) from `master`.
-      - `go run main.go kubo:release:cutReleaseBranch v0.18.0`
+    - `go run main.go kubo:release:cutReleaseBranch v0.18.0`
   - [ ] Bump the version in `version.go` in the `master` branch to `vX.(Y+1).0-dev` via a PR ([example](https://github.com/ipfs/kubo/pull/9305)).
-      - `go run main.go kubo:main:updateVersion v0.18.0`
+    - `go run main.go kubo:main:updateVersion v0.18.0`
 - [ ] **Stage 2 - Release Candidate** - _if any [non-trivial](docs/releases.md#footnotes) changes need to be included in the release, return to this stage_
   - [ ] If it's not a first RC, add new commits to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
-      - Note: `release-*` branches are protected. You can do all needed updates on a separated branch (e.g. `wip-release-vX.Y.Z`) and when everything is settled push to `release-vX.Y.Z`
+    - Note: `release-*` branches are protected. You can do all needed updates on a separated branch (e.g. `wip-release-vX.Y.Z`) and when everything is settled push to `release-vX.Y.Z`
   - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `vX.Y.Z-rcN`.
-      - `go run main.go kubo:release:updateReleaseVersion v0.18.0-rc1`
+    - `go run main.go kubo:release:updateReleaseVersion v0.18.0-rc1`
   - [ ] If it's a first RC, create a draft PR targetting `release` branch if it doesn't exist yet ([example](https://github.com/ipfs/kubo/pull/9306)).
       - `go run main.go kubo:release:createReleasePR v0.18.0`
   - [ ] Wait for CI to run and complete PR checks. All checks should pass.
-      - `go run main.go kubo:release:checkCI v0.18.0`
+      - `go run main.go kubo:release:checkReleaseCI v0.18.0`
   - [ ] Create a signed tag for the release candidate.
-    - [ ] This is a dangerous operation, as it is difficult to reverse due to Go modules and automated Docker image publishing. Remember to verify the commands you intend to run for items marked with ⚠️ with the release reviewer.
+    - `go run main.go kubo:release:createReleaseTag v0.18.0-rc1`
+    - This is a dangerous operation, as it is difficult to reverse due to Go modules and automated Docker image publishing. Remember to verify the commands you intend to run for items marked with ⚠️ with the release reviewer.
     - [ ] ⚠️ Tag HEAD `release-vX.Y.Z` commit with `vX.Y.Z-rcN` (`git tag -s vX.Y.Z-rcN -m 'Pre-release X.Y.Z-rcn'`)
     - [ ] Run `git show vX.Y.Z-rcN` to ensure the tag is correct.
     - [ ] ⚠️ Push the `vX.Y.Z-rcN` tag to GitHub (`git push origin vX.Y.Z-rcN`; DO NOT USE `git push --tags` because it pushes all your local tags).
   - [ ] Add artifacts to https://dist.ipfs.tech by making a PR against [ipfs/distributions](https://github.com/ipfs/distributions)
+    - `go run main.go dist:dist:createDistPR v0.18.0-rc1`
     - [ ] Clone the `ipfs/distributions` repo locally.
     - [ ] Create a new branch (`kubo-release-vX.Y.Z-rcn`) from `master`.
     - [ ] Run `./dist.sh add-version kubo vX.Y.Z-rcN` to add the new version to the `versions` file ([instructions](https://github.com/ipfs/distributions#usage)).
@@ -99,6 +101,7 @@ Checklist:
       - PR will be merged automatically once the diff is approved
       - `master` build will publish the artifacts to https://dist.ipfs.io in around 30 minutes
     - [ ] Ensure that the artifacts are available at https://dist.ipfs.io
+      - `go run main.go dist:dist:checkIPFSTech v0.18.0-rc1`
   - [ ] Publish the RC to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
   - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0-rc1))
     - Use `vX.Y.Z-rcN` as the tag.
