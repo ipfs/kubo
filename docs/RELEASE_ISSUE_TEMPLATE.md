@@ -103,12 +103,16 @@ Checklist:
     - [ ] Ensure that the artifacts are available at https://dist.ipfs.io
       - `go run main.go dist:dist:checkIPFSTech v0.18.0-rc1`
   - [ ] Publish the RC to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
+    - `go run main.go npm:npm:publishToNPM v0.18.0-rc1`
+    - `go run main.go npm:npm:checkNPM v0.18.0-rc1`
   - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0-rc1))
+    - `go run main.go kubo:createGitHubRelease v0.18.0-rc1`
     - Use `vX.Y.Z-rcN` as the tag.
     - Link to the release issue in the description.
     - Link to the relevant [changelog](https://github.com/ipfs/kubo/blob/master/docs/changelogs/) in the description.
     - Check `This is a pre-release`.
   - [ ] Synchronize release artifacts by running [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow.
+    - `go run main.go kubo:syncGitHubRelease v0.18.0-rc1`
   - [ ] Announce the RC
     - [ ] Create a new post on [IPFS Discourse](https://discuss.ipfs.tech). ([example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248))
       - Use `Kubo vX.Y.Z-rcn Release Candidate is out!` as the title.
