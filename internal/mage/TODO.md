@@ -5,3 +5,4 @@
 - [ ] run commands in Docker
 - [ ] test git-go
 - [ ] check if protocol.version 2 is used for fetch
+- [ ] fix util.GetWorkflowRunLogs
