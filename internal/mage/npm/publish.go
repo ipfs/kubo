@@ -15,7 +15,7 @@ type NPM mg.Namespace
 const (
 	Owner             	= "ipfs"
 	Repo              	= "npm-go-ipfs"
-	DefaultBranchName   = "main"
+	DefaultBranchName   = "master"
 	PublishWorklowFile	= "main.yml"
 )
 
@@ -39,7 +39,7 @@ func (NPM) PublishToNPM(ctx context.Context, version string) error {
 }
 
 func (NPM) CheckNPM(ctx context.Context, version string) error {
-	run, err := util.GetWorkflowRun(ctx, Owner, Repo, PublishWorklowFile, false)
+	run, err := util.GetWorkflowRun(ctx, Owner, Repo, PublishWorklowFile, true)
 	if err != nil {
 		return err
 	}
