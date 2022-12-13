@@ -11,7 +11,7 @@ import (
 var CurrentCommit string
 
 // CurrentVersionNumber is the current application's version literal
-const CurrentVersionNumber = "v0.18.0-rc1"
+const CurrentVersionNumber = "0.18.0-rc1"
 
 const ApiVersion = "/kubo/" + CurrentVersionNumber + "/" //nolint
 
