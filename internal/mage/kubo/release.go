@@ -52,16 +52,6 @@ func (Release) CutReleaseBranch(ctx context.Context, version string) error {
 }
 
 func (Release) UpdateReleaseVersion(ctx context.Context, version string) error {
-	f, err := util.GetFile(ctx, Owner, Repo, "version.go", ReleaseBranchName)
-	if err != nil {
-		return err
-	}
-
-	if strings.Contains(*f.Content, version) {
-		fmt.Println("Release version already updated")
-		return nil
-	}
-
 	head := getReleaseBranchName(version)
 
 	branch, err := util.GetBranch(ctx, Owner, Repo, head)
@@ -70,6 +60,16 @@ func (Release) UpdateReleaseVersion(ctx context.Context, version string) error {
 	}
 	if branch == nil {
 		return fmt.Errorf("branch %s does not exist", head)
+	}
+
+	f, err := util.GetFile(ctx, Owner, Repo, "version.go", head)
+	if err != nil {
+		return err
+	}
+
+	if strings.Contains(*f.Content, version) {
+		fmt.Println("Release version already updated")
+		return nil
 	}
 
 	c, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
@@ -94,5 +94,42 @@ func (Release) UpdateReleaseVersion(ctx context.Context, version string) error {
 	}
 
 	fmt.Println("Release version updated")
+	return nil
+}
+
+func (Release) CreateReleasePR(ctx context.Context, version string) error {
+	head := getReleaseBranchName(version)
+
+	branch, err := util.GetBranch(ctx, Owner, Repo, head)
+	if err != nil {
+		return err
+	}
+	if branch == nil {
+		return fmt.Errorf("branch %s does not exist", head)
+	}
+
+	pr, err := util.GetPR(ctx, Owner, Repo, head)
+	if err != nil {
+		return err
+	}
+	if pr != nil {
+		fmt.Printf("PR already exists: %s", pr.GetHTMLURL())
+		return nil
+	}
+
+	ki, err := GetIssue(ctx, version)
+	if err != nil {
+		return err
+	}
+
+	title := getReleasePRTitle(version)
+	body := getReleasePRBody(version, ki.GetHTMLURL())
+
+	pr, err = util.CreatePR(ctx, Owner, Repo, head, ReleaseBranchName, title, body, true)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("PR created: %s", pr.GetHTMLURL())
 	return nil
 }

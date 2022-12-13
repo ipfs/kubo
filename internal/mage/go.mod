@@ -13,6 +13,7 @@ require (
 
 require (
 	github.com/Khan/genqlient v0.5.0 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/adrg/xdg v0.4.0 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
