@@ -10,6 +10,9 @@ import (
 	//mage:import bifrost
 	_ "github.com/ipfs/kubo/internal/mage/bifrost"
 
+	//mage:import dist
+	_ "github.com/ipfs/kubo/internal/mage/dist"
+
 	//mage:import kubo
 	_ "github.com/ipfs/kubo/internal/mage/kubo"
 )

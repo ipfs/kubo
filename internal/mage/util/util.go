@@ -13,6 +13,11 @@ import (
 	"dagger.io/dagger"
 )
 
+func WithBash(container *dagger.Container) *dagger.Container {
+	return container.
+		WithExec([]string{"apk", "add", "bash"})
+}
+
 func WithGitSecrets(client *dagger.Client, container *dagger.Container) *dagger.Container {
 	secret := client.Host().EnvVariable("GITHUB_TOKEN").Secret()
 
