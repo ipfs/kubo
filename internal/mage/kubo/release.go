@@ -228,3 +228,20 @@ func CreateGitHubRelease(ctx context.Context, version string) error {
 	fmt.Printf("Release created: %s", r.GetHTMLURL())
 	return nil
 }
+
+func SyncGitHubRelease(ctx context.Context, version string) error {
+	r, err := util.GetRelease(ctx, Owner, Repo, version)
+	if err != nil {
+		return err
+	}
+	if r == nil {
+		return fmt.Errorf("release %s does not exist", version)
+	}
+
+	if (len(r.Assets) > 2) {
+		fmt.Println("Release already synced")
+		return nil
+	}
+
+	return util.CreateWorkflowRun(ctx, Owner, Repo, "sync-release-assets.yml", DefaultBranchName)
+}

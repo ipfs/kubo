@@ -412,13 +412,10 @@ func GetRelease(ctx context.Context, owner, repo, tag string) (*github.Repositor
 	}
 
 	r, _, err := c.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
-	if err != nil {
+	if err != nil && strings.Contains(err.Error(), "404 Not Found") {
 		return nil, nil
 	}
-	if strings.Contains(err.Error(), "404 Not Found") {
-		return nil, nil
-	}
-	return r, nil
+	return r, err
 }
 
 func CreateRelease(ctx context.Context, owner, repo, tag, name, body string, prerelease bool) (*github.RepositoryRelease, error) {

@@ -6,3 +6,5 @@
 - [ ] test git-go
 - [ ] check if protocol.version 2 is used for fetch
 - [ ] fix util.GetWorkflowRunLogs
+- [ ] check if there's discourse API
+- [ ] mention early testers through GitHub API
