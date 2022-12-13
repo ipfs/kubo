@@ -7,16 +7,15 @@ import (
 
 	"github.com/ipfs/kubo/internal/mage/util"
 	"github.com/magefile/mage/mg" // mg contains helpful utility functions, like Deps
-
 )
 
 type NPM mg.Namespace
 
 const (
-	Owner             	= "ipfs"
-	Repo              	= "npm-go-ipfs"
-	DefaultBranchName   = "master"
-	PublishWorklowFile	= "main.yml"
+	Owner              = "ipfs"
+	Repo               = "npm-go-ipfs"
+	DefaultBranchName  = "master"
+	PublishWorklowFile = "main.yml"
 )
 
 func (NPM) PublishToNPM(ctx context.Context, version string) error {

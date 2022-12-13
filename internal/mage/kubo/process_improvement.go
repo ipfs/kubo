@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
-	"dagger.io/dagger"
 	"github.com/ipfs/kubo/internal/mage/util"
 	"github.com/magefile/mage/mg" // mg contains helpful utility functions, like Deps
 )
@@ -67,23 +67,30 @@ func (ProcessImprovement) CreateProcessImprovementPR(ctx context.Context, versio
 		return err
 	}
 
-	c, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
+	dir, err := os.MkdirTemp("", "process-improvement")
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer os.RemoveAll(dir)
 
-	container := c.Container().From("alpine:3.14.2")
-	container = util.WithGit(container)
-	container = util.WithCheckout(container, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
-	container = container.WithExec([]string{"sed", "-i", "1s;.*;<!-- Last updated during [" + version + " release](" + ki.GetHTMLURL() + ") -->;", "docs/RELEASE_ISSUE_TEMPLATE.md"})
-	container = container.WithExec([]string{"git", "add", "docs/RELEASE_ISSUE_TEMPLATE.md"})
-	container = container.WithExec([]string{"git", "commit", "-m", "docs: update RELEASE_ISSUE_TEMPLATE.md"})
-	container = container.WithExec([]string{"git", "push", "origin", head})
-
-	stderr, err := container.Stderr(ctx)
+	err = util.GitClone(dir, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
 	if err != nil {
-		fmt.Println(stderr)
+		return err
+	}
+
+	cmd := exec.Command("sed", "-i", "1s;.*;<!-- Last updated during ["+version+" release]("+ki.GetHTMLURL()+") -->;", "docs/RELEASE_ISSUE_TEMPLATE.md")
+	cmd.Dir = dir
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	err = util.GitCommit(dir, "docs/RELEASE_ISSUE_TEMPLATE.md", "docs: update RELEASE_ISSUE_TEMPLATE.md")
+	if err != nil {
+		return err
+	}
+	err = util.GitPush(dir, head)
+	if err != nil {
 		return err
 	}
 

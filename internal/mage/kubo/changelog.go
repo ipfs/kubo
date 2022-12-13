@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
-	"dagger.io/dagger"
 	"github.com/ipfs/kubo/internal/mage/util"
 	"github.com/magefile/mage/mg" // mg contains helpful utility functions, like Deps
 	"golang.org/x/mod/semver"
@@ -77,31 +77,44 @@ func (Changelog) CreateChangelog(ctx context.Context, version string) error {
 		return err
 	}
 
-	c, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
+	dir, err := os.MkdirTemp("", "changelog")
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer os.RemoveAll(dir)
 
-	container := c.Container().From("alpine:3.14.2")
-	container = util.WithGit(container)
-	container = util.WithCheckout(container, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
+	err = util.GitClone(dir, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
+	if err != nil {
+		return err
+	}
+
 	if changelog == nil {
-		container = container.WithExec([]string{"echo", "", ">", "docs/changelogs/" + v + ".md"})
-		container = container.WithExec([]string{"git", "add", "docs/changelogs/" + v + ".md"})
-		container = container.WithExec([]string{"git", "commit", "-m", "docs: add changelog"})
+		cmd := exec.Command("echo", "", ">", "docs/changelogs/"+v+".md")
+		cmd.Dir = dir
+		err = cmd.Run()
+		if err != nil {
+			return err
+		}
+		err = util.GitCommit(dir, "docs/changelogs/"+v+".md", "docs: add changelog")
+		if err != nil {
+			return err
+		}
 	}
 	if !strings.Contains(*list.Content, l) {
-		container = container.WithExec([]string{"sed", "-i", "3i - " + l, "CHANGELOG.md"})
-		container = container.WithExec([]string{"git", "add", "CHANGELOG.md"})
-		container = container.WithExec([]string{"git", "commit", "-m", "docs: update CHANGELOG.md"})
+		cmd := exec.Command("sed", "-i", "3i - "+l, "CHANGELOG.md")
+		cmd.Dir = dir
+		err = cmd.Run()
+		if err != nil {
+			return err
+		}
+		err = util.GitCommit(dir, "CHANGELOG.md", "docs: update CHANGELOG.md")
+		if err != nil {
+			return err
+		}
 	}
 
-	container = container.WithExec([]string{"git", "push", "origin", head})
-
-	stderr, err := container.Stderr(ctx)
+	err = util.GitPush(dir, head)
 	if err != nil {
-		fmt.Println(stderr)
 		return err
 	}
 

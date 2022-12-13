@@ -3,16 +3,15 @@ package dist
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
-	"net/http"
 	"io"
+	"net/http"
+	"os"
+	"os/exec"
+	"strings"
 
-	"dagger.io/dagger"
+	"github.com/ipfs/kubo/internal/mage/kubo"
 	"github.com/ipfs/kubo/internal/mage/util"
 	"github.com/magefile/mage/mg" // mg contains helpful utility functions, like Deps
-	"github.com/ipfs/kubo/internal/mage/kubo"
-
 )
 
 type Dist mg.Namespace
@@ -22,7 +21,6 @@ const (
 	Repo              = "distributions"
 	DefaultBranchName = "master"
 )
-
 
 func getDistBranchName(version string) string {
 	return "kubo-dist-" + version
@@ -78,24 +76,30 @@ func (Dist) CreateDistPR(ctx context.Context, version string) error {
 		return err
 	}
 
-	c, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
+	dir, err := os.MkdirTemp("", "dist")
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer os.RemoveAll(dir)
 
-	container := c.Container().From("alpine:3.14.2")
-	container = util.WithGit(container)
-	container = util.WithBash(container)
-	container = util.WithCheckout(container, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
-	container = container.WithExec([]string{"./dist.sh", "add-version", "kubo", version})
-	container = container.WithExec([]string{"git", "add", "dists/kubo/versions"})
-	container = container.WithExec([]string{"git", "commit", "-m", "chore: release kubo " + version})
-	container = container.WithExec([]string{"git", "push", "origin", head})
-
-	stderr, err := container.Stderr(ctx)
+	err = util.GitClone(dir, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
 	if err != nil {
-		fmt.Println(stderr)
+		return err
+	}
+
+	cmd := exec.Command("./dist.sh", "add-version", "kubo", version)
+	cmd.Dir = dir
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	err = util.GitCommit(dir, "dists/*/versions", "chore: release kubo "+version)
+	if err != nil {
+		return err
+	}
+	err = util.GitPush(dir, head)
+	if err != nil {
 		return err
 	}
 
@@ -120,7 +124,7 @@ func (Dist) CheckIPFSTech(ctx context.Context, version string) error {
 	if err != nil {
 		return err
 	}
-	if ! strings.Contains(string(versions), version) {
+	if !strings.Contains(string(versions), version) {
 		return fmt.Errorf("version %s not found in dist.ipfs.tech/kubo/versions", version)
 	}
 

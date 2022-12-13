@@ -2,60 +2,82 @@ package util
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strings"
-	"net/http"
-	"io"
 
 	"github.com/google/go-github/v48/github"
 	"golang.org/x/oauth2"
 
-	"dagger.io/dagger"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
-func WithBash(container *dagger.Container) *dagger.Container {
-	return container.
-		WithExec([]string{"apk", "add", "bash"})
-}
-
-func WithGitSecrets(client *dagger.Client, container *dagger.Container) *dagger.Container {
-	secret := client.Host().EnvVariable("GITHUB_TOKEN").Secret()
-
-	return container.
-		WithSecretVariable("GITHUB_TOKEN", secret)
-}
-
-func WithGit(container *dagger.Container) *dagger.Container {
-	token := os.Getenv("GITHUB_TOKEN")
-	// TODO: This should really be a secret
-	auth := base64.URLEncoding.EncodeToString([]byte("pat:" + token))
-
-	name := os.Getenv("GITHUB_USER_NAME")
-	if name == "" {
-		name = "Kubo Mage"
+func GitClone(path, owner, repo, branch, sha string) error {
+	repository, err := git.PlainInit(path, false)
+	if err != nil {
+		return err
 	}
-	email := os.Getenv("GITHUB_USER_EMAIL")
-	if email == "" {
-		email = "noreply+kubo-mage@ipfs.tech"
+	remote, err := repository.CreateRemote(&config.RemoteConfig{
+		Name: "origin",
+		URLs: []string{"https://github.com/" + owner + "/" + repo},
+	})
+	if err != nil {
+		return err
 	}
-
-	return container.
-		WithExec([]string{"apk", "add", "git"}).
-		WithExec([]string{"git", "config", "--global", "gc.auto", "0"}).
-		WithExec([]string{"git", "config", "--global", "core.sshCommand", ""}).
-		WithExec([]string{"git", "config", "--global", "http.https://github.com/.extraheader", "AUTHORIZATION: basic " + auth}).
-		WithExec([]string{"git", "config", "--global", "user.name", name}).
-		WithExec([]string{"git", "config", "--global", "user.email", email})
+	// https://github.com/go-git/go-git/issues/264
+	err = remote.Fetch(&git.FetchOptions{
+		RefSpecs: []config.RefSpec{
+			config.RefSpec("+" + sha + ":refs/remotes/origin/" + branch),
+		},
+		Tags:  git.NoTags,
+		Depth: 1,
+	})
+	if err != nil {
+		return err
+	}
+	worktree, err := repository.Worktree()
+	if err != nil {
+		return err
+	}
+	return worktree.Checkout(&git.CheckoutOptions{
+		Hash:   plumbing.NewHash("refs/remotes/origin/" + branch),
+		Branch: plumbing.NewBranchReferenceName(branch),
+		Create: true,
+	})
 }
 
-func WithCheckout(container *dagger.Container, owner, repo, branch, sha string) *dagger.Container {
-	return container.
-		WithExec([]string{"git", "init"}).
-		WithExec([]string{"git", "remote", "add", "origin", "https://github.com/" + owner + "/" + repo}).
-		WithExec([]string{"git", "-c", "protocol.version=2", "fetch", "--no-tags", "--prune", "--no-recurse-submodules", "--depth=1", "origin", "+" + sha + ":refs/remotes/origin/" + branch}).
-		WithExec([]string{"git", "checkout", "--force", "-B", branch, "refs/remotes/origin/" + branch})
+func GitCommit(path, files, message string) error {
+	repository, err := git.PlainOpen(path)
+	if err != nil {
+		return err
+	}
+	worktree, err := repository.Worktree()
+	if err != nil {
+		return err
+	}
+	_, err = worktree.Add(files)
+	if err != nil {
+		return err
+	}
+	_, err = worktree.Commit(message, &git.CommitOptions{})
+	return err
+}
+
+func GitPush(path, ref string) error {
+	repository, err := git.PlainOpen(path)
+	if err != nil {
+		return err
+	}
+	return repository.Push(&git.PushOptions{
+		RemoteName: "origin",
+		RefSpecs: []config.RefSpec{
+			config.RefSpec(ref),
+		},
+	})
 }
 
 func GitHubClient() (*github.Client, error) {
@@ -409,9 +431,9 @@ func CreateRelease(ctx context.Context, owner, repo, tag, name, body string, pre
 	}
 
 	r, _, err := c.Repositories.CreateRelease(ctx, owner, repo, &github.RepositoryRelease{
-		TagName: &tag,
-		Name: &name,
-		Body: &body,
+		TagName:    &tag,
+		Name:       &name,
+		Body:       &body,
 		Prerelease: &prerelease,
 	})
 	return r, err
