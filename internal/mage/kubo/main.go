@@ -91,7 +91,7 @@ func (Main) UpdateVersion(ctx context.Context, version string) error {
 		container = container.WithExec([]string{"sed", "-i", "s;const CurrentVersionNumber = \".*\";const CurrentVersionNumber = \"" + v + "\";", "version.go"})
 
 		container = container.WithExec([]string{"git", "add", "version.go"})
-		container = container.WithExec([]string{"git", "commit", "-m", "'chore: update version.go'"})
+		container = container.WithExec([]string{"git", "commit", "-m", "chore: update version.go"})
 		container = container.WithExec([]string{"git", "push", "origin", head})
 
 		stderr, err := container.Stderr(ctx)

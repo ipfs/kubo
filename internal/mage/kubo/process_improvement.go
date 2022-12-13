@@ -78,7 +78,7 @@ func (ProcessImprovement) CreateProcessImprovementPR(ctx context.Context, versio
 	container = util.WithCheckout(container, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
 	container = container.WithExec([]string{"sed", "-i", "1s;.*;<!-- Last updated during [" + version + " release](" + ki.GetHTMLURL() + ") -->;", "docs/RELEASE_ISSUE_TEMPLATE.md"})
 	container = container.WithExec([]string{"git", "add", "docs/RELEASE_ISSUE_TEMPLATE.md"})
-	container = container.WithExec([]string{"git", "commit", "-m", "'docs: update RELEASE_ISSUE_TEMPLATE.md'"})
+	container = container.WithExec([]string{"git", "commit", "-m", "docs: update RELEASE_ISSUE_TEMPLATE.md"})
 	container = container.WithExec([]string{"git", "push", "origin", head})
 
 	stderr, err := container.Stderr(ctx)

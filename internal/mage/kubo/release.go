@@ -84,7 +84,7 @@ func (Release) UpdateReleaseVersion(ctx context.Context, version string) error {
 	container = container.WithExec([]string{"sed", "-i", "s;const CurrentVersionNumber = \".*\";const CurrentVersionNumber = \"" + version + "\";", "version.go"})
 
 	container = container.WithExec([]string{"git", "add", "version.go"})
-	container = container.WithExec([]string{"git", "commit", "-m", "'chore: update version.go'"})
+	container = container.WithExec([]string{"git", "commit", "-m", "chore: update version.go"})
 	container = container.WithExec([]string{"git", "push", "origin", head})
 
 	stderr, err := container.Stderr(ctx)
@@ -131,5 +131,26 @@ func (Release) CreateReleasePR(ctx context.Context, version string) error {
 	}
 
 	fmt.Printf("PR created: %s", pr.GetHTMLURL())
+	return nil
+}
+
+func (Release) CheckCI(ctx context.Context, version string) error {
+	head := getReleaseBranchName(version)
+
+	runs, err := util.GetCheckRuns(ctx, Owner, Repo, head)
+	if err != nil {
+		return err
+	}
+
+	for _, run := range runs {
+		if run.GetStatus() != "completed" {
+			return fmt.Errorf("check %s is not completed", run.GetName())
+		}
+		if run.GetConclusion() != "success" {
+			return fmt.Errorf("check %s is not successful", run.GetName())
+		}
+	}
+
+	fmt.Println("All checks are successful")
 	return nil
 }

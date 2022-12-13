@@ -282,3 +282,30 @@ func GetFile(ctx context.Context, owner, repo, path, ref string) (*github.Reposi
 	}
 	return f, err
 }
+
+func GetCheckRuns(ctx context.Context, owner, repo, ref string) ([]*github.CheckRun, error) {
+	fmt.Printf("Getting checks [owner: %s, repo: %s, ref: %s]", owner, repo, ref)
+	fmt.Println()
+
+	c, err := GitHubClient()
+	if err != nil {
+		return nil, err
+	}
+
+	opt := &github.ListCheckRunsOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
+	var runs []*github.CheckRun
+	for {
+		rs, r, err := c.Checks.ListCheckRunsForRef(ctx, owner, repo, ref, opt)
+		if err != nil {
+			return nil, err
+		}
+		runs = append(runs, rs.CheckRuns...)
+		if r.NextPage == 0 {
+			break
+		}
+		opt.Page = r.NextPage
+	}
+	return runs, nil
+}
