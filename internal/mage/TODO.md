@@ -1,0 +1,4 @@
+- [ ] tag creation
+- [ ] auto-merge
+- [ ] reviewer assignment
+- [ ] checking the status of a PR: mergeability, conflicts, open/closed, etc.
