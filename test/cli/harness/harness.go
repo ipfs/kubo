@@ -119,15 +119,19 @@ func (h *Harness) TempFile() *os.File {
 }
 
 // WriteFile writes a file given a filename and its contents.
-// The filename should be a relative path.
+// The filename must be a relative path, or this panics.
 func (h *Harness) WriteFile(filename, contents string) {
 	if filepath.IsAbs(filename) {
 		log.Panicf("%s must be a relative path", filename)
 	}
 	absPath := filepath.Join(h.Runner.Dir, filename)
-	err := os.WriteFile(absPath, []byte(contents), 0644)
+	err := os.MkdirAll(filepath.Dir(absPath), 0777)
 	if err != nil {
-		log.Panicf("writing '%s' ('%s'): %s", filename, absPath, err.Error())
+		log.Panicf("creating intermediate dirs for %q: %s", filename, err.Error())
+	}
+	err = os.WriteFile(absPath, []byte(contents), 0644)
+	if err != nil {
+		log.Panicf("writing %q (%q): %s", filename, absPath, err.Error())
 	}
 }
 
@@ -140,8 +144,7 @@ func WaitForFile(path string, timeout time.Duration) error {
 	for {
 		select {
 		case <-timer.C:
-			end := time.Now()
-			return fmt.Errorf("timeout waiting for %s after %v", path, end.Sub(start))
+			return fmt.Errorf("timeout waiting for %s after %v", path, time.Since(start))
 		case <-ticker.C:
 			_, err := os.Stat(path)
 			if err == nil {

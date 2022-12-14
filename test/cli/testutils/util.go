@@ -6,9 +6,15 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net"
+	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 func SplitLines(s string) []string {
@@ -104,4 +110,22 @@ func RandomBytes(n int) []byte {
 		panic(err)
 	}
 	return bytes
+}
+
+// URLStrToMultiaddr converts a URL string like http://localhost:80 to a multiaddr.
+func URLStrToMultiaddr(u string) multiaddr.Multiaddr {
+	parsedURL, err := url.Parse(u)
+	if err != nil {
+		panic(err)
+	}
+	addrPort, err := netip.ParseAddrPort(parsedURL.Host)
+	if err != nil {
+		panic(err)
+	}
+	tcpAddr := net.TCPAddrFromAddrPort(addrPort)
+	ma, err := manet.FromNetAddr(tcpAddr)
+	if err != nil {
+		panic(err)
+	}
+	return ma
 }
