@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -19,6 +20,7 @@ import (
 	serial "github.com/ipfs/kubo/config/serialize"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 var log = logging.Logger("testharness")
@@ -29,14 +31,15 @@ type Node struct {
 	ID  int
 	Dir string
 
-	APIListenAddr multiaddr.Multiaddr
-	SwarmAddr     multiaddr.Multiaddr
-	EnableMDNS    bool
+	APIListenAddr     multiaddr.Multiaddr
+	GatewayListenAddr multiaddr.Multiaddr
+	SwarmAddr         multiaddr.Multiaddr
+	EnableMDNS        bool
 
 	IPFSBin string
 	Runner  *Runner
 
-	daemon *RunResult
+	Daemon *RunResult
 }
 
 func BuildNode(ipfsBin, baseDir string, id int) *Node {
@@ -134,11 +137,19 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 		n.APIListenAddr = apiAddr
 	}
 
+	if n.GatewayListenAddr == nil {
+		gatewayAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
+		if err != nil {
+			panic(err)
+		}
+		n.GatewayListenAddr = gatewayAddr
+	}
+
 	n.UpdateConfig(func(cfg *config.Config) {
 		cfg.Bootstrap = []string{}
 		cfg.Addresses.Swarm = []string{n.SwarmAddr.String()}
 		cfg.Addresses.API = []string{n.APIListenAddr.String()}
-		cfg.Addresses.Gateway = []string{""}
+		cfg.Addresses.Gateway = []string{n.GatewayListenAddr.String()}
 		cfg.Swarm.DisableNatPortMap = true
 		cfg.Discovery.MDNS.Enabled = n.EnableMDNS
 	})
@@ -159,7 +170,7 @@ func (n *Node) StartDaemon(ipfsArgs ...string) *Node {
 		RunFunc: (*exec.Cmd).Start,
 	})
 
-	n.daemon = &res
+	n.Daemon = &res
 
 	log.Debugf("node %d started, checking API", n.ID)
 	n.WaitOnAPI()
@@ -167,7 +178,7 @@ func (n *Node) StartDaemon(ipfsArgs ...string) *Node {
 }
 
 func (n *Node) signalAndWait(watch <-chan struct{}, signal os.Signal, t time.Duration) bool {
-	err := n.daemon.Cmd.Process.Signal(signal)
+	err := n.Daemon.Cmd.Process.Signal(signal)
 	if err != nil {
 		if errors.Is(err, os.ErrProcessDone) {
 			log.Debugf("process for node %d has already finished", n.ID)
@@ -187,13 +198,13 @@ func (n *Node) signalAndWait(watch <-chan struct{}, signal os.Signal, t time.Dur
 
 func (n *Node) StopDaemon() *Node {
 	log.Debugf("stopping node %d", n.ID)
-	if n.daemon == nil {
+	if n.Daemon == nil {
 		log.Debugf("didn't stop node %d since no daemon present", n.ID)
 		return n
 	}
 	watch := make(chan struct{}, 1)
 	go func() {
-		_, _ = n.daemon.Cmd.Process.Wait()
+		_, _ = n.Daemon.Cmd.Process.Wait()
 		watch <- struct{}{}
 	}()
 	log.Debugf("signaling node %d with SIGTERM", n.ID)
@@ -222,6 +233,15 @@ func (n *Node) APIAddr() multiaddr.Multiaddr {
 		panic(err)
 	}
 	return ma
+}
+
+func (n *Node) APIURL() string {
+	apiAddr := n.APIAddr()
+	netAddr, err := manet.ToNetAddr(apiAddr)
+	if err != nil {
+		panic(err)
+	}
+	return "http://" + netAddr.String()
 }
 
 func (n *Node) TryAPIAddr() (multiaddr.Multiaddr, error) {
@@ -305,20 +325,21 @@ func (n *Node) WaitOnAPI() *Node {
 	log.Debugf("waiting on API for node %d", n.ID)
 	for i := 0; i < 50; i++ {
 		if n.checkAPI() {
+			log.Debugf("daemon API found, daemon stdout: %s", n.Daemon.Stdout.String())
 			return n
 		}
 		time.Sleep(400 * time.Millisecond)
 	}
-	log.Panicf("node %d with peer ID %s failed to come online: \n%s\n\n%s", n.ID, n.PeerID(), n.daemon.Stderr.String(), n.daemon.Stdout.String())
+	log.Panicf("node %d with peer ID %s failed to come online: \n%s\n\n%s", n.ID, n.PeerID(), n.Daemon.Stderr.String(), n.Daemon.Stdout.String())
 	return n
 }
 
 func (n *Node) IsAlive() bool {
-	if n.daemon == nil || n.daemon.Cmd == nil || n.daemon.Cmd.Process == nil {
+	if n.Daemon == nil || n.Daemon.Cmd == nil || n.Daemon.Cmd.Process == nil {
 		return false
 	}
 	log.Debugf("signaling node %d daemon process for liveness check", n.ID)
-	err := n.daemon.Cmd.Process.Signal(syscall.Signal(0))
+	err := n.Daemon.Cmd.Process.Signal(syscall.Signal(0))
 	if err == nil {
 		log.Debugf("node %d daemon is alive", n.ID)
 		return true
@@ -380,4 +401,39 @@ func (n *Node) Peers() []multiaddr.Multiaddr {
 		addrs = append(addrs, ma)
 	}
 	return addrs
+}
+
+// GatewayURL waits for the gateway file and then returns its contents or times out.
+func (n *Node) GatewayURL() string {
+	timer := time.NewTimer(1 * time.Second)
+	defer timer.Stop()
+	for {
+		select {
+		case <-timer.C:
+			panic("timeout waiting for gateway file")
+		default:
+			b, err := os.ReadFile(filepath.Join(n.Dir, "gateway"))
+			if err == nil {
+				return strings.TrimSpace(string(b))
+			}
+			if !errors.Is(err, fs.ErrNotExist) {
+				panic(err)
+			}
+			time.Sleep(1 * time.Millisecond)
+		}
+	}
+}
+
+func (n *Node) GatewayClient() *HTTPClient {
+	return &HTTPClient{
+		Client:  http.DefaultClient,
+		BaseURL: n.GatewayURL(),
+	}
+}
+
+func (n *Node) APIClient() *HTTPClient {
+	return &HTTPClient{
+		Client:  http.DefaultClient,
+		BaseURL: n.APIURL(),
+	}
 }
