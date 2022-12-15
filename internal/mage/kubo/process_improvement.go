@@ -89,7 +89,7 @@ func (ProcessImprovement) CreateProcessImprovementPR(ctx context.Context, versio
 	if err != nil {
 		return err
 	}
-	err = util.GitPush(dir, head)
+	err = util.GitPushBranch(dir, head)
 	if err != nil {
 		return err
 	}

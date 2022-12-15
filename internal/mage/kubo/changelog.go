@@ -113,7 +113,7 @@ func (Changelog) CreateChangelog(ctx context.Context, version string) error {
 		}
 	}
 
-	err = util.GitPush(dir, head)
+	err = util.GitPushBranch(dir, head)
 	if err != nil {
 		return err
 	}

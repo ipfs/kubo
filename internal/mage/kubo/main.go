@@ -101,7 +101,7 @@ func (Main) UpdateVersion(ctx context.Context, version string) error {
 		if err != nil {
 			return err
 		}
-		err = util.GitPush(dir, head)
+		err = util.GitPushBranch(dir, head)
 		if err != nil {
 			return err
 		}

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+test -n "$GITHUB_TOKEN"
+
+GITHUB_USER_NAME="${GITHUB_USER_NAME:-$(git config --global user.name)}"
+GITHUB_USER_EMAIL="${GITHUB_USER_EMAIL:-$(git config --global user.email)}"
+
+docker build \
+  --build-arg GITHUB_TOKEN="$GITHUB_TOKEN" \
+  --build-arg GITHUB_USER_NAME="$GITHUB_USER_NAME" \
+  --build-arg GITHUB_USER_EMAIL="$GITHUB_USER_EMAIL" \
+  -t km .

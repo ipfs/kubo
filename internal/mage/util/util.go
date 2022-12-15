@@ -17,10 +17,15 @@ import (
 )
 
 func GitClone(path, owner, repo, branch, sha string) error {
+	fmt.Printf("Cloning [owner: %s, repo: %s, branch: %s, sha: %s]", owner, repo, branch, sha)
+	fmt.Println()
+
+	fmt.Println("Initializing git repository")
 	repository, err := git.PlainInit(path, false)
 	if err != nil {
 		return err
 	}
+	fmt.Println("Creating remote")
 	remote, err := repository.CreateRemote(&config.RemoteConfig{
 		Name: "origin",
 		URLs: []string{"https://github.com/" + owner + "/" + repo},
@@ -28,8 +33,15 @@ func GitClone(path, owner, repo, branch, sha string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("Retrieving auth")
+	auth, err := GetHeaderAuth()
+	if err != nil {
+		return err
+	}
+	fmt.Println("Fetching remote")
 	// https://github.com/go-git/go-git/issues/264
 	err = remote.Fetch(&git.FetchOptions{
+		Auth: auth,
 		RefSpecs: []config.RefSpec{
 			config.RefSpec("+" + sha + ":refs/remotes/origin/" + branch),
 		},
@@ -39,40 +51,68 @@ func GitClone(path, owner, repo, branch, sha string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("Checking out branch")
 	worktree, err := repository.Worktree()
 	if err != nil {
 		return err
 	}
 	return worktree.Checkout(&git.CheckoutOptions{
-		Hash:   plumbing.NewHash("refs/remotes/origin/" + branch),
+		Hash:   plumbing.NewHash(sha),
 		Branch: plumbing.NewBranchReferenceName(branch),
 		Create: true,
 	})
 }
 
-func GitCommit(path, files, message string) error {
+func GitCommit(path, glob, message string) error {
+	fmt.Printf("Committing [path: %s, glob: %s, message: %s]", path, glob, message)
+	fmt.Println()
+
+	fmt.Println("Opening git repository")
 	repository, err := git.PlainOpen(path)
 	if err != nil {
 		return err
 	}
+	fmt.Println("Adding files")
 	worktree, err := repository.Worktree()
 	if err != nil {
 		return err
 	}
-	_, err = worktree.Add(files)
+ 	err = worktree.AddWithOptions(&git.AddOptions{
+		Glob: glob,
+	})
 	if err != nil {
 		return err
 	}
+	fmt.Println("Committing")
 	_, err = worktree.Commit(message, &git.CommitOptions{})
 	return err
 }
 
+func GitPushBranch(path, branch string) error {
+	return GitPush(path, fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch))
+}
+
+func GitPushTag(path, tag string) error {
+	return GitPush(path, fmt.Sprintf("refs/tags/%s:refs/tags/%s", tag, tag))
+}
+
 func GitPush(path, ref string) error {
+	fmt.Printf("Pushing [path: %s, ref: %s]", path, ref)
+	fmt.Println()
+
+	fmt.Println("Opening git repository")
 	repository, err := git.PlainOpen(path)
 	if err != nil {
 		return err
 	}
+	fmt.Println("Retrieving auth")
+	auth, err := GetHeaderAuth()
+	if err != nil {
+		return err
+	}
+	fmt.Println("Pushing")
 	return repository.Push(&git.PushOptions{
+		Auth: auth,
 		RemoteName: "origin",
 		RefSpecs: []config.RefSpec{
 			config.RefSpec(ref),
