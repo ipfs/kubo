@@ -1,14 +1,16 @@
 package util
 
-// https://github.com/go-git/go-git/issues/474
-
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
-	"encoding/base64"
+	"strings"
+
+	"github.com/ProtonMail/go-crypto/openpgp"
 )
 
+// https://github.com/go-git/go-git/issues/474
 type HeaderAuth struct {
 	Key   string
 	Value string
@@ -37,4 +39,30 @@ func GetHeaderAuth() (*HeaderAuth, error) {
 		Key:   "Authorization",
 		Value: fmt.Sprintf("Basic %s", auth),
 	}, nil
+}
+
+func GetSignEntity() (*openpgp.Entity, error) {
+	key := os.Getenv("GPG_KEY")
+	if key == "" {
+		return nil, fmt.Errorf("env var GPG_KEY must be set")
+	}
+	pass := os.Getenv("GPG_PASSPHRASE")
+	bass := []byte(pass)
+
+	list, err := openpgp.ReadArmoredKeyRing(strings.NewReader(key))
+	if err != nil {
+		return nil, err
+	}
+	entity := list[0]
+	err = entity.PrivateKey.Decrypt(bass)
+	if err != nil {
+		return nil, err
+	}
+	for _, subkey := range entity.Subkeys {
+		err = subkey.PrivateKey.Decrypt(bass)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return entity, nil
 }

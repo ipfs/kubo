@@ -1,9 +1,9 @@
-- [ ] tag creation
+- [x] tag creation
 - [ ] auto-merge
 - [ ] reviewer assignment
 - [ ] checking the status of a PR: mergeability, conflicts, open/closed, etc.
-- [ ] run commands in Docker
-- [ ] test git-go
+- [x] run commands in Docker
+- [x] test git-go
 - [ ] check if protocol.version 2 is used for fetch
 - [ ] fix util.GetWorkflowRunLogs
 - [ ] check if there's discourse API

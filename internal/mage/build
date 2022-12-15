@@ -5,8 +5,14 @@ test -n "$GITHUB_TOKEN"
 GITHUB_USER_NAME="${GITHUB_USER_NAME:-$(git config --global user.name)}"
 GITHUB_USER_EMAIL="${GITHUB_USER_EMAIL:-$(git config --global user.email)}"
 
+GPG_ID="${GPG_ID:-$(git config --global user.signingkey)}"
+GPG_KEY="${GPG_KEY:-$(gpg --armor --pinentry-mode=loopback --passphrase "$GPG_PASSPHRASE" --export-secret-key "$GPG_ID" -w0)}"
+
 docker build \
   --build-arg GITHUB_TOKEN="$GITHUB_TOKEN" \
   --build-arg GITHUB_USER_NAME="$GITHUB_USER_NAME" \
   --build-arg GITHUB_USER_EMAIL="$GITHUB_USER_EMAIL" \
+  --build-arg GPG_ID="$GPG_ID" \
+  --build-arg GPG_KEY="$GPG_KEY" \
+  --build-arg GPG_PASSPHRASE="$GPG_PASSPHRASE" \
   -t km .

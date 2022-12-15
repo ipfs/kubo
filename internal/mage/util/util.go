@@ -14,6 +14,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 func GitClone(path, owner, repo, branch, sha string) error {
@@ -87,6 +88,32 @@ func GitCommit(path, glob, message string) error {
 	_, err = worktree.Commit(message, &git.CommitOptions{})
 	return err
 }
+
+func GitTag(path, ref, tag, message string) (*object.Tag, error) {
+	fmt.Printf("Tagging [path: %s, ref: %s, tag: %s, message: %s]", path, ref, tag, message)
+	fmt.Println()
+
+	fmt.Println("Opening git repository")
+	repository, err := git.PlainOpen(path)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Retrieving sign entity")
+	sign, err := GetSignEntity()
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Creating tag")
+	obj, err := repository.CreateTag(tag, plumbing.NewHash(ref), &git.CreateTagOptions{
+		Message: message,
+		SignKey: sign,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return repository.TagObject(obj.Hash())
+}
+
 
 func GitPushBranch(path, branch string) error {
 	return GitPush(path, fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch))
@@ -474,4 +501,20 @@ func CreateRelease(ctx context.Context, owner, repo, tag, name, body string, pre
 		Prerelease: &prerelease,
 	})
 	return r, err
+}
+
+func GetTag(ctx context.Context, owner, repo, tag string) (*github.Tag, error) {
+	fmt.Printf("Getting tag [owner: %s, repo: %s, tag: %s]", owner, repo, tag)
+	fmt.Println()
+
+	c, err := GitHubClient()
+	if err != nil {
+		return nil, err
+	}
+
+	t, _, err := c.Git.GetTag(ctx, owner, repo, tag)
+	if err != nil && strings.Contains(err.Error(), "404 Not Found") {
+		return nil, nil
+	}
+	return t, err
 }

@@ -245,3 +245,59 @@ func SyncGitHubRelease(ctx context.Context, version string) error {
 
 	return util.CreateWorkflowRun(ctx, Owner, Repo, "sync-release-assets.yml", DefaultBranchName)
 }
+
+func (Release) CreateReleaseTag(ctx context.Context, version string) error {
+	tag, err := util.GetTag(ctx, Owner, Repo, version)
+	if err != nil {
+		return err
+	}
+	if tag != nil {
+		fmt.Println("Tag already exists")
+		return nil
+	}
+
+	head := getReleaseBranchName(version)
+
+	branch, err := util.GetBranch(ctx, Owner, Repo, head)
+	if err != nil {
+		return err
+	}
+	if branch == nil {
+		return fmt.Errorf("branch %s does not exist", head)
+	}
+
+	dir, err := os.MkdirTemp("", "dist")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+
+	err = util.GitClone(dir, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
+	if err != nil {
+		return err
+	}
+
+	ref, err := util.GitTag(dir, branch.GetCommit().GetSHA(), version, "Release "+version)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Tag created:\n%v\nSignature: %s\n", ref, ref.PGPSignature)
+	fmt.Println("The tag will now be pushed to the remote repository.")
+	fmt.Println("Only 'yes' will be accepted to approve.")
+	fmt.Print("Enter a value: ")
+	var confirmation string
+	fmt.Scanln(&confirmation)
+
+	if confirmation != "yes" {
+			return fmt.Errorf("confirmation is not 'yes'")
+	}
+
+	err = util.GitPushTag(dir, version)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Tag created")
+	return nil
+}
