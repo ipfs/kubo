@@ -35,11 +35,6 @@ Before opening an issue, consider using one of the following locations to ensure
  
 [![YouTube Channel Subscribers](https://img.shields.io/youtube/channel/subscribers/UCdjsUXJ3QawK4O5L1kqqsew?label=Subscribe%20IPFS&style=social&cacheSeconds=3600)](https://www.youtube.com/channel/UCdjsUXJ3QawK4O5L1kqqsew) [![Follow @IPFS on Twitter](https://img.shields.io/twitter/follow/IPFS?style=social&cacheSeconds=3600)](https://twitter.com/IPFS)
 
-## Next milestones
-
-[Milestones on GitHub](https://github.com/ipfs/kubo/milestones)
-
-
 ## Table of Contents
 
 - [What is Kubo?](#what-is-kubo)
@@ -414,16 +409,13 @@ Find more documentation for developers on [docs](./docs)
 * [Release Process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4)
 * [Additional PL EngRes Kubo maintainer info](https://pl-strflt.notion.site/Kubo-go-ipfs-4a484aeeaa974dcf918027c300426c05)
 
+<a href="https://brianmacdonald.github.io/Ethonate/address#0xD5645363C02044482983E60a58eb8A0a8DA2588C">
+  <img style="width:111px" src="https://brianmacdonald.github.io/Ethonate/svg/eth-donate-blue.svg" />
+</a>
 
-## Contributing
-
-[![](https://cdn.rawgit.com/jbenet/contribute-ipfs-gif/master/img/contribute.gif)](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md)
-
-We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what it is without you! If you want to help out, please see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
-
-Please reach out to us in one [chat](https://docs.ipfs.tech/community/chat/) rooms.
+<a href="https://donate.cafe/Tenet">
+  <img style="width:111px" src="https://newbie.zeromesh.net/donate.7.6.svg" />
+</a>
 
 ## License
 
