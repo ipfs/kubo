@@ -181,9 +181,7 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 
 With the purely functional package manager [Nix](https://nixos.org/nix/) you can install kubo (go-ipfs) like this:
 
-```
-$ nix-env -i ipfs
-```
+> $ nix-env -i ipfs
 
 You can also install the Package by using its attribute name, which is also `ipfs`.
 
@@ -191,9 +189,7 @@ You can also install the Package by using its attribute name, which is also `ipf
 
 [Package for Solus](https://dev.getsol.us/source/kubo/repository/master/)
 
-```
-$ sudo eopkg install kubo
-```
+> $ sudo eopkg install kubo
 
 You can also install it through the Solus software center.
 
@@ -237,17 +233,13 @@ PS> scoop install kubo
 
 The package [ipfs](https://ports.macports.org/port/ipfs) currently points to kubo (go-ipfs) and is being maintained.
 
-```
-$ sudo port install ipfs
-```
+> sudo port install ipfs
 
 #### <a name="nix-macos">Nix</a>
 
 In macOS you can use the purely functional package manager [Nix](https://nixos.org/nix/):
 
-```
-$ nix-env -i ipfs
-```
+> nix-env -i ipfs
 
 You can also install the Package by using its attribute name, which is also `ipfs`.
 
@@ -255,9 +247,7 @@ You can also install the Package by using its attribute name, which is also `ipf
 
 A Homebrew formula [ipfs](https://formulae.brew.sh/formula/ipfs) is maintained too.
 
-```
-$ brew install --formula ipfs
-```
+> brew install --formula ipfs
 
 ### Build from Source
 
@@ -279,21 +269,16 @@ If you need to update: [Download latest version of Go](https://golang.org/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
-```
-export PATH=$PATH:/usr/local/go/bin
-export PATH=$PATH:$GOPATH/bin
-```
+> export PATH=$PATH:/usr/local/go/bin
+> export PATH=$PATH:$GOPATH/bin
 
 (If you run into trouble, see the [Go install instructions](https://golang.org/doc/install)).
 
 #### Download and Compile IPFS
 
-```
-$ git clone https://github.com/88-degrees/kubo.git
-
-$ cd kubo
-$ make install
-```
+> git clone https://github.com/88-degrees/kubo.git
+> $ cd kubo
+> $ make install
 
 Alternatively, you can run `make build` to build the go-ipfs binary (storing it in `cmd/ipfs/ipfs`) without installing it.
 
@@ -303,9 +288,7 @@ Alternatively, you can run `make build` to build the go-ipfs binary (storing it 
 
 Compiling for a different platform is as simple as running:
 
-```
-make build GOOS=myTargetOS GOARCH=myTargetArchitecture
-```
+> make build GOOS=myTargetOS GOARCH=myTargetArchitecture
 
 ##### OpenSSL
 
@@ -389,12 +372,6 @@ Some places to get you started on the codebase:
 > [Origin](https://github.com/ipfs/pm/pull/678#discussion_r210410924)
 
 Description: Dotted means "likely going away". The "Legacy" parts are thin wrappers around some commands to translate between the new system and the old system. The grayed-out parts on the "daemon" diagram are there to show that the code is all the same, it's just that we turn some pieces on and some pieces off depending on whether we're running on the client or the server.
-
-### Testing
-
-```
-make test
-```
 
 ### Development Dependencies
 
