@@ -3,6 +3,7 @@ package harness
 import (
 	"sync"
 
+	. "github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -10,9 +11,7 @@ import (
 type Nodes []*Node
 
 func (n Nodes) Init(args ...string) Nodes {
-	for _, node := range n {
-		node.Init()
-	}
+	ForEachPar(n, func(node *Node) { node.Init(args...) })
 	return n
 }
 
@@ -43,22 +42,11 @@ func (n Nodes) Connect() Nodes {
 }
 
 func (n Nodes) StartDaemons() Nodes {
-	wg := sync.WaitGroup{}
-	for _, node := range n {
-		wg.Add(1)
-		node := node
-		go func() {
-			defer wg.Done()
-			node.StartDaemon()
-		}()
-	}
-	wg.Wait()
+	ForEachPar(n, func(node *Node) { node.StartDaemon() })
 	return n
 }
 
 func (n Nodes) StopDaemons() Nodes {
-	for _, node := range n {
-		node.StopDaemon()
-	}
+	ForEachPar(n, func(node *Node) { node.StopDaemon() })
 	return n
 }

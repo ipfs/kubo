@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -128,4 +129,17 @@ func URLStrToMultiaddr(u string) multiaddr.Multiaddr {
 		panic(err)
 	}
 	return ma
+}
+
+// ForEachPar invokes f in a new goroutine for each element of s and waits for all to complete.
+func ForEachPar[T any](s []T, f func(T)) {
+	wg := sync.WaitGroup{}
+	wg.Add(len(s))
+	for _, x := range s {
+		go func(x T) {
+			defer wg.Done()
+			f(x)
+		}(x)
+	}
+	wg.Wait()
 }
