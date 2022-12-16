@@ -322,16 +322,6 @@ system, this is done with `ipfs init`. See `ipfs init --help` for information on
 the optional arguments it takes. After initialization is complete, you can use
 `ipfs mount`, `ipfs add` and any of the other commands to explore!
 
-### Some things to try
-
-Basic proof of 'ipfs working' locally:
-
-    echo "hello world" > hello
-    ipfs add hello
-    # This should output a hash string that looks something like:
-    # QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
-    ipfs cat <that hash>
-
 ### HTTP/RPC clients
 
 For programmatic interaction with Kubo, see our [list of HTTP/RPC clients](docs/http-rpc-clients.md).
@@ -339,8 +329,6 @@ For programmatic interaction with Kubo, see our [list of HTTP/RPC clients](docs/
 ### Troubleshooting
 
 If you have previously installed IPFS before and you are running into problems getting a newer version to work, try deleting (or backing up somewhere else) your IPFS config directory (~/.ipfs by default) and rerunning `ipfs init`. This will reinitialize the config file to its defaults and clear out the local datastore of any bad entries.
-
-Please direct general questions and help requests to our [forums](https://discuss.ipfs.tech).
 
 If you believe you've found a bug, check the [issues list](https://github.com/88-degrees/kubo/issues) and, if you don't see your problem there, either come talk to us on [Matrix chat](https://docs.ipfs.tech/community/chat/), or file an issue of your own!
 
@@ -363,15 +351,13 @@ Some places to get you started on the codebase:
 
 ### Map of Implemented Subsystems
 **WIP**: This is a high-level architecture diagram of the various sub-systems of this specific implementation. To be updated with how they interact. Anyone who has suggestions is welcome to comment [here](https://docs.google.com/drawings/d/1OVpBT2q-NtSJqlPX3buvjYhOnWfdzb85YEsM_njesME/edit) on how we can improve this!
-<img src="https://docs.google.com/drawings/d/e/2PACX-1vS_n1FvSu6mdmSirkBrIIEib2gqhgtatD9awaP2_WdrGN4zTNeg620XQd9P95WT-IvognSxIIdCM5uE/pub?w=1446&amp;h=1036">
+![](docs/flow.png)
 
 ### CLI, HTTP-API, Architecture Diagram
 
-![](./docs/cli-http-api-core-diagram.png)
+Dotted means "likely going away". The "Legacy" parts are thin wrappers around some commands to translate between the new system and the old system. The grayed-out parts on the "daemon" diagram are there to show that the code is all the same, it's just that we turn some pieces on and some pieces off depending on whether we're running on the client or the server.
 
-> [Origin](https://github.com/ipfs/pm/pull/678#discussion_r210410924)
-
-Description: Dotted means "likely going away". The "Legacy" parts are thin wrappers around some commands to translate between the new system and the old system. The grayed-out parts on the "daemon" diagram are there to show that the code is all the same, it's just that we turn some pieces on and some pieces off depending on whether we're running on the client or the server.
+![](docs/cli-http-api-core-diagram.png)
 
 ### Development Dependencies
 
