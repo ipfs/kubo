@@ -8,3 +8,4 @@
 - [ ] fix util.GetWorkflowRunLogs
 - [ ] check if there's discourse API
 - [ ] mention early testers through GitHub API
+- [ ] run exec commands with streaming output

@@ -20,7 +20,8 @@ RUN apk update && apk add --no-cache \
   bash \
   git \
   gnupg \
-  zsh
+  zsh \
+  npm
 RUN git config --global gc.auto 0 && \
   git config --global protocol.version 2 && \
   git config --global core.sshCommand "" && \
