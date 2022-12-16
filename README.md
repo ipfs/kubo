@@ -1,6 +1,4 @@
 
-![kubo, an IPFS node in Go](https://ipfs.io/ipfs/bafykbzacecaesuqmivkauix25v6i6xxxsvsrtxknhgb5zak3xxsg2nb4dhs2u/ipfs.go.png)
-
 [![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square&cacheSeconds=3600)](https://protocol.ai)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square&cacheSeconds=3600)](https://godoc.org/github.com/ipfs/kubo)
 [![CircleCI](https://img.shields.io/circleci/build/github/ipfs/kubo?style=flat-square&cacheSeconds=3600)](https://circleci.com/gh/ipfs/kubo)
@@ -9,7 +7,8 @@
 
 Kubo was the first IPFS implementation and is the most widely used one today. Implementing the *Interplanetary Filesystem* - the Web3 standard for content-addressing, interoperable with HTTP. Thus powered by IPLD's data models and the libp2p for network communication. Kubo is written in Go.
 
-Featureset
+**Featureset**:
+
 - Runs an IPFS-Node as a network service
 - [Command Line Interface](https://docs.ipfs.tech/reference/kubo/cli/) to IPFS-Nodes
 - Local [Web2-to-Web3 HTTP Gateway functionality](https://github.com/ipfs/specs/tree/main/http-gateways#readme) 
