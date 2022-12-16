@@ -13,13 +13,13 @@ import (
 
 func TestHTTPDelegatedRouting(t *testing.T) {
 	t.Parallel()
-	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	node := harness.New(t).NewNode().Init().StartDaemon()
 
 	fakeServer := func(resp string) *httptest.Server {
 		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_, err := w.Write([]byte(resp))
 			if err != nil {
-				panic(err)
+				t.Fatal(err)
 			}
 		}))
 	}

@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	logging "github.com/ipfs/go-log/v2"
 	. "github.com/ipfs/kubo/test/cli/testutils"
 )
 
@@ -20,34 +19,27 @@ type Harness struct {
 	Runner    *Runner
 	NodesRoot string
 	Nodes     Nodes
+	Log       *TestLogger
+	T         *testing.T
 }
 
-// TODO: use zaptest.NewLogger(t) instead
-func EnableDebugLogging() {
-	err := logging.SetLogLevel("testharness", "DEBUG")
-	if err != nil {
-		panic(err)
+// New constructs a harness that cleans up after the given test is done.
+func New(t *testing.T, options ...func(h *Harness)) *Harness {
+	log := NewTestLogger(t)
+	h := &Harness{
+		Runner: &Runner{Log: log, Env: osEnviron()},
+		Log:    log,
+		T:      t,
 	}
-}
-
-// NewT constructs a harness that cleans up after the given test is done.
-func NewT(t *testing.T, options ...func(h *Harness)) *Harness {
-	h := New(options...)
-	t.Cleanup(h.Cleanup)
-	return h
-}
-
-func New(options ...func(h *Harness)) *Harness {
-	h := &Harness{Runner: &Runner{Env: osEnviron()}}
 
 	// walk up to find the root dir, from which we can locate the binary
 	wd, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		h.Log.Fatal(err)
 	}
 	goMod := FindUp("go.mod", wd)
 	if goMod == "" {
-		panic("unable to find root dir")
+		h.Log.Fatal("unable to find root dir")
 	}
 	rootDir := filepath.Dir(goMod)
 	h.IPFSBin = filepath.Join(rootDir, "cmd", "ipfs", "ipfs")
@@ -55,7 +47,7 @@ func New(options ...func(h *Harness)) *Harness {
 	// setup working dir
 	tmpDir, err := os.MkdirTemp("", "")
 	if err != nil {
-		log.Panicf("error creating temp dir: %s", err)
+		h.Log.Fatalf("error creating temp dir: %s", err)
 	}
 	h.Dir = tmpDir
 	h.Runner.Dir = h.Dir
@@ -67,6 +59,8 @@ func New(options ...func(h *Harness)) *Harness {
 	for _, o := range options {
 		o(h)
 	}
+
+	t.Cleanup(h.Cleanup)
 
 	return h
 }
@@ -82,7 +76,7 @@ func osEnviron() map[string]string {
 
 func (h *Harness) NewNode() *Node {
 	nodeID := len(h.Nodes)
-	node := BuildNode(h.IPFSBin, h.NodesRoot, nodeID)
+	node := buildNode(h.Log, h.IPFSBin, h.NodesRoot, nodeID)
 	h.Nodes = append(h.Nodes, node)
 	return node
 }
@@ -100,11 +94,11 @@ func (h *Harness) WriteToTemp(contents string) string {
 	f := h.TempFile()
 	_, err := f.WriteString(contents)
 	if err != nil {
-		log.Panicf("writing to temp file: %s", err.Error())
+		h.Log.Fatalf("writing to temp file: %s", err.Error())
 	}
 	err = f.Close()
 	if err != nil {
-		log.Panicf("closing temp file: %s", err.Error())
+		h.Log.Fatalf("closing temp file: %s", err.Error())
 	}
 	return f.Name()
 }
@@ -113,7 +107,7 @@ func (h *Harness) WriteToTemp(contents string) string {
 func (h *Harness) TempFile() *os.File {
 	f, err := os.CreateTemp(h.Dir, "")
 	if err != nil {
-		log.Panicf("creating temp file: %s", err.Error())
+		h.Log.Fatalf("creating temp file: %s", err.Error())
 	}
 	return f
 }
@@ -122,16 +116,16 @@ func (h *Harness) TempFile() *os.File {
 // The filename must be a relative path, or this panics.
 func (h *Harness) WriteFile(filename, contents string) {
 	if filepath.IsAbs(filename) {
-		log.Panicf("%s must be a relative path", filename)
+		h.Log.Fatalf("%s must be a relative path", filename)
 	}
 	absPath := filepath.Join(h.Runner.Dir, filename)
 	err := os.MkdirAll(filepath.Dir(absPath), 0777)
 	if err != nil {
-		log.Panicf("creating intermediate dirs for %q: %s", filename, err.Error())
+		h.Log.Fatalf("creating intermediate dirs for %q: %s", filename, err.Error())
 	}
 	err = os.WriteFile(absPath, []byte(contents), 0644)
 	if err != nil {
-		log.Panicf("writing %q (%q): %s", filename, absPath, err.Error())
+		h.Log.Fatalf("writing %q (%q): %s", filename, absPath, err.Error())
 	}
 }
 
@@ -161,12 +155,12 @@ func WaitForFile(path string, timeout time.Duration) error {
 func (h *Harness) Mkdirs(paths ...string) {
 	for _, path := range paths {
 		if filepath.IsAbs(path) {
-			log.Panicf("%s must be a relative path when making dirs", path)
+			h.Log.Fatalf("%s must be a relative path when making dirs", path)
 		}
 		absPath := filepath.Join(h.Runner.Dir, path)
 		err := os.MkdirAll(absPath, 0777)
 		if err != nil {
-			log.Panicf("recursively making dirs under %s: %s", absPath, err)
+			h.Log.Fatalf("recursively making dirs under %s: %s", absPath, err)
 		}
 	}
 }
@@ -179,12 +173,17 @@ func (h *Harness) Sh(expr string) RunResult {
 }
 
 func (h *Harness) Cleanup() {
-	log.Debugf("cleaning up cluster")
+	h.Log.Logf("cleaning up cluster")
 	h.Nodes.StopDaemons()
 	// TODO: don't do this if test fails, not sure how?
-	log.Debugf("removing harness dir")
+	h.Log.Logf("removing harness dir")
 	err := os.RemoveAll(h.Dir)
 	if err != nil {
-		log.Panicf("removing temp dir %s: %s", h.Dir, err)
+		h.Log.Fatalf("removing temp dir %s: %s", h.Dir, err)
 	}
+}
+
+func (h *Harness) EnableLogs() *Harness {
+	h.Log.EnableLogs()
+	return h
 }

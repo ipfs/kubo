@@ -15,7 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
 	serial "github.com/ipfs/kubo/config/serialize"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -23,7 +22,7 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 )
 
-var log = logging.Logger("testharness")
+//var log = logging.Logger("testharness")
 
 // Node is a single Kubo node.
 // Each node has its own config and can run its own Kubo daemon.
@@ -38,24 +37,29 @@ type Node struct {
 
 	IPFSBin string
 	Runner  *Runner
+	Log     *TestLogger
 
 	Daemon *RunResult
 }
 
-func BuildNode(ipfsBin, baseDir string, id int) *Node {
+func buildNode(log *TestLogger, ipfsBin, baseDir string, id int) *Node {
 	dir := filepath.Join(baseDir, strconv.Itoa(id))
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	env := environToMap(os.Environ())
 	env["IPFS_PATH"] = dir
 
+	log = log.AddPrefix(fmt.Sprintf("node %d", id))
+
 	return &Node{
 		ID:      id,
 		Dir:     dir,
 		IPFSBin: ipfsBin,
+		Log:     log,
 		Runner: &Runner{
+			Log: log,
 			Env: env,
 			Dir: dir,
 		},
@@ -65,7 +69,7 @@ func BuildNode(ipfsBin, baseDir string, id int) *Node {
 func (n *Node) ReadConfig() *config.Config {
 	cfg, err := serial.Load(filepath.Join(n.Dir, "config"))
 	if err != nil {
-		panic(err)
+		n.Log.Fatal(err)
 	}
 	return cfg
 }
@@ -73,7 +77,7 @@ func (n *Node) ReadConfig() *config.Config {
 func (n *Node) WriteConfig(c *config.Config) {
 	err := serial.WriteConfigFile(filepath.Join(n.Dir, "config"), c)
 	if err != nil {
-		panic(err)
+		n.Log.Fatal(err)
 	}
 }
 
@@ -124,7 +128,7 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 	if n.SwarmAddr == nil {
 		swarmAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
 		if err != nil {
-			panic(err)
+			n.Log.Fatal(err)
 		}
 		n.SwarmAddr = swarmAddr
 	}
@@ -132,7 +136,7 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 	if n.APIListenAddr == nil {
 		apiAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
 		if err != nil {
-			panic(err)
+			n.Log.Fatal(err)
 		}
 		n.APIListenAddr = apiAddr
 	}
@@ -140,7 +144,7 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 	if n.GatewayListenAddr == nil {
 		gatewayAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
 		if err != nil {
-			panic(err)
+			n.Log.Fatal(err)
 		}
 		n.GatewayListenAddr = gatewayAddr
 	}
@@ -159,11 +163,11 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 func (n *Node) StartDaemon(ipfsArgs ...string) *Node {
 	alive := n.IsAlive()
 	if alive {
-		log.Panicf("node %d is already running", n.ID)
+		n.Log.Fatal("daemon already running", n.ID)
 	}
 
 	daemonArgs := append([]string{"daemon"}, ipfsArgs...)
-	log.Debugf("starting node %d", n.ID)
+	n.Log.Log("starting daemon")
 	res := n.Runner.MustRun(RunRequest{
 		Path:    n.IPFSBin,
 		Args:    daemonArgs,
@@ -172,7 +176,7 @@ func (n *Node) StartDaemon(ipfsArgs ...string) *Node {
 
 	n.Daemon = &res
 
-	log.Debugf("node %d started, checking API", n.ID)
+	n.Log.Log("started, checking API")
 	n.WaitOnAPI()
 	return n
 }
@@ -181,10 +185,10 @@ func (n *Node) signalAndWait(watch <-chan struct{}, signal os.Signal, t time.Dur
 	err := n.Daemon.Cmd.Process.Signal(signal)
 	if err != nil {
 		if errors.Is(err, os.ErrProcessDone) {
-			log.Debugf("process for node %d has already finished", n.ID)
+			n.Log.Log("process has already finished")
 			return true
 		}
-		log.Panicf("error killing daemon for node %d with peer ID %s: %s", n.ID, n.PeerID(), err.Error())
+		n.Log.Fatalf("error killing daemon with peerID=%s: %s", n.PeerID(), err.Error())
 	}
 	timer := time.NewTimer(t)
 	defer timer.Stop()
@@ -197,9 +201,9 @@ func (n *Node) signalAndWait(watch <-chan struct{}, signal os.Signal, t time.Dur
 }
 
 func (n *Node) StopDaemon() *Node {
-	log.Debugf("stopping node %d", n.ID)
+	n.Log.Log("stopping daemon")
 	if n.Daemon == nil {
-		log.Debugf("didn't stop node %d since no daemon present", n.ID)
+		n.Log.Log("didn't stop node since no daemon present")
 		return n
 	}
 	watch := make(chan struct{}, 1)
@@ -207,30 +211,30 @@ func (n *Node) StopDaemon() *Node {
 		_, _ = n.Daemon.Cmd.Process.Wait()
 		watch <- struct{}{}
 	}()
-	log.Debugf("signaling node %d with SIGTERM", n.ID)
+	n.Log.Log("signaling with SIGTERM")
 	if n.signalAndWait(watch, syscall.SIGTERM, 1*time.Second) {
 		return n
 	}
-	log.Debugf("signaling node %d with SIGTERM", n.ID)
+	n.Log.Log("signaling with SIGTERM")
 	if n.signalAndWait(watch, syscall.SIGTERM, 2*time.Second) {
 		return n
 	}
-	log.Debugf("signaling node %d with SIGQUIT", n.ID)
+	n.Log.Log("signaling with SIGQUIT")
 	if n.signalAndWait(watch, syscall.SIGQUIT, 5*time.Second) {
 		return n
 	}
-	log.Debugf("signaling node %d with SIGKILL", n.ID)
+	n.Log.Log("signaling with SIGKILL")
 	if n.signalAndWait(watch, syscall.SIGKILL, 5*time.Second) {
 		return n
 	}
-	log.Panicf("timed out stopping node %d with peer ID %s", n.ID, n.PeerID())
+	n.Log.Fatalf("timed out stopping peerID=%s", n.PeerID())
 	return n
 }
 
 func (n *Node) APIAddr() multiaddr.Multiaddr {
 	ma, err := n.TryAPIAddr()
 	if err != nil {
-		panic(err)
+		n.Log.Fatal(err)
 	}
 	return ma
 }
@@ -239,7 +243,7 @@ func (n *Node) APIURL() string {
 	apiAddr := n.APIAddr()
 	netAddr, err := manet.ToNetAddr(apiAddr)
 	if err != nil {
-		panic(err)
+		n.Log.Fatal(err)
 	}
 	return "http://" + netAddr.String()
 }
@@ -259,22 +263,22 @@ func (n *Node) TryAPIAddr() (multiaddr.Multiaddr, error) {
 func (n *Node) checkAPI() bool {
 	apiAddr, err := n.TryAPIAddr()
 	if err != nil {
-		log.Debugf("node %d API addr not available yet: %s", n.ID, err.Error())
+		n.Log.Logf("API addr not available yet: %s", err.Error())
 		return false
 	}
 	ip, err := apiAddr.ValueForProtocol(multiaddr.P_IP4)
 	if err != nil {
-		panic(err)
+		n.Log.Fatal(err)
 	}
 	port, err := apiAddr.ValueForProtocol(multiaddr.P_TCP)
 	if err != nil {
-		panic(err)
+		n.Log.Fatal(err)
 	}
 	url := fmt.Sprintf("http://%s:%s/api/v0/id", ip, port)
-	log.Debugf("checking API for node %d at %s", n.ID, url)
+	n.Log.Logf("checking API at %s", url)
 	httpResp, err := http.Post(url, "", nil)
 	if err != nil {
-		log.Debugf("node %d API check error: %s", err.Error())
+		n.Log.Logf("API check error: %s", err.Error())
 		return false
 	}
 	defer httpResp.Body.Close()
@@ -284,31 +288,31 @@ func (n *Node) checkAPI() bool {
 
 	respBytes, err := io.ReadAll(httpResp.Body)
 	if err != nil {
-		log.Debugf("error reading API check response for node %d: %s", n.ID, err.Error())
+		n.Log.Logf("error reading API check response: %s", err.Error())
 		return false
 	}
-	log.Debugf("got API check response for node %d: %s", n.ID, string(respBytes))
+	n.Log.Logf("got API check response: %s", string(respBytes))
 
 	err = json.Unmarshal(respBytes, &resp)
 	if err != nil {
-		log.Debugf("error decoding API check response for node %d: %s", n.ID, err.Error())
+		n.Log.Logf("error decoding API check response: %s", err.Error())
 		return false
 	}
 	if resp.ID == "" {
-		log.Debugf("API check response for node %d did not contain a Peer ID", n.ID)
+		n.Log.Logf("API check response for did not contain a Peer ID")
 		return false
 	}
 	respPeerID, err := peer.Decode(resp.ID)
 	if err != nil {
-		panic(err)
+		n.Log.Fatal(err)
 	}
 
 	peerID := n.PeerID()
 	if respPeerID != peerID {
-		log.Panicf("expected peer ID %s but got %s", peerID, resp.ID)
+		n.Log.Fatalf("expected peer ID %s but got %s", peerID, resp.ID)
 	}
 
-	log.Debugf("API check for node %d successful", n.ID)
+	n.Log.Log("API check successful")
 	return true
 }
 
@@ -316,21 +320,21 @@ func (n *Node) PeerID() peer.ID {
 	cfg := n.ReadConfig()
 	id, err := peer.Decode(cfg.Identity.PeerID)
 	if err != nil {
-		panic(err)
+		n.Log.Fatal(err)
 	}
 	return id
 }
 
 func (n *Node) WaitOnAPI() *Node {
-	log.Debugf("waiting on API for node %d", n.ID)
+	n.Log.Log("waiting on API")
 	for i := 0; i < 50; i++ {
 		if n.checkAPI() {
-			log.Debugf("daemon API found, daemon stdout: %s", n.Daemon.Stdout.String())
+			n.Log.Logf("daemon API found, daemon stdout: %s", n.Daemon.Stdout.String())
 			return n
 		}
 		time.Sleep(400 * time.Millisecond)
 	}
-	log.Panicf("node %d with peer ID %s failed to come online: \n%s\n\n%s", n.ID, n.PeerID(), n.Daemon.Stderr.String(), n.Daemon.Stdout.String())
+	n.Log.Fatalf("node with peer ID %s failed to come online: \n%s\n\n%s", n.PeerID(), n.Daemon.Stderr.String(), n.Daemon.Stdout.String())
 	return n
 }
 
@@ -338,13 +342,13 @@ func (n *Node) IsAlive() bool {
 	if n.Daemon == nil || n.Daemon.Cmd == nil || n.Daemon.Cmd.Process == nil {
 		return false
 	}
-	log.Debugf("signaling node %d daemon process for liveness check", n.ID)
+	n.Log.Log("signaling daemon process for liveness check")
 	err := n.Daemon.Cmd.Process.Signal(syscall.Signal(0))
 	if err == nil {
-		log.Debugf("node %d daemon is alive", n.ID)
+		n.Log.Log("daemon is alive")
 		return true
 	}
-	log.Debugf("node %d daemon not alive: %s", err.Error())
+	n.Log.Logf("daemon not alive: %s", err.Error())
 	return false
 }
 
@@ -361,7 +365,7 @@ func (n *Node) SwarmAddrs() []multiaddr.Multiaddr {
 	for _, addrStr := range outLines {
 		ma, err := multiaddr.NewMultiaddr(addrStr)
 		if err != nil {
-			panic(err)
+			n.Log.Fatal(err)
 		}
 
 		// add the peer ID to the multiaddr if it doesn't have it
@@ -369,7 +373,7 @@ func (n *Node) SwarmAddrs() []multiaddr.Multiaddr {
 		if errors.Is(err, multiaddr.ErrProtocolNotFound) {
 			comp, err := multiaddr.NewComponent(ipfsProtocol, peerID.String())
 			if err != nil {
-				panic(err)
+				n.Log.Fatal(err)
 			}
 			ma = ma.Encapsulate(comp)
 		}
@@ -396,7 +400,7 @@ func (n *Node) Peers() []multiaddr.Multiaddr {
 	for _, line := range lines {
 		ma, err := multiaddr.NewMultiaddr(line)
 		if err != nil {
-			panic(err)
+			n.Log.Fatal(err)
 		}
 		addrs = append(addrs, ma)
 	}
@@ -410,14 +414,14 @@ func (n *Node) GatewayURL() string {
 	for {
 		select {
 		case <-timer.C:
-			panic("timeout waiting for gateway file")
+			n.Log.Fatal("timeout waiting for gateway file")
 		default:
 			b, err := os.ReadFile(filepath.Join(n.Dir, "gateway"))
 			if err == nil {
 				return strings.TrimSpace(string(b))
 			}
 			if !errors.Is(err, fs.ErrNotExist) {
-				panic(err)
+				n.Log.Fatal(err)
 			}
 			time.Sleep(1 * time.Millisecond)
 		}
@@ -426,6 +430,7 @@ func (n *Node) GatewayURL() string {
 
 func (n *Node) GatewayClient() *HTTPClient {
 	return &HTTPClient{
+		Log:     n.Log,
 		Client:  http.DefaultClient,
 		BaseURL: n.GatewayURL(),
 	}
@@ -433,6 +438,7 @@ func (n *Node) GatewayClient() *HTTPClient {
 
 func (n *Node) APIClient() *HTTPClient {
 	return &HTTPClient{
+		Log:     n.Log,
 		Client:  http.DefaultClient,
 		BaseURL: n.APIURL(),
 	}

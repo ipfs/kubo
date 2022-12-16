@@ -26,13 +26,13 @@ func parseVersionOutput(s string) semver.Version {
 
 func TestCurDirIsWritable(t *testing.T) {
 	t.Parallel()
-	h := harness.NewT(t)
+	h := harness.New(t)
 	h.WriteFile("test.txt", "It works!")
 }
 
 func TestIPFSVersionCommandMatchesFlag(t *testing.T) {
 	t.Parallel()
-	node := harness.NewT(t).NewNode()
+	node := harness.New(t).NewNode()
 	commandVersionStr := node.IPFS("version").Stdout.String()
 	commandVersionStr = strings.TrimSpace(commandVersionStr)
 	commandVersion := parseVersionOutput(commandVersionStr)
@@ -46,7 +46,7 @@ func TestIPFSVersionCommandMatchesFlag(t *testing.T) {
 
 func TestIPFSVersionAll(t *testing.T) {
 	t.Parallel()
-	node := harness.NewT(t).NewNode()
+	node := harness.New(t).NewNode()
 	res := node.IPFS("version", "--all").Stdout.String()
 	res = strings.TrimSpace(res)
 	assert.Contains(t, res, "Kubo version")
@@ -57,7 +57,7 @@ func TestIPFSVersionAll(t *testing.T) {
 
 func TestIPFSVersionDeps(t *testing.T) {
 	t.Parallel()
-	node := harness.NewT(t).NewNode()
+	node := harness.New(t).NewNode()
 	res := node.IPFS("version", "deps").Stdout.String()
 	res = strings.TrimSpace(res)
 	lines := SplitLines(res)
@@ -77,7 +77,7 @@ func TestIPFSVersionDeps(t *testing.T) {
 
 func TestIPFSCommands(t *testing.T) {
 	t.Parallel()
-	node := harness.NewT(t).NewNode()
+	node := harness.New(t).NewNode()
 	cmds := node.IPFSCommands()
 	assert.Contains(t, cmds, "ipfs add")
 	assert.Contains(t, cmds, "ipfs daemon")
@@ -86,7 +86,7 @@ func TestIPFSCommands(t *testing.T) {
 
 func TestAllSubcommandsAcceptHelp(t *testing.T) {
 	t.Parallel()
-	node := harness.NewT(t).NewNode()
+	node := harness.New(t).NewNode()
 	for _, cmd := range node.IPFSCommands() {
 		t.Run(fmt.Sprintf("command %q accepts help", cmd), func(t *testing.T) {
 			t.Parallel()
@@ -99,7 +99,7 @@ func TestAllSubcommandsAcceptHelp(t *testing.T) {
 
 func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 	t.Parallel()
-	node := harness.NewT(t).NewNode()
+	node := harness.New(t).NewNode()
 	cmds := node.IPFSCommands()
 	var rootCmds []string
 	for _, cmd := range cmds {
@@ -131,7 +131,7 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 
 func TestCommandDocsWidth(t *testing.T) {
 	t.Parallel()
-	node := harness.NewT(t).NewNode()
+	node := harness.New(t).NewNode()
 
 	// require new commands to explicitly opt in to longer lines
 	allowList := map[string]bool{
@@ -216,7 +216,7 @@ func TestCommandDocsWidth(t *testing.T) {
 
 func TestAllCommandsFailWhenPassedBadFlag(t *testing.T) {
 	t.Parallel()
-	node := harness.NewT(t).NewNode()
+	node := harness.New(t).NewNode()
 
 	for _, cmd := range node.IPFSCommands() {
 		t.Run(fmt.Sprintf("command %q fails when passed a bad flag", cmd), func(t *testing.T) {
@@ -230,7 +230,7 @@ func TestAllCommandsFailWhenPassedBadFlag(t *testing.T) {
 
 func TestCommandsFlags(t *testing.T) {
 	t.Parallel()
-	node := harness.NewT(t).NewNode()
+	node := harness.New(t).NewNode()
 	resStr := node.IPFS("commands", "--flags").Stdout.String()
 	assert.Contains(t, resStr, "ipfs pin add --recursive / ipfs pin add -r")
 	assert.Contains(t, resStr, "ipfs id --format / ipfs id -f")

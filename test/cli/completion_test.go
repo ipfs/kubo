@@ -11,7 +11,7 @@ import (
 
 func TestBashCompletion(t *testing.T) {
 	t.Parallel()
-	h := harness.NewT(t)
+	h := harness.New(t)
 	node := h.NewNode()
 
 	res := node.IPFS("commands", "completion", "bash")

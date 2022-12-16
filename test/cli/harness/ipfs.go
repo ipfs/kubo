@@ -28,7 +28,7 @@ func (n *Node) IPFSCommands() []string {
 func (n *Node) SetIPFSConfig(key string, val interface{}, flags ...string) {
 	valBytes, err := json.Marshal(val)
 	if err != nil {
-		log.Panicf("marshling config for key '%s': %s", key, err)
+		n.Log.Fatalf("node %d: marshaling config for key '%s': %s", n.ID, key, err)
 	}
 	valStr := string(valBytes)
 
@@ -41,7 +41,7 @@ func (n *Node) SetIPFSConfig(key string, val interface{}, flags ...string) {
 	var newVal string
 	n.GetIPFSConfig(key, &newVal)
 	if val != newVal {
-		log.Panicf("key '%s' did not retain value '%s' after it was set, got '%s'", key, val, newVal)
+		n.Log.Fatalf("node %d: key '%s' did not retain value '%s' after it was set, got '%s'", n.ID, key, val, newVal)
 	}
 }
 
@@ -56,17 +56,17 @@ func (n *Node) GetIPFSConfig(key string, val interface{}) {
 	}
 	err := json.Unmarshal([]byte(valStr), val)
 	if err != nil {
-		log.Fatalf("unmarshaling config for key '%s', value '%s': %s", key, valStr, err)
+		n.Log.Fatalf("node %d: unmarshaling config for key '%s', value '%s': %s", n.ID, key, valStr, err)
 	}
 }
 
 func (n *Node) IPFSAddStr(content string, args ...string) string {
-	log.Debugf("node %d adding content '%s' with args: %v", n.ID, PreviewStr(content), args)
+	n.Log.Logf("node %d: adding content '%s' with args: %v", n.ID, PreviewStr(content), args)
 	return n.IPFSAdd(strings.NewReader(content), args...)
 }
 
 func (n *Node) IPFSAdd(content io.Reader, args ...string) string {
-	log.Debugf("node %d adding with args: %v", n.ID, args)
+	n.Log.Logf("node %d: adding with args: %v", n.ID, args)
 	fullArgs := []string{"add", "-q"}
 	fullArgs = append(fullArgs, args...)
 	res := n.Runner.MustRun(RunRequest{
@@ -75,6 +75,6 @@ func (n *Node) IPFSAdd(content io.Reader, args ...string) string {
 		CmdOpts: []CmdOpt{RunWithStdin(content)},
 	})
 	out := strings.TrimSpace(res.Stdout.String())
-	log.Debugf("add result: %q", out)
+	n.Log.Logf("node %d: add result: %q", n.ID, out)
 	return out
 }

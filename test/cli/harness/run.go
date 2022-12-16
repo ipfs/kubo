@@ -9,6 +9,7 @@ import (
 
 // Runner is a process runner which can run subprocesses and aggregate output.
 type Runner struct {
+	Log     *TestLogger
 	Env     map[string]string
 	Dir     string
 	Verbose bool
@@ -67,7 +68,7 @@ func (r *Runner) Run(req RunRequest) RunResult {
 		req.RunFunc = (*exec.Cmd).Run
 	}
 
-	log.Debugf("running %v", cmd.Args)
+	r.Log.Logf("running %v", cmd.Args)
 
 	err := req.RunFunc(cmd)
 
@@ -94,12 +95,12 @@ func (r *Runner) MustRun(req RunRequest) RunResult {
 
 func (r *Runner) AssertNoError(result RunResult) {
 	if result.ExitErr != nil {
-		log.Panicf("'%s' returned error, code: %d, err: %s\nstdout:%s\nstderr:%s\n",
+		r.Log.Fatalf("'%s' returned error, code: %d, err: %s\nstdout:%s\nstderr:%s\n",
 			result.Cmd.Args, result.ExitErr.ExitCode(), result.ExitErr.Error(), result.Stdout.String(), result.Stderr.String())
 
 	}
 	if result.Err != nil {
-		log.Panicf("unable to run %s: %s", result.Cmd.Path, result.Err)
+		r.Log.Fatalf("unable to run %s: %s", result.Cmd.Path, result.Err)
 
 	}
 }

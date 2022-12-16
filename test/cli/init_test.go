@@ -27,7 +27,7 @@ func validatePeerID(t *testing.T, peerID peer.ID, expErr error, expAlgo pb.KeyTy
 func testInitAlgo(t *testing.T, initFlags []string, expOutputName string, expPeerIDPubKeyErr error, expPeerIDPubKeyType pb.KeyType) {
 	t.Run("init", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode()
+		node := harness.New(t).NewNode()
 		initRes := node.IPFS(StrCat("init", initFlags)...)
 
 		lines := []string{
@@ -59,7 +59,7 @@ func testInitAlgo(t *testing.T, initFlags []string, expOutputName string, expPee
 
 	t.Run("init empty repo", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode()
+		node := harness.New(t).NewNode()
 		initRes := node.IPFS(StrCat("init", "--empty-repo", initFlags)...)
 
 		validatePeerID(t, node.PeerID(), expPeerIDPubKeyErr, expPeerIDPubKeyType)
@@ -86,7 +86,7 @@ func TestInit(t *testing.T) {
 
 	t.Run("init fails if the repo dir has no perms", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode()
+		node := harness.New(t).NewNode()
 		badDir := fp.Join(node.Dir, ".badipfs")
 		err := os.Mkdir(badDir, 0000)
 		require.NoError(t, err)
@@ -114,7 +114,7 @@ func TestInit(t *testing.T) {
 
 	t.Run("ipfs init --profile with invalid profile fails", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode()
+		node := harness.New(t).NewNode()
 		res := node.RunIPFS("init", "--profile=invalid_profile")
 		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
 		assert.Equal(t, "Error: invalid configuration profile: invalid_profile", res.Stderr.Trimmed())
@@ -122,13 +122,13 @@ func TestInit(t *testing.T) {
 
 	t.Run("ipfs init --profile with valid profile succeeds", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode()
+		node := harness.New(t).NewNode()
 		node.IPFS("init", "--profile=server")
 	})
 
 	t.Run("ipfs config looks good", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init("--profile=server")
+		node := harness.New(t).NewNode().Init("--profile=server")
 
 		lines := node.IPFS("config", "Swarm.AddrFilters").Stdout.Lines()
 		assert.Len(t, lines, 18)
@@ -142,7 +142,7 @@ func TestInit(t *testing.T) {
 
 	t.Run("ipfs init from existing config succeeds", func(t *testing.T) {
 		t.Parallel()
-		nodes := harness.NewT(t).NewNodes(2)
+		nodes := harness.New(t).NewNodes(2)
 		node1 := nodes[0]
 		node2 := nodes[1]
 
@@ -155,7 +155,7 @@ func TestInit(t *testing.T) {
 
 	t.Run("ipfs init should not run while daemon is running", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		node := harness.New(t).NewNode().Init().StartDaemon()
 		res := node.RunIPFS("init")
 		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
 		assert.Contains(t, res.Stderr.String(), "Error: ipfs daemon is running. please stop it to run this command")

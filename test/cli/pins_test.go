@@ -22,7 +22,7 @@ type testPinsArgs struct {
 func testPins(t *testing.T, args testPinsArgs) {
 	t.Run(fmt.Sprintf("test pins with args=%+v", args), func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init()
+		node := harness.New(t).NewNode().Init()
 		if args.runDaemon {
 			node.StartDaemon("--offline")
 		}
@@ -124,7 +124,7 @@ func testPins(t *testing.T, args testPinsArgs) {
 func testPinsErrorReporting(t *testing.T, args testPinsArgs) {
 	t.Run(fmt.Sprintf("test pins error reporting with args=%+v", args), func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init()
+		node := harness.New(t).NewNode().Init()
 		if args.runDaemon {
 			node.StartDaemon("--offline")
 		}
@@ -138,7 +138,7 @@ func testPinsErrorReporting(t *testing.T, args testPinsArgs) {
 func testPinDAG(t *testing.T, args testPinsArgs) {
 	t.Run(fmt.Sprintf("test pin DAG with args=%+v", args), func(t *testing.T) {
 		t.Parallel()
-		h := harness.NewT(t)
+		h := harness.New(t)
 		node := h.NewNode().Init()
 		if args.runDaemon {
 			node.StartDaemon("--offline")
@@ -163,7 +163,7 @@ func testPinDAG(t *testing.T, args testPinsArgs) {
 func testPinProgress(t *testing.T, args testPinsArgs) {
 	t.Run(fmt.Sprintf("test pin progress with args=%+v", args), func(t *testing.T) {
 		t.Parallel()
-		h := harness.NewT(t)
+		h := harness.New(t)
 		node := h.NewNode().Init()
 
 		if args.runDaemon {

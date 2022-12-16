@@ -21,7 +21,7 @@ import (
 
 func TestGateway(t *testing.T) {
 	t.Parallel()
-	h := harness.NewT(t)
+	h := harness.New(t)
 	node := h.NewNode().Init().StartDaemon("--offline")
 	cid := node.IPFSAddStr("Hello Worlds!")
 
@@ -259,7 +259,7 @@ func TestGateway(t *testing.T) {
 
 	t.Run("pprof", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		node := harness.New(t).NewNode().Init().StartDaemon()
 		apiClient := node.APIClient()
 		t.Run("mutex", func(t *testing.T) {
 			t.Parallel()
@@ -301,7 +301,7 @@ func TestGateway(t *testing.T) {
 
 	t.Run("index content types", func(t *testing.T) {
 		t.Parallel()
-		h := harness.NewT(t)
+		h := harness.New(t)
 		node := h.NewNode().Init().StartDaemon()
 
 		h.WriteFile("index/index.html", "<p></p>")
@@ -435,7 +435,7 @@ func TestGateway(t *testing.T) {
 
 	t.Run("verify gateway file diallable while on unspecified", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init()
+		node := harness.New(t).NewNode().Init()
 		node.UpdateConfig(func(cfg *config.Config) {
 			cfg.Addresses.Gateway = config.Strings{"/ip4/127.0.0.1/tcp/32563"}
 		})
@@ -449,7 +449,7 @@ func TestGateway(t *testing.T) {
 
 	t.Run("NoFetch", func(t *testing.T) {
 		t.Parallel()
-		nodes := harness.NewT(t).NewNodes(2).Init()
+		nodes := harness.New(t).NewNodes(2).Init()
 		node1 := nodes[0]
 		node2 := nodes[1]
 
