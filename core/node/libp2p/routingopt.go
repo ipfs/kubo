@@ -67,8 +67,17 @@ func ConstructDefaultRouting(peerID string, addrs []string, privKey string) func
 			if err != nil {
 				return nil, err
 			}
+
+			r := &irouting.Composer{
+				GetValueRouter:      routinghelpers.Null{},
+				PutValueRouter:      routinghelpers.Null{},
+				ProvideRouter:       routinghelpers.Null{}, // modify this when indexers supports provide
+				FindPeersRouter:     routinghelpers.Null{},
+				FindProvidersRouter: httpRouter,
+			}
+
 			routers = append(routers, &routinghelpers.ParallelRouter{
-				Router:       httpRouter,
+				Router:       r,
 				IgnoreError:  true,             // https://github.com/ipfs/kubo/pull/9475#discussion_r1042507387
 				Timeout:      15 * time.Second, // 5x server value from https://github.com/ipfs/kubo/pull/9475#discussion_r1042428529
 				ExecuteAfter: 0,
