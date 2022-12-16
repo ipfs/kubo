@@ -29,8 +29,3 @@ Otherwise, check out the following guides to using and developing IPFS:
 - [Mounting IPFS with FUSE](fuse.md)
 - [Installing plugins](plugins.md)
 - [Setting up an IPFS Gateway](https://github.com/ipfs/kubo/blob/master/docs/gateway.md)
-
-## Other
-
-- [Thanks to all our contributors ❤️](AUTHORS) (We use the `generate-authors.sh` script to regenerate this list.)
-- [How to file a GitHub Issue](github-issue-guide.md)
