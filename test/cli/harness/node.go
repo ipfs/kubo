@@ -453,9 +453,8 @@ func (n *Node) Peers() []multiaddr.Multiaddr {
 		Path: n.IPFSBin,
 		Args: []string{"swarm", "peers"},
 	})
-	lines := strings.Split(strings.TrimSpace(res.Stdout.String()), "\n")
 	var addrs []multiaddr.Multiaddr
-	for _, line := range lines {
+	for _, line := range res.Stdout.Lines() {
 		ma, err := multiaddr.NewMultiaddr(line)
 		if err != nil {
 			panic(err)
@@ -463,6 +462,28 @@ func (n *Node) Peers() []multiaddr.Multiaddr {
 		addrs = append(addrs, ma)
 	}
 	return addrs
+}
+
+func (n *Node) PeerWith(other *Node) {
+	n.UpdateConfig(func(cfg *config.Config) {
+		var addrs []multiaddr.Multiaddr
+		for _, addrStr := range other.ReadConfig().Addresses.Swarm {
+			ma, err := multiaddr.NewMultiaddr(addrStr)
+			if err != nil {
+				panic(err)
+			}
+			addrs = append(addrs, ma)
+		}
+
+		cfg.Peering.Peers = append(cfg.Peering.Peers, peer.AddrInfo{
+			ID:    other.PeerID(),
+			Addrs: addrs,
+		})
+	})
+}
+
+func (n *Node) Disconnect(other *Node) {
+	n.IPFS("swarm", "disconnect", "/p2p/"+other.PeerID().String())
 }
 
 // GatewayURL waits for the gateway file and then returns its contents or times out.
