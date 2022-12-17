@@ -31,9 +31,8 @@ Before opening an issue, consider using one of the following locations to ensure
   - IPFS _design_ in [ipfs/specs issues](https://github.com/ipfs/specs/issues).
   - Exploration of new ideas in [ipfs/notes issues](https://github.com/ipfs/notes/issues).
   - Ask questions and meet the rest of the community at the [IPFS Forum](https://discuss.ipfs.tech).
-  - Or [chat with us](https://docs.ipfs.tech/community/chat/).
  
-[![YouTube Channel Subscribers](https://img.shields.io/youtube/channel/subscribers/UCdjsUXJ3QawK4O5L1kqqsew?label=Subscribe%20IPFS&style=social&cacheSeconds=3600)](https://www.youtube.com/channel/UCdjsUXJ3QawK4O5L1kqqsew) [![Follow @IPFS on Twitter](https://img.shields.io/twitter/follow/IPFS?style=social&cacheSeconds=3600)](https://twitter.com/IPFS)
+[![Follow @Bruce1Ai on Twitter](https://img.shields.io/twitter/follow/Bruce1Ai?style=social&cacheSeconds=3600)](https://twitter.com/Bruce1Ai)
 
 ## Table of Contents
 
