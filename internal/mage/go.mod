@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/Masterminds/semver v1.5.0
+	github.com/ProtonMail/go-crypto v0.0.0-20221026131551-cf6655e29de4
 	github.com/go-git/go-git/v5 v5.5.1
 	github.com/google/go-github/v48 v48.1.0
 	github.com/magefile/mage v1.14.0
@@ -14,7 +15,6 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
-	github.com/ProtonMail/go-crypto v0.0.0-20221026131551-cf6655e29de4 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/cloudflare/circl v1.1.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
