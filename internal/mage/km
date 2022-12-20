@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+docker run -it --rm --env-file <(./.env 2> >(sed -n 's/^\+ //p')) $(docker build -q .) "$@"

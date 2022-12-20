@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v48/github"
 	"golang.org/x/oauth2"
@@ -16,6 +17,22 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
+
+func getSignature() *object.Signature {
+	name := os.Getenv("GITHUB_USER_NAME")
+	email := os.Getenv("GITHUB_USER_EMAIL")
+	if name == "" {
+		name = "Kubo Mage"
+	}
+	if email == "" {
+		email = "noreply+kubo-mage@ipfs.tech"
+	}
+	return &object.Signature{
+		Name:  name,
+		Email: email,
+		When:  time.Now(),
+	}
+}
 
 func GitClone(path, owner, repo, branch, sha string) error {
 	fmt.Printf("Cloning [owner: %s, repo: %s, branch: %s, sha: %s]", owner, repo, branch, sha)
@@ -78,14 +95,16 @@ func GitCommit(path, glob, message string) error {
 	if err != nil {
 		return err
 	}
- 	err = worktree.AddWithOptions(&git.AddOptions{
+	err = worktree.AddWithOptions(&git.AddOptions{
 		Glob: glob,
 	})
 	if err != nil {
 		return err
 	}
 	fmt.Println("Committing")
-	_, err = worktree.Commit(message, &git.CommitOptions{})
+	_, err = worktree.Commit(message, &git.CommitOptions{
+		Author: getSignature(),
+	})
 	return err
 }
 
@@ -105,6 +124,7 @@ func GitTag(path, ref, tag, message string) (*object.Tag, error) {
 	}
 	fmt.Println("Creating tag")
 	obj, err := repository.CreateTag(tag, plumbing.NewHash(ref), &git.CreateTagOptions{
+		Tagger: getSignature(),
 		Message: message,
 		SignKey: sign,
 	})
@@ -113,7 +133,6 @@ func GitTag(path, ref, tag, message string) (*object.Tag, error) {
 	}
 	return repository.TagObject(obj.Hash())
 }
-
 
 func GitPushBranch(path, branch string) error {
 	return GitPush(path, fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch))
@@ -139,7 +158,7 @@ func GitPush(path, ref string) error {
 	}
 	fmt.Println("Pushing")
 	return repository.Push(&git.PushOptions{
-		Auth: auth,
+		Auth:       auth,
 		RemoteName: "origin",
 		RefSpecs: []config.RefSpec{
 			config.RefSpec(ref),
