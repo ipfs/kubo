@@ -16,7 +16,6 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gabriel-vasile/mimetype v1.4.1
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/ipfs/go-bitswap v0.4.1-0.20210907152348-a19b05e23dbc
 	github.com/ipfs/go-bitswap v0.10.2
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-blockservice v0.4.0
@@ -64,7 +63,7 @@ require (
 	github.com/ipfs/go-unixfsnode v1.5.0
 	github.com/ipfs/go-verifcid v0.0.2
 	github.com/ipfs/interface-go-ipfs-core v0.7.0
-	github.com/ipld/go-car v0.4.0
+	github.com/ipld/go-car v0.5.0
 	github.com/ipld/go-car/v2 v2.4.0
 	github.com/ipld/go-codec-dagpb v1.4.1
 	github.com/ipld/go-ipld-prime v0.19.0
