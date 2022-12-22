@@ -1,11 +1,14 @@
 package util
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -124,7 +127,7 @@ func GitTag(path, ref, tag, message string) (*object.Tag, error) {
 	}
 	fmt.Println("Creating tag")
 	obj, err := repository.CreateTag(tag, plumbing.NewHash(ref), &git.CreateTagOptions{
-		Tagger: getSignature(),
+		Tagger:  getSignature(),
 		Message: message,
 		SignKey: sign,
 	})
@@ -425,7 +428,12 @@ func GetCheckRuns(ctx context.Context, owner, repo, ref string) ([]*github.Check
 	return runs, nil
 }
 
-func CreateWorkflowRun(ctx context.Context, owner, repo, file, ref string) error {
+type WorkflowRunInput struct {
+	Name  string
+	Value interface{}
+}
+
+func CreateWorkflowRun(ctx context.Context, owner, repo, file, ref string, inputs ...WorkflowRunInput) error {
 	fmt.Printf("Creating workflow run [owner: %s, repo: %s, file: %s, ref: %s]", owner, repo, file, ref)
 	fmt.Println()
 
@@ -434,8 +442,14 @@ func CreateWorkflowRun(ctx context.Context, owner, repo, file, ref string) error
 		return err
 	}
 
+	is := make(map[string]interface{})
+	for _, i := range inputs {
+		is[i.Name] = i.Value
+	}
+
 	_, err = c.Actions.CreateWorkflowDispatchEventByFileName(ctx, owner, repo, file, github.CreateWorkflowDispatchEventRequest{
-		Ref: ref,
+		Ref:    ref,
+		Inputs: is,
 	})
 	return err
 }
@@ -465,27 +479,101 @@ func GetWorkflowRun(ctx context.Context, owner, repo, file string, completed boo
 	return r.WorkflowRuns[0], nil
 }
 
-func GetWorkflowRunLogs(ctx context.Context, owner, repo string, id int64) (string, error) {
+type WorkflowRunJobStepLogs struct {
+	Name    string
+	RawLogs string
+}
+
+type WorkflowRunJobLogs struct {
+	Name        string
+	RawLogs     string
+	JobStepLogs map[string]*WorkflowRunJobStepLogs
+}
+
+type WorkflowRunLogs struct {
+	JobLogs map[string]*WorkflowRunJobLogs
+}
+
+func GetWorkflowRunLogs(ctx context.Context, owner, repo string, id int64) (*WorkflowRunLogs, error) {
 	fmt.Printf("Getting workflow run logs [owner: %s, repo: %s, id: %v]", owner, repo, id)
 	fmt.Println()
 
 	c, err := GitHubClient()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	url, _, err := c.Actions.GetWorkflowRunLogs(ctx, owner, repo, id, true)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	r, err := http.Get(url.String())
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	defer r.Body.Close()
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
 	}
 
-	b, err := io.ReadAll(r.Body)
-	return string(b), err
+	reader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+	if err != nil {
+		return nil, err
+	}
+
+	logs := &WorkflowRunLogs{
+		JobLogs: make(map[string]*WorkflowRunJobLogs),
+	}
+	sort.Slice(reader.File, func(i, j int) bool {
+		return reader.File[i].Name < reader.File[j].Name
+	})
+	for _, f := range reader.File {
+		if !f.FileInfo().IsDir() {
+			name := strings.TrimSuffix(f.Name, ".txt")
+			if strings.HasSuffix(name, ")") {
+				name = name[:strings.LastIndex(name, "(")-1]
+			}
+			c, err := f.Open()
+			if err != nil {
+				return nil, err
+			}
+			defer c.Close()
+			b, err := io.ReadAll(c)
+			if err != nil {
+				return nil, err
+			}
+			job, step, _ := strings.Cut(name, "/")
+			if step == "" {
+				_, job, _ = strings.Cut(job, "_")
+			} else {
+				_, step, _ = strings.Cut(step, "_")
+			}
+			j := logs.JobLogs[job]
+			if j == nil {
+				j = &WorkflowRunJobLogs{
+					Name:        job,
+					JobStepLogs: make(map[string]*WorkflowRunJobStepLogs),
+				}
+				logs.JobLogs[job] = j
+			}
+			if step == "" {
+				j.RawLogs += string(b)
+			} else {
+				s := j.JobStepLogs[step]
+				if s == nil {
+					s = &WorkflowRunJobStepLogs{
+						Name: step,
+					}
+					j.JobStepLogs[step] = s
+				}
+				s.RawLogs += string(b)
+			}
+		}
+	}
+	return logs, nil
 }
 
 func GetRelease(ctx context.Context, owner, repo, tag string) (*github.RepositoryRelease, error) {

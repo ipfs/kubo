@@ -29,7 +29,12 @@ func (NPM) PublishToNPM(ctx context.Context, version string) error {
 		return err
 	}
 
-	if strings.Contains(logs, version) {
+	publish := logs.JobLogs["publish"]
+	if publish == nil {
+		return fmt.Errorf("the latest run does not have a publish job")
+	}
+
+	if strings.Contains(publish.RawLogs, version) {
 		fmt.Println("Version has already been published")
 		return nil
 	}
@@ -48,7 +53,12 @@ func (NPM) CheckNPM(ctx context.Context, version string) error {
 		return err
 	}
 
-	if strings.Contains(logs, version) {
+	publish := logs.JobLogs["publish"]
+	if publish == nil {
+		return fmt.Errorf("the latest run does not have a publish job")
+	}
+
+	if strings.Contains(publish.RawLogs, version) {
 		fmt.Println("Version has already been published")
 		return nil
 	}
