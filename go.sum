@@ -745,8 +745,8 @@ github.com/libp2p/go-libp2p v0.7.0/go.mod h1:hZJf8txWeCduQRDC/WSqBGMxaTHCOYHt2xS
 github.com/libp2p/go-libp2p v0.7.4/go.mod h1:oXsBlTLF1q7pxr+9w6lqzS1ILpyHsaBPniVO7zIHGMw=
 github.com/libp2p/go-libp2p v0.8.1/go.mod h1:QRNH9pwdbEBpx5DTJYg+qxcVaDMAz3Ee/qDKwXujH5o=
 github.com/libp2p/go-libp2p v0.14.3/go.mod h1:d12V4PdKbpL0T1/gsUNN8DfgMuRPDX8bS2QxCZlwRH0=
-github.com/libp2p/go-libp2p v0.24.1 h1:+lS4fqj7RF9egcPq9Yo3iqdRTcDMApzoBbQMhxtwOVw=
-github.com/libp2p/go-libp2p v0.24.1/go.mod h1:5LJqbrqFsUzWrq70JHCYqjATlX4ey8Klpct3OEe8hSI=
+github.com/libp2p/go-libp2p v0.24.2 h1:iMViPIcLY0D6zr/f+1Yq9EavCZu2i7eDstsr1nEwSAk=
+github.com/libp2p/go-libp2p v0.24.2/go.mod h1:WuxtL2V8yGjam03D93ZBC19tvOUiPpewYv1xdFGWu1k=
 github.com/libp2p/go-libp2p-asn-util v0.2.0 h1:rg3+Os8jbnO5DxkC7K/Utdi+DkY3q/d1/1q+8WeNAsw=
 github.com/libp2p/go-libp2p-asn-util v0.2.0/go.mod h1:WoaWxbHKBymSN41hWSq/lGKJEca7TNm58+gGJi2WsLI=
 github.com/libp2p/go-libp2p-autonat v0.1.0/go.mod h1:1tLf2yXxiE/oKGtDwPYWTSYG3PtvYlJmg7NeVtPRqH8=
@@ -959,8 +959,8 @@ github.com/marten-seemann/qtls-go1-19 v0.1.1 h1:mnbxeq3oEyQxQXwI4ReCgW9DPoPR94sN
 github.com/marten-seemann/qtls-go1-19 v0.1.1/go.mod h1:5HTDWtVudo/WFsHKRNuOhWlbdjrfs5JHrYb0wIJqGpI=
 github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd h1:br0buuQ854V8u83wA0rVZ8ttrq5CpaPZdvrK0LP2lOk=
 github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd/go.mod h1:QuCEs1Nt24+FYQEqAAncTDPJIuGs+LxK1MCiFL25pMU=
-github.com/marten-seemann/webtransport-go v0.4.2 h1:8ZRr9AsPuDiLQwnX2PxGs2t35GPvUaqPJnvk+c2SFSs=
-github.com/marten-seemann/webtransport-go v0.4.2/go.mod h1:4xcfySgZMLP4aG5GBGj1egP7NlpfwgYJ1WJMvPPiVMU=
+github.com/marten-seemann/webtransport-go v0.4.3 h1:vkt5o/Ci+luknRteWdYGYH1KcB7ziup+J+1PzZJIvmg=
+github.com/marten-seemann/webtransport-go v0.4.3/go.mod h1:4xcfySgZMLP4aG5GBGj1egP7NlpfwgYJ1WJMvPPiVMU=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.1/go.mod h1:FuOcm+DKB9mbwrcAfNl7/TZVBZ6rcnceauSikq3lYCQ=
 github.com/mattn/go-colorable v0.1.2/go.mod h1:U0ppj6V5qS13XJ6of8GYAs25YV2eR4EVcfRqFIhoBtE=
