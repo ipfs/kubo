@@ -93,6 +93,10 @@ EOF
     test_cmp expected actual
   '
 
+  test_expect_failure "'ipfs add' with an unregistered hash and wrapped leaves fails without crashing" '
+    ipfs add --hash poseidon-bls12_381-a2-fc1 --raw-leaves=false -r mountdir/planets
+  '
+
 }
 
 # should work offline

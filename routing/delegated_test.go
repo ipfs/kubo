@@ -45,7 +45,7 @@ func TestReframeRoutingFromConfig(t *testing.T) {
 		Parameters: &config.ReframeRouterParams{
 			Endpoint: "test",
 		},
-	}, &ExtraReframeParams{
+	}, &ExtraHTTPParams{
 		PeerID:     id.String(),
 		Addrs:      []string{"/ip4/0.0.0.0/tcp/4001"},
 		PrivKeyB64: base64.StdEncoding.EncodeToString(privM),

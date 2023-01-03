@@ -55,7 +55,7 @@ func TestLoggingResourceManager(t *testing.T) {
 			if oLogs.Len() == 0 {
 				continue
 			}
-			require.Equal(t, "Protected from exceeding resource limits 2 times: \"system: cannot reserve inbound connection: resource limit exceeded\".", oLogs.All()[0].Message)
+			require.Equal(t, "Protected from exceeding resource limits 2 times.  libp2p message: \"system: cannot reserve inbound connection: resource limit exceeded\".", oLogs.All()[0].Message)
 			return
 		}
 	}

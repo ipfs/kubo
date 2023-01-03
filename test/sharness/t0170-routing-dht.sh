@@ -2,7 +2,7 @@
 
 # This file does the same tests as t0170-dht.sh but uses 'routing' commands instead
 # (only exception is query, which lives only under dht)
-test_description="Test routing command"
+test_description="Test routing command for DHT queries"
 
 . lib/test-lib.sh
 
@@ -12,6 +12,10 @@ test_dht() {
   test_expect_success 'init iptb' '
     rm -rf .iptb/ &&
     iptb testbed create -type localipfs -count $NUM_NODES -init
+  '
+
+  test_expect_success 'DHT-only routing' '
+    iptb run -- ipfs config Routing.Type dht
   '
 
   startup_cluster $NUM_NODES $@

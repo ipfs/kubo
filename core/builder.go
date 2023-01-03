@@ -84,6 +84,7 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 			return nil, fmt.Errorf("building fx opts: %w", err)
 		}
 	}
+	//nolint:staticcheck // https://github.com/ipfs/kubo/pull/9423#issuecomment-1341038770
 	opts = append(opts, fx.Extract(n))
 
 	app := fx.New(opts...)
