@@ -4,6 +4,8 @@ test_description="Test config command"
 
 . lib/test-lib.sh
 
+export IPFS_CONFIG_TOLERANT_MODE=true
+
 # we use a function so that we can run it both offline + online
 test_config_cmd_set() {
 
@@ -87,7 +89,7 @@ test_profile_apply_dry_run_not_alter() {
 }
 
 test_config_cmd() {
-  test_config_cmd_set "beep" "boop"
+   test_config_cmd_set "beep" "boop"
   test_config_cmd_set "beep1" "boop2"
   test_config_cmd_set "beep1" "boop2"
   test_config_cmd_set "--bool" "beep2" "true"
@@ -199,7 +201,7 @@ test_config_cmd() {
 
   test_expect_success "'ipfs config Swarm.AddrFilters' looks good" '
     ipfs config Swarm.AddrFilters > actual_config &&
-    test $(cat actual_config | wc -l) = 1
+    test $(cat actual_config | wc -l) = 2
   '
 
   test_expect_success "copy ipfs config" '
@@ -216,7 +218,7 @@ test_config_cmd() {
 
   test_expect_success "'ipfs config Swarm.AddrFilters' looks good with server profile" '
     ipfs config Swarm.AddrFilters > actual_config &&
-    test $(cat actual_config | wc -l) = 18
+    test $(cat actual_config | wc -l) = 19
   '
 
   test_expect_success "'ipfs config profile apply local-discovery' works" '
@@ -225,7 +227,7 @@ test_config_cmd() {
 
   test_expect_success "'ipfs config Swarm.AddrFilters' looks good with applied local-discovery profile" '
     ipfs config Swarm.AddrFilters > actual_config &&
-    test $(cat actual_config | wc -l) = 1
+    test $(cat actual_config | wc -l) = 2
   '
 
   test_profile_apply_revert server local-discovery
@@ -298,5 +300,14 @@ test_launch_ipfs_daemon
 test_config_cmd
 test_kill_ipfs_daemon
 
+# Be sure that on strict mode we can set config values that exist on Config struct
+export IPFS_CONFIG_TOLERANT_MODE=''
+test_expect_success "set an exsisting field on config" '
+  ipfs config --json Discovery.MDNS.Enabled false
+'
+
+test_expect_success "set wrong field on config" '
+  test_must_fail ipfs config --json Discovery.MDNS.Enabledd false
+'
 
 test_done

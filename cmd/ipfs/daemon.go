@@ -19,7 +19,6 @@ import (
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
 	config "github.com/ipfs/kubo/config"
-	cserial "github.com/ipfs/kubo/config/serialize"
 	"github.com/ipfs/kubo/core"
 	commands "github.com/ipfs/kubo/core/commands"
 	"github.com/ipfs/kubo/core/coreapi"
@@ -242,7 +241,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		var conf *config.Config
 
 		if cfgLocation != "" {
-			if conf, err = cserial.Load(cfgLocation); err != nil {
+			if conf, err = config.Load(cfgLocation); err != nil {
 				return err
 			}
 		}

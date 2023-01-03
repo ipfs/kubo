@@ -23,7 +23,6 @@ import (
 	util "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
 	config "github.com/ipfs/kubo/config"
-	serialize "github.com/ipfs/kubo/config/serialize"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
@@ -248,7 +247,7 @@ func initConfig(path string, conf *config.Config) error {
 	// initialization is the one time when it's okay to write to the config
 	// without reading the config from disk and merging any user-provided keys
 	// that may exist.
-	if err := serialize.WriteConfigFile(configFilename, conf); err != nil {
+	if err := config.WriteConfigFile(configFilename, conf); err != nil {
 		return err
 	}
 
@@ -429,7 +428,7 @@ func (r *FSRepo) SetGatewayAddr(addr net.Addr) error {
 
 // openConfig returns an error if the config file is not present.
 func (r *FSRepo) openConfig() error {
-	conf, err := serialize.Load(r.configFilePath)
+	conf, err := config.Load(r.configFilePath)
 	if err != nil {
 		return err
 	}
@@ -603,7 +602,7 @@ func (r *FSRepo) SetConfig(updated *config.Config) error {
 	// as a map, write the updated struct values to the map and write the map
 	// to disk.
 	var mapconf map[string]interface{}
-	if err := serialize.ReadConfigFile(r.configFilePath, &mapconf); err != nil {
+	if err := config.ReadConfigFile(r.configFilePath, &mapconf); err != nil {
 		return err
 	}
 	m, err := config.ToMap(updated)
@@ -611,7 +610,7 @@ func (r *FSRepo) SetConfig(updated *config.Config) error {
 		return err
 	}
 	mergedMap := common.MapMergeDeep(mapconf, m)
-	if err := serialize.WriteConfigFile(r.configFilePath, mergedMap); err != nil {
+	if err := config.WriteConfigFile(r.configFilePath, mergedMap); err != nil {
 		return err
 	}
 	// Do not use `*r.config = ...`. This will modify the *shared* config
@@ -630,7 +629,7 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 	}
 
 	var cfg map[string]interface{}
-	if err := serialize.ReadConfigFile(r.configFilePath, &cfg); err != nil {
+	if err := config.ReadConfigFile(r.configFilePath, &cfg); err != nil {
 		return nil, err
 	}
 	return common.MapGetKV(cfg, key)
@@ -647,7 +646,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 
 	// Load into a map so we don't end up writing any additional defaults to the config file.
 	var mapconf map[string]interface{}
-	if err := serialize.ReadConfigFile(r.configFilePath, &mapconf); err != nil {
+	if err := config.ReadConfigFile(r.configFilePath, &mapconf); err != nil {
 		return err
 	}
 
@@ -677,7 +676,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	}
 	r.config = conf
 
-	if err := serialize.WriteConfigFile(r.configFilePath, mapconf); err != nil {
+	if err := config.WriteConfigFile(r.configFilePath, mapconf); err != nil {
 		return err
 	}
 
