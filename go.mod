@@ -79,7 +79,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.8.2
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
 	github.com/libp2p/go-libp2p-record v0.2.0
-	github.com/libp2p/go-libp2p-routing-helpers v0.4.0
+	github.com/libp2p/go-libp2p-routing-helpers v0.5.0
 	github.com/libp2p/go-libp2p-testing v0.12.0
 	github.com/libp2p/go-socket-activation v0.1.0
 	github.com/miekg/dns v1.1.50
@@ -231,7 +231,7 @@ require (
 	go.opentelemetry.io/otel/metric v0.30.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.16.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	go.uber.org/multierr v1.8.0 // indirect
+	go.uber.org/multierr v1.9.0 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
 	golang.org/x/net v0.3.0 // indirect
