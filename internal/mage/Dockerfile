@@ -11,7 +11,8 @@ FROM alpine:3.17
 RUN apk update && apk add --no-cache \
   bash \
   zsh \
-  npm
+  npm \
+  diffutils
 
 COPY --from=builder /usr/bin/km /usr/bin/km
 

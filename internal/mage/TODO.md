@@ -9,3 +9,9 @@
 - [ ] check if there's discourse API
 - [ ] mention early testers through GitHub API
 - [ ] run exec commands with streaming output
+- [ ] when checking if PR exists, check if it wasn't closed too
+- [ ] check worklow run status in distribution
+- [ ] npm ci check should retrieve the latest run
+- [ ] check sync status through command
+- [ ] fix creating comment in the bifrost issue
+- [ ] automate rc* announcement in the release issue

@@ -37,7 +37,7 @@ This PR is to upgrade Kubo to %s.`,
 		url, version)
 }
 
-func (Main) CreateUpgradePR(ctx context.Context, version string) error {
+func (Main) CreateOrUpdateUpgradePR(ctx context.Context, version string) error {
 	versions, err := util.GetFile(ctx, Owner, Repo, "package.json", DefaultBranchName)
 	if err != nil {
 		return err
@@ -50,15 +50,6 @@ func (Main) CreateUpgradePR(ctx context.Context, version string) error {
 
 	head := getUpgradeBranchName(version)
 
-	pr, err := util.GetPR(ctx, Owner, Repo, head)
-	if err != nil {
-		return err
-	}
-	if pr != nil {
-		fmt.Printf("PR already exists: %s", pr.GetHTMLURL())
-		return nil
-	}
-
 	branch, err := util.GetBranch(ctx, Owner, Repo, head)
 	if err != nil {
 		return err
@@ -70,48 +61,67 @@ func (Main) CreateUpgradePR(ctx context.Context, version string) error {
 		}
 	}
 
-	ki, err := kubo.GetIssue(ctx, version)
+	versions, err = util.GetFile(ctx, Owner, Repo, "package.json", head)
 	if err != nil {
 		return err
 	}
 
-	dir, err := os.MkdirTemp("", "desktop")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(dir)
-
-	err = util.GitClone(dir, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
+	pr, err := util.GetPR(ctx, Owner, Repo, head)
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command("npm", "install", "go-ipfs@" + version, "--save")
-	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Println(string(out))
-		return err
+	if ! strings.Contains(*versions.Content, version) {
+		dir, err := os.MkdirTemp("", "desktop")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(dir)
+
+		err = util.GitClone(dir, Owner, Repo, branch.GetName(), branch.GetCommit().GetSHA())
+		if err != nil {
+			return err
+		}
+
+		cmd := exec.Command("npm", "install", "go-ipfs@" + version, "--save")
+		cmd.Dir = dir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Println(string(out))
+			return err
+		}
+
+		err = util.GitCommit(dir, "package*.json", "chore: upgrade go-ipfs "+version)
+		if err != nil {
+			return err
+		}
+		err = util.GitPushBranch(dir, head)
+		if err != nil {
+			return err
+		}
+	} else {
+		fmt.Println("Branch has already been updated")
 	}
 
-	err = util.GitCommit(dir, "package*.json", "chore: upgrade go-ipfs "+version)
-	if err != nil {
-		return err
-	}
-	err = util.GitPushBranch(dir, head)
-	if err != nil {
-		return err
+	if pr == nil {
+		ki, err := kubo.GetIssue(ctx, version)
+		if err != nil {
+			return err
+		}
+
+		title := getUpgradePRTitle(version)
+		body := getUpgradePRBody(version, ki.GetHTMLURL())
+
+		pr, err = util.CreatePR(ctx, Owner, Repo, head, DefaultBranchName, title, body, true)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("PR created: %s", pr.GetHTMLURL())
+	} else {
+		fmt.Println("PR has already been created")
 	}
 
-	title := getUpgradePRTitle(version)
-	body := getUpgradePRBody(version, ki.GetHTMLURL())
-
-	pr, err = util.CreatePR(ctx, Owner, Repo, head, DefaultBranchName, title, body, true)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("PR created: %s", pr.GetHTMLURL())
 	return nil
 }
 

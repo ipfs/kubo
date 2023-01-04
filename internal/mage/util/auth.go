@@ -1,11 +1,11 @@
 package util
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 )
@@ -42,14 +42,18 @@ func GetHeaderAuth() (*HeaderAuth, error) {
 }
 
 func GetSignEntity() (*openpgp.Entity, error) {
-	key := os.Getenv("GPG_KEY")
-	if key == "" {
+	key64 := os.Getenv("GPG_KEY")
+	if key64 == "" {
 		return nil, fmt.Errorf("env var GPG_KEY must be set")
+	}
+	key, err := base64.StdEncoding.DecodeString(key64)
+	if err != nil {
+		return nil, err
 	}
 	pass := os.Getenv("GPG_PASSPHRASE")
 	bass := []byte(pass)
 
-	list, err := openpgp.ReadArmoredKeyRing(strings.NewReader(key))
+	list, err := openpgp.ReadArmoredKeyRing(bytes.NewReader(key))
 	if err != nil {
 		return nil, err
 	}
