@@ -71,6 +71,7 @@ config file at runtime.
       - [`Internal.Bitswap.EngineBlockstoreWorkerCount`](#internalbitswapengineblockstoreworkercount)
       - [`Internal.Bitswap.EngineTaskWorkerCount`](#internalbitswapenginetaskworkercount)
       - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
+    - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
@@ -153,7 +154,6 @@ config file at runtime.
       - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
       - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
       - [`Swarm.Transports.Network.WebTransport`](#swarmtransportsnetworkwebtransport)
-        - [How to enable WebTransport](#how-to-enable-webtransport)
     - [`Swarm.Transports.Security`](#swarmtransportssecurity)
       - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
       - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
@@ -969,6 +969,14 @@ Values above 10Mb open the potential for aggressively-wanting peers to consume a
 deteriorate the quality provided to less aggressively-wanting peers.
 
 Type: `optionalInteger` (byte count, `null` means default which is 1MB)
+
+### `Internal.Bitswap.ProviderSearchDelay`
+
+This parameter determines how long to wait before looking for providers in a bitswap session. 
+Other Routing systems like the DHT are able to provide results in less than a second, so lowering 
+this number will allow faster peers lookups in some cases.
+
+Type: `optionalDuration` (`null` means default which is 1s)
 
 ### `Internal.UnixFSShardingSizeThreshold`
 
