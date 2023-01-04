@@ -22,10 +22,7 @@ type Routing struct {
 
 type Router struct {
 
-	// Currenly supported Types are "reframe", "dht", "parallel", "sequential".
-	// Reframe type allows to add other resolvers using the Reframe spec:
-	// https://github.com/ipfs/specs/tree/main/reframe
-	// In the future we will support "dht" and other Types here.
+	// Router type ID. See RouterType for more info.
 	Type RouterType
 
 	// Parameters are extra configuration that this router might need.
@@ -107,11 +104,11 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 type RouterType string
 
 const (
-	RouterTypeReframe    RouterType = "reframe"
-	RouterTypeHTTP       RouterType = "http"
-	RouterTypeDHT        RouterType = "dht"
-	RouterTypeSequential RouterType = "sequential"
-	RouterTypeParallel   RouterType = "parallel"
+	RouterTypeReframe    RouterType = "reframe"    // More info here: https://github.com/ipfs/specs/tree/main/reframe . Actually deprecated.
+	RouterTypeHTTP       RouterType = "http"       // HTTP JSON based API for delegated routing systems.
+	RouterTypeDHT        RouterType = "dht"        // DHT router.
+	RouterTypeSequential RouterType = "sequential" // Router helper to execute several routers sequentially.
+	RouterTypeParallel   RouterType = "parallel"   // Router helper to execute several routers in parallel.
 )
 
 type DHTMode string
