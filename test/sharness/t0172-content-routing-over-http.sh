@@ -21,6 +21,7 @@ test_launch_ipfs_daemon
 test_expect_success "start HTTP router proxy" '
   socat TCP-LISTEN:$ROUTER_PORT,reuseaddr,fork,bind=127.0.0.1 STDOUT > http_requests &
   NCPID=$!
+  test_wait_for_file 50 100ms http_requests
 '
 
 ## HTTP GETs
@@ -30,7 +31,8 @@ test_expect_success 'create unique CID without adding it to the local datastore'
 '
 
 test_expect_success 'expect HTTP request for unknown CID' '
-  ipfs routing findprovs --timeout 3s "$WANT_CID" &&
+  ipfs block stat "$WANT_CID" &
+  test_wait_output_n_lines_60_sec http_requests 3 &&
   test_should_contain "GET /routing/v1/providers/$WANT_CID" http_requests
 '
 
