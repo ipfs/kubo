@@ -1,0 +1,16 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\.circleci",
+    "\\.github",
+    "\\.github\\ISSUE_TEMPLATE",
+    "\\assets",
+    "\\blocks",
+    "\\plugin",
+    "\\profile",
+    "\\thirdparty",
+    "\\thirdparty\\assert"
+  ],
+  "SelectedNode": "\\config",
+  "PreviewInSolutionExplorer": false
+}
