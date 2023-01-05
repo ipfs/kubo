@@ -105,7 +105,7 @@ type RouterType string
 
 const (
 	RouterTypeReframe    RouterType = "reframe"    // More info here: https://github.com/ipfs/specs/tree/main/reframe . Actually deprecated.
-	RouterTypeHTTP       RouterType = "http"       // HTTP JSON based API for delegated routing systems.
+	RouterTypeHTTP       RouterType = "http"       // HTTP JSON API for delegated routing systems (IPIP-337).
 	RouterTypeDHT        RouterType = "dht"        // DHT router.
 	RouterTypeSequential RouterType = "sequential" // Router helper to execute several routers sequentially.
 	RouterTypeParallel   RouterType = "parallel"   // Router helper to execute several routers in parallel.
