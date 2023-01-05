@@ -159,30 +159,8 @@ test_expect_success "dnslink gw: name column should be a link to content root mo
 
 # DNSLink websites don't have public gateway mounted by default
 # See: https://github.com/ipfs/dir-index-html/issues/42
-test_expect_success "dnslink gw: hash column should be a CID link to cid.ipfs.io" '
-  test_should_contain "<a class=\"ipfs-hash\" translate=\"no\" href=\"https://cid.ipfs.io/#$FILE_CID\" target=\"_blank\" rel=\"noreferrer noopener\">" list_response
-'
-
-## ============================================================================
-## Test dir listing of a big directory
-## ============================================================================
-
-test_expect_success "dir listing should resolve child sizes if under Gateway.FastDirIndexThreshold" '
-  curl -sD - http://127.0.0.1:$GWAY_PORT/ipfs/${DIR_CID}/ą/ę/ | tee list_response &&
-  test_should_contain "/ipfs/${FILE_CID}?filename" list_response &&
-  test_should_contain ">${FILE_SIZE} B</td>" list_response
-'
-
-# force fast dir index for all responses
-ipfs config --json Gateway.FastDirIndexThreshold 0
-# restart daemon to apply config changes
-test_kill_ipfs_daemon
-test_launch_ipfs_daemon
-
-test_expect_success "dir listing should not resolve child sizes beyond Gateway.FastDirIndexThreshold" '
-  curl -sD - http://127.0.0.1:$GWAY_PORT/ipfs/${DIR_CID}/ą/ę/ | tee list_response &&
-  test_should_contain "/ipfs/${FILE_CID}?filename" list_response &&
-  test_should_not_contain ">${FILE_SIZE} B</td>" list_response
+test_expect_success "dnslink gw: hash column should be a CID link to cid.ipfs.tech" '
+  test_should_contain "<a class=\"ipfs-hash\" translate=\"no\" href=\"https://cid.ipfs.tech/#$FILE_CID\" target=\"_blank\" rel=\"noreferrer noopener\">" list_response
 '
 
 ## ============================================================================

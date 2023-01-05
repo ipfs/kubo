@@ -3,15 +3,17 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
 )
 
 // Routing defines configuration options for libp2p routing
 type Routing struct {
 	// Type sets default daemon routing mode.
 	//
-	// Can be one of "dht", "dhtclient", "dhtserver", "none", or "custom".
-	// When "custom" is set, you can specify a list of Routers.
-	Type string
+	// Can be one of "auto", "dht", "dhtclient", "dhtserver", "none", or "custom".
+	// When unset or set to "auto", DHT and implicit routers are used.
+	// When "custom" is set, user-provided Routing.Routers is used.
+	Type *OptionalString `json:",omitempty"`
 
 	Routers Routers
 
@@ -20,10 +22,7 @@ type Routing struct {
 
 type Router struct {
 
-	// Currenly supported Types are "reframe", "dht", "parallel", "sequential".
-	// Reframe type allows to add other resolvers using the Reframe spec:
-	// https://github.com/ipfs/specs/tree/main/reframe
-	// In the future we will support "dht" and other Types here.
+	// Router type ID. See RouterType for more info.
 	Type RouterType
 
 	// Parameters are extra configuration that this router might need.
@@ -78,6 +77,8 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 
 	var p interface{}
 	switch out.Type {
+	case RouterTypeHTTP:
+		p = &HTTPRouterParams{}
 	case RouterTypeReframe:
 		p = &ReframeRouterParams{}
 	case RouterTypeDHT:
@@ -103,10 +104,11 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 type RouterType string
 
 const (
-	RouterTypeReframe    RouterType = "reframe"
-	RouterTypeDHT        RouterType = "dht"
-	RouterTypeSequential RouterType = "sequential"
-	RouterTypeParallel   RouterType = "parallel"
+	RouterTypeReframe    RouterType = "reframe"    // More info here: https://github.com/ipfs/specs/tree/main/reframe . Actually deprecated.
+	RouterTypeHTTP       RouterType = "http"       // HTTP JSON API for delegated routing systems (IPIP-337).
+	RouterTypeDHT        RouterType = "dht"        // DHT router.
+	RouterTypeSequential RouterType = "sequential" // Router helper to execute several routers sequentially.
+	RouterTypeParallel   RouterType = "parallel"   // Router helper to execute several routers in parallel.
 )
 
 type DHTMode string
@@ -133,6 +135,28 @@ type ReframeRouterParams struct {
 	// Endpoint is the URL where the routing implementation will point to get the information.
 	// Usually used for reframe Routers.
 	Endpoint string
+}
+
+type HTTPRouterParams struct {
+	// Endpoint is the URL where the routing implementation will point to get the information.
+	Endpoint string
+
+	// MaxProvideBatchSize determines the maximum amount of CIDs sent per batch.
+	// Servers might not accept more than 100 elements per batch. 100 elements by default.
+	MaxProvideBatchSize int
+
+	// MaxProvideConcurrency determines the number of threads used when providing content. GOMAXPROCS by default.
+	MaxProvideConcurrency int
+}
+
+func (hrp *HTTPRouterParams) FillDefaults() {
+	if hrp.MaxProvideBatchSize == 0 {
+		hrp.MaxProvideBatchSize = 100
+	}
+
+	if hrp.MaxProvideConcurrency == 0 {
+		hrp.MaxProvideConcurrency = runtime.GOMAXPROCS(0)
+	}
 }
 
 type DHTRouterParams struct {

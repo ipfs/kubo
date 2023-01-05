@@ -19,7 +19,7 @@ import (
 	"go.opencensus.io/stats/view"
 	"go.uber.org/fx"
 
-	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 )
@@ -112,8 +112,8 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 			lrm.start(helpers.LifecycleCtx(mctx, lc))
 			manager = lrm
 		} else {
-			log.Debug("libp2p resource manager is disabled")
-			manager = network.NullResourceManager
+			fmt.Println("go-libp2p resource manager protection disabled")
+			manager = &network.NullResourceManager{}
 		}
 
 		opts.Opts = append(opts.Opts, libp2p.ResourceManager(manager))
@@ -309,7 +309,7 @@ func abovePercentage(v1, v2, percentage int) bool {
 		return false
 	}
 
-	return int((v1/v2))*100 >= percentage
+	return int((float64(v1)/float64(v2))*100) >= percentage
 }
 
 func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {

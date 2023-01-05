@@ -25,8 +25,6 @@ type Libp2pOpts struct {
 	Opts []libp2p.Option `group:"libp2p"`
 }
 
-var UserAgent = simpleOpt(libp2p.UserAgent(version.GetUserAgentVersion()))
-
 func ConnectionManager(low, high int, grace time.Duration) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {
 		cm, err := connmgr.NewConnManager(low, high, connmgr.WithGracePeriod(grace))
@@ -44,6 +42,10 @@ func PstoreAddSelfKeys(id peer.ID, sk crypto.PrivKey, ps peerstore.Peerstore) er
 	}
 
 	return ps.AddPrivKey(id, sk)
+}
+
+func UserAgent() func() (opts Libp2pOpts, err error) {
+	return simpleOpt(libp2p.UserAgent(version.GetUserAgentVersion()))
 }
 
 func simpleOpt(opt libp2p.Option) func() (opts Libp2pOpts, err error) {

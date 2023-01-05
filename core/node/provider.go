@@ -18,8 +18,6 @@ import (
 	irouting "github.com/ipfs/kubo/routing"
 )
 
-const kReprovideFrequency = time.Hour * 12
-
 // SIMPLE
 
 // ProviderQueue creates new datastore backed provider queue
@@ -61,20 +59,10 @@ func SimpleProviderSys(isOnline bool) interface{} {
 }
 
 // BatchedProviderSys creates new provider system
-func BatchedProviderSys(isOnline bool, reprovideInterval string) interface{} {
+func BatchedProviderSys(isOnline bool, reprovideInterval time.Duration) interface{} {
 	return func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, q *q.Queue, keyProvider simple.KeyChanFunc, repo repo.Repo) (provider.System, error) {
-		reprovideIntervalDuration := kReprovideFrequency
-		if reprovideInterval != "" {
-			dur, err := time.ParseDuration(reprovideInterval)
-			if err != nil {
-				return nil, err
-			}
-
-			reprovideIntervalDuration = dur
-		}
-
 		sys, err := batched.New(cr, q,
-			batched.ReproviderInterval(reprovideIntervalDuration),
+			batched.ReproviderInterval(reprovideInterval),
 			batched.Datastore(repo.Datastore()),
 			batched.KeyProvider(keyProvider))
 		if err != nil {
@@ -100,7 +88,7 @@ func BatchedProviderSys(isOnline bool, reprovideInterval string) interface{} {
 // ONLINE/OFFLINE
 
 // OnlineProviders groups units managing provider routing records online
-func OnlineProviders(useStrategicProviding bool, useBatchedProviding bool, reprovideStrategy string, reprovideInterval string) fx.Option {
+func OnlineProviders(useStrategicProviding bool, useBatchedProviding bool, reprovideStrategy string, reprovideInterval time.Duration) fx.Option {
 	if useStrategicProviding {
 		return fx.Provide(provider.NewOfflineProvider)
 	}
@@ -113,7 +101,7 @@ func OnlineProviders(useStrategicProviding bool, useBatchedProviding bool, repro
 }
 
 // OfflineProviders groups units managing provider routing records offline
-func OfflineProviders(useStrategicProviding bool, useBatchedProviding bool, reprovideStrategy string, reprovideInterval string) fx.Option {
+func OfflineProviders(useStrategicProviding bool, useBatchedProviding bool, reprovideStrategy string, reprovideInterval time.Duration) fx.Option {
 	if useStrategicProviding {
 		return fx.Provide(provider.NewOfflineProvider)
 	}
@@ -126,17 +114,7 @@ func OfflineProviders(useStrategicProviding bool, useBatchedProviding bool, repr
 }
 
 // SimpleProviders creates the simple provider/reprovider dependencies
-func SimpleProviders(reprovideStrategy string, reprovideInterval string) fx.Option {
-	reproviderInterval := kReprovideFrequency
-	if reprovideInterval != "" {
-		dur, err := time.ParseDuration(reprovideInterval)
-		if err != nil {
-			return fx.Error(err)
-		}
-
-		reproviderInterval = dur
-	}
-
+func SimpleProviders(reprovideStrategy string, reproviderInterval time.Duration) fx.Option {
 	var keyProvider fx.Option
 	switch reprovideStrategy {
 	case "all":

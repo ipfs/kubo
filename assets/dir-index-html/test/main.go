@@ -12,15 +12,14 @@ const templateFile = "../dir-index.html"
 
 // Copied from go-ipfs/core/corehttp/gateway_indexPage.go
 type listingTemplateData struct {
-	GatewayURL            string
-	DNSLink               bool
-	Listing               []directoryItem
-	Size                  string
-	Path                  string
-	Breadcrumbs           []breadcrumb
-	BackLink              string
-	Hash                  string
-	FastDirIndexThreshold int
+	GatewayURL  string
+	DNSLink     bool
+	Listing     []directoryItem
+	Size        string
+	Path        string
+	Breadcrumbs []breadcrumb
+	BackLink    string
+	Hash        string
 }
 
 type directoryItem struct {

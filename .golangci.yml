@@ -1,3 +1,8 @@
 linters:
   enable:
     - stylecheck
+
+linters-settings:
+  stylecheck:
+    dot-import-whitelist:
+      - github.com/ipfs/kubo/test/cli/testutils

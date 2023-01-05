@@ -26,7 +26,6 @@ import (
 var logger = log.Logger("core:constructor")
 
 var BaseLibP2P = fx.Options(
-	fx.Provide(libp2p.UserAgent),
 	fx.Provide(libp2p.PNet),
 	fx.Provide(libp2p.ConnectionManager),
 	fx.Provide(libp2p.Host),
@@ -133,6 +132,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	// Gather all the options
 	opts := fx.Options(
 		BaseLibP2P,
+
+		// identify's AgentVersion (incl. optional agent-version-suffix)
+		fx.Provide(libp2p.UserAgent()),
 
 		// Services (resource management)
 		fx.Provide(libp2p.ResourceManager(cfg.Swarm)),
@@ -289,7 +291,12 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(p2p.New),
 
 		LibP2P(bcfg, cfg),
-		OnlineProviders(cfg.Experimental.StrategicProviding, cfg.Experimental.AcceleratedDHTClient, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
+		OnlineProviders(
+			cfg.Experimental.StrategicProviding,
+			cfg.Experimental.AcceleratedDHTClient,
+			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
+			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
+		),
 	)
 }
 
@@ -302,7 +309,12 @@ func Offline(cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.Routing),
 		fx.Provide(libp2p.ContentRouting),
 		fx.Provide(libp2p.OfflineRouting),
-		OfflineProviders(cfg.Experimental.StrategicProviding, cfg.Experimental.AcceleratedDHTClient, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
+		OfflineProviders(
+			cfg.Experimental.StrategicProviding,
+			cfg.Experimental.AcceleratedDHTClient,
+			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
+			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
+		),
 	)
 }
 
