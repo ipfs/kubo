@@ -75,13 +75,13 @@ Warning: Enabling tracing will likely affect performance.
 
 ## `IPFS_FUSE_DEBUG`
 
-Enables fuse debug logging.
+If SET, enables fuse debug logging.
 
 Default: false
 
 ## `YAMUX_DEBUG`
 
-Enables debug logging for the yamux stream muxer.
+If SET, enables debug logging for the yamux stream muxer.
 
 Default: false
 
