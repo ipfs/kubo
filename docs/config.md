@@ -972,11 +972,15 @@ Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 
 ### `Internal.Bitswap.ProviderSearchDelay`
 
-This parameter determines how long to wait before looking for providers outside of bitswap.
-Other routing systems like the DHT are able to provide results in less than a second, so lowering 
-this number will allow faster peers lookups in some cases.
+Optional delay before looking for providers outside of bitswap,
+using routers configured in [`Routing`](#routing) (e.g., DHT, IPNI).
 
-Type: `optionalDuration` (`null` means default which is 1s)
+Setting to `1s` may decrease the number of DHT and IPNI queries at the cost of
+increased latency. It is advised to keep this unset unless you are confident
+the most of requested data will be provided by [`Peering.Peers`](#peering) over
+bitswap. More details in [kubo#8807](https://github.com/ipfs/kubo/issues/8807).
+
+Type: `optionalDuration` (`null` means default which is `0s`)
 
 ### `Internal.UnixFSShardingSizeThreshold`
 
