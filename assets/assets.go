@@ -1,65 +1,32 @@
-//go:generate npm run build --prefix ./dir-index-html/
+//go:generate git submodule update --init ./dir-index-html
+//go:generate go run github.com/go-bindata/go-bindata/go-bindata -pkg=assets init-doc dir-index-html/dir-index.html dir-index-html/knownIcons.txt
+//go:generate gofmt -w bindata.go
+//go:generate sh -c "sed -i \"s/.*BindataVersionHash.*/BindataVersionHash=\\\"$(git hash-object bindata.go)\\\"/\" bindata_version_hash.go"
+//go:generate gofmt -w bindata_version_hash.go
 package assets
 
 import (
-	"embed"
 	"fmt"
-	"io"
-	"io/fs"
-	gopath "path"
-	"strconv"
+	"path/filepath"
 
-	"github.com/ipfs/kubo/core"
-	"github.com/ipfs/kubo/core/coreapi"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/coreapi"
 
-	"github.com/cespare/xxhash"
 	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-//go:embed init-doc dir-index-html/dir-index.html dir-index-html/knownIcons.txt
-var Asset embed.FS
-
-// AssetHash a non-cryptographic hash of all embedded assets
-var AssetHash string
-
 // initDocPaths lists the paths for the docs we want to seed during --init
 var initDocPaths = []string{
-	gopath.Join("init-doc", "about"),
-	gopath.Join("init-doc", "readme"),
-	gopath.Join("init-doc", "help"),
-	gopath.Join("init-doc", "contact"),
-	gopath.Join("init-doc", "security-notes"),
-	gopath.Join("init-doc", "quick-start"),
-	gopath.Join("init-doc", "ping"),
-}
-
-func init() {
-	sum := xxhash.New()
-	err := fs.WalkDir(Asset, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if d.IsDir() {
-			return nil
-		}
-
-		file, err := Asset.Open(path)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		_, err = io.Copy(sum, file)
-		return err
-	})
-	if err != nil {
-		panic("error creating asset sum: " + err.Error())
-	}
-
-	AssetHash = strconv.FormatUint(sum.Sum64(), 32)
+	filepath.Join("init-doc", "about"),
+	filepath.Join("init-doc", "readme"),
+	filepath.Join("init-doc", "help"),
+	filepath.Join("init-doc", "contact"),
+	filepath.Join("init-doc", "security-notes"),
+	filepath.Join("init-doc", "quick-start"),
+	filepath.Join("init-doc", "ping"),
 }
 
 // SeedInitDocs adds the list of embedded init documentation to the passed node, pins it and returns the root key
@@ -81,7 +48,7 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 	basePath := path.IpfsPath(dirb.Cid())
 
 	for _, p := range l {
-		d, err := Asset.ReadFile(p)
+		d, err := Asset(p)
 		if err != nil {
 			return cid.Cid{}, fmt.Errorf("assets: could load Asset '%s': %s", p, err)
 		}
@@ -91,7 +58,7 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 			return cid.Cid{}, err
 		}
 
-		fname := gopath.Base(p)
+		fname := filepath.Base(p)
 
 		basePath, err = api.Object().AddLink(nd.Context(), basePath, fname, fp)
 		if err != nil {
