@@ -10,7 +10,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	cid "github.com/ipfs/go-cid"
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-libipfs/files"
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
 	options "github.com/ipfs/interface-go-ipfs-core/options"

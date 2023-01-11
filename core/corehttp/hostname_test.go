@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	cid "github.com/ipfs/go-cid"
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-libipfs/files"
 	path "github.com/ipfs/go-path"
 	config "github.com/ipfs/kubo/config"
 	coreapi "github.com/ipfs/kubo/core/coreapi"

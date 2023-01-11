@@ -16,7 +16,7 @@ import (
 
 	"github.com/cheggaaa/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-libipfs/files"
 	"github.com/ipfs/go-libipfs/tar"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )

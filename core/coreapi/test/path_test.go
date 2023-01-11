@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-libipfs/files"
 	"github.com/ipfs/go-merkledag"
 	uio "github.com/ipfs/go-unixfs/io"
 	"github.com/ipfs/interface-go-ipfs-core/options"
