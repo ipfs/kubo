@@ -890,18 +890,22 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 	}
 	// Browsers and other user agents will send Accept header with generic types like:
 	// Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
-	// We only care about explicit, vendor-specific content-types.
-	for _, accept := range r.Header.Values("Accept") {
-		// respond to the very first ipld content type
-		if strings.HasPrefix(accept, "application/vnd.ipld") ||
-			strings.HasPrefix(accept, "application/x-tar") ||
-			strings.HasPrefix(accept, "application/json") ||
-			strings.HasPrefix(accept, "application/cbor") {
-			mediatype, params, err := mime.ParseMediaType(accept)
-			if err != nil {
-				return "", nil, err
+	// We only care about explicit, vendor-specific content-types and respond to the first match (in order).
+	// TODO: make this RFC compliant and respect weights (eg. return CAR for Accept:application/vnd.ipld.dag-json;q=0.1,application/vnd.ipld.car;q=0.2)
+	for _, header := range r.Header.Values("Accept") {
+		for _, value := range strings.Split(header, ",") {
+			accept := strings.TrimSpace(value)
+			// respond to the very first matching content type
+			if strings.HasPrefix(accept, "application/vnd.ipld") ||
+				strings.HasPrefix(accept, "application/x-tar") ||
+				strings.HasPrefix(accept, "application/json") ||
+				strings.HasPrefix(accept, "application/cbor") {
+				mediatype, params, err := mime.ParseMediaType(accept)
+				if err != nil {
+					return "", nil, err
+				}
+				return mediatype, params, nil
 			}
-			return mediatype, params, nil
 		}
 	}
 	return "", nil, nil
