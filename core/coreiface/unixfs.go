@@ -7,7 +7,7 @@ import (
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 
 	"github.com/ipfs/go-cid"
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-libipfs/files"
 )
 
 type AddEvent struct {

@@ -20,9 +20,9 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/options"
 
 	"github.com/ipfs/go-cid"
-	files "github.com/ipfs/go-ipfs-files"
 	cbor "github.com/ipfs/go-ipld-cbor"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-libipfs/files"
 	mdag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-unixfs"
 	"github.com/ipfs/go-unixfs/importer/helpers"
