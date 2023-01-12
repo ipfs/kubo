@@ -7,13 +7,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ipfs/kubo/core/node/helpers"
-	irouting "github.com/ipfs/kubo/routing"
-
+	"github.com/cenkalti/backoff/v4"
 	ds "github.com/ipfs/go-datastore"
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
-	config "github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/repo"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
@@ -24,9 +20,12 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
-
-	"github.com/cenkalti/backoff/v4"
 	"go.uber.org/fx"
+
+	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/repo"
+	irouting "github.com/ipfs/kubo/routing"
 )
 
 type Router struct {
@@ -75,6 +74,21 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 					return dr.Close()
 				},
 			})
+		}
+
+		if pr, ok := in.Router.(routinghelpers.ComposableRouter); ok {
+			for _, r := range pr.Routers() {
+				if dht, ok := r.(*ddht.DHT); ok {
+					dr = dht
+					lc.Append(fx.Hook{
+						OnStop: func(ctx context.Context) error {
+							return dr.Close()
+						},
+					})
+
+					break
+				}
+			}
 		}
 
 		if dr != nil && experimentalDHTClient {
