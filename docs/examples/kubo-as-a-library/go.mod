@@ -127,7 +127,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.8.2 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
 	github.com/libp2p/go-libp2p-record v0.2.0 // indirect
-	github.com/libp2p/go-libp2p-routing-helpers v0.5.0 // indirect
+	github.com/libp2p/go-libp2p-routing-helpers v0.6.0 // indirect
 	github.com/libp2p/go-libp2p-xor v0.1.0 // indirect
 	github.com/libp2p/go-mplex v0.7.0 // indirect
 	github.com/libp2p/go-msgio v0.2.0 // indirect
