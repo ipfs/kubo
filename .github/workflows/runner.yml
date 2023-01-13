@@ -1,4 +1,4 @@
-name: '[EXPERIMENTAL] Inspect environment'
+name: 'ci/gh-experiment: choose runner'
 
 on:
   workflow_call:

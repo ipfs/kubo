@@ -1,4 +1,4 @@
-name: '[EXPERIMENTAL] Interop'
+name: 'ci/gh-experiment: interop'
 
 on:
   workflow_dispatch:

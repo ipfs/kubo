@@ -1,4 +1,4 @@
-name: '[EXPERIMENTAL] Sharness'
+name: 'ci/gh-experiment: sharness'
 
 on:
   workflow_dispatch:
