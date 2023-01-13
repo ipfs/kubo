@@ -1,4 +1,4 @@
-name: 'ci/gh-experiment: build docker image'
+name: 'ci/gh-experiment: docker-build'
 
 on:
   workflow_dispatch:
