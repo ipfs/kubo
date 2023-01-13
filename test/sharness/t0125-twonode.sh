@@ -72,6 +72,12 @@ flaky_advanced_test() {
   test_expect_success "shut down nodes" '
     iptb stop && iptb_wait_stop
   '
+
+  # NOTE: data transferred stats checks are flaky
+  #       trying to debug them by printing out the stats hides the flakiness
+  #       my theory is that the extra time cat calls take to print out the stats
+  #       allow for proper cleanup to happen
+  go-sleep 1s
 }
 
 run_advanced_test() {

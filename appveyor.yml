@@ -14,8 +14,8 @@ environment:
   GOPATH: c:\gopath
   TEST_VERBOSE: 1
   #TEST_NO_FUSE: 1
-  #TEST_SUITE: test_sharness_expensive
-  #GOFLAGS: -tags nofuse 
+  #TEST_SUITE: test_sharness
+  #GOFLAGS: -tags nofuse
   global:
     BASH: C:\cygwin\bin\bash
   matrix:
@@ -23,27 +23,27 @@ environment:
     GOVERSION: 1.5.1
     GOROOT: c:\go
     DOWNLOADPLATFORM: "x64"
-  
+
 install:
   # Enable make
   #- SET PATH=c:\MinGW\bin;%PATH%
   #- copy c:\MinGW\bin\mingw32-make.exe c:\MinGW\bin\make.exe
   - go version
   - go env
-  
+
 # Cygwin build script
 #
 # NOTES:
 #
 # The stdin/stdout file descriptor appears not to be valid for the Appveyor
-# build which causes failures as certain functions attempt to redirect 
+# build which causes failures as certain functions attempt to redirect
 # default file handles. Ensure a dummy file descriptor is opened with 'exec'.
-#  
+#
 build_script:
   - '%BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; export PATH=$GOPATH/bin:$PATH; make nofuse"'
-  
+
 test_script:
-  - '%BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; export PATH=$GOPATH/bin:$PATH; export GOFLAGS=''-tags nofuse''; export TEST_NO_FUSE=1; export TEST_VERBOSE=1; export TEST_SUITE=test_sharness_expensive; make $TEST_SUITE"'
-  
+  - '%BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; export PATH=$GOPATH/bin:$PATH; export GOFLAGS=''-tags nofuse''; export TEST_NO_FUSE=1; export TEST_VERBOSE=1; export TEST_EXPENSIVE=1; export TEST_SUITE=test_sharness; make $TEST_SUITE"'
+
 #build:
 #  parallel: true
