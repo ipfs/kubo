@@ -32,13 +32,12 @@ require (
 	github.com/ipfs/go-fetcher v1.6.1
 	github.com/ipfs/go-filestore v1.2.0
 	github.com/ipfs/go-fs-lock v0.0.7
-	github.com/ipfs/go-graphsync v0.14.0
+	github.com/ipfs/go-graphsync v0.14.1
 	github.com/ipfs/go-ipfs-blockstore v1.2.0
 	github.com/ipfs/go-ipfs-chunker v0.0.5
-	github.com/ipfs/go-ipfs-cmds v0.8.1
+	github.com/ipfs/go-ipfs-cmds v0.8.2
 	github.com/ipfs/go-ipfs-exchange-interface v0.2.0
 	github.com/ipfs/go-ipfs-exchange-offline v0.3.0
-	github.com/ipfs/go-ipfs-files v0.2.0
 	github.com/ipfs/go-ipfs-keystore v0.1.0
 	github.com/ipfs/go-ipfs-pinner v0.2.1
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
@@ -50,7 +49,7 @@ require (
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.1.1
 	github.com/ipfs/go-ipns v0.3.0
-	github.com/ipfs/go-libipfs v0.0.0-20221208220359-356ce09dd4a1
+	github.com/ipfs/go-libipfs v0.1.0
 	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipfs/go-merkledag v0.8.1
@@ -60,13 +59,13 @@ require (
 	github.com/ipfs/go-namesys v0.6.0
 	github.com/ipfs/go-path v0.3.0
 	github.com/ipfs/go-pinning-service-http-client v0.1.2
-	github.com/ipfs/go-unixfs v0.4.1
+	github.com/ipfs/go-unixfs v0.4.2
 	github.com/ipfs/go-unixfsnode v1.4.0
 	github.com/ipfs/go-verifcid v0.0.2
-	github.com/ipfs/interface-go-ipfs-core v0.8.1
+	github.com/ipfs/interface-go-ipfs-core v0.8.2
 	github.com/ipld/go-car v0.4.0
 	github.com/ipld/go-car/v2 v2.4.0
-	github.com/ipld/go-codec-dagpb v1.4.1
+	github.com/ipld/go-codec-dagpb v1.5.0
 	github.com/ipld/go-ipld-prime v0.19.0
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
@@ -113,7 +112,7 @@ require (
 	golang.org/x/crypto v0.3.0
 	golang.org/x/mod v0.7.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.3.0
+	golang.org/x/sys v0.4.0
 )
 
 require (
@@ -236,7 +235,7 @@ require (
 	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
 	golang.org/x/net v0.3.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
-	golang.org/x/term v0.3.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/tools v0.3.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
