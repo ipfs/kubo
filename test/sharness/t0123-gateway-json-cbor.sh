@@ -56,6 +56,11 @@ test_dag_pb_headers () {
     test_should_contain "Content-Type: application/$format" curl_output &&
     test_should_not_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
   '
+
+  test_expect_success "GET UnixFS as $name with 'Accept: foo, application/$format,bar' has expected Content-Type" '
+    curl -sD - -H "Accept: foo, application/$format,text/plain" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
+    test_should_contain "Content-Type: application/$format" curl_output
+  '
 }
 
 test_dag_pb_headers "DAG-JSON" "json" "inline"
