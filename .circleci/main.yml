@@ -348,13 +348,13 @@ jobs:
             npx playwright install
           working_directory: ~/ipfs/kubo/ipfs-webui
       - run:
-          name: Run ipfs-webui@main smoke-test to confirm the upstream repo is not broken
+          name: Run ipfs-webui@main build and smoke-test to confirm the upstream repo is not broken
           command: |
             npm test
           working_directory: ~/ipfs/kubo/ipfs-webui
       - run:
-          name: Test ipfs-webui@main against the locally built Kubo binary
-          command: npm test
+          name: Test ipfs-webui@main E2E against the locally built Kubo binary
+          command: npm run test:e2e
           working_directory: ~/ipfs/kubo/ipfs-webui
           environment:
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
