@@ -190,9 +190,11 @@ jobs:
           npm ci --prefer-offline --no-audit --progress=false
           npx playwright install
         working-directory: ipfs-webui
-      - run: npm test
+      - name: Run ipfs-webui@main smoke-test to confirm the upstream repo is not broken
+        run: npm test
         working-directory: ipfs-webui
-      - run: npm test
+      - name: Test ipfs-webui@main against the locally built Kubo binary
+        run: npm test
         env:
           IPFS_GO_EXEC: ${{ github.workspace }}/cmd/ipfs/ipfs
         working-directory: ipfs-webui
