@@ -7,8 +7,8 @@ go 1.18
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/go-ipfs-files v0.2.0
-	github.com/ipfs/interface-go-ipfs-core v0.8.1
+	github.com/ipfs/go-libipfs v0.1.0
+	github.com/ipfs/interface-go-ipfs-core v0.8.2
 	github.com/ipfs/kubo v0.14.0-rc1
 	github.com/libp2p/go-libp2p v0.24.2
 	github.com/multiformats/go-multiaddr v0.8.0
@@ -77,7 +77,7 @@ require (
 	github.com/ipfs/go-fetcher v1.6.1 // indirect
 	github.com/ipfs/go-filestore v1.2.0 // indirect
 	github.com/ipfs/go-fs-lock v0.0.7 // indirect
-	github.com/ipfs/go-graphsync v0.14.1-0.20221120210616-975d7aaeb15b // indirect
+	github.com/ipfs/go-graphsync v0.14.1 // indirect
 	github.com/ipfs/go-ipfs-blockstore v1.2.0 // indirect
 	github.com/ipfs/go-ipfs-chunker v0.0.5 // indirect
 	github.com/ipfs/go-ipfs-delay v0.0.1 // indirect
@@ -96,7 +96,6 @@ require (
 	github.com/ipfs/go-ipld-git v0.1.1 // indirect
 	github.com/ipfs/go-ipld-legacy v0.1.1 // indirect
 	github.com/ipfs/go-ipns v0.3.0 // indirect
-	github.com/ipfs/go-libipfs v0.0.0-20221208220359-356ce09dd4a1 // indirect
 	github.com/ipfs/go-log v1.0.5 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/ipfs/go-merkledag v0.8.1 // indirect
@@ -105,11 +104,11 @@ require (
 	github.com/ipfs/go-namesys v0.6.0 // indirect
 	github.com/ipfs/go-path v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.0 // indirect
-	github.com/ipfs/go-unixfs v0.4.1 // indirect
+	github.com/ipfs/go-unixfs v0.4.2 // indirect
 	github.com/ipfs/go-unixfsnode v1.4.0 // indirect
 	github.com/ipfs/go-verifcid v0.0.2 // indirect
 	github.com/ipld/edelweiss v0.2.0 // indirect
-	github.com/ipld/go-codec-dagpb v1.4.1 // indirect
+	github.com/ipld/go-codec-dagpb v1.5.0 // indirect
 	github.com/ipld/go-ipld-prime v0.19.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
@@ -127,7 +126,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.8.2 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
 	github.com/libp2p/go-libp2p-record v0.2.0 // indirect
-	github.com/libp2p/go-libp2p-routing-helpers v0.5.0 // indirect
+	github.com/libp2p/go-libp2p-routing-helpers v0.6.0 // indirect
 	github.com/libp2p/go-libp2p-xor v0.1.0 // indirect
 	github.com/libp2p/go-mplex v0.7.0 // indirect
 	github.com/libp2p/go-msgio v0.2.0 // indirect
@@ -206,7 +205,7 @@ require (
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.3.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/tools v0.3.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect

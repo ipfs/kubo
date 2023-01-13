@@ -19,7 +19,7 @@ import (
 
 	datastore "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-libipfs/files"
 	path "github.com/ipfs/go-path"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"

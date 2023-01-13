@@ -30,6 +30,7 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
+	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	pnet "github.com/libp2p/go-libp2p/core/pnet"
 	sockets "github.com/libp2p/go-socket-activation"
 
@@ -458,6 +459,22 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	printSwarmAddrs(node)
+
+	if node.PrivateKey.Type() == p2pcrypto.RSA {
+		fmt.Print(`
+Warning: You are using an RSA Peer ID, which was replaced by Ed25519
+as the default recommended in Kubo since September 2020. Signing with
+RSA Peer IDs is more CPU-intensive than with other key types.
+It is recommended that you change your public key type to ed25519
+by using the following command:
+
+  ipfs key rotate -o rsa-key-backup -t ed25519
+
+After changing your key type, restart your node for the changes to
+take effect.
+
+`)
+	}
 
 	defer func() {
 		// We wait for the node to close first, as the node has children
