@@ -77,7 +77,7 @@ jobs:
           files: kubo/coverage/sharness_tests.coverprofile
       - name: Aggregate results
         run: find kubo/test/sharness/test-results -name 't*-*.sh.*.counts' | kubo/test/sharness/lib/sharness/aggregate-results.sh > kubo/test/sharness/test-results/summary.txt
-      - name: Check for failures in aggregate results
+      - name: 👉️ If this step failed, go to «Summary» (top left), open the «HTML Report», and inspect the «Failures» column.
         run: grep 'failed\s*0' kubo/test/sharness/test-results/summary.txt
       - name: Add aggregate results to the summary
         if: failure() || success()
