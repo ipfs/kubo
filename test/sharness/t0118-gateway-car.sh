@@ -111,7 +111,7 @@ test_launch_ipfs_daemon_without_network
     '
 
     test_expect_success "GET for application/vnd.ipld.car with query filename includes Content-Disposition with custom filename" '
-    curl -svX GET -H "Accept: application/vnd.ipld.car" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT_DIR_CID/subdir/ascii.txt?filename=foobar.car" > curl_output_filename 2>&1 &&
+    curl -svX GET -H "Accept: application/vnd.ipld.car" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT_DIR_CID/subdir/ascii.txt?filename=foobar.car" >/dev/null 2>curl_output_filename &&
     cat curl_output_filename &&
     grep "< Content-Disposition: attachment\; filename=\"foobar.car\"" curl_output_filename
     '

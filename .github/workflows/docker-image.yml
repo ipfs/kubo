@@ -32,7 +32,7 @@ jobs:
         run: |
           TAGS="$(./bin/get-docker-tags.sh $(date -u +%F))"
           TAGS="${TAGS//$'\n'/'%0A'}"
-          echo "::set-output name=value::$(echo $TAGS)"
+          echo "value=$(echo $TAGS)" >> $GITHUB_OUTPUT
         shell: bash
 
       - name: Log in to Docker Hub
