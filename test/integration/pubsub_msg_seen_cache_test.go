@@ -101,7 +101,7 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 	startTime := time.Time{}
 
 	// Used for overriding the message ID
-	sendMsgId := ""
+	sendMsgID := ""
 
 	// Set up the pubsub message ID generation override for the producer
 	core.RegisterFXOptionFunc(func(info core.FXNodeInfo) ([]fx.Option, error) {
@@ -117,14 +117,14 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 				timeElapsed := now.Sub(startTime).Seconds()
 				msg := string(pmsg.Data)
 				from, _ := peer.IDFromBytes(pmsg.From)
-				var msgId string
+				var msgID string
 				if from == producerPeerID {
-					msgId = sendMsgId
-					t.Logf("sending [%s] with message ID [%s] at T%fs", msg, msgId, timeElapsed)
+					msgID = sendMsgID
+					t.Logf("sending [%s] with message ID [%s] at T%fs", msg, msgID, timeElapsed)
 				} else {
-					msgId = pubsub.DefaultMsgIdFn(pmsg)
+					msgID = pubsub.DefaultMsgIdFn(pmsg)
 				}
-				return msgId
+				return msgID
 			}),
 		)
 		return append(
@@ -174,7 +174,7 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 	}
 	// Utility functions defined inline to include context in closure
 	now := func() float64 {
-		return time.Now().Sub(startTime).Seconds()
+		return time.Since(startTime).Seconds()
 	}
 	ctr := 0
 	msgGen := func() string {
@@ -212,25 +212,25 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 		}
 	}
 
-	const MsgId_1 = "MsgId_1"
-	const MsgId_2 = "MsgId_2"
-	const MsgId_3 = "MsgId_3"
+	const MsgID1 = "MsgID1"
+	const MsgID2 = "MsgID2"
+	const MsgID3 = "MsgID3"
 
 	// Send message 1 with the message ID we're going to duplicate
 	sentMsg1 := time.Now()
-	sendMsgId = MsgId_1
+	sendMsgID = MsgID1
 	msgTxt := produceMessage()
 	// Should find the message because it's new
 	consumeMessage(msgTxt, true)
 
 	// Send message 2 with a duplicate message ID
-	sendMsgId = MsgId_1
+	sendMsgID = MsgID1
 	msgTxt = produceMessage()
 	// Should NOT find message because it got deduplicated (sent 2 times within the SeenMessagesTTL window).
 	consumeMessage(msgTxt, false)
 
 	// Send message 3 with a new message ID
-	sendMsgId = MsgId_2
+	sendMsgID = MsgID2
 	msgTxt = produceMessage()
 	// Should find the message because it's new
 	consumeMessage(msgTxt, true)
@@ -239,7 +239,7 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 	time.Sleep(time.Until(sentMsg1.Add(ttl - 100*time.Millisecond)))
 
 	// Send message 4 with a duplicate message ID
-	sendMsgId = MsgId_1
+	sendMsgID = MsgID1
 	msgTxt = produceMessage()
 	// Should NOT find the message because it got deduplicated (sent 3 times within the SeenMessagesTTL window). This
 	// time, however, the expiration for the message should also get pushed out for a whole SeenMessagesTTL window since
@@ -250,14 +250,14 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 	// a message takes a second to determine. That would put this attempt at ~1 second after the SeenMessagesTTL window
 	// starting at message 1 has expired.
 	sentMsg5 := time.Now()
-	sendMsgId = MsgId_1
+	sendMsgID = MsgID1
 	msgTxt = produceMessage()
 	// Should NOT find the message, because it got deduplicated (sent 2 times since the updated SeenMessagesTTL window
 	// started). This time again, the expiration should get pushed out for another SeenMessagesTTL window.
 	consumeMessage(msgTxt, false)
 
 	// Send message 6 with a message ID that hasn't been seen within a SeenMessagesTTL window
-	sendMsgId = MsgId_2
+	sendMsgID = MsgID2
 	msgTxt = produceMessage()
 	// Should find the message since last read > SeenMessagesTTL, so it looks like a new message.
 	consumeMessage(msgTxt, true)
@@ -266,7 +266,7 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 	time.Sleep(time.Until(sentMsg5.Add(ttl + 100*time.Millisecond)))
 
 	// Send message 7 with a duplicate message ID
-	sendMsgId = MsgId_1
+	sendMsgID = MsgID1
 	msgTxt = produceMessage()
 	// Should find the message this time since last read > SeenMessagesTTL, so it looks like a new message.
 	consumeMessage(msgTxt, true)
@@ -274,7 +274,7 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 	// Send message 8 with a brand new message ID
 	//
 	// This step is not strictly necessary, but has been added for good measure.
-	sendMsgId = MsgId_3
+	sendMsgID = MsgID3
 	msgTxt = produceMessage()
 	// Should find the message because it's new
 	consumeMessage(msgTxt, true)
