@@ -8,12 +8,8 @@ on:
       - 'master'
 
 jobs:
-  runner:
-    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    uses: ipfs/kubo/.github/workflows/runner.yml@master
   gobuild:
-    needs: [runner]
-    runs-on: ${{ fromJSON(needs.runner.outputs.config).labels }}
+    runs-on: ${{ fromJSON(vars.GO_BUILD_RUNNER || '"ubuntu-latest"' }}
     env:
       TEST_NO_DOCKER: 1
       TEST_VERBOSE: 1
