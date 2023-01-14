@@ -30,7 +30,7 @@ jobs:
       - name: Get tags
         id: tags
         run: |
-          echo "value=<<EOF" >> $GITHUB_OUTPUT
+          echo "value<<EOF" >> $GITHUB_OUTPUT
           ./bin/get-docker-tags.sh "$(date -u +%F)" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
@@ -38,7 +38,7 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image and publish to Docker Hub
