@@ -30,7 +30,7 @@ jobs:
       - name: Get tags
         id: tags
         run: |
-          echo "value=<<EOF" >> $GITHUB_OUTPUT
+          echo "value<<EOF" >> $GITHUB_OUTPUT
           ./bin/get-docker-tags.sh "$(date -u +%F)" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
