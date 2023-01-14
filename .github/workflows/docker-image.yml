@@ -30,9 +30,9 @@ jobs:
       - name: Get tags
         id: tags
         run: |
-          TAGS="$(./bin/get-docker-tags.sh $(date -u +%F))"
-          TAGS="${TAGS//$'\n'/'%0A'}"
-          echo "value=$(echo $TAGS)" >> $GITHUB_OUTPUT
+          echo "value=<<EOF" >> $GITHUB_OUTPUT
+          ./bin/get-docker-tags.sh "$(date -u +%F)" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
 
       - name: Log in to Docker Hub
