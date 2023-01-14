@@ -19,9 +19,9 @@ export IPFS_HTTP_ROUTERS="http://127.0.0.1:$ROUTER_PORT"
 test_launch_ipfs_daemon
 
 test_expect_success "start HTTP router proxy" '
-  socat TCP-LISTEN:$ROUTER_PORT,reuseaddr,fork,bind=127.0.0.1,retry=10 STDOUT > http_requests &
+  touch http_requests
+  socat -u TCP-LISTEN:$ROUTER_PORT,reuseaddr,fork,bind=127.0.0.1,retry=10 CREATE:http_requests &
   NCPID=$!
-  test_wait_for_file 50 100ms http_requests
 '
 
 ## HTTP GETs
@@ -30,10 +30,14 @@ test_expect_success 'create unique CID without adding it to the local datastore'
   WANT_CID=$(date +"%FT%T.%N%z" | ipfs add -qn)
 '
 
-test_expect_success 'expect HTTP request for unknown CID' '
+test_expect_success 'expect HTTP lookup when CID is not in the local datastore' '
   ipfs block stat "$WANT_CID" &
-  test_wait_output_n_lines_60_sec http_requests 3 &&
+  test_wait_output_n_lines http_requests 4 &&
   test_should_contain "GET /routing/v1/providers/$WANT_CID" http_requests
+'
+
+test_expect_success 'expect HTTP request User-Agent to match Kubo version' '
+  test_should_contain "User-Agent: $(ipfs id -f "<aver>")" http_requests
 '
 
 ## HTTP PUTs
@@ -50,6 +54,7 @@ test_expect_success 'expect no HTTP requests to be sent with locally added CID' 
 
 test_expect_success "stop nc" '
   kill "$NCPID" && wait "$NCPID" || true
+  rm -f http_requests || true
 '
 
 test_kill_ipfs_daemon
