@@ -10,7 +10,7 @@ on:
 jobs:
   runner:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    uses: ipfs/kubo/.github/workflows/runner.yml@ci/move-to-github-actions # TODO: change to master
+    uses: ipfs/kubo/.github/workflows/runner.yml
   sharness:
     needs: [runner]
     runs-on: ${{ fromJSON(needs.runner.outputs.config).labels }}
