@@ -41,7 +41,7 @@ As usual, this release includes important fixes, some of which may be critical f
 Checklist:
 
 - [ ] **Stage 0 - Prerequisites**
-  - [ ] Open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ahead of the release ([example](https://github.com/protocol/bifrost-infra/issues/2109)).  **Idealy, do this multiple days in advance of the RC** to give Bifrost the heads up that asks will be coming their way.
+  - [ ] Open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ahead of the release ([example](https://github.com/protocol/bifrost-infra/issues/2109)).  **Ideally, do this multiple days in advance of the RC** to give Bifrost the heads up that asks will be coming their way.
     - [ ] Spell out all that we want updated - gateways, the bootstraper and the cluster/preload nodes
     - [ ] Mention @protocol/bifrost-team in the issue and let them know the expected date of the release
       - Issue link:
@@ -74,7 +74,7 @@ Checklist:
   - [ ] If it's not a first RC, add new commits to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
       - Note: `release-*` branches are protected. You can do all needed updates on a separated branch (e.g. `wip-release-vX.Y.Z`) and when everything is settled push to `release-vX.Y.Z`
   - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `vX.Y.Z-rcN`.
-  - [ ] If it's a first RC, create a draft PR targetting `release` branch if it doesn't exist yet ([example](https://github.com/ipfs/kubo/pull/9306)).
+  - [ ] If it's a first RC, create a draft PR targeting `release` branch if it doesn't exist yet ([example](https://github.com/ipfs/kubo/pull/9306)).
   - [ ] Wait for CI to run and complete PR checks. All checks should pass.
   - [ ] Create a signed tag for the release candidate.
     - [ ] This is a dangerous operation, as it is difficult to reverse due to Go modules and automated Docker image publishing. Remember to verify the commands you intend to run for items marked with ⚠️ with the release reviewer.
@@ -144,7 +144,7 @@ Checklist:
       - [ ] Commit the changelog changes.
     - [ ] Push the `release-vX.Y.Z` branch to GitHub (`git push origin release-vX.Y.Z`)
     - [ ] Mark the PR created from `release-vX.Y.Z` as ready for review.
-      - [ ] Ensure the PR is targetting `release` branch.
+      - [ ] Ensure the PR is targeting `release` branch.
       - [ ] Ensure that CI is green.
       - [ ] Have release reviewer review the PR.
     - [ ] Merge the PR into `release` branch using the `Create a merge commit` (do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit).
