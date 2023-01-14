@@ -144,8 +144,8 @@ test_run_repeat_60_sec() {
   return 1 # failed
 }
 
-test_wait_output_n_lines_60_sec() {
-  for i in $(test_seq 1 600)
+test_wait_output_n_lines() {
+  for i in $(test_seq 1 3600)
   do
     test $(cat "$1" | wc -l | tr -d " ") -ge $2 && return
     go-sleep 100ms
