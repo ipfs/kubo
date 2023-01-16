@@ -40,9 +40,35 @@ test_expect_success 'disconnected: swarm stats requires running daemon' '
   test_should_contain "missing ResourceMgr" actual
 '
 
+# test sanity scaling
+test_expect_success 'set very high connmgr highwater' '
+  ipfs config --json Swarm.ConnMgr.HighWater 1000
+'
+
+test_launch_ipfs_daemon
+
+test_expect_success 'conns and streams are above 2000' '
+  ipfs swarm limit system --enc=json | tee json &&
+  [ "$(jq -r .ConnsInbound < json)" -ge 2000 ] &&
+  [ "$(jq -r .StreamsInbound < json)" -ge 2000 ]
+'
+
+test_kill_ipfs_daemon
+
+test_expect_success 'set previous connmgr highwater' '
+  ipfs config --json Swarm.ConnMgr.HighWater 96
+'
+
+test_launch_ipfs_daemon
+
+test_expect_success 'conns and streams are above 800' '
+  ipfs swarm limit system --enc=json | tee json &&
+  [ "$(jq -r .ConnsInbound < json)" -ge 800 ] &&
+  [ "$(jq -r .StreamsInbound < json)" -ge 800 ]
+'
+
 # swarm limit|stats should succeed in online mode by default
 # because Resource Manager is opt-out
-test_launch_ipfs_daemon
 
 # every scope has the same fields, so we only inspect System
 test_expect_success 'ResourceMgr enabled: swarm limit' '

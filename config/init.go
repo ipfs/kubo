@@ -110,6 +110,10 @@ const DefaultConnMgrGracePeriod = time.Second * 20
 // type.
 const DefaultConnMgrType = "basic"
 
+// DefaultResourceMgrMinInboundConns is a MAGIC number that probably a good
+// enough number of inbound conns to be a good network citizen.
+const DefaultResourceMgrMinInboundConns = 800
+
 func addressesConfig() Addresses {
 	return Addresses{
 		Swarm: []string{
