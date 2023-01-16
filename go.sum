@@ -51,6 +51,8 @@ github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/Kubuxu/go-os-helper v0.0.1 h1:EJiD2VUQyh5A9hWJLmc6iWg6yIcJ7jpBcwC8GMGXfDk=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
+github.com/MichaelMure/go-ipfs-pinner v0.0.0-20230116161927-3b0d257e2a6c h1:8PKS8S5ryc67cid6E9orlFDNUz2x/Tv8zyUBXaCaO3Y=
+github.com/MichaelMure/go-ipfs-pinner v0.0.0-20230116161927-3b0d257e2a6c/go.mod h1:Mk3EnQbiM93fRnoedoPky3KjjmwFLddW7OhbLrQ7jow=
 github.com/OneOfOne/xxhash v1.2.2 h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
@@ -553,8 +555,6 @@ github.com/ipfs/go-ipfs-exchange-offline v0.3.0/go.mod h1:MOdJ9DChbb5u37M1IcbrRB
 github.com/ipfs/go-ipfs-files v0.0.3/go.mod h1:INEFm0LL2LWXBhNJ2PMIIb2w45hpXgPjNoE7yA8Y1d4=
 github.com/ipfs/go-ipfs-keystore v0.1.0 h1:gfuQUO/cyGZgZIHE6OrJas4OnwuxXCqJG7tI0lrB5Qc=
 github.com/ipfs/go-ipfs-keystore v0.1.0/go.mod h1:LvLw7Qhnb0RlMOfCzK6OmyWxICip6lQ06CCmdbee75U=
-github.com/ipfs/go-ipfs-pinner v0.2.1 h1:kw9hiqh2p8TatILYZ3WAfQQABby7SQARdrdA+5Z5QfY=
-github.com/ipfs/go-ipfs-pinner v0.2.1/go.mod h1:l1AtLL5bovb7opnG77sh4Y10waINz3Y1ni6CvTzx7oo=
 github.com/ipfs/go-ipfs-posinfo v0.0.1 h1:Esoxj+1JgSjX0+ylc0hUmJCOv6V2vFoZiETLR6OtpRs=
 github.com/ipfs/go-ipfs-posinfo v0.0.1/go.mod h1:SwyeVP+jCwiDu0C313l/8jg6ZxM0qqtlt2a0vILTc1A=
 github.com/ipfs/go-ipfs-pq v0.0.1/go.mod h1:LWIqQpqfRG3fNc5XsnIhz/wQ2XXGyugQwls7BgUmUfY=

@@ -24,6 +24,7 @@ import (
 	"github.com/ipfs/go-unixfs/importer/trickle"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/path"
+
 	"github.com/ipfs/kubo/tracing"
 )
 
@@ -185,7 +186,7 @@ func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node) error {
 		adder.tempRoot = rnk
 	}
 
-	adder.pinning.PinWithMode(rnk, pin.Recursive)
+	adder.pinning.PinWithMode(ctx, rnk, pin.Recursive)
 	return adder.pinning.Flush(ctx)
 }
 
