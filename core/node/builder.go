@@ -70,7 +70,7 @@ func (cfg *BuildCfg) fillDefaults() error {
 	}
 
 	if cfg.Routing == nil {
-		cfg.Routing = libp2p.DHTOption
+		cfg.Routing = libp2p.DHTAutoOption
 	}
 
 	if cfg.Host == nil {

@@ -59,7 +59,7 @@ func ConstructDefaultRouting(peerID string, addrs []string, privKey string) func
 		var routers []*routinghelpers.ParallelRouter
 
 		// Run the default DHT routing (same as Routing.Type = "dht")
-		dhtRouting, err := DHTOption(ctx, host, dstore, validator, bootstrapPeers...)
+		dhtRouting, err := DHTAutoOption(ctx, host, dstore, validator, bootstrapPeers...)
 		if err != nil {
 			return nil, err
 		}
@@ -167,7 +167,7 @@ func constructNilRouting(
 }
 
 var (
-	DHTOption       RoutingOption = constructDHTRouting(dht.ModeAuto)
+	DHTAutoOption   RoutingOption = constructDHTRouting(dht.ModeAuto)
 	DHTClientOption               = constructDHTRouting(dht.ModeClient)
 	DHTServerOption               = constructDHTRouting(dht.ModeServer)
 	NilRouterOption               = constructNilRouting

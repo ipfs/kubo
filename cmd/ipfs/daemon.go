@@ -420,7 +420,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = libp2p.DHTClientOption
 	case routingOptionDHTKwd:
-		ncfg.Routing = libp2p.DHTOption
+		ncfg.Routing = libp2p.DHTAutoOption
 	case routingOptionDHTServerKwd:
 		ncfg.Routing = libp2p.DHTServerOption
 	case routingOptionNoneKwd:
