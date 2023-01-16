@@ -186,5 +186,23 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 
 	defaultLimitConfig := scalingLimitConfig.Scale(int64(maxMemory), int(numFD))
 
+	// Simple checks to overide autoscaling ensuring limits make sense versus the connmgr values.
+	// There are ways to break this, but this should catch most problems already.
+	// We might improve this in the future.
+	// See: https://github.com/ipfs/kubo/issues/9545
+	if cfg.ConnMgr.Type == nil || cfg.ConnMgr.Type.String() != "none" {
+		maxInboundConns := int64(defaultLimitConfig.System.ConnsInbound)
+		if connmgrHighWaterTimesTwo := cfg.ConnMgr.HighWater.WithDefault(config.DefaultConnMgrHighWater) * 2; maxInboundConns < connmgrHighWaterTimesTwo {
+			maxInboundConns = connmgrHighWaterTimesTwo
+		}
+
+		if maxInboundConns < config.DefaultResourceMgrMinInboundConns {
+			maxInboundConns = config.DefaultResourceMgrMinInboundConns
+		}
+
+		defaultLimitConfig.System.StreamsInbound = int(maxInboundConns * int64(defaultLimitConfig.System.StreamsInbound) / int64(defaultLimitConfig.System.ConnsInbound))
+		defaultLimitConfig.System.ConnsInbound = int(maxInboundConns)
+	}
+
 	return defaultLimitConfig, nil
 }
