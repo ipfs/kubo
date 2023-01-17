@@ -67,6 +67,10 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				limitConfig = l
 			}
 
+			if err := ensureConnMgrMakeSenseVsRessourcesMgr(limitConfig, cfg.ConnMgr); err != nil {
+				return nil, opts, err
+			}
+
 			limiter := rcmgr.NewFixedLimiter(limitConfig)
 
 			str, err := rcmgrObs.NewStatsTraceReporter()
@@ -597,4 +601,42 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 	}
 
 	return result, nil
+}
+
+func ensureConnMgrMakeSenseVsRessourcesMgr(rcm rcmgr.LimitConfig, cmgr config.ConnMgr) error {
+	if cmgr.Type.WithDefault(config.DefaultConnMgrType) == "none" {
+		return nil // none connmgr, no checks to do
+	}
+	highWater := cmgr.HighWater.WithDefault(config.DefaultConnMgrHighWater)
+	if rcm.System.ConnsInbound <= rcm.System.Conns {
+		if int64(rcm.System.ConnsInbound) <= highWater {
+			// nolint
+			return fmt.Errorf(`
+Unable to initialize libp2p due to conflicting limit configuration:
+ResourceMgr.Limits.System.ConnsInbound (%d) must be bigger than ConnMgr.HighWater (%d)
+`, rcm.System.ConnsInbound, highWater)
+		}
+	} else if int64(rcm.System.Conns) <= highWater {
+		// nolint
+		return fmt.Errorf(`
+Unable to initialize libp2p due to conflicting limit configuration:
+ResourceMgr.Limits.System.Conns (%d) must be bigger than ConnMgr.HighWater (%d)
+`, rcm.System.Conns, highWater)
+	}
+	if rcm.System.StreamsInbound <= rcm.System.Streams {
+		if int64(rcm.System.StreamsInbound) <= highWater {
+			// nolint
+			return fmt.Errorf(`
+Unable to initialize libp2p due to conflicting limit configuration:
+ResourceMgr.Limits.System.StreamsInbound (%d) must be bigger than ConnMgr.HighWater (%d)
+`, rcm.System.StreamsInbound, highWater)
+		}
+	} else if int64(rcm.System.Streams) <= highWater {
+		// nolint
+		return fmt.Errorf(`
+Unable to initialize libp2p due to conflicting limit configuration:
+ResourceMgr.Limits.System.Streams (%d) must be bigger than ConnMgr.HighWater (%d)
+`, rcm.System.Streams, highWater)
+	}
+	return nil
 }
