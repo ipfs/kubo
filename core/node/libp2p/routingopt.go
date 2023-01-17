@@ -89,7 +89,7 @@ func ConstructDefaultRouting(peerID string, addrs []string, privKey string) func
 				Router:       r,
 				IgnoreError:  true,             // https://github.com/ipfs/kubo/pull/9475#discussion_r1042507387
 				Timeout:      15 * time.Second, // 5x server value from https://github.com/ipfs/kubo/pull/9475#discussion_r1042428529
-				ExecuteAfter: 0,
+				ExecuteAfter: 1 * time.Second,  // https://github.com/ipfs/kubo/pull/9530#issuecomment-1385266880
 			})
 		}
 
