@@ -3,13 +3,66 @@ package cli
 import (
 	"net/http"
 	"net/http/httptest"
+	"os/exec"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	. "github.com/ipfs/kubo/test/cli/testutils"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestDelegatedRoutingLowResources(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init()
+
+	node.UpdateConfig(func(cfg *config.Config) {
+		cfg.Swarm.ResourceMgr.Enabled = config.True
+		cfg.Swarm.ResourceMgr.Limits = &rcmgr.LimitConfig{
+			System: rcmgr.BaseLimit{
+				ConnsInbound:   10,
+				StreamsInbound: 10,
+			},
+			Protocol: map[protocol.ID]rcmgr.BaseLimit{
+				dht.ProtocolDHT: {
+					StreamsInbound: 10,
+				},
+			},
+		}
+	})
+
+	var cfgVal int
+	node.GetIPFSConfig("Swarm.ResourceMgr.Limits.System.ConnsInbound", &cfgVal)
+	require.Equal(t, 10, cfgVal)
+
+	res := node.Runner.MustRun(harness.RunRequest{
+		Path:    node.IPFSBin,
+		RunFunc: (*exec.Cmd).Start,
+		Args:    []string{"daemon"},
+	})
+
+	var checks int
+	for {
+		if checks == 20 {
+			require.Fail(t, "expected string not found")
+		}
+
+		for _, s := range res.Stdout.Lines() {
+			if strings.EqualFold(s, "You don't have enough resources to run as a DHT server. Running as a DHT client instead.") {
+				return
+			}
+		}
+
+		checks++
+		time.Sleep(1 * time.Second)
+	}
+}
 
 func TestHTTPDelegatedRouting(t *testing.T) {
 	t.Parallel()
@@ -117,5 +170,4 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 		res = node.IPFS("routing", "findprovs", findProvsCID)
 		assert.Equal(t, prov, res.Stdout.Trimmed())
 	})
-
 }

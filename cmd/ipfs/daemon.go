@@ -30,6 +30,7 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	pnet "github.com/libp2p/go-libp2p/core/pnet"
 	sockets "github.com/libp2p/go-socket-activation"
@@ -408,14 +409,36 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
+	// Check limits to see if we have enough to run DHT as a server.
+	var sysConnInbound int
+	var sysStreamInbound int
+	var dhtStreamsInbound int
+	if cfg.Swarm.ResourceMgr.Limits != nil {
+		sysConnInbound = cfg.Swarm.ResourceMgr.Limits.System.ConnsInbound
+		sysStreamInbound = cfg.Swarm.ResourceMgr.Limits.System.StreamsInbound
+		dhtLimits, ok := cfg.Swarm.ResourceMgr.Limits.Protocol[dht.ProtocolDHT]
+		if ok {
+			dhtStreamsInbound = dhtLimits.StreamsInbound
+		}
+	}
+
 	switch routingOption {
 	case routingOptionSupernodeKwd:
 		return errors.New("supernode routing was never fully implemented and has been removed")
 	case routingOptionDefaultKwd, routingOptionAutoKwd:
+		mode := dht.ModeAuto
+		if (sysConnInbound != 0 && sysConnInbound <= config.DefaultResourceMgrMinInboundConns) ||
+			(sysStreamInbound != 0 && sysStreamInbound <= config.DefaultResourceMgrMinInboundConns) ||
+			(dhtStreamsInbound != 0 && dhtStreamsInbound <= config.DefaultResourceMgrMinInboundConns) {
+			mode = dht.ModeClient
+			fmt.Println("You don't have enough resources to run as a DHT server. Running as a DHT client instead.")
+		}
+
 		ncfg.Routing = libp2p.ConstructDefaultRouting(
 			cfg.Identity.PeerID,
 			cfg.Addresses.Swarm,
 			cfg.Identity.PrivKey,
+			mode,
 		)
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = libp2p.DHTClientOption
