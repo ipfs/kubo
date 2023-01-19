@@ -63,7 +63,7 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 			// Any changes here should be reflected there.
 			if cfg.ResourceMgr.Limits != nil {
 				userSuppliedOverrideLimitConfig := *cfg.ResourceMgr.Limits
-				// This effectively overrides the computed default LimitConfig with any non-zerod values from cfg.ResourceMgr.Limits.
+				// This effectively overrides the computed default LimitConfig with any non-zero values from cfg.ResourceMgr.Limits.
 				// Because of how how Apply works, any 0 value for a user supplied override 
 				// will be overriden with a computed default value.
 				// There currently isn't a way for a user to to supply a 0-value override.
