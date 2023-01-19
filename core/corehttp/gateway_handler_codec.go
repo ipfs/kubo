@@ -21,6 +21,7 @@ import (
 	mc "github.com/multiformats/go-multicodec"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 // codecToContentType maps the supported IPLD codecs to the HTTP Content
@@ -52,12 +53,22 @@ var contentTypeToExtension = map[string]string{
 	"application/vnd.ipld.dag-cbor": ".cbor",
 }
 
-func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, requestedContentType string) {
+func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger, requestedContentType string) {
 	ctx, span := tracing.Span(ctx, "Gateway", "ServeCodec", trace.WithAttributes(attribute.String("path", resolvedPath.String()), attribute.String("requestedContentType", requestedContentType)))
 	defer span.End()
 
 	cidCodec := resolvedPath.Cid().Prefix().Codec
 	responseContentType := requestedContentType
+
+	// Do not convert UnixFS and Raw blocks into DAG-* unless we explicitly
+	// requested it. If it is not requested as DAG-*, we defer the execution
+	// to the i.serveUnixFS handler.
+	if cidCodec == uint64(mc.Raw) || cidCodec == uint64(mc.DagPb) {
+		if !strings.Contains(responseContentType, "dag-") {
+			i.serveUnixFS(ctx, w, r, resolvedPath, contentPath, begin, logger)
+			return
+		}
+	}
 
 	// If the resolved path still has some remainder, return error for now.
 	// TODO: handle this when we have IPLD Patch (https://ipld.io/specs/patch/) via HTTP PUT

@@ -422,7 +422,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		switch resolvedPath.Cid().Prefix().Codec {
 		case uint64(mc.Json), uint64(mc.DagJson), uint64(mc.Cbor), uint64(mc.DagCbor):
 			logger.Debugw("serving codec", "path", contentPath)
-			i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat)
+			i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, logger, responseFormat)
 		default:
 			logger.Debugw("serving unixfs", "path", contentPath)
 			i.serveUnixFS(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
@@ -444,7 +444,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	case "application/json", "application/vnd.ipld.dag-json",
 		"application/cbor", "application/vnd.ipld.dag-cbor":
 		logger.Debugw("serving codec", "path", contentPath)
-		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat)
+		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, logger, responseFormat)
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)

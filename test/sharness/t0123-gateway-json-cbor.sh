@@ -43,23 +43,21 @@ test_dag_pb_headers () {
     test_should_not_contain "Content-Type: application/$format" curl_output
   '
 
-  test_expect_success "GET UnixFS as $name with format=$format has expected Content-Type" '
+  test_expect_success "GET UnixFS as $name with 'Accept: foo, application/vnd.ipld.dag-$format,bar' has expected Content-Type" '
+    curl -sD - -H "Accept: foo, application/vnd.ipld.dag-$format,text/plain" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
+    test_should_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
+  '
+
+  test_expect_success "GET UnixFS with format=$format returns raw (no conversion)" '
     curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=$format" > curl_output 2>&1 &&
-    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${FILE_CID}.${format}\"" curl_output &&
-    test_should_contain "Content-Type: application/$format" curl_output &&
+    test_should_not_contain "Content-Type: application/$format" curl_output &&
     test_should_not_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
   '
 
-  test_expect_success "GET UnixFS as $name with 'Accept: application/$format' has expected Content-Type" '
+  test_expect_success "GET UnixFS with 'Accept: application/$format' returns raw (no conversion)" '
     curl -sD - -H "Accept: application/$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
-    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${FILE_CID}.${format}\"" curl_output &&
-    test_should_contain "Content-Type: application/$format" curl_output &&
+    test_should_not_contain "Content-Type: application/$format" curl_output &&
     test_should_not_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
-  '
-
-  test_expect_success "GET UnixFS as $name with 'Accept: foo, application/$format,bar' has expected Content-Type" '
-    curl -sD - -H "Accept: foo, application/$format,text/plain" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
-    test_should_contain "Content-Type: application/$format" curl_output
   '
 }
 
@@ -80,12 +78,6 @@ test_dag_pb () {
     curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DIR_CID?format=dag-$format" > curl_output 2>&1 &&
     ipfs dag get --output-codec dag-$format $DIR_CID > ipfs_dag_get_output 2>&1 &&
     test_cmp ipfs_dag_get_output curl_output
-  '
-
-  test_expect_success "GET UnixFS as $name with format=dag-$format and format=$format produce same output" '
-    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DIR_CID?format=dag-$format" > curl_output_1 2>&1 &&
-    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DIR_CID?format=$format" > curl_output_2 2>&1 &&
-    test_cmp curl_output_1 curl_output_2
   '
 }
 
@@ -204,12 +196,6 @@ test_expect_success "GET DAG-CBOR traverses multiple links" '
   test_cmp expected actual
 '
 
-# test_expect_success "GET DAG-PB has expected output" '
-#   curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_PB_CID?format=dag-json" > curl_output 2>&1 &&
-#   jq --sort-keys . curl_output > actual &&
-#   test_cmp ../t0123-gateway-json-cbor/dag-pb.json actual
-# '
-
 
 ## NATIVE TESTS:
 ## DAG- regression tests for core behaviors when native DAG-(CBOR|JSON) is requested
@@ -302,18 +288,11 @@ test_native_dag () {
     test_should_contain "Content-Type: application/vnd.ipld.dag-$format" output &&
     test_should_contain "Content-Length: " output
   '
-  test_expect_success "HEAD $name with an explicit JSON format returns HTTP 200" '
-    curl -I "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=json" -o output &&
+  test_expect_success "HEAD $name with an explicit DAG-JSON format returns HTTP 200" '
+    curl -I "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=dag-json" -o output &&
     test_should_contain "HTTP/1.1 200 OK" output &&
-    test_should_contain "Etag: \"$CID.json\"" output &&
-    test_should_contain "Content-Type: application/json" output &&
-    test_should_contain "Content-Length: " output
-  '
-  test_expect_success "HEAD dag-pb with ?format=$format returns HTTP 200" '
-    curl -I "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=$format" -o output &&
-    test_should_contain "HTTP/1.1 200 OK" output &&
-    test_should_contain "Etag: \"$FILE_CID.$format\"" output &&
-    test_should_contain "Content-Type: application/$format" output &&
+    test_should_contain "Etag: \"$CID.dag-json\"" output &&
+    test_should_contain "Content-Type: application/vnd.ipld.dag-json" output &&
     test_should_contain "Content-Length: " output
   '
   test_expect_success "HEAD $name with only-if-cached for missing block returns HTTP 412 Precondition Failed" '
