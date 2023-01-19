@@ -23,24 +23,14 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// codecToContentType maps the supported IPLD codecs to the HTTP Content
-// Type they should have.
-var codecToContentType = map[uint64]string{
-	uint64(mc.Json):    "application/json",
-	uint64(mc.Cbor):    "application/cbor",
-	uint64(mc.DagJson): "application/vnd.ipld.dag-json",
-	uint64(mc.DagCbor): "application/vnd.ipld.dag-cbor",
-}
-
-// contentTypeToCodecs maps the HTTP Content Type to the respective
-// possible codecs. If the original data is in one of those codecs,
-// we stream the raw bytes. Otherwise, we encode in the last codec
-// of the list.
-var contentTypeToCodecs = map[string][]uint64{
-	"application/json":              {uint64(mc.Json), uint64(mc.DagJson)},
-	"application/vnd.ipld.dag-json": {uint64(mc.DagJson)},
-	"application/cbor":              {uint64(mc.Cbor), uint64(mc.DagCbor)},
-	"application/vnd.ipld.dag-cbor": {uint64(mc.DagCbor)},
+// convertibleCodecs maps supported input codecs into supported output codecs.
+var convertibleCodecs = map[mc.Code][]mc.Code{
+	mc.Raw:     {mc.DagCbor, mc.DagJson},
+	mc.DagPb:   {mc.DagCbor, mc.DagJson},
+	mc.DagJson: {mc.DagCbor, mc.DagJson},
+	mc.DagCbor: {mc.DagCbor, mc.DagJson},
+	mc.Json:    {mc.Cbor, mc.Json, mc.DagCbor, mc.DagJson},
+	mc.Cbor:    {mc.Cbor, mc.Json, mc.DagCbor, mc.DagJson},
 }
 
 // contentTypeToExtension maps the HTTP Content Type to the respective file
@@ -52,12 +42,38 @@ var contentTypeToExtension = map[string]string{
 	"application/vnd.ipld.dag-cbor": ".cbor",
 }
 
+// getResponseContentTypeAndCodec returns the response content type and codec based
+// on the requested content type and CID codec. The requested content type has
+// priority over the CID codec.
+func getResponseContentTypeAndCodec(requestedContentType string, codec mc.Code) (string, mc.Code) {
+	switch requestedContentType {
+	case "application/json":
+		return "application/json", mc.Json
+	case "application/cbor":
+		return "application/cbor", mc.Cbor
+	case "application/vnd.ipld.dag-json":
+		return "application/vnd.ipld.dag-json", mc.DagJson
+	case "application/vnd.ipld.dag-cbor":
+		return "application/vnd.ipld.dag-cbor", mc.DagCbor
+	}
+
+	switch codec {
+	case mc.Json:
+		return "application/json", mc.Json
+	case mc.Cbor:
+		return "application/cbor", mc.Cbor
+	case mc.DagJson:
+		return "application/vnd.ipld.dag-json", mc.DagJson
+	case mc.DagCbor:
+		return "application/vnd.ipld.dag-cbor", mc.DagCbor
+	}
+
+	return "", 0
+}
+
 func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, requestedContentType string) {
 	ctx, span := tracing.Span(ctx, "Gateway", "ServeCodec", trace.WithAttributes(attribute.String("path", resolvedPath.String()), attribute.String("requestedContentType", requestedContentType)))
 	defer span.End()
-
-	cidCodec := resolvedPath.Cid().Prefix().Codec
-	responseContentType := requestedContentType
 
 	// If the resolved path still has some remainder, return error for now.
 	// TODO: handle this when we have IPLD Patch (https://ipld.io/specs/patch/) via HTTP PUT
@@ -69,19 +85,17 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 
-	// If no explicit content type was requested, the response will have one based on the codec from the CID
-	if requestedContentType == "" {
-		cidContentType, ok := codecToContentType[cidCodec]
-		if !ok {
-			// Should not happen unless function is called with wrong parameters.
-			err := fmt.Errorf("content type not found for codec: %v", cidCodec)
-			webError(w, "internal error", err, http.StatusInternalServerError)
-			return
-		}
-		responseContentType = cidContentType
+	cidCodec := mc.Code(resolvedPath.Cid().Prefix().Codec)
+	responseContentType, responseCodec := getResponseContentTypeAndCodec(requestedContentType, cidCodec)
+
+	// This should never happen unless function is called with wrong parameters.
+	if responseContentType == "" {
+		err := fmt.Errorf("content type not found for codec: %v", cidCodec)
+		webError(w, "internal error", err, http.StatusInternalServerError)
+		return
 	}
 
-	// Set HTTP headers (for caching etc)
+	// Set HTTP headers (for caching, etc).
 	modtime := addCacheControlHeaders(w, r, contentPath, resolvedPath.Cid())
 	name := setCodecContentDisposition(w, r, resolvedPath, responseContentType)
 	w.Header().Set("Content-Type", responseContentType)
@@ -90,51 +104,41 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	// No content type is specified by the user (via Accept, or format=). However,
 	// we support this format. Let's handle it.
 	if requestedContentType == "" {
-		isDAG := cidCodec == uint64(mc.DagJson) || cidCodec == uint64(mc.DagCbor)
+		isDAG := responseCodec == mc.DagJson || responseCodec == mc.DagCbor
 		acceptsHTML := strings.Contains(r.Header.Get("Accept"), "text/html")
 		download := r.URL.Query().Get("download") == "true"
 
 		if isDAG && acceptsHTML && !download {
 			i.serveCodecHTML(ctx, w, r, resolvedPath, contentPath)
 		} else {
+			// Here we cannot use serveRawBlock because we want to use the right
+			// content type as we know the content type we are serving.
 			i.serveCodecRaw(ctx, w, r, resolvedPath, contentPath, name, modtime)
 		}
 
 		return
 	}
 
-	// Otherwise, the user has requested a specific content type. Let's first get
-	// the codecs that can be used with this content type.
-	codecs, ok := contentTypeToCodecs[requestedContentType]
-	if !ok {
-		// This is never supposed to happen unless function is called with wrong parameters.
-		err := fmt.Errorf("unsupported content type: %s", requestedContentType)
-		webError(w, err.Error(), err, http.StatusInternalServerError)
+	// This should never happen unless the function is called with wrong parameters.
+	if _, ok := convertibleCodecs[cidCodec]; !ok {
+		err := fmt.Errorf("codec cannot be handled: %v", cidCodec)
+		webError(w, "internal error", err, http.StatusInternalServerError)
 		return
 	}
 
-	// If we need to convert, use the last codec (strict dag- variant)
-	toCodec := codecs[len(codecs)-1]
-
-	// If the requested content type has "dag-", ALWAYS go through the encoding
-	// process in order to validate the content.
-	if strings.Contains(requestedContentType, "dag-") {
-		i.serveCodecConverted(ctx, w, r, resolvedPath, contentPath, toCodec, modtime)
-		return
-	}
-
-	// Otherwise, check if the data is encoded with the requested content type.
-	// If so, we can directly stream the raw data. serveRawBlock cannot be directly
-	// used here as it sets different headers.
-	for _, codec := range codecs {
-		if resolvedPath.Cid().Prefix().Codec == codec {
-			i.serveCodecRaw(ctx, w, r, resolvedPath, contentPath, name, modtime)
+	// If the user has requested a CID in some content type that can be converted
+	// to the target content type, we serve it converted with the correct headers.
+	for _, targetCodec := range convertibleCodecs[cidCodec] {
+		if targetCodec == responseCodec {
+			i.serveCodecConverted(ctx, w, r, resolvedPath, contentPath, responseCodec, modtime)
 			return
 		}
 	}
 
-	// Finally, if nothing of the above is true, we have to actually convert the codec.
-	i.serveCodecConverted(ctx, w, r, resolvedPath, contentPath, toCodec, modtime)
+	// If the user has requested for a conversion that is not possible (such as
+	// requesting a UnixFS file as a JSON), we defer to the regular serve raw block
+	// function that will serve the data behind it.
+	i.serveRawBlock(ctx, w, r, resolvedPath, contentPath, begin)
 }
 
 func (i *gatewayHandler) serveCodecHTML(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path) {
@@ -184,7 +188,7 @@ func (i *gatewayHandler) serveCodecRaw(ctx context.Context, w http.ResponseWrite
 	_, _, _ = ServeContent(w, r, name, modtime, content)
 }
 
-func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, toCodec uint64, modtime time.Time) {
+func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, toCodec mc.Code, modtime time.Time) {
 	obj, err := i.api.Dag().Get(ctx, resolvedPath.Cid())
 	if err != nil {
 		webError(w, "ipfs dag get "+html.EscapeString(resolvedPath.String()), err, http.StatusInternalServerError)
@@ -199,7 +203,7 @@ func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.Respons
 	}
 	finalNode := universal.(ipld.Node)
 
-	encoder, err := multicodec.LookupEncoder(toCodec)
+	encoder, err := multicodec.LookupEncoder(uint64(toCodec))
 	if err != nil {
 		webError(w, err.Error(), err, http.StatusInternalServerError)
 		return
