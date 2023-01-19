@@ -21,6 +21,7 @@ import (
 	mc "github.com/multiformats/go-multicodec"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 // convertibleCodecs maps supported input codecs into supported output codecs.
@@ -71,7 +72,7 @@ func getResponseContentTypeAndCodec(requestedContentType string, codec mc.Code) 
 	return "", 0
 }
 
-func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, requestedContentType string) {
+func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, requestedContentType string, logger *zap.SugaredLogger) {
 	ctx, span := tracing.Span(ctx, "Gateway", "ServeCodec", trace.WithAttributes(attribute.String("path", resolvedPath.String()), attribute.String("requestedContentType", requestedContentType)))
 	defer span.End()
 
@@ -136,9 +137,9 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	}
 
 	// If the user has requested for a conversion that is not possible (such as
-	// requesting a UnixFS file as a JSON), we defer to the regular serve raw block
-	// function that will serve the data behind it.
-	i.serveRawBlock(ctx, w, r, resolvedPath, contentPath, begin)
+	// requesting a UnixFS file as a JSON), we defer to the regular serve UnixFS
+	// function that will serve the data behind it accordingly.
+	i.serveUnixFS(ctx, w, r, resolvedPath, contentPath, begin, logger)
 }
 
 func (i *gatewayHandler) serveCodecHTML(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path) {
