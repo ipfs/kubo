@@ -1844,6 +1844,9 @@ The `Swarm.ResourceMgr.Limits` override the default limits described above.
 Any override `BaseLimits` or limit <key,value>s from `Swarm.ResourceMgr.Limits`
 that aren't specified will use the [computed default limits](./libp2p-resource-management.md#computed-default-limits).
 
+Until [ipfs/kubo#9564](https://github.com/ipfs/kubo/issues/9564) is addressed, there isn't a way to set an override limit of zero.
+0 is currently ignored.  0 currently means use to use the [computed default limits](./libp2p-resource-management.md#computed-default-limits).
+
 Example #1: setting limits for a specific scope
 ```json
 {
