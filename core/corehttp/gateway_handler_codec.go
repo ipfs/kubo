@@ -93,14 +93,16 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 		if isDAG && acceptsHTML && !download {
 			i.serveCodecHTML(ctx, w, r, resolvedPath, contentPath)
 		} else {
+			// This covers CIDs with codec 'json' and 'cbor' as those do not have
+			// an explicit requested content type.
 			i.serveCodecRaw(ctx, w, r, resolvedPath, contentPath, name, modtime)
 		}
 
 		return
 	}
 
-	// Otherwise, the user has requested a specific content type. Let's first get
-	// the codecs that can be used with this content type.
+	// Otherwise, the user has requested a specific content type (a DAG-* variant).
+	// Let's first get the codecs that can be used with this content type.
 	toCodec, ok := contentTypeToCodec[requestedContentType]
 	if !ok {
 		// This is never supposed to happen unless function is called with wrong parameters.
@@ -109,15 +111,8 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 
-	// If the requested content type has "dag-", ALWAYS go through the encoding
-	// process in order to validate the content.
-	if strings.Contains(requestedContentType, "dag-") {
-		i.serveCodecConverted(ctx, w, r, resolvedPath, contentPath, toCodec, modtime)
-		return
-	}
-
-	// Otherwise, it's just JSON or CBOR. Serve it as-is.
-	i.serveCodecRaw(ctx, w, r, resolvedPath, contentPath, name, modtime)
+	// This handles DAG-* conversions and validations.
+	i.serveCodecConverted(ctx, w, r, resolvedPath, contentPath, toCodec, modtime)
 }
 
 func (i *gatewayHandler) serveCodecHTML(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path) {
