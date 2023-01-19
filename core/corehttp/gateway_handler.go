@@ -420,7 +420,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	switch responseFormat {
 	case "":
 		switch resolvedPath.Cid().Prefix().Codec {
-		case uint64(mc.Json), uint64(mc.DagJson), uint64(mc.Cbor), uint64(mc.DagCbor):
+		case uint64(mc.DagJson), uint64(mc.DagCbor):
 			logger.Debugw("serving codec", "path", contentPath)
 			i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, logger, responseFormat)
 		default:
@@ -441,8 +441,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		logger.Debugw("serving tar file", "path", contentPath)
 		i.serveTAR(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
 		return
-	case "application/json", "application/vnd.ipld.dag-json",
-		"application/cbor", "application/vnd.ipld.dag-cbor":
+	case "application/vnd.ipld.dag-json", "application/vnd.ipld.dag-cbor":
 		logger.Debugw("serving codec", "path", contentPath)
 		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, logger, responseFormat)
 		return

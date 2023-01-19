@@ -91,34 +91,6 @@ test_cmp_dag_get () {
   format=$2
   disposition=$3
 
-  test_expect_success "GET $name without Accept or format= has expected Content-Type" '
-    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
-    curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output 2>&1 &&
-    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${CID}.${format}\"" curl_output &&
-    test_should_contain "Content-Type: application/$format" curl_output
-  '
-
-  test_expect_success "GET $name without Accept or format= produces correct output" '
-    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
-    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output 2>&1 &&
-    ipfs dag get --output-codec $format $CID > ipfs_dag_get_output 2>&1 &&
-    test_cmp ipfs_dag_get_output curl_output
-  '
-
-  test_expect_success "GET $name with format=$format produces expected Content-Type" '
-    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
-    curl -sD- "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=$format" > curl_output 2>&1 &&
-    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${CID}.${format}\"" curl_output &&
-    test_should_contain "Content-Type: application/$format" curl_output
-  '
-
-  test_expect_success "GET $name with format=$format produces correct output" '
-    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
-    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=$format" > curl_output 2>&1 &&
-    ipfs dag get --output-codec $format $CID > ipfs_dag_get_output 2>&1 &&
-    test_cmp ipfs_dag_get_output curl_output
-  '
-
   test_expect_success "GET $name with format=dag-$format produces expected Content-Type" '
     CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
     curl -sD- "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=dag-$format" > curl_output 2>&1 &&
@@ -136,23 +108,6 @@ test_cmp_dag_get () {
 
 test_cmp_dag_get "JSON" "json" "inline"
 test_cmp_dag_get "CBOR" "cbor" "attachment"
-
-
-## Lossless conversion between JSON and CBOR
-
-test_expect_success "GET JSON as CBOR produces DAG-CBOR output" '
-  CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec json) &&
-  curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=cbor" > curl_output 2>&1 &&
-  ipfs dag get --output-codec dag-cbor $CID > ipfs_dag_get_output 2>&1 &&
-  test_cmp ipfs_dag_get_output curl_output
-'
-
-test_expect_success "GET CBOR as JSON produces DAG-JSON output" '
-  CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec cbor) &&
-  curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=json" > curl_output 2>&1 &&
-  ipfs dag get --output-codec dag-json $CID > ipfs_dag_get_output 2>&1 &&
-  test_cmp ipfs_dag_get_output curl_output
-'
 
 
 ## Pathing, traversal
