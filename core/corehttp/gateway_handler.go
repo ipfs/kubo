@@ -419,10 +419,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// Support custom response formats passed via ?format or Accept HTTP header
 	switch responseFormat {
 	case "":
-		switch resolvedPath.Cid().Prefix().Codec {
-		case uint64(mc.DagJson), uint64(mc.DagCbor):
+		switch mc.Code(resolvedPath.Cid().Prefix().Codec) {
+		case mc.Json, mc.DagJson, mc.Cbor, mc.DagCbor:
 			logger.Debugw("serving codec", "path", contentPath)
-			i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, logger, responseFormat)
+			i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat)
 		default:
 			logger.Debugw("serving unixfs", "path", contentPath)
 			i.serveUnixFS(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
@@ -443,7 +443,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	case "application/vnd.ipld.dag-json", "application/vnd.ipld.dag-cbor":
 		logger.Debugw("serving codec", "path", contentPath)
-		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, logger, responseFormat)
+		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat)
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
@@ -879,12 +879,8 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 			return "application/x-tar", nil, nil
 		case "dag-json":
 			return "application/vnd.ipld.dag-json", nil, nil
-		case "json":
-			return "application/json", nil, nil
 		case "dag-cbor":
 			return "application/vnd.ipld.dag-cbor", nil, nil
-		case "cbor":
-			return "application/cbor", nil, nil
 		}
 	}
 	// Browsers and other user agents will send Accept header with generic types like:

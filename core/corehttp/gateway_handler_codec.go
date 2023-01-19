@@ -21,17 +21,19 @@ import (
 	mc "github.com/multiformats/go-multicodec"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 // codecToContentType maps the supported IPLD codecs to the HTTP Content
 // Type they should have.
 var codecToContentType = map[mc.Code]string{
+	mc.Json:    "application/json",
+	mc.Cbor:    "application/cbor",
 	mc.DagJson: "application/vnd.ipld.dag-json",
 	mc.DagCbor: "application/vnd.ipld.dag-cbor",
 }
 
-// contentTypeToCodec maps the HTTP Content Type to the respective codec.
+// contentTypeToCodec maps the HTTP Content Type to the respective codec. We
+// only add here the codecs that we want to convert-to-from.
 var contentTypeToCodec = map[string]mc.Code{
 	"application/vnd.ipld.dag-json": mc.DagJson,
 	"application/vnd.ipld.dag-cbor": mc.DagCbor,
@@ -40,11 +42,13 @@ var contentTypeToCodec = map[string]mc.Code{
 // contentTypeToExtension maps the HTTP Content Type to the respective file
 // extension, used in Content-Disposition header when downloading the file.
 var contentTypeToExtension = map[string]string{
+	"application/json":              ".json",
 	"application/vnd.ipld.dag-json": ".json",
+	"application/cbor":              ".cbor",
 	"application/vnd.ipld.dag-cbor": ".cbor",
 }
 
-func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger, requestedContentType string) {
+func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, requestedContentType string) {
 	ctx, span := tracing.Span(ctx, "Gateway", "ServeCodec", trace.WithAttributes(attribute.String("path", resolvedPath.String()), attribute.String("requestedContentType", requestedContentType)))
 	defer span.End()
 
@@ -82,10 +86,11 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	// No content type is specified by the user (via Accept, or format=). However,
 	// we support this format. Let's handle it.
 	if requestedContentType == "" {
+		isDAG := cidCodec == mc.DagJson || cidCodec == mc.DagCbor
 		acceptsHTML := strings.Contains(r.Header.Get("Accept"), "text/html")
 		download := r.URL.Query().Get("download") == "true"
 
-		if acceptsHTML && !download {
+		if isDAG && acceptsHTML && !download {
 			i.serveCodecHTML(ctx, w, r, resolvedPath, contentPath)
 		} else {
 			i.serveCodecRaw(ctx, w, r, resolvedPath, contentPath, name, modtime)
@@ -106,7 +111,13 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 
 	// If the requested content type has "dag-", ALWAYS go through the encoding
 	// process in order to validate the content.
-	i.serveCodecConverted(ctx, w, r, resolvedPath, contentPath, uint64(toCodec), modtime)
+	if strings.Contains(requestedContentType, "dag-") {
+		i.serveCodecConverted(ctx, w, r, resolvedPath, contentPath, toCodec, modtime)
+		return
+	}
+
+	// Otherwise, it's just JSON or CBOR. Serve it as-is.
+	i.serveCodecRaw(ctx, w, r, resolvedPath, contentPath, name, modtime)
 }
 
 func (i *gatewayHandler) serveCodecHTML(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path) {
@@ -156,7 +167,7 @@ func (i *gatewayHandler) serveCodecRaw(ctx context.Context, w http.ResponseWrite
 	_, _, _ = ServeContent(w, r, name, modtime, content)
 }
 
-func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, toCodec uint64, modtime time.Time) {
+func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, toCodec mc.Code, modtime time.Time) {
 	obj, err := i.api.Dag().Get(ctx, resolvedPath.Cid())
 	if err != nil {
 		webError(w, "ipfs dag get "+html.EscapeString(resolvedPath.String()), err, http.StatusInternalServerError)
@@ -171,7 +182,7 @@ func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.Respons
 	}
 	finalNode := universal.(ipld.Node)
 
-	encoder, err := multicodec.LookupEncoder(toCodec)
+	encoder, err := multicodec.LookupEncoder(uint64(toCodec))
 	if err != nil {
 		webError(w, err.Error(), err, http.StatusInternalServerError)
 		return
