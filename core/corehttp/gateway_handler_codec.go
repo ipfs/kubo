@@ -31,11 +31,8 @@ var codecToContentType = map[mc.Code]string{
 	mc.DagCbor: "application/vnd.ipld.dag-cbor",
 }
 
-// contentTypeToCodecs maps the HTTP Content Type to the respective
-// possible codecs. If the original data is in one of those codecs,
-// we stream the raw bytes. Otherwise, we encode in the last codec
-// of the list.
-var contentTypeToCodecs = map[string]mc.Code{
+// contentTypeToCodec maps the HTTP Content Type to the respective codec.
+var contentTypeToCodec = map[string]mc.Code{
 	"application/vnd.ipld.dag-json": mc.DagJson,
 	"application/vnd.ipld.dag-cbor": mc.DagCbor,
 }
@@ -99,7 +96,7 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 
 	// Otherwise, the user has requested a specific content type. Let's first get
 	// the codecs that can be used with this content type.
-	toCodec, ok := contentTypeToCodecs[requestedContentType]
+	toCodec, ok := contentTypeToCodec[requestedContentType]
 	if !ok {
 		// This is never supposed to happen unless function is called with wrong parameters.
 		err := fmt.Errorf("unsupported content type: %s", requestedContentType)
