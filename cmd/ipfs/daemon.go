@@ -413,7 +413,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	var sysConnInbound int
 	var sysStreamInbound int
 	var dhtStreamsInbound int
-	if cfg.Swarm.ResourceMgr.Limits != nil {
+	if cfg.Swarm.ResourceMgr.Limits != nil &&
+		cfg.Swarm.ResourceMgr.Enabled.WithDefault(true) &&
+		cfg.Swarm.ConnMgr.Type != nil &&
+		cfg.Swarm.ConnMgr.Type.WithDefault(config.DefaultConnMgrType) != "none" {
 		sysConnInbound = cfg.Swarm.ResourceMgr.Limits.System.ConnsInbound
 		sysStreamInbound = cfg.Swarm.ResourceMgr.Limits.System.StreamsInbound
 		dhtLimits, ok := cfg.Swarm.ResourceMgr.Limits.Protocol[dht.ProtocolDHT]
