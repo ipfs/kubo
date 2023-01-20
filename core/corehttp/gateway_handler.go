@@ -418,7 +418,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	// Support custom response formats passed via ?format or Accept HTTP header
 	switch responseFormat {
-	case "":
+	case "", "application/json", "application/cbor":
 		switch mc.Code(resolvedPath.Cid().Prefix().Codec) {
 		case mc.Json, mc.DagJson, mc.Cbor, mc.DagCbor:
 			logger.Debugw("serving codec", "path", contentPath)
@@ -447,7 +447,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
-		webError(w, "failed respond with requested content type", err, http.StatusBadRequest)
+		webError(w, "failed to respond with requested content type", err, http.StatusBadRequest)
 		return
 	}
 }
@@ -877,6 +877,10 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 			return "application/vnd.ipld.car", nil, nil
 		case "tar":
 			return "application/x-tar", nil, nil
+		case "json":
+			return "application/json", nil, nil
+		case "cbor":
+			return "application/cbor", nil, nil
 		case "dag-json":
 			return "application/vnd.ipld.dag-json", nil, nil
 		case "dag-cbor":
@@ -903,6 +907,8 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 			}
 		}
 	}
+	// If none of special-cased content types is found, return empty string
+	// to indicate default, implicit UnixFS response should be prepared
 	return "", nil, nil
 }
 

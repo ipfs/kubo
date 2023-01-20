@@ -12,119 +12,130 @@ test_expect_success "Add the test directory" '
   mkdir -p rootDir/ipns &&
   mkdir -p rootDir/api &&
   mkdir -p rootDir/ą/ę &&
+  echo "{ \"test\": \"i am a plain json file\" }" > rootDir/ą/ę/t.json &&
   echo "I am a txt file on path with utf8" > rootDir/ą/ę/file-źł.txt &&
   echo "I am a txt file in confusing /api dir" > rootDir/api/file.txt &&
   echo "I am a txt file in confusing /ipfs dir" > rootDir/ipfs/file.txt &&
   echo "I am a txt file in confusing /ipns dir" > rootDir/ipns/file.txt &&
   DIR_CID=$(ipfs add -Qr --cid-version 1 rootDir) &&
+  FILE_JSON_CID=$(ipfs files stat --enc=json /ipfs/$DIR_CID/ą/ę/t.json | jq -r .Hash) &&
   FILE_CID=$(ipfs files stat --enc=json /ipfs/$DIR_CID/ą/ę/file-źł.txt | jq -r .Hash) &&
   FILE_SIZE=$(ipfs files stat --enc=json /ipfs/$DIR_CID/ą/ę/file-źł.txt | jq -r .Size)
   echo "$FILE_CID / $FILE_SIZE"
 '
 
-## Reading UnixFS (data encoded with dag-pb codec) as DAG-CBOR and DAG-JSON
+## Quick regression check for JSON stored on UnixFS:
+## it has nothing to do with DAG-JSON and JSON codecs,
+## but a lot of JSON data is stored on UnixFS and is requested with or without various hints
+## and we want to avoid surprises like https://github.com/protocol/bifrost-infra/issues/2290
+test_expect_success "GET UnixFS file with JSON bytes is returned with application/json Content-Type" '
+  curl -sD headers "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_JSON_CID" > curl_output 2>&1 &&
+  curl -sD headers_accept -H "Accept: application/json" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_JSON_CID" > curl_output_accept 2>&1 &&
+  ipfs cat $FILE_JSON_CID > ipfs_cat_output 2>&1 &&
+  test_should_contain "Content-Type: application/json" headers &&
+  test_should_contain "Content-Type: application/json" headers_accept &&
+  test_cmp ipfs_cat_output curl_output &&
+  test_cmp curl_output curl_output_accept
+'
 
-test_dag_pb_headers () {
+
+## Reading UnixFS (data encoded with dag-pb codec) as DAG-CBOR and DAG-JSON
+## (returns representation defined in https://ipld.io/specs/codecs/dag-pb/spec/#logical-format)
+
+test_dag_pb_conversion () {
   name=$1
   format=$2
   disposition=$3
 
-  test_expect_success "GET UnixFS as $name with format=dag-$format has expected Content-Type" '
-    curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=dag-$format" > curl_output 2>&1 &&
-    test_should_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output &&
-    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${FILE_CID}.${format}\"" curl_output &&
-    test_should_not_contain "Content-Type: application/$format" curl_output
+  test_expect_success "GET UnixFS file as $name with format=dag-$format converts to the expected Content-Type" '
+    curl -sD headers "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=dag-$format" > curl_output 2>&1 &&
+    ipfs dag get --output-codec dag-$format $FILE_CID > ipfs_dag_get_output 2>&1 &&
+    test_cmp ipfs_dag_get_output curl_output &&
+    test_should_contain "Content-Type: application/vnd.ipld.dag-$format" headers &&
+    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${FILE_CID}.${format}\"" headers &&
+    test_should_not_contain "Content-Type: application/$format" headers
   '
 
-  test_expect_success "GET UnixFS as $name with 'Accept: application/vnd.ipld.dag-$format' has expected Content-Type" '
+  test_expect_success "GET UnixFS directory as $name with format=dag-$format converts to the expected Content-Type" '
+    curl -sD headers "http://127.0.0.1:$GWAY_PORT/ipfs/$DIR_CID?format=dag-$format" > curl_output 2>&1 &&
+    ipfs dag get --output-codec dag-$format $DIR_CID > ipfs_dag_get_output 2>&1 &&
+    test_cmp ipfs_dag_get_output curl_output &&
+    test_should_contain "Content-Type: application/vnd.ipld.dag-$format" headers &&
+    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${DIR_CID}.${format}\"" headers &&
+    test_should_not_contain "Content-Type: application/$format" headers
+  '
+
+  test_expect_success "GET UnixFS as $name with 'Accept: application/vnd.ipld.dag-$format' converts to the expected Content-Type" '
     curl -sD - -H "Accept: application/vnd.ipld.dag-$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
     test_should_contain "Content-Disposition: ${disposition}\; filename=\"${FILE_CID}.${format}\"" curl_output &&
     test_should_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output &&
     test_should_not_contain "Content-Type: application/$format" curl_output
   '
 
-  test_expect_success "GET UnixFS as $name with 'Accept: foo, application/vnd.ipld.dag-$format,bar' has expected Content-Type" '
+  test_expect_success "GET UnixFS as $name with 'Accept: foo, application/vnd.ipld.dag-$format,bar' converts to the expected Content-Type" '
     curl -sD - -H "Accept: foo, application/vnd.ipld.dag-$format,text/plain" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
     test_should_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
   '
 
-  test_expect_success "GET UnixFS with format=$format returns raw (no conversion)" '
-    curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=$format" > curl_output 2>&1 &&
-    test_should_not_contain "Content-Type: application/$format" curl_output &&
-    test_should_not_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
+  test_expect_success "GET UnixFS with format=$format (not dag-$format) is no-op (no conversion)" '
+    curl -sD headers "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=$format" > curl_output 2>&1 &&
+    ipfs cat $FILE_CID > cat_output &&
+    test_cmp cat_output curl_output &&
+    test_should_contain "Content-Type: text/plain" headers &&
+    test_should_not_contain "Content-Type: application/$format" headers &&
+    test_should_not_contain "Content-Type: application/vnd.ipld.dag-$format" headers
   '
 
-  test_expect_success "GET UnixFS with 'Accept: application/$format' returns raw (no conversion)" '
-    curl -sD - -H "Accept: application/$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
-    test_should_not_contain "Content-Type: application/$format" curl_output &&
-    test_should_not_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
-  '
-}
-
-test_dag_pb_headers "DAG-JSON" "json" "inline"
-test_dag_pb_headers "DAG-CBOR" "cbor" "attachment"
-
-test_dag_pb () {
-  name=$1
-  format=$2
-
-  test_expect_success "GET UnixFS as $name has expected output for file" '
-    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID?format=dag-$format" > curl_output 2>&1 &&
-    ipfs dag get --output-codec dag-$format $FILE_CID > ipfs_dag_get_output 2>&1 &&
-    test_cmp ipfs_dag_get_output curl_output
-  '
-
-  test_expect_success "GET UnixFS as $name has expected output for directory" '
-    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$DIR_CID?format=dag-$format" > curl_output 2>&1 &&
-    ipfs dag get --output-codec dag-$format $DIR_CID > ipfs_dag_get_output 2>&1 &&
-    test_cmp ipfs_dag_get_output curl_output
+  test_expect_success "GET UnixFS with 'Accept: application/$format' (not dag-$format) is no-op (no conversion)" '
+    curl -sD headers -H "Accept: application/$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" > curl_output 2>&1 &&
+    ipfs cat $FILE_CID > cat_output &&
+    test_cmp cat_output curl_output &&
+    test_should_contain "Content-Type: text/plain" headers &&
+    test_should_not_contain "Content-Type: application/$format" headers &&
+    test_should_not_contain "Content-Type: application/vnd.ipld.dag-$format" headers
   '
 }
 
-test_dag_pb "DAG-JSON" "json"
-test_dag_pb "DAG-CBOR" "cbor"
+test_dag_pb_conversion "DAG-JSON" "json" "inline"
+test_dag_pb_conversion "DAG-CBOR" "cbor" "attachment"
 
-## Content-Type response based on Accept header and ?format= parameter
 
-test_cmp_dag_get () {
+# Requesting CID with plain json (0x0200) and cbor (0x51) codecs
+# (note these are not UnixFS, not DAG-* variants, just raw block identified by a CID with a special codec)
+test_plain_codec () {
   name=$1
   format=$2
   disposition=$3
 
-  test_expect_success "GET $name without Accept or format= has expected Content-Type" '
-    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
-    curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output 2>&1 &&
-    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${CID}.${format}\"" curl_output &&
-    test_should_contain "Content-Type: application/$format" curl_output
+  # no explicit format, just codec in CID
+  test_expect_success "GET $name without Accept or format= has expected $format Content-Type and body as-is" '
+    CID=$(echo "{ \"test\": \"plain json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
+    curl -sD headers "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output 2>&1 &&
+    ipfs block get $CID > ipfs_block_output 2>&1 &&
+    test_cmp ipfs_block_output curl_output &&
+    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${CID}.${format}\"" headers &&
+    test_should_contain "Content-Type: application/$format" headers
   '
 
-  test_expect_success "GET $name without Accept or format= produces correct output" '
-    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
-    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output 2>&1 &&
-    ipfs dag get --output-codec $format $CID > ipfs_dag_get_output 2>&1 &&
-    test_cmp ipfs_dag_get_output curl_output
-  '
-
-  test_expect_success "GET $name with format=dag-$format produces expected Content-Type" '
-    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
-    curl -sD- "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=dag-$format" > curl_output 2>&1 &&
-    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${CID}.${format}\"" curl_output &&
-    test_should_contain "Content-Type: application/vnd.ipld.dag-$format" curl_output
-  '
-
-  test_expect_success "GET $name with format=dag-$format produces correct output" '
-    CID=$(echo "{ \"test\": \"json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
-    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=dag-$format" > curl_output 2>&1 &&
+  # explicit dag-* format passed, attempt to parse as dag* variant
+  ## Note: this works only for simple JSON that can be upgraded to  DAG-JSON.
+  test_expect_success "GET $name with format=dag-$format interprets $format as dag-* variant and produces expected Content-Type and body" '
+    CID=$(echo "{ \"test\": \"plain-json-that-can-also-be-dag-json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
+    curl -sD headers "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=dag-$format" > curl_output_param 2>&1 &&
     ipfs dag get --output-codec dag-$format $CID > ipfs_dag_get_output 2>&1 &&
-    test_cmp ipfs_dag_get_output curl_output
+    test_cmp ipfs_dag_get_output curl_output_param &&
+    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${CID}.${format}\"" headers &&
+    test_should_contain "Content-Type: application/vnd.ipld.dag-$format" headers &&
+    curl -s -H "Accept: application/vnd.ipld.dag-$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output_accept 2>&1 &&
+    test_cmp curl_output_param curl_output_accept
   '
+
 }
 
-test_cmp_dag_get "JSON" "json" "inline"
-test_cmp_dag_get "CBOR" "cbor" "attachment"
+test_plain_codec "plain JSON codec" "json" "inline"
+test_plain_codec "plain CBOR codec" "cbor" "attachment"
 
-
-## Pathing, traversal
+## Pathing, traversal over DAG-JSON and DAG-CBOR
 
 DAG_CBOR_TRAVERSAL_CID="bafyreibs4utpgbn7uqegmd2goqz4bkyflre2ek2iwv743fhvylwi4zeeim"
 DAG_JSON_TRAVERSAL_CID="baguqeeram5ujjqrwheyaty3w5gdsmoz6vittchvhk723jjqxk7hakxkd47xq"
@@ -165,10 +176,8 @@ test_expect_success "GET DAG-CBOR traverses multiple links" '
   test_cmp expected actual
 '
 
-
-## NATIVE TESTS:
+## NATIVE TESTS for DAG-JSON (0x0129) and DAG-CBOR (0x71):
 ## DAG- regression tests for core behaviors when native DAG-(CBOR|JSON) is requested
-
 
 test_native_dag () {
   name=$1
@@ -192,10 +201,10 @@ test_native_dag () {
     test_cmp expected curl_ipfs_dag_param_output
     '
 
-    test_expect_success "GET $name from /ipfs with format=$format returns the same payload as format=dag-$format" '
+    test_expect_success "GET $name from /ipfs for application/$format returns the same payload as format=dag-$format" '
     curl -sX GET "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=dag-$format" -o expected &&
-    curl -sX GET "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=dag-$format" -o curl_ipfs_dag_param_output &&
-    test_cmp expected curl_ipfs_dag_param_output
+    curl -sX GET "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=$format" -o plain_output &&
+    test_cmp expected plain_output
     '
 
     test_expect_success "GET $name from /ipfs with application/vnd.ipld.dag-$format returns the same payload as the raw block" '
@@ -203,6 +212,23 @@ test_native_dag () {
     curl -sX GET -H "Accept: application/vnd.ipld.dag-$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" -o curl_ipfs_dag_block_accept_output &&
     test_cmp expected_block curl_ipfs_dag_block_accept_output
     '
+
+  # Make sure DAG-* can be requested as plain JSON or CBOR and response has plain Content-Type for interop purposes
+
+    test_expect_success "GET $name with format=$format returns same payload as format=dag-$format but with plain Content-Type" '
+    curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=dag-$format" -o expected &&
+    curl -sD plain_headers "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=$format" -o plain_output &&
+    test_should_contain "Content-Type: application/$format" plain_headers &&
+    test_cmp expected plain_output
+    '
+
+    test_expect_success "GET $name with Accept: application/$format returns same payload as application/vnd.ipld.dag-$format but with plain Content-Type" '
+    curl -s -H "Accept: application/vnd.ipld.dag-$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > expected &&
+    curl -sD plain_headers -H "Accept: application/$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > plain_output &&
+    test_should_contain "Content-Type: application/$format" plain_headers &&
+    test_cmp expected plain_output
+    '
+
 
   # Make sure expected HTTP headers are returned with the dag- block
 

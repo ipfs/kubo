@@ -32,6 +32,13 @@ var codecToContentType = map[mc.Code]string{
 	mc.DagCbor: "application/vnd.ipld.dag-cbor",
 }
 
+// contentTypeToRaw maps the HTTP Content Type to the respective codec that
+// allows raw response without any conversion.
+var contentTypeToRaw = map[string]mc.Code{
+	"application/json": mc.DagJson,
+	"application/cbor": mc.DagCbor,
+}
+
 // contentTypeToCodec maps the HTTP Content Type to the respective codec. We
 // only add here the codecs that we want to convert-to-from.
 var contentTypeToCodec = map[string]mc.Code{
@@ -101,6 +108,14 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 
+	// If DAG-JSON or DAG-CBOR was requested using corresponding plain content type
+	// return raw block as-is, without conversion
+	skipCodec, ok := contentTypeToRaw[requestedContentType]
+	if ok && skipCodec == cidCodec {
+		i.serveCodecRaw(ctx, w, r, resolvedPath, contentPath, name, modtime)
+		return
+	}
+
 	// Otherwise, the user has requested a specific content type (a DAG-* variant).
 	// Let's first get the codecs that can be used with this content type.
 	toCodec, ok := contentTypeToCodec[requestedContentType]
@@ -143,6 +158,7 @@ func (i *gatewayHandler) serveCodecHTML(ctx context.Context, w http.ResponseWrit
 	}
 }
 
+// serveCodecRaw returns the raw block without any conversion
 func (i *gatewayHandler) serveCodecRaw(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, name string, modtime time.Time) {
 	blockCid := resolvedPath.Cid()
 	blockReader, err := i.api.Block().Get(ctx, resolvedPath)
@@ -162,6 +178,7 @@ func (i *gatewayHandler) serveCodecRaw(ctx context.Context, w http.ResponseWrite
 	_, _, _ = ServeContent(w, r, name, modtime, content)
 }
 
+// serveCodecConverted returns payload converted to codec specified in toCodec
 func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, toCodec mc.Code, modtime time.Time) {
 	obj, err := i.api.Dag().Get(ctx, resolvedPath.Cid())
 	if err != nil {
