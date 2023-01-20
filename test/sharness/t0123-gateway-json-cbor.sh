@@ -117,6 +117,26 @@ test_plain_codec () {
     test_should_contain "Content-Type: application/$format" headers
   '
 
+  # explicit format still gives correct output, just codec in CID
+  test_expect_success "GET $name with ?format= has expected $format Content-Type and body as-is" '
+    CID=$(echo "{ \"test\": \"plain json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
+    curl -sD headers "http://127.0.0.1:$GWAY_PORT/ipfs/$CID?format=$format" > curl_output 2>&1 &&
+    ipfs block get $CID > ipfs_block_output 2>&1 &&
+    test_cmp ipfs_block_output curl_output &&
+    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${CID}.${format}\"" headers &&
+    test_should_contain "Content-Type: application/$format" headers
+  '
+
+  # explicit format still gives correct output, just codec in CID
+  test_expect_success "GET $name with Accept has expected $format Content-Type and body as-is" '
+    CID=$(echo "{ \"test\": \"plain json\" }" | ipfs dag put --input-codec json --store-codec $format) &&
+    curl -sD headers -H "Accept: application/$format" "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output 2>&1 &&
+    ipfs block get $CID > ipfs_block_output 2>&1 &&
+    test_cmp ipfs_block_output curl_output &&
+    test_should_contain "Content-Disposition: ${disposition}\; filename=\"${CID}.${format}\"" headers &&
+    test_should_contain "Content-Type: application/$format" headers
+  '
+
   # explicit dag-* format passed, attempt to parse as dag* variant
   ## Note: this works only for simple JSON that can be upgraded to  DAG-JSON.
   test_expect_success "GET $name with format=dag-$format interprets $format as dag-* variant and produces expected Content-Type and body" '

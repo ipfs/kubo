@@ -34,9 +34,9 @@ var codecToContentType = map[mc.Code]string{
 
 // contentTypeToRaw maps the HTTP Content Type to the respective codec that
 // allows raw response without any conversion.
-var contentTypeToRaw = map[string]mc.Code{
-	"application/json": mc.DagJson,
-	"application/cbor": mc.DagCbor,
+var contentTypeToRaw = map[string][]mc.Code{
+	"application/json": {mc.Json, mc.DagJson},
+	"application/cbor": {mc.Cbor, mc.DagCbor},
 }
 
 // contentTypeToCodec maps the HTTP Content Type to the respective codec. We
@@ -110,10 +110,14 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 
 	// If DAG-JSON or DAG-CBOR was requested using corresponding plain content type
 	// return raw block as-is, without conversion
-	skipCodec, ok := contentTypeToRaw[requestedContentType]
-	if ok && skipCodec == cidCodec {
-		i.serveCodecRaw(ctx, w, r, resolvedPath, contentPath, name, modtime)
-		return
+	skipCodecs, ok := contentTypeToRaw[requestedContentType]
+	if ok {
+		for _, skipCodec := range skipCodecs {
+			if skipCodec == cidCodec {
+				i.serveCodecRaw(ctx, w, r, resolvedPath, contentPath, name, modtime)
+				return
+			}
+		}
 	}
 
 	// Otherwise, the user has requested a specific content type (a DAG-* variant).
