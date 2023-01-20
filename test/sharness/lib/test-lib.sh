@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
 #
-# We are using sharness (https://github.com/mlafeldt/sharness)
+# We are using sharness (https://github.com/pl-strflt/sharness/tree/feat/junit)
 # which was extracted from the Git test framework.
 
 # use the ipfs tool to test against
@@ -27,14 +27,17 @@ fi
 # to pass through in some cases.
 test "$TEST_VERBOSE" = 1 && verbose=t
 test "$TEST_IMMEDIATE" = 1 && immediate=t
+test "$TEST_JUNIT" = 1 && junit=t
+test "$TEST_NO_COLOR" = 1 && no_color=t
 # source the common hashes first.
 . lib/test-lib-hashes.sh
 
 
-SHARNESS_LIB="lib/sharness/sharness.sh"
+ln -sf lib/sharness/sharness.sh .
+ln -sf lib/sharness/lib-sharness .
 
-. "$SHARNESS_LIB" || {
-  echo >&2 "Cannot source: $SHARNESS_LIB"
+. "sharness.sh" || {
+  echo >&2 "Cannot source: sharness.sh"
   echo >&2 "Please check Sharness installation."
   exit 1
 }
@@ -106,10 +109,15 @@ expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
 
 if test "$TEST_VERBOSE" = 1; then
   echo '# TEST_VERBOSE='"$TEST_VERBOSE"
+  echo '# TEST_IMMEDIATE='"$TEST_IMMEDIATE"
   echo '# TEST_NO_FUSE='"$TEST_NO_FUSE"
+  echo '# TEST_NO_DOCKER='"$TEST_NO_DOCKER"
   echo '# TEST_NO_PLUGIN='"$TEST_NO_PLUGIN"
   echo '# TEST_EXPENSIVE='"$TEST_EXPENSIVE"
   echo '# TEST_OS='"$TEST_OS"
+  echo '# TEST_JUNIT='"$TEST_JUNIT"
+  echo '# TEST_NO_COLOR='"$TEST_NO_COLOR"
+  echo '# TEST_ULIMIT_PRESET='"$TEST_ULIMIT_PRESET"
 fi
 
 # source our generic test lib
@@ -136,8 +144,8 @@ test_run_repeat_60_sec() {
   return 1 # failed
 }
 
-test_wait_output_n_lines_60_sec() {
-  for i in $(test_seq 1 600)
+test_wait_output_n_lines() {
+  for i in $(test_seq 1 3600)
   do
     test $(cat "$1" | wc -l | tr -d " ") -ge $2 && return
     go-sleep 100ms
@@ -541,4 +549,3 @@ purge_blockstore() {
     [[ -z "$( ipfs repo gc )" ]]
   '
 }
-

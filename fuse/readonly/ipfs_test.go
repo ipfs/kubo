@@ -24,9 +24,9 @@ import (
 
 	fstest "bazil.org/fuse/fs/fstestutil"
 	chunker "github.com/ipfs/go-ipfs-chunker"
-	files "github.com/ipfs/go-ipfs-files"
 	u "github.com/ipfs/go-ipfs-util"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-libipfs/files"
 	dag "github.com/ipfs/go-merkledag"
 	importer "github.com/ipfs/go-unixfs/importer"
 	uio "github.com/ipfs/go-unixfs/io"

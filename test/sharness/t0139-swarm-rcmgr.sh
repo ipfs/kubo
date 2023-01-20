@@ -227,4 +227,32 @@ test_expect_success 'stop iptb' '
   iptb stop 2
 '
 
+## Test daemon refuse to start if connmgr.highwater < ressources inbound
+
+test_expect_success "node refuse to start if Swarm.ResourceMgr.Limits.System.Conns <= Swarm.ConnMgr.HighWater" '
+  ipfs config --json Swarm.ResourceMgr.Limits.System.Conns 128 &&
+  ipfs config --json Swarm.ConnMgr.HighWater 128 &&
+  ipfs config --json Swarm.ConnMgr.LowWater 64 &&
+  test_expect_code 1 ipfs daemon &&
+  ipfs config --json Swarm.ResourceMgr.Limits.System.Conns 256
+'
+
+test_expect_success "node refuse to start if Swarm.ResourceMgr.Limits.System.ConnsInbound <= Swarm.ConnMgr.HighWater" '
+  ipfs config --json Swarm.ResourceMgr.Limits.System.ConnsInbound 128 &&
+  test_expect_code 1 ipfs daemon &&
+  ipfs config --json Swarm.ResourceMgr.Limits.System.ConnsInbound 256
+'
+
+test_expect_success "node refuse to start if Swarm.ResourceMgr.Limits.System.Streams <= Swarm.ConnMgr.HighWater" '
+  ipfs config --json Swarm.ResourceMgr.Limits.System.Streams 128 &&
+  test_expect_code 1 ipfs daemon &&
+  ipfs config --json Swarm.ResourceMgr.Limits.System.Streams 256
+'
+
+test_expect_success "node refuse to start if Swarm.ResourceMgr.Limits.System.StreamsInbound <= Swarm.ConnMgr.HighWater" '
+  ipfs config --json Swarm.ResourceMgr.Limits.System.StreamsInbound 128 &&
+  test_expect_code 1 ipfs daemon &&
+  ipfs config --json Swarm.ResourceMgr.Limits.System.StreamsInbound 256
+'
+
 test_done

@@ -1,5 +1,14 @@
+# symlinks to lib/sharness
+/sharness.sh
+/lib-sharness
+# clone of sharness
 lib/sharness/
+# deps downloaded by lib/*.sh scripts
+lib/dependencies/
+# sharness files
 test-results/
 trash directory.*.sh/
+# makefile files
 plugins
+# macos files
 *.DS_Store
