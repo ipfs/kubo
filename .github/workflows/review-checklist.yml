@@ -1,0 +1,63 @@
+name: Post review checklist on PRs
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+jobs:
+  post:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - id: message
+        uses: actions/github-script@v6
+        env:
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_REF: ${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              pull_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            })
+            const fileNames = files.map(file => file.filename)
+
+            const { data: versionFile } = await github.rest.repos.getContent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              path: 'version.go',
+            })
+            const versionContent = Buffer.from(versionFile.content, "base64").toString("ascii");
+            const versionRegex = /CurrentVersionNumber = "([^"]+)"/
+            const version = versionContent.match(versionRegex)[1]
+            const versionSplit = version.split(".")
+            const versionMajorMinor = `${versionSplit[0]}.${versionSplit[1]}`
+
+            const checks = []
+
+            // CI Checks
+            checks.push('Are all the CI checks 🟢?')
+
+            // CHANGELOG if any Go files were modified
+            if (fileNames.filter(name => name.endsWith('.go'))) {
+              checks.push(
+                `Is the next [CHANGELOG](${context.serverUrl}/${process.env.HEAD_REPOSITORY}/blob/${process.env.HEAD_REF}/docs/changelogs/v${versionMajorMinor}.md) updated?`
+              )
+            }
+
+            return checks.map(check => `- [ ] ${check}`).join('\n')
+      - name: Post review checklist as a sticky comment
+        if: steps.message.outputs.result != ''
+        uses: marocchino/sticky-pull-request-comment@82e7a0d3c51217201b3fedc4ddde6632e969a477 # v2.1.1
+        with:
+          header: review-checklist
+          recreate: true
+          message: |
+            #### Review Checklist
+
+            ${{ fromJSON(steps.message.outputs.result) }}
