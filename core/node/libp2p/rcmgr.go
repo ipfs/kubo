@@ -67,7 +67,7 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				limitConfig = l
 			}
 
-			if err := ensureConnMgrMakeSenseVsRessourcesMgr(limitConfig, cfg.ConnMgr); err != nil {
+			if err := ensureConnMgrMakeSenseVsResourceMgr(limitConfig, cfg.ConnMgr); err != nil {
 				return nil, opts, err
 			}
 
@@ -603,7 +603,7 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 	return result, nil
 }
 
-func ensureConnMgrMakeSenseVsRessourcesMgr(rcm rcmgr.LimitConfig, cmgr config.ConnMgr) error {
+func ensureConnMgrMakeSenseVsResourceMgr(rcm rcmgr.LimitConfig, cmgr config.ConnMgr) error {
 	if cmgr.Type.WithDefault(config.DefaultConnMgrType) == "none" {
 		return nil // none connmgr, no checks to do
 	}
