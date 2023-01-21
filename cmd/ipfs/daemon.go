@@ -14,6 +14,7 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
+	"go.opencensus.io/stats/view"
 
 	version "github.com/ipfs/kubo"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
@@ -30,6 +31,7 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
+	dhtmetrics "github.com/libp2p/go-libp2p-kad-dht/metrics"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	pnet "github.com/libp2p/go-libp2p/core/pnet"
 	sockets "github.com/libp2p/go-socket-activation"
@@ -435,6 +437,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	default:
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
 	}
+	view.Register(dhtmetrics.DefaultViews...)
 
 	agentVersionSuffixString, _ := req.Options[agentVersionSuffix].(string)
 	if agentVersionSuffixString != "" {
