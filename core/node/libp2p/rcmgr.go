@@ -52,7 +52,8 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
 			}
 
-			limitConfig, err := createDefaultLimitConfig(cfg)
+			var limitConfig rcmgr.LimitConfig
+			defaultComputedLimitConfig, err := createDefaultLimitConfig(cfg)
 			if err != nil {
 				return nil, opts, err
 			}
@@ -61,10 +62,15 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 			// is documented in docs/config.md.
 			// Any changes here should be reflected there.
 			if cfg.ResourceMgr.Limits != nil {
-				l := *cfg.ResourceMgr.Limits
-				// This effectively overrides the computed default LimitConfig with any vlues from cfg.ResourceMgr.Limits
-				l.Apply(limitConfig)
-				limitConfig = l
+				userSuppliedOverrideLimitConfig := *cfg.ResourceMgr.Limits
+				// This effectively overrides the computed default LimitConfig with any non-zero values from cfg.ResourceMgr.Limits.
+				// Because of how how Apply works, any 0 value for a user supplied override
+				// will be overriden with a computed default value.
+				// There currently isn't a way for a user to supply a 0-value override.
+				userSuppliedOverrideLimitConfig.Apply(defaultComputedLimitConfig)
+				limitConfig = userSuppliedOverrideLimitConfig
+			} else {
+				limitConfig = defaultComputedLimitConfig
 			}
 
 			if err := ensureConnMgrMakeSenseVsResourceMgr(limitConfig, cfg.ConnMgr); err != nil {
