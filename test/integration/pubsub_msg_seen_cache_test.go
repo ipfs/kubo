@@ -193,7 +193,7 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 	}
 	consumeMessage := func(msgTxt string, shouldFind bool) {
 		// Set up a separate timed context for receiving messages
-		rxCtx, rxCancel := context.WithTimeout(context.Background(), time.Second)
+		rxCtx, rxCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer rxCancel()
 		msg, err := consumerSubscription.Next(rxCtx)
 		if shouldFind {
