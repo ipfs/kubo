@@ -1273,8 +1273,8 @@ github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a/go.mod h1:s
 github.com/smartystreets/goconvey v1.6.4 h1:fv0U8FUIMPNf1L9lnHLvLhgicrIVChEkdzIKYqbNC9s=
 github.com/smartystreets/goconvey v1.6.4/go.mod h1:syvi0/a8iFYH4r/RixwvyeAJjdLS9QV7WQ/tjFTllLA=
 github.com/smola/gocompat v0.2.0/go.mod h1:1B0MlxbmoZNo3h8guHp8HztB3BSYR5itql9qtVc0ypY=
-github.com/smrz2001/go-libp2p-pubsub v0.0.0-20230116153407-f7c6da67bdd1 h1:9E3RMdCMySV9BqvMP11ksYXk+VJ2uhhxkZ1L9TqbPOs=
-github.com/smrz2001/go-libp2p-pubsub v0.0.0-20230116153407-f7c6da67bdd1/go.mod h1:eje970FXxjhtFbVEoiae+VUw24ZoSlk67BsiZPLRzlw=
+github.com/smrz2001/go-libp2p-pubsub v0.0.0-20230123204127-c3bfcfac95e3 h1:GsZBeIn4DkCy5N2FG155YCTSsCc8/n5FVyiDl5A4COM=
+github.com/smrz2001/go-libp2p-pubsub v0.0.0-20230123204127-c3bfcfac95e3/go.mod h1:eje970FXxjhtFbVEoiae+VUw24ZoSlk67BsiZPLRzlw=
 github.com/soheilhy/cmux v0.1.4/go.mod h1:IM3LyeVVIOuxMH7sFAkER9+bJ4dT7Ms6E4xg4kGIyLM=
 github.com/sony/gobreaker v0.4.1/go.mod h1:ZKptC7FHNvhBz7dN2LGjPVBz2sZJmc0/PkyDJOjmxWY=
 github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d/go.mod h1:UdhH50NIW0fCiwBSr0co2m7BnFLdv4fQTgdqdJTHFeE=

@@ -11,6 +11,7 @@ import (
 	"github.com/ipfs/go-log"
 	"github.com/ipfs/kubo/config"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p-pubsub/timecache"
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ipfs/kubo/core/node/libp2p"
@@ -64,6 +65,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			pubsubOptions,
 			pubsub.WithMessageSigning(!cfg.Pubsub.DisableSigning),
 			pubsub.WithSeenMessagesTTL(cfg.Pubsub.SeenMessagesTTL.WithDefault(pubsub.TimeCacheDuration)),
+			// Use the "last seen" cache by default
+			pubsub.WithSeenMessagesStrategy(timecache.Strategy_LastSeen),
 		)
 
 		switch cfg.Pubsub.Router {

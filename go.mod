@@ -1,6 +1,6 @@
 module github.com/ipfs/kubo
 
-replace github.com/libp2p/go-libp2p-pubsub => github.com/smrz2001/go-libp2p-pubsub v0.0.0-20230116153407-f7c6da67bdd1
+replace github.com/libp2p/go-libp2p-pubsub => github.com/smrz2001/go-libp2p-pubsub v0.0.0-20230123204127-c3bfcfac95e3
 
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc

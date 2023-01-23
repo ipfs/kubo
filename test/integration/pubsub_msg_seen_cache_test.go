@@ -22,6 +22,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
+	"github.com/libp2p/go-libp2p-pubsub/timecache"
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	mock "github.com/ipfs/kubo/core/mock"
@@ -126,6 +127,7 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 				}
 				return msgID
 			}),
+			pubsub.WithSeenMessagesStrategy(timecache.Strategy_LastSeen),
 		)
 		return append(
 			info.FXOptions,
