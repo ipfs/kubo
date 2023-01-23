@@ -3,7 +3,13 @@ package testutils
 import (
 	"bufio"
 	"fmt"
+	"net"
+	"net/netip"
+	"net/url"
 	"strings"
+
+	"github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 // StrCat takes a bunch of strings or string slices
@@ -50,4 +56,22 @@ func SplitLines(s string) []string {
 		lines = append(lines, scanner.Text())
 	}
 	return lines
+}
+
+// URLStrToMultiaddr converts a URL string like http://localhost:80 to a multiaddr.
+func URLStrToMultiaddr(u string) multiaddr.Multiaddr {
+	parsedURL, err := url.Parse(u)
+	if err != nil {
+		panic(err)
+	}
+	addrPort, err := netip.ParseAddrPort(parsedURL.Host)
+	if err != nil {
+		panic(err)
+	}
+	tcpAddr := net.TCPAddrFromAddrPort(addrPort)
+	ma, err := manet.FromNetAddr(tcpAddr)
+	if err != nil {
+		panic(err)
+	}
+	return ma
 }
