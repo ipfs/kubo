@@ -7,7 +7,7 @@
 
 ## What is Kubo?
 
-Kubo was the first IPFS implementation and is the most widely used one today. Implementing the *Interplanetary Filesystem* - the Web3 standard and contender to replace https. Thus powered by IPLD's data models and the libp2p for network communication. Kubo is written in Go.
+Kubo was the first IPFS implementation and is the most widely used one today. Implementing the *Interplanetary Filesystem* - the Web3 standard for content-addressing, interoperable with HTTP. Thus powered by IPLD's data models and the libp2p for network communication. Kubo is written in Go.
 
 Featureset
 - Runs an IPFS-Node as a network service
@@ -62,13 +62,13 @@ Before opening an issue, consider using one of the following locations to ensure
     - [openSUSE](#opensuse)
     - [Guix](#guix)
     - [Snap](#snap)
-  - [Unofficial MacOS packages](#unofficial-macos-packages)
-    - [MacPorts](#macports)
-    - [Nix](#nix-1)
-    - [Homebrew](#homebrew)  
   - [Unofficial Windows packages](#unofficial-windows-packages)
     - [Chocolatey](#chocolatey)
     - [Scoop](#scoop)
+  - [Unofficial MacOS packages](#unofficial-macos-packages)
+    - [MacPorts](#macports)
+    - [Nix](#nix-macos)
+    - [Homebrew](#homebrew)  
   - [Build from Source](#build-from-source)
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
@@ -166,10 +166,12 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 
 ### Unofficial Linux packages
 
-- [Arch Linux](#arch-linux)
-- [Nix](#nix-linux)
+- [ArchLinux](#arch-linux)
+- [Nix](#nix)
 - [Solus](#solus)
 - [openSUSE](#opensuse)
+- [Guix](#guix)
+- [Snap](#snap)
 
 #### Arch Linux
 
@@ -193,11 +195,10 @@ You can also install the Package by using its attribute name, which is also `ipf
 
 #### Solus
 
-In solus, kubo (go-ipfs) is available in the main repository as
-[go-ipfs](https://dev.getsol.us/source/go-ipfs/repository/master/).
+[Package for Solus](https://dev.getsol.us/source/kubo/repository/master/)
 
 ```
-$ sudo eopkg install go-ipfs
+$ sudo eopkg install kubo
 ```
 
 You can also install it through the Solus software center.
@@ -208,30 +209,35 @@ You can also install it through the Solus software center.
 
 #### Guix
 
-GNU's functional package manager, [Guix](https://www.gnu.org/software/guix/), also provides a go-ipfs package:
-
-```
-$ guix package -i go-ipfs
-```
+[Community Package for go-ipfs](https://packages.guix.gnu.org/packages/go-ipfs/0.11.0/) is no out-of-date.
 
 #### Snap
 
-> ⚠️ **SNAP USE IS DISCOURAGED**
-> 
-> If you want something more sophisticated to escape the Snap confinement, we recommend using a different method to install Kubo so that it is not subject to snap confinement.
+No longer supported, see rationale in [kubo#8688](https://github.com/ipfs/kubo/issues/8688).
 
+### Unofficial Windows packages
 
-With snap, in any of the [supported Linux distributions](https://snapcraft.io/docs/core/install):
+- [Chocolatey](#chocolatey)
+- [Scoop](#scoop)
 
+#### Chocolatey
+
+No longer supported, see rationale in [kubo#9341](https://github.com/ipfs/kubo/issues/9341).
+
+#### Scoop
+
+Scoop provides kubo as `kubo` in its 'extras' bucket.
+
+```Powershell
+PS> scoop bucket add extras
+PS> scoop install kubo
 ```
-$ sudo snap install ipfs
-```
 
-The snap sets `IPFS_PATH` to `SNAP_USER_COMMON`, which is usually `~/snap/ipfs/common`. If you want to use `~/.ipfs` instead, you can bind-mount it to `~/snap/ipfs/common` like this:
+### Unofficial macOS packages
 
-```
-$ sudo mount --bind ~/.ipfs ~/snap/ipfs/common
-```
+- [MacPorts](#macports)
+- [Nix](#nix-macos)
+- [Homebrew](#homebrew)
 
 #### MacPorts
 
@@ -258,35 +264,6 @@ A Homebrew formula [ipfs](https://formulae.brew.sh/formula/ipfs) is maintained t
 ```
 $ brew install --formula ipfs
 ```
-
-### Unofficial Windows packages
-
-- [Chocolatey](#chocolatey)
-- [Scoop](#scoop)
-
-#### Chocolatey
-
-[![Chocolatey Version](https://img.shields.io/chocolatey/v/go-ipfs?color=00a4ef&label=go-ipfs&logo=windows&style=flat-square&cacheSeconds=3600)](https://chocolatey.org/packages/go-ipfs)
-
-```Powershell
-PS> choco install go-ipfs
-```
-
-#### Scoop
-
-Scoop provides kubo as `kubo` in its 'extras' bucket.
-
-```Powershell
-PS> scoop bucket add extras
-PS> scoop install kubo
-```
-
-### Unofficial macOS packages
-
-- [MacPorts](#macports)
-- [Nix](#nix-macos)
-- [Homebrew](#homebrew)
-
 
 ### Build from Source
 
@@ -377,6 +354,10 @@ Basic proof of 'ipfs working' locally:
     # This should output a hash string that looks something like:
     # QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
     ipfs cat <that hash>
+
+### HTTP/RPC clients
+
+For programmatic interaction with Kubo, see our [list of HTTP/RPC clients](docs/http-rpc-clients.md).
 
 ### Troubleshooting
 

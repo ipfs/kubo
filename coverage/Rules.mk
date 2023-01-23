@@ -2,7 +2,7 @@ include mk/header.mk
 
 GOCC ?= go
 
-$(d)/coverage_deps: $$(DEPS_GO)
+$(d)/coverage_deps: $$(DEPS_GO) cmd/ipfs/ipfs
 	rm -rf $(@D)/unitcover && mkdir $(@D)/unitcover
 	rm -rf $(@D)/sharnesscover && mkdir $(@D)/sharnesscover
 
@@ -46,7 +46,7 @@ endif
 export IPFS_COVER_DIR:= $(realpath $(d))/sharnesscover/
 
 $(d)/sharness_tests.coverprofile: export TEST_NO_PLUGIN=1
-$(d)/sharness_tests.coverprofile: $(d)/ipfs cmd/ipfs/ipfs-test-cover $(d)/coverage_deps test_sharness_short
+$(d)/sharness_tests.coverprofile: $(d)/ipfs cmd/ipfs/ipfs-test-cover $(d)/coverage_deps test_sharness
 	(cd $(@D)/sharnesscover && find . -type f | gocovmerge -list -) > $@
 
 

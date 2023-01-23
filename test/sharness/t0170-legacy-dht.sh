@@ -13,6 +13,10 @@ test_dht() {
     iptb testbed create -type localipfs -count $NUM_NODES -init
   '
 
+  test_expect_success 'DHT-only routing' '
+    iptb run -- ipfs config Routing.Type dht
+  '
+
   startup_cluster $NUM_NODES $@
 
   test_expect_success 'peer ids' '

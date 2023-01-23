@@ -40,9 +40,35 @@ test_expect_success 'disconnected: swarm stats requires running daemon' '
   test_should_contain "missing ResourceMgr" actual
 '
 
+# test sanity scaling
+test_expect_success 'set very high connmgr highwater' '
+  ipfs config --json Swarm.ConnMgr.HighWater 1000
+'
+
+test_launch_ipfs_daemon
+
+test_expect_success 'conns and streams are above 2000' '
+  ipfs swarm limit system --enc=json | tee json &&
+  [ "$(jq -r .ConnsInbound < json)" -ge 2000 ] &&
+  [ "$(jq -r .StreamsInbound < json)" -ge 2000 ]
+'
+
+test_kill_ipfs_daemon
+
+test_expect_success 'set previous connmgr highwater' '
+  ipfs config --json Swarm.ConnMgr.HighWater 96
+'
+
+test_launch_ipfs_daemon
+
+test_expect_success 'conns and streams are above 800' '
+  ipfs swarm limit system --enc=json | tee json &&
+  [ "$(jq -r .ConnsInbound < json)" -ge 800 ] &&
+  [ "$(jq -r .StreamsInbound < json)" -ge 800 ]
+'
+
 # swarm limit|stats should succeed in online mode by default
 # because Resource Manager is opt-out
-test_launch_ipfs_daemon
 
 # every scope has the same fields, so we only inspect System
 test_expect_success 'ResourceMgr enabled: swarm limit' '
@@ -60,6 +86,11 @@ test_expect_success 'ResourceMgr enabled: swarm limit reset' '
   ipfs swarm limit system --reset --enc=json 2> reset &&
   ipfs swarm limit system --enc=json 2> actual &&
   test_cmp reset actual
+'
+
+test_expect_success 'Swarm stats system with filter should fail' '
+  test_expect_code 1 ipfs swarm stats system --min-used-limit-perc=99 2> actual &&
+  test_should_contain "Error: \"min-used-limit-perc\" can only be used when scope is \"all\"" actual
 '
 
 test_expect_success 'ResourceMgr enabled: swarm limit reset on map values' '
@@ -220,6 +251,34 @@ test_expect_success 'stop iptb' '
   iptb stop 0 &&
   iptb stop 1 &&
   iptb stop 2
+'
+
+## Test daemon refuse to start if connmgr.highwater < ressources inbound
+
+test_expect_success "node refuse to start if Swarm.ResourceMgr.Limits.System.Conns <= Swarm.ConnMgr.HighWater" '
+  ipfs config --json Swarm.ResourceMgr.Limits.System.Conns 128 &&
+  ipfs config --json Swarm.ConnMgr.HighWater 128 &&
+  ipfs config --json Swarm.ConnMgr.LowWater 64 &&
+  test_expect_code 1 ipfs daemon &&
+  ipfs config --json Swarm.ResourceMgr.Limits.System.Conns 256
+'
+
+test_expect_success "node refuse to start if Swarm.ResourceMgr.Limits.System.ConnsInbound <= Swarm.ConnMgr.HighWater" '
+  ipfs config --json Swarm.ResourceMgr.Limits.System.ConnsInbound 128 &&
+  test_expect_code 1 ipfs daemon &&
+  ipfs config --json Swarm.ResourceMgr.Limits.System.ConnsInbound 256
+'
+
+test_expect_success "node refuse to start if Swarm.ResourceMgr.Limits.System.Streams <= Swarm.ConnMgr.HighWater" '
+  ipfs config --json Swarm.ResourceMgr.Limits.System.Streams 128 &&
+  test_expect_code 1 ipfs daemon &&
+  ipfs config --json Swarm.ResourceMgr.Limits.System.Streams 256
+'
+
+test_expect_success "node refuse to start if Swarm.ResourceMgr.Limits.System.StreamsInbound <= Swarm.ConnMgr.HighWater" '
+  ipfs config --json Swarm.ResourceMgr.Limits.System.StreamsInbound 128 &&
+  test_expect_code 1 ipfs daemon &&
+  ipfs config --json Swarm.ResourceMgr.Limits.System.StreamsInbound 256
 '
 
 test_done

@@ -1,7 +1,7 @@
 package libp2p
 
 import (
-	"math"
+	"fmt"
 
 	"github.com/dustin/go-humanize"
 	"github.com/libp2p/go-libp2p"
@@ -16,8 +16,8 @@ import (
 // When you don't have a type the JSON Parse function cast numbers to float64 by default,
 // losing precision when writing the final number. So if we use math.MaxInt as our infinite number,
 // after writing the config file we will have 9223372036854776000 instead of 9223372036854775807,
-// making the parsing process fail.
-const bigEnough = math.MaxInt / 2
+// making the parsing process fail. Setting 1e9 (1000000000) as "no limit" value. It also avoids to overflow on 32 bit architectures.
+const bigEnough = 1e9
 
 var infiniteBaseLimit = rcmgr.BaseLimit{
 	Streams:         bigEnough,
@@ -47,7 +47,7 @@ var noLimitIncrease = rcmgr.BaseLimitIncrease{
 // The defaults follow the documentation in docs/config.md.
 // Any changes in the logic here should be reflected there.
 func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error) {
-	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 8)
+	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 4)
 	maxMemoryString := cfg.ResourceMgr.MaxMemory.WithDefault(maxMemoryDefaultString)
 	maxMemory, err := humanize.ParseBytes(maxMemoryString)
 	if err != nil {
@@ -55,6 +55,17 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 	}
 
 	numFD := cfg.ResourceMgr.MaxFileDescriptors.WithDefault(int64(fd.GetNumFDs()) / 2)
+
+	// We want to see this message on startup, that's why we are using fmt instead of log.
+	fmt.Printf(`
+Computing default go-libp2p Resource Manager limits based on:
+    - 'Swarm.ResourceMgr.MaxMemory': %q
+    - 'Swarm.ResourceMgr.MaxFileDescriptors': %d
+
+Applying any user-supplied overrides on top.
+Run 'ipfs swarm limit all' to see the resulting limits.
+
+`, maxMemoryString, numFD)
 
 	scalingLimitConfig := rcmgr.ScalingLimitConfig{
 		SystemBaseLimit: rcmgr.BaseLimit{
@@ -76,8 +87,8 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 		// Most limits don't see an increase because they're already infinite/bigEnough or at their max value.
 		// The values that should scale based on the amount of memory allocated to libp2p need to increase accordingly.
 		SystemLimitIncrease: rcmgr.BaseLimitIncrease{
-			Memory:     rcmgr.DefaultLimits.SystemLimitIncrease.Memory,
-			FDFraction: rcmgr.DefaultLimits.SystemLimitIncrease.FDFraction,
+			Memory:     0,
+			FDFraction: 0,
 
 			Conns:         0,
 			ConnsInbound:  rcmgr.DefaultLimits.SystemLimitIncrease.ConnsInbound,
@@ -174,6 +185,25 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 	libp2p.SetDefaultServiceLimits(&scalingLimitConfig)
 
 	defaultLimitConfig := scalingLimitConfig.Scale(int64(maxMemory), int(numFD))
+
+	// Simple checks to overide autoscaling ensuring limits make sense versus the connmgr values.
+	// There are ways to break this, but this should catch most problems already.
+	// We might improve this in the future.
+	// See: https://github.com/ipfs/kubo/issues/9545
+	if cfg.ConnMgr.Type.WithDefault(config.DefaultConnMgrType) != "none" {
+		maxInboundConns := int64(defaultLimitConfig.System.ConnsInbound)
+		if connmgrHighWaterTimesTwo := cfg.ConnMgr.HighWater.WithDefault(config.DefaultConnMgrHighWater) * 2; maxInboundConns < connmgrHighWaterTimesTwo {
+			maxInboundConns = connmgrHighWaterTimesTwo
+		}
+
+		if maxInboundConns < config.DefaultResourceMgrMinInboundConns {
+			maxInboundConns = config.DefaultResourceMgrMinInboundConns
+		}
+
+		// Scale System.StreamsInbound as well, but use the existing ratio of StreamsInbound to ConnsInbound
+		defaultLimitConfig.System.StreamsInbound = int(maxInboundConns * int64(defaultLimitConfig.System.StreamsInbound) / int64(defaultLimitConfig.System.ConnsInbound))
+		defaultLimitConfig.System.ConnsInbound = int(maxInboundConns)
+	}
 
 	return defaultLimitConfig, nil
 }

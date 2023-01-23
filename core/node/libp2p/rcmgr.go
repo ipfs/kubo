@@ -19,7 +19,7 @@ import (
 	"go.opencensus.io/stats/view"
 	"go.uber.org/fx"
 
-	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 )
@@ -52,7 +52,8 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
 			}
 
-			limitConfig, err := createDefaultLimitConfig(cfg)
+			var limitConfig rcmgr.LimitConfig
+			defaultComputedLimitConfig, err := createDefaultLimitConfig(cfg)
 			if err != nil {
 				return nil, opts, err
 			}
@@ -61,10 +62,19 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 			// is documented in docs/config.md.
 			// Any changes here should be reflected there.
 			if cfg.ResourceMgr.Limits != nil {
-				l := *cfg.ResourceMgr.Limits
-				// This effectively overrides the computed default LimitConfig with any vlues from cfg.ResourceMgr.Limits
-				l.Apply(limitConfig)
-				limitConfig = l
+				userSuppliedOverrideLimitConfig := *cfg.ResourceMgr.Limits
+				// This effectively overrides the computed default LimitConfig with any non-zero values from cfg.ResourceMgr.Limits.
+				// Because of how how Apply works, any 0 value for a user supplied override
+				// will be overriden with a computed default value.
+				// There currently isn't a way for a user to supply a 0-value override.
+				userSuppliedOverrideLimitConfig.Apply(defaultComputedLimitConfig)
+				limitConfig = userSuppliedOverrideLimitConfig
+			} else {
+				limitConfig = defaultComputedLimitConfig
+			}
+
+			if err := ensureConnMgrMakeSenseVsResourceMgr(limitConfig, cfg.ConnMgr); err != nil {
+				return nil, opts, err
 			}
 
 			limiter := rcmgr.NewFixedLimiter(limitConfig)
@@ -112,8 +122,8 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 			lrm.start(helpers.LifecycleCtx(mctx, lc))
 			manager = lrm
 		} else {
-			log.Debug("libp2p resource manager is disabled")
-			manager = network.NullResourceManager
+			fmt.Println("go-libp2p resource manager protection disabled")
+			manager = &network.NullResourceManager{}
 		}
 
 		opts.Opts = append(opts.Opts, libp2p.ResourceManager(manager))
@@ -309,7 +319,7 @@ func abovePercentage(v1, v2, percentage int) bool {
 		return false
 	}
 
-	return int((v1/v2))*100 >= percentage
+	return int((float64(v1)/float64(v2))*100) >= percentage
 }
 
 func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {
@@ -597,4 +607,42 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 	}
 
 	return result, nil
+}
+
+func ensureConnMgrMakeSenseVsResourceMgr(rcm rcmgr.LimitConfig, cmgr config.ConnMgr) error {
+	if cmgr.Type.WithDefault(config.DefaultConnMgrType) == "none" {
+		return nil // none connmgr, no checks to do
+	}
+	highWater := cmgr.HighWater.WithDefault(config.DefaultConnMgrHighWater)
+	if rcm.System.ConnsInbound <= rcm.System.Conns {
+		if int64(rcm.System.ConnsInbound) <= highWater {
+			// nolint
+			return fmt.Errorf(`
+Unable to initialize libp2p due to conflicting limit configuration:
+ResourceMgr.Limits.System.ConnsInbound (%d) must be bigger than ConnMgr.HighWater (%d)
+`, rcm.System.ConnsInbound, highWater)
+		}
+	} else if int64(rcm.System.Conns) <= highWater {
+		// nolint
+		return fmt.Errorf(`
+Unable to initialize libp2p due to conflicting limit configuration:
+ResourceMgr.Limits.System.Conns (%d) must be bigger than ConnMgr.HighWater (%d)
+`, rcm.System.Conns, highWater)
+	}
+	if rcm.System.StreamsInbound <= rcm.System.Streams {
+		if int64(rcm.System.StreamsInbound) <= highWater {
+			// nolint
+			return fmt.Errorf(`
+Unable to initialize libp2p due to conflicting limit configuration:
+ResourceMgr.Limits.System.StreamsInbound (%d) must be bigger than ConnMgr.HighWater (%d)
+`, rcm.System.StreamsInbound, highWater)
+		}
+	} else if int64(rcm.System.Streams) <= highWater {
+		// nolint
+		return fmt.Errorf(`
+Unable to initialize libp2p due to conflicting limit configuration:
+ResourceMgr.Limits.System.Streams (%d) must be bigger than ConnMgr.HighWater (%d)
+`, rcm.System.Streams, highWater)
+	}
+	return nil
 }

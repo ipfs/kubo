@@ -27,11 +27,10 @@ We will ask early testers to participate at two points in the process:
 - [ ] Textile (@sanderpick)
 - [ ] Pinata (@obo20)
 - [ ] RTrade (@postables)
-- [ ] QRI (@b5)
 - [ ] Siderus (@koalalorenzo)
 - [ ] Charity Engine (@rytiss, @tristanolive)
 - [ ] Fission (@bmann)
-- [ ] OrbitDB (@tabcat)
+- [ ] OrbitDB (@aphelionz)
 
 ## How to sign up?
 

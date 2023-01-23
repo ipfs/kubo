@@ -143,14 +143,17 @@ jobs:
         path: /tmp/circleci-test-results
   sharness:
     machine:
-        image: ubuntu-2004:202010-01
+        image: ubuntu-2204:2022.10.1
     resource_class: << pipeline.parameters.resource_class >>
     working_directory: ~/ipfs/kubo
     environment:
         <<: *default_environment
         TEST_NO_DOCKER: 0
+        TEST_NO_PLUGIN: 1
         TEST_NO_FUSE: 1
         TEST_VERBOSE: 1
+        TEST_JUNIT: 1
+        TEST_EXPENSIVE: 1
     steps:
     - run: sudo apt update
     - run: |
@@ -159,7 +162,7 @@ jobs:
         tar xfz go1.19.1.linux-amd64.tar.gz
         echo "export PATH=$(pwd)/go/bin:\$PATH" >> ~/.bashrc
     - run: go version
-    - run: sudo apt install socat net-tools fish
+    - run: sudo apt install socat net-tools fish libxml2-utils
     - checkout
 
     - run:
@@ -183,7 +186,7 @@ jobs:
         command: echo "export TEST_DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $BASH_ENV
     - run:
         echo TEST_DOCKER_HOST=$TEST_DOCKER_HOST &&
-        make -O -j << pipeline.parameters.make_jobs >> coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1 TEST_DOCKER_HOST=$TEST_DOCKER_HOST
+        make -O -j << pipeline.parameters.make_jobs >> test_sharness coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml CONTINUE_ON_S_FAILURE=1 TEST_DOCKER_HOST=$TEST_DOCKER_HOST
     - run:
         when: always
         command: bash <(curl -s https://codecov.io/bash) -cF sharness -X search -f coverage/sharness_tests.coverprofile
@@ -225,6 +228,8 @@ jobs:
       - image: cimg/go:1.19.1-node
     parallelism: 4
     resource_class: 2xlarge+
+    environment:
+      GO_IPFS_DIST_URL: https://dist-ipfs-tech.ipns.cf-ipfs.com # TODO remove this line when https://github.com/protocol/bifrost-infra/issues/2300 is closed
     steps:
       - *make_out_dirs
       - attach_workspace:
@@ -325,6 +330,8 @@ jobs:
   ipfs-webui:
     executor: node-browsers
     resource_class: 2xlarge+
+    environment:
+      GO_IPFS_DIST_URL: https://dist-ipfs-tech.ipns.cf-ipfs.com # TODO remove this line when https://github.com/protocol/bifrost-infra/issues/2300 is closed
     steps:
       - *make_out_dirs
       - attach_workspace:
@@ -345,13 +352,13 @@ jobs:
             npx playwright install
           working_directory: ~/ipfs/kubo/ipfs-webui
       - run:
-          name: Running upstream tests (finish early if they fail)
+          name: Run ipfs-webui@main build and smoke-test to confirm the upstream repo is not broken
           command: |
-            npm test || circleci-agent step halt
+            npm test
           working_directory: ~/ipfs/kubo/ipfs-webui
       - run:
-          name: Running tests with kubo built from current commit
-          command: npm test
+          name: Test ipfs-webui@main E2E against the locally built Kubo binary
+          command: npm run test:e2e
           working_directory: ~/ipfs/kubo/ipfs-webui
           environment:
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs

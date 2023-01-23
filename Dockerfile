@@ -1,4 +1,3 @@
-# Note: when updating the go minor version here, also update the go-channel in snap/snapcraft.yml
 FROM golang:1.19.1-buster
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 

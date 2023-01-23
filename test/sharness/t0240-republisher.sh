@@ -74,7 +74,7 @@ num_test_nodes=4
 setup_iptb "$num_test_nodes"
 
 test_expect_success "publish succeeds" '
-  HASH=$(echo "foobar" | ipfsi 1 add -q) &&
+  HASH=$(date +"%FT%T.%N%z" | ipfsi 1 add -q) &&
   ipfsi 1 name publish -t 10s $HASH
 '
 
@@ -99,7 +99,7 @@ KEY2=`ipfsi 1 key gen beepboop --type ed25519`
 '
 
 test_expect_success "publish with new key succeeds" '
-  HASH=$(echo "barfoo" | ipfsi 1 add -q) &&
+  HASH=$(date +"%FT%T.%N%z" | ipfsi 1 add -q) &&
   ipfsi 1 name publish -t 10s -k "$KEY2" $HASH
 '
 
