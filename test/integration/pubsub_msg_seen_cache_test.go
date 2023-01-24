@@ -248,9 +248,9 @@ func RunMessageSeenCacheTTLTest(t *testing.T, seenMessagesCacheTTL string) error
 	// the default time cache now implements a sliding window algorithm.
 	consumeMessage(msgTxt, false)
 
-	// Send message 5 with a duplicate message ID. This will be a second after the last attempt above since NOT finding
-	// a message takes a second to determine. That would put this attempt at ~1 second after the SeenMessagesTTL window
-	// starting at message 1 has expired.
+	// Send message 5 with a duplicate message ID. This will be 5 seconds after the last attempt above since NOT finding
+	// a message takes 5 seconds to determine. That would put this attempt at ~5 seconds after the SeenMessagesTTL
+	// window starting at message 1 has expired.
 	sentMsg5 := time.Now()
 	sendMsgID = MsgID1
 	msgTxt = produceMessage()
