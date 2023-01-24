@@ -65,8 +65,23 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			pubsubOptions,
 			pubsub.WithMessageSigning(!cfg.Pubsub.DisableSigning),
 			pubsub.WithSeenMessagesTTL(cfg.Pubsub.SeenMessagesTTL.WithDefault(pubsub.TimeCacheDuration)),
-			pubsub.WithSeenMessagesStrategy(timecache.Strategy(cfg.Pubsub.SeenMessagesStrategy.WithDefault(int64(timecache.Strategy_LastSeen)))),
 		)
+
+		seenMessagesStrategy := timecache.Strategy_LastSeen
+		if cfg.Pubsub.SeenMessagesStrategy != nil {
+			configSeenMessagesStrategy := cfg.Pubsub.SeenMessagesStrategy.String()
+			switch configSeenMessagesStrategy {
+			case "":
+				fallthrough
+			case "last-seen":
+				seenMessagesStrategy = timecache.Strategy_FirstSeen
+			case "first-seen":
+				seenMessagesStrategy = timecache.Strategy_FirstSeen
+			default:
+				return fx.Error(fmt.Errorf("unknown pubsub seen messages strategy %s", configSeenMessagesStrategy))
+			}
+		}
+		pubsubOptions = append(pubsubOptions, pubsub.WithSeenMessagesStrategy(seenMessagesStrategy))
 
 		switch cfg.Pubsub.Router {
 		case "":

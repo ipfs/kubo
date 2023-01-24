@@ -1242,9 +1242,9 @@ The first-seen cache will store new messages and purge them after the
 SeenMessagesTTL duration, even if they are seen multiple times within this
 duration.
 
-Default: see `Strategy_LastSeen` from [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub)
+Default: `last-seen` (see [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub))
 
-Type: `optionalInteger`
+Type: `optionalString`
 
 ## `Peering`
 

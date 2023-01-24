@@ -18,5 +18,5 @@ type PubsubConfig struct {
 
 	// SeenMessagesStrategy configures the cache implementation for previously
 	// seen messages.
-	SeenMessagesStrategy *OptionalInteger `json:",omitempty"`
+	SeenMessagesStrategy *OptionalString `json:",omitempty"`
 }
