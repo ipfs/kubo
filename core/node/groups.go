@@ -65,8 +65,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			pubsubOptions,
 			pubsub.WithMessageSigning(!cfg.Pubsub.DisableSigning),
 			pubsub.WithSeenMessagesTTL(cfg.Pubsub.SeenMessagesTTL.WithDefault(pubsub.TimeCacheDuration)),
-			// Use the "last seen" cache by default
-			pubsub.WithSeenMessagesStrategy(timecache.Strategy_LastSeen),
+			pubsub.WithSeenMessagesStrategy(timecache.Strategy(cfg.Pubsub.SeenMessagesStrategy.WithDefault(int64(timecache.Strategy_LastSeen)))),
 		)
 
 		switch cfg.Pubsub.Router {

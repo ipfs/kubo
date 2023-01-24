@@ -15,4 +15,8 @@ type PubsubConfig struct {
 	// SeenMessagesTTL configures the duration after which a previously seen
 	// message ID can be forgotten about.
 	SeenMessagesTTL *OptionalDuration `json:",omitempty"`
+
+	// SeenMessagesStrategy configures the cache implementation for previously
+	// seen messages.
+	SeenMessagesStrategy *OptionalInteger `json:",omitempty"`
 }
