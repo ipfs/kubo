@@ -72,33 +72,19 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 			Memory: int64(maxMemory),
 			FD:     int(numFD),
 
-			// By default, we just limit connections on the inbound side.
+			// We limit the amount of memory and FD - everything else is infinite.
 			Conns:         bigEnough,
-			ConnsInbound:  rcmgr.DefaultLimits.SystemBaseLimit.ConnsInbound, // same as libp2p default
+			ConnsInbound:  bigEnough, 
 			ConnsOutbound: bigEnough,
-
-			// We limit streams since they not only take up memory and CPU.
-			// The Memory limit protects us on the memory side,
-			// but a StreamsInbound limit helps protect against unbound CPU consumption from stream processing.
 			Streams:         bigEnough,
-			StreamsInbound:  rcmgr.DefaultLimits.SystemBaseLimit.StreamsInbound,
+			StreamsInbound:  bigEnough,
 			StreamsOutbound: bigEnough,
 		},
-		// Most limits don't see an increase because they're already infinite/bigEnough or at their max value.
-		// The values that should scale based on the amount of memory allocated to libp2p need to increase accordingly.
-		SystemLimitIncrease: rcmgr.BaseLimitIncrease{
-			Memory:     0,
-			FDFraction: 0,
+		SystemLimitIncrease: noLimitIncrease,
 
-			Conns:         0,
-			ConnsInbound:  rcmgr.DefaultLimits.SystemLimitIncrease.ConnsInbound,
-			ConnsOutbound: 0,
-
-			Streams:         0,
-			StreamsInbound:  rcmgr.DefaultLimits.SystemLimitIncrease.StreamsInbound,
-			StreamsOutbound: 0,
-		},
-
+		// Transient connections won't cause any memory to accounted for by the resource manager.
+		// Only established connections do.
+		// As a result, we can't rely on System.Memory to protect us from a bunch of transient connection being opened.
 		TransientBaseLimit: rcmgr.BaseLimit{
 			Memory: rcmgr.DefaultLimits.TransientBaseLimit.Memory,
 			FD:     rcmgr.DefaultLimits.TransientBaseLimit.FD,
@@ -111,7 +97,6 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 			StreamsInbound:  rcmgr.DefaultLimits.TransientBaseLimit.StreamsInbound,
 			StreamsOutbound: bigEnough,
 		},
-
 		TransientLimitIncrease: rcmgr.BaseLimitIncrease{
 			Memory:     rcmgr.DefaultLimits.TransientLimitIncrease.Memory,
 			FDFraction: rcmgr.DefaultLimits.TransientLimitIncrease.FDFraction,
@@ -152,6 +137,7 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 		StreamBaseLimit:     infiniteBaseLimit,
 		StreamLimitIncrease: noLimitIncrease,
 
+		// Steve 2023-01-24: I don't see any reason to change this.
 		// Limit the resources consumed by a peer.
 		// This doesn't protect us against intentional DoS attacks since an attacker can easily spin up multiple peers.
 		// We specify this limit against unintentional DoS attacks (e.g., a peer has a bug and is sending too much traffic intentionally).
@@ -181,6 +167,7 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 		},
 	}
 
+	// Steve 2023-01-24: I don't see any reasons to change this.
 	// Whatever limits libp2p has specifically tuned for its protocols/services we'll apply.
 	libp2p.SetDefaultServiceLimits(&scalingLimitConfig)
 
