@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (i *gatewayHandler) serveIpnsRecord(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger) {
+func (i *handler) serveIpnsRecord(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger) {
 	if contentPath.Namespace() != "ipns" {
 		err := fmt.Errorf("%s is not an IPNS link", contentPath.String())
 		webError(w, err.Error(), err, http.StatusBadRequest)

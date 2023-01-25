@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"context"
@@ -15,8 +15,7 @@ import (
 	"github.com/ipfs/go-path/resolver"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/ipfs/kubo/assets"
-	"github.com/ipfs/kubo/tracing"
+	"github.com/ipfs/kubo/core/corehttp/gateway/assets"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -25,8 +24,8 @@ import (
 // serveDirectory returns the best representation of UnixFS directory
 //
 // It will return index.html if present, or generate directory listing otherwise.
-func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, dir files.Directory, begin time.Time, logger *zap.SugaredLogger) {
-	ctx, span := tracing.Span(ctx, "Gateway", "ServeDirectory", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
+func (i *handler) serveDirectory(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, dir files.Directory, begin time.Time, logger *zap.SugaredLogger) {
+	ctx, span := spanTrace(ctx, "ServeDirectory", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
 
 	// HostnameOption might have constructed an IPNS/IPFS path using the Host header.
@@ -118,7 +117,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 		return
 	}
 
-	dirListing := make([]directoryItem, 0, len(results))
+	dirListing := make([]assets.DirectoryItem, 0, len(results))
 	for link := range results {
 		if link.Err != nil {
 			internalWebError(w, err)
@@ -126,12 +125,12 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 		}
 
 		hash := link.Cid.String()
-		di := directoryItem{
+		di := assets.DirectoryItem{
 			Size:      humanize.Bytes(uint64(link.Size)),
 			Name:      link.Name,
 			Path:      gopath.Join(originalURLPath, link.Name),
 			Hash:      hash,
-			ShortHash: shortHash(hash),
+			ShortHash: assets.ShortHash(hash),
 		}
 		dirListing = append(dirListing, di)
 	}
@@ -174,29 +173,29 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	var gwURL string
 
 	// Get gateway hostname and build gateway URL.
-	if h, ok := r.Context().Value(requestContextKey("gw-hostname")).(string); ok {
+	if h, ok := r.Context().Value(GatewayHostnameKey).(string); ok {
 		gwURL = "//" + h
 	} else {
 		gwURL = ""
 	}
 
-	dnslink := hasDNSLinkOrigin(gwURL, contentPath.String())
+	dnslink := assets.HasDNSLinkOrigin(gwURL, contentPath.String())
 
 	// See comment above where originalUrlPath is declared.
-	tplData := listingTemplateData{
+	tplData := assets.DirectoryTemplateData{
 		GatewayURL:  gwURL,
 		DNSLink:     dnslink,
 		Listing:     dirListing,
 		Size:        size,
 		Path:        contentPath.String(),
-		Breadcrumbs: breadcrumbs(contentPath.String(), dnslink),
+		Breadcrumbs: assets.Breadcrumbs(contentPath.String(), dnslink),
 		BackLink:    backLink,
 		Hash:        hash,
 	}
 
 	logger.Debugw("request processed", "tplDataDNSLink", dnslink, "tplDataSize", size, "tplDataBackLink", backLink, "tplDataHash", hash)
 
-	if err := listingTemplate.Execute(w, tplData); err != nil {
+	if err := assets.DirectoryTemplate.Execute(w, tplData); err != nil {
 		internalWebError(w, err)
 		return
 	}

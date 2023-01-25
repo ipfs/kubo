@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"fmt"
@@ -36,7 +36,7 @@ import (
 //
 // Note that for security reasons, redirect rules are only processed when the request has origin isolation.
 // See https://github.com/ipfs/specs/pull/290 for more information.
-func (i *gatewayHandler) serveRedirectsIfPresent(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, logger *zap.SugaredLogger) (newResolvedPath ipath.Resolved, newContentPath ipath.Path, continueProcessing bool, hadMatchingRule bool) {
+func (i *handler) serveRedirectsIfPresent(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, logger *zap.SugaredLogger) (newResolvedPath ipath.Resolved, newContentPath ipath.Path, continueProcessing bool, hadMatchingRule bool) {
 	redirectsFile := i.getRedirectsFile(r, contentPath, logger)
 	if redirectsFile != nil {
 		redirectRules, err := i.getRedirectRules(r, redirectsFile)
@@ -73,7 +73,7 @@ func (i *gatewayHandler) serveRedirectsIfPresent(w http.ResponseWriter, r *http.
 	return resolvedPath, contentPath, true, false
 }
 
-func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, redirectRules []redirects.Rule) (redirected bool, newContentPath string, err error) {
+func (i *handler) handleRedirectsFileRules(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, redirectRules []redirects.Rule) (redirected bool, newContentPath string, err error) {
 	// Attempt to match a rule to the URL path, and perform the corresponding redirect or rewrite
 	pathParts := strings.Split(contentPath.String(), "/")
 	if len(pathParts) > 3 {
@@ -118,7 +118,7 @@ func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http
 	return false, "", nil
 }
 
-func (i *gatewayHandler) getRedirectRules(r *http.Request, redirectsFilePath ipath.Resolved) ([]redirects.Rule, error) {
+func (i *handler) getRedirectRules(r *http.Request, redirectsFilePath ipath.Resolved) ([]redirects.Rule, error) {
 	// Convert the path into a file node
 	node, err := i.api.Unixfs().Get(r.Context(), redirectsFilePath)
 	if err != nil {
@@ -142,7 +142,7 @@ func (i *gatewayHandler) getRedirectRules(r *http.Request, redirectsFilePath ipa
 }
 
 // Returns a resolved path to the _redirects file located in the root CID path of the requested path
-func (i *gatewayHandler) getRedirectsFile(r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) ipath.Resolved {
+func (i *handler) getRedirectsFile(r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) ipath.Resolved {
 	// contentPath is the full ipfs path to the requested resource,
 	// regardless of whether path or subdomain resolution is used.
 	rootPath := getRootPath(contentPath)
@@ -164,7 +164,7 @@ func getRootPath(path ipath.Path) ipath.Path {
 	return ipath.New(gopath.Join("/", path.Namespace(), parts[2]))
 }
 
-func (i *gatewayHandler) serve4xx(w http.ResponseWriter, r *http.Request, content4xxPath ipath.Path, status int) error {
+func (i *handler) serve4xx(w http.ResponseWriter, r *http.Request, content4xxPath ipath.Path, status int) error {
 	resolved4xxPath, err := i.api.ResolvePath(r.Context(), content4xxPath)
 	if err != nil {
 		return err
@@ -196,8 +196,8 @@ func (i *gatewayHandler) serve4xx(w http.ResponseWriter, r *http.Request, conten
 }
 
 func hasOriginIsolation(r *http.Request) bool {
-	_, gw := r.Context().Value(requestContextKey("gw-hostname")).(string)
-	_, dnslink := r.Context().Value("dnslink-hostname").(string)
+	_, gw := r.Context().Value(GatewayHostnameKey).(string)
+	_, dnslink := r.Context().Value(DNSLinkHostnameKey).(string)
 
 	if gw || dnslink {
 		return true
@@ -214,7 +214,7 @@ func isUnixfsResponseFormat(responseFormat string) bool {
 // Deprecated: legacy ipfs-404.html files are superseded by _redirects file
 // This is provided only for backward-compatibility, until websites migrate
 // to 404s managed via _redirects file (https://github.com/ipfs/specs/pull/290)
-func (i *gatewayHandler) serveLegacy404IfPresent(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) bool {
+func (i *handler) serveLegacy404IfPresent(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) bool {
 	resolved404Path, ctype, err := i.searchUpTreeFor404(r, contentPath)
 	if err != nil {
 		return false
@@ -244,7 +244,7 @@ func (i *gatewayHandler) serveLegacy404IfPresent(w http.ResponseWriter, r *http.
 	return err == nil
 }
 
-func (i *gatewayHandler) searchUpTreeFor404(r *http.Request, contentPath ipath.Path) (ipath.Resolved, string, error) {
+func (i *handler) searchUpTreeFor404(r *http.Request, contentPath ipath.Path) (ipath.Resolved, string, error) {
 	filename404, ctype, err := preferred404Filename(r.Header.Values("Accept"))
 	if err != nil {
 		return nil, "", err

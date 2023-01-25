@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/ipfs/go-libipfs/files"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -16,8 +15,8 @@ import (
 
 var unixEpochTime = time.Unix(0, 0)
 
-func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger) {
-	ctx, span := tracing.Span(ctx, "Gateway", "ServeTAR", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
+func (i *handler) serveTAR(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger) {
+	ctx, span := spanTrace(ctx, "ServeTAR", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
 
 	ctx, cancel := context.WithCancel(ctx)

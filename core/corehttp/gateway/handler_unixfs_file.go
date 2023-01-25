@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"context"
@@ -13,15 +13,14 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/ipfs/go-libipfs/files"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
 // serveFile returns data behind a file along with HTTP headers based on
 // the file itself, its CID and the contentPath used for accessing it.
-func (i *gatewayHandler) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, file files.File, begin time.Time) {
-	_, span := tracing.Span(ctx, "Gateway", "ServeFile", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
+func (i *handler) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, file files.File, begin time.Time) {
+	_, span := spanTrace(ctx, "ServeFile", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
 
 	// Set Cache-Control and read optional Last-Modified time

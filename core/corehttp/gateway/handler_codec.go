@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"bytes"
@@ -13,9 +13,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/ipfs/kubo/assets"
-	dih "github.com/ipfs/kubo/assets/dag-index-html"
-	"github.com/ipfs/kubo/tracing"
+	"github.com/ipfs/kubo/core/corehttp/gateway/assets"
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/multicodec"
 	mc "github.com/multiformats/go-multicodec"
@@ -55,8 +53,8 @@ var contentTypeToExtension = map[string]string{
 	"application/vnd.ipld.dag-cbor": ".cbor",
 }
 
-func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, requestedContentType string) {
-	ctx, span := tracing.Span(ctx, "Gateway", "ServeCodec", trace.WithAttributes(attribute.String("path", resolvedPath.String()), attribute.String("requestedContentType", requestedContentType)))
+func (i *handler) serveCodec(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, requestedContentType string) {
+	ctx, span := spanTrace(ctx, "ServeCodec", trace.WithAttributes(attribute.String("path", resolvedPath.String()), attribute.String("requestedContentType", requestedContentType)))
 	defer span.End()
 
 	cidCodec := mc.Code(resolvedPath.Cid().Prefix().Codec)
@@ -134,7 +132,7 @@ func (i *gatewayHandler) serveCodec(ctx context.Context, w http.ResponseWriter, 
 	i.serveCodecConverted(ctx, w, r, resolvedPath, contentPath, toCodec, modtime)
 }
 
-func (i *gatewayHandler) serveCodecHTML(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path) {
+func (i *handler) serveCodecHTML(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path) {
 	// A HTML directory index will be presented, be sure to set the correct
 	// type instead of relying on autodetection (which may fail).
 	w.Header().Set("Content-Type", "text/html")
@@ -152,7 +150,7 @@ func (i *gatewayHandler) serveCodecHTML(ctx context.Context, w http.ResponseWrit
 	w.Header().Del("Cache-Control")
 
 	cidCodec := mc.Code(resolvedPath.Cid().Prefix().Codec)
-	if err := dih.DagIndexTemplate.Execute(w, dih.DagIndexTemplateData{
+	if err := assets.DagTemplate.Execute(w, assets.DagTemplateData{
 		Path:      contentPath.String(),
 		CID:       resolvedPath.Cid().String(),
 		CodecName: cidCodec.String(),
@@ -163,7 +161,7 @@ func (i *gatewayHandler) serveCodecHTML(ctx context.Context, w http.ResponseWrit
 }
 
 // serveCodecRaw returns the raw block without any conversion
-func (i *gatewayHandler) serveCodecRaw(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, name string, modtime time.Time) {
+func (i *handler) serveCodecRaw(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, name string, modtime time.Time) {
 	blockCid := resolvedPath.Cid()
 	blockReader, err := i.api.Block().Get(ctx, resolvedPath)
 	if err != nil {
@@ -183,7 +181,7 @@ func (i *gatewayHandler) serveCodecRaw(ctx context.Context, w http.ResponseWrite
 }
 
 // serveCodecConverted returns payload converted to codec specified in toCodec
-func (i *gatewayHandler) serveCodecConverted(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, toCodec mc.Code, modtime time.Time) {
+func (i *handler) serveCodecConverted(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, toCodec mc.Code, modtime time.Time) {
 	obj, err := i.api.Dag().Get(ctx, resolvedPath.Cid())
 	if err != nil {
 		webError(w, "ipfs dag get "+html.EscapeString(resolvedPath.String()), err, http.StatusInternalServerError)

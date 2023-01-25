@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"bytes"
@@ -8,14 +8,13 @@ import (
 	"time"
 
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
 // serveRawBlock returns bytes behind a raw block
-func (i *gatewayHandler) serveRawBlock(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time) {
-	ctx, span := tracing.Span(ctx, "Gateway", "ServeRawBlock", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
+func (i *handler) serveRawBlock(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time) {
+	ctx, span := spanTrace(ctx, "ServeRawBlock", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
 	blockCid := resolvedPath.Cid()
 	blockReader, err := i.api.Block().Get(ctx, resolvedPath)

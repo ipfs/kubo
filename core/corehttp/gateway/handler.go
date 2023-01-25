@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"context"
@@ -19,6 +19,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-libipfs/files"
+	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
 	mfs "github.com/ipfs/go-mfs"
 	path "github.com/ipfs/go-path"
@@ -28,10 +29,13 @@ import (
 	routing "github.com/libp2p/go-libp2p/core/routing"
 	mc "github.com/multiformats/go-multicodec"
 	prometheus "github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
+
+var log = logging.Logger("core/server")
 
 const (
 	ipfsPathPrefix        = "/ipfs/"
@@ -64,10 +68,10 @@ type redirectTemplateData struct {
 	ErrorMsg      string
 }
 
-// gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
+// handler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
-type gatewayHandler struct {
-	config     GatewayConfig
+type handler struct {
+	config     Config
 	api        NodeAPI
 	offlineAPI NodeAPI
 
@@ -169,7 +173,7 @@ func (w *errRecordingResponseWriter) ReadFrom(r io.Reader) (n int64, err error) 
 	return n, err
 }
 
-func newGatewaySummaryMetric(name string, help string) *prometheus.SummaryVec {
+func newSummaryMetric(name string, help string) *prometheus.SummaryVec {
 	summaryMetric := prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "ipfs",
@@ -189,7 +193,7 @@ func newGatewaySummaryMetric(name string, help string) *prometheus.SummaryVec {
 	return summaryMetric
 }
 
-func newGatewayHistogramMetric(name string, help string) *prometheus.HistogramVec {
+func newHistogramMetric(name string, help string) *prometheus.HistogramVec {
 	// We can add buckets as a parameter in the future, but for now using static defaults
 	// suggested in https://github.com/ipfs/kubo/issues/8441
 	defaultBuckets := []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60}
@@ -213,14 +217,14 @@ func newGatewayHistogramMetric(name string, help string) *prometheus.HistogramVe
 	return histogramMetric
 }
 
-// NewGatewayHandler returns an http.Handler that can act as a gateway to IPFS content
+// NewHandler returns an http.Handler that can act as a gateway to IPFS content
 // offlineApi is a version of the API that should not make network requests for missing data
-func NewGatewayHandler(c GatewayConfig, api NodeAPI, offlineAPI NodeAPI) http.Handler {
-	return newGatewayHandler(c, api, offlineAPI)
+func NewHandler(c Config, api NodeAPI, offlineAPI NodeAPI) http.Handler {
+	return newHandler(c, api, offlineAPI)
 }
 
-func newGatewayHandler(c GatewayConfig, api NodeAPI, offlineAPI NodeAPI) *gatewayHandler {
-	i := &gatewayHandler{
+func newHandler(c Config, api NodeAPI, offlineAPI NodeAPI) *handler {
+	i := &handler{
 		config:     c,
 		api:        api,
 		offlineAPI: offlineAPI,
@@ -228,7 +232,7 @@ func newGatewayHandler(c GatewayConfig, api NodeAPI, offlineAPI NodeAPI) *gatewa
 		// ----------------------------
 		// Time till the first content block (bar in /ipfs/cid/foo/bar)
 		// (format-agnostic, across all response types)
-		firstContentBlockGetMetric: newGatewayHistogramMetric(
+		firstContentBlockGetMetric: newHistogramMetric(
 			"gw_first_content_block_get_latency_seconds",
 			"The time till the first content block is received on GET from the gateway.",
 		),
@@ -236,29 +240,29 @@ func newGatewayHandler(c GatewayConfig, api NodeAPI, offlineAPI NodeAPI) *gatewa
 		// Response-type specific metrics
 		// ----------------------------
 		// UnixFS: time it takes to return a file
-		unixfsFileGetMetric: newGatewayHistogramMetric(
+		unixfsFileGetMetric: newHistogramMetric(
 			"gw_unixfs_file_get_duration_seconds",
 			"The time to serve an entire UnixFS file from the gateway.",
 		),
 		// UnixFS: time it takes to generate static HTML with directory listing
-		unixfsGenDirGetMetric: newGatewayHistogramMetric(
+		unixfsGenDirGetMetric: newHistogramMetric(
 			"gw_unixfs_gen_dir_listing_get_duration_seconds",
 			"The time to serve a generated UnixFS HTML directory listing from the gateway.",
 		),
 		// CAR: time it takes to return requested CAR stream
-		carStreamGetMetric: newGatewayHistogramMetric(
+		carStreamGetMetric: newHistogramMetric(
 			"gw_car_stream_get_duration_seconds",
 			"The time to GET an entire CAR stream from the gateway.",
 		),
 		// Block: time it takes to return requested Block
-		rawBlockGetMetric: newGatewayHistogramMetric(
+		rawBlockGetMetric: newHistogramMetric(
 			"gw_raw_block_get_duration_seconds",
 			"The time to GET an entire raw Block from the gateway.",
 		),
 
 		// Legacy Metrics
 		// ----------------------------
-		unixfsGetMetric: newGatewaySummaryMetric( // TODO: remove?
+		unixfsGetMetric: newSummaryMetric( // TODO: remove?
 			// (deprecated, use firstContentBlockGetMetric instead)
 			"unixfs_get_latency_seconds",
 			"The time to receive the first UnixFS node on a GET from the gateway.",
@@ -287,7 +291,7 @@ func parseIpfsPath(p string) (cid.Cid, string, error) {
 	return rootCid, path.Join(rsegs[2:]), nil
 }
 
-func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (i *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// the hour is a hard fallback, we don't expect it to happen, but just in case
 	ctx, cancel := context.WithTimeout(r.Context(), time.Hour)
 	defer cancel()
@@ -339,7 +343,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, errmsg, status)
 }
 
-func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) {
+func (i *handler) optionsHandler(w http.ResponseWriter, r *http.Request) {
 	/*
 		OPTIONS is a noop request that is used by the browsers to check
 		if server accepts cross-site XMLHttpRequest (indicated by the presence of CORS headers)
@@ -348,7 +352,7 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 	i.addUserHeaders(w) // return all custom headers (including CORS ones, if set)
 }
 
-func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
+func (i *handler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
 	begin := time.Now()
 
 	logger := log.With("from", r.RequestURI)
@@ -455,7 +459,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
+func (i *handler) postHandler(w http.ResponseWriter, r *http.Request) {
 	p, err := i.api.Unixfs().Add(r.Context(), files.NewReaderFile(r.Body))
 	if err != nil {
 		internalWebError(w, err)
@@ -468,7 +472,7 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, p.String(), http.StatusCreated)
 }
 
-func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+func (i *handler) putHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	ds := i.api.Dag()
 
@@ -563,7 +567,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectURL, http.StatusCreated)
 }
 
-func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+func (i *handler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// parse the path
@@ -639,7 +643,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectURL, http.StatusCreated)
 }
 
-func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
+func (i *handler) addUserHeaders(w http.ResponseWriter) {
 	for k, v := range i.config.Headers {
 		w.Header()[k] = v
 	}
@@ -706,7 +710,7 @@ func setContentDispositionHeader(w http.ResponseWriter, filename string, disposi
 }
 
 // Set X-Ipfs-Roots with logical CID array for efficient HTTP cache invalidation.
-func (i *gatewayHandler) buildIpfsRootsHeader(contentPath string, r *http.Request) (string, error) {
+func (i *handler) buildIpfsRootsHeader(contentPath string, r *http.Request) (string, error) {
 	/*
 		These are logical roots where each CID represent one path segment
 		and resolves to either a directory or the root block of a file.
@@ -930,7 +934,7 @@ func debugStr(path string) string {
 // Resolve the provided contentPath including any special handling related to
 // the requested responseFormat. Returned ok flag indicates if gateway handler
 // should continue processing the request.
-func (i *gatewayHandler) handlePathResolution(w http.ResponseWriter, r *http.Request, responseFormat string, contentPath ipath.Path, logger *zap.SugaredLogger) (resolvedPath ipath.Resolved, newContentPath ipath.Path, ok bool) {
+func (i *handler) handlePathResolution(w http.ResponseWriter, r *http.Request, responseFormat string, contentPath ipath.Path, logger *zap.SugaredLogger) (resolvedPath ipath.Resolved, newContentPath ipath.Path, ok bool) {
 	// Attempt to resolve the provided path.
 	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
 
@@ -972,7 +976,7 @@ func (i *gatewayHandler) handlePathResolution(w http.ResponseWriter, r *http.Req
 
 // Detect 'Cache-Control: only-if-cached' in request and return data if it is already in the local datastore.
 // https://github.com/ipfs/specs/blob/main/http-gateways/PATH_GATEWAY.md#cache-control-request-header
-func (i *gatewayHandler) handleOnlyIfCached(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) (requestHandled bool) {
+func (i *handler) handleOnlyIfCached(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) (requestHandled bool) {
 	if r.Header.Get("Cache-Control") == "only-if-cached" {
 		_, err := i.offlineAPI.Block().Stat(r.Context(), contentPath)
 		if err != nil {
@@ -1089,7 +1093,7 @@ func handleSuperfluousNamespace(w http.ResponseWriter, r *http.Request, contentP
 	return true
 }
 
-func (i *gatewayHandler) handleGettingFirstBlock(r *http.Request, begin time.Time, contentPath ipath.Path, resolvedPath ipath.Resolved) *requestError {
+func (i *handler) handleGettingFirstBlock(r *http.Request, begin time.Time, contentPath ipath.Path, resolvedPath ipath.Resolved) *requestError {
 	// Update the global metric of the time it takes to read the final root block of the requested resource
 	// NOTE: for legacy reasons this happens before we go into content-type specific code paths
 	_, err := i.api.Block().Get(r.Context(), resolvedPath)
@@ -1103,7 +1107,7 @@ func (i *gatewayHandler) handleGettingFirstBlock(r *http.Request, begin time.Tim
 	return nil
 }
 
-func (i *gatewayHandler) setCommonHeaders(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) *requestError {
+func (i *handler) setCommonHeaders(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) *requestError {
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-Ipfs-Path", contentPath.String())
 
@@ -1114,4 +1118,9 @@ func (i *gatewayHandler) setCommonHeaders(w http.ResponseWriter, r *http.Request
 	}
 
 	return nil
+}
+
+// spanTrace starts a new span using the standard IPFS tracing conventions.
+func spanTrace(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+	return otel.Tracer("go-libipfs").Start(ctx, fmt.Sprintf("%s.%s", " Gateway", spanName), opts...)
 }
