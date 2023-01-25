@@ -40,19 +40,19 @@ libp2p's resource manager provides tremendous flexibility but also adds complexi
 1. "The user who does nothing" - In this case Kubo attempts to give some sane defaults discussed below
    based on the amount of memory and file descriptors their system has.
    This should protect the node from many attacks.
-  
+
 1. "Slightly more advanced user" - They can tweak the default limits discussed below.  
    Where the defaults aren't good enough, a good set of higher-level "knobs" are exposed to satisfy most use cases
    without requiring users to wade into all the intricacies of libp2p's resource manager.
-   The "knobs"/inputs are `Swarm.ResourceMgr.MaxMemory` and `Swarm.ResourceMgr.MaxFileDescriptors` as described below. 
+   The "knobs"/inputs are `Swarm.ResourceMgr.MaxMemory` and `Swarm.ResourceMgr.MaxFileDescriptors` as described below.
 
 1. "Power user" - They specify overrides to computed default limits via `ipfs swarm limit` and `Swarm.ResourceMgr.Limits`;
 
 ### Computed Default Limits
 With the `Swarm.ResourceMgr.MaxMemory` and `Swarm.ResourceMgr.MaxFileDescriptors` inputs defined,
-[resource manager limits](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#limits) are created at the 
-[system](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#the-system-scope), 
-[transient](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#the-transient-scope), 
+[resource manager limits](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#limits) are created at the
+[system](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#the-system-scope),
+[transient](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#the-transient-scope),
 and [peer](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#peer-scopes) scopes.
 Other scopes are ignored (by being set to "[~infinity](#infinite-limits])".
 
@@ -68,11 +68,15 @@ The reason these scopes are chosen is because:
   (e.g., bug in a peer which is causing it to "misbehave").
   In the unintentional case, we want to make sure a "misbehaving" node doesn't consume more resources than necessary.
 
-Within these scopes, limits are just set on 
-[memory](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#memory), 
+Within these scopes, limits are just set on
+[memory](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#memory),
 [file descriptors (FD)](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#file-descriptors), [*inbound* connections](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#connections),
 and [*inbound* streams](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#streams).
 Limits are set based on the `Swarm.ResourceMgr.MaxMemory` and `Swarm.ResourceMgr.MaxFileDescriptors` inputs above.
+
+There are also some special cases where minimum values are enforced.
+For example, Kubo maintainers have found in practice that it's a footgun to have too low of a value for `Swarm.ResourceMgr.Limits.System.ConnsInbound` and a default minimum is used. (See [core/node/libp2p/rcmgr_defaults.go](https://github.com/ipfs/kubo/blob/master/core/node/libp2p/rcmgr_defaults.go) for specifics.)
+
 We trust this node to behave properly and thus don't limit *outbound* connection/stream limits.
 We apply any limits that libp2p has for its protocols/services
 since we assume libp2p knows best here.
@@ -139,13 +143,17 @@ There is a go-libp2p issue ([#1928](https://github.com/libp2p/go-libp2p/issues/1
 ### How does the resource manager (ResourceMgr) relate to the connection manager (ConnMgr)?
 As discussed [here](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#connmanager-vs-resource-manager)
 these are separate systems in go-libp2p.
-Kubo also configures the ConnMgr separately from ResourceMgr.  There is no checking to make sure the limits between the systems are congruent.
+Kubo performs sanity checks to ensure that some of the hard limits of the ResourceMgr are sufficiently greater than the soft limits of the ConnMgr.
 
-Ideally `Swarm.ConnMgr.HighWater` is less than `Swarm.ResourceMgr.Limits.System.ConnsInbound`.
-This is so the ConnMgr can kick in and cleanup connections based on connection priorities before the hard limits of the ResourceMgr are applied. 
+The soft limit of `Swarm.ConnMgr.HighWater` needs to be less than the hard limit `Swarm.ResourceMgr.Limits.System.ConnsInbound` for the configuration to make sense.
+This ensures the ConnMgr cleans up connections based on connection priorities before the hard limits of the ResourceMgr are applied.
 If `Swarm.ConnMgr.HighWater` is greater than `Swarm.ResourceMgr.Limits.System.ConnsInbound`,
 existing low priority idle connections can prevent new high priority connections from being established.
-The ResourceMgr doesn't know that the new connection is high priority and simply blocks it because of the limit its enforcing.  
+The ResourceMgr doesn't know that the new connection is high priority and simply blocks it because of the limit its enforcing.
+
+To ensure the ConnMgr and ResourceMgr are congruent, the ResourceMgr [computed default limts](#computed-default-limits) are adjusted such that:
+1. `Swarm.ResourceMgr.Limits.System.ConnsInbound` >= `max(Swarm.ConnMgr.HighWater * 2, 800)` AND
+2. `Swarm.ResourceMgr.Limits.System.StreamsInbound` is greater than any new/adjusted `Swarm.ResourceMgr.Limits.System.ConnsInbound` value so that there's enough streams per connection.
 
 ### How does one see the Active Limits?
 A dump of what limits are actually being used by the resource manager ([Computed Default Limits](#computed-default-limits) + [User Supplied Override Limits](#user-supplied-override-limits))
@@ -156,6 +164,7 @@ This can be observed with an empty [`Swarm.ResourceMgr.Limits`](https://github.c
 and then [seeing the active limits](#how-does-one-see-the-active-limits).
 
 ### How does one monitor libp2p resource usage?
+
 For [monitoring libp2p resource usage](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#monitoring), 
 various `*rcmgr_*` metrics can be accessed as the Prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`).  
 There are also [pre-built Grafana dashboards](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager/obs/grafana-dashboards) that can be added to a Grafana instance. 
