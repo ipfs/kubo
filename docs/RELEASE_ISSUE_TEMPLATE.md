@@ -77,10 +77,11 @@ This section covers tasks to be done ahead of the release.
     - [example](https://github.com/ipfs/distributions/pull/756)
   - [ ] [ipfs/ipfs-docs](https://github.com/ipfs/ipfs-docs)
     - [example](https://github.com/ipfs/ipfs-docs/pull/1298)
-- [ ] Notify the bifrost team about the upcoming release using `kuboreleaser release --version vX.Y.Z(-RCN) notify-bifrost --date YYYY-MM-DD`
+- [ ] Notify the bifrost team about the upcoming release <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) notify-bifrost --date YYYY-MM-DD` or ...</summary>
   - [ ] open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra)
     - [example](https://github.com/protocol/bifrost-infra/issues/2221)
-  - [ ] link the issue in the [Meta](#meta) section
+  </details>
+- [ ] Link the [bifrost-infra](https://github.com/protocol/bifrost-infra) issue in the [Meta](#meta) section
 - [ ] Verify there is nothing [left for release](-what-s-left-for-release)
 - [ ] Create a release process improvement PR
   - [ ] update the [release issue template](docs/RELEASE_ISSUE_TEMPLATE.md) as you go
@@ -90,7 +91,7 @@ This section covers tasks to be done ahead of the release.
 
 This section covers tasks to be done during each release.
 
-- [ ] Cut the release branch and update version numbers accordingly using `kuboreleaser release --version vX.Y.Z(-RCN) cut-branch`
+- [ ] Cut the release branch and update version numbers accordingly <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) cut-branch` or ...</summary>
   - [ ] create a new branch `release-vX.Y.Z`
     - use `master` as base if `Z == 0`
     - use `release` as base if `Z > 0`
@@ -101,21 +102,25 @@ This section covers tasks to be done during each release.
   - [ ] create a draft PR from `release-vX.Y` to `release`
     - [example](https://github.com/ipfs/kubo/pull/9306)
   - [ ] verify all CI checks on the PR from `release-vX.Y` to `release` are passing
+  </details>
 - [ ] Cherry-pick commits from `master` to the `release-vX.Y.Z` using `git cherry-pick -x <commit>`
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add full changelog and contributors to the [changelog](docs/changelogs/vX.Y.md)
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Paste the stdout of `./bin/mkreleaselog` at the end of the [changelog](docs/changelogs/vX.Y.md)
+    - do **NOT** copy the stderr
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Merge the PR from `release-vX.Y` to `release` using the `Create a merge commit`
   - do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit
   - do **NOT** delete the `release-vX.Y` branch
-- [ ] Create the release tag using `kuboreleaser release --version vX.Y.Z(-RCN) tag`
+- [ ] Create the release tag <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) tag` or ...</summary>
   - This is a dangerous operation! Go and Docker publishing are difficult to reverse! Have the release reviewer verify all the commands marked with ⚠️!
-  - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) ⚠️ tag the HEAD commit using `git tag -s vX.Y.Z(-RCN) -m 'Prerelease X.Y.Z(-RCN)'`
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ⚠️ tag the HEAD commit of the `release` branch using `git tag -s vX.Y.Z(-RCN) -m 'Release X.Y.Z(-RCN)'`
+  - [ ] ⚠️ ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) tag the HEAD commit using `git tag -s vX.Y.Z(-RCN) -m 'Prerelease X.Y.Z(-RCN)'`
+  - [ ] ⚠️ ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) tag the HEAD commit of the `release` branch using `git tag -s vX.Y.Z(-RCN) -m 'Release X.Y.Z(-RCN)'`
   - [ ] ⚠️ verify the tag is signed and tied to the correct commit using `git show vX.Y.Z(-RCN)`
   - [ ] ⚠️ push the tag to GitHub using `git push origin vX.Y.Z(-RCN)`
     - do **NOT** use `git push --tags` because it pushes all your local tags
+  </details>
 - [ ] Wait for [Publish docker image](https://github.com/ipfs/kubo/actions/workflows/docker-image.yml) workflow run initiated by the tag push to finish
   - [ ] verify the image is available on [Docker Hub](https://hub.docker.com/r/ipfs/kubo/tags)
-- [ ] Publish the release to [ipfs.tech](https://dist.ipfs.tech) using `kuboreleaser release --version vX.Y.Z(-RCN) publish-to-distributions`
+- [ ] Publish the release to [ipfs.tech](https://dist.ipfs.tech) <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) publish-to-distributions` or ...</summary>
   - [ ] check out [ipfs/distributions](https://github.com/ipfs/distributions)
   - [ ] run `./dist.sh add-version kubo vX.Y.Z(-RCN)` to add the new version to the `versions` file
     - [usage](https://github.com/ipfs/distributions#usage)
@@ -123,11 +128,13 @@ This section covers tasks to be done during each release.
     - [example](https://github.com/ipfs/distributions/pull/760)
   - [ ] wait for the [CI](https://github.com/ipfs/distributions/actions/workflows/main.yml) workflow run initiated by the merge to master to finish
   - [ ] verify the release is available on [dist.ipfs.io](https://dist.ipfs.io/#kubo)
-- [ ] Publish the release to [NPM](https://www.npmjs.com/package/go-ipfs?activeTab=versions) using `kuboreleaser release --version vX.Y.Z(-RCN) publish-to-npm`
+  </details>
+- [ ] Publish the release to [NPM](https://www.npmjs.com/package/go-ipfs?activeTab=versions) <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) publish-to-npm` or ...</summary>
   - [ ] run the [Release to npm](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) workflow
   - [ ] check [Release to npm](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) workflow run logs to verify it discovered the new release
   - [ ] verify the release is available on [NPM](https://www.npmjs.com/package/go-ipfs?activeTab=versions)
-- [ ] Publish the release to [GitHub](https://github.com/ipfs/kubo/releases) using `kuboreleaser release --version vX.Y.Z(-RCN) publish-to-github`
+  </details>
+- [ ] Publish the release to [GitHub](https://github.com/ipfs/kubo/releases) <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) publish-to-github` or ...</summary>
   - [ ] create a new release on [GitHub](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release)
     - [RC example](https://github.com/ipfs/kubo/releases/tag/v0.17.0-rc1)
     - [FINAL example](https://github.com/ipfs/kubo/releases/tag/v0.17.0)
@@ -140,9 +147,11 @@ This section covers tasks to be done during each release.
   - [ ] run the [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow
   - [ ] wait for the [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow run to finish
   - [ ] verify the release assets are present in the [GitHub release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN))
-- [ ] Notify the bifrost team about the release using `kuboreleaser release --version vX.Y.Z(-RCN) notify-bifrost --date YYYY-MM-DD`
+  </details>
+- [ ] Notify the bifrost team about the release <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) notify-bifrost --date YYYY-MM-DD` or ...</summary>
   - [ ] create an issue comment on the issue in the [bifrost-infra](https://github/com/protocol/bifrost-infra)
-- [ ] Promote the release using `kuboreleaser release --version vX.Y.Z(-RCN) promote`
+  </details>
+- [ ] Promote the release <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) promote` or ...</summary>
   - [ ] create an [IPFS Discourse](https://discuss.ipfs.tech) topic
     - [prerelease example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248)
     - [release example](https://discuss.ipfs.tech/t/kubo-v0-16-0-release-is-out/15249)
@@ -164,35 +173,43 @@ This section covers tasks to be done during each release.
     - [example](https://filecoinproject.slack.com/archives/C018EJ8LWH1/p1664885305374900)
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) post the link to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) to [Reddit](https://reddit.com/r/ipfs)
     - [example](https://www.reddit.com/r/ipfs/comments/9x0q0k/kubo_v0160_release_is_out/)
+  </details>
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add the link to the [IPFS Discourse](https://discuss.ipfs.tech) topic to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) description
   - [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0)
-- [ ] Test the new version with `ipfs-companion` using `kuboreleaser release --version vX.Y.Z(-RCN) test-ipfs-companion`
+- [ ] Test the new version with `ipfs-companion` <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) test-ipfs-companion` or ...</summary>
   - [ ] run the [e2e](https://github.com/ipfs/ipfs-companion/actions/workflows/e2e.yml)
     - use `vX.Y.Z(-RCN)` as the Kubo image version
   - [ ] wait for the [e2e](https://github.com/ipfs/ipfs-companion/actions/workflows/e2e.yml) workflow run to finish
-- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Update Kubo in [interop](https://github.com/ipfs/interop) using `kuboreleaser release --version vX.Y.Z(-RCN) update-interop`
+  </details>
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Update Kubo in [interop](https://github.com/ipfs/interop) <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) update-interop` or ...</summary>
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) check out [ipfs/interop](https://github.com/ipfs/interop)
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) run `npm install`
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) create a PR which updates `package.json` and `package-lock.json`
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR
-- [ ] Update Kubo in [ipfs-desktop](https://github.com/ipfs/ipfs-desktop) using `kuboreleaser release --version vX.Y.Z(-RCN) update-ipfs-desktop`
+  </details>
+- [ ] Update Kubo in [ipfs-desktop](https://github.com/ipfs/ipfs-desktop) <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) update-ipfs-desktop` or ...</summary>
   - [ ] check out [ipfs/ipfs-desktop](https://github.com/ipfs/ipfs-desktop)
   - [ ] run `npm install`
   - [ ] create a PR which updates `package.json` and `package-lock.json`
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR
-- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Update Kubo docs using `kuboreleaser release --version vX.Y.Z(-RCN) update-ipfs-docs`
+  </details>
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Update Kubo docs <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) update-ipfs-docs` or ...</summary>
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) run the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR created by the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow run
-- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Create a blog entry on [ipfs.tech](https://blog.ipfs.tech) `kuboreleaser release --version vX.Y.Z(-RCN) update-ipfs-blog --date YYYY-MM-DD`
+  </details>
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Create a blog entry on [ipfs.tech](https://blog.ipfs.tech) <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) update-ipfs-blog --date YYYY-MM-DD` or ...</summary>
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) create a PR which adds a release note for the new Kubo version
     - [example](https://github.com/ipfs/ipfs-blog/pull/529)
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) verify the blog entry was published
+  </details>
 - [ ] Keep checking the [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) until the release issue is closed
   - [release notes](https://www.notion.so/pl-strflt/Kubo-Gateway-Release-Notes-6e0efff28ee540be9ccb8f2b85104c42)
   - post in the [#bifrost](https://filecoinproject.slack.com/archives/C018EJ8LWH1) channel in FIL Slack if there is a problem
-- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Merge the [release](https://github.com/ipfs/kubo/tree/release) back into [master](https://github.com/ipfs/kubo/tree/master) using `kuboreleaser release --version vX.Y.Z(-RCN) merge-branch`
-  - ignore the changes to [version.go](version.go) (keep the `-dev` version)
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Merge the [release](https://github.com/ipfs/kubo/tree/release) branch back into [master](https://github.com/ipfs/kubo/tree/master), ignoring the changes to [version.go](version.go) (keep the `-dev`) version, <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) merge-branch` or ...</summary>
+  - [ ] create a new branch `merge-release-vX.Y.Z` from `release`
+  - [ ] create and merge a PR from `merge-release-vX.Y.Z` to `master`
+  </details>
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Create the next [changelog](https://github.com/ipfs/kubo/blob/master/docs/changelogs/vX.(Y+1).md)
   - link to the new changelog in the [CHANGELOG.md](CHANGELOG.md) file
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Create the next release issue
