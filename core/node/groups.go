@@ -68,13 +68,11 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		)
 
 		var seenMessagesStrategy timecache.Strategy
-		configSeenMessagesStrategy := cfg.Pubsub.SeenMessagesStrategy.WithDefault("last-seen")
+		configSeenMessagesStrategy := cfg.Pubsub.SeenMessagesStrategy.WithDefault(config.DefaultSeenMessagesStrategy)
 		switch configSeenMessagesStrategy {
-		case "":
-			fallthrough
-		case "last-seen":
+		case config.LastSeenMessagesStrategy:
 			seenMessagesStrategy = timecache.Strategy_LastSeen
-		case "first-seen":
+		case config.FirstSeenMessagesStrategy:
 			seenMessagesStrategy = timecache.Strategy_FirstSeen
 		default:
 			return fx.Error(fmt.Errorf("unknown pubsub seen messages strategy %s", configSeenMessagesStrategy))
