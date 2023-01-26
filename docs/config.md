@@ -100,6 +100,7 @@ config file at runtime.
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
     - [`Pubsub.SeenMessagesTTL`](#pubsubseenmessagesttl)
+    - [`Pubsub.SeenMessagesStrategy`](#pubsubseenmessagesstrategy)
   - [`Peering`](#peering)
     - [`Peering.Peers`](#peeringpeers)
   - [`Reprovider`](#reprovider)
@@ -1206,8 +1207,8 @@ Type: `bool`
 
 ### `Pubsub.SeenMessagesTTL`
 
-Configures the duration after which a previously seen Pubsub Message ID can be
-forgotten about.
+Controls the time window within which duplicate messages, identified by Message
+ID, will be identified and won't be emitted again.
 
 A smaller value for this parameter means that Pubsub messages in the cache will
 be garbage collected sooner, which can result in a smaller cache. At the same
@@ -1222,6 +1223,29 @@ propagated through the network.
 Default: see `TimeCacheDuration` from [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub)
 
 Type: `optionalDuration`
+
+### `Pubsub.SeenMessagesStrategy`
+
+Determines how the time-to-live (TTL) countdown for deduplicating Pubsub
+messages is calculated.
+
+The Pubsub seen messages cache is a LRU cache that keeps messages for up to a
+specified time duration. After this duration has elapsed, expired messages will
+be purged from the cache.
+
+The `last-seen` cache is a sliding-window cache. Every time a message is seen
+again with the SeenMessagesTTL duration, its timestamp slides forward. This
+keeps frequently occurring messages cached and prevents them from being
+continually propagated, especially because of issues that might increase the
+number of duplicate messages in the network.
+
+The `first-seen` cache will store new messages and purge them after the
+SeenMessagesTTL duration, even if they are seen multiple times within this
+duration.
+
+Default: `last-seen` (see [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub))
+
+Type: `optionalString`
 
 ## `Peering`
 
