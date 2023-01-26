@@ -53,8 +53,10 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 	if err != nil {
 		return rcmgr.LimitConfig{}, err
 	}
+	maxMemory = int64(maxMemory)
+	maxMemoryMB = maxMemory / (1024 * 1024)
 
-	numFD := cfg.ResourceMgr.MaxFileDescriptors.WithDefault(int64(fd.GetNumFDs()) / 2)
+	maxFD := int(cfg.ResourceMgr.MaxFileDescriptors.WithDefault(int64(fd.GetNumFDs()) / 2))
 
 	// We want to see this message on startup, that's why we are using fmt instead of log.
 	fmt.Printf(`
@@ -67,21 +69,23 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 
 `, maxMemoryString, numFD)
 
+	// At least as of 2023-01-25, it's possible to open a connection that 
+	// doesn't for any memory usage with the libp2p Resource Manager/Accountant
+	// (see https://github.com/libp2p/go-libp2p/issues/2010#issuecomment-1404280736).
+	// As a result, we can't curretly rely on Memory limits to full protect us.
+	// Until https://github.com/libp2p/go-libp2p/issues/2010 is addressed, 
+	// we take a proxy now of restricting to 1 inbound connection per MB.
+	// Note: this is more generous than go-libp2p's default autoscaled limits which do
+	// 64 connections per 1GB
+	// (see https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit_defaults.go#L357 ).
+	systemConnsInbound = 1 * maxMemoryMB
+
 	scalingLimitConfig := rcmgr.ScalingLimitConfig{
 		SystemBaseLimit: rcmgr.BaseLimit{
-			Memory: int64(maxMemory),
-			FD:     int(numFD),
+			Memory: maxMemory,
+			FD:     maxFD,
 
-			// At least as of 2023-01-25, it's possible to open a connection that 
-			// doesn't for any memory usage with the libp2p Resource Manager/Accountant
-			// (see https://github.com/libp2p/go-libp2p/issues/2010#issuecomment-1404280736).
-			// As a result, we can't curretly rely on Memory limits to full protect us.
-			// Until https://github.com/libp2p/go-libp2p/issues/2010 is addressed, 
-			// we take a proxy now of restricting to 1 inbound connection per MB.
-			// Note: this is more generous than go-libp2p's default autoscaled limits which do
-			// 64 connections per 1GB
-			// (see https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit_defaults.go#L357 ).
-			ConnsInbound:  maxMemory >> 20, // Steve: I assume this isn't valid Go code.
+			ConnsInbound:  systemConnsInbound,
 
 			Conns:         bigEnough,
 			ConnsOutbound: bigEnough,
@@ -94,30 +98,20 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 		// Transient connections won't cause any memory to accounted for by the resource manager.
 		// Only established connections do.
 		// As a result, we can't rely on System.Memory to protect us from a bunch of transient connection being opened.
+		// We limit the same values as the System scope, but only allow the Transient scope to take 25% of what is allowed for the System scope.
 		TransientBaseLimit: rcmgr.BaseLimit{
-			Memory: rcmgr.DefaultLimits.TransientBaseLimit.Memory,
-			FD:     rcmgr.DefaultLimits.TransientBaseLimit.FD,
+			Memory: maxMemory / 4,
+			FD:     maxFD / 4,
 
+			ConnsInbound:  systemConnsInbound / 4,
+			
 			Conns:         bigEnough,
-			ConnsInbound:  rcmgr.DefaultLimits.TransientBaseLimit.ConnsInbound,
 			ConnsOutbound: bigEnough,
-
 			Streams:         bigEnough,
-			StreamsInbound:  rcmgr.DefaultLimits.TransientBaseLimit.StreamsInbound,
+			StreamsInbound:  bigEnough,
 			StreamsOutbound: bigEnough,
 		},
-		TransientLimitIncrease: rcmgr.BaseLimitIncrease{
-			Memory:     rcmgr.DefaultLimits.TransientLimitIncrease.Memory,
-			FDFraction: rcmgr.DefaultLimits.TransientLimitIncrease.FDFraction,
-
-			Conns:         0,
-			ConnsInbound:  rcmgr.DefaultLimits.TransientLimitIncrease.ConnsInbound,
-			ConnsOutbound: 0,
-
-			Streams:         0,
-			StreamsInbound:  rcmgr.DefaultLimits.TransientLimitIncrease.StreamsInbound,
-			StreamsOutbound: 0,
-		},
+		TransientLimitIncrease: noLimitIncrease,
 
 		// Lets get out of the way of the allow list functionality.
 		// If someone specified "Swarm.ResourceMgr.Allowlist" we should let it go through.
@@ -146,7 +140,6 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 		StreamBaseLimit:     infiniteBaseLimit,
 		StreamLimitIncrease: noLimitIncrease,
 
-		// Steve 2023-01-24: I don't see any reason to change this.
 		// Limit the resources consumed by a peer.
 		// This doesn't protect us against intentional DoS attacks since an attacker can easily spin up multiple peers.
 		// We specify this limit against unintentional DoS attacks (e.g., a peer has a bug and is sending too much traffic intentionally).
@@ -176,7 +169,6 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 		},
 	}
 
-	// Steve 2023-01-24: I don't see any reasons to change this.
 	// Whatever limits libp2p has specifically tuned for its protocols/services we'll apply.
 	libp2p.SetDefaultServiceLimits(&scalingLimitConfig)
 
