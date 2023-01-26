@@ -1,7 +1,5 @@
 <!-- Last updated during [v0.18.0 release](https://github.com/ipfs/kubo/issues/9417) -->
 
-> Release Issue Template.  If doing a patch release, see [here](https://github.com/ipfs/kubo/blob/master/docs/PATCH_RELEASE_TEMPLATE.md)
-
 # Items to do upon creating the release issue
 - [ ] Fill in the Meta section
 - [ ] Assign the issue to the release owner and reviewer.
