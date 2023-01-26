@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
+	blocks "github.com/ipfs/go-libipfs/blocks"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/ipfs/kubo/tracing"
