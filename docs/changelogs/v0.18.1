@@ -1,0 +1,36 @@
+# Kubo changelog v0.18
+
+## v0.18.1
+
+### Overview
+
+Below is an outline of all that is in this release, so you get a sense of all that's included.
+
+<!-- TOC depthfrom:3 -->
+
+- [Overview](#overview)
+- [🔦 Highlights](#-highlights)
+    - [Improving libp2p resource management integration](#improving-libp2p-resource-management-integration)
+- [📝 Changelog](#-changelog)
+- [👨‍👩‍👧‍👦 Contributors](#-contributors)
+
+<!-- /TOC -->
+
+### 🔦 Highlights
+
+#### Improving libp2p resource management integration
+This builds on the default protection nodes get against DoS (resource exhaustion) and eclipse attacks
+with the [go-libp2p Network Resource Manager/Accountant](https://github.com/ipfs/kubo/blob/master/docs/libp2p-resource-management.md)
+that was fine-tuned in [Kubo 0.18](https://github.com/ipfs/kubo/blob/biglep/resource-manager-example-of-what-want/docs/changelogs/v0.18.md#improving-libp2p-resource-management-integration).
+
+Adding default hard-limits from the Resource Manager/Accountant after the fact is tricky,
+and some additional improvements have been made to improve the [computed defaults](https://github.com/ipfs/kubo/blob/master/docs/libp2p-resource-management.md#computed-default-limits).
+As much as possible, the aim is for a user to only think about how much memory they want to bound libp2p to, 
+and not need to think about translating that to hard numbers for connections, streams, etc.
+More updates are likely in future Kubo releases, but with this release: 
+1.``System.StreamsInbound`` is no longer bounded directly
+2. ``System.ConnsInbound`` has higher default computed values.
+
+### 📝 Changelog
+
+### 👨‍👩‍👧‍👦 Contributors
