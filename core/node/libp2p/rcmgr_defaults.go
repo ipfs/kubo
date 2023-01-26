@@ -44,7 +44,7 @@ var noLimitIncrease = rcmgr.BaseLimitIncrease{
 // This file defines implicit limit defaults used when Swarm.ResourceMgr.Enabled
 
 // createDefaultLimitConfig creates LimitConfig to pass to libp2p's resource manager.
-// The defaults follow the documentation in docs/config.md.
+// The defaults follow the documentation in docs/libp2p-resource-management.md.
 // Any changes in the logic here should be reflected there.
 func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error) {
 	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 4)
@@ -72,9 +72,18 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 			Memory: int64(maxMemory),
 			FD:     int(numFD),
 
-			// We limit the amount of memory and FD - everything else is infinite.
+			// At least as of 2023-01-25, it's possible to open a connection that 
+			// doesn't for any memory usage with the libp2p Resource Manager/Accountant
+			// (see https://github.com/libp2p/go-libp2p/issues/2010#issuecomment-1404280736).
+			// As a result, we can't curretly rely on Memory limits to full protect us.
+			// Until https://github.com/libp2p/go-libp2p/issues/2010 is addressed, 
+			// we take a proxy now of restricting to 1 inbound connection per MB.
+			// Note: this is more generous than go-libp2p's default autoscaled limits which do
+			// 64 connections per 1GB
+			// (see https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit_defaults.go#L357 ).
+			ConnsInbound:  maxMemory >> 20, // Steve: I assume this isn't valid Go code.
+
 			Conns:         bigEnough,
-			ConnsInbound:  bigEnough, 
 			ConnsOutbound: bigEnough,
 			Streams:         bigEnough,
 			StreamsInbound:  bigEnough,
