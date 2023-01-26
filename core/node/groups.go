@@ -75,7 +75,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		case config.FirstSeenMessagesStrategy:
 			seenMessagesStrategy = timecache.Strategy_FirstSeen
 		default:
-			return fx.Error(fmt.Errorf("unknown pubsub seen messages strategy %s", configSeenMessagesStrategy))
+			return fx.Error(fmt.Errorf("unsupported Pubsub.SeenMessagesStrategy %q", configSeenMessagesStrategy))
 		}
 		pubsubOptions = append(pubsubOptions, pubsub.WithSeenMessagesStrategy(seenMessagesStrategy))
 
