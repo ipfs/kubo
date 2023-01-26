@@ -39,6 +39,23 @@ As usual, this release includes important fixes, some of which may be critical f
 
 ## ✅ Release Checklist
 
+### Labels
+
+If an item should be executed for a specific release type, it should be labeled with one of the following labels:
+
+- ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) execute **ONLY** when releasing a Release Candidate
+- ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) execute **ONLY** when releasing a Final Release
+
+Otherwise, it means it should be executed for **ALL** release types.
+
+Patch releases should follow the same process as `.0` releases. If some item should **NOT** be executed for a Patch Release, it should be labeled with:
+
+- ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) do **NOT** execute when releasing a Patch Release
+
+### Before the release
+
+This section covers tasks to be done ahead of the release.
+
 - [ ] Verify you have access to all the services and tools required for the release
   - [ ] [GPG signature](https://docs.github.com/en/authentication/managing-commit-signature-verification) configured in local git and in GitHub
   - [ ] [admin access to IPFS Discourse](https://discuss.ipfs.tech/g/admins)
@@ -68,24 +85,31 @@ As usual, this release includes important fixes, some of which may be critical f
 - [ ] Create a release process improvement PR
   - [ ] update the [release issue template](docs/RELEASE_ISSUE_TEMPLATE.md) as you go
   - [ ] link it in the [Meta](#meta) section
+
+### The release
+
+This section covers tasks to be done during each release.
+
 - [ ] Cut the release branch and update version numbers accordingly using `kuboreleaser release --version vX.Y.Z(-RCN) cut-branch`
-  - [ ] create a new branch `release-vX.Y` from `master`
-  - [ ] update the `CurrentVersionNumber` in [version.go](version.go) in the `master` branch to `vX.(Y+1).0-dev`
+  - [ ] create a new branch `release-vX.Y.Z`
+    - use `master` as base if `Z == 0`
+    - use `release` as base if `Z > 0`
+  - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) update the `CurrentVersionNumber` in [version.go](version.go) in the `master` branch to `vX.(Y+1).0-dev`
     - [example](https://github.com/ipfs/kubo/pull/9305)
   - [ ] update the `CurrentVersionNumber` in [version.go](version.go) in the `release-vX.Y` branch to `vX.Y.Z(-RCN)`
     - [example](https://github.com/ipfs/kubo/pull/9394)
   - [ ] create a draft PR from `release-vX.Y` to `release`
     - [example](https://github.com/ipfs/kubo/pull/9306)
   - [ ] verify all CI checks on the PR from `release-vX.Y` to `release` are passing
-- [ ] Cherry-pick commits from `master` to the `release-vX.Y` using `git cherry-pick -x <commit>`
-- [ ] Add full changelog and contributors to the [changelog](docs/changelogs/vX.Y.md)
-- [ ] Merge the PR from `release-vX.Y` to `release` using the `Create a merge commit`
+- [ ] Cherry-pick commits from `master` to the `release-vX.Y.Z` using `git cherry-pick -x <commit>`
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add full changelog and contributors to the [changelog](docs/changelogs/vX.Y.md)
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Merge the PR from `release-vX.Y` to `release` using the `Create a merge commit`
   - do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit
   - do **NOT** delete the `release-vX.Y` branch
 - [ ] Create the release tag using `kuboreleaser release --version vX.Y.Z(-RCN) tag`
   - This is a dangerous operation! Go and Docker publishing are difficult to reverse! Have the release reviewer verify all the commands marked with ⚠️!
-  - [ ] ⚠️ tag the HEAD commit of the `release-vX.Y` branch using `git tag -s vX.Y.Z(-RCN) -m 'Prerelease X.Y.Z(-RCN)'`
-  - [ ] ⚠️ tag the HEAD commit of the `release` branch using `git tag -s vX.Y.Z(-RCN) -m 'Release X.Y.Z(-RCN)'`
+  - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) ⚠️ tag the HEAD commit using `git tag -s vX.Y.Z(-RCN) -m 'Prerelease X.Y.Z(-RCN)'`
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ⚠️ tag the HEAD commit of the `release` branch using `git tag -s vX.Y.Z(-RCN) -m 'Release X.Y.Z(-RCN)'`
   - [ ] ⚠️ verify the tag is signed and tied to the correct commit using `git show vX.Y.Z(-RCN)`
   - [ ] ⚠️ push the tag to GitHub using `git push origin vX.Y.Z(-RCN)`
     - do **NOT** use `git push --tags` because it pushes all your local tags
@@ -105,16 +129,14 @@ As usual, this release includes important fixes, some of which may be critical f
   - [ ] verify the release is available on [NPM](https://www.npmjs.com/package/go-ipfs?activeTab=versions)
 - [ ] Publish the release to [GitHub](https://github.com/ipfs/kubo/releases) using `kuboreleaser release --version vX.Y.Z(-RCN) publish-to-github`
   - [ ] create a new release on [GitHub](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release)
-    - [prerelease example](https://github.com/ipfs/kubo/releases/tag/v0.17.0-rc1)
-      - use the `vX.Y.Z(-RCN)` tag
-      - link to the release issue
-      - link to the changelog in the description
-      - check the `This is a pre-release` checkbox
-    - [release example](https://github.com/ipfs/kubo/releases/tag/v0.17.0)
-      - use the `vX.Y.Z(-RCN)` tag
-      - link to the release issue
-      - copy the changelog (without the header) in the description
-      - do **NOT** check the `This is a pre-release` checkbox
+    - [RC example](https://github.com/ipfs/kubo/releases/tag/v0.17.0-rc1)
+    - [FINAL example](https://github.com/ipfs/kubo/releases/tag/v0.17.0)
+    - [ ] use the `vX.Y.Z(-RCN)` tag
+    - [ ] link to the release issue
+    - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) link to the changelog in the description
+    - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) check the `This is a pre-release` checkbox
+    - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) copy the changelog (without the header) in the description
+    - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) do **NOT** check the `This is a pre-release` checkbox
   - [ ] run the [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow
   - [ ] wait for the [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow run to finish
   - [ ] verify the release assets are present in the [GitHub release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN))
@@ -124,57 +146,57 @@ As usual, this release includes important fixes, some of which may be critical f
   - [ ] create an [IPFS Discourse](https://discuss.ipfs.tech) topic
     - [prerelease example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248)
     - [release example](https://discuss.ipfs.tech/t/kubo-v0-16-0-release-is-out/15249)
-    - use `Kubo vX.Y.Z(-RCN) is out!` as the title
-    - use `kubo` and `go-ipfs` as topics
-    - repeat the title as a heading (`##`) in the description
-    - link to the GitHub Release, binaries on IPNS, docker pull command and release notes in the description
+    - [ ] use `Kubo vX.Y.Z(-RCN) is out!` as the title
+    - [ ] use `kubo` and `go-ipfs` as topics
+    - [ ] repeat the title as a heading (`##`) in the description
+    - [ ] link to the GitHub Release, binaries on IPNS, docker pull command and release notes in the description
   - [ ] pin the [IPFS Discourse](https://discuss.ipfs.tech) topic globally
     - you can make the topic a banner if there is no banner already
   - verify the [IPFS Discourse](https://discuss.ipfs.tech) topic was copied to:
     - [ ] [#ipfs-chatter](https://discord.com/channels/669268347736686612/669268347736686615) in IPFS Discord
     - [ ] [#ipfs-chatter](https://filecoinproject.slack.com/archives/C018EJ8LWH1) in FIL Slack
     - [ ] [#ipfs-chatter:ipfs.io](https://matrix.to/#/#ipfs-chatter:ipfs.io) in Matrix
-  - [ ] create an issue comment mentioning early testers on the release issue
+  - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) create an issue comment mentioning early testers on the release issue
     - [example](https://github.com/ipfs/kubo/issues/9319#issuecomment-1311002478)
-  - [ ] create an issue comment linking to the release on the release issue
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) create an issue comment linking to the release on the release issue
     - [example](https://github.com/ipfs/kubo/issues/9417#issuecomment-1400740975)
-  - [ ] ask the marketing team to tweet about the release in [#shared-pl-marketing-requests](https://filecoinproject.slack.com/archives/C018EJ8LWH1) in FIL Slack
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ask the marketing team to tweet about the release in [#shared-pl-marketing-requests](https://filecoinproject.slack.com/archives/C018EJ8LWH1) in FIL Slack
     - [example](https://filecoinproject.slack.com/archives/C018EJ8LWH1/p1664885305374900)
-  - [ ] post the link to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) to [Reddit](https://reddit.com/r/ipfs)
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) post the link to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) to [Reddit](https://reddit.com/r/ipfs)
     - [example](https://www.reddit.com/r/ipfs/comments/9x0q0k/kubo_v0160_release_is_out/)
-- [ ] Add the link to the [IPFS Discourse](https://discuss.ipfs.tech) topic to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) description
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add the link to the [IPFS Discourse](https://discuss.ipfs.tech) topic to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) description
   - [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0)
-- [ ] `kuboreleaser release --version vX.Y.Z(-RCN) test-ipfs-companion`
+- [ ] Test the new version with `ipfs-companion` using `kuboreleaser release --version vX.Y.Z(-RCN) test-ipfs-companion`
   - [ ] run the [e2e](https://github.com/ipfs/ipfs-companion/actions/workflows/e2e.yml)
     - use `vX.Y.Z(-RCN)` as the Kubo image version
   - [ ] wait for the [e2e](https://github.com/ipfs/ipfs-companion/actions/workflows/e2e.yml) workflow run to finish
-- [ ] Update Kubo in [interop](https://github.com/ipfs/interop) using `kuboreleaser release --version vX.Y.Z(-RCN) update-interop`
-  - [ ] check out [ipfs/interop](https://github.com/ipfs/interop)
-  - [ ] run `npm install`
-  - [ ] create a PR which updates `package.json` and `package-lock.json`
-  - [ ] merge the PR
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Update Kubo in [interop](https://github.com/ipfs/interop) using `kuboreleaser release --version vX.Y.Z(-RCN) update-interop`
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) check out [ipfs/interop](https://github.com/ipfs/interop)
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) run `npm install`
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) create a PR which updates `package.json` and `package-lock.json`
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR
 - [ ] Update Kubo in [ipfs-desktop](https://github.com/ipfs/ipfs-desktop) using `kuboreleaser release --version vX.Y.Z(-RCN) update-ipfs-desktop`
   - [ ] check out [ipfs/ipfs-desktop](https://github.com/ipfs/ipfs-desktop)
   - [ ] run `npm install`
   - [ ] create a PR which updates `package.json` and `package-lock.json`
-  - [ ] merge the PR
-- [ ] Update Kubo docs using `kuboreleaser release --version vX.Y.Z(-RCN) update-ipfs-docs`
-  - [ ] run the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow
-  - [ ] merge the PR created by the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow run
-- [ ] Create a blog entry on [ipfs.tech](https://blog.ipfs.tech) `kuboreleaser release --version vX.Y.Z(-RCN) update-ipfs-blog --date YYYY-MM-DD`
-  - [ ] create a PR which adds a release note for the new Kubo version
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Update Kubo docs using `kuboreleaser release --version vX.Y.Z(-RCN) update-ipfs-docs`
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) run the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR created by the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow run
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Create a blog entry on [ipfs.tech](https://blog.ipfs.tech) `kuboreleaser release --version vX.Y.Z(-RCN) update-ipfs-blog --date YYYY-MM-DD`
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) create a PR which adds a release note for the new Kubo version
     - [example](https://github.com/ipfs/ipfs-blog/pull/529)
-  - [ ] merge the PR
-  - [ ] verify the blog entry was published
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) verify the blog entry was published
 - [ ] Keep checking the [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) until the release issue is closed
   - [release notes](https://www.notion.so/pl-strflt/Kubo-Gateway-Release-Notes-6e0efff28ee540be9ccb8f2b85104c42)
   - post in the [#bifrost](https://filecoinproject.slack.com/archives/C018EJ8LWH1) channel in FIL Slack if there is a problem
-- [ ] Merge the [release](https://github.com/ipfs/kubo/tree/release) back into [master](https://github.com/ipfs/kubo/tree/master) using `kuboreleaser release --version vX.Y.Z(-RCN) merge-branch`
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Merge the [release](https://github.com/ipfs/kubo/tree/release) back into [master](https://github.com/ipfs/kubo/tree/master) using `kuboreleaser release --version vX.Y.Z(-RCN) merge-branch`
   - ignore the changes to [version.go](version.go) (keep the `-dev` version)
-- [ ] Create the next [changelog](https://github.com/ipfs/kubo/blob/master/docs/changelogs/vX.(Y+1).md)
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Create the next [changelog](https://github.com/ipfs/kubo/blob/master/docs/changelogs/vX.(Y+1).md)
   - link to the new changelog in the [CHANGELOG.md](CHANGELOG.md) file
-- [ ] Create the next release issue
-- [ ] Close the release issue
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Create the next release issue
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Close the release issue
 
 ## How to contribute?
 
