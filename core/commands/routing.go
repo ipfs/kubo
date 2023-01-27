@@ -134,6 +134,7 @@ const (
 )
 
 var provideRefRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Announce to the network that you are providing given values.",
 	},
@@ -345,6 +346,7 @@ var findPeerRoutingCmd = &cmds.Command{
 }
 
 var getValueRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Given a key, query the routing system for its best value.",
 		ShortDescription: `
@@ -360,9 +362,6 @@ Different key types can specify other 'best' rules.
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, true, "The key to find a value for."),
-	},
-	Options: []cmds.Option{
-		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -387,6 +386,7 @@ Different key types can specify other 'best' rules.
 }
 
 var putValueRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Write a key/value pair to the routing system.",
 		ShortDescription: `
@@ -411,9 +411,6 @@ identified by QmFoo.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "The key to store the value at."),
 		cmds.FileArg("value-file", true, false, "A path to a file containing the value to store.").EnableStdin(),
-	},
-	Options: []cmds.Option{
-		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
