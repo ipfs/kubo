@@ -144,6 +144,11 @@ func (api *CoreAPI) PubSub() coreiface.PubSubAPI {
 	return (*PubSubAPI)(api)
 }
 
+// Routing returns the RoutingAPI interface implementation backed by the kubo node
+func (api *CoreAPI) Routing() coreiface.RoutingAPI {
+	return (*RoutingAPI)(api)
+}
+
 // WithOptions returns api with global options applied
 func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, error) {
 	settings := api.parentOpts // make sure to copy
