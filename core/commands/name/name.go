@@ -110,14 +110,33 @@ type IpnsInspectResult struct {
 }
 
 var IpnsInspectCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Inspects an IPNS Record",
+		ShortDescription: `
+Prints values inside of IPNS Record protobuf and its DAG-CBOR Data field.
+Passing --verify will verify signature against provided public key.
+`,
+		LongDescription: `
+Prints values inside of IPNS Record protobuf and its DAG-CBOR Data field.
+
+The input can be a file or STDIN, the output can be JSON:
+
+  $ ipfs routing get "/ipns/$PEERID" > ipns_record
+  $ ipfs name inspect --enc=json < ipns_record
+
+Values in PublicKey, SignatureV1 and SignatureV2 fields are raw bytes encoded
+in Multibase. The Data field is DAG-CBOR represented as DAG-JSON.
+
+Passing --verify will verify signature against provided public key.
+
+`,
 	},
 	Arguments: []cmds.Argument{
-		cmds.FileArg("record", true, false, "The path to a file with IPNS record to be verified.").EnableStdin(),
+		cmds.FileArg("record", true, false, "The IPNS record payload to be verified.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("verify", "The public IPNS key to validate against."),
+		cmds.StringOption("verify", "CID of the public IPNS key to validate against."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		file, err := cmdenv.GetFileArg(req.Files.Entries())
@@ -255,7 +274,7 @@ var IpnsInspectCmd = &cmds.Command{
 				if out.Validation.Reason != "" {
 					fmt.Fprintf(tw, "\tReason:\t%s\n", out.Validation.Reason)
 				}
-				fmt.Fprintf(tw, "\tKey:\t%s\n", out.Validation.PublicKey)
+				fmt.Fprintf(tw, "\tPublicKey:\t%s\n", out.Validation.PublicKey)
 			}
 
 			return nil
