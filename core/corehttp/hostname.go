@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-libipfs/gateway"
 	namesys "github.com/ipfs/go-namesys"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
-	"github.com/ipfs/kubo/core/corehttp/gateway"
 	"github.com/libp2p/go-libp2p/core/peer"
 	dns "github.com/miekg/dns"
 

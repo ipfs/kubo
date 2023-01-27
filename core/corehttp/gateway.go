@@ -5,11 +5,11 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/ipfs/go-libipfs/gateway"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	version "github.com/ipfs/kubo"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
-	"github.com/ipfs/kubo/core/corehttp/gateway"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
