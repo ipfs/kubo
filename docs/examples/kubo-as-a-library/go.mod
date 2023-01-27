@@ -8,8 +8,8 @@ replace github.com/ipfs/kubo => ./../../..
 
 require (
 	github.com/ipfs/go-libipfs v0.3.0
-	github.com/ipfs/interface-go-ipfs-core v0.8.2
-	github.com/ipfs/kubo v0.14.0-rc1
+	github.com/ipfs/interface-go-ipfs-core v0.9.0
+	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.24.2
 	github.com/multiformats/go-multiaddr v0.8.0
 )
@@ -101,7 +101,7 @@ require (
 	github.com/ipfs/go-merkledag v0.9.0 // indirect
 	github.com/ipfs/go-metrics-interface v0.0.1 // indirect
 	github.com/ipfs/go-mfs v0.2.1 // indirect
-	github.com/ipfs/go-namesys v0.6.0 // indirect
+	github.com/ipfs/go-namesys v0.7.0 // indirect
 	github.com/ipfs/go-path v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.0 // indirect
 	github.com/ipfs/go-unixfs v0.4.2 // indirect
@@ -209,7 +209,7 @@ require (
 	golang.org/x/tools v0.3.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/genproto v0.0.0-20211118181313-81c1377c94b1 // indirect
-	google.golang.org/grpc v1.47.0 // indirect
+	google.golang.org/grpc v1.46.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect

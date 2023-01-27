@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	namesys "github.com/ipfs/go-namesys"
 	version "github.com/ipfs/kubo"
@@ -68,11 +67,7 @@ func (m mockNamesys) ResolveAsync(ctx context.Context, name string, opts ...nsop
 	return out
 }
 
-func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
-	return errors.New("not implemented for mockNamesys")
-}
-
-func (m mockNamesys) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, _ time.Time) error {
+func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path, opts ...nsopts.PublishOption) error {
 	return errors.New("not implemented for mockNamesys")
 }
 

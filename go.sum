@@ -599,8 +599,8 @@ github.com/ipfs/go-metrics-prometheus v0.0.2 h1:9i2iljLg12S78OhC6UAiXi176xvQGiZa
 github.com/ipfs/go-metrics-prometheus v0.0.2/go.mod h1:ELLU99AQQNi+zX6GCGm2lAgnzdSH3u5UVlCdqSXnEks=
 github.com/ipfs/go-mfs v0.2.1 h1:5jz8+ukAg/z6jTkollzxGzhkl3yxm022Za9f2nL5ab8=
 github.com/ipfs/go-mfs v0.2.1/go.mod h1:Woj80iuw4ajDnIP6+seRaoHpPsc9hmL0pk/nDNDWP88=
-github.com/ipfs/go-namesys v0.6.0 h1:w4+Wq9bCILnuZRT1RBBdzZQFqtJeDG1duzN8mIDnHZ0=
-github.com/ipfs/go-namesys v0.6.0/go.mod h1:0L+3CHBgHxr08Cg+chVo9Ew285PGQfToThjll4g0/d4=
+github.com/ipfs/go-namesys v0.7.0 h1:xqosk71GIVRkFDtF2UNRcXn4LdNeo7tzuy8feHD6NbU=
+github.com/ipfs/go-namesys v0.7.0/go.mod h1:KYSZBVZG3VJC34EfqqJPG7T48aWgxseoMPAPA5gLyyQ=
 github.com/ipfs/go-path v0.2.1/go.mod h1:NOScsVgxfC/eIw4nz6OiGwK42PjaSJ4Y/ZFPn1Xe07I=
 github.com/ipfs/go-path v0.3.0 h1:tkjga3MtpXyM5v+3EbRvOHEoo+frwi4oumw5K+KYWyA=
 github.com/ipfs/go-path v0.3.0/go.mod h1:NOScsVgxfC/eIw4nz6OiGwK42PjaSJ4Y/ZFPn1Xe07I=
@@ -620,8 +620,8 @@ github.com/ipfs/go-unixfsnode v1.5.1/go.mod h1:ed79DaG9IEuZITJVQn4U6MZDftv6I3ygU
 github.com/ipfs/go-verifcid v0.0.1/go.mod h1:5Hrva5KBeIog4A+UpqlaIU+DEstipcJYQQZc0g37pY0=
 github.com/ipfs/go-verifcid v0.0.2 h1:XPnUv0XmdH+ZIhLGKg6U2vaPaRDXb9urMyNVCE7uvTs=
 github.com/ipfs/go-verifcid v0.0.2/go.mod h1:40cD9x1y4OWnFXbLNJYRe7MpNvWlMn3LZAG5Wb4xnPU=
-github.com/ipfs/interface-go-ipfs-core v0.8.2 h1:WDeCBnE4MENVOXbtfwwdAPJ2nBBS8PTmhZWWpm24HRM=
-github.com/ipfs/interface-go-ipfs-core v0.8.2/go.mod h1:F3EcmDy53GFkF0H3iEJpfJC320fZ/4G60eftnItrrJ0=
+github.com/ipfs/interface-go-ipfs-core v0.9.0 h1:+RCouVtSU/SldgkqWufjIu1smmGaSyKgUIfbYwLukgI=
+github.com/ipfs/interface-go-ipfs-core v0.9.0/go.mod h1:F3EcmDy53GFkF0H3iEJpfJC320fZ/4G60eftnItrrJ0=
 github.com/ipld/edelweiss v0.2.0 h1:KfAZBP8eeJtrLxLhi7r3N0cBCo7JmwSRhOJp3WSpNjk=
 github.com/ipld/edelweiss v0.2.0/go.mod h1:FJAzJRCep4iI8FOFlRriN9n0b7OuX3T/S9++NpBDmA4=
 github.com/ipld/go-car v0.4.0 h1:U6W7F1aKF/OJMHovnOVdst2cpQE5GhmHibQkAixgNcQ=
