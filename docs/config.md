@@ -1843,7 +1843,7 @@ This value is also used to scale the limit on various resources at various scope
 when the default limits (discussed in [libp2p resource management](./libp2p-resource-management.md)) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
-Default: `[TOTAL_SYSTEM_MEMORY]/4`
+Default: `[TOTAL_SYSTEM_MEMORY]/2`
 Type: `optionalBytes`
 
 #### `Swarm.ResourceMgr.MaxFileDescriptors`
