@@ -426,6 +426,10 @@ This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/c
 
 Please reach out to us in one [chat](https://docs.ipfs.tech/community/chat/) rooms.
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=ipfs/ipfs,ipfs/kubo&type=Date)](https://star-history.com/#ipfs/ipfs&ipfs/kubo&Date)
+
 ## License
 
 This project is dual-licensed under Apache 2.0 and MIT terms:
