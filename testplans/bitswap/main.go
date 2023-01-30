@@ -12,8 +12,8 @@ import (
 	"github.com/testground/sdk-go/runtime"
 	"github.com/testground/sdk-go/sync"
 
-	bitswap "github.com/ipfs/go-bitswap"
-	bsnet "github.com/ipfs/go-bitswap/network"
+	bitswap "github.com/ipfs/go-libipfs/bitswap"
+	bsnet "github.com/ipfs/go-libipfs/bitswap/network"
 	block "github.com/ipfs/go-libipfs/blocks"
 	"github.com/ipfs/go-cid"
 	datastore "github.com/ipfs/go-datastore"

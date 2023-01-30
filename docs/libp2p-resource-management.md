@@ -150,7 +150,7 @@ existing low priority idle connections can prevent new high priority connections
 The ResourceMgr doesn't know that the new connection is high priority and simply blocks it because of the limit its enforcing.
 
 To ensure the ConnMgr and ResourceMgr are congruent, the ResourceMgr [computed default limts](#computed-default-limits) are adjusted such that:
-1. `Swarm.ResourceMgr.Limits.System.ConnsInbound` >= `max(Swarm.ConnMgr.HighWater * 2, 800)` AND
+1. `Swarm.ResourceMgr.Limits.System.ConnsInbound` >= `max(Swarm.ConnMgr.HighWater * 2, DefaultResourceMgrMinInboundConns)` AND
 2. `Swarm.ResourceMgr.Limits.System.StreamsInbound` is greater than any new/adjusted `Swarm.ResourceMgr.Limits.System.ConnsInbound` value so that there's enough streams per connection.
 
 ### How does one see the Active Limits?
