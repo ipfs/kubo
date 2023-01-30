@@ -444,6 +444,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	case "application/vnd.ipld.dag-json", "application/vnd.ipld.dag-cbor":
 		logger.Debugw("serving codec", "path", contentPath)
 		i.serveCodec(r.Context(), w, r, resolvedPath, contentPath, begin, responseFormat)
+	case "application/vnd.ipfs.ipns-record":
+		logger.Debugw("serving ipns record", "path", contentPath)
+		i.serveIpnsRecord(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
@@ -885,6 +888,8 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 			return "application/vnd.ipld.dag-json", nil, nil
 		case "dag-cbor":
 			return "application/vnd.ipld.dag-cbor", nil, nil
+		case "ipns-record":
+			return "application/vnd.ipfs.ipns-record", nil, nil
 		}
 	}
 	// Browsers and other user agents will send Accept header with generic types like:
@@ -898,7 +903,8 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 			if strings.HasPrefix(accept, "application/vnd.ipld") ||
 				strings.HasPrefix(accept, "application/x-tar") ||
 				strings.HasPrefix(accept, "application/json") ||
-				strings.HasPrefix(accept, "application/cbor") {
+				strings.HasPrefix(accept, "application/cbor") ||
+				strings.HasPrefix(accept, "application/vnd.ipfs") {
 				mediatype, params, err := mime.ParseMediaType(accept)
 				if err != nil {
 					return "", nil, err
