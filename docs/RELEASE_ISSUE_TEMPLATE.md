@@ -60,22 +60,23 @@ This section covers tasks to be done ahead of the release.
     - ask the previous release owner (or @2color) for an invite
   - [ ] [access to #bifrost](https://filecoinproject.slack.com/archives/C03MMMF606T) channel in FIL Slack
     - ask the previous release owner for an invite
-  - [ ] [access to #shared-pl-marketing-requests](https://filecoinproject.slack.com/archives/C018EJ8LWH1) channel in FIL Slack
+  - [ ] ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) [access to #shared-pl-marketing-requests](https://filecoinproject.slack.com/archives/C018EJ8LWH1) channel in FIL Slack
     - ask the previous release owner for an invite
   - [ ] [access to IPFS network metrics](https://github.com/protocol/pldw/blob/624f47cf4ec14ad2cec6adf601a9f7b203ef770d/docs/sources/ipfs.md#ipfs-network-metrics) dashboards in Grafana
     - open an access request in the [pldw](https://github.com/protocol/pldw/issues/new/choose)
     - [example](https://github.com/protocol/pldw/issues/158)
-  - [ ] [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) installed on your system (_only if you're not using [kuboreleaser](https://github.com/ipfs/kuboreleaser)_)
-  - [ ] [zsh](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH#install-and-set-up-zsh-as-default) installed on your system (_only if you're not using [kuboreleaser](https://github.com/ipfs/kuboreleaser)_)
-  - [ ] [kubo](https://github.com/ipfs/kubo) checked out under `$(go env GOPATH)/src/github.com/ipfs/kubo` (_only if you're not using [kuboreleaser](https://github.com/ipfs/kuboreleaser)_)
+  - [ ] [docker](https://docs.docker.com/get-docker/) installed on your system (_only if you're using [kuboreleaser](https://github.com/ipfs/kuboreleaser)_)
+  - [ ] [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) installed on your system (_only if you're **NOT** using [kuboreleaser](https://github.com/ipfs/kuboreleaser)_)
+  - [ ] [zsh](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH#install-and-set-up-zsh-as-default) installed on your system
+  - [ ] [kubo](https://github.com/ipfs/kubo) checked out under `$(go env GOPATH)/src/github.com/ipfs/kubo`
     - you can also symlink your clone to the expected location by running `mkdir -p $(go env GOPATH)/src/github.com/ipfs && ln -s $(pwd) $(go env GOPATH)/src/github.com/ipfs/kubo`
-  - [ ] [Reddit](https://www.reddit.com) account
-- [ ] Upgrade Go used in CI to the latest patch release available in [CircleCI](https://hub.docker.com/r/cimg/go/tags)
-  - [ ] [ipfs/distributions](https://github.com/ipfs/distributions)
+  - [ ] ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) [Reddit](https://www.reddit.com) account
+- ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Upgrade Go used in CI to the latest patch release available in [CircleCI](https://hub.docker.com/r/cimg/go/tags) in:
+  - [ ] ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) [ipfs/distributions](https://github.com/ipfs/distributions)
     - [example](https://github.com/ipfs/distributions/pull/756)
-  - [ ] [ipfs/ipfs-docs](https://github.com/ipfs/ipfs-docs)
+  - [ ] ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) [ipfs/ipfs-docs](https://github.com/ipfs/ipfs-docs)
     - [example](https://github.com/ipfs/ipfs-docs/pull/1298)
-- [ ] Notify the bifrost team about the upcoming release <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) notify-bifrost --date YYYY-MM-DD` or ...</summary>
+- [ ] Notify the bifrost team about the upcoming release <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) notify-bifrost --date YYYY-MM-DD` or ...</summary> (_only if it is not the day of the release yet_)
   - [ ] open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra)
     - [example](https://github.com/protocol/bifrost-infra/issues/2221)
   </details>
@@ -103,7 +104,7 @@ This section covers tasks to be done during each release.
   </details>
 - [ ] Cherry-pick commits from `master` to the `release-vX.Y.Z` using `git cherry-pick -x <commit>`
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add full changelog and contributors to the [changelog](docs/changelogs/vX.Y.md)
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Paste the stdout of `./bin/mkreleaselog` at the end of the [changelog](docs/changelogs/vX.Y.md)
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Replace the `Changelog` and `Contributors` sections of the [changelog](docs/changelogs/vX.Y.md) with the stdout of `./bin/mkreleaselog`
     - do **NOT** copy the stderr
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Merge the PR from `release-vX.Y` to `release` using the `Create a merge commit`
   - do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit
@@ -122,7 +123,7 @@ This section covers tasks to be done during each release.
   - [ ] check out [ipfs/distributions](https://github.com/ipfs/distributions)
   - [ ] run `./dist.sh add-version kubo vX.Y.Z(-RCN)` to add the new version to the `versions` file
     - [usage](https://github.com/ipfs/distributions#usage)
-  - [ ] create and merge the PR which updates `dists/kubo/versions` and `dists/go-ipfs/versions`
+  - [ ] create and merge the PR which updates `dists/kubo/versions` and `dists/go-ipfs/versions` (![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) and `dists/kubo/current_version` and `dists/go-ipfs/current_version`)
     - [example](https://github.com/ipfs/distributions/pull/760)
   - [ ] wait for the [CI](https://github.com/ipfs/distributions/actions/workflows/main.yml) workflow run initiated by the merge to master to finish
   - [ ] verify the release is available on [dist.ipfs.io](https://dist.ipfs.io/#kubo)
@@ -167,9 +168,9 @@ This section covers tasks to be done during each release.
     - [example](https://github.com/ipfs/kubo/issues/9319#issuecomment-1311002478)
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) create an issue comment linking to the release on the release issue
     - [example](https://github.com/ipfs/kubo/issues/9417#issuecomment-1400740975)
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ask the marketing team to tweet about the release in [#shared-pl-marketing-requests](https://filecoinproject.slack.com/archives/C018EJ8LWH1) in FIL Slack
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) ask the marketing team to tweet about the release in [#shared-pl-marketing-requests](https://filecoinproject.slack.com/archives/C018EJ8LWH1) in FIL Slack
     - [example](https://filecoinproject.slack.com/archives/C018EJ8LWH1/p1664885305374900)
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) post the link to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) to [Reddit](https://reddit.com/r/ipfs)
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) post the link to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) to [Reddit](https://reddit.com/r/ipfs)
     - [example](https://www.reddit.com/r/ipfs/comments/9x0q0k/kubo_v0160_release_is_out/)
   </details>
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add the link to the [IPFS Discourse](https://discuss.ipfs.tech) topic to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) description
@@ -201,7 +202,7 @@ This section covers tasks to be done during each release.
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) verify the blog entry was published
   </details>
-- [ ] Keep checking the [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) until the release issue is closed
+- [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) Keep checking the [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) until the release issue is closed
   - [release notes](https://www.notion.so/pl-strflt/Kubo-Gateway-Release-Notes-6e0efff28ee540be9ccb8f2b85104c42)
   - post in the [#bifrost](https://filecoinproject.slack.com/archives/C018EJ8LWH1) channel in FIL Slack if there is a problem
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Merge the [release](https://github.com/ipfs/kubo/tree/release) branch back into [master](https://github.com/ipfs/kubo/tree/master), ignoring the changes to [version.go](version.go) (keep the `-dev`) version, <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) merge-branch` or ...</summary>
