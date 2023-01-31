@@ -76,7 +76,7 @@ This section covers tasks to be done ahead of the release.
     - [example](https://github.com/ipfs/distributions/pull/756)
   - [ ] ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) [ipfs/ipfs-docs](https://github.com/ipfs/ipfs-docs)
     - [example](https://github.com/ipfs/ipfs-docs/pull/1298)
-- [ ] Notify the bifrost team about the upcoming release <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) notify-bifrost --date YYYY-MM-DD` or ...</summary> (_only if it is not the day of the release yet_)
+- [ ] Notify the bifrost team about the upcoming release (_only if it is not the day of the release yet_) <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) notify-bifrost --date YYYY-MM-DD` or ...</summary>
   - [ ] open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra)
     - [example](https://github.com/protocol/bifrost-infra/issues/2221)
   </details>
@@ -94,21 +94,21 @@ This section covers tasks to be done during each release.
   - [ ] create a new branch `release-vX.Y.Z`
     - use `master` as base if `Z == 0`
     - use `release` as base if `Z > 0`
-  - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) update the `CurrentVersionNumber` in [version.go](version.go) in the `master` branch to `vX.(Y+1).0-dev`
+  - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) update the `CurrentVersionNumber` in [version.go](version.go) in the `master` branch to `vX.Y+1.0-dev`
     - [example](https://github.com/ipfs/kubo/pull/9305)
   - [ ] update the `CurrentVersionNumber` in [version.go](version.go) in the `release-vX.Y` branch to `vX.Y.Z(-RCN)`
     - [example](https://github.com/ipfs/kubo/pull/9394)
   - [ ] create a draft PR from `release-vX.Y` to `release`
     - [example](https://github.com/ipfs/kubo/pull/9306)
+  - [ ] Cherry-pick commits from `master` to the `release-vX.Y.Z` using `git cherry-pick -x <commit>`
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add full changelog and contributors to the [changelog](docs/changelogs/vX.Y.md)
+    - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Replace the `Changelog` and `Contributors` sections of the [changelog](docs/changelogs/vX.Y.md) with the stdout of `./bin/mkreleaselog`
+      - do **NOT** copy the stderr
   - [ ] verify all CI checks on the PR from `release-vX.Y` to `release` are passing
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Merge the PR from `release-vX.Y` to `release` using the `Create a merge commit`
+    - do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit
+    - do **NOT** delete the `release-vX.Y` branch
   </details>
-- [ ] Cherry-pick commits from `master` to the `release-vX.Y.Z` using `git cherry-pick -x <commit>`
-- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add full changelog and contributors to the [changelog](docs/changelogs/vX.Y.md)
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Replace the `Changelog` and `Contributors` sections of the [changelog](docs/changelogs/vX.Y.md) with the stdout of `./bin/mkreleaselog`
-    - do **NOT** copy the stderr
-- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Merge the PR from `release-vX.Y` to `release` using the `Create a merge commit`
-  - do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit
-  - do **NOT** delete the `release-vX.Y` branch
 - [ ] Create the release tag <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) tag` or ...</summary>
   - This is a dangerous operation! Go and Docker publishing are difficult to reverse! Have the release reviewer verify all the commands marked with ⚠️!
   - [ ] ⚠️ ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) tag the HEAD commit using `git tag -s vX.Y.Z(-RCN) -m 'Prerelease X.Y.Z(-RCN)'`
@@ -117,7 +117,8 @@ This section covers tasks to be done during each release.
   - [ ] ⚠️ push the tag to GitHub using `git push origin vX.Y.Z(-RCN)`
     - do **NOT** use `git push --tags` because it pushes all your local tags
   </details>
-- [ ] Wait for [Publish docker image](https://github.com/ipfs/kubo/actions/workflows/docker-image.yml) workflow run initiated by the tag push to finish
+- [ ] Publish the release to [DockerHub](https://hub.docker.com/r/ipfs/kubo/) <details><summary>using `kuboreleaser --skip-check-before --skip-run release --version vX.Y.Z(-RCN) publish-to-dockerhub` or ...</summary>
+  - [ ] Wait for [Publish docker image](https://github.com/ipfs/kubo/actions/workflows/docker-image.yml) workflow run initiated by the tag push to finish
   - [ ] verify the image is available on [Docker Hub](https://hub.docker.com/r/ipfs/kubo/tags)
 - [ ] Publish the release to [ipfs.tech](https://dist.ipfs.tech) <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) publish-to-distributions` or ...</summary>
   - [ ] check out [ipfs/distributions](https://github.com/ipfs/distributions)
@@ -164,6 +165,8 @@ This section covers tasks to be done during each release.
     - [ ] [#ipfs-chatter](https://discord.com/channels/669268347736686612/669268347736686615) in IPFS Discord
     - [ ] [#ipfs-chatter](https://filecoinproject.slack.com/archives/C018EJ8LWH1) in FIL Slack
     - [ ] [#ipfs-chatter:ipfs.io](https://matrix.to/#/#ipfs-chatter:ipfs.io) in Matrix
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add the link to the [IPFS Discourse](https://discuss.ipfs.tech) topic to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) description
+    - [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0)
   - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) create an issue comment mentioning early testers on the release issue
     - [example](https://github.com/ipfs/kubo/issues/9319#issuecomment-1311002478)
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) create an issue comment linking to the release on the release issue
@@ -173,8 +176,6 @@ This section covers tasks to be done during each release.
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) post the link to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) to [Reddit](https://reddit.com/r/ipfs)
     - [example](https://www.reddit.com/r/ipfs/comments/9x0q0k/kubo_v0160_release_is_out/)
   </details>
-- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add the link to the [IPFS Discourse](https://discuss.ipfs.tech) topic to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) description
-  - [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0)
 - [ ] Test the new version with `ipfs-companion` <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) test-ipfs-companion` or ...</summary>
   - [ ] run the [e2e](https://github.com/ipfs/ipfs-companion/actions/workflows/e2e.yml)
     - use `vX.Y.Z(-RCN)` as the Kubo image version
@@ -209,9 +210,11 @@ This section covers tasks to be done during each release.
   - [ ] create a new branch `merge-release-vX.Y.Z` from `release`
   - [ ] create and merge a PR from `merge-release-vX.Y.Z` to `master`
   </details>
-- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Create the next [changelog](https://github.com/ipfs/kubo/blob/master/docs/changelogs/vX.(Y+1).md)
-  - link to the new changelog in the [CHANGELOG.md](CHANGELOG.md) file
-- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Create the next release issue
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Prepare for the next release <details><summary>using `kuboreleaser release --version vX.Y.Z(-RCN) prepare-next` or ...</summary>
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Create the next [changelog](https://github.com/ipfs/kubo/blob/master/docs/changelogs/vX.(Y+1).md)
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Link to the new changelog in the [CHANGELOG.md](CHANGELOG.md) file
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Create the next release issue
+  </details>
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Create a dependency update PR
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) check out [ipfs/kubo](https://github.com/ipfs/kubo)
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) run `go get -t -u ./...`
