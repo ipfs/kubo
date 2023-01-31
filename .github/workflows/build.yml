@@ -78,7 +78,6 @@ jobs:
           LIBP2P_TCP_REUSEPORT: false
           LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
           IPFS_GO_EXEC: ${{ github.workspace }}/cmd/ipfs/ipfs
-          GO_IPFS_DIST_URL: https://dist-ipfs-tech.ipns.cf-ipfs.com # TODO: remove this line when https://github.com/protocol/bifrost-infra/issues/2300 is closed
         working-directory: interop
   go-ipfs-api:
     needs: [prepare]
@@ -162,7 +161,6 @@ jobs:
       TRAVIS: 1
       GIT_PAGER: cat
       IPFS_CHECK_RCMGR_DEFAULTS: 1
-      GO_IPFS_DIST_URL: https://dist-ipfs-tech.ipns.cf-ipfs.com # TODO: remove this line when https://github.com/protocol/bifrost-infra/issues/2300 is closed
     defaults:
       run:
         shell: bash
