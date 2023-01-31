@@ -40,9 +40,6 @@ jobs:
 
             const checks = []
 
-            // CI Checks
-            checks.push('Are all the CI checks 🟢?')
-
             // CHANGELOG if any Go files were modified
             if (fileNames.filter(name => name.endsWith('.go'))) {
               checks.push(
