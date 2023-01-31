@@ -225,6 +225,30 @@ test_name_with_self() {
         grep "argument \"ipfs-path\" is required" curl_out
         '
 
+        # Test Publishing with TTL and Inspecting Records
+        test_expect_success "'ipfs name publish --ttl=30m' succeeds" '
+        ipfs name publish --ttl=30m --allow-offline "/ipfs/$HASH_WELCOME_DOCS"
+        '
+
+        test_expect_success "retrieve IPNS key for further inspection" '
+        ipfs routing get "/ipns/$PEERID" > ipns_record
+        '
+
+        test_expect_success "'ipfs name inspect' has correct TTL (30m)" '
+        ipfs name inspect < ipns_record > verify_output &&
+        test_should_contain "This record was not validated." verify_output &&
+        test_should_contain "$HASH_WELCOME_DOCS" verify_output &&
+        test_should_contain "1800000000000" verify_output
+        '
+
+        test_expect_success "'ipfs name inspect --verify' has '.Validation.Validity' set to 'true' with correct Peer ID" '
+        ipfs name inspect --verify $PEERID --enc json < ipns_record | jq -e ".Validation.Valid == true and .Entry.TTL == .Entry.Data.TTL"
+        '
+
+        test_expect_success "'ipfs name inspect --verify' has '.Validation.Validity' set to 'false' with incorrect Peer ID" '
+        ipfs name inspect --verify 12D3KooWRirYjmmQATx2kgHBfky6DADsLP7ex1t7BRxJ6nqLs9WH --enc json < ipns_record | jq -e ".Validation.Valid == false"
+        '
+
         test_kill_ipfs_daemon
 
         # Test daemon in offline mode

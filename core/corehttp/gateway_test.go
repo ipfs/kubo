@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	namesys "github.com/ipfs/go-namesys"
 	version "github.com/ipfs/kubo"
@@ -19,7 +18,7 @@ import (
 
 	datastore "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-libipfs/files"
 	path "github.com/ipfs/go-path"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
@@ -68,11 +67,7 @@ func (m mockNamesys) ResolveAsync(ctx context.Context, name string, opts ...nsop
 	return out
 }
 
-func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
-	return errors.New("not implemented for mockNamesys")
-}
-
-func (m mockNamesys) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, _ time.Time) error {
+func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path, opts ...nsopts.PublishOption) error {
 	return errors.New("not implemented for mockNamesys")
 }
 
@@ -654,30 +649,5 @@ func TestVersion(t *testing.T) {
 
 	if !strings.Contains(s, "Protocol Version: "+id.DefaultProtocolVersion) {
 		t.Fatalf("response doesn't contain protocol version:\n%s", s)
-	}
-}
-
-func TestEtagMatch(t *testing.T) {
-	for _, test := range []struct {
-		header   string // value in If-None-Match HTTP header
-		cidEtag  string
-		dirEtag  string
-		expected bool // expected result of etagMatch(header, cidEtag, dirEtag)
-	}{
-		{"", `"etag"`, "", false},                        // no If-None-Match
-		{"", "", `"etag"`, false},                        // no If-None-Match
-		{`"etag"`, `"etag"`, "", true},                   // file etag match
-		{`W/"etag"`, `"etag"`, "", true},                 // file etag match
-		{`"foo", W/"bar", W/"etag"`, `"etag"`, "", true}, // file etag match (array)
-		{`"foo",W/"bar",W/"etag"`, `"etag"`, "", true},   // file etag match (compact array)
-		{`"etag"`, "", `W/"etag"`, true},                 // dir etag match
-		{`"etag"`, "", `W/"etag"`, true},                 // dir etag match
-		{`W/"etag"`, "", `W/"etag"`, true},               // dir etag match
-		{`*`, `"etag"`, "", true},                        // wildcard etag match
-	} {
-		result := etagMatch(test.header, test.cidEtag, test.dirEtag)
-		if result != test.expected {
-			t.Fatalf("unexpected result of etagMatch(%q, %q, %q), got %t, expected %t", test.header, test.cidEtag, test.dirEtag, result, test.expected)
-		}
 	}
 }

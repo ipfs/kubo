@@ -13,6 +13,7 @@ import (
 	drclient "github.com/ipfs/go-libipfs/routing/http/client"
 	"github.com/ipfs/go-libipfs/routing/http/contentrouter"
 	logging "github.com/ipfs/go-log"
+	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
@@ -157,6 +158,22 @@ type ExtraHTTPParams struct {
 	PrivKeyB64 string
 }
 
+func ConstructHTTPRouter(endpoint string, peerID string, addrs []string, privKey string) (routing.Routing, error) {
+	return httpRoutingFromConfig(
+		config.Router{
+			Type: "http",
+			Parameters: &config.HTTPRouterParams{
+				Endpoint: endpoint,
+			},
+		},
+		&ExtraHTTPParams{
+			PeerID:     peerID,
+			Addrs:      addrs,
+			PrivKeyB64: privKey,
+		},
+	)
+}
+
 func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (routing.Routing, error) {
 	params := conf.Parameters.(*config.HTTPRouterParams)
 	if params.Endpoint == "" {
@@ -171,7 +188,10 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 	transport.MaxIdleConnsPerHost = 100
 
 	delegateHTTPClient := &http.Client{
-		Transport: transport,
+		Transport: &drclient.ResponseBodyLimitedTransport{
+			RoundTripper: transport,
+			LimitBytes:   1 << 20,
+		},
 	}
 
 	key, err := decodePrivKey(extraHTTP.PrivKeyB64)
@@ -189,6 +209,7 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 		drclient.WithHTTPClient(delegateHTTPClient),
 		drclient.WithIdentity(key),
 		drclient.WithProviderInfo(addrInfo.ID, addrInfo.Addrs),
+		drclient.WithUserAgent(version.GetUserAgentVersion()),
 	)
 	if err != nil {
 		return nil, err

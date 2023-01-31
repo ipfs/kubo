@@ -62,13 +62,13 @@ Before opening an issue, consider using one of the following locations to ensure
     - [openSUSE](#opensuse)
     - [Guix](#guix)
     - [Snap](#snap)
-  - [Unofficial MacOS packages](#unofficial-macos-packages)
-    - [MacPorts](#macports)
-    - [Nix](#nix-1)
-    - [Homebrew](#homebrew)  
   - [Unofficial Windows packages](#unofficial-windows-packages)
     - [Chocolatey](#chocolatey)
     - [Scoop](#scoop)
+  - [Unofficial MacOS packages](#unofficial-macos-packages)
+    - [MacPorts](#macports)
+    - [Nix](#nix-macos)
+    - [Homebrew](#homebrew)  
   - [Build from Source](#build-from-source)
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
@@ -166,10 +166,12 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 
 ### Unofficial Linux packages
 
-- [Arch Linux](#arch-linux)
-- [Nix](#nix-linux)
+- [ArchLinux](#arch-linux)
+- [Nix](#nix)
 - [Solus](#solus)
 - [openSUSE](#opensuse)
+- [Guix](#guix)
+- [Snap](#snap)
 
 #### Arch Linux
 
@@ -193,11 +195,10 @@ You can also install the Package by using its attribute name, which is also `ipf
 
 #### Solus
 
-In solus, kubo (go-ipfs) is available in the main repository as
-[go-ipfs](https://dev.getsol.us/source/go-ipfs/repository/master/).
+[Package for Solus](https://dev.getsol.us/source/kubo/repository/master/)
 
 ```
-$ sudo eopkg install go-ipfs
+$ sudo eopkg install kubo
 ```
 
 You can also install it through the Solus software center.
@@ -208,15 +209,35 @@ You can also install it through the Solus software center.
 
 #### Guix
 
-GNU's functional package manager, [Guix](https://www.gnu.org/software/guix/), also provides a go-ipfs package:
-
-```
-$ guix package -i go-ipfs
-```
+[Community Package for go-ipfs](https://packages.guix.gnu.org/packages/go-ipfs/0.11.0/) is no out-of-date.
 
 #### Snap
 
 No longer supported, see rationale in [kubo#8688](https://github.com/ipfs/kubo/issues/8688).
+
+### Unofficial Windows packages
+
+- [Chocolatey](#chocolatey)
+- [Scoop](#scoop)
+
+#### Chocolatey
+
+No longer supported, see rationale in [kubo#9341](https://github.com/ipfs/kubo/issues/9341).
+
+#### Scoop
+
+Scoop provides kubo as `kubo` in its 'extras' bucket.
+
+```Powershell
+PS> scoop bucket add extras
+PS> scoop install kubo
+```
+
+### Unofficial macOS packages
+
+- [MacPorts](#macports)
+- [Nix](#nix-macos)
+- [Homebrew](#homebrew)
 
 #### MacPorts
 
@@ -243,31 +264,6 @@ A Homebrew formula [ipfs](https://formulae.brew.sh/formula/ipfs) is maintained t
 ```
 $ brew install --formula ipfs
 ```
-
-### Unofficial Windows packages
-
-- [Chocolatey](#chocolatey)
-- [Scoop](#scoop)
-
-#### Chocolatey
-
-No longer supported, see rationale in [kubo#9341](https://github.com/ipfs/kubo/issues/9341).
-
-#### Scoop
-
-Scoop provides kubo as `kubo` in its 'extras' bucket.
-
-```Powershell
-PS> scoop bucket add extras
-PS> scoop install kubo
-```
-
-### Unofficial macOS packages
-
-- [MacPorts](#macports)
-- [Nix](#nix-macos)
-- [Homebrew](#homebrew)
-
 
 ### Build from Source
 

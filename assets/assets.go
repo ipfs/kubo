@@ -1,29 +1,21 @@
-//go:generate npm run build --prefix ./dir-index-html/
 package assets
 
 import (
 	"embed"
 	"fmt"
-	"io"
-	"io/fs"
 	gopath "path"
-	"strconv"
 
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 
-	"github.com/cespare/xxhash"
 	cid "github.com/ipfs/go-cid"
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-libipfs/files"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-//go:embed init-doc dir-index-html/dir-index.html dir-index-html/knownIcons.txt
+//go:embed init-doc
 var Asset embed.FS
-
-// AssetHash a non-cryptographic hash of all embedded assets
-var AssetHash string
 
 // initDocPaths lists the paths for the docs we want to seed during --init
 var initDocPaths = []string{
@@ -34,32 +26,6 @@ var initDocPaths = []string{
 	gopath.Join("init-doc", "security-notes"),
 	gopath.Join("init-doc", "quick-start"),
 	gopath.Join("init-doc", "ping"),
-}
-
-func init() {
-	sum := xxhash.New()
-	err := fs.WalkDir(Asset, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if d.IsDir() {
-			return nil
-		}
-
-		file, err := Asset.Open(path)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		_, err = io.Copy(sum, file)
-		return err
-	})
-	if err != nil {
-		panic("error creating asset sum: " + err.Error())
-	}
-
-	AssetHash = strconv.FormatUint(sum.Sum64(), 32)
 }
 
 // SeedInitDocs adds the list of embedded init documentation to the passed node, pins it and returns the root key

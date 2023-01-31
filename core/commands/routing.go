@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -135,6 +134,7 @@ const (
 )
 
 var provideRefRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Announce to the network that you are providing given values.",
 	},
@@ -346,6 +346,7 @@ var findPeerRoutingCmd = &cmds.Command{
 }
 
 var getValueRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Given a key, query the routing system for its best value.",
 		ShortDescription: `
@@ -362,78 +363,30 @@ Different key types can specify other 'best' rules.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, true, "The key to find a value for."),
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
-	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
-		if !nd.IsOnline {
-			return ErrNotOnline
-		}
-
-		dhtkey, err := escapeDhtKey(req.Arguments[0])
+		r, err := api.Routing().Get(req.Context, req.Arguments[0])
 		if err != nil {
 			return err
 		}
 
-		ctx, cancel := context.WithCancel(req.Context)
-		ctx, events := routing.RegisterForQueryEvents(ctx)
-
-		var getErr error
-		go func() {
-			defer cancel()
-			var val []byte
-			val, getErr = nd.Routing.GetValue(ctx, dhtkey)
-			if getErr != nil {
-				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
-					Type:  routing.QueryError,
-					Extra: getErr.Error(),
-				})
-			} else {
-				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
-					Type:  routing.Value,
-					Extra: base64.StdEncoding.EncodeToString(val),
-				})
-			}
-		}()
-
-		for e := range events {
-			if err := res.Emit(e); err != nil {
-				return err
-			}
-		}
-
-		return getErr
+		return res.Emit(r)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
-			pfm := pfuncMap{
-				routing.Value: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
-					if verbose {
-						_, err := fmt.Fprintf(out, "got value: '%s'\n", obj.Extra)
-						return err
-					}
-					res, err := base64.StdEncoding.DecodeString(obj.Extra)
-					if err != nil {
-						return err
-					}
-					_, err = out.Write(res)
-					return err
-				},
-			}
-
-			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			return printEvent(out, w, verbose, pfm)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out []byte) error {
+			_, err := w.Write(out)
+			return err
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type: []byte{},
 }
 
 var putValueRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Write a key/value pair to the routing system.",
 		ShortDescription: `
@@ -459,20 +412,8 @@ identified by QmFoo.
 		cmds.StringArg("key", true, false, "The key to store the value at."),
 		cmds.FileArg("value-file", true, false, "A path to a file containing the value to store.").EnableStdin(),
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
-	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-
-		if !nd.IsOnline {
-			return ErrNotOnline
-		}
-
-		key, err := escapeDhtKey(req.Arguments[0])
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -488,50 +429,20 @@ identified by QmFoo.
 			return err
 		}
 
-		ctx, cancel := context.WithCancel(req.Context)
-		ctx, events := routing.RegisterForQueryEvents(ctx)
-
-		var putErr error
-		go func() {
-			defer cancel()
-			putErr = nd.Routing.PutValue(ctx, key, []byte(data))
-			if putErr != nil {
-				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
-					Type:  routing.QueryError,
-					Extra: putErr.Error(),
-				})
-			}
-		}()
-
-		for e := range events {
-			if err := res.Emit(e); err != nil {
-				return err
-			}
+		err = api.Routing().Put(req.Context, req.Arguments[0], data)
+		if err != nil {
+			return err
 		}
 
-		return putErr
+		return res.Emit([]byte(fmt.Sprintf("%s added", req.Arguments[0])))
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
-			pfm := pfuncMap{
-				routing.FinalPeer: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
-					if verbose {
-						fmt.Fprintf(out, "* closest peer %s\n", obj.ID)
-					}
-					return nil
-				},
-				routing.Value: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
-					fmt.Fprintf(out, "%s\n", obj.ID.Pretty())
-					return nil
-				},
-			}
-
-			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-
-			return printEvent(out, w, verbose, pfm)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out []byte) error {
+			_, err := w.Write(out)
+			return err
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type: []byte{},
 }
 
 type printFunc func(obj *routing.QueryEvent, out io.Writer, verbose bool) error

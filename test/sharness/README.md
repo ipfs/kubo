@@ -1,4 +1,4 @@
-# ipfs whole tests using the [sharness framework](https://github.com/mlafeldt/sharness/)
+# ipfs whole tests using the [sharness framework](https://github.com/pl-strflt/sharness/tree/feat/junit)
 
 ## Running all the tests
 

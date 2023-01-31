@@ -11,6 +11,7 @@ import (
 	"github.com/ipfs/go-log"
 	"github.com/ipfs/kubo/config"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p-pubsub/timecache"
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ipfs/kubo/core/node/libp2p"
@@ -65,6 +66,18 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			pubsub.WithMessageSigning(!cfg.Pubsub.DisableSigning),
 			pubsub.WithSeenMessagesTTL(cfg.Pubsub.SeenMessagesTTL.WithDefault(pubsub.TimeCacheDuration)),
 		)
+
+		var seenMessagesStrategy timecache.Strategy
+		configSeenMessagesStrategy := cfg.Pubsub.SeenMessagesStrategy.WithDefault(config.DefaultSeenMessagesStrategy)
+		switch configSeenMessagesStrategy {
+		case config.LastSeenMessagesStrategy:
+			seenMessagesStrategy = timecache.Strategy_LastSeen
+		case config.FirstSeenMessagesStrategy:
+			seenMessagesStrategy = timecache.Strategy_FirstSeen
+		default:
+			return fx.Error(fmt.Errorf("unsupported Pubsub.SeenMessagesStrategy %q", configSeenMessagesStrategy))
+		}
+		pubsubOptions = append(pubsubOptions, pubsub.WithSeenMessagesStrategy(seenMessagesStrategy))
 
 		switch cfg.Pubsub.Router {
 		case "":
@@ -291,7 +304,12 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(p2p.New),
 
 		LibP2P(bcfg, cfg),
-		OnlineProviders(cfg.Experimental.StrategicProviding, cfg.Experimental.AcceleratedDHTClient, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
+		OnlineProviders(
+			cfg.Experimental.StrategicProviding,
+			cfg.Experimental.AcceleratedDHTClient,
+			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
+			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
+		),
 	)
 }
 
@@ -304,7 +322,12 @@ func Offline(cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.Routing),
 		fx.Provide(libp2p.ContentRouting),
 		fx.Provide(libp2p.OfflineRouting),
-		OfflineProviders(cfg.Experimental.StrategicProviding, cfg.Experimental.AcceleratedDHTClient, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
+		OfflineProviders(
+			cfg.Experimental.StrategicProviding,
+			cfg.Experimental.AcceleratedDHTClient,
+			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
+			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
+		),
 	)
 }
 

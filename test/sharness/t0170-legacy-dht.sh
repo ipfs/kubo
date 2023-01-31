@@ -13,6 +13,10 @@ test_dht() {
     iptb testbed create -type localipfs -count $NUM_NODES -init
   '
 
+  test_expect_success 'DHT-only routing' '
+    iptb run -- ipfs config Routing.Type dht
+  '
+
   startup_cluster $NUM_NODES $@
 
   test_expect_success 'peer ids' '
@@ -107,7 +111,7 @@ test_dht() {
     test_must_fail ipfsi 0 dht put "/ipns/$PEERID_2" "get_result" 2>err_put &&
     test_should_contain "this command must be run in online mode" err_findprovs &&
     test_should_contain "this command must be run in online mode" err_findpeer &&
-    test_should_contain "this command must be run in online mode" err_put
+    test_should_contain "this action must be run in online mode" err_put
   '
 }
 

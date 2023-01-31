@@ -10,9 +10,10 @@ import (
 type Routing struct {
 	// Type sets default daemon routing mode.
 	//
-	// Can be one of "dht", "dhtclient", "dhtserver", "none", or "custom".
-	// When "custom" is set, you can specify a list of Routers.
-	Type string
+	// Can be one of "auto", "dht", "dhtclient", "dhtserver", "none", or "custom".
+	// When unset or set to "auto", DHT and implicit routers are used.
+	// When "custom" is set, user-provided Routing.Routers is used.
+	Type *OptionalString `json:",omitempty"`
 
 	Routers Routers
 
@@ -21,10 +22,7 @@ type Routing struct {
 
 type Router struct {
 
-	// Currenly supported Types are "reframe", "dht", "parallel", "sequential".
-	// Reframe type allows to add other resolvers using the Reframe spec:
-	// https://github.com/ipfs/specs/tree/main/reframe
-	// In the future we will support "dht" and other Types here.
+	// Router type ID. See RouterType for more info.
 	Type RouterType
 
 	// Parameters are extra configuration that this router might need.
@@ -106,11 +104,11 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 type RouterType string
 
 const (
-	RouterTypeReframe    RouterType = "reframe"
-	RouterTypeHTTP       RouterType = "http"
-	RouterTypeDHT        RouterType = "dht"
-	RouterTypeSequential RouterType = "sequential"
-	RouterTypeParallel   RouterType = "parallel"
+	RouterTypeReframe    RouterType = "reframe"    // More info here: https://github.com/ipfs/specs/tree/main/reframe . Actually deprecated.
+	RouterTypeHTTP       RouterType = "http"       // HTTP JSON API for delegated routing systems (IPIP-337).
+	RouterTypeDHT        RouterType = "dht"        // DHT router.
+	RouterTypeSequential RouterType = "sequential" // Router helper to execute several routers sequentially.
+	RouterTypeParallel   RouterType = "parallel"   // Router helper to execute several routers in parallel.
 )
 
 type DHTMode string
