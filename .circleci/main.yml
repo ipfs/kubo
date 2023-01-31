@@ -228,8 +228,6 @@ jobs:
       - image: cimg/go:1.19.1-node
     parallelism: 4
     resource_class: 2xlarge+
-    environment:
-      GO_IPFS_DIST_URL: https://dist-ipfs-tech.ipns.cf-ipfs.com # TODO remove this line when https://github.com/protocol/bifrost-infra/issues/2300 is closed
     steps:
       - *make_out_dirs
       - attach_workspace:
@@ -330,8 +328,6 @@ jobs:
   ipfs-webui:
     executor: node-browsers
     resource_class: 2xlarge+
-    environment:
-      GO_IPFS_DIST_URL: https://dist-ipfs-tech.ipns.cf-ipfs.com # TODO remove this line when https://github.com/protocol/bifrost-infra/issues/2300 is closed
     steps:
       - *make_out_dirs
       - attach_workspace:
