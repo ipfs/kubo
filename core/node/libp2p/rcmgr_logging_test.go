@@ -16,11 +16,17 @@ import (
 
 func TestLoggingResourceManager(t *testing.T) {
 	clock := clock.NewMock()
-	limits := rcmgr.DefaultLimits.AutoScale()
-	limits.System.Conns = 1
-	limits.System.ConnsInbound = 1
-	limits.System.ConnsOutbound = 1
-	limiter := rcmgr.NewFixedLimiter(limits)
+	partialLimits := rcmgr.PartialLimitConfig{
+		System: &rcmgr.ResourceLimits{
+			Conns:         1,
+			ConnsInbound:  1,
+			ConnsOutbound: 1,
+		},
+	}
+
+	concreteLimits := partialLimits.Build(rcmgr.DefaultLimits.AutoScale())
+
+	limiter := rcmgr.NewFixedLimiter(concreteLimits)
 	rm, err := rcmgr.NewResourceManager(limiter)
 	if err != nil {
 		t.Fatal(err)

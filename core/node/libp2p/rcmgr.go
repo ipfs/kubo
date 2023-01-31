@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,32 +53,14 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
 			}
 
-			var limitConfig rcmgr.LimitConfig
-			defaultComputedLimitConfig, err := createDefaultLimitConfig(cfg)
+			concreteLimitConfig, err := createDefaultLimitConfig(cfg, true)
 			if err != nil {
 				return nil, opts, err
 			}
 
-			// The logic for defaults and overriding with specified SwarmConfig.ResourceMgr.Limits
-			// is documented in docs/config.md.
-			// Any changes here should be reflected there.
-			if cfg.ResourceMgr.Limits != nil {
-				userSuppliedOverrideLimitConfig := *cfg.ResourceMgr.Limits
-				// This effectively overrides the computed default LimitConfig with any non-zero values from cfg.ResourceMgr.Limits.
-				// Because of how how Apply works, any 0 value for a user supplied override
-				// will be overriden with a computed default value.
-				// There currently isn't a way for a user to supply a 0-value override.
-				userSuppliedOverrideLimitConfig.Apply(defaultComputedLimitConfig)
-				limitConfig = userSuppliedOverrideLimitConfig
-			} else {
-				limitConfig = defaultComputedLimitConfig
-			}
-
-			if err := ensureConnMgrMakeSenseVsResourceMgr(limitConfig, cfg.ConnMgr); err != nil {
+			if err := ensureConnMgrMakeSenseVsResourceMgr(concreteLimitConfig, cfg.ConnMgr); err != nil {
 				return nil, opts, err
 			}
-
-			limiter := rcmgr.NewFixedLimiter(limitConfig)
 
 			str, err := rcmgrObs.NewStatsTraceReporter()
 			if err != nil {
@@ -110,6 +93,8 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				ropts = append(ropts, rcmgr.WithTrace(traceFilePath))
 			}
 
+			limiter := rcmgr.NewFixedLimiter(concreteLimitConfig)
+
 			manager, err = rcmgr.NewResourceManager(limiter, ropts...)
 			if err != nil {
 				return nil, opts, fmt.Errorf("creating libp2p resource manager: %w", err)
@@ -138,11 +123,11 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 }
 
 type NetStatOut struct {
-	System    *rcmgr.BaseLimit           `json:",omitempty"`
-	Transient *rcmgr.BaseLimit           `json:",omitempty"`
-	Services  map[string]rcmgr.BaseLimit `json:",omitempty"`
-	Protocols map[string]rcmgr.BaseLimit `json:",omitempty"`
-	Peers     map[string]rcmgr.BaseLimit `json:",omitempty"`
+	System    *rcmgr.ResourceLimits           `json:",omitempty"`
+	Transient *rcmgr.ResourceLimits           `json:",omitempty"`
+	Services  map[string]rcmgr.ResourceLimits `json:",omitempty"`
+	Protocols map[string]rcmgr.ResourceLimits `json:",omitempty"`
+	Peers     map[string]rcmgr.ResourceLimits `json:",omitempty"`
 }
 
 func NetStat(mgr network.ResourceManager, scope string, percentage int) (NetStatOut, error) {
@@ -164,7 +149,7 @@ func NetStat(mgr network.ResourceManager, scope string, percentage int) (NetStat
 		result.System = compareLimits(scopeToLimit(&stat.System), limits.System, percentage)
 		result.Transient = compareLimits(scopeToLimit(&stat.Transient), limits.Transient, percentage)
 		if len(stat.Services) > 0 {
-			result.Services = make(map[string]rcmgr.BaseLimit, len(stat.Services))
+			result.Services = make(map[string]rcmgr.ResourceLimits, len(stat.Services))
 			for srv, stat := range stat.Services {
 				ls := limits.Services[srv]
 				fstat := compareLimits(scopeToLimit(&stat), &ls, percentage)
@@ -174,7 +159,7 @@ func NetStat(mgr network.ResourceManager, scope string, percentage int) (NetStat
 			}
 		}
 		if len(stat.Protocols) > 0 {
-			result.Protocols = make(map[string]rcmgr.BaseLimit, len(stat.Protocols))
+			result.Protocols = make(map[string]rcmgr.ResourceLimits, len(stat.Protocols))
 			for proto, stat := range stat.Protocols {
 				ls := limits.Protocols[string(proto)]
 				fstat := compareLimits(scopeToLimit(&stat), &ls, percentage)
@@ -184,7 +169,7 @@ func NetStat(mgr network.ResourceManager, scope string, percentage int) (NetStat
 			}
 		}
 		if len(stat.Peers) > 0 {
-			result.Peers = make(map[string]rcmgr.BaseLimit, len(stat.Peers))
+			result.Peers = make(map[string]rcmgr.ResourceLimits, len(stat.Peers))
 			for p, stat := range stat.Peers {
 				ls := limits.Peers[p.Pretty()]
 				fstat := compareLimits(scopeToLimit(&stat), &ls, percentage)
@@ -216,7 +201,7 @@ func NetStat(mgr network.ResourceManager, scope string, percentage int) (NetStat
 		svc := strings.TrimPrefix(scope, config.ResourceMgrServiceScopePrefix)
 		err = mgr.ViewService(svc, func(s network.ServiceScope) error {
 			stat := s.Stat()
-			result.Services = map[string]rcmgr.BaseLimit{
+			result.Services = map[string]rcmgr.ResourceLimits{
 				svc: *scopeToLimit(&stat),
 			}
 			return nil
@@ -227,7 +212,7 @@ func NetStat(mgr network.ResourceManager, scope string, percentage int) (NetStat
 		proto := strings.TrimPrefix(scope, config.ResourceMgrProtocolScopePrefix)
 		err = mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error {
 			stat := s.Stat()
-			result.Protocols = map[string]rcmgr.BaseLimit{
+			result.Protocols = map[string]rcmgr.ResourceLimits{
 				proto: *scopeToLimit(&stat),
 			}
 			return nil
@@ -242,7 +227,7 @@ func NetStat(mgr network.ResourceManager, scope string, percentage int) (NetStat
 		}
 		err = mgr.ViewPeer(pid, func(s network.PeerScope) error {
 			stat := s.Stat()
-			result.Peers = map[string]rcmgr.BaseLimit{
+			result.Peers = map[string]rcmgr.ResourceLimits{
 				p: *scopeToLimit(&stat),
 			}
 			return nil
@@ -262,48 +247,49 @@ var scopes = []string{
 	config.ResourceMgrPeerScopePrefix,
 }
 
-func scopeToLimit(s *network.ScopeStat) *rcmgr.BaseLimit {
-	return &rcmgr.BaseLimit{
-		Streams:         s.NumStreamsInbound + s.NumStreamsOutbound,
-		StreamsInbound:  s.NumStreamsInbound,
-		StreamsOutbound: s.NumStreamsOutbound,
-		Conns:           s.NumConnsInbound + s.NumConnsOutbound,
-		ConnsInbound:    s.NumConnsInbound,
-		ConnsOutbound:   s.NumConnsOutbound,
-		FD:              s.NumFD,
-		Memory:          s.Memory,
+func scopeToLimit(s *network.ScopeStat) *rcmgr.ResourceLimits {
+
+	return &rcmgr.ResourceLimits{
+		Streams:         rcmgr.LimitVal(s.NumStreamsInbound + s.NumStreamsOutbound),
+		StreamsInbound:  rcmgr.LimitVal(s.NumStreamsInbound),
+		StreamsOutbound: rcmgr.LimitVal(s.NumStreamsOutbound),
+		Conns:           rcmgr.LimitVal(s.NumConnsInbound + s.NumConnsOutbound),
+		ConnsInbound:    rcmgr.LimitVal(s.NumConnsInbound),
+		ConnsOutbound:   rcmgr.LimitVal(s.NumConnsOutbound),
+		FD:              rcmgr.LimitVal(s.NumFD),
+		Memory:          rcmgr.LimitVal64(s.Memory),
 	}
 }
 
 // compareLimits compares stat and limit.
 // If any of the stats value are equals or above the specified percentage,
 // stat object is returned.
-func compareLimits(stat, limit *rcmgr.BaseLimit, percentage int) *rcmgr.BaseLimit {
+func compareLimits(stat, limit *rcmgr.ResourceLimits, percentage int) *rcmgr.ResourceLimits {
 	if stat == nil || limit == nil {
 		return nil
 	}
 	if abovePercentage(int(stat.Memory), int(limit.Memory), percentage) {
 		return stat
 	}
-	if abovePercentage(stat.ConnsInbound, limit.ConnsInbound, percentage) {
+	if abovePercentage(int(stat.ConnsInbound), int(limit.ConnsInbound), percentage) {
 		return stat
 	}
-	if abovePercentage(stat.ConnsOutbound, limit.ConnsOutbound, percentage) {
+	if abovePercentage(int(stat.ConnsOutbound), int(limit.ConnsOutbound), percentage) {
 		return stat
 	}
-	if abovePercentage(stat.Conns, limit.Conns, percentage) {
+	if abovePercentage(int(stat.Conns), int(limit.Conns), percentage) {
 		return stat
 	}
-	if abovePercentage(stat.FD, limit.FD, percentage) {
+	if abovePercentage(int(stat.FD), int(limit.FD), percentage) {
 		return stat
 	}
-	if abovePercentage(stat.StreamsInbound, limit.StreamsInbound, percentage) {
+	if abovePercentage(int(stat.StreamsInbound), int(limit.StreamsInbound), percentage) {
 		return stat
 	}
-	if abovePercentage(stat.StreamsOutbound, limit.StreamsOutbound, percentage) {
+	if abovePercentage(int(stat.StreamsOutbound), int(limit.StreamsOutbound), percentage) {
 		return stat
 	}
-	if abovePercentage(stat.Streams, limit.Streams, percentage) {
+	if abovePercentage(int(stat.Streams), int(limit.Streams), percentage) {
 		return stat
 	}
 
@@ -322,6 +308,17 @@ func abovePercentage(v1, v2, percentage int) bool {
 	return int((float64(v1)/float64(v2))*100) >= percentage
 }
 
+var infiniteBaseLimit = rcmgr.BaseLimit{
+	Streams:         math.MaxInt,
+	StreamsInbound:  math.MaxInt,
+	StreamsOutbound: math.MaxInt,
+	Conns:           math.MaxInt,
+	ConnsInbound:    math.MaxInt,
+	ConnsOutbound:   math.MaxInt,
+	FD:              math.MaxInt,
+	Memory:          math.MaxInt64,
+}
+
 func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {
 	var result = &NetStatOut{}
 	lister, ok := mgr.(rcmgr.ResourceManagerState)
@@ -336,41 +333,41 @@ func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {
 			if err != nil {
 				return nil, err
 			}
-			result.System = &s
+			result.System = s
 		case config.ResourceMgrTransientScope:
 			s, err := NetLimit(mgr, config.ResourceMgrSystemScope)
 			if err != nil {
 				return nil, err
 			}
-			result.Transient = &s
+			result.Transient = s
 		case config.ResourceMgrServiceScopePrefix:
-			result.Services = make(map[string]rcmgr.BaseLimit)
+			result.Services = make(map[string]rcmgr.ResourceLimits)
 			for _, serv := range lister.ListServices() {
 				s, err := NetLimit(mgr, config.ResourceMgrServiceScopePrefix+serv)
 				if err != nil {
 					return nil, err
 				}
-				result.Services[serv] = s
+				result.Services[serv] = *s
 			}
 		case config.ResourceMgrProtocolScopePrefix:
-			result.Protocols = make(map[string]rcmgr.BaseLimit)
+			result.Protocols = make(map[string]rcmgr.ResourceLimits)
 			for _, prot := range lister.ListProtocols() {
 				ps := string(prot)
 				s, err := NetLimit(mgr, config.ResourceMgrProtocolScopePrefix+ps)
 				if err != nil {
 					return nil, err
 				}
-				result.Protocols[ps] = s
+				result.Protocols[ps] = *s
 			}
 		case config.ResourceMgrPeerScopePrefix:
-			result.Peers = make(map[string]rcmgr.BaseLimit)
+			result.Peers = make(map[string]rcmgr.ResourceLimits)
 			for _, peer := range lister.ListPeers() {
 				ps := peer.Pretty()
 				s, err := NetLimit(mgr, config.ResourceMgrPeerScopePrefix+ps)
 				if err != nil {
 					return nil, err
 				}
-				result.Peers[ps] = s
+				result.Peers[ps] = *s
 			}
 		}
 	}
@@ -378,8 +375,8 @@ func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {
 	return result, nil
 }
 
-func NetLimit(mgr network.ResourceManager, scope string) (rcmgr.BaseLimit, error) {
-	var result rcmgr.BaseLimit
+func NetLimit(mgr network.ResourceManager, scope string) (*rcmgr.ResourceLimits, error) {
+	var result *rcmgr.ResourceLimits
 	getLimit := func(s network.ResourceScope) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok { // NullResourceManager
@@ -388,14 +385,7 @@ func NetLimit(mgr network.ResourceManager, scope string) (rcmgr.BaseLimit, error
 		limit := limiter.Limit()
 		switch l := limit.(type) {
 		case *rcmgr.BaseLimit:
-			result.Memory = l.Memory
-			result.Streams = l.Streams
-			result.StreamsInbound = l.StreamsInbound
-			result.StreamsOutbound = l.StreamsOutbound
-			result.Conns = l.Conns
-			result.ConnsInbound = l.ConnsInbound
-			result.ConnsOutbound = l.ConnsOutbound
-			result.FD = l.FD
+			result = l.ToResourceLimits()
 		default:
 			return fmt.Errorf("unknown limit type %T", limit)
 		}
@@ -427,14 +417,15 @@ func NetLimit(mgr network.ResourceManager, scope string) (rcmgr.BaseLimit, error
 }
 
 // NetSetLimit sets new ResourceManager limits for the given scope. The limits take effect immediately, and are also persisted to the repo config.
-func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limit rcmgr.BaseLimit) error {
+func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limit *rcmgr.ResourceLimits) error {
 	setLimit := func(s network.ResourceScope) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok { // NullResourceManager
 			return ErrNoResourceMgr
 		}
 
-		limiter.SetLimit(&limit)
+		baseLimit := limit.Build(infiniteBaseLimit)
+		limiter.SetLimit(&baseLimit)
 		return nil
 	}
 
@@ -444,7 +435,7 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 	}
 
 	if cfg.Swarm.ResourceMgr.Limits == nil {
-		cfg.Swarm.ResourceMgr.Limits = &rcmgr.LimitConfig{}
+		cfg.Swarm.ResourceMgr.Limits = &rcmgr.PartialLimitConfig{}
 	}
 	configLimits := cfg.Swarm.ResourceMgr.Limits
 
@@ -461,18 +452,18 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 		err = mgr.ViewService(svc, func(s network.ServiceScope) error { return setLimit(s) })
 		setConfigFunc = func() {
 			if configLimits.Service == nil {
-				configLimits.Service = map[string]rcmgr.BaseLimit{}
+				configLimits.Service = map[string]rcmgr.ResourceLimits{}
 			}
-			configLimits.Service[svc] = limit
+			configLimits.Service[svc] = *limit
 		}
 	case strings.HasPrefix(scope, config.ResourceMgrProtocolScopePrefix):
 		proto := strings.TrimPrefix(scope, config.ResourceMgrProtocolScopePrefix)
 		err = mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error { return setLimit(s) })
 		setConfigFunc = func() {
 			if configLimits.Protocol == nil {
-				configLimits.Protocol = map[protocol.ID]rcmgr.BaseLimit{}
+				configLimits.Protocol = map[protocol.ID]rcmgr.ResourceLimits{}
 			}
-			configLimits.Protocol[protocol.ID(proto)] = limit
+			configLimits.Protocol[protocol.ID(proto)] = *limit
 		}
 	case strings.HasPrefix(scope, config.ResourceMgrPeerScopePrefix):
 		p := strings.TrimPrefix(scope, config.ResourceMgrPeerScopePrefix)
@@ -484,9 +475,9 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 		err = mgr.ViewPeer(pid, func(s network.PeerScope) error { return setLimit(s) })
 		setConfigFunc = func() {
 			if configLimits.Peer == nil {
-				configLimits.Peer = map[peer.ID]rcmgr.BaseLimit{}
+				configLimits.Peer = map[peer.ID]rcmgr.ResourceLimits{}
 			}
-			configLimits.Peer[pid] = limit
+			configLimits.Peer[pid] = *limit
 		}
 	default:
 		return fmt.Errorf("invalid scope %q", scope)
@@ -497,7 +488,7 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 	}
 
 	if cfg.Swarm.ResourceMgr.Limits == nil {
-		cfg.Swarm.ResourceMgr.Limits = &rcmgr.LimitConfig{}
+		cfg.Swarm.ResourceMgr.Limits = &rcmgr.PartialLimitConfig{}
 	}
 	setConfigFunc()
 
@@ -509,16 +500,18 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 }
 
 // NetResetLimit resets ResourceManager limits to defaults. The limits take effect immediately, and are also persisted to the repo config.
-func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (rcmgr.BaseLimit, error) {
-	var result rcmgr.BaseLimit
+func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (*rcmgr.ResourceLimits, error) {
+	var result *rcmgr.ResourceLimits
 
-	setLimit := func(s network.ResourceScope, l rcmgr.Limit) error {
+	setLimit := func(s network.ResourceScope, limit *rcmgr.ResourceLimits) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok {
 			return ErrNoResourceMgr
 		}
 
-		limiter.SetLimit(l)
+		baseLimit := limit.Build(infiniteBaseLimit)
+		result = limit
+		limiter.SetLimit(&baseLimit)
 		return nil
 	}
 
@@ -527,53 +520,43 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 		return result, fmt.Errorf("reading config to reset limit: %w", err)
 	}
 
-	defaults, err := createDefaultLimitConfig(cfg.Swarm)
+	clc, err := createDefaultLimitConfig(cfg.Swarm, false)
 	if err != nil {
 		return result, fmt.Errorf("creating default limit config: %w", err)
 	}
 
+	defaults := clc.ToLimitConfig()
+
 	if cfg.Swarm.ResourceMgr.Limits == nil {
-		cfg.Swarm.ResourceMgr.Limits = &rcmgr.LimitConfig{}
+		cfg.Swarm.ResourceMgr.Limits = &rcmgr.PartialLimitConfig{}
 	}
 	configLimits := cfg.Swarm.ResourceMgr.Limits
 
-	var setConfigFunc func() rcmgr.BaseLimit
 	switch {
 	case scope == config.ResourceMgrSystemScope:
-		err = mgr.ViewSystem(func(s network.ResourceScope) error { return setLimit(s, &defaults.System) })
-		setConfigFunc = func() rcmgr.BaseLimit {
-			configLimits.System = defaults.System
-			return defaults.System
-		}
+		err = mgr.ViewSystem(func(s network.ResourceScope) error { return setLimit(s, defaults.System) })
+		configLimits.System = nil
 	case scope == config.ResourceMgrTransientScope:
-		err = mgr.ViewTransient(func(s network.ResourceScope) error { return setLimit(s, &defaults.Transient) })
-		setConfigFunc = func() rcmgr.BaseLimit {
-			configLimits.Transient = defaults.Transient
-			return defaults.Transient
-		}
+		err = mgr.ViewTransient(func(s network.ResourceScope) error { return setLimit(s, defaults.Transient) })
+		configLimits.Transient = nil
 	case strings.HasPrefix(scope, config.ResourceMgrServiceScopePrefix):
 		svc := strings.TrimPrefix(scope, config.ResourceMgrServiceScopePrefix)
 
-		err = mgr.ViewService(svc, func(s network.ServiceScope) error { return setLimit(s, &defaults.ServiceDefault) })
-		setConfigFunc = func() rcmgr.BaseLimit {
-			if configLimits.Service == nil {
-				configLimits.Service = map[string]rcmgr.BaseLimit{}
-			}
-			configLimits.Service[svc] = defaults.ServiceDefault
-			return defaults.ServiceDefault
+		err = mgr.ViewService(svc, func(s network.ServiceScope) error { return setLimit(s, defaults.ServiceDefault) })
+		if configLimits.Service == nil {
+			configLimits.Service = map[string]rcmgr.ResourceLimits{}
 		}
+
+		delete(configLimits.Service, svc)
 	case strings.HasPrefix(scope, config.ResourceMgrProtocolScopePrefix):
 		proto := strings.TrimPrefix(scope, config.ResourceMgrProtocolScopePrefix)
 
-		err = mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error { return setLimit(s, &defaults.ProtocolDefault) })
-		setConfigFunc = func() rcmgr.BaseLimit {
-			if configLimits.Protocol == nil {
-				configLimits.Protocol = map[protocol.ID]rcmgr.BaseLimit{}
-			}
-			configLimits.Protocol[protocol.ID(proto)] = defaults.ProtocolDefault
-
-			return defaults.ProtocolDefault
+		err = mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error { return setLimit(s, defaults.ProtocolDefault) })
+		if configLimits.Protocol == nil {
+			configLimits.Protocol = map[protocol.ID]rcmgr.ResourceLimits{}
 		}
+
+		delete(configLimits.Protocol, protocol.ID(proto))
 	case strings.HasPrefix(scope, config.ResourceMgrPeerScopePrefix):
 		p := strings.TrimPrefix(scope, config.ResourceMgrPeerScopePrefix)
 
@@ -583,15 +566,12 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 			return result, fmt.Errorf("invalid peer ID: %q: %w", p, err)
 		}
 
-		err = mgr.ViewPeer(pid, func(s network.PeerScope) error { return setLimit(s, &defaults.PeerDefault) })
-		setConfigFunc = func() rcmgr.BaseLimit {
-			if configLimits.Peer == nil {
-				configLimits.Peer = map[peer.ID]rcmgr.BaseLimit{}
-			}
-			configLimits.Peer[pid] = defaults.PeerDefault
-
-			return defaults.PeerDefault
+		err = mgr.ViewPeer(pid, func(s network.PeerScope) error { return setLimit(s, defaults.PeerDefault) })
+		if configLimits.Peer == nil {
+			configLimits.Peer = map[peer.ID]rcmgr.ResourceLimits{}
 		}
+
+		delete(configLimits.Peer, pid)
 	default:
 		return result, fmt.Errorf("invalid scope %q", scope)
 	}
@@ -600,8 +580,6 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 		return result, fmt.Errorf("resetting new limits on resource manager: %w", err)
 	}
 
-	result = setConfigFunc()
-
 	if err := repo.SetConfig(cfg); err != nil {
 		return result, fmt.Errorf("writing new limits to repo config: %w", err)
 	}
@@ -609,10 +587,13 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (r
 	return result, nil
 }
 
-func ensureConnMgrMakeSenseVsResourceMgr(rcm rcmgr.LimitConfig, cmgr config.ConnMgr) error {
+func ensureConnMgrMakeSenseVsResourceMgr(concreteLimits rcmgr.ConcreteLimitConfig, cmgr config.ConnMgr) error {
 	if cmgr.Type.WithDefault(config.DefaultConnMgrType) == "none" {
 		return nil // none connmgr, no checks to do
 	}
+
+	rcm := concreteLimits.ToLimitConfig()
+
 	highWater := cmgr.HighWater.WithDefault(config.DefaultConnMgrHighWater)
 	if rcm.System.ConnsInbound <= rcm.System.Conns {
 		if int64(rcm.System.ConnsInbound) <= highWater {
