@@ -682,7 +682,7 @@ Type: `string` (url)
 
 ### `Gateway.Writable`
 
-A boolean to configure whether the gateway is writeable or not.
+**DEPRECATED**: A boolean to configure whether the gateway is writeable or not.
 
 Default: `false`
 
