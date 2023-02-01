@@ -16,7 +16,6 @@ import (
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	rcmgrObs "github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 	"github.com/multiformats/go-multiaddr"
-	"go.opencensus.io/stats/view"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/kubo/config"
@@ -98,11 +97,6 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				}
 				ropts = append(ropts, rcmgr.WithAllowlistedMultiaddrs(mas))
 				log.Infof("Setting allowlist to: %v", mas)
-			}
-
-			err = view.Register(rcmgrObs.DefaultViews...)
-			if err != nil {
-				return nil, opts, fmt.Errorf("registering rcmgr obs views: %w", err)
 			}
 
 			if os.Getenv("LIBP2P_DEBUG_RCMGR") != "" {
