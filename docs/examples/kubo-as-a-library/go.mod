@@ -7,7 +7,7 @@ go 1.18
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/go-libipfs v0.4.1-0.20230202010411-6399b73f974c
+	github.com/ipfs/go-libipfs v0.4.1-0.20230206093736-276ccbab8543
 	github.com/ipfs/interface-go-ipfs-core v0.10.0
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.24.2

@@ -11,10 +11,13 @@ import (
 	"github.com/ipfs/go-libipfs/blocks"
 	"github.com/ipfs/go-libipfs/files"
 	"github.com/ipfs/go-libipfs/gateway"
+	"github.com/ipfs/go-namesys"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
+	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 	version "github.com/ipfs/kubo"
+	config "github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
@@ -40,52 +43,67 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 
 		gateway.AddAccessControlHeaders(headers)
 
-		offlineAPI, err := api.WithOptions(options.Api.Offline(true))
+		gwConfig := gateway.Config{
+			Headers: headers,
+		}
+
+		gwAPI, err := newGatewayAPI(n)
 		if err != nil {
 			return nil, err
 		}
 
-		gatewayConfig := gateway.Config{
-			Headers: headers,
-		}
+		gw := gateway.NewHandler(gwConfig, gwAPI)
+		gw = otelhttp.NewHandler(gw, "Gateway.Request")
 
-		gatewayAPI := &gatewayAPI{
-			api:        api,
-			offlineAPI: offlineAPI,
-		}
+		// By default, our HTTP handler is the gateway handler.
+		handler := gw.ServeHTTP
 
-		gateway := gateway.NewHandler(gatewayConfig, gatewayAPI)
-		gateway = otelhttp.NewHandler(gateway, "Gateway.Request")
-
-		var writableGateway *writableGatewayHandler
+		// If we have the writable gateway enabled, we have to replace our
+		// http handler by a handler that takes care of the different methods.
 		if writable {
-			writableGateway = &writableGatewayHandler{
-				config: &gatewayConfig,
+			writableGw := &writableGatewayHandler{
+				config: &gwConfig,
 				api:    api,
+			}
+
+			handler = func(w http.ResponseWriter, r *http.Request) {
+				switch r.Method {
+				case http.MethodPost:
+					writableGw.postHandler(w, r)
+				case http.MethodDelete:
+					writableGw.deleteHandler(w, r)
+				case http.MethodPut:
+					writableGw.putHandler(w, r)
+				default:
+					gw.ServeHTTP(w, r)
+				}
 			}
 		}
 
 		for _, p := range paths {
-			mux.HandleFunc(p+"/", func(w http.ResponseWriter, r *http.Request) {
-				if writable {
-					switch r.Method {
-					case http.MethodPost:
-						writableGateway.postHandler(w, r)
-					case http.MethodDelete:
-						writableGateway.deleteHandler(w, r)
-					case http.MethodPut:
-						writableGateway.putHandler(w, r)
-					default:
-						gateway.ServeHTTP(w, r)
-					}
-
-					return
-				}
-
-				gateway.ServeHTTP(w, r)
-			})
+			mux.HandleFunc(p+"/", handler)
 		}
+
 		return mux, nil
+	}
+}
+
+func HostnameOption() ServeOption {
+	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			return nil, err
+		}
+
+		gwAPI, err := newGatewayAPI(n)
+		if err != nil {
+			return nil, err
+		}
+
+		publicGateways := convertPublicGateways(cfg.Gateway.PublicGateways)
+		childMux := http.NewServeMux()
+		mux.HandleFunc("/", gateway.WithHostname(childMux, gwAPI, publicGateways, cfg.Gateway.NoDNSLink).ServeHTTP)
+		return childMux, nil
 	}
 }
 
@@ -101,8 +119,31 @@ func VersionOption() ServeOption {
 }
 
 type gatewayAPI struct {
+	ns         namesys.NameSystem
 	api        iface.CoreAPI
 	offlineAPI iface.CoreAPI
+}
+
+func newGatewayAPI(n *core.IpfsNode) (*gatewayAPI, error) {
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	api, err := coreapi.NewCoreAPI(n, options.Api.FetchBlocks(!cfg.Gateway.NoFetch))
+	if err != nil {
+		return nil, err
+	}
+	offlineAPI, err := api.WithOptions(options.Api.Offline(true))
+	if err != nil {
+		return nil, err
+	}
+
+	return &gatewayAPI{
+		ns:         n.Namesys,
+		api:        api,
+		offlineAPI: offlineAPI,
+	}, nil
 }
 
 func (gw *gatewayAPI) GetUnixFsNode(ctx context.Context, pth path.Resolved) (files.Node, error) {
@@ -137,6 +178,14 @@ func (gw *gatewayAPI) GetIPNSRecord(ctx context.Context, c cid.Cid) ([]byte, err
 	return gw.api.Routing().Get(ctx, "/ipns/"+c.String())
 }
 
+func (gw *gatewayAPI) GetDNSLinkRecord(ctx context.Context, hostname string) (path.Path, error) {
+	p, err := gw.ns.Resolve(ctx, "/ipns/"+hostname, nsopts.Depth(1))
+	if err == namesys.ErrResolveRecursion {
+		err = nil
+	}
+	return path.New(p.String()), err
+}
+
 func (gw *gatewayAPI) IsCached(ctx context.Context, pth path.Path) bool {
 	_, err := gw.offlineAPI.Block().Stat(ctx, pth)
 	return err == nil
@@ -144,4 +193,43 @@ func (gw *gatewayAPI) IsCached(ctx context.Context, pth path.Path) bool {
 
 func (gw *gatewayAPI) ResolvePath(ctx context.Context, pth path.Path) (path.Resolved, error) {
 	return gw.api.ResolvePath(ctx, pth)
+}
+
+var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"}
+
+var subdomainGatewaySpec = &gateway.Specification{
+	Paths:         defaultPaths,
+	UseSubdomains: true,
+}
+
+var defaultKnownGateways = map[string]*gateway.Specification{
+	"localhost": subdomainGatewaySpec,
+}
+
+func convertPublicGateways(publicGateways map[string]*config.GatewaySpec) map[string]*gateway.Specification {
+	gws := map[string]*gateway.Specification{}
+
+	// First, implicit defaults such as subdomain gateway on localhost
+	for hostname, gw := range defaultKnownGateways {
+		gws[hostname] = gw
+	}
+
+	// Then apply values from Gateway.PublicGateways, if present in the config
+	for hostname, gw := range publicGateways {
+		if gw == nil {
+			// Remove any implicit defaults, if present. This is useful when one
+			// wants to disable subdomain gateway on localhost etc.
+			delete(gws, hostname)
+			continue
+		}
+
+		gws[hostname] = &gateway.Specification{
+			Paths:         gw.Paths,
+			NoDNSLink:     gw.NoDNSLink,
+			UseSubdomains: gw.UseSubdomains,
+			InlineDNSLink: gw.InlineDNSLink.WithDefault(config.DefaultInlineDNSLink),
+		}
+	}
+
+	return gws
 }
