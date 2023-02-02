@@ -34,6 +34,10 @@ test_expect_success "ipfs daemon up" '
   test_fsh cat poll_apierr || test_fsh cat poll_apiout
 '
 
+test_expect_success "deprecation notice is printed when Gateway.Writable=true" '
+   test_should_contain "legacy Gateway.Writable is DEPRECATED and will be removed or changed in future versions. If you are still using this, provide feedback in https://github.com/ipfs/specs/issues/375" daemon_err
+'
+
 test_expect_success "HTTP gateway gives access to sample file" '
   curl -s -o welcome "http://$GWAY_ADDR/ipfs/$HASH_WELCOME_DOCS/readme" &&
   grep "Hello and Welcome to IPFS!" welcome
