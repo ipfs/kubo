@@ -10,9 +10,9 @@ import (
 	"path"
 	"sort"
 	"sync"
+	"text/tabwriter"
 	"time"
 
-	"github.com/ipfs/go-libipfs/files"
 	"github.com/ipfs/kubo/commands"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -57,8 +57,10 @@ ipfs peers in the internet.
 		"filters":    swarmFiltersCmd,
 		"peers":      swarmPeersCmd,
 		"peering":    swarmPeeringCmd,
-		"stats":      swarmStatsCmd, // libp2p Network Resource Manager
-		"limit":      swarmLimitCmd, // libp2p Network Resource Manager
+		"stats":      swarmStatsCmd,     // libp2p Network Resource Manager
+		"limit":      swarmLimitCmd,     // libp2p Network Resource Manager
+		"resources":  swarmResourcesCmd, // libp2p Network Resource Manager
+
 	},
 }
 
@@ -326,27 +328,10 @@ var swarmPeersCmd = &cmds.Command{
 var swarmStatsCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Report resource usage for a scope.",
-		LongDescription: `Report resource usage for a scope.
-The scope can be one of the following:
-- system        -- reports the system aggregate resource usage.
-- transient     -- reports the transient resource usage.
-- svc:<service> -- reports the resource usage of a specific service.
-- proto:<proto> -- reports the resource usage of a specific protocol.
-- peer:<peer>   -- reports the resource usage of a specific peer.
-- all           -- reports the resource usage for all currently active scopes.
-
+		Tagline: "Report resource usage reported by libp2p Resource Manager.",
+		LongDescription: `Report resource usage reported by libp2p Resource Manager.
 The output of this command is JSON.
-
-To see all resources that are close to hitting their respective limit, one can do something like:
-  ipfs swarm stats --min-used-limit-perc=90 all
 `},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("scope", true, false, "scope of the stat report"),
-	},
-	Options: []cmds.Option{
-		cmds.IntOption(swarmUsedResourcesPercentageName, "Only display resources that are using above the specified percentage of their respective limit"),
-	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -357,21 +342,13 @@ To see all resources that are close to hitting their respective limit, one can d
 			return libp2p.ErrNoResourceMgr
 		}
 
-		if len(req.Arguments) != 1 {
-			return fmt.Errorf("must specify exactly one scope")
+		rapi, ok := node.ResourceManager.(rcmgr.ResourceManagerState)
+		if !ok { // NullResourceManager
+			return libp2p.ErrNoResourceMgr
 		}
 
-		percentage, _ := req.Options[swarmUsedResourcesPercentageName].(int)
-		scope := req.Arguments[0]
-
-		if percentage != 0 && scope != "all" {
-			return fmt.Errorf("%q can only be used when scope is %q", swarmUsedResourcesPercentageName, "all")
-		}
-
-		result, err := libp2p.NetStat(node.ResourceManager, scope, percentage)
-		if err != nil {
-			return err
-		}
+		stats := rapi.Stat()
+		result := libp2p.StatToLimitConfig(stats).ToPartialLimitConfig()
 
 		b := new(bytes.Buffer)
 		enc := json.NewEncoder(b)
@@ -389,33 +366,10 @@ To see all resources that are close to hitting their respective limit, one can d
 var swarmLimitCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Get or set resource limits for a scope.",
-		LongDescription: `Get or set resource limits for a scope.
-The scope can be one of the following:
-- all           -- all limits actually being applied.
-- system        -- limits for the system aggregate resource usage.
-- transient     -- limits for the transient resource usage.
-- svc:<service> -- limits for the resource usage of a specific service.
-- proto:<proto> -- limits for the resource usage of a specific protocol.
-- peer:<peer>   -- limits for the resource usage of a specific peer.
-
+		Tagline: "Get actual limits reported by libp2p Resource Manager.",
+		LongDescription: `Get actual limits reported by libp2p Resource Manager.
 The output of this command is JSON.
-
-It is possible to use this command to inspect and tweak limits at runtime:
-
-	$ ipfs swarm limit system > limit.json
-	$ vi limit.json
-	$ ipfs swarm limit system limit.json
-
-Changes made via command line are persisted in the Swarm.ResourceMgr.Limits field of the $IPFS_PATH/config file.
 `},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("scope", true, false, "scope of the limit"),
-		cmds.FileArg("limit.json", false, false, "limits to be set").EnableStdin(),
-	},
-	Options: []cmds.Option{
-		cmds.BoolOption(swarmResetLimitsOptionName, "reset limit to default"),
-	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -426,51 +380,19 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 			return libp2p.ErrNoResourceMgr
 		}
 
-		scope := req.Arguments[0]
-
-		//  set scope limit to new values (when limit.json is passed as a second arg)
-		if req.Files != nil {
-			var newLimit rcmgr.ResourceLimits
-			it := req.Files.Entries()
-			if it.Next() {
-				file := files.FileFromEntry(it)
-				if file == nil {
-					return errors.New("expected a JSON file")
-				}
-
-				r := io.LimitReader(file, 32*1024*1024) // 32MiB
-
-				if err := json.NewDecoder(r).Decode(&newLimit); err != nil {
-					return fmt.Errorf("decoding JSON as ResourceMgrScopeConfig: %w", err)
-				}
-				return libp2p.NetSetLimit(node.ResourceManager, node.Repo, scope, newLimit)
-			}
-			if err := it.Err(); err != nil {
-				return fmt.Errorf("error opening limit JSON file: %w", err)
-			}
-		}
-
-		var result interface{}
-		switch _, reset := req.Options[swarmResetLimitsOptionName]; {
-		case reset:
-			result, err = libp2p.NetResetLimit(node.ResourceManager, node.Repo, scope)
-		case scope == "all":
-			result, err = libp2p.NetLimitAll(node.ResourceManager)
-		default:
-			// get scope limit
-			result, err = libp2p.NetLimit(node.ResourceManager, scope)
-		}
+		cfg, err := node.Repo.Config()
 		if err != nil {
 			return err
 		}
 
-		if base, ok := result.(rcmgr.BaseLimit); ok {
-			result = base.ToResourceLimits()
+		result, _, err := libp2p.LimitConfig(cfg.Swarm)
+		if err != nil {
+			return err
 		}
 
 		b := new(bytes.Buffer)
 		enc := json.NewEncoder(b)
-		err = enc.Encode(result)
+		err = enc.Encode(result.ToPartialLimitConfig())
 		if err != nil {
 			return err
 		}
@@ -479,6 +401,65 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 	Encoders: cmds.EncoderMap{
 		cmds.Text: HumanJSONEncoder,
 	},
+}
+
+var swarmResourcesCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Get a summary about all resources in use by libp2p Resource Manager.",
+		LongDescription: `Get a summary about all resources in use by libp2p Resource Manager.
+The output of this command is JSON.
+`},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		if node.ResourceManager == nil {
+			return libp2p.ErrNoResourceMgr
+		}
+
+		cfg, err := node.Repo.Config()
+		if err != nil {
+			return err
+		}
+
+		defaultConfig, _, err := libp2p.LimitConfig(cfg.Swarm)
+		if err != nil {
+			return err
+		}
+
+		rapi, ok := node.ResourceManager.(rcmgr.ResourceManagerState)
+		if !ok { // NullResourceManager
+			return libp2p.ErrNoResourceMgr
+		}
+
+		stats := rapi.Stat()
+		statsConfig := libp2p.StatToLimitConfig(stats)
+
+		return cmds.EmitOnce(res, libp2p.LimitConfigsToInfo(defaultConfig, statsConfig))
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ris libp2p.ResourceInfos) error {
+			tw := tabwriter.NewWriter(w, 30, 8, 0, '\t', 0)
+			defer tw.Flush()
+
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t\n", "scope name", "limit name", "limit", "usage", "percent usage")
+			for _, ri := range ris {
+				fmt.Fprintf(tw, "%s\t%s\t%d\t%d\t%.1f%%\t\n",
+					ri.ScopeName,
+					ri.LimitName,
+					ri.Limit,
+					ri.CurrentUsage,
+					(float32(ri.CurrentUsage)/float32(ri.Limit))*100,
+				)
+			}
+
+			return nil
+		}),
+	},
+	Type: libp2p.ResourceInfos{},
 }
 
 type streamInfo struct {

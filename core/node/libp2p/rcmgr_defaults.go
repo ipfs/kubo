@@ -46,19 +46,18 @@ var noLimitIncrease = rcmgr.BaseLimitIncrease{
 // createDefaultLimitConfig creates LimitConfig to pass to libp2p's resource manager.
 // The defaults follow the documentation in docs/libp2p-resource-management.md.
 // Any changes in the logic here should be reflected there.
-func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.ConcreteLimitConfig, error) {
+func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.ConcreteLimitConfig, string, error) {
 	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 2)
 	maxMemoryString := cfg.ResourceMgr.MaxMemory.WithDefault(maxMemoryDefaultString)
 	maxMemory, err := humanize.ParseBytes(maxMemoryString)
 	if err != nil {
-		return rcmgr.ConcreteLimitConfig{}, err
+		return rcmgr.ConcreteLimitConfig{}, "", err
 	}
 
 	maxMemoryMB := maxMemory / (1024 * 1024)
 	maxFD := int(cfg.ResourceMgr.MaxFileDescriptors.WithDefault(int64(fd.GetNumFDs()) / 2))
 
-	// We want to see this message on startup, that's why we are using fmt instead of log.
-	fmt.Printf(`
+	msg := fmt.Sprintf(`
 Computing default go-libp2p Resource Manager limits based on:
     - 'Swarm.ResourceMgr.MaxMemory': %q
     - 'Swarm.ResourceMgr.MaxFileDescriptors': %d
@@ -195,5 +194,5 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 		defaultLimitConfig.System.ConnsInbound = rcmgr.LimitVal(maxInboundConns)
 	}
 
-	return defaultLimitConfig.Build(orig), nil
+	return defaultLimitConfig.Build(orig), msg, nil
 }

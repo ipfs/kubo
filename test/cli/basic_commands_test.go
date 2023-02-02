@@ -88,6 +88,7 @@ func TestAllSubcommandsAcceptHelp(t *testing.T) {
 	t.Parallel()
 	node := harness.NewT(t).NewNode()
 	for _, cmd := range node.IPFSCommands() {
+		cmd := cmd
 		t.Run(fmt.Sprintf("command %q accepts help", cmd), func(t *testing.T) {
 			t.Parallel()
 			splitCmd := strings.Split(cmd, " ")[1:]

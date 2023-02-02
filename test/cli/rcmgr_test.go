@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/test/cli/harness"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/stretchr/testify/assert"
@@ -141,7 +140,7 @@ func TestRcmgr(t *testing.T) {
 			res := node.RunIPFS("swarm", "stats", "all", "--enc=json")
 			require.Equal(t, 0, res.ExitCode())
 
-			stats := libp2p.NetStatOut{}
+			stats := rcmgr.PartialLimitConfig{}
 			err := json.Unmarshal(res.Stdout.Bytes(), &stats)
 			require.NoError(t, err)
 
