@@ -11,7 +11,7 @@ import (
 	"github.com/ipfs/kubo/core/node/libp2p/fd"
 )
 
-var infiniteResourceLimit = &rcmgr.ResourceLimits{
+var infiniteResourceLimit = rcmgr.ResourceLimits{
 	Streams:         rcmgr.Unlimited,
 	StreamsInbound:  rcmgr.Unlimited,
 	StreamsOutbound: rcmgr.Unlimited,
@@ -61,7 +61,7 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 	systemConnsInbound := int(1 * maxMemoryMB)
 
 	partialLimits := rcmgr.PartialLimitConfig{
-		System: &rcmgr.ResourceLimits{
+		System: rcmgr.ResourceLimits{
 			Memory: rcmgr.LimitVal64(maxMemory),
 			FD:     rcmgr.LimitVal(maxFD),
 
@@ -78,7 +78,7 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 		// Only established connections do.
 		// As a result, we can't rely on System.Memory to protect us from a bunch of transient connection being opened.
 		// We limit the same values as the System scope, but only allow the Transient scope to take 25% of what is allowed for the System scope.
-		Transient: &rcmgr.ResourceLimits{
+		Transient: rcmgr.ResourceLimits{
 			Memory: rcmgr.LimitVal64(maxMemory / 4),
 			FD:     rcmgr.LimitVal(maxFD / 4),
 
@@ -115,7 +115,7 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 		// We specify this limit against unintentional DoS attacks (e.g., a peer has a bug and is sending too much traffic intentionally).
 		// In that case we want to keep that peer's resource consumption contained.
 		// To keep this simple, we only constrain inbound connections and streams.
-		PeerDefault: &rcmgr.ResourceLimits{
+		PeerDefault: rcmgr.ResourceLimits{
 			Memory:          rcmgr.Unlimited64,
 			FD:              rcmgr.Unlimited,
 			Conns:           rcmgr.Unlimited,

@@ -333,13 +333,13 @@ func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {
 			if err != nil {
 				return nil, err
 			}
-			result.System = s
+			result.System = &s
 		case config.ResourceMgrTransientScope:
 			s, err := NetLimit(mgr, config.ResourceMgrSystemScope)
 			if err != nil {
 				return nil, err
 			}
-			result.Transient = s
+			result.Transient = &s
 		case config.ResourceMgrServiceScopePrefix:
 			result.Services = make(map[string]rcmgr.ResourceLimits)
 			for _, serv := range lister.ListServices() {
@@ -347,7 +347,7 @@ func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {
 				if err != nil {
 					return nil, err
 				}
-				result.Services[serv] = *s
+				result.Services[serv] = s
 			}
 		case config.ResourceMgrProtocolScopePrefix:
 			result.Protocols = make(map[string]rcmgr.ResourceLimits)
@@ -357,7 +357,7 @@ func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {
 				if err != nil {
 					return nil, err
 				}
-				result.Protocols[ps] = *s
+				result.Protocols[ps] = s
 			}
 		case config.ResourceMgrPeerScopePrefix:
 			result.Peers = make(map[string]rcmgr.ResourceLimits)
@@ -367,7 +367,7 @@ func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {
 				if err != nil {
 					return nil, err
 				}
-				result.Peers[ps] = *s
+				result.Peers[ps] = s
 			}
 		}
 	}
@@ -375,8 +375,8 @@ func NetLimitAll(mgr network.ResourceManager) (*NetStatOut, error) {
 	return result, nil
 }
 
-func NetLimit(mgr network.ResourceManager, scope string) (*rcmgr.ResourceLimits, error) {
-	var result *rcmgr.ResourceLimits
+func NetLimit(mgr network.ResourceManager, scope string) (rcmgr.ResourceLimits, error) {
+	var result rcmgr.ResourceLimits
 	getLimit := func(s network.ResourceScope) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok { // NullResourceManager
@@ -417,7 +417,7 @@ func NetLimit(mgr network.ResourceManager, scope string) (*rcmgr.ResourceLimits,
 }
 
 // NetSetLimit sets new ResourceManager limits for the given scope. The limits take effect immediately, and are also persisted to the repo config.
-func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limit *rcmgr.ResourceLimits) error {
+func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limit rcmgr.ResourceLimits) error {
 	setLimit := func(s network.ResourceScope) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok { // NullResourceManager
@@ -454,7 +454,7 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 			if configLimits.Service == nil {
 				configLimits.Service = map[string]rcmgr.ResourceLimits{}
 			}
-			configLimits.Service[svc] = *limit
+			configLimits.Service[svc] = limit
 		}
 	case strings.HasPrefix(scope, config.ResourceMgrProtocolScopePrefix):
 		proto := strings.TrimPrefix(scope, config.ResourceMgrProtocolScopePrefix)
@@ -463,7 +463,7 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 			if configLimits.Protocol == nil {
 				configLimits.Protocol = map[protocol.ID]rcmgr.ResourceLimits{}
 			}
-			configLimits.Protocol[protocol.ID(proto)] = *limit
+			configLimits.Protocol[protocol.ID(proto)] = limit
 		}
 	case strings.HasPrefix(scope, config.ResourceMgrPeerScopePrefix):
 		p := strings.TrimPrefix(scope, config.ResourceMgrPeerScopePrefix)
@@ -477,7 +477,7 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 			if configLimits.Peer == nil {
 				configLimits.Peer = map[peer.ID]rcmgr.ResourceLimits{}
 			}
-			configLimits.Peer[pid] = *limit
+			configLimits.Peer[pid] = limit
 		}
 	default:
 		return fmt.Errorf("invalid scope %q", scope)
@@ -500,10 +500,10 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 }
 
 // NetResetLimit resets ResourceManager limits to defaults. The limits take effect immediately, and are also persisted to the repo config.
-func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (*rcmgr.ResourceLimits, error) {
-	var result *rcmgr.ResourceLimits
+func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (rcmgr.ResourceLimits, error) {
+	var result rcmgr.ResourceLimits
 
-	setLimit := func(s network.ResourceScope, limit *rcmgr.ResourceLimits) error {
+	setLimit := func(s network.ResourceScope, limit rcmgr.ResourceLimits) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok {
 			return ErrNoResourceMgr
@@ -535,10 +535,10 @@ func NetResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) (*
 	switch {
 	case scope == config.ResourceMgrSystemScope:
 		err = mgr.ViewSystem(func(s network.ResourceScope) error { return setLimit(s, defaults.System) })
-		configLimits.System = nil
+		configLimits.System = rcmgr.ResourceLimits{}
 	case scope == config.ResourceMgrTransientScope:
 		err = mgr.ViewTransient(func(s network.ResourceScope) error { return setLimit(s, defaults.Transient) })
-		configLimits.Transient = nil
+		configLimits.Transient = rcmgr.ResourceLimits{}
 	case strings.HasPrefix(scope, config.ResourceMgrServiceScopePrefix):
 		svc := strings.TrimPrefix(scope, config.ResourceMgrServiceScopePrefix)
 
@@ -595,7 +595,7 @@ func ensureConnMgrMakeSenseVsResourceMgr(concreteLimits rcmgr.ConcreteLimitConfi
 	rcm := concreteLimits.ToLimitConfig()
 
 	highWater := cmgr.HighWater.WithDefault(config.DefaultConnMgrHighWater)
-	if rcm.System.ConnsInbound <= rcm.System.Conns {
+	if rcm.System.ConnsInbound <= rcm.System.Conns && rcm.System.ConnsInbound != rcmgr.Unlimited {
 		if int64(rcm.System.ConnsInbound) <= highWater {
 			// nolint
 			return fmt.Errorf(`
@@ -603,14 +603,14 @@ Unable to initialize libp2p due to conflicting limit configuration:
 ResourceMgr.Limits.System.ConnsInbound (%d) must be bigger than ConnMgr.HighWater (%d)
 `, rcm.System.ConnsInbound, highWater)
 		}
-	} else if int64(rcm.System.Conns) <= highWater {
+	} else if int64(rcm.System.Conns) <= highWater && rcm.System.Conns != rcmgr.Unlimited {
 		// nolint
 		return fmt.Errorf(`
 Unable to initialize libp2p due to conflicting limit configuration:
 ResourceMgr.Limits.System.Conns (%d) must be bigger than ConnMgr.HighWater (%d)
 `, rcm.System.Conns, highWater)
 	}
-	if rcm.System.StreamsInbound <= rcm.System.Streams {
+	if rcm.System.StreamsInbound <= rcm.System.Streams && rcm.System.StreamsInbound != rcmgr.Unlimited {
 		if int64(rcm.System.StreamsInbound) <= highWater {
 			// nolint
 			return fmt.Errorf(`
@@ -618,7 +618,7 @@ Unable to initialize libp2p due to conflicting limit configuration:
 ResourceMgr.Limits.System.StreamsInbound (%d) must be bigger than ConnMgr.HighWater (%d)
 `, rcm.System.StreamsInbound, highWater)
 		}
-	} else if int64(rcm.System.Streams) <= highWater {
+	} else if int64(rcm.System.Streams) <= highWater && rcm.System.Streams != rcmgr.Unlimited {
 		// nolint
 		return fmt.Errorf(`
 Unable to initialize libp2p due to conflicting limit configuration:

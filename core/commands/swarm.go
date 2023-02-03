@@ -430,7 +430,7 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 
 		//  set scope limit to new values (when limit.json is passed as a second arg)
 		if req.Files != nil {
-			var newLimit *rcmgr.ResourceLimits
+			var newLimit rcmgr.ResourceLimits
 			it := req.Files.Entries()
 			if it.Next() {
 				file := files.FileFromEntry(it)

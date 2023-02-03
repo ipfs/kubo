@@ -17,7 +17,7 @@ import (
 func TestLoggingResourceManager(t *testing.T) {
 	clock := clock.NewMock()
 	partialLimits := rcmgr.PartialLimitConfig{
-		System: &rcmgr.ResourceLimits{
+		System: rcmgr.ResourceLimits{
 			Conns:         1,
 			ConnsInbound:  1,
 			ConnsOutbound: 1,
