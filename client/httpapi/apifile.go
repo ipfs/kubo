@@ -7,7 +7,7 @@ import (
 	"io"
 
 	"github.com/ipfs/go-cid"
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-libipfs/files"
 	unixfs "github.com/ipfs/go-unixfs"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )

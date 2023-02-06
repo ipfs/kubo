@@ -195,3 +195,7 @@ func (api *HttpApi) Swarm() iface.SwarmAPI {
 func (api *HttpApi) PubSub() iface.PubSubAPI {
 	return (*PubsubAPI)(api)
 }
+
+func (api *HttpApi) Routing() iface.RoutingAPI {
+	return (*RoutingAPI)(api)
+}
