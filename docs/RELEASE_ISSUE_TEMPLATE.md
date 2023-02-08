@@ -29,6 +29,8 @@ As usual, this release includes important fixes, some of which may be critical f
 
 ### Required
 
+- [ ] Do we need to make any changes to the [infrastructure configuration](https://github.com/protocol/bifrost-infra/tree/master/ansible/inventories/bifrost/group_vars)?
+
 ### Nice to have
 
 ## 🔦 Highlights
