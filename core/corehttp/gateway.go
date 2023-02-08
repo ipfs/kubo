@@ -175,7 +175,7 @@ func (gw *gatewayAPI) GetBlock(ctx context.Context, cid cid.Cid) (blocks.Block, 
 }
 
 func (gw *gatewayAPI) GetIPNSRecord(ctx context.Context, c cid.Cid) ([]byte, error) {
-	return gw.api.Routing().Get(ctx, "/ipns/"+c.String())
+	return gw.api.Routing().Get(ctx, path.New("/ipns/"+c.String()))
 }
 
 func (gw *gatewayAPI) GetDNSLinkRecord(ctx context.Context, hostname string) (path.Path, error) {

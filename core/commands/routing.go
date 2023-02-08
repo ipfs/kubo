@@ -14,6 +14,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	path "github.com/ipfs/go-path"
+	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
 )
@@ -369,7 +370,7 @@ Different key types can specify other 'best' rules.
 			return err
 		}
 
-		r, err := api.Routing().Get(req.Context, req.Arguments[0])
+		r, err := api.Routing().Get(req.Context, ipath.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -429,7 +430,7 @@ identified by QmFoo.
 			return err
 		}
 
-		err = api.Routing().Put(req.Context, req.Arguments[0], data)
+		err = api.Routing().Put(req.Context, ipath.New(req.Arguments[0]), data)
 		if err != nil {
 			return err
 		}

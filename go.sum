@@ -619,8 +619,8 @@ github.com/ipfs/go-unixfsnode v1.5.1/go.mod h1:ed79DaG9IEuZITJVQn4U6MZDftv6I3ygU
 github.com/ipfs/go-verifcid v0.0.1/go.mod h1:5Hrva5KBeIog4A+UpqlaIU+DEstipcJYQQZc0g37pY0=
 github.com/ipfs/go-verifcid v0.0.2 h1:XPnUv0XmdH+ZIhLGKg6U2vaPaRDXb9urMyNVCE7uvTs=
 github.com/ipfs/go-verifcid v0.0.2/go.mod h1:40cD9x1y4OWnFXbLNJYRe7MpNvWlMn3LZAG5Wb4xnPU=
-github.com/ipfs/interface-go-ipfs-core v0.10.1-0.20230208074154-2de38ba2c272 h1:1+3BC3Ghy9G5PqBRFcL64/mdvjS47wOdsF2tW2PHt3g=
-github.com/ipfs/interface-go-ipfs-core v0.10.1-0.20230208074154-2de38ba2c272/go.mod h1:XRUw5unjgKwLvOucCJGOUOCP+AymSgpIqeta1wYQ2IE=
+github.com/ipfs/interface-go-ipfs-core v0.10.1-0.20230208075953-4d6f9f04e9fe h1:OHSXfSeqHsNfM4c8mBFgCphqb05eEkC3Z6DB1JH0+EE=
+github.com/ipfs/interface-go-ipfs-core v0.10.1-0.20230208075953-4d6f9f04e9fe/go.mod h1:XRUw5unjgKwLvOucCJGOUOCP+AymSgpIqeta1wYQ2IE=
 github.com/ipld/edelweiss v0.2.0 h1:KfAZBP8eeJtrLxLhi7r3N0cBCo7JmwSRhOJp3WSpNjk=
 github.com/ipld/edelweiss v0.2.0/go.mod h1:FJAzJRCep4iI8FOFlRriN9n0b7OuX3T/S9++NpBDmA4=
 github.com/ipld/go-car v0.5.0 h1:kcCEa3CvYMs0iE5BzD5sV7O2EwMiCIp3uF8tA6APQT8=
