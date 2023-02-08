@@ -69,6 +69,7 @@ func TestApi(p Provider) func(t *testing.T) {
 		t.Run("Path", tp.TestPath)
 		t.Run("Pin", tp.TestPin)
 		t.Run("PubSub", tp.TestPubSub)
+		t.Run("Routing", tp.TestRouting)
 		t.Run("Unixfs", tp.TestUnixfs)
 
 		apis <- -1
