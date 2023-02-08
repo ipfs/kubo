@@ -45,7 +45,7 @@ require (
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.1.1
 	github.com/ipfs/go-ipns v0.3.0
-	github.com/ipfs/go-libipfs v0.4.1-0.20230207021459-1a932f7bb3c1
+	github.com/ipfs/go-libipfs v0.4.1-0.20230208022905-378aaf777cf9
 	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipfs/go-merkledag v0.9.0
