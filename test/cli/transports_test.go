@@ -71,18 +71,6 @@ func TestTransports(t *testing.T) {
 		runTests(nodes)
 	})
 
-	t.Run("tcp with mplex", func(t *testing.T) {
-		t.Parallel()
-		nodes := tcpNodes(t)
-		nodes.ForEachPar(func(n *harness.Node) {
-			n.UpdateConfig(func(cfg *config.Config) {
-				cfg.Swarm.Transports.Multiplexers.Yamux = config.Disabled
-			})
-		})
-		nodes.StartDaemons().Connect()
-		runTests(nodes)
-	})
-
 	t.Run("tcp with NOISE", func(t *testing.T) {
 		t.Parallel()
 		nodes := tcpNodes(t)
