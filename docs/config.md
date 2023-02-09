@@ -2052,6 +2052,8 @@ Type: `flag`
 Configuration section for libp2p _security_ transports. Transports enabled in
 this section will be used to secure unencrypted connections.
 
+This does not concern all the QUIC transports which use QUIC's builtin encryption.
+
 Security transports are configured with the `priority` type.
 
 When establishing an _outbound_ connection, Kubo will try each security
@@ -2094,11 +2096,13 @@ Type: `priority`
 Configuration section for libp2p _multiplexer_ transports. Transports enabled in
 this section will be used to multiplex duplex connections.
 
-Multiplexer transports are secured the same way security transports are, with
+This does not concern all the QUIC transports which use QUIC's builtin muxing.
+
+Multiplexer transports are configured the same way security transports are, with
 the `priority` type. Like with security transports, the initiator gets their
 first choice.
 
-Supported transports are: Yamux (priority 100) and Mplex (priority 200)
+Supported transport is only: Yamux (priority 100)
 
 No default priority will ever be less than 100.
 
@@ -2112,21 +2116,9 @@ Type: `priority`
 
 ### `Swarm.Transports.Multiplexers.Mplex`
 
-Mplex is the default multiplexer used when communicating between Kubo and all
-other IPFS and libp2p implementations. Unlike Yamux:
+**DEPRECATED**: See https://github.com/ipfs/kubo/issues/9958
 
-* Mplex is a simpler protocol.
-* Mplex is more efficient.
-* Mplex does not have built-in keepalives.
-* Mplex does not support backpressure. Unfortunately, this means that, if a
-  single stream to a peer gets backed up for a period of time, the mplex
-  transport will kill the stream to allow the others to proceed. On the other
-  hand, the lack of backpressure means mplex can be significantly faster on some
-  high-latency connections.
-
-Default: `200`
-
-Type: `priority`
+Support for Mplex has been removed. Please remove this option from your config.
 
 ## `DNS`
 
