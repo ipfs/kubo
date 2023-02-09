@@ -84,7 +84,7 @@ test_dht() {
   test_expect_success 'routing get --enc=json has correct properties' '
     HASH="$(echo "hello world" | ipfsi 2 add -q)" &&
     ipfsi 2 name publish "/ipfs/$HASH" &&
-    ipfsi 1 routing get --enc=json "/ipns/$PEERID_2" | jq -e 'has("Extra") and has("Type")'
+    ipfsi 1 routing get --enc=json "/ipns/$PEERID_2" | jq -e "has(\"Extra\") and has(\"Type\")"
   '
 
   # ipfs dht query <peerID>
