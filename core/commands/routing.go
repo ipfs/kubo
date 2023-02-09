@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -374,15 +375,22 @@ Different key types can specify other 'best' rules.
 			return err
 		}
 
-		return res.Emit(r)
+		return res.Emit(routing.QueryEvent{
+			Extra: base64.StdEncoding.EncodeToString(r),
+			Type:  routing.Value,
+		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out []byte) error {
-			_, err := w.Write(out)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, obj *routing.QueryEvent) error {
+			res, err := base64.StdEncoding.DecodeString(obj.Extra)
+			if err != nil {
+				return err
+			}
+			_, err = w.Write(res)
 			return err
 		}),
 	},
-	Type: []byte{},
+	Type: routing.QueryEvent{},
 }
 
 var putValueRoutingCmd = &cmds.Command{
