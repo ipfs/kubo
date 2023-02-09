@@ -24,14 +24,14 @@ test_dht() {
     PEERID_0=$(iptb attr get 0 id) &&
     PEERID_2=$(iptb attr get 2 id)
   '
-  
+
   # ipfs routing findpeer <peerID>
   test_expect_success 'findpeer' '
     ipfsi 1 routing findpeer $PEERID_0 | sort >actual &&
     ipfsi 0 id -f "<addrs>" | cut -d / -f 1-5 | sort >expected &&
     test_cmp actual expected
   '
-  
+
   # ipfs routing get <key>
   test_expect_success 'get with good keys works' '
     HASH="$(echo "hello world" | ipfsi 2 add -q)" &&
@@ -48,7 +48,7 @@ test_dht() {
     [ -s putted ] ||
     test_fsh cat putted
   '
-  
+
   test_expect_success 'put with bad keys fails (issue #5113)' '
     ipfsi 0 routing put "foo" <<<bar >putted
     ipfsi 0 routing put "/pk/foo" <<<bar >>putted
@@ -56,31 +56,37 @@ test_dht() {
     [ ! -s putted ] ||
     test_fsh cat putted
   '
-  
+
   test_expect_success 'put with bad keys returns error (issue #4611)' '
     test_must_fail ipfsi 0 routing put "foo" <<<bar &&
     test_must_fail ipfsi 0 routing put "/pk/foo" <<<bar &&
     test_must_fail ipfsi 0 routing put "/ipns/foo" <<<bar
   '
-  
+
   test_expect_success 'get with bad keys (issue #4611)' '
     test_must_fail ipfsi 0 routing get "foo" &&
     test_must_fail ipfsi 0 routing get "/pk/foo"
   '
-  
+
   test_expect_success "add a ref so we can find providers for it" '
     echo "some stuff" > afile &&
     HASH=$(ipfsi 3 add -q afile)
   '
-  
+
   # ipfs routing findprovs <key>
   test_expect_success 'findprovs' '
     ipfsi 4 routing findprovs $HASH > provs &&
     iptb attr get 3 id > expected &&
     test_cmp provs expected
   '
-  
-  
+
+  # ipfs routing get --enc=json has correct properties
+  test_expect_success 'routing get --enc=json has correct properties' '
+    HASH="$(echo "hello world" | ipfsi 2 add -q)" &&
+    ipfsi 2 name publish "/ipfs/$HASH" &&
+    ipfsi 1 routing get --enc=json "/ipns/$PEERID_2" | jq -e 'has("Extra") and has("Type")'
+  '
+
   # ipfs dht query <peerID>
   #
   # We test all nodes. 4 nodes should see the same peer ID, one node (the

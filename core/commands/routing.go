@@ -442,15 +442,37 @@ identified by QmFoo.
 			return err
 		}
 
-		return res.Emit([]byte(fmt.Sprintf("%s added", req.Arguments[0])))
+		id, err := api.Key().Self(req.Context)
+		if err != nil {
+			return err
+		}
+
+		return res.Emit(routing.QueryEvent{
+			Type: routing.Value,
+			ID:   id.ID(),
+		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out []byte) error {
-			_, err := w.Write(out)
-			return err
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
+			pfm := pfuncMap{
+				routing.FinalPeer: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
+					if verbose {
+						fmt.Fprintf(out, "* closest peer %s\n", obj.ID)
+					}
+					return nil
+				},
+				routing.Value: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
+					fmt.Fprintf(out, "%s\n", obj.ID.Pretty())
+					return nil
+				},
+			}
+
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+
+			return printEvent(out, w, verbose, pfm)
 		}),
 	},
-	Type: []byte{},
+	Type: routing.QueryEvent{},
 }
 
 type printFunc func(obj *routing.QueryEvent, out io.Writer, verbose bool) error
