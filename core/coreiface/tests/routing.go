@@ -70,7 +70,7 @@ func (tp *TestSuite) TestRoutingGet(t *testing.T) {
 func (tp *TestSuite) TestRoutingPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	apis, err := tp.MakeAPISwarm(ctx, true, 1)
+	apis, err := tp.MakeAPISwarm(ctx, true, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func (tp *TestSuite) TestRoutingPut(t *testing.T) {
 	}
 
 	// Put routing value.
-	err = apis[0].Routing().Put(ctx, "/ipns/"+ipnsEntry.Name(), data)
+	err = apis[1].Routing().Put(ctx, "/ipns/"+ipnsEntry.Name(), data)
 	if err != nil {
 		t.Fatal(err)
 	}
