@@ -306,6 +306,11 @@ type OptionalInteger struct {
 	value *int64
 }
 
+// NewOptionalInteger returns an OptionalInteger from a int64
+func NewOptionalInteger(v int64) *OptionalInteger {
+	return &OptionalInteger{value: &v}
+}
+
 // WithDefault resolves the integer with the given default.
 func (p *OptionalInteger) WithDefault(defaultValue int64) (value int64) {
 	if p == nil || p.value == nil {
