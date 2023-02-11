@@ -345,7 +345,7 @@ func (p OptionalInteger) String() string {
 	if p.value == nil {
 		return "default"
 	}
-	return fmt.Sprintf("%d", p.value)
+	return fmt.Sprintf("%d", *p.value)
 }
 
 var _ json.Unmarshaler = (*OptionalInteger)(nil)
