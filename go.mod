@@ -45,7 +45,7 @@ require (
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.1.1
 	github.com/ipfs/go-ipns v0.3.0
-	github.com/ipfs/go-libipfs v0.4.1-0.20230201214832-687c0b0f1531
+	github.com/ipfs/go-libipfs v0.5.0
 	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipfs/go-merkledag v0.9.0
@@ -106,6 +106,7 @@ require (
 	go.uber.org/fx v1.18.2
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.4.0
+	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db
 	golang.org/x/mod v0.7.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.4.0
@@ -228,7 +229,6 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
-	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
 	golang.org/x/term v0.4.0 // indirect
