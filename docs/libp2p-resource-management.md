@@ -12,22 +12,26 @@ Good places to start are:
 3. Understand [how to inspect and change limits](#user-supplied-override-limits)
 
 ## Table of Contents
+<!-- TOC depthfrom:2 -->
 
-- [libp2p Network Resource Manager <small>(`Swarm.ResourceMgr`)</small>](#libp2p-network-resource-manager-smallswarmresourcemgrsmall)
-  - [Purpose](#purpose)
-  - [Levels of Configuration](#levels-of-configuration)
+- [Purpose](#purpose)
+- [🙋 Help!  The resource manager is protecting my node but I want to understand more](#-help--the-resource-manager-is-protecting-my-node-but-i-want-to-understand-more)
+- [Table of Contents](#table-of-contents)
+- [Levels of Configuration](#levels-of-configuration)
     - [Approach](#approach)
     - [Computed Default Limits](#computed-default-limits)
     - [User Supplied Override Limits](#user-supplied-override-limits)
     - [Infinite limits](#infinite-limits)
-  - [FAQ](#faq)
+- [FAQ](#faq)
     - [What do these "Protected from exceeding resource limits" log messages mean?](#what-do-these-protected-from-exceeding-resource-limits-log-messages-mean)
-    - [What are the "Application error ... cannot reserve ..." messages?](#what-are-the-application-error--cannot-reserve--messages)
-    - [How does the resource manager (ResourceMgr) relate to the connection manager (ConnMgr)?](#how-does-the-resource-manager-resourcemgr-relate-to-the-connection-manager-connmgr)
+    - [What are the "Application error 0x0 remote ... cannot reserve ..." messages?](#what-are-the-application-error-0x0-remote--cannot-reserve--messages)
+    - [How does the resource manager ResourceMgr relate to the connection manager ConnMgr?](#how-does-the-resource-manager-resourcemgr-relate-to-the-connection-manager-connmgr)
     - [How does one see the Active Limits?](#how-does-one-see-the-active-limits)
     - [How does one see the Computed Default Limits?](#how-does-one-see-the-computed-default-limits)
     - [How does one monitor libp2p resource usage?](#how-does-one-monitor-libp2p-resource-usage)
-  - [History](#history)
+- [History](#history)
+
+<!-- /TOC -->
 
 ## Levels of Configuration
 
@@ -128,15 +132,15 @@ Sources:
 * [kubo resource manager logging](https://github.com/ipfs/kubo/blob/master/core/node/libp2p/rcmgr_logging.go)
 * [libp2p resource manager messages](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/scope.go)
 
-### What are the "Application error ... cannot reserve ..." messages?
-These are messages from a *remote* go-libp2p peer (likely another Kubo node) with the resource manager enabled on why it failed to establish a connection.  
+### What are the "Application error 0x0 (remote) ... cannot reserve ..." messages?
+These are messages coming from a *remote* go-libp2p peer (likely another Kubo node) with the resource manager enabled on why it failed to establish a connection.  
 
-This can be confusing, but these `Application error ... cannot reserve ...` messages can occur even if your local node has the resoure manager disabled.
+This can be confusing, but these `Application error 0x0 (remote) ... cannot reserve ...` messages can occur even if your local node has the resoure manager disabled.
 
 You can distinguish resource manager messages originating from your local node if they're from the `resourcemanager` / `libp2p/rcmgr_logging.go` logger
 or you see the string that is unique to Kubo (and not in go-libp2p): "Protected from exceeding resource limits".
 
-There is a go-libp2p issue ([#1928](https://github.com/libp2p/go-libp2p/issues/1928)) to make it clearer that this is an error message originating from a remote peer.
+There is a go-libp2p issue ([#1928](https://github.com/libp2p/go-libp2p/issues/1928)) to make it even clearer that this is an error message originating from a remote peer.
 
 ### How does the resource manager (ResourceMgr) relate to the connection manager (ConnMgr)?
 As discussed [here](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#connmanager-vs-resource-manager)
