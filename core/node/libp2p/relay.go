@@ -63,10 +63,7 @@ func MaybeAutoRelay(staticRelays []string, cfgPeering config.Peering, enabled bo
 					}
 					static = append(static, *addr)
 				}
-				opts.Opts = append(opts.Opts, libp2p.EnableAutoRelayWithStaticRelays(
-					static,
-					autorelay.WithCircuitV1Support(),
-				))
+				opts.Opts = append(opts.Opts, libp2p.EnableAutoRelayWithStaticRelays(static))
 			}
 			return
 		})
