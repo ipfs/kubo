@@ -70,7 +70,7 @@ The reason these scopes are chosen is because:
   We are reliant on the system scope for protection here in the malicious case.
   The reason for having a peer scope is to protect against unintentional DoS attacks
   (e.g., bug in a peer which is causing it to "misbehave").
-  In the unintional case, we want to make sure a "misbehaving" node doesn't consume more resources than necessary.
+  In the unintentional case, we want to make sure a "misbehaving" node doesn't consume more resources than necessary.
 
 Within these scopes, limits are just set on
 [memory](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#memory),
@@ -120,13 +120,13 @@ As an example:
 
 > Protected from exceeding resource limits 2 times: "system: cannot reserve inbound connection: resource limit exceeded"
 
-This means that there were 2 recent occurences where the libp2p resource manager prevented an inbound connection at the "system" [scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes).  
+This means that there were 2 recent occurrences where the libp2p resource manager prevented an inbound connection at the "system" [scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes).  
 Specificaly the ``Swarm.ResourceMgr.Limits.System.ConnsInbound`` [active limit](#how-does-one-see-the-active-limits) was hit.  
 
 This can be analyzed by viewing the limit with `ipfs swarm limit system` and comparing the usage with `ipfs swarm stats system`.
 `ConnsInbound` is likely close or at the limit value.
 
-The simiplest way to identify all resources across all scopes that are close to exceeding their limit is with a command like `ipfs swarm stats --min-used-limit-perc=90 all`.
+The simplest way to identify all resources across all scopes that are close to exceeding their limit is with a command like `ipfs swarm stats --min-used-limit-perc=90 all`.
 
 Sources:
 * [kubo resource manager logging](https://github.com/ipfs/kubo/blob/master/core/node/libp2p/rcmgr_logging.go)
@@ -135,7 +135,7 @@ Sources:
 ### What are the "Application error 0x0 (remote) ... cannot reserve ..." messages?
 These are messages coming from a *remote* go-libp2p peer (likely another Kubo node) with the resource manager enabled on why it failed to establish a connection.  
 
-This can be confusing, but these `Application error 0x0 (remote) ... cannot reserve ...` messages can occur even if your local node has the resoure manager disabled.
+This can be confusing, but these `Application error 0x0 (remote) ... cannot reserve ...` messages can occur even if your local node has the resource manager disabled.
 
 You can distinguish resource manager messages originating from your local node if they're from the `resourcemanager` / `libp2p/rcmgr_logging.go` logger
 or you see the string that is unique to Kubo (and not in go-libp2p): "Protected from exceeding resource limits".
@@ -166,9 +166,10 @@ This can be observed with an empty [`Swarm.ResourceMgr.Limits`](https://github.c
 and then [seeing the active limits](#how-does-one-see-the-active-limits).
 
 ### How does one monitor libp2p resource usage?
-For [monitoring libp2p resource usage](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#monitoring),
-various `*rcmgr_*` metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`).  
-There are also [pre-built Grafana dashboards](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager/obs/grafana-dashboards) that can be added to a Grafana instance.
+
+For [monitoring libp2p resource usage](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#monitoring), 
+various `*rcmgr_*` metrics can be accessed as the Prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`).  
+There are also [pre-built Grafana dashboards](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager/obs/grafana-dashboards) that can be added to a Grafana instance. 
 
 A textual view of current resource usage and a list of services, protocols, and peers can be
 obtained via `ipfs swarm stats --help`
