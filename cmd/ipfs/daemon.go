@@ -162,7 +162,7 @@ Headers.
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
-		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
+		cmds.BoolOption(writableKwd, "Enable legacy Gateway.Writable (deprecated)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
 		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow API access to unlisted hashes"),
@@ -791,7 +791,11 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 	writable, writableOptionFound := req.Options[writableKwd].(bool)
 	if !writableOptionFound {
-		writable = cfg.Gateway.Writable
+		writable = cfg.Gateway.Writable.WithDefault(false)
+	}
+
+	if writable {
+		log.Error("serveHTTPGateway: legacy Gateway.Writable is DEPRECATED and will be removed or changed in future versions. If you are still using this, provide feedback in https://github.com/ipfs/specs/issues/375")
 	}
 
 	listeners, err := sockets.TakeListeners("io.ipfs.gateway")

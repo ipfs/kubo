@@ -682,7 +682,10 @@ Type: `string` (url)
 
 ### `Gateway.Writable`
 
-A boolean to configure whether the gateway is writeable or not.
+**DEPRECATED**: Enables legacy PUT/POST request handling. 
+
+This API is not standardized, and should not be used for new projects.
+We are working on a modern replacement. IPIP can be tracked in [ipfs/specs#375](https://github.com/ipfs/specs/issues/375).
 
 Default: `false`
 
@@ -1843,7 +1846,7 @@ This value is also used to scale the limit on various resources at various scope
 when the default limits (discussed in [libp2p resource management](./libp2p-resource-management.md)) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
-Default: `[TOTAL_SYSTEM_MEMORY]/4`
+Default: `[TOTAL_SYSTEM_MEMORY]/2`
 Type: `optionalBytes`
 
 #### `Swarm.ResourceMgr.MaxFileDescriptors`
