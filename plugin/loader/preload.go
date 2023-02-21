@@ -7,6 +7,7 @@ import (
 	pluginfxtest "github.com/ipfs/kubo/plugin/plugins/fxtest"
 	pluginipldgit "github.com/ipfs/kubo/plugin/plugins/git"
 	pluginlevelds "github.com/ipfs/kubo/plugin/plugins/levelds"
+	pluginpebbleds "github.com/ipfs/kubo/plugin/plugins/pebbleds"
 	pluginpeerlog "github.com/ipfs/kubo/plugin/plugins/peerlog"
 )
 
@@ -18,6 +19,7 @@ func init() {
 	Preload(pluginipldgit.Plugins...)
 	Preload(pluginiplddagjose.Plugins...)
 	Preload(pluginbadgerds.Plugins...)
+	Preload(pluginpebbleds.Plugins...)
 	Preload(pluginflatfs.Plugins...)
 	Preload(pluginlevelds.Plugins...)
 	Preload(pluginpeerlog.Plugins...)
