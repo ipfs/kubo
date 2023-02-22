@@ -553,8 +553,8 @@ github.com/ipfs/go-ipfs-exchange-offline v0.3.0/go.mod h1:MOdJ9DChbb5u37M1IcbrRB
 github.com/ipfs/go-ipfs-files v0.0.3/go.mod h1:INEFm0LL2LWXBhNJ2PMIIb2w45hpXgPjNoE7yA8Y1d4=
 github.com/ipfs/go-ipfs-keystore v0.1.0 h1:gfuQUO/cyGZgZIHE6OrJas4OnwuxXCqJG7tI0lrB5Qc=
 github.com/ipfs/go-ipfs-keystore v0.1.0/go.mod h1:LvLw7Qhnb0RlMOfCzK6OmyWxICip6lQ06CCmdbee75U=
-github.com/ipfs/go-ipfs-pinner v0.2.1 h1:kw9hiqh2p8TatILYZ3WAfQQABby7SQARdrdA+5Z5QfY=
-github.com/ipfs/go-ipfs-pinner v0.2.1/go.mod h1:l1AtLL5bovb7opnG77sh4Y10waINz3Y1ni6CvTzx7oo=
+github.com/ipfs/go-ipfs-pinner v0.3.0 h1:jwe5ViX3BON3KgOAYrrhav2+1ONB0QzFAWQd7HUlbuM=
+github.com/ipfs/go-ipfs-pinner v0.3.0/go.mod h1:oX0I0nC6zlNIh0LslSrUnjfNKPq8ufoFtqV1/wcJvyo=
 github.com/ipfs/go-ipfs-posinfo v0.0.1 h1:Esoxj+1JgSjX0+ylc0hUmJCOv6V2vFoZiETLR6OtpRs=
 github.com/ipfs/go-ipfs-posinfo v0.0.1/go.mod h1:SwyeVP+jCwiDu0C313l/8jg6ZxM0qqtlt2a0vILTc1A=
 github.com/ipfs/go-ipfs-pq v0.0.1/go.mod h1:LWIqQpqfRG3fNc5XsnIhz/wQ2XXGyugQwls7BgUmUfY=
