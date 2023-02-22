@@ -67,7 +67,7 @@ type RelayClient struct {
 }
 
 // RelayService configures the resources of the circuit v2 relay.
-// For every field a reasonable default will be defined in go-ipfs.
+// For every field a reasonable default will be defined in Kubo.
 type RelayService struct {
 	// Enables the limited relay service for other peers (circuit v2 relay).
 	Enabled Flag `json:",omitempty"`
@@ -93,6 +93,14 @@ type RelayService struct {
 	MaxReservationsPerIP *OptionalInteger `json:",omitempty"`
 	// MaxReservationsPerASN is the maximum number of reservations origination from the same ASN.
 	MaxReservationsPerASN *OptionalInteger `json:",omitempty"`
+
+	// InfiniteLimits effectively removes all limits. Enabling this option also
+	// doesn't apply any filter for which protocols can be used, allowing for
+	// expensive things like bitswap over a relayed connection.
+	// Do this only if you know what you are doing. Exposing relay like this to
+	// the public may lead to resource exhausion, use with care, as a static
+	// relay in controlled environments.
+	InfiniteLimits Flag `json:",omitempty"`
 }
 
 type Transports struct {

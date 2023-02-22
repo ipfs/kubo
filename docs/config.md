@@ -123,9 +123,8 @@ config file at runtime.
       - [`Swarm.RelayClient.StaticRelays`](#swarmrelayclientstaticrelays)
     - [`Swarm.RelayService`](#swarmrelayservice)
       - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled)
-      - [`Swarm.RelayService.Limit`](#swarmrelayservicelimit)
-        - [`Swarm.RelayService.ConnectionDurationLimit`](#swarmrelayserviceconnectiondurationlimit)
-        - [`Swarm.RelayService.ConnectionDataLimit`](#swarmrelayserviceconnectiondatalimit)
+      - [`Swarm.RelayService.ConnectionDurationLimit`](#swarmrelayserviceconnectiondurationlimit)
+      - [`Swarm.RelayService.ConnectionDataLimit`](#swarmrelayserviceconnectiondatalimit)
       - [`Swarm.RelayService.ReservationTTL`](#swarmrelayservicereservationttl)
       - [`Swarm.RelayService.MaxReservations`](#swarmrelayservicemaxreservations)
       - [`Swarm.RelayService.MaxCircuits`](#swarmrelayservicemaxcircuits)
@@ -133,6 +132,7 @@ config file at runtime.
       - [`Swarm.RelayService.MaxReservationsPerPeer`](#swarmrelayservicemaxreservationsperpeer)
       - [`Swarm.RelayService.MaxReservationsPerIP`](#swarmrelayservicemaxreservationsperip)
       - [`Swarm.RelayService.MaxReservationsPerASN`](#swarmrelayservicemaxreservationsperasn)
+      - [`Swarm.RelayService.InfiniteLimits`](#swarmrelayserviceinfinitelimits)
     - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
     - [`Swarm.DisableRelay`](#swarmdisablerelay)
     - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
@@ -237,7 +237,7 @@ documented in `ipfs config profile --help`.
     smaller than several gigabytes. If you run IPFS with `--enable-gc`, you plan on storing very little data in
     your IPFS node, and disk usage is more critical than performance, consider using
     `flatfs`.
-  - This datastore uses up to several gigabytes of memory.  
+  - This datastore uses up to several gigabytes of memory.
   - Good for medium-size datastores, but may run into performance issues if your dataset is bigger than a terabyte.
   - The current implementation is based on old badger 1.x which is no longer supported by the upstream team.
 
@@ -682,7 +682,7 @@ Type: `string` (url)
 
 ### `Gateway.Writable`
 
-**DEPRECATED**: Enables legacy PUT/POST request handling. 
+**DEPRECATED**: Enables legacy PUT/POST request handling.
 
 This API is not standardized, and should not be used for new projects.
 We are working on a modern replacement. IPIP can be tracked in [ipfs/specs#375](https://github.com/ipfs/specs/issues/375).
@@ -901,7 +901,7 @@ Type: `string` (base64 encoded)
 
 ## `Internal`
 
-This section includes internal knobs for various subsystems to allow advanced users with big or private infrastructures to fine-tune some behaviors without the need to recompile Kubo.  
+This section includes internal knobs for various subsystems to allow advanced users with big or private infrastructures to fine-tune some behaviors without the need to recompile Kubo.
 
 **Be aware that making informed change here requires in-depth knowledge and most users should leave these untouched. All knobs listed here are subject to breaking changes between versions.**
 
@@ -977,7 +977,7 @@ Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 ### `Internal.Bitswap.ProviderSearchDelay`
 
 This parameter determines how long to wait before looking for providers outside of bitswap.
-Other routing systems like the DHT are able to provide results in less than a second, so lowering 
+Other routing systems like the DHT are able to provide results in less than a second, so lowering
 this number will allow faster peers lookups in some cases.
 
 Type: `optionalDuration` (`null` means default which is 1s)
@@ -1644,15 +1644,7 @@ Default: `true`
 
 Type: `flag`
 
-#### `Swarm.RelayService.Limit`
-
-Limits applied to every relayed connection.
-
-Default: `{}`
-
-Type: `object[string -> string]`
-
-##### `Swarm.RelayService.ConnectionDurationLimit`
+#### `Swarm.RelayService.ConnectionDurationLimit`
 
 Time limit before a relayed connection is reset.
 
@@ -1660,7 +1652,7 @@ Default: `"2m"`
 
 Type: `duration`
 
-##### `Swarm.RelayService.ConnectionDataLimit`
+#### `Swarm.RelayService.ConnectionDataLimit`
 
 Limit of data relayed (in each direction) before a relayed connection is reset.
 
@@ -1729,6 +1721,22 @@ Maximum number of reservations originating from the same ASN.
 Default: `32`
 
 Type: `optionalInteger`
+
+#### `Swarm.RelayService.InfiniteLimits`
+
+**EXPERIMENTAL:** use with care
+
+Removes all limits. Enabling this option also doesn't apply any filter for
+which protocols can be used, allowing for expensive things like bitswap over a
+relayed connection.
+
+NOTE: Do this only if you know what you are doing. Exposing relay like this to
+the public may lead to resource exhausion, use with care, as a static relay in
+controlled environments.
+
+Default: `false`
+
+Type: `flag`
 
 ### `Swarm.EnableRelayHop`
 
