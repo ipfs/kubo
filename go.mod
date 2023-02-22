@@ -36,7 +36,7 @@ require (
 	github.com/ipfs/go-ipfs-exchange-interface v0.2.0
 	github.com/ipfs/go-ipfs-exchange-offline v0.3.0
 	github.com/ipfs/go-ipfs-keystore v0.1.0
-	github.com/ipfs/go-ipfs-pinner v0.2.1
+	github.com/ipfs/go-ipfs-pinner v0.3.0
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
 	github.com/ipfs/go-ipfs-provider v0.8.1
 	github.com/ipfs/go-ipfs-routing v0.3.0
@@ -111,8 +111,6 @@ require (
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.4.0
 )
-
-replace github.com/ipfs/go-ipfs-pinner => github.com/MichaelMure/go-ipfs-pinner v0.0.0-20230116161927-3b0d257e2a6c
 
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
