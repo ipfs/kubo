@@ -6,6 +6,7 @@
 generated with:
 
 ```sh
+# using ipfs version 0.18.1
 mkdir -p dir &&
 echo "hello application/vnd.ipld.raw" > dir/ascii.txt &&
 ROOT_DIR_CID=$(ipfs add -Qrw --cid-version 1 dir) &&

@@ -6,6 +6,7 @@
 generated with:
 
 ```sh
+# using ipfs version 0.18.1
 mkdir -p root2/root3/root4 &&
 echo "hello" > root2/root3/root4/index.html &&
 ROOT1_CID=$(ipfs add -Qrw --cid-version 1 root2)

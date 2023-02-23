@@ -6,6 +6,8 @@
 generated with:
 
 ```sh
+# using ipfs version 0.18.1
+
 # CIDv0to1 is necessary because raw-leaves are enabled by default during
 # "ipfs add" with CIDv1 and disabled with CIDv0
 CID_VAL="hello"

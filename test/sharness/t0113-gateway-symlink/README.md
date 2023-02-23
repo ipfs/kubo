@@ -6,6 +6,7 @@
 generated with:
 
 ```sh
+# using ipfs version 0.18.1
 mkdir testfiles &&
 echo "content" > testfiles/foo &&
 ln -s foo testfiles/bar &&

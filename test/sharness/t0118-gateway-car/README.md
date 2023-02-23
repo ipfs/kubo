@@ -13,7 +13,8 @@
 
 generated with:
 
-```shell
+```sh
+# using ipfs version 0.18.1
 mkdir -p subdir &&
 echo "hello application/vnd.ipld.car" > subdir/ascii.txt &&
 ROOT_DIR_CID=$(ipfs add -Qrw --cid-version 1 subdir) &&

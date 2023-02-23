@@ -6,6 +6,7 @@
 generated with:
 
 ```sh
+# using ipfs version 0.18.1
 mkdir -p rootDir/ipfs &&
 mkdir -p rootDir/ipns &&
 mkdir -p rootDir/api &&
