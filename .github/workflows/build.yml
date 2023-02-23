@@ -70,8 +70,9 @@ jobs:
       - run: mkdir interop
       - run: |
           npm init -y
-          npm install ipfs@^0.61.0
-          npm install ipfs-interop@^8.0.10
+          npm install ipfs@^0.66.0
+          npm install kubo-rpc-client@^3.0.1
+          npm install ipfs-interop@^10.0.1
         working-directory: interop
       - run: npx ipfs-interop -- -t node $(sed -e 's#[^ ]*#-f test/&.js#g' <<< '${{ matrix.suites }}')
         env:
