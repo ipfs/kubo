@@ -93,7 +93,7 @@ Checklist:
       - PR will be merged automatically once the diff is approved
       - `master` build will publish the artifacts to https://dist.ipfs.io in around 30 minutes
     - [ ] Ensure that the artifacts are available at https://dist.ipfs.io
-  - [ ] Publish the RC to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
+  - [ ] Publish the RC to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick off a run manually)
   - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0-rc1))
     - Use `vX.Y.Z-rcN` as the tag.
     - Link to the release issue in the description.
@@ -120,7 +120,7 @@ Checklist:
       - [ ] [Optional] Reply under a message about the issue in the #bifrost channel on FIL Slack once the RC is out. Send the message to the channel.
     - [ ] Check [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) every day.
       - Compare the metrics trends week over week.
-      - If there is an unexpected variation in the trend, message the #bifrost channel on FIL Slack and ask for help investigation the cause.
+      - If there is an unexpected variation in the trend, message the #bifrost channel on FIL Slack and ask for help investigating the cause.
   - [ ] IPFS Application Testing.
     - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop)
       - [ ] Upgrade to the RC in [ipfs-desktop](https://github.com/ipfs-shipyard/ipfs-desktop)
@@ -133,13 +133,13 @@ Checklist:
       - [ ] Start a fresh chromium or chrome instance using `chromium --user-data-dir=$(mktemp -d)` (macos `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --user-data-dir=$(mktemp -d)`)
       - [ ] Start a fresh firefox instance using `firefox --profile $(mktemp -d)` (macos `/Applications/Firefox.app/Contents/MacOS/firefox --profile $(mktemp -d)`)
       - [ ] Install IPFS Companion from [vendor-specific store](https://github.com/ipfs/ipfs-companion/#readme).
-      - [ ] Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
+      - [ ] Check that the communication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
 - [ ] **Stage 5 - Release** - _ONLY FOR FINAL RELEASE_
   - [ ] Prepare the `release` branch.
     - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `X.Y.Z`.
     - [ ] Update the [docs/changelogs/vX.Y.md](docs/changelogs) with the new commits and contributors.
       - [ ] Run `./bin/mkreleaselog` twice to generate the changelog and copy the output.
-      - The first run of the script might be poluted with `git clone` output.
+      - The first run of the script might be polluted with `git clone` output.
       - [ ] Paste the output into the `### Changelog` section of the changelog file inside the `<details><summary></summary></details>` block.
       - [ ] Commit the changelog changes.
     - [ ] Push the `release-vX.Y.Z` branch to GitHub (`git push origin release-vX.Y.Z`)
@@ -169,7 +169,7 @@ Checklist:
         - PR will be merged automatically once the diff is approved
         - `master` build will publish the artifacts to https://dist.ipfs.io in around 30 minutes
       - [ ] Ensure that the artifacts are available at https://dist.ipfs.io
-    - [ ] Publish the release to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
+    - [ ] Publish the release to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick off a run manually)
   - [ ] Cut the release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0))
     - Use `vX.Y.Z` as the tag.
     - Copy the relevant [changelog](https://github.com/ipfs/kubo/blob/release/docs/changelogs/) into the release description.
