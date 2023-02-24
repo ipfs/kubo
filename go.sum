@@ -808,8 +808,8 @@ github.com/libp2p/go-libp2p-gostream v0.5.0 h1:niNGTUrFoUDP/8jxMgu97zngMO+UGYBpV
 github.com/libp2p/go-libp2p-gostream v0.5.0/go.mod h1:rXrb0CqfcRRxa7m3RSKORQiKiWgk3IPeXWda66ZXKsA=
 github.com/libp2p/go-libp2p-http v0.4.0 h1:V+f9Rhe/8GkColmXoyJyA0NVsN9F3TCLZgW2hwjoX5w=
 github.com/libp2p/go-libp2p-http v0.4.0/go.mod h1:92tmLGrlBliQFDlZRpBXT3BJM7rGFONy0vsNrG/bMPg=
-github.com/libp2p/go-libp2p-kad-dht v0.21.0 h1:J0Yd22VA+sk0CJRGMgtfHvLVIkZDyJ3AJGiljywIw5U=
-github.com/libp2p/go-libp2p-kad-dht v0.21.0/go.mod h1:Bhm9diAFmc6qcWAr084bHNL159srVZRKADdp96Qqd1I=
+github.com/libp2p/go-libp2p-kad-dht v0.21.1 h1:xpfp8/t9+X2ip1l8Umap1/UGNnJ3RHJgKGAEsnRAlTo=
+github.com/libp2p/go-libp2p-kad-dht v0.21.1/go.mod h1:Oy8wvbdjpB70eS5AaFaI68tOtrdo3KylTvXDjikxqFo=
 github.com/libp2p/go-libp2p-kbucket v0.3.1/go.mod h1:oyjT5O7tS9CQurok++ERgc46YLwEpuGoFq9ubvoUOio=
 github.com/libp2p/go-libp2p-kbucket v0.5.0 h1:g/7tVm8ACHDxH29BGrpsQlnNeu+6OF1A9bno/4/U1oA=
 github.com/libp2p/go-libp2p-kbucket v0.5.0/go.mod h1:zGzGCpQd78b5BNTDGHNDLaTt9aDK/A02xeZp9QeFC4U=
