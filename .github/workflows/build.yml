@@ -42,9 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        suites:
-          - 'exchange-files'
-          - 'files pin circuit ipns cid-version-agnostic ipns-pubsub pubsub'
+        includes:
+          - patterns: 'exchange-files'
+          - patterns: 'exchange-files'
+            options: '-v'
       fail-fast: false
     defaults:
       run:
@@ -74,7 +75,7 @@ jobs:
           npm install kubo-rpc-client@^3.0.1
           npm install ipfs-interop@^10.0.1
         working-directory: interop
-      - run: npx ipfs-interop -- -t node $(sed -e 's#[^ ]*#-f test/&.js#g' <<< '${{ matrix.suites }}')
+      - run: npx ipfs-interop -- -t node $(ls test/*.js | grep ${{ matrix.options }} '${{ matrix.patterns }}' | sed -e 's/^/-f /' | tr '\n' ' ')
         env:
           LIBP2P_TCP_REUSEPORT: false
           LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
