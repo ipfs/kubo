@@ -138,7 +138,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 	// this is *not* a transaction
 	// it is simply a way to relieve pressure on the blockstore
 	// similar to pinner.Pin/pinner.Flush
-	batch := ipld.NewBatch(req.Context, api.Dag())
+	batch := ipld.NewBatch(req.Context, api.Dag(), ipld.MaxSizeBatchOption(1<<30), ipld.MaxNodesBatchOption(500000))
 
 	roots := make(map[cid.Cid]struct{})
 	var blockCount, blockBytesCount uint64
