@@ -171,7 +171,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 			}
 
 			for {
-				block, err := car.Next()
+				block, err := car.NextInsecure()
 				if err != nil && err != io.EOF {
 					return err
 				} else if block == nil {

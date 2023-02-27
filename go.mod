@@ -1,5 +1,7 @@
 module github.com/ipfs/kubo
 
+replace github.com/ipld/go-car/v2 => github.com/hsanjuan/go-car/v2 v2.0.0-20230227111131-de0d7667ae0b
+
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0
