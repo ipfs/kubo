@@ -83,9 +83,28 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	defopts.MemTableSize = 4 * 1023 * 1024 * 1024            // Almost 4 GiB
 	defopts.BytesPerSync = 500 * 1024 * 1024                 // 500 MiB
 	defopts.Cache = pebble.NewCache(10 * 1024 * 1024 * 1024) // 10 GiB
-	defopts.Levels[0].Compression = pebble.NoCompression
-	defopts.Levels[0].FilterPolicy = bloom.FilterPolicy(10)
 	defopts.DisableWAL = true
+	// See https://github.com/cockroachdb/cockroach/blob/a3039fe628f2ab7c5fba31a30ba7bc7c38065230/pkg/storage/pebble.go#L483
+	defopts.MaxConcurrentCompactions = func() int {
+		return 3
+	}
+	defopts.L0CompactionThreshold = 2
+	defopts.L0StopWritesThreshold = 1000
+	defopts.Levels = make([]pebble.LevelOptions, 7)
+	defopts.MemTableStopWritesThreshold = 4
+
+	for i := 0; i < len(defopts.Levels); i++ {
+		l := &defopts.Levels[i]
+		l.BlockSize = 64 << 10       // 64 KB
+		l.IndexBlockSize = 512 << 10 // 256 KB
+		l.FilterPolicy = bloom.FilterPolicy(10)
+		l.FilterType = pebble.TableFilter
+		l.Compression = pebble.NoCompression
+		if i > 0 {
+			l.TargetFileSize = defopts.Levels[i-1].TargetFileSize * 2
+		}
+		l.EnsureDefaults()
+	}
 
 	return pebbleds.NewDatastore(p, &defopts)
 }
