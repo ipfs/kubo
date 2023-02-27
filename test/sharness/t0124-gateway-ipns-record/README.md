@@ -15,7 +15,7 @@ IPNS_KEY=$(ipfs key gen ipns-record)
 
 ipfs dag export ${FILE_CID} > fixtures.car
 
-# publish a key valid for a 100 years
+# publish a record valid for a 100 years
 ipfs name publish --key=ipns-record --quieter --ttl=876600h /ipfs/${FILE_CID}
 ipfs routing get /ipns/${IPNS_KEY} > ${IPNS_KEY}.ipns-record
 

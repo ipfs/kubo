@@ -93,40 +93,29 @@ test_launch_ipfs_daemon_without_network
 
 # Import test case
 # See the static fixtures in ./t0114-gateway-subdomains/
-test_expect_success "Add the test fixtures" '
-  ipfs dag import ../t0114-gateway-subdomains/fixtures.car
-'
 CID_VAL="hello"
 CIDv1=bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am
 CIDv0=QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
-# CIDv0to1 is necessary because raw-leaves are enabled by default during
-# "ipfs add" with CIDv1 and disabled with CIDv0
 CIDv0to1=bafybeiffndsajwhk3lwjewwdxqntmjm4b5wxaaanokonsggenkbw6slwk4
 CIDv1_TOO_LONG=bafkrgqhhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dlfsthi4hn7zgh4uvlsb5xncykzapi3ocd4lzogukir6ksdy6wzrnz6ohnv4aglcs
 DIR_CID=bafybeiht6dtwk3les7vqm6ibpvz6qpohidvlshsfyr7l5mpysdw2vmbbhe # ./testdirlisting
 
-test_expect_success "Publish test text file to IPNS using RSA keys" '
-  RSA_KEY=$(ipfs key gen --ipns-base=b58mh --type=rsa --size=2048 test_key_rsa | head -n1 | tr -d "\n")
-  RSA_IPNS_IDv0=$(echo "$RSA_KEY" | ipfs cid format -v 0)
-  RSA_IPNS_IDv1=$(echo "$RSA_KEY" | ipfs cid format -v 1 --mc libp2p-key -b base36)
-  RSA_IPNS_IDv1_DAGPB=$(echo "$RSA_IPNS_IDv0" | ipfs cid format -v 1 -b base36)
-  test_check_peerid "${RSA_KEY}" &&
-  ipfs name publish --key test_key_rsa --allow-offline -Q "/ipfs/$CIDv1" > name_publish_out &&
-  ipfs name resolve "$RSA_KEY"  > output &&
-  printf "/ipfs/%s\n" "$CIDv1" > expected2 &&
-  test_cmp expected2 output
-'
+RSA_KEY=QmXaz6rApVddeVWEYv1JycEge3demqPsUpmfyJnkgn6sb3
+RSA_IPNS_IDv0=QmXaz6rApVddeVWEYv1JycEge3demqPsUpmfyJnkgn6sb3
+RSA_IPNS_IDv1=k2k4r8mualgw609qr2q5h4t7ea5ydufa2y4fo5qf4lpwg1lsk35ljcvq
+RSA_IPNS_IDv1_DAGPB=k2jmtxuse1nx1o2vtk8rdcra0jem01b5hn4x6kguf68kp3623wuf1ddi
 
-test_expect_success "Publish test text file to IPNS using ED25519 keys" '
-  ED25519_KEY=$(ipfs key gen --ipns-base=b58mh --type=ed25519 test_key_ed25519 | head -n1 | tr -d "\n")
-  ED25519_IPNS_IDv0=$ED25519_KEY
-  ED25519_IPNS_IDv1=$(ipfs key list -l --ipns-base=base36 | grep test_key_ed25519 | cut -d " " -f1 | tr -d "\n")
-  ED25519_IPNS_IDv1_DAGPB=$(echo "$ED25519_IPNS_IDv1" | ipfs cid format -v 1 -b base36 --mc dag-pb)
-  test_check_peerid "${ED25519_KEY}" &&
-  ipfs name publish --key test_key_ed25519 --allow-offline -Q "/ipfs/$CIDv1" > name_publish_out &&
-  ipfs name resolve "$ED25519_KEY"  > output &&
-  printf "/ipfs/%s\n" "$CIDv1" > expected2 &&
-  test_cmp expected2 output
+ED25519_KEY=12D3KooWPydmtfa4g7P3TjGJb4mbDQkXFqr5MxxQ6aLcykd2kGBv
+ED25519_IPNS_IDv0=12D3KooWPydmtfa4g7P3TjGJb4mbDQkXFqr5MxxQ6aLcykd2kGBv
+ED25519_IPNS_IDv1=k51qzi5uqu5dlfd2bitdm0yv4t1oxyaqf5oaazh9ispho1osnsj1gltco5cbdp
+ED25519_IPNS_IDv1_DAGPB=k50rm9yjlt0jg9mdacgyhpsidjfkqitcjxy74aykn99te6cx4xs5pvbodpffkt
+IPNS_ED25519_B58MH=12D3KooWPydmtfa4g7P3TjGJb4mbDQkXFqr5MxxQ6aLcykd2kGBv
+IPNS_ED25519_B36CID=k51qzi5uqu5dlfd2bitdm0yv4t1oxyaqf5oaazh9ispho1osnsj1gltco5cbdp
+
+test_expect_success "Add the test fixtures" '
+  ipfs dag import ../t0114-gateway-subdomains/fixtures.car &&
+  ipfs routing put /ipns/${RSA_KEY} ../t0114-gateway-subdomains/${RSA_KEY}.ipns-record &&
+  ipfs routing put /ipns/${ED25519_KEY} ../t0114-gateway-subdomains/${ED25519_KEY}.ipns-record
 '
 
 # ensure we start with empty Gateway.PublicGateways
@@ -587,11 +576,6 @@ test_expect_success \
 ## Test subdomain handling of CIDs that do not fit in a single DNS Label (>63chars)
 ## https://github.com/ipfs/go-ipfs/issues/7318
 ## ============================================================================
-
-# ed25519 fits under 63 char limit when represented in base36
-IPNS_KEY="test_key_ed25519"
-IPNS_ED25519_B58MH=$(ipfs key list -l --ipns-base b58mh | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
-IPNS_ED25519_B36CID=$(ipfs key list -l --ipns-base base36 | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
 
 # local: *.localhost
 test_localhost_gateway_response_should_contain \
