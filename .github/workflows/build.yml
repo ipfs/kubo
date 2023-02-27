@@ -40,13 +40,6 @@ jobs:
   ipfs-interop:
     needs: [prepare]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - patterns: 'exchange-files'
-          - patterns: 'exchange-files'
-            options: '-v'
-      fail-fast: false
     defaults:
       run:
         shell: bash
@@ -75,7 +68,7 @@ jobs:
           npm install kubo-rpc-client@^3.0.1
           npm install ipfs-interop@^10.0.1
         working-directory: interop
-      - run: npx ipfs-interop -- -t node $(ls node_modules/ipfs-interop/test/*.js | grep ${{ matrix.options }} '${{ matrix.patterns }}' | sed -e 's;node_modules/ipfs-interop/;-f ;' | tr '\n' ' ')
+      - run: npx ipfs-interop -- -t node
         env:
           LIBP2P_TCP_REUSEPORT: false
           LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
