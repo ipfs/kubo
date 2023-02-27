@@ -38,6 +38,10 @@ type RunResult struct {
 	Cmd     *exec.Cmd
 }
 
+func (r *RunResult) ExitCode() int {
+	return r.Cmd.ProcessState.ExitCode()
+}
+
 func environToMap(environ []string) map[string]string {
 	m := map[string]string{}
 	for _, e := range environ {
