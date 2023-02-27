@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -374,15 +375,22 @@ Different key types can specify other 'best' rules.
 			return err
 		}
 
-		return res.Emit(r)
+		return res.Emit(routing.QueryEvent{
+			Extra: base64.StdEncoding.EncodeToString(r),
+			Type:  routing.Value,
+		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out []byte) error {
-			_, err := w.Write(out)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, obj *routing.QueryEvent) error {
+			res, err := base64.StdEncoding.DecodeString(obj.Extra)
+			if err != nil {
+				return err
+			}
+			_, err = w.Write(res)
 			return err
 		}),
 	},
-	Type: []byte{},
+	Type: routing.QueryEvent{},
 }
 
 var putValueRoutingCmd = &cmds.Command{
@@ -434,15 +442,37 @@ identified by QmFoo.
 			return err
 		}
 
-		return res.Emit([]byte(fmt.Sprintf("%s added", req.Arguments[0])))
+		id, err := api.Key().Self(req.Context)
+		if err != nil {
+			return err
+		}
+
+		return res.Emit(routing.QueryEvent{
+			Type: routing.Value,
+			ID:   id.ID(),
+		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out []byte) error {
-			_, err := w.Write(out)
-			return err
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
+			pfm := pfuncMap{
+				routing.FinalPeer: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
+					if verbose {
+						fmt.Fprintf(out, "* closest peer %s\n", obj.ID)
+					}
+					return nil
+				},
+				routing.Value: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
+					fmt.Fprintf(out, "%s\n", obj.ID.Pretty())
+					return nil
+				},
+			}
+
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+
+			return printEvent(out, w, verbose, pfm)
 		}),
 	},
-	Type: []byte{},
+	Type: routing.QueryEvent{},
 }
 
 type printFunc func(obj *routing.QueryEvent, out io.Writer, verbose bool) error

@@ -682,7 +682,10 @@ Type: `string` (url)
 
 ### `Gateway.Writable`
 
-A boolean to configure whether the gateway is writeable or not.
+**DEPRECATED**: Enables legacy PUT/POST request handling. 
+
+This API is not standardized, and should not be used for new projects.
+We are working on a modern replacement. IPIP can be tracked in [ipfs/specs#375](https://github.com/ipfs/specs/issues/375).
 
 Default: `false`
 
@@ -911,7 +914,7 @@ based on the metrics `ipfs_bitswap_active_tasks`, `ipfs_bitswap_pending_tasks`,
 `ipfs_bitswap_pending_block_tasks` and `ipfs_bitswap_active_block_tasks`
 reported by bitswap.
 
-These metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
+These metrics can be accessed as the Prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
 
 The value of `ipfs_bitswap_active_tasks` is capped by `EngineTaskWorkerCount`.
 
@@ -935,7 +938,7 @@ while `ipfs_bitswap_active_block_tasks` is at its maximum, there is indication t
 available block tasks is creating a bottleneck (either due to high-latency block operations,
 or due to high number of block operations per bitswap peer task).
 In such cases, try increasing the `EngineBlockstoreWorkerCount`.
-If this adjustment still does not increase the throuput of the node, there might
+If this adjustment still does not increase the throughput of the node, there might
 be hardware limitations like I/O or CPU.
 
 #### `Internal.Bitswap.TaskWorkerCount`

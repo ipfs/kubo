@@ -80,8 +80,8 @@ var swarmPeeringCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Modify the peering subsystem.",
 		ShortDescription: `
-'ipfs swarm peering' manages the peering subsystem. 
-Peers in the peering subsystem are maintained to be connected, reconnected 
+'ipfs swarm peering' manages the peering subsystem.
+Peers in the peering subsystem are maintained to be connected, reconnected
 on disconnect with a back-off.
 The changes are not saved to the config.
 `,
@@ -430,7 +430,7 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 
 		//  set scope limit to new values (when limit.json is passed as a second arg)
 		if req.Files != nil {
-			var newLimit rcmgr.BaseLimit
+			var newLimit rcmgr.ResourceLimits
 			it := req.Files.Entries()
 			if it.Next() {
 				file := files.FileFromEntry(it)
@@ -451,18 +451,21 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 		}
 
 		var result interface{}
-		_, reset := req.Options[swarmResetLimitsOptionName]
-		if reset {
+		switch _, reset := req.Options[swarmResetLimitsOptionName]; {
+		case reset:
 			result, err = libp2p.NetResetLimit(node.ResourceManager, node.Repo, scope)
-		} else if scope == "all" {
+		case scope == "all":
 			result, err = libp2p.NetLimitAll(node.ResourceManager)
-		} else {
+		default:
 			// get scope limit
 			result, err = libp2p.NetLimit(node.ResourceManager, scope)
 		}
-
 		if err != nil {
 			return err
+		}
+
+		if base, ok := result.(rcmgr.BaseLimit); ok {
+			result = base.ToResourceLimits()
 		}
 
 		b := new(bytes.Buffer)

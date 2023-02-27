@@ -46,12 +46,12 @@ var noLimitIncrease = rcmgr.BaseLimitIncrease{
 // createDefaultLimitConfig creates LimitConfig to pass to libp2p's resource manager.
 // The defaults follow the documentation in docs/libp2p-resource-management.md.
 // Any changes in the logic here should be reflected there.
-func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error) {
+func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.ConcreteLimitConfig, error) {
 	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 2)
 	maxMemoryString := cfg.ResourceMgr.MaxMemory.WithDefault(maxMemoryDefaultString)
 	maxMemory, err := humanize.ParseBytes(maxMemoryString)
 	if err != nil {
-		return rcmgr.LimitConfig{}, err
+		return rcmgr.ConcreteLimitConfig{}, err
 	}
 
 	maxMemoryMB := maxMemory / (1024 * 1024)
@@ -173,7 +173,8 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 	// Whatever limits libp2p has specifically tuned for its protocols/services we'll apply.
 	libp2p.SetDefaultServiceLimits(&scalingLimitConfig)
 
-	defaultLimitConfig := scalingLimitConfig.Scale(int64(maxMemory), maxFD)
+	orig := scalingLimitConfig.Scale(int64(maxMemory), maxFD)
+	defaultLimitConfig := orig.ToPartialLimitConfig()
 
 	// Simple checks to overide autoscaling ensuring limits make sense versus the connmgr values.
 	// There are ways to break this, but this should catch most problems already.
@@ -190,9 +191,9 @@ Run 'ipfs swarm limit all' to see the resulting limits.
 		}
 
 		// Scale System.StreamsInbound as well, but use the existing ratio of StreamsInbound to ConnsInbound
-		defaultLimitConfig.System.StreamsInbound = int(maxInboundConns * int64(defaultLimitConfig.System.StreamsInbound) / int64(defaultLimitConfig.System.ConnsInbound))
-		defaultLimitConfig.System.ConnsInbound = int(maxInboundConns)
+		defaultLimitConfig.System.StreamsInbound = rcmgr.LimitVal(maxInboundConns * int64(defaultLimitConfig.System.StreamsInbound) / int64(defaultLimitConfig.System.ConnsInbound))
+		defaultLimitConfig.System.ConnsInbound = rcmgr.LimitVal(maxInboundConns)
 	}
 
-	return defaultLimitConfig, nil
+	return defaultLimitConfig.Build(orig), nil
 }

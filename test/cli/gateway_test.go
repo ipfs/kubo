@@ -469,7 +469,7 @@ func TestGateway(t *testing.T) {
 
 			t.Run("not present IPNS key from node 1", func(t *testing.T) {
 				t.Parallel()
-				assert.Equal(t, 400, node1.GatewayClient().Get("/ipns/"+node2.PeerID().String()).StatusCode)
+				assert.Equal(t, 500, node1.GatewayClient().Get("/ipns/"+node2.PeerID().String()).StatusCode)
 			})
 		})
 
