@@ -84,21 +84,21 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	defopts.MemTableSize = 512 << 20 // 512 MiB
 	defopts.BytesPerSync = 512 << 20 // 512 MiB
 	defopts.Cache = cache
-	defopts.DisableWAL = true
+	defopts.DisableWAL = false
 	// See https://github.com/cockroachdb/cockroach/blob/a3039fe628f2ab7c5fba31a30ba7bc7c38065230/pkg/storage/pebble.go#L483
 	defopts.MaxConcurrentCompactions = func() int {
 		return 10
 	}
 	defopts.MaxOpenFiles = 5000
-	defopts.L0CompactionThreshold = 2
+	defopts.L0CompactionThreshold = 4
 	defopts.L0StopWritesThreshold = 1000
 	defopts.Levels = make([]pebble.LevelOptions, 7)
 	defopts.MemTableStopWritesThreshold = 30
-	defopts.Levels[0].TargetFileSize = 4 << 20 // 4MB
+	defopts.Levels[0].TargetFileSize = 2 << 20 // 2MB def: 2M
 
 	for i := 0; i < len(defopts.Levels); i++ {
 		l := &defopts.Levels[i]
-		l.BlockSize = 16 << 10 // 16 KB
+		l.BlockSize = 8 << 10 // 8 KB : def 4K
 		// No compression, should be same
 		// l.IndexBlockSize = 512 << 10 // 256 KB
 		l.FilterPolicy = bloom.FilterPolicy(10)
