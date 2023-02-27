@@ -81,10 +81,17 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	var defopts pebble.Options
 	cache := pebble.NewCache(10 << 30) // 10 GiB
 	defopts = *defopts.EnsureDefaults()
-	defopts.MemTableSize = 512 << 20 // 512 MiB
+	// I've tried with different memtable sizes
+	// memtables get rotated when full, so a small size
+	// seems a sensibe approach.
+	// However, WAL is associated to memtables,
+	// so a small memtable makes a small WAL so I'd rather have
+	// a large WAL.
+	defopts.MemTableSize = 128 << 20 // 128 MB. Def: 4MB.
 	defopts.BytesPerSync = 512 << 20 // 512 MiB
 	defopts.Cache = cache
-	defopts.DisableWAL = false
+	defopts.DisableWAL = true
+
 	// See https://github.com/cockroachdb/cockroach/blob/a3039fe628f2ab7c5fba31a30ba7bc7c38065230/pkg/storage/pebble.go#L483
 	defopts.MaxConcurrentCompactions = func() int {
 		return 10
