@@ -79,9 +79,9 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	}
 
 	var defopts pebble.Options
-	cache := pebble.NewCache(1 << 30) // 1 GiB
+	cache := pebble.NewCache(10 << 30) // 10 GiB
 	defopts = *defopts.EnsureDefaults()
-	defopts.MemTableSize = 256 << 20 // 512 MiB
+	defopts.MemTableSize = 512 << 20 // 512 MiB
 	defopts.BytesPerSync = 512 << 20 // 512 MiB
 	defopts.Cache = cache
 	defopts.DisableWAL = true
@@ -94,11 +94,11 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	defopts.L0StopWritesThreshold = 1000
 	defopts.Levels = make([]pebble.LevelOptions, 7)
 	defopts.MemTableStopWritesThreshold = 30
-	defopts.Levels[0].TargetFileSize = 16 << 20 // 16MB
+	defopts.Levels[0].TargetFileSize = 4 << 20 // 4MB
 
 	for i := 0; i < len(defopts.Levels); i++ {
 		l := &defopts.Levels[i]
-		l.BlockSize = 512 << 10 // 512 KB
+		l.BlockSize = 16 << 10 // 16 KB
 		// No compression, should be same
 		// l.IndexBlockSize = 512 << 10 // 256 KB
 		l.FilterPolicy = bloom.FilterPolicy(10)
