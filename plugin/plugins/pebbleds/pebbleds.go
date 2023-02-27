@@ -80,7 +80,8 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 
 	var defopts pebble.Options
 	defopts = *defopts.EnsureDefaults()
-	defopts.MemTableSize = 2 << 30 // 2GiB memtable
+	defopts.MemTableSize = 2 << 30           // 2GiB memtable
+	defopts.BytesPerSync = 100 * 1024 * 1024 // 100 MiB
 	defopts.Levels[0].Compression = pebble.NoCompression
 	defopts.Levels[0].FilterPolicy = bloom.FilterPolicy(10)
 
