@@ -1,6 +1,7 @@
 package harness
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -59,6 +60,18 @@ func BuildNode(ipfsBin, baseDir string, id int) *Node {
 			Env: env,
 			Dir: dir,
 		},
+	}
+}
+
+func (n *Node) WriteBytes(filename string, b []byte) {
+	f, err := os.Create(filepath.Join(n.Dir, filename))
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	_, err = io.Copy(f, bytes.NewReader(b))
+	if err != nil {
+		panic(err)
 	}
 }
 
