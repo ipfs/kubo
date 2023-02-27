@@ -22,7 +22,6 @@ test_expect_success "Test the directory listing" '
   test_should_contain ">bar<" list_response
 '
 
-# TODO: it's unclear to me if that `echo -n "foo" > expected` should be a fixture somehow.
 test_expect_success "Test the symlink" '
   curl "$GWAY_ADDR/ipfs/$ROOT_DIR_CID/bar" > bar_actual &&
   echo -n "foo" > bar_expected &&
