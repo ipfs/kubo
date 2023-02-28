@@ -242,7 +242,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 
 	if settings.Offline || !settings.FetchBlocks {
 		subAPI.exchange = offlinexch.Exchange(subAPI.blockstore)
-		subAPI.blocks = bserv.New(subAPI.blockstore, subAPI.exchange)
+		subAPI.blocks = bserv.NewWriteThrough(subAPI.blockstore, subAPI.exchange)
 		subAPI.dag = dag.NewDAGService(subAPI.blocks)
 	}
 

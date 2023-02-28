@@ -115,7 +115,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		pinning = node.Pinning
 	}
 
-	bserv := blockservice.New(addblockstore, exch) // hash security 001
+	bserv := blockservice.NewWriteThrough(addblockstore, exch) // hash security 001
 	dserv := merkledag.NewDAGService(bserv)
 
 	// add a sync call to the DagService
