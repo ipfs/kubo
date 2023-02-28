@@ -33,12 +33,12 @@ func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, nilRepo bool, hashOnRead
 		bs = blockstore.NewWriteThrough(repo.Datastore())
 		bs = &verifbs.VerifBS{Blockstore: bs}
 
-		if !nilRepo {
-			bs, err = blockstore.CachedBlockstore(helpers.LifecycleCtx(mctx, lc), bs, cacheOpts)
-			if err != nil {
-				return nil, err
-			}
-		}
+		// if !nilRepo {
+		// 	bs, err = blockstore.CachedBlockstore(helpers.LifecycleCtx(mctx, lc), bs, cacheOpts)
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
+		// }
 
 		bs = blockstore.NewIdStore(bs)
 
