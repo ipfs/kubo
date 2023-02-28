@@ -55,9 +55,7 @@ jobs:
           make -O -j "$PARALLEL" \
             test_sharness \
             coverage/sharness_tests.coverprofile \
-            test/sharness/test-results/sharness.xml \
-            test/sharness/test-results/sharness.html \
-            test/sharness/test-results/sharness-html
+            test/sharness/test-results/sharness.xml
         working-directory: kubo
         env:
           TEST_NO_DOCKER: 0
@@ -87,6 +85,13 @@ jobs:
           echo "# Summary" >> $GITHUB_STEP_SUMMARY
           echo >> $GITHUB_STEP_SUMMARY
           cat kubo/test/sharness/test-results/summary.txt >> $GITHUB_STEP_SUMMARY
+      - name: Generate one-page HTML report
+        uses: pl-strflt/junit-xml-to-html@v1
+        if: failure() || success()
+        with:
+          mode: no-frames
+          input: kubo/test/sharness/test-results/sharness.xml
+          output: kubo/test/sharness/test-results/sharness.html
       - name: Upload one-page HTML report to S3
         id: one-page
         uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
@@ -100,6 +105,13 @@ jobs:
         with:
           name: sharness.html
           path: kubo/test/sharness/test-results/sharness.html
+      - name: Generate full HTML report
+        uses: pl-strflt/junit-xml-to-html@v1
+        if: failure() || success()
+        with:
+          mode: frames
+          input: kubo/test/sharness/test-results/sharness.xml
+          output: kubo/test/sharness/test-results/sharness-html
       - name: Upload full HTML report to S3
         id: full
         uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main

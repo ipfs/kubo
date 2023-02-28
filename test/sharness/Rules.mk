@@ -47,21 +47,6 @@ $(d)/test-results/sharness.xml: $(T_$(d))
 	@(cd $(@D)/.. && ./lib/test-aggregate-junit-reports.sh)
 .PHONY: $(d)/test-results/sharness.xml
 
-$(d)/download-saxon:
-	@echo "*** $@ ***"
-	@(cd $(@D) && ./lib/download-saxon.sh)
-.PHONY: $(d)/download-saxon
-
-$(d)/test-results/sharness-html: $(d)/test-results/sharness.xml $(d)/download-saxon
-	@echo "*** $@ ***"
-	@(cd $(@D)/.. && ./lib/test-generate-junit-html.sh frames)
-.PHONY: $(d)/test-results/sharness-html
-
-$(d)/test-results/sharness.html: $(d)/test-results/sharness.xml $(d)/download-saxon
-	@echo "*** $@ ***"
-	@(cd $(@D)/.. && ./lib/test-generate-junit-html.sh no-frames)
-.PHONY: $(d)/test-results/sharness.html
-
 $(d)/clean-test-results:
 	rm -rf $(@D)/test-results
 .PHONY: $(d)/clean-test-results
