@@ -591,8 +591,8 @@ github.com/ipfs/go-ipld-legacy v0.1.1 h1:BvD8PEuqwBHLTKqlGFTHSwrwFOMkVESEvwIYwR2
 github.com/ipfs/go-ipld-legacy v0.1.1/go.mod h1:8AyKFCjgRPsQFf15ZQgDB8Din4DML/fOmKZkkFkrIEg=
 github.com/ipfs/go-ipns v0.3.0 h1:ai791nTgVo+zTuq2bLvEGmWP1M0A6kGTXUsgv/Yq67A=
 github.com/ipfs/go-ipns v0.3.0/go.mod h1:3cLT2rbvgPZGkHJoPO1YMJeh6LtkxopCkKFcio/wE24=
-github.com/ipfs/go-libipfs v0.6.1-0.20230222011044-7b201415a176 h1:QJvWxLRKucrAo7W2vLz5FA2iLKwW6WkHWn8AL8kXAUU=
-github.com/ipfs/go-libipfs v0.6.1-0.20230222011044-7b201415a176/go.mod h1:UjjDIuehp2GzlNP0HEr5I9GfFT7zWgst+YfpUEIThtw=
+github.com/ipfs/go-libipfs v0.6.1-0.20230228004237-36918f45f260 h1:QRLcCoITO9ZQo2pvjmrfngqKhUKjPopBva3MVH62LT8=
+github.com/ipfs/go-libipfs v0.6.1-0.20230228004237-36918f45f260/go.mod h1:3OoEQs95UkqFEf65SbRDpiMwuzI+C/jTsYQaHfBbJXI=
 github.com/ipfs/go-log v0.0.1/go.mod h1:kL1d2/hzSpI0thNYjiKfjanbVNU+IIGA/WnNESY9leM=
 github.com/ipfs/go-log v1.0.2/go.mod h1:1MNjMxe0u6xvJZgeqbJ8vdo2TKaGwZ1a0Bpza+sr2Sk=
 github.com/ipfs/go-log v1.0.3/go.mod h1:OsLySYkwIbiSUR/yBTdv1qPtcE4FW3WPWk/ewz9Ru+A=
@@ -622,8 +622,8 @@ github.com/ipfs/go-mfs v0.2.1/go.mod h1:Woj80iuw4ajDnIP6+seRaoHpPsc9hmL0pk/nDNDW
 github.com/ipfs/go-namesys v0.7.0 h1:xqosk71GIVRkFDtF2UNRcXn4LdNeo7tzuy8feHD6NbU=
 github.com/ipfs/go-namesys v0.7.0/go.mod h1:KYSZBVZG3VJC34EfqqJPG7T48aWgxseoMPAPA5gLyyQ=
 github.com/ipfs/go-path v0.2.1/go.mod h1:NOScsVgxfC/eIw4nz6OiGwK42PjaSJ4Y/ZFPn1Xe07I=
-github.com/ipfs/go-path v0.3.0 h1:tkjga3MtpXyM5v+3EbRvOHEoo+frwi4oumw5K+KYWyA=
-github.com/ipfs/go-path v0.3.0/go.mod h1:NOScsVgxfC/eIw4nz6OiGwK42PjaSJ4Y/ZFPn1Xe07I=
+github.com/ipfs/go-path v0.3.1 h1:wkeaCWE/NTuuPGlEkLTsED5UkzfKYZpxaFFPgk8ZVLE=
+github.com/ipfs/go-path v0.3.1/go.mod h1:eNLsxJEEMxn/CDzUJ6wuNl+6No6tEUhOZcPKsZsYX0E=
 github.com/ipfs/go-peertaskqueue v0.1.0/go.mod h1:Jmk3IyCcfl1W3jTW3YpghSwSEC6IJ3Vzz/jUmWw8Z0U=
 github.com/ipfs/go-peertaskqueue v0.7.0/go.mod h1:M/akTIE/z1jGNXMU7kFB4TeSEFvj68ow0Rrb04donIU=
 github.com/ipfs/go-peertaskqueue v0.8.1 h1:YhxAs1+wxb5jk7RvS0LHdyiILpNmRIRnZVztekOF0pg=
