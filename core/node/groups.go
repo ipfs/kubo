@@ -183,7 +183,10 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 // Storage groups units which setup datastore based persistence and blockstore layers
 func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	cacheOpts := blockstore.DefaultCacheOpts()
-	cacheOpts.HasARCCacheSize = 10 << 30 // 10GB
+	// Disable ARC cache as it just causes harm by sorting and de-duping
+	// large batches of blocks on PutMany, plus any benefits for reading
+	// would overlap with existing block caches.
+	cacheOpts.HasARCCacheSize = 0
 	cacheOpts.HasBloomFilterSize = cfg.Datastore.BloomFilterSize
 	if !bcfg.Permanent {
 		cacheOpts.HasBloomFilterSize = 0
