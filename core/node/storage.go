@@ -14,7 +14,8 @@ import (
 
 // RepoConfig loads configuration from the repo
 func RepoConfig(repo repo.Repo) (*config.Config, error) {
-	return repo.Config()
+	cfg, err := repo.Config()
+	return cfg, err
 }
 
 // Datastore provides the datastore
