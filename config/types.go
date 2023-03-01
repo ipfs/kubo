@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 )
@@ -412,3 +414,26 @@ func (p OptionalString) String() string {
 
 var _ json.Unmarshaler = (*OptionalInteger)(nil)
 var _ json.Marshaler = (*OptionalInteger)(nil)
+
+type swarmLimits struct{}
+
+var _ json.Unmarshaler = swarmLimits{}
+
+func (swarmLimits) UnmarshalJSON(b []byte) error {
+	d := json.NewDecoder(bytes.NewReader(b))
+	for {
+		switch tok, err := d.Token(); err {
+		case io.EOF:
+			return nil
+		case nil:
+			switch tok {
+			case json.Delim('{'), json.Delim('}'):
+				// accept empty objects
+				continue
+			}
+			return fmt.Errorf("field Swarm.ResourceMgr.Limits has been removed in 0.19 and must be empty or not present")
+		default:
+			return err
+		}
+	}
+}

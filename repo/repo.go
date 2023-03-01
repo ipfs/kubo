@@ -8,6 +8,7 @@ import (
 
 	filestore "github.com/ipfs/go-filestore"
 	keystore "github.com/ipfs/go-ipfs-keystore"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 
 	ds "github.com/ipfs/go-datastore"
 	config "github.com/ipfs/kubo/config"
@@ -23,6 +24,10 @@ type Repo interface {
 	// Config returns the ipfs configuration file from the repo. Changes made
 	// to the returned config are not automatically persisted.
 	Config() (*config.Config, error)
+
+	// UserRessourceOverrides returns optional user ressource overrides for the
+	// libp2p ressource manager.
+	UserRessourceOverrides() (rcmgr.PartialLimitConfig, error)
 
 	// BackupConfig creates a backup of the current configuration file using
 	// the given prefix for naming.

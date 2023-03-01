@@ -255,6 +255,7 @@ func TestCommands(t *testing.T) {
 		"/swarm/peering/ls",
 		"/swarm/peering/rm",
 		"/swarm/stats",
+		"/swarm/resources",
 		"/tar",
 		"/tar/add",
 		"/tar/cat",
