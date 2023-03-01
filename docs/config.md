@@ -146,7 +146,6 @@ config file at runtime.
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.MaxMemory`](#swarmresourcemgrmaxmemory)
       - [`Swarm.ResourceMgr.MaxFileDescriptors`](#swarmresourcemgrmaxfiledescriptors)
-      - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
       - [`Swarm.ResourceMgr.Allowlist`](#swarmresourcemgrallowlist)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
@@ -1846,6 +1845,8 @@ This value is also used to scale the limit on various resources at various scope
 when the default limits (discussed in [libp2p resource management](./libp2p-resource-management.md)) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
+It is possible to inspect the runtime limits via `ipfs swarm resources --help`.
+
 Default: `[TOTAL_SYSTEM_MEMORY]/2`
 Type: `optionalBytes`
 
@@ -1858,65 +1859,6 @@ This param is ignored on Windows.
 
 Default `[TOTAL_SYSTEM_FILE_DESCRIPTORS]/2`
 Type: `optionalInteger`
-
-#### `Swarm.ResourceMgr.Limits`
-
-Map of resource limits [per scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes).
-
-The map supports fields from the [`LimitConfig` struct](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit_defaults.go#L111).
-
-[`BaseLimit`s](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit.go#L89) can be set for any scope, and within the `BaseLimit`, all limit <key,value>s are optional.
-
-The `Swarm.ResourceMgr.Limits` override the default limits described above.
-Any override `BaseLimits` or limit <key,value>s from `Swarm.ResourceMgr.Limits`
-that aren't specified will use the [computed default limits](./libp2p-resource-management.md#computed-default-limits).
-
-Until [ipfs/kubo#9564](https://github.com/ipfs/kubo/issues/9564) is addressed, there isn't a way to set an override limit of zero.
-0 is currently ignored.  0 currently means use to use the [computed default limits](./libp2p-resource-management.md#computed-default-limits).
-
-Example #1: setting limits for a specific scope
-```json
-{
-  "Swarm": {
-    "ResourceMgr": {
-      "Limits": {
-        "System": {
-          "Memory": 1073741824,
-          "FD": 512,
-          "Conns": 1024,
-          "ConnsInbound": 256,
-          "ConnsOutbound": 1024,
-          "Streams": 16384,
-          "StreamsInbound": 4096,
-          "StreamsOutbound": 16384
-        }
-      }
-    }
-  }
-}
-```
-
-Example #2: setting a specific <key,value> limit
-```json
-{
-  "Swarm": {
-    "ResourceMgr": {
-      "Limits": {
-        "Transient": {
-          "ConnsOutbound": 256,
-        }
-      }
-    }
-  }
-}
-```
-
-It is also possible to inspect and adjust some runtime limits via `ipfs swarm stats --help` and `ipfs swarm limit --help`.
-Changes made via `ipfs swarm limit` are persisted in `Swarm.ResourceMgr.Limits`.
-
-Default: `{}` (use the [computed defaults](./libp2p-resource-management.md#computed-default-limits))
-
-Type: `object[string->object]`
 
 #### `Swarm.ResourceMgr.Allowlist`
 
