@@ -188,6 +188,9 @@ func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	// would overlap with existing block caches.
 	cacheOpts.HasARCCacheSize = 0
 	cacheOpts.HasBloomFilterSize = cfg.Datastore.BloomFilterSize
+	// Disable bloom filter: building the bloom filter reads all the keys
+	// in the datastore!
+	cacheOpts.HasBloomFilterSize = 0
 	if !bcfg.Permanent {
 		cacheOpts.HasBloomFilterSize = 0
 	}
