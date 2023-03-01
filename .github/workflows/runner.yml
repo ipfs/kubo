@@ -10,6 +10,7 @@ on:
 jobs:
   choose:
     runs-on: ubuntu-latest
+    timeout-minutes: 1
     outputs:
       config: ${{ steps.config.outputs.result }}
     steps:

@@ -13,6 +13,7 @@ jobs:
   sync-github-and-dist-ipfs-tech:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: "ubuntu-latest"
+    timeout-minutes: 5
     steps:
       - uses: ipfs/download-ipfs-distribution-action@v1
       - uses: ipfs/start-ipfs-daemon-action@v1

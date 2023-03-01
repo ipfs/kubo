@@ -14,6 +14,7 @@ jobs:
   prepare:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
       TEST_NO_DOCKER: 1
       TEST_NO_FUSE: 1
@@ -40,6 +41,7 @@ jobs:
   ipfs-interop:
     needs: [prepare]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       matrix:
         suites:
@@ -83,6 +85,7 @@ jobs:
   go-ipfs-api:
     needs: [prepare]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
       TEST_NO_DOCKER: 1
       TEST_NO_FUSE: 1
@@ -122,6 +125,7 @@ jobs:
   go-ipfs-http-client:
     needs: [prepare]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
       TEST_NO_DOCKER: 1
       TEST_NO_FUSE: 1
@@ -154,6 +158,7 @@ jobs:
   ipfs-webui:
     needs: [prepare]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       NO_SANDBOX: true
       LIBP2P_TCP_REUSEPORT: false
