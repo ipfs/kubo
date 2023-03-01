@@ -20,6 +20,7 @@ import (
 	"github.com/ipfs/kubo/config"
 	serial "github.com/ipfs/kubo/config/serialize"
 	"github.com/libp2p/go-libp2p/core/peer"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 )
@@ -94,6 +95,38 @@ func (n *Node) UpdateConfig(f func(cfg *config.Config)) {
 	cfg := n.ReadConfig()
 	f(cfg)
 	n.WriteConfig(cfg)
+}
+
+func (n *Node) ReadUserResourceOverrides() *rcmgr.PartialLimitConfig {
+	var r rcmgr.PartialLimitConfig
+	err := serial.ReadConfigFile(filepath.Join(n.Dir, "libp2p-resource-limit-overrides.json"), &r)
+	switch err {
+	case nil, serial.ErrNotInitialized:
+		return &r
+	default:
+		panic(err)
+	}
+}
+
+func (n *Node) WriteUserSuppliedResourceOverrides(c *rcmgr.PartialLimitConfig) {
+	err := serial.WriteConfigFile(filepath.Join(n.Dir, "libp2p-resource-limit-overrides.json"), c)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (n *Node) UpdateUserSuppliedResourceManagerOverrides(f func(overrides *rcmgr.PartialLimitConfig)) {
+	overrides := n.ReadUserResourceOverrides()
+	f(overrides)
+	n.WriteUserSuppliedResourceOverrides(overrides)
+}
+
+func (n *Node) UpdateConfigAndUserSuppliedResourceManagerOverrides(f func(cfg *config.Config, overrides *rcmgr.PartialLimitConfig)) {
+	overrides := n.ReadUserResourceOverrides()
+	cfg := n.ReadConfig()
+	f(cfg, overrides)
+	n.WriteConfig(cfg)
+	n.WriteUserSuppliedResourceOverrides(overrides)
 }
 
 func (n *Node) IPFS(args ...string) RunResult {
