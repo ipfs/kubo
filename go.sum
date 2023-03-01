@@ -561,6 +561,8 @@ github.com/ipfs/go-ds-pebble v0.1.0 h1:CCgOP1LR0OA/dbK9KIWGHGse2dqQ1jiPgznioYyu6
 github.com/ipfs/go-ds-pebble v0.1.0/go.mod h1:7w3s1iFpBr2RkLYXpNulbqrIerqprGUjD48pvHAOGyQ=
 github.com/ipfs/go-ds-pebble v0.2.0 h1:4BcBVI3uxsWtAnkhOz92Oq/EEHdbrV4WXrkoOBvtoHE=
 github.com/ipfs/go-ds-pebble v0.2.0/go.mod h1:773gebTfUaaAmJgpe3CjfddGGXEywBi9EwPfSPnlK3k=
+github.com/ipfs/go-ds-pebble v0.2.1 h1:qmDxcpd0yjL7nrzwH6pi/Zf6B0XOQAXk62mL3MenHz0=
+github.com/ipfs/go-ds-pebble v0.2.1/go.mod h1:gcsz9feIlROgsWzO81ZlrMpWtK2mQ+b/a8F+advE+Hw=
 github.com/ipfs/go-fetcher v1.6.1 h1:UFuRVYX5AIllTiRhi5uK/iZkfhSpBCGX7L70nSZEmK8=
 github.com/ipfs/go-fetcher v1.6.1/go.mod h1:27d/xMV8bodjVs9pugh/RCjjK2OZ68UgAMspMdingNo=
 github.com/ipfs/go-filestore v1.2.0 h1:O2wg7wdibwxkEDcl7xkuQsPvJFRBVgVSsOJ/GP6z3yU=
