@@ -126,10 +126,10 @@ func TestGateway(t *testing.T) {
 			assert.Equal(t, 404, resp.StatusCode)
 		})
 
-		t.Run("GET IPFS invalid CID returns 400 (Bad Request)", func(t *testing.T) {
+		t.Run("GET IPFS invalid CID returns 500 (Internal Server Error)", func(t *testing.T) {
 			t.Parallel()
 			resp := client.Get("/ipfs/QmInvalid/pleaseDontAddMe")
-			assert.Equal(t, 400, resp.StatusCode)
+			assert.Equal(t, 500, resp.StatusCode)
 		})
 
 		t.Run("GET IPFS inlined zero-length data object returns ok code (200)", func(t *testing.T) {
@@ -166,10 +166,10 @@ func TestGateway(t *testing.T) {
 		t.Parallel()
 		node.IPFS("name", "publish", "--allow-offline", cid)
 
-		t.Run("GET invalid IPNS root returns 400 (Bad Request)", func(t *testing.T) {
+		t.Run("GET invalid IPNS root returns 500 (Internal Server Error)", func(t *testing.T) {
 			t.Parallel()
 			resp := client.Get("/ipns/QmInvalid/pleaseDontAddMe")
-			assert.Equal(t, 400, resp.StatusCode)
+			assert.Equal(t, 500, resp.StatusCode)
 		})
 
 		t.Run("GET IPNS path succeeds", func(t *testing.T) {
@@ -198,7 +198,7 @@ func TestGateway(t *testing.T) {
 
 	t.Run("GET invalid IPFS path errors", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, 400, client.Get("/ipfs/12345").StatusCode)
+		assert.Equal(t, 500, client.Get("/ipfs/12345").StatusCode)
 	})
 
 	t.Run("GET invalid path errors", func(t *testing.T) {

@@ -25,15 +25,16 @@ test_launch_ipfs_daemon_without_network
 # Caching of things like raw blocks, CARs, dag-json and dag-cbor
 # is tested in their respective suites.
 
+# Import test case
+# See the static fixtures in ./t0116-gateway-cache/
 test_expect_success "Add the test directory" '
-  mkdir -p root2/root3/root4 &&
-  echo "hello" > root2/root3/root4/index.html &&
-  ROOT1_CID=$(ipfs add -Qrw --cid-version 1 root2)
-  ROOT2_CID=$(ipfs resolve -r /ipfs/$ROOT1_CID/root2 | cut -d "/" -f3)
-  ROOT3_CID=$(ipfs resolve -r /ipfs/$ROOT1_CID/root2/root3 | cut -d "/" -f3)
-  ROOT4_CID=$(ipfs resolve -r /ipfs/$ROOT1_CID/root2/root3/root4 | cut -d "/" -f3)
-  FILE_CID=$(ipfs resolve -r /ipfs/$ROOT1_CID/root2/root3/root4/index.html | cut -d "/" -f3)
+  ipfs dag import ../t0116-gateway-cache/fixtures.car
 '
+ROOT1_CID=bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui # ./
+ROOT2_CID=bafybeih2w7hjocxjg6g2ku25hvmd53zj7og4txpby3vsusfefw5rrg5sii # ./root2
+ROOT3_CID=bafybeiawdvhmjcz65x5egzx4iukxc72hg4woks6v6fvgyupiyt3oczk5ja # ./root2/root3
+ROOT4_CID=bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q # ./root2/root3/root4
+FILE_CID=bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am # ./root2/root3/root4/index.html
 
 test_expect_success "Prepare IPNS unixfs content path for testing" '
   TEST_IPNS_ID=$(ipfs key gen --ipns-base=base36 --type=ed25519 cache_test_key | head -n1 | tr -d "\n")
