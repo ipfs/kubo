@@ -6,8 +6,9 @@ import (
 	"io"
 
 	cid "github.com/ipfs/go-cid"
-	ipld "github.com/ipfs/go-ipld-format"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
+	blocks "github.com/ipfs/go-libipfs/blocks"
 	"github.com/ipfs/go-libipfs/files"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -50,7 +51,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	doPinRoots, _ := req.Options[pinRootsOptionName].(bool)
 
 	retCh := make(chan importResult, 1)
-	go importWorker(req, res, api, retCh)
+	go importWorker(req, res, api, node.Blockstore, retCh)
 
 	done := <-retCh
 	if done.err != nil {
@@ -133,15 +134,18 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	return nil
 }
 
-func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI, ret chan importResult) {
+func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI, bs blockstore.Blockstore, ret chan importResult) {
 
 	// this is *not* a transaction
 	// it is simply a way to relieve pressure on the blockstore
 	// similar to pinner.Pin/pinner.Flush
-	batch := ipld.NewBatch(req.Context, api.Dag(), ipld.MaxSizeBatchOption(100<<20), ipld.MaxNodesBatchOption(50000))
+	//batch := ipld.NewBatch(req.Context, api.Dag(), ipld.MaxSizeBatchOption(100<<20), ipld.MaxNodesBatchOption(50000))
 
 	roots := make(map[cid.Cid]struct{})
 	var blockCount, blockBytesCount uint64
+
+	var batch []blocks.Block
+	batchSize := 0
 
 	it := req.Files.Entries()
 	for it.Next() {
@@ -181,15 +185,27 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 					return err
 				}
 
-				// the double-decode is suboptimal, but we need it for batching
-				nd, err := ipldlegacy.DecodeNode(req.Context, block)
-				if err != nil {
-					return err
+				batch = append(batch, block)
+				batchSize += len(block.RawData())
+
+				if batchSize > 100<<20 { // 100MB batches
+					err = bs.PutMany(req.Context, batch)
+					if err != nil {
+						return err
+					}
+					batchSize = 0
+					batch = nil
 				}
 
-				if err := batch.Add(req.Context, nd); err != nil {
-					return err
-				}
+				// // the double-decode is suboptimal, but we need it for batching
+				// nd, err := ipldlegacy.DecodeNode(req.Context, block)
+				// if err != nil {
+				// 	return err
+				// }
+
+				// if err := batch.Add(req.Context, nd); err != nil {
+				// 	return err
+				// }
 				blockCount++
 				blockBytesCount += uint64(len(block.RawData()))
 			}
@@ -208,7 +224,11 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 		return
 	}
 
-	if err := batch.Commit(); err != nil {
+	// if err := batch.Commit(); err != nil {
+	// 	ret <- importResult{err: err}
+	// 	return
+	// }
+	if err := bs.PutMany(req.Context, batch); err != nil {
 		ret <- importResult{err: err}
 		return
 	}
