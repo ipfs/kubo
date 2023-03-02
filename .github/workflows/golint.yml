@@ -1,4 +1,4 @@
-name: 'ci/gh: go lint'
+name: 'go lint'
 
 on:
   workflow_dispatch:

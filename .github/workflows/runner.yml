@@ -1,4 +1,4 @@
-name: 'ci/gh: choose runner'
+name: 'choose runner'
 
 on:
   workflow_call:

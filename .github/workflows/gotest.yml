@@ -1,4 +1,4 @@
-name: 'ci/gh: go test'
+name: 'go test'
 
 on:
   workflow_dispatch:

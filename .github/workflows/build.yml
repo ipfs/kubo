@@ -1,4 +1,4 @@
-name: 'ci/gh: interop'
+name: 'interop'
 
 on:
   workflow_dispatch:

@@ -1,4 +1,4 @@
-name: 'ci/gh: sharness'
+name: 'sharness'
 
 on:
   workflow_dispatch:
