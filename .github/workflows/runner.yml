@@ -1,4 +1,4 @@
-name: 'ci/gh-experiment: choose runner'
+name: 'ci/gh: choose runner'
 
 on:
   workflow_call:
