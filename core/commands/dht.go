@@ -87,6 +87,7 @@ type kademlia interface {
 }
 
 var queryDhtCmd = &cmds.Command{
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
 		Tagline:          "Find the closest Peer IDs to a given Peer ID by querying the DHT.",
 		ShortDescription: "Outputs a list of newline-delimited Peer IDs.",
