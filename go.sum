@@ -632,8 +632,8 @@ github.com/ipfs/go-pinning-service-http-client v0.1.2 h1:jdr7KelhL9gNHTU8jbqPMwI
 github.com/ipfs/go-pinning-service-http-client v0.1.2/go.mod h1:6wd5mjYhXJTiWU8b4RSWPpWdlzE5/csoXV0dWWMjun4=
 github.com/ipfs/go-unixfs v0.2.4/go.mod h1:SUdisfUjNoSDzzhGVxvCL9QO/nKdwXdr+gbMUdqcbYw=
 github.com/ipfs/go-unixfs v0.3.1/go.mod h1:h4qfQYzghiIc8ZNFKiLMFWOTzrWIAtzYQ59W/pCFf1o=
-github.com/ipfs/go-unixfs v0.4.3 h1:EdDc1sNZNFDUlo4UrVAvvAofVI5EwTnKu8Nv8mgXkWQ=
-github.com/ipfs/go-unixfs v0.4.3/go.mod h1:TSG7G1UuT+l4pNj91raXAPkX0BhJi3jST1FDTfQ5QyM=
+github.com/ipfs/go-unixfs v0.4.4 h1:D/dLBOJgny5ZLIur2vIXVQVW0EyDHdOMBDEhgHrt6rY=
+github.com/ipfs/go-unixfs v0.4.4/go.mod h1:TSG7G1UuT+l4pNj91raXAPkX0BhJi3jST1FDTfQ5QyM=
 github.com/ipfs/go-unixfsnode v1.1.2/go.mod h1:5dcE2x03pyjHk4JjamXmunTMzz+VUtqvPwZjIEkfV6s=
 github.com/ipfs/go-unixfsnode v1.5.2 h1:CvsiTt58W2uR5dD8bqQv+aAY0c1qolmXmSyNbPHYiew=
 github.com/ipfs/go-unixfsnode v1.5.2/go.mod h1:NlOebRwYx8lMCNMdhAhEspYPBD3obp7TE0LvBqHY+ks=
