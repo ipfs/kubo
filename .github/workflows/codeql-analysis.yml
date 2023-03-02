@@ -16,6 +16,7 @@ jobs:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     name: Analyze
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     strategy:
       fail-fast: false

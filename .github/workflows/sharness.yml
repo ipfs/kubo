@@ -14,6 +14,7 @@ jobs:
   sharness:
     needs: [runner]
     runs-on: ${{ fromJSON(needs.runner.outputs.config).labels }}
+    timeout-minutes: 20
     defaults:
       run:
         shell: bash
