@@ -9,7 +9,7 @@ test_launch_ipfs_daemon
 
 # Import test case
 # See the static fixtures in ./t0124-gateway-ipns-record/
-IPNS_KEY=k51qzi5uqu5dm4inosjntx5i61w42pk04qo0bftl9af6yie6uozkzd87bzkrbq
+IPNS_KEY=k51qzi5uqu5dh71qgwangrt6r0nd4094i88nsady6qgd1dhjcyfsaqmpp143ab
 FILE_CID=bafkreidfdrlkeq4m4xnxuyx6iae76fdm4wgl5d4xzsb77ixhyqwumhz244 # A file containing Hello IPFS
 test_expect_success "Add the test directory & IPNS records" '
   ipfs dag import ../t0124-gateway-ipns-record/fixtures.car &&

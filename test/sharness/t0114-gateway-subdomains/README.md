@@ -12,7 +12,7 @@
 Generated with:
 
 ```sh
-# using ipfs version 0.18.1
+# using ipfs version 0.21.0-dev (03a98280e3e642774776cd3d0435ab53e5dfa867)
 
 # CIDv0to1 is necessary because raw-leaves are enabled by default during
 # "ipfs add" with CIDv1 and disabled with CIDv0
@@ -61,7 +61,7 @@ RSA_IPNS_IDv1=$(echo "$RSA_KEY" | ipfs cid format -v 1 --mc libp2p-key -b base36
 RSA_IPNS_IDv1_DAGPB=$(echo "$RSA_IPNS_IDv0" | ipfs cid format -v 1 -b base36)
 
 # publish a record valid for a 100 years
-ipfs name publish --key ${KEY_NAME} --allow-offline -Q  --ttl=876600h "/ipfs/$CIDv1"
+ipfs name publish --key ${KEY_NAME} --allow-offline -Q --ttl=876600h --lifetime=876600h "/ipfs/$CIDv1"
 ipfs routing get /ipns/${RSA_KEY} > ${RSA_KEY}.ipns-record
 
 echo RSA_KEY=${RSA_KEY}
@@ -80,7 +80,7 @@ IPNS_ED25519_B58MH=$(ipfs key list -l --ipns-base b58mh | grep $KEY_NAME | cut -
 IPNS_ED25519_B36CID=$(ipfs key list -l --ipns-base base36 | grep $KEY_NAME | cut -d" " -f1 | tr -d "\n")
 
 # publish a record valid for a 100 years
-ipfs name publish --key ${KEY_NAME} --allow-offline -Q --ttl=876600h "/ipfs/$CIDv1"
+ipfs name publish --key ${KEY_NAME} --allow-offline -Q --ttl=876600h --lifetime=876600h "/ipfs/$CIDv1"
 ipfs routing get /ipns/${ED25519_KEY} > ${ED25519_KEY}.ipns-record
 
 echo ED25519_KEY=${ED25519_KEY}
@@ -90,22 +90,22 @@ echo ED25519_IPNS_IDv1_DAGPB=${ED25519_IPNS_IDv1_DAGPB}
 echo IPNS_ED25519_B58MH=${IPNS_ED25519_B58MH}
 echo IPNS_ED25519_B36CID=${IPNS_ED25519_B36CID}
 
-# CID_VAL="hello"
+# CID_VAL=hello
 # CIDv1=bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am
 # CIDv0=QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
 # CIDv0to1=bafybeiffndsajwhk3lwjewwdxqntmjm4b5wxaaanokonsggenkbw6slwk4
 # CIDv1_TOO_LONG=bafkrgqhhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dlfsthi4hn7zgh4uvlsb5xncykzapi3ocd4lzogukir6ksdy6wzrnz6ohnv4aglcs
-# DIR_CID=bafybeiht6dtwk3les7vqm6ibpvz6qpohidvlshsfyr7l5mpysdw2vmbbhe # ./testdirlisting
+# DIR_CID=bafybeiht6dtwk3les7vqm6ibpvz6qpohidvlshsfyr7l5mpysdw2vmbbhe
 
-# RSA_KEY=QmXaz6rApVddeVWEYv1JycEge3demqPsUpmfyJnkgn6sb3
-# RSA_IPNS_IDv0=QmXaz6rApVddeVWEYv1JycEge3demqPsUpmfyJnkgn6sb3
-# RSA_IPNS_IDv1=k2k4r8mualgw609qr2q5h4t7ea5ydufa2y4fo5qf4lpwg1lsk35ljcvq
-# RSA_IPNS_IDv1_DAGPB=k2jmtxuse1nx1o2vtk8rdcra0jem01b5hn4x6kguf68kp3623wuf1ddi
+# RSA_KEY=QmVujd5Vb7moysJj8itnGufN7MEtPRCNHkKpNuA4onsRa3
+# RSA_IPNS_IDv0=QmVujd5Vb7moysJj8itnGufN7MEtPRCNHkKpNuA4onsRa3
+# RSA_IPNS_IDv1=k2k4r8m7xvggw5pxxk3abrkwyer625hg01hfyggrai7lk1m63fuihi7w
+# RSA_IPNS_IDv1_DAGPB=k2jmtxu61bnhrtj301lw7zizknztocdbeqhxgv76l2q9t36fn9jbzipo
 
-# ED25519_KEY=12D3KooWPydmtfa4g7P3TjGJb4mbDQkXFqr5MxxQ6aLcykd2kGBv
-# ED25519_IPNS_IDv0=12D3KooWPydmtfa4g7P3TjGJb4mbDQkXFqr5MxxQ6aLcykd2kGBv
-# ED25519_IPNS_IDv1=k51qzi5uqu5dlfd2bitdm0yv4t1oxyaqf5oaazh9ispho1osnsj1gltco5cbdp
-# ED25519_IPNS_IDv1_DAGPB=k50rm9yjlt0jg9mdacgyhpsidjfkqitcjxy74aykn99te6cx4xs5pvbodpffkt
-# IPNS_ED25519_B58MH=12D3KooWPydmtfa4g7P3TjGJb4mbDQkXFqr5MxxQ6aLcykd2kGBv
-# IPNS_ED25519_B36CID=k51qzi5uqu5dlfd2bitdm0yv4t1oxyaqf5oaazh9ispho1osnsj1gltco5cbdp
+# ED25519_KEY=12D3KooWLQzUv2FHWGVPXTXSZpdHs7oHbXub2G5WC8Tx4NQhyd2d
+# ED25519_IPNS_IDv0=12D3KooWLQzUv2FHWGVPXTXSZpdHs7oHbXub2G5WC8Tx4NQhyd2d
+# ED25519_IPNS_IDv1=k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam
+# ED25519_IPNS_IDv1_DAGPB=k50rm9yjlt0jey4fqg6wafvqprktgbkpgkqdg27tpqje6iimzxewnhvtin9hhq
+# IPNS_ED25519_B58MH=12D3KooWLQzUv2FHWGVPXTXSZpdHs7oHbXub2G5WC8Tx4NQhyd2d
+# IPNS_ED25519_B36CID=k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam
 ```
