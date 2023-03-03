@@ -89,7 +89,7 @@ test_expect_success "ipfs init" '
   ipfs init --profile=test > /dev/null
 '
 
-test_launch_ipfs_daemon_without_network
+test_launch_ipfs_daemon
 
 # Import test case
 # See the static fixtures in ./t0114-gateway-subdomains/
