@@ -42,12 +42,6 @@ jobs:
     needs: [prepare]
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    strategy:
-      matrix:
-        suites:
-          - 'exchange-files'
-          - 'files pin circuit ipns cid-version-agnostic ipns-pubsub pubsub'
-      fail-fast: false
     defaults:
       run:
         shell: bash
@@ -76,7 +70,7 @@ jobs:
           npm install kubo-rpc-client@^3.0.1
           npm install ipfs-interop@^10.0.1
         working-directory: interop
-      - run: npx ipfs-interop -- -t node $(sed -e 's#[^ ]*#-f test/&.js#g' <<< '${{ matrix.suites }}')
+      - run: npx ipfs-interop -- -t node
         env:
           LIBP2P_TCP_REUSEPORT: false
           LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
