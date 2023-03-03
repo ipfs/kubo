@@ -3,6 +3,7 @@ module github.com/ipfs/kubo
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0
+	github.com/Jorropo/channel v0.0.0-20230303124104-2821e25e07ff
 	github.com/benbjohnson/clock v1.3.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.1.3
@@ -111,6 +112,14 @@ require (
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.5.0
 )
+
+replace github.com/ipfs/go-ipfs-pinner => github.com/MichaelMure/go-ipfs-pinner v0.0.0-20230303124704-e9bb7525f460
+
+replace github.com/ipfs/go-ipfs-provider => github.com/MichaelMure/go-ipfs-provider v0.2.2-0.20230303124815-ff76035d5f80
+
+replace github.com/ipfs/interface-go-ipfs-core => github.com/MichaelMure/interface-go-ipfs-core v0.2.6-0.20230303155556-0c97cff71c29
+
+replace github.com/Jorropo/channel => github.com/MichaelMure/channel v0.0.0-20230303132646-a77d888b67d4
 
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
