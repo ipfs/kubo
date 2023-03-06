@@ -13,7 +13,6 @@
 * Expected RC date: week of YYYY-MM-DD
 * 🚢 Expected final release date: YYYY-MM-DD
 * Accompanying PR for improving the release process: (example: https://github.com/ipfs/kubo/pull/9391)
-* Accompanying Issue for updating the infra: (example: https://github.com/protocol/bifrost-infra/issues/2221)
 
 See the [Kubo release process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4) for more info.
 
@@ -28,8 +27,6 @@ As usual, this release includes important fixes, some of which may be critical f
 <List of items with PRs and/or Issues to be considered for this release>
 
 ### Required
-
-- [ ] Do we need to make any changes to the [infrastructure configuration](https://github.com/protocol/bifrost-infra/tree/master/ansible/inventories/bifrost/group_vars)?
 
 ### Nice to have
 
@@ -60,8 +57,6 @@ This section covers tasks to be done ahead of the release.
   - [ ] [GPG signature](https://docs.github.com/en/authentication/managing-commit-signature-verification) configured in local git and in GitHub
   - [ ] [admin access to IPFS Discourse](https://discuss.ipfs.tech/g/admins)
     - ask the previous release owner (or @2color) for an invite
-  - [ ] [access to #bifrost](https://filecoinproject.slack.com/archives/C03MMMF606T) channel in FIL Slack
-    - ask the previous release owner for an invite
   - [ ] ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) [access to #shared-pl-marketing-requests](https://filecoinproject.slack.com/archives/C018EJ8LWH1) channel in FIL Slack
     - ask the previous release owner for an invite
   - [ ] [access to IPFS network metrics](https://github.com/protocol/pldw/blob/624f47cf4ec14ad2cec6adf601a9f7b203ef770d/docs/sources/ipfs.md#ipfs-network-metrics) dashboards in Grafana
@@ -79,11 +74,6 @@ This section covers tasks to be done ahead of the release.
     - [example](https://github.com/ipfs/distributions/pull/756)
   - [ ] ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) [ipfs/ipfs-docs](https://github.com/ipfs/ipfs-docs)
     - [example](https://github.com/ipfs/ipfs-docs/pull/1298)
-- [ ] Notify the bifrost team about the upcoming release (_only if it is not the day of the release yet_) <details><summary>using `kuboreleaser release --version vX.Y.Z(-rcN) notify-bifrost --date YYYY-MM-DD` or ...</summary>
-  - [ ] open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra)
-    - [example](https://github.com/protocol/bifrost-infra/issues/2221)
-  </details>
-- [ ] Link the [bifrost-infra](https://github.com/protocol/bifrost-infra) issue in the [Meta](#meta) section
 - [ ] Verify there is nothing [left for release](-what-s-left-for-release)
 - [ ] Create a release process improvement PR
   - [ ] update the [release issue template](docs/RELEASE_ISSUE_TEMPLATE.md) as you go
@@ -151,9 +141,6 @@ This section covers tasks to be done during each release.
   - [ ] wait for the [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow run to finish
   - [ ] verify the release assets are present in the [GitHub release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN))
   </details>
-- [ ] Notify the bifrost team about the release <details><summary>using `kuboreleaser release --version vX.Y.Z(-rcN) notify-bifrost --date YYYY-MM-DD` or ...</summary>
-  - [ ] create an issue comment on the issue in the [bifrost-infra](https://github/com/protocol/bifrost-infra)
-  </details>
 - [ ] Promote the release <details><summary>using `kuboreleaser release --version vX.Y.Z(-rcN) promote` or ...</summary>
   - [ ] create an [IPFS Discourse](https://discuss.ipfs.tech) topic
     - [prerelease example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248)
@@ -206,9 +193,6 @@ This section covers tasks to be done during each release.
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) verify the blog entry was published
   </details>
-- [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) Keep checking the [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) until the release issue is closed
-  - [release notes](https://www.notion.so/pl-strflt/Kubo-Gateway-Release-Notes-6e0efff28ee540be9ccb8f2b85104c42)
-  - post in the [#bifrost](https://filecoinproject.slack.com/archives/C018EJ8LWH1) channel in FIL Slack if there is a problem
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Merge the [release](https://github.com/ipfs/kubo/tree/release) branch back into [master](https://github.com/ipfs/kubo/tree/master), ignoring the changes to [version.go](version.go) (keep the `-dev`) version, <details><summary>using `kuboreleaser release --version vX.Y.Z(-rcN) merge-branch` or ...</summary>
   - [ ] create a new branch `merge-release-vX.Y.Z` from `release`
   - [ ] create and merge a PR from `merge-release-vX.Y.Z` to `master`
