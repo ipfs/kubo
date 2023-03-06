@@ -28,6 +28,7 @@ We will ask early testers to participate at two points in the process:
 - [ ] OrbitDB (@aphelionz)
 - [ ] pacman.store (@RubenKelevra)
 - [ ] Pinata (@obo20)
+- [ ] PL EngRes bifrost (@gmasgras)
 - [ ] RTrade (@postables)
 - [ ] Siderus (@koalalorenzo)
 - [ ] Textile (@sanderpick)
