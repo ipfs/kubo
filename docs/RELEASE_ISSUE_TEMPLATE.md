@@ -177,7 +177,7 @@ This section covers tasks to be done during each release.
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) create a PR which updates `package.json` and `package-lock.json`
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR
   </details>
-- [ ] Update Kubo in [ipfs-desktop](https://github.com/ipfs/ipfs-desktop) <details><summary>using `kuboreleaser release --version vX.Y.Z(-rcN) update-ipfs-desktop` or ...</summary>
+- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Update Kubo in [ipfs-desktop](https://github.com/ipfs/ipfs-desktop) <details><summary>using `kuboreleaser release --version vX.Y.Z(-rcN) update-ipfs-desktop` or ...</summary>
   - [ ] check out [ipfs/ipfs-desktop](https://github.com/ipfs/ipfs-desktop)
   - [ ] run `npm install`
   - [ ] create a PR which updates `package.json` and `package-lock.json`
