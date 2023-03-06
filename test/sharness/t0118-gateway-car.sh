@@ -11,15 +11,14 @@ test_launch_ipfs_daemon_without_network
 # but if we have a small file that fits into a single block, and export its CID
 # we will get a CAR that is a deterministic array of bytes.
 
-    test_expect_success "Create a deterministic CAR for testing" '
-    mkdir -p subdir &&
-    echo "hello application/vnd.ipld.car" > subdir/ascii.txt &&
-    ROOT_DIR_CID=$(ipfs add -Qrw --cid-version 1 subdir) &&
-    FILE_CID=$(ipfs resolve -r /ipfs/$ROOT_DIR_CID/subdir/ascii.txt | cut -d "/" -f3) &&
-    ipfs dag export $ROOT_DIR_CID > test-dag.car &&
-    ipfs dag export $FILE_CID > deterministic.car &&
-    purge_blockstore
-    '
+# Import test case
+# See the static fixtures in ./t0118-gateway-car/
+test_expect_success "Add the dir test directory" '
+    cp ../t0118-gateway-car/test-dag.car ./test-dag.car &&
+    cp ../t0118-gateway-car/deterministic.car ./deterministic.car
+'
+ROOT_DIR_CID=bafybeiefu3d7oytdumk5v7gn6s7whpornueaw7m7u46v2o6omsqcrhhkzi # ./
+FILE_CID=bafkreifkam6ns4aoolg3wedr4uzrs3kvq66p4pecirz6y2vlrngla62mxm # /subdir/ascii.txt
 
 # GET a reference DAG with dag-cbor+dag-pb+raw blocks as CAR
 
@@ -111,7 +110,7 @@ test_launch_ipfs_daemon_without_network
     '
 
     test_expect_success "GET for application/vnd.ipld.car with query filename includes Content-Disposition with custom filename" '
-    curl -svX GET -H "Accept: application/vnd.ipld.car" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT_DIR_CID/subdir/ascii.txt?filename=foobar.car" > curl_output_filename 2>&1 &&
+    curl -svX GET -H "Accept: application/vnd.ipld.car" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT_DIR_CID/subdir/ascii.txt?filename=foobar.car" >/dev/null 2>curl_output_filename &&
     cat curl_output_filename &&
     grep "< Content-Disposition: attachment\; filename=\"foobar.car\"" curl_output_filename
     '

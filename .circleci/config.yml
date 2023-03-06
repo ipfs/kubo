@@ -7,7 +7,7 @@ jobs:
     executor: continuation/default
     steps:
       - checkout
-      - run: 
+      - run:
           name: Generate params
           # for builds on the ipfs/kubo repo, use 2xlarge for faster builds
           # but since this is not available for many contributors, we otherwise use medium

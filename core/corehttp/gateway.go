@@ -3,60 +3,26 @@ package corehttp
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
-	"sort"
 
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-libipfs/blocks"
+	"github.com/ipfs/go-libipfs/files"
+	"github.com/ipfs/go-libipfs/gateway"
+	"github.com/ipfs/go-namesys"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
+	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	version "github.com/ipfs/kubo"
+	config "github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
-
-type GatewayConfig struct {
-	Headers               map[string][]string
-	Writable              bool
-	FastDirIndexThreshold int
-}
-
-// NodeAPI defines the minimal set of API services required by a gateway handler
-type NodeAPI interface {
-	// Unixfs returns an implementation of Unixfs API
-	Unixfs() coreiface.UnixfsAPI
-
-	// Block returns an implementation of Block API
-	Block() coreiface.BlockAPI
-
-	// Dag returns an implementation of Dag API
-	Dag() coreiface.APIDagService
-
-	// ResolvePath resolves the path using Unixfs resolver
-	ResolvePath(context.Context, path.Path) (path.Resolved, error)
-}
-
-// A helper function to clean up a set of headers:
-// 1. Canonicalizes.
-// 2. Deduplicates.
-// 3. Sorts.
-func cleanHeaderSet(headers []string) []string {
-	// Deduplicate and canonicalize.
-	m := make(map[string]struct{}, len(headers))
-	for _, h := range headers {
-		m[http.CanonicalHeaderKey(h)] = struct{}{}
-	}
-	result := make([]string, 0, len(m))
-	for k := range m {
-		result = append(result, k)
-	}
-
-	// Sort
-	sort.Strings(result)
-	return result
-}
 
 func GatewayOption(writable bool, paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
@@ -75,70 +41,70 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 			headers[http.CanonicalHeaderKey(h)] = v
 		}
 
-		AddAccessControlHeaders(headers)
+		gateway.AddAccessControlHeaders(headers)
 
-		offlineAPI, err := api.WithOptions(options.Api.Offline(true))
+		gwConfig := gateway.Config{
+			Headers: headers,
+		}
+
+		gwAPI, err := newGatewayAPI(n)
 		if err != nil {
 			return nil, err
 		}
 
-		gateway := NewGatewayHandler(GatewayConfig{
-			Headers:               headers,
-			Writable:              writable,
-			FastDirIndexThreshold: int(cfg.Gateway.FastDirIndexThreshold.WithDefault(100)),
-		}, api, offlineAPI)
+		gw := gateway.NewHandler(gwConfig, gwAPI)
+		gw = otelhttp.NewHandler(gw, "Gateway.Request")
 
-		gateway = otelhttp.NewHandler(gateway, "Gateway.Request")
+		// By default, our HTTP handler is the gateway handler.
+		handler := gw.ServeHTTP
+
+		// If we have the writable gateway enabled, we have to replace our
+		// http handler by a handler that takes care of the different methods.
+		if writable {
+			writableGw := &writableGatewayHandler{
+				config: &gwConfig,
+				api:    api,
+			}
+
+			handler = func(w http.ResponseWriter, r *http.Request) {
+				switch r.Method {
+				case http.MethodPost:
+					writableGw.postHandler(w, r)
+				case http.MethodDelete:
+					writableGw.deleteHandler(w, r)
+				case http.MethodPut:
+					writableGw.putHandler(w, r)
+				default:
+					gw.ServeHTTP(w, r)
+				}
+			}
+		}
 
 		for _, p := range paths {
-			mux.Handle(p+"/", gateway)
+			mux.HandleFunc(p+"/", handler)
 		}
+
 		return mux, nil
 	}
 }
 
-// AddAccessControlHeaders adds default headers used for controlling
-// cross-origin requests. This function adds several values to the
-// Access-Control-Allow-Headers and Access-Control-Expose-Headers entries.
-// If the Access-Control-Allow-Origin entry is missing a value of '*' is
-// added, indicating that browsers should allow requesting code from any
-// origin to access the resource.
-// If the Access-Control-Allow-Methods entry is missing a value of 'GET' is
-// added, indicating that browsers may use the GET method when issuing cross
-// origin requests.
-func AddAccessControlHeaders(headers map[string][]string) {
-	// Hard-coded headers.
-	const ACAHeadersName = "Access-Control-Allow-Headers"
-	const ACEHeadersName = "Access-Control-Expose-Headers"
-	const ACAOriginName = "Access-Control-Allow-Origin"
-	const ACAMethodsName = "Access-Control-Allow-Methods"
+func HostnameOption() ServeOption {
+	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			return nil, err
+		}
 
-	if _, ok := headers[ACAOriginName]; !ok {
-		// Default to *all*
-		headers[ACAOriginName] = []string{"*"}
+		gwAPI, err := newGatewayAPI(n)
+		if err != nil {
+			return nil, err
+		}
+
+		publicGateways := convertPublicGateways(cfg.Gateway.PublicGateways)
+		childMux := http.NewServeMux()
+		mux.HandleFunc("/", gateway.WithHostname(childMux, gwAPI, publicGateways, cfg.Gateway.NoDNSLink).ServeHTTP)
+		return childMux, nil
 	}
-	if _, ok := headers[ACAMethodsName]; !ok {
-		// Default to GET
-		headers[ACAMethodsName] = []string{http.MethodGet}
-	}
-
-	headers[ACAHeadersName] = cleanHeaderSet(
-		append([]string{
-			"Content-Type",
-			"User-Agent",
-			"Range",
-			"X-Requested-With",
-		}, headers[ACAHeadersName]...))
-
-	headers[ACEHeadersName] = cleanHeaderSet(
-		append([]string{
-			"Content-Length",
-			"Content-Range",
-			"X-Chunked-Output",
-			"X-Stream-Output",
-			"X-Ipfs-Path",
-			"X-Ipfs-Roots",
-		}, headers[ACEHeadersName]...))
 }
 
 func VersionOption() ServeOption {
@@ -150,4 +116,120 @@ func VersionOption() ServeOption {
 		})
 		return mux, nil
 	}
+}
+
+type gatewayAPI struct {
+	ns         namesys.NameSystem
+	api        iface.CoreAPI
+	offlineAPI iface.CoreAPI
+}
+
+func newGatewayAPI(n *core.IpfsNode) (*gatewayAPI, error) {
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	api, err := coreapi.NewCoreAPI(n, options.Api.FetchBlocks(!cfg.Gateway.NoFetch))
+	if err != nil {
+		return nil, err
+	}
+	offlineAPI, err := api.WithOptions(options.Api.Offline(true))
+	if err != nil {
+		return nil, err
+	}
+
+	return &gatewayAPI{
+		ns:         n.Namesys,
+		api:        api,
+		offlineAPI: offlineAPI,
+	}, nil
+}
+
+func (gw *gatewayAPI) GetUnixFsNode(ctx context.Context, pth path.Resolved) (files.Node, error) {
+	return gw.api.Unixfs().Get(ctx, pth)
+}
+
+func (gw *gatewayAPI) LsUnixFsDir(ctx context.Context, pth path.Resolved) (<-chan iface.DirEntry, error) {
+	// Optimization: use Unixfs.Ls without resolving children, but using the
+	// cumulative DAG size as the file size. This allows for a fast listing
+	// while keeping a good enough Size field.
+	return gw.api.Unixfs().Ls(ctx, pth,
+		options.Unixfs.ResolveChildren(false),
+		options.Unixfs.UseCumulativeSize(true),
+	)
+}
+
+func (gw *gatewayAPI) GetBlock(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
+	r, err := gw.api.Block().Get(ctx, path.IpfsPath(cid))
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return blocks.NewBlockWithCid(data, cid)
+}
+
+func (gw *gatewayAPI) GetIPNSRecord(ctx context.Context, c cid.Cid) ([]byte, error) {
+	return gw.api.Routing().Get(ctx, "/ipns/"+c.String())
+}
+
+func (gw *gatewayAPI) GetDNSLinkRecord(ctx context.Context, hostname string) (path.Path, error) {
+	p, err := gw.ns.Resolve(ctx, "/ipns/"+hostname, nsopts.Depth(1))
+	if err == namesys.ErrResolveRecursion {
+		err = nil
+	}
+	return path.New(p.String()), err
+}
+
+func (gw *gatewayAPI) IsCached(ctx context.Context, pth path.Path) bool {
+	_, err := gw.offlineAPI.Block().Stat(ctx, pth)
+	return err == nil
+}
+
+func (gw *gatewayAPI) ResolvePath(ctx context.Context, pth path.Path) (path.Resolved, error) {
+	return gw.api.ResolvePath(ctx, pth)
+}
+
+var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"}
+
+var subdomainGatewaySpec = &gateway.Specification{
+	Paths:         defaultPaths,
+	UseSubdomains: true,
+}
+
+var defaultKnownGateways = map[string]*gateway.Specification{
+	"localhost": subdomainGatewaySpec,
+}
+
+func convertPublicGateways(publicGateways map[string]*config.GatewaySpec) map[string]*gateway.Specification {
+	gws := map[string]*gateway.Specification{}
+
+	// First, implicit defaults such as subdomain gateway on localhost
+	for hostname, gw := range defaultKnownGateways {
+		gws[hostname] = gw
+	}
+
+	// Then apply values from Gateway.PublicGateways, if present in the config
+	for hostname, gw := range publicGateways {
+		if gw == nil {
+			// Remove any implicit defaults, if present. This is useful when one
+			// wants to disable subdomain gateway on localhost etc.
+			delete(gws, hostname)
+			continue
+		}
+
+		gws[hostname] = &gateway.Specification{
+			Paths:         gw.Paths,
+			NoDNSLink:     gw.NoDNSLink,
+			UseSubdomains: gw.UseSubdomains,
+			InlineDNSLink: gw.InlineDNSLink.WithDefault(config.DefaultInlineDNSLink),
+		}
+	}
+
+	return gws
 }

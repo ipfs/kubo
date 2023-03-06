@@ -8,7 +8,7 @@ import (
 	"math"
 	"testing"
 
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-libipfs/files"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/coreapi"

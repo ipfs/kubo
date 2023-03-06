@@ -6,27 +6,25 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	util "github.com/ipfs/go-ipfs-util"
 	"github.com/ipfs/go-log"
+	uio "github.com/ipfs/go-unixfs/io"
 	"github.com/ipfs/kubo/config"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p/core/peer"
-
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/p2p"
-
-	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	uio "github.com/ipfs/go-unixfs/io"
-
-	"github.com/dustin/go-humanize"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p-pubsub/timecache"
+	"github.com/libp2p/go-libp2p/core/peer"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"go.uber.org/fx"
 )
 
 var logger = log.Logger("core:constructor")
 
 var BaseLibP2P = fx.Options(
-	fx.Provide(libp2p.UserAgent),
 	fx.Provide(libp2p.PNet),
 	fx.Provide(libp2p.ConnectionManager),
 	fx.Provide(libp2p.Host),
@@ -37,7 +35,7 @@ var BaseLibP2P = fx.Options(
 	fx.Invoke(libp2p.PNetChecker),
 )
 
-func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
+func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
 	var connmgr fx.Option
 
 	// set connmgr based on Swarm.ConnMgr.Type
@@ -66,6 +64,18 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			pubsub.WithMessageSigning(!cfg.Pubsub.DisableSigning),
 			pubsub.WithSeenMessagesTTL(cfg.Pubsub.SeenMessagesTTL.WithDefault(pubsub.TimeCacheDuration)),
 		)
+
+		var seenMessagesStrategy timecache.Strategy
+		configSeenMessagesStrategy := cfg.Pubsub.SeenMessagesStrategy.WithDefault(config.DefaultSeenMessagesStrategy)
+		switch configSeenMessagesStrategy {
+		case config.LastSeenMessagesStrategy:
+			seenMessagesStrategy = timecache.Strategy_LastSeen
+		case config.FirstSeenMessagesStrategy:
+			seenMessagesStrategy = timecache.Strategy_FirstSeen
+		default:
+			return fx.Error(fmt.Errorf("unsupported Pubsub.SeenMessagesStrategy %q", configSeenMessagesStrategy))
+		}
+		pubsubOptions = append(pubsubOptions, pubsub.WithSeenMessagesStrategy(seenMessagesStrategy))
 
 		switch cfg.Pubsub.Router {
 		case "":
@@ -134,8 +144,11 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	opts := fx.Options(
 		BaseLibP2P,
 
+		// identify's AgentVersion (incl. optional agent-version-suffix)
+		fx.Provide(libp2p.UserAgent()),
+
 		// Services (resource management)
-		fx.Provide(libp2p.ResourceManager(cfg.Swarm)),
+		fx.Provide(libp2p.ResourceManager(cfg.Swarm, userResourceOverrides)),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
@@ -234,7 +247,7 @@ var IPNS = fx.Options(
 )
 
 // Online groups online-only units
-func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
+func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
 
 	// Namesys params
 
@@ -288,8 +301,13 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		fx.Provide(p2p.New),
 
-		LibP2P(bcfg, cfg),
-		OnlineProviders(cfg.Experimental.StrategicProviding, cfg.Experimental.AcceleratedDHTClient, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
+		LibP2P(bcfg, cfg, userResourceOverrides),
+		OnlineProviders(
+			cfg.Experimental.StrategicProviding,
+			cfg.Experimental.AcceleratedDHTClient,
+			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
+			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
+		),
 	)
 }
 
@@ -302,7 +320,12 @@ func Offline(cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.Routing),
 		fx.Provide(libp2p.ContentRouting),
 		fx.Provide(libp2p.OfflineRouting),
-		OfflineProviders(cfg.Experimental.StrategicProviding, cfg.Experimental.AcceleratedDHTClient, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
+		OfflineProviders(
+			cfg.Experimental.StrategicProviding,
+			cfg.Experimental.AcceleratedDHTClient,
+			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
+			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
+		),
 	)
 }
 
@@ -315,9 +338,9 @@ var Core = fx.Options(
 	fx.Provide(Files),
 )
 
-func Networked(bcfg *BuildCfg, cfg *config.Config) fx.Option {
+func Networked(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
 	if bcfg.Online {
-		return Online(bcfg, cfg)
+		return Online(bcfg, cfg, userResourceOverrides)
 	}
 	return Offline(cfg)
 }
@@ -331,6 +354,11 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	bcfgOpts, cfg := bcfg.options(ctx)
 	if cfg == nil {
 		return bcfgOpts // error
+	}
+
+	userResourceOverrides, err := bcfg.Repo.UserResourceOverrides()
+	if err != nil {
+		return fx.Error(err)
 	}
 
 	// Auto-sharding settings
@@ -356,7 +384,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		Storage(bcfg, cfg),
 		Identity(cfg),
 		IPNS,
-		Networked(bcfg, cfg),
+		Networked(bcfg, cfg, userResourceOverrides),
 
 		Core,
 	)

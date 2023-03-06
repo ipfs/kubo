@@ -16,7 +16,7 @@ type Listener interface {
 	ListenAddress() ma.Multiaddr
 	TargetAddress() ma.Multiaddr
 
-	key() string
+	key() protocol.ID
 
 	// close closes the listener. Does not affect child streams
 	close()
@@ -27,21 +27,21 @@ type Listener interface {
 type Listeners struct {
 	sync.RWMutex
 
-	Listeners map[string]Listener
+	Listeners map[protocol.ID]Listener
 }
 
 func newListenersLocal() *Listeners {
 	return &Listeners{
-		Listeners: map[string]Listener{},
+		Listeners: map[protocol.ID]Listener{},
 	}
 }
 
 func newListenersP2P(host p2phost.Host) *Listeners {
 	reg := &Listeners{
-		Listeners: map[string]Listener{},
+		Listeners: map[protocol.ID]Listener{},
 	}
 
-	host.SetStreamHandlerMatch("/x/", func(p string) bool {
+	host.SetStreamHandlerMatch("/x/", func(p protocol.ID) bool {
 		reg.RLock()
 		defer reg.RUnlock()
 
@@ -51,7 +51,7 @@ func newListenersP2P(host p2phost.Host) *Listeners {
 		reg.RLock()
 		defer reg.RUnlock()
 
-		l := reg.Listeners[string(stream.Protocol())]
+		l := reg.Listeners[stream.Protocol()]
 		if l != nil {
 			go l.(*remoteListener).handleStream(stream)
 		}

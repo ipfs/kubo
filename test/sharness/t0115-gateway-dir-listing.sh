@@ -18,20 +18,14 @@ test_expect_success "ipfs init" '
 
 test_launch_ipfs_daemon_without_network
 
+# Import test case
+# See the static fixtures in ./t0115-gateway-dir-listing/
 test_expect_success "Add the test directory" '
-  mkdir -p rootDir/ipfs &&
-  mkdir -p rootDir/ipns &&
-  mkdir -p rootDir/api &&
-  mkdir -p rootDir/ą/ę &&
-  echo "I am a txt file on path with utf8" > rootDir/ą/ę/file-źł.txt &&
-  echo "I am a txt file in confusing /api dir" > rootDir/api/file.txt &&
-  echo "I am a txt file in confusing /ipfs dir" > rootDir/ipfs/file.txt &&
-  echo "I am a txt file in confusing /ipns dir" > rootDir/ipns/file.txt &&
-  DIR_CID=$(ipfs add -Qr --cid-version 1 rootDir) &&
-  FILE_CID=$(ipfs files stat --enc=json /ipfs/$DIR_CID/ą/ę/file-źł.txt | jq -r .Hash) &&
-  FILE_SIZE=$(ipfs files stat --enc=json /ipfs/$DIR_CID/ą/ę/file-źł.txt | jq -r .Size)
-  echo "$FILE_CID / $FILE_SIZE"
+  ipfs dag import ../t0115-gateway-dir-listing/fixtures.car
 '
+DIR_CID=bafybeig6ka5mlwkl4subqhaiatalkcleo4jgnr3hqwvpmsqfca27cijp3i # ./rootDir/
+FILE_CID=bafkreialihlqnf5uwo4byh4n3cmwlntwqzxxs2fg5vanqdi3d7tb2l5xkm # ./rootDir/ą/ę/file-źł.txt
+FILE_SIZE=34
 
 ## ============================================================================
 ## Test dir listing on path gateway (eg. 127.0.0.1:8080/ipfs/)
@@ -159,30 +153,8 @@ test_expect_success "dnslink gw: name column should be a link to content root mo
 
 # DNSLink websites don't have public gateway mounted by default
 # See: https://github.com/ipfs/dir-index-html/issues/42
-test_expect_success "dnslink gw: hash column should be a CID link to cid.ipfs.io" '
-  test_should_contain "<a class=\"ipfs-hash\" translate=\"no\" href=\"https://cid.ipfs.io/#$FILE_CID\" target=\"_blank\" rel=\"noreferrer noopener\">" list_response
-'
-
-## ============================================================================
-## Test dir listing of a big directory
-## ============================================================================
-
-test_expect_success "dir listing should resolve child sizes if under Gateway.FastDirIndexThreshold" '
-  curl -sD - http://127.0.0.1:$GWAY_PORT/ipfs/${DIR_CID}/ą/ę/ | tee list_response &&
-  test_should_contain "/ipfs/${FILE_CID}?filename" list_response &&
-  test_should_contain ">${FILE_SIZE} B</td>" list_response
-'
-
-# force fast dir index for all responses
-ipfs config --json Gateway.FastDirIndexThreshold 0
-# restart daemon to apply config changes
-test_kill_ipfs_daemon
-test_launch_ipfs_daemon
-
-test_expect_success "dir listing should not resolve child sizes beyond Gateway.FastDirIndexThreshold" '
-  curl -sD - http://127.0.0.1:$GWAY_PORT/ipfs/${DIR_CID}/ą/ę/ | tee list_response &&
-  test_should_contain "/ipfs/${FILE_CID}?filename" list_response &&
-  test_should_not_contain ">${FILE_SIZE} B</td>" list_response
+test_expect_success "dnslink gw: hash column should be a CID link to cid.ipfs.tech" '
+  test_should_contain "<a class=\"ipfs-hash\" translate=\"no\" href=\"https://cid.ipfs.tech/#$FILE_CID\" target=\"_blank\" rel=\"noreferrer noopener\">" list_response
 '
 
 ## ============================================================================

@@ -1,0 +1,34 @@
+name: 'ci/gh-experiment: choose runner'
+
+on:
+  workflow_call:
+    outputs:
+      config:
+        description: "The runner's configuration"
+        value: ${{ jobs.choose.outputs.config }}
+
+jobs:
+  choose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    outputs:
+      config: ${{ steps.config.outputs.result }}
+    steps:
+      - uses: actions/github-script@v6
+        id: config
+        with:
+          script: |
+            if (`${context.repo.owner}/${context.repo.repo}` === 'ipfs/kubo') {
+              return {
+                labels: ['self-hosted', 'linux', 'x64', 'kubo'],
+                parallel: 10,
+                aws: true
+              }
+            } else {
+              return {
+                labels: ['ubuntu-latest'],
+                parallel: 3,
+                aws: false
+              }
+            }
+      - run: echo ${{ steps.config.outputs.result }}

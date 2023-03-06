@@ -75,13 +75,13 @@ Warning: Enabling tracing will likely affect performance.
 
 ## `IPFS_FUSE_DEBUG`
 
-Enables fuse debug logging.
+If SET, enables fuse debug logging.
 
 Default: false
 
 ## `YAMUX_DEBUG`
 
-Enables debug logging for the yamux stream muxer.
+If SET, enables debug logging for the yamux stream muxer.
 
 Default: false
 
@@ -113,6 +113,23 @@ $ IPFS_NS_MAP="dnslink-test1.example.com:/ipfs/bafkreicysg23kiwv34eg2d7qweipxwos
 $ ipfs resolve -r /ipns/dnslink-test2.example.com
 /ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am
 ```
+
+## `IPFS_HTTP_ROUTERS`
+
+Overrides all implicit HTTP routers enabled when `Routing.Type=auto` with
+the space-separated list of URLs provided in this variable.
+Useful for testing and debugging in offline contexts.
+
+Example:
+
+```console
+$ ipfs config Routing.Type auto
+$ IPFS_HTTP_ROUTERS="http://127.0.0.1:7423" ipfs daemon
+```
+
+The above will replace implicit HTTP routers with single one, allowing for
+inspection/debug of HTTP requests sent by Kubo via `while true ; do nc -l 7423; done`
+or more advanced tools like [mitmproxy](https://docs.mitmproxy.org/stable/#mitmproxy).
 
 ## `LIBP2P_TCP_REUSEPORT`
 

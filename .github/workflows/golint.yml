@@ -1,0 +1,33 @@
+name: 'ci/gh-experiment: go lint'
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  golint:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TEST_NO_DOCKER: 1
+      TEST_NO_FUSE: 1
+      TEST_VERBOSE: 1
+      TRAVIS: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.1
+      - uses: actions/checkout@v3
+      - uses: protocol/cache-go-action@v1
+        with:
+          name: ${{ github.job }}
+      - run: make -O test_go_lint

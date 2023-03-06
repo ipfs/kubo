@@ -16,11 +16,12 @@ import (
 
 func TestLoggingResourceManager(t *testing.T) {
 	clock := clock.NewMock()
-	limits := rcmgr.DefaultLimits.AutoScale()
+	orig := rcmgr.DefaultLimits.AutoScale()
+	limits := orig.ToPartialLimitConfig()
 	limits.System.Conns = 1
 	limits.System.ConnsInbound = 1
 	limits.System.ConnsOutbound = 1
-	limiter := rcmgr.NewFixedLimiter(limits)
+	limiter := rcmgr.NewFixedLimiter(limits.Build(orig))
 	rm, err := rcmgr.NewResourceManager(limiter)
 	if err != nil {
 		t.Fatal(err)
@@ -55,7 +56,7 @@ func TestLoggingResourceManager(t *testing.T) {
 			if oLogs.Len() == 0 {
 				continue
 			}
-			require.Equal(t, "Resource limits were exceeded 2 times with error \"system: cannot reserve inbound connection: resource limit exceeded\".", oLogs.All()[0].Message)
+			require.Equal(t, "Protected from exceeding resource limits 2 times.  libp2p message: \"system: cannot reserve inbound connection: resource limit exceeded\".", oLogs.All()[0].Message)
 			return
 		}
 	}

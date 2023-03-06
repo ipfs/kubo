@@ -30,6 +30,8 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
+	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
+	pnet "github.com/libp2p/go-libp2p/core/pnet"
 	sockets "github.com/libp2p/go-socket-activation"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -61,6 +63,7 @@ const (
 	routingOptionNoneKwd      = "none"
 	routingOptionCustomKwd    = "custom"
 	routingOptionDefaultKwd   = "default"
+	routingOptionAutoKwd      = "auto"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedAPIAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
@@ -89,7 +92,7 @@ For example, to change the 'Gateway' port:
 
   ipfs config Addresses.Gateway /ip4/127.0.0.1/tcp/8082
 
-The API address can be changed the same way:
+The RPC API address can be changed the same way:
 
   ipfs config Addresses.API /ip4/127.0.0.1/tcp/5002
 
@@ -100,14 +103,14 @@ other computers in the network, use 0.0.0.0 as the ip address:
 
   ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 
-Be careful if you expose the API. It is a security risk, as anyone could
+Be careful if you expose the RPC API. It is a security risk, as anyone could
 control your node remotely. If you need to control the node remotely,
 make sure to protect the port as you would other services or database
 (firewall, authenticated proxy, etc).
 
 HTTP Headers
 
-ipfs supports passing arbitrary headers to the API and Gateway. You can
+ipfs supports passing arbitrary headers to the RPC API and Gateway. You can
 do this by setting headers on the API.HTTPHeaders and Gateway.HTTPHeaders
 keys:
 
@@ -141,18 +144,6 @@ environment variable:
 
   export IPFS_PATH=/path/to/ipfsrepo
 
-Routing
-
-IPFS by default will use a DHT for content routing. There is an alternative
-that operates the DHT in a 'client only' mode that can be enabled by
-running the daemon as:
-
-  ipfs daemon --routing=dhtclient
-
-Or you can set routing to dhtclient in the config:
-
-  ipfs config Routing.Type dhtclient
-
 DEPRECATION NOTICE
 
 Previously, ipfs used an environment variable as seen below:
@@ -171,7 +162,7 @@ Headers.
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
-		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
+		cmds.BoolOption(writableKwd, "Enable legacy Gateway.Writable (deprecated)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
 		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow API access to unlisted hashes"),
@@ -402,14 +393,30 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd {
-		routingOption = cfg.Routing.Type
+		routingOption = cfg.Routing.Type.WithDefault(routingOptionAutoKwd)
 		if routingOption == "" {
+			routingOption = routingOptionAutoKwd
+		}
+	}
+
+	// Private setups can't leverage peers returned by default IPNIs (Routing.Type=auto)
+	// To avoid breaking existing setups, switch them to DHT-only.
+	if routingOption == routingOptionAutoKwd {
+		if key, _ := repo.SwarmKey(); key != nil || pnet.ForcePrivateNetwork {
+			log.Error("Private networking (swarm.key / LIBP2P_FORCE_PNET) does not work with public HTTP IPNIs enabled by Routing.Type=auto. Kubo will use Routing.Type=dht instead. Update config to remove this message.")
 			routingOption = routingOptionDHTKwd
 		}
 	}
+
 	switch routingOption {
 	case routingOptionSupernodeKwd:
 		return errors.New("supernode routing was never fully implemented and has been removed")
+	case routingOptionDefaultKwd, routingOptionAutoKwd:
+		ncfg.Routing = libp2p.ConstructDefaultRouting(
+			cfg.Identity.PeerID,
+			cfg.Addresses.Swarm,
+			cfg.Identity.PrivKey,
+		)
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = libp2p.DHTClientOption
 	case routingOptionDHTKwd:
@@ -446,7 +453,28 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		fmt.Printf("Swarm key fingerprint: %x\n", node.PNetFingerprint)
 	}
 
+	if (pnet.ForcePrivateNetwork || node.PNetFingerprint != nil) && routingOption == routingOptionAutoKwd {
+		// This should never happen, but better safe than sorry
+		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
+	}
+
 	printSwarmAddrs(node)
+
+	if node.PrivateKey.Type() == p2pcrypto.RSA {
+		fmt.Print(`
+Warning: You are using an RSA Peer ID, which was replaced by Ed25519
+as the default recommended in Kubo since September 2020. Signing with
+RSA Peer IDs is more CPU-intensive than with other key types.
+It is recommended that you change your public key type to ed25519
+by using the following command:
+
+  ipfs key rotate -o rsa-key-backup -t ed25519
+
+After changing your key type, restart your node for the changes to
+take effect.
+
+`)
+	}
 
 	defer func() {
 		// We wait for the node to close first, as the node has children
@@ -763,7 +791,11 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 	writable, writableOptionFound := req.Options[writableKwd].(bool)
 	if !writableOptionFound {
-		writable = cfg.Gateway.Writable
+		writable = cfg.Gateway.Writable.WithDefault(false)
+	}
+
+	if writable {
+		log.Error("serveHTTPGateway: legacy Gateway.Writable is DEPRECATED and will be removed or changed in future versions. If you are still using this, provide feedback in https://github.com/ipfs/specs/issues/375")
 	}
 
 	listeners, err := sockets.TakeListeners("io.ipfs.gateway")

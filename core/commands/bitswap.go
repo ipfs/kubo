@@ -8,10 +8,10 @@ import (
 	e "github.com/ipfs/kubo/core/commands/e"
 
 	humanize "github.com/dustin/go-humanize"
-	bitswap "github.com/ipfs/go-bitswap"
-	decision "github.com/ipfs/go-bitswap/decision"
 	cidutil "github.com/ipfs/go-cidutil"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	bitswap "github.com/ipfs/go-libipfs/bitswap"
+	"github.com/ipfs/go-libipfs/bitswap/server"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -179,7 +179,7 @@ prints the ledger associated with a given peer.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peer", true, false, "The PeerID (B58) of the ledger to inspect."),
 	},
-	Type: decision.Receipt{},
+	Type: server.Receipt{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -203,7 +203,7 @@ prints the ledger associated with a given peer.
 		return cmds.EmitOnce(res, bs.LedgerForPeer(partner))
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *decision.Receipt) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *server.Receipt) error {
 			fmt.Fprintf(w, "Ledger for %s\n"+
 				"Debt ratio:\t%f\n"+
 				"Exchanges:\t%d\n"+

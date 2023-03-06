@@ -20,7 +20,7 @@
   - versions identical to the above, but with a single "empty-block" root each ( in order to work around go-car not following the current "roots can be empty" spec )
 
 - combined_naked_roots_genesis_and_128.car
-  - only the roots of `lotus_devnet_genesis.car` and `lotus_testnet_export_128.car`, to to be used in combination with the root-less parts to validate "transactional" pinning
+  - only the roots of `lotus_devnet_genesis.car` and `lotus_testnet_export_128.car`,to be used in combination with the root-less parts to validate "transactional" pinning
 
 - lotus_testnet_export_128_v2.car
 - lotus_devnet_genesis_v2.car

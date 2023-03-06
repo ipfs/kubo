@@ -6,9 +6,9 @@ import (
 	"io"
 
 	cid "github.com/ipfs/go-cid"
-	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
+	"github.com/ipfs/go-libipfs/files"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/kubo/core/commands/cmdenv"

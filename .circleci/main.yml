@@ -143,14 +143,17 @@ jobs:
         path: /tmp/circleci-test-results
   sharness:
     machine:
-        image: ubuntu-2004:202010-01
+        image: ubuntu-2204:2022.10.1
     resource_class: << pipeline.parameters.resource_class >>
     working_directory: ~/ipfs/kubo
     environment:
         <<: *default_environment
         TEST_NO_DOCKER: 0
+        TEST_NO_PLUGIN: 1
         TEST_NO_FUSE: 1
         TEST_VERBOSE: 1
+        TEST_JUNIT: 1
+        TEST_EXPENSIVE: 1
     steps:
     - run: sudo apt update
     - run: |
@@ -159,7 +162,7 @@ jobs:
         tar xfz go1.19.1.linux-amd64.tar.gz
         echo "export PATH=$(pwd)/go/bin:\$PATH" >> ~/.bashrc
     - run: go version
-    - run: sudo apt install socat net-tools fish
+    - run: sudo apt install socat net-tools fish libxml2-utils
     - checkout
 
     - run:
@@ -183,7 +186,7 @@ jobs:
         command: echo "export TEST_DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $BASH_ENV
     - run:
         echo TEST_DOCKER_HOST=$TEST_DOCKER_HOST &&
-        make -O -j << pipeline.parameters.make_jobs >> coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1 TEST_DOCKER_HOST=$TEST_DOCKER_HOST
+        make -O -j << pipeline.parameters.make_jobs >> test_sharness coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml CONTINUE_ON_S_FAILURE=1 TEST_DOCKER_HOST=$TEST_DOCKER_HOST
     - run:
         when: always
         command: bash <(curl -s https://codecov.io/bash) -cF sharness -X search -f coverage/sharness_tests.coverprofile
@@ -231,15 +234,16 @@ jobs:
           at: /tmp/circleci-workspace
       - restore_cache:
           keys:
-            - v1-interop-{{ .Branch }}-{{ .Revision }}
-            - v1-interop-{{ .Branch }}-
-            - v1-interop-
+            - v2-interop-{{ .Branch }}-{{ .Revision }}
+            - v2-interop-{{ .Branch }}-
+            - v2-interop-
       - run:
           name: Installing dependencies
           command: |
             npm init -y
-            npm install ipfs@^0.61.0
-            npm install ipfs-interop@^8.0.10
+            npm install ipfs@^0.66.0
+            npm install kubo-rpc-client@^3.0.1
+            npm install ipfs-interop@^10.0.1
             npm install mocha-circleci-reporter@0.0.3
           working_directory: ~/ipfs/kubo/interop
       - run:
@@ -256,7 +260,7 @@ jobs:
       - store_test_results:
           path: /tmp/test-results
       - save_cache:
-          key: v1-interop-{{ .Branch }}-{{ .Revision }}
+          key: v2-interop-{{ .Branch }}-{{ .Revision }}
           paths:
             - ~/ipfs/kubo/interop/node_modules
   go-ipfs-api:
@@ -289,7 +293,7 @@ jobs:
           command: go test -count=1 -v ./...
           working_directory: ~/ipfs/kubo/go-ipfs-api
       - save_cache:
-          key: v1-go-api-{{ checksum "~/ipfs/kubo/go-ipfs-api/go.sum" }}
+          key: v2-go-api-{{ checksum "~/ipfs/kubo/go-ipfs-api/go.sum" }}
           paths:
             - ~/go/pkg/mod
             - ~/.cache/go-build/
@@ -305,7 +309,7 @@ jobs:
       - run:
           name: Cloning
           command: |
-            git clone https://github.com/ipfs/go-ipfs-http-client.git
+            git clone https://github.com/ipfs/go-ipfs-http-client.git -b bump-for-rcmgr-last-push
             git -C go-ipfs-http-client log -1
       - restore_cache:
           keys:
@@ -345,13 +349,13 @@ jobs:
             npx playwright install
           working_directory: ~/ipfs/kubo/ipfs-webui
       - run:
-          name: Running upstream tests (finish early if they fail)
+          name: Run ipfs-webui@main build and smoke-test to confirm the upstream repo is not broken
           command: |
-            npm test || circleci-agent step halt
+            npm test
           working_directory: ~/ipfs/kubo/ipfs-webui
       - run:
-          name: Running tests with kubo built from current commit
-          command: npm test
+          name: Test ipfs-webui@main E2E against the locally built Kubo binary
+          command: npm run test:e2e
           working_directory: ~/ipfs/kubo/ipfs-webui
           environment:
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs

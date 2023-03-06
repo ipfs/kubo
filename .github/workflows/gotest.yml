@@ -1,0 +1,66 @@
+name: 'ci/gh-experiment: go test'
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  gotest:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TEST_NO_DOCKER: 1
+      TEST_NO_FUSE: 1
+      TEST_VERBOSE: 1
+      TRAVIS: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.1
+      - uses: actions/checkout@v3
+      - uses: protocol/cache-go-action@v1
+        with:
+          name: ${{ github.job }}
+      - run: |
+          make -j 1 test/unit/gotest.junit.xml &&
+            [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
+      - uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0
+        if: always()
+        with:
+          name: unittests
+          files: coverage/unit_tests.coverprofile
+      - run: |
+          # we want to first test with the kubo version in the go.mod file
+          go test -v ./...
+
+          # we also want to test the examples against the current version of kubo
+          # however, that version might be in a fork so we need to replace the dependency
+
+          # backup the go.mod and go.sum files to restore them after we run the tests
+          cp go.mod go.mod.bak
+          cp go.sum go.sum.bak
+
+          # make sure the examples run against the current version of kubo
+          go mod edit -replace github.com/ipfs/kubo=./../../..
+          go mod tidy
+
+          go test -v ./...
+
+          # restore the go.mod and go.sum files to their original state
+          mv go.mod.bak go.mod
+          mv go.sum.bak go.sum
+        working-directory: docs/examples/kubo-as-a-library
+      - uses: actions/upload-artifact@v3
+        with:
+          name: unit
+          path: test/unit/gotest.junit.xml
+        if: always()
