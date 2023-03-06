@@ -96,14 +96,17 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	defopts.MaxConcurrentCompactions = func() int {
 		return 10
 	}
-	defopts.MaxOpenFiles = 5000
-	defopts.L0CompactionThreshold = 4       // default 4
-	defopts.L0StopWritesThreshold = 1000    // default 12
+	defopts.MaxOpenFiles = 20000      // default: 1000
+	defopts.L0CompactionThreshold = 4 // default 4
+	// This was 1000 and if L0 ever reaches that point we end up with
+	// a really bad situation where we have many files to move and awful
+	// read perf.
+	defopts.L0StopWritesThreshold = 20      // default 12
 	defopts.LBaseMaxBytes = 512 << 20       // default: 64 MB
 	defopts.L0CompactionFileThreshold = 750 // default: 500
 	defopts.Levels = make([]pebble.LevelOptions, 7)
 	defopts.MemTableStopWritesThreshold = 30
-	defopts.Levels[0].TargetFileSize = 4 << 20 // 2MB def: 4M
+	defopts.Levels[0].TargetFileSize = 4 << 20 // default: 4M
 
 	for i := 0; i < len(defopts.Levels); i++ {
 		l := &defopts.Levels[i]
