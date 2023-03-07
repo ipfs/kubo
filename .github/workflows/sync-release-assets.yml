@@ -9,11 +9,10 @@ concurrency:
   group: release-assets-dist-sync
   cancel-in-progress: true
 
-permissions: {}
+permissions:
+  contents: write  #  to upload release asset
 jobs:
   sync-github-and-dist-ipfs-tech:
-    permissions:
-      contents: write  #  to upload release asset
 
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: "ubuntu-latest"
