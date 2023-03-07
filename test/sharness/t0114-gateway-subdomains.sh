@@ -84,11 +84,7 @@ test_hostname_gateway_response_should_contain() {
 ## Start IPFS Node and prepare test CIDs
 ## ============================================================================
 
-test_expect_success "ipfs init" '
-  export IPFS_PATH="$(pwd)/.ipfs" &&
-  ipfs init --profile=test > /dev/null
-'
-
+test_init_ipfs
 test_launch_ipfs_daemon_without_network
 
 # Import test case

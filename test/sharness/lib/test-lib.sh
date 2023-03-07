@@ -193,8 +193,15 @@ test_config_set() {
   test_cmp cfg_set_expected cfg_set_actual
 }
 
-test_init_ipfs() {
+test_init_ipfs_addresses() {
+  # overwrites the gateway and api addresses according to environmental variables.
+  test_expect_success "updating the addresses succeeds" '
+    ([ ! -z $TEST_NODE_GWAY_MADDR ] && ipfs config Addresses.Gateway $TEST_NODE_GWAY_MADDR || true) &&
+    ([ ! -z $TEST_NODE_API_MADDR ] && ipfs config Addresses.API $TEST_NODE_API_MADDR || true)
+  '
+}
 
+test_init_ipfs() {
 
   # we set the Addresses.API config variable.
   # the cli client knows to use it, so only need to set.
@@ -202,7 +209,8 @@ test_init_ipfs() {
 
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
-    ipfs init --profile=test > /dev/null
+    ipfs init --profile=test > /dev/null &&
+    test_init_ipfs_addresses
   '
 
   test_expect_success "prepare config -- mounting" '
@@ -211,7 +219,6 @@ test_init_ipfs() {
     test_config_set Mounts.IPNS "$(pwd)/ipns" ||
     test_fsh cat "\"$IPFS_PATH/config\""
   '
-
 }
 
 test_config_ipfs_gateway_writable() {
@@ -247,7 +254,7 @@ test_set_address_vars() {
     API_ADDR=$(convert_tcp_maddr $API_MADDR) &&
     API_PORT=$(port_from_maddr $API_MADDR) &&
 
-    GWAY_MADDR=$(sed -n "s/^Gateway (.*) server listening on //p" "$daemon_output") &&
+    [ -z "${TEST_GWAY_MADDR}" ] && GWAY_MADDR=$(sed -n "s/^Gateway (.*) server listening on //p" "$daemon_output") || GWAY_MADDR=${TEST_GWAY_MADDR} &&
     GWAY_ADDR=$(convert_tcp_maddr $GWAY_MADDR) &&
     GWAY_PORT=$(port_from_maddr $GWAY_MADDR)
   '
