@@ -87,6 +87,7 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	// However, WAL is associated to memtables,
 	// so a small memtable makes a small WAL so I'd rather have
 	// a large WAL.
+
 	defopts.MemTableSize = 128 << 20 // 128 MB. Def: 4MB.
 	defopts.BytesPerSync = 512 << 20 // 512 MiB
 	defopts.Cache = cache
@@ -110,7 +111,7 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 
 	for i := 0; i < len(defopts.Levels); i++ {
 		l := &defopts.Levels[i]
-		l.BlockSize = 8 << 10 // 8 KB : def 4K
+		l.BlockSize = 1 << 10 // 1 KB : def 4K
 		// No compression, should be same
 		// l.IndexBlockSize = 512 << 10 // 256 KB
 		l.FilterPolicy = bloom.FilterPolicy(10)
