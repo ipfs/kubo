@@ -171,7 +171,7 @@ func (h *Harness) Mkdirs(paths ...string) {
 	}
 }
 
-func (h *Harness) Sh(expr string) RunResult {
+func (h *Harness) Sh(expr string) *RunResult {
 	return h.Runner.Run(RunRequest{
 		Path: "bash",
 		Args: []string{"-c", expr},
