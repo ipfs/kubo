@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/multiformats/go-multiaddr"
+	"golang.org/x/sync/errgroup"
 )
 
 // Nodes is a collection of Kubo nodes along with operations on groups of nodes.
@@ -14,6 +15,21 @@ func (n Nodes) Init(args ...string) Nodes {
 		node.Init()
 	}
 	return n
+}
+
+func (n Nodes) ForEachPar(f func(*Node)) {
+	group := &errgroup.Group{}
+	for _, node := range n {
+		node := node
+		group.Go(func() error {
+			f(node)
+			return nil
+		})
+	}
+	err := group.Wait()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (n Nodes) Connect() Nodes {
