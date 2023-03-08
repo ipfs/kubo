@@ -40,7 +40,7 @@ func init() {
 }
 
 // ConstructDefaultRouting returns routers used when Routing.Type is unset or set to "auto"
-func ConstructDefaultRouting(peerID string, addrs []string, privKey string) func(
+func ConstructDefaultRouting(peerID string, addrs []string, privKey string, routingOpt RoutingOption) func(
 	ctx context.Context,
 	host host.Host,
 	dstore datastore.Batching,
@@ -58,8 +58,7 @@ func ConstructDefaultRouting(peerID string, addrs []string, privKey string) func
 		// Different trade-offs can be made by setting Routing.Type = "custom" with own Routing.Routers
 		var routers []*routinghelpers.ParallelRouter
 
-		// Run the default DHT routing (same as Routing.Type = "dht")
-		dhtRouting, err := DHTOption(ctx, host, dstore, validator, bootstrapPeers...)
+		dhtRouting, err := routingOpt(ctx, host, dstore, validator, bootstrapPeers...)
 		if err != nil {
 			return nil, err
 		}
