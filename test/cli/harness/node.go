@@ -121,14 +121,6 @@ func (n *Node) UpdateUserSuppliedResourceManagerOverrides(f func(overrides *rcmg
 	n.WriteUserSuppliedResourceOverrides(overrides)
 }
 
-func (n *Node) UpdateConfigAndUserSuppliedResourceManagerOverrides(f func(cfg *config.Config, overrides *rcmgr.PartialLimitConfig)) {
-	overrides := n.ReadUserResourceOverrides()
-	cfg := n.ReadConfig()
-	f(cfg, overrides)
-	n.WriteConfig(cfg)
-	n.WriteUserSuppliedResourceOverrides(overrides)
-}
-
 func (n *Node) IPFS(args ...string) *RunResult {
 	res := n.RunIPFS(args...)
 	n.Runner.AssertNoError(res)
