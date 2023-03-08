@@ -204,7 +204,7 @@ test_expect_success "Prepare IPNS unixfs content path for testing" '
     grep -E "< Etag: \"DirIndex-.+_CID-${ROOT3_CID}\"" curl_ipfs_dir_listing_output
     '
     test_expect_success "GET /ipns/ dir response has special Etag for generated dir listing" '
-    test_should_contain "< Etag: \"DirIndex" curl_ipfs_dir_listing_output &&
+    test_should_contain "< Etag: \"DirIndex" curl_ipns_dir_listing_output &&
     grep -E "< Etag: \"DirIndex-.+_CID-${ROOT3_CID}\"" curl_ipns_dir_listing_output
     '
 
