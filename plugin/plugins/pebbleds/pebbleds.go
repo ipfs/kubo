@@ -79,7 +79,7 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	}
 
 	var defopts pebble.Options
-	cache := pebble.NewCache(10 << 30) // 10 GiB
+	cache := pebble.NewCache(10 << 30) // default: 8MiB
 	defopts = *defopts.EnsureDefaults()
 	// I've tried with different memtable sizes
 	// memtables get rotated when full, so a small size

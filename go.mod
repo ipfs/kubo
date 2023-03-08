@@ -34,7 +34,7 @@ require (
 	github.com/ipfs/go-filestore v1.2.0
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-graphsync v0.14.1
-	github.com/ipfs/go-ipfs-blockstore v1.2.1-0.20230227230302-59d3eeba0c6b
+	github.com/ipfs/go-ipfs-blockstore v1.3.0
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.8.2
 	github.com/ipfs/go-ipfs-exchange-interface v0.2.0
