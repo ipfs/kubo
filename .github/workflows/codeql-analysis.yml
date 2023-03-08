@@ -17,7 +17,6 @@ permissions:
 
 jobs:
   analyze:
-
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     name: Analyze
     runs-on: ubuntu-latest
