@@ -45,32 +45,33 @@ import (
 )
 
 const (
-	adjustFDLimitKwd          = "manage-fdlimit"
-	enableGCKwd               = "enable-gc"
-	initOptionKwd             = "init"
-	initConfigOptionKwd       = "init-config"
-	initProfileOptionKwd      = "init-profile"
-	ipfsMountKwd              = "mount-ipfs"
-	ipnsMountKwd              = "mount-ipns"
-	migrateKwd                = "migrate"
-	mountKwd                  = "mount"
-	offlineKwd                = "offline" // global option
-	routingOptionKwd          = "routing"
-	routingOptionSupernodeKwd = "supernode"
-	routingOptionDHTClientKwd = "dhtclient"
-	routingOptionDHTKwd       = "dht"
-	routingOptionDHTServerKwd = "dhtserver"
-	routingOptionNoneKwd      = "none"
-	routingOptionCustomKwd    = "custom"
-	routingOptionDefaultKwd   = "default"
-	routingOptionAutoKwd      = "auto"
-	unencryptTransportKwd     = "disable-transport-encryption"
-	unrestrictedAPIAccessKwd  = "unrestricted-api"
-	writableKwd               = "writable"
-	enablePubSubKwd           = "enable-pubsub-experiment"
-	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
-	enableMultiplexKwd        = "enable-mplex-experiment"
-	agentVersionSuffix        = "agent-version-suffix"
+	adjustFDLimitKwd           = "manage-fdlimit"
+	enableGCKwd                = "enable-gc"
+	initOptionKwd              = "init"
+	initConfigOptionKwd        = "init-config"
+	initProfileOptionKwd       = "init-profile"
+	ipfsMountKwd               = "mount-ipfs"
+	ipnsMountKwd               = "mount-ipns"
+	migrateKwd                 = "migrate"
+	mountKwd                   = "mount"
+	offlineKwd                 = "offline" // global option
+	routingOptionKwd           = "routing"
+	routingOptionSupernodeKwd  = "supernode"
+	routingOptionDHTClientKwd  = "dhtclient"
+	routingOptionDHTKwd        = "dht"
+	routingOptionDHTServerKwd  = "dhtserver"
+	routingOptionNoneKwd       = "none"
+	routingOptionCustomKwd     = "custom"
+	routingOptionDefaultKwd    = "default"
+	routingOptionAutoKwd       = "auto"
+	routingOptionAutoClientKwd = "autoclient"
+	unencryptTransportKwd      = "disable-transport-encryption"
+	unrestrictedAPIAccessKwd   = "unrestricted-api"
+	writableKwd                = "writable"
+	enablePubSubKwd            = "enable-pubsub-experiment"
+	enableIPNSPubSubKwd        = "enable-namesys-pubsub"
+	enableMultiplexKwd         = "enable-mplex-experiment"
+	agentVersionSuffix         = "agent-version-suffix"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -416,6 +417,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			cfg.Identity.PeerID,
 			cfg.Addresses.Swarm,
 			cfg.Identity.PrivKey,
+			libp2p.DHTOption,
+		)
+	case routingOptionAutoClientKwd:
+		ncfg.Routing = libp2p.ConstructDefaultRouting(
+			cfg.Identity.PeerID,
+			cfg.Addresses.Swarm,
+			cfg.Identity.PrivKey,
+			libp2p.DHTClientOption,
 		)
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = libp2p.DHTClientOption

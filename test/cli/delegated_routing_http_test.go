@@ -94,7 +94,7 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		node.IPFS("config", "Routing.Type", "--json", `"custom"`)
+		node.IPFS("config", "Routing.Type", "custom")
 		node.IPFS("config", "Routing.Routers.TestDelegatedRouter", "--json", ToJSONStr(JSONObj{
 			"Type": "http",
 			"Parameters": JSONObj{
