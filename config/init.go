@@ -159,12 +159,8 @@ func badgerSpec() map[string]interface{} {
 
 func pebbleSpec() map[string]interface{} {
 	return map[string]interface{}{
-		"type":   "measure",
-		"prefix": "pebble.datastore",
-		"child": map[string]interface{}{
-			"type": "pebbleds",
-			"path": "pebbleds",
-		},
+		"type": "pebbleds",
+		"path": "pebbleds",
 	}
 }
 
