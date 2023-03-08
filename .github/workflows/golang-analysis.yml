@@ -7,6 +7,9 @@ on:
     branches:
       - 'master'
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
   unit:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'

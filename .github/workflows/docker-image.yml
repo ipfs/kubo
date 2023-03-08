@@ -9,6 +9,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
   push_to_registry:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
