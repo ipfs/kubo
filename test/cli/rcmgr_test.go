@@ -49,6 +49,7 @@ func TestRcmgr(t *testing.T) {
 	})
 
 	t.Run("Very high connmgr highwater", func(t *testing.T) {
+		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()
 		node.UpdateConfig(func(cfg *config.Config) {
 			cfg.Swarm.ConnMgr.HighWater = config.NewOptionalInteger(1000)
@@ -74,6 +75,7 @@ func TestRcmgr(t *testing.T) {
 		node.StartDaemon()
 
 		t.Run("conns and streams are above 800 for default connmgr settings", func(t *testing.T) {
+			t.Parallel()
 			res := node.RunIPFS("swarm", "resources", "--enc=json")
 			require.Equal(t, 0, res.ExitCode())
 			limits := unmarshalLimits(t, res.Stdout.Bytes())
@@ -87,6 +89,7 @@ func TestRcmgr(t *testing.T) {
 		})
 
 		t.Run("limits should succeed", func(t *testing.T) {
+			t.Parallel()
 			res := node.RunIPFS("swarm", "resources", "--enc=json")
 			assert.Equal(t, 0, res.ExitCode())
 
@@ -106,6 +109,7 @@ func TestRcmgr(t *testing.T) {
 		})
 
 		t.Run("swarm stats works", func(t *testing.T) {
+			t.Parallel()
 			res := node.RunIPFS("swarm", "resources", "--enc=json")
 			require.Equal(t, 0, res.ExitCode())
 
@@ -123,6 +127,7 @@ func TestRcmgr(t *testing.T) {
 	})
 
 	t.Run("smoke test transient scope", func(t *testing.T) {
+		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()
 		node.UpdateUserSuppliedResourceManagerOverrides(func(overrides *rcmgr.PartialLimitConfig) {
 			overrides.Transient.Memory = 88888
@@ -135,6 +140,7 @@ func TestRcmgr(t *testing.T) {
 	})
 
 	t.Run("smoke test service scope", func(t *testing.T) {
+		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()
 		node.UpdateUserSuppliedResourceManagerOverrides(func(overrides *rcmgr.PartialLimitConfig) {
 			overrides.Service = map[string]rcmgr.ResourceLimits{"foo": {Memory: 77777}}
@@ -147,6 +153,7 @@ func TestRcmgr(t *testing.T) {
 	})
 
 	t.Run("smoke test protocol scope", func(t *testing.T) {
+		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()
 		node.UpdateUserSuppliedResourceManagerOverrides(func(overrides *rcmgr.PartialLimitConfig) {
 			overrides.Protocol = map[protocol.ID]rcmgr.ResourceLimits{"foo": {Memory: 66666}}
@@ -159,6 +166,7 @@ func TestRcmgr(t *testing.T) {
 	})
 
 	t.Run("smoke test peer scope", func(t *testing.T) {
+		t.Parallel()
 		validPeerID, err := peer.Decode("QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN")
 		assert.NoError(t, err)
 		node := harness.NewT(t).NewNode().Init()
@@ -172,13 +180,17 @@ func TestRcmgr(t *testing.T) {
 		assert.Equal(t, rcmgr.LimitVal64(55555), limits.Peers[validPeerID].Memory)
 	})
 
-	t.Run("", func(t *testing.T) {
+	t.Run("blocking and allowlists", func(t *testing.T) {
+		t.Parallel()
 		nodes := harness.NewT(t).NewNodes(3).Init()
 		node0, node1, node2 := nodes[0], nodes[1], nodes[2]
-		// peerID0, peerID1, peerID2 := node0.PeerID(), node1.PeerID(), node2.PeerID()
 		peerID1, peerID2 := node1.PeerID().String(), node2.PeerID().String()
 
-		node0.UpdateConfigAndUserSuppliedResourceManagerOverrides(func(cfg *config.Config, overrides *rcmgr.PartialLimitConfig) {
+		node0.UpdateConfig(func(cfg *config.Config) {
+			cfg.Swarm.ResourceMgr.Enabled = config.True
+			cfg.Swarm.ResourceMgr.Allowlist = []string{"/ip4/0.0.0.0/ipcidr/0/p2p/" + peerID2}
+		})
+		node0.UpdateUserSuppliedResourceManagerOverrides(func(overrides *rcmgr.PartialLimitConfig) {
 			*overrides = rcmgr.PartialLimitConfig{
 				System: rcmgr.ResourceLimits{
 					Conns:         rcmgr.BlockAllLimit,
@@ -186,91 +198,97 @@ func TestRcmgr(t *testing.T) {
 					ConnsOutbound: rcmgr.BlockAllLimit,
 				},
 			}
-			cfg.Swarm.ResourceMgr.Enabled = config.True
-			cfg.Swarm.ResourceMgr.Allowlist = []string{"/ip4/0.0.0.0/ipcidr/0/p2p/" + peerID2}
 		})
 
 		nodes.StartDaemons()
 
-		t.Parallel()
-		t.Run("node 0 should fail to connect to node 1", func(t *testing.T) {
+		t.Run("node 0 should fail to connect to and ping node 1", func(t *testing.T) {
+			t.Parallel()
 			res := node0.Runner.Run(harness.RunRequest{
 				Path: node0.IPFSBin,
-				Args: []string{"swarm", "connect", node1.SwarmAddrs()[0].String()},
+				Args: []string{"swarm", "connect", node1.SwarmAddrsWithPeerIDs()[0].String()},
 			})
 			assert.Equal(t, 1, res.ExitCode())
 			assert.Contains(t, res.Stderr.String(), "failed to find any peer in table")
-		})
 
-		t.Run("node 0 should connect to node 2 since it is allowlisted", func(t *testing.T) {
-			res := node0.Runner.Run(harness.RunRequest{
-				Path: node0.IPFSBin,
-				Args: []string{"swarm", "connect", node2.SwarmAddrs()[0].String()},
-			})
-			assert.Equal(t, 0, res.ExitCode())
-		})
-
-		t.Run("node 0 should fail to ping node 1", func(t *testing.T) {
-			res := node0.RunIPFS("ping", "-n2", peerID1)
+			res = node0.RunIPFS("ping", "-n2", peerID1)
 			assert.Equal(t, 1, res.ExitCode())
 			assert.Contains(t, res.Stderr.String(), "Error: ping failed")
 		})
 
-		t.Run("node 0 should be able to ping node 2", func(t *testing.T) {
-			res := node0.RunIPFS("ping", "-n2", peerID2)
+		t.Run("node 0 should connect to and ping node 2 since it is allowlisted", func(t *testing.T) {
+			t.Parallel()
+			res := node0.Runner.Run(harness.RunRequest{
+				Path: node0.IPFSBin,
+				Args: []string{"swarm", "connect", node2.SwarmAddrsWithPeerIDs()[0].String()},
+			})
+			assert.Equal(t, 0, res.ExitCode())
+
+			res = node0.RunIPFS("ping", "-n2", peerID2)
 			assert.Equal(t, 0, res.ExitCode())
 		})
 	})
 
 	t.Run("daemon should refuse to start if connmgr.highwater < resources inbound", func(t *testing.T) {
-		t.Parallel()
 		t.Run("system conns", func(t *testing.T) {
+			t.Parallel()
 			node := harness.NewT(t).NewNode().Init()
-			node.UpdateConfigAndUserSuppliedResourceManagerOverrides(func(cfg *config.Config, overrides *rcmgr.PartialLimitConfig) {
+			node.UpdateConfig(func(cfg *config.Config) {
+				cfg.Swarm.ConnMgr.HighWater = config.NewOptionalInteger(128)
+				cfg.Swarm.ConnMgr.LowWater = config.NewOptionalInteger(64)
+			})
+			node.UpdateUserSuppliedResourceManagerOverrides(func(overrides *rcmgr.PartialLimitConfig) {
 				*overrides = rcmgr.PartialLimitConfig{
 					System: rcmgr.ResourceLimits{Conns: 128},
 				}
-				cfg.Swarm.ConnMgr.HighWater = config.NewOptionalInteger(128)
-				cfg.Swarm.ConnMgr.LowWater = config.NewOptionalInteger(64)
 			})
 
 			res := node.RunIPFS("daemon")
 			assert.Equal(t, 1, res.ExitCode())
 		})
 		t.Run("system conns inbound", func(t *testing.T) {
+			t.Parallel()
 			node := harness.NewT(t).NewNode().Init()
-			node.UpdateConfigAndUserSuppliedResourceManagerOverrides(func(cfg *config.Config, overrides *rcmgr.PartialLimitConfig) {
+			node.UpdateConfig(func(cfg *config.Config) {
+				cfg.Swarm.ConnMgr.HighWater = config.NewOptionalInteger(128)
+				cfg.Swarm.ConnMgr.LowWater = config.NewOptionalInteger(64)
+			})
+			node.UpdateUserSuppliedResourceManagerOverrides(func(overrides *rcmgr.PartialLimitConfig) {
 				*overrides = rcmgr.PartialLimitConfig{
 					System: rcmgr.ResourceLimits{ConnsInbound: 128},
 				}
-				cfg.Swarm.ConnMgr.HighWater = config.NewOptionalInteger(128)
-				cfg.Swarm.ConnMgr.LowWater = config.NewOptionalInteger(64)
 			})
 
 			res := node.RunIPFS("daemon")
 			assert.Equal(t, 1, res.ExitCode())
 		})
 		t.Run("system streams", func(t *testing.T) {
+			t.Parallel()
 			node := harness.NewT(t).NewNode().Init()
-			node.UpdateConfigAndUserSuppliedResourceManagerOverrides(func(cfg *config.Config, overrides *rcmgr.PartialLimitConfig) {
+			node.UpdateConfig(func(cfg *config.Config) {
+				cfg.Swarm.ConnMgr.HighWater = config.NewOptionalInteger(128)
+				cfg.Swarm.ConnMgr.LowWater = config.NewOptionalInteger(64)
+			})
+			node.UpdateUserSuppliedResourceManagerOverrides(func(overrides *rcmgr.PartialLimitConfig) {
 				*overrides = rcmgr.PartialLimitConfig{
 					System: rcmgr.ResourceLimits{Streams: 128},
 				}
-				cfg.Swarm.ConnMgr.HighWater = config.NewOptionalInteger(128)
-				cfg.Swarm.ConnMgr.LowWater = config.NewOptionalInteger(64)
 			})
 
 			res := node.RunIPFS("daemon")
 			assert.Equal(t, 1, res.ExitCode())
 		})
 		t.Run("system streams inbound", func(t *testing.T) {
+			t.Parallel()
 			node := harness.NewT(t).NewNode().Init()
-			node.UpdateConfigAndUserSuppliedResourceManagerOverrides(func(cfg *config.Config, overrides *rcmgr.PartialLimitConfig) {
+			node.UpdateConfig(func(cfg *config.Config) {
+				cfg.Swarm.ConnMgr.HighWater = config.NewOptionalInteger(128)
+				cfg.Swarm.ConnMgr.LowWater = config.NewOptionalInteger(64)
+			})
+			node.UpdateUserSuppliedResourceManagerOverrides(func(overrides *rcmgr.PartialLimitConfig) {
 				*overrides = rcmgr.PartialLimitConfig{
 					System: rcmgr.ResourceLimits{StreamsInbound: 128},
 				}
-				cfg.Swarm.ConnMgr.HighWater = config.NewOptionalInteger(128)
-				cfg.Swarm.ConnMgr.LowWater = config.NewOptionalInteger(64)
 			})
 
 			res := node.RunIPFS("daemon")
