@@ -59,8 +59,13 @@ jobs:
           mv go.mod.bak go.mod
           mv go.sum.bak go.sum
         working-directory: docs/examples/kubo-as-a-library
+      - name: Generate HTML Report
+        if: always()
+        run: |
+          go install github.com/vakenbolt/go-test-report@latest
+          cat test/unit/gotest.json | ~/go/bin/go-test-report -o test/unit/gotest.html
       - uses: actions/upload-artifact@v3
         with:
           name: unit
-          path: test/unit/gotest.junit.xml
+          path: test/unit/gotest*
         if: always()
