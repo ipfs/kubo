@@ -118,6 +118,12 @@ test_expect_success "Add the test fixtures" '
   ipfs routing put /ipns/${ED25519_KEY} ../t0114-gateway-subdomains/${ED25519_KEY}.ipns-record
 '
 
+test_expect_success "Getting back the fixtures" '
+  ipfs get ${CIDv1} &&
+  ipfs routing get /ipns/${RSA_KEY} &&
+  ipfs routing get /ipns/${ED25519_KEY}
+'
+
 # ensure we start with empty Gateway.PublicGateways
 test_expect_success 'start daemon with empty config for Gateway.PublicGateways' '
   test_kill_ipfs_daemon &&
