@@ -76,6 +76,23 @@ func (n *Node) WriteBytes(filename string, b []byte) {
 	}
 }
 
+// ReadFile reads the specific file. If it is relative, it is relative the node's root dir.
+func (n *Node) ReadFile(filename string) string {
+	f := filename
+	if !filepath.IsAbs(filename) {
+		f = filepath.Join(n.Dir, filename)
+	}
+	b, err := os.ReadFile(f)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
+func (n *Node) ConfigFile() string {
+	return filepath.Join(n.Dir, "config")
+}
+
 func (n *Node) ReadConfig() *config.Config {
 	cfg, err := serial.Load(filepath.Join(n.Dir, "config"))
 	if err != nil {

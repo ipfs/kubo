@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/host"
@@ -31,7 +32,19 @@ func (x lastPin) IsValid() bool {
 	return x != lastPin{}
 }
 
-const daemonConfigPollInterval = time.Minute / 2
+var daemonConfigPollInterval = time.Minute / 2
+
+func init() {
+	// this environment variable is solely for testing, use at your own risk
+	if pollDurStr := os.Getenv("MFS_PIN_POLL_INTERVAL"); pollDurStr != "" {
+		d, err := time.ParseDuration(pollDurStr)
+		if err != nil {
+			mfslog.Error("error parsing MFS_PIN_POLL_INTERVAL, using default:", err)
+		}
+		daemonConfigPollInterval = d
+	}
+}
+
 const defaultRepinInterval = 5 * time.Minute
 
 type pinMFSContext interface {
