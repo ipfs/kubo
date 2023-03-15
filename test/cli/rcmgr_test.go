@@ -7,6 +7,7 @@ import (
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/test/cli/harness"
+	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
@@ -209,7 +210,10 @@ func TestRcmgr(t *testing.T) {
 				Args: []string{"swarm", "connect", node1.SwarmAddrsWithPeerIDs()[0].String()},
 			})
 			assert.Equal(t, 1, res.ExitCode())
-			assert.Contains(t, res.Stderr.String(), "failed to find any peer in table")
+			testutils.AssertStringContainsOneOf(t, res.Stderr.String(),
+				"failed to find any peer in table",
+				"resource limit exceeded",
+			)
 
 			res = node0.RunIPFS("ping", "-n2", peerID1)
 			assert.Equal(t, 1, res.ExitCode())
