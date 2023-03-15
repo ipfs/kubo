@@ -80,10 +80,10 @@ func TestRcmgr(t *testing.T) {
 			require.Equal(t, 0, res.ExitCode())
 			limits := unmarshalLimits(t, res.Stdout.Bytes())
 
-			if limits.System.ConnsInbound != rcmgr.Unlimited {
+			if limits.System.ConnsInbound > rcmgr.DefaultLimit {
 				assert.GreaterOrEqual(t, limits.System.ConnsInbound, 800)
 			}
-			if limits.System.StreamsInbound != rcmgr.Unlimited {
+			if limits.System.StreamsInbound > rcmgr.DefaultLimit {
 				assert.GreaterOrEqual(t, limits.System.StreamsInbound, 800)
 			}
 		})
