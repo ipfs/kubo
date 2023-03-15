@@ -79,7 +79,7 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	}
 
 	var defopts pebble.Options
-	cache := pebble.NewCache(10 << 30) // default: 8MiB
+	cache := pebble.NewCache(20 << 30) // default: 8MiB
 	defopts = *defopts.EnsureDefaults()
 	// I've tried with different memtable sizes
 	// memtables get rotated when full, so a small size
@@ -97,7 +97,7 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	defopts.MaxConcurrentCompactions = func() int {
 		return 10
 	}
-	defopts.MaxOpenFiles = 20000      // default: 1000
+	defopts.MaxOpenFiles = 100000     // default: 1000
 	defopts.L0CompactionThreshold = 4 // default 4
 	// This was 1000 and if L0 ever reaches that point we end up with
 	// a really bad situation where we have many files to move and awful
