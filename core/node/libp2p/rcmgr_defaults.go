@@ -129,7 +129,9 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (limitConfig rcmgr.Concret
 		}
 
 		// Scale System.StreamsInbound as well, but use the existing ratio of StreamsInbound to ConnsInbound
-		partialLimits.System.StreamsInbound = rcmgr.LimitVal(maxInboundConns * int64(partialLimits.System.StreamsInbound) / int64(partialLimits.System.ConnsInbound))
+		if partialLimits.System.StreamsInbound != rcmgr.Unlimited {
+			partialLimits.System.StreamsInbound = rcmgr.LimitVal(maxInboundConns * int64(partialLimits.System.StreamsInbound) / int64(partialLimits.System.ConnsInbound))
+		}
 		partialLimits.System.ConnsInbound = rcmgr.LimitVal(maxInboundConns)
 	}
 
