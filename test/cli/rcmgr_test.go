@@ -127,6 +127,22 @@ func TestRcmgr(t *testing.T) {
 		})
 	})
 
+	t.Run("smoke test unlimited System inbounds", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateUserSuppliedResourceManagerOverrides(func(overrides *rcmgr.PartialLimitConfig) {
+			overrides.System.StreamsInbound = rcmgr.Unlimited
+			overrides.System.ConnsInbound = rcmgr.Unlimited
+		})
+		node.StartDaemon()
+
+		res := node.RunIPFS("swarm", "resources", "--enc=json")
+		limits := unmarshalLimits(t, res.Stdout.Bytes())
+
+		assert.Equal(t, rcmgr.Unlimited, limits.System.ConnsInbound)
+		assert.Equal(t, rcmgr.Unlimited, limits.System.StreamsInbound)
+	})
+
 	t.Run("smoke test transient scope", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()
