@@ -22,6 +22,7 @@ const (
 	CollectorGoroutinesPprof = "goroutines-pprof"
 	CollectorVersion         = "version"
 	CollectorHeap            = "heap"
+	CollectorAllocs          = "allocs"
 	CollectorBin             = "bin"
 	CollectorCPU             = "cpu"
 	CollectorMutex           = "mutex"
@@ -69,6 +70,11 @@ var collectors = map[string]collector{
 	CollectorHeap: {
 		outputFile:  "heap.pprof",
 		collectFunc: heapProfile,
+		enabledFunc: func(opts Options) bool { return true },
+	},
+	CollectorAllocs: {
+		outputFile:  "allocs.pprof",
+		collectFunc: allocsProfile,
 		enabledFunc: func(opts Options) bool { return true },
 	},
 	CollectorBin: {
@@ -195,6 +201,10 @@ func goroutineStacksProto(ctx context.Context, _ Options, w io.Writer) error {
 
 func heapProfile(ctx context.Context, _ Options, w io.Writer) error {
 	return pprof.Lookup("heap").WriteTo(w, 0)
+}
+
+func allocsProfile(ctx context.Context, _ Options, w io.Writer) error {
+	return pprof.Lookup("allocs").WriteTo(w, 0)
 }
 
 func versionInfo(ctx context.Context, _ Options, w io.Writer) error {
