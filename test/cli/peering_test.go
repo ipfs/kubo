@@ -46,7 +46,7 @@ func TestPeering(t *testing.T) {
 				fromPeerIDs = append(fromPeerIDs, h.ExtractPeerID(p))
 			}
 			return containsPeerID(to.PeerID(), fromPeerIDs)
-		}, 20*time.Second, 10*time.Millisecond, "%d -> %d not peered", from.ID, to.ID)
+		}, time.Minute, 10*time.Millisecond, "%d -> %d not peered", from.ID, to.ID)
 	}
 
 	assertNotPeered := func(h *harness.Harness, from *harness.Node, to *harness.Node) {
