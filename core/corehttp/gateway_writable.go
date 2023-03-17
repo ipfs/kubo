@@ -30,7 +30,7 @@ type writableGatewayHandler struct {
 
 func (i *writableGatewayHandler) addUserHeaders(w http.ResponseWriter) {
 	for k, v := range i.config.Headers {
-		w.Header()[k] = v
+		w.Header()[http.CanonicalHeaderKey(k)] = v
 	}
 }
 
