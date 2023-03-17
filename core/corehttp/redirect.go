@@ -32,7 +32,7 @@ type redirectHandler struct {
 
 func (i *redirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for k, v := range i.headers {
-		w.Header()[k] = v
+		w.Header()[http.CanonicalHeaderKey(k)] = v
 	}
 
 	http.Redirect(w, r, i.path, http.StatusFound)
