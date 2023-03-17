@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ fromJSON(needs.runner.outputs.config).labels }}
     timeout-minutes: 20
     env:
-      TEST_NO_DOCKER: 1
+      TEST_DOCKER: 0
       TEST_VERBOSE: 1
       TRAVIS: 1
       GIT_PAGER: cat
@@ -34,7 +34,7 @@ jobs:
           name: ${{ github.job }}
       - run: make cmd/ipfs-try-build
         env:
-          TEST_NO_FUSE: 0
+          TEST_FUSE: 1
       - run: make cmd/ipfs-try-build
         env:
-          TEST_NO_FUSE: 1
+          TEST_FUSE: 0
