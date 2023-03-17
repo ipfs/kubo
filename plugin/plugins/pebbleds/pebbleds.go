@@ -80,7 +80,7 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	}
 
 	var defopts pebble.Options
-	cache := pebble.NewCache(128 << 20) // default: 8MiB
+	cache := pebble.NewCache(20 << 30) // default: 8MiB
 	defer cache.Unref()
 	defopts = *defopts.EnsureDefaults()
 	// I've tried with different memtable sizes
