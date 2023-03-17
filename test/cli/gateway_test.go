@@ -219,6 +219,23 @@ func TestGateway(t *testing.T) {
 		assert.Contains(t, []int{302, 301}, resp.StatusCode)
 	})
 
+	t.Run("GET /webui/ returns user-specified headers", func(t *testing.T) {
+		t.Parallel()
+
+		header := "Access-Control-Allow-Origin"
+		values := []string{"http://localhost:3000", "https://webui.ipfs.io"}
+
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.API.HTTPHeaders = map[string][]string{header: values}
+		})
+		node.StartDaemon()
+
+		resp := node.APIClient().DisableRedirects().Get("/webui/")
+		assert.Equal(t, resp.Headers.Values(header), values)
+		assert.Contains(t, []int{302, 301}, resp.StatusCode)
+	})
+
 	t.Run("GET /logs returns logs", func(t *testing.T) {
 		t.Parallel()
 		apiClient := node.APIClient()
