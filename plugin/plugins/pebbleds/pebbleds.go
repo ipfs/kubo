@@ -2,6 +2,7 @@ package pebbleds
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 
@@ -79,7 +80,8 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	}
 
 	var defopts pebble.Options
-	cache := pebble.NewCache(20 << 30) // default: 8MiB
+	cache := pebble.NewCache(128 << 20) // default: 8MiB
+	defer cache.Unref()
 	defopts = *defopts.EnsureDefaults()
 	// I've tried with different memtable sizes
 	// memtables get rotated when full, so a small size
@@ -108,15 +110,16 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	defopts.Levels = make([]pebble.LevelOptions, 7)
 	defopts.MemTableStopWritesThreshold = 30
 	defopts.Levels[0].TargetFileSize = 4 << 20 // default: 4M
+	defopts.Experimental.ReadSamplingMultiplier = -1
 
 	for i := 0; i < len(defopts.Levels); i++ {
 		l := &defopts.Levels[i]
-		l.BlockSize = 1 << 10 // 1 KB : def 4K
+		l.BlockSize = 10 // 10Bytes. 1 KB : def 4K
 		// No compression, should be same
-		// l.IndexBlockSize = 512 << 10 // 256 KB
+		l.IndexBlockSize = math.MaxInt32 // disable 2-level indexes default 256 KB
 		l.FilterPolicy = bloom.FilterPolicy(10)
 		l.FilterType = pebble.TableFilter
-		l.Compression = pebble.NoCompression
+		// l.Compression = pebble.Snappy // leave default.
 		if i > 0 {
 			l.TargetFileSize = defopts.Levels[i-1].TargetFileSize * 2
 		}
