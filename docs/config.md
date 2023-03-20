@@ -1165,13 +1165,15 @@ Type: `duration`
 
 ## `Pubsub`
 
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+
 Pubsub configures the `ipfs pubsub` subsystem. To use, it must be enabled by
 passing the `--enable-pubsub-experiment` flag to the daemon
 or via the `Pubsub.Enabled` flag below.
 
 ### `Pubsub.Enabled`
 
-**EXPERIMENTAL:** read about current limitations at [experimental-features.md#ipfs-pubsub](./experimental-features.md#ipfs-pubsub).
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Enables the pubsub system.
 
@@ -1180,6 +1182,8 @@ Default: `false`
 Type: `flag`
 
 ### `Pubsub.Router`
+
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Sets the default router used by pubsub to route messages to peers. This can be one of:
 
@@ -1196,6 +1200,8 @@ Type: `string` (one of `"floodsub"`, `"gossipsub"`, or `""` (apply default))
 
 ### `Pubsub.DisableSigning`
 
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+
 Disables message signing and signature verification. Enable this option if
 you're operating in a completely trusted network.
 
@@ -1208,6 +1214,8 @@ Default: `false`
 Type: `bool`
 
 ### `Pubsub.SeenMessagesTTL`
+
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Controls the time window within which duplicate messages, identified by Message
 ID, will be identified and won't be emitted again.
@@ -1227,6 +1235,8 @@ Default: see `TimeCacheDuration` from [go-libp2p-pubsub](https://github.com/libp
 Type: `optionalDuration`
 
 ### `Pubsub.SeenMessagesStrategy`
+
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Determines how the time-to-live (TTL) countdown for deduplicating Pubsub
 messages is calculated.
@@ -1349,10 +1359,12 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 ### `Routing.Type`
 
-There are multiple routing options: "auto", "none", "dht" and "custom".
+There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
 
 * **DEFAULT:** If unset, or set to "auto", your node will use the IPFS DHT
   and parallel HTTP routers listed below for additional speed.
+
+* If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
 
 * If set to "none", your node will use _no_ routing system. You'll have to
   explicitly connect to peers that have the content you're looking for.
@@ -1379,7 +1391,7 @@ To force a specific DHT-only mode, client or server, set `Routing.Type` to
 `dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
 unless you're sure your node is reachable from the public network.
 
-When `Routing.Type` is set to `auto` your node will accelerate some types of routing
+When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate some types of routing
 by leveraging HTTP endpoints compatible with [IPIP-337](https://github.com/ipfs/specs/pull/337)
 in addition to the IPFS DHT.
 By default, an instance of [IPNI](https://github.com/ipni/specs/blob/main/IPNI.md#readme)

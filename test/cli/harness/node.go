@@ -121,31 +121,23 @@ func (n *Node) UpdateUserSuppliedResourceManagerOverrides(f func(overrides *rcmg
 	n.WriteUserSuppliedResourceOverrides(overrides)
 }
 
-func (n *Node) UpdateConfigAndUserSuppliedResourceManagerOverrides(f func(cfg *config.Config, overrides *rcmgr.PartialLimitConfig)) {
-	overrides := n.ReadUserResourceOverrides()
-	cfg := n.ReadConfig()
-	f(cfg, overrides)
-	n.WriteConfig(cfg)
-	n.WriteUserSuppliedResourceOverrides(overrides)
-}
-
-func (n *Node) IPFS(args ...string) RunResult {
+func (n *Node) IPFS(args ...string) *RunResult {
 	res := n.RunIPFS(args...)
 	n.Runner.AssertNoError(res)
 	return res
 }
 
-func (n *Node) PipeStrToIPFS(s string, args ...string) RunResult {
+func (n *Node) PipeStrToIPFS(s string, args ...string) *RunResult {
 	return n.PipeToIPFS(strings.NewReader(s), args...)
 }
 
-func (n *Node) PipeToIPFS(reader io.Reader, args ...string) RunResult {
+func (n *Node) PipeToIPFS(reader io.Reader, args ...string) *RunResult {
 	res := n.RunPipeToIPFS(reader, args...)
 	n.Runner.AssertNoError(res)
 	return res
 }
 
-func (n *Node) RunPipeToIPFS(reader io.Reader, args ...string) RunResult {
+func (n *Node) RunPipeToIPFS(reader io.Reader, args ...string) *RunResult {
 	return n.Runner.Run(RunRequest{
 		Path:    n.IPFSBin,
 		Args:    args,
@@ -153,7 +145,7 @@ func (n *Node) RunPipeToIPFS(reader io.Reader, args ...string) RunResult {
 	})
 }
 
-func (n *Node) RunIPFS(args ...string) RunResult {
+func (n *Node) RunIPFS(args ...string) *RunResult {
 	return n.Runner.Run(RunRequest{
 		Path: n.IPFSBin,
 		Args: args,
@@ -216,7 +208,7 @@ func (n *Node) StartDaemon(ipfsArgs ...string) *Node {
 		RunFunc: (*exec.Cmd).Start,
 	})
 
-	n.Daemon = &res
+	n.Daemon = res
 
 	log.Debugf("node %d started, checking API", n.ID)
 	n.WaitOnAPI()
@@ -399,8 +391,6 @@ func (n *Node) SwarmAddrs() []multiaddr.Multiaddr {
 		Path: n.IPFSBin,
 		Args: []string{"swarm", "addrs", "local"},
 	})
-	ipfsProtocol := multiaddr.ProtocolWithCode(multiaddr.P_IPFS).Name
-	peerID := n.PeerID()
 	out := strings.TrimSpace(res.Stdout.String())
 	outLines := strings.Split(out, "\n")
 	var addrs []multiaddr.Multiaddr
@@ -409,9 +399,18 @@ func (n *Node) SwarmAddrs() []multiaddr.Multiaddr {
 		if err != nil {
 			panic(err)
 		}
+		addrs = append(addrs, ma)
+	}
+	return addrs
+}
 
+func (n *Node) SwarmAddrsWithPeerIDs() []multiaddr.Multiaddr {
+	ipfsProtocol := multiaddr.ProtocolWithCode(multiaddr.P_IPFS).Name
+	peerID := n.PeerID()
+	var addrs []multiaddr.Multiaddr
+	for _, ma := range n.SwarmAddrs() {
 		// add the peer ID to the multiaddr if it doesn't have it
-		_, err = ma.ValueForProtocol(multiaddr.P_IPFS)
+		_, err := ma.ValueForProtocol(multiaddr.P_IPFS)
 		if errors.Is(err, multiaddr.ErrProtocolNotFound) {
 			comp, err := multiaddr.NewComponent(ipfsProtocol, peerID.String())
 			if err != nil {
@@ -424,10 +423,27 @@ func (n *Node) SwarmAddrs() []multiaddr.Multiaddr {
 	return addrs
 }
 
+func (n *Node) SwarmAddrsWithoutPeerIDs() []multiaddr.Multiaddr {
+	var addrs []multiaddr.Multiaddr
+	for _, ma := range n.SwarmAddrs() {
+		var components []multiaddr.Multiaddr
+		multiaddr.ForEach(ma, func(c multiaddr.Component) bool {
+			if c.Protocol().Code == multiaddr.P_IPFS {
+				return true
+			}
+			components = append(components, &c)
+			return true
+		})
+		ma = multiaddr.Join(components...)
+		addrs = append(addrs, ma)
+	}
+	return addrs
+}
+
 func (n *Node) Connect(other *Node) *Node {
 	n.Runner.MustRun(RunRequest{
 		Path: n.IPFSBin,
-		Args: []string{"swarm", "connect", other.SwarmAddrs()[0].String()},
+		Args: []string{"swarm", "connect", other.SwarmAddrsWithPeerIDs()[0].String()},
 	})
 	return n
 }
@@ -437,9 +453,8 @@ func (n *Node) Peers() []multiaddr.Multiaddr {
 		Path: n.IPFSBin,
 		Args: []string{"swarm", "peers"},
 	})
-	lines := strings.Split(strings.TrimSpace(res.Stdout.String()), "\n")
 	var addrs []multiaddr.Multiaddr
-	for _, line := range lines {
+	for _, line := range res.Stdout.Lines() {
 		ma, err := multiaddr.NewMultiaddr(line)
 		if err != nil {
 			panic(err)
@@ -447,6 +462,28 @@ func (n *Node) Peers() []multiaddr.Multiaddr {
 		addrs = append(addrs, ma)
 	}
 	return addrs
+}
+
+func (n *Node) PeerWith(other *Node) {
+	n.UpdateConfig(func(cfg *config.Config) {
+		var addrs []multiaddr.Multiaddr
+		for _, addrStr := range other.ReadConfig().Addresses.Swarm {
+			ma, err := multiaddr.NewMultiaddr(addrStr)
+			if err != nil {
+				panic(err)
+			}
+			addrs = append(addrs, ma)
+		}
+
+		cfg.Peering.Peers = append(cfg.Peering.Peers, peer.AddrInfo{
+			ID:    other.PeerID(),
+			Addrs: addrs,
+		})
+	})
+}
+
+func (n *Node) Disconnect(other *Node) {
+	n.IPFS("swarm", "disconnect", "/p2p/"+other.PeerID().String())
 }
 
 // GatewayURL waits for the gateway file and then returns its contents or times out.
