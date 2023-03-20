@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	"github.com/ipfs/go-libipfs/bitswap"
 	"github.com/ipfs/go-libipfs/bitswap/network"
+	blockstore "github.com/ipfs/go-libipfs/blockstore"
+	exchange "github.com/ipfs/go-libipfs/exchange"
 	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"

@@ -8,14 +8,14 @@ import (
 	"io"
 	"strings"
 
+	path "github.com/ipfs/go-libipfs/path"
+	importer "github.com/ipfs/go-libipfs/unixfs/importer"
+	uio "github.com/ipfs/go-libipfs/unixfs/io"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-merkledag/dagutils"
-	path "github.com/ipfs/go-path"
-	importer "github.com/ipfs/go-unixfs/importer"
-	uio "github.com/ipfs/go-unixfs/io"
 
-	chunker "github.com/ipfs/go-ipfs-chunker"
 	ipld "github.com/ipfs/go-ipld-format"
+	chunker "github.com/ipfs/go-libipfs/chunker"
 	logging "github.com/ipfs/go-log"
 )
 

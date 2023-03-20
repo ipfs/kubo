@@ -17,9 +17,9 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	path "github.com/ipfs/go-libipfs/coreiface/path"
+	pinclient "github.com/ipfs/go-libipfs/pinning/remote/client"
 	logging "github.com/ipfs/go-log"
-	pinclient "github.com/ipfs/go-pinning-service-http-client"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"

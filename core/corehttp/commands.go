@@ -16,7 +16,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdsHttp "github.com/ipfs/go-ipfs-cmds/http"
-	path "github.com/ipfs/go-path"
+	path "github.com/ipfs/go-libipfs/path"
 	config "github.com/ipfs/kubo/config"
 )
 

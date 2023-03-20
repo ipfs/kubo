@@ -6,8 +6,8 @@ import (
 	"io"
 	"net"
 
-	filestore "github.com/ipfs/go-filestore"
-	keystore "github.com/ipfs/go-ipfs-keystore"
+	filestore "github.com/ipfs/go-libipfs/filestore"
+	keystore "github.com/ipfs/go-libipfs/keystore"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 
 	ds "github.com/ipfs/go-datastore"

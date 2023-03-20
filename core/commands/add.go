@@ -13,10 +13,10 @@ import (
 	"github.com/cheggaaa/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
+	coreiface "github.com/ipfs/go-libipfs/coreiface"
+	"github.com/ipfs/go-libipfs/coreiface/options"
 	"github.com/ipfs/go-libipfs/files"
-	mfs "github.com/ipfs/go-mfs"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/options"
+	mfs "github.com/ipfs/go-libipfs/mfs"
 	mh "github.com/multiformats/go-multihash"
 )
 

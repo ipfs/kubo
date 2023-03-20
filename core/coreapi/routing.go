@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ipfs/go-path"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	coreiface "github.com/ipfs/go-libipfs/coreiface"
+	"github.com/ipfs/go-libipfs/path"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 

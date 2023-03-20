@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	path "github.com/ipfs/go-path"
-	unixfs "github.com/ipfs/go-unixfs"
+	path "github.com/ipfs/go-libipfs/path"
+	unixfs "github.com/ipfs/go-libipfs/unixfs"
 	assets "github.com/ipfs/kubo/assets"
 	oldcmds "github.com/ipfs/kubo/commands"
 	core "github.com/ipfs/kubo/core"
@@ -19,8 +19,8 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	options "github.com/ipfs/go-libipfs/coreiface/options"
 	"github.com/ipfs/go-libipfs/files"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 	config "github.com/ipfs/kubo/config"
 )
 

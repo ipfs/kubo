@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
+	options "github.com/ipfs/go-libipfs/coreiface/options"
 )
 
 var PubsubCmd = &cmds.Command{

@@ -10,9 +10,9 @@ import (
 
 	"github.com/cheggaaa/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	iface "github.com/ipfs/go-libipfs/coreiface"
+	"github.com/ipfs/go-libipfs/coreiface/path"
 	"github.com/ipfs/go-libipfs/files"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 const (

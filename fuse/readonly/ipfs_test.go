@@ -23,14 +23,14 @@ import (
 	coremock "github.com/ipfs/kubo/core/mock"
 
 	fstest "bazil.org/fuse/fs/fstestutil"
-	chunker "github.com/ipfs/go-ipfs-chunker"
-	u "github.com/ipfs/go-ipfs-util"
 	ipld "github.com/ipfs/go-ipld-format"
+	chunker "github.com/ipfs/go-libipfs/chunker"
+	ipath "github.com/ipfs/go-libipfs/coreiface/path"
 	"github.com/ipfs/go-libipfs/files"
+	importer "github.com/ipfs/go-libipfs/unixfs/importer"
+	uio "github.com/ipfs/go-libipfs/unixfs/io"
+	u "github.com/ipfs/go-libipfs/util"
 	dag "github.com/ipfs/go-merkledag"
-	importer "github.com/ipfs/go-unixfs/importer"
-	uio "github.com/ipfs/go-unixfs/io"
-	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
 

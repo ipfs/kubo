@@ -10,7 +10,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	ipfspath "github.com/ipfs/go-path"
+	ipfspath "github.com/ipfs/go-libipfs/path"
 	//gipfree "github.com/ipld/go-ipld-prime/impl/free"
 	//gipselector "github.com/ipld/go-ipld-prime/traversal/selector"
 	//gipselectorbuilder "github.com/ipld/go-ipld-prime/traversal/selector/builder"

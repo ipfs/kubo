@@ -13,9 +13,9 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-libipfs/coreiface/options"
+	path "github.com/ipfs/go-libipfs/coreiface/path"
 	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type Node struct {

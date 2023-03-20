@@ -20,8 +20,8 @@ import (
 
 	humanize "github.com/dustin/go-humanize"
 	cid "github.com/ipfs/go-cid"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	bstore "github.com/ipfs/go-libipfs/blockstore"
 )
 
 type RepoVersion struct {

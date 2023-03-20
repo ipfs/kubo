@@ -35,8 +35,8 @@ import (
 	sockets "github.com/libp2p/go-socket-activation"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	options "github.com/ipfs/go-libipfs/coreiface/options"
 	mprome "github.com/ipfs/go-metrics-prometheus"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 	goprocess "github.com/jbenet/goprocess"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"

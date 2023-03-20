@@ -10,7 +10,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
-	"github.com/ipfs/go-ipfs-provider/batched"
+	"github.com/ipfs/go-libipfs/provider/batched"
 )
 
 var statProvideCmd = &cmds.Command{

@@ -14,16 +14,16 @@ import (
 	"github.com/ipfs/kubo/gc"
 	"github.com/ipfs/kubo/repo"
 
-	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	pi "github.com/ipfs/go-ipfs-posinfo"
 	blocks "github.com/ipfs/go-libipfs/blocks"
+	"github.com/ipfs/go-libipfs/blockservice"
+	blockstore "github.com/ipfs/go-libipfs/blockstore"
+	coreiface "github.com/ipfs/go-libipfs/coreiface"
 	"github.com/ipfs/go-libipfs/files"
+	pi "github.com/ipfs/go-libipfs/filestore/posinfo"
 	dag "github.com/ipfs/go-merkledag"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	config "github.com/ipfs/kubo/config"
 )
 

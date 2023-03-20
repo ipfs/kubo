@@ -5,19 +5,19 @@ import (
 	"fmt"
 	gopath "path"
 
-	"github.com/ipfs/go-namesys/resolve"
+	"github.com/ipfs/go-libipfs/namesys/resolve"
 	"github.com/ipfs/kubo/tracing"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-fetcher"
 	ipld "github.com/ipfs/go-ipld-format"
-	ipfspath "github.com/ipfs/go-path"
-	ipfspathresolver "github.com/ipfs/go-path/resolver"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
+	coreiface "github.com/ipfs/go-libipfs/coreiface"
+	path "github.com/ipfs/go-libipfs/coreiface/path"
+	"github.com/ipfs/go-libipfs/fetcher"
+	ipfspath "github.com/ipfs/go-libipfs/path"
+	ipfspathresolver "github.com/ipfs/go-libipfs/path/resolver"
 )
 
 // ResolveNode resolves the path `p` using Unixfs resolver, gets and returns the

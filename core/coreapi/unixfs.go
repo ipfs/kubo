@@ -12,22 +12,22 @@ import (
 
 	"github.com/ipfs/kubo/core/coreunix"
 
-	blockservice "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
-	filestore "github.com/ipfs/go-filestore"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
 	ipld "github.com/ipfs/go-ipld-format"
+	blockservice "github.com/ipfs/go-libipfs/blockservice"
+	bstore "github.com/ipfs/go-libipfs/blockstore"
+	coreiface "github.com/ipfs/go-libipfs/coreiface"
+	options "github.com/ipfs/go-libipfs/coreiface/options"
+	path "github.com/ipfs/go-libipfs/coreiface/path"
 	"github.com/ipfs/go-libipfs/files"
+	filestore "github.com/ipfs/go-libipfs/filestore"
+	mfs "github.com/ipfs/go-libipfs/mfs"
+	ft "github.com/ipfs/go-libipfs/unixfs"
+	unixfile "github.com/ipfs/go-libipfs/unixfs/file"
+	uio "github.com/ipfs/go-libipfs/unixfs/io"
 	merkledag "github.com/ipfs/go-merkledag"
 	dagtest "github.com/ipfs/go-merkledag/test"
-	mfs "github.com/ipfs/go-mfs"
-	ft "github.com/ipfs/go-unixfs"
-	unixfile "github.com/ipfs/go-unixfs/file"
-	uio "github.com/ipfs/go-unixfs/io"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type UnixfsAPI CoreAPI

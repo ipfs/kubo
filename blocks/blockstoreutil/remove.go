@@ -7,9 +7,9 @@ import (
 	"fmt"
 
 	cid "github.com/ipfs/go-cid"
-	bs "github.com/ipfs/go-ipfs-blockstore"
-	pin "github.com/ipfs/go-ipfs-pinner"
 	format "github.com/ipfs/go-ipld-format"
+	bs "github.com/ipfs/go-libipfs/blockstore"
+	pin "github.com/ipfs/go-libipfs/pinning/pinner"
 )
 
 // RemovedBlock is used to represent the result of removing a block.

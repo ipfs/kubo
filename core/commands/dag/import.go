@@ -8,9 +8,9 @@ import (
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
+	iface "github.com/ipfs/go-libipfs/coreiface"
+	"github.com/ipfs/go-libipfs/coreiface/options"
 	"github.com/ipfs/go-libipfs/files"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 

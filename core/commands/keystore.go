@@ -13,8 +13,8 @@ import (
 	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	keystore "github.com/ipfs/go-ipfs-keystore"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
+	options "github.com/ipfs/go-libipfs/coreiface/options"
+	keystore "github.com/ipfs/go-libipfs/keystore"
 	oldcmds "github.com/ipfs/kubo/commands"
 	config "github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"

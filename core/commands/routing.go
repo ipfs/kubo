@@ -13,8 +13,8 @@ import (
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
+	path "github.com/ipfs/go-libipfs/path"
 	dag "github.com/ipfs/go-merkledag"
-	path "github.com/ipfs/go-path"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
 )

@@ -9,7 +9,7 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	ds "github.com/ipfs/go-datastore"
-	offroute "github.com/ipfs/go-ipfs-routing/offline"
+	offroute "github.com/ipfs/go-libipfs/routing/offline"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"

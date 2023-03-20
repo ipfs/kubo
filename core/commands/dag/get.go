@@ -5,7 +5,7 @@ import (
 	"io"
 
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
-	"github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/go-libipfs/coreiface/path"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	"github.com/ipld/go-ipld-prime"

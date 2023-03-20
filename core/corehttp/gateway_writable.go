@@ -9,13 +9,13 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
+	iface "github.com/ipfs/go-libipfs/coreiface"
 	"github.com/ipfs/go-libipfs/files"
 	"github.com/ipfs/go-libipfs/gateway"
+	"github.com/ipfs/go-libipfs/mfs"
+	path "github.com/ipfs/go-libipfs/path"
+	"github.com/ipfs/go-libipfs/path/resolver"
 	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-mfs"
-	path "github.com/ipfs/go-path"
-	"github.com/ipfs/go-path/resolver"
-	iface "github.com/ipfs/interface-go-ipfs-core"
 	routing "github.com/libp2p/go-libp2p/core/routing"
 )
 

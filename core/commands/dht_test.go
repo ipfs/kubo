@@ -3,9 +3,9 @@ package commands
 import (
 	"testing"
 
-	"github.com/ipfs/go-namesys"
+	"github.com/ipfs/go-libipfs/namesys"
 
-	ipns "github.com/ipfs/go-ipns"
+	ipns "github.com/ipfs/go-libipfs/ipns"
 	"github.com/libp2p/go-libp2p/core/test"
 )
 

@@ -11,8 +11,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipns"
-	ipns_pb "github.com/ipfs/go-ipns/pb"
+	"github.com/ipfs/go-libipfs/ipns"
+	ipns_pb "github.com/ipfs/go-libipfs/ipns/pb"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/codec/dagcbor"

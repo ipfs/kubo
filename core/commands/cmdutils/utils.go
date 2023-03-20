@@ -6,7 +6,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 
 	"github.com/ipfs/go-cid"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	coreiface "github.com/ipfs/go-libipfs/coreiface"
 )
 
 const (

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ipfs/go-fetcher"
-	pin "github.com/ipfs/go-ipfs-pinner"
-	provider "github.com/ipfs/go-ipfs-provider"
-	"github.com/ipfs/go-ipfs-provider/batched"
-	q "github.com/ipfs/go-ipfs-provider/queue"
-	"github.com/ipfs/go-ipfs-provider/simple"
+	"github.com/ipfs/go-libipfs/fetcher"
+	pin "github.com/ipfs/go-libipfs/pinning/pinner"
+	provider "github.com/ipfs/go-libipfs/provider"
+	"github.com/ipfs/go-libipfs/provider/batched"
+	q "github.com/ipfs/go-libipfs/provider/queue"
+	"github.com/ipfs/go-libipfs/provider/simple"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/kubo/core/node/helpers"

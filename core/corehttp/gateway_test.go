@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	namesys "github.com/ipfs/go-namesys"
+	namesys "github.com/ipfs/go-libipfs/namesys"
 	version "github.com/ipfs/kubo"
 	core "github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
@@ -17,9 +17,9 @@ import (
 
 	datastore "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	path "github.com/ipfs/go-path"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	iface "github.com/ipfs/go-libipfs/coreiface"
+	nsopts "github.com/ipfs/go-libipfs/coreiface/options/namesys"
+	path "github.com/ipfs/go-libipfs/path"
 	config "github.com/ipfs/kubo/config"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"

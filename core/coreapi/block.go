@@ -7,11 +7,11 @@ import (
 	"io"
 
 	cid "github.com/ipfs/go-cid"
-	pin "github.com/ipfs/go-ipfs-pinner"
 	blocks "github.com/ipfs/go-libipfs/blocks"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	caopts "github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
+	coreiface "github.com/ipfs/go-libipfs/coreiface"
+	caopts "github.com/ipfs/go-libipfs/coreiface/options"
+	path "github.com/ipfs/go-libipfs/coreiface/path"
+	pin "github.com/ipfs/go-libipfs/pinning/pinner"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 

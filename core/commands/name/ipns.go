@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	namesys "github.com/ipfs/go-namesys"
+	namesys "github.com/ipfs/go-libipfs/namesys"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	options "github.com/ipfs/go-libipfs/coreiface/options"
+	nsopts "github.com/ipfs/go-libipfs/coreiface/options/namesys"
+	path "github.com/ipfs/go-libipfs/path"
 	logging "github.com/ipfs/go-log"
-	path "github.com/ipfs/go-path"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 )
 
 var log = logging.Logger("core/commands/ipns")

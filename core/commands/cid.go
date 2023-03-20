@@ -10,7 +10,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	verifcid "github.com/ipfs/go-verifcid"
+	verifcid "github.com/ipfs/go-libipfs/verifcid"
 	ipldmulticodec "github.com/ipld/go-ipld-prime/multicodec"
 	mbase "github.com/multiformats/go-multibase"
 	mc "github.com/multiformats/go-multicodec"

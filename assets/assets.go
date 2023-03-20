@@ -9,9 +9,9 @@ import (
 	"github.com/ipfs/kubo/core/coreapi"
 
 	cid "github.com/ipfs/go-cid"
+	options "github.com/ipfs/go-libipfs/coreiface/options"
+	"github.com/ipfs/go-libipfs/coreiface/path"
 	"github.com/ipfs/go-libipfs/files"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 //go:embed init-doc

@@ -12,8 +12,8 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-libipfs/mfs"
 	logging "github.com/ipfs/go-log"
-	"github.com/ipfs/go-mfs"
 )
 
 var log = logging.Logger("corerepo")

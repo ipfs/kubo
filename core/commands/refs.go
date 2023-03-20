@@ -13,9 +13,9 @@ import (
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
+	iface "github.com/ipfs/go-libipfs/coreiface"
+	path "github.com/ipfs/go-libipfs/coreiface/path"
 	merkledag "github.com/ipfs/go-merkledag"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var refsEncoderMap = cmds.EncoderMap{

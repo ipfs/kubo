@@ -20,7 +20,7 @@ import (
 
 	fstest "bazil.org/fuse/fs/fstestutil"
 	racedet "github.com/ipfs/go-detect-race"
-	u "github.com/ipfs/go-ipfs-util"
+	u "github.com/ipfs/go-libipfs/util"
 	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
 

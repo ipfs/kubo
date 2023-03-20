@@ -5,7 +5,7 @@ import (
 	gsimpl "github.com/ipfs/go-graphsync/impl"
 	"github.com/ipfs/go-graphsync/network"
 	"github.com/ipfs/go-graphsync/storeutil"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	blockstore "github.com/ipfs/go-libipfs/blockstore"
 	libp2p "github.com/libp2p/go-libp2p/core"
 	"go.uber.org/fx"
 

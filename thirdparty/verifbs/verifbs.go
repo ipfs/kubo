@@ -4,9 +4,9 @@ import (
 	"context"
 
 	cid "github.com/ipfs/go-cid"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
 	blocks "github.com/ipfs/go-libipfs/blocks"
-	"github.com/ipfs/go-verifcid"
+	bstore "github.com/ipfs/go-libipfs/blockstore"
+	"github.com/ipfs/go-libipfs/verifcid"
 )
 
 type VerifBSGC struct {

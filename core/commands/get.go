@@ -16,9 +16,9 @@ import (
 
 	"github.com/cheggaaa/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-libipfs/coreiface/path"
 	"github.com/ipfs/go-libipfs/files"
 	"github.com/ipfs/go-libipfs/tar"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var ErrInvalidCompressionLevel = errors.New("compression level must be between 1 and 9")

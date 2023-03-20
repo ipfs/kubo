@@ -6,21 +6,21 @@ import (
 	"io"
 	"testing"
 
-	bserv "github.com/ipfs/go-blockservice"
+	bserv "github.com/ipfs/go-libipfs/blockservice"
+	ft "github.com/ipfs/go-libipfs/unixfs"
+	importer "github.com/ipfs/go-libipfs/unixfs/importer"
+	uio "github.com/ipfs/go-libipfs/unixfs/io"
 	merkledag "github.com/ipfs/go-merkledag"
-	ft "github.com/ipfs/go-unixfs"
-	importer "github.com/ipfs/go-unixfs/importer"
-	uio "github.com/ipfs/go-unixfs/io"
 	core "github.com/ipfs/kubo/core"
 
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	chunker "github.com/ipfs/go-ipfs-chunker"
-	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	u "github.com/ipfs/go-ipfs-util"
 	ipld "github.com/ipfs/go-ipld-format"
+	bstore "github.com/ipfs/go-libipfs/blockstore"
+	chunker "github.com/ipfs/go-libipfs/chunker"
+	offline "github.com/ipfs/go-libipfs/exchange/offline"
+	u "github.com/ipfs/go-libipfs/util"
 )
 
 func getDagserv(t *testing.T) ipld.DAGService {

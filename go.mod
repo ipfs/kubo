@@ -1,5 +1,7 @@
 module github.com/ipfs/kubo
 
+go 1.18
+
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0
@@ -16,7 +18,6 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/ipfs/go-blockservice v0.5.0
 	github.com/ipfs/go-cid v0.4.0
 	github.com/ipfs/go-cidutil v0.1.0
 	github.com/ipfs/go-datastore v0.6.0
@@ -26,43 +27,23 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.5.1
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ds-measure v0.2.0
-	github.com/ipfs/go-fetcher v1.6.1
-	github.com/ipfs/go-filestore v1.2.0
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-graphsync v0.14.1
-	github.com/ipfs/go-ipfs-blockstore v1.2.0
-	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.8.2
-	github.com/ipfs/go-ipfs-exchange-interface v0.2.0
-	github.com/ipfs/go-ipfs-exchange-offline v0.3.0
-	github.com/ipfs/go-ipfs-keystore v0.1.0
-	github.com/ipfs/go-ipfs-pinner v0.3.0
-	github.com/ipfs/go-ipfs-posinfo v0.0.1
-	github.com/ipfs/go-ipfs-provider v0.8.1
-	github.com/ipfs/go-ipfs-routing v0.3.0
-	github.com/ipfs/go-ipfs-util v0.0.2
 	github.com/ipfs/go-ipld-format v0.4.0
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.1.1
-	github.com/ipfs/go-ipns v0.3.0
-	github.com/ipfs/go-libipfs v0.7.0
+	github.com/ipfs/go-libipfs v0.6.3-0.20230320124707-517c64d18ad0
 	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipfs/go-merkledag v0.9.0
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
-	github.com/ipfs/go-mfs v0.2.1
-	github.com/ipfs/go-namesys v0.7.0
-	github.com/ipfs/go-path v0.3.1
-	github.com/ipfs/go-pinning-service-http-client v0.1.2
-	github.com/ipfs/go-unixfs v0.4.4
 	github.com/ipfs/go-unixfsnode v1.5.2
-	github.com/ipfs/go-verifcid v0.0.2
-	github.com/ipfs/interface-go-ipfs-core v0.11.0
 	github.com/ipld/go-car v0.5.0
 	github.com/ipld/go-car/v2 v2.5.1
-	github.com/ipld/go-codec-dagpb v1.5.0
-	github.com/ipld/go-ipld-prime v0.19.0
+	github.com/ipld/go-codec-dagpb v1.6.0
+	github.com/ipld/go-ipld-prime v0.20.0
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
@@ -82,7 +63,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.8.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multibase v0.1.1
-	github.com/multiformats/go-multicodec v0.7.0
+	github.com/multiformats/go-multicodec v0.8.0
 	github.com/multiformats/go-multihash v0.2.1
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
@@ -157,11 +138,14 @@ require (
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.1.1 // indirect
+	github.com/ipfs/go-ipfs-blockstore v1.2.0 // indirect
 	github.com/ipfs/go-ipfs-delay v0.0.1 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.0 // indirect
 	github.com/ipfs/go-ipfs-pq v0.0.3 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.1 // indirect
+	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.0.6 // indirect
+	github.com/ipfs/go-ipns v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.1 // indirect
 	github.com/ipld/edelweiss v0.2.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
@@ -245,4 +229,4 @@ require (
 	nhooyr.io/websocket v1.8.7 // indirect
 )
 
-go 1.18
+replace github.com/ipfs/go-merkledag => github.com/Jorropo/go-merkledag v0.3.1-0.20230320131104-a3ff80a097d8

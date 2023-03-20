@@ -13,17 +13,17 @@ import (
 	"os"
 	"strings"
 
+	path "github.com/ipfs/go-libipfs/coreiface/path"
+	ft "github.com/ipfs/go-libipfs/unixfs"
 	dag "github.com/ipfs/go-merkledag"
-	ft "github.com/ipfs/go-unixfs"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 
 	fuse "bazil.org/fuse"
 	fs "bazil.org/fuse/fs"
 	cid "github.com/ipfs/go-cid"
+	iface "github.com/ipfs/go-libipfs/coreiface"
+	options "github.com/ipfs/go-libipfs/coreiface/options"
+	mfs "github.com/ipfs/go-libipfs/mfs"
 	logging "github.com/ipfs/go-log"
-	mfs "github.com/ipfs/go-mfs"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 func init() {

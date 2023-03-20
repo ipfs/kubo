@@ -2,11 +2,11 @@ package node
 
 import (
 	"github.com/ipfs/go-datastore"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	blockstore "github.com/ipfs/go-libipfs/blockstore"
 	config "github.com/ipfs/kubo/config"
 	"go.uber.org/fx"
 
-	"github.com/ipfs/go-filestore"
+	"github.com/ipfs/go-libipfs/filestore"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/thirdparty/verifbs"

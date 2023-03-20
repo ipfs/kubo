@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
+	coreiface "github.com/ipfs/go-libipfs/coreiface"
+	"github.com/ipfs/go-libipfs/coreiface/options"
+	ipath "github.com/ipfs/go-libipfs/coreiface/path"
 	"github.com/ipfs/go-libipfs/files"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/options"
-	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"

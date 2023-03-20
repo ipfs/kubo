@@ -4,8 +4,8 @@ import (
 	"context"
 
 	cid "github.com/ipfs/go-cid"
-	pin "github.com/ipfs/go-ipfs-pinner"
 	ipld "github.com/ipfs/go-ipld-format"
+	pin "github.com/ipfs/go-libipfs/pinning/pinner"
 	dag "github.com/ipfs/go-merkledag"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"

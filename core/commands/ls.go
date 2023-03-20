@@ -10,11 +10,11 @@ import (
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	unixfs "github.com/ipfs/go-unixfs"
-	unixfs_pb "github.com/ipfs/go-unixfs/pb"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
+	iface "github.com/ipfs/go-libipfs/coreiface"
+	options "github.com/ipfs/go-libipfs/coreiface/options"
+	path "github.com/ipfs/go-libipfs/coreiface/path"
+	unixfs "github.com/ipfs/go-libipfs/unixfs"
+	unixfs_pb "github.com/ipfs/go-libipfs/unixfs/pb"
 )
 
 // LsLink contains printable data for a single ipld link in ls output

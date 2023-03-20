@@ -8,8 +8,8 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	tar "github.com/ipfs/kubo/tar"
 
+	path "github.com/ipfs/go-libipfs/coreiface/path"
 	dag "github.com/ipfs/go-merkledag"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var TarCmd = &cmds.Command{

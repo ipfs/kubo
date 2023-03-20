@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/ipfs/go-libipfs/coreiface/path"
 	"github.com/ipfs/go-merkledag/traverse"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/e"
 

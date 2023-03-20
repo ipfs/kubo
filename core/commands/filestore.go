@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
-	filestore "github.com/ipfs/go-filestore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	filestore "github.com/ipfs/go-libipfs/filestore"
 	core "github.com/ipfs/kubo/core"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	e "github.com/ipfs/kubo/core/commands/e"

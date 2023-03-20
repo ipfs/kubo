@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ipfs/go-filestore"
-	keystore "github.com/ipfs/go-ipfs-keystore"
+	"github.com/ipfs/go-libipfs/filestore"
+	keystore "github.com/ipfs/go-libipfs/keystore"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/coreapi"
@@ -19,8 +19,8 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/tests"
+	coreiface "github.com/ipfs/go-libipfs/coreiface"
+	"github.com/ipfs/go-libipfs/coreiface/tests"
 	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"

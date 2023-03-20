@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"time"
 
-	util "github.com/ipfs/go-ipfs-util"
-	"github.com/ipfs/go-ipns"
+	"github.com/ipfs/go-libipfs/ipns"
+	util "github.com/ipfs/go-libipfs/util"
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
-	"github.com/ipfs/go-namesys"
-	"github.com/ipfs/go-namesys/republisher"
+	"github.com/ipfs/go-libipfs/namesys"
+	"github.com/ipfs/go-libipfs/namesys/republisher"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
 )
