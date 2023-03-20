@@ -46,7 +46,7 @@ $ ./t0010-basic-commands.sh -v -i
 
 When running sharness tests from main Makefile or when `test_sharness_deps`
 target is run dependencies for sharness
-will be downloaded from its github repo and installed in a "lib/sharness"
+will be downloaded from its GitHub repo and installed in a "lib/sharness"
 directory.
 
 Please do not change anything in the "lib/sharness" directory.

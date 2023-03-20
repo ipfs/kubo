@@ -12,7 +12,6 @@ When you add a new experimental feature to kubo or change an experimental
 feature, you MUST please make a PR updating this document, and link the PR in
 the above issue.
 
-- [ipfs pubsub](#ipfs-pubsub)
 - [Raw leaves for unixfs files](#raw-leaves-for-unixfs-files)
 - [ipfs filestore](#ipfs-filestore)
 - [ipfs urlstore](#ipfs-urlstore)
@@ -30,36 +29,6 @@ the above issue.
 - [Accelerated DHT Client](#accelerated-dht-client)
 
 ---
-
-## ipfs pubsub
-
-### State
-
-Candidate, disabled by default but will be enabled by default in 0.6.0.
-
-### In Version
-
-0.4.5 (`--enable-pubsub-experiment`)
-0.11.0 (`Pubsub.Enabled` flag in config)
-
-### How to enable
-
-Run your daemon with the `--enable-pubsub-experiment` flag
-or modify your ipfs config and restart the daemon:
-```
-ipfs config --json Pubsub.Enabled true
-```
-
-Then use the `ipfs pubsub` commands.
-
-NOTE: `--enable-pubsub-experiment` CLI flag overrides `Pubsub.Enabled` config.
-
-Configuration documentation can be found in [kubo/docs/config.md](./config.md#pubsub)
-
-### Road to being a real feature
-
-- [ ] Needs to not impact peers who don't use pubsub:
-      https://github.com/libp2p/go-libp2p-pubsub/issues/332
 
 ## Raw Leaves for unixfs files
 
@@ -390,7 +359,7 @@ We also support the use of protocol names of the form /x/$NAME/http where $NAME 
 ## FUSE
 
 FUSE makes it possible to mount `/ipfs` and `/ipns` namespaces in your OS,
-allowing argitrary apps access to IPFS using a subset of filesystem abstractions.
+allowing arbitrary apps access to IPFS using a subset of filesystem abstractions.
 
 It is considered  EXPERIMENTAL due to limited (and buggy) support on some platforms.
 

@@ -393,8 +393,7 @@ As test fixtures we can add different use cases here and see how the configurati
   }
 }
 ```
-
-Yaml representation for clarity:
+YAML representation for clarity:
 
 ```yaml
 ---

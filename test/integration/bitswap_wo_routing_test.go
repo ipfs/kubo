@@ -5,8 +5,8 @@ import (
 	"context"
 	"testing"
 
-	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
+	blocks "github.com/ipfs/go-libipfs/blocks"
 	"github.com/ipfs/kubo/core"
 	coremock "github.com/ipfs/kubo/core/mock"
 	"github.com/ipfs/kubo/core/node/libp2p"

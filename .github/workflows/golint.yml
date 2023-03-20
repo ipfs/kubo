@@ -11,6 +11,7 @@ jobs:
   golint:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       TEST_NO_DOCKER: 1
       TEST_NO_FUSE: 1

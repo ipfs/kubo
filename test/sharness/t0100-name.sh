@@ -225,6 +225,30 @@ test_name_with_self() {
         grep "argument \"ipfs-path\" is required" curl_out
         '
 
+        # Test Publishing with TTL and Inspecting Records
+        test_expect_success "'ipfs name publish --ttl=30m' succeeds" '
+        ipfs name publish --ttl=30m --allow-offline "/ipfs/$HASH_WELCOME_DOCS"
+        '
+
+        test_expect_success "retrieve IPNS key for further inspection" '
+        ipfs routing get "/ipns/$PEERID" > ipns_record
+        '
+
+        test_expect_success "'ipfs name inspect' has correct TTL (30m)" '
+        ipfs name inspect < ipns_record > verify_output &&
+        test_should_contain "This record was not validated." verify_output &&
+        test_should_contain "$HASH_WELCOME_DOCS" verify_output &&
+        test_should_contain "1800000000000" verify_output
+        '
+
+        test_expect_success "'ipfs name inspect --verify' has '.Validation.Validity' set to 'true' with correct Peer ID" '
+        ipfs name inspect --verify $PEERID --enc json < ipns_record | jq -e ".Validation.Valid == true and .Entry.TTL == .Entry.Data.TTL"
+        '
+
+        test_expect_success "'ipfs name inspect --verify' has '.Validation.Validity' set to 'false' with incorrect Peer ID" '
+        ipfs name inspect --verify 12D3KooWRirYjmmQATx2kgHBfky6DADsLP7ex1t7BRxJ6nqLs9WH --enc json < ipns_record | jq -e ".Validation.Valid == false"
+        '
+
         test_kill_ipfs_daemon
 
         # Test daemon in offline mode
@@ -289,5 +313,33 @@ test_name_with_key() {
 test_name_with_key 'rsa'
 test_name_with_key 'ed25519_b58'
 test_name_with_key 'ed25519_b36'
+
+
+# `ipfs name inspect --verify` using the wrong RSA key should not succeed
+
+test_init_ipfs
+test_launch_ipfs_daemon
+
+test_expect_success "prepare RSA keys" '
+  export KEY_1=`ipfs key gen --type=rsa --size=4096 key1` &&
+  export KEY_2=`ipfs key gen --type=rsa --size=4096 key2` &&
+  export PEERID_1=`ipfs key list --ipns-base=base36 -l | grep key1 | cut -d " " -f1` &&
+  export PEERID_2=`ipfs key list --ipns-base=base36 -l | grep key2 | cut -d " " -f1`
+'
+
+test_expect_success "ipfs name publish --allow-offline --key=<peer-id> <hash>' succeeds" '
+  ipfs name publish --allow-offline  --key=${KEY_1} "/ipfs/$( echo "helloworld" | ipfs add --inline -q )" &&
+  ipfs routing get "/ipns/$PEERID_1" > ipns_record
+'
+
+test_expect_success "ipfs name inspect --verify' has '.Validation.Validity' set to 'true' with correct Peer ID" '
+  ipfs name inspect --verify $PEERID_1 --enc json < ipns_record | jq -e ".Validation.Valid == true"
+'
+
+test_expect_success "ipfs name inspect --verify' has '.Validation.Validity' set to 'false' when we verify the wrong Peer ID" '
+  ipfs name inspect --verify $PEERID_2 --enc json < ipns_record | jq -e ".Validation.Valid == false"
+'
+
+test_kill_ipfs_daemon
 
 test_done

@@ -10,7 +10,7 @@ import (
 type Routing struct {
 	// Type sets default daemon routing mode.
 	//
-	// Can be one of "auto", "dht", "dhtclient", "dhtserver", "none", or "custom".
+	// Can be one of "auto", "autoclient", "dht", "dhtclient", "dhtserver", "none", or "custom".
 	// When unset or set to "auto", DHT and implicit routers are used.
 	// When "custom" is set, user-provided Routing.Routers is used.
 	Type *OptionalString `json:",omitempty"`

@@ -45,32 +45,33 @@ import (
 )
 
 const (
-	adjustFDLimitKwd          = "manage-fdlimit"
-	enableGCKwd               = "enable-gc"
-	initOptionKwd             = "init"
-	initConfigOptionKwd       = "init-config"
-	initProfileOptionKwd      = "init-profile"
-	ipfsMountKwd              = "mount-ipfs"
-	ipnsMountKwd              = "mount-ipns"
-	migrateKwd                = "migrate"
-	mountKwd                  = "mount"
-	offlineKwd                = "offline" // global option
-	routingOptionKwd          = "routing"
-	routingOptionSupernodeKwd = "supernode"
-	routingOptionDHTClientKwd = "dhtclient"
-	routingOptionDHTKwd       = "dht"
-	routingOptionDHTServerKwd = "dhtserver"
-	routingOptionNoneKwd      = "none"
-	routingOptionCustomKwd    = "custom"
-	routingOptionDefaultKwd   = "default"
-	routingOptionAutoKwd      = "auto"
-	unencryptTransportKwd     = "disable-transport-encryption"
-	unrestrictedAPIAccessKwd  = "unrestricted-api"
-	writableKwd               = "writable"
-	enablePubSubKwd           = "enable-pubsub-experiment"
-	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
-	enableMultiplexKwd        = "enable-mplex-experiment"
-	agentVersionSuffix        = "agent-version-suffix"
+	adjustFDLimitKwd           = "manage-fdlimit"
+	enableGCKwd                = "enable-gc"
+	initOptionKwd              = "init"
+	initConfigOptionKwd        = "init-config"
+	initProfileOptionKwd       = "init-profile"
+	ipfsMountKwd               = "mount-ipfs"
+	ipnsMountKwd               = "mount-ipns"
+	migrateKwd                 = "migrate"
+	mountKwd                   = "mount"
+	offlineKwd                 = "offline" // global option
+	routingOptionKwd           = "routing"
+	routingOptionSupernodeKwd  = "supernode"
+	routingOptionDHTClientKwd  = "dhtclient"
+	routingOptionDHTKwd        = "dht"
+	routingOptionDHTServerKwd  = "dhtserver"
+	routingOptionNoneKwd       = "none"
+	routingOptionCustomKwd     = "custom"
+	routingOptionDefaultKwd    = "default"
+	routingOptionAutoKwd       = "auto"
+	routingOptionAutoClientKwd = "autoclient"
+	unencryptTransportKwd      = "disable-transport-encryption"
+	unrestrictedAPIAccessKwd   = "unrestricted-api"
+	writableKwd                = "writable"
+	enablePubSubKwd            = "enable-pubsub-experiment"
+	enableIPNSPubSubKwd        = "enable-namesys-pubsub"
+	enableMultiplexKwd         = "enable-mplex-experiment"
+	agentVersionSuffix         = "agent-version-suffix"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -162,7 +163,7 @@ Headers.
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
-		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
+		cmds.BoolOption(writableKwd, "Enable legacy Gateway.Writable (deprecated)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
 		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow API access to unlisted hashes"),
@@ -170,7 +171,7 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
-		cmds.BoolOption(enablePubSubKwd, "Enable experimental pubsub feature. Overrides Pubsub.Enabled config."),
+		cmds.BoolOption(enablePubSubKwd, "DEPRECATED"),
 		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS over pubsub. Implicitly enables pubsub, overrides Ipns.UsePubsub config."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
 		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and also advertised through BitSwap."),
@@ -416,6 +417,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			cfg.Identity.PeerID,
 			cfg.Addresses.Swarm,
 			cfg.Identity.PrivKey,
+			libp2p.DHTOption,
+		)
+	case routingOptionAutoClientKwd:
+		ncfg.Routing = libp2p.ConstructDefaultRouting(
+			cfg.Identity.PeerID,
+			cfg.Addresses.Swarm,
+			cfg.Identity.PrivKey,
+			libp2p.DHTClientOption,
 		)
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = libp2p.DHTClientOption
@@ -791,7 +800,11 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 	writable, writableOptionFound := req.Options[writableKwd].(bool)
 	if !writableOptionFound {
-		writable = cfg.Gateway.Writable
+		writable = cfg.Gateway.Writable.WithDefault(false)
+	}
+
+	if writable {
+		log.Error("serveHTTPGateway: legacy Gateway.Writable is DEPRECATED and will be removed or changed in future versions. If you are still using this, provide feedback in https://github.com/ipfs/specs/issues/375")
 	}
 
 	listeners, err := sockets.TakeListeners("io.ipfs.gateway")

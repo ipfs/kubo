@@ -228,23 +228,22 @@ jobs:
       - image: cimg/go:1.19.1-node
     parallelism: 4
     resource_class: 2xlarge+
-    environment:
-      GO_IPFS_DIST_URL: https://dist-ipfs-tech.ipns.cf-ipfs.com # TODO remove this line when https://github.com/protocol/bifrost-infra/issues/2300 is closed
     steps:
       - *make_out_dirs
       - attach_workspace:
           at: /tmp/circleci-workspace
       - restore_cache:
           keys:
-            - v1-interop-{{ .Branch }}-{{ .Revision }}
-            - v1-interop-{{ .Branch }}-
-            - v1-interop-
+            - v2-interop-{{ .Branch }}-{{ .Revision }}
+            - v2-interop-{{ .Branch }}-
+            - v2-interop-
       - run:
           name: Installing dependencies
           command: |
             npm init -y
-            npm install ipfs@^0.61.0
-            npm install ipfs-interop@^8.0.10
+            npm install ipfs@^0.66.0
+            npm install kubo-rpc-client@^3.0.1
+            npm install ipfs-interop@^10.0.1
             npm install mocha-circleci-reporter@0.0.3
           working_directory: ~/ipfs/kubo/interop
       - run:
@@ -261,7 +260,7 @@ jobs:
       - store_test_results:
           path: /tmp/test-results
       - save_cache:
-          key: v1-interop-{{ .Branch }}-{{ .Revision }}
+          key: v2-interop-{{ .Branch }}-{{ .Revision }}
           paths:
             - ~/ipfs/kubo/interop/node_modules
   go-ipfs-api:
@@ -294,7 +293,7 @@ jobs:
           command: go test -count=1 -v ./...
           working_directory: ~/ipfs/kubo/go-ipfs-api
       - save_cache:
-          key: v1-go-api-{{ checksum "~/ipfs/kubo/go-ipfs-api/go.sum" }}
+          key: v2-go-api-{{ checksum "~/ipfs/kubo/go-ipfs-api/go.sum" }}
           paths:
             - ~/go/pkg/mod
             - ~/.cache/go-build/
@@ -310,7 +309,7 @@ jobs:
       - run:
           name: Cloning
           command: |
-            git clone https://github.com/ipfs/go-ipfs-http-client.git
+            git clone https://github.com/ipfs/go-ipfs-http-client.git -b bump-for-rcmgr-last-push
             git -C go-ipfs-http-client log -1
       - restore_cache:
           keys:
@@ -330,8 +329,6 @@ jobs:
   ipfs-webui:
     executor: node-browsers
     resource_class: 2xlarge+
-    environment:
-      GO_IPFS_DIST_URL: https://dist-ipfs-tech.ipns.cf-ipfs.com # TODO remove this line when https://github.com/protocol/bifrost-infra/issues/2300 is closed
     steps:
       - *make_out_dirs
       - attach_workspace:
