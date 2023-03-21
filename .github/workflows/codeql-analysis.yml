@@ -16,7 +16,7 @@ permissions:
   security-events: write  #   (github/codeql-action/autobuild)
 
 jobs:
-  go:
+  codeql:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
