@@ -1,4 +1,4 @@
-name: 'ci/gh-experiment: interop'
+name: Interop
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ env:
   GO_VERSION: 1.19.1
 
 jobs:
-  prepare:
+  interop-prep:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -38,8 +38,8 @@ jobs:
         with:
           name: kubo
           path: cmd/ipfs/ipfs
-  ipfs-interop:
-    needs: [prepare]
+  interop:
+    needs: [interop-prep]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -77,7 +77,7 @@ jobs:
           IPFS_GO_EXEC: ${{ github.workspace }}/cmd/ipfs/ipfs
         working-directory: interop
   go-ipfs-api:
-    needs: [prepare]
+    needs: [interop-prep]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -117,7 +117,7 @@ jobs:
       - run: cmd/ipfs/ipfs shutdown
         if: always()
   go-ipfs-http-client:
-    needs: [prepare]
+    needs: [interop-prep]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -151,7 +151,7 @@ jobs:
       - run: go test -count=1 -v ./...
         working-directory: go-ipfs-http-client
   ipfs-webui:
-    needs: [prepare]
+    needs: [interop-prep]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

@@ -16,19 +16,10 @@ permissions:
   security-events: write  #   (github/codeql-action/autobuild)
 
 jobs:
-  analyze:
+  codeql:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    name: Analyze
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'go' ]
-        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python' ]
-        # Learn more:
-        # https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#changing-the-languages-that-are-analyzed
 
     steps:
     - name: Checkout repository
@@ -38,7 +29,7 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:
-        languages: ${{ matrix.language }}
+        languages: go
 
     - name: Autobuild
       uses: github/codeql-action/autobuild@v2

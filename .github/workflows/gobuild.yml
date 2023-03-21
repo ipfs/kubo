@@ -1,4 +1,4 @@
-name: 'ci/gh-experiment: go build'
+name: Go Build
 
 on:
   workflow_dispatch:
@@ -8,12 +8,12 @@ on:
       - 'master'
 
 jobs:
-  runner:
+  go-build-runner:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     uses: ipfs/kubo/.github/workflows/runner.yml@master
-  gobuild:
-    needs: [runner]
-    runs-on: ${{ fromJSON(needs.runner.outputs.config).labels }}
+  go-build:
+    needs: [go-build-runner]
+    runs-on: ${{ fromJSON(needs.go-build-runner.outputs.config).labels }}
     timeout-minutes: 20
     env:
       TEST_NO_DOCKER: 1

@@ -1,4 +1,4 @@
-name: 'ci/gh-experiment: go lint'
+name: Go Lint
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
       - 'master'
 
 jobs:
-  golint:
+  go-lint:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
