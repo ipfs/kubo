@@ -118,7 +118,7 @@ help:
 	@echo '  all          - print this help message'
 	@echo '  build        - Build binary at ./cmd/ipfs/ipfs'
 	@echo '  nofuse       - Build binary with no fuse support'
-	@echo '  install      - Build binary and install into $$GOPATH/bin'
+	@echo '  install      - Build binary and install into $$GOBIN'
 #	@echo '  dist_install - TODO: c.f. ./cmd/ipfs/dist/README.md'
 	@echo ''
 	@echo 'CLEANING TARGETS:'

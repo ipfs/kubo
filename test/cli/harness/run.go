@@ -38,6 +38,10 @@ type RunResult struct {
 	Cmd     *exec.Cmd
 }
 
+func (r *RunResult) ExitCode() int {
+	return r.Cmd.ProcessState.ExitCode()
+}
+
 func environToMap(environ []string) map[string]string {
 	m := map[string]string{}
 	for _, e := range environ {
@@ -47,7 +51,7 @@ func environToMap(environ []string) map[string]string {
 	return m
 }
 
-func (r *Runner) Run(req RunRequest) RunResult {
+func (r *Runner) Run(req RunRequest) *RunResult {
 	cmd := exec.Command(req.Path, req.Args...)
 	stdout := &Buffer{}
 	stderr := &Buffer{}
@@ -82,17 +86,17 @@ func (r *Runner) Run(req RunRequest) RunResult {
 		result.ExitErr = exitErr
 	}
 
-	return result
+	return &result
 }
 
 // MustRun runs the command and fails the test if the command fails.
-func (r *Runner) MustRun(req RunRequest) RunResult {
+func (r *Runner) MustRun(req RunRequest) *RunResult {
 	result := r.Run(req)
 	r.AssertNoError(result)
 	return result
 }
 
-func (r *Runner) AssertNoError(result RunResult) {
+func (r *Runner) AssertNoError(result *RunResult) {
 	if result.ExitErr != nil {
 		log.Panicf("'%s' returned error, code: %d, err: %s\nstdout:%s\nstderr:%s\n",
 			result.Cmd.Args, result.ExitErr.ExitCode(), result.ExitErr.Error(), result.Stdout.String(), result.Stderr.String())

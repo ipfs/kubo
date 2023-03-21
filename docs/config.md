@@ -146,7 +146,6 @@ config file at runtime.
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.MaxMemory`](#swarmresourcemgrmaxmemory)
       - [`Swarm.ResourceMgr.MaxFileDescriptors`](#swarmresourcemgrmaxfiledescriptors)
-      - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
       - [`Swarm.ResourceMgr.Allowlist`](#swarmresourcemgrallowlist)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
@@ -455,7 +454,7 @@ Type: `string` (one of `"enabled"` or `"disabled"`)
 
 ### `AutoNAT.Throttle`
 
-When set, this option configure's the AutoNAT services throttling behavior. By
+When set, this option configures the AutoNAT services throttling behavior. By
 default, Kubo will rate-limit the number of NAT checks performed for other
 nodes to 30 per minute, and 3 per peer.
 
@@ -617,7 +616,7 @@ Type: `bool`
 
 #### `Discovery.MDNS.Interval`
 
-**REMOVED:**  this is not configurable any more
+**REMOVED:**  this is not configurable anymore
 in the [new mDNS implementation](https://github.com/libp2p/zeroconf#readme).
 
 ## `Experimental`
@@ -967,7 +966,7 @@ Type: `optionalInteger` (thread count, `null` means default which is 8)
 #### `Internal.Bitswap.MaxOutstandingBytesPerPeer`
 
 Maximum number of bytes (across all tasks) pending to be processed and sent to any individual peer.
-This number controls fairness and can very from 250Kb (very fair) to 10Mb (less fair, with more work
+This number controls fairness and can vary from 250Kb (very fair) to 10Mb (less fair, with more work
 dedicated to peers who ask for more). Values below 250Kb could cause thrashing.
 Values above 10Mb open the potential for aggressively-wanting peers to consume all resources and
 deteriorate the quality provided to less aggressively-wanting peers.
@@ -1166,13 +1165,15 @@ Type: `duration`
 
 ## `Pubsub`
 
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+
 Pubsub configures the `ipfs pubsub` subsystem. To use, it must be enabled by
 passing the `--enable-pubsub-experiment` flag to the daemon
 or via the `Pubsub.Enabled` flag below.
 
 ### `Pubsub.Enabled`
 
-**EXPERIMENTAL:** read about current limitations at [experimental-features.md#ipfs-pubsub](./experimental-features.md#ipfs-pubsub).
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Enables the pubsub system.
 
@@ -1181,6 +1182,8 @@ Default: `false`
 Type: `flag`
 
 ### `Pubsub.Router`
+
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Sets the default router used by pubsub to route messages to peers. This can be one of:
 
@@ -1197,6 +1200,8 @@ Type: `string` (one of `"floodsub"`, `"gossipsub"`, or `""` (apply default))
 
 ### `Pubsub.DisableSigning`
 
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+
 Disables message signing and signature verification. Enable this option if
 you're operating in a completely trusted network.
 
@@ -1209,6 +1214,8 @@ Default: `false`
 Type: `bool`
 
 ### `Pubsub.SeenMessagesTTL`
+
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Controls the time window within which duplicate messages, identified by Message
 ID, will be identified and won't be emitted again.
@@ -1228,6 +1235,8 @@ Default: see `TimeCacheDuration` from [go-libp2p-pubsub](https://github.com/libp
 Type: `optionalDuration`
 
 ### `Pubsub.SeenMessagesStrategy`
+
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Determines how the time-to-live (TTL) countdown for deduplicating Pubsub
 messages is calculated.
@@ -1350,10 +1359,12 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 ### `Routing.Type`
 
-There are multiple routing options: "auto", "none", "dht" and "custom".
+There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
 
 * **DEFAULT:** If unset, or set to "auto", your node will use the IPFS DHT
   and parallel HTTP routers listed below for additional speed.
+
+* If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
 
 * If set to "none", your node will use _no_ routing system. You'll have to
   explicitly connect to peers that have the content you're looking for.
@@ -1380,7 +1391,7 @@ To force a specific DHT-only mode, client or server, set `Routing.Type` to
 `dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
 unless you're sure your node is reachable from the public network.
 
-When `Routing.Type` is set to `auto` your node will accelerate some types of routing
+When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate some types of routing
 by leveraging HTTP endpoints compatible with [IPIP-337](https://github.com/ipfs/specs/pull/337)
 in addition to the IPFS DHT.
 By default, an instance of [IPNI](https://github.com/ipni/specs/blob/main/IPNI.md#readme)
@@ -1542,9 +1553,9 @@ another node, even if this other node is on a different network. This may
 trigger netscan alerts on some hosting providers or cause strain in some setups.
 
 The `server` configuration profile fills up this list with sensible defaults,
-preventing dials to all non-routable IP addresses (e.g., `192.168.0.0/16`) but
-you should always check settings against your own network and/or hosting
-provider.
+preventing dials to all non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`, 
+which is the multiaddress representation of `192.168.0.0/16`) but you should always
+check settings against your own network and/or hosting provider.
 
 Default: `[]`
 
@@ -1846,6 +1857,8 @@ This value is also used to scale the limit on various resources at various scope
 when the default limits (discussed in [libp2p resource management](./libp2p-resource-management.md)) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
+It is possible to inspect the runtime limits via `ipfs swarm resources --help`.
+
 Default: `[TOTAL_SYSTEM_MEMORY]/2`
 Type: `optionalBytes`
 
@@ -1858,65 +1871,6 @@ This param is ignored on Windows.
 
 Default `[TOTAL_SYSTEM_FILE_DESCRIPTORS]/2`
 Type: `optionalInteger`
-
-#### `Swarm.ResourceMgr.Limits`
-
-Map of resource limits [per scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes).
-
-The map supports fields from the [`LimitConfig` struct](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit_defaults.go#L111).
-
-[`BaseLimit`s](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit.go#L89) can be set for any scope, and within the `BaseLimit`, all limit <key,value>s are optional.
-
-The `Swarm.ResourceMgr.Limits` override the default limits described above.
-Any override `BaseLimits` or limit <key,value>s from `Swarm.ResourceMgr.Limits`
-that aren't specified will use the [computed default limits](./libp2p-resource-management.md#computed-default-limits).
-
-Until [ipfs/kubo#9564](https://github.com/ipfs/kubo/issues/9564) is addressed, there isn't a way to set an override limit of zero.
-0 is currently ignored.  0 currently means use to use the [computed default limits](./libp2p-resource-management.md#computed-default-limits).
-
-Example #1: setting limits for a specific scope
-```json
-{
-  "Swarm": {
-    "ResourceMgr": {
-      "Limits": {
-        "System": {
-          "Memory": 1073741824,
-          "FD": 512,
-          "Conns": 1024,
-          "ConnsInbound": 256,
-          "ConnsOutbound": 1024,
-          "Streams": 16384,
-          "StreamsInbound": 4096,
-          "StreamsOutbound": 16384
-        }
-      }
-    }
-  }
-}
-```
-
-Example #2: setting a specific <key,value> limit
-```json
-{
-  "Swarm": {
-    "ResourceMgr": {
-      "Limits": {
-        "Transient": {
-          "ConnsOutbound": 256,
-        }
-      }
-    }
-  }
-}
-```
-
-It is also possible to inspect and adjust some runtime limits via `ipfs swarm stats --help` and `ipfs swarm limit --help`.
-Changes made via `ipfs swarm limit` are persisted in `Swarm.ResourceMgr.Limits`.
-
-Default: `{}` (use the [computed defaults](./libp2p-resource-management.md#computed-default-limits))
-
-Type: `object[string->object]`
 
 #### `Swarm.ResourceMgr.Allowlist`
 

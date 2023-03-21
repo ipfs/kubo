@@ -11,6 +11,7 @@ jobs:
   gotest:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       TEST_NO_DOCKER: 1
       TEST_NO_FUSE: 1
@@ -22,22 +23,28 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-go@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19.1
-      - uses: actions/checkout@v3
-      - uses: protocol/cache-go-action@v1
+      - name: Check out Kubo
+        uses: actions/checkout@v3
+      - name: Restore Go cache
+        uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
-      - run: |
+      - name: 👉️ If this step failed, go to «Summary» (top left) → inspect the «Failures/Errors» table
+        run: |
           make -j 1 test/unit/gotest.junit.xml &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
-      - uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0
-        if: always()
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0
+        if: failure() || success()
         with:
           name: unittests
           files: coverage/unit_tests.coverprofile
-      - run: |
+      - name: Test kubo-as-a-library example
+        run: |
           # we want to first test with the kubo version in the go.mod file
           go test -v ./...
 
@@ -58,8 +65,38 @@ jobs:
           mv go.mod.bak go.mod
           mv go.sum.bak go.sum
         working-directory: docs/examples/kubo-as-a-library
-      - uses: actions/upload-artifact@v3
+      - name: Create a proper JUnit XML report
+        uses: pl-strflt/gotest-json-to-junit-xml@v1
+        with:
+          input: test/unit/gotest.json
+          output: test/unit/gotest.junit.xml
+        if: failure() || success()
+      - name: Archive the JUnit XML report
+        uses: actions/upload-artifact@v3
         with:
           name: unit
           path: test/unit/gotest.junit.xml
-        if: always()
+        if: failure() || success()
+      - name: Create a HTML report
+        uses: pl-strflt/junit-xml-to-html@v1
+        with:
+          mode: no-frames
+          input: test/unit/gotest.junit.xml
+          output: test/unit/gotest.html
+        if: failure() || success()
+      - name: Archive the HTML report
+        uses: actions/upload-artifact@v3
+        with:
+          name: html
+          path: test/unit/gotest.html
+        if: failure() || success()
+      - name: Create a Markdown report
+        uses: pl-strflt/junit-xml-to-html@v1
+        with:
+          mode: summary
+          input: test/unit/gotest.junit.xml
+          output: test/unit/gotest.md
+        if: failure() || success()
+      - name: Set the summary
+        run: cat test/unit/gotest.md >> $GITHUB_STEP_SUMMARY
+        if: failure() || success()

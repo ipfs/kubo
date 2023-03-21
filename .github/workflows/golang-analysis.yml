@@ -7,10 +7,14 @@ on:
     branches:
       - 'master'
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
   unit:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     name: All
     steps:
       - uses: actions/checkout@v2
