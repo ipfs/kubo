@@ -1,4 +1,4 @@
-name: Publish Docker image
+name: Docker Push
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
   contents: read  #  to fetch code (actions/checkout)
 
 jobs:
-  push_to_registry:
+  docker-hub:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest

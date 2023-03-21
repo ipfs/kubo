@@ -6,15 +6,12 @@
 #   ./get-docker-tags.sh <build number> <git commit sha1> <git branch name> [git tag name]
 #
 # Example:
-#    
+#
 #   # get tag for the master branch
 #   ./get-docker-tags.sh $(date -u +%F) testingsha master
 #
 #   # get tag for a release tag
 #   ./get-docker-tags.sh $(date -u +%F) testingsha release v0.5.0
-#
-#   # Serving suggestion in circle ci - https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
-#   ./get-docker-tags.sh $(date -u +%F) "$CIRCLE_SHA1" "$CIRCLE_BRANCH" "$CIRCLE_TAG"
 #
 set -euo pipefail
 
