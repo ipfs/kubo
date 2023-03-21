@@ -214,13 +214,6 @@ test_init_ipfs() {
 
 }
 
-test_config_ipfs_gateway_writable() {
-  test_expect_success "prepare config -- gateway writable" '
-    test_config_set --bool Gateway.Writable true ||
-    test_fsh cat "\"$IPFS_PATH/config\""
-  '
-}
-
 test_wait_for_file() {
   loops=$1
   delay=$2

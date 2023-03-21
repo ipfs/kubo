@@ -681,14 +681,7 @@ Type: `string` (url)
 
 ### `Gateway.Writable`
 
-**DEPRECATED**: Enables legacy PUT/POST request handling. 
-
-This API is not standardized, and should not be used for new projects.
-We are working on a modern replacement. IPIP can be tracked in [ipfs/specs#375](https://github.com/ipfs/specs/issues/375).
-
-Default: `false`
-
-Type: `bool`
+**REMOVED**: this option has been removed. We are working on a modern replacement. IPIP can be tracked in [ipfs/specs#375](https://github.com/ipfs/specs/issues/375).
 
 ### `Gateway.PathPrefixes`
 
