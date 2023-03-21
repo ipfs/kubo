@@ -1,4 +1,4 @@
-name: Go Checks
+name: Go Check
 
 on:
   workflow_dispatch:
@@ -11,11 +11,10 @@ permissions:
   contents: read  #  to fetch code (actions/checkout)
 
 jobs:
-  unit:
+  go-check:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    name: All
     steps:
       - uses: actions/checkout@v2
         with:

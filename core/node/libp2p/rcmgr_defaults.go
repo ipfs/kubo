@@ -118,7 +118,7 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (limitConfig rcmgr.Concret
 	// There are ways to break this, but this should catch most problems already.
 	// We might improve this in the future.
 	// See: https://github.com/ipfs/kubo/issues/9545
-	if partialLimits.System.ConnsInbound != rcmgr.Unlimited && cfg.ConnMgr.Type.WithDefault(config.DefaultConnMgrType) != "none" {
+	if partialLimits.System.ConnsInbound > rcmgr.DefaultLimit && cfg.ConnMgr.Type.WithDefault(config.DefaultConnMgrType) != "none" {
 		maxInboundConns := int64(partialLimits.System.ConnsInbound)
 		if connmgrHighWaterTimesTwo := cfg.ConnMgr.HighWater.WithDefault(config.DefaultConnMgrHighWater) * 2; maxInboundConns < connmgrHighWaterTimesTwo {
 			maxInboundConns = connmgrHighWaterTimesTwo
@@ -129,7 +129,9 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (limitConfig rcmgr.Concret
 		}
 
 		// Scale System.StreamsInbound as well, but use the existing ratio of StreamsInbound to ConnsInbound
-		partialLimits.System.StreamsInbound = rcmgr.LimitVal(maxInboundConns * int64(partialLimits.System.StreamsInbound) / int64(partialLimits.System.ConnsInbound))
+		if partialLimits.System.StreamsInbound > rcmgr.DefaultLimit {
+			partialLimits.System.StreamsInbound = rcmgr.LimitVal(maxInboundConns * int64(partialLimits.System.StreamsInbound) / int64(partialLimits.System.ConnsInbound))
+		}
 		partialLimits.System.ConnsInbound = rcmgr.LimitVal(maxInboundConns)
 	}
 

@@ -1,4 +1,4 @@
-name: 'ci/gh-experiment: sharness'
+name: Sharness
 
 on:
   workflow_dispatch:
@@ -8,12 +8,12 @@ on:
       - 'master'
 
 jobs:
-  runner:
+  sharness-runner:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     uses: ipfs/kubo/.github/workflows/runner.yml@master
-  sharness:
-    needs: [runner]
-    runs-on: ${{ fromJSON(needs.runner.outputs.config).labels }}
+  sharness-test:
+    needs: [sharness-runner]
+    runs-on: ${{ fromJSON(needs.sharness-runner.outputs.config).labels }}
     timeout-minutes: 20
     defaults:
       run:
@@ -67,7 +67,7 @@ jobs:
           TEST_EXPENSIVE: 1
           IPFS_CHECK_RCMGR_DEFAULTS: 1
           CONTINUE_ON_S_FAILURE: 1
-          PARALLEL: ${{ fromJSON(needs.runner.outputs.config).parallel }}
+          PARALLEL: ${{ fromJSON(needs.sharness-runner.outputs.config).parallel }}
       - name: Upload coverage report
         uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0
         if: failure() || success()
@@ -96,12 +96,12 @@ jobs:
       - name: Upload one-page HTML report to S3
         id: one-page
         uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
-        if: fromJSON(needs.runner.outputs.config).aws && (failure() || success())
+        if: fromJSON(needs.sharness-runner.outputs.config).aws && (failure() || success())
         with:
           source: kubo/test/sharness/test-results/sharness.html
           destination: sharness.html
       - name: Upload one-page HTML report
-        if: (! fromJSON(needs.runner.outputs.config).aws) && (failure() || success())
+        if: (! fromJSON(needs.sharness-runner.outputs.config).aws) && (failure() || success())
         uses: actions/upload-artifact@v3
         with:
           name: sharness.html
@@ -116,18 +116,18 @@ jobs:
       - name: Upload full HTML report to S3
         id: full
         uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
-        if: fromJSON(needs.runner.outputs.config).aws && (failure() || success())
+        if: fromJSON(needs.sharness-runner.outputs.config).aws && (failure() || success())
         with:
           source: kubo/test/sharness/test-results/sharness-html
           destination: sharness-html/
       - name: Upload full HTML report
-        if: (! fromJSON(needs.runner.outputs.config).aws) && (failure() || success())
+        if: (! fromJSON(needs.sharness-runner.outputs.config).aws) && (failure() || success())
         uses: actions/upload-artifact@v3
         with:
           name: sharness-html
           path: kubo/test/sharness/test-results/sharness-html
       - name: Add S3 links to the summary
-        if: fromJSON(needs.runner.outputs.config).aws && (failure() || success())
+        if: fromJSON(needs.sharness-runner.outputs.config).aws && (failure() || success())
         run: echo "$MD" >> $GITHUB_STEP_SUMMARY
         env:
           MD: |

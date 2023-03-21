@@ -41,7 +41,6 @@ IGNORE_FILES=(
     "go.mod"
     "go.sum"
     ".github"
-    ".circleci"
     "*.pb.go"
     "cbor_gen.go"
     "ipldsch_*.go"

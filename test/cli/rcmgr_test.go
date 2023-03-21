@@ -7,6 +7,7 @@ import (
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/test/cli/harness"
+	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
@@ -80,10 +81,10 @@ func TestRcmgr(t *testing.T) {
 			require.Equal(t, 0, res.ExitCode())
 			limits := unmarshalLimits(t, res.Stdout.Bytes())
 
-			if limits.System.ConnsInbound != rcmgr.Unlimited {
+			if limits.System.ConnsInbound > rcmgr.DefaultLimit {
 				assert.GreaterOrEqual(t, limits.System.ConnsInbound, 800)
 			}
-			if limits.System.StreamsInbound != rcmgr.Unlimited {
+			if limits.System.StreamsInbound > rcmgr.DefaultLimit {
 				assert.GreaterOrEqual(t, limits.System.StreamsInbound, 800)
 			}
 		})
@@ -124,6 +125,22 @@ func TestRcmgr(t *testing.T) {
 			assert.Zero(t, limits.System.StreamsOutboundUsage)
 			assert.Zero(t, limits.Transient.MemoryUsage)
 		})
+	})
+
+	t.Run("smoke test unlimited System inbounds", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateUserSuppliedResourceManagerOverrides(func(overrides *rcmgr.PartialLimitConfig) {
+			overrides.System.StreamsInbound = rcmgr.Unlimited
+			overrides.System.ConnsInbound = rcmgr.Unlimited
+		})
+		node.StartDaemon()
+
+		res := node.RunIPFS("swarm", "resources", "--enc=json")
+		limits := unmarshalLimits(t, res.Stdout.Bytes())
+
+		assert.Equal(t, rcmgr.Unlimited, limits.System.ConnsInbound)
+		assert.Equal(t, rcmgr.Unlimited, limits.System.StreamsInbound)
 	})
 
 	t.Run("smoke test transient scope", func(t *testing.T) {
@@ -209,7 +226,10 @@ func TestRcmgr(t *testing.T) {
 				Args: []string{"swarm", "connect", node1.SwarmAddrsWithPeerIDs()[0].String()},
 			})
 			assert.Equal(t, 1, res.ExitCode())
-			assert.Contains(t, res.Stderr.String(), "failed to find any peer in table")
+			testutils.AssertStringContainsOneOf(t, res.Stderr.String(),
+				"failed to find any peer in table",
+				"resource limit exceeded",
+			)
 
 			res = node0.RunIPFS("ping", "-n2", peerID1)
 			assert.Equal(t, 1, res.ExitCode())

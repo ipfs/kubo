@@ -126,10 +126,10 @@ func TestGateway(t *testing.T) {
 			assert.Equal(t, 404, resp.StatusCode)
 		})
 
-		t.Run("GET IPFS invalid CID returns 500 (Internal Server Error)", func(t *testing.T) {
+		t.Run("GET IPFS invalid CID returns 400 (Bad Request)", func(t *testing.T) {
 			t.Parallel()
 			resp := client.Get("/ipfs/QmInvalid/pleaseDontAddMe")
-			assert.Equal(t, 500, resp.StatusCode)
+			assert.Equal(t, 400, resp.StatusCode)
 		})
 
 		t.Run("GET IPFS inlined zero-length data object returns ok code (200)", func(t *testing.T) {
@@ -198,7 +198,7 @@ func TestGateway(t *testing.T) {
 
 	t.Run("GET invalid IPFS path errors", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, 500, client.Get("/ipfs/12345").StatusCode)
+		assert.Equal(t, 400, client.Get("/ipfs/12345").StatusCode)
 	})
 
 	t.Run("GET invalid path errors", func(t *testing.T) {
@@ -216,6 +216,23 @@ func TestGateway(t *testing.T) {
 	t.Run("GET /webui/ returns 301 or 302", func(t *testing.T) {
 		t.Parallel()
 		resp := node.APIClient().DisableRedirects().Get("/webui/")
+		assert.Contains(t, []int{302, 301}, resp.StatusCode)
+	})
+
+	t.Run("GET /webui/ returns user-specified headers", func(t *testing.T) {
+		t.Parallel()
+
+		header := "Access-Control-Allow-Origin"
+		values := []string{"http://localhost:3000", "https://webui.ipfs.io"}
+
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.API.HTTPHeaders = map[string][]string{header: values}
+		})
+		node.StartDaemon()
+
+		resp := node.APIClient().DisableRedirects().Get("/webui/")
+		assert.Equal(t, resp.Headers.Values(header), values)
 		assert.Contains(t, []int{302, 301}, resp.StatusCode)
 	})
 
@@ -389,7 +406,7 @@ func TestGateway(t *testing.T) {
 		gatewayAddr := URLStrToMultiaddr(node.GatewayURL())
 		res := node.RunIPFS("--api", gatewayAddr.String(), "refs", "local")
 		assert.Equal(t,
-			`Error: invalid path "local": selected encoding not supported`,
+			`Error: invalid path "local": invalid cid: selected encoding not supported`,
 			res.Stderr.Trimmed(),
 		)
 	})
