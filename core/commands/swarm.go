@@ -465,7 +465,7 @@ func (ci connInfos) Swap(i, j int) {
 func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, error) {
 	var info IdOutput
 	info.ID = p.String()
-	
+
 	if pk := ps.PubKey(p); pk != nil {
 		pkb, err := ic.MarshalPublicKey(pk)
 		if err != nil {

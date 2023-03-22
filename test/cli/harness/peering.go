@@ -14,7 +14,7 @@ type Peering struct {
 }
 
 func NewRandPort() int {
-	n:= rand.Int()
+	n := rand.Int()
 	return 3000 + (n % 1000)
 }
 
@@ -35,4 +35,3 @@ func CreatePeerNodes(t *testing.T, n int, peerings []Peering) (*Harness, Nodes) 
 
 	return h, nodes
 }
-
