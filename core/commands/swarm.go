@@ -463,7 +463,7 @@ func (ci connInfos) Swap(i, j int) {
 	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
 }
 
-func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, error) {
+func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (*IdOutput, error) {
 	var info IdOutput
 	keyEnc, err := ke.KeyEncoderFromString(ke.OptionIPNSBase.Name())
 	if err != nil {
@@ -506,7 +506,7 @@ func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, erro
 		}
 	}
 
-	return info, nil
+	return &info, nil
 }
 
 // directionString transfers to string
