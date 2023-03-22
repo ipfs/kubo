@@ -681,7 +681,9 @@ Type: `string` (url)
 
 ### `Gateway.Writable`
 
-**REMOVED**: this option has been removed. We are working on a modern replacement. IPIP can be tracked in [ipfs/specs#375](https://github.com/ipfs/specs/issues/375).
+**REMOVED**: this option no longer available as of [Kubo 0.20](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.20.md).
+
+We are working on developing a modern replacement. To support our efforts, please leave a comment describing your use case in [ipfs/specs#375](https://github.com/ipfs/specs/issues/375).
 
 ### `Gateway.PathPrefixes`
 

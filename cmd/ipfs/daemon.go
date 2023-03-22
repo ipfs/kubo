@@ -804,7 +804,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	}
 
 	if writable {
-		log.Fatalf("serveHTTPGateway: Gateway.Writable has been REMOVED. Modern replacement tracked in https://github.com/ipfs/specs/issues/375")
+		log.Fatalf("Support for Gateway.Writable and --writable has been REMOVED. Please remove it from your config file or CLI. Modern replacement tracked in https://github.com/ipfs/specs/issues/375")
 	}
 
 	listeners, err := sockets.TakeListeners("io.ipfs.gateway")
@@ -838,7 +838,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 	// we might have listened to /tcp/0 - let's see what we are listing on
 	for _, listener := range listeners {
-		fmt.Printf("Gateway (readonly) server listening on %s\n", listener.Multiaddr())
+		fmt.Printf("Gateway server listening on %s\n", listener.Multiaddr())
 	}
 
 	cmdctx := *cctx
