@@ -490,9 +490,10 @@ func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, erro
 	}
 	sort.Strings(info.Addresses)
 
-	protocols, _ := ps.GetProtocols(p) // don't care about errors here.
-	info.Protocols = append(info.Protocols, protocols...)
-	sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
+	if protocols, err := ps.GetProtocols(p); err == nil {
+		info.Protocols = append(info.Protocols, protocols...)
+		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
+	}
 
 	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
 		if vs, ok := v.(string); ok {
