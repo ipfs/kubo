@@ -300,7 +300,7 @@ var swarmPeersCmd = &cmds.Command{
 					return err
 				}
 				identifyResult, _ := ci.identifyPeer(n.Peerstore, c.ID())
-				ci.Identify = *identifyResult
+				ci.Identify = identifyResult
 			}
 			sort.Sort(&ci)
 			out.Peers = append(out.Peers, ci)
@@ -463,18 +463,18 @@ func (ci connInfos) Swap(i, j int) {
 	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
 }
 
-func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (*IdOutput, error) {
+func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, error) {
 	var info IdOutput
 	keyEnc, err := ke.KeyEncoderFromString(ke.OptionIPNSBase.Name())
 	if err != nil {
-		return nil, err
+		return IdOutput{}, err
 	}
 	info.ID = keyEnc.FormatID(p)
 
 	if pk := ps.PubKey(p); pk != nil {
 		pkb, err := ic.MarshalPublicKey(pk)
 		if err != nil {
-			return nil, err
+			return IdOutput{}, err
 		}
 		info.PublicKey = base64.StdEncoding.EncodeToString(pkb)
 	}
@@ -482,7 +482,7 @@ func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (*IdOutput, err
 	addrInfo := ps.PeerInfo(p)
 	addrs, err := peer.AddrInfoToP2pAddrs(&addrInfo)
 	if err != nil {
-		return nil, err
+		return IdOutput{}, err
 	}
 
 	for _, a := range addrs {
@@ -506,7 +506,7 @@ func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (*IdOutput, err
 		}
 	}
 
-	return &info, nil
+	return info, nil
 }
 
 // directionString transfers to string
