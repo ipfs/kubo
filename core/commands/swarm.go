@@ -17,7 +17,6 @@ import (
 	"github.com/ipfs/kubo/commands"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
-	ke "github.com/ipfs/kubo/core/commands/keyencode"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
@@ -465,12 +464,8 @@ func (ci connInfos) Swap(i, j int) {
 
 func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, error) {
 	var info IdOutput
-	keyEnc, err := ke.KeyEncoderFromString(ke.OptionIPNSBase.Name())
-	if err != nil {
-		return IdOutput{}, err
-	}
-	info.ID = keyEnc.FormatID(p)
-
+	info.ID = p.String()
+	
 	if pk := ps.PubKey(p); pk != nil {
 		pkb, err := ic.MarshalPublicKey(pk)
 		if err != nil {
