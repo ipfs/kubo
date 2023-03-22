@@ -679,7 +679,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 
 	for _, listener := range listeners {
 		// we might have listened to /tcp/0 - let's see what we are listing on
-		fmt.Printf("API server listening on %s\n", listener.Multiaddr())
+		fmt.Printf("RPC API server listening on %s\n", listener.Multiaddr())
 		// Browsers require TCP.
 		switch listener.Addr().Network() {
 		case "tcp", "tcp4", "tcp6":
