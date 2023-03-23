@@ -3,9 +3,9 @@ package ipns
 import (
 	"context"
 
-	nsys "github.com/ipfs/go-namesys"
-	path "github.com/ipfs/go-path"
-	ft "github.com/ipfs/go-unixfs"
+	ft "github.com/ipfs/boxo/ipld/unixfs"
+	nsys "github.com/ipfs/boxo/namesys"
+	path "github.com/ipfs/boxo/path"
 	"github.com/ipfs/kubo/core"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
 )

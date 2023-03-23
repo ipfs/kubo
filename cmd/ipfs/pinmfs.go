@@ -8,10 +8,10 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 
+	pinclient "github.com/ipfs/boxo/pinning/remote/client"
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	pinclient "github.com/ipfs/go-pinning-service-http-client"
 
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"

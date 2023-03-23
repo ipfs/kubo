@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net/http"
 
+	drclient "github.com/ipfs/boxo/routing/http/client"
+	"github.com/ipfs/boxo/routing/http/contentrouter"
 	"github.com/ipfs/go-datastore"
 	drc "github.com/ipfs/go-delegated-routing/client"
 	drp "github.com/ipfs/go-delegated-routing/gen/proto"
-	drclient "github.com/ipfs/go-libipfs/routing/http/client"
-	"github.com/ipfs/go-libipfs/routing/http/contentrouter"
 	logging "github.com/ipfs/go-log"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"

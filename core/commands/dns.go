@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	namesys "github.com/ipfs/go-namesys"
-	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
+	namesys "github.com/ipfs/boxo/namesys"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	ncmd "github.com/ipfs/kubo/core/commands/name"
 

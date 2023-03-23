@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ipfs/boxo/coreiface/path"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	"github.com/ipld/go-ipld-prime"

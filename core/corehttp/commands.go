@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	path "github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdsHttp "github.com/ipfs/go-ipfs-cmds/http"
-	path "github.com/ipfs/go-path"
 	version "github.com/ipfs/kubo"
 	oldcmds "github.com/ipfs/kubo/commands"
 	config "github.com/ipfs/kubo/config"
