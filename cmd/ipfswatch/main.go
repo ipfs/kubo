@@ -19,7 +19,7 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
 	fsnotify "github.com/fsnotify/fsnotify"
-	"github.com/ipfs/go-libipfs/files"
+	"github.com/ipfs/boxo/files"
 	process "github.com/jbenet/goprocess"
 	homedir "github.com/mitchellh/go-homedir"
 )

@@ -10,17 +10,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	path "github.com/ipfs/go-path"
-	unixfs "github.com/ipfs/go-unixfs"
+	unixfs "github.com/ipfs/boxo/ipld/unixfs"
+	path "github.com/ipfs/boxo/path"
 	assets "github.com/ipfs/kubo/assets"
 	oldcmds "github.com/ipfs/kubo/commands"
 	core "github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
+	options "github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-libipfs/files"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 	config "github.com/ipfs/kubo/config"
 )
 

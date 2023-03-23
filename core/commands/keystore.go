@@ -12,9 +12,9 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	options "github.com/ipfs/boxo/coreiface/options"
+	keystore "github.com/ipfs/boxo/keystore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	keystore "github.com/ipfs/go-ipfs-keystore"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 	oldcmds "github.com/ipfs/kubo/commands"
 	config "github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
