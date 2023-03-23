@@ -1,12 +1,9 @@
 package cli
 
 import (
-	"fmt"
-	"math/rand"
 	"testing"
 	"time"
 
-	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	. "github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -15,17 +12,7 @@ import (
 
 func TestPeering(t *testing.T) {
 	t.Parallel()
-
-	type peering struct {
-		from int
-		to   int
-	}
-
-	newRandPort := func() int {
-		n := rand.Int()
-		return 3000 + (n % 1000)
-	}
-
+	
 	containsPeerID := func(p peer.ID, peers []peer.ID) bool {
 		for _, peerID := range peers {
 			if p == peerID {
@@ -63,34 +50,17 @@ func TestPeering(t *testing.T) {
 		}, 20*time.Second, 10*time.Millisecond, "%d -> %d peered", from.ID, to.ID)
 	}
 
-	assertPeerings := func(h *harness.Harness, nodes []*harness.Node, peerings []peering) {
-		ForEachPar(peerings, func(peering peering) {
-			assertPeered(h, nodes[peering.from], nodes[peering.to])
+	assertPeerings := func(h *harness.Harness, nodes []*harness.Node, peerings []harness.Peering) {
+		ForEachPar(peerings, func(peering harness.Peering) {
+			assertPeered(h, nodes[peering.From], nodes[peering.To])
 		})
 	}
 
-	createNodes := func(t *testing.T, n int, peerings []peering) (*harness.Harness, harness.Nodes) {
-		h := harness.NewT(t)
-		nodes := h.NewNodes(n).Init()
-		nodes.ForEachPar(func(node *harness.Node) {
-			node.UpdateConfig(func(cfg *config.Config) {
-				cfg.Routing.Type = config.NewOptionalString("none")
-				cfg.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", newRandPort())}
-			})
-
-		})
-
-		for _, peering := range peerings {
-			nodes[peering.from].PeerWith(nodes[peering.to])
-		}
-
-		return h, nodes
-	}
 
 	t.Run("bidirectional peering should work (simultaneous connect)", func(t *testing.T) {
 		t.Parallel()
-		peerings := []peering{{from: 0, to: 1}, {from: 1, to: 0}, {from: 1, to: 2}}
-		h, nodes := createNodes(t, 3, peerings)
+		peerings := []harness.Peering{{From: 0, To: 1}, {From: 1, To: 0}, {From: 1, To: 2}}
+		h, nodes := harness.CreatePeerNodes(t, 3, peerings)
 
 		nodes.StartDaemons()
 		assertPeerings(h, nodes, peerings)
@@ -101,8 +71,8 @@ func TestPeering(t *testing.T) {
 
 	t.Run("1 should reconnect to 2 when 2 disconnects from 1", func(t *testing.T) {
 		t.Parallel()
-		peerings := []peering{{from: 0, to: 1}, {from: 1, to: 0}, {from: 1, to: 2}}
-		h, nodes := createNodes(t, 3, peerings)
+		peerings := []harness.Peering{{From: 0, To: 1}, {From: 1, To: 0}, {From: 1, To: 2}}
+		h, nodes := harness.CreatePeerNodes(t, 3, peerings)
 
 		nodes.StartDaemons()
 		assertPeerings(h, nodes, peerings)
@@ -113,12 +83,12 @@ func TestPeering(t *testing.T) {
 
 	t.Run("1 will peer with 2 when it comes online", func(t *testing.T) {
 		t.Parallel()
-		peerings := []peering{{from: 0, to: 1}, {from: 1, to: 0}, {from: 1, to: 2}}
-		h, nodes := createNodes(t, 3, peerings)
+		peerings := []harness.Peering{{From: 0, To: 1}, {From: 1, To: 0}, {From: 1, To: 2}}
+		h, nodes := harness.CreatePeerNodes(t, 3, peerings)
 
 		nodes[0].StartDaemon()
 		nodes[1].StartDaemon()
-		assertPeerings(h, nodes, []peering{{from: 0, to: 1}, {from: 1, to: 0}})
+		assertPeerings(h, nodes, []harness.Peering{{From: 0, To: 1}, {From: 1, To: 0}})
 
 		nodes[2].StartDaemon()
 		assertPeerings(h, nodes, peerings)
@@ -126,8 +96,8 @@ func TestPeering(t *testing.T) {
 
 	t.Run("1 will re-peer with 2 when it disconnects and then comes back online", func(t *testing.T) {
 		t.Parallel()
-		peerings := []peering{{from: 0, to: 1}, {from: 1, to: 0}, {from: 1, to: 2}}
-		h, nodes := createNodes(t, 3, peerings)
+		peerings := []harness.Peering{{From: 0, To: 1}, {From: 1, To: 0}, {From: 1, To: 2}}
+		h, nodes := harness.CreatePeerNodes(t, 3, peerings)
 
 		nodes.StartDaemons()
 		assertPeerings(h, nodes, peerings)
