@@ -12,7 +12,7 @@ import (
 
 func TestPeering(t *testing.T) {
 	t.Parallel()
-	
+
 	containsPeerID := func(p peer.ID, peers []peer.ID) bool {
 		for _, peerID := range peers {
 			if p == peerID {
@@ -55,7 +55,6 @@ func TestPeering(t *testing.T) {
 			assertPeered(h, nodes[peering.From], nodes[peering.To])
 		})
 	}
-
 
 	t.Run("bidirectional peering should work (simultaneous connect)", func(t *testing.T) {
 		t.Parallel()
