@@ -67,4 +67,29 @@ func TestSwarm(t *testing.T) {
 		assert.Greater(t, len(actualProtocols), 0)
 
 	})
+
+	t.Run("ipfs swarm peers with flag identify outputs Identify field with data that matches calling ipfs id on a peer", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		otherNode := harness.NewT(t).NewNode().Init().StartDaemon()
+		node.Connect(otherNode)
+
+		otherNodeIDResponse := otherNode.RunIPFS("id", "--enc=json")
+		var otherNodeIDOutput identifyType
+		json.Unmarshal(otherNodeIDResponse.Stdout.Bytes(), &otherNodeIDOutput)
+
+		res := node.RunIPFS("swarm", "peers", "--enc=json", "--identify")
+
+		var output expectedOutputType
+		json.Unmarshal(res.Stdout.Bytes(), &output)
+		outputIdentify := output.Peers[0].Identify
+
+		assert.Equal(t, outputIdentify.ID, otherNodeIDOutput.ID)
+		assert.Equal(t, outputIdentify.PublicKey, otherNodeIDOutput.PublicKey)
+		assert.Equal(t, outputIdentify.AgentVersion, otherNodeIDOutput.AgentVersion)
+		assert.Equal(t, outputIdentify.ProtocolVersion, otherNodeIDOutput.ProtocolVersion)
+		assert.ElementsMatch(t, outputIdentify.Addresses, otherNodeIDOutput.Addresses)
+		assert.ElementsMatch(t, outputIdentify.Protocols, otherNodeIDOutput.Protocols)
+
+	})
 }
