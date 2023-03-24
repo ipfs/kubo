@@ -28,6 +28,7 @@ import (
 	offlineroute "github.com/ipfs/go-ipfs-routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
+	pathresolver "github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -65,9 +66,11 @@ type CoreAPI struct {
 	recordValidator      record.Validator
 	exchange             exchange.Interface
 
-	namesys     namesys.NameSystem
-	routing     routing.Routing
-	dnsResolver *madns.Resolver
+	namesys            namesys.NameSystem
+	routing            routing.Routing
+	dnsResolver        *madns.Resolver
+	ipldPathResolver   pathresolver.Resolver
+	unixFSPathResolver pathresolver.Resolver
 
 	provider provider.System
 
@@ -179,13 +182,15 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		ipldFetcherFactory:   n.IPLDFetcherFactory,
 		unixFSFetcherFactory: n.UnixFSFetcherFactory,
 
-		peerstore:       n.Peerstore,
-		peerHost:        n.PeerHost,
-		namesys:         n.Namesys,
-		recordValidator: n.RecordValidator,
-		exchange:        n.Exchange,
-		routing:         n.Routing,
-		dnsResolver:     n.DNSResolver,
+		peerstore:          n.Peerstore,
+		peerHost:           n.PeerHost,
+		namesys:            n.Namesys,
+		recordValidator:    n.RecordValidator,
+		exchange:           n.Exchange,
+		routing:            n.Routing,
+		dnsResolver:        n.DNSResolver,
+		ipldPathResolver:   n.IPLDPathResolver,
+		unixFSPathResolver: n.UnixFSPathResolver,
 
 		provider: n.Provider,
 

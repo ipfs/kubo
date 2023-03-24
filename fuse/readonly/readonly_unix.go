@@ -18,7 +18,6 @@ import (
 	logging "github.com/ipfs/go-log"
 	mdag "github.com/ipfs/go-merkledag"
 	path "github.com/ipfs/go-path"
-	"github.com/ipfs/go-path/resolver"
 	ft "github.com/ipfs/go-unixfs"
 	uio "github.com/ipfs/go-unixfs/io"
 	core "github.com/ipfs/kubo/core"
@@ -69,7 +68,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
-	nd, ndLnk, err := resolver.NewBasicResolver(s.Ipfs.UnixFSFetcherFactory).ResolvePath(ctx, p)
+	nd, ndLnk, err := s.Ipfs.UnixFSPathResolver.ResolvePath(ctx, p)
 	if err != nil {
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT

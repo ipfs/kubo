@@ -6,16 +6,15 @@ import (
 	gopath "path"
 
 	"github.com/ipfs/go-namesys/resolve"
+	pathresolver "github.com/ipfs/go-path/resolver"
 	"github.com/ipfs/kubo/tracing"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-fetcher"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipfspath "github.com/ipfs/go-path"
-	ipfspathresolver "github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
@@ -63,13 +62,12 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Resolved
 		return nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
 	}
 
-	var dataFetcher fetcher.Factory
+	var resolver pathresolver.Resolver
 	if ipath.Segments()[0] == "ipld" {
-		dataFetcher = api.ipldFetcherFactory
+		resolver = api.ipldPathResolver
 	} else {
-		dataFetcher = api.unixFSFetcherFactory
+		resolver = api.unixFSPathResolver
 	}
-	resolver := ipfspathresolver.NewBasicResolver(dataFetcher)
 
 	node, rest, err := resolver.ResolveToLastNode(ctx, ipath)
 	if err != nil {
