@@ -10,7 +10,6 @@ import (
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	"github.com/ipfs/go-libipfs/files"
 	"github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 	gocarv2 "github.com/ipld/go-car/v2"
 
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -108,6 +107,9 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			}
 			return nil
 		}()
+		if err != nil {
+			return err
+		}
 	}
 
 	if err := batch.Commit(); err != nil {
@@ -125,11 +127,16 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			ret := RootMeta{Cid: c}
 
 			// This will trigger a full read of the DAG in the pinner, to make sure we have all blocks.
-			// Ideally we would have a lighter merkledag.Walk() instead of the underlying merkledag.FetchDag,
-			// then pinner.PinWithMode().
-			err = api.Pin().Add(req.Context, path.IpldPath(c), options.Pin.Recursive(true))
-			if err != nil {
-				return err
+			// Ideally we would do colloring of the pinning state while importing the blocks
+			// and ensure the gray bucket is empty at the end (or use the network to download missing blocks).
+			if block, err := node.Blockstore.Get(req.Context, c); err != nil {
+				ret.PinErrorMsg = err.Error()
+			} else if nd, err := ipldlegacy.DecodeNode(req.Context, block); err != nil {
+				ret.PinErrorMsg = err.Error()
+			} else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
+				ret.PinErrorMsg = err.Error()
+			} else if err := node.Pinning.Flush(req.Context); err != nil {
+				ret.PinErrorMsg = err.Error()
 			}
 
 			return res.Emit(&CarImportOutput{Root: &ret})
