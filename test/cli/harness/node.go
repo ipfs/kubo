@@ -218,8 +218,8 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 //
 //	 node.StartDaemonWithReq(harness.RunRequest{
 //	 	 CmdOpts: []harness.CmdOpt{
-//		   harness.RunWithStderr(os.Stdout),
-//			 harness.RunWithStdout(os.Stdout),
+//			harness.RunWithStderr(os.Stdout),
+//			harness.RunWithStdout(os.Stdout),
 //		 },
 //	 })
 func (n *Node) StartDaemonWithReq(req RunRequest) *Node {
