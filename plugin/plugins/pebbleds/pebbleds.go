@@ -2,7 +2,6 @@ package pebbleds
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 
@@ -90,33 +89,36 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	// so a small memtable makes a small WAL so I'd rather have
 	// a large WAL.
 
-	defopts.MemTableSize = 128 << 20 // 128 MB. Def: 4MB.
-	defopts.BytesPerSync = 512 << 20 // 512 MiB
+	defopts.MemTableSize = 67108864 // 128 MB. Def: 4MB.
+	defopts.BytesPerSync = 1048576  // 512 MiB
 	defopts.Cache = cache
 	defopts.DisableWAL = true
 
 	// See https://github.com/cockroachdb/cockroach/blob/a3039fe628f2ab7c5fba31a30ba7bc7c38065230/pkg/storage/pebble.go#L483
 	defopts.MaxConcurrentCompactions = func() int {
-		return 10
+		return 1000
 	}
-	defopts.MaxOpenFiles = 100000     // default: 1000
+	defopts.MaxOpenFiles = 1000000    // default: 1000
 	defopts.L0CompactionThreshold = 4 // default 4
+	// defopts.Experimental.L0CompactionConcurrency = 10
+	defopts.Experimental.MaxWriterConcurrency = 10000
+	defopts.MaxManifestFileSize = 1 << 30 // Default: 128MB
 	// This was 1000 and if L0 ever reaches that point we end up with
 	// a really bad situation where we have many files to move and awful
 	// read perf.
-	defopts.L0StopWritesThreshold = 20      // default 12
-	defopts.LBaseMaxBytes = 512 << 20       // default: 64 MB
+	defopts.L0StopWritesThreshold = 12      // default 12
+	defopts.LBaseMaxBytes = 134217728       // default: 64 MB
 	defopts.L0CompactionFileThreshold = 750 // default: 500
 	defopts.Levels = make([]pebble.LevelOptions, 7)
 	defopts.MemTableStopWritesThreshold = 30
-	defopts.Levels[0].TargetFileSize = 4 << 20 // default: 4M
-	defopts.Experimental.ReadSamplingMultiplier = -1
+	defopts.Levels[0].TargetFileSize = 128 << 20 // default: 4M
+	//defopts.Experimental.ReadSamplingMultiplier = -1
 
 	for i := 0; i < len(defopts.Levels); i++ {
 		l := &defopts.Levels[i]
-		l.BlockSize = 10 // 10Bytes. 1 KB : def 4K
+		l.BlockSize = 262144 // def 4K
 		// No compression, should be same
-		l.IndexBlockSize = math.MaxInt32 // disable 2-level indexes default 256 KB
+		// l.IndexBlockSize = math.MaxInt32 // disable 2-level indexes default 256 KB
 		l.FilterPolicy = bloom.FilterPolicy(10)
 		l.FilterType = pebble.TableFilter
 		// l.Compression = pebble.Snappy // leave default.
