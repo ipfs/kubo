@@ -214,13 +214,6 @@ test_init_ipfs() {
 
 }
 
-test_config_ipfs_gateway_writable() {
-  test_expect_success "prepare config -- gateway writable" '
-    test_config_set --bool Gateway.Writable true ||
-    test_fsh cat "\"$IPFS_PATH/config\""
-  '
-}
-
 test_wait_for_file() {
   loops=$1
   delay=$2
@@ -247,7 +240,7 @@ test_set_address_vars() {
     API_ADDR=$(convert_tcp_maddr $API_MADDR) &&
     API_PORT=$(port_from_maddr $API_MADDR) &&
 
-    GWAY_MADDR=$(sed -n "s/^Gateway (.*) server listening on //p" "$daemon_output") &&
+    GWAY_MADDR=$(sed -n "s/^Gateway server listening on //p" "$daemon_output") &&
     GWAY_ADDR=$(convert_tcp_maddr $GWAY_MADDR) &&
     GWAY_PORT=$(port_from_maddr $GWAY_MADDR)
   '

@@ -24,14 +24,9 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-func GatewayOption(writable bool, paths ...string) ServeOption {
+func GatewayOption(paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		cfg, err := n.Repo.Config()
-		if err != nil {
-			return nil, err
-		}
-
-		api, err := coreapi.NewCoreAPI(n, options.Api.FetchBlocks(!cfg.Gateway.NoFetch))
 		if err != nil {
 			return nil, err
 		}
@@ -57,28 +52,6 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 
 		// By default, our HTTP handler is the gateway handler.
 		handler := gw.ServeHTTP
-
-		// If we have the writable gateway enabled, we have to replace our
-		// http handler by a handler that takes care of the different methods.
-		if writable {
-			writableGw := &writableGatewayHandler{
-				config: &gwConfig,
-				api:    api,
-			}
-
-			handler = func(w http.ResponseWriter, r *http.Request) {
-				switch r.Method {
-				case http.MethodPost:
-					writableGw.postHandler(w, r)
-				case http.MethodDelete:
-					writableGw.deleteHandler(w, r)
-				case http.MethodPut:
-					writableGw.putHandler(w, r)
-				default:
-					gw.ServeHTTP(w, r)
-				}
-			}
-		}
 
 		for _, p := range paths {
 			mux.HandleFunc(p+"/", handler)

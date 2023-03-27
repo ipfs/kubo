@@ -436,7 +436,7 @@ func TestGateway(t *testing.T) {
 
 	t.Run("verify gateway file", func(t *testing.T) {
 		t.Parallel()
-		r := regexp.MustCompile(`Gateway \(readonly\) server listening on (?P<addr>.+)\s`)
+		r := regexp.MustCompile(`Gateway server listening on (?P<addr>.+)\s`)
 		matches := r.FindStringSubmatch(node.Daemon.Stdout.String())
 		ma, err := multiaddr.NewMultiaddr(matches[1])
 		require.NoError(t, err)

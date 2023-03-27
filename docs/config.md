@@ -681,14 +681,9 @@ Type: `string` (url)
 
 ### `Gateway.Writable`
 
-**DEPRECATED**: Enables legacy PUT/POST request handling. 
+**REMOVED**: this option no longer available as of [Kubo 0.20](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.20.md).
 
-This API is not standardized, and should not be used for new projects.
-We are working on a modern replacement. IPIP can be tracked in [ipfs/specs#375](https://github.com/ipfs/specs/issues/375).
-
-Default: `false`
-
-Type: `bool`
+We are working on developing a modern replacement. To support our efforts, please leave a comment describing your use case in [ipfs/specs#375](https://github.com/ipfs/specs/issues/375).
 
 ### `Gateway.PathPrefixes`
 
