@@ -28,6 +28,7 @@ const (
 	algorithmDefault    = options.Ed25519Key
 	algorithmOptionName = "algorithm"
 	bitsOptionName      = "bits"
+	emptyRepoDefault    = true
 	emptyRepoOptionName = "empty-repo"
 	profileOptionName   = "profile"
 )
@@ -61,7 +62,7 @@ environment variable:
 	Options: []cmds.Option{
 		cmds.StringOption(algorithmOptionName, "a", "Cryptographic algorithm to use for key generation.").WithDefault(algorithmDefault),
 		cmds.IntOption(bitsOptionName, "b", "Number of bits to use in the generated RSA private key."),
-		cmds.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage."),
+		cmds.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage.").WithDefault(emptyRepoDefault),
 		cmds.StringOption(profileOptionName, "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
 		// TODO need to decide whether to expose the override as a file or a
