@@ -221,6 +221,11 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 		contentrouter.WithMaxProvideConcurrency(params.MaxProvideConcurrency),
 	)
 
+	err = view.Register(drclient.OpenCensusViews...)
+	if err != nil {
+		return nil, fmt.Errorf("registering HTTP delegated routing views: %w", err)
+	}
+
 	return &httpRoutingWrapper{
 		ContentRouting:    cr,
 		ProvideManyRouter: cr,
