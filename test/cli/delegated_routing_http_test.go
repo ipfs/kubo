@@ -118,4 +118,9 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 		assert.Equal(t, prov, res.Stdout.Trimmed())
 	})
 
+	t.Run("HTTP client should emit OpenCensus metrics", func(t *testing.T) {
+		resp := node.APIClient().Get("/debug/metrics/prometheus")
+		assert.Contains(t, resp.Body, "routing_http_client_length_count")
+	})
+
 }
