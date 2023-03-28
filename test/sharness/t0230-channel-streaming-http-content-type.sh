@@ -23,6 +23,7 @@ test_ls_cmd() {
     printf "HTTP/1.1 200 OK\r\n" >expected_output &&
     printf "Access-Control-Allow-Headers: X-Stream-Output, X-Chunked-Output, X-Content-Length\r\n" >>expected_output &&
     printf "Access-Control-Expose-Headers: X-Stream-Output, X-Chunked-Output, X-Content-Length\r\n" >>expected_output &&
+    printf "Connection: close\r\n" >>expected_output &&
     printf "Content-Type: text/plain\r\n" >>expected_output &&
     printf "Server: kubo/%s\r\n" $(ipfs version -n) >>expected_output &&
     printf "Trailer: X-Stream-Error\r\n" >>expected_output &&
@@ -46,6 +47,7 @@ test_ls_cmd() {
     printf "HTTP/1.1 200 OK\r\n" >expected_output &&
     printf "Access-Control-Allow-Headers: X-Stream-Output, X-Chunked-Output, X-Content-Length\r\n" >>expected_output &&
     printf "Access-Control-Expose-Headers: X-Stream-Output, X-Chunked-Output, X-Content-Length\r\n" >>expected_output &&
+    printf "Connection: close\r\n" >>expected_output &&
     printf "Content-Type: application/json\r\n" >>expected_output &&
     printf "Server: kubo/%s\r\n" $(ipfs version -n) >>expected_output &&
     printf "Trailer: X-Stream-Error\r\n" >>expected_output &&
