@@ -19,9 +19,10 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/ipfs/kubo/tracing"
 )
 
 const inputLimit = 2 << 20
@@ -132,7 +133,10 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 	}
 
 	if options.Pin {
-		api.pinning.PinWithMode(dagnode.Cid(), pin.Recursive)
+		if err := api.pinning.PinWithMode(ctx, dagnode.Cid(), pin.Recursive); err != nil {
+			return nil, err
+		}
+
 		err = api.pinning.Flush(ctx)
 		if err != nil {
 			return nil, err
@@ -405,7 +409,9 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 			Cid:  c,
 		}
 	}
-	dagnode.SetLinks(links)
+	if err := dagnode.SetLinks(links); err != nil {
+		return nil, err
+	}
 
 	return dagnode, nil
 }

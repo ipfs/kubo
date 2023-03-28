@@ -91,27 +91,19 @@ test_expect_success "ipfs init" '
 
 test_launch_ipfs_daemon_without_network
 
+# Import test case
+# See the static fixtures in ./t0114-gateway-subdomains/
+test_expect_success "Add the test fixtures" '
+  ipfs dag import ../t0114-gateway-subdomains/fixtures.car
+'
+CID_VAL="hello"
+CIDv1=bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am
+CIDv0=QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
 # CIDv0to1 is necessary because raw-leaves are enabled by default during
 # "ipfs add" with CIDv1 and disabled with CIDv0
-test_expect_success "Add test text file" '
-  CID_VAL="hello"
-  CIDv1=$(echo $CID_VAL | ipfs add --cid-version 1 -Q)
-  CIDv0=$(echo $CID_VAL | ipfs add --cid-version 0 -Q)
-  CIDv0to1=$(echo "$CIDv0" | ipfs cid base32)
-  echo CIDv0to1=${CIDv0to1}
-'
-
-# Directory tree crafted to test for edge cases like "/ipfs/ipfs/ipns/bar"
-test_expect_success "Add the test directory" '
-  mkdir -p testdirlisting/ipfs/ipns &&
-  echo "hello" > testdirlisting/hello &&
-  echo "text-file-content" > testdirlisting/ipfs/ipns/bar &&
-  mkdir -p testdirlisting/api &&
-  mkdir -p testdirlisting/ipfs &&
-  echo "I am a txt file" > testdirlisting/api/file.txt &&
-  echo "I am a txt file" > testdirlisting/ipfs/file.txt &&
-  DIR_CID=$(ipfs add -Qr --cid-version 1 testdirlisting)
-'
+CIDv0to1=bafybeiffndsajwhk3lwjewwdxqntmjm4b5wxaaanokonsggenkbw6slwk4
+CIDv1_TOO_LONG=bafkrgqhhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dlfsthi4hn7zgh4uvlsb5xncykzapi3ocd4lzogukir6ksdy6wzrnz6ohnv4aglcs
+DIR_CID=bafybeiht6dtwk3les7vqm6ibpvz6qpohidvlshsfyr7l5mpysdw2vmbbhe # ./testdirlisting
 
 test_expect_success "Publish test text file to IPNS using RSA keys" '
   RSA_KEY=$(ipfs key gen --ipns-base=b58mh --type=rsa --size=2048 test_key_rsa | head -n1 | tr -d "\n")
@@ -600,8 +592,6 @@ test_expect_success \
 IPNS_KEY="test_key_ed25519"
 IPNS_ED25519_B58MH=$(ipfs key list -l --ipns-base b58mh | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
 IPNS_ED25519_B36CID=$(ipfs key list -l --ipns-base base36 | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
-# sha512 will be over 63char limit, even when represented in Base36
-CIDv1_TOO_LONG=$(echo $CID_VAL | ipfs add --cid-version 1 --hash sha2-512 -Q)
 
 # local: *.localhost
 test_localhost_gateway_response_should_contain \

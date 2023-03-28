@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 )
@@ -218,6 +220,11 @@ type OptionalDuration struct {
 	value *time.Duration
 }
 
+// NewOptionalDuration returns an OptionalDuration from a string
+func NewOptionalDuration(d time.Duration) *OptionalDuration {
+	return &OptionalDuration{value: &d}
+}
+
 func (d *OptionalDuration) UnmarshalJSON(input []byte) error {
 	switch string(input) {
 	case "null", "undefined", "\"null\"", "", "default", "\"\"", "\"default\"":
@@ -301,6 +308,11 @@ type OptionalInteger struct {
 	value *int64
 }
 
+// NewOptionalInteger returns an OptionalInteger from a int64
+func NewOptionalInteger(v int64) *OptionalInteger {
+	return &OptionalInteger{value: &v}
+}
+
 // WithDefault resolves the integer with the given default.
 func (p *OptionalInteger) WithDefault(defaultValue int64) (value int64) {
 	if p == nil || p.value == nil {
@@ -340,7 +352,7 @@ func (p OptionalInteger) String() string {
 	if p.value == nil {
 		return "default"
 	}
-	return fmt.Sprintf("%d", p.value)
+	return fmt.Sprintf("%d", *p.value)
 }
 
 var _ json.Unmarshaler = (*OptionalInteger)(nil)
@@ -402,3 +414,27 @@ func (p OptionalString) String() string {
 
 var _ json.Unmarshaler = (*OptionalInteger)(nil)
 var _ json.Marshaler = (*OptionalInteger)(nil)
+
+type swarmLimits struct{}
+
+var _ json.Unmarshaler = swarmLimits{}
+
+func (swarmLimits) UnmarshalJSON(b []byte) error {
+	d := json.NewDecoder(bytes.NewReader(b))
+	for {
+		switch tok, err := d.Token(); err {
+		case io.EOF:
+			return nil
+		case nil:
+			switch tok {
+			case json.Delim('{'), json.Delim('}'):
+				// accept empty objects
+				continue
+			}
+			//nolint
+			return fmt.Errorf("The Swarm.ResourceMgr.Limits configuration has been removed in Kubo 0.19 and should be empty or not present. To set custom libp2p limits, read https://github.com/ipfs/kubo/blob/master/docs/libp2p-resource-management.md#user-supplied-override-limits")
+		default:
+			return err
+		}
+	}
+}

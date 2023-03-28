@@ -1,4 +1,4 @@
-name: Publish Docker image
+name: Docker Push
 
 on:
   workflow_dispatch:
@@ -9,11 +9,15 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
-  push_to_registry:
+  docker-hub:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     env:
       IMAGE_NAME: ipfs/kubo
       LEGACY_IMAGE_NAME: ipfs/go-ipfs
@@ -30,15 +34,15 @@ jobs:
       - name: Get tags
         id: tags
         run: |
-          TAGS="$(./bin/get-docker-tags.sh $(date -u +%F))"
-          TAGS="${TAGS//$'\n'/'%0A'}"
-          echo "::set-output name=value::$(echo $TAGS)"
+          echo "value<<EOF" >> $GITHUB_OUTPUT
+          ./bin/get-docker-tags.sh "$(date -u +%F)" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
 
       - name: Log in to Docker Hub
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image and publish to Docker Hub

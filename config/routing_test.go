@@ -13,7 +13,7 @@ func TestRouterParameters(t *testing.T) {
 	sec := time.Second
 	min := time.Minute
 	r := Routing{
-		Type: "custom",
+		Type: NewOptionalString("custom"),
 		Routers: map[string]RouterParser{
 			"router-dht": {Router{
 				Type: RouterTypeDHT,
@@ -113,7 +113,7 @@ func TestRouterMissingParameters(t *testing.T) {
 	require := require.New(t)
 
 	r := Routing{
-		Type: "custom",
+		Type: NewOptionalString("custom"),
 		Routers: map[string]RouterParser{
 			"router-wrong-reframe": {Router{
 				Type: RouterTypeReframe,

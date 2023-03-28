@@ -12,8 +12,8 @@ import (
 
 	"github.com/cheggaaa/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-libipfs/files"
 	mfs "github.com/ipfs/go-mfs"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -209,9 +209,6 @@ See 'dag export' and 'dag import' for more information.
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
 			return fmt.Errorf("unrecognized hash function: %q", strings.ToLower(hashFunStr))
-		}
-		if _, err := mh.GetHasher(hashFunCode); err != nil {
-			return err
 		}
 
 		enc, err := cmdenv.GetCidEncoder(req)

@@ -221,7 +221,7 @@ func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 			API:   []string{"/ip4/127.0.0.1/tcp/0"},
 		},
 		Routing: config.Routing{
-			Type:    "custom",
+			Type:    config.NewOptionalString("custom"),
 			Routers: routers,
 			Methods: config.Methods{
 				config.MethodNameFindPeers: config.Method{

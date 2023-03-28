@@ -10,28 +10,29 @@ import (
 	"strings"
 
 	version "github.com/ipfs/kubo"
-	core "github.com/ipfs/kubo/core"
-	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
 	kb "github.com/libp2p/go-libp2p-kbucket"
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
-	peer "github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	pstore "github.com/libp2p/go-libp2p/core/peerstore"
-	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
 const offlineIDErrorMessage = "'ipfs id' cannot query information on remote peers without a running daemon; if you only want to convert --peerid-base, pass --offline option"
 
-type IdOutput struct { //nolint
+type IdOutput struct { // nolint
 	ID              string
 	PublicKey       string
 	Addresses       []string
 	AgentVersion    string
 	ProtocolVersion string
-	Protocols       []string
+	Protocols       []protocol.ID
 }
 
 const (
@@ -129,7 +130,7 @@ EXAMPLE:
 				output = strings.Replace(output, "<pver>", out.ProtocolVersion, -1)
 				output = strings.Replace(output, "<pubkey>", out.PublicKey, -1)
 				output = strings.Replace(output, "<addrs>", strings.Join(out.Addresses, "\n"), -1)
-				output = strings.Replace(output, "<protocols>", strings.Join(out.Protocols, "\n"), -1)
+				output = strings.Replace(output, "<protocols>", strings.Join(protocol.ConvertToStrings(out.Protocols), "\n"), -1)
 				output = strings.Replace(output, "\\n", "\n", -1)
 				output = strings.Replace(output, "\\t", "\t", -1)
 				fmt.Fprint(w, output)
@@ -175,10 +176,8 @@ func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (interface{
 	sort.Strings(info.Addresses)
 
 	protocols, _ := ps.GetProtocols(p) // don't care about errors here.
-	for _, p := range protocols {
-		info.Protocols = append(info.Protocols, string(p))
-	}
-	sort.Strings(info.Protocols)
+	info.Protocols = append(info.Protocols, protocols...)
+	sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
 
 	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
 		if vs, ok := v.(string); ok {
@@ -216,7 +215,7 @@ func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (interface{}, error) {
 		}
 		sort.Strings(info.Addresses)
 		info.Protocols = node.PeerHost.Mux().Protocols()
-		sort.Strings(info.Protocols)
+		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
 	}
 	info.ProtocolVersion = identify.DefaultProtocolVersion
 	info.AgentVersion = version.GetUserAgentVersion()

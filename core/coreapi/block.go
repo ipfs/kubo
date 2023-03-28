@@ -6,9 +6,9 @@ import (
 	"errors"
 	"io"
 
-	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	pin "github.com/ipfs/go-ipfs-pinner"
+	blocks "github.com/ipfs/go-libipfs/blocks"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
@@ -60,7 +60,9 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 	}
 
 	if settings.Pin {
-		api.pinning.PinWithMode(b.Cid(), pin.Recursive)
+		if err = api.pinning.PinWithMode(ctx, b.Cid(), pin.Recursive); err != nil {
+			return nil, err
+		}
 		if err := api.pinning.Flush(ctx); err != nil {
 			return nil, err
 		}
