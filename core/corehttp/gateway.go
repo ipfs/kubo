@@ -48,6 +48,8 @@ func GatewayOption(paths ...string) ServeOption {
 		}
 
 		gw := gateway.NewHandler(gwConfig, gwAPI)
+		// TODO: Add otelhttp.WithPropagators(tracing.Propagator()) option to
+		// propagate traces through the gateway once we test this feature.
 		gw = otelhttp.NewHandler(gw, "Gateway.Request")
 
 		// By default, our HTTP handler is the gateway handler.
