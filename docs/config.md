@@ -1160,15 +1160,13 @@ Type: `duration`
 
 ## `Pubsub`
 
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
-
 Pubsub configures the `ipfs pubsub` subsystem. To use, it must be enabled by
 passing the `--enable-pubsub-experiment` flag to the daemon
 or via the `Pubsub.Enabled` flag below.
 
 ### `Pubsub.Enabled`
 
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+**EXPERIMENTAL:** read about current limitations at [experimental-features.md#ipfs-pubsub](./experimental-features.md#ipfs-pubsub).
 
 Enables the pubsub system.
 
@@ -1177,8 +1175,6 @@ Default: `false`
 Type: `flag`
 
 ### `Pubsub.Router`
-
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Sets the default router used by pubsub to route messages to peers. This can be one of:
 
@@ -1195,8 +1191,6 @@ Type: `string` (one of `"floodsub"`, `"gossipsub"`, or `""` (apply default))
 
 ### `Pubsub.DisableSigning`
 
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
-
 Disables message signing and signature verification. Enable this option if
 you're operating in a completely trusted network.
 
@@ -1209,8 +1203,6 @@ Default: `false`
 Type: `bool`
 
 ### `Pubsub.SeenMessagesTTL`
-
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Controls the time window within which duplicate messages, identified by Message
 ID, will be identified and won't be emitted again.
@@ -1230,8 +1222,6 @@ Default: see `TimeCacheDuration` from [go-libp2p-pubsub](https://github.com/libp
 Type: `optionalDuration`
 
 ### `Pubsub.SeenMessagesStrategy`
-
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Determines how the time-to-live (TTL) countdown for deduplicating Pubsub
 messages is calculated.

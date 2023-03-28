@@ -11,7 +11,7 @@ Kubo was the first IPFS implementation and is the most widely used one today. Im
 Featureset
 - Runs an IPFS-Node as a network service
 - [Command Line Interface](https://docs.ipfs.tech/reference/kubo/cli/) to IPFS-Nodes
-- Local [Web2-to-Web3 HTTP Gateway functionality](https://github.com/ipfs/specs/tree/main/http-gateways#readme)
+- Local [Web2-to-Web3 HTTP Gateway functionality](https://github.com/ipfs/specs/tree/main/http-gateways#readme) 
 - HTTP RPC API (`/api/v0`) to access and control the daemon
 - IPFS's internal Webgui can be used to manage the Kubo nodes
 
@@ -380,6 +380,7 @@ Some places to get you started on the codebase:
 - libp2p
   - libp2p: https://github.com/libp2p/go-libp2p
   - DHT: https://github.com/libp2p/go-libp2p-kad-dht
+  - PubSub: https://github.com/libp2p/go-libp2p-pubsub
 - [IPFS : The `Add` command demystified](https://github.com/ipfs/kubo/tree/master/docs/add-code-flow.md)
 
 ### Map of Implemented Subsystems
