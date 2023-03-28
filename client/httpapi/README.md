@@ -17,6 +17,41 @@ greatest features, please use _this_ package.
 
 https://godoc.org/github.com/ipfs/go-ipfs-http-api
 
+### Example
+
+Pin file on your local IPFS node based on its CID:
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+
+    ipfsClient "github.com/ipfs/go-ipfs-http-client"
+    path "github.com/ipfs/interface-go-ipfs-core/path"
+)
+
+func main() {
+    // "Connect" to local node
+    node, err := ipfsClient.NewLocalApi()
+    if err != nil {
+        fmt.Printf(err)
+        return
+    }
+    // Pin a given file by its CID
+    ctx := context.Background()
+    cid := "bafkreidtuosuw37f5xmn65b3ksdiikajy7pwjjslzj2lxxz2vc4wdy3zku"
+    p := path.New(cid)
+    err = node.Pin().Add(ctx, p)
+    if err != nil {
+    	fmt.Printf(err)
+        return
+    }
+    return
+}
+```
+
 ## Contribute
 
 Feel free to join in. All welcome. Open an [issue](https://github.com/ipfs/go-ipfs-http-api/issues)!
