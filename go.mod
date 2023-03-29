@@ -28,7 +28,7 @@ require (
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ds-measure v0.2.0
 	github.com/ipfs/go-fs-lock v0.0.7
-	github.com/ipfs/go-graphsync v0.14.0
+	github.com/ipfs/go-graphsync v0.14.3
 	github.com/ipfs/go-ipfs-cmds v0.9.0
 	github.com/ipfs/go-ipld-format v0.4.0
 	github.com/ipfs/go-ipld-git v0.1.1
@@ -139,7 +139,6 @@ require (
 	github.com/ipfs/go-ipfs-blockstore v1.3.0 // indirect
 	github.com/ipfs/go-ipfs-delay v0.0.1 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.0 // indirect
-	github.com/ipfs/go-ipfs-files v0.3.0 // indirect
 	github.com/ipfs/go-ipfs-pq v0.0.3 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.1 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
