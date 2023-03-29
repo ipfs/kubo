@@ -100,7 +100,7 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	defopts.MaxConcurrentCompactions = func() int {
 		return 10
 	}
-	defopts.MaxOpenFiles = 50000 // default: 1000
+	defopts.MaxOpenFiles = 200000 // default: 1000
 	defopts.MemTableStopWritesThreshold = 4
 	defopts.Experimental.MaxWriterConcurrency = 10
 	defopts.MaxManifestFileSize = 1 << 30 // Default: 128MB
