@@ -65,7 +65,6 @@ func ConstructDefaultRouting(peerID string, addrs []string, privKey string, rout
 		routers = append(routers, &routinghelpers.ParallelRouter{
 			Router:       dhtRouting,
 			IgnoreError:  false,
-			Timeout:      5 * time.Minute, // https://github.com/ipfs/kubo/pull/9475#discussion_r1042501333
 			ExecuteAfter: 0,
 		})
 
