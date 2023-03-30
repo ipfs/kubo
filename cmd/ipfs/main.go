@@ -60,10 +60,18 @@ const (
 	heapProfile        = "ipfs.memprof"
 )
 
-func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
+type PluginPreloader func(*loader.PluginLoader) error
+
+func LoadPlugins(repoPath string, preload PluginPreloader) (*loader.PluginLoader, error) {
 	plugins, err := loader.NewPluginLoader(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("error loading plugins: %s", err)
+	}
+
+	if preload != nil {
+		if err := preload(plugins); err != nil {
+			return nil, fmt.Errorf("error loading plugins (preload): %s", err)
+		}
 	}
 
 	if err := plugins.Initialize(); err != nil {
@@ -83,7 +91,7 @@ func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
 // - output the response
 // - if anything fails, print error, maybe with help.
 func main() {
-	os.Exit(mainRet())
+	os.Exit(Start(BuildDefaultEnv))
 }
 
 func printErr(err error) int {
@@ -101,7 +109,54 @@ func newUUID(key string) logging.Metadata {
 	}
 }
 
-func mainRet() (exitCode int) {
+func BuildDefaultEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
+	return BuildEnv(ctx, req, nil)
+}
+
+func BuildEnv(ctx context.Context, req *cmds.Request, pl PluginPreloader) (cmds.Environment, error) {
+	checkDebug(req)
+	repoPath, err := GetRepoPath(req)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("config path is %s", repoPath)
+
+	plugins, err := LoadPlugins(repoPath, pl)
+	if err != nil {
+		return nil, err
+	}
+
+	// this sets up the function that will initialize the node
+	// this is so that we can construct the node lazily.
+	return &oldcmds.Context{
+		ConfigRoot: repoPath,
+		ReqLog:     &oldcmds.ReqLog{},
+		Plugins:    plugins,
+		ConstructNode: func() (n *core.IpfsNode, err error) {
+			if req == nil {
+				return nil, errors.New("constructing node without a request")
+			}
+
+			r, err := fsrepo.Open(repoPath)
+			if err != nil { // repo is owned by the node
+				return nil, err
+			}
+
+			// ok everything is good. set it on the invocation (for ownership)
+			// and return it.
+			n, err = core.NewNode(ctx, &core.BuildCfg{
+				Repo: r,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			return n, nil
+		},
+	}, nil
+}
+
+func Start(buildEnv func(ctx context.Context, req *cmds.Request) (cmds.Environment, error)) (exitCode int) {
 	ctx := logging.ContextWithLoggable(context.Background(), newUUID("session"))
 
 	tp, err := tracing.NewTracerProvider(ctx)
@@ -154,49 +209,6 @@ func mainRet() (exitCode int) {
 	// output depends on executable name passed in os.Args
 	// so we need to make sure it's stable
 	os.Args[0] = "ipfs"
-
-	buildEnv := func(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
-		checkDebug(req)
-		repoPath, err := getRepoPath(req)
-		if err != nil {
-			return nil, err
-		}
-		log.Debugf("config path is %s", repoPath)
-
-		plugins, err := loadPlugins(repoPath)
-		if err != nil {
-			return nil, err
-		}
-
-		// this sets up the function that will initialize the node
-		// this is so that we can construct the node lazily.
-		return &oldcmds.Context{
-			ConfigRoot: repoPath,
-			ReqLog:     &oldcmds.ReqLog{},
-			Plugins:    plugins,
-			ConstructNode: func() (n *core.IpfsNode, err error) {
-				if req == nil {
-					return nil, errors.New("constructing node without a request")
-				}
-
-				r, err := fsrepo.Open(repoPath)
-				if err != nil { // repo is owned by the node
-					return nil, err
-				}
-
-				// ok everything is good. set it on the invocation (for ownership)
-				// and return it.
-				n, err = core.NewNode(ctx, &core.BuildCfg{
-					Repo: r,
-				})
-				if err != nil {
-					return nil, err
-				}
-
-				return n, nil
-			},
-		}, nil
-	}
 
 	err = cli.Run(ctx, Root, os.Args, os.Stdin, os.Stdout, os.Stderr, buildEnv, makeExecutor)
 	if err != nil {
@@ -364,7 +376,7 @@ func (twe tracingWrappedExecutor) Execute(req *cmds.Request, re cmds.ResponseEmi
 	return err
 }
 
-func getRepoPath(req *cmds.Request) (string, error) {
+func GetRepoPath(req *cmds.Request) (string, error) {
 	repoOpt, found := req.Options[corecmds.RepoDirOption].(string)
 	if found && repoOpt != "" {
 		return repoOpt, nil
