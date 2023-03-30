@@ -47,19 +47,19 @@ func TestSwarm(t *testing.T) {
 
 		res := node.RunIPFS("swarm", "peers", "--enc=json", "--identify")
 		var output expectedOutputType
-		json.Unmarshal(res.Stdout.Bytes(), &output)
-
-		actualId := output.Peers[0].Identify.ID
+		err := json.Unmarshal(res.Stdout.Bytes(), &output)
+        assert.Nil(t, err)
+		actualID := output.Peers[0].Identify.ID
 		actualPublicKey := output.Peers[0].Identify.PublicKey
 		actualAgentVersion := output.Peers[0].Identify.AgentVersion
 		actualAdresses := output.Peers[0].Identify.Addresses
 		actualProtocolVersion := output.Peers[0].Identify.ProtocolVersion
 		actualProtocols := output.Peers[0].Identify.Protocols
 
-		expectedId := otherNode.PeerID().String()
-		expectedAddresses := []string{fmt.Sprintf("%s/p2p/%s", otherNode.SwarmAddrs()[0], actualId)}
+		expectedID := otherNode.PeerID().String()
+		expectedAddresses := []string{fmt.Sprintf("%s/p2p/%s", otherNode.SwarmAddrs()[0], actualID)}
 
-		assert.Equal(t, actualId, expectedId)
+		assert.Equal(t, actualID, expectedID)
 		assert.NotNil(t, actualPublicKey)
 		assert.NotNil(t, actualAgentVersion)
 		assert.NotNil(t, actualProtocolVersion)
@@ -77,12 +77,13 @@ func TestSwarm(t *testing.T) {
 
 		otherNodeIDResponse := otherNode.RunIPFS("id", "--enc=json")
 		var otherNodeIDOutput identifyType
-		json.Unmarshal(otherNodeIDResponse.Stdout.Bytes(), &otherNodeIDOutput)
-
+		err := json.Unmarshal(otherNodeIDResponse.Stdout.Bytes(), &otherNodeIDOutput)
+        assert.Nil(t,err)
 		res := node.RunIPFS("swarm", "peers", "--enc=json", "--identify")
 
 		var output expectedOutputType
-		json.Unmarshal(res.Stdout.Bytes(), &output)
+		err = json.Unmarshal(res.Stdout.Bytes(), &output)
+        assert.Nil(t,err)
 		outputIdentify := output.Peers[0].Identify
 
 		assert.Equal(t, outputIdentify.ID, otherNodeIDOutput.ID)
