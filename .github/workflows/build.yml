@@ -10,6 +10,10 @@ on:
 env:
   GO_VERSION: 1.19.1
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   interop-prep:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
