@@ -1,4 +1,4 @@
-package main
+package kubo
 
 import (
 	commands "github.com/ipfs/kubo/core/commands"
