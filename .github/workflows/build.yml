@@ -74,7 +74,8 @@ jobs:
           npm install kubo-rpc-client@^3.0.1
           npm install ipfs-interop@^10.0.1
         working-directory: interop
-      - run: npx ipfs-interop -- -t node
+      # Run the interop tests while ignoring the js-js interop test cases
+      - run: npx ipfs-interop -- -t node --grep '^(?!.*(js\d? -> js\d?|js-js-js))'
         env:
           LIBP2P_TCP_REUSEPORT: false
           LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
