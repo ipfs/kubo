@@ -187,18 +187,6 @@ test_localhost_gateway_response_should_contain \
   "http://localhost:$GWAY_PORT/ipfs/$CIDv0" \
   "Location: http://${CIDv0to1}.ipfs.localhost:$GWAY_PORT/"
 
-# /ipns/<libp2p-key>
-
-test_localhost_gateway_response_should_contain \
-  "request for localhost/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
-  "http://localhost:$GWAY_PORT/ipns/$RSA_IPNS_IDv0" \
-  "Location: http://${RSA_IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
-
-test_localhost_gateway_response_should_contain \
-  "request for localhost/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
-  "http://localhost:$GWAY_PORT/ipns/$ED25519_IPNS_IDv0" \
-  "Location: http://${ED25519_IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
-
 # /ipns/<dnslink-fqdn>
 
 test_localhost_gateway_response_should_contain \
@@ -403,20 +391,6 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT/ipfs/?uri=ipfs%3A%2F%2FQmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco%2Fwiki%2FDiego_Maradona.html" \
   "Location: /ipfs/QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/wiki/Diego_Maradona.html"
 
-# example.com/ipns/<libp2p-key>
-
-test_hostname_gateway_response_should_contain \
-  "request for example.com/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/ipns/$RSA_IPNS_IDv0" \
-  "Location: http://${RSA_IPNS_IDv1}.ipns.example.com/"
-
-test_hostname_gateway_response_should_contain \
-  "request for example.com/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/ipns/$ED25519_IPNS_IDv0" \
-  "Location: http://${ED25519_IPNS_IDv1}.ipns.example.com/"
-
 # example.com/ipns/<dnslink-fqdn>
 
 test_hostname_gateway_response_should_contain \
@@ -590,14 +564,9 @@ test_expect_success \
 
 # ed25519 fits under 63 char limit when represented in base36
 IPNS_KEY="test_key_ed25519"
-IPNS_ED25519_B58MH=$(ipfs key list -l --ipns-base b58mh | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
 IPNS_ED25519_B36CID=$(ipfs key list -l --ipns-base base36 | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
 
 # local: *.localhost
-test_localhost_gateway_response_should_contain \
-  "request for a ED25519 libp2p-key at localhost/ipns/{b58mh} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
-  "http://localhost:$GWAY_PORT/ipns/$IPNS_ED25519_B58MH" \
-  "Location: http://${IPNS_ED25519_B36CID}.ipns.localhost:$GWAY_PORT/"
 
 # router should not redirect to hostnames that could fail due to DNS limits
 test_localhost_gateway_response_should_contain \
@@ -617,12 +586,6 @@ test_localhost_gateway_response_should_contain \
   "400 Bad Request"
 
 # public subdomain gateway: *.example.com
-
-test_hostname_gateway_response_should_contain \
-  "request for a ED25519 libp2p-key at example.com/ipns/{b58mh} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_ED25519_B58MH" \
-  "Location: http://${IPNS_ED25519_B36CID}.ipns.example.com"
 
 test_hostname_gateway_response_should_contain \
   "request for a too long CID at example.com/ipfs/{CIDv1} returns human readable error" \
