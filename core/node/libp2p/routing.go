@@ -186,7 +186,6 @@ func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	var cRouters []*routinghelpers.ParallelRouter
 	for _, v := range routers {
 		cRouters = append(cRouters, &routinghelpers.ParallelRouter{
-			Timeout:     5 * time.Minute,
 			IgnoreError: true,
 			Router:      v.Routing,
 		})
