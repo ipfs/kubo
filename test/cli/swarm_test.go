@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TODO: Migrate the rest of the sharness swarm test.
 func TestSwarm(t *testing.T) {
 	type identifyType struct {
 		ID              string
