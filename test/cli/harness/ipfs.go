@@ -78,3 +78,22 @@ func (n *Node) IPFSAdd(content io.Reader, args ...string) string {
 	log.Debugf("add result: %q", out)
 	return out
 }
+
+func (n *Node) IPFSDagImport(content io.Reader, cid string, args ...string) error {
+	log.Debugf("node %d dag import with args: %v", n.ID, args)
+	fullArgs := []string{"dag", "import", "--pin-roots=false"}
+	fullArgs = append(fullArgs, args...)
+	res := n.Runner.MustRun(RunRequest{
+		Path:    n.IPFSBin,
+		Args:    fullArgs,
+		CmdOpts: []CmdOpt{RunWithStdin(content)},
+	})
+	if res.Err != nil {
+		return res.Err
+	}
+	res = n.Runner.MustRun(RunRequest{
+		Path: n.IPFSBin,
+		Args: []string{"block", "stat", "--offline", cid},
+	})
+	return res.Err
+}

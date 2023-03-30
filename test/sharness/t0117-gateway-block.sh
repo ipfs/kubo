@@ -29,6 +29,21 @@ FILE_CID=bafkreihhpc5y2pqvl5rbe5uuyhqjouybfs3rvlmisccgzue2kkt5zq6upq # ./dir/asc
     test_cmp expected_block curl_ipfs_dir_block_accept_output
     '
 
+    test_expect_success "GET for application/vnd.ipld.raw with single range request includes correct bytes" '
+    echo -n "application" > expected_file_block_single_range &&
+    curl -sX GET -H "Accept: application/vnd.ipld.raw" -H "Range: bytes=6-16" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" -o curl_ipfs_file_block_single_range &&
+    test_cmp expected_file_block_single_range curl_ipfs_file_block_single_range
+    '
+
+    test_expect_success "GET for application/vnd.ipld.raw with multiple range request includes correct bytes" '
+    curl -sX GET -H "Accept: application/vnd.ipld.raw" -H "Range: bytes=6-16,0-4" "http://127.0.0.1:$GWAY_PORT/ipfs/$FILE_CID" -o curl_ipfs_file_block_multiple_range &&
+    test_should_contain "Content-Range: bytes 6-16/31" curl_ipfs_file_block_multiple_range &&
+    test_should_contain "Content-Type: application/vnd.ipld.raw" curl_ipfs_file_block_multiple_range &&
+    test_should_contain "application" curl_ipfs_file_block_multiple_range &&
+    test_should_contain "Content-Range: bytes 0-4/31" curl_ipfs_file_block_multiple_range &&
+    test_should_contain "hello" curl_ipfs_file_block_multiple_range
+    '
+
 # Make sure expected HTTP headers are returned with the block bytes
 
     test_expect_success "GET response for application/vnd.ipld.raw has expected Content-Type" '
