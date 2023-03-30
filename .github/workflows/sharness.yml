@@ -29,24 +29,10 @@ jobs:
           path: kubo
       - name: Install missing tools
         run: sudo apt install -y socat net-tools fish libxml2-utils
-      - name: Checkout IPFS Pinning Service API
-        uses: actions/checkout@v3
-        with:
-          repository: ipfs-shipyard/rb-pinning-service-api
-          ref: 773c3adbb421c551d2d89288abac3e01e1f7c3a8
-          path: rb-pinning-service-api
-      # TODO: check if docker compose (not docker-compose) is available on default gh runners
-      - name: Start IPFS Pinning Service API
-        run: |
-          (for i in {1..3}; do docker compose pull && break || sleep 5; done) &&
-            docker compose up -d
-        working-directory: rb-pinning-service-api
       - name: Restore Go Cache
         uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
-      - name: Find IPFS Pinning Service API address
-        run: echo "TEST_DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $GITHUB_ENV
       - uses: actions/cache@v3
         with:
           path: test/sharness/lib/dependencies
