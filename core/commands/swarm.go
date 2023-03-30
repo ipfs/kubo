@@ -425,13 +425,13 @@ type streamInfo struct {
 }
 
 type connInfo struct {
-	Addr      string
-	Peer      string
-	Latency   string
-	Muxer     string
-	Direction inet.Direction
-	Streams   []streamInfo
-	Identify  IdOutput
+	Addr      string         `json:",omitempty"`
+	Peer      string         `json:",omitempty"`
+	Latency   string         `json:",omitempty"`
+	Muxer     string         `json:",omitempty"`
+	Direction inet.Direction `json:",omitempty"`
+	Streams   []streamInfo   `json:",omitempty"`
+	Identify  IdOutput       `json:",omitempty"`
 }
 
 func (ci *connInfo) Less(i, j int) bool {
