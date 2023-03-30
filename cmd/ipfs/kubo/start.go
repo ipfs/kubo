@@ -91,50 +91,52 @@ func newUUID(key string) logging.Metadata {
 }
 
 func BuildDefaultEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
-	return BuildEnv(ctx, req, nil)
+	return BuildEnv(nil)(ctx, req)
 }
 
-func BuildEnv(ctx context.Context, req *cmds.Request, pl PluginPreloader) (cmds.Environment, error) {
-	checkDebug(req)
-	repoPath, err := GetRepoPath(req)
-	if err != nil {
-		return nil, err
+func BuildEnv(pl PluginPreloader) func(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
+	return func(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
+		checkDebug(req)
+		repoPath, err := GetRepoPath(req)
+		if err != nil {
+			return nil, err
+		}
+		log.Debugf("config path is %s", repoPath)
+
+		plugins, err := LoadPlugins(repoPath, pl)
+		if err != nil {
+			return nil, err
+		}
+
+		// this sets up the function that will initialize the node
+		// this is so that we can construct the node lazily.
+		return &oldcmds.Context{
+			ConfigRoot: repoPath,
+			ReqLog:     &oldcmds.ReqLog{},
+			Plugins:    plugins,
+			ConstructNode: func() (n *core.IpfsNode, err error) {
+				if req == nil {
+					return nil, errors.New("constructing node without a request")
+				}
+
+				r, err := fsrepo.Open(repoPath)
+				if err != nil { // repo is owned by the node
+					return nil, err
+				}
+
+				// ok everything is good. set it on the invocation (for ownership)
+				// and return it.
+				n, err = core.NewNode(ctx, &core.BuildCfg{
+					Repo: r,
+				})
+				if err != nil {
+					return nil, err
+				}
+
+				return n, nil
+			},
+		}, nil
 	}
-	log.Debugf("config path is %s", repoPath)
-
-	plugins, err := LoadPlugins(repoPath, pl)
-	if err != nil {
-		return nil, err
-	}
-
-	// this sets up the function that will initialize the node
-	// this is so that we can construct the node lazily.
-	return &oldcmds.Context{
-		ConfigRoot: repoPath,
-		ReqLog:     &oldcmds.ReqLog{},
-		Plugins:    plugins,
-		ConstructNode: func() (n *core.IpfsNode, err error) {
-			if req == nil {
-				return nil, errors.New("constructing node without a request")
-			}
-
-			r, err := fsrepo.Open(repoPath)
-			if err != nil { // repo is owned by the node
-				return nil, err
-			}
-
-			// ok everything is good. set it on the invocation (for ownership)
-			// and return it.
-			n, err = core.NewNode(ctx, &core.BuildCfg{
-				Repo: r,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			return n, nil
-		},
-	}, nil
 }
 
 func Start(buildEnv func(ctx context.Context, req *cmds.Request) (cmds.Environment, error)) (exitCode int) {
