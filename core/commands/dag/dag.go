@@ -2,6 +2,7 @@ package dagcmd
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -278,8 +279,8 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 // DagStat is a dag stat command response
 
 type DagStat struct {
-	Cid       cid.Cid
-	Size      uint64
+	Cid       cid.Cid 
+	Size      uint64 
 	NumBlocks int64
 }
 
@@ -288,8 +289,8 @@ func (s *DagStat) String() string {
 }
 
 type DagStatSummary struct {
-	redundantSize uint64
-	UniqueBlocks  int
+	redundantSize uint64   `json:"-"`
+	UniqueBlocks  int      
 	TotalSize     uint64
 	SharedSize    uint64
 	Ratio         float32
@@ -368,5 +369,11 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 			fmt.Print("\n\n")
 			return err
 		}),
+		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer,event *DagStatSummary) error {
+			return json.NewEncoder(w).Encode(event)
+		},
+	
+	),
 	},
+	
 }
