@@ -56,7 +56,7 @@ jobs:
         run: |
           ./ipfs init
           ./ipfs config --json Gateway.PublicGateways "$GATEWAY_PUBLIC_GATEWAYS"
-          ./ipfs daemon &
+          ./ipfs daemon --offline &
         working-directory: kubo-gateway/cmd/ipfs
 
       # 4. Populate the Kubo gateway with the gateway-conformance fixtures
