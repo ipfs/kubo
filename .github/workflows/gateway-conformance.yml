@@ -45,12 +45,12 @@ jobs:
             {
               "example.com": {
                 "UseSubdomains": true,
-                "Paths": ["/ipfs", "/ipns", "/api"]
+                "Paths": ["/ipfs", "/ipns"]
               },
               "localhost": {
                 "UseSubdomains": true,
                 "InlineDNSLink": true,
-                "Paths": ["/ipfs", "/ipns", "/api"]
+                "Paths": ["/ipfs", "/ipns"]
               }
             }
         run: |
