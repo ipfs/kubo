@@ -275,13 +275,56 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 }
 
 // DagStat is a dag stat command response
+
 type DagStat struct {
+	Cid       cid.Cid
 	Size      uint64
 	NumBlocks int64
 }
 
 func (s *DagStat) String() string {
-	return fmt.Sprintf("Size: %d, NumBlocks: %d", s.Size, s.NumBlocks)
+	return fmt.Sprintf("%s  %d  %d", s.Cid.String(), s.Size, s.NumBlocks)
+}
+
+type DagStatSummary struct {
+	redundantSize uint64
+	UniqueBlocks  int
+	TotalSize     uint64
+	SharedSize    uint64
+	Ratio         float32
+}
+
+func (s *DagStatSummary) String() string {
+	return fmt.Sprintf("Total Size: %d\n Unique Blocks: %d\n Shared Size: %d\n Ratio: %f", s.TotalSize, s.UniqueBlocks, s.SharedSize, s.Ratio)
+}
+
+func (s *DagStatSummary) incrementTotalSize(size uint64) {
+	s.TotalSize += size
+}
+func (s *DagStatSummary) incrementRedundantSize(size uint64) {
+	s.redundantSize += size
+}
+
+type DagStatCalculator struct {
+	Summary    *DagStatSummary
+	CurrentDag *DagStat
+}
+
+func (m *DagStatCalculator) calculateRatio() {
+	if m.Summary.TotalSize > 0 {
+		m.Summary.Ratio = float32(m.Summary.redundantSize) / float32(m.Summary.TotalSize)
+	}
+}
+
+func (m *DagStatCalculator) calculateSharedSize() {
+	m.Summary.SharedSize = m.Summary.redundantSize - m.Summary.TotalSize
+}
+
+func (m *DagStatCalculator) String() string {
+	if m.CurrentDag == nil {
+		return m.Summary.String()
+	}
+	return m.CurrentDag.String()
 }
 
 // DagStatCmd is a command for getting size information about an ipfs-stored dag
@@ -296,18 +339,22 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "CID of a DAG root to get statistics for").EnableStdin(),
+
+		cmds.StringArg("root", true, true, "CID of a DAG root to get statistics for").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(progressOptionName, "p", "Return progressive data while reading through the DAG").WithDefault(true),
 	},
 	Run:  dagStat,
-	Type: DagStat{},
+	Type: DagStatCalculator{},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: finishCLIStat,
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStat) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStatCalculator) error {
+
+			fmt.Println("Summary")
+
 			_, err := fmt.Fprintf(
 				w,
 				"%v\n",
