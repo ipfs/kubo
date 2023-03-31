@@ -194,7 +194,7 @@ test_config_set() {
 }
 
 test_init_ipfs() {
-
+  args=("$@")
 
   # we set the Addresses.API config variable.
   # the cli client knows to use it, so only need to set.
@@ -202,7 +202,7 @@ test_init_ipfs() {
 
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
-    ipfs init --profile=test > /dev/null
+    ipfs init "${args[@]}" --profile=test > /dev/null
   '
 
   test_expect_success "prepare config -- mounting" '

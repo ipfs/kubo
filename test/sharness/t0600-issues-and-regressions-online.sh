@@ -4,7 +4,7 @@ test_description="Tests for various fixed issues and regressions."
 
 . lib/test-lib.sh
 
-test_init_ipfs
+test_init_ipfs --empty-repo=false
 
 test_launch_ipfs_daemon
 
