@@ -55,7 +55,7 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 		if err != nil {
 			return fmt.Errorf("error traversing DAG: %w", err)
 		}
-		dagStatSummary.DagStatsArray = append(dagStatSummary.DagStatsArray,dagstats)
+		dagStatSummary.DagStatsArray = append(dagStatSummary.DagStatsArray, dagstats)
 	}
 
 	dagStatSummary.UniqueBlocks = cidSet.Len()
