@@ -1,6 +1,7 @@
 package dagcmd
 
 import (
+	"encoding/csv"
 	"fmt"
 	"io"
 
@@ -283,7 +284,7 @@ type DagStat struct {
 }
 
 func (s *DagStat) String() string {
-	return fmt.Sprintf("%s  %d  %d", s.Cid.String(), s.Size, s.NumBlocks)
+	return fmt.Sprintf("%s  %d  %d", s.Cid.String()[:20], s.Size, s.NumBlocks)
 }
 
 type DagStatSummary struct {
@@ -292,10 +293,11 @@ type DagStatSummary struct {
 	TotalSize     uint64
 	SharedSize    uint64
 	Ratio         float32
+	DagStatsArray []*DagStat
 }
 
 func (s *DagStatSummary) String() string {
-	return fmt.Sprintf("Total Size: %d\n Unique Blocks: %d\n Shared Size: %d\n Ratio: %f", s.TotalSize, s.UniqueBlocks, s.SharedSize, s.Ratio)
+	return fmt.Sprintf("Total Size: %d\nUnique Blocks: %d\nShared Size: %d\nRatio: %f", s.TotalSize, s.UniqueBlocks, s.SharedSize, s.Ratio)
 }
 
 func (s *DagStatSummary) incrementTotalSize(size uint64) {
@@ -305,26 +307,14 @@ func (s *DagStatSummary) incrementRedundantSize(size uint64) {
 	s.redundantSize += size
 }
 
-type DagStatCalculator struct {
-	Summary    *DagStatSummary
-	CurrentDag *DagStat
-}
-
-func (m *DagStatCalculator) calculateRatio() {
-	if m.Summary.TotalSize > 0 {
-		m.Summary.Ratio = float32(m.Summary.redundantSize) / float32(m.Summary.TotalSize)
+func (s *DagStatSummary) calculateRatio() {
+	if s.TotalSize > 0 {
+		s.Ratio = float32(s.redundantSize) / float32(s.TotalSize)
 	}
 }
 
-func (m *DagStatCalculator) calculateSharedSize() {
-	m.Summary.SharedSize = m.Summary.redundantSize - m.Summary.TotalSize
-}
-
-func (m *DagStatCalculator) String() string {
-	if m.CurrentDag == nil {
-		return m.Summary.String()
-	}
-	return m.CurrentDag.String()
+func (s *DagStatSummary) calculateSharedSize() {
+	s.SharedSize = s.redundantSize - s.TotalSize
 }
 
 // DagStatCmd is a command for getting size information about an ipfs-stored dag
@@ -346,20 +336,36 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 		cmds.BoolOption(progressOptionName, "p", "Return progressive data while reading through the DAG").WithDefault(true),
 	},
 	Run:  dagStat,
-	Type: DagStatCalculator{},
+	Type: DagStatSummary{},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: finishCLIStat,
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStatCalculator) error {
-
-			fmt.Println("Summary")
-
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStatSummary) error {
+            csvWriter := csv.NewWriter(w)
+			csvWriter.Comma = '\t'
+			header := []string{"CID","Blocks","Size"}
+			fmt.Println()
+			csvWriter.Write(header)
+		    for _,dagStat := range event.DagStatsArray {
+				err := csvWriter.Write([]string{
+					dagStat.Cid.String()[:12],
+					fmt.Sprint(dagStat.NumBlocks),
+					fmt.Sprint(dagStat.Size),
+				})
+				if err != nil {
+					return err
+				}
+			}
+			csvWriter.Flush()
+			fmt.Print("\nSummary\n\n")
+            
 			_, err := fmt.Fprintf(
 				w,
 				"%v\n",
 				event,
 			)
+			fmt.Print("\n\n")
 			return err
 		}),
 	},

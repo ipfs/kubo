@@ -3,7 +3,6 @@ package dagcmd
 import (
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/ipfs/boxo/coreiface/path"
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
@@ -22,7 +21,7 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 	nodeGetter := mdag.NewSession(req.Context, api.Dag())
 
 	cidSet := cid.NewSet()
-	dagStatCalculator := &DagStatCalculator{Summary: &DagStatSummary{}}
+	dagStatSummary := &DagStatSummary{DagStatsArray: []*DagStat{}}
 	for _, a := range req.Arguments {
 		rp, err := api.ResolvePath(req.Context, path.New(a))
 		if err != nil {
@@ -44,9 +43,9 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 				dagstats.Size += uint64(len(current.Node.RawData()))
 				dagstats.NumBlocks++
 				if !cidSet.Has(current.Node.Cid()) {
-					dagStatCalculator.Summary.incrementTotalSize(dagstats.Size)
+					dagStatSummary.incrementTotalSize(dagstats.Size)
 				}
-				dagStatCalculator.Summary.incrementRedundantSize(dagstats.Size)
+				dagStatSummary.incrementRedundantSize(dagstats.Size)
 				cidSet.Add(current.Node.Cid())
 				return nil
 			},
@@ -56,17 +55,13 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 		if err != nil {
 			return fmt.Errorf("error traversing DAG: %w", err)
 		}
-		dagStatCalculator.CurrentDag = dagstats
-		if err := res.Emit(dagStatCalculator); err != nil {
-			return err
-		}
+		dagStatSummary.DagStatsArray = append(dagStatSummary.DagStatsArray,dagstats)
 	}
 
-	dagStatCalculator.Summary.UniqueBlocks = cidSet.Len()
-	dagStatCalculator.calculateSharedSize()
-	dagStatCalculator.calculateRatio()
-	dagStatCalculator.CurrentDag = nil
-	if err := res.Emit(dagStatCalculator); err != nil {
+	dagStatSummary.UniqueBlocks = cidSet.Len()
+	dagStatSummary.calculateSharedSize()
+	dagStatSummary.calculateRatio()
+	if err := res.Emit(dagStatSummary); err != nil {
 		return err
 	}
 	return nil
@@ -74,7 +69,7 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 
 func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
 
-	var dagStats *DagStatCalculator
+	var dagStats *DagStatSummary
 	for {
 		v, err := res.Next()
 		if err != nil {
@@ -84,12 +79,8 @@ func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
 			return err
 		}
 		switch out := v.(type) {
-		case *DagStatCalculator:
+		case *DagStatSummary:
 			dagStats = out
-			if out.CurrentDag != nil {
-				fmt.Fprint(os.Stderr, *out)
-				fmt.Fprint(os.Stderr, out)
-			}
 		default:
 			return e.TypeErr(out, v)
 		}
