@@ -279,22 +279,52 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 // DagStat is a dag stat command response
 
 type DagStat struct {
-	Cid       cid.Cid
-	Size      uint64
-	NumBlocks int64
+	Cid       cid.Cid `json:",omitempty"`
+	Size      uint64  `json:",omitempty"`
+	NumBlocks int64   `json:",omitempty"`
 }
 
 func (s *DagStat) String() string {
 	return fmt.Sprintf("%s  %d  %d", s.Cid.String()[:20], s.Size, s.NumBlocks)
 }
 
+func (s *DagStat) MarshalJSON() ([]byte, error) {
+	type Alias DagStat
+	return json.Marshal(&struct {
+		Cid string `json:"Cid"`
+		*Alias
+	}{
+		Cid:   s.Cid.String(),
+		Alias: (*Alias)(s),
+	})
+}
+
+func (s *DagStat) UnmarshalJSON(data []byte) error {
+	type Alias DagStat
+	aux := &struct {
+		Cid string `json:"Cid"`
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	Cid, err := cid.Parse(aux.Cid)
+	if err != nil {
+		return err
+	}
+	s.Cid = Cid
+	return nil
+}
+
 type DagStatSummary struct {
-	redundantSize uint64 `json:"-"`
-	UniqueBlocks  int
-	TotalSize     uint64
-	SharedSize    uint64
-	Ratio         float32
-	DagStatsArray []*DagStat
+	redundantSize uint64     `json:"-"`
+	UniqueBlocks  int        `json:",omitempty"`
+	TotalSize     uint64     `json:",omitempty"`
+	SharedSize    uint64     `json:",omitempty"`
+	Ratio         float32    `json:",omitempty"`
+	DagStatsArray []*DagStat `json:"DagStats,omitempty"`
 }
 
 func (s *DagStatSummary) String() string {
@@ -330,7 +360,6 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 `,
 	},
 	Arguments: []cmds.Argument{
-
 		cmds.StringArg("root", true, true, "CID of a DAG root to get statistics for").EnableStdin(),
 	},
 	Options: []cmds.Option{
@@ -343,15 +372,16 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStatSummary) error {
+			fmt.Println()
 			csvWriter := csv.NewWriter(w)
 			csvWriter.Comma = '\t'
-			header := []string{"CID", "Blocks", "Size"}
-			fmt.Println()
+			header := []string{fmt.Sprintf("%-*s", 46, "CID"), fmt.Sprintf("%-15s", "Blocks"), "Size"}
 			csvWriter.Write(header)
 			for _, dagStat := range event.DagStatsArray {
+				numBlocksStr := fmt.Sprint(dagStat.NumBlocks)
 				err := csvWriter.Write([]string{
-					dagStat.Cid.String()[:12],
-					fmt.Sprint(dagStat.NumBlocks),
+					dagStat.Cid.String(),
+					fmt.Sprintf("%-15s", numBlocksStr),
 					fmt.Sprint(dagStat.Size),
 				})
 				if err != nil {
@@ -360,7 +390,6 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 			}
 			csvWriter.Flush()
 			fmt.Print("\nSummary\n\n")
-
 			_, err := fmt.Fprintf(
 				w,
 				"%v\n",
