@@ -513,4 +513,59 @@ func TestGateway(t *testing.T) {
 			})
 		})
 	})
+
+	t.Run("DeserializedResponses", func(t *testing.T) {
+		type testCase struct {
+			globalValue                   config.Flag
+			gatewayValue                  config.Flag
+			deserializedGlobalStatusCode  int
+			deserializedGatewayStaticCode int
+			message                       string
+		}
+
+		setHost := func(r *http.Request) {
+			r.Host = "example.com"
+		}
+
+		makeTest := func(test *testCase) func(t *testing.T) {
+			return func(t *testing.T) {
+				t.Parallel()
+
+				node := harness.NewT(t).NewNode().Init()
+				node.UpdateConfig(func(cfg *config.Config) {
+					cfg.Gateway.DeserializedResponses = test.globalValue
+					cfg.Gateway.PublicGateways = map[string]*config.GatewaySpec{
+						"example.com": {
+							Paths:                 []string{"/ipfs", "/ipns"},
+							DeserializedResponses: test.gatewayValue,
+						},
+					}
+				})
+				node.StartDaemon()
+
+				cidFoo := node.IPFSAddStr("foo")
+				client := node.GatewayClient()
+
+				deserializedPath := "/ipfs/" + cidFoo
+				serializedPath := deserializedPath + "?format=raw"
+
+				// Global Check
+				assert.Equal(t, http.StatusOK, client.Get(serializedPath).StatusCode)
+				assert.Equal(t, test.deserializedGlobalStatusCode, client.Get(deserializedPath).StatusCode)
+
+				// Public Gateway (example.com) Check
+				assert.Equal(t, http.StatusOK, client.Get(serializedPath, setHost).StatusCode)
+				assert.Equal(t, test.deserializedGatewayStaticCode, client.Get(deserializedPath, setHost).StatusCode)
+			}
+		}
+
+		for _, test := range []*testCase{
+			{config.True, config.Default, http.StatusOK, http.StatusOK, "when Gateway.DeserializedResponses is globally enabled, leaving implicit default for Gateway.PublicGateways[example.com] should inherit the global setting (enabled)"},
+			{config.False, config.Default, http.StatusNotAcceptable, http.StatusNotAcceptable, "when Gateway.DeserializedResponses is globally disabled, leaving implicit default on Gateway.PublicGateways[example.com] should inherit the global setting (disabled)"},
+			{config.False, config.True, http.StatusNotAcceptable, http.StatusOK, "when Gateway.DeserializedResponses is globally disabled, explicitly enabling on Gateway.PublicGateways[example.com] should override global (enabled)"},
+			{config.True, config.False, http.StatusOK, http.StatusNotAcceptable, "when Gateway.DeserializedResponses is globally enabled, explicitly disabling on Gateway.PublicGateways[example.com] should override global (disabled)"},
+		} {
+			t.Run(test.message, makeTest(test))
+		}
+	})
 }
