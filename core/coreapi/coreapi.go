@@ -26,6 +26,7 @@ import (
 	offlinexch "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/fetcher"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	pathresolver "github.com/ipfs/boxo/path/resolver"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	provider "github.com/ipfs/boxo/provider"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
@@ -65,9 +66,11 @@ type CoreAPI struct {
 	recordValidator      record.Validator
 	exchange             exchange.Interface
 
-	namesys     namesys.NameSystem
-	routing     routing.Routing
-	dnsResolver *madns.Resolver
+	namesys            namesys.NameSystem
+	routing            routing.Routing
+	dnsResolver        *madns.Resolver
+	ipldPathResolver   pathresolver.Resolver
+	unixFSPathResolver pathresolver.Resolver
 
 	provider provider.System
 
@@ -179,13 +182,15 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		ipldFetcherFactory:   n.IPLDFetcherFactory,
 		unixFSFetcherFactory: n.UnixFSFetcherFactory,
 
-		peerstore:       n.Peerstore,
-		peerHost:        n.PeerHost,
-		namesys:         n.Namesys,
-		recordValidator: n.RecordValidator,
-		exchange:        n.Exchange,
-		routing:         n.Routing,
-		dnsResolver:     n.DNSResolver,
+		peerstore:          n.Peerstore,
+		peerHost:           n.PeerHost,
+		namesys:            n.Namesys,
+		recordValidator:    n.RecordValidator,
+		exchange:           n.Exchange,
+		routing:            n.Routing,
+		dnsResolver:        n.DNSResolver,
+		ipldPathResolver:   n.IPLDPathResolver,
+		unixFSPathResolver: n.UnixFSPathResolver,
 
 		provider: n.Provider,
 
