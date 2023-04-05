@@ -21,6 +21,7 @@ import (
 	config "github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
+	"github.com/ipfs/kubo/tracing"
 	"github.com/libp2p/go-libp2p/core/routing"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -50,9 +51,7 @@ func GatewayOption(paths ...string) ServeOption {
 		}
 
 		gw := gateway.NewHandler(gwConfig, gwAPI)
-		// TODO: Add otelhttp.WithPropagators(tracing.Propagator()) option to
-		// propagate traces through the gateway once we test this feature.
-		gw = otelhttp.NewHandler(gw, "Gateway.Request")
+		gw = otelhttp.NewHandler(gw, "Gateway", otelhttp.WithPropagators(tracing.Propagator()))
 
 		// By default, our HTTP handler is the gateway handler.
 		handler := gw.ServeHTTP
