@@ -21,7 +21,7 @@ $(PLUGINS_$(d)): $(ORGIN_PLUGINS_$(d))
 	@mkdir -p $(@D)
 	cp -f plugin/plugins/$(@F) $@
 
-ifneq ($(TEST_NO_PLUGIN),1)
+ifneq ($(TEST_PLUGIN),0)
 DEPS_$(d) += $(PLUGINS_$(d))
 endif
 endif
