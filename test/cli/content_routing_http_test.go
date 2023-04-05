@@ -2,9 +2,8 @@ package cli
 
 import (
 	"context"
-	"errors"
-	"net"
 	"net/http"
+	"net/http/httptest"
 	"os/exec"
 	"sync"
 	"testing"
@@ -16,7 +15,6 @@ import (
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type fakeHTTPContentRouter struct {
@@ -66,28 +64,19 @@ func TestContentRoutingHTTP(t *testing.T) {
 	cr := &fakeHTTPContentRouter{}
 
 	// run the content routing HTTP server
-	listener, err := net.Listen("tcp", "127.0.0.1:")
-	require.NoError(t, err)
-	t.Cleanup(func() { listener.Close() })
 	userAgentRecorder := &userAgentRecorder{delegate: server.Handler(cr)}
-	go func() {
-		err := http.Serve(listener, userAgentRecorder)
-		if err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, net.ErrClosed) {
-			t.Logf("HTTP server closed with error: %s", err)
-		}
-	}()
-	routerURL := "http://" + listener.Addr().String()
+	server := httptest.NewServer(userAgentRecorder)
+	t.Cleanup(func() { server.Close() })
 
 	// setup the node
 	node := harness.NewT(t).NewNode().Init()
-	node.Runner.Env["IPFS_HTTP_ROUTERS"] = routerURL
+	node.Runner.Env["IPFS_HTTP_ROUTERS"] = server.URL
 	node.StartDaemon()
 
 	// compute a random CID
 	randStr := string(testutils.RandomBytes(100))
 	res := node.PipeStrToIPFS(randStr, "add", "-qn")
 	wantCIDStr := res.Stdout.Trimmed()
-	require.NoError(t, err)
 
 	t.Run("fetching an uncached block results in an HTTP lookup", func(t *testing.T) {
 		statRes := node.Runner.Run(harness.RunRequest{
