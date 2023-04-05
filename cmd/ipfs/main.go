@@ -32,6 +32,7 @@ import (
 	madns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/contrib/propagators/autoprop"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -106,6 +107,7 @@ func mainRet() (exitCode int) {
 		}
 	}()
 	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(autoprop.NewTextMapPropagator())
 	tracer = tp.Tracer("Kubo-cli")
 
 	stopFunc, err := profileIfEnabled()
@@ -314,9 +316,7 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		return nil, fmt.Errorf("unsupported API address: %s", apiAddr)
 	}
 	opts = append(opts, cmdhttp.ClientWithHTTPClient(&http.Client{
-		Transport: otelhttp.NewTransport(tpt,
-			otelhttp.WithPropagators(tracing.Propagator()),
-		),
+		Transport: otelhttp.NewTransport(tpt),
 	}))
 
 	return tracingWrappedExecutor{cmdhttp.NewClient(host, opts...)}, nil
