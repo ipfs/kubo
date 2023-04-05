@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-libipfs/files"
-	"github.com/ipfs/go-merkledag"
-	uio "github.com/ipfs/go-unixfs/io"
-	"github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/ipld/merkledag"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipld/go-ipld-prime"
 )
 

@@ -8,13 +8,13 @@ import (
 	"io"
 	"strings"
 
-	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-merkledag/dagutils"
-	path "github.com/ipfs/go-path"
-	importer "github.com/ipfs/go-unixfs/importer"
-	uio "github.com/ipfs/go-unixfs/io"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipld/merkledag/dagutils"
+	importer "github.com/ipfs/boxo/ipld/unixfs/importer"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
+	path "github.com/ipfs/boxo/path"
 
-	chunker "github.com/ipfs/go-ipfs-chunker"
+	chunker "github.com/ipfs/boxo/chunker"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 )

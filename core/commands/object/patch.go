@@ -8,8 +8,8 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
-	"github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/coreiface/path"
 )
 
 var ObjectPatchCmd = &cmds.Command{

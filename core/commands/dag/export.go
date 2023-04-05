@@ -9,14 +9,14 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb"
+	iface "github.com/ipfs/boxo/coreiface"
+	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
-	blocks "github.com/ipfs/go-libipfs/blocks"
-	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
+	gocar "github.com/ipfs/boxo/ipld/car"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	gocar "github.com/ipld/go-car"
 	selectorparse "github.com/ipld/go-ipld-prime/traversal/selector/parse"
 )
 

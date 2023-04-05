@@ -1,4 +1,4 @@
-name: 'ci/gh-experiment: docker-build'
+name: Docker Build
 
 on:
   workflow_dispatch:
@@ -6,6 +6,10 @@ on:
   push:
     branches:
       - 'master'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   docker-build:

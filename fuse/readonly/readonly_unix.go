@@ -13,14 +13,13 @@ import (
 
 	fuse "bazil.org/fuse"
 	fs "bazil.org/fuse/fs"
+	mdag "github.com/ipfs/boxo/ipld/merkledag"
+	ft "github.com/ipfs/boxo/ipld/unixfs"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
+	path "github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	mdag "github.com/ipfs/go-merkledag"
-	path "github.com/ipfs/go-path"
-	"github.com/ipfs/go-path/resolver"
-	ft "github.com/ipfs/go-unixfs"
-	uio "github.com/ipfs/go-unixfs/io"
 	core "github.com/ipfs/kubo/core"
 	ipldprime "github.com/ipld/go-ipld-prime"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
@@ -69,7 +68,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
-	nd, ndLnk, err := resolver.NewBasicResolver(s.Ipfs.UnixFSFetcherFactory).ResolvePath(ctx, p)
+	nd, ndLnk, err := s.Ipfs.UnixFSPathResolver.ResolvePath(ctx, p)
 	if err != nil {
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT

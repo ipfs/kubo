@@ -8,10 +8,10 @@ import (
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
+	iface "github.com/ipfs/boxo/coreiface"
+	options "github.com/ipfs/boxo/coreiface/options"
+	path "github.com/ipfs/boxo/coreiface/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )

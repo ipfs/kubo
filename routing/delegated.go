@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net/http"
 
+	drclient "github.com/ipfs/boxo/routing/http/client"
+	"github.com/ipfs/boxo/routing/http/contentrouter"
 	"github.com/ipfs/go-datastore"
 	drc "github.com/ipfs/go-delegated-routing/client"
 	drp "github.com/ipfs/go-delegated-routing/gen/proto"
-	drclient "github.com/ipfs/go-libipfs/routing/http/client"
-	"github.com/ipfs/go-libipfs/routing/http/contentrouter"
 	logging "github.com/ipfs/go-log"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
@@ -220,6 +220,11 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 		contentrouter.WithMaxProvideBatchSize(params.MaxProvideBatchSize),
 		contentrouter.WithMaxProvideConcurrency(params.MaxProvideConcurrency),
 	)
+
+	err = view.Register(drclient.OpenCensusViews...)
+	if err != nil {
+		return nil, fmt.Errorf("registering HTTP delegated routing views: %w", err)
+	}
 
 	return &httpRoutingWrapper{
 		ContentRouting:    cr,

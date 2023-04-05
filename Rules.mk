@@ -19,7 +19,7 @@ include mk/golang.mk
 #   extra properties   #
 # -------------------- #
 
-ifeq ($(TEST_NO_FUSE),1)
+ifeq ($(TEST_FUSE),0)
 	GOTAGS += nofuse
 endif
 export LIBP2P_TCP_REUSEPORT=false

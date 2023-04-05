@@ -89,9 +89,9 @@ test_expect_success "ipfs daemon output looks good" '
   echo "" >>expected_daemon &&
   sed "s/^/Swarm listening on /" listen_addrs >>expected_daemon &&
   sed "s/^/Swarm announcing /" local_addrs >>expected_daemon &&
-  echo "API server listening on '$API_MADDR'" >>expected_daemon &&
+  echo "RPC API server listening on '$API_MADDR'" >>expected_daemon &&
   echo "WebUI: http://'$API_ADDR'/webui" >>expected_daemon &&
-  echo "Gateway (readonly) server listening on '$GWAY_MADDR'" >>expected_daemon &&
+  echo "Gateway server listening on '$GWAY_MADDR'" >>expected_daemon &&
   echo "Daemon is ready" >>expected_daemon &&
   test_cmp expected_daemon actual_daemon
 '
