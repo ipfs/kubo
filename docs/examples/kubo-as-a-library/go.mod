@@ -10,7 +10,7 @@ require (
 	github.com/ipfs/go-libipfs v0.6.2
 	github.com/ipfs/interface-go-ipfs-core v0.11.0
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
-	github.com/libp2p/go-libp2p v0.26.3
+	github.com/libp2p/go-libp2p v0.26.4
 	github.com/multiformats/go-multiaddr v0.8.0
 )
 
@@ -64,7 +64,7 @@ require (
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.1.1 // indirect
-	github.com/ipfs/go-blockservice v0.5.0 // indirect
+	github.com/ipfs/go-blockservice v0.5.1 // indirect
 	github.com/ipfs/go-cid v0.3.2 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
@@ -125,7 +125,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.9.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
 	github.com/libp2p/go-libp2p-record v0.2.0 // indirect
-	github.com/libp2p/go-libp2p-routing-helpers v0.6.1 // indirect
+	github.com/libp2p/go-libp2p-routing-helpers v0.6.2 // indirect
 	github.com/libp2p/go-libp2p-xor v0.1.0 // indirect
 	github.com/libp2p/go-mplex v0.7.0 // indirect
 	github.com/libp2p/go-msgio v0.3.0 // indirect
