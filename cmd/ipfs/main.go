@@ -10,8 +10,15 @@ import (
 	"net/http"
 	"os"
 	"runtime/pprof"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	u "github.com/ipfs/boxo/util"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-ipfs-cmds/cli"
+	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
+	logging "github.com/ipfs/go-log"
 	"github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
 	"github.com/ipfs/kubo/core"
@@ -21,22 +28,19 @@ import (
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/tracing"
-
-	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs-cmds/cli"
-	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
-	u "github.com/ipfs/go-ipfs-util"
-	logging "github.com/ipfs/go-log"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr/net"
-
-	"github.com/google/uuid"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // log is the command logger
 var log = logging.Logger("cmd/ipfs")
+var tracer trace.Tracer
 
 // declared as a var for testing purposes
 var dnsResolver = madns.DefaultResolver
@@ -91,7 +95,6 @@ func newUUID(key string) logging.Metadata {
 func mainRet() (exitCode int) {
 	rand.Seed(time.Now().UnixNano())
 	ctx := logging.ContextWithLoggable(context.Background(), newUUID("session"))
-	var err error
 
 	tp, err := tracing.NewTracerProvider(ctx)
 	if err != nil {
@@ -103,6 +106,7 @@ func mainRet() (exitCode int) {
 		}
 	}()
 	otel.SetTracerProvider(tp)
+	tracer = tp.Tracer("Kubo-cli")
 
 	stopFunc, err := profileIfEnabled()
 	if err != nil {
@@ -219,7 +223,7 @@ func apiAddrOption(req *cmds.Request) (ma.Multiaddr, error) {
 }
 
 func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
-	exe := cmds.NewExecutor(req.Root)
+	exe := tracingWrappedExecutor{cmds.NewExecutor(req.Root)}
 	cctx := env.(*oldcmds.Context)
 
 	// Check if the command is disabled.
@@ -294,23 +298,44 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		opts = append(opts, cmdhttp.ClientWithFallback(exe))
 	}
 
+	var tpt http.RoundTripper
 	switch network {
 	case "tcp", "tcp4", "tcp6":
+		tpt = http.DefaultTransport
 	case "unix":
 		path := host
 		host = "unix"
-		opts = append(opts, cmdhttp.ClientWithHTTPClient(&http.Client{
-			Transport: &http.Transport{
-				DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-					return net.Dial("unix", path)
-				},
+		tpt = &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", path)
 			},
-		}))
+		}
 	default:
 		return nil, fmt.Errorf("unsupported API address: %s", apiAddr)
 	}
+	opts = append(opts, cmdhttp.ClientWithHTTPClient(&http.Client{
+		Transport: otelhttp.NewTransport(tpt,
+			otelhttp.WithPropagators(tracing.Propagator()),
+		),
+	}))
 
-	return cmdhttp.NewClient(host, opts...), nil
+	return tracingWrappedExecutor{cmdhttp.NewClient(host, opts...)}, nil
+}
+
+type tracingWrappedExecutor struct {
+	exec cmds.Executor
+}
+
+func (twe tracingWrappedExecutor) Execute(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
+	ctx, span := tracer.Start(req.Context, "cmds."+strings.Join(req.Path, "."), trace.WithAttributes(attribute.StringSlice("Arguments", req.Arguments)))
+	defer span.End()
+	req.Context = ctx
+
+	err := twe.exec.Execute(req, re, env)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+	}
+	return err
 }
 
 func getRepoPath(req *cmds.Request) (string, error) {

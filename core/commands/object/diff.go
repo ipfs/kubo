@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 
+	path "github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/ipld/merkledag/dagutils"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-merkledag/dagutils"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 )

@@ -33,9 +33,7 @@ func testInitAlgo(t *testing.T, initFlags []string, expOutputName string, expPee
 		lines := []string{
 			fmt.Sprintf("generating %s keypair...done", expOutputName),
 			fmt.Sprintf("peer identity: %s", node.PeerID().String()),
-			fmt.Sprintf("initializing IPFS node at %s", node.Dir),
-			"to get started, enter:",
-			fmt.Sprintf("\n\tipfs cat /ipfs/%s/readme\n\n", CIDWelcomeDocs),
+			fmt.Sprintf("initializing IPFS node at %s\n", node.Dir),
 		}
 		expectedInitOutput := strings.Join(lines, "\n")
 		assert.Equal(t, expectedInitOutput, initRes.Stdout.String())
@@ -54,26 +52,28 @@ func testInitAlgo(t *testing.T, initFlags []string, expOutputName string, expPee
 		res := node.IPFS("config", "Mounts.IPFS")
 		assert.Equal(t, "/ipfs", res.Stdout.Trimmed())
 
-		node.IPFS("cat", fmt.Sprintf("/ipfs/%s/readme", CIDWelcomeDocs))
+		catRes := node.RunIPFS("cat", fmt.Sprintf("/ipfs/%s/readme", CIDWelcomeDocs))
+		assert.NotEqual(t, 0, catRes.ExitErr.ExitCode(), "welcome readme doesn't exist")
 	})
 
-	t.Run("init empty repo", func(t *testing.T) {
+	t.Run("init without empty repo", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode()
-		initRes := node.IPFS(StrCat("init", "--empty-repo", initFlags)...)
+		initRes := node.IPFS(StrCat("init", "--empty-repo=false", initFlags)...)
 
 		validatePeerID(t, node.PeerID(), expPeerIDPubKeyErr, expPeerIDPubKeyType)
 
 		lines := []string{
 			fmt.Sprintf("generating %s keypair...done", expOutputName),
 			fmt.Sprintf("peer identity: %s", node.PeerID().String()),
-			fmt.Sprintf("initializing IPFS node at %s\n", node.Dir),
+			fmt.Sprintf("initializing IPFS node at %s", node.Dir),
+			"to get started, enter:",
+			fmt.Sprintf("\n\tipfs cat /ipfs/%s/readme\n\n", CIDWelcomeDocs),
 		}
 		expectedEmptyInitOutput := strings.Join(lines, "\n")
 		assert.Equal(t, expectedEmptyInitOutput, initRes.Stdout.String())
 
-		catRes := node.RunIPFS("cat", fmt.Sprintf("/ipfs/%s/readme", CIDWelcomeDocs))
-		assert.NotEqual(t, 0, catRes.ExitErr.ExitCode(), "welcome readme doesn't exist")
+		node.IPFS("cat", fmt.Sprintf("/ipfs/%s/readme", CIDWelcomeDocs))
 
 		idRes := node.IPFS("id", "-f", "<aver>")
 		version := node.IPFS("version", "-n").Stdout.Trimmed()

@@ -25,11 +25,19 @@ func (b *Buffer) String() string {
 	return b.b.String()
 }
 
-// Trimmed returns the bytes as a string, with leading and trailing whitespace removed.
+// Trimmed returns the bytes as a string, but with the trailing newline removed.
+// This only removes a single trailing newline, not all whitespace.
 func (b *Buffer) Trimmed() string {
 	b.m.Lock()
 	defer b.m.Unlock()
-	return strings.TrimSpace(b.b.String())
+	s := b.b.String()
+	if len(s) == 0 {
+		return s
+	}
+	if s[len(s)-1] == '\n' {
+		return s[:len(s)-1]
+	}
+	return s
 }
 
 func (b *Buffer) Bytes() []byte {

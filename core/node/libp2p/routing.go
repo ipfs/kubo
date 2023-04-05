@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	offroute "github.com/ipfs/boxo/routing/offline"
 	ds "github.com/ipfs/go-datastore"
-	offroute "github.com/ipfs/go-ipfs-routing/offline"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
@@ -186,7 +186,6 @@ func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	var cRouters []*routinghelpers.ParallelRouter
 	for _, v := range routers {
 		cRouters = append(cRouters, &routinghelpers.ParallelRouter{
-			Timeout:     5 * time.Minute,
 			IgnoreError: true,
 			Router:      v.Routing,
 		})

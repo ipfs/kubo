@@ -10,11 +10,11 @@ import (
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	path "github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
-	dag "github.com/ipfs/go-merkledag"
-	path "github.com/ipfs/go-path"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
 )

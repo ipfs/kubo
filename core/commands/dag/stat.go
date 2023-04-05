@@ -5,13 +5,13 @@ import (
 	"io"
 	"os"
 
-	"github.com/ipfs/go-merkledag/traverse"
-	"github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/ipld/merkledag/traverse"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/e"
 
+	mdag "github.com/ipfs/boxo/ipld/merkledag"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	mdag "github.com/ipfs/go-merkledag"
 )
 
 func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {

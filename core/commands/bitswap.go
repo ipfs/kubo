@@ -8,10 +8,10 @@ import (
 	e "github.com/ipfs/kubo/core/commands/e"
 
 	humanize "github.com/dustin/go-humanize"
+	bitswap "github.com/ipfs/boxo/bitswap"
+	"github.com/ipfs/boxo/bitswap/server"
 	cidutil "github.com/ipfs/go-cidutil"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	bitswap "github.com/ipfs/go-libipfs/bitswap"
-	"github.com/ipfs/go-libipfs/bitswap/server"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 

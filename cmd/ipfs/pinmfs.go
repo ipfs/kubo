@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 
+	pinclient "github.com/ipfs/boxo/pinning/remote/client"
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	pinclient "github.com/ipfs/go-pinning-service-http-client"
 
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
@@ -31,7 +32,19 @@ func (x lastPin) IsValid() bool {
 	return x != lastPin{}
 }
 
-const daemonConfigPollInterval = time.Minute / 2
+var daemonConfigPollInterval = time.Minute / 2
+
+func init() {
+	// this environment variable is solely for testing, use at your own risk
+	if pollDurStr := os.Getenv("MFS_PIN_POLL_INTERVAL"); pollDurStr != "" {
+		d, err := time.ParseDuration(pollDurStr)
+		if err != nil {
+			mfslog.Error("error parsing MFS_PIN_POLL_INTERVAL, using default:", err)
+		}
+		daemonConfigPollInterval = d
+	}
+}
+
 const defaultRepinInterval = 5 * time.Minute
 
 type pinMFSContext interface {

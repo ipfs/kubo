@@ -13,6 +13,7 @@ import (
 )
 
 func TestLegacyDHT(t *testing.T) {
+	t.Parallel()
 	nodes := harness.NewT(t).NewNodes(5).Init()
 	nodes.ForEachPar(func(node *harness.Node) {
 		node.IPFS("config", "Routing.Type", "dht")
