@@ -103,7 +103,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.4.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.3.0 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.22.0 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.23.0 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.5.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.9.3 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
@@ -188,6 +188,7 @@ require (
 	golang.org/x/text v0.8.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+	gonum.org/v1/gonum v0.11.0 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 	google.golang.org/grpc v1.53.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
