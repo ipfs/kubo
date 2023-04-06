@@ -142,3 +142,15 @@ func RunWithStdin(reader io.Reader) CmdOpt {
 func RunWithStdinStr(s string) CmdOpt {
 	return RunWithStdin(strings.NewReader(s))
 }
+
+func RunWithStdout(writer io.Writer) CmdOpt {
+	return func(cmd *exec.Cmd) {
+		cmd.Stdout = io.MultiWriter(writer, cmd.Stdout)
+	}
+}
+
+func RunWithStderr(writer io.Writer) CmdOpt {
+	return func(cmd *exec.Cmd) {
+		cmd.Stderr = io.MultiWriter(writer, cmd.Stdout)
+	}
+}

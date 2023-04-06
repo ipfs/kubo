@@ -13,7 +13,6 @@ import (
 
 	coreiface "github.com/ipfs/boxo/coreiface"
 	path "github.com/ipfs/boxo/coreiface/path"
-	"github.com/ipfs/boxo/fetcher"
 	ipfspath "github.com/ipfs/boxo/path"
 	ipfspathresolver "github.com/ipfs/boxo/path/resolver"
 	"github.com/ipfs/go-cid"
@@ -63,13 +62,12 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Resolved
 		return nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
 	}
 
-	var dataFetcher fetcher.Factory
+	var resolver ipfspathresolver.Resolver
 	if ipath.Segments()[0] == "ipld" {
-		dataFetcher = api.ipldFetcherFactory
+		resolver = api.ipldPathResolver
 	} else {
-		dataFetcher = api.unixFSFetcherFactory
+		resolver = api.unixFSPathResolver
 	}
-	resolver := ipfspathresolver.NewBasicResolver(dataFetcher)
 
 	node, rest, err := resolver.ResolveToLastNode(ctx, ipath)
 	if err != nil {

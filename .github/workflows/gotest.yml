@@ -12,13 +12,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  go-test:
+  go-test-runner:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    uses: ipfs/kubo/.github/workflows/runner.yml@master
+  go-test:
+    needs: [go-test-runner]
+    runs-on: ${{ fromJSON(needs.go-test-runner.outputs.config).labels }}
     timeout-minutes: 20
     env:
-      TEST_NO_DOCKER: 1
-      TEST_NO_FUSE: 1
+      TEST_DOCKER: 0
+      TEST_FUSE: 0
       TEST_VERBOSE: 1
       TRAVIS: 1
       GIT_PAGER: cat
@@ -39,7 +42,7 @@ jobs:
           name: ${{ github.job }}
       - name: 👉️ If this step failed, go to «Summary» (top left) → inspect the «Failures/Errors» table
         run: |
-          make -j 1 test/unit/gotest.junit.xml &&
+          make -j 2 test/unit/gotest.junit.xml &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0
