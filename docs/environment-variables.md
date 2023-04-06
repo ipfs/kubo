@@ -231,3 +231,7 @@ $ OTEL_TRACES_EXPORTER=jaeger ipfs daemon
 ```
 
 Finally, the [Jaeger UI](https://github.com/jaegertracing/jaeger-ui#readme) is available at http://localhost:16686
+
+## `OTEL_PROPAGATORS`
+
+See https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md#general-sdk-configuration
