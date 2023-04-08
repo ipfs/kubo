@@ -437,7 +437,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	default:
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
 	}
-	view.Register(dhtmetrics.DefaultViews...)
+
+	err = view.Register(dhtmetrics.DefaultViews...)
+	if err != nil {
+		return fmt.Errorf("registering Prometheus view for DHT: %w", err)
+	}
 
 	agentVersionSuffixString, _ := req.Options[agentVersionSuffix].(string)
 	if agentVersionSuffixString != "" {
