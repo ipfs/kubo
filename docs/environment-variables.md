@@ -219,7 +219,7 @@ $ docker run --rm -it --name jaeger \
     -p 5778:5778 \
     -p 16686:16686 \
     -p 14268:14268 \
-    -p 14268:14269 \
+    -p 14269:14269 \
     -p 14250:14250 \
     -p 9411:9411 \
     jaegertracing/all-in-one
@@ -231,3 +231,7 @@ $ OTEL_TRACES_EXPORTER=jaeger ipfs daemon
 ```
 
 Finally, the [Jaeger UI](https://github.com/jaegertracing/jaeger-ui#readme) is available at http://localhost:16686
+
+## `OTEL_PROPAGATORS`
+
+See https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md#general-sdk-configuration
