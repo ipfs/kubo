@@ -13,7 +13,8 @@ PATH := $(realpath $(d)):$(PATH)
 # DEPS_OO_$(d) += merkledag/pb/merkledag.pb.go namesys/pb/namesys.pb.go
 # DEPS_OO_$(d) += pin/internal/pb/header.pb.go unixfs/pb/unixfs.pb.go
 
-$(d)_flags =-ldflags="-X "github.com/ipfs/kubo".CurrentCommit=$(git-hash)"
+LDFLAGS +=-X github.com/ipfs/kubo.CurrentCommit=$(git-hash)
+$(d)_flags =-ldflags "$(LDFLAGS)"
 
 $(d)-try-build $(IPFS_BIN_$(d)): GOFLAGS += $(cmd/ipfs_flags)
 
