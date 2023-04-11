@@ -44,7 +44,7 @@ jobs:
           path: cmd/ipfs/ipfs
   interop:
     needs: [interop-prep]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
     timeout-minutes: 20
     defaults:
       run:
@@ -157,7 +157,7 @@ jobs:
         working-directory: go-ipfs-http-client
   ipfs-webui:
     needs: [interop-prep]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
     timeout-minutes: 20
     env:
       NO_SANDBOX: true
