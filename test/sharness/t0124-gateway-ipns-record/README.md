@@ -22,6 +22,6 @@ ipfs routing get /ipns/${IPNS_KEY} > ${IPNS_KEY}.ipns-record
 echo IPNS_KEY=${IPNS_KEY}
 echo FILE_CID=${FILE_CID} # A file containing "Hello IPFS"
 
-IPNS_KEY=k51qzi5uqu5dh71qgwangrt6r0nd4094i88nsady6qgd1dhjcyfsaqmpp143ab
-FILE_CID=bafkreidfdrlkeq4m4xnxuyx6iae76fdm4wgl5d4xzsb77ixhyqwumhz244 # A file containing Hello IPFS
+# IPNS_KEY=k51qzi5uqu5dh71qgwangrt6r0nd4094i88nsady6qgd1dhjcyfsaqmpp143ab
+# FILE_CID=bafkreidfdrlkeq4m4xnxuyx6iae76fdm4wgl5d4xzsb77ixhyqwumhz244 # A file containing Hello IPFS
 ```
