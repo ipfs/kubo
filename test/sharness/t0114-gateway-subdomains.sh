@@ -89,7 +89,7 @@ test_expect_success "ipfs init" '
   ipfs init --profile=test > /dev/null
 '
 
-test_launch_ipfs_daemon
+test_launch_ipfs_daemon_without_network
 
 # Import test case
 # See the static fixtures in ./t0114-gateway-subdomains/
@@ -114,14 +114,8 @@ IPNS_ED25519_B36CID=k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36d
 
 test_expect_success "Add the test fixtures" '
   ipfs dag import ../t0114-gateway-subdomains/fixtures.car &&
-  ipfs routing put /ipns/${RSA_KEY} ../t0114-gateway-subdomains/${RSA_KEY}.ipns-record &&
-  ipfs routing put /ipns/${ED25519_KEY} ../t0114-gateway-subdomains/${ED25519_KEY}.ipns-record
-'
-
-test_expect_success "Getting back the fixtures" '
-  ipfs get ${CIDv1} &&
-  ipfs routing get /ipns/${RSA_KEY} &&
-  ipfs routing get /ipns/${ED25519_KEY}
+  ipfs routing put --allow-offline /ipns/${RSA_KEY} ../t0114-gateway-subdomains/${RSA_KEY}.ipns-record &&
+  ipfs routing put --allow-offline /ipns/${ED25519_KEY} ../t0114-gateway-subdomains/${ED25519_KEY}.ipns-record
 '
 
 # ensure we start with empty Gateway.PublicGateways

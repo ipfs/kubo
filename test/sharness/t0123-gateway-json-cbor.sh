@@ -5,7 +5,7 @@ test_description="Test HTTP Gateway DAG-JSON (application/vnd.ipld.dag-json) and
 . lib/test-lib.sh
 
 test_init_ipfs
-test_launch_ipfs_daemon
+test_launch_ipfs_daemon_without_network
 
 # Import test case
 # See the static fixtures in ./t0123-gateway-json-cbor/
@@ -167,8 +167,8 @@ IPNS_ID_DAG_JSON=k51qzi5uqu5dhjghbwdvbo6mi40htrq6e2z4pwgp15pgv3ho1azvidttzh8yy2
 IPNS_ID_DAG_CBOR=k51qzi5uqu5dghjous0agrwavl8vzl64xckoqzwqeqwudfr74kfd11zcyk3b7l
 
 test_expect_success "Add ipns records for path traversal and DAG-PB representation tests" '
-  ipfs routing put /ipns/${IPNS_ID_DAG_JSON} ../t0123-gateway-json-cbor/${IPNS_ID_DAG_JSON}.ipns-record &&
-  ipfs routing put /ipns/${IPNS_ID_DAG_CBOR} ../t0123-gateway-json-cbor/${IPNS_ID_DAG_CBOR}.ipns-record
+  ipfs routing put --allow-offline /ipns/${IPNS_ID_DAG_JSON} ../t0123-gateway-json-cbor/${IPNS_ID_DAG_JSON}.ipns-record &&
+  ipfs routing put --allow-offline /ipns/${IPNS_ID_DAG_CBOR} ../t0123-gateway-json-cbor/${IPNS_ID_DAG_CBOR}.ipns-record
 '
 
 test_expect_success "GET DAG-JSON traversal returns 501 if there is path remainder" '
