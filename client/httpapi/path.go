@@ -3,10 +3,10 @@ package httpapi
 import (
 	"context"
 
+	"github.com/ipfs/boxo/coreiface/path"
+	ipfspath "github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
-	ipfspath "github.com/ipfs/go-path"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 func (api *HttpApi) ResolvePath(ctx context.Context, p path.Path) (path.Resolved, error) {

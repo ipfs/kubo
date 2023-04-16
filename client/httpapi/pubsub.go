@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"io"
 
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	iface "github.com/ipfs/boxo/coreiface"
+	caopts "github.com/ipfs/boxo/coreiface/options"
 	"github.com/libp2p/go-libp2p/core/peer"
 	mbase "github.com/multiformats/go-multibase"
 )

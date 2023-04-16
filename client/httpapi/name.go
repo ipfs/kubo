@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	caopts "github.com/ipfs/interface-go-ipfs-core/options"
-	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
-	"github.com/ipfs/interface-go-ipfs-core/path"
+	iface "github.com/ipfs/boxo/coreiface"
+	caopts "github.com/ipfs/boxo/coreiface/options"
+	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
+	"github.com/ipfs/boxo/coreiface/path"
 )
 
 type NameAPI HttpApi

@@ -12,10 +12,9 @@ import (
 	"testing"
 	"time"
 
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/path"
-
-	"github.com/ipfs/interface-go-ipfs-core/tests"
+	iface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/coreiface/tests"
 	local "github.com/ipfs/iptb-plugins/local"
 	"github.com/ipfs/iptb/testbed"
 	testbedi "github.com/ipfs/iptb/testbed/interfaces"

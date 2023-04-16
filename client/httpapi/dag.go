@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
-	"github.com/ipfs/go-libipfs/blocks"
-	"github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 	multicodec "github.com/multiformats/go-multicodec"
 )
 

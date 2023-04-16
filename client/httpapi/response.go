@@ -10,9 +10,9 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
-	"github.com/ipfs/go-libipfs/files"
 )
 
 type Error = cmds.Error

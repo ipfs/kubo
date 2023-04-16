@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/files"
+	unixfs "github.com/ipfs/boxo/ipld/unixfs"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-libipfs/files"
-	unixfs "github.com/ipfs/go-unixfs"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 const forwardSeekLimit = 1 << 14 //16k

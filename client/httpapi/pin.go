@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"strings"
 
+	iface "github.com/ipfs/boxo/coreiface"
+	caopts "github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/go-cid"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	caopts "github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/pkg/errors"
 )
 

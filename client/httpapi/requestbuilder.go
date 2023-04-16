@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ipfs/go-libipfs/files"
+	"github.com/ipfs/boxo/files"
 )
 
 type RequestBuilder interface {
