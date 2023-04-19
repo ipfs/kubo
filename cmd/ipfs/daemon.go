@@ -25,6 +25,7 @@ import (
 	"github.com/ipfs/kubo/core/coreapi"
 	corehttp "github.com/ipfs/kubo/core/corehttp"
 	corerepo "github.com/ipfs/kubo/core/corerepo"
+	"github.com/ipfs/kubo/core/node"
 	libp2p "github.com/ipfs/kubo/core/node/libp2p"
 	nodeMount "github.com/ipfs/kubo/fuse/node"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
@@ -447,6 +448,15 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 	node.IsDaemon = true
 
+	if node.HasRessourceManagerEnabled {
+		if err := printRessourceManagerLimit(ncfg, cfg); err != nil {
+			log.Warnf("unable to display ressource manager limit: %s", err)
+		}
+	} else {
+		fmt.Println("go-libp2p resource manager protection disabled")
+
+	}
+
 	if node.PNetFingerprint != nil {
 		fmt.Println("Swarm is limited to private network of peers with the swarm key")
 		fmt.Printf("Swarm key fingerprint: %x\n", node.PNetFingerprint)
@@ -747,6 +757,31 @@ func rewriteMaddrToUseLocalhostIfItsAny(maddr ma.Multiaddr) ma.Multiaddr {
 	default:
 		return maddr // not ip
 	}
+}
+
+// printRessourceManagerLimit fetches the user-defined resource overrides, and then
+// displays the limits for MaxMemory and MaxFileDescriptors
+func printRessourceManagerLimit(bcfg *node.BuildCfg, cfg *config.Config) error {
+	userResourceOverrides, err := bcfg.Repo.UserResourceOverrides()
+	if err != nil {
+		return fmt.Errorf("unable to get UserResourceOverrides: %w", err)
+	}
+
+	_, msg, err := libp2p.LimitConfig(cfg.Swarm, userResourceOverrides)
+	if err != nil {
+		return fmt.Errorf("creating final Resource Manager config: %w", err)
+	}
+
+	if !libp2p.IsPartialLimitConfigEmpty(userResourceOverrides) {
+		fmt.Print(`
+libp2p-resource-limit-overrides.json has been loaded, "default" fields will be
+filled in with autocomputed defaults.
+`)
+	}
+
+	fmt.Print(msg)
+
+	return nil
 }
 
 // printSwarmAddrs prints the addresses of the host

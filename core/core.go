@@ -117,8 +117,9 @@ type IpfsNode struct {
 	stop func() error
 
 	// Flags
-	IsOnline bool `optional:"true"` // Online is set when networking is enabled.
-	IsDaemon bool `optional:"true"` // Daemon is set when running on a long-running daemon.
+	IsOnline                   bool                           `optional:"true"` // Online is set when networking is enabled.
+	IsDaemon                   bool                           `optional:"true"` // Daemon is set when running on a long-running daemon.
+	HasRessourceManagerEnabled libp2p.RessourceManagerEnabled `optional:"true"`
 }
 
 // Mounts defines what the node's mount state is. This should

@@ -27,20 +27,27 @@ const NetLimitTraceFilename = "rcmgr.json.gz"
 
 var ErrNoResourceMgr = fmt.Errorf("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
 
+type RessourceManagerEnabled bool
+
+// GetRessourceManagerEnabledOrDefault returns the enabled status of the resource manager
+// based on the LIBP2P_RCMGR environment variable, or falls back to the default value if not set.
+func GetRessourceManagerEnabledOrDefault(cfg config.ResourceMgr) interface{} {
+	return func() RessourceManagerEnabled {
+		switch os.Getenv("LIBP2P_RCMGR") {
+		case "1", "true":
+			return true
+		case "0", "false":
+			return false
+		}
+
+		return RessourceManagerEnabled(cfg.Enabled.WithDefault(true))
+	}
+}
+
 func ResourceManager(cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimitConfig) interface{} {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, enabled RessourceManagerEnabled) (network.ResourceManager, Libp2pOpts, error) {
 		var manager network.ResourceManager
 		var opts Libp2pOpts
-
-		enabled := cfg.ResourceMgr.Enabled.WithDefault(true)
-
-		//  ENV overrides Config (if present)
-		switch os.Getenv("LIBP2P_RCMGR") {
-		case "0", "false":
-			enabled = false
-		case "1", "true":
-			enabled = true
-		}
 
 		if enabled {
 			log.Debug("libp2p resource manager is enabled")
@@ -50,20 +57,10 @@ func ResourceManager(cfg config.SwarmConfig, userResourceOverrides rcmgr.Partial
 				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
 			}
 
-			limitConfig, msg, err := LimitConfig(cfg, userResourceOverrides)
+			limitConfig, _, err := LimitConfig(cfg, userResourceOverrides)
 			if err != nil {
 				return nil, opts, fmt.Errorf("creating final Resource Manager config: %w", err)
 			}
-
-			if !isPartialConfigEmpty(userResourceOverrides) {
-				fmt.Print(`
-libp2p-resource-limit-overrides.json has been loaded, "default" fields will be
-filled in with autocomputed defaults.
-`)
-			}
-
-			// We want to see this message on startup, that's why we are using fmt instead of log.
-			fmt.Print(msg)
 
 			if err := ensureConnMgrMakeSenseVsResourceMgr(limitConfig, cfg); err != nil {
 				return nil, opts, err
@@ -109,7 +106,6 @@ filled in with autocomputed defaults.
 			lrm.start(helpers.LifecycleCtx(mctx, lc))
 			manager = lrm
 		} else {
-			fmt.Println("go-libp2p resource manager protection disabled")
 			manager = &network.NullResourceManager{}
 		}
 
@@ -124,7 +120,10 @@ filled in with autocomputed defaults.
 	}
 }
 
-func isPartialConfigEmpty(cfg rcmgr.PartialLimitConfig) bool {
+// IsPartialLimitConfigEmpty checks if a given PartialLimitConfig is empty. Returns true
+// if all fields are empty, and false if at least one field contains a non-empty
+// ResourceLimits.
+func IsPartialLimitConfigEmpty(cfg rcmgr.PartialLimitConfig) bool {
 	var emptyResourceConfig rcmgr.ResourceLimits
 	if cfg.System != emptyResourceConfig ||
 		cfg.Transient != emptyResourceConfig ||

@@ -144,6 +144,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	opts := fx.Options(
 		BaseLibP2P,
 
+		// flag
+		fx.Provide(libp2p.GetRessourceManagerEnabledOrDefault(cfg.Swarm.ResourceMgr)),
+
 		// identify's AgentVersion (incl. optional agent-version-suffix)
 		fx.Provide(libp2p.UserAgent()),
 
