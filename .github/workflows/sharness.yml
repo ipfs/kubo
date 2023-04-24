@@ -32,7 +32,7 @@ jobs:
         with:
           path: kubo
       - name: Install missing tools
-        run: sudo apt install -y socat net-tools fish libxml2-utils
+        run: sudo apt update && sudo apt install -y socat net-tools fish libxml2-utils
       - name: Restore Go Cache
         uses: protocol/cache-go-action@v1
         with:
