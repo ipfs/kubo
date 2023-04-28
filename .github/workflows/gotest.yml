@@ -14,7 +14,7 @@ concurrency:
 jobs:
   go-test-runner:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    uses: ipfs/kubo/.github/workflows/runner.yml@master
+    uses: ipfs/kubo/.github/workflows/runner.yml@ci/playground
   go-test:
     needs: [go-test-runner]
     runs-on: ${{ fromJSON(needs.go-test-runner.outputs.config).labels }}

@@ -14,7 +14,7 @@ concurrency:
 jobs:
   sharness-runner:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    uses: ipfs/kubo/.github/workflows/runner.yml@master
+    uses: ipfs/kubo/.github/workflows/runner.yml@ci/playground
   sharness-test:
     needs: [sharness-runner]
     runs-on: ${{ fromJSON(needs.sharness-runner.outputs.config).labels }}

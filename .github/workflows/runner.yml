@@ -20,7 +20,7 @@ jobs:
           script: |
             if (`${context.repo.owner}/${context.repo.repo}` === 'ipfs/kubo') {
               return {
-                labels: ['self-hosted', 'linux', 'x64', 'kubo'],
+                labels: ['self-hosted', 'linux', 'x64', 'playground'],
                 parallel: 10,
                 aws: true
               }
