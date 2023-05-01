@@ -74,9 +74,9 @@ require (
 	go.opencensus.io v0.24.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.40.0
 	go.opentelemetry.io/contrib/propagators/autoprop v0.40.0
-	go.opentelemetry.io/otel v1.14.0
+	go.opentelemetry.io/otel v1.15.0
 	go.opentelemetry.io/otel/sdk v1.14.0
-	go.opentelemetry.io/otel/trace v1.14.0
+	go.opentelemetry.io/otel/trace v1.15.0
 	go.uber.org/dig v1.16.1
 	go.uber.org/fx v1.19.2
 	go.uber.org/zap v1.24.0
@@ -111,7 +111,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
-	github.com/go-logr/logr v1.2.3 // indirect
+	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
