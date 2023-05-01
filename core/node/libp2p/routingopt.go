@@ -39,8 +39,35 @@ func init() {
 	}
 }
 
+func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.ParallelRouter, error) {
+	var routers []*routinghelpers.ParallelRouter
+	// Append HTTP routers for additional speed
+	for _, endpoint := range defaultHTTPRouters {
+		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, cfg.Addresses.Swarm, cfg.Identity.PrivKey)
+		if err != nil {
+			return nil, err
+		}
+
+		r := &irouting.Composer{
+			GetValueRouter:      routinghelpers.Null{},
+			PutValueRouter:      routinghelpers.Null{},
+			ProvideRouter:       routinghelpers.Null{}, // modify this when indexers supports provide
+			FindPeersRouter:     routinghelpers.Null{},
+			FindProvidersRouter: httpRouter,
+		}
+
+		routers = append(routers, &routinghelpers.ParallelRouter{
+			Router:       r,
+			IgnoreError:  true,             // https://github.com/ipfs/kubo/pull/9475#discussion_r1042507387
+			Timeout:      15 * time.Second, // 5x server value from https://github.com/ipfs/kubo/pull/9475#discussion_r1042428529
+			ExecuteAfter: 0,
+		})
+	}
+	return routers, nil
+}
+
 // ConstructDefaultRouting returns routers used when Routing.Type is unset or set to "auto"
-func ConstructDefaultRouting(peerID string, addrs []string, privKey string, routingOpt RoutingOption) func(
+func ConstructDefaultRouting(cfg *config.Config, routingOpt RoutingOption) func(
 	ctx context.Context,
 	host host.Host,
 	dstore datastore.Batching,
@@ -68,28 +95,12 @@ func ConstructDefaultRouting(peerID string, addrs []string, privKey string, rout
 			ExecuteAfter: 0,
 		})
 
-		// Append HTTP routers for additional speed
-		for _, endpoint := range defaultHTTPRouters {
-			httpRouter, err := irouting.ConstructHTTPRouter(endpoint, peerID, addrs, privKey)
-			if err != nil {
-				return nil, err
-			}
-
-			r := &irouting.Composer{
-				GetValueRouter:      routinghelpers.Null{},
-				PutValueRouter:      routinghelpers.Null{},
-				ProvideRouter:       routinghelpers.Null{}, // modify this when indexers supports provide
-				FindPeersRouter:     routinghelpers.Null{},
-				FindProvidersRouter: httpRouter,
-			}
-
-			routers = append(routers, &routinghelpers.ParallelRouter{
-				Router:       r,
-				IgnoreError:  true,             // https://github.com/ipfs/kubo/pull/9475#discussion_r1042507387
-				Timeout:      15 * time.Second, // 5x server value from https://github.com/ipfs/kubo/pull/9475#discussion_r1042428529
-				ExecuteAfter: 0,
-			})
+		httpRouters, err := constructDefaultHTTPRouters(cfg)
+		if err != nil {
+			return nil, err
 		}
+
+		routers = append(routers, httpRouters...)
 
 		routing := routinghelpers.NewComposableParallel(routers)
 		return routing, nil
