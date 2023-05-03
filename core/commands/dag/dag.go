@@ -391,7 +391,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 				}
 			}
 			csvWriter.Flush()
-			fmt.Print("\nSummary\n\n")
+			fmt.Fprint(w, "\nSummary\n")
 			_, err := fmt.Fprintf(
 				w,
 				"%v\n",
