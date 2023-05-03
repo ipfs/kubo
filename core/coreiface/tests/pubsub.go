@@ -24,7 +24,7 @@ func (tp *TestSuite) TestBasicPubSub(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	apis, err := tp.MakeAPISwarm(ctx, true, 2)
+	apis, err := tp.MakeAPISwarm(ctx, 2)
 	if err != nil {
 		t.Fatal(err)
 	}

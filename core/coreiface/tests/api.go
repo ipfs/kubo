@@ -11,21 +11,12 @@ import (
 
 var errAPINotImplemented = errors.New("api not implemented")
 
-func (tp *TestSuite) makeAPI(ctx context.Context) (coreiface.CoreAPI, error) {
-	api, err := tp.MakeAPISwarm(ctx, false, 1)
-	if err != nil {
-		return nil, err
-	}
-
-	return api[0], nil
-}
-
 type Provider interface {
 	// Make creates n nodes. fullIdentity set to false can be ignored
-	MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]coreiface.CoreAPI, error)
+	MakeAPISwarm(ctx context.Context, fullIdentity bool, online bool, n int) ([]coreiface.CoreAPI, error)
 }
 
-func (tp *TestSuite) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]coreiface.CoreAPI, error) {
+func (tp *TestSuite) makeAPISwarm(ctx context.Context, fullIdentity bool, online bool, n int) ([]coreiface.CoreAPI, error) {
 	if tp.apis != nil {
 		tp.apis <- 1
 		go func() {
@@ -34,7 +25,29 @@ func (tp *TestSuite) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int)
 		}()
 	}
 
-	return tp.Provider.MakeAPISwarm(ctx, fullIdentity, n)
+	return tp.Provider.MakeAPISwarm(ctx, fullIdentity, online, n)
+}
+
+func (tp *TestSuite) makeAPI(ctx context.Context) (coreiface.CoreAPI, error) {
+	api, err := tp.makeAPISwarm(ctx, false, false, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	return api[0], nil
+}
+
+func (tp *TestSuite) makeAPIWithIdentityAndOffline(ctx context.Context) (coreiface.CoreAPI, error) {
+	api, err := tp.makeAPISwarm(ctx, true, false, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	return api[0], nil
+}
+
+func (tp *TestSuite) MakeAPISwarm(ctx context.Context, n int) ([]coreiface.CoreAPI, error) {
+	return tp.makeAPISwarm(ctx, true, true, n)
 }
 
 type TestSuite struct {
