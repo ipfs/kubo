@@ -8,7 +8,7 @@ import (
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-merkledag/traverse"
+	"github.com/ipfs/boxo/ipld/merkledag/traverse"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/e"
 )
