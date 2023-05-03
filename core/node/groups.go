@@ -165,7 +165,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(libp2p.Routing),
 		fx.Provide(libp2p.ContentRouting),
 
-		fx.Provide(libp2p.BaseRouting(cfg.Experimental.AcceleratedDHTClient)),
+		fx.Provide(libp2p.BaseRouting(cfg)),
 		maybeProvide(libp2p.PubsubRouter, bcfg.getOpt("ipnsps")),
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
