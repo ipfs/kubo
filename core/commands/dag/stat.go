@@ -6,9 +6,9 @@ import (
 
 	"github.com/ipfs/boxo/coreiface/path"
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipld/merkledag/traverse"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/boxo/ipld/merkledag/traverse"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/e"
 )
@@ -59,8 +59,8 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 	}
 
 	dagStatSummary.UniqueBlocks = cidSet.Len()
-	dagStatSummary.calculateSharedSize()
-	dagStatSummary.calculateRatio()
+	dagStatSummary.calculateSummary()
+	
 	if err := res.Emit(dagStatSummary); err != nil {
 		return err
 	}

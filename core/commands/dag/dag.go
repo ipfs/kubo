@@ -338,13 +338,8 @@ func (s *DagStatSummary) incrementRedundantSize(size uint64) {
 	s.redundantSize += size
 }
 
-func (s *DagStatSummary) calculateRatio() {
-	if s.TotalSize > 0 {
-		s.Ratio = float32(s.redundantSize) / float32(s.TotalSize)
-	}
-}
-
-func (s *DagStatSummary) calculateSharedSize() {
+func (s *DagStatSummary) calculateSummary() {
+	s.Ratio = float32(s.redundantSize) / float32(s.TotalSize)
 	s.SharedSize = s.redundantSize - s.TotalSize
 }
 
