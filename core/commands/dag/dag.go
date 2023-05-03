@@ -372,7 +372,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStatSummary) error {
-			fmt.Println()
+			fmt.Fprintln(w)
 			csvWriter := csv.NewWriter(w)
 			csvWriter.Comma = '\t'
 			header := []string{fmt.Sprintf("%-*s", 46, "CID"), fmt.Sprintf("%-15s", "Blocks"), "Size"}
