@@ -50,19 +50,19 @@ test_path_cmp() {
 
 # Docker
 
-# This takes a Dockerfile, and a build context directory
+# This takes a Dockerfile, a tag name, and a build context directory
 docker_build() {
-    docker build --rm -f "$1" "$2" | ansi_strip
+    docker build --rm --tag "$1" --file "$2" "$3" | ansi_strip
 }
 
 # This takes an image as argument and writes a docker ID on stdout
 docker_run() {
-    docker run -d "$1"
+    docker run --detach "$1"
 }
 
 # This takes a docker ID and a command as arguments
 docker_exec() {
-    docker exec -t "$1" /bin/sh -c "$2"
+    docker exec --tty "$1" /bin/sh -c "$2"
 }
 
 # This takes a docker ID as argument
@@ -72,12 +72,12 @@ docker_stop() {
 
 # This takes a docker ID as argument
 docker_rm() {
-    docker rm -f -v "$1" > /dev/null
+    docker rm --force --volumes "$1" > /dev/null
 }
 
 # This takes a docker image name as argument
 docker_rmi() {
-    docker rmi -f "$1" > /dev/null
+    docker rmi --force "$1" > /dev/null
 }
 
 # Test whether all the expected lines are included in a file. The file
