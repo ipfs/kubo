@@ -395,7 +395,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 				"%v\n",
 				event,
 			)
-			fmt.Print("\n\n")
+			fmt.Fprint(w, "\n\n")
 			return err
 		}),
 		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStatSummary) error {
