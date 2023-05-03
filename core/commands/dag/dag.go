@@ -290,7 +290,7 @@ func (s *DagStat) String() string {
 
 func (s *DagStat) MarshalJSON() ([]byte, error) {
 	type Alias DagStat
-	return json.Marshal(&struct {
+	return json.Marshal(struct {
 		Cid string `json:"Cid"`
 		*Alias
 	}{
@@ -301,7 +301,7 @@ func (s *DagStat) MarshalJSON() ([]byte, error) {
 
 func (s *DagStat) UnmarshalJSON(data []byte) error {
 	type Alias DagStat
-	aux := &struct {
+	aux := struct {
 		Cid string `json:"Cid"`
 		*Alias
 	}{
@@ -336,6 +336,9 @@ func (s *DagStatSummary) incrementTotalSize(size uint64) {
 }
 func (s *DagStatSummary) incrementRedundantSize(size uint64) {
 	s.redundantSize += size
+}
+func (s *DagStatSummary) appendStats(stats *DagStat) {
+	s.DagStatsArray = append(s.DagStatsArray, stats)
 }
 
 func (s *DagStatSummary) calculateSummary() {

@@ -13,6 +13,10 @@ import (
 	"github.com/ipfs/kubo/core/commands/e"
 )
 
+// TODO cache every cid traversal in a dp cache
+// if the cid exists in the cache, don't traverse it, and use the cached result
+// to compute the new state
+
 func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 	api, err := cmdenv.GetApi(env, req)
 	if err != nil {
@@ -55,7 +59,7 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 		if err != nil {
 			return fmt.Errorf("error traversing DAG: %w", err)
 		}
-		dagStatSummary.DagStatsArray = append(dagStatSummary.DagStatsArray, dagstats)
+		dagStatSummary.appendStats(dagstats)
 	}
 
 	dagStatSummary.UniqueBlocks = cidSet.Len()
