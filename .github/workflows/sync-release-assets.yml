@@ -1,4 +1,4 @@
-name: Sync github release assets with dist.ipfs.tech
+name: Sync GitHub Release Assets
 
 on:
   workflow_dispatch:
@@ -9,8 +9,11 @@ concurrency:
   group: release-assets-dist-sync
   cancel-in-progress: true
 
+permissions:
+  contents: write  #  to upload release asset
+
 jobs:
-  sync-github-and-dist-ipfs-tech:
+  dist-ipfs-tech:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: "ubuntu-latest"
     timeout-minutes: 5

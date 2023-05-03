@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,8 +22,10 @@ import (
 	"github.com/ipfs/kubo/repo/fsrepo"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
 	inet "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
@@ -69,6 +72,7 @@ const (
 	swarmDirectionOptionName         = "direction"
 	swarmResetLimitsOptionName       = "reset"
 	swarmUsedResourcesPercentageName = "min-used-limit-perc"
+	swarmIdentifyOptionName          = "identify"
 )
 
 type peeringResult struct {
@@ -236,17 +240,18 @@ var swarmPeersCmd = &cmds.Command{
 		cmds.BoolOption(swarmStreamsOptionName, "Also list information about open streams for each peer"),
 		cmds.BoolOption(swarmLatencyOptionName, "Also list information about latency to each peer"),
 		cmds.BoolOption(swarmDirectionOptionName, "Also list information about the direction of connection"),
+		cmds.BoolOption(swarmIdentifyOptionName, "Also list information about peers identify"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
-
 		verbose, _ := req.Options[swarmVerboseOptionName].(bool)
 		latency, _ := req.Options[swarmLatencyOptionName].(bool)
 		streams, _ := req.Options[swarmStreamsOptionName].(bool)
 		direction, _ := req.Options[swarmDirectionOptionName].(bool)
+		identify, _ := req.Options[swarmIdentifyOptionName].(bool)
 
 		conns, err := api.Swarm().Peers(req.Context)
 		if err != nil {
@@ -286,6 +291,15 @@ var swarmPeersCmd = &cmds.Command{
 				for _, s := range strs {
 					ci.Streams = append(ci.Streams, streamInfo{Protocol: string(s)})
 				}
+			}
+
+			if verbose || identify {
+				n, err := cmdenv.GetNode(env)
+				if err != nil {
+					return err
+				}
+				identifyResult, _ := ci.identifyPeer(n.Peerstore, c.ID())
+				ci.Identify = identifyResult
 			}
 			sort.Sort(&ci)
 			out.Peers = append(out.Peers, ci)
@@ -411,12 +425,13 @@ type streamInfo struct {
 }
 
 type connInfo struct {
-	Addr      string
-	Peer      string
-	Latency   string
-	Muxer     string
-	Direction inet.Direction
-	Streams   []streamInfo
+	Addr      string         `json:",omitempty"`
+	Peer      string         `json:",omitempty"`
+	Latency   string         `json:",omitempty"`
+	Muxer     string         `json:",omitempty"`
+	Direction inet.Direction `json:",omitempty"`
+	Streams   []streamInfo   `json:",omitempty"`
+	Identify  IdOutput       `json:",omitempty"`
 }
 
 func (ci *connInfo) Less(i, j int) bool {
@@ -445,6 +460,48 @@ func (ci connInfos) Len() int {
 
 func (ci connInfos) Swap(i, j int) {
 	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
+}
+
+func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, error) {
+	var info IdOutput
+	info.ID = p.String()
+
+	if pk := ps.PubKey(p); pk != nil {
+		pkb, err := ic.MarshalPublicKey(pk)
+		if err != nil {
+			return IdOutput{}, err
+		}
+		info.PublicKey = base64.StdEncoding.EncodeToString(pkb)
+	}
+
+	addrInfo := ps.PeerInfo(p)
+	addrs, err := peer.AddrInfoToP2pAddrs(&addrInfo)
+	if err != nil {
+		return IdOutput{}, err
+	}
+
+	for _, a := range addrs {
+		info.Addresses = append(info.Addresses, a.String())
+	}
+	sort.Strings(info.Addresses)
+
+	if protocols, err := ps.GetProtocols(p); err == nil {
+		info.Protocols = append(info.Protocols, protocols...)
+		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
+	}
+
+	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
+		if vs, ok := v.(string); ok {
+			info.ProtocolVersion = vs
+		}
+	}
+	if v, err := ps.Get(p, "AgentVersion"); err == nil {
+		if vs, ok := v.(string); ok {
+			info.AgentVersion = vs
+		}
+	}
+
+	return info, nil
 }
 
 // directionString transfers to string

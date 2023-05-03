@@ -1,4 +1,4 @@
-name: 'ci/gh-experiment: go build'
+name: Go Build
 
 on:
   workflow_dispatch:
@@ -7,16 +7,20 @@ on:
     branches:
       - 'master'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  runner:
+  go-build-runner:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     uses: ipfs/kubo/.github/workflows/runner.yml@master
-  gobuild:
-    needs: [runner]
-    runs-on: ${{ fromJSON(needs.runner.outputs.config).labels }}
+  go-build:
+    needs: [go-build-runner]
+    runs-on: ${{ fromJSON(needs.go-build-runner.outputs.config).labels }}
     timeout-minutes: 20
     env:
-      TEST_NO_DOCKER: 1
+      TEST_DOCKER: 0
       TEST_VERBOSE: 1
       TRAVIS: 1
       GIT_PAGER: cat
@@ -34,7 +38,7 @@ jobs:
           name: ${{ github.job }}
       - run: make cmd/ipfs-try-build
         env:
-          TEST_NO_FUSE: 0
+          TEST_FUSE: 1
       - run: make cmd/ipfs-try-build
         env:
-          TEST_NO_FUSE: 1
+          TEST_FUSE: 0

@@ -11,9 +11,9 @@ import (
 
 	context "context"
 
+	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-delegated-routing/client"
-	"github.com/ipfs/go-ipns"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"
 	"github.com/libp2p/go-libp2p/core/crypto"

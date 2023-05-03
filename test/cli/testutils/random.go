@@ -10,3 +10,7 @@ func RandomBytes(n int) []byte {
 	}
 	return bytes
 }
+
+func RandomStr(n int) string {
+	return string(RandomBytes(n))
+}

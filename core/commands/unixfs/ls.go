@@ -8,10 +8,10 @@ import (
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
+	path "github.com/ipfs/boxo/coreiface/path"
+	merkledag "github.com/ipfs/boxo/ipld/merkledag"
+	unixfs "github.com/ipfs/boxo/ipld/unixfs"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	merkledag "github.com/ipfs/go-merkledag"
-	unixfs "github.com/ipfs/go-unixfs"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type LsLink struct {

@@ -27,18 +27,12 @@ TEST_TRASH_DIR=$(pwd)
 TEST_SCRIPTS_DIR=$(dirname "$TEST_TRASH_DIR")
 TEST_TESTS_DIR=$(dirname "$TEST_SCRIPTS_DIR")
 APP_ROOT_DIR=$(dirname "$TEST_TESTS_DIR")
+IMAGE_TAG=kubo_test
 
 test_expect_success "docker image build succeeds" '
-  docker_build "$TEST_TESTS_DIR/../Dockerfile" "$APP_ROOT_DIR" | tee build-actual ||
+  docker_build "$IMAGE_TAG" "$TEST_TESTS_DIR/../Dockerfile" "$APP_ROOT_DIR" ||
   test_fsh echo "TEST_TESTS_DIR: $TEST_TESTS_DIR" ||
-  test_fsh echo "APP_ROOT_DIR : $APP_ROOT_DIR" ||
-  test_fsh cat build-actual
-'
-
-test_expect_success "docker image build output looks good" '
-  SUCCESS_LINE=$(egrep "^Successfully built" build-actual) &&
-  IMAGE_ID=$(expr "$SUCCESS_LINE" : "^Successfully built \(.*\)") ||
-  test_fsh cat build-actual
+  test_fsh echo "APP_ROOT_DIR : $APP_ROOT_DIR"
 '
 
 test_expect_success "write init scripts" '
@@ -52,7 +46,7 @@ test_expect_success "docker image runs" '
                   -p 127.0.0.1:5001:5001 -p 127.0.0.1:8080:8080 \
                   -v "$PWD/001.sh":/container-init.d/001.sh \
                   -v "$PWD/002.sh":/container-init.d/002.sh \
-                  "$IMAGE_ID")
+                  "$IMAGE_TAG")
 '
 
 test_expect_success "docker container gateway is up" '
@@ -100,5 +94,5 @@ test_expect_success "stop docker container" '
 '
 
 docker_rm "$DOC_ID"
-docker_rmi "$IMAGE_ID"
+docker_rmi "$IMAGE_TAG"
 test_done
