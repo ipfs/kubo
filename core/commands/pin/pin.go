@@ -675,10 +675,6 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 	bs := n.Blocks.Blockstore()
 	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
 	getLinks := dag.GetLinksWithDAG(DAG)
-	recPins, err := n.Pinning.RecursiveKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	var checkPin func(root cid.Cid) PinStatus
 	checkPin = func(root cid.Cid) PinStatus {
@@ -722,11 +718,15 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 	out := make(chan interface{})
 	go func() {
 		defer close(out)
-		for _, cid := range recPins {
-			pinStatus := checkPin(cid)
+		for p := range n.Pinning.RecursiveKeys(ctx) {
+			if p.Err != nil {
+				out <- p.Err
+				return
+			}
+			pinStatus := checkPin(p.C)
 			if !pinStatus.Ok || opts.includeOk {
 				select {
-				case out <- &PinVerifyRes{enc.Encode(cid), pinStatus}:
+				case out <- &PinVerifyRes{enc.Encode(p.C), pinStatus}:
 				case <-ctx.Done():
 					return
 				}

@@ -1,5 +1,8 @@
 module github.com/ipfs/kubo
 
+// https://github.com/ipfs/boxo/pull/290
+replace github.com/ipfs/boxo => github.com/MichaelMure/boxo v0.0.0-20230505145003-9207501a615f
+
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
