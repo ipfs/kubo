@@ -40,6 +40,9 @@ func MockHostOption(mn mocknet.Mocknet) libp2p2.HostOption {
 			return nil, err
 		}
 
+		// The mocknet does not use the provided libp2p.Option. This options include
+		// the listening addresses we want our peer listening on. Therefore, we have
+		// to manually parse the configuration and add them here.
 		ps.AddAddrs(id, cfg.ListenAddrs, pstore.PermanentAddrTTL)
 		return mn.AddPeerWithPeerstore(id, ps)
 	}
