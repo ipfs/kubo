@@ -1622,8 +1622,8 @@ Type: `flag`
 
 #### `Swarm.RelayClient.StaticRelays`
 
-Your node will use these statically configured relay servers (V1 or V2)
-instead of discovering public relays V2 from the network.
+Your node will use these statically configured relay servers
+instead of discovering public relays ([Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)) from the network.
 
 Default: `[]`
 
