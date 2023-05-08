@@ -14,7 +14,7 @@ Some common use cases for customizing Kubo include:
 This table summarizes the tradeoffs between the approaches below:
 
 ||  Boxo | Kubo Plugin | Bespoke Extension Point | Go Plugin | Fork |
-| --- | --- | --- | --- | --- | --- |
+| :---: | :---: | :---: | :---: | :---: | :---: |
 | Supported? |✅|✅|✅|❌|❌|
 | Future-proof? |✅|❌|✅|❌|❌|
 | Fully customizable? |✅|✅|❌|✅|✅|
