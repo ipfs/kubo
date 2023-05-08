@@ -22,7 +22,7 @@ This table summarizes the tradeoffs between the approaches below:
 | Dynamic at runtime?  |❌|❌|✅|✅|❌|
 | Add new commands? |❌|✅|❌|✅|✅|
 
-## Construct your own binary with Boxo
+## Boxo: build your own binary
 The best way to reuse Kubo functionality is to pick the functionality you need directly from [Boxo](https://github.com/ipfs/boxo) and compile your own binary.
 
 Boxo's raison d'etre is to be an IPFS component toolbox to support building custom-made implementations and applications. If your use case is not easy to implement with Boxo, you may want to consider adding whatever functionality is needed to Boxo instead of customizing Kubo, so that the community can benefit. If you are interested in this option, please reach out to Boxo maintainers, who will be happy to help you scope & plan the work. See [Boxo's FAQ](https://github.com/ipfs/boxo#help) for more info.
