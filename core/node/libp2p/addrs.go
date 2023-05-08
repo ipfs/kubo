@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p/core/host"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
@@ -99,37 +98,12 @@ func AddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string
 	}
 }
 
-func listenAddresses(addresses []string) ([]ma.Multiaddr, error) {
-	listen := make([]ma.Multiaddr, len(addresses))
-	for i, addr := range addresses {
-		maddr, err := ma.NewMultiaddr(addr)
-		if err != nil {
-			return nil, fmt.Errorf("failure to parse config.Addresses.Swarm: %s", addresses)
+func ListenOn(addresses []string) interface{} {
+	return func() (opts Libp2pOpts) {
+		return Libp2pOpts{
+			Opts: []libp2p.Option{
+				libp2p.ListenAddrStrings(addresses...),
+			},
 		}
-		listen[i] = maddr
-	}
-
-	return listen, nil
-}
-
-func StartListening(addresses []string) func(host host.Host) error {
-	return func(host host.Host) error {
-		listenAddrs, err := listenAddresses(addresses)
-		if err != nil {
-			return err
-		}
-
-		// Actually start listening:
-		if err := host.Network().Listen(listenAddrs...); err != nil {
-			return err
-		}
-
-		// list out our addresses
-		addrs, err := host.Network().InterfaceListenAddresses()
-		if err != nil {
-			return err
-		}
-		log.Infof("Swarm listening at: %s", addrs)
-		return nil
 	}
 }
