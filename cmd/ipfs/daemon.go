@@ -413,19 +413,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	case routingOptionSupernodeKwd:
 		return errors.New("supernode routing was never fully implemented and has been removed")
 	case routingOptionDefaultKwd, routingOptionAutoKwd:
-		ncfg.Routing = libp2p.ConstructDefaultRouting(
-			cfg.Identity.PeerID,
-			cfg.Addresses.Swarm,
-			cfg.Identity.PrivKey,
-			libp2p.DHTOption,
-		)
+		ncfg.Routing = libp2p.ConstructDefaultRouting(cfg, libp2p.DHTOption)
 	case routingOptionAutoClientKwd:
-		ncfg.Routing = libp2p.ConstructDefaultRouting(
-			cfg.Identity.PeerID,
-			cfg.Addresses.Swarm,
-			cfg.Identity.PrivKey,
-			libp2p.DHTClientOption,
-		)
+		ncfg.Routing = libp2p.ConstructDefaultRouting(cfg, libp2p.DHTClientOption)
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = libp2p.DHTClientOption
 	case routingOptionDHTKwd:

@@ -152,7 +152,6 @@ jobs:
         with:
           repository: ipfs/go-ipfs-http-client
           path: go-ipfs-http-client
-          ref: bump-for-rcmgr-last-push
       - uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
