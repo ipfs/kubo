@@ -45,6 +45,8 @@ Certain Kubo functionality may have their own extension points. For example:
 
 (This list is not exhaustive.)
 
+These can generally be developed and deployed as sidecars (or full external services) without modifying the Kubo binary.
+
 ## Go Plugins
 Go provides [dynamic plugins](https://pkg.go.dev/plugin) which can be loaded at runtime into a Go binary.
 
