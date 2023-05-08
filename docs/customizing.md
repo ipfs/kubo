@@ -10,6 +10,18 @@ Some common use cases for customizing Kubo include:
 - Adding new commands, interfaces, functionality, etc. to Kubo while reusing the libp2p swarm
 - Building on top of Kubo's configuration and config migration functionality
 
+## Summary
+This table summarizes the tradeoffs between the approaches below:
+
+||  Boxo | Kubo Plugin | Bespoke Extension Point | Go Plugin | Fork |
+| --- | --- | --- | --- | --- | --- |
+| Supported? |✅|✅|✅|❌|❌|
+| Future-proof? |✅|❌|✅|❌|❌|
+| Fully customizable? |✅|✅|❌|✅|✅|
+| Fast to implement? |❌|✅|✅|✅|✅|
+| Dynamic at runtime?  |❌|❌|✅|✅|❌|
+| Add new commands? |❌|✅|❌|✅|✅|
+
 ## Construct your own binary with Boxo
 The best way to reuse Kubo functionality is to pick the functionality you need directly from [Boxo](https://github.com/ipfs/boxo) and compile your own binary.
 
@@ -17,6 +29,8 @@ Boxo's raison d'etre is to be an IPFS component toolbox to support building cust
 
 ## Kubo Plugins
 Kubo plugins are a set of interfaces that may be implemented and injected into Kubo. Generally you should recompile the Kubo binary with your plugins added. A popular example of a Kubo plugin is [go-ds-s3](https://github.com/ipfs/go-ds-s3), which can be used to store blocks in Amazon S3.
+
+Some plugins, such as the `fx` plugin, allow deep customization of Kubo internals. As a result, Kubo maintainers can't guarantee backwards compatibility with these, so you may need to adapt to breaking changes when upgrading to new Kubo versions.
 
 For more information about the different types of Kubo plugins, see [plugins.md](./plugins.md).
 
