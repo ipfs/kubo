@@ -51,7 +51,7 @@ RUN set -eux; \
   && chmod +x tini
 
 # Now comes the actual target image, which aims to be as small as possible.
-FROM --platform=${BUILDPLATFORM:-linux/amd64} busybox:1.31.1-glibc
+FROM busybox:1.31.1-glibc
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
