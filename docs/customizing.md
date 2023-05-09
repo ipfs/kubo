@@ -50,7 +50,7 @@ These can generally be developed and deployed as sidecars (or full external serv
 ## Go Plugins
 Go provides [dynamic plugins](https://pkg.go.dev/plugin) which can be loaded at runtime into a Go binary.
 
-Kubo currently works with Go plugins. But using Go plugins requires that you compile the plugin using the exact same version of the Go toolchain with the same configuration (build flags, environment variables, etc.). As a result, generally you'd build Kubo and the plugins together at the same time, and at that point you may as well just compile the functionality directly into Kubo and avoid Go plugins.
+Kubo currently works with Go plugins. But using Go plugins requires that you compile the plugin using the exact same version of the Go toolchain with the same configuration (build flags, environment variables, etc.). As a result, you likely need to build Kubo and the plugins together at the same time, and at that point you may as well just compile the functionality directly into Kubo and avoid Go plugins.
 
 As a result, we don't recommend using Go plugins, and are likely to remove them in a future release of Kubo.
 
