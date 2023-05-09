@@ -13,7 +13,7 @@ Some common use cases for customizing Kubo include:
 ## Summary
 This table summarizes the tradeoffs between the approaches below:
 
-||  Boxo | Kubo Plugin | Bespoke Extension Point | Go Plugin | Fork |
+|| [Boxo](#boxo-build-your-own-binary) | [Kubo Plugin](#kubo-plugins) | [Bespoke Extension Point](#bespoke-extension-points) | [Go Plugin](#go-plugins) | [Fork](#fork-kubo) |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | Supported? |✅|✅|✅|❌|❌|
 | Future-proof? |✅|❌|✅|❌|❌|
