@@ -27,6 +27,7 @@ the above issue.
 - [Graphsync](#graphsync)
 - [Noise](#noise)
 - [Accelerated DHT Client](#accelerated-dht-client)
+- [Optimistic Provide](#optimistic-provide)
 
 ---
 
@@ -597,3 +598,76 @@ ipfs config --json Experimental.AcceleratedDHTClient true
 - [ ] Needs more people to use and report on how well it works
 - [ ] Should be usable for queries (even if slower/less efficient) shortly after startup
 - [ ] Should be usable with non-WAN DHTs
+
+## Optimistic Provide
+
+### In Version
+
+0.20.0
+
+### State
+
+Experimental, disabled by default.
+
+When the DHT client tries to store a provider in the DHT, it typically searches for the 20 peers that are closest to the
+target key. However, this process can be time-consuming, as the search terminates only after no closer peers are found
+among the three currently (during the query) known closest ones. In cases where these closest peers are slow to respond
+(which often happens if they are located at the edge of the DHT network), the query gets blocked by the slowest peer.
+
+To address this issue, the `OptimisticProvide` feature can be enabled. This feature allows the client to estimate the
+network size and determine how close a peer _likely_ needs to be to the target key to be within the 20 closest peers.
+While searching for the closest peers in the DHT, the client will _optimistically_ store the provider record with peers
+and abort the query completely when the set of currently known 20 closest peers are also _likely_ the actual 20 closest
+ones. This heuristic approach can significantly speed up the process, resulting in a speed improvement of 2x to >10x.
+
+When it is enabled:
+
+- DHT provide operations should complete much faster than with it disabled
+- This can be tested with commands such as `ipfs routing provide`
+
+**Tradeoffs**
+
+There are now the classic client, the accelerated DHT client, and optimistic provide that improve the provider process.
+There are different trade-offs with all of them. The accelerated DHT client is still faster to provide large amounts
+of provider records at the cost of high resource requirements. Optimistic provide doesn't have the high resource
+requirements but might not choose optimal peers and is not as fast as the accelerated client, but still much faster
+than the classic client.
+
+**Caveats:**
+
+1. Providing optimistically requires a current network size estimation. This estimation is calculated through routing
+   table refresh queries and is only available after the daemon has been running for some time. If there is no network
+   size estimation available the client will transparently fall back to the classic approach.
+2. The chosen peers to store the provider records might not be the actual closest ones. Measurements showed that this
+   is not a problem.
+3. The optimistic provide process returns already after 15 out of the 20 provider records were stored with peers. The 
+   reasoning here is that one out of the remaining 5 peers are very likely to time out and delay the whole process. To
+   limit the number of in-flight async requests there is the second `OptimisticProvideJobsPoolSize` setting. Currently,
+   this is set to 60. This means that at most 60 parallel background requests are allowed to be in-flight. If this
+   limit is exceeded optimistic provide will block until all 20 provider records are written. This is still 2x faster
+   than the classic approach but not as fast as returning early which yields >10x speed-ups.
+4. Since the in-flight background requests are likely to time out, they are not consuming many resources and the job
+   pool size could probably be much higher.
+
+For more information, see:
+
+- Project doc: https://protocollabs.notion.site/Optimistic-Provide-2c79745820fa45649d48de038516b814
+- go-libp2p-kad-dht: https://github.com/libp2p/go-libp2p-kad-dht/pull/783
+
+### Configuring
+To enable:
+
+```
+ipfs config --json Experimental.OptimisticProvide true
+```
+
+If you want to change the `OptimisticProvideJobsPoolSize` setting from its default of 60:
+
+```
+ipfs config --json Experimental.OptimisticProvideJobsPoolSize 120
+```
+
+### Road to being a real feature
+
+- [ ] Needs more people to use and report on how well it works
+- [ ] Should prove at least equivalent availability of provider records as the classic approach

@@ -11,8 +11,8 @@ import (
 	mbase "github.com/multiformats/go-multibase"
 	"github.com/pkg/errors"
 
+	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 var PubsubCmd = &cmds.Command{

@@ -20,6 +20,7 @@ func TestDHTAutoclient(t *testing.T) {
 	t.Run("file added on node in client mode is retrievable from node in client mode", func(t *testing.T) {
 		t.Parallel()
 		randomBytes := testutils.RandomBytes(1000)
+		randomBytes = append(randomBytes, '\r')
 		hash := nodes[8].IPFSAdd(bytes.NewReader(randomBytes))
 
 		res := nodes[9].IPFS("cat", hash)

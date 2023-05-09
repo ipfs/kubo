@@ -1,4 +1,4 @@
-name: Publish Docker image
+name: Docker Push
 
 on:
   workflow_dispatch:
@@ -9,8 +9,11 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
-  push_to_registry:
+  docker-hub:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
@@ -27,6 +30,14 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
       - name: Get tags
         id: tags
@@ -50,3 +61,12 @@ jobs:
           push: true
           file: ./Dockerfile
           tags: "${{ steps.tags.outputs.value }}"
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache to limit growth
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

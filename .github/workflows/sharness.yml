@@ -1,4 +1,4 @@
-name: 'ci/gh-experiment: sharness'
+name: Sharness
 
 on:
   workflow_dispatch:
@@ -7,13 +7,17 @@ on:
     branches:
       - 'master'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  runner:
+  sharness-runner:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     uses: ipfs/kubo/.github/workflows/runner.yml@master
-  sharness:
-    needs: [runner]
-    runs-on: ${{ fromJSON(needs.runner.outputs.config).labels }}
+  sharness-test:
+    needs: [sharness-runner]
+    runs-on: ${{ fromJSON(needs.sharness-runner.outputs.config).labels }}
     timeout-minutes: 20
     defaults:
       run:
@@ -28,25 +32,11 @@ jobs:
         with:
           path: kubo
       - name: Install missing tools
-        run: sudo apt install -y socat net-tools fish libxml2-utils
-      - name: Checkout IPFS Pinning Service API
-        uses: actions/checkout@v3
-        with:
-          repository: ipfs-shipyard/rb-pinning-service-api
-          ref: 773c3adbb421c551d2d89288abac3e01e1f7c3a8
-          path: rb-pinning-service-api
-      # TODO: check if docker compose (not docker-compose) is available on default gh runners
-      - name: Start IPFS Pinning Service API
-        run: |
-          (for i in {1..3}; do docker compose pull && break || sleep 5; done) &&
-            docker compose up -d
-        working-directory: rb-pinning-service-api
+        run: sudo apt update && sudo apt install -y socat net-tools fish libxml2-utils
       - name: Restore Go Cache
         uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
-      - name: Find IPFS Pinning Service API address
-        run: echo "TEST_DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $GITHUB_ENV
       - uses: actions/cache@v3
         with:
           path: test/sharness/lib/dependencies
@@ -59,15 +49,15 @@ jobs:
             test/sharness/test-results/sharness.xml
         working-directory: kubo
         env:
-          TEST_NO_DOCKER: 0
-          TEST_NO_PLUGIN: 1
-          TEST_NO_FUSE: 1
+          TEST_DOCKER: 1
+          TEST_PLUGIN: 0
+          TEST_FUSE: 0
           TEST_VERBOSE: 1
           TEST_JUNIT: 1
           TEST_EXPENSIVE: 1
           IPFS_CHECK_RCMGR_DEFAULTS: 1
           CONTINUE_ON_S_FAILURE: 1
-          PARALLEL: ${{ fromJSON(needs.runner.outputs.config).parallel }}
+          PARALLEL: ${{ fromJSON(needs.sharness-runner.outputs.config).parallel }}
       - name: Upload coverage report
         uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0
         if: failure() || success()
@@ -96,12 +86,12 @@ jobs:
       - name: Upload one-page HTML report to S3
         id: one-page
         uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
-        if: fromJSON(needs.runner.outputs.config).aws && (failure() || success())
+        if: fromJSON(needs.sharness-runner.outputs.config).aws && (failure() || success())
         with:
           source: kubo/test/sharness/test-results/sharness.html
           destination: sharness.html
       - name: Upload one-page HTML report
-        if: (! fromJSON(needs.runner.outputs.config).aws) && (failure() || success())
+        if: (! fromJSON(needs.sharness-runner.outputs.config).aws) && (failure() || success())
         uses: actions/upload-artifact@v3
         with:
           name: sharness.html
@@ -116,18 +106,18 @@ jobs:
       - name: Upload full HTML report to S3
         id: full
         uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
-        if: fromJSON(needs.runner.outputs.config).aws && (failure() || success())
+        if: fromJSON(needs.sharness-runner.outputs.config).aws && (failure() || success())
         with:
           source: kubo/test/sharness/test-results/sharness-html
           destination: sharness-html/
       - name: Upload full HTML report
-        if: (! fromJSON(needs.runner.outputs.config).aws) && (failure() || success())
+        if: (! fromJSON(needs.sharness-runner.outputs.config).aws) && (failure() || success())
         uses: actions/upload-artifact@v3
         with:
           name: sharness-html
           path: kubo/test/sharness/test-results/sharness-html
       - name: Add S3 links to the summary
-        if: fromJSON(needs.runner.outputs.config).aws && (failure() || success())
+        if: fromJSON(needs.sharness-runner.outputs.config).aws && (failure() || success())
         run: echo "$MD" >> $GITHUB_STEP_SUMMARY
         env:
           MD: |

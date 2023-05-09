@@ -57,8 +57,8 @@ func (n Nodes) Connect() Nodes {
 	return n
 }
 
-func (n Nodes) StartDaemons() Nodes {
-	ForEachPar(n, func(node *Node) { node.StartDaemon() })
+func (n Nodes) StartDaemons(args ...string) Nodes {
+	ForEachPar(n, func(node *Node) { node.StartDaemon(args...) })
 	return n
 }
 

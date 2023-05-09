@@ -18,13 +18,17 @@ import (
 	routing "github.com/libp2p/go-libp2p/core/routing"
 )
 
-type RoutingOption func(
-	context.Context,
-	host.Host,
-	datastore.Batching,
-	record.Validator,
-	...peer.AddrInfo,
-) (routing.Routing, error)
+type RoutingOptionArgs struct {
+	Ctx                           context.Context
+	Host                          host.Host
+	Datastore                     datastore.Batching
+	Validator                     record.Validator
+	BootstrapPeers                []peer.AddrInfo
+	OptimisticProvide             bool
+	OptimisticProvideJobsPoolSize int
+}
+
+type RoutingOption func(args RoutingOptionArgs) (routing.Routing, error)
 
 // Default HTTP routers used in parallel to DHT when Routing.Type = "auto"
 var defaultHTTPRouters = []string{
@@ -67,25 +71,13 @@ func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.Parallel
 }
 
 // ConstructDefaultRouting returns routers used when Routing.Type is unset or set to "auto"
-func ConstructDefaultRouting(cfg *config.Config, routingOpt RoutingOption) func(
-	ctx context.Context,
-	host host.Host,
-	dstore datastore.Batching,
-	validator record.Validator,
-	bootstrapPeers ...peer.AddrInfo,
-) (routing.Routing, error) {
-	return func(
-		ctx context.Context,
-		host host.Host,
-		dstore datastore.Batching,
-		validator record.Validator,
-		bootstrapPeers ...peer.AddrInfo,
-	) (routing.Routing, error) {
+func ConstructDefaultRouting(cfg *config.Config, routingOpt RoutingOption) RoutingOption {
+	return func(args RoutingOptionArgs) (routing.Routing, error) {
 		// Defined routers will be queried in parallel (optimizing for response speed)
 		// Different trade-offs can be made by setting Routing.Type = "custom" with own Routing.Routers
 		var routers []*routinghelpers.ParallelRouter
 
-		dhtRouting, err := routingOpt(ctx, host, dstore, validator, bootstrapPeers...)
+		dhtRouting, err := routingOpt(args)
 		if err != nil {
 			return nil, err
 		}
@@ -108,54 +100,38 @@ func ConstructDefaultRouting(cfg *config.Config, routingOpt RoutingOption) func(
 }
 
 // constructDHTRouting is used when Routing.Type = "dht"
-func constructDHTRouting(mode dht.ModeOpt) func(
-	ctx context.Context,
-	host host.Host,
-	dstore datastore.Batching,
-	validator record.Validator,
-	bootstrapPeers ...peer.AddrInfo,
-) (routing.Routing, error) {
-	return func(
-		ctx context.Context,
-		host host.Host,
-		dstore datastore.Batching,
-		validator record.Validator,
-		bootstrapPeers ...peer.AddrInfo,
-	) (routing.Routing, error) {
+func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
+	return func(args RoutingOptionArgs) (routing.Routing, error) {
+		dhtOpts := []dht.Option{
+			dht.Concurrency(10),
+			dht.Mode(mode),
+			dht.Datastore(args.Datastore),
+			dht.Validator(args.Validator),
+		}
+		if args.OptimisticProvide {
+			dhtOpts = append(dhtOpts, dht.EnableOptimisticProvide())
+		}
+		if args.OptimisticProvideJobsPoolSize != 0 {
+			dhtOpts = append(dhtOpts, dht.OptimisticProvideJobsPoolSize(args.OptimisticProvideJobsPoolSize))
+		}
 		return dual.New(
-			ctx, host,
-			dual.DHTOption(
-				dht.Concurrency(10),
-				dht.Mode(mode),
-				dht.Datastore(dstore),
-				dht.Validator(validator)),
-			dual.WanDHTOption(dht.BootstrapPeers(bootstrapPeers...)),
+			args.Ctx, args.Host,
+			dual.DHTOption(dhtOpts...),
+			dual.WanDHTOption(dht.BootstrapPeers(args.BootstrapPeers...)),
 		)
 	}
 }
 
 // ConstructDelegatedRouting is used when Routing.Type = "custom"
-func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs []string, privKey string) func(
-	ctx context.Context,
-	host host.Host,
-	dstore datastore.Batching,
-	validator record.Validator,
-	bootstrapPeers ...peer.AddrInfo,
-) (routing.Routing, error) {
-	return func(
-		ctx context.Context,
-		host host.Host,
-		dstore datastore.Batching,
-		validator record.Validator,
-		bootstrapPeers ...peer.AddrInfo,
-	) (routing.Routing, error) {
+func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs []string, privKey string) RoutingOption {
+	return func(args RoutingOptionArgs) (routing.Routing, error) {
 		return irouting.Parse(routers, methods,
 			&irouting.ExtraDHTParams{
-				BootstrapPeers: bootstrapPeers,
-				Host:           host,
-				Validator:      validator,
-				Datastore:      dstore,
-				Context:        ctx,
+				BootstrapPeers: args.BootstrapPeers,
+				Host:           args.Host,
+				Validator:      args.Validator,
+				Datastore:      args.Datastore,
+				Context:        args.Ctx,
 			},
 			&irouting.ExtraHTTPParams{
 				PeerID:     peerID,
@@ -165,13 +141,7 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 	}
 }
 
-func constructNilRouting(
-	ctx context.Context,
-	host host.Host,
-	dstore datastore.Batching,
-	validator record.Validator,
-	bootstrapPeers ...peer.AddrInfo,
-) (routing.Routing, error) {
+func constructNilRouting(_ RoutingOptionArgs) (routing.Routing, error) {
 	return routinghelpers.Null{}, nil
 }
 

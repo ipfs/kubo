@@ -1,4 +1,4 @@
-name: Go Checks
+name: Go Check
 
 on:
   workflow_dispatch:
@@ -7,12 +7,18 @@ on:
     branches:
       - 'master'
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  unit:
+  go-check:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    name: All
     steps:
       - uses: actions/checkout@v2
         with:

@@ -76,6 +76,23 @@ func (n *Node) WriteBytes(filename string, b []byte) {
 	}
 }
 
+// ReadFile reads the specific file. If it is relative, it is relative the node's root dir.
+func (n *Node) ReadFile(filename string) string {
+	f := filename
+	if !filepath.IsAbs(filename) {
+		f = filepath.Join(n.Dir, filename)
+	}
+	b, err := os.ReadFile(f)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
+func (n *Node) ConfigFile() string {
+	return filepath.Join(n.Dir, "config")
+}
+
 func (n *Node) ReadConfig() *config.Config {
 	cfg, err := serial.Load(filepath.Join(n.Dir, "config"))
 	if err != nil {
@@ -194,25 +211,41 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 	return n
 }
 
-func (n *Node) StartDaemon(ipfsArgs ...string) *Node {
+// StartDaemonWithReq runs a Kubo daemon with the given request.
+// This overwrites the request Path with the Kubo bin path.
+//
+// For example, if you want to run the daemon and see stderr and stdout to debug:
+//
+//	 node.StartDaemonWithReq(harness.RunRequest{
+//	 	 CmdOpts: []harness.CmdOpt{
+//			harness.RunWithStderr(os.Stdout),
+//			harness.RunWithStdout(os.Stdout),
+//		 },
+//	 })
+func (n *Node) StartDaemonWithReq(req RunRequest) *Node {
 	alive := n.IsAlive()
 	if alive {
 		log.Panicf("node %d is already running", n.ID)
 	}
+	newReq := req
+	newReq.Path = n.IPFSBin
+	newReq.Args = append([]string{"daemon"}, req.Args...)
+	newReq.RunFunc = (*exec.Cmd).Start
 
-	daemonArgs := append([]string{"daemon"}, ipfsArgs...)
 	log.Debugf("starting node %d", n.ID)
-	res := n.Runner.MustRun(RunRequest{
-		Path:    n.IPFSBin,
-		Args:    daemonArgs,
-		RunFunc: (*exec.Cmd).Start,
-	})
+	res := n.Runner.MustRun(newReq)
 
 	n.Daemon = res
 
 	log.Debugf("node %d started, checking API", n.ID)
 	n.WaitOnAPI()
 	return n
+}
+
+func (n *Node) StartDaemon(ipfsArgs ...string) *Node {
+	return n.StartDaemonWithReq(RunRequest{
+		Args: ipfsArgs,
+	})
 }
 
 func (n *Node) signalAndWait(watch <-chan struct{}, signal os.Signal, t time.Duration) bool {

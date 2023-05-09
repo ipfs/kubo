@@ -24,10 +24,10 @@ TEST_TRASH_DIR=$(pwd)
 TEST_SCRIPTS_DIR=$(dirname "$TEST_TRASH_DIR")
 TEST_TESTS_DIR=$(dirname "$TEST_SCRIPTS_DIR")
 APP_ROOT_DIR=$(dirname "$TEST_TESTS_DIR")
+IMAGE_TAG=kubo_migrate
 
 test_expect_success "docker image build succeeds" '
-  docker_build "$TEST_TESTS_DIR/../Dockerfile" "$APP_ROOT_DIR" >actual &&
-  IMAGE_ID=$(tail -n1 actual | cut -d " " -f 3)
+  docker_build "$IMAGE_TAG" "$TEST_TESTS_DIR/../Dockerfile" "$APP_ROOT_DIR"
 '
 
 test_init_ipfs
@@ -53,7 +53,7 @@ test_expect_success "startup fake dists server" '
 '
 
 test_expect_success "docker image runs" '
-  DOC_ID=$(docker run -d -v "$IPFS_PATH":/data/ipfs --net=host "$IMAGE_ID")
+  DOC_ID=$(docker run -d -v "$IPFS_PATH":/data/ipfs --net=host "$IMAGE_TAG")
 '
 
 test_expect_success "docker container tries to pull migrations from netcat" '
@@ -78,6 +78,5 @@ test_expect_success "correct version was requested" '
 '
 
 docker_rm "$DOC_ID"
-docker_rmi "$IMAGE_ID"
+docker_rmi "$IMAGE_TAG"
 test_done
-

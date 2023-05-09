@@ -13,18 +13,19 @@ import (
 	"context"
 	"io"
 
-	"github.com/ipfs/go-filestore"
-	pin "github.com/ipfs/go-ipfs-pinner"
+	"github.com/ipfs/boxo/filestore"
+	pin "github.com/ipfs/boxo/pinning/pinner"
 
-	bserv "github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-fetcher"
+	bserv "github.com/ipfs/boxo/blockservice"
+	bstore "github.com/ipfs/boxo/blockstore"
+	exchange "github.com/ipfs/boxo/exchange"
+	"github.com/ipfs/boxo/fetcher"
+	mfs "github.com/ipfs/boxo/mfs"
+	pathresolver "github.com/ipfs/boxo/path/resolver"
+	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-graphsync"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	provider "github.com/ipfs/go-ipfs-provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	mfs "github.com/ipfs/go-mfs"
 	goprocess "github.com/jbenet/goprocess"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -43,8 +44,8 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
-	"github.com/ipfs/go-namesys"
-	ipnsrp "github.com/ipfs/go-namesys/republisher"
+	"github.com/ipfs/boxo/namesys"
+	ipnsrp "github.com/ipfs/boxo/namesys/republisher"
 	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/core/node/libp2p"
@@ -87,18 +88,20 @@ type IpfsNode struct {
 	RecordValidator      record.Validator
 
 	// Online
-	PeerHost        p2phost.Host               `optional:"true"` // the network host (server+client)
-	Peering         *peering.PeeringService    `optional:"true"`
-	Filters         *ma.Filters                `optional:"true"`
-	Bootstrapper    io.Closer                  `optional:"true"` // the periodic bootstrapper
-	Routing         irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
-	DNSResolver     *madns.Resolver            // the DNS resolver
-	Exchange        exchange.Interface         // the block exchange + strategy (bitswap)
-	Namesys         namesys.NameSystem         // the name system, resolves paths to hashes
-	Provider        provider.System            // the value provider system
-	IpnsRepub       *ipnsrp.Republisher        `optional:"true"`
-	GraphExchange   graphsync.GraphExchange    `optional:"true"`
-	ResourceManager network.ResourceManager    `optional:"true"`
+	PeerHost           p2phost.Host               `optional:"true"` // the network host (server+client)
+	Peering            *peering.PeeringService    `optional:"true"`
+	Filters            *ma.Filters                `optional:"true"`
+	Bootstrapper       io.Closer                  `optional:"true"` // the periodic bootstrapper
+	Routing            irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
+	DNSResolver        *madns.Resolver            // the DNS resolver
+	IPLDPathResolver   pathresolver.Resolver      `name:"ipldPathResolver"`   // The IPLD path resolver
+	UnixFSPathResolver pathresolver.Resolver      `name:"unixFSPathResolver"` // The UnixFS path resolver
+	Exchange           exchange.Interface         // the block exchange + strategy (bitswap)
+	Namesys            namesys.NameSystem         // the name system, resolves paths to hashes
+	Provider           provider.System            // the value provider system
+	IpnsRepub          *ipnsrp.Republisher        `optional:"true"`
+	GraphExchange      graphsync.GraphExchange    `optional:"true"`
+	ResourceManager    network.ResourceManager    `optional:"true"`
 
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
