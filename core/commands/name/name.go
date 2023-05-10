@@ -9,9 +9,17 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/ipfs/boxo/ipns"
+	ipns_pb "github.com/ipfs/boxo/ipns/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipld/go-ipld-prime"
+	"github.com/ipld/go-ipld-prime/codec/dagcbor"
+	"github.com/ipld/go-ipld-prime/codec/dagjson"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
+	mbase "github.com/multiformats/go-multibase"
 )
 
 type IpnsEntry struct {
@@ -76,9 +84,29 @@ Resolve the value of a dnslink:
 	},
 }
 
+type IpnsInspectValidation struct {
+	Valid     bool
+	Reason    string
+	PublicKey peer.ID
+}
+
+// IpnsInspectEntry contains the deserialized values from an IPNS Entry:
+// https://github.com/ipfs/specs/blob/main/ipns/IPNS.md#record-serialization-format
+type IpnsInspectEntry struct {
+	Value        string
+	ValidityType *ipns_pb.IpnsEntry_ValidityType
+	Validity     *time.Time
+	Sequence     uint64
+	TTL          *uint64
+	PublicKey    string
+	SignatureV1  string
+	SignatureV2  string
+	Data         interface{}
+}
+
 type IpnsInspectResult struct {
-	Entry      *ipns.IpnsInspectEntry
-	Validation *ipns.IpnsInspectValidation
+	Entry      IpnsInspectEntry
+	Validation *IpnsInspectValidation
 }
 
 var IpnsInspectCmd = &cmds.Command{
@@ -124,28 +152,102 @@ Passing --verify will verify signature against provided public key.
 			return err
 		}
 
-		entry, err := ipns.UnmarshalIpnsEntry(b.Bytes())
+		var entry ipns_pb.IpnsEntry
+		err = proto.Unmarshal(b.Bytes(), &entry)
 		if err != nil {
 			return err
 		}
 
-		inspectEntry, err := ipns.InspectIpnsRecord(entry)
+		encoder, err := mbase.EncoderByName("base64")
 		if err != nil {
 			return err
 		}
 
 		result := &IpnsInspectResult{
-			Entry: inspectEntry,
+			Entry: IpnsInspectEntry{
+				Value:        string(entry.Value),
+				ValidityType: entry.ValidityType,
+				Sequence:     *entry.Sequence,
+				TTL:          entry.Ttl,
+				PublicKey:    encoder.Encode(entry.PubKey),
+				SignatureV1:  encoder.Encode(entry.SignatureV1),
+				SignatureV2:  encoder.Encode(entry.SignatureV2),
+				Data:         nil,
+			},
+		}
+
+		if len(entry.Data) != 0 {
+			// This is hacky. The variable node (datamodel.Node) doesn't directly marshal
+			// to JSON. Therefore, we need to first decode from DAG-CBOR, then encode in
+			// DAG-JSON and finally unmarshal it from JSON. Since DAG-JSON is a subset
+			// of JSON, that should work. Then, we can store the final value in the
+			// result.Entry.Data for further inspection.
+			node, err := ipld.Decode(entry.Data, dagcbor.Decode)
+			if err != nil {
+				return err
+			}
+
+			var buf bytes.Buffer
+			err = dagjson.Encode(node, &buf)
+			if err != nil {
+				return err
+			}
+
+			err = json.Unmarshal(buf.Bytes(), &result.Entry.Data)
+			if err != nil {
+				return err
+			}
+		}
+
+		validity, err := ipns.GetEOL(&entry)
+		if err == nil {
+			result.Entry.Validity = &validity
 		}
 
 		verify, ok := req.Options["verify"].(string)
 		if ok {
 			key := strings.TrimPrefix(verify, "/ipns/")
-			validation, err := ipns.Verify(key, entry)
+			id, err := peer.Decode(key)
 			if err != nil {
 				return err
 			}
-			result.Validation = validation
+
+			result.Validation = &IpnsInspectValidation{
+				PublicKey: id,
+			}
+
+			pub, err := id.ExtractPublicKey()
+			if err != nil {
+				// Make sure it works with all those RSA that cannot be embedded into the
+				// Peer ID.
+				if len(entry.PubKey) > 0 {
+					pub, err = ic.UnmarshalPublicKey(entry.PubKey)
+					if err != nil {
+						return err
+					}
+
+					// Verify the public key matches the name we are verifying.
+					entryID, err := peer.IDFromPublicKey(pub)
+
+					if err != nil {
+						return err
+					}
+
+					if id != entryID {
+						return fmt.Errorf("record public key does not match the verified name")
+					}
+				}
+			}
+			if err != nil {
+				return err
+			}
+
+			err = ipns.Validate(pub, &entry)
+			if err == nil {
+				result.Validation.Valid = true
+			} else {
+				result.Validation.Reason = err.Error()
+			}
 		}
 
 		return cmds.EmitOnce(res, result)
