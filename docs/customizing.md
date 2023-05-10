@@ -13,14 +13,14 @@ Some common use cases for customizing Kubo include:
 ## Summary
 This table summarizes the tradeoffs between the approaches below:
 
-|| [Boxo](#boxo-build-your-own-binary) | [Kubo Plugin](#kubo-plugins) | [Bespoke Extension Point](#bespoke-extension-points) | [Go Plugin](#go-plugins) | [Fork](#fork-kubo) |
-| :---: | :---: | :---: | :---: | :---: | :---: |
-| Supported? |✅|✅|✅|❌|❌|
-| Future-proof? |✅|❌|✅|❌|❌|
-| Fully customizable? |✅|✅|❌|✅|✅|
-| Fast to implement? |❌|✅|✅|✅|✅|
-| Dynamic at runtime?  |❌|❌|✅|✅|❌|
-| Add new commands? |❌|✅|❌|✅|✅|
+|                     | [Boxo](#boxo-build-your-own-binary) | [Kubo Plugin](#kubo-plugins) | [Bespoke Extension Point](#bespoke-extension-points) | [Go Plugin](#go-plugins) | [Fork](#fork-kubo) |
+|:-------------------:|:-----------------------------------:|:----------------------------:|:----------------------------------------------------:|:------------------------:|:------------------:|
+|     Supported?      |                  ✅                  |              ✅               |                          ✅                           |            ❌             |         ❌          |
+|    Future-proof?    |                  ✅                  |              ❌               |                          ✅                           |            ❌             |         ❌          |
+| Fully customizable? |                  ✅                  |              ✅               |                          ❌                           |            ✅             |         ✅          |
+| Fast to implement?  |                  ❌                  |              ✅               |                          ✅                           |            ✅             |         ✅          |
+| Dynamic at runtime? |                  ❌                  |              ❌               |                          ✅                           |            ✅             |         ❌          |
+|  Add new commands?  |                  ❌                  |              ✅               |                          ❌                           |            ✅             |         ✅          |
 
 ## Boxo: build your own binary
 The best way to reuse Kubo functionality is to pick the functionality you need directly from [Boxo](https://github.com/ipfs/boxo) and compile your own binary.
