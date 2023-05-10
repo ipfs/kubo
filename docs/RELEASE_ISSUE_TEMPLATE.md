@@ -63,6 +63,7 @@ This section covers tasks to be done ahead of the release.
     - open an access request in the [pldw](https://github.com/protocol/pldw/issues/new/choose)
     - [example](https://github.com/protocol/pldw/issues/158)
   - [ ] [kuboreleaser](https://github.com/ipfs/kuboreleaser) checked out on your system (_only if you're using [kuboreleaser](https://github.com/ipfs/kuboreleaser)_)
+  - [ ] [Thunderdome](https://github.com/ipfs-shipyard/thunderdome) checked out on your system and configured (see the [Thunderdome release docs](./releases_thunderdome.md) for setup)
   - [ ] [docker](https://docs.docker.com/get-docker/) installed on your system (_only if you're using [kuboreleaser](https://github.com/ipfs/kuboreleaser)_)
   - [ ] [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) installed on your system (_only if you're **NOT** using [kuboreleaser](https://github.com/ipfs/kuboreleaser)_)
   - [ ] [zsh](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH#install-and-set-up-zsh-as-default) installed on your system
@@ -102,6 +103,8 @@ This section covers tasks to be done during each release.
     - do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit
     - do **NOT** delete the `release-vX.Y` branch
   </details>
+- [ ] Run Thunderdome testing, see the [Thunderdome release docs](./releases_thunderdome.md) for details
+  - [ ] create a PR and merge the experiment config into Thunderdome
 - [ ] Create the release tag <details><summary>using `kuboreleaser release --version vX.Y.Z(-rcN) tag` or ...</summary>
   - This is a dangerous operation! Go and Docker publishing are difficult to reverse! Have the release reviewer verify all the commands marked with ⚠️!
   - [ ] ⚠️ ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) tag the HEAD commit using `git tag -s vX.Y.Z(-RCN) -m 'Prerelease X.Y.Z(-RCN)'`
