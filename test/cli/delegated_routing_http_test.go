@@ -17,6 +17,7 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 
 	fakeServer := func(resp string) *httptest.Server {
 		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
 			_, err := w.Write([]byte(resp))
 			if err != nil {
 				panic(err)
