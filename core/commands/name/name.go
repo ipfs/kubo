@@ -17,7 +17,6 @@ import (
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/codec/dagcbor"
 	"github.com/ipld/go-ipld-prime/codec/dagjson"
-	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	mbase "github.com/multiformats/go-multibase"
 )
@@ -216,33 +215,7 @@ Passing --verify will verify signature against provided public key.
 				PublicKey: id,
 			}
 
-			pub, err := id.ExtractPublicKey()
-			if err != nil {
-				// Make sure it works with all those RSA that cannot be embedded into the
-				// Peer ID.
-				if len(entry.PubKey) > 0 {
-					pub, err = ic.UnmarshalPublicKey(entry.PubKey)
-					if err != nil {
-						return err
-					}
-
-					// Verify the public key matches the name we are verifying.
-					entryID, err := peer.IDFromPublicKey(pub)
-
-					if err != nil {
-						return err
-					}
-
-					if id != entryID {
-						return fmt.Errorf("record public key does not match the verified name")
-					}
-				}
-			}
-			if err != nil {
-				return err
-			}
-
-			err = ipns.Validate(pub, &entry)
+			err = ipns.ValidateWithPeerID(id, &entry)
 			if err == nil {
 				result.Validation.Valid = true
 			} else {
