@@ -658,6 +658,16 @@ Default: `true`
 
 Type: `flag`
 
+#### `Gateway.ExposeRoutingAPI`
+
+An optional flag to expose Kubo `Routing` system on the gateway port as a [Routing
+V1](https://specs.ipfs.tech/routing/routing-v1/) endpoint.  This only affects your
+local gateway, at `127.0.0.1`.
+
+Default: `false`
+
+Type: `flag`
+
 ### `Gateway.HTTPHeaders`
 
 Headers to set on gateway responses.

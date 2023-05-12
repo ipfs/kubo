@@ -848,6 +848,10 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		opts = append(opts, corehttp.P2PProxyOption())
 	}
 
+	if cfg.Gateway.ExposeRoutingAPI.WithDefault(config.DefaultExposeRoutingAPI) {
+		opts = append(opts, corehttp.RoutingOption())
+	}
+
 	if len(cfg.Gateway.RootRedirect) > 0 {
 		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
 	}

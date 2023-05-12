@@ -135,11 +135,7 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 				Datastore:      args.Datastore,
 				Context:        args.Ctx,
 			},
-			&irouting.ExtraHTTPParams{
-				PeerID:     peerID,
-				Addrs:      httpAddrsFromConfig(addrs),
-				PrivKeyB64: privKey,
-			})
+		)
 	}
 }
 

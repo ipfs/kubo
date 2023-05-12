@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"runtime"
 )
 
 // Routing defines configuration options for libp2p routing.
@@ -133,23 +132,6 @@ var MethodNameList = []MethodName{MethodNameProvide, MethodNameFindPeers, Method
 type HTTPRouterParams struct {
 	// Endpoint is the URL where the routing implementation will point to get the information.
 	Endpoint string
-
-	// MaxProvideBatchSize determines the maximum amount of CIDs sent per batch.
-	// Servers might not accept more than 100 elements per batch. 100 elements by default.
-	MaxProvideBatchSize int
-
-	// MaxProvideConcurrency determines the number of threads used when providing content. GOMAXPROCS by default.
-	MaxProvideConcurrency int
-}
-
-func (hrp *HTTPRouterParams) FillDefaults() {
-	if hrp.MaxProvideBatchSize == 0 {
-		hrp.MaxProvideBatchSize = 100
-	}
-
-	if hrp.MaxProvideConcurrency == 0 {
-		hrp.MaxProvideConcurrency = runtime.GOMAXPROCS(0)
-	}
 }
 
 type DHTRouterParams struct {

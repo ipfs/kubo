@@ -89,10 +89,10 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 	t.Run("adding HTTP delegated routing endpoint to Routing.Routers config works", func(t *testing.T) {
 		server := fakeServer("application/json", ToJSONStr(JSONObj{
 			"Providers": []JSONObj{{
-				"Protocol": "transport-bitswap",
-				"Schema":   "bitswap",
-				"ID":       provs[0],
-				"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
+				"Protocols": []string{"transport-bitswap"},
+				"Schema":    "peer",
+				"ID":        provs[0],
+				"Addrs":     []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
 			}},
 		}))
 		t.Cleanup(server.Close)
@@ -124,15 +124,15 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 
 	t.Run("adding HTTP delegated routing endpoint to Routing.Routers config works (streaming)", func(t *testing.T) {
 		server := fakeServer("application/x-ndjson", ToJSONStr(JSONObj{
-			"Protocol": "transport-bitswap",
-			"Schema":   "bitswap",
-			"ID":       provs[1],
-			"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
+			"Protocols": []string{"transport-bitswap"},
+			"Schema":    "peer",
+			"ID":        provs[1],
+			"Addrs":     []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
 		}), ToJSONStr(JSONObj{
-			"Protocol": "transport-bitswap",
-			"Schema":   "bitswap",
-			"ID":       provs[0],
-			"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
+			"Protocols": []string{"transport-bitswap"},
+			"Schema":    "peer",
+			"ID":        provs[0],
+			"Addrs":     []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
 		}))
 		t.Cleanup(server.Close)
 

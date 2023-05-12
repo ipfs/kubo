@@ -16,49 +16,43 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/stretchr/testify/assert"
 )
 
 type fakeHTTPContentRouter struct {
-	m                  sync.Mutex
-	findProvidersCalls int
-	provideCalls       int
+	m                 sync.Mutex
+	getProvidersCalls int
+	getPeersCalls     int
 }
 
-func (r *fakeHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, limit int) (iter.ResultIter[types.ProviderResponse], error) {
+func (r *fakeHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, limit int) (iter.ResultIter[types.Record], error) {
 	r.m.Lock()
 	defer r.m.Unlock()
-	r.findProvidersCalls++
-	return iter.FromSlice([]iter.Result[types.ProviderResponse]{}), nil
+	r.getProvidersCalls++
+	return iter.FromSlice([]iter.Result[types.Record]{}), nil
 }
 
-func (r *fakeHTTPContentRouter) ProvideBitswap(ctx context.Context, req *server.BitswapWriteProvideRequest) (time.Duration, error) {
+func (r *fakeHTTPContentRouter) FindPeers(ctx context.Context, pid peer.ID, limit int) (iter.ResultIter[types.Record], error) {
 	r.m.Lock()
 	defer r.m.Unlock()
-	r.provideCalls++
-	return 0, nil
+	r.getPeersCalls++
+	return iter.FromSlice([]iter.Result[types.Record]{}), nil
 }
 
-func (r *fakeHTTPContentRouter) Provide(ctx context.Context, req *server.WriteProvideRequest) (types.ProviderResponse, error) {
-	r.m.Lock()
-	defer r.m.Unlock()
-	r.provideCalls++
-	return nil, nil
-}
-
-func (r *fakeHTTPContentRouter) FindIPNSRecord(ctx context.Context, name ipns.Name) (*ipns.Record, error) {
+func (r *fakeHTTPContentRouter) FindIPNS(ctx context.Context, name ipns.Name) (*ipns.Record, error) {
 	return nil, routing.ErrNotSupported
 }
 
-func (r *fakeHTTPContentRouter) ProvideIPNSRecord(ctx context.Context, name ipns.Name, rec *ipns.Record) error {
+func (r *fakeHTTPContentRouter) ProvideIPNS(ctx context.Context, name ipns.Name, rec *ipns.Record) error {
 	return routing.ErrNotSupported
 }
 
 func (r *fakeHTTPContentRouter) numFindProvidersCalls() int {
 	r.m.Lock()
 	defer r.m.Unlock()
-	return r.findProvidersCalls
+	return r.getProvidersCalls
 }
 
 // userAgentRecorder records the user agent of every HTTP request

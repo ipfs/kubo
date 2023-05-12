@@ -4,7 +4,6 @@ import (
 	"context"
 
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 )
 
@@ -22,23 +21,13 @@ var (
 // http delegated routing.
 type httpRoutingWrapper struct {
 	routing.ContentRouting
+	routing.PeerRouting
+	routing.ValueStore
 	routinghelpers.ProvideManyRouter
 }
 
 func (c *httpRoutingWrapper) Bootstrap(ctx context.Context) error {
 	return nil
-}
-
-func (c *httpRoutingWrapper) FindPeer(ctx context.Context, id peer.ID) (peer.AddrInfo, error) {
-	return peer.AddrInfo{}, routing.ErrNotSupported
-}
-
-func (c *httpRoutingWrapper) PutValue(context.Context, string, []byte, ...routing.Option) error {
-	return routing.ErrNotSupported
-}
-
-func (c *httpRoutingWrapper) GetValue(context.Context, string, ...routing.Option) ([]byte, error) {
-	return nil, routing.ErrNotSupported
 }
 
 func (c *httpRoutingWrapper) SearchValue(context.Context, string, ...routing.Option) (<-chan []byte, error) {
