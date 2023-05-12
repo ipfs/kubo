@@ -3,6 +3,7 @@ package dagcmd
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/ipfs/boxo/coreiface/path"
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
@@ -18,6 +19,7 @@ import (
 // to compute the new state
 
 func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+	progressive := req.Options[progressOptionName].(bool)
 	api, err := cmdenv.GetApi(env, req)
 	if err != nil {
 		return err
@@ -40,6 +42,7 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 			return err
 		}
 		dagstats := &DagStat{Cid: rp.Cid()}
+		dagStatSummary.appendStats(dagstats)
 		err = traverse.Traverse(obj, traverse.Options{
 			DAG:   nodeGetter,
 			Order: traverse.DFSPre,
@@ -51,6 +54,11 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 				}
 				dagStatSummary.incrementRedundantSize(dagstats.Size)
 				cidSet.Add(current.Node.Cid())
+				if progressive {
+					if err := res.Emit(dagStatSummary); err != nil {
+						return err
+					}
+				}
 				return nil
 			},
 			ErrFunc:        nil,
@@ -59,12 +67,11 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 		if err != nil {
 			return fmt.Errorf("error traversing DAG: %w", err)
 		}
-		dagStatSummary.appendStats(dagstats)
 	}
 
 	dagStatSummary.UniqueBlocks = cidSet.Len()
 	dagStatSummary.calculateSummary()
-	
+	dagStatSummary.Done = true
 	if err := res.Emit(dagStatSummary); err != nil {
 		return err
 	}
@@ -72,7 +79,6 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 }
 
 func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
-
 	var dagStats *DagStatSummary
 	for {
 		v, err := res.Next()
@@ -85,8 +91,16 @@ func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
 		switch out := v.(type) {
 		case *DagStatSummary:
 			dagStats = out
+			if !dagStats.Done {
+				length := len(dagStats.DagStatsArray)
+				if length > 0 {
+					currentStat := dagStats.DagStatsArray[length-1]
+					fmt.Fprintf(os.Stderr,"CID: %s, Size: %d, NumBlocks: %d\n", currentStat.Cid,currentStat.Size,currentStat.NumBlocks) 
+				}
+			}
 		default:
 			return e.TypeErr(out, v)
+			
 		}
 	}
 	return re.Emit(dagStats)
