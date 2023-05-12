@@ -95,12 +95,12 @@ func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
 				length := len(dagStats.DagStatsArray)
 				if length > 0 {
 					currentStat := dagStats.DagStatsArray[length-1]
-					fmt.Fprintf(os.Stderr,"CID: %s, Size: %d, NumBlocks: %d\n", currentStat.Cid,currentStat.Size,currentStat.NumBlocks) 
+					fmt.Fprintf(os.Stderr, "CID: %s, Size: %d, NumBlocks: %d\n", currentStat.Cid, currentStat.Size, currentStat.NumBlocks)
 				}
 			}
 		default:
 			return e.TypeErr(out, v)
-			
+
 		}
 	}
 	return re.Emit(dagStats)

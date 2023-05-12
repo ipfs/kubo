@@ -18,7 +18,7 @@ func TestDag(t *testing.T) {
 		output3 := node.IPFSAddStr("hello world 3")
 		assert.NotEqual(t, "", output)
 
-		stat := node.RunIPFS("dag", "stat","-p",output, output2, output3)
+		stat := node.RunIPFS("dag", "stat", "-p", output, output2, output3)
 		str := stat.Stdout.String()
 		err := stat.Stderr.String()
 		assert.NotEqual(t, "", str)

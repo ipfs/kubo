@@ -290,11 +290,11 @@ func (s *DagStat) String() string {
 
 func (s *DagStat) MarshalJSON() ([]byte, error) {
 	type Alias DagStat
-	/* 
-	We can't rely on cid.Cid.MarshalJSON since it uses the {"/": "..."}
-	format. To make the output consistent and follow the Kubo API patterns 
-	we use the Cid.String method
-	*/ 
+	/*
+		We can't rely on cid.Cid.MarshalJSON since it uses the {"/": "..."}
+		format. To make the output consistent and follow the Kubo API patterns
+		we use the Cid.String method
+	*/
 	return json.Marshal(struct {
 		Cid string `json:"Cid"`
 		*Alias
@@ -305,11 +305,11 @@ func (s *DagStat) MarshalJSON() ([]byte, error) {
 }
 
 func (s *DagStat) UnmarshalJSON(data []byte) error {
-	/* 
-	We can't rely on cid.Cid.UnmarshalJSON since it uses the {"/": "..."}
-	format. To make the output consistent and follow the Kubo API patterns 
-	we use the Cid.Parse method
-	*/ 
+	/*
+		We can't rely on cid.Cid.UnmarshalJSON since it uses the {"/": "..."}
+		format. To make the output consistent and follow the Kubo API patterns
+		we use the Cid.Parse method
+	*/
 	type Alias DagStat
 	aux := struct {
 		Cid string `json:"Cid"`
@@ -341,8 +341,6 @@ type DagStatSummary struct {
 func (s *DagStatSummary) String() string {
 	return fmt.Sprintf("Total Size: %d\nUnique Blocks: %d\nShared Size: %d\nRatio: %f", s.TotalSize, s.UniqueBlocks, s.SharedSize, s.Ratio)
 }
-
-
 
 func (s *DagStatSummary) incrementTotalSize(size uint64) {
 	s.TotalSize += size
@@ -388,7 +386,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 			csvWriter.Comma = '\t'
 			header := []string{fmt.Sprintf("%-*s", 46, "CID"), fmt.Sprintf("%-15s", "Blocks"), "Size"}
 			if err := csvWriter.Write(header); err != nil {
-			  return err
+				return err
 			}
 			for _, dagStat := range event.DagStatsArray {
 				numBlocksStr := fmt.Sprint(dagStat.NumBlocks)
