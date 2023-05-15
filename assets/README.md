@@ -1,4 +1,4 @@
-# Assets loaded in with IPFS
+# Assets loaded in with IPFS!
 
 This directory contains the go-ipfs assets:
 
