@@ -246,3 +246,31 @@ func Test_NewURLApiWithClient_With_Headers(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func Test_NewURLApiWithClient_HTTP_Variant(t *testing.T) {
+	testcases := []struct {
+		address  string
+		expected string
+	}{
+		{address: "/ip4/127.0.0.1/tcp/80", expected: "http://127.0.0.1:80"},
+		{address: "/ip4/127.0.0.1/tcp/443/tls", expected: "https://127.0.0.1:443"},
+		{address: "/ip4/127.0.0.1/tcp/443/https", expected: "https://127.0.0.1:443"},
+		{address: "/ip4/127.0.0.1/tcp/443/tls/http", expected: "https://127.0.0.1:443"},
+	}
+
+	for _, tc := range testcases {
+		address, err := ma.NewMultiaddr(tc.address)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		api, err := NewApiWithClient(address, &http.Client{})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if api.url != tc.expected {
+			t.Errorf("Expected = %s; got %s", tc.expected, api.url)
+		}
+	}
+}

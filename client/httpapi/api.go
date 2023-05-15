@@ -107,7 +107,21 @@ func NewApiWithClient(a ma.Multiaddr, c *http.Client) (*HttpApi, error) {
 		}
 	}
 
-	return NewURLApiWithClient(url, c)
+	proto := "http://"
+
+	// By default, DialArgs is going to provide details suitable for connecting
+	// a socket to, but not really suitable for making an informed choice of http
+	// protocol.  For multiaddresses specifying tls and/or https we want to make
+	// a https request instead of a http request.
+	protocols := a.Protocols()
+	for _, p := range protocols {
+		if p.Code == ma.P_HTTPS || p.Code == ma.P_TLS {
+			proto = "https://"
+			break
+		}
+	}
+
+	return NewURLApiWithClient(proto+url, c)
 }
 
 func NewURLApiWithClient(url string, c *http.Client) (*HttpApi, error) {
