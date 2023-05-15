@@ -1,4 +1,4 @@
-name: 'ci/gh-experiment: docker-build'
+name: Docker Build
 
 on:
   workflow_dispatch:
@@ -7,10 +7,15 @@ on:
     branches:
       - 'master'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   docker-build:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       IMAGE_NAME: ipfs/kubo
       WIP_IMAGE_TAG: wip

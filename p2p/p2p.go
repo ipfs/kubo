@@ -3,8 +3,9 @@ package p2p
 import (
 	logging "github.com/ipfs/go-log"
 	p2phost "github.com/libp2p/go-libp2p/core/host"
-	peer "github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	pstore "github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
 var log = logging.Logger("p2p-mount")
@@ -40,7 +41,7 @@ func New(identity peer.ID, peerHost p2phost.Host, peerstore pstore.Peerstore) *P
 
 // CheckProtoExists checks whether a proto handler is registered to
 // mux handler
-func (p2p *P2P) CheckProtoExists(proto string) bool {
+func (p2p *P2P) CheckProtoExists(proto protocol.ID) bool {
 	protos := p2p.peerHost.Mux().Protocols()
 
 	for _, p := range protos {

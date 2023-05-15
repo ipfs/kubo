@@ -6,21 +6,19 @@ import (
 	"fmt"
 	"time"
 
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	util "github.com/ipfs/go-ipfs-util"
+	"github.com/dustin/go-humanize"
+	blockstore "github.com/ipfs/boxo/blockstore"
+	offline "github.com/ipfs/boxo/exchange/offline"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
+	util "github.com/ipfs/boxo/util"
 	"github.com/ipfs/go-log"
 	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/p2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/timecache"
 	"github.com/libp2p/go-libp2p/core/peer"
-
-	"github.com/ipfs/kubo/core/node/libp2p"
-	"github.com/ipfs/kubo/p2p"
-
-	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	uio "github.com/ipfs/go-unixfs/io"
-
-	"github.com/dustin/go-humanize"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"go.uber.org/fx"
 )
 
@@ -37,7 +35,7 @@ var BaseLibP2P = fx.Options(
 	fx.Invoke(libp2p.PNetChecker),
 )
 
-func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
+func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
 	var connmgr fx.Option
 
 	// set connmgr based on Swarm.ConnMgr.Type
@@ -150,14 +148,14 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.UserAgent()),
 
 		// Services (resource management)
-		fx.Provide(libp2p.ResourceManager(cfg.Swarm)),
+		fx.Provide(libp2p.ResourceManager(cfg.Swarm, userResourceOverrides)),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
 		fx.Provide(libp2p.RelayTransport(enableRelayTransport)),
 		fx.Provide(libp2p.RelayService(enableRelayService, cfg.Swarm.RelayService)),
 		fx.Provide(libp2p.Transports(cfg.Swarm.Transports)),
-		fx.Invoke(libp2p.StartListening(cfg.Addresses.Swarm)),
+		fx.Provide(libp2p.ListenOn(cfg.Addresses.Swarm)),
 		fx.Invoke(libp2p.SetupDiscovery(cfg.Discovery.MDNS.Enabled)),
 		fx.Provide(libp2p.ForceReachability(cfg.Internal.Libp2pForceReachability)),
 		fx.Provide(libp2p.HolePunching(cfg.Swarm.EnableHolePunching, enableRelayClient)),
@@ -167,7 +165,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.Routing),
 		fx.Provide(libp2p.ContentRouting),
 
-		fx.Provide(libp2p.BaseRouting(cfg.Experimental.AcceleratedDHTClient)),
+		fx.Provide(libp2p.BaseRouting(cfg)),
 		maybeProvide(libp2p.PubsubRouter, bcfg.getOpt("ipnsps")),
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
@@ -249,7 +247,7 @@ var IPNS = fx.Options(
 )
 
 // Online groups online-only units
-func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
+func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
 
 	// Namesys params
 
@@ -303,7 +301,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		fx.Provide(p2p.New),
 
-		LibP2P(bcfg, cfg),
+		LibP2P(bcfg, cfg, userResourceOverrides),
 		OnlineProviders(
 			cfg.Experimental.StrategicProviding,
 			cfg.Experimental.AcceleratedDHTClient,
@@ -336,13 +334,14 @@ var Core = fx.Options(
 	fx.Provide(BlockService),
 	fx.Provide(Dag),
 	fx.Provide(FetcherConfig),
+	fx.Provide(PathResolverConfig),
 	fx.Provide(Pinning),
 	fx.Provide(Files),
 )
 
-func Networked(bcfg *BuildCfg, cfg *config.Config) fx.Option {
+func Networked(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
 	if bcfg.Online {
-		return Online(bcfg, cfg)
+		return Online(bcfg, cfg, userResourceOverrides)
 	}
 	return Offline(cfg)
 }
@@ -356,6 +355,11 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	bcfgOpts, cfg := bcfg.options(ctx)
 	if cfg == nil {
 		return bcfgOpts // error
+	}
+
+	userResourceOverrides, err := bcfg.Repo.UserResourceOverrides()
+	if err != nil {
+		return fx.Error(err)
 	}
 
 	// Auto-sharding settings
@@ -381,7 +385,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		Storage(bcfg, cfg),
 		Identity(cfg),
 		IPNS,
-		Networked(bcfg, cfg),
+		Networked(bcfg, cfg, userResourceOverrides),
 
 		Core,
 	)

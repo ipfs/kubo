@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ipfs/go-path"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	coreiface "github.com/ipfs/boxo/coreiface"
+	caopts "github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/path"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -24,9 +25,15 @@ func (r *RoutingAPI) Get(ctx context.Context, key string) ([]byte, error) {
 	return r.routing.GetValue(ctx, dhtKey)
 }
 
-func (r *RoutingAPI) Put(ctx context.Context, key string, value []byte) error {
-	if !r.nd.IsOnline {
-		return coreiface.ErrOffline
+func (r *RoutingAPI) Put(ctx context.Context, key string, value []byte, opts ...caopts.RoutingPutOption) error {
+	options, err := caopts.RoutingPutOptions(opts...)
+	if err != nil {
+		return err
+	}
+
+	err = r.checkOnline(options.AllowOffline)
+	if err != nil {
+		return err
 	}
 
 	dhtKey, err := normalizeKey(key)

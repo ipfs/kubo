@@ -7,22 +7,15 @@ test_description="Test HTTP Gateway DAG-JSON (application/vnd.ipld.dag-json) and
 test_init_ipfs
 test_launch_ipfs_daemon_without_network
 
+# Import test case
+# See the static fixtures in ./t0123-gateway-json-cbor/
 test_expect_success "Add the test directory" '
-  mkdir -p rootDir/ipfs &&
-  mkdir -p rootDir/ipns &&
-  mkdir -p rootDir/api &&
-  mkdir -p rootDir/ą/ę &&
-  echo "{ \"test\": \"i am a plain json file\" }" > rootDir/ą/ę/t.json &&
-  echo "I am a txt file on path with utf8" > rootDir/ą/ę/file-źł.txt &&
-  echo "I am a txt file in confusing /api dir" > rootDir/api/file.txt &&
-  echo "I am a txt file in confusing /ipfs dir" > rootDir/ipfs/file.txt &&
-  echo "I am a txt file in confusing /ipns dir" > rootDir/ipns/file.txt &&
-  DIR_CID=$(ipfs add -Qr --cid-version 1 rootDir) &&
-  FILE_JSON_CID=$(ipfs files stat --enc=json /ipfs/$DIR_CID/ą/ę/t.json | jq -r .Hash) &&
-  FILE_CID=$(ipfs files stat --enc=json /ipfs/$DIR_CID/ą/ę/file-źł.txt | jq -r .Hash) &&
-  FILE_SIZE=$(ipfs files stat --enc=json /ipfs/$DIR_CID/ą/ę/file-źł.txt | jq -r .Size)
-  echo "$FILE_CID / $FILE_SIZE"
+  ipfs dag import ../t0123-gateway-json-cbor/fixtures.car
 '
+DIR_CID=bafybeiafyvqlazbbbtjnn6how5d6h6l6rxbqc4qgpbmteaiskjrffmyy4a # ./rootDir
+FILE_JSON_CID=bafkreibrppizs3g7axs2jdlnjua6vgpmltv7k72l7v7sa6mmht6mne3qqe # ./rootDir/ą/ę/t.json
+FILE_CID=bafkreialihlqnf5uwo4byh4n3cmwlntwqzxxs2fg5vanqdi3d7tb2l5xkm # ./rootDir/ą/ę/file-źł.txt
+FILE_SIZE=34
 
 ## Quick regression check for JSON stored on UnixFS:
 ## it has nothing to do with DAG-JSON and JSON codecs,
@@ -170,6 +163,14 @@ test_expect_success "Add CARs for path traversal and DAG-PB representation tests
   test_should_contain $DAG_PB_CID import_output
 '
 
+IPNS_ID_DAG_JSON=k51qzi5uqu5dhjghbwdvbo6mi40htrq6e2z4pwgp15pgv3ho1azvidttzh8yy2
+IPNS_ID_DAG_CBOR=k51qzi5uqu5dghjous0agrwavl8vzl64xckoqzwqeqwudfr74kfd11zcyk3b7l
+
+test_expect_success "Add ipns records for path traversal and DAG-PB representation tests" '
+  ipfs routing put --allow-offline /ipns/${IPNS_ID_DAG_JSON} ../t0123-gateway-json-cbor/${IPNS_ID_DAG_JSON}.ipns-record &&
+  ipfs routing put --allow-offline /ipns/${IPNS_ID_DAG_CBOR} ../t0123-gateway-json-cbor/${IPNS_ID_DAG_CBOR}.ipns-record
+'
+
 test_expect_success "GET DAG-JSON traversal returns 501 if there is path remainder" '
   curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_JSON_TRAVERSAL_CID/foo?format=dag-json" > curl_output 2>&1 &&
   test_should_contain "501 Not Implemented" curl_output &&
@@ -204,6 +205,7 @@ test_native_dag () {
   format=$2
   disposition=$3
   CID=$4
+  IPNS_ID=$5
 
   # GET without explicit format and Accept: text/html returns raw block
 
@@ -320,15 +322,6 @@ test_native_dag () {
   # IPNS behavior (should be same as immutable /ipfs, but with different caching headers)
   # To keep tests small we only confirm payload is the same, and then only test delta around caching headers.
 
-  test_expect_success "Prepare IPNS with dag-$format" '
-    IPNS_ID=$(ipfs key gen --ipns-base=base36 --type=ed25519 ${format}_test_key | head -n1 | tr -d "\n") &&
-    ipfs name publish --key ${format}_test_key --allow-offline -Q "/ipfs/$CID" > name_publish_out &&
-    test_check_peerid "${IPNS_ID}" &&
-    ipfs name resolve "${IPNS_ID}" > output &&
-    printf "/ipfs/%s\n" "$CID" > expected &&
-    test_cmp expected output
-  '
-
   test_expect_success "GET $name from /ipns without explicit format returns the same payload as /ipfs" '
     curl -sX GET "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" -o ipfs_output &&
     curl -sX GET "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_ID" -o ipns_output &&
@@ -376,8 +369,8 @@ test_native_dag () {
 
 }
 
-test_native_dag "DAG-JSON" "json" "inline" "$DAG_JSON_TRAVERSAL_CID"
-test_native_dag "DAG-CBOR" "cbor" "attachment" "$DAG_CBOR_TRAVERSAL_CID"
+test_native_dag "DAG-JSON" "json" "inline" "$DAG_JSON_TRAVERSAL_CID" ${IPNS_ID_DAG_JSON}
+test_native_dag "DAG-CBOR" "cbor" "attachment" "$DAG_CBOR_TRAVERSAL_CID" ${IPNS_ID_DAG_CBOR}
 
 test_kill_ipfs_daemon
 

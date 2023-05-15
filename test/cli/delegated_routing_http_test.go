@@ -17,6 +17,7 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 
 	fakeServer := func(resp string) *httptest.Server {
 		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
 			_, err := w.Write([]byte(resp))
 			if err != nil {
 				panic(err)
@@ -94,7 +95,7 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		node.IPFS("config", "Routing.Type", "--json", `"custom"`)
+		node.IPFS("config", "Routing.Type", "custom")
 		node.IPFS("config", "Routing.Routers.TestDelegatedRouter", "--json", ToJSONStr(JSONObj{
 			"Type": "http",
 			"Parameters": JSONObj{
@@ -116,6 +117,11 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 
 		res = node.IPFS("routing", "findprovs", findProvsCID)
 		assert.Equal(t, prov, res.Stdout.Trimmed())
+	})
+
+	t.Run("HTTP client should emit OpenCensus metrics", func(t *testing.T) {
+		resp := node.APIClient().Get("/debug/metrics/prometheus")
+		assert.Contains(t, resp.Body, "routing_http_client_length_count")
 	})
 
 }

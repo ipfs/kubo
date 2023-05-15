@@ -34,9 +34,9 @@ import (
 	pnet "github.com/libp2p/go-libp2p/core/pnet"
 	sockets "github.com/libp2p/go-socket-activation"
 
+	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mprome "github.com/ipfs/go-metrics-prometheus"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 	goprocess "github.com/jbenet/goprocess"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -45,32 +45,33 @@ import (
 )
 
 const (
-	adjustFDLimitKwd          = "manage-fdlimit"
-	enableGCKwd               = "enable-gc"
-	initOptionKwd             = "init"
-	initConfigOptionKwd       = "init-config"
-	initProfileOptionKwd      = "init-profile"
-	ipfsMountKwd              = "mount-ipfs"
-	ipnsMountKwd              = "mount-ipns"
-	migrateKwd                = "migrate"
-	mountKwd                  = "mount"
-	offlineKwd                = "offline" // global option
-	routingOptionKwd          = "routing"
-	routingOptionSupernodeKwd = "supernode"
-	routingOptionDHTClientKwd = "dhtclient"
-	routingOptionDHTKwd       = "dht"
-	routingOptionDHTServerKwd = "dhtserver"
-	routingOptionNoneKwd      = "none"
-	routingOptionCustomKwd    = "custom"
-	routingOptionDefaultKwd   = "default"
-	routingOptionAutoKwd      = "auto"
-	unencryptTransportKwd     = "disable-transport-encryption"
-	unrestrictedAPIAccessKwd  = "unrestricted-api"
-	writableKwd               = "writable"
-	enablePubSubKwd           = "enable-pubsub-experiment"
-	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
-	enableMultiplexKwd        = "enable-mplex-experiment"
-	agentVersionSuffix        = "agent-version-suffix"
+	adjustFDLimitKwd           = "manage-fdlimit"
+	enableGCKwd                = "enable-gc"
+	initOptionKwd              = "init"
+	initConfigOptionKwd        = "init-config"
+	initProfileOptionKwd       = "init-profile"
+	ipfsMountKwd               = "mount-ipfs"
+	ipnsMountKwd               = "mount-ipns"
+	migrateKwd                 = "migrate"
+	mountKwd                   = "mount"
+	offlineKwd                 = "offline" // global option
+	routingOptionKwd           = "routing"
+	routingOptionSupernodeKwd  = "supernode"
+	routingOptionDHTClientKwd  = "dhtclient"
+	routingOptionDHTKwd        = "dht"
+	routingOptionDHTServerKwd  = "dhtserver"
+	routingOptionNoneKwd       = "none"
+	routingOptionCustomKwd     = "custom"
+	routingOptionDefaultKwd    = "default"
+	routingOptionAutoKwd       = "auto"
+	routingOptionAutoClientKwd = "autoclient"
+	unencryptTransportKwd      = "disable-transport-encryption"
+	unrestrictedAPIAccessKwd   = "unrestricted-api"
+	writableKwd                = "writable"
+	enablePubSubKwd            = "enable-pubsub-experiment"
+	enableIPNSPubSubKwd        = "enable-namesys-pubsub"
+	enableMultiplexKwd         = "enable-mplex-experiment"
+	agentVersionSuffix         = "agent-version-suffix"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -162,7 +163,7 @@ Headers.
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
-		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
+		cmds.BoolOption(writableKwd, "Enable legacy Gateway.Writable (REMOVED)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
 		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow API access to unlisted hashes"),
@@ -170,7 +171,7 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
-		cmds.BoolOption(enablePubSubKwd, "Enable experimental pubsub feature. Overrides Pubsub.Enabled config."),
+		cmds.BoolOption(enablePubSubKwd, "DEPRECATED"),
 		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS over pubsub. Implicitly enables pubsub, overrides Ipns.UsePubsub config."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
 		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and also advertised through BitSwap."),
@@ -412,11 +413,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	case routingOptionSupernodeKwd:
 		return errors.New("supernode routing was never fully implemented and has been removed")
 	case routingOptionDefaultKwd, routingOptionAutoKwd:
-		ncfg.Routing = libp2p.ConstructDefaultRouting(
-			cfg.Identity.PeerID,
-			cfg.Addresses.Swarm,
-			cfg.Identity.PrivKey,
-		)
+		ncfg.Routing = libp2p.ConstructDefaultRouting(cfg, libp2p.DHTOption)
+	case routingOptionAutoClientKwd:
+		ncfg.Routing = libp2p.ConstructDefaultRouting(cfg, libp2p.DHTClientOption)
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = libp2p.DHTClientOption
 	case routingOptionDHTKwd:
@@ -670,7 +669,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 
 	for _, listener := range listeners {
 		// we might have listened to /tcp/0 - let's see what we are listing on
-		fmt.Printf("API server listening on %s\n", listener.Multiaddr())
+		fmt.Printf("RPC API server listening on %s\n", listener.Multiaddr())
 		// Browsers require TCP.
 		switch listener.Addr().Network() {
 		case "tcp", "tcp4", "tcp6":
@@ -683,9 +682,9 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 	// only the webui objects are allowed.
 	// if you know what you're doing, go ahead and pass --unrestricted-api.
 	unrestricted, _ := req.Options[unrestrictedAPIAccessKwd].(bool)
-	gatewayOpt := corehttp.GatewayOption(false, corehttp.WebUIPaths...)
+	gatewayOpt := corehttp.GatewayOption(corehttp.WebUIPaths...)
 	if unrestricted {
-		gatewayOpt = corehttp.GatewayOption(true, "/ipfs", "/ipns")
+		gatewayOpt = corehttp.GatewayOption("/ipfs", "/ipns")
 	}
 
 	var opts = []corehttp.ServeOption{
@@ -791,7 +790,11 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 	writable, writableOptionFound := req.Options[writableKwd].(bool)
 	if !writableOptionFound {
-		writable = cfg.Gateway.Writable
+		writable = cfg.Gateway.Writable.WithDefault(false)
+	}
+
+	if writable {
+		log.Fatalf("Support for Gateway.Writable and --writable has been REMOVED. Please remove it from your config file or CLI. Modern replacement tracked in https://github.com/ipfs/specs/issues/375")
 	}
 
 	listeners, err := sockets.TakeListeners("io.ipfs.gateway")
@@ -824,13 +827,8 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	}
 
 	// we might have listened to /tcp/0 - let's see what we are listing on
-	gwType := "readonly"
-	if writable {
-		gwType = "writable"
-	}
-
 	for _, listener := range listeners {
-		fmt.Printf("Gateway (%s) server listening on %s\n", gwType, listener.Multiaddr())
+		fmt.Printf("Gateway server listening on %s\n", listener.Multiaddr())
 	}
 
 	cmdctx := *cctx
@@ -839,7 +837,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("gateway"),
 		corehttp.HostnameOption(),
-		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),
+		corehttp.GatewayOption("/ipfs", "/ipns"),
 		corehttp.VersionOption(),
 		corehttp.CheckVersionOption(),
 		corehttp.CommandsROOption(cmdctx),

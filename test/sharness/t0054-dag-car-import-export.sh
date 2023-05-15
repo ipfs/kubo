@@ -171,7 +171,7 @@ test_expect_success "shut down nodes" '
 
 
 # We want to just init the repo, without using a daemon for stuff below
-test_init_ipfs
+test_init_ipfs --empty-repo=false
 
 
 test_expect_success "basic offline export of 'getting started' dag works" '

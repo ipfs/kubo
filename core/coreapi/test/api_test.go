@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ipfs/go-filestore"
-	keystore "github.com/ipfs/go-ipfs-keystore"
+	"github.com/ipfs/boxo/filestore"
+	keystore "github.com/ipfs/boxo/keystore"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/coreapi"
@@ -17,10 +17,10 @@ import (
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"
 
+	coreiface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/coreiface/tests"
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/tests"
 	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -31,7 +31,7 @@ const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
 type NodeProvider struct{}
 
-func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]coreiface.CoreAPI, error) {
+func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, online bool, n int) ([]coreiface.CoreAPI, error) {
 	mn := mocknet.New()
 
 	nodes := make([]*core.IpfsNode, n)
@@ -82,7 +82,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 			Routing: libp2p.DHTServerOption,
 			Repo:    r,
 			Host:    mock.MockHostOption(mn),
-			Online:  fullIdentity,
+			Online:  online,
 			ExtraOpts: map[string]bool{
 				"pubsub": true,
 			},
@@ -102,15 +102,17 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		return nil, err
 	}
 
-	bsinf := bootstrap.BootstrapConfigWithPeers(
-		[]peer.AddrInfo{
-			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
-		},
-	)
+	if online {
+		bsinf := bootstrap.BootstrapConfigWithPeers(
+			[]peer.AddrInfo{
+				nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
+			},
+		)
 
-	for _, n := range nodes[1:] {
-		if err := n.Bootstrap(bsinf); err != nil {
-			return nil, err
+		for _, n := range nodes[1:] {
+			if err := n.Bootstrap(bsinf); err != nil {
+				return nil, err
+			}
 		}
 	}
 

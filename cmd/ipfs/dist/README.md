@@ -1,6 +1,6 @@
-# ipfs commandline tool
+# ipfs command line tool
 
-This is the [ipfs](http://ipfs.io) commandline tool. It contains a full ipfs node.
+This is the [ipfs](http://ipfs.io) command line tool. It contains a full ipfs node.
 
 ## Install
 

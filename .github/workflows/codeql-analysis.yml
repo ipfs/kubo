@@ -11,19 +11,19 @@ on:
   schedule:
     - cron: '30 12 * * 2'
 
-jobs:
-  analyze:
-    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    name: Analyze
-    runs-on: ubuntu-latest
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+  security-events: write  #   (github/codeql-action/autobuild)
 
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'go' ]
-        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python' ]
-        # Learn more:
-        # https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#changing-the-languages-that-are-analyzed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  codeql:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
     - name: Checkout repository
@@ -33,7 +33,7 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:
-        languages: ${{ matrix.language }}
+        languages: go
 
     - name: Autobuild
       uses: github/codeql-action/autobuild@v2

@@ -38,9 +38,8 @@ type Gateway struct {
 	// should be redirected.
 	RootRedirect string
 
-	// Writable enables PUT/POST request handling by this gateway. Usually,
-	// writing is done through the API, not the gateway.
-	Writable bool
+	// REMOVED: modern replacement tracked in https://github.com/ipfs/specs/issues/375
+	Writable Flag `json:",omitempty"`
 
 	// PathPrefixes was removed: https://github.com/ipfs/go-ipfs/issues/7702
 	PathPrefixes []string

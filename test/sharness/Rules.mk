@@ -21,7 +21,7 @@ $(PLUGINS_$(d)): $(ORGIN_PLUGINS_$(d))
 	@mkdir -p $(@D)
 	cp -f plugin/plugins/$(@F) $@
 
-ifneq ($(TEST_NO_PLUGIN),1)
+ifneq ($(TEST_PLUGIN),0)
 DEPS_$(d) += $(PLUGINS_$(d))
 endif
 endif
@@ -46,21 +46,6 @@ $(d)/test-results/sharness.xml: $(T_$(d))
 	@echo "*** $@ ***"
 	@(cd $(@D)/.. && ./lib/test-aggregate-junit-reports.sh)
 .PHONY: $(d)/test-results/sharness.xml
-
-$(d)/download-saxon:
-	@echo "*** $@ ***"
-	@(cd $(@D) && ./lib/download-saxon.sh)
-.PHONY: $(d)/download-saxon
-
-$(d)/test-results/sharness-html: $(d)/test-results/sharness.xml $(d)/download-saxon
-	@echo "*** $@ ***"
-	@(cd $(@D)/.. && ./lib/test-generate-junit-html.sh frames)
-.PHONY: $(d)/test-results/sharness-html
-
-$(d)/test-results/sharness.html: $(d)/test-results/sharness.xml $(d)/download-saxon
-	@echo "*** $@ ***"
-	@(cd $(@D)/.. && ./lib/test-generate-junit-html.sh no-frames)
-.PHONY: $(d)/test-results/sharness.html
 
 $(d)/clean-test-results:
 	rm -rf $(@D)/test-results

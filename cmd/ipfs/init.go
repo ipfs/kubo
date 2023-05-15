@@ -10,17 +10,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	path "github.com/ipfs/go-path"
-	unixfs "github.com/ipfs/go-unixfs"
+	unixfs "github.com/ipfs/boxo/ipld/unixfs"
+	path "github.com/ipfs/boxo/path"
 	assets "github.com/ipfs/kubo/assets"
 	oldcmds "github.com/ipfs/kubo/commands"
 	core "github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
+	options "github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-libipfs/files"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 	config "github.com/ipfs/kubo/config"
 )
 
@@ -28,6 +28,7 @@ const (
 	algorithmDefault    = options.Ed25519Key
 	algorithmOptionName = "algorithm"
 	bitsOptionName      = "bits"
+	emptyRepoDefault    = true
 	emptyRepoOptionName = "empty-repo"
 	profileOptionName   = "profile"
 )
@@ -61,7 +62,7 @@ environment variable:
 	Options: []cmds.Option{
 		cmds.StringOption(algorithmOptionName, "a", "Cryptographic algorithm to use for key generation.").WithDefault(algorithmDefault),
 		cmds.IntOption(bitsOptionName, "b", "Number of bits to use in the generated RSA private key."),
-		cmds.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage."),
+		cmds.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage.").WithDefault(emptyRepoDefault),
 		cmds.StringOption(profileOptionName, "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
 		// TODO need to decide whether to expose the override as a file or a

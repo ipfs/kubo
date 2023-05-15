@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -9,13 +10,25 @@ import (
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
+	iface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/coreiface/options"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	path "github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
-	dag "github.com/ipfs/go-merkledag"
-	path "github.com/ipfs/go-path"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
+)
+
+var (
+	errAllowOffline = errors.New("can't put while offline: pass `--allow-offline` to override")
+)
+
+const (
+	dhtVerboseOptionName   = "verbose"
+	numProvidersOptionName = "num-providers"
+	allowOfflineOptionName = "allow-offline"
 )
 
 var RoutingCmd = &cmds.Command{
@@ -32,14 +45,6 @@ var RoutingCmd = &cmds.Command{
 		"provide":   provideRefRoutingCmd,
 	},
 }
-
-const (
-	dhtVerboseOptionName = "verbose"
-)
-
-const (
-	numProvidersOptionName = "num-providers"
-)
 
 var findProvidersRoutingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -374,15 +379,22 @@ Different key types can specify other 'best' rules.
 			return err
 		}
 
-		return res.Emit(r)
+		return res.Emit(routing.QueryEvent{
+			Extra: base64.StdEncoding.EncodeToString(r),
+			Type:  routing.Value,
+		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out []byte) error {
-			_, err := w.Write(out)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, obj *routing.QueryEvent) error {
+			res, err := base64.StdEncoding.DecodeString(obj.Extra)
+			if err != nil {
+				return err
+			}
+			_, err = w.Write(res)
 			return err
 		}),
 	},
-	Type: []byte{},
+	Type: routing.QueryEvent{},
 }
 
 var putValueRoutingCmd = &cmds.Command{
@@ -412,6 +424,9 @@ identified by QmFoo.
 		cmds.StringArg("key", true, false, "The key to store the value at."),
 		cmds.FileArg("value-file", true, false, "A path to a file containing the value to store.").EnableStdin(),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
@@ -429,20 +444,51 @@ identified by QmFoo.
 			return err
 		}
 
-		err = api.Routing().Put(req.Context, req.Arguments[0], data)
+		allowOffline, _ := req.Options[allowOfflineOptionName].(bool)
+
+		opts := []options.RoutingPutOption{
+			options.Put.AllowOffline(allowOffline),
+		}
+
+		err = api.Routing().Put(req.Context, req.Arguments[0], data, opts...)
 		if err != nil {
 			return err
 		}
 
-		return res.Emit([]byte(fmt.Sprintf("%s added", req.Arguments[0])))
+		id, err := api.Key().Self(req.Context)
+		if err != nil {
+			if err == iface.ErrOffline {
+				err = errAllowOffline
+			}
+			return err
+		}
+
+		return res.Emit(routing.QueryEvent{
+			Type: routing.Value,
+			ID:   id.ID(),
+		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out []byte) error {
-			_, err := w.Write(out)
-			return err
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
+			pfm := pfuncMap{
+				routing.FinalPeer: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
+					if verbose {
+						fmt.Fprintf(out, "* closest peer %s\n", obj.ID)
+					}
+					return nil
+				},
+				routing.Value: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
+					fmt.Fprintf(out, "%s\n", obj.ID.Pretty())
+					return nil
+				},
+			}
+
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+
+			return printEvent(out, w, verbose, pfm)
 		}),
 	},
-	Type: []byte{},
+	Type: routing.QueryEvent{},
 }
 
 type printFunc func(obj *routing.QueryEvent, out io.Writer, verbose bool) error

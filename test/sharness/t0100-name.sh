@@ -15,13 +15,13 @@ test_name_with_self() {
         export IPFS_PATH="$(pwd)/.ipfs" &&
         case $SELF_ALG in
         default)
-                ipfs init --profile=test > /dev/null
+                ipfs init --empty-repo=false --profile=test > /dev/null
                 ;;
         rsa)
-                ipfs init --profile=test -a=rsa > /dev/null
+                ipfs init --empty-repo=false --profile=test -a=rsa > /dev/null
                 ;;
         ed25519)
-                ipfs init --profile=test -a=ed25519 > /dev/null
+                ipfs init --empty-repo=false --profile=test -a=ed25519 > /dev/null
                 ;;
         esac &&
         export PEERID=`ipfs key list --ipns-base=base36 -l | grep self | cut -d " " -f1` &&
@@ -273,7 +273,7 @@ test_name_with_key() {
 
         test_expect_success "ipfs init (key variant $GEN_ALG)" '
         export IPFS_PATH="$(pwd)/.ipfs" &&
-        ipfs init --profile=test > /dev/null
+        ipfs init --empty-repo=false --profile=test > /dev/null
         '
 
         test_expect_success "'prepare keys" '
@@ -313,5 +313,33 @@ test_name_with_key() {
 test_name_with_key 'rsa'
 test_name_with_key 'ed25519_b58'
 test_name_with_key 'ed25519_b36'
+
+
+# `ipfs name inspect --verify` using the wrong RSA key should not succeed
+
+test_init_ipfs --empty-repo=false
+test_launch_ipfs_daemon
+
+test_expect_success "prepare RSA keys" '
+  export KEY_1=`ipfs key gen --type=rsa --size=4096 key1` &&
+  export KEY_2=`ipfs key gen --type=rsa --size=4096 key2` &&
+  export PEERID_1=`ipfs key list --ipns-base=base36 -l | grep key1 | cut -d " " -f1` &&
+  export PEERID_2=`ipfs key list --ipns-base=base36 -l | grep key2 | cut -d " " -f1`
+'
+
+test_expect_success "ipfs name publish --allow-offline --key=<peer-id> <hash>' succeeds" '
+  ipfs name publish --allow-offline  --key=${KEY_1} "/ipfs/$( echo "helloworld" | ipfs add --inline -q )" &&
+  ipfs routing get "/ipns/$PEERID_1" > ipns_record
+'
+
+test_expect_success "ipfs name inspect --verify' has '.Validation.Validity' set to 'true' with correct Peer ID" '
+  ipfs name inspect --verify $PEERID_1 --enc json < ipns_record | jq -e ".Validation.Valid == true"
+'
+
+test_expect_success "ipfs name inspect --verify' has '.Validation.Validity' set to 'false' when we verify the wrong Peer ID" '
+  ipfs name inspect --verify $PEERID_2 --enc json < ipns_record | jq -e ".Validation.Valid == false"
+'
+
+test_kill_ipfs_daemon
 
 test_done

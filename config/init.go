@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/boxo/coreiface/options"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -65,7 +65,6 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 
 		Gateway: Gateway{
 			RootRedirect: "",
-			Writable:     false,
 			NoFetch:      false,
 			PathPrefixes: []string{},
 			HTTPHeaders: map[string][]string{

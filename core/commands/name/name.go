@@ -10,14 +10,13 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/ipfs/boxo/ipns"
+	ipns_pb "github.com/ipfs/boxo/ipns/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipns"
-	ipns_pb "github.com/ipfs/go-ipns/pb"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/codec/dagcbor"
 	"github.com/ipld/go-ipld-prime/codec/dagjson"
-	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	mbase "github.com/multiformats/go-multibase"
 )
@@ -216,19 +215,7 @@ Passing --verify will verify signature against provided public key.
 				PublicKey: id,
 			}
 
-			pub, err := id.ExtractPublicKey()
-			if err != nil {
-				// Make sure it works with all those RSA that cannot be embedded into the
-				// Peer ID.
-				if len(entry.PubKey) > 0 {
-					pub, err = ic.UnmarshalPublicKey(entry.PubKey)
-				}
-			}
-			if err != nil {
-				return err
-			}
-
-			err = ipns.Validate(pub, &entry)
+			err = ipns.ValidateWithPeerID(id, &entry)
 			if err == nil {
 				result.Validation.Valid = true
 			} else {
