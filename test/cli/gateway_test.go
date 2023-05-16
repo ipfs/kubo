@@ -28,7 +28,7 @@ func TestGateway(t *testing.T) {
 	cid := node.IPFSAddStr("Hello Worlds!")
 
 	peerID, err := peer.ToCid(node.PeerID()).StringOfBase(multibase.Base36)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	client := node.GatewayClient()
 	client.TemplateData = map[string]string{
@@ -480,7 +480,7 @@ func TestGateway(t *testing.T) {
 		})
 
 		node2PeerID, err := peer.ToCid(node2.PeerID()).StringOfBase(multibase.Base36)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 
 		nodes.StartDaemons().Connect()
 
