@@ -335,7 +335,6 @@ type DagStatSummary struct {
 	SharedSize    uint64     `json:",omitempty"`
 	Ratio         float32    `json:",omitempty"`
 	DagStatsArray []*DagStat `json:"DagStats,omitempty"`
-	Done          bool
 }
 
 func (s *DagStatSummary) String() string {

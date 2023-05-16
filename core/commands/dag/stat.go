@@ -71,7 +71,7 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 
 	dagStatSummary.UniqueBlocks = cidSet.Len()
 	dagStatSummary.calculateSummary()
-	dagStatSummary.Done = true
+
 	if err := res.Emit(dagStatSummary); err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
 		switch out := v.(type) {
 		case *DagStatSummary:
 			dagStats = out
-			if !dagStats.Done {
+			if dagStats.Ratio == 0 {
 				length := len(dagStats.DagStatsArray)
 				if length > 0 {
 					currentStat := dagStats.DagStatsArray[length-1]
