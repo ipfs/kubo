@@ -35,7 +35,7 @@ func TestSwarm(t *testing.T) {
 		res := node.RunIPFS("swarm", "peers", "--enc=json", "--identify")
 		var output expectedOutputType
 		err := json.Unmarshal(res.Stdout.Bytes(), &output)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, 0, len(output.Peers))
 
 	})
@@ -48,7 +48,7 @@ func TestSwarm(t *testing.T) {
 		res := node.RunIPFS("swarm", "peers", "--enc=json", "--identify")
 		var output expectedOutputType
 		err := json.Unmarshal(res.Stdout.Bytes(), &output)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		actualID := output.Peers[0].Identify.ID
 		actualPublicKey := output.Peers[0].Identify.PublicKey
 		actualAgentVersion := output.Peers[0].Identify.AgentVersion
@@ -78,12 +78,12 @@ func TestSwarm(t *testing.T) {
 		otherNodeIDResponse := otherNode.RunIPFS("id", "--enc=json")
 		var otherNodeIDOutput identifyType
 		err := json.Unmarshal(otherNodeIDResponse.Stdout.Bytes(), &otherNodeIDOutput)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		res := node.RunIPFS("swarm", "peers", "--enc=json", "--identify")
 
 		var output expectedOutputType
 		err = json.Unmarshal(res.Stdout.Bytes(), &output)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		outputIdentify := output.Peers[0].Identify
 
 		assert.Equal(t, outputIdentify.ID, otherNodeIDOutput.ID)
