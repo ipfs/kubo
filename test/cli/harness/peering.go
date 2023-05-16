@@ -13,7 +13,7 @@ type Peering struct {
 	To   int
 }
 
-func newRandPort() int {
+func NewRandPort() int {
 	n := rand.Int()
 	return 3000 + (n % 1000)
 }
@@ -24,7 +24,7 @@ func CreatePeerNodes(t *testing.T, n int, peerings []Peering) (*Harness, Nodes) 
 	nodes.ForEachPar(func(node *Node) {
 		node.UpdateConfig(func(cfg *config.Config) {
 			cfg.Routing.Type = config.NewOptionalString("none")
-			cfg.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", newRandPort())}
+			cfg.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", NewRandPort())}
 		})
 
 	})

@@ -63,35 +63,34 @@ type processInitialRoutingOut struct {
 
 type AddrInfoChan chan peer.AddrInfo
 
-func BaseRouting(experimentalDHTClient bool) interface{} {
+func BaseRouting(cfg *config.Config) interface{} {
 	return func(lc fx.Lifecycle, in processInitialRoutingIn) (out processInitialRoutingOut, err error) {
-		var dr *ddht.DHT
+		var dualDHT *ddht.DHT
 		if dht, ok := in.Router.(*ddht.DHT); ok {
-			dr = dht
+			dualDHT = dht
 
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
-					return dr.Close()
+					return dualDHT.Close()
 				},
 			})
 		}
 
-		if pr, ok := in.Router.(routinghelpers.ComposableRouter); ok {
-			for _, r := range pr.Routers() {
+		if cr, ok := in.Router.(routinghelpers.ComposableRouter); ok {
+			for _, r := range cr.Routers() {
 				if dht, ok := r.(*ddht.DHT); ok {
-					dr = dht
+					dualDHT = dht
 					lc.Append(fx.Hook{
 						OnStop: func(ctx context.Context) error {
-							return dr.Close()
+							return dualDHT.Close()
 						},
 					})
-
 					break
 				}
 			}
 		}
 
-		if dr != nil && experimentalDHTClient {
+		if dualDHT != nil && cfg.Experimental.AcceleratedDHTClient {
 			cfg, err := in.Repo.Config()
 			if err != nil {
 				return out, err
@@ -101,7 +100,7 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 				return out, err
 			}
 
-			expClient, err := fullrt.NewFullRT(in.Host,
+			fullRTClient, err := fullrt.NewFullRT(in.Host,
 				dht.DefaultPrefix,
 				fullrt.DHTOption(
 					dht.Validator(in.Validator),
@@ -116,18 +115,30 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
-					return expClient.Close()
+					return fullRTClient.Close()
 				},
 			})
 
+			// we want to also use the default HTTP routers, so wrap the FullRT client
+			// in a parallel router that calls them in parallel
+			httpRouters, err := constructDefaultHTTPRouters(cfg)
+			if err != nil {
+				return out, err
+			}
+			routers := []*routinghelpers.ParallelRouter{
+				{Router: fullRTClient},
+			}
+			routers = append(routers, httpRouters...)
+			router := routinghelpers.NewComposableParallel(routers)
+
 			return processInitialRoutingOut{
 				Router: Router{
-					Routing:  expClient,
 					Priority: 1000,
+					Routing:  router,
 				},
-				DHT:           dr,
-				DHTClient:     expClient,
-				ContentRouter: expClient,
+				DHT:           dualDHT,
+				DHTClient:     fullRTClient,
+				ContentRouter: fullRTClient,
 			}, nil
 		}
 
@@ -136,8 +147,8 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 				Priority: 1000,
 				Routing:  in.Router,
 			},
-			DHT:           dr,
-			DHTClient:     dr,
+			DHT:           dualDHT,
+			DHTClient:     dualDHT,
 			ContentRouter: in.Router,
 		}, nil
 	}
@@ -186,7 +197,6 @@ func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	var cRouters []*routinghelpers.ParallelRouter
 	for _, v := range routers {
 		cRouters = append(cRouters, &routinghelpers.ParallelRouter{
-			Timeout:     5 * time.Minute,
 			IgnoreError: true,
 			Router:      v.Routing,
 		})

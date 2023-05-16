@@ -50,9 +50,7 @@ func GatewayOption(paths ...string) ServeOption {
 		}
 
 		gw := gateway.NewHandler(gwConfig, gwAPI)
-		// TODO: Add otelhttp.WithPropagators(tracing.Propagator()) option to
-		// propagate traces through the gateway once we test this feature.
-		gw = otelhttp.NewHandler(gw, "Gateway.Request")
+		gw = otelhttp.NewHandler(gw, "Gateway")
 
 		// By default, our HTTP handler is the gateway handler.
 		handler := gw.ServeHTTP
@@ -143,14 +141,8 @@ func offlineErrWrap(err error) error {
 	return err
 }
 
-func (o *offlineGatewayErrWrapper) Get(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, *gateway.GetResponse, error) {
-	md, n, err := o.gwimpl.Get(ctx, path)
-	err = offlineErrWrap(err)
-	return md, n, err
-}
-
-func (o *offlineGatewayErrWrapper) GetRange(ctx context.Context, path gateway.ImmutablePath, ranges ...gateway.GetRange) (gateway.ContentPathMetadata, files.File, error) {
-	md, n, err := o.gwimpl.GetRange(ctx, path, ranges...)
+func (o *offlineGatewayErrWrapper) Get(ctx context.Context, path gateway.ImmutablePath, ranges ...gateway.ByteRange) (gateway.ContentPathMetadata, *gateway.GetResponse, error) {
+	md, n, err := o.gwimpl.Get(ctx, path, ranges...)
 	err = offlineErrWrap(err)
 	return md, n, err
 }

@@ -3,6 +3,8 @@ name: Interop
 on:
   workflow_dispatch:
   pull_request:
+    paths-ignore:
+      - '**/*.md'
   push:
     branches:
       - 'master'
@@ -14,14 +16,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   interop-prep:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      TEST_NO_DOCKER: 1
-      TEST_NO_FUSE: 1
+      TEST_DOCKER: 0
+      TEST_FUSE: 0
       TEST_VERBOSE: 1
       TRAVIS: 1
       GIT_PAGER: cat
@@ -44,7 +50,7 @@ jobs:
           path: cmd/ipfs/ipfs
   interop:
     needs: [interop-prep]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
     timeout-minutes: 20
     defaults:
       run:
@@ -74,7 +80,8 @@ jobs:
           npm install kubo-rpc-client@^3.0.1
           npm install ipfs-interop@^10.0.1
         working-directory: interop
-      - run: npx ipfs-interop -- -t node
+      # Run the interop tests while ignoring the js-js interop test cases
+      - run: npx ipfs-interop -- -t node --grep '^(?!.*(js\d? -> js\d?|js-js-js))' --parallel
         env:
           LIBP2P_TCP_REUSEPORT: false
           LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
@@ -85,8 +92,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      TEST_NO_DOCKER: 1
-      TEST_NO_FUSE: 1
+      TEST_DOCKER: 0
+      TEST_FUSE: 0
       TEST_VERBOSE: 1
       TRAVIS: 1
       GIT_PAGER: cat
@@ -125,8 +132,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      TEST_NO_DOCKER: 1
-      TEST_NO_FUSE: 1
+      TEST_DOCKER: 0
+      TEST_FUSE: 0
       TEST_VERBOSE: 1
       TRAVIS: 1
       GIT_PAGER: cat
@@ -147,7 +154,6 @@ jobs:
         with:
           repository: ipfs/go-ipfs-http-client
           path: go-ipfs-http-client
-          ref: bump-for-rcmgr-last-push
       - uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
@@ -156,7 +162,7 @@ jobs:
         working-directory: go-ipfs-http-client
   ipfs-webui:
     needs: [interop-prep]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
     timeout-minutes: 20
     env:
       NO_SANDBOX: true
@@ -191,14 +197,26 @@ jobs:
           key: ${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-${{ github.job }}-
-      - run: |
-          npm ci --prefer-offline --no-audit --progress=false
-          npx playwright install
+      - env:
+          NPM_CACHE_DIR: ${{ steps.npm-cache-dir.outputs.dir }}
+        run: |
+          npm ci --prefer-offline --no-audit --progress=false --cache "$NPM_CACHE_DIR"
+          npx playwright install --with-deps
         working-directory: ipfs-webui
-      - name: Run ipfs-webui@main build and smoke-test to confirm the upstream repo is not broken
-        run: npm test
+      - id: ref
+        run: echo "ref=$(git rev-parse --short HEAD)" | tee -a $GITHUB_OUTPUT
         working-directory: ipfs-webui
-      - name: Test ipfs-webui@main E2E against the locally built Kubo binary
+      - id: state
+        env:
+          GITHUB_REPOSITORY: ipfs/ipfs-webui
+          GITHUB_REF: ${{ steps.ref.outputs.ref }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          echo "state=$(curl -L -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$GITHUB_REF/status" --jq '.state')" | tee -a $GITHUB_OUTPUT
+      - name: Build ipfs-webui@main (state=${{ steps.state.outputs.state }})
+        run: npm run test:build
+        working-directory: ipfs-webui
+      - name: Test ipfs-webui@main (state=${{ steps.state.outputs.state }}) E2E against the locally built Kubo binary
         run: npm run test:e2e
         env:
           IPFS_GO_EXEC: ${{ github.workspace }}/cmd/ipfs/ipfs

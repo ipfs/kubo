@@ -25,24 +25,18 @@ test_launch_ipfs_daemon_without_network
 # Caching of things like raw blocks, CARs, dag-json and dag-cbor
 # is tested in their respective suites.
 
-# Import test case
-# See the static fixtures in ./t0116-gateway-cache/
-test_expect_success "Add the test directory" '
-  ipfs dag import ../t0116-gateway-cache/fixtures.car
-'
 ROOT1_CID=bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui # ./
 ROOT2_CID=bafybeih2w7hjocxjg6g2ku25hvmd53zj7og4txpby3vsusfefw5rrg5sii # ./root2
 ROOT3_CID=bafybeiawdvhmjcz65x5egzx4iukxc72hg4woks6v6fvgyupiyt3oczk5ja # ./root2/root3
 ROOT4_CID=bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q # ./root2/root3/root4
 FILE_CID=bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am # ./root2/root3/root4/index.html
+TEST_IPNS_ID=k51qzi5uqu5dlxdsdu5fpuu7h69wu4ohp32iwm9pdt9nq3y5rpn3ln9j12zfhe
 
-test_expect_success "Prepare IPNS unixfs content path for testing" '
-  TEST_IPNS_ID=$(ipfs key gen --ipns-base=base36 --type=ed25519 cache_test_key | head -n1 | tr -d "\n")
-  ipfs name publish --key cache_test_key --allow-offline -Q "/ipfs/$ROOT1_CID" > name_publish_out &&
-  test_check_peerid "${TEST_IPNS_ID}" &&
-  ipfs name resolve "${TEST_IPNS_ID}" > output &&
-  printf "/ipfs/%s\n" "$ROOT1_CID" > expected &&
-  test_cmp expected output
+# Import test case
+# See the static fixtures in ./t0116-gateway-cache/
+test_expect_success "Add the test directory" '
+  ipfs dag import ../t0116-gateway-cache/fixtures.car
+  ipfs routing put --allow-offline /ipns/${TEST_IPNS_ID} ../t0116-gateway-cache/${TEST_IPNS_ID}.ipns-record
 '
 
 # GET /ipfs/

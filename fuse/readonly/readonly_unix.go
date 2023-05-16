@@ -17,7 +17,6 @@ import (
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	path "github.com/ipfs/boxo/path"
-	"github.com/ipfs/boxo/path/resolver"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
@@ -69,7 +68,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
-	nd, ndLnk, err := resolver.NewBasicResolver(s.Ipfs.UnixFSFetcherFactory).ResolvePath(ctx, p)
+	nd, ndLnk, err := s.Ipfs.UnixFSPathResolver.ResolvePath(ctx, p)
 	if err != nil {
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT
