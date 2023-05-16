@@ -30,7 +30,7 @@ func TestDag(t *testing.T) {
 		assert.Nil(t, err)
 		defer r.Close()
 		err = node.IPFSDagImport(r, fixtureCid)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		stat := node.RunIPFS("dag", "stat", "--progress=false", node1Cid, node2Cid)
 		str := stat.Stdout.String()
 		expected := "\nCID                                           \tBlocks         \tSize\nbafyreibmdfd7c5db4kls4ty57zljfhqv36gi43l6txl44pi423wwmeskwy\t2              \t53\nbafyreie3njilzdi4ixumru4nzgecsnjtu7fzfcwhg7e6s4s5i7cnbslvn4\t2              \t53\n\nSummary\nTotal Size: 145\nUnique Blocks: 3\nShared Size: 53\nRatio: 1.365517\n\n\n"
