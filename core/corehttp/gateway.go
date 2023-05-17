@@ -159,10 +159,10 @@ func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path gateway
 	return md, err
 }
 
-func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, io.ReadCloser, <-chan error, error) {
-	md, data, errCh, err := o.gwimpl.GetCAR(ctx, path)
+func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path gateway.ImmutablePath, params gateway.CarParams) (io.ReadCloser, error) {
+	data, err := o.gwimpl.GetCAR(ctx, path, params)
 	err = offlineErrWrap(err)
-	return md, data, errCh, err
+	return data, err
 }
 
 func (o *offlineGatewayErrWrapper) IsCached(ctx context.Context, path path.Path) bool {
