@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"time"
 
 	"github.com/ipfs/boxo/filestore"
 	pin "github.com/ipfs/boxo/pinning/pinner"
@@ -168,8 +169,8 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 			return ps
 		}
 	}
-	if cfg.SaveTempPeersForBootstrap == nil {
-		cfg.SaveTempPeersForBootstrap = func(ctx context.Context, peerList []peer.AddrInfo) {
+	if cfg.SaveBackupBootstrapPeers == nil {
+		cfg.SaveBackupBootstrapPeers = func(ctx context.Context, peerList []peer.AddrInfo) {
 			err := n.saveTempBootstrapPeers(ctx, peerList)
 			if err != nil {
 				log.Warnf("saveTempBootstrapPeers failed: %s", err)
@@ -177,8 +178,8 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 			}
 		}
 	}
-	if cfg.LoadTempPeersForBootstrap == nil {
-		cfg.LoadTempPeersForBootstrap = func(ctx context.Context) []peer.AddrInfo {
+	if cfg.LoadBackupBootstrapPeers == nil {
+		cfg.LoadBackupBootstrapPeers = func(ctx context.Context) []peer.AddrInfo {
 			peerList, err := n.loadTempBootstrapPeers(ctx)
 			if err != nil {
 				log.Warnf("loadTempBootstrapPeers failed: %s", err)
@@ -188,7 +189,14 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 		}
 	}
 
-	var err error
+	repoConf, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+	if repoConf.Internal.BackupBootstrapInterval != nil {
+		cfg.BackupBootstrapInterval = repoConf.Internal.BackupBootstrapInterval.WithDefault(time.Hour)
+	}
+
 	n.Bootstrapper, err = bootstrap.Bootstrap(n.Identity, n.PeerHost, n.Routing, cfg)
 	return err
 }

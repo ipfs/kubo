@@ -51,21 +51,16 @@ type BootstrapConfig struct {
 	// to control the peers the process uses at any moment.
 	BootstrapPeers func() []peer.AddrInfo
 
-	// SavePeersPeriod governs the periodic interval at which the node will
+	// BackupBootstrapInterval governs the periodic interval at which the node will
 	// attempt to save connected nodes to use as temporary bootstrap peers.
-	SavePeersPeriod time.Duration
+	BackupBootstrapInterval time.Duration
 
-	// SaveConnectedPeersRatio controls the number peers we're saving compared
-	// to the target MinPeerThreshold. For example, if  MinPeerThreshold is 4,
-	// and we have a ratio of 5 we will save 20 connected peers.
-	//
-	// Note: one peer can have many addresses under its ID, so saving a peer
-	// might translate to more than one line in the config (following the above
-	// example that means TempBootstrapPeers may have more than 20 lines, but
-	// all those lines will be addresses of at most 20 peers).
-	SaveConnectedPeersRatio   int
-	SaveTempPeersForBootstrap func(context.Context, []peer.AddrInfo)
-	LoadTempPeersForBootstrap func(context.Context) []peer.AddrInfo
+	// MaxBackupBootstrapSize controls the maximum number of peers we're saving
+	// as backup bootstrap peers.
+	MaxBackupBootstrapSize int
+
+	SaveBackupBootstrapPeers func(context.Context, []peer.AddrInfo)
+	LoadBackupBootstrapPeers func(context.Context) []peer.AddrInfo
 }
 
 // DefaultBootstrapConfig specifies default sane parameters for bootstrapping.
@@ -73,8 +68,8 @@ var DefaultBootstrapConfig = BootstrapConfig{
 	MinPeerThreshold:        4,
 	Period:                  30 * time.Second,
 	ConnectionTimeout:       (30 * time.Second) / 3, // Perod / 3
-	SavePeersPeriod:         1 * time.Hour,
-	SaveConnectedPeersRatio: 2,
+	BackupBootstrapInterval: 1 * time.Hour,
+	MaxBackupBootstrapSize:  20,
 }
 
 func BootstrapConfigWithPeers(pis []peer.AddrInfo) BootstrapConfig {
@@ -146,7 +141,7 @@ func startSavePeersAsTemporaryBootstrapProc(cfg BootstrapConfig, host host.Host,
 			log.Debugf("saveConnectedPeersAsTemporaryBootstrap error: %s", err)
 		}
 	}
-	savePeersProc := periodicproc.Tick(cfg.SavePeersPeriod, savePeersFn)
+	savePeersProc := periodicproc.Tick(cfg.BackupBootstrapInterval, savePeersFn)
 
 	// When the main bootstrap process ends also terminate the 'save connected
 	// peers' ones. Coupling the two seems the easiest way to handle this backup
@@ -165,11 +160,8 @@ func saveConnectedPeersAsTemporaryBootstrap(ctx context.Context, host host.Host,
 	// Randomize the list of connected peers, we don't prioritize anyone.
 	connectedPeers := randomizeList(host.Network().Peers())
 
-	// Save peers from the connected list that aren't bootstrap ones.
 	bootstrapPeers := cfg.BootstrapPeers()
-
-	saveNumber := cfg.SaveConnectedPeersRatio * cfg.MinPeerThreshold
-	savedPeers := make([]peer.AddrInfo, 0, saveNumber)
+	backupPeers := make([]peer.AddrInfo, 0, cfg.MaxBackupBootstrapSize)
 
 	// Choose peers to save and filter out the ones that are already bootstrap nodes.
 	for _, p := range connectedPeers {
@@ -181,27 +173,27 @@ func saveConnectedPeersAsTemporaryBootstrap(ctx context.Context, host host.Host,
 			}
 		}
 		if !found {
-			savedPeers = append(savedPeers, peer.AddrInfo{
+			backupPeers = append(backupPeers, peer.AddrInfo{
 				ID:    p,
 				Addrs: host.Network().Peerstore().Addrs(p),
 			})
 		}
 
-		if len(savedPeers) >= saveNumber {
+		if len(backupPeers) >= cfg.MaxBackupBootstrapSize {
 			break
 		}
 	}
 
 	// If we didn't reach the target number use previously stored connected peers.
-	if len(savedPeers) < saveNumber {
-		oldSavedPeers := cfg.LoadTempPeersForBootstrap(ctx)
+	if len(backupPeers) < cfg.MaxBackupBootstrapSize {
+		oldSavedPeers := cfg.LoadBackupBootstrapPeers(ctx)
 		log.Debugf("missing %d peers to reach backup bootstrap target of %d, trying from previous list of %d saved peers",
-			saveNumber-len(savedPeers), saveNumber, len(oldSavedPeers))
+			cfg.MaxBackupBootstrapSize-len(backupPeers), cfg.MaxBackupBootstrapSize, len(oldSavedPeers))
 
 		// Add some of the old saved peers. Ensure we don't duplicate them.
 		for _, p := range oldSavedPeers {
 			found := false
-			for _, sp := range savedPeers {
+			for _, sp := range backupPeers {
 				if p.ID == sp.ID {
 					found = true
 					break
@@ -209,17 +201,17 @@ func saveConnectedPeersAsTemporaryBootstrap(ctx context.Context, host host.Host,
 			}
 
 			if !found {
-				savedPeers = append(savedPeers, p)
+				backupPeers = append(backupPeers, p)
 			}
 
-			if len(savedPeers) >= saveNumber {
+			if len(backupPeers) >= cfg.MaxBackupBootstrapSize {
 				break
 			}
 		}
 	}
 
-	cfg.SaveTempPeersForBootstrap(ctx, savedPeers)
-	log.Debugf("saved %d connected peers (of %d target) as bootstrap backup in the config", len(savedPeers), saveNumber)
+	cfg.SaveBackupBootstrapPeers(ctx, backupPeers)
+	log.Debugf("saved %d peers (of %d target) as bootstrap backup in the config", len(backupPeers), cfg.MaxBackupBootstrapSize)
 	return nil
 }
 
@@ -253,7 +245,7 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 
 	log.Debugf("not enough bootstrap peers to fill the remaining target of %d connections, trying backup list", numToDial)
 
-	tempBootstrapPeers := cfg.LoadTempPeersForBootstrap(ctx)
+	tempBootstrapPeers := cfg.LoadBackupBootstrapPeers(ctx)
 	if len(tempBootstrapPeers) > 0 {
 		numToDial -= int(peersConnect(ctx, host, tempBootstrapPeers, numToDial, false))
 		if numToDial <= 0 {
