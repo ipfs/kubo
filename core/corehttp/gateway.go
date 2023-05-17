@@ -28,24 +28,21 @@ import (
 
 func GatewayOption(paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		gwConfig, err := getGatewayConfig(n)
+		config, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}
 
-		gwAPI, err := newGatewayBackend(n)
+		backend, err := newGatewayBackend(n)
 		if err != nil {
 			return nil, err
 		}
 
-		gw := gateway.NewHandler(gwConfig, gwAPI)
-		gw = otelhttp.NewHandler(gw, "Gateway")
-
-		// By default, our HTTP handler is the gateway handler.
-		handler := gw.ServeHTTP
+		handler := gateway.NewHandler(config, backend)
+		handler = otelhttp.NewHandler(handler, "Gateway")
 
 		for _, p := range paths {
-			mux.HandleFunc(p+"/", handler)
+			mux.HandleFunc(p+"/", handler.ServeHTTP)
 		}
 
 		return mux, nil
@@ -54,18 +51,18 @@ func GatewayOption(paths ...string) ServeOption {
 
 func HostnameOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		gwConfig, err := getGatewayConfig(n)
+		config, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}
 
-		gwAPI, err := newGatewayBackend(n)
+		backend, err := newGatewayBackend(n)
 		if err != nil {
 			return nil, err
 		}
 
 		childMux := http.NewServeMux()
-		mux.HandleFunc("/", gateway.WithHostname(gwConfig, gwAPI, childMux).ServeHTTP)
+		mux.HandleFunc("/", gateway.NewHostnameHandler(config, backend, childMux).ServeHTTP)
 		return childMux, nil
 	}
 }
@@ -111,11 +108,11 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 		}
 	}
 
-	gw, err := gateway.NewBlocksGateway(bserv, gateway.WithValueStore(vsRouting), gateway.WithNameSystem(nsys))
+	backend, err := gateway.NewBlocksBackend(bserv, gateway.WithValueStore(vsRouting), gateway.WithNameSystem(nsys))
 	if err != nil {
 		return nil, err
 	}
-	return &offlineGatewayErrWrapper{gwimpl: gw}, nil
+	return &offlineGatewayErrWrapper{gwimpl: backend}, nil
 }
 
 type offlineGatewayErrWrapper struct {
@@ -159,10 +156,10 @@ func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path gateway
 	return md, err
 }
 
-func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, io.ReadCloser, <-chan error, error) {
-	md, data, errCh, err := o.gwimpl.GetCAR(ctx, path)
+func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path gateway.ImmutablePath, params gateway.CarParams) (gateway.ContentPathMetadata, io.ReadCloser, error) {
+	md, data, err := o.gwimpl.GetCAR(ctx, path, params)
 	err = offlineErrWrap(err)
-	return md, data, errCh, err
+	return md, data, err
 }
 
 func (o *offlineGatewayErrWrapper) IsCached(ctx context.Context, path path.Path) bool {
@@ -191,12 +188,12 @@ var _ gateway.IPFSBackend = (*offlineGatewayErrWrapper)(nil)
 
 var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"}
 
-var subdomainGatewaySpec = &gateway.Specification{
+var subdomainGatewaySpec = &gateway.PublicGateway{
 	Paths:         defaultPaths,
 	UseSubdomains: true,
 }
 
-var defaultKnownGateways = map[string]*gateway.Specification{
+var defaultKnownGateways = map[string]*gateway.PublicGateway{
 	"localhost": subdomainGatewaySpec,
 }
 
@@ -218,7 +215,7 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, error) {
 		Headers:               headers,
 		DeserializedResponses: cfg.Gateway.DeserializedResponses.WithDefault(config.DefaultDeserializedResponses),
 		NoDNSLink:             cfg.Gateway.NoDNSLink,
-		PublicGateways:        map[string]*gateway.Specification{},
+		PublicGateways:        map[string]*gateway.PublicGateway{},
 	}
 
 	// Add default implicit known gateways, such as subdomain gateway on localhost.
@@ -235,7 +232,7 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, error) {
 			continue
 		}
 
-		gwCfg.PublicGateways[hostname] = &gateway.Specification{
+		gwCfg.PublicGateways[hostname] = &gateway.PublicGateway{
 			Paths:                 gw.Paths,
 			NoDNSLink:             gw.NoDNSLink,
 			UseSubdomains:         gw.UseSubdomains,
