@@ -18,7 +18,7 @@ func TestRandomizeAddressList(t *testing.T) {
 
 		ps = append(ps, peer.AddrInfo{ID: pid})
 	}
-	out := randomizeAddressList(ps)
+	out := randomizeList(ps)
 	if len(out) != len(ps) {
 		t.Fail()
 	}

@@ -11,8 +11,8 @@ import (
 
 	logging "github.com/ipfs/go-log"
 	"github.com/jbenet/goprocess"
-	"github.com/jbenet/goprocess/context"
-	"github.com/jbenet/goprocess/periodic"
+	goprocessctx "github.com/jbenet/goprocess/context"
+	periodicproc "github.com/jbenet/goprocess/periodic"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -51,13 +51,14 @@ type BootstrapConfig struct {
 	// to control the peers the process uses at any moment.
 	BootstrapPeers func() []peer.AddrInfo
 
-	// FIXME(BLOCKING): Review names, default values and doc.
 	// SavePeersPeriod governs the periodic interval at which the node will
 	// attempt to save connected nodes to use as temporary bootstrap peers.
 	SavePeersPeriod time.Duration
+
 	// SaveConnectedPeersRatio controls the number peers we're saving compared
 	// to the target MinPeerThreshold. For example, if  MinPeerThreshold is 4,
 	// and we have a ratio of 5 we will save 20 connected peers.
+	//
 	// Note: one peer can have many addresses under its ID, so saving a peer
 	// might translate to more than one line in the config (following the above
 	// example that means TempBootstrapPeers may have more than 20 lines, but
@@ -69,14 +70,10 @@ type BootstrapConfig struct {
 
 // DefaultBootstrapConfig specifies default sane parameters for bootstrapping.
 var DefaultBootstrapConfig = BootstrapConfig{
-	MinPeerThreshold:  4,
-	Period:            30 * time.Second,
-	ConnectionTimeout: (30 * time.Second) / 3, // Perod / 3
-	// FIXME(BLOKING): Review this number. We're making it ridiculously small
-	//  only for testing purposes, but this is saving the peers to the config
-	//  file every time so should not be run frequently. (Original proposal 24
-	//  hours.)
-	SavePeersPeriod:         10 * time.Second,
+	MinPeerThreshold:        4,
+	Period:                  30 * time.Second,
+	ConnectionTimeout:       (30 * time.Second) / 3, // Perod / 3
+	SavePeersPeriod:         1 * time.Hour,
 	SaveConnectedPeersRatio: 2,
 }
 
@@ -142,7 +139,6 @@ func Bootstrap(id peer.ID, host host.Host, rt routing.Routing, cfg BootstrapConf
 // connected peers as a backup measure if we can't connect to the official
 // bootstrap ones. These peers will serve as *temporary* bootstrap nodes.
 func startSavePeersAsTemporaryBootstrapProc(cfg BootstrapConfig, host host.Host, bootstrapProc goprocess.Process) {
-
 	savePeersFn := func(worker goprocess.Process) {
 		ctx := goprocessctx.OnClosingContext(worker)
 
@@ -151,6 +147,7 @@ func startSavePeersAsTemporaryBootstrapProc(cfg BootstrapConfig, host host.Host,
 		}
 	}
 	savePeersProc := periodicproc.Tick(cfg.SavePeersPeriod, savePeersFn)
+
 	// When the main bootstrap process ends also terminate the 'save connected
 	// peers' ones. Coupling the two seems the easiest way to handle this backup
 	// process without additional complexity.
@@ -158,36 +155,38 @@ func startSavePeersAsTemporaryBootstrapProc(cfg BootstrapConfig, host host.Host,
 		<-bootstrapProc.Closing()
 		savePeersProc.Close()
 	}()
+
 	// Run the first round now (after the first bootstrap process has finished)
 	// as the SavePeersPeriod can be much longer than bootstrap.
 	savePeersProc.Go(savePeersFn)
 }
 
 func saveConnectedPeersAsTemporaryBootstrap(ctx context.Context, host host.Host, cfg BootstrapConfig) error {
-	allConnectedPeers := host.Network().Peers()
 	// Randomize the list of connected peers, we don't prioritize anyone.
-	// FIXME: Maybe use randomizeAddressList if we change from []peer.ID to
-	//  []peer.AddrInfo earlier in the logic.
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(allConnectedPeers),
-		func(i, j int) {
-			allConnectedPeers[i], allConnectedPeers[j] = allConnectedPeers[j], allConnectedPeers[i]
-		})
+	connectedPeers := randomizeList(host.Network().Peers())
+
+	// Save peers from the connected list that aren't bootstrap ones.
+	bootstrapPeers := cfg.BootstrapPeers()
 
 	saveNumber := cfg.SaveConnectedPeersRatio * cfg.MinPeerThreshold
 	savedPeers := make([]peer.AddrInfo, 0, saveNumber)
 
-	// Save peers from the connected list that aren't bootstrap ones.
-	bootsrapPeers := cfg.BootstrapPeers()
-OUTER:
-	for _, p := range allConnectedPeers {
-		for _, bootstrapPeer := range bootsrapPeers {
+	// Choose peers to save and filter out the ones that are already bootstrap nodes.
+	for _, p := range connectedPeers {
+		found := false
+		for _, bootstrapPeer := range bootstrapPeers {
 			if p == bootstrapPeer.ID {
-				continue OUTER
+				found = true
+				break
 			}
 		}
-		savedPeers = append(savedPeers,
-			peer.AddrInfo{ID: p, Addrs: host.Network().Peerstore().Addrs(p)})
+		if !found {
+			savedPeers = append(savedPeers, peer.AddrInfo{
+				ID:    p,
+				Addrs: host.Network().Peerstore().Addrs(p),
+			})
+		}
+
 		if len(savedPeers) >= saveNumber {
 			break
 		}
@@ -198,8 +197,21 @@ OUTER:
 		oldSavedPeers := cfg.LoadTempPeersForBootstrap(ctx)
 		log.Debugf("missing %d peers to reach backup bootstrap target of %d, trying from previous list of %d saved peers",
 			saveNumber-len(savedPeers), saveNumber, len(oldSavedPeers))
+
+		// Add some of the old saved peers. Ensure we don't duplicate them.
 		for _, p := range oldSavedPeers {
-			savedPeers = append(savedPeers, p)
+			found := false
+			for _, sp := range savedPeers {
+				if p.ID == sp.ID {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				savedPeers = append(savedPeers, p)
+			}
+
 			if len(savedPeers) >= saveNumber {
 				break
 			}
@@ -262,7 +274,7 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 // but this list comes from restricted sets of original or temporary bootstrap
 // nodes which will keep it under a sane value.)
 func peersConnect(ctx context.Context, ph host.Host, availablePeers []peer.AddrInfo, needed int, permanent bool) uint64 {
-	peers := randomizeAddressList(availablePeers)
+	peers := randomizeList(availablePeers)
 
 	// Monitor the number of connections and stop if we reach the target.
 	var connected uint64
@@ -315,13 +327,6 @@ func peersConnect(ctx context.Context, ph host.Host, availablePeers []peer.AddrI
 			if permanent {
 				// We're connecting to an original bootstrap peer, mark it as
 				// a permanent address (Connect will register it as TempAddrTTL).
-				// FIXME(BLOCKING): From the code it seems this will overwrite the
-				//  temporary TTL from Connect: need confirmation from libp2p folks.
-				//  Registering it *after* the connect give less chances of registering
-				//  many addresses we won't be using in case we already reached the
-				//  target and the context has already been cancelled. (This applies
-				//  only to the very restricted list of original bootstrap nodes so
-				//  this issue is not critical.)
 				ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 			}
 
@@ -334,8 +339,8 @@ func peersConnect(ctx context.Context, ph host.Host, availablePeers []peer.AddrI
 	return connected
 }
 
-func randomizeAddressList(in []peer.AddrInfo) []peer.AddrInfo {
-	out := make([]peer.AddrInfo, len(in))
+func randomizeList[T any](in []T) []T {
+	out := make([]T, len(in))
 	for i, val := range rand.Perm(len(in)) {
 		out[i] = in[val]
 	}
