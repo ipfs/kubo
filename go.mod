@@ -86,8 +86,6 @@ require (
 	golang.org/x/sys v0.8.0
 )
 
-require github.com/ipfs/go-merkledag v0.10.0
-
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/Kubuxu/go-os-helper v0.0.1 // indirect

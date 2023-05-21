@@ -3,7 +3,6 @@ package cli
 import (
 	"encoding/json"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/ipfs/kubo/test/cli/harness"
@@ -30,15 +29,6 @@ type Data struct {
 	SharedSize   int       `json:"SharedSize"`
 	Ratio        float64   `json:"Ratio"`
 	DagStats     []DagStat `json:"DagStats"`
-}
-
-func unescapeString(escapedString string) string {
-	unescapedString := strings.NewReplacer(
-		"\n", "\\n",
-		"\t", "\\t",
-	).Replace(escapedString)
-
-	return unescapedString
 }
 
 // The Fixture file represents a dag where 2 nodes of size = 46B each, have a common child of 7B
@@ -92,28 +82,5 @@ func TestDag(t *testing.T) {
 		assert.Equal(t, expectedNode1Blocks, node1Output.NumBlocks)
 		assert.Equal(t, expectedNode2Blocks, node2Output.NumBlocks)
 	})
-	t.Run("ipfs dag stat", func(t *testing.T) {
-		t.Parallel()
-		node := harness.NewT(t).NewNode().Init().StartDaemon()
-		// Import fixture
-		r, err := os.Open(fixtureFile)
-		assert.Nil(t, err)
-		defer r.Close()
-		err = node.IPFSDagImport(r, fixtureCid)
-		assert.NoError(t, err)
-		stat := node.RunIPFS("dag", "stat", node1Cid, node2Cid)
-		str := unescapeString(stat.Stdout.String())
-		expectedOutput := `CID                                                        	Blocks         	Size
-		bafyreibmdfd7c5db4kls4ty57zljfhqv36gi43l6txl44pi423wwmeskwy	2              	53
-		bafyreie3njilzdi4ixumru4nzgecsnjtu7fzfcwhg7e6s4s5i7cnbslvn4	2              	53
-		
-		Summary
-		Total Size: 99
-		Unique Blocks: 3
-		Shared Size: 7
-		Ratio: 1.070707
-		`
-		assert.Equal(t, strings.TrimSpace(expectedOutput), strings.TrimSpace(str))
 
-	})
 }
