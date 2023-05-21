@@ -383,7 +383,8 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 			fmt.Fprintln(w)
 			csvWriter := csv.NewWriter(w)
 			csvWriter.Comma = '\t'
-			header := []string{fmt.Sprintf("%-*s", 46, "CID"), fmt.Sprintf("%-15s", "Blocks"), "Size"}
+			cidSpacing := len(event.DagStatsArray[0].Cid.String())
+			header := []string{fmt.Sprintf("%-*s", cidSpacing, "CID"), fmt.Sprintf("%-15s", "Blocks"), "Size"}
 			if err := csvWriter.Write(header); err != nil {
 				return err
 			}

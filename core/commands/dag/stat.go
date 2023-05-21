@@ -47,12 +47,14 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 			DAG:   nodeGetter,
 			Order: traverse.DFSPre,
 			Func: func(current traverse.State) error {
-				dagstats.Size += uint64(len(current.Node.RawData()))
+				fmt.Println("previousDagStatSize:", dagstats.Size)
+				currentNodeSize := uint64(len(current.Node.RawData()))
+				dagstats.Size += currentNodeSize
 				dagstats.NumBlocks++
 				if !cidSet.Has(current.Node.Cid()) {
-					dagStatSummary.incrementTotalSize(dagstats.Size)
+					dagStatSummary.incrementTotalSize(currentNodeSize)
 				}
-				dagStatSummary.incrementRedundantSize(dagstats.Size)
+				dagStatSummary.incrementRedundantSize(currentNodeSize)
 				cidSet.Add(current.Node.Cid())
 				if progressive {
 					if err := res.Emit(dagStatSummary); err != nil {
