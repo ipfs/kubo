@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
+	"os"
 	"time"
 
 	"github.com/ipfs/boxo/coreiface/options"
@@ -170,6 +172,40 @@ func flatfsSpec() map[string]interface{} {
 					"path":      "blocks",
 					"sync":      true,
 					"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+				},
+			},
+			map[string]interface{}{
+				"mountpoint": "/",
+				"type":       "measure",
+				"prefix":     "leveldb.datastore",
+				"child": map[string]interface{}{
+					"type":        "levelds",
+					"path":        "datastore",
+					"compression": "none",
+				},
+			},
+		},
+	}
+}
+
+func gcsdsSpec() map[string]interface{} {
+	bucket := os.Getenv("KUBO_GCS_BUCKET")
+	if bucket == "" {
+		log.Printf("Please specify GCS bucket with the KUBO_GCS_BUCKET environment variable.")
+	}
+	return map[string]interface{}{
+		"type": "mount",
+		"mounts": []interface{}{
+			map[string]interface{}{
+				"mountpoint": "/blocks",
+				"type":       "measure",
+				"prefix":     "flatfs.datastore",
+				"child": map[string]interface{}{
+					"type":      "gcsds",
+					"bucket":    bucket,
+					"prefix":    "ipfs",
+					"cachesize": 40000,
+					"workers":   100,
 				},
 			},
 			map[string]interface{}{

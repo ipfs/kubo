@@ -168,6 +168,15 @@ This profile may only be applied when first initializing the node.`,
 			return nil
 		},
 	},
+	"gcsds": {
+		Description: `Configures the node to use the GCS datastore (gcsds).
+This profile may only be applied when first initializing the node.`,
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = gcsdsSpec()
+			return nil
+		},
+	},
 	"lowpower": {
 		Description: `Reduces daemon overhead on the system. May affect node
 functionality - performance of content discovery and data
