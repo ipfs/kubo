@@ -187,10 +187,10 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 With the purely functional package manager [Nix](https://nixos.org/nix/) you can install kubo (go-ipfs) like this:
 
 ```
-$ nix-env -i ipfs
+$ nix-env -i kubo
 ```
 
-You can also install the Package by using its attribute name, which is also `ipfs`.
+You can also install the Package by using its attribute name, which is also `kubo`.
 
 #### Solus
 
@@ -251,10 +251,10 @@ $ sudo port install ipfs
 In macOS you can use the purely functional package manager [Nix](https://nixos.org/nix/):
 
 ```
-$ nix-env -i ipfs
+$ nix-env -i kubo
 ```
 
-You can also install the Package by using its attribute name, which is also `ipfs`.
+You can also install the Package by using its attribute name, which is also `kubo`.
 
 #### Homebrew
 
