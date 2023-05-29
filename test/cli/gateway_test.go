@@ -527,6 +527,19 @@ func TestGateway(t *testing.T) {
 			r.Host = "example.com"
 		}
 
+		withAccept := func(accept string) func(r *http.Request) {
+			return func(r *http.Request) {
+				r.Header.Set("Accept", accept)
+			}
+		}
+
+		withHostAndAccept := func(accept string) func(r *http.Request) {
+			return func(r *http.Request) {
+				setHost(r)
+				withAccept(accept)(r)
+			}
+		}
+
 		makeTest := func(test *testCase) func(t *testing.T) {
 			return func(t *testing.T) {
 				t.Parallel()
@@ -547,15 +560,30 @@ func TestGateway(t *testing.T) {
 				client := node.GatewayClient()
 
 				deserializedPath := "/ipfs/" + cidFoo
-				serializedPath := deserializedPath + "?format=raw"
 
-				// Global Check
-				assert.Equal(t, http.StatusOK, client.Get(serializedPath).StatusCode)
+				blockPath := deserializedPath + "?format=raw"
+				carPath := deserializedPath + "?format=car"
+
+				// Global Check (Gateway.DeserializedResponses)
+				assert.Equal(t, http.StatusOK, client.Get(blockPath).StatusCode)
+				assert.Equal(t, http.StatusOK, client.Get(deserializedPath, withAccept("application/vnd.ipld.raw")).StatusCode)
+
+				assert.Equal(t, http.StatusOK, client.Get(carPath).StatusCode)
+				assert.Equal(t, http.StatusOK, client.Get(deserializedPath, withAccept("application/vnd.ipld.car")).StatusCode)
+
 				assert.Equal(t, test.deserializedGlobalStatusCode, client.Get(deserializedPath).StatusCode)
+				assert.Equal(t, test.deserializedGlobalStatusCode, client.Get(deserializedPath, withAccept("application/json")).StatusCode)
 
-				// Public Gateway (example.com) Check
-				assert.Equal(t, http.StatusOK, client.Get(serializedPath, setHost).StatusCode)
+				// Public Gateway (example.com) Check (Gateway.PublicGateways[example.com].DeserializedResponses)
+				assert.Equal(t, http.StatusOK, client.Get(blockPath, setHost).StatusCode)
+				assert.Equal(t, http.StatusOK, client.Get(deserializedPath, withHostAndAccept("application/vnd.ipld.raw")).StatusCode)
+
+				assert.Equal(t, http.StatusOK, client.Get(carPath, setHost).StatusCode)
+				assert.Equal(t, http.StatusOK, client.Get(deserializedPath, withHostAndAccept("application/vnd.ipld.car")).StatusCode)
+
 				assert.Equal(t, test.deserializedGatewayStaticCode, client.Get(deserializedPath, setHost).StatusCode)
+				assert.Equal(t, test.deserializedGatewayStaticCode, client.Get(deserializedPath, withHostAndAccept("application/json")).StatusCode)
+
 			}
 		}
 
