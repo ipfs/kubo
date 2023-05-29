@@ -513,4 +513,87 @@ func TestGateway(t *testing.T) {
 			})
 		})
 	})
+
+	t.Run("DeserializedResponses", func(t *testing.T) {
+		type testCase struct {
+			globalValue                   config.Flag
+			gatewayValue                  config.Flag
+			deserializedGlobalStatusCode  int
+			deserializedGatewayStaticCode int
+			message                       string
+		}
+
+		setHost := func(r *http.Request) {
+			r.Host = "example.com"
+		}
+
+		withAccept := func(accept string) func(r *http.Request) {
+			return func(r *http.Request) {
+				r.Header.Set("Accept", accept)
+			}
+		}
+
+		withHostAndAccept := func(accept string) func(r *http.Request) {
+			return func(r *http.Request) {
+				setHost(r)
+				withAccept(accept)(r)
+			}
+		}
+
+		makeTest := func(test *testCase) func(t *testing.T) {
+			return func(t *testing.T) {
+				t.Parallel()
+
+				node := harness.NewT(t).NewNode().Init()
+				node.UpdateConfig(func(cfg *config.Config) {
+					cfg.Gateway.DeserializedResponses = test.globalValue
+					cfg.Gateway.PublicGateways = map[string]*config.GatewaySpec{
+						"example.com": {
+							Paths:                 []string{"/ipfs", "/ipns"},
+							DeserializedResponses: test.gatewayValue,
+						},
+					}
+				})
+				node.StartDaemon()
+
+				cidFoo := node.IPFSAddStr("foo")
+				client := node.GatewayClient()
+
+				deserializedPath := "/ipfs/" + cidFoo
+
+				blockPath := deserializedPath + "?format=raw"
+				carPath := deserializedPath + "?format=car"
+
+				// Global Check (Gateway.DeserializedResponses)
+				assert.Equal(t, http.StatusOK, client.Get(blockPath).StatusCode)
+				assert.Equal(t, http.StatusOK, client.Get(deserializedPath, withAccept("application/vnd.ipld.raw")).StatusCode)
+
+				assert.Equal(t, http.StatusOK, client.Get(carPath).StatusCode)
+				assert.Equal(t, http.StatusOK, client.Get(deserializedPath, withAccept("application/vnd.ipld.car")).StatusCode)
+
+				assert.Equal(t, test.deserializedGlobalStatusCode, client.Get(deserializedPath).StatusCode)
+				assert.Equal(t, test.deserializedGlobalStatusCode, client.Get(deserializedPath, withAccept("application/json")).StatusCode)
+
+				// Public Gateway (example.com) Check (Gateway.PublicGateways[example.com].DeserializedResponses)
+				assert.Equal(t, http.StatusOK, client.Get(blockPath, setHost).StatusCode)
+				assert.Equal(t, http.StatusOK, client.Get(deserializedPath, withHostAndAccept("application/vnd.ipld.raw")).StatusCode)
+
+				assert.Equal(t, http.StatusOK, client.Get(carPath, setHost).StatusCode)
+				assert.Equal(t, http.StatusOK, client.Get(deserializedPath, withHostAndAccept("application/vnd.ipld.car")).StatusCode)
+
+				assert.Equal(t, test.deserializedGatewayStaticCode, client.Get(deserializedPath, setHost).StatusCode)
+				assert.Equal(t, test.deserializedGatewayStaticCode, client.Get(deserializedPath, withHostAndAccept("application/json")).StatusCode)
+
+			}
+		}
+
+		for _, test := range []*testCase{
+			{config.True, config.Default, http.StatusOK, http.StatusOK, "when Gateway.DeserializedResponses is globally enabled, leaving implicit default for Gateway.PublicGateways[example.com] should inherit the global setting (enabled)"},
+			{config.False, config.Default, http.StatusNotAcceptable, http.StatusNotAcceptable, "when Gateway.DeserializedResponses is globally disabled, leaving implicit default on Gateway.PublicGateways[example.com] should inherit the global setting (disabled)"},
+			{config.False, config.True, http.StatusNotAcceptable, http.StatusOK, "when Gateway.DeserializedResponses is globally disabled, explicitly enabling on Gateway.PublicGateways[example.com] should override global (enabled)"},
+			{config.True, config.False, http.StatusOK, http.StatusNotAcceptable, "when Gateway.DeserializedResponses is globally enabled, explicitly disabling on Gateway.PublicGateways[example.com] should override global (disabled)"},
+		} {
+			t.Run(test.message, makeTest(test))
+		}
+	})
 }
