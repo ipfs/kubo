@@ -1326,15 +1326,19 @@ Type: `array[peering]`
 ### `Reprovider.Interval`
 
 Sets the time between rounds of reproviding local content to the routing
-system. If unset, it defaults to 12 hours. If set to the value `"0"` it will
-disable content reproviding.
+system. 
+
+- If unset, it uses the implicit safe default.
+- If set to the value `"0"` it will disable content reproviding.
 
 Note: disabling content reproviding will result in other nodes on the network
 not being able to discover that you have the objects that you have. If you want
 to have this disabled and keep the network aware of what you have, you must
 manually announce your content periodically.
 
-Type: `duration`
+Default: `22h` (`DefaultReproviderInterval`)
+
+Type: `optionalDuration` (unset for the default)
 
 ### `Reprovider.Strategy`
 
@@ -1346,7 +1350,7 @@ Tells reprovider what should be announced. Valid strategies are:
 
 Default: `"all"`
 
-Type: `string` (or unset for the default, which is "all")
+Type: `optionalString` (unset for the default)
 
 ## `Routing`
 
