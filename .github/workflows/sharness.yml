@@ -6,8 +6,6 @@ on:
     paths-ignore:
       - '**/*.md'
   push:
-    branches:
-      - 'master'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
@@ -16,7 +14,7 @@ concurrency:
 jobs:
   sharness-test:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "4xlarge"]' || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "playground"]' || '"ubuntu-latest"') }}
     timeout-minutes: 20
     defaults:
       run:
