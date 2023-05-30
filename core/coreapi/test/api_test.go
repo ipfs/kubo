@@ -31,7 +31,7 @@ const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
 type NodeProvider struct{}
 
-func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, online bool, n int) ([]coreiface.CoreAPI, error) {
+func (NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdentity bool, online bool, n int) ([]coreiface.CoreAPI, error) {
 	mn := mocknet.New()
 
 	nodes := make([]*core.IpfsNode, n)
@@ -120,5 +120,5 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, online 
 }
 
 func TestIface(t *testing.T) {
-	tests.TestApi(&NodeProvider{})(t)
+	tests.TestApi(NodeProvider{})(t)
 }
