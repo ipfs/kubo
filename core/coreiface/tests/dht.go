@@ -26,7 +26,7 @@ func (tp *TestSuite) TestDht(t *testing.T) {
 func (tp *TestSuite) TestDhtFindPeer(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	apis, err := tp.MakeAPISwarm(ctx, 5)
+	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func (tp *TestSuite) TestDhtFindPeer(t *testing.T) {
 func (tp *TestSuite) TestDhtFindProviders(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	apis, err := tp.MakeAPISwarm(ctx, 5)
+	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func (tp *TestSuite) TestDhtFindProviders(t *testing.T) {
 func (tp *TestSuite) TestDhtProvide(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	apis, err := tp.MakeAPISwarm(ctx, 5)
+	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	if err != nil {
 		t.Fatal(err)
 	}

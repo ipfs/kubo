@@ -43,7 +43,7 @@ func (tp *TestSuite) TestRoutingGet(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	apis, err := tp.MakeAPISwarm(ctx, 2)
+	apis, err := tp.MakeAPISwarm(t, ctx, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func (tp *TestSuite) TestRoutingGet(t *testing.T) {
 func (tp *TestSuite) TestRoutingPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	apis, err := tp.MakeAPISwarm(ctx, 2)
+	apis, err := tp.MakeAPISwarm(t, ctx, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func (tp *TestSuite) TestRoutingPutOffline(t *testing.T) {
 	defer cancel()
 
 	// init a swarm & publish an IPNS entry to get a valid payload
-	apis, err := tp.MakeAPISwarm(ctx, 2)
+	apis, err := tp.MakeAPISwarm(t, ctx, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func (tp *TestSuite) TestRoutingPutOffline(t *testing.T) {
 	}
 
 	// init our offline node and try to put the payload
-	api, err := tp.makeAPIWithIdentityAndOffline(ctx)
+	api, err := tp.makeAPIWithIdentityAndOffline(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

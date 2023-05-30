@@ -44,7 +44,7 @@ var (
 func (tp *TestSuite) TestPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func (tp *TestSuite) TestPut(t *testing.T) {
 func (tp *TestSuite) TestPutWithHash(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func (tp *TestSuite) TestPutWithHash(t *testing.T) {
 func (tp *TestSuite) TestDagPath(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func (tp *TestSuite) TestDagPath(t *testing.T) {
 func (tp *TestSuite) TestTree(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func (tp *TestSuite) TestTree(t *testing.T) {
 func (tp *TestSuite) TestBatch(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -37,7 +37,7 @@ func (tp *TestSuite) TestObject(t *testing.T) {
 func (tp *TestSuite) TestNew(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func (tp *TestSuite) TestNew(t *testing.T) {
 func (tp *TestSuite) TestObjectPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func (tp *TestSuite) TestObjectPut(t *testing.T) {
 func (tp *TestSuite) TestObjectGet(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func (tp *TestSuite) TestObjectGet(t *testing.T) {
 func (tp *TestSuite) TestObjectData(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func (tp *TestSuite) TestObjectData(t *testing.T) {
 func (tp *TestSuite) TestObjectLinks(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +192,7 @@ func (tp *TestSuite) TestObjectLinks(t *testing.T) {
 func (tp *TestSuite) TestObjectStat(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +240,7 @@ func (tp *TestSuite) TestObjectStat(t *testing.T) {
 func (tp *TestSuite) TestObjectAddLink(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -281,7 +281,7 @@ func (tp *TestSuite) TestObjectAddLink(t *testing.T) {
 func (tp *TestSuite) TestObjectAddLinkCreate(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,7 +330,7 @@ func (tp *TestSuite) TestObjectAddLinkCreate(t *testing.T) {
 func (tp *TestSuite) TestObjectRmLink(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -363,7 +363,7 @@ func (tp *TestSuite) TestObjectRmLink(t *testing.T) {
 func (tp *TestSuite) TestObjectAddData(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -396,7 +396,7 @@ func (tp *TestSuite) TestObjectAddData(t *testing.T) {
 func (tp *TestSuite) TestObjectSetData(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -429,7 +429,7 @@ func (tp *TestSuite) TestObjectSetData(t *testing.T) {
 func (tp *TestSuite) TestDiffTest(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -34,7 +34,7 @@ func (tp *TestSuite) TestPin(t *testing.T) {
 func (tp *TestSuite) TestPinAdd(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func (tp *TestSuite) TestPinAdd(t *testing.T) {
 func (tp *TestSuite) TestPinSimple(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func (tp *TestSuite) TestPinSimple(t *testing.T) {
 func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +249,7 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 func (tp *TestSuite) TestPinLsIndirect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,7 +282,7 @@ func (tp *TestSuite) TestPinLsPrecedence(t *testing.T) {
 func (tp *TestSuite) TestPinLsPredenceRecursiveIndirect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,7 +306,7 @@ func (tp *TestSuite) TestPinLsPredenceRecursiveIndirect(t *testing.T) {
 func (tp *TestSuite) TestPinLsPrecedenceDirectIndirect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,7 +330,7 @@ func (tp *TestSuite) TestPinLsPrecedenceDirectIndirect(t *testing.T) {
 func (tp *TestSuite) TestPinLsPrecedenceRecursiveDirect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,7 +366,7 @@ func (tp *TestSuite) TestPinLsPrecedenceRecursiveDirect(t *testing.T) {
 func (tp *TestSuite) TestPinIsPinned(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

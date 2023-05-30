@@ -25,7 +25,7 @@ func (tp *TestSuite) TestPath(t *testing.T) {
 func (tp *TestSuite) TestMutablePath(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func (tp *TestSuite) TestMutablePath(t *testing.T) {
 func (tp *TestSuite) TestPathRemainder(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func (tp *TestSuite) TestPathRemainder(t *testing.T) {
 func (tp *TestSuite) TestEmptyPathRemainder(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func (tp *TestSuite) TestEmptyPathRemainder(t *testing.T) {
 func (tp *TestSuite) TestInvalidPathRemainder(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func (tp *TestSuite) TestInvalidPathRemainder(t *testing.T) {
 func (tp *TestSuite) TestPathRoot(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

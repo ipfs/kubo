@@ -13,10 +13,10 @@ var errAPINotImplemented = errors.New("api not implemented")
 
 type Provider interface {
 	// Make creates n nodes. fullIdentity set to false can be ignored
-	MakeAPISwarm(ctx context.Context, fullIdentity bool, online bool, n int) ([]coreiface.CoreAPI, error)
+	MakeAPISwarm(t *testing.T, ctx context.Context, fullIdentity bool, online bool, n int) ([]coreiface.CoreAPI, error)
 }
 
-func (tp *TestSuite) makeAPISwarm(ctx context.Context, fullIdentity bool, online bool, n int) ([]coreiface.CoreAPI, error) {
+func (tp *TestSuite) makeAPISwarm(t *testing.T, ctx context.Context, fullIdentity bool, online bool, n int) ([]coreiface.CoreAPI, error) {
 	if tp.apis != nil {
 		tp.apis <- 1
 		go func() {
@@ -25,11 +25,11 @@ func (tp *TestSuite) makeAPISwarm(ctx context.Context, fullIdentity bool, online
 		}()
 	}
 
-	return tp.Provider.MakeAPISwarm(ctx, fullIdentity, online, n)
+	return tp.Provider.MakeAPISwarm(t, ctx, fullIdentity, online, n)
 }
 
-func (tp *TestSuite) makeAPI(ctx context.Context) (coreiface.CoreAPI, error) {
-	api, err := tp.makeAPISwarm(ctx, false, false, 1)
+func (tp *TestSuite) makeAPI(t *testing.T, ctx context.Context) (coreiface.CoreAPI, error) {
+	api, err := tp.makeAPISwarm(t, ctx, false, false, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +37,8 @@ func (tp *TestSuite) makeAPI(ctx context.Context) (coreiface.CoreAPI, error) {
 	return api[0], nil
 }
 
-func (tp *TestSuite) makeAPIWithIdentityAndOffline(ctx context.Context) (coreiface.CoreAPI, error) {
-	api, err := tp.makeAPISwarm(ctx, true, false, 1)
+func (tp *TestSuite) makeAPIWithIdentityAndOffline(t *testing.T, ctx context.Context) (coreiface.CoreAPI, error) {
+	api, err := tp.makeAPISwarm(t, ctx, true, false, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +46,8 @@ func (tp *TestSuite) makeAPIWithIdentityAndOffline(ctx context.Context) (coreifa
 	return api[0], nil
 }
 
-func (tp *TestSuite) MakeAPISwarm(ctx context.Context, n int) ([]coreiface.CoreAPI, error) {
-	return tp.makeAPISwarm(ctx, true, true, n)
+func (tp *TestSuite) MakeAPISwarm(t *testing.T, ctx context.Context, n int) ([]coreiface.CoreAPI, error) {
+	return tp.makeAPISwarm(t, ctx, true, true, n)
 }
 
 type TestSuite struct {
@@ -99,7 +99,7 @@ func TestApi(p Provider) func(t *testing.T) {
 func (tp *TestSuite) hasApi(t *testing.T, tf func(coreiface.CoreAPI) error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	api, err := tp.makeAPI(ctx)
+	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
