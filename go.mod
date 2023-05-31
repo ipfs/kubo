@@ -16,7 +16,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/ipfs/boxo v0.8.2-0.20230530175401-c23df3837fbe
+	github.com/ipfs/boxo v0.8.2-0.20230531151409-d1b8d1d6d076
 	github.com/ipfs/go-block-format v0.1.2
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-cidutil v0.1.0
