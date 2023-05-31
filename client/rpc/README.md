@@ -1,4 +1,4 @@
-# `httpapi`
+# `coreiface.CoreAPI` over http `rpc`
 
 > IPFS CoreAPI implementation using HTTP API
 
@@ -19,13 +19,13 @@ import (
     "context"
     "fmt"
 
-    ipfsClient "github.com/ipfs/kubo/client/rpc"
+    "github.com/ipfs/kubo/client/rpc"
     path "github.com/ipfs/boxo/coreiface/path"
 )
 
 func main() {
     // "Connect" to local node
-    node, err := ipfsClient.NewLocalApi()
+    node, err := rpc.NewLocalApi()
     if err != nil {
         fmt.Printf(err)
         return
