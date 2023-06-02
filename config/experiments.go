@@ -8,7 +8,7 @@ type Experiments struct {
 	Libp2pStreamMounting          bool
 	P2pHttpProxy                  bool //nolint
 	StrategicProviding            bool
-	AcceleratedDHTClient          bool
+	AcceleratedDHTClient          experimentalAcceleratedDHTClient `json:",omitempty"`
 	OptimisticProvide             bool
 	OptimisticProvideJobsPoolSize int
 }

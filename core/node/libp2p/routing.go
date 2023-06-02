@@ -90,7 +90,7 @@ func BaseRouting(cfg *config.Config) interface{} {
 			}
 		}
 
-		if dualDHT != nil && cfg.Experimental.AcceleratedDHTClient {
+		if dualDHT != nil && cfg.Routing.AcceleratedDHTClient {
 			cfg, err := in.Repo.Config()
 			if err != nil {
 				return out, err

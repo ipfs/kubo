@@ -15,6 +15,8 @@ type Routing struct {
 	// When "custom" is set, user-provided Routing.Routers is used.
 	Type *OptionalString `json:",omitempty"`
 
+	AcceleratedDHTClient bool
+
 	Routers Routers
 
 	Methods Methods
