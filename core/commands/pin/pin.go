@@ -342,13 +342,16 @@ Example:
 		}
 
 		// For backward compatibility, we accumulate the pins in the same output type as before.
-		emit := res.Emit
+		var emit func(PinLsOutputWrapper) error
 		lgcList := map[string]PinLsType{}
 		if !stream {
-			emit = func(v interface{}) error {
-				obj := v.(*PinLsOutputWrapper)
-				lgcList[obj.PinLsObject.Cid] = PinLsType{Type: obj.PinLsObject.Type}
+			emit = func(v PinLsOutputWrapper) error {
+				lgcList[v.PinLsObject.Cid] = PinLsType{Type: v.PinLsObject.Type}
 				return nil
+			}
+		} else {
+			emit = func(v PinLsOutputWrapper) error {
+				return res.Emit(v)
 			}
 		}
 
@@ -371,7 +374,7 @@ Example:
 	},
 	Type: &PinLsOutputWrapper{},
 	Encoders: cmds.EncoderMap{
-		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinLsOutputWrapper) error {
+		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out PinLsOutputWrapper) error {
 			stream, _ := req.Options[pinStreamOptionName].(bool)
 
 			enc := json.NewEncoder(w)
@@ -382,7 +385,7 @@ Example:
 
 			return enc.Encode(out.PinLsList)
 		}),
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinLsOutputWrapper) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out PinLsOutputWrapper) error {
 			quiet, _ := req.Options[pinQuietOptionName].(bool)
 			stream, _ := req.Options[pinStreamOptionName].(bool)
 
@@ -432,7 +435,7 @@ type PinLsObject struct {
 	Type string `json:",omitempty"`
 }
 
-func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
+func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
@@ -470,7 +473,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 			pinType = "indirect through " + pinType
 		}
 
-		err = emit(&PinLsOutputWrapper{
+		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: pinType,
 				Cid:  enc.Encode(rp.Cid()),
@@ -484,7 +487,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 	return nil
 }
 
-func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
+func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
@@ -511,7 +514,7 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 		if err := p.Err(); err != nil {
 			return err
 		}
-		err = emit(&PinLsOutputWrapper{
+		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: p.Type(),
 				Cid:  enc.Encode(p.Path().Cid()),

@@ -305,6 +305,7 @@ func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string) <-chan coreifac
 					out <- &pinInfo{err: err}
 					return
 				}
+				rkeys = append(rkeys, streamedCid.C)
 			}
 		}
 		if typeStr == "direct" || typeStr == "all" {
@@ -317,27 +318,6 @@ func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string) <-chan coreifac
 					out <- &pinInfo{err: err}
 					return
 				}
-			}
-		}
-		if typeStr == "all" {
-			walkingSet := cid.NewSet()
-			for _, k := range rkeys {
-				err = merkledag.Walk(
-					ctx, merkledag.GetLinksWithDAG(api.dag), k,
-					walkingSet.Visit,
-					merkledag.SkipRoot(), merkledag.Concurrent(),
-				)
-				if err != nil {
-					out <- &pinInfo{err: err}
-					return
-				}
-			}
-			err = walkingSet.ForEach(func(c cid.Cid) error {
-				return AddToResultKeys(c, "indirect")
-			})
-			if err != nil {
-				out <- &pinInfo{err: err}
-				return
 			}
 		}
 		if typeStr == "indirect" {
@@ -358,26 +338,34 @@ func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string) <-chan coreifac
 					return
 				}
 				emittedSet.Add(streamedCid.C)
+				rkeys = append(rkeys, streamedCid.C)
 			}
-
+		}
+		if typeStr == "indirect" || typeStr == "all" {
 			walkingSet := cid.NewSet()
 			for _, k := range rkeys {
 				err = merkledag.Walk(
 					ctx, merkledag.GetLinksWithDAG(api.dag), k,
-					walkingSet.Visit,
+					func(c cid.Cid) bool {
+						if !walkingSet.Visit(c) {
+							return false
+						}
+						if emittedSet.Has(c) {
+							return true // skipped
+						}
+						err := AddToResultKeys(c, "indirect")
+						if err != nil {
+							out <- &pinInfo{err: err}
+							return false
+						}
+						return true
+					},
 					merkledag.SkipRoot(), merkledag.Concurrent(),
 				)
 				if err != nil {
 					out <- &pinInfo{err: err}
 					return
 				}
-			}
-			err = emittedSet.ForEach(func(c cid.Cid) error {
-				return AddToResultKeys(c, "indirect")
-			})
-			if err != nil {
-				out <- &pinInfo{err: err}
-				return
 			}
 		}
 	}()
