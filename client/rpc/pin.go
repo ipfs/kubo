@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"strings"
 
 	iface "github.com/ipfs/boxo/coreiface"
@@ -129,14 +130,19 @@ func (api *PinAPI) Update(ctx context.Context, from path.Path, to path.Path, opt
 type pinVerifyRes struct {
 	ok       bool
 	badNodes []iface.BadPinNode
+	err      error
 }
 
-func (r *pinVerifyRes) Ok() bool {
+func (r pinVerifyRes) Ok() bool {
 	return r.ok
 }
 
-func (r *pinVerifyRes) BadNodes() []iface.BadPinNode {
+func (r pinVerifyRes) BadNodes() []iface.BadPinNode {
 	return r.badNodes
+}
+
+func (r pinVerifyRes) Err() error {
+	return r.err
 }
 
 type badNode struct {
@@ -144,11 +150,11 @@ type badNode struct {
 	cid cid.Cid
 }
 
-func (n *badNode) Path() path.Resolved {
+func (n badNode) Path() path.Resolved {
 	return path.IpldPath(n.cid)
 }
 
-func (n *badNode) Err() error {
+func (n badNode) Err() error {
 	return n.err
 }
 
@@ -169,6 +175,7 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan iface.PinStatus, error) {
 		for {
 			var out struct {
 				Cid string
+				Err string
 				Ok  bool
 
 				BadNodes []struct {
@@ -177,35 +184,42 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan iface.PinStatus, error) {
 				}
 			}
 			if err := dec.Decode(&out); err != nil {
-				return // todo: handle non io.EOF somehow
+				if err == io.EOF {
+					return
+				}
+				select {
+				case res <- pinVerifyRes{err: err}:
+					return
+				case <-ctx.Done():
+					return
+				}
+			}
+
+			if out.Err != "" {
+				select {
+				case res <- pinVerifyRes{err: errors.New(out.Err)}:
+					return
+				case <-ctx.Done():
+					return
+				}
 			}
 
 			badNodes := make([]iface.BadPinNode, len(out.BadNodes))
 			for i, n := range out.BadNodes {
 				c, err := cid.Decode(n.Cid)
 				if err != nil {
-					badNodes[i] = &badNode{
-						cid: c,
-						err: err,
-					}
+					badNodes[i] = badNode{cid: c, err: err}
 					continue
 				}
 
 				if n.Err != "" {
 					err = errors.New(n.Err)
 				}
-				badNodes[i] = &badNode{
-					cid: c,
-					err: err,
-				}
+				badNodes[i] = badNode{cid: c, err: err}
 			}
 
 			select {
-			case res <- &pinVerifyRes{
-				ok: out.Ok,
-
-				badNodes: badNodes,
-			}:
+			case res <- pinVerifyRes{ok: out.Ok, badNodes: badNodes}:
 			case <-ctx.Done():
 				return
 			}
