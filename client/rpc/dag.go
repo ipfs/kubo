@@ -34,7 +34,7 @@ func (api *HttpDagServ) Get(ctx context.Context, c cid.Cid) (format.Node, error)
 		return nil, err
 	}
 
-	return format.DefaultBlockDecoder.Decode(blk)
+	return api.ipldDecoder.DecodeNode(ctx, blk)
 }
 
 func (api *HttpDagServ) GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption {
