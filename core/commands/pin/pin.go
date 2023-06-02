@@ -365,14 +365,14 @@ Example:
 		}
 
 		if !stream {
-			return cmds.EmitOnce(res, &PinLsOutputWrapper{
+			return cmds.EmitOnce(res, PinLsOutputWrapper{
 				PinLsList: PinLsList{Keys: lgcList},
 			})
 		}
 
 		return nil
 	},
-	Type: &PinLsOutputWrapper{},
+	Type: PinLsOutputWrapper{},
 	Encoders: cmds.EncoderMap{
 		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out PinLsOutputWrapper) error {
 			stream, _ := req.Options[pinStreamOptionName].(bool)
@@ -421,7 +421,7 @@ type PinLsOutputWrapper struct {
 
 // PinLsList is a set of pins with their type
 type PinLsList struct {
-	Keys map[string]PinLsType
+	Keys map[string]PinLsType `json:",omitempty"`
 }
 
 // PinLsType contains the type of a pin
