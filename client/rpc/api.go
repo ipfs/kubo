@@ -10,6 +10,12 @@ import (
 
 	iface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/go-cid"
+	legacy "github.com/ipfs/go-ipld-legacy"
+	dagpb "github.com/ipld/go-codec-dagpb"
+	_ "github.com/ipld/go-ipld-prime/codec/dagcbor"
+	"github.com/ipld/go-ipld-prime/node/basicnode"
 	"github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -35,6 +41,7 @@ type HttpApi struct {
 	httpcli     http.Client
 	Headers     http.Header
 	applyGlobal func(*requestBuilder)
+	ipldDecoder *legacy.Decoder
 }
 
 // NewLocalApi tries to construct new HttpApi instance communicating with local
@@ -125,11 +132,19 @@ func NewApiWithClient(a ma.Multiaddr, c *http.Client) (*HttpApi, error) {
 }
 
 func NewURLApiWithClient(url string, c *http.Client) (*HttpApi, error) {
+	decoder := legacy.NewDecoder()
+	// Add support for these codecs to match what is done in the merkledag library
+	// Note: to match prior behavior the go-ipld-prime CBOR decoder is manually included
+	// TODO: allow the codec registry used to be configured by the caller not through a global variable
+	decoder.RegisterCodec(cid.DagProtobuf, dagpb.Type.PBNode, merkledag.ProtoNodeConverter)
+	decoder.RegisterCodec(cid.Raw, basicnode.Prototype.Bytes, merkledag.RawNodeConverter)
+
 	api := &HttpApi{
 		url:         url,
 		httpcli:     *c,
 		Headers:     make(map[string][]string),
 		applyGlobal: func(*requestBuilder) {},
+		ipldDecoder: decoder,
 	}
 
 	// We don't support redirects.
