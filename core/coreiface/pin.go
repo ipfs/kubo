@@ -27,6 +27,9 @@ type PinStatus interface {
 
 	// BadNodes returns any bad (usually missing) nodes from the pin
 	BadNodes() []BadPinNode
+
+	// if not nil, an error happened. Everything else should be ignored.
+	Err() error
 }
 
 // BadPinNode is a node that has been marked as bad by Pin.Verify

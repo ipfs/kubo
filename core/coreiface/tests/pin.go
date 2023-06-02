@@ -198,6 +198,9 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 	}
 	n := 0
 	for r := range res {
+		if err := r.Err(); err != nil {
+			t.Error(err)
+		}
 		if !r.Ok() {
 			t.Error("expected pin to be ok")
 		}
@@ -208,7 +211,7 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected verify result count: %d", n)
 	}
 
-	//TODO: figure out a way to test verify without touching IpfsNode
+	// TODO: figure out a way to test verify without touching IpfsNode
 	/*
 		err = api.Block().Rm(ctx, p0, opt.Block.Force(true))
 		if err != nil {
