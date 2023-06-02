@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -117,6 +118,28 @@ func TestTransports(t *testing.T) {
 				cfg.Addresses.Swarm = []string{"/ip4/127.0.0.1/udp/0/quic-v1/webtransport"}
 				cfg.Swarm.Transports.Network.QUIC = config.True
 				cfg.Swarm.Transports.Network.WebTransport = config.True
+			})
+		})
+		disableRouting(nodes)
+		nodes.StartDaemons().Connect()
+		runTests(nodes)
+	})
+
+	t.Run("QUIC connects with non-dialable transports", func(t *testing.T) {
+		// This test targets specific Kubo internals which may change later. This checks
+		// if we can announce an address we do not listen on, and then are able to connect
+		// via a different address that is available.
+		t.Parallel()
+		nodes := harness.NewT(t).NewNodes(5).Init()
+		nodes.ForEachPar(func(n *harness.Node) {
+			n.UpdateConfig(func(cfg *config.Config) {
+				// We need a specific port to announce so we first generate a random port.
+				// We can't use 0 here to automatically assign an available port because
+				// that would only work with Swarm, but not for the announcing.
+				port := harness.NewRandPort()
+				quicAddr := fmt.Sprintf("/ip4/127.0.0.1/udp/%d/quic-v1", port)
+				cfg.Addresses.Swarm = []string{quicAddr}
+				cfg.Addresses.Announce = []string{quicAddr, quicAddr + "/webtransport"}
 			})
 		})
 		disableRouting(nodes)

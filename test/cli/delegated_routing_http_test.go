@@ -15,17 +15,20 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 	t.Parallel()
 	node := harness.NewT(t).NewNode().Init().StartDaemon()
 
-	fakeServer := func(resp string) *httptest.Server {
+	fakeServer := func(contentType string, resp ...string) *httptest.Server {
 		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_, err := w.Write([]byte(resp))
-			if err != nil {
-				panic(err)
+			w.Header().Set("Content-Type", contentType)
+			for _, r := range resp {
+				_, err := w.Write([]byte(r))
+				if err != nil {
+					panic(err)
+				}
 			}
 		}))
 	}
 
 	findProvsCID := "baeabep4vu3ceru7nerjjbk37sxb7wmftteve4hcosmyolsbsiubw2vr6pqzj6mw7kv6tbn6nqkkldnklbjgm5tzbi4hkpkled4xlcr7xz4bq"
-	prov := "12D3KooWARYacCc6eoCqvsS9RW9MA2vo51CV75deoiqssx3YgyYJ"
+	provs := []string{"12D3KooWAobjw92XDcnQ1rRmRJDA3zAQpdPYUpZKrJxH6yccSpje", "12D3KooWARYacCc6eoCqvsS9RW9MA2vo51CV75deoiqssx3YgyYJ"}
 
 	t.Run("default routing config has no routers defined", func(t *testing.T) {
 		assert.Nil(t, node.ReadConfig().Routing.Routers)
@@ -84,11 +87,11 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 	})
 
 	t.Run("adding HTTP delegated routing endpoint to Routing.Routers config works", func(t *testing.T) {
-		server := fakeServer(ToJSONStr(JSONObj{
+		server := fakeServer("application/json", ToJSONStr(JSONObj{
 			"Providers": []JSONObj{{
 				"Protocol": "transport-bitswap",
 				"Schema":   "bitswap",
-				"ID":       prov,
+				"ID":       provs[0],
 				"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
 			}},
 		}))
@@ -113,9 +116,39 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 		assert.Equal(t, res.Stdout.Trimmed(), server.URL)
 
 		node.StartDaemon()
-
 		res = node.IPFS("routing", "findprovs", findProvsCID)
-		assert.Equal(t, prov, res.Stdout.Trimmed())
+		assert.Equal(t, provs[0], res.Stdout.Trimmed())
+	})
+
+	node.StopDaemon()
+
+	t.Run("adding HTTP delegated routing endpoint to Routing.Routers config works (streaming)", func(t *testing.T) {
+		server := fakeServer("application/x-ndjson", ToJSONStr(JSONObj{
+			"Protocol": "transport-bitswap",
+			"Schema":   "bitswap",
+			"ID":       provs[1],
+			"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
+		}), ToJSONStr(JSONObj{
+			"Protocol": "transport-bitswap",
+			"Schema":   "bitswap",
+			"ID":       provs[0],
+			"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
+		}))
+		t.Cleanup(server.Close)
+
+		node.IPFS("config", "Routing.Routers.TestDelegatedRouter", "--json", ToJSONStr(JSONObj{
+			"Type": "http",
+			"Parameters": JSONObj{
+				"Endpoint": server.URL,
+			},
+		}))
+
+		res := node.IPFS("config", "Routing.Routers.TestDelegatedRouter.Parameters.Endpoint")
+		assert.Equal(t, res.Stdout.Trimmed(), server.URL)
+
+		node.StartDaemon()
+		res = node.IPFS("routing", "findprovs", findProvsCID)
+		assert.Equal(t, provs[1]+"\n"+provs[0], res.Stdout.Trimmed())
 	})
 
 	t.Run("HTTP client should emit OpenCensus metrics", func(t *testing.T) {

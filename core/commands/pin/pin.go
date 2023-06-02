@@ -648,13 +648,14 @@ var verifyPinCmd = &cmds.Command{
 
 // PinVerifyRes is the result returned for each pin checked in "pin verify"
 type PinVerifyRes struct {
-	Cid string
+	Cid string `json:",omitempty"`
+	Err string `json:",omitempty"`
 	PinStatus
 }
 
 // PinStatus is part of PinVerifyRes, do not use directly
 type PinStatus struct {
-	Ok       bool
+	Ok       bool      `json:",omitempty"`
 	BadNodes []BadNode `json:",omitempty"`
 }
 
@@ -669,7 +670,8 @@ type pinVerifyOpts struct {
 	includeOk bool
 }
 
-func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) (<-chan interface{}, error) {
+// FIXME: this implementation is duplicated sith core/coreapi.PinAPI.Verify, remove this one and exclusively rely on CoreAPI.
+func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) (<-chan any, error) {
 	visited := make(map[cid.Cid]PinStatus)
 
 	bs := n.Blocks.Blockstore()
@@ -715,18 +717,18 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 		return status
 	}
 
-	out := make(chan interface{})
+	out := make(chan any)
 	go func() {
 		defer close(out)
 		for p := range n.Pinning.RecursiveKeys(ctx) {
 			if p.Err != nil {
-				out <- p.Err
+				out <- PinVerifyRes{Err: p.Err.Error()}
 				return
 			}
 			pinStatus := checkPin(p.C)
 			if !pinStatus.Ok || opts.includeOk {
 				select {
-				case out <- &PinVerifyRes{enc.Encode(p.C), pinStatus}:
+				case out <- PinVerifyRes{Cid: enc.Encode(p.C), PinStatus: pinStatus}:
 				case <-ctx.Done():
 					return
 				}
@@ -739,12 +741,18 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 
 // Format formats PinVerifyRes
 func (r PinVerifyRes) Format(out io.Writer) {
+	if r.Err != "" {
+		fmt.Fprintf(out, "error: %s\n", r.Err)
+		return
+	}
+
 	if r.Ok {
 		fmt.Fprintf(out, "%s ok\n", r.Cid)
-	} else {
-		fmt.Fprintf(out, "%s broken\n", r.Cid)
-		for _, e := range r.BadNodes {
-			fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
-		}
+		return
+	}
+
+	fmt.Fprintf(out, "%s broken\n", r.Cid)
+	for _, e := range r.BadNodes {
+		fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
 	}
 }

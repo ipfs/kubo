@@ -31,10 +31,10 @@ func TestGatewayHAMTDirectory(t *testing.T) {
 
 	// Import fixtures
 	r, err := os.Open("./fixtures/TestGatewayHAMTDirectory.car")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	defer r.Close()
 	err = node.IPFSDagImport(r, fixtureCid)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// Fetch HAMT directory succeeds with minimal refs
 	resp := client.Get(fmt.Sprintf("/ipfs/%s/", hamtCid))
@@ -60,10 +60,10 @@ func TestGatewayMultiRange(t *testing.T) {
 
 	// Import fixtures
 	r, err := os.Open("./fixtures/TestGatewayMultiRange.car")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	defer r.Close()
 	err = node.IPFSDagImport(r, fixtureCid)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// Succeeds fetching a range of blocks we have
 	resp := client.Get(fmt.Sprintf("/ipfs/%s", fileCid), func(r *http.Request) {

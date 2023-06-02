@@ -14,6 +14,7 @@ import (
 	core "github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 	repo "github.com/ipfs/kubo/repo"
+	"github.com/stretchr/testify/assert"
 
 	iface "github.com/ipfs/boxo/coreiface"
 	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
@@ -171,5 +172,44 @@ func TestVersion(t *testing.T) {
 
 	if !strings.Contains(s, "Protocol Version: "+id.DefaultProtocolVersion) {
 		t.Fatalf("response doesn't contain protocol version:\n%s", s)
+	}
+}
+
+func TestDeserializedResponsesInheritance(t *testing.T) {
+	for _, testCase := range []struct {
+		globalSetting          config.Flag
+		gatewaySetting         config.Flag
+		expectedGatewaySetting bool
+	}{
+		{config.True, config.Default, true},
+		{config.False, config.Default, false},
+		{config.False, config.True, true},
+		{config.True, config.False, false},
+	} {
+		c := config.Config{
+			Identity: config.Identity{
+				PeerID: "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe", // required by offline node
+			},
+			Gateway: config.Gateway{
+				DeserializedResponses: testCase.globalSetting,
+				PublicGateways: map[string]*config.GatewaySpec{
+					"example.com": {
+						DeserializedResponses: testCase.gatewaySetting,
+					},
+				},
+			},
+		}
+		r := &repo.Mock{
+			C: c,
+			D: syncds.MutexWrap(datastore.NewMapDatastore()),
+		}
+		n, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
+		assert.NoError(t, err)
+
+		gwCfg, err := getGatewayConfig(n)
+		assert.NoError(t, err)
+
+		assert.Contains(t, gwCfg.PublicGateways, "example.com")
+		assert.Equal(t, testCase.expectedGatewaySetting, gwCfg.PublicGateways["example.com"].DeserializedResponses)
 	}
 }

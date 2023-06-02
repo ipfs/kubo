@@ -1,6 +1,6 @@
 # Use Kubo (go-ipfs) as a library to spawn a node and add a file
 
-> This tutorial is the sibling of the [js-ipfs IPFS 101 tutorial](https://github.com/ipfs-examples/js-ipfs-examples/tree/master/examples/ipfs-101#readme).
+> Note: if you are trying to customize or extend Kubo, you should read the [Customizing Kubo](../../customizing.md) doc
 
 By the end of this tutorial, you will learn how to:
 
