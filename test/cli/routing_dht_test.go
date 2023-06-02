@@ -117,7 +117,23 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 	})
 }
 
+func testSelfFindDHT(t *testing.T) {
+	t.Run("ipfs routing findpeer fails for self", func(t *testing.T) {
+		t.Parallel()
+		nodes := harness.NewT(t).NewNodes(1).Init()
+		nodes.ForEachPar(func(node *harness.Node) {
+			node.IPFS("config", "Routing.Type", "dht")
+		})
+
+		nodes.StartDaemons()
+
+		res := nodes[0].RunIPFS("dht", "findpeer", nodes[0].PeerID().String())
+		assert.Equal(t, 1, res.ExitCode())
+	})
+}
+
 func TestRoutingDHT(t *testing.T) {
 	testRoutingDHT(t, false)
 	testRoutingDHT(t, true)
+	testSelfFindDHT(t)
 }

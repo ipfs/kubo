@@ -349,7 +349,7 @@ test_native_dag () {
   # As this is generated, we don't return immutable Cache-Control, even on /ipfs (same as for dir-index-html)
 
   test_expect_success "GET $name on /ipfs with Accept: text/html returns HTML (dag-index-html)" '
-    curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output 2>&1 &&
+    curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipfs/$CID/" > curl_output 2>&1 &&
     test_should_not_contain "Content-Disposition" curl_output &&
     test_should_not_contain "Cache-Control" curl_output &&
     test_should_contain "Etag: \"DagIndex-" curl_output &&
@@ -358,7 +358,7 @@ test_native_dag () {
   '
 
   test_expect_success "GET $name on /ipns with Accept: text/html returns HTML (dag-index-html)" '
-    curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_ID" > curl_output 2>&1 &&
+    curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_ID/" > curl_output 2>&1 &&
     test_should_not_contain "Content-Disposition" curl_output &&
     test_should_not_contain "Cache-Control" curl_output &&
     test_should_contain "Etag: \"DagIndex-" curl_output &&

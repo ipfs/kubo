@@ -7,9 +7,9 @@ import (
 	"github.com/libp2p/go-libp2p/core/test"
 )
 
-func TestSubsetWhenMaxIsGreaterThanLengthOfSlice(t *testing.T) {
+func TestRandomizeAddressList(t *testing.T) {
 	var ps []peer.AddrInfo
-	sizeofSlice := 100
+	sizeofSlice := 10
 	for i := 0; i < sizeofSlice; i++ {
 		pid, err := test.RandPeerID()
 		if err != nil {
@@ -18,7 +18,7 @@ func TestSubsetWhenMaxIsGreaterThanLengthOfSlice(t *testing.T) {
 
 		ps = append(ps, peer.AddrInfo{ID: pid})
 	}
-	out := randomSubsetOfPeers(ps, 2*sizeofSlice)
+	out := randomizeList(ps)
 	if len(out) != len(ps) {
 		t.Fail()
 	}

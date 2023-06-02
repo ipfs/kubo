@@ -301,6 +301,10 @@ var findPeerRoutingCmd = &cmds.Command{
 			return err
 		}
 
+		if pid == nd.Identity {
+			return ErrSelfUnsupported
+		}
+
 		ctx, cancel := context.WithCancel(req.Context)
 		ctx, events := routing.RegisterForQueryEvents(ctx)
 

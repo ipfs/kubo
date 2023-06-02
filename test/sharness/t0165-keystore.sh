@@ -55,6 +55,29 @@ PEERID=$(ipfs key list --ipns-base=base36 -l | grep key_ed25519 | head -n 1 | cu
 test_check_ed25519_base36_peerid $PEERID &&
 ipfs key rm key_ed25519
 '
+
+test_expect_success "create an SECP256k1 key and test B58MH/B36CID output formats" '
+PEERID=$(ipfs key gen --ipns-base=b58mh --type=secp256k1 key_secp256k1) &&
+test_check_secp256k1_b58mh_peerid $PEERID &&
+ipfs key rm key_secp256k1 &&
+PEERID=$(ipfs key gen --ipns-base=base36 --type=secp256k1 key_secp256k1) &&
+test_check_secp256k1_base36_peerid $PEERID
+'
+
+test_expect_success "test SECP256k1 key sk export format" '
+ipfs key export key_secp256k1 &&
+test_check_ed25519_sk key_secp256k1.key &&
+rm key_secp256k1.key
+'
+
+test_expect_success "test SECP256k1 key B58MH/B36CID multihash format" '
+PEERID=$(ipfs key list --ipns-base=b58mh -l | grep key_secp256k1 | head -n 1 | cut -d " " -f1) &&
+test_check_secp256k1_b58mh_peerid $PEERID &&
+PEERID=$(ipfs key list --ipns-base=base36 -l | grep key_secp256k1 | head -n 1 | cut -d " " -f1) &&
+test_check_secp256k1_base36_peerid $PEERID &&
+ipfs key rm key_secp256k1
+'
+
 # end of format test
 
 
@@ -71,6 +94,11 @@ ipfs key rm key_ed25519
   '
 
   test_key_import_export_all_formats ed25519_key
+
+  test_expect_success "create a new secp256k1 key" '
+    k1hash=$(ipfs key gen generated_secp256k1_key --type=secp256k1)
+    echo $k1hash > secp256k1_key_id
+  '
 
   test_openssl_compatibility_all_types
 
@@ -116,6 +144,7 @@ ipfs key rm key_ed25519
   test_expect_success "all keys show up in list output" '
     echo generated_ed25519_key > list_exp &&
     echo generated_rsa_key >> list_exp &&
+    echo generated_secp256k1_key >> list_exp &&
     echo quxel >> list_exp &&
     echo self >> list_exp
     ipfs key list > list_out &&
@@ -135,6 +164,7 @@ ipfs key rm key_ed25519
   test_expect_success "key rm remove a key" '
     ipfs key rm generated_rsa_key
     echo generated_ed25519_key > list_exp &&
+    echo generated_secp256k1_key >> list_exp &&
     echo quxel >> list_exp &&
     echo self >> list_exp
     ipfs key list > list_out &&
@@ -149,6 +179,7 @@ ipfs key rm key_ed25519
   test_expect_success "key rename rename a key" '
     ipfs key rename generated_ed25519_key fooed
     echo fooed > list_exp &&
+    echo generated_secp256k1_key >> list_exp &&
     echo quxel >> list_exp &&
     echo self >> list_exp
     ipfs key list > list_out &&
