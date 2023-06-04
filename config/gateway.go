@@ -1,6 +1,9 @@
 package config
 
-const DefaultInlineDNSLink = false
+const (
+	DefaultInlineDNSLink         = false
+	DefaultDeserializedResponses = true
+)
 
 type GatewaySpec struct {
 	// Paths is explicit list of path prefixes that should be handled by
@@ -25,6 +28,11 @@ type GatewaySpec struct {
 	// (FQDN) into a single DNS label in order to interop with wildcard TLS certs
 	// and Origin per CID isolation provided by rules like https://publicsuffix.org
 	InlineDNSLink Flag
+
+	// DeserializedResponses configures this gateway to respond to deserialized
+	// responses. Disabling this option enables a Trustless Gateway, as per:
+	// https://specs.ipfs.tech/http-gateways/trustless-gateway/.
+	DeserializedResponses Flag
 }
 
 // Gateway contains options for the HTTP gateway server.
@@ -55,6 +63,12 @@ type Gateway struct {
 	// lookups in response to requests with values in `Host` HTTP header.
 	// This flag can be overridden per FQDN in PublicGateways.
 	NoDNSLink bool
+
+	// DeserializedResponses configures this gateway to respond to deserialized
+	// requests. Disabling this option enables a Trustless only gateway, as per:
+	// https://specs.ipfs.tech/http-gateways/trustless-gateway/. This can
+	// be overridden per FQDN in PublicGateways.
+	DeserializedResponses Flag
 
 	// PublicGateways configures behavior of known public gateways.
 	// Each key is a fully qualified domain name (FQDN).

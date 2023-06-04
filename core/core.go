@@ -11,10 +11,13 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"io"
+	"time"
 
 	"github.com/ipfs/boxo/filestore"
 	pin "github.com/ipfs/boxo/pinning/pinner"
+	"github.com/ipfs/go-datastore"
 
 	bserv "github.com/ipfs/boxo/blockservice"
 	bstore "github.com/ipfs/boxo/blockstore"
@@ -46,6 +49,7 @@ import (
 
 	"github.com/ipfs/boxo/namesys"
 	ipnsrp "github.com/ipfs/boxo/namesys/republisher"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/core/node/libp2p"
@@ -165,11 +169,39 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 			return ps
 		}
 	}
+	if cfg.SaveBackupBootstrapPeers == nil {
+		cfg.SaveBackupBootstrapPeers = func(ctx context.Context, peerList []peer.AddrInfo) {
+			err := n.saveTempBootstrapPeers(ctx, peerList)
+			if err != nil {
+				log.Warnf("saveTempBootstrapPeers failed: %s", err)
+				return
+			}
+		}
+	}
+	if cfg.LoadBackupBootstrapPeers == nil {
+		cfg.LoadBackupBootstrapPeers = func(ctx context.Context) []peer.AddrInfo {
+			peerList, err := n.loadTempBootstrapPeers(ctx)
+			if err != nil {
+				log.Warnf("loadTempBootstrapPeers failed: %s", err)
+				return nil
+			}
+			return peerList
+		}
+	}
 
-	var err error
+	repoConf, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+	if repoConf.Internal.BackupBootstrapInterval != nil {
+		cfg.BackupBootstrapInterval = repoConf.Internal.BackupBootstrapInterval.WithDefault(time.Hour)
+	}
+
 	n.Bootstrapper, err = bootstrap.Bootstrap(n.Identity, n.PeerHost, n.Routing, cfg)
 	return err
 }
+
+var TempBootstrapPeersKey = datastore.NewKey("/local/temp_bootstrap_peers")
 
 func (n *IpfsNode) loadBootstrapPeers() ([]peer.AddrInfo, error) {
 	cfg, err := n.Repo.Config()
@@ -178,6 +210,33 @@ func (n *IpfsNode) loadBootstrapPeers() ([]peer.AddrInfo, error) {
 	}
 
 	return cfg.BootstrapPeers()
+}
+
+func (n *IpfsNode) saveTempBootstrapPeers(ctx context.Context, peerList []peer.AddrInfo) error {
+	ds := n.Repo.Datastore()
+	bytes, err := json.Marshal(config.BootstrapPeerStrings(peerList))
+	if err != nil {
+		return err
+	}
+
+	if err := ds.Put(ctx, TempBootstrapPeersKey, bytes); err != nil {
+		return err
+	}
+	return ds.Sync(ctx, TempBootstrapPeersKey)
+}
+
+func (n *IpfsNode) loadTempBootstrapPeers(ctx context.Context) ([]peer.AddrInfo, error) {
+	ds := n.Repo.Datastore()
+	bytes, err := ds.Get(ctx, TempBootstrapPeersKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var addrs []string
+	if err := json.Unmarshal(bytes, &addrs); err != nil {
+		return nil, err
+	}
+	return config.ParseBootstrapPeers(addrs)
 }
 
 type ConstructPeerHostOpts struct {

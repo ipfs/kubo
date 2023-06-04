@@ -162,14 +162,12 @@ test_localhost_gateway_response_should_contain \
   "http://localhost:$GWAY_PORT/ipfs/$DIR_CID/" \
   "Location: http://$DIR_CID.ipfs.localhost:$GWAY_PORT/"
 
-# We return body with HTTP 301 so existing cli scripts that use path-based
-# gateway do not break (curl doesn't auto-redirect without passing -L; wget
-# does not span across hostnames by default)
-# Context: https://github.com/ipfs/go-ipfs/issues/6975
+# We return human-readable body with HTTP 301 so existing cli scripts that use path-based
+# gateway are informed to enable following HTTP redirects
 test_localhost_gateway_response_should_contain \
-  "request for localhost/ipfs/{CIDv1} includes valid payload in body for CLI tools like curl" \
+  "request for localhost/ipfs/{CIDv1} includes human-readable link and redirect info in HTTP 301 body" \
   "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
-  "$CID_VAL"
+  ">Moved Permanently</a>"
 
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{CIDv0} redirects to CIDv1 representation in subdomain" \

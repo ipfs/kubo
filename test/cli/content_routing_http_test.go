@@ -24,7 +24,7 @@ type fakeHTTPContentRouter struct {
 	provideCalls       int
 }
 
-func (r *fakeHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid) (iter.ResultIter[types.ProviderResponse], error) {
+func (r *fakeHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, limit int) (iter.ResultIter[types.ProviderResponse], error) {
 	r.m.Lock()
 	defer r.m.Unlock()
 	r.findProvidersCalls++
