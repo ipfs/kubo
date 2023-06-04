@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	fixtureFile = "./fixtures/TestDagStat.car"
-	node1Cid    = "bafyreibmdfd7c5db4kls4ty57zljfhqv36gi43l6txl44pi423wwmeskwy"
-	node2Cid    = "bafyreie3njilzdi4ixumru4nzgecsnjtu7fzfcwhg7e6s4s5i7cnbslvn4"
-	fixtureCid  = "bafyreifrm6uf5o4dsaacuszf35zhibyojlqclabzrms7iak67pf62jygaq"
+	fixtureFile    = "./fixtures/TestDagStat.car"
+	textOutputPath = "./fixtures/TestDagStatExpectedOutput.txt"
+	node1Cid       = "bafyreibmdfd7c5db4kls4ty57zljfhqv36gi43l6txl44pi423wwmeskwy"
+	node2Cid       = "bafyreie3njilzdi4ixumru4nzgecsnjtu7fzfcwhg7e6s4s5i7cnbslvn4"
+	fixtureCid     = "bafyreifrm6uf5o4dsaacuszf35zhibyojlqclabzrms7iak67pf62jygaq"
 )
 
 type DagStat struct {
@@ -81,6 +82,27 @@ func TestDag(t *testing.T) {
 		expectedNode2Blocks := 2
 		assert.Equal(t, expectedNode1Blocks, node1Output.NumBlocks)
 		assert.Equal(t, expectedNode2Blocks, node2Output.NumBlocks)
+	})
+
+	t.Run("ipfs dag stat", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		r, err := os.Open(fixtureFile)
+		assert.NoError(t, err)
+		defer r.Close()
+		f, err := os.Open(textOutputPath)
+		assert.NoError(t, err)
+		defer f.Close()
+		fileInfo, err := f.Stat()
+		assert.NoError(t, err)
+		fileSize := fileInfo.Size()
+		content := make([]byte, fileSize)
+		_, err = f.Read(content)
+		assert.NoError(t, err)
+		err = node.IPFSDagImport(r, fixtureCid)
+		assert.NoError(t, err)
+		stat := node.RunIPFS("dag", "stat", "--progress=false", node1Cid, node2Cid)
+		assert.Equal(t, content, stat.Stdout.Bytes())
 	})
 
 }
