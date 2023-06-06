@@ -47,7 +47,6 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 			DAG:   nodeGetter,
 			Order: traverse.DFSPre,
 			Func: func(current traverse.State) error {
-				fmt.Println("previousDagStatSize:", dagstats.Size)
 				currentNodeSize := uint64(len(current.Node.RawData()))
 				dagstats.Size += currentNodeSize
 				dagstats.NumBlocks++
