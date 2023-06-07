@@ -47,7 +47,7 @@ func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.Parallel
 	var routers []*routinghelpers.ParallelRouter
 	// Append HTTP routers for additional speed
 	for _, endpoint := range defaultHTTPRouters {
-		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, cfg.Addresses.Swarm, cfg.Identity.PrivKey)
+		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey)
 		if err != nil {
 			return nil, err
 		}
@@ -123,7 +123,7 @@ func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
 }
 
 // ConstructDelegatedRouting is used when Routing.Type = "custom"
-func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs []string, privKey string) RoutingOption {
+func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs config.Addresses, privKey string) RoutingOption {
 	return func(args RoutingOptionArgs) (routing.Routing, error) {
 		return irouting.Parse(routers, methods,
 			&irouting.ExtraDHTParams{
@@ -135,7 +135,7 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 			},
 			&irouting.ExtraHTTPParams{
 				PeerID:     peerID,
-				Addrs:      addrs,
+				Addrs:      httpAddrsFromConfig(addrs),
 				PrivKeyB64: privKey,
 			})
 	}
@@ -151,3 +151,31 @@ var (
 	DHTServerOption               = constructDHTRouting(dht.ModeServer)
 	NilRouterOption               = constructNilRouting
 )
+
+// httpAddrsFromConfig creates a list of addresses from the provided configuration to be used by HTTP delegated routers.
+func httpAddrsFromConfig(cfgAddrs config.Addresses) []string {
+	// Swarm addrs are announced by default
+	addrs := cfgAddrs.Swarm
+	// if Announce addrs are specified - override Swarm
+	if len(cfgAddrs.Announce) > 0 {
+		addrs = cfgAddrs.Announce
+	} else if len(cfgAddrs.NoAnnounce) > 0 {
+		// if Announce adds are not specified - filter Swarm addrs with NoAnnounce list
+		maddrs := map[string]struct{}{}
+		for _, addr := range addrs {
+			maddrs[addr] = struct{}{}
+		}
+		for _, addr := range cfgAddrs.NoAnnounce {
+			delete(maddrs, addr)
+		}
+		addrs = make([]string, 0, len(maddrs))
+		for k := range maddrs {
+			addrs = append(addrs, k)
+		}
+	}
+	// append AppendAnnounce addrs to the result list
+	if len(cfgAddrs.AppendAnnounce) > 0 {
+		addrs = append(addrs, cfgAddrs.AppendAnnounce...)
+	}
+	return addrs
+}
