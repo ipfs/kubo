@@ -1919,10 +1919,10 @@ Each field in this section is a `flag`.
 
 #### `Swarm.Transports.Network.TCP`
 
-[TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol) is the most
-widely used transport by Kubo nodes. It doesn't directly support encryption
-and/or multiplexing, so libp2p will layer a security & multiplexing transport
-over it.
+[TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol) is a simple
+and widely deployed transport, it should be compatible with most implementations
+and network configurations.  TCP doesn't directly support encryption and/or
+multiplexing, so libp2p will layer a security & multiplexing transport over it.
 
 Default: Enabled
 
@@ -1950,12 +1950,14 @@ Listen Addresses:
 
 #### `Swarm.Transports.Network.QUIC`
 
-[QUIC](https://en.wikipedia.org/wiki/QUIC) is a UDP-based transport with
-built-in encryption and multiplexing. The primary benefits over TCP are:
+[QUIC](https://en.wikipedia.org/wiki/QUIC) is the most widely used transport by
+Kubo nodes. It is a UDP-based transport with built-in encryption and
+multiplexing. The primary benefits over TCP are:
 
-1. It doesn't require a file descriptor per connection, easing the load on the OS.
-2. It currently takes 2 round trips to establish a connection (our TCP transport
-   currently takes 6).
+1. It takes 1 round trip to establish a connection (our TCP transport
+   currently takes 4).
+2. No [Head-of-Line blocking](https://en.wikipedia.org/wiki/Head-of-line_blocking).
+3. It doesn't require a file descriptor per connection, easing the load on the OS.
 
 Default: Enabled
 
