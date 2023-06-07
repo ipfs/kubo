@@ -256,7 +256,7 @@ func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 				cfg.Routing.Routers,
 				cfg.Routing.Methods,
 				cfg.Identity.PeerID,
-				cfg.Addresses.Swarm,
+				cfg.Addresses,
 				cfg.Identity.PrivKey,
 			),
 		},

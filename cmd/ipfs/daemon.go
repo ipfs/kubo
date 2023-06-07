@@ -429,7 +429,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			cfg.Routing.Routers,
 			cfg.Routing.Methods,
 			cfg.Identity.PeerID,
-			cfg.Addresses.Swarm,
+			cfg.Addresses,
 			cfg.Identity.PrivKey,
 		)
 	default:
