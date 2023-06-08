@@ -110,6 +110,7 @@ config file at runtime.
     - [`Reprovider.Strategy`](#reproviderstrategy)
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
+    - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -1348,7 +1349,7 @@ Type: `array[peering]`
 ### `Reprovider.Interval`
 
 Sets the time between rounds of reproviding local content to the routing
-system. 
+system.
 
 - If unset, it uses the implicit safe default.
 - If set to the value `"0"` it will disable content reproviding.
@@ -1423,6 +1424,53 @@ Default: `auto` (DHT + IPNI)
 
 Type: `optionalString` (`null`/missing means the default)
 
+
+### `Routing.AcceleratedDHTClient`
+
+This alternative DHT client with a Full-Routing-Table strategy will
+do a complete scan of the DHT every hour and record all nodes found.
+Then when a lookup is tried instead of having to go through multiple Kad hops it
+is able to find the 20 final nodes by looking up the in-memory recorded network table.
+
+This means sustained higher memory to store the routing table
+and extra CPU and network bandwidth for each network scan.
+However the latency of individual read/write operations should be ~10x faster
+and the provide throughput up to 6 million times faster on larger datasets!
+
+This is not compatible with `Routing.Type` `custom`. If you are using composable routers
+you can configure this individualy on each router.
+
+When it is enabled:
+- Client DHT operations (reads and writes) should complete much faster
+- The provider will now use a keyspace sweeping mode allowing to keep alive
+  CID sets that are multiple orders of magnitude larger.
+  - The standard Bucket-Routing-Table DHT will still run for the DHT server (if
+    the DHT server is enabled). This means the classical routing table will
+    still be used to answer other nodes.
+    This is critical to maintain to not harm the network.
+- The operations `ipfs stats dht` will default to showing information about the accelerated DHT client
+
+**Caveats:**
+1. Running the accelerated client likely will result in more resource consumption (connections, RAM, CPU, bandwidth)
+   - Users that are limited in the number of parallel connections their machines/networks can perform will likely suffer
+   - The resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly done in rounds
+   - Users who previously had a lot of content but were unable to advertise it on the network will see an increase in
+     egress bandwidth as their nodes start to advertise all of their CIDs into the network. If you have lots of data
+     entering your node that you don't want to advertise, then consider using [Reprovider Strategies](#reproviderstrategy)
+     to reduce the number of CIDs that you are reproviding. Similarly, if you are running a node that deals mostly with
+     short-lived temporary data (e.g. you use a separate node for ingesting data then for storing and serving it) then
+     you may benefit from using [Strategic Providing](experimental-features.md#strategic-providing) to prevent advertising
+     of data that you ultimately will not have.
+2. Currently, the DHT is not usable for queries for the first 5-10 minutes of operation as the routing table is being
+prepared. This means operations like searching the DHT for particular peers or content will not work initially.
+   - You can see if the DHT has been initially populated by running `ipfs stats dht`
+3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
+them
+
+Default: `false`
+
+Type: `bool` (missing means `false`)
+
 ### `Routing.Routers`
 
 **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
@@ -1465,7 +1513,7 @@ HTTP:
 
 DHT:
   - `"Mode"`: Mode used by the DHT. Possible values: "server", "client", "auto"
-  - `"AcceleratedDHTClient"`: Set to `true` if you want to use the experimentalDHT.
+  - `"AcceleratedDHTClient"`: Set to `true` if you want to use the acceleratedDHT.
   - `"PublicIPNetwork"`: Set to `true` to create a `WAN` DHT. Set to `false` to create a `LAN` DHT.
 
 Parallel:

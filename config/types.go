@@ -438,3 +438,27 @@ func (swarmLimits) UnmarshalJSON(b []byte) error {
 		}
 	}
 }
+
+type experimentalAcceleratedDHTClient struct{}
+
+var _ json.Unmarshaler = experimentalAcceleratedDHTClient{}
+
+func (experimentalAcceleratedDHTClient) UnmarshalJSON(b []byte) error {
+	d := json.NewDecoder(bytes.NewReader(b))
+	for {
+		switch tok, err := d.Token(); err {
+		case io.EOF:
+			return nil
+		case nil:
+			switch tok {
+			case json.Delim('{'), json.Delim('}'):
+				// accept empty objects
+				continue
+			}
+			//nolint
+			return fmt.Errorf("The Experimental.AcceleratedDHTClient key has been moved to Routing.AcceleratedDHTClient in Kubo 0.21, please use this new key and remove the old one.")
+		default:
+			return err
+		}
+	}
+}

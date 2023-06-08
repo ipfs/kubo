@@ -304,9 +304,9 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		LibP2P(bcfg, cfg, userResourceOverrides),
 		OnlineProviders(
 			cfg.Experimental.StrategicProviding,
-			cfg.Experimental.AcceleratedDHTClient,
 			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
 			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
+			cfg.Routing.AcceleratedDHTClient,
 		),
 	)
 }
@@ -320,12 +320,7 @@ func Offline(cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.Routing),
 		fx.Provide(libp2p.ContentRouting),
 		fx.Provide(libp2p.OfflineRouting),
-		OfflineProviders(
-			cfg.Experimental.StrategicProviding,
-			cfg.Experimental.AcceleratedDHTClient,
-			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
-			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
-		),
+		OfflineProviders(),
 	)
 }
 
