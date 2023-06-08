@@ -238,7 +238,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
 
-		subAPI.provider = provider.NewOfflineProvider()
+		subAPI.provider = provider.NewNoopProvider()
 
 		subAPI.peerstore = nil
 		subAPI.peerHost = nil
