@@ -27,6 +27,6 @@ jobs:
     steps:
       - uses: actions/setup-go@v3
         with:
-          go-version: 1.19.1
+          go-version: 1.19.x
       - uses: actions/checkout@v3
       - run: docker build -t $IMAGE_NAME:$WIP_IMAGE_TAG .
