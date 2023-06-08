@@ -80,13 +80,6 @@ test_expect_success "ipfs daemon output looks good" '
   STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
   echo "Initializing daemon..." >expected_daemon &&
   ipfs version --all >> expected_daemon &&
-  echo "" >>expected_daemon &&
-  echo "Computed default go-libp2p Resource Manager limits based on:" >>expected_daemon &&
-  echo "    - '"'"'Swarm.ResourceMgr.MaxMemory'"'"': \"4GB\"" >>expected_daemon &&
-  echo "    - '"'"'Swarm.ResourceMgr.MaxFileDescriptors'"'"': 1024" >>expected_daemon &&
-  echo "" >>expected_daemon &&
-  echo "Theses can be inspected with '"'"'ipfs swarm resources'"'"'." >>expected_daemon &&
-  echo "" >>expected_daemon &&
   sed "s/^/Swarm listening on /" listen_addrs >>expected_daemon &&
   sed "s/^/Swarm announcing /" local_addrs >>expected_daemon &&
   echo "RPC API server listening on '$API_MADDR'" >>expected_daemon &&
