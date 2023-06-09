@@ -13,7 +13,7 @@ INSIDE_ROOT_CID="bafybeibfevfxlvxp5vxobr5oapczpf7resxnleb7tkqmdorc4gl5cdva3y"
 # Import test case
 # See the static fixtures in ./t0122-gateway-tar/
 test_expect_success "Add the test directory" '
-  ipfs dag import ../t0122-gateway-tar/fixtures.car
+  ipfs dag import --pin-roots ../t0122-gateway-tar/fixtures.car
 '
 DIR_CID=bafybeig6ka5mlwkl4subqhaiatalkcleo4jgnr3hqwvpmsqfca27cijp3i # ./rootDir
 FILE_CID=bafkreialihlqnf5uwo4byh4n3cmwlntwqzxxs2fg5vanqdi3d7tb2l5xkm # ./rootDir/ą/ę/file-źł.txt
@@ -63,9 +63,9 @@ test_expect_success "GET TAR with explicit ?filename= succeeds with modified Con
 "
 
 test_expect_success "Add CARs with relative paths to test with" '
-  ipfs dag import ../t0122-gateway-tar/outside-root.car > import_output &&
+  ipfs dag import --pin-roots ../t0122-gateway-tar/outside-root.car > import_output &&
   test_should_contain $OUTSIDE_ROOT_CID import_output &&
-  ipfs dag import ../t0122-gateway-tar/inside-root.car > import_output &&
+  ipfs dag import --pin-roots ../t0122-gateway-tar/inside-root.car > import_output &&
   test_should_contain $INSIDE_ROOT_CID import_output
 '
 

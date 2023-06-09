@@ -12,7 +12,7 @@ test_launch_ipfs_daemon
 # Import test case
 # See the static fixtures in ./t0113-gateway-symlink/
 test_expect_success "Add the test directory with symlinks" '
-  ipfs dag import ../t0113-gateway-symlink/testfiles.car
+  ipfs dag import --pin-roots ../t0113-gateway-symlink/testfiles.car
 '
 ROOT_DIR_CID=QmWvY6FaqFMS89YAQ9NAPjVP4WZKA1qbHbicc9HeSKQTgt # ./testfiles/
 

@@ -41,7 +41,7 @@ do_import() {
       while [[ -e spin.gc ]]; do ipfsi "$node" repo gc &>/dev/null; done &
       while [[ -e spin.gc ]]; do ipfsi "$node" repo gc &>/dev/null; done &
 
-      ipfsi "$node" dag import "$@" 2>&1 && ipfsi "$node" repo verify &>/dev/null
+      ipfsi "$node" dag import --pin-roots "$@" 2>&1 && ipfsi "$node" repo verify &>/dev/null
       result=$?
 
       rm -f spin.gc &>/dev/null
@@ -117,7 +117,7 @@ EOE
   '
 
   test_expect_success "import/pin naked roots only, relying on local blockstore having all the data" '
-    ipfsi 1 dag import --stats --enc=json ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
+    ipfsi 1 dag import --stats --enc=json --pin-roots ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
       > naked_import_result_json_actual
   '
 
@@ -197,14 +197,14 @@ EOE
 head -3 multiroot_import_json_stats_expected > multiroot_import_json_expected
 
 test_expect_success "multiroot import works (--enc=json)" '
-  ipfs dag import --enc=json ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car > multiroot_import_json_actual
+  ipfs dag import --enc=json --pin-roots ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car > multiroot_import_json_actual
 '
 test_expect_success "multiroot import expected output" '
   test_cmp_sorted multiroot_import_json_expected multiroot_import_json_actual
 '
 
 test_expect_success "multiroot import works with --stats" '
-  ipfs dag import --stats --enc=json ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car > multiroot_import_json_actual
+  ipfs dag import --stats --enc=json --pin-roots ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car > multiroot_import_json_actual
 '
 test_expect_success "multiroot import expected output" '
   test_cmp_sorted multiroot_import_json_stats_expected multiroot_import_json_actual
@@ -215,18 +215,18 @@ cat >pin_import_expected << EOE
 {"Stats":{"BlockCount":1198,"BlockBytesCount":468513}}
 EOE
 test_expect_success "pin-less import works" '
-  ipfs dag import --stats --enc=json --pin-roots=false \
+  ipfs dag import --stats --enc=json \
   ../t0054-dag-car-import-export-data/lotus_devnet_genesis.car \
   ../t0054-dag-car-import-export-data/lotus_testnet_export_128.car \
     > no-pin_import_actual
 '
-test_expect_success "expected no pins on --pin-roots=false" '
+test_expect_success "expected no pins on" '
   test_cmp pin_import_expected no-pin_import_actual
 '
 
 
 test_expect_success "naked root import works" '
-  ipfs dag import --stats --enc=json ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
+  ipfs dag import --stats --enc=json --pin-roots ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
     > naked_root_import_json_actual
 '
 test_expect_success "naked root import expected output" '
@@ -253,7 +253,7 @@ cat > version_2_import_expected << EOE
 EOE
 
 test_expect_success "version 2 import" '
-  ipfs dag import --stats --enc=json \
+  ipfs dag import --stats --enc=json --pin-roots \
     ../t0054-dag-car-import-export-data/lotus_testnet_export_128_v2.car \
     ../t0054-dag-car-import-export-data/lotus_devnet_genesis_v2.car \
   > version_2_import_actual

@@ -12,7 +12,7 @@ test_launch_ipfs_daemon
 IPNS_KEY=k51qzi5uqu5dh71qgwangrt6r0nd4094i88nsady6qgd1dhjcyfsaqmpp143ab
 FILE_CID=bafkreidfdrlkeq4m4xnxuyx6iae76fdm4wgl5d4xzsb77ixhyqwumhz244 # A file containing Hello IPFS
 test_expect_success "Add the test directory & IPNS records" '
-  ipfs dag import ../t0124-gateway-ipns-record/fixtures.car &&
+  ipfs dag import --pin-roots ../t0124-gateway-ipns-record/fixtures.car &&
   ipfs routing put /ipns/${IPNS_KEY} ../t0124-gateway-ipns-record/${IPNS_KEY}.ipns-record
 '
 
