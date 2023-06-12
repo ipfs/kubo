@@ -3,7 +3,7 @@ module github.com/ipfs/kubo
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
-	github.com/benbjohnson/clock v1.3.0
+	github.com/benbjohnson/clock v1.3.5
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/ceramicnetwork/go-dag-jose v0.1.0
