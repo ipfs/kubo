@@ -83,7 +83,7 @@ var keyGenCmd = &cmds.Command{
 		Tagline: "Create a new keypair",
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519, secp256k1").WithDefault(keyStoreAlgorithmDefault),
+		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault(keyStoreAlgorithmDefault),
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
 		ke.OptionIPNSBase,
 	},
@@ -398,7 +398,7 @@ The PEM format allows for key generation outside of the IPFS node:
 		allowAnyKeyType, _ := req.Options[keyAllowAnyTypeOptionName].(bool)
 		if !allowAnyKeyType {
 			switch t := sk.(type) {
-			case *crypto.RsaPrivateKey, *crypto.Ed25519PrivateKey, *crypto.Secp256k1PrivateKey:
+			case *crypto.RsaPrivateKey, *crypto.Ed25519PrivateKey:
 			default:
 				return fmt.Errorf("key type %T is not allowed to be imported, only RSA or Ed25519;"+
 					" use flag --%s if you are sure of what you're doing",
@@ -604,7 +604,7 @@ environment variable:
 	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
 		cmds.StringOption(oldKeyOptionName, "o", "Keystore name to use for backing up your existing identity"),
-		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519, secp256k1").WithDefault(keyStoreAlgorithmDefault),
+		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault(keyStoreAlgorithmDefault),
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
 	},
 	NoRemote: true,

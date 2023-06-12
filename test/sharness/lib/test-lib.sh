@@ -486,14 +486,6 @@ test_check_ed25519_b58mh_peerid() {
   }
 }
 
-test_check_secp256k1_b58mh_peerid() {
-  peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
-  test "$peeridlen" = "53" || {
-    echo "Bad SECP256K1 B58MH peerid '$1' with len '$peeridlen'"
-    return 1
-  }
-}
-
 test_check_rsa2048_base36_peerid() {
   peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
   test "$peeridlen" = "56" || {
@@ -506,14 +498,6 @@ test_check_ed25519_base36_peerid() {
   peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
   test "$peeridlen" = "62" || {
     echo "Bad ED25519 B36CID peerid '$1' with len '$peeridlen'"
-    return 1
-  }
-}
-
-test_check_secp256k1_base36_peerid() {
-  peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
-  test "$peeridlen" = "63" || {
-    echo "Bad SECP256K1 B36CID peerid '$1' with len '$peeridlen'"
     return 1
   }
 }
