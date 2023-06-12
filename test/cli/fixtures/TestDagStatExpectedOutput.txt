@@ -1,0 +1,12 @@
+
+CID                                                        	Blocks         	Size
+bafyreibmdfd7c5db4kls4ty57zljfhqv36gi43l6txl44pi423wwmeskwy	2              	53
+bafyreie3njilzdi4ixumru4nzgecsnjtu7fzfcwhg7e6s4s5i7cnbslvn4	2              	53
+
+Summary
+Total Size: 99
+Unique Blocks: 3
+Shared Size: 7
+Ratio: 1.070707
+
+

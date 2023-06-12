@@ -5,6 +5,8 @@ on:
     branches:
       - master
   pull_request:
+    paths-ignore:
+      - '**/*.md'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
@@ -21,7 +23,7 @@ jobs:
     steps:
       # 1. Download the gateway-conformance fixtures
       - name: Download gateway-conformance fixtures
-        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.0
+        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.1
         with:
           output: fixtures
 
@@ -38,8 +40,8 @@ jobs:
         run: make build
         working-directory: kubo-gateway
 
-      # 3. Start the kubo-gateway
-      - name: Start kubo-gateway
+      # 3. Init the kubo-gateway
+      - name: Init kubo-gateway
         env:
           GATEWAY_PUBLIC_GATEWAYS: |
             {
@@ -56,16 +58,36 @@ jobs:
         run: |
           ./ipfs init
           ./ipfs config --json Gateway.PublicGateways "$GATEWAY_PUBLIC_GATEWAYS"
-          ./ipfs daemon --offline &
         working-directory: kubo-gateway/cmd/ipfs
 
       # 4. Populate the Kubo gateway with the gateway-conformance fixtures
       - name: Import fixtures
-        run: find ./fixtures -name '*.car' -exec kubo-gateway/cmd/ipfs/ipfs dag import --pin-roots=false {} \;
+        run: |
+          # Import car files
+          find ./fixtures -name '*.car' -exec kubo-gateway/cmd/ipfs/ipfs dag import --pin-roots=false {} \;
 
-      # 5. Run the gateway-conformance tests
+          # Import ipns records
+          records=$(find ./fixtures -name '*.ipns-record')
+          for record in $records
+          do
+              key=$(basename -s .ipns-record "$record" | cut -d'_' -f1)
+              kubo-gateway/cmd/ipfs/ipfs routing put --allow-offline "/ipns/$key" "$record"
+          done
+
+          # Import dnslink records
+          # the IPFS_NS_MAP env will be used by the daemon
+          export IPFS_NS_MAP=$(cat ./fixtures/dnslinks.json | jq -r 'to_entries | map("\(.key).example.com:\(.value)") | join(",")')
+          echo "IPFS_NS_MAP=${IPFS_NS_MAP}" >> $GITHUB_ENV
+
+      # 5. Start the kubo-gateway
+      - name: Start kubo-gateway
+        run: |
+          ./ipfs daemon --offline &
+        working-directory: kubo-gateway/cmd/ipfs
+
+      # 6. Run the gateway-conformance tests
       - name: Run gateway-conformance tests
-        uses: ipfs/gateway-conformance/.github/actions/test@v0.0
+        uses: ipfs/gateway-conformance/.github/actions/test@v0.1
         with:
           gateway-url: http://127.0.0.1:8080
           json: output.json
@@ -74,7 +96,7 @@ jobs:
           markdown: output.md
           args: -skip 'TestGatewayCar/GET_response_for_application/vnd.ipld.car/Header_Content-Length'
 
-      # 6. Upload the results
+      # 7. Upload the results
       - name: Upload MD summary
         if: failure() || success()
         run: cat output.md >> $GITHUB_STEP_SUMMARY

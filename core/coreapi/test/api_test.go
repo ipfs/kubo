@@ -31,7 +31,7 @@ const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
 type NodeProvider struct{}
 
-func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]coreiface.CoreAPI, error) {
+func (NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdentity bool, online bool, n int) ([]coreiface.CoreAPI, error) {
 	mn := mocknet.New()
 
 	nodes := make([]*core.IpfsNode, n)
@@ -82,7 +82,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 			Routing: libp2p.DHTServerOption,
 			Repo:    r,
 			Host:    mock.MockHostOption(mn),
-			Online:  fullIdentity,
+			Online:  online,
 			ExtraOpts: map[string]bool{
 				"pubsub": true,
 			},
@@ -102,15 +102,17 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		return nil, err
 	}
 
-	bsinf := bootstrap.BootstrapConfigWithPeers(
-		[]peer.AddrInfo{
-			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
-		},
-	)
+	if online {
+		bsinf := bootstrap.BootstrapConfigWithPeers(
+			[]peer.AddrInfo{
+				nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
+			},
+		)
 
-	for _, n := range nodes[1:] {
-		if err := n.Bootstrap(bsinf); err != nil {
-			return nil, err
+		for _, n := range nodes[1:] {
+			if err := n.Bootstrap(bsinf); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -118,5 +120,5 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 }
 
 func TestIface(t *testing.T) {
-	tests.TestApi(&NodeProvider{})(t)
+	tests.TestApi(NodeProvider{})(t)
 }

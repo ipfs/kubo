@@ -163,6 +163,14 @@ test_expect_success "Add CARs for path traversal and DAG-PB representation tests
   test_should_contain $DAG_PB_CID import_output
 '
 
+IPNS_ID_DAG_JSON=k51qzi5uqu5dhjghbwdvbo6mi40htrq6e2z4pwgp15pgv3ho1azvidttzh8yy2
+IPNS_ID_DAG_CBOR=k51qzi5uqu5dghjous0agrwavl8vzl64xckoqzwqeqwudfr74kfd11zcyk3b7l
+
+test_expect_success "Add ipns records for path traversal and DAG-PB representation tests" '
+  ipfs routing put --allow-offline /ipns/${IPNS_ID_DAG_JSON} ../t0123-gateway-json-cbor/${IPNS_ID_DAG_JSON}.ipns-record &&
+  ipfs routing put --allow-offline /ipns/${IPNS_ID_DAG_CBOR} ../t0123-gateway-json-cbor/${IPNS_ID_DAG_CBOR}.ipns-record
+'
+
 test_expect_success "GET DAG-JSON traversal returns 501 if there is path remainder" '
   curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$DAG_JSON_TRAVERSAL_CID/foo?format=dag-json" > curl_output 2>&1 &&
   test_should_contain "501 Not Implemented" curl_output &&
@@ -197,6 +205,7 @@ test_native_dag () {
   format=$2
   disposition=$3
   CID=$4
+  IPNS_ID=$5
 
   # GET without explicit format and Accept: text/html returns raw block
 
@@ -313,15 +322,6 @@ test_native_dag () {
   # IPNS behavior (should be same as immutable /ipfs, but with different caching headers)
   # To keep tests small we only confirm payload is the same, and then only test delta around caching headers.
 
-  test_expect_success "Prepare IPNS with dag-$format" '
-    IPNS_ID=$(ipfs key gen --ipns-base=base36 --type=ed25519 ${format}_test_key | head -n1 | tr -d "\n") &&
-    ipfs name publish --key ${format}_test_key --allow-offline -Q "/ipfs/$CID" > name_publish_out &&
-    test_check_peerid "${IPNS_ID}" &&
-    ipfs name resolve "${IPNS_ID}" > output &&
-    printf "/ipfs/%s\n" "$CID" > expected &&
-    test_cmp expected output
-  '
-
   test_expect_success "GET $name from /ipns without explicit format returns the same payload as /ipfs" '
     curl -sX GET "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" -o ipfs_output &&
     curl -sX GET "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_ID" -o ipns_output &&
@@ -349,7 +349,7 @@ test_native_dag () {
   # As this is generated, we don't return immutable Cache-Control, even on /ipfs (same as for dir-index-html)
 
   test_expect_success "GET $name on /ipfs with Accept: text/html returns HTML (dag-index-html)" '
-    curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipfs/$CID" > curl_output 2>&1 &&
+    curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipfs/$CID/" > curl_output 2>&1 &&
     test_should_not_contain "Content-Disposition" curl_output &&
     test_should_not_contain "Cache-Control" curl_output &&
     test_should_contain "Etag: \"DagIndex-" curl_output &&
@@ -358,7 +358,7 @@ test_native_dag () {
   '
 
   test_expect_success "GET $name on /ipns with Accept: text/html returns HTML (dag-index-html)" '
-    curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_ID" > curl_output 2>&1 &&
+    curl -sD - -H "Accept: text/html" "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_ID/" > curl_output 2>&1 &&
     test_should_not_contain "Content-Disposition" curl_output &&
     test_should_not_contain "Cache-Control" curl_output &&
     test_should_contain "Etag: \"DagIndex-" curl_output &&
@@ -369,8 +369,8 @@ test_native_dag () {
 
 }
 
-test_native_dag "DAG-JSON" "json" "inline" "$DAG_JSON_TRAVERSAL_CID"
-test_native_dag "DAG-CBOR" "cbor" "attachment" "$DAG_CBOR_TRAVERSAL_CID"
+test_native_dag "DAG-JSON" "json" "inline" "$DAG_JSON_TRAVERSAL_CID" ${IPNS_ID_DAG_JSON}
+test_native_dag "DAG-CBOR" "cbor" "attachment" "$DAG_CBOR_TRAVERSAL_CID" ${IPNS_ID_DAG_CBOR}
 
 test_kill_ipfs_daemon
 

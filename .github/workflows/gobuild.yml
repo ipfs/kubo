@@ -3,6 +3,8 @@ name: Go Build
 on:
   workflow_dispatch:
   pull_request:
+    paths-ignore:
+      - '**/*.md'
   push:
     branches:
       - 'master'
@@ -12,12 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  go-build-runner:
-    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    uses: ipfs/kubo/.github/workflows/runner.yml@master
   go-build:
-    needs: [go-build-runner]
-    runs-on: ${{ fromJSON(needs.go-build-runner.outputs.config).labels }}
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "4xlarge"]' || '"ubuntu-latest"') }}
     timeout-minutes: 20
     env:
       TEST_DOCKER: 0
@@ -31,7 +30,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v3
         with:
-          go-version: 1.19.1
+          go-version: 1.19.x
       - uses: actions/checkout@v3
       - uses: protocol/cache-go-action@v1
         with:

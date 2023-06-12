@@ -28,35 +28,21 @@ import (
 
 func GatewayOption(paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		cfg, err := n.Repo.Config()
+		config, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}
 
-		headers := make(map[string][]string, len(cfg.Gateway.HTTPHeaders))
-		for h, v := range cfg.Gateway.HTTPHeaders {
-			headers[http.CanonicalHeaderKey(h)] = v
-		}
-
-		gateway.AddAccessControlHeaders(headers)
-
-		gwConfig := gateway.Config{
-			Headers: headers,
-		}
-
-		gwAPI, err := newGatewayBackend(n)
+		backend, err := newGatewayBackend(n)
 		if err != nil {
 			return nil, err
 		}
 
-		gw := gateway.NewHandler(gwConfig, gwAPI)
-		gw = otelhttp.NewHandler(gw, "Gateway")
-
-		// By default, our HTTP handler is the gateway handler.
-		handler := gw.ServeHTTP
+		handler := gateway.NewHandler(config, backend)
+		handler = otelhttp.NewHandler(handler, "Gateway")
 
 		for _, p := range paths {
-			mux.HandleFunc(p+"/", handler)
+			mux.HandleFunc(p+"/", handler.ServeHTTP)
 		}
 
 		return mux, nil
@@ -65,19 +51,18 @@ func GatewayOption(paths ...string) ServeOption {
 
 func HostnameOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		cfg, err := n.Repo.Config()
+		config, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}
 
-		gwAPI, err := newGatewayBackend(n)
+		backend, err := newGatewayBackend(n)
 		if err != nil {
 			return nil, err
 		}
 
-		publicGateways := convertPublicGateways(cfg.Gateway.PublicGateways)
 		childMux := http.NewServeMux()
-		mux.HandleFunc("/", gateway.WithHostname(childMux, gwAPI, publicGateways, cfg.Gateway.NoDNSLink).ServeHTTP)
+		mux.HandleFunc("/", gateway.NewHostnameHandler(config, backend, childMux).ServeHTTP)
 		return childMux, nil
 	}
 }
@@ -123,11 +108,11 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 		}
 	}
 
-	gw, err := gateway.NewBlocksGateway(bserv, gateway.WithValueStore(vsRouting), gateway.WithNameSystem(nsys))
+	backend, err := gateway.NewBlocksBackend(bserv, gateway.WithValueStore(vsRouting), gateway.WithNameSystem(nsys))
 	if err != nil {
 		return nil, err
 	}
-	return &offlineGatewayErrWrapper{gwimpl: gw}, nil
+	return &offlineGatewayErrWrapper{gwimpl: backend}, nil
 }
 
 type offlineGatewayErrWrapper struct {
@@ -171,10 +156,10 @@ func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path gateway
 	return md, err
 }
 
-func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, io.ReadCloser, <-chan error, error) {
-	md, data, errCh, err := o.gwimpl.GetCAR(ctx, path)
+func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path gateway.ImmutablePath, params gateway.CarParams) (gateway.ContentPathMetadata, io.ReadCloser, error) {
+	md, data, err := o.gwimpl.GetCAR(ctx, path, params)
 	err = offlineErrWrap(err)
-	return md, data, errCh, err
+	return md, data, err
 }
 
 func (o *offlineGatewayErrWrapper) IsCached(ctx context.Context, path path.Path) bool {
@@ -203,39 +188,58 @@ var _ gateway.IPFSBackend = (*offlineGatewayErrWrapper)(nil)
 
 var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"}
 
-var subdomainGatewaySpec = &gateway.Specification{
+var subdomainGatewaySpec = &gateway.PublicGateway{
 	Paths:         defaultPaths,
 	UseSubdomains: true,
 }
 
-var defaultKnownGateways = map[string]*gateway.Specification{
+var defaultKnownGateways = map[string]*gateway.PublicGateway{
 	"localhost": subdomainGatewaySpec,
 }
 
-func convertPublicGateways(publicGateways map[string]*config.GatewaySpec) map[string]*gateway.Specification {
-	gws := map[string]*gateway.Specification{}
-
-	// First, implicit defaults such as subdomain gateway on localhost
-	for hostname, gw := range defaultKnownGateways {
-		gws[hostname] = gw
+func getGatewayConfig(n *core.IpfsNode) (gateway.Config, error) {
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return gateway.Config{}, err
 	}
 
-	// Then apply values from Gateway.PublicGateways, if present in the config
-	for hostname, gw := range publicGateways {
+	// Parse configuration headers and add the default Access Control Headers.
+	headers := make(map[string][]string, len(cfg.Gateway.HTTPHeaders))
+	for h, v := range cfg.Gateway.HTTPHeaders {
+		headers[http.CanonicalHeaderKey(h)] = v
+	}
+	gateway.AddAccessControlHeaders(headers)
+
+	// Initialize gateway configuration, with empty PublicGateways, handled after.
+	gwCfg := gateway.Config{
+		Headers:               headers,
+		DeserializedResponses: cfg.Gateway.DeserializedResponses.WithDefault(config.DefaultDeserializedResponses),
+		NoDNSLink:             cfg.Gateway.NoDNSLink,
+		PublicGateways:        map[string]*gateway.PublicGateway{},
+	}
+
+	// Add default implicit known gateways, such as subdomain gateway on localhost.
+	for hostname, gw := range defaultKnownGateways {
+		gwCfg.PublicGateways[hostname] = gw
+	}
+
+	// Apply values from cfg.Gateway.PublicGateways if they exist.
+	for hostname, gw := range cfg.Gateway.PublicGateways {
 		if gw == nil {
 			// Remove any implicit defaults, if present. This is useful when one
-			// wants to disable subdomain gateway on localhost etc.
-			delete(gws, hostname)
+			// wants to disable subdomain gateway on localhost, etc.
+			delete(gwCfg.PublicGateways, hostname)
 			continue
 		}
 
-		gws[hostname] = &gateway.Specification{
-			Paths:         gw.Paths,
-			NoDNSLink:     gw.NoDNSLink,
-			UseSubdomains: gw.UseSubdomains,
-			InlineDNSLink: gw.InlineDNSLink.WithDefault(config.DefaultInlineDNSLink),
+		gwCfg.PublicGateways[hostname] = &gateway.PublicGateway{
+			Paths:                 gw.Paths,
+			NoDNSLink:             gw.NoDNSLink,
+			UseSubdomains:         gw.UseSubdomains,
+			InlineDNSLink:         gw.InlineDNSLink.WithDefault(config.DefaultInlineDNSLink),
+			DeserializedResponses: gw.DeserializedResponses.WithDefault(gwCfg.DeserializedResponses),
 		}
 	}
 
-	return gws
+	return gwCfg, nil
 }

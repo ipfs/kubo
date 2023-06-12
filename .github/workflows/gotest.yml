@@ -3,6 +3,8 @@ name: Go Test
 on:
   workflow_dispatch:
   pull_request:
+    paths-ignore:
+      - '**/*.md'
   push:
     branches:
       - 'master'
@@ -12,12 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  go-test-runner:
-    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    uses: ipfs/kubo/.github/workflows/runner.yml@master
   go-test:
-    needs: [go-test-runner]
-    runs-on: ${{ fromJSON(needs.go-test-runner.outputs.config).labels }}
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
     timeout-minutes: 20
     env:
       TEST_DOCKER: 0
@@ -33,7 +32,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.19.1
+          go-version: 1.19.x
       - name: Check out Kubo
         uses: actions/checkout@v3
       - name: Restore Go cache
@@ -41,8 +40,11 @@ jobs:
         with:
           name: ${{ github.job }}
       - name: 👉️ If this step failed, go to «Summary» (top left) → inspect the «Failures/Errors» table
+        env:
+          # increasing parallelism beyond 2 doesn't speed up the tests much
+          PARALLEL: 2
         run: |
-          make -j 2 test/unit/gotest.junit.xml &&
+          make -j "$PARALLEL" test/unit/gotest.junit.xml &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0

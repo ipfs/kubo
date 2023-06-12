@@ -342,13 +342,16 @@ Example:
 		}
 
 		// For backward compatibility, we accumulate the pins in the same output type as before.
-		emit := res.Emit
+		var emit func(PinLsOutputWrapper) error
 		lgcList := map[string]PinLsType{}
 		if !stream {
-			emit = func(v interface{}) error {
-				obj := v.(*PinLsOutputWrapper)
-				lgcList[obj.PinLsObject.Cid] = PinLsType{Type: obj.PinLsObject.Type}
+			emit = func(v PinLsOutputWrapper) error {
+				lgcList[v.PinLsObject.Cid] = PinLsType{Type: v.PinLsObject.Type}
 				return nil
+			}
+		} else {
+			emit = func(v PinLsOutputWrapper) error {
+				return res.Emit(v)
 			}
 		}
 
@@ -362,16 +365,16 @@ Example:
 		}
 
 		if !stream {
-			return cmds.EmitOnce(res, &PinLsOutputWrapper{
+			return cmds.EmitOnce(res, PinLsOutputWrapper{
 				PinLsList: PinLsList{Keys: lgcList},
 			})
 		}
 
 		return nil
 	},
-	Type: &PinLsOutputWrapper{},
+	Type: PinLsOutputWrapper{},
 	Encoders: cmds.EncoderMap{
-		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinLsOutputWrapper) error {
+		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out PinLsOutputWrapper) error {
 			stream, _ := req.Options[pinStreamOptionName].(bool)
 
 			enc := json.NewEncoder(w)
@@ -382,7 +385,7 @@ Example:
 
 			return enc.Encode(out.PinLsList)
 		}),
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinLsOutputWrapper) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out PinLsOutputWrapper) error {
 			quiet, _ := req.Options[pinQuietOptionName].(bool)
 			stream, _ := req.Options[pinStreamOptionName].(bool)
 
@@ -418,7 +421,7 @@ type PinLsOutputWrapper struct {
 
 // PinLsList is a set of pins with their type
 type PinLsList struct {
-	Keys map[string]PinLsType
+	Keys map[string]PinLsType `json:",omitempty"`
 }
 
 // PinLsType contains the type of a pin
@@ -432,7 +435,7 @@ type PinLsObject struct {
 	Type string `json:",omitempty"`
 }
 
-func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
+func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
@@ -470,7 +473,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 			pinType = "indirect through " + pinType
 		}
 
-		err = emit(&PinLsOutputWrapper{
+		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: pinType,
 				Cid:  enc.Encode(rp.Cid()),
@@ -484,7 +487,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 	return nil
 }
 
-func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
+func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
@@ -511,7 +514,7 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 		if err := p.Err(); err != nil {
 			return err
 		}
-		err = emit(&PinLsOutputWrapper{
+		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: p.Type(),
 				Cid:  enc.Encode(p.Path().Cid()),
@@ -648,13 +651,14 @@ var verifyPinCmd = &cmds.Command{
 
 // PinVerifyRes is the result returned for each pin checked in "pin verify"
 type PinVerifyRes struct {
-	Cid string
+	Cid string `json:",omitempty"`
+	Err string `json:",omitempty"`
 	PinStatus
 }
 
 // PinStatus is part of PinVerifyRes, do not use directly
 type PinStatus struct {
-	Ok       bool
+	Ok       bool      `json:",omitempty"`
 	BadNodes []BadNode `json:",omitempty"`
 }
 
@@ -669,16 +673,13 @@ type pinVerifyOpts struct {
 	includeOk bool
 }
 
-func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) (<-chan interface{}, error) {
+// FIXME: this implementation is duplicated sith core/coreapi.PinAPI.Verify, remove this one and exclusively rely on CoreAPI.
+func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) (<-chan any, error) {
 	visited := make(map[cid.Cid]PinStatus)
 
 	bs := n.Blocks.Blockstore()
 	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
 	getLinks := dag.GetLinksWithDAG(DAG)
-	recPins, err := n.Pinning.RecursiveKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	var checkPin func(root cid.Cid) PinStatus
 	checkPin = func(root cid.Cid) PinStatus {
@@ -719,14 +720,18 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 		return status
 	}
 
-	out := make(chan interface{})
+	out := make(chan any)
 	go func() {
 		defer close(out)
-		for _, cid := range recPins {
-			pinStatus := checkPin(cid)
+		for p := range n.Pinning.RecursiveKeys(ctx) {
+			if p.Err != nil {
+				out <- PinVerifyRes{Err: p.Err.Error()}
+				return
+			}
+			pinStatus := checkPin(p.C)
 			if !pinStatus.Ok || opts.includeOk {
 				select {
-				case out <- &PinVerifyRes{enc.Encode(cid), pinStatus}:
+				case out <- PinVerifyRes{Cid: enc.Encode(p.C), PinStatus: pinStatus}:
 				case <-ctx.Done():
 					return
 				}
@@ -739,12 +744,18 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 
 // Format formats PinVerifyRes
 func (r PinVerifyRes) Format(out io.Writer) {
+	if r.Err != "" {
+		fmt.Fprintf(out, "error: %s\n", r.Err)
+		return
+	}
+
 	if r.Ok {
 		fmt.Fprintf(out, "%s ok\n", r.Cid)
-	} else {
-		fmt.Fprintf(out, "%s broken\n", r.Cid)
-		for _, e := range r.BadNodes {
-			fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
-		}
+		return
+	}
+
+	fmt.Fprintf(out, "%s broken\n", r.Cid)
+	for _, e := range r.BadNodes {
+		fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
 	}
 }

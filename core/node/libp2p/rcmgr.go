@@ -23,6 +23,8 @@ import (
 	"github.com/ipfs/kubo/repo"
 )
 
+var rcmgrLogger = logging.Logger("rcmgr")
+
 const NetLimitTraceFilename = "rcmgr.json.gz"
 
 var ErrNoResourceMgr = fmt.Errorf("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
@@ -56,14 +58,13 @@ func ResourceManager(cfg config.SwarmConfig, userResourceOverrides rcmgr.Partial
 			}
 
 			if !isPartialConfigEmpty(userResourceOverrides) {
-				fmt.Print(`
+				rcmgrLogger.Info(`
 libp2p-resource-limit-overrides.json has been loaded, "default" fields will be
-filled in with autocomputed defaults.
-`)
+filled in with autocomputed defaults.`)
 			}
 
 			// We want to see this message on startup, that's why we are using fmt instead of log.
-			fmt.Print(msg)
+			rcmgrLogger.Info(msg)
 
 			if err := ensureConnMgrMakeSenseVsResourceMgr(limitConfig, cfg); err != nil {
 				return nil, opts, err
@@ -109,7 +110,7 @@ filled in with autocomputed defaults.
 			lrm.start(helpers.LifecycleCtx(mctx, lc))
 			manager = lrm
 		} else {
-			fmt.Println("go-libp2p resource manager protection disabled")
+			rcmgrLogger.Info("go-libp2p resource manager protection disabled")
 			manager = &network.NullResourceManager{}
 		}
 

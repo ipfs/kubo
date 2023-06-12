@@ -11,6 +11,7 @@ import (
 
 	"github.com/ipfs/boxo/routing/http/server"
 	"github.com/ipfs/boxo/routing/http/types"
+	"github.com/ipfs/boxo/routing/http/types/iter"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
@@ -23,11 +24,11 @@ type fakeHTTPContentRouter struct {
 	provideCalls       int
 }
 
-func (r *fakeHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid) ([]types.ProviderResponse, error) {
+func (r *fakeHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, limit int) (iter.ResultIter[types.ProviderResponse], error) {
 	r.m.Lock()
 	defer r.m.Unlock()
 	r.findProvidersCalls++
-	return []types.ProviderResponse{}, nil
+	return iter.FromSlice([]iter.Result[types.ProviderResponse]{}), nil
 }
 
 func (r *fakeHTTPContentRouter) ProvideBitswap(ctx context.Context, req *server.BitswapWriteProvideRequest) (time.Duration, error) {

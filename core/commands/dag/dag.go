@@ -1,6 +1,8 @@
 package dagcmd
 
 import (
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -276,12 +278,81 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 
 // DagStat is a dag stat command response
 type DagStat struct {
-	Size      uint64
-	NumBlocks int64
+	Cid       cid.Cid `json:",omitempty"`
+	Size      uint64  `json:",omitempty"`
+	NumBlocks int64   `json:",omitempty"`
 }
 
 func (s *DagStat) String() string {
-	return fmt.Sprintf("Size: %d, NumBlocks: %d", s.Size, s.NumBlocks)
+	return fmt.Sprintf("%s  %d  %d", s.Cid.String()[:20], s.Size, s.NumBlocks)
+}
+
+func (s *DagStat) MarshalJSON() ([]byte, error) {
+	type Alias DagStat
+	/*
+		We can't rely on cid.Cid.MarshalJSON since it uses the {"/": "..."}
+		format. To make the output consistent and follow the Kubo API patterns
+		we use the Cid.String method
+	*/
+	return json.Marshal(struct {
+		Cid string `json:"Cid"`
+		*Alias
+	}{
+		Cid:   s.Cid.String(),
+		Alias: (*Alias)(s),
+	})
+}
+
+func (s *DagStat) UnmarshalJSON(data []byte) error {
+	/*
+		We can't rely on cid.Cid.UnmarshalJSON since it uses the {"/": "..."}
+		format. To make the output consistent and follow the Kubo API patterns
+		we use the Cid.Parse method
+	*/
+	type Alias DagStat
+	aux := struct {
+		Cid string `json:"Cid"`
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	Cid, err := cid.Parse(aux.Cid)
+	if err != nil {
+		return err
+	}
+	s.Cid = Cid
+	return nil
+}
+
+type DagStatSummary struct {
+	redundantSize uint64     `json:"-"`
+	UniqueBlocks  int        `json:",omitempty"`
+	TotalSize     uint64     `json:",omitempty"`
+	SharedSize    uint64     `json:",omitempty"`
+	Ratio         float32    `json:",omitempty"`
+	DagStatsArray []*DagStat `json:"DagStats,omitempty"`
+}
+
+func (s *DagStatSummary) String() string {
+	return fmt.Sprintf("Total Size: %d\nUnique Blocks: %d\nShared Size: %d\nRatio: %f", s.TotalSize, s.UniqueBlocks, s.SharedSize, s.Ratio)
+}
+
+func (s *DagStatSummary) incrementTotalSize(size uint64) {
+	s.TotalSize += size
+}
+func (s *DagStatSummary) incrementRedundantSize(size uint64) {
+	s.redundantSize += size
+}
+func (s *DagStatSummary) appendStats(stats *DagStat) {
+	s.DagStatsArray = append(s.DagStatsArray, stats)
+}
+
+func (s *DagStatSummary) calculateSummary() {
+	s.Ratio = float32(s.redundantSize) / float32(s.TotalSize)
+	s.SharedSize = s.redundantSize - s.TotalSize
 }
 
 // DagStatCmd is a command for getting size information about an ipfs-stored dag
@@ -296,24 +367,50 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "CID of a DAG root to get statistics for").EnableStdin(),
+		cmds.StringArg("root", true, true, "CID of a DAG root to get statistics for").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(progressOptionName, "p", "Return progressive data while reading through the DAG").WithDefault(true),
 	},
 	Run:  dagStat,
-	Type: DagStat{},
+	Type: DagStatSummary{},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: finishCLIStat,
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStat) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStatSummary) error {
+			fmt.Fprintln(w)
+			csvWriter := csv.NewWriter(w)
+			csvWriter.Comma = '\t'
+			cidSpacing := len(event.DagStatsArray[0].Cid.String())
+			header := []string{fmt.Sprintf("%-*s", cidSpacing, "CID"), fmt.Sprintf("%-15s", "Blocks"), "Size"}
+			if err := csvWriter.Write(header); err != nil {
+				return err
+			}
+			for _, dagStat := range event.DagStatsArray {
+				numBlocksStr := fmt.Sprint(dagStat.NumBlocks)
+				err := csvWriter.Write([]string{
+					dagStat.Cid.String(),
+					fmt.Sprintf("%-15s", numBlocksStr),
+					fmt.Sprint(dagStat.Size),
+				})
+				if err != nil {
+					return err
+				}
+			}
+			csvWriter.Flush()
+			fmt.Fprint(w, "\nSummary\n")
 			_, err := fmt.Fprintf(
 				w,
 				"%v\n",
 				event,
 			)
+			fmt.Fprint(w, "\n\n")
 			return err
 		}),
+		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStatSummary) error {
+			return json.NewEncoder(w).Encode(event)
+		},
+		),
 	},
 }

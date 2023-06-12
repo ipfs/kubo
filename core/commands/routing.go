@@ -10,6 +10,8 @@ import (
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
+	iface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/coreiface/options"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	path "github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
@@ -17,6 +19,16 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
+)
+
+var (
+	errAllowOffline = errors.New("can't put while offline: pass `--allow-offline` to override")
+)
+
+const (
+	dhtVerboseOptionName   = "verbose"
+	numProvidersOptionName = "num-providers"
+	allowOfflineOptionName = "allow-offline"
 )
 
 var RoutingCmd = &cmds.Command{
@@ -33,14 +45,6 @@ var RoutingCmd = &cmds.Command{
 		"provide":   provideRefRoutingCmd,
 	},
 }
-
-const (
-	dhtVerboseOptionName = "verbose"
-)
-
-const (
-	numProvidersOptionName = "num-providers"
-)
 
 var findProvidersRoutingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -297,6 +301,10 @@ var findPeerRoutingCmd = &cmds.Command{
 			return err
 		}
 
+		if pid == nd.Identity {
+			return ErrSelfUnsupported
+		}
+
 		ctx, cancel := context.WithCancel(req.Context)
 		ctx, events := routing.RegisterForQueryEvents(ctx)
 
@@ -420,6 +428,9 @@ identified by QmFoo.
 		cmds.StringArg("key", true, false, "The key to store the value at."),
 		cmds.FileArg("value-file", true, false, "A path to a file containing the value to store.").EnableStdin(),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
@@ -437,13 +448,22 @@ identified by QmFoo.
 			return err
 		}
 
-		err = api.Routing().Put(req.Context, req.Arguments[0], data)
+		allowOffline, _ := req.Options[allowOfflineOptionName].(bool)
+
+		opts := []options.RoutingPutOption{
+			options.Put.AllowOffline(allowOffline),
+		}
+
+		err = api.Routing().Put(req.Context, req.Arguments[0], data, opts...)
 		if err != nil {
 			return err
 		}
 
 		id, err := api.Key().Self(req.Context)
 		if err != nil {
+			if err == iface.ErrOffline {
+				err = errAllowOffline
+			}
 			return err
 		}
 

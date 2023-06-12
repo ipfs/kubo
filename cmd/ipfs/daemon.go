@@ -425,11 +425,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	case routingOptionNoneKwd:
 		ncfg.Routing = libp2p.NilRouterOption
 	case routingOptionCustomKwd:
+		if cfg.Routing.AcceleratedDHTClient {
+			return fmt.Errorf("Routing.AcceleratedDHTClient option is set even tho Routing.Type is custom, using custom .AcceleratedDHTClient needs to be set on DHT routers individually")
+		}
 		ncfg.Routing = libp2p.ConstructDelegatedRouting(
 			cfg.Routing.Routers,
 			cfg.Routing.Methods,
 			cfg.Identity.PeerID,
-			cfg.Addresses.Swarm,
+			cfg.Addresses,
 			cfg.Identity.PrivKey,
 		)
 	default:

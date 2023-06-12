@@ -19,7 +19,7 @@ func TestPathUnixFSHAMTPartial(t *testing.T) {
 	defer cancel()
 
 	// Create a node
-	apis, err := NodeProvider{}.MakeAPISwarm(ctx, true, 1)
+	apis, err := NodeProvider{}.MakeAPISwarm(t, ctx, true, true, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

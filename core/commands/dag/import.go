@@ -27,6 +27,8 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
+	blockDecoder := ipldlegacy.NewDecoder()
+
 	// on import ensure we do not reach out to the network for any reason
 	// if a pin based on what is imported + what is in the blockstore
 	// isn't possible: tough luck
@@ -94,7 +96,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 				}
 
 				// the double-decode is suboptimal, but we need it for batching
-				nd, err := ipldlegacy.DecodeNode(req.Context, block)
+				nd, err := blockDecoder.DecodeNode(req.Context, block)
 				if err != nil {
 					return err
 				}
@@ -131,7 +133,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			// and ensure the gray bucket is empty at the end (or use the network to download missing blocks).
 			if block, err := node.Blockstore.Get(req.Context, c); err != nil {
 				ret.PinErrorMsg = err.Error()
-			} else if nd, err := ipldlegacy.DecodeNode(req.Context, block); err != nil {
+			} else if nd, err := blockDecoder.DecodeNode(req.Context, block); err != nil {
 				ret.PinErrorMsg = err.Error()
 			} else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
 				ret.PinErrorMsg = err.Error()

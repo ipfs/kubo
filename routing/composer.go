@@ -51,7 +51,7 @@ func (c *Composer) ProvideMany(ctx context.Context, keys []multihash.Multihash) 
 
 func (c *Composer) Ready() bool {
 	log.Debug("composer: calling ready")
-	pmr, ok := c.ProvideRouter.(routinghelpers.ProvideManyRouter)
+	pmr, ok := c.ProvideRouter.(routinghelpers.ReadyAbleRouter)
 	if !ok {
 		return true
 	}
