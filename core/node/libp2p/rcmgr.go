@@ -319,11 +319,11 @@ func mergeResourceLimitsAndScopeStatToResourceLimitsAndUsage(rl rcmgr.ResourceLi
 		ConnsInbound:         rl.ConnsInbound,
 		ConnsInboundUsage:    ss.NumConnsInbound,
 		Streams:              rl.Streams,
-		StreamsUsage:         ss.NumStreamsOutbound + ss.NumConnsInbound,
+		StreamsUsage:         ss.NumStreamsOutbound + ss.NumStreamsInbound,
 		StreamsOutbound:      rl.StreamsOutbound,
-		StreamsOutboundUsage: ss.NumConnsOutbound,
+		StreamsOutboundUsage: ss.NumStreamsOutbound,
 		StreamsInbound:       rl.StreamsInbound,
-		StreamsInboundUsage:  ss.NumConnsInbound,
+		StreamsInboundUsage:  ss.NumStreamsInbound,
 	}
 }
 
