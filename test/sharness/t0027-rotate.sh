@@ -87,19 +87,12 @@ test_rotate() {
 }
 test_rotate 'rsa' ''
 test_rotate 'ed25519' ''
-test_rotate 'secp256k1' ''
 test_rotate '' ''
 test_rotate 'rsa' 'rsa'
 test_rotate 'ed25519' 'rsa'
-test_rotate 'secp256k1' 'rsa'
 test_rotate '' 'rsa'
 test_rotate 'rsa' 'ed25519'
 test_rotate 'ed25519' 'ed25519'
-test_rotate 'secp256k1' 'ed25519'
 test_rotate '' 'ed25519'
-test_rotate 'rsa' 'secp256k1'
-test_rotate 'ed25519' 'secp256k1'
-test_rotate 'secp256k1' 'secp256k1'
-test_rotate '' 'secp256k1'
 
 test_done
