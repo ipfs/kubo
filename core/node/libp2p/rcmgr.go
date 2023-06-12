@@ -16,6 +16,7 @@ import (
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	rcmgrObs "github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/kubo/config"
@@ -70,6 +71,7 @@ filled in with autocomputed defaults.`)
 				return nil, opts, err
 			}
 
+			rcmgrObs.MustRegisterWith(prometheus.DefaultRegisterer)
 			str, err := rcmgrObs.NewStatsTraceReporter()
 			if err != nil {
 				return nil, opts, err
