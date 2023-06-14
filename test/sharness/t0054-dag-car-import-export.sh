@@ -41,7 +41,7 @@ do_import() {
       while [[ -e spin.gc ]]; do ipfsi "$node" repo gc &>/dev/null; done &
       while [[ -e spin.gc ]]; do ipfsi "$node" repo gc &>/dev/null; done &
 
-      ipfsi "$node" dag import "$@" 2>&1 && ipfsi "$node" repo verify &>/dev/null
+      ipfsi "$node" dag import --pin-roots "$@" 2>&1 && ipfsi "$node" repo verify &>/dev/null
       result=$?
 
       rm -f spin.gc &>/dev/null
@@ -117,7 +117,7 @@ EOE
   '
 
   test_expect_success "import/pin naked roots only, relying on local blockstore having all the data" '
-    ipfsi 1 dag import --stats --enc=json ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
+    ipfsi 1 dag import --stats --enc=json --pin-roots ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
       > naked_import_result_json_actual
   '
 
@@ -197,14 +197,14 @@ EOE
 head -3 multiroot_import_json_stats_expected > multiroot_import_json_expected
 
 test_expect_success "multiroot import works (--enc=json)" '
-  ipfs dag import --enc=json ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car > multiroot_import_json_actual
+  ipfs dag import --enc=json --pin-roots ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car > multiroot_import_json_actual
 '
 test_expect_success "multiroot import expected output" '
   test_cmp_sorted multiroot_import_json_expected multiroot_import_json_actual
 '
 
 test_expect_success "multiroot import works with --stats" '
-  ipfs dag import --stats --enc=json ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car > multiroot_import_json_actual
+  ipfs dag import --stats --enc=json --pin-roots ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car > multiroot_import_json_actual
 '
 test_expect_success "multiroot import expected output" '
   test_cmp_sorted multiroot_import_json_stats_expected multiroot_import_json_actual
@@ -215,18 +215,18 @@ cat >pin_import_expected << EOE
 {"Stats":{"BlockCount":1198,"BlockBytesCount":468513}}
 EOE
 test_expect_success "pin-less import works" '
-  ipfs dag import --stats --enc=json --pin-roots=false \
+  ipfs dag import --stats --enc=json \
   ../t0054-dag-car-import-export-data/lotus_devnet_genesis.car \
   ../t0054-dag-car-import-export-data/lotus_testnet_export_128.car \
     > no-pin_import_actual
 '
-test_expect_success "expected no pins on --pin-roots=false" '
+test_expect_success "expected no pins on" '
   test_cmp pin_import_expected no-pin_import_actual
 '
 
 
 test_expect_success "naked root import works" '
-  ipfs dag import --stats --enc=json ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
+  ipfs dag import --stats --enc=json --pin-roots ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
     > naked_root_import_json_actual
 '
 test_expect_success "naked root import expected output" '
@@ -253,7 +253,7 @@ cat > version_2_import_expected << EOE
 EOE
 
 test_expect_success "version 2 import" '
-  ipfs dag import --stats --enc=json \
+  ipfs dag import --stats --enc=json --pin-roots \
     ../t0054-dag-car-import-export-data/lotus_testnet_export_128_v2.car \
     ../t0054-dag-car-import-export-data/lotus_devnet_genesis_v2.car \
   > version_2_import_actual
@@ -289,6 +289,28 @@ test_expect_success "'ipfs dag import' decode IPLD 'cbor' codec works" '
   ipfs dag export $NEW_HASH > cbor.car &&
   ipfs dag import cbor.car &&
   rm cbor.car
+'
+
+# IPIP-402
+cat > partial_nopin_import_expected << EOE
+{"Stats":{"BlockCount":1,"BlockBytesCount":1618}}
+EOE
+test_expect_success "'ipfs dag import' without pinning works fine with incomplete DAG (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    ipfs dag import --stats --enc=json --pin-roots=false ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_nopin_import_out 2>&1 &&
+    test_cmp partial_nopin_import_expected partial_nopin_import_out
+'
+test_expect_success "'ipfs dag import' with no params in CLI mode produces exit code 0 (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    test_expect_code 0 ipfs dag import ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car
+'
+
+test_expect_success "'ipfs dag import' with pinning errors due to incomplete DAG (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    ipfs dag import --stats --enc=json --pin-roots=true ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_pin_import_out 2>&1 &&
+    test_should_contain "\"PinErrorMsg\":\"block was not found locally" partial_pin_import_out
+'
+
+test_expect_success "'ipfs dag import' pin error in default CLI mode produces exit code 1 (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    test_expect_code 1 ipfs dag import --pin-roots ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_pin_import_out 2>&1 &&
+    test_should_contain "Error: pinning root \"QmPDC11yLAbVw3dX5jMeEuSdk4BiVjSd9X87zaYRdVjzW3\" FAILED: block was not found locally" partial_pin_import_out
 '
 
 test_done
