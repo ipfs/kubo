@@ -7,6 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/repo"
+
 	"github.com/benbjohnson/clock"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
@@ -15,11 +19,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/fx"
-
-	"github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/core/node/helpers"
-	"github.com/ipfs/kubo/repo"
 )
 
 var rcmgrLogger = logging.Logger("rcmgr")
@@ -73,8 +74,8 @@ filled in with autocomputed defaults.`)
 			if err != nil {
 				return nil, opts, err
 			}
-
-			ropts := []rcmgr.Option{rcmgr.WithMetrics(createRcmgrMetrics()), rcmgr.WithTraceReporter(str)}
+			rcmgrObs.MustRegisterWith(prometheus.DefaultRegisterer)
+			ropts := []rcmgr.Option{rcmgr.WithTraceReporter(str)}
 
 			if len(cfg.ResourceMgr.Allowlist) > 0 {
 				var mas []multiaddr.Multiaddr
