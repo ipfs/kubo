@@ -113,7 +113,7 @@ IPNS_ED25519_B58MH=12D3KooWLQzUv2FHWGVPXTXSZpdHs7oHbXub2G5WC8Tx4NQhyd2d
 IPNS_ED25519_B36CID=k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam
 
 test_expect_success "Add the test fixtures" '
-  ipfs dag import ../t0114-gateway-subdomains/fixtures.car &&
+  ipfs dag import --pin-roots ../t0114-gateway-subdomains/fixtures.car &&
   ipfs routing put --allow-offline /ipns/${RSA_KEY} ../t0114-gateway-subdomains/${RSA_KEY}.ipns-record &&
   ipfs routing put --allow-offline /ipns/${ED25519_KEY} ../t0114-gateway-subdomains/${ED25519_KEY}.ipns-record
 '

@@ -10,7 +10,7 @@ test_launch_ipfs_daemon_without_network
 # Import test case
 # See the static fixtures in ./t0117-gateway-block/
 test_expect_success "Add the dir test directory" '
-  ipfs dag import ../t0117-gateway-block/fixtures.car
+  ipfs dag import --pin-roots ../t0117-gateway-block/fixtures.car
 '
 ROOT_DIR_CID=bafybeie72edlprgtlwwctzljf6gkn2wnlrddqjbkxo3jomh4n7omwblxly # ./
 FILE_CID=bafkreihhpc5y2pqvl5rbe5uuyhqjouybfs3rvlmisccgzue2kkt5zq6upq # ./dir/ascii.txt
