@@ -26,3 +26,7 @@
 - lotus_devnet_genesis_v2.car
   - generated with `car index lotus_testnet_export_128.car > lotus_testnet_export_128_v2.car`
   - install `go-car` CLI from https://github.com/ipld/go-car
+
+- partial-dag-scope-entity.car
+  - unixfs directory entity exported from gateway via `?format=car&dag-scope=entity` ([IPIP-402](https://github.com/ipfs/specs/pull/402))
+  - CAR roots includes directory CID, but only the root block is included in the CAR, making the DAG incomplete
