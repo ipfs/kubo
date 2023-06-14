@@ -2,11 +2,13 @@ package dagcmd
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
 	gocarv2 "github.com/ipfs/boxo/ipld/car/v2"
+	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -58,6 +60,18 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	roots := cid.NewSet()
 	var blockCount, blockBytesCount uint64
 
+	// remember last valid block and provide a meaningful error message
+	// when a truncated/mangled CAR is being imported
+	importError := func(previous blocks.Block, current blocks.Block, err error) error {
+		if current != nil {
+			return fmt.Errorf("import failed at block %q: %w", current.Cid(), err)
+		}
+		if previous != nil {
+			return fmt.Errorf("import failed after block %q: %w", previous.Cid(), err)
+		}
+		return fmt.Errorf("import failed: %w", err)
+	}
+
 	it := req.Files.Entries()
 	for it.Next() {
 		file := files.FileFromEntry(it)
@@ -75,6 +89,8 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			// this won't/can't help with not running out of handles
 			defer file.Close()
 
+			var previous blocks.Block
+
 			car, err := gocarv2.NewBlockReader(file)
 			if err != nil {
 				return err
@@ -87,25 +103,26 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			for {
 				block, err := car.Next()
 				if err != nil && err != io.EOF {
-					return err
+					return importError(previous, block, err)
 				} else if block == nil {
 					break
 				}
 				if err := cmdutils.CheckBlockSize(req, uint64(len(block.RawData()))); err != nil {
-					return err
+					return importError(previous, block, err)
 				}
 
 				// the double-decode is suboptimal, but we need it for batching
 				nd, err := blockDecoder.DecodeNode(req.Context, block)
 				if err != nil {
-					return err
+					return importError(previous, block, err)
 				}
 
 				if err := batch.Add(req.Context, nd); err != nil {
-					return err
+					return importError(previous, block, err)
 				}
 				blockCount++
 				blockBytesCount += uint64(len(block.RawData()))
+				previous = block
 			}
 			return nil
 		}()
