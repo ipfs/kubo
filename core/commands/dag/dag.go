@@ -203,7 +203,7 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 		cmds.FileArg("path", true, true, "The path of a .car file.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing."),
+		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
 		cmdutils.AllowBigBlockOption,
