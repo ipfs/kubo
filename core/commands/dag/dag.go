@@ -176,16 +176,13 @@ var DagImportCmd = &cmds.Command{
 		Tagline: "Import the contents of .car files",
 		ShortDescription: `
 'ipfs dag import' imports all blocks present in supplied .car
-( Content Address aRchive ) files, optionally recursively pinning any
-roots specified in the CAR file headers if --pin-roots is set.
+( Content Address aRchive ) files, recursively pinning any roots
+specified in the CAR file headers, unless --pin-roots is set to false.
 
 Note:
   This command will import all blocks in the CAR file, not just those
-  reachable from the specified roots. However, when using --pin-roots,
-  these other blocks will not be pinned and may be garbage collected
-  later. When not using --pin-roots, all blocks imported may be garbage
-  collected if no other pin operation is performed on them, or a root
-  that references them.
+  reachable from the specified roots. However, these other blocks will
+  not be pinned and may be garbage collected later.
 
   The pinning of the roots happens after all car files are processed,
   permitting import of DAGs spanning multiple files.
@@ -203,7 +200,7 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 		cmds.FileArg("path", true, true, "The path of a .car file.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing."),
+		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
 		cmdutils.AllowBigBlockOption,
