@@ -13,7 +13,7 @@ test_init_ipfs
 # Import test case
 # See the static fixtures in ./t0400-api-no-gateway/
 test_expect_success "Add the test directory" '
-  ipfs dag import --pin-roots ../t0400-api-no-gateway/fixtures.car
+  ipfs dag import ../t0400-api-no-gateway/fixtures.car
 '
 HASH=QmNYERzV2LfD2kkfahtfv44ocHzEFK1sLBaE7zdcYT2GAZ # a file containing the string "testing"
 
