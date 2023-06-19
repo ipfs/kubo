@@ -23,7 +23,7 @@ jobs:
       LEGACY_IMAGE_NAME: ipfs/go-ipfs
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
