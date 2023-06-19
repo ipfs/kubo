@@ -175,11 +175,10 @@ jobs:
         working-directory: ipfs-webui
       - id: state
         env:
-          GITHUB_REPOSITORY: ipfs/ipfs-webui
-          GITHUB_REF: ${{ steps.ref.outputs.ref }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          echo "state=$(curl -L -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$GITHUB_REF/status" --jq '.state')" | tee -a $GITHUB_OUTPUT
+          ENDPOINT: repos/ipfs/ipfs-webui/commits/${{ steps.ref.outputs.ref }}/status
+          SELECTOR: .state
+        run: gh api "$ENDPOINT" --jq "$SELECTOR" | echo "state=" | tee -a $GITHUB_OUTPUT
       - name: Build ipfs-webui@main (state=${{ steps.state.outputs.state }})
         run: npm run test:build
         working-directory: ipfs-webui
