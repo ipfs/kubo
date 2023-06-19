@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: 14
       - name: Sync the latest 5 github releases
-        uses: actions/github-script@v4
+        uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs').promises
