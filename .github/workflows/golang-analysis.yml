@@ -29,7 +29,7 @@ jobs:
         with:
           go-version: "1.19.x"
       - name: Check that go.mod is tidy
-        uses: protocol/multiple-go-modules@v1.2
+        uses: protocol/multiple-go-modules@v1.4
         with:
           run: |
             go mod tidy
@@ -49,6 +49,6 @@ jobs:
           fi
       - name: go vet
         if: always() # run this step even if the previous one failed
-        uses: protocol/multiple-go-modules@v1.2
+        uses: protocol/multiple-go-modules@v1.4
         with:
           run: go vet ./...
