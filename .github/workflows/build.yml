@@ -178,7 +178,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           ENDPOINT: repos/ipfs/ipfs-webui/commits/${{ steps.ref.outputs.ref }}/status
           SELECTOR: .state
-        run: gh api "$ENDPOINT" --jq "$SELECTOR" | echo "state=" | tee -a $GITHUB_OUTPUT
+          KEY: state
+        run: gh api "$ENDPOINT" --jq "$SELECTOR" | xargs -I{} echo "$KEY={}" | tee -a $GITHUB_OUTPUT
       - name: Build ipfs-webui@main (state=${{ steps.state.outputs.state }})
         run: npm run test:build
         working-directory: ipfs-webui
