@@ -2,23 +2,18 @@ package name
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/hex"
 	"fmt"
 	"io"
-	"strings"
 	"text/tabwriter"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/ipfs/boxo/ipns"
 	ipns_pb "github.com/ipfs/boxo/ipns/pb"
+	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
-	"github.com/ipld/go-ipld-prime"
-	"github.com/ipld/go-ipld-prime/codec/dagcbor"
-	"github.com/ipld/go-ipld-prime/codec/dagjson"
-	"github.com/libp2p/go-libp2p/core/peer"
-	mbase "github.com/multiformats/go-multibase"
+	"google.golang.org/protobuf/proto"
 )
 
 type IpnsEntry struct {
@@ -84,28 +79,27 @@ Resolve the value of a dnslink:
 }
 
 type IpnsInspectValidation struct {
-	Valid     bool
-	Reason    string
-	PublicKey peer.ID
+	Valid  bool
+	Reason string
+	Name   string
 }
 
 // IpnsInspectEntry contains the deserialized values from an IPNS Entry:
 // https://github.com/ipfs/specs/blob/main/ipns/IPNS.md#record-serialization-format
 type IpnsInspectEntry struct {
-	Value        string
-	ValidityType *ipns_pb.IpnsEntry_ValidityType
+	Value        *path.Path
+	ValidityType *ipns.ValidityType
 	Validity     *time.Time
-	Sequence     uint64
-	TTL          *uint64
-	PublicKey    string
-	SignatureV1  string
-	SignatureV2  string
-	Data         interface{}
+	Sequence     *uint64
+	TTL          *time.Duration
 }
 
 type IpnsInspectResult struct {
-	Entry      IpnsInspectEntry
-	Validation *IpnsInspectValidation
+	Entry         IpnsInspectEntry
+	PbSize        int
+	SignatureType string
+	HexDump       string
+	Validation    *IpnsInspectValidation
 }
 
 var IpnsInspectCmd = &cmds.Command{
@@ -136,6 +130,7 @@ Passing --verify will verify signature against provided public key.
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("verify", "CID of the public IPNS key to validate against."),
+		cmds.BoolOption("dump", "Include a full hex dump of the raw Protobuf record.").WithDefault(true),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		file, err := cmdenv.GetFileArg(req.Files.Entries())
@@ -151,76 +146,71 @@ Passing --verify will verify signature against provided public key.
 			return err
 		}
 
-		var entry ipns_pb.IpnsEntry
-		err = proto.Unmarshal(b.Bytes(), &entry)
-		if err != nil {
-			return err
-		}
-
-		encoder, err := mbase.EncoderByName("base64")
+		rec, err := ipns.UnmarshalRecord(b.Bytes())
 		if err != nil {
 			return err
 		}
 
 		result := &IpnsInspectResult{
-			Entry: IpnsInspectEntry{
-				Value:        string(entry.Value),
-				ValidityType: entry.ValidityType,
-				Sequence:     *entry.Sequence,
-				TTL:          entry.Ttl,
-				PublicKey:    encoder.Encode(entry.PubKey),
-				SignatureV1:  encoder.Encode(entry.SignatureV1),
-				SignatureV2:  encoder.Encode(entry.SignatureV2),
-				Data:         nil,
-			},
+			Entry: IpnsInspectEntry{},
 		}
 
-		if len(entry.Data) != 0 {
-			// This is hacky. The variable node (datamodel.Node) doesn't directly marshal
-			// to JSON. Therefore, we need to first decode from DAG-CBOR, then encode in
-			// DAG-JSON and finally unmarshal it from JSON. Since DAG-JSON is a subset
-			// of JSON, that should work. Then, we can store the final value in the
-			// result.Entry.Data for further inspection.
-			node, err := ipld.Decode(entry.Data, dagcbor.Decode)
-			if err != nil {
-				return err
-			}
-
-			var buf bytes.Buffer
-			err = dagjson.Encode(node, &buf)
-			if err != nil {
-				return err
-			}
-
-			err = json.Unmarshal(buf.Bytes(), &result.Entry.Data)
-			if err != nil {
-				return err
-			}
+		// Best effort to get the fields. Show everything we can.
+		if v, err := rec.Value(); err == nil {
+			result.Entry.Value = &v
 		}
 
-		validity, err := ipns.GetEOL(&entry)
-		if err == nil {
-			result.Entry.Validity = &validity
+		if v, err := rec.ValidityType(); err == nil {
+			result.Entry.ValidityType = &v
 		}
 
-		verify, ok := req.Options["verify"].(string)
-		if ok {
-			key := strings.TrimPrefix(verify, "/ipns/")
-			id, err := peer.Decode(key)
+		if v, err := rec.Validity(); err == nil {
+			result.Entry.Validity = &v
+		}
+
+		if v, err := rec.Sequence(); err == nil {
+			result.Entry.Sequence = &v
+		}
+
+		if v, err := rec.TTL(); err == nil {
+			result.Entry.TTL = &v
+		}
+
+		// Here we need the raw protobuf just to decide the version.
+		var pbRecord ipns_pb.IpnsRecord
+		err = proto.Unmarshal(b.Bytes(), &pbRecord)
+		if err != nil {
+			return err
+		}
+		if len(pbRecord.SignatureV1) != 0 || len(pbRecord.Value) != 0 {
+			result.SignatureType = "V1+V2"
+		} else if pbRecord.Data != nil {
+			result.SignatureType = "V2"
+		} else {
+			result.SignatureType = "Unknown"
+		}
+		result.PbSize = proto.Size(&pbRecord)
+
+		if verify, ok := req.Options["verify"].(string); ok {
+			name, err := ipns.NameFromString(verify)
 			if err != nil {
 				return err
 			}
 
 			result.Validation = &IpnsInspectValidation{
-				PublicKey: id,
+				Name: name.String(),
 			}
 
-			err = ipns.ValidateWithPeerID(id, &entry)
+			err = ipns.ValidateWithName(rec, name)
 			if err == nil {
 				result.Validation.Valid = true
 			} else {
 				result.Validation.Reason = err.Error()
 			}
+		}
+
+		if dump, ok := req.Options["dump"].(bool); ok && dump {
+			result.HexDump = hex.Dump(b.Bytes())
 		}
 
 		return cmds.EmitOnce(res, result)
@@ -231,24 +221,28 @@ Passing --verify will verify signature against provided public key.
 			tw := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
 			defer tw.Flush()
 
-			fmt.Fprintf(tw, "Value:\t%q\n", string(out.Entry.Value))
-			fmt.Fprintf(tw, "Validity Type:\t%q\n", out.Entry.ValidityType)
-			if out.Entry.Validity != nil {
-				fmt.Fprintf(tw, "Validity:\t%s\n", out.Entry.Validity.Format(time.RFC3339Nano))
+			if out.Entry.Value != nil {
+				fmt.Fprintf(tw, "Value:\t%q\n", out.Entry.Value.String())
 			}
-			fmt.Fprintf(tw, "Sequence:\t%d\n", out.Entry.Sequence)
-			if out.Entry.TTL != nil {
-				fmt.Fprintf(tw, "TTL:\t%d\n", *out.Entry.TTL)
-			}
-			fmt.Fprintf(tw, "PublicKey:\t%q\n", out.Entry.PublicKey)
-			fmt.Fprintf(tw, "Signature V1:\t%q\n", out.Entry.SignatureV1)
-			fmt.Fprintf(tw, "Signature V2:\t%q\n", out.Entry.SignatureV2)
 
-			data, err := json.Marshal(out.Entry.Data)
-			if err != nil {
-				return err
+			if out.Entry.ValidityType != nil {
+				fmt.Fprintf(tw, "Validity Type:\t%q\n", *out.Entry.ValidityType)
 			}
-			fmt.Fprintf(tw, "Data:\t%s\n", string(data))
+
+			if out.Entry.Validity != nil {
+				fmt.Fprintf(tw, "Validity:\t%q\n", out.Entry.Validity.Format(time.RFC3339Nano))
+			}
+
+			if out.Entry.Sequence != nil {
+				fmt.Fprintf(tw, "Sequence:\t%d\n", *out.Entry.Sequence)
+			}
+
+			if out.Entry.TTL != nil {
+				fmt.Fprintf(tw, "TTL:\t%s\n", out.Entry.TTL.String())
+			}
+
+			fmt.Fprintf(tw, "Protobuf Size:\t%d\n", out.PbSize)
+			fmt.Fprintf(tw, "Signature Type:\t%s\n", out.SignatureType)
 
 			if out.Validation == nil {
 				tw.Flush()
@@ -261,7 +255,14 @@ Passing --verify will verify signature against provided public key.
 				if out.Validation.Reason != "" {
 					fmt.Fprintf(tw, "\tReason:\t%s\n", out.Validation.Reason)
 				}
-				fmt.Fprintf(tw, "\tPublicKey:\t%s\n", out.Validation.PublicKey)
+				fmt.Fprintf(tw, "\tName:\t%s\n", out.Validation.Name)
+			}
+
+			if out.HexDump != "" {
+				tw.Flush()
+
+				fmt.Fprintf(w, "\nHex Dump:\n")
+				fmt.Fprintf(w, out.HexDump)
 			}
 
 			return nil

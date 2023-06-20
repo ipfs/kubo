@@ -10,29 +10,20 @@ import (
 	caopts "github.com/ipfs/boxo/coreiface/options"
 	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
 	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/ipns"
 )
 
 type NameAPI HttpApi
 
 type ipnsEntry struct {
-	JName  string `json:"Name"`
-	JValue string `json:"Value"`
-
-	path path.Path
+	Name  string `json:"Name"`
+	Value string `json:"Value"`
 }
 
-func (e *ipnsEntry) Name() string {
-	return e.JName
-}
-
-func (e *ipnsEntry) Value() path.Path {
-	return e.path
-}
-
-func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.NamePublishOption) (iface.IpnsEntry, error) {
+func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.NamePublishOption) (ipns.Name, error) {
 	options, err := caopts.NamePublishOptions(opts...)
 	if err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 
 	req := api.core().Request("name/publish", p.String()).
@@ -47,10 +38,9 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 
 	var out ipnsEntry
 	if err := req.Exec(ctx, &out); err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
-	out.path = path.New(out.JValue)
-	return &out, out.path.IsValid()
+	return ipns.NameFromString(out.Name)
 }
 
 func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.NameResolveOption) (<-chan iface.IpnsResult, error) {
