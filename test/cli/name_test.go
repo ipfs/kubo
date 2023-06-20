@@ -63,7 +63,7 @@ func TestName(t *testing.T) {
 				require.Equal(t, publishPath+"\n", res.Stdout.String())
 			})
 
-			t.Run("Publishing a CID+Path", func(t *testing.T) {
+			t.Run("Publishing a CID+subpath", func(t *testing.T) {
 				publishPath := "/ipfs/" + fixtureCid + "/hello"
 
 				res := node.IPFS("name", "publish", "--allow-offline", publishPath)
@@ -180,6 +180,7 @@ func TestName(t *testing.T) {
 		res = node.PipeToIPFS(bytes.NewReader(record), "name", "inspect", "--verify="+ipnsPath)
 		out = res.Stdout.String()
 		require.Contains(t, out, "Valid: true")
+		require.Contains(t, out, "Signature Type: V2")
 	})
 
 	t.Run("Publish with TTL and inspect record", func(t *testing.T) {
@@ -200,6 +201,7 @@ func TestName(t *testing.T) {
 			require.Contains(t, out, "This record was not validated.")
 			require.Contains(t, out, publishPath)
 			require.Contains(t, out, "30m")
+			require.Contains(t, out, "Signature Type: V1+V2")
 		})
 
 		t.Run("Inspect record shows valid with correct name", func(t *testing.T) {

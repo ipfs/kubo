@@ -95,10 +95,10 @@ type IpnsInspectEntry struct {
 }
 
 type IpnsInspectResult struct {
-	Entry      IpnsInspectEntry
-	Version    string
-	HexDump    string
-	Validation *IpnsInspectValidation
+	Entry         IpnsInspectEntry
+	SignatureType string
+	HexDump       string
+	Validation    *IpnsInspectValidation
 }
 
 var IpnsInspectCmd = &cmds.Command{
@@ -181,16 +181,12 @@ Passing --verify will verify signature against provided public key.
 		if err != nil {
 			return err
 		}
-		if pbRecord.SignatureV1 != nil || pbRecord.Value != nil {
-			if pbRecord.Data != nil {
-				result.Version = "V1+V2"
-			} else {
-				result.Version = "V2"
-			}
+		if len(pbRecord.SignatureV1) != 0 || len(pbRecord.Value) != 0 {
+			result.SignatureType = "V1+V2"
 		} else if pbRecord.Data != nil {
-			result.Version = "V2"
+			result.SignatureType = "V2"
 		} else {
-			result.Version = "Unknown"
+			result.SignatureType = "Unknown"
 		}
 
 		if verify, ok := req.Options["verify"].(string); ok {
@@ -232,7 +228,7 @@ Passing --verify will verify signature against provided public key.
 			}
 
 			if out.Entry.Validity != nil {
-				fmt.Fprintf(tw, "Validity:\t%q\n", out.Entry.Validity.Format(time.RFC3339))
+				fmt.Fprintf(tw, "Validity:\t%q\n", out.Entry.Validity.Format(time.RFC3339Nano))
 			}
 
 			if out.Entry.Sequence != nil {
@@ -241,6 +237,10 @@ Passing --verify will verify signature against provided public key.
 
 			if out.Entry.TTL != nil {
 				fmt.Fprintf(tw, "TTL:\t%s\n", out.Entry.TTL.String())
+			}
+
+			if out.SignatureType != "" {
+				fmt.Fprintf(tw, "Signature Type:\t%s\n", out.SignatureType)
 			}
 
 			if out.Validation == nil {
