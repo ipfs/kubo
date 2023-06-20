@@ -84,8 +84,9 @@ func ProcessOpts(opts []ResolveOpt) ResolveOpts {
 
 // PublishOptions specifies options for publishing an IPNS record.
 type PublishOptions struct {
-	EOL time.Time
-	TTL time.Duration
+	EOL              time.Time
+	TTL              time.Duration
+	CompatibleWithV1 bool
 }
 
 // DefaultPublishOptions returns the default options for publishing an IPNS record.
@@ -110,6 +111,13 @@ func PublishWithEOL(eol time.Time) PublishOption {
 func PublishWithTTL(ttl time.Duration) PublishOption {
 	return func(o *PublishOptions) {
 		o.TTL = ttl
+	}
+}
+
+// PublishCompatibleWithV1 sets compatibility with IPNS Records V1.
+func PublishCompatibleWithV1(compatible bool) PublishOption {
+	return func(o *PublishOptions) {
+		o.CompatibleWithV1 = compatible
 	}
 }
 

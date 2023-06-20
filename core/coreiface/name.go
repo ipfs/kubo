@@ -5,19 +5,12 @@ import (
 	"errors"
 
 	path "github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/ipns"
 
 	"github.com/ipfs/boxo/coreiface/options"
 )
 
 var ErrResolveFailed = errors.New("could not resolve name")
-
-// IpnsEntry specifies the interface to IpnsEntries
-type IpnsEntry interface {
-	// Name returns IpnsEntry name
-	Name() string
-	// Value returns IpnsEntry value
-	Value() path.Path
-}
 
 type IpnsResult struct {
 	path.Path
@@ -34,7 +27,7 @@ type IpnsResult struct {
 // You can use .Key API to list and generate more names and their respective keys.
 type NameAPI interface {
 	// Publish announces new IPNS name
-	Publish(ctx context.Context, path path.Path, opts ...options.NamePublishOption) (IpnsEntry, error)
+	Publish(ctx context.Context, path path.Path, opts ...options.NamePublishOption) (ipns.Name, error)
 
 	// Resolve attempts to resolve the newest version of the specified name
 	Resolve(ctx context.Context, name string, opts ...options.NameResolveOption) (path.Path, error)

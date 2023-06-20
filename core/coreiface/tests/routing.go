@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
 	iface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/coreiface/options"
-	ipns_pb "github.com/ipfs/boxo/ipns/pb"
+	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/ipns"
+	"github.com/stretchr/testify/require"
 )
 
 func (tp *TestSuite) TestRouting(t *testing.T) {
@@ -24,19 +25,15 @@ func (tp *TestSuite) TestRouting(t *testing.T) {
 	t.Run("TestRoutingPutOffline", tp.TestRoutingPutOffline)
 }
 
-func (tp *TestSuite) testRoutingPublishKey(t *testing.T, ctx context.Context, api iface.CoreAPI, opts ...options.NamePublishOption) iface.IpnsEntry {
+func (tp *TestSuite) testRoutingPublishKey(t *testing.T, ctx context.Context, api iface.CoreAPI, opts ...options.NamePublishOption) (path.Path, ipns.Name) {
 	p, err := addTestObject(ctx, api)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	entry, err := api.Name().Publish(ctx, p, opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
+	name, err := api.Name().Publish(ctx, p, opts...)
+	require.NoError(t, err)
 
 	time.Sleep(3 * time.Second)
-	return entry
+	return p, name
 }
 
 func (tp *TestSuite) TestRoutingGet(t *testing.T) {
@@ -44,53 +41,39 @@ func (tp *TestSuite) TestRoutingGet(t *testing.T) {
 	defer cancel()
 
 	apis, err := tp.MakeAPISwarm(t, ctx, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Node 1: publishes an IPNS name
-	ipnsEntry := tp.testRoutingPublishKey(t, ctx, apis[0])
+	p, name := tp.testRoutingPublishKey(t, ctx, apis[0])
 
 	// Node 2: retrieves the best value for the IPNS name.
-	data, err := apis[1].Routing().Get(ctx, "/ipns/"+ipnsEntry.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+	data, err := apis[1].Routing().Get(ctx, ipns.NamespacePrefix+name.String())
+	require.NoError(t, err)
 
-	// Checks if values match.
-	var entry ipns_pb.IpnsEntry
-	err = proto.Unmarshal(data, &entry)
-	if err != nil {
-		t.Fatal(err)
-	}
+	rec, err := ipns.UnmarshalRecord(data)
+	require.NoError(t, err)
 
-	if string(entry.GetValue()) != ipnsEntry.Value().String() {
-		t.Fatalf("routing key has wrong value, expected %s, got %s", ipnsEntry.Value().String(), string(entry.GetValue()))
-	}
+	val, err := rec.Value()
+	require.NoError(t, err)
+	require.Equal(t, p.String(), val.String())
 }
 
 func (tp *TestSuite) TestRoutingPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	apis, err := tp.MakeAPISwarm(t, ctx, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Create and publish IPNS entry.
-	ipnsEntry := tp.testRoutingPublishKey(t, ctx, apis[0])
+	_, name := tp.testRoutingPublishKey(t, ctx, apis[0])
 
 	// Get valid routing value.
-	data, err := apis[0].Routing().Get(ctx, "/ipns/"+ipnsEntry.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+	data, err := apis[0].Routing().Get(ctx, ipns.NamespacePrefix+name.String())
+	require.NoError(t, err)
 
 	// Put routing value.
-	err = apis[1].Routing().Put(ctx, "/ipns/"+ipnsEntry.Name(), data)
-	if err != nil {
-		t.Fatal(err)
-	}
+	err = apis[1].Routing().Put(ctx, ipns.NamespacePrefix+name.String(), data)
+	require.NoError(t, err)
 }
 
 func (tp *TestSuite) TestRoutingPutOffline(t *testing.T) {
@@ -99,29 +82,19 @@ func (tp *TestSuite) TestRoutingPutOffline(t *testing.T) {
 
 	// init a swarm & publish an IPNS entry to get a valid payload
 	apis, err := tp.MakeAPISwarm(t, ctx, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	ipnsEntry := tp.testRoutingPublishKey(t, ctx, apis[0], options.Name.AllowOffline(true))
-	data, err := apis[0].Routing().Get(ctx, "/ipns/"+ipnsEntry.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, name := tp.testRoutingPublishKey(t, ctx, apis[0], options.Name.AllowOffline(true))
+	data, err := apis[0].Routing().Get(ctx, ipns.NamespacePrefix+name.String())
+	require.NoError(t, err)
 
 	// init our offline node and try to put the payload
 	api, err := tp.makeAPIWithIdentityAndOffline(t, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	err = api.Routing().Put(ctx, "/ipns/"+ipnsEntry.Name(), data)
-	if err == nil {
-		t.Fatal("this operation should fail because we are offline")
-	}
+	err = api.Routing().Put(ctx, ipns.NamespacePrefix+name.String(), data)
+	require.Error(t, err, "this operation should fail because we are offline")
 
-	err = api.Routing().Put(ctx, "/ipns/"+ipnsEntry.Name(), data, options.Put.AllowOffline(true))
-	if err != nil {
-		t.Fatal(err)
-	}
+	err = api.Routing().Put(ctx, ipns.NamespacePrefix+name.String(), data, options.Put.AllowOffline(true))
+	require.NoError(t, err)
 }
