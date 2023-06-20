@@ -291,4 +291,23 @@ test_expect_success "'ipfs dag import' decode IPLD 'cbor' codec works" '
   rm cbor.car
 '
 
+# IPIP-402
+cat > partial_nopin_import_expected << EOE
+{"Stats":{"BlockCount":1,"BlockBytesCount":1618}}
+EOE
+test_expect_success "'ipfs dag import' without pinning works fine with incomplete DAG (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    ipfs dag import --stats --enc=json --pin-roots=false ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_nopin_import_out 2>&1 &&
+    test_cmp partial_nopin_import_expected partial_nopin_import_out
+'
+
+test_expect_success "'ipfs dag import' with pinning errors due to incomplete DAG (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    ipfs dag import --stats --enc=json --pin-roots=true ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_pin_import_out 2>&1 &&
+    test_should_contain "\"PinErrorMsg\":\"block was not found locally" partial_pin_import_out
+'
+
+test_expect_success "'ipfs dag import' pin error in default CLI mode produces exit code 1 (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    test_expect_code 1 ipfs dag import ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_pin_import_out 2>&1 &&
+    test_should_contain "Error: pinning root \"QmPDC11yLAbVw3dX5jMeEuSdk4BiVjSd9X87zaYRdVjzW3\" FAILED: block was not found locally" partial_pin_import_out
+'
+
 test_done

@@ -10,7 +10,7 @@ test_launch_ipfs_daemon_without_network
 # Import test case
 # See the static fixtures in ./t0123-gateway-json-cbor/
 test_expect_success "Add the test directory" '
-  ipfs dag import ../t0123-gateway-json-cbor/fixtures.car
+  ipfs dag import --pin-roots ../t0123-gateway-json-cbor/fixtures.car
 '
 DIR_CID=bafybeiafyvqlazbbbtjnn6how5d6h6l6rxbqc4qgpbmteaiskjrffmyy4a # ./rootDir
 FILE_JSON_CID=bafkreibrppizs3g7axs2jdlnjua6vgpmltv7k72l7v7sa6mmht6mne3qqe # ./rootDir/ą/ę/t.json
@@ -155,11 +155,11 @@ DAG_JSON_TRAVERSAL_CID="baguqeeram5ujjqrwheyaty3w5gdsmoz6vittchvhk723jjqxk7hakxk
 DAG_PB_CID="bafybeiegxwlgmoh2cny7qlolykdf7aq7g6dlommarldrbm7c4hbckhfcke"
 
 test_expect_success "Add CARs for path traversal and DAG-PB representation tests" '
-  ipfs dag import ../t0123-gateway-json-cbor/dag-cbor-traversal.car > import_output &&
+  ipfs dag import --pin-roots ../t0123-gateway-json-cbor/dag-cbor-traversal.car > import_output &&
   test_should_contain $DAG_CBOR_TRAVERSAL_CID import_output &&
-  ipfs dag import ../t0123-gateway-json-cbor/dag-json-traversal.car > import_output &&
+  ipfs dag import --pin-roots ../t0123-gateway-json-cbor/dag-json-traversal.car > import_output &&
   test_should_contain $DAG_JSON_TRAVERSAL_CID import_output &&
-  ipfs dag import ../t0123-gateway-json-cbor/dag-pb.car > import_output &&
+  ipfs dag import --pin-roots ../t0123-gateway-json-cbor/dag-pb.car > import_output &&
   test_should_contain $DAG_PB_CID import_output
 '
 

@@ -35,7 +35,7 @@ TEST_IPNS_ID=k51qzi5uqu5dlxdsdu5fpuu7h69wu4ohp32iwm9pdt9nq3y5rpn3ln9j12zfhe
 # Import test case
 # See the static fixtures in ./t0116-gateway-cache/
 test_expect_success "Add the test directory" '
-  ipfs dag import ../t0116-gateway-cache/fixtures.car
+  ipfs dag import --pin-roots ../t0116-gateway-cache/fixtures.car
   ipfs routing put --allow-offline /ipns/${TEST_IPNS_ID} ../t0116-gateway-cache/${TEST_IPNS_ID}.ipns-record
 '
 
