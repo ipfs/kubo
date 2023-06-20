@@ -96,6 +96,7 @@ type IpnsInspectEntry struct {
 
 type IpnsInspectResult struct {
 	Entry         IpnsInspectEntry
+	PbSize        int
 	SignatureType string
 	HexDump       string
 	Validation    *IpnsInspectValidation
@@ -129,7 +130,7 @@ Passing --verify will verify signature against provided public key.
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("verify", "CID of the public IPNS key to validate against."),
-		cmds.BoolOption("verbose", "Show a full hex dump of the raw Protobuf record."),
+		cmds.BoolOption("dump", "Include a full hex dump of the raw Protobuf record.").WithDefault(true),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		file, err := cmdenv.GetFileArg(req.Files.Entries())
@@ -188,6 +189,7 @@ Passing --verify will verify signature against provided public key.
 		} else {
 			result.SignatureType = "Unknown"
 		}
+		result.PbSize = proto.Size(&pbRecord)
 
 		if verify, ok := req.Options["verify"].(string); ok {
 			name, err := ipns.NameFromString(verify)
@@ -207,7 +209,7 @@ Passing --verify will verify signature against provided public key.
 			}
 		}
 
-		if verbose, ok := req.Options["verbose"].(bool); ok && verbose {
+		if dump, ok := req.Options["dump"].(bool); ok && dump {
 			result.HexDump = hex.Dump(b.Bytes())
 		}
 
@@ -239,9 +241,8 @@ Passing --verify will verify signature against provided public key.
 				fmt.Fprintf(tw, "TTL:\t%s\n", out.Entry.TTL.String())
 			}
 
-			if out.SignatureType != "" {
-				fmt.Fprintf(tw, "Signature Type:\t%s\n", out.SignatureType)
-			}
+			fmt.Fprintf(tw, "Protobuf Size:\t%d\n", out.PbSize)
+			fmt.Fprintf(tw, "Signature Type:\t%s\n", out.SignatureType)
 
 			if out.Validation == nil {
 				tw.Flush()

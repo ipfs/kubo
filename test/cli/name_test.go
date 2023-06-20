@@ -169,7 +169,6 @@ func TestName(t *testing.T) {
 
 		res = node.IPFS("routing", "get", ipnsPath)
 		record := res.Stdout.Bytes()
-		t.Log(record)
 
 		res = node.PipeToIPFS(bytes.NewReader(record), "name", "inspect")
 		out := res.Stdout.String()
@@ -181,6 +180,7 @@ func TestName(t *testing.T) {
 		out = res.Stdout.String()
 		require.Contains(t, out, "Valid: true")
 		require.Contains(t, out, "Signature Type: V2")
+		require.Contains(t, out, fmt.Sprintf("Protobuf Size:  %d", len(record)))
 	})
 
 	t.Run("Publish with TTL and inspect record", func(t *testing.T) {
@@ -202,6 +202,7 @@ func TestName(t *testing.T) {
 			require.Contains(t, out, publishPath)
 			require.Contains(t, out, "30m")
 			require.Contains(t, out, "Signature Type: V1+V2")
+			require.Contains(t, out, fmt.Sprintf("Protobuf Size:  %d", len(record)))
 		})
 
 		t.Run("Inspect record shows valid with correct name", func(t *testing.T) {
