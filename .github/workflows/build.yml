@@ -36,7 +36,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
@@ -102,7 +102,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/download-artifact@v3
