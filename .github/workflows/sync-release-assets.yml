@@ -33,7 +33,7 @@ jobs:
             const max_synced = 5
 
             // fetch github releases
-            resp = await github.repos.listReleases({
+            resp = await github.rest.repos.listReleases({
               owner: context.repo.owner,
               repo: context.repo.repo,
               page: 1,
@@ -116,7 +116,7 @@ jobs:
                 }
 
                 console.log("uploading", file, "to github release", release.tag_name)
-                const uploadReleaseAsset = async (file) => github.repos.uploadReleaseAsset({
+                const uploadReleaseAsset = async (file) => github.rest.repos.uploadReleaseAsset({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   release_id: release.id,
