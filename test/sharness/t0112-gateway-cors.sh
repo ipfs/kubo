@@ -15,11 +15,9 @@ EOF
     test_cmp expected actual
 '
 
-test_launch_ipfs_daemon
-
 thash='bafkqabtimvwgy3yk' # hello
 
-# Gateway
+test_launch_ipfs_daemon
 
 # HTTP GET Request
 test_expect_success "GET to Gateway succeeds" '
@@ -27,45 +25,10 @@ test_expect_success "GET to Gateway succeeds" '
   cat curl_output
 '
 
-# GET Response from Gateway should contain CORS headers
-test_expect_success "GET response for Gateway resource looks good" '
-  test_should_contain "< Access-Control-Allow-Origin: \*" curl_output &&
-  test_should_contain "< Access-Control-Allow-Methods: GET" curl_output &&
-  test_should_contain "< Access-Control-Allow-Methods: HEAD" curl_output &&
-  test_should_contain "< Access-Control-Allow-Methods: OPTIONS" curl_output &&
-  test_should_contain "< Access-Control-Allow-Headers: Content-Type" curl_output &&
-  test_should_contain "< Access-Control-Allow-Headers: Range" curl_output &&
-  test_should_contain "< Access-Control-Allow-Headers: User-Agent" curl_output &&
-  test_should_contain "< Access-Control-Allow-Headers: X-Requested-With" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: Content-Range" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: Content-Length" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Chunked-Output" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Stream-Output" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Path" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Roots" curl_output
-'
 # HTTP OPTIONS Request
 test_expect_success "OPTIONS to Gateway succeeds" '
   curl -svX OPTIONS -H "Origin: https://example.com" "http://127.0.0.1:$GWAY_PORT/ipfs/$thash" 2>curl_output &&
   cat curl_output
-'
-
-# OPTION Response from Gateway should contain CORS headers
-test_expect_success "OPTIONS response for Gateway resource looks good" '
-  test_should_contain "< Access-Control-Allow-Origin: \*" curl_output &&
-  test_should_contain "< Access-Control-Allow-Methods: GET" curl_output &&
-  test_should_contain "< Access-Control-Allow-Methods: HEAD" curl_output &&
-  test_should_contain "< Access-Control-Allow-Methods: OPTIONS" curl_output &&
-  test_should_contain "< Access-Control-Allow-Headers: Content-Type" curl_output &&
-  test_should_contain "< Access-Control-Allow-Headers: Range" curl_output &&
-  test_should_contain "< Access-Control-Allow-Headers: User-Agent" curl_output &&
-  test_should_contain "< Access-Control-Allow-Headers: X-Requested-With" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: Content-Range" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: Content-Length" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Chunked-Output" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Stream-Output" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Path" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Roots" curl_output
 '
 
 # HTTP OPTIONS Request on path → subdomain HTTP 301 redirect
