@@ -45,7 +45,7 @@ require (
 	github.com/jbenet/goprocess v0.1.4
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/libp2p/go-doh-resolver v0.4.0
-	github.com/libp2p/go-libp2p v0.27.7
+	github.com/libp2p/go-libp2p v0.28.1
 	github.com/libp2p/go-libp2p-http v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.24.2
 	github.com/libp2p/go-libp2p-kbucket v0.6.3
@@ -126,6 +126,7 @@ require (
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20230602150820-91b7bce49751 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
 	github.com/hannahhoward/go-pubsub v0.0.0-20200423002714-8d62886cc36e // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -159,7 +160,7 @@ require (
 	github.com/libp2p/go-libp2p-xor v0.1.0 // indirect
 	github.com/libp2p/go-mplex v0.7.0 // indirect
 	github.com/libp2p/go-msgio v0.3.0 // indirect
-	github.com/libp2p/go-nat v0.1.0 // indirect
+	github.com/libp2p/go-nat v0.2.0 // indirect
 	github.com/libp2p/go-netroute v0.2.1 // indirect
 	github.com/libp2p/go-reuseport v0.3.0 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.0 // indirect
@@ -237,7 +238,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
-	nhooyr.io/websocket v1.8.7 // indirect
 )
 
 go 1.19

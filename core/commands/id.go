@@ -21,7 +21,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
 const offlineIDErrorMessage = "'ipfs id' cannot query information on remote peers without a running daemon; if you only want to convert --peerid-base, pass --offline option"
@@ -217,7 +216,6 @@ func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (interface{}, error) {
 		info.Protocols = node.PeerHost.Mux().Protocols()
 		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
 	}
-	info.ProtocolVersion = identify.DefaultProtocolVersion
 	info.AgentVersion = version.GetUserAgentVersion()
 	return info, nil
 }
