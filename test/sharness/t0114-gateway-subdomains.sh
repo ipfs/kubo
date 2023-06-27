@@ -139,9 +139,6 @@ test_localhost_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
   "$CID_VAL"
 
-# 'localhost' hostname is used for subdomains, and should not return
-#  payload directly, but redirect to URL with proper origin isolation
-
 # API on localhost subdomain gateway
 
 # /api/v0 present on the root hostname
@@ -166,12 +163,13 @@ test_localhost_gateway_response_should_contain \
 ## (origin per content root at http://*.localhost)
 ## ============================================================================
 
-# {CID}.ipfs.localhost
-
-# {CID}.ipfs.localhost/sub/dir (Directory Listing)
-DIR_HOSTNAME="${DIR_CID}.ipfs.localhost:$GWAY_PORT"
-
 # <dnslink-fqdn>.ipns.localhost
+
+# DNSLink test requires a daemon in online mode with precached /ipns/ mapping
+test_kill_ipfs_daemon
+DNSLINK_FQDN="dnslink-test.example.com"
+export IPFS_NS_MAP="$DNSLINK_FQDN:/ipfs/$CIDv1"
+test_launch_ipfs_daemon
 
 # api.localhost/api
 
@@ -222,39 +220,11 @@ test_launch_ipfs_daemon_without_network
 # example.com/ip(f|n)s/*
 # =============================================================================
 
-# *.ipfs.example.com: subdomain requests made with custom FQDN in Host header
-
-# {CID}.ipfs.example.com/sub/dir (Directory Listing)
-DIR_FQDN="${DIR_CID}.ipfs.example.com"
+# path requests to the root hostname should redirect
+# to a subdomain URL with proper origin isolation
 
 # *.ipns.example.com
 # ============================================================================
-
-# <libp2p-key>.ipns.example.com
-
-test_hostname_gateway_response_should_contain \
-  "request for {CIDv1-libp2p-key}.ipns.example.com returns expected payload" \
-  "${RSA_IPNS_IDv1}.ipns.example.com" \
-  "http://127.0.0.1:$GWAY_PORT" \
-  "$CID_VAL"
-
-test_hostname_gateway_response_should_contain \
-  "request for {CIDv1-libp2p-key}.ipns.example.com returns expected payload" \
-  "${ED25519_IPNS_IDv1}.ipns.example.com" \
-  "http://127.0.0.1:$GWAY_PORT" \
-  "$CID_VAL"
-
-test_hostname_gateway_response_should_contain \
-  "hostname request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
-  "${RSA_IPNS_IDv1_DAGPB}.ipns.example.com" \
-  "http://127.0.0.1:$GWAY_PORT" \
-  "Location: http://${RSA_IPNS_IDv1}.ipns.example.com/"
-
-test_hostname_gateway_response_should_contain \
-  "hostname request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
-  "${ED25519_IPNS_IDv1_DAGPB}.ipns.example.com" \
-  "http://127.0.0.1:$GWAY_PORT" \
-  "Location: http://${ED25519_IPNS_IDv1}.ipns.example.com/"
 
 # API on subdomain gateway example.com
 # ============================================================================
@@ -303,6 +273,87 @@ test_hostname_gateway_response_should_contain \
   "$DIR_CID.ipfs.example.com" \
   "http://127.0.0.1:$GWAY_PORT/api/file.txt" \
   "I am a txt file"
+
+# DNSLink: <dnslink-fqdn>.ipns.example.com
+# (not really useful outside of localhost, as setting TLS for more than one
+# level of wildcard is a pain, but we support it if someone really wants it)
+# ============================================================================
+
+# DNSLink test requires a daemon in online mode with precached /ipns/ mapping
+test_kill_ipfs_daemon
+DNSLINK_FQDN="dnslink-subdomain-gw-test.example.org"
+export IPFS_NS_MAP="$DNSLINK_FQDN:/ipfs/$CIDv1"
+test_launch_ipfs_daemon
+
+# TODO: dns inlining? 
+# this lives in subdomain_gateway_ipns_test.go for now
+
+test_hostname_gateway_response_should_contain \
+  "request for {dnslink}.ipns.example.com returns expected payload" \
+  "$DNSLINK_FQDN.ipns.example.com" \
+  "http://127.0.0.1:$GWAY_PORT" \
+  "$CID_VAL"
+
+# DNSLink on Public gateway with a single-level wildcard TLS cert
+# "Option C" from  https://github.com/ipfs/in-web-browsers/issues/169
+test_expect_success \
+  "request for {single-label-dnslink}.ipns.example.com with X-Forwarded-Proto returns expected payload" "
+  curl -H \"Host: dnslink--subdomain--gw--test-example-org.ipns.example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT\" > response &&
+  test_should_contain \"$CID_VAL\" response
+  "
+
+## Test subdomain handling of CIDs that do not fit in a single DNS Label (>63chars)
+## https://github.com/ipfs/go-ipfs/issues/7318
+## ============================================================================
+
+# local: *.localhost
+test_localhost_gateway_response_should_contain \
+  "request for a ED25519 libp2p-key at localhost/ipns/{b58mh} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
+  "http://localhost:$GWAY_PORT/ipns/$IPNS_ED25519_B58MH" \
+  "Location: http://${IPNS_ED25519_B36CID}.ipns.localhost:$GWAY_PORT/"
+
+# router should not redirect to hostnames that could fail due to DNS limits
+test_localhost_gateway_response_should_contain \
+  "request for a too long CID at localhost/ipfs/{CIDv1} returns human readable error" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "CID incompatible with DNS label length limit of 63"
+
+test_localhost_gateway_response_should_contain \
+  "request for a too long CID at localhost/ipfs/{CIDv1} returns HTTP Error 400 Bad Request" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "400 Bad Request"
+
+# direct request should also fail (provides the same UX as router and avoids confusion)
+test_localhost_gateway_response_should_contain \
+  "request for a too long CID at {CIDv1}.ipfs.localhost returns expected payload" \
+  "http://$CIDv1_TOO_LONG.ipfs.localhost:$GWAY_PORT" \
+  "400 Bad Request"
+
+# public subdomain gateway: *.example.com
+
+test_hostname_gateway_response_should_contain \
+  "request for a ED25519 libp2p-key at example.com/ipns/{b58mh} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_ED25519_B58MH" \
+  "Location: http://${IPNS_ED25519_B36CID}.ipns.example.com"
+
+test_hostname_gateway_response_should_contain \
+  "request for a too long CID at example.com/ipfs/{CIDv1} returns human readable error" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "CID incompatible with DNS label length limit of 63"
+
+test_hostname_gateway_response_should_contain \
+  "request for a too long CID at example.com/ipfs/{CIDv1} returns HTTP Error 400 Bad Request" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "400 Bad Request"
+
+test_hostname_gateway_response_should_contain \
+  "request for a too long CID at {CIDv1}.ipfs.example.com returns HTTP Error 400 Bad Request" \
+  "$CIDv1_TOO_LONG.ipfs.example.com" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "400 Bad Request"
 
 # Disable selected Paths for the subdomain gateway hostname
 # =============================================================================
