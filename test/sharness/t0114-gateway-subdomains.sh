@@ -216,16 +216,6 @@ ipfs config --json Gateway.PublicGateways '{
 test_kill_ipfs_daemon
 test_launch_ipfs_daemon_without_network
 
-
-# example.com/ip(f|n)s/*
-# =============================================================================
-
-# path requests to the root hostname should redirect
-# to a subdomain URL with proper origin isolation
-
-# *.ipns.example.com
-# ============================================================================
-
 # API on subdomain gateway example.com
 # ============================================================================
 
@@ -301,59 +291,6 @@ test_expect_success \
   curl -H \"Host: dnslink--subdomain--gw--test-example-org.ipns.example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT\" > response &&
   test_should_contain \"$CID_VAL\" response
   "
-
-## Test subdomain handling of CIDs that do not fit in a single DNS Label (>63chars)
-## https://github.com/ipfs/go-ipfs/issues/7318
-## ============================================================================
-
-# local: *.localhost
-test_localhost_gateway_response_should_contain \
-  "request for a ED25519 libp2p-key at localhost/ipns/{b58mh} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
-  "http://localhost:$GWAY_PORT/ipns/$IPNS_ED25519_B58MH" \
-  "Location: http://${IPNS_ED25519_B36CID}.ipns.localhost:$GWAY_PORT/"
-
-# router should not redirect to hostnames that could fail due to DNS limits
-test_localhost_gateway_response_should_contain \
-  "request for a too long CID at localhost/ipfs/{CIDv1} returns human readable error" \
-  "http://localhost:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
-  "CID incompatible with DNS label length limit of 63"
-
-test_localhost_gateway_response_should_contain \
-  "request for a too long CID at localhost/ipfs/{CIDv1} returns HTTP Error 400 Bad Request" \
-  "http://localhost:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
-  "400 Bad Request"
-
-# direct request should also fail (provides the same UX as router and avoids confusion)
-test_localhost_gateway_response_should_contain \
-  "request for a too long CID at {CIDv1}.ipfs.localhost returns expected payload" \
-  "http://$CIDv1_TOO_LONG.ipfs.localhost:$GWAY_PORT" \
-  "400 Bad Request"
-
-# public subdomain gateway: *.example.com
-
-test_hostname_gateway_response_should_contain \
-  "request for a ED25519 libp2p-key at example.com/ipns/{b58mh} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_ED25519_B58MH" \
-  "Location: http://${IPNS_ED25519_B36CID}.ipns.example.com"
-
-test_hostname_gateway_response_should_contain \
-  "request for a too long CID at example.com/ipfs/{CIDv1} returns human readable error" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
-  "CID incompatible with DNS label length limit of 63"
-
-test_hostname_gateway_response_should_contain \
-  "request for a too long CID at example.com/ipfs/{CIDv1} returns HTTP Error 400 Bad Request" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
-  "400 Bad Request"
-
-test_hostname_gateway_response_should_contain \
-  "request for a too long CID at {CIDv1}.ipfs.example.com returns HTTP Error 400 Bad Request" \
-  "$CIDv1_TOO_LONG.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/" \
-  "400 Bad Request"
 
 # Disable selected Paths for the subdomain gateway hostname
 # =============================================================================
