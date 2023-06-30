@@ -9,6 +9,10 @@ on:
       - reopened
       - labeled
       - unlabeled
+    paths:
+      - '**.go'
+      - '**/go.mod'
+      - '**/go.sum'
 
 jobs:
   changelog:
