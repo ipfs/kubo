@@ -663,20 +663,7 @@ Type: `flag`
 
 Headers to set on gateway responses.
 
-Default:
-```json
-{
-	"Access-Control-Allow-Headers": [
-		"X-Requested-With"
-	],
-	"Access-Control-Allow-Methods": [
-		"GET"
-	],
-	"Access-Control-Allow-Origin": [
-		"*"
-	]
-}
-```
+Default: `{}` + implicit CORS headers from `boxo/gateway#AddAccessControlHeaders` and [ipfs/specs#423](https://github.com/ipfs/specs/issues/423)
 
 Type: `object[string -> array[string]]`
 
