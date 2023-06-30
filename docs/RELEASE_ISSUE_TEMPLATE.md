@@ -84,7 +84,7 @@ This section covers tasks to be done ahead of the release.
 
 This section covers tasks to be done during each release.
 
-- [ ] Prepare the release branch and update version numbers accordingly <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) prepare-branch` or ...</summary>
+- [ ] Prepare the release branch and update version numbers accordingly <details><summary>using `./kuboreleaser --skip-check-before release --version vX.Y.Z(-rcN) prepare-branch` or ...</summary>
   - [ ] create a new branch `release-vX.Y.Z`
     - use `master` as base if `Z == 0`
     - use `release` as base if `Z > 0`
