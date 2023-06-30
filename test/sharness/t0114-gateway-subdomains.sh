@@ -139,6 +139,30 @@ test_localhost_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
   "$CID_VAL"
 
+
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+
+# We return human-readable body with HTTP 301 so existing cli scripts that use path-based
+# gateway are informed to enable following HTTP redirects
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipfs/{CIDv1} includes human-readable link and redirect info in HTTP 301 body" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
+  ">Moved Permanently</a>"
+
+# end Kubo specific end-to-end test
+
+
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain" \
+  "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
+  "Location: http://en.wikipedia-on-ipfs.org.ipns.localhost:$GWAY_PORT/wiki"
+
+# end Kubo specific end-to-end test
+
 # API on localhost subdomain gateway
 
 # /api/v0 present on the root hostname
@@ -162,6 +186,32 @@ test_localhost_gateway_response_should_contain \
 ## Test subdomain-based requests to a local gateway with default config
 ## (origin per content root at http://*.localhost)
 ## ============================================================================
+
+
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+# This tests link to parent specific to boxo + relative pathing end-to-end tests specific to Kubo.
+
+# {CID}.ipfs.localhost/sub/dir (Directory Listing)
+DIR_HOSTNAME="${DIR_CID}.ipfs.localhost:$GWAY_PORT"
+
+test_expect_success "valid file and subdirectory paths in directory listing at {cid}.ipfs.localhost" '
+  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME" > list_response &&
+  test_should_contain "<a href=\"/hello\">hello</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs\">ipfs</a>" list_response
+'
+
+test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.localhost/sub/dir" '
+  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/ipfs/ipns/" > list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/..\">..</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/bar\">bar</a>" list_response
+'
+
+test_expect_success "request for deep path resource at {cid}.ipfs.localhost/sub/dir/file" '
+  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/ipfs/ipns/bar" > list_response &&
+  test_should_contain "text-file-content" list_response
+'
+# end Kubo specific end-to-end test
 
 # <dnslink-fqdn>.ipns.localhost
 
@@ -216,6 +266,35 @@ ipfs config --json Gateway.PublicGateways '{
 test_kill_ipfs_daemon
 test_launch_ipfs_daemon_without_network
 
+
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+# HTML specific to Boxo/Kubo, and relative pathing specific to code in Kubo
+
+# {CID}.ipfs.example.com/sub/dir (Directory Listing)
+DIR_FQDN="${DIR_CID}.ipfs.example.com"
+
+test_expect_success "valid file and directory paths in directory listing at {cid}.ipfs.example.com" '
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT > list_response &&
+  test_should_contain "<a href=\"/hello\">hello</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs\">ipfs</a>" list_response
+'
+
+test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.example.com/sub/dir" '
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/ > list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/..\">..</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/bar\">bar</a>" list_response
+'
+
+# Note 1: we test for sneaky subdir names  {cid}.ipfs.example.com/ipfs/ipns/ :^)
+# Note 2: example.com/ipfs/.. present in HTML will be redirected to subdomain, so this is expected behavior
+test_expect_success "valid breadcrumb links in the header of directory listing at {cid}.ipfs.example.com/sub/dir" '
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/ > list_response &&
+  test_should_contain "Index of" list_response &&
+  test_should_contain "/ipfs/<a href=\"//example.com/ipfs/${DIR_CID}\">${DIR_CID}</a>/<a href=\"//example.com/ipfs/${DIR_CID}/ipfs\">ipfs</a>/<a href=\"//example.com/ipfs/${DIR_CID}/ipfs/ipns\">ipns</a>" list_response
+'
+
+# end Kubo specific end-to-end test
 # API on subdomain gateway example.com
 # ============================================================================
 
@@ -493,6 +572,11 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT/" \
   "$CID_VAL"
 
+
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+# test cofiguration beign wired up correctly end-to-end
+
 ## ============================================================================
 ## Test support for wildcards in gateway config
 ## ============================================================================
@@ -604,3 +688,5 @@ test_expect_success "clean up ipfs dir" '
 '
 
 test_done
+
+# end Kubo specific end-to-end test
