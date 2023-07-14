@@ -14,7 +14,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
-	rcmgrObs "github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 	"github.com/multiformats/go-multiaddr"
 	"go.uber.org/fx"
 
@@ -70,7 +69,7 @@ filled in with autocomputed defaults.`)
 				return nil, opts, err
 			}
 
-			str, err := rcmgrObs.NewStatsTraceReporter()
+			str, err := rcmgr.NewStatsTraceReporter()
 			if err != nil {
 				return nil, opts, err
 			}
