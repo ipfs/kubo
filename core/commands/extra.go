@@ -1,6 +1,6 @@
 package commands
 
-import cmds "github.com/ipfs/go-ipfs-cmds"
+import cmds "github.com/stateless-minds/go-ipfs-cmds"
 
 func CreateCmdExtras(opts ...func(e *cmds.Extra)) *cmds.Extra {
 	e := new(cmds.Extra)

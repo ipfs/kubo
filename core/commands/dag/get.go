@@ -13,7 +13,7 @@ import (
 	"github.com/ipld/go-ipld-prime/traversal"
 	mc "github.com/multiformats/go-multicodec"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {

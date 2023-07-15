@@ -1,7 +1,7 @@
 package keyencode
 
 import (
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	mbase "github.com/multiformats/go-multibase"
 )

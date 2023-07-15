@@ -9,7 +9,7 @@ import (
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
 	humanize "github.com/dustin/go-humanize"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	metrics "github.com/libp2p/go-libp2p/core/metrics"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	protocol "github.com/libp2p/go-libp2p/core/protocol"

@@ -9,7 +9,7 @@ import (
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	ncmd "github.com/ipfs/kubo/core/commands/name"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 const (

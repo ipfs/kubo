@@ -13,7 +13,7 @@ import (
 	basicnode "github.com/ipld/go-ipld-prime/node/basic"
 
 	"github.com/ipfs/boxo/files"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	mc "github.com/multiformats/go-multicodec"
 

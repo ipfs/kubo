@@ -15,7 +15,7 @@ import (
 	"github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
 	mfs "github.com/ipfs/boxo/mfs"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	mh "github.com/multiformats/go-multihash"
 )

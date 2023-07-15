@@ -14,7 +14,7 @@ import (
 	path "github.com/ipfs/boxo/coreiface/path"
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
 	unixfs_pb "github.com/ipfs/boxo/ipld/unixfs/pb"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 // LsLink contains printable data for a single ipld link in ls output

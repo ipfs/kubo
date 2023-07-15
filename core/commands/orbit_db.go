@@ -18,7 +18,7 @@ import (
 	orbitdb "github.com/stateless-minds/go-orbit-db"
 	orbitdb_iface "github.com/stateless-minds/go-orbit-db/iface"
 	"github.com/stateless-minds/go-orbit-db/stores"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 const dbAddressDemandSupply = "/orbitdb/bafyreia6t57n2uyfgpwpjqsztoxiiluc5xwcidfrfulc4i2quyd65uhmpe/demand_supply"

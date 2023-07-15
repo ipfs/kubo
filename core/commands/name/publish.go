@@ -11,7 +11,7 @@ import (
 	iface "github.com/ipfs/boxo/coreiface"
 	options "github.com/ipfs/boxo/coreiface/options"
 	path "github.com/ipfs/boxo/coreiface/path"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
 )
 

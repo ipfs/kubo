@@ -13,7 +13,7 @@ import (
 	options "github.com/ipfs/boxo/coreiface/options"
 	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
 	path "github.com/ipfs/boxo/path"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
 )
 

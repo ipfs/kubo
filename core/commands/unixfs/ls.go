@@ -11,7 +11,7 @@ import (
 	path "github.com/ipfs/boxo/coreiface/path"
 	merkledag "github.com/ipfs/boxo/ipld/merkledag"
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 type LsLink struct {

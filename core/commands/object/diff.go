@@ -6,7 +6,7 @@ import (
 
 	path "github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/ipld/merkledag/dagutils"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 )

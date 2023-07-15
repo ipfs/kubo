@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 func TestGetOutputPath(t *testing.T) {

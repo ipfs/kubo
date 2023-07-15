@@ -4,7 +4,7 @@ import (
 	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 func dagResolve(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {

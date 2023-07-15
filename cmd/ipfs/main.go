@@ -15,9 +15,9 @@ import (
 
 	"github.com/google/uuid"
 	u "github.com/ipfs/boxo/util"
-	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs-cmds/cli"
-	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
+	"github.com/stateless-minds/go-ipfs-cmds/cli"
+	cmdhttp "github.com/stateless-minds/go-ipfs-cmds/http"
 	logging "github.com/ipfs/go-log"
 	"github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"

@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ipfs/go-ipfs-cmds"
+	"github.com/stateless-minds/go-ipfs-cmds"
 )
 
 type commandEncoder struct {

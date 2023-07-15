@@ -15,7 +15,7 @@ import (
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	path "github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"

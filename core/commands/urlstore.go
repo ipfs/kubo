@@ -10,7 +10,7 @@ import (
 
 	"github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 var urlStoreCmd = &cmds.Command{

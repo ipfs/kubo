@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
 	lwriter "github.com/ipfs/go-log/writer"
 )

@@ -10,7 +10,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/pin"
 	unixfs "github.com/ipfs/kubo/core/commands/unixfs"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
 )
 

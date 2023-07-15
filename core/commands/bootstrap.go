@@ -10,7 +10,7 @@ import (
 	repo "github.com/ipfs/kubo/repo"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	config "github.com/ipfs/kubo/config"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	ma "github.com/multiformats/go-multiaddr"

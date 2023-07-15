@@ -16,7 +16,7 @@ import (
 	path "github.com/ipfs/boxo/coreiface/path"
 	ipfspath "github.com/ipfs/boxo/path"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 const (

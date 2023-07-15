@@ -11,8 +11,8 @@ import (
 	"os"
 
 	"github.com/ipfs/boxo/files"
-	cmds "github.com/ipfs/go-ipfs-cmds"
-	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
+	cmdhttp "github.com/stateless-minds/go-ipfs-cmds/http"
 )
 
 type Error = cmds.Error

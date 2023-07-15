@@ -3,7 +3,7 @@ package main
 import (
 	commands "github.com/ipfs/kubo/core/commands"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 // Root is the CLI root, used for executing commands accessible to CLI clients.

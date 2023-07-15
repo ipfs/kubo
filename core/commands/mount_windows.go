@@ -3,7 +3,7 @@ package commands
 import (
 	"errors"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 var MountCmd = &cmds.Command{

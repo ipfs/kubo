@@ -14,7 +14,7 @@ import (
 
 	options "github.com/ipfs/boxo/coreiface/options"
 	keystore "github.com/ipfs/boxo/keystore"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	oldcmds "github.com/ipfs/kubo/commands"
 	config "github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"

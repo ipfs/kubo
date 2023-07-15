@@ -9,7 +9,7 @@ import (
 	"github.com/ipfs/kubo/core"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	manet "github.com/multiformats/go-multiaddr/net"
 	sysi "github.com/whyrusleeping/go-sysinfo"
 )

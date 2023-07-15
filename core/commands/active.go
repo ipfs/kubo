@@ -9,7 +9,7 @@ import (
 
 	oldcmds "github.com/ipfs/kubo/commands"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 const (

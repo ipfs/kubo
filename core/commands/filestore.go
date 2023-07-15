@@ -7,7 +7,7 @@ import (
 	"os"
 
 	filestore "github.com/ipfs/boxo/filestore"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	core "github.com/ipfs/kubo/core"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	e "github.com/ipfs/kubo/core/commands/e"

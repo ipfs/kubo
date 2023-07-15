@@ -47,8 +47,6 @@ github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 h1:cTp8I5+VIo
 github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/Kubuxu/go-os-helper v0.0.1 h1:EJiD2VUQyh5A9hWJLmc6iWg6yIcJ7jpBcwC8GMGXfDk=
-github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
 github.com/OneOfOne/xxhash v1.2.2 h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
@@ -359,8 +357,8 @@ github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.10.2-0.20230629143123-2d3edc552442 h1:SGbw381zt6c1VFf3QCBaJ+eVJ4AwD9fPaFKFp9U9Apk=
-github.com/ipfs/boxo v0.10.2-0.20230629143123-2d3edc552442/go.mod h1:1qgKq45mPRCxf4ZPoJV2lnXxyxucigILMJOrQrVivv8=
+github.com/ipfs/boxo v0.10.3-0.20230706061345-cfad09d7156e h1:pRGcyTcJ5pHRYZ0QMTpbufZfG/kkyiQ0I23f/qzz99Y=
+github.com/ipfs/boxo v0.10.3-0.20230706061345-cfad09d7156e/go.mod h1:8IfDmp+FzFGcF4zjAgHMVPpwYw4AjN9ePEzDfkaYJ1w=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-bitswap v0.11.0 h1:j1WVvhDX1yhG32NTC9xfxnqycqYIlhzEzLXG/cU1HyQ=
@@ -405,8 +403,6 @@ github.com/ipfs/go-ipfs-blockstore v1.3.0 h1:m2EXaWgwTzAfsmt5UdJ7Is6l4gJcaM/A12X
 github.com/ipfs/go-ipfs-blockstore v1.3.0/go.mod h1:KgtZyc9fq+P2xJUiCAzbRdhhqJHvsw8u2Dlqy2MyRTE=
 github.com/ipfs/go-ipfs-blocksutil v0.0.1 h1:Eh/H4pc1hsvhzsQoMEP3Bke/aW5P5rVM1IWFJMcGIPQ=
 github.com/ipfs/go-ipfs-chunker v0.0.5 h1:ojCf7HV/m+uS2vhUGWcogIIxiO5ubl5O57Q7NapWLY8=
-github.com/ipfs/go-ipfs-cmds v0.9.0 h1:K0VcXg1l1k6aY6sHnoxYcyimyJQbcV1ueXuWgThmK9Q=
-github.com/ipfs/go-ipfs-cmds v0.9.0/go.mod h1:SBFHK8WNwC416QWH9Vz1Ql42SSMAOqKpaHUMBu3jpLo=
 github.com/ipfs/go-ipfs-delay v0.0.0-20181109222059-70721b86a9a8/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
 github.com/ipfs/go-ipfs-delay v0.0.1 h1:r/UXYyRcddO6thwOnhiznIAiSvxMECGgtv35Xs1IeRQ=
 github.com/ipfs/go-ipfs-delay v0.0.1/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
@@ -846,10 +842,12 @@ github.com/spf13/jwalterweatherman v1.0.0/go.mod h1:cQK4TGJAtQXfYWX+Ddv3mKDzgVb6
 github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/src-d/envconfig v1.0.0/go.mod h1:Q9YQZ7BKITldTBnoxsE5gOeB5y66RyPXeue/R4aaNBc=
-github.com/stateless-minds/go-ipfs-log v1.11.0 h1:rZ0aJ2rg1RmzzPe1r+asO7z+LI1Yg0Hcwxapw9sqlwE=
-github.com/stateless-minds/go-ipfs-log v1.11.0/go.mod h1:mVE2HV8r8WRlWuuH4MWAk5NrM58+9fR7s5+aUVsoAaE=
-github.com/stateless-minds/go-orbit-db v1.23.0 h1:oidDBjK+T6N+MF4vmf9Th3VbS5DZCUEoIR9kFwckDzA=
-github.com/stateless-minds/go-orbit-db v1.23.0/go.mod h1:0k7EW0Z+uoMhjB5Rki7TpoBuFaP30PA1SwTFjFCb30I=
+github.com/stateless-minds/go-ipfs-cmds v0.9.5 h1:ylNS5O8rVV+zRXcfKpZYLdVrjxK0AP0za7ATP5LMUHI=
+github.com/stateless-minds/go-ipfs-cmds v0.9.5/go.mod h1:XOiuOTZxxj0oNssF7ninDgP/kwQOoL4uGD079q2VpAA=
+github.com/stateless-minds/go-ipfs-log v1.11.3 h1:o4uuG14wOXCFkDWj4/xYHsTsDjhhh76YQON4PTzAcR4=
+github.com/stateless-minds/go-ipfs-log v1.11.3/go.mod h1:AaQL0u1ktJurn+mSDpR3XKZeFV1WZW4qjmekxDsaf5w=
+github.com/stateless-minds/go-orbit-db v1.23.1 h1:Up4MxvR3h/H+/RECVfdLw67ju1bq3rrz+1rW5bF+YZE=
+github.com/stateless-minds/go-orbit-db v1.23.1/go.mod h1:QZhw1/eSu5Sq3ftOulSS5HybZFe9iWPc/Nd4VfKzaHk=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=

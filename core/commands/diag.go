@@ -1,7 +1,7 @@
 package commands
 
 import (
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 var DiagCmd = &cmds.Command{

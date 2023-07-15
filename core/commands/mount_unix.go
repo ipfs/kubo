@@ -11,7 +11,7 @@ import (
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	nodeMount "github.com/ipfs/kubo/fuse/node"
 
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	config "github.com/ipfs/kubo/config"
 )
 
