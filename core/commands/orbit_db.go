@@ -9,15 +9,15 @@ import (
 	"path/filepath"
 	"sync"
 
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/boxo/coreiface"
 	config "github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	"go.uber.org/zap"
 
-	orbitdb "berty.tech/go-orbit-db"
-	orbitdb_iface "berty.tech/go-orbit-db/iface"
-	"berty.tech/go-orbit-db/stores"
+	orbitdb "github.com/stateless-minds/go-orbit-db"
+	orbitdb_iface "github.com/stateless-minds/go-orbit-db/iface"
+	"github.com/stateless-minds/go-orbit-db/stores"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 

@@ -43,6 +43,10 @@ test_expect_success "cleanup repo" '
 '
 
 test_init_ipfs
+test_expect_success "set Resource Manager variables showed at startup" '
+    ipfs config --json Swarm.ResourceMgr.MaxFileDescriptors 1024 &&
+    ipfs config Swarm.ResourceMgr.MaxMemory 4GB
+'
 test_launch_ipfs_daemon
 
 # this errors if we didn't --init $IPFS_PATH correctly
@@ -78,9 +82,9 @@ test_expect_success "ipfs daemon output looks good" '
   ipfs version --all >> expected_daemon &&
   sed "s/^/Swarm listening on /" listen_addrs >>expected_daemon &&
   sed "s/^/Swarm announcing /" local_addrs >>expected_daemon &&
-  echo "API server listening on '$API_MADDR'" >>expected_daemon &&
+  echo "RPC API server listening on '$API_MADDR'" >>expected_daemon &&
   echo "WebUI: http://'$API_ADDR'/webui" >>expected_daemon &&
-  echo "Gateway (readonly) server listening on '$GWAY_MADDR'" >>expected_daemon &&
+  echo "Gateway server listening on '$GWAY_MADDR'" >>expected_daemon &&
   echo "Daemon is ready" >>expected_daemon &&
   test_cmp expected_daemon actual_daemon
 '

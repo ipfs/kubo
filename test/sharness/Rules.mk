@@ -21,7 +21,7 @@ $(PLUGINS_$(d)): $(ORGIN_PLUGINS_$(d))
 	@mkdir -p $(@D)
 	cp -f plugin/plugins/$(@F) $@
 
-ifneq ($(TEST_NO_PLUGIN),1)
+ifneq ($(TEST_PLUGIN),0)
 DEPS_$(d) += $(PLUGINS_$(d))
 endif
 endif
@@ -42,10 +42,10 @@ $(d)/aggregate: $(T_$(d))
 	@(cd $(@D) && ./lib/test-aggregate-results.sh)
 .PHONY: $(d)/aggregate
 
-$(d)/test-results/sharness.xml: export TEST_GENERATE_JUNIT=1
-$(d)/test-results/sharness.xml: test_sharness_expensive
+$(d)/test-results/sharness.xml: $(T_$(d))
 	@echo "*** $@ ***"
-	@(cd $(@D)/.. && ./lib/gen-junit-report.sh)
+	@(cd $(@D)/.. && ./lib/test-aggregate-junit-reports.sh)
+.PHONY: $(d)/test-results/sharness.xml
 
 $(d)/clean-test-results:
 	rm -rf $(@D)/test-results
@@ -62,16 +62,10 @@ $(d)/deps: $(SHARNESS_$(d)) $$(DEPS_$(d)) # use second expansion so coverage can
 test_sharness_deps: $(d)/deps
 .PHONY: test_sharness_deps
 
-test_sharness_short: $(d)/aggregate
-.PHONY: test_sharness_short
+test_sharness: $(d)/aggregate
+.PHONY: test_sharness
 
-
-test_sharness_expensive: export TEST_EXPENSIVE=1
-test_sharness_expensive: test_sharness_short
-.PHONY: test_sharness_expensive
-
-TEST += test_sharness_expensive
-TEST_SHORT += test_sharness_short
+TEST += test_sharness
 
 
 include mk/footer.mk

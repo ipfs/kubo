@@ -18,18 +18,19 @@ import (
 	"errors"
 	"fmt"
 
-	bserv "github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-fetcher"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	offlinexch "github.com/ipfs/go-ipfs-exchange-offline"
-	pin "github.com/ipfs/go-ipfs-pinner"
-	provider "github.com/ipfs/go-ipfs-provider"
-	offlineroute "github.com/ipfs/go-ipfs-routing/offline"
+	bserv "github.com/ipfs/boxo/blockservice"
+	blockstore "github.com/ipfs/boxo/blockstore"
+	coreiface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/coreiface/options"
+	exchange "github.com/ipfs/boxo/exchange"
+	offlinexch "github.com/ipfs/boxo/exchange/offline"
+	"github.com/ipfs/boxo/fetcher"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	pathresolver "github.com/ipfs/boxo/path/resolver"
+	pin "github.com/ipfs/boxo/pinning/pinner"
+	provider "github.com/ipfs/boxo/provider"
+	offlineroute "github.com/ipfs/boxo/routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
-	dag "github.com/ipfs/go-merkledag"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/options"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
@@ -39,7 +40,7 @@ import (
 	routing "github.com/libp2p/go-libp2p/core/routing"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
-	"github.com/ipfs/go-namesys"
+	"github.com/ipfs/boxo/namesys"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/repo"
@@ -65,9 +66,11 @@ type CoreAPI struct {
 	recordValidator      record.Validator
 	exchange             exchange.Interface
 
-	namesys     namesys.NameSystem
-	routing     routing.Routing
-	dnsResolver *madns.Resolver
+	namesys            namesys.NameSystem
+	routing            routing.Routing
+	dnsResolver        *madns.Resolver
+	ipldPathResolver   pathresolver.Resolver
+	unixFSPathResolver pathresolver.Resolver
 
 	provider provider.System
 
@@ -144,6 +147,11 @@ func (api *CoreAPI) PubSub() coreiface.PubSubAPI {
 	return (*PubSubAPI)(api)
 }
 
+// Routing returns the RoutingAPI interface implementation backed by the kubo node
+func (api *CoreAPI) Routing() coreiface.RoutingAPI {
+	return (*RoutingAPI)(api)
+}
+
 // WithOptions returns api with global options applied
 func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, error) {
 	settings := api.parentOpts // make sure to copy
@@ -174,13 +182,15 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		ipldFetcherFactory:   n.IPLDFetcherFactory,
 		unixFSFetcherFactory: n.UnixFSFetcherFactory,
 
-		peerstore:       n.Peerstore,
-		peerHost:        n.PeerHost,
-		namesys:         n.Namesys,
-		recordValidator: n.RecordValidator,
-		exchange:        n.Exchange,
-		routing:         n.Routing,
-		dnsResolver:     n.DNSResolver,
+		peerstore:          n.Peerstore,
+		peerHost:           n.PeerHost,
+		namesys:            n.Namesys,
+		recordValidator:    n.RecordValidator,
+		exchange:           n.Exchange,
+		routing:            n.Routing,
+		dnsResolver:        n.DNSResolver,
+		ipldPathResolver:   n.IPLDPathResolver,
+		unixFSPathResolver: n.UnixFSPathResolver,
 
 		provider: n.Provider,
 
@@ -228,7 +238,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
 
-		subAPI.provider = provider.NewOfflineProvider()
+		subAPI.provider = provider.NewNoopProvider()
 
 		subAPI.peerstore = nil
 		subAPI.peerHost = nil

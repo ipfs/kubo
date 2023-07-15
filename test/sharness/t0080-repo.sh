@@ -8,7 +8,7 @@ test_description="Test ipfs repo operations"
 
 . lib/test-lib.sh
 
-test_init_ipfs
+test_init_ipfs --empty-repo=false
 test_launch_ipfs_daemon_without_network
 
 test_expect_success "'ipfs repo gc' succeeds" '

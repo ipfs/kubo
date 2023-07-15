@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-merkledag"
-	uio "github.com/ipfs/go-unixfs/io"
-	"github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/ipld/merkledag"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipld/go-ipld-prime"
 )
 
@@ -19,7 +19,7 @@ func TestPathUnixFSHAMTPartial(t *testing.T) {
 	defer cancel()
 
 	// Create a node
-	apis, err := NodeProvider{}.MakeAPISwarm(ctx, true, 1)
+	apis, err := NodeProvider{}.MakeAPISwarm(t, ctx, true, true, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

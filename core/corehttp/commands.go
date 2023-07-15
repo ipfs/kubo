@@ -9,15 +9,15 @@ import (
 	"strconv"
 	"strings"
 
-	version "github.com/ipfs/kubo"
-	oldcmds "github.com/ipfs/kubo/commands"
-	"github.com/ipfs/kubo/core"
-	corecommands "github.com/ipfs/kubo/core/commands"
-
+	path "github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdsHttp "github.com/ipfs/go-ipfs-cmds/http"
-	path "github.com/ipfs/go-path"
+	version "github.com/ipfs/kubo"
+	oldcmds "github.com/ipfs/kubo/commands"
 	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core"
+	corecommands "github.com/ipfs/kubo/core/commands"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 var (
@@ -148,6 +148,7 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) 
 		patchCORSVars(cfg, l.Addr())
 
 		cmdHandler := cmdsHttp.NewHandler(&cctx, command, cfg)
+		cmdHandler = otelhttp.NewHandler(cmdHandler, "corehttp.cmdsHandler")
 		mux.Handle(APIPath+"/", cmdHandler)
 		return mux, nil
 	}

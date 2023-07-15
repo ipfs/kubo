@@ -27,7 +27,7 @@ test_expect_success "test ping other" '
 
 test_expect_success "test ping unreachable peer" '
   printf "Looking up peer %s\n" "$BAD_PEER" > bad_ping_exp &&
-  printf "PING QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJx.\nPing error: routing: not found\nError: ping failed\n" >> bad_ping_exp &&
+  printf "PING QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJx.\nPing error: no addresses\nError: ping failed\n" >> bad_ping_exp &&
   ! ipfsi 0 ping -n2 -- "$BAD_PEER" > bad_ping_actual 2>&1 &&
   test_cmp bad_ping_exp bad_ping_actual
 '

@@ -4,20 +4,21 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ipfs/go-blockservice"
+	"github.com/ipfs/boxo/blockservice"
+	blockstore "github.com/ipfs/boxo/blockstore"
+	exchange "github.com/ipfs/boxo/exchange"
+	"github.com/ipfs/boxo/fetcher"
+	bsfetcher "github.com/ipfs/boxo/fetcher/impl/blockservice"
+	"github.com/ipfs/boxo/filestore"
+	"github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipld/unixfs"
+	"github.com/ipfs/boxo/mfs"
+	pathresolver "github.com/ipfs/boxo/path/resolver"
+	pin "github.com/ipfs/boxo/pinning/pinner"
+	"github.com/ipfs/boxo/pinning/pinner/dspinner"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-fetcher"
-	bsfetcher "github.com/ipfs/go-fetcher/impl/blockservice"
-	"github.com/ipfs/go-filestore"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	pin "github.com/ipfs/go-ipfs-pinner"
-	"github.com/ipfs/go-ipfs-pinner/dspinner"
 	format "github.com/ipfs/go-ipld-format"
-	"github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-mfs"
-	"github.com/ipfs/go-unixfs"
 	"github.com/ipfs/go-unixfsnode"
 	dagpb "github.com/ipld/go-codec-dagpb"
 	"github.com/ipld/go-ipld-prime"
@@ -83,14 +84,22 @@ func (s *syncDagService) Session(ctx context.Context) format.NodeGetter {
 	return merkledag.NewSession(ctx, s.DAGService)
 }
 
-type fetchersOut struct {
+// FetchersOut allows injection of fetchers.
+type FetchersOut struct {
 	fx.Out
 	IPLDFetcher   fetcher.Factory `name:"ipldFetcher"`
 	UnixfsFetcher fetcher.Factory `name:"unixfsFetcher"`
 }
 
+// FetchersIn allows using fetchers for other dependencies.
+type FetchersIn struct {
+	fx.In
+	IPLDFetcher   fetcher.Factory `name:"ipldFetcher"`
+	UnixfsFetcher fetcher.Factory `name:"unixfsFetcher"`
+}
+
 // FetcherConfig returns a fetcher config that can build new fetcher instances
-func FetcherConfig(bs blockservice.BlockService) fetchersOut {
+func FetcherConfig(bs blockservice.BlockService) FetchersOut {
 	ipldFetcher := bsfetcher.NewFetcherConfig(bs)
 	ipldFetcher.PrototypeChooser = dagpb.AddSupportToChooser(func(lnk ipld.Link, lnkCtx ipld.LinkContext) (ipld.NodePrototype, error) {
 		if tlnkNd, ok := lnkCtx.LinkNode.(schema.TypedLinkNode); ok {
@@ -100,7 +109,22 @@ func FetcherConfig(bs blockservice.BlockService) fetchersOut {
 	})
 
 	unixFSFetcher := ipldFetcher.WithReifier(unixfsnode.Reify)
-	return fetchersOut{IPLDFetcher: ipldFetcher, UnixfsFetcher: unixFSFetcher}
+	return FetchersOut{IPLDFetcher: ipldFetcher, UnixfsFetcher: unixFSFetcher}
+}
+
+// PathResolversOut allows injection of path resolvers
+type PathResolversOut struct {
+	fx.Out
+	IPLDPathResolver   pathresolver.Resolver `name:"ipldPathResolver"`
+	UnixFSPathResolver pathresolver.Resolver `name:"unixFSPathResolver"`
+}
+
+// PathResolverConfig creates path resolvers with the given fetchers.
+func PathResolverConfig(fetchers FetchersIn) PathResolversOut {
+	return PathResolversOut{
+		IPLDPathResolver:   pathresolver.NewBasicResolver(fetchers.IPLDFetcher),
+		UnixFSPathResolver: pathresolver.NewBasicResolver(fetchers.UnixfsFetcher),
+	}
 }
 
 // Dag creates new DAGService

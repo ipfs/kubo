@@ -17,6 +17,7 @@ import (
 var log = logging.Logger("core/commands")
 
 var ErrNotOnline = errors.New("this command must be run in online mode. Try running 'ipfs daemon' first")
+var ErrSelfUnsupported = errors.New("finding your own node in the DHT is currently not supported")
 
 const (
 	RepoDirOption    = "repo-dir"

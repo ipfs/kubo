@@ -34,7 +34,7 @@ reprovide() {
 init_strategy 'all'
 
 test_expect_success 'add test object' '
-  HASH_0=$(echo "foo" | ipfsi 0 add -q --local)
+  HASH_0=$(date +"%FT%T.%N%z" | ipfsi 0 add -q --local)
 '
 
 findprovs_empty '$HASH_0'
@@ -49,8 +49,8 @@ test_expect_success 'Stop iptb' '
 init_strategy 'pinned'
 
 test_expect_success 'prepare test files' '
-  echo foo > f1 &&
-  echo bar > f2
+  date +"%FT%T.%N%z" > f1 &&
+  date +"%FT%T.%N%z" > f2
 '
 
 test_expect_success 'add test objects' '
@@ -77,9 +77,9 @@ test_expect_success 'Stop iptb' '
 init_strategy 'roots'
 
 test_expect_success 'prepare test files' '
-  echo foo > f1 &&
-  echo bar > f2 &&
-  echo baz > f3
+  date +"%FT%T.%N%z" > f1 &&
+  date +"%FT%T.%N%z" > f2 &&
+  date +"%FT%T.%N%z" > f3
 '
 
 test_expect_success 'add test objects' '
@@ -121,7 +121,7 @@ test_expect_success 'Disable reprovider ticking' '
 startup_cluster ${NUM_NODES}
 
 test_expect_success 'add test object' '
-  HASH_0=$(echo "foo" | ipfsi 0 add -q --offline)
+  HASH_0=$(date +"%FT%T.%N%z" | ipfsi 0 add -q --offline)
 '
 
 findprovs_empty '$HASH_0'

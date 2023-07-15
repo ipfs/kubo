@@ -7,10 +7,10 @@ import (
 	"time"
 
 	humanize "github.com/dustin/go-humanize"
+	"github.com/ipfs/boxo/provider"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
-
-	"github.com/ipfs/go-ipfs-provider/batched"
+	"golang.org/x/exp/constraints"
 )
 
 var statProvideCmd = &cmds.Command{
@@ -34,12 +34,7 @@ This interface is not stable and may change from release to release.
 			return ErrNotOnline
 		}
 
-		sys, ok := nd.Provider.(*batched.BatchProvidingSystem)
-		if !ok {
-			return fmt.Errorf("can only return stats if Experimental.AcceleratedDHTClient is enabled")
-		}
-
-		stats, err := sys.Stat(req.Context)
+		stats, err := nd.Provider.Stat()
 		if err != nil {
 			return err
 		}
@@ -51,7 +46,7 @@ This interface is not stable and may change from release to release.
 		return nil
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, s *batched.BatchedProviderStats) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, s *provider.ReproviderStats) error {
 			wtr := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
 			defer wtr.Flush()
 
@@ -62,14 +57,14 @@ This interface is not stable and may change from release to release.
 			return nil
 		}),
 	},
-	Type: batched.BatchedProviderStats{},
+	Type: provider.ReproviderStats{},
 }
 
 func humanDuration(val time.Duration) string {
 	return val.Truncate(time.Microsecond).String()
 }
 
-func humanNumber(n int) string {
+func humanNumber[T constraints.Float | constraints.Integer](n T) string {
 	nf := float64(n)
 	str := humanSI(nf, 0)
 	fullStr := humanFull(nf, 0)

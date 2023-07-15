@@ -19,8 +19,8 @@ import (
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 
 	fstest "bazil.org/fuse/fs/fstestutil"
+	u "github.com/ipfs/boxo/util"
 	racedet "github.com/ipfs/go-detect-race"
-	u "github.com/ipfs/go-ipfs-util"
 	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
 

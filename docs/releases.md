@@ -16,6 +16,7 @@
   - [Security Fix Policy](#security-fix-policy)
   - [Performing a Release](#performing-a-release)
   - [Release Version Numbers (aka semver)](#release-version-numbers-aka-semver)
+  - [_Footnotes_](#footnotes)
 
 ## Release Philosophy
 
@@ -111,6 +112,8 @@ Post `kubo` 1.X.X (future), `kubo` will use semver. This means that only major r
 We do not yet retroactively apply fixes to older releases (no Long Term Support releases for now), which means that we always recommend users to update to the latest, whenever possible.
 
 ----------------------------
+
+## _Footnotes_
 
 - <sup>**[1]**</sup> - _early testers_ is an IPFS programme in which members of the community can self-volunteer to help test `kubo` Release Candidates. You find more info about it at [EARLY_TESTERS.md](./EARLY_TESTERS.md)
 - <sup>**[2]**</sup> - A non-trivial change is any change that could potentially introduce an issue not trivially caught by automated testing. This is up to the discretion of the Lead Maintainer but the assumption is that every change is non-trivial unless proven otherwise.
