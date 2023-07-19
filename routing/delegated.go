@@ -105,10 +105,11 @@ func parse(visited map[string]bool,
 			}
 
 			pr = append(pr, &routinghelpers.ParallelRouter{
-				Router:       ri,
-				IgnoreError:  cr.IgnoreErrors,
-				Timeout:      cr.Timeout.Duration,
-				ExecuteAfter: cr.ExecuteAfter.WithDefault(0),
+				Router:                         ri,
+				IgnoreError:                    cr.IgnoreErrors,
+				DoNotWaitForStreamingResponses: cr.DoNotWaitForStreamingResponses,
+				Timeout:                        cr.Timeout.Duration,
+				ExecuteAfter:                   cr.ExecuteAfter.WithDefault(0),
 			})
 
 		}
