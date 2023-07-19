@@ -2,6 +2,16 @@ name: Docker Push
 
 on:
   workflow_dispatch:
+    inputs:
+      push:
+        description: 'Push to Docker Hub'
+        required: true
+        default: 'false'
+  # # If we decide to build all images on every PR, we should make sure that
+  # # they are NOT pushed to Docker Hub.
+  # pull_request:
+  #   paths-ignore:
+  #     - '**/*.md'
   push:
     branches:
       - 'master'
@@ -53,7 +63,54 @@ jobs:
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker image and publish to Docker Hub
+      # We have to build each platform separately because when using multi-arch
+      # builds, only one platform is being loaded into the cache. This would
+      # prevent us from testing the other platforms.
+      - name: Build Docker image (linux/amd64)
+        uses: docker/build-push-action@v4
+        with:
+          platforms: linux/amd64
+          context: .
+          push: false
+          load: true
+          file: ./Dockerfile
+          tags: ${{ env.IMAGE_NAME }}:linux-amd64
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      - name: Build Docker image (linux/arm/v7)
+        uses: docker/build-push-action@v4
+        with:
+          platforms: linux/arm/v7
+          context: .
+          push: false
+          load: true
+          file: ./Dockerfile
+          tags: ${{ env.IMAGE_NAME }}:linux-arm-v7
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      - name: Build Docker image (linux/arm64/v8)
+        uses: docker/build-push-action@v4
+        with:
+          platforms: linux/arm64/v8
+          context: .
+          push: false
+          load: true
+          file: ./Dockerfile
+          tags: ${{ env.IMAGE_NAME }}:linux-arm64-v8
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      # We test all the images on amd64 host here. This uses QEMU to emulate
+      # the other platforms.
+      - run: docker run --rm $IMAGE_NAME:linux-amd64 --version
+      - run: docker run --rm $IMAGE_NAME:linux-arm-v7 --version
+      - run: docker run --rm $IMAGE_NAME:linux-arm64-v8 --version
+
+      # This will only push the previously built images.
+      - if: github.event_name != 'workflow_dispatch' || github.event.inputs.push == 'true'
+        name: Publish to Docker Hub
         uses: docker/build-push-action@v4
         with:
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
@@ -61,7 +118,7 @@ jobs:
           push: true
           file: ./Dockerfile
           tags: "${{ steps.tags.outputs.value }}"
-          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-from: type=local,src=/tmp/.buildx-cache-new
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
       # https://github.com/docker/build-push-action/issues/252
