@@ -13,7 +13,7 @@ Now we need a better way to add different routers using different protocols like
 
 ## Motivation
 
-The actual routing implementation is not enough. Some users needs to have more options when configuring the routing system. The new implementations should be able to:
+The actual routing implementation is not enough. Some users need to have more options when configuring the routing system. The new implementations should be able to:
 
 - [x] Be user-friendly and easy enough to configure, but also versatile
 - [x] Configurable Router execution order
@@ -393,8 +393,7 @@ As test fixtures we can add different use cases here and see how the configurati
   }
 }
 ```
-
-Yaml representation for clarity:
+YAML representation for clarity:
 
 ```yaml
 ---

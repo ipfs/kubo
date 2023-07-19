@@ -1,0 +1,611 @@
+<!-- omit in toc -->
+# Kubo changelog v0.19
+
+## v0.19.2
+
+### Highlights
+
+#### FullRT DHT HTTP Routers
+
+The default HTTP routers are now used when the FullRT DHT client is used. This fixes
+the issue where cid.contact is not being queried by default when the accelerated
+DHT client was enabled. Read more in ([ipfs/kubo#9841](https://github.com/ipfs/kubo/pull/9841)).
+
+### Changelog
+
+<details><summary>Full Changelog</summary>
+
+- github.com/ipfs/kubo:
+  - fix: use default HTTP routers when FullRT DHT client is used (#9841) ([ipfs/kubo#9841](https://github.com/ipfs/kubo/pull/9841))
+  - chore: update version
+
+</details>
+
+### Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| Gus Eggert | 1 | +65/-53 | 4 |
+| Henrique Dias | 1 | +1/-1 | 1 |
+
+## v0.19.1
+
+### 🔦 Highlights
+
+#### DHT Timeouts
+In v0.16.0, Kubo added the ability to configure custom content routers and DHTs with the `custom` router type, and as part of this added a default 5 minute timeout to all DHT operations. In some cases with large repos ([example](https://github.com/ipfs/kubo/issues/9722)), this can cause provide and reprovide operations to fail because the timeout is reached. This release removes these timeouts on DHT operations. If users desire these timeouts, they can be added back using [the `custom` router type](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingrouters-parameters).
+
+### Changelog
+
+<details><summary>Full Changelog</summary>
+
+- github.com/ipfs/kubo:
+  - chore: update version
+  - fix: remove timeout on default DHT operations (#9783) ([ipfs/kubo#9783](https://github.com/ipfs/kubo/pull/9783))
+  - chore: update version
+- github.com/ipfs/go-blockservice (v0.5.0 -> v0.5.1):
+  - chore: release v0.5.1
+  - fix: remove busyloop in getBlocks by removing batching
+- github.com/libp2p/go-libp2p (v0.26.3 -> v0.26.4):
+  - release v0.26.4
+  - autorelay: fix busy loop bug and flaky tests in relay finder (#2208) ([libp2p/go-libp2p#2208](https://github.com/libp2p/go-libp2p/pull/2208))
+- github.com/libp2p/go-libp2p-routing-helpers (v0.6.1 -> v0.6.2):
+  - Release v0.6.2 (#73) ([libp2p/go-libp2p-routing-helpers#73](https://github.com/libp2p/go-libp2p-routing-helpers/pull/73))
+  - feat: zero timeout on composed routers should disable timeout (#72) ([libp2p/go-libp2p-routing-helpers#72](https://github.com/libp2p/go-libp2p-routing-helpers/pull/72))
+
+</details>
+
+### Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| Marco Munizaga | 1 | +347/-46 | 5 |
+| Gus Eggert | 3 | +119/-93 | 8 |
+| Jorropo | 2 | +20/-32 | 2 |
+| galargh | 2 | +2/-2 | 2 |
+| Marten Seemann | 1 | +2/-2 | 1 |
+
+<!-- omit in toc -->
+## v0.19.0
+
+- [Overview](#overview)
+- [🔦 Highlights](#-highlights)
+  - [Improving the libp2p resource management integration](#improving-the-libp2p-resource-management-integration)
+  - [Gateways](#gateways)
+    - [Signed IPNS Record response format](#signed-ipns-record-response-format)
+    - [Example fetch and inspect IPNS record](#example-fetch-and-inspect-ipns-record)
+  - [Addition of "autoclient" router type](#addition-of-autoclient-router-type)
+  - [Deprecation of the `ipfs pubsub` commands and matching HTTP endpoints](#deprecation-of-the-ipfs-pubsub-commands-and-matching-http-endpoints)
+- [📝 Changelog](#-changelog)
+- [👨‍👩‍👧‍👦 Contributors](#-contributors)
+
+### Overview
+
+### 🔦 Highlights
+
+#### Improving the libp2p resource management integration
+
+There are further followups up on libp2p resource manager improvements in Kubo [0.18.0](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.18.md#improving-libp2p-resource-management-integration-1)
+and [0.18.1](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.18.md#improving-libp2p-resource-management-integration):
+1. `ipfs swarm limits` and `ipfs swarm stats` have been replaced by `ipfs swarm resources` to provide a single/combined view for limits and their current usage in a more intuitive ordering.
+1. Removal of `Swarm.ResourceMgr.Limits` config.  Instead [the power user can specify limits in a .json file that are fed directly to go-libp2p](https://github.com/ipfs/kubo/blob/master/docs/libp2p-resource-management.md#user-supplied-override-limits).  This allows the power user to take advantage of the [new resource manager types introduced in go-libp2p 0.25](https://github.com/libp2p/go-libp2p/blob/master/CHANGELOG.md#new-resource-manager-types-) including "use default", "unlimited", "block all".
+   - Note: we don't expect most users to need these capablities, but they are there if so.
+1. [Doc updates](https://github.com/ipfs/kubo/blob/master/docs/libp2p-resource-management.md).
+
+#### Gateways
+
+##### Signed IPNS Record response format
+
+This release implements [IPIP-351](https://github.com/ipfs/specs/pull/351) and
+adds Gateway support for returning signed (verifiable) `ipns-record` (0x0300)
+when `/ipns/{libp2p-key}` is requested with either
+`Accept: application/vnd.ipfs.ipns-record` HTTP header
+or `?format=ipns-record` URL query parameter.
+
+
+The Gateway in Kubo already supported [trustless, verifiable retrieval](https://docs.ipfs.tech/reference/http/gateway/#trustless-verifiable-retrieval) of immutable `/ipfs/` namespace.
+With `?format=ipns-record`, light HTTP clients are now able to get the same level of verifiability for IPNS websites.
+
+Tooling is limited at the moment, but we are working on [go-libipfs](https://github.com/ipfs/go-libipfs/) examples that illustrate the verifiable HTTP client pattern.
+
+##### Example: fetch IPNS record over HTTP and inspect it with `ipfs name inspect --verify`
+
+```console
+$ FILE_CID=$(echo "Hello IPFS" | ipfs add --cid-version 1 -q)
+$ IPNS_KEY=$(ipfs key gen test)
+$ ipfs name publish /ipfs/$FILE_CID --key=test --ttl=30m
+Published to k51q..dvf1: /ipfs/bafk..z244
+$ curl "http://127.0.0.1:8080/ipns/$IPNS_KEY?format=ipns-record" > signed.ipns-record
+$ ipfs name inspect --verify $IPNS_KEY < signed.ipns-record
+Value:         "/ipfs/bafk..."
+Validity Type: "EOL"
+Validity:      2023-03-09T23:13:34.032977468Z
+Sequence:      0
+TTL:           1800000000000
+PublicKey:     ""
+Signature V1:  "m..."
+Signature V2:  "m..."
+Data:          {...}
+
+Validation results:
+ Valid:     true
+ PublicKey: 12D3...
+```
+
+#### Addition of "autoclient" router type
+A new routing type "autoclient" has been added. This mode is similar to "auto", in that it is a hybrid of content routers (including Kademlia and HTTP routers), but it does not run a DHT server. This is similar to the difference between "dhtclient" and "dht" router types.
+
+See the [Routing.Type documentation](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingtype) for more information.
+
+#### Deprecation of the `ipfs pubsub` commands and matching HTTP endpoints
+
+We are deprecating `ipfs pubsub` and all `/api/v0/pubsub/` RPC endpoints and will remove them in the next release.
+
+For more information and rational see [#9717](https://github.com/ipfs/kubo/issues/9717).
+
+### 📝 Changelog
+
+<details><summary>Full Changelog</summary>
+
+- github.com/ipfs/kubo:
+  - chore: update version
+  - docs: 0.19 changelog ([ipfs/kubo#9707](https://github.com/ipfs/kubo/pull/9707))
+  - fix: canonicalize user defined headers
+  - fix: apply API.HTTPHeaders to /webui redirect
+  - feat: add heap allocs to 'ipfs diag profile'
+  - fix: future proof with > rcmgr.DefaultLimit for new enum rcmgr values
+  - test: add test for presarvation of unlimited configs for inbound systems
+  - fix: preserve Unlimited StreamsInbound in connmgr reconciliation
+  - test: fix flaky rcmgr test
+  - chore: deprecate the pubsub api
+  - test: port peering test from sharness to Go
+  - test: use `T.TempDir` to create temporary test directory
+  - fix: --verify forgets the verified key
+  - test: name --verify forgets the verified key
+  - feat: add "autoclient" routing type
+  - test: parallelize more of rcmgr Go tests
+  - test: port legacy DHT tests to Go
+  - fix: t0116-gateway-cache.sh ([ipfs/kubo#9696](https://github.com/ipfs/kubo/pull/9696))
+  - docs: add bifrost to early testers ([ipfs/kubo#9699](https://github.com/ipfs/kubo/pull/9699))
+  - fix: typo in documentation for install path
+  - chore: update version
+  - feat: Reduce RM code footprint
+  - Doc updates/additions
+  - ci: replace junit html generation with gh action
+  - test: port rcmgr sharness tests to Go
+  - test(gateway): use deterministic CAR fixtures ([ipfs/kubo#9657](https://github.com/ipfs/kubo/pull/9657))
+  - feat(gateway): error handling improvements (500, 502, 504) (#9660) ([ipfs/kubo#9660](https://github.com/ipfs/kubo/pull/9660))
+  - docs: be clear about swarm.addrfilters (#9661) ([ipfs/kubo#9661](https://github.com/ipfs/kubo/pull/9661))
+  - chore: update go-libp2p to v0.26 (#9656) ([ipfs/kubo#9656](https://github.com/ipfs/kubo/pull/9656))
+  - feat(pinning): connect some missing go context (#9557) ([ipfs/kubo#9557](https://github.com/ipfs/kubo/pull/9557))
+  - fix(gateway): return HTTP 500 on ErrResolveFailed (#9589) ([ipfs/kubo#9589](https://github.com/ipfs/kubo/pull/9589))
+  - docs: bulk spelling edits (#9544) ([ipfs/kubo#9544](https://github.com/ipfs/kubo/pull/9544))
+  - docs: "remote" errors from resource manager (#9653) ([ipfs/kubo#9653](https://github.com/ipfs/kubo/pull/9653))
+  - test: remove gateway tests migrated to go-libipfs
+  - fix: update rcmgr for go-libp2p v0.25
+  - chore: update go-libp2p to v0.25.1
+  - docs(0.18.1): guide users to clean up limits (#9644) ([ipfs/kubo#9644](https://github.com/ipfs/kubo/pull/9644))
+  - feat: add NewOptionalInteger function
+  - fix: dereference int64 pointer in OptionalInteger.String() (#9640) ([ipfs/kubo#9640](https://github.com/ipfs/kubo/pull/9640))
+  - fix: restore wire format for /api/v0/routing/get|put (#9639) ([ipfs/kubo#9639](https://github.com/ipfs/kubo/pull/9639))
+  - refactor(gw): move Host (DNSLink and subdomain) handling to go-libipfs (#9624) ([ipfs/kubo#9624](https://github.com/ipfs/kubo/pull/9624))
+  - refactor: new go-libipfs/gateway API, deprecate Gateway.Writable (#9616) ([ipfs/kubo#9616](https://github.com/ipfs/kubo/pull/9616))
+  - Create Changelog: v0.19 ([ipfs/kubo#9617](https://github.com/ipfs/kubo/pull/9617))
+  - refactor: use gateway from go-libipfs (#9588) ([ipfs/kubo#9588](https://github.com/ipfs/kubo/pull/9588))
+  - Merge Release: v0.18.1 ([ipfs/kubo#9613](https://github.com/ipfs/kubo/pull/9613))
+  - Add overview section
+  - Adjust inbound connection limits depending on memory.
+  - feat: ipfs-webui 2.22.0
+  - chore: bump go-libipfs remove go-bitswap
+  - docs: DefaultResourceMgrMinInboundConns
+  - feat(gateway): IPNS record response format (IPIP-351) (#9399) ([ipfs/kubo#9399](https://github.com/ipfs/kubo/pull/9399))
+  - fix(ipns): honour --ttl flag in 'ipfs name publish' (#9471) ([ipfs/kubo#9471](https://github.com/ipfs/kubo/pull/9471))
+  - feat: Pubsub.SeenMessagesStrategy (#9543) ([ipfs/kubo#9543](https://github.com/ipfs/kubo/pull/9543))
+  - chore: bump go-libipfs to replace go-block-format
+  - Merge Kubo: v0.18 ([ipfs/kubo#9581](https://github.com/ipfs/kubo/pull/9581))
+  - fix: clarity: no user supplied rcmgr limits of 0 (#9563) ([ipfs/kubo#9563](https://github.com/ipfs/kubo/pull/9563))
+  - fix(gateway): undesired conversions to dag-json and friends (#9566) ([ipfs/kubo#9566](https://github.com/ipfs/kubo/pull/9566))
+  - fix: ensure connmgr is smaller then autoscalled ressource limits
+  - fix: typo in ensureConnMgrMakeSenseVsResourcesMgr
+  - docs: clarify browser descriptions for webtransport
+  - fix: update saxon download path
+  - fix: refuse to start if connmgr is smaller than ressource limits and not using none connmgr
+  - fix: User-Agent sent to HTTP routers
+  - test: port gateway sharness tests to Go tests
+  - fix: do not download saxon in parallel
+  - docs: improve docs/README (#9539) ([ipfs/kubo#9539](https://github.com/ipfs/kubo/pull/9539))
+  - test: port CircleCI to GH Actions and improve sharness reporting (#9355) ([ipfs/kubo#9355](https://github.com/ipfs/kubo/pull/9355))
+  - chore: migrate from go-ipfs-files to go-libipfs/files (#9535) ([ipfs/kubo#9535](https://github.com/ipfs/kubo/pull/9535))
+  - fix: stats dht command when Routing.Type=auto (#9538) ([ipfs/kubo#9538](https://github.com/ipfs/kubo/pull/9538))
+  - fix: hint people to changing from RSA peer ids
+  - fix(gateway): JSON when Accept is a list
+  - fix(test): retry flaky t0125-twonode.sh
+  - docs: fix Router config Godoc (#9528) ([ipfs/kubo#9528](https://github.com/ipfs/kubo/pull/9528))
+  - fix(ci): flaky sharness test
+  - docs(config): ProviderSearchDelay (#9526) ([ipfs/kubo#9526](https://github.com/ipfs/kubo/pull/9526))
+  - docs: clarify debug environment variables
+  - fix: disable provide over HTTP with Routing.Type=auto (#9511) ([ipfs/kubo#9511](https://github.com/ipfs/kubo/pull/9511))
+  - fix(test): stabilize flaky provider tests
+  - feat: port pins CLI test
+  - Removing QRI from early tester ([ipfs/kubo#9503](https://github.com/ipfs/kubo/pull/9503))
+  - Update Version (dev): v0.18 ([ipfs/kubo#9500](https://github.com/ipfs/kubo/pull/9500))
+- github.com/ipfs/go-bitfield (v1.0.0 -> v1.1.0):
+  - Merge pull request from GHSA-2h6c-j3gf-xp9r
+  - sync: update CI config files (#3) ([ipfs/go-bitfield#3](https://github.com/ipfs/go-bitfield/pull/3))
+- github.com/ipfs/go-block-format (v0.0.3 -> v0.1.1):
+  - chore: release v0.1.1
+  - docs: fix wrong copy paste in docs
+  - chore: release v0.1.0
+  - refactor: deprecate and add stub types to go-libipfs/blocks
+  - sync: update CI config files (#34) ([ipfs/go-block-format#34](https://github.com/ipfs/go-block-format/pull/34))
+  - remove Makefile ([ipfs/go-block-format#31](https://github.com/ipfs/go-block-format/pull/31))
+- github.com/ipfs/go-ipfs-files (v0.0.8 -> v0.3.0):
+  -  ([ipfs/go-ipfs-files#59](https://github.com/ipfs/go-ipfs-files/pull/59))
+  - docs: add moved noticed [ci skip]
+  - Release v0.2.0
+  - fix: error when TAR has files outside of root (#56) ([ipfs/go-ipfs-files#56](https://github.com/ipfs/go-ipfs-files/pull/56))
+  - sync: update CI config files ([ipfs/go-ipfs-files#55](https://github.com/ipfs/go-ipfs-files/pull/55))
+  - chore(Directory): add DirIterator API restriction: iterate only once
+  - Release v0.1.1
+  - fix: add dragonfly build option for filewriter flags
+  - fix: add freebsd build option for filewriter flags
+  - Release v0.1.0
+  - docs: fix community CONTRIBUTING.md link (#45) ([ipfs/go-ipfs-files#45](https://github.com/ipfs/go-ipfs-files/pull/45))
+  - chore(filewriter): cleanup writes (#43) ([ipfs/go-ipfs-files#43](https://github.com/ipfs/go-ipfs-files/pull/43))
+  - sync: update CI config files (#44) ([ipfs/go-ipfs-files#44](https://github.com/ipfs/go-ipfs-files/pull/44))
+  - sync: update CI config files ([ipfs/go-ipfs-files#40](https://github.com/ipfs/go-ipfs-files/pull/40))
+  - fix: manually parse the content disposition to preserve directories ([ipfs/go-ipfs-files#42](https://github.com/ipfs/go-ipfs-files/pull/42))
+  - fix: round timestamps down by truncating them to seconds ([ipfs/go-ipfs-files#41](https://github.com/ipfs/go-ipfs-files/pull/41))
+  - sync: update CI config files ([ipfs/go-ipfs-files#34](https://github.com/ipfs/go-ipfs-files/pull/34))
+  - Fix test failure on Windows caused by nil `sys` in mock `FileInfo` ([ipfs/go-ipfs-files#39](https://github.com/ipfs/go-ipfs-files/pull/39))
+  - fix staticcheck ([ipfs/go-ipfs-files#35](https://github.com/ipfs/go-ipfs-files/pull/35))
+  - fix linters ([ipfs/go-ipfs-files#33](https://github.com/ipfs/go-ipfs-files/pull/33))
+- github.com/ipfs/go-ipfs-pinner (v0.2.1 -> v0.3.0):
+  - chore: release v0.3.0 (#27) ([ipfs/go-ipfs-pinner#27](https://github.com/ipfs/go-ipfs-pinner/pull/27))
+  - feat!: add and connect missing context, remove RemovePinWithMode (#23) ([ipfs/go-ipfs-pinner#23](https://github.com/ipfs/go-ipfs-pinner/pull/23))
+  - sync: update CI config files ([ipfs/go-ipfs-pinner#16](https://github.com/ipfs/go-ipfs-pinner/pull/16))
+- github.com/ipfs/go-ipfs-pq (v0.0.2 -> v0.0.3):
+  - chore: release v0.0.3
+  - fix: enable early GC
+  - sync: update CI config files (#10) ([ipfs/go-ipfs-pq#10](https://github.com/ipfs/go-ipfs-pq/pull/10))
+  - sync: update CI config files ([ipfs/go-ipfs-pq#8](https://github.com/ipfs/go-ipfs-pq/pull/8))
+  - remove Makefile ([ipfs/go-ipfs-pq#7](https://github.com/ipfs/go-ipfs-pq/pull/7))
+- github.com/ipfs/go-libipfs (v0.2.0 -> v0.6.2):
+  - chore: release 0.6.2 (#211) ([ipfs/go-libipfs#211](https://github.com/ipfs/go-libipfs/pull/211))
+  - fix(gateway): 500 on panic, recover on WithHostname
+  - refactor: use assert in remaining gateway tests
+  - chore: release 0.6.1
+  - feat: support HTTP 429 with Retry-After (#194) ([ipfs/go-libipfs#194](https://github.com/ipfs/go-libipfs/pull/194))
+  - docs: fix typo in README.md
+  - fix(gateway): return 500 for all /ip[nf]s/id failures
+  - chore: make gocritic happier
+  - feat(gateway): improved error handling, support for 502 and 504 ([ipfs/go-libipfs#182](https://github.com/ipfs/go-libipfs/pull/182))
+  - feat: add content path in request context (#184) ([ipfs/go-libipfs#184](https://github.com/ipfs/go-libipfs/pull/184))
+  - sync: update CI config files ([ipfs/go-libipfs#159](https://github.com/ipfs/go-libipfs/pull/159))
+  - fix(gateway): return HTTP 500 on namesys.ErrResolveFailed (#150) ([ipfs/go-libipfs#150](https://github.com/ipfs/go-libipfs/pull/150))
+  - docs(examples): add UnixFS file download over Bitswap (#143) ([ipfs/go-libipfs#143](https://github.com/ipfs/go-libipfs/pull/143))
+  - bitswap/server/internal/decision: fix: remove unused private type
+  - chore: release v0.6.0
+  - bitswap/server/internal/decision: add more non flaky tests
+  - bitswap/server/internal/decision: add filtering on CIDs - Ignore cids that are too big. - Kill connection for peers that are using inline CIDs.
+  - bitswap/server/internal/decision: rewrite ledger inversion
+  - docs(readme): various updates for clarity (#171) ([ipfs/go-libipfs#171](https://github.com/ipfs/go-libipfs/pull/171))
+  - feat: metric for implicit index.html in dirs
+  - fix(gateway): ensure ipfs_http_gw_get_duration_seconds gets updated
+  - test(gateway): migrate Go tests from Kubo ([ipfs/go-libipfs#156](https://github.com/ipfs/go-libipfs/pull/156))
+  - docs: fix  link (#165) ([ipfs/go-libipfs#165](https://github.com/ipfs/go-libipfs/pull/165))
+  - fix: GetIPNSRecord example gateway implementation (#158) ([ipfs/go-libipfs#158](https://github.com/ipfs/go-libipfs/pull/158))
+  - chore: release v0.5.0
+  - chore: update go-libp2p to v0.25.1
+  - fix(gateway): display correct error with 500 (#160) ([ipfs/go-libipfs#160](https://github.com/ipfs/go-libipfs/pull/160))
+  - fix: gateway car example dnslink
+  - feat(gateway): add TAR, IPNS Record, DAG-* histograms and spans (#155) ([ipfs/go-libipfs#155](https://github.com/ipfs/go-libipfs/pull/155))
+  - feat(gateway): migrate subdomain and dnslink code (#153) ([ipfs/go-libipfs#153](https://github.com/ipfs/go-libipfs/pull/153))
+  - docs: add example of gateway that proxies to ?format=raw (#151) ([ipfs/go-libipfs#151](https://github.com/ipfs/go-libipfs/pull/151))
+  - docs: add example of gateway backed by CAR file (#147) ([ipfs/go-libipfs#147](https://github.com/ipfs/go-libipfs/pull/147))
+  - undefined ([ipfs/go-libipfs#145](https://github.com/ipfs/go-libipfs/pull/145))
+  - Extract Gateway Code From Kubo
+ ([ipfs/go-libipfs#65](https://github.com/ipfs/go-libipfs/pull/65))
+  - Migrate go-bitswap ([ipfs/go-libipfs#63](https://github.com/ipfs/go-libipfs/pull/63))
+  - Use `PUT` as method to insert provider records
+  - Migrate `go-block-format` ([ipfs/go-libipfs#58](https://github.com/ipfs/go-libipfs/pull/58))
+  - chore: add codecov PR comment
+  - chore: add a logo and some basics in the README (#37) ([ipfs/go-libipfs#37](https://github.com/ipfs/go-libipfs/pull/37))
+- github.com/ipfs/go-namesys (v0.6.0 -> v0.7.0):
+  - chore: release 0.7.0 (#36) ([ipfs/go-namesys#36](https://github.com/ipfs/go-namesys/pull/36))
+  - feat: use PublishOptions for publishing IPNS records (#35) ([ipfs/go-namesys#35](https://github.com/ipfs/go-namesys/pull/35))
+- github.com/ipfs/go-path (v0.3.0 -> v0.3.1):
+  - chore: release v0.3.1 (#67) ([ipfs/go-path#67](https://github.com/ipfs/go-path/pull/67))
+  - feat: expose ErrInvalidPath and implement .Is function (#66) ([ipfs/go-path#66](https://github.com/ipfs/go-path/pull/66))
+  - sync: update CI config files (#60) ([ipfs/go-path#60](https://github.com/ipfs/go-path/pull/60))
+  - feat: add basic tracing ([ipfs/go-path#59](https://github.com/ipfs/go-path/pull/59))
+- github.com/ipfs/go-peertaskqueue (v0.8.0 -> v0.8.1):
+  - chore: release v0.8.1
+  - feat: add PushTasksTruncated which only push a limited amount of tasks
+  - feat: add (*PeerTaskQueue).Clear which fully removes a peer
+  - sync: update CI config files (#26) ([ipfs/go-peertaskqueue#26](https://github.com/ipfs/go-peertaskqueue/pull/26))
+- github.com/ipfs/go-unixfs (v0.4.2 -> v0.4.4):
+  - chore: release v0.4.4
+  - fix: correctly handle return errors
+  - fix: correctly handle errors in balancedbuilder's Layout
+  - test: fix tests after hamt issues fixes
+  - Merge pull request from GHSA-q264-w97q-q778
+- github.com/ipfs/go-unixfsnode (v1.5.1 -> v1.5.2):
+  - Merge pull request from GHSA-4gj3-6r43-3wfc
+- github.com/ipfs/interface-go-ipfs-core (v0.8.2 -> v0.11.0):
+  - chore: release v0.11.0
+  - test: basic routing interface test
+  - chore: release v0.10.0 (#102) ([ipfs/interface-go-ipfs-core#102](https://github.com/ipfs/interface-go-ipfs-core/pull/102))
+  - feat: add RoutingAPI to CoreAPI
+  - chore: release 0.9.0 (#101) ([ipfs/interface-go-ipfs-core#101](https://github.com/ipfs/interface-go-ipfs-core/pull/101))
+  - feat: add namesys publish options (#94) ([ipfs/interface-go-ipfs-core#94](https://github.com/ipfs/interface-go-ipfs-core/pull/94))
+- github.com/ipld/go-car (v0.4.0 -> v0.5.0):
+  - chore: bump version to 0.5.0
+  - fix: remove use of ioutil
+  - run gofmt -s
+  - bump go.mod to Go 1.18 and run go fix
+  - bump go.mod to Go 1.18 and run go fix
+  - OpenReadWriteFile: add test
+  - blockstore: allow to pass a file to write in (#323) ([ipld/go-car#323](https://github.com/ipld/go-car/pull/323))
+  - feat: add `car inspect` command to cmd pkg (#320) ([ipld/go-car#320](https://github.com/ipld/go-car/pull/320))
+  - Separate `index.ReadFrom` tests
+  - Only read index codec during inspection
+  - Upgrade to the latest `go-car/v2`
+  - Empty identity CID should be indexed when options are set
+- github.com/libp2p/go-libp2p (v0.24.2 -> v0.26.3):
+  - Release v0.26.3 (#2197) ([libp2p/go-libp2p#2197](https://github.com/libp2p/go-libp2p/pull/2197))
+  - retract v0.26.1, release v0.26.2 (#2153) ([libp2p/go-libp2p#2153](https://github.com/libp2p/go-libp2p/pull/2153))
+  - rcmgr: fix JSON marshalling of ResourceManagerStat peer map (#2156) ([libp2p/go-libp2p#2156](https://github.com/libp2p/go-libp2p/pull/2156))
+  - release v0.26.1 ([libp2p/go-libp2p#2146](https://github.com/libp2p/go-libp2p/pull/2146))
+  - release v0.26.0 (#2133) ([libp2p/go-libp2p#2133](https://github.com/libp2p/go-libp2p/pull/2133))
+  - identify: add more detailed metrics (#2126) ([libp2p/go-libp2p#2126](https://github.com/libp2p/go-libp2p/pull/2126))
+  - autorelay: refactor relay finder and start autorelay after identify (#2120) ([libp2p/go-libp2p#2120](https://github.com/libp2p/go-libp2p/pull/2120))
+  - don't use the time value from the time.Ticker channel (#2127) ([libp2p/go-libp2p#2127](https://github.com/libp2p/go-libp2p/pull/2127))
+  - Wrap conn with metrics (#2131) ([libp2p/go-libp2p#2131](https://github.com/libp2p/go-libp2p/pull/2131))
+  - chore: update changelog for 0.26.0 (#2132) ([libp2p/go-libp2p#2132](https://github.com/libp2p/go-libp2p/pull/2132))
+  - circuitv2: Update proto files to proto3 (#2121) ([libp2p/go-libp2p#2121](https://github.com/libp2p/go-libp2p/pull/2121))
+  - swarm: remove parallel tests from swarm tests (#2130) ([libp2p/go-libp2p#2130](https://github.com/libp2p/go-libp2p/pull/2130))
+  - circuitv2: add a relay option to disable limits (#2125) ([libp2p/go-libp2p#2125](https://github.com/libp2p/go-libp2p/pull/2125))
+  - quic: fix stalled virtual listener (#2122) ([libp2p/go-libp2p#2122](https://github.com/libp2p/go-libp2p/pull/2122))
+  - swarm: add early muxer selection to swarm metrics (#2119) ([libp2p/go-libp2p#2119](https://github.com/libp2p/go-libp2p/pull/2119))
+  - metrics: add options to disable metrics and to set Prometheus registerer (#2116) ([libp2p/go-libp2p#2116](https://github.com/libp2p/go-libp2p/pull/2116))
+  - swarm: add ip_version to metrics (#2114) ([libp2p/go-libp2p#2114](https://github.com/libp2p/go-libp2p/pull/2114))
+  - Revert mistaken "Bump timeout"
+  - Bump timeout
+  - remove all circuit v1 related code (#2107) ([libp2p/go-libp2p#2107](https://github.com/libp2p/go-libp2p/pull/2107))
+  - quic: don't send detailed error messages when closing connections (#2112) ([libp2p/go-libp2p#2112](https://github.com/libp2p/go-libp2p/pull/2112))
+  - metrics: add no alloc metrics for eventbus, swarm, identify (#2108) ([libp2p/go-libp2p#2108](https://github.com/libp2p/go-libp2p/pull/2108))
+  - chore: fix typo in Changelog (#2111) ([libp2p/go-libp2p#2111](https://github.com/libp2p/go-libp2p/pull/2111))
+  - chore: update changelog (#2109) ([libp2p/go-libp2p#2109](https://github.com/libp2p/go-libp2p/pull/2109))
+  - chore: unify dashboard location (#2110) ([libp2p/go-libp2p#2110](https://github.com/libp2p/go-libp2p/pull/2110))
+  - autonat: add metrics (#2086) ([libp2p/go-libp2p#2086](https://github.com/libp2p/go-libp2p/pull/2086))
+  - relaymanager: do not start new relay if one already exists (#2093) ([libp2p/go-libp2p#2093](https://github.com/libp2p/go-libp2p/pull/2093))
+  - autonat: don't emit reachability changed events on address change (#2092) ([libp2p/go-libp2p#2092](https://github.com/libp2p/go-libp2p/pull/2092))
+  - chore: modify changelog entries (#2101) ([libp2p/go-libp2p#2101](https://github.com/libp2p/go-libp2p/pull/2101))
+  - Introduce a changelog (#2084) ([libp2p/go-libp2p#2084](https://github.com/libp2p/go-libp2p/pull/2084))
+  - use atomic.Int32 and atomic.Int64 (#2096) ([libp2p/go-libp2p#2096](https://github.com/libp2p/go-libp2p/pull/2096))
+  - change atomic.Value to atomic.Pointer (#2088) ([libp2p/go-libp2p#2088](https://github.com/libp2p/go-libp2p/pull/2088))
+  - use atomic.Bool instead of int32 operations (#2089) ([libp2p/go-libp2p#2089](https://github.com/libp2p/go-libp2p/pull/2089))
+  - sync: update CI config files (#2073) ([libp2p/go-libp2p#2073](https://github.com/libp2p/go-libp2p/pull/2073))
+  - chore: update examples to v0.25.1 (#2080) ([libp2p/go-libp2p#2080](https://github.com/libp2p/go-libp2p/pull/2080))
+  - v0.25.1 (#2082) ([libp2p/go-libp2p#2082](https://github.com/libp2p/go-libp2p/pull/2082))
+  - Start host in mocknet (#2078) ([libp2p/go-libp2p#2078](https://github.com/libp2p/go-libp2p/pull/2078))
+  - Release v0.25.0 (#2077) ([libp2p/go-libp2p#2077](https://github.com/libp2p/go-libp2p/pull/2077))
+  - identify: add some basic metrics (#2069) ([libp2p/go-libp2p#2069](https://github.com/libp2p/go-libp2p/pull/2069))
+  - p2p/test/quic: use contexts with a timeout for Connect calls (#2070) ([libp2p/go-libp2p#2070](https://github.com/libp2p/go-libp2p/pull/2070))
+  - feat!: rcmgr: Change LimitConfig to use LimitVal type (#2000) ([libp2p/go-libp2p#2000](https://github.com/libp2p/go-libp2p/pull/2000))
+  - identify: refactor sending of Identify pushes (#1984) ([libp2p/go-libp2p#1984](https://github.com/libp2p/go-libp2p/pull/1984))
+  - Update interop to match spec (#2049) ([libp2p/go-libp2p#2049](https://github.com/libp2p/go-libp2p/pull/2049))
+  - chore: git-ignore various flavors of qlog files (#2064) ([libp2p/go-libp2p#2064](https://github.com/libp2p/go-libp2p/pull/2064))
+  - rcmgr: add libp2p prefix to all metrics (#2063) ([libp2p/go-libp2p#2063](https://github.com/libp2p/go-libp2p/pull/2063))
+  - websocket: Replace gorilla websocket transport with nhooyr websocket transport (#1982) ([libp2p/go-libp2p#1982](https://github.com/libp2p/go-libp2p/pull/1982))
+  - rcmgr: Use prometheus SDK for rcmgr metrics (#2044) ([libp2p/go-libp2p#2044](https://github.com/libp2p/go-libp2p/pull/2044))
+  - autorelay: Split libp2p.EnableAutoRelay into 2 functions (#2022) ([libp2p/go-libp2p#2022](https://github.com/libp2p/go-libp2p/pull/2022))
+  - set names for eventbus event subscriptions (#2057) ([libp2p/go-libp2p#2057](https://github.com/libp2p/go-libp2p/pull/2057))
+  - Test cleanup (#2053) ([libp2p/go-libp2p#2053](https://github.com/libp2p/go-libp2p/pull/2053))
+  - metrics: use a single slice pool for all metrics tracer (#2054) ([libp2p/go-libp2p#2054](https://github.com/libp2p/go-libp2p/pull/2054))
+  - eventbus: add metrics (#2038) ([libp2p/go-libp2p#2038](https://github.com/libp2p/go-libp2p/pull/2038))
+  - quic: disable sending of Version Negotiation packets (#2015) ([libp2p/go-libp2p#2015](https://github.com/libp2p/go-libp2p/pull/2015))
+  - p2p/test: fix flaky notification test (#2051) ([libp2p/go-libp2p#2051](https://github.com/libp2p/go-libp2p/pull/2051))
+  - quic, tcp: only register Prometheus counters when metrics are enabled ([libp2p/go-libp2p#1971](https://github.com/libp2p/go-libp2p/pull/1971))
+  - p2p/test: add test for EvtLocalAddressesUpdated event (#2016) ([libp2p/go-libp2p#2016](https://github.com/libp2p/go-libp2p/pull/2016))
+  - quic / webtransport: extend test to test dialing draft-29 and v1 (#1957) ([libp2p/go-libp2p#1957](https://github.com/libp2p/go-libp2p/pull/1957))
+  - holepunch: fix flaky by not remove holepunch protocol handler (#1948) ([libp2p/go-libp2p#1948](https://github.com/libp2p/go-libp2p/pull/1948))
+  - use quic-go and webtransport-go from quic-go organization (#2040) ([libp2p/go-libp2p#2040](https://github.com/libp2p/go-libp2p/pull/2040))
+  - Migrate to test-plan composite action (#2039) ([libp2p/go-libp2p#2039](https://github.com/libp2p/go-libp2p/pull/2039))
+  - chore: remove license files from the eventbus package (#2042) ([libp2p/go-libp2p#2042](https://github.com/libp2p/go-libp2p/pull/2042))
+  - rcmgr: *: Always close connscope (#2037) ([libp2p/go-libp2p#2037](https://github.com/libp2p/go-libp2p/pull/2037))
+  - chore: remove textual roadmap in favor for Starmap (#2036) ([libp2p/go-libp2p#2036](https://github.com/libp2p/go-libp2p/pull/2036))
+  - swarm metrics: fix datasource for dashboard (#2024) ([libp2p/go-libp2p#2024](https://github.com/libp2p/go-libp2p/pull/2024))
+  - consistently use protocol.ID instead of strings (#2004) ([libp2p/go-libp2p#2004](https://github.com/libp2p/go-libp2p/pull/2004))
+  - swarm: add a basic metrics tracer (#1973) ([libp2p/go-libp2p#1973](https://github.com/libp2p/go-libp2p/pull/1973))
+  - Expose muxer ids (#2012) ([libp2p/go-libp2p#2012](https://github.com/libp2p/go-libp2p/pull/2012))
+  - Clean addresses with peer id before adding to addrbook (#2007) ([libp2p/go-libp2p#2007](https://github.com/libp2p/go-libp2p/pull/2007))
+  - feat: ci test-plans: Parse test timeout parameter for interop test (#2014) ([libp2p/go-libp2p#2014](https://github.com/libp2p/go-libp2p/pull/2014))
+  - Export resource manager errors (#2008) ([libp2p/go-libp2p#2008](https://github.com/libp2p/go-libp2p/pull/2008))
+  - peerstore: make it possible to use an empty peer ID (#2006) ([libp2p/go-libp2p#2006](https://github.com/libp2p/go-libp2p/pull/2006))
+  - Add ci flakiness score to readme (#2002) ([libp2p/go-libp2p#2002](https://github.com/libp2p/go-libp2p/pull/2002))
+  - rcmgr: fix: Ignore zero values when marshalling Limits. (#1998) ([libp2p/go-libp2p#1998](https://github.com/libp2p/go-libp2p/pull/1998))
+  - CI: Fast multidimensional Interop tests (#1991) ([libp2p/go-libp2p#1991](https://github.com/libp2p/go-libp2p/pull/1991))
+  - feat: add some users to the readme (#1981) ([libp2p/go-libp2p#1981](https://github.com/libp2p/go-libp2p/pull/1981))
+  - ci: run go generate as part of the go-check workflow (#1986) ([libp2p/go-libp2p#1986](https://github.com/libp2p/go-libp2p/pull/1986))
+  - switch to Google's Protobuf library, make protobufs compile with go generate ([libp2p/go-libp2p#1979](https://github.com/libp2p/go-libp2p/pull/1979))
+  - circuitv2: correctly set the transport in the ConnectionState (#1972) ([libp2p/go-libp2p#1972](https://github.com/libp2p/go-libp2p/pull/1972))
+  - roadmap: remove optimizations of the TCP-based handshake (#1959) ([libp2p/go-libp2p#1959](https://github.com/libp2p/go-libp2p/pull/1959))
+  - identify: remove support for Identify Delta ([libp2p/go-libp2p#1975](https://github.com/libp2p/go-libp2p/pull/1975))
+  - core: remove introspection package (#1978) ([libp2p/go-libp2p#1978](https://github.com/libp2p/go-libp2p/pull/1978))
+  - identify: remove old code targeting Go 1.17 (#1964) ([libp2p/go-libp2p#1964](https://github.com/libp2p/go-libp2p/pull/1964))
+  - add WebTransport to the list of default transports (#1915) ([libp2p/go-libp2p#1915](https://github.com/libp2p/go-libp2p/pull/1915))
+  - core/crypto: drop all OpenSSL code paths (#1953) ([libp2p/go-libp2p#1953](https://github.com/libp2p/go-libp2p/pull/1953))
+  - chore: use generic LRU cache (#1980) ([libp2p/go-libp2p#1980](https://github.com/libp2p/go-libp2p/pull/1980))
+- github.com/libp2p/go-libp2p-kad-dht (v0.20.0 -> v0.21.1):
+  - chore: bump to v0.21.1 (#821) ([libp2p/go-libp2p-kad-dht#821](https://github.com/libp2p/go-libp2p-kad-dht/pull/821))
+  - feat: send FIND_NODE request to peers on routing table refresh (#810) ([libp2p/go-libp2p-kad-dht#810](https://github.com/libp2p/go-libp2p-kad-dht/pull/810))
+  - chore: release v0.21.
+  - chore: Update to go libp2p v0.25 ([libp2p/go-libp2p-kad-dht#815](https://github.com/libp2p/go-libp2p-kad-dht/pull/815))
+- github.com/libp2p/go-libp2p-pubsub (v0.8.3 -> v0.9.0):
+  - chore: update to go-libp2p v0.25 (#517) ([libp2p/go-libp2p-pubsub#517](https://github.com/libp2p/go-libp2p-pubsub/pull/517))
+- github.com/libp2p/go-libp2p-routing-helpers (v0.6.0 -> v0.6.1):
+  - chore: release v0.6.1
+  - fix: cancel parallel routers
+- github.com/libp2p/go-msgio (v0.2.0 -> v0.3.0):
+  - release v0.3.0 (#39) ([libp2p/go-msgio#39](https://github.com/libp2p/go-msgio/pull/39))
+  - switch from deprecated gogo to google.golang.org/protobuf ([libp2p/go-msgio#38](https://github.com/libp2p/go-msgio/pull/38))
+  - sync: update CI config files (#36) ([libp2p/go-msgio#36](https://github.com/libp2p/go-msgio/pull/36))
+- github.com/lucas-clemente/quic-go (v0.31.1 -> v0.29.1):
+  - http3: fix double close of chan when using DontCloseRequestStream
+- github.com/multiformats/go-multistream (v0.3.3 -> v0.4.1):
+  - release v0.4.1 ([multiformats/go-multistream#101](https://github.com/multiformats/go-multistream/pull/101))
+  - Fix errors Is checking ([multiformats/go-multistream#100](https://github.com/multiformats/go-multistream/pull/100))
+  - release v0.4.0 (#93) ([multiformats/go-multistream#93](https://github.com/multiformats/go-multistream/pull/93))
+  - switch to Go's native fuzzing (#96) ([multiformats/go-multistream#96](https://github.com/multiformats/go-multistream/pull/96))
+  - Add not supported protocols to returned errors (#97) ([multiformats/go-multistream#97](https://github.com/multiformats/go-multistream/pull/97))
+  - Make MultistreamMuxer and Client APIs generic (#95) ([multiformats/go-multistream#95](https://github.com/multiformats/go-multistream/pull/95))
+  - remove MultistreamMuxer.NegotiateLazy (#92) ([multiformats/go-multistream#92](https://github.com/multiformats/go-multistream/pull/92))
+  - sync: update CI config files (#91) ([multiformats/go-multistream#91](https://github.com/multiformats/go-multistream/pull/91))
+- github.com/warpfork/go-wish (v0.0.0-20200122115046-b9ea61034e4a -> v0.0.0-20220906213052-39a1cc7a02d0):
+  - Update readme with deprecation info
+- github.com/whyrusleeping/cbor-gen (v0.0.0-20221220214510-0333c149dec0 -> v0.0.0-20230126041949-52956bd4c9aa):
+  - add setter to allow reuse of cborreader struct
+  - fix typo
+  - allow fields to be ignored ([whyrusleeping/cbor-gen#79](https://github.com/whyrusleeping/cbor-gen/pull/79))
+
+</details>
+
+### 👨‍👩‍👧‍👦 Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| Dirk McCormick | 128 | +16757/-7211 | 387 |
+| Henrique Dias | 69 | +7599/-10016 | 316 |
+| hannahhoward | 88 | +8503/-4397 | 271 |
+| Jeromy Johnson | 244 | +6544/-4034 | 774 |
+| Marten Seemann | 64 | +4870/-5628 | 266 |
+| Steven Allen | 296 | +4769/-3517 | 972 |
+| Brian Tiger Chow | 250 | +5520/-2579 | 435 |
+| Jorropo | 64 | +4237/-3548 | 302 |
+| Sukun | 18 | +4327/-1093 | 132 |
+| Marco Munizaga | 35 | +2809/-1294 | 94 |
+| Gus Eggert | 20 | +2523/-1476 | 99 |
+| Adin Schmahmann | 15 | +683/-2625 | 69 |
+| Marcin Rataj | 73 | +2348/-882 | 133 |
+| whyrusleeping | 12 | +1683/-1338 | 23 |
+| Jeromy | 99 | +1754/-1181 | 453 |
+| Juan Batiz-Benet | 69 | +1182/-678 | 149 |
+| Lars Gierth | 31 | +827/-358 | 92 |
+| Paul Wolneykien | 2 | +670/-338 | 9 |
+| Laurent Senta | 16 | +806/-134 | 53 |
+| Henry | 19 | +438/-372 | 36 |
+| Michael Muré | 8 | +400/-387 | 19 |
+| Łukasz Magiera | 56 | +413/-354 | 117 |
+| Jakub Sztandera | 40 | +413/-251 | 100 |
+| Justin Johnson | 2 | +479/-165 | 5 |
+| Piotr Galar | 7 | +227/-378 | 24 |
+| Kevin Atkinson | 11 | +252/-232 | 49 |
+| web3-bot | 17 | +236/-240 | 59 |
+| Petar Maymounkov | 2 | +348/-84 | 11 |
+| Hector Sanjuan | 38 | +206/-223 | 85 |
+| Antonio Navarro Perez | 9 | +259/-95 | 17 |
+| keks | 22 | +233/-118 | 24 |
+| Ho-Sheng Hsiao | 3 | +170/-170 | 30 |
+| Lucas Molas | 6 | +266/-54 | 16 |
+| Mildred Ki'Lya | 4 | +280/-35 | 7 |
+| Steve Loeppky | 5 | +147/-156 | 9 |
+| rht | 14 | +97/-188 | 20 |
+| Prithvi Shahi | 6 | +89/-193 | 11 |
+| Ian Davis | 6 | +198/-75 | 11 |
+| taylor | 1 | +180/-89 | 8 |
+| ᴍᴀᴛᴛ ʙᴇʟʟ | 14 | +158/-104 | 18 |
+| Chris Boddy | 6 | +190/-45 | 8 |
+| Rod Vagg | 3 | +203/-28 | 15 |
+| Masih H. Derkani | 8 | +165/-61 | 16 |
+| Kevin Wallace | 4 | +194/-27 | 7 |
+| Mohsin Zaidi | 1 | +179/-41 | 5 |
+| ElPaisano | 1 | +110/-110 | 22 |
+| Simon Zhu | 6 | +177/-32 | 8 |
+| galargh | 9 | +80/-120 | 14 |
+| Tomasz Zdybał | 1 | +180/-1 | 4 |
+| dgrisham | 3 | +176/-2 | 4 |
+| Michael Avila | 3 | +116/-59 | 8 |
+| Raúl Kripalani | 2 | +85/-77 | 34 |
+| Dr Ian Preston | 11 | +101/-48 | 11 |
+| JP Hastings-Spital | 1 | +145/-0 | 2 |
+| George Antoniadis | 6 | +59/-58 | 43 |
+| Kevin Neaton | 2 | +97/-16 | 4 |
+| Adrian Lanzafame | 6 | +81/-25 | 7 |
+| Dennis Trautwein | 3 | +89/-9 | 5 |
+| mathew-cf | 2 | +82/-9 | 5 |
+| tg | 1 | +41/-33 | 1 |
+| Eng Zer Jun | 1 | +15/-54 | 5 |
+| zramsay | 4 | +15/-53 | 12 |
+| muXxer | 1 | +28/-33 | 4 |
+| Thomas Eizinger | 1 | +24/-37 | 4 |
+| Remco Bloemen | 2 | +28/-18 | 3 |
+| Manuel Alonso | 1 | +36/-9 | 1 |
+| vyzo | 4 | +26/-12 | 13 |
+| Djalil Dreamski | 3 | +27/-9 | 3 |
+| Thomas Gardner | 2 | +32/-3 | 4 |
+| Jan Winkelmann | 2 | +23/-12 | 8 |
+| Artem Andreenko | 1 | +16/-19 | 1 |
+| James Stanley | 1 | +34/-0 | 1 |
+| Brendan McMillion | 1 | +10/-17 | 3 |
+| Jack Loughran | 1 | +22/-0 | 3 |
+| Peter Wu | 2 | +12/-9 | 2 |
+| Gowtham G | 4 | +14/-7 | 4 |
+| Tor Arne Vestbø | 3 | +19/-1 | 3 |
+| Cory Schwartz | 1 | +8/-12 | 5 |
+| Peter Rabbitson | 1 | +15/-4 | 1 |
+| David Dias | 1 | +9/-9 | 1 |
+| Will Scott | 1 | +13/-4 | 2 |
+| Eric Myhre | 1 | +15/-2 | 1 |
+| Stephen Whitmore | 1 | +8/-8 | 1 |
+| Rafael Ramalho | 5 | +11/-5 | 5 |
+| Christian Couder | 1 | +14/-2 | 1 |
+| W. Trevor King | 2 | +9/-6 | 3 |
+| Steven Vandevelde | 1 | +11/-3 | 1 |
+| Knut Ahlers | 3 | +9/-5 | 3 |
+| Bob Potter | 1 | +3/-10 | 1 |
+| Russell Dempsey | 4 | +8/-4 | 4 |
+| Diogo Silva | 4 | +8/-4 | 4 |
+| Dave Justice | 1 | +8/-4 | 1 |
+| Andy Leap | 2 | +2/-10 | 2 |
+| divingpetrel | 1 | +7/-4 | 2 |
+| Iaroslav Gridin | 1 | +9/-2 | 1 |
+| Dominic Della Valle | 3 | +5/-5 | 3 |
+| Vijayee Kulkaa | 1 | +3/-6 | 1 |
+| Friedel Ziegelmayer | 3 | +6/-3 | 3 |
+| Stephen Solka | 1 | +1/-7 | 1 |
+| Richard Littauer | 3 | +4/-4 | 3 |
+| Franky W | 2 | +4/-4 | 2 |
+| Dimitris Apostolou | 2 | +4/-4 | 3 |
+| Adrian Ulrich | 1 | +8/-0 | 1 |
+| Masashi Salvador Mitsuzawa | 1 | +5/-1 | 1 |
+| Gabe | 1 | +3/-3 | 1 |
+| zuuluuz | 1 | +4/-1 | 1 |
+| myml | 1 | +5/-0 | 1 |
+| swedneck | 1 | +3/-1 | 1 |
+| Wayback Archiver | 1 | +2/-2 | 1 |
+| Vladimir Ivanov | 1 | +2/-2 | 1 |
+| Péter Szilágyi | 1 | +2/-2 | 1 |
+| Karthik Bala | 1 | +2/-2 | 1 |
+| Etienne Laurin | 1 | +1/-3 | 1 |
+| Shotaro Yamada | 1 | +2/-1 | 1 |
+| Robert Carlsen | 1 | +2/-1 | 1 |
+| Oli Evans | 1 | +2/-1 | 1 |
+| Dan McQuillan | 1 | +2/-1 | 1 |
+| susarlanikhilesh | 1 | +1/-1 | 1 |
+| mateon1 | 1 | +1/-1 | 1 |
+| kpcyrd | 1 | +1/-1 | 1 |
+| bbenshoof | 1 | +1/-1 | 1 |
+| ZenGround0 | 1 | +1/-1 | 1 |
+| Will Hawkins | 1 | +1/-1 | 1 |
+| Tommi Virtanen | 1 | +1/-1 | 1 |
+| Seungbae Yu | 1 | +1/-1 | 1 |
+| Riishab Joshi | 1 | +1/-1 | 1 |
+| Kubo Mage | 1 | +1/-1 | 1 |
+| Ivan | 1 | +1/-1 | 1 |
+| Guillaume Renault | 1 | +1/-1 | 1 |
+| Anjor Kanekar | 1 | +1/-1 | 1 |
+| Andrew Chin | 1 | +1/-1 | 1 |
+| Abdul Rauf | 1 | +1/-1 | 1 |
+| makeworld | 1 | +1/-0 | 1 |

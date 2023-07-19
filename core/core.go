@@ -11,20 +11,24 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"io"
+	"time"
 
-	"github.com/ipfs/go-filestore"
-	pin "github.com/ipfs/go-ipfs-pinner"
+	"github.com/ipfs/boxo/filestore"
+	pin "github.com/ipfs/boxo/pinning/pinner"
+	"github.com/ipfs/go-datastore"
 
-	bserv "github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-fetcher"
+	bserv "github.com/ipfs/boxo/blockservice"
+	bstore "github.com/ipfs/boxo/blockstore"
+	exchange "github.com/ipfs/boxo/exchange"
+	"github.com/ipfs/boxo/fetcher"
+	mfs "github.com/ipfs/boxo/mfs"
+	pathresolver "github.com/ipfs/boxo/path/resolver"
+	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-graphsync"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	provider "github.com/ipfs/go-ipfs-provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	mfs "github.com/ipfs/go-mfs"
 	goprocess "github.com/jbenet/goprocess"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -43,8 +47,9 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
-	"github.com/ipfs/go-namesys"
-	ipnsrp "github.com/ipfs/go-namesys/republisher"
+	"github.com/ipfs/boxo/namesys"
+	ipnsrp "github.com/ipfs/boxo/namesys/republisher"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/core/node/libp2p"
@@ -87,18 +92,20 @@ type IpfsNode struct {
 	RecordValidator      record.Validator
 
 	// Online
-	PeerHost        p2phost.Host               `optional:"true"` // the network host (server+client)
-	Peering         *peering.PeeringService    `optional:"true"`
-	Filters         *ma.Filters                `optional:"true"`
-	Bootstrapper    io.Closer                  `optional:"true"` // the periodic bootstrapper
-	Routing         irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
-	DNSResolver     *madns.Resolver            // the DNS resolver
-	Exchange        exchange.Interface         // the block exchange + strategy (bitswap)
-	Namesys         namesys.NameSystem         // the name system, resolves paths to hashes
-	Provider        provider.System            // the value provider system
-	IpnsRepub       *ipnsrp.Republisher        `optional:"true"`
-	GraphExchange   graphsync.GraphExchange    `optional:"true"`
-	ResourceManager network.ResourceManager    `optional:"true"`
+	PeerHost           p2phost.Host               `optional:"true"` // the network host (server+client)
+	Peering            *peering.PeeringService    `optional:"true"`
+	Filters            *ma.Filters                `optional:"true"`
+	Bootstrapper       io.Closer                  `optional:"true"` // the periodic bootstrapper
+	Routing            irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
+	DNSResolver        *madns.Resolver            // the DNS resolver
+	IPLDPathResolver   pathresolver.Resolver      `name:"ipldPathResolver"`   // The IPLD path resolver
+	UnixFSPathResolver pathresolver.Resolver      `name:"unixFSPathResolver"` // The UnixFS path resolver
+	Exchange           exchange.Interface         // the block exchange + strategy (bitswap)
+	Namesys            namesys.NameSystem         // the name system, resolves paths to hashes
+	Provider           provider.System            // the value provider system
+	IpnsRepub          *ipnsrp.Republisher        `optional:"true"`
+	GraphExchange      graphsync.GraphExchange    `optional:"true"`
+	ResourceManager    network.ResourceManager    `optional:"true"`
 
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
@@ -162,11 +169,39 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 			return ps
 		}
 	}
+	if cfg.SaveBackupBootstrapPeers == nil {
+		cfg.SaveBackupBootstrapPeers = func(ctx context.Context, peerList []peer.AddrInfo) {
+			err := n.saveTempBootstrapPeers(ctx, peerList)
+			if err != nil {
+				log.Warnf("saveTempBootstrapPeers failed: %s", err)
+				return
+			}
+		}
+	}
+	if cfg.LoadBackupBootstrapPeers == nil {
+		cfg.LoadBackupBootstrapPeers = func(ctx context.Context) []peer.AddrInfo {
+			peerList, err := n.loadTempBootstrapPeers(ctx)
+			if err != nil {
+				log.Warnf("loadTempBootstrapPeers failed: %s", err)
+				return nil
+			}
+			return peerList
+		}
+	}
 
-	var err error
+	repoConf, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+	if repoConf.Internal.BackupBootstrapInterval != nil {
+		cfg.BackupBootstrapInterval = repoConf.Internal.BackupBootstrapInterval.WithDefault(time.Hour)
+	}
+
 	n.Bootstrapper, err = bootstrap.Bootstrap(n.Identity, n.PeerHost, n.Routing, cfg)
 	return err
 }
+
+var TempBootstrapPeersKey = datastore.NewKey("/local/temp_bootstrap_peers")
 
 func (n *IpfsNode) loadBootstrapPeers() ([]peer.AddrInfo, error) {
 	cfg, err := n.Repo.Config()
@@ -175,6 +210,33 @@ func (n *IpfsNode) loadBootstrapPeers() ([]peer.AddrInfo, error) {
 	}
 
 	return cfg.BootstrapPeers()
+}
+
+func (n *IpfsNode) saveTempBootstrapPeers(ctx context.Context, peerList []peer.AddrInfo) error {
+	ds := n.Repo.Datastore()
+	bytes, err := json.Marshal(config.BootstrapPeerStrings(peerList))
+	if err != nil {
+		return err
+	}
+
+	if err := ds.Put(ctx, TempBootstrapPeersKey, bytes); err != nil {
+		return err
+	}
+	return ds.Sync(ctx, TempBootstrapPeersKey)
+}
+
+func (n *IpfsNode) loadTempBootstrapPeers(ctx context.Context) ([]peer.AddrInfo, error) {
+	ds := n.Repo.Datastore()
+	bytes, err := ds.Get(ctx, TempBootstrapPeersKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var addrs []string
+	if err := json.Unmarshal(bytes, &addrs); err != nil {
+		return nil, err
+	}
+	return config.ParseBootstrapPeers(addrs)
 }
 
 type ConstructPeerHostOpts struct {

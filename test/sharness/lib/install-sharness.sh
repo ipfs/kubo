@@ -1,60 +1,50 @@
 #!/bin/sh
 # install sharness.sh
 #
-# Copyright (c) 2014 Juan Batiz-Benet
+# Copyright (c) 2014, 2022 Juan Batiz-Benet, Piotr Galar
 # MIT Licensed; see the LICENSE file in this repository.
 #
 
-# settings
-version=5eee9b51b5621cec95a64018f0cc779963b230d2
-patch_version=17
+gitrepo=pl-strflt/sharness
+githash=803df39d3cba16bb7d493dd6cd8bc5e29826da61
 
-urlprefix=https://github.com/mlafeldt/sharness.git
 if test ! -n "$clonedir" ; then
   clonedir=lib
 fi
 sharnessdir=sharness
-
-if test -f "$clonedir/$sharnessdir/SHARNESS_VERSION_${version}_p${patch_version}"
-then
-  # There is the right version file. Great, we are done!
-  exit 0
-fi
+gitdir="$clonedir/$sharnessdir/.git"
 
 die() {
   echo >&2 "$@"
   exit 1
 }
 
-apply_patches() {
-  git config --local user.email "noone@nowhere"
-  git config --local user.name "No One"
-  git am ../0001-Generate-partial-JUnit-reports.patch
-
-  touch "SHARNESS_VERSION_${version}_p${patch_version}" || die "Could not create 'SHARNESS_VERSION_${version}_p${patch_version}'"
-}
-
-checkout_version() {
-  git checkout "$version" || die "Could not checkout '$version'"
-  rm -f SHARNESS_VERSION_* || die "Could not remove 'SHARNESS_VERSION_*'"
-  echo "Sharness version $version is checked out!"
-
-  apply_patches
-}
-
-if test -d "$clonedir/$sharnessdir/.git"
-then
-  # We need to update sharness!
-  cd "$clonedir/$sharnessdir" || die "Could not cd into '$clonedir/$sharnessdir' directory"
-  git fetch || die "Could not fetch to update sharness"
-  checkout_version
-else
-  # We need to clone sharness!
-  mkdir -p "$clonedir" || die "Could not create '$clonedir' directory"
-  cd "$clonedir" || die "Could not cd into '$clonedir' directory"
-
-  git clone "$urlprefix" || die "Could not clone '$urlprefix'"
-  cd "$sharnessdir" || die "Could not cd into '$sharnessdir' directory"
-  checkout_version
+if test -d "$clonedir/$sharnessdir"; then
+  giturl="git@github.com:${gitrepo}.git"
+  echo "Checking if $giturl is already cloned (and if its origin is correct)"
+  if ! test -d "$gitdir" || test "$(git --git-dir "$gitdir" remote get-url origin)" != "$giturl"; then
+    echo "Removing $clonedir/$sharnessdir"
+    rm -rf "$clonedir/$sharnessdir" || die "Could not remove $clonedir/$sharnessdir"
+  fi
 fi
+
+if ! test -d "$clonedir/$sharnessdir"; then
+  giturl="https://github.com/${gitrepo}.git"
+  echo "Cloning $giturl into $clonedir/$sharnessdir"
+  git clone "$giturl" "$clonedir/$sharnessdir" || die "Could not clone $giturl into $clonedir/$sharnessdir"
+fi
+
+
+echo "Changing directory to $clonedir/$sharnessdir"
+cd "$clonedir/$sharnessdir" || die "Could not cd into '$clonedir/$sharnessdir' directory"
+
+echo "Checking if $githash is already fetched"
+if ! git show "$githash" >/dev/null 2>&1; then
+  echo "Fetching $githash"
+  git fetch origin "$githash" || die "Could not fetch $githash"
+fi
+
+echo "Resetting to $githash"
+git reset --hard "$githash" || die "Could not reset to $githash"
+
 exit 0

@@ -75,13 +75,13 @@ Warning: Enabling tracing will likely affect performance.
 
 ## `IPFS_FUSE_DEBUG`
 
-Enables fuse debug logging.
+If SET, enables fuse debug logging.
 
 Default: false
 
 ## `YAMUX_DEBUG`
 
-Enables debug logging for the yamux stream muxer.
+If SET, enables debug logging for the yamux stream muxer.
 
 Default: false
 
@@ -113,6 +113,23 @@ $ IPFS_NS_MAP="dnslink-test1.example.com:/ipfs/bafkreicysg23kiwv34eg2d7qweipxwos
 $ ipfs resolve -r /ipns/dnslink-test2.example.com
 /ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am
 ```
+
+## `IPFS_HTTP_ROUTERS`
+
+Overrides all implicit HTTP routers enabled when `Routing.Type=auto` with
+the space-separated list of URLs provided in this variable.
+Useful for testing and debugging in offline contexts.
+
+Example:
+
+```console
+$ ipfs config Routing.Type auto
+$ IPFS_HTTP_ROUTERS="http://127.0.0.1:7423" ipfs daemon
+```
+
+The above will replace implicit HTTP routers with single one, allowing for
+inspection/debug of HTTP requests sent by Kubo via `while true ; do nc -l 7423; done`
+or more advanced tools like [mitmproxy](https://docs.mitmproxy.org/stable/#mitmproxy).
 
 ## `LIBP2P_TCP_REUSEPORT`
 
@@ -147,70 +164,5 @@ and outputs it to `rcmgr.json.gz`
 Default: disabled (not set)
 
 # Tracing
-For advanced configuration (e.g. ratio-based sampling), see also: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md
 
-## `OTEL_TRACES_EXPORTER`
-Specifies the exporters to use as a comma-separated string. Each exporter has a set of additional environment variables used to configure it. The following values are supported:
-
-- `otlp`
-- `jaeger`
-- `zipkin`
-- `file` -- appends traces to a JSON file on the filesystem
-
-Setting this enables OpenTelemetry tracing.
-
-**NOTE** Tracing support is experimental: releases may contain tracing-related breaking changes.
-
-Default: "" (no exporters)
-
-## `OTLP Exporter`
-Unless specified in this section, the OTLP exporter uses the environment variables documented here: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/exporter.md
-
-### `OTEL_EXPORTER_OTLP_PROTOCOL`
-Specifies the OTLP protocol to use, which is one of:
-
-- `grpc`
-- `http/protobuf`
-
-Default: "grpc"
-
-## `Jaeger Exporter`
-
-See: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md#jaeger-exporter
-
-## `Zipkin Exporter`
-See: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md#zipkin-exporter
-
-## `File Exporter`
-### `OTEL_EXPORTER_FILE_PATH`
-Specifies the filesystem path for the JSON file.
-
-Default: "$PWD/traces.json"
-
-### How to use Jaeger UI
-
-One can use the `jaegertracing/all-in-one` Docker image to run a full Jaeger
-stack and configure Kubo to publish traces to it (here, in an ephemeral
-container):
-
-```console
-$ docker run --rm -it --name jaeger \
-    -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 \
-    -p 5775:5775/udp \
-    -p 6831:6831/udp \
-    -p 6832:6832/udp \
-    -p 5778:5778 \
-    -p 16686:16686 \
-    -p 14268:14268 \
-    -p 14268:14269 \
-    -p 14250:14250 \
-    -p 9411:9411 \
-    jaegertracing/all-in-one
-```
-
-Then, in other terminal, start Kubo with Jaeger tracing enabled:
-```
-$ OTEL_TRACES_EXPORTER=jaeger ipfs daemon
-```
-
-Finally, the [Jaeger UI](https://github.com/jaegertracing/jaeger-ui#readme) is available at http://localhost:16686
+For tracing configuration, please check: https://github.com/ipfs/boxo/blob/main/docs/tracing.md

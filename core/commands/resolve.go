@@ -7,16 +7,16 @@ import (
 	"strings"
 	"time"
 
-	ns "github.com/ipfs/go-namesys"
+	ns "github.com/ipfs/boxo/namesys"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	ncmd "github.com/ipfs/kubo/core/commands/name"
 
+	options "github.com/ipfs/boxo/coreiface/options"
+	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
+	path "github.com/ipfs/boxo/coreiface/path"
+	ipfspath "github.com/ipfs/boxo/path"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	ipfspath "github.com/ipfs/go-path"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 const (

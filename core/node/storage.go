@@ -1,12 +1,12 @@
 package node
 
 import (
+	blockstore "github.com/ipfs/boxo/blockstore"
 	"github.com/ipfs/go-datastore"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	config "github.com/ipfs/kubo/config"
 	"go.uber.org/fx"
 
-	"github.com/ipfs/go-filestore"
+	"github.com/ipfs/boxo/filestore"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/thirdparty/verifbs"
@@ -14,7 +14,8 @@ import (
 
 // RepoConfig loads configuration from the repo
 func RepoConfig(repo repo.Repo) (*config.Config, error) {
-	return repo.Config()
+	cfg, err := repo.Config()
+	return cfg, err
 }
 
 // Datastore provides the datastore

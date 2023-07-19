@@ -1,0 +1,190 @@
+name: Interop
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+  push:
+    branches:
+      - 'master'
+
+env:
+  GO_VERSION: 1.19.x
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  interop-prep:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TEST_DOCKER: 0
+      TEST_FUSE: 0
+      TEST_VERBOSE: 1
+      TRAVIS: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/checkout@v3
+      - uses: protocol/cache-go-action@v1
+        with:
+          name: ${{ github.job }}
+      - run: make build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kubo
+          path: cmd/ipfs/ipfs
+  interop:
+    needs: [interop-prep]
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.12.0
+      - uses: actions/download-artifact@v3
+        with:
+          name: kubo
+          path: cmd/ipfs
+      - run: chmod +x cmd/ipfs/ipfs
+      - run: |
+          echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+        id: npm-cache-dir
+      - uses: actions/cache@v3
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ github.job }}-
+      - run: mkdir interop
+      - run: |
+          npm init -y
+          npm install ipfs@^0.66.0
+          npm install kubo-rpc-client@^3.0.1
+          npm install ipfs-interop@^10.0.1
+        working-directory: interop
+      # Run the interop tests while ignoring the js-js interop test cases
+      - run: npx ipfs-interop -- -t node --grep '^(?!.*(js\d? -> js\d?|js-js-js|js-rv\d?-js))' --parallel
+        env:
+          LIBP2P_TCP_REUSEPORT: false
+          LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
+          IPFS_GO_EXEC: ${{ github.workspace }}/cmd/ipfs/ipfs
+        working-directory: interop
+  go-ipfs-api:
+    needs: [interop-prep]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TEST_DOCKER: 0
+      TEST_FUSE: 0
+      TEST_VERBOSE: 1
+      TRAVIS: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/download-artifact@v3
+        with:
+          name: kubo
+          path: cmd/ipfs
+      - run: chmod +x cmd/ipfs/ipfs
+      - uses: actions/checkout@v3
+        with:
+          repository: ipfs/go-ipfs-api
+          path: go-ipfs-api
+      - run: cmd/ipfs/ipfs daemon --init --enable-namesys-pubsub &
+      - run: |
+          while ! cmd/ipfs/ipfs id --api=/ip4/127.0.0.1/tcp/5001 2>/dev/null; do
+            sleep 1
+          done
+        timeout-minutes: 5
+      - uses: protocol/cache-go-action@v1
+        with:
+          name: ${{ github.job }}
+      - run: go test -count=1 -v ./...
+        working-directory: go-ipfs-api
+      - run: cmd/ipfs/ipfs shutdown
+        if: always()
+  ipfs-webui:
+    needs: [interop-prep]
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 20
+    env:
+      NO_SANDBOX: true
+      LIBP2P_TCP_REUSEPORT: false
+      LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
+      E2E_IPFSD_TYPE: go
+      TRAVIS: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18.14.0
+      - uses: actions/download-artifact@v3
+        with:
+          name: kubo
+          path: cmd/ipfs
+      - run: chmod +x cmd/ipfs/ipfs
+      - uses: actions/checkout@v3
+        with:
+          repository: ipfs/ipfs-webui
+          path: ipfs-webui
+      - run: |
+          echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+        id: npm-cache-dir
+      - uses: actions/cache@v3
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ github.job }}-
+      - env:
+          NPM_CACHE_DIR: ${{ steps.npm-cache-dir.outputs.dir }}
+        run: |
+          npm ci --prefer-offline --no-audit --progress=false --cache "$NPM_CACHE_DIR"
+          npx playwright install --with-deps
+        working-directory: ipfs-webui
+      - id: ref
+        run: echo "ref=$(git rev-parse --short HEAD)" | tee -a $GITHUB_OUTPUT
+        working-directory: ipfs-webui
+      - id: state
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ENDPOINT: repos/ipfs/ipfs-webui/commits/${{ steps.ref.outputs.ref }}/status
+          SELECTOR: .state
+          KEY: state
+        run: gh api "$ENDPOINT" --jq "$SELECTOR" | xargs -I{} echo "$KEY={}" | tee -a $GITHUB_OUTPUT
+      - name: Build ipfs-webui@main (state=${{ steps.state.outputs.state }})
+        run: npm run test:build
+        working-directory: ipfs-webui
+      - name: Test ipfs-webui@main (state=${{ steps.state.outputs.state }}) E2E against the locally built Kubo binary
+        run: npm run test:e2e
+        env:
+          IPFS_GO_EXEC: ${{ github.workspace }}/cmd/ipfs/ipfs
+        working-directory: ipfs-webui

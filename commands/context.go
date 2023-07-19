@@ -10,10 +10,10 @@ import (
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	loader "github.com/ipfs/kubo/plugin/loader"
 
+	coreiface "github.com/ipfs/boxo/coreiface"
+	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 	config "github.com/ipfs/kubo/config"
 )
 

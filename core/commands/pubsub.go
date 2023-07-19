@@ -11,19 +11,19 @@ import (
 	mbase "github.com/multiformats/go-multibase"
 	"github.com/pkg/errors"
 
+	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 var PubsubCmd = &cmds.Command{
-	Status: cmds.Experimental,
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
 		Tagline: "An experimental publish-subscribe system on ipfs.",
 		ShortDescription: `
 ipfs pubsub allows you to publish messages to a given topic, and also to
 subscribe to new messages on a given topic.
 
-EXPERIMENTAL FEATURE
+DEPRECATED FEATURE (see https://github.com/ipfs/kubo/issues/9717)
 
   It is not intended in its current state to be used in a production
   environment.  To use, the daemon must be run with
@@ -46,13 +46,13 @@ type pubsubMessage struct {
 }
 
 var PubsubSubCmd = &cmds.Command{
-	Status: cmds.Experimental,
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
 		Tagline: "Subscribe to messages on a given topic.",
 		ShortDescription: `
 ipfs pubsub sub subscribes to messages on a given topic.
 
-EXPERIMENTAL FEATURE
+DEPRECATED FEATURE (see https://github.com/ipfs/kubo/issues/9717)
 
   It is not intended in its current state to be used in a production
   environment.  To use, the daemon must be run with
@@ -145,14 +145,14 @@ TOPIC AND DATA ENCODING
 }
 
 var PubsubPubCmd = &cmds.Command{
-	Status: cmds.Experimental,
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
 		Tagline: "Publish data to a given pubsub topic.",
 		ShortDescription: `
 ipfs pubsub pub publishes a message to a specified topic.
 It reads binary data from stdin or a file.
 
-EXPERIMENTAL FEATURE
+DEPRECATED FEATURE (see https://github.com/ipfs/kubo/issues/9717)
 
   It is not intended in its current state to be used in a production
   environment.  To use, the daemon must be run with
@@ -201,13 +201,13 @@ HTTP RPC ENCODING
 }
 
 var PubsubLsCmd = &cmds.Command{
-	Status: cmds.Experimental,
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
 		Tagline: "List subscribed topics by name.",
 		ShortDescription: `
 ipfs pubsub ls lists out the names of topics you are currently subscribed to.
 
-EXPERIMENTAL FEATURE
+DEPRECATED FEATURE (see https://github.com/ipfs/kubo/issues/9717)
 
   It is not intended in its current state to be used in a production
   environment.  To use, the daemon must be run with
@@ -273,7 +273,7 @@ func safeTextListEncoder(req *cmds.Request, w io.Writer, list *stringList) error
 }
 
 var PubsubPeersCmd = &cmds.Command{
-	Status: cmds.Experimental,
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
 		Tagline: "List peers we are currently pubsubbing with.",
 		ShortDescription: `
@@ -281,7 +281,7 @@ ipfs pubsub peers with no arguments lists out the pubsub peers you are
 currently connected to. If given a topic, it will list connected peers who are
 subscribed to the named topic.
 
-EXPERIMENTAL FEATURE
+DEPRECATED FEATURE (see https://github.com/ipfs/kubo/issues/9717)
 
   It is not intended in its current state to be used in a production
   environment.  To use, the daemon must be run with

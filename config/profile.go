@@ -174,13 +174,17 @@ functionality - performance of content discovery and data
 fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
-			c.Routing.Type = "dhtclient"
+			c.Routing.Type = NewOptionalString("dhtclient") // TODO: https://github.com/ipfs/kubo/issues/9480
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
-			c.Reprovider.Interval = "0"
+			c.Reprovider.Interval = NewOptionalDuration(0)
 
-			c.Swarm.ConnMgr.LowWater = 20
-			c.Swarm.ConnMgr.HighWater = 40
-			c.Swarm.ConnMgr.GracePeriod = time.Minute.String()
+			lowWater := int64(20)
+			highWater := int64(40)
+			gracePeriod := time.Minute
+			c.Swarm.ConnMgr.Type = NewOptionalString("basic")
+			c.Swarm.ConnMgr.LowWater = &OptionalInteger{value: &lowWater}
+			c.Swarm.ConnMgr.HighWater = &OptionalInteger{value: &highWater}
+			c.Swarm.ConnMgr.GracePeriod = &OptionalDuration{&gracePeriod}
 			return nil
 		},
 	},

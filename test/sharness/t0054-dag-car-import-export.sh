@@ -171,7 +171,7 @@ test_expect_success "shut down nodes" '
 
 
 # We want to just init the repo, without using a daemon for stuff below
-test_init_ipfs
+test_init_ipfs --empty-repo=false
 
 
 test_expect_success "basic offline export of 'getting started' dag works" '
@@ -261,6 +261,53 @@ test_expect_success "version 2 import" '
 
 test_expect_success "version 2 import output as expected" '
   test_cmp_sorted version_2_import_expected version_2_import_actual
+'
+
+test_expect_success "'ipfs dag import' decode IPLD 'dag-json' codec works" '
+  NEW_HASH=$(echo "{ \"test\": \"dag-json\" }" | ipfs dag put --store-codec dag-json) &&
+  ipfs dag export $NEW_HASH > dag-json.car &&
+  ipfs dag import dag-json.car &&
+  rm dag-json.car
+'
+
+test_expect_success "'ipfs dag import' decode IPLD 'dag-cbor' codec works" '
+  NEW_HASH=$(echo "{ \"test\": \"dag-cbor\" }" | ipfs dag put --store-codec dag-cbor) &&
+  ipfs dag export $NEW_HASH > dag-cbor.car &&
+  ipfs dag import dag-cbor.car &&
+  rm dag-cbor.car
+'
+
+test_expect_success "'ipfs dag import' decode IPLD 'json' codec works" '
+  NEW_HASH=$(echo "{ \"test\": \"json\" }" | ipfs dag put --store-codec json) &&
+  ipfs dag export $NEW_HASH > json.car &&
+  ipfs dag import json.car &&
+  rm json.car
+'
+
+test_expect_success "'ipfs dag import' decode IPLD 'cbor' codec works" '
+  NEW_HASH=$(echo "{ \"test\": \"cbor\" }" | ipfs dag put --store-codec cbor) &&
+  ipfs dag export $NEW_HASH > cbor.car &&
+  ipfs dag import cbor.car &&
+  rm cbor.car
+'
+
+# IPIP-402
+cat > partial_nopin_import_expected << EOE
+{"Stats":{"BlockCount":1,"BlockBytesCount":1618}}
+EOE
+test_expect_success "'ipfs dag import' without pinning works fine with incomplete DAG (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    ipfs dag import --stats --enc=json --pin-roots=false ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_nopin_import_out 2>&1 &&
+    test_cmp partial_nopin_import_expected partial_nopin_import_out
+'
+
+test_expect_success "'ipfs dag import' with pinning errors due to incomplete DAG (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    ipfs dag import --stats --enc=json --pin-roots=true ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_pin_import_out 2>&1 &&
+    test_should_contain "\"PinErrorMsg\":\"block was not found locally" partial_pin_import_out
+'
+
+test_expect_success "'ipfs dag import' pin error in default CLI mode produces exit code 1 (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    test_expect_code 1 ipfs dag import ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_pin_import_out 2>&1 &&
+    test_should_contain "Error: pinning root \"QmPDC11yLAbVw3dX5jMeEuSdk4BiVjSd9X87zaYRdVjzW3\" FAILED: block was not found locally" partial_pin_import_out
 '
 
 test_done

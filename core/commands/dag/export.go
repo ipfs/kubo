@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb"
+	iface "github.com/ipfs/boxo/coreiface"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
-	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"

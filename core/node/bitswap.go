@@ -2,11 +2,12 @@ package node
 
 import (
 	"context"
+	"time"
 
-	"github.com/ipfs/go-bitswap"
-	"github.com/ipfs/go-bitswap/network"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	"github.com/ipfs/boxo/bitswap"
+	"github.com/ipfs/boxo/bitswap/network"
+	blockstore "github.com/ipfs/boxo/blockstore"
+	exchange "github.com/ipfs/boxo/exchange"
 	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -21,6 +22,7 @@ const (
 	DefaultTaskWorkerCount             = 8
 	DefaultEngineTaskWorkerCount       = 8
 	DefaultMaxOutstandingBytesPerPeer  = 1 << 20
+	DefaultProviderSearchDelay         = 1000 * time.Millisecond
 )
 
 type bitswapOptionsOut struct {
@@ -40,6 +42,7 @@ func BitswapOptions(cfg *config.Config, provide bool) interface{} {
 
 		opts := []bitswap.Option{
 			bitswap.ProvideEnabled(provide),
+			bitswap.ProviderSearchDelay(internalBsCfg.ProviderSearchDelay.WithDefault(DefaultProviderSearchDelay)), // See https://github.com/ipfs/go-ipfs/issues/8807 for rationale
 			bitswap.EngineBlockstoreWorkerCount(int(internalBsCfg.EngineBlockstoreWorkerCount.WithDefault(DefaultEngineBlockstoreWorkerCount))),
 			bitswap.TaskWorkerCount(int(internalBsCfg.TaskWorkerCount.WithDefault(DefaultTaskWorkerCount))),
 			bitswap.EngineTaskWorkerCount(int(internalBsCfg.EngineTaskWorkerCount.WithDefault(DefaultEngineTaskWorkerCount))),

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/boxo/files"
 	logging "github.com/ipfs/go-log"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/bootstrap"

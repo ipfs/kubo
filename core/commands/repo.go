@@ -19,8 +19,8 @@ import (
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
 
 	humanize "github.com/dustin/go-humanize"
+	bstore "github.com/ipfs/boxo/blockstore"
 	cid "github.com/ipfs/go-cid"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
@@ -43,6 +43,7 @@ var RepoCmd = &cmds.Command{
 		"version": repoVersionCmd,
 		"verify":  repoVerifyCmd,
 		"migrate": repoMigrateCmd,
+		"ls":      RefsLocalCmd,
 	},
 }
 

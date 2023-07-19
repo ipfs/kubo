@@ -9,13 +9,13 @@ import (
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
+	iface "github.com/ipfs/boxo/coreiface"
+	path "github.com/ipfs/boxo/coreiface/path"
+	merkledag "github.com/ipfs/boxo/ipld/merkledag"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
-	merkledag "github.com/ipfs/go-merkledag"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var refsEncoderMap = cmds.EncoderMap{
@@ -52,7 +52,9 @@ with the following format:
 
   <link base58 hash>
 
-NOTE: List all references recursively by using the flag '-r'.
+List all references recursively by using the flag '-r'.
+
+NOTE: Like most other commands, Kubo will try to fetch the blocks of the passed path if they can't be found in the local store if it is running in online mode.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{

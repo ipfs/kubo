@@ -22,7 +22,7 @@ type loggingResourceManager struct {
 	logInterval time.Duration
 
 	mut               sync.Mutex
-	limitExceededErrs uint64
+	limitExceededErrs map[string]int
 }
 
 type loggingScope struct {
@@ -47,11 +47,17 @@ func (n *loggingResourceManager) start(ctx context.Context) {
 			case <-ticker.C:
 				n.mut.Lock()
 				errs := n.limitExceededErrs
-				n.limitExceededErrs = 0
-				n.mut.Unlock()
-				if errs != 0 {
-					n.logger.Warnf("Resource limits were exceeded %d times, consider inspecting logs and raising the resource manager limits.", errs)
+				n.limitExceededErrs = make(map[string]int)
+
+				for e, count := range errs {
+					n.logger.Warnf("Protected from exceeding resource limits %d times.  libp2p message: %q.", count, e)
 				}
+
+				if len(errs) != 0 {
+					n.logger.Warnf("Learn more about potential actions to take at: https://github.com/ipfs/kubo/blob/master/docs/libp2p-resource-management.md")
+				}
+
+				n.mut.Unlock()
 			case <-ctx.Done():
 				return
 			}
@@ -62,7 +68,16 @@ func (n *loggingResourceManager) start(ctx context.Context) {
 func (n *loggingResourceManager) countErrs(err error) {
 	if errors.Is(err, network.ErrResourceLimitExceeded) {
 		n.mut.Lock()
-		n.limitExceededErrs++
+		if n.limitExceededErrs == nil {
+			n.limitExceededErrs = make(map[string]int)
+		}
+
+		// we need to unwrap the error to get the limit scope and the kind of reached limit
+		eout := errors.Unwrap(err)
+		if eout != nil {
+			n.limitExceededErrs[eout.Error()]++
+		}
+
 		n.mut.Unlock()
 	}
 }

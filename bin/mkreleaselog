@@ -41,7 +41,6 @@ IGNORE_FILES=(
     "go.mod"
     "go.sum"
     ".github"
-    ".circleci"
     "*.pb.go"
     "cbor_gen.go"
     "ipldsch_*.go"
@@ -261,6 +260,11 @@ recursive_release_log() {
 
         printf -- "Generating Changelog for %s %s..%s\n" "$module" "$start" "$end" >&2
 
+        echo "### 📝 Changelog"
+        echo
+        echo "<details><summary>Full Changelog</summary>"
+        echo
+
         printf -- "- %s:\n" "$module"
         release_log "$module" "$start" "$end" | indent
 
@@ -286,7 +290,9 @@ recursive_release_log() {
             done
 
         echo
-        echo "Contributors"
+        echo "</details>"
+        echo
+        echo "### 👨‍👩‍👧‍👦 Contributors"
         echo
 
         echo "| Contributor | Commits | Lines ± | Files Changed |"
