@@ -1,5 +1,10 @@
-FROM golang:1.19.1-buster
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.19-buster
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
+
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
 
 # Install deps
 RUN apt-get update && apt-get install -y \
@@ -24,7 +29,7 @@ ARG IPFS_PLUGINS
 # Also: fix getting HEAD commit hash via git rev-parse.
 RUN cd $SRC_DIR \
   && mkdir -p .git/objects \
-  && GOFLAGS=-buildvcs=false make build GOTAGS=openssl IPFS_PLUGINS=$IPFS_PLUGINS
+  && GOOS=$TARGETOS GOARCH=$TARGETARCH GOFLAGS=-buildvcs=false make build GOTAGS=openssl IPFS_PLUGINS=$IPFS_PLUGINS
 
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
@@ -46,7 +51,7 @@ RUN set -eux; \
   && chmod +x tini
 
 # Now comes the actual target image, which aims to be as small as possible.
-FROM busybox:1.31.1-glibc
+FROM --platform=${BUILDPLATFORM:-linux/amd64} busybox:1.31.1-glibc
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
@@ -113,7 +118,7 @@ ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/start_ipfs"]
 # Healthcheck for the container
 # QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn is the CID of empty folder
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD ipfs dag stat /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn || exit 1
+  CMD ipfs --api=/ip4/127.0.0.1/tcp/5001 dag stat /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn || exit 1
 
 # Execute the daemon subcommand by default
 CMD ["daemon", "--migrate=true", "--agent-version-suffix=docker"]

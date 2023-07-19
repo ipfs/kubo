@@ -10,18 +10,19 @@ import (
 	"fmt"
 	"io"
 
+	coreiface "github.com/ipfs/boxo/coreiface"
+	caopts "github.com/ipfs/boxo/coreiface/options"
+	ipath "github.com/ipfs/boxo/coreiface/path"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipld/merkledag/dagutils"
+	ft "github.com/ipfs/boxo/ipld/unixfs"
+	pin "github.com/ipfs/boxo/pinning/pinner"
 	cid "github.com/ipfs/go-cid"
-	pin "github.com/ipfs/go-ipfs-pinner"
 	ipld "github.com/ipfs/go-ipld-format"
-	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-merkledag/dagutils"
-	ft "github.com/ipfs/go-unixfs"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	caopts "github.com/ipfs/interface-go-ipfs-core/options"
-	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/ipfs/kubo/tracing"
 )
 
 const inputLimit = 2 << 20
@@ -132,7 +133,10 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 	}
 
 	if options.Pin {
-		api.pinning.PinWithMode(dagnode.Cid(), pin.Recursive)
+		if err := api.pinning.PinWithMode(ctx, dagnode.Cid(), pin.Recursive); err != nil {
+			return nil, err
+		}
+
 		err = api.pinning.Flush(ctx)
 		if err != nil {
 			return nil, err

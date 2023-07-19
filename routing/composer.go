@@ -51,7 +51,7 @@ func (c *Composer) ProvideMany(ctx context.Context, keys []multihash.Multihash) 
 
 func (c *Composer) Ready() bool {
 	log.Debug("composer: calling ready")
-	pmr, ok := c.ProvideRouter.(routinghelpers.ProvideManyRouter)
+	pmr, ok := c.ProvideRouter.(routinghelpers.ReadyAbleRouter)
 	if !ok {
 		return true
 	}
@@ -100,9 +100,18 @@ func (c *Composer) GetValue(ctx context.Context, key string, opts ...routing.Opt
 func (c *Composer) SearchValue(ctx context.Context, key string, opts ...routing.Option) (<-chan []byte, error) {
 	log.Debug("composer: calling searchValue: ", key)
 	ch, err := c.GetValueRouter.SearchValue(ctx, key, opts...)
+
+	// avoid nil channels on implementations not supporting SearchValue method.
+	if err == routing.ErrNotFound && ch == nil {
+		out := make(chan []byte)
+		close(out)
+		return out, err
+	}
+
 	if err != nil {
 		log.Debug("composer: calling searchValue error: ", key, err)
 	}
+
 	return ch, err
 }
 

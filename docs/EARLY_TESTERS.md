@@ -22,17 +22,17 @@ We will ask early testers to participate at two points in the process:
 
 ## Who has signed up?
 
-- [ ] pacman.store (@RubenKelevra)
-- [ ] Infura (@MichaelMure)
-- [ ] Textile (@sanderpick)
-- [ ] Pinata (@obo20)
-- [ ] RTrade (@postables)
-- [ ] QRI (@b5)
-- [ ] Siderus (@koalalorenzo)
+- [ ] Brave ()
 - [ ] Charity Engine (@rytiss, @tristanolive)
 - [ ] Fission (@bmann)
+- [ ] Infura (@MichaelMure)
 - [ ] OrbitDB (@aphelionz)
-- [ ] Brave ()
+- [ ] pacman.store (@RubenKelevra)
+- [ ] Pinata (@obo20)
+- [ ] PL EngRes bifrost (@gmasgras)
+- [ ] RTrade (@postables)
+- [ ] Siderus (@koalalorenzo)
+- [ ] Textile (@sanderpick)
 
 ## How to sign up?
 

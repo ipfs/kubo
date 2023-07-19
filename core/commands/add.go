@@ -11,12 +11,12 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	"github.com/cheggaaa/pb"
+	coreiface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/files"
+	mfs "github.com/ipfs/boxo/mfs"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
-	mfs "github.com/ipfs/go-mfs"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/options"
 	mh "github.com/multiformats/go-multihash"
 )
 

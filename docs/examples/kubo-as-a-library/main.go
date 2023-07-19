@@ -11,9 +11,9 @@ import (
 	"strings"
 	"sync"
 
-	files "github.com/ipfs/go-ipfs-files"
-	icore "github.com/ipfs/interface-go-ipfs-core"
-	icorepath "github.com/ipfs/interface-go-ipfs-core/path"
+	icore "github.com/ipfs/boxo/coreiface"
+	icorepath "github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/files"
 	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/ipfs/kubo/config"

@@ -11,11 +11,11 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	humanize "github.com/dustin/go-humanize"
+	"github.com/ipfs/boxo/coreiface/options"
+	path "github.com/ipfs/boxo/coreiface/path"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
-	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type Node struct {

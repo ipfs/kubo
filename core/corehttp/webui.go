@@ -1,11 +1,16 @@
 package corehttp
 
 // TODO: move to IPNS
-const WebUIPath = "/ipfs/bafybeibjbq3tmmy7wuihhhwvbladjsd3gx3kfjepxzkq6wylik6wc3whzy" // v2.20.0
+const WebUIPath = "/ipfs/bafybeicyp7ssbnj3hdzehcibmapmpuc3atrsc4ch3q6acldfh4ojjdbcxe" // v4.0.2
 
 // WebUIPaths is a list of all past webUI paths.
 var WebUIPaths = []string{
 	WebUIPath,
+	"/ipfs/bafybeigs6d53gpgu34553mbi5bbkb26e4ikruoaaar75jpfdywpup2r3my",
+	"/ipfs/bafybeic4gops3d3lyrisqku37uio33nvt6fqxvkxihrwlqsuvf76yln4fm",
+	"/ipfs/bafybeifeqt7mvxaniphyu2i3qhovjaf3sayooxbh5enfdqtiehxjv2ldte",
+	"/ipfs/bafybeiequgo72mrvuml56j4gk7crewig5bavumrrzhkqbim6b3s2yqi7ty",
+	"/ipfs/bafybeibjbq3tmmy7wuihhhwvbladjsd3gx3kfjepxzkq6wylik6wc3whzy",
 	"/ipfs/bafybeiavrvt53fks6u32n5p2morgblcmck4bh4ymf4rrwu7ah5zsykmqqa",
 	"/ipfs/bafybeiageaoxg6d7npaof6eyzqbwvbubyler7bq44hayik2hvqcggg7d2y",
 	"/ipfs/bafybeidb5eryh72zajiokdggzo7yct2d6hhcflncji5im2y5w26uuygdsm",

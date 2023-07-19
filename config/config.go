@@ -83,7 +83,7 @@ func Path(configroot, extension string) (string, error) {
 //   - If the user-provided configuration file path is only a file name, use the
 //     configuration root directory, otherwise use only the user-provided path
 //     and ignore the configuration root.
-func Filename(configroot string, userConfigFile string) (string, error) {
+func Filename(configroot, userConfigFile string) (string, error) {
 	if userConfigFile == "" {
 		return Path(configroot, DefaultConfigFile)
 	}

@@ -12,22 +12,22 @@ import (
 
 	"github.com/ipfs/kubo/core/coreunix"
 
-	blockservice "github.com/ipfs/go-blockservice"
+	blockservice "github.com/ipfs/boxo/blockservice"
+	bstore "github.com/ipfs/boxo/blockstore"
+	coreiface "github.com/ipfs/boxo/coreiface"
+	options "github.com/ipfs/boxo/coreiface/options"
+	path "github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/files"
+	filestore "github.com/ipfs/boxo/filestore"
+	merkledag "github.com/ipfs/boxo/ipld/merkledag"
+	dagtest "github.com/ipfs/boxo/ipld/merkledag/test"
+	ft "github.com/ipfs/boxo/ipld/unixfs"
+	unixfile "github.com/ipfs/boxo/ipld/unixfs/file"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
+	mfs "github.com/ipfs/boxo/mfs"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
-	filestore "github.com/ipfs/go-filestore"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
-	merkledag "github.com/ipfs/go-merkledag"
-	dagtest "github.com/ipfs/go-merkledag/test"
-	mfs "github.com/ipfs/go-mfs"
-	ft "github.com/ipfs/go-unixfs"
-	unixfile "github.com/ipfs/go-unixfs/file"
-	uio "github.com/ipfs/go-unixfs/io"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type UnixfsAPI CoreAPI
@@ -271,32 +271,36 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 		lnk.Type = coreiface.TFile
 		lnk.Size = linkres.Link.Size
 	case cid.DagProtobuf:
-		if !settings.ResolveChildren {
-			break
-		}
-
-		linkNode, err := linkres.Link.GetNode(ctx, api.dag)
-		if err != nil {
-			lnk.Err = err
-			break
-		}
-
-		if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
-			d, err := ft.FSNodeFromBytes(pn.Data())
+		if settings.ResolveChildren {
+			linkNode, err := linkres.Link.GetNode(ctx, api.dag)
 			if err != nil {
 				lnk.Err = err
 				break
 			}
-			switch d.Type() {
-			case ft.TFile, ft.TRaw:
-				lnk.Type = coreiface.TFile
-			case ft.THAMTShard, ft.TDirectory, ft.TMetadata:
-				lnk.Type = coreiface.TDirectory
-			case ft.TSymlink:
-				lnk.Type = coreiface.TSymlink
-				lnk.Target = string(d.Data())
+
+			if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
+				d, err := ft.FSNodeFromBytes(pn.Data())
+				if err != nil {
+					lnk.Err = err
+					break
+				}
+				switch d.Type() {
+				case ft.TFile, ft.TRaw:
+					lnk.Type = coreiface.TFile
+				case ft.THAMTShard, ft.TDirectory, ft.TMetadata:
+					lnk.Type = coreiface.TDirectory
+				case ft.TSymlink:
+					lnk.Type = coreiface.TSymlink
+					lnk.Target = string(d.Data())
+				}
+				if !settings.UseCumulativeSize {
+					lnk.Size = d.FileSize()
+				}
 			}
-			lnk.Size = d.FileSize()
+		}
+
+		if settings.UseCumulativeSize {
+			lnk.Size = linkres.Link.Size
 		}
 	}
 

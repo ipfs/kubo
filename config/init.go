@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/boxo/coreiface/options"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -65,15 +65,10 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 
 		Gateway: Gateway{
 			RootRedirect: "",
-			Writable:     false,
 			NoFetch:      false,
 			PathPrefixes: []string{},
-			HTTPHeaders: map[string][]string{
-				"Access-Control-Allow-Origin":  {"*"},
-				"Access-Control-Allow-Methods": {"GET"},
-				"Access-Control-Allow-Headers": {"X-Requested-With", "Range", "User-Agent"},
-			},
-			APICommands: []string{},
+			HTTPHeaders:  map[string][]string{},
+			APICommands:  []string{},
 		},
 		Reprovider: Reprovider{
 			Interval: nil,
@@ -110,13 +105,21 @@ const DefaultConnMgrGracePeriod = time.Second * 20
 // type.
 const DefaultConnMgrType = "basic"
 
+// DefaultResourceMgrMinInboundConns is a MAGIC number that probably a good
+// enough number of inbound conns to be a good network citizen.
+const DefaultResourceMgrMinInboundConns = 800
+
 func addressesConfig() Addresses {
 	return Addresses{
 		Swarm: []string{
 			"/ip4/0.0.0.0/tcp/4001",
 			"/ip6/::/tcp/4001",
 			"/ip4/0.0.0.0/udp/4001/quic",
+			"/ip4/0.0.0.0/udp/4001/quic-v1",
+			"/ip4/0.0.0.0/udp/4001/quic-v1/webtransport",
 			"/ip6/::/udp/4001/quic",
+			"/ip6/::/udp/4001/quic-v1",
+			"/ip6/::/udp/4001/quic-v1/webtransport",
 		},
 		Announce:       []string{},
 		AppendAnnounce: []string{},

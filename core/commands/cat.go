@@ -9,10 +9,10 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	"github.com/cheggaaa/pb"
-	"github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/path"
+	iface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/files"
+	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
 const (

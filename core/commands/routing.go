@@ -10,13 +10,25 @@ import (
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
+	iface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/coreiface/options"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	path "github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
-	dag "github.com/ipfs/go-merkledag"
-	path "github.com/ipfs/go-path"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
+)
+
+var (
+	errAllowOffline = errors.New("can't put while offline: pass `--allow-offline` to override")
+)
+
+const (
+	dhtVerboseOptionName   = "verbose"
+	numProvidersOptionName = "num-providers"
+	allowOfflineOptionName = "allow-offline"
 )
 
 var RoutingCmd = &cmds.Command{
@@ -33,14 +45,6 @@ var RoutingCmd = &cmds.Command{
 		"provide":   provideRefRoutingCmd,
 	},
 }
-
-const (
-	dhtVerboseOptionName = "verbose"
-)
-
-const (
-	numProvidersOptionName = "num-providers"
-)
 
 var findProvidersRoutingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -135,6 +139,7 @@ const (
 )
 
 var provideRefRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Announce to the network that you are providing given values.",
 	},
@@ -296,6 +301,10 @@ var findPeerRoutingCmd = &cmds.Command{
 			return err
 		}
 
+		if pid == nd.Identity {
+			return ErrSelfUnsupported
+		}
+
 		ctx, cancel := context.WithCancel(req.Context)
 		ctx, events := routing.RegisterForQueryEvents(ctx)
 
@@ -346,6 +355,7 @@ var findPeerRoutingCmd = &cmds.Command{
 }
 
 var getValueRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Given a key, query the routing system for its best value.",
 		ShortDescription: `
@@ -362,78 +372,37 @@ Different key types can specify other 'best' rules.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, true, "The key to find a value for."),
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
-	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
-		if !nd.IsOnline {
-			return ErrNotOnline
-		}
-
-		dhtkey, err := escapeDhtKey(req.Arguments[0])
+		r, err := api.Routing().Get(req.Context, req.Arguments[0])
 		if err != nil {
 			return err
 		}
 
-		ctx, cancel := context.WithCancel(req.Context)
-		ctx, events := routing.RegisterForQueryEvents(ctx)
-
-		var getErr error
-		go func() {
-			defer cancel()
-			var val []byte
-			val, getErr = nd.Routing.GetValue(ctx, dhtkey)
-			if getErr != nil {
-				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
-					Type:  routing.QueryError,
-					Extra: getErr.Error(),
-				})
-			} else {
-				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
-					Type:  routing.Value,
-					Extra: base64.StdEncoding.EncodeToString(val),
-				})
-			}
-		}()
-
-		for e := range events {
-			if err := res.Emit(e); err != nil {
-				return err
-			}
-		}
-
-		return getErr
+		return res.Emit(routing.QueryEvent{
+			Extra: base64.StdEncoding.EncodeToString(r),
+			Type:  routing.Value,
+		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
-			pfm := pfuncMap{
-				routing.Value: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
-					if verbose {
-						_, err := fmt.Fprintf(out, "got value: '%s'\n", obj.Extra)
-						return err
-					}
-					res, err := base64.StdEncoding.DecodeString(obj.Extra)
-					if err != nil {
-						return err
-					}
-					_, err = out.Write(res)
-					return err
-				},
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, obj *routing.QueryEvent) error {
+			res, err := base64.StdEncoding.DecodeString(obj.Extra)
+			if err != nil {
+				return err
 			}
-
-			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			return printEvent(out, w, verbose, pfm)
+			_, err = w.Write(res)
+			return err
 		}),
 	},
 	Type: routing.QueryEvent{},
 }
 
 var putValueRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Write a key/value pair to the routing system.",
 		ShortDescription: `
@@ -460,19 +429,10 @@ identified by QmFoo.
 		cmds.FileArg("value-file", true, false, "A path to a file containing the value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
+		cmds.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-
-		if !nd.IsOnline {
-			return ErrNotOnline
-		}
-
-		key, err := escapeDhtKey(req.Arguments[0])
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -488,28 +448,29 @@ identified by QmFoo.
 			return err
 		}
 
-		ctx, cancel := context.WithCancel(req.Context)
-		ctx, events := routing.RegisterForQueryEvents(ctx)
+		allowOffline, _ := req.Options[allowOfflineOptionName].(bool)
 
-		var putErr error
-		go func() {
-			defer cancel()
-			putErr = nd.Routing.PutValue(ctx, key, []byte(data))
-			if putErr != nil {
-				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
-					Type:  routing.QueryError,
-					Extra: putErr.Error(),
-				})
-			}
-		}()
-
-		for e := range events {
-			if err := res.Emit(e); err != nil {
-				return err
-			}
+		opts := []options.RoutingPutOption{
+			options.Put.AllowOffline(allowOffline),
 		}
 
-		return putErr
+		err = api.Routing().Put(req.Context, req.Arguments[0], data, opts...)
+		if err != nil {
+			return err
+		}
+
+		id, err := api.Key().Self(req.Context)
+		if err != nil {
+			if err == iface.ErrOffline {
+				err = errAllowOffline
+			}
+			return err
+		}
+
+		return res.Emit(routing.QueryEvent{
+			Type: routing.Value,
+			ID:   id.ID(),
+		})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {

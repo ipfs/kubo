@@ -1,6 +1,9 @@
 package config
 
-const DefaultInlineDNSLink = false
+const (
+	DefaultInlineDNSLink         = false
+	DefaultDeserializedResponses = true
+)
 
 type GatewaySpec struct {
 	// Paths is explicit list of path prefixes that should be handled by
@@ -25,6 +28,11 @@ type GatewaySpec struct {
 	// (FQDN) into a single DNS label in order to interop with wildcard TLS certs
 	// and Origin per CID isolation provided by rules like https://publicsuffix.org
 	InlineDNSLink Flag
+
+	// DeserializedResponses configures this gateway to respond to deserialized
+	// responses. Disabling this option enables a Trustless Gateway, as per:
+	// https://specs.ipfs.tech/http-gateways/trustless-gateway/.
+	DeserializedResponses Flag
 }
 
 // Gateway contains options for the HTTP gateway server.
@@ -38,20 +46,11 @@ type Gateway struct {
 	// should be redirected.
 	RootRedirect string
 
-	// Writable enables PUT/POST request handling by this gateway. Usually,
-	// writing is done through the API, not the gateway.
-	Writable bool
+	// REMOVED: modern replacement tracked in https://github.com/ipfs/specs/issues/375
+	Writable Flag `json:",omitempty"`
 
 	// PathPrefixes was removed: https://github.com/ipfs/go-ipfs/issues/7702
 	PathPrefixes []string
-
-	// FastDirIndexThreshold is the maximum number of items in a directory
-	// before the Gateway switches to a shallow, faster listing which only
-	// requires the root node. This allows for listing big directories fast,
-	// without the linear slowdown caused by reading size metadata from child
-	// nodes.
-	// Setting to 0 will enable fast listings for all directories.
-	FastDirIndexThreshold *OptionalInteger `json:",omitempty"`
 
 	// FIXME: Not yet implemented: https://github.com/ipfs/kubo/issues/8059
 	APICommands []string
@@ -64,6 +63,12 @@ type Gateway struct {
 	// lookups in response to requests with values in `Host` HTTP header.
 	// This flag can be overridden per FQDN in PublicGateways.
 	NoDNSLink bool
+
+	// DeserializedResponses configures this gateway to respond to deserialized
+	// requests. Disabling this option enables a Trustless only gateway, as per:
+	// https://specs.ipfs.tech/http-gateways/trustless-gateway/. This can
+	// be overridden per FQDN in PublicGateways.
+	DeserializedResponses Flag
 
 	// PublicGateways configures behavior of known public gateways.
 	// Each key is a fully qualified domain name (FQDN).

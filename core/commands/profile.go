@@ -49,7 +49,8 @@ The output file includes:
 
 - A list of running goroutines.
 - A CPU profile.
-- A heap profile.
+- A heap inuse profile.
+- A heap allocation profile.
 - A mutex profile.
 - A block profile.
 - Your copy of go-ipfs.
@@ -79,6 +80,7 @@ However, it could reveal:
 				profile.CollectorGoroutinesPprof,
 				profile.CollectorVersion,
 				profile.CollectorHeap,
+				profile.CollectorAllocs,
 				profile.CollectorBin,
 				profile.CollectorCPU,
 				profile.CollectorMutex,

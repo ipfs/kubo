@@ -1,0 +1,32 @@
+name: Docker Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+  push:
+    branches:
+      - 'master'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-build:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      IMAGE_NAME: ipfs/kubo
+      WIP_IMAGE_TAG: wip
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.x
+      - uses: actions/checkout@v3
+      - run: docker build -t $IMAGE_NAME:$WIP_IMAGE_TAG .

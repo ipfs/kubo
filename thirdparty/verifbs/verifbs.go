@@ -3,10 +3,10 @@ package verifbs
 import (
 	"context"
 
+	bstore "github.com/ipfs/boxo/blockstore"
+	"github.com/ipfs/boxo/verifcid"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/go-verifcid"
 )
 
 type VerifBSGC struct {

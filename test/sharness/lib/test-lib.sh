@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
 #
-# We are using sharness (https://github.com/mlafeldt/sharness)
+# We are using sharness (https://github.com/pl-strflt/sharness/tree/feat/junit)
 # which was extracted from the Git test framework.
 
 # use the ipfs tool to test against
@@ -27,14 +27,17 @@ fi
 # to pass through in some cases.
 test "$TEST_VERBOSE" = 1 && verbose=t
 test "$TEST_IMMEDIATE" = 1 && immediate=t
+test "$TEST_JUNIT" = 1 && junit=t
+test "$TEST_NO_COLOR" = 1 && no_color=t
 # source the common hashes first.
 . lib/test-lib-hashes.sh
 
 
-SHARNESS_LIB="lib/sharness/sharness.sh"
+ln -sf lib/sharness/sharness.sh .
+ln -sf lib/sharness/lib-sharness .
 
-. "$SHARNESS_LIB" || {
-  echo >&2 "Cannot source: $SHARNESS_LIB"
+. "sharness.sh" || {
+  echo >&2 "Cannot source: sharness.sh"
   echo >&2 "Please check Sharness installation."
   exit 1
 }
@@ -91,10 +94,10 @@ export TERM=dumb
 TEST_OS="$(uname -s | tr '[a-z]' '[A-Z]')"
 
 # grab + output options
-test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
+test "$TEST_FUSE" = 1 && test_set_prereq FUSE
 test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
-test "$TEST_NO_DOCKER" != 1 && type docker >/dev/null 2>&1 && groups | egrep "\bdocker\b" && test_set_prereq DOCKER
-test "$TEST_NO_PLUGIN" != 1 && test "$TEST_OS" = "LINUX" && test_set_prereq PLUGIN
+test "$TEST_DOCKER" = 1 && type docker >/dev/null 2>&1 && groups | egrep "\bdocker\b" && test_set_prereq DOCKER
+test "$TEST_PLUGIN" = 1 && test "$TEST_OS" = "LINUX" && test_set_prereq PLUGIN
 
 # this may not be available, skip a few dependent tests
 type socat >/dev/null 2>&1 && test_set_prereq SOCAT
@@ -106,10 +109,15 @@ expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
 
 if test "$TEST_VERBOSE" = 1; then
   echo '# TEST_VERBOSE='"$TEST_VERBOSE"
-  echo '# TEST_NO_FUSE='"$TEST_NO_FUSE"
-  echo '# TEST_NO_PLUGIN='"$TEST_NO_PLUGIN"
+  echo '# TEST_IMMEDIATE='"$TEST_IMMEDIATE"
+  echo '# TEST_FUSE='"$TEST_FUSE"
+  echo '# TEST_DOCKER='"$TEST_DOCKER"
+  echo '# TEST_PLUGIN='"$TEST_PLUGIN"
   echo '# TEST_EXPENSIVE='"$TEST_EXPENSIVE"
   echo '# TEST_OS='"$TEST_OS"
+  echo '# TEST_JUNIT='"$TEST_JUNIT"
+  echo '# TEST_NO_COLOR='"$TEST_NO_COLOR"
+  echo '# TEST_ULIMIT_PRESET='"$TEST_ULIMIT_PRESET"
 fi
 
 # source our generic test lib
@@ -136,8 +144,8 @@ test_run_repeat_60_sec() {
   return 1 # failed
 }
 
-test_wait_output_n_lines_60_sec() {
-  for i in $(test_seq 1 600)
+test_wait_output_n_lines() {
+  for i in $(test_seq 1 3600)
   do
     test $(cat "$1" | wc -l | tr -d " ") -ge $2 && return
     go-sleep 100ms
@@ -186,7 +194,7 @@ test_config_set() {
 }
 
 test_init_ipfs() {
-
+  args=("$@")
 
   # we set the Addresses.API config variable.
   # the cli client knows to use it, so only need to set.
@@ -194,7 +202,7 @@ test_init_ipfs() {
 
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
-    ipfs init --profile=test > /dev/null
+    ipfs init "${args[@]}" --profile=test > /dev/null
   '
 
   test_expect_success "prepare config -- mounting" '
@@ -204,13 +212,6 @@ test_init_ipfs() {
     test_fsh cat "\"$IPFS_PATH/config\""
   '
 
-}
-
-test_config_ipfs_gateway_writable() {
-  test_expect_success "prepare config -- gateway writable" '
-    test_config_set --bool Gateway.Writable true ||
-    test_fsh cat "\"$IPFS_PATH/config\""
-  '
 }
 
 test_wait_for_file() {
@@ -239,7 +240,7 @@ test_set_address_vars() {
     API_ADDR=$(convert_tcp_maddr $API_MADDR) &&
     API_PORT=$(port_from_maddr $API_MADDR) &&
 
-    GWAY_MADDR=$(sed -n "s/^Gateway (.*) server listening on //p" "$daemon_output") &&
+    GWAY_MADDR=$(sed -n "s/^Gateway server listening on //p" "$daemon_output") &&
     GWAY_ADDR=$(convert_tcp_maddr $GWAY_MADDR) &&
     GWAY_PORT=$(port_from_maddr $GWAY_MADDR)
   '
@@ -541,4 +542,3 @@ purge_blockstore() {
     [[ -z "$( ipfs repo gc )" ]]
   '
 }
-

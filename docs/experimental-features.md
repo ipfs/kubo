@@ -12,7 +12,6 @@ When you add a new experimental feature to kubo or change an experimental
 feature, you MUST please make a PR updating this document, and link the PR in
 the above issue.
 
-- [ipfs pubsub](#ipfs-pubsub)
 - [Raw leaves for unixfs files](#raw-leaves-for-unixfs-files)
 - [ipfs filestore](#ipfs-filestore)
 - [ipfs urlstore](#ipfs-urlstore)
@@ -28,38 +27,9 @@ the above issue.
 - [Graphsync](#graphsync)
 - [Noise](#noise)
 - [Accelerated DHT Client](#accelerated-dht-client)
+- [Optimistic Provide](#optimistic-provide)
 
 ---
-
-## ipfs pubsub
-
-### State
-
-Candidate, disabled by default but will be enabled by default in 0.6.0.
-
-### In Version
-
-0.4.5 (`--enable-pubsub-experiment`)
-0.11.0 (`Pubsub.Enabled` flag in config)
-
-### How to enable
-
-Run your daemon with the `--enable-pubsub-experiment` flag
-or modify your ipfs config and restart the daemon:
-```
-ipfs config --json Pubsub.Enabled true
-```
-
-Then use the `ipfs pubsub` commands.
-
-NOTE: `--enable-pubsub-experiment` CLI flag overrides `Pubsub.Enabled` config.
-
-Configuration documentation can be found in [kubo/docs/config.md](./config.md#pubsub)
-
-### Road to being a real feature
-
-- [ ] Needs to not impact peers who don't use pubsub:
-      https://github.com/libp2p/go-libp2p-pubsub/issues/332
 
 ## Raw Leaves for unixfs files
 
@@ -390,7 +360,7 @@ We also support the use of protocol names of the form /x/$NAME/http where $NAME 
 ## FUSE
 
 FUSE makes it possible to mount `/ipfs` and `/ipns` namespaces in your OS,
-allowing argitrary apps access to IPFS using a subset of filesystem abstractions.
+allowing arbitrary apps access to IPFS using a subset of filesystem abstractions.
 
 It is considered  EXPERIMENTAL due to limited (and buggy) support on some platforms.
 
@@ -543,7 +513,7 @@ ipfs config --json Experimental.StrategicProviding true
     - [ ] provide roots
     - [ ] provide all
     - [ ] provide strategic
-    
+
 ## GraphSync
 
 ### State
@@ -576,55 +546,75 @@ Stable, enabled by default
 
 [Noise](https://github.com/libp2p/specs/tree/master/noise) libp2p transport based on the [Noise Protocol Framework](https://noiseprotocol.org/noise.html). While TLS remains the default transport in Kubo, Noise is easier to implement and is thus the "interop" transport between IPFS and libp2p implementations.
 
-## Accelerated DHT Client
+## Optimistic Provide
 
 ### In Version
 
-0.9.0
+0.20.0
 
 ### State
 
-Experimental, default-disabled.
+Experimental, disabled by default.
 
-Utilizes an alternative DHT client that searches for and maintains more information about the network
-in exchange for being more performant.
+When the DHT client tries to store a provider in the DHT, it typically searches for the 20 peers that are closest to the
+target key. However, this process can be time-consuming, as the search terminates only after no closer peers are found
+among the three currently (during the query) known closest ones. In cases where these closest peers are slow to respond
+(which often happens if they are located at the edge of the DHT network), the query gets blocked by the slowest peer.
+
+To address this issue, the `OptimisticProvide` feature can be enabled. This feature allows the client to estimate the
+network size and determine how close a peer _likely_ needs to be to the target key to be within the 20 closest peers.
+While searching for the closest peers in the DHT, the client will _optimistically_ store the provider record with peers
+and abort the query completely when the set of currently known 20 closest peers are also _likely_ the actual 20 closest
+ones. This heuristic approach can significantly speed up the process, resulting in a speed improvement of 2x to >10x.
 
 When it is enabled:
-- DHT operations should complete much faster than with it disabled
-- A batching reprovider system will be enabled which takes advantage of some properties of the experimental client to
-  very efficiently put provider records into the network
-- The standard DHT client (and server if enabled) are run alongside the alternative client
-- The operations `ipfs stats dht` and `ipfs stats provide` will have different outputs
-   - `ipfs stats provide` only works when the accelerated DHT client is enabled and shows various statistics regarding
-     the provider/reprovider system
-   - `ipfs stats dht` will default to showing information about the new client
+
+- DHT provide operations should complete much faster than with it disabled
+- This can be tested with commands such as `ipfs routing provide`
+
+**Tradeoffs**
+
+There are now the classic client, the accelerated DHT client, and optimistic provide that improve the provider process.
+There are different trade-offs with all of them. The accelerated DHT client is still faster to provide large amounts
+of provider records at the cost of high resource requirements. Optimistic provide doesn't have the high resource
+requirements but might not choose optimal peers and is not as fast as the accelerated client, but still much faster
+than the classic client.
 
 **Caveats:**
-1. Running the experimental client likely will result in more resource consumption (connections, RAM, CPU, bandwidth)
-   - Users that are limited in the number of parallel connections their machines/networks can perform will likely suffer
-   - Currently, the resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly
-     done in rounds
-   - Users who previously had a lot of content but were unable to advertise it on the network will see an increase in
-     egress bandwidth as their nodes start to advertise all of their CIDs into the network. If you have lots of data
-     entering your node that you don't want to advertise consider using [Reprovider Strategies](config.md#reproviderstrategy)
-     to reduce the number of CIDs that you are reproviding. Similarly, if you are running a node that deals mostly with
-     short-lived temporary data (e.g. you use a separate node for ingesting data then for storing and serving it) then
-     you may benefit from using [Strategic Providing](#strategic-providing) to prevent advertising of data that you
-     ultimately will not have.
-2. Currently, the DHT is not usable for queries for the first 5-10 minutes of operation as the routing table is being
-prepared. This means operations like searching the DHT for particular peers or content will not work
-   - You can see if the DHT has been initially populated by running `ipfs stats dht`
-3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
-them
 
-### How to enable
+1. Providing optimistically requires a current network size estimation. This estimation is calculated through routing
+   table refresh queries and is only available after the daemon has been running for some time. If there is no network
+   size estimation available the client will transparently fall back to the classic approach.
+2. The chosen peers to store the provider records might not be the actual closest ones. Measurements showed that this
+   is not a problem.
+3. The optimistic provide process returns already after 15 out of the 20 provider records were stored with peers. The
+   reasoning here is that one out of the remaining 5 peers are very likely to time out and delay the whole process. To
+   limit the number of in-flight async requests there is the second `OptimisticProvideJobsPoolSize` setting. Currently,
+   this is set to 60. This means that at most 60 parallel background requests are allowed to be in-flight. If this
+   limit is exceeded optimistic provide will block until all 20 provider records are written. This is still 2x faster
+   than the classic approach but not as fast as returning early which yields >10x speed-ups.
+4. Since the in-flight background requests are likely to time out, they are not consuming many resources and the job
+   pool size could probably be much higher.
+
+For more information, see:
+
+- Project doc: https://protocollabs.notion.site/Optimistic-Provide-2c79745820fa45649d48de038516b814
+- go-libp2p-kad-dht: https://github.com/libp2p/go-libp2p-kad-dht/pull/783
+
+### Configuring
+To enable:
 
 ```
-ipfs config --json Experimental.AcceleratedDHTClient true
+ipfs config --json Experimental.OptimisticProvide true
+```
+
+If you want to change the `OptimisticProvideJobsPoolSize` setting from its default of 60:
+
+```
+ipfs config --json Experimental.OptimisticProvideJobsPoolSize 120
 ```
 
 ### Road to being a real feature
 
 - [ ] Needs more people to use and report on how well it works
-- [ ] Should be usable for queries (even if slower/less efficient) shortly after startup
-- [ ] Should be usable with non-WAN DHTs
+- [ ] Should prove at least equivalent availability of provider records as the classic approach
