@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	iface "github.com/ipfs/boxo/coreiface"
@@ -27,6 +28,7 @@ const dbNameDemandSupply = "demand_supply"
 const dbNameCitizenReputation = "citizen_reputation"
 const dbNameIssue = "issue"
 const dbNameEvent = "event"
+const dbNameGift = "gift"
 
 var OrbitCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -317,7 +319,7 @@ var OrbitQueryDocsCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("dbName", true, false, "DB address or name"),
 		cmds.StringArg("key", true, false, "Key to query"),
-		cmds.StringArg("query", true, false, "Value to query"),
+		cmds.StringArg("value", true, false, "Value to query"),
 	},
 	PreRun: urlArgsEncoder,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -331,7 +333,7 @@ var OrbitQueryDocsCmd = &cmds.Command{
 
 		dbName := req.Arguments[0]
 		key := req.Arguments[1]
-		query := req.Arguments[2]
+		value := req.Arguments[2]
 
 		db, store, err := ConnectDocs(req.Context, dbName, api, func(address string) {})
 		if err != nil {
@@ -341,8 +343,25 @@ var OrbitQueryDocsCmd = &cmds.Command{
 		defer db.Close()
 
 		q, err := store.Query(req.Context, func(e interface{}) (bool, error) {
-			issue := e.(map[string]interface{})
-			if issue[key] == query {
+			record := e.(map[string]interface{})
+			if strings.Contains(value, ",") {
+				values := strings.Split(value, ",")
+				recs, ok := record[key].(string)
+				if !ok {
+					return false, nil
+				}
+				if strings.Contains(recs, ",") {
+					records := strings.Split(recs, ",")
+					for _, r := range records {
+						for _, v := range values {
+							if r == v {
+								return true, nil
+							}
+						}
+					}
+				}
+
+			} else if record[key] == value {
 				return true, nil
 			}
 			return false, nil
@@ -392,9 +411,9 @@ var OrbitDelDocsCmd = &cmds.Command{
 		defer db.Close()
 
 		if key == "all" {
-			var issues []map[string]interface{}
+			var records []map[string]interface{}
 			_, err := store.Query(req.Context, func(e interface{}) (bool, error) {
-				issues = append(issues, e.(map[string]interface{}))
+				records = append(records, e.(map[string]interface{}))
 				return true, nil
 			})
 
@@ -402,7 +421,7 @@ var OrbitDelDocsCmd = &cmds.Command{
 				return err
 			}
 
-			for _, is := range issues {
+			for _, is := range records {
 				for i := range is {
 					if i == "_id" {
 						id := fmt.Sprint(is[i])
@@ -524,6 +543,14 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
 			_, err = db.Create(ctx, dbNameEvent, "docstore", &orbitdb.CreateDBOptions{})
+			if err != nil {
+				return db, nil, err
+			}
+		}
+	case dbNameGift:
+		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		if err != nil {
+			_, err = db.Create(ctx, dbNameGift, "docstore", &orbitdb.CreateDBOptions{})
 			if err != nil {
 				return db, nil, err
 			}
