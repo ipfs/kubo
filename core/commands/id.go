@@ -26,12 +26,11 @@ import (
 const offlineIDErrorMessage = "'ipfs id' cannot query information on remote peers without a running daemon; if you only want to convert --peerid-base, pass --offline option"
 
 type IdOutput struct { // nolint
-	ID              string
-	PublicKey       string
-	Addresses       []string
-	AgentVersion    string
-	ProtocolVersion string
-	Protocols       []protocol.ID
+	ID           string
+	PublicKey    string
+	Addresses    []string
+	AgentVersion string
+	Protocols    []protocol.ID
 }
 
 const (
@@ -126,7 +125,6 @@ EXAMPLE:
 				output := format
 				output = strings.Replace(output, "<id>", out.ID, -1)
 				output = strings.Replace(output, "<aver>", out.AgentVersion, -1)
-				output = strings.Replace(output, "<pver>", out.ProtocolVersion, -1)
 				output = strings.Replace(output, "<pubkey>", out.PublicKey, -1)
 				output = strings.Replace(output, "<addrs>", strings.Join(out.Addresses, "\n"), -1)
 				output = strings.Replace(output, "<protocols>", strings.Join(protocol.ConvertToStrings(out.Protocols), "\n"), -1)
@@ -178,11 +176,6 @@ func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (interface{
 	info.Protocols = append(info.Protocols, protocols...)
 	sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
 
-	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
-		if vs, ok := v.(string); ok {
-			info.ProtocolVersion = vs
-		}
-	}
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
 			info.AgentVersion = vs
