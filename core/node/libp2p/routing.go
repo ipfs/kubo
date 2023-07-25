@@ -31,8 +31,7 @@ import (
 type Router struct {
 	routing.Routing
 
-	Priority         int // less = more important
-	DoNotWaitForIPNS bool
+	Priority int // less = more important
 }
 
 type p2pRouterOut struct {
@@ -127,7 +126,7 @@ func BaseRouting(cfg *config.Config) interface{} {
 				return out, err
 			}
 			routers := []*routinghelpers.ParallelRouter{
-				{Router: fullRTClient},
+				{Router: fullRTClient, DoNotWaitForSearchValue: true},
 			}
 			routers = append(routers, httpRouters...)
 			router := routinghelpers.NewComposableParallel(routers)
@@ -199,7 +198,7 @@ func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	for _, v := range routers {
 		cRouters = append(cRouters, &routinghelpers.ParallelRouter{
 			IgnoreError:             true,
-			DoNotWaitForSearchValue: v.DoNotWaitForIPNS,
+			DoNotWaitForSearchValue: true,
 			Router:                  v.Routing,
 		})
 	}
@@ -246,8 +245,7 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 					Namespaces: []string{"ipns"},
 				},
 			},
-			Priority:         100,
-			DoNotWaitForIPNS: true,
+			Priority: 100,
 		},
 	}, psRouter, nil
 }
