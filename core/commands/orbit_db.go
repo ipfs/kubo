@@ -344,7 +344,9 @@ var OrbitQueryDocsCmd = &cmds.Command{
 
 		q, err := store.Query(req.Context, func(e interface{}) (bool, error) {
 			record := e.(map[string]interface{})
-			if strings.Contains(value, ",") {
+			if key == "all" {
+				return true, nil
+			} else if strings.Contains(value, ",") {
 				values := strings.Split(value, ",")
 				recs, ok := record[key].(string)
 				if !ok {
