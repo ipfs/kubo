@@ -124,7 +124,9 @@ func Bootstrap(id peer.ID, host host.Host, rt routing.Routing, cfg BootstrapConf
 	doneWithRound <- struct{}{}
 	close(doneWithRound) // it no longer blocks periodic
 
-	startSavePeersAsTemporaryBootstrapProc(cfg, host, proc)
+	if cfg.LoadBackupBootstrapPeers != nil && cfg.SaveBackupBootstrapPeers != nil {
+		startSavePeersAsTemporaryBootstrapProc(cfg, host, proc)
+	}
 
 	return proc, nil
 }
@@ -239,6 +241,11 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 		if numToDial <= 0 {
 			return nil
 		}
+	}
+
+	if cfg.LoadBackupBootstrapPeers == nil {
+		log.Debugf("not enough bootstrap peers to fill the remaining target of %d connections", numToDial)
+		return ErrNotEnoughBootstrapPeers
 	}
 
 	log.Debugf("not enough bootstrap peers to fill the remaining target of %d connections, trying backup list", numToDial)
