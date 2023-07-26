@@ -29,6 +29,7 @@ const dbNameCitizenReputation = "citizen_reputation"
 const dbNameIssue = "issue"
 const dbNameEvent = "event"
 const dbNameGift = "gift"
+const dbNameRide = "ride"
 
 var OrbitCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -553,6 +554,14 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
 			_, err = db.Create(ctx, dbNameGift, "docstore", &orbitdb.CreateDBOptions{})
+			if err != nil {
+				return db, nil, err
+			}
+		}
+	case dbNameRide:
+		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		if err != nil {
+			_, err = db.Create(ctx, dbNameRide, "docstore", &orbitdb.CreateDBOptions{})
 			if err != nil {
 				return db, nil, err
 			}
