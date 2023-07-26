@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	path "github.com/ipfs/boxo/coreiface/path"
-
-	"github.com/ipfs/boxo/files"
-
 	coreiface "github.com/ipfs/boxo/coreiface"
 	opt "github.com/ipfs/boxo/coreiface/options"
+	path "github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/ipns"
+	"github.com/stretchr/testify/require"
 )
 
 func (tp *TestSuite) TestName(t *testing.T) {
@@ -44,138 +44,68 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 	defer cancel()
 	init := func() (coreiface.CoreAPI, path.Path) {
 		apis, err := tp.MakeAPISwarm(t, ctx, 5)
-		if err != nil {
-			t.Fatal(err)
-			return nil, nil
-		}
+		require.NoError(t, err)
 		api := apis[0]
 
 		p, err := addTestObject(ctx, api)
-		if err != nil {
-			t.Fatal(err)
-			return nil, nil
-		}
+		require.NoError(t, err)
 		return api, p
 	}
 	run := func(t *testing.T, ropts []opt.NameResolveOption) {
 		t.Run("basic", func(t *testing.T) {
 			api, p := init()
-			e, err := api.Name().Publish(ctx, p)
-			if err != nil {
-				t.Fatal(err)
-			}
+			name, err := api.Name().Publish(ctx, p)
+			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+			require.Equal(t, name.String(), ipns.NameFromPeer(self.ID()).String())
 
-			if e.Name() != coreiface.FormatKeyID(self.ID()) {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", coreiface.FormatKeyID(self.ID()), e.Name())
-			}
-
-			if e.Value().String() != p.String() {
-				t.Errorf("expected paths to match, '%s'!='%s'", e.Value().String(), p.String())
-			}
-
-			resPath, err := api.Name().Resolve(ctx, e.Name(), ropts...)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if resPath.String() != p.String() {
-				t.Errorf("expected paths to match, '%s'!='%s'", resPath.String(), p.String())
-			}
+			resPath, err := api.Name().Resolve(ctx, name.String(), ropts...)
+			require.NoError(t, err)
+			require.Equal(t, p.String(), resPath.String())
 		})
 
 		t.Run("publishPath", func(t *testing.T) {
 			api, p := init()
-			e, err := api.Name().Publish(ctx, appendPath(p, "/test"))
-			if err != nil {
-				t.Fatal(err)
-			}
+			name, err := api.Name().Publish(ctx, appendPath(p, "/test"))
+			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+			require.Equal(t, name.String(), ipns.NameFromPeer(self.ID()).String())
 
-			if e.Name() != coreiface.FormatKeyID(self.ID()) {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", coreiface.FormatKeyID(self.ID()), e.Name())
-			}
-
-			if e.Value().String() != p.String()+"/test" {
-				t.Errorf("expected paths to match, '%s'!='%s'", e.Value().String(), p.String())
-			}
-
-			resPath, err := api.Name().Resolve(ctx, e.Name(), ropts...)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if resPath.String() != p.String()+"/test" {
-				t.Errorf("expected paths to match, '%s'!='%s'", resPath.String(), p.String()+"/test")
-			}
+			resPath, err := api.Name().Resolve(ctx, name.String(), ropts...)
+			require.NoError(t, err)
+			require.Equal(t, p.String()+"/test", resPath.String())
 		})
 
 		t.Run("revolvePath", func(t *testing.T) {
 			api, p := init()
-			e, err := api.Name().Publish(ctx, p)
-			if err != nil {
-				t.Fatal(err)
-			}
+			name, err := api.Name().Publish(ctx, p)
+			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+			require.Equal(t, name.String(), ipns.NameFromPeer(self.ID()).String())
 
-			if e.Name() != coreiface.FormatKeyID(self.ID()) {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", coreiface.FormatKeyID(self.ID()), e.Name())
-			}
-
-			if e.Value().String() != p.String() {
-				t.Errorf("expected paths to match, '%s'!='%s'", e.Value().String(), p.String())
-			}
-
-			resPath, err := api.Name().Resolve(ctx, e.Name()+"/test", ropts...)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if resPath.String() != p.String()+"/test" {
-				t.Errorf("expected paths to match, '%s'!='%s'", resPath.String(), p.String()+"/test")
-			}
+			resPath, err := api.Name().Resolve(ctx, name.String()+"/test", ropts...)
+			require.NoError(t, err)
+			require.Equal(t, p.String()+"/test", resPath.String())
 		})
 
 		t.Run("publishRevolvePath", func(t *testing.T) {
 			api, p := init()
-			e, err := api.Name().Publish(ctx, appendPath(p, "/a"))
-			if err != nil {
-				t.Fatal(err)
-			}
+			name, err := api.Name().Publish(ctx, appendPath(p, "/a"))
+			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+			require.Equal(t, name.String(), ipns.NameFromPeer(self.ID()).String())
 
-			if e.Name() != coreiface.FormatKeyID(self.ID()) {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", coreiface.FormatKeyID(self.ID()), e.Name())
-			}
-
-			if e.Value().String() != p.String()+"/a" {
-				t.Errorf("expected paths to match, '%s'!='%s'", e.Value().String(), p.String())
-			}
-
-			resPath, err := api.Name().Resolve(ctx, e.Name()+"/b", ropts...)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if resPath.String() != p.String()+"/a/b" {
-				t.Errorf("expected paths to match, '%s'!='%s'", resPath.String(), p.String()+"/a/b")
-			}
+			resPath, err := api.Name().Resolve(ctx, name.String()+"/b", ropts...)
+			require.NoError(t, err)
+			require.Equal(t, p.String()+"/a/b", resPath.String())
 		})
 	}
 
@@ -192,42 +122,22 @@ func (tp *TestSuite) TestBasicPublishResolveKey(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	api := apis[0]
 
 	k, err := api.Key().Generate(ctx, "foo")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	p, err := addTestObject(ctx, api)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	e, err := api.Name().Publish(ctx, p, opt.Name.Key(k.Name()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	name, err := api.Name().Publish(ctx, p, opt.Name.Key(k.Name()))
+	require.NoError(t, err)
+	require.Equal(t, name.String(), ipns.NameFromPeer(k.ID()).String())
 
-	if e.Name() != coreiface.FormatKey(k) {
-		t.Errorf("expected e.Name to equal %s, got '%s'", e.Name(), coreiface.FormatKey(k))
-	}
-
-	if e.Value().String() != p.String() {
-		t.Errorf("expected paths to match, '%s'!='%s'", e.Value().String(), p.String())
-	}
-
-	resPath, err := api.Name().Resolve(ctx, e.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if resPath.String() != p.String() {
-		t.Errorf("expected paths to match, '%s'!='%s'", resPath.String(), p.String())
-	}
+	resPath, err := api.Name().Resolve(ctx, name.String())
+	require.NoError(t, err)
+	require.Equal(t, p.String(), resPath.String())
 }
 
 func (tp *TestSuite) TestBasicPublishResolveTimeout(t *testing.T) {
@@ -236,39 +146,22 @@ func (tp *TestSuite) TestBasicPublishResolveTimeout(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	api := apis[0]
 	p, err := addTestObject(ctx, api)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	e, err := api.Name().Publish(ctx, p, opt.Name.ValidTime(time.Millisecond*100))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	self, err := api.Key().Self(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	if e.Name() != coreiface.FormatKeyID(self.ID()) {
-		t.Errorf("expected e.Name to equal '%s', got '%s'", coreiface.FormatKeyID(self.ID()), e.Name())
-	}
-
-	if e.Value().String() != p.String() {
-		t.Errorf("expected paths to match, '%s'!='%s'", e.Value().String(), p.String())
-	}
+	name, err := api.Name().Publish(ctx, p, opt.Name.ValidTime(time.Millisecond*100))
+	require.NoError(t, err)
+	require.Equal(t, name.String(), ipns.NameFromPeer(self.ID()).String())
 
 	time.Sleep(time.Second)
 
-	_, err = api.Name().Resolve(ctx, e.Name())
-	if err == nil {
-		t.Fatal("Expected an error")
-	}
+	_, err = api.Name().Resolve(ctx, name.String())
+	require.NoError(t, err)
 }
 
 //TODO: When swarm api is created, add multinode tests
