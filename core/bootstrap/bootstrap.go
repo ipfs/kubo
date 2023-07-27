@@ -72,12 +72,28 @@ var DefaultBootstrapConfig = BootstrapConfig{
 	MaxBackupBootstrapSize:  20,
 }
 
-func BootstrapConfigWithPeers(pis []peer.AddrInfo) BootstrapConfig {
+// BootstrapConfigWithPeers creates a default BootstrapConfig configured with
+// the specified peers, and optional functions to load and save backup peers.
+func BootstrapConfigWithPeers(pis []peer.AddrInfo, options ...func(*BootstrapConfig)) BootstrapConfig {
 	cfg := DefaultBootstrapConfig
 	cfg.BootstrapPeers = func() []peer.AddrInfo {
 		return pis
 	}
+	for _, opt := range options {
+		opt(&cfg)
+	}
 	return cfg
+}
+
+// WithBackupPeers configures functions to load and save backup bootstrap peers.
+func WithBackupPeers(load func(context.Context) []peer.AddrInfo, save func(context.Context, []peer.AddrInfo)) func(*BootstrapConfig) {
+	if save == nil && load != nil || save != nil && load == nil {
+		panic("both save an load backup bootstrap peers functions must be defined")
+	}
+	return func(cfg *BootstrapConfig) {
+		cfg.LoadBackupBootstrapPeers = load
+		cfg.SaveBackupBootstrapPeers = save
+	}
 }
 
 // Bootstrap kicks off IpfsNode bootstrapping. This function will periodically
@@ -124,7 +140,9 @@ func Bootstrap(id peer.ID, host host.Host, rt routing.Routing, cfg BootstrapConf
 	doneWithRound <- struct{}{}
 	close(doneWithRound) // it no longer blocks periodic
 
-	if cfg.LoadBackupBootstrapPeers != nil && cfg.SaveBackupBootstrapPeers != nil {
+	// If LoadBackupBootstrapPeers is not nil then SaveBackupBootstrapPeers
+	// must also not be nil.
+	if cfg.LoadBackupBootstrapPeers != nil {
 		startSavePeersAsTemporaryBootstrapProc(cfg, host, proc)
 	}
 

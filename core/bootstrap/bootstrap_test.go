@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"context"
 	"crypto/rand"
 	"testing"
 	"time"
@@ -25,6 +26,32 @@ func TestRandomizeAddressList(t *testing.T) {
 	out := randomizeList(ps)
 	if len(out) != len(ps) {
 		t.Fail()
+	}
+}
+
+func TestLoadAndSaveOptions(t *testing.T) {
+	loadFunc := func(_ context.Context) []peer.AddrInfo { return nil }
+	saveFunc := func(_ context.Context, _ []peer.AddrInfo) {}
+
+	bootCfg := BootstrapConfigWithPeers(nil, WithBackupPeers(loadFunc, saveFunc))
+	if bootCfg.LoadBackupBootstrapPeers == nil {
+		t.Fatal("load function not assigned")
+	}
+	if bootCfg.SaveBackupBootstrapPeers == nil {
+		t.Fatal("save function not assigned")
+	}
+
+	assertPanics(t, "with only load func", func() {
+		BootstrapConfigWithPeers(nil, WithBackupPeers(loadFunc, nil))
+	})
+
+	assertPanics(t, "with only save func", func() {
+		BootstrapConfigWithPeers(nil, WithBackupPeers(nil, saveFunc))
+	})
+
+	bootCfg = BootstrapConfigWithPeers(nil, WithBackupPeers(nil, nil))
+	if bootCfg.LoadBackupBootstrapPeers != nil || bootCfg.SaveBackupBootstrapPeers != nil {
+		t.Fatal("load and save functions should both be nil")
 	}
 }
 
@@ -54,4 +81,30 @@ func TestNoTempPeersLoadAndSave(t *testing.T) {
 
 	time.Sleep(4 * period)
 	bootstrapper.Close()
+
+	// Test for error is only Load or Save function defined.
+	bootCfg.LoadBackupBootstrapPeers = func(_ context.Context) []peer.AddrInfo { return nil }
+
+	_, err = Bootstrap(peerID, p2pHost, nil, bootCfg)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	bootCfg.LoadBackupBootstrapPeers = nil
+	bootCfg.SaveBackupBootstrapPeers = func(_ context.Context, _ []peer.AddrInfo) {}
+
+	_, err = Bootstrap(peerID, p2pHost, nil, bootCfg)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func assertPanics(t *testing.T, name string, f func()) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("%s: did not panic as expected", name)
+		}
+	}()
+
+	f()
 }
