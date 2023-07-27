@@ -126,7 +126,7 @@ func BaseRouting(cfg *config.Config) interface{} {
 				return out, err
 			}
 			routers := []*routinghelpers.ParallelRouter{
-				{Router: fullRTClient},
+				{Router: fullRTClient, DoNotWaitForSearchValue: true},
 			}
 			routers = append(routers, httpRouters...)
 			router := routinghelpers.NewComposableParallel(routers)
@@ -197,8 +197,9 @@ func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	var cRouters []*routinghelpers.ParallelRouter
 	for _, v := range routers {
 		cRouters = append(cRouters, &routinghelpers.ParallelRouter{
-			IgnoreError: true,
-			Router:      v.Routing,
+			IgnoreError:             true,
+			DoNotWaitForSearchValue: true,
+			Router:                  v.Routing,
 		})
 	}
 

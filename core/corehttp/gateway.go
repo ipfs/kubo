@@ -16,13 +16,12 @@ import (
 	"github.com/ipfs/boxo/gateway"
 	"github.com/ipfs/boxo/namesys"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
-	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-cid"
 	version "github.com/ipfs/kubo"
-	config "github.com/ipfs/kubo/config"
-	core "github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/libp2p/go-libp2p/core/routing"
-	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -72,7 +71,6 @@ func VersionOption() ServeOption {
 		mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "Commit: %s\n", version.CurrentCommit)
 			fmt.Fprintf(w, "Client Version: %s\n", version.GetUserAgentVersion())
-			fmt.Fprintf(w, "Protocol Version: %s\n", id.DefaultProtocolVersion)
 		})
 		return mux, nil
 	}

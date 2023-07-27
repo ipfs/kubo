@@ -32,12 +32,6 @@ test_expect_success "checking AgentVersion" '
   test_cmp expected-agent-version actual-agent-version
 '
 
-test_expect_success "checking ProtocolVersion" '
-  echo "ipfs/0.1.0" > expected-protocol-version &&
-  ipfs id -f "<pver>\n" > actual-protocol-version &&
-  test_cmp expected-protocol-version actual-protocol-version
-'
-
 test_expect_success "checking ID of self" '
   ipfs config Identity.PeerID > expected-id &&
   ipfs id -f "<id>\n" > actual-id &&

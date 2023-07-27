@@ -61,10 +61,11 @@ func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.Parallel
 		}
 
 		routers = append(routers, &routinghelpers.ParallelRouter{
-			Router:       r,
-			IgnoreError:  true,             // https://github.com/ipfs/kubo/pull/9475#discussion_r1042507387
-			Timeout:      15 * time.Second, // 5x server value from https://github.com/ipfs/kubo/pull/9475#discussion_r1042428529
-			ExecuteAfter: 0,
+			Router:                  r,
+			IgnoreError:             true,             // https://github.com/ipfs/kubo/pull/9475#discussion_r1042507387
+			Timeout:                 15 * time.Second, // 5x server value from https://github.com/ipfs/kubo/pull/9475#discussion_r1042428529
+			DoNotWaitForSearchValue: true,
+			ExecuteAfter:            0,
 		})
 	}
 	return routers, nil
@@ -82,9 +83,10 @@ func ConstructDefaultRouting(cfg *config.Config, routingOpt RoutingOption) Routi
 			return nil, err
 		}
 		routers = append(routers, &routinghelpers.ParallelRouter{
-			Router:       dhtRouting,
-			IgnoreError:  false,
-			ExecuteAfter: 0,
+			Router:                  dhtRouting,
+			IgnoreError:             false,
+			DoNotWaitForSearchValue: true,
+			ExecuteAfter:            0,
 		})
 
 		httpRouters, err := constructDefaultHTTPRouters(cfg)

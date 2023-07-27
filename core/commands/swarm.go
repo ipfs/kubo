@@ -490,11 +490,6 @@ func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, erro
 		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
 	}
 
-	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
-		if vs, ok := v.(string); ok {
-			info.ProtocolVersion = vs
-		}
-	}
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
 			info.AgentVersion = vs
@@ -650,11 +645,13 @@ var swarmAddrsListenCmd = &cmds.Command{
 
 var swarmConnectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Open connection to a given address.",
+		Tagline: "Open connection to a given peer.",
 		ShortDescription: `
-'ipfs swarm connect' opens a new direct connection to a peer address.
+'ipfs swarm connect' attempts to ensure a connection to a given peer.
 
-The address format is an IPFS multiaddr:
+Multiaddresses given are advisory, for example the node may already be aware of other addresses for a given peer or may already have an established connection to the peer.
+
+The address format is a libp2p multiaddr:
 
 ipfs swarm connect /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 `,
