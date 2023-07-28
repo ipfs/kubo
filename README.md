@@ -25,6 +25,19 @@ IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas fro
 
 For more info see: https://docs.ipfs.tech/concepts/what-is-ipfs/
 
+# ZSH
+
+The zsh shell is also supported:
+
+The simplest way to "eval" the completions logic:
+
+```bash
+> eval "$(ipfs commands completion zsh)"
+```
+
+To install the completions permanently, they can be moved to
+`/etc/bash_completion.d` or sourced from your `~/.zshrc` file.
+
 Before opening an issue, consider using one of the following locations to ensure you are opening your thread in the right place:
   - kubo (previously named go-ipfs) _implementation_ bugs in [this repo](https://github.com/ipfs/kubo/issues).
   - Documentation issues in [ipfs/docs issues](https://github.com/ipfs/ipfs-docs/issues).
