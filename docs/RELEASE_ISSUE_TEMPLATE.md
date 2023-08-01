@@ -174,12 +174,6 @@ This section covers tasks to be done during each release.
     - use `vX.Y.Z(-RCN)` as the Kubo image version
   - [ ] wait for the [e2e](https://github.com/ipfs/ipfs-companion/actions/workflows/e2e.yml) workflow run to finish
   </details>
-- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Update Kubo in [interop](https://github.com/ipfs/interop) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) update-interop` or ...</summary>
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) check out [ipfs/interop](https://github.com/ipfs/interop)
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) run `npm install`
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) create a PR which updates `package.json` and `package-lock.json`
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR
-  </details>
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Update Kubo in [ipfs-desktop](https://github.com/ipfs/ipfs-desktop) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) update-ipfs-desktop` or ...</summary>
   - [ ] check out [ipfs/ipfs-desktop](https://github.com/ipfs/ipfs-desktop)
   - [ ] run `npm install`

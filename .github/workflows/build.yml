@@ -48,45 +48,61 @@ jobs:
         with:
           name: kubo
           path: cmd/ipfs/ipfs
-  interop:
+  Helia-interop:
     needs: [interop-prep]
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
     timeout-minutes: 20
     defaults:
       run:
         shell: bash
+    strategy:
+      matrix:
+        repo-to-test-against: ["helia", "helia-ipns", "helia-unixfs"] # this needs to be manually kept in sync as new helia tests are written
     steps:
       - uses: actions/setup-node@v3
         with:
-          node-version: 16.12.0
+          node-version: lts/*
       - uses: actions/download-artifact@v3
         with:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
-      - run: |
-          echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+      - run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
         id: npm-cache-dir
       - uses: actions/cache@v3
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ github.job }}-
-      - run: mkdir interop
-      - run: |
-          npm init -y
-          npm install ipfs@^0.66.0
-          npm install kubo-rpc-client@^3.0.1
-          npm install ipfs-interop@^10.0.1
+          key: ${{ runner.os }}-${{ github.job }}-${{ matrix.repo-to-test-against }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-${{ github.job }}-${{ matrix.repo-to-test-against }}-
+      - run: sudo apt update
+      - run: sudo apt install -y libxkbcommon0 libxdamage1 libgbm1 libpango-1.0-0 libcairo2 # dependencies for playwright
+      - uses: actions/checkout@v3
+        with:
+          repository: ipfs/${{ matrix.repo-to-test-against }}
+          fetch-depth: 0
+          path: interop
+      - name: Checkout latest tag
+        run: |
+          exit 0 # temporary while theses pull requests are released:
+          # https://github.com/ipfs/helia/pull/200
+          # https://github.com/ipfs/helia-unixfs/pull/68
+          # https://github.com/ipfs/helia-ipns/pull/72
+          export TAG="$(git describe --tags --abbrev=0)"
+          echo "Running tests against: $TAG"
+          git checkout "$TAG"
         working-directory: interop
-      # Run the interop tests while ignoring the js-js interop test cases
-      - run: npx ipfs-interop -- -t node --grep '^(?!.*(js\d? -> js\d?|js-js-js|js-rv\d?-js))' --parallel
+      - run: npm install
+        working-directory: interop
+      - run: npm run build
+        working-directory: interop
+      - run: npm install
+        working-directory: interop/packages/interop
+      - run: npm install --ignore-scripts --save "ipfs/npm-go-ipfs#4441b8a60f1cfee3035a9e4bb824dfcca08e9b01" # temporary while https://github.com/ipfs/npm-go-ipfs/pull/62 is being bubbled
+        working-directory: interop/packages/interop
+      - run: npm test
+        working-directory: interop/packages/interop
         env:
-          LIBP2P_TCP_REUSEPORT: false
-          LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
-          IPFS_GO_EXEC: ${{ github.workspace }}/cmd/ipfs/ipfs
-        working-directory: interop
+          KUBO_BINARY: ${{ github.workspace }}/cmd/ipfs/ipfs
   go-ipfs-api:
     needs: [interop-prep]
     runs-on: ubuntu-latest
