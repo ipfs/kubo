@@ -168,8 +168,8 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 			return ps
 		}
 	}
-	if load, save := cfg.BackupPeers(); load == nil {
-		save = func(ctx context.Context, peerList []peer.AddrInfo) {
+	if load, _ := cfg.BackupPeers(); load == nil {
+		save := func(ctx context.Context, peerList []peer.AddrInfo) {
 			err := n.saveTempBootstrapPeers(ctx, peerList)
 			if err != nil {
 				log.Warnf("saveTempBootstrapPeers failed: %s", err)
