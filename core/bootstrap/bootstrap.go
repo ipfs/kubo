@@ -96,7 +96,7 @@ func WithBackupPeers(load func(context.Context) []peer.AddrInfo, save func(conte
 	}
 }
 
-// BackupPeers returns the load and save  backup peers functions.
+// BackupPeers returns the load and save backup peers functions.
 func (cfg *BootstrapConfig) BackupPeers() (func(context.Context) []peer.AddrInfo, func(context.Context, []peer.AddrInfo)) {
 	return cfg.loadBackupBootstrapPeers, cfg.saveBackupBootstrapPeers
 }
