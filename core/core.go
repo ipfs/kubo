@@ -168,17 +168,15 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 			return ps
 		}
 	}
-	if cfg.SaveBackupBootstrapPeers == nil {
-		cfg.SaveBackupBootstrapPeers = func(ctx context.Context, peerList []peer.AddrInfo) {
+	if load, save := cfg.BackupPeers(); load == nil {
+		save = func(ctx context.Context, peerList []peer.AddrInfo) {
 			err := n.saveTempBootstrapPeers(ctx, peerList)
 			if err != nil {
 				log.Warnf("saveTempBootstrapPeers failed: %s", err)
 				return
 			}
 		}
-	}
-	if cfg.LoadBackupBootstrapPeers == nil {
-		cfg.LoadBackupBootstrapPeers = func(ctx context.Context) []peer.AddrInfo {
+		load = func(ctx context.Context) []peer.AddrInfo {
 			peerList, err := n.loadTempBootstrapPeers(ctx)
 			if err != nil {
 				log.Warnf("loadTempBootstrapPeers failed: %s", err)
@@ -186,6 +184,7 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 			}
 			return peerList
 		}
+		cfg.SetBackupPeers(load, save)
 	}
 
 	repoConf, err := n.Repo.Config()

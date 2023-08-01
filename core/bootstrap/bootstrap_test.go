@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"crypto/rand"
+	"reflect"
 	"testing"
 	"time"
 
@@ -34,11 +35,18 @@ func TestLoadAndSaveOptions(t *testing.T) {
 	saveFunc := func(_ context.Context, _ []peer.AddrInfo) {}
 
 	bootCfg := BootstrapConfigWithPeers(nil, WithBackupPeers(loadFunc, saveFunc))
-	if bootCfg.LoadBackupBootstrapPeers == nil {
+	load, save := bootCfg.BackupPeers()
+	if load == nil {
 		t.Fatal("load function not assigned")
 	}
-	if bootCfg.SaveBackupBootstrapPeers == nil {
+	if reflect.ValueOf(load).Pointer() != reflect.ValueOf(loadFunc).Pointer() {
+		t.Fatal("load not assigned correct function")
+	}
+	if save == nil {
 		t.Fatal("save function not assigned")
+	}
+	if reflect.ValueOf(save).Pointer() != reflect.ValueOf(saveFunc).Pointer() {
+		t.Fatal("save not assigned correct function")
 	}
 
 	assertPanics(t, "with only load func", func() {
@@ -50,7 +58,43 @@ func TestLoadAndSaveOptions(t *testing.T) {
 	})
 
 	bootCfg = BootstrapConfigWithPeers(nil, WithBackupPeers(nil, nil))
-	if bootCfg.LoadBackupBootstrapPeers != nil || bootCfg.SaveBackupBootstrapPeers != nil {
+	load, save = bootCfg.BackupPeers()
+	if load != nil || save != nil {
+		t.Fatal("load and save functions should both be nil")
+	}
+}
+
+func TestSetBackupPeers(t *testing.T) {
+	loadFunc := func(_ context.Context) []peer.AddrInfo { return nil }
+	saveFunc := func(_ context.Context, _ []peer.AddrInfo) {}
+
+	bootCfg := DefaultBootstrapConfig
+	bootCfg.SetBackupPeers(loadFunc, saveFunc)
+	load, save := bootCfg.BackupPeers()
+	if load == nil {
+		t.Fatal("load function not assigned")
+	}
+	if reflect.ValueOf(load).Pointer() != reflect.ValueOf(loadFunc).Pointer() {
+		t.Fatal("load not assigned correct function")
+	}
+	if save == nil {
+		t.Fatal("save function not assigned")
+	}
+	if reflect.ValueOf(save).Pointer() != reflect.ValueOf(saveFunc).Pointer() {
+		t.Fatal("save not assigned correct function")
+	}
+
+	assertPanics(t, "with only load func", func() {
+		bootCfg.SetBackupPeers(loadFunc, nil)
+	})
+
+	assertPanics(t, "with only save func", func() {
+		bootCfg.SetBackupPeers(nil, saveFunc)
+	})
+
+	bootCfg.SetBackupPeers(nil, nil)
+	load, save = bootCfg.BackupPeers()
+	if load != nil || save != nil {
 		t.Fatal("load and save functions should both be nil")
 	}
 }
@@ -82,21 +126,6 @@ func TestNoTempPeersLoadAndSave(t *testing.T) {
 	time.Sleep(4 * period)
 	bootstrapper.Close()
 
-	// Test for error is only Load or Save function defined.
-	bootCfg.LoadBackupBootstrapPeers = func(_ context.Context) []peer.AddrInfo { return nil }
-
-	_, err = Bootstrap(peerID, p2pHost, nil, bootCfg)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-
-	bootCfg.LoadBackupBootstrapPeers = nil
-	bootCfg.SaveBackupBootstrapPeers = func(_ context.Context, _ []peer.AddrInfo) {}
-
-	_, err = Bootstrap(peerID, p2pHost, nil, bootCfg)
-	if err == nil {
-		t.Fatal("expected error")
-	}
 }
 
 func assertPanics(t *testing.T, name string, f func()) {
