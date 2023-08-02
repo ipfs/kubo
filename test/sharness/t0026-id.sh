@@ -61,6 +61,8 @@ test_expect_success "checking AgentVersion with suffix (fetched via libp2p ident
   ipfsi 1 id "$(ipfsi 0 config Identity.PeerID)" -f "<aver>\n" > actual-libp2p-identify-agent-version &&
   test_cmp expected-identify-agent-version actual-libp2p-identify-agent-version
 '
+iptb stop
+
 test_kill_ipfs_daemon
 
 
