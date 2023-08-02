@@ -48,7 +48,7 @@ jobs:
         with:
           name: kubo
           path: cmd/ipfs/ipfs
-  Helia-interop:
+  helia-interop:
     needs: [interop-prep]
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
     timeout-minutes: 20
