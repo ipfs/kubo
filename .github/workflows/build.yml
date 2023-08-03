@@ -87,9 +87,10 @@ jobs:
           # https://github.com/ipfs/helia/pull/200
           # https://github.com/ipfs/helia-unixfs/pull/68
           # https://github.com/ipfs/helia-ipns/pull/72
-          export TAG="$(git describe --tags --abbrev=0)"
-          echo "Running tests against: $TAG"
-          git checkout "$TAG"
+          git fetch --tags
+          tag="$(git describe --tags --abbrev=0)"
+          echo "Running tests against: $tag"
+          git checkout "$tag"
         working-directory: interop
       - run: npm install
         working-directory: interop
