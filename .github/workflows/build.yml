@@ -40,9 +40,6 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
-      - uses: protocol/cache-go-action@v1
-        with:
-          name: ${{ github.job }}
       - run: make build
       - uses: actions/upload-artifact@v3
         with:
@@ -136,9 +133,6 @@ jobs:
             sleep 1
           done
         timeout-minutes: 5
-      - uses: protocol/cache-go-action@v1
-        with:
-          name: ${{ github.job }}
       - run: go test -count=1 -v ./...
         working-directory: go-ipfs-api
       - run: cmd/ipfs/ipfs shutdown

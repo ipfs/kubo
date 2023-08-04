@@ -33,7 +33,4 @@ jobs:
         with:
           go-version: 1.19.x
       - uses: actions/checkout@v3
-      - uses: protocol/cache-go-action@v1
-        with:
-          name: ${{ github.job }}
       - run: make -O test_go_lint

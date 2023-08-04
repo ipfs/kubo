@@ -32,10 +32,6 @@ jobs:
           path: kubo
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y socat net-tools fish libxml2-utils
-      - name: Restore Go Cache
-        uses: protocol/cache-go-action@v1
-        with:
-          name: ${{ github.job }}
       - uses: actions/cache@v3
         with:
           path: test/sharness/lib/dependencies
