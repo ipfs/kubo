@@ -19,7 +19,7 @@ require (
 	github.com/ipld/go-ipld-prime v0.20.0
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
-	github.com/libp2p/go-libp2p v0.29.1
+	github.com/libp2p/go-libp2p v0.29.2
 	github.com/multiformats/go-multiaddr v0.10.1
 	github.com/multiformats/go-multihash v0.2.3
 	gotest.tools/gotestsum v0.4.2
@@ -218,7 +218,7 @@ require (
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-19 v0.3.3 // indirect
 	github.com/quic-go/qtls-go1-20 v0.2.3 // indirect
-	github.com/quic-go/quic-go v0.36.3 // indirect
+	github.com/quic-go/quic-go v0.36.4 // indirect
 	github.com/quic-go/webtransport-go v0.5.3 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
