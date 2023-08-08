@@ -1,16 +1,6 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.19-buster
-LABEL maintainer="Steven Allen <steven@stebalien.com>"
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.19-buster AS builder
 
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
-ARG TARGETOS
-ARG TARGETARCH
-
-# Install deps
-RUN apt-get update && apt-get install -y \
-  libssl-dev \
-  ca-certificates \
-  fuse
+ARG TARGETPLATFORM TARGETOS TARGETARCH
 
 ENV SRC_DIR /kubo
 
@@ -31,38 +21,40 @@ RUN cd $SRC_DIR \
   && mkdir -p .git/objects \
   && GOOS=$TARGETOS GOARCH=$TARGETARCH GOFLAGS=-buildvcs=false make build GOTAGS=openssl IPFS_PLUGINS=$IPFS_PLUGINS
 
-# Get su-exec, a very minimal tool for dropping privileges,
-# and tini, a very minimal init daemon for containers
-ENV SUEXEC_VERSION v0.2
-ENV TINI_VERSION v0.19.0
+# Using Debian Buster because the version of busybox we're using is based on it
+# and we want to make sure the libraries we're using are compatible. That's also
+# why we're running this for the target platform.
+FROM debian:buster-slim AS utilities
 RUN set -eux; \
-    dpkgArch="$(dpkg --print-architecture)"; \
-    case "${dpkgArch##*-}" in \
-        "amd64" | "armhf" | "arm64") tiniArch="tini-static-$dpkgArch" ;;\
-        *) echo >&2 "unsupported architecture: ${dpkgArch}"; exit 1 ;; \
-    esac; \
-  cd /tmp \
-  && git clone https://github.com/ncopa/su-exec.git \
-  && cd su-exec \
-  && git checkout -q $SUEXEC_VERSION \
-  && make su-exec-static \
-  && cd /tmp \
-  && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/$tiniArch \
-  && chmod +x tini
+	apt-get update; \
+	apt-get install -y \
+		tini \
+    # Using gosu (~2MB) instead of su-exec (~20KB) because it's easier to
+    # install on Debian. Useful links:
+    # - https://github.com/ncopa/su-exec#why-reinvent-gosu
+    # - https://github.com/tianon/gosu/issues/52#issuecomment-441946745
+		gosu \
+    # This installs fusermount which we later copy over to the target image.
+    fuse \
+    ca-certificates \
+    # This installs libssl.so and libcrypto.so which we later copy over to the
+    # target image. We need these to be able to use the OpenSSL plugin.
+    libssl-dev \
+	; \
+	rm -rf /var/lib/apt/lists/*
 
 # Now comes the actual target image, which aims to be as small as possible.
-FROM --platform=${BUILDPLATFORM:-linux/amd64} busybox:1.31.1-glibc
-LABEL maintainer="Steven Allen <steven@stebalien.com>"
+FROM busybox:1.31.1-glibc
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
 ENV SRC_DIR /kubo
-COPY --from=0 $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
-COPY --from=0 $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
-COPY --from=0 $SRC_DIR/bin/container_init_run /usr/local/bin/container_init_run
-COPY --from=0 /tmp/su-exec/su-exec-static /sbin/su-exec
-COPY --from=0 /tmp/tini /sbin/tini
-COPY --from=0 /bin/fusermount /usr/local/bin/fusermount
-COPY --from=0 /etc/ssl/certs /etc/ssl/certs
+COPY --from=builder $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
+COPY --from=builder $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
+COPY --from=builder $SRC_DIR/bin/container_init_run /usr/local/bin/container_init_run
+COPY --from=utilities /usr/sbin/gosu /sbin/gosu
+COPY --from=utilities /usr/bin/tini /sbin/tini
+COPY --from=utilities /bin/fusermount /usr/local/bin/fusermount
+COPY --from=utilities /etc/ssl/certs /etc/ssl/certs
 
 # Add suid bit on fusermount so it will run properly
 RUN chmod 4755 /usr/local/bin/fusermount
@@ -71,11 +63,11 @@ RUN chmod 4755 /usr/local/bin/fusermount
 RUN chmod 0755 /usr/local/bin/start_ipfs
 
 # This shared lib (part of glibc) doesn't seem to be included with busybox.
-COPY --from=0 /lib/*-linux-gnu*/libdl.so.2 /lib/
+COPY --from=utilities /lib/*-linux-gnu*/libdl.so.2 /lib/
 
 # Copy over SSL libraries.
-COPY --from=0 /usr/lib/*-linux-gnu*/libssl.so* /usr/lib/
-COPY --from=0 /usr/lib/*-linux-gnu*/libcrypto.so* /usr/lib/
+COPY --from=utilities /usr/lib/*-linux-gnu*/libssl.so* /usr/lib/
+COPY --from=utilities /usr/lib/*-linux-gnu*/libcrypto.so* /usr/lib/
 
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001
