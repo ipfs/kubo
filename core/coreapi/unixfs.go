@@ -16,7 +16,6 @@ import (
 	bstore "github.com/ipfs/boxo/blockstore"
 	coreiface "github.com/ipfs/boxo/coreiface"
 	options "github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	filestore "github.com/ipfs/boxo/filestore"
 	merkledag "github.com/ipfs/boxo/ipld/merkledag"
@@ -25,6 +24,7 @@ import (
 	unixfile "github.com/ipfs/boxo/ipld/unixfs/file"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	mfs "github.com/ipfs/boxo/mfs"
+	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -58,7 +58,7 @@ func getOrCreateNilNode() (*core.IpfsNode, error) {
 
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
-func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (path.Resolved, error) {
+func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (path.ImmutablePath, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.UnixfsAPI", "Add")
 	defer span.End()
 
@@ -201,7 +201,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		}
 	}
 
-	return path.IpfsPath(nd.Cid()), nil
+	return path.NewIPFSPath(nd.Cid()), nil
 }
 
 func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) {

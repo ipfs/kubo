@@ -408,9 +408,9 @@ func TestGateway(t *testing.T) {
 		t.Parallel()
 		gatewayAddr := URLStrToMultiaddr(node.GatewayURL())
 		res := node.RunIPFS("--api", gatewayAddr.String(), "refs", "local")
-		assert.Equal(t,
-			`Error: invalid path "local": invalid cid: selected encoding not supported`,
+		assert.Contains(t,
 			res.Stderr.Trimmed(),
+			`Error: invalid path "local":`,
 		)
 	})
 

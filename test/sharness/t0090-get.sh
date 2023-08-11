@@ -129,9 +129,8 @@ test_get_cmd() {
   '
 
   test_expect_success "ipfs get ../.. should fail" '
-    echo "Error: invalid path \"../..\": invalid cid: selected encoding not supported" >expected &&
     test_must_fail ipfs get ../.. 2>actual &&
-    test_cmp expected actual
+    test_should_contain "Error: invalid path \"../..\"" actual
   '
 
   test_expect_success "create small file" '

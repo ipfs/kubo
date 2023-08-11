@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
@@ -13,7 +14,6 @@ import (
 	iface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/coreiface/options"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
-	path "github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -549,7 +549,7 @@ func printEvent(obj *routing.QueryEvent, out io.Writer, verbose bool, override p
 }
 
 func escapeDhtKey(s string) (string, error) {
-	parts := path.SplitList(s)
+	parts := strings.Split(s, "/")
 	if len(parts) != 3 ||
 		parts[0] != "" ||
 		!(parts[1] == "ipns" || parts[1] == "pk") {
@@ -560,5 +560,6 @@ func escapeDhtKey(s string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return path.Join(append(parts[:2], string(k))), nil
+
+	return strings.Join(append(parts[:2], string(k)), "/"), nil
 }

@@ -8,7 +8,7 @@ import (
 
 	coreiface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/path"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
@@ -22,7 +22,7 @@ import (
 type BlockAPI CoreAPI
 
 type BlockStat struct {
-	path path.Resolved
+	path path.ImmutablePath
 	size int
 }
 
@@ -68,13 +68,13 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		}
 	}
 
-	return &BlockStat{path: path.IpldPath(b.Cid()), size: len(data)}, nil
+	return &BlockStat{path: path.NewIPLDPath(b.Cid()), size: len(data)}, nil
 }
 
 func (api *BlockAPI) Get(ctx context.Context, p path.Path) (io.Reader, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.BlockAPI", "Get", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
-	rp, err := api.core().ResolvePath(ctx, p)
+	rp, _, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (api *BlockAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.BlockRm
 	ctx, span := tracing.Span(ctx, "CoreAPI.BlockAPI", "Rm", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
 
-	rp, err := api.core().ResolvePath(ctx, p)
+	rp, _, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (api *BlockAPI) Stat(ctx context.Context, p path.Path) (coreiface.BlockStat
 	ctx, span := tracing.Span(ctx, "CoreAPI.BlockAPI", "Stat", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
 
-	rp, err := api.core().ResolvePath(ctx, p)
+	rp, _, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func (api *BlockAPI) Stat(ctx context.Context, p path.Path) (coreiface.BlockStat
 	}
 
 	return &BlockStat{
-		path: path.IpldPath(b.Cid()),
+		path: path.NewIPLDPath(b.Cid()),
 		size: len(b.RawData()),
 	}, nil
 }
@@ -152,7 +152,7 @@ func (bs *BlockStat) Size() int {
 	return bs.size
 }
 
-func (bs *BlockStat) Path() path.Resolved {
+func (bs *BlockStat) Path() path.ImmutablePath {
 	return bs.path
 }
 

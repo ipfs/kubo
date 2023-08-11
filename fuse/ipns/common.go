@@ -5,7 +5,7 @@ import (
 
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	nsys "github.com/ipfs/boxo/namesys"
-	path "github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/kubo/core"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
 )
@@ -30,5 +30,5 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 
 	pub := nsys.NewIpnsPublisher(n.Routing, n.Repo.Datastore())
 
-	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))
+	return pub.Publish(ctx, key, path.NewIPFSPath(emptyDir.Cid()))
 }

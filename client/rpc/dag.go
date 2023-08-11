@@ -7,8 +7,8 @@ import (
 	"io"
 
 	"github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
-	"github.com/ipfs/go-block-format"
+	"github.com/ipfs/boxo/path"
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
 	multicodec "github.com/multiformats/go-multicodec"
@@ -21,7 +21,7 @@ type (
 )
 
 func (api *HttpDagServ) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
-	r, err := api.core().Block().Get(ctx, path.IpldPath(c))
+	r, err := api.core().Block().Get(ctx, path.NewIPLDPath(c))
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (api *HttpDagServ) Pinning() format.NodeAdder {
 }
 
 func (api *HttpDagServ) Remove(ctx context.Context, c cid.Cid) error {
-	return api.core().Block().Rm(ctx, path.IpldPath(c)) // TODO: should we force rm?
+	return api.core().Block().Rm(ctx, path.NewIPLDPath(c)) // TODO: should we force rm?
 }
 
 func (api *HttpDagServ) RemoveMany(ctx context.Context, cids []cid.Cid) error {

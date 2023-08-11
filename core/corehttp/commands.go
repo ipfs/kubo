@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	path "github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdsHttp "github.com/ipfs/go-ipfs-cmds/http"
 	version "github.com/ipfs/kubo"
@@ -171,7 +170,7 @@ func CheckVersionOption() ServeOption {
 		parent.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(r.URL.Path, APIPath) {
 				cmdqry := r.URL.Path[len(APIPath):]
-				pth := path.SplitList(cmdqry)
+				pth := strings.Split(cmdqry, "/")
 
 				// backwards compatibility to previous version check
 				if len(pth) >= 2 && pth[1] != "version" {

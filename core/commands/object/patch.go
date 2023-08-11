@@ -9,7 +9,6 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	"github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
 )
 
 var ObjectPatchCmd = &cmds.Command{
@@ -76,7 +75,10 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs add' or 'ipfs files' inste
 			return err
 		}
 
-		root := path.New(req.Arguments[0])
+		root, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
 
 		file, err := cmdenv.GetFileArg(req.Files.Entries())
 		if err != nil {
@@ -127,7 +129,10 @@ DEPRECATED and provided for legacy reasons. Use 'files cp' and 'dag put' instead
 			return err
 		}
 
-		root := path.New(req.Arguments[0])
+		root, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
 
 		file, err := cmdenv.GetFileArg(req.Files.Entries())
 		if err != nil {
@@ -174,7 +179,10 @@ DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
 			return err
 		}
 
-		root := path.New(req.Arguments[0])
+		root, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
 
 		name := req.Arguments[1]
 		p, err := api.Object().RmLink(req.Context, root, name)
@@ -238,9 +246,17 @@ Use MFS and 'files' commands instead:
 			return err
 		}
 
-		root := path.New(req.Arguments[0])
+		root, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
 		name := req.Arguments[1]
-		child := path.New(req.Arguments[2])
+
+		child, err := cmdutils.PathOrCidPath(req.Arguments[2])
+		if err != nil {
+			return err
+		}
 
 		create, _ := req.Options[createOptionName].(bool)
 		if err != nil {

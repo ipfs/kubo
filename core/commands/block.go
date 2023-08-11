@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	options "github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
+
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -66,7 +66,12 @@ on raw IPFS blocks. It outputs the following to stdout:
 			return err
 		}
 
-		b, err := api.Block().Stat(req.Context, path.New(req.Arguments[0]))
+		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		b, err := api.Block().Stat(req.Context, p)
 		if err != nil {
 			return err
 		}
@@ -103,7 +108,12 @@ It takes a <cid>, and outputs the block to stdout.
 			return err
 		}
 
-		r, err := api.Block().Get(req.Context, path.New(req.Arguments[0]))
+		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		r, err := api.Block().Get(req.Context, p)
 		if err != nil {
 			return err
 		}
@@ -255,7 +265,12 @@ It takes a list of CIDs to remove from the local datastore..
 
 		// TODO: use batching coreapi when done
 		for _, b := range req.Arguments {
-			rp, err := api.ResolvePath(req.Context, path.New(b))
+			p, err := cmdutils.PathOrCidPath(b)
+			if err != nil {
+				return err
+			}
+
+			rp, _, err := api.ResolvePath(req.Context, p)
 			if err != nil {
 				return err
 			}

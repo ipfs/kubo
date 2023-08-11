@@ -15,7 +15,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/google/uuid v1.3.1
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/ipfs/boxo v0.13.2-0.20231002142647-c28c847582f0
+	github.com/ipfs/boxo v0.13.2-0.20231005104529-f0e9c2ff4fd4
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-cidutil v0.1.0

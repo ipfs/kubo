@@ -7,10 +7,10 @@ import (
 	"time"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	iface "github.com/ipfs/boxo/coreiface"
 	options "github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
 )
@@ -116,7 +116,10 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 			opts = append(opts, options.Name.TTL(d))
 		}
 
-		p := path.New(req.Arguments[0])
+		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
 
 		if verifyExists, _ := req.Options[resolveOptionName].(bool); verifyExists {
 			_, err := api.ResolveNode(req.Context, p)

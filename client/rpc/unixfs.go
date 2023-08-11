@@ -9,10 +9,10 @@ import (
 
 	iface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
 	unixfs_pb "github.com/ipfs/boxo/ipld/unixfs/pb"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -26,7 +26,7 @@ type addEvent struct {
 
 type UnixfsAPI HttpApi
 
-func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.UnixfsAddOption) (path.Resolved, error) {
+func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.UnixfsAddOption) (path.ImmutablePath, error) {
 	options, _, err := caopts.UnixfsAddOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ loop:
 					return nil, err
 				}
 
-				ifevt.Path = path.IpfsPath(c)
+				ifevt.Path = path.NewIPFSPath(c)
 			}
 
 			select {
@@ -121,7 +121,7 @@ loop:
 		return nil, err
 	}
 
-	return path.IpfsPath(c), nil
+	return path.NewIPFSPath(c), nil
 }
 
 type lsLink struct {

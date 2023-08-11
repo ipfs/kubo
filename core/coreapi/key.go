@@ -9,8 +9,8 @@ import (
 
 	coreiface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
-	ipfspath "github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/ipns"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/kubo/tracing"
 	crypto "github.com/libp2p/go-libp2p/core/crypto"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -23,6 +23,19 @@ type KeyAPI CoreAPI
 type key struct {
 	name   string
 	peerID peer.ID
+	path   path.Path
+}
+
+func newKey(name string, pid peer.ID) (*key, error) {
+	p, err := path.NewPath("/ipns/" + ipns.NameFromPeer(pid).String())
+	if err != nil {
+		return nil, err
+	}
+	return &key{
+		name:   name,
+		peerID: pid,
+		path:   p,
+	}, nil
 }
 
 // Name returns the key name
@@ -32,7 +45,7 @@ func (k *key) Name() string {
 
 // Path returns the path of the key.
 func (k *key) Path() path.Path {
-	return path.New(ipfspath.Join([]string{"/ipns", coreiface.FormatKeyID(k.peerID)}))
+	return k.path
 }
 
 // ID returns key PeerID
@@ -98,7 +111,7 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 		return nil, err
 	}
 
-	return &key{name, pid}, nil
+	return newKey(name, pid)
 }
 
 // List returns a list keys stored in keystore.
@@ -114,7 +127,10 @@ func (api *KeyAPI) List(ctx context.Context) ([]coreiface.Key, error) {
 	sort.Strings(keys)
 
 	out := make([]coreiface.Key, len(keys)+1)
-	out[0] = &key{"self", api.identity}
+	out[0], err = newKey("self", api.identity)
+	if err != nil {
+		return nil, err
+	}
 
 	for n, k := range keys {
 		privKey, err := api.repo.Keystore().Get(k)
@@ -129,7 +145,10 @@ func (api *KeyAPI) List(ctx context.Context) ([]coreiface.Key, error) {
 			return nil, err
 		}
 
-		out[n+1] = &key{k, pid}
+		out[n+1], err = newKey(k, pid)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }
@@ -171,7 +190,8 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 	// This is important, because future code will delete key `oldName`
 	// even if it is the same as newName.
 	if newName == oldName {
-		return &key{oldName, pid}, false, nil
+		k, err := newKey(oldName, pid)
+		return k, false, err
 	}
 
 	overwrite := false
@@ -195,7 +215,13 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 		return nil, false, err
 	}
 
-	return &key{newName, pid}, overwrite, ks.Delete(oldName)
+	err = ks.Delete(oldName)
+	if err != nil {
+		return nil, false, err
+	}
+
+	k, err := newKey(newName, pid)
+	return k, overwrite, err
 }
 
 // Remove removes keys from keystore. Returns ipns path of the removed key.
@@ -226,7 +252,7 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Key, erro
 		return nil, err
 	}
 
-	return &key{"", pid}, nil
+	return newKey("", pid)
 }
 
 func (api *KeyAPI) Self(ctx context.Context) (coreiface.Key, error) {
@@ -234,5 +260,5 @@ func (api *KeyAPI) Self(ctx context.Context) (coreiface.Key, error) {
 		return nil, errors.New("identity not loaded")
 	}
 
-	return &key{"self", api.identity}, nil
+	return newKey("self", api.identity)
 }

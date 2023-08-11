@@ -7,10 +7,10 @@ import (
 	"os"
 
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	"github.com/cheggaaa/pb"
 	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
@@ -127,8 +127,13 @@ func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, m
 	if max == 0 {
 		return nil, 0, nil
 	}
-	for _, p := range paths {
-		f, err := api.Unixfs().Get(ctx, path.New(p))
+	for _, pString := range paths {
+		p, err := cmdutils.PathOrCidPath(pString)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		f, err := api.Unixfs().Get(ctx, p)
 		if err != nil {
 			return nil, 0, err
 		}

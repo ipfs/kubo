@@ -9,8 +9,8 @@ import (
 	iface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
 	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/ipns"
+	"github.com/ipfs/boxo/path"
 )
 
 type NameAPI HttpApi
@@ -84,7 +84,11 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 			}
 			var ires iface.IpnsResult
 			if err == nil {
-				ires.Path = path.New(out.Path)
+				p, err := path.NewPath(out.Path)
+				if err != nil {
+					return
+				}
+				ires.Path = p
 			}
 
 			select {
@@ -122,7 +126,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		return nil, err
 	}
 
-	return path.New(out.Path), nil
+	return path.NewPath(out.Path)
 }
 
 func (api *NameAPI) core() *HttpApi {

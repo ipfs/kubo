@@ -46,7 +46,7 @@ func (m mockNamesys) Resolve(ctx context.Context, name string, opts ...nsopts.Re
 		var ok bool
 		value, ok = m[name]
 		if !ok {
-			return "", namesys.ErrResolveFailed
+			return nil, namesys.ErrResolveFailed
 		}
 		name = value.String()
 	}

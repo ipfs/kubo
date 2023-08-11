@@ -12,10 +12,10 @@ import (
 
 	coreiface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
-	ipath "github.com/ipfs/boxo/coreiface/path"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/merkledag/dagutils"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
+	"github.com/ipfs/boxo/path"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -65,7 +65,7 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 	return n, nil
 }
 
-func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.ObjectPutOption) (ipath.Resolved, error) {
+func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.ObjectPutOption) (path.ImmutablePath, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Put")
 	defer span.End()
 
@@ -143,16 +143,16 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		}
 	}
 
-	return ipath.IpfsPath(dagnode.Cid()), nil
+	return path.NewIPFSPath(dagnode.Cid()), nil
 }
 
-func (api *ObjectAPI) Get(ctx context.Context, path ipath.Path) (ipld.Node, error) {
+func (api *ObjectAPI) Get(ctx context.Context, path path.Path) (ipld.Node, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Get", trace.WithAttributes(attribute.String("path", path.String())))
 	defer span.End()
 	return api.core().ResolveNode(ctx, path)
 }
 
-func (api *ObjectAPI) Data(ctx context.Context, path ipath.Path) (io.Reader, error) {
+func (api *ObjectAPI) Data(ctx context.Context, path path.Path) (io.Reader, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Data", trace.WithAttributes(attribute.String("path", path.String())))
 	defer span.End()
 
@@ -169,7 +169,7 @@ func (api *ObjectAPI) Data(ctx context.Context, path ipath.Path) (io.Reader, err
 	return bytes.NewReader(pbnd.Data()), nil
 }
 
-func (api *ObjectAPI) Links(ctx context.Context, path ipath.Path) ([]*ipld.Link, error) {
+func (api *ObjectAPI) Links(ctx context.Context, path path.Path) ([]*ipld.Link, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Links", trace.WithAttributes(attribute.String("path", path.String())))
 	defer span.End()
 
@@ -187,7 +187,7 @@ func (api *ObjectAPI) Links(ctx context.Context, path ipath.Path) ([]*ipld.Link,
 	return out, nil
 }
 
-func (api *ObjectAPI) Stat(ctx context.Context, path ipath.Path) (*coreiface.ObjectStat, error) {
+func (api *ObjectAPI) Stat(ctx context.Context, path path.Path) (*coreiface.ObjectStat, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Stat", trace.WithAttributes(attribute.String("path", path.String())))
 	defer span.End()
 
@@ -213,7 +213,7 @@ func (api *ObjectAPI) Stat(ctx context.Context, path ipath.Path) (*coreiface.Obj
 	return out, nil
 }
 
-func (api *ObjectAPI) AddLink(ctx context.Context, base ipath.Path, name string, child ipath.Path, opts ...caopts.ObjectAddLinkOption) (ipath.Resolved, error) {
+func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, child path.Path, opts ...caopts.ObjectAddLinkOption) (path.ImmutablePath, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "AddLink", trace.WithAttributes(
 		attribute.String("base", base.String()),
 		attribute.String("name", name),
@@ -259,10 +259,10 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base ipath.Path, name string,
 		return nil, err
 	}
 
-	return ipath.IpfsPath(nnode.Cid()), nil
+	return path.NewIPFSPath(nnode.Cid()), nil
 }
 
-func (api *ObjectAPI) RmLink(ctx context.Context, base ipath.Path, link string) (ipath.Resolved, error) {
+func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (path.ImmutablePath, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "RmLink", trace.WithAttributes(
 		attribute.String("base", base.String()),
 		attribute.String("link", link)),
@@ -291,25 +291,25 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base ipath.Path, link string) 
 		return nil, err
 	}
 
-	return ipath.IpfsPath(nnode.Cid()), nil
+	return path.NewIPFSPath(nnode.Cid()), nil
 }
 
-func (api *ObjectAPI) AppendData(ctx context.Context, path ipath.Path, r io.Reader) (ipath.Resolved, error) {
+func (api *ObjectAPI) AppendData(ctx context.Context, path path.Path, r io.Reader) (path.ImmutablePath, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "AppendData", trace.WithAttributes(attribute.String("path", path.String())))
 	defer span.End()
 
 	return api.patchData(ctx, path, r, true)
 }
 
-func (api *ObjectAPI) SetData(ctx context.Context, path ipath.Path, r io.Reader) (ipath.Resolved, error) {
+func (api *ObjectAPI) SetData(ctx context.Context, path path.Path, r io.Reader) (path.ImmutablePath, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "SetData", trace.WithAttributes(attribute.String("path", path.String())))
 	defer span.End()
 
 	return api.patchData(ctx, path, r, false)
 }
 
-func (api *ObjectAPI) patchData(ctx context.Context, path ipath.Path, r io.Reader, appendData bool) (ipath.Resolved, error) {
-	nd, err := api.core().ResolveNode(ctx, path)
+func (api *ObjectAPI) patchData(ctx context.Context, p path.Path, r io.Reader, appendData bool) (path.ImmutablePath, error) {
+	nd, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -334,10 +334,10 @@ func (api *ObjectAPI) patchData(ctx context.Context, path ipath.Path, r io.Reade
 		return nil, err
 	}
 
-	return ipath.IpfsPath(pbnd.Cid()), nil
+	return path.NewIPFSPath(pbnd.Cid()), nil
 }
 
-func (api *ObjectAPI) Diff(ctx context.Context, before ipath.Path, after ipath.Path) ([]coreiface.ObjectChange, error) {
+func (api *ObjectAPI) Diff(ctx context.Context, before path.Path, after path.Path) ([]coreiface.ObjectChange, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "Diff", trace.WithAttributes(
 		attribute.String("before", before.String()),
 		attribute.String("after", after.String()),
@@ -367,11 +367,11 @@ func (api *ObjectAPI) Diff(ctx context.Context, before ipath.Path, after ipath.P
 		}
 
 		if change.Before.Defined() {
-			out[i].Before = ipath.IpfsPath(change.Before)
+			out[i].Before = path.NewIPFSPath(change.Before)
 		}
 
 		if change.After.Defined() {
-			out[i].After = ipath.IpfsPath(change.After)
+			out[i].After = path.NewIPFSPath(change.After)
 		}
 	}
 
