@@ -9,12 +9,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/boxo/routing/http/server"
 	"github.com/ipfs/boxo/routing/http/types"
 	"github.com/ipfs/boxo/routing/http/types/iter"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
+	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,6 +45,14 @@ func (r *fakeHTTPContentRouter) Provide(ctx context.Context, req *server.WritePr
 	defer r.m.Unlock()
 	r.provideCalls++
 	return nil, nil
+}
+
+func (r *fakeHTTPContentRouter) FindIPNSRecord(ctx context.Context, name ipns.Name) (*ipns.Record, error) {
+	return nil, routing.ErrNotSupported
+}
+
+func (r *fakeHTTPContentRouter) ProvideIPNSRecord(ctx context.Context, name ipns.Name, rec *ipns.Record) error {
+	return routing.ErrNotSupported
 }
 
 func (r *fakeHTTPContentRouter) numFindProvidersCalls() int {

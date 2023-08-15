@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/ipfs/boxo/files"
 )
 
@@ -23,13 +24,18 @@ type RequestBuilder interface {
 	Exec(ctx context.Context, res interface{}) error
 }
 
+// encodedAbsolutePathVersion is the version from which the absolute path header in
+// multipart requests is %-encoded. Before this version, its sent raw.
+var encodedAbsolutePathVersion = semver.MustParse("0.23.0-dev")
+
 // requestBuilder is an IPFS commands request builder.
 type requestBuilder struct {
-	command string
-	args    []string
-	opts    map[string]string
-	headers map[string]string
-	body    io.Reader
+	command    string
+	args       []string
+	opts       map[string]string
+	headers    map[string]string
+	body       io.Reader
+	buildError error
 
 	shell *HttpApi
 }
@@ -60,7 +66,18 @@ func (r *requestBuilder) Body(body io.Reader) RequestBuilder {
 func (r *requestBuilder) FileBody(body io.Reader) RequestBuilder {
 	pr, _ := files.NewReaderPathFile("/dev/stdin", io.NopCloser(body), nil)
 	d := files.NewMapDirectory(map[string]files.Node{"": pr})
-	r.body = files.NewMultiFileReader(d, false)
+
+	version, err := r.shell.loadRemoteVersion()
+	if err != nil {
+		// Unfortunately, we cannot return an error here. Changing this API is also
+		// not the best since we would otherwise have an inconsistent RequestBuilder.
+		// We save the error and return it when calling [requestBuilder.Send].
+		r.buildError = err
+		return r
+	}
+
+	useEncodedAbsPaths := version.LT(encodedAbsolutePathVersion)
+	r.body = files.NewMultiFileReader(d, false, useEncodedAbsPaths)
 
 	return r
 }
@@ -97,6 +114,10 @@ func (r *requestBuilder) Header(name, value string) RequestBuilder {
 
 // Send sends the request and return the response.
 func (r *requestBuilder) Send(ctx context.Context) (*Response, error) {
+	if r.buildError != nil {
+		return nil, r.buildError
+	}
+
 	r.shell.applyGlobal(r)
 
 	req := NewRequest(ctx, r.shell.url, r.command, r.args...)
