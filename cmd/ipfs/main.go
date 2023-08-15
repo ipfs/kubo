@@ -2,9 +2,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -12,12 +15,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/google/uuid"
 	u "github.com/ipfs/boxo/util"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-cmds/cli"
 	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
 	logging "github.com/ipfs/go-log"
+	ipfs "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
 	"github.com/ipfs/kubo/core"
@@ -224,6 +229,10 @@ func apiAddrOption(req *cmds.Request) (ma.Multiaddr, error) {
 	return ma.NewMultiaddr(apiAddrStr)
 }
 
+// encodedAbsolutePathVersion is the version from which the absolute path header in
+// multipart requests is %-encoded. Before this version, its sent raw.
+var encodedAbsolutePathVersion = semver.MustParse("0.23.0-dev")
+
 func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	exe := tracingWrappedExecutor{cmds.NewExecutor(req.Root)}
 	cctx := env.(*oldcmds.Context)
@@ -315,9 +324,18 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	default:
 		return nil, fmt.Errorf("unsupported API address: %s", apiAddr)
 	}
-	opts = append(opts, cmdhttp.ClientWithHTTPClient(&http.Client{
+
+	httpClient := &http.Client{
 		Transport: otelhttp.NewTransport(tpt),
-	}))
+	}
+	opts = append(opts, cmdhttp.ClientWithHTTPClient(httpClient))
+
+	// Fetch remove version, as some feature compatibility might change depending on it.
+	remoteVersion, err := getRemoteVersion(tracingWrappedExecutor{cmdhttp.NewClient(host, opts...)})
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts, cmdhttp.ClientWithRawAbsPath(remoteVersion.LT(encodedAbsolutePathVersion)))
 
 	return tracingWrappedExecutor{cmdhttp.NewClient(host, opts...)}, nil
 }
@@ -416,4 +434,41 @@ func resolveAddr(ctx context.Context, addr ma.Multiaddr) (ma.Multiaddr, error) {
 	}
 
 	return addrs[0], nil
+}
+
+type nopWriter struct {
+	io.Writer
+}
+
+func (nw nopWriter) Close() error {
+	return nil
+}
+
+func getRemoteVersion(exe cmds.Executor) (*semver.Version, error) {
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
+	defer cancel()
+
+	req, err := cmds.NewRequest(ctx, []string{"version"}, nil, nil, nil, Root)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	re, err := cmds.NewWriterResponseEmitter(nopWriter{&buf}, req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = exe.Execute(req, re, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var out ipfs.VersionInfo
+	dec := json.NewDecoder(&buf)
+	if err := dec.Decode(&out); err != nil {
+		return nil, err
+	}
+
+	return semver.New(out.Version)
 }

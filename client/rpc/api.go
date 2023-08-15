@@ -1,18 +1,24 @@
 package rpc
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/blang/semver/v4"
 	iface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/go-cid"
 	legacy "github.com/ipfs/go-ipld-legacy"
+	ipfs "github.com/ipfs/kubo"
 	dagpb "github.com/ipld/go-codec-dagpb"
 	_ "github.com/ipld/go-ipld-prime/codec/dagcbor"
 	"github.com/ipld/go-ipld-prime/node/basicnode"
@@ -42,6 +48,8 @@ type HttpApi struct {
 	Headers     http.Header
 	applyGlobal func(*requestBuilder)
 	ipldDecoder *legacy.Decoder
+	versionMu   sync.Mutex
+	version     *semver.Version
 }
 
 // NewLocalApi tries to construct new HttpApi instance communicating with local
@@ -151,6 +159,7 @@ func NewURLApiWithClient(url string, c *http.Client) (*HttpApi, error) {
 	api.httpcli.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
 		return fmt.Errorf("unexpected redirect")
 	}
+
 	return api, nil
 }
 
@@ -160,14 +169,19 @@ func (api *HttpApi) WithOptions(opts ...caopts.ApiOption) (iface.CoreAPI, error)
 		return nil, err
 	}
 
-	subApi := *api
-	subApi.applyGlobal = func(req *requestBuilder) {
-		if options.Offline {
-			req.Option("offline", options.Offline)
-		}
+	subApi := &HttpApi{
+		url:     api.url,
+		httpcli: api.httpcli,
+		Headers: api.Headers,
+		applyGlobal: func(req *requestBuilder) {
+			if options.Offline {
+				req.Option("offline", options.Offline)
+			}
+		},
+		ipldDecoder: api.ipldDecoder,
 	}
 
-	return &subApi, nil
+	return subApi, nil
 }
 
 func (api *HttpApi) Request(command string, args ...string) RequestBuilder {
@@ -227,4 +241,37 @@ func (api *HttpApi) PubSub() iface.PubSubAPI {
 
 func (api *HttpApi) Routing() iface.RoutingAPI {
 	return (*RoutingAPI)(api)
+}
+
+func (api *HttpApi) loadRemoteVersion() (*semver.Version, error) {
+	api.versionMu.Lock()
+	defer api.versionMu.Unlock()
+
+	if api.version == nil {
+		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
+		defer cancel()
+
+		resp, err := api.Request("version").Send(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if resp.Error != nil {
+			return nil, resp.Error
+		}
+		defer resp.Close()
+		var out ipfs.VersionInfo
+		dec := json.NewDecoder(resp.Output)
+		if err := dec.Decode(&out); err != nil {
+			return nil, err
+		}
+
+		remoteVersion, err := semver.New(out.Version)
+		if err != nil {
+			return nil, err
+		}
+
+		api.version = remoteVersion
+	}
+
+	return api.version, nil
 }

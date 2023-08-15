@@ -31,7 +31,22 @@ test_expect_success "can make http request against nc server" '
   ipfs cat /ipfs/Qmabcdef --api /ip4/127.0.0.1/tcp/5005 &
   IPFSPID=$!
 
-  # handle request
+  # handle request for /api/v0/version
+  while read line; do
+    if [[ "$line" == "$(echo -e "\r")" ]]; then
+      break
+    fi
+    echo "$line"
+  done <&7 >nc_out &&
+
+  echo -e "HTTP/1.1 200 OK\r" >&6 &&
+  echo -e "Content-Type: application/json\r" >&6 &&
+  echo -e "Content-Length: 21\r" >&6 &&
+  echo -e "\r" >&6 &&
+  echo -e "{\"Version\":\"0.23.0\"}\r" >&6 &&
+  echo -e "\r" >&6 &&
+
+  # handle request for /api/v0/cat
   while read line; do
     if [[ "$line" == "$(echo -e "\r")" ]]; then
       break
