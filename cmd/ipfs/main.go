@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -96,7 +95,6 @@ func newUUID(key string) logging.Metadata {
 }
 
 func mainRet() (exitCode int) {
-	rand.Seed(time.Now().UnixNano())
 	ctx := logging.ContextWithLoggable(context.Background(), newUUID("session"))
 
 	tp, err := tracing.NewTracerProvider(ctx)
