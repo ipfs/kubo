@@ -101,11 +101,11 @@ test_launch_ipfs_daemon
 
 test_expect_success "Addresses.NoAnnounce affects addresses from Announce and AppendAnnounce" '
   ipfs swarm addrs local >actual &&
-  grep -v "/ip4/1.2.3.4/tcp/1234" actual &&
-  grep -v "/ip4/10.20.30.40/tcp/4321" actual &&
+  test_should_not_contain "/ip4/1.2.3.4/tcp/1234" actual &&
+  test_should_not_contain "/ip4/10.20.30.40/tcp/4321" actual &&
   ipfs id -f"<addrs>" | xargs -n1 echo >actual &&
-  grep -v "/ip4/1.2.3.4/tcp/1234" actual &&
-  grep -v "//ip4/10.20.30.40/tcp/4321" actual
+  test_should_not_contain "/ip4/1.2.3.4/tcp/1234" actual &&
+  test_should_not_contain "//ip4/10.20.30.40/tcp/4321" actual
 '
 
 test_kill_ipfs_daemon
@@ -119,9 +119,9 @@ test_launch_ipfs_daemon
 
 test_expect_success "Addresses.NoAnnounce with /ipcidr affects addresses" '
   ipfs swarm addrs local >actual &&
-  grep -v "/ip4/1.2.3.4/tcp/1234" actual &&
+  test_should_not_contain "/ip4/1.2.3.4/tcp/1234" actual &&
   ipfs id -f"<addrs>" | xargs -n1 echo >actual &&
-  grep -v "/ip4/1.2.3.4/tcp/1234" actual
+  test_should_not_contain "/ip4/1.2.3.4/tcp/1234" actual
 '
 
 test_kill_ipfs_daemon
