@@ -101,6 +101,7 @@ test_launch_ipfs_daemon
 
 test_expect_success "Addresses.NoAnnounce affects addresses from Announce and AppendAnnounce" '
   ipfs swarm addrs local >actual &&
+  cat actual && # confirm the bug
   test_should_not_contain "/ip4/1.2.3.4/tcp/1234" actual &&
   test_should_not_contain "/ip4/10.20.30.40/tcp/4321" actual &&
   ipfs id -f"<addrs>" | xargs -n1 echo >actual &&
