@@ -72,9 +72,6 @@ const enableIPNSPubSubKwd = "enable-namesys-pubsub"
 const enableMultiplexKwd = "enable-mplex-experiment"
 const agentVersionSuffix = "agent-version-suffix"
 
-// apiAddrKwd    = "address-api"
-// swarmAddrKwd  = "address-swarm".
-
 var daemonCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Run a network-connected IPFS node.",
@@ -176,8 +173,6 @@ Headers.
 		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and also advertised through BitSwap."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
-		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
-		// cmds.StringOption(swarmAddrKwd, "Address for the swarm socket (overrides config)"),
 	},
 	Subcommands: map[string]*cmds.Command{},
 	NoRemote:    true,
