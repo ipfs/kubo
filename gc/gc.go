@@ -156,7 +156,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 // to walk the tree.
 func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots <-chan pin.StreamedCid) error {
 	verifyGetLinks := func(ctx context.Context, c cid.Cid) ([]*ipld.Link, error) {
-		err := verifcid.ValidateCid(c)
+		err := verifcid.ValidateCid(verifcid.DefaultAllowlist, c)
 		if err != nil {
 			return nil, err
 		}
