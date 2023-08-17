@@ -103,6 +103,7 @@ func TestCommands(t *testing.T) {
 		"/commands/completion",
 		"/commands/completion/bash",
 		"/commands/completion/fish",
+		"/commands/completion/zsh",
 		"/config",
 		"/config/edit",
 		"/config/profile",
