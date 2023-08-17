@@ -16,20 +16,16 @@ import (
 
 var log = logging.Logger("core/commands")
 
-var (
-	ErrNotOnline       = errors.New("this command must be run in online mode. Try running 'ipfs daemon' first")
-	ErrSelfUnsupported = errors.New("finding your own node in the DHT is currently not supported")
-)
+var ErrNotOnline = errors.New("this command must be run in online mode. Try running 'ipfs daemon' first")
+var ErrSelfUnsupported = errors.New("finding your own node in the DHT is currently not supported")
 
-const (
-	RepoDirOption    = "repo-dir"
-	ConfigFileOption = "config-file"
-	ConfigOption     = "config"
-	DebugOption      = "debug"
-	LocalOption      = "local" // DEPRECATED: use OfflineOption
-	OfflineOption    = "offline"
-	ApiOption        = "api" //nolint
-)
+const RepoDirOption = "repo-dir"
+const ConfigFileOption = "config-file"
+const ConfigOption = "config"
+const DebugOption = "debug"
+const LocalOption = "local" // DEPRECATED: use OfflineOption
+const OfflineOption = "offline"
+const ApiOption = "api" //nolint
 
 var Root = &cmds.Command{
 	Helptext: cmds.HelpText{

@@ -29,11 +29,9 @@ type ConfigField struct {
 	Value interface{}
 }
 
-const (
-	configBoolOptionName   = "bool"
-	configJSONOptionName   = "json"
-	configDryRunOptionName = "dry-run"
-)
+const configBoolOptionName = "bool"
+const configJSONOptionName = "json"
+const configDryRunOptionName = "dry-run"
 
 var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

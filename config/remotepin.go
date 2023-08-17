@@ -1,9 +1,7 @@
 package config
 
-var (
-	RemoteServicesPath     = "Pinning.RemoteServices"
-	PinningConcealSelector = []string{"Pinning", "RemoteServices", "*", "API", "Key"}
-)
+var RemoteServicesPath = "Pinning.RemoteServices"
+var PinningConcealSelector = []string{"Pinning", "RemoteServices", "*", "API", "Key"}
 
 type Pinning struct {
 	RemoteServices map[string]RemotePinningService

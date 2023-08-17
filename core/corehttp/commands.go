@@ -22,9 +22,8 @@ import (
 
 var errAPIVersionMismatch = errors.New("api version mismatch")
 
-const (
-	originEnvKey          = "API_ORIGIN"
-	originEnvKeyDeprecate = `You are using the ` + originEnvKey + `ENV Variable.
+const originEnvKey = "API_ORIGIN"
+const originEnvKeyDeprecate = `You are using the ` + originEnvKey + `ENV Variable.
 This functionality is deprecated, and will be removed in future versions.
 Instead, try either adding headers to the config, or passing them via
 cli arguments:
@@ -32,7 +31,6 @@ cli arguments:
 	ipfs config API.HTTPHeaders --json '{"Access-Control-Allow-Origin": ["*"]}'
 	ipfs daemon
 `
-)
 
 // APIPath is the path at which the API is mounted.
 const APIPath = "/api/v0"

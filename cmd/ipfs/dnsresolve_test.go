@@ -11,10 +11,8 @@ import (
 	madns "github.com/multiformats/go-multiaddr-dns"
 )
 
-var (
-	ctx         = context.Background()
-	testAddr, _ = ma.NewMultiaddr("/dns4/example.com/tcp/5001")
-)
+var ctx = context.Background()
+var testAddr, _ = ma.NewMultiaddr("/dns4/example.com/tcp/5001")
 
 func makeResolver(t *testing.T, n uint8) *madns.Resolver {
 	results := make([]net.IPAddr, n)

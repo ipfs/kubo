@@ -71,12 +71,10 @@ type KeyRenameOutput struct {
 	Overwrite bool
 }
 
-const (
-	keyStoreAlgorithmDefault = options.Ed25519Key
-	keyStoreTypeOptionName   = "type"
-	keyStoreSizeOptionName   = "size"
-	oldKeyOptionName         = "oldkey"
-)
+const keyStoreAlgorithmDefault = options.Ed25519Key
+const keyStoreTypeOptionName = "type"
+const keyStoreSizeOptionName = "size"
+const oldKeyOptionName = "oldkey"
 
 var keyGenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -136,13 +134,11 @@ var keyGenCmd = &cmds.Command{
 	Type: KeyOutput{},
 }
 
-const (
-	// Key format options used both for importing and exporting.
-	keyFormatOptionName            = "format"
-	keyFormatPemCleartextOption    = "pem-pkcs8-cleartext"
-	keyFormatLibp2pCleartextOption = "libp2p-protobuf-cleartext"
-	keyAllowAnyTypeOptionName      = "allow-any-key-type"
-)
+// Key format options used both for importing and exporting.
+const keyFormatOptionName = "format"
+const keyFormatPemCleartextOption = "pem-pkcs8-cleartext"
+const keyFormatLibp2pCleartextOption = "libp2p-protobuf-cleartext"
+const keyAllowAnyTypeOptionName = "allow-any-key-type"
 
 var keyExportCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -484,9 +480,7 @@ var keyListCmd = &cmds.Command{
 	Type: KeyOutputList{},
 }
 
-const (
-	keyStoreForceOptionName = "force"
-)
+const keyStoreForceOptionName = "force"
 
 var keyRenameCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

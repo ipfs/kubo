@@ -24,11 +24,9 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 )
 
-var (
-	http      = flag.Bool("http", false, "expose IPFS HTTP API")
-	repoPath  = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
-	watchPath = flag.String("path", ".", "the path to watch")
-)
+var http = flag.Bool("http", false, "expose IPFS HTTP API")
+var repoPath = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
+var watchPath = flag.String("path", ".", "the path to watch")
 
 func main() {
 	flag.Parse()

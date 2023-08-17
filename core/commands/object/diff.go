@@ -11,9 +11,7 @@ import (
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 )
 
-const (
-	verboseOptionName = "verbose"
-)
+const verboseOptionName = "verbose"
 
 type Changes struct {
 	Changes []*dagutils.Change

@@ -31,10 +31,8 @@ type Router struct {
 	Parameters interface{}
 }
 
-type (
-	Routers map[string]RouterParser
-	Methods map[MethodName]Method
-)
+type Routers map[string]RouterParser
+type Methods map[MethodName]Method
 
 func (m Methods) Check() error {
 	// Check supported methods
@@ -103,30 +101,24 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 // Depending of the type we need to instantiate different Routing implementations.
 type RouterType string
 
-const (
-	RouterTypeHTTP       RouterType = "http"       // HTTP JSON API for delegated routing systems (IPIP-337).
-	RouterTypeDHT        RouterType = "dht"        // DHT router.
-	RouterTypeSequential RouterType = "sequential" // Router helper to execute several routers sequentially.
-	RouterTypeParallel   RouterType = "parallel"   // Router helper to execute several routers in parallel.
-)
+const RouterTypeHTTP RouterType = "http"             // HTTP JSON API for delegated routing systems (IPIP-337).
+const RouterTypeDHT RouterType = "dht"               // DHT router.
+const RouterTypeSequential RouterType = "sequential" // Router helper to execute several routers sequentially.
+const RouterTypeParallel RouterType = "parallel"     // Router helper to execute several routers in parallel.
 
 type DHTMode string
 
-const (
-	DHTModeServer DHTMode = "server"
-	DHTModeClient DHTMode = "client"
-	DHTModeAuto   DHTMode = "auto"
-)
+const DHTModeServer DHTMode = "server"
+const DHTModeClient DHTMode = "client"
+const DHTModeAuto DHTMode = "auto"
 
 type MethodName string
 
-const (
-	MethodNameProvide       MethodName = "provide"
-	MethodNameFindProviders MethodName = "find-providers"
-	MethodNameFindPeers     MethodName = "find-peers"
-	MethodNameGetIPNS       MethodName = "get-ipns"
-	MethodNamePutIPNS       MethodName = "put-ipns"
-)
+const MethodNameProvide MethodName = "provide"
+const MethodNameFindProviders MethodName = "find-providers"
+const MethodNameFindPeers MethodName = "find-peers"
+const MethodNameGetIPNS MethodName = "get-ipns"
+const MethodNamePutIPNS MethodName = "put-ipns"
 
 var MethodNameList = []MethodName{MethodNameProvide, MethodNameFindPeers, MethodNameFindProviders, MethodNameGetIPNS, MethodNamePutIPNS}
 

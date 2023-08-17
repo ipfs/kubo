@@ -44,37 +44,36 @@ import (
 	promauto "github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-const (
-	adjustFDLimitKwd           = "manage-fdlimit"
-	enableGCKwd                = "enable-gc"
-	initOptionKwd              = "init"
-	initConfigOptionKwd        = "init-config"
-	initProfileOptionKwd       = "init-profile"
-	ipfsMountKwd               = "mount-ipfs"
-	ipnsMountKwd               = "mount-ipns"
-	migrateKwd                 = "migrate"
-	mountKwd                   = "mount"
-	offlineKwd                 = "offline" // global option
-	routingOptionKwd           = "routing"
-	routingOptionSupernodeKwd  = "supernode"
-	routingOptionDHTClientKwd  = "dhtclient"
-	routingOptionDHTKwd        = "dht"
-	routingOptionDHTServerKwd  = "dhtserver"
-	routingOptionNoneKwd       = "none"
-	routingOptionCustomKwd     = "custom"
-	routingOptionDefaultKwd    = "default"
-	routingOptionAutoKwd       = "auto"
-	routingOptionAutoClientKwd = "autoclient"
-	unencryptTransportKwd      = "disable-transport-encryption"
-	unrestrictedAPIAccessKwd   = "unrestricted-api"
-	writableKwd                = "writable"
-	enablePubSubKwd            = "enable-pubsub-experiment"
-	enableIPNSPubSubKwd        = "enable-namesys-pubsub"
-	enableMultiplexKwd         = "enable-mplex-experiment"
-	agentVersionSuffix         = "agent-version-suffix"
-	// apiAddrKwd    = "address-api"
-	// swarmAddrKwd  = "address-swarm".
-)
+const adjustFDLimitKwd = "manage-fdlimit"
+const enableGCKwd = "enable-gc"
+const initOptionKwd = "init"
+const initConfigOptionKwd = "init-config"
+const initProfileOptionKwd = "init-profile"
+const ipfsMountKwd = "mount-ipfs"
+const ipnsMountKwd = "mount-ipns"
+const migrateKwd = "migrate"
+const mountKwd = "mount"
+const offlineKwd = "offline" // global option
+const routingOptionKwd = "routing"
+const routingOptionSupernodeKwd = "supernode"
+const routingOptionDHTClientKwd = "dhtclient"
+const routingOptionDHTKwd = "dht"
+const routingOptionDHTServerKwd = "dhtserver"
+const routingOptionNoneKwd = "none"
+const routingOptionCustomKwd = "custom"
+const routingOptionDefaultKwd = "default"
+const routingOptionAutoKwd = "auto"
+const routingOptionAutoClientKwd = "autoclient"
+const unencryptTransportKwd = "disable-transport-encryption"
+const unrestrictedAPIAccessKwd = "unrestricted-api"
+const writableKwd = "writable"
+const enablePubSubKwd = "enable-pubsub-experiment"
+const enableIPNSPubSubKwd = "enable-namesys-pubsub"
+const enableMultiplexKwd = "enable-mplex-experiment"
+const agentVersionSuffix = "agent-version-suffix"
+
+// apiAddrKwd    = "address-api"
+// swarmAddrKwd  = "address-swarm".
 
 var daemonCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

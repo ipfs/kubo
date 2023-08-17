@@ -29,9 +29,7 @@ var BitswapCmd = &cmds.Command{
 	},
 }
 
-const (
-	peerOptionName = "peer"
-)
+const peerOptionName = "peer"
 
 var showWantlistCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -87,10 +85,8 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 	},
 }
 
-const (
-	bitswapVerboseOptionName = "verbose"
-	bitswapHumanOptionName   = "human"
-)
+const bitswapVerboseOptionName = "verbose"
+const bitswapHumanOptionName = "human"
 
 var bitswapStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

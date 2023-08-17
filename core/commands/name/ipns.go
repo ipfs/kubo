@@ -23,13 +23,11 @@ type ResolvedPath struct {
 	Path path.Path
 }
 
-const (
-	recursiveOptionName      = "recursive"
-	nocacheOptionName        = "nocache"
-	dhtRecordCountOptionName = "dht-record-count"
-	dhtTimeoutOptionName     = "dht-timeout"
-	streamOptionName         = "stream"
-)
+const recursiveOptionName = "recursive"
+const nocacheOptionName = "nocache"
+const dhtRecordCountOptionName = "dht-record-count"
+const dhtTimeoutOptionName = "dht-timeout"
+const streamOptionName = "stream"
 
 var IpnsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

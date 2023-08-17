@@ -6,10 +6,8 @@ import (
 	"testing"
 )
 
-var (
-	fakeHome string
-	fakeIpfs string
-)
+var fakeHome string
+var fakeIpfs string
 
 func TestRepoDir(t *testing.T) {
 	fakeHome = t.TempDir()

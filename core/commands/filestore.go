@@ -26,9 +26,7 @@ var FileStoreCmd = &cmds.Command{
 	},
 }
 
-const (
-	fileOrderOptionName = "file-order"
-)
+const fileOrderOptionName = "file-order"
 
 var lsFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{

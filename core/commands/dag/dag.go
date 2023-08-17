@@ -18,12 +18,10 @@ import (
 	// gipselectorbuilder "github.com/ipld/go-ipld-prime/traversal/selector/builder"
 )
 
-const (
-	pinRootsOptionName = "pin-roots"
-	progressOptionName = "progress"
-	silentOptionName   = "silent"
-	statsOptionName    = "stats"
-)
+const pinRootsOptionName = "pin-roots"
+const progressOptionName = "progress"
+const silentOptionName = "silent"
+const statsOptionName = "stats"
 
 // DagCmd provides a subset of commands for interacting with ipld dag objects
 var DagCmd = &cmds.Command{

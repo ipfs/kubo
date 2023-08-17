@@ -11,14 +11,13 @@ import (
 
 var log = logging.Logger("ulimit")
 
-var (
-	supportsFDManagement = false
+var supportsFDManagement = false
 
-	// getlimit returns the soft and hard limits of file descriptors counts.
-	getLimit func() (uint64, uint64, error)
-	// set limit sets the soft and hard limits of file descriptors counts.
-	setLimit func(uint64, uint64) error
-)
+// getlimit returns the soft and hard limits of file descriptors counts.
+var getLimit func() (uint64, uint64, error)
+
+// set limit sets the soft and hard limits of file descriptors counts.
+var setLimit func(uint64, uint64) error
 
 // minimum file descriptor limit before we complain.
 const minFds = 2048

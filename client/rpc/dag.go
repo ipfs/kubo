@@ -14,11 +14,9 @@ import (
 	multicodec "github.com/multiformats/go-multicodec"
 )
 
-type (
-	httpNodeAdder        HttpApi
-	HttpDagServ          httpNodeAdder
-	pinningHttpNodeAdder httpNodeAdder
-)
+type httpNodeAdder HttpApi
+type HttpDagServ httpNodeAdder
+type pinningHttpNodeAdder httpNodeAdder
 
 func (api *HttpDagServ) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
 	r, err := api.core().Block().Get(ctx, path.IpldPath(c))

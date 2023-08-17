@@ -9,10 +9,8 @@ import (
 	"time"
 )
 
-var (
-	AlphabetEasy = []rune("abcdefghijklmnopqrstuvwxyz01234567890-_")
-	AlphabetHard = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890!@#$%^&*()-_+= ;.,<>'\"[]{}() ")
-)
+var AlphabetEasy = []rune("abcdefghijklmnopqrstuvwxyz01234567890-_")
+var AlphabetHard = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890!@#$%^&*()-_+= ;.,<>'\"[]{}() ")
 
 type RandFiles struct {
 	Rand         *rand.Rand

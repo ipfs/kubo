@@ -9,10 +9,8 @@ import (
 	"github.com/ipfs/go-cid"
 )
 
-const (
-	AllowBigBlockOptionName = "allow-big-block"
-	SoftBlockLimit          = 1024 * 1024 // https://github.com/ipfs/kubo/issues/7421#issuecomment-910833499
-)
+const AllowBigBlockOptionName = "allow-big-block"
+const SoftBlockLimit = 1024 * 1024 // https://github.com/ipfs/kubo/issues/7421#issuecomment-910833499
 
 var AllowBigBlockOption cmds.Option
 

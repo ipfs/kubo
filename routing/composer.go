@@ -11,10 +11,8 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
-var (
-	_ routinghelpers.ProvideManyRouter = &Composer{}
-	_ routing.Routing                  = &Composer{}
-)
+var _ routinghelpers.ProvideManyRouter = &Composer{}
+var _ routing.Routing = &Composer{}
 
 type Composer struct {
 	GetValueRouter      routing.Routing

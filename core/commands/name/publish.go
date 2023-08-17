@@ -17,16 +17,14 @@ import (
 
 var errAllowOffline = errors.New("can't publish while offline: pass `--allow-offline` to override")
 
-const (
-	ipfsPathOptionName     = "ipfs-path"
-	resolveOptionName      = "resolve"
-	allowOfflineOptionName = "allow-offline"
-	lifeTimeOptionName     = "lifetime"
-	ttlOptionName          = "ttl"
-	keyOptionName          = "key"
-	quieterOptionName      = "quieter"
-	v1compatOptionName     = "v1compat"
-)
+const ipfsPathOptionName = "ipfs-path"
+const resolveOptionName = "resolve"
+const allowOfflineOptionName = "allow-offline"
+const lifeTimeOptionName = "lifetime"
+const ttlOptionName = "ttl"
+const keyOptionName = "key"
+const quieterOptionName = "quieter"
+const v1compatOptionName = "v1compat"
 
 var PublishCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

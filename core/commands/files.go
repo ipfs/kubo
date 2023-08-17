@@ -83,15 +83,11 @@ operations.
 	},
 }
 
-const (
-	filesCidVersionOptionName = "cid-version"
-	filesHashOptionName       = "hash"
-)
+const filesCidVersionOptionName = "cid-version"
+const filesHashOptionName = "hash"
 
-var (
-	cidVersionOption = cmds.IntOption(filesCidVersionOptionName, "cid-ver", "Cid version to use. (experimental)")
-	hashOption       = cmds.StringOption(filesHashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)")
-)
+var cidVersionOption = cmds.IntOption(filesCidVersionOptionName, "cid-ver", "Cid version to use. (experimental)")
+var hashOption = cmds.StringOption(filesHashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)")
 
 var errFormat = errors.New("format was set by multiple options. Only one format option is allowed")
 
@@ -106,16 +102,14 @@ type statOutput struct {
 	SizeLocal      uint64 `json:",omitempty"`
 }
 
-const (
-	defaultStatFormat = `<hash>
+const defaultStatFormat = `<hash>
 Size: <size>
 CumulativeSize: <cumulsize>
 ChildBlocks: <childs>
 Type: <type>`
-	filesFormatOptionName    = "format"
-	filesSizeOptionName      = "size"
-	filesWithLocalOptionName = "with-local"
-)
+const filesFormatOptionName = "format"
+const filesSizeOptionName = "size"
+const filesWithLocalOptionName = "with-local"
 
 var filesStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -438,10 +432,8 @@ type filesLsOutput struct {
 	Entries []mfs.NodeListing
 }
 
-const (
-	longOptionName     = "long"
-	dontSortOptionName = "U"
-)
+const longOptionName = "long"
+const dontSortOptionName = "U"
 
 var filesLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -573,10 +565,8 @@ Examples:
 	Type: filesLsOutput{},
 }
 
-const (
-	filesOffsetOptionName = "offset"
-	filesCountOptionName  = "count"
-)
+const filesOffsetOptionName = "offset"
+const filesCountOptionName = "count"
 
 var filesReadCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -713,13 +703,11 @@ Example:
 	},
 }
 
-const (
-	filesCreateOptionName    = "create"
-	filesParentsOptionName   = "parents"
-	filesTruncateOptionName  = "truncate"
-	filesRawLeavesOptionName = "raw-leaves"
-	filesFlushOptionName     = "flush"
-)
+const filesCreateOptionName = "create"
+const filesParentsOptionName = "parents"
+const filesTruncateOptionName = "truncate"
+const filesRawLeavesOptionName = "raw-leaves"
+const filesFlushOptionName = "flush"
 
 var filesWriteCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

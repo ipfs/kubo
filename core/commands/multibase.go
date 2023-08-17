@@ -24,9 +24,7 @@ var MbaseCmd = &cmds.Command{
 	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
-const (
-	mbaseOptionName = "b"
-)
+const mbaseOptionName = "b"
 
 var mbaseEncodeCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

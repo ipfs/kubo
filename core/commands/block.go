@@ -112,12 +112,10 @@ It takes a <cid>, and outputs the block to stdout.
 	},
 }
 
-const (
-	blockFormatOptionName   = "format"
-	blockCidCodecOptionName = "cid-codec"
-	mhtypeOptionName        = "mhtype"
-	mhlenOptionName         = "mhlen"
-)
+const blockFormatOptionName = "format"
+const blockCidCodecOptionName = "cid-codec"
+const mhtypeOptionName = "mhtype"
+const mhlenOptionName = "mhlen"
 
 var blockPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -219,10 +217,8 @@ only for backward compatibility when a legacy CIDv0 is required (--format=v0).
 	Type: BlockStat{},
 }
 
-const (
-	forceOptionName      = "force"
-	blockQuietOptionName = "quiet"
-)
+const forceOptionName = "force"
+const blockQuietOptionName = "quiet"
 
 type removedBlock struct {
 	Hash  string `json:",omitempty"`

@@ -23,12 +23,10 @@ import (
 
 var ErrInvalidCompressionLevel = errors.New("compression level must be between 1 and 9")
 
-const (
-	outputOptionName           = "output"
-	archiveOptionName          = "archive"
-	compressOptionName         = "compress"
-	compressionLevelOptionName = "compression-level"
-)
+const outputOptionName = "output"
+const archiveOptionName = "archive"
+const compressOptionName = "compress"
+const compressionLevelOptionName = "compression-level"
 
 var GetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

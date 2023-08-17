@@ -11,11 +11,9 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-const (
-	envIpfsPath = "IPFS_PATH"
-	defIpfsDir  = ".ipfs"
-	versionFile = "version"
-)
+const envIpfsPath = "IPFS_PATH"
+const defIpfsDir = ".ipfs"
+const versionFile = "version"
 
 func init() {
 	homedir.DisableCache = true

@@ -11,13 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	fixtureFile    = "./fixtures/TestDagStat.car"
-	textOutputPath = "./fixtures/TestDagStatExpectedOutput.txt"
-	node1Cid       = "bafyreibmdfd7c5db4kls4ty57zljfhqv36gi43l6txl44pi423wwmeskwy"
-	node2Cid       = "bafyreie3njilzdi4ixumru4nzgecsnjtu7fzfcwhg7e6s4s5i7cnbslvn4"
-	fixtureCid     = "bafyreifrm6uf5o4dsaacuszf35zhibyojlqclabzrms7iak67pf62jygaq"
-)
+const fixtureFile = "./fixtures/TestDagStat.car"
+const textOutputPath = "./fixtures/TestDagStatExpectedOutput.txt"
+const node1Cid = "bafyreibmdfd7c5db4kls4ty57zljfhqv36gi43l6txl44pi423wwmeskwy"
+const node2Cid = "bafyreie3njilzdi4ixumru4nzgecsnjtu7fzfcwhg7e6s4s5i7cnbslvn4"
+const fixtureCid = "bafyreifrm6uf5o4dsaacuszf35zhibyojlqclabzrms7iak67pf62jygaq"
 
 type DagStat struct {
 	Cid       string `json:"Cid"`

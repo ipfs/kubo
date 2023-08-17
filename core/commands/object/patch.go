@@ -197,9 +197,7 @@ DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
 	},
 }
 
-const (
-	createOptionName = "create"
-)
+const createOptionName = "create"
 
 var patchAddLinkCmd = &cmds.Command{
 	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/7936

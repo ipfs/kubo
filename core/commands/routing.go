@@ -23,11 +23,9 @@ import (
 
 var errAllowOffline = errors.New("can't put while offline: pass `--allow-offline` to override")
 
-const (
-	dhtVerboseOptionName   = "verbose"
-	numProvidersOptionName = "num-providers"
-	allowOfflineOptionName = "allow-offline"
-)
+const dhtVerboseOptionName = "verbose"
+const numProvidersOptionName = "num-providers"
+const allowOfflineOptionName = "allow-offline"
 
 var RoutingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -131,9 +129,7 @@ var findProvidersRoutingCmd = &cmds.Command{
 	Type: routing.QueryEvent{},
 }
 
-const (
-	recursiveOptionName = "recursive"
-)
+const recursiveOptionName = "recursive"
 
 var provideRefRoutingCmd = &cmds.Command{
 	Status: cmds.Experimental,
@@ -492,10 +488,8 @@ identified by QmFoo.
 	Type: routing.QueryEvent{},
 }
 
-type (
-	printFunc func(obj *routing.QueryEvent, out io.Writer, verbose bool) error
-	pfuncMap  map[routing.QueryEventType]printFunc
-)
+type printFunc func(obj *routing.QueryEvent, out io.Writer, verbose bool) error
+type pfuncMap map[routing.QueryEventType]printFunc
 
 func printEvent(obj *routing.QueryEvent, out io.Writer, verbose bool, override pfuncMap) error {
 	if verbose {

@@ -34,13 +34,11 @@ type KeyList struct {
 	Keys []cid.Cid
 }
 
-const (
-	refsFormatOptionName    = "format"
-	refsEdgesOptionName     = "edges"
-	refsUniqueOptionName    = "unique"
-	refsRecursiveOptionName = "recursive"
-	refsMaxDepthOptionName  = "max-depth"
-)
+const refsFormatOptionName = "format"
+const refsEdgesOptionName = "edges"
+const refsUniqueOptionName = "unique"
+const refsRecursiveOptionName = "recursive"
+const refsMaxDepthOptionName = "max-depth"
 
 // RefsCmd is the `ipfs refs` command
 var RefsCmd = &cmds.Command{

@@ -19,12 +19,11 @@ var log = logging.Logger("plugin/peerlog")
 
 type eventType int
 
-var (
-	// size of the event queue buffer.
-	eventQueueSize = 64 * 1024
-	// number of events to drop when busy.
-	busyDropAmount = eventQueueSize / 8
-)
+// size of the event queue buffer.
+var eventQueueSize = 64 * 1024
+
+// number of events to drop when busy.
+var busyDropAmount = eventQueueSize / 8
 
 const (
 	eventConnect eventType = iota

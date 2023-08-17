@@ -24,14 +24,12 @@ import (
 	config "github.com/ipfs/kubo/config"
 )
 
-const (
-	algorithmDefault    = options.Ed25519Key
-	algorithmOptionName = "algorithm"
-	bitsOptionName      = "bits"
-	emptyRepoDefault    = true
-	emptyRepoOptionName = "empty-repo"
-	profileOptionName   = "profile"
-)
+const algorithmDefault = options.Ed25519Key
+const algorithmOptionName = "algorithm"
+const bitsOptionName = "bits"
+const emptyRepoDefault = true
+const emptyRepoOptionName = "empty-repo"
+const profileOptionName = "profile"
 
 // nolint
 var errRepoExists = errors.New(`ipfs configuration file already exists!

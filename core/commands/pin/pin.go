@@ -48,10 +48,8 @@ type AddPinOutput struct {
 	Progress int      `json:",omitempty"`
 }
 
-const (
-	pinRecursiveOptionName = "recursive"
-	pinProgressOptionName  = "progress"
-)
+const pinRecursiveOptionName = "recursive"
+const pinProgressOptionName = "progress"
 
 var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -267,11 +265,9 @@ ipfs pin ls -t indirect <cid>
 	},
 }
 
-const (
-	pinTypeOptionName   = "type"
-	pinQuietOptionName  = "quiet"
-	pinStreamOptionName = "stream"
-)
+const pinTypeOptionName = "type"
+const pinQuietOptionName = "quiet"
+const pinStreamOptionName = "stream"
 
 var listPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -528,9 +524,7 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 	return nil
 }
 
-const (
-	pinUnpinOptionName = "unpin"
-)
+const pinUnpinOptionName = "unpin"
 
 var updatePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -593,9 +587,7 @@ pin.
 	},
 }
 
-const (
-	pinVerboseOptionName = "verbose"
-)
+const pinVerboseOptionName = "verbose"
 
 var verifyPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

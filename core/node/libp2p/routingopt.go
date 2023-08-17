@@ -147,12 +147,10 @@ func constructNilRouting(_ RoutingOptionArgs) (routing.Routing, error) {
 	return routinghelpers.Null{}, nil
 }
 
-var (
-	DHTOption       RoutingOption = constructDHTRouting(dht.ModeAuto)
-	DHTClientOption               = constructDHTRouting(dht.ModeClient)
-	DHTServerOption               = constructDHTRouting(dht.ModeServer)
-	NilRouterOption               = constructNilRouting
-)
+var DHTOption RoutingOption = constructDHTRouting(dht.ModeAuto)
+var DHTClientOption = constructDHTRouting(dht.ModeClient)
+var DHTServerOption = constructDHTRouting(dht.ModeServer)
+var NilRouterOption = constructNilRouting
 
 // httpAddrsFromConfig creates a list of addresses from the provided configuration to be used by HTTP delegated routers.
 func httpAddrsFromConfig(cfgAddrs config.Addresses) []string {

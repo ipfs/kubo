@@ -52,9 +52,7 @@ type Option struct {
 	Names []string
 }
 
-const (
-	flagsOptionName = "flags"
-)
+const flagsOptionName = "flags"
 
 // CommandsCmd takes in a root command,
 // and returns a command that lists the subcommands in that root

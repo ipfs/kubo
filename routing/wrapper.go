@@ -13,10 +13,8 @@ type ProvideManyRouter interface {
 	routing.Routing
 }
 
-var (
-	_ routing.Routing                  = &httpRoutingWrapper{}
-	_ routinghelpers.ProvideManyRouter = &httpRoutingWrapper{}
-)
+var _ routing.Routing = &httpRoutingWrapper{}
+var _ routinghelpers.ProvideManyRouter = &httpRoutingWrapper{}
 
 // httpRoutingWrapper is a wrapper needed to construct the routing.Routing interface from
 // http delegated routing.

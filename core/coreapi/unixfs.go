@@ -32,10 +32,8 @@ import (
 
 type UnixfsAPI CoreAPI
 
-var (
-	nilNode *core.IpfsNode
-	once    sync.Once
-)
+var nilNode *core.IpfsNode
+var once sync.Once
 
 func getOrCreateNilNode() (*core.IpfsNode, error) {
 	once.Do(func() {

@@ -33,10 +33,8 @@ type IdOutput struct { // nolint
 	Protocols    []protocol.ID
 }
 
-const (
-	formatOptionName   = "format"
-	idFormatOptionName = "peerid-base"
-)
+const formatOptionName = "format"
+const idFormatOptionName = "peerid-base"
 
 var IDCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

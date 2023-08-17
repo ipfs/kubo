@@ -14,10 +14,8 @@ type Runner struct {
 	Verbose bool
 }
 
-type (
-	CmdOpt  func(*exec.Cmd)
-	RunFunc func(*exec.Cmd) error
-)
+type CmdOpt func(*exec.Cmd)
+type RunFunc func(*exec.Cmd) error
 
 var RunFuncStart = (*exec.Cmd).Start
 

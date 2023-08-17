@@ -17,11 +17,9 @@ import (
 	config "github.com/ipfs/kubo/config"
 )
 
-const (
-	// Migrations subdirectory in distribution. Empty for root (no subdir).
-	distMigsRoot = ""
-	distFSRM     = "fs-repo-migrations"
-)
+// Migrations subdirectory in distribution. Empty for root (no subdir).
+const distMigsRoot = ""
+const distFSRM = "fs-repo-migrations"
 
 // RunMigration finds, downloads, and runs the individual migrations needed to
 // migrate the repo from its current version to the target version.

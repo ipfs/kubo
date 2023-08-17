@@ -53,12 +53,10 @@ type GcResult struct {
 	Error string `json:",omitempty"`
 }
 
-const (
-	repoStreamErrorsOptionName   = "stream-errors"
-	repoQuietOptionName          = "quiet"
-	repoSilentOptionName         = "silent"
-	repoAllowDowngradeOptionName = "allow-downgrade"
-)
+const repoStreamErrorsOptionName = "stream-errors"
+const repoQuietOptionName = "quiet"
+const repoSilentOptionName = "silent"
+const repoAllowDowngradeOptionName = "allow-downgrade"
 
 var repoGcCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -145,10 +143,8 @@ order to reclaim hard disk space.
 	},
 }
 
-const (
-	repoSizeOnlyOptionName = "size-only"
-	repoHumanOptionName    = "human"
-)
+const repoSizeOnlyOptionName = "size-only"
+const repoHumanOptionName = "human"
 
 var repoStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

@@ -9,15 +9,13 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-const (
-	// Current distribution to fetch migrations from.
-	CurrentIpfsDist = "/ipfs/QmYerugGRCZWA8yQMKDsd9daEVXUR3C5nuw3VXuX1mggHa" // fs-repo-13-to-14 v1.0.0
-	// Latest distribution path.  Default for fetchers.
-	LatestIpfsDist = "/ipns/dist.ipfs.tech"
+// Current distribution to fetch migrations from.
+const CurrentIpfsDist = "/ipfs/QmYerugGRCZWA8yQMKDsd9daEVXUR3C5nuw3VXuX1mggHa" // fs-repo-13-to-14 v1.0.0
+// Latest distribution path.  Default for fetchers.
+const LatestIpfsDist = "/ipns/dist.ipfs.tech"
 
-	// Distribution environ variable.
-	envIpfsDistPath = "IPFS_DIST_PATH"
-)
+// Distribution environ variable.
+const envIpfsDistPath = "IPFS_DIST_PATH"
 
 type Fetcher interface {
 	// Fetch attempts to fetch the file at the given ipfs path.

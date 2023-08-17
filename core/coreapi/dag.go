@@ -68,7 +68,5 @@ func (api *dagAPI) Session(ctx context.Context) ipld.NodeGetter {
 	return dag.NewSession(ctx, api.DAGService)
 }
 
-var (
-	_ ipld.DAGService  = (*dagAPI)(nil)
-	_ dag.SessionMaker = (*dagAPI)(nil)
-)
+var _ ipld.DAGService = (*dagAPI)(nil)
+var _ dag.SessionMaker = (*dagAPI)(nil)

@@ -31,12 +31,10 @@ var CidCmd = &cmds.Command{
 	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
-const (
-	cidFormatOptionName    = "f"
-	cidVerisonOptionName   = "v"
-	cidCodecOptionName     = "mc"
-	cidMultibaseOptionName = "b"
-)
+const cidFormatOptionName = "f"
+const cidVerisonOptionName = "v"
+const cidCodecOptionName = "mc"
+const cidMultibaseOptionName = "b"
 
 var cidFmtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -253,10 +251,8 @@ type CodeAndName struct {
 	Name string
 }
 
-const (
-	prefixOptionName  = "prefix"
-	numericOptionName = "numeric"
-)
+const prefixOptionName = "prefix"
+const numericOptionName = "numeric"
 
 var basesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -305,10 +301,8 @@ var basesCmd = &cmds.Command{
 	Type: []CodeAndName{},
 }
 
-const (
-	codecsNumericOptionName   = "numeric"
-	codecsSupportedOptionName = "supported"
-)
+const codecsNumericOptionName = "numeric"
+const codecsSupportedOptionName = "supported"
 
 var codecsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

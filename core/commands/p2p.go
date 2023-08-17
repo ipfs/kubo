@@ -50,10 +50,8 @@ type P2PStreamsOutput struct {
 	Streams []P2PStreamInfoOutput
 }
 
-const (
-	allowCustomProtocolOptionName = "allow-custom-protocol"
-	reportPeerIDOptionName        = "report-peer-id"
-)
+const allowCustomProtocolOptionName = "allow-custom-protocol"
+const reportPeerIDOptionName = "report-peer-id"
 
 var resolveTimeout = 10 * time.Second
 
@@ -278,9 +276,7 @@ func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto pr
 	return err
 }
 
-const (
-	p2pHeadersOptionName = "headers"
-)
+const p2pHeadersOptionName = "headers"
 
 var p2pLsCmd = &cmds.Command{
 	Status: cmds.Experimental,
@@ -339,12 +335,10 @@ var p2pLsCmd = &cmds.Command{
 	},
 }
 
-const (
-	p2pAllOptionName           = "all"
-	p2pProtocolOptionName      = "protocol"
-	p2pListenAddressOptionName = "listen-address"
-	p2pTargetAddressOptionName = "target-address"
-)
+const p2pAllOptionName = "all"
+const p2pProtocolOptionName = "protocol"
+const p2pListenAddressOptionName = "listen-address"
+const p2pTargetAddressOptionName = "target-address"
 
 var p2pCloseCmd = &cmds.Command{
 	Status: cmds.Experimental,

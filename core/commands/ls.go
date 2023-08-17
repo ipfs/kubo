@@ -38,12 +38,10 @@ type LsOutput struct {
 	Objects []LsObject
 }
 
-const (
-	lsHeadersOptionNameTime = "headers"
-	lsResolveTypeOptionName = "resolve-type"
-	lsSizeOptionName        = "size"
-	lsStreamOptionName      = "stream"
-)
+const lsHeadersOptionNameTime = "headers"
+const lsResolveTypeOptionName = "resolve-type"
+const lsSizeOptionName = "size"
+const lsStreamOptionName = "stream"
 
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

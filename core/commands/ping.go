@@ -25,9 +25,7 @@ type PingResult struct {
 	Text    string
 }
 
-const (
-	pingCountOptionName = "count"
-)
+const pingCountOptionName = "count"
 
 // ErrPingSelf is returned when the user attempts to ping themself.
 var ErrPingSelf = errors.New("error: can't ping self")

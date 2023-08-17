@@ -34,12 +34,10 @@ for your IPFS node.`,
 	},
 }
 
-const (
-	statPeerOptionName     = "peer"
-	statProtoOptionName    = "proto"
-	statPollOptionName     = "poll"
-	statIntervalOptionName = "interval"
-)
+const statPeerOptionName = "peer"
+const statProtoOptionName = "proto"
+const statPollOptionName = "poll"
+const statIntervalOptionName = "interval"
 
 var statBwCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

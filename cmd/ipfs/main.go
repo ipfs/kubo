@@ -48,11 +48,9 @@ var (
 // declared as a var for testing purposes.
 var dnsResolver = madns.DefaultResolver
 
-const (
-	EnvEnableProfiling = "IPFS_PROF"
-	cpuProfile         = "ipfs.cpuprof"
-	heapProfile        = "ipfs.memprof"
-)
+const EnvEnableProfiling = "IPFS_PROF"
+const cpuProfile = "ipfs.cpuprof"
+const heapProfile = "ipfs.memprof"
 
 func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
 	plugins, err := loader.NewPluginLoader(repoPath)

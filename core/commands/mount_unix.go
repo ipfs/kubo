@@ -15,10 +15,8 @@ import (
 	config "github.com/ipfs/kubo/config"
 )
 
-const (
-	mountIPFSPathOptionName = "ipfs-path"
-	mountIPNSPathOptionName = "ipns-path"
-)
+const mountIPFSPathOptionName = "ipfs-path"
+const mountIPNSPathOptionName = "ipns-path"
 
 var MountCmd = &cmds.Command{
 	Status: cmds.Experimental,

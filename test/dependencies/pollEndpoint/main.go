@@ -15,14 +15,12 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 )
 
-var (
-	host    = flag.String("host", "/ip4/127.0.0.1/tcp/5001", "the multiaddr host to dial on")
-	tries   = flag.Int("tries", 10, "how many tries to make before failing")
-	timeout = flag.Duration("tout", time.Second, "how long to wait between attempts")
-	httpURL = flag.String("http-url", "", "HTTP URL to fetch")
-	httpOut = flag.Bool("http-out", false, "Print the HTTP response body to stdout")
-	verbose = flag.Bool("v", false, "verbose logging")
-)
+var host = flag.String("host", "/ip4/127.0.0.1/tcp/5001", "the multiaddr host to dial on")
+var tries = flag.Int("tries", 10, "how many tries to make before failing")
+var timeout = flag.Duration("tout", time.Second, "how long to wait between attempts")
+var httpURL = flag.String("http-url", "", "HTTP URL to fetch")
+var httpOut = flag.Bool("http-out", false, "Print the HTTP response body to stdout")
+var verbose = flag.Bool("v", false, "verbose logging")
 
 var log = logging.Logger("pollEndpoint")
 

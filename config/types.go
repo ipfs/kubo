@@ -42,10 +42,8 @@ func (o Strings) MarshalJSON() ([]byte, error) {
 	}
 }
 
-var (
-	_ json.Unmarshaler = (*Strings)(nil)
-	_ json.Marshaler   = (*Strings)(nil)
-)
+var _ json.Unmarshaler = (*Strings)(nil)
+var _ json.Marshaler = (*Strings)(nil)
 
 // Flag represents a ternary value: false (-1), default (0), or true (+1).
 //
@@ -53,11 +51,9 @@ var (
 // is "true".
 type Flag int8
 
-const (
-	False   Flag = -1
-	Default Flag = 0
-	True    Flag = 1
-)
+const False Flag = -1
+const Default Flag = 0
+const True Flag = 1
 
 // WithDefault resolves the value of the flag given the provided default value.
 //
@@ -115,10 +111,8 @@ func (f Flag) String() string {
 	}
 }
 
-var (
-	_ json.Unmarshaler = (*Flag)(nil)
-	_ json.Marshaler   = (*Flag)(nil)
-)
+var _ json.Unmarshaler = (*Flag)(nil)
+var _ json.Marshaler = (*Flag)(nil)
 
 // Priority represents a value with a priority where 0 means "default" and -1
 // means "disabled".
@@ -127,10 +121,8 @@ var (
 // "false".
 type Priority int64
 
-const (
-	DefaultPriority Priority = 0
-	Disabled        Priority = -1
-)
+const DefaultPriority Priority = 0
+const Disabled Priority = -1
 
 // WithDefault resolves the priority with the given default.
 //
@@ -214,10 +206,8 @@ func (p Priority) String() string {
 	}
 }
 
-var (
-	_ json.Unmarshaler = (*Priority)(nil)
-	_ json.Marshaler   = (*Priority)(nil)
-)
+var _ json.Unmarshaler = (*Priority)(nil)
+var _ json.Marshaler = (*Priority)(nil)
 
 // OptionalDuration wraps time.Duration to provide json serialization and deserialization.
 //
@@ -272,10 +262,8 @@ func (d OptionalDuration) String() string {
 	return d.value.String()
 }
 
-var (
-	_ json.Unmarshaler = (*OptionalDuration)(nil)
-	_ json.Marshaler   = (*OptionalDuration)(nil)
-)
+var _ json.Unmarshaler = (*OptionalDuration)(nil)
+var _ json.Marshaler = (*OptionalDuration)(nil)
 
 type Duration struct {
 	time.Duration
@@ -306,10 +294,8 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	}
 }
 
-var (
-	_ json.Unmarshaler = (*Duration)(nil)
-	_ json.Marshaler   = (*Duration)(nil)
-)
+var _ json.Unmarshaler = (*Duration)(nil)
+var _ json.Marshaler = (*Duration)(nil)
 
 // OptionalInteger represents an integer that has a default value
 //
@@ -365,10 +351,8 @@ func (p OptionalInteger) String() string {
 	return fmt.Sprintf("%d", *p.value)
 }
 
-var (
-	_ json.Unmarshaler = (*OptionalInteger)(nil)
-	_ json.Marshaler   = (*OptionalInteger)(nil)
-)
+var _ json.Unmarshaler = (*OptionalInteger)(nil)
+var _ json.Marshaler = (*OptionalInteger)(nil)
 
 // OptionalString represents a string that has a default value
 //
@@ -424,10 +408,8 @@ func (p OptionalString) String() string {
 	return *p.value
 }
 
-var (
-	_ json.Unmarshaler = (*OptionalInteger)(nil)
-	_ json.Marshaler   = (*OptionalInteger)(nil)
-)
+var _ json.Unmarshaler = (*OptionalInteger)(nil)
+var _ json.Marshaler = (*OptionalInteger)(nil)
 
 type swarmLimits doNotUse
 

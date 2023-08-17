@@ -20,12 +20,10 @@ type profileResult struct {
 	File string
 }
 
-const (
-	collectorsOptionName       = "collectors"
-	profileTimeOption          = "profile-time"
-	mutexProfileFractionOption = "mutex-profile-fraction"
-	blockProfileRateOption     = "block-profile-rate"
-)
+const collectorsOptionName = "collectors"
+const profileTimeOption = "profile-time"
+const mutexProfileFractionOption = "mutex-profile-fraction"
+const blockProfileRateOption = "block-profile-rate"
 
 var sysProfileCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

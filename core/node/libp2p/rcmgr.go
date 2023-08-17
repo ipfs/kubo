@@ -368,16 +368,14 @@ func LimitConfigsToInfo(stats LimitsConfigAndUsage) ResourceInfos {
 	return result
 }
 
-const (
-	limitNameMemory          = "Memory"
-	limitNameFD              = "FD"
-	limitNameConns           = "Conns"
-	limitNameConnsInbound    = "ConnsInbound"
-	limitNameConnsOutbound   = "ConnsOutbound"
-	limitNameStreams         = "Streams"
-	limitNameStreamsInbound  = "StreamsInbound"
-	limitNameStreamsOutbound = "StreamsOutbound"
-)
+const limitNameMemory = "Memory"
+const limitNameFD = "FD"
+const limitNameConns = "Conns"
+const limitNameConnsInbound = "ConnsInbound"
+const limitNameConnsOutbound = "ConnsOutbound"
+const limitNameStreams = "Streams"
+const limitNameStreamsInbound = "StreamsInbound"
+const limitNameStreamsOutbound = "StreamsOutbound"
 
 var limits = []string{
 	limitNameMemory,

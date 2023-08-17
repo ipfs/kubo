@@ -21,10 +21,8 @@ import (
 
 var log = logging.Logger("tarfmt")
 
-var (
-	blockSize = 512
-	zeroBlock = make([]byte, blockSize)
-)
+var blockSize = 512
+var zeroBlock = make([]byte, blockSize)
 
 func marshalHeader(h *tar.Header) ([]byte, error) {
 	buf := new(bytes.Buffer)

@@ -1,9 +1,7 @@
 package config
 
-const (
-	DefaultInlineDNSLink         = false
-	DefaultDeserializedResponses = true
-)
+const DefaultInlineDNSLink = false
+const DefaultDeserializedResponses = true
 
 type GatewaySpec struct {
 	// Paths is explicit list of path prefixes that should be handled by

@@ -31,10 +31,8 @@ type loggingScope struct {
 	countErrs func(error)
 }
 
-var (
-	_ network.ResourceManager    = (*loggingResourceManager)(nil)
-	_ rcmgr.ResourceManagerState = (*loggingResourceManager)(nil)
-)
+var _ network.ResourceManager = (*loggingResourceManager)(nil)
+var _ rcmgr.ResourceManagerState = (*loggingResourceManager)(nil)
 
 func (n *loggingResourceManager) start(ctx context.Context) {
 	logInterval := n.logInterval

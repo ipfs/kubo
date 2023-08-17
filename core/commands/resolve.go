@@ -19,11 +19,9 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
-const (
-	resolveRecursiveOptionName      = "recursive"
-	resolveDhtRecordCountOptionName = "dht-record-count"
-	resolveDhtTimeoutOptionName     = "dht-timeout"
-)
+const resolveRecursiveOptionName = "recursive"
+const resolveDhtRecordCountOptionName = "dht-record-count"
+const resolveDhtTimeoutOptionName = "dht-timeout"
 
 var ResolveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

@@ -11,12 +11,10 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
-const (
-	versionNumberOptionName = "number"
-	versionCommitOptionName = "commit"
-	versionRepoOptionName   = "repo"
-	versionAllOptionName    = "all"
-)
+const versionNumberOptionName = "number"
+const versionCommitOptionName = "commit"
+const versionRepoOptionName = "repo"
+const versionAllOptionName = "all"
 
 var VersionCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

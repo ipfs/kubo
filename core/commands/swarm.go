@@ -32,9 +32,7 @@ import (
 	mamask "github.com/whyrusleeping/multiaddr-filter"
 )
 
-const (
-	dnsResolveTimeout = 10 * time.Second
-)
+const dnsResolveTimeout = 10 * time.Second
 
 type stringList struct {
 	Strings []string
@@ -65,15 +63,11 @@ ipfs peers in the internet.
 	},
 }
 
-const (
-	swarmVerboseOptionName           = "verbose"
-	swarmStreamsOptionName           = "streams"
-	swarmLatencyOptionName           = "latency"
-	swarmDirectionOptionName         = "direction"
-	swarmResetLimitsOptionName       = "reset"
-	swarmUsedResourcesPercentageName = "min-used-limit-perc"
-	swarmIdentifyOptionName          = "identify"
-)
+const swarmVerboseOptionName = "verbose"
+const swarmStreamsOptionName = "streams"
+const swarmLatencyOptionName = "latency"
+const swarmDirectionOptionName = "direction"
+const swarmIdentifyOptionName = "identify"
 
 type peeringResult struct {
 	ID     peer.ID

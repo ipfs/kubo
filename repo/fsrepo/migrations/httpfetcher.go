@@ -9,11 +9,10 @@ import (
 	"strings"
 )
 
-const (
-	defaultGatewayURL = "https://ipfs.io"
-	// Default maximum download size.
-	defaultFetchLimit = 1024 * 1024 * 512
-)
+const defaultGatewayURL = "https://ipfs.io"
+
+// Default maximum download size.
+const defaultFetchLimit = 1024 * 1024 * 512
 
 // HttpFetcher fetches files over HTTP.
 type HttpFetcher struct { //nolint

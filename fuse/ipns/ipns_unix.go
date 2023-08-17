@@ -565,7 +565,5 @@ type ipnsFileNode interface {
 	fs.NodeOpener
 }
 
-var (
-	_ ipnsFileNode = (*FileNode)(nil)
-	_ ipnsFile     = (*File)(nil)
-)
+var _ ipnsFileNode = (*FileNode)(nil)
+var _ ipnsFile = (*File)(nil)

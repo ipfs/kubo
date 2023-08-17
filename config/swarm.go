@@ -151,10 +151,8 @@ type ResourceMgr struct {
 	Allowlist []string `json:",omitempty"`
 }
 
-const (
-	ResourceMgrSystemScope         = "system"
-	ResourceMgrTransientScope      = "transient"
-	ResourceMgrServiceScopePrefix  = "svc:"
-	ResourceMgrProtocolScopePrefix = "proto:"
-	ResourceMgrPeerScopePrefix     = "peer:"
-)
+const ResourceMgrSystemScope = "system"
+const ResourceMgrTransientScope = "transient"
+const ResourceMgrServiceScopePrefix = "svc:"
+const ResourceMgrProtocolScopePrefix = "proto:"
+const ResourceMgrPeerScopePrefix = "peer:"

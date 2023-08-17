@@ -35,15 +35,13 @@ type Object struct {
 
 var ErrDataEncoding = errors.New("unknown data field encoding")
 
-const (
-	headersOptionName      = "headers"
-	encodingOptionName     = "data-encoding"
-	inputencOptionName     = "inputenc"
-	datafieldencOptionName = "datafieldenc"
-	pinOptionName          = "pin"
-	quietOptionName        = "quiet"
-	humanOptionName        = "human"
-)
+const headersOptionName = "headers"
+const encodingOptionName = "data-encoding"
+const inputencOptionName = "inputenc"
+const datafieldencOptionName = "datafieldenc"
+const pinOptionName = "pin"
+const quietOptionName = "quiet"
+const humanOptionName = "human"
 
 var ObjectCmd = &cmds.Command{
 	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/7936

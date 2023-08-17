@@ -111,19 +111,15 @@ func (p *PinStatus) Clone() PinStatus {
 	}
 }
 
-const (
-	matchExact    = "exact"
-	matchIExact   = "iexact"
-	matchPartial  = "partial"
-	matchIPartial = "ipartial"
+const matchExact = "exact"
+const matchIExact = "iexact"
+const matchPartial = "partial"
+const matchIPartial = "ipartial"
 
-	statusQueued  = "queued"
-	statusPinning = "pinning"
-	statusPinned  = "pinned"
-	statusFailed  = "failed"
+const statusQueued = "queued"
+const statusPinned = "pinned"
 
-	timeLayout = "2006-01-02T15:04:05.999Z"
-)
+const timeLayout = "2006-01-02T15:04:05.999Z"
 
 func errResp(w http.ResponseWriter, reason, details string, statusCode int) {
 	type errorObj struct {

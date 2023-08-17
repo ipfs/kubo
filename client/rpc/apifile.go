@@ -265,7 +265,5 @@ func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64) (file
 	return d, nil
 }
 
-var (
-	_ files.File      = &apiFile{}
-	_ files.Directory = &apiDir{}
-)
+var _ files.File = &apiFile{}
+var _ files.Directory = &apiDir{}

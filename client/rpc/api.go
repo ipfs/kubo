@@ -21,12 +21,10 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 )
 
-const (
-	DefaultPathName = ".ipfs"
-	DefaultPathRoot = "~/" + DefaultPathName
-	DefaultApiFile  = "api"
-	EnvDir          = "IPFS_PATH"
-)
+const DefaultPathName = ".ipfs"
+const DefaultPathRoot = "~/" + DefaultPathName
+const DefaultApiFile = "api"
+const EnvDir = "IPFS_PATH"
 
 // ErrApiNotFound if we fail to find a running daemon.
 var ErrApiNotFound = errors.New("ipfs api address could not be found")

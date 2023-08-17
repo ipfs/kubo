@@ -15,11 +15,9 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
-const (
-	progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
-	offsetOptionName   = "offset"
-	lengthOptionName   = "length"
-)
+const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
+const offsetOptionName = "offset"
+const lengthOptionName = "length"
 
 var CatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

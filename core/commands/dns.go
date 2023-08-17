@@ -12,9 +12,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
-const (
-	dnsRecursiveOptionName = "recursive"
-)
+const dnsRecursiveOptionName = "recursive"
 
 var DNSCmd = &cmds.Command{
 	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/8607

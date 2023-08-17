@@ -30,25 +30,23 @@ type AddEvent struct {
 	Size  string `json:",omitempty"`
 }
 
-const (
-	quietOptionName       = "quiet"
-	quieterOptionName     = "quieter"
-	silentOptionName      = "silent"
-	progressOptionName    = "progress"
-	trickleOptionName     = "trickle"
-	wrapOptionName        = "wrap-with-directory"
-	onlyHashOptionName    = "only-hash"
-	chunkerOptionName     = "chunker"
-	pinOptionName         = "pin"
-	rawLeavesOptionName   = "raw-leaves"
-	noCopyOptionName      = "nocopy"
-	fstoreCacheOptionName = "fscache"
-	cidVersionOptionName  = "cid-version"
-	hashOptionName        = "hash"
-	inlineOptionName      = "inline"
-	inlineLimitOptionName = "inline-limit"
-	toFilesOptionName     = "to-files"
-)
+const quietOptionName = "quiet"
+const quieterOptionName = "quieter"
+const silentOptionName = "silent"
+const progressOptionName = "progress"
+const trickleOptionName = "trickle"
+const wrapOptionName = "wrap-with-directory"
+const onlyHashOptionName = "only-hash"
+const chunkerOptionName = "chunker"
+const pinOptionName = "pin"
+const rawLeavesOptionName = "raw-leaves"
+const noCopyOptionName = "nocopy"
+const fstoreCacheOptionName = "fscache"
+const cidVersionOptionName = "cid-version"
+const hashOptionName = "hash"
+const inlineOptionName = "inline"
+const inlineLimitOptionName = "inline-limit"
+const toFilesOptionName = "to-files"
 
 const adderOutChanSize = 8
 

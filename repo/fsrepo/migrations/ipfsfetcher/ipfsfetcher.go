@@ -24,12 +24,10 @@ import (
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
-const (
-	// Default maximum download size.
-	defaultFetchLimit = 1024 * 1024 * 512
+// Default maximum download size.
+const defaultFetchLimit = 1024 * 1024 * 512
 
-	tempNodeTCPAddr = "/ip4/127.0.0.1/tcp/0"
-)
+const tempNodeTCPAddr = "/ip4/127.0.0.1/tcp/0"
 
 type IpfsFetcher struct {
 	distPath       string

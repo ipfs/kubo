@@ -6,11 +6,9 @@ import (
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 )
 
-const (
-	IdentityTag     = "Identity"
-	PrivKeyTag      = "PrivKey"
-	PrivKeySelector = IdentityTag + "." + PrivKeyTag
-)
+const IdentityTag = "Identity"
+const PrivKeyTag = "PrivKey"
+const PrivKeySelector = IdentityTag + "." + PrivKeyTag
 
 // Identity tracks the configuration of the local node's identity.
 type Identity struct {

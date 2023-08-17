@@ -12,9 +12,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
-const (
-	verboseOptionName = "verbose"
-)
+const verboseOptionName = "verbose"
 
 var ActiveReqsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

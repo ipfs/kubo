@@ -48,11 +48,9 @@ a migration in reverse.
 
 See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md for details.`
 
-var (
-	ErrNoVersion     = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
-	ErrOldRepo       = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
-	ErrNeedMigration = errors.New("ipfs repo needs migration, please run migration tool.\n" + migrationInstructions)
-)
+var ErrNoVersion = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
+var ErrOldRepo = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
+var ErrNeedMigration = errors.New("ipfs repo needs migration, please run migration tool.\n" + migrationInstructions)
 
 type NoRepoError struct {
 	Path string
@@ -64,34 +62,29 @@ func (err NoRepoError) Error() string {
 	return fmt.Sprintf("no IPFS repo found in %s.\nplease run: 'ipfs init'", err.Path)
 }
 
-const (
-	apiFile      = "api"
-	gatewayFile  = "gateway"
-	swarmKeyFile = "swarm.key"
-)
+const apiFile = "api"
+const gatewayFile = "gateway"
+const swarmKeyFile = "swarm.key"
 
 const specFn = "datastore_spec"
 
-var (
+// packageLock must be held to while performing any operation that modifies an
+// FSRepo's state field. This includes Init, Open, Close, and Remove.
+var packageLock sync.Mutex
 
-	// packageLock must be held to while performing any operation that modifies an
-	// FSRepo's state field. This includes Init, Open, Close, and Remove.
-	packageLock sync.Mutex
-
-	// onlyOne keeps track of open FSRepo instances.
-	//
-	// TODO: once command Context / Repo integration is cleaned up,
-	// this can be removed. Right now, this makes ConfigCmd.Run
-	// function try to open the repo twice:
-	//
-	//     $ ipfs daemon &
-	//     $ ipfs config foo
-	//
-	// The reason for the above is that in standalone mode without the
-	// daemon, `ipfs config` tries to save work by not building the
-	// full IpfsNode, but accessing the Repo directly.
-	onlyOne repo.OnlyOne
-)
+// onlyOne keeps track of open FSRepo instances.
+//
+// TODO: once command Context / Repo integration is cleaned up,
+// this can be removed. Right now, this makes ConfigCmd.Run
+// function try to open the repo twice:
+//
+//	$ ipfs daemon &
+//	$ ipfs config foo
+//
+// The reason for the above is that in standalone mode without the
+// daemon, `ipfs config` tries to save work by not building the
+// full IpfsNode, but accessing the Repo directly.
+var onlyOne repo.OnlyOne
 
 // FSRepo represents an IPFS FileSystem Repo. It is safe for use by multiple
 // callers.
@@ -746,10 +739,8 @@ func (r *FSRepo) SwarmKey() ([]byte, error) {
 	return io.ReadAll(f)
 }
 
-var (
-	_ io.Closer = &FSRepo{}
-	_ repo.Repo = &FSRepo{}
-)
+var _ io.Closer = &FSRepo{}
+var _ repo.Repo = &FSRepo{}
 
 // IsInitialized returns true if the repo is initialized at provided |path|.
 func IsInitialized(path string) bool {

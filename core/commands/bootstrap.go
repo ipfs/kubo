@@ -41,9 +41,7 @@ Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 	},
 }
 
-const (
-	defaultOptionName = "default"
-)
+const defaultOptionName = "default"
 
 var bootstrapAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -148,9 +146,7 @@ in the bootstrap list).`,
 	},
 }
 
-const (
-	bootstrapAllOptionName = "all"
-)
+const bootstrapAllOptionName = "all"
 
 var bootstrapRemoveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

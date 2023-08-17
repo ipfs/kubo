@@ -17,22 +17,18 @@ import (
 	version "github.com/ipfs/kubo"
 )
 
-const (
-	CollectorGoroutinesStack = "goroutines-stack"
-	CollectorGoroutinesPprof = "goroutines-pprof"
-	CollectorVersion         = "version"
-	CollectorHeap            = "heap"
-	CollectorAllocs          = "allocs"
-	CollectorBin             = "bin"
-	CollectorCPU             = "cpu"
-	CollectorMutex           = "mutex"
-	CollectorBlock           = "block"
-)
+const CollectorGoroutinesStack = "goroutines-stack"
+const CollectorGoroutinesPprof = "goroutines-pprof"
+const CollectorVersion = "version"
+const CollectorHeap = "heap"
+const CollectorAllocs = "allocs"
+const CollectorBin = "bin"
+const CollectorCPU = "cpu"
+const CollectorMutex = "mutex"
+const CollectorBlock = "block"
 
-var (
-	logger = log.Logger("profile")
-	goos   = runtime.GOOS
-)
+var logger = log.Logger("profile")
+var goos = runtime.GOOS
 
 type collector struct {
 	outputFile   string

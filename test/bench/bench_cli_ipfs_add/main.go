@@ -15,10 +15,8 @@ import (
 	random "github.com/jbenet/go-random"
 )
 
-var (
-	debug  = flag.Bool("debug", false, "direct ipfs output to console")
-	online = flag.Bool("online", false, "run the benchmarks with a running daemon")
-)
+var debug = flag.Bool("debug", false, "direct ipfs output to console")
+var online = flag.Bool("online", false, "run the benchmarks with a running daemon")
 
 func main() {
 	flag.Parse()
