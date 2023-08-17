@@ -85,7 +85,6 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 					// How long per block that lasts us.
 					expectedProvideSpeed := reprovideInterval / time.Duration(count)
 					if avgProvideSpeed > expectedProvideSpeed {
-						// FIXME(@Jorropo): add link to the accelerated DHT client docs once this isn't experimental anymore.
 						logger.Errorf(`
 🔔🔔🔔 YOU ARE FALLING BEHIND DHT REPROVIDES! 🔔🔔🔔
 
