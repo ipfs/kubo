@@ -33,7 +33,7 @@ const (
 	profileOptionName   = "profile"
 )
 
-//nolint
+// nolint
 var errRepoExists = errors.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys
 `)
