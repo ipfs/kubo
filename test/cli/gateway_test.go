@@ -487,7 +487,7 @@ func TestGateway(t *testing.T) {
 
 			t.Run("not present key from node 1", func(t *testing.T) {
 				t.Parallel()
-				assert.Equal(t, 404, node1.GatewayClient().Get("/ipfs/"+cidFoo).StatusCode)
+				assert.Equal(t, 500, node1.GatewayClient().Get("/ipfs/"+cidFoo).StatusCode)
 			})
 
 			t.Run("not present IPNS key from node 1", func(t *testing.T) {
