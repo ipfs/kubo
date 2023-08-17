@@ -13,9 +13,6 @@ import (
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	// gipfree "github.com/ipld/go-ipld-prime/impl/free"
-	// gipselector "github.com/ipld/go-ipld-prime/traversal/selector"
-	// gipselectorbuilder "github.com/ipld/go-ipld-prime/traversal/selector/builder"
 )
 
 const (

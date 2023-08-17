@@ -184,7 +184,7 @@ func osWithVariant() (string, error) {
 //     "go-ipfs_v0.8.0-rc2_linux-amd64.tar.gz"
 //
 // This would form the path:
-// go-ipfs/v0.8.0/go-ipfs_v0.8.0_linux-amd64.tar.gz.
+// go-ipfs/v0.8.0/go-ipfs_v0.8.0_linux-amd64.tar.gz
 func makeArchivePath(dist, name, ver, atype string) (string, string) {
 	arcName := fmt.Sprintf("%s_%s_%s-%s.%s", name, ver, runtime.GOOS, runtime.GOARCH, atype)
 	return fmt.Sprintf("%s/%s/%s", dist, ver, arcName), arcName
