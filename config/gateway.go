@@ -37,7 +37,6 @@ type GatewaySpec struct {
 
 // Gateway contains options for the HTTP gateway server.
 type Gateway struct {
-
 	// HTTPHeaders configures the headers that should be returned by this
 	// gateway.
 	HTTPHeaders map[string][]string // HTTP headers to return with the gateway

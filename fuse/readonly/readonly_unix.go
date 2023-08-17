@@ -49,7 +49,7 @@ type Root struct {
 
 // Attr returns file attributes.
 func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Mode = os.ModeDir | 0111 // -rw+x
+	a.Mode = os.ModeDir | 0o111 // -rw+x
 	return nil
 }
 
@@ -139,7 +139,7 @@ func (s *Node) loadData() error {
 func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Node attr")
 	if rawnd, ok := s.Nd.(*mdag.RawNode); ok {
-		a.Mode = 0444
+		a.Mode = 0o444
 		a.Size = uint64(len(rawnd.RawData()))
 		a.Blocks = 1
 		return nil
@@ -152,18 +152,18 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	}
 	switch s.cached.Type() {
 	case ft.TDirectory, ft.THAMTShard:
-		a.Mode = os.ModeDir | 0555
+		a.Mode = os.ModeDir | 0o555
 	case ft.TFile:
 		size := s.cached.FileSize()
-		a.Mode = 0444
+		a.Mode = 0o444
 		a.Size = uint64(size)
 		a.Blocks = uint64(len(s.Nd.Links()))
 	case ft.TRaw:
-		a.Mode = 0444
+		a.Mode = 0o444
 		a.Size = uint64(len(s.cached.Data()))
 		a.Blocks = uint64(len(s.Nd.Links()))
 	case ft.TSymlink:
-		a.Mode = 0777 | os.ModeSymlink
+		a.Mode = 0o777 | os.ModeSymlink
 		a.Size = uint64(len(s.cached.Data()))
 	default:
 		return fmt.Errorf("invalid data type - %s", s.cached.Type())
@@ -195,7 +195,7 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	return &Node{Ipfs: s.Ipfs, Nd: nd}, nil
 }
 
-// ReadDirAll reads the link structure as directory entries
+// ReadDirAll reads the link structure as directory entries.
 func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Node ReadDir")
 	dir, err := uio.NewDirectoryFromNode(s.Ipfs.DAG, s.Nd)
@@ -284,7 +284,7 @@ func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 	return nil // may be non-nil / not succeeded
 }
 
-// to check that out Node implements all the interfaces we want
+// to check that out Node implements all the interfaces we want.
 type roRoot interface {
 	fs.Node
 	fs.HandleReadDirAller

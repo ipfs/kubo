@@ -107,7 +107,6 @@ func TestLegacyDHT(t *testing.T) {
 			sort.IntSlice(counts).Sort()
 			assert.Equal(t, []int{1, 4}, counts)
 		})
-
 	})
 
 	t.Run("dht commands fail when offline", func(t *testing.T) {

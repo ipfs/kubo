@@ -208,7 +208,6 @@ complete -c ipfs --keep-order --no-files
 
 {{ template "command" . }}
 `))
-
 }
 
 // writeBashCompletions generates a bash completion script for the given command tree.

@@ -68,7 +68,7 @@ func parseErrNotFound(msg string) (error, bool) {
 // Assume CIDs break on:
 // - Whitespaces: " \t\n\r\v\f"
 // - Semicolon: ";" this is to parse ipld.ErrNotFound wrapped in multierr
-// - Double Quotes: "\"" this is for parsing %q and %#v formating
+// - Double Quotes: "\"" this is for parsing %q and %#v formating.
 const cidBreakSet = " \t\n\r\v\f;\""
 
 func parseIPLDErrNotFound(msg string) (error, bool) {
@@ -139,7 +139,7 @@ func parseIPLDErrNotFound(msg string) (error, bool) {
 // This is a simple error type that just return msg as Error().
 // But that also match ipld.ErrNotFound when called with Is(err).
 // That is needed to keep compatiblity with code that use string.Contains(err.Error(), "blockstore: block not found")
-// and code using ipld.ErrNotFound
+// and code using ipld.ErrNotFound.
 type blockstoreNotFoundMatchingIPLDErrNotFound struct {
 	msg string
 }

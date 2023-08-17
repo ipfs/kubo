@@ -37,6 +37,7 @@ func (r *fakeHTTPContentRouter) ProvideBitswap(ctx context.Context, req *server.
 	r.provideCalls++
 	return 0, nil
 }
+
 func (r *fakeHTTPContentRouter) Provide(ctx context.Context, req *server.WriteProvideRequest) (types.ProviderResponse, error) {
 	r.m.Lock()
 	defer r.m.Unlock()

@@ -149,7 +149,7 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.K
 // Attr returns file attributes.
 func (r *Root) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Root Attr")
-	a.Mode = os.ModeDir | 0111 // -rw+x
+	a.Mode = os.ModeDir | 0o111 // -rw+x
 	return nil
 }
 
@@ -212,7 +212,7 @@ func (r *Root) Forget() {
 }
 
 // ReadDirAll reads a particular directory. Will show locally available keys
-// as well as a symlink to the peerID key
+// as well as a symlink to the peerID key.
 func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Root ReadDirAll")
 
@@ -231,7 +231,7 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	return listing, nil
 }
 
-// Directory is wrapper over an mfs directory to satisfy the fuse fs interface
+// Directory is wrapper over an mfs directory to satisfy the fuse fs interface.
 type Directory struct {
 	dir *mfs.Directory
 }
@@ -240,7 +240,7 @@ type FileNode struct {
 	fi *mfs.File
 }
 
-// File is wrapper over an mfs file to satisfy the fuse fs interface
+// File is wrapper over an mfs file to satisfy the fuse fs interface.
 type File struct {
 	fi mfs.FileDescriptor
 }
@@ -248,7 +248,7 @@ type File struct {
 // Attr returns the attributes of a given node.
 func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Directory Attr")
-	a.Mode = os.ModeDir | 0555
+	a.Mode = os.ModeDir | 0o555
 	a.Uid = uint32(os.Getuid())
 	a.Gid = uint32(os.Getgid())
 	return nil
@@ -262,7 +262,7 @@ func (fi *FileNode) Attr(ctx context.Context, a *fuse.Attr) error {
 		// In this case, the dag node in question may not be unixfs
 		return fmt.Errorf("fuse/ipns: failed to get file.Size(): %s", err)
 	}
-	a.Mode = os.FileMode(0666)
+	a.Mode = os.FileMode(0o666)
 	a.Size = uint64(size)
 	a.Uid = uint32(os.Getuid())
 	a.Gid = uint32(os.Getgid())
@@ -289,7 +289,7 @@ func (d *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 }
 
-// ReadDirAll reads the link structure as directory entries
+// ReadDirAll reads the link structure as directory entries.
 func (d *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	listing, err := d.dir.List(ctx)
 	if err != nil {
@@ -491,7 +491,7 @@ func (d *Directory) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	return nil
 }
 
-// Rename implements NodeRenamer
+// Rename implements NodeRenamer.
 func (d *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
 	cur, err := d.dir.Child(req.OldName)
 	if err != nil {
@@ -531,7 +531,7 @@ func min(a, b int) int {
 	return b
 }
 
-// to check that out Node implements all the interfaces we want
+// to check that out Node implements all the interfaces we want.
 type ipnsRoot interface {
 	fs.Node
 	fs.HandleReadDirAller
@@ -565,5 +565,7 @@ type ipnsFileNode interface {
 	fs.NodeOpener
 }
 
-var _ ipnsFileNode = (*FileNode)(nil)
-var _ ipnsFile = (*File)(nil)
+var (
+	_ ipnsFileNode = (*FileNode)(nil)
+	_ ipnsFile     = (*File)(nil)
+)

@@ -12,7 +12,7 @@ import (
 )
 
 // note: to test sorting of the mountpoints in the disk spec they are
-// specified out of order in the test config
+// specified out of order in the test config.
 var defaultConfig = []byte(`{
     "StorageMax": "10GB",
     "StorageGCWatermark": 90,

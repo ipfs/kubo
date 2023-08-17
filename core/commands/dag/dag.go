@@ -13,9 +13,9 @@ import (
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	//gipfree "github.com/ipld/go-ipld-prime/impl/free"
-	//gipselector "github.com/ipld/go-ipld-prime/traversal/selector"
-	//gipselectorbuilder "github.com/ipld/go-ipld-prime/traversal/selector/builder"
+	// gipfree "github.com/ipld/go-ipld-prime/impl/free"
+	// gipselector "github.com/ipld/go-ipld-prime/traversal/selector"
+	// gipselectorbuilder "github.com/ipld/go-ipld-prime/traversal/selector/builder"
 )
 
 const (
@@ -209,7 +209,6 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 	Run:  dagImport,
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *CarImportOutput) error {
-
 			silent, _ := req.Options[silentOptionName].(bool)
 			if silent {
 				return nil
@@ -343,9 +342,11 @@ func (s *DagStatSummary) String() string {
 func (s *DagStatSummary) incrementTotalSize(size uint64) {
 	s.TotalSize += size
 }
+
 func (s *DagStatSummary) incrementRedundantSize(size uint64) {
 	s.redundantSize += size
 }
+
 func (s *DagStatSummary) appendStats(stats *DagStat) {
 	s.DagStatsArray = append(s.DagStatsArray, stats)
 }

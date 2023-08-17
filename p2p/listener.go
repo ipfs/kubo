@@ -10,7 +10,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// Listener listens for connections and proxies them to a target
+// Listener listens for connections and proxies them to a target.
 type Listener interface {
 	Protocol() protocol.ID
 	ListenAddress() ma.Multiaddr
@@ -23,7 +23,7 @@ type Listener interface {
 }
 
 // Listeners manages a group of Listener implementations,
-// checking for conflicts and optionally dispatching connections
+// checking for conflicts and optionally dispatching connections.
 type Listeners struct {
 	sync.RWMutex
 
@@ -60,7 +60,7 @@ func newListenersP2P(host p2phost.Host) *Listeners {
 	return reg
 }
 
-// Register registers listenerInfo into this registry and starts it
+// Register registers listenerInfo into this registry and starts it.
 func (r *Listeners) Register(l Listener) error {
 	r.Lock()
 	defer r.Unlock()

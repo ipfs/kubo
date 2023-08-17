@@ -79,7 +79,7 @@ func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 	return node, mnt
 }
 
-// Test writing an object and reading it back through fuse
+// Test writing an object and reading it back through fuse.
 func TestIpfsBasicRead(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -122,7 +122,7 @@ func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.ProtoNode) 
 	return out
 }
 
-// Perform a large number of concurrent reads to stress the system
+// Perform a large number of concurrent reads to stress the system.
 func TestIpfsStressRead(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -194,8 +194,8 @@ func TestIpfsStressRead(t *testing.T) {
 					errs <- err
 				}
 
-				//nd.Context() is never closed which leads to
-				//hitting 8128 goroutine limit in go test -race mode
+				// nd.Context() is never closed which leads to
+				// hitting 8128 goroutine limit in go test -race mode
 				ctx, cancelFunc := context.WithCancel(context.Background())
 
 				read, err := api.Unixfs().Get(ctx, item)
@@ -229,7 +229,7 @@ func TestIpfsStressRead(t *testing.T) {
 	}
 }
 
-// Test writing a file and reading it back
+// Test writing a file and reading it back.
 func TestIpfsBasicDirRead(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -280,7 +280,7 @@ func TestIpfsBasicDirRead(t *testing.T) {
 	}
 }
 
-// Test to make sure the filesystem reports file sizes correctly
+// Test to make sure the filesystem reports file sizes correctly.
 func TestFileSizeReporting(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()

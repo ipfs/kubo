@@ -19,7 +19,7 @@ import (
 
 var log = logging.Logger("command")
 
-// Context represents request context
+// Context represents request context.
 type Context struct {
 	ConfigRoot string
 	ReqLog     *ReqLog
@@ -54,7 +54,7 @@ func (c *Context) GetNode() (*core.IpfsNode, error) {
 }
 
 // GetAPI returns CoreAPI instance backed by ipfs node.
-// It may construct the node with the provided function
+// It may construct the node with the provided function.
 func (c *Context) GetAPI() (coreiface.CoreAPI, error) {
 	if c.api == nil {
 		n, err := c.GetNode()

@@ -32,7 +32,7 @@ func TestTransports(t *testing.T) {
 	}
 	checkRandomDir := func(nodes harness.Nodes) {
 		randDir := filepath.Join(nodes[0].Dir, "foobar")
-		require.NoError(t, os.Mkdir(randDir, 0777))
+		require.NoError(t, os.Mkdir(randDir, 0o777))
 		rf := testutils.NewRandFiles()
 		rf.FanoutDirs = 3
 		rf.FanoutFiles = 6
@@ -148,5 +148,4 @@ func TestTransports(t *testing.T) {
 		nodes.StartDaemons().Connect()
 		runTests(nodes)
 	})
-
 }

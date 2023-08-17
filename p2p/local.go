@@ -12,7 +12,7 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 )
 
-// localListener manet streams and proxies them to libp2p services
+// localListener manet streams and proxies them to libp2p services.
 type localListener struct {
 	ctx context.Context
 
@@ -25,7 +25,7 @@ type localListener struct {
 	listener manet.Listener
 }
 
-// ForwardLocal creates new P2P stream to a remote listener
+// ForwardLocal creates new P2P stream to a remote listener.
 func (p2p *P2P) ForwardLocal(ctx context.Context, peer peer.ID, proto protocol.ID, bindAddr ma.Multiaddr) (Listener, error) {
 	listener := &localListener{
 		ctx:   ctx,

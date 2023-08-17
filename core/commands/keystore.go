@@ -118,7 +118,6 @@ var keyGenCmd = &cmds.Command{
 		}
 
 		key, err := api.Key().Generate(req.Context, name, opts...)
-
 		if err != nil {
 			return err
 		}
@@ -211,7 +210,6 @@ elsewhere. For example, using openssl to get a PEM with public key:
 			stdKey, err := crypto.PrivKeyToStdKey(sk)
 			if err != nil {
 				return fmt.Errorf("converting libp2p private key to std Go key: %w", err)
-
 			}
 			// For some reason the ed25519.PrivateKey does not use pointer
 			// receivers, so we need to convert it for MarshalPKCS8PrivateKey.
@@ -375,7 +373,6 @@ The PEM format allows for key generation outside of the IPFS node:
 			sk, _, err = crypto.KeyPairFromStdKey(stdKey)
 			if err != nil {
 				return fmt.Errorf("converting std Go key to libp2p key: %w", err)
-
 			}
 		case keyFormatLibp2pCleartextOption:
 			sk, err = crypto.UnmarshalPrivateKey(data)

@@ -118,7 +118,8 @@ filled in with autocomputed defaults.`)
 		lc.Append(fx.Hook{
 			OnStop: func(_ context.Context) error {
 				return manager.Close()
-			}})
+			},
+		})
 
 		return manager, opts, nil
 	}

@@ -16,7 +16,7 @@ var log = logging.Logger("mount")
 
 var MountTimeout = time.Second * 5
 
-// Mount represents a filesystem mount
+// Mount represents a filesystem mount.
 type Mount interface {
 	// MountPoint is the path at which this mount is mounted
 	MountPoint() string
@@ -65,7 +65,7 @@ func ForceUnmount(m Mount) error {
 }
 
 // UnmountCmd creates an exec.Cmd that is GOOS-specific
-// for unmount a FUSE mount
+// for unmount a FUSE mount.
 func UnmountCmd(point string) (*exec.Cmd, error) {
 	switch runtime.GOOS {
 	case "darwin":

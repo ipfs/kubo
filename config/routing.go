@@ -6,7 +6,7 @@ import (
 	"runtime"
 )
 
-// Routing defines configuration options for libp2p routing
+// Routing defines configuration options for libp2p routing.
 type Routing struct {
 	// Type sets default daemon routing mode.
 	//
@@ -23,7 +23,6 @@ type Routing struct {
 }
 
 type Router struct {
-
 	// Router type ID. See RouterType for more info.
 	Type RouterType
 
@@ -32,11 +31,12 @@ type Router struct {
 	Parameters interface{}
 }
 
-type Routers map[string]RouterParser
-type Methods map[MethodName]Method
+type (
+	Routers map[string]RouterParser
+	Methods map[MethodName]Method
+)
 
 func (m Methods) Check() error {
-
 	// Check supported methods
 	for _, mn := range MethodNameList {
 		_, ok := m[mn]

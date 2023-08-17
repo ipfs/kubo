@@ -196,9 +196,7 @@ func TestGateway(t *testing.T) {
 				resp.Body,
 				fmt.Sprintf(`<link rel="canonical" href="/ipns/%s?query=to-remember" />`, peerID),
 			)
-
 		})
-
 	})
 
 	t.Run("GET invalid IPFS path errors", func(t *testing.T) {
@@ -583,7 +581,6 @@ func TestGateway(t *testing.T) {
 
 				assert.Equal(t, test.deserializedGatewayStaticCode, client.Get(deserializedPath, setHost).StatusCode)
 				assert.Equal(t, test.deserializedGatewayStaticCode, client.Get(deserializedPath, withHostAndAccept("application/json")).StatusCode)
-
 			}
 		}
 
