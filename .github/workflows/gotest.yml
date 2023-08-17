@@ -35,6 +35,8 @@ jobs:
           go-version: 1.19.x
       - name: Check out Kubo
         uses: actions/checkout@v3
+      - name: Install missing tools
+        run: sudo apt update && sudo apt install -y zsh
       - name: Restore Go cache
         uses: protocol/cache-go-action@v1
         with:

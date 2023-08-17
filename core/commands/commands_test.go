@@ -25,6 +25,7 @@ func TestROCommands(t *testing.T) {
 		"/commands/completion",
 		"/commands/completion/bash",
 		"/commands/completion/fish",
+		"/commands/completion/zsh",
 		"/dag",
 		"/dag/get",
 		"/dag/resolve",

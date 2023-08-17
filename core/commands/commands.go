@@ -175,10 +175,13 @@ To install the completions permanently, they can be moved to
 					ShortDescription: "Generates command completions for the zsh shell.",
 					LongDescription: `
 Generates command completions for the zsh shell.
+
 The simplest way to see it working is write the completions
 to a file and then source it:
+
   > ipfs commands completion zsh > ipfs-completion.zsh
   > source ./ipfs-completion.zsh
+
 To install the completions permanently, they can be moved to
 /etc/zsh/completions or sourced from your ~/.zshrc file.
 `,
