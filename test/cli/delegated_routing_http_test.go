@@ -155,5 +155,4 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 		resp := node.APIClient().Get("/debug/metrics/prometheus")
 		assert.Contains(t, resp.Body, "routing_http_client_length_count")
 	})
-
 }

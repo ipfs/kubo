@@ -194,7 +194,7 @@ func checkWritable(dir string) error {
 
 	if os.IsNotExist(err) {
 		// dir doesn't exist, check that we can create it
-		return os.Mkdir(dir, 0775)
+		return os.Mkdir(dir, 0o775)
 	}
 
 	if os.IsPermission(err) {

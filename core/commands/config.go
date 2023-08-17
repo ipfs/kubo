@@ -581,5 +581,4 @@ func getRemotePinningServices(r repo.Repo) (map[string]config.RemotePinningServi
 		}
 	}
 	return oldServices, nil
-
 }

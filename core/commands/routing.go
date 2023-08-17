@@ -21,9 +21,7 @@ import (
 	routing "github.com/libp2p/go-libp2p/core/routing"
 )
 
-var (
-	errAllowOffline = errors.New("can't put while offline: pass `--allow-offline` to override")
-)
+var errAllowOffline = errors.New("can't put while offline: pass `--allow-offline` to override")
 
 const (
 	dhtVerboseOptionName   = "verbose"
@@ -75,7 +73,6 @@ var findProvidersRoutingCmd = &cmds.Command{
 		}
 
 		c, err := cid.Parse(req.Arguments[0])
-
 		if err != nil {
 			return err
 		}
@@ -495,8 +492,10 @@ identified by QmFoo.
 	Type: routing.QueryEvent{},
 }
 
-type printFunc func(obj *routing.QueryEvent, out io.Writer, verbose bool) error
-type pfuncMap map[routing.QueryEventType]printFunc
+type (
+	printFunc func(obj *routing.QueryEvent, out io.Writer, verbose bool) error
+	pfuncMap  map[routing.QueryEventType]printFunc
+)
 
 func printEvent(obj *routing.QueryEvent, out io.Writer, verbose bool, override pfuncMap) error {
 	if verbose {

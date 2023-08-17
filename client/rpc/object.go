@@ -87,7 +87,7 @@ func (api *ObjectAPI) Data(ctx context.Context, p path.Path) (io.Reader, error) 
 		return nil, resp.Error
 	}
 
-	//TODO: make Data return ReadCloser to avoid copying
+	// TODO: make Data return ReadCloser to avoid copying
 	defer resp.Close()
 	b := new(bytes.Buffer)
 	if _, err := io.Copy(b, resp.Output); err != nil {

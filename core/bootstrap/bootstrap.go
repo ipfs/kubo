@@ -85,7 +85,6 @@ func BootstrapConfigWithPeers(pis []peer.AddrInfo) BootstrapConfig {
 // connections to well-known bootstrap peers. It also kicks off subsystem
 // bootstrapping (i.e. routing).
 func Bootstrap(id peer.ID, host host.Host, rt routing.Routing, cfg BootstrapConfig) (io.Closer, error) {
-
 	// make a signal to wait for one bootstrap round to complete.
 	doneWithRound := make(chan struct{})
 
@@ -219,7 +218,6 @@ func saveConnectedPeersAsTemporaryBootstrap(ctx context.Context, host host.Host,
 // Peers can be original bootstrap or temporary ones (drawn from a list of
 // persisted previously connected peers).
 func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) error {
-
 	ctx, cancel := context.WithTimeout(ctx, cfg.ConnectionTimeout)
 	defer cancel()
 	id := host.ID()

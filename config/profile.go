@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-// Transformer is a function which takes configuration and applies some filter to it
+// Transformer is a function which takes configuration and applies some filter to it.
 type Transformer func(c *Config) error
 
-// Profile contains the profile transformer the description of the profile
+// Profile contains the profile transformer the description of the profile.
 type Profile struct {
 	// Description briefly describes the functionality of the profile.
 	Description string
@@ -43,7 +43,7 @@ var defaultServerFilters = []string{
 	"/ip6/fe80::/ipcidr/10",
 }
 
-// Profiles is a map holding configuration transformers. Docs are in docs/config.md
+// Profiles is a map holding configuration transformers. Docs are in docs/config.md.
 var Profiles = map[string]Profile{
 	"server": {
 		Description: `Disables local host discovery, recommended when

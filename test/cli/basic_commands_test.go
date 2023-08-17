@@ -210,7 +210,6 @@ func TestCommandDocsWidth(t *testing.T) {
 			for _, line := range SplitLines(res) {
 				assert.LessOrEqualf(t, len(line), 80, "expected width %d < 80 for %q", len(line), cmd)
 			}
-
 		})
 	}
 }
@@ -226,7 +225,6 @@ func TestAllCommandsFailWhenPassedBadFlag(t *testing.T) {
 			assert.Equal(t, 1, res.Cmd.ProcessState.ExitCode())
 		})
 	}
-
 }
 
 func TestCommandsFlags(t *testing.T) {

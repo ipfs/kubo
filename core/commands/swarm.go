@@ -345,7 +345,8 @@ var swarmResourcesCmd = &cmds.Command{
 Get a summary of all resources accounted for by the libp2p Resource Manager.
 This includes the limits and the usage against those limits.
 This can output a human readable table and JSON encoding.
-`},
+`,
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {

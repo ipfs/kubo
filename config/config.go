@@ -41,17 +41,17 @@ type Config struct {
 }
 
 const (
-	// DefaultPathName is the default config dir name
+	// DefaultPathName is the default config dir name.
 	DefaultPathName = ".ipfs"
 	// DefaultPathRoot is the path to the default config dir location.
 	DefaultPathRoot = "~/" + DefaultPathName
-	// DefaultConfigFile is the filename of the configuration file
+	// DefaultConfigFile is the filename of the configuration file.
 	DefaultConfigFile = "config"
 	// EnvDir is the environment variable used to change the path root.
 	EnvDir = "IPFS_PATH"
 )
 
-// PathRoot returns the default configuration root directory
+// PathRoot returns the default configuration root directory.
 func PathRoot() (string, error) {
 	dir := os.Getenv(EnvDir)
 	var err error
@@ -95,7 +95,7 @@ func Filename(configroot, userConfigFile string) (string, error) {
 	return userConfigFile, nil
 }
 
-// HumanOutput gets a config value ready for printing
+// HumanOutput gets a config value ready for printing.
 func HumanOutput(value interface{}) ([]byte, error) {
 	s, ok := value.(string)
 	if ok {
@@ -104,7 +104,7 @@ func HumanOutput(value interface{}) ([]byte, error) {
 	return Marshal(value)
 }
 
-// Marshal configuration with JSON
+// Marshal configuration with JSON.
 func Marshal(value interface{}) ([]byte, error) {
 	// need to prettyprint, hence MarshalIndent, instead of Encoder
 	return json.MarshalIndent(value, "", "  ")

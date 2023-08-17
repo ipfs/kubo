@@ -15,9 +15,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-var (
-	ErrApiNotRunning = errors.New("api not running") //nolint
-)
+var ErrApiNotRunning = errors.New("api not running") //nolint
 
 // Repo represents all persistent data of a given ipfs node.
 type Repo interface {

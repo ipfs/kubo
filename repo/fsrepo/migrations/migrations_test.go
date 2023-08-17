@@ -191,7 +191,7 @@ func createFakeBin(from, to int, tmpDir string) {
 		panic(err)
 	}
 	emptyFile.Close()
-	err = os.Chmod(migPath, 0755)
+	err = os.Chmod(migPath, 0o755)
 	if err != nil {
 		panic(err)
 	}

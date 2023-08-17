@@ -39,11 +39,13 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// log is the command logger
-var log = logging.Logger("cmd/ipfs")
-var tracer trace.Tracer
+// log is the command logger.
+var (
+	log    = logging.Logger("cmd/ipfs")
+	tracer trace.Tracer
+)
 
-// declared as a var for testing purposes
+// declared as a var for testing purposes.
 var dnsResolver = madns.DefaultResolver
 
 const (
@@ -73,7 +75,7 @@ func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
 // - if user requests help, print it and exit.
 // - run the command invocation
 // - output the response
-// - if anything fails, print error, maybe with help
+// - if anything fails, print error, maybe with help.
 func main() {
 	os.Exit(mainRet())
 }

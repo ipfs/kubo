@@ -88,13 +88,12 @@ func TestInit(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode()
 		badDir := fp.Join(node.Dir, ".badipfs")
-		err := os.Mkdir(badDir, 0000)
+		err := os.Mkdir(badDir, 0o000)
 		require.NoError(t, err)
 
 		res := node.RunIPFS("init", "--repo-dir", badDir)
 		assert.NotEqual(t, 0, res.Cmd.ProcessState.ExitCode())
 		assert.Contains(t, res.Stderr.String(), "permission denied")
-
 	})
 
 	t.Run("init with ed25519", func(t *testing.T) {
@@ -160,5 +159,4 @@ func TestInit(t *testing.T) {
 		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
 		assert.Contains(t, res.Stderr.String(), "Error: ipfs daemon is running. please stop it to run this command")
 	})
-
 }

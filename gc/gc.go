@@ -191,7 +191,6 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 			err := dag.Walk(ctx, verifyGetLinks, wrapper.C, func(k cid.Cid) bool {
 				return set.Visit(toCidV1(k))
 			}, dag.Concurrent())
-
 			if err != nil {
 				err = verboseCidError(err)
 				return err
