@@ -1,4 +1,4 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.19-buster AS builder
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.19-bookworm AS builder
 
 ARG TARGETPLATFORM TARGETOS TARGETARCH
 
@@ -24,7 +24,7 @@ RUN cd $SRC_DIR \
 # Using Debian Buster because the version of busybox we're using is based on it
 # and we want to make sure the libraries we're using are compatible. That's also
 # why we're running this for the target platform.
-FROM debian:buster-slim AS utilities
+FROM debian:bookworm-slim AS utilities
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y \
@@ -44,7 +44,7 @@ RUN set -eux; \
 	rm -rf /var/lib/apt/lists/*
 
 # Now comes the actual target image, which aims to be as small as possible.
-FROM busybox:1.31.1-glibc
+FROM busybox:1.36.1-glibc
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
 ENV SRC_DIR /kubo
