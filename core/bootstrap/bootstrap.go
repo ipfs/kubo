@@ -309,7 +309,7 @@ func peersConnect(ctx context.Context, ph host.Host, availablePeers []peer.AddrI
 			log.Debugf("%s bootstrapping to %s", ph.ID(), p.ID)
 
 			if err := ph.Connect(ctx, p); err != nil {
-				if ctx.Err() != context.Canceled {
+				if !errors.Is(ctx.Err(), context.Canceled) {
 					log.Debugf("failed to bootstrap with %v: %s", p.ID, err)
 				}
 				return

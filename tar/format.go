@@ -49,7 +49,7 @@ func ImportTar(ctx context.Context, r io.Reader, ds ipld.DAGService) (*dag.Proto
 	for {
 		h, err := tr.Next()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, err
@@ -128,7 +128,7 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 	// no header remaining, check for recursive
 	if tr.childRead != nil {
 		n, err := tr.childRead.Read(b)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			tr.childRead = nil
 			return n, nil
 		}
@@ -138,7 +138,7 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 	// check for filedata to be read
 	if tr.fileRead != nil {
 		n, err := tr.fileRead.Read(b)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			nr := tr.fileRead.n
 			tr.pad = (blockSize - (nr % blockSize)) % blockSize
 			tr.fileRead.Close()
@@ -175,7 +175,7 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 	tr.hdrBuf = bytes.NewReader(hndpb.Data())
 
 	dataNd, err := hndpb.GetLinkedProtoNode(tr.ctx, tr.ds, "data")
-	if err != nil && err != dag.ErrLinkNotFound {
+	if err != nil && !errors.Is(err, dag.ErrLinkNotFound) {
 		return 0, err
 	}
 

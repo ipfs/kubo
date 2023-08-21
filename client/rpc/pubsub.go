@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 
 	iface "github.com/ipfs/boxo/coreiface"
@@ -175,7 +176,7 @@ func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 		for {
 			var msg pubsubMessage
 			if err := dec.Decode(&msg); err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					return
 				}
 				msg.err = err
