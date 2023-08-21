@@ -16,8 +16,10 @@ type KeyRenameSettings struct {
 	Force bool
 }
 
-type KeyGenerateOption func(*KeyGenerateSettings) error
-type KeyRenameOption func(*KeyRenameSettings) error
+type (
+	KeyGenerateOption func(*KeyGenerateSettings) error
+	KeyRenameOption   func(*KeyRenameSettings) error
+)
 
 func KeyGenerateOptions(opts ...KeyGenerateOption) (*KeyGenerateSettings, error) {
 	options := &KeyGenerateSettings{

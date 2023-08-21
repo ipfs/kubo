@@ -8,8 +8,10 @@ type DhtFindProvidersSettings struct {
 	NumProviders int
 }
 
-type DhtProvideOption func(*DhtProvideSettings) error
-type DhtFindProvidersOption func(*DhtFindProvidersSettings) error
+type (
+	DhtProvideOption       func(*DhtProvideSettings) error
+	DhtFindProvidersOption func(*DhtFindProvidersSettings) error
+)
 
 func DhtProvideOptions(opts ...DhtProvideOption) (*DhtProvideSettings, error) {
 	options := &DhtProvideSettings{

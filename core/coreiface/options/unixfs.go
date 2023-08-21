@@ -43,8 +43,10 @@ type UnixfsLsSettings struct {
 	UseCumulativeSize bool
 }
 
-type UnixfsAddOption func(*UnixfsAddSettings) error
-type UnixfsLsOption func(*UnixfsLsSettings) error
+type (
+	UnixfsAddOption func(*UnixfsAddSettings) error
+	UnixfsLsOption  func(*UnixfsLsSettings) error
+)
 
 func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, error) {
 	options := &UnixfsAddSettings{
