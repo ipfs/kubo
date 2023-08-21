@@ -293,7 +293,7 @@ func fetchMigrations(ctx context.Context, fetcher Fetcher, needed []string, dest
 	if len(fails) != 0 {
 		err = fmt.Errorf("failed to download migrations: %s", strings.Join(fails, " "))
 		if ctx.Err() != nil {
-			err = fmt.Errorf("%w, %w", ctx.Err(), err)
+			err = fmt.Errorf("%s, %w", ctx.Err(), err)
 		}
 		return nil, err
 	}
