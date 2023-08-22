@@ -24,8 +24,10 @@ type NameResolveSettings struct {
 	ResolveOpts []ropts.ResolveOpt
 }
 
-type NamePublishOption func(*NamePublishSettings) error
-type NameResolveOption func(*NameResolveSettings) error
+type (
+	NamePublishOption func(*NamePublishSettings) error
+	NameResolveOption func(*NameResolveSettings) error
+)
 
 func NamePublishOptions(opts ...NamePublishOption) (*NamePublishSettings, error) {
 	options := &NamePublishSettings{

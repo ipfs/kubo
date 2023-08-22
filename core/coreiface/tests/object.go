@@ -74,7 +74,7 @@ func (tp *TestSuite) TestObjectPut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"YmFy"}`), opt.Object.DataType("base64")) //bar
+	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"YmFy"}`), opt.Object.DataType("base64")) // bar
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -14,9 +14,11 @@ type ObjectAddLinkSettings struct {
 	Create bool
 }
 
-type ObjectNewOption func(*ObjectNewSettings) error
-type ObjectPutOption func(*ObjectPutSettings) error
-type ObjectAddLinkOption func(*ObjectAddLinkSettings) error
+type (
+	ObjectNewOption     func(*ObjectNewSettings) error
+	ObjectPutOption     func(*ObjectPutSettings) error
+	ObjectAddLinkOption func(*ObjectAddLinkSettings) error
+)
 
 func ObjectNewOptions(opts ...ObjectNewOption) (*ObjectNewSettings, error) {
 	options := &ObjectNewSettings{

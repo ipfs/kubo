@@ -164,4 +164,4 @@ func (tp *TestSuite) TestBasicPublishResolveTimeout(t *testing.T) {
 	require.NoError(t, err)
 }
 
-//TODO: When swarm api is created, add multinode tests
+// TODO: When swarm api is created, add multinode tests

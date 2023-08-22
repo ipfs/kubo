@@ -8,8 +8,10 @@ type PubSubSubscribeSettings struct {
 	Discover bool
 }
 
-type PubSubPeersOption func(*PubSubPeersSettings) error
-type PubSubSubscribeOption func(*PubSubSubscribeSettings) error
+type (
+	PubSubPeersOption     func(*PubSubPeersSettings) error
+	PubSubSubscribeOption func(*PubSubSubscribeSettings) error
+)
 
 func PubSubPeersOptions(opts ...PubSubPeersOption) (*PubSubPeersSettings, error) {
 	options := &PubSubPeersSettings{

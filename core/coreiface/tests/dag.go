@@ -31,15 +31,13 @@ func (tp *TestSuite) TestDag(t *testing.T) {
 	t.Run("TestBatch", tp.TestBatch)
 }
 
-var (
-	treeExpected = map[string]struct{}{
-		"a":   {},
-		"b":   {},
-		"c":   {},
-		"c/d": {},
-		"c/e": {},
-	}
-)
+var treeExpected = map[string]struct{}{
+	"a":   {},
+	"b":   {},
+	"c":   {},
+	"c/d": {},
+	"c/e": {},
+}
 
 func (tp *TestSuite) TestPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())

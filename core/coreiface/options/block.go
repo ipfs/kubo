@@ -17,8 +17,10 @@ type BlockRmSettings struct {
 	Force bool
 }
 
-type BlockPutOption func(*BlockPutSettings) error
-type BlockRmOption func(*BlockRmSettings) error
+type (
+	BlockPutOption func(*BlockPutSettings) error
+	BlockRmOption  func(*BlockRmSettings) error
+)
 
 func BlockPutOptions(opts ...BlockPutOption) (*BlockPutSettings, error) {
 	var cidPrefix cid.Prefix
@@ -131,7 +133,6 @@ func (blockOpts) Format(format string) BlockPutOption {
 
 		return nil
 	}
-
 }
 
 // Hash is an option for Block.Put which specifies the multihash settings to use

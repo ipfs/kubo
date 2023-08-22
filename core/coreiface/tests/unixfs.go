@@ -53,8 +53,10 @@ func (tp *TestSuite) TestUnixfs(t *testing.T) {
 }
 
 // `echo -n 'hello, world!' | ipfs add`
-var hello = "/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk"
-var helloStr = "hello, world!"
+var (
+	hello    = "/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk"
+	helloStr = "hello, world!"
+)
 
 // `echo -n | ipfs add`
 var emptyFile = "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
@@ -213,7 +215,7 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 			path: "/ipfs/bafkqaaa",
 			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(0), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true)},
 		},
-		{ //TODO: after coreapi add is used in `ipfs add`, consider making this default for inline
+		{ // TODO: after coreapi add is used in `ipfs add`, consider making this default for inline
 			name: "addInlineRaw",
 			data: strFile(helloStr),
 			path: "/ipfs/bafkqadlimvwgy3zmeb3w64tmmqqq",
