@@ -117,7 +117,7 @@ func FromMap(v map[string]interface{}) (*Config, error) {
 	}
 	var conf Config
 	if err := json.NewDecoder(buf).Decode(&conf); err != nil {
-		return nil, fmt.Errorf("failure to decode config: %s", err)
+		return nil, fmt.Errorf("failure to decode config: %w", err)
 	}
 	return &conf, nil
 }
@@ -129,7 +129,7 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 	}
 	var m map[string]interface{}
 	if err := json.NewDecoder(buf).Decode(&m); err != nil {
-		return nil, fmt.Errorf("failure to decode config: %s", err)
+		return nil, fmt.Errorf("failure to decode config: %w", err)
 	}
 	return m, nil
 }
@@ -140,11 +140,11 @@ func (c *Config) Clone() (*Config, error) {
 	var buf bytes.Buffer
 
 	if err := json.NewEncoder(&buf).Encode(c); err != nil {
-		return nil, fmt.Errorf("failure to encode config: %s", err)
+		return nil, fmt.Errorf("failure to encode config: %w", err)
 	}
 
 	if err := json.NewDecoder(&buf).Decode(&newConfig); err != nil {
-		return nil, fmt.Errorf("failure to decode config: %s", err)
+		return nil, fmt.Errorf("failure to decode config: %w", err)
 	}
 
 	return &newConfig, nil

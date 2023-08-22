@@ -2,6 +2,7 @@ package routing
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-cid"
@@ -103,7 +104,7 @@ func (c *Composer) SearchValue(ctx context.Context, key string, opts ...routing.
 	ch, err := c.GetValueRouter.SearchValue(ctx, key, opts...)
 
 	// avoid nil channels on implementations not supporting SearchValue method.
-	if err == routing.ErrNotFound && ch == nil {
+	if errors.Is(err, routing.ErrNotFound) && ch == nil {
 		out := make(chan []byte)
 		close(out)
 		return out, err

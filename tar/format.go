@@ -175,7 +175,7 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 	tr.hdrBuf = bytes.NewReader(hndpb.Data())
 
 	dataNd, err := hndpb.GetLinkedProtoNode(tr.ctx, tr.ds, "data")
-	if err != nil && err != dag.ErrLinkNotFound {
+	if err != nil && !errors.Is(err, dag.ErrLinkNotFound) {
 		return 0, err
 	}
 

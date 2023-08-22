@@ -449,7 +449,7 @@ func (r *FSRepo) openConfig() error {
 func (r *FSRepo) openUserResourceOverrides() error {
 	// This filepath is documented in docs/libp2p-resource-management.md and be kept in sync.
 	err := serialize.ReadConfigFile(filepath.Join(r.path, "libp2p-resource-limit-overrides.json"), &r.userResourceOverrides)
-	if err == serialize.ErrNotInitialized {
+	if errors.Is(err, serialize.ErrNotInitialized) {
 		err = nil
 	}
 	return err
