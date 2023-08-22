@@ -2253,21 +2253,10 @@ Type: `priority`
 
 ### `Swarm.Transports.Multiplexers.Mplex`
 
-**DEPRECATED**: See https://github.com/ipfs/kubo/issues/9958
+**REMOVED**: See https://github.com/ipfs/kubo/issues/9958
 
-Mplex is deprecated, this is because it is unreliable and
-randomly drop streams when sending data *too fast*.
-
-New pieces of code rely on backpressure, that means the stream will dynamically
-slow down the sending rate if data is getting backed up.
-Backpressure is provided by **Yamux** and **QUIC**.
-
-If you want to turn it back on make sure to have a higher (lower is better)
-priority than `Yamux`, you don't want your Kubo to start defaulting to Mplex.
-
-Default: `200`
-
-Type: `priority`
+Support for Mplex has been [removed from Kubo and go-libp2p](https://github.com/libp2p/specs/issues/553).
+Please remove this option from your config.
 
 ## `DNS`
 
