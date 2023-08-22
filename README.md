@@ -1,5 +1,5 @@
 <h1 align="center">
-<img src="https://user-images.githubusercontent.com/157609/250148884-d6d12db8-fdcf-4be3-8546-2550b69845d8.png" alt="Kubo logo" title="Kubo logo" width="200">
+<img src="https://ipfs.io/ipfs/QmTtCH31LdGV4LjRm5FNmnw6hUwZq1Z1YXtjeNKHBeaRcQ/kubo-logo.png" alt="Kubo logo" title="Kubo logo" width="200">
 <br>
 Kubo: IPFS Implementation in GO
 </h1>
