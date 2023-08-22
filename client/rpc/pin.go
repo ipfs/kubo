@@ -216,7 +216,7 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan iface.PinStatus, error) {
 				}
 			}
 			if err := dec.Decode(&out); err != nil {
-				if errors.Is(err, io.EOF) {
+				if err == io.EOF {
 					return
 				}
 				select {

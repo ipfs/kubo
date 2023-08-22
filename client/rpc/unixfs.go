@@ -162,7 +162,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...caopts.Unixfs
 		for {
 			var link lsOutput
 			if err := dec.Decode(&link); err != nil {
-				if errors.Is(err, io.EOF) {
+				if err == io.EOF {
 					return
 				}
 				select {

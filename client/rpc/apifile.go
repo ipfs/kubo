@@ -3,7 +3,6 @@ package rpc
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 
@@ -95,7 +94,7 @@ func (f *apiFile) ReadAt(p []byte, off int64) (int, error) {
 	defer resp.Output.Close()
 
 	n, err := io.ReadFull(resp.Output, p)
-	if errors.Is(err, io.ErrUnexpectedEOF) {
+	if err == io.ErrUnexpectedEOF {
 		err = io.EOF
 	}
 	return n, err
@@ -171,7 +170,7 @@ func (it *apiIter) Next() bool {
 
 	var out lsOutput
 	if err := it.dec.Decode(&out); err != nil {
-		if !errors.Is(err, io.EOF) {
+		if err != io.EOF {
 			it.err = err
 		}
 		return false

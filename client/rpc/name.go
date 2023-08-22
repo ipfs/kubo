@@ -3,7 +3,6 @@ package rpc
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 
@@ -80,7 +79,7 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		for {
 			var out struct{ Path string }
 			err := dec.Decode(&out)
-			if errors.Is(err, io.EOF) {
+			if err == io.EOF {
 				return
 			}
 			var ires iface.IpnsResult
