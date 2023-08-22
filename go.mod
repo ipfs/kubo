@@ -15,7 +15,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/ipfs/boxo v0.11.1-0.20230818062747-654231b2bda3
+	github.com/ipfs/boxo v0.12.0
 	github.com/ipfs/go-block-format v0.1.2
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-cidutil v0.1.0
@@ -27,7 +27,7 @@ require (
 	github.com/ipfs/go-ds-measure v0.2.0
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-graphsync v0.14.4
-	github.com/ipfs/go-ipfs-cmds v0.9.0
+	github.com/ipfs/go-ipfs-cmds v0.10.0
 	github.com/ipfs/go-ipld-format v0.5.0
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.2.1
@@ -39,7 +39,7 @@ require (
 	github.com/ipld/go-car v0.5.0
 	github.com/ipld/go-car/v2 v2.10.2-0.20230622090957-499d0c909d33
 	github.com/ipld/go-codec-dagpb v1.6.0
-	github.com/ipld/go-ipld-prime v0.20.0
+	github.com/ipld/go-ipld-prime v0.21.0
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
@@ -92,7 +92,6 @@ require (
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/Jorropo/jsync v1.0.1 // indirect
-	github.com/Kubuxu/go-os-helper v0.0.1 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -166,7 +165,7 @@ require (
 	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
 	github.com/libp2p/zeroconf/v2 v2.2.0 // indirect
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd // indirect
-	github.com/mattn/go-colorable v0.1.4 // indirect
+	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
@@ -240,4 +239,4 @@ require (
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
 
-go 1.19
+go 1.20

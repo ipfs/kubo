@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"syscall"
 
 	path "github.com/ipfs/boxo/coreiface/path"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
@@ -158,7 +159,7 @@ func (r *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
-		return nil, fuse.ENOENT
+		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
 	if lnk, ok := r.LocalLinks[name]; ok {
@@ -173,7 +174,7 @@ func (r *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		case *FileNode:
 			return nd, nil
 		default:
-			return nil, fuse.EIO
+			return nil, syscall.Errno(syscall.EIO)
 		}
 	}
 
@@ -182,7 +183,7 @@ func (r *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	resolved, err := r.Ipfs.Name().Resolve(ctx, ipnsName)
 	if err != nil {
 		log.Warnf("ipns: namesys resolve error: %s", err)
-		return nil, fuse.ENOENT
+		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
 	if resolved.Namespace() != "ipfs" {
@@ -274,7 +275,7 @@ func (d *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	child, err := d.dir.Child(name)
 	if err != nil {
 		// todo: make this error more versatile.
-		return nil, fuse.ENOENT
+		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
 	switch child := child.(type) {
@@ -312,7 +313,7 @@ func (d *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	if len(entries) > 0 {
 		return entries, nil
 	}
-	return nil, fuse.ENOENT
+	return nil, syscall.Errno(syscall.ENOENT)
 }
 
 func (fi *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
@@ -423,7 +424,7 @@ func (fi *FileNode) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.
 	if req.Flags&fuse.OpenTruncate != 0 {
 		if req.Flags.IsReadOnly() {
 			log.Error("tried to open a readonly file with truncate")
-			return nil, fuse.ENOTSUP
+			return nil, syscall.Errno(syscall.ENOTSUP)
 		}
 		log.Info("Need to truncate file!")
 		err := fd.Truncate(0)
@@ -434,7 +435,7 @@ func (fi *FileNode) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.
 		log.Info("Need to append to file!")
 		if req.Flags.IsReadOnly() {
 			log.Error("tried to open a readonly file with append")
-			return nil, fuse.ENOTSUP
+			return nil, syscall.Errno(syscall.ENOTSUP)
 		}
 
 		_, err := fd.Seek(0, io.SeekEnd)
@@ -486,7 +487,7 @@ func (d *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp *f
 func (d *Directory) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	err := d.dir.Unlink(req.Name)
 	if err != nil {
-		return fuse.ENOENT
+		return syscall.Errno(syscall.ENOENT)
 	}
 	return nil
 }
@@ -516,7 +517,7 @@ func (d *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDir 
 		}
 	case *FileNode:
 		log.Error("Cannot move node into a file!")
-		return fuse.EPERM
+		return syscall.Errno(syscall.EPERM)
 	default:
 		log.Error("Unknown node type for rename target dir!")
 		return errors.New("unknown fs node type")

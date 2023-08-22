@@ -1,13 +1,13 @@
 module github.com/ipfs/kubo/examples/kubo-as-a-library
 
-go 1.18
+go 1.20
 
 // Used to keep this in sync with the current version of kubo. You should remove
 // this if you copy this example.
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.11.1-0.20230818062747-654231b2bda3
+	github.com/ipfs/boxo v0.12.0
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.29.2
 	github.com/multiformats/go-multiaddr v0.10.1
@@ -91,7 +91,7 @@ require (
 	github.com/ipfs/go-unixfsnode v1.7.1 // indirect
 	github.com/ipld/go-car/v2 v2.10.2-0.20230622090957-499d0c909d33 // indirect
 	github.com/ipld/go-codec-dagpb v1.6.0 // indirect
-	github.com/ipld/go-ipld-prime v0.20.0 // indirect
+	github.com/ipld/go-ipld-prime v0.21.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
