@@ -45,13 +45,13 @@ FROM busybox:stable-glibc
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
 ENV SRC_DIR /kubo
-COPY --from=builder $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
-COPY --from=builder $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
-COPY --from=builder $SRC_DIR/bin/container_init_run /usr/local/bin/container_init_run
 COPY --from=utilities /usr/sbin/gosu /sbin/gosu
 COPY --from=utilities /usr/bin/tini /sbin/tini
 COPY --from=utilities /bin/fusermount /usr/local/bin/fusermount
 COPY --from=utilities /etc/ssl/certs /etc/ssl/certs
+COPY --from=builder $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
+COPY --from=builder $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
+COPY --from=builder $SRC_DIR/bin/container_init_run /usr/local/bin/container_init_run
 
 # Add suid bit on fusermount so it will run properly
 RUN chmod 4755 /usr/local/bin/fusermount
