@@ -14,7 +14,7 @@ on:
       ref:
         description: 'Custom ref to check out'
         required: false
-        default: ${{ github.sha || github.ref }}
+        default: ''
   # # If we decide to build all images on every PR, we should make sure that
   # # they are NOT pushed to Docker Hub.
   # pull_request:
@@ -43,7 +43,7 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.inputs.ref }}
+          ref: ${{ github.event.inputs.ref || github.sha }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
