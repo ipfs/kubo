@@ -372,19 +372,18 @@ Supported Transports:
 
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
 * websocket - `/ipN/.../tcp/.../ws`
-* quic (Draft-29) - `/ipN/.../udp/.../quic` - can share the same two tuple with `/quic-v1` and `/quic-v1/webtransport`
-* quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic` and `/quic-v1/webtransport`
-* webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic` and `/quic-v1`
+* quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic-v1/webtransport`
+* webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic-v1`
+
+Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
 Default:
 ```json
 [
   "/ip4/0.0.0.0/tcp/4001",
   "/ip6/::/tcp/4001",
-  "/ip4/0.0.0.0/udp/4001/quic",
   "/ip4/0.0.0.0/udp/4001/quic-v1",
   "/ip4/0.0.0.0/udp/4001/quic-v1/webtransport",
-  "/ip6/::/udp/4001/quic",
   "/ip6/::/udp/4001/quic-v1",
   "/ip6/::/udp/4001/quic-v1/webtransport"
 ]
@@ -1315,7 +1314,7 @@ The set of peers with which to peer.
       },
       {
         "ID": "QmPeerID2",
-        "Addrs": ["/ip4/18.1.1.2/tcp/4001", "/ip4/18.1.1.2/udp/4001/quic"]
+        "Addrs": ["/ip4/18.1.1.2/tcp/4001", "/ip4/18.1.1.2/udp/4001/quic-v1"]
       }
     ]
   }
@@ -1999,8 +1998,8 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
-* /ip4/0.0.0.0/udp/4001/quic (default)
-* /ip6/::/udp/4001/quic (default)
+* /ip4/0.0.0.0/udp/4001/quic-v1 (default)
+* /ip6/::/udp/4001/quic-v1 (default)
 
 #### `Swarm.Transports.Network.Relay`
 
