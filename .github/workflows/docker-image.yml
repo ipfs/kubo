@@ -7,6 +7,14 @@ on:
         description: 'Push to Docker Hub'
         required: true
         default: 'false'
+      tags:
+        description: 'Custom tags to use for the push'
+        required: false
+        default: ''
+      ref:
+        description: 'Custom ref to check out'
+        required: false
+        default: ${{ github.sha || github.ref }}
   # # If we decide to build all images on every PR, we should make sure that
   # # they are NOT pushed to Docker Hub.
   # pull_request:
@@ -34,6 +42,8 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.ref }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -51,6 +61,7 @@ jobs:
 
       - name: Get tags
         id: tags
+        if: github.event.inputs.tags == ''
         run: |
           echo "value<<EOF" >> $GITHUB_OUTPUT
           ./bin/get-docker-tags.sh "$(date -u +%F)" >> $GITHUB_OUTPUT
@@ -117,7 +128,7 @@ jobs:
           context: .
           push: true
           file: ./Dockerfile
-          tags: "${{ steps.tags.outputs.value }}"
+          tags: "${{ github.event.inputs.tags || steps.tags.outputs.value }}"
           cache-from: type=local,src=/tmp/.buildx-cache-new
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
