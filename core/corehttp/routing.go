@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/boxo/routing/http/server"
@@ -12,6 +13,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	core "github.com/ipfs/kubo/core"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/routing"
 )
 
 func RoutingOption() ServeOption {
@@ -33,6 +35,11 @@ func (r *contentRouter) FindProviders(ctx context.Context, key cid.Cid, limit in
 		ch:     ch,
 		cancel: cancel,
 	}), nil
+}
+
+// nolint deprecated
+func (r *contentRouter) ProvideBitswap(ctx context.Context, req *server.BitswapWriteProvideRequest) (time.Duration, error) {
+	return 0, routing.ErrNotSupported
 }
 
 func (r *contentRouter) FindPeers(ctx context.Context, pid peer.ID, limit int) (iter.ResultIter[types.Record], error) {

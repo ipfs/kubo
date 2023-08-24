@@ -22,22 +22,31 @@ import (
 )
 
 type fakeHTTPContentRouter struct {
-	m                 sync.Mutex
-	getProvidersCalls int
-	getPeersCalls     int
+	m                   sync.Mutex
+	provideBitswapCalls int
+	findProvidersCalls  int
+	findPeersCalls      int
 }
 
 func (r *fakeHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, limit int) (iter.ResultIter[types.Record], error) {
 	r.m.Lock()
 	defer r.m.Unlock()
-	r.getProvidersCalls++
+	r.findProvidersCalls++
 	return iter.FromSlice([]iter.Result[types.Record]{}), nil
+}
+
+// nolint deprecated
+func (r *fakeHTTPContentRouter) ProvideBitswap(ctx context.Context, req *server.BitswapWriteProvideRequest) (time.Duration, error) {
+	r.m.Lock()
+	defer r.m.Unlock()
+	r.provideBitswapCalls++
+	return 0, nil
 }
 
 func (r *fakeHTTPContentRouter) FindPeers(ctx context.Context, pid peer.ID, limit int) (iter.ResultIter[types.Record], error) {
 	r.m.Lock()
 	defer r.m.Unlock()
-	r.getPeersCalls++
+	r.findPeersCalls++
 	return iter.FromSlice([]iter.Result[types.Record]{}), nil
 }
 
@@ -52,7 +61,7 @@ func (r *fakeHTTPContentRouter) ProvideIPNS(ctx context.Context, name ipns.Name,
 func (r *fakeHTTPContentRouter) numFindProvidersCalls() int {
 	r.m.Lock()
 	defer r.m.Unlock()
-	return r.getProvidersCalls
+	return r.findProvidersCalls
 }
 
 // userAgentRecorder records the user agent of every HTTP request

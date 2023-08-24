@@ -1,14 +1,21 @@
 package routing
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"testing"
 
 	"github.com/ipfs/kubo/config"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
 
 func TestParser(t *testing.T) {
 	require := require.New(t)
+
+	pid, sk, err := generatePeerID()
+	require.NoError(err)
 
 	router, err := Parse(config.Routers{
 		"r1": config.RouterParser{
@@ -47,7 +54,10 @@ func TestParser(t *testing.T) {
 		config.MethodNameProvide: config.Method{
 			RouterName: "r2",
 		},
-	}, &ExtraDHTParams{})
+	}, &ExtraDHTParams{}, &ExtraHTTPParams{
+		PeerID:     string(pid),
+		PrivKeyB64: sk,
+	})
 
 	require.NoError(err)
 
@@ -60,6 +70,9 @@ func TestParser(t *testing.T) {
 
 func TestParserRecursive(t *testing.T) {
 	require := require.New(t)
+
+	pid, sk, err := generatePeerID()
+	require.NoError(err)
 
 	router, err := Parse(config.Routers{
 		"http1": config.RouterParser{
@@ -132,7 +145,10 @@ func TestParserRecursive(t *testing.T) {
 		config.MethodNameProvide: config.Method{
 			RouterName: "composable2",
 		},
-	}, &ExtraDHTParams{})
+	}, &ExtraDHTParams{}, &ExtraHTTPParams{
+		PeerID:     string(pid),
+		PrivKeyB64: sk,
+	})
 
 	require.NoError(err)
 
@@ -184,7 +200,27 @@ func TestParserRecursiveLoop(t *testing.T) {
 		config.MethodNameProvide: config.Method{
 			RouterName: "composable2",
 		},
-	}, &ExtraDHTParams{})
+	}, &ExtraDHTParams{}, nil)
 
 	require.ErrorContains(err, "dependency loop creating router with name \"composable2\"")
+}
+
+func generatePeerID() (string, string, error) {
+	sk, pk, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		return "", "", err
+	}
+
+	bytes, err := crypto.MarshalPrivateKey(sk)
+	if err != nil {
+		return "", "", err
+	}
+
+	enc := base64.StdEncoding.EncodeToString(bytes)
+	if err != nil {
+		return "", "", err
+	}
+
+	pid, err := peer.IDFromPublicKey(pk)
+	return pid.String(), enc, err
 }
