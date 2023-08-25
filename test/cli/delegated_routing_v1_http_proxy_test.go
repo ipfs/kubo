@@ -20,12 +20,14 @@ func TestRoutingV1Proxy(t *testing.T) {
 		// Node 0 uses DHT and exposes the Routing API.
 		nodes[0].UpdateConfig(func(cfg *config.Config) {
 			cfg.Gateway.ExposeRoutingAPI = config.True
+			cfg.Discovery.MDNS.Enabled = false
 			cfg.Routing.Type = config.NewOptionalString("dht")
 		})
 		nodes[0].StartDaemon()
 
 		// Node 1 uses Node 0 as Routing V1 source, no DHT.
 		nodes[1].UpdateConfig(func(cfg *config.Config) {
+			cfg.Discovery.MDNS.Enabled = false
 			cfg.Routing.Type = config.NewOptionalString("custom")
 			cfg.Routing.Methods = config.Methods{
 				config.MethodNameFindPeers:     {RouterName: "KuboA"},
