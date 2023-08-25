@@ -111,11 +111,12 @@ func (it *peerChanIter) Val() types.Record {
 		return nil
 	}
 
-	// We don't know what type of protocol this peer provides. It is likely Bitswap
-	// but it might not be. Therefore, we set an unknown protocol with an unknown schema.
 	rec := &types.PeerRecord{
 		Schema: types.SchemaPeer,
 		ID:     &it.next.ID,
+		// We need to add this here, otherwise contentrouter will ignore the peer
+		// as it does not have transport bitswap available.
+		Protocols: []string{"transport-bitswap"},
 	}
 
 	for _, addr := range it.next.Addrs {

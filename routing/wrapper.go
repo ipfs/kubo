@@ -29,9 +29,3 @@ type httpRoutingWrapper struct {
 func (c *httpRoutingWrapper) Bootstrap(ctx context.Context) error {
 	return nil
 }
-
-func (c *httpRoutingWrapper) SearchValue(context.Context, string, ...routing.Option) (<-chan []byte, error) {
-	out := make(chan []byte)
-	close(out)
-	return out, routing.ErrNotSupported
-}
