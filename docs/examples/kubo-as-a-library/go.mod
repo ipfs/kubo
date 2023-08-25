@@ -7,7 +7,7 @@ go 1.20
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.12.1-0.20230825120917-8f75d5e2f8e3
+	github.com/ipfs/boxo v0.12.1-0.20230825131036-ab6523c34238
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.30.0
 	github.com/multiformats/go-multiaddr v0.11.0
