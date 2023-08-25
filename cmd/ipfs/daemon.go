@@ -832,6 +832,12 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		fmt.Printf("Gateway server listening on %s\n", listener.Multiaddr())
 	}
 
+	if cfg.Gateway.ExposeRoutingAPI.WithDefault(config.DefaultExposeRoutingAPI) {
+		for _, listener := range listeners {
+			fmt.Printf("Routing V1 API exposed at http://%s/routing/v1\n", listener.Addr())
+		}
+	}
+
 	cmdctx := *cctx
 	cmdctx.Gateway = true
 
