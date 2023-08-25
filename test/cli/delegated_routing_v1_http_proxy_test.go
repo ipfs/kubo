@@ -72,6 +72,7 @@ func TestRoutingV1Proxy(t *testing.T) {
 		// Start lonely node that is not connected to other nodes.
 		node := harness.NewT(t).NewNode().Init()
 		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Discovery.MDNS.Enabled = false
 			cfg.Routing.Type = config.NewOptionalString("dht")
 		})
 		node.StartDaemon()
