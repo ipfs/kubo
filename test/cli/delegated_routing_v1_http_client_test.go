@@ -88,12 +88,20 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 
 	t.Run("adding HTTP delegated routing endpoint to Routing.Routers config works", func(t *testing.T) {
 		server := fakeServer("application/json", ToJSONStr(JSONObj{
-			"Providers": []JSONObj{{
-				"Protocol": "transport-bitswap",
-				"Schema":   "bitswap",
-				"ID":       provs[0],
-				"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
-			}},
+			"Providers": []JSONObj{
+				{
+					"Schema":   "bitswap", // Legacy bitswap schema.
+					"Protocol": "transport-bitswap",
+					"ID":       provs[1],
+					"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
+				},
+				{
+					"Schema":    "peer",
+					"Protocols": []string{"transport-bitswap"},
+					"ID":        provs[0],
+					"Addrs":     []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
+				},
+			},
 		}))
 		t.Cleanup(server.Close)
 
@@ -117,21 +125,21 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 
 		node.StartDaemon()
 		res = node.IPFS("routing", "findprovs", findProvsCID)
-		assert.Equal(t, provs[0], res.Stdout.Trimmed())
+		assert.Equal(t, provs[1]+"\n"+provs[0], res.Stdout.Trimmed())
 	})
 
 	node.StopDaemon()
 
 	t.Run("adding HTTP delegated routing endpoint to Routing.Routers config works (streaming)", func(t *testing.T) {
 		server := fakeServer("application/x-ndjson", ToJSONStr(JSONObj{
-			"Protocol": "transport-bitswap",
-			"Schema":   "bitswap",
-			"ID":       provs[1],
-			"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
+			"Schema":    "peer",
+			"Protocols": []string{"transport-bitswap"},
+			"ID":        provs[0],
+			"Addrs":     []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
 		}), ToJSONStr(JSONObj{
+			"Schema":   "bitswap", // Legacy bitswap schema.
 			"Protocol": "transport-bitswap",
-			"Schema":   "bitswap",
-			"ID":       provs[0],
+			"ID":       provs[1],
 			"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
 		}))
 		t.Cleanup(server.Close)
@@ -148,7 +156,7 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 
 		node.StartDaemon()
 		res = node.IPFS("routing", "findprovs", findProvsCID)
-		assert.Equal(t, provs[1]+"\n"+provs[0], res.Stdout.Trimmed())
+		assert.Equal(t, provs[0]+"\n"+provs[1], res.Stdout.Trimmed())
 	})
 
 	t.Run("HTTP client should emit OpenCensus metrics", func(t *testing.T) {
