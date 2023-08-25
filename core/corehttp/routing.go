@@ -63,7 +63,7 @@ func (r *contentRouter) FindPeers(ctx context.Context, pid peer.ID, limit int) (
 	return iter.ToResultIter[types.Record](iter.FromSlice[types.Record]([]types.Record{rec})), nil
 }
 
-func (r *contentRouter) FindIPNS(ctx context.Context, name ipns.Name) (*ipns.Record, error) {
+func (r *contentRouter) GetIPNS(ctx context.Context, name ipns.Name) (*ipns.Record, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -75,7 +75,7 @@ func (r *contentRouter) FindIPNS(ctx context.Context, name ipns.Name) (*ipns.Rec
 	return ipns.UnmarshalRecord(raw)
 }
 
-func (r *contentRouter) ProvideIPNS(ctx context.Context, name ipns.Name, record *ipns.Record) error {
+func (r *contentRouter) PutIPNS(ctx context.Context, name ipns.Name, record *ipns.Record) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 

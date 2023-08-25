@@ -164,8 +164,8 @@ func (o *offlineGatewayErrWrapper) IsCached(ctx context.Context, path path.Path)
 	return o.gwimpl.IsCached(ctx, path)
 }
 
-func (o *offlineGatewayErrWrapper) FindIPNS(ctx context.Context, c cid.Cid) ([]byte, error) {
-	rec, err := o.gwimpl.FindIPNS(ctx, c)
+func (o *offlineGatewayErrWrapper) GetIPNS(ctx context.Context, c cid.Cid) ([]byte, error) {
+	rec, err := o.gwimpl.GetIPNS(ctx, c)
 	err = offlineErrWrap(err)
 	return rec, err
 }

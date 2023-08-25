@@ -91,7 +91,7 @@ func TestRoutingV1Server(t *testing.T) {
 		c, err := client.New(nodes[1].GatewayURL())
 		assert.NoError(t, err)
 
-		record, err := c.FindIPNS(context.Background(), ipns.NameFromPeer(nodes[0].PeerID()))
+		record, err := c.GetIPNS(context.Background(), ipns.NameFromPeer(nodes[0].PeerID()))
 		assert.NoError(t, err)
 
 		value, err := record.Value()
@@ -108,7 +108,7 @@ func TestRoutingV1Server(t *testing.T) {
 		nodes[0].IPFS("name", "publish", "--allow-offline", cidStr)
 		c, err := client.New(nodes[0].GatewayURL())
 		assert.NoError(t, err)
-		record, err := c.FindIPNS(context.Background(), ipns.NameFromPeer(nodes[0].PeerID()))
+		record, err := c.GetIPNS(context.Background(), ipns.NameFromPeer(nodes[0].PeerID()))
 		assert.NoError(t, err)
 		value, err := record.Value()
 		assert.NoError(t, err)
@@ -125,11 +125,11 @@ func TestRoutingV1Server(t *testing.T) {
 		// Put IPNS record in lonely node. It should be accepted as it is a valid record.
 		c, err = client.New(node.GatewayURL())
 		assert.NoError(t, err)
-		err = c.ProvideIPNS(context.Background(), ipns.NameFromPeer(nodes[0].PeerID()), record)
+		err = c.PutIPNS(context.Background(), ipns.NameFromPeer(nodes[0].PeerID()), record)
 		assert.NoError(t, err)
 
 		// Get the record from lonely node and double check.
-		record, err = c.FindIPNS(context.Background(), ipns.NameFromPeer(nodes[0].PeerID()))
+		record, err = c.GetIPNS(context.Background(), ipns.NameFromPeer(nodes[0].PeerID()))
 		assert.NoError(t, err)
 		value, err = record.Value()
 		assert.NoError(t, err)

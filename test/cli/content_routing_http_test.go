@@ -50,11 +50,11 @@ func (r *fakeHTTPContentRouter) FindPeers(ctx context.Context, pid peer.ID, limi
 	return iter.FromSlice([]iter.Result[types.Record]{}), nil
 }
 
-func (r *fakeHTTPContentRouter) FindIPNS(ctx context.Context, name ipns.Name) (*ipns.Record, error) {
+func (r *fakeHTTPContentRouter) GetIPNS(ctx context.Context, name ipns.Name) (*ipns.Record, error) {
 	return nil, routing.ErrNotSupported
 }
 
-func (r *fakeHTTPContentRouter) ProvideIPNS(ctx context.Context, name ipns.Name, rec *ipns.Record) error {
+func (r *fakeHTTPContentRouter) PutIPNS(ctx context.Context, name ipns.Name, rec *ipns.Record) error {
 	return routing.ErrNotSupported
 }
 
