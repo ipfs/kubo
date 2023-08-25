@@ -19,17 +19,21 @@ import (
 func TestRoutingV1Server(t *testing.T) {
 	t.Parallel()
 
-	nodes := harness.NewT(t).NewNodes(5).Init()
-	nodes.ForEachPar(func(node *harness.Node) {
-		node.UpdateConfig(func(cfg *config.Config) {
-			cfg.Gateway.ExposeRoutingAPI = config.True
-			cfg.Routing.Type = config.NewOptionalString("dht")
+	setupNodes := func(t *testing.T) harness.Nodes {
+		nodes := harness.NewT(t).NewNodes(5).Init()
+		nodes.ForEachPar(func(node *harness.Node) {
+			node.UpdateConfig(func(cfg *config.Config) {
+				cfg.Gateway.ExposeRoutingAPI = config.True
+				cfg.Routing.Type = config.NewOptionalString("dht")
+			})
 		})
-	})
-	nodes.StartDaemons().Connect()
+		nodes.StartDaemons().Connect()
+		return nodes
+	}
 
 	t.Run("Get Providers Responds With Correct Peers", func(t *testing.T) {
 		t.Parallel()
+		nodes := setupNodes(t)
 
 		text := "hello world " + uuid.New().String()
 		cidStr := nodes[2].IPFSAddStr(text)
@@ -62,6 +66,7 @@ func TestRoutingV1Server(t *testing.T) {
 
 	t.Run("Get Peers Responds With Correct Peers", func(t *testing.T) {
 		t.Parallel()
+		nodes := setupNodes(t)
 
 		c, err := client.New(nodes[1].GatewayURL())
 		assert.NoError(t, err)
@@ -82,6 +87,7 @@ func TestRoutingV1Server(t *testing.T) {
 
 	t.Run("Get IPNS Record Responds With Correct Record", func(t *testing.T) {
 		t.Parallel()
+		nodes := setupNodes(t)
 
 		text := "hello ipns test " + uuid.New().String()
 		cidStr := nodes[0].IPFSAddStr(text)
@@ -101,6 +107,7 @@ func TestRoutingV1Server(t *testing.T) {
 
 	t.Run("Put IPNS Record Succeeds", func(t *testing.T) {
 		t.Parallel()
+		nodes := setupNodes(t)
 
 		// Publish a record and confirm the /routing/v1/ipns API exposes the IPNS record
 		text := "hello ipns test " + uuid.New().String()
