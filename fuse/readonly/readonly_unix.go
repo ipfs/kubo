@@ -104,7 +104,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, syscall.Errno(syscall.ENOTSUP)
 	}
 	if err != nil {
-		log.Error("could not convert protobuf or raw node")
+		log.Errorf("could not convert protobuf or raw node: %s", err)
 		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
