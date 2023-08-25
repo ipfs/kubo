@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/boxo/routing/http/client"
 	"github.com/ipfs/boxo/routing/http/types"
@@ -30,8 +31,9 @@ func TestRoutingV1Server(t *testing.T) {
 	t.Run("Get Providers Responds With Correct Peers", func(t *testing.T) {
 		t.Parallel()
 
-		cidStr := nodes[2].IPFSAddStr("hello world")
-		_ = nodes[3].IPFSAddStr("hello world")
+		text := "hello world " + uuid.New().String()
+		cidStr := nodes[2].IPFSAddStr(text)
+		_ = nodes[3].IPFSAddStr(text)
 
 		cid, err := cid.Decode(cidStr)
 		assert.NoError(t, err)
@@ -81,7 +83,8 @@ func TestRoutingV1Server(t *testing.T) {
 	t.Run("Get IPNS Record Responds With Correct Record", func(t *testing.T) {
 		t.Parallel()
 
-		cidStr := nodes[0].IPFSAddStr("hello get ipns test")
+		text := "hello ipns test " + uuid.New().String()
+		cidStr := nodes[0].IPFSAddStr(text)
 		nodes[0].IPFS("name", "publish", "--allow-offline", cidStr)
 
 		// Ask for record from a different peer.
@@ -99,8 +102,9 @@ func TestRoutingV1Server(t *testing.T) {
 	t.Run("Put IPNS Record Succeeds", func(t *testing.T) {
 		t.Parallel()
 
-		// Publish a record.
-		cidStr := nodes[0].IPFSAddStr("hello get ipns test 2")
+		// Publish a record and confirm the /routing/v1/ipns API exposes the IPNS record
+		text := "hello ipns test " + uuid.New().String()
+		cidStr := nodes[0].IPFSAddStr(text)
 		nodes[0].IPFS("name", "publish", "--allow-offline", cidStr)
 		c, err := client.New(nodes[0].GatewayURL())
 		assert.NoError(t, err)

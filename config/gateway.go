@@ -74,7 +74,7 @@ type Gateway struct {
 	// Each key is a fully qualified domain name (FQDN).
 	PublicGateways map[string]*GatewaySpec
 
-	// ExposeRoutingAPI configures the gateway to expose a Routing v1 HTTP Server
-	// under /routing/v1: https://specs.ipfs.tech/routing/routing-v1/.
+	// ExposeRoutingAPI configures the gateway port to expose
+	// routing system as HTTP API at /routing/v1 (https://specs.ipfs.tech/routing/http-routing-v1/).
 	ExposeRoutingAPI Flag
 }
