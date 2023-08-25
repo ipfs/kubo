@@ -114,9 +114,6 @@ func (it *peerChanIter) Val() types.Record {
 	rec := &types.PeerRecord{
 		Schema: types.SchemaPeer,
 		ID:     &it.next.ID,
-		// We need to add this here, otherwise contentrouter will ignore the peer
-		// as it does not have transport bitswap available.
-		Protocols: []string{"transport-bitswap"},
 	}
 
 	for _, addr := range it.next.Addrs {
