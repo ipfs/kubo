@@ -20,11 +20,11 @@ func TestRunMain(t *testing.T) {
 
 	p := os.Getenv("IPFS_COVER_RET_FILE")
 	if len(p) != 0 {
-		os.WriteFile(p, []byte(fmt.Sprintf("%d\n", ret)), 0755)
+		os.WriteFile(p, []byte(fmt.Sprintf("%d\n", ret)), 0o777)
 	}
 
 	// close outputs so go testing doesn't print anything
-	null, _ := os.OpenFile(os.DevNull, os.O_RDWR, 0o755)
+	null, _ := os.OpenFile(os.DevNull, os.O_RDWR, 0755)
 	os.Stderr = null
 	os.Stdout = null
 }
