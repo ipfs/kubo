@@ -141,9 +141,8 @@ func darwinFuseCheckVersion(node *core.IpfsNode) error {
 			return err
 		} else if skip {
 			return nil // user told us not to check version... ok....
-		} else {
-			return errGFV
 		}
+		return errGFV
 	}
 
 	log.Debug("mount: osxfuse version:", ov)

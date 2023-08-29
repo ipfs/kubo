@@ -234,9 +234,9 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 
 			if event.Root.PinErrorMsg != "" {
 				return fmt.Errorf("pinning root %q FAILED: %s", enc.Encode(event.Root.Cid), event.Root.PinErrorMsg)
-			} else {
-				event.Root.PinErrorMsg = "success"
 			}
+
+			event.Root.PinErrorMsg = "success"
 
 			_, err = fmt.Fprintf(
 				w,

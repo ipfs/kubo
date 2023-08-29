@@ -100,10 +100,9 @@ func (it *peerChanIter) Next() bool {
 	if ok {
 		it.next = &addr
 		return true
-	} else {
-		it.next = nil
-		return false
 	}
+	it.next = nil
+	return false
 }
 
 func (it *peerChanIter) Val() types.Record {

@@ -38,17 +38,16 @@ func makeSmuxTransportOption(tptConfig config.Transports) (libp2p.Option, error)
 			}
 		}
 		return libp2p.ChainOptions(opts...), nil
-	} else {
-		return prioritizeOptions([]priorityOption{{
-			priority:        tptConfig.Multiplexers.Yamux,
-			defaultPriority: 100,
-			opt:             libp2p.Muxer(yamux.ID, yamux.DefaultTransport),
-		}, {
-			priority:        tptConfig.Multiplexers.Mplex,
-			defaultPriority: config.Disabled,
-			opt:             libp2p.Muxer(mplex.ID, mplex.DefaultTransport),
-		}}), nil
 	}
+	return prioritizeOptions([]priorityOption{{
+		priority:        tptConfig.Multiplexers.Yamux,
+		defaultPriority: 100,
+		opt:             libp2p.Muxer(yamux.ID, yamux.DefaultTransport),
+	}, {
+		priority:        tptConfig.Multiplexers.Mplex,
+		defaultPriority: config.Disabled,
+		opt:             libp2p.Muxer(mplex.ID, mplex.DefaultTransport),
+	}}), nil
 }
 
 func SmuxTransport(tptConfig config.Transports) func() (opts Libp2pOpts, err error) {
