@@ -84,10 +84,9 @@ func CidEncoderFromPath(p string) (cidenc.Encoder, error) {
 	} else if len(components) < 3 {
 		// Not enough components to include a CID.
 		return cidenc.Encoder{}, fmt.Errorf("no cid in path: %s", p)
+	} else {
+		maybeCid = components[2]
 	}
-
-	maybeCid = components[2]
-
 	c, err := cid.Decode(maybeCid)
 	if err != nil {
 		// Ok, not a CID-like thing. Keep the current encoder.
