@@ -26,7 +26,7 @@ require (
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ds-measure v0.2.0
 	github.com/ipfs/go-fs-lock v0.0.7
-	github.com/ipfs/go-graphsync v0.14.4
+	github.com/ipfs/go-graphsync v0.14.8
 	github.com/ipfs/go-ipfs-cmds v0.10.0
 	github.com/ipfs/go-ipld-format v0.5.0
 	github.com/ipfs/go-ipld-git v0.1.1
@@ -35,7 +35,7 @@ require (
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
-	github.com/ipfs/go-unixfsnode v1.7.1
+	github.com/ipfs/go-unixfsnode v1.7.4
 	github.com/ipld/go-car v0.5.0
 	github.com/ipld/go-car/v2 v2.10.2-0.20230622090957-499d0c909d33
 	github.com/ipld/go-codec-dagpb v1.6.0
