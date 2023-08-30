@@ -26,7 +26,6 @@ the above issue.
 - [Strategic Providing](#strategic-providing)
 - [Graphsync](#graphsync)
 - [Noise](#noise)
-- [Accelerated DHT Client](#accelerated-dht-client)
 - [Optimistic Provide](#optimistic-provide)
 
 ---
