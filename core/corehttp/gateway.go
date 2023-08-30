@@ -41,7 +41,7 @@ func GatewayOption(paths ...string) ServeOption {
 		handler = otelhttp.NewHandler(handler, "Gateway")
 
 		for _, p := range paths {
-			mux.HandleFunc(p+"/", handler.ServeHTTP)
+			mux.Handle(p+"/", handler)
 		}
 
 		return mux, nil
@@ -61,7 +61,7 @@ func HostnameOption() ServeOption {
 		}
 
 		childMux := http.NewServeMux()
-		mux.HandleFunc("/", gateway.NewHostnameHandler(config, backend, childMux).ServeHTTP)
+		mux.Handle("/", gateway.NewHostnameHandler(config, backend, childMux))
 		return childMux, nil
 	}
 }
@@ -72,6 +72,29 @@ func VersionOption() ServeOption {
 			fmt.Fprintf(w, "Commit: %s\n", version.CurrentCommit)
 			fmt.Fprintf(w, "Client Version: %s\n", version.GetUserAgentVersion())
 		})
+		return mux, nil
+	}
+}
+
+func TrustlessGatewayOption() ServeOption {
+	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
+		config, err := getGatewayConfig(n)
+		if err != nil {
+			return nil, err
+		}
+
+		bserv := blockservice.New(n.Blocks.Blockstore(), offline.Exchange(n.Blocks.Blockstore()))
+
+		backend, err := gateway.NewBlocksBackend(bserv)
+		if err != nil {
+			return nil, err
+		}
+
+		handler := gateway.NewHandler(config, &offlineGatewayErrWrapper{gwimpl: backend})
+		handler = otelhttp.NewHandler(handler, "Libp2p-Gateway")
+
+		mux.Handle("/ipfs/", handler)
+
 		return mux, nil
 	}
 }

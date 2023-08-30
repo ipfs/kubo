@@ -121,7 +121,7 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, iface
 	ts := httptest.NewServer(dh)
 	t.Cleanup(func() { ts.Close() })
 
-	dh.Handler, err = makeHandler(n,
+	dh.Handler, err = MakeHandler(n,
 		ts.Listener,
 		HostnameOption(),
 		GatewayOption("/ipfs", "/ipns"),
