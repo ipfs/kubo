@@ -906,7 +906,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	return errc, nil
 }
 
-const gatewayProtocolID protocol.ID = "/ipfs-gateway" // FIXME: specify https://github.com/ipfs/specs/issues/433
+const gatewayProtocolID protocol.ID = "/ipfs/gateway" // FIXME: specify https://github.com/ipfs/specs/issues/433
 
 func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
 	opts := []corehttp.ServeOption{
