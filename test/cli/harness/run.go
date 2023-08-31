@@ -48,6 +48,11 @@ func environToMap(environ []string) map[string]string {
 	m := map[string]string{}
 	for _, e := range environ {
 		kv := strings.Split(e, "=")
+		// Skip environment variables that start with =
+		// These can occur in Windows https://github.com/golang/go/issues/61956
+		if kv[0] == "" {
+			continue
+		}
 		m[kv[0]] = kv[1]
 	}
 	return m
