@@ -943,6 +943,11 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 		errc <- h.Serve()
 	}()
 
+	go func() {
+		<-node.Process.Closing()
+		h.Close()
+	}()
+
 	return errc, nil
 }
 
