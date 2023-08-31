@@ -929,7 +929,13 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 		StreamHost: node.PeerHost,
 	}
 
-	h.SetHTTPHandler(gatewayProtocolID, handler)
+	tmpProtocol := protocol.ID("/kubo/delete-me")
+	h.SetHTTPHandler(tmpProtocol, http.NotFoundHandler())
+	h.WellKnownHandler.RemoveProtocolMeta(tmpProtocol)
+
+	h.WellKnownHandler.AddProtocolMeta(gatewayProtocolID, p2phttp.ProtocolMeta{Path: "/"})
+	h.ServeMux = http.NewServeMux()
+	h.ServeMux.Handle("/", handler)
 
 	errc := make(chan error, 1)
 	go func() {
