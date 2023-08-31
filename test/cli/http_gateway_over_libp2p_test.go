@@ -57,6 +57,16 @@ func TestGatewayOverLibp2p(t *testing.T) {
 	p2pProxyNodeHTTPListenAddr, err := manet.ToNetAddr(p2pProxyNodeHTTPListenMA)
 	require.NoError(t, err)
 
+	t.Run("DoesNotWorkWithoutExperimentalConfig", func(t *testing.T) {
+		_, err := http.Get(fmt.Sprintf("http://%s/ipfs/%s?format=raw", p2pProxyNodeHTTPListenAddr, cidDataOnGatewayNode))
+		require.Error(t, err)
+	})
+
+	// Enable the experimental feature and reconnect the nodes
+	gwNode.IPFS("config", "--json", "Experimental.GatewayOverLibp2p", "true")
+	gwNode.StopDaemon().StartDaemon()
+	nodes.Connect()
+
 	// Note: the bare HTTP requests here assume that the gateway is mounted at `/`
 	t.Run("WillNotServeRemoteContent", func(t *testing.T) {
 		resp, err := http.Get(fmt.Sprintf("http://%s/ipfs/%s?format=raw", p2pProxyNodeHTTPListenAddr, cidDataNotOnGatewayNode))

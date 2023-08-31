@@ -27,6 +27,7 @@ the above issue.
 - [Graphsync](#graphsync)
 - [Noise](#noise)
 - [Optimistic Provide](#optimistic-provide)
+- [HTTP Gateway over Libp2p](#http-gateway-over-libp2p)
 
 ---
 
@@ -617,3 +618,39 @@ ipfs config --json Experimental.OptimisticProvideJobsPoolSize 120
 
 - [ ] Needs more people to use and report on how well it works
 - [ ] Should prove at least equivalent availability of provider records as the classic approach
+
+## HTTP Gateway over Libp2p
+
+### In Version
+
+0.23.0
+
+### State
+
+Experimental, disabled by default.
+
+Enables serving the [IPFS HTTP Gateway](https://specs.ipfs.tech/http-gateways/) protocol over libp2p transports and
+as described in the [specification](https://github.com/ipfs/specs/pull/434).
+
+Notes:
+- This feature currently is only about serving the gateway requests over libp2p, not about fetching data this way using 
+[Trustless Gateway Specification](https://specs.ipfs.tech/http-gateways/trustless-gateway/).
+- While kubo currently mounts the gateway API at the root (i.e. `/`) of the libp2p `/http/1.1` protocol that is subject to
+change. The way to reliably discover where a given HTTP protocol is mounted on a libp2p endpoint is via the `.well-known/libp2p`
+resource specified in the [http+libp2p specification](https://github.com/libp2p/specs/pull/508)
+- Kubo currently hard codes the gateway-over-libp2p behavior to:
+  - Only operate on `/ipfs` resources
+  - Only satisfy the Trustless Gateway API
+  - Only serve data that is already local to the node (i.e. similar to a `NoFetch` gateway)
+
+### How to enable
+
+Modify your ipfs config:
+
+```
+ipfs config --json Experimental.GatewayOverLibp2p true
+```
+
+### Road to being a real feature
+
+- [ ] Needs more people to use and report on how well it works

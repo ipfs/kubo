@@ -11,4 +11,5 @@ type Experiments struct {
 	AcceleratedDHTClient          experimentalAcceleratedDHTClient `json:",omitempty"`
 	OptimisticProvide             bool
 	OptimisticProvideJobsPoolSize int
+	GatewayOverLibp2p             bool `json:",omitempty"`
 }

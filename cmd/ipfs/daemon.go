@@ -909,15 +909,25 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 const gatewayProtocolID protocol.ID = "/ipfs/gateway" // FIXME: specify https://github.com/ipfs/specs/issues/433
 
 func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
+	node, err := cctx.ConstructNode()
+	if err != nil {
+		return nil, fmt.Errorf("serveHTTPGatewayOverLibp2p: ConstructNode() failed: %s", err)
+	}
+	cfg, err := node.Repo.Config()
+	if err != nil {
+		return nil, fmt.Errorf("could not read config: %w", err)
+	}
+
+	if !cfg.Experimental.GatewayOverLibp2p {
+		errCh := make(chan error)
+		close(errCh)
+		return errCh, nil
+	}
+
 	opts := []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("libp2p-gateway"),
 		corehttp.Libp2pGatewayOption(),
 		corehttp.VersionOption(),
-	}
-
-	node, err := cctx.ConstructNode()
-	if err != nil {
-		return nil, fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err)
 	}
 
 	handler, err := corehttp.MakeHandler(node, nil, opts...)
