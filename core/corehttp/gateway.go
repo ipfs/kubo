@@ -76,13 +76,8 @@ func VersionOption() ServeOption {
 	}
 }
 
-func TrustlessGatewayOption() ServeOption {
+func Libp2pGatewayOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		config, err := getGatewayConfig(n)
-		if err != nil {
-			return nil, err
-		}
-
 		bserv := blockservice.New(n.Blocks.Blockstore(), offline.Exchange(n.Blocks.Blockstore()))
 
 		backend, err := gateway.NewBlocksBackend(bserv)
@@ -90,7 +85,14 @@ func TrustlessGatewayOption() ServeOption {
 			return nil, err
 		}
 
-		handler := gateway.NewHandler(config, &offlineGatewayErrWrapper{gwimpl: backend})
+		gwConfig := gateway.Config{
+			DeserializedResponses: false,
+			NoDNSLink:             true,
+			PublicGateways:        nil,
+			Menu:                  nil,
+		}
+
+		handler := gateway.NewHandler(gwConfig, &offlineGatewayErrWrapper{gwimpl: backend})
 		handler = otelhttp.NewHandler(handler, "Libp2p-Gateway")
 
 		mux.Handle("/ipfs/", handler)

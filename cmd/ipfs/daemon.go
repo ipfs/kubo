@@ -911,7 +911,7 @@ const gatewayProtocolID protocol.ID = "/ipfs/gateway" // FIXME: specify https://
 func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
 	opts := []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("libp2p-gateway"),
-		corehttp.TrustlessGatewayOption(),
+		corehttp.Libp2pGatewayOption(),
 		corehttp.VersionOption(),
 	}
 
