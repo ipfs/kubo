@@ -127,11 +127,11 @@ func (h *Harness) WriteFile(filename, contents string) {
 		log.Panicf("%s must be a relative path", filename)
 	}
 	absPath := filepath.Join(h.Runner.Dir, filename)
-	err := os.MkdirAll(filepath.Dir(absPath), 0777)
+	err := os.MkdirAll(filepath.Dir(absPath), 0o777)
 	if err != nil {
 		log.Panicf("creating intermediate dirs for %q: %s", filename, err.Error())
 	}
-	err = os.WriteFile(absPath, []byte(contents), 0644)
+	err = os.WriteFile(absPath, []byte(contents), 0o644)
 	if err != nil {
 		log.Panicf("writing %q (%q): %s", filename, absPath, err.Error())
 	}
@@ -166,7 +166,7 @@ func (h *Harness) Mkdirs(paths ...string) {
 			log.Panicf("%s must be a relative path when making dirs", path)
 		}
 		absPath := filepath.Join(h.Runner.Dir, path)
-		err := os.MkdirAll(absPath, 0777)
+		err := os.MkdirAll(absPath, 0o777)
 		if err != nil {
 			log.Panicf("recursively making dirs under %s: %s", absPath, err)
 		}

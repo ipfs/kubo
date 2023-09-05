@@ -23,42 +23,46 @@ func TestRouterParameters(t *testing.T) {
 					PublicIPNetwork:      false,
 				},
 			}},
-			"router-parallel": {Router{
-				Type: RouterTypeParallel,
-				Parameters: ComposableRouterParams{
-					Routers: []ConfigRouter{
-						{
-							RouterName:   "router-dht",
-							Timeout:      Duration{10 * time.Second},
-							IgnoreErrors: true,
+			"router-parallel": {
+				Router{
+					Type: RouterTypeParallel,
+					Parameters: ComposableRouterParams{
+						Routers: []ConfigRouter{
+							{
+								RouterName:   "router-dht",
+								Timeout:      Duration{10 * time.Second},
+								IgnoreErrors: true,
+							},
+							{
+								RouterName:   "router-dht",
+								Timeout:      Duration{10 * time.Second},
+								IgnoreErrors: false,
+								ExecuteAfter: &OptionalDuration{&sec},
+							},
 						},
-						{
-							RouterName:   "router-dht",
-							Timeout:      Duration{10 * time.Second},
-							IgnoreErrors: false,
-							ExecuteAfter: &OptionalDuration{&sec},
-						},
+						Timeout: &OptionalDuration{&min},
 					},
-					Timeout: &OptionalDuration{&min},
-				}},
+				},
 			},
-			"router-sequential": {Router{
-				Type: RouterTypeSequential,
-				Parameters: ComposableRouterParams{
-					Routers: []ConfigRouter{
-						{
-							RouterName:   "router-dht",
-							Timeout:      Duration{10 * time.Second},
-							IgnoreErrors: true,
+			"router-sequential": {
+				Router{
+					Type: RouterTypeSequential,
+					Parameters: ComposableRouterParams{
+						Routers: []ConfigRouter{
+							{
+								RouterName:   "router-dht",
+								Timeout:      Duration{10 * time.Second},
+								IgnoreErrors: true,
+							},
+							{
+								RouterName:   "router-dht",
+								Timeout:      Duration{10 * time.Second},
+								IgnoreErrors: false,
+							},
 						},
-						{
-							RouterName:   "router-dht",
-							Timeout:      Duration{10 * time.Second},
-							IgnoreErrors: false,
-						},
+						Timeout: &OptionalDuration{&min},
 					},
-					Timeout: &OptionalDuration{&min},
-				}},
+				},
 			},
 		},
 		Methods: Methods{

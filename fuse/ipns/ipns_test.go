@@ -56,7 +56,7 @@ func writeFileOrFail(t *testing.T, size int, path string) []byte {
 
 func writeFile(size int, path string) ([]byte, error) {
 	data := randBytes(size)
-	err := os.WriteFile(path, data, 0666)
+	err := os.WriteFile(path, data, 0o666)
 	return data, err
 }
 
@@ -156,7 +156,7 @@ func TestIpnsLocalLink(t *testing.T) {
 	}
 }
 
-// Test writing a file and reading it back
+// Test writing a file and reading it back.
 func TestIpnsBasicIO(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -187,7 +187,7 @@ func TestIpnsBasicIO(t *testing.T) {
 	}
 }
 
-// Test to make sure file changes persist over mounts of ipns
+// Test to make sure file changes persist over mounts of ipns.
 func TestFilePersistence(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -250,7 +250,7 @@ func TestMultipleDirs(t *testing.T) {
 	mnt.Close()
 }
 
-// Test to make sure the filesystem reports file sizes correctly
+// Test to make sure the filesystem reports file sizes correctly.
 func TestFileSizeReporting(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -271,7 +271,7 @@ func TestFileSizeReporting(t *testing.T) {
 	}
 }
 
-// Test to make sure you can't create multiple entries with the same name
+// Test to make sure you can't create multiple entries with the same name.
 func TestDoubleEntryFailure(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -280,12 +280,12 @@ func TestDoubleEntryFailure(t *testing.T) {
 	defer mnt.Close()
 
 	dname := mnt.Dir + "/local/thisisadir"
-	err := os.Mkdir(dname, 0777)
+	err := os.Mkdir(dname, 0o777)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = os.Mkdir(dname, 0777)
+	err = os.Mkdir(dname, 0o777)
 	if err == nil {
 		t.Fatal("Should have gotten error one creating new directory.")
 	}
@@ -301,7 +301,7 @@ func TestAppendFile(t *testing.T) {
 	fname := mnt.Dir + "/local/file"
 	data := writeFileOrFail(t, 1300, fname)
 
-	fi, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND, 0666)
+	fi, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND, 0o666)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -463,9 +463,8 @@ func TestFSThrash(t *testing.T) {
 	}
 }
 
-// Test writing a medium sized file one byte at a time
+// Test writing a medium sized file one byte at a time.
 func TestMultiWrite(t *testing.T) {
-
 	if testing.Short() {
 		t.SkipNow()
 	}

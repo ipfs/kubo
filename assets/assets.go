@@ -17,7 +17,7 @@ import (
 //go:embed init-doc
 var Asset embed.FS
 
-// initDocPaths lists the paths for the docs we want to seed during --init
+// initDocPaths lists the paths for the docs we want to seed during --init.
 var initDocPaths = []string{
 	gopath.Join("init-doc", "about"),
 	gopath.Join("init-doc", "readme"),
@@ -28,7 +28,7 @@ var initDocPaths = []string{
 	gopath.Join("init-doc", "ping"),
 }
 
-// SeedInitDocs adds the list of embedded init documentation to the passed node, pins it and returns the root key
+// SeedInitDocs adds the list of embedded init documentation to the passed node, pins it and returns the root key.
 func SeedInitDocs(nd *core.IpfsNode) (cid.Cid, error) {
 	return addAssetList(nd, initDocPaths)
 }

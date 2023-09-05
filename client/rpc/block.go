@@ -83,7 +83,7 @@ func (api *BlockAPI) Get(ctx context.Context, p path.Path) (io.Reader, error) {
 		return nil, parseErrNotFoundWithFallbackToError(resp.Error)
 	}
 
-	//TODO: make get return ReadCloser to avoid copying
+	// TODO: make get return ReadCloser to avoid copying
 	defer resp.Close()
 	b := new(bytes.Buffer)
 	if _, err := io.Copy(b, resp.Output); err != nil {

@@ -15,8 +15,8 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
-	gocar "github.com/ipfs/boxo/ipld/car"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	gocar "github.com/ipld/go-car"
 	selectorparse "github.com/ipld/go-ipld-prime/traversal/selector/parse"
 )
 
@@ -79,7 +79,6 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 }
 
 func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
-
 	var showProgress bool
 	val, specified := res.Request().Options[progressOptionName]
 	if !specified {

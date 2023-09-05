@@ -62,7 +62,13 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 	}
 
 	d := files.NewMapDirectory(map[string]files.Node{"": f}) // unwrapped on the other side
-	req.Body(files.NewMultiFileReader(d, false))
+
+	version, err := api.core().loadRemoteVersion()
+	if err != nil {
+		return nil, err
+	}
+	useEncodedAbsPaths := version.LT(encodedAbsolutePathVersion)
+	req.Body(files.NewMultiFileReader(d, false, useEncodedAbsPaths))
 
 	var out addEvent
 	resp, err := req.Send(ctx)

@@ -63,5 +63,4 @@ func TestNormalizeEndpoint(t *testing.T) {
 			continue
 		}
 	}
-
 }

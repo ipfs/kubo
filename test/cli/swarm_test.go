@@ -13,12 +13,11 @@ import (
 // TODO: Migrate the rest of the sharness swarm test.
 func TestSwarm(t *testing.T) {
 	type identifyType struct {
-		ID              string
-		PublicKey       string
-		Addresses       []string
-		AgentVersion    string
-		ProtocolVersion string
-		Protocols       []string
+		ID           string
+		PublicKey    string
+		Addresses    []string
+		AgentVersion string
+		Protocols    []string
 	}
 	type peer struct {
 		Identify identifyType
@@ -37,7 +36,6 @@ func TestSwarm(t *testing.T) {
 		err := json.Unmarshal(res.Stdout.Bytes(), &output)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(output.Peers))
-
 	})
 	t.Run("ipfs swarm peers with flag identify outputs expected identify information about connected peers", func(t *testing.T) {
 		t.Parallel()
@@ -53,7 +51,6 @@ func TestSwarm(t *testing.T) {
 		actualPublicKey := output.Peers[0].Identify.PublicKey
 		actualAgentVersion := output.Peers[0].Identify.AgentVersion
 		actualAdresses := output.Peers[0].Identify.Addresses
-		actualProtocolVersion := output.Peers[0].Identify.ProtocolVersion
 		actualProtocols := output.Peers[0].Identify.Protocols
 
 		expectedID := otherNode.PeerID().String()
@@ -62,11 +59,9 @@ func TestSwarm(t *testing.T) {
 		assert.Equal(t, actualID, expectedID)
 		assert.NotNil(t, actualPublicKey)
 		assert.NotNil(t, actualAgentVersion)
-		assert.NotNil(t, actualProtocolVersion)
 		assert.Len(t, actualAdresses, 1)
 		assert.Equal(t, expectedAddresses[0], actualAdresses[0])
 		assert.Greater(t, len(actualProtocols), 0)
-
 	})
 
 	t.Run("ipfs swarm peers with flag identify outputs Identify field with data that matches calling ipfs id on a peer", func(t *testing.T) {
@@ -89,9 +84,7 @@ func TestSwarm(t *testing.T) {
 		assert.Equal(t, outputIdentify.ID, otherNodeIDOutput.ID)
 		assert.Equal(t, outputIdentify.PublicKey, otherNodeIDOutput.PublicKey)
 		assert.Equal(t, outputIdentify.AgentVersion, otherNodeIDOutput.AgentVersion)
-		assert.Equal(t, outputIdentify.ProtocolVersion, otherNodeIDOutput.ProtocolVersion)
 		assert.ElementsMatch(t, outputIdentify.Addresses, otherNodeIDOutput.Addresses)
 		assert.ElementsMatch(t, outputIdentify.Protocols, otherNodeIDOutput.Protocols)
-
 	})
 }

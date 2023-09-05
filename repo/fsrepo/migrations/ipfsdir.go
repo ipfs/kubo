@@ -84,7 +84,7 @@ func WriteRepoVersion(ipfsDir string, version int) error {
 	}
 
 	vFilePath := filepath.Join(ipfsDir, versionFile)
-	return os.WriteFile(vFilePath, []byte(fmt.Sprintf("%d\n", version)), 0644)
+	return os.WriteFile(vFilePath, []byte(fmt.Sprintf("%d\n", version)), 0o644)
 }
 
 func repoVersion(ipfsDir string) (int, error) {

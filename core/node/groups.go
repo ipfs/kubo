@@ -248,7 +248,6 @@ var IPNS = fx.Options(
 
 // Online groups online-only units
 func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
-
 	// Namesys params
 
 	ipnsCacheSize := cfg.Ipns.ResolveCacheSize

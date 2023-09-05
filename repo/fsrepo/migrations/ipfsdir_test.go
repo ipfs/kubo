@@ -138,7 +138,7 @@ func testRepoVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	vFilePath := filepath.Join(ipfsDir, versionFile)
-	err = os.WriteFile(vFilePath, []byte("bad-version-data\n"), 0644)
+	err = os.WriteFile(vFilePath, []byte("bad-version-data\n"), 0o644)
 	if err != nil {
 		panic(err)
 	}

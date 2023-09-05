@@ -179,11 +179,9 @@ func TestAddGCLive(t *testing.T) {
 		defer close(addDone)
 		defer close(out)
 		_, err := adder.AddAllAndPin(context.Background(), slf)
-
 		if err != nil {
 			t.Error(err)
 		}
-
 	}()
 
 	addedHashes := make(map[string]struct{})

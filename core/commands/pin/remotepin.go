@@ -54,16 +54,18 @@ var remotePinServiceCmd = &cmds.Command{
 	},
 }
 
-const pinNameOptionName = "name"
-const pinCIDsOptionName = "cid"
-const pinStatusOptionName = "status"
-const pinServiceNameOptionName = "service"
-const pinServiceNameArgName = pinServiceNameOptionName
-const pinServiceEndpointArgName = "endpoint"
-const pinServiceKeyArgName = "key"
-const pinServiceStatOptionName = "stat"
-const pinBackgroundOptionName = "background"
-const pinForceOptionName = "force"
+const (
+	pinNameOptionName         = "name"
+	pinCIDsOptionName         = "cid"
+	pinStatusOptionName       = "status"
+	pinServiceNameOptionName  = "service"
+	pinServiceNameArgName     = pinServiceNameOptionName
+	pinServiceEndpointArgName = "endpoint"
+	pinServiceKeyArgName      = "key"
+	pinServiceStatOptionName  = "stat"
+	pinBackgroundOptionName   = "background"
+	pinForceOptionName        = "force"
+)
 
 type RemotePinOutput struct {
 	Status string
