@@ -49,7 +49,6 @@ func (api *RoutingAPI) Put(ctx context.Context, key string, value []byte, opts .
 		Option("allow-offline", cfg.AllowOffline).
 		FileBody(bytes.NewReader(value)).
 		Send(ctx)
-
 	if err != nil {
 		return err
 	}

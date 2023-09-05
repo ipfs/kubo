@@ -15,7 +15,7 @@ import (
 
 var errTODO = errors.New("TODO: mock repo")
 
-// Mock is not thread-safe
+// Mock is not thread-safe.
 type Mock struct {
 	C config.Config
 	D Datastore

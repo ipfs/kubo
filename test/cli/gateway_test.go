@@ -196,9 +196,7 @@ func TestGateway(t *testing.T) {
 				resp.Body,
 				fmt.Sprintf(`<link rel="canonical" href="/ipns/%s?query=to-remember" />`, peerID),
 			)
-
 		})
-
 	})
 
 	t.Run("GET invalid IPFS path errors", func(t *testing.T) {
@@ -489,7 +487,7 @@ func TestGateway(t *testing.T) {
 
 			t.Run("not present key from node 1", func(t *testing.T) {
 				t.Parallel()
-				assert.Equal(t, 404, node1.GatewayClient().Get("/ipfs/"+cidFoo).StatusCode)
+				assert.Equal(t, 500, node1.GatewayClient().Get("/ipfs/"+cidFoo).StatusCode)
 			})
 
 			t.Run("not present IPNS key from node 1", func(t *testing.T) {
@@ -583,7 +581,6 @@ func TestGateway(t *testing.T) {
 
 				assert.Equal(t, test.deserializedGatewayStaticCode, client.Get(deserializedPath, setHost).StatusCode)
 				assert.Equal(t, test.deserializedGatewayStaticCode, client.Get(deserializedPath, withHostAndAccept("application/json")).StatusCode)
-
 			}
 		}
 

@@ -14,7 +14,7 @@ var Root = &cmds.Command{
 	Helptext: commands.Root.Helptext,
 }
 
-// commandsClientCmd is the "ipfs commands" command for local cli
+// commandsClientCmd is the "ipfs commands" command for local cli.
 var commandsClientCmd = commands.CommandsCmd(Root)
 
 // Commands in localCommands should always be run locally (even if daemon is running).

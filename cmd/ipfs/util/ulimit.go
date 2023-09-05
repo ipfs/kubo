@@ -14,19 +14,19 @@ var log = logging.Logger("ulimit")
 var (
 	supportsFDManagement = false
 
-	// getlimit returns the soft and hard limits of file descriptors counts
+	// getlimit returns the soft and hard limits of file descriptors counts.
 	getLimit func() (uint64, uint64, error)
-	// set limit sets the soft and hard limits of file descriptors counts
+	// set limit sets the soft and hard limits of file descriptors counts.
 	setLimit func(uint64, uint64) error
 )
 
-// minimum file descriptor limit before we complain
+// minimum file descriptor limit before we complain.
 const minFds = 2048
 
 // default max file descriptor limit.
 const maxFds = 8192
 
-// userMaxFDs returns the value of IPFS_FD_MAX
+// userMaxFDs returns the value of IPFS_FD_MAX.
 func userMaxFDs() uint64 {
 	// check if the IPFS_FD_MAX is set up and if it does
 	// not have a valid fds number notify the user
@@ -42,7 +42,7 @@ func userMaxFDs() uint64 {
 }
 
 // ManageFdLimit raise the current max file descriptor count
-// of the process based on the IPFS_FD_MAX value
+// of the process based on the IPFS_FD_MAX value.
 func ManageFdLimit() (changed bool, newLimit uint64, err error) {
 	if !supportsFDManagement {
 		return false, 0, nil
@@ -82,7 +82,7 @@ func ManageFdLimit() (changed bool, newLimit uint64, err error) {
 		// set the soft value
 		err = setLimit(targetLimit, hard)
 		if err != nil {
-			err = fmt.Errorf("error setting ulimit without hard limit: %s", err)
+			err = fmt.Errorf("error setting ulimit without hard limit: %w", err)
 			break
 		}
 		newLimit = targetLimit
@@ -107,7 +107,7 @@ func ManageFdLimit() (changed bool, newLimit uint64, err error) {
 			break
 		}
 	default:
-		err = fmt.Errorf("error setting: ulimit: %s", err)
+		err = fmt.Errorf("error setting: ulimit: %w", err)
 	}
 
 	return newLimit > 0, newLimit, err

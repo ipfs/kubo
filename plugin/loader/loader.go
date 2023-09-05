@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -9,7 +10,6 @@ import (
 	"strings"
 
 	config "github.com/ipfs/kubo/config"
-	cserialize "github.com/ipfs/kubo/config/serialize"
 	"github.com/ipld/go-ipld-prime/multicodec"
 
 	"github.com/ipfs/kubo/core"
@@ -93,15 +93,14 @@ type PluginLoader struct {
 	repo    string
 }
 
-// NewPluginLoader creates new plugin loader
+// NewPluginLoader creates new plugin loader.
 func NewPluginLoader(repo string) (*PluginLoader, error) {
 	loader := &PluginLoader{plugins: make([]plugin.Plugin, 0, len(preloadPlugins)), repo: repo}
 	if repo != "" {
-		cfg, err := cserialize.Load(filepath.Join(repo, config.DefaultConfigFile))
-		switch err {
-		case cserialize.ErrNotInitialized:
-		case nil:
-			loader.config = cfg.Plugins
+		switch plugins, err := readPluginsConfig(repo, config.DefaultConfigFile); {
+		case err == nil:
+			loader.config = plugins
+		case os.IsNotExist(err):
 		default:
 			return nil, err
 		}
@@ -117,6 +116,33 @@ func NewPluginLoader(repo string) (*PluginLoader, error) {
 		return nil, err
 	}
 	return loader, nil
+}
+
+// readPluginsConfig reads the Plugins section of the IPFS config, avoiding
+// reading anything other than the Plugin section. That way, we're free to
+// make arbitrary changes to all _other_ sections in migrations.
+func readPluginsConfig(repoRoot string, userConfigFile string) (config.Plugins, error) {
+	var cfg struct {
+		Plugins config.Plugins
+	}
+
+	cfgPath, err := config.Filename(repoRoot, userConfigFile)
+	if err != nil {
+		return config.Plugins{}, err
+	}
+
+	cfgFile, err := os.Open(cfgPath)
+	if err != nil {
+		return config.Plugins{}, err
+	}
+	defer cfgFile.Close()
+
+	err = json.NewDecoder(cfgFile).Decode(&cfg)
+	if err != nil {
+		return config.Plugins{}, err
+	}
+
+	return cfg.Plugins, nil
 }
 
 func (loader *PluginLoader) assertState(state loaderState) error {
@@ -200,7 +226,7 @@ func loadDynamicPlugins(pluginDir string) ([]plugin.Plugin, error) {
 			return nil
 		}
 
-		if info.Mode().Perm()&0111 == 0 {
+		if info.Mode().Perm()&0o111 == 0 {
 			// file is not executable let's not load it
 			// this is to prevent loading plugins from for example non-executable
 			// mounts, some /tmp mounts are marked as such for security
@@ -219,7 +245,7 @@ func loadDynamicPlugins(pluginDir string) ([]plugin.Plugin, error) {
 	return plugins, err
 }
 
-// Initialize initializes all loaded plugins
+// Initialize initializes all loaded plugins.
 func (loader *PluginLoader) Initialize() error {
 	if err := loader.transition(loaderLoading, loaderInitializing); err != nil {
 		return err

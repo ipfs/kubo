@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ipfs/boxo/ipns"
 	keystore "github.com/ipfs/boxo/keystore"
 	"github.com/ipfs/boxo/namesys"
 	"github.com/ipfs/kubo/tracing"
@@ -23,33 +24,18 @@ import (
 
 type NameAPI CoreAPI
 
-type ipnsEntry struct {
-	name  string
-	value path.Path
-}
-
-// Name returns the ipnsEntry name.
-func (e *ipnsEntry) Name() string {
-	return e.name
-}
-
-// Value returns the ipnsEntry value.
-func (e *ipnsEntry) Value() path.Path {
-	return e.value
-}
-
 // Publish announces new IPNS name and returns the new IPNS entry.
-func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.NamePublishOption) (coreiface.IpnsEntry, error) {
+func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.NamePublishOption) (ipns.Name, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.NameAPI", "Publish", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
 
 	if err := api.checkPublishAllowed(); err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 
 	options, err := caopts.NamePublishOptions(opts...)
 	if err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 	span.SetAttributes(
 		attribute.Bool("allowoffline", options.AllowOffline),
@@ -62,23 +48,24 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 
 	err = api.checkOnline(options.AllowOffline)
 	if err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 
 	pth, err := ipath.ParsePath(p.String())
 	if err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 
 	k, err := keylookup(api.privateKey, api.repo.Keystore(), options.Key)
 	if err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 
 	eol := time.Now().Add(options.ValidTime)
 
 	publishOptions := []nsopts.PublishOption{
 		nsopts.PublishWithEOL(eol),
+		nsopts.PublishCompatibleWithV1(options.CompatibleWithV1),
 	}
 
 	if options.TTL != nil {
@@ -87,18 +74,15 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 
 	err = api.namesys.Publish(ctx, k, pth, publishOptions...)
 	if err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 
 	pid, err := peer.IDFromPrivateKey(k)
 	if err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 
-	return &ipnsEntry{
-		name:  coreiface.FormatKeyID(pid),
-		value: p,
-	}, nil
+	return ipns.NameFromPeer(pid), nil
 }
 
 func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.NameResolveOption) (<-chan coreiface.IpnsResult, error) {

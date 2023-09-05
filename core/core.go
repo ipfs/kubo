@@ -64,7 +64,6 @@ var log = logging.Logger("core")
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {
-
 	// Self
 	Identity peer.ID // the local node's identity
 

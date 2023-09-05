@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/go-cid"
 )
 
-const forwardSeekLimit = 1 << 14 //16k
+const forwardSeekLimit = 1 << 14 // 16k
 
 func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) {
 	if p.Mutable() { // use resolved path in case we are dealing with IPNS / MFS
@@ -107,11 +107,11 @@ func (f *apiFile) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		offset = f.at + offset
 	}
-	if f.at == offset { //noop
+	if f.at == offset { // noop
 		return offset, nil
 	}
 
-	if f.at < offset && offset-f.at < forwardSeekLimit { //forward skip
+	if f.at < offset && offset-f.at < forwardSeekLimit { // forward skip
 		r, err := io.CopyN(io.Discard, f.r.Output, offset-f.at)
 
 		f.at += r
@@ -246,7 +246,6 @@ func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64) (file
 	resp, err := api.core().Request("ls", p.String()).
 		Option("resolve-size", true).
 		Option("stream", true).Send(ctx)
-
 	if err != nil {
 		return nil, err
 	}
@@ -266,5 +265,7 @@ func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64) (file
 	return d, nil
 }
 
-var _ files.File = &apiFile{}
-var _ files.Directory = &apiDir{}
+var (
+	_ files.File      = &apiFile{}
+	_ files.Directory = &apiDir{}
+)

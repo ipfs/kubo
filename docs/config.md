@@ -372,19 +372,18 @@ Supported Transports:
 
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
 * websocket - `/ipN/.../tcp/.../ws`
-* quic (Draft-29) - `/ipN/.../udp/.../quic` - can share the same two tuple with `/quic-v1` and `/quic-v1/webtransport`
-* quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic` and `/quic-v1/webtransport`
-* webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic` and `/quic-v1`
+* quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic-v1/webtransport`
+* webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic-v1`
+
+Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
 Default:
 ```json
 [
   "/ip4/0.0.0.0/tcp/4001",
   "/ip6/::/tcp/4001",
-  "/ip4/0.0.0.0/udp/4001/quic",
   "/ip4/0.0.0.0/udp/4001/quic-v1",
   "/ip4/0.0.0.0/udp/4001/quic-v1/webtransport",
-  "/ip6/::/udp/4001/quic",
   "/ip6/::/udp/4001/quic-v1",
   "/ip6/::/udp/4001/quic-v1/webtransport"
 ]
@@ -659,24 +658,21 @@ Default: `true`
 
 Type: `flag`
 
+#### `Gateway.ExposeRoutingAPI`
+
+An optional flag to expose Kubo `Routing` system on the gateway port as a [Routing
+V1](https://specs.ipfs.tech/routing/routing-v1/) endpoint.  This only affects your
+local gateway, at `127.0.0.1`.
+
+Default: `false`
+
+Type: `flag`
+
 ### `Gateway.HTTPHeaders`
 
 Headers to set on gateway responses.
 
-Default:
-```json
-{
-	"Access-Control-Allow-Headers": [
-		"X-Requested-With"
-	],
-	"Access-Control-Allow-Methods": [
-		"GET"
-	],
-	"Access-Control-Allow-Origin": [
-		"*"
-	]
-}
-```
+Default: `{}` + implicit CORS headers from `boxo/gateway#AddAccessControlHeaders` and [ipfs/specs#423](https://github.com/ipfs/specs/issues/423)
 
 Type: `object[string -> array[string]]`
 
@@ -1328,7 +1324,7 @@ The set of peers with which to peer.
       },
       {
         "ID": "QmPeerID2",
-        "Addrs": ["/ip4/18.1.1.2/tcp/4001", "/ip4/18.1.1.2/udp/4001/quic"]
+        "Addrs": ["/ip4/18.1.1.2/tcp/4001", "/ip4/18.1.1.2/udp/4001/quic-v1"]
       }
     ]
   }
@@ -2012,8 +2008,8 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
-* /ip4/0.0.0.0/udp/4001/quic (default)
-* /ip6/::/udp/4001/quic (default)
+* /ip4/0.0.0.0/udp/4001/quic-v1 (default)
+* /ip6/::/udp/4001/quic-v1 (default)
 
 #### `Swarm.Transports.Network.Relay`
 
@@ -2065,6 +2061,8 @@ Type: `flag`
 Configuration section for libp2p _security_ transports. Transports enabled in
 this section will be used to secure unencrypted connections.
 
+This does not concern all the QUIC transports which use QUIC's builtin encryption.
+
 Security transports are configured with the `priority` type.
 
 When establishing an _outbound_ connection, Kubo will try each security
@@ -2107,11 +2105,13 @@ Type: `priority`
 Configuration section for libp2p _multiplexer_ transports. Transports enabled in
 this section will be used to multiplex duplex connections.
 
-Multiplexer transports are secured the same way security transports are, with
+This does not concern all the QUIC transports which use QUIC's builtin muxing.
+
+Multiplexer transports are configured the same way security transports are, with
 the `priority` type. Like with security transports, the initiator gets their
 first choice.
 
-Supported transports are: Yamux (priority 100) and Mplex (priority 200)
+Supported transport is only: Yamux (priority 100)
 
 No default priority will ever be less than 100.
 
@@ -2125,17 +2125,17 @@ Type: `priority`
 
 ### `Swarm.Transports.Multiplexers.Mplex`
 
-Mplex is the default multiplexer used when communicating between Kubo and all
-other IPFS and libp2p implementations. Unlike Yamux:
+**DEPRECATED**: See https://github.com/ipfs/kubo/issues/9958
 
-* Mplex is a simpler protocol.
-* Mplex is more efficient.
-* Mplex does not have built-in keepalives.
-* Mplex does not support backpressure. Unfortunately, this means that, if a
-  single stream to a peer gets backed up for a period of time, the mplex
-  transport will kill the stream to allow the others to proceed. On the other
-  hand, the lack of backpressure means mplex can be significantly faster on some
-  high-latency connections.
+Mplex is deprecated, this is because it is unreliable and
+randomly drop streams when sending data *too fast*.
+
+New pieces of code rely on backpressure, that means the stream will dynamicaly
+slow down the sending rate if data is getting backed up.
+Backpressure is provided by **Yamux** and **QUIC**.
+
+If you want to turn it back on make sure to have a higher (lower is better)
+priority than `Yamux`, you don't want your Kubo to start defaulting to Mplex.
 
 Default: `200`
 

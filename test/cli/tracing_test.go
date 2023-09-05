@@ -45,7 +45,7 @@ func TestTracing(t *testing.T) {
 
 	// touch traces.json and give it 777 perms in case Docker runs as a different user
 	node.WriteBytes("traces.json", nil)
-	err := os.Chmod(filepath.Join(node.Dir, "traces.json"), 0777)
+	err := os.Chmod(filepath.Join(node.Dir, "traces.json"), 0o777)
 	require.NoError(t, err)
 
 	dockerBin, err := exec.LookPath("docker")

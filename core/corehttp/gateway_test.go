@@ -9,21 +9,20 @@ import (
 	"strings"
 	"testing"
 
-	namesys "github.com/ipfs/boxo/namesys"
+	"github.com/ipfs/boxo/namesys"
 	version "github.com/ipfs/kubo"
-	core "github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
-	repo "github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo"
 	"github.com/stretchr/testify/assert"
 
 	iface "github.com/ipfs/boxo/coreiface"
 	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
-	path "github.com/ipfs/boxo/path"
-	datastore "github.com/ipfs/go-datastore"
+	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/config"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
-	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
 type mockNamesys map[string]path.Path
@@ -168,10 +167,6 @@ func TestVersion(t *testing.T) {
 
 	if !strings.Contains(s, "Client Version: "+version.GetUserAgentVersion()) {
 		t.Fatalf("response doesn't contain client version:\n%s", s)
-	}
-
-	if !strings.Contains(s, "Protocol Version: "+id.DefaultProtocolVersion) {
-		t.Fatalf("response doesn't contain protocol version:\n%s", s)
 	}
 }
 

@@ -6,7 +6,7 @@ import (
 	"runtime"
 )
 
-// Routing defines configuration options for libp2p routing
+// Routing defines configuration options for libp2p routing.
 type Routing struct {
 	// Type sets default daemon routing mode.
 	//
@@ -23,20 +23,20 @@ type Routing struct {
 }
 
 type Router struct {
-
 	// Router type ID. See RouterType for more info.
 	Type RouterType
 
 	// Parameters are extra configuration that this router might need.
-	// A common one for reframe router is "Endpoint".
+	// A common one for HTTP router is "Endpoint".
 	Parameters interface{}
 }
 
-type Routers map[string]RouterParser
-type Methods map[MethodName]Method
+type (
+	Routers map[string]RouterParser
+	Methods map[MethodName]Method
+)
 
 func (m Methods) Check() error {
-
 	// Check supported methods
 	for _, mn := range MethodNameList {
 		_, ok := m[mn]
@@ -81,8 +81,6 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 	switch out.Type {
 	case RouterTypeHTTP:
 		p = &HTTPRouterParams{}
-	case RouterTypeReframe:
-		p = &ReframeRouterParams{}
 	case RouterTypeDHT:
 		p = &DHTRouterParams{}
 	case RouterTypeSequential:
@@ -106,7 +104,6 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 type RouterType string
 
 const (
-	RouterTypeReframe    RouterType = "reframe"    // More info here: https://github.com/ipfs/specs/tree/main/reframe . Actually deprecated.
 	RouterTypeHTTP       RouterType = "http"       // HTTP JSON API for delegated routing systems (IPIP-337).
 	RouterTypeDHT        RouterType = "dht"        // DHT router.
 	RouterTypeSequential RouterType = "sequential" // Router helper to execute several routers sequentially.
@@ -132,12 +129,6 @@ const (
 )
 
 var MethodNameList = []MethodName{MethodNameProvide, MethodNameFindPeers, MethodNameFindProviders, MethodNameGetIPNS, MethodNamePutIPNS}
-
-type ReframeRouterParams struct {
-	// Endpoint is the URL where the routing implementation will point to get the information.
-	// Usually used for reframe Routers.
-	Endpoint string
-}
 
 type HTTPRouterParams struct {
 	// Endpoint is the URL where the routing implementation will point to get the information.

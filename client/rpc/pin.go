@@ -112,7 +112,7 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan i
 }
 
 // IsPinned returns whether or not the given cid is pinned
-// and an explanation of why its pinned
+// and an explanation of why its pinned.
 func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.PinIsPinnedOption) (string, bool, error) {
 	options, err := caopts.PinIsPinnedOptions(opts...)
 	if err != nil {

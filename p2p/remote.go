@@ -12,7 +12,7 @@ import (
 
 var maPrefix = "/" + ma.ProtocolWithCode(ma.P_IPFS).Name + "/"
 
-// remoteListener accepts libp2p streams and proxies them to a manet host
+// remoteListener accepts libp2p streams and proxies them to a manet host.
 type remoteListener struct {
 	p2p *P2P
 
@@ -27,7 +27,7 @@ type remoteListener struct {
 	reportRemote bool
 }
 
-// ForwardRemote creates new p2p listener
+// ForwardRemote creates new p2p listener.
 func (p2p *P2P) ForwardRemote(ctx context.Context, proto protocol.ID, addr ma.Multiaddr, reportRemote bool) (Listener, error) {
 	listener := &remoteListener{
 		p2p: p2p,
