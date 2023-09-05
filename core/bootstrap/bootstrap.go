@@ -192,22 +192,24 @@ func saveConnectedPeersAsTemporaryBootstrap(ctx context.Context, host host.Host,
 
 	bootstrapPeers := cfg.BootstrapPeers()
 	backupPeers := make([]peer.AddrInfo, 0, cfg.MaxBackupBootstrapSize)
+	foundPeers := make(map[peer.ID]struct{}, cfg.MaxBackupBootstrapSize+len(bootstrapPeers))
+
+	// Don't record bootstrap peers
+	for _, b := range bootstrapPeers {
+		foundPeers[b.ID] = struct{}{}
+	}
 
 	// Choose peers to save and filter out the ones that are already bootstrap nodes.
 	for _, p := range connectedPeers {
-		found := false
-		for _, bootstrapPeer := range bootstrapPeers {
-			if p == bootstrapPeer.ID {
-				found = true
-				break
-			}
+		if _, found := foundPeers[p]; found {
+			continue
 		}
-		if !found {
-			backupPeers = append(backupPeers, peer.AddrInfo{
-				ID:    p,
-				Addrs: host.Network().Peerstore().Addrs(p),
-			})
-		}
+		foundPeers[p] = struct{}{}
+
+		backupPeers = append(backupPeers, peer.AddrInfo{
+			ID:    p,
+			Addrs: host.Network().Peerstore().Addrs(p),
+		})
 
 		if len(backupPeers) >= cfg.MaxBackupBootstrapSize {
 			break
@@ -222,17 +224,12 @@ func saveConnectedPeersAsTemporaryBootstrap(ctx context.Context, host host.Host,
 
 		// Add some of the old saved peers. Ensure we don't duplicate them.
 		for _, p := range oldSavedPeers {
-			found := false
-			for _, sp := range backupPeers {
-				if p.ID == sp.ID {
-					found = true
-					break
-				}
+			if _, found := foundPeers[p.ID]; found {
+				continue
 			}
+			foundPeers[p.ID] = struct{}{}
 
-			if !found {
-				backupPeers = append(backupPeers, p)
-			}
+			backupPeers = append(backupPeers, p)
 
 			if len(backupPeers) >= cfg.MaxBackupBootstrapSize {
 				break
