@@ -46,7 +46,7 @@ type Node struct {
 
 func BuildNode(ipfsBin, baseDir string, id int) *Node {
 	dir := filepath.Join(baseDir, strconv.Itoa(id))
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		panic(err)
 	}
 

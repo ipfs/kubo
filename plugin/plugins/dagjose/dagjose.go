@@ -8,7 +8,7 @@ import (
 	mc "github.com/multiformats/go-multicodec"
 )
 
-// Plugins is exported list of plugins that will be loaded
+// Plugins is exported list of plugins that will be loaded.
 var Plugins = []plugin.Plugin{
 	&dagjosePlugin{},
 }

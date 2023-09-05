@@ -76,7 +76,6 @@ func testPins(t *testing.T, args testPinsArgs) {
 			for _, cid := range cids {
 				assert.Contains(t, verboseVerifyOut, fmt.Sprintf("%s ok", cid))
 			}
-
 		})
 		t.Run("ls output should contain the cids", func(t *testing.T) {
 			lsOut := ipfsPinLS()
@@ -195,7 +194,6 @@ func TestPins(t *testing.T) {
 		testPins(t, testPinsArgs{pinArg: "--progress", lsArg: "--stream"})
 		testPins(t, testPinsArgs{baseArg: "--cid-base=base32"})
 		testPins(t, testPinsArgs{lsArg: "--stream", baseArg: "--cid-base=base32"})
-
 	})
 
 	t.Run("test pinning with daemon running without network", func(t *testing.T) {

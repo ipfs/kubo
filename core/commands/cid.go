@@ -377,7 +377,7 @@ var hashesCmd = &cmds.Command{
 		var res []CodeAndName
 		// use mhash.Codes in case at some point there are multiple names for a given code
 		for code, name := range mhash.Codes {
-			if !verifcid.IsGoodHash(code) {
+			if !verifcid.DefaultAllowlist.IsAllowed(code) {
 				continue
 			}
 			res = append(res, CodeAndName{int(code), name})

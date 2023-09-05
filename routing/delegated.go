@@ -105,10 +105,11 @@ func parse(visited map[string]bool,
 			}
 
 			pr = append(pr, &routinghelpers.ParallelRouter{
-				Router:       ri,
-				IgnoreError:  cr.IgnoreErrors,
-				Timeout:      cr.Timeout.Duration,
-				ExecuteAfter: cr.ExecuteAfter.WithDefault(0),
+				Router:                  ri,
+				IgnoreError:             cr.IgnoreErrors,
+				DoNotWaitForSearchValue: true,
+				Timeout:                 cr.Timeout.Duration,
+				ExecuteAfter:            cr.ExecuteAfter.WithDefault(0),
 			})
 
 		}
@@ -223,6 +224,8 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 
 	return &httpRoutingWrapper{
 		ContentRouting:    cr,
+		PeerRouting:       cr,
+		ValueStore:        cr,
 		ProvideManyRouter: cr,
 	}, nil
 }

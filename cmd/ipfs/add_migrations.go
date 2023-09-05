@@ -19,7 +19,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-// addMigrations adds any migration downloaded by the fetcher to the IPFS node
+// addMigrations adds any migration downloaded by the fetcher to the IPFS node.
 func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.Fetcher, pin bool) error {
 	var fetchers []migrations.Fetcher
 	if mf, ok := fetcher.(*migrations.MultiFetcher); ok {
@@ -63,7 +63,7 @@ func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.
 	return nil
 }
 
-// addMigrationFiles adds the files at paths to IPFS, optionally pinning them
+// addMigrationFiles adds the files at paths to IPFS, optionally pinning them.
 func addMigrationFiles(ctx context.Context, node *core.IpfsNode, paths []string, pin bool) error {
 	if len(paths) == 0 {
 		return nil

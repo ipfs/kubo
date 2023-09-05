@@ -101,5 +101,4 @@ func TestDag(t *testing.T) {
 		stat := node.RunIPFS("dag", "stat", "--progress=false", node1Cid, node2Cid)
 		assert.Equal(t, content, stat.Stdout.Bytes())
 	})
-
 }

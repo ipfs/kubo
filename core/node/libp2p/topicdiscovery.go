@@ -21,7 +21,6 @@ func TopicDiscovery() interface{} {
 			baseDisc,
 			backoff.NewExponentialBackoff(minBackoff, maxBackoff, backoff.FullJitter, time.Second, 5.0, 0, rng),
 		)
-
 		if err != nil {
 			return nil, err
 		}

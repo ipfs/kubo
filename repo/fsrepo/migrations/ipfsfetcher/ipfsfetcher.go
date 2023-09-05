@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	// Default maximum download size
+	// Default maximum download size.
 	defaultFetchLimit = 1024 * 1024 * 512
 
 	tempNodeTCPAddr = "/ip4/127.0.0.1/tcp/0"
@@ -155,7 +155,7 @@ func (f *IpfsFetcher) AddrInfo() peer.AddrInfo {
 	return f.addrInfo
 }
 
-// FetchedPaths returns the IPFS paths of all items fetched by this fetcher
+// FetchedPaths returns the IPFS paths of all items fetched by this fetcher.
 func (f *IpfsFetcher) FetchedPaths() []ipath.Path {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()

@@ -15,9 +15,7 @@ import (
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
 )
 
-var (
-	errAllowOffline = errors.New("can't publish while offline: pass `--allow-offline` to override")
-)
+var errAllowOffline = errors.New("can't publish while offline: pass `--allow-offline` to override")
 
 const (
 	ipfsPathOptionName     = "ipfs-path"

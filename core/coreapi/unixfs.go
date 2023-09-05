@@ -32,8 +32,10 @@ import (
 
 type UnixfsAPI CoreAPI
 
-var nilNode *core.IpfsNode
-var once sync.Once
+var (
+	nilNode *core.IpfsNode
+	once    sync.Once
+)
 
 func getOrCreateNilNode() (*core.IpfsNode, error) {
 	once.Do(func() {
@@ -41,7 +43,7 @@ func getOrCreateNilNode() (*core.IpfsNode, error) {
 			return
 		}
 		node, err := core.NewNode(context.Background(), &core.BuildCfg{
-			//TODO: need this to be true or all files
+			// TODO: need this to be true or all files
 			// hashed will be stored in memory!
 			NilRepo: true,
 		})
@@ -253,7 +255,6 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 	defer span.End()
 	if linkres.Link != nil {
 		span.SetAttributes(attribute.String("linkname", linkres.Link.Name), attribute.String("cid", linkres.Link.Cid.String()))
-
 	}
 
 	if linkres.Err != nil {
@@ -314,7 +315,7 @@ func (api *UnixfsAPI) lsFromLinksAsync(ctx context.Context, dir uio.Directory, s
 		defer close(out)
 		for l := range dir.EnumLinksAsync(ctx) {
 			select {
-			case out <- api.processLink(ctx, l, settings): //TODO: perf: processing can be done in background and in parallel
+			case out <- api.processLink(ctx, l, settings): // TODO: perf: processing can be done in background and in parallel
 			case <-ctx.Done():
 				return
 			}
@@ -329,7 +330,7 @@ func (api *UnixfsAPI) lsFromLinks(ctx context.Context, ndlinks []*ipld.Link, set
 	for _, l := range ndlinks {
 		lr := ft.LinkResult{Link: &ipld.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}}
 
-		links <- api.processLink(ctx, lr, settings) //TODO: can be parallel if settings.Async
+		links <- api.processLink(ctx, lr, settings) // TODO: can be parallel if settings.Async
 	}
 	close(links)
 	return links, nil

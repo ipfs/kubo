@@ -41,17 +41,17 @@ type Config struct {
 }
 
 const (
-	// DefaultPathName is the default config dir name
+	// DefaultPathName is the default config dir name.
 	DefaultPathName = ".ipfs"
 	// DefaultPathRoot is the path to the default config dir location.
 	DefaultPathRoot = "~/" + DefaultPathName
-	// DefaultConfigFile is the filename of the configuration file
+	// DefaultConfigFile is the filename of the configuration file.
 	DefaultConfigFile = "config"
 	// EnvDir is the environment variable used to change the path root.
 	EnvDir = "IPFS_PATH"
 )
 
-// PathRoot returns the default configuration root directory
+// PathRoot returns the default configuration root directory.
 func PathRoot() (string, error) {
 	dir := os.Getenv(EnvDir)
 	var err error
@@ -83,7 +83,7 @@ func Path(configroot, extension string) (string, error) {
 //   - If the user-provided configuration file path is only a file name, use the
 //     configuration root directory, otherwise use only the user-provided path
 //     and ignore the configuration root.
-func Filename(configroot string, userConfigFile string) (string, error) {
+func Filename(configroot, userConfigFile string) (string, error) {
 	if userConfigFile == "" {
 		return Path(configroot, DefaultConfigFile)
 	}
@@ -95,7 +95,7 @@ func Filename(configroot string, userConfigFile string) (string, error) {
 	return userConfigFile, nil
 }
 
-// HumanOutput gets a config value ready for printing
+// HumanOutput gets a config value ready for printing.
 func HumanOutput(value interface{}) ([]byte, error) {
 	s, ok := value.(string)
 	if ok {
@@ -104,7 +104,7 @@ func HumanOutput(value interface{}) ([]byte, error) {
 	return Marshal(value)
 }
 
-// Marshal configuration with JSON
+// Marshal configuration with JSON.
 func Marshal(value interface{}) ([]byte, error) {
 	// need to prettyprint, hence MarshalIndent, instead of Encoder
 	return json.MarshalIndent(value, "", "  ")
@@ -117,7 +117,7 @@ func FromMap(v map[string]interface{}) (*Config, error) {
 	}
 	var conf Config
 	if err := json.NewDecoder(buf).Decode(&conf); err != nil {
-		return nil, fmt.Errorf("failure to decode config: %s", err)
+		return nil, fmt.Errorf("failure to decode config: %w", err)
 	}
 	return &conf, nil
 }
@@ -129,7 +129,7 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 	}
 	var m map[string]interface{}
 	if err := json.NewDecoder(buf).Decode(&m); err != nil {
-		return nil, fmt.Errorf("failure to decode config: %s", err)
+		return nil, fmt.Errorf("failure to decode config: %w", err)
 	}
 	return m, nil
 }
@@ -140,11 +140,11 @@ func (c *Config) Clone() (*Config, error) {
 	var buf bytes.Buffer
 
 	if err := json.NewEncoder(&buf).Encode(c); err != nil {
-		return nil, fmt.Errorf("failure to encode config: %s", err)
+		return nil, fmt.Errorf("failure to encode config: %w", err)
 	}
 
 	if err := json.NewDecoder(&buf).Decode(&newConfig); err != nil {
-		return nil, fmt.Errorf("failure to decode config: %s", err)
+		return nil, fmt.Errorf("failure to decode config: %w", err)
 	}
 
 	return &newConfig, nil

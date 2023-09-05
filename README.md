@@ -1,5 +1,11 @@
+<h1 align="center">
+<img src="https://ipfs.io/ipfs/QmTtCH31LdGV4LjRm5FNmnw6hUwZq1Z1YXtjeNKHBeaRcQ/kubo-logo.png" alt="Kubo logo" title="Kubo logo" width="200">
+<br>
+Kubo: IPFS Implementation in GO
+</h1>
+<p align="center" style="font-size: 1.2rem;">The first implementation of IPFS.</p>
 
-![kubo, an IPFS node in Go](https://ipfs.io/ipfs/bafykbzacecaesuqmivkauix25v6i6xxxsvsrtxknhgb5zak3xxsg2nb4dhs2u/ipfs.go.png)
+<hr />
 
 [![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square&cacheSeconds=3600)](https://protocol.ai)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square&cacheSeconds=3600)](https://godoc.org/github.com/ipfs/kubo)
@@ -47,8 +53,8 @@ Before opening an issue, consider using one of the following locations to ensure
 - [Next milestones](#next-milestones)
 - [Table of Contents](#table-of-contents)
 - [Security Issues](#security-issues)
+- [Minimal System Requirements](#minimal-system-requirements)
 - [Install](#install)
-  - [System Requirements](#system-requirements)
   - [Docker](#docker)
   - [Official prebuilt binaries](#official-prebuilt-binaries)
     - [Updating](#updating)
@@ -93,18 +99,13 @@ Before opening an issue, consider using one of the following locations to ensure
 
 Please follow [`SECURITY.md`](SECURITY.md).
 
+### Minimal System Requirements
+
+IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 4 GB of RAM and 2 CPU cores (kubo is highly parallel). On systems with less memory, it may not be completely stable, and you run on your own risk.
+
 ## Install
 
 The canonical download instructions for IPFS are over at: https://docs.ipfs.tech/install/. It is **highly recommended** you follow those instructions if you are not interested in working on IPFS development.
-
-### System Requirements
-
-IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 2 GB of RAM and 2 CPU cores (kubo is highly parallel). On systems with less memory, it may not be completely stable.
-
-If your system is resource-constrained, we recommend:
-
-1. Installing OpenSSL and rebuilding kubo manually with `make build GOTAGS=openssl`. See the [download and compile](#download-and-compile-ipfs) section for more information on compiling kubo.
-2. Initializing your daemon with `ipfs init --profile=lowpower`
 
 ### Docker
 
@@ -165,8 +166,12 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 
 ### Unofficial Linux packages
 
+<a href="https://repology.org/project/kubo/versions">
+    <img src="https://repology.org/badge/vertical-allrepos/kubo.svg" alt="Packaging status" align="right">
+</a>
+
 - [ArchLinux](#arch-linux)
-- [Nix](#nix)
+- [Nix](#nix-linux)
 - [Solus](#solus)
 - [openSUSE](#opensuse)
 - [Guix](#guix)

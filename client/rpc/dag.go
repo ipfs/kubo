@@ -14,9 +14,11 @@ import (
 	multicodec "github.com/multiformats/go-multicodec"
 )
 
-type httpNodeAdder HttpApi
-type HttpDagServ httpNodeAdder
-type pinningHttpNodeAdder httpNodeAdder
+type (
+	httpNodeAdder        HttpApi
+	HttpDagServ          httpNodeAdder
+	pinningHttpNodeAdder httpNodeAdder
+)
 
 func (api *HttpDagServ) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
 	r, err := api.core().Block().Get(ctx, path.IpldPath(c))
@@ -114,7 +116,7 @@ func (api *HttpDagServ) Pinning() format.NodeAdder {
 }
 
 func (api *HttpDagServ) Remove(ctx context.Context, c cid.Cid) error {
-	return api.core().Block().Rm(ctx, path.IpldPath(c)) //TODO: should we force rm?
+	return api.core().Block().Rm(ctx, path.IpldPath(c)) // TODO: should we force rm?
 }
 
 func (api *HttpDagServ) RemoveMany(ctx context.Context, cids []cid.Cid) error {

@@ -1,6 +1,7 @@
 name: Gateway Conformance
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -23,7 +24,7 @@ jobs:
     steps:
       # 1. Download the gateway-conformance fixtures
       - name: Download gateway-conformance fixtures
-        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.1
+        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.3
         with:
           output: fixtures
 
@@ -31,9 +32,9 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.19.x
+          go-version: 1.20.x
       - name: Checkout kubo-gateway
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: kubo-gateway
       - name: Build kubo-gateway
@@ -47,6 +48,7 @@ jobs:
             {
               "example.com": {
                 "UseSubdomains": true,
+                "InlineDNSLink": true,
                 "Paths": ["/ipfs", "/ipns"]
               },
               "localhost": {
@@ -76,7 +78,8 @@ jobs:
 
           # Import dnslink records
           # the IPFS_NS_MAP env will be used by the daemon
-          export IPFS_NS_MAP=$(cat ./fixtures/dnslinks.json | jq -r 'to_entries | map("\(.key).example.com:\(.value)") | join(",")')
+          export IPFS_NS_MAP=$(cat "./fixtures/dnslinks.json" | jq -r '.subdomains | to_entries | map("\(.key).example.com:\(.value)") | join(",")')
+          export IPFS_NS_MAP="$(cat "./fixtures/dnslinks.json" | jq -r '.domains | to_entries | map("\(.key):\(.value)") | join(",")'),${IPFS_NS_MAP}"
           echo "IPFS_NS_MAP=${IPFS_NS_MAP}" >> $GITHUB_ENV
 
       # 5. Start the kubo-gateway
@@ -87,7 +90,7 @@ jobs:
 
       # 6. Run the gateway-conformance tests
       - name: Run gateway-conformance tests
-        uses: ipfs/gateway-conformance/.github/actions/test@v0.1
+        uses: ipfs/gateway-conformance/.github/actions/test@v0.3
         with:
           gateway-url: http://127.0.0.1:8080
           json: output.json
@@ -106,3 +109,9 @@ jobs:
         with:
           name: gateway-conformance.html
           path: output.html
+      - name: Upload JSON report
+        if: failure() || success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: gateway-conformance.json
+          path: output.json

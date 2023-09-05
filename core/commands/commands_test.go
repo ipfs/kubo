@@ -25,6 +25,7 @@ func TestROCommands(t *testing.T) {
 		"/commands/completion",
 		"/commands/completion/bash",
 		"/commands/completion/fish",
+		"/commands/completion/zsh",
 		"/dag",
 		"/dag/get",
 		"/dag/resolve",
@@ -71,6 +72,7 @@ func TestROCommands(t *testing.T) {
 		}
 	}
 }
+
 func TestCommands(t *testing.T) {
 	list := []string{
 		"/add",
@@ -101,6 +103,7 @@ func TestCommands(t *testing.T) {
 		"/commands/completion",
 		"/commands/completion/bash",
 		"/commands/completion/fish",
+		"/commands/completion/zsh",
 		"/config",
 		"/config/edit",
 		"/config/profile",

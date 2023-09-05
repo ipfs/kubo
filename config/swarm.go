@@ -122,12 +122,12 @@ type Transports struct {
 	Multiplexers struct {
 		// Defaults to 100.
 		Yamux Priority `json:",omitempty"`
-		// Defaults to 200.
+		// Defaults to -1.
 		Mplex Priority `json:",omitempty"`
 	}
 }
 
-// ConnMgr defines configuration options for the libp2p connection manager
+// ConnMgr defines configuration options for the libp2p connection manager.
 type ConnMgr struct {
 	Type        *OptionalString   `json:",omitempty"`
 	LowWater    *OptionalInteger  `json:",omitempty"`

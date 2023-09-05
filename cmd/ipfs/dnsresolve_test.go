@@ -25,7 +25,8 @@ func makeResolver(t *testing.T, n uint8) *madns.Resolver {
 	backend := &madns.MockResolver{
 		IP: map[string][]net.IPAddr{
 			"example.com": results,
-		}}
+		},
+	}
 
 	resolver, err := madns.NewResolver(madns.WithDefaultResolver(backend))
 	if err != nil {

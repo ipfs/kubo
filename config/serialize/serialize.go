@@ -28,19 +28,19 @@ func ReadConfigFile(filename string, cfg interface{}) error {
 	}
 	defer f.Close()
 	if err := json.NewDecoder(f).Decode(cfg); err != nil {
-		return fmt.Errorf("failure to decode config: %s", err)
+		return fmt.Errorf("failure to decode config: %w", err)
 	}
 	return nil
 }
 
 // WriteConfigFile writes the config from `cfg` into `filename`.
 func WriteConfigFile(filename string, cfg interface{}) error {
-	err := os.MkdirAll(filepath.Dir(filename), 0755)
+	err := os.MkdirAll(filepath.Dir(filename), 0o755)
 	if err != nil {
 		return err
 	}
 
-	f, err := atomicfile.New(filename, 0600)
+	f, err := atomicfile.New(filename, 0o600)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func WriteConfigFile(filename string, cfg interface{}) error {
 	return encode(f, cfg)
 }
 
-// encode configuration with JSON
+// encode configuration with JSON.
 func encode(w io.Writer, value interface{}) error {
 	// need to prettyprint, hence MarshalIndent, instead of Encoder
 	buf, err := config.Marshal(value)

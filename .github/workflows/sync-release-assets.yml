@@ -26,14 +26,14 @@ jobs:
         with:
           node-version: 14
       - name: Sync the latest 5 github releases
-        uses: actions/github-script@v4
+        uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs').promises
             const max_synced = 5
 
             // fetch github releases
-            resp = await github.repos.listReleases({
+            resp = await github.rest.repos.listReleases({
               owner: context.repo.owner,
               repo: context.repo.repo,
               page: 1,
@@ -116,7 +116,7 @@ jobs:
                 }
 
                 console.log("uploading", file, "to github release", release.tag_name)
-                const uploadReleaseAsset = async (file) => github.repos.uploadReleaseAsset({
+                const uploadReleaseAsset = async (file) => github.rest.repos.uploadReleaseAsset({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   release_id: release.id,
