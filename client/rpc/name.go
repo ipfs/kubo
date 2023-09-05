@@ -8,8 +8,8 @@ import (
 
 	iface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
-	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
 	"github.com/ipfs/boxo/ipns"
+	"github.com/ipfs/boxo/namesys"
 	"github.com/ipfs/boxo/path"
 )
 
@@ -49,9 +49,9 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		return nil, err
 	}
 
-	ropts := nsopts.ProcessOpts(options.ResolveOpts)
-	if ropts.Depth != nsopts.DefaultDepthLimit && ropts.Depth != 1 {
-		return nil, fmt.Errorf("Name.Resolve: depth other than 1 or %d not supported", nsopts.DefaultDepthLimit)
+	ropts := namesys.ProcessResolveOptions(options.ResolveOpts)
+	if ropts.Depth != namesys.DefaultDepthLimit && ropts.Depth != 1 {
+		return nil, fmt.Errorf("Name.Resolve: depth other than 1 or %d not supported", namesys.DefaultDepthLimit)
 	}
 
 	req := api.core().Request("name/resolve", name).
@@ -110,9 +110,9 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		return nil, err
 	}
 
-	ropts := nsopts.ProcessOpts(options.ResolveOpts)
-	if ropts.Depth != nsopts.DefaultDepthLimit && ropts.Depth != 1 {
-		return nil, fmt.Errorf("Name.Resolve: depth other than 1 or %d not supported", nsopts.DefaultDepthLimit)
+	ropts := namesys.ProcessResolveOptions(options.ResolveOpts)
+	if ropts.Depth != namesys.DefaultDepthLimit && ropts.Depth != 1 {
+		return nil, fmt.Errorf("Name.Resolve: depth other than 1 or %d not supported", namesys.DefaultDepthLimit)
 	}
 
 	req := api.core().Request("name/resolve", name).

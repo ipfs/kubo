@@ -7,14 +7,12 @@ import (
 	"strings"
 	"time"
 
-	namesys "github.com/ipfs/boxo/namesys"
-	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
-
 	options "github.com/ipfs/boxo/coreiface/options"
-	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
+	"github.com/ipfs/boxo/namesys"
 	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 )
 
 var log = logging.Logger("core/commands/ipns")
@@ -108,10 +106,10 @@ Resolve the value of a dnslink:
 		}
 
 		if !recursive {
-			opts = append(opts, options.Name.ResolveOption(nsopts.Depth(1)))
+			opts = append(opts, options.Name.ResolveOption(namesys.ResolveWithDepth(1)))
 		}
 		if rcok {
-			opts = append(opts, options.Name.ResolveOption(nsopts.DhtRecordCount(rc)))
+			opts = append(opts, options.Name.ResolveOption(namesys.ResolveWithDhtRecordCount(rc)))
 		}
 		if dhttok {
 			d, err := time.ParseDuration(dhtt)
@@ -121,7 +119,7 @@ Resolve the value of a dnslink:
 			if d < 0 {
 				return errors.New("DHT timeout value must be >= 0")
 			}
-			opts = append(opts, options.Name.ResolveOption(nsopts.DhtTimeout(d)))
+			opts = append(opts, options.Name.ResolveOption(namesys.ResolveWithDhtTimeout(d)))
 		}
 
 		if !strings.HasPrefix(name, "/ipns/") {
