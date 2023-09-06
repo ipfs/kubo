@@ -197,14 +197,14 @@ jobs:
         run: |
           gatewayNodeId=$(./ipfs --api=/ip4/127.0.0.1/tcp/5001 id -f="<id>")
           ./ipfs --api=/ip4/127.0.0.1/tcp/5002 swarm connect $(./ipfs --api=/ip4/127.0.0.1/tcp/5001 swarm addrs local --id | head -n 1)
-          ./ipfs --api=/ip4/127.0.0.1/tcp/5002 p2p forward --allow-custom-protocol /http/1.1 /ip4/127.0.0.1/tcp/8082 /p2p/$gatewayNodeId
+          ./ipfs --api=/ip4/127.0.0.1/tcp/5002 p2p forward --allow-custom-protocol /http/1.1 /ip4/127.0.0.1/tcp/8092 /p2p/$gatewayNodeId
         working-directory: kubo-gateway/cmd/ipfs
 
       # 9. Run the gateway-conformance tests over libp2p
       - name: Run gateway-conformance tests over libp2p
         uses: ipfs/gateway-conformance/.github/actions/test@v0.3
         with:
-          gateway-url: http://127.0.0.1:8081
+          gateway-url: http://127.0.0.1:8092
           json: output.json
           xml: output.xml
           html: output.html
