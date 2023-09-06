@@ -629,19 +629,25 @@ ipfs config --json Experimental.OptimisticProvideJobsPoolSize 120
 
 Experimental, disabled by default.
 
-Enables serving the [IPFS HTTP Gateway](https://specs.ipfs.tech/http-gateways/) protocol over libp2p transports and
-as described in the [specification](https://github.com/ipfs/specs/pull/434).
+Enables serving a subset of the [IPFS HTTP Gateway](https://specs.ipfs.tech/http-gateways/) semantics over libp2p `/http/1.1` protocol.
 
 Notes:
-- This feature currently is only about serving the gateway requests over libp2p, not about fetching data this way using 
-[Trustless Gateway Specification](https://specs.ipfs.tech/http-gateways/trustless-gateway/).
-- While kubo currently mounts the gateway API at the root (i.e. `/`) of the libp2p `/http/1.1` protocol that is subject to
-change. The way to reliably discover where a given HTTP protocol is mounted on a libp2p endpoint is via the `.well-known/libp2p`
-resource specified in the [http+libp2p specification](https://github.com/libp2p/specs/pull/508)
-- Kubo currently hard codes the gateway-over-libp2p behavior to:
-  - Only operate on `/ipfs` resources
-  - Only satisfy the Trustless Gateway API
-  - Only serve data that is already local to the node (i.e. similar to a `NoFetch` gateway)
+- This feature only about serving verifiable gateway requests over libp2p:
+  - Deserialized responses are not supported.
+  - Only operate on `/ipfs` resources (no `/ipns` atm)
+  - Only support requests for `application/vnd.ipld.raw` and
+    `application/vnd.ipld.car` (from [Trustless Gateway Specification](https://specs.ipfs.tech/http-gateways/trustless-gateway/),
+    where data integrity can be verified).
+  - Only serve data that is already local to the node (i.e. similar to a
+    [`Gateway.NoFetch`](https://github.com/ipfs/kubo/blob/master/docs/config.md#gatewaynofetch))
+- While Kubo currently mounts the gateway API at the root (i.e. `/`) of the
+  libp2p `/http/1.1` protocol, that is subject to change.
+  - The way to reliably discover where a given HTTP protocol is mounted on a
+    libp2p endpoint is via the `.well-known/libp2p` resource specified in the
+    [http+libp2p specification](https://github.com/libp2p/specs/pull/508)
+    - The identifier of the protocol mount point under `/http/1.1` listener is
+      `/ipfs/gateway`, as noted in
+      [ipfs/specs#434](https://github.com/ipfs/specs/pull/434).
 
 ### How to enable
 
@@ -654,3 +660,6 @@ ipfs config --json Experimental.GatewayOverLibp2p true
 ### Road to being a real feature
 
 - [ ] Needs more people to use and report on how well it works
+- [ ] Needs UX work for exposing non-recursive "HTTP transport" (NoFetch) over both libp2p and plain TCP (and sharing the configuration)
+- [ ] Needs a mechanism for HTTP handler to signal supported features ([IPIP-425](https://github.com/ipfs/specs/pull/425))
+- [ ] Needs an option for Kubo to detect peers that have it enabled and prefer HTTP transport before falling back to bitswap (and use CAR if peer supports dag-scope=entity from [IPIP-402](https://github.com/ipfs/specs/pull/402))
