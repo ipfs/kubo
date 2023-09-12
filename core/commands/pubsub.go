@@ -110,7 +110,7 @@ TOPIC AND DATA ENCODING
 			encoder, _ := mbase.EncoderByName("base64url")
 			psm := pubsubMessage{
 				Data:  encoder.Encode(msg.Data()),
-				From:  msg.From().Pretty(),
+				From:  msg.From().String(),
 				Seqno: encoder.Encode(msg.Seq()),
 			}
 			for _, topic := range msg.Topics() {
@@ -323,7 +323,7 @@ TOPIC AND DATA ENCODING
 		list := &stringList{make([]string, 0, len(peers))}
 
 		for _, peer := range peers {
-			list.Strings = append(list.Strings, peer.Pretty())
+			list.Strings = append(list.Strings, peer.String())
 		}
 		sort.Strings(list.Strings)
 		return cmds.EmitOnce(res, list)

@@ -93,7 +93,7 @@ Resolve the value of a dnslink:
 			if err != nil {
 				return err
 			}
-			name = self.ID().Pretty()
+			name = self.ID().String()
 		} else {
 			name = req.Arguments[0]
 		}

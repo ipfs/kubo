@@ -151,7 +151,7 @@ func TestIpnsLocalLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if linksto != nd.Identity.Pretty() {
+	if linksto != nd.Identity.String() {
 		t.Fatal("Link invalid")
 	}
 }
@@ -176,7 +176,7 @@ func TestIpnsBasicIO(t *testing.T) {
 		t.Fatal("Incorrect Read!")
 	}
 
-	fname2 := mnt.Dir + "/" + nd.Identity.Pretty() + "/testfile"
+	fname2 := mnt.Dir + "/" + nd.Identity.String() + "/testfile"
 	rbuf, err = os.ReadFile(fname2)
 	if err != nil {
 		t.Fatal(err)
