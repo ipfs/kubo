@@ -4,17 +4,23 @@ import (
 	"errors"
 	_ "expvar"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"sort"
 	"sync"
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
 
+	"github.com/dustin/go-humanize"
+	options "github.com/ipfs/boxo/coreiface/options"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	mprome "github.com/ipfs/go-metrics-prometheus"
 	version "github.com/ipfs/kubo"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
@@ -30,16 +36,13 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
+	goprocess "github.com/jbenet/goprocess"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	pnet "github.com/libp2p/go-libp2p/core/pnet"
 	sockets "github.com/libp2p/go-socket-activation"
-
-	options "github.com/ipfs/boxo/coreiface/options"
-	cmds "github.com/ipfs/go-ipfs-cmds"
-	mprome "github.com/ipfs/go-metrics-prometheus"
-	goprocess "github.com/jbenet/goprocess"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
+	"github.com/pbnjay/memory"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promauto "github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -197,6 +200,42 @@ func defaultMux(path string) corehttp.ServeOption {
 	}
 }
 
+// setMemoryLimit a soft memory limit to enforce running the GC more often when
+// we are about to run out.
+// This allows to recoop memory when it's about to run out and cancel the
+// doubled memory footprint most go programs experience, at the cost of more CPU
+// usage in memory tight conditions. This does not increase CPU usage when memory
+// is plenty available, it will use more CPU and continue to run in cases where Kubo
+// would OOM.
+func setMemoryLimit() {
+	// From the STD documentation:
+	// A negative input does not adjust the limit, and allows for retrieval of the currently set memory limit.
+	if currentMemoryLimit := debug.SetMemoryLimit(-1); currentMemoryLimit != math.MaxInt64 {
+		fmt.Printf("GOMEMLIMIT already set to %s, leaving as-is.\n", humanize.IBytes(uint64(currentMemoryLimit)))
+		// only update the memory limit if it wasn't set with GOMEMLIMIT already
+		return
+	}
+
+	// this is a proportional negative-rate increase curve fitted to thoses points:
+	// 0GiB   -> 0GiB
+	// 4GiB   -> 0.5GiB
+	// 6GiB   -> 0.75GiB
+	// 12GiB  -> 1GiB
+	// 256GiB -> 2GiB
+	totalMemory := memory.TotalMemory()
+	memoryMargin := int64(213865e4 - 209281e4*math.Pow(math.E, -588918e-16*float64(totalMemory)))
+	// if memory is extremely small this approximation / is useless
+	if memoryMargin <= 0 {
+		// then don't bother setting a limit and rely on GOGC
+		fmt.Println("TotalMemory is too tight, continuing without GOMEMLIMIT.")
+		return
+	}
+
+	remainingMemory := totalMemory - uint64(memoryMargin)
+	debug.SetMemoryLimit(int64(remainingMemory))
+	fmt.Printf("Set GOMEMLIMIT to %s.\n", humanize.IBytes(remainingMemory))
+}
+
 func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) (_err error) {
 	// Inject metrics before we do anything
 	err := mprome.Inject()
@@ -218,6 +257,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// print the ipfs version
 	printVersion()
+
+	setMemoryLimit()
 
 	managefd, _ := req.Options[adjustFDLimitKwd].(bool)
 	if managefd {
