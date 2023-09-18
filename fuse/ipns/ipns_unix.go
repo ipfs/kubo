@@ -220,7 +220,7 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	listing := make([]fuse.Dirent, 0, len(r.Keys)*2)
 	for alias, k := range r.Keys {
 		ent := fuse.Dirent{
-			Name: k.ID().Pretty(),
+			Name: k.ID().String(),
 			Type: fuse.DT_Dir,
 		}
 		link := fuse.Dirent{

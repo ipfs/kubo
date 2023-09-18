@@ -17,7 +17,7 @@ func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (peer.AddrInfo, erro
 		Type      routing.QueryEventType
 		Responses []peer.AddrInfo
 	}
-	resp, err := api.core().Request("dht/findpeer", p.Pretty()).Send(ctx)
+	resp, err := api.core().Request("dht/findpeer", p.String()).Send(ctx)
 	if err != nil {
 		return peer.AddrInfo{}, err
 	}

@@ -141,7 +141,7 @@ func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 
 	c.Bootstrap = cfg.DefaultBootstrapAddresses
 	c.Addresses.Swarm = []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"}
-	c.Identity.PeerID = pid.Pretty()
+	c.Identity.PeerID = pid.String()
 	c.Identity.PrivKey = base64.StdEncoding.EncodeToString(privkeyb)
 
 	return &repo.Mock{
