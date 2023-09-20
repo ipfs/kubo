@@ -11,7 +11,7 @@ import (
 
 const (
 	// Current distribution to fetch migrations from.
-	CurrentIpfsDist = "/ipfs/QmVYvjxCiUxqGjDeREFDy8SbX3zj7vhgeuprk28hgvKEq5" // fs-repo-14-to-15 v1.0.0
+	CurrentIpfsDist = "/ipfs/QmZPedUiZNe6Gq9oDvoizuuCMVoeb7shwq9xKhysq7exMo" // fs-repo-14-to-15 v1.0.1
 	// Latest distribution path.  Default for fetchers.
 	LatestIpfsDist = "/ipns/dist.ipfs.tech"
 
