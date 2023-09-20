@@ -114,7 +114,7 @@ var findProvidersRoutingCmd = &cmds.Command{
 					if verbose {
 						fmt.Fprintf(out, "provider: ")
 					}
-					fmt.Fprintf(out, "%s\n", prov.ID.Pretty())
+					fmt.Fprintf(out, "%s\n", prov.ID)
 					if verbose {
 						for _, a := range prov.Addrs {
 							fmt.Fprintf(out, "\t%s\n", a)
@@ -479,7 +479,7 @@ identified by QmFoo.
 					return nil
 				},
 				routing.Value: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
-					fmt.Fprintf(out, "%s\n", obj.ID.Pretty())
+					fmt.Fprintf(out, "%s\n", obj.ID)
 					return nil
 				},
 			}

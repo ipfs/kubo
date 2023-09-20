@@ -14,12 +14,12 @@ func TestKeyTranslation(t *testing.T) {
 	pkname := namesys.PkKeyForID(pid)
 	ipnsname := ipns.NameFromPeer(pid).RoutingKey()
 
-	pkk, err := escapeDhtKey("/pk/" + pid.Pretty())
+	pkk, err := escapeDhtKey("/pk/" + pid.String())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ipnsk, err := escapeDhtKey("/ipns/" + pid.Pretty())
+	ipnsk, err := escapeDhtKey("/ipns/" + pid.String())
 	if err != nil {
 		t.Fatal(err)
 	}

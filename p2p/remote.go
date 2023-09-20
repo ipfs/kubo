@@ -55,13 +55,13 @@ func (l *remoteListener) handleStream(remote net.Stream) {
 	peer := remote.Conn().RemotePeer()
 
 	if l.reportRemote {
-		if _, err := fmt.Fprintf(local, "%s\n", peer.Pretty()); err != nil {
+		if _, err := fmt.Fprintf(local, "%s\n", peer); err != nil {
 			_ = remote.Reset()
 			return
 		}
 	}
 
-	peerMa, err := ma.NewMultiaddr(maPrefix + peer.Pretty())
+	peerMa, err := ma.NewMultiaddr(maPrefix + peer.String())
 	if err != nil {
 		_ = remote.Reset()
 		return
@@ -88,7 +88,7 @@ func (l *remoteListener) Protocol() protocol.ID {
 }
 
 func (l *remoteListener) ListenAddress() ma.Multiaddr {
-	addr, err := ma.NewMultiaddr(maPrefix + l.p2p.identity.Pretty())
+	addr, err := ma.NewMultiaddr(maPrefix + l.p2p.identity.String())
 	if err != nil {
 		panic(err)
 	}

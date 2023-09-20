@@ -360,7 +360,7 @@ func LimitConfigsToInfo(stats LimitsConfigAndUsage) ResourceInfos {
 
 	for i, p := range stats.Peers {
 		result = append(result, resourceLimitsAndUsageToResourceInfo(
-			config.ResourceMgrPeerScopePrefix+i.Pretty(),
+			config.ResourceMgrPeerScopePrefix+i.String(),
 			p,
 		)...)
 	}

@@ -284,7 +284,7 @@ func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 	return nil // may be non-nil / not succeeded
 }
 
-// to check that out Node implements all the interfaces we want.
+// to check that our Node implements all the interfaces we want.
 type roRoot interface {
 	fs.Node
 	fs.HandleReadDirAller

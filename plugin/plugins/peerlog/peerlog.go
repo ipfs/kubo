@@ -148,7 +148,7 @@ func (pl *peerLogPlugin) collectEvents(node *core.IpfsNode) {
 		case e = <-pl.events:
 		}
 
-		peerID := zap.String("peer", e.peer.Pretty())
+		peerID := zap.String("peer", e.peer.String())
 
 		switch e.kind {
 		case eventConnect:

@@ -14,7 +14,7 @@ import (
 type SwarmAPI HttpApi
 
 func (api *SwarmAPI) Connect(ctx context.Context, pi peer.AddrInfo) error {
-	pidma, err := multiaddr.NewComponent("p2p", pi.ID.Pretty())
+	pidma, err := multiaddr.NewComponent("p2p", pi.ID.String())
 	if err != nil {
 		return err
 	}

@@ -237,7 +237,7 @@ func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, 
 	if err != nil {
 		return ident, err
 	}
-	ident.PeerID = id.Pretty()
+	ident.PeerID = id.String()
 	fmt.Fprintf(out, "peer identity: %s\n", ident.PeerID)
 	return ident, nil
 }
