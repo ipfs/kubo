@@ -153,7 +153,7 @@ func ReadMigrationConfig(repoRoot string, userConfigFile string) (*config.Migrat
 // GetMigrationFetcher creates one or more fetchers according to
 // downloadSources,.
 func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetcher func(string) Fetcher) (Fetcher, error) {
-	const httpUserAgent = "go-ipfs"
+	const httpUserAgent = "kubo/migration"
 	const numTriesPerHTTP = 3
 
 	var fetchers []Fetcher
