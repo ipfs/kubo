@@ -15,6 +15,9 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 
+	options "github.com/ipfs/boxo/coreiface/options"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	mprome "github.com/ipfs/go-metrics-prometheus"
 	version "github.com/ipfs/kubo"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
@@ -30,14 +33,12 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
+	goprocess "github.com/jbenet/goprocess"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	pnet "github.com/libp2p/go-libp2p/core/pnet"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	p2phttp "github.com/libp2p/go-libp2p/p2p/http"
 	sockets "github.com/libp2p/go-socket-activation"
-
-	options "github.com/ipfs/boxo/coreiface/options"
-	cmds "github.com/ipfs/go-ipfs-cmds"
-	mprome "github.com/ipfs/go-metrics-prometheus"
-	goprocess "github.com/jbenet/goprocess"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	prometheus "github.com/prometheus/client_golang/prometheus"
@@ -551,6 +552,12 @@ take effect.
 		return err
 	}
 
+	// add trustless gateway over libp2p
+	p2pGwErrc, err := serveTrustlessGatewayOverLibp2p(cctx)
+	if err != nil {
+		return err
+	}
+
 	// Add ipfs version info to prometheus metrics
 	ipfsInfoMetric := promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "ipfs_info",
@@ -617,7 +624,7 @@ take effect.
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
 	var errs error
-	for err := range merge(apiErrc, gwErrc, gcErrc) {
+	for err := range merge(apiErrc, gwErrc, gcErrc, p2pGwErrc) {
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
@@ -894,6 +901,61 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	go func() {
 		wg.Wait()
 		close(errc)
+	}()
+
+	return errc, nil
+}
+
+const gatewayProtocolID protocol.ID = "/ipfs/gateway" // FIXME: specify https://github.com/ipfs/specs/issues/433
+
+func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
+	node, err := cctx.ConstructNode()
+	if err != nil {
+		return nil, fmt.Errorf("serveHTTPGatewayOverLibp2p: ConstructNode() failed: %s", err)
+	}
+	cfg, err := node.Repo.Config()
+	if err != nil {
+		return nil, fmt.Errorf("could not read config: %w", err)
+	}
+
+	if !cfg.Experimental.GatewayOverLibp2p {
+		errCh := make(chan error)
+		close(errCh)
+		return errCh, nil
+	}
+
+	opts := []corehttp.ServeOption{
+		corehttp.MetricsCollectionOption("libp2p-gateway"),
+		corehttp.Libp2pGatewayOption(),
+		corehttp.VersionOption(),
+	}
+
+	handler, err := corehttp.MakeHandler(node, nil, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	h := p2phttp.Host{
+		StreamHost: node.PeerHost,
+	}
+
+	tmpProtocol := protocol.ID("/kubo/delete-me")
+	h.SetHTTPHandler(tmpProtocol, http.NotFoundHandler())
+	h.WellKnownHandler.RemoveProtocolMeta(tmpProtocol)
+
+	h.WellKnownHandler.AddProtocolMeta(gatewayProtocolID, p2phttp.ProtocolMeta{Path: "/"})
+	h.ServeMux = http.NewServeMux()
+	h.ServeMux.Handle("/", handler)
+
+	errc := make(chan error, 1)
+	go func() {
+		defer close(errc)
+		errc <- h.Serve()
+	}()
+
+	go func() {
+		<-node.Process.Closing()
+		h.Close()
 	}()
 
 	return errc, nil

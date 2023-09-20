@@ -27,6 +27,7 @@ the above issue.
 - [Graphsync](#graphsync)
 - [Noise](#noise)
 - [Optimistic Provide](#optimistic-provide)
+- [HTTP Gateway over Libp2p](#http-gateway-over-libp2p)
 
 ---
 
@@ -617,3 +618,48 @@ ipfs config --json Experimental.OptimisticProvideJobsPoolSize 120
 
 - [ ] Needs more people to use and report on how well it works
 - [ ] Should prove at least equivalent availability of provider records as the classic approach
+
+## HTTP Gateway over Libp2p
+
+### In Version
+
+0.23.0
+
+### State
+
+Experimental, disabled by default.
+
+Enables serving a subset of the [IPFS HTTP Gateway](https://specs.ipfs.tech/http-gateways/) semantics over libp2p `/http/1.1` protocol.
+
+Notes:
+- This feature only about serving verifiable gateway requests over libp2p:
+  - Deserialized responses are not supported.
+  - Only operate on `/ipfs` resources (no `/ipns` atm)
+  - Only support requests for `application/vnd.ipld.raw` and
+    `application/vnd.ipld.car` (from [Trustless Gateway Specification](https://specs.ipfs.tech/http-gateways/trustless-gateway/),
+    where data integrity can be verified).
+  - Only serve data that is already local to the node (i.e. similar to a
+    [`Gateway.NoFetch`](https://github.com/ipfs/kubo/blob/master/docs/config.md#gatewaynofetch))
+- While Kubo currently mounts the gateway API at the root (i.e. `/`) of the
+  libp2p `/http/1.1` protocol, that is subject to change.
+  - The way to reliably discover where a given HTTP protocol is mounted on a
+    libp2p endpoint is via the `.well-known/libp2p` resource specified in the
+    [http+libp2p specification](https://github.com/libp2p/specs/pull/508)
+    - The identifier of the protocol mount point under `/http/1.1` listener is
+      `/ipfs/gateway`, as noted in
+      [ipfs/specs#434](https://github.com/ipfs/specs/pull/434).
+
+### How to enable
+
+Modify your ipfs config:
+
+```
+ipfs config --json Experimental.GatewayOverLibp2p true
+```
+
+### Road to being a real feature
+
+- [ ] Needs more people to use and report on how well it works
+- [ ] Needs UX work for exposing non-recursive "HTTP transport" (NoFetch) over both libp2p and plain TCP (and sharing the configuration)
+- [ ] Needs a mechanism for HTTP handler to signal supported features ([IPIP-425](https://github.com/ipfs/specs/pull/425))
+- [ ] Needs an option for Kubo to detect peers that have it enabled and prefer HTTP transport before falling back to bitswap (and use CAR if peer supports dag-scope=entity from [IPIP-402](https://github.com/ipfs/specs/pull/402))
