@@ -556,7 +556,7 @@ Stable, enabled by default
 
 Experimental, disabled by default.
 
-When the DHT client tries to store a provider in the DHT, it typically searches for the 20 peers that are closest to the
+When the Amino DHT client tries to store a provider in the DHT, it typically searches for the 20 peers that are closest to the
 target key. However, this process can be time-consuming, as the search terminates only after no closer peers are found
 among the three currently (during the query) known closest ones. In cases where these closest peers are slow to respond
 (which often happens if they are located at the edge of the DHT network), the query gets blocked by the slowest peer.
@@ -569,7 +569,7 @@ ones. This heuristic approach can significantly speed up the process, resulting 
 
 When it is enabled:
 
-- DHT provide operations should complete much faster than with it disabled
+- Amino DHT provide operations should complete much faster than with it disabled
 - This can be tested with commands such as `ipfs routing provide`
 
 **Tradeoffs**
