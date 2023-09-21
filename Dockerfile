@@ -15,11 +15,14 @@ COPY . $SRC_DIR
 # e.g. docker build --build-arg IPFS_PLUGINS="foo bar baz"
 ARG IPFS_PLUGINS
 
+# Allow for other targets to be built, e.g.: docker build --build-arg MAKE_TARGET="nofuse"
+ARG MAKE_TARGET=build
+
 # Build the thing.
 # Also: fix getting HEAD commit hash via git rev-parse.
 RUN cd $SRC_DIR \
   && mkdir -p .git/objects \
-  && GOOS=$TARGETOS GOARCH=$TARGETARCH GOFLAGS=-buildvcs=false make build IPFS_PLUGINS=$IPFS_PLUGINS
+  && GOOS=$TARGETOS GOARCH=$TARGETARCH GOFLAGS=-buildvcs=false make ${MAKE_TARGET} IPFS_PLUGINS=$IPFS_PLUGINS
 
 # Using Debian Buster because the version of busybox we're using is based on it
 # and we want to make sure the libraries we're using are compatible. That's also
