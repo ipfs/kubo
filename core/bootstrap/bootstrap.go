@@ -59,8 +59,8 @@ type BootstrapConfig struct {
 	// as backup bootstrap peers.
 	MaxBackupBootstrapSize int
 
-	SaveBackupBootstrapPeers func(context.Context, []peer.AddrInfo)
-	LoadBackupBootstrapPeers func(context.Context) []peer.AddrInfo
+	saveBackupBootstrapPeers func(context.Context, []peer.AddrInfo)
+	loadBackupBootstrapPeers func(context.Context) []peer.AddrInfo
 }
 
 // DefaultBootstrapConfig specifies default sane parameters for bootstrapping.
@@ -72,12 +72,39 @@ var DefaultBootstrapConfig = BootstrapConfig{
 	MaxBackupBootstrapSize:  20,
 }
 
-func BootstrapConfigWithPeers(pis []peer.AddrInfo) BootstrapConfig {
+// BootstrapConfigWithPeers creates a default BootstrapConfig configured with
+// the specified peers, and optional functions to load and save backup peers.
+func BootstrapConfigWithPeers(pis []peer.AddrInfo, options ...func(*BootstrapConfig)) BootstrapConfig {
 	cfg := DefaultBootstrapConfig
 	cfg.BootstrapPeers = func() []peer.AddrInfo {
 		return pis
 	}
+	for _, opt := range options {
+		opt(&cfg)
+	}
 	return cfg
+}
+
+// WithBackupPeers configures functions to load and save backup bootstrap peers.
+func WithBackupPeers(load func(context.Context) []peer.AddrInfo, save func(context.Context, []peer.AddrInfo)) func(*BootstrapConfig) {
+	if save == nil && load != nil || save != nil && load == nil {
+		panic("both load and save backup bootstrap peers functions must be defined")
+	}
+	return func(cfg *BootstrapConfig) {
+		cfg.loadBackupBootstrapPeers = load
+		cfg.saveBackupBootstrapPeers = save
+	}
+}
+
+// BackupPeers returns the load and save backup peers functions.
+func (cfg *BootstrapConfig) BackupPeers() (func(context.Context) []peer.AddrInfo, func(context.Context, []peer.AddrInfo)) {
+	return cfg.loadBackupBootstrapPeers, cfg.saveBackupBootstrapPeers
+}
+
+// SetBackupPeers sets the load and save backup peers functions.
+func (cfg *BootstrapConfig) SetBackupPeers(load func(context.Context) []peer.AddrInfo, save func(context.Context, []peer.AddrInfo)) {
+	opt := WithBackupPeers(load, save)
+	opt(cfg)
 }
 
 // Bootstrap kicks off IpfsNode bootstrapping. This function will periodically
@@ -124,7 +151,11 @@ func Bootstrap(id peer.ID, host host.Host, rt routing.Routing, cfg BootstrapConf
 	doneWithRound <- struct{}{}
 	close(doneWithRound) // it no longer blocks periodic
 
-	startSavePeersAsTemporaryBootstrapProc(cfg, host, proc)
+	// If loadBackupBootstrapPeers is not nil then saveBackupBootstrapPeers
+	// must also not be nil.
+	if cfg.loadBackupBootstrapPeers != nil {
+		startSavePeersAsTemporaryBootstrapProc(cfg, host, proc)
+	}
 
 	return proc, nil
 }
@@ -185,7 +216,7 @@ func saveConnectedPeersAsTemporaryBootstrap(ctx context.Context, host host.Host,
 
 	// If we didn't reach the target number use previously stored connected peers.
 	if len(backupPeers) < cfg.MaxBackupBootstrapSize {
-		oldSavedPeers := cfg.LoadBackupBootstrapPeers(ctx)
+		oldSavedPeers := cfg.loadBackupBootstrapPeers(ctx)
 		log.Debugf("missing %d peers to reach backup bootstrap target of %d, trying from previous list of %d saved peers",
 			cfg.MaxBackupBootstrapSize-len(backupPeers), cfg.MaxBackupBootstrapSize, len(oldSavedPeers))
 
@@ -209,7 +240,7 @@ func saveConnectedPeersAsTemporaryBootstrap(ctx context.Context, host host.Host,
 		}
 	}
 
-	cfg.SaveBackupBootstrapPeers(ctx, backupPeers)
+	cfg.saveBackupBootstrapPeers(ctx, backupPeers)
 	log.Debugf("saved %d peers (of %d target) as bootstrap backup in the config", len(backupPeers), cfg.MaxBackupBootstrapSize)
 	return nil
 }
@@ -241,9 +272,14 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 		}
 	}
 
+	if cfg.loadBackupBootstrapPeers == nil {
+		log.Debugf("not enough bootstrap peers to fill the remaining target of %d connections", numToDial)
+		return ErrNotEnoughBootstrapPeers
+	}
+
 	log.Debugf("not enough bootstrap peers to fill the remaining target of %d connections, trying backup list", numToDial)
 
-	tempBootstrapPeers := cfg.LoadBackupBootstrapPeers(ctx)
+	tempBootstrapPeers := cfg.loadBackupBootstrapPeers(ctx)
 	if len(tempBootstrapPeers) > 0 {
 		numToDial -= int(peersConnect(ctx, host, tempBootstrapPeers, numToDial, false))
 		if numToDial <= 0 {
