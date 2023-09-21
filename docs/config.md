@@ -658,6 +658,15 @@ Default: `true`
 
 Type: `flag`
 
+#### `Gateway.DisableHTMLErrors`
+
+An optional flag to disable the pretty HTML error pages of the gateway. Instead,
+a `text/plain` page will be returned with the raw error message from Kubo.
+
+Default: `false`
+
+Type: `flag`
+
 #### `Gateway.ExposeRoutingAPI`
 
 An optional flag to expose Kubo `Routing` system on the gateway port as a [Routing

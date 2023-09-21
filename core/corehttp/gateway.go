@@ -237,6 +237,7 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, error) {
 	gwCfg := gateway.Config{
 		Headers:               headers,
 		DeserializedResponses: cfg.Gateway.DeserializedResponses.WithDefault(config.DefaultDeserializedResponses),
+		DisableHTMLErrors:     cfg.Gateway.DisableHTMLErrors.WithDefault(config.DefaultDisableHTMLErrors),
 		NoDNSLink:             cfg.Gateway.NoDNSLink,
 		PublicGateways:        map[string]*gateway.PublicGateway{},
 	}
