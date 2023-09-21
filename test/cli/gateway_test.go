@@ -593,4 +593,39 @@ func TestGateway(t *testing.T) {
 			t.Run(test.message, makeTest(test))
 		}
 	})
+
+	t.Run("DisableHTMLErrors", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("Returns HTML error without DisableHTMLErrors, Accept contains text/html", func(t *testing.T) {
+			t.Parallel()
+
+			node := harness.NewT(t).NewNode().Init()
+			node.StartDaemon()
+			client := node.GatewayClient()
+
+			res := client.Get("/ipfs/invalid-thing", func(r *http.Request) {
+				r.Header.Set("Accept", "text/html")
+			})
+			assert.NotEqual(t, http.StatusOK, res.StatusCode)
+			assert.Contains(t, res.Resp.Header.Get("Content-Type"), "text/html")
+		})
+
+		t.Run("Does not return HTML error with DisableHTMLErrors enabled, and Accept contains text/html", func(t *testing.T) {
+			t.Parallel()
+
+			node := harness.NewT(t).NewNode().Init()
+			node.UpdateConfig(func(cfg *config.Config) {
+				cfg.Gateway.DisableHTMLErrors = config.True
+			})
+			node.StartDaemon()
+			client := node.GatewayClient()
+
+			res := client.Get("/ipfs/invalid-thing", func(r *http.Request) {
+				r.Header.Set("Accept", "text/html")
+			})
+			assert.NotEqual(t, http.StatusOK, res.StatusCode)
+			assert.NotContains(t, res.Resp.Header.Get("Content-Type"), "text/html")
+		})
+	})
 }

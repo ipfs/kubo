@@ -3,6 +3,7 @@ package config
 const (
 	DefaultInlineDNSLink         = false
 	DefaultDeserializedResponses = true
+	DefaultDisableHTMLErrors     = false
 	DefaultExposeRoutingAPI      = false
 )
 
@@ -69,6 +70,10 @@ type Gateway struct {
 	// https://specs.ipfs.tech/http-gateways/trustless-gateway/. This can
 	// be overridden per FQDN in PublicGateways.
 	DeserializedResponses Flag
+
+	// DisableHTMLErrors disables pretty HTML pages when an error occurs. Instead, a `text/plain`
+	// page will be sent with the raw error message.
+	DisableHTMLErrors Flag
 
 	// PublicGateways configures behavior of known public gateways.
 	// Each key is a fully qualified domain name (FQDN).

@@ -51,6 +51,8 @@ config file at runtime.
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
     - [`Gateway.DeserializedResponses`](#gatewaydeserializedresponses)
+    - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
+    - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
     - [`Gateway.FastDirIndexThreshold`](#gatewayfastdirindexthreshold)
@@ -648,7 +650,7 @@ Default: `false`
 
 Type: `bool`
 
-#### `Gateway.DeserializedResponses`
+### `Gateway.DeserializedResponses`
 
 An optional flag to explicitly configure whether this gateway responds to deserialized
 requests, or not. By default, it is enabled. When disabling this option, the gateway
@@ -658,11 +660,25 @@ Default: `true`
 
 Type: `flag`
 
-#### `Gateway.ExposeRoutingAPI`
+### `Gateway.DisableHTMLErrors`
+
+An optional flag to disable the pretty HTML error pages of the gateway. Instead,
+a `text/plain` page will be returned with the raw error message from Kubo.
+
+It is useful for whitelabel or middleware deployments that wish to avoid
+`text/html` responses with IPFS branding and links on error pages in browsers.
+
+Default: `false`
+
+Type: `flag`
+
+### `Gateway.ExposeRoutingAPI`
 
 An optional flag to expose Kubo `Routing` system on the gateway port as a [Routing
 V1](https://specs.ipfs.tech/routing/routing-v1/) endpoint.  This only affects your
 local gateway, at `127.0.0.1`.
+
+This endpoint can be used by other Kubo instance, as illustrated in [`delegated_routing_v1_http_proxy_test.go`](https://github.com/ipfs/kubo/blob/master/test/cli/delegated_routing_v1_http_proxy_test.go).
 
 Default: `false`
 
