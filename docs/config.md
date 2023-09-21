@@ -251,10 +251,10 @@ documented in `ipfs config profile --help`.
 
   Reduces daemon overhead on the system. Affects node
   functionality - performance of content discovery and data
-  fetching may be degraded. Local data won't be announced on routing systems like DHT.
+  fetching may be degraded. Local data won't be announced on routing systems like Amino DHT.
 
   - `Swarm.ConnMgr` set to maintain minimum number of p2p connections at a time.
-  - Disables [`Reprovider`](#reprovider) service → no CID will be announced on DHT and other routing systems(!)
+  - Disables [`Reprovider`](#reprovider) service → no CID will be announced on Amino DHT and other routing systems(!)
   - Disables AutoNAT.
 
   Use this profile with caution.
@@ -1006,7 +1006,7 @@ Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 ### `Internal.Bitswap.ProviderSearchDelay`
 
 This parameter determines how long to wait before looking for providers outside of bitswap.
-Other routing systems like the DHT are able to provide results in less than a second, so lowering
+Other routing systems like the Amino DHT are able to provide results in less than a second, so lowering
 this number will allow faster peers lookups in some cases.
 
 Type: `optionalDuration` (`null` means default which is 1s)
@@ -1348,7 +1348,7 @@ The set of peers with which to peer.
 }
 ```
 
-Where `ID` is the peer ID and `Addrs` is a set of known addresses for the peer. If no addresses are specified, the DHT will be queried.
+Where `ID` is the peer ID and `Addrs` is a set of known addresses for the peer. If no addresses are specified, the Amino DHT will be queried.
 
 Additional fields may be added in the future.
 
@@ -1395,7 +1395,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
 
-* **DEFAULT:** If unset, or set to "auto", your node will use the IPFS DHT
+* **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
   and parallel HTTP routers listed below for additional speed.
 
 * If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
@@ -1403,7 +1403,7 @@ There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtcli
 * If set to "none", your node will use _no_ routing system. You'll have to
   explicitly connect to peers that have the content you're looking for.
 
-* If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the IPFS DHT (no HTTP routers).
+* If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the Amino DHT (no HTTP routers).
 
 * If set to "custom", all default routers are disabled, and only ones defined in `Routing.Routers` will be used.
 
@@ -1421,7 +1421,7 @@ When `Routing.Type` is set to `auto` or `dht`, your node will start as a DHT cli
 switch to a DHT server when and if it determines that it's reachable from the
 public internet (e.g., it's not behind a firewall).
 
-To force a specific DHT-only mode, client or server, set `Routing.Type` to
+To force a specific Amino DHT-only mode, client or server, set `Routing.Type` to
 `dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
 unless you're sure your node is reachable from the public network.
 
@@ -1439,7 +1439,7 @@ Type: `optionalString` (`null`/missing means the default)
 
 ### `Routing.AcceleratedDHTClient`
 
-This alternative DHT client with a Full-Routing-Table strategy will
+This alternative Amino DHT client with a Full-Routing-Table strategy will
 do a complete scan of the DHT every hour and record all nodes found.
 Then when a lookup is tried instead of having to go through multiple Kad hops it
 is able to find the 20 final nodes by looking up the in-memory recorded network table.
@@ -1489,7 +1489,7 @@ Type: `bool` (missing means `false`)
 
 Map of additional Routers.
 
-Allows for extending the default routing (DHT) with alternative Router
+Allows for extending the default routing (Amino DHT) with alternative Router
 implementations.
 
 The map key is a name of a Router, and the value is its configuration.
@@ -1524,7 +1524,7 @@ HTTP:
   - `MaxProvideConcurrency`: It determines the number of threads used when providing content. GOMAXPROCS by default.
 
 DHT:
-  - `"Mode"`: Mode used by the DHT. Possible values: "server", "client", "auto"
+  - `"Mode"`: Mode used by the Amino DHT. Possible values: "server", "client", "auto"
   - `"AcceleratedDHTClient"`: Set to `true` if you want to use the acceleratedDHT.
   - `"PublicIPNetwork"`: Set to `true` to create a `WAN` DHT. Set to `false` to create a `LAN` DHT.
 
@@ -1558,7 +1558,7 @@ Type: `object[string->object]`
 
 **Examples:**
 
-Complete example using 2 Routers, DHT (LAN/WAN) and parallel.
+Complete example using 2 Routers, Amino DHT (LAN/WAN) and parallel.
 
 ```
 $ ipfs config Routing.Type --json '"custom"'
