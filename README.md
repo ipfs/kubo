@@ -25,7 +25,8 @@ Kubo was the first IPFS implementation and is the most widely used one today. Im
 
 Featureset
 - Runs an IPFS-Node as a network service that is part of LAN and WAN DHT
-- [HTTP Gateway](https://specs.ipfs.tech/http-gateways/) functionality for content retrieval
+- [HTTP Gateway](https://specs.ipfs.tech/http-gateways/) (`/ipfs` and `/ipns`) functionality for trusted and [trustless](https://docs.ipfs.tech/reference/http/gateway/#trustless-verifiable-retrieval) content retrieval
+- [HTTP Routing V1](https://specs.ipfs.tech/routing/http-routing-v1/) (`/routing/v1`) client and server implementation for [delegated routing](./docs/delegated-routing.md) lookups
 - [HTTP Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`) to access and control the daemon
 - [Command Line Interface](https://docs.ipfs.tech/reference/kubo/cli/) based on (`/api/v0`) RPC API
 - [WebUI](https://github.com/ipfs/ipfs-webui/#readme) to manage the Kubo node
