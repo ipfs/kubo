@@ -44,7 +44,7 @@ func (s State) String() string {
 	case StateStopped:
 		return "stopped"
 	default:
-		return "unkown peering state: " + strconv.FormatUint(uint64(s), 10)
+		return "unknown peering state: " + strconv.FormatUint(uint64(s), 10)
 	}
 }
 
