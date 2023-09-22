@@ -1450,7 +1450,7 @@ However the latency of individual read/write operations should be ~10x faster
 and the provide throughput up to 6 million times faster on larger datasets!
 
 This is not compatible with `Routing.Type` `custom`. If you are using composable routers
-you can configure this individualy on each router.
+you can configure this individually on each router.
 
 When it is enabled:
 - Client DHT operations (reads and writes) should complete much faster
@@ -2146,7 +2146,7 @@ Type: `priority`
 Mplex is deprecated, this is because it is unreliable and
 randomly drop streams when sending data *too fast*.
 
-New pieces of code rely on backpressure, that means the stream will dynamicaly
+New pieces of code rely on backpressure, that means the stream will dynamically
 slow down the sending rate if data is getting backed up.
 Backpressure is provided by **Yamux** and **QUIC**.
 

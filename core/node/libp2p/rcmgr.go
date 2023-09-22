@@ -181,7 +181,7 @@ func LimitConfig(cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimi
 
 	// This effectively overrides the computed default LimitConfig with any non-"useDefault" values from the userResourceOverrides file.
 	// Because of how how Build works, any rcmgr.Default value in userResourceOverrides
-	// will be overriden with a computed default value.
+	// will be overridden with a computed default value.
 	limitConfig = userResourceOverrides.Build(limitConfig)
 
 	return limitConfig, msg, nil
