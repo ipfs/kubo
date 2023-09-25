@@ -142,7 +142,7 @@ jobs:
         with:
           name: ${{ github.job }}
       - name: Checkout kubo-gateway
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: kubo-gateway
       - name: Build kubo-gateway
