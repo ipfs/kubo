@@ -23,6 +23,13 @@ func TestRouterParameters(t *testing.T) {
 					PublicIPNetwork:      false,
 				},
 			}},
+			"router-dhtv2": {Router{
+				Type: RouterTypeDHTv2,
+				Parameters: DHTv2RouterParams{
+					Mode:            "auto",
+					PublicIPNetwork: false,
+				},
+			}},
 			"router-parallel": {
 				Router{
 					Type: RouterTypeParallel,
@@ -96,6 +103,9 @@ func TestRouterParameters(t *testing.T) {
 
 	dhtp := r2.Routers["router-dht"].Parameters
 	require.IsType(&DHTRouterParams{}, dhtp)
+
+	dhtv2p := r2.Routers["router-dhtv2"].Parameters
+	require.IsType(&DHTv2RouterParams{}, dhtv2p)
 
 	sp := r2.Routers["router-sequential"].Parameters
 	require.IsType(&ComposableRouterParams{}, sp)

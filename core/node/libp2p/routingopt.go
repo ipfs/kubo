@@ -140,6 +140,13 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 				Addrs:      httpAddrsFromConfig(addrs),
 				PrivKeyB64: privKey,
 			},
+			&irouting.ExtraDHTv2Params{
+				BootstrapPeers: args.BootstrapPeers,
+				Host:           args.Host,
+				Validator:      args.Validator,
+				Datastore:      args.Datastore,
+				Context:        args.Ctx,
+			},
 		)
 	}
 }

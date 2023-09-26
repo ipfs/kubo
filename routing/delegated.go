@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
+	dhtv2 "github.com/ipfs/boxo/routing/dhtv2"
 	drclient "github.com/ipfs/boxo/routing/http/client"
 	"github.com/ipfs/boxo/routing/http/contentrouter"
 	"github.com/ipfs/go-datastore"
@@ -28,7 +29,7 @@ import (
 
 var log = logging.Logger("routing/delegated")
 
-func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTParams, extraHTTP *ExtraHTTPParams) (routing.Routing, error) {
+func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTParams, extraHTTP *ExtraHTTPParams, extraDHTv2 *ExtraDHTv2Params) (routing.Routing, error) {
 	if err := methods.Check(); err != nil {
 		return nil, err
 	}
@@ -38,7 +39,7 @@ func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTPar
 
 	// Create all needed routers from method names
 	for mn, m := range methods {
-		router, err := parse(make(map[string]bool), createdRouters, m.RouterName, routers, extraDHT, extraHTTP)
+		router, err := parse(make(map[string]bool), createdRouters, m.RouterName, routers, extraDHT, extraHTTP, extraDHTv2)
 		if err != nil {
 			return nil, err
 		}
@@ -68,6 +69,7 @@ func parse(visited map[string]bool,
 	routersCfg config.Routers,
 	extraDHT *ExtraDHTParams,
 	extraHTTP *ExtraHTTPParams,
+	extraDHTv2 *ExtraDHTv2Params,
 ) (routing.Routing, error) {
 	// check if we already created it
 	r, ok := createdRouters[routerName]
@@ -95,11 +97,13 @@ func parse(visited map[string]bool,
 		router, err = httpRoutingFromConfig(cfg.Router, extraHTTP)
 	case config.RouterTypeDHT:
 		router, err = dhtRoutingFromConfig(cfg.Router, extraDHT)
+	case config.RouterTypeDHTv2:
+		router, err = dhtv2RoutingFromConfig(cfg.Router, extraDHTv2)
 	case config.RouterTypeParallel:
 		crp := cfg.Parameters.(*config.ComposableRouterParams)
 		var pr []*routinghelpers.ParallelRouter
 		for _, cr := range crp.Routers {
-			ri, err := parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraHTTP)
+			ri, err := parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraHTTP, extraDHTv2)
 			if err != nil {
 				return nil, err
 			}
@@ -119,7 +123,7 @@ func parse(visited map[string]bool,
 		crp := cfg.Parameters.(*config.ComposableRouterParams)
 		var sr []*routinghelpers.SequentialRouter
 		for _, cr := range crp.Routers {
-			ri, err := parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraHTTP)
+			ri, err := parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraHTTP, extraDHTv2)
 			if err != nil {
 				return nil, err
 			}
@@ -329,4 +333,40 @@ func createFullRT(params *ExtraDHTParams) (routing.Routing, error) {
 			dht.BucketSize(20),
 		),
 	)
+}
+
+type ExtraDHTv2Params struct {
+	BootstrapPeers []peer.AddrInfo
+	Host           host.Host
+	Validator      record.Validator
+	Datastore      datastore.Batching
+	Context        context.Context
+}
+
+func dhtv2RoutingFromConfig(conf config.Router, extra *ExtraDHTv2Params) (routing.Routing, error) {
+	params, ok := conf.Parameters.(*config.DHTv2RouterParams)
+	if !ok {
+		return nil, errors.New("incorrect params for DHT router")
+	}
+
+	opts := []dhtv2.Option{
+		dhtv2.Datastore(extra.Datastore),
+		dhtv2.BootstrapPeers(extra.BootstrapPeers...),
+	}
+
+	switch params.Mode {
+	case config.DHTModeAuto:
+		opts = append(opts, dhtv2.ModeAutoClient)
+	case config.DHTModeClient:
+		opts = append(opts, dhtv2.ModeClient)
+	case config.DHTModeServer:
+		opts = append(opts, dhtv2.ModeServer)
+	// NOTE: config.DHTModeAutoServer does not exist yet
+	// case config.DHTModeAutoServer:
+	// 	opts = append(opts, dhtv2.ModeAutoServer)
+	default:
+		return nil, fmt.Errorf("unsupported DHT mode: %q", params.Mode)
+	}
+
+	return dhtv2.NewRouter(extra.Host, opts...)
 }
