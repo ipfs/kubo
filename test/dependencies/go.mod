@@ -11,7 +11,7 @@ require (
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-cidutil v0.1.0
 	github.com/ipfs/go-datastore v0.6.0
-	github.com/ipfs/go-graphsync v0.14.4
+	github.com/ipfs/go-graphsync v0.15.1
 	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/hang-fds v0.1.0
 	github.com/ipfs/iptb v1.4.0
@@ -138,7 +138,7 @@ require (
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/ipfs/go-metrics-interface v0.0.1 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.1 // indirect
-	github.com/ipfs/go-unixfsnode v1.8.0 // indirect
+	github.com/ipfs/go-unixfsnode v1.8.1 // indirect
 	github.com/ipfs/kubo v0.16.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.6.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
