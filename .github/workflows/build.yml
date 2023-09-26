@@ -90,8 +90,6 @@ jobs:
         working-directory: interop
       - run: npm install
         working-directory: interop/packages/interop
-      - run: npm install --ignore-scripts --save "ipfs/npm-go-ipfs#4441b8a60f1cfee3035a9e4bb824dfcca08e9b01" # temporary while https://github.com/ipfs/npm-go-ipfs/pull/62 is being bubbled
-        working-directory: interop/packages/interop
       - run: npm test
         working-directory: interop/packages/interop
         env:
