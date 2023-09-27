@@ -4,30 +4,8 @@ import (
 	"testing"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/multiformats/go-multibase"
 )
-
-var allMultibases = []string{
-	"identity",
-	"base2",
-	"base32upper",
-	"base32pad",
-	"base32padupper",
-	"base16",
-	"base16upper",
-	"base36",
-	"base36upper",
-	"base64",
-	"base64pad",
-	"base32hexpad",
-	"base32hexpadupper",
-	"base64url",
-	"base64urlpad",
-	"base32hex",
-	"base32hexupper",
-	"base58btc",
-	"base58flickr",
-	"base256emoji",
-}
 
 func TestCidFmtCmd(t *testing.T) {
 	t.Parallel()
@@ -43,7 +21,7 @@ func TestCidFmtCmd(t *testing.T) {
 
 		var testV0PresentAndCustomBaseCases []testV0PresentAndCustomBaseCase
 
-		for _, e := range allMultibases {
+		for _, e := range multibase.EncodingToStr {
 			var testCase testV0PresentAndCustomBaseCase
 
 			if e == "base58btc" {
