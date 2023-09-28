@@ -83,8 +83,8 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 		p = &HTTPRouterParams{}
 	case RouterTypeDHT:
 		p = &DHTRouterParams{}
-	case RouterTypeDHTv2:
-		p = &DHTv2RouterParams{}
+	case RouterTypeDHTZikade:
+		p = &DHTZikadeRouterParams{}
 	case RouterTypeSequential:
 		p = &ComposableRouterParams{}
 	case RouterTypeParallel:
@@ -108,7 +108,7 @@ type RouterType string
 const (
 	RouterTypeHTTP       RouterType = "http"       // HTTP JSON API for delegated routing systems (IPIP-337).
 	RouterTypeDHT        RouterType = "dht"        // DHT router.
-	RouterTypeDHTv2      RouterType = "dhtv2"      // DHT router using go-libp2p-kad-dht/v2.
+	RouterTypeDHTZikade  RouterType = "dht/zikade" // DHT router using go-libp2p-kad-dht/v2.
 	RouterTypeSequential RouterType = "sequential" // Router helper to execute several routers sequentially.
 	RouterTypeParallel   RouterType = "parallel"   // Router helper to execute several routers in parallel.
 )
@@ -161,7 +161,7 @@ type DHTRouterParams struct {
 	PublicIPNetwork      bool
 }
 
-type DHTv2RouterParams struct {
+type DHTZikadeRouterParams struct {
 	Mode            DHTMode
 	PublicIPNetwork bool
 }

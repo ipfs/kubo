@@ -57,7 +57,7 @@ func TestParser(t *testing.T) {
 	}, &ExtraDHTParams{}, &ExtraHTTPParams{
 		PeerID:     string(pid),
 		PrivKeyB64: sk,
-	}, &ExtraDHTv2Params{})
+	})
 
 	require.NoError(err)
 
@@ -148,7 +148,7 @@ func TestParserRecursive(t *testing.T) {
 	}, &ExtraDHTParams{}, &ExtraHTTPParams{
 		PeerID:     string(pid),
 		PrivKeyB64: sk,
-	}, &ExtraDHTv2Params{})
+	})
 
 	require.NoError(err)
 
@@ -200,7 +200,7 @@ func TestParserRecursiveLoop(t *testing.T) {
 		config.MethodNameProvide: config.Method{
 			RouterName: "composable2",
 		},
-	}, &ExtraDHTParams{}, nil, &ExtraDHTv2Params{})
+	}, &ExtraDHTParams{}, nil)
 
 	require.ErrorContains(err, "dependency loop creating router with name \"composable2\"")
 }
