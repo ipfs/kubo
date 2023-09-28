@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"fmt"
+	"io"
 	"runtime/debug"
 	"sort"
 	"time"
@@ -68,25 +69,31 @@ func BaseRouting(cfg *config.Config) interface{} {
 		var dualDHT *ddht.DHT
 		if dht, ok := in.Router.(*ddht.DHT); ok {
 			dualDHT = dht
-
-			lc.Append(fx.Hook{
-				OnStop: func(ctx context.Context) error {
-					return dualDHT.Close()
-				},
-			})
 		}
-
 		if cr, ok := in.Router.(routinghelpers.ComposableRouter); ok {
 			for _, r := range cr.Routers() {
-				if dht, ok := r.(*ddht.DHT); ok {
-					dualDHT = dht
+				fmt.Printf("------------------- sub.Router type=%T\n", r)
+				if dualDHT == nil {
+					if dht, ok := r.(*ddht.DHT); ok {
+						dualDHT = dht
+					}
+				}
+				if cl, ok := r.(io.Closer); ok {
 					lc.Append(fx.Hook{
 						OnStop: func(ctx context.Context) error {
-							return dualDHT.Close()
+							return cl.Close()
 						},
 					})
-					break
 				}
+
+			}
+		} else {
+			if cl, ok := in.Router.(io.Closer); ok {
+				lc.Append(fx.Hook{
+					OnStop: func(ctx context.Context) error {
+						return cl.Close()
+					},
+				})
 			}
 		}
 

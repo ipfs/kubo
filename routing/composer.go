@@ -3,6 +3,7 @@ package routing
 import (
 	"context"
 	"errors"
+	"io"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-cid"
@@ -129,4 +130,39 @@ func (c *Composer) Bootstrap(ctx context.Context) error {
 		log.Debug("composer: calling bootstrap error: ", err)
 	}
 	return err
+}
+
+// Close attempts to close all component routers
+func (c *Composer) Close() error {
+	log.Debug("composer: calling close")
+	var merr error
+	if cl, ok := c.FindPeersRouter.(io.Closer); ok {
+		if err := cl.Close(); err != nil {
+			merr = multierror.Append(merr, err)
+		}
+	}
+	if cl, ok := c.FindProvidersRouter.(io.Closer); ok {
+		if err := cl.Close(); err != nil {
+			merr = multierror.Append(merr, err)
+		}
+	}
+	if cl, ok := c.GetValueRouter.(io.Closer); ok {
+		if err := cl.Close(); err != nil {
+			merr = multierror.Append(merr, err)
+		}
+	}
+	if cl, ok := c.PutValueRouter.(io.Closer); ok {
+		if err := cl.Close(); err != nil {
+			merr = multierror.Append(merr, err)
+		}
+	}
+	if cl, ok := c.ProvideRouter.(io.Closer); ok {
+		if err := cl.Close(); err != nil {
+			merr = multierror.Append(merr, err)
+		}
+	}
+	if merr != nil {
+		log.Debug("composer: calling close error: ", merr)
+	}
+	return merr
 }
