@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	bootstrap2 "github.com/ipfs/kubo/core/bootstrap"
+	bootstrap2 "github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/kubo/core/coreapi"
 	mock "github.com/ipfs/kubo/core/mock"
 	"github.com/ipfs/kubo/thirdparty/unit"
