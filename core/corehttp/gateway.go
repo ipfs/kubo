@@ -167,7 +167,7 @@ func (o *offlineGatewayErrWrapper) GetBlock(ctx context.Context, path gateway.Im
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) Head(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, files.Node, error) {
+func (o *offlineGatewayErrWrapper) Head(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, *gateway.HeadResponse, error) {
 	md, n, err := o.gwimpl.Head(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
