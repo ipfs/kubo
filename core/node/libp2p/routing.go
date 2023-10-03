@@ -72,7 +72,6 @@ func BaseRouting(cfg *config.Config) interface{} {
 		}
 		if cr, ok := in.Router.(routinghelpers.ComposableRouter); ok {
 			for _, r := range cr.Routers() {
-				fmt.Printf("------------------- sub.Router type=%T\n", r)
 				if dualDHT == nil {
 					if dht, ok := r.(*ddht.DHT); ok {
 						dualDHT = dht
