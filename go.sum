@@ -319,8 +319,8 @@ github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/huin/goupnp v1.2.0 h1:uOKW26NG1hsSSbXIZ1IR7XP9Gjd1U8pnLaCMgntmkmY=
 github.com/huin/goupnp v1.2.0/go.mod h1:gnGPsThkYa7bFi/KWmEysQRf48l2dvR5bxr2OFckNX8=
-github.com/iand/boxo v0.0.0-20230926144701-607836364a6a h1:XD2niq5vwKHzDRUikLLBpz8xQMOsI6JjrUbiLwrmdyc=
-github.com/iand/boxo v0.0.0-20230926144701-607836364a6a/go.mod h1:Sq/h91ASXmqRwS9tdTuTlofBHizKp/q4NUR6vO2gFnc=
+github.com/iand/boxo v0.0.0-20231003100737-e1b8ceac1ae9 h1:d8ILp27GqR/UmR0ut3XRE0TYBWa9/u3JL4PuVkymBro=
+github.com/iand/boxo v0.0.0-20231003100737-e1b8ceac1ae9/go.mod h1:luylJVGYUGY6LwaM7CEB4MfWVLuptiUmTLthfDi1o80=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
@@ -515,8 +515,6 @@ github.com/libp2p/go-libp2p-http v0.5.0 h1:+x0AbLaUuLBArHubbbNRTsgWz0RjNTy6DJLOx
 github.com/libp2p/go-libp2p-http v0.5.0/go.mod h1:glh87nZ35XCQyFsdzZps6+F4HYI6DctVFY5u1fehwSg=
 github.com/libp2p/go-libp2p-kad-dht v0.24.4 h1:ktNiJe7ffsJ1wX3ULpMCwXts99mPqGFSE/Qn1i8pErQ=
 github.com/libp2p/go-libp2p-kad-dht v0.24.4/go.mod h1:ybWBJ5Fbvz9sSLkNtXt+2+bK0JB8+tRPvhBbRGHegRU=
-github.com/libp2p/go-libp2p-kad-dht/v2 v2.0.0-20230925134614-09dd7b0b2f50 h1:hmKhgh27TlRKVJC8Asf7O5rf9GCe83+t7mZVw+9IB8c=
-github.com/libp2p/go-libp2p-kad-dht/v2 v2.0.0-20230925134614-09dd7b0b2f50/go.mod h1:QiNTAHrE1CXdTxQ7BAYb6l/KxQxlmnON+C9ZeHrTxmA=
 github.com/libp2p/go-libp2p-kbucket v0.3.1/go.mod h1:oyjT5O7tS9CQurok++ERgc46YLwEpuGoFq9ubvoUOio=
 github.com/libp2p/go-libp2p-kbucket v0.6.3 h1:p507271wWzpy2f1XxPzCQG9NiN6R6lHL9GiSErbQQo0=
 github.com/libp2p/go-libp2p-kbucket v0.6.3/go.mod h1:RCseT7AH6eJWxxk2ol03xtP9pEHetYSPXOaJnOiD8i0=
@@ -687,8 +685,10 @@ github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
-github.com/plprobelab/go-kademlia v0.0.0-20230913171354-443ec1f56080 h1:CqaVJqntB6Gm7LILVsIZv0Sdy9kfmi74rwZRt66hPLM=
-github.com/plprobelab/go-kademlia v0.0.0-20230913171354-443ec1f56080/go.mod h1:9mz9/8plJj9HWiQmB6JkBNHY30AXzy9LrJ++sCvWqFQ=
+github.com/plprobelab/go-libdht v0.0.0-20230928202609-8c74cc7954b3 h1:uQO6JMWa73iZkw1HTuY5DmJULKwBU2mWw6t4jxufQz4=
+github.com/plprobelab/go-libdht v0.0.0-20230928202609-8c74cc7954b3/go.mod h1:1m6gBp1WX7RPN3KnwC5BX5YZ5nDTy+g6x9M4fgb/n1w=
+github.com/plprobelab/zikade v0.0.0-20231002151622-5323fffc1882 h1:7RTNh2s7ZXVm5cDdNEsYfpRU4+g5IBtqQUX41BtV1Lw=
+github.com/plprobelab/zikade v0.0.0-20231002151622-5323fffc1882/go.mod h1:07lhry033Jw12eytmI1XBWMXaPNnwsbcFAYYf87gtU8=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/polydawn/refmt v0.0.0-20190221155625-df39d6c2d992/go.mod h1:uIp+gprXxxrWSjjklXD+mN4wed/tMfjMMmN/9+JsA9o=

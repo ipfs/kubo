@@ -2,7 +2,7 @@ module github.com/ipfs/kubo
 
 // TODO: remove this replacement when https://github.com/ipfs/boxo/pull/472 is merged
 // This is https://github.com/iand/boxo/tree/dhtv2
-replace github.com/ipfs/boxo => github.com/iand/boxo v0.0.0-20230926144701-607836364a6a
+replace github.com/ipfs/boxo => github.com/iand/boxo v0.0.0-20231003100737-e1b8ceac1ae9
 
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
@@ -161,7 +161,6 @@ require (
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.3.0 // indirect
 	github.com/libp2p/go-libp2p-gostream v0.6.0 // indirect
-	github.com/libp2p/go-libp2p-kad-dht/v2 v2.0.0-20230925134614-09dd7b0b2f50 // indirect
 	github.com/libp2p/go-libp2p-xor v0.1.0 // indirect
 	github.com/libp2p/go-msgio v0.3.0 // indirect
 	github.com/libp2p/go-nat v0.2.0 // indirect
@@ -189,7 +188,8 @@ require (
 	github.com/opencontainers/runtime-spec v1.1.0 // indirect
 	github.com/openzipkin/zipkin-go v0.4.2 // indirect
 	github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 // indirect
-	github.com/plprobelab/go-kademlia v0.0.0-20230913171354-443ec1f56080 // indirect
+	github.com/plprobelab/go-libdht v0.0.0-20230928202609-8c74cc7954b3 // indirect
+	github.com/plprobelab/zikade v0.0.0-20231002151622-5323fffc1882 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
