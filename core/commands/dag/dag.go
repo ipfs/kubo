@@ -40,6 +40,7 @@ the existing 'ipfs object' command moving forward.
 		"import":  DagImportCmd,
 		"export":  DagExportCmd,
 		"stat":    DagStatCmd,
+		"diff":    DagDiffCmd,
 	},
 }
 
@@ -410,5 +411,39 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 			return json.NewEncoder(w).Encode(event)
 		},
 		),
+	},
+}
+
+type DagDiff struct {
+	s string
+}
+
+// DagDiffCmd is a command for comparing DAG nodes.
+// FIXME: Right now only supports DAG-PB encoding (for the roadmap of this
+//  command see https://github.com/ipfs/go-ipfs/issues/4801).
+var DagDiffCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Diffs two DAG nodes.",
+		ShortDescription: `
+'ipfs dag diff' fetches two DAG nodes and returns their differences.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("node_before", true, false, "First node, \"before\", in the diff."),
+		cmds.StringArg("node_after", true, false, "First node, \"after\", in the diff."),
+	},
+	Options: []cmds.Option{ // FIXME: Remove if unused.
+	},
+	Run:  dagDiff,
+	Type: DagDiff{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, d *DagDiff) error {
+			_, err := fmt.Fprintf(
+				w,
+				"%s\n",
+				d.s,
+			)
+			return err
+		}),
 	},
 }
