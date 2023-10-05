@@ -169,7 +169,7 @@ only for backward compatibility when a legacy CIDv0 is required (--format=v0).
 		cidCodec, _ := req.Options[blockCidCodecOptionName].(string)
 		format, _ := req.Options[blockFormatOptionName].(string) // deprecated
 
-		// use of legacy 'format' needs to supress 'cid-codec'
+		// use of legacy 'format' needs to suppress 'cid-codec'
 		if format != "" {
 			if cidCodec != "" && cidCodec != "raw" {
 				return fmt.Errorf("unable to use %q (deprecated) and a custom %q at the same time", blockFormatOptionName, blockCidCodecOptionName)

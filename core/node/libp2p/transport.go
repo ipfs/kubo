@@ -18,7 +18,8 @@ func Transports(tptConfig config.Transports) interface{} {
 	return func(pnet struct {
 		fx.In
 		Fprint PNetFingerprint `optional:"true"`
-	}) (opts Libp2pOpts, err error) {
+	},
+	) (opts Libp2pOpts, err error) {
 		privateNetworkEnabled := pnet.Fprint != nil
 
 		if tptConfig.Network.TCP.WithDefault(true) {

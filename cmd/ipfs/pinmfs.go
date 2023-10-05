@@ -18,7 +18,7 @@ import (
 	"github.com/ipfs/kubo/core"
 )
 
-// mfslog is the logger for remote mfs pinning
+// mfslog is the logger for remote mfs pinning.
 var mfslog = logging.Logger("remotepinning/mfs")
 
 type lastPin struct {

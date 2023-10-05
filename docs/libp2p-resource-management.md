@@ -83,7 +83,7 @@ since we assume libp2p knows best here.
 Source: [core/node/libp2p/rcmgr_defaults.go](https://github.com/ipfs/kubo/blob/master/core/node/libp2p/rcmgr_defaults.go)
 
 ### User Supplied Override Limits
-A user who wants fine control over the limits used by the go-libp2p resoure manager can specify overrides to the [computed default limits](#computed-default-limits).
+A user who wants fine control over the limits used by the go-libp2p resource manager can specify overrides to the [computed default limits](#computed-default-limits).
 This is done by defining limits in ``$IPFS_PATH/libp2p-resource-limit-overrides.json``.
 These values trump anything else and are parsed directly by go-libp2p.
 (See the [go-libp2p Resource Manager README](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/README.md) for formatting.) 
@@ -98,7 +98,7 @@ As an example:
 > Protected from exceeding resource limits 2 times: "system: cannot reserve inbound connection: resource limit exceeded"
 
 This means that there were 2 recent occurrences where the libp2p resource manager prevented an inbound connection at the "system" [scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes).  
-Specificaly the ``System.ConnsInbound`` limit was hit.  
+Specifically the ``System.ConnsInbound`` limit was hit.  
 
 This can be analyzed by viewing the limit and current usage with `ipfs swarm resources`.
 `System.ConnsInbound` is likely close or at the limit value.
@@ -136,7 +136,7 @@ If `Swarm.ConnMgr.HighWater` is greater than resource manager's `System.ConnsInb
 existing low priority idle connections can prevent new high priority connections from being established.
 The ResourceMgr doesn't know that the new connection is high priority and simply blocks it because of the limit its enforcing.
 
-To ensure the ConnMgr and ResourceMgr are congruent, the ResourceMgr [computed default limts](#computed-default-limits) are adjusted such that:
+To ensure the ConnMgr and ResourceMgr are congruent, the ResourceMgr [computed default limits](#computed-default-limits) are adjusted such that:
 1. `System.ConnsInbound` >= `max(Swarm.ConnMgr.HighWater * 2, DefaultResourceMgrMinInboundConns)` AND
 2. `System.StreamsInbound` is greater than any new/adjusted `Swarm.ResourceMgr.Limits.System.ConnsInbound` value so that there's enough streams per connection.
 

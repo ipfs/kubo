@@ -184,7 +184,7 @@ func TestFetchBinary(t *testing.T) {
 	// Windows doesn't have read-only directories https://github.com/golang/go/issues/35042 this would need to be
 	// tested another way
 	if runtime.GOOS != "windows" {
-		err = os.Chmod(tmpDir, 0555)
+		err = os.Chmod(tmpDir, 0o555)
 		if err != nil {
 			panic(err)
 		}
@@ -200,7 +200,7 @@ func TestFetchBinary(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		err = os.Chmod(tmpDir, 0755)
+		err = os.Chmod(tmpDir, 0o755)
 		if err != nil {
 			panic(err)
 		}

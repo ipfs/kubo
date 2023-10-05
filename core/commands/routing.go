@@ -21,9 +21,7 @@ import (
 	routing "github.com/libp2p/go-libp2p/core/routing"
 )
 
-var (
-	errAllowOffline = errors.New("can't put while offline: pass `--allow-offline` to override")
-)
+var errAllowOffline = errors.New("can't put while offline: pass `--allow-offline` to override")
 
 const (
 	dhtVerboseOptionName   = "verbose"
@@ -75,7 +73,6 @@ var findProvidersRoutingCmd = &cmds.Command{
 		}
 
 		c, err := cid.Parse(req.Arguments[0])
-
 		if err != nil {
 			return err
 		}
@@ -117,7 +114,7 @@ var findProvidersRoutingCmd = &cmds.Command{
 					if verbose {
 						fmt.Fprintf(out, "provider: ")
 					}
-					fmt.Fprintf(out, "%s\n", prov.ID.Pretty())
+					fmt.Fprintf(out, "%s\n", prov.ID)
 					if verbose {
 						for _, a := range prov.Addrs {
 							fmt.Fprintf(out, "\t%s\n", a)
@@ -482,7 +479,7 @@ identified by QmFoo.
 					return nil
 				},
 				routing.Value: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
-					fmt.Fprintf(out, "%s\n", obj.ID.Pretty())
+					fmt.Fprintf(out, "%s\n", obj.ID)
 					return nil
 				},
 			}
@@ -495,8 +492,10 @@ identified by QmFoo.
 	Type: routing.QueryEvent{},
 }
 
-type printFunc func(obj *routing.QueryEvent, out io.Writer, verbose bool) error
-type pfuncMap map[routing.QueryEventType]printFunc
+type (
+	printFunc func(obj *routing.QueryEvent, out io.Writer, verbose bool) error
+	pfuncMap  map[routing.QueryEventType]printFunc
+)
 
 func printEvent(obj *routing.QueryEvent, out io.Writer, verbose bool, override pfuncMap) error {
 	if verbose {

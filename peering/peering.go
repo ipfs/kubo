@@ -44,7 +44,7 @@ func (s State) String() string {
 	case StateStopped:
 		return "stopped"
 	default:
-		return "unkown peering state: " + strconv.FormatUint(uint64(s), 10)
+		return "unknown peering state: " + strconv.FormatUint(uint64(s), 10)
 	}
 }
 
@@ -201,7 +201,7 @@ func (ps *PeeringService) Start() error {
 	return nil
 }
 
-// GetState get the State of the PeeringService
+// GetState get the State of the PeeringService.
 func (ps *PeeringService) GetState() State {
 	ps.mu.RLock()
 	defer ps.mu.RUnlock()
@@ -306,6 +306,7 @@ func (nn *netNotifee) Connected(_ network.Network, c network.Conn) {
 		go handler.stopIfConnected()
 	}
 }
+
 func (nn *netNotifee) Disconnected(_ network.Network, c network.Conn) {
 	ps := (*PeeringService)(nn)
 

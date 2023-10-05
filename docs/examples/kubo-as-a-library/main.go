@@ -85,7 +85,7 @@ func createTempRepo() (string, error) {
 
 /// ------ Spawning the node
 
-// Creates an IPFS node and returns its coreAPI
+// Creates an IPFS node and returns its coreAPI.
 func createNode(ctx context.Context, repoPath string) (*core.IpfsNode, error) {
 	// Open the repo
 	repo, err := fsrepo.Open(repoPath)
@@ -107,7 +107,7 @@ func createNode(ctx context.Context, repoPath string) (*core.IpfsNode, error) {
 
 var loadPluginsOnce sync.Once
 
-// Spawns a node to be used just for this run (i.e. creates a tmp repo)
+// Spawns a node to be used just for this run (i.e. creates a tmp repo).
 func spawnEphemeral(ctx context.Context) (icore.CoreAPI, *core.IpfsNode, error) {
 	var onceErr error
 	loadPluginsOnce.Do(func() {

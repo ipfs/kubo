@@ -15,7 +15,7 @@ func (api *HttpApi) ResolvePath(ctx context.Context, p path.Path) (path.Resolved
 		RemPath string
 	}
 
-	//TODO: this is hacky, fixing https://github.com/ipfs/go-ipfs/issues/5703 would help
+	// TODO: this is hacky, fixing https://github.com/ipfs/go-ipfs/issues/5703 would help
 
 	var err error
 	if p.Namespace() == "ipns" {

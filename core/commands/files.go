@@ -88,8 +88,10 @@ const (
 	filesHashOptionName       = "hash"
 )
 
-var cidVersionOption = cmds.IntOption(filesCidVersionOptionName, "cid-ver", "Cid version to use. (experimental)")
-var hashOption = cmds.StringOption(filesHashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)")
+var (
+	cidVersionOption = cmds.IntOption(filesCidVersionOptionName, "cid-ver", "Cid version to use. (experimental)")
+	hashOption       = cmds.StringOption(filesHashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)")
+)
 
 var errFormat = errors.New("format was set by multiple options. Only one format option is allowed")
 
@@ -131,7 +133,6 @@ var filesStatCmd = &cmds.Command{
 		cmds.BoolOption(filesWithLocalOptionName, "Compute the amount of the dag that is local, and if possible the total size"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-
 		_, err := statGetFormatOptions(req)
 		if err != nil {
 			return cmds.Errorf(cmds.ErrClient, err.Error())
@@ -225,7 +226,6 @@ func moreThanOne(a, b, c bool) bool {
 }
 
 func statGetFormatOptions(req *cmds.Request) (string, error) {
-
 	hash, _ := req.Options[filesHashOptionName].(bool)
 	size, _ := req.Options[filesSizeOptionName].(bool)
 	format, _ := req.Options[filesFormatOptionName].(string)
@@ -307,7 +307,6 @@ func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool
 		}
 
 		childLocal, childLocalSize, err := walkBlock(ctx, dagserv, child)
-
 		if err != nil {
 			return local, sizeLocal, err
 		}

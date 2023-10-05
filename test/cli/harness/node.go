@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -46,7 +47,7 @@ type Node struct {
 
 func BuildNode(ipfsBin, baseDir string, id int) *Node {
 	dir := filepath.Join(baseDir, strconv.Itoa(id))
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		panic(err)
 	}
 
@@ -278,6 +279,15 @@ func (n *Node) StopDaemon() *Node {
 		_, _ = n.Daemon.Cmd.Process.Wait()
 		watch <- struct{}{}
 	}()
+
+	// os.Interrupt does not support interrupts on Windows https://github.com/golang/go/issues/46345
+	if runtime.GOOS == "windows" {
+		if n.signalAndWait(watch, syscall.SIGKILL, 5*time.Second) {
+			return n
+		}
+		log.Panicf("timed out stopping node %d with peer ID %s", n.ID, n.PeerID())
+	}
+
 	log.Debugf("signaling node %d with SIGTERM", n.ID)
 	if n.signalAndWait(watch, syscall.SIGTERM, 1*time.Second) {
 		return n

@@ -3,6 +3,8 @@ package config
 const (
 	DefaultInlineDNSLink         = false
 	DefaultDeserializedResponses = true
+	DefaultDisableHTMLErrors     = false
+	DefaultExposeRoutingAPI      = false
 )
 
 type GatewaySpec struct {
@@ -37,7 +39,6 @@ type GatewaySpec struct {
 
 // Gateway contains options for the HTTP gateway server.
 type Gateway struct {
-
 	// HTTPHeaders configures the headers that should be returned by this
 	// gateway.
 	HTTPHeaders map[string][]string // HTTP headers to return with the gateway
@@ -70,7 +71,15 @@ type Gateway struct {
 	// be overridden per FQDN in PublicGateways.
 	DeserializedResponses Flag
 
+	// DisableHTMLErrors disables pretty HTML pages when an error occurs. Instead, a `text/plain`
+	// page will be sent with the raw error message.
+	DisableHTMLErrors Flag
+
 	// PublicGateways configures behavior of known public gateways.
 	// Each key is a fully qualified domain name (FQDN).
 	PublicGateways map[string]*GatewaySpec
+
+	// ExposeRoutingAPI configures the gateway port to expose
+	// routing system as HTTP API at /routing/v1 (https://specs.ipfs.tech/routing/http-routing-v1/).
+	ExposeRoutingAPI Flag
 }

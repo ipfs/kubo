@@ -32,7 +32,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 	}
 	fromVer, err := RepoVersion(ipfsDir)
 	if err != nil {
-		return fmt.Errorf("could not get repo version: %s", err)
+		return fmt.Errorf("could not get repo version: %w", err)
 	}
 	if fromVer == targetVer {
 		// repo already at target version number
@@ -87,7 +87,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 		logger.Println("Running migration", migration, "...")
 		err = runMigration(ctx, binPaths[migration], ipfsDir, revert, logger)
 		if err != nil {
-			return fmt.Errorf("migration %s failed: %s", migration, err)
+			return fmt.Errorf("migration %s failed: %w", migration, err)
 		}
 	}
 	logger.Printf("Success: fs-repo migrated to version %d.\n", targetVer)
@@ -98,7 +98,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 func NeedMigration(target int) (bool, error) {
 	vnum, err := RepoVersion("")
 	if err != nil {
-		return false, fmt.Errorf("could not get repo version: %s", err)
+		return false, fmt.Errorf("could not get repo version: %w", err)
 	}
 
 	return vnum != target, nil
@@ -151,9 +151,9 @@ func ReadMigrationConfig(repoRoot string, userConfigFile string) (*config.Migrat
 }
 
 // GetMigrationFetcher creates one or more fetchers according to
-// downloadSources,
+// downloadSources,.
 func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetcher func(string) Fetcher) (Fetcher, error) {
-	const httpUserAgent = "go-ipfs"
+	const httpUserAgent = "kubo/migration"
 	const numTriesPerHTTP = 3
 
 	var fetchers []Fetcher
@@ -171,7 +171,7 @@ func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetch
 		default:
 			u, err := url.Parse(src)
 			if err != nil {
-				return nil, fmt.Errorf("bad gateway address: %s", err)
+				return nil, fmt.Errorf("bad gateway address: %w", err)
 			}
 			switch u.Scheme {
 			case "":
@@ -293,7 +293,7 @@ func fetchMigrations(ctx context.Context, fetcher Fetcher, needed []string, dest
 	if len(fails) != 0 {
 		err = fmt.Errorf("failed to download migrations: %s", strings.Join(fails, " "))
 		if ctx.Err() != nil {
-			err = fmt.Errorf("%s, %s", ctx.Err(), err)
+			err = fmt.Errorf("%s, %w", ctx.Err(), err)
 		}
 		return nil, err
 	}

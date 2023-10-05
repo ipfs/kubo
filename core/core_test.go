@@ -20,7 +20,7 @@ func TestInitialization(t *testing.T) {
 		{
 			Identity: id,
 			Addresses: config.Addresses{
-				Swarm: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic"},
+				Swarm: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"},
 				API:   []string{"/ip4/127.0.0.1/tcp/8000"},
 			},
 		},
@@ -28,7 +28,7 @@ func TestInitialization(t *testing.T) {
 		{
 			Identity: id,
 			Addresses: config.Addresses{
-				Swarm: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic"},
+				Swarm: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"},
 				API:   []string{"/ip4/127.0.0.1/tcp/8000"},
 			},
 		},

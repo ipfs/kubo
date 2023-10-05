@@ -39,8 +39,14 @@ test_expect_success "Add the test directory" '
   ipfs routing put --allow-offline /ipns/${TEST_IPNS_ID} ../t0116-gateway-cache/${TEST_IPNS_ID}.ipns-record
 '
 
-
 # Etag
+    test_expect_success "GET for /ipfs/ unixfs dir listing succeeds" '
+      curl -svX GET "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/" >/dev/null 2>curl_ipfs_dir_listing_output
+    '
+
+    test_expect_success "GET for /ipns/ unixfs dir listing succeeds" '
+      curl -svX GET "http://127.0.0.1:$GWAY_PORT/ipns/$TEST_IPNS_ID/root2/root3/" >/dev/null 2>curl_ipns_dir_listing_output
+    '
 
     ## dir generated listing
     test_expect_success "GET /ipfs/ dir response has special Etag for generated dir listing" '

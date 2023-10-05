@@ -154,7 +154,6 @@ func TestParserRecursive(t *testing.T) {
 
 	_, ok := router.(*Composer)
 	require.True(ok)
-
 }
 
 func TestParserRecursiveLoop(t *testing.T) {

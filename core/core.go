@@ -64,7 +64,6 @@ var log = logging.Logger("core")
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {
-
 	// Self
 	Identity peer.ID // the local node's identity
 
@@ -169,17 +168,15 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 			return ps
 		}
 	}
-	if cfg.SaveBackupBootstrapPeers == nil {
-		cfg.SaveBackupBootstrapPeers = func(ctx context.Context, peerList []peer.AddrInfo) {
+	if load, _ := cfg.BackupPeers(); load == nil {
+		save := func(ctx context.Context, peerList []peer.AddrInfo) {
 			err := n.saveTempBootstrapPeers(ctx, peerList)
 			if err != nil {
 				log.Warnf("saveTempBootstrapPeers failed: %s", err)
 				return
 			}
 		}
-	}
-	if cfg.LoadBackupBootstrapPeers == nil {
-		cfg.LoadBackupBootstrapPeers = func(ctx context.Context) []peer.AddrInfo {
+		load = func(ctx context.Context) []peer.AddrInfo {
 			peerList, err := n.loadTempBootstrapPeers(ctx)
 			if err != nil {
 				log.Warnf("loadTempBootstrapPeers failed: %s", err)
@@ -187,6 +184,7 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 			}
 			return peerList
 		}
+		cfg.SetBackupPeers(load, save)
 	}
 
 	repoConf, err := n.Repo.Config()

@@ -51,8 +51,10 @@ func TestDHTConnectivitySlowRouting(t *testing.T) {
 }
 
 // wan prefix must have a real corresponding ASN for the peer diversity filter to work.
-var wanPrefix = net.ParseIP("2001:218:3004::")
-var lanPrefix = net.ParseIP("fe80::")
+var (
+	wanPrefix = net.ParseIP("2001:218:3004::")
+	lanPrefix = net.ParseIP("fe80::")
+)
 
 func makeAddr(n uint32, wan bool) ma.Multiaddr {
 	var ip net.IP

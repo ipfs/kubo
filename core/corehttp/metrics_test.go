@@ -49,7 +49,7 @@ func TestPeersTotal(t *testing.T) {
 		t.Fatalf("expected at most 2 peers transport (tcp and upd/quic), got %d, transport map %v",
 			len(peersTransport), peersTransport)
 	}
-	totalPeers := peersTransport["/ip4/tcp"] + peersTransport["/ip4/udp/quic"]
+	totalPeers := peersTransport["/ip4/tcp"] + peersTransport["/ip4/udp/quic-v1"]
 	if totalPeers != 3 {
 		t.Fatalf("expected 3 peers in either tcp or upd/quic transport, got %f", totalPeers)
 	}

@@ -15,11 +15,10 @@ const (
 )
 
 func (i Information) String() string {
-
 	tmp := int64(i)
 
 	// default
-	var d = tmp
+	d := tmp
 	symbol := "B"
 
 	switch {

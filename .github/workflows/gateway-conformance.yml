@@ -17,24 +17,44 @@ defaults:
   run:
     shell: bash
 
+env:
+  # hostnames expected by https://github.com/ipfs/gateway-conformance
+  GATEWAY_PUBLIC_GATEWAYS: |
+    {
+      "example.com": {
+        "UseSubdomains": true,
+        "InlineDNSLink": true,
+        "Paths": ["/ipfs", "/ipns"]
+      },
+      "localhost": {
+        "UseSubdomains": true,
+        "InlineDNSLink": true,
+        "Paths": ["/ipfs", "/ipns"]
+      }
+    }
+
 jobs:
+  # Testing all gateway features via TCP port specified in Addresses.Gateway
   gateway-conformance:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       # 1. Download the gateway-conformance fixtures
       - name: Download gateway-conformance fixtures
-        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.3
+        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.4
         with:
           output: fixtures
 
       # 2. Build the kubo-gateway
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.19.x
+          go-version: 1.21.x
+      - uses: protocol/cache-go-action@v1
+        with:
+          name: ${{ github.job }}
       - name: Checkout kubo-gateway
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: kubo-gateway
       - name: Build kubo-gateway
@@ -43,22 +63,8 @@ jobs:
 
       # 3. Init the kubo-gateway
       - name: Init kubo-gateway
-        env:
-          GATEWAY_PUBLIC_GATEWAYS: |
-            {
-              "example.com": {
-                "UseSubdomains": true,
-                "InlineDNSLink": true,
-                "Paths": ["/ipfs", "/ipns"]
-              },
-              "localhost": {
-                "UseSubdomains": true,
-                "InlineDNSLink": true,
-                "Paths": ["/ipfs", "/ipns"]
-              }
-            }
         run: |
-          ./ipfs init
+          ./ipfs init -e
           ./ipfs config --json Gateway.PublicGateways "$GATEWAY_PUBLIC_GATEWAYS"
         working-directory: kubo-gateway/cmd/ipfs
 
@@ -90,7 +96,7 @@ jobs:
 
       # 6. Run the gateway-conformance tests
       - name: Run gateway-conformance tests
-        uses: ipfs/gateway-conformance/.github/actions/test@v0.3
+        uses: ipfs/gateway-conformance/.github/actions/test@v0.4
         with:
           gateway-url: http://127.0.0.1:8080
           json: output.json
@@ -109,3 +115,115 @@ jobs:
         with:
           name: gateway-conformance.html
           path: output.html
+      - name: Upload JSON report
+        if: failure() || success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: gateway-conformance.json
+          path: output.json
+
+  # Testing trustless gateway feature subset exposed as libp2p protocol
+  gateway-conformance-libp2p-experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # 1. Download the gateway-conformance fixtures
+      - name: Download gateway-conformance fixtures
+        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.4
+        with:
+          output: fixtures
+
+      # 2. Build the kubo-gateway
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.20.x
+      - uses: protocol/cache-go-action@v1
+        with:
+          name: ${{ github.job }}
+      - name: Checkout kubo-gateway
+        uses: actions/checkout@v4
+        with:
+          path: kubo-gateway
+      - name: Build kubo-gateway
+        run: make build
+        working-directory: kubo-gateway
+
+      # 3. Init the kubo-gateway
+      - name: Init kubo-gateway
+        run: |
+          ./ipfs init --profile=test
+          ./ipfs config --json Gateway.PublicGateways "$GATEWAY_PUBLIC_GATEWAYS"
+          ./ipfs config --json Experimental.GatewayOverLibp2p true
+          ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/8080"
+          ./ipfs config Addresses.API "/ip4/127.0.0.1/tcp/5001"
+        working-directory: kubo-gateway/cmd/ipfs
+
+      # 4. Populate the Kubo gateway with the gateway-conformance fixtures
+      - name: Import fixtures
+        run: |
+          # Import car files
+          find ./fixtures -name '*.car' -exec kubo-gateway/cmd/ipfs/ipfs dag import --pin-roots=false {} \;
+
+      # 5. Start the kubo-gateway
+      - name: Start kubo-gateway
+        run: |
+          ( ./ipfs daemon & ) | sed '/Daemon is ready/q'
+          while [[ "$(./ipfs id | jq '.Addresses | length')" == '0' ]]; do sleep 1; done
+        working-directory: kubo-gateway/cmd/ipfs
+
+      # 6. Setup a kubo http-p2p-proxy to expose libp2p protocol as a regular HTTP port for gateway conformance tests
+      - name: Init p2p-proxy kubo node
+        env:
+          IPFS_PATH: "~/.kubo-p2p-proxy"
+        run: |
+          ./ipfs init --profile=test -e
+          ./ipfs config --json Experimental.Libp2pStreamMounting true
+          ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/8081"
+          ./ipfs config Addresses.API "/ip4/127.0.0.1/tcp/5002"
+        working-directory: kubo-gateway/cmd/ipfs
+
+      # 7. Start the kubo http-p2p-proxy
+      - name: Start kubo http-p2p-proxy
+        env:
+          IPFS_PATH: "~/.kubo-p2p-proxy"
+        run: |
+          ( ./ipfs daemon & ) | sed '/Daemon is ready/q'
+          while [[ "$(./ipfs id | jq '.Addresses | length')" == '0' ]]; do sleep 1; done
+        working-directory: kubo-gateway/cmd/ipfs
+
+      # 8. Start forwarding data from the http-p2p-proxy to the node serving the Gateway API over libp2p
+      - name: Start http-over-libp2p forwarding proxy
+        run: |
+          gatewayNodeId=$(./ipfs --api=/ip4/127.0.0.1/tcp/5001 id -f="<id>")
+          ./ipfs --api=/ip4/127.0.0.1/tcp/5002 swarm connect $(./ipfs --api=/ip4/127.0.0.1/tcp/5001 swarm addrs local --id | head -n 1)
+          ./ipfs --api=/ip4/127.0.0.1/tcp/5002 p2p forward --allow-custom-protocol /http/1.1 /ip4/127.0.0.1/tcp/8092 /p2p/$gatewayNodeId
+        working-directory: kubo-gateway/cmd/ipfs
+
+      # 9. Run the gateway-conformance tests over libp2p
+      - name: Run gateway-conformance tests over libp2p
+        uses: ipfs/gateway-conformance/.github/actions/test@v0.4
+        with:
+          gateway-url: http://127.0.0.1:8092
+          json: output.json
+          xml: output.xml
+          html: output.html
+          markdown: output.md
+          args: --specs "trustless-gateway,-trustless-ipns-gateway" -skip 'TestGatewayCar/GET_response_for_application/vnd.ipld.car/Header_Content-Length'
+
+      # 10. Upload the results
+      - name: Upload MD summary
+        if: failure() || success()
+        run: cat output.md >> $GITHUB_STEP_SUMMARY
+      - name: Upload HTML report
+        if: failure() || success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: gateway-conformance-libp2p.html
+          path: output.html
+      - name: Upload JSON report
+        if: failure() || success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: gateway-conformance-libp2p.json
+          path: output.json

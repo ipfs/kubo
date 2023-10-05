@@ -14,8 +14,10 @@ type Runner struct {
 	Verbose bool
 }
 
-type CmdOpt func(*exec.Cmd)
-type RunFunc func(*exec.Cmd) error
+type (
+	CmdOpt  func(*exec.Cmd)
+	RunFunc func(*exec.Cmd) error
+)
 
 var RunFuncStart = (*exec.Cmd).Start
 
@@ -46,6 +48,11 @@ func environToMap(environ []string) map[string]string {
 	m := map[string]string{}
 	for _, e := range environ {
 		kv := strings.Split(e, "=")
+		// Skip environment variables that start with =
+		// These can occur in Windows https://github.com/golang/go/issues/61956
+		if kv[0] == "" {
+			continue
+		}
 		m[kv[0]] = kv[1]
 	}
 	return m
@@ -100,11 +107,9 @@ func (r *Runner) AssertNoError(result *RunResult) {
 	if result.ExitErr != nil {
 		log.Panicf("'%s' returned error, code: %d, err: %s\nstdout:%s\nstderr:%s\n",
 			result.Cmd.Args, result.ExitErr.ExitCode(), result.ExitErr.Error(), result.Stdout.String(), result.Stderr.String())
-
 	}
 	if result.Err != nil {
 		log.Panicf("unable to run %s: %s", result.Cmd.Path, result.Err)
-
 	}
 }
 

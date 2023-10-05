@@ -54,7 +54,7 @@ func (r *Response) Close() error {
 	return nil
 }
 
-// Cancel aborts running request (without draining request body)
+// Cancel aborts running request (without draining request body).
 func (r *Response) Cancel() error {
 	if r.Output != nil {
 		return r.Output.Close()
@@ -63,7 +63,7 @@ func (r *Response) Cancel() error {
 	return nil
 }
 
-// Decode reads request body and decodes it as json
+// Decode reads request body and decodes it as json.
 func (r *Response) decode(dec interface{}) error {
 	if r.Error != nil {
 		return r.Error
@@ -157,7 +157,6 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 }
 
 func (r *Request) getURL() string {
-
 	values := make(url.Values)
 	for _, arg := range r.Args {
 		values.Add("arg", arg)

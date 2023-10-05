@@ -51,6 +51,8 @@ config file at runtime.
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
     - [`Gateway.DeserializedResponses`](#gatewaydeserializedresponses)
+    - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
+    - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
     - [`Gateway.FastDirIndexThreshold`](#gatewayfastdirindexthreshold)
@@ -249,10 +251,10 @@ documented in `ipfs config profile --help`.
 
   Reduces daemon overhead on the system. Affects node
   functionality - performance of content discovery and data
-  fetching may be degraded. Local data won't be announced on routing systems like DHT.
+  fetching may be degraded. Local data won't be announced on routing systems like Amino DHT.
 
   - `Swarm.ConnMgr` set to maintain minimum number of p2p connections at a time.
-  - Disables [`Reprovider`](#reprovider) service → no CID will be announced on DHT and other routing systems(!)
+  - Disables [`Reprovider`](#reprovider) service → no CID will be announced on Amino DHT and other routing systems(!)
   - Disables AutoNAT.
 
   Use this profile with caution.
@@ -372,19 +374,18 @@ Supported Transports:
 
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
 * websocket - `/ipN/.../tcp/.../ws`
-* quic (Draft-29) - `/ipN/.../udp/.../quic` - can share the same two tuple with `/quic-v1` and `/quic-v1/webtransport`
-* quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic` and `/quic-v1/webtransport`
-* webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic` and `/quic-v1`
+* quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic-v1/webtransport`
+* webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic-v1`
+
+Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
 Default:
 ```json
 [
   "/ip4/0.0.0.0/tcp/4001",
   "/ip6/::/tcp/4001",
-  "/ip4/0.0.0.0/udp/4001/quic",
   "/ip4/0.0.0.0/udp/4001/quic-v1",
   "/ip4/0.0.0.0/udp/4001/quic-v1/webtransport",
-  "/ip6/::/udp/4001/quic",
   "/ip6/::/udp/4001/quic-v1",
   "/ip6/::/udp/4001/quic-v1/webtransport"
 ]
@@ -649,13 +650,37 @@ Default: `false`
 
 Type: `bool`
 
-#### `Gateway.DeserializedResponses`
+### `Gateway.DeserializedResponses`
 
 An optional flag to explicitly configure whether this gateway responds to deserialized
 requests, or not. By default, it is enabled. When disabling this option, the gateway
 operates as a Trustless Gateway only: https://specs.ipfs.tech/http-gateways/trustless-gateway/.
 
 Default: `true`
+
+Type: `flag`
+
+### `Gateway.DisableHTMLErrors`
+
+An optional flag to disable the pretty HTML error pages of the gateway. Instead,
+a `text/plain` page will be returned with the raw error message from Kubo.
+
+It is useful for whitelabel or middleware deployments that wish to avoid
+`text/html` responses with IPFS branding and links on error pages in browsers.
+
+Default: `false`
+
+Type: `flag`
+
+### `Gateway.ExposeRoutingAPI`
+
+An optional flag to expose Kubo `Routing` system on the gateway port as a [Routing
+V1](https://specs.ipfs.tech/routing/routing-v1/) endpoint.  This only affects your
+local gateway, at `127.0.0.1`.
+
+This endpoint can be used by other Kubo instance, as illustrated in [`delegated_routing_v1_http_proxy_test.go`](https://github.com/ipfs/kubo/blob/master/test/cli/delegated_routing_v1_http_proxy_test.go).
+
+Default: `false`
 
 Type: `flag`
 
@@ -981,7 +1006,7 @@ Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 ### `Internal.Bitswap.ProviderSearchDelay`
 
 This parameter determines how long to wait before looking for providers outside of bitswap.
-Other routing systems like the DHT are able to provide results in less than a second, so lowering
+Other routing systems like the Amino DHT are able to provide results in less than a second, so lowering
 this number will allow faster peers lookups in some cases.
 
 Type: `optionalDuration` (`null` means default which is 1s)
@@ -1315,7 +1340,7 @@ The set of peers with which to peer.
       },
       {
         "ID": "QmPeerID2",
-        "Addrs": ["/ip4/18.1.1.2/tcp/4001", "/ip4/18.1.1.2/udp/4001/quic"]
+        "Addrs": ["/ip4/18.1.1.2/tcp/4001", "/ip4/18.1.1.2/udp/4001/quic-v1"]
       }
     ]
   }
@@ -1323,7 +1348,7 @@ The set of peers with which to peer.
 }
 ```
 
-Where `ID` is the peer ID and `Addrs` is a set of known addresses for the peer. If no addresses are specified, the DHT will be queried.
+Where `ID` is the peer ID and `Addrs` is a set of known addresses for the peer. If no addresses are specified, the Amino DHT will be queried.
 
 Additional fields may be added in the future.
 
@@ -1370,7 +1395,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
 
-* **DEFAULT:** If unset, or set to "auto", your node will use the IPFS DHT
+* **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
   and parallel HTTP routers listed below for additional speed.
 
 * If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
@@ -1378,7 +1403,7 @@ There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtcli
 * If set to "none", your node will use _no_ routing system. You'll have to
   explicitly connect to peers that have the content you're looking for.
 
-* If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the IPFS DHT (no HTTP routers).
+* If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the Amino DHT (no HTTP routers).
 
 * If set to "custom", all default routers are disabled, and only ones defined in `Routing.Routers` will be used.
 
@@ -1396,7 +1421,7 @@ When `Routing.Type` is set to `auto` or `dht`, your node will start as a DHT cli
 switch to a DHT server when and if it determines that it's reachable from the
 public internet (e.g., it's not behind a firewall).
 
-To force a specific DHT-only mode, client or server, set `Routing.Type` to
+To force a specific Amino DHT-only mode, client or server, set `Routing.Type` to
 `dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
 unless you're sure your node is reachable from the public network.
 
@@ -1414,7 +1439,7 @@ Type: `optionalString` (`null`/missing means the default)
 
 ### `Routing.AcceleratedDHTClient`
 
-This alternative DHT client with a Full-Routing-Table strategy will
+This alternative Amino DHT client with a Full-Routing-Table strategy will
 do a complete scan of the DHT every hour and record all nodes found.
 Then when a lookup is tried instead of having to go through multiple Kad hops it
 is able to find the 20 final nodes by looking up the in-memory recorded network table.
@@ -1425,7 +1450,7 @@ However the latency of individual read/write operations should be ~10x faster
 and the provide throughput up to 6 million times faster on larger datasets!
 
 This is not compatible with `Routing.Type` `custom`. If you are using composable routers
-you can configure this individualy on each router.
+you can configure this individually on each router.
 
 When it is enabled:
 - Client DHT operations (reads and writes) should complete much faster
@@ -1464,7 +1489,7 @@ Type: `bool` (missing means `false`)
 
 Map of additional Routers.
 
-Allows for extending the default routing (DHT) with alternative Router
+Allows for extending the default routing (Amino DHT) with alternative Router
 implementations.
 
 The map key is a name of a Router, and the value is its configuration.
@@ -1499,7 +1524,7 @@ HTTP:
   - `MaxProvideConcurrency`: It determines the number of threads used when providing content. GOMAXPROCS by default.
 
 DHT:
-  - `"Mode"`: Mode used by the DHT. Possible values: "server", "client", "auto"
+  - `"Mode"`: Mode used by the Amino DHT. Possible values: "server", "client", "auto"
   - `"AcceleratedDHTClient"`: Set to `true` if you want to use the acceleratedDHT.
   - `"PublicIPNetwork"`: Set to `true` to create a `WAN` DHT. Set to `false` to create a `LAN` DHT.
 
@@ -1533,7 +1558,7 @@ Type: `object[string->object]`
 
 **Examples:**
 
-Complete example using 2 Routers, DHT (LAN/WAN) and parallel.
+Complete example using 2 Routers, Amino DHT (LAN/WAN) and parallel.
 
 ```
 $ ipfs config Routing.Type --json '"custom"'
@@ -1999,8 +2024,8 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
-* /ip4/0.0.0.0/udp/4001/quic (default)
-* /ip6/::/udp/4001/quic (default)
+* /ip4/0.0.0.0/udp/4001/quic-v1 (default)
+* /ip6/::/udp/4001/quic-v1 (default)
 
 #### `Swarm.Transports.Network.Relay`
 
@@ -2052,6 +2077,8 @@ Type: `flag`
 Configuration section for libp2p _security_ transports. Transports enabled in
 this section will be used to secure unencrypted connections.
 
+This does not concern all the QUIC transports which use QUIC's builtin encryption.
+
 Security transports are configured with the `priority` type.
 
 When establishing an _outbound_ connection, Kubo will try each security
@@ -2094,11 +2121,13 @@ Type: `priority`
 Configuration section for libp2p _multiplexer_ transports. Transports enabled in
 this section will be used to multiplex duplex connections.
 
-Multiplexer transports are secured the same way security transports are, with
+This does not concern all the QUIC transports which use QUIC's builtin muxing.
+
+Multiplexer transports are configured the same way security transports are, with
 the `priority` type. Like with security transports, the initiator gets their
 first choice.
 
-Supported transports are: Yamux (priority 100) and Mplex (priority 200)
+Supported transport is only: Yamux (priority 100)
 
 No default priority will ever be less than 100.
 
@@ -2112,17 +2141,17 @@ Type: `priority`
 
 ### `Swarm.Transports.Multiplexers.Mplex`
 
-Mplex is the default multiplexer used when communicating between Kubo and all
-other IPFS and libp2p implementations. Unlike Yamux:
+**DEPRECATED**: See https://github.com/ipfs/kubo/issues/9958
 
-* Mplex is a simpler protocol.
-* Mplex is more efficient.
-* Mplex does not have built-in keepalives.
-* Mplex does not support backpressure. Unfortunately, this means that, if a
-  single stream to a peer gets backed up for a period of time, the mplex
-  transport will kill the stream to allow the others to proceed. On the other
-  hand, the lack of backpressure means mplex can be significantly faster on some
-  high-latency connections.
+Mplex is deprecated, this is because it is unreliable and
+randomly drop streams when sending data *too fast*.
+
+New pieces of code rely on backpressure, that means the stream will dynamically
+slow down the sending rate if data is getting backed up.
+Backpressure is provided by **Yamux** and **QUIC**.
+
+If you want to turn it back on make sure to have a higher (lower is better)
+priority than `Yamux`, you don't want your Kubo to start defaulting to Mplex.
 
 Default: `200`
 

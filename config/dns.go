@@ -1,6 +1,6 @@
 package config
 
-// DNS specifies DNS resolution rules using custom resolvers
+// DNS specifies DNS resolution rules using custom resolvers.
 type DNS struct {
 	// Resolvers is a map of FQDNs to URLs for custom DNS resolution.
 	// URLs starting with `https://` indicate DoH endpoints.

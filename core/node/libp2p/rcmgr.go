@@ -118,7 +118,8 @@ filled in with autocomputed defaults.`)
 		lc.Append(fx.Hook{
 			OnStop: func(_ context.Context) error {
 				return manager.Close()
-			}})
+			},
+		})
 
 		return manager, opts, nil
 	}
@@ -180,7 +181,7 @@ func LimitConfig(cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimi
 
 	// This effectively overrides the computed default LimitConfig with any non-"useDefault" values from the userResourceOverrides file.
 	// Because of how how Build works, any rcmgr.Default value in userResourceOverrides
-	// will be overriden with a computed default value.
+	// will be overridden with a computed default value.
 	limitConfig = userResourceOverrides.Build(limitConfig)
 
 	return limitConfig, msg, nil
@@ -359,7 +360,7 @@ func LimitConfigsToInfo(stats LimitsConfigAndUsage) ResourceInfos {
 
 	for i, p := range stats.Peers {
 		result = append(result, resourceLimitsAndUsageToResourceInfo(
-			config.ResourceMgrPeerScopePrefix+i.Pretty(),
+			config.ResourceMgrPeerScopePrefix+i.String(),
 			p,
 		)...)
 	}

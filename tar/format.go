@@ -21,8 +21,10 @@ import (
 
 var log = logging.Logger("tarfmt")
 
-var blockSize = 512
-var zeroBlock = make([]byte, blockSize)
+var (
+	blockSize = 512
+	zeroBlock = make([]byte, blockSize)
+)
 
 func marshalHeader(h *tar.Header) ([]byte, error) {
 	buf := new(bytes.Buffer)
@@ -91,7 +93,7 @@ func ImportTar(ctx context.Context, r io.Reader, ds ipld.DAGService) (*dag.Proto
 }
 
 // adds a '-' to the beginning of each path element so we can use 'data' as a
-// special link in the structure without having to worry about
+// special link in the structure without having to worry about.
 func escapePath(pth string) string {
 	elems := path.SplitList(strings.Trim(pth, "/"))
 	for i, e := range elems {
@@ -173,7 +175,7 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 	tr.hdrBuf = bytes.NewReader(hndpb.Data())
 
 	dataNd, err := hndpb.GetLinkedProtoNode(tr.ctx, tr.ds, "data")
-	if err != nil && err != dag.ErrLinkNotFound {
+	if err != nil && !errors.Is(err, dag.ErrLinkNotFound) {
 		return 0, err
 	}
 

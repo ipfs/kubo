@@ -232,7 +232,6 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 		in.Validator,
 		namesys.WithRebroadcastInterval(time.Minute),
 	)
-
 	if err != nil {
 		return p2pRouterOut{}, nil, err
 	}

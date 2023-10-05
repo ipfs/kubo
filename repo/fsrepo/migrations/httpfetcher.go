@@ -10,12 +10,13 @@ import (
 )
 
 const (
-	defaultGatewayURL = "https://ipfs.io"
-	// Default maximum download size
+	// default is different name than ipfs.io which is being blocked by some ISPs
+	defaultGatewayURL = "https://dweb.link"
+	// Default maximum download size.
 	defaultFetchLimit = 1024 * 1024 * 512
 )
 
-// HttpFetcher fetches files over HTTP
+// HttpFetcher fetches files over HTTP.
 type HttpFetcher struct { //nolint
 	distPath  string
 	gateway   string
@@ -66,7 +67,7 @@ func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, gwURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("http.NewRequest error: %s", err)
+		return nil, fmt.Errorf("http.NewRequest error: %w", err)
 	}
 
 	if f.userAgent != "" {
@@ -75,14 +76,14 @@ func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("http.DefaultClient.Do error: %s", err)
+		return nil, fmt.Errorf("http.DefaultClient.Do error: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
 		defer resp.Body.Close()
 		mes, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return nil, fmt.Errorf("error reading error body: %s", err)
+			return nil, fmt.Errorf("error reading error body: %w", err)
 		}
 		return nil, fmt.Errorf("GET %s error: %s: %s", gwURL, resp.Status, string(mes))
 	}

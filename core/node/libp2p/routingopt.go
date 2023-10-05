@@ -139,7 +139,8 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 				PeerID:     peerID,
 				Addrs:      httpAddrsFromConfig(addrs),
 				PrivKeyB64: privKey,
-			})
+			},
+		)
 	}
 }
 

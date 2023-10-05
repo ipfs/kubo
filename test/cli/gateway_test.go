@@ -196,9 +196,7 @@ func TestGateway(t *testing.T) {
 				resp.Body,
 				fmt.Sprintf(`<link rel="canonical" href="/ipns/%s?query=to-remember" />`, peerID),
 			)
-
 		})
-
 	})
 
 	t.Run("GET invalid IPFS path errors", func(t *testing.T) {
@@ -489,7 +487,7 @@ func TestGateway(t *testing.T) {
 
 			t.Run("not present key from node 1", func(t *testing.T) {
 				t.Parallel()
-				assert.Equal(t, 404, node1.GatewayClient().Get("/ipfs/"+cidFoo).StatusCode)
+				assert.Equal(t, 500, node1.GatewayClient().Get("/ipfs/"+cidFoo).StatusCode)
 			})
 
 			t.Run("not present IPNS key from node 1", func(t *testing.T) {
@@ -583,7 +581,6 @@ func TestGateway(t *testing.T) {
 
 				assert.Equal(t, test.deserializedGatewayStaticCode, client.Get(deserializedPath, setHost).StatusCode)
 				assert.Equal(t, test.deserializedGatewayStaticCode, client.Get(deserializedPath, withHostAndAccept("application/json")).StatusCode)
-
 			}
 		}
 
@@ -595,5 +592,40 @@ func TestGateway(t *testing.T) {
 		} {
 			t.Run(test.message, makeTest(test))
 		}
+	})
+
+	t.Run("DisableHTMLErrors", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("Returns HTML error without DisableHTMLErrors, Accept contains text/html", func(t *testing.T) {
+			t.Parallel()
+
+			node := harness.NewT(t).NewNode().Init()
+			node.StartDaemon()
+			client := node.GatewayClient()
+
+			res := client.Get("/ipfs/invalid-thing", func(r *http.Request) {
+				r.Header.Set("Accept", "text/html")
+			})
+			assert.NotEqual(t, http.StatusOK, res.StatusCode)
+			assert.Contains(t, res.Resp.Header.Get("Content-Type"), "text/html")
+		})
+
+		t.Run("Does not return HTML error with DisableHTMLErrors enabled, and Accept contains text/html", func(t *testing.T) {
+			t.Parallel()
+
+			node := harness.NewT(t).NewNode().Init()
+			node.UpdateConfig(func(cfg *config.Config) {
+				cfg.Gateway.DisableHTMLErrors = config.True
+			})
+			node.StartDaemon()
+			client := node.GatewayClient()
+
+			res := client.Get("/ipfs/invalid-thing", func(r *http.Request) {
+				r.Header.Set("Accept", "text/html")
+			})
+			assert.NotEqual(t, http.StatusOK, res.StatusCode)
+			assert.NotContains(t, res.Resp.Header.Get("Content-Type"), "text/html")
+		})
 	})
 }

@@ -30,15 +30,13 @@ jobs:
         shell: bash
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.19.x
+          go-version: 1.21.x
       - name: Check out Kubo
-        uses: actions/checkout@v3
-      - name: Restore Go cache
-        uses: protocol/cache-go-action@v1
-        with:
-          name: ${{ github.job }}
+        uses: actions/checkout@v4
+      - name: Install missing tools
+        run: sudo apt update && sudo apt install -y zsh
       - name: 👉️ If this step failed, go to «Summary» (top left) → inspect the «Failures/Errors» table
         env:
           # increasing parallelism beyond 2 doesn't speed up the tests much

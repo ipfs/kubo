@@ -47,5 +47,4 @@ func CheckBlockSize(req *cmds.Request, size uint64) error {
 		return fmt.Errorf("produced block is over 1MiB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
 	}
 	return nil
-
 }

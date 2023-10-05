@@ -224,6 +224,8 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 
 	return &httpRoutingWrapper{
 		ContentRouting:    cr,
+		PeerRouting:       cr,
+		ValueStore:        cr,
 		ProvideManyRouter: cr,
 	}, nil
 }

@@ -64,7 +64,7 @@ type AutoNATConfig struct {
 	Throttle *AutoNATThrottleConfig `json:",omitempty"`
 }
 
-// AutoNATThrottleConfig configures the throttle limites
+// AutoNATThrottleConfig configures the throttle limites.
 type AutoNATThrottleConfig struct {
 	// GlobalLimit and PeerLimit sets the global and per-peer dialback
 	// limits. The AutoNAT service will only perform the specified number of
