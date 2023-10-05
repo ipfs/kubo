@@ -17,7 +17,7 @@ Description=IPFS daemon
 
 [Service]
 # Environment="IPFS_PATH=/data/ipfs"  # optional path to ipfs init directory if not default ($HOME/.ipfs)
-ExecStart=/usr/bin/ipfs daemon
+ExecStart=/usr/local/bin/ipfs daemon
 Restart=on-failure
 
 [Install]
