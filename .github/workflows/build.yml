@@ -54,7 +54,7 @@ jobs:
         shell: bash
     strategy:
       matrix:
-        repo-to-test-against: ["helia", "helia-ipns", "helia-unixfs"] # this needs to be manually kept in sync as new helia tests are written
+        repo-to-test-against: ["helia", "helia-ipns", "helia-unixfs", "helia-car", "helia-dag-json", "helia-dag-cbor", "helia-json", "helia-mfs"] # this needs to be manually kept in sync as new helia tests are written
     steps:
       - uses: actions/setup-node@v3
         with:
