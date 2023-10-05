@@ -80,10 +80,6 @@ jobs:
           path: interop
       - name: Checkout latest tag
         run: |
-          exit 0 # temporary while theses pull requests are released:
-          # https://github.com/ipfs/helia/pull/200
-          # https://github.com/ipfs/helia-unixfs/pull/68
-          # https://github.com/ipfs/helia-ipns/pull/72
           export TAG="$(git describe --tags --abbrev=0)"
           echo "Running tests against: $TAG"
           git checkout "$TAG"
@@ -93,8 +89,6 @@ jobs:
       - run: npm run build
         working-directory: interop
       - run: npm install
-        working-directory: interop/packages/interop
-      - run: npm install --ignore-scripts --save "ipfs/npm-go-ipfs#4441b8a60f1cfee3035a9e4bb824dfcca08e9b01" # temporary while https://github.com/ipfs/npm-go-ipfs/pull/62 is being bubbled
         working-directory: interop/packages/interop
       - run: npm test
         working-directory: interop/packages/interop
