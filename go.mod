@@ -2,7 +2,7 @@ module github.com/ipfs/kubo
 
 // TODO: remove this replacement when https://github.com/ipfs/boxo/pull/472 is merged
 // This is https://github.com/iand/boxo/tree/dhtv2
-replace github.com/ipfs/boxo => github.com/iand/boxo v0.0.0-20231003100737-e1b8ceac1ae9
+replace github.com/ipfs/boxo => github.com/iand/boxo v0.0.0-20231005135157-93ab11b28594
 
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
@@ -79,9 +79,9 @@ require (
 	go.opencensus.io v0.24.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.42.0
 	go.opentelemetry.io/contrib/propagators/autoprop v0.42.0
-	go.opentelemetry.io/otel v1.18.0
-	go.opentelemetry.io/otel/sdk v1.18.0
-	go.opentelemetry.io/otel/trace v1.18.0
+	go.opentelemetry.io/otel v1.19.0
+	go.opentelemetry.io/otel/sdk v1.19.0
+	go.opentelemetry.io/otel/trace v1.19.0
 	go.uber.org/dig v1.17.0
 	go.uber.org/fx v1.20.0
 	go.uber.org/multierr v1.11.0
@@ -189,7 +189,7 @@ require (
 	github.com/openzipkin/zipkin-go v0.4.2 // indirect
 	github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 // indirect
 	github.com/plprobelab/go-libdht v0.0.0-20230928202609-8c74cc7954b3 // indirect
-	github.com/plprobelab/zikade v0.0.0-20231002151622-5323fffc1882 // indirect
+	github.com/plprobelab/zikade v0.0.0-20231005134401-f9b6f3275245 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
@@ -221,10 +221,11 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.18.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.18.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.18.0 // indirect
+	go.opentelemetry.io/otel/exporters/prometheus v0.42.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.18.0 // indirect
 	go.opentelemetry.io/otel/exporters/zipkin v1.18.0 // indirect
-	go.opentelemetry.io/otel/metric v1.18.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v0.41.0 // indirect
+	go.opentelemetry.io/otel/metric v1.19.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v1.19.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/zap/exp v0.1.0 // indirect
