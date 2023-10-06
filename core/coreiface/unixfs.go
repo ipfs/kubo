@@ -4,17 +4,16 @@ import (
 	"context"
 
 	"github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
-
 	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 )
 
 type AddEvent struct {
 	Name  string
-	Path  path.Resolved `json:",omitempty"`
-	Bytes int64         `json:",omitempty"`
-	Size  string        `json:",omitempty"`
+	Path  path.ImmutablePath `json:",omitempty"`
+	Bytes int64              `json:",omitempty"`
+	Size  string             `json:",omitempty"`
 }
 
 // FileType is an enum of possible UnixFS file types.
@@ -66,7 +65,7 @@ type UnixfsAPI interface {
 	// Add imports the data from the reader into merkledag file
 	//
 	// TODO: a long useful comment on how to use this for many different scenarios
-	Add(context.Context, files.Node, ...options.UnixfsAddOption) (path.Resolved, error)
+	Add(context.Context, files.Node, ...options.UnixfsAddOption) (path.ImmutablePath, error)
 
 	// Get returns a read-only handle to a file tree referenced by a path
 	//

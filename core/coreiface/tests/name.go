@@ -4,15 +4,14 @@ import (
 	"context"
 	"io"
 	"math/rand"
-	gopath "path"
 	"testing"
 	"time"
 
 	coreiface "github.com/ipfs/boxo/coreiface"
 	opt "github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/ipns"
+	"github.com/ipfs/boxo/path"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,10 +32,6 @@ var rnd = rand.New(rand.NewSource(0x62796532303137))
 
 func addTestObject(ctx context.Context, api coreiface.CoreAPI) (path.Path, error) {
 	return api.Unixfs().Add(ctx, files.NewReaderFile(&io.LimitedReader{R: rnd, N: 4092}))
-}
-
-func appendPath(p path.Path, sub string) path.Path {
-	return path.New(gopath.Join(p.String(), sub))
 }
 
 func (tp *TestSuite) TestPublishResolve(t *testing.T) {
@@ -68,7 +63,10 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 
 		t.Run("publishPath", func(t *testing.T) {
 			api, p := init()
-			name, err := api.Name().Publish(ctx, appendPath(p, "/test"))
+			p, err := path.Join(p, "/test")
+			require.NoError(t, err)
+
+			name, err := api.Name().Publish(ctx, p)
 			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
@@ -77,7 +75,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 
 			resPath, err := api.Name().Resolve(ctx, name.String(), ropts...)
 			require.NoError(t, err)
-			require.Equal(t, p.String()+"/test", resPath.String())
+			require.Equal(t, p.String(), resPath.String())
 		})
 
 		t.Run("revolvePath", func(t *testing.T) {
@@ -96,7 +94,10 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 
 		t.Run("publishRevolvePath", func(t *testing.T) {
 			api, p := init()
-			name, err := api.Name().Publish(ctx, appendPath(p, "/a"))
+			p, err := path.Join(p, "/a")
+			require.NoError(t, err)
+
+			name, err := api.Name().Publish(ctx, p)
 			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
@@ -105,7 +106,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 
 			resPath, err := api.Name().Resolve(ctx, name.String()+"/b", ropts...)
 			require.NoError(t, err)
-			require.Equal(t, p.String()+"/a/b", resPath.String())
+			require.Equal(t, p.String()+"/b", resPath.String())
 		})
 	}
 

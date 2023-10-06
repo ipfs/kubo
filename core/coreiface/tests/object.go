@@ -166,7 +166,7 @@ func (tp *TestSuite) TestObjectLinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Links":[{"Name":"bar", "Hash":"`+p1.Cid().String()+`"}]}`))
+	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Links":[{"Name":"bar", "Hash":"`+p1.RootCid().String()+`"}]}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +180,7 @@ func (tp *TestSuite) TestObjectLinks(t *testing.T) {
 		t.Errorf("unexpected number of links: %d", len(links))
 	}
 
-	if links[0].Cid.String() != p1.Cid().String() {
+	if links[0].Cid.String() != p1.RootCid().String() {
 		t.Fatal("cids didn't batch")
 	}
 
@@ -202,7 +202,7 @@ func (tp *TestSuite) TestObjectStat(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"bazz", "Links":[{"Name":"bar", "Hash":"`+p1.Cid().String()+`", "Size":3}]}`))
+	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"bazz", "Links":[{"Name":"bar", "Hash":"`+p1.RootCid().String()+`", "Size":3}]}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +212,7 @@ func (tp *TestSuite) TestObjectStat(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if stat.Cid.String() != p2.Cid().String() {
+	if stat.Cid.String() != p2.RootCid().String() {
 		t.Error("unexpected stat.Cid")
 	}
 
@@ -250,7 +250,7 @@ func (tp *TestSuite) TestObjectAddLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"bazz", "Links":[{"Name":"bar", "Hash":"`+p1.Cid().String()+`", "Size":3}]}`))
+	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"bazz", "Links":[{"Name":"bar", "Hash":"`+p1.RootCid().String()+`", "Size":3}]}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,7 +291,7 @@ func (tp *TestSuite) TestObjectAddLinkCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"bazz", "Links":[{"Name":"bar", "Hash":"`+p1.Cid().String()+`", "Size":3}]}`))
+	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"bazz", "Links":[{"Name":"bar", "Hash":"`+p1.RootCid().String()+`", "Size":3}]}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -340,7 +340,7 @@ func (tp *TestSuite) TestObjectRmLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"bazz", "Links":[{"Name":"bar", "Hash":"`+p1.Cid().String()+`", "Size":3}]}`))
+	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"bazz", "Links":[{"Name":"bar", "Hash":"`+p1.RootCid().String()+`", "Size":3}]}`))
 	if err != nil {
 		t.Fatal(err)
 	}

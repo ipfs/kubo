@@ -4,9 +4,8 @@ import (
 	"context"
 	"io"
 
-	path "github.com/ipfs/boxo/coreiface/path"
-
 	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/path"
 
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -60,11 +59,11 @@ type ObjectChange struct {
 
 	// Before holds the link path before the change. Note that when a link is
 	// added, this will be nil.
-	Before path.Resolved
+	Before path.ImmutablePath
 
 	// After holds the link path after the change. Note that when a link is
 	// removed, this will be nil.
-	After path.Resolved
+	After path.ImmutablePath
 }
 
 // ObjectAPI specifies the interface to MerkleDAG and contains useful utilities
@@ -74,7 +73,7 @@ type ObjectAPI interface {
 	New(context.Context, ...options.ObjectNewOption) (ipld.Node, error)
 
 	// Put imports the data into merkledag
-	Put(context.Context, io.Reader, ...options.ObjectPutOption) (path.Resolved, error)
+	Put(context.Context, io.Reader, ...options.ObjectPutOption) (path.ImmutablePath, error)
 
 	// Get returns the node for the path
 	Get(context.Context, path.Path) (ipld.Node, error)
@@ -91,16 +90,16 @@ type ObjectAPI interface {
 	// AddLink adds a link under the specified path. child path can point to a
 	// subdirectory within the patent which must be present (can be overridden
 	// with WithCreate option).
-	AddLink(ctx context.Context, base path.Path, name string, child path.Path, opts ...options.ObjectAddLinkOption) (path.Resolved, error)
+	AddLink(ctx context.Context, base path.Path, name string, child path.Path, opts ...options.ObjectAddLinkOption) (path.ImmutablePath, error)
 
 	// RmLink removes a link from the node
-	RmLink(ctx context.Context, base path.Path, link string) (path.Resolved, error)
+	RmLink(ctx context.Context, base path.Path, link string) (path.ImmutablePath, error)
 
 	// AppendData appends data to the node
-	AppendData(context.Context, path.Path, io.Reader) (path.Resolved, error)
+	AppendData(context.Context, path.Path, io.Reader) (path.ImmutablePath, error)
 
 	// SetData sets the data contained in the node
-	SetData(context.Context, path.Path, io.Reader) (path.Resolved, error)
+	SetData(context.Context, path.Path, io.Reader) (path.ImmutablePath, error)
 
 	// Diff returns a set of changes needed to transform the first object into the
 	// second.

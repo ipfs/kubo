@@ -5,9 +5,8 @@ package iface
 import (
 	"context"
 
-	path "github.com/ipfs/boxo/coreiface/path"
-
 	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/path"
 
 	ipld "github.com/ipfs/go-ipld-format"
 )
@@ -47,8 +46,10 @@ type CoreAPI interface {
 	// Routing returns an implementation of Routing API
 	Routing() RoutingAPI
 
-	// ResolvePath resolves the path using Unixfs resolver
-	ResolvePath(context.Context, path.Path) (path.Resolved, error)
+	// ResolvePath resolves the path using UnixFS resolver, and returns the resolved
+	// immutable path, and the remainder of the path segments that cannot be resolved
+	// within UnixFS.
+	ResolvePath(context.Context, path.Path) (path.ImmutablePath, []string, error)
 
 	// ResolveNode resolves the path (if not resolved already) using Unixfs
 	// resolver, gets and returns the resolved Node
