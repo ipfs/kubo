@@ -42,9 +42,9 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Immutabl
 
 	p, err := resolve.ResolveIPNS(ctx, api.namesys, p)
 	if err == resolve.ErrNoNamesys {
-		return nil, nil, coreiface.ErrOffline
+		return path.ImmutablePath{}, nil, coreiface.ErrOffline
 	} else if err != nil {
-		return nil, nil, err
+		return path.ImmutablePath{}, nil, err
 	}
 
 	var resolver ipfspathresolver.Resolver
@@ -54,17 +54,17 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Immutabl
 	case path.IPFSNamespace:
 		resolver = api.unixFSPathResolver
 	default:
-		return nil, nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
+		return path.ImmutablePath{}, nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
 	}
 
 	imPath, err := path.NewImmutablePath(p)
 	if err != nil {
-		return nil, nil, err
+		return path.ImmutablePath{}, nil, err
 	}
 
 	node, remainder, err := resolver.ResolveToLastNode(ctx, imPath)
 	if err != nil {
-		return nil, nil, err
+		return path.ImmutablePath{}, nil, err
 	}
 
 	segments := []string{p.Namespace(), node.String()}
@@ -72,12 +72,12 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Immutabl
 
 	p, err = path.NewPathFromSegments(segments...)
 	if err != nil {
-		return nil, nil, err
+		return path.ImmutablePath{}, nil, err
 	}
 
 	imPath, err = path.NewImmutablePath(p)
 	if err != nil {
-		return nil, nil, err
+		return path.ImmutablePath{}, nil, err
 	}
 
 	return imPath, remainder, nil

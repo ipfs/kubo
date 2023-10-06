@@ -17,22 +17,22 @@ func (api *HttpApi) ResolvePath(ctx context.Context, p path.Path) (path.Immutabl
 	var err error
 	if p.Namespace() == path.IPNSNamespace {
 		if p, err = api.Name().Resolve(ctx, p.String()); err != nil {
-			return nil, nil, err
+			return path.ImmutablePath{}, nil, err
 		}
 	}
 
 	if err := api.Request("dag/resolve", p.String()).Exec(ctx, &out); err != nil {
-		return nil, nil, err
+		return path.ImmutablePath{}, nil, err
 	}
 
 	p, err = path.NewPathFromSegments(p.Namespace(), out.Cid.String(), out.RemPath)
 	if err != nil {
-		return nil, nil, err
+		return path.ImmutablePath{}, nil, err
 	}
 
 	imPath, err := path.NewImmutablePath(p)
 	if err != nil {
-		return nil, nil, err
+		return path.ImmutablePath{}, nil, err
 	}
 
 	return imPath, path.StringToSegments(out.RemPath), nil

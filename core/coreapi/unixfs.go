@@ -64,7 +64,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 
 	settings, prefix, err := options.UnixfsAddOptions(opts...)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	span.SetAttributes(
@@ -85,7 +85,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 
 	cfg, err := api.repo.Config()
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	// check if repo will exceed storage limit if added
@@ -97,7 +97,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	//}
 
 	if settings.NoCopy && !(cfg.Experimental.FilestoreEnabled || cfg.Experimental.UrlstoreEnabled) {
-		return nil, fmt.Errorf("either the filestore or the urlstore must be enabled to use nocopy, see: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#ipfs-filestore")
+		return path.ImmutablePath{}, fmt.Errorf("either the filestore or the urlstore must be enabled to use nocopy, see: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#ipfs-filestore")
 	}
 
 	addblockstore := api.blockstore
@@ -110,7 +110,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	if settings.OnlyHash {
 		node, err := getOrCreateNilNode()
 		if err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 		addblockstore = node.Blockstore
 		exch = node.Exchange
@@ -144,7 +144,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 
 	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, syncDserv)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	fileAdder.Chunker = settings.Chunker
@@ -164,7 +164,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	case options.TrickleLayout:
 		fileAdder.Trickle = true
 	default:
-		return nil, fmt.Errorf("unknown layout: %d", settings.Layout)
+		return path.ImmutablePath{}, fmt.Errorf("unknown layout: %d", settings.Layout)
 	}
 
 	if settings.Inline {
@@ -180,11 +180,11 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		// Use the same prefix for the "empty" MFS root as for the file adder.
 		err := emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
 		if err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil)
 		if err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 
 		fileAdder.SetMfsRoot(mr)
@@ -192,12 +192,12 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 
 	nd, err := fileAdder.AddAllAndPin(ctx, files)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	if !settings.OnlyHash {
 		if err := api.provider.Provide(nd.Cid()); err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 	}
 
