@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/ipfs/boxo/ipld/merkledag/dagutils"
+	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
@@ -82,11 +83,11 @@ Example:
 				Path: change.Path,
 			}
 
-			if change.Before != nil {
+			if (change.Before != path.ImmutablePath{}) {
 				out[i].Before = change.Before.RootCid()
 			}
 
-			if change.After != nil {
+			if (change.After != path.ImmutablePath{}) {
 				out[i].After = change.After.RootCid()
 			}
 		}

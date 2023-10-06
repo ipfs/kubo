@@ -71,7 +71,7 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 
 	options, err := caopts.ObjectPutOptions(opts...)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 	span.SetAttributes(
 		attribute.Bool("pin", options.Pin),
@@ -81,7 +81,7 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 
 	data, err := io.ReadAll(io.LimitReader(src, inputLimit+10))
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	var dagnode *dag.ProtoNode
@@ -92,12 +92,12 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		decoder.DisallowUnknownFields()
 		err = decoder.Decode(node)
 		if err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 
 		dagnode, err = deserializeNode(node, options.DataType)
 		if err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 
 	case "protobuf":
@@ -107,20 +107,20 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		node := new(Node)
 		err = xml.Unmarshal(data, node)
 		if err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 
 		dagnode, err = deserializeNode(node, options.DataType)
 		if err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 
 	default:
-		return nil, errors.New("unknown object encoding")
+		return path.ImmutablePath{}, errors.New("unknown object encoding")
 	}
 
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	if options.Pin {
@@ -129,17 +129,17 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 
 	err = api.dag.Add(ctx, dagnode)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	if options.Pin {
 		if err := api.pinning.PinWithMode(ctx, dagnode.Cid(), pin.Recursive); err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 
 		err = api.pinning.Flush(ctx)
 		if err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 	}
 
@@ -223,23 +223,23 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 
 	options, err := caopts.ObjectAddLinkOptions(opts...)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 	span.SetAttributes(attribute.Bool("create", options.Create))
 
 	baseNd, err := api.core().ResolveNode(ctx, base)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	childNd, err := api.core().ResolveNode(ctx, child)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	basePb, ok := baseNd.(*dag.ProtoNode)
 	if !ok {
-		return nil, dag.ErrNotProtobuf
+		return path.ImmutablePath{}, dag.ErrNotProtobuf
 	}
 
 	var createfunc func() *dag.ProtoNode
@@ -251,12 +251,12 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 
 	err = e.InsertNodeAtPath(ctx, name, childNd, createfunc)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	nnode, err := e.Finalize(ctx, api.dag)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	return path.FromCid(nnode.Cid()), nil
@@ -271,24 +271,24 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (
 
 	baseNd, err := api.core().ResolveNode(ctx, base)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	basePb, ok := baseNd.(*dag.ProtoNode)
 	if !ok {
-		return nil, dag.ErrNotProtobuf
+		return path.ImmutablePath{}, dag.ErrNotProtobuf
 	}
 
 	e := dagutils.NewDagEditor(basePb, api.dag)
 
 	err = e.RmLink(ctx, link)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	nnode, err := e.Finalize(ctx, api.dag)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	return path.FromCid(nnode.Cid()), nil
@@ -311,17 +311,17 @@ func (api *ObjectAPI) SetData(ctx context.Context, path path.Path, r io.Reader) 
 func (api *ObjectAPI) patchData(ctx context.Context, p path.Path, r io.Reader, appendData bool) (path.ImmutablePath, error) {
 	nd, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	pbnd, ok := nd.(*dag.ProtoNode)
 	if !ok {
-		return nil, dag.ErrNotProtobuf
+		return path.ImmutablePath{}, dag.ErrNotProtobuf
 	}
 
 	data, err := io.ReadAll(r)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	if appendData {
@@ -331,7 +331,7 @@ func (api *ObjectAPI) patchData(ctx context.Context, p path.Path, r io.Reader, a
 
 	err = api.dag.Add(ctx, pbnd)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	return path.FromCid(pbnd.Cid()), nil
