@@ -45,7 +45,7 @@ func TestPathUnixFSHAMTPartial(t *testing.T) {
 	}
 
 	// Get the root of the directory
-	nd, err := a.Dag().Get(ctx, r.Cid())
+	nd, err := a.Dag().Get(ctx, r.RootCid())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestPathUnixFSHAMTPartial(t *testing.T) {
 	pbNode := nd.(*merkledag.ProtoNode)
 
 	// Remove one of the sharded directory blocks
-	if err := a.Block().Rm(ctx, path.NewIPFSPath(pbNode.Links()[0].Cid)); err != nil {
+	if err := a.Block().Rm(ctx, path.FromCid(pbNode.Links()[0].Cid)); err != nil {
 		t.Fatal(err)
 	}
 

@@ -39,7 +39,7 @@ func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 		return err
 	}
 
-	obj, err := api.Dag().Get(req.Context, rp.Cid())
+	obj, err := api.Dag().Get(req.Context, rp.RootCid())
 	if err != nil {
 		return err
 	}

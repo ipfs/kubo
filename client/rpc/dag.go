@@ -79,8 +79,8 @@ func (api *httpNodeAdder) add(ctx context.Context, nd format.Node, pin bool) err
 	if err != nil {
 		return err
 	}
-	if !stat.Path().Cid().Equals(c) {
-		return fmt.Errorf("cids didn't match - local %s, remote %s", c.String(), stat.Path().Cid().String())
+	if !stat.Path().RootCid().Equals(c) {
+		return fmt.Errorf("cids didn't match - local %s, remote %s", c.String(), stat.Path().RootCid().String())
 	}
 	return nil
 }

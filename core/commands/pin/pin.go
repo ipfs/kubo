@@ -197,7 +197,7 @@ func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, 
 		if err := api.Pin().Add(ctx, rp, options.Pin.Recursive(recursive)); err != nil {
 			return nil, err
 		}
-		added[i] = enc.Encode(rp.Cid())
+		added[i] = enc.Encode(rp.RootCid())
 	}
 
 	return added, nil
@@ -257,7 +257,7 @@ ipfs pin ls -t indirect <cid>
 				return err
 			}
 
-			id := enc.Encode(rp.Cid())
+			id := enc.Encode(rp.RootCid())
 			pins = append(pins, id)
 			if err := api.Pin().Rm(req.Context, rp, options.Pin.RmRecursive(recursive)); err != nil {
 				return err
@@ -491,7 +491,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: pinType,
-				Cid:  enc.Encode(rp.Cid()),
+				Cid:  enc.Encode(rp.RootCid()),
 			},
 		})
 		if err != nil {
@@ -532,7 +532,7 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: p.Type(),
-				Cid:  enc.Encode(p.Path().Cid()),
+				Cid:  enc.Encode(p.Path().RootCid()),
 			},
 		})
 		if err != nil {
@@ -608,7 +608,7 @@ pin.
 			return err
 		}
 
-		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.Cid()), enc.Encode(to.Cid())}})
+		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.RootCid()), enc.Encode(to.RootCid())}})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {

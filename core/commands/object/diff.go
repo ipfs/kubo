@@ -83,11 +83,11 @@ Example:
 			}
 
 			if change.Before != nil {
-				out[i].Before = change.Before.Cid()
+				out[i].Before = change.Before.RootCid()
 			}
 
 			if change.After != nil {
-				out[i].After = change.After.Cid()
+				out[i].After = change.After.RootCid()
 			}
 		}
 

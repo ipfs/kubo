@@ -25,7 +25,7 @@ func (api *HttpApi) ResolvePath(ctx context.Context, p path.Path) (path.Immutabl
 		return nil, nil, err
 	}
 
-	p, err = path.NewPathFromSegments(p.Namespace().String(), out.Cid.String(), out.RemPath)
+	p, err = path.NewPathFromSegments(p.Namespace(), out.Cid.String(), out.RemPath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -44,5 +44,5 @@ func (api *HttpApi) ResolveNode(ctx context.Context, p path.Path) (ipld.Node, er
 		return nil, err
 	}
 
-	return api.Dag().Get(ctx, rp.Cid())
+	return api.Dag().Get(ctx, rp.RootCid())
 }

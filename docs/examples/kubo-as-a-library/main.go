@@ -320,11 +320,11 @@ func main() {
 		}
 	}()
 
-	exampleCIDStr := peerCidFile.Cid().String()
+	exampleCIDStr := peerCidFile.RootCid().String()
 
 	fmt.Printf("Fetching a file from the network with CID %s\n", exampleCIDStr)
 	outputPath := outputBasePath + exampleCIDStr
-	testCID := path.NewIPFSPath(peerCidFile.Cid())
+	testCID := path.FromCid(peerCidFile.RootCid())
 
 	rootNode, err := ipfsB.Unixfs().Get(ctx, testCID)
 	if err != nil {

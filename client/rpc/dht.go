@@ -47,7 +47,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopt
 		return nil, err
 	}
 
-	resp, err := api.core().Request("dht/findprovs", rp.Cid().String()).
+	resp, err := api.core().Request("dht/findprovs", rp.RootCid().String()).
 		Option("num-providers", options.NumProviders).
 		Send(ctx)
 	if err != nil {
@@ -103,7 +103,7 @@ func (api *DhtAPI) Provide(ctx context.Context, p path.Path, opts ...caopts.DhtP
 		return err
 	}
 
-	return api.core().Request("dht/provide", rp.Cid().String()).
+	return api.core().Request("dht/provide", rp.RootCid().String()).
 		Option("recursive", options.Recursive).
 		Exec(ctx, nil)
 }

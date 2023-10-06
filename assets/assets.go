@@ -44,7 +44,7 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 		return cid.Cid{}, err
 	}
 
-	basePath := path.NewIPFSPath(dirb.Cid())
+	basePath := path.FromCid(dirb.Cid())
 
 	for _, p := range l {
 		d, err := Asset.ReadFile(p)
@@ -69,5 +69,5 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 		return cid.Cid{}, err
 	}
 
-	return basePath.Cid(), nil
+	return basePath.RootCid(), nil
 }

@@ -79,7 +79,7 @@ func (api *BlockAPI) Get(ctx context.Context, p path.Path) (io.Reader, error) {
 		return nil, err
 	}
 
-	b, err := api.blocks.GetBlock(ctx, rp.Cid())
+	b, err := api.blocks.GetBlock(ctx, rp.RootCid())
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (api *BlockAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.BlockRm
 	if err != nil {
 		return err
 	}
-	cids := []cid.Cid{rp.Cid()}
+	cids := []cid.Cid{rp.RootCid()}
 	o := util.RmBlocksOpts{Force: settings.Force}
 
 	out, err := util.RmBlocks(ctx, api.blockstore, api.pinning, cids, o)
@@ -137,7 +137,7 @@ func (api *BlockAPI) Stat(ctx context.Context, p path.Path) (coreiface.BlockStat
 		return nil, err
 	}
 
-	b, err := api.blocks.GetBlock(ctx, rp.Cid())
+	b, err := api.blocks.GetBlock(ctx, rp.RootCid())
 	if err != nil {
 		return nil, err
 	}

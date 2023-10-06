@@ -179,7 +179,7 @@ func objectsForPaths(ctx context.Context, n iface.CoreAPI, paths []string) ([]ci
 		if err != nil {
 			return nil, err
 		}
-		roots[i] = o.Cid()
+		roots[i] = o.RootCid()
 	}
 	return roots, nil
 }

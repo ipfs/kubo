@@ -27,7 +27,7 @@ func (api *CoreAPI) ResolveNode(ctx context.Context, p path.Path) (ipld.Node, er
 		return nil, err
 	}
 
-	node, err := api.dag.Get(ctx, rp.Cid())
+	node, err := api.dag.Get(ctx, rp.RootCid())
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Immutabl
 	case path.IPFSNamespace:
 		resolver = api.unixFSPathResolver
 	default:
-		return nil, nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace().String())
+		return nil, nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
 	}
 
 	imPath, err := path.NewImmutablePath(p)
@@ -67,7 +67,7 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Immutabl
 		return nil, nil, err
 	}
 
-	segments := []string{p.Namespace().String(), node.String()}
+	segments := []string{p.Namespace(), node.String()}
 	segments = append(segments, remainder...)
 
 	p, err = path.NewPathFromSegments(segments...)

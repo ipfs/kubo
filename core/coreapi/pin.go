@@ -91,7 +91,7 @@ func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.Pin
 		return "", false, fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", settings.WithType)
 	}
 
-	return api.pinning.IsPinnedWithType(ctx, resolved.Cid(), mode)
+	return api.pinning.IsPinnedWithType(ctx, resolved.RootCid(), mode)
 }
 
 // Rm pin rm api
@@ -115,7 +115,7 @@ func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOpti
 	// to take a lock to prevent a concurrent garbage collection
 	defer api.blockstore.PinLock(ctx).Unlock(ctx)
 
-	if err = api.pinning.Unpin(ctx, rp.Cid(), settings.Recursive); err != nil {
+	if err = api.pinning.Unpin(ctx, rp.RootCid(), settings.Recursive); err != nil {
 		return err
 	}
 
@@ -148,7 +148,7 @@ func (api *PinAPI) Update(ctx context.Context, from path.Path, to path.Path, opt
 
 	defer api.blockstore.PinLock(ctx).Unlock(ctx)
 
-	err = api.pinning.Update(ctx, fp.Cid(), tp.Cid(), settings.Unpin)
+	err = api.pinning.Update(ctx, fp.RootCid(), tp.RootCid(), settings.Unpin)
 	if err != nil {
 		return err
 	}

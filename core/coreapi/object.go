@@ -143,7 +143,7 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		}
 	}
 
-	return path.NewIPFSPath(dagnode.Cid()), nil
+	return path.FromCid(dagnode.Cid()), nil
 }
 
 func (api *ObjectAPI) Get(ctx context.Context, path path.Path) (ipld.Node, error) {
@@ -259,7 +259,7 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 		return nil, err
 	}
 
-	return path.NewIPFSPath(nnode.Cid()), nil
+	return path.FromCid(nnode.Cid()), nil
 }
 
 func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (path.ImmutablePath, error) {
@@ -291,7 +291,7 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (
 		return nil, err
 	}
 
-	return path.NewIPFSPath(nnode.Cid()), nil
+	return path.FromCid(nnode.Cid()), nil
 }
 
 func (api *ObjectAPI) AppendData(ctx context.Context, path path.Path, r io.Reader) (path.ImmutablePath, error) {
@@ -334,7 +334,7 @@ func (api *ObjectAPI) patchData(ctx context.Context, p path.Path, r io.Reader, a
 		return nil, err
 	}
 
-	return path.NewIPFSPath(pbnd.Cid()), nil
+	return path.FromCid(pbnd.Cid()), nil
 }
 
 func (api *ObjectAPI) Diff(ctx context.Context, before path.Path, after path.Path) ([]coreiface.ObjectChange, error) {
@@ -367,11 +367,11 @@ func (api *ObjectAPI) Diff(ctx context.Context, before path.Path, after path.Pat
 		}
 
 		if change.Before.Defined() {
-			out[i].Before = path.NewIPFSPath(change.Before)
+			out[i].Before = path.FromCid(change.Before)
 		}
 
 		if change.After.Defined() {
-			out[i].After = path.NewIPFSPath(change.After)
+			out[i].After = path.FromCid(change.After)
 		}
 	}
 

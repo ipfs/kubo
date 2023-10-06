@@ -77,7 +77,7 @@ on raw IPFS blocks. It outputs the following to stdout:
 		}
 
 		return cmds.EmitOnce(res, &BlockStat{
-			Key:  b.Path().Cid().String(),
+			Key:  b.Path().RootCid().String(),
 			Size: b.Size(),
 		})
 	},
@@ -210,7 +210,7 @@ only for backward compatibility when a legacy CIDv0 is required (--format=v0).
 			}
 
 			err = res.Emit(&BlockStat{
-				Key:  p.Path().Cid().String(),
+				Key:  p.Path().RootCid().String(),
 				Size: p.Size(),
 			})
 			if err != nil {
@@ -278,7 +278,7 @@ It takes a list of CIDs to remove from the local datastore..
 			err = api.Block().Rm(req.Context, rp, options.Block.Force(force))
 			if err != nil {
 				if err := res.Emit(&removedBlock{
-					Hash:  rp.Cid().String(),
+					Hash:  rp.RootCid().String(),
 					Error: err.Error(),
 				}); err != nil {
 					return err
@@ -288,7 +288,7 @@ It takes a list of CIDs to remove from the local datastore..
 
 			if !quiet {
 				err := res.Emit(&removedBlock{
-					Hash: rp.Cid().String(),
+					Hash: rp.RootCid().String(),
 				})
 				if err != nil {
 					return err

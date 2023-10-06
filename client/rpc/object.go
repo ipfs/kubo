@@ -62,7 +62,7 @@ func (api *ObjectAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.Objec
 		return nil, err
 	}
 
-	return path.NewIPFSPath(c), nil
+	return path.FromCid(c), nil
 }
 
 func (api *ObjectAPI) Get(ctx context.Context, p path.Path) (ipld.Node, error) {
@@ -172,7 +172,7 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 		return nil, err
 	}
 
-	return path.NewIPFSPath(c), nil
+	return path.FromCid(c), nil
 }
 
 func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (path.ImmutablePath, error) {
@@ -188,7 +188,7 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (
 		return nil, err
 	}
 
-	return path.NewIPFSPath(c), nil
+	return path.FromCid(c), nil
 }
 
 func (api *ObjectAPI) AppendData(ctx context.Context, p path.Path, r io.Reader) (path.ImmutablePath, error) {
@@ -205,7 +205,7 @@ func (api *ObjectAPI) AppendData(ctx context.Context, p path.Path, r io.Reader) 
 		return nil, err
 	}
 
-	return path.NewIPFSPath(c), nil
+	return path.FromCid(c), nil
 }
 
 func (api *ObjectAPI) SetData(ctx context.Context, p path.Path, r io.Reader) (path.ImmutablePath, error) {
@@ -222,7 +222,7 @@ func (api *ObjectAPI) SetData(ctx context.Context, p path.Path, r io.Reader) (pa
 		return nil, err
 	}
 
-	return path.NewIPFSPath(c), nil
+	return path.FromCid(c), nil
 }
 
 type change struct {
@@ -246,10 +246,10 @@ func (api *ObjectAPI) Diff(ctx context.Context, a path.Path, b path.Path) ([]ifa
 			Path: ch.Path,
 		}
 		if ch.Before != cid.Undef {
-			res[i].Before = path.NewIPFSPath(ch.Before)
+			res[i].Before = path.FromCid(ch.Before)
 		}
 		if ch.After != cid.Undef {
-			res[i].After = path.NewIPFSPath(ch.After)
+			res[i].After = path.FromCid(ch.After)
 		}
 	}
 	return res, nil

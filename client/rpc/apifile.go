@@ -15,7 +15,7 @@ import (
 const forwardSeekLimit = 1 << 14 // 16k
 
 func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) {
-	if p.Namespace().Mutable() { // use resolved path in case we are dealing with IPNS / MFS
+	if p.Mutable() { // use resolved path in case we are dealing with IPNS / MFS
 		var err error
 		p, _, err = api.core().ResolvePath(ctx, p)
 		if err != nil {
@@ -195,13 +195,13 @@ func (it *apiIter) Next() bool {
 
 	switch it.cur.Type {
 	case unixfs.THAMTShard, unixfs.TMetadata, unixfs.TDirectory:
-		it.curFile, err = it.core.getDir(it.ctx, path.NewIPFSPath(c), int64(it.cur.Size))
+		it.curFile, err = it.core.getDir(it.ctx, path.FromCid(c), int64(it.cur.Size))
 		if err != nil {
 			it.err = err
 			return false
 		}
 	case unixfs.TFile:
-		it.curFile, err = it.core.getFile(it.ctx, path.NewIPFSPath(c), int64(it.cur.Size))
+		it.curFile, err = it.core.getFile(it.ctx, path.FromCid(c), int64(it.cur.Size))
 		if err != nil {
 			it.err = err
 			return false

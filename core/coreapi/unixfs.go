@@ -201,7 +201,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		}
 	}
 
-	return path.NewIPFSPath(nd.Cid()), nil
+	return path.FromCid(nd.Cid()), nil
 }
 
 func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) {

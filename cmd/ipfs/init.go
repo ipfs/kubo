@@ -262,5 +262,5 @@ func initializeIpnsKeyspace(repoRoot string) error {
 		return err
 	}
 
-	return nd.Namesys.Publish(ctx, nd.PrivateKey, path.NewIPFSPath(emptyDir.Cid()))
+	return nd.Namesys.Publish(ctx, nd.PrivateKey, path.FromCid(emptyDir.Cid()))
 }

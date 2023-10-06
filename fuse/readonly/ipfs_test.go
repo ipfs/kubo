@@ -190,7 +190,7 @@ func TestIpfsStressRead(t *testing.T) {
 					continue
 				}
 
-				relpath := strings.Replace(item.String(), item.Namespace().String(), "", 1)
+				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
 				fname := gopath.Join(mnt.Dir, relpath)
 
 				rbuf, err := os.ReadFile(fname)

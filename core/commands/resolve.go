@@ -140,7 +140,7 @@ Resolve the value of an IPFS DAG path:
 		}
 
 		// Trick to encode path with correct encoding.
-		encodedPath := "/" + rp.Namespace().String() + "/" + enc.Encode(rp.Cid())
+		encodedPath := "/" + rp.Namespace() + "/" + enc.Encode(rp.RootCid())
 		if len(remainder) != 0 {
 			encodedPath += path.SegmentsToString(remainder...)
 		}

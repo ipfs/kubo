@@ -90,11 +90,11 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs add' or 'ipfs files' inste
 			return err
 		}
 
-		if err := cmdutils.CheckCIDSize(req, p.Cid(), api.Dag()); err != nil {
+		if err := cmdutils.CheckCIDSize(req, p.RootCid(), api.Dag()); err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.RootCid().String()})
 	},
 	Type: &Object{},
 	Encoders: cmds.EncoderMap{
@@ -144,11 +144,11 @@ DEPRECATED and provided for legacy reasons. Use 'files cp' and 'dag put' instead
 			return err
 		}
 
-		if err := cmdutils.CheckCIDSize(req, p.Cid(), api.Dag()); err != nil {
+		if err := cmdutils.CheckCIDSize(req, p.RootCid(), api.Dag()); err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.RootCid().String()})
 	},
 	Type: Object{},
 	Encoders: cmds.EncoderMap{
@@ -190,11 +190,11 @@ DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
 			return err
 		}
 
-		if err := cmdutils.CheckCIDSize(req, p.Cid(), api.Dag()); err != nil {
+		if err := cmdutils.CheckCIDSize(req, p.RootCid(), api.Dag()); err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.RootCid().String()})
 	},
 	Type: Object{},
 	Encoders: cmds.EncoderMap{
@@ -269,11 +269,11 @@ Use MFS and 'files' commands instead:
 			return err
 		}
 
-		if err := cmdutils.CheckCIDSize(req, p.Cid(), api.Dag()); err != nil {
+		if err := cmdutils.CheckCIDSize(req, p.RootCid(), api.Dag()); err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.RootCid().String()})
 	},
 	Type: Object{},
 	Encoders: cmds.EncoderMap{

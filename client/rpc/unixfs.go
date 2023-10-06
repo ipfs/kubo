@@ -105,7 +105,7 @@ loop:
 					return nil, err
 				}
 
-				ifevt.Path = path.NewIPFSPath(c)
+				ifevt.Path = path.FromCid(c)
 			}
 
 			select {
@@ -121,7 +121,7 @@ loop:
 		return nil, err
 	}
 
-	return path.NewIPFSPath(c), nil
+	return path.FromCid(c), nil
 }
 
 type lsLink struct {

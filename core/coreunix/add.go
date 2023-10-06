@@ -506,7 +506,7 @@ func getOutput(dagnode ipld.Node) (*coreiface.AddEvent, error) {
 	}
 
 	output := &coreiface.AddEvent{
-		Path: path.NewIPFSPath(c),
+		Path: path.FromCid(c),
 		Size: strconv.FormatUint(s, 10),
 	}
 

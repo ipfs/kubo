@@ -163,7 +163,7 @@ multihash. Provided for legacy reasons. Use 'ipfs dag get' instead.
 		}
 
 		out := &Object{
-			Hash:  enc.Encode(rp.Cid()),
+			Hash:  enc.Encode(rp.RootCid()),
 			Links: outLinks,
 		}
 
@@ -448,7 +448,7 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs dag put' instead.
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: enc.Encode(p.Cid())})
+		return cmds.EmitOnce(res, &Object{Hash: enc.Encode(p.RootCid())})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {

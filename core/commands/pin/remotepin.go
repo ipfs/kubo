@@ -182,7 +182,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 			return err
 		}
 
-		isInBlockstore, err := node.Blockstore.Has(req.Context, rp.Cid())
+		isInBlockstore, err := node.Blockstore.Has(req.Context, rp.RootCid())
 		if err != nil {
 			return err
 		}
@@ -199,7 +199,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 
 		// Execute remote pin request
 		// TODO: fix panic when pinning service is down
-		ps, err := c.Add(ctx, rp.Cid(), opts...)
+		ps, err := c.Add(ctx, rp.RootCid(), opts...)
 		if err != nil {
 			return err
 		}

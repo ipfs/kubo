@@ -63,7 +63,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopt
 		return nil, fmt.Errorf("number of providers must be greater than 0")
 	}
 
-	pchan := api.routing.FindProvidersAsync(ctx, rp.Cid(), numProviders)
+	pchan := api.routing.FindProvidersAsync(ctx, rp.RootCid(), numProviders)
 	return pchan, nil
 }
 
@@ -87,7 +87,7 @@ func (api *DhtAPI) Provide(ctx context.Context, path path.Path, opts ...caopts.D
 		return err
 	}
 
-	c := rp.Cid()
+	c := rp.RootCid()
 
 	has, err := api.blockstore.Has(ctx, c)
 	if err != nil {

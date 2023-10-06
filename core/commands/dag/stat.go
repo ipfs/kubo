@@ -41,11 +41,11 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 			return fmt.Errorf("cannot return size for anything other than a DAG with a root CID")
 		}
 
-		obj, err := nodeGetter.Get(req.Context, rp.Cid())
+		obj, err := nodeGetter.Get(req.Context, rp.RootCid())
 		if err != nil {
 			return err
 		}
-		dagstats := &DagStat{Cid: rp.Cid()}
+		dagstats := &DagStat{Cid: rp.RootCid()}
 		dagStatSummary.appendStats(dagstats)
 		err = traverse.Traverse(obj, traverse.Options{
 			DAG:   nodeGetter,

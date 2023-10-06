@@ -30,5 +30,5 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 
 	pub := nsys.NewIpnsPublisher(n.Routing, n.Repo.Datastore())
 
-	return pub.Publish(ctx, key, path.NewIPFSPath(emptyDir.Cid()))
+	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))
 }

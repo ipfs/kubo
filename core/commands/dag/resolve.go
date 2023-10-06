@@ -25,7 +25,7 @@ func dagResolve(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environmen
 	}
 
 	return cmds.EmitOnce(res, &ResolveOutput{
-		Cid:     rp.Cid(),
+		Cid:     rp.RootCid(),
 		RemPath: path.SegmentsToString(remainder...),
 	})
 }

@@ -86,7 +86,7 @@ type Root struct {
 
 func ipnsPubFunc(ipfs iface.CoreAPI, key iface.Key) mfs.PubFunc {
 	return func(ctx context.Context, c cid.Cid) error {
-		_, err := ipfs.Name().Publish(ctx, path.NewIPFSPath(c), options.Name.Key(key.Name()))
+		_, err := ipfs.Name().Publish(ctx, path.FromCid(c), options.Name.Key(key.Name()))
 		return err
 	}
 }
