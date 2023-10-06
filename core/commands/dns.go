@@ -56,11 +56,11 @@ It will work across multiple DNSLinks and IPNS keys.
 		if err != nil && (recursive || err != namesys.ErrResolveRecursion) {
 			return err
 		}
-		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: output})
+		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: output.String()})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ncmd.ResolvedPath) error {
-			fmt.Fprintln(w, cmdenv.EscNonPrint(out.Path.String()))
+			fmt.Fprintln(w, cmdenv.EscNonPrint(out.Path))
 			return nil
 		}),
 	},

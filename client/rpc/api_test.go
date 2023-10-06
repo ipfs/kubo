@@ -12,8 +12,8 @@ import (
 	"time"
 
 	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/coreiface/tests"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/kubo/test/cli/harness"
 	ma "github.com/multiformats/go-multiaddr"
 	"go.uber.org/multierr"
@@ -70,7 +70,11 @@ func (np NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdent
 				apis[i] = api
 
 				// empty node is pinned even with --empty-repo, we don't want that
-				emptyNode := path.New("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn")
+				emptyNode, err := path.NewPath("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn")
+				if err != nil {
+					return err
+				}
+
 				if err := api.Pin().Rm(ctx, emptyNode); err != nil {
 					return err
 				}
@@ -126,7 +130,11 @@ func Test_NewURLApiWithClient_With_Headers(t *testing.T) {
 		t.Fatal(err)
 	}
 	api.Headers.Set(headerToTest, expectedHeaderValue)
-	if err := api.Pin().Rm(context.Background(), path.New("/ipfs/QmS4ustL54uo8FzR9455qaxZwuMiUhyvMcX9Ba8nUH4uVv")); err != nil {
+	p, err := path.NewPath("/ipfs/QmS4ustL54uo8FzR9455qaxZwuMiUhyvMcX9Ba8nUH4uVv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := api.Pin().Rm(context.Background(), p); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
-	path "github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/path"
 	assets "github.com/ipfs/kubo/assets"
 	oldcmds "github.com/ipfs/kubo/commands"
 	core "github.com/ipfs/kubo/core"

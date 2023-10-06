@@ -8,7 +8,7 @@ import (
 
 	iface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 	"github.com/pkg/errors"
 )
@@ -24,7 +24,7 @@ type pinRefKeyList struct {
 }
 
 type pin struct {
-	path path.Resolved
+	path path.ImmutablePath
 	typ  string
 	err  error
 }
@@ -33,7 +33,7 @@ func (p pin) Err() error {
 	return p.err
 }
 
-func (p pin) Path() path.Resolved {
+func (p pin) Path() path.ImmutablePath {
 	return p.path
 }
 
@@ -102,7 +102,7 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan i
 			}
 
 			select {
-			case ch <- pin{typ: out.Type, path: path.IpldPath(c)}:
+			case ch <- pin{typ: out.Type, path: path.FromCid(c)}:
 			case <-ctx.Done():
 				return
 			}
@@ -182,8 +182,8 @@ type badNode struct {
 	cid cid.Cid
 }
 
-func (n badNode) Path() path.Resolved {
-	return path.IpldPath(n.cid)
+func (n badNode) Path() path.ImmutablePath {
+	return path.FromCid(n.cid)
 }
 
 func (n badNode) Err() error {

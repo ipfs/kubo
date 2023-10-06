@@ -16,11 +16,11 @@ import (
 
 	bservice "github.com/ipfs/boxo/blockservice"
 	iface "github.com/ipfs/boxo/coreiface"
-	path "github.com/ipfs/boxo/coreiface/path"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	mfs "github.com/ipfs/boxo/mfs"
+	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -423,7 +423,12 @@ being GC'ed.
 func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI, p string) (ipld.Node, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
-		return api.ResolveNode(ctx, path.New(p))
+		pth, err := path.NewPath(p)
+		if err != nil {
+			return nil, err
+		}
+
+		return api.ResolveNode(ctx, pth)
 	default:
 		fsn, err := mfs.Lookup(node.FilesRoot, p)
 		if err != nil {

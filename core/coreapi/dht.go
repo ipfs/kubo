@@ -8,9 +8,9 @@ import (
 	blockstore "github.com/ipfs/boxo/blockstore"
 	coreiface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	"github.com/ipfs/kubo/tracing"
@@ -53,7 +53,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopt
 		return nil, err
 	}
 
-	rp, err := api.core().ResolvePath(ctx, p)
+	rp, _, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopt
 		return nil, fmt.Errorf("number of providers must be greater than 0")
 	}
 
-	pchan := api.routing.FindProvidersAsync(ctx, rp.Cid(), numProviders)
+	pchan := api.routing.FindProvidersAsync(ctx, rp.RootCid(), numProviders)
 	return pchan, nil
 }
 
@@ -82,12 +82,12 @@ func (api *DhtAPI) Provide(ctx context.Context, path path.Path, opts ...caopts.D
 		return err
 	}
 
-	rp, err := api.core().ResolvePath(ctx, path)
+	rp, _, err := api.core().ResolvePath(ctx, path)
 	if err != nil {
 		return err
 	}
 
-	c := rp.Cid()
+	c := rp.RootCid()
 
 	has, err := api.blockstore.Has(ctx, c)
 	if err != nil {

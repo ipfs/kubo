@@ -10,11 +10,11 @@ import (
 
 	"github.com/ipfs/boxo/blockservice"
 	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/gateway"
 	"github.com/ipfs/boxo/namesys"
+	"github.com/ipfs/boxo/path"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
 	"github.com/ipfs/go-cid"
 	version "github.com/ipfs/kubo"
@@ -149,37 +149,37 @@ func offlineErrWrap(err error) error {
 	return err
 }
 
-func (o *offlineGatewayErrWrapper) Get(ctx context.Context, path gateway.ImmutablePath, ranges ...gateway.ByteRange) (gateway.ContentPathMetadata, *gateway.GetResponse, error) {
+func (o *offlineGatewayErrWrapper) Get(ctx context.Context, path path.ImmutablePath, ranges ...gateway.ByteRange) (gateway.ContentPathMetadata, *gateway.GetResponse, error) {
 	md, n, err := o.gwimpl.Get(ctx, path, ranges...)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) GetAll(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, files.Node, error) {
+func (o *offlineGatewayErrWrapper) GetAll(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, files.Node, error) {
 	md, n, err := o.gwimpl.GetAll(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) GetBlock(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, files.File, error) {
+func (o *offlineGatewayErrWrapper) GetBlock(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, files.File, error) {
 	md, n, err := o.gwimpl.GetBlock(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) Head(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, *gateway.HeadResponse, error) {
+func (o *offlineGatewayErrWrapper) Head(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, *gateway.HeadResponse, error) {
 	md, n, err := o.gwimpl.Head(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, error) {
+func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, error) {
 	md, err := o.gwimpl.ResolvePath(ctx, path)
 	err = offlineErrWrap(err)
 	return md, err
 }
 
-func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path gateway.ImmutablePath, params gateway.CarParams) (gateway.ContentPathMetadata, io.ReadCloser, error) {
+func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path path.ImmutablePath, params gateway.CarParams) (gateway.ContentPathMetadata, io.ReadCloser, error) {
 	md, data, err := o.gwimpl.GetCAR(ctx, path, params)
 	err = offlineErrWrap(err)
 	return md, data, err
@@ -195,7 +195,7 @@ func (o *offlineGatewayErrWrapper) GetIPNSRecord(ctx context.Context, c cid.Cid)
 	return rec, err
 }
 
-func (o *offlineGatewayErrWrapper) ResolveMutable(ctx context.Context, path path.Path) (gateway.ImmutablePath, error) {
+func (o *offlineGatewayErrWrapper) ResolveMutable(ctx context.Context, path path.Path) (path.ImmutablePath, error) {
 	imPath, err := o.gwimpl.ResolveMutable(ctx, path)
 	err = offlineErrWrap(err)
 	return imPath, err

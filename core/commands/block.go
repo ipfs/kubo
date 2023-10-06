@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	options "github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
+
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -66,13 +66,18 @@ on raw IPFS blocks. It outputs the following to stdout:
 			return err
 		}
 
-		b, err := api.Block().Stat(req.Context, path.New(req.Arguments[0]))
+		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		b, err := api.Block().Stat(req.Context, p)
 		if err != nil {
 			return err
 		}
 
 		return cmds.EmitOnce(res, &BlockStat{
-			Key:  b.Path().Cid().String(),
+			Key:  b.Path().RootCid().String(),
 			Size: b.Size(),
 		})
 	},
@@ -103,7 +108,12 @@ It takes a <cid>, and outputs the block to stdout.
 			return err
 		}
 
-		r, err := api.Block().Get(req.Context, path.New(req.Arguments[0]))
+		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		r, err := api.Block().Get(req.Context, p)
 		if err != nil {
 			return err
 		}
@@ -200,7 +210,7 @@ only for backward compatibility when a legacy CIDv0 is required (--format=v0).
 			}
 
 			err = res.Emit(&BlockStat{
-				Key:  p.Path().Cid().String(),
+				Key:  p.Path().RootCid().String(),
 				Size: p.Size(),
 			})
 			if err != nil {
@@ -255,7 +265,12 @@ It takes a list of CIDs to remove from the local datastore..
 
 		// TODO: use batching coreapi when done
 		for _, b := range req.Arguments {
-			rp, err := api.ResolvePath(req.Context, path.New(b))
+			p, err := cmdutils.PathOrCidPath(b)
+			if err != nil {
+				return err
+			}
+
+			rp, _, err := api.ResolvePath(req.Context, p)
 			if err != nil {
 				return err
 			}
@@ -263,7 +278,7 @@ It takes a list of CIDs to remove from the local datastore..
 			err = api.Block().Rm(req.Context, rp, options.Block.Force(force))
 			if err != nil {
 				if err := res.Emit(&removedBlock{
-					Hash:  rp.Cid().String(),
+					Hash:  rp.RootCid().String(),
 					Error: err.Error(),
 				}); err != nil {
 					return err
@@ -273,7 +288,7 @@ It takes a list of CIDs to remove from the local datastore..
 
 			if !quiet {
 				err := res.Emit(&removedBlock{
-					Hash: rp.Cid().String(),
+					Hash: rp.RootCid().String(),
 				})
 				if err != nil {
 					return err

@@ -317,7 +317,7 @@ See 'dag export' and 'dag import' for more information.
 					}
 
 					var nodeAdded ipld.Node
-					nodeAdded, err = api.Dag().Get(req.Context, pathAdded.Cid())
+					nodeAdded, err = api.Dag().Get(req.Context, pathAdded.RootCid())
 					if err != nil {
 						errCh <- err
 						return
@@ -340,7 +340,7 @@ See 'dag export' and 'dag import' for more information.
 
 				h := ""
 				if output.Path != nil {
-					h = enc.Encode(output.Path.Cid())
+					h = enc.Encode(output.Path.RootCid())
 				}
 
 				if !dir && addit.Name() != "" {
