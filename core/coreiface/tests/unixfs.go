@@ -408,7 +408,7 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 							t.Errorf("Event.Name didn't match, %s != %s", expected[0].Name, event.Name)
 						}
 
-						if expected[0].Path != nil && event.Path != nil {
+						if (expected[0].Path != path.ImmutablePath{} && event.Path != path.ImmutablePath{}) {
 							if expected[0].Path.RootCid().String() != event.Path.RootCid().String() {
 								t.Errorf("Event.Hash didn't match, %s != %s", expected[0].Path, event.Path)
 							}
