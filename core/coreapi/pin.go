@@ -210,7 +210,7 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 		links, err := getLinks(ctx, root)
 		if err != nil {
 			status := &pinStatus{ok: false, cid: root}
-			status.badNodes = []coreiface.BadPinNode{&badNode{path: path.NewIPLDPath(root), err: err}}
+			status.badNodes = []coreiface.BadPinNode{&badNode{path: path.FromCid(root), err: err}}
 			visited[root] = status
 			return status
 		}
@@ -281,7 +281,7 @@ func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string) <-chan coreifac
 			select {
 			case out <- &pinInfo{
 				pinType: typeStr,
-				path:    path.NewIPLDPath(c),
+				path:    path.FromCid(c),
 			}:
 			case <-ctx.Done():
 				return ctx.Err()

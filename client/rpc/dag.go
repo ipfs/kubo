@@ -21,7 +21,7 @@ type (
 )
 
 func (api *HttpDagServ) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
-	r, err := api.core().Block().Get(ctx, path.NewIPLDPath(c))
+	r, err := api.core().Block().Get(ctx, path.FromCid(c))
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (api *HttpDagServ) Pinning() format.NodeAdder {
 }
 
 func (api *HttpDagServ) Remove(ctx context.Context, c cid.Cid) error {
-	return api.core().Block().Rm(ctx, path.NewIPLDPath(c)) // TODO: should we force rm?
+	return api.core().Block().Rm(ctx, path.FromCid(c)) // TODO: should we force rm?
 }
 
 func (api *HttpDagServ) RemoveMany(ctx context.Context, cids []cid.Cid) error {

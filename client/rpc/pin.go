@@ -102,7 +102,7 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan i
 			}
 
 			select {
-			case ch <- pin{typ: out.Type, path: path.NewIPLDPath(c)}:
+			case ch <- pin{typ: out.Type, path: path.FromCid(c)}:
 			case <-ctx.Done():
 				return
 			}
@@ -183,7 +183,7 @@ type badNode struct {
 }
 
 func (n badNode) Path() path.ImmutablePath {
-	return path.NewIPLDPath(n.cid)
+	return path.FromCid(n.cid)
 }
 
 func (n badNode) Err() error {

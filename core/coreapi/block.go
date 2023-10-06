@@ -68,7 +68,7 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		}
 	}
 
-	return &BlockStat{path: path.NewIPLDPath(b.Cid()), size: len(data)}, nil
+	return &BlockStat{path: path.FromCid(b.Cid()), size: len(data)}, nil
 }
 
 func (api *BlockAPI) Get(ctx context.Context, p path.Path) (io.Reader, error) {
@@ -143,7 +143,7 @@ func (api *BlockAPI) Stat(ctx context.Context, p path.Path) (coreiface.BlockStat
 	}
 
 	return &BlockStat{
-		path: path.NewIPLDPath(b.Cid()),
+		path: path.FromCid(b.Cid()),
 		size: len(b.RawData()),
 	}, nil
 }

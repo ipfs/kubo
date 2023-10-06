@@ -28,7 +28,7 @@ func (s *blockStat) Size() int {
 }
 
 func (s *blockStat) Path() path.ImmutablePath {
-	return path.NewIPLDPath(s.cid)
+	return path.FromCid(s.cid)
 }
 
 func (api *BlockAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.BlockPutOption) (iface.BlockStat, error) {
