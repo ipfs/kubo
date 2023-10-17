@@ -11,7 +11,7 @@ import (
 
 	iface "github.com/ipfs/boxo/coreiface"
 	options "github.com/ipfs/boxo/coreiface/options"
-	namesys "github.com/ipfs/boxo/namesys"
+	ipns "github.com/ipfs/boxo/ipns"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
 )
@@ -75,8 +75,8 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 	Options: []cmds.Option{
 		cmds.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'.").WithDefault("self"),
 		cmds.BoolOption(resolveOptionName, "Check if the given path can be resolved before publishing.").WithDefault(true),
-		cmds.StringOption(lifeTimeOptionName, "t", `Time duration the signed record will be valid for. Accepts durations such as "300s", "1.5h" or "7d2h45m"`).WithDefault(namesys.DefaultIPNSRecordEOL.String()),
-		cmds.StringOption(ttlOptionName, "Time duration hint, akin to --lifetime, indicating how long to cache this record before checking for updates.").WithDefault(namesys.DefaultIPNSRecordTTL.String()),
+		cmds.StringOption(lifeTimeOptionName, "t", `Time duration the signed record will be valid for. Accepts durations such as "300s", "1.5h" or "7d2h45m"`).WithDefault(ipns.DefaultRecordLifetime.String()),
+		cmds.StringOption(ttlOptionName, "Time duration hint, akin to --lifetime, indicating how long to cache this record before checking for updates.").WithDefault(ipns.DefaultRecordTTL.String()),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final IPNS Name encoded as CIDv1 (for use in /ipns content paths)."),
 		cmds.BoolOption(v1compatOptionName, "Produce a backward-compatible IPNS Record by including fields for both V1 and V2 signatures.").WithDefault(true),
 		cmds.BoolOption(allowOfflineOptionName, "When --offline, save the IPNS record to the the local datastore without broadcasting to the network (instead of failing)."),

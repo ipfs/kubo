@@ -73,8 +73,8 @@ Resolve the value of a dnslink:
 	Options: []cmds.Option{
 		cmds.BoolOption(recursiveOptionName, "r", "Resolve until the result is not an IPNS name.").WithDefault(true),
 		cmds.BoolOption(nocacheOptionName, "n", "Do not use cached entries."),
-		cmds.UintOption(dhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution."),
-		cmds.StringOption(dhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
+		cmds.UintOption(dhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution.").WithDefault(uint(namesys.DefaultResolverDhtRecordCount)),
+		cmds.StringOption(dhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout.").WithDefault(namesys.DefaultResolverDhtTimeout.String()),
 		cmds.BoolOption(streamOptionName, "s", "Stream entries as they are found."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
