@@ -11,6 +11,7 @@ import (
 
 	iface "github.com/ipfs/boxo/coreiface"
 	options "github.com/ipfs/boxo/coreiface/options"
+	namesys "github.com/ipfs/boxo/namesys"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
 )
@@ -72,16 +73,13 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		cmds.StringArg(ipfsPathOptionName, true, false, "ipfs path of the object to be published.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(resolveOptionName, "Check if the given path can be resolved before publishing.").WithDefault(true),
-		cmds.StringOption(lifeTimeOptionName, "t",
-			`Time duration that the record will be valid for. <<default>>
-    This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
-    "ns", "us" (or "µs"), "ms", "s", "m", "h".`).WithDefault("24h"),
-		cmds.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
-		cmds.StringOption(ttlOptionName, "Time duration this record should be cached for. Uses the same syntax as the lifetime option. (caution: experimental)"),
 		cmds.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'.").WithDefault("self"),
-		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
+		cmds.BoolOption(resolveOptionName, "Check if the given path can be resolved before publishing.").WithDefault(true),
+		cmds.StringOption(lifeTimeOptionName, "t", `Time duration the signed record will be valid for. Accepts durations such as "300s", "1.5h" or "7d2h45m"`).WithDefault(namesys.DefaultIPNSRecordEOL.String()),
+		cmds.StringOption(ttlOptionName, "Optional TTL hint, akin to --lifetime, indicating how long to cache this record before checking for updates; not set by default."),
+		cmds.BoolOption(quieterOptionName, "Q", "Write only final IPNS Name encoded as CIDv1 (for use in /ipns content paths)."),
 		cmds.BoolOption(v1compatOptionName, "Produce a backward-compatible IPNS Record by including fields for both V1 and V2 signatures.").WithDefault(true),
+		cmds.BoolOption(allowOfflineOptionName, "When --offline, save the IPNS record to the the local datastore without broadcasting to the network (instead of failing)."),
 		ke.OptionIPNSBase,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
