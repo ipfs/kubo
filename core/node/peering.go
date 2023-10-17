@@ -18,7 +18,8 @@ func Peering(lc fx.Lifecycle, host host.Host) *peering.PeeringService {
 			return ps.Start()
 		},
 		OnStop: func(context.Context) error {
-			return ps.Stop()
+			ps.Stop()
+			return nil
 		},
 	})
 	return ps
