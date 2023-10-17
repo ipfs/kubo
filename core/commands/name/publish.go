@@ -60,7 +60,7 @@ Publish an <ipfs-path> with another name, added by an 'ipfs key' command:
   > ipfs name publish --key=mykey /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   Published to QmSrPmbaUKA3ZodhzPWZnpFgcPMFWF4QsxXbkWfEptTBJd: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
-Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by 
+Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 'ipfs key list -l'):
 
  > ipfs name publish --key=QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
@@ -76,7 +76,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		cmds.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'.").WithDefault("self"),
 		cmds.BoolOption(resolveOptionName, "Check if the given path can be resolved before publishing.").WithDefault(true),
 		cmds.StringOption(lifeTimeOptionName, "t", `Time duration the signed record will be valid for. Accepts durations such as "300s", "1.5h" or "7d2h45m"`).WithDefault(namesys.DefaultIPNSRecordEOL.String()),
-		cmds.StringOption(ttlOptionName, "Optional TTL hint, akin to --lifetime, indicating how long to cache this record before checking for updates; not set by default."),
+		cmds.StringOption(ttlOptionName, "Time duration hint, akin to --lifetime, indicating how long to cache this record before checking for updates.").WithDefault(namesys.DefaultIPNSRecordTTL.String()),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final IPNS Name encoded as CIDv1 (for use in /ipns content paths)."),
 		cmds.BoolOption(v1compatOptionName, "Produce a backward-compatible IPNS Record by including fields for both V1 and V2 signatures.").WithDefault(true),
 		cmds.BoolOption(allowOfflineOptionName, "When --offline, save the IPNS record to the the local datastore without broadcasting to the network (instead of failing)."),
