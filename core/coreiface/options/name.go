@@ -3,7 +3,7 @@ package options
 import (
 	"time"
 
-	ropts "github.com/ipfs/boxo/coreiface/options/namesys"
+	"github.com/ipfs/boxo/namesys"
 )
 
 const (
@@ -21,7 +21,7 @@ type NamePublishSettings struct {
 type NameResolveSettings struct {
 	Cache bool
 
-	ResolveOpts []ropts.ResolveOpt
+	ResolveOpts []namesys.ResolveOption
 }
 
 type (
@@ -123,7 +123,7 @@ func (nameOpts) Cache(cache bool) NameResolveOption {
 	}
 }
 
-func (nameOpts) ResolveOption(opt ropts.ResolveOpt) NameResolveOption {
+func (nameOpts) ResolveOption(opt namesys.ResolveOption) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
 		settings.ResolveOpts = append(settings.ResolveOpts, opt)
 		return nil
