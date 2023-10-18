@@ -15,7 +15,6 @@ import (
 
 	coreiface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
-	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
 	"github.com/ipfs/boxo/path"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -57,13 +56,13 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 
 	eol := time.Now().Add(options.ValidTime)
 
-	publishOptions := []nsopts.PublishOption{
-		nsopts.PublishWithEOL(eol),
-		nsopts.PublishCompatibleWithV1(options.CompatibleWithV1),
+	publishOptions := []namesys.PublishOption{
+		namesys.PublishWithEOL(eol),
+		namesys.PublishWithIPNSOption(ipns.WithV1Compatibility(options.CompatibleWithV1)),
 	}
 
 	if options.TTL != nil {
-		publishOptions = append(publishOptions, nsopts.PublishWithTTL(*options.TTL))
+		publishOptions = append(publishOptions, namesys.PublishWithTTL(*options.TTL))
 	}
 
 	err = api.namesys.Publish(ctx, k, p, publishOptions...)
@@ -109,10 +108,15 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		name = "/ipns/" + name
 	}
 
+	p, err := path.NewPath(name)
+	if err != nil {
+		return nil, err
+	}
+
 	out := make(chan coreiface.IpnsResult)
 	go func() {
 		defer close(out)
-		for res := range resolver.ResolveAsync(ctx, name, options.ResolveOpts...) {
+		for res := range resolver.ResolveAsync(ctx, p, options.ResolveOpts...) {
 			select {
 			case out <- coreiface.IpnsResult{Path: res.Path, Err: res.Err}:
 			case <-ctx.Done():

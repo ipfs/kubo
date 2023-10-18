@@ -8,14 +8,13 @@ import (
 	"time"
 
 	ns "github.com/ipfs/boxo/namesys"
-	"github.com/ipfs/boxo/path"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 	ncmd "github.com/ipfs/kubo/core/commands/name"
 
 	options "github.com/ipfs/boxo/coreiface/options"
-	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
+	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
@@ -87,11 +86,11 @@ Resolve the value of an IPFS DAG path:
 			rc, rcok := req.Options[resolveDhtRecordCountOptionName].(uint)
 			dhtt, dhttok := req.Options[resolveDhtTimeoutOptionName].(string)
 			ropts := []options.NameResolveOption{
-				options.Name.ResolveOption(nsopts.Depth(1)),
+				options.Name.ResolveOption(ns.ResolveWithDepth(1)),
 			}
 
 			if rcok {
-				ropts = append(ropts, options.Name.ResolveOption(nsopts.DhtRecordCount(rc)))
+				ropts = append(ropts, options.Name.ResolveOption(ns.ResolveWithDhtRecordCount(rc)))
 			}
 			if dhttok {
 				d, err := time.ParseDuration(dhtt)
@@ -101,7 +100,7 @@ Resolve the value of an IPFS DAG path:
 				if d < 0 {
 					return errors.New("DHT timeout value must be >= 0")
 				}
-				ropts = append(ropts, options.Name.ResolveOption(nsopts.DhtTimeout(d)))
+				ropts = append(ropts, options.Name.ResolveOption(ns.ResolveWithDhtTimeout(d)))
 			}
 			p, err := api.Name().Resolve(req.Context, name, ropts...)
 			// ErrResolveRecursion is fine
