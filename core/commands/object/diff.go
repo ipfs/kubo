@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"io"
 
-	path "github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/ipld/merkledag/dagutils"
+	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 )
 
 const (
@@ -60,8 +61,15 @@ Example:
 			return err
 		}
 
-		pa := path.New(req.Arguments[0])
-		pb := path.New(req.Arguments[1])
+		pa, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		pb, err := cmdutils.PathOrCidPath(req.Arguments[1])
+		if err != nil {
+			return err
+		}
 
 		changes, err := api.Object().Diff(req.Context, pa, pb)
 		if err != nil {
@@ -75,12 +83,12 @@ Example:
 				Path: change.Path,
 			}
 
-			if change.Before != nil {
-				out[i].Before = change.Before.Cid()
+			if (change.Before != path.ImmutablePath{}) {
+				out[i].Before = change.Before.RootCid()
 			}
 
-			if change.After != nil {
-				out[i].After = change.After.Cid()
+			if (change.After != path.ImmutablePath{}) {
+				out[i].After = change.After.RootCid()
 			}
 		}
 

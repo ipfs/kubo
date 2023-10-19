@@ -11,7 +11,6 @@ import (
 	bserv "github.com/ipfs/boxo/blockservice"
 	coreiface "github.com/ipfs/boxo/coreiface"
 	options "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	verifcid "github.com/ipfs/boxo/verifcid"
@@ -21,6 +20,7 @@ import (
 
 	core "github.com/ipfs/kubo/core"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	e "github.com/ipfs/kubo/core/commands/e"
 )
 
@@ -184,7 +184,12 @@ var addPinCmd = &cmds.Command{
 func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, paths []string, recursive bool) ([]string, error) {
 	added := make([]string, len(paths))
 	for i, b := range paths {
-		rp, err := api.ResolvePath(ctx, path.New(b))
+		p, err := cmdutils.PathOrCidPath(b)
+		if err != nil {
+			return nil, err
+		}
+
+		rp, _, err := api.ResolvePath(ctx, p)
 		if err != nil {
 			return nil, err
 		}
@@ -192,7 +197,7 @@ func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, 
 		if err := api.Pin().Add(ctx, rp, options.Pin.Recursive(recursive)); err != nil {
 			return nil, err
 		}
-		added[i] = enc.Encode(rp.Cid())
+		added[i] = enc.Encode(rp.RootCid())
 	}
 
 	return added, nil
@@ -242,12 +247,17 @@ ipfs pin ls -t indirect <cid>
 
 		pins := make([]string, 0, len(req.Arguments))
 		for _, b := range req.Arguments {
-			rp, err := api.ResolvePath(req.Context, path.New(b))
+			p, err := cmdutils.PathOrCidPath(b)
 			if err != nil {
 				return err
 			}
 
-			id := enc.Encode(rp.Cid())
+			rp, _, err := api.ResolvePath(req.Context, p)
+			if err != nil {
+				return err
+			}
+
+			id := enc.Encode(rp.RootCid())
 			pins = append(pins, id)
 			if err := api.Pin().Rm(req.Context, rp, options.Pin.RmRecursive(recursive)); err != nil {
 				return err
@@ -453,7 +463,12 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 	}
 
 	for _, p := range req.Arguments {
-		rp, err := api.ResolvePath(req.Context, path.New(p))
+		p, err := cmdutils.PathOrCidPath(p)
+		if err != nil {
+			return err
+		}
+
+		rp, _, err := api.ResolvePath(req.Context, p)
 		if err != nil {
 			return err
 		}
@@ -476,7 +491,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: pinType,
-				Cid:  enc.Encode(rp.Cid()),
+				Cid:  enc.Encode(rp.RootCid()),
 			},
 		})
 		if err != nil {
@@ -517,7 +532,7 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: p.Type(),
-				Cid:  enc.Encode(p.Path().Cid()),
+				Cid:  enc.Encode(p.Path().RootCid()),
 			},
 		})
 		if err != nil {
@@ -568,12 +583,22 @@ pin.
 
 		unpin, _ := req.Options[pinUnpinOptionName].(bool)
 
-		// Resolve the paths ahead of time so we can return the actual CIDs
-		from, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
+		fromPath, err := cmdutils.PathOrCidPath(req.Arguments[0])
 		if err != nil {
 			return err
 		}
-		to, err := api.ResolvePath(req.Context, path.New(req.Arguments[1]))
+
+		toPath, err := cmdutils.PathOrCidPath(req.Arguments[1])
+		if err != nil {
+			return err
+		}
+
+		// Resolve the paths ahead of time so we can return the actual CIDs
+		from, _, err := api.ResolvePath(req.Context, fromPath)
+		if err != nil {
+			return err
+		}
+		to, _, err := api.ResolvePath(req.Context, toPath)
 		if err != nil {
 			return err
 		}
@@ -583,7 +608,7 @@ pin.
 			return err
 		}
 
-		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.Cid()), enc.Encode(to.Cid())}})
+		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.RootCid()), enc.Encode(to.RootCid())}})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {

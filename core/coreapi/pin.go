@@ -7,9 +7,9 @@ import (
 	bserv "github.com/ipfs/boxo/blockservice"
 	coreiface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/path"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/go-cid"
 	"go.opentelemetry.io/otel/attribute"
@@ -74,7 +74,7 @@ func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.Pin
 	ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "IsPinned", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
 
-	resolved, err := api.core().ResolvePath(ctx, p)
+	resolved, _, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return "", false, fmt.Errorf("error resolving path: %s", err)
 	}
@@ -91,7 +91,7 @@ func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.Pin
 		return "", false, fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", settings.WithType)
 	}
 
-	return api.pinning.IsPinnedWithType(ctx, resolved.Cid(), mode)
+	return api.pinning.IsPinnedWithType(ctx, resolved.RootCid(), mode)
 }
 
 // Rm pin rm api
@@ -99,7 +99,7 @@ func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOpti
 	ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "Rm", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
 
-	rp, err := api.core().ResolvePath(ctx, p)
+	rp, _, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOpti
 	// to take a lock to prevent a concurrent garbage collection
 	defer api.blockstore.PinLock(ctx).Unlock(ctx)
 
-	if err = api.pinning.Unpin(ctx, rp.Cid(), settings.Recursive); err != nil {
+	if err = api.pinning.Unpin(ctx, rp.RootCid(), settings.Recursive); err != nil {
 		return err
 	}
 
@@ -136,19 +136,19 @@ func (api *PinAPI) Update(ctx context.Context, from path.Path, to path.Path, opt
 
 	span.SetAttributes(attribute.Bool("unpin", settings.Unpin))
 
-	fp, err := api.core().ResolvePath(ctx, from)
+	fp, _, err := api.core().ResolvePath(ctx, from)
 	if err != nil {
 		return err
 	}
 
-	tp, err := api.core().ResolvePath(ctx, to)
+	tp, _, err := api.core().ResolvePath(ctx, to)
 	if err != nil {
 		return err
 	}
 
 	defer api.blockstore.PinLock(ctx).Unlock(ctx)
 
-	err = api.pinning.Update(ctx, fp.Cid(), tp.Cid(), settings.Unpin)
+	err = api.pinning.Update(ctx, fp.RootCid(), tp.RootCid(), settings.Unpin)
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ type pinStatus struct {
 
 // BadNode is used in PinVerifyRes
 type badNode struct {
-	path path.Resolved
+	path path.ImmutablePath
 	err  error
 }
 
@@ -181,7 +181,7 @@ func (s *pinStatus) Err() error {
 	return s.err
 }
 
-func (n *badNode) Path() path.Resolved {
+func (n *badNode) Path() path.ImmutablePath {
 	return n.path
 }
 
@@ -210,7 +210,7 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 		links, err := getLinks(ctx, root)
 		if err != nil {
 			status := &pinStatus{ok: false, cid: root}
-			status.badNodes = []coreiface.BadPinNode{&badNode{path: path.IpldPath(root), err: err}}
+			status.badNodes = []coreiface.BadPinNode{&badNode{path: path.FromCid(root), err: err}}
 			visited[root] = status
 			return status
 		}
@@ -251,11 +251,11 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 
 type pinInfo struct {
 	pinType string
-	path    path.Resolved
+	path    path.ImmutablePath
 	err     error
 }
 
-func (p *pinInfo) Path() path.Resolved {
+func (p *pinInfo) Path() path.ImmutablePath {
 	return p.path
 }
 
@@ -281,7 +281,7 @@ func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string) <-chan coreifac
 			select {
 			case out <- &pinInfo{
 				pinType: typeStr,
-				path:    path.IpldPath(c),
+				path:    path.FromCid(c),
 			}:
 			case <-ctx.Done():
 				return ctx.Err()

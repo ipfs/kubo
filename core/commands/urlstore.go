@@ -92,7 +92,7 @@ settings for 'ipfs add'.
 		}
 		size, _ := file.Size()
 		return cmds.EmitOnce(res, &BlockStat{
-			Key:  enc.Encode(path.Cid()),
+			Key:  enc.Encode(path.RootCid()),
 			Size: int(size),
 		})
 	},

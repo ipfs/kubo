@@ -6,13 +6,13 @@ import (
 	"context"
 	"errors"
 	"io"
+	"path"
 	"strings"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/merkledag/dagutils"
 	importer "github.com/ipfs/boxo/ipld/unixfs/importer"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
-	path "github.com/ipfs/boxo/path"
 
 	chunker "github.com/ipfs/boxo/chunker"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -95,11 +95,11 @@ func ImportTar(ctx context.Context, r io.Reader, ds ipld.DAGService) (*dag.Proto
 // adds a '-' to the beginning of each path element so we can use 'data' as a
 // special link in the structure without having to worry about.
 func escapePath(pth string) string {
-	elems := path.SplitList(strings.Trim(pth, "/"))
+	elems := strings.Split(strings.Trim(pth, "/"), "/")
 	for i, e := range elems {
 		elems[i] = "-" + e
 	}
-	return path.Join(elems)
+	return path.Join(elems...)
 }
 
 type tarReader struct {
