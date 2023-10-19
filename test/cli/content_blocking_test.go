@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ipfs/kubo/test/cli/harness"
@@ -40,7 +41,7 @@ func TestContentBlocking(t *testing.T) {
 			"//QmbK7LDv5NNBvYQzNfm2eED17SNLt1yNMapcUhSuNLgkqz\n"+ // Double hash Path block using blake3 hashing: base58btc-blake3-multihash(gW7Nhu4HrfDtphEivm3Z9NNE7gpdh5Tga8g6JNZc1S8E47/path)
 			"//d9d295bde21f422d471a90f2a37ec53049fdf3e5fa3ee2e8f20e10003da429e7\n"+ // Legacy CID double-hash block: sha256(bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/)
 			"//3f8b9febd851873b3774b937cce126910699ceac56e72e64b866f8e258d09572\n"+ // Legacy Path double-hash block: sha256(bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/path)
-			"/ipfs/%s/*\n"+ // block subpaths
+			"/ipfs/%s/*\n"+ // block subpaths under a CID
 			"/ipfs/%s\n"+ // block specific CID
 			"/ipns/blocked-cid.example.com\n"+
 			"/ipns/blocked-dnslink.example.com\n",
@@ -72,75 +73,101 @@ func TestContentBlocking(t *testing.T) {
 		assert.Equal(t, "not blocked file content", resp.Body)
 	})
 
-	t.Run("Gateway Denies CID that is directly blocked", func(t *testing.T) {
+	// Then, does the most basic blocking case work?
+	t.Run("Gateway Denies directly blocked CID", func(t *testing.T) {
 		t.Parallel()
 		resp := client.Get(fmt.Sprintf("/ipfs/%s", blockedCID))
 		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
-		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.NotEqual(t, "directly blocked file content", resp.Body)
 		assert.Contains(t, resp.Body, blockedMsg)
 	})
 
-	/* TODO: this does not seem to work yet
-	t.Run("Gateway (path) Denies CID when it is indirectly blocked (via parent)", func(t *testing.T) {
-		t.Parallel()
-		resp := client.Get(fmt.Sprintf("/ipfs/%s/indirectly-blocked-file.txt", blockedDirCID))
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
-		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
-		assert.NotEqual(t, "indirectly blocked file content", resp.Body)
-	})
-	*/
+	// Ok, now the full list of test cases we want to cover in both CLI and Gateway
+	testCases := []struct {
+		name string
+		path string
+	}{
+		{
+			name: "directly blocked CID",
+			path: fmt.Sprintf("/ipfs/%s", blockedCID),
+		},
+		{
+			// TODO: this works for CLI but fails on Gateway
+			name: "indirectly blocked subpath",
+			path: fmt.Sprintf("/ipfs/%s/indirectly-blocked-file.txt", blockedDirCID),
+		},
+		{
+			name: "/ipns path that resolves to a blocked CID",
+			path: "/ipns/blocked-cid.example.com",
+		},
+		{
+			name: "/ipns Path that is blocked by DNSLink name",
+			path: "/ipns/blocked-dnslink.example.com",
+		},
+		{
+			name: "double hash CID block: base58btc-sha256-multihash",
+			path: "/ipfs/QmVTF1yEejXd9iMgoRTFDxBv7HAz9kuZcQNBzHrceuK9HR",
+		},
+		/* TODO
+		{
+			name: "double hash Path block: base58btc-blake3-multihash",
+			path: "/ipfs/bafyb4ieqht3b2rssdmc7sjv2cy2gfdilxkfh7623nvndziyqnawkmo266a/path",
+		},
+		*/
+		{
+			name: "legacy CID double-hash block: sha256",
+			path: "/ipfs/bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e",
+		},
 
-	t.Run("Gateway Denies CID that is directly blocked (double hash CID block: base58btc-sha256-multihash)", func(t *testing.T) {
-		t.Parallel()
-		resp := client.Get("/ipfs/QmVTF1yEejXd9iMgoRTFDxBv7HAz9kuZcQNBzHrceuK9HR")
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
-		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
-		assert.Contains(t, resp.Body, blockedMsg)
-	})
+		/* TODO
+		{
+			name: "legacy Path double-hash: sha256",
+			path: "/ipfs/bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/path",
+		},
+		*/
+	}
 
-	/* TODO: this fails due to parent block missing, we need to add fixture so it works in offline mode
-	t.Run("Gateway Denies Path that is directly blocked (double hash Path block: base58btc-blake3-multihash)", func(t *testing.T) {
-		t.Parallel()
-		resp := client.Get("/ipfs/bafyb4ieqht3b2rssdmc7sjv2cy2gfdilxkfh7623nvndziyqnawkmo266a/path")
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
-		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
-		assert.Contains(t, resp.Body, blockedMsg)
-	})
-	*/
+	// Which specific cliCmds we test against testCases
+	cliCmds := [][]string{
+		{"block", "get"},
+		{"block", "stat"},
+		{"dag", "get"},
+		{"dag", "export"},
+		{"dag", "stat"},
+		{"cat"},
+		{"ls"},
+		{"get"},
+		{"refs"},
+	}
 
-	t.Run("Gateway Denies CID that is directly blocked (legacy CID double-hash block: sha256)", func(t *testing.T) {
-		t.Parallel()
-		resp := client.Get("/ipfs/bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e")
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
-		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
-		assert.Contains(t, resp.Body, blockedMsg)
-	})
+	expectedMsg := blockedMsg
+	for _, testCase := range testCases {
 
-	/* TODO: this fails due to parent block missing, we need to add fixture so it works in offline mode
-	t.Run("Gateway Denies Path that is directly blocked (legacy Path double-hash: sha256)", func(t *testing.T) {
-		t.Parallel()
-		resp := client.Get("/ipfs/bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/path")
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
-		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
-		assert.Contains(t, resp.Body, blockedMsg)
-	})
-	*/
+		// Confirm that denylist is active for every command in 'cliCmds' x 'testCases'
+		for _, cmd := range cliCmds {
+			cliTestName := fmt.Sprintf("CLI '%s' denies %s", strings.Join(cmd, " "), testCase.name)
+			t.Run(cliTestName, func(t *testing.T) {
+				t.Parallel()
+				args := append(cmd, testCase.path)
+				errMsg := node.RunIPFS(args...).Stderr.Trimmed()
+				if !strings.Contains(errMsg, expectedMsg) {
+					t.Errorf("Expected STDERR error message %q, but got: %q", expectedMsg, errMsg)
+				}
+			})
+		}
 
-	t.Run("Gateway Denies /ipns that resolves to a blocked CID", func(t *testing.T) {
-		t.Parallel()
-		resp := client.Get("/ipns/blocked-cid.example.com")
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
-		assert.Contains(t, resp.Body, blockedMsg)
-	})
+		// Confirm that denylist is active for every content path in 'testCases'
+		gwTestName := fmt.Sprintf("Gateway denies %s", testCase.name)
+		t.Run(gwTestName, func(t *testing.T) {
+			resp := client.Get(testCase.path)
+			// TODO we should require HTTP 410, not 5XX: assert.Equal(t, http.StatusGone, resp.StatusCode)
+			assert.NotEqual(t, http.StatusOK, resp.StatusCode)
+			assert.Contains(t, resp.Body, blockedMsg)
+		})
 
-	t.Run("Gateway Denies /ipns Path that is blocked by DNSLink name", func(t *testing.T) {
-		t.Parallel()
-		resp := client.Get("/ipns/blocked-dnslink.example.com")
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
-		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
-		assert.Contains(t, resp.Body, blockedMsg)
-	})
+	}
+
+	// Extra edge cases on subdomain gateway
 
 	t.Run("Gateway Denies /ipns Path that is blocked by DNSLink name (subdomain redirect)", func(t *testing.T) {
 		t.Parallel()
@@ -181,26 +208,6 @@ func TestContentBlocking(t *testing.T) {
 		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg)
-	})
-
-	// Basic tests to confirm blocking applies to CLI
-
-	t.Run("CLI 'block get' Denies CID that is directly blocked", func(t *testing.T) {
-		t.Parallel()
-		errMsg := node.RunIPFS("block", "get", blockedCID).Stderr.Trimmed()
-		assert.Contains(t, errMsg, blockedMsg)
-	})
-
-	t.Run("CLI 'dag get' Denies CID that is directly blocked", func(t *testing.T) {
-		t.Parallel()
-		errMsg := node.RunIPFS("dag", "get", blockedCID).Stderr.Trimmed()
-		assert.Contains(t, errMsg, blockedMsg)
-	})
-
-	t.Run("CLI 'cat' Denies CID that is directly blocked", func(t *testing.T) {
-		t.Parallel()
-		errMsg := node.RunIPFS("cat", blockedCID).Stderr.Trimmed()
-		assert.Contains(t, errMsg, blockedMsg)
 	})
 
 }
