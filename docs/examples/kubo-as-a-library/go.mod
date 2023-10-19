@@ -7,7 +7,7 @@ go 1.20
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.13.2-0.20231018081237-a50f784985dd
+	github.com/ipfs/boxo v0.13.2-0.20231019090647-a7e134e54ff9
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.31.0
 	github.com/multiformats/go-multiaddr v0.11.0
@@ -61,8 +61,8 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huin/goupnp v1.2.0 // indirect
-	github.com/ipfs-shipyard/nopfs v0.0.11 // indirect
-	github.com/ipfs-shipyard/nopfs/ipfs v0.13.1-4 // indirect
+	github.com/ipfs-shipyard/nopfs v0.0.12-0.20231019201810-ca629a80a385 // indirect
+	github.com/ipfs-shipyard/nopfs/ipfs v0.13.2-0.20231019201810-ca629a80a385 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect
