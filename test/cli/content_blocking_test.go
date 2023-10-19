@@ -93,7 +93,7 @@ func TestContentBlocking(t *testing.T) {
 
 	t.Run("Gateway Denies CID that is directly blocked (double hash CID block: base58btc-sha256-multihash)", func(t *testing.T) {
 		t.Parallel()
-		resp := client.Get(fmt.Sprintf("/ipfs/QmVTF1yEejXd9iMgoRTFDxBv7HAz9kuZcQNBzHrceuK9HR"))
+		resp := client.Get("/ipfs/QmVTF1yEejXd9iMgoRTFDxBv7HAz9kuZcQNBzHrceuK9HR")
 		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg)
@@ -102,7 +102,7 @@ func TestContentBlocking(t *testing.T) {
 	/* TODO: this fails due to parent block missing, we need to add fixture so it works in offline mode
 	t.Run("Gateway Denies Path that is directly blocked (double hash Path block: base58btc-blake3-multihash)", func(t *testing.T) {
 		t.Parallel()
-		resp := client.Get(fmt.Sprintf("/ipfs/bafyb4ieqht3b2rssdmc7sjv2cy2gfdilxkfh7623nvndziyqnawkmo266a/path"))
+		resp := client.Get("/ipfs/bafyb4ieqht3b2rssdmc7sjv2cy2gfdilxkfh7623nvndziyqnawkmo266a/path")
 		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg)
@@ -111,7 +111,7 @@ func TestContentBlocking(t *testing.T) {
 
 	t.Run("Gateway Denies CID that is directly blocked (legacy CID double-hash block: sha256)", func(t *testing.T) {
 		t.Parallel()
-		resp := client.Get(fmt.Sprintf("/ipfs/bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e"))
+		resp := client.Get("/ipfs/bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e")
 		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg)
@@ -120,7 +120,7 @@ func TestContentBlocking(t *testing.T) {
 	/* TODO: this fails due to parent block missing, we need to add fixture so it works in offline mode
 	t.Run("Gateway Denies Path that is directly blocked (legacy Path double-hash: sha256)", func(t *testing.T) {
 		t.Parallel()
-		resp := client.Get(fmt.Sprintf("/ipfs/bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/path"))
+		resp := client.Get("/ipfs/bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/path")
 		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg)
@@ -129,14 +129,14 @@ func TestContentBlocking(t *testing.T) {
 
 	t.Run("Gateway Denies /ipns that resolves to a blocked CID", func(t *testing.T) {
 		t.Parallel()
-		resp := client.Get(fmt.Sprintf("/ipns/blocked-cid.example.com"))
+		resp := client.Get("/ipns/blocked-cid.example.com")
 		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg)
 	})
 
 	t.Run("Gateway Denies /ipns Path that is blocked by DNSLink name", func(t *testing.T) {
 		t.Parallel()
-		resp := client.Get(fmt.Sprintf("/ipns/blocked-dnslink.example.com"))
+		resp := client.Get("/ipns/blocked-dnslink.example.com")
 		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg)
@@ -146,7 +146,7 @@ func TestContentBlocking(t *testing.T) {
 		t.Parallel()
 
 		gwURL, _ := url.Parse(node.GatewayURL())
-		resp := client.Get(fmt.Sprintf("/ipns/blocked-dnslink.example.com"), func(r *http.Request) {
+		resp := client.Get("/ipns/blocked-dnslink.example.com", func(r *http.Request) {
 			r.Host = "localhost:" + gwURL.Port()
 		})
 
