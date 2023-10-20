@@ -132,7 +132,11 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 		}
 	}
 
-	backend, err := gateway.NewBlocksBackend(bserv, gateway.WithValueStore(vsRouting), gateway.WithNameSystem(nsys))
+	backend, err := gateway.NewBlocksBackend(bserv,
+		gateway.WithValueStore(vsRouting),
+		gateway.WithNameSystem(nsys),
+		gateway.WithResolver(n.UnixFSPathResolver),
+	)
 	if err != nil {
 		return nil, err
 	}
