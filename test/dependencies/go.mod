@@ -7,7 +7,7 @@ replace github.com/ipfs/kubo => ../../
 require (
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/golangci/golangci-lint v1.54.1
-	github.com/ipfs/boxo v0.13.2-0.20231018183447-b6353972b85d
+	github.com/ipfs/boxo v0.13.2-0.20231020180058-dc47671a0d65
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-cidutil v0.1.0
 	github.com/ipfs/go-datastore v0.6.0
