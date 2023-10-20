@@ -25,8 +25,8 @@ func TestContentBlocking(t *testing.T) {
 	node := h.NewNode().Init("--empty-repo", "--profile=test")
 
 	// Create CIDs we use in test
-	h.WriteFile("blocked-dir/indirectly-blocked-file.txt", "indirectly blocked file content")
-	blockedDirCID := node.IPFS("add", "-Q", "-r", filepath.Join(h.Dir, "blocked-dir")).Stdout.Trimmed()
+	h.WriteFile("blocked-dir/subdir/indirectly-blocked-file.txt", "indirectly blocked file content")
+	parentDirCID := node.IPFS("add", "-Q", "-r", filepath.Join(h.Dir, "blocked-dir")).Stdout.Trimmed()
 	// indirectlyBlockedFileCID := node.IPFS("add", "-Q", filepath.Join(h.Dir, "blocked-dir", "indirectly-blocked-file.txt")).Stderr.Trimmed()
 
 	h.WriteFile("directly-blocked-file.txt", "directly blocked file content")
@@ -36,16 +36,15 @@ func TestContentBlocking(t *testing.T) {
 	allowedCID := node.IPFS("add", "-Q", filepath.Join(h.Dir, "not-blocked-file.txt")).Stdout.Trimmed()
 
 	// Create denylist at $IPFS_PATH/denylists/test.deny
-	denylistTmp := h.WriteToTemp(fmt.Sprintf(
-		"//QmX9dhRcQcKUw3Ws8485T5a9dtjrSCQaUAHnG4iK9i4ceM\n"+ // Double hash CID block: base58btc-sha256-multihash(QmVTF1yEejXd9iMgoRTFDxBv7HAz9kuZcQNBzHrceuK9HR)
-			"//QmbK7LDv5NNBvYQzNfm2eED17SNLt1yNMapcUhSuNLgkqz\n"+ // Double hash Path block using blake3 hashing: base58btc-blake3-multihash(gW7Nhu4HrfDtphEivm3Z9NNE7gpdh5Tga8g6JNZc1S8E47/path)
-			"//d9d295bde21f422d471a90f2a37ec53049fdf3e5fa3ee2e8f20e10003da429e7\n"+ // Legacy CID double-hash block: sha256(bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/)
-			"//3f8b9febd851873b3774b937cce126910699ceac56e72e64b866f8e258d09572\n"+ // Legacy Path double-hash block: sha256(bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/path)
-			"/ipfs/%s/*\n"+ // block subpaths under a CID
-			"/ipfs/%s\n"+ // block specific CID
-			"/ipns/blocked-cid.example.com\n"+
-			"/ipns/blocked-dnslink.example.com\n",
-		blockedDirCID, blockedCID))
+	denylistTmp := h.WriteToTemp("name: test list\n---\n" +
+		"//QmX9dhRcQcKUw3Ws8485T5a9dtjrSCQaUAHnG4iK9i4ceM\n" + // Double hash CID block: base58btc-sha256-multihash(QmVTF1yEejXd9iMgoRTFDxBv7HAz9kuZcQNBzHrceuK9HR)
+		"//QmbK7LDv5NNBvYQzNfm2eED17SNLt1yNMapcUhSuNLgkqz\n" + // Double hash Path block using blake3 hashing: base58btc-blake3-multihash(gW7Nhu4HrfDtphEivm3Z9NNE7gpdh5Tga8g6JNZc1S8E47/path)
+		"//d9d295bde21f422d471a90f2a37ec53049fdf3e5fa3ee2e8f20e10003da429e7\n" + // Legacy CID double-hash block: sha256(bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/)
+		"//3f8b9febd851873b3774b937cce126910699ceac56e72e64b866f8e258d09572\n" + // Legacy Path double-hash block: sha256(bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/path)
+		"/ipfs/" + blockedCID + "\n" + // block specific CID
+		"/ipfs/" + parentDirCID + "/subdir*\n" + // block only specific subpath
+		"/ipns/blocked-cid.example.com\n" +
+		"/ipns/blocked-dnslink.example.com\n")
 
 	if err := os.MkdirAll(filepath.Join(node.Dir, "denylists"), 0o777); err != nil {
 		log.Panicf("failed to create denylists dir: %s", err.Error())
@@ -67,7 +66,7 @@ func TestContentBlocking(t *testing.T) {
 	// First, confirm gateway works
 	t.Run("Gateway Allows CID that is not blocked", func(t *testing.T) {
 		t.Parallel()
-		resp := client.Get(fmt.Sprintf("/ipfs/%s", allowedCID))
+		resp := client.Get("/ipfs/" + allowedCID)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Equal(t, "not blocked file content", resp.Body)
@@ -76,10 +75,17 @@ func TestContentBlocking(t *testing.T) {
 	// Then, does the most basic blocking case work?
 	t.Run("Gateway Denies directly blocked CID", func(t *testing.T) {
 		t.Parallel()
-		resp := client.Get(fmt.Sprintf("/ipfs/%s", blockedCID))
+		resp := client.Get("/ipfs/" + blockedCID)
 		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
 		assert.NotEqual(t, "directly blocked file content", resp.Body)
 		assert.Contains(t, resp.Body, blockedMsg)
+	})
+
+	// Confirm parent of blocked subpath is not blocked
+	t.Run("Gateway Allows parent Path that is not blocked", func(t *testing.T) {
+		t.Parallel()
+		resp := client.Get("/ipfs/" + parentDirCID)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	})
 
 	// Ok, now the full list of test cases we want to cover in both CLI and Gateway
@@ -89,12 +95,11 @@ func TestContentBlocking(t *testing.T) {
 	}{
 		{
 			name: "directly blocked CID",
-			path: fmt.Sprintf("/ipfs/%s", blockedCID),
+			path: "/ipfs/" + blockedCID,
 		},
 		{
-			// TODO: this works for CLI but fails on Gateway
-			name: "indirectly blocked subpath",
-			path: fmt.Sprintf("/ipfs/%s/indirectly-blocked-file.txt", blockedDirCID),
+			name: "indirectly blocked file (on a blocked subpath)",
+			path: "/ipfs/" + parentDirCID + "/subdir/indirectly-blocked-file.txt",
 		},
 		{
 			name: "/ipns path that resolves to a blocked CID",
