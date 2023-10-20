@@ -27,7 +27,6 @@ func TestContentBlocking(t *testing.T) {
 	// Create CIDs we use in test
 	h.WriteFile("blocked-dir/subdir/indirectly-blocked-file.txt", "indirectly blocked file content")
 	parentDirCID := node.IPFS("add", "-Q", "-r", filepath.Join(h.Dir, "blocked-dir")).Stdout.Trimmed()
-	// indirectlyBlockedFileCID := node.IPFS("add", "-Q", filepath.Join(h.Dir, "blocked-dir", "indirectly-blocked-file.txt")).Stderr.Trimmed()
 
 	h.WriteFile("directly-blocked-file.txt", "directly blocked file content")
 	blockedCID := node.IPFS("add", "-Q", filepath.Join(h.Dir, "directly-blocked-file.txt")).Stdout.Trimmed()
@@ -38,9 +37,9 @@ func TestContentBlocking(t *testing.T) {
 	// Create denylist at $IPFS_PATH/denylists/test.deny
 	denylistTmp := h.WriteToTemp("name: test list\n---\n" +
 		"//QmX9dhRcQcKUw3Ws8485T5a9dtjrSCQaUAHnG4iK9i4ceM\n" + // Double hash CID block: base58btc-sha256-multihash(QmVTF1yEejXd9iMgoRTFDxBv7HAz9kuZcQNBzHrceuK9HR)
-		"//QmbK7LDv5NNBvYQzNfm2eED17SNLt1yNMapcUhSuNLgkqz\n" + // Double hash Path block using blake3 hashing: base58btc-blake3-multihash(gW7Nhu4HrfDtphEivm3Z9NNE7gpdh5Tga8g6JNZc1S8E47/path)
-		"//d9d295bde21f422d471a90f2a37ec53049fdf3e5fa3ee2e8f20e10003da429e7\n" + // Legacy CID double-hash block: sha256(bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/)
-		"//3f8b9febd851873b3774b937cce126910699ceac56e72e64b866f8e258d09572\n" + // Legacy Path double-hash block: sha256(bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/path)
+		"//QmbK7LDv5NNBvYQzNfm2eED17SNLt1yNMapcUhSuNLgkqz\n" + // Double hash Path block under blake3 root CID: base58btc-sha256-multihash(gW7Nhu4HrfDtphEivm3Z9NNE7gpdh5Tga8g6JNZc1S8E47/path)
+		"//8526ba05eec55e28f8db5974cc891d0d92c8af69d386fc6464f1e9f372caf549\n" + // Legacy CID double-hash block: sha256(bafkqahtcnrxwg23fmqqgi33vmjwgk2dbonuca3dfm5qwg6jamnuwicq/)
+		"//e5b7d2ce2594e2e09901596d8e1f29fa249b74c8c9e32ea01eda5111e4d33f07\n" + // Legacy Path double-hash block: sha256(bafyaagyscufaqalqaacauaqiaejao43vmjygc5didacauaqiae/subpath)
 		"/ipfs/" + blockedCID + "\n" + // block specific CID
 		"/ipfs/" + parentDirCID + "/subdir*\n" + // block only specific subpath
 		"/ipns/blocked-cid.example.com\n" +
@@ -110,26 +109,22 @@ func TestContentBlocking(t *testing.T) {
 			path: "/ipns/blocked-dnslink.example.com",
 		},
 		{
-			name: "double hash CID block: base58btc-sha256-multihash",
+			name: "double-hash CID block (base58btc-sha256-multihash)",
 			path: "/ipfs/QmVTF1yEejXd9iMgoRTFDxBv7HAz9kuZcQNBzHrceuK9HR",
 		},
-		/* TODO
 		{
-			name: "double hash Path block: base58btc-blake3-multihash",
+			name: "double-hash Path block under blake3 root CID (base58btc-sha256-multihash)",
 			path: "/ipfs/bafyb4ieqht3b2rssdmc7sjv2cy2gfdilxkfh7623nvndziyqnawkmo266a/path",
 		},
-		*/
 		{
-			name: "legacy CID double-hash block: sha256",
-			path: "/ipfs/bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e",
+			name: "legacy CID double-hash block (sha256)",
+			path: "/ipfs/bafkqahtcnrxwg23fmqqgi33vmjwgk2dbonuca3dfm5qwg6jamnuwicq",
 		},
 
-		/* TODO
 		{
-			name: "legacy Path double-hash: sha256",
-			path: "/ipfs/bafybeiefwqslmf6zyyrxodaxx4vwqircuxpza5ri45ws3y5a62ypxti42e/path",
+			name: "legacy Path double-hash block (sha256)",
+			path: "/ipfs/bafyaagyscufaqalqaacauaqiaejao43vmjygc5didacauaqiae/subpath",
 		},
-		*/
 	}
 
 	// Which specific cliCmds we test against testCases
