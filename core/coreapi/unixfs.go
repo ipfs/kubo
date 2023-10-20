@@ -19,11 +19,9 @@ import (
 	"github.com/ipfs/boxo/files"
 	filestore "github.com/ipfs/boxo/filestore"
 	merkledag "github.com/ipfs/boxo/ipld/merkledag"
-	dagtest "github.com/ipfs/boxo/ipld/merkledag/test"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	unixfile "github.com/ipfs/boxo/ipld/unixfs/file"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
-	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
@@ -172,22 +170,6 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 			Builder: fileAdder.CidBuilder,
 			Limit:   settings.InlineLimit,
 		}
-	}
-
-	if settings.OnlyHash {
-		md := dagtest.Mock()
-		emptyDirNode := ft.EmptyDirNode()
-		// Use the same prefix for the "empty" MFS root as for the file adder.
-		err := emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
-		if err != nil {
-			return path.ImmutablePath{}, err
-		}
-		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil)
-		if err != nil {
-			return path.ImmutablePath{}, err
-		}
-
-		fileAdder.SetMfsRoot(mr)
 	}
 
 	nd, err := fileAdder.AddAllAndPin(ctx, files)
