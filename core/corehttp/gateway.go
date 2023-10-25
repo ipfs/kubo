@@ -111,6 +111,8 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 	bserv := n.Blocks
 	var vsRouting routing.ValueStore = n.Routing
 	nsys := n.Namesys
+	resolver := n.UnixFSPathResolver
+
 	if cfg.Gateway.NoFetch {
 		bserv = blockservice.New(bserv.Blockstore(), offline.Exchange(bserv.Blockstore()))
 
@@ -130,12 +132,16 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
+
+		// Let NewBlocksBackend setup the default resolver using the
+		// offline backend.
+		resolver = nil
 	}
 
 	backend, err := gateway.NewBlocksBackend(bserv,
 		gateway.WithValueStore(vsRouting),
 		gateway.WithNameSystem(nsys),
-		gateway.WithResolver(n.UnixFSPathResolver),
+		gateway.WithResolver(resolver),
 	)
 	if err != nil {
 		return nil, err
