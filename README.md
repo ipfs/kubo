@@ -88,7 +88,6 @@ Before opening an issue, consider using one of the following locations to ensure
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
       - [Cross Compiling](#cross-compiling)
-      - [OpenSSL](#openssl)
     - [Troubleshooting](#troubleshooting)
 - [Getting Started](#getting-started)
   - [Usage](#usage)
@@ -326,15 +325,6 @@ Compiling for a different platform is as simple as running:
 ```
 make build GOOS=myTargetOS GOARCH=myTargetArchitecture
 ```
-
-##### OpenSSL
-
-To build go-ipfs with OpenSSL support, append `GOTAGS=openssl` to your `make` invocation. Building with OpenSSL should significantly reduce the background CPU usage on nodes that frequently make or receive new connections.
-
-Note: OpenSSL requires CGO support and, by default, CGO is disabled when cross-compiling. To cross-compile with OpenSSL support, you must:
-
-1. Install a compiler toolchain for the target platform.
-2. Set the `CGO_ENABLED=1` environment variable.
 
 #### Troubleshooting
 
