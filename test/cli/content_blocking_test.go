@@ -21,7 +21,8 @@ import (
 )
 
 func TestContentBlocking(t *testing.T) {
-	t.Parallel()
+	// NOTE: we can't run this with t.Parallel() because we set IPFS_NS_MAP
+	// and running in parallel could impact other tests
 
 	const blockedMsg = "blocked and cannot be provided"
 	const statusExpl = "HTTP error code is expected"

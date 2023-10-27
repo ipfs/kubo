@@ -62,8 +62,10 @@ func MakeBlocker() (*nopfs.Blocker, error) {
 func PathResolvers(fetchers node.FetchersIn, blocker *nopfs.Blocker) node.PathResolversOut {
 	res := node.PathResolverConfig(fetchers)
 	return node.PathResolversOut{
-		IPLDPathResolver:   ipfs.WrapResolver(res.IPLDPathResolver, blocker),
-		UnixFSPathResolver: ipfs.WrapResolver(res.UnixFSPathResolver, blocker),
+		IPLDPathResolver:          ipfs.WrapResolver(res.IPLDPathResolver, blocker),
+		UnixFSPathResolver:        ipfs.WrapResolver(res.UnixFSPathResolver, blocker),
+		OfflineIPLDPathResolver:   ipfs.WrapResolver(res.OfflineIPLDPathResolver, blocker),
+		OfflineUnixFSPathResolver: ipfs.WrapResolver(res.OfflineUnixFSPathResolver, blocker),
 	}
 }
 
