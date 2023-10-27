@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -11,13 +13,19 @@ import (
 	"testing"
 
 	"github.com/ipfs/kubo/test/cli/harness"
+	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p/core/peer"
+	libp2phttp "github.com/libp2p/go-libp2p/p2p/http"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestContentBlocking(t *testing.T) {
 	t.Parallel()
 
 	const blockedMsg = "blocked and cannot be provided"
+	const statusExpl = "HTTP error code is expected"
+	const bodyExpl = "Error message informing about content block is expected"
 
 	h := harness.NewT(t)
 
@@ -26,13 +34,13 @@ func TestContentBlocking(t *testing.T) {
 
 	// Create CIDs we use in test
 	h.WriteFile("blocked-dir/subdir/indirectly-blocked-file.txt", "indirectly blocked file content")
-	parentDirCID := node.IPFS("add", "-Q", "-r", filepath.Join(h.Dir, "blocked-dir")).Stdout.Trimmed()
+	parentDirCID := node.IPFS("add", "--raw-leaves", "-Q", "-r", filepath.Join(h.Dir, "blocked-dir")).Stdout.Trimmed()
 
 	h.WriteFile("directly-blocked-file.txt", "directly blocked file content")
-	blockedCID := node.IPFS("add", "-Q", filepath.Join(h.Dir, "directly-blocked-file.txt")).Stdout.Trimmed()
+	blockedCID := node.IPFS("add", "--raw-leaves", "-Q", filepath.Join(h.Dir, "directly-blocked-file.txt")).Stdout.Trimmed()
 
 	h.WriteFile("not-blocked-file.txt", "not blocked file content")
-	allowedCID := node.IPFS("add", "-Q", filepath.Join(h.Dir, "not-blocked-file.txt")).Stdout.Trimmed()
+	allowedCID := node.IPFS("add", "--raw-leaves", "-Q", filepath.Join(h.Dir, "not-blocked-file.txt")).Stdout.Trimmed()
 
 	// Create denylist at $IPFS_PATH/denylists/test.deny
 	denylistTmp := h.WriteToTemp("name: test list\n---\n" +
@@ -58,16 +66,20 @@ func TestContentBlocking(t *testing.T) {
 	os.Setenv("IPFS_NS_MAP", "blocked-cid.example.com:/ipfs/"+blockedCID+",blocked-dnslink.example.com/ipns/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn")
 	defer os.Unsetenv("IPFS_NS_MAP")
 
+	// Enable GatewayOverLibp2p as we want to test denylist there too
+	node.IPFS("config", "--json", "Experimental.GatewayOverLibp2p", "true")
+
 	// Start daemon, it should pick up denylist from $IPFS_PATH/denylists/test.deny
-	node.StartDaemon("--offline")
+	node.StartDaemon() // we need online mode for GatewayOverLibp2p tests
 	client := node.GatewayClient()
+
+	// TODO: run matrix with NoFetch=false|true
 
 	// First, confirm gateway works
 	t.Run("Gateway Allows CID that is not blocked", func(t *testing.T) {
 		t.Parallel()
 		resp := client.Get("/ipfs/" + allowedCID)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Equal(t, "not blocked file content", resp.Body)
 	})
 
@@ -75,9 +87,9 @@ func TestContentBlocking(t *testing.T) {
 	t.Run("Gateway Denies directly blocked CID", func(t *testing.T) {
 		t.Parallel()
 		resp := client.Get("/ipfs/" + blockedCID)
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
+		assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
 		assert.NotEqual(t, "directly blocked file content", resp.Body)
-		assert.Contains(t, resp.Body, blockedMsg)
+		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 	})
 
 	// Confirm parent of blocked subpath is not blocked
@@ -162,8 +174,8 @@ func TestContentBlocking(t *testing.T) {
 		t.Run(gwTestName, func(t *testing.T) {
 			resp := client.Get(testCase.path)
 			// TODO we should require HTTP 410, not 5XX: assert.Equal(t, http.StatusGone, resp.StatusCode)
-			assert.NotEqual(t, http.StatusOK, resp.StatusCode)
-			assert.Contains(t, resp.Body, blockedMsg)
+			assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
+			assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 		})
 
 	}
@@ -178,9 +190,9 @@ func TestContentBlocking(t *testing.T) {
 			r.Host = "localhost:" + gwURL.Port()
 		})
 
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
+		assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
-		assert.Contains(t, resp.Body, blockedMsg)
+		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 	})
 
 	t.Run("Gateway Denies /ipns Path that is blocked by DNSLink name (subdomain, no TLS)", func(t *testing.T) {
@@ -191,9 +203,9 @@ func TestContentBlocking(t *testing.T) {
 			r.Host = "blocked-dnslink.example.com.ipns.localhost:" + gwURL.Port()
 		})
 
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
+		assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
-		assert.Contains(t, resp.Body, blockedMsg)
+		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 	})
 
 	t.Run("Gateway Denies /ipns Path that is blocked by DNSLink name (subdomain, inlined for TLS)", func(t *testing.T) {
@@ -206,9 +218,91 @@ func TestContentBlocking(t *testing.T) {
 			r.Host = "blocked--dnslink-example-com.ipns.localhost:" + gwURL.Port()
 		})
 
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
+		assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
-		assert.Contains(t, resp.Body, blockedMsg)
+		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 	})
 
+	// We need to confirm denylist is active when gateway is run in NoFetch
+	// mode (which usually swaps blockservice to a read-only one, and that swap
+	// may cause denylists to not be applied, as it is a separate code path)
+	t.Run("GatewayNoFetch", func(t *testing.T) {
+		// NOTE: we don't run this in parallel, as it requires restart with different config
+
+		// Switch gateway to NoFetch mode
+		node.StopDaemon()
+		node.IPFS("config", "--json", "Gateway.NoFetch", "true")
+		node.StartDaemon()
+
+		// update client, as the port of test node might've changed after restart
+		client = node.GatewayClient()
+
+		// First, confirm gateway works
+		t.Run("Allows CID that is not blocked", func(t *testing.T) {
+			resp := client.Get("/ipfs/" + allowedCID)
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, "not blocked file content", resp.Body)
+		})
+
+		// Then, does the most basic blocking case work?
+		t.Run("Denies directly blocked CID", func(t *testing.T) {
+			resp := client.Get("/ipfs/" + blockedCID)
+			assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
+			assert.NotEqual(t, "directly blocked file content", resp.Body)
+			assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
+		})
+
+		// Restore default
+		node.StopDaemon()
+		node.IPFS("config", "--json", "Gateway.NoFetch", "false")
+		node.StartDaemon()
+		client = node.GatewayClient()
+	})
+
+	// We need to confirm denylist is active on the
+	// trustless gateway exposed over libp2p
+	// when Experimental.GatewayOverLibp2p=true
+	// (https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#http-gateway-over-libp2p)
+	// NOTE: this type fo gateway is hardcoded to be NoFetch: it does not fetch
+	// data that is not in local store, so we only need to run it once: a
+	// simple smoke-test for allowed CID and blockedCID.
+	t.Run("GatewayOverLibp2p", func(t *testing.T) {
+		t.Parallel()
+
+		// Create libp2p client that connects to our node over
+		// /http1.1 and then talks gateway semantics over the /ipfs/gateway sub-protocol
+		clientHost, err := libp2p.New(libp2p.NoListenAddrs)
+		require.NoError(t, err)
+		err = clientHost.Connect(context.Background(), peer.AddrInfo{
+			ID:    node.PeerID(),
+			Addrs: node.SwarmAddrs(),
+		})
+		require.NoError(t, err)
+
+		libp2pClient, err := (&libp2phttp.Host{StreamHost: clientHost}).NamespacedClient("/ipfs/gateway", peer.AddrInfo{ID: node.PeerID()})
+		require.NoError(t, err)
+
+		t.Run("Serves Allowed CID", func(t *testing.T) {
+			t.Parallel()
+			resp, err := libp2pClient.Get(fmt.Sprintf("/ipfs/%s?format=raw", allowedCID))
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			require.Equal(t, string(body), "not blocked file content", bodyExpl)
+		})
+
+		t.Run("Denies Blocked CID", func(t *testing.T) {
+			t.Parallel()
+			resp, err := libp2pClient.Get(fmt.Sprintf("/ipfs/%s?format=raw", blockedCID))
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			assert.NotEqual(t, string(body), "directly blocked file content")
+			assert.Contains(t, string(body), blockedMsg, bodyExpl)
+		})
+	})
 }
