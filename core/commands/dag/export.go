@@ -14,6 +14,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	gocar "github.com/ipld/go-car"
@@ -21,18 +22,23 @@ import (
 )
 
 func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-	c, err := cid.Decode(req.Arguments[0])
+	// Accept CID or a content path
+	p, err := cmdutils.PathOrCidPath(req.Arguments[0])
 	if err != nil {
-		return fmt.Errorf(
-			"unable to parse root specification (currently only bare CIDs are supported): %s",
-			err,
-		)
+		return err
 	}
 
 	api, err := cmdenv.GetApi(env, req)
 	if err != nil {
 		return err
 	}
+
+	// Resolve path and confirm the root block is available, fail fast if not
+	b, err := api.Block().Stat(req.Context, p)
+	if err != nil {
+		return err
+	}
+	c := b.Path().RootCid()
 
 	pipeR, pipeW := io.Pipe()
 

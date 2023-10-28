@@ -30,6 +30,7 @@ Featureset
 - [HTTP Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`) to access and control the daemon
 - [Command Line Interface](https://docs.ipfs.tech/reference/kubo/cli/) based on (`/api/v0`) RPC API
 - [WebUI](https://github.com/ipfs/ipfs-webui/#readme) to manage the Kubo node
+- [Content blocking](/docs/content-blocking.md) support for operators of public nodes
 
 ### Other implementations
 
