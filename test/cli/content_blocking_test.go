@@ -74,8 +74,6 @@ func TestContentBlocking(t *testing.T) {
 	node.StartDaemon() // we need online mode for GatewayOverLibp2p tests
 	client := node.GatewayClient()
 
-	// TODO: run matrix with NoFetch=false|true
-
 	// First, confirm gateway works
 	t.Run("Gateway Allows CID that is not blocked", func(t *testing.T) {
 		t.Parallel()
@@ -174,7 +172,6 @@ func TestContentBlocking(t *testing.T) {
 		gwTestName := fmt.Sprintf("Gateway denies %s", testCase.name)
 		t.Run(gwTestName, func(t *testing.T) {
 			resp := client.Get(testCase.path)
-			// TODO we should require HTTP 410, not 5XX: assert.Equal(t, http.StatusGone, resp.StatusCode)
 			assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
 			assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 		})
@@ -192,7 +189,6 @@ func TestContentBlocking(t *testing.T) {
 		})
 
 		assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
-		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 	})
 
@@ -205,7 +201,6 @@ func TestContentBlocking(t *testing.T) {
 		})
 
 		assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
-		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 	})
 
@@ -220,7 +215,6 @@ func TestContentBlocking(t *testing.T) {
 		})
 
 		assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
-		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 	})
 

@@ -40,7 +40,18 @@ caused the request to be blocked.
 
 [NOpfs](https://github.com/ipfs-shipyard/nopfs) supports the format from [IPIP-383](https://github.com/ipfs/specs/pull/383).
 
-Example: https://badbits.dwebops.pub/badbits.deny
+Clear-text rules are simple: just put content paths to block, one per line.
+Paths with unicode and whitespace need to be percend-encoded:
+
+```
+/ipfs/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR
+/ipfs/bafybeihfg3d7rdltd43u3tfvncx7n5loqofbsobojcadtmokrljfthuc7y/927%20-%20Standards/927%20-%20Standards.png
+```
+
+Sensitive content paths can be double-hashed to block without revealing them.
+Double-hashed list example: https://badbits.dwebops.pub/badbits.deny
+
+See [IPIP-383](https://github.com/ipfs/specs/pull/383) for detailed format specification and more examples.
 
 ## How to suspend blocking without removing denylists
 
