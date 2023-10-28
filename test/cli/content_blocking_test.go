@@ -25,7 +25,7 @@ func TestContentBlocking(t *testing.T) {
 	// and running in parallel could impact other tests
 
 	const blockedMsg = "blocked and cannot be provided"
-	const statusExpl = "HTTP error code is expected"
+	const statusExpl = "specific HTTP error code is expected"
 	const bodyExpl = "Error message informing about content block is expected"
 
 	h := harness.NewT(t)
@@ -88,7 +88,7 @@ func TestContentBlocking(t *testing.T) {
 	t.Run("Gateway Denies directly blocked CID", func(t *testing.T) {
 		t.Parallel()
 		resp := client.Get("/ipfs/" + blockedCID)
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
+		assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
 		assert.NotEqual(t, "directly blocked file content", resp.Body)
 		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 	})
@@ -175,7 +175,7 @@ func TestContentBlocking(t *testing.T) {
 		t.Run(gwTestName, func(t *testing.T) {
 			resp := client.Get(testCase.path)
 			// TODO we should require HTTP 410, not 5XX: assert.Equal(t, http.StatusGone, resp.StatusCode)
-			assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
+			assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
 			assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 		})
 
@@ -191,7 +191,7 @@ func TestContentBlocking(t *testing.T) {
 			r.Host = "localhost:" + gwURL.Port()
 		})
 
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
+		assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 	})
@@ -204,7 +204,7 @@ func TestContentBlocking(t *testing.T) {
 			r.Host = "blocked-dnslink.example.com.ipns.localhost:" + gwURL.Port()
 		})
 
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
+		assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 	})
@@ -219,7 +219,7 @@ func TestContentBlocking(t *testing.T) {
 			r.Host = "blocked--dnslink-example-com.ipns.localhost:" + gwURL.Port()
 		})
 
-		assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
+		assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
 		// TODO assert.Equal(t, http.StatusGone, resp.StatusCode)
 		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 	})
@@ -248,7 +248,7 @@ func TestContentBlocking(t *testing.T) {
 		// Then, does the most basic blocking case work?
 		t.Run("Denies directly blocked CID", func(t *testing.T) {
 			resp := client.Get("/ipfs/" + blockedCID)
-			assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
+			assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
 			assert.NotEqual(t, "directly blocked file content", resp.Body)
 			assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
 		})
@@ -299,7 +299,7 @@ func TestContentBlocking(t *testing.T) {
 			resp, err := libp2pClient.Get(fmt.Sprintf("/ipfs/%s?format=raw", blockedCID))
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			assert.NotEqual(t, http.StatusOK, resp.StatusCode, statusExpl)
+			assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			assert.NotEqual(t, string(body), "directly blocked file content")
