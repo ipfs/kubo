@@ -81,7 +81,11 @@ func Libp2pGatewayOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		bserv := blockservice.New(n.Blocks.Blockstore(), offline.Exchange(n.Blocks.Blockstore()))
 
-		backend, err := gateway.NewBlocksBackend(bserv)
+		backend, err := gateway.NewBlocksBackend(bserv,
+			// GatewayOverLibp2p only returns things that are in local blockstore
+			// (same as Gateway.NoFetch=true), we have to pass offline path resolver
+			gateway.WithResolver(n.OfflineUnixFSPathResolver),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -111,6 +115,8 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 	bserv := n.Blocks
 	var vsRouting routing.ValueStore = n.Routing
 	nsys := n.Namesys
+	pathResolver := n.UnixFSPathResolver
+
 	if cfg.Gateway.NoFetch {
 		bserv = blockservice.New(bserv.Blockstore(), offline.Exchange(bserv.Blockstore()))
 
@@ -130,9 +136,17 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
+
+		// Gateway.NoFetch=true requires offline path resolver
+		// to avoid fetching missing blocks during path traversal
+		pathResolver = n.OfflineUnixFSPathResolver
 	}
 
-	backend, err := gateway.NewBlocksBackend(bserv, gateway.WithValueStore(vsRouting), gateway.WithNameSystem(nsys))
+	backend, err := gateway.NewBlocksBackend(bserv,
+		gateway.WithValueStore(vsRouting),
+		gateway.WithNameSystem(nsys),
+		gateway.WithResolver(pathResolver),
+	)
 	if err != nil {
 		return nil, err
 	}
