@@ -49,13 +49,13 @@ import (
 
 	"github.com/ipfs/boxo/namesys"
 	ipnsrp "github.com/ipfs/boxo/namesys/republisher"
+	"github.com/ipfs/boxo/peering"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/fuse/mount"
 	"github.com/ipfs/kubo/p2p"
-	"github.com/ipfs/kubo/peering"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
 )
