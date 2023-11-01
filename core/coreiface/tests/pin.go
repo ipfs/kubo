@@ -8,8 +8,7 @@ import (
 
 	iface "github.com/ipfs/boxo/coreiface"
 	opt "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
-
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 	ipldcbor "github.com/ipfs/go-ipld-cbor"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -77,7 +76,7 @@ func (tp *TestSuite) TestPinSimple(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().Cid().String() != p.Cid().String() {
+	if list[0].Path().RootCid().String() != p.RootCid().String() {
 		t.Error("paths don't match")
 	}
 
@@ -120,12 +119,12 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nd2, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+p0.Cid().String()+`"}}`), math.MaxUint64, -1)
+	nd2, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+p0.RootCid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	nd3, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+p1.Cid().String()+`"}}`), math.MaxUint64, -1)
+	nd3, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+p1.RootCid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,12 +133,12 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = api.Pin().Add(ctx, path.IpldPath(nd2.Cid()))
+	err = api.Pin().Add(ctx, path.FromCid(nd2.Cid()))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = api.Pin().Add(ctx, path.IpldPath(nd3.Cid()), opt.Pin.Recursive(false))
+	err = api.Pin().Add(ctx, path.FromCid(nd3.Cid()), opt.Pin.Recursive(false))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,8 +161,8 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().String() != path.IpldPath(nd3.Cid()).String() {
-		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.IpfsPath(nd3.Cid()).String())
+	if list[0].Path().String() != path.FromCid(nd3.Cid()).String() {
+		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.FromCid(nd3.Cid()).String())
 	}
 
 	list, err = accPins(api.Pin().Ls(ctx, opt.Pin.Ls.Recursive()))
@@ -175,8 +174,8 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().String() != path.IpldPath(nd2.Cid()).String() {
-		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.IpldPath(nd2.Cid()).String())
+	if list[0].Path().String() != path.FromCid(nd2.Cid()).String() {
+		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.FromCid(nd2.Cid()).String())
 	}
 
 	list, err = accPins(api.Pin().Ls(ctx, opt.Pin.Ls.Indirect()))
@@ -188,8 +187,8 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().Cid().String() != p0.Cid().String() {
-		t.Errorf("unexpected path, %s != %s", list[0].Path().Cid().String(), p0.Cid().String())
+	if list[0].Path().RootCid().String() != p0.RootCid().String() {
+		t.Errorf("unexpected path, %s != %s", list[0].Path().RootCid().String(), p0.RootCid().String())
 	}
 
 	res, err := api.Pin().Verify(ctx)
@@ -259,12 +258,12 @@ func (tp *TestSuite) TestPinLsIndirect(t *testing.T) {
 
 	leaf, parent, grandparent := getThreeChainedNodes(t, ctx, api, "foo")
 
-	err = api.Pin().Add(ctx, path.IpldPath(grandparent.Cid()))
+	err = api.Pin().Add(ctx, path.FromCid(grandparent.Cid()))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = api.Pin().Add(ctx, path.IpldPath(parent.Cid()), opt.Pin.Recursive(false))
+	err = api.Pin().Add(ctx, path.FromCid(parent.Cid()), opt.Pin.Recursive(false))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -293,12 +292,12 @@ func (tp *TestSuite) TestPinLsPredenceRecursiveIndirect(t *testing.T) {
 	// Test recursive > indirect
 	leaf, parent, grandparent := getThreeChainedNodes(t, ctx, api, "recursive > indirect")
 
-	err = api.Pin().Add(ctx, path.IpldPath(grandparent.Cid()))
+	err = api.Pin().Add(ctx, path.FromCid(grandparent.Cid()))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = api.Pin().Add(ctx, path.IpldPath(parent.Cid()))
+	err = api.Pin().Add(ctx, path.FromCid(parent.Cid()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -317,12 +316,12 @@ func (tp *TestSuite) TestPinLsPrecedenceDirectIndirect(t *testing.T) {
 	// Test direct > indirect
 	leaf, parent, grandparent := getThreeChainedNodes(t, ctx, api, "direct > indirect")
 
-	err = api.Pin().Add(ctx, path.IpldPath(grandparent.Cid()))
+	err = api.Pin().Add(ctx, path.FromCid(grandparent.Cid()))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = api.Pin().Add(ctx, path.IpldPath(parent.Cid()), opt.Pin.Recursive(false))
+	err = api.Pin().Add(ctx, path.FromCid(parent.Cid()), opt.Pin.Recursive(false))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -341,24 +340,24 @@ func (tp *TestSuite) TestPinLsPrecedenceRecursiveDirect(t *testing.T) {
 	// Test recursive > direct
 	leaf, parent, grandparent := getThreeChainedNodes(t, ctx, api, "recursive + direct = error")
 
-	err = api.Pin().Add(ctx, path.IpldPath(parent.Cid()))
+	err = api.Pin().Add(ctx, path.FromCid(parent.Cid()))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = api.Pin().Add(ctx, path.IpldPath(parent.Cid()), opt.Pin.Recursive(false))
+	err = api.Pin().Add(ctx, path.FromCid(parent.Cid()), opt.Pin.Recursive(false))
 	if err == nil {
 		t.Fatal("expected error directly pinning a recursively pinned node")
 	}
 
 	assertPinTypes(t, ctx, api, []cidContainer{parent}, []cidContainer{}, []cidContainer{leaf})
 
-	err = api.Pin().Add(ctx, path.IpldPath(grandparent.Cid()), opt.Pin.Recursive(false))
+	err = api.Pin().Add(ctx, path.FromCid(grandparent.Cid()), opt.Pin.Recursive(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = api.Pin().Add(ctx, path.IpldPath(grandparent.Cid()))
+	err = api.Pin().Add(ctx, path.FromCid(grandparent.Cid()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -376,31 +375,39 @@ func (tp *TestSuite) TestPinIsPinned(t *testing.T) {
 
 	leaf, parent, grandparent := getThreeChainedNodes(t, ctx, api, "foofoo")
 
-	assertNotPinned(t, ctx, api, path.IpldPath(grandparent.Cid()))
-	assertNotPinned(t, ctx, api, path.IpldPath(parent.Cid()))
-	assertNotPinned(t, ctx, api, path.IpldPath(leaf.Cid()))
+	assertNotPinned(t, ctx, api, newIPLDPath(t, grandparent.Cid()))
+	assertNotPinned(t, ctx, api, newIPLDPath(t, parent.Cid()))
+	assertNotPinned(t, ctx, api, newIPLDPath(t, leaf.Cid()))
 
-	err = api.Pin().Add(ctx, path.IpldPath(parent.Cid()), opt.Pin.Recursive(true))
+	err = api.Pin().Add(ctx, newIPLDPath(t, parent.Cid()), opt.Pin.Recursive(true))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assertNotPinned(t, ctx, api, path.IpldPath(grandparent.Cid()))
-	assertIsPinned(t, ctx, api, path.IpldPath(parent.Cid()), "recursive")
-	assertIsPinned(t, ctx, api, path.IpldPath(leaf.Cid()), "indirect")
+	assertNotPinned(t, ctx, api, newIPLDPath(t, grandparent.Cid()))
+	assertIsPinned(t, ctx, api, newIPLDPath(t, parent.Cid()), "recursive")
+	assertIsPinned(t, ctx, api, newIPLDPath(t, leaf.Cid()), "indirect")
 
-	err = api.Pin().Add(ctx, path.IpldPath(grandparent.Cid()), opt.Pin.Recursive(false))
+	err = api.Pin().Add(ctx, newIPLDPath(t, grandparent.Cid()), opt.Pin.Recursive(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assertIsPinned(t, ctx, api, path.IpldPath(grandparent.Cid()), "direct")
-	assertIsPinned(t, ctx, api, path.IpldPath(parent.Cid()), "recursive")
-	assertIsPinned(t, ctx, api, path.IpldPath(leaf.Cid()), "indirect")
+	assertIsPinned(t, ctx, api, newIPLDPath(t, grandparent.Cid()), "direct")
+	assertIsPinned(t, ctx, api, newIPLDPath(t, parent.Cid()), "recursive")
+	assertIsPinned(t, ctx, api, newIPLDPath(t, leaf.Cid()), "indirect")
 }
 
 type cidContainer interface {
 	Cid() cid.Cid
+}
+
+type immutablePathCidContainer struct {
+	path.ImmutablePath
+}
+
+func (i immutablePathCidContainer) Cid() cid.Cid {
+	return i.RootCid()
 }
 
 func getThreeChainedNodes(t *testing.T, ctx context.Context, api iface.CoreAPI, leafData string) (cidContainer, cidContainer, cidContainer) {
@@ -409,7 +416,7 @@ func getThreeChainedNodes(t *testing.T, ctx context.Context, api iface.CoreAPI, 
 		t.Fatal(err)
 	}
 
-	parent, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+leaf.Cid().String()+`"}}`), math.MaxUint64, -1)
+	parent, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+leaf.RootCid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -423,7 +430,7 @@ func getThreeChainedNodes(t *testing.T, ctx context.Context, api iface.CoreAPI, 
 		t.Fatal(err)
 	}
 
-	return leaf, parent, grandparent
+	return immutablePathCidContainer{leaf}, parent, grandparent
 }
 
 func assertPinTypes(t *testing.T, ctx context.Context, api iface.CoreAPI, recusive, direct, indirect []cidContainer) {
@@ -466,7 +473,7 @@ func assertPinCids(t *testing.T, pins []iface.Pin, cids ...cidContainer) {
 
 	valid := true
 	for _, p := range pins {
-		c := p.Path().Cid()
+		c := p.Path().RootCid()
 		if cSet.Has(c) {
 			cSet.Remove(c)
 		} else {
@@ -480,7 +487,7 @@ func assertPinCids(t *testing.T, pins []iface.Pin, cids ...cidContainer) {
 	if !valid {
 		pinStrs := make([]string, len(pins))
 		for i, p := range pins {
-			pinStrs[i] = p.Path().Cid().String()
+			pinStrs[i] = p.Path().RootCid().String()
 		}
 		pathStrs := make([]string, len(cids))
 		for i, c := range cids {
@@ -511,13 +518,13 @@ func assertPinLsAllConsistency(t *testing.T, ctx context.Context, api iface.Core
 	}
 
 	for _, p := range allPins {
-		if !all.Visit(p.Path().Cid()) {
+		if !all.Visit(p.Path().RootCid()) {
 			t.Fatalf("pin ls returned the same cid multiple times")
 		}
 
 		typeStr := p.Type()
 		if typeSet, ok := typeMap[p.Type()]; ok {
-			typeSet.Add(p.Path().Cid())
+			typeSet.Add(p.Path().RootCid())
 		} else {
 			t.Fatalf("unknown pin type: %s", typeStr)
 		}
@@ -538,7 +545,7 @@ func assertPinLsAllConsistency(t *testing.T, ctx context.Context, api iface.Core
 				t.Fatalf("returned wrong pin type: expected %s, got %s", typeStr, pinType)
 			}
 
-			if c := p.Path().Cid(); !pinProps.Has(c) {
+			if c := p.Path().RootCid(); !pinProps.Has(c) {
 				t.Fatalf("%s expected to be in pin ls all as type %s", c.String(), typeStr)
 			}
 		}

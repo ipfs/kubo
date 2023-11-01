@@ -4,9 +4,8 @@ import (
 	"context"
 	"io"
 
-	path "github.com/ipfs/boxo/coreiface/path"
-
 	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/path"
 )
 
 // BlockStat contains information about a block
@@ -15,7 +14,7 @@ type BlockStat interface {
 	Size() int
 
 	// Path returns path to the block
-	Path() path.Resolved
+	Path() path.ImmutablePath
 }
 
 // BlockAPI specifies the interface to the block layer

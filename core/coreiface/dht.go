@@ -3,7 +3,7 @@ package iface
 import (
 	"context"
 
-	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/path"
 
 	"github.com/ipfs/boxo/coreiface/options"
 
