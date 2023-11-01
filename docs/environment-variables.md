@@ -131,6 +131,12 @@ The above will replace implicit HTTP routers with single one, allowing for
 inspection/debug of HTTP requests sent by Kubo via `while true ; do nc -l 7423; done`
 or more advanced tools like [mitmproxy](https://docs.mitmproxy.org/stable/#mitmproxy).
 
+
+## `IPFS_CONTENT_BLOCKING_DISABLE`
+
+Disables the content-blocking subsystem. No denylists will be watched and no
+content will be blocked.
+
 ## `LIBP2P_TCP_REUSEPORT`
 
 Kubo tries to reuse the same source port for all connections to improve NAT

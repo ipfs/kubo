@@ -7,14 +7,15 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/ipfs/boxo/blockservice"
 	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/gateway"
 	"github.com/ipfs/boxo/namesys"
+	"github.com/ipfs/boxo/path"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
 	"github.com/ipfs/go-cid"
 	version "github.com/ipfs/kubo"
@@ -80,7 +81,11 @@ func Libp2pGatewayOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		bserv := blockservice.New(n.Blocks.Blockstore(), offline.Exchange(n.Blocks.Blockstore()))
 
-		backend, err := gateway.NewBlocksBackend(bserv)
+		backend, err := gateway.NewBlocksBackend(bserv,
+			// GatewayOverLibp2p only returns things that are in local blockstore
+			// (same as Gateway.NoFetch=true), we have to pass offline path resolver
+			gateway.WithResolver(n.OfflineUnixFSPathResolver),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -110,6 +115,8 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 	bserv := n.Blocks
 	var vsRouting routing.ValueStore = n.Routing
 	nsys := n.Namesys
+	pathResolver := n.UnixFSPathResolver
+
 	if cfg.Gateway.NoFetch {
 		bserv = blockservice.New(bserv.Blockstore(), offline.Exchange(bserv.Blockstore()))
 
@@ -129,9 +136,17 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
+
+		// Gateway.NoFetch=true requires offline path resolver
+		// to avoid fetching missing blocks during path traversal
+		pathResolver = n.OfflineUnixFSPathResolver
 	}
 
-	backend, err := gateway.NewBlocksBackend(bserv, gateway.WithValueStore(vsRouting), gateway.WithNameSystem(nsys))
+	backend, err := gateway.NewBlocksBackend(bserv,
+		gateway.WithValueStore(vsRouting),
+		gateway.WithNameSystem(nsys),
+		gateway.WithResolver(pathResolver),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -149,37 +164,37 @@ func offlineErrWrap(err error) error {
 	return err
 }
 
-func (o *offlineGatewayErrWrapper) Get(ctx context.Context, path gateway.ImmutablePath, ranges ...gateway.ByteRange) (gateway.ContentPathMetadata, *gateway.GetResponse, error) {
+func (o *offlineGatewayErrWrapper) Get(ctx context.Context, path path.ImmutablePath, ranges ...gateway.ByteRange) (gateway.ContentPathMetadata, *gateway.GetResponse, error) {
 	md, n, err := o.gwimpl.Get(ctx, path, ranges...)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) GetAll(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, files.Node, error) {
+func (o *offlineGatewayErrWrapper) GetAll(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, files.Node, error) {
 	md, n, err := o.gwimpl.GetAll(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) GetBlock(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, files.File, error) {
+func (o *offlineGatewayErrWrapper) GetBlock(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, files.File, error) {
 	md, n, err := o.gwimpl.GetBlock(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) Head(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, files.Node, error) {
+func (o *offlineGatewayErrWrapper) Head(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, *gateway.HeadResponse, error) {
 	md, n, err := o.gwimpl.Head(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, error) {
+func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, error) {
 	md, err := o.gwimpl.ResolvePath(ctx, path)
 	err = offlineErrWrap(err)
 	return md, err
 }
 
-func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path gateway.ImmutablePath, params gateway.CarParams) (gateway.ContentPathMetadata, io.ReadCloser, error) {
+func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path path.ImmutablePath, params gateway.CarParams) (gateway.ContentPathMetadata, io.ReadCloser, error) {
 	md, data, err := o.gwimpl.GetCAR(ctx, path, params)
 	err = offlineErrWrap(err)
 	return md, data, err
@@ -195,10 +210,10 @@ func (o *offlineGatewayErrWrapper) GetIPNSRecord(ctx context.Context, c cid.Cid)
 	return rec, err
 }
 
-func (o *offlineGatewayErrWrapper) ResolveMutable(ctx context.Context, path path.Path) (gateway.ImmutablePath, error) {
-	imPath, err := o.gwimpl.ResolveMutable(ctx, path)
+func (o *offlineGatewayErrWrapper) ResolveMutable(ctx context.Context, path path.Path) (path.ImmutablePath, time.Duration, time.Time, error) {
+	imPath, ttl, lastMod, err := o.gwimpl.ResolveMutable(ctx, path)
 	err = offlineErrWrap(err)
-	return imPath, err
+	return imPath, ttl, lastMod, err
 }
 
 func (o *offlineGatewayErrWrapper) GetDNSLinkRecord(ctx context.Context, s string) (path.Path, error) {

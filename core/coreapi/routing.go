@@ -3,10 +3,10 @@ package coreapi
 import (
 	"context"
 	"errors"
+	"strings"
 
 	coreiface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/path"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -45,7 +45,7 @@ func (r *RoutingAPI) Put(ctx context.Context, key string, value []byte, opts ...
 }
 
 func normalizeKey(s string) (string, error) {
-	parts := path.SplitList(s)
+	parts := strings.Split(s, "/")
 	if len(parts) != 3 ||
 		parts[0] != "" ||
 		!(parts[1] == "ipns" || parts[1] == "pk") {
@@ -56,5 +56,5 @@ func normalizeKey(s string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return path.Join(append(parts[:2], string(k))), nil
+	return strings.Join(append(parts[:2], string(k)), "/"), nil
 }

@@ -11,7 +11,7 @@ import (
 
 func TestKeyTranslation(t *testing.T) {
 	pid := test.RandPeerIDFatal(t)
-	pkname := namesys.PkKeyForID(pid)
+	pkname := namesys.PkRoutingKey(pid)
 	ipnsname := ipns.NameFromPeer(pid).RoutingKey()
 
 	pkk, err := escapeDhtKey("/pk/" + pid.String())

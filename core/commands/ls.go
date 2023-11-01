@@ -8,10 +8,10 @@ import (
 	"text/tabwriter"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	iface "github.com/ipfs/boxo/coreiface"
 	options "github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
 	unixfs_pb "github.com/ipfs/boxo/ipld/unixfs/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -131,7 +131,12 @@ The JSON output contains type information.
 		}
 
 		for i, fpath := range paths {
-			results, err := api.Unixfs().Ls(req.Context, path.New(fpath),
+			pth, err := cmdutils.PathOrCidPath(fpath)
+			if err != nil {
+				return err
+			}
+
+			results, err := api.Unixfs().Ls(req.Context, pth,
 				options.Unixfs.ResolveChildren(resolveSize || resolveType))
 			if err != nil {
 				return err

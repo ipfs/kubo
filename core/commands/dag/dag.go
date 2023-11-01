@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path"
 
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
-	ipfspath "github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -157,7 +157,7 @@ var DagResolveCmd = &cmds.Command{
 			}
 			p := enc.Encode(out.Cid)
 			if out.RemPath != "" {
-				p = ipfspath.Join([]string{p, out.RemPath})
+				p = path.Join(p, out.RemPath)
 			}
 
 			fmt.Fprint(w, p)

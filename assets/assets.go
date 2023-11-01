@@ -9,8 +9,8 @@ import (
 	"github.com/ipfs/kubo/core/coreapi"
 
 	options "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 )
 
@@ -44,7 +44,7 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 		return cid.Cid{}, err
 	}
 
-	basePath := path.IpfsPath(dirb.Cid())
+	basePath := path.FromCid(dirb.Cid())
 
 	for _, p := range l {
 		d, err := Asset.ReadFile(p)
@@ -69,5 +69,5 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 		return cid.Cid{}, err
 	}
 
-	return basePath.Cid(), nil
+	return basePath.RootCid(), nil
 }

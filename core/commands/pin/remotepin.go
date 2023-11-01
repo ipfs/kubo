@@ -15,13 +15,13 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	path "github.com/ipfs/boxo/coreiface/path"
 	pinclient "github.com/ipfs/boxo/pinning/remote/client"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -157,7 +157,12 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 		if err != nil {
 			return err
 		}
-		rp, err := api.ResolvePath(ctx, path.New(req.Arguments[0]))
+		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		rp, _, err := api.ResolvePath(ctx, p)
 		if err != nil {
 			return err
 		}
@@ -177,7 +182,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 			return err
 		}
 
-		isInBlockstore, err := node.Blockstore.Has(req.Context, rp.Cid())
+		isInBlockstore, err := node.Blockstore.Has(req.Context, rp.RootCid())
 		if err != nil {
 			return err
 		}
@@ -194,7 +199,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 
 		// Execute remote pin request
 		// TODO: fix panic when pinning service is down
-		ps, err := c.Add(ctx, rp.Cid(), opts...)
+		ps, err := c.Add(ctx, rp.RootCid(), opts...)
 		if err != nil {
 			return err
 		}

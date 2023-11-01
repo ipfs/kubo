@@ -10,8 +10,8 @@ import (
 
 	coreiface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/coreiface/options"
-	ipath "github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
@@ -98,7 +98,7 @@ func addMigrationFiles(ctx context.Context, node *core.IpfsNode, paths []string,
 
 // addMigrationPaths adds the files at paths to IPFS, optionally pinning
 // them. This is done after connecting to the peer.
-func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.AddrInfo, paths []ipath.Path, pin bool) error {
+func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.AddrInfo, paths []path.Path, pin bool) error {
 	if len(paths) == 0 {
 		return errors.New("nothing downloaded by ipfs fetcher")
 	}
@@ -142,7 +142,7 @@ func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.A
 	return nil
 }
 
-func ipfsGet(ctx context.Context, ufs coreiface.UnixfsAPI, ipfsPath ipath.Path) error {
+func ipfsGet(ctx context.Context, ufs coreiface.UnixfsAPI, ipfsPath path.Path) error {
 	nd, err := ufs.Get(ctx, ipfsPath)
 	if err != nil {
 		return err

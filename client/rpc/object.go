@@ -8,9 +8,9 @@ import (
 
 	iface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 )
@@ -40,10 +40,10 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 	return n, nil
 }
 
-func (api *ObjectAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.ObjectPutOption) (path.Resolved, error) {
+func (api *ObjectAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.ObjectPutOption) (path.ImmutablePath, error) {
 	options, err := caopts.ObjectPutOptions(opts...)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	var out objectOut
@@ -54,15 +54,15 @@ func (api *ObjectAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.Objec
 		FileBody(r).
 		Exec(ctx, &out)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	c, err := cid.Parse(out.Hash)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
-	return path.IpfsPath(c), nil
+	return path.FromCid(c), nil
 }
 
 func (api *ObjectAPI) Get(ctx context.Context, p path.Path) (ipld.Node, error) {
@@ -153,10 +153,10 @@ func (api *ObjectAPI) Stat(ctx context.Context, p path.Path) (*iface.ObjectStat,
 	}, nil
 }
 
-func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, child path.Path, opts ...caopts.ObjectAddLinkOption) (path.Resolved, error) {
+func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, child path.Path, opts ...caopts.ObjectAddLinkOption) (path.ImmutablePath, error) {
 	options, err := caopts.ObjectAddLinkOptions(opts...)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	var out objectOut
@@ -164,65 +164,65 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 		Option("create", options.Create).
 		Exec(ctx, &out)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	c, err := cid.Parse(out.Hash)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
-	return path.IpfsPath(c), nil
+	return path.FromCid(c), nil
 }
 
-func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (path.Resolved, error) {
+func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (path.ImmutablePath, error) {
 	var out objectOut
 	err := api.core().Request("object/patch/rm-link", base.String(), link).
 		Exec(ctx, &out)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	c, err := cid.Parse(out.Hash)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
-	return path.IpfsPath(c), nil
+	return path.FromCid(c), nil
 }
 
-func (api *ObjectAPI) AppendData(ctx context.Context, p path.Path, r io.Reader) (path.Resolved, error) {
+func (api *ObjectAPI) AppendData(ctx context.Context, p path.Path, r io.Reader) (path.ImmutablePath, error) {
 	var out objectOut
 	err := api.core().Request("object/patch/append-data", p.String()).
 		FileBody(r).
 		Exec(ctx, &out)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	c, err := cid.Parse(out.Hash)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
-	return path.IpfsPath(c), nil
+	return path.FromCid(c), nil
 }
 
-func (api *ObjectAPI) SetData(ctx context.Context, p path.Path, r io.Reader) (path.Resolved, error) {
+func (api *ObjectAPI) SetData(ctx context.Context, p path.Path, r io.Reader) (path.ImmutablePath, error) {
 	var out objectOut
 	err := api.core().Request("object/patch/set-data", p.String()).
 		FileBody(r).
 		Exec(ctx, &out)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	c, err := cid.Parse(out.Hash)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
-	return path.IpfsPath(c), nil
+	return path.FromCid(c), nil
 }
 
 type change struct {
@@ -246,10 +246,10 @@ func (api *ObjectAPI) Diff(ctx context.Context, a path.Path, b path.Path) ([]ifa
 			Path: ch.Path,
 		}
 		if ch.Before != cid.Undef {
-			res[i].Before = path.IpfsPath(ch.Before)
+			res[i].Before = path.FromCid(ch.Before)
 		}
 		if ch.After != cid.Undef {
-			res[i].After = path.IpfsPath(ch.After)
+			res[i].After = path.FromCid(ch.After)
 		}
 	}
 	return res, nil

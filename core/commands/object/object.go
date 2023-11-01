@@ -9,10 +9,10 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -95,7 +95,10 @@ is the raw data of the object.
 			return err
 		}
 
-		path := path.New(req.Arguments[0])
+		path, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
 
 		data, err := api.Object().Data(req.Context, path)
 		if err != nil {
@@ -135,9 +138,12 @@ multihash. Provided for legacy reasons. Use 'ipfs dag get' instead.
 			return err
 		}
 
-		path := path.New(req.Arguments[0])
+		path, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
 
-		rp, err := api.ResolvePath(req.Context, path)
+		rp, _, err := api.ResolvePath(req.Context, path)
 		if err != nil {
 			return err
 		}
@@ -157,7 +163,7 @@ multihash. Provided for legacy reasons. Use 'ipfs dag get' instead.
 		}
 
 		out := &Object{
-			Hash:  enc.Encode(rp.Cid()),
+			Hash:  enc.Encode(rp.RootCid()),
 			Links: outLinks,
 		}
 
@@ -212,7 +218,10 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs dag get' instead.
 			return err
 		}
 
-		path := path.New(req.Arguments[0])
+		path, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
 
 		datafieldenc, _ := req.Options[encodingOptionName].(string)
 		if err != nil {
@@ -333,7 +342,12 @@ DEPRECATED: Provided for legacy reasons. Modern replacements:
 			return err
 		}
 
-		ns, err := api.Object().Stat(req.Context, path.New(req.Arguments[0]))
+		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		ns, err := api.Object().Stat(req.Context, p)
 		if err != nil {
 			return err
 		}
@@ -434,7 +448,7 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs dag put' instead.
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: enc.Encode(p.Cid())})
+		return cmds.EmitOnce(res, &Object{Hash: enc.Encode(p.RootCid())})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {

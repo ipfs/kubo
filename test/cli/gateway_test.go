@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/ipfs/kubo/config"
@@ -169,7 +171,7 @@ func TestGateway(t *testing.T) {
 
 	t.Run("IPNS", func(t *testing.T) {
 		t.Parallel()
-		node.IPFS("name", "publish", "--allow-offline", cid)
+		node.IPFS("name", "publish", "--allow-offline", "--ttl", "42h", cid)
 
 		t.Run("GET invalid IPNS root returns 500 (Internal Server Error)", func(t *testing.T) {
 			t.Parallel()
@@ -182,6 +184,17 @@ func TestGateway(t *testing.T) {
 			resp := client.Get("/ipns/{{.PeerID}}")
 			assert.Equal(t, 200, resp.StatusCode)
 			assert.Equal(t, "Hello Worlds!", resp.Body)
+		})
+
+		t.Run("GET IPNS path has correct Cache-Control", func(t *testing.T) {
+			t.Parallel()
+			resp := client.Get("/ipns/{{.PeerID}}")
+			assert.Equal(t, 200, resp.StatusCode)
+			cacheControl := resp.Headers.Get("Cache-Control")
+			assert.True(t, strings.HasPrefix(cacheControl, "public, max-age="))
+			maxAge, err := strconv.Atoi(strings.TrimPrefix(cacheControl, "public, max-age="))
+			assert.NoError(t, err)
+			assert.True(t, maxAge-151200 < 60) // MaxAge within 42h and 42h-1m
 		})
 
 		t.Run("GET /ipfs/ipns/{peerid} returns redirect to the valid path", func(t *testing.T) {
@@ -408,9 +421,9 @@ func TestGateway(t *testing.T) {
 		t.Parallel()
 		gatewayAddr := URLStrToMultiaddr(node.GatewayURL())
 		res := node.RunIPFS("--api", gatewayAddr.String(), "refs", "local")
-		assert.Equal(t,
-			`Error: invalid path "local": invalid cid: selected encoding not supported`,
+		assert.Contains(t,
 			res.Stderr.Trimmed(),
+			`Error: invalid path "local":`,
 		)
 	})
 

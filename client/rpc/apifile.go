@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 )
 
@@ -17,7 +17,7 @@ const forwardSeekLimit = 1 << 14 // 16k
 func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) {
 	if p.Mutable() { // use resolved path in case we are dealing with IPNS / MFS
 		var err error
-		p, err = api.core().ResolvePath(ctx, p)
+		p, _, err = api.core().ResolvePath(ctx, p)
 		if err != nil {
 			return nil, err
 		}
@@ -195,13 +195,13 @@ func (it *apiIter) Next() bool {
 
 	switch it.cur.Type {
 	case unixfs.THAMTShard, unixfs.TMetadata, unixfs.TDirectory:
-		it.curFile, err = it.core.getDir(it.ctx, path.IpfsPath(c), int64(it.cur.Size))
+		it.curFile, err = it.core.getDir(it.ctx, path.FromCid(c), int64(it.cur.Size))
 		if err != nil {
 			it.err = err
 			return false
 		}
 	case unixfs.TFile:
-		it.curFile, err = it.core.getFile(it.ctx, path.IpfsPath(c), int64(it.cur.Size))
+		it.curFile, err = it.core.getFile(it.ctx, path.FromCid(c), int64(it.cur.Size))
 		if err != nil {
 			it.err = err
 			return false

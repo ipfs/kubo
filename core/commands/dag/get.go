@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/path"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/multicodec"
@@ -28,12 +29,17 @@ func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 		return err
 	}
 
-	rp, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
+	p, err := cmdutils.PathOrCidPath(req.Arguments[0])
 	if err != nil {
 		return err
 	}
 
-	obj, err := api.Dag().Get(req.Context, rp.Cid())
+	rp, remainder, err := api.ResolvePath(req.Context, p)
+	if err != nil {
+		return err
+	}
+
+	obj, err := api.Dag().Get(req.Context, rp.RootCid())
 	if err != nil {
 		return err
 	}
@@ -45,8 +51,8 @@ func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 
 	finalNode := universal.(ipld.Node)
 
-	if len(rp.Remainder()) > 0 {
-		remainderPath := ipld.ParsePath(rp.Remainder())
+	if len(remainder) > 0 {
+		remainderPath := ipld.ParsePath(path.SegmentsToString(remainder...))
 
 		finalNode, err = traversal.Get(finalNode, remainderPath)
 		if err != nil {

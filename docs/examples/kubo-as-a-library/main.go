@@ -12,8 +12,8 @@ import (
 	"sync"
 
 	icore "github.com/ipfs/boxo/coreiface"
-	icorepath "github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/path"
 	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/ipfs/kubo/config"
@@ -320,11 +320,11 @@ func main() {
 		}
 	}()
 
-	exampleCIDStr := peerCidFile.Cid().String()
+	exampleCIDStr := peerCidFile.RootCid().String()
 
 	fmt.Printf("Fetching a file from the network with CID %s\n", exampleCIDStr)
 	outputPath := outputBasePath + exampleCIDStr
-	testCID := icorepath.New(exampleCIDStr)
+	testCID := path.FromCid(peerCidFile.RootCid())
 
 	rootNode, err := ipfsB.Unixfs().Get(ctx, testCID)
 	if err != nil {

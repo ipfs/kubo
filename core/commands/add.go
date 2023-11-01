@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	gopath "path"
 	"strings"
 
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
 	mfs "github.com/ipfs/boxo/mfs"
+	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	mh "github.com/multiformats/go-multihash"
@@ -301,7 +302,7 @@ See 'dag export' and 'dag import' for more information.
 							return
 						}
 						// if MFS destination is a dir, append filename to the dir path
-						toFilesDst += path.Base(addit.Name())
+						toFilesDst += gopath.Base(addit.Name())
 					}
 
 					// error if we try to overwrite a preexisting file destination
@@ -310,14 +311,14 @@ See 'dag export' and 'dag import' for more information.
 						return
 					}
 
-					_, err = mfs.Lookup(ipfsNode.FilesRoot, path.Dir(toFilesDst))
+					_, err = mfs.Lookup(ipfsNode.FilesRoot, gopath.Dir(toFilesDst))
 					if err != nil {
-						errCh <- fmt.Errorf("%s: MFS destination parent %q %q does not exist: %w", toFilesOptionName, toFilesDst, path.Dir(toFilesDst), err)
+						errCh <- fmt.Errorf("%s: MFS destination parent %q %q does not exist: %w", toFilesOptionName, toFilesDst, gopath.Dir(toFilesDst), err)
 						return
 					}
 
 					var nodeAdded ipld.Node
-					nodeAdded, err = api.Dag().Get(req.Context, pathAdded.Cid())
+					nodeAdded, err = api.Dag().Get(req.Context, pathAdded.RootCid())
 					if err != nil {
 						errCh <- err
 						return
@@ -339,14 +340,14 @@ See 'dag export' and 'dag import' for more information.
 				}
 
 				h := ""
-				if output.Path != nil {
-					h = enc.Encode(output.Path.Cid())
+				if (output.Path != path.ImmutablePath{}) {
+					h = enc.Encode(output.Path.RootCid())
 				}
 
 				if !dir && addit.Name() != "" {
 					output.Name = addit.Name()
 				} else {
-					output.Name = path.Join(addit.Name(), output.Name)
+					output.Name = gopath.Join(addit.Name(), output.Name)
 				}
 
 				if err := res.Emit(&AddEvent{

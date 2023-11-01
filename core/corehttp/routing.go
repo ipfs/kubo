@@ -42,7 +42,7 @@ func (r *contentRouter) ProvideBitswap(ctx context.Context, req *server.BitswapW
 	return 0, routing.ErrNotSupported
 }
 
-func (r *contentRouter) FindPeers(ctx context.Context, pid peer.ID, limit int) (iter.ResultIter[types.Record], error) {
+func (r *contentRouter) FindPeers(ctx context.Context, pid peer.ID, limit int) (iter.ResultIter[*types.PeerRecord], error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -60,7 +60,7 @@ func (r *contentRouter) FindPeers(ctx context.Context, pid peer.ID, limit int) (
 		rec.Addrs = append(rec.Addrs, types.Multiaddr{Multiaddr: addr})
 	}
 
-	return iter.ToResultIter[types.Record](iter.FromSlice[types.Record]([]types.Record{rec})), nil
+	return iter.ToResultIter[*types.PeerRecord](iter.FromSlice[*types.PeerRecord]([]*types.PeerRecord{rec})), nil
 }
 
 func (r *contentRouter) GetIPNS(ctx context.Context, name ipns.Name) (*ipns.Record, error) {

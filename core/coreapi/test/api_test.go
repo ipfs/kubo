@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/filestore"
 	keystore "github.com/ipfs/boxo/keystore"
 	"github.com/ipfs/kubo/core"
-	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/coreapi"
 	mock "github.com/ipfs/kubo/core/mock"
 	"github.com/ipfs/kubo/core/node/libp2p"

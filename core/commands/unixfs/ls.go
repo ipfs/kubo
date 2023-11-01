@@ -7,8 +7,8 @@ import (
 	"text/tabwriter"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
-	path "github.com/ipfs/boxo/coreiface/path"
 	merkledag "github.com/ipfs/boxo/ipld/merkledag"
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -96,7 +96,12 @@ If possible, please use 'ipfs ls' instead.
 		for _, p := range paths {
 			ctx := req.Context
 
-			merkleNode, err := api.ResolveNode(ctx, path.New(p))
+			pth, err := cmdutils.PathOrCidPath(p)
+			if err != nil {
+				return err
+			}
+
+			merkleNode, err := api.ResolveNode(ctx, pth)
 			if err != nil {
 				return err
 			}

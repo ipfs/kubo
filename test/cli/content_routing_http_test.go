@@ -43,11 +43,11 @@ func (r *fakeHTTPContentRouter) ProvideBitswap(ctx context.Context, req *server.
 	return 0, nil
 }
 
-func (r *fakeHTTPContentRouter) FindPeers(ctx context.Context, pid peer.ID, limit int) (iter.ResultIter[types.Record], error) {
+func (r *fakeHTTPContentRouter) FindPeers(ctx context.Context, pid peer.ID, limit int) (iter.ResultIter[*types.PeerRecord], error) {
 	r.m.Lock()
 	defer r.m.Unlock()
 	r.findPeersCalls++
-	return iter.FromSlice([]iter.Result[types.Record]{}), nil
+	return iter.FromSlice([]iter.Result[*types.PeerRecord]{}), nil
 }
 
 func (r *fakeHTTPContentRouter) GetIPNS(ctx context.Context, name ipns.Name) (*ipns.Record, error) {
