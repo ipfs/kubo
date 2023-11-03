@@ -98,12 +98,13 @@ type Transports struct {
 	// listen on a transport, add the transport to your Addresses.Swarm.
 	Network struct {
 		// All default to on.
-		QUIC      Flag `json:",omitempty"`
-		TCP       Flag `json:",omitempty"`
-		Websocket Flag `json:",omitempty"`
-		Relay     Flag `json:",omitempty"`
-		// except WebTransport which is experimental and optin.
+		QUIC         Flag `json:",omitempty"`
+		TCP          Flag `json:",omitempty"`
+		Websocket    Flag `json:",omitempty"`
+		Relay        Flag `json:",omitempty"`
 		WebTransport Flag `json:",omitempty"`
+		// except WebRTCDirect which is experimental and opt-in.
+		WebRTCDirect Flag `json:",omitempty"`
 	}
 
 	// Security specifies the transports used to encrypt insecure network

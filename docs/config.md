@@ -159,6 +159,7 @@ config file at runtime.
       - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
       - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
       - [`Swarm.Transports.Network.WebTransport`](#swarmtransportsnetworkwebtransport)
+      - [`Swarm.Transports.Network.WebRTCDirect`](#swarmtransportsnetworkwebrtcdirect)
     - [`Swarm.Transports.Security`](#swarmtransportssecurity)
       - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
       - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
@@ -2069,6 +2070,21 @@ thereby enabling any js-libp2p node running in a browser to connect to any kubo 
 The previous alternative is websocket secure, which require installing a reverse proxy and TLS certificates manually.
 
 Default: Enabled
+
+Type: `flag`
+
+#### `Swarm.Transports.Network.WebRTCDirect`
+
+**Experimental:** the support for WebRTC Direct is currently experimental.
+
+A new feature of [`go-libp2p`](https://github.com/libp2p/go-libp2p/releases/tag/v0.32.0)
+is the [WebRTC Direct](https://github.com/libp2p/go-libp2p/pull/2337) transport.
+
+WebRTC Direct is a transport protocol that provides another way for browsers to connect to the rest of the libp2p network. WebRTC Direct allows for browser nodes to connect to other nodes without special configuration, such as TLS certificates. This can be useful for browser nodes that do not yet support WebTransport, for example.
+
+Note that, at the moment, WebRTC Direct cannot be used to connect to a browser node to a node that is behind a NAT or firewall. This is being worked on [`go-libp2p#2009`](https://github.com/libp2p/go-libp2p/issues/2009).
+
+Default: Disabled
 
 Type: `flag`
 
