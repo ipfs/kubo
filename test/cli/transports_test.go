@@ -58,6 +58,7 @@ func TestTransports(t *testing.T) {
 				cfg.Swarm.Transports.Network.QUIC = config.False
 				cfg.Swarm.Transports.Network.Relay = config.False
 				cfg.Swarm.Transports.Network.WebTransport = config.False
+				cfg.Swarm.Transports.Network.WebRTCDirect = config.False
 				cfg.Swarm.Transports.Network.Websocket = config.False
 			})
 		})
@@ -142,6 +143,23 @@ func TestTransports(t *testing.T) {
 				quicAddr := fmt.Sprintf("/ip4/127.0.0.1/udp/%d/quic-v1", port)
 				cfg.Addresses.Swarm = []string{quicAddr}
 				cfg.Addresses.Announce = []string{quicAddr, quicAddr + "/webtransport"}
+			})
+		})
+		disableRouting(nodes)
+		nodes.StartDaemons().Connect()
+		runTests(nodes)
+	})
+
+	t.Run("WebRTC Direct", func(t *testing.T) {
+		t.Parallel()
+		nodes := harness.NewT(t).NewNodes(5).Init()
+		nodes.ForEachPar(func(n *harness.Node) {
+			n.UpdateConfig(func(cfg *config.Config) {
+				cfg.Addresses.Swarm = []string{"/ip4/127.0.0.1/udp/0/webrtc-direct"}
+				cfg.Swarm.Transports.Network.TCP = config.False
+				cfg.Swarm.Transports.Network.QUIC = config.False
+				cfg.Swarm.Transports.Network.WebTransport = config.False
+				cfg.Swarm.Transports.Network.WebRTCDirect = config.True
 			})
 		})
 		disableRouting(nodes)
