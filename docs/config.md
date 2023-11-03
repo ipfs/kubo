@@ -2075,6 +2075,8 @@ Type: `flag`
 
 #### `Swarm.Transports.Network.WebRTCDirect`
 
+**Experimental:** the support for WebRTC Direct is currently experimental.
+
 A new feature of [`go-libp2p`](https://github.com/libp2p/go-libp2p/releases/tag/v0.32.0)
 is the [WebRTC Direct](https://github.com/libp2p/go-libp2p/pull/2337) transport.
 
