@@ -282,7 +282,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		fmt.Println("Found outdated fs-repo, migrations need to be run.")
 
 		if !found {
-			domigrate = YesNoPrompt("Run migrations now? [y/N]")
+			if os.Args[1] == "daemon" && os.Args[2] == "--auto-migrate" {
+				domigrate = true
+			} else {
+				domigrate = YesNoPrompt("Run migrations now? [y/N]")
+			}
 		}
 
 		if !domigrate {
