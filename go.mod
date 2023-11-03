@@ -185,6 +185,22 @@ require (
 	github.com/opencontainers/runtime-spec v1.1.0 // indirect
 	github.com/openzipkin/zipkin-go v0.4.1 // indirect
 	github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 // indirect
+	github.com/pion/datachannel v1.5.5 // indirect
+	github.com/pion/dtls/v2 v2.2.7 // indirect
+	github.com/pion/ice/v2 v2.3.6 // indirect
+	github.com/pion/interceptor v0.1.17 // indirect
+	github.com/pion/logging v0.2.2 // indirect
+	github.com/pion/mdns v0.0.7 // indirect
+	github.com/pion/randutil v0.1.0 // indirect
+	github.com/pion/rtcp v1.2.10 // indirect
+	github.com/pion/rtp v1.7.13 // indirect
+	github.com/pion/sctp v1.8.7 // indirect
+	github.com/pion/sdp/v3 v3.0.6 // indirect
+	github.com/pion/srtp/v2 v2.0.15 // indirect
+	github.com/pion/stun v0.6.0 // indirect
+	github.com/pion/transport/v2 v2.2.1 // indirect
+	github.com/pion/turn/v2 v2.1.0 // indirect
+	github.com/pion/webrtc/v3 v3.2.9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect

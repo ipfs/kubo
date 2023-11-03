@@ -8,6 +8,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/metrics"
 	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
+	webrtc "github.com/libp2p/go-libp2p/p2p/transport/webrtc"
 	"github.com/libp2p/go-libp2p/p2p/transport/websocket"
 	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 
@@ -47,6 +48,15 @@ func Transports(tptConfig config.Transports) interface{} {
 				)
 			}
 			opts.Opts = append(opts.Opts, libp2p.Transport(webtransport.New))
+		}
+
+		if tptConfig.Network.WebRTCDirect.WithDefault(false) {
+			if privateNetworkEnabled {
+				return opts, fmt.Errorf(
+					"WebRTC Direct transport does not support private networks, please disable Swarm.Transports.Network.WebRTCDirect",
+				)
+			}
+			opts.Opts = append(opts.Opts, libp2p.Transport(webrtc.New))
 		}
 
 		return opts, nil
