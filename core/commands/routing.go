@@ -11,6 +11,7 @@ import (
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
+	iface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/coreiface/options"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipns"
@@ -458,6 +459,9 @@ identified by QmFoo.
 
 		err = api.Routing().Put(req.Context, req.Arguments[0], data, opts...)
 		if err != nil {
+			if err == iface.ErrOffline {
+				err = errAllowOffline
+			}
 			return err
 		}
 
