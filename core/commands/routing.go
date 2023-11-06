@@ -11,9 +11,9 @@ import (
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
-	iface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/coreiface/options"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipns"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -451,22 +451,19 @@ identified by QmFoo.
 			options.Put.AllowOffline(allowOffline),
 		}
 
+		ipnsName, err := ipns.NameFromString(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
 		err = api.Routing().Put(req.Context, req.Arguments[0], data, opts...)
 		if err != nil {
 			return err
 		}
 
-		id, err := api.Key().Self(req.Context)
-		if err != nil {
-			if err == iface.ErrOffline {
-				err = errAllowOffline
-			}
-			return err
-		}
-
 		return res.Emit(routing.QueryEvent{
 			Type: routing.Value,
-			ID:   id.ID(),
+			ID:   ipnsName.Peer(),
 		})
 	},
 	Encoders: cmds.EncoderMap{
