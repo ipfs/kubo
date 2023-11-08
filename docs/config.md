@@ -761,7 +761,7 @@ between content roots.
             "PublicGateways": {
                 "dweb.link": {
                     "UseSubdomains": true,
-                    "Paths": ["/ipfs", "/ipns"],
+                    "Paths": ["/ipfs", "/ipns"]
                 }
             }
         }
@@ -776,7 +776,7 @@ between content roots.
         "PublicGateways": {
             "ipfs.io": {
                 "UseSubdomains": false,
-                "Paths": ["/ipfs", "/ipns", "/api"],
+                "Paths": ["/ipfs", "/ipns", "/api"]
             }
         }
     }
