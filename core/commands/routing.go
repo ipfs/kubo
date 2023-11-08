@@ -80,10 +80,9 @@ var findProvidersRoutingCmd = &cmds.Command{
 		ctx, cancel := context.WithCancel(req.Context)
 		ctx, events := routing.RegisterForQueryEvents(ctx)
 
-		pchan := n.Routing.FindProvidersAsync(ctx, c, numProviders)
-
 		go func() {
 			defer cancel()
+			pchan := n.Routing.FindProvidersAsync(ctx, c, numProviders)
 			for p := range pchan {
 				np := p
 				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
