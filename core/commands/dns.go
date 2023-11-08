@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	namesys "github.com/ipfs/boxo/namesys"
 	"github.com/ipfs/boxo/path"
@@ -19,7 +20,7 @@ const (
 var DNSCmd = &cmds.Command{
 	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/8607
 	Helptext: cmds.HelpText{
-		Tagline: "Resolve DNSLink records.",
+		Tagline: "Resolve DNSLink records. Deprecated: Use 'ipfs resolve /ipns/domain-name' instead.",
 		ShortDescription: `
 This command can only recursively resolve DNSLink TXT records.
 It will fail to recursively resolve through IPNS keys etc.
@@ -50,6 +51,10 @@ It will work across multiple DNSLinks and IPNS keys.
 		var routing []namesys.ResolveOption
 		if !recursive {
 			routing = append(routing, namesys.ResolveWithDepth(1))
+		}
+
+		if !strings.HasPrefix(name, "/ipns/") {
+			name = "/ipns/" + name
 		}
 
 		p, err := path.NewPath(name)
