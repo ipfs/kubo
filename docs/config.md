@@ -2076,13 +2076,25 @@ Type: `flag`
 #### `Swarm.Transports.Network.WebRTCDirect`
 
 **Experimental:** the support for WebRTC Direct is currently experimental.
+This feature was introduced in [`go-libp2p@v0.32.0`](https://github.com/libp2p/go-libp2p/releases/tag/v0.32.0).
 
-A new feature of [`go-libp2p`](https://github.com/libp2p/go-libp2p/releases/tag/v0.32.0)
-is the [WebRTC Direct](https://github.com/libp2p/go-libp2p/pull/2337) transport.
+[WebRTC Direct](https://github.com/libp2p/specs/blob/master/webrtc/webrtc-direct.md)
+is a transport protocol that provides another way for browsers to
+connect to the rest of the libp2p network. WebRTC Direct allows for browser
+nodes to connect to other nodes without special configuration, such as TLS
+certificates. This can be useful for browser nodes that do not yet support
+[WebTransport](https://blog.libp2p.io/2022-12-19-libp2p-webtransport/).
 
-WebRTC Direct is a transport protocol that provides another way for browsers to connect to the rest of the libp2p network. WebRTC Direct allows for browser nodes to connect to other nodes without special configuration, such as TLS certificates. This can be useful for browser nodes that do not yet support WebTransport, for example.
+Enabling this transport allows Kubo node to act on `/udp/4001/webrtc-direct`
+listeners defined in `Addresses.Swarm`, `Addresses.Announce` or
+`Addresses.AppendAnnounce`.
 
-Note that, at the moment, WebRTC Direct cannot be used to connect to a browser node to a node that is behind a NAT or firewall. This is being worked on [`go-libp2p#2009`](https://github.com/libp2p/go-libp2p/issues/2009).
+**NOTE:** at the moment, WebRTC Direct cannot be used to connect to a browser
+node to a node that is behind a NAT or firewall.
+This requires using normal
+[WebRTC](https://github.com/libp2p/specs/blob/master/webrtc/webrtc.md),
+which is currently being worked on in
+[go-libp2p#2009](https://github.com/libp2p/go-libp2p/issues/2009).
 
 Default: Disabled
 
