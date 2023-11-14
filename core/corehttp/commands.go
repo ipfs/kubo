@@ -145,8 +145,8 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) 
 
 		cmdHandler := cmdsHttp.NewHandler(&cctx, command, cfg)
 
-		if len(rcfg.API.HTTPAuthSecrets) > 0 {
-			cmdHandler = withAuthSecrets(rcfg.API.HTTPAuthSecrets, cmdHandler)
+		if len(rcfg.API.Authorizations) > 0 {
+			cmdHandler = withAuthSecrets(rcfg.API.Authorizations, cmdHandler)
 		}
 
 		cmdHandler = otelhttp.NewHandler(cmdHandler, "corehttp.cmdsHandler")
@@ -155,39 +155,55 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) 
 	}
 }
 
-func withAuthSecrets(authSecrets map[string]string, next http.Handler) http.Handler {
-	// authorizations is a map where we can just check for the header value to match.
-	authorizations := map[string]string{}
+type rpcAuthScopeWithUser struct {
+	config.RPCAuthScope
+	User string
+}
 
-	for name, value := range authSecrets {
-		split := strings.SplitN(value, ":", 2)
+func withAuthSecrets(authScopes map[string]*config.RPCAuthScope, next http.Handler) http.Handler {
+	// authorizations is a map where we can just check for the header value to match.
+	authorizations := map[string]rpcAuthScopeWithUser{}
+
+	for user, authScope := range authScopes {
+		split := strings.SplitN(authScope.HTTPAuthSecret, ":", 2)
 		if len(split) < 2 {
 			continue
 		}
 
-		if strings.HasPrefix(value, "basic:") {
+		expectedHeader := ""
+		if strings.HasPrefix(authScope.HTTPAuthSecret, "basic:") {
 			if strings.Contains(split[1], ":") {
 				// Assume basic:user:password
-				authorizations["Basic "+base64.StdEncoding.EncodeToString([]byte(split[1]))] = name
+				expectedHeader = "Basic " + base64.StdEncoding.EncodeToString([]byte(split[1]))
 			} else {
 				// Assume already base64 encoded.
-				authorizations["Basic "+split[1]] = name
+				expectedHeader = "Basic " + split[1]
 			}
-		} else if strings.HasPrefix(value, "bearer:") {
-			authorizations["Bearer "+split[1]] = name
+		} else if strings.HasPrefix(authScope.HTTPAuthSecret, "bearer:") {
+			expectedHeader = "Bearer " + split[1]
+		}
+
+		authorizations[expectedHeader] = rpcAuthScopeWithUser{
+			RPCAuthScope: *authScopes[user],
+			User:         user,
 		}
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorizationHeader := r.Header.Get("Authorization")
+		auth, ok := authorizations[authorizationHeader]
 
-		if _, ok := authorizations[authorizationHeader]; !ok {
-			status := http.StatusForbidden
-			http.Error(w, http.StatusText(status), status)
-			return
+		if ok {
+			for _, prefix := range auth.AllowedPaths {
+				if strings.HasPrefix(r.URL.Path, prefix) {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
 		}
 
-		next.ServeHTTP(w, r)
+		status := http.StatusForbidden
+		http.Error(w, http.StatusText(status), status)
 	})
 }
 
