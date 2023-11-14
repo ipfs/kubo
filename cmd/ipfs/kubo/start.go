@@ -84,16 +84,6 @@ func LoadPlugins(repoPath string, preload PluginPreloader) (*loader.PluginLoader
 	return plugins, nil
 }
 
-// main roadmap:
-// - parse the commandline to get a cmdInvocation
-// - if user requests help, print it and exit.
-// - run the command invocation
-// - output the response
-// - if anything fails, print error, maybe with help.
-func main() {
-	os.Exit(Start(BuildDefaultEnv))
-}
-
 func printErr(err error) int {
 	fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 	return 1
@@ -158,6 +148,12 @@ func BuildEnv(pl PluginPreloader) func(ctx context.Context, req *cmds.Request) (
 	}
 }
 
+// Start roadmap:
+// - parse the commandline to get a cmdInvocation
+// - if user requests help, print it and exit.
+// - run the command invocation
+// - output the response
+// - if anything fails, print error, maybe with help.
 func Start(buildEnv func(ctx context.Context, req *cmds.Request) (cmds.Environment, error)) (exitCode int) {
 	ctx := logging.ContextWithLoggable(context.Background(), newUUID("session"))
 
