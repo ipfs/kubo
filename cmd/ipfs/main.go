@@ -325,6 +325,14 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		return nil, fmt.Errorf("unsupported API address: %s", apiAddr)
 	}
 
+	apiSecret, specified := req.Options[corecmds.ApiSecretOption].(string)
+	if specified {
+		tpt = &roundTripperWithAuthorization{
+			apiSecret:    apiSecret,
+			roundTripper: tpt,
+		}
+	}
+
 	httpClient := &http.Client{
 		Transport: otelhttp.NewTransport(tpt),
 	}
@@ -338,6 +346,18 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	opts = append(opts, cmdhttp.ClientWithRawAbsPath(remoteVersion.LT(encodedAbsolutePathVersion)))
 
 	return tracingWrappedExecutor{cmdhttp.NewClient(host, opts...)}, nil
+}
+
+var _ http.RoundTripper = &roundTripperWithAuthorization{}
+
+type roundTripperWithAuthorization struct {
+	apiSecret    string
+	roundTripper http.RoundTripper
+}
+
+func (tp *roundTripperWithAuthorization) RoundTrip(r *http.Request) (*http.Response, error) {
+	r.Header.Set("Authorization", tp.apiSecret)
+	return tp.roundTripper.RoundTrip(r)
 }
 
 type tracingWrappedExecutor struct {

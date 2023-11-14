@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -143,10 +144,51 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) 
 		patchCORSVars(cfg, l.Addr())
 
 		cmdHandler := cmdsHttp.NewHandler(&cctx, command, cfg)
+
+		if len(rcfg.API.HTTPAuthSecrets) > 0 {
+			cmdHandler = withAuthSecrets(rcfg.API.HTTPAuthSecrets, cmdHandler)
+		}
+
 		cmdHandler = otelhttp.NewHandler(cmdHandler, "corehttp.cmdsHandler")
 		mux.Handle(APIPath+"/", cmdHandler)
 		return mux, nil
 	}
+}
+
+func withAuthSecrets(authSecrets map[string]string, next http.Handler) http.Handler {
+	// authorizations is a map where we can just check for the header value to match.
+	authorizations := map[string]string{}
+
+	for name, value := range authSecrets {
+		split := strings.SplitN(value, ":", 2)
+		if len(split) < 2 {
+			continue
+		}
+
+		if strings.HasPrefix(value, "basic:") {
+			if strings.Contains(split[1], ":") {
+				// Assume basic:user:password
+				authorizations["Basic "+base64.StdEncoding.EncodeToString([]byte(split[1]))] = name
+			} else {
+				// Assume already base64 encoded.
+				authorizations["Basic "+split[1]] = name
+			}
+		} else if strings.HasPrefix(value, "bearer:") {
+			authorizations["Bearer "+split[1]] = name
+		}
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorizationHeader := r.Header.Get("Authorization")
+
+		if _, ok := authorizations[authorizationHeader]; !ok {
+			status := http.StatusForbidden
+			http.Error(w, http.StatusText(status), status)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 // CommandsOption constructs a ServerOption for hooking the commands into the
