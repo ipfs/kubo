@@ -210,6 +210,11 @@ func convertAuthorizationsMap(authScopes map[string]*config.RPCAuthScope) (map[s
 
 func withAuthSecrets(authorizations map[string]rpcAuthScopeWithUser, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v0/version" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		authorizationHeader := r.Header.Get("Authorization")
 		auth, ok := authorizations[authorizationHeader]
 

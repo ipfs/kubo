@@ -7,6 +7,7 @@ import (
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAuth(t *testing.T) {
@@ -26,7 +27,7 @@ func TestAuth(t *testing.T) {
 		return node
 	}
 
-	t.Run("Follows Allowed Paths", func(t *testing.T) {
+	t.Run("Follows Allowed Paths (HTTP)", func(t *testing.T) {
 		t.Parallel()
 
 		node := makeAndStartProtectedNode(t, map[string]*config.RPCAuthScope{
@@ -46,6 +47,27 @@ func TestAuth(t *testing.T) {
 		// But not Ping.
 		resp = apiClient.Post("/api/v0/ping", nil)
 		assert.Equal(t, 403, resp.StatusCode)
+
+		node.StopDaemon()
+	})
+
+	t.Run("Follows Allowed Paths (CLI)", func(t *testing.T) {
+		t.Parallel()
+
+		node := makeAndStartProtectedNode(t, map[string]*config.RPCAuthScope{
+			"userA": {
+				HTTPAuthSecret: "bearer:userAToken",
+				AllowedPaths:   []string{"/api/v0/id"},
+			},
+		})
+
+		// Can access ID.
+		resp := node.RunIPFS("id", "--api-secret", "Bearer userAToken")
+		require.NoError(t, resp.Err)
+
+		// But not Ping.
+		resp = node.RunIPFS("ping", "--api-secret", "Bearer userAToken")
+		require.Error(t, resp.Err)
 
 		node.StopDaemon()
 	})
