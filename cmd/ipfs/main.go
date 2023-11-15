@@ -23,6 +23,7 @@ import (
 	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
 	logging "github.com/ipfs/go-log"
 	ipfs "github.com/ipfs/kubo"
+	"github.com/ipfs/kubo/client/rpc/auth"
 	"github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
 	"github.com/ipfs/kubo/core"
@@ -327,10 +328,7 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 
 	apiSecret, specified := req.Options[corecmds.ApiSecretOption].(string)
 	if specified {
-		tpt = &roundTripperWithAuthorization{
-			apiSecret:    apiSecret,
-			roundTripper: tpt,
-		}
+		tpt = auth.NewAuthorizedRoundTripper(apiSecret, tpt)
 	}
 
 	httpClient := &http.Client{
@@ -346,18 +344,6 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	opts = append(opts, cmdhttp.ClientWithRawAbsPath(remoteVersion.LT(encodedAbsolutePathVersion)))
 
 	return tracingWrappedExecutor{cmdhttp.NewClient(host, opts...)}, nil
-}
-
-var _ http.RoundTripper = &roundTripperWithAuthorization{}
-
-type roundTripperWithAuthorization struct {
-	apiSecret    string
-	roundTripper http.RoundTripper
-}
-
-func (tp *roundTripperWithAuthorization) RoundTrip(r *http.Request) (*http.Response, error) {
-	r.Header.Set("Authorization", tp.apiSecret)
-	return tp.roundTripper.RoundTrip(r)
 }
 
 type tracingWrappedExecutor struct {
