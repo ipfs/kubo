@@ -676,6 +676,10 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		listeners = append(listeners, apiLis)
 	}
 
+	if len(cfg.API.Authorizations) > 0 && len(listeners) > 0 {
+		fmt.Printf("RPC API access is limited by the rules defined in API.Authorizations\n")
+	}
+
 	for _, listener := range listeners {
 		// we might have listened to /tcp/0 - let's see what we are listing on
 		fmt.Printf("RPC API server listening on %s\n", listener.Multiaddr())
