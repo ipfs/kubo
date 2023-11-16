@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const rpcDeniedMsg = "Kubo RPC Access Denied: Please provide a valid authorization token as defined in the API.Authorizations configuration."
+
 func TestAuth(t *testing.T) {
 	t.Parallel()
 
@@ -75,7 +77,7 @@ func TestAuth(t *testing.T) {
 			// But not 'ipfs config show'
 			resp = node.RunIPFS("config", "show", "--api-auth", authSecret)
 			require.Error(t, resp.Err)
-			require.Contains(t, resp.Stderr.String(), "Forbidden")
+			require.Contains(t, resp.Stderr.String(), rpcDeniedMsg)
 
 			node.StopDaemon()
 		}

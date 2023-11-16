@@ -178,15 +178,16 @@ func convertAuthorizationsMap(authScopes map[string]*config.RPCAuthScope) map[st
 
 func withAuthSecrets(authorizations map[string]rpcAuthScopeWithUser, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v0/version" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
 		authorizationHeader := r.Header.Get("Authorization")
 		auth, ok := authorizations[authorizationHeader]
 
 		if ok {
+			// version check is implicitly allowed
+			if r.URL.Path == "/api/v0/version" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			// everything else has to be safelisted via AllowedPaths
 			for _, prefix := range auth.AllowedPaths {
 				if strings.HasPrefix(r.URL.Path, prefix) {
 					next.ServeHTTP(w, r)
@@ -195,8 +196,7 @@ func withAuthSecrets(authorizations map[string]rpcAuthScopeWithUser, next http.H
 			}
 		}
 
-		status := http.StatusForbidden
-		http.Error(w, http.StatusText(status), status)
+		http.Error(w, "Kubo RPC Access Denied: Please provide a valid authorization token as defined in the API.Authorizations configuration.", http.StatusForbidden)
 	})
 }
 
