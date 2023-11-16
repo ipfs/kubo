@@ -13,7 +13,7 @@ import (
 
 const rpcDeniedMsg = "Kubo RPC Access Denied: Please provide a valid authorization token as defined in the API.Authorizations configuration."
 
-func TestAuth(t *testing.T) {
+func TestRPCAuth(t *testing.T) {
 	t.Parallel()
 
 	makeAndStartProtectedNode := func(t *testing.T, authorizations map[string]*config.RPCAuthScope) *harness.Node {
@@ -47,13 +47,23 @@ func TestAuth(t *testing.T) {
 				Transport: auth.NewAuthorizedRoundTripper(header, http.DefaultTransport),
 			}
 
-			// Can access /id
+			// Can access /id with valid token
 			resp := apiClient.Post("/api/v0/id", nil)
 			assert.Equal(t, 200, resp.StatusCode)
 
 			// But not /config/show
 			resp = apiClient.Post("/api/v0/config/show", nil)
 			assert.Equal(t, 403, resp.StatusCode)
+
+			// create client which sends invalid access token
+			invalidApiClient := node.APIClient()
+			invalidApiClient.Client = &http.Client{
+				Transport: auth.NewAuthorizedRoundTripper("Bearer invalid", http.DefaultTransport),
+			}
+
+			// Can't access /id with invalid token
+			errResp := invalidApiClient.Post("/api/v0/id", nil)
+			assert.Equal(t, 403, errResp.StatusCode)
 
 			node.StopDaemon()
 		}
@@ -93,11 +103,11 @@ func TestAuth(t *testing.T) {
 		{"Basic (user:pass)", "basic:user:pass", "Basic dXNlcjpwYXNz"},
 		{"Basic (encoded)", "basic:dXNlcjpwYXNz", "Basic dXNlcjpwYXNz"},
 	} {
-		t.Run("Adheres to Allowed Paths on CLI "+testCase.name, makeCLITest(testCase.authSecret))
-		t.Run("Adheres to Allowed Paths on HTTP "+testCase.name, makeHTTPTest(testCase.authSecret, testCase.header))
+		t.Run("AllowedPaths on CLI "+testCase.name, makeCLITest(testCase.authSecret))
+		t.Run("AllowedPaths on HTTP "+testCase.name, makeHTTPTest(testCase.authSecret, testCase.header))
 	}
 
-	t.Run("Generic Allowed Path Gives Full Access", func(t *testing.T) {
+	t.Run("AllowedPaths set to /api/v0 Gives Full Access", func(t *testing.T) {
 		t.Parallel()
 
 		node := makeAndStartProtectedNode(t, map[string]*config.RPCAuthScope{
@@ -112,6 +122,38 @@ func TestAuth(t *testing.T) {
 			Transport: auth.NewAuthorizedRoundTripper("Bearer userAToken", http.DefaultTransport),
 		}
 
+		resp := apiClient.Post("/api/v0/id", nil)
+		assert.Equal(t, 200, resp.StatusCode)
+
+		node.StopDaemon()
+	})
+
+	t.Run("API.Authorizations set to nil disables Authorization header check", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.API.Authorizations = nil
+		})
+		node.StartDaemon()
+
+		apiClient := node.APIClient()
+		resp := apiClient.Post("/api/v0/id", nil)
+		assert.Equal(t, 200, resp.StatusCode)
+
+		node.StopDaemon()
+	})
+
+	t.Run("API.Authorizations set to empty map disables Authorization header check", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.API.Authorizations = map[string]*config.RPCAuthScope{}
+		})
+		node.StartDaemon()
+
+		apiClient := node.APIClient()
 		resp := apiClient.Post("/api/v0/id", nil)
 		assert.Equal(t, 200, resp.StatusCode)
 

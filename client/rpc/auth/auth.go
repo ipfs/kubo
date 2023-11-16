@@ -10,7 +10,7 @@ type AuthorizedRoundTripper struct {
 }
 
 // NewAuthorizedRoundTripper creates a new [http.RoundTripper] that will set the
-// Authorization HTTP header with the value of [secret]. The given [roundTripper] is
+// Authorization HTTP header with the value of [authorization]. The given [roundTripper] is
 // the base [http.RoundTripper]. If it is nil, [http.DefaultTransport] is used.
 func NewAuthorizedRoundTripper(authorization string, roundTripper http.RoundTripper) http.RoundTripper {
 	if roundTripper == nil {
