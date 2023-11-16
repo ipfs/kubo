@@ -28,6 +28,10 @@ config file at runtime.
     - [`Addresses.NoAnnounce`](#addressesnoannounce)
   - [`API`](#api)
     - [`API.HTTPHeaders`](#apihttpheaders)
+    - [`API.HTTPHeaders`](#apihttpheaders)
+    - [`API.Authorizations`](#apiauthorizations)
+      - [`API.Authorizations: AuthSecret`](#apiauthorizations-authsecret)
+      - [`API.Authorizations: AllowedPaths`](#apiauthorizations-allowedpaths)
   - [`AutoNAT`](#autonat)
     - [`AutoNAT.ServiceMode`](#autonatservicemode)
     - [`AutoNAT.Throttle`](#autonatthrottle)
@@ -437,6 +441,49 @@ Example:
 Default: `null`
 
 Type: `object[string -> array[string]]` (header names -> array of header values)
+
+### `API.Authorizations`
+
+Map of Authorizations to protect the RPC API. By default, the RPC API is exposed
+without any protection on `127.0.0.1`. By setting this option, only the allowed
+users will be able to access it.
+
+Default: `null`
+
+Type: `object[string -> object]` (user name -> authorization object, see bellow)
+
+#### `API.Authorizations: AuthSecret`
+
+The secret that the user can use to authenticate. It has the format `type:value`.
+The following type are supported:
+
+- `basic` for Basic Auth. Can be one of the two:
+  - `basic:user:pass`
+  - `basic:encodedBasicAuth`
+- `bearer` for Bearer tokens, set as `bearer:token`.
+
+If no `type` is present, `bearer` is assumed. Unknown types will not be processed.
+
+You can use this secret also to log in via the command line: `ipfs id --api-auth basic:user:pass`.
+
+Default: `` (empty string)
+
+Type: `string`
+
+#### `API.Authorizations: AllowedPaths`
+
+An array of strings with the allowed path prefixes. The given user will only be
+able to access the paths prefixed by the given prefixes. For example, if you
+set `AllowedPaths` to `["/api/v0"]`, then the user will have access to the full
+RPC API. But if you set it to `["/api/v0/id", "/api/v0/files"]`, the user will 
+only have access to the `id` command, as well as all commands under `files`.
+
+Note that `/api/v0/version` is always permitted access. The command line tool uses
+this endpoint to check the remote node version to ensure compatibility.
+
+Default: `null`
+
+Type: `array[string]`
 
 ## `AutoNAT`
 

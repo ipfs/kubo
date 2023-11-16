@@ -1,7 +1,6 @@
 package corehttp
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -146,10 +145,7 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) 
 		cmdHandler := cmdsHttp.NewHandler(&cctx, command, cfg)
 
 		if len(rcfg.API.Authorizations) > 0 {
-			authorizations, err := convertAuthorizationsMap(rcfg.API.Authorizations)
-			if err != nil {
-				return nil, err
-			}
+			authorizations := convertAuthorizationsMap(rcfg.API.Authorizations)
 			cmdHandler = withAuthSecrets(authorizations, cmdHandler)
 		}
 
@@ -159,44 +155,16 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) 
 	}
 }
 
-// convertHTTPAuthSecret converts the given secret "type:value" into an HTTP Header
-// value. It returns empty string if unknown type. Returns error if invalid.
-func convertHTTPAuthSecret(secret string) (string, error) {
-	split := strings.SplitN(secret, ":", 2)
-	if len(split) < 2 {
-		// invalid
-		return "", errors.New("HTTPAuthSecret has invalid value: it must be encoded as 'type:value'")
-	}
-
-	if strings.HasPrefix(secret, "basic:") {
-		if strings.Contains(split[1], ":") {
-			// Assume basic:user:password
-			return "Basic " + base64.StdEncoding.EncodeToString([]byte(split[1])), nil
-		} else {
-			// Assume already base64 encoded.
-			return "Basic " + split[1], nil
-		}
-	} else if strings.HasPrefix(secret, "bearer:") {
-		return "Bearer " + split[1], nil
-	}
-
-	// unknown
-	return "", nil
-}
-
 type rpcAuthScopeWithUser struct {
 	config.RPCAuthScope
 	User string
 }
 
-func convertAuthorizationsMap(authScopes map[string]*config.RPCAuthScope) (map[string]rpcAuthScopeWithUser, error) {
+func convertAuthorizationsMap(authScopes map[string]*config.RPCAuthScope) map[string]rpcAuthScopeWithUser {
 	// authorizations is a map where we can just check for the header value to match.
 	authorizations := map[string]rpcAuthScopeWithUser{}
 	for user, authScope := range authScopes {
-		expectedHeader, err := convertHTTPAuthSecret(authScope.HTTPAuthSecret)
-		if err != nil {
-			return nil, err
-		}
+		expectedHeader := config.ConvertAuthSecret(authScope.AuthSecret)
 		if expectedHeader != "" {
 			authorizations[expectedHeader] = rpcAuthScopeWithUser{
 				RPCAuthScope: *authScopes[user],
@@ -205,7 +173,7 @@ func convertAuthorizationsMap(authScopes map[string]*config.RPCAuthScope) (map[s
 		}
 	}
 
-	return authorizations, nil
+	return authorizations
 }
 
 func withAuthSecrets(authorizations map[string]rpcAuthScopeWithUser, next http.Handler) http.Handler {
