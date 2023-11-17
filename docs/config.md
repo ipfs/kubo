@@ -28,6 +28,9 @@ config file at runtime.
     - [`Addresses.NoAnnounce`](#addressesnoannounce)
   - [`API`](#api)
     - [`API.HTTPHeaders`](#apihttpheaders)
+    - [`API.Authorizations`](#apiauthorizations)
+      - [`API.Authorizations: AuthSecret`](#apiauthorizations-authsecret)
+      - [`API.Authorizations: AllowedPaths`](#apiauthorizations-allowedpaths)
   - [`AutoNAT`](#autonat)
     - [`AutoNAT.ServiceMode`](#autonatservicemode)
     - [`AutoNAT.Throttle`](#autonatthrottle)
@@ -437,6 +440,87 @@ Example:
 Default: `null`
 
 Type: `object[string -> array[string]]` (header names -> array of header values)
+
+### `API.Authorizations`
+
+The `API.Authorizations` field defines user-based access restrictions for the
+[Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/), which is located at
+`Addresses.API` under `/api/v0` paths.
+
+By default, the RPC API is accessible without restrictions as it is only
+exposed on `127.0.0.1` and safeguarded with Origin check and implicit
+[CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) headers that
+block random websites from accessing the RPC.
+
+When entries are defined in `API.Authorizations`, RPC requests will be declined
+unless a corresponding secret is present in the HTTP [`Authorization` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization),
+and the requested path is included in the `AllowedPaths` list for that specific
+secret.
+
+Default: `null`
+
+Type: `object[string -> object]` (user name -> authorization object, see bellow)
+
+For example, to limit RPC access to Alice (access `id` and MFS `files` commands with HTTP Basic Auth)
+and Bob (full access with Bearer token):
+
+```json
+{
+  "API": {
+    "Authorizations": {
+      "Alice": {
+        "AuthSecret": "basic:alice:password123",
+        "AllowedPaths": ["/api/v0/id", "/api/v0/files"]
+      },
+      "Bob": {
+        "AuthSecret": "bearer:secret-token123",
+        "AllowedPaths": ["/api/v0"]
+      }
+    }
+  }
+}
+
+```
+
+#### `API.Authorizations: AuthSecret`
+
+The `AuthSecret` field denotes the secret used by a user to authenticate,
+usually via HTTP [`Authorization` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization).
+
+Field format is `type:value`, and the following types are supported:
+
+- `bearer:` For secret Bearer tokens, set as `bearer:token`.
+  - If no known `type:` prefix is present, `bearer:` is assumed.
+- `basic`: For HTTP Basic Auth introduced in [RFC7617](https://datatracker.ietf.org/doc/html/rfc7617). Value can be:
+  - `basic:user:pass`
+  - `basic:base64EncodedBasicAuth`
+
+One can use the config value for authentication via the command line:
+
+```
+ipfs id --api-auth basic:user:pass
+```
+
+Type: `string`
+
+#### `API.Authorizations: AllowedPaths`
+
+The `AllowedPaths` field is an array of strings containing allowed RPC path
+prefixes. Users authorized with the related `AuthSecret` will only be able to
+access paths prefixed by the specified prefixes.
+
+For instance:
+
+- If set to `["/api/v0"]`, the user will have access to the complete RPC API.
+- If set to `["/api/v0/id", "/api/v0/files"]`, the user will only have access
+  to the `id` command and all MFS commands under `files`.
+
+Note that `/api/v0/version` is always permitted access to allow version check
+to ensure compatibility.
+
+Default: `[]`
+
+Type: `array[string]`
 
 ## `AutoNAT`
 
