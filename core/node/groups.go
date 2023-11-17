@@ -290,7 +290,6 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg, shouldBitswapProvide)),
 		fx.Provide(OnlineExchange()),
-		maybeProvide(Graphsync, cfg.Experimental.GraphsyncEnabled),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize)),
 		fx.Provide(Peering),
