@@ -67,6 +67,8 @@ SUBCOMMANDS
 
 #### ipfs crypt
 
+**NOTE:** as of 2023 Q4, `ipfs crypt` commands are not implemented yet.
+
 ```
     ipfs crypt - Perform cryptographic operations using ipfs keypairs
 
