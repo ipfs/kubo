@@ -2169,9 +2169,9 @@ nodes to connect to other nodes without special configuration, such as TLS
 certificates. This can be useful for browser nodes that do not yet support
 [WebTransport](https://blog.libp2p.io/2022-12-19-libp2p-webtransport/).
 
-Enabling this transport allows Kubo node to act on `/udp/4001/webrtc-direct`
+Enabling this transport allows Kubo node to act on `/udp/4002/webrtc-direct`
 listeners defined in `Addresses.Swarm`, `Addresses.Announce` or
-`Addresses.AppendAnnounce`.
+`Addresses.AppendAnnounce`. At the moment, WebRTC Direct doesn't support listening on the same port as a QUIC or WebTransport listener
 
 **NOTE:** at the moment, WebRTC Direct cannot be used to connect to a browser
 node to a node that is behind a NAT or firewall.
