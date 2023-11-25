@@ -290,8 +290,8 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		return exe, nil
 	}
 
-	// Resolve the API addr.
-	apiAddr, err = resolveAddr(req.Context, apiAddr)
+	// Check that the API addr is resolvable.
+	_, err = resolveAddr(req.Context, apiAddr)
 	if err != nil {
 		return nil, err
 	}
