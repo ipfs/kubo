@@ -8,7 +8,9 @@ import (
 	"github.com/ipfs/go-cid"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	opt "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/libp2p/go-libp2p/core/peer"
 	mbase "github.com/multiformats/go-multibase"
+	"github.com/stretchr/testify/require"
 )
 
 func (tp *TestSuite) TestKey(t *testing.T) {
@@ -34,7 +36,8 @@ func (tp *TestSuite) TestKey(t *testing.T) {
 	t.Run("TestRenameOverwrite", tp.TestRenameOverwrite)
 	t.Run("TestRenameSameNameNoForce", tp.TestRenameSameNameNoForce)
 	t.Run("TestRenameSameName", tp.TestRenameSameName)
-	t.Run("TestRemove", tp.TestRemove)
+	t.Run("TestSign", tp.TestSign)
+	t.Run("TestVerify", tp.TestVerify)
 }
 
 func (tp *TestSuite) TestListSelf(t *testing.T) {
@@ -535,4 +538,92 @@ func (tp *TestSuite) TestRemove(t *testing.T) {
 	if l[0].Name() != "self" {
 		t.Errorf("expected the key to be called 'self', got '%s'", l[0].Name())
 	}
+}
+
+func (tp *TestSuite) TestSign(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	api, err := tp.makeAPI(t, ctx)
+	require.NoError(t, err)
+
+	key1, err := api.Key().Generate(ctx, "foo", opt.Key.Type(opt.Ed25519Key))
+	require.NoError(t, err)
+
+	data := []byte("hello world")
+
+	key2, signature, err := api.Key().Sign(ctx, "foo", data)
+	require.NoError(t, err)
+
+	require.Equal(t, key1.Name(), key2.Name())
+	require.Equal(t, key1.ID(), key2.ID())
+
+	pk, err := key1.ID().ExtractPublicKey()
+	require.NoError(t, err)
+
+	valid, err := pk.Verify(append([]byte("libp2p-key signed message:"), data...), signature)
+	require.NoError(t, err)
+	require.True(t, valid)
+}
+
+func (tp *TestSuite) TestVerify(t *testing.T) {
+	t.Run("Verify Own Key", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		api, err := tp.makeAPI(t, ctx)
+		require.NoError(t, err)
+
+		_, err = api.Key().Generate(ctx, "foo", opt.Key.Type(opt.Ed25519Key))
+		require.NoError(t, err)
+
+		data := []byte("hello world")
+
+		_, signature, err := api.Key().Sign(ctx, "foo", data)
+		require.NoError(t, err)
+
+		_, valid, err := api.Key().Verify(ctx, "foo", signature, data)
+		require.NoError(t, err)
+		require.True(t, valid)
+	})
+
+	t.Run("Verify Self", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		api, err := tp.makeAPIWithIdentityAndOffline(t, ctx)
+		require.NoError(t, err)
+
+		data := []byte("hello world")
+
+		_, signature, err := api.Key().Sign(ctx, "", data)
+		require.NoError(t, err)
+
+		_, valid, err := api.Key().Verify(ctx, "", signature, data)
+		require.NoError(t, err)
+		require.True(t, valid)
+	})
+
+	t.Run("Verify With Key CID", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		api, err := tp.makeAPI(t, ctx)
+		require.NoError(t, err)
+
+		key, err := api.Key().Generate(ctx, "foo", opt.Key.Type(opt.Ed25519Key))
+		require.NoError(t, err)
+
+		data := []byte("hello world")
+
+		_, signature, err := api.Key().Sign(ctx, "foo", data)
+		require.NoError(t, err)
+
+		_, err = api.Key().Remove(ctx, "foo")
+		require.NoError(t, err)
+
+		_, valid, err := api.Key().Verify(ctx, peer.ToCid(key.ID()).String(), signature, data)
+		require.NoError(t, err)
+		require.True(t, valid)
+	})
 }
