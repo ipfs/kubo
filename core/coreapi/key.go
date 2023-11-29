@@ -262,3 +262,80 @@ func (api *KeyAPI) Self(ctx context.Context) (coreiface.Key, error) {
 
 	return newKey("self", api.identity)
 }
+
+func (api *KeyAPI) Sign(ctx context.Context, name string, data []byte) (coreiface.Key, []byte, error) {
+	var (
+		sk  crypto.PrivKey
+		err error
+	)
+	if name == "" || name == "self" {
+		name = "self"
+		sk = api.privateKey
+	} else {
+		sk, err = api.repo.Keystore().Get(name)
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pid, err := peer.IDFromPrivateKey(sk)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	key, err := newKey(name, pid)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	data = append([]byte("libp2p-key signed message:"), data...)
+
+	sig, err := sk.Sign(data)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return key, sig, nil
+}
+
+func (api *KeyAPI) Verify(ctx context.Context, keyOrName string, signature, data []byte) (coreiface.Key, bool, error) {
+	var (
+		name string
+		pk   crypto.PubKey
+		err  error
+	)
+	if keyOrName == "" || keyOrName == "self" {
+		name = "self"
+		pk = api.privateKey.GetPublic()
+	} else if sk, err := api.repo.Keystore().Get(keyOrName); err == nil {
+		name = keyOrName
+		pk = sk.GetPublic()
+	} else if pid, err := peer.Decode(keyOrName); err == nil {
+		name = ""
+		pk, err = pid.ExtractPublicKey()
+		if err != nil {
+			return nil, false, err
+		}
+	} else {
+		return nil, false, fmt.Errorf("'%q' is not a known key, or a valid peer id", keyOrName)
+	}
+
+	pid, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		return nil, false, err
+	}
+
+	key, err := newKey(name, pid)
+	if err != nil {
+		return nil, false, err
+	}
+
+	data = append([]byte("libp2p-key signed message:"), data...)
+
+	valid, err := pk.Verify(data, signature)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return key, valid, nil
+}

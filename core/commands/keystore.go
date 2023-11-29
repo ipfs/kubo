@@ -692,7 +692,7 @@ func keyOutputListEncoders() cmds.EncoderFunc {
 }
 
 type KeySignOutput struct {
-	Key       string // CIDv1-Libp2p-Key
+	Key       KeyOutput
 	Signature string
 }
 
@@ -702,48 +702,57 @@ var keySignCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("key", "k", "The name of the key to use for signing."),
+		ke.OptionIPNSBase,
 	},
 	Arguments: []cmds.Argument{
 		cmds.FileArg("data", true, false, "The data to sign.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		sk, err := getKeyForSignVerify(req, env)
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.OptionIPNSBase.Name()].(string))
 		if err != nil {
 			return err
 		}
 
-		pid, err := peer.IDFromPrivateKey(sk)
+		name, _ := req.Options["key"].(string)
+
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		data, err := io.ReadAll(file)
 		if err != nil {
 			return err
 		}
 
-		// Read given data.
-		data, err := readDataForSignVerify(req)
+		key, signature, err := api.Key().Sign(req.Context, name, data)
 		if err != nil {
 			return err
 		}
 
-		// Sign it!
-		sig, err := sk.Sign(data)
-		if err != nil {
-			return err
-		}
-
-		encoder, err := mbase.EncoderByName("base64url")
+		encodedSignature, err := mbase.Encode(mbase.Base64url, signature)
 		if err != nil {
 			return err
 		}
 
 		return res.Emit(&KeySignOutput{
-			Key:       peer.ToCid(pid).String(),
-			Signature: encoder.Encode(sig),
+			Key: KeyOutput{
+				Name: key.Name(),
+				Id:   keyEnc.FormatID(key.ID()),
+			},
+			Signature: encodedSignature,
 		})
 	},
 	Type: KeySignOutput{},
 }
 
 type KeyVerifyOutput struct {
-	Key            string // CIDv1-Libp2p-Key
+	Key            KeyOutput
 	SignatureValid bool
 }
 
@@ -754,98 +763,54 @@ var keyVerifyCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.StringOption("key", "k", "The name of the key to use for signing."),
 		cmds.StringOption("signature", "s", "Multibase-encoded signature to verify."),
+		ke.OptionIPNSBase,
 	},
 	Arguments: []cmds.Argument{
 		cmds.FileArg("data", true, false, "The data to verify against the given signature.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		var (
-			pk  crypto.PubKey
-			pid peer.ID
-		)
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.OptionIPNSBase.Name()].(string))
+		if err != nil {
+			return err
+		}
 
 		name, _ := req.Options["key"].(string)
-		if sk, err := getKeyForSignVerify(req, env); err == nil {
-			pk = sk.GetPublic()
-			pid, err = peer.IDFromPublicKey(pk)
-			if err != nil {
-				return err
-			}
-		} else if pid, err = peer.Decode(name); err == nil {
-			pk, err = pid.ExtractPublicKey()
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
+		encodedSignature, _ := req.Options["signature"].(string)
 
-		// Read signature
-		signatureString, _ := req.Options["signature"].(string)
-		_, signature, err := mbase.Decode(signatureString)
+		_, signature, err := mbase.Decode(encodedSignature)
 		if err != nil {
 			return err
 		}
 
-		// Read given data.
-		data, err := readDataForSignVerify(req)
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		data, err := io.ReadAll(file)
 		if err != nil {
 			return err
 		}
 
-		// Verify
-		valid, err := pk.Verify(data, signature)
+		key, valid, err := api.Key().Verify(req.Context, name, signature, data)
 		if err != nil {
 			return err
 		}
 
 		return res.Emit(&KeyVerifyOutput{
-			Key:            peer.ToCid(pid).String(),
+			Key: KeyOutput{
+				Name: key.Name(),
+				Id:   keyEnc.FormatID(key.ID()),
+			},
 			SignatureValid: valid,
 		})
 	},
 	Type: KeyVerifyOutput{},
-}
-
-func getKeyForSignVerify(req *cmds.Request, env cmds.Environment) (crypto.PrivKey, error) {
-	name, _ := req.Options["key"].(string)
-	if name == "" || name == "self" {
-		node, err := cmdenv.GetNode(env)
-		if err != nil {
-			return nil, err
-		}
-
-		return node.PrivateKey, nil
-	} else {
-		cfgRoot, err := cmdenv.GetConfigRoot(env)
-		if err != nil {
-			return nil, err
-		}
-
-		// Signing is read-only: safe to read key without acquiring repo lock
-		// (this makes sign work when ipfs daemon is already running)
-		ksp := filepath.Join(cfgRoot, "keystore")
-		ks, err := keystore.NewFSKeystore(ksp)
-		if err != nil {
-			return nil, err
-		}
-
-		return ks.Get(name)
-	}
-}
-
-func readDataForSignVerify(req *cmds.Request) ([]byte, error) {
-	file, err := cmdenv.GetFileArg(req.Files.Entries())
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-	return append([]byte("libp2p-key signed message:"), data...), nil
 }
 
 // DaemonNotRunning checks to see if the ipfs repo is locked, indicating that

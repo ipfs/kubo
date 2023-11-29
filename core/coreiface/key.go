@@ -40,4 +40,8 @@ type KeyAPI interface {
 
 	// Remove removes keys from keystore. Returns ipns path of the removed key
 	Remove(ctx context.Context, name string) (Key, error)
+
+	Sign(ctx context.Context, name string, data []byte) (Key, []byte, error)
+
+	Verify(ctx context.Context, keyOrName string, signature, data []byte) (Key, bool, error)
 }
