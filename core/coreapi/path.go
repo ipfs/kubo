@@ -11,10 +11,10 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/path"
 	ipfspathresolver "github.com/ipfs/boxo/path/resolver"
 	ipld "github.com/ipfs/go-ipld-format"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
 )
 
 // ResolveNode resolves the path `p` using Unixfs resolver, gets and returns the

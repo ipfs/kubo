@@ -14,8 +14,6 @@ import (
 
 	blockservice "github.com/ipfs/boxo/blockservice"
 	bstore "github.com/ipfs/boxo/blockstore"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	options "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
 	filestore "github.com/ipfs/boxo/filestore"
 	merkledag "github.com/ipfs/boxo/ipld/merkledag"
@@ -28,6 +26,8 @@ import (
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	ipld "github.com/ipfs/go-ipld-format"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 type UnixfsAPI CoreAPI

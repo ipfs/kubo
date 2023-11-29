@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	bserv "github.com/ipfs/boxo/blockservice"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/path"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/go-cid"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 

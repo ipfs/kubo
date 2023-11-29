@@ -16,11 +16,11 @@ import (
 	"github.com/ipfs/kubo/repo"
 	"github.com/stretchr/testify/assert"
 
-	iface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/kubo/config"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
 )
 

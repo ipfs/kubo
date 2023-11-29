@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	options "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/namesys"
 	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 var log = logging.Logger("core/commands/ipns")

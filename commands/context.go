@@ -10,11 +10,11 @@ import (
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	loader "github.com/ipfs/kubo/plugin/loader"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
-	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
 	config "github.com/ipfs/kubo/config"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 var log = logging.Logger("command")

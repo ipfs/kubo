@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ipfs/boxo/blockservice"
-	iface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/gateway"
@@ -21,6 +20,7 @@ import (
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"

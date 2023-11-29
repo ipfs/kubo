@@ -12,7 +12,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	options "github.com/ipfs/boxo/coreiface/options"
 	keystore "github.com/ipfs/boxo/keystore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	oldcmds "github.com/ipfs/kubo/commands"
@@ -20,6 +19,7 @@ import (
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/e"
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	migrations "github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/libp2p/go-libp2p/core/crypto"

@@ -6,10 +6,10 @@ import (
 	"io"
 	"strings"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/pkg/errors"
 )
 
