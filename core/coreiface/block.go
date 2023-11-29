@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/kubo/core/coreiface/options"
 )
 
 // BlockStat contains information about a block

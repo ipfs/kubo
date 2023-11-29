@@ -15,7 +15,6 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 
-	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mprome "github.com/ipfs/go-metrics-prometheus"
 	version "github.com/ipfs/kubo"
@@ -27,6 +26,7 @@ import (
 	commands "github.com/ipfs/kubo/core/commands"
 	"github.com/ipfs/kubo/core/coreapi"
 	corehttp "github.com/ipfs/kubo/core/corehttp"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 	corerepo "github.com/ipfs/kubo/core/corerepo"
 	libp2p "github.com/ipfs/kubo/core/node/libp2p"
 	nodeMount "github.com/ipfs/kubo/fuse/node"

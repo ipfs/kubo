@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/kubo/core/coreiface/options"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 )

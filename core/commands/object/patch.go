@@ -8,7 +8,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
-	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/kubo/core/coreiface/options"
 )
 
 var ObjectPatchCmd = &cmds.Command{

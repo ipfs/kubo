@@ -8,10 +8,10 @@ import (
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 
-	options "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 //go:embed init-doc

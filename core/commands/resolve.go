@@ -13,9 +13,9 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 	ncmd "github.com/ipfs/kubo/core/commands/name"
 
-	options "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 const (
