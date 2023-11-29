@@ -41,7 +41,11 @@ type KeyAPI interface {
 	// Remove removes keys from keystore. Returns ipns path of the removed key
 	Remove(ctx context.Context, name string) (Key, error)
 
+	// Sign signs the given data with the key named name. Returns the key used
+	// for signing, the signature, and an error.
 	Sign(ctx context.Context, name string, data []byte) (Key, []byte, error)
 
+	// Verify verifies if the given data and signatures match. Returns the key used
+	// for verification, whether signature and data match, and an error.
 	Verify(ctx context.Context, keyOrName string, signature, data []byte) (Key, bool, error)
 }
