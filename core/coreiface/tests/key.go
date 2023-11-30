@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/go-cid"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	opt "github.com/ipfs/kubo/core/coreiface/options"
@@ -342,7 +343,11 @@ func (tp *TestSuite) TestSign(t *testing.T) {
 }
 
 func (tp *TestSuite) TestVerify(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Verify Own Key", func(t *testing.T) {
+		t.Parallel()
+
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -363,6 +368,8 @@ func (tp *TestSuite) TestVerify(t *testing.T) {
 	})
 
 	t.Run("Verify Self", func(t *testing.T) {
+		t.Parallel()
+
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -379,7 +386,10 @@ func (tp *TestSuite) TestVerify(t *testing.T) {
 		require.True(t, valid)
 	})
 
-	t.Run("Verify With Key CID", func(t *testing.T) {
+	t.Run("Verify With Key In Different Formats", func(t *testing.T) {
+		t.Parallel()
+
+		// Spin some node and get signature out.
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -394,11 +404,24 @@ func (tp *TestSuite) TestVerify(t *testing.T) {
 		_, signature, err := api.Key().Sign(ctx, "foo", data)
 		require.NoError(t, err)
 
-		_, err = api.Key().Remove(ctx, "foo")
-		require.NoError(t, err)
+		for _, testCase := range [][]string{
+			{"Base58 Encoded Peer ID", key.ID().String()},
+			{"CIDv1 Encoded Peer ID", peer.ToCid(key.ID()).String()},
+			{"CIDv1 Encoded IPNS Name", ipns.NameFromPeer(key.ID()).String()},
+			{"Prefixed IPNS Path", ipns.NameFromPeer(key.ID()).AsPath().String()},
+		} {
+			t.Run(testCase[0], func(t *testing.T) {
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
 
-		_, valid, err := api.Key().Verify(ctx, peer.ToCid(key.ID()).String(), signature, data)
-		require.NoError(t, err)
-		require.True(t, valid)
+				// Spin new node.
+				api, err := tp.makeAPI(t, ctx)
+				require.NoError(t, err)
+
+				_, valid, err := api.Key().Verify(ctx, testCase[1], signature, data)
+				require.NoError(t, err)
+				require.True(t, valid)
+			})
+		}
 	})
 }

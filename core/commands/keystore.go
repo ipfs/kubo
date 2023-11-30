@@ -697,8 +697,14 @@ type KeySignOutput struct {
 }
 
 var keySignCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Generates a signature for the given data with a specified key.",
+		Tagline: "Generates a signature for the given data with a specified key. Useful for proving the key ownership.",
+		LongDescription: `
+Sign arbitrary bytes, such as to prove ownership of a Peer ID or an IPNS Name.
+To avoid signature reuse, the signed payload is always prefixed with
+"libp2p-key signed message:".
+`,
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("key", "k", "The name of the key to use for signing."),
@@ -757,8 +763,13 @@ type KeyVerifyOutput struct {
 }
 
 var keyVerifyCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Verify that the given data and signature match.",
+		LongDescription: `
+Verify if the given data and signatures match. To avoid the signature reuse,
+the signed payload is always prefixed with "libp2p-key signed message:".
+`,
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("key", "k", "The name of the key to use for signing."),

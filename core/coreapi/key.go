@@ -263,6 +263,8 @@ func (api *KeyAPI) Self(ctx context.Context) (coreiface.Key, error) {
 	return newKey("self", api.identity)
 }
 
+const signedMessagePrefix = "libp2p-key signed message:"
+
 func (api *KeyAPI) Sign(ctx context.Context, name string, data []byte) (coreiface.Key, []byte, error) {
 	var (
 		sk  crypto.PrivKey
@@ -288,7 +290,7 @@ func (api *KeyAPI) Sign(ctx context.Context, name string, data []byte) (coreifac
 		return nil, nil, err
 	}
 
-	data = append([]byte("libp2p-key signed message:"), data...)
+	data = append([]byte(signedMessagePrefix), data...)
 
 	sig, err := sk.Sign(data)
 	if err != nil {
@@ -310,14 +312,15 @@ func (api *KeyAPI) Verify(ctx context.Context, keyOrName string, signature, data
 	} else if sk, err := api.repo.Keystore().Get(keyOrName); err == nil {
 		name = keyOrName
 		pk = sk.GetPublic()
-	} else if pid, err := peer.Decode(keyOrName); err == nil {
+	} else if ipnsName, err := ipns.NameFromString(keyOrName); err == nil {
+		// This works for both IPNS names and Peer IDs.
 		name = ""
-		pk, err = pid.ExtractPublicKey()
+		pk, err = ipnsName.Peer().ExtractPublicKey()
 		if err != nil {
 			return nil, false, err
 		}
 	} else {
-		return nil, false, fmt.Errorf("'%q' is not a known key, or a valid peer id", keyOrName)
+		return nil, false, fmt.Errorf("'%q' is not a known key, an IPNS Name, or a valid PeerID", keyOrName)
 	}
 
 	pid, err := peer.IDFromPublicKey(pk)
@@ -330,7 +333,7 @@ func (api *KeyAPI) Verify(ctx context.Context, keyOrName string, signature, data
 		return nil, false, err
 	}
 
-	data = append([]byte("libp2p-key signed message:"), data...)
+	data = append([]byte(signedMessagePrefix), data...)
 
 	valid, err := pk.Verify(data, signature)
 	if err != nil {
