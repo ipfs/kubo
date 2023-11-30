@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"runtime/trace"
 	"sync"
 	"time"
 
@@ -27,6 +28,7 @@ const (
 	CollectorCPU             = "cpu"
 	CollectorMutex           = "mutex"
 	CollectorBlock           = "block"
+	CollectorTrace           = "trace"
 )
 
 var (
@@ -97,6 +99,11 @@ var collectors = map[string]collector{
 		outputFile:  "block.pprof",
 		collectFunc: blockProfile,
 		enabledFunc: func(opts Options) bool { return opts.ProfileDuration > 0 && opts.BlockProfileRate > 0 },
+	},
+	CollectorTrace: {
+		outputFile:  "trace",
+		collectFunc: captureTrace,
+		enabledFunc: func(opts Options) bool { return opts.ProfileDuration > 0 },
 	},
 }
 
@@ -263,6 +270,15 @@ func profileCPU(ctx context.Context, opts Options, w io.Writer) error {
 		return err
 	}
 	defer pprof.StopCPUProfile()
+	return waitOrCancel(ctx, opts.ProfileDuration)
+}
+
+func captureTrace(ctx context.Context, opts Options, w io.Writer) error {
+	err := trace.Start(w)
+	if err != nil {
+		return err
+	}
+	defer trace.Stop()
 	return waitOrCancel(ctx, opts.ProfileDuration)
 }
 
