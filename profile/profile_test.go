@@ -22,6 +22,7 @@ func TestProfiler(t *testing.T) {
 		CollectorCPU,
 		CollectorMutex,
 		CollectorBlock,
+		CollectorTrace,
 	}
 
 	cases := []struct {
