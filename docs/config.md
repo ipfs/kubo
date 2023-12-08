@@ -1467,6 +1467,13 @@ Tells reprovider what should be announced. Valid strategies are:
 - `"all"` - announce all CIDs of stored blocks
 - `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks)
 - `"roots"` - only announce the root block of explicitly pinned CIDs
+  - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
+    It makes sense only for use cases where the entire DAG is fetched in full,
+    and a graceful resume does not have to be guaranteed: the lack of child
+    announcements means an interrupted retrieval won't be able to find
+    providers for the missing block in the middle of a file, unless the peer
+    happens to already be connected to a provider and ask for child CID over
+    bitswap.
 
 Default: `"all"`
 
