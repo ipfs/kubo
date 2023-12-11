@@ -727,8 +727,11 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		return nil, fmt.Errorf("serveHTTPApi: ConstructNode() failed: %s", err)
 	}
 
-	if err := node.Repo.SetAPIAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr())); err != nil {
-		return nil, fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %w", err)
+	if len(listeners) > 0 {
+		// Only add an api file if the API is running.
+		if err := node.Repo.SetAPIAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr())); err != nil {
+			return nil, fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %w", err)
+		}
 	}
 
 	errc := make(chan error)
