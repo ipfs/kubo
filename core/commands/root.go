@@ -8,7 +8,6 @@ import (
 	name "github.com/ipfs/kubo/core/commands/name"
 	ocmd "github.com/ipfs/kubo/core/commands/object"
 	"github.com/ipfs/kubo/core/commands/pin"
-	unixfs "github.com/ipfs/kubo/core/commands/unixfs"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
@@ -157,7 +156,6 @@ var rootSubcommands = map[string]*cmds.Command{
 	"refs":      RefsCmd,
 	"resolve":   ResolveCmd,
 	"swarm":     SwarmCmd,
-	"file":      unixfs.UnixFSCmd,
 	"update":    ExternalBinary("Please see https://github.com/ipfs/ipfs-update/blob/master/README.md#install for installation instructions."),
 	"version":   VersionCmd,
 	"shutdown":  daemonShutdownCmd,

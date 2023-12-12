@@ -157,7 +157,6 @@ func TestCommandDocsWidth(t *testing.T) {
 		"ipfs pin verify":               true,
 		"ipfs dht get":                  true,
 		"ipfs pin remote service add":   true,
-		"ipfs file ls":                  true,
 		"ipfs pin update":               true,
 		"ipfs pin rm":                   true,
 		"ipfs p2p":                      true,

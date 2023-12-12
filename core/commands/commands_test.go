@@ -137,8 +137,6 @@ func TestCommands(t *testing.T) {
 		"/diag/profile",
 		"/diag/sys",
 		"/dns",
-		"/file",
-		"/file/ls",
 		"/files",
 		"/files/chcid",
 		"/files/cp",
