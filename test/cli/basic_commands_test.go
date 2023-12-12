@@ -116,7 +116,6 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 	notInHelp := map[string]bool{
 		"object":   true,
 		"shutdown": true,
-		"dns":      true,
 	}
 
 	helpMsg := strings.TrimSpace(node.IPFS("--help").Stdout.String())

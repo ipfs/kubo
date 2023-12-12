@@ -142,7 +142,6 @@ var rootSubcommands = map[string]*cmds.Command{
 	"dht":       DhtCmd,
 	"routing":   RoutingCmd,
 	"diag":      DiagCmd,
-	"dns":       DNSCmd,
 	"id":        IDCmd,
 	"key":       KeyCmd,
 	"log":       LogCmd,
@@ -184,7 +183,6 @@ var rootROSubcommands = map[string]*cmds.Command{
 		},
 	},
 	"get": GetCmd,
-	"dns": DNSCmd,
 	"ls":  LsCmd,
 	"name": {
 		Subcommands: map[string]*cmds.Command{
