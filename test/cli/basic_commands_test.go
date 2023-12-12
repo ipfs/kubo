@@ -116,7 +116,6 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 	notInHelp := map[string]bool{
 		"object":   true,
 		"shutdown": true,
-		"tar":      true,
 		"urlstore": true,
 		"dns":      true,
 	}

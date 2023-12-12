@@ -157,7 +157,6 @@ var rootSubcommands = map[string]*cmds.Command{
 	"refs":      RefsCmd,
 	"resolve":   ResolveCmd,
 	"swarm":     SwarmCmd,
-	"tar":       TarCmd,
 	"file":      unixfs.UnixFSCmd,
 	"update":    ExternalBinary("Please see https://github.com/ipfs/ipfs-update/blob/master/README.md#install for installation instructions."),
 	"urlstore":  urlStoreCmd,
