@@ -116,9 +116,6 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 	notInHelp := map[string]bool{
 		"object":   true,
 		"shutdown": true,
-		"tar":      true,
-		"urlstore": true,
-		"dns":      true,
 	}
 
 	helpMsg := strings.TrimSpace(node.IPFS("--help").Stdout.String())
@@ -159,7 +156,6 @@ func TestCommandDocsWidth(t *testing.T) {
 		"ipfs pin verify":               true,
 		"ipfs dht get":                  true,
 		"ipfs pin remote service add":   true,
-		"ipfs file ls":                  true,
 		"ipfs pin update":               true,
 		"ipfs pin rm":                   true,
 		"ipfs p2p":                      true,
@@ -177,10 +173,8 @@ func TestCommandDocsWidth(t *testing.T) {
 		"ipfs swarm addrs local":        true,
 		"ipfs files ls":                 true,
 		"ipfs stats bw":                 true,
-		"ipfs urlstore add":             true,
 		"ipfs swarm peers":              true,
 		"ipfs pubsub sub":               true,
-		"ipfs repo fsck":                true,
 		"ipfs files write":              true,
 		"ipfs swarm limit":              true,
 		"ipfs commands completion fish": true,
