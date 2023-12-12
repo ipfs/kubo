@@ -191,7 +191,6 @@ EOF
   '
 }
 
-test_urlstore urlstore add
 test_urlstore add -q --nocopy --cid-version=1
 
 test_done

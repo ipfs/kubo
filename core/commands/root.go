@@ -159,7 +159,6 @@ var rootSubcommands = map[string]*cmds.Command{
 	"swarm":     SwarmCmd,
 	"file":      unixfs.UnixFSCmd,
 	"update":    ExternalBinary("Please see https://github.com/ipfs/ipfs-update/blob/master/README.md#install for installation instructions."),
-	"urlstore":  urlStoreCmd,
 	"version":   VersionCmd,
 	"shutdown":  daemonShutdownCmd,
 	"cid":       CidCmd,

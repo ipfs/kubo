@@ -260,8 +260,6 @@ func TestCommands(t *testing.T) {
 		"/swarm/peering/rm",
 		"/swarm/resources",
 		"/update",
-		"/urlstore",
-		"/urlstore/add",
 		"/version",
 		"/version/deps",
 	}

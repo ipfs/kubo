@@ -116,7 +116,6 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 	notInHelp := map[string]bool{
 		"object":   true,
 		"shutdown": true,
-		"urlstore": true,
 		"dns":      true,
 	}
 
@@ -176,7 +175,6 @@ func TestCommandDocsWidth(t *testing.T) {
 		"ipfs swarm addrs local":        true,
 		"ipfs files ls":                 true,
 		"ipfs stats bw":                 true,
-		"ipfs urlstore add":             true,
 		"ipfs swarm peers":              true,
 		"ipfs pubsub sub":               true,
 		"ipfs repo fsck":                true,
