@@ -177,7 +177,6 @@ func TestCommandDocsWidth(t *testing.T) {
 		"ipfs stats bw":                 true,
 		"ipfs swarm peers":              true,
 		"ipfs pubsub sub":               true,
-		"ipfs repo fsck":                true,
 		"ipfs files write":              true,
 		"ipfs swarm limit":              true,
 		"ipfs commands completion fish": true,

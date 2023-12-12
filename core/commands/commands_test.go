@@ -229,7 +229,6 @@ func TestCommands(t *testing.T) {
 		"/refs",
 		"/refs/local",
 		"/repo",
-		"/repo/fsck",
 		"/repo/gc",
 		"/repo/migrate",
 		"/repo/stat",
