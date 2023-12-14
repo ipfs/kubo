@@ -12,10 +12,10 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	humanize "github.com/dustin/go-humanize"
-	"github.com/ipfs/boxo/coreiface/options"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/kubo/core/coreiface/options"
 )
 
 type Node struct {

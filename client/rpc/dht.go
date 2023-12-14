@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	caopts "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/path"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 )

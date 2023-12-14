@@ -28,6 +28,9 @@ config file at runtime.
     - [`Addresses.NoAnnounce`](#addressesnoannounce)
   - [`API`](#api)
     - [`API.HTTPHeaders`](#apihttpheaders)
+    - [`API.Authorizations`](#apiauthorizations)
+      - [`API.Authorizations: AuthSecret`](#apiauthorizations-authsecret)
+      - [`API.Authorizations: AllowedPaths`](#apiauthorizations-allowedpaths)
   - [`AutoNAT`](#autonat)
     - [`AutoNAT.ServiceMode`](#autonatservicemode)
     - [`AutoNAT.Throttle`](#autonatthrottle)
@@ -437,6 +440,87 @@ Example:
 Default: `null`
 
 Type: `object[string -> array[string]]` (header names -> array of header values)
+
+### `API.Authorizations`
+
+The `API.Authorizations` field defines user-based access restrictions for the
+[Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/), which is located at
+`Addresses.API` under `/api/v0` paths.
+
+By default, the RPC API is accessible without restrictions as it is only
+exposed on `127.0.0.1` and safeguarded with Origin check and implicit
+[CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) headers that
+block random websites from accessing the RPC.
+
+When entries are defined in `API.Authorizations`, RPC requests will be declined
+unless a corresponding secret is present in the HTTP [`Authorization` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization),
+and the requested path is included in the `AllowedPaths` list for that specific
+secret.
+
+Default: `null`
+
+Type: `object[string -> object]` (user name -> authorization object, see bellow)
+
+For example, to limit RPC access to Alice (access `id` and MFS `files` commands with HTTP Basic Auth)
+and Bob (full access with Bearer token):
+
+```json
+{
+  "API": {
+    "Authorizations": {
+      "Alice": {
+        "AuthSecret": "basic:alice:password123",
+        "AllowedPaths": ["/api/v0/id", "/api/v0/files"]
+      },
+      "Bob": {
+        "AuthSecret": "bearer:secret-token123",
+        "AllowedPaths": ["/api/v0"]
+      }
+    }
+  }
+}
+
+```
+
+#### `API.Authorizations: AuthSecret`
+
+The `AuthSecret` field denotes the secret used by a user to authenticate,
+usually via HTTP [`Authorization` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization).
+
+Field format is `type:value`, and the following types are supported:
+
+- `bearer:` For secret Bearer tokens, set as `bearer:token`.
+  - If no known `type:` prefix is present, `bearer:` is assumed.
+- `basic`: For HTTP Basic Auth introduced in [RFC7617](https://datatracker.ietf.org/doc/html/rfc7617). Value can be:
+  - `basic:user:pass`
+  - `basic:base64EncodedBasicAuth`
+
+One can use the config value for authentication via the command line:
+
+```
+ipfs id --api-auth basic:user:pass
+```
+
+Type: `string`
+
+#### `API.Authorizations: AllowedPaths`
+
+The `AllowedPaths` field is an array of strings containing allowed RPC path
+prefixes. Users authorized with the related `AuthSecret` will only be able to
+access paths prefixed by the specified prefixes.
+
+For instance:
+
+- If set to `["/api/v0"]`, the user will have access to the complete RPC API.
+- If set to `["/api/v0/id", "/api/v0/files"]`, the user will only have access
+  to the `id` command and all MFS commands under `files`.
+
+Note that `/api/v0/version` is always permitted access to allow version check
+to ensure compatibility.
+
+Default: `[]`
+
+Type: `array[string]`
 
 ## `AutoNAT`
 
@@ -2076,13 +2160,25 @@ Type: `flag`
 #### `Swarm.Transports.Network.WebRTCDirect`
 
 **Experimental:** the support for WebRTC Direct is currently experimental.
+This feature was introduced in [`go-libp2p@v0.32.0`](https://github.com/libp2p/go-libp2p/releases/tag/v0.32.0).
 
-A new feature of [`go-libp2p`](https://github.com/libp2p/go-libp2p/releases/tag/v0.32.0)
-is the [WebRTC Direct](https://github.com/libp2p/go-libp2p/pull/2337) transport.
+[WebRTC Direct](https://github.com/libp2p/specs/blob/master/webrtc/webrtc-direct.md)
+is a transport protocol that provides another way for browsers to
+connect to the rest of the libp2p network. WebRTC Direct allows for browser
+nodes to connect to other nodes without special configuration, such as TLS
+certificates. This can be useful for browser nodes that do not yet support
+[WebTransport](https://blog.libp2p.io/2022-12-19-libp2p-webtransport/).
 
-WebRTC Direct is a transport protocol that provides another way for browsers to connect to the rest of the libp2p network. WebRTC Direct allows for browser nodes to connect to other nodes without special configuration, such as TLS certificates. This can be useful for browser nodes that do not yet support WebTransport, for example.
+Enabling this transport allows Kubo node to act on `/udp/4002/webrtc-direct`
+listeners defined in `Addresses.Swarm`, `Addresses.Announce` or
+`Addresses.AppendAnnounce`. At the moment, WebRTC Direct doesn't support listening on the same port as a QUIC or WebTransport listener
 
-Note that, at the moment, WebRTC Direct cannot be used to connect to a browser node to a node that is behind a NAT or firewall. This is being worked on [`go-libp2p#2009`](https://github.com/libp2p/go-libp2p/issues/2009).
+**NOTE:** at the moment, WebRTC Direct cannot be used to connect to a browser
+node to a node that is behind a NAT or firewall.
+This requires using normal
+[WebRTC](https://github.com/libp2p/specs/blob/master/webrtc/webrtc.md),
+which is currently being worked on in
+[go-libp2p#2009](https://github.com/libp2p/go-libp2p/issues/2009).
 
 Default: Disabled
 
@@ -2157,21 +2253,10 @@ Type: `priority`
 
 ### `Swarm.Transports.Multiplexers.Mplex`
 
-**DEPRECATED**: See https://github.com/ipfs/kubo/issues/9958
+**REMOVED**: See https://github.com/ipfs/kubo/issues/9958
 
-Mplex is deprecated, this is because it is unreliable and
-randomly drop streams when sending data *too fast*.
-
-New pieces of code rely on backpressure, that means the stream will dynamically
-slow down the sending rate if data is getting backed up.
-Backpressure is provided by **Yamux** and **QUIC**.
-
-If you want to turn it back on make sure to have a higher (lower is better)
-priority than `Yamux`, you don't want your Kubo to start defaulting to Mplex.
-
-Default: `200`
-
-Type: `priority`
+Support for Mplex has been [removed from Kubo and go-libp2p](https://github.com/libp2p/specs/issues/553).
+Please remove this option from your config.
 
 ## `DNS`
 

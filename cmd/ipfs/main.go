@@ -23,8 +23,10 @@ import (
 	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
 	logging "github.com/ipfs/go-log"
 	ipfs "github.com/ipfs/kubo"
+	"github.com/ipfs/kubo/client/rpc/auth"
 	"github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
+	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	corecmds "github.com/ipfs/kubo/core/commands"
 	"github.com/ipfs/kubo/core/corehttp"
@@ -323,6 +325,12 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		}
 	default:
 		return nil, fmt.Errorf("unsupported API address: %s", apiAddr)
+	}
+
+	apiAuth, specified := req.Options[corecmds.ApiAuthOption].(string)
+	if specified {
+		authorization := config.ConvertAuthSecret(apiAuth)
+		tpt = auth.NewAuthorizedRoundTripper(authorization, tpt)
 	}
 
 	httpClient := &http.Client{

@@ -15,7 +15,6 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 
-	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mprome "github.com/ipfs/go-metrics-prometheus"
 	version "github.com/ipfs/kubo"
@@ -27,6 +26,7 @@ import (
 	commands "github.com/ipfs/kubo/core/commands"
 	"github.com/ipfs/kubo/core/coreapi"
 	corehttp "github.com/ipfs/kubo/core/corehttp"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 	corerepo "github.com/ipfs/kubo/core/corerepo"
 	libp2p "github.com/ipfs/kubo/core/node/libp2p"
 	nodeMount "github.com/ipfs/kubo/fuse/node"
@@ -175,7 +175,7 @@ Headers.
 		cmds.BoolOption(enablePubSubKwd, "DEPRECATED"),
 		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS over pubsub. Implicitly enables pubsub, overrides Ipns.UsePubsub config."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
-		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and also advertised through BitSwap."),
+		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and exposed via libp2p identify protocol."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -676,6 +676,10 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		listeners = append(listeners, apiLis)
 	}
 
+	if len(cfg.API.Authorizations) > 0 && len(listeners) > 0 {
+		fmt.Printf("RPC API access is limited by the rules defined in API.Authorizations\n")
+	}
+
 	for _, listener := range listeners {
 		// we might have listened to /tcp/0 - let's see what we are listing on
 		fmt.Printf("RPC API server listening on %s\n", listener.Multiaddr())
@@ -723,8 +727,11 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		return nil, fmt.Errorf("serveHTTPApi: ConstructNode() failed: %s", err)
 	}
 
-	if err := node.Repo.SetAPIAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr())); err != nil {
-		return nil, fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %w", err)
+	if len(listeners) > 0 {
+		// Only add an api file if the API is running.
+		if err := node.Repo.SetAPIAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr())); err != nil {
+			return nil, fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %w", err)
+		}
 	}
 
 	errc := make(chan error)

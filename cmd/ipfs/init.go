@@ -18,10 +18,10 @@ import (
 	"github.com/ipfs/kubo/core/commands"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
-	options "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/kubo/config"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 const (

@@ -143,10 +143,61 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) 
 		patchCORSVars(cfg, l.Addr())
 
 		cmdHandler := cmdsHttp.NewHandler(&cctx, command, cfg)
+
+		if len(rcfg.API.Authorizations) > 0 {
+			authorizations := convertAuthorizationsMap(rcfg.API.Authorizations)
+			cmdHandler = withAuthSecrets(authorizations, cmdHandler)
+		}
+
 		cmdHandler = otelhttp.NewHandler(cmdHandler, "corehttp.cmdsHandler")
 		mux.Handle(APIPath+"/", cmdHandler)
 		return mux, nil
 	}
+}
+
+type rpcAuthScopeWithUser struct {
+	config.RPCAuthScope
+	User string
+}
+
+func convertAuthorizationsMap(authScopes map[string]*config.RPCAuthScope) map[string]rpcAuthScopeWithUser {
+	// authorizations is a map where we can just check for the header value to match.
+	authorizations := map[string]rpcAuthScopeWithUser{}
+	for user, authScope := range authScopes {
+		expectedHeader := config.ConvertAuthSecret(authScope.AuthSecret)
+		if expectedHeader != "" {
+			authorizations[expectedHeader] = rpcAuthScopeWithUser{
+				RPCAuthScope: *authScopes[user],
+				User:         user,
+			}
+		}
+	}
+
+	return authorizations
+}
+
+func withAuthSecrets(authorizations map[string]rpcAuthScopeWithUser, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorizationHeader := r.Header.Get("Authorization")
+		auth, ok := authorizations[authorizationHeader]
+
+		if ok {
+			// version check is implicitly allowed
+			if r.URL.Path == "/api/v0/version" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			// everything else has to be safelisted via AllowedPaths
+			for _, prefix := range auth.AllowedPaths {
+				if strings.HasPrefix(r.URL.Path, prefix) {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+		}
+
+		http.Error(w, "Kubo RPC Access Denied: Please provide a valid authorization token as defined in the API.Authorizations configuration.", http.StatusForbidden)
+	})
 }
 
 // CommandsOption constructs a ServerOption for hooking the commands into the
