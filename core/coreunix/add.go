@@ -186,7 +186,7 @@ func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node) error {
 		adder.tempRoot = rnk
 	}
 
-	err = adder.pinning.PinWithMode(ctx, rnk, pin.Recursive)
+	err = adder.pinning.PinWithMode(ctx, rnk, pin.Recursive, "")
 	if err != nil {
 		return err
 	}

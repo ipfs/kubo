@@ -7,6 +7,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/test/cli/harness"
+	"github.com/ipfs/kubo/test/cli/testutils"
 	. "github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -208,5 +209,37 @@ func TestPins(t *testing.T) {
 		testPins(t, testPinsArgs{runDaemon: true, pinArg: "--progress", lsArg: "--stream"})
 		testPins(t, testPinsArgs{runDaemon: true, baseArg: "--cid-base=base32"})
 		testPins(t, testPinsArgs{runDaemon: true, lsArg: "--stream", baseArg: "--cid-base=base32"})
+	})
+
+	t.Run("test pinning with names", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init()
+		cidAStr := node.IPFSAddStr(testutils.RandomStr(1000), "--pin=false")
+		cidBStr := node.IPFSAddStr(testutils.RandomStr(1000), "--pin=false")
+
+		_ = node.IPFS("pin", "add", "--name", "testPin", cidAStr)
+
+		outARegular := cidAStr + " recursive"
+		outADetailed := outARegular + " testPin"
+		outBRegular := cidBStr + " recursive"
+		outBDetailed := outBRegular + " testPin"
+
+		pinLs := func(args ...string) []string {
+			return strings.Split(node.IPFS(StrCat("pin", "ls", args)...).Stdout.Trimmed(), "\n")
+		}
+
+		lsOut := pinLs("-t=recursive")
+		require.Contains(t, lsOut, outARegular)
+		require.NotContains(t, lsOut, outADetailed)
+
+		lsOut = pinLs("-t=recursive", "--detailed")
+		require.Contains(t, lsOut, outADetailed)
+		require.NotContains(t, lsOut, outARegular)
+
+		_ = node.IPFS("pin", "update", cidAStr, cidBStr)
+		lsOut = pinLs("-t=recursive", "--detailed")
+		require.Contains(t, lsOut, outBDetailed)
+		require.NotContains(t, lsOut, outADetailed)
 	})
 }
