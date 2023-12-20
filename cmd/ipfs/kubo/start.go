@@ -1,4 +1,4 @@
-// cmd/ipfs implements the primary CLI binary for ipfs
+// cmd/ipfs/kubo implements the primary CLI binary for kubo
 package kubo
 
 import (
@@ -62,7 +62,7 @@ const (
 
 type PluginPreloader func(*loader.PluginLoader) error
 
-func LoadPlugins(repoPath string, preload PluginPreloader) (*loader.PluginLoader, error) {
+func loadPlugins(repoPath string, preload PluginPreloader) (*loader.PluginLoader, error) {
 	plugins, err := loader.NewPluginLoader(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("error loading plugins: %s", err)
@@ -103,16 +103,18 @@ func BuildDefaultEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, 
 	return BuildEnv(nil)(ctx, req)
 }
 
+// BuildEnv creates an environment to be used with the kubo CLI. Note: the plugin preloader should only call functions
+// associated with preloaded plugins (i.e. Load).
 func BuildEnv(pl PluginPreloader) func(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
 	return func(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
 		checkDebug(req)
-		repoPath, err := GetRepoPath(req)
+		repoPath, err := getRepoPath(req)
 		if err != nil {
 			return nil, err
 		}
 		log.Debugf("config path is %s", repoPath)
 
-		plugins, err := LoadPlugins(repoPath, pl)
+		plugins, err := loadPlugins(repoPath, pl)
 		if err != nil {
 			return nil, err
 		}
@@ -374,7 +376,7 @@ func (twe tracingWrappedExecutor) Execute(req *cmds.Request, re cmds.ResponseEmi
 	return err
 }
 
-func GetRepoPath(req *cmds.Request) (string, error) {
+func getRepoPath(req *cmds.Request) (string, error) {
 	repoOpt, found := req.Options[corecmds.RepoDirOption].(string)
 	if found && repoOpt != "" {
 		return repoOpt, nil
