@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package main
+package kubo
 
 import (
 	daemon "github.com/coreos/go-systemd/v22/daemon"
