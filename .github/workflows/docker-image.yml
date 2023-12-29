@@ -107,18 +107,31 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
+      - name: Build Docker image (linux/riscv64)
+        uses: docker/build-push-action@v4
+        with:
+          platforms: linux/riscv64
+          context: .
+          push: false
+          load: true
+          file: ./Dockerfile
+          tags: ${{ env.IMAGE_NAME }}:linux-riscv64
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
       # We test all the images on amd64 host here. This uses QEMU to emulate
       # the other platforms.
       - run: docker run --rm $IMAGE_NAME:linux-amd64 --version
       - run: docker run --rm $IMAGE_NAME:linux-arm-v7 --version
       - run: docker run --rm $IMAGE_NAME:linux-arm64-v8 --version
+      - run: docker run --rm $IMAGE_NAME:linux-riscv64 --version
 
       # This will only push the previously built images.
       - if: github.event_name != 'workflow_dispatch' || github.event.inputs.push == 'true'
         name: Publish to Docker Hub
         uses: docker/build-push-action@v4
         with:
-          platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
+          platforms: linux/amd64,linux/arm/v7,linux/arm64/v8,linux/riscv64
           context: .
           push: true
           file: ./Dockerfile
