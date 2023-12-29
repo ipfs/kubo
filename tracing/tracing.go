@@ -18,6 +18,8 @@ import (
 // Note that this doesn't directly use the provided TracerProvider interface
 // to avoid build breaking go-ipfs if new methods are added to it.
 type shutdownTracerProvider interface {
+	traceapi.TracerProvider
+
 	Tracer(instrumentationName string, opts ...traceapi.TracerOption) traceapi.Tracer
 	Shutdown(ctx context.Context) error
 }
