@@ -56,9 +56,9 @@ jobs:
       matrix:
         repo-to-test-against: ["helia", "helia-ipns", "helia-unixfs", "helia-car", "helia-dag-json", "helia-dag-cbor", "helia-json", "helia-mfs"] # this needs to be manually kept in sync as new helia tests are written
     steps:
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: latest
       - uses: actions/download-artifact@v3
         with:
           name: kubo
