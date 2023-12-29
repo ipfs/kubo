@@ -8,8 +8,6 @@ import (
 	"os"
 	"time"
 
-	bserv "github.com/ipfs/boxo/blockservice"
-	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	verifcid "github.com/ipfs/boxo/verifcid"
 	cid "github.com/ipfs/go-cid"
@@ -738,8 +736,7 @@ type pinVerifyOpts struct {
 func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) (<-chan any, error) {
 	visited := make(map[cid.Cid]PinStatus)
 
-	bs := n.Blocks.Blockstore()
-	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
+	DAG := n.OfflineDAG
 	getLinks := dag.GetLinksWithDAG(DAG)
 
 	var checkPin func(root cid.Cid) PinStatus

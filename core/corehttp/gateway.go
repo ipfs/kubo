@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ipfs/boxo/blockservice"
-	"github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/gateway"
 	"github.com/ipfs/boxo/namesys"
@@ -86,7 +84,7 @@ func VersionOption() ServeOption {
 
 func Libp2pGatewayOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		bserv := blockservice.New(n.Blocks.Blockstore(), offline.Exchange(n.Blocks.Blockstore()))
+		bserv := n.OfflineBlocks
 
 		backend, err := gateway.NewBlocksBackend(bserv,
 			// GatewayOverLibp2p only returns things that are in local blockstore
@@ -125,7 +123,7 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 	pathResolver := n.UnixFSPathResolver
 
 	if cfg.Gateway.NoFetch {
-		bserv = blockservice.New(bserv.Blockstore(), offline.Exchange(bserv.Blockstore()))
+		bserv = n.OfflineBlocks
 
 		cs := cfg.Ipns.ResolveCacheSize
 		if cs == 0 {

@@ -134,7 +134,6 @@ var bitswapStatCmd = &cmds.Command{
 			human, _ := req.Options[bitswapHumanOptionName].(bool)
 
 			fmt.Fprintln(w, "bitswap status")
-			fmt.Fprintf(w, "\tprovides buffer: %d / %d\n", s.ProvideBufLen, bitswap.HasBlockBufferSize)
 			fmt.Fprintf(w, "\tblocks received: %d\n", s.BlocksReceived)
 			fmt.Fprintf(w, "\tblocks sent: %d\n", s.BlocksSent)
 			if human {
