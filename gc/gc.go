@@ -9,7 +9,6 @@ import (
 
 	bserv "github.com/ipfs/boxo/blockservice"
 	bstore "github.com/ipfs/boxo/blockstore"
-	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/boxo/verifcid"
@@ -52,7 +51,9 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 
 	unlocker := bs.GCLock(ctx)
 
-	bsrv := bserv.New(bs, offline.Exchange(bs))
+	// it is fine to make a custom blockservice here since we are not gonna write new blocks
+	// FIXME: this is hacky, please fix
+	bsrv := bserv.New(bs, nil)
 	ds := dag.NewDAGService(bsrv)
 
 	output := make(chan Result, 128)

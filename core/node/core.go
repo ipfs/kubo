@@ -7,7 +7,6 @@ import (
 	"github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	exchange "github.com/ipfs/boxo/exchange"
-	offline "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/fetcher"
 	bsfetcher "github.com/ipfs/boxo/fetcher/impl/blockservice"
 	"github.com/ipfs/boxo/filestore"
@@ -17,6 +16,7 @@ import (
 	pathresolver "github.com/ipfs/boxo/path/resolver"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/boxo/pinning/pinner/dspinner"
+	"github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	format "github.com/ipfs/go-ipld-format"
@@ -29,8 +29,8 @@ import (
 )
 
 // BlockService creates new blockservice which provides an interface to fetch content-addressable blocks
-func BlockService(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
-	bsvc := blockservice.New(bs, rem)
+func BlockService(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface, prov provider.System) blockservice.BlockService {
+	bsvc := blockservice.New(bs, rem, blockservice.WithProvider(prov))
 
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
@@ -39,6 +39,32 @@ func BlockService(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interf
 	})
 
 	return bsvc
+}
+
+type offlineIn struct {
+	fx.In
+
+	Bs   blockstore.Blockstore
+	Prov provider.System `optional:"true"`
+}
+
+type offlineOut struct {
+	fx.Out
+
+	Bs blockservice.BlockService `name:"offlineBlockService"`
+}
+
+// OfflineBlockservice is like [BlockService] but it makes an offline version.
+func OfflineBlockservice(lc fx.Lifecycle, in offlineIn) offlineOut {
+	bsvc := blockservice.New(in.Bs, nil, blockservice.WithProvider(in.Prov))
+
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			return bsvc.Close()
+		},
+	})
+
+	return offlineOut{Bs: bsvc}
 }
 
 // Pinning creates new pinner which tells GC which blocks should be kept
@@ -82,8 +108,8 @@ func (s *syncDagService) Session(ctx context.Context) format.NodeGetter {
 	return merkledag.NewSession(ctx, s.DAGService)
 }
 
-// FetchersOut allows injection of fetchers.
-type FetchersOut struct {
+// fetchersOut allows injection of fetchers.
+type fetchersOut struct {
 	fx.Out
 	IPLDFetcher          fetcher.Factory `name:"ipldFetcher"`
 	UnixfsFetcher        fetcher.Factory `name:"unixfsFetcher"`
@@ -91,29 +117,25 @@ type FetchersOut struct {
 	OfflineUnixfsFetcher fetcher.Factory `name:"offlineUnixfsFetcher"`
 }
 
-// FetchersIn allows using fetchers for other dependencies.
-type FetchersIn struct {
+type fetcherIn struct {
 	fx.In
-	IPLDFetcher          fetcher.Factory `name:"ipldFetcher"`
-	UnixfsFetcher        fetcher.Factory `name:"unixfsFetcher"`
-	OfflineIPLDFetcher   fetcher.Factory `name:"offlineIpldFetcher"`
-	OfflineUnixfsFetcher fetcher.Factory `name:"offlineUnixfsFetcher"`
+	Online  blockservice.BlockService
+	Offline blockservice.BlockService `name:"offlineBlockService"`
 }
 
 // FetcherConfig returns a fetcher config that can build new fetcher instances
-func FetcherConfig(bs blockservice.BlockService) FetchersOut {
-	ipldFetcher := bsfetcher.NewFetcherConfig(bs)
+func FetcherConfig(in fetcherIn) fetchersOut {
+	ipldFetcher := bsfetcher.NewFetcherConfig(in.Online)
 	ipldFetcher.PrototypeChooser = dagpb.AddSupportToChooser(bsfetcher.DefaultPrototypeChooser)
 	unixFSFetcher := ipldFetcher.WithReifier(unixfsnode.Reify)
 
 	// Construct offline versions which we can safely use in contexts where
 	// path resolution should not fetch new blocks via exchange.
-	offlineBs := blockservice.New(bs.Blockstore(), offline.Exchange(bs.Blockstore()))
-	offlineIpldFetcher := bsfetcher.NewFetcherConfig(offlineBs)
+	offlineIpldFetcher := bsfetcher.NewFetcherConfig(in.Offline)
 	offlineIpldFetcher.PrototypeChooser = dagpb.AddSupportToChooser(bsfetcher.DefaultPrototypeChooser)
 	offlineUnixFSFetcher := offlineIpldFetcher.WithReifier(unixfsnode.Reify)
 
-	return FetchersOut{
+	return fetchersOut{
 		IPLDFetcher:          ipldFetcher,
 		UnixfsFetcher:        unixFSFetcher,
 		OfflineIPLDFetcher:   offlineIpldFetcher,
@@ -130,8 +152,17 @@ type PathResolversOut struct {
 	OfflineUnixFSPathResolver pathresolver.Resolver `name:"offlineUnixFSPathResolver"`
 }
 
+// PathResolverIn allows using fetchers for other dependencies.
+type PathResolverIn struct {
+	fx.In
+	IPLDFetcher          fetcher.Factory `name:"ipldFetcher"`
+	UnixfsFetcher        fetcher.Factory `name:"unixfsFetcher"`
+	OfflineIPLDFetcher   fetcher.Factory `name:"offlineIpldFetcher"`
+	OfflineUnixfsFetcher fetcher.Factory `name:"offlineUnixfsFetcher"`
+}
+
 // PathResolverConfig creates path resolvers with the given fetchers.
-func PathResolverConfig(fetchers FetchersIn) PathResolversOut {
+func PathResolverConfig(fetchers PathResolverIn) PathResolversOut {
 	return PathResolversOut{
 		IPLDPathResolver:          pathresolver.NewBasicResolver(fetchers.IPLDFetcher),
 		UnixFSPathResolver:        pathresolver.NewBasicResolver(fetchers.UnixfsFetcher),
@@ -143,6 +174,23 @@ func PathResolverConfig(fetchers FetchersIn) PathResolversOut {
 // Dag creates new DAGService
 func Dag(bs blockservice.BlockService) format.DAGService {
 	return merkledag.NewDAGService(bs)
+}
+
+type offlineDagIn struct {
+	fx.In
+
+	Bs blockservice.BlockService `name:"offlineBlockService"`
+}
+
+type offlineDagOut struct {
+	fx.Out
+
+	DAG format.DAGService `name:"offlineDagService"`
+}
+
+// OfflineDag is like [Dag] but it makes an offline version.
+func OfflineDag(lc fx.Lifecycle, in offlineDagIn) offlineDagOut {
+	return offlineDagOut{DAG: merkledag.NewDAGService(in.Bs)}
 }
 
 // Files loads persisted MFS root

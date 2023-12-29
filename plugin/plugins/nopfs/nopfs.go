@@ -59,7 +59,7 @@ func MakeBlocker() (*nopfs.Blocker, error) {
 }
 
 // PathResolvers returns wrapped PathResolvers for Kubo.
-func PathResolvers(fetchers node.FetchersIn, blocker *nopfs.Blocker) node.PathResolversOut {
+func PathResolvers(fetchers node.PathResolverIn, blocker *nopfs.Blocker) node.PathResolversOut {
 	res := node.PathResolverConfig(fetchers)
 	return node.PathResolversOut{
 		IPLDPathResolver:          ipfs.WrapResolver(res.IPLDPathResolver, blocker),

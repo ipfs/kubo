@@ -284,12 +284,9 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		recordLifetime = d
 	}
 
-	/* don't provide from bitswap when the strategic provider service is active */
-	shouldBitswapProvide := !cfg.Experimental.StrategicProviding
-
 	return fx.Options(
-		fx.Provide(BitswapOptions(cfg, shouldBitswapProvide)),
-		fx.Provide(OnlineExchange()),
+		BitswapOptions(cfg),
+		OnlineExchange(),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize)),
 		fx.Provide(Peering),
@@ -325,7 +322,9 @@ func Offline(cfg *config.Config) fx.Option {
 // Core groups basic IPFS services
 var Core = fx.Options(
 	fx.Provide(BlockService),
+	fx.Provide(OfflineBlockservice),
 	fx.Provide(Dag),
+	fx.Provide(OfflineDag),
 	fx.Provide(FetcherConfig),
 	fx.Provide(PathResolverConfig),
 	fx.Provide(Pinning),

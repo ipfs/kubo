@@ -81,7 +81,9 @@ type IpfsNode struct {
 	BaseBlocks                  node.BaseBlocks           // the raw blockstore, no filestore wrapping
 	GCLocker                    bstore.GCLocker           // the locker used to protect the blockstore during gc
 	Blocks                      bserv.BlockService        // the block service, get/add blocks.
+	OfflineBlocks               bserv.BlockService        `name:"offlineBlockService"` // blockservice which doesn't try to fetch from the network
 	DAG                         ipld.DAGService           // the merkle dag service, get/add objects.
+	OfflineDAG                  ipld.DAGService           `name:"offlineDagService"`    // merkle dag service which doesn't try to fetch from the network
 	IPLDFetcherFactory          fetcher.Factory           `name:"ipldFetcher"`          // fetcher that paths over the IPLD data model
 	UnixFSFetcherFactory        fetcher.Factory           `name:"unixfsFetcher"`        // fetcher that interprets UnixFS data
 	OfflineIPLDFetcherFactory   fetcher.Factory           `name:"offlineIpldFetcher"`   // fetcher that paths over the IPLD data model without fetching new blocks

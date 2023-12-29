@@ -31,17 +31,16 @@ type bitswapOptionsOut struct {
 	BitswapOpts []bitswap.Option `group:"bitswap-options,flatten"`
 }
 
-// BitswapOptions creates configuration options for Bitswap from the config file
-// and whether to provide data.
-func BitswapOptions(cfg *config.Config, provide bool) interface{} {
-	return func() bitswapOptionsOut {
+// BitswapOptions creates configuration options for Bitswap from the config file.
+func BitswapOptions(cfg *config.Config) fx.Option {
+	return fx.Provide(func(routing irouting.ProvideManyRouter) bitswapOptionsOut {
 		var internalBsCfg config.InternalBitswap
 		if cfg.Internal.Bitswap != nil {
 			internalBsCfg = *cfg.Internal.Bitswap
 		}
 
 		opts := []bitswap.Option{
-			bitswap.ProvideEnabled(provide),
+			bitswap.WithContentSearch(routing),
 			bitswap.ProviderSearchDelay(internalBsCfg.ProviderSearchDelay.WithDefault(DefaultProviderSearchDelay)), // See https://github.com/ipfs/go-ipfs/issues/8807 for rationale
 			bitswap.EngineBlockstoreWorkerCount(int(internalBsCfg.EngineBlockstoreWorkerCount.WithDefault(DefaultEngineBlockstoreWorkerCount))),
 			bitswap.TaskWorkerCount(int(internalBsCfg.TaskWorkerCount.WithDefault(DefaultTaskWorkerCount))),
@@ -50,7 +49,7 @@ func BitswapOptions(cfg *config.Config, provide bool) interface{} {
 		}
 
 		return bitswapOptionsOut{BitswapOpts: opts}
-	}
+	})
 }
 
 type onlineExchangeIn struct {
@@ -58,7 +57,6 @@ type onlineExchangeIn struct {
 
 	Mctx        helpers.MetricsCtx
 	Host        host.Host
-	Rt          irouting.ProvideManyRouter
 	Bs          blockstore.GCBlockstore
 	BitswapOpts []bitswap.Option `group:"bitswap-options"`
 }
@@ -66,9 +64,9 @@ type onlineExchangeIn struct {
 // OnlineExchange creates new LibP2P backed block exchange (BitSwap).
 // Additional options to bitswap.New can be provided via the "bitswap-options"
 // group.
-func OnlineExchange() interface{} {
-	return func(in onlineExchangeIn, lc fx.Lifecycle) exchange.Interface {
-		bitswapNetwork := network.NewFromIpfsHost(in.Host, in.Rt)
+func OnlineExchange() fx.Option {
+	return fx.Provide(func(in onlineExchangeIn, lc fx.Lifecycle) exchange.Interface {
+		bitswapNetwork := network.NewFromIpfsHost(in.Host)
 
 		exch := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetwork, in.Bs, in.BitswapOpts...)
 		lc.Append(fx.Hook{
@@ -77,5 +75,5 @@ func OnlineExchange() interface{} {
 			},
 		})
 		return exch
-	}
+	})
 }

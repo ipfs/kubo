@@ -6,9 +6,9 @@ import (
 
 	blockservice "github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
-	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
@@ -99,7 +99,7 @@ func (api *DhtAPI) Provide(ctx context.Context, path path.Path, opts ...caopts.D
 	}
 
 	if settings.Recursive {
-		err = provideKeysRec(ctx, api.routing, api.blockstore, []cid.Cid{c})
+		err = provideKeysRec(ctx, api.routing, api.blockstore, api.provider, []cid.Cid{c})
 	} else {
 		err = provideKeys(ctx, api.routing, []cid.Cid{c})
 	}
@@ -120,12 +120,13 @@ func provideKeys(ctx context.Context, r routing.Routing, cids []cid.Cid) error {
 	return nil
 }
 
-func provideKeysRec(ctx context.Context, r routing.Routing, bs blockstore.Blockstore, cids []cid.Cid) error {
+func provideKeysRec(ctx context.Context, r routing.Routing, bs blockstore.Blockstore, prov provider.Provider, cids []cid.Cid) error {
 	provided := cidutil.NewStreamingSet()
 
 	errCh := make(chan error)
 	go func() {
-		dserv := dag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
+		// FIXME: we are recreating a dag and blockservice, maybe offline varients should be shared ?
+		dserv := dag.NewDAGService(blockservice.New(bs, nil, blockservice.WithProvider(prov)))
 		for _, c := range cids {
 			err := dag.Walk(ctx, dag.GetLinksDirect(dserv), c, provided.Visitor(ctx))
 			if err != nil {

@@ -14,8 +14,6 @@ import (
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
-	bservice "github.com/ipfs/boxo/blockservice"
-	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	mfs "github.com/ipfs/boxo/mfs"
@@ -162,11 +160,7 @@ var filesStatCmd = &cmds.Command{
 
 		var dagserv ipld.DAGService
 		if withLocal {
-			// an offline DAGService will not fetch from the network
-			dagserv = dag.NewDAGService(bservice.New(
-				node.Blockstore,
-				offline.Exchange(node.Blockstore),
-			))
+			dagserv = node.OfflineDAG
 		} else {
 			dagserv = node.DAG
 		}

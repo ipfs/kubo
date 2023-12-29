@@ -106,6 +106,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	}
 	exch := api.exchange
 	pinning := api.pinning
+	prov := api.provider
 
 	if settings.OnlyHash {
 		node, err := getOrCreateNilNode()
@@ -115,9 +116,10 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		addblockstore = node.Blockstore
 		exch = node.Exchange
 		pinning = node.Pinning
+		prov = nil
 	}
 
-	bserv := blockservice.New(addblockstore, exch) // hash security 001
+	bserv := blockservice.New(addblockstore, exch, blockservice.WithProvider(prov)) // hash security 001
 	dserv := merkledag.NewDAGService(bserv)
 
 	// add a sync call to the DagService

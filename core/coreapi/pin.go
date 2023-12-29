@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	bserv "github.com/ipfs/boxo/blockservice"
-	offline "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/path"
 	pin "github.com/ipfs/boxo/pinning/pinner"
@@ -195,7 +194,8 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 
 	visited := make(map[cid.Cid]*pinStatus)
 	bs := api.blockstore
-	DAG := merkledag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
+	// FIXME: we are recreating a dag and blockservice, maybe offline varients should be shared ?
+	DAG := merkledag.NewDAGService(bserv.New(bs, nil, bserv.WithProvider(api.provider)))
 	getLinks := merkledag.GetLinksWithDAG(DAG)
 
 	var checkPin func(root cid.Cid) *pinStatus
