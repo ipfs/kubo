@@ -361,7 +361,7 @@ Example:
 		lgcList := map[string]PinLsType{}
 		if !stream {
 			emit = func(v PinLsOutputWrapper) error {
-				lgcList[v.PinLsObject.Cid] = PinLsType{Type: v.PinLsObject.Type, Label: v.PinLsObject.Name}
+				lgcList[v.PinLsObject.Cid] = PinLsType{Type: v.PinLsObject.Type, Name: v.PinLsObject.Name}
 				return nil
 			}
 		} else {
@@ -418,10 +418,10 @@ Example:
 			for k, v := range out.PinLsList.Keys {
 				if quiet {
 					fmt.Fprintf(w, "%s\n", k)
-				} else if v.Label == "" {
+				} else if v.Name == "" {
 					fmt.Fprintf(w, "%s %s\n", k, v.Type)
 				} else {
-					fmt.Fprintf(w, "%s %s %s\n", k, v.Type, v.Label)
+					fmt.Fprintf(w, "%s %s %s\n", k, v.Type, v.Name)
 				}
 			}
 
@@ -445,8 +445,8 @@ type PinLsList struct {
 
 // PinLsType contains the type of a pin
 type PinLsType struct {
-	Type  string
-	Label string
+	Type string
+	Name string
 }
 
 // PinLsObject contains the description of a pin
