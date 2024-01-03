@@ -7,7 +7,6 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/test/cli/harness"
-	"github.com/ipfs/kubo/test/cli/testutils"
 	. "github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -215,8 +214,8 @@ func TestPins(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init()
-		cidAStr := node.IPFSAddStr(testutils.RandomStr(1000), "--pin=false")
-		cidBStr := node.IPFSAddStr(testutils.RandomStr(1000), "--pin=false")
+		cidAStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
+		cidBStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
 
 		_ = node.IPFS("pin", "add", "--name", "testPin", cidAStr)
 
