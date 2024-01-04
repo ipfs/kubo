@@ -57,6 +57,24 @@ var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Pin objects to local storage.",
 		ShortDescription: "Stores an IPFS object(s) from a given path locally to disk.",
+		LongDescription: `
+Create a pin for the given object, protecting resolved CID from being garbage
+collected.
+
+An optional name can be provided, and read back via 'ipfs pin ls --detailed'.
+
+Be mindful of defaults:
+- Default pin type is 'recursive' (entire DAG).
+  - Pass -r=false to create a direct pin for a single block.
+  - Use 'pin ls -t recursive' to only list roots of recursively pinned DAGs (faster)
+- Default pin name is empty. Pass '--name' to 'pin add' to set one
+  and use 'pin ls --detailed' to see it.
+  - Pin add is idempotent: pinning CID which is already pinned won't change
+    the name, value passed with '--name' with the original pin is preserved.
+    To rename pin, use 'pin rm' and 'pin add --name'.
+- If daemon is running, any missing blocks will be retrieved from the network.
+  It may take some time. Pass '--progress' to track the progress.
+`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -64,8 +82,8 @@ var addPinCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(pinRecursiveOptionName, "r", "Recursively pin the object linked to by the specified object(s).").WithDefault(true),
+		cmds.StringOption(pinNameOptionName, "n", "An optional name for created pin(s)."),
 		cmds.BoolOption(pinProgressOptionName, "Show progress"),
-		cmds.StringOption(pinNameOptionName, "n", "An optional name for the pin(s)."),
 	},
 	Type: AddPinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -297,6 +315,7 @@ respectively.
 `,
 		LongDescription: `
 Returns a list of objects that are pinned locally.
+
 By default, all pinned objects are returned, but the '--type' flag or
 arguments can restrict that to a specific pin type or to some specific objects
 respectively.
@@ -305,9 +324,12 @@ Use --type=<type> to specify the type of pinned keys to list.
 Valid values are:
     * "direct": pin that specific object.
     * "recursive": pin that specific object, and indirectly pin all its
-    	descendants
+      descendants
     * "indirect": pinned indirectly by an ancestor (like a refcount)
     * "all"
+
+By default, pin names are not included (returned as empty).
+Pass '--detailed' flag to return pin names (set with '--name' from 'pin add').
 
 With arguments, the command fails if any of the arguments is not a pinned
 object. And if --type=<type> is additionally used, the command will also fail
