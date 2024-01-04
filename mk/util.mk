@@ -16,7 +16,6 @@ SUPPORTED_PLATFORMS += linux-arm
 SUPPORTED_PLATFORMS += linux-arm64
 SUPPORTED_PLATFORMS += linux-386
 SUPPORTED_PLATFORMS += linux-amd64
-SUPPORTED_PLATFORMS += linux-riscv64
 
 SUPPORTED_PLATFORMS += darwin-amd64
 ifeq ($(shell bin/check_go_version "1.16.0" 2>/dev/null; echo $$?),0)
