@@ -61,7 +61,7 @@ var addPinCmd = &cmds.Command{
 Create a pin for the given object, protecting resolved CID from being garbage
 collected.
 
-An optional name can be provided, and read back via 'ipfs pin ls --detailed'.
+An optional name can be provided, and read back via 'ipfs pin ls --names'.
 
 Be mindful of defaults:
 
@@ -71,7 +71,7 @@ Use 'pin ls -t recursive' to only list roots of recursively pinned DAGs
 (significantly faster when many big DAGs are pinned recursively)
 
 Default pin name is empty. Pass '--name' to 'pin add' to set one
-and use 'pin ls --detailed' to see it.
+and use 'pin ls --names' to see it.
 Pin add is idempotent: pinning CID which is already pinned won't change
 the name, value passed with '--name' with the original pin is preserved.
 To rename pin, use 'pin rm' and 'pin add --name'.
@@ -302,10 +302,10 @@ ipfs pin ls -t indirect <cid>
 }
 
 const (
-	pinTypeOptionName     = "type"
-	pinQuietOptionName    = "quiet"
-	pinStreamOptionName   = "stream"
-	pinDetailedOptionName = "detailed"
+	pinTypeOptionName   = "type"
+	pinQuietOptionName  = "quiet"
+	pinStreamOptionName = "stream"
+	pinNamesOptionName  = "names"
 )
 
 var listPinCmd = &cmds.Command{
@@ -333,7 +333,7 @@ Valid values are:
     * "all"
 
 By default, pin names are not included (returned as empty).
-Pass '--detailed' flag to return pin names (set with '--name' from 'pin add').
+Pass '--names' flag to return pin names (set with '--name' from 'pin add').
 
 With arguments, the command fails if any of the arguments is not a pinned
 object. And if --type=<type> is additionally used, the command will also fail
@@ -363,7 +363,7 @@ Example:
 		cmds.StringOption(pinTypeOptionName, "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
 		cmds.BoolOption(pinQuietOptionName, "q", "Write just hashes of objects."),
 		cmds.BoolOption(pinStreamOptionName, "s", "Enable streaming of pins as they are discovered."),
-		cmds.BoolOption(pinDetailedOptionName, "d", "Enable displaying additional information, such as pin names (slower)."),
+		cmds.BoolOption(pinNamesOptionName, "n", "Enable displaying pin names (slower)."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -373,7 +373,7 @@ Example:
 
 		typeStr, _ := req.Options[pinTypeOptionName].(string)
 		stream, _ := req.Options[pinStreamOptionName].(bool)
-		detailed, _ := req.Options[pinDetailedOptionName].(bool)
+		displayNames, _ := req.Options[pinNamesOptionName].(bool)
 
 		switch typeStr {
 		case "all", "direct", "indirect", "recursive":
@@ -399,7 +399,7 @@ Example:
 		if len(req.Arguments) > 0 {
 			err = pinLsKeys(req, typeStr, api, emit)
 		} else {
-			err = pinLsAll(req, typeStr, detailed, api, emit)
+			err = pinLsAll(req, typeStr, displayNames, api, emit)
 		}
 		if err != nil {
 			return err

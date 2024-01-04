@@ -232,12 +232,12 @@ func TestPins(t *testing.T) {
 		require.Contains(t, lsOut, outARegular)
 		require.NotContains(t, lsOut, outADetailed)
 
-		lsOut = pinLs("-t=recursive", "--detailed")
+		lsOut = pinLs("-t=recursive", "--names")
 		require.Contains(t, lsOut, outADetailed)
 		require.NotContains(t, lsOut, outARegular)
 
 		_ = node.IPFS("pin", "update", cidAStr, cidBStr)
-		lsOut = pinLs("-t=recursive", "--detailed")
+		lsOut = pinLs("-t=recursive", "--names")
 		require.Contains(t, lsOut, outBDetailed)
 		require.NotContains(t, lsOut, outADetailed)
 	})
@@ -265,11 +265,11 @@ func TestPins(t *testing.T) {
 		require.Contains(t, lsOut, outARegular)
 		require.NotContains(t, lsOut, outADetailed)
 
-		lsOut = pinLs("-t=recursive", "--detailed")
+		lsOut = pinLs("-t=recursive", "--names")
 		require.Contains(t, lsOut, outADetailed)
 
 		_ = node.IPFS("pin", "update", cidAStr, cidBStr)
-		lsOut = pinLs("-t=recursive", "--detailed")
+		lsOut = pinLs("-t=recursive", "--names")
 		require.Contains(t, lsOut, outBDetailed)
 	})
 }
