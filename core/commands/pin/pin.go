@@ -64,16 +64,20 @@ collected.
 An optional name can be provided, and read back via 'ipfs pin ls --detailed'.
 
 Be mindful of defaults:
-- Default pin type is 'recursive' (entire DAG).
-  - Pass -r=false to create a direct pin for a single block.
-  - Use 'pin ls -t recursive' to only list roots of recursively pinned DAGs (faster)
-- Default pin name is empty. Pass '--name' to 'pin add' to set one
-  and use 'pin ls --detailed' to see it.
-  - Pin add is idempotent: pinning CID which is already pinned won't change
-    the name, value passed with '--name' with the original pin is preserved.
-    To rename pin, use 'pin rm' and 'pin add --name'.
-- If daemon is running, any missing blocks will be retrieved from the network.
-  It may take some time. Pass '--progress' to track the progress.
+
+Default pin type is 'recursive' (entire DAG).
+Pass -r=false to create a direct pin for a single block.
+Use 'pin ls -t recursive' to only list roots of recursively pinned DAGs
+(significantly faster when many big DAGs are pinned recursively)
+
+Default pin name is empty. Pass '--name' to 'pin add' to set one
+and use 'pin ls --detailed' to see it.
+Pin add is idempotent: pinning CID which is already pinned won't change
+the name, value passed with '--name' with the original pin is preserved.
+To rename pin, use 'pin rm' and 'pin add --name'.
+
+If daemon is running, any missing blocks will be retrieved from the network.
+It may take some time. Pass '--progress' to track the progress.
 `,
 	},
 
