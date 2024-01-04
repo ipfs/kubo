@@ -133,7 +133,7 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 	}
 
 	if options.Pin {
-		if err := api.pinning.PinWithMode(ctx, dagnode.Cid(), pin.Recursive); err != nil {
+		if err := api.pinning.PinWithMode(ctx, dagnode.Cid(), pin.Recursive, ""); err != nil {
 			return path.ImmutablePath{}, err
 		}
 

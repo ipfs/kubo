@@ -209,4 +209,67 @@ func TestPins(t *testing.T) {
 		testPins(t, testPinsArgs{runDaemon: true, baseArg: "--cid-base=base32"})
 		testPins(t, testPinsArgs{runDaemon: true, lsArg: "--stream", baseArg: "--cid-base=base32"})
 	})
+
+	t.Run("test pinning with names cli text output", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init()
+		cidAStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
+		cidBStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
+
+		_ = node.IPFS("pin", "add", "--name", "testPin", cidAStr)
+
+		outARegular := cidAStr + " recursive"
+		outADetailed := outARegular + " testPin"
+		outBRegular := cidBStr + " recursive"
+		outBDetailed := outBRegular + " testPin"
+
+		pinLs := func(args ...string) []string {
+			return strings.Split(node.IPFS(StrCat("pin", "ls", args)...).Stdout.Trimmed(), "\n")
+		}
+
+		lsOut := pinLs("-t=recursive")
+		require.Contains(t, lsOut, outARegular)
+		require.NotContains(t, lsOut, outADetailed)
+
+		lsOut = pinLs("-t=recursive", "--names")
+		require.Contains(t, lsOut, outADetailed)
+		require.NotContains(t, lsOut, outARegular)
+
+		_ = node.IPFS("pin", "update", cidAStr, cidBStr)
+		lsOut = pinLs("-t=recursive", "--names")
+		require.Contains(t, lsOut, outBDetailed)
+		require.NotContains(t, lsOut, outADetailed)
+	})
+
+	// JSON that is also the wire format of /api/v0
+	t.Run("test pinning with names json output", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init()
+		cidAStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
+		cidBStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
+
+		_ = node.IPFS("pin", "add", "--name", "testPinJson", cidAStr)
+
+		outARegular := `"` + cidAStr + `":{"Type":"recursive"`
+		outADetailed := outARegular + `,"Name":"testPinJson"`
+		outBRegular := `"` + cidBStr + `":{"Type":"recursive"`
+		outBDetailed := outBRegular + `,"Name":"testPinJson"`
+
+		pinLs := func(args ...string) string {
+			return node.IPFS(StrCat("pin", "ls", "--enc=json", args)...).Stdout.Trimmed()
+		}
+
+		lsOut := pinLs("-t=recursive")
+		require.Contains(t, lsOut, outARegular)
+		require.NotContains(t, lsOut, outADetailed)
+
+		lsOut = pinLs("-t=recursive", "--names")
+		require.Contains(t, lsOut, outADetailed)
+
+		_ = node.IPFS("pin", "update", cidAStr, cidBStr)
+		lsOut = pinLs("-t=recursive", "--names")
+		require.Contains(t, lsOut, outBDetailed)
+	})
 }

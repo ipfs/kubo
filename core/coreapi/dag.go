@@ -30,7 +30,7 @@ func (adder *pinningAdder) Add(ctx context.Context, nd ipld.Node) error {
 		return err
 	}
 
-	if err := adder.pinning.PinWithMode(ctx, nd.Cid(), pin.Recursive); err != nil {
+	if err := adder.pinning.PinWithMode(ctx, nd.Cid(), pin.Recursive, ""); err != nil {
 		return err
 	}
 
@@ -51,7 +51,7 @@ func (adder *pinningAdder) AddMany(ctx context.Context, nds []ipld.Node) error {
 	for _, nd := range nds {
 		c := nd.Cid()
 		if cids.Visit(c) {
-			if err := adder.pinning.PinWithMode(ctx, c, pin.Recursive); err != nil {
+			if err := adder.pinning.PinWithMode(ctx, c, pin.Recursive, ""); err != nil {
 				return err
 			}
 		}
