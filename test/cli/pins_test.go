@@ -210,6 +210,10 @@ func TestPins(t *testing.T) {
 		testPins(t, testPinsArgs{runDaemon: true, lsArg: "--stream", baseArg: "--cid-base=base32"})
 	})
 
+	pinLs := func(node *harness.Node, args ...string) []string {
+		return strings.Split(node.IPFS(StrCat("pin", "ls", args)...).Stdout.Trimmed(), "\n")
+	}
+
 	t.Run("test pinning with names cli text output", func(t *testing.T) {
 		t.Parallel()
 
@@ -224,22 +228,38 @@ func TestPins(t *testing.T) {
 		outBRegular := cidBStr + " recursive"
 		outBDetailed := outBRegular + " testPin"
 
-		pinLs := func(args ...string) []string {
-			return strings.Split(node.IPFS(StrCat("pin", "ls", args)...).Stdout.Trimmed(), "\n")
-		}
-
-		lsOut := pinLs("-t=recursive")
+		lsOut := pinLs(node, "-t=recursive")
 		require.Contains(t, lsOut, outARegular)
 		require.NotContains(t, lsOut, outADetailed)
 
-		lsOut = pinLs("-t=recursive", "--names")
+		lsOut = pinLs(node, "-t=recursive", "--names")
 		require.Contains(t, lsOut, outADetailed)
 		require.NotContains(t, lsOut, outARegular)
 
 		_ = node.IPFS("pin", "update", cidAStr, cidBStr)
-		lsOut = pinLs("-t=recursive", "--names")
+		lsOut = pinLs(node, "-t=recursive", "--names")
 		require.Contains(t, lsOut, outBDetailed)
 		require.NotContains(t, lsOut, outADetailed)
+	})
+
+	t.Run("test overwriting pin with name", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init()
+		cidStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
+
+		outBefore := cidStr + " recursive A"
+		outAfter := cidStr + " recursive B"
+
+		_ = node.IPFS("pin", "add", "--name", "A", cidStr)
+		lsOut := pinLs(node, "-t=recursive", "--names")
+		require.Contains(t, lsOut, outBefore)
+		require.NotContains(t, lsOut, outAfter)
+
+		_ = node.IPFS("pin", "add", "--name", "B", cidStr)
+		lsOut = pinLs(node, "-t=recursive", "--names")
+		require.Contains(t, lsOut, outAfter)
+		require.NotContains(t, lsOut, outBefore)
 	})
 
 	// JSON that is also the wire format of /api/v0

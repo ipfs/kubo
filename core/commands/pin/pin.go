@@ -71,10 +71,8 @@ Use 'pin ls -t recursive' to only list roots of recursively pinned DAGs
 (significantly faster when many big DAGs are pinned recursively)
 
 Default pin name is empty. Pass '--name' to 'pin add' to set one
-and use 'pin ls --names' to see it.
-Pin add is idempotent: pinning CID which is already pinned won't change
-the name, value passed with '--name' with the original pin is preserved.
-To rename pin, use 'pin rm' and 'pin add --name'.
+and use 'pin ls --names' to see it. Pinning a second time with a different
+name will update the name of the pin.
 
 If daemon is running, any missing blocks will be retrieved from the network.
 It may take some time. Pass '--progress' to track the progress.
