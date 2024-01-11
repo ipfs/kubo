@@ -116,6 +116,7 @@ This section covers tasks to be done during each release.
 - [ ] Publish the release to [DockerHub](https://hub.docker.com/r/ipfs/kubo/) <details><summary>using `./kuboreleaser --skip-check-before --skip-run release --version vX.Y.Z(-rcN) publish-to-dockerhub` or ...</summary>
   - [ ] Wait for [Publish docker image](https://github.com/ipfs/kubo/actions/workflows/docker-image.yml) workflow run initiated by the tag push to finish
   - [ ] verify the image is available on [Docker Hub](https://hub.docker.com/r/ipfs/kubo/tags)
+- [ ] Verify [ipfs/distributions](https://github.com/ipfs/distributions)'s `.tool-versions`'s `golang` entry is set to the [latest go release](https://go.dev/doc/devel/release) on the major go branch [Kubo is being tested on](https://github.com/ipfs/kubo/blob/master/.github/workflows/gotest.yml) (see `go-version:`).
 - [ ] Publish the release to [dist.ipfs.tech](https://dist.ipfs.tech) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) publish-to-distributions` or ...</summary>
   - [ ] check out [ipfs/distributions](https://github.com/ipfs/distributions)
   - [ ] run `./dist.sh add-version kubo vX.Y.Z(-RCN)` to add the new version to the `versions` file
