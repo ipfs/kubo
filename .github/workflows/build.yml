@@ -70,26 +70,7 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ github.job }}-helia-
       - run: sudo apt update
       - run: sudo apt install -y libxkbcommon0 libxdamage1 libgbm1 libpango-1.0-0 libcairo2 # dependencies for playwright
-      - uses: actions/checkout@v4
-        with:
-          repository: ipfs/helia
-          fetch-depth: 0
-          path: interop
-          ref: 'main'
-      - name: Checkout latest tag
-        run: |
-          export TAG="$(git tag | grep "^interop-" | sort --version-sort --reverse | head -n1)"
-          echo "Running tests against: $TAG"
-          git checkout "$TAG"
-        working-directory: interop
-      - run: npm install
-        working-directory: interop
-      - run: npm run build
-        working-directory: interop
-      - run: npm install
-        working-directory: interop/packages/interop
-      - run: npm test
-        working-directory: interop/packages/interop
+      - run: npx --package @helia/interop helia-interop
         env:
           KUBO_BINARY: ${{ github.workspace }}/cmd/ipfs/ipfs
   ipfs-webui:
