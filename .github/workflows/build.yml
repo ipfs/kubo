@@ -78,7 +78,7 @@ jobs:
           ref: 'main'
       - name: Checkout latest tag
         run: |
-          export TAG="$(git tag | grep "^helia-" | sort --version-sort --reverse | head -n1)"
+          export TAG="$(git tag | grep "^interop-" | sort --version-sort --reverse | head -n1)"
           echo "Running tests against: $TAG"
           git checkout "$TAG"
         working-directory: interop
