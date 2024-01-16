@@ -62,7 +62,12 @@ func HostnameOption() ServeOption {
 		}
 
 		childMux := http.NewServeMux()
-		mux.Handle("/", gateway.NewHostnameHandler(config, backend, childMux))
+
+		var handler http.Handler
+		handler = gateway.NewHostnameHandler(config, backend, childMux)
+		handler = otelhttp.NewHandler(handler, "HostnameGateway")
+
+		mux.Handle("/", handler)
 		return childMux, nil
 	}
 }
