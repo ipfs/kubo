@@ -73,13 +73,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ipfs/helia
-          fetch-depth: 1
+          fetch-depth: 0
           path: interop
-          ref: 'ea5533c794df844c9fb9812e85e2f5e6af09efeb' # temporary while this commit is being released
+          ref: 'main'
       - name: Checkout latest tag
         run: |
-          exit 0 # temporary while ea5533c794df844c9fb9812e85e2f5e6af09efeb is released
-          export TAG="$(git describe --tags --abbrev=0)"
+          export TAG="$(git tag | grep "^helia-" | sort --version-sort --reverse | head -n1)"
           echo "Running tests against: $TAG"
           git checkout "$TAG"
         working-directory: interop
