@@ -245,7 +245,7 @@ Passing --verify will verify signature against provided public key.
 
 			if out.Validation == nil {
 				tw.Flush()
-				fmt.Fprintf(w, "\nThis record was not validated. Pass '--verify key' to do so.\n")
+				fmt.Fprintf(w, "\nThis record was not verified. Pass '--verify k51...' to verify.\n")
 			} else {
 				tw.Flush()
 				fmt.Fprintf(w, "\nValidation results:\n")
