@@ -68,7 +68,6 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			NoFetch:      false,
 			PathPrefixes: []string{},
 			HTTPHeaders:  map[string][]string{},
-			APICommands:  []string{},
 		},
 		Reprovider: Reprovider{
 			Interval: nil,

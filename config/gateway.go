@@ -53,9 +53,6 @@ type Gateway struct {
 	// PathPrefixes was removed: https://github.com/ipfs/go-ipfs/issues/7702
 	PathPrefixes []string
 
-	// FIXME: Not yet implemented: https://github.com/ipfs/kubo/issues/8059
-	APICommands []string
-
 	// NoFetch configures the gateway to _not_ fetch blocks in response to
 	// requests.
 	NoFetch bool
