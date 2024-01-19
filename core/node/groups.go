@@ -122,24 +122,6 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		}
 	}
 
-	// Force users to migrate old config.
-	// nolint
-	if cfg.Swarm.DisableRelay {
-		logger.Fatal("The 'Swarm.DisableRelay' config field was removed." +
-			"Use the 'Swarm.Transports.Network.Relay' instead.")
-	}
-	// nolint
-	if cfg.Swarm.EnableAutoRelay {
-		logger.Fatal("The 'Swarm.EnableAutoRelay' config field was removed." +
-			"Use the 'Swarm.RelayClient.Enabled' instead.")
-	}
-	// nolint
-	if cfg.Swarm.EnableRelayHop {
-		logger.Fatal("The `Swarm.EnableRelayHop` config field was removed.\n" +
-			"Use `Swarm.RelayService` to configure the circuit v2 relay.\n" +
-			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://dist.ipfs.tech/#libp2p-relay-daemon (with RelayV1.Enabled: true)")
-	}
-
 	// Gather all the options
 	opts := fx.Options(
 		BaseLibP2P,

@@ -47,12 +47,6 @@ type Gateway struct {
 	// should be redirected.
 	RootRedirect string
 
-	// REMOVED: modern replacement tracked in https://github.com/ipfs/specs/issues/375
-	Writable Flag `json:",omitempty"`
-
-	// PathPrefixes was removed: https://github.com/ipfs/go-ipfs/issues/7702
-	PathPrefixes []string
-
 	// NoFetch configures the gateway to _not_ fetch blocks in response to
 	// requests.
 	NoFetch bool

@@ -68,7 +68,6 @@ const (
 	routingOptionAutoClientKwd = "autoclient"
 	unencryptTransportKwd      = "disable-transport-encryption"
 	unrestrictedAPIAccessKwd   = "unrestricted-api"
-	writableKwd                = "writable"
 	enablePubSubKwd            = "enable-pubsub-experiment"
 	enableIPNSPubSubKwd        = "enable-namesys-pubsub"
 	enableMultiplexKwd         = "enable-mplex-experiment"
@@ -164,7 +163,6 @@ Headers.
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
-		cmds.BoolOption(writableKwd, "Enable legacy Gateway.Writable (REMOVED)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
 		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow API access to unlisted hashes"),
@@ -803,15 +801,6 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		return nil, fmt.Errorf("serveHTTPGateway: GetConfig() failed: %s", err)
 	}
 
-	writable, writableOptionFound := req.Options[writableKwd].(bool)
-	if !writableOptionFound {
-		writable = cfg.Gateway.Writable.WithDefault(false)
-	}
-
-	if writable {
-		log.Fatalf("Support for Gateway.Writable and --writable has been REMOVED. Please remove it from your config file or CLI. Modern replacement tracked in https://github.com/ipfs/specs/issues/375")
-	}
-
 	listeners, err := sockets.TakeListeners("io.ipfs.gateway")
 	if err != nil {
 		return nil, fmt.Errorf("serveHTTPGateway: socket activation failed: %s", err)
@@ -874,10 +863,6 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
 		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
-	}
-
-	if len(cfg.Gateway.PathPrefixes) > 0 {
-		log.Fatal("Support for custom Gateway.PathPrefixes was removed: https://github.com/ipfs/go-ipfs/issues/7702")
 	}
 
 	node, err := cctx.ConstructNode()
