@@ -206,7 +206,7 @@ func TestDeserializedResponsesInheritance(t *testing.T) {
 		n, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
 		assert.NoError(t, err)
 
-		gwCfg, err := getGatewayConfig(n)
+		gwCfg, _, err := getGatewayConfig(n)
 		assert.NoError(t, err)
 
 		assert.Contains(t, gwCfg.PublicGateways, "example.com")

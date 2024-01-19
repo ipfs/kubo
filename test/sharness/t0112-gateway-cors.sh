@@ -141,9 +141,9 @@ test_expect_success "Assert the default API.HTTPHeaders config is empty" '
 test_expect_success "Default CORS GET to {gw}/api/v0" '
   curl -svX GET -H "Origin: https://example.com" "http://127.0.0.1:$GWAY_PORT/api/v0/cat?arg=$thash" >/dev/null 2>curl_output
 '
-test_expect_success "Default CORS GET response from {gw}/api/v0 is 403 Forbidden and has no CORS headers" '
+test_expect_success "Default CORS GET response from {gw}/api/v0 is 403 Forbidden and has regular CORS headers" '
   test_should_contain "HTTP/1.1 403 Forbidden" curl_output &&
-  test_should_not_contain "< Access-Control-" curl_output
+  test_should_contain "< Access-Control-" curl_output
 '
 
 # HTTP OPTIONS Request
@@ -151,8 +151,8 @@ test_expect_success "Default OPTIONS to {gw}/api/v0" '
   curl -svX OPTIONS -H "Origin: https://example.com" "http://127.0.0.1:$GWAY_PORT/api/v0/cat?arg=$thash" 2>curl_output
 '
 # OPTIONS Response from the API should NOT contain CORS headers
-test_expect_success "OPTIONS response from {gw}/api/v0 has no CORS header" '
-  test_should_not_contain "< Access-Control-" curl_output
+test_expect_success "OPTIONS response from {gw}/api/v0 has CORS headers" '
+  test_should_contain "< Access-Control-" curl_output
 '
 
 test_kill_ipfs_daemon
