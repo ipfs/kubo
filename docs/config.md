@@ -2222,7 +2222,7 @@ Type: `priority`
 
 #### `Swarm.Transports.Security.SECIO`
 
-Support for SECIO has been removed. Please remove this option from your config.
+**REMOVED**:  support for SECIO has been removed. Please remove this option from your config.
 
 #### `Swarm.Transports.Security.Noise`
 

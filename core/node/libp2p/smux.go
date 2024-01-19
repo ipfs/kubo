@@ -14,9 +14,6 @@ func makeSmuxTransportOption(tptConfig config.Transports) (libp2p.Option, error)
 	if prefs := os.Getenv("LIBP2P_MUX_PREFS"); prefs != "" {
 		return nil, fmt.Errorf("configuring muxers with LIBP2P_MUX_PREFS is no longer supported, use Swarm.Transports.Multiplexers")
 	}
-	if tptConfig.Multiplexers.Mplex != 0 {
-		return nil, fmt.Errorf("Swarm.Transports.Multiplexers.Mplex is no longer supported, remove it from your config, see https://github.com/libp2p/specs/issues/553")
-	}
 	if tptConfig.Multiplexers.Yamux < 0 {
 		return nil, fmt.Errorf("running libp2p with Swarm.Transports.Multiplexers.Yamux disabled is not supported")
 	}

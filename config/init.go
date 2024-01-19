@@ -66,7 +66,6 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		Gateway: Gateway{
 			RootRedirect: "",
 			NoFetch:      false,
-			PathPrefixes: []string{},
 			HTTPHeaders:  map[string][]string{},
 		},
 		Reprovider: Reprovider{
