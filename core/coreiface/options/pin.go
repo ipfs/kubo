@@ -5,11 +5,13 @@ import "fmt"
 // PinAddSettings represent the settings for PinAPI.Add
 type PinAddSettings struct {
 	Recursive bool
+	Name      string
 }
 
 // PinLsSettings represent the settings for PinAPI.Ls
 type PinLsSettings struct {
-	Type string
+	Type     string
+	Detailed bool
 }
 
 // PinIsPinnedSettings represent the settings for PinAPI.IsPinned
@@ -194,6 +196,15 @@ func (pinLsOpts) pinType(t string) PinLsOption {
 	}
 }
 
+// Detailed is an option for [Pin.Ls] which sets whether or not to return
+// detailed information, such as pin names and modes.
+func (pinLsOpts) Detailed(detailed bool) PinLsOption {
+	return func(settings *PinLsSettings) error {
+		settings.Detailed = detailed
+		return nil
+	}
+}
+
 type pinIsPinnedOpts struct{}
 
 // All is an option for Pin.IsPinned which will make it search in all type of pins.
@@ -259,6 +270,14 @@ func (pinIsPinnedOpts) pinType(t string) PinIsPinnedOption {
 func (pinOpts) Recursive(recursive bool) PinAddOption {
 	return func(settings *PinAddSettings) error {
 		settings.Recursive = recursive
+		return nil
+	}
+}
+
+// Name is an option for Pin.Add which specifies an optional name to add to the pin.
+func (pinOpts) Name(name string) PinAddOption {
+	return func(settings *PinAddSettings) error {
+		settings.Name = name
 		return nil
 	}
 }

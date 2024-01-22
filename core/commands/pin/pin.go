@@ -57,6 +57,26 @@ var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Pin objects to local storage.",
 		ShortDescription: "Stores an IPFS object(s) from a given path locally to disk.",
+		LongDescription: `
+Create a pin for the given object, protecting resolved CID from being garbage
+collected.
+
+An optional name can be provided, and read back via 'ipfs pin ls --names'.
+
+Be mindful of defaults:
+
+Default pin type is 'recursive' (entire DAG).
+Pass -r=false to create a direct pin for a single block.
+Use 'pin ls -t recursive' to only list roots of recursively pinned DAGs
+(significantly faster when many big DAGs are pinned recursively)
+
+Default pin name is empty. Pass '--name' to 'pin add' to set one
+and use 'pin ls --names' to see it. Pinning a second time with a different
+name will update the name of the pin.
+
+If daemon is running, any missing blocks will be retrieved from the network.
+It may take some time. Pass '--progress' to track the progress.
+`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -64,6 +84,7 @@ var addPinCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(pinRecursiveOptionName, "r", "Recursively pin the object linked to by the specified object(s).").WithDefault(true),
+		cmds.StringOption(pinNameOptionName, "n", "An optional name for created pin(s)."),
 		cmds.BoolOption(pinProgressOptionName, "Show progress"),
 	},
 	Type: AddPinOutput{},
@@ -75,6 +96,7 @@ var addPinCmd = &cmds.Command{
 
 		// set recursive flag
 		recursive, _ := req.Options[pinRecursiveOptionName].(bool)
+		name, _ := req.Options[pinNameOptionName].(string)
 		showProgress, _ := req.Options[pinProgressOptionName].(bool)
 
 		if err := req.ParseBodyArgs(); err != nil {
@@ -87,7 +109,7 @@ var addPinCmd = &cmds.Command{
 		}
 
 		if !showProgress {
-			added, err := pinAddMany(req.Context, api, enc, req.Arguments, recursive)
+			added, err := pinAddMany(req.Context, api, enc, req.Arguments, recursive, name)
 			if err != nil {
 				return err
 			}
@@ -105,7 +127,7 @@ var addPinCmd = &cmds.Command{
 
 		ch := make(chan pinResult, 1)
 		go func() {
-			added, err := pinAddMany(ctx, api, enc, req.Arguments, recursive)
+			added, err := pinAddMany(ctx, api, enc, req.Arguments, recursive, name)
 			ch <- pinResult{pins: added, err: err}
 		}()
 
@@ -181,7 +203,7 @@ var addPinCmd = &cmds.Command{
 	},
 }
 
-func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, paths []string, recursive bool) ([]string, error) {
+func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, paths []string, recursive bool, name string) ([]string, error) {
 	added := make([]string, len(paths))
 	for i, b := range paths {
 		p, err := cmdutils.PathOrCidPath(b)
@@ -194,7 +216,7 @@ func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, 
 			return nil, err
 		}
 
-		if err := api.Pin().Add(ctx, rp, options.Pin.Recursive(recursive)); err != nil {
+		if err := api.Pin().Add(ctx, rp, options.Pin.Recursive(recursive), options.Pin.Name(name)); err != nil {
 			return nil, err
 		}
 		added[i] = enc.Encode(rp.RootCid())
@@ -281,6 +303,7 @@ const (
 	pinTypeOptionName   = "type"
 	pinQuietOptionName  = "quiet"
 	pinStreamOptionName = "stream"
+	pinNamesOptionName  = "names"
 )
 
 var listPinCmd = &cmds.Command{
@@ -294,6 +317,7 @@ respectively.
 `,
 		LongDescription: `
 Returns a list of objects that are pinned locally.
+
 By default, all pinned objects are returned, but the '--type' flag or
 arguments can restrict that to a specific pin type or to some specific objects
 respectively.
@@ -302,9 +326,12 @@ Use --type=<type> to specify the type of pinned keys to list.
 Valid values are:
     * "direct": pin that specific object.
     * "recursive": pin that specific object, and indirectly pin all its
-    	descendants
+      descendants
     * "indirect": pinned indirectly by an ancestor (like a refcount)
     * "all"
+
+By default, pin names are not included (returned as empty).
+Pass '--names' flag to return pin names (set with '--name' from 'pin add').
 
 With arguments, the command fails if any of the arguments is not a pinned
 object. And if --type=<type> is additionally used, the command will also fail
@@ -334,6 +361,7 @@ Example:
 		cmds.StringOption(pinTypeOptionName, "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
 		cmds.BoolOption(pinQuietOptionName, "q", "Write just hashes of objects."),
 		cmds.BoolOption(pinStreamOptionName, "s", "Enable streaming of pins as they are discovered."),
+		cmds.BoolOption(pinNamesOptionName, "n", "Enable displaying pin names (slower)."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -343,6 +371,7 @@ Example:
 
 		typeStr, _ := req.Options[pinTypeOptionName].(string)
 		stream, _ := req.Options[pinStreamOptionName].(bool)
+		displayNames, _ := req.Options[pinNamesOptionName].(bool)
 
 		switch typeStr {
 		case "all", "direct", "indirect", "recursive":
@@ -356,7 +385,7 @@ Example:
 		lgcList := map[string]PinLsType{}
 		if !stream {
 			emit = func(v PinLsOutputWrapper) error {
-				lgcList[v.PinLsObject.Cid] = PinLsType{Type: v.PinLsObject.Type}
+				lgcList[v.PinLsObject.Cid] = PinLsType{Type: v.PinLsObject.Type, Name: v.PinLsObject.Name}
 				return nil
 			}
 		} else {
@@ -368,7 +397,7 @@ Example:
 		if len(req.Arguments) > 0 {
 			err = pinLsKeys(req, typeStr, api, emit)
 		} else {
-			err = pinLsAll(req, typeStr, api, emit)
+			err = pinLsAll(req, typeStr, displayNames, api, emit)
 		}
 		if err != nil {
 			return err
@@ -402,8 +431,10 @@ Example:
 			if stream {
 				if quiet {
 					fmt.Fprintf(w, "%s\n", out.PinLsObject.Cid)
-				} else {
+				} else if out.PinLsObject.Name == "" {
 					fmt.Fprintf(w, "%s %s\n", out.PinLsObject.Cid, out.PinLsObject.Type)
+				} else {
+					fmt.Fprintf(w, "%s %s %s\n", out.PinLsObject.Cid, out.PinLsObject.Type, out.PinLsObject.Name)
 				}
 				return nil
 			}
@@ -411,8 +442,10 @@ Example:
 			for k, v := range out.PinLsList.Keys {
 				if quiet {
 					fmt.Fprintf(w, "%s\n", k)
-				} else {
+				} else if v.Name == "" {
 					fmt.Fprintf(w, "%s %s\n", k, v.Type)
+				} else {
+					fmt.Fprintf(w, "%s %s %s\n", k, v.Type, v.Name)
 				}
 			}
 
@@ -437,11 +470,13 @@ type PinLsList struct {
 // PinLsType contains the type of a pin
 type PinLsType struct {
 	Type string
+	Name string
 }
 
 // PinLsObject contains the description of a pin
 type PinLsObject struct {
 	Cid  string `json:",omitempty"`
+	Name string `json:",omitempty"`
 	Type string `json:",omitempty"`
 }
 
@@ -502,7 +537,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 	return nil
 }
 
-func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
+func pinLsAll(req *cmds.Request, typeStr string, detailed bool, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
@@ -520,7 +555,7 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 		panic("unhandled pin type")
 	}
 
-	pins, err := api.Pin().Ls(req.Context, opt)
+	pins, err := api.Pin().Ls(req.Context, opt, options.Pin.Ls.Detailed(detailed))
 	if err != nil {
 		return err
 	}
@@ -532,6 +567,7 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: p.Type(),
+				Name: p.Name(),
 				Cid:  enc.Encode(p.Path().RootCid()),
 			},
 		})
@@ -748,15 +784,15 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 	out := make(chan any)
 	go func() {
 		defer close(out)
-		for p := range n.Pinning.RecursiveKeys(ctx) {
+		for p := range n.Pinning.RecursiveKeys(ctx, false) {
 			if p.Err != nil {
 				out <- PinVerifyRes{Err: p.Err.Error()}
 				return
 			}
-			pinStatus := checkPin(p.C)
+			pinStatus := checkPin(p.Pin.Key)
 			if !pinStatus.Ok || opts.includeOk {
 				select {
-				case out <- PinVerifyRes{Cid: enc.Encode(p.C), PinStatus: pinStatus}:
+				case out <- PinVerifyRes{Cid: enc.Encode(p.Pin.Key), PinStatus: pinStatus}:
 				case <-ctx.Done():
 					return
 				}

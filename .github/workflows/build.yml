@@ -52,9 +52,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    strategy:
-      matrix:
-        repo-to-test-against: ["helia", "helia-ipns", "helia-unixfs", "helia-car", "helia-dag-json", "helia-dag-cbor", "helia-json", "helia-mfs"] # this needs to be manually kept in sync as new helia tests are written
     steps:
       - uses: actions/setup-node@v3
         with:
@@ -69,17 +66,19 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-${{ github.job }}-${{ matrix.repo-to-test-against }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-${{ github.job }}-${{ matrix.repo-to-test-against }}-
+          key: ${{ runner.os }}-${{ github.job }}-helia-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-${{ github.job }}-helia-
       - run: sudo apt update
       - run: sudo apt install -y libxkbcommon0 libxdamage1 libgbm1 libpango-1.0-0 libcairo2 # dependencies for playwright
       - uses: actions/checkout@v4
         with:
-          repository: ipfs/${{ matrix.repo-to-test-against }}
-          fetch-depth: 0
+          repository: ipfs/helia
+          fetch-depth: 1
           path: interop
+          ref: 'ea5533c794df844c9fb9812e85e2f5e6af09efeb' # temporary while this commit is being released
       - name: Checkout latest tag
         run: |
+          exit 0 # temporary while ea5533c794df844c9fb9812e85e2f5e6af09efeb is released
           export TAG="$(git describe --tags --abbrev=0)"
           echo "Running tests against: $TAG"
           git checkout "$TAG"

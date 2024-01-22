@@ -60,7 +60,7 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 	}
 
 	if settings.Pin {
-		if err = api.pinning.PinWithMode(ctx, b.Cid(), pin.Recursive); err != nil {
+		if err = api.pinning.PinWithMode(ctx, b.Cid(), pin.Recursive, ""); err != nil {
 			return nil, err
 		}
 		if err := api.pinning.Flush(ctx); err != nil {

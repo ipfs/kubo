@@ -152,7 +152,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 				ret.PinErrorMsg = err.Error()
 			} else if nd, err := blockDecoder.DecodeNode(req.Context, block); err != nil {
 				ret.PinErrorMsg = err.Error()
-			} else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
+			} else if err := node.Pinning.Pin(req.Context, nd, true, ""); err != nil {
 				ret.PinErrorMsg = err.Error()
 			} else if err := node.Pinning.Flush(req.Context); err != nil {
 				ret.PinErrorMsg = err.Error()

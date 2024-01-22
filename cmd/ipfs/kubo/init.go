@@ -1,4 +1,4 @@
-package main
+package kubo
 
 import (
 	"context"
@@ -252,7 +252,7 @@ func initializeIpnsKeyspace(repoRoot string) error {
 
 	// pin recursively because this might already be pinned
 	// and doing a direct pin would throw an error in that case
-	err = nd.Pinning.Pin(ctx, emptyDir, true)
+	err = nd.Pinning.Pin(ctx, emptyDir, true, "")
 	if err != nil {
 		return err
 	}

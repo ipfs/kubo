@@ -13,6 +13,9 @@ type Pin interface {
 	// Path to the pinned object
 	Path() path.ImmutablePath
 
+	// Name is the name of the pin.
+	Name() string
+
 	// Type of the pin
 	Type() string
 
