@@ -145,7 +145,7 @@ This section covers tasks to be done during each release.
   - [ ] check out [ipfs/ipfs-desktop](https://github.com/ipfs/ipfs-desktop)
   - [ ] run `npm install`
   - [ ] create a PR which updates `package.json` and `package-lock.json`
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) add @SgtPooki and @whizzzkid as reviewers
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) add @SgtPooki as reviewer
   </details>
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Update Kubo docs <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) update-ipfs-docs` or ...</summary>
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) run the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow
