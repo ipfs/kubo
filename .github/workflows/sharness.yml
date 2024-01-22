@@ -32,7 +32,7 @@ jobs:
           path: kubo
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y socat net-tools fish libxml2-utils
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: test/sharness/lib/dependencies
           key: ${{ runner.os }}-test-generate-junit-html-${{ hashFiles('test/sharness/lib/test-generate-junit-html.sh') }}
