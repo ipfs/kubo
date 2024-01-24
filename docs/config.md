@@ -716,6 +716,8 @@ Toggle and configure experimental features of Kubo. Experimental features are li
 
 Options for the HTTP gateway.
 
+**NOTE:** support for `/api/v0` under the gateway path is now deprecated. It will be removed in future versions: https://github.com/ipfs/kubo/issues/10312.
+
 ### `Gateway.NoFetch`
 
 When set to true, the gateway will only serve content already in the local repo
@@ -819,14 +821,14 @@ Example:
   "Gateway": {
     "PublicGateways": {
       "example.com": {
-        "Paths": ["/ipfs", "/ipns"],
+        "Paths": ["/ipfs"],
       }
     }
   }
 }
 ```
 
-Above enables `http://example.com/ipfs/*` and `http://example.com/ipns/*` but not `http://example.com/api/*`
+Above enables `http://example.com/ipfs/*` but not `http://example.com/ipns/*`
 
 Default: `[]`
 
@@ -851,7 +853,6 @@ between content roots.
         }
         ```
     - **Backward-compatible:** requests for content paths such as `http://{hostname}/ipfs/{cid}` produce redirect to `http://{cid}.ipfs.{hostname}`
-    - **API:** if `/api` is on the `Paths` whitelist, `http://{hostname}/api/{cmd}` produces redirect to `http://api.{hostname}/api/{cmd}`
 
 - `false` - enables [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
   - Example:
@@ -860,7 +861,7 @@ between content roots.
         "PublicGateways": {
             "ipfs.io": {
                 "UseSubdomains": false,
-                "Paths": ["/ipfs", "/ipns", "/api"]
+                "Paths": ["/ipfs", "/ipns"]
             }
         }
     }
@@ -969,7 +970,7 @@ Below is a list of the most common public gateway setups.
    $ ipfs config --json Gateway.PublicGateways '{
        "ipfs.io": {
          "UseSubdomains": false,
-         "Paths": ["/ipfs", "/ipns", "/api"]
+         "Paths": ["/ipfs", "/ipns"]
        }
      }'
    ```
