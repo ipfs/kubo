@@ -139,11 +139,7 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 			namesys.WithDatastore(n.Repo.Datastore()),
 			namesys.WithDNSResolver(n.DNSResolver),
 			namesys.WithCache(cs),
-		}
-
-		if !cfg.Ipns.MaxCacheTTL.IsDefault() {
-			// Default value won't be used since we check for it. There is no default.
-			nsOptions = append(nsOptions, namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(time.Second)))
+			namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL)),
 		}
 
 		vsRouting = offlineroute.NewOfflineRouter(n.Repo.Datastore(), n.RecordValidator)

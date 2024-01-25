@@ -273,7 +273,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(BitswapOptions(cfg, shouldBitswapProvide)),
 		fx.Provide(OnlineExchange()),
 		fx.Provide(DNSResolver),
-		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(0))),
+		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),
 		PeerWith(cfg.Peering.Peers...),
 

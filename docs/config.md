@@ -1141,16 +1141,30 @@ Type: `integer` (non-negative, 0 means the default)
 
 ### `Ipns.MaxCacheTTL`
 
-Maximum duration for which entries are valid in the name system cache.
+Maximum duration for which entries are valid in the name system cache. Applied
+to everything under `/ipns/` namespace, allows you to cap
+the [Time-To-Live (TTL)](https://specs.ipfs.tech/ipns/ipns-record/#ttl-uint64) of
+[IPNS Records](https://specs.ipfs.tech/ipns/ipns-record/)
+AND also DNSLink TXT records (when DoH-specific [`DNS.MaxCacheTTL`](https://github.com/ipfs/kubo/blob/master/docs/config.md#dnsmaxcachettl)
+is not set to a lower value).
 
-This allows you to cap the Time-To-Live suggested by [IPNS entries](https://specs.ipfs.tech/ipns/ipns-record/#ttl-uint64).
-If present, the upper bound is applied to the resolved IPNS entries.
+When `Ipns.MaxCacheTTL` is set, it defines the upper bound limit of how long a
+[IPNS Name](https://specs.ipfs.tech/ipns/ipns-record/#ipns-name) lookup result
+will be cached and read from cache before checking for updates.
 
 **Examples:**
-* `"5m"` DNS entries are kept for 5 minutes or less.
-* `"0s"` DNS entries expire as soon as they are retrieved.
+* `"1m"` IPNS results are cached 1m or less (good compromise for system where
+  faster updates are desired).
+* `"0s"` IPNS caching is effectively turned off (useful for testing, bad for production use)
+  - **Note:** setting this to `0` will turn off TTL-based caching entirely.
+    This is discouraged in production environments. It will make IPNS websites
+    artificially slow because IPNS resolution results will expire as soon as
+    they are retrieved, forcing expensive IPNS lookup to happen on every
+    request. If you want near-real-time IPNS, set it to a low, but still
+    sensible value, such as `1m`.
 
-Default: Respect IPNS entry TTL
+Default: No upper bound, [TTL from IPNS Record](https://specs.ipfs.tech/ipns/ipns-record/#ttl-uint64)  (see `ipns name publish --help`) is always respected.
+
 
 Type: `optionalDuration`
 
@@ -2333,7 +2347,7 @@ If present, the upper bound is applied to DoH resolvers in [`DNS.Resolvers`](#dn
 Note: this does NOT work with Go's default DNS resolver. To make this a global setting, add a `.` entry to `DNS.Resolvers` first.
 
 **Examples:**
-* `"5m"` DNS entries are kept for 5 minutes or less.
+* `"1m"` DNS entries are kept for 1 minute or less.
 * `"0s"` DNS entries expire as soon as they are retrieved.
 
 Default: Respect DNS Response TTL

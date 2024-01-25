@@ -14,7 +14,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	bserv "github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
@@ -27,6 +26,7 @@ import (
 	provider "github.com/ipfs/boxo/provider"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/options"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -230,11 +230,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 			namesys.WithDatastore(subAPI.repo.Datastore()),
 			namesys.WithDNSResolver(subAPI.dnsResolver),
 			namesys.WithCache(cs),
-		}
-
-		if !cfg.Ipns.MaxCacheTTL.IsDefault() {
-			// Default value won't be used since we check for it. There is no default.
-			nsOptions = append(nsOptions, namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(time.Second)))
+			namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL)),
 		}
 
 		subAPI.routing = offlineroute.NewOfflineRouter(subAPI.repo.Datastore(), subAPI.recordValidator)

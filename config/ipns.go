@@ -1,5 +1,14 @@
 package config
 
+import (
+	"math"
+	"time"
+)
+
+const (
+	DefaultIpnsMaxCacheTTL = time.Duration(math.MaxInt64)
+)
+
 type Ipns struct {
 	RepublishPeriod string
 	RecordLifetime  string

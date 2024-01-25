@@ -33,13 +33,11 @@ func Namesys(cacheSize int, cacheMaxTTL time.Duration) func(rt irouting.ProvideM
 		opts := []namesys.Option{
 			namesys.WithDatastore(repo.Datastore()),
 			namesys.WithDNSResolver(rslv),
+			namesys.WithMaxCacheTTL(cacheMaxTTL),
 		}
 
 		if cacheSize > 0 {
 			opts = append(opts, namesys.WithCache(cacheSize))
-		}
-		if cacheMaxTTL > 0 {
-			opts = append(opts, namesys.WithMaxCacheTTL(cacheMaxTTL))
 		}
 
 		return namesys.NewNameSystem(rt, opts...)
