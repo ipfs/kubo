@@ -84,6 +84,7 @@ config file at runtime.
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
+    - [`Ipns.MaxCacheTTL`](#ipnsmaxcachettl)
     - [`Ipns.UsePubsub`](#ipnsusepubsub)
   - [`Migration`](#migration)
     - [`Migration.DownloadSources`](#migrationdownloadsources)
@@ -1137,6 +1138,21 @@ will be kept cached until their lifetime is expired.
 Default: `128`
 
 Type: `integer` (non-negative, 0 means the default)
+
+### `Ipns.MaxCacheTTL`
+
+Maximum duration for which entries are valid in the name system cache.
+
+This allows you to cap the Time-To-Live suggested by [IPNS entries](https://specs.ipfs.tech/ipns/ipns-record/#ttl-uint64).
+If present, the upper bound is applied to the resolved IPNS entries.
+
+**Examples:**
+* `"5m"` DNS entries are kept for 5 minutes or less.
+* `"0s"` DNS entries expire as soon as they are retrieved.
+
+Default: Respect IPNS entry TTL
+
+Type: `optionalDuration`
 
 ### `Ipns.UsePubsub`
 

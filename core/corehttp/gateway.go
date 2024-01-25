@@ -135,11 +135,19 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 			return nil, fmt.Errorf("cannot specify negative resolve cache size")
 		}
 
-		vsRouting = offlineroute.NewOfflineRouter(n.Repo.Datastore(), n.RecordValidator)
-		nsys, err = namesys.NewNameSystem(vsRouting,
+		nsOptions := []namesys.Option{
 			namesys.WithDatastore(n.Repo.Datastore()),
 			namesys.WithDNSResolver(n.DNSResolver),
-			namesys.WithCache(cs))
+			namesys.WithCache(cs),
+		}
+
+		if !cfg.Ipns.MaxCacheTTL.IsDefault() {
+			// Default value won't be used since we check for it. There is no default.
+			nsOptions = append(nsOptions, namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(time.Second)))
+		}
+
+		vsRouting = offlineroute.NewOfflineRouter(n.Repo.Datastore(), n.RecordValidator)
+		nsys, err = namesys.NewNameSystem(vsRouting, nsOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}

@@ -14,6 +14,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	bserv "github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
@@ -225,12 +226,20 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 			return nil, fmt.Errorf("cannot specify negative resolve cache size")
 		}
 
-		subAPI.routing = offlineroute.NewOfflineRouter(subAPI.repo.Datastore(), subAPI.recordValidator)
-
-		subAPI.namesys, err = namesys.NewNameSystem(subAPI.routing,
+		nsOptions := []namesys.Option{
 			namesys.WithDatastore(subAPI.repo.Datastore()),
 			namesys.WithDNSResolver(subAPI.dnsResolver),
-			namesys.WithCache(cs))
+			namesys.WithCache(cs),
+		}
+
+		if !cfg.Ipns.MaxCacheTTL.IsDefault() {
+			// Default value won't be used since we check for it. There is no default.
+			nsOptions = append(nsOptions, namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(time.Second)))
+		}
+
+		subAPI.routing = offlineroute.NewOfflineRouter(subAPI.repo.Datastore(), subAPI.recordValidator)
+
+		subAPI.namesys, err = namesys.NewNameSystem(subAPI.routing, nsOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
