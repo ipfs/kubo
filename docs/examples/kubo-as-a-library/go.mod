@@ -10,7 +10,7 @@ require (
 	github.com/ipfs/boxo v0.17.1-0.20240126101119-fdfcfcc0708a
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.32.2
-	github.com/multiformats/go-multiaddr v0.12.1
+	github.com/multiformats/go-multiaddr v0.12.2
 )
 
 require (
