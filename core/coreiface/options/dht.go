@@ -1,64 +1,29 @@
 package options
 
-type DhtProvideSettings struct {
-	Recursive bool
-}
+// nolint deprecated
+// Deprecated: use [RoutingProvideSettings] instead.
+type DhtProvideSettings = RoutingProvideSettings
 
-type DhtFindProvidersSettings struct {
-	NumProviders int
-}
+// nolint deprecated
+// Deprecated: use [RoutingFindProvidersSettings] instead.
+type DhtFindProvidersSettings = RoutingFindProvidersSettings
 
-type (
-	DhtProvideOption       func(*DhtProvideSettings) error
-	DhtFindProvidersOption func(*DhtFindProvidersSettings) error
-)
+// nolint deprecated
+// Deprecated: use [RoutingProvideOption] instead.
+type DhtProvideOption = RoutingProvideOption
 
-func DhtProvideOptions(opts ...DhtProvideOption) (*DhtProvideSettings, error) {
-	options := &DhtProvideSettings{
-		Recursive: false,
-	}
+// nolint deprecated
+// Deprecated: use [RoutingFindProvidersOption] instead.
+type DhtFindProvidersOption = RoutingFindProvidersOption
 
-	for _, opt := range opts {
-		err := opt(options)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return options, nil
-}
+// nolint deprecated
+// Deprecated: use [RoutingProvideOptions] instead.
+var DhtProvideOptions = RoutingProvideOptions
 
-func DhtFindProvidersOptions(opts ...DhtFindProvidersOption) (*DhtFindProvidersSettings, error) {
-	options := &DhtFindProvidersSettings{
-		NumProviders: 20,
-	}
+// nolint deprecated
+// Deprecated: use [RoutingFindProvidersOptions] instead.
+var DhtFindProvidersOptions = RoutingFindProvidersOptions
 
-	for _, opt := range opts {
-		err := opt(options)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return options, nil
-}
-
-type dhtOpts struct{}
-
-var Dht dhtOpts
-
-// Recursive is an option for Dht.Provide which specifies whether to provide
-// the given path recursively
-func (dhtOpts) Recursive(recursive bool) DhtProvideOption {
-	return func(settings *DhtProvideSettings) error {
-		settings.Recursive = recursive
-		return nil
-	}
-}
-
-// NumProviders is an option for Dht.FindProviders which specifies the
-// number of peers to look for. Default is 20
-func (dhtOpts) NumProviders(numProviders int) DhtFindProvidersOption {
-	return func(settings *DhtFindProvidersSettings) error {
-		settings.NumProviders = numProviders
-		return nil
-	}
-}
+// nolint deprecated
+// Deprecated: use [Routing] instead.
+var Dht = Routing
