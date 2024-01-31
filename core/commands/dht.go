@@ -21,63 +21,8 @@ var DhtCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"query":     queryDhtCmd,
-		"findprovs": findProvidersDhtCmd,
-		"findpeer":  findPeerDhtCmd,
-		"get":       getValueDhtCmd,
-		"put":       putValueDhtCmd,
-		"provide":   provideRefDhtCmd,
+		"query": queryDhtCmd,
 	},
-}
-
-var findProvidersDhtCmd = &cmds.Command{
-	Helptext:  findProvidersRoutingCmd.Helptext,
-	Arguments: findProvidersRoutingCmd.Arguments,
-	Options:   findProvidersRoutingCmd.Options,
-	Run:       findProvidersRoutingCmd.Run,
-	Encoders:  findProvidersRoutingCmd.Encoders,
-	Type:      findProvidersRoutingCmd.Type,
-	Status:    cmds.Deprecated,
-}
-
-var findPeerDhtCmd = &cmds.Command{
-	Helptext:  findPeerRoutingCmd.Helptext,
-	Arguments: findPeerRoutingCmd.Arguments,
-	Options:   findPeerRoutingCmd.Options,
-	Run:       findPeerRoutingCmd.Run,
-	Encoders:  findPeerRoutingCmd.Encoders,
-	Type:      findPeerRoutingCmd.Type,
-	Status:    cmds.Deprecated,
-}
-
-var getValueDhtCmd = &cmds.Command{
-	Helptext:  getValueRoutingCmd.Helptext,
-	Arguments: getValueRoutingCmd.Arguments,
-	Options:   getValueRoutingCmd.Options,
-	Run:       getValueRoutingCmd.Run,
-	Encoders:  getValueRoutingCmd.Encoders,
-	Type:      getValueRoutingCmd.Type,
-	Status:    cmds.Deprecated,
-}
-
-var putValueDhtCmd = &cmds.Command{
-	Helptext:  putValueRoutingCmd.Helptext,
-	Arguments: putValueRoutingCmd.Arguments,
-	Options:   putValueRoutingCmd.Options,
-	Run:       putValueRoutingCmd.Run,
-	Encoders:  putValueRoutingCmd.Encoders,
-	Type:      putValueRoutingCmd.Type,
-	Status:    cmds.Deprecated,
-}
-
-var provideRefDhtCmd = &cmds.Command{
-	Helptext:  provideRefRoutingCmd.Helptext,
-	Arguments: provideRefRoutingCmd.Arguments,
-	Options:   provideRefRoutingCmd.Options,
-	Run:       provideRefRoutingCmd.Run,
-	Encoders:  provideRefRoutingCmd.Encoders,
-	Type:      provideRefRoutingCmd.Type,
-	Status:    cmds.Deprecated,
 }
 
 // kademlia extends the routing interface with a command to get the peers closest to the target
