@@ -130,7 +130,8 @@ func (api *CoreAPI) Pin() coreiface.PinAPI {
 	return (*PinAPI)(api)
 }
 
-// Dht returns the DhtAPI interface implementation backed by the go-ipfs node
+// nolint deprecated
+// Deprecated: use [CoreAPI.Routing] instead.
 func (api *CoreAPI) Dht() coreiface.DhtAPI {
 	return (*DhtAPI)(api)
 }

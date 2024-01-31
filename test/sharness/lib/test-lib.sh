@@ -512,7 +512,7 @@ port_from_maddr() {
 
 findprovs_empty() {
   test_expect_success 'findprovs '$1' succeeds' '
-    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut
+    ipfsi 1 routing findprovs -n 1 '$1' > findprovsOut
   '
 
   test_expect_success "findprovs $1 output is empty" '
@@ -522,7 +522,7 @@ findprovs_empty() {
 
 findprovs_expect() {
   test_expect_success 'findprovs '$1' succeeds' '
-    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut &&
+    ipfsi 1 routing findprovs -n 1 '$1' > findprovsOut &&
     echo '$2' > expected
   '
 

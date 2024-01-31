@@ -34,7 +34,8 @@ type CoreAPI interface {
 	// Object returns an implementation of Object API
 	Object() ObjectAPI
 
-	// Dht returns an implementation of Dht API
+	// nolint deprecated
+	// Deprecated: use [Routing] instead.
 	Dht() DhtAPI
 
 	// Swarm returns an implementation of Swarm API
