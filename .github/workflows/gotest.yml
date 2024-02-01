@@ -73,7 +73,7 @@ jobs:
           mv go.sum.bak go.sum
         working-directory: docs/examples/kubo-as-a-library
       - name: Create a proper JUnit XML report
-        uses: pl-strflt/gotest-json-to-junit-xml@v1
+        uses: ipdxco/gotest-json-to-junit-xml@v1
         with:
           input: test/unit/gotest.json
           output: test/unit/gotest.junit.xml
@@ -85,7 +85,7 @@ jobs:
           path: test/unit/gotest.junit.xml
         if: failure() || success()
       - name: Create a HTML report
-        uses: pl-strflt/junit-xml-to-html@v1
+        uses: ipdxco/junit-xml-to-html@v1
         with:
           mode: no-frames
           input: test/unit/gotest.junit.xml
@@ -98,7 +98,7 @@ jobs:
           path: test/unit/gotest.html
         if: failure() || success()
       - name: Create a Markdown report
-        uses: pl-strflt/junit-xml-to-html@v1
+        uses: ipdxco/junit-xml-to-html@v1
         with:
           mode: summary
           input: test/unit/gotest.junit.xml

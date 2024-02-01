@@ -73,7 +73,7 @@ jobs:
           echo >> $GITHUB_STEP_SUMMARY
           cat kubo/test/sharness/test-results/summary.txt >> $GITHUB_STEP_SUMMARY
       - name: Generate one-page HTML report
-        uses: pl-strflt/junit-xml-to-html@v1
+        uses: ipdxco/junit-xml-to-html@v1
         if: failure() || success()
         with:
           mode: no-frames
@@ -81,7 +81,7 @@ jobs:
           output: kubo/test/sharness/test-results/sharness.html
       - name: Upload one-page HTML report to S3
         id: one-page
-        uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
+        uses: ipdxco/custom-github-runners/.github/actions/upload-artifact@main
         if: github.repository == 'ipfs/kubo' && (failure() || success())
         with:
           source: kubo/test/sharness/test-results/sharness.html
@@ -93,7 +93,7 @@ jobs:
           name: sharness.html
           path: kubo/test/sharness/test-results/sharness.html
       - name: Generate full HTML report
-        uses: pl-strflt/junit-xml-to-html@v1
+        uses: ipdxco/junit-xml-to-html@v1
         if: failure() || success()
         with:
           mode: frames
@@ -101,7 +101,7 @@ jobs:
           output: kubo/test/sharness/test-results/sharness-html
       - name: Upload full HTML report to S3
         id: full
-        uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
+        uses: ipdxco/custom-github-runners/.github/actions/upload-artifact@main
         if: github.repository == 'ipfs/kubo' && (failure() || success())
         with:
           source: kubo/test/sharness/test-results/sharness-html
