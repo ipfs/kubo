@@ -1549,10 +1549,12 @@ To force a specific Amino DHT-only mode, client or server, set `Routing.Type` to
 unless you're sure your node is reachable from the public network.
 
 When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate some types of routing
-by leveraging HTTP endpoints compatible with [IPIP-337](https://github.com/ipfs/specs/pull/337)
-in addition to the IPFS DHT.
+by leveraging HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
+introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
+in addition to the Amino DHT.
 By default, an instance of [IPNI](https://github.com/ipni/specs/blob/main/IPNI.md#readme)
 at https://cid.contact is used.
+
 Alternative routing rules can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
 
 Default: `auto` (DHT + IPNI)
