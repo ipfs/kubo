@@ -85,7 +85,7 @@ In the case where node B simply cannot form a connection to node A, despite
 knowing that it needs to, the likely culprit is a bad NAT. When node B learns
 that it needs to connect to node A, it checks the DHT for addresses for node A,
 and then starts trying to connect to them. We can check those addresses by
-running `ipfs dht findpeer <node A peerID>` on node B. This command should
+running `ipfs routing findpeer <node A peerID>` on node B. This command should
 return a list of addresses for node A. If it doesn't return any addresses, then
 you should try running the manual providing command from the previous steps. 
 Example output of addresses might look something like this:
