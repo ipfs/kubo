@@ -30,7 +30,7 @@ import (
 
 const (
 	// default is different name than ipfs.io which is being blocked by some ISPs
-	defaultGatewayURL = "https://dweb.link"
+	defaultGatewayURL = "https://trustless-gateway.link"
 	// Default maximum download size.
 	defaultFetchLimit = 1024 * 1024 * 512
 )
