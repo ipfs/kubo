@@ -763,7 +763,7 @@ Type: `flag`
 ### `Gateway.ExposeRoutingAPI`
 
 An optional flag to expose Kubo `Routing` system on the gateway port
-as an [HTTP `/routing/v1`](https://specs.ipfs.tech/routing/routing-v1/) endpoint on `127.0.0.1`.
+as an [HTTP `/routing/v1`](https://specs.ipfs.tech/routing/http-routing-v1/) endpoint on `127.0.0.1`.
 Use reverse proxy to expose it on a different hostname.
 
 This endpoint can be used by other Kubo instances, as illustrated in
