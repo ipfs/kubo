@@ -227,12 +227,6 @@ func (api *HttpApi) Object() iface.ObjectAPI {
 	return (*ObjectAPI)(api)
 }
 
-// nolint deprecated
-// Deprecated: use [HttpApi.Routing] instead.
-func (api *HttpApi) Dht() iface.DhtAPI {
-	return (*DhtAPI)(api)
-}
-
 func (api *HttpApi) Swarm() iface.SwarmAPI {
 	return (*SwarmAPI)(api)
 }
