@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ipfs/boxo/gateway"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdsHttp "github.com/ipfs/go-ipfs-cmds/http"
 	version "github.com/ipfs/kubo"
@@ -148,13 +147,6 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) 
 		if len(rcfg.API.Authorizations) > 0 {
 			authorizations := convertAuthorizationsMap(rcfg.API.Authorizations)
 			cmdHandler = withAuthSecrets(authorizations, cmdHandler)
-		}
-
-		// TODO[api-on-gw]: remove for Kubo 0.28
-		if command == corecommands.RootRO && allowGet {
-			cmdHandler = gateway.NewHeaders(map[string][]string{
-				"Link": {`<https://github.com/ipfs/kubo/issues/10312>; rel="deprecation"; type="text/html"`},
-			}).Wrap(cmdHandler)
 		}
 
 		cmdHandler = otelhttp.NewHandler(cmdHandler, "corehttp.cmdsHandler")
