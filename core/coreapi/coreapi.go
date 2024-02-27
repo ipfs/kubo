@@ -130,12 +130,6 @@ func (api *CoreAPI) Pin() coreiface.PinAPI {
 	return (*PinAPI)(api)
 }
 
-// nolint deprecated
-// Deprecated: use [CoreAPI.Routing] instead.
-func (api *CoreAPI) Dht() coreiface.DhtAPI {
-	return (*DhtAPI)(api)
-}
-
 // Swarm returns the SwarmAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Swarm() coreiface.SwarmAPI {
 	return (*SwarmAPI)(api)
