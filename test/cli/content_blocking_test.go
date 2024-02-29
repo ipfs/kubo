@@ -35,7 +35,9 @@ func TestContentBlocking(t *testing.T) {
 
 	// Create CIDs we use in test
 	h.WriteFile("parent-dir/blocked-subdir/indirectly-blocked-file.txt", "indirectly blocked file content")
-	parentDirCID := node.IPFS("add", "--raw-leaves", "-Q", "-r", filepath.Join(h.Dir, "parent-dir")).Stdout.Trimmed()
+	allowedParentDirCID := node.IPFS("add", "--raw-leaves", "-Q", "-r", "--pin=false", filepath.Join(h.Dir, "parent-dir")).Stdout.Trimmed()
+	blockedSubDirCID := node.IPFS("add", "--raw-leaves", "-Q", "-r", "--pin=false", filepath.Join(h.Dir, "parent-dir", "blocked-subdir")).Stdout.Trimmed()
+	node.IPFS("block", "rm", blockedSubDirCID)
 
 	h.WriteFile("directly-blocked-file.txt", "directly blocked file content")
 	blockedCID := node.IPFS("add", "--raw-leaves", "-Q", filepath.Join(h.Dir, "directly-blocked-file.txt")).Stdout.Trimmed()
@@ -50,7 +52,7 @@ func TestContentBlocking(t *testing.T) {
 		"//8526ba05eec55e28f8db5974cc891d0d92c8af69d386fc6464f1e9f372caf549\n" + // Legacy CID double-hash block: sha256(bafkqahtcnrxwg23fmqqgi33vmjwgk2dbonuca3dfm5qwg6jamnuwicq/)
 		"//e5b7d2ce2594e2e09901596d8e1f29fa249b74c8c9e32ea01eda5111e4d33f07\n" + // Legacy Path double-hash block: sha256(bafyaagyscufaqalqaacauaqiaejao43vmjygc5didacauaqiae/subpath)
 		"/ipfs/" + blockedCID + "\n" + // block specific CID
-		"/ipfs/" + parentDirCID + "/blocked-subdir*\n" + // block only specific subpath
+		"/ipfs/" + allowedParentDirCID + "/blocked-subdir*\n" + // block only specific subpath
 		"/ipns/blocked-cid.example.com\n" +
 		"/ipns/blocked-dnslink.example.com\n")
 
@@ -94,7 +96,7 @@ func TestContentBlocking(t *testing.T) {
 	// Confirm parent of blocked subpath is not blocked
 	t.Run("Gateway Allows parent Path that is not blocked", func(t *testing.T) {
 		t.Parallel()
-		resp := client.Get("/ipfs/" + parentDirCID)
+		resp := client.Get("/ipfs/" + allowedParentDirCID)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	})
 
@@ -104,12 +106,12 @@ func TestContentBlocking(t *testing.T) {
 		path string
 	}{
 		{
-			name: "directly blocked CID",
+			name: "directly blocked file CID",
 			path: "/ipfs/" + blockedCID,
 		},
 		{
 			name: "indirectly blocked file (on a blocked subpath)",
-			path: "/ipfs/" + parentDirCID + "/blocked-subdir/indirectly-blocked-file.txt",
+			path: "/ipfs/" + allowedParentDirCID + "/blocked-subdir/indirectly-blocked-file.txt",
 		},
 		{
 			name: "/ipns path that resolves to a blocked CID",
@@ -161,9 +163,14 @@ func TestContentBlocking(t *testing.T) {
 			t.Run(cliTestName, func(t *testing.T) {
 				t.Parallel()
 				args := append(cmd, testCase.path)
-				errMsg := node.RunIPFS(args...).Stderr.Trimmed()
-				if !strings.Contains(errMsg, expectedMsg) {
-					t.Errorf("Expected STDERR error message %q, but got: %q", expectedMsg, errMsg)
+				cmd := node.RunIPFS(args...)
+				stdout := cmd.Stdout.Trimmed()
+				stderr := cmd.Stderr.Trimmed()
+				if !strings.Contains(stderr, expectedMsg) {
+					t.Errorf("Expected STDERR error message %q, but got: %q", expectedMsg, stderr)
+					if stdout != "" {
+						t.Errorf("Expected STDOUT to be empty, but got: %q", stdout)
+					}
 				}
 			})
 		}
