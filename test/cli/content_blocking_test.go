@@ -34,8 +34,8 @@ func TestContentBlocking(t *testing.T) {
 	node := h.NewNode().Init("--empty-repo", "--profile=test")
 
 	// Create CIDs we use in test
-	h.WriteFile("blocked-dir/subdir/indirectly-blocked-file.txt", "indirectly blocked file content")
-	parentDirCID := node.IPFS("add", "--raw-leaves", "-Q", "-r", filepath.Join(h.Dir, "blocked-dir")).Stdout.Trimmed()
+	h.WriteFile("parent-dir/blocked-subdir/indirectly-blocked-file.txt", "indirectly blocked file content")
+	parentDirCID := node.IPFS("add", "--raw-leaves", "-Q", "-r", filepath.Join(h.Dir, "parent-dir")).Stdout.Trimmed()
 
 	h.WriteFile("directly-blocked-file.txt", "directly blocked file content")
 	blockedCID := node.IPFS("add", "--raw-leaves", "-Q", filepath.Join(h.Dir, "directly-blocked-file.txt")).Stdout.Trimmed()
@@ -50,7 +50,7 @@ func TestContentBlocking(t *testing.T) {
 		"//8526ba05eec55e28f8db5974cc891d0d92c8af69d386fc6464f1e9f372caf549\n" + // Legacy CID double-hash block: sha256(bafkqahtcnrxwg23fmqqgi33vmjwgk2dbonuca3dfm5qwg6jamnuwicq/)
 		"//e5b7d2ce2594e2e09901596d8e1f29fa249b74c8c9e32ea01eda5111e4d33f07\n" + // Legacy Path double-hash block: sha256(bafyaagyscufaqalqaacauaqiaejao43vmjygc5didacauaqiae/subpath)
 		"/ipfs/" + blockedCID + "\n" + // block specific CID
-		"/ipfs/" + parentDirCID + "/subdir*\n" + // block only specific subpath
+		"/ipfs/" + parentDirCID + "/blocked-subdir*\n" + // block only specific subpath
 		"/ipns/blocked-cid.example.com\n" +
 		"/ipns/blocked-dnslink.example.com\n")
 
@@ -109,7 +109,7 @@ func TestContentBlocking(t *testing.T) {
 		},
 		{
 			name: "indirectly blocked file (on a blocked subpath)",
-			path: "/ipfs/" + parentDirCID + "/subdir/indirectly-blocked-file.txt",
+			path: "/ipfs/" + parentDirCID + "/blocked-subdir/indirectly-blocked-file.txt",
 		},
 		{
 			name: "/ipns path that resolves to a blocked CID",
