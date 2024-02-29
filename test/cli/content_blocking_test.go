@@ -12,7 +12,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/test/cli/harness"
+	carstore "github.com/ipld/go-car/v2/blockstore"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/peer"
 	libp2phttp "github.com/libp2p/go-libp2p/p2p/http"
@@ -98,6 +100,19 @@ func TestContentBlocking(t *testing.T) {
 		t.Parallel()
 		resp := client.Get("/ipfs/" + allowedParentDirCID)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+
+	// Confirm CAR responses skip blocked subpaths
+	t.Run("Gateway returns CAR without blocked subpath", func(t *testing.T) {
+		resp := client.Get("/ipfs/" + allowedParentDirCID + "/subdir?format=car")
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		bs, err := carstore.NewReadOnly(strings.NewReader(resp.Body), nil)
+		assert.NoError(t, err)
+
+		has, err := bs.Has(context.Background(), cid.MustParse(blockedSubDirCID))
+		assert.NoError(t, err)
+		assert.False(t, has)
 	})
 
 	// Ok, now the full list of test cases we want to cover in both CLI and Gateway
