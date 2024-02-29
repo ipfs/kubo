@@ -306,5 +306,17 @@ func TestContentBlocking(t *testing.T) {
 			assert.NotEqual(t, string(body), "directly blocked file content")
 			assert.Contains(t, string(body), blockedMsg, bodyExpl)
 		})
+
+		t.Run("Denies Blocked CID as CAR", func(t *testing.T) {
+			t.Parallel()
+			resp, err := libp2pClient.Get(fmt.Sprintf("/ipfs/%s?format=car", blockedCID))
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			assert.NotContains(t, string(body), "directly blocked file content")
+			assert.Contains(t, string(body), blockedMsg, bodyExpl)
+		})
 	})
 }
