@@ -12,7 +12,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/test/cli/harness"
+	cbs "github.com/ipld/go-car/v2/blockstore"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/peer"
 	libp2phttp "github.com/libp2p/go-libp2p/p2p/http"
@@ -36,6 +38,7 @@ func TestContentBlocking(t *testing.T) {
 	// Create CIDs we use in test
 	h.WriteFile("blocked-dir/subdir/indirectly-blocked-file.txt", "indirectly blocked file content")
 	parentDirCID := node.IPFS("add", "--raw-leaves", "-Q", "-r", filepath.Join(h.Dir, "blocked-dir")).Stdout.Trimmed()
+	blockedCIDInParentDirCID := node.IPFS("add", "--raw-leaves", "-Q", "-r", filepath.Join(h.Dir, "blocked-dir", "subdir")).Stdout.Trimmed()
 
 	h.WriteFile("directly-blocked-file.txt", "directly blocked file content")
 	blockedCID := node.IPFS("add", "--raw-leaves", "-Q", filepath.Join(h.Dir, "directly-blocked-file.txt")).Stdout.Trimmed()
@@ -98,18 +101,43 @@ func TestContentBlocking(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	})
 
+	// Does the gateway deny indirectly blocked CID?
+	t.Run("Gateway Denies indirectly blocked CID", func(t *testing.T) {
+		t.Parallel()
+		resp := client.Get("/ipfs/" + blockedCIDInParentDirCID)
+		assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
+		assert.NotEqual(t, "directly blocked file content", resp.Body)
+		assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
+	})
+
+	// Does the gateway return CAR
+	t.Run("Gateway returns parent path CAR without blocked CID", func(t *testing.T) {
+		resp := client.Get("/ipfs/" + parentDirCID + "?format=car")
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		bs, err := cbs.NewReadOnly(strings.NewReader(resp.Body), nil)
+		assert.NoError(t, err)
+
+		has, err := bs.Has(context.Background(), cid.MustParse(blockedCIDInParentDirCID))
+		assert.NoError(t, err)
+		assert.False(t, has)
+	})
+
 	// Ok, now the full list of test cases we want to cover in both CLI and Gateway
 	testCases := []struct {
-		name string
-		path string
+		name             string
+		path             string
+		trustlessFormats []string
 	}{
 		{
-			name: "directly blocked CID",
-			path: "/ipfs/" + blockedCID,
+			name:             "directly blocked CID",
+			path:             "/ipfs/" + blockedCID,
+			trustlessFormats: []string{"raw", "car"},
 		},
 		{
-			name: "indirectly blocked file (on a blocked subpath)",
-			path: "/ipfs/" + parentDirCID + "/subdir/indirectly-blocked-file.txt",
+			name:             "indirectly blocked file (on a blocked subpath)",
+			path:             "/ipfs/" + parentDirCID + "/subdir/indirectly-blocked-file.txt",
+			trustlessFormats: []string{"car"},
 		},
 		{
 			name: "/ipns path that resolves to a blocked CID",
@@ -120,21 +148,25 @@ func TestContentBlocking(t *testing.T) {
 			path: "/ipns/blocked-dnslink.example.com",
 		},
 		{
-			name: "double-hash CID block (sha256-multihash)",
-			path: "/ipfs/QmVTF1yEejXd9iMgoRTFDxBv7HAz9kuZcQNBzHrceuK9HR",
+			name:             "double-hash CID block (sha256-multihash)",
+			path:             "/ipfs/QmVTF1yEejXd9iMgoRTFDxBv7HAz9kuZcQNBzHrceuK9HR",
+			trustlessFormats: []string{"raw", "car"},
 		},
 		{
 			name: "double-hash Path block (blake3-multihash)",
 			path: "/ipfs/bafyb4ieqht3b2rssdmc7sjv2cy2gfdilxkfh7623nvndziyqnawkmo266a/path",
+			// trustlessFormats: []string{"car"},
 		},
 		{
-			name: "legacy CID double-hash block (sha256)",
-			path: "/ipfs/bafkqahtcnrxwg23fmqqgi33vmjwgk2dbonuca3dfm5qwg6jamnuwicq",
+			name:             "legacy CID double-hash block (sha256)",
+			path:             "/ipfs/bafkqahtcnrxwg23fmqqgi33vmjwgk2dbonuca3dfm5qwg6jamnuwicq",
+			trustlessFormats: []string{"raw", "car"},
 		},
 
 		{
-			name: "legacy Path double-hash block (sha256)",
-			path: "/ipfs/bafyaagyscufaqalqaacauaqiaejao43vmjygc5didacauaqiae/subpath",
+			name:             "legacy Path double-hash block (sha256)",
+			path:             "/ipfs/bafyaagyscufaqalqaacauaqiaejao43vmjygc5didacauaqiae/subpath",
+			trustlessFormats: []string{"car"},
 		},
 	}
 
@@ -168,18 +200,18 @@ func TestContentBlocking(t *testing.T) {
 			})
 		}
 
-		// Confirm that denylist is active for every content path in 'testCases'
-		gwTestName := fmt.Sprintf("Gateway denies %s", testCase.name)
-		t.Run(gwTestName, func(t *testing.T) {
-			resp := client.Get(testCase.path)
-			assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
-			assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
-		})
-
+		for _, format := range []string{"", "raw", "car"} { // CARs should also fail immediately since we access the file directly.
+			// Confirm that denylist is active for every content path in 'testCases' with different formats
+			gwTestName := fmt.Sprintf("Gateway denies %s with format %s", testCase.name, format)
+			t.Run(gwTestName, func(t *testing.T) {
+				resp := client.Get(testCase.path + "?format=" + format)
+				assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
+				assert.Contains(t, resp.Body, blockedMsg, bodyExpl)
+			})
+		}
 	}
 
 	// Extra edge cases on subdomain gateway
-
 	t.Run("Gateway Denies /ipns Path that is blocked by DNSLink name (subdomain redirect)", func(t *testing.T) {
 		t.Parallel()
 
@@ -299,5 +331,37 @@ func TestContentBlocking(t *testing.T) {
 			assert.NotEqual(t, string(body), "directly blocked file content")
 			assert.Contains(t, string(body), blockedMsg, bodyExpl)
 		})
+
+		t.Run("Denies Blocked CID (CAR)", func(t *testing.T) {
+			t.Parallel()
+			resp, err := libp2pClient.Get(fmt.Sprintf("/ipfs/%s?format=car", blockedCID))
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			assert.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			assert.NotEqual(t, string(body), "directly blocked file content")
+			assert.Contains(t, string(body), blockedMsg, bodyExpl)
+		})
+
+		for _, testCase := range testCases {
+			if len(testCase.trustlessFormats) == 0 {
+				continue
+			}
+
+			for _, format := range testCase.trustlessFormats {
+				gwTestName := fmt.Sprintf("Gateway denies %s with format %s", testCase.name, format)
+				t.Run(gwTestName, func(t *testing.T) {
+					resp, err := libp2pClient.Get(testCase.path + "?format=" + format)
+					require.NoError(t, err)
+					defer resp.Body.Close()
+					require.Equal(t, http.StatusGone, resp.StatusCode, statusExpl)
+					body, err := io.ReadAll(resp.Body)
+					require.NoError(t, err)
+					require.NotEqual(t, string(body), "directly blocked file content")
+					require.Contains(t, string(body), blockedMsg, bodyExpl)
+				})
+			}
+		}
 	})
 }
