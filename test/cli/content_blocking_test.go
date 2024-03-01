@@ -115,6 +115,34 @@ func TestContentBlocking(t *testing.T) {
 		assert.False(t, has)
 	})
 
+	/* TODO: this was already broken in 0.26, but we should fix it
+	t.Run("Gateway returns CAR without directly blocked CID", func(t *testing.T) {
+		allowedDirWithDirectlyBlockedCID := node.IPFS("add", "--raw-leaves", "-Q", "-rw", filepath.Join(h.Dir, "directly-blocked-file.txt")).Stdout.Trimmed()
+		resp := client.Get("/ipfs/" + allowedDirWithDirectlyBlockedCID + "?format=car")
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		bs, err := carstore.NewReadOnly(strings.NewReader(resp.Body), nil)
+		assert.NoError(t, err)
+
+		has, err := bs.Has(context.Background(), cid.MustParse(blockedCID))
+		assert.NoError(t, err)
+		assert.False(t, has, "Returned CAR should not include blockedCID")
+	})
+	*/
+
+	// Confirm CAR responses skip blocked subpaths
+	t.Run("Gateway returns CAR without blocked subpath", func(t *testing.T) {
+		resp := client.Get("/ipfs/" + allowedParentDirCID + "/subdir?format=car")
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		bs, err := carstore.NewReadOnly(strings.NewReader(resp.Body), nil)
+		assert.NoError(t, err)
+
+		has, err := bs.Has(context.Background(), cid.MustParse(blockedSubDirCID))
+		assert.NoError(t, err)
+		assert.False(t, has, "Returned CAR should not include blockedSubDirCID")
+	})
+
 	// Ok, now the full list of test cases we want to cover in both CLI and Gateway
 	testCases := []struct {
 		name string
