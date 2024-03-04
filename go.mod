@@ -13,7 +13,7 @@ require (
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5
 	github.com/fsnotify/fsnotify v1.6.0
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ipfs-shipyard/nopfs v0.0.12
 	github.com/ipfs-shipyard/nopfs/ipfs v0.13.2-0.20231027223058-cde3b5ba964c
@@ -49,7 +49,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.4.0
 	github.com/libp2p/go-libp2p v0.33.0
 	github.com/libp2p/go-libp2p-http v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.24.4
+	github.com/libp2p/go-libp2p-kad-dht v0.25.2
 	github.com/libp2p/go-libp2p-kbucket v0.6.3
 	github.com/libp2p/go-libp2p-pubsub v0.10.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
@@ -66,7 +66,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.18.0
+	github.com/prometheus/client_golang v1.19.0
 	github.com/stretchr/testify v1.8.4
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tidwall/gjson v1.14.4
@@ -76,15 +76,15 @@ require (
 	go.opencensus.io v0.24.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.46.1
 	go.opentelemetry.io/contrib/propagators/autoprop v0.46.1
-	go.opentelemetry.io/otel v1.22.0
+	go.opentelemetry.io/otel v1.24.0
 	go.opentelemetry.io/otel/sdk v1.21.0
-	go.opentelemetry.io/otel/trace v1.22.0
+	go.opentelemetry.io/otel/trace v1.24.0
 	go.uber.org/dig v1.17.1
 	go.uber.org/fx v1.20.1
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.19.0
-	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
+	golang.org/x/crypto v0.20.0
+	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 	golang.org/x/mod v0.15.0
 	golang.org/x/sync v0.6.0
 	golang.org/x/sys v0.17.0
@@ -200,7 +200,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/prometheus/client_model v0.6.0 // indirect
-	github.com/prometheus/common v0.47.0 // indirect
+	github.com/prometheus/common v0.49.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/prometheus/statsd_exporter v0.22.7 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
@@ -216,7 +216,7 @@ require (
 	github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb // indirect
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	github.com/whyrusleeping/cbor v0.0.0-20171005072247-63513f603b11 // indirect
-	github.com/whyrusleeping/cbor-gen v0.0.0-20240109153615-66e95c3e8a87 // indirect
+	github.com/whyrusleeping/cbor-gen v0.1.0 // indirect
 	github.com/whyrusleeping/chunker v0.0.0-20181014151217-fe64bd25879f // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
 	go.opentelemetry.io/contrib/propagators/aws v1.21.1 // indirect
@@ -228,13 +228,13 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.21.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.21.0 // indirect
 	go.opentelemetry.io/otel/exporters/zipkin v1.21.0 // indirect
-	go.opentelemetry.io/otel/metric v1.22.0 // indirect
+	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/net v0.21.0 // indirect
-	golang.org/x/oauth2 v0.16.0 // indirect
+	golang.org/x/oauth2 v0.17.0 // indirect
 	golang.org/x/term v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.18.0 // indirect
