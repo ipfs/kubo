@@ -84,6 +84,7 @@ config file at runtime.
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
+    - [`Ipns.MaxCacheTTL`](#ipnsmaxcachettl)
     - [`Ipns.UsePubsub`](#ipnsusepubsub)
   - [`Migration`](#migration)
     - [`Migration.DownloadSources`](#migrationdownloadsources)
@@ -716,6 +717,8 @@ Toggle and configure experimental features of Kubo. Experimental features are li
 
 Options for the HTTP gateway.
 
+**NOTE:** support for `/api/v0` under the gateway path is now deprecated. It will be removed in future versions: https://github.com/ipfs/kubo/issues/10312.
+
 ### `Gateway.NoFetch`
 
 When set to true, the gateway will only serve content already in the local repo
@@ -759,11 +762,15 @@ Type: `flag`
 
 ### `Gateway.ExposeRoutingAPI`
 
-An optional flag to expose Kubo `Routing` system on the gateway port as a [Routing
-V1](https://specs.ipfs.tech/routing/routing-v1/) endpoint.  This only affects your
-local gateway, at `127.0.0.1`.
+An optional flag to expose Kubo `Routing` system on the gateway port
+as an [HTTP `/routing/v1`](https://specs.ipfs.tech/routing/http-routing-v1/) endpoint on `127.0.0.1`.
+Use reverse proxy to expose it on a different hostname.
 
-This endpoint can be used by other Kubo instance, as illustrated in [`delegated_routing_v1_http_proxy_test.go`](https://github.com/ipfs/kubo/blob/master/test/cli/delegated_routing_v1_http_proxy_test.go).
+This endpoint can be used by other Kubo instances, as illustrated in
+[`delegated_routing_v1_http_proxy_test.go`](https://github.com/ipfs/kubo/blob/master/test/cli/delegated_routing_v1_http_proxy_test.go).
+Kubo will filter out routing results which are not actionable, for example, all
+graphsync providers will be skipped. If you need a generic pass-through, see
+standalone router implementation named [someguy](https://github.com/ipfs/someguy).
 
 Default: `false`
 
@@ -819,14 +826,14 @@ Example:
   "Gateway": {
     "PublicGateways": {
       "example.com": {
-        "Paths": ["/ipfs", "/ipns"],
+        "Paths": ["/ipfs"],
       }
     }
   }
 }
 ```
 
-Above enables `http://example.com/ipfs/*` and `http://example.com/ipns/*` but not `http://example.com/api/*`
+Above enables `http://example.com/ipfs/*` but not `http://example.com/ipns/*`
 
 Default: `[]`
 
@@ -851,7 +858,6 @@ between content roots.
         }
         ```
     - **Backward-compatible:** requests for content paths such as `http://{hostname}/ipfs/{cid}` produce redirect to `http://{cid}.ipfs.{hostname}`
-    - **API:** if `/api` is on the `Paths` whitelist, `http://{hostname}/api/{cmd}` produces redirect to `http://api.{hostname}/api/{cmd}`
 
 - `false` - enables [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
   - Example:
@@ -860,7 +866,7 @@ between content roots.
         "PublicGateways": {
             "ipfs.io": {
                 "UseSubdomains": false,
-                "Paths": ["/ipfs", "/ipns", "/api"]
+                "Paths": ["/ipfs", "/ipns"]
             }
         }
     }
@@ -969,7 +975,7 @@ Below is a list of the most common public gateway setups.
    $ ipfs config --json Gateway.PublicGateways '{
        "ipfs.io": {
          "UseSubdomains": false,
-         "Paths": ["/ipfs", "/ipns", "/api"]
+         "Paths": ["/ipfs", "/ipns"]
        }
      }'
    ```
@@ -1136,6 +1142,35 @@ will be kept cached until their lifetime is expired.
 Default: `128`
 
 Type: `integer` (non-negative, 0 means the default)
+
+### `Ipns.MaxCacheTTL`
+
+Maximum duration for which entries are valid in the name system cache. Applied
+to everything under `/ipns/` namespace, allows you to cap
+the [Time-To-Live (TTL)](https://specs.ipfs.tech/ipns/ipns-record/#ttl-uint64) of
+[IPNS Records](https://specs.ipfs.tech/ipns/ipns-record/)
+AND also DNSLink TXT records (when DoH-specific [`DNS.MaxCacheTTL`](https://github.com/ipfs/kubo/blob/master/docs/config.md#dnsmaxcachettl)
+is not set to a lower value).
+
+When `Ipns.MaxCacheTTL` is set, it defines the upper bound limit of how long a
+[IPNS Name](https://specs.ipfs.tech/ipns/ipns-record/#ipns-name) lookup result
+will be cached and read from cache before checking for updates.
+
+**Examples:**
+* `"1m"` IPNS results are cached 1m or less (good compromise for system where
+  faster updates are desired).
+* `"0s"` IPNS caching is effectively turned off (useful for testing, bad for production use)
+  - **Note:** setting this to `0` will turn off TTL-based caching entirely.
+    This is discouraged in production environments. It will make IPNS websites
+    artificially slow because IPNS resolution results will expire as soon as
+    they are retrieved, forcing expensive IPNS lookup to happen on every
+    request. If you want near-real-time IPNS, set it to a low, but still
+    sensible value, such as `1m`.
+
+Default: No upper bound, [TTL from IPNS Record](https://specs.ipfs.tech/ipns/ipns-record/#ttl-uint64)  (see `ipns name publish --help`) is always respected.
+
+
+Type: `optionalDuration`
 
 ### `Ipns.UsePubsub`
 
@@ -1467,6 +1502,13 @@ Tells reprovider what should be announced. Valid strategies are:
 - `"all"` - announce all CIDs of stored blocks
 - `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks)
 - `"roots"` - only announce the root block of explicitly pinned CIDs
+  - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
+    It makes sense only for use cases where the entire DAG is fetched in full,
+    and a graceful resume does not have to be guaranteed: the lack of child
+    announcements means an interrupted retrieval won't be able to find
+    providers for the missing block in the middle of a file, unless the peer
+    happens to already be connected to a provider and ask for child CID over
+    bitswap.
 
 Default: `"all"`
 
@@ -1511,10 +1553,12 @@ To force a specific Amino DHT-only mode, client or server, set `Routing.Type` to
 unless you're sure your node is reachable from the public network.
 
 When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate some types of routing
-by leveraging HTTP endpoints compatible with [IPIP-337](https://github.com/ipfs/specs/pull/337)
-in addition to the IPFS DHT.
+by leveraging HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
+introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
+in addition to the Amino DHT.
 By default, an instance of [IPNI](https://github.com/ipni/specs/blob/main/IPNI.md#readme)
 at https://cid.contact is used.
+
 Alternative routing rules can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
 
 Default: `auto` (DHT + IPNI)
@@ -2215,7 +2259,7 @@ Type: `priority`
 
 #### `Swarm.Transports.Security.SECIO`
 
-Support for SECIO has been removed. Please remove this option from your config.
+**REMOVED**:  support for SECIO has been removed. Please remove this option from your config.
 
 #### `Swarm.Transports.Security.Noise`
 
@@ -2309,7 +2353,7 @@ If present, the upper bound is applied to DoH resolvers in [`DNS.Resolvers`](#dn
 Note: this does NOT work with Go's default DNS resolver. To make this a global setting, add a `.` entry to `DNS.Resolvers` first.
 
 **Examples:**
-* `"5m"` DNS entries are kept for 5 minutes or less.
+* `"1m"` DNS entries are kept for 1 minute or less.
 * `"0s"` DNS entries expire as soon as they are retrieved.
 
 Default: Respect DNS Response TTL

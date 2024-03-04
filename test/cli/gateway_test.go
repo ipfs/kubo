@@ -158,14 +158,8 @@ func TestGateway(t *testing.T) {
 		t.Run("GET /ipfs/ipfs/{cid} returns redirect to the valid path", func(t *testing.T) {
 			t.Parallel()
 			resp := client.Get("/ipfs/ipfs/bafkqaaa?query=to-remember")
-			assert.Contains(t,
-				resp.Body,
-				`<meta http-equiv="refresh" content="10;url=/ipfs/bafkqaaa?query=to-remember" />`,
-			)
-			assert.Contains(t,
-				resp.Body,
-				`<link rel="canonical" href="/ipfs/bafkqaaa?query=to-remember" />`,
-			)
+			assert.Equal(t, 301, resp.StatusCode)
+			assert.Equal(t, "/ipfs/bafkqaaa?query=to-remember", resp.Resp.Header.Get("Location"))
 		})
 	})
 
@@ -200,15 +194,8 @@ func TestGateway(t *testing.T) {
 		t.Run("GET /ipfs/ipns/{peerid} returns redirect to the valid path", func(t *testing.T) {
 			t.Parallel()
 			resp := client.Get("/ipfs/ipns/{{.PeerID}}?query=to-remember")
-
-			assert.Contains(t,
-				resp.Body,
-				fmt.Sprintf(`<meta http-equiv="refresh" content="10;url=/ipns/%s?query=to-remember" />`, peerID),
-			)
-			assert.Contains(t,
-				resp.Body,
-				fmt.Sprintf(`<link rel="canonical" href="/ipns/%s?query=to-remember" />`, peerID),
-			)
+			assert.Equal(t, 301, resp.StatusCode)
+			assert.Equal(t, fmt.Sprintf("/ipns/%s?query=to-remember", peerID), resp.Resp.Header.Get("Location"))
 		})
 	})
 
