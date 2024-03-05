@@ -106,12 +106,3 @@ Right now only 'full DAG' implicit selector is implemented.
 Support for user-provided IPLD selectors is tracked in https://github.com/ipfs/kubo/issues/8769.
 
 This is a rough equivalent of `ipfs dag export`.
-
-## Deprecated Subset of RPC API
-
-For legacy reasons, some gateways may expose a small subset of RPC API under `/api/v0/`.
-While this read-only API exposes a read-only, "safe" subset of the normal API,
-it is deprecated and should not be used for greenfield projects.
-
-Where possible, leverage `/ipfs/` and `/ipns/` endpoints.
-along with `application/vnd.ipld.*` Content-Types instead.

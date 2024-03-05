@@ -162,72 +162,9 @@ var rootSubcommands = map[string]*cmds.Command{
 	"multibase": MbaseCmd,
 }
 
-// RootRO is the readonly version of Root
-var RootRO = &cmds.Command{}
-
-var CommandsDaemonROCmd = CommandsCmd(RootRO)
-
-// RefsROCmd is `ipfs refs` command
-var RefsROCmd = &cmds.Command{}
-
-// VersionROCmd is `ipfs version` command (without deps).
-var VersionROCmd = &cmds.Command{}
-
-var rootROSubcommands = map[string]*cmds.Command{
-	"commands": CommandsDaemonROCmd,
-	"cat":      CatCmd,
-	"block": {
-		Subcommands: map[string]*cmds.Command{
-			"stat": blockStatCmd,
-			"get":  blockGetCmd,
-		},
-	},
-	"get": GetCmd,
-	"ls":  LsCmd,
-	"name": {
-		Subcommands: map[string]*cmds.Command{
-			"resolve": name.IpnsCmd,
-		},
-	},
-	"object": {
-		Subcommands: map[string]*cmds.Command{
-			"data":  ocmd.ObjectDataCmd,
-			"links": ocmd.ObjectLinksCmd,
-			"get":   ocmd.ObjectGetCmd,
-			"stat":  ocmd.ObjectStatCmd,
-		},
-	},
-	"dag": {
-		Subcommands: map[string]*cmds.Command{
-			"get":     dag.DagGetCmd,
-			"resolve": dag.DagResolveCmd,
-			"stat":    dag.DagStatCmd,
-			"export":  dag.DagExportCmd,
-		},
-	},
-	"resolve": ResolveCmd,
-}
-
 func init() {
 	Root.ProcessHelp()
-	*RootRO = *Root
-
-	// this was in the big map definition above before,
-	// but if we leave it there lgc.NewCommand will be executed
-	// before the value is updated (:/sanitize readonly refs command/)
-
-	// sanitize readonly refs command
-	*RefsROCmd = *RefsCmd
-	RefsROCmd.Subcommands = map[string]*cmds.Command{}
-	rootROSubcommands["refs"] = RefsROCmd
-
-	// sanitize readonly version command (no need to expose precise deps)
-	*VersionROCmd = *VersionCmd
-	VersionROCmd.Subcommands = map[string]*cmds.Command{}
-	rootROSubcommands["version"] = VersionROCmd
-
 	Root.Subcommands = rootSubcommands
-	RootRO.Subcommands = rootROSubcommands
 }
 
 type MessageOutput struct {

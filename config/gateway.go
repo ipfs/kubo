@@ -9,7 +9,7 @@ const (
 
 type GatewaySpec struct {
 	// Paths is explicit list of path prefixes that should be handled by
-	// this gateway. Example: `["/ipfs", "/ipns", "/api"]`
+	// this gateway. Example: `["/ipfs", "/ipns"]`
 	Paths []string
 
 	// UseSubdomains indicates whether or not this gateway uses subdomains

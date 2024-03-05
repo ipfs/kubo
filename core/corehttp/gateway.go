@@ -235,7 +235,7 @@ func (o *offlineGatewayErrWrapper) GetDNSLinkRecord(ctx context.Context, s strin
 
 var _ gateway.IPFSBackend = (*offlineGatewayErrWrapper)(nil)
 
-var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"}
+var defaultPaths = []string{"/ipfs/", "/ipns/", "/p2p/"}
 
 var subdomainGatewaySpec = &gateway.PublicGateway{
 	Paths:         defaultPaths,

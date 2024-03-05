@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ipfs/boxo/gateway"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdsHttp "github.com/ipfs/go-ipfs-cmds/http"
 	version "github.com/ipfs/kubo"
@@ -122,14 +121,10 @@ func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
 	c.SetAllowedOrigins(newOrigins...)
 }
 
-func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) ServeOption {
+func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		cfg := cmdsHttp.NewServerConfig()
-		cfg.AllowGet = allowGet
 		corsAllowedMethods := []string{http.MethodPost}
-		if allowGet {
-			corsAllowedMethods = append(corsAllowedMethods, http.MethodGet)
-		}
 
 		cfg.SetAllowedMethods(corsAllowedMethods...)
 		cfg.APIPath = APIPath
@@ -148,13 +143,6 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) 
 		if len(rcfg.API.Authorizations) > 0 {
 			authorizations := convertAuthorizationsMap(rcfg.API.Authorizations)
 			cmdHandler = withAuthSecrets(authorizations, cmdHandler)
-		}
-
-		// TODO[api-on-gw]: remove for Kubo 0.28
-		if command == corecommands.RootRO && allowGet {
-			cmdHandler = gateway.NewHeaders(map[string][]string{
-				"Link": {`<https://github.com/ipfs/kubo/issues/10312>; rel="deprecation"; type="text/html"`},
-			}).Wrap(cmdHandler)
 		}
 
 		cmdHandler = otelhttp.NewHandler(cmdHandler, "corehttp.cmdsHandler")
@@ -211,13 +199,7 @@ func withAuthSecrets(authorizations map[string]rpcAuthScopeWithUser, next http.H
 // CommandsOption constructs a ServerOption for hooking the commands into the
 // HTTP server. It will NOT allow GET requests.
 func CommandsOption(cctx oldcmds.Context) ServeOption {
-	return commandsOption(cctx, corecommands.Root, false)
-}
-
-// CommandsROOption constructs a ServerOption for hooking the read-only commands
-// into the HTTP server. It will allow GET requests.
-func CommandsROOption(cctx oldcmds.Context) ServeOption {
-	return commandsOption(cctx, corecommands.RootRO, true)
+	return commandsOption(cctx, corecommands.Root)
 }
 
 // CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/kubo/` or `/go-ipfs/`
