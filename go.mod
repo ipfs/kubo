@@ -250,6 +250,4 @@ require (
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
 
-go 1.21
-
-toolchain go1.21.7
+go 1.22
