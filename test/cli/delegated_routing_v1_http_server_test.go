@@ -80,7 +80,7 @@ func TestRoutingV1Server(t *testing.T) {
 		assert.IsType(t, records[0].GetSchema(), records[0].GetSchema())
 		assert.IsType(t, records[0], &types.PeerRecord{})
 
-		peer := records[0].(*types.PeerRecord)
+		peer := records[0]
 		assert.Equal(t, nodes[2].PeerID().String(), peer.ID.String())
 		assert.NotEmpty(t, peer.Addrs)
 	})

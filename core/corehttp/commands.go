@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	path "github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdsHttp "github.com/ipfs/go-ipfs-cmds/http"
 	version "github.com/ipfs/kubo"
@@ -122,14 +121,10 @@ func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
 	c.SetAllowedOrigins(newOrigins...)
 }
 
-func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) ServeOption {
+func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		cfg := cmdsHttp.NewServerConfig()
-		cfg.AllowGet = allowGet
 		corsAllowedMethods := []string{http.MethodPost}
-		if allowGet {
-			corsAllowedMethods = append(corsAllowedMethods, http.MethodGet)
-		}
 
 		cfg.SetAllowedMethods(corsAllowedMethods...)
 		cfg.APIPath = APIPath
@@ -144,22 +139,67 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) 
 		patchCORSVars(cfg, l.Addr())
 
 		cmdHandler := cmdsHttp.NewHandler(&cctx, command, cfg)
+
+		if len(rcfg.API.Authorizations) > 0 {
+			authorizations := convertAuthorizationsMap(rcfg.API.Authorizations)
+			cmdHandler = withAuthSecrets(authorizations, cmdHandler)
+		}
+
 		cmdHandler = otelhttp.NewHandler(cmdHandler, "corehttp.cmdsHandler")
 		mux.Handle(APIPath+"/", cmdHandler)
 		return mux, nil
 	}
 }
 
+type rpcAuthScopeWithUser struct {
+	config.RPCAuthScope
+	User string
+}
+
+func convertAuthorizationsMap(authScopes map[string]*config.RPCAuthScope) map[string]rpcAuthScopeWithUser {
+	// authorizations is a map where we can just check for the header value to match.
+	authorizations := map[string]rpcAuthScopeWithUser{}
+	for user, authScope := range authScopes {
+		expectedHeader := config.ConvertAuthSecret(authScope.AuthSecret)
+		if expectedHeader != "" {
+			authorizations[expectedHeader] = rpcAuthScopeWithUser{
+				RPCAuthScope: *authScopes[user],
+				User:         user,
+			}
+		}
+	}
+
+	return authorizations
+}
+
+func withAuthSecrets(authorizations map[string]rpcAuthScopeWithUser, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorizationHeader := r.Header.Get("Authorization")
+		auth, ok := authorizations[authorizationHeader]
+
+		if ok {
+			// version check is implicitly allowed
+			if r.URL.Path == "/api/v0/version" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			// everything else has to be safelisted via AllowedPaths
+			for _, prefix := range auth.AllowedPaths {
+				if strings.HasPrefix(r.URL.Path, prefix) {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+		}
+
+		http.Error(w, "Kubo RPC Access Denied: Please provide a valid authorization token as defined in the API.Authorizations configuration.", http.StatusForbidden)
+	})
+}
+
 // CommandsOption constructs a ServerOption for hooking the commands into the
 // HTTP server. It will NOT allow GET requests.
 func CommandsOption(cctx oldcmds.Context) ServeOption {
-	return commandsOption(cctx, corecommands.Root, false)
-}
-
-// CommandsROOption constructs a ServerOption for hooking the read-only commands
-// into the HTTP server. It will allow GET requests.
-func CommandsROOption(cctx oldcmds.Context) ServeOption {
-	return commandsOption(cctx, corecommands.RootRO, true)
+	return commandsOption(cctx, corecommands.Root)
 }
 
 // CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/kubo/` or `/go-ipfs/`
@@ -171,7 +211,7 @@ func CheckVersionOption() ServeOption {
 		parent.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(r.URL.Path, APIPath) {
 				cmdqry := r.URL.Path[len(APIPath):]
-				pth := path.SplitList(cmdqry)
+				pth := strings.Split(cmdqry, "/")
 
 				// backwards compatibility to previous version check
 				if len(pth) >= 2 && pth[1] != "version" {

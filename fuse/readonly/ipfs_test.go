@@ -11,7 +11,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
-	"path"
+	gopath "path"
 	"strings"
 	"sync"
 	"testing"
@@ -24,11 +24,11 @@ import (
 
 	fstest "bazil.org/fuse/fs/fstestutil"
 	chunker "github.com/ipfs/boxo/chunker"
-	ipath "github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	importer "github.com/ipfs/boxo/ipld/unixfs/importer"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
+	"github.com/ipfs/boxo/path"
 	u "github.com/ipfs/boxo/util"
 	ipld "github.com/ipfs/go-ipld-format"
 	ci "github.com/libp2p/go-libp2p-testing/ci"
@@ -89,7 +89,7 @@ func TestIpfsBasicRead(t *testing.T) {
 
 	fi, data := randObj(t, nd, 10000)
 	k := fi.Cid()
-	fname := path.Join(mnt.Dir, k.String())
+	fname := gopath.Join(mnt.Dir, k.String())
 	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
@@ -116,7 +116,7 @@ func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.ProtoNode) 
 			t.Fatal(dag.ErrNotProtobuf)
 		}
 
-		sub := getPaths(t, ipfs, path.Join(name, lnk.Name), childpb)
+		sub := getPaths(t, ipfs, gopath.Join(name, lnk.Name), childpb)
 		out = append(out, sub...)
 	}
 	return out
@@ -184,10 +184,14 @@ func TestIpfsStressRead(t *testing.T) {
 			defer wg.Done()
 
 			for i := 0; i < 2000; i++ {
-				item := ipath.New(paths[rand.Intn(len(paths))])
+				item, err := path.NewPath(paths[rand.Intn(len(paths))])
+				if err != nil {
+					errs <- err
+					continue
+				}
 
 				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
-				fname := path.Join(mnt.Dir, relpath)
+				fname := gopath.Join(mnt.Dir, relpath)
 
 				rbuf, err := os.ReadFile(fname)
 				if err != nil {
@@ -257,8 +261,8 @@ func TestIpfsBasicDirRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dirname := path.Join(mnt.Dir, d1nd.Cid().String())
-	fname := path.Join(dirname, "actual")
+	dirname := gopath.Join(mnt.Dir, d1nd.Cid().String())
+	fname := gopath.Join(dirname, "actual")
 	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
@@ -291,7 +295,7 @@ func TestFileSizeReporting(t *testing.T) {
 	fi, data := randObj(t, nd, 10000)
 	k := fi.Cid()
 
-	fname := path.Join(mnt.Dir, k.String())
+	fname := gopath.Join(mnt.Dir, k.String())
 
 	finfo, err := os.Stat(fname)
 	if err != nil {

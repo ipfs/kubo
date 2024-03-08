@@ -518,25 +518,11 @@ ipfs config --json Experimental.StrategicProviding true
 
 ### State
 
-Experimental, disabled by default.
+Removed, no plans to reintegrate either as experimental or stable feature.
 
-[GraphSync](https://github.com/ipfs/go-graphsync) is the next-gen graph exchange
-protocol for IPFS.
+[Trustless Gateway over Libp2p](#http-gateway-over-libp2p) should be easier to use for unixfs usecases and support basic wildcard car streams for non unixfs.
 
-When this feature is enabled, IPFS will make files available over the graphsync
-protocol. However, IPFS will not currently use this protocol to _fetch_ files.
-
-### How to enable
-
-Modify your ipfs config:
-
-```
-ipfs config --json Experimental.GraphsyncEnabled true
-```
-
-### Road to being a real feature
-
-- [ ] We need to confirm that it can't be used to DoS a node. The server-side logic for GraphSync is quite complex and, if we're not careful, the server might end up performing unbounded work when responding to a malicious request.
+See https://github.com/ipfs/kubo/pull/9747 for more information.
 
 ## Noise
 
@@ -556,7 +542,7 @@ Stable, enabled by default
 
 Experimental, disabled by default.
 
-When the DHT client tries to store a provider in the DHT, it typically searches for the 20 peers that are closest to the
+When the Amino DHT client tries to store a provider in the DHT, it typically searches for the 20 peers that are closest to the
 target key. However, this process can be time-consuming, as the search terminates only after no closer peers are found
 among the three currently (during the query) known closest ones. In cases where these closest peers are slow to respond
 (which often happens if they are located at the edge of the DHT network), the query gets blocked by the slowest peer.
@@ -569,7 +555,7 @@ ones. This heuristic approach can significantly speed up the process, resulting 
 
 When it is enabled:
 
-- DHT provide operations should complete much faster than with it disabled
+- Amino DHT provide operations should complete much faster than with it disabled
 - This can be tested with commands such as `ipfs routing provide`
 
 **Tradeoffs**
@@ -663,3 +649,7 @@ ipfs config --json Experimental.GatewayOverLibp2p true
 - [ ] Needs UX work for exposing non-recursive "HTTP transport" (NoFetch) over both libp2p and plain TCP (and sharing the configuration)
 - [ ] Needs a mechanism for HTTP handler to signal supported features ([IPIP-425](https://github.com/ipfs/specs/pull/425))
 - [ ] Needs an option for Kubo to detect peers that have it enabled and prefer HTTP transport before falling back to bitswap (and use CAR if peer supports dag-scope=entity from [IPIP-402](https://github.com/ipfs/specs/pull/402))
+
+## Accelerated DHT Client
+
+This feature now lives at [`Routing.AcceleratedDHTClient`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtclient).

@@ -127,68 +127,6 @@ test_expect_success "Access-Control-Allow-Origin replaces the implicit list" '
   test_should_contain "< Access-Control-Allow-Origin: localhost" curl_output
 '
 
-# Read-Only /api/v0 RPC API (legacy subset, exposed on the Gateway Port)
-# TODO: we want to remove it, but for now this guards the legacy behavior to not go any further
-
-# also check this, as due to legacy reasons Kubo exposes small subset of /api/v0 on GW port
-test_expect_success "Assert the default API.HTTPHeaders config is empty" '
-    echo "{}" > expected &&
-    ipfs config --json API.HTTPHeaders > actual &&
-    test_cmp expected actual
-'
-
-# HTTP GET Request
-test_expect_success "Default CORS GET to {gw}/api/v0" '
-  curl -svX GET -H "Origin: https://example.com" "http://127.0.0.1:$GWAY_PORT/api/v0/cat?arg=$thash" >/dev/null 2>curl_output
-'
-test_expect_success "Default CORS GET response from {gw}/api/v0 is 403 Forbidden and has no CORS headers" '
-  test_should_contain "HTTP/1.1 403 Forbidden" curl_output &&
-  test_should_not_contain "< Access-Control-" curl_output
-'
-
-# HTTP OPTIONS Request
-test_expect_success "Default OPTIONS to {gw}/api/v0" '
-  curl -svX OPTIONS -H "Origin: https://example.com" "http://127.0.0.1:$GWAY_PORT/api/v0/cat?arg=$thash" 2>curl_output
-'
-# OPTIONS Response from the API should NOT contain CORS headers
-test_expect_success "OPTIONS response from {gw}/api/v0 has no CORS header" '
-  test_should_not_contain "< Access-Control-" curl_output
-'
-
-test_kill_ipfs_daemon
-
-# TODO: /api/v0 with CORS headers set in API.HTTPHeaders  does not really work,
-# as not all headers are correctly set. Below is only a basic regression test that documents
-# current state. Fixing CORS on /api/v0 (RPC and Gateway port) is tracked in https://github.com/ipfs/kubo/issues/7667
-
-test_expect_success "Manually set API.HTTPHeaders config to be as relaxed as Gateway.HTTPHeaders" "
-  ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '[\"https://example.com\"]'
-"
-# TODO: ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '[\"GET\",\"POST\"]' &&
-# TODO: ipfs config --json API.HTTPHeaders.Access-Control-Allow-Headers '[\"X-Requested-With\", \"Range\", \"User-Agent\"]'
-
-test_launch_ipfs_daemon
-
-# HTTP GET Request
-test_expect_success "Manually relaxed CORS GET to {gw}/api/v0" '
-  curl -svX GET -H "Origin: https://example.com" "http://127.0.0.1:$GWAY_PORT/api/v0/cat?arg=$thash" >/dev/null 2>curl_output
-'
-test_expect_success "Manually relaxed CORS GET response from {gw}/api/v0 is the same as Gateway" '
-  test_should_contain "HTTP/1.1 200 OK" curl_output &&
-  test_should_contain "< Access-Control-Allow-Origin: https://example.com" curl_output
-'
-# TODO: test_should_contain "< Access-Control-Allow-Methods: GET" curl_output
-
-# HTTP OPTIONS Request
-test_expect_success "Manually relaxed OPTIONS to {gw}/api/v0" '
-  curl -svX OPTIONS -H "Origin: https://example.com" "http://127.0.0.1:$GWAY_PORT/api/v0/cat?arg=$thash" 2>curl_output
-'
-# OPTIONS Response from the API should NOT contain CORS headers
-test_expect_success "Manually relaxed OPTIONS response from {gw}/api/v0 is the same as Gateway" '
-  test_should_contain "< Access-Control-Allow-Origin: https://example.com" curl_output
-'
-# TODO: test_should_contain "< Access-Control-Allow-Methods: GET" curl_output
-
 test_kill_ipfs_daemon
 
 test_done

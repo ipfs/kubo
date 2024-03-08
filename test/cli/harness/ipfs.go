@@ -38,9 +38,20 @@ func (n *Node) SetIPFSConfig(key string, val interface{}, flags ...string) {
 	n.IPFS(args...)
 
 	// validate the config was set correctly
-	var newVal string
-	n.GetIPFSConfig(key, &newVal)
-	if val != newVal {
+
+	// Create a new value which is a pointer to the same type as the source.
+	var newVal any
+	if val != nil {
+		// If it is not nil grab the type with reflect.
+		newVal = reflect.New(reflect.TypeOf(val)).Interface()
+	} else {
+		// else just set a pointer to an any.
+		var anything any
+		newVal = &anything
+	}
+	n.GetIPFSConfig(key, newVal)
+	// dereference newVal using reflect to load the resulting value
+	if !reflect.DeepEqual(val, reflect.ValueOf(newVal).Elem().Interface()) {
 		log.Panicf("key '%s' did not retain value '%s' after it was set, got '%s'", key, val, newVal)
 	}
 }

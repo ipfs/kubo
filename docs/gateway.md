@@ -12,14 +12,18 @@ Kubo's Gateway implementation follows [ipfs/specs: Specification for HTTP Gatewa
 
 By default, Kubo nodes run
 a [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://127.0.0.1:8080/`
-and a [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://localhost:8080/`
+and a [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://localhost:8080/`.
+Both support [trustless responses](https://docs.ipfs.tech/reference/http/gateway/#trustless-verifiable-retrieval) as opt-in via `Accept` header.
 
 Additional listening addresses and gateway behaviors can be set in the [config](#configuration) file.
 
 ### Public gateways
 
-Protocol Labs provides a public gateway at `https://ipfs.io` (path) and `https://dweb.link` (subdomain).
-If you've ever seen a link in the form `https://ipfs.io/ipfs/Qm...`, that's being served from *our* gateway.
+Protocol Labs provides a public gateway at
+`https://ipfs.io` ([path](https://specs.ipfs.tech/http-gateways/path-gateway/)),
+`https://dweb.link` ([subdomain](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway)),
+and `https://trustless-gateway.link` ([trustless](https://specs.ipfs.tech/http-gateways/trustless-gateway/) only).
+If you've ever seen a link in the form `https://ipfs.io/ipfs/Qm...`, that's being served from a *public goods* gateway.
 
 There is a list of third-party public gateways provided by the IPFS community at https://ipfs.github.io/public-gateway-checker/
 
@@ -102,12 +106,3 @@ Right now only 'full DAG' implicit selector is implemented.
 Support for user-provided IPLD selectors is tracked in https://github.com/ipfs/kubo/issues/8769.
 
 This is a rough equivalent of `ipfs dag export`.
-
-## Deprecated Subset of RPC API
-
-For legacy reasons, the gateway port exposes a small subset of RPC API under `/api/v0/`.
-While this read-only API exposes a read-only, "safe" subset of the normal API,
-it is deprecated and should not be used for greenfield projects.
-
-Where possible, leverage `/ipfs/` and `/ipns/` endpoints.
-along with `application/vnd.ipld.*` Content-Types instead.

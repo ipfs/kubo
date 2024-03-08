@@ -28,6 +28,9 @@ config file at runtime.
     - [`Addresses.NoAnnounce`](#addressesnoannounce)
   - [`API`](#api)
     - [`API.HTTPHeaders`](#apihttpheaders)
+    - [`API.Authorizations`](#apiauthorizations)
+      - [`API.Authorizations: AuthSecret`](#apiauthorizations-authsecret)
+      - [`API.Authorizations: AllowedPaths`](#apiauthorizations-allowedpaths)
   - [`AutoNAT`](#autonat)
     - [`AutoNAT.ServiceMode`](#autonatservicemode)
     - [`AutoNAT.Throttle`](#autonatthrottle)
@@ -81,6 +84,7 @@ config file at runtime.
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
+    - [`Ipns.MaxCacheTTL`](#ipnsmaxcachettl)
     - [`Ipns.UsePubsub`](#ipnsusepubsub)
   - [`Migration`](#migration)
     - [`Migration.DownloadSources`](#migrationdownloadsources)
@@ -159,6 +163,7 @@ config file at runtime.
       - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
       - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
       - [`Swarm.Transports.Network.WebTransport`](#swarmtransportsnetworkwebtransport)
+      - [`Swarm.Transports.Network.WebRTCDirect`](#swarmtransportsnetworkwebrtcdirect)
     - [`Swarm.Transports.Security`](#swarmtransportssecurity)
       - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
       - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
@@ -251,10 +256,10 @@ documented in `ipfs config profile --help`.
 
   Reduces daemon overhead on the system. Affects node
   functionality - performance of content discovery and data
-  fetching may be degraded. Local data won't be announced on routing systems like DHT.
+  fetching may be degraded. Local data won't be announced on routing systems like Amino DHT.
 
   - `Swarm.ConnMgr` set to maintain minimum number of p2p connections at a time.
-  - Disables [`Reprovider`](#reprovider) service → no CID will be announced on DHT and other routing systems(!)
+  - Disables [`Reprovider`](#reprovider) service → no CID will be announced on Amino DHT and other routing systems(!)
   - Disables AutoNAT.
 
   Use this profile with caution.
@@ -436,6 +441,87 @@ Example:
 Default: `null`
 
 Type: `object[string -> array[string]]` (header names -> array of header values)
+
+### `API.Authorizations`
+
+The `API.Authorizations` field defines user-based access restrictions for the
+[Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/), which is located at
+`Addresses.API` under `/api/v0` paths.
+
+By default, the RPC API is accessible without restrictions as it is only
+exposed on `127.0.0.1` and safeguarded with Origin check and implicit
+[CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) headers that
+block random websites from accessing the RPC.
+
+When entries are defined in `API.Authorizations`, RPC requests will be declined
+unless a corresponding secret is present in the HTTP [`Authorization` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization),
+and the requested path is included in the `AllowedPaths` list for that specific
+secret.
+
+Default: `null`
+
+Type: `object[string -> object]` (user name -> authorization object, see bellow)
+
+For example, to limit RPC access to Alice (access `id` and MFS `files` commands with HTTP Basic Auth)
+and Bob (full access with Bearer token):
+
+```json
+{
+  "API": {
+    "Authorizations": {
+      "Alice": {
+        "AuthSecret": "basic:alice:password123",
+        "AllowedPaths": ["/api/v0/id", "/api/v0/files"]
+      },
+      "Bob": {
+        "AuthSecret": "bearer:secret-token123",
+        "AllowedPaths": ["/api/v0"]
+      }
+    }
+  }
+}
+
+```
+
+#### `API.Authorizations: AuthSecret`
+
+The `AuthSecret` field denotes the secret used by a user to authenticate,
+usually via HTTP [`Authorization` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization).
+
+Field format is `type:value`, and the following types are supported:
+
+- `bearer:` For secret Bearer tokens, set as `bearer:token`.
+  - If no known `type:` prefix is present, `bearer:` is assumed.
+- `basic`: For HTTP Basic Auth introduced in [RFC7617](https://datatracker.ietf.org/doc/html/rfc7617). Value can be:
+  - `basic:user:pass`
+  - `basic:base64EncodedBasicAuth`
+
+One can use the config value for authentication via the command line:
+
+```
+ipfs id --api-auth basic:user:pass
+```
+
+Type: `string`
+
+#### `API.Authorizations: AllowedPaths`
+
+The `AllowedPaths` field is an array of strings containing allowed RPC path
+prefixes. Users authorized with the related `AuthSecret` will only be able to
+access paths prefixed by the specified prefixes.
+
+For instance:
+
+- If set to `["/api/v0"]`, the user will have access to the complete RPC API.
+- If set to `["/api/v0/id", "/api/v0/files"]`, the user will only have access
+  to the `id` command and all MFS commands under `files`.
+
+Note that `/api/v0/version` is always permitted access to allow version check
+to ensure compatibility.
+
+Default: `[]`
+
+Type: `array[string]`
 
 ## `AutoNAT`
 
@@ -631,6 +717,8 @@ Toggle and configure experimental features of Kubo. Experimental features are li
 
 Options for the HTTP gateway.
 
+**NOTE:** support for `/api/v0` under the gateway path is now deprecated. It will be removed in future versions: https://github.com/ipfs/kubo/issues/10312.
+
 ### `Gateway.NoFetch`
 
 When set to true, the gateway will only serve content already in the local repo
@@ -674,11 +762,15 @@ Type: `flag`
 
 ### `Gateway.ExposeRoutingAPI`
 
-An optional flag to expose Kubo `Routing` system on the gateway port as a [Routing
-V1](https://specs.ipfs.tech/routing/routing-v1/) endpoint.  This only affects your
-local gateway, at `127.0.0.1`.
+An optional flag to expose Kubo `Routing` system on the gateway port
+as an [HTTP `/routing/v1`](https://specs.ipfs.tech/routing/http-routing-v1/) endpoint on `127.0.0.1`.
+Use reverse proxy to expose it on a different hostname.
 
-This endpoint can be used by other Kubo instance, as illustrated in [`delegated_routing_v1_http_proxy_test.go`](https://github.com/ipfs/kubo/blob/master/test/cli/delegated_routing_v1_http_proxy_test.go).
+This endpoint can be used by other Kubo instances, as illustrated in
+[`delegated_routing_v1_http_proxy_test.go`](https://github.com/ipfs/kubo/blob/master/test/cli/delegated_routing_v1_http_proxy_test.go).
+Kubo will filter out routing results which are not actionable, for example, all
+graphsync providers will be skipped. If you need a generic pass-through, see
+standalone router implementation named [someguy](https://github.com/ipfs/someguy).
 
 Default: `false`
 
@@ -734,14 +826,14 @@ Example:
   "Gateway": {
     "PublicGateways": {
       "example.com": {
-        "Paths": ["/ipfs", "/ipns"],
+        "Paths": ["/ipfs"],
       }
     }
   }
 }
 ```
 
-Above enables `http://example.com/ipfs/*` and `http://example.com/ipns/*` but not `http://example.com/api/*`
+Above enables `http://example.com/ipfs/*` but not `http://example.com/ipns/*`
 
 Default: `[]`
 
@@ -760,13 +852,12 @@ between content roots.
             "PublicGateways": {
                 "dweb.link": {
                     "UseSubdomains": true,
-                    "Paths": ["/ipfs", "/ipns"],
+                    "Paths": ["/ipfs", "/ipns"]
                 }
             }
         }
         ```
     - **Backward-compatible:** requests for content paths such as `http://{hostname}/ipfs/{cid}` produce redirect to `http://{cid}.ipfs.{hostname}`
-    - **API:** if `/api` is on the `Paths` whitelist, `http://{hostname}/api/{cmd}` produces redirect to `http://api.{hostname}/api/{cmd}`
 
 - `false` - enables [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
   - Example:
@@ -775,7 +866,7 @@ between content roots.
         "PublicGateways": {
             "ipfs.io": {
                 "UseSubdomains": false,
-                "Paths": ["/ipfs", "/ipns", "/api"],
+                "Paths": ["/ipfs", "/ipns"]
             }
         }
     }
@@ -884,7 +975,7 @@ Below is a list of the most common public gateway setups.
    $ ipfs config --json Gateway.PublicGateways '{
        "ipfs.io": {
          "UseSubdomains": false,
-         "Paths": ["/ipfs", "/ipns", "/api"]
+         "Paths": ["/ipfs", "/ipns"]
        }
      }'
    ```
@@ -1006,7 +1097,7 @@ Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 ### `Internal.Bitswap.ProviderSearchDelay`
 
 This parameter determines how long to wait before looking for providers outside of bitswap.
-Other routing systems like the DHT are able to provide results in less than a second, so lowering
+Other routing systems like the Amino DHT are able to provide results in less than a second, so lowering
 this number will allow faster peers lookups in some cases.
 
 Type: `optionalDuration` (`null` means default which is 1s)
@@ -1051,6 +1142,35 @@ will be kept cached until their lifetime is expired.
 Default: `128`
 
 Type: `integer` (non-negative, 0 means the default)
+
+### `Ipns.MaxCacheTTL`
+
+Maximum duration for which entries are valid in the name system cache. Applied
+to everything under `/ipns/` namespace, allows you to cap
+the [Time-To-Live (TTL)](https://specs.ipfs.tech/ipns/ipns-record/#ttl-uint64) of
+[IPNS Records](https://specs.ipfs.tech/ipns/ipns-record/)
+AND also DNSLink TXT records (when DoH-specific [`DNS.MaxCacheTTL`](https://github.com/ipfs/kubo/blob/master/docs/config.md#dnsmaxcachettl)
+is not set to a lower value).
+
+When `Ipns.MaxCacheTTL` is set, it defines the upper bound limit of how long a
+[IPNS Name](https://specs.ipfs.tech/ipns/ipns-record/#ipns-name) lookup result
+will be cached and read from cache before checking for updates.
+
+**Examples:**
+* `"1m"` IPNS results are cached 1m or less (good compromise for system where
+  faster updates are desired).
+* `"0s"` IPNS caching is effectively turned off (useful for testing, bad for production use)
+  - **Note:** setting this to `0` will turn off TTL-based caching entirely.
+    This is discouraged in production environments. It will make IPNS websites
+    artificially slow because IPNS resolution results will expire as soon as
+    they are retrieved, forcing expensive IPNS lookup to happen on every
+    request. If you want near-real-time IPNS, set it to a low, but still
+    sensible value, such as `1m`.
+
+Default: No upper bound, [TTL from IPNS Record](https://specs.ipfs.tech/ipns/ipns-record/#ttl-uint64)  (see `ipns name publish --help`) is always respected.
+
+
+Type: `optionalDuration`
 
 ### `Ipns.UsePubsub`
 
@@ -1348,7 +1468,7 @@ The set of peers with which to peer.
 }
 ```
 
-Where `ID` is the peer ID and `Addrs` is a set of known addresses for the peer. If no addresses are specified, the DHT will be queried.
+Where `ID` is the peer ID and `Addrs` is a set of known addresses for the peer. If no addresses are specified, the Amino DHT will be queried.
 
 Additional fields may be added in the future.
 
@@ -1382,6 +1502,13 @@ Tells reprovider what should be announced. Valid strategies are:
 - `"all"` - announce all CIDs of stored blocks
 - `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks)
 - `"roots"` - only announce the root block of explicitly pinned CIDs
+  - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
+    It makes sense only for use cases where the entire DAG is fetched in full,
+    and a graceful resume does not have to be guaranteed: the lack of child
+    announcements means an interrupted retrieval won't be able to find
+    providers for the missing block in the middle of a file, unless the peer
+    happens to already be connected to a provider and ask for child CID over
+    bitswap.
 
 Default: `"all"`
 
@@ -1395,7 +1522,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
 
-* **DEFAULT:** If unset, or set to "auto", your node will use the IPFS DHT
+* **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
   and parallel HTTP routers listed below for additional speed.
 
 * If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
@@ -1403,7 +1530,7 @@ There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtcli
 * If set to "none", your node will use _no_ routing system. You'll have to
   explicitly connect to peers that have the content you're looking for.
 
-* If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the IPFS DHT (no HTTP routers).
+* If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the Amino DHT (no HTTP routers).
 
 * If set to "custom", all default routers are disabled, and only ones defined in `Routing.Routers` will be used.
 
@@ -1421,15 +1548,17 @@ When `Routing.Type` is set to `auto` or `dht`, your node will start as a DHT cli
 switch to a DHT server when and if it determines that it's reachable from the
 public internet (e.g., it's not behind a firewall).
 
-To force a specific DHT-only mode, client or server, set `Routing.Type` to
+To force a specific Amino DHT-only mode, client or server, set `Routing.Type` to
 `dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
 unless you're sure your node is reachable from the public network.
 
 When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate some types of routing
-by leveraging HTTP endpoints compatible with [IPIP-337](https://github.com/ipfs/specs/pull/337)
-in addition to the IPFS DHT.
+by leveraging HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
+introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
+in addition to the Amino DHT.
 By default, an instance of [IPNI](https://github.com/ipni/specs/blob/main/IPNI.md#readme)
 at https://cid.contact is used.
+
 Alternative routing rules can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
 
 Default: `auto` (DHT + IPNI)
@@ -1439,7 +1568,7 @@ Type: `optionalString` (`null`/missing means the default)
 
 ### `Routing.AcceleratedDHTClient`
 
-This alternative DHT client with a Full-Routing-Table strategy will
+This alternative Amino DHT client with a Full-Routing-Table strategy will
 do a complete scan of the DHT every hour and record all nodes found.
 Then when a lookup is tried instead of having to go through multiple Kad hops it
 is able to find the 20 final nodes by looking up the in-memory recorded network table.
@@ -1450,7 +1579,7 @@ However the latency of individual read/write operations should be ~10x faster
 and the provide throughput up to 6 million times faster on larger datasets!
 
 This is not compatible with `Routing.Type` `custom`. If you are using composable routers
-you can configure this individualy on each router.
+you can configure this individually on each router.
 
 When it is enabled:
 - Client DHT operations (reads and writes) should complete much faster
@@ -1489,7 +1618,7 @@ Type: `bool` (missing means `false`)
 
 Map of additional Routers.
 
-Allows for extending the default routing (DHT) with alternative Router
+Allows for extending the default routing (Amino DHT) with alternative Router
 implementations.
 
 The map key is a name of a Router, and the value is its configuration.
@@ -1524,7 +1653,7 @@ HTTP:
   - `MaxProvideConcurrency`: It determines the number of threads used when providing content. GOMAXPROCS by default.
 
 DHT:
-  - `"Mode"`: Mode used by the DHT. Possible values: "server", "client", "auto"
+  - `"Mode"`: Mode used by the Amino DHT. Possible values: "server", "client", "auto"
   - `"AcceleratedDHTClient"`: Set to `true` if you want to use the acceleratedDHT.
   - `"PublicIPNetwork"`: Set to `true` to create a `WAN` DHT. Set to `false` to create a `LAN` DHT.
 
@@ -1558,7 +1687,7 @@ Type: `object[string->object]`
 
 **Examples:**
 
-Complete example using 2 Routers, DHT (LAN/WAN) and parallel.
+Complete example using 2 Routers, Amino DHT (LAN/WAN) and parallel.
 
 ```
 $ ipfs config Routing.Type --json '"custom"'
@@ -2072,6 +2201,33 @@ Default: Enabled
 
 Type: `flag`
 
+#### `Swarm.Transports.Network.WebRTCDirect`
+
+**Experimental:** the support for WebRTC Direct is currently experimental.
+This feature was introduced in [`go-libp2p@v0.32.0`](https://github.com/libp2p/go-libp2p/releases/tag/v0.32.0).
+
+[WebRTC Direct](https://github.com/libp2p/specs/blob/master/webrtc/webrtc-direct.md)
+is a transport protocol that provides another way for browsers to
+connect to the rest of the libp2p network. WebRTC Direct allows for browser
+nodes to connect to other nodes without special configuration, such as TLS
+certificates. This can be useful for browser nodes that do not yet support
+[WebTransport](https://blog.libp2p.io/2022-12-19-libp2p-webtransport/).
+
+Enabling this transport allows Kubo node to act on `/udp/4002/webrtc-direct`
+listeners defined in `Addresses.Swarm`, `Addresses.Announce` or
+`Addresses.AppendAnnounce`. At the moment, WebRTC Direct doesn't support listening on the same port as a QUIC or WebTransport listener
+
+**NOTE:** at the moment, WebRTC Direct cannot be used to connect to a browser
+node to a node that is behind a NAT or firewall.
+This requires using normal
+[WebRTC](https://github.com/libp2p/specs/blob/master/webrtc/webrtc.md),
+which is currently being worked on in
+[go-libp2p#2009](https://github.com/libp2p/go-libp2p/issues/2009).
+
+Default: Disabled
+
+Type: `flag`
+
 ### `Swarm.Transports.Security`
 
 Configuration section for libp2p _security_ transports. Transports enabled in
@@ -2103,7 +2259,7 @@ Type: `priority`
 
 #### `Swarm.Transports.Security.SECIO`
 
-Support for SECIO has been removed. Please remove this option from your config.
+**REMOVED**:  support for SECIO has been removed. Please remove this option from your config.
 
 #### `Swarm.Transports.Security.Noise`
 
@@ -2141,21 +2297,10 @@ Type: `priority`
 
 ### `Swarm.Transports.Multiplexers.Mplex`
 
-**DEPRECATED**: See https://github.com/ipfs/kubo/issues/9958
+**REMOVED**: See https://github.com/ipfs/kubo/issues/9958
 
-Mplex is deprecated, this is because it is unreliable and
-randomly drop streams when sending data *too fast*.
-
-New pieces of code rely on backpressure, that means the stream will dynamicaly
-slow down the sending rate if data is getting backed up.
-Backpressure is provided by **Yamux** and **QUIC**.
-
-If you want to turn it back on make sure to have a higher (lower is better)
-priority than `Yamux`, you don't want your Kubo to start defaulting to Mplex.
-
-Default: `200`
-
-Type: `priority`
+Support for Mplex has been [removed from Kubo and go-libp2p](https://github.com/libp2p/specs/issues/553).
+Please remove this option from your config.
 
 ## `DNS`
 
@@ -2208,7 +2353,7 @@ If present, the upper bound is applied to DoH resolvers in [`DNS.Resolvers`](#dn
 Note: this does NOT work with Go's default DNS resolver. To make this a global setting, add a `.` entry to `DNS.Resolvers` first.
 
 **Examples:**
-* `"5m"` DNS entries are kept for 5 minutes or less.
+* `"1m"` DNS entries are kept for 1 minute or less.
 * `"0s"` DNS entries expire as soon as they are retrieved.
 
 Default: Respect DNS Response TTL

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	mc "github.com/multiformats/go-multicodec"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -27,8 +27,8 @@ func (s *blockStat) Size() int {
 	return s.BSize
 }
 
-func (s *blockStat) Path() path.Resolved {
-	return path.IpldPath(s.cid)
+func (s *blockStat) Path() path.ImmutablePath {
+	return path.FromCid(s.cid)
 }
 
 func (api *BlockAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.BlockPutOption) (iface.BlockStat, error) {

@@ -481,3 +481,27 @@ func (experimentalAcceleratedDHTClient) UnmarshalJSON(b []byte) error {
 // does not support omitempty on structs and I can't be bothered to write custom
 // marshalers on all structs that have a doNotUse field.
 type doNotUse bool
+
+type graphsyncEnabled doNotUse
+
+var _ json.Unmarshaler = graphsyncEnabled(false)
+
+func (graphsyncEnabled) UnmarshalJSON(b []byte) error {
+	d := json.NewDecoder(bytes.NewReader(b))
+	for {
+		switch tok, err := d.Token(); err {
+		case io.EOF:
+			return nil
+		case nil:
+			switch tok {
+			case json.Delim('{'), json.Delim('}'), false:
+				// accept empty objects and false
+				continue
+			}
+			//nolint
+			return fmt.Errorf("Support for Experimental.GraphsyncEnabled has been removed in Kubo 0.25.0, please remove this key. For more details see https://github.com/ipfs/kubo/pull/9747.")
+		default:
+			return err
+		}
+	}
+}

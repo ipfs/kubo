@@ -208,6 +208,11 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			return err
 		}
 
+		cfg, err = scrubValue(cfg, []string{config.APITag, config.AuthorizationTag})
+		if err != nil {
+			return err
+		}
+
 		cfg, err = scrubOptionalValue(cfg, config.PinningConcealSelector)
 		if err != nil {
 			return err

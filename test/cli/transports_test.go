@@ -58,6 +58,7 @@ func TestTransports(t *testing.T) {
 				cfg.Swarm.Transports.Network.QUIC = config.False
 				cfg.Swarm.Transports.Network.Relay = config.False
 				cfg.Swarm.Transports.Network.WebTransport = config.False
+				cfg.Swarm.Transports.Network.WebRTCDirect = config.False
 				cfg.Swarm.Transports.Network.Websocket = config.False
 			})
 		})
@@ -68,20 +69,6 @@ func TestTransports(t *testing.T) {
 	t.Run("tcp", func(t *testing.T) {
 		t.Parallel()
 		nodes := tcpNodes(t).StartDaemons().Connect()
-		runTests(nodes)
-	})
-
-	t.Run("tcp with mplex", func(t *testing.T) {
-		// FIXME(#10069): we don't want this to exists anymore
-		t.Parallel()
-		nodes := tcpNodes(t)
-		nodes.ForEachPar(func(n *harness.Node) {
-			n.UpdateConfig(func(cfg *config.Config) {
-				cfg.Swarm.Transports.Multiplexers.Yamux = config.Disabled
-				cfg.Swarm.Transports.Multiplexers.Mplex = 200
-			})
-		})
-		nodes.StartDaemons().Connect()
 		runTests(nodes)
 	})
 
@@ -142,6 +129,23 @@ func TestTransports(t *testing.T) {
 				quicAddr := fmt.Sprintf("/ip4/127.0.0.1/udp/%d/quic-v1", port)
 				cfg.Addresses.Swarm = []string{quicAddr}
 				cfg.Addresses.Announce = []string{quicAddr, quicAddr + "/webtransport"}
+			})
+		})
+		disableRouting(nodes)
+		nodes.StartDaemons().Connect()
+		runTests(nodes)
+	})
+
+	t.Run("WebRTC Direct", func(t *testing.T) {
+		t.Parallel()
+		nodes := harness.NewT(t).NewNodes(5).Init()
+		nodes.ForEachPar(func(n *harness.Node) {
+			n.UpdateConfig(func(cfg *config.Config) {
+				cfg.Addresses.Swarm = []string{"/ip4/127.0.0.1/udp/0/webrtc-direct"}
+				cfg.Swarm.Transports.Network.TCP = config.False
+				cfg.Swarm.Transports.Network.QUIC = config.False
+				cfg.Swarm.Transports.Network.WebTransport = config.False
+				cfg.Swarm.Transports.Network.WebRTCDirect = config.True
 			})
 		})
 		disableRouting(nodes)

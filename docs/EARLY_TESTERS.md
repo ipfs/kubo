@@ -26,11 +26,11 @@ We will ask early testers to participate at two points in the process:
 - [ ] Fission (@bmann)
 - [ ] Infura (@MichaelMure)
 - [ ] OrbitDB (@haydenyoung)
-- [ ] pacman.store (@RubenKelevra)
 - [ ] Pinata (@obo20)
-- [ ] PL EngRes bifrost (@gmasgras)
+- [ ] PL EngRes bifrost (@cewood ns4plabs)
 - [ ] Siderus (@koalalorenzo)
 - [ ] Textile (@sanderpick)
+- [ ] @RubenKelevra
 
 ## How to sign up?
 

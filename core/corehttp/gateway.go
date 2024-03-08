@@ -7,19 +7,20 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/ipfs/boxo/blockservice"
-	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/gateway"
 	"github.com/ipfs/boxo/namesys"
+	"github.com/ipfs/boxo/path"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
 	"github.com/ipfs/go-cid"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -27,7 +28,7 @@ import (
 
 func GatewayOption(paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		config, err := getGatewayConfig(n)
+		config, headers, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}
@@ -38,6 +39,7 @@ func GatewayOption(paths ...string) ServeOption {
 		}
 
 		handler := gateway.NewHandler(config, backend)
+		handler = gateway.NewHeaders(headers).ApplyCors().Wrap(handler)
 		handler = otelhttp.NewHandler(handler, "Gateway")
 
 		for _, p := range paths {
@@ -50,7 +52,7 @@ func GatewayOption(paths ...string) ServeOption {
 
 func HostnameOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		config, err := getGatewayConfig(n)
+		config, headers, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +63,13 @@ func HostnameOption() ServeOption {
 		}
 
 		childMux := http.NewServeMux()
-		mux.Handle("/", gateway.NewHostnameHandler(config, backend, childMux))
+
+		var handler http.Handler
+		handler = gateway.NewHostnameHandler(config, backend, childMux)
+		handler = gateway.NewHeaders(headers).ApplyCors().Wrap(handler)
+		handler = otelhttp.NewHandler(handler, "HostnameGateway")
+
+		mux.Handle("/", handler)
 		return childMux, nil
 	}
 }
@@ -80,7 +88,11 @@ func Libp2pGatewayOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		bserv := blockservice.New(n.Blocks.Blockstore(), offline.Exchange(n.Blocks.Blockstore()))
 
-		backend, err := gateway.NewBlocksBackend(bserv)
+		backend, err := gateway.NewBlocksBackend(bserv,
+			// GatewayOverLibp2p only returns things that are in local blockstore
+			// (same as Gateway.NoFetch=true), we have to pass offline path resolver
+			gateway.WithResolver(n.OfflineUnixFSPathResolver),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -110,6 +122,8 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 	bserv := n.Blocks
 	var vsRouting routing.ValueStore = n.Routing
 	nsys := n.Namesys
+	pathResolver := n.UnixFSPathResolver
+
 	if cfg.Gateway.NoFetch {
 		bserv = blockservice.New(bserv.Blockstore(), offline.Exchange(bserv.Blockstore()))
 
@@ -121,17 +135,29 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 			return nil, fmt.Errorf("cannot specify negative resolve cache size")
 		}
 
-		vsRouting = offlineroute.NewOfflineRouter(n.Repo.Datastore(), n.RecordValidator)
-		nsys, err = namesys.NewNameSystem(vsRouting,
+		nsOptions := []namesys.Option{
 			namesys.WithDatastore(n.Repo.Datastore()),
 			namesys.WithDNSResolver(n.DNSResolver),
-			namesys.WithCache(cs))
+			namesys.WithCache(cs),
+			namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL)),
+		}
+
+		vsRouting = offlineroute.NewOfflineRouter(n.Repo.Datastore(), n.RecordValidator)
+		nsys, err = namesys.NewNameSystem(vsRouting, nsOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
+
+		// Gateway.NoFetch=true requires offline path resolver
+		// to avoid fetching missing blocks during path traversal
+		pathResolver = n.OfflineUnixFSPathResolver
 	}
 
-	backend, err := gateway.NewBlocksBackend(bserv, gateway.WithValueStore(vsRouting), gateway.WithNameSystem(nsys))
+	backend, err := gateway.NewBlocksBackend(bserv,
+		gateway.WithValueStore(vsRouting),
+		gateway.WithNameSystem(nsys),
+		gateway.WithResolver(pathResolver),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -149,37 +175,37 @@ func offlineErrWrap(err error) error {
 	return err
 }
 
-func (o *offlineGatewayErrWrapper) Get(ctx context.Context, path gateway.ImmutablePath, ranges ...gateway.ByteRange) (gateway.ContentPathMetadata, *gateway.GetResponse, error) {
+func (o *offlineGatewayErrWrapper) Get(ctx context.Context, path path.ImmutablePath, ranges ...gateway.ByteRange) (gateway.ContentPathMetadata, *gateway.GetResponse, error) {
 	md, n, err := o.gwimpl.Get(ctx, path, ranges...)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) GetAll(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, files.Node, error) {
+func (o *offlineGatewayErrWrapper) GetAll(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, files.Node, error) {
 	md, n, err := o.gwimpl.GetAll(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) GetBlock(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, files.File, error) {
+func (o *offlineGatewayErrWrapper) GetBlock(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, files.File, error) {
 	md, n, err := o.gwimpl.GetBlock(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) Head(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, files.Node, error) {
+func (o *offlineGatewayErrWrapper) Head(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, *gateway.HeadResponse, error) {
 	md, n, err := o.gwimpl.Head(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
-func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path gateway.ImmutablePath) (gateway.ContentPathMetadata, error) {
+func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, error) {
 	md, err := o.gwimpl.ResolvePath(ctx, path)
 	err = offlineErrWrap(err)
 	return md, err
 }
 
-func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path gateway.ImmutablePath, params gateway.CarParams) (gateway.ContentPathMetadata, io.ReadCloser, error) {
+func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path path.ImmutablePath, params gateway.CarParams) (gateway.ContentPathMetadata, io.ReadCloser, error) {
 	md, data, err := o.gwimpl.GetCAR(ctx, path, params)
 	err = offlineErrWrap(err)
 	return md, data, err
@@ -195,10 +221,10 @@ func (o *offlineGatewayErrWrapper) GetIPNSRecord(ctx context.Context, c cid.Cid)
 	return rec, err
 }
 
-func (o *offlineGatewayErrWrapper) ResolveMutable(ctx context.Context, path path.Path) (gateway.ImmutablePath, error) {
-	imPath, err := o.gwimpl.ResolveMutable(ctx, path)
+func (o *offlineGatewayErrWrapper) ResolveMutable(ctx context.Context, path path.Path) (path.ImmutablePath, time.Duration, time.Time, error) {
+	imPath, ttl, lastMod, err := o.gwimpl.ResolveMutable(ctx, path)
 	err = offlineErrWrap(err)
-	return imPath, err
+	return imPath, ttl, lastMod, err
 }
 
 func (o *offlineGatewayErrWrapper) GetDNSLinkRecord(ctx context.Context, s string) (path.Path, error) {
@@ -209,7 +235,7 @@ func (o *offlineGatewayErrWrapper) GetDNSLinkRecord(ctx context.Context, s strin
 
 var _ gateway.IPFSBackend = (*offlineGatewayErrWrapper)(nil)
 
-var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"}
+var defaultPaths = []string{"/ipfs/", "/ipns/", "/p2p/"}
 
 var subdomainGatewaySpec = &gateway.PublicGateway{
 	Paths:         defaultPaths,
@@ -220,22 +246,14 @@ var defaultKnownGateways = map[string]*gateway.PublicGateway{
 	"localhost": subdomainGatewaySpec,
 }
 
-func getGatewayConfig(n *core.IpfsNode) (gateway.Config, error) {
+func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, error) {
 	cfg, err := n.Repo.Config()
 	if err != nil {
-		return gateway.Config{}, err
+		return gateway.Config{}, nil, err
 	}
-
-	// Parse configuration headers and add the default Access Control Headers.
-	headers := make(map[string][]string, len(cfg.Gateway.HTTPHeaders))
-	for h, v := range cfg.Gateway.HTTPHeaders {
-		headers[http.CanonicalHeaderKey(h)] = v
-	}
-	gateway.AddAccessControlHeaders(headers)
 
 	// Initialize gateway configuration, with empty PublicGateways, handled after.
 	gwCfg := gateway.Config{
-		Headers:               headers,
 		DeserializedResponses: cfg.Gateway.DeserializedResponses.WithDefault(config.DefaultDeserializedResponses),
 		DisableHTMLErrors:     cfg.Gateway.DisableHTMLErrors.WithDefault(config.DefaultDisableHTMLErrors),
 		NoDNSLink:             cfg.Gateway.NoDNSLink,
@@ -265,5 +283,5 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, error) {
 		}
 	}
 
-	return gwCfg, nil
+	return gwCfg, cfg.Gateway.HTTPHeaders, nil
 }

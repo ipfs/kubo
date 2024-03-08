@@ -5,12 +5,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/ipfs/boxo/coreiface/path"
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/merkledag/traverse"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipfs/kubo/core/commands/e"
 )
 
@@ -29,19 +29,23 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 	cidSet := cid.NewSet()
 	dagStatSummary := &DagStatSummary{DagStatsArray: []*DagStat{}}
 	for _, a := range req.Arguments {
-		rp, err := api.ResolvePath(req.Context, path.New(a))
+		p, err := cmdutils.PathOrCidPath(a)
 		if err != nil {
 			return err
 		}
-		if len(rp.Remainder()) > 0 {
+		rp, remainder, err := api.ResolvePath(req.Context, p)
+		if err != nil {
+			return err
+		}
+		if len(remainder) > 0 {
 			return fmt.Errorf("cannot return size for anything other than a DAG with a root CID")
 		}
 
-		obj, err := nodeGetter.Get(req.Context, rp.Cid())
+		obj, err := nodeGetter.Get(req.Context, rp.RootCid())
 		if err != nil {
 			return err
 		}
-		dagstats := &DagStat{Cid: rp.Cid()}
+		dagstats := &DagStat{Cid: rp.RootCid()}
 		dagStatSummary.appendStats(dagstats)
 		err = traverse.Traverse(obj, traverse.Options{
 			DAG:   nodeGetter,
