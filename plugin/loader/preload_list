@@ -12,3 +12,4 @@ levelds github.com/ipfs/kubo/plugin/plugins/levelds *
 peerlog github.com/ipfs/kubo/plugin/plugins/peerlog *
 fxtest github.com/ipfs/kubo/plugin/plugins/fxtest *
 nopfs github.com/ipfs/kubo/plugin/plugins/nopfs *
+pebbleds github.com/ipfs/kubo/plugin/plugins/pebbleds *

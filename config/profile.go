@@ -168,6 +168,15 @@ This profile may only be applied when first initializing the node.`,
 			return nil
 		},
 	},
+	"pebbleds": {
+		Description: `Configures the node to use the pebble datastore.
+This profile may only be applied when first initializing the node.`,
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = pebbleSpec()
+			return nil
+		},
+	},
 	"lowpower": {
 		Description: `Reduces daemon overhead on the system. May affect node
 functionality - performance of content discovery and data

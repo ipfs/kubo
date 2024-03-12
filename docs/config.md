@@ -252,6 +252,12 @@ documented in `ipfs config profile --help`.
 
   This profile may only be applied when first initializing the node.
 
+- `pebbleds`
+
+  Configures the node to use the pebble datastore.
+
+  This profile may only be applied when first initializing the node.
+
 - `lowpower`
 
   Reduces daemon overhead on the system. Affects node

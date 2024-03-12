@@ -51,6 +51,17 @@ Uses [badger](https://github.com/dgraph-io/badger) as a key value store.
 }
 ```
 
+## pebbleds
+
+Uses [pebble](https://github.com/cockroachdb/pebble) as a key value store
+
+```json
+{
+	"type": "pebbleds",
+	"path": "<location of pebble inside repo>"
+}
+```
+
 ## mount
 
 Allows specified datastores to handle keys prefixed with a given path.
