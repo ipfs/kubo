@@ -123,7 +123,24 @@ Official images are published at https://hub.docker.com/r/ipfs/kubo/:
 
 [![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ipfs/kubo?color=blue&label=kubo%20docker%20image&logo=docker&sort=semver&style=flat-square&cacheSeconds=3600)](https://hub.docker.com/r/ipfs/kubo/)
 
-More info on how to run Kubo (go-ipfs) inside Docker can be found [here](https://docs.ipfs.tech/how-to/run-ipfs-inside-docker/).
+- 🟢 Releases
+  - `latest` and `release` tags always point at [the latest stable release](https://github.com/ipfs/kubo/releases/latest)
+  - `vN.N.N` points at a specific [release tag](https://github.com/ipfs/kubo/releases)
+  - These are production grade images.
+- 🟠 We also provide experimental developer builds
+  - `master-latest` always points at the `HEAD` of the `master` branch
+  - `master-YYYY-DD-MM-GITSHA` points at a specific commit from the `master` branch
+  - These tags are used by developers for internal testing, not intended for end users or production use.
+
+```console
+$ docker pull ipfs/kubo:latest
+$ docker run --rm -it --net=host ipfs/kubo:latest
+```
+
+To [customize your node](https://docs.ipfs.tech/install/run-ipfs-inside-docker/#customizing-your-node),
+pass necessary config via `-e` or by mounting scripts in the `/container-init.d`.
+
+Learn more at https://docs.ipfs.tech/install/run-ipfs-inside-docker/
 
 ### Official prebuilt binaries
 
@@ -428,7 +445,9 @@ We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what 
 
 This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
 
-Please reach out to us in one [chat](https://docs.ipfs.tech/community/chat/) rooms.
+Members of IPFS community provide Kubo support on [discussion forum category here](https://discuss.ipfs.tech/c/help/help-kubo/23).
+
+Need help with IPFS itself? Learn where to get help and support at https://ipfs.tech/help.
 
 ## License
 
