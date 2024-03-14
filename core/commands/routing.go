@@ -426,7 +426,7 @@ identified by QmFoo.
 		cmds.FileArg("value-file", true, false, "A path to a file containing the value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
+		cmds.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the local datastore without broadcasting to the network instead of simply failing."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)

@@ -79,7 +79,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		cmds.StringOption(ttlOptionName, "Time duration hint, akin to --lifetime, indicating how long to cache this record before checking for updates.").WithDefault(ipns.DefaultRecordTTL.String()),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final IPNS Name encoded as CIDv1 (for use in /ipns content paths)."),
 		cmds.BoolOption(v1compatOptionName, "Produce a backward-compatible IPNS Record by including fields for both V1 and V2 signatures.").WithDefault(true),
-		cmds.BoolOption(allowOfflineOptionName, "When --offline, save the IPNS record to the the local datastore without broadcasting to the network (instead of failing)."),
+		cmds.BoolOption(allowOfflineOptionName, "When --offline, save the IPNS record to the local datastore without broadcasting to the network (instead of failing)."),
 		ke.OptionIPNSBase,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
