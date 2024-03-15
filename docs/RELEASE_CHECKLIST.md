@@ -90,7 +90,7 @@ This section covers tasks to be done during each release.
   - [ ] create and merge the PR which updates `dists/kubo/versions` and `dists/go-ipfs/versions` (![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) and `dists/kubo/current_version` and `dists/go-ipfs/current_version`)
     - [example](https://github.com/ipfs/distributions/pull/760)
   - [ ] wait for the [CI](https://github.com/ipfs/distributions/actions/workflows/main.yml) workflow run initiated by the merge to master to finish
-  - [ ] verify the release is available on [dist.ipfs.io](https://dist.ipfs.io/#kubo)
+  - [ ] verify the release is available on [dist.ipfs.tech](https://dist.ipfs.tech/#kubo)
   </details>
 - [ ] Publish the release to [NPM](https://www.npmjs.com/package/go-ipfs?activeTab=versions) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) publish-to-npm` (⚠️ you might need to run the command a couple of times because GHA might not be able to see the new distribution straight away due to caching) or ...</summary>
   - [ ] run the [Release to npm](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) workflow
