@@ -51,8 +51,11 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 	var n ipld.Node
 	switch options.Type {
 	case "empty":
-		n = new(dag.ProtoNode)
+		protoNode := new(dag.ProtoNode)
+		protoNode.SetCidBuilder(dag.V1CidPrefix())
+		n = protoNode
 	case "unixfs-dir":
+		// FIXME: This will use CIDv1 in https://github.com/ipfs/go-unixfs/pull/119.
 		n = ft.EmptyDirNode()
 	default:
 		return nil, fmt.Errorf("unknown node type: %s", options.Type)
@@ -328,6 +331,8 @@ func (api *ObjectAPI) patchData(ctx context.Context, p path.Path, r io.Reader, a
 		data = append(pbnd.Data(), data...)
 	}
 	pbnd.SetData(data)
+	// FIXME(BLOCKING): Do we want to deliberately change CID prefix here?
+	//pbnd.SetCidBuilder(dag.V1CidPrefix())
 
 	err = api.dag.Add(ctx, pbnd)
 	if err != nil {
@@ -384,6 +389,7 @@ func (api *ObjectAPI) core() coreiface.CoreAPI {
 
 func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error) {
 	dagnode := new(dag.ProtoNode)
+	dagnode.SetCidBuilder(dag.V1CidPrefix())
 	switch dataFieldEncoding {
 	case "text":
 		dagnode.SetData([]byte(nd.Data))
