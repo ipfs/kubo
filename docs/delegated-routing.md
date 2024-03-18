@@ -11,8 +11,8 @@
 Previously we only used the Amino DHT for content routing and content
 providing.
 
-Kubo 0.14 introduced experimental support for [delegated routing using Reframe protocol](https://github.com/ipfs/kubo/pull/8997).
-Since then,  Reframe got deprecated and superseded by [Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
+Kubo 0.14 introduced experimental support for [delegated routing](https://github.com/ipfs/kubo/pull/8997),
+which then got changed and standardized as [Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
 
 Kubo 0.23.0 release added support for [self-hosting Routing V1 HTTP API server](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.23.md#self-hosting-routingv1-endpoint-for-delegated-routing-needs).
 
@@ -42,15 +42,15 @@ The `Routing` configuration section will contain the following keys:
 
 #### Routers
 
-`Routers` will be a key-value list of routers that will be available to use. The key is the router name and the value is all the needed configurations for that router. the `Type` will define the routing kind. The main router types will be `reframe` and `dht`, but we will implement two special routers used to execute a set of routers in parallel or sequentially: `parallel` router and `sequential` router.
+`Routers` will be a key-value list of routers that will be available to use. The key is the router name and the value is all the needed configurations for that router. the `Type` will define the routing kind. The main router types will be `http` and `dht`, but we will implement two special routers used to execute a set of routers in parallel or sequentially: `parallel` router and `sequential` router.
 
 Depending on the routing type, it will use different parameters:
 
-##### Reframe
+##### HTTP
 
 Params:
 
-- `"Endpoint"`: URL endpoint implementing Reframe protocol.
+- `"Endpoint"`: URL of HTTP server with endpoints that implement [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) protocol.
 
 ##### Amino DHT
 
@@ -89,10 +89,10 @@ The value will contain:
 "Routing": {
   "Type": "custom",
   "Routers": {
-    "storetheindex": {
-      "Type": "reframe",
+    "http-delegated": {
+      "Type": "http",
       "Parameters": {
-        "Endpoint": "https://cid.contact/reframe"
+        "Endpoint": "https://delegated-ipfs.dev" // /routing/v1 (https://specs.ipfs.tech/routing/http-routing-v1/)
       }
     },
     "dht-lan": {
@@ -123,7 +123,7 @@ The value will contain:
             "RouterName": "dht-wan"
           },
           {
-            "RouterName": "storetheindex"
+            "RouterName": "http-delegated"
           }
         ]
       }
@@ -142,7 +142,7 @@ The value will contain:
             "Timeout": "100ms"
           },
           {
-            "RouterName": "storetheindex",
+            "RouterName": "http-delegated",
             "ExecuteAfter": "100ms"
           }
         ]
@@ -161,7 +161,7 @@ The value will contain:
             "Timeout": "300ms"
           },
           {
-            "RouterName": "storetheindex",
+            "RouterName": "http-delegated",
             "Timeout": "300ms"
           }
         ]
@@ -178,7 +178,7 @@ The value will contain:
             "RouterName": "dht-wan"
           },
           {
-            "RouterName": "storetheindex"
+            "RouterName": "http-delegated"
           }
         ]
       }
@@ -199,75 +199,6 @@ The value will contain:
     }
   }
 }
-```
-
-Added YAML for clarity:
-
-```yaml
----
-Type: custom
-Routers:
-  storetheindex:
-    Type: reframe
-    Parameters:
-      Endpoint: https://cid.contact/reframe
-  dht-lan:
-    Type: dht
-    Parameters:
-      Mode: server
-      PublicIPNetwork: false
-      AcceleratedDHTClient: false
-  dht-wan:
-    Type: dht
-    Parameters:
-      Mode: auto
-      PublicIPNetwork: true
-      AcceleratedDHTClient: false
-  find-providers-router:
-    Type: parallel
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-        IgnoreErrors: true
-      - RouterName: dht-wan
-      - RouterName: storetheindex
-  provide-router:
-    Type: parallel
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-        IgnoreErrors: true
-      - RouterName: dht-wan
-        ExecuteAfter: 100ms
-        Timeout: 100ms
-      - RouterName: storetheindex
-        ExecuteAfter: 100ms
-  get-ipns-router:
-    Type: sequential
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-        IgnoreErrors: true
-      - RouterName: dht-wan
-        Timeout: 300ms
-      - RouterName: storetheindex
-        Timeout: 300ms
-  put-ipns-router:
-    Type: parallel
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-      - RouterName: dht-wan
-      - RouterName: storetheindex
-Methods:
-  find-providers:
-    RouterName: find-providers-router
-  provide:
-    RouterName: provide-router
-  get-ipns:
-    RouterName: get-ipns-router
-  put-ipns:
-    RouterName: put-ipns-router
 ```
 
 ### Error cases
@@ -401,48 +332,6 @@ As test fixtures we can add different use cases here and see how the configurati
     }
   }
 }
-```
-YAML representation for clarity:
-
-```yaml
----
-Type: custom
-Routers:
-  dht-lan:
-    Type: dht
-    Parameters:
-      Mode: server
-      PublicIPNetwork: false
-  dht-wan:
-    Type: dht
-    Parameters:
-      Mode: auto
-      PublicIPNetwork: true
-  parallel-dht-strict:
-    Type: parallel
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-      - RouterName: dht-wan
-  parallel-dht:
-    Type: parallel
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-        IgnoreError: true
-      - RouterName: dht-wan
-Methods:
-  provide:
-    RouterName: dht-wan
-  find-providers:
-    RouterName: parallel-dht-strict
-  find-peers:
-    RouterName: parallel-dht-strict
-  get-ipns:
-    RouterName: parallel-dht
-  put-ipns:
-    RouterName: parallel-dht
-
 ```
 
 ### Compatibility
