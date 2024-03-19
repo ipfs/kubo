@@ -1130,7 +1130,7 @@ Type: `interval` or an empty string for the default.
 A time duration specifying the value to set on ipns records for their validity
 lifetime.
 
-Default: 24 hours.
+Default: 48 hours.
 
 Type: `interval` or an empty string for the default.
 
