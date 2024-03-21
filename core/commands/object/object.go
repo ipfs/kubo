@@ -28,7 +28,23 @@ directly. Deprecated, use more modern 'ipfs dag' and 'ipfs files' instead.`,
 	},
 
 	Subcommands: map[string]*cmds.Command{
+		"data":  RemovedObjectCmd,
 		"diff":  ObjectDiffCmd,
+		"get":   RemovedObjectCmd,
+		"links": RemovedObjectCmd,
+		"new":   RemovedObjectCmd,
 		"patch": ObjectPatchCmd,
+		"put":   RemovedObjectCmd,
+		"stat":  RemovedObjectCmd,
+	},
+}
+
+var RemovedObjectCmd = &cmds.Command{
+	Status: cmds.Removed,
+	Helptext: cmds.HelpText{
+		Tagline: "Removed, use 'ipfs dag' or 'ipfs files' instead.",
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		return errors.New("removed, use 'ipfs dag' or 'ipfs files' instead")
 	},
 }

@@ -37,8 +37,10 @@ For modern use cases, use MFS with 'files' commands: 'ipfs files --help'.
 	},
 	Arguments: []cmds.Argument{},
 	Subcommands: map[string]*cmds.Command{
-		"add-link": patchAddLinkCmd,
-		"rm-link":  patchRmLinkCmd,
+		"append-data": RemovedObjectCmd,
+		"add-link":    patchAddLinkCmd,
+		"rm-link":     patchRmLinkCmd,
+		"set-data":    RemovedObjectCmd,
 	},
 	Options: []cmds.Option{
 		cmdutils.AllowBigBlockOption,
