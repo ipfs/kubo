@@ -630,16 +630,11 @@ func (tp *TestSuite) TestGetDir(t *testing.T) {
 	}
 	p := path.FromCid(edir.Cid())
 
-	emptyDir, err := api.Object().New(ctx, options.Object.Type("unixfs-dir"))
-	if err != nil {
-		t.Fatal(err)
+	if p.String() != path.FromCid(edir.Cid()).String() {
+		t.Fatalf("expected path %s, got: %s", edir.Cid(), p.String())
 	}
 
-	if p.String() != path.FromCid(emptyDir.Cid()).String() {
-		t.Fatalf("expected path %s, got: %s", emptyDir.Cid(), p.String())
-	}
-
-	r, err := api.Unixfs().Get(ctx, path.FromCid(emptyDir.Cid()))
+	r, err := api.Unixfs().Get(ctx, path.FromCid(edir.Cid()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -779,17 +774,12 @@ func (tp *TestSuite) TestLsEmptyDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = api.Unixfs().Add(ctx, files.NewSliceDirectory([]files.DirEntry{}))
+	p, err := api.Unixfs().Add(ctx, files.NewSliceDirectory([]files.DirEntry{}))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	emptyDir, err := api.Object().New(ctx, options.Object.Type("unixfs-dir"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	links, err := api.Unixfs().Ls(ctx, path.FromCid(emptyDir.Cid()))
+	links, err := api.Unixfs().Ls(ctx, p)
 	if err != nil {
 		t.Fatal(err)
 	}
