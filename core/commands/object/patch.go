@@ -37,125 +37,13 @@ For modern use cases, use MFS with 'files' commands: 'ipfs files --help'.
 	},
 	Arguments: []cmds.Argument{},
 	Subcommands: map[string]*cmds.Command{
-		"append-data": patchAppendDataCmd,
+		"append-data": RemovedObjectCmd,
 		"add-link":    patchAddLinkCmd,
 		"rm-link":     patchRmLinkCmd,
-		"set-data":    patchSetDataCmd,
+		"set-data":    RemovedObjectCmd,
 	},
 	Options: []cmds.Option{
 		cmdutils.AllowBigBlockOption,
-	},
-}
-
-var patchAppendDataCmd = &cmds.Command{
-	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/7936
-	Helptext: cmds.HelpText{
-		Tagline: "Deprecated way to append data to the data segment of a DAG node.",
-		ShortDescription: `
-Append data to what already exists in the data segment in the given object.
-
-Example:
-
-	$ echo "hello" | ipfs object patch $HASH append-data
-
-NOTE: This does not append data to a file - it modifies the actual raw
-data within a dag-pb object. Blocks have a max size of 1MiB and objects larger than
-the limit will not be respected by the network.
-
-DEPRECATED and provided for legacy reasons. Use 'ipfs add' or 'ipfs files' instead.
-`,
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "The hash of the node to modify."),
-		cmds.FileArg("data", true, false, "Data to append.").EnableStdin(),
-	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env, req)
-		if err != nil {
-			return err
-		}
-
-		root, err := cmdutils.PathOrCidPath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		file, err := cmdenv.GetFileArg(req.Files.Entries())
-		if err != nil {
-			return err
-		}
-
-		p, err := api.Object().AppendData(req.Context, root, file)
-		if err != nil {
-			return err
-		}
-
-		if err := cmdutils.CheckCIDSize(req, p.RootCid(), api.Dag()); err != nil {
-			return err
-		}
-
-		return cmds.EmitOnce(res, &Object{Hash: p.RootCid().String()})
-	},
-	Type: &Object{},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, obj *Object) error {
-			_, err := fmt.Fprintln(w, obj.Hash)
-			return err
-		}),
-	},
-}
-
-var patchSetDataCmd = &cmds.Command{
-	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/7936
-	Helptext: cmds.HelpText{
-		Tagline: "Deprecated way to set the data field of dag-pb object.",
-		ShortDescription: `
-Set the data of an IPFS object from stdin or with the contents of a file.
-
-Example:
-
-    $ echo "my data" | ipfs object patch $MYHASH set-data
-
-DEPRECATED and provided for legacy reasons. Use 'files cp' and 'dag put' instead.
-`,
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "The hash of the node to modify."),
-		cmds.FileArg("data", true, false, "The data to set the object to.").EnableStdin(),
-	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env, req)
-		if err != nil {
-			return err
-		}
-
-		root, err := cmdutils.PathOrCidPath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		file, err := cmdenv.GetFileArg(req.Files.Entries())
-		if err != nil {
-			return err
-		}
-
-		p, err := api.Object().SetData(req.Context, root, file)
-		if err != nil {
-			return err
-		}
-
-		if err := cmdutils.CheckCIDSize(req, p.RootCid(), api.Dag()); err != nil {
-			return err
-		}
-
-		return cmds.EmitOnce(res, &Object{Hash: p.RootCid().String()})
-	},
-	Type: Object{},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {
-			fmt.Fprintln(w, out.Hash)
-			return nil
-		}),
 	},
 }
 
