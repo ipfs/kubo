@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -98,11 +99,29 @@ func ApiAddr(ipfspath string) (ma.Multiaddr, error) {
 
 // NewApi constructs HttpApi with specified endpoint.
 func NewApi(a ma.Multiaddr) (*HttpApi, error) {
+	transport := &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
+		DisableKeepAlives: true,
+	}
+
+	network, address, err := manet.DialArgs(a)
+	if err != nil {
+		return nil, err
+	}
+	if network == "unix" {
+		transport.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", address)
+		}
+		c := &http.Client{
+			Transport: transport,
+		}
+		// This will create an API client which
+		// makes requests to `http://unix`.
+		return NewURLApiWithClient(network, c)
+	}
+
 	c := &http.Client{
-		Transport: &http.Transport{
-			Proxy:             http.ProxyFromEnvironment,
-			DisableKeepAlives: true,
-		},
+		Transport: transport,
 	}
 
 	return NewApiWithClient(a, c)
