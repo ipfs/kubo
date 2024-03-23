@@ -22,6 +22,7 @@ We will ask early testers to participate at two points in the process:
 
 ## Who has signed up?
 
+- [ ] Brave ()
 - [ ] Charity Engine (@rytiss, @tristanolive)
 - [ ] Fission (@bmann)
 - [ ] Infura (@MichaelMure)
