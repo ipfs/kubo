@@ -198,7 +198,7 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
-		cmds.BoolOption(silentOptionName, "No output."),
+		cmds.BoolOption(silentOptionName, "q", "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
 		cmdutils.AllowBigBlockOption,
 	},
