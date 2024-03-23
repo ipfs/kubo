@@ -26,6 +26,7 @@ func init() {
 
 func main() {
 	cli := cli.NewCli()
+	os.Setenv("GOLOG_LOG_LEVEL", "autorelay=debug")
 	if err := cli.Run(os.Args); err != nil {
 		fmt.Fprintf(cli.ErrWriter, "%s\n", err)
 		os.Exit(1)
