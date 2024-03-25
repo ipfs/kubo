@@ -62,7 +62,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
-	p, err := path.NewPath(name)
+	p, err := path.NewPath("/ipfs/" + name)
 	if err != nil {
 		log.Debugf("fuse failed to parse path: %q: %s", name, err)
 		return nil, syscall.Errno(syscall.ENOENT)
