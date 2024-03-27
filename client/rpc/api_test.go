@@ -47,6 +47,7 @@ func (np NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdent
 				c.Experimental.FilestoreEnabled = true
 				n.WriteConfig(c)
 
+				n.Runner.Env["LAN_DHT_INCLUDE_LOOPBACK"] = "true"
 				n.StartDaemon("--enable-pubsub-experiment", "--offline="+strconv.FormatBool(!online))
 
 				if online {

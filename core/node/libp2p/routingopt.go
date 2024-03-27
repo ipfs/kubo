@@ -116,10 +116,16 @@ func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
 		if args.OptimisticProvideJobsPoolSize != 0 {
 			dhtOpts = append(dhtOpts, dht.OptimisticProvideJobsPoolSize(args.OptimisticProvideJobsPoolSize))
 		}
-		return dual.New(
-			args.Ctx, args.Host,
+		dualOptions := []dual.Option{
 			dual.DHTOption(dhtOpts...),
 			dual.WanDHTOption(dht.BootstrapPeers(args.BootstrapPeers...)),
+		}
+		if os.Getenv("LAN_DHT_INCLUDE_LOOPBACK") == "true" {
+			dualOptions = append(dualOptions, dual.LanDHTOption(dht.AddressFilter(nil)))
+		}
+		return dual.New(
+			args.Ctx, args.Host,
+			dualOptions...,
 		)
 	}
 }
