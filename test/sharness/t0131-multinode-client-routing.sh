@@ -43,7 +43,8 @@ run_single_file_test() {
 NNODES=10
 
 test_expect_success "set up testbed" '
-  iptb testbed create -type localipfs -count $NNODES -force -init
+  iptb testbed create -type localipfs -count $NNODES -force -init &&
+  iptb run -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true
 '
 
 test_expect_success "start up nodes" '

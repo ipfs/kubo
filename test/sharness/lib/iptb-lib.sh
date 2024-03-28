@@ -34,12 +34,9 @@ startup_cluster() {
   other_args="$@"
   bound=$(expr "$num_nodes" - 1)
 
-  for i in $(test_seq 0 "$bound")
-  do
-    test_expect_success "node $i allows loopback addresses on lan dht" '
-      ipfsi $i config --json "Routing.LoopbackAddressesOnLanDHT" true
-    '
-  done
+  test_expect_success "set Routing.LoopbackAddressesOnLanDHT to true" '
+    iptb run [0-$bound] -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true
+  '
 
   if test -n "$other_args"; then
     test_expect_success "start up nodes with additional args" "
