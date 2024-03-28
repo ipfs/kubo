@@ -13,8 +13,6 @@ import (
 func TestBackupBootstrapPeers(t *testing.T) {
 	nodes := harness.NewT(t).NewNodes(3).Init()
 	nodes.ForEachPar(func(n *harness.Node) {
-		n.Runner.Env["LAN_DHT_INCLUDE_LOOPBACK"] = "true"
-
 		n.UpdateConfig(func(cfg *config.Config) {
 			cfg.Bootstrap = []string{}
 			cfg.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", harness.NewRandPort())}

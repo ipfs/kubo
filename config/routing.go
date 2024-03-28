@@ -17,6 +17,9 @@ type Routing struct {
 
 	AcceleratedDHTClient bool
 
+	LoopbackAddressesOnLanDHT bool
+	PrivateAddressesOnWanDHT  bool
+
 	Routers Routers
 
 	Methods Methods

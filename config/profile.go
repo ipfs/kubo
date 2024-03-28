@@ -82,6 +82,7 @@ is useful when using the daemon in test environments.`,
 			}
 
 			c.Swarm.DisableNatPortMap = true
+			c.Routing.LoopbackAddressesOnLanDHT = true
 
 			c.Bootstrap = []string{}
 			c.Discovery.MDNS.Enabled = false
