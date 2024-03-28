@@ -117,6 +117,8 @@ config file at runtime.
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
+    - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
+    - [`Routing.PrivateAddressesOnWanDHT`](#routingprivateaddressesonwandht)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -1607,6 +1609,23 @@ prepared. This means operations like searching the DHT for particular peers or c
    - You can see if the DHT has been initially populated by running `ipfs stats dht`
 3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
 them
+
+Default: `false`
+
+Type: `bool` (missing means `false`)
+
+### `Routing.LoopbackAddressesOnLanDHT`
+
+Whether loopback addresses (e.g. 127.0.0.1) should be published on the local LAN DHT.
+This can be useful if, for example, you run multiple Kubo nodes on the same machine.
+
+Default: `false`
+
+Type: `bool` (missing means `false`)
+
+### `Routing.PrivateAddressesOnWanDHT`
+
+Whether private addresses should be published on the WAN DHT.
 
 Default: `false`
 

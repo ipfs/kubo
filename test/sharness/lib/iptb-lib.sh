@@ -34,6 +34,10 @@ startup_cluster() {
   other_args="$@"
   bound=$(expr "$num_nodes" - 1)
 
+  test_expect_success "set Routing.LoopbackAddressesOnLanDHT to true" '
+    iptb run [0-$bound] -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true
+  '
+
   if test -n "$other_args"; then
     test_expect_success "start up nodes with additional args" "
       iptb start -wait [0-$bound] -- ${other_args[@]}
