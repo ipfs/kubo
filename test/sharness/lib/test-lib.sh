@@ -42,9 +42,6 @@ ln -sf lib/sharness/lib-sharness .
   exit 1
 }
 
-# Ensure that the local DHT in the tests contains loopback addresses.
-export LAN_DHT_INCLUDE_LOOPBACK=true
-
 # Please put go-ipfs specific shell functions below
 
 ###

@@ -142,6 +142,7 @@ function curl_send_multipart_form_request() {
 
 test_expect_success 'configure nodes' '
     iptb testbed create -type localipfs -count 2 -force -init &&
+    iptb run -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true &&
     ipfsi 0 config --json Experimental.Libp2pStreamMounting true &&
     ipfsi 1 config --json Experimental.Libp2pStreamMounting true &&
     ipfsi 0 config --json Experimental.P2pHttpProxy true &&
