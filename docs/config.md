@@ -118,7 +118,6 @@ config file at runtime.
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
-    - [`Routing.PrivateAddressesOnWanDHT`](#routingprivateaddressesonwandht)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -1618,14 +1617,6 @@ Type: `flag`
 
 Whether loopback addresses (e.g. 127.0.0.1) should not be ignored on the local LAN DHT.
 This can be useful if, for example, you run multiple Kubo nodes on the same machine.
-
-Default: `false`
-
-Type: `bool` (missing means `false`)
-
-### `Routing.PrivateAddressesOnWanDHT`
-
-Whether private addresses should not be ignored on the WAN DHT.
 
 Default: `false`
 

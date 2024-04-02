@@ -22,7 +22,6 @@ type Routing struct {
 	AcceleratedDHTClient Flag `json:",omitempty"`
 
 	LoopbackAddressesOnLanDHT bool
-	PrivateAddressesOnWanDHT  bool
 
 	Routers Routers
 
