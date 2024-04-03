@@ -6,6 +6,10 @@ import (
 	"runtime"
 )
 
+var (
+	DefaultAcceleratedDHTClient = false
+)
+
 // Routing defines configuration options for libp2p routing.
 type Routing struct {
 	// Type sets default daemon routing mode.
@@ -15,7 +19,7 @@ type Routing struct {
 	// When "custom" is set, user-provided Routing.Routers is used.
 	Type *OptionalString `json:",omitempty"`
 
-	AcceleratedDHTClient bool
+	AcceleratedDHTClient Flag `json:",omitempty"`
 
 	Routers Routers
 
