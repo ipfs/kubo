@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	DefaultAcceleratedDHTClient = false
+	DefaultAcceleratedDHTClient      = false
+	DefaultLoopbackAddressesOnLanDHT = false
 )
 
 // Routing defines configuration options for libp2p routing.
