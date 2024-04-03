@@ -571,7 +571,7 @@ func (tp *TestSuite) TestAddHashOnly(t *testing.T) {
 	}
 
 	if p.String() != hello {
-		t.Errorf("unxepected path: %s", p.String())
+		t.Errorf("unexpected path: %s", p.String())
 	}
 
 	_, err = api.Block().Get(ctx, p)
@@ -579,7 +579,7 @@ func (tp *TestSuite) TestAddHashOnly(t *testing.T) {
 		t.Fatal("expected an error")
 	}
 	if !ipld.IsNotFound(err) {
-		t.Errorf("unxepected error: %s", err.Error())
+		t.Errorf("unexpected error: %s", err.Error())
 	}
 }
 
