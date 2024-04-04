@@ -1610,7 +1610,7 @@ them
 
 Default: `false`
 
-Type: `bool` (missing means `false`)
+Type: `flag`
 
 ### `Routing.Routers`
 
