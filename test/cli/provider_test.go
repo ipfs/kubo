@@ -74,6 +74,23 @@ func TestProvider(t *testing.T) {
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
+	t.Run("Reprovides with 'flat' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "flat")
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String(), "--local")
+
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		nodes[0].IPFS("bitswap", "reprovide")
+
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
 	t.Run("Reprovides with 'pinned' strategy", func(t *testing.T) {
 		t.Parallel()
 

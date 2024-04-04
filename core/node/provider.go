@@ -134,6 +134,8 @@ func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, repro
 		keyProvider = fx.Provide(newProvidingStrategy(true, true))
 	case "pinned":
 		keyProvider = fx.Provide(newProvidingStrategy(true, false))
+	case "flat":
+		keyProvider = fx.Provide(provider.NewBlockstoreProvider)
 	default:
 		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", reprovideStrategy))
 	}
