@@ -46,7 +46,6 @@ func (np NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdent
 				c := n.ReadConfig()
 				c.Experimental.FilestoreEnabled = true
 				n.WriteConfig(c)
-
 				n.StartDaemon("--enable-pubsub-experiment", "--offline="+strconv.FormatBool(!online))
 
 				if online {

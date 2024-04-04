@@ -26,6 +26,7 @@ type RoutingOptionArgs struct {
 	BootstrapPeers                []peer.AddrInfo
 	OptimisticProvide             bool
 	OptimisticProvideJobsPoolSize int
+	LoopbackAddressesOnLanDHT     bool
 }
 
 type RoutingOption func(args RoutingOptionArgs) (routing.Routing, error)
@@ -116,10 +117,18 @@ func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
 		if args.OptimisticProvideJobsPoolSize != 0 {
 			dhtOpts = append(dhtOpts, dht.OptimisticProvideJobsPoolSize(args.OptimisticProvideJobsPoolSize))
 		}
+		wanOptions := []dht.Option{
+			dht.BootstrapPeers(args.BootstrapPeers...),
+		}
+		lanOptions := []dht.Option{}
+		if args.LoopbackAddressesOnLanDHT {
+			lanOptions = append(lanOptions, dht.AddressFilter(nil))
+		}
 		return dual.New(
 			args.Ctx, args.Host,
 			dual.DHTOption(dhtOpts...),
-			dual.WanDHTOption(dht.BootstrapPeers(args.BootstrapPeers...)),
+			dual.WanDHTOption(wanOptions...),
+			dual.LanDHTOption(lanOptions...),
 		)
 	}
 }

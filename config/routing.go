@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	DefaultAcceleratedDHTClient = false
+	DefaultAcceleratedDHTClient      = false
+	DefaultLoopbackAddressesOnLanDHT = false
 )
 
 // Routing defines configuration options for libp2p routing.
@@ -20,6 +21,8 @@ type Routing struct {
 	Type *OptionalString `json:",omitempty"`
 
 	AcceleratedDHTClient Flag `json:",omitempty"`
+
+	LoopbackAddressesOnLanDHT Flag `json:",omitempty"`
 
 	Routers Routers
 

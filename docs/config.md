@@ -117,6 +117,7 @@ config file at runtime.
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
+    - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -1611,6 +1612,18 @@ them
 Default: `false`
 
 Type: `flag`
+
+### `Routing.LoopbackAddressesOnLanDHT`
+
+**EXPERIMENTAL: `Routing.LoopbackAddressesOnLanDHT` configuration may change in future release**
+
+Whether loopback addresses (e.g. 127.0.0.1) should not be ignored on the local LAN DHT.
+
+Most users do not need this setting. It can be useful during testing, when multiple Kubo nodes run on the same machine but some of them do not have `Discovery.MDNS.Enabled`.
+
+Default: `false`
+
+Type: `bool` (missing means `false`)
 
 ### `Routing.Routers`
 
