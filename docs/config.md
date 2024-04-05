@@ -345,8 +345,8 @@ Contains information about various listener addresses to be used by this node.
 
 ### `Addresses.API`
 
-Multiaddr or array of multiaddrs describing the address to serve the local HTTP
-API on.
+Multiaddr or array of multiaddrs describing the address to serve
+the local [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`).
 
 Supported Transports:
 
@@ -359,8 +359,8 @@ Type: `strings` (multiaddrs)
 
 ### `Addresses.Gateway`
 
-Multiaddr or array of multiaddrs describing the address to serve the local
-gateway on.
+Multiaddr or array of multiaddrs describing the address to serve
+the local [HTTP gateway](https://specs.ipfs.tech/http-gateways/) (`/ipfs`, `/ipns`) on.
 
 Supported Transports:
 
@@ -427,10 +427,12 @@ Default: `[]`
 Type: `array[string]` (multiaddrs)
 
 ## `API`
-Contains information used by the API gateway.
+
+Contains information used by the [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/).
 
 ### `API.HTTPHeaders`
-Map of HTTP headers to set on responses from the API HTTP server.
+
+Map of HTTP headers to set on responses from the RPC (`/api/v0`) HTTP server.
 
 Example:
 ```json
