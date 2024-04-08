@@ -9,7 +9,7 @@ toolchain go1.22.0
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.18.1-0.20240404105922-3182484b86c8
+	github.com/ipfs/boxo v0.18.1-0.20240408152325-558d9c78084e
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/multiformats/go-multiaddr v0.12.3

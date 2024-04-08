@@ -163,14 +163,13 @@ func newProvidingStrategy(onlyPinned, onlyRoots bool) interface{} {
 			return provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher)
 		}
 
-		var later provider.KeyChanFunc
 		if onlyPinned {
-			later = provider.NewPinnedProvider(false, in.Pinner, in.IPLDFetcher)
-		} else {
-			later = provider.NewBlockstoreProvider(in.Blockstore)
+			return provider.NewPinnedProvider(false, in.Pinner, in.IPLDFetcher)
 		}
 
-		roots := provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher)
-		return provider.NewPrioritizedProvider(roots, later)
+		return provider.NewPrioritizedProvider(
+			provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher),
+			provider.NewBlockstoreProvider(in.Blockstore),
+		)
 	}
 }
