@@ -185,7 +185,7 @@ func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (interface{
 	return info, nil
 }
 
-// printing self is special cased as we get values differently.
+// printSelf is special cased as we get values differently.
 func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (interface{}, error) {
 	info := new(IdOutput)
 	info.ID = keyEnc.FormatID(node.Identity)
