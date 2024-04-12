@@ -7,6 +7,7 @@ config file at runtime.
 
 # Table of Contents
 
+
 - [The Kubo config file](#the-kubo-config-file)
 - [Table of Contents](#table-of-contents)
   - [Profiles](#profiles)
