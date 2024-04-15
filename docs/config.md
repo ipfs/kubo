@@ -117,6 +117,7 @@ config file at runtime.
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
+    - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -344,8 +345,8 @@ Contains information about various listener addresses to be used by this node.
 
 ### `Addresses.API`
 
-Multiaddr or array of multiaddrs describing the address to serve the local HTTP
-API on.
+Multiaddr or array of multiaddrs describing the address to serve
+the local [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`).
 
 Supported Transports:
 
@@ -358,8 +359,8 @@ Type: `strings` (multiaddrs)
 
 ### `Addresses.Gateway`
 
-Multiaddr or array of multiaddrs describing the address to serve the local
-gateway on.
+Multiaddr or array of multiaddrs describing the address to serve
+the local [HTTP gateway](https://specs.ipfs.tech/http-gateways/) (`/ipfs`, `/ipns`) on.
 
 Supported Transports:
 
@@ -426,10 +427,12 @@ Default: `[]`
 Type: `array[string]` (multiaddrs)
 
 ## `API`
-Contains information used by the API gateway.
+
+Contains information used by the [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/).
 
 ### `API.HTTPHeaders`
-Map of HTTP headers to set on responses from the API HTTP server.
+
+Map of HTTP headers to set on responses from the RPC (`/api/v0`) HTTP server.
 
 Example:
 ```json
@@ -1130,7 +1133,7 @@ Type: `interval` or an empty string for the default.
 A time duration specifying the value to set on ipns records for their validity
 lifetime.
 
-Default: 24 hours.
+Default: 48 hours.
 
 Type: `interval` or an empty string for the default.
 
@@ -1500,7 +1503,9 @@ Type: `optionalDuration` (unset for the default)
 Tells reprovider what should be announced. Valid strategies are:
 
 - `"all"` - announce all CIDs of stored blocks
+  - Order: root blocks of direct and recursive pins are announced first, then the rest of blockstore
 - `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks)
+  - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
 - `"roots"` - only announce the root block of explicitly pinned CIDs
   - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
     It makes sense only for use cases where the entire DAG is fetched in full,
@@ -1509,6 +1514,7 @@ Tells reprovider what should be announced. Valid strategies are:
     providers for the missing block in the middle of a file, unless the peer
     happens to already be connected to a provider and ask for child CID over
     bitswap.
+- `"flat"` - same as `all`, announce all CIDs of stored blocks, but without prioritizing anything
 
 Default: `"all"`
 
@@ -1607,6 +1613,18 @@ prepared. This means operations like searching the DHT for particular peers or c
    - You can see if the DHT has been initially populated by running `ipfs stats dht`
 3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
 them
+
+Default: `false`
+
+Type: `flag`
+
+### `Routing.LoopbackAddressesOnLanDHT`
+
+**EXPERIMENTAL: `Routing.LoopbackAddressesOnLanDHT` configuration may change in future release**
+
+Whether loopback addresses (e.g. 127.0.0.1) should not be ignored on the local LAN DHT.
+
+Most users do not need this setting. It can be useful during testing, when multiple Kubo nodes run on the same machine but some of them do not have `Discovery.MDNS.Enabled`.
 
 Default: `false`
 

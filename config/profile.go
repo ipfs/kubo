@@ -82,6 +82,7 @@ is useful when using the daemon in test environments.`,
 			}
 
 			c.Swarm.DisableNatPortMap = true
+			c.Routing.LoopbackAddressesOnLanDHT = True
 
 			c.Bootstrap = []string{}
 			c.Discovery.MDNS.Enabled = false
@@ -174,7 +175,7 @@ functionality - performance of content discovery and data
 fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
-			c.Routing.Type = NewOptionalString("dhtclient") // TODO: https://github.com/ipfs/kubo/issues/9480
+			c.Routing.Type = NewOptionalString("autoclient")
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
 			c.Reprovider.Interval = NewOptionalDuration(0)
 

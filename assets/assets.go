@@ -9,9 +9,7 @@ import (
 	"github.com/ipfs/kubo/core/coreapi"
 
 	"github.com/ipfs/boxo/files"
-	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
-	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 //go:embed init-doc
@@ -39,12 +37,7 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 		return cid.Cid{}, err
 	}
 
-	dirb, err := api.Object().New(nd.Context(), options.Object.Type("unixfs-dir"))
-	if err != nil {
-		return cid.Cid{}, err
-	}
-
-	basePath := path.FromCid(dirb.Cid())
+	dirMap := map[string]files.Node{}
 
 	for _, p := range l {
 		d, err := Asset.ReadFile(p)
@@ -52,17 +45,12 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 			return cid.Cid{}, fmt.Errorf("assets: could load Asset '%s': %s", p, err)
 		}
 
-		fp, err := api.Unixfs().Add(nd.Context(), files.NewBytesFile(d))
-		if err != nil {
-			return cid.Cid{}, err
-		}
+		dirMap[gopath.Base(p)] = files.NewBytesFile(d)
+	}
 
-		fname := gopath.Base(p)
-
-		basePath, err = api.Object().AddLink(nd.Context(), basePath, fname, fp)
-		if err != nil {
-			return cid.Cid{}, err
-		}
+	basePath, err := api.Unixfs().Add(nd.Context(), files.NewMapDirectory(dirMap))
+	if err != nil {
+		return cid.Cid{}, err
 	}
 
 	if err := api.Pin().Add(nd.Context(), basePath); err != nil {

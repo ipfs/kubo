@@ -138,7 +138,7 @@ func parseIPLDErrNotFound(msg string) (error, bool) {
 
 // This is a simple error type that just return msg as Error().
 // But that also match ipld.ErrNotFound when called with Is(err).
-// That is needed to keep compatiblity with code that use string.Contains(err.Error(), "blockstore: block not found")
+// That is needed to keep compatibility with code that use string.Contains(err.Error(), "blockstore: block not found")
 // and code using ipld.ErrNotFound.
 type blockstoreNotFoundMatchingIPLDErrNotFound struct {
 	msg string

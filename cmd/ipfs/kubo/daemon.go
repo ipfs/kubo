@@ -424,7 +424,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	case routingOptionNoneKwd:
 		ncfg.Routing = libp2p.NilRouterOption
 	case routingOptionCustomKwd:
-		if cfg.Routing.AcceleratedDHTClient {
+		if cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient) {
 			return fmt.Errorf("Routing.AcceleratedDHTClient option is set even tho Routing.Type is custom, using custom .AcceleratedDHTClient needs to be set on DHT routers individually")
 		}
 		ncfg.Routing = libp2p.ConstructDelegatedRouting(
@@ -850,8 +850,6 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		corehttp.GatewayOption("/ipfs", "/ipns"),
 		corehttp.VersionOption(),
 		corehttp.CheckVersionOption(),
-		// TODO[api-on-gw]: remove for 0.28.0: https://github.com/ipfs/kubo/issues/10312
-		corehttp.CommandsROOption(cmdctx),
 	}
 
 	if cfg.Experimental.P2pHttpProxy {
@@ -931,10 +929,6 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 	h := p2phttp.Host{
 		StreamHost: node.PeerHost,
 	}
-
-	tmpProtocol := protocol.ID("/kubo/delete-me")
-	h.SetHTTPHandler(tmpProtocol, http.NotFoundHandler())
-	h.WellKnownHandler.RemoveProtocolMeta(tmpProtocol)
 
 	h.WellKnownHandler.AddProtocolMeta(gatewayProtocolID, p2phttp.ProtocolMeta{Path: "/"})
 	h.ServeMux = http.NewServeMux()

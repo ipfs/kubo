@@ -203,25 +203,6 @@ test_localhost_gateway_response_should_contain \
 
 # end Kubo specific end-to-end test
 
-# API on localhost subdomain gateway
-
-# /api/v0 present on the root hostname
-test_localhost_gateway_response_should_contain \
-  "request for localhost/api" \
-  "http://localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "Ref"
-
-# /api/v0 not mounted on content root subdomains
-test_localhost_gateway_response_should_contain \
-  "request for {cid}.ipfs.localhost/api returns data if present on the content root" \
-  "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
-
-test_localhost_gateway_response_should_contain \
-  "request for {cid}.ipfs.localhost/api/v0/refs returns 404" \
-  "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
-
 ## ============================================================================
 ## Test subdomain-based requests to a local gateway with default config
 ## (origin per content root at http://*.localhost)
@@ -307,14 +288,6 @@ test_localhost_gateway_response_should_contain \
   "request for {dnslink}.ipns.localhost returns expected payload" \
   "http://$DNSLINK_FQDN.ipns.localhost:$GWAY_PORT" \
   "$CID_VAL"
-
-# api.localhost/api
-
-# Note: we use DIR_CID so refs -r returns some CIDs for child nodes
-test_localhost_gateway_response_should_contain \
-  "request for api.localhost returns API response" \
-  "http://api.localhost:$GWAY_PORT/api/v0/refs?arg=$DIR_CID&r=true" \
-  "Ref"
 
 ## ============================================================================
 ## Test DNSLink inlining on HTTP gateways
@@ -517,54 +490,6 @@ test_hostname_gateway_response_should_contain \
   "${ED25519_IPNS_IDv1_DAGPB}.ipns.example.com" \
   "http://127.0.0.1:$GWAY_PORT" \
   "Location: http://${ED25519_IPNS_IDv1}.ipns.example.com/"
-
-# API on subdomain gateway example.com
-# ============================================================================
-
-# present at the root domain
-test_hostname_gateway_response_should_contain \
-  "request for example.com/api/v0/refs returns expected payload when /api is on Paths whitelist" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "Ref"
-
-# not mounted on content root subdomains
-test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api returns data if present on the content root" \
-  "$DIR_CID.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
-
-test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api/v0/refs returns 404" \
-  "$CIDv1.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
-
-# disable /api on example.com
-ipfs config --json Gateway.PublicGateways '{
-  "example.com": {
-    "UseSubdomains": true,
-    "Paths": ["/ipfs", "/ipns"]
-  }
-}' || exit 1
-# restart daemon to apply config changes
-test_kill_ipfs_daemon
-test_launch_ipfs_daemon_without_network
-
-# not mounted at the root domain
-test_hostname_gateway_response_should_contain \
-  "request for example.com/api/v0/refs returns 404 if /api not on Paths whitelist" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
-
-# not mounted on content root subdomains
-test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api returns data if present on the content root" \
-  "$DIR_CID.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
 
 # DNSLink: <dnslink-fqdn>.ipns.example.com
 # (not really useful outside of localhost, as setting TLS for more than one

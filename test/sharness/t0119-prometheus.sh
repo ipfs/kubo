@@ -33,7 +33,7 @@ test_expect_success "make sure metrics haven't changed" '
 # Check what was added by enabling ResourceMgr.Enabled
 #
 # NOTE: we won't see all the dynamic ones, but that is  ok: the point of the
-# test here is to detect regression when rcmgr metrics dissapear due to
+# test here is to detect regression when rcmgr metrics disappear due to
 # refactor/human error.
 
 test_expect_success "enable ResourceMgr in the config" '

@@ -42,12 +42,12 @@ test_expect_success "'ipfs block put' output looks good" '
 '
 
 test_expect_success "can set cid codec on block put" '
-  CODEC_HASH=$(ipfs block put --cid-codec=dag-pb ../t0051-object-data/testPut.pb)
+  CODEC_HASH=$(ipfs block put --cid-codec=dag-pb ../t0050-block-data/testPut.pb)
 '
 
 test_expect_success "block get output looks right" '
   ipfs block get $CODEC_HASH > pb_block_out &&
-  test_cmp pb_block_out ../t0051-object-data/testPut.pb
+  test_cmp pb_block_out ../t0050-block-data/testPut.pb
 '
 
 #
@@ -210,33 +210,33 @@ test_expect_success "multi-block 'ipfs block rm -q' produces no output" '
 # --format used 'protobuf' for 'dag-pb' which was invalid, but we keep
 # for backward-compatibility
 test_expect_success "can set deprecated --format=protobuf on block put" '
-  HASH=$(ipfs block put --format=protobuf ../t0051-object-data/testPut.pb)
+  HASH=$(ipfs block put --format=protobuf ../t0050-block-data/testPut.pb)
 '
 
 test_expect_success "created an object correctly!" '
-  ipfs object get $HASH > obj_out &&
-  echo "{\"Links\":[],\"Data\":\"test json for sharness test\"}" > obj_exp &&
+  ipfs dag get $HASH > obj_out &&
+  echo -n "{\"Data\":{\"/\":{\"bytes\":\"dGVzdCBqc29uIGZvciBzaGFybmVzcyB0ZXN0\"}},\"Links\":[]}" > obj_exp &&
   test_cmp obj_out obj_exp
 '
 
 test_expect_success "block get output looks right" '
   ipfs block get $HASH > pb_block_out &&
-  test_cmp pb_block_out ../t0051-object-data/testPut.pb
+  test_cmp pb_block_out ../t0050-block-data/testPut.pb
 '
 
 test_expect_success "can set --cid-codec=dag-pb on block put" '
-  HASH=$(ipfs block put --cid-codec=dag-pb ../t0051-object-data/testPut.pb)
+  HASH=$(ipfs block put --cid-codec=dag-pb ../t0050-block-data/testPut.pb)
 '
 
 test_expect_success "created an object correctly!" '
-  ipfs object get $HASH > obj_out &&
-  echo "{\"Links\":[],\"Data\":\"test json for sharness test\"}" > obj_exp &&
+  ipfs dag get $HASH > obj_out &&
+  echo -n "{\"Data\":{\"/\":{\"bytes\":\"dGVzdCBqc29uIGZvciBzaGFybmVzcyB0ZXN0\"}},\"Links\":[]}" > obj_exp &&
   test_cmp obj_out obj_exp
 '
 
 test_expect_success "block get output looks right" '
   ipfs block get $HASH > pb_block_out &&
-  test_cmp pb_block_out ../t0051-object-data/testPut.pb
+  test_cmp pb_block_out ../t0050-block-data/testPut.pb
 '
 
 test_expect_success "can set multihash type and length on block put with --format=raw (deprecated)" '
@@ -248,7 +248,7 @@ test_expect_success "output looks good" '
 '
 
 test_expect_success "can't use both legacy format and custom cid-codec at the same time" '
-  test_expect_code 1 ipfs block put --format=dag-cbor --cid-codec=dag-json < ../t0051-object-data/testPut.pb 2> output &&
+  test_expect_code 1 ipfs block put --format=dag-cbor --cid-codec=dag-json < ../t0050-block-data/testPut.pb 2> output &&
   test_should_contain "unable to use \"format\" (deprecated) and a custom \"cid-codec\" at the same time" output
 '
 

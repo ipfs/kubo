@@ -50,7 +50,7 @@ test_expect_success "docker image runs" '
 '
 
 test_expect_success "docker container gateway is up" '
-  pollEndpoint -host=/ip4/127.0.0.1/tcp/8080 -http-url http://localhost:8080/api/v0/version -v -tries 30 -tout 1s
+  pollEndpoint -host=/ip4/127.0.0.1/tcp/8080 -http-url http://localhost:8080/ipfs/bafkqaddimvwgy3zao5xxe3debi -v -tries 30 -tout 1s
 '
 
 test_expect_success "docker container API is up" '
