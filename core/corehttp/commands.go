@@ -124,9 +124,10 @@ func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
 func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		cfg := cmdsHttp.NewServerConfig()
-		corsAllowedMethods := []string{http.MethodPost}
 
-		cfg.SetAllowedMethods(corsAllowedMethods...)
+		cfg.AddAllowedHeaders("Origin", "Accept", "Content-Type", "X-Requested-With")
+		cfg.SetAllowedMethods(http.MethodPost)
+
 		cfg.APIPath = APIPath
 		rcfg, err := n.Repo.Config()
 		if err != nil {
