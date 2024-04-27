@@ -67,7 +67,7 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan c
 		return nil, fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", settings.Type)
 	}
 
-	return api.pinLsAll(ctx, settings.Type, settings.Detailed), nil
+	return api.pinLsAll(ctx, settings.Type, settings.Detailed, settings.Name), nil
 }
 
 func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.PinIsPinnedOption) (string, bool, error) {
@@ -276,17 +276,17 @@ func (p *pinInfo) Err() error {
 //
 // The caller must keep reading results until the channel is closed to prevent
 // leaking the goroutine that is fetching pins.
-func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string, detailed bool) <-chan coreiface.Pin {
+func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string, detailed bool, name string) <-chan coreiface.Pin {
 	out := make(chan coreiface.Pin, 1)
 
 	emittedSet := cid.NewSet()
 
-	AddToResultKeys := func(c cid.Cid, name, typeStr string) error {
-		if emittedSet.Visit(c) {
+	AddToResultKeys := func(c cid.Cid, pinName, typeStr string) error {
+		if emittedSet.Visit(c) && (name == "" || name == pinName) {
 			select {
 			case out <- &pinInfo{
 				pinType: typeStr,
-				name:    name,
+				name:    pinName,
 				path:    path.FromCid(c),
 			}:
 			case <-ctx.Done():
