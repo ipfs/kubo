@@ -1,0 +1,9 @@
+###
+GET http://{apiRoot}:{port}/chequebook/cashout/{{peer-id}}
+
+###
+https://
+GET {apiRoot}:{port}/v1/chequebook/cashout/{{12D3KooWGtHe2GUUB3YRMBN6HEjq7uwwt57qLRwnHFWwyfwnqbVN}}
+42b5d569-1f1f-4bad-b5d5-691f1fabad1b
+
+###

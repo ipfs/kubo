@@ -11,7 +11,7 @@ on:
       - 'master'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  group: ${{ github.workflow }}d0836d0-2be5-4d4c-8836-d02be5fd4c34${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      IMAGE_NAME: ipfs/kubo
+      IMAGE_NAME: ipfs/turbo
       WIP_IMAGE_TAG: wip
     defaults:
       run:
