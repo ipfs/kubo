@@ -90,10 +90,10 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 		server := fakeServer("application/json", ToJSONStr(JSONObj{
 			"Providers": []JSONObj{
 				{
-					"Schema":   "bitswap", // Legacy bitswap schema.
-					"Protocol": "transport-bitswap",
-					"ID":       provs[1],
-					"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
+					"Schema":    "peer",
+					"Protocols": []string{"transport-bitswap"},
+					"ID":        provs[1],
+					"Addrs":     []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
 				},
 				{
 					"Schema":    "peer",
@@ -137,10 +137,10 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 			"ID":        provs[0],
 			"Addrs":     []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
 		}), ToJSONStr(JSONObj{
-			"Schema":   "bitswap", // Legacy bitswap schema.
-			"Protocol": "transport-bitswap",
-			"ID":       provs[1],
-			"Addrs":    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
+			"Schema":    "peer",
+			"Protocols": []string{"transport-bitswap"},
+			"ID":        provs[1],
+			"Addrs":     []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002"},
 		}))
 		t.Cleanup(server.Close)
 

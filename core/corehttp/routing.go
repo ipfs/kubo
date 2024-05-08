@@ -44,11 +44,6 @@ func (r *contentRouter) FindProviders(ctx context.Context, key cid.Cid, limit in
 	}), nil
 }
 
-// nolint deprecated
-func (r *contentRouter) ProvideBitswap(ctx context.Context, req *server.BitswapWriteProvideRequest) (time.Duration, error) {
-	return 0, routing.ErrNotSupported
-}
-
 func (r *contentRouter) FindPeers(ctx context.Context, pid peer.ID, limit int) (iter.ResultIter[*types.PeerRecord], error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -94,6 +89,14 @@ func (r *contentRouter) PutIPNS(ctx context.Context, name ipns.Name, record *ipn
 	// The caller guarantees that name matches the record. This is double checked
 	// by the internals of PutValue.
 	return r.n.Routing.PutValue(ctx, string(name.RoutingKey()), raw)
+}
+
+func (r *contentRouter) Provide(ctx context.Context, req *types.AnnouncementRecord) (time.Duration, error) {
+	return 0, routing.ErrNotSupported
+}
+
+func (r *contentRouter) ProvidePeer(ctx context.Context, req *types.AnnouncementRecord) (time.Duration, error) {
+	return 0, routing.ErrNotSupported
 }
 
 type peerChanIter struct {

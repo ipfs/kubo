@@ -23,6 +23,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/multiformats/go-multicodec"
 	"go.opencensus.io/stats/view"
 )
 
@@ -203,8 +204,10 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 	cli, err := drclient.New(
 		params.Endpoint,
 		drclient.WithHTTPClient(delegateHTTPClient),
-		drclient.WithIdentity(key),
-		drclient.WithProviderInfo(addrInfo.ID, addrInfo.Addrs),
+		drclient.WithProviderInfo(key, addrInfo.ID, addrInfo.Addrs, []string{
+			multicodec.TransportBitswap.String(),
+			multicodec.TransportIpfsGatewayHttp.String(),
+		}),
 		drclient.WithUserAgent(version.GetUserAgentVersion()),
 	)
 	if err != nil {

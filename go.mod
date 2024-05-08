@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ipfs-shipyard/nopfs v0.0.12
 	github.com/ipfs-shipyard/nopfs/ipfs v0.13.2-0.20231027223058-cde3b5ba964c
-	github.com/ipfs/boxo v0.19.1-0.20240415103851-7f9506844904
+	github.com/ipfs/boxo v0.19.1-0.20240508083100-abf64fcd93a9
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-cidutil v0.1.0

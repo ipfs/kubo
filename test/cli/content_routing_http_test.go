@@ -22,10 +22,11 @@ import (
 )
 
 type fakeHTTPContentRouter struct {
-	m                   sync.Mutex
-	provideBitswapCalls int
-	findProvidersCalls  int
-	findPeersCalls      int
+	m                  sync.Mutex
+	provideCalls       int
+	providePeerCalls   int
+	findProvidersCalls int
+	findPeersCalls     int
 }
 
 func (r *fakeHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, limit int) (iter.ResultIter[types.Record], error) {
@@ -35,11 +36,17 @@ func (r *fakeHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, 
 	return iter.FromSlice([]iter.Result[types.Record]{}), nil
 }
 
-// nolint deprecated
-func (r *fakeHTTPContentRouter) ProvideBitswap(ctx context.Context, req *server.BitswapWriteProvideRequest) (time.Duration, error) {
+func (r *fakeHTTPContentRouter) Provide(ctx context.Context, rec *types.AnnouncementRecord) (time.Duration, error) {
 	r.m.Lock()
 	defer r.m.Unlock()
-	r.provideBitswapCalls++
+	r.provideCalls++
+	return 0, nil
+}
+
+func (r *fakeHTTPContentRouter) ProvidePeer(ctx context.Context, rec *types.AnnouncementRecord) (time.Duration, error) {
+	r.m.Lock()
+	defer r.m.Unlock()
+	r.providePeerCalls++
 	return 0, nil
 }
 
