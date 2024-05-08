@@ -175,6 +175,11 @@ config file at runtime.
   - [`DNS`](#dns)
     - [`DNS.Resolvers`](#dnsresolvers)
     - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
+  - [`Import`](#import)
+    - [`Import.CidVersion`](#importcidversion)
+    - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
+    - [`Import.UnixFSChunker`](#importunixfschunker)
+    - [`Import.HashFunction`](#importhashfunction)
 
 ## Profiles
 
@@ -2377,3 +2382,42 @@ Note: this does NOT work with Go's default DNS resolver. To make this a global s
 Default: Respect DNS Response TTL
 
 Type: `optionalDuration`
+
+## `Import`
+
+Options to configure the default options used for ingesting data, in commands such as `ipfs add` or `ipfs block put`. All affected commands are detailed per option.
+
+Note that using flags will override the options defined here.
+
+### `Import.CidVersion`
+
+The default CID version. Commands affected: `ipfs add`.
+
+Default: `0`
+
+Type: `optionalInteger`
+
+### `Import.UnixFSRawLeaves`
+
+The default UnixFS raw leaves option. Commands affected: `ipfs add`, `ipfs files write`.
+
+Default: `false`
+
+Type: `flag`
+
+### `Import.UnixFSChunker`
+
+The default UnixFS chunker. Commands affected: `ipfs add`.
+
+Default: `size-262144`
+
+Type: `optionalString`
+
+
+### `Import.HashFunction`
+
+The default hash function. Commands affected: `ipfs add`, `ipfs block put`, `ipfs dag put`.
+
+Default: `sha2-256`
+
+Type: `optionalString`
