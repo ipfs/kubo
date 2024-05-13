@@ -362,7 +362,7 @@ Example:
 		cmds.BoolOption(pinQuietOptionName, "q", "Write just hashes of objects."),
 		cmds.BoolOption(pinStreamOptionName, "s", "Enable streaming of pins as they are discovered."),
 		cmds.BoolOption(pinNamesOptionName, "n", "Enable displaying pin names (slower)."),
-		cmds.StringOption(pinNameOptionName, "Display only pins with the given name."),
+		cmds.StringOption(pinNameOptionName, "Display pins with names that contain the value provided (case-sensitive, exact match)."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
