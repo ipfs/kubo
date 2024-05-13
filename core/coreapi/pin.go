@@ -282,7 +282,7 @@ func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string, detailed bool, 
 	emittedSet := cid.NewSet()
 
 	AddToResultKeys := func(c cid.Cid, pinName, typeStr string) error {
-		if emittedSet.Visit(c) && (name == "" || name == pinName) {
+		if emittedSet.Visit(c) && (name == "" || strings.Contains(pinName, name)) {
 			select {
 			case out <- &pinInfo{
 				pinType: typeStr,
