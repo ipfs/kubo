@@ -3,6 +3,7 @@ package coreapi
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	bserv "github.com/ipfs/boxo/blockservice"
 	offline "github.com/ipfs/boxo/exchange/offline"

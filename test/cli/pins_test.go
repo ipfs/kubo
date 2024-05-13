@@ -242,7 +242,7 @@ func TestPins(t *testing.T) {
 		require.NotContains(t, lsOut, outADetailed)
 	})
 
-	t.Run("test listing pins with specific name", func(t *testing.T) {
+	t.Run("test listing pins which contains specific name", func(t *testing.T) {
 		print("test pinning with names cli text output")
 		t.Parallel()
 
@@ -256,18 +256,18 @@ func TestPins(t *testing.T) {
 		outC := cidCStr + " recursive randPin"
 
 		_ = node.IPFS("pin", "add", "--name", "testPin", cidAStr)
-		lsOut := pinLs(node, "-t=recursive", "--name=testPin")
+		lsOut := pinLs(node, "-t=recursive", "--name=test")
 		require.Contains(t, lsOut, outA)
 		lsOut = pinLs(node, "-t=recursive", "--name=randomLabel")
 		require.NotContains(t, lsOut, outA)
 
 		_ = node.IPFS("pin", "add", "--name", "testPin", cidBStr)
-		lsOut = pinLs(node, "-t=recursive", "--name=testPin")
+		lsOut = pinLs(node, "-t=recursive", "--name=test")
 		require.Contains(t, lsOut, outA)
 		require.Contains(t, lsOut, outB)
 
 		_ = node.IPFS("pin", "add", "--name", "randPin", cidCStr)
-		lsOut = pinLs(node, "-t=recursive", "--name=randPin")
+		lsOut = pinLs(node, "-t=recursive", "--name=rand")
 		require.NotContains(t, lsOut, outA)
 		require.NotContains(t, lsOut, outB)
 		require.Contains(t, lsOut, outC)
