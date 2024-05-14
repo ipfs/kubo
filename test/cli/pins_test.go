@@ -243,7 +243,6 @@ func TestPins(t *testing.T) {
 	})
 
 	t.Run("test listing pins which contains specific name", func(t *testing.T) {
-		print("test pinning with names cli text output")
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init()
@@ -276,7 +275,6 @@ func TestPins(t *testing.T) {
 		require.Contains(t, lsOut, outA)
 		require.Contains(t, lsOut, outB)
 		require.NotContains(t, lsOut, outC)
-
 	})
 
 	t.Run("test overwriting pin with name", func(t *testing.T) {
