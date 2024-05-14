@@ -95,4 +95,24 @@ func TestAdd(t *testing.T) {
 		cidStr := node.IPFSAddStr(shortString)
 		require.Equal(t, shortStringCidV1NoRawLeaves, cidStr)
 	})
+
+	t.Run("ipfs init --profile=legacy-cid-v0 sets config that produces legacy CIDv0", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v0")
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		cidStr := node.IPFSAddStr(shortString)
+		require.Equal(t, shortStringCidV0, cidStr)
+	})
+
+	t.Run("ipfs init --profile=test-cid-v1 produces modern CIDv1", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init("--profile=test-cid-v1")
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		cidStr := node.IPFSAddStr(shortString)
+		require.Equal(t, shortStringCidV1, cidStr)
+	})
 }

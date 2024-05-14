@@ -270,6 +270,21 @@ documented in `ipfs config profile --help`.
 
   Use this profile with caution.
 
+- `legacy-cid-v0`
+
+  Makes UnixFS import (`ipfs add`) produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.
+
+  > [!WARNING]
+  > This profile is provided for legacy users and should not be used for new projects.
+
+- `test-cid-v1`
+
+  Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.
+
+  > [!NOTE]
+  > This profile will become the new implicit default, provided for testing purposes.
+  > Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details.
+
 ## Types
 
 This document refers to the standard JSON types (e.g., `null`, `string`,
@@ -2401,7 +2416,7 @@ Type: `optionalInteger`
 
 The default UnixFS raw leaves option. Commands affected: `ipfs add`, `ipfs files write`.
 
-Default: `false`
+Default: `false` if `CidVersion=0`; `true` if `CidVersion=1`
 
 Type: `flag`
 
@@ -2412,7 +2427,6 @@ The default UnixFS chunker. Commands affected: `ipfs add`.
 Default: `size-262144`
 
 Type: `optionalString`
-
 
 ### `Import.HashFunction`
 
