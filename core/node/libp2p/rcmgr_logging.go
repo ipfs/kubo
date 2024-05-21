@@ -118,6 +118,14 @@ func (n *loggingResourceManager) OpenConnection(dir network.Direction, usefd boo
 	return connMgmtScope, err
 }
 
+func (n *loggingResourceManager) OpenConnectionNoIP(dir network.Direction, usefd bool, endpoint ma.Multiaddr) (network.ConnManagementScope, error) {
+	if rcmgr, ok := n.delegate.(rcmgrOpenConnectionNoIPer); ok {
+		return rcmgr.OpenConnectionNoIP(dir, usefd, endpoint)
+	} else {
+		return n.delegate.OpenConnection(dir, usefd, endpoint)
+	}
+}
+
 func (n *loggingResourceManager) OpenStream(p peer.ID, dir network.Direction) (network.StreamManagementScope, error) {
 	connMgmtScope, err := n.delegate.OpenStream(p, dir)
 	n.countErrs(err)
@@ -234,4 +242,8 @@ func (s *loggingScope) Limit() rcmgr.Limit {
 
 func (s *loggingScope) SetLimit(limit rcmgr.Limit) {
 	s.delegate.(rcmgr.ResourceScopeLimiter).SetLimit(limit)
+}
+
+type rcmgrOpenConnectionNoIPer interface {
+	OpenConnectionNoIP(network.Direction, bool, ma.Multiaddr) (network.ConnManagementScope, error)
 }
