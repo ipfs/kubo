@@ -74,7 +74,11 @@ filled in with autocomputed defaults.`)
 				return nil, opts, err
 			}
 
-			ropts := []rcmgr.Option{rcmgr.WithMetrics(createRcmgrMetrics()), rcmgr.WithTraceReporter(str)}
+			ropts := []rcmgr.Option{
+				rcmgr.WithMetrics(createRcmgrMetrics()),
+				rcmgr.WithTraceReporter(str),
+				rcmgr.WithLimitPeersPerCIDR([]rcmgr.ConnLimitPerCIDR{}, []rcmgr.ConnLimitPerCIDR{}),
+			}
 
 			if len(cfg.ResourceMgr.Allowlist) > 0 {
 				var mas []multiaddr.Multiaddr
