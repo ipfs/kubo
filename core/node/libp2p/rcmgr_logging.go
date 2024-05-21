@@ -119,11 +119,17 @@ func (n *loggingResourceManager) OpenConnection(dir network.Direction, usefd boo
 }
 
 func (n *loggingResourceManager) OpenConnectionNoIP(dir network.Direction, usefd bool, endpoint ma.Multiaddr) (network.ConnManagementScope, error) {
+	var connMgmtScope network.ConnManagementScope
+	var err error
+
 	if rcmgr, ok := n.delegate.(rcmgrOpenConnectionNoIPer); ok {
-		return rcmgr.OpenConnectionNoIP(dir, usefd, endpoint)
+		connMgmtScope, err = rcmgr.OpenConnectionNoIP(dir, usefd, endpoint)
 	} else {
-		return n.delegate.OpenConnection(dir, usefd, endpoint)
+		connMgmtScope, err = n.delegate.OpenConnection(dir, usefd, endpoint)
 	}
+
+	n.countErrs(err)
+	return connMgmtScope, err
 }
 
 func (n *loggingResourceManager) OpenStream(p peer.ID, dir network.Direction) (network.StreamManagementScope, error) {
