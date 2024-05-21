@@ -77,7 +77,23 @@ filled in with autocomputed defaults.`)
 			ropts := []rcmgr.Option{
 				rcmgr.WithMetrics(createRcmgrMetrics()),
 				rcmgr.WithTraceReporter(str),
-				rcmgr.WithLimitPeersPerCIDR([]rcmgr.ConnLimitPerCIDR{}, []rcmgr.ConnLimitPerCIDR{}),
+				rcmgr.WithLimitPeersPerCIDR(
+					[]rcmgr.ConnLimitPerCIDR{
+						{
+							ConnCount: 16,
+							BitMask:   32,
+						},
+					},
+					[]rcmgr.ConnLimitPerCIDR{
+						{
+							ConnCount: 16,
+							BitMask:   56,
+						},
+						{
+							ConnCount: 8 * 16,
+							BitMask:   48,
+						},
+					}),
 			}
 
 			if len(cfg.ResourceMgr.Allowlist) > 0 {
