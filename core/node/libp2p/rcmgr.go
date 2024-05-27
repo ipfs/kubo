@@ -491,7 +491,7 @@ resource manager System.ConnsInbound (%d) must be bigger than ConnMgr.HighWater 
 See: https://github.com/ipfs/kubo/blob/master/docs/libp2p-resource-management.md#how-does-the-resource-manager-resourcemgr-relate-to-the-connection-manager-connmgr
 `, rcm.System.ConnsInbound, highWater)
 	}
-	if rcm.System.Streams > rcmgr.DefaultLimit || rcm.System.Streams == rcmgr.BlockAllLimit && int64(rcm.System.Streams) <= highWater {
+	if (rcm.System.Streams > rcmgr.DefaultLimit || rcm.System.Streams == rcmgr.BlockAllLimit) && int64(rcm.System.Streams) <= highWater {
 		// nolint
 		return fmt.Errorf(`
 Unable to initialize libp2p due to conflicting resource manager limit configuration.
