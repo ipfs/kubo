@@ -575,6 +575,8 @@ take effect.
 	// start MFS pinning thread
 	startPinMFS(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node})
 
+	core.StartVersionChecker(node)
+
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
 	notifyReady()
