@@ -123,7 +123,7 @@ help:
 	@echo '  build        - Build binary at ./cmd/ipfs/ipfs'
 	@echo '  nofuse       - Build binary with no fuse support'
 	@echo '  install      - Build binary and install into $$GOBIN'
-	@echo '  mod_tidy     - Remove unused dependencis from go.mod files'
+	@echo '  mod_tidy     - Remove unused dependencies from go.mod files'
 #	@echo '  dist_install - TODO: c.f. ./cmd/ipfs/dist/README.md'
 	@echo ''
 	@echo 'CLEANING TARGETS:'

@@ -68,11 +68,11 @@ func parseErrNotFound(msg string) (error, bool) {
 // Assume CIDs break on:
 // - Whitespaces: " \t\n\r\v\f"
 // - Semicolon: ";" this is to parse ipld.ErrNotFound wrapped in multierr
-// - Double Quotes: "\"" this is for parsing %q and %#v formating.
+// - Double Quotes: "\"" this is for parsing %q and %#v formatting.
 const cidBreakSet = " \t\n\r\v\f;\""
 
 func parseIPLDErrNotFound(msg string) (error, bool) {
-	// The patern we search for is:
+	// The pattern we search for is:
 	const ipldErrNotFoundKey = "ipld: could not find " /*CID*/
 	// We try to parse the CID, if it's invalid we give up and return a simple text error.
 	// We also accept "node" in place of the CID because that means it's an Undefined CID.
