@@ -12,6 +12,7 @@ type PinAddSettings struct {
 type PinLsSettings struct {
 	Type     string
 	Detailed bool
+	Name     string
 }
 
 // PinIsPinnedSettings represent the settings for PinAPI.IsPinned
@@ -201,6 +202,13 @@ func (pinLsOpts) pinType(t string) PinLsOption {
 func (pinLsOpts) Detailed(detailed bool) PinLsOption {
 	return func(settings *PinLsSettings) error {
 		settings.Detailed = detailed
+		return nil
+	}
+}
+
+func (pinLsOpts) Name(name string) PinLsOption {
+	return func(settings *PinLsSettings) error {
+		settings.Name = name
 		return nil
 	}
 }

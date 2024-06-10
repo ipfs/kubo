@@ -359,9 +359,10 @@ Example:
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(pinTypeOptionName, "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
-		cmds.BoolOption(pinQuietOptionName, "q", "Write just hashes of objects."),
+		cmds.BoolOption(pinQuietOptionName, "q", "Output only the CIDs of pins."),
+		cmds.StringOption(pinNameOptionName, "n", "Limit returned pins to ones with names that contain the value provided (case-sensitive, partial match). Implies --names=true."),
 		cmds.BoolOption(pinStreamOptionName, "s", "Enable streaming of pins as they are discovered."),
-		cmds.BoolOption(pinNamesOptionName, "n", "Enable displaying pin names (slower)."),
+		cmds.BoolOption(pinNamesOptionName, "Include pin names in the output (slower, disabled by default)."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -372,6 +373,7 @@ Example:
 		typeStr, _ := req.Options[pinTypeOptionName].(string)
 		stream, _ := req.Options[pinStreamOptionName].(bool)
 		displayNames, _ := req.Options[pinNamesOptionName].(bool)
+		name, _ := req.Options[pinNameOptionName].(string)
 
 		switch typeStr {
 		case "all", "direct", "indirect", "recursive":
@@ -397,7 +399,7 @@ Example:
 		if len(req.Arguments) > 0 {
 			err = pinLsKeys(req, typeStr, api, emit)
 		} else {
-			err = pinLsAll(req, typeStr, displayNames, api, emit)
+			err = pinLsAll(req, typeStr, displayNames || name != "", name, api, emit)
 		}
 		if err != nil {
 			return err
@@ -537,7 +539,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 	return nil
 }
 
-func pinLsAll(req *cmds.Request, typeStr string, detailed bool, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
+func pinLsAll(req *cmds.Request, typeStr string, detailed bool, name string, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
@@ -555,7 +557,7 @@ func pinLsAll(req *cmds.Request, typeStr string, detailed bool, api coreiface.Co
 		panic("unhandled pin type")
 	}
 
-	pins, err := api.Pin().Ls(req.Context, opt, options.Pin.Ls.Detailed(detailed))
+	pins, err := api.Pin().Ls(req.Context, opt, options.Pin.Ls.Detailed(detailed), options.Pin.Ls.Name(name))
 	if err != nil {
 		return err
 	}

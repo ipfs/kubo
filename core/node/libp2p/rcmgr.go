@@ -74,7 +74,27 @@ filled in with autocomputed defaults.`)
 				return nil, opts, err
 			}
 
-			ropts := []rcmgr.Option{rcmgr.WithMetrics(createRcmgrMetrics()), rcmgr.WithTraceReporter(str)}
+			ropts := []rcmgr.Option{
+				rcmgr.WithMetrics(createRcmgrMetrics()),
+				rcmgr.WithTraceReporter(str),
+				rcmgr.WithLimitPeersPerCIDR(
+					[]rcmgr.ConnLimitPerCIDR{
+						{
+							ConnCount: 16,
+							BitMask:   32,
+						},
+					},
+					[]rcmgr.ConnLimitPerCIDR{
+						{
+							ConnCount: 16,
+							BitMask:   56,
+						},
+						{
+							ConnCount: 8 * 16,
+							BitMask:   48,
+						},
+					}),
+			}
 
 			if len(cfg.ResourceMgr.Allowlist) > 0 {
 				var mas []multiaddr.Multiaddr
@@ -471,7 +491,7 @@ resource manager System.ConnsInbound (%d) must be bigger than ConnMgr.HighWater 
 See: https://github.com/ipfs/kubo/blob/master/docs/libp2p-resource-management.md#how-does-the-resource-manager-resourcemgr-relate-to-the-connection-manager-connmgr
 `, rcm.System.ConnsInbound, highWater)
 	}
-	if rcm.System.Streams > rcmgr.DefaultLimit || rcm.System.Streams == rcmgr.BlockAllLimit && int64(rcm.System.Streams) <= highWater {
+	if (rcm.System.Streams > rcmgr.DefaultLimit || rcm.System.Streams == rcmgr.BlockAllLimit) && int64(rcm.System.Streams) <= highWater {
 		// nolint
 		return fmt.Errorf(`
 Unable to initialize libp2p due to conflicting resource manager limit configuration.
