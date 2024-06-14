@@ -1027,7 +1027,11 @@ func YesNoPrompt(prompt string) bool {
 	var s string
 	for i := 0; i < 3; i++ {
 		fmt.Printf("%s ", prompt)
-		fmt.Scanf("%s", &s)
+		_, err := fmt.Scanf("%s", &s)
+		if err != nil {
+			fmt.Printf("Invalid input: %v. Please try again.\n", err)
+			continue
+		}
 		switch s {
 		case "y", "Y":
 			return true
