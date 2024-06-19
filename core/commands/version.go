@@ -5,11 +5,16 @@ import (
 	"fmt"
 	"io"
 	"runtime/debug"
+	"strings"
 
+	versioncmp "github.com/hashicorp/go-version"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 )
 
 const (
@@ -17,7 +22,7 @@ const (
 	versionCommitOptionName             = "commit"
 	versionRepoOptionName               = "repo"
 	versionAllOptionName                = "all"
-	versionCompareNewFractionOptionName = "--newer-fraction"
+	versionCompareNewFractionOptionName = "min-fraction"
 )
 
 var VersionCmd = &cmds.Command{
@@ -134,35 +139,38 @@ Print out all dependencies and their versions.`,
 	},
 }
 
+const DefaultMinimalVersionFraction = 0.05 // 5%
+
+type VersionCheckOutput struct {
+	UpdateAvailable    bool
+	RunningVersion     string
+	GreatestVersion    string
+	PeersSampled       int
+	WithGreaterVersion int
+}
+
 var checkVersionCommand = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Checks IPFS version against network (online only).",
-		ShortDescription: `
-Checks node versions in our DHT to compare if we're running an older version.`,
+		Tagline:          "Checks Kubo version against connected peers.",
+		ShortDescription: "Uses the libp2p identify protocol to check the AgentVersion of connected peers and determine if running Kubo version is outdated. Peers with AgentVersion that does not start with 'kubo' are ignored.",
 	},
 	Options: []cmds.Option{
-		cmds.FloatOption(versionCompareNewFractionOptionName, "f", "Fraction of peers with new version to generate update warning.").WithDefault(0.1),
+		cmds.FloatOption(versionCompareNewFractionOptionName, "m", "Minimum fraction of sampled peers with the new Kubo version needed to trigger an update warning.").WithDefault(DefaultMinimalVersionFraction),
 	},
-	Type: core.VersionCheckOutput{},
+	Type: VersionCheckOutput{},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
 
 		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 
-		if nd.DHT == nil {
-			return ErrNotDHT
-		}
-
-		if err != nil {
-			return err
-		}
-
 		newerFraction, _ := req.Options[versionCompareNewFractionOptionName].(float64)
-		output, err := core.CheckVersion(nd, newerFraction)
-
+		output, err := DetectNewKuboVersion(nd, newerFraction)
 		if err != nil {
 			return err
 		}
@@ -172,12 +180,99 @@ Checks node versions in our DHT to compare if we're running an older version.`,
 		}
 		return nil
 	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, checkOutput core.VersionCheckOutput) error {
-			if checkOutput.IsOutdated {
-				fmt.Fprint(w, checkOutput.Msg)
-			}
-			return nil
-		}),
-	},
+}
+
+// DetectNewKuboVersion observers kubo version reported by other peers via
+// libp2p identify protocol and notifies when threshold fraction of seen swarm
+// is running updated Kubo. It is used by RPC and CLI at 'ipfs version check'
+// and also periodically when 'ipfs daemon' is running.
+func DetectNewKuboVersion(nd *core.IpfsNode, minFraction float64) (VersionCheckOutput, error) {
+	ourVersion, err := versioncmp.NewVersion(version.CurrentVersionNumber)
+	if err != nil {
+		return VersionCheckOutput{}, fmt.Errorf("could not parse our own version %q: %w",
+			version.CurrentVersionNumber, err)
+	}
+	// MAJOR.MINOR.PATCH without any suffix
+	ourVersion = ourVersion.Core()
+
+	greatestVersionSeen := ourVersion
+	totalPeersSampled := 1 // Us (and to avoid division-by-zero edge case)
+	withGreaterVersion := 0
+
+	recordPeerVersion := func(agentVersion string) {
+		// We process the version as is it assembled in GetUserAgentVersion
+		segments := strings.Split(agentVersion, "/")
+		if len(segments) < 2 {
+			return
+		}
+		if segments[0] != "kubo" {
+			return
+		}
+		versionNumber := segments[1] // As in our CurrentVersionNumber
+
+		peerVersion, err := versioncmp.NewVersion(versionNumber)
+		if err != nil {
+			// Do not error on invalid remote versions, just ignore
+			return
+		}
+
+		// Ignore prerelases and development releases (-dev, -rcX)
+		if peerVersion.Metadata() != "" || peerVersion.Prerelease() != "" {
+			return
+		}
+
+		// MAJOR.MINOR.PATCH without any suffix
+		peerVersion = peerVersion.Core()
+
+		// Valid peer version number
+		totalPeersSampled += 1
+		if ourVersion.LessThan(peerVersion) {
+			withGreaterVersion += 1
+		}
+		if peerVersion.GreaterThan(greatestVersionSeen) {
+			greatestVersionSeen = peerVersion
+		}
+	}
+
+	processPeerstoreEntry := func(id peer.ID) {
+		if v, err := nd.Peerstore.Get(id, "AgentVersion"); err == nil {
+			recordPeerVersion(v.(string))
+		} else if errors.Is(err, pstore.ErrNotFound) { // ignore noop
+		} else { // a bug, usually.
+			log.Errorw("failed to get agent version from peerstore", "error", err)
+		}
+	}
+
+	// Amino DHT client keeps information about previously seen peers
+	if nd.DHTClient != nd.DHT && nd.DHTClient != nil {
+		client, ok := nd.DHTClient.(*fullrt.FullRT)
+		if !ok {
+			return VersionCheckOutput{}, errors.New("could not perform version check due to missing or incompatible DHT configuration")
+		}
+		for _, p := range client.Stat() {
+			processPeerstoreEntry(p)
+		}
+	} else if nd.DHT != nil && nd.DHT.WAN != nil {
+		for _, pi := range nd.DHT.WAN.RoutingTable().GetPeerInfos() {
+			processPeerstoreEntry(pi.Id)
+		}
+	} else if nd.DHT != nil && nd.DHT.LAN != nil {
+		for _, pi := range nd.DHT.LAN.RoutingTable().GetPeerInfos() {
+			processPeerstoreEntry(pi.Id)
+		}
+	} else {
+		return VersionCheckOutput{}, errors.New("could not perform version check due to missing or incompatible DHT configuration")
+	}
+
+	// UpdateAvailable flag is set only if minFraction was reached
+	greaterFraction := float64(withGreaterVersion) / float64(totalPeersSampled)
+
+	// Gathered metric are returned every time
+	return VersionCheckOutput{
+		UpdateAvailable:    (greaterFraction >= minFraction),
+		RunningVersion:     ourVersion.String(),
+		GreatestVersion:    greatestVersionSeen.String(),
+		PeersSampled:       totalPeersSampled,
+		WithGreaterVersion: withGreaterVersion,
+	}, nil
 }

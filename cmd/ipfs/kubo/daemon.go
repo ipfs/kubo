@@ -1,9 +1,11 @@
 package kubo
 
 import (
+	"context"
 	"errors"
 	_ "expvar"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -575,8 +577,6 @@ take effect.
 	// start MFS pinning thread
 	startPinMFS(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node})
 
-	core.StartVersionChecker(node)
-
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
 	notifyReady()
@@ -612,6 +612,10 @@ take effect.
 			}
 			if len(peers) == 0 {
 				log.Error("failed to bootstrap (no peers found): consider updating Bootstrap or Peering section of your config")
+			} else {
+				// After 1 minute we should have enough peers
+				// to run informed version check
+				startVersionChecker(cctx.Context(), node)
 			}
 		})
 	}
@@ -1053,4 +1057,42 @@ func printVersion() {
 	fmt.Printf("Repo version: %d\n", fsrepo.RepoVersion)
 	fmt.Printf("System version: %s\n", runtime.GOARCH+"/"+runtime.GOOS)
 	fmt.Printf("Golang version: %s\n", runtime.Version())
+}
+
+func startVersionChecker(ctx context.Context, nd *core.IpfsNode) {
+	if os.Getenv("KUBO_VERSION_CHECK") == "false" {
+		return
+	}
+	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
+	go func() {
+		for {
+			o, err := commands.DetectNewKuboVersion(nd, commands.DefaultMinimalVersionFraction)
+			if err != nil {
+				// The version check is best-effort, and may fail in custom
+				// configurations that do not run standard WAN DHT. If it
+				// errors here, no point in spamming logs: og once and exit.
+				log.Errorw("initial version check failed, will not be run again", "error", err)
+				return
+			}
+			if o.UpdateAvailable {
+				newerPercent := fmt.Sprintf("%.0f%%", math.Round(float64(o.WithGreaterVersion)/float64(o.PeersSampled)*100))
+				log.Errorf(`
+⚠️ A NEW VERSION OF KUBO DETECTED
+
+This Kubo node is running an outdated version (%s).
+%s of the sampled Kubo peers are running a higher version.
+Visit https://github.com/ipfs/kubo/releases or https://dist.ipfs.tech/#kubo and update to version %s or later.`,
+					o.RunningVersion, newerPercent, o.GreatestVersion)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-nd.Process.Closing():
+				return
+			case <-ticker.C:
+				continue
+			}
+		}
+	}()
 }
