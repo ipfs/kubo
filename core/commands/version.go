@@ -151,8 +151,18 @@ type VersionCheckOutput struct {
 
 var checkVersionCommand = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Checks Kubo version against connected peers.",
-		ShortDescription: "Uses the libp2p identify protocol to check the AgentVersion of connected peers and determine if running Kubo version is outdated. Peers with AgentVersion that does not start with 'kubo' are ignored.",
+		Tagline: "Checks Kubo version against connected peers.",
+		ShortDescription: `
+This command uses the libp2p identify protocol to check the 'AgentVersion'
+of connected peers and see if the Kubo version we're running is outdated.
+
+Peers with an AgentVersion that doesn't start with 'kubo/' are ignored.
+'UpdateAvailable' is set to true only if the 'min-fraction' criteria are met.
+
+The 'ipfs daemon' does the same check regularly and logs when a new version
+is available. You can stop these regular checks by setting
+KUBO_VERSION_CHECK=false in your environment.
+`,
 	},
 	Options: []cmds.Option{
 		cmds.FloatOption(versionCompareNewFractionOptionName, "m", "Minimum fraction of sampled peers with the new Kubo version needed to trigger an update warning.").WithDefault(DefaultMinimalVersionFraction),
