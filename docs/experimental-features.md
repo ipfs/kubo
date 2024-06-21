@@ -126,7 +126,7 @@ Stable but not quite ready for prime-time.
 
 Generate a pre-shared-key using [ipfs-swarm-key-gen](https://github.com/Kubuxu/go-ipfs-swarm-key-gen)):
 ```
-go get github.com/Kubuxu/go-ipfs-swarm-key-gen/ipfs-swarm-key-gen
+go install github.com/Kubuxu/go-ipfs-swarm-key-gen/ipfs-swarm-key-gen@latest
 ipfs-swarm-key-gen > ~/.ipfs/swarm.key
 ```
 
