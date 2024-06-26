@@ -137,6 +137,13 @@ or more advanced tools like [mitmproxy](https://docs.mitmproxy.org/stable/#mitmp
 Disables the content-blocking subsystem. No denylists will be watched and no
 content will be blocked.
 
+## `KUBO_VERSION_CHECK`
+
+Disables periodic `ipfs version check` run by `ipfs daemon` to log when
+significant subset of seen Kubo peers run an updated version.
+
+Default: true
+
 ## `LIBP2P_TCP_REUSEPORT`
 
 Kubo tries to reuse the same source port for all connections to improve NAT
