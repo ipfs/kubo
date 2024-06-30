@@ -71,6 +71,7 @@ const (
 	swarmLatencyOptionName           = "latency"
 	swarmDirectionOptionName         = "direction"
 	swarmResetLimitsOptionName       = "reset"
+	swarmSaveOptionName              = "save"
 	swarmUsedResourcesPercentageName = "min-used-limit-perc"
 	swarmIdentifyOptionName          = "identify"
 )
@@ -107,6 +108,9 @@ var swarmPeeringAddCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("address", true, true, "address of peer to add into the peering subsystem"),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption(swarmSaveOptionName, "if set, address(es) will be saved to peering config"),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		addrs := make([]ma.Multiaddr, len(req.Arguments))
 
@@ -139,6 +143,18 @@ var swarmPeeringAddCmd = &cmds.Command{
 				return err
 			}
 		}
+
+		save, _ := req.Options[swarmSaveOptionName].(bool)
+		if save {
+			update := func(cfg *config.Config) {
+				cfg.Peering.Peers = append(cfg.Peering.Peers, addInfos...)
+			}
+			err := updateAndPersistConfig(env, update)
+			if err != nil {
+				return fmt.Errorf("unable to update and persist config change: %w", err)
+			}
+		}
+
 		return nil
 	},
 	Encoders: cmds.EncoderMap{
@@ -197,6 +213,9 @@ var swarmPeeringRmCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ID", true, true, "ID of peer to remove from the peering subsystem"),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption(swarmSaveOptionName, "if set, address(es) will be removed from peering config"),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -206,17 +225,40 @@ var swarmPeeringRmCmd = &cmds.Command{
 			return ErrNotOnline
 		}
 
+		pids := make(map[peer.ID]struct{}, len(req.Arguments))
 		for _, arg := range req.Arguments {
 			id, err := peer.Decode(arg)
 			if err != nil {
 				return err
 			}
-
+			pids[id] = struct{}{}
 			node.Peering.RemovePeer(id)
 			if err = res.Emit(peeringResult{id, "success"}); err != nil {
 				return err
 			}
 		}
+
+		save, _ := req.Options[swarmSaveOptionName].(bool)
+		if save {
+			update := func(cfg *config.Config) {
+				var cfgOut []peer.AddrInfo
+				for _, p := range cfg.Peering.Peers {
+					if _, ok := pids[p.ID]; ok {
+						continue
+					}
+
+					cfgOut = append(cfgOut, p)
+				}
+
+				cfg.Peering.Peers = cfgOut
+			}
+
+			err := updateAndPersistConfig(env, update)
+			if err != nil {
+				return fmt.Errorf("unable to update and persist config change: %w", err)
+			}
+		}
+
 		return nil
 	},
 	Type: peeringResult{},
@@ -1080,4 +1122,21 @@ func filtersRemove(r repo.Repo, cfg *config.Config, toRemoveFilters []string) ([
 	}
 
 	return removed, nil
+}
+
+func updateAndPersistConfig(env cmds.Environment, update func(*config.Config)) error {
+	r, err := fsrepo.Open(env.(*commands.Context).ConfigRoot)
+	if err != nil {
+		return fmt.Errorf("error opening repo: %w", err)
+	}
+	defer r.Close()
+	cfg, err := r.Config()
+	if err != nil {
+		return fmt.Errorf("error fetching config file: %w", err)
+	}
+	update(cfg)
+	if err := r.SetConfig(cfg); err != nil {
+		return fmt.Errorf("error setting config: %w", err)
+	}
+	return nil
 }
