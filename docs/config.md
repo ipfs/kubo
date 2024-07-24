@@ -180,6 +180,10 @@ config file at runtime.
     - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
     - [`Import.UnixFSChunker`](#importunixfschunker)
     - [`Import.HashFunction`](#importhashfunction)
+  - [`Version`](#version)
+    - [`Version.AgentSuffix`](#versionagentsuffix)
+    - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
+    - [`Version.SwarmCheckPercentThreshold`](#versionswarmcheckpercentthreshold)
 
 ## Profiles
 
@@ -2435,3 +2439,36 @@ The default hash function. Commands affected: `ipfs add`, `ipfs block put`, `ipf
 Default: `sha2-256`
 
 Type: `optionalString`
+
+## `Version`
+
+Options to configure agent version announced to the swarm, and leveraging
+other peers version for detecting when there is time to update.
+
+### `Version.AgentSuffix`
+
+Optional suffix to the AgentVersion presented by `ipfs id` and exposed via [libp2p identify protocol](https://github.com/libp2p/specs/blob/master/identify/README.md#agentversion).
+
+The value from config is appended to one passed via `ipfs daemon --agent-version-suffix`.
+
+Default: `""` (no suffix, or value from `ipfs daemon --agent-version-suffix=`)
+
+Type: `optionaliString`
+
+### `Version.SwarmCheckEnabled`
+
+Observe the AgentVersion of swarm peers and log warning when
+`SwarmCheckPercentThreshold` of peers runs version higher than this node.
+
+Default: `true`
+
+Type: `flag`
+
+### `Version.SwarmCheckPercentThreshold`
+
+Control the percentage of `kubo/` peers running new version required to
+trigger update warning.
+
+Default: `5`
+
+Type: `optionalInteger` (1-100)

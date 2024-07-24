@@ -615,7 +615,12 @@ take effect.
 			} else {
 				// After 1 minute we should have enough peers
 				// to run informed version check
-				startVersionChecker(cctx.Context(), node)
+				startVersionChecker(
+					cctx.Context(),
+					node,
+					cfg.Version.SwarmCheckEnabled.WithDefault(true),
+					cfg.Version.SwarmCheckPercentThreshold.WithDefault(config.DefaultSwarmCheckPercentThreshold),
+				)
 			}
 		})
 	}
@@ -1059,15 +1064,15 @@ func printVersion() {
 	fmt.Printf("Golang version: %s\n", runtime.Version())
 }
 
-func startVersionChecker(ctx context.Context, nd *core.IpfsNode) {
-	if os.Getenv("KUBO_VERSION_CHECK") == "false" {
+func startVersionChecker(ctx context.Context, nd *core.IpfsNode, enabled bool, percentThreshold int64) {
+	if !enabled {
 		return
 	}
 	ticker := time.NewTicker(time.Hour)
 	defer ticker.Stop()
 	go func() {
 		for {
-			o, err := commands.DetectNewKuboVersion(nd, commands.DefaultMinimalVersionFraction)
+			o, err := commands.DetectNewKuboVersion(nd, percentThreshold)
 			if err != nil {
 				// The version check is best-effort, and may fail in custom
 				// configurations that do not run standard WAN DHT. If it

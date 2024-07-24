@@ -10,6 +10,7 @@ import (
 	versioncmp "github.com/hashicorp/go-version"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	version "github.com/ipfs/kubo"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
@@ -18,11 +19,11 @@ import (
 )
 
 const (
-	versionNumberOptionName             = "number"
-	versionCommitOptionName             = "commit"
-	versionRepoOptionName               = "repo"
-	versionAllOptionName                = "all"
-	versionCompareNewFractionOptionName = "min-fraction"
+	versionNumberOptionName         = "number"
+	versionCommitOptionName         = "commit"
+	versionRepoOptionName           = "repo"
+	versionAllOptionName            = "all"
+	versionCheckThresholdOptionName = "min-percent"
 )
 
 var VersionCmd = &cmds.Command{
@@ -161,11 +162,11 @@ Peers with an AgentVersion that doesn't start with 'kubo/' are ignored.
 
 The 'ipfs daemon' does the same check regularly and logs when a new version
 is available. You can stop these regular checks by setting
-KUBO_VERSION_CHECK=false in your environment.
+Version.SwarmCheckEnabled:false in the config.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.FloatOption(versionCompareNewFractionOptionName, "m", "Minimum fraction of sampled peers with the new Kubo version needed to trigger an update warning.").WithDefault(DefaultMinimalVersionFraction),
+		cmds.IntOption(versionCheckThresholdOptionName, "t", "Percentage (1-100) of sampled peers with the new Kubo version needed to trigger an update warning.").WithDefault(config.DefaultSwarmCheckPercentThreshold),
 	},
 	Type: VersionCheckOutput{},
 
@@ -179,8 +180,8 @@ KUBO_VERSION_CHECK=false in your environment.
 			return ErrNotOnline
 		}
 
-		newerFraction, _ := req.Options[versionCompareNewFractionOptionName].(float64)
-		output, err := DetectNewKuboVersion(nd, newerFraction)
+		minPercent, _ := req.Options[versionCheckThresholdOptionName].(int64)
+		output, err := DetectNewKuboVersion(nd, minPercent)
 		if err != nil {
 			return err
 		}
@@ -196,7 +197,7 @@ KUBO_VERSION_CHECK=false in your environment.
 // libp2p identify protocol and notifies when threshold fraction of seen swarm
 // is running updated Kubo. It is used by RPC and CLI at 'ipfs version check'
 // and also periodically when 'ipfs daemon' is running.
-func DetectNewKuboVersion(nd *core.IpfsNode, minFraction float64) (VersionCheckOutput, error) {
+func DetectNewKuboVersion(nd *core.IpfsNode, minPercent int64) (VersionCheckOutput, error) {
 	ourVersion, err := versioncmp.NewVersion(version.CurrentVersionNumber)
 	if err != nil {
 		return VersionCheckOutput{}, fmt.Errorf("could not parse our own version %q: %w",
@@ -273,6 +274,16 @@ func DetectNewKuboVersion(nd *core.IpfsNode, minFraction float64) (VersionCheckO
 	} else {
 		return VersionCheckOutput{}, errors.New("could not perform version check due to missing or incompatible DHT configuration")
 	}
+
+	if minPercent < 1 || minPercent > 100 {
+		if minPercent == 0 {
+			minPercent = config.DefaultSwarmCheckPercentThreshold
+		} else {
+			return VersionCheckOutput{}, errors.New("Version.SwarmCheckPercentThreshold must be between 1 and 100")
+		}
+	}
+
+	minFraction := float64(minPercent) / 100.0
 
 	// UpdateAvailable flag is set only if minFraction was reached
 	greaterFraction := float64(withGreaterVersion) / float64(totalPeersSampled)
