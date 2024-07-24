@@ -440,9 +440,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
 	}
 
-	agentVersionSuffixString, _ := req.Options[agentVersionSuffix].(string)
-	if agentVersionSuffixString != "" {
-		version.SetUserAgentSuffix(agentVersionSuffixString)
+	// Set optional agent version suffix
+	versionSuffixFromCli, _ := req.Options[agentVersionSuffix].(string)
+	versionSuffix := cfg.Version.AgentSuffix.WithDefault(versionSuffixFromCli)
+	if versionSuffix != "" {
+		version.SetUserAgentSuffix(versionSuffix)
 	}
 
 	node, err := core.NewNode(req.Context, ncfg)
