@@ -2449,11 +2449,14 @@ other peers version for detecting when there is time to update.
 
 Optional suffix to the AgentVersion presented by `ipfs id` and exposed via [libp2p identify protocol](https://github.com/libp2p/specs/blob/master/identify/README.md#agentversion).
 
-The value from config is appended to one passed via `ipfs daemon --agent-version-suffix`.
+The value from config takes precedence over value passed via `ipfs daemon --agent-version-suffix`.
+
+> [!NOTE]
+> Setting a custom version suffix helps with ecosystem analysis, such as Amino DHT reports published at https://stats.ipfs.network
 
 Default: `""` (no suffix, or value from `ipfs daemon --agent-version-suffix=`)
 
-Type: `optionaliString`
+Type: `optionalString`
 
 ### `Version.SwarmCheckEnabled`
 
