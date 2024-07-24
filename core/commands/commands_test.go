@@ -199,6 +199,7 @@ func TestCommands(t *testing.T) {
 		"/swarm/resources",
 		"/update",
 		"/version",
+		"/version/check",
 		"/version/deps",
 	}
 
