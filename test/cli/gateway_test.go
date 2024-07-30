@@ -414,12 +414,12 @@ func TestGateway(t *testing.T) {
 		t.Run("not present", func(t *testing.T) {
 			cidFoo := node2.IPFSAddStr("foo")
 
-			t.Run("not present key from node 1", func(t *testing.T) {
+			t.Run("not present CID from node 1", func(t *testing.T) {
 				t.Parallel()
-				assert.Equal(t, 500, node1.GatewayClient().Get("/ipfs/"+cidFoo).StatusCode)
+				assert.Equal(t, 404, node1.GatewayClient().Get("/ipfs/"+cidFoo).StatusCode)
 			})
 
-			t.Run("not present IPNS key from node 1", func(t *testing.T) {
+			t.Run("not present IPNS Record from node 1", func(t *testing.T) {
 				t.Parallel()
 				assert.Equal(t, 500, node1.GatewayClient().Get("/ipns/"+node2PeerID).StatusCode)
 			})
@@ -428,12 +428,12 @@ func TestGateway(t *testing.T) {
 		t.Run("present", func(t *testing.T) {
 			cidBar := node1.IPFSAddStr("bar")
 
-			t.Run("present key from node 1", func(t *testing.T) {
+			t.Run("present CID from node 1", func(t *testing.T) {
 				t.Parallel()
 				assert.Equal(t, 200, node1.GatewayClient().Get("/ipfs/"+cidBar).StatusCode)
 			})
 
-			t.Run("present IPNS key from node 1", func(t *testing.T) {
+			t.Run("present IPNS Record from node 1", func(t *testing.T) {
 				t.Parallel()
 				node2.IPFS("name", "publish", "/ipfs/"+cidBar)
 				assert.Equal(t, 200, node1.GatewayClient().Get("/ipns/"+node2PeerID).StatusCode)
