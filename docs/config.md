@@ -2257,12 +2257,9 @@ certificates. This can be useful for browser nodes that do not yet support
 [WebTransport](https://blog.libp2p.io/2022-12-19-libp2p-webtransport/),
 which is still relatively new and has [known issues](https://github.com/libp2p/js-libp2p/issues/2572).
 
-Enabling this transport allows Kubo node to act on `/udp/4002/webrtc-direct`
+Enabling this transport allows Kubo node to act on `/udp/4001/webrtc-direct`
 listeners defined in `Addresses.Swarm`, `Addresses.Announce` or
 `Addresses.AppendAnnounce`.
-
-> [!IMPORTANT]
-> At the moment, WebRTC Direct doesn't support listening on the same port as a QUIC or WebTransport listener, and Kubo uses 4002 for it.
 
 > [!NOTE]
 > WebRTC Direct is browser-to-node. It cannot be used to connect a browser
@@ -2277,7 +2274,7 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
-- `/ip4/0.0.0.0/udp/4002/webrtc-direct` (default)
+- `/ip4/0.0.0.0/udp/4001/webrtc-direct` (default)
 - `/ip6/::/udp/4001/webrtc-direct` (default)
 
 ### `Swarm.Transports.Security`
