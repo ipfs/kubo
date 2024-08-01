@@ -2263,8 +2263,8 @@ listeners defined in `Addresses.Swarm`, `Addresses.Announce` or
 
 > [!NOTE]
 > WebRTC Direct is browser-to-node. It cannot be used to connect a browser
-> node to a node that is behind a NAT or firewall.
-> This requires using normal
+> node to a node that is behind a NAT or firewall (without UPnP port mapping).
+> The browser-to-private requires using normal
 > [WebRTC](https://github.com/libp2p/specs/blob/master/webrtc/webrtc.md),
 > which is currently being worked on in
 > [go-libp2p#2009](https://github.com/libp2p/go-libp2p/issues/2009).
