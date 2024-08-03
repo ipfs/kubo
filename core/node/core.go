@@ -146,7 +146,7 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 }
 
 // Files loads persisted MFS root
-func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService) (*mfs.Root, error) {
+func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore) (*mfs.Root, error) {
 	dsk := datastore.NewKey("/local/filesroot")
 	pf := func(ctx context.Context, c cid.Cid) error {
 		rootDS := repo.Datastore()
@@ -172,7 +172,7 @@ func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.
 		nd = unixfs.EmptyDirNode()
 		err := dag.Add(ctx, nd)
 		if err != nil {
-			return nil, fmt.Errorf("failure writing to dagstore: %s", err)
+			return nil, fmt.Errorf("failure writing filesroot to dagstore: %s", err)
 		}
 	case err == nil:
 		c, err := cid.Cast(val)
@@ -180,9 +180,10 @@ func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.
 			return nil, err
 		}
 
-		rnd, err := dag.Get(ctx, c)
+		offineDag := merkledag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
+		rnd, err := offineDag.Get(ctx, c)
 		if err != nil {
-			return nil, fmt.Errorf("error loading filesroot from DAG: %s", err)
+			return nil, fmt.Errorf("error loading filesroot from dagservice: %s", err)
 		}
 
 		pbnd, ok := rnd.(*merkledag.ProtoNode)
