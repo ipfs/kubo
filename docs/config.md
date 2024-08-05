@@ -552,7 +552,7 @@ Type: `array[string]`
 
 ## `AutoNAT`
 
-Contains the configuration options for the [AutoNAT]() service. The AutoNAT service
+Contains the configuration options for the libp2p's [AutoNAT](https://github.com/libp2p/specs/tree/master/autonat) service. The AutoNAT service
 helps other nodes on the network determine if they're publicly reachable from
 the rest of the internet.
 
