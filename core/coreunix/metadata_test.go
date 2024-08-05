@@ -16,11 +16,11 @@ import (
 	bstore "github.com/ipfs/boxo/blockstore"
 	chunker "github.com/ipfs/boxo/chunker"
 	offline "github.com/ipfs/boxo/exchange/offline"
-	u "github.com/ipfs/boxo/util"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-test/random"
 )
 
 func getDagserv(t *testing.T) ipld.DAGService {
@@ -35,7 +35,7 @@ func TestMetadata(t *testing.T) {
 	// Make some random node
 	ds := getDagserv(t)
 	data := make([]byte, 1000)
-	_, err := io.ReadFull(u.NewTimeSeededRand(), data)
+	_, err := io.ReadFull(random.NewRand(), data)
 	if err != nil {
 		t.Fatal(err)
 	}
