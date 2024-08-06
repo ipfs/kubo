@@ -2144,7 +2144,7 @@ Configuration section for libp2p _network_ transports. Transports enabled in
 this section will be used for dialing. However, to receive connections on these
 transports, multiaddrs for these transports must be added to `Addresses.Swarm`.
 
-Supported transports are: QUIC, TCP, WS, Relay and WebTransport.
+Supported transports are: QUIC, TCP, WS, Relay, WebTransport and WebRTCDirect.
 
 Each field in this section is a `flag`.
 
@@ -2195,8 +2195,8 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
-* /ip4/0.0.0.0/udp/4001/quic-v1 (default)
-* /ip6/::/udp/4001/quic-v1 (default)
+- `/ip4/0.0.0.0/udp/4001/quic-v1` (default)
+- `/ip6/::/udp/4001/quic-v1` (default)
 
 #### `Swarm.Transports.Network.Relay`
 
@@ -2243,32 +2243,39 @@ Default: Enabled
 
 Type: `flag`
 
-#### `Swarm.Transports.Network.WebRTCDirect`
+Listen Addresses:
+- `/ip4/0.0.0.0/udp/4001/quic-v1/webtransport` (default)
+- `/ip6/::/udp/4001/quic-v1/webtransport` (default)
 
-**Experimental:** the support for WebRTC Direct is currently experimental.
-This feature was introduced in [`go-libp2p@v0.32.0`](https://github.com/libp2p/go-libp2p/releases/tag/v0.32.0).
+#### `Swarm.Transports.Network.WebRTCDirect`
 
 [WebRTC Direct](https://github.com/libp2p/specs/blob/master/webrtc/webrtc-direct.md)
 is a transport protocol that provides another way for browsers to
 connect to the rest of the libp2p network. WebRTC Direct allows for browser
 nodes to connect to other nodes without special configuration, such as TLS
 certificates. This can be useful for browser nodes that do not yet support
-[WebTransport](https://blog.libp2p.io/2022-12-19-libp2p-webtransport/).
+[WebTransport](https://blog.libp2p.io/2022-12-19-libp2p-webtransport/),
+which is still relatively new and has [known issues](https://github.com/libp2p/js-libp2p/issues/2572).
 
-Enabling this transport allows Kubo node to act on `/udp/4002/webrtc-direct`
+Enabling this transport allows Kubo node to act on `/udp/4001/webrtc-direct`
 listeners defined in `Addresses.Swarm`, `Addresses.Announce` or
-`Addresses.AppendAnnounce`. At the moment, WebRTC Direct doesn't support listening on the same port as a QUIC or WebTransport listener
+`Addresses.AppendAnnounce`.
 
-**NOTE:** at the moment, WebRTC Direct cannot be used to connect to a browser
-node to a node that is behind a NAT or firewall.
-This requires using normal
-[WebRTC](https://github.com/libp2p/specs/blob/master/webrtc/webrtc.md),
-which is currently being worked on in
-[go-libp2p#2009](https://github.com/libp2p/go-libp2p/issues/2009).
+> [!NOTE]
+> WebRTC Direct is browser-to-node. It cannot be used to connect a browser
+> node to a node that is behind a NAT or firewall (without UPnP port mapping).
+> The browser-to-private requires using normal
+> [WebRTC](https://github.com/libp2p/specs/blob/master/webrtc/webrtc.md),
+> which is currently being worked on in
+> [go-libp2p#2009](https://github.com/libp2p/go-libp2p/issues/2009).
 
-Default: Disabled
+Default: Enabled
 
 Type: `flag`
+
+Listen Addresses:
+- `/ip4/0.0.0.0/udp/4001/webrtc-direct` (default)
+- `/ip6/::/udp/4001/webrtc-direct` (default)
 
 ### `Swarm.Transports.Security`
 

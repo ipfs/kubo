@@ -29,8 +29,8 @@ import (
 	importer "github.com/ipfs/boxo/ipld/unixfs/importer"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/path"
-	u "github.com/ipfs/boxo/util"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-test/random"
 	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
 
@@ -42,7 +42,7 @@ func maybeSkipFuseTests(t *testing.T) {
 
 func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	buf := make([]byte, size)
-	_, err := io.ReadFull(u.NewTimeSeededRand(), buf)
+	_, err := io.ReadFull(random.NewRand(), buf)
 	if err != nil {
 		t.Fatal(err)
 	}
