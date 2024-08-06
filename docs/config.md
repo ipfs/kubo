@@ -552,7 +552,7 @@ Type: `array[string]`
 
 ## `AutoNAT`
 
-Contains the configuration options for the AutoNAT service. The AutoNAT service
+Contains the configuration options for the libp2p's [AutoNAT](https://github.com/libp2p/specs/tree/master/autonat) service. The AutoNAT service
 helps other nodes on the network determine if they're publicly reachable from
 the rest of the internet.
 
@@ -561,13 +561,22 @@ the rest of the internet.
 When unset (default), the AutoNAT service defaults to _enabled_. Otherwise, this
 field can take one of two values:
 
-* "enabled" - Enable the service (unless the node determines that it, itself,
-  isn't reachable by the public internet).
-* "disabled" - Disable the service.
+* `enabled` - Enable the V1+V2 service (unless the node determines that it,
+  itself, isn't reachable by the public internet).
+* `legacy-v1` - Same as `enabled` but only V1 service is enabled. Used for testing
+  during as few releases as we [transition to V2](https://github.com/ipfs/kubo/issues/10091), will be removed in the future.
+* `disabled` - Disable the service.
 
 Additional modes may be added in the future.
 
-Type: `string` (one of `"enabled"` or `"disabled"`)
+> [!IMPORTANT]
+> We are in the progress of [rolling out AutoNAT V2](https://github.com/ipfs/kubo/issues/10091).
+> Right now, by default, a publicly diallable Kubo provides both V1 and V2 service to other peers,
+> but only V1 is used by Kubo as a client. In a future release we will remove V1 and switch client to use V2.
+
+Default: `enabled`
+
+Type: `optionalString`
 
 ### `AutoNAT.Throttle`
 
