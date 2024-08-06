@@ -280,8 +280,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.21.1-0.20240805183945-d0955c6a4cdf h1:LJa5srQTNc9iuIHhwfjlq4Hchou/6qi4LQdTFeuGB4Y=
-github.com/ipfs/boxo v0.21.1-0.20240805183945-d0955c6a4cdf/go.mod h1:Ikp1/hzyjw+aEF0h+Mv+GvnoUNppwPMw8rNVIpkSDR4=
+github.com/ipfs/boxo v0.21.1-0.20240806135911-08d5663d293c h1:HUYj1w1hVsiceE0FLcMlkQfo4+Ioz7G/X0WXPzzZWHs=
+github.com/ipfs/boxo v0.21.1-0.20240806135911-08d5663d293c/go.mod h1:yp1loimX0BDYOR0cyjtcXHv15muEh5V1FqO2QLlzykw=
 github.com/ipfs/go-block-format v0.2.0 h1:ZqrkxBA2ICbDRbK8KJs/u0O3dlp6gmAuuXUJNiW1Ycs=
 github.com/ipfs/go-block-format v0.2.0/go.mod h1:+jpL11nFx5A/SPpsoBn6Bzkra/zaArfSmsknbPMYgzM=
 github.com/ipfs/go-cid v0.4.1 h1:A/T3qGvxi4kpKWWcPC/PgbvDA2bjVLO7n4UeVwnbs/s=
@@ -389,8 +389,8 @@ github.com/libp2p/go-cidranger v1.1.0 h1:ewPN8EZ0dd1LSnrtuwd4709PXVcITVeuwbag38y
 github.com/libp2p/go-cidranger v1.1.0/go.mod h1:KWZTfSr+r9qEo9OkI9/SIEeAtw+NNoU0dXIXt15Okic=
 github.com/libp2p/go-flow-metrics v0.1.0 h1:0iPhMI8PskQwzh57jB9WxIuIOQ0r+15PChFGkx3Q3WM=
 github.com/libp2p/go-flow-metrics v0.1.0/go.mod h1:4Xi8MX8wj5aWNDAZttg6UPmc0ZrnFNsMtpsYUClFtro=
-github.com/libp2p/go-libp2p v0.36.0 h1:euESeA1bndKdEjHoSbzyJ39PT14CL+/BNCfq7aaneuo=
-github.com/libp2p/go-libp2p v0.36.0/go.mod h1:mdtNGqy0AQuiYJuO1bXPdFOyFeyMTMSVZ03OBi/XLS4=
+github.com/libp2p/go-libp2p v0.36.1 h1:piAHesy0/8ifBEBUS8HF2m7ywR5vnktUFv00dTsVKcs=
+github.com/libp2p/go-libp2p v0.36.1/go.mod h1:vHzel3CpRB+vS11fIjZSJAU4ALvieKV9VZHC9VerHj8=
 github.com/libp2p/go-libp2p-asn-util v0.4.1 h1:xqL7++IKD9TBFMgnLPZR6/6iYhawHKHl950SO9L6n94=
 github.com/libp2p/go-libp2p-asn-util v0.4.1/go.mod h1:d/NI6XZ9qxw67b4e+NgpQexCIiFYJjErASrYW4PFDN8=
 github.com/libp2p/go-libp2p-kad-dht v0.25.2 h1:FOIk9gHoe4YRWXTu8SY9Z1d0RILol0TrtApsMDPjAVQ=
