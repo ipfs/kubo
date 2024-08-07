@@ -2303,7 +2303,7 @@ transports.
 
 Supported transports are: TLS (priority 100) and Noise (priority 200).
 
-No default priority will ever be less than 100.
+No default priority will ever be less than 100. Lower values have precedence.
 
 #### `Swarm.Transports.Security.TLS`
 
