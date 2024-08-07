@@ -50,7 +50,7 @@ func Transports(tptConfig config.Transports) interface{} {
 			opts.Opts = append(opts.Opts, libp2p.Transport(webtransport.New))
 		}
 
-		if tptConfig.Network.WebRTCDirect.WithDefault(false) {
+		if tptConfig.Network.WebRTCDirect.WithDefault(!privateNetworkEnabled) {
 			if privateNetworkEnabled {
 				return opts, fmt.Errorf(
 					"WebRTC Direct transport does not support private networks, please disable Swarm.Transports.Network.WebRTCDirect",
