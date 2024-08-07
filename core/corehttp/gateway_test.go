@@ -16,11 +16,11 @@ import (
 	"github.com/ipfs/kubo/repo"
 	"github.com/stretchr/testify/assert"
 
-	iface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/kubo/config"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
 )
 
@@ -206,7 +206,7 @@ func TestDeserializedResponsesInheritance(t *testing.T) {
 		n, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
 		assert.NoError(t, err)
 
-		gwCfg, err := getGatewayConfig(n)
+		gwCfg, _, err := getGatewayConfig(n)
 		assert.NoError(t, err)
 
 		assert.Contains(t, gwCfg.PublicGateways, "example.com")

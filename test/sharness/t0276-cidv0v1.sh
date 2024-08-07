@@ -95,7 +95,8 @@ test_expect_success "check that we can access the file when converted to CIDv1" 
 #
 
 test_expect_success "set up iptb testbed" '
-  iptb testbed create -type localipfs -count 2 -init
+  iptb testbed create -type localipfs -count 2 -init  &&
+  iptb run -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true
 '
 
 test_expect_success "start nodes" '

@@ -8,16 +8,17 @@ import (
 	gopath "path"
 	"strings"
 
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	"github.com/cheggaaa/pb"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
 	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -155,12 +156,12 @@ See 'dag export' and 'dag import' for more information.
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash").WithDefault("size-262144"),
+		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash"),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true."),
-		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
+		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)"),
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 		cmds.BoolOption(pinOptionName, "Pin locally to protect added files from garbage collection.").WithDefault(true),
@@ -191,10 +192,20 @@ See 'dag export' and 'dag import' for more information.
 			return err
 		}
 
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+
 		progress, _ := req.Options[progressOptionName].(bool)
 		trickle, _ := req.Options[trickleOptionName].(bool)
 		wrap, _ := req.Options[wrapOptionName].(bool)
-		hash, _ := req.Options[onlyHashOptionName].(bool)
+		onlyHash, _ := req.Options[onlyHashOptionName].(bool)
 		silent, _ := req.Options[silentOptionName].(bool)
 		chunker, _ := req.Options[chunkerOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
@@ -206,6 +217,28 @@ See 'dag export' and 'dag import' for more information.
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
 		toFilesStr, toFilesSet := req.Options[toFilesOptionName].(string)
+
+		if chunker == "" {
+			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
+		}
+
+		if hashFunStr == "" {
+			hashFunStr = cfg.Import.HashFunction.WithDefault(config.DefaultHashFunction)
+		}
+
+		if !cidVerSet && !cfg.Import.CidVersion.IsDefault() {
+			cidVerSet = true
+			cidVer = int(cfg.Import.CidVersion.WithDefault(config.DefaultCidVersion))
+		}
+
+		if !rbset && cfg.Import.UnixFSRawLeaves != config.Default {
+			rbset = true
+			rawblks = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
+		}
+
+		if onlyHash && toFilesSet {
+			return fmt.Errorf("%s and %s options are not compatible", onlyHashOptionName, toFilesOptionName)
+		}
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
@@ -233,7 +266,7 @@ See 'dag export' and 'dag import' for more information.
 			options.Unixfs.Chunker(chunker),
 
 			options.Unixfs.Pin(dopin),
-			options.Unixfs.HashOnly(hash),
+			options.Unixfs.HashOnly(onlyHash),
 			options.Unixfs.FsCache(fscache),
 			options.Unixfs.Nocopy(nocopy),
 

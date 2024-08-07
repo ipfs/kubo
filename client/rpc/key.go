@@ -1,14 +1,16 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
 	"errors"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/boxo/path"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multibase"
 )
 
 type KeyAPI HttpApi
@@ -140,4 +142,54 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (iface.Key, error) {
 
 func (api *KeyAPI) core() *HttpApi {
 	return (*HttpApi)(api)
+}
+
+func (api *KeyAPI) Sign(ctx context.Context, name string, data []byte) (iface.Key, []byte, error) {
+	var out struct {
+		Key       keyOutput
+		Signature string
+	}
+
+	err := api.core().Request("key/sign").
+		Option("key", name).
+		FileBody(bytes.NewReader(data)).
+		Exec(ctx, &out)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	key, err := newKey(out.Key.Name, out.Key.Id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	_, signature, err := multibase.Decode(out.Signature)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return key, signature, nil
+}
+
+func (api *KeyAPI) Verify(ctx context.Context, keyOrName string, signature, data []byte) (iface.Key, bool, error) {
+	var out struct {
+		Key            keyOutput
+		SignatureValid bool
+	}
+
+	err := api.core().Request("key/verify").
+		Option("key", keyOrName).
+		Option("signature", toMultibase(signature)).
+		FileBody(bytes.NewReader(data)).
+		Exec(ctx, &out)
+	if err != nil {
+		return nil, false, err
+	}
+
+	key, err := newKey(out.Key.Name, out.Key.Id)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return key, out.SignatureValid, nil
 }

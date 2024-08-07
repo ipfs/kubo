@@ -11,11 +11,11 @@ import (
 	"strings"
 
 	humanize "github.com/dustin/go-humanize"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	bservice "github.com/ipfs/boxo/blockservice"
-	iface "github.com/ipfs/boxo/coreiface"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
@@ -26,6 +26,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -802,18 +803,28 @@ See '--to-files' in 'ipfs add --help' for more information.
 			return err
 		}
 
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+
 		create, _ := req.Options[filesCreateOptionName].(bool)
 		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		trunc, _ := req.Options[filesTruncateOptionName].(bool)
 		flush, _ := req.Options[filesFlushOptionName].(bool)
 		rawLeaves, rawLeavesDef := req.Options[filesRawLeavesOptionName].(bool)
 
-		prefix, err := getPrefixNew(req)
-		if err != nil {
-			return err
+		if !rawLeavesDef && cfg.Import.UnixFSRawLeaves != config.Default {
+			rawLeavesDef = true
+			rawLeaves = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
 		}
 
-		nd, err := cmdenv.GetNode(env)
+		prefix, err := getPrefixNew(req)
 		if err != nil {
 			return err
 		}

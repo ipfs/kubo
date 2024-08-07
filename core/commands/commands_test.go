@@ -15,64 +15,6 @@ func collectPaths(prefix string, cmd *cmds.Command, out map[string]struct{}) {
 	}
 }
 
-func TestROCommands(t *testing.T) {
-	list := []string{
-		"/block",
-		"/block/get",
-		"/block/stat",
-		"/cat",
-		"/commands",
-		"/commands/completion",
-		"/commands/completion/bash",
-		"/commands/completion/fish",
-		"/commands/completion/zsh",
-		"/dag",
-		"/dag/get",
-		"/dag/resolve",
-		"/dag/stat",
-		"/dag/export",
-		"/dns",
-		"/get",
-		"/ls",
-		"/name",
-		"/name/resolve",
-		"/object",
-		"/object/data",
-		"/object/get",
-		"/object/links",
-		"/object/stat",
-		"/refs",
-		"/resolve",
-		"/version",
-	}
-
-	cmdSet := make(map[string]struct{})
-	collectPaths("", RootRO, cmdSet)
-
-	for _, path := range list {
-		if _, ok := cmdSet[path]; !ok {
-			t.Errorf("%q not in result", path)
-		} else {
-			delete(cmdSet, path)
-		}
-	}
-
-	for path := range cmdSet {
-		t.Errorf("%q in result but shouldn't be", path)
-	}
-
-	for _, path := range list {
-		path = path[1:] // remove leading slash
-		split := strings.Split(path, "/")
-		sub, err := RootRO.Get(split)
-		if err != nil {
-			t.Errorf("error getting subcommand %q: %v", path, err)
-		} else if sub == nil {
-			t.Errorf("subcommand %q is nil even though there was no error", path)
-		}
-	}
-}
-
 func TestCommands(t *testing.T) {
 	list := []string{
 		"/add",
@@ -118,12 +60,12 @@ func TestCommands(t *testing.T) {
 		"/dag/resolve",
 		"/dag/stat",
 		"/dht",
-		"/dht/findpeer",
+		"/dht/query",
 		"/dht/findprovs",
+		"/dht/findpeer",
 		"/dht/get",
 		"/dht/provide",
 		"/dht/put",
-		"/dht/query",
 		"/routing",
 		"/routing/put",
 		"/routing/get",
@@ -136,9 +78,6 @@ func TestCommands(t *testing.T) {
 		"/diag/cmds/set-time",
 		"/diag/profile",
 		"/diag/sys",
-		"/dns",
-		"/file",
-		"/file/ls",
 		"/files",
 		"/files/chcid",
 		"/files/cp",
@@ -164,6 +103,8 @@ func TestCommands(t *testing.T) {
 		"/key/rename",
 		"/key/rm",
 		"/key/rotate",
+		"/key/sign",
+		"/key/verify",
 		"/log",
 		"/log/level",
 		"/log/ls",
@@ -227,7 +168,6 @@ func TestCommands(t *testing.T) {
 		"/refs",
 		"/refs/local",
 		"/repo",
-		"/repo/fsck",
 		"/repo/gc",
 		"/repo/migrate",
 		"/repo/stat",
@@ -257,13 +197,9 @@ func TestCommands(t *testing.T) {
 		"/swarm/peering/ls",
 		"/swarm/peering/rm",
 		"/swarm/resources",
-		"/tar",
-		"/tar/add",
-		"/tar/cat",
 		"/update",
-		"/urlstore",
-		"/urlstore/add",
 		"/version",
+		"/version/check",
 		"/version/deps",
 	}
 

@@ -36,15 +36,20 @@ test_expect_success "configure migration sources" '
   ipfs config --json Migration.DownloadSources "[\"http://127.0.0.1:17233\"]"
 '
 
-test_expect_success "make repo be version 4" '
-  echo 4 > "$IPFS_PATH/version"
+test_expect_success "setup http response" '
+  mkdir migration &&
+  echo "v1.1.1" > migration/versions &&
+  mkdir -p migration/fs-repo-6-to-7 &&
+  echo "v1.1.1" > migration/fs-repo-6-to-7/versions &&
+  CID=$(ipfs add -r -Q migration) &&
+  echo "HTTP/1.1 200 OK" > vers_resp &&
+  echo "Content-Type: application/vnd.ipld.car" >> vers_resp &&
+  echo "" >> vers_resp &&
+  ipfs dag export $CID >> vers_resp
 '
 
-test_expect_success "setup http response" '
-  echo "HTTP/1.1 200 OK" > vers_resp &&
-  echo "Content-Length: 7" >> vers_resp &&
-  echo "" >> vers_resp &&
-  echo "v1.1.1" >> vers_resp
+test_expect_success "make repo be version 4" '
+  echo 4 > "$IPFS_PATH/version"
 '
 
 test_expect_success "startup fake dists server" '
@@ -53,7 +58,7 @@ test_expect_success "startup fake dists server" '
 '
 
 test_expect_success "docker image runs" '
-  DOC_ID=$(docker run -d -v "$IPFS_PATH":/data/ipfs --net=host "$IMAGE_TAG")
+  DOC_ID=$(docker run -d -v "$IPFS_PATH":/data/ipfs -e IPFS_DIST_PATH=/ipfs/$CID --net=host "$IMAGE_TAG")
 '
 
 test_expect_success "docker container tries to pull migrations from netcat" '

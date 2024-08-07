@@ -153,6 +153,6 @@ If you get authentication problems with Git, you might want to take a look at ht
 `git config --global credential.helper wincred`
 
 - **Anything else**  
-Please search [https://discuss.ipfs.io](https://discuss.ipfs.io/search?q=windows%20category%3A13) for any additional issues you may encounter. If you can't find any existing resolution, feel free to post a question asking for help.
+Please search [https://discuss.ipfs.tech](https://discuss.ipfs.tech/search?q=windows%20category%3A13) for any additional issues you may encounter. If you can't find any existing resolution, feel free to post a question asking for help.
 
 If you encounter a bug with `kubo` itself (not related to building) please use the [issue tracker](https://github.com/ipfs/kubo/issues) to report it.

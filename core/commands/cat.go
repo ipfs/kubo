@@ -10,9 +10,9 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	"github.com/cheggaaa/pb"
-	iface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	iface "github.com/ipfs/kubo/core/coreiface"
 )
 
 const (

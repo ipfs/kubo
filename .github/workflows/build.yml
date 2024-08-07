@@ -10,7 +10,7 @@ on:
       - 'master'
 
 env:
-  GO_VERSION: 1.21.x
+  GO_VERSION: 1.22.x
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
@@ -36,12 +36,12 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v4
       - run: make build
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: kubo
           path: cmd/ipfs/ipfs
@@ -52,46 +52,25 @@ jobs:
     defaults:
       run:
         shell: bash
-    strategy:
-      matrix:
-        repo-to-test-against: ["helia", "helia-ipns", "helia-unixfs", "helia-car", "helia-dag-json", "helia-dag-cbor", "helia-json", "helia-mfs"] # this needs to be manually kept in sync as new helia tests are written
     steps:
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
       - run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
         id: npm-cache-dir
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-${{ github.job }}-${{ matrix.repo-to-test-against }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-${{ github.job }}-${{ matrix.repo-to-test-against }}-
+          key: ${{ runner.os }}-${{ github.job }}-helia-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-${{ github.job }}-helia-
       - run: sudo apt update
       - run: sudo apt install -y libxkbcommon0 libxdamage1 libgbm1 libpango-1.0-0 libcairo2 # dependencies for playwright
-      - uses: actions/checkout@v4
-        with:
-          repository: ipfs/${{ matrix.repo-to-test-against }}
-          fetch-depth: 0
-          path: interop
-      - name: Checkout latest tag
-        run: |
-          export TAG="$(git describe --tags --abbrev=0)"
-          echo "Running tests against: $TAG"
-          git checkout "$TAG"
-        working-directory: interop
-      - run: npm install
-        working-directory: interop
-      - run: npm run build
-        working-directory: interop
-      - run: npm install
-        working-directory: interop/packages/interop
-      - run: npm test
-        working-directory: interop/packages/interop
+      - run: npx --package @helia/interop helia-interop
         env:
           KUBO_BINARY: ${{ github.workspace }}/cmd/ipfs/ipfs
   ipfs-webui:
@@ -110,10 +89,10 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 18.14.0
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: kubo
           path: cmd/ipfs
@@ -125,7 +104,7 @@ jobs:
       - run: |
           echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
         id: npm-cache-dir
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/package-lock.json') }}

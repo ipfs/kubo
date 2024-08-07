@@ -19,7 +19,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # check the object is there
-ipfs object stat "$1" >/dev/null
+ipfs dag stat "$1" >/dev/null
 if [ $? -ne 0 ]; then
   echo "error: ipfs cannot find $1"
   exit 1

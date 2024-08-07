@@ -14,7 +14,6 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
-	. "github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -158,14 +157,8 @@ func TestGateway(t *testing.T) {
 		t.Run("GET /ipfs/ipfs/{cid} returns redirect to the valid path", func(t *testing.T) {
 			t.Parallel()
 			resp := client.Get("/ipfs/ipfs/bafkqaaa?query=to-remember")
-			assert.Contains(t,
-				resp.Body,
-				`<meta http-equiv="refresh" content="10;url=/ipfs/bafkqaaa?query=to-remember" />`,
-			)
-			assert.Contains(t,
-				resp.Body,
-				`<link rel="canonical" href="/ipfs/bafkqaaa?query=to-remember" />`,
-			)
+			assert.Equal(t, 301, resp.StatusCode)
+			assert.Equal(t, "/ipfs/bafkqaaa?query=to-remember", resp.Resp.Header.Get("Location"))
 		})
 	})
 
@@ -200,15 +193,8 @@ func TestGateway(t *testing.T) {
 		t.Run("GET /ipfs/ipns/{peerid} returns redirect to the valid path", func(t *testing.T) {
 			t.Parallel()
 			resp := client.Get("/ipfs/ipns/{{.PeerID}}?query=to-remember")
-
-			assert.Contains(t,
-				resp.Body,
-				fmt.Sprintf(`<meta http-equiv="refresh" content="10;url=/ipns/%s?query=to-remember" />`, peerID),
-			)
-			assert.Contains(t,
-				resp.Body,
-				fmt.Sprintf(`<link rel="canonical" href="/ipns/%s?query=to-remember" />`, peerID),
-			)
+			assert.Equal(t, 301, resp.StatusCode)
+			assert.Equal(t, fmt.Sprintf("/ipns/%s?query=to-remember", peerID), resp.Resp.Header.Get("Location"))
 		})
 	})
 
@@ -357,76 +343,6 @@ func TestGateway(t *testing.T) {
 		})
 	})
 
-	t.Run("readonly API", func(t *testing.T) {
-		t.Parallel()
-
-		client := node.GatewayClient()
-
-		fileContents := "12345"
-		h.WriteFile("readonly/dir/test", fileContents)
-		cids := node.IPFS("add", "-r", "-q", filepath.Join(h.Dir, "readonly/dir")).Stdout.Lines()
-
-		rootCID := cids[len(cids)-1]
-		client.TemplateData = map[string]string{"RootCID": rootCID}
-
-		t.Run("Get IPFS directory file through readonly API succeeds", func(t *testing.T) {
-			t.Parallel()
-			resp := client.Get("/api/v0/cat?arg={{.RootCID}}/test")
-			assert.Equal(t, 200, resp.StatusCode)
-			assert.Equal(t, fileContents, resp.Body)
-		})
-
-		t.Run("refs IPFS directory file through readonly API succeeds", func(t *testing.T) {
-			t.Parallel()
-			resp := client.Get("/api/v0/refs?arg={{.RootCID}}/test")
-			assert.Equal(t, 200, resp.StatusCode)
-		})
-
-		t.Run("test gateway API is sanitized", func(t *testing.T) {
-			t.Parallel()
-			for _, cmd := range []string{
-				"add",
-				"block/put",
-				"bootstrap",
-				"config",
-				"dag/put",
-				"dag/import",
-				"dht",
-				"diag",
-				"id",
-				"mount",
-				"name/publish",
-				"object/put",
-				"object/new",
-				"object/patch",
-				"pin",
-				"ping",
-				"repo",
-				"stats",
-				"swarm",
-				"file",
-				"update",
-				"bitswap",
-			} {
-				t.Run(cmd, func(t *testing.T) {
-					cmd := cmd
-					t.Parallel()
-					assert.Equal(t, 404, client.Get("/api/v0/"+cmd).StatusCode)
-				})
-			}
-		})
-	})
-
-	t.Run("refs/local", func(t *testing.T) {
-		t.Parallel()
-		gatewayAddr := URLStrToMultiaddr(node.GatewayURL())
-		res := node.RunIPFS("--api", gatewayAddr.String(), "refs", "local")
-		assert.Contains(t,
-			res.Stderr.Trimmed(),
-			`Error: invalid path "local":`,
-		)
-	})
-
 	t.Run("raw leaves node", func(t *testing.T) {
 		t.Parallel()
 		contents := "This is RAW!"
@@ -498,12 +414,12 @@ func TestGateway(t *testing.T) {
 		t.Run("not present", func(t *testing.T) {
 			cidFoo := node2.IPFSAddStr("foo")
 
-			t.Run("not present key from node 1", func(t *testing.T) {
+			t.Run("not present CID from node 1", func(t *testing.T) {
 				t.Parallel()
-				assert.Equal(t, 500, node1.GatewayClient().Get("/ipfs/"+cidFoo).StatusCode)
+				assert.Equal(t, 404, node1.GatewayClient().Get("/ipfs/"+cidFoo).StatusCode)
 			})
 
-			t.Run("not present IPNS key from node 1", func(t *testing.T) {
+			t.Run("not present IPNS Record from node 1", func(t *testing.T) {
 				t.Parallel()
 				assert.Equal(t, 500, node1.GatewayClient().Get("/ipns/"+node2PeerID).StatusCode)
 			})
@@ -512,12 +428,12 @@ func TestGateway(t *testing.T) {
 		t.Run("present", func(t *testing.T) {
 			cidBar := node1.IPFSAddStr("bar")
 
-			t.Run("present key from node 1", func(t *testing.T) {
+			t.Run("present CID from node 1", func(t *testing.T) {
 				t.Parallel()
 				assert.Equal(t, 200, node1.GatewayClient().Get("/ipfs/"+cidBar).StatusCode)
 			})
 
-			t.Run("present IPNS key from node 1", func(t *testing.T) {
+			t.Run("present IPNS Record from node 1", func(t *testing.T) {
 				t.Parallel()
 				node2.IPFS("name", "publish", "/ipfs/"+cidBar)
 				assert.Equal(t, 200, node1.GatewayClient().Get("/ipns/"+node2PeerID).StatusCode)

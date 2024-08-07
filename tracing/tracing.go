@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	traceapi "go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 // shutdownTracerProvider adds a shutdown method for tracer providers.
@@ -18,6 +19,8 @@ import (
 // Note that this doesn't directly use the provided TracerProvider interface
 // to avoid build breaking go-ipfs if new methods are added to it.
 type shutdownTracerProvider interface {
+	traceapi.TracerProvider
+
 	Tracer(instrumentationName string, opts ...traceapi.TracerOption) traceapi.Tracer
 	Shutdown(ctx context.Context) error
 }
@@ -34,7 +37,7 @@ func NewTracerProvider(ctx context.Context) (shutdownTracerProvider, error) {
 		return nil, err
 	}
 	if len(exporters) == 0 {
-		return &noopShutdownTracerProvider{TracerProvider: traceapi.NewNoopTracerProvider()}, nil
+		return &noopShutdownTracerProvider{TracerProvider: noop.NewTracerProvider()}, nil
 	}
 
 	options := []trace.TracerProviderOption{}

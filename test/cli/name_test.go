@@ -172,7 +172,7 @@ func TestName(t *testing.T) {
 
 		res = node.PipeToIPFS(bytes.NewReader(record), "name", "inspect")
 		out := res.Stdout.String()
-		require.Contains(t, out, "This record was not validated.")
+		require.Contains(t, out, "This record was not verified.")
 		require.Contains(t, out, publishPath)
 		require.Contains(t, out, "30m")
 
@@ -198,7 +198,7 @@ func TestName(t *testing.T) {
 			t.Parallel()
 			res = node.PipeToIPFS(bytes.NewReader(record), "name", "inspect")
 			out := res.Stdout.String()
-			require.Contains(t, out, "This record was not validated.")
+			require.Contains(t, out, "This record was not verified.")
 			require.Contains(t, out, publishPath)
 			require.Contains(t, out, "30m")
 			require.Contains(t, out, "Signature Type: V1+V2")

@@ -23,16 +23,16 @@ jobs:
         shell: bash
     steps:
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.21.x
+          go-version: 1.22.x
       - name: Checkout Kubo
         uses: actions/checkout@v4
         with:
           path: kubo
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y socat net-tools fish libxml2-utils
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: test/sharness/lib/dependencies
           key: ${{ runner.os }}-test-generate-junit-html-${{ hashFiles('test/sharness/lib/test-generate-junit-html.sh') }}
@@ -55,7 +55,7 @@ jobs:
           # increasing parallelism beyond 10 doesn't speed up the tests much
           PARALLEL: ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
       - name: Upload coverage report
-        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        uses: codecov/codecov-action@6d798873df2b1b8e5846dba6fb86631229fbcb17 # v4.4.0
         if: failure() || success()
         with:
           name: sharness
@@ -73,7 +73,7 @@ jobs:
           echo >> $GITHUB_STEP_SUMMARY
           cat kubo/test/sharness/test-results/summary.txt >> $GITHUB_STEP_SUMMARY
       - name: Generate one-page HTML report
-        uses: pl-strflt/junit-xml-to-html@v1
+        uses: ipdxco/junit-xml-to-html@v1
         if: failure() || success()
         with:
           mode: no-frames
@@ -81,19 +81,19 @@ jobs:
           output: kubo/test/sharness/test-results/sharness.html
       - name: Upload one-page HTML report to S3
         id: one-page
-        uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
+        uses: ipdxco/custom-github-runners/.github/actions/upload-artifact@main
         if: github.repository == 'ipfs/kubo' && (failure() || success())
         with:
           source: kubo/test/sharness/test-results/sharness.html
           destination: sharness.html
       - name: Upload one-page HTML report
         if: github.repository != 'ipfs/kubo' && (failure() || success())
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sharness.html
           path: kubo/test/sharness/test-results/sharness.html
       - name: Generate full HTML report
-        uses: pl-strflt/junit-xml-to-html@v1
+        uses: ipdxco/junit-xml-to-html@v1
         if: failure() || success()
         with:
           mode: frames
@@ -101,14 +101,14 @@ jobs:
           output: kubo/test/sharness/test-results/sharness-html
       - name: Upload full HTML report to S3
         id: full
-        uses: pl-strflt/tf-aws-gh-runner/.github/actions/upload-artifact@main
+        uses: ipdxco/custom-github-runners/.github/actions/upload-artifact@main
         if: github.repository == 'ipfs/kubo' && (failure() || success())
         with:
           source: kubo/test/sharness/test-results/sharness-html
           destination: sharness-html/
       - name: Upload full HTML report
         if: github.repository != 'ipfs/kubo' && (failure() || success())
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sharness-html
           path: kubo/test/sharness/test-results/sharness-html

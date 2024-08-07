@@ -3,14 +3,14 @@ package rpc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"strings"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
-	"github.com/pkg/errors"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 type PinAPI HttpApi
@@ -26,6 +26,7 @@ type pinRefKeyList struct {
 type pin struct {
 	path path.ImmutablePath
 	typ  string
+	name string
 	err  error
 }
 
@@ -35,6 +36,10 @@ func (p pin) Err() error {
 
 func (p pin) Path() path.ImmutablePath {
 	return p.path
+}
+
+func (p pin) Name() string {
+	return p.name
 }
 
 func (p pin) Type() string {
@@ -53,6 +58,7 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 
 type pinLsObject struct {
 	Cid  string
+	Name string
 	Type string
 }
 
@@ -102,7 +108,7 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan i
 			}
 
 			select {
-			case ch <- pin{typ: out.Type, path: path.FromCid(c)}:
+			case ch <- pin{typ: out.Type, name: out.Name, path: path.FromCid(c)}:
 			case <-ctx.Done():
 				return
 			}

@@ -36,6 +36,12 @@ For more information about the different types of Kubo plugins, see [plugins.md]
 
 Kubo plugins can also be injected at runtime using Go plugins (see below), but these are hard to use and not well supported by Go, so we don't recommend them.
 
+### Kubo binary imports
+
+It is possible to depend on the package `cmd/ipfs/kubo` as a way of using Kubo plugins that is an alternative to recompiling Kubo with additional preloaded plugins.
+
+This gives a more Go-centric dependency updating flow to building a new binary with preloaded plugins by simply requiring updating a Kubo dependency rather than needing to update Kubo source code and recompile.
+
 ## Bespoke Extension Points
 Certain Kubo functionality may have their own extension points. For example:
 

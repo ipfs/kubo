@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	iface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/go-cid"
 	legacy "github.com/ipfs/go-ipld-legacy"
 	ipfs "github.com/ipfs/kubo"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	dagpb "github.com/ipld/go-codec-dagpb"
 	_ "github.com/ipld/go-ipld-prime/codec/dagcbor"
 	"github.com/ipld/go-ipld-prime/node/basicnode"
@@ -225,10 +225,6 @@ func (api *HttpApi) Pin() iface.PinAPI {
 
 func (api *HttpApi) Object() iface.ObjectAPI {
 	return (*ObjectAPI)(api)
-}
-
-func (api *HttpApi) Dht() iface.DhtAPI {
-	return (*DhtAPI)(api)
 }
 
 func (api *HttpApi) Swarm() iface.SwarmAPI {

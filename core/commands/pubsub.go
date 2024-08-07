@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,10 +10,9 @@ import (
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	mbase "github.com/multiformats/go-multibase"
-	"github.com/pkg/errors"
 
-	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 var PubsubCmd = &cmds.Command{
@@ -351,7 +351,7 @@ func urlArgsDecoder(req *cmds.Request, env cmds.Environment) error {
 	for n, arg := range req.Arguments {
 		encoding, data, err := mbase.Decode(arg)
 		if err != nil {
-			return errors.Wrap(err, "URL arg must be multibase encoded")
+			return fmt.Errorf("URL arg must be multibase encoded: %w", err)
 		}
 
 		// Enforce URL-safe encoding is used for data passed via URL arguments

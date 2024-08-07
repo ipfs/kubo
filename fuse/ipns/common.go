@@ -18,7 +18,7 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 
 	emptyDir := ft.EmptyDirNode()
 
-	err := n.Pinning.Pin(ctx, emptyDir, false)
+	err := n.Pinning.Pin(ctx, emptyDir, false, "")
 	if err != nil {
 		return err
 	}

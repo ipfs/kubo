@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ipfs/boxo/blockservice"
-	iface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/gateway"
@@ -21,6 +20,7 @@ import (
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -28,7 +28,7 @@ import (
 
 func GatewayOption(paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		config, err := getGatewayConfig(n)
+		config, headers, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}
@@ -39,6 +39,7 @@ func GatewayOption(paths ...string) ServeOption {
 		}
 
 		handler := gateway.NewHandler(config, backend)
+		handler = gateway.NewHeaders(headers).ApplyCors().Wrap(handler)
 		handler = otelhttp.NewHandler(handler, "Gateway")
 
 		for _, p := range paths {
@@ -51,7 +52,7 @@ func GatewayOption(paths ...string) ServeOption {
 
 func HostnameOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		config, err := getGatewayConfig(n)
+		config, headers, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +63,13 @@ func HostnameOption() ServeOption {
 		}
 
 		childMux := http.NewServeMux()
-		mux.Handle("/", gateway.NewHostnameHandler(config, backend, childMux))
+
+		var handler http.Handler
+		handler = gateway.NewHostnameHandler(config, backend, childMux)
+		handler = gateway.NewHeaders(headers).ApplyCors().Wrap(handler)
+		handler = otelhttp.NewHandler(handler, "HostnameGateway")
+
+		mux.Handle("/", handler)
 		return childMux, nil
 	}
 }
@@ -128,11 +135,15 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 			return nil, fmt.Errorf("cannot specify negative resolve cache size")
 		}
 
-		vsRouting = offlineroute.NewOfflineRouter(n.Repo.Datastore(), n.RecordValidator)
-		nsys, err = namesys.NewNameSystem(vsRouting,
+		nsOptions := []namesys.Option{
 			namesys.WithDatastore(n.Repo.Datastore()),
 			namesys.WithDNSResolver(n.DNSResolver),
-			namesys.WithCache(cs))
+			namesys.WithCache(cs),
+			namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL)),
+		}
+
+		vsRouting = offlineroute.NewOfflineRouter(n.Repo.Datastore(), n.RecordValidator)
+		nsys, err = namesys.NewNameSystem(vsRouting, nsOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
@@ -224,7 +235,7 @@ func (o *offlineGatewayErrWrapper) GetDNSLinkRecord(ctx context.Context, s strin
 
 var _ gateway.IPFSBackend = (*offlineGatewayErrWrapper)(nil)
 
-var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"}
+var defaultPaths = []string{"/ipfs/", "/ipns/", "/p2p/"}
 
 var subdomainGatewaySpec = &gateway.PublicGateway{
 	Paths:         defaultPaths,
@@ -235,22 +246,14 @@ var defaultKnownGateways = map[string]*gateway.PublicGateway{
 	"localhost": subdomainGatewaySpec,
 }
 
-func getGatewayConfig(n *core.IpfsNode) (gateway.Config, error) {
+func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, error) {
 	cfg, err := n.Repo.Config()
 	if err != nil {
-		return gateway.Config{}, err
+		return gateway.Config{}, nil, err
 	}
-
-	// Parse configuration headers and add the default Access Control Headers.
-	headers := make(map[string][]string, len(cfg.Gateway.HTTPHeaders))
-	for h, v := range cfg.Gateway.HTTPHeaders {
-		headers[http.CanonicalHeaderKey(h)] = v
-	}
-	gateway.AddAccessControlHeaders(headers)
 
 	// Initialize gateway configuration, with empty PublicGateways, handled after.
 	gwCfg := gateway.Config{
-		Headers:               headers,
 		DeserializedResponses: cfg.Gateway.DeserializedResponses.WithDefault(config.DefaultDeserializedResponses),
 		DisableHTMLErrors:     cfg.Gateway.DisableHTMLErrors.WithDefault(config.DefaultDisableHTMLErrors),
 		NoDNSLink:             cfg.Gateway.NoDNSLink,
@@ -280,5 +283,5 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, error) {
 		}
 	}
 
-	return gwCfg, nil
+	return gwCfg, cfg.Gateway.HTTPHeaders, nil
 }
