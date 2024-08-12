@@ -1,0 +1,3 @@
+[submodule "debian"]
+	path = debian
+	url = https://github.com/twdragon/kubo-debian-pkg.git
