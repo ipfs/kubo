@@ -76,6 +76,8 @@ jobs:
           LC_TIME=en_US.UTF-8 ./debian/mkchangelog ./debian/changelog
           GOFLAGS="-mod=vendor" debuild -S -uc -us -d
           GOFLAGS="-mod=vendor" debuild -b -uc -us -d
+          mkdir packages
+          mv -v ../ipfs-kubo*.* packages/
       - uses: actions/upload-artifact@v4
         with:
           name: kubo-debian
