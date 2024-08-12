@@ -48,6 +48,7 @@ jobs:
           name: kubo
           path: cmd/ipfs/ipfs
   debian-prep:
+    needs: [interop-prep]
     if: github.repository == 'ipfs/kubo' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -68,12 +69,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: 'true'
-          fetch-depth: 1000
-          fetch-tags: 'true'
+          fetch-depth: 0
       - run: |
           sudo apt-get update
-          sudo apt-get install -y debhelper curl gcc sed gawk dpkg-dev build-essential
-          git fetch --all
+          sudo apt-get install -y debhelper curl gcc sed gawk dpkg-dev build-essential devscripts
+          git fetch -a
           go mod vendor
           LC_TIME=en_US.UTF-8 ./debian/mkchangelog ./debian/changelog
           GOFLAGS="-mod=vendor" debuild -S -uc -us -d
