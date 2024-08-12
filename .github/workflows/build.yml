@@ -69,12 +69,12 @@ jobs:
         with:
           submodules: 'true'
       - run: |
-        sudo apt-get update
-        sudo apt-get install -y debhelper curl gcc sed gawk
-        go mod vendor
-        LC_TIME=en_US.UTF-8 ./debian/mkchangelog ./debian/changelog
-        GOFLAGS="-mod=vendor" debuild -S -uc -us -d
-        GOFLAGS="-mod=vendor" debuild -b -uc -us -d
+          sudo apt-get update
+          sudo apt-get install -y debhelper curl gcc sed gawk
+          go mod vendor
+          LC_TIME=en_US.UTF-8 ./debian/mkchangelog ./debian/changelog
+          GOFLAGS="-mod=vendor" debuild -S -uc -us -d
+          GOFLAGS="-mod=vendor" debuild -b -uc -us -d
       - uses: actions/upload-artifact@v4
         with:
           name: kubo-debian
