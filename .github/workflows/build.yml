@@ -82,12 +82,7 @@ jobs:
         with:
           name: kubo-debian
           path: |
-            ../ipfs-kubo*.dsc
-            ../ipfs-kubo*.tar.xz
-            ../ipfs-kubo*.build
-            ../ipfs-kubo*.changes
-            ../ipfs-kubo*.deb
-            ../ipfs-kubo*.ddeb
+            packages/ipfs-kubo*.*
   helia-interop:
     needs: [interop-prep]
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
