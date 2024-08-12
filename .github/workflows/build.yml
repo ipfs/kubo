@@ -72,7 +72,6 @@ jobs:
       - run: |
           sudo apt-get update
           sudo apt-get install -y debhelper curl gcc sed gawk dpkg-dev build-essential devscripts
-          git fetch -a
           go mod vendor
           LC_TIME=en_US.UTF-8 ./debian/mkchangelog ./debian/changelog
           GOFLAGS="-mod=vendor" debuild -S -uc -us -d
