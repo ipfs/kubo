@@ -73,6 +73,7 @@ Before opening an issue, consider using one of the following locations to ensure
       - [Downloading builds using IPFS](#downloading-builds-using-ipfs)
   - [Unofficial Linux packages](#unofficial-linux-packages)
     - [ArchLinux](#arch-linux)
+    - [Gentoo Linux](#gentoo-linux)
     - [Nix](#nix)
     - [Solus](#solus)
     - [openSUSE](#opensuse)
@@ -199,6 +200,7 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 </a>
 
 - [ArchLinux](#arch-linux)
+- [Gentoo Linux](#gentoo-linux)
 - [Nix](#nix-linux)
 - [Solus](#solus)
 - [openSUSE](#opensuse)
@@ -215,6 +217,16 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 ```
 
 [![kubo-git via AUR](https://img.shields.io/static/v1?label=kubo-git&message=latest%40master&color=1793d1&logo=arch-linux&style=flat-square&cacheSeconds=3600)](https://aur.archlinux.org/packages/kubo/)
+
+#### <a name="gentoo-linux">Gentoo Linux</a>
+
+https://wiki.gentoo.org/wiki/Kubo
+
+```bash
+# emerge -a net-p2p/kubo
+```
+
+https://packages.gentoo.org/packages/net-p2p/kubo
 
 #### <a name="nix-linux">Nix</a>
 
