@@ -71,9 +71,9 @@ jobs:
           fetch-depth: 0
           fetch-tags: 'true'
       - run: |
-          git fetch --tags
           sudo apt-get update
-          sudo apt-get install -y debhelper curl gcc sed gawk
+          sudo apt-get install -y debhelper curl gcc sed gawk dpkg-dev build-essential
+          git fetch --prune --unshallow
           go mod vendor
           LC_TIME=en_US.UTF-8 ./debian/mkchangelog ./debian/changelog
           GOFLAGS="-mod=vendor" debuild -S -uc -us -d
