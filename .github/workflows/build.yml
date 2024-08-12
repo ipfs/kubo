@@ -71,6 +71,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: 'true'
       - run: |
+          git fetch --tags
           sudo apt-get update
           sudo apt-get install -y debhelper curl gcc sed gawk
           go mod vendor
