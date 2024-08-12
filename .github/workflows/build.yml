@@ -69,6 +69,7 @@ jobs:
         with:
           submodules: 'true'
           fetch-depth: 0
+          fetch-tags: 'true'
       - run: |
           sudo apt-get update
           sudo apt-get install -y debhelper curl gcc sed gawk
