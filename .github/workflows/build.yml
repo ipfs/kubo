@@ -48,7 +48,6 @@ jobs:
           name: kubo
           path: cmd/ipfs/ipfs
   debian-prep:
-    needs: [interop-prep]
     if: github.repository == 'ipfs/kubo' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
