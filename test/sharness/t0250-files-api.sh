@@ -230,7 +230,7 @@ test_files_api() {
     echo "Size: 4" >> file1stat_expect &&
     echo "ChildBlocks: 0" >> file1stat_expect &&
     echo "Type: file" >> file1stat_expect &&
-    echo "Mode: ----------" >> file1stat_expect &&
+    echo "Mode: ---------- (00)" >> file1stat_expect &&
     echo "Mtime: " >> file1stat_expect &&
     test_cmp file1stat_expect file1stat_actual
   '
@@ -245,7 +245,7 @@ test_files_api() {
     echo "Size: 4" >> file1stat_expect &&
     echo "ChildBlocks: 0" >> file1stat_expect &&
     echo "Type: file" >> file1stat_expect &&
-    echo "Mode: ----------" >> file1stat_expect &&
+    echo "Mode: ---------- (00)" >> file1stat_expect &&
     echo "Mtime: " >> file1stat_expect &&
     test_cmp file1stat_expect file1stat_actual
   '
