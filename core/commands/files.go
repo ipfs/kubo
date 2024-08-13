@@ -1429,7 +1429,7 @@ The mode argument must be specified in Unix numeric notation.
 
 var filesTouchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Change optional POSIX modification times.",
+		Tagline: "Set or change optional POSIX modification times.",
 		ShortDescription: `
 Examples:
     # set modification time to now.
