@@ -2,6 +2,9 @@
 
 test_description="Test storing and retrieving mode and mtime"
 
+# TODO: remove blow verbose logging to see why this fails on CI
+TEST_VERBOSE=1
+
 . lib/test-lib.sh
 
 test_init_ipfs
