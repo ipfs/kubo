@@ -160,6 +160,7 @@ Mtime: <mtime>`
 	filesFormatOptionName    = "format"
 	filesSizeOptionName      = "size"
 	filesWithLocalOptionName = "with-local"
+	filesStatUnspecified     = "not set"
 )
 
 var filesStatCmd = &cmds.Command{
@@ -172,7 +173,8 @@ var filesStatCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(filesFormatOptionName, "Print statistics in given format. Allowed tokens: "+
-			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").WithDefault(defaultStatFormat),
+			"<hash> <size> <cumulsize> <type> <childs> and optional <mode> <mode-octal> <mtime> <mtime-secs> <mtime-nsecs>."+
+			"Conflicts with other format options.").WithDefault(defaultStatFormat),
 		cmds.BoolOption(filesHashOptionName, "Print only hash. Implies '--format=<hash>'. Conflicts with other format options."),
 		cmds.BoolOption(filesSizeOptionName, "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options."),
 		cmds.BoolOption(filesWithLocalOptionName, "Compute the amount of the dag that is local, and if possible the total size"),
@@ -243,13 +245,16 @@ var filesStatCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *statOutput) error {
-			var mode os.FileMode
+			mode, modeo := filesStatUnspecified, filesStatUnspecified
 			if out.Mode != 0 {
-				mode = os.FileMode(out.Mode)
+				mode = strings.ToLower(os.FileMode(out.Mode).String())
+				modeo = "0" + strconv.FormatInt(int64(out.Mode&0x1FF), 8)
 			}
-			var mtime string
+			mtime, mtimes, mtimens := filesStatUnspecified, filesStatUnspecified, filesStatUnspecified
 			if out.Mtime > 0 {
 				mtime = time.Unix(out.Mtime, int64(out.MtimeNsecs)).UTC().Format("2 Jan 2006, 15:04:05 MST")
+				mtimes = strconv.FormatInt(out.Mtime, 10)
+				mtimens = strconv.Itoa(out.MtimeNsecs)
 			}
 
 			s, _ := statGetFormatOptions(req)
@@ -258,11 +263,11 @@ var filesStatCmd = &cmds.Command{
 			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
 			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
 			s = strings.Replace(s, "<type>", out.Type, -1)
-			s = strings.Replace(s, "<mode>", strings.ToLower(mode.String()), -1)
+			s = strings.Replace(s, "<mode>", mode, -1)
+			s = strings.Replace(s, "<mode-octal>", modeo, -1)
 			s = strings.Replace(s, "<mtime>", mtime, -1)
-			s = strings.Replace(s, "<mtime-secs>", strconv.FormatInt(out.Mtime, 10), -1)
-			s = strings.Replace(s, "<mtime-nsecs>", strconv.Itoa(out.MtimeNsecs), -1)
-			s = strings.Replace(s, "<mode-octal>", "0"+strconv.FormatInt(int64(out.Mode&0x1FF), 8), -1)
+			s = strings.Replace(s, "<mtime-secs>", mtimes, -1)
+			s = strings.Replace(s, "<mtime-nsecs>", mtimens, -1)
 
 			fmt.Fprintln(w, s)
 
@@ -1399,13 +1404,13 @@ The mode argument must be specified in Unix numeric notation.
     $ ipfs files stat /foo
     ...
     Type: file
-    Mode: -rw-r--r--
+    Mode: -rw-r--r-- (0644)
     ...
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("mode", true, false, "mode to apply to node"),
-		cmds.StringArg("path", true, false, "Path to target node"),
+		cmds.StringArg("mode", true, false, "Mode to apply to node (numeric notation)"),
+		cmds.StringArg("path", true, false, "Path to apply mode"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
