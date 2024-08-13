@@ -8,8 +8,6 @@ on:
   push:
     branches:
       - 'master'
-    tags:
-      - '*'
 
 env:
   GO_VERSION: 1.22.x
@@ -48,7 +46,7 @@ jobs:
           name: kubo
           path: cmd/ipfs/ipfs
   debian-prep:
-    if: github.repository == 'ipfs/kubo' || github.event_name == 'push'
+    needs: [interop-prep]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
