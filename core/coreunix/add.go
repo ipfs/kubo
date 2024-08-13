@@ -461,7 +461,10 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 	// if we need to store mode or modification time then create a new root which includes that data
 	if toplevel && (adder.FileMode != 0 || !adder.FileMtime.IsZero()) {
 		nd := unixfs.EmptyDirNodeWithStat(adder.FileMode, adder.FileMtime)
-		nd.SetCidBuilder(adder.CidBuilder)
+		err := nd.SetCidBuilder(adder.CidBuilder)
+		if err != nil {
+			return err
+		}
 		mr, err := mfs.NewRoot(ctx, adder.dagService, nd, nil)
 		if err != nil {
 			return err
