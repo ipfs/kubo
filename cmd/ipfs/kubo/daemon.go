@@ -821,7 +821,7 @@ func printLibp2pPorts(node *core.IpfsNode) {
 			protocols = append(protocols, protocol)
 		}
 		sort.Strings(protocols)
-		fmt.Printf("Swarm listening on %s (%s)\n", host, strings.Join(protocols, ","))
+		fmt.Printf("Swarm listening on %s (%s)\n", host, strings.Join(protocols, "+"))
 	}
 	fmt.Printf("Run 'ipfs id' to inspect announced and discovered multiaddrs of this node.\n")
 }
