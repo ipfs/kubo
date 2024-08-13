@@ -597,6 +597,7 @@ take effect.
 			cfg, err := cctx.GetConfig()
 			if err != nil {
 				log.Errorf("failed to access config: %s", err)
+				return
 			}
 			if len(cfg.Bootstrap) == 0 && len(cfg.Peering.Peers) == 0 {
 				// Skip peer check if Bootstrap and Peering lists are empty
@@ -607,10 +608,12 @@ take effect.
 			ipfs, err := coreapi.NewCoreAPI(node)
 			if err != nil {
 				log.Errorf("failed to access CoreAPI: %v", err)
+				return
 			}
 			peers, err := ipfs.Swarm().Peers(cctx.Context())
 			if err != nil {
 				log.Errorf("failed to read swarm peers: %v", err)
+				return
 			}
 			if len(peers) == 0 {
 				log.Error("failed to bootstrap (no peers found): consider updating Bootstrap or Peering section of your config")
