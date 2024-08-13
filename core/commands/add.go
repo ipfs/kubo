@@ -323,7 +323,7 @@ See 'dag export' and 'dag import' for more information.
 		if mtime != 0 {
 			opts = append(opts, options.Unixfs.Mtime(mtime, uint32(mtimeNsecs)))
 		} else if mtimeNsecs != 0 {
-			fmt.Println("option", mtimeNsecsOptionName, "ignored as no valid", mtimeOptionName, "value provided")
+			return fmt.Errorf("option %q requires %q to be provided as well", mtimeNsecsOptionName, mtimeOptionName)
 		}
 
 		if cidVerSet {
