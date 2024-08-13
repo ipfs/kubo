@@ -2,13 +2,16 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	gopath "path"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/kubo/config"
@@ -81,6 +84,8 @@ operations.
 		"rm":    filesRmCmd,
 		"flush": filesFlushCmd,
 		"chcid": filesChcidCmd,
+		"chmod": filesChmodCmd,
+		"touch": filesTouchCmd,
 	},
 }
 
@@ -105,6 +110,43 @@ type statOutput struct {
 	WithLocality   bool   `json:",omitempty"`
 	Local          bool   `json:",omitempty"`
 	SizeLocal      uint64 `json:",omitempty"`
+	Mode           uint32 `json:",omitempty"`
+	Mtime          int64  `json:",omitempty"`
+	MtimeNsecs     int    `json:",omitempty"`
+}
+
+func (s *statOutput) MarshalJSON() ([]byte, error) {
+	type so statOutput
+	out := &struct {
+		*so
+		Mode string `json:",omitempty"`
+	}{so: (*so)(s)}
+
+	if s.Mode != 0 {
+		out.Mode = fmt.Sprintf("%04o", s.Mode)
+	}
+	return json.Marshal(out)
+}
+
+func (s *statOutput) UnmarshalJSON(data []byte) error {
+	var err error
+	type so statOutput
+	tmp := &struct {
+		*so
+		Mode string `json:",omitempty"`
+	}{so: (*so)(s)}
+
+	if err := json.Unmarshal(data, &tmp); err != nil {
+		return err
+	}
+
+	if tmp.Mode != "" {
+		mode, err := strconv.ParseUint(tmp.Mode, 8, 32)
+		if err == nil {
+			s.Mode = uint32(mode)
+		}
+	}
+	return err
 }
 
 const (
@@ -112,7 +154,9 @@ const (
 Size: <size>
 CumulativeSize: <cumulsize>
 ChildBlocks: <childs>
-Type: <type>`
+Type: <type>
+Mode: <mode> (<mode-octal>)
+Mtime: <mtime>`
 	filesFormatOptionName    = "format"
 	filesSizeOptionName      = "size"
 	filesWithLocalOptionName = "with-local"
@@ -199,12 +243,26 @@ var filesStatCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *statOutput) error {
+			var mode os.FileMode
+			if out.Mode != 0 {
+				mode = os.FileMode(out.Mode)
+			}
+			var mtime string
+			if out.Mtime > 0 {
+				mtime = time.Unix(out.Mtime, int64(out.MtimeNsecs)).UTC().Format("2 Jan 2006, 15:04:05 MST")
+			}
+
 			s, _ := statGetFormatOptions(req)
 			s = strings.Replace(s, "<hash>", out.Hash, -1)
 			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
 			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
 			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
 			s = strings.Replace(s, "<type>", out.Type, -1)
+			s = strings.Replace(s, "<mode>", strings.ToLower(mode.String()), -1)
+			s = strings.Replace(s, "<mtime>", mtime, -1)
+			s = strings.Replace(s, "<mtime-secs>", strconv.FormatInt(out.Mtime, 10), -1)
+			s = strings.Replace(s, "<mtime-nsecs>", strconv.Itoa(out.MtimeNsecs), -1)
+			s = strings.Replace(s, "<mode-octal>", "0"+strconv.FormatInt(int64(out.Mode&0x1FF), 8), -1)
 
 			fmt.Fprintln(w, s)
 
@@ -254,28 +312,7 @@ func statNode(nd ipld.Node, enc cidenc.Encoder) (*statOutput, error) {
 
 	switch n := nd.(type) {
 	case *dag.ProtoNode:
-		d, err := ft.FSNodeFromBytes(n.Data())
-		if err != nil {
-			return nil, err
-		}
-
-		var ndtype string
-		switch d.Type() {
-		case ft.TDirectory, ft.THAMTShard:
-			ndtype = "directory"
-		case ft.TFile, ft.TMetadata, ft.TRaw:
-			ndtype = "file"
-		default:
-			return nil, fmt.Errorf("unrecognized node type: %s", d.Type())
-		}
-
-		return &statOutput{
-			Hash:           enc.Encode(c),
-			Blocks:         len(nd.Links()),
-			Size:           d.FileSize(),
-			CumulativeSize: cumulsize,
-			Type:           ndtype,
-		}, nil
+		return statProtoNode(n, enc, c, cumulsize)
 	case *dag.RawNode:
 		return &statOutput{
 			Hash:           enc.Encode(c),
@@ -287,6 +324,44 @@ func statNode(nd ipld.Node, enc cidenc.Encoder) (*statOutput, error) {
 	default:
 		return nil, fmt.Errorf("not unixfs node (proto or raw)")
 	}
+}
+
+func statProtoNode(n *dag.ProtoNode, enc cidenc.Encoder, cid cid.Cid, cumulsize uint64) (*statOutput, error) {
+	d, err := ft.FSNodeFromBytes(n.Data())
+	if err != nil {
+		return nil, err
+	}
+
+	stat := statOutput{
+		Hash:           enc.Encode(cid),
+		Blocks:         len(n.Links()),
+		Size:           d.FileSize(),
+		CumulativeSize: cumulsize,
+	}
+
+	switch d.Type() {
+	case ft.TDirectory, ft.THAMTShard:
+		stat.Type = "directory"
+	case ft.TFile, ft.TSymlink, ft.TMetadata, ft.TRaw:
+		stat.Type = "file"
+	default:
+		return nil, fmt.Errorf("unrecognized node type: %s", d.Type())
+	}
+
+	if mode := d.Mode(); mode != 0 {
+		stat.Mode = uint32(mode)
+	} else if d.Type() == ft.TSymlink {
+		stat.Mode = uint32(os.ModeSymlink | 0x1FF)
+	}
+
+	if mt := d.ModTime(); !mt.IsZero() {
+		stat.Mtime = mt.Unix()
+		if ns := mt.Nanosecond(); ns > 0 {
+			stat.MtimeNsecs = ns
+		}
+	}
+
+	return &stat, nil
 }
 
 func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool, uint64, error) {
@@ -341,7 +416,7 @@ $ ipfs add --quieter --pin=false <your file>
 $ ipfs files cp /ipfs/<CID> /your/desired/mfs/path
 
 If you wish to fully copy content from a different IPFS peer into MFS, do not
-forget to force IPFS to fetch to full DAG after doing the "cp" operation. i.e:
+forget to force IPFS to fetch the full DAG after doing a "cp" operation. i.e:
 
 $ ipfs files cp /ipfs/<CID> /your/desired/mfs/path
 $ ipfs pin add <CID>
@@ -1312,4 +1387,85 @@ func getParentDir(root *mfs.Root, dir string) (*mfs.Directory, error) {
 		return nil, errors.New("expected *mfs.Directory, didn't get it. This is likely a race condition")
 	}
 	return pdir, nil
+}
+
+var filesChmodCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Change optional POSIX mode permissions",
+		ShortDescription: `
+The mode argument must be specified in Unix numeric notation.
+
+    $ ipfs files chmod 0644 /foo
+    $ ipfs files stat /foo
+    ...
+    Type: file
+    Mode: -rw-r--r--
+    ...
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("mode", true, false, "mode to apply to node"),
+		cmds.StringArg("path", true, false, "Path to target node"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		path, err := checkPath(req.Arguments[1])
+		if err != nil {
+			return err
+		}
+
+		mode, err := strconv.ParseInt(req.Arguments[0], 8, 32)
+		if err != nil {
+			return err
+		}
+
+		return mfs.Chmod(nd.FilesRoot, path, os.FileMode(mode))
+	},
+}
+
+var filesTouchCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Change optional POSIX modification times.",
+		ShortDescription: `
+Examples:
+    # set modification time to now.
+    $ ipfs files touch /foo
+    # set a custom modification time.
+    $ ipfs files touch --mtime=1630937926 /foo
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("path", true, false, "Path of target to update."),
+	},
+	Options: []cmds.Option{
+		cmds.Int64Option(mtimeOptionName, "Modification time in seconds before or since the Unix Epoch to apply to created UnixFS entries."),
+		cmds.UintOption(mtimeNsecsOptionName, "Modification time fraction in nanoseconds"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		path, err := checkPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		mtime, _ := req.Options[mtimeOptionName].(int64)
+		nsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
+
+		var ts time.Time
+		if mtime != 0 {
+			ts = time.Unix(mtime, int64(nsecs)).UTC()
+		} else {
+			ts = time.Now().UTC()
+		}
+
+		return mfs.Touch(nd.FilesRoot, path, ts)
+	},
 }

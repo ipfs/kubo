@@ -2,6 +2,7 @@ package iface
 
 import (
 	"context"
+	"os"
 
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
@@ -10,10 +11,13 @@ import (
 )
 
 type AddEvent struct {
-	Name  string
-	Path  path.ImmutablePath `json:",omitempty"`
-	Bytes int64              `json:",omitempty"`
-	Size  string             `json:",omitempty"`
+	Name       string
+	Path       path.ImmutablePath `json:",omitempty"`
+	Bytes      int64              `json:",omitempty"`
+	Size       string             `json:",omitempty"`
+	Mode       os.FileMode        `json:",omitempty"`
+	Mtime      int64              `json:",omitempty"`
+	MtimeNsecs int                `json:",omitempty"`
 }
 
 // FileType is an enum of possible UnixFS file types.
