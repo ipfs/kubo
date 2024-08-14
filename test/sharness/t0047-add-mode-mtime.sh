@@ -29,9 +29,20 @@ mk_name() {
   tr -dc '[:alnum:]'</dev/urandom|head -c 16
 }
 
+mk_file() {
+    mktemp -p "$SHARNESS_TRASH_DIRECTORY" "mk_file_${1}_XXXXXX"
+}
+
+mk_dir() {
+    mktemp -d -p "$SHARNESS_TRASH_DIRECTORY" "mk_dir_${1}_XXXXXX"
+}
+
+
+FIXTURESDIR="$(mk_dir fixtures)"
+
 test_file() {
-  local TESTFILE="mountdir/test$1.txt"
-  local TESTLINK="mountdir/linkfile$1"
+  local TESTFILE="$FIXTURESDIR/test$1.txt"
+  local TESTLINK="$FIXTURESDIR/linkfile$1"
 
   touch "$TESTFILE"
   ln -s nothing "$TESTLINK"
@@ -114,24 +125,24 @@ test_file() {
   '
 
   test_expect_success "can get preserved mode and modification time [$1]" '
-    OUTFILE="mountdir/$HASH_PRESERVE_MODE_AND_MTIME" &&
+    OUTFILE="$(mk_file $HASH_PRESERVE_MODE_AND_MTIME)" &&
     ipfs get -o "$OUTFILE" $HASH_PRESERVE_MODE_AND_MTIME &&
     test "$PRESERVE_MODE:$PRESERVE_MTIME" = "$(stat -c "0%a:%Y" "$OUTFILE")"
   '
 
   test_expect_success "can get custom mode and modification time [$1]" '
-    OUTFILE="mountdir/$HASH_CUSTOM_MODE_AND_MTIME" &&
+    OUTFILE="$(mk_file $HASH_CUSTOM_MODE_AND_MTIME)" &&
     ipfs get -o "$OUTFILE" $HASH_CUSTOM_MODE_AND_MTIME &&
-    TIMESTAMP=$(date +%s%N --date="$(stat -c "%y" $OUTFILE)") &&
+    TIMESTAMP=$(date +%s%N --date="$(stat -c "%y" "$OUTFILE")") &&
     MODETIME=$(stat -c "0%a:$TIMESTAMP" "$OUTFILE") &&
     printf -v EXPECTED "$CUSTOM_MODE:$CUSTOM_MTIME%09d" $CUSTOM_MTIME_NSECS &&
     test "$EXPECTED" = "$MODETIME"
   '
 
   test_expect_success "can get custom symlink modification time [$1]" '
-    OUTFILE="mountdir/$HASH_CUSTOM_LINK_MTIME_NSECS" &&
+    OUTFILE="$(mk_file $HASH_CUSTOM_LINK_MTIME_NSECS)" &&
     ipfs get -o "$OUTFILE" $HASH_CUSTOM_LINK_MTIME_NSECS &&
-    TIMESTAMP=$(date +%s%N --date="$(stat -c "%y" $OUTFILE)") &&
+    TIMESTAMP=$(date +%s%N --date="$(stat -c "%y" "$OUTFILE")") &&
     printf -v EXPECTED "$CUSTOM_MTIME%09d" $CUSTOM_MTIME_NSECS &&
     test "$EXPECTED" = "$TIMESTAMP"
   '
@@ -139,23 +150,25 @@ test_file() {
   test_expect_success "can change file mode [$1]" '
     NAME=$(mk_name) &&
     HASH=$(echo testfile | ipfs add -q --mode=0600) &&
+    OUTFILE=$(mk_file "${NAME}") &&
     ipfs files cp "/ipfs/$HASH" /$NAME &&
     ipfs files chmod 444 /$NAME &&
-    HASH=$(ipfs files stat /$NAME|head -1) &&
-    ipfs get -o mountdir/$NAME $HASH &&
-    test $(stat -c "%a" mountdir/$NAME) = 444
+    HASH2=$(ipfs files stat /$NAME|head -1) &&
+    ipfs get -o "$OUTFILE" $HASH2 &&
+    test $(stat -c "%a" "$OUTFILE") = 444
   '
 
   test_expect_success "can change file modification time [$1]" '
     NAME=$(mk_name) &&
+    OUTFILE="$(mk_file "$NAME")" &&
     NOW=$(date +%s) &&
     HASH=$(echo testfile | ipfs add -q --mtime=$NOW) &&
     ipfs files cp "/ipfs/$HASH" /$NAME &&
     sleep 1 &&
     ipfs files touch /$NAME &&
     HASH=$(ipfs files stat /$NAME|head -1) &&
-    ipfs get -o mountdir/$NAME $HASH &&
-    test $(stat -c "%Y" mountdir/$NAME) -gt $NOW
+    ipfs get -o "$OUTFILE" "$HASH" &&
+    test $(stat -c "%Y" "$OUTFILE") -gt $NOW
   '
 
   test_expect_success "can change file modification time nanoseconds [$1]" '
@@ -189,7 +202,7 @@ test_file() {
 DIR_TIME=1655158632
 
 setup_directory() {
-  local TESTDIR=$(mktemp -d -p mountdir "${1}XXXXXX")
+  local TESTDIR="$(mktemp -d -p "$FIXTURESDIR" "${1}XXXXXX")"
   mkdir -p "$TESTDIR"/{dir1,dir2/sub1/sub2,dir3}
   chmod 0755 "$TESTDIR/dir1"
 
@@ -215,7 +228,7 @@ test_directory() {
   CUSTOM_DIR_MODE=0713
   TESTDIR=$(setup_directory $1)
   TESTDIR1="$TESTDIR/dir1"
-  OUTDIR="$(mktemp -d -p mountdir "out_${1}XXXXXX")"
+  OUTDIR="$(mk_dir "${1}")"
   HASH_DIR_ROOT=QmSioyvQuXetxg7uo8FswGn9XKKEsisDq1HTMzGyWbw2R6
   HASH_DIR1_NO_PRESERVE=QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
   HASH_DIR1_PRESERVE_MODE=QmRviohgafvCsbkiTgfQFipbuXJ6k1YtoiaQW4quttJPKu
@@ -397,25 +410,25 @@ test_stat_template() {
 }
 
 test_stat() {
-  STAT_TARGET="mountdir/statfile$1"
+  STAT_TARGET="$FIXTURESDIR/statfile$1"
   STAT_MODE_OCTAL="$CUSTOM_MODE"
   STAT_MODE_STRING="-rwxrw-r--"
   test_stat_template "$1" "file"
 
-  STAT_TARGET="mountdir/statdir$1"
+  STAT_TARGET="$FIXTURESDIR/statdir$1"
   STAT_MODE_OCTAL="0731"
   STAT_MODE_STRING="drwx-wx--x"
   mkdir "$STAT_TARGET"
   test_stat_template "$1" "directory"
 
-  STAT_TARGET="mountdir/statlink$1"
+  STAT_TARGET="$FIXTURESDIR/statlink$1"
   STAT_MODE_OCTAL="0777"
   STAT_MODE_STRING="lrwxrwxrwx"
   ln -s nothing "$STAT_TARGET"
   test_stat_template "$1" "link"
 
 
-  STAT_TARGET="mountdir/statfile$1"
+  STAT_TARGET="$FIXTURESDIR/statfile$1"
   test_expect_success "can chain stat template [$1]" '
     HASH=$(ipfs add -q --hash=sha2-256 --mode=0644 --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$STAT_TARGET") &&
     ACTUAL=$(ipfs files stat --format="<mtime> <mtime-secs> <mtime-nsecs> <mode> <mode-octal>" /ipfs/$HASH) &&
