@@ -10,8 +10,10 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"regexp"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -89,7 +91,7 @@ running, calls to 'ipfs' commands will be sent over the network to
 the daemon.
 `,
 		LongDescription: `
-The daemon will start listening on ports on the network, which are
+The Kubo daemon will start listening on ports on the network, which are
 documented in (and can be modified through) 'ipfs config Addresses'.
 For example, to change the 'Gateway' port:
 
@@ -109,11 +111,11 @@ other computers in the network, use 0.0.0.0 as the ip address:
 Be careful if you expose the RPC API. It is a security risk, as anyone could
 control your node remotely. If you need to control the node remotely,
 make sure to protect the port as you would other services or database
-(firewall, authenticated proxy, etc).
+(firewall, authenticated proxy, etc), or at least set API.Authorizations.
 
 HTTP Headers
 
-ipfs supports passing arbitrary headers to the RPC API and Gateway. You can
+Kubo supports passing arbitrary headers to the RPC API and Gateway. You can
 do this by setting headers on the API.HTTPHeaders and Gateway.HTTPHeaders
 keys:
 
@@ -124,7 +126,7 @@ Note that the value of the keys is an _array_ of strings. This is because
 headers can have more than one value, and it is convenient to pass through
 to other libraries.
 
-CORS Headers (for API)
+CORS Headers (for RPC API)
 
 You can setup CORS headers the same way:
 
@@ -141,7 +143,7 @@ second signal.
 
 IPFS_PATH environment variable
 
-ipfs uses a repository in the local file system. By default, the repo is
+Kubo uses a repository in the local file system. By default, the repo is
 located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
 environment variable:
 
@@ -149,7 +151,7 @@ environment variable:
 
 DEPRECATION NOTICE
 
-Previously, ipfs used an environment variable as seen below:
+Previously, Kubo used an environment variable as seen below:
 
   export API_ORIGIN="http://localhost:8888/"
 
@@ -160,14 +162,14 @@ Headers.
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized"),
+		cmds.BoolOption(initOptionKwd, "Initialize Kubo with default settings if not already initialized"),
 		cmds.StringOption(initConfigOptionKwd, "Path to existing configuration file to be loaded during --init"),
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
-		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow API access to unlisted hashes"),
+		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow RPC API access to unlisted hashes"),
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
@@ -373,6 +375,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
+	fmt.Printf("PeerID: %s\n", cfg.Identity.PeerID)
+
 	if !psSet {
 		pubsub = cfg.Pubsub.Enabled.WithDefault(false)
 	}
@@ -463,7 +467,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
 	}
 
-	printSwarmAddrs(node)
+	printLibp2pPorts(node)
 
 	if node.PrivateKey.Type() == p2pcrypto.RSA {
 		fmt.Print(`
@@ -563,7 +567,7 @@ take effect.
 	// Add ipfs version info to prometheus metrics
 	ipfsInfoMetric := promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "ipfs_info",
-		Help: "IPFS version information.",
+		Help: "Kubo IPFS version information.",
 	}, []string{"version", "commit"})
 
 	// Setting to 1 lets us multiply it with other stats to add the version labels
@@ -779,8 +783,8 @@ func rewriteMaddrToUseLocalhostIfItsAny(maddr ma.Multiaddr) ma.Multiaddr {
 	}
 }
 
-// printSwarmAddrs prints the addresses of the host.
-func printSwarmAddrs(node *core.IpfsNode) {
+// printLibp2pPorts prints which ports are opened to facilitate swarm connectivity.
+func printLibp2pPorts(node *core.IpfsNode) {
 	if !node.IsOnline {
 		fmt.Println("Swarm not listening, running in offline mode.")
 		return
@@ -790,24 +794,39 @@ func printSwarmAddrs(node *core.IpfsNode) {
 	if err != nil {
 		log.Errorf("failed to read listening addresses: %s", err)
 	}
-	lisAddrs := make([]string, len(ifaceAddrs))
-	for i, addr := range ifaceAddrs {
-		lisAddrs[i] = addr.String()
-	}
-	sort.Strings(lisAddrs)
-	for _, addr := range lisAddrs {
-		fmt.Printf("Swarm listening on %s\n", addr)
-	}
 
-	nodePhostAddrs := node.PeerHost.Addrs()
-	addrs := make([]string, len(nodePhostAddrs))
-	for i, addr := range nodePhostAddrs {
-		addrs[i] = addr.String()
+	// Multiple libp2p transports can use same port.
+	// Deduplicate all listeners and collect unique IP:port (udp|tcp) combinations
+	// which is useful information for operator deploying Kubo in TCP/IP infra.
+	addrMap := make(map[string]map[string]struct{})
+	re := regexp.MustCompile(`^/(?:ip[46]|dns(?:[46])?)/([^/]+)/(tcp|udp)/(\d+)(/.*)?$`)
+	for _, addr := range ifaceAddrs {
+		matches := re.FindStringSubmatch(addr.String())
+		if matches != nil {
+			hostname := matches[1]
+			protocol := strings.ToUpper(matches[2])
+			port := matches[3]
+			var host string
+			if matches[0][:4] == "/ip6" {
+				host = fmt.Sprintf("[%s]:%s", hostname, port)
+			} else {
+				host = fmt.Sprintf("%s:%s", hostname, port)
+			}
+			if _, ok := addrMap[host]; !ok {
+				addrMap[host] = make(map[string]struct{})
+			}
+			addrMap[host][protocol] = struct{}{}
+		}
 	}
-	sort.Strings(addrs)
-	for _, addr := range addrs {
-		fmt.Printf("Swarm announcing %s\n", addr)
+	for host, protocolsSet := range addrMap {
+		protocols := make([]string, 0, len(protocolsSet))
+		for protocol := range protocolsSet {
+			protocols = append(protocols, protocol)
+		}
+		sort.Strings(protocols)
+		fmt.Printf("Swarm listening on %s (%s)\n", host, strings.Join(protocols, "+"))
 	}
+	fmt.Printf("Run 'ipfs id' to inspect announced and discovered multiaddrs of this node.\n")
 }
 
 // serveHTTPGateway collects options, creates listener, prints status message and starts serving requests.
