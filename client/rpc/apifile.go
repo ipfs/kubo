@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/ipfs/boxo/files"
@@ -29,7 +30,7 @@ func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) 
 		Hash       string
 		Type       string
 		Size       int64 // unixfs size
-		Mode       os.FileMode
+		Mode       string
 		Mtime      int64
 		MtimeNsecs int
 	}
@@ -148,18 +149,32 @@ func (f *apiFile) Size() (int64, error) {
 	return f.size, nil
 }
 
-func (api *UnixfsAPI) getFile(ctx context.Context, p path.Path, size int64, mode os.FileMode, mtime int64, mtimeNsecs int) (files.Node, error) {
+func stringToFileMode(mode string) (os.FileMode, error) {
+	if mode == "" {
+		return 0, nil
+	}
+	mode64, err := strconv.ParseUint(mode, 8, 32)
+	if err != nil {
+		return 0, fmt.Errorf("cannot parse mode %s: %s", mode, err)
+	}
+	return os.FileMode(uint32(mode64)), nil
+}
+
+func (api *UnixfsAPI) getFile(ctx context.Context, p path.Path, size int64, mode string, mtime int64, mtimeNsecs int) (files.Node, error) {
+	fm, err := stringToFileMode(mode)
+	if err != nil {
+		return nil, err
+	}
+
 	f := &apiFile{
 		ctx:  ctx,
 		core: api.core(),
 		size: size,
 		path: p,
-	}
-	if mode != 0 {
-		f.mode = os.FileMode(mode)
+		mode: fm,
 	}
 	if mtime != 0 {
-		f.mtime = time.Unix(mtime, int64(mtimeNsecs)).UTC()
+		f.mtime = time.Unix(mtime, int64(mtimeNsecs))
 	}
 
 	return f, f.reset()
@@ -275,7 +290,7 @@ func (d *apiDir) Entries() files.DirIterator {
 	}
 }
 
-func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64, mode os.FileMode, mtime int64, mtimeNsecs int) (files.Node, error) {
+func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64, mode string, mtime int64, mtimeNsecs int) (files.Node, error) {
 	resp, err := api.core().Request("ls", p.String()).
 		Option("resolve-size", true).
 		Option("stream", true).Send(ctx)
@@ -286,18 +301,21 @@ func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64, mode 
 		return nil, resp.Error
 	}
 
+	fm, err := stringToFileMode(mode)
+	if err != nil {
+		return nil, err
+	}
+
 	d := &apiDir{
 		ctx:  ctx,
 		core: api,
 		size: size,
 		path: p,
+		mode: fm,
 
 		dec: json.NewDecoder(resp.Output),
 	}
 
-	if mode != 0 {
-		d.mode = os.FileMode(mode)
-	}
 	if mtime != 0 {
 		d.mtime = time.Unix(mtime, int64(mtimeNsecs)).UTC()
 	}

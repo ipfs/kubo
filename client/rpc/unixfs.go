@@ -85,14 +85,13 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 	}
 	defer resp.Output.Close()
 	dec := json.NewDecoder(resp.Output)
-loop:
+
 	for {
 		var evt addEvent
-		switch err := dec.Decode(&evt); err {
-		case nil:
-		case io.EOF:
-			break loop
-		default:
+		if err := dec.Decode(&evt); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return path.ImmutablePath{}, err
 		}
 		out = evt
@@ -138,7 +137,7 @@ type lsLink struct {
 	Type       unixfs_pb.Data_DataType
 	Target     string
 
-	Mode       os.FileMode
+	Mode       string
 	Mtime      int64
 	MtimeNsecs int
 }
