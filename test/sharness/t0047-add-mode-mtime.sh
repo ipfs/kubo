@@ -2,9 +2,6 @@
 
 test_description="Test storing and retrieving mode and mtime"
 
-# TODO: remove blow verbose logging to see why this fails on CI
-TEST_VERBOSE=1
-
 . lib/test-lib.sh
 
 test_init_ipfs
@@ -302,12 +299,16 @@ test_directory() {
     test "${HASHES[*]}" = "${HASH_DIR_CUSTOM_MODE[*]}"
   '
 
+
   test_expect_success "can recursively set directory mtime [$1]" '
+    set -x &&
     HASHES=($(ipfs add -qr --hash=sha2-256 --mtime=$CUSTOM_MTIME "$TESTDIR"|sort)) &&
-    test "${HASHES[*]}" = "${HASH_DIR_CUSTOM_MTIME[*]}"
+    test "${HASHES[*]}" = "${HASH_DIR_CUSTOM_MTIME[*]}" &&
+    set +x
   '
 
   test_expect_success "can recursively restore mode and mtime [$1]" '
+    set -x &&
     ipfs get -o "$OUTDIR" $HASH_DIR_ROOT &&
     test "700:$DIR_TIME" = "$(stat -c "%a:%Y" "$OUTDIR")" &&
     test "644:$((DIR_TIME+10))" = "$(stat -c "%a:%Y" "$OUTDIR/dir2/sub1/sub2/file3")" &&
@@ -318,7 +319,8 @@ test_directory() {
     test "644:$((DIR_TIME+60))" = "$(stat -c "%a:%Y" "$OUTDIR/dir3/file2")" &&
     test "755:$((DIR_TIME+70))" = "$(stat -c "%a:%Y" "$OUTDIR/dir3")" &&
     test "644:$((DIR_TIME+80))" = "$(stat -c "%a:%Y" "$OUTDIR/file1")" &&
-    test "755:$((DIR_TIME+90))" = "$(stat -c "%a:%Y" "$OUTDIR/dir1")"
+    test "755:$((DIR_TIME+90))" = "$(stat -c "%a:%Y" "$OUTDIR/dir1")" &&
+    set +x
   '
 
   test_expect_success "can change directory mode [$1]" '
