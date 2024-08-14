@@ -290,8 +290,10 @@ test_directory() {
   '
 
   test_expect_success "can recursively preserve mode and modification time [$1]" '
-    set -x
+    set -x &&
     test "700:$DIR_TIME" = "$(stat -c "%a:%Y" "$TESTDIR")" &&
+    id &&
+    stat "$TESTDIR/dir2/sub1/sub2/file3" &&
     test "644:$((DIR_TIME+10))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/sub2/file3")" &&
     test "777:$((DIR_TIME+20))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/link1")" &&
     test "755:$((DIR_TIME+30))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/sub2")" &&
