@@ -37,6 +37,9 @@ mk_dir() {
     mktemp -d -p "$SHARNESS_TRASH_DIRECTORY" "mk_dir_${1}_XXXXXX"
 }
 
+# force umask for deterministic mode on files created via touch
+# (https://github.com/orgs/community/discussions/40876, https://github.com/ipfs/kubo/pull/10478/#discussion_r1717515514)
+umask 022
 
 FIXTURESDIR="$(mk_dir fixtures)"
 
@@ -202,6 +205,7 @@ test_file() {
 DIR_TIME=1655158632
 
 setup_directory() {
+
   local TESTDIR="$(mktemp -d -p "$FIXTURESDIR" "${1}XXXXXX")"
   mkdir -p "$TESTDIR"/{dir1,dir2/sub1/sub2,dir3}
   chmod 0755 "$TESTDIR/dir1"
@@ -303,10 +307,7 @@ test_directory() {
   '
 
   test_expect_success "can recursively preserve mode and modification time [$1]" '
-    set -x &&
     test "700:$DIR_TIME" = "$(stat -c "%a:%Y" "$TESTDIR")" &&
-    id &&
-    stat "$TESTDIR/dir2/sub1/sub2/file3" &&
     test "644:$((DIR_TIME+10))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/sub2/file3")" &&
     test "777:$((DIR_TIME+20))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/link1")" &&
     test "755:$((DIR_TIME+30))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/sub2")" &&
@@ -317,8 +318,7 @@ test_directory() {
     test "644:$((DIR_TIME+80))" = "$(stat -c "%a:%Y" "$TESTDIR/file1")" &&
     test "755:$((DIR_TIME+90))" = "$(stat -c "%a:%Y" "$TESTDIR/dir1")" &&
     HASHES=($(ipfs add -qr --hash=sha2-256 --preserve-mode --preserve-mtime "$TESTDIR"|sort)) &&
-    test "${HASHES[*]}" = "${HASH_DIR_MODE_AND_MTIME[*]}" &&
-    set +x
+    test "${HASHES[*]}" = "${HASH_DIR_MODE_AND_MTIME[*]}"
   '
 
   test_expect_success "can recursively set directory mode [$1]" '
@@ -327,14 +327,11 @@ test_directory() {
   '
 
   test_expect_success "can recursively set directory mtime [$1]" '
-    set -x &&
     HASHES=($(ipfs add -qr --hash=sha2-256 --mtime=$CUSTOM_MTIME "$TESTDIR"|sort)) &&
-    test "${HASHES[*]}" = "${HASH_DIR_CUSTOM_MTIME[*]}" &&
-    set +x
+    test "${HASHES[*]}" = "${HASH_DIR_CUSTOM_MTIME[*]}"
   '
 
   test_expect_success "can recursively restore mode and mtime [$1]" '
-    set -x &&
     ipfs get -o "$OUTDIR" $HASH_DIR_ROOT &&
     test "700:$DIR_TIME" = "$(stat -c "%a:%Y" "$OUTDIR")" &&
     test "644:$((DIR_TIME+10))" = "$(stat -c "%a:%Y" "$OUTDIR/dir2/sub1/sub2/file3")" &&
@@ -345,8 +342,7 @@ test_directory() {
     test "644:$((DIR_TIME+60))" = "$(stat -c "%a:%Y" "$OUTDIR/dir3/file2")" &&
     test "755:$((DIR_TIME+70))" = "$(stat -c "%a:%Y" "$OUTDIR/dir3")" &&
     test "644:$((DIR_TIME+80))" = "$(stat -c "%a:%Y" "$OUTDIR/file1")" &&
-    test "755:$((DIR_TIME+90))" = "$(stat -c "%a:%Y" "$OUTDIR/dir1")" &&
-    set +x
+    test "755:$((DIR_TIME+90))" = "$(stat -c "%a:%Y" "$OUTDIR/dir1")"
   '
 
   test_expect_success "can change directory mode [$1]" '
