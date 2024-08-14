@@ -290,15 +290,26 @@ test_directory() {
   '
 
   test_expect_success "can recursively preserve mode and modification time [$1]" '
+    set -x
+    test "700:$DIR_TIME" = "$(stat -c "%a:%Y" "$TESTDIR")" &&
+    test "644:$((DIR_TIME+10))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/sub2/file3")" &&
+    test "777:$((DIR_TIME+20))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/link1")" &&
+    test "755:$((DIR_TIME+30))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/sub2")" &&
+    test "755:$((DIR_TIME+40))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1")" &&
+    test "755:$((DIR_TIME+50))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2")" &&
+    test "644:$((DIR_TIME+60))" = "$(stat -c "%a:%Y" "$TESTDIR/dir3/file2")" &&
+    test "755:$((DIR_TIME+70))" = "$(stat -c "%a:%Y" "$TESTDIR/dir3")" &&
+    test "644:$((DIR_TIME+80))" = "$(stat -c "%a:%Y" "$TESTDIR/file1")" &&
+    test "755:$((DIR_TIME+90))" = "$(stat -c "%a:%Y" "$TESTDIR/dir1")" &&
     HASHES=($(ipfs add -qr --hash=sha2-256 --preserve-mode --preserve-mtime "$TESTDIR"|sort)) &&
-    test "${HASHES[*]}" = "${HASH_DIR_MODE_AND_MTIME[*]}"
+    test "${HASHES[*]}" = "${HASH_DIR_MODE_AND_MTIME[*]}" &&
+    set +x
   '
 
   test_expect_success "can recursively set directory mode [$1]" '
     HASHES=($(ipfs add -qr --hash=sha2-256 --mode=0753 "$TESTDIR"|sort)) &&
     test "${HASHES[*]}" = "${HASH_DIR_CUSTOM_MODE[*]}"
   '
-
 
   test_expect_success "can recursively set directory mtime [$1]" '
     set -x &&
