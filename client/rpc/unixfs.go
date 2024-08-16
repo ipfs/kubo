@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/ipfs/boxo/files"
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
@@ -23,10 +24,6 @@ type addEvent struct {
 	Hash  string `json:",omitempty"`
 	Bytes int64  `json:",omitempty"`
 	Size  string `json:",omitempty"`
-
-	Mode       os.FileMode `json:",omitempty"`
-	Mtime      int64       `json:",omitempty"`
-	MtimeNsecs int         `json:",omitempty"`
 }
 
 type UnixfsAPI HttpApi
@@ -98,12 +95,9 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 
 		if options.Events != nil {
 			ifevt := &iface.AddEvent{
-				Name:       out.Name,
-				Size:       out.Size,
-				Bytes:      out.Bytes,
-				Mode:       out.Mode,
-				Mtime:      out.Mtime,
-				MtimeNsecs: out.MtimeNsecs,
+				Name:  out.Name,
+				Size:  out.Size,
+				Bytes: out.Bytes,
 			}
 
 			if out.Hash != "" {
@@ -137,9 +131,8 @@ type lsLink struct {
 	Type       unixfs_pb.Data_DataType
 	Target     string
 
-	Mode       string
-	Mtime      int64
-	MtimeNsecs int
+	Mode    os.FileMode
+	ModTime time.Time
 }
 
 type lsObject struct {
@@ -233,6 +226,9 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...caopts.Unixfs
 				Size:   l0.Size,
 				Type:   ftype,
 				Target: l0.Target,
+
+				Mode:    l0.Mode,
+				ModTime: l0.ModTime,
 			}:
 			case <-ctx.Done():
 			}

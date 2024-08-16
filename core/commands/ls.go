@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"text/tabwriter"
+	"time"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
@@ -23,6 +24,8 @@ type LsLink struct {
 	Size       uint64
 	Type       unixfs_pb.Data_DataType
 	Target     string
+	Mode       os.FileMode
+	ModTime    time.Time
 }
 
 // LsObject is an element of LsOutput
@@ -163,6 +166,9 @@ The JSON output contains type information.
 					Size:   link.Size,
 					Type:   ftype,
 					Target: link.Target,
+
+					Mode:    link.Mode,
+					ModTime: link.ModTime,
 				}
 				if err := processLink(paths[i], lsLink); err != nil {
 					return err
@@ -256,6 +262,7 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 				}
 			}
 
+			// TODO: Print link.Mode and link.ModTime?
 			fmt.Fprintf(tw, s, link.Hash, link.Size, cmdenv.EscNonPrint(link.Name))
 		}
 	}

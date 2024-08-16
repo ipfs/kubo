@@ -3,6 +3,7 @@ package iface
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
@@ -59,6 +60,9 @@ type DirEntry struct {
 	Size   uint64   // The size of the file in bytes (or the size of the symlink).
 	Type   FileType // The type of the file.
 	Target string   // The symlink target (if a symlink).
+
+	Mode    os.FileMode
+	ModTime time.Time
 
 	Err error
 }

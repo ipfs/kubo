@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -39,13 +40,23 @@ func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) 
 		return nil, err
 	}
 
+	mode, err := stringToFileMode(stat.Mode)
+	if err != nil {
+		return nil, err
+	}
+
+	var modTime time.Time
+	if stat.Mtime != 0 {
+		modTime = time.Unix(stat.Mtime, int64(stat.MtimeNsecs)).UTC()
+	}
+
 	switch stat.Type {
 	case "file":
-		return api.getFile(ctx, p, stat.Size, stat.Mode, stat.Mtime, stat.MtimeNsecs)
+		return api.getFile(ctx, p, stat.Size, mode, modTime)
 	case "directory":
-		return api.getDir(ctx, p, stat.Size, stat.Mode, stat.Mtime, stat.MtimeNsecs)
+		return api.getDir(ctx, p, stat.Size, mode, modTime)
 	case "symlink":
-		return api.getSymlink(ctx, p, stat.Mtime, stat.MtimeNsecs)
+		return api.getSymlink(ctx, p, modTime)
 	default:
 		return nil, fmt.Errorf("unsupported file type '%s'", stat.Type)
 	}
@@ -162,21 +173,14 @@ func stringToFileMode(mode string) (os.FileMode, error) {
 	return os.FileMode(uint32(mode64)), nil
 }
 
-func (api *UnixfsAPI) getFile(ctx context.Context, p path.Path, size int64, mode string, mtime int64, mtimeNsecs int) (files.Node, error) {
-	fm, err := stringToFileMode(mode)
-	if err != nil {
-		return nil, err
-	}
-
+func (api *UnixfsAPI) getFile(ctx context.Context, p path.Path, size int64, mode os.FileMode, mtime time.Time) (files.Node, error) {
 	f := &apiFile{
-		ctx:  ctx,
-		core: api.core(),
-		size: size,
-		path: p,
-		mode: fm,
-	}
-	if mtime != 0 {
-		f.mtime = time.Unix(mtime, int64(mtimeNsecs))
+		ctx:   ctx,
+		core:  api.core(),
+		size:  size,
+		path:  p,
+		mode:  mode,
+		mtime: mtime,
 	}
 
 	return f, f.reset()
@@ -234,19 +238,19 @@ func (it *apiIter) Next() bool {
 
 	switch it.cur.Type {
 	case unixfs.THAMTShard, unixfs.TMetadata, unixfs.TDirectory:
-		it.curFile, err = it.core.getDir(it.ctx, path.FromCid(c), int64(it.cur.Size), it.cur.Mode, it.cur.Mtime, it.cur.MtimeNsecs)
+		it.curFile, err = it.core.getDir(it.ctx, path.FromCid(c), int64(it.cur.Size), it.cur.Mode, it.cur.ModTime)
 		if err != nil {
 			it.err = err
 			return false
 		}
 	case unixfs.TFile:
-		it.curFile, err = it.core.getFile(it.ctx, path.FromCid(c), int64(it.cur.Size), it.cur.Mode, it.cur.Mtime, it.cur.MtimeNsecs)
+		it.curFile, err = it.core.getFile(it.ctx, path.FromCid(c), int64(it.cur.Size), it.cur.Mode, it.cur.ModTime)
 		if err != nil {
 			it.err = err
 			return false
 		}
 	case unixfs.TSymlink:
-		it.curFile, err = it.core.getSymlink(it.ctx, path.FromCid(c), it.cur.Mtime, it.cur.MtimeNsecs)
+		it.curFile, err = it.core.getSymlink(it.ctx, path.FromCid(c), it.cur.ModTime)
 		if err != nil {
 			it.err = err
 			return false
@@ -298,7 +302,7 @@ func (d *apiDir) Entries() files.DirIterator {
 	}
 }
 
-func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64, mode string, mtime int64, mtimeNsecs int) (files.Node, error) {
+func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64, mode os.FileMode, modTime time.Time) (files.Node, error) {
 	resp, err := api.core().Request("ls", p.String()).
 		Option("resolve-size", true).
 		Option("stream", true).Send(ctx)
@@ -309,29 +313,25 @@ func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64, mode 
 		return nil, resp.Error
 	}
 
-	fm, err := stringToFileMode(mode)
-	if err != nil {
-		return nil, err
-	}
+	data, _ := io.ReadAll(resp.Output)
+	rdr := bytes.NewReader(data)
 
 	d := &apiDir{
-		ctx:  ctx,
-		core: api,
-		size: size,
-		path: p,
-		mode: fm,
+		ctx:   ctx,
+		core:  api,
+		size:  size,
+		path:  p,
+		mode:  mode,
+		mtime: modTime,
 
-		dec: json.NewDecoder(resp.Output),
-	}
-
-	if mtime != 0 {
-		d.mtime = time.Unix(mtime, int64(mtimeNsecs)).UTC()
+		//dec: json.NewDecoder(resp.Output),
+		dec: json.NewDecoder(rdr),
 	}
 
 	return d, nil
 }
 
-func (api *UnixfsAPI) getSymlink(ctx context.Context, p path.Path, mtime int64, mtimeNsecs int) (files.Node, error) {
+func (api *UnixfsAPI) getSymlink(ctx context.Context, p path.Path, modTime time.Time) (files.Node, error) {
 	resp, err := api.core().Request("cat", p.String()).
 		Option("resolve-size", true).
 		Option("stream", true).Send(ctx)
@@ -345,11 +345,6 @@ func (api *UnixfsAPI) getSymlink(ctx context.Context, p path.Path, mtime int64, 
 	target, err := io.ReadAll(resp.Output)
 	if err != nil {
 		return nil, err
-	}
-
-	var modTime time.Time
-	if mtime != 0 {
-		modTime = time.Unix(mtime, int64(mtimeNsecs))
 	}
 
 	return files.NewSymlinkFile(string(target), modTime), nil

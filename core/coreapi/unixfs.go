@@ -274,6 +274,8 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 				if !settings.UseCumulativeSize {
 					lnk.Size = d.FileSize()
 				}
+				lnk.Mode = d.Mode()
+				lnk.ModTime = d.ModTime()
 			}
 		}
 
