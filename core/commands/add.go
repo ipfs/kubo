@@ -205,17 +205,14 @@ See 'dag export' and 'dag import' for more information.
 		quiet, _ := req.Options[quietOptionName].(bool)
 		quieter, _ := req.Options[quieterOptionName].(bool)
 		quiet = quiet || quieter
-
 		silent, _ := req.Options[silentOptionName].(bool)
 
-		if quiet || silent {
-			return nil
-		}
-
-		// ipfs cli progress bar defaults to true unless quiet or silent is used
-		_, found := req.Options[progressOptionName].(bool)
-		if !found {
-			req.Options[progressOptionName] = true
+		if !quiet && !silent {
+			// ipfs cli progress bar defaults to true unless quiet or silent is used
+			_, found := req.Options[progressOptionName].(bool)
+			if !found {
+				req.Options[progressOptionName] = true
+			}
 		}
 
 		return nil
@@ -273,6 +270,14 @@ See 'dag export' and 'dag import' for more information.
 		if !rbset && cfg.Import.UnixFSRawLeaves != config.Default {
 			rbset = true
 			rawblks = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
+		}
+
+		if preserveMode || preserveMtime {
+			if (rbset && rawblks) || cidVer == 1 {
+				rbset = true
+				rawblks = false
+				log.Warn("Raw leaves cannot preserve mode or modification time, raw leaves disabled")
+			}
 		}
 
 		if onlyHash && toFilesSet {
