@@ -1395,6 +1395,7 @@ func getParentDir(root *mfs.Root, dir string) (*mfs.Directory, error) {
 }
 
 var filesChmodCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Change optional POSIX mode permissions",
 		ShortDescription: `
@@ -1433,6 +1434,7 @@ The mode argument must be specified in Unix numeric notation.
 }
 
 var filesTouchCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Set or change optional POSIX modification times.",
 		ShortDescription: `

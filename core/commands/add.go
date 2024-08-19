@@ -194,9 +194,8 @@ See 'dag export' and 'dag import' for more information.
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 		cmds.BoolOption(pinOptionName, "Pin locally to protect added files from garbage collection.").WithDefault(true),
 		cmds.StringOption(toFilesOptionName, "Add reference to Files API (MFS) at the provided path."),
-
-		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries"),
-		cmds.BoolOption(preserveMtimeOptionName, "Apply existing POSIX modification time to created UnixFS entries"),
+		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries. Disables raw-leaves. (experimental)"),
+		cmds.BoolOption(preserveMtimeOptionName, "Apply existing POSIX modification time to created UnixFS entries. Disables raw-leaves. (experimental)"),
 		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. Disables raw-leaves. (experimental)"),
 		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). Disables raw-leaves. (experimental)"),
 		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
@@ -272,12 +271,17 @@ See 'dag export' and 'dag import' for more information.
 			rawblks = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
 		}
 
-		if preserveMode || preserveMtime {
-			if (rbset && rawblks) || cidVer == 1 {
-				rbset = true
-				rawblks = false
-				log.Warn("Raw leaves cannot preserve mode or modification time, raw leaves disabled")
+		// Storing optional mode or mtime (UnixFS 1.5) requires root block
+		// to always be 'dag-pb' and not 'raw'. Below adjusts raw-leaves setting, if possible.
+		if preserveMode || preserveMtime || mode != 0 || mtime != 0 {
+			// Error if --raw-leaves flag was explicitly passed by the user.
+			// (let user make a decision to manually disable it and retry)
+			if rbset && rawblks {
+				return fmt.Errorf("%s can't be used with UnixFS metadata like mode or modification time", rawLeavesOptionName)
 			}
+			// No explicit preference from user, disable raw-leaves and continue
+			rbset = true
+			rawblks = false
 		}
 
 		if onlyHash && toFilesSet {
