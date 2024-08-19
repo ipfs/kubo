@@ -818,7 +818,17 @@ func printLibp2pPorts(node *core.IpfsNode) {
 			addrMap[host][protocol] = struct{}{}
 		}
 	}
-	for host, protocolsSet := range addrMap {
+
+	// Produce a sorted host:port list
+	hosts := make([]string, 0, len(addrMap))
+	for host := range addrMap {
+		hosts = append(hosts, host)
+	}
+	sort.Strings(hosts)
+
+	// Print listeners
+	for _, host := range hosts {
+		protocolsSet := addrMap[host]
 		protocols := make([]string, 0, len(protocolsSet))
 		for protocol := range protocolsSet {
 			protocols = append(protocols, protocol)
