@@ -6,6 +6,12 @@ test_description="Test storing and retrieving mode and mtime"
 
 test_init_ipfs
 
+test_expect_success "set Import defaults to ensure deterministic cids for mod and mtime tests" '
+  ipfs config --json Import.CidVersion 0 &&
+  ipfs config Import.HashFunction sha2-256 &&
+  ipfs config Import.UnixFSChunker size-262144
+'
+
 HASH_NO_PRESERVE=QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH
 
 PRESERVE_MTIME=1604320482
@@ -52,70 +58,70 @@ test_file() {
 
   test_expect_success "feature on file has no effect when not used [$1]" '
     touch "$TESTFILE" &&
-    HASH=$(ipfs add -q --hash=sha2-256 "$TESTFILE") &&
-    test "$HASH_NO_PRESERVE" = "$HASH"    
+    HASH=$(ipfs add -q "$TESTFILE") &&
+    test "$HASH_NO_PRESERVE" = "$HASH"
   '
 
   test_expect_success "can preserve file mode [$1]" '
     touch "$TESTFILE" &&
     chmod $PRESERVE_MODE "$TESTFILE" &&
-    HASH=$(ipfs add -q --hash=sha2-256 --preserve-mode "$TESTFILE") &&
+    HASH=$(ipfs add -q --preserve-mode "$TESTFILE") &&
     test "$HASH_PRESERVE_MODE" = "$HASH"
   '
 
   test_expect_success "can preserve file modification time [$1]" '
     touch -m -d @$PRESERVE_MTIME "$TESTFILE" &&
-    HASH=$(ipfs add -q --hash=sha2-256 --preserve-mtime "$TESTFILE") &&
+    HASH=$(ipfs add -q --preserve-mtime "$TESTFILE") &&
     test "$HASH_PRESERVE_MTIME" = "$HASH"
   '
 
   test_expect_success "can preserve file mode and modification time [$1]" '
     touch -m -d @$PRESERVE_MTIME "$TESTFILE" &&
     chmod $PRESERVE_MODE "$TESTFILE" &&
-    HASH=$(ipfs add -q --hash=sha2-256 --preserve-mode --preserve-mtime "$TESTFILE") &&
+    HASH=$(ipfs add -q --preserve-mode --preserve-mtime "$TESTFILE") &&
     test "$HASH_PRESERVE_MODE_AND_MTIME" = "$HASH"
   '
 
   test_expect_success "can preserve symlink modification time [$1]" '
     touch -h -m -d @$PRESERVE_MTIME "$TESTLINK" &&
-    HASH=$(ipfs add -q --hash=sha2-256 --preserve-mtime "$TESTLINK") &&
+    HASH=$(ipfs add -q --preserve-mtime "$TESTLINK") &&
     test "$HASH_PRESERVE_LINK_MTIME" = "$HASH"
   '
 
   test_expect_success "can set file mode [$1]" '
     touch "$TESTFILE" &&
     chmod 0600 "$TESTFILE" &&
-    HASH=$(ipfs add -q --hash=sha2-256 --mode=$CUSTOM_MODE "$TESTFILE") &&
+    HASH=$(ipfs add -q --mode=$CUSTOM_MODE "$TESTFILE") &&
     test "$HASH_CUSTOM_MODE" = "$HASH"
   '
 
   test_expect_success "can set file modification time [$1]" '
     touch -m -t 202011021234.42 "$TESTFILE" &&
-    HASH=$(ipfs add -q --hash=sha2-256 --mtime=$CUSTOM_MTIME "$TESTFILE") &&
+    HASH=$(ipfs add -q --mtime=$CUSTOM_MTIME "$TESTFILE") &&
     test "$HASH_CUSTOM_MTIME" = "$HASH"
   '
 
   test_expect_success "can set file modification time nanoseconds [$1]" '
     touch -m -t 202011021234.42 "$TESTFILE" &&
-    HASH=$(ipfs add -q --hash=sha2-256 --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$TESTFILE") &&
+    HASH=$(ipfs add -q --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$TESTFILE") &&
     test "$HASH_CUSTOM_MTIME_NSECS" = "$HASH"
   '
 
   test_expect_success "can set file mode and modification time [$1]" '
     touch -m -t 202011021234.42 "$TESTFILE" &&
     chmod 0600 "$TESTFILE" &&
-    HASH=$(ipfs add -q --hash=sha2-256 --mode=$CUSTOM_MODE --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$TESTFILE") &&
+    HASH=$(ipfs add -q --mode=$CUSTOM_MODE --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$TESTFILE") &&
     test "$HASH_CUSTOM_MODE_AND_MTIME" = "$HASH"
   '
 
   test_expect_success "can set symlink modification time [$1]" '
     touch -h -m -t 202011021234.42 "$TESTLINK" &&
-    HASH=$(ipfs add -q --hash=sha2-256 --mtime=$CUSTOM_MTIME "$TESTLINK") &&
+    HASH=$(ipfs add -q --mtime=$CUSTOM_MTIME "$TESTLINK") &&
     test "$HASH_CUSTOM_LINK_MTIME" = "$HASH"
   '
 
   test_expect_success "cannot set mode on symbolic link" '
-    HASH=$(ipfs add -q --hash=sha2-256 --mtime=$CUSTOM_MTIME --mode=$CUSTOM_MODE "$TESTLINK") &&
+    HASH=$(ipfs add -q --mtime=$CUSTOM_MTIME --mode=$CUSTOM_MODE "$TESTLINK") &&
     ACTUAL=$(ipfs files stat --format="<mode>" /ipfs/$HASH) &&
     test "$ACTUAL" = "lrwxrwxrwx"
   '
@@ -123,7 +129,7 @@ test_file() {
 
   test_expect_success "can set symlink modification time nanoseconds [$1]" '
     touch -h -m -t 202011021234.42 "$TESTLINK" &&
-    HASH=$(ipfs add -q --hash=sha2-256 --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$TESTLINK") &&
+    HASH=$(ipfs add -q --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$TESTLINK") &&
     test "$HASH_CUSTOM_LINK_MTIME_NSECS" = "$HASH"
   '
 
@@ -277,32 +283,32 @@ test_directory() {
     QmfWitW6F13WHFXLbJzXRYmwrS1p4gaAJAfucUSMytRPn3)
 
   test_expect_success "feature on directory has no effect when not used [$1]" '
-    HASH=$(ipfs add -qr --hash=sha2-256 "$TESTDIR1") &&
+    HASH=$(ipfs add -qr "$TESTDIR1") &&
     test "$HASH_DIR1_NO_PRESERVE" = "$HASH"
   '
 
   test_expect_success "can preserve directory mode [$1]" '
-    HASH=$(ipfs add -qr --hash=sha2-256 --preserve-mode "$TESTDIR1") &&
+    HASH=$(ipfs add -qr --preserve-mode "$TESTDIR1") &&
     test "$HASH_DIR1_PRESERVE_MODE" = "$HASH"
   '
 
   test_expect_success "can preserve directory modification time [$1]" '
-    HASH=$(ipfs add -qr --hash=sha2-256 --preserve-mtime "$TESTDIR1") &&
+    HASH=$(ipfs add -qr --preserve-mtime "$TESTDIR1") &&
     test "$HASH_DIR1_PRESERVE_MTIME" = "$HASH"
   '
 
   test_expect_success "can set directory mode [$1]" '
-    HASH=$(ipfs add -qr --hash=sha2-256 --mode=$CUSTOM_DIR_MODE "$TESTDIR1") &&
+    HASH=$(ipfs add -qr --mode=$CUSTOM_DIR_MODE "$TESTDIR1") &&
     test "$HASH_DIR1_CUSTOM_MODE" = "$HASH"
   '
 
   test_expect_success "can set directory modification time [$1]" '
-    HASH=$(ipfs add -qr --hash=sha2-256 --mtime=$CUSTOM_MTIME "$TESTDIR1") &&
+    HASH=$(ipfs add -qr --mtime=$CUSTOM_MTIME "$TESTDIR1") &&
     test "$HASH_DIR1_CUSTOM_MTIME" = "$HASH"
   '
 
   test_expect_success "can set directory modification time nanoseconds [$1]" '
-    HASH=$(ipfs add -qr --hash=sha2-256 --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$TESTDIR1") &&
+    HASH=$(ipfs add -qr --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$TESTDIR1") &&
     test "$HASH_DIR1_CUSTOM_MTIME_NSECS" = "$HASH"
   '
 
@@ -317,17 +323,17 @@ test_directory() {
     test "755:$((DIR_TIME+70))" = "$(stat -c "%a:%Y" "$TESTDIR/dir3")" &&
     test "644:$((DIR_TIME+80))" = "$(stat -c "%a:%Y" "$TESTDIR/file1")" &&
     test "755:$((DIR_TIME+90))" = "$(stat -c "%a:%Y" "$TESTDIR/dir1")" &&
-    HASHES=($(ipfs add -qr --hash=sha2-256 --preserve-mode --preserve-mtime "$TESTDIR"|sort)) &&
+    HASHES=($(ipfs add -qr --preserve-mode --preserve-mtime "$TESTDIR"|sort)) &&
     test "${HASHES[*]}" = "${HASH_DIR_MODE_AND_MTIME[*]}"
   '
 
   test_expect_success "can recursively set directory mode [$1]" '
-    HASHES=($(ipfs add -qr --hash=sha2-256 --mode=0753 "$TESTDIR"|sort)) &&
+    HASHES=($(ipfs add -qr --mode=0753 "$TESTDIR"|sort)) &&
     test "${HASHES[*]}" = "${HASH_DIR_CUSTOM_MODE[*]}"
   '
 
   test_expect_success "can recursively set directory mtime [$1]" '
-    HASHES=($(ipfs add -qr --hash=sha2-256 --mtime=$CUSTOM_MTIME "$TESTDIR"|sort)) &&
+    HASHES=($(ipfs add -qr --mtime=$CUSTOM_MTIME "$TESTDIR"|sort)) &&
     test "${HASHES[*]}" = "${HASH_DIR_CUSTOM_MTIME[*]}"
   '
 
@@ -372,34 +378,34 @@ test_directory() {
 test_stat_template() {
   test_expect_success "can stat $2 string mode [$1]" '
     touch "$STAT_TARGET" &&
-    HASH=$(ipfs add -qr --hash=sha2-256 --mode="$STAT_MODE_OCTAL" "$STAT_TARGET") &&
+    HASH=$(ipfs add -qr --mode="$STAT_MODE_OCTAL" "$STAT_TARGET") &&
     ACTUAL=$(ipfs files stat --format="<mode>" /ipfs/$HASH) &&
     test "$ACTUAL" = "$STAT_MODE_STRING"
   '
   test_expect_success "can stat $2 octal mode [$1]" '
     touch "$STAT_TARGET" &&
-    HASH=$(ipfs add -qr --hash=sha2-256 --mode="$STAT_MODE_OCTAL" "$STAT_TARGET") &&
+    HASH=$(ipfs add -qr --mode="$STAT_MODE_OCTAL" "$STAT_TARGET") &&
     ACTUAL=$(ipfs files stat --format="<mode-octal>" /ipfs/$HASH) &&
     test "$ACTUAL" = "$STAT_MODE_OCTAL"
   '
 
   test_expect_success "can stat $2 modification time string [$1]" '
     touch "$STAT_TARGET" &&
-    HASH=$(ipfs add -qr --hash=sha2-256 --mtime=$CUSTOM_MTIME "$STAT_TARGET") &&
+    HASH=$(ipfs add -qr --mtime=$CUSTOM_MTIME "$STAT_TARGET") &&
     ACTUAL=$(ipfs files stat --format="<mtime>" /ipfs/$HASH) &&
     test "$ACTUAL" = "24 Oct 2020, 11:42:00 UTC"
   '
 
   test_expect_success "can stat $2 modification time seconds [$1]" '
     touch "$STAT_TARGET" &&
-    HASH=$(ipfs add -qr --hash=sha2-256 --mtime=$CUSTOM_MTIME "$STAT_TARGET") &&
+    HASH=$(ipfs add -qr --mtime=$CUSTOM_MTIME "$STAT_TARGET") &&
     ACTUAL=$(ipfs files stat --format="<mtime-secs>" /ipfs/$HASH) &&
     test $ACTUAL -eq $CUSTOM_MTIME
   '
 
   test_expect_success "can stat $2 modification time nanoseconds [$1]" '
     touch "$STAT_TARGET" &&
-    HASH=$(ipfs add -qr --hash=sha2-256 --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$STAT_TARGET") &&
+    HASH=$(ipfs add -qr --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$STAT_TARGET") &&
     ACTUAL=$(ipfs files stat --format="<mtime-nsecs>" /ipfs/$HASH) &&
     test $ACTUAL -eq $CUSTOM_MTIME_NSECS
   '
@@ -426,7 +432,7 @@ test_stat() {
 
   STAT_TARGET="$FIXTURESDIR/statfile$1"
   test_expect_success "can chain stat template [$1]" '
-    HASH=$(ipfs add -q --hash=sha2-256 --mode=0644 --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$STAT_TARGET") &&
+    HASH=$(ipfs add -q --mode=0644 --mtime=$CUSTOM_MTIME --mtime-nsecs=$CUSTOM_MTIME_NSECS "$STAT_TARGET") &&
     ACTUAL=$(ipfs files stat --format="<mtime> <mtime-secs> <mtime-nsecs> <mode> <mode-octal>" /ipfs/$HASH) &&
     test "$ACTUAL" = "24 Oct 2020, 11:42:00 UTC 1603539720 54321 -rw-r--r-- 0644"
   '
