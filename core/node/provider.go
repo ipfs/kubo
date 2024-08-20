@@ -83,7 +83,11 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 					}
 
 					// How long per block that lasts us.
-					expectedProvideSpeed := reprovideInterval / time.Duration(count)
+					expectedProvideSpeed := reprovideInterval
+					if count > 0 {
+						expectedProvideSpeed = reprovideInterval / time.Duration(count)
+					}
+
 					if avgProvideSpeed > expectedProvideSpeed {
 						logger.Errorf(`
 🔔🔔🔔 YOU ARE FALLING BEHIND DHT REPROVIDES! 🔔🔔🔔
@@ -129,11 +133,13 @@ func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, repro
 	var keyProvider fx.Option
 	switch reprovideStrategy {
 	case "all", "":
-		keyProvider = fx.Provide(provider.NewBlockstoreProvider)
+		keyProvider = fx.Provide(newProvidingStrategy(false, false))
 	case "roots":
-		keyProvider = fx.Provide(pinnedProviderStrategy(true))
+		keyProvider = fx.Provide(newProvidingStrategy(true, true))
 	case "pinned":
-		keyProvider = fx.Provide(pinnedProviderStrategy(false))
+		keyProvider = fx.Provide(newProvidingStrategy(true, false))
+	case "flat":
+		keyProvider = fx.Provide(provider.NewBlockstoreProvider)
 	default:
 		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", reprovideStrategy))
 	}
@@ -149,13 +155,25 @@ func OfflineProviders() fx.Option {
 	return fx.Provide(provider.NewNoopProvider)
 }
 
-func pinnedProviderStrategy(onlyRoots bool) interface{} {
+func newProvidingStrategy(onlyPinned, onlyRoots bool) interface{} {
 	type input struct {
 		fx.In
 		Pinner      pin.Pinner
+		Blockstore  blockstore.Blockstore
 		IPLDFetcher fetcher.Factory `name:"ipldFetcher"`
 	}
 	return func(in input) provider.KeyChanFunc {
-		return provider.NewPinnedProvider(onlyRoots, in.Pinner, in.IPLDFetcher)
+		if onlyRoots {
+			return provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher)
+		}
+
+		if onlyPinned {
+			return provider.NewPinnedProvider(false, in.Pinner, in.IPLDFetcher)
+		}
+
+		return provider.NewPrioritizedProvider(
+			provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher),
+			provider.NewBlockstoreProvider(in.Blockstore),
+		)
 	}
 }

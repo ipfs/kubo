@@ -208,6 +208,7 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 		cfg.Addresses.Gateway = []string{n.GatewayListenAddr.String()}
 		cfg.Swarm.DisableNatPortMap = true
 		cfg.Discovery.MDNS.Enabled = n.EnableMDNS
+		cfg.Routing.LoopbackAddressesOnLanDHT = config.True
 	})
 	return n
 }

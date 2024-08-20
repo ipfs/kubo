@@ -117,6 +117,7 @@ config file at runtime.
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
+    - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -174,6 +175,15 @@ config file at runtime.
   - [`DNS`](#dns)
     - [`DNS.Resolvers`](#dnsresolvers)
     - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
+  - [`Import`](#import)
+    - [`Import.CidVersion`](#importcidversion)
+    - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
+    - [`Import.UnixFSChunker`](#importunixfschunker)
+    - [`Import.HashFunction`](#importhashfunction)
+  - [`Version`](#version)
+    - [`Version.AgentSuffix`](#versionagentsuffix)
+    - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
+    - [`Version.SwarmCheckPercentThreshold`](#versionswarmcheckpercentthreshold)
 
 ## Profiles
 
@@ -264,6 +274,21 @@ documented in `ipfs config profile --help`.
 
   Use this profile with caution.
 
+- `legacy-cid-v0`
+
+  Makes UnixFS import (`ipfs add`) produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.
+
+  > [!WARNING]
+  > This profile is provided for legacy users and should not be used for new projects.
+
+- `test-cid-v1`
+
+  Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.
+
+  > [!NOTE]
+  > This profile will become the new implicit default, provided for testing purposes.
+  > Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details.
+
 ## Types
 
 This document refers to the standard JSON types (e.g., `null`, `string`,
@@ -344,8 +369,8 @@ Contains information about various listener addresses to be used by this node.
 
 ### `Addresses.API`
 
-Multiaddr or array of multiaddrs describing the address to serve the local HTTP
-API on.
+Multiaddr or array of multiaddrs describing the address to serve
+the local [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`).
 
 Supported Transports:
 
@@ -358,8 +383,8 @@ Type: `strings` (multiaddrs)
 
 ### `Addresses.Gateway`
 
-Multiaddr or array of multiaddrs describing the address to serve the local
-gateway on.
+Multiaddr or array of multiaddrs describing the address to serve
+the local [HTTP gateway](https://specs.ipfs.tech/http-gateways/) (`/ipfs`, `/ipns`) on.
 
 Supported Transports:
 
@@ -426,10 +451,12 @@ Default: `[]`
 Type: `array[string]` (multiaddrs)
 
 ## `API`
-Contains information used by the API gateway.
+
+Contains information used by the [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/).
 
 ### `API.HTTPHeaders`
-Map of HTTP headers to set on responses from the API HTTP server.
+
+Map of HTTP headers to set on responses from the RPC (`/api/v0`) HTTP server.
 
 Example:
 ```json
@@ -525,7 +552,7 @@ Type: `array[string]`
 
 ## `AutoNAT`
 
-Contains the configuration options for the AutoNAT service. The AutoNAT service
+Contains the configuration options for the libp2p's [AutoNAT](https://github.com/libp2p/specs/tree/master/autonat) service. The AutoNAT service
 helps other nodes on the network determine if they're publicly reachable from
 the rest of the internet.
 
@@ -534,13 +561,22 @@ the rest of the internet.
 When unset (default), the AutoNAT service defaults to _enabled_. Otherwise, this
 field can take one of two values:
 
-* "enabled" - Enable the service (unless the node determines that it, itself,
-  isn't reachable by the public internet).
-* "disabled" - Disable the service.
+* `enabled` - Enable the V1+V2 service (unless the node determines that it,
+  itself, isn't reachable by the public internet).
+* `legacy-v1` - Same as `enabled` but only V1 service is enabled. Used for testing
+  during as few releases as we [transition to V2](https://github.com/ipfs/kubo/issues/10091), will be removed in the future.
+* `disabled` - Disable the service.
 
 Additional modes may be added in the future.
 
-Type: `string` (one of `"enabled"` or `"disabled"`)
+> [!IMPORTANT]
+> We are in the progress of [rolling out AutoNAT V2](https://github.com/ipfs/kubo/issues/10091).
+> Right now, by default, a publicly diallable Kubo provides both V1 and V2 service to other peers,
+> but only V1 is used by Kubo as a client. In a future release we will remove V1 and switch client to use V2.
+
+Default: `enabled`
+
+Type: `optionalString`
 
 ### `AutoNAT.Throttle`
 
@@ -1130,7 +1166,7 @@ Type: `interval` or an empty string for the default.
 A time duration specifying the value to set on ipns records for their validity
 lifetime.
 
-Default: 24 hours.
+Default: 48 hours.
 
 Type: `interval` or an empty string for the default.
 
@@ -1500,7 +1536,9 @@ Type: `optionalDuration` (unset for the default)
 Tells reprovider what should be announced. Valid strategies are:
 
 - `"all"` - announce all CIDs of stored blocks
+  - Order: root blocks of direct and recursive pins are announced first, then the rest of blockstore
 - `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks)
+  - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
 - `"roots"` - only announce the root block of explicitly pinned CIDs
   - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
     It makes sense only for use cases where the entire DAG is fetched in full,
@@ -1509,6 +1547,7 @@ Tells reprovider what should be announced. Valid strategies are:
     providers for the missing block in the middle of a file, unless the peer
     happens to already be connected to a provider and ask for child CID over
     bitswap.
+- `"flat"` - same as `all`, announce all CIDs of stored blocks, but without prioritizing anything
 
 Default: `"all"`
 
@@ -1607,6 +1646,18 @@ prepared. This means operations like searching the DHT for particular peers or c
    - You can see if the DHT has been initially populated by running `ipfs stats dht`
 3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
 them
+
+Default: `false`
+
+Type: `flag`
+
+### `Routing.LoopbackAddressesOnLanDHT`
+
+**EXPERIMENTAL: `Routing.LoopbackAddressesOnLanDHT` configuration may change in future release**
+
+Whether loopback addresses (e.g. 127.0.0.1) should not be ignored on the local LAN DHT.
+
+Most users do not need this setting. It can be useful during testing, when multiple Kubo nodes run on the same machine but some of them do not have `Discovery.MDNS.Enabled`.
 
 Default: `false`
 
@@ -2102,7 +2153,7 @@ Configuration section for libp2p _network_ transports. Transports enabled in
 this section will be used for dialing. However, to receive connections on these
 transports, multiaddrs for these transports must be added to `Addresses.Swarm`.
 
-Supported transports are: QUIC, TCP, WS, Relay and WebTransport.
+Supported transports are: QUIC, TCP, WS, Relay, WebTransport and WebRTCDirect.
 
 Each field in this section is a `flag`.
 
@@ -2153,8 +2204,8 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
-* /ip4/0.0.0.0/udp/4001/quic-v1 (default)
-* /ip6/::/udp/4001/quic-v1 (default)
+- `/ip4/0.0.0.0/udp/4001/quic-v1` (default)
+- `/ip6/::/udp/4001/quic-v1` (default)
 
 #### `Swarm.Transports.Network.Relay`
 
@@ -2201,32 +2252,39 @@ Default: Enabled
 
 Type: `flag`
 
-#### `Swarm.Transports.Network.WebRTCDirect`
+Listen Addresses:
+- `/ip4/0.0.0.0/udp/4001/quic-v1/webtransport` (default)
+- `/ip6/::/udp/4001/quic-v1/webtransport` (default)
 
-**Experimental:** the support for WebRTC Direct is currently experimental.
-This feature was introduced in [`go-libp2p@v0.32.0`](https://github.com/libp2p/go-libp2p/releases/tag/v0.32.0).
+#### `Swarm.Transports.Network.WebRTCDirect`
 
 [WebRTC Direct](https://github.com/libp2p/specs/blob/master/webrtc/webrtc-direct.md)
 is a transport protocol that provides another way for browsers to
 connect to the rest of the libp2p network. WebRTC Direct allows for browser
 nodes to connect to other nodes without special configuration, such as TLS
 certificates. This can be useful for browser nodes that do not yet support
-[WebTransport](https://blog.libp2p.io/2022-12-19-libp2p-webtransport/).
+[WebTransport](https://blog.libp2p.io/2022-12-19-libp2p-webtransport/),
+which is still relatively new and has [known issues](https://github.com/libp2p/js-libp2p/issues/2572).
 
-Enabling this transport allows Kubo node to act on `/udp/4002/webrtc-direct`
+Enabling this transport allows Kubo node to act on `/udp/4001/webrtc-direct`
 listeners defined in `Addresses.Swarm`, `Addresses.Announce` or
-`Addresses.AppendAnnounce`. At the moment, WebRTC Direct doesn't support listening on the same port as a QUIC or WebTransport listener
+`Addresses.AppendAnnounce`.
 
-**NOTE:** at the moment, WebRTC Direct cannot be used to connect to a browser
-node to a node that is behind a NAT or firewall.
-This requires using normal
-[WebRTC](https://github.com/libp2p/specs/blob/master/webrtc/webrtc.md),
-which is currently being worked on in
-[go-libp2p#2009](https://github.com/libp2p/go-libp2p/issues/2009).
+> [!NOTE]
+> WebRTC Direct is browser-to-node. It cannot be used to connect a browser
+> node to a node that is behind a NAT or firewall (without UPnP port mapping).
+> The browser-to-private requires using normal
+> [WebRTC](https://github.com/libp2p/specs/blob/master/webrtc/webrtc.md),
+> which is currently being worked on in
+> [go-libp2p#2009](https://github.com/libp2p/go-libp2p/issues/2009).
 
-Default: Disabled
+Default: Enabled
 
 Type: `flag`
+
+Listen Addresses:
+- `/ip4/0.0.0.0/udp/4001/webrtc-direct` (default)
+- `/ip6/::/udp/4001/webrtc-direct` (default)
 
 ### `Swarm.Transports.Security`
 
@@ -2243,9 +2301,9 @@ receiver supports. When establishing an _inbound_ connection, Kubo will let
 the initiator choose the protocol, but will refuse to use any of the disabled
 transports.
 
-Supported transports are: TLS (priority 100) and Noise (priority 300).
+Supported transports are: TLS (priority 100) and Noise (priority 200).
 
-No default priority will ever be less than 100.
+No default priority will ever be less than 100. Lower values have precedence.
 
 #### `Swarm.Transports.Security.TLS`
 
@@ -2268,7 +2326,7 @@ TLS as the cross-platform, default libp2p protocol due to ease of
 implementation. It is currently enabled by default but with low priority as it's
 not yet widely supported.
 
-Default: `300`
+Default: `200`
 
 Type: `priority`
 
@@ -2359,3 +2417,77 @@ Note: this does NOT work with Go's default DNS resolver. To make this a global s
 Default: Respect DNS Response TTL
 
 Type: `optionalDuration`
+
+## `Import`
+
+Options to configure the default options used for ingesting data, in commands such as `ipfs add` or `ipfs block put`. All affected commands are detailed per option.
+
+Note that using flags will override the options defined here.
+
+### `Import.CidVersion`
+
+The default CID version. Commands affected: `ipfs add`.
+
+Default: `0`
+
+Type: `optionalInteger`
+
+### `Import.UnixFSRawLeaves`
+
+The default UnixFS raw leaves option. Commands affected: `ipfs add`, `ipfs files write`.
+
+Default: `false` if `CidVersion=0`; `true` if `CidVersion=1`
+
+Type: `flag`
+
+### `Import.UnixFSChunker`
+
+The default UnixFS chunker. Commands affected: `ipfs add`.
+
+Default: `size-262144`
+
+Type: `optionalString`
+
+### `Import.HashFunction`
+
+The default hash function. Commands affected: `ipfs add`, `ipfs block put`, `ipfs dag put`.
+
+Default: `sha2-256`
+
+Type: `optionalString`
+
+## `Version`
+
+Options to configure agent version announced to the swarm, and leveraging
+other peers version for detecting when there is time to update.
+
+### `Version.AgentSuffix`
+
+Optional suffix to the AgentVersion presented by `ipfs id` and exposed via [libp2p identify protocol](https://github.com/libp2p/specs/blob/master/identify/README.md#agentversion).
+
+The value from config takes precedence over value passed via `ipfs daemon --agent-version-suffix`.
+
+> [!NOTE]
+> Setting a custom version suffix helps with ecosystem analysis, such as Amino DHT reports published at https://stats.ipfs.network
+
+Default: `""` (no suffix, or value from `ipfs daemon --agent-version-suffix=`)
+
+Type: `optionalString`
+
+### `Version.SwarmCheckEnabled`
+
+Observe the AgentVersion of swarm peers and log warning when
+`SwarmCheckPercentThreshold` of peers runs version higher than this node.
+
+Default: `true`
+
+Type: `flag`
+
+### `Version.SwarmCheckPercentThreshold`
+
+Control the percentage of `kubo/` peers running new version required to
+trigger update warning.
+
+Default: `5`
+
+Type: `optionalInteger` (1-100)

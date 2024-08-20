@@ -73,11 +73,13 @@ Before opening an issue, consider using one of the following locations to ensure
       - [Downloading builds using IPFS](#downloading-builds-using-ipfs)
   - [Unofficial Linux packages](#unofficial-linux-packages)
     - [ArchLinux](#arch-linux)
+    - [Gentoo Linux](#gentoo-linux)
     - [Nix](#nix)
     - [Solus](#solus)
     - [openSUSE](#opensuse)
     - [Guix](#guix)
     - [Snap](#snap)
+    - [Ubuntu PPA](#ubuntu-ppa)
   - [Unofficial Windows packages](#unofficial-windows-packages)
     - [Chocolatey](#chocolatey)
     - [Scoop](#scoop)
@@ -123,7 +125,24 @@ Official images are published at https://hub.docker.com/r/ipfs/kubo/:
 
 [![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ipfs/kubo?color=blue&label=kubo%20docker%20image&logo=docker&sort=semver&style=flat-square&cacheSeconds=3600)](https://hub.docker.com/r/ipfs/kubo/)
 
-More info on how to run Kubo (go-ipfs) inside Docker can be found [here](https://docs.ipfs.tech/how-to/run-ipfs-inside-docker/).
+- 🟢 Releases
+  - `latest` and `release` tags always point at [the latest stable release](https://github.com/ipfs/kubo/releases/latest)
+  - `vN.N.N` points at a specific [release tag](https://github.com/ipfs/kubo/releases)
+  - These are production grade images.
+- 🟠 We also provide experimental developer builds
+  - `master-latest` always points at the `HEAD` of the `master` branch
+  - `master-YYYY-DD-MM-GITSHA` points at a specific commit from the `master` branch
+  - These tags are used by developers for internal testing, not intended for end users or production use.
+
+```console
+$ docker pull ipfs/kubo:latest
+$ docker run --rm -it --net=host ipfs/kubo:latest
+```
+
+To [customize your node](https://docs.ipfs.tech/install/run-ipfs-inside-docker/#customizing-your-node),
+pass necessary config via `-e` or by mounting scripts in the `/container-init.d`.
+
+Learn more at https://docs.ipfs.tech/install/run-ipfs-inside-docker/
 
 ### Official prebuilt binaries
 
@@ -181,11 +200,13 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 </a>
 
 - [ArchLinux](#arch-linux)
+- [Gentoo Linux](#gentoo-linux)
 - [Nix](#nix-linux)
 - [Solus](#solus)
 - [openSUSE](#opensuse)
 - [Guix](#guix)
 - [Snap](#snap)
+- [Ubuntu PPA](#ubuntu-ppa)
 
 #### Arch Linux
 
@@ -196,6 +217,16 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 ```
 
 [![kubo-git via AUR](https://img.shields.io/static/v1?label=kubo-git&message=latest%40master&color=1793d1&logo=arch-linux&style=flat-square&cacheSeconds=3600)](https://aur.archlinux.org/packages/kubo/)
+
+#### <a name="gentoo-linux">Gentoo Linux</a>
+
+https://wiki.gentoo.org/wiki/Kubo
+
+```bash
+# emerge -a net-p2p/kubo
+```
+
+https://packages.gentoo.org/packages/net-p2p/kubo
 
 #### <a name="nix-linux">Nix</a>
 
@@ -228,6 +259,31 @@ You can also install it through the Solus software center.
 #### Snap
 
 No longer supported, see rationale in [kubo#8688](https://github.com/ipfs/kubo/issues/8688).
+
+#### Ubuntu PPA
+
+[PPA homepage](https://launchpad.net/~twdragon/+archive/ubuntu/ipfs) on Launchpad.
+
+##### Latest Ubuntu (>= 20.04 LTS)
+```sh
+sudo add-apt-repository ppa:twdragon/ipfs
+sudo apt update
+sudo apt install ipfs-kubo
+```
+
+##### Any Ubuntu version
+
+```sh
+sudo su
+echo 'deb https://ppa.launchpadcontent.net/twdragon/ipfs/ubuntu <<DISTRO>> main' >> /etc/apt/sources.list.d/ipfs
+echo 'deb-src https://ppa.launchpadcontent.net/twdragon/ipfs/ubuntu <<DISTRO>> main' >> /etc/apt/sources.list.d/ipfs
+exit
+sudo apt update
+sudo apt install ipfs-kubo
+```
+where `<<DISTRO>>` is the codename of your Ubuntu distribution (for example, `jammy` for 22.04 LTS). During the first installation the package maintenance script may automatically ask you about which networking profile, CPU accounting model, and/or existing node configuration file you want to use.
+
+**NOTE**: this method also may work with any compatible Debian-based distro which has `libc6` inside, and APT as a package manager.
 
 ### Unofficial Windows packages
 
@@ -428,7 +484,9 @@ We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what 
 
 This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
 
-Please reach out to us in one [chat](https://docs.ipfs.tech/community/chat/) rooms.
+Members of IPFS community provide Kubo support on [discussion forum category here](https://discuss.ipfs.tech/c/help/help-kubo/23).
+
+Need help with IPFS itself? Learn where to get help and support at https://ipfs.tech/help.
 
 ## License
 

@@ -82,6 +82,7 @@ is useful when using the daemon in test environments.`,
 			}
 
 			c.Swarm.DisableNatPortMap = true
+			c.Routing.LoopbackAddressesOnLanDHT = True
 
 			c.Bootstrap = []string{}
 			c.Discovery.MDNS.Enabled = false
@@ -174,7 +175,7 @@ functionality - performance of content discovery and data
 fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
-			c.Routing.Type = NewOptionalString("dhtclient") // TODO: https://github.com/ipfs/kubo/issues/9480
+			c.Routing.Type = NewOptionalString("autoclient")
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
 			c.Reprovider.Interval = NewOptionalDuration(0)
 
@@ -200,6 +201,28 @@ fetching may be degraded.
 				fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
 				fmt.Sprintf("/ip6/::/tcp/%d", port),
 			}
+			return nil
+		},
+	},
+	"legacy-cid-v0": {
+		Description: `Makes UnixFS import produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.`,
+
+		Transform: func(c *Config) error {
+			c.Import.CidVersion = *NewOptionalInteger(0)
+			c.Import.UnixFSRawLeaves = False
+			c.Import.UnixFSChunker = *NewOptionalString("size-262144")
+			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			return nil
+		},
+	},
+	"test-cid-v1": {
+		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.`,
+
+		Transform: func(c *Config) error {
+			c.Import.CidVersion = *NewOptionalInteger(1)
+			c.Import.UnixFSRawLeaves = True
+			c.Import.UnixFSChunker = *NewOptionalString("size-1048576")
+			c.Import.HashFunction = *NewOptionalString("sha2-256")
 			return nil
 		},
 	},

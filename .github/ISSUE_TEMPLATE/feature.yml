@@ -6,11 +6,11 @@ body:
   - type: markdown
     attributes:
       value: |
-        Suggest a new feature in Kubo (the program). If you'd like to suggest an improvement to the IPFS protocol, please discuss it on [the forum](https://discuss.ipfs.io).
+        Suggest a new feature in Kubo (the program). If you'd like to suggest an improvement to the IPFS protocol, please discuss it on [the forum](https://discuss.ipfs.tech).
 
         Issues in this repo must be specific, actionable, and well motivated. They should be starting points for _building_ new features, not brainstorming ideas.
 
-        If you have an idea you'd like to discuss, please open a new thread on [the forum](https://discuss.ipfs.io).
+        If you have an idea you'd like to discuss, please open a new thread on [the forum](https://discuss.ipfs.tech).
 
         **Example:**
 

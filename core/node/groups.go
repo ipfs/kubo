@@ -105,7 +105,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		// to dhtclient.
 		fallthrough
 	case config.AutoNATServiceEnabled:
-		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle))
+		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle, false))
+	case config.AutoNATServiceEnabledV1Only:
+		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle, true))
 	}
 
 	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(true) // nolint
@@ -178,7 +180,7 @@ func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(RepoConfig),
 		fx.Provide(Datastore),
-		fx.Provide(BaseBlockstoreCtor(cacheOpts, bcfg.NilRepo, cfg.Datastore.HashOnRead)),
+		fx.Provide(BaseBlockstoreCtor(cacheOpts, cfg.Datastore.HashOnRead)),
 		finalBstore,
 	)
 }
@@ -286,7 +288,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 			cfg.Experimental.StrategicProviding,
 			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
 			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
-			cfg.Routing.AcceleratedDHTClient,
+			cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient),
 		),
 	)
 }

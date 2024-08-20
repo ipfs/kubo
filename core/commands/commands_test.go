@@ -61,6 +61,11 @@ func TestCommands(t *testing.T) {
 		"/dag/stat",
 		"/dht",
 		"/dht/query",
+		"/dht/findprovs",
+		"/dht/findpeer",
+		"/dht/get",
+		"/dht/provide",
+		"/dht/put",
 		"/routing",
 		"/routing/put",
 		"/routing/get",
@@ -194,6 +199,7 @@ func TestCommands(t *testing.T) {
 		"/swarm/resources",
 		"/update",
 		"/version",
+		"/version/check",
 		"/version/deps",
 	}
 

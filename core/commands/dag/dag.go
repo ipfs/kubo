@@ -87,7 +87,7 @@ into an object of the specified format.
 		cmds.StringOption("store-codec", "Codec that the stored object will be encoded with").WithDefault("dag-cbor"),
 		cmds.StringOption("input-codec", "Codec that the input object is encoded in").WithDefault("dag-json"),
 		cmds.BoolOption("pin", "Pin this object when adding."),
-		cmds.StringOption("hash", "Hash function to use").WithDefault("sha2-256"),
+		cmds.StringOption("hash", "Hash function to use"),
 		cmdutils.AllowBigBlockOption,
 	},
 	Run:  dagPut,

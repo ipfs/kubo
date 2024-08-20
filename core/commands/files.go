@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	humanize "github.com/dustin/go-humanize"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
@@ -802,18 +803,28 @@ See '--to-files' in 'ipfs add --help' for more information.
 			return err
 		}
 
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+
 		create, _ := req.Options[filesCreateOptionName].(bool)
 		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		trunc, _ := req.Options[filesTruncateOptionName].(bool)
 		flush, _ := req.Options[filesFlushOptionName].(bool)
 		rawLeaves, rawLeavesDef := req.Options[filesRawLeavesOptionName].(bool)
 
-		prefix, err := getPrefixNew(req)
-		if err != nil {
-			return err
+		if !rawLeavesDef && cfg.Import.UnixFSRawLeaves != config.Default {
+			rawLeavesDef = true
+			rawLeaves = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
 		}
 
-		nd, err := cmdenv.GetNode(env)
+		prefix, err := getPrefixNew(req)
 		if err != nil {
 			return err
 		}

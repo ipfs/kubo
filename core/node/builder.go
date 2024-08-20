@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
 
 	"go.uber.org/fx"
 
@@ -34,9 +33,6 @@ type BuildCfg struct {
 	// DO NOT SET THIS UNLESS YOU'RE TESTING.
 	DisableEncryptedConnections bool
 
-	// If NilRepo is set, a Repo backed by a nil datastore will be constructed
-	NilRepo bool
-
 	Routing libp2p.RoutingOption
 	Host    libp2p.HostOption
 	Repo    repo.Repo
@@ -51,18 +47,8 @@ func (cfg *BuildCfg) getOpt(key string) bool {
 }
 
 func (cfg *BuildCfg) fillDefaults() error {
-	if cfg.Repo != nil && cfg.NilRepo {
-		return errors.New("cannot set a Repo and specify nilrepo at the same time")
-	}
-
 	if cfg.Repo == nil {
-		var d ds.Datastore
-		if cfg.NilRepo {
-			d = ds.NewNullDatastore()
-		} else {
-			d = ds.NewMapDatastore()
-		}
-		r, err := defaultRepo(dsync.MutexWrap(d))
+		r, err := defaultRepo(dsync.MutexWrap(ds.NewMapDatastore()))
 		if err != nil {
 			return err
 		}

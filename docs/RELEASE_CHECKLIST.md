@@ -69,12 +69,10 @@ This section covers tasks to be done during each release.
     - do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit
     - do **NOT** delete the `release-vX.Y` branch
   </details>
-- [ ] Run Thunderdome testing, see the [Thunderdome release docs](./releases_thunderdome.md) for details
-  - [ ] create a PR and merge the experiment config into Thunderdome
 - [ ] Create the release tag <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) tag` or ...</summary>
   - This is a dangerous operation! Go and Docker publishing are difficult to reverse! Have the release reviewer verify all the commands marked with ⚠️!
   - [ ] ⚠️ ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) tag the HEAD commit using `git tag -s vX.Y.Z(-RCN) -m 'Prerelease X.Y.Z(-RCN)'`
-  - [ ] ⚠️ ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) tag the HEAD commit of the `release` branch using `git tag -s vX.Y.Z(-RCN) -m 'Release X.Y.Z(-RCN)'`
+  - [ ] ⚠️ ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) tag the HEAD commit of the `release` branch using `git tag -s vX.Y.Z -m 'Release X.Y.Z'`
   - [ ] ⚠️ verify the tag is signed and tied to the correct commit using `git show vX.Y.Z(-RCN)`
   - [ ] ⚠️ push the tag to GitHub using `git push origin vX.Y.Z(-RCN)`
     - do **NOT** use `git push --tags` because it pushes all your local tags
@@ -90,7 +88,7 @@ This section covers tasks to be done during each release.
   - [ ] create and merge the PR which updates `dists/kubo/versions` and `dists/go-ipfs/versions` (![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) and `dists/kubo/current_version` and `dists/go-ipfs/current_version`)
     - [example](https://github.com/ipfs/distributions/pull/760)
   - [ ] wait for the [CI](https://github.com/ipfs/distributions/actions/workflows/main.yml) workflow run initiated by the merge to master to finish
-  - [ ] verify the release is available on [dist.ipfs.io](https://dist.ipfs.io/#kubo)
+  - [ ] verify the release is available on [dist.ipfs.tech](https://dist.ipfs.tech/#kubo)
   </details>
 - [ ] Publish the release to [NPM](https://www.npmjs.com/package/go-ipfs?activeTab=versions) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) publish-to-npm` (⚠️ you might need to run the command a couple of times because GHA might not be able to see the new distribution straight away due to caching) or ...</summary>
   - [ ] run the [Release to npm](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) workflow
@@ -111,6 +109,8 @@ This section covers tasks to be done during each release.
   - [ ] wait for the [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow run to finish
   - [ ] verify the release assets are present in the [GitHub release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN))
   </details>
+- [ ] Run Thunderdome testing, see the [Thunderdome release docs](./releases_thunderdome.md) for details
+  - [ ] create a PR and merge the experiment config into Thunderdome
 - [ ] Promote the release <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) promote` or ...</summary>
   - [ ] create an [IPFS Discourse](https://discuss.ipfs.tech) topic
     - [prerelease example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248)
@@ -136,7 +136,7 @@ This section covers tasks to be done during each release.
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) post the link to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) to [Reddit](https://reddit.com/r/ipfs)
     - [example](https://www.reddit.com/r/ipfs/comments/9x0q0k/kubo_v0160_release_is_out/)
   </details>
-- [ ] Test the new version with `ipfs-companion` <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) test-ipfs-companion` or ...</summary>
+- [ ] ~~Test the new version with `ipfs-companion`~~ ([currently skipped](https://github.com/ipfs/ipfs-companion/issues/1300)) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) test-ipfs-companion` or ...</summary>
   - [ ] run the [e2e](https://github.com/ipfs/ipfs-companion/actions/workflows/e2e.yml)
     - use `vX.Y.Z(-RCN)` as the Kubo image version
   - [ ] wait for the [e2e](https://github.com/ipfs/ipfs-companion/actions/workflows/e2e.yml) workflow run to finish
@@ -173,8 +173,7 @@ This section covers tasks to be done during each release.
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) Create a dependency update PR
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) check out [ipfs/kubo](https://github.com/ipfs/kubo)
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) run `go get -u` in root directory
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) run `go mod tidy` in root directory
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) run `go mod tidy` in `docs/examples/kubo-as-a-library` directory
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) run `make mod_tidy` 
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) create a PR which updates `go.mod` and `go.sum`
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) add the PR to the next release milestone
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Close the release issue

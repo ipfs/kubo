@@ -3,14 +3,6 @@ package coreapi
 import (
 	"context"
 	"fmt"
-	"sync"
-
-	"github.com/ipfs/kubo/core"
-	"github.com/ipfs/kubo/tracing"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
-
-	"github.com/ipfs/kubo/core/coreunix"
 
 	blockservice "github.com/ipfs/boxo/blockservice"
 	bstore "github.com/ipfs/boxo/blockstore"
@@ -21,40 +13,22 @@ import (
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	unixfile "github.com/ipfs/boxo/ipld/unixfs/file"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
-	mfs "github.com/ipfs/boxo/mfs"
+	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
+	ds "github.com/ipfs/go-datastore"
+	dssync "github.com/ipfs/go-datastore/sync"
 	ipld "github.com/ipfs/go-ipld-format"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	options "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/core/coreunix"
+	"github.com/ipfs/kubo/tracing"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type UnixfsAPI CoreAPI
-
-var (
-	nilNode *core.IpfsNode
-	once    sync.Once
-)
-
-func getOrCreateNilNode() (*core.IpfsNode, error) {
-	once.Do(func() {
-		if nilNode != nil {
-			return
-		}
-		node, err := core.NewNode(context.Background(), &core.BuildCfg{
-			// TODO: need this to be true or all files
-			// hashed will be stored in memory!
-			NilRepo: true,
-		})
-		if err != nil {
-			panic(err)
-		}
-		nilNode = node
-	})
-
-	return nilNode, nil
-}
 
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
@@ -108,13 +82,12 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	pinning := api.pinning
 
 	if settings.OnlyHash {
-		node, err := getOrCreateNilNode()
-		if err != nil {
-			return path.ImmutablePath{}, err
-		}
-		addblockstore = node.Blockstore
-		exch = node.Exchange
-		pinning = node.Pinning
+		// setup a /dev/null pipeline to simulate adding the data
+		dstore := dssync.MutexWrap(ds.NewNullDatastore())
+		bs := bstore.NewBlockstore(dstore, bstore.WriteThrough())
+		addblockstore = bstore.NewGCBlockstore(bs, nil) // gclocker will never be used
+		exch = nil                                      // exchange will never be used
+		pinning = nil                                   // pinner will never be used
 	}
 
 	bserv := blockservice.New(addblockstore, exch) // hash security 001
@@ -133,11 +106,11 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		syncDserv = &syncDagService{
 			DAGService: dserv,
 			syncFn: func() error {
-				ds := api.repo.Datastore()
-				if err := ds.Sync(ctx, bstore.BlockPrefix); err != nil {
+				rds := api.repo.Datastore()
+				if err := rds.Sync(ctx, bstore.BlockPrefix); err != nil {
 					return err
 				}
-				return ds.Sync(ctx, filestore.FilestorePrefix)
+				return rds.Sync(ctx, filestore.FilestorePrefix)
 			},
 		}
 	}

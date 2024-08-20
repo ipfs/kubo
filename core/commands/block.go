@@ -8,6 +8,7 @@ import (
 
 	"github.com/ipfs/boxo/files"
 
+	"github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
@@ -153,7 +154,7 @@ only for backward compatibility when a legacy CIDv0 is required (--format=v0).
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(blockCidCodecOptionName, "Multicodec to use in returned CID").WithDefault("raw"),
-		cmds.StringOption(mhtypeOptionName, "Multihash hash function").WithDefault("sha2-256"),
+		cmds.StringOption(mhtypeOptionName, "Multihash hash function"),
 		cmds.IntOption(mhlenOptionName, "Multihash hash length").WithDefault(-1),
 		cmds.BoolOption(pinOptionName, "Pin added blocks recursively").WithDefault(false),
 		cmdutils.AllowBigBlockOption,
@@ -165,7 +166,21 @@ only for backward compatibility when a legacy CIDv0 is required (--format=v0).
 			return err
 		}
 
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+
 		mhtype, _ := req.Options[mhtypeOptionName].(string)
+		if mhtype == "" {
+			mhtype = cfg.Import.HashFunction.WithDefault(config.DefaultHashFunction)
+		}
+
 		mhtval, ok := mh.Names[mhtype]
 		if !ok {
 			return fmt.Errorf("unrecognized multihash function: %s", mhtype)

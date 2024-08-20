@@ -1,6 +1,7 @@
 # ipfs command line tool
 
-This is the [ipfs](http://ipfs.io) command line tool. It contains a full ipfs node.
+This is a [command line tool for interacting with Kubo](https://docs.ipfs.tech/install/command-line/),
+an [IPFS](https://ipfs.tech) implementation. It contains a full IPFS node.
 
 ## Install
 

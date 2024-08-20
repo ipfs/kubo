@@ -55,7 +55,7 @@ jobs:
           # increasing parallelism beyond 10 doesn't speed up the tests much
           PARALLEL: ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
       - name: Upload coverage report
-        uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
+        uses: codecov/codecov-action@6d798873df2b1b8e5846dba6fb86631229fbcb17 # v4.4.0
         if: failure() || success()
         with:
           name: sharness

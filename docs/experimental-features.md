@@ -118,6 +118,9 @@ It allows ipfs to only connect to other peers who have a shared secret key.
 
 Stable but not quite ready for prime-time.
 
+> [!WARNING]
+> Limited to TCP transport, comes with overhead of double-encryption. See details below.
+
 ### In Version
 
 0.4.7
@@ -126,7 +129,7 @@ Stable but not quite ready for prime-time.
 
 Generate a pre-shared-key using [ipfs-swarm-key-gen](https://github.com/Kubuxu/go-ipfs-swarm-key-gen)):
 ```
-go get github.com/Kubuxu/go-ipfs-swarm-key-gen/ipfs-swarm-key-gen
+go install github.com/Kubuxu/go-ipfs-swarm-key-gen/ipfs-swarm-key-gen@latest
 ipfs-swarm-key-gen > ~/.ipfs/swarm.key
 ```
 
@@ -164,7 +167,12 @@ configured, the daemon will fail to start.
 
 - [x] Needs more people to use and report on how well it works
 - [ ] More documentation
-- [ ] Needs better tooling/UX.
+- [ ] Improve / future proof libp2p support (see [libp2p/specs#489](https://github.com/libp2p/specs/issues/489))
+  - [ ] Currently limited to TCP-only, and double-encrypts all data sent on TCP. This is slow.
+  - [ ] Does not work with QUIC: [go-libp2p#1432](https://github.com/libp2p/go-libp2p/issues/1432)
+- [ ] Needs better tooling/UX
+  - [ ] Detect lack of peers when swarm key is present and prompt user to set up bootstrappers/peering
+  - [ ] ipfs-webui will not load  unless blocks are present in private swarm. Detect it and prompt user to import CAR with webui.
 
 ## ipfs p2p
 
