@@ -351,6 +351,34 @@ test_directory() {
     test "755:$((DIR_TIME+90))" = "$(stat -c "%a:%Y" "$OUTDIR/dir1")"
   '
 
+  # basic smoke-test for cidv1 (we dont care about CID, just care about
+  # mode/mtime surviving ipfs import and export if --cid-version 1 is at play)
+  test_expect_success "can recursively preserve and restore mode and mtime with CIDv1 [$1]" '
+    test "700:$DIR_TIME" = "$(stat -c "%a:%Y" "$TESTDIR")" &&
+    test "644:$((DIR_TIME+10))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/sub2/file3")" &&
+    test "777:$((DIR_TIME+20))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/link1")" &&
+    test "755:$((DIR_TIME+30))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1/sub2")" &&
+    test "755:$((DIR_TIME+40))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2/sub1")" &&
+    test "755:$((DIR_TIME+50))" = "$(stat -c "%a:%Y" "$TESTDIR/dir2")" &&
+    test "644:$((DIR_TIME+60))" = "$(stat -c "%a:%Y" "$TESTDIR/dir3/file2")" &&
+    test "755:$((DIR_TIME+70))" = "$(stat -c "%a:%Y" "$TESTDIR/dir3")" &&
+    test "644:$((DIR_TIME+80))" = "$(stat -c "%a:%Y" "$TESTDIR/file1")" &&
+    test "755:$((DIR_TIME+90))" = "$(stat -c "%a:%Y" "$TESTDIR/dir1")" &&
+    CIDV1DIR=$(ipfs add -Qr --preserve-mode --preserve-mtime --cid-version 1 "$TESTDIR") &&
+    OUTDIRV1=$(mk_dir cidv1roundtrip$1) &&
+    ipfs get -o "$OUTDIRV1" $CIDV1DIR &&
+    test "700:$DIR_TIME" = "$(stat -c "%a:%Y" "$OUTDIRV1")" &&
+    test "644:$((DIR_TIME+10))" = "$(stat -c "%a:%Y" "$OUTDIRV1/dir2/sub1/sub2/file3")" &&
+    test "777:$((DIR_TIME+20))" = "$(stat -c "%a:%Y" "$OUTDIRV1/dir2/sub1/link1")" &&
+    test "755:$((DIR_TIME+30))" = "$(stat -c "%a:%Y" "$OUTDIRV1/dir2/sub1/sub2")" &&
+    test "755:$((DIR_TIME+40))" = "$(stat -c "%a:%Y" "$OUTDIRV1/dir2/sub1")" &&
+    test "755:$((DIR_TIME+50))" = "$(stat -c "%a:%Y" "$OUTDIRV1/dir2")" &&
+    test "644:$((DIR_TIME+60))" = "$(stat -c "%a:%Y" "$OUTDIRV1/dir3/file2")" &&
+    test "755:$((DIR_TIME+70))" = "$(stat -c "%a:%Y" "$OUTDIRV1/dir3")" &&
+    test "644:$((DIR_TIME+80))" = "$(stat -c "%a:%Y" "$OUTDIRV1/file1")" &&
+    test "755:$((DIR_TIME+90))" = "$(stat -c "%a:%Y" "$OUTDIRV1/dir1")"
+  '
+
   test_expect_success "can change directory mode [$1]" '
     NAME=$(mk_name) &&
     ipfs files cp "/ipfs/$HASH_DIR_SUB1" /$NAME &&
