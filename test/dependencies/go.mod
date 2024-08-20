@@ -1,8 +1,6 @@
 module github.com/ipfs/kubo/test/dependencies
 
-go 1.22
-
-toolchain go1.22.0
+go 1.23
 
 replace github.com/ipfs/kubo => ../../
 
