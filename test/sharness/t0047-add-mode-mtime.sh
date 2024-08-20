@@ -167,6 +167,20 @@ test_file() {
     test $(stat -c "%a" "$OUTFILE") = 444
   '
 
+  # special case, because storing mode requires dag-pb envelope
+  # and when dealing with CIDv1 we can have 'raw' block instead of 'dag-pb'
+  # so it needs to be converted before adding attribute
+  test_expect_success "can add file mode to cidv1 raw block [$1]" '
+    NAME=$(mk_name) &&
+    HASH=$(date | ipfs add -q --cid-version 1 --raw-leaves=true) &&
+    OUTFILE=$(mk_file "${NAME}") &&
+    ipfs files cp "/ipfs/$HASH" /$NAME &&
+    ipfs files chmod 445 /$NAME &&
+    HASH2=$(ipfs files stat /$NAME|head -1) &&
+    ipfs get -o "$OUTFILE" $HASH2 &&
+    test $(stat -c "%a" "$OUTFILE") = 445
+  '
+
   test_expect_success "can change file modification time [$1]" '
     NAME=$(mk_name) &&
     OUTFILE="$(mk_file "$NAME")" &&
@@ -178,6 +192,22 @@ test_file() {
     HASH=$(ipfs files stat /$NAME|head -1) &&
     ipfs get -o "$OUTFILE" "$HASH" &&
     test $(stat -c "%Y" "$OUTFILE") -gt $NOW
+  '
+
+  # special case, because storing mtime requires dag-pb envelope
+  # and when dealing with CIDv1 we can have 'raw' block instead of 'dag-pb'
+  # so it needs to be converted to dag-pb before adding attribute
+  test_expect_success "can add file modification time to cidv1 raw block [$1]" '
+    NAME=$(mk_name) &&
+    OUTFILE="$(mk_file "$NAME")" &&
+    EXPECTED="$CUSTOM_MTIME" &&
+    HASH=$(date | ipfs add -q --cid-version 1 --raw-leaves=true) &&
+    ipfs files cp "/ipfs/$HASH" /$NAME &&
+    ipfs files touch --mtime=$EXPECTED /$NAME &&
+    test $(ipfs files stat --format="<mtime-secs>" "/$NAME") -eq $EXPECTED &&
+    HASH=$(ipfs files stat /$NAME|head -1) &&
+    ipfs get -o "$OUTFILE" "$HASH" &&
+    test $(stat -c "%Y" "$OUTFILE") -eq $EXPECTED
   '
 
   test_expect_success "can change file modification time nanoseconds [$1]" '
