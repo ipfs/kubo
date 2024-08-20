@@ -113,6 +113,11 @@ control your node remotely. If you need to control the node remotely,
 make sure to protect the port as you would other services or database
 (firewall, authenticated proxy, etc), or at least set API.Authorizations.
 
+If you do not want to open any ports for RPC, and only want to use
+kubo CLI client, it is possible to expose the RPC over Unix socket:
+
+  ipfs config Addresses.API /unix/var/run/kubo.socket
+
 HTTP Headers
 
 Kubo supports passing arbitrary headers to the RPC API and Gateway. You can
