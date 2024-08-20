@@ -2,17 +2,13 @@ package cli
 
 import (
 	"context"
-	//"net"
-	//"net/http"
 	"path"
 	"testing"
 
 	rpcapi "github.com/ipfs/kubo/client/rpc"
-	///"github.com/ipfs/kubo/client/rpc/auth"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/multiformats/go-multiaddr"
-	//manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/stretchr/testify/require"
 )
 
