@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"time"
 
 	"github.com/ipfs/boxo/files"
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
@@ -80,14 +82,13 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 	}
 	defer resp.Output.Close()
 	dec := json.NewDecoder(resp.Output)
-loop:
+
 	for {
 		var evt addEvent
-		switch err := dec.Decode(&evt); err {
-		case nil:
-		case io.EOF:
-			break loop
-		default:
+		if err := dec.Decode(&evt); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return path.ImmutablePath{}, err
 		}
 		out = evt
@@ -129,6 +130,9 @@ type lsLink struct {
 	Size       uint64
 	Type       unixfs_pb.Data_DataType
 	Target     string
+
+	Mode    os.FileMode
+	ModTime time.Time
 }
 
 type lsObject struct {
@@ -222,6 +226,9 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...caopts.Unixfs
 				Size:   l0.Size,
 				Type:   ftype,
 				Target: l0.Target,
+
+				Mode:    l0.Mode,
+				ModTime: l0.ModTime,
 			}:
 			case <-ctx.Done():
 			}

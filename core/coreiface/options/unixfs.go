@@ -3,6 +3,8 @@ package options
 import (
 	"errors"
 	"fmt"
+	"os"
+	"time"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	cid "github.com/ipfs/go-cid"
@@ -36,6 +38,11 @@ type UnixfsAddSettings struct {
 	Events   chan<- interface{}
 	Silent   bool
 	Progress bool
+
+	PreserveMode  bool
+	PreserveMtime bool
+	Mode          os.FileMode
+	Mtime         time.Time
 }
 
 type UnixfsLsSettings struct {
@@ -69,6 +76,11 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		Events:   nil,
 		Silent:   false,
 		Progress: false,
+
+		PreserveMode:  false,
+		PreserveMtime: false,
+		Mode:          0,
+		Mtime:         time.Time{},
 	}
 
 	for _, opt := range opts {
@@ -104,6 +116,14 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 			// Default to CIDv0
 			options.CidVersion = 0
 		}
+	}
+
+	if !options.Mtime.IsZero() && options.PreserveMtime {
+		options.PreserveMtime = false
+	}
+
+	if options.Mode != 0 && options.PreserveMode {
+		options.PreserveMode = false
 	}
 
 	// cidV1 -> raw blocks (by default)
@@ -290,6 +310,41 @@ func (unixfsOpts) ResolveChildren(resolve bool) UnixfsLsOption {
 func (unixfsOpts) UseCumulativeSize(use bool) UnixfsLsOption {
 	return func(settings *UnixfsLsSettings) error {
 		settings.UseCumulativeSize = use
+		return nil
+	}
+}
+
+// PreserveMode tells the adder to store the file permissions
+func (unixfsOpts) PreserveMode(enable bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.PreserveMode = enable
+		return nil
+	}
+}
+
+// PreserveMtime tells the adder to store the file modification time
+func (unixfsOpts) PreserveMtime(enable bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.PreserveMtime = enable
+		return nil
+	}
+}
+
+// Mode represents a unix file mode
+func (unixfsOpts) Mode(mode os.FileMode) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.Mode = mode
+		return nil
+	}
+}
+
+// Mtime represents a unix file mtime
+func (unixfsOpts) Mtime(seconds int64, nsecs uint32) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		if nsecs > 999999999 {
+			return errors.New("mtime nanoseconds must be in range [1, 999999999]")
+		}
+		settings.Mtime = time.Unix(seconds, int64(nsecs))
 		return nil
 	}
 }
