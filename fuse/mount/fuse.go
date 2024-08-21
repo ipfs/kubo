@@ -102,7 +102,7 @@ func (m *mount) mount() error {
 	return nil
 }
 
-// umount is called exactly once to unmount this service.
+// unmount is called exactly once to unmount this service.
 // note that closing the connection will not always unmount
 // properly. If that happens, we bring out the big guns
 // (mount.ForceUnmountManyTimes, exec unmount).

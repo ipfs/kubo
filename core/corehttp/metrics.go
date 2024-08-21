@@ -72,7 +72,7 @@ func MetricsOpenCensusDefaultPrometheusRegistry() ServeOption {
 
 		ocMutex.Lock()
 		defer ocMutex.Unlock()
-		_, ok := ocHandlers["ipfs_oc"]
+		_, ok := ocHandlers["ipfs_oc_default"]
 		if ok {
 			return mux, nil
 		}
@@ -101,7 +101,7 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		ocMutex.Lock()
 		defer ocMutex.Unlock()
-		promMux, ok := ocHandlers["ipfs_oc"]
+		promMux, ok := ocHandlers["ipfs_oc_prommux"]
 		if ok {
 			mux.Handle("/", promMux)
 			return promMux.(*http.ServeMux), nil
