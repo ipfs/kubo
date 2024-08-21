@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 	gopath "path"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -25,11 +27,31 @@ import (
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
+type TimeParts struct {
+	t *time.Time
+}
+
+func (t TimeParts) MarshalJSON() ([]byte, error) {
+	return t.t.MarshalJSON()
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// The time is expected to be a quoted string in RFC 3339 format.
+func (t *TimeParts) UnmarshalJSON(data []byte) (err error) {
+	// Fractional seconds are handled implicitly by Parse.
+	tt, err := time.Parse("\"2006-01-02T15:04:05Z\"", string(data))
+	*t = TimeParts{&tt}
+	return
+}
+
 type AddEvent struct {
-	Name  string
-	Hash  string `json:",omitempty"`
-	Bytes int64  `json:",omitempty"`
-	Size  string `json:",omitempty"`
+	Name       string
+	Hash       string `json:",omitempty"`
+	Bytes      int64  `json:",omitempty"`
+	Size       string `json:",omitempty"`
+	Mode       string `json:",omitempty"`
+	Mtime      int64  `json:",omitempty"`
+	MtimeNsecs int    `json:",omitempty"`
 }
 
 const (
@@ -50,6 +72,12 @@ const (
 	inlineOptionName      = "inline"
 	inlineLimitOptionName = "inline-limit"
 	toFilesOptionName     = "to-files"
+
+	preserveModeOptionName  = "preserve-mode"
+	preserveMtimeOptionName = "preserve-mtime"
+	modeOptionName          = "mode"
+	mtimeOptionName         = "mtime"
+	mtimeNsecsOptionName    = "mtime-nsecs"
 )
 
 const adderOutChanSize = 8
@@ -166,22 +194,24 @@ See 'dag export' and 'dag import' for more information.
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 		cmds.BoolOption(pinOptionName, "Pin locally to protect added files from garbage collection.").WithDefault(true),
 		cmds.StringOption(toFilesOptionName, "Add reference to Files API (MFS) at the provided path."),
+		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries. Disables raw-leaves. (experimental)"),
+		cmds.BoolOption(preserveMtimeOptionName, "Apply existing POSIX modification time to created UnixFS entries. Disables raw-leaves. (experimental)"),
+		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. Disables raw-leaves. (experimental)"),
+		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). Disables raw-leaves. (experimental)"),
+		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
 		quieter, _ := req.Options[quieterOptionName].(bool)
 		quiet = quiet || quieter
-
 		silent, _ := req.Options[silentOptionName].(bool)
 
-		if quiet || silent {
-			return nil
-		}
-
-		// ipfs cli progress bar defaults to true unless quiet or silent is used
-		_, found := req.Options[progressOptionName].(bool)
-		if !found {
-			req.Options[progressOptionName] = true
+		if !quiet && !silent {
+			// ipfs cli progress bar defaults to true unless quiet or silent is used
+			_, found := req.Options[progressOptionName].(bool)
+			if !found {
+				req.Options[progressOptionName] = true
+			}
 		}
 
 		return nil
@@ -217,6 +247,11 @@ See 'dag export' and 'dag import' for more information.
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
 		toFilesStr, toFilesSet := req.Options[toFilesOptionName].(string)
+		preserveMode, _ := req.Options[preserveModeOptionName].(bool)
+		preserveMtime, _ := req.Options[preserveMtimeOptionName].(bool)
+		mode, _ := req.Options[modeOptionName].(uint)
+		mtime, _ := req.Options[mtimeOptionName].(int64)
+		mtimeNsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
 
 		if chunker == "" {
 			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
@@ -234,6 +269,19 @@ See 'dag export' and 'dag import' for more information.
 		if !rbset && cfg.Import.UnixFSRawLeaves != config.Default {
 			rbset = true
 			rawblks = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
+		}
+
+		// Storing optional mode or mtime (UnixFS 1.5) requires root block
+		// to always be 'dag-pb' and not 'raw'. Below adjusts raw-leaves setting, if possible.
+		if preserveMode || preserveMtime || mode != 0 || mtime != 0 {
+			// Error if --raw-leaves flag was explicitly passed by the user.
+			// (let user make a decision to manually disable it and retry)
+			if rbset && rawblks {
+				return fmt.Errorf("%s can't be used with UnixFS metadata like mode or modification time", rawLeavesOptionName)
+			}
+			// No explicit preference from user, disable raw-leaves and continue
+			rbset = true
+			rawblks = false
 		}
 
 		if onlyHash && toFilesSet {
@@ -272,6 +320,19 @@ See 'dag export' and 'dag import' for more information.
 
 			options.Unixfs.Progress(progress),
 			options.Unixfs.Silent(silent),
+
+			options.Unixfs.PreserveMode(preserveMode),
+			options.Unixfs.PreserveMtime(preserveMtime),
+		}
+
+		if mode != 0 {
+			opts = append(opts, options.Unixfs.Mode(os.FileMode(mode)))
+		}
+
+		if mtime != 0 {
+			opts = append(opts, options.Unixfs.Mtime(mtime, uint32(mtimeNsecs)))
+		} else if mtimeNsecs != 0 {
+			return fmt.Errorf("option %q requires %q to be provided as well", mtimeNsecsOptionName, mtimeOptionName)
 		}
 
 		if cidVerSet {
@@ -383,12 +444,33 @@ See 'dag export' and 'dag import' for more information.
 					output.Name = gopath.Join(addit.Name(), output.Name)
 				}
 
-				if err := res.Emit(&AddEvent{
-					Name:  output.Name,
-					Hash:  h,
-					Bytes: output.Bytes,
-					Size:  output.Size,
-				}); err != nil {
+				output.Mode = addit.Node().Mode()
+				if ts := addit.Node().ModTime(); !ts.IsZero() {
+					output.Mtime = addit.Node().ModTime().Unix()
+					output.MtimeNsecs = addit.Node().ModTime().Nanosecond()
+				}
+
+				addEvent := AddEvent{
+					Name:       output.Name,
+					Hash:       h,
+					Bytes:      output.Bytes,
+					Size:       output.Size,
+					Mtime:      output.Mtime,
+					MtimeNsecs: output.MtimeNsecs,
+				}
+
+				if output.Mode != 0 {
+					addEvent.Mode = "0" + strconv.FormatUint(uint64(output.Mode), 8)
+				}
+
+				if output.Mtime > 0 {
+					addEvent.Mtime = output.Mtime
+					if output.MtimeNsecs > 0 {
+						addEvent.MtimeNsecs = output.MtimeNsecs
+					}
+				}
+
+				if err := res.Emit(&addEvent); err != nil {
 					return err
 				}
 			}
