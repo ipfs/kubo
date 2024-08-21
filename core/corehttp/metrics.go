@@ -3,6 +3,7 @@ package corehttp
 import (
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	core "github.com/ipfs/kubo/core"
@@ -13,6 +14,9 @@ import (
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promhttp "github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+var ocHandlers = map[string]http.Handler{}
+var ocMutex sync.Mutex
 
 // MetricsScrapingOption adds the scraping endpoint which Prometheus uses to fetch metrics.
 func MetricsScrapingOption(path string) ServeOption {
@@ -27,25 +31,33 @@ func MetricsOpenCensusCollectionOption() ServeOption {
 	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		log.Info("Init OpenCensus")
 
-		promRegistry := prometheus.NewRegistry()
-		pe, err := ocprom.NewExporter(ocprom.Options{
-			Namespace: "ipfs_oc",
-			Registry:  promRegistry,
-			OnError: func(err error) {
-				log.Errorw("OC ERROR", "error", err)
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
+		ocMutex.Lock()
+		defer ocMutex.Unlock()
+		ocHandler, ok := ocHandlers["ipfs_oc"]
+		if !ok {
+			promRegistry := prometheus.NewRegistry()
+			pe, err := ocprom.NewExporter(ocprom.Options{
+				Namespace: "ipfs_oc",
+				Registry:  promRegistry,
+				OnError: func(err error) {
+					log.Errorw("OC ERROR", "error", err)
+				},
+			})
+			if err != nil {
+				return nil, err
+			}
 
-		// register prometheus with opencensus
-		view.RegisterExporter(pe)
-		view.SetReportingPeriod(2 * time.Second)
+			// register prometheus with opencensus
+			view.RegisterExporter(pe)
+			view.SetReportingPeriod(2 * time.Second)
+
+			ocHandler = pe
+			ocHandlers["ipfs_oc"] = ocHandler
+		}
 
 		// Construct the mux
 		zpages.Handle(mux, "/debug/metrics/oc/debugz")
-		mux.Handle("/debug/metrics/oc", pe)
+		mux.Handle("/debug/metrics/oc", ocHandler)
 
 		return mux, nil
 	}
@@ -57,6 +69,13 @@ func MetricsOpenCensusCollectionOption() ServeOption {
 func MetricsOpenCensusDefaultPrometheusRegistry() ServeOption {
 	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		log.Info("Init OpenCensus with default prometheus registry")
+
+		ocMutex.Lock()
+		defer ocMutex.Unlock()
+		_, ok := ocHandlers["ipfs_oc"]
+		if ok {
+			return mux, nil
+		}
 
 		pe, err := ocprom.NewExporter(ocprom.Options{
 			Registry: prometheus.DefaultRegisterer.(*prometheus.Registry),
@@ -71,6 +90,8 @@ func MetricsOpenCensusDefaultPrometheusRegistry() ServeOption {
 		// register prometheus with opencensus
 		view.RegisterExporter(pe)
 
+		ocHandlers["ipfs_oc"] = pe
+
 		return mux, nil
 	}
 }
@@ -78,6 +99,14 @@ func MetricsOpenCensusDefaultPrometheusRegistry() ServeOption {
 // MetricsCollectionOption adds collection of net/http-related metrics.
 func MetricsCollectionOption(handlerName string) ServeOption {
 	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
+		ocMutex.Lock()
+		defer ocMutex.Unlock()
+		promMux, ok := ocHandlers["ipfs_oc"]
+		if ok {
+			mux.Handle("/", promMux)
+			return promMux.(*http.ServeMux), nil
+		}
+
 		// Adapted from github.com/prometheus/client_golang/prometheus/http.go
 		// Work around https://github.com/prometheus/client_golang/pull/311
 		opts := prometheus.SummaryOpts{
@@ -140,13 +169,14 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 
 		// Construct the mux
 		childMux := http.NewServeMux()
-		var promMux http.Handler = childMux
+		promMux = childMux
 		promMux = promhttp.InstrumentHandlerResponseSize(resSz, promMux)
 		promMux = promhttp.InstrumentHandlerRequestSize(reqSz, promMux)
 		promMux = promhttp.InstrumentHandlerDuration(reqDur, promMux)
 		promMux = promhttp.InstrumentHandlerCounter(reqCnt, promMux)
 		mux.Handle("/", promMux)
 
+		ocHandlers["prom_mux"] = promMux
 		return childMux, nil
 	}
 }
