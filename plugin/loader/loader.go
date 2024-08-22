@@ -2,6 +2,7 @@ package loader
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -361,7 +362,7 @@ func (loader *PluginLoader) Close() error {
 	}
 	if errs != nil {
 		loader.state = loaderFailed
-		return fmt.Errorf(strings.Join(errs, "\n"))
+		return errors.New(strings.Join(errs, "\n"))
 	}
 	loader.state = loaderClosed
 	return nil

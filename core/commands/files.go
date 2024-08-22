@@ -182,7 +182,7 @@ var filesStatCmd = &cmds.Command{
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		_, err := statGetFormatOptions(req)
 		if err != nil {
-			return cmds.Errorf(cmds.ErrClient, err.Error())
+			return cmds.Errorf(cmds.ErrClient, "invalid parameters: %s", err)
 		}
 
 		node, err := cmdenv.GetNode(env)
