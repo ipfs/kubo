@@ -22,9 +22,10 @@ var ocMutex sync.Mutex
 
 // Names of metrics handlers.
 const (
-	ipfsOC        = "ipfs_oc"
-	ipfsOCDefault = "ipfs_oc_default"
-	ipfsOCPromMux = "ipfs_oc_prommux"
+	ipfsOC         = "ipfs_oc"
+	ipfsOCDefault  = "ipfs_oc_default"
+	ipfsOCPromMux  = "ipfs_oc_prommux"
+	ipfsOCChildMux = "ipfs_oc_childmux"
 )
 
 // MetricsScrapingOption adds the scraping endpoint which Prometheus uses to fetch metrics.
@@ -113,7 +114,8 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 		promMux, ok := ocHandlers[ipfsOCPromMux]
 		if ok {
 			mux.Handle("/", promMux)
-			return promMux.(*http.ServeMux), nil
+			childMux := ocHandlers[ipfsOCChildMux]
+			return childMux.(*http.ServeMux), nil
 		}
 
 		// Adapted from github.com/prometheus/client_golang/prometheus/http.go
@@ -185,7 +187,8 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 		promMux = promhttp.InstrumentHandlerCounter(reqCnt, promMux)
 		mux.Handle("/", promMux)
 
-		ocHandlers[ipfsOCPromMux] = childMux
+		ocHandlers[ipfsOCChildMux] = childMux
+		ocHandlers[ipfsOCPromMux] = promMux
 		return childMux, nil
 	}
 }
