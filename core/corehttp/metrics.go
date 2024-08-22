@@ -15,8 +15,17 @@ import (
 	promhttp "github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// ocHandlers tracks registration of metrics exporters and instruments used has
+// handlers for serving metrics.
 var ocHandlers = map[string]http.Handler{}
 var ocMutex sync.Mutex
+
+// Names of metrics handlers.
+const (
+	ipfsOC        = "ipfs_oc"
+	ipfsOCDefault = "ipfs_oc_default"
+	ipfsOCPromMux = "ipfs_oc_prommux"
+)
 
 // MetricsScrapingOption adds the scraping endpoint which Prometheus uses to fetch metrics.
 func MetricsScrapingOption(path string) ServeOption {
@@ -33,7 +42,7 @@ func MetricsOpenCensusCollectionOption() ServeOption {
 
 		ocMutex.Lock()
 		defer ocMutex.Unlock()
-		ocHandler, ok := ocHandlers["ipfs_oc"]
+		ocHandler, ok := ocHandlers[ipfsOC]
 		if !ok {
 			promRegistry := prometheus.NewRegistry()
 			pe, err := ocprom.NewExporter(ocprom.Options{
@@ -52,7 +61,7 @@ func MetricsOpenCensusCollectionOption() ServeOption {
 			view.SetReportingPeriod(2 * time.Second)
 
 			ocHandler = pe
-			ocHandlers["ipfs_oc"] = ocHandler
+			ocHandlers[ipfsOC] = ocHandler
 		}
 
 		// Construct the mux
@@ -72,7 +81,7 @@ func MetricsOpenCensusDefaultPrometheusRegistry() ServeOption {
 
 		ocMutex.Lock()
 		defer ocMutex.Unlock()
-		_, ok := ocHandlers["ipfs_oc_default"]
+		_, ok := ocHandlers[ipfsOCDefault]
 		if ok {
 			return mux, nil
 		}
@@ -90,7 +99,7 @@ func MetricsOpenCensusDefaultPrometheusRegistry() ServeOption {
 		// register prometheus with opencensus
 		view.RegisterExporter(pe)
 
-		ocHandlers["ipfs_oc"] = pe
+		ocHandlers[ipfsOCDefault] = pe
 
 		return mux, nil
 	}
@@ -101,7 +110,7 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		ocMutex.Lock()
 		defer ocMutex.Unlock()
-		promMux, ok := ocHandlers["ipfs_oc_prommux"]
+		promMux, ok := ocHandlers[ipfsOCPromMux]
 		if ok {
 			mux.Handle("/", promMux)
 			return promMux.(*http.ServeMux), nil
@@ -176,7 +185,7 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 		promMux = promhttp.InstrumentHandlerCounter(reqCnt, promMux)
 		mux.Handle("/", promMux)
 
-		ocHandlers["prom_mux"] = promMux
+		ocHandlers[ipfsOCPromMux] = childMux
 		return childMux, nil
 	}
 }
