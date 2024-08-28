@@ -21,7 +21,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-cmds/cli"
 	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	ipfs "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/client/rpc/auth"
 	"github.com/ipfs/kubo/cmd/ipfs/util"
@@ -89,6 +89,7 @@ func printErr(err error) int {
 	return 1
 }
 
+/*
 func newUUID(key string) logging.Metadata {
 	ids := "#UUID-ERROR#"
 	if id, err := uuid.NewRandom(); err == nil {
@@ -97,7 +98,8 @@ func newUUID(key string) logging.Metadata {
 	return logging.Metadata{
 		key: ids,
 	}
-}
+    }
+*/
 
 func BuildDefaultEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
 	return BuildEnv(nil)(ctx, req)
@@ -157,8 +159,6 @@ func BuildEnv(pl PluginPreloader) func(ctx context.Context, req *cmds.Request) (
 // - output the response
 // - if anything fails, print error, maybe with help.
 func Start(buildEnv func(ctx context.Context, req *cmds.Request) (cmds.Environment, error)) (exitCode int) {
-	ctx := logging.ContextWithLoggable(context.Background(), newUUID("session"))
-
 	tp, err := tracing.NewTracerProvider(ctx)
 	if err != nil {
 		return printErr(err)
