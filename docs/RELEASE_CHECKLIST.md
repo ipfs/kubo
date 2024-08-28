@@ -110,7 +110,7 @@ This section covers tasks to be done during each release.
     - [ ] wait for the [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow run to finish
     - [ ] verify the release assets are present in the [GitHub release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN))
     </details>
-- [ ] Run Thunderdome testing, see the [Thunderdome release docs](./releases_thunderdome.md) for details
+- [ ] Run Thunderdome testing, see the [Thunderdome release docs](https://github.com/ipfs/kubo/blob/master/docs/releases_thunderdome.md) for details
   - [ ] create a PR and merge the experiment config into Thunderdome
 - [ ] Promote the release <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) promote` or ...</summary>
   - [ ] create an [IPFS Discourse](https://discuss.ipfs.tech) topic
