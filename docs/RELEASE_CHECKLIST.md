@@ -152,10 +152,6 @@ This section covers tasks to be done during each release.
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) run the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) merge the PR created by the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow run
   </details>
-- [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Ask Brave to update Kubo in Brave Desktop
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) use [this link](https://github.com/brave/brave-browser/issues/new?assignees=&labels=OS%2FDesktop&projects=&template=desktop.md&title=) to create an issue for the new Kubo version
-    - [basic example](https://github.com/brave/brave-browser/issues/31453), [example with additional notes](https://github.com/brave/brave-browser/issues/27965)
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) post link to the issue in `#shared-pl-brave` for visibility
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Create a blog entry on [blog.ipfs.tech](https://blog.ipfs.tech) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) update-ipfs-blog --date YYYY-MM-DD` or ...</summary>
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) create a PR which adds a release note for the new Kubo version
     - [example](https://github.com/ipfs/ipfs-blog/pull/529)
