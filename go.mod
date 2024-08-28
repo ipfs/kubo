@@ -38,7 +38,6 @@ require (
 	github.com/ipfs/go-ipld-format v0.6.0
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.2.1
-	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/go-log/v2 v2.6.0
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
@@ -160,6 +159,7 @@ require (
 	github.com/ipfs/go-ipfs-pq v0.0.3 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.3 // indirect
+	github.com/ipfs/go-log v1.0.5 // indirect
 	github.com/ipfs/go-merkledag v0.11.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.2 // indirect
 	github.com/ipfs/go-verifcid v0.0.3 // indirect
