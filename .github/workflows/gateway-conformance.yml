@@ -49,7 +49,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.22.x
+          go-version: 1.23.x
       - uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
@@ -136,7 +136,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.22.x
+          go-version: 1.23.x
       - uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
