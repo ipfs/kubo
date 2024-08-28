@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -10,8 +11,8 @@ import (
 
 	"github.com/ipfs/kubo/thirdparty/unit"
 
+	random "github.com/ipfs/go-test/random"
 	config "github.com/ipfs/kubo/config"
-	random "github.com/jbenet/go-random"
 )
 
 func main() {
@@ -44,7 +45,7 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 				cmd.Env = env
 			}
 
-			cmd := exec.Command("ipfs", "init", "-b=2048")
+			cmd := exec.Command("ipfs", "init")
 			setupCmd(cmd)
 			if err := cmd.Run(); err != nil {
 				b.Fatal(err)
@@ -57,7 +58,11 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 			}
 			defer os.Remove(f.Name())
 
-			err = random.WritePseudoRandomBytes(amount, f, seed)
+			randReader := &io.LimitedReader{
+				R: random.NewSeededRand(seed),
+				N: amount,
+			}
+			_, err = io.Copy(f, randReader)
 			if err != nil {
 				b.Fatal(err)
 			}
