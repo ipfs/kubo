@@ -2,7 +2,7 @@
 
 > IPFS CoreAPI implementation using HTTP API
 
-This packages implements [`coreiface.CoreAPI`](https://pkg.go.dev/github.com/ipfs/boxo/coreiface#CoreAPI) over the HTTP API.
+This package implements [`coreiface.CoreAPI`](https://pkg.go.dev/github.com/ipfs/kubo/core/coreiface#CoreAPI) over the HTTP API.
 
 ## Documentation
 
@@ -20,7 +20,7 @@ import (
     "fmt"
 
     "github.com/ipfs/kubo/client/rpc"
-    path "github.com/ipfs/boxo/coreiface/path"
+    "github.com/ipfs/boxo/path"
 )
 
 func main() {
@@ -39,6 +39,5 @@ func main() {
     	fmt.Printf(err)
         return
     }
-    return
 }
 ```
