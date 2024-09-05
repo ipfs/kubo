@@ -571,7 +571,7 @@ Additional modes may be added in the future.
 
 > [!IMPORTANT]
 > We are in the progress of [rolling out AutoNAT V2](https://github.com/ipfs/kubo/issues/10091).
-> Right now, by default, a publicly diallable Kubo provides both V1 and V2 service to other peers,
+> Right now, by default, a publicly dialable Kubo provides both V1 and V2 service to other peers,
 > but only V1 is used by Kubo as a client. In a future release we will remove V1 and switch client to use V2.
 
 Default: `enabled`
@@ -1615,7 +1615,7 @@ is able to find the 20 final nodes by looking up the in-memory recorded network 
 This means sustained higher memory to store the routing table
 and extra CPU and network bandwidth for each network scan.
 However the latency of individual read/write operations should be ~10x faster
-and the provide throughput up to 6 million times faster on larger datasets!
+and provide throughput up to 6 million times faster on larger datasets!
 
 This is not compatible with `Routing.Type` `custom`. If you are using composable routers
 you can configure this individually on each router.
@@ -1918,7 +1918,7 @@ Type: `flag`
 
 #### `Swarm.RelayService.Limit`
 
-Limits applied to every relayed connection.
+Limits are applied to every relayed connection.
 
 Default: `{}`
 
