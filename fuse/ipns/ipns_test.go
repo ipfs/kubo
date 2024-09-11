@@ -19,8 +19,8 @@ import (
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 
 	fstest "bazil.org/fuse/fs/fstestutil"
-	u "github.com/ipfs/boxo/util"
 	racedet "github.com/ipfs/go-detect-race"
+	"github.com/ipfs/go-test/random"
 	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
 
@@ -32,7 +32,7 @@ func maybeSkipFuseTests(t *testing.T) {
 
 func randBytes(size int) []byte {
 	b := make([]byte, size)
-	_, err := io.ReadFull(u.NewTimeSeededRand(), b)
+	_, err := io.ReadFull(random.NewRand(), b)
 	if err != nil {
 		panic(err)
 	}

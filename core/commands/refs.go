@@ -21,7 +21,7 @@ import (
 var refsEncoderMap = cmds.EncoderMap{
 	cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RefWrapper) error {
 		if out.Err != "" {
-			return fmt.Errorf(out.Err)
+			return errors.New(out.Err)
 		}
 		fmt.Fprintln(w, out.Ref)
 

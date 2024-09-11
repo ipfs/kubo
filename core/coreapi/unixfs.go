@@ -130,6 +130,10 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	fileAdder.RawLeaves = settings.RawLeaves
 	fileAdder.NoCopy = settings.NoCopy
 	fileAdder.CidBuilder = prefix
+	fileAdder.PreserveMode = settings.PreserveMode
+	fileAdder.PreserveMtime = settings.PreserveMtime
+	fileAdder.FileMode = settings.Mode
+	fileAdder.FileMtime = settings.Mtime
 
 	switch settings.Layout {
 	case options.BalancedLayout:
@@ -270,6 +274,8 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 				if !settings.UseCumulativeSize {
 					lnk.Size = d.FileSize()
 				}
+				lnk.Mode = d.Mode()
+				lnk.ModTime = d.ModTime()
 			}
 		}
 

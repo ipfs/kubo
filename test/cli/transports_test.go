@@ -90,8 +90,10 @@ func TestTransports(t *testing.T) {
 		nodes.ForEachPar(func(n *harness.Node) {
 			n.UpdateConfig(func(cfg *config.Config) {
 				cfg.Addresses.Swarm = []string{"/ip4/127.0.0.1/udp/0/quic-v1"}
-				cfg.Swarm.Transports.Network.QUIC = config.True
 				cfg.Swarm.Transports.Network.TCP = config.False
+				cfg.Swarm.Transports.Network.QUIC = config.True
+				cfg.Swarm.Transports.Network.WebTransport = config.False
+				cfg.Swarm.Transports.Network.WebRTCDirect = config.False
 			})
 		})
 		disableRouting(nodes)
@@ -99,14 +101,16 @@ func TestTransports(t *testing.T) {
 		runTests(nodes)
 	})
 
-	t.Run("QUIC", func(t *testing.T) {
+	t.Run("QUIC+Webtransport", func(t *testing.T) {
 		t.Parallel()
 		nodes := harness.NewT(t).NewNodes(5).Init()
 		nodes.ForEachPar(func(n *harness.Node) {
 			n.UpdateConfig(func(cfg *config.Config) {
 				cfg.Addresses.Swarm = []string{"/ip4/127.0.0.1/udp/0/quic-v1/webtransport"}
+				cfg.Swarm.Transports.Network.TCP = config.False
 				cfg.Swarm.Transports.Network.QUIC = config.True
 				cfg.Swarm.Transports.Network.WebTransport = config.True
+				cfg.Swarm.Transports.Network.WebRTCDirect = config.False
 			})
 		})
 		disableRouting(nodes)

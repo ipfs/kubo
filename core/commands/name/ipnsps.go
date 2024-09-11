@@ -135,7 +135,7 @@ var ipnspsCancelCmd = &cmds.Command{
 		name = strings.TrimPrefix(name, "/ipns/")
 		pid, err := peer.Decode(name)
 		if err != nil {
-			return cmds.Errorf(cmds.ErrClient, err.Error())
+			return cmds.Errorf(cmds.ErrClient, "not a valid IPNS name: %s", err)
 		}
 
 		ok, err := n.PSRouter.Cancel("/ipns/" + string(pid))
