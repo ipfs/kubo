@@ -471,9 +471,11 @@ If you make changes to the protocol buffers, you will need to install the [proto
 Find more documentation for developers on [docs](./docs)
 
 ## Maintainer Info
-* [Project Board for active and upcoming work](https://pl-strflt.notion.site/Kubo-GitHub-Project-Board-c68f9192e48e4e9eba185fa697bf0570)
-* [Release Process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4)
-* [Additional PL EngRes Kubo maintainer info](https://pl-strflt.notion.site/Kubo-go-ipfs-4a484aeeaa974dcf918027c300426c05)
+
+Kubo is maintained by [Shipyard](https://ipshipyard.com/).
+
+* This repository is part of [Shipyard's GO Triage triage](https://ipshipyard.notion.site/IPFS-Go-Triage-Boxo-Kubo-Rainbow-0ddee6b7f28d412da7dabe4f9107c29a).
+* [Release Process](https://ipshipyard.notion.site/Kubo-Release-Process-6dba4f5755c9458ab5685eeb28173778)
 
 
 ## Contributing

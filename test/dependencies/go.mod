@@ -111,7 +111,7 @@ require (
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
-	github.com/ipfs/boxo v0.22.1-0.20240828000743-08f200aa8eef // indirect
+	github.com/ipfs/boxo v0.23.0 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
@@ -142,7 +142,7 @@ require (
 	github.com/leonklingele/grouper v1.1.2 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
-	github.com/libp2p/go-libp2p v0.36.2 // indirect
+	github.com/libp2p/go-libp2p v0.36.3 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
 	github.com/libp2p/go-libp2p-kad-dht v0.26.1 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.6.3 // indirect
