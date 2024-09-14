@@ -23,6 +23,7 @@ const (
 	DefaultEngineTaskWorkerCount       = 8
 	DefaultMaxOutstandingBytesPerPeer  = 1 << 20
 	DefaultProviderSearchDelay         = 1000 * time.Millisecond
+	DefaultReplaceHasWithBlockMaxSize  = 1024
 )
 
 type bitswapOptionsOut struct {
@@ -47,6 +48,7 @@ func BitswapOptions(cfg *config.Config, provide bool) interface{} {
 			bitswap.TaskWorkerCount(int(internalBsCfg.TaskWorkerCount.WithDefault(DefaultTaskWorkerCount))),
 			bitswap.EngineTaskWorkerCount(int(internalBsCfg.EngineTaskWorkerCount.WithDefault(DefaultEngineTaskWorkerCount))),
 			bitswap.MaxOutstandingBytesPerPeer(int(internalBsCfg.MaxOutstandingBytesPerPeer.WithDefault(DefaultMaxOutstandingBytesPerPeer))),
+			bitswap.WithReplaceHasWithBlockMaxSize(int(internalBsCfg.ReplaceHasWithBlockMaxSize.WithDefault(DefaultReplaceHasWithBlockMaxSize))),
 		}
 
 		return bitswapOptionsOut{BitswapOpts: opts}
