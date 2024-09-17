@@ -10,6 +10,16 @@ config file at runtime.
 - [The Kubo config file](#the-kubo-config-file)
 - [Table of Contents](#table-of-contents)
   - [Profiles](#profiles)
+    - [`server` profile](#server-profile)
+    - [`randomports` profile](#randomports-profile)
+    - [`default-datastore` profile](#default-datastore-profile)
+    - [`local-discovery` profile](#local-discovery-profile)
+    - [`default-networking` profile](#default-networking-profile)
+    - [`flatfs` profile](#flatfs-profile)
+    - [`badgerds` profile](#badgerds-profile)
+    - [`lowpower` profile](#lowpower-profile)
+    - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
+    - [`test-cid-v1` profile](#test-cid-v1-profile)
   - [Types](#types)
     - [`flag`](#flag)
     - [`priority`](#priority)
@@ -195,99 +205,111 @@ will be created in `$IPFS_PATH`.
 The available configuration profiles are listed below. You can also find them
 documented in `ipfs config profile --help`.
 
-- `server`
+### `server` profile
 
-  Disables local host discovery, recommended when
-  running IPFS on machines with public IPv4 addresses.
+Disables local [`Discovery.MDNS`](#discoverymdns) and blocks connections to
+IPv4 and IPv6 prefixes that are [private, local only, or unrouteable](https://github.com/ipfs/kubo/blob/b71cf0d15904bdef21fe2eee5f1118a274309a4d/config/profile.go#L24-L43).
 
-- `randomports`
+Recommended when running IPFS on machines with public IPv4 addresses
+at providers that interpret local IPFS discovery and traffic as netscan abuse ([example](https://github.com/ipfs/kubo/issues/10327)).
 
-  Use a random port number for the incoming swarm connections.
+### `randomports` profile
 
-- `default-datastore`
+Use a random port number for the incoming swarm connections.
+Used for testing.
 
-  Configures the node to use the default datastore (flatfs).
+### `default-datastore` profile
 
-  Read the "flatfs" profile description for more information on this datastore.
+Configures the node to use the default datastore (flatfs).
 
-  This profile may only be applied when first initializing the node.
+Read the "flatfs" profile description for more information on this datastore.
 
-- `local-discovery`
+This profile may only be applied when first initializing the node.
 
-  Enables local discovery (enabled by default). Useful to re-enable local discovery after it's
-  disabled by another profile (e.g., the server profile).
+### `local-discovery` profile
 
-- `test`
+Enables local [`Discovery.MDNS`](#discoverymdns) (enabled by default).
 
-  Reduces external interference of IPFS daemon, this
-  is useful when using the daemon in test environments.
+Useful to re-enable local discovery after it's disabled by another profile
+(e.g., the server profile).
 
-- `default-networking`
+`test` profile
 
-  Restores default network settings.
-  Inverse profile of the test profile.
+Reduces external interference of IPFS daemon, this
+is useful when using the daemon in test environments.
 
-- `flatfs`
+### `default-networking` profile
 
-  Configures the node to use the flatfs datastore. Flatfs is the default datastore.
+Restores default network settings.
+Inverse profile of the test profile.
 
-  This is the most battle-tested and reliable datastore.
-  You should use this datastore if:
+### `flatfs` profile
 
-  - You need a very simple and very reliable datastore, and you trust your
-    filesystem. This datastore stores each block as a separate file in the
-    underlying filesystem so it's unlikely to lose data unless there's an issue
-    with the underlying file system.
-  - You need to run garbage collection in a way that reclaims free space as soon as possible.
-  - You want to minimize memory usage.
-  - You are ok with the default speed of data import, or prefer to use `--nocopy`.
+Configures the node to use the flatfs datastore. Flatfs is the default datastore.
 
-  This profile may only be applied when first initializing the node.
+This is the most battle-tested and reliable datastore.
+You should use this datastore if:
 
+- You need a very simple and very reliable datastore, and you trust your
+  filesystem. This datastore stores each block as a separate file in the
+  underlying filesystem so it's unlikely to lose data unless there's an issue
+  with the underlying file system.
+- You need to run garbage collection in a way that reclaims free space as soon as possible.
+- You want to minimize memory usage.
+- You are ok with the default speed of data import, or prefer to use `--nocopy`.
 
-- `badgerds`
+This profile may only be applied when first initializing the node.
 
-  Configures the node to use the experimental badger datastore. Keep in mind that this **uses an outdated badger 1.x**.
+### `badgerds` profile
 
-  Use this datastore if some aspects of performance,
-  especially the speed of adding many gigabytes of files, are critical. However, be aware that:
+Configures the node to use the legacy badgerv1 datastore.
 
-  - This datastore will not properly reclaim space when your datastore is
-    smaller than several gigabytes. If you run IPFS with `--enable-gc`, you plan on storing very little data in
-    your IPFS node, and disk usage is more critical than performance, consider using
-    `flatfs`.
-  - This datastore uses up to several gigabytes of memory.
-  - Good for medium-size datastores, but may run into performance issues if your dataset is bigger than a terabyte.
-  - The current implementation is based on old badger 1.x which is no longer supported by the upstream team.
+> [!CAUTION]
+> This is based on very old badger 1.x, which has known bugs and is no longer supported by the upstream team.
+> It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
+> Do not use it for new deployments, unless you really, really know what you are doing.
 
-  This profile may only be applied when first initializing the node.
+Also, be aware that:
 
-- `lowpower`
+- This datastore will not properly reclaim space when your datastore is
+  smaller than several gigabytes. If you run IPFS with `--enable-gc`, you plan on storing very little data in
+  your IPFS node, and disk usage is more critical than performance, consider using
+  `flatfs`.
+- This datastore uses up to several gigabytes of memory.
+- Good for medium-size datastores, but may run into performance issues if your dataset is bigger than a terabyte.
+- The current implementation is based on old badger 1.x which is no longer supported by the upstream team.
 
-  Reduces daemon overhead on the system. Affects node
-  functionality - performance of content discovery and data
-  fetching may be degraded. Local data won't be announced on routing systems like Amino DHT.
+This profile may only be applied when first initializing the node.
 
-  - `Swarm.ConnMgr` set to maintain minimum number of p2p connections at a time.
-  - Disables [`Reprovider`](#reprovider) service → no CID will be announced on Amino DHT and other routing systems(!)
-  - Disables AutoNAT.
+### `lowpower` profile
 
-  Use this profile with caution.
+Reduces daemon overhead on the system. Affects node
+functionality - performance of content discovery and data
+fetching may be degraded.
 
-- `legacy-cid-v0`
+> [!CAUTION]
+> Local data won't be announced on routing systems like Amino DHT.
 
-  Makes UnixFS import (`ipfs add`) produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.
+- `Swarm.ConnMgr` set to maintain minimum number of p2p connections at a time.
+- Disables [`Reprovider`](#reprovider) service → no CID will be announced on Amino DHT and other routing systems(!)
+- Disables [`AutoNAT`](#autonat).
 
-  > [!WARNING]
-  > This profile is provided for legacy users and should not be used for new projects.
+Use this profile with caution.
 
-- `test-cid-v1`
+### `legacy-cid-v0` profile
 
-  Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.
+Makes UnixFS import (`ipfs add`) produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.
 
-  > [!NOTE]
-  > This profile will become the new implicit default, provided for testing purposes.
-  > Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details.
+> [!NOTE]
+> This profile is provided for legacy users and should not be used for new projects.
+
+### `test-cid-v1` profile
+
+Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.
+
+> [!NOTE]
+> This profile will become the new implicit default, provided for testing purposes.
+> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details.
 
 ## Types
 
