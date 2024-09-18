@@ -133,6 +133,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		// Services (resource management)
 		fx.Provide(libp2p.ResourceManager(cfg.Swarm, userResourceOverrides)),
+		maybeProvide(libp2p.P2PForgeCertMgr, cfg.Experimental.P2PForgeClient),
+		maybeInvoke(libp2p.StartP2PForgeCertMgr, cfg.Experimental.P2PForgeClient),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
