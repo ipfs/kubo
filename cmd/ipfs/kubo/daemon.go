@@ -706,10 +706,18 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 	for _, listener := range listeners {
 		// we might have listened to /tcp/0 - let's see what we are listing on
 		fmt.Printf("RPC API server listening on %s\n", listener.Multiaddr())
-		// Browsers require TCP.
+		// Browsers require TCP with explicit host.
 		switch listener.Addr().Network() {
 		case "tcp", "tcp4", "tcp6":
-			fmt.Printf("WebUI: http://%s/webui\n", listener.Addr())
+			rpc := listener.Addr().String()
+			// replace catch-all with explicit localhost URL that works in browsers
+			// https://github.com/ipfs/kubo/issues/10515
+			if strings.Contains(rpc, "0.0.0.0:") {
+				rpc = strings.Replace(rpc, "0.0.0.0:", "127.0.0.1:", 1)
+			} else if strings.Contains(rpc, "[::]:") {
+				rpc = strings.Replace(rpc, "[::]:", "[::1]:", 1)
+			}
+			fmt.Printf("WebUI: http://%s/webui\n", rpc)
 		}
 	}
 
