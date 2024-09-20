@@ -3,9 +3,9 @@ package libp2p
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 
+	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	p2pforge "github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p"
@@ -138,24 +138,12 @@ func P2PForgeCertMgr(cfg config.ForgeClient) interface{} {
 			return nil, err
 		}
 
-		const authEnvVar = "FORGE_ACCESS_TOKEN"
-		const authForgeHeader = "Forge-Authorization" // TODO: move to p2pforge client lib
-		authKey, foundAuthKey := os.LookupEnv(authEnvVar)
-		if !foundAuthKey {
-			authKey = cfg.ForgeAuth.WithDefault("")
-			foundAuthKey = cfg.ForgeAuth.IsDefault()
-		}
-
 		certMgr, err := p2pforge.NewP2PForgeCertMgr(
 			p2pforge.WithForgeDomain(cfg.ForgeDomain.WithDefault(config.DefaultForgeDomain)),
 			p2pforge.WithForgeRegistrationEndpoint(cfg.ForgeEndpoint.WithDefault(config.DefaultForgeEndpoint)),
 			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),
-			p2pforge.WithModifiedForgeRequest(func(req *http.Request) error {
-				if foundAuthKey {
-					req.Header.Set(authForgeHeader, authKey)
-				}
-				return nil
-			}),
+			p2pforge.WithForgeAuth(cfg.ForgeAuth.WithDefault(os.Getenv(p2pforge.ForgeAuthEnv))),
+			p2pforge.WithUserAgent(version.GetUserAgentVersion()),
 			p2pforge.WithCertificateStorage(&certmagic.FileStorage{Path: storagePath}))
 		if err != nil {
 			return nil, err
