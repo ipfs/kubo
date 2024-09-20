@@ -124,6 +124,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 			logger.Fatal("Failed to enable `Swarm.RelayClient`, it requires `Swarm.Transports.Network.Relay` to be true.")
 		}
 	}
+	if enableForgeClient && !cfg.Swarm.Transports.Network.Websocket.WithDefault(true) {
+		logger.Fatal("Failed to enable `Swarm.ForgeClient`, it requires `Swarm.Transports.Network.Websocket` to be true.")
+	}
 
 	// Gather all the options
 	opts := fx.Options(
