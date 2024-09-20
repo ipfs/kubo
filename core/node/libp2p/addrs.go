@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	logging "github.com/ipfs/go-log"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	p2pforge "github.com/ipshipyard/p2p-forge/client"
@@ -137,6 +138,8 @@ func P2PForgeCertMgr(cfg config.ForgeClient) interface{} {
 		if err != nil {
 			return nil, err
 		}
+
+		certmagic.Default.Logger = logging.Logger("certmagic").Desugar()
 
 		certMgr, err := p2pforge.NewP2PForgeCertMgr(
 			p2pforge.WithForgeDomain(cfg.ForgeDomain.WithDefault(config.DefaultForgeDomain)),
