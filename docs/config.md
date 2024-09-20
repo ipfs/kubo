@@ -278,6 +278,12 @@ Type: `array[string]` (multiaddrs)
 An array of swarm addresses not to announce to the network.
 Takes precedence over `Addresses.Announce` and `Addresses.AppendAnnounce`.
 
+> [!TIP]
+> The [`server` configuration profile](#server-profile) fills up this list with sensible defaults,
+> preventing announcement of non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
+> which is the multiaddress representation of `192.168.0.0/16`) but you should always
+> check settings against your own network and/or hosting provider.
+
 Default: `[]`
 
 Type: `array[string]` (multiaddrs)
@@ -1645,10 +1651,11 @@ node will try to connect to one or more private IP addresses whenever dialing
 another node, even if this other node is on a different network. This may
 trigger netscan alerts on some hosting providers or cause strain in some setups.
 
-The `server` configuration profile fills up this list with sensible defaults,
-preventing dials to all non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
-which is the multiaddress representation of `192.168.0.0/16`) but you should always
-check settings against your own network and/or hosting provider.
+> [!TIP]
+> The [`server` configuration profile](#server-profile) fills up this list with sensible defaults,
+> preventing dials to all non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
+> which is the multiaddress representation of `192.168.0.0/16`) but you should always
+> check settings against your own network and/or hosting provider.
 
 Default: `[]`
 
@@ -1666,7 +1673,7 @@ Type: `bool`
 
 ### `Swarm.DisableNatPortMap`
 
-Disable automatic NAT port forwarding.
+Disable automatic NAT port forwarding (turn off [UPnP](https://en.wikipedia.org/wiki/Universal_Plug_and_Play)).
 
 When not disabled (default), Kubo asks NAT devices (e.g., routers), to open
 up an external port and forward it to the port Kubo is running on. When this
@@ -2337,10 +2344,10 @@ documented in `ipfs config profile --help`.
 
 ### `server` profile
 
-Disables local [`Discovery.MDNS`](#discoverymdns) and blocks connections to
+Disables local [`Discovery.MDNS`](#discoverymdns), [turns off uPnP NAT port mapping](#swarmdisablenatportmap),  and blocks connections to
 IPv4 and IPv6 prefixes that are [private, local only, or unrouteable](https://github.com/ipfs/kubo/blob/b71cf0d15904bdef21fe2eee5f1118a274309a4d/config/profile.go#L24-L43).
 
-Recommended when running IPFS on machines with public IPv4 addresses
+Recommended when running IPFS on machines with public IPv4 addresses (no NAT, no uPnP)
 at providers that interpret local IPFS discovery and traffic as netscan abuse ([example](https://github.com/ipfs/kubo/issues/10327)).
 
 ### `randomports` profile
