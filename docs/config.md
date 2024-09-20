@@ -2331,6 +2331,7 @@ applied with the `--profile` flag to `ipfs init` or with the `ipfs config profil
 apply` command. When a profile is applied a backup of the configuration file
 will be created in `$IPFS_PATH`.
 
+Configuration profiles can be applied additively. For example, both the `test-cid-v1` and `lowpower` profiles can be applied one after the other.
 The available configuration profiles are listed below. You can also find them
 documented in `ipfs config profile --help`.
 
