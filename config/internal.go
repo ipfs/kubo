@@ -14,5 +14,5 @@ type InternalBitswap struct {
 	EngineTaskWorkerCount       OptionalInteger
 	MaxOutstandingBytesPerPeer  OptionalInteger
 	ProviderSearchDelay         OptionalDuration
-	ReplaceHasWithBlockMaxSize  OptionalInteger
+	WantHaveReplaceSize         OptionalInteger
 }

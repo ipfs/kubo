@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0
 	github.com/ipfs-shipyard/nopfs v0.0.12
 	github.com/ipfs-shipyard/nopfs/ipfs v0.13.2-0.20231027223058-cde3b5ba964c
-	github.com/ipfs/boxo v0.23.1-0.20240914020010-ff77293b4d47
+	github.com/ipfs/boxo v0.23.1-0.20240920193856-639ef65ebcb1
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-cidutil v0.1.0
