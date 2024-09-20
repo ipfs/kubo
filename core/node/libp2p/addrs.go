@@ -131,32 +131,41 @@ func ListenOn(addresses []string) interface{} {
 	}
 }
 
-func P2PForgeCertMgr() (*p2pforge.P2PForgeCertMgr, error) {
-	storagePath, err := config.Path("", "p2p-forge-certs")
-	if err != nil {
-		return nil, err
+func P2PForgeCertMgr(cfg config.ForgeClient) interface{} {
+	return func() (*p2pforge.P2PForgeCertMgr, error) {
+		storagePath, err := config.Path("", "p2p-forge-certs")
+		if err != nil {
+			return nil, err
+		}
+
+		const authEnvVar = "FORGE_ACCESS_TOKEN"
+		const authForgeHeader = "Forge-Authorization" // TODO: move to p2pforge client lib
+		authKey, foundAuthKey := os.LookupEnv(authEnvVar)
+		if !foundAuthKey {
+			authKey = cfg.ForgeAuth.WithDefault("")
+			foundAuthKey = cfg.ForgeAuth.IsDefault()
+		}
+
+		certMgr, err := p2pforge.NewP2PForgeCertMgr(
+			p2pforge.WithForgeDomain(cfg.ForgeDomain.WithDefault(config.DefaultForgeDomain)),
+			p2pforge.WithForgeRegistrationEndpoint(cfg.ForgeEndpoint.WithDefault(config.DefaultForgeEndpoint)),
+			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),
+			p2pforge.WithModifiedForgeRequest(func(req *http.Request) error {
+				if foundAuthKey {
+					req.Header.Set(authForgeHeader, authKey)
+				}
+				return nil
+			}),
+			p2pforge.WithCertificateStorage(&certmagic.FileStorage{Path: storagePath}))
+		if err != nil {
+			return nil, err
+		}
+
+		return certMgr, nil
 	}
-
-	const authEnvVar = "FORGE_ACCESS_TOKEN"
-	const authForgeHeader = "Forge-Authorization"
-	authKey, foundAuthKey := os.LookupEnv(authEnvVar)
-
-	certMgr, err := p2pforge.NewP2PForgeCertMgr(
-		p2pforge.WithModifiedForgeRequest(func(req *http.Request) error {
-			if foundAuthKey {
-				req.Header.Set(authForgeHeader, authKey)
-			}
-			return nil
-		}),
-		p2pforge.WithCertificateStorage(&certmagic.FileStorage{Path: storagePath}))
-	if err != nil {
-		return nil, err
-	}
-
-	return certMgr, nil
 }
 
-func StartP2PForgeCertMgr(lc fx.Lifecycle, certMgr *p2pforge.P2PForgeCertMgr, h host.Host) {
+func StartP2PForgeClient(lc fx.Lifecycle, certMgr *p2pforge.P2PForgeCertMgr, h host.Host) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			certMgr.ProvideHost(h)
