@@ -39,6 +39,12 @@ Uses a leveldb database to store key value pairs.
 
 Uses [badger](https://github.com/dgraph-io/badger) as a key value store.
 
+> [!CAUTION]
+> This is based on very old badger 1.x, which has known bugs and is no longer supported by the upstream team.
+> It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
+> Do not use it for new deployments, unless you really, really know what you are doing.
+
+
 * `syncWrites`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a 2-3x slowdown when adding files).
 * `truncate`: Truncate the DB if a partially written sector is found (defaults to true). There is no good reason to set this to false unless you want to manually recover partially written (and unpinned) blocks if kubo crashes half-way through adding a file.
 
