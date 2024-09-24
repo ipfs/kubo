@@ -1,7 +1,7 @@
 package corehttp
 
 // WebUI version confirmed to work with this Kubo version
-const WebUIPath = "/ipfs/bafybeideglc722hiwhsy4kiyl2fivf5lr6wozy2iuixtgzkvl3v4hasaty" // v4.3.1
+const WebUIPath = "/ipfs/bafybeif6abowqcavbkz243biyh7pde7ick5kkwwytrh7pd2hkbtuqysjxy" // v4.3.2
 
 // WebUIPaths is a list of all past webUI paths.
 var WebUIPaths = []string{
