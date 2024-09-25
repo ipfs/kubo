@@ -692,6 +692,9 @@ It is useful when you want to run [Path gateway](https://specs.ipfs.tech/http-ga
 and [Subdomain gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/) on `cid.ipfs.example.org`, 
 or limit `verifiable.example.net` to response types defined in [Trustless Gateway](https://specs.ipfs.tech/http-gateways/trustless-gateway/) specification.
 
+> [!CAUTION]
+> Keys (Hostnames) MUST be unique. Do not use the same parent domain for multiple gateway types, it will break origin isolation.
+
 Hostnames can optionally be defined with one or more wildcards.
 
 Examples:
