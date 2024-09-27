@@ -586,7 +586,7 @@ take effect.
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
 	// start MFS pinning thread
-	startPinMFS(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node})
+	startPinMFS(cctx, daemonConfigPollInterval, &ipfsPinMFSNode{node})
 
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
