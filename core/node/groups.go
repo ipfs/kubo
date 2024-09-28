@@ -113,6 +113,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(true) // nolint
 	enableRelayService := cfg.Swarm.RelayService.Enabled.WithDefault(enableRelayTransport)
 	enableRelayClient := cfg.Swarm.RelayClient.Enabled.WithDefault(enableRelayTransport)
+	enableForgeClient := cfg.Swarm.ForgeClient.Enabled.WithDefault(config.DefaultForgeEnabled)
 
 	// Log error when relay subsystem could not be initialized due to missing dependency
 	if !enableRelayTransport {
@@ -122,6 +123,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		if enableRelayClient {
 			logger.Fatal("Failed to enable `Swarm.RelayClient`, it requires `Swarm.Transports.Network.Relay` to be true.")
 		}
+	}
+	if enableForgeClient && !cfg.Swarm.Transports.Network.Websocket.WithDefault(true) {
+		logger.Fatal("Failed to enable `Swarm.ForgeClient`, it requires `Swarm.Transports.Network.Websocket` to be true.")
 	}
 
 	// Gather all the options
@@ -133,6 +137,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		// Services (resource management)
 		fx.Provide(libp2p.ResourceManager(cfg.Swarm, userResourceOverrides)),
+		maybeProvide(libp2p.P2PForgeCertMgr(cfg.Swarm.ForgeClient), enableForgeClient),
+		maybeInvoke(libp2p.StartP2PForgeClient, enableForgeClient),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
