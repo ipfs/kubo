@@ -221,6 +221,8 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 
 		// Block unless --background=true is passed
 		if !req.Options[pinBackgroundOptionName].(bool) {
+			const pinWaitTime = 500 * time.Millisecond
+			var timer *time.Timer
 			requestID := ps.GetRequestId()
 			for {
 				ps, err = c.GetStatusByID(ctx, requestID)
@@ -237,10 +239,15 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 				if s == pinclient.StatusFailed {
 					return fmt.Errorf("remote service failed to pin requestid=%q", requestID)
 				}
-				tmr := time.NewTimer(time.Second / 2)
+				if timer == nil {
+					timer = time.NewTimer(pinWaitTime)
+				} else {
+					timer.Reset(pinWaitTime)
+				}
 				select {
-				case <-tmr.C:
+				case <-timer.C:
 				case <-ctx.Done():
+					timer.Stop()
 					return fmt.Errorf("waiting for pin interrupted, requestid=%q remains on remote service", requestID)
 				}
 			}

@@ -124,7 +124,7 @@ This profile may only be applied when first initializing the node.
 	"flatfs": {
 		Description: `Configures the node to use the flatfs datastore.
 
-This is the most battle-tested and reliable datastore. 
+This is the most battle-tested and reliable datastore.
 You should use this datastore if:
 
 * You need a very simple and very reliable datastore, and you trust your
@@ -145,21 +145,20 @@ This profile may only be applied when first initializing the node.
 		},
 	},
 	"badgerds": {
-		Description: `Configures the node to use the experimental badger datastore.
+		Description: `Configures the node to use the legacy badgerv1 datastore.
 
-Use this datastore if some aspects of performance, 
-especially the speed of adding many gigabytes of files, are critical.
-However, be aware that:
+NOTE: this is badger 1.x, which has known bugs and is no longer supported by the upstream team.
+It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
+
+Other caveats:
 
 * This datastore will not properly reclaim space when your datastore is
   smaller than several gigabytes.  If you run IPFS with --enable-gc, you plan
   on storing very little data in your IPFS node, and disk usage is more
   critical than performance, consider using flatfs.
-* This datastore uses up to several gigabytes of memory.  
+* This datastore uses up to several gigabytes of memory.
 * Good for medium-size datastores, but may run into performance issues
   if your dataset is bigger than a terabyte.
-* The current implementation is based on old badger 1.x
-  which is no longer supported by the upstream team.
 
 This profile may only be applied when first initializing the node.`,
 
