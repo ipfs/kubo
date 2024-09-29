@@ -63,8 +63,6 @@ type DirEntry struct {
 
 	Mode    os.FileMode
 	ModTime time.Time
-
-	Err error
 }
 
 // UnixfsAPI is the basic interface to immutable files in IPFS
@@ -81,7 +79,50 @@ type UnixfsAPI interface {
 	// to operations performed on the returned file
 	Get(context.Context, path.Path) (files.Node, error)
 
-	// Ls returns the list of links in a directory. Links aren't guaranteed to be
-	// returned in order
-	Ls(context.Context, path.Path, ...options.UnixfsLsOption) (<-chan DirEntry, error)
+	// Ls returns the list of links in a directory. Links aren't guaranteed to
+	// be returned in order. If an error occurs, the DirEntry channel is closed
+	// and an error is output on the error channel. Both channels are closed if
+	// the context is canceled.
+	//
+	// Example:
+	//
+	//	dirs, errs := Ls(ctx, p)
+	//	for dirEnt := range dirs {
+	//		fmt.Println("Dir name:", dirEnt.Name)
+	//	}
+	//	err := <-errs
+	//	if err != nil {
+	//		return fmt.Errorf("error listing directory: %w", err)
+	//	}
+	Ls(context.Context, path.Path, ...options.UnixfsLsOption) (<-chan DirEntry, <-chan error)
 }
+
+/* TODO: Uncomment after go1.23 required.
+// LsIter returns a go iterator that allows ranging over DirEntry results.
+// Iteration stops if the context is canceled or if the iterator yields an
+// error.
+//
+// Exmaple:
+//
+//	for dirEnt, err := LsIter(ctx, ufsAPI, p) {
+//		if err != nil {
+//			return fmt.Errorf("error listing directory: %w", err)
+//		}
+//		fmt.Println("Dir name:", dirEnt.Name)
+//	}
+func LsIter(ctx context.Context, api UnixfsAPI, p path.Path, opts ...options.UnixfsLsOption) iter.Seq2[DirEntry, error] {
+	return func(yield func(DirEntry, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel() // cancel Ls if done iterating early
+		results, asyncErr := api.Ls(ctx, p, opts...)
+		for result := range results {
+			if !yield(result, nil) {
+				return
+			}
+		}
+		if err != <-asyncErr; err != nil {
+			yield(nil, err)
+		}
+	}
+}
+*/

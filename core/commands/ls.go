@@ -139,17 +139,11 @@ The JSON output contains type information.
 				return err
 			}
 
-			results, err := api.Unixfs().Ls(req.Context, pth,
+			results, errCh := api.Unixfs().Ls(req.Context, pth,
 				options.Unixfs.ResolveChildren(resolveSize || resolveType))
-			if err != nil {
-				return err
-			}
 
 			processLink, dirDone = processDir()
 			for link := range results {
-				if link.Err != nil {
-					return link.Err
-				}
 				var ftype unixfs_pb.Data_DataType
 				switch link.Type {
 				case iface.TFile:
@@ -173,6 +167,9 @@ The JSON output contains type information.
 				if err := processLink(paths[i], lsLink); err != nil {
 					return err
 				}
+			}
+			if err = <-errCh; err != nil {
+				return err
 			}
 			dirDone(i)
 		}

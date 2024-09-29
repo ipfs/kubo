@@ -18,9 +18,6 @@ type Pin interface {
 
 	// Type of the pin
 	Type() string
-
-	// if not nil, an error happened. Everything else should be ignored.
-	Err() error
 }
 
 // PinStatus holds information about pin health
@@ -51,7 +48,7 @@ type PinAPI interface {
 	Add(context.Context, path.Path, ...options.PinAddOption) error
 
 	// Ls returns list of pinned objects on this node
-	Ls(context.Context, ...options.PinLsOption) (<-chan Pin, error)
+	Ls(context.Context, ...options.PinLsOption) (<-chan Pin, <-chan error)
 
 	// IsPinned returns whether or not the given cid is pinned
 	// and an explanation of why its pinned

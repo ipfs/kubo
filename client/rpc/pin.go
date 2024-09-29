@@ -62,10 +62,16 @@ type pinLsObject struct {
 	Type string
 }
 
-func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan iface.Pin, error) {
+func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan iface.Pin, <-chan error) {
+	pins := make(chan iface.Pin)
+	errOut := make(chan error, 1)
+
 	options, err := caopts.PinLsOptions(opts...)
 	if err != nil {
-		return nil, err
+		errOut <- err
+		close(pins)
+		close(errOut)
+		return pins, errOut
 	}
 
 	res, err := api.core().Request("pin/ls").
@@ -73,38 +79,32 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan i
 		Option("stream", true).
 		Send(ctx)
 	if err != nil {
-		return nil, err
+		errOut <- err
+		close(pins)
+		close(errOut)
+		return pins, errOut
 	}
 
-	pins := make(chan iface.Pin)
-	go func(ch chan<- iface.Pin) {
+	go func(ch chan<- iface.Pin, errCh chan<- error) {
 		defer res.Output.Close()
 		defer close(ch)
+		defer close(errCh)
 
 		dec := json.NewDecoder(res.Output)
 		var out pinLsObject
 		for {
-			switch err := dec.Decode(&out); err {
-			case nil:
-			case io.EOF:
-				return
-			default:
-				select {
-				case ch <- pin{err: err}:
-					return
-				case <-ctx.Done():
-					return
+			err := dec.Decode(&out)
+			if err != nil {
+				if err != io.EOF {
+					errCh <- err
 				}
+				return
 			}
 
 			c, err := cid.Parse(out.Cid)
 			if err != nil {
-				select {
-				case ch <- pin{err: err}:
-					return
-				case <-ctx.Done():
-					return
-				}
+				errCh <- err
+				return
 			}
 
 			select {
@@ -113,8 +113,8 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan i
 				return
 			}
 		}
-	}(pins)
-	return pins, nil
+	}(pins, errOut)
+	return pins, errOut
 }
 
 // IsPinned returns whether or not the given cid is pinned

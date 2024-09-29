@@ -593,19 +593,15 @@ func assertNotPinned(t *testing.T, ctx context.Context, api iface.CoreAPI, p pat
 	}
 }
 
-func accPins(pins <-chan iface.Pin, err error) ([]iface.Pin, error) {
-	if err != nil {
+func accPins(pins <-chan iface.Pin, errs <-chan error) ([]iface.Pin, error) {
+	var results []iface.Pin
+
+	for pin := range pins {
+		results = append(results, pin)
+	}
+	if err := <-errs; err != nil {
 		return nil, err
 	}
 
-	var result []iface.Pin
-
-	for pin := range pins {
-		if pin.Err() != nil {
-			return nil, pin.Err()
-		}
-		result = append(result, pin)
-	}
-
-	return result, nil
+	return results, nil
 }
