@@ -4,9 +4,9 @@ test_description="Test non-standard datastores"
 
 . lib/test-lib.sh
 
-test_expect_success "'ipfs init --empty-repo=false --profile=badgerds' succeeds" '
+test_expect_success "'ipfs init --empty-repo=false --profile=pebbleds' succeeds" '
   BITS="2048" &&
-  ipfs init --empty-repo=false --profile=badgerds
+  ipfs init --empty-repo=false --profile=pebbleds
 '
 
 test_expect_success "'ipfs pin ls' works" '
