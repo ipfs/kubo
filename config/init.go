@@ -138,6 +138,28 @@ func DefaultDatastoreConfig() Datastore {
 	}
 }
 
+func pebbleSpec() map[string]interface{} {
+	return map[string]interface{}{
+		"type":   "measure",
+		"prefix": "pebble.datastore",
+		"child": map[string]interface{}{
+			"type":                        "pebbleds",
+			"path":                        "pebbleds",
+			"bytesPerSync":                0,
+			"bisableWAL":                  false,
+			"cacheSize":                   0,
+			"l0CompactionThreshold":       0,
+			"l0StopWritesThreshold":       0,
+			"lBaseMaxBytes":               0,
+			"maxConcurrentCompactions":    0,
+			"memTableSize":                0,
+			"memTableStopWritesThreshold": 0,
+			"walBytesPerSync":             0,
+			"walMinSyncSeconds":           0,
+		},
+	}
+}
+
 func badgerSpec() map[string]interface{} {
 	return map[string]interface{}{
 		"type":   "measure",

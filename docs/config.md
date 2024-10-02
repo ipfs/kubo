@@ -181,6 +181,7 @@ config file at runtime.
     - [`local-discovery` profile](#local-discovery-profile)
     - [`default-networking` profile](#default-networking-profile)
     - [`flatfs` profile](#flatfs-profile)
+    - [`pebbleds` profile](#pebbleds-profile)
     - [`badgerds` profile](#badgerds-profile)
     - [`lowpower` profile](#lowpower-profile)
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
@@ -2413,6 +2414,21 @@ You should use this datastore if:
 - You need to run garbage collection in a way that reclaims free space as soon as possible.
 - You want to minimize memory usage.
 - You are ok with the default speed of data import, or prefer to use `--nocopy`.
+
+This profile may only be applied when first initializing the node.
+
+### `pebbleds` profile
+
+Configures the node to use the pebble high-performance datastore.
+
+Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and internal usage by CockroachDB.
+You should use this datastore if:
+
+- You need a datastore that is focused on performance.
+- You need reliability by default, but may choose to disable WAL for maximum performance when reliability is not critical.
+- This datastore is good for multi-terrabyte data sets.
+- May benefit from tuning depeending on read/write patterns and throughput.
+- Performance is helped significnatly by running on a system with plenty of memory.
 
 This profile may only be applied when first initializing the node.
 

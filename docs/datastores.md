@@ -35,6 +35,32 @@ Uses a leveldb database to store key value pairs.
 }
 ```
 
+## pebbleds
+
+Uses [pebble](https://github.com/cockroachdb/pebble) as a key value store.
+
+#### The following options are availble for tuning pebble. If they are not configured (or assigned their zero-valued), then default values are used. Start using pebble with only default values and configure tuning items are needed for your needs. For a more complete description of these values, see: https://pkg.go.dev/github.com/cockroachdb/pebble@v1.1.2#Options
+
+* `bytesPerSync`: int, Sync sstables periodically in order to smooth out writes to disk. (default: 512KB)
+* `bisableWAL`: true|false, Disable the write-ahead log (WAL) at expense of prohibiting crash recovery. (default: false)
+* `cacheSize`: Size of pebble's shared block cache. (default: 8MB)
+* `l0CompactionThreshold`: int, Count of L0 files necessary to trigger an L0 compaction.
+* `l0StopWritesThreshold`: int, Limit on L0 read-amplification, computed as the number of L0 sublevels.
+* `lBaseMaxBytes`: int, Maximum number of bytes for LBase. The base level is the level which L0 is compacted into.
+* `maxConcurrentCompactions`: int, Maximum number of concurrent compactions. (default: 1)
+* `memTableSize`: int, Size of a MemTable in steady state. The actual MemTable size starts at min(256KB, MemTableSize) and doubles for each subsequent MemTable up to MemTableSize (default: 4MB)
+* `memTableStopWritesThreshold`: int, Limit on the number of queued of MemTables. (default: 2)
+* `walBytesPerSync`: int: Sets the number of bytes to write to a WAL before calling Sync on it in the background. (default: 0, no background syncing)
+* `walMinSyncSeconds`: int: Sets the minimum duration between syncs of the WAL. (default: 0)
+
+
+```json
+{
+	"type": "pebbleds",
+	"path": "<location of pebble inside repo>",
+}
+```
+
 ## badgerds
 
 Uses [badger](https://github.com/dgraph-io/badger) as a key value store.
