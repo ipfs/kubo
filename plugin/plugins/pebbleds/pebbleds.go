@@ -109,7 +109,7 @@ func (*pebbledsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 
 		if bytesPerSync != 0 || disableWAL || l0CompactionThreshold != 0 || l0StopWritesThreshold != 0 || lBaseMaxBytes != 0 || maxConcurrentCompactions != 0 || memTableSize != 0 || memTableStopWritesThreshold != 0 || walBytesPerSync != 0 || walMinSyncSec != 0 {
 			c.pebbleOpts = &pebble.Options{
-				//BytesPerSync:                 bytesPerSyn,
+				BytesPerSync:                bytesPerSync,
 				DisableWAL:                  disableWAL,
 				L0CompactionThreshold:       l0CompactionThreshold,
 				L0StopWritesThreshold:       l0StopWritesThreshold,
