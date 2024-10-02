@@ -142,18 +142,6 @@ func getConfigBool(name string, params map[string]any) (bool, error) {
 	return false, nil
 }
 
-func getConfigString(name string, params map[string]any) (string, error) {
-	val, ok := params[name]
-	if ok {
-		sval, ok := val.(string)
-		if !ok {
-			return "", fmt.Errorf("%q field was not a string", name)
-		}
-		return sval, nil
-	}
-	return "", nil
-}
-
 func getConfigInt(name string, params map[string]any) (int, error) {
 	val, ok := params[name]
 	if ok {
