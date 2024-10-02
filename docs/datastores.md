@@ -3,6 +3,13 @@
 This document describes the different possible values for the `Datastore.Spec`
 field in the ipfs configuration file.
 
+- [flatfs](#flatfs)
+- [levelds](#levelds)
+- [pebbleds](#pebbleds)
+- [badgerds](#badgerds)
+- [mount](#mount)
+- [measure](#measure)
+
 ## flatfs
 
 Stores each key value pair as a file on the filesystem.
@@ -39,7 +46,15 @@ Uses a leveldb database to store key value pairs.
 
 Uses [pebble](https://github.com/cockroachdb/pebble) as a key value store.
 
-#### The following options are availble for tuning pebble. If they are not configured (or assigned their zero-valued), then default values are used. Start using pebble with only default values and configure tuning items are needed for your needs. For a more complete description of these values, see: https://pkg.go.dev/github.com/cockroachdb/pebble@v1.1.2#Options
+```json
+{
+	"type": "pebbleds",
+	"path": "<location of pebble inside repo>",
+}
+```
+
+The following options are availble for tuning pebble.
+If they are not configured (or assigned their zero-valued), then default values are used.
 
 * `bytesPerSync`: int, Sync sstables periodically in order to smooth out writes to disk. (default: 512KB)
 * `bisableWAL`: true|false, Disable the write-ahead log (WAL) at expense of prohibiting crash recovery. (default: false)
@@ -53,13 +68,8 @@ Uses [pebble](https://github.com/cockroachdb/pebble) as a key value store.
 * `walBytesPerSync`: int: Sets the number of bytes to write to a WAL before calling Sync on it in the background. (default: 0, no background syncing)
 * `walMinSyncSeconds`: int: Sets the minimum duration between syncs of the WAL. (default: 0)
 
-
-```json
-{
-	"type": "pebbleds",
-	"path": "<location of pebble inside repo>",
-}
-```
+> [!TIP]
+> Start using pebble with only default values and configure tuning items are needed for your needs. For a more complete description of these values, see: `https://pkg.go.dev/github.com/cockroachdb/pebble@vA.B.C#Options` (where `A.B.C` is pebble version from Kubo's `go.mod`).
 
 ## badgerds
 

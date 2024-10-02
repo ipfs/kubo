@@ -523,8 +523,8 @@ Spec defines the structure of the ipfs datastore. It is a composable structure,
 where each datastore is represented by a json object. Datastores can wrap other
 datastores to provide extra functionality (eg metrics, logging, or caching).
 
-For more information on possible values for this configuration option, see
-[docs/datastores.md](datastores.md)
+> [!NOTE]
+> For more information on possible values for this configuration option, see [`kubo/docs/datastores.md`](datastores.md)
 
 Default:
 ```
@@ -2397,9 +2397,9 @@ Inverse profile of the test profile.
 
 ### `flatfs` profile
 
-Configures the node to use the flatfs datastore. Flatfs is the default datastore.
+Configures the node to use the flatfs datastore.
+Flatfs is the default, most battle-tested and reliable datastore.
 
-This is the most battle-tested and reliable datastore.
 You should use this datastore if:
 
 - You need a very simple and very reliable datastore, and you trust your
@@ -2410,7 +2410,11 @@ You should use this datastore if:
 - You want to minimize memory usage.
 - You are ok with the default speed of data import, or prefer to use `--nocopy`.
 
-This profile may only be applied when first initializing the node.
+> [!WARNING]
+> This profile may only be applied when first initializing the node via `ipfs init --profile flatfs`
+
+> [!NOTE]
+> See caveats and configuration options at [`datastores.md#flatfs`](datastores.md#flatfs)
 
 ### `pebbleds` profile
 
@@ -2425,7 +2429,11 @@ You should use this datastore if:
 - May benefit from tuning depeending on read/write patterns and throughput.
 - Performance is helped significnatly by running on a system with plenty of memory.
 
-This profile may only be applied when first initializing the node.
+> [!WARNING]
+> This profile may only be applied when first initializing the node via `ipfs init --profile pebbleds`
+
+> [!NOTE]
+> See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
 
 ### `badgerds` profile
 
@@ -2446,7 +2454,11 @@ Also, be aware that:
 - Good for medium-size datastores, but may run into performance issues if your dataset is bigger than a terabyte.
 - The current implementation is based on old badger 1.x which is no longer supported by the upstream team.
 
-This profile may only be applied when first initializing the node.
+> [!WARNING]
+> This profile may only be applied when first initializing the node via `ipfs init --profile badgerds`
+
+> [!NOTE]
+> See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
 
 ### `lowpower` profile
 
