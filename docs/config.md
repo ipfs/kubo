@@ -523,11 +523,6 @@ Spec defines the structure of the ipfs datastore. It is a composable structure,
 where each datastore is represented by a json object. Datastores can wrap other
 datastores to provide extra functionality (eg metrics, logging, or caching).
 
-This can be changed manually, however, if you make any changes that require a
-different on-disk structure, you will need to run the [ipfs-ds-convert
-tool](https://github.com/ipfs/ipfs-ds-convert) to migrate data into the new
-structures.
-
 For more information on possible values for this configuration option, see
 [docs/datastores.md](datastores.md)
 
