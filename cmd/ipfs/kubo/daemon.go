@@ -600,8 +600,25 @@ take effect.
 		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
 	}()
 
-	// Give the user heads up if daemon running in online mode has no peers after 1 minute
 	if !offline {
+		// Warn users who were victims of 'lowprofile' footgun (https://github.com/ipfs/kubo/pull/10524)
+		if cfg.Experimental.StrategicProviding {
+			fmt.Print(`
+⚠️ Reprovide system is disabled due to 'Experimental.StrategicProviding=true'
+⚠️ Local CIDs will not be announced to Amino DHT, making them impossible to retrieve without manual peering
+⚠️ If this is not intentional, call 'ipfs config profile apply announce-on'
+
+`)
+		} else if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) == 0 {
+			fmt.Print(`
+⚠️ Reprovider system is disabled due to 'Reprovider.Interval=0'
+⚠️ Local CIDs will not be announced to Amino DHT, making them impossible to retrieve without manual peering
+⚠️ If this is not intentional, call 'ipfs config profile apply announce-on', or set 'Reprovider.Interval=22h'
+
+`)
+		}
+
+		// Give the user heads up if daemon running in online mode has no peers after 1 minute
 		time.AfterFunc(1*time.Minute, func() {
 			cfg, err := cctx.GetConfig()
 			if err != nil {
