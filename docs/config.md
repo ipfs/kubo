@@ -2426,8 +2426,8 @@ You should use this datastore if:
 - You need a datastore that is focused on performance.
 - You need reliability by default, but may choose to disable WAL for maximum performance when reliability is not critical.
 - This datastore is good for multi-terrabyte data sets.
-- May benefit from tuning depeending on read/write patterns and throughput.
-- Performance is helped significnatly by running on a system with plenty of memory.
+- May benefit from tuning depending on read/write patterns and throughput.
+- Performance is helped significantly by running on a system with plenty of memory.
 
 > [!WARNING]
 > This profile may only be applied when first initializing the node via `ipfs init --profile pebbleds`
