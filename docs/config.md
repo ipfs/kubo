@@ -181,6 +181,7 @@ config file at runtime.
     - [`local-discovery` profile](#local-discovery-profile)
     - [`default-networking` profile](#default-networking-profile)
     - [`flatfs` profile](#flatfs-profile)
+    - [`pebbleds` profile](#pebbleds-profile)
     - [`badgerds` profile](#badgerds-profile)
     - [`lowpower` profile](#lowpower-profile)
     - [`announce-off` profile](#announce-off-profile)
@@ -524,13 +525,8 @@ Spec defines the structure of the ipfs datastore. It is a composable structure,
 where each datastore is represented by a json object. Datastores can wrap other
 datastores to provide extra functionality (eg metrics, logging, or caching).
 
-This can be changed manually, however, if you make any changes that require a
-different on-disk structure, you will need to run the [ipfs-ds-convert
-tool](https://github.com/ipfs/ipfs-ds-convert) to migrate data into the new
-structures.
-
-For more information on possible values for this configuration option, see
-[docs/datastores.md](datastores.md)
+> [!NOTE]
+> For more information on possible values for this configuration option, see [`kubo/docs/datastores.md`](datastores.md)
 
 Default:
 ```
@@ -2403,9 +2399,9 @@ Inverse profile of the test profile.
 
 ### `flatfs` profile
 
-Configures the node to use the flatfs datastore. Flatfs is the default datastore.
+Configures the node to use the flatfs datastore.
+Flatfs is the default, most battle-tested and reliable datastore.
 
-This is the most battle-tested and reliable datastore.
 You should use this datastore if:
 
 - You need a very simple and very reliable datastore, and you trust your
@@ -2416,7 +2412,30 @@ You should use this datastore if:
 - You want to minimize memory usage.
 - You are ok with the default speed of data import, or prefer to use `--nocopy`.
 
-This profile may only be applied when first initializing the node.
+> [!WARNING]
+> This profile may only be applied when first initializing the node via `ipfs init --profile flatfs`
+
+> [!NOTE]
+> See caveats and configuration options at [`datastores.md#flatfs`](datastores.md#flatfs)
+
+### `pebbleds` profile
+
+Configures the node to use the pebble high-performance datastore.
+
+Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and internal usage by CockroachDB.
+You should use this datastore if:
+
+- You need a datastore that is focused on performance.
+- You need reliability by default, but may choose to disable WAL for maximum performance when reliability is not critical.
+- This datastore is good for multi-terrabyte data sets.
+- May benefit from tuning depending on read/write patterns and throughput.
+- Performance is helped significantly by running on a system with plenty of memory.
+
+> [!WARNING]
+> This profile may only be applied when first initializing the node via `ipfs init --profile pebbleds`
+
+> [!NOTE]
+> See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
 
 ### `badgerds` profile
 
@@ -2437,7 +2456,11 @@ Also, be aware that:
 - Good for medium-size datastores, but may run into performance issues if your dataset is bigger than a terabyte.
 - The current implementation is based on old badger 1.x which is no longer supported by the upstream team.
 
-This profile may only be applied when first initializing the node.
+> [!WARNING]
+> This profile may only be applied when first initializing the node via `ipfs init --profile badgerds`
+
+> [!NOTE]
+> See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
 
 ### `lowpower` profile
 
