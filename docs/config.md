@@ -2430,7 +2430,7 @@ You should use this datastore if:
 - You need reliability by default, but may choose to disable WAL for maximum performance when reliability is not critical.
 - You want a datastore that does not need GC cycles and does not use more space than necessary
 - You want a datastore that does not take several minutes to start with large repositories
-- You want a datastore that performs well even with default settings, but can optimized by setting configuration to tune it to specific needs.
+- You want a datastore that performs well even with default settings, but can optimized by setting configuration to tune it for your specific needs.
 
 > [!WARNING]
 > This profile may only be applied when first initializing the node via `ipfs init --profile pebbleds`
