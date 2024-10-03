@@ -31,7 +31,7 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.5.1
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ds-measure v0.2.0
-	github.com/ipfs/go-ds-pebble v0.3.2-0.20241002075519-c174835dc84a
+	github.com/ipfs/go-ds-pebble v0.4.0
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-ipfs-cmds v0.13.0
 	github.com/ipfs/go-ipld-cbor v0.2.0
