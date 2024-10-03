@@ -1,5 +1,7 @@
 module github.com/ipfs/kubo
 
+go 1.22
+
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
@@ -30,7 +32,7 @@ require (
 	github.com/ipfs/go-ds-measure v0.2.0
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-ipfs-cmds v0.13.0
-	github.com/ipfs/go-ipld-cbor v0.1.0
+	github.com/ipfs/go-ipld-cbor v0.2.0
 	github.com/ipfs/go-ipld-format v0.6.0
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.2.1
@@ -41,7 +43,7 @@ require (
 	github.com/ipfs/go-test v0.0.4
 	github.com/ipfs/go-unixfsnode v1.9.1
 	github.com/ipld/go-car v0.6.2
-	github.com/ipld/go-car/v2 v2.13.1
+	github.com/ipld/go-car/v2 v2.14.2
 	github.com/ipld/go-codec-dagpb v1.6.0
 	github.com/ipld/go-ipld-prime v0.21.0
 	github.com/jbenet/go-temp-err-catcher v0.1.0
@@ -51,7 +53,7 @@ require (
 	github.com/libp2p/go-libp2p v0.36.4
 	github.com/libp2p/go-libp2p-http v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.26.1
-	github.com/libp2p/go-libp2p-kbucket v0.6.3
+	github.com/libp2p/go-libp2p-kbucket v0.6.4
 	github.com/libp2p/go-libp2p-pubsub v0.11.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
 	github.com/libp2p/go-libp2p-record v0.2.0
@@ -66,7 +68,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
-	github.com/prometheus/client_golang v1.19.1
+	github.com/prometheus/client_golang v1.20.4
 	github.com/stretchr/testify v1.9.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tidwall/gjson v1.14.4
@@ -83,11 +85,11 @@ require (
 	go.uber.org/fx v1.22.1
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.25.0
+	golang.org/x/crypto v0.27.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/mod v0.19.0
-	golang.org/x/sync v0.7.0
-	golang.org/x/sys v0.24.0
+	golang.org/x/sync v0.8.0
+	golang.org/x/sys v0.25.0
 	google.golang.org/protobuf v1.34.2
 )
 
@@ -237,10 +239,10 @@ require (
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/net v0.27.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
-	golang.org/x/term v0.23.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/term v0.24.0 // indirect
+	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
-	golang.org/x/xerrors v0.0.0-20240716161551-93cc26a95ae9 // indirect
+	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240617180043-68d350f18fd4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
@@ -250,5 +252,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
-
-go 1.22
