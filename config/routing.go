@@ -8,10 +8,12 @@ import (
 	"strings"
 )
 
-var (
+const (
 	DefaultAcceleratedDHTClient      = false
 	DefaultLoopbackAddressesOnLanDHT = false
+)
 
+var (
 	// Default HTTP routers used in parallel to DHT when Routing.Type = "auto"
 	DefaultHTTPRouters = getEnvOrDefault("IPFS_HTTP_ROUTERS", []string{
 		"https://cid.contact", // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
