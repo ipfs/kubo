@@ -2426,10 +2426,11 @@ Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and 
 You should use this datastore if:
 
 - You need a datastore that is focused on performance.
+- You need a datastore that is good for multi-terrabyte data sets.
 - You need reliability by default, but may choose to disable WAL for maximum performance when reliability is not critical.
-- This datastore is good for multi-terrabyte data sets.
-- May benefit from tuning depending on read/write patterns and throughput.
-- Performance is helped significantly by running on a system with plenty of memory.
+- You want a datastore that does not need GC cycles and does not use more space than necessary
+- You want a datastore that does not take several minutes to start with large repositories
+- You want a datastore that performs well even with default settings, but can optimized by setting configuration to tune it for your specific needs.
 
 > [!WARNING]
 > This profile may only be applied when first initializing the node via `ipfs init --profile pebbleds`
