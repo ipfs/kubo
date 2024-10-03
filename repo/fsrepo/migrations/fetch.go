@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,7 +26,7 @@ var DownloadDirectory string
 // is needed because the archive "go-ipfs_v0.7.0_linux-amd64.tar.gz" contains a
 // binary named "ipfs"
 //
-//     FetchBinary(ctx, fetcher, "go-ipfs", "v0.7.0", "ipfs", tmpDir)
+//	FetchBinary(ctx, fetcher, "go-ipfs", "v0.7.0", "ipfs", tmpDir)
 //
 // If out is a directory, then the binary is written to that directory with the
 // same name it has inside the archive.  Otherwise, the binary file is written
@@ -89,7 +88,7 @@ func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out s
 		}
 	} else {
 		// Create temp directory to store download
-		tmpDir, err = ioutil.TempDir("", arcName)
+		tmpDir, err = os.MkdirTemp("", arcName)
 		if err != nil {
 			return "", err
 		}
@@ -111,15 +110,14 @@ func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out s
 	}
 	defer arcFile.Close()
 
-	// Open connection to download archive from ipfs path
-	rc, err := fetcher.Fetch(ctx, arcDistPath)
+	// Open connection to download archive from ipfs path and write to file
+	arcBytes, err := fetcher.Fetch(ctx, arcDistPath)
 	if err != nil {
 		return "", err
 	}
-	defer rc.Close()
 
 	// Write download data
-	_, err = io.Copy(arcFile, rc)
+	_, err = io.Copy(arcFile, bytes.NewReader(arcBytes))
 	if err != nil {
 		return "", err
 	}
@@ -132,7 +130,7 @@ func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out s
 	}
 
 	// Set mode of binary to executable
-	err = os.Chmod(out, 0755)
+	err = os.Chmod(out, 0o755)
 	if err != nil {
 		return "", err
 	}
@@ -175,14 +173,14 @@ func osWithVariant() (string, error) {
 
 // makeArchivePath composes the path, relative to the distribution site, from which to
 // download a binary.  The path returned does not contain the distribution site path,
-// e.g. "/ipns/dist.ipfs.io/", since that is know to the fetcher.
+// e.g. "/ipns/dist.ipfs.tech/", since that is know to the fetcher.
 //
 // Returns the archive path and the base name.
 //
 // The ipfs path format is: distribution/version/archiveName
-// - distribution is the name of a distribution, such as "go-ipfs"
-// - version is the version to fetch, such as "v0.8.0-rc2"
-// - archiveName is formatted as name_version_osv-GOARCH.atype, such as
+//   - distribution is the name of a distribution, such as "go-ipfs"
+//   - version is the version to fetch, such as "v0.8.0-rc2"
+//   - archiveName is formatted as name_version_osv-GOARCH.atype, such as
 //     "go-ipfs_v0.8.0-rc2_linux-amd64.tar.gz"
 //
 // This would form the path:

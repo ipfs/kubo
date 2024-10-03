@@ -1,13 +1,17 @@
 # General performance debugging guidelines
 
-This is a document for helping debug go-ipfs. Please add to it if you can!
+This is a document for helping debug Kubo. Please add to it if you can!
 
-### Table of Contents
-- [Beginning](#beginning)
-- [Analyzing the stack dump](#analyzing-the-stack-dump)
-- [Analyzing the CPU Profile](#analyzing-the-cpu-profile)
-- [Analyzing vars and memory statistics](#analyzing-vars-and-memory-statistics)
-- [Other](#other)
+# Table of Contents
+
+- [General performance debugging guidelines](#general-performance-debugging-guidelines)
+- [Table of Contents](#table-of-contents)
+    - [Beginning](#beginning)
+    - [Analyzing the stack dump](#analyzing-the-stack-dump)
+    - [Analyzing the CPU Profile](#analyzing-the-cpu-profile)
+    - [Analyzing vars and memory statistics](#analyzing-vars-and-memory-statistics)
+    - [Tracing](#tracing)
+    - [Other](#other)
 
 ### Beginning
 
@@ -95,8 +99,13 @@ the quickest way to easily point out where the hot spots in the code are.
 
 The output is JSON formatted and includes badger store statistics, the command line run, and the output from Go's [runtime.ReadMemStats](https://golang.org/pkg/runtime/#ReadMemStats). The [MemStats](https://golang.org/pkg/runtime/#MemStats) has useful information about memory allocation and garbage collection.
 
+### Tracing
+
+Experimental tracing via OpenTelemetry suite of tools is available.
+See `tracing/doc.go` for more details.
+
 ### Other
 
-If you have any questions, or want us to analyze some weird go-ipfs behaviour,
+If you have any questions, or want us to analyze some weird kubo behaviour,
 just let us know, and be sure to include all the profiling information
 mentioned at the top.

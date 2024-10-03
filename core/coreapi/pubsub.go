@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	caopts "github.com/ipfs/interface-go-ipfs-core/options"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	routing "github.com/libp2p/go-libp2p-core/routing"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/tracing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	routing "github.com/libp2p/go-libp2p/core/routing"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type PubSubAPI CoreAPI
@@ -22,6 +25,9 @@ type pubSubMessage struct {
 }
 
 func (api *PubSubAPI) Ls(ctx context.Context) ([]string, error) {
+	_, span := tracing.Span(ctx, "CoreAPI.PubSubAPI", "Ls")
+	defer span.End()
+
 	_, err := api.checkNode()
 	if err != nil {
 		return nil, err
@@ -31,6 +37,9 @@ func (api *PubSubAPI) Ls(ctx context.Context) ([]string, error) {
 }
 
 func (api *PubSubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOption) ([]peer.ID, error) {
+	_, span := tracing.Span(ctx, "CoreAPI.PubSubAPI", "Peers")
+	defer span.End()
+
 	_, err := api.checkNode()
 	if err != nil {
 		return nil, err
@@ -41,10 +50,15 @@ func (api *PubSubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOptio
 		return nil, err
 	}
 
+	span.SetAttributes(attribute.String("topic", settings.Topic))
+
 	return api.pubSub.ListPeers(settings.Topic), nil
 }
 
 func (api *PubSubAPI) Publish(ctx context.Context, topic string, data []byte) error {
+	_, span := tracing.Span(ctx, "CoreAPI.PubSubAPI", "Publish", trace.WithAttributes(attribute.String("topic", topic)))
+	defer span.End()
+
 	_, err := api.checkNode()
 	if err != nil {
 		return err
@@ -55,6 +69,9 @@ func (api *PubSubAPI) Publish(ctx context.Context, topic string, data []byte) er
 }
 
 func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopts.PubSubSubscribeOption) (coreiface.PubSubSubscription, error) {
+	_, span := tracing.Span(ctx, "CoreAPI.PubSubAPI", "Subscribe", trace.WithAttributes(attribute.String("topic", topic)))
+	defer span.End()
+
 	// Parse the options to avoid introducing silent failures for invalid
 	// options. However, we don't currently have any use for them. The only
 	// subscription option, discovery, is now a no-op as it's handled by
@@ -80,7 +97,7 @@ func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 
 func (api *PubSubAPI) checkNode() (routing.Routing, error) {
 	if api.pubSub == nil {
-		return nil, errors.New("experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use.")
+		return nil, errors.New("experimental pubsub feature not enabled, run daemon with --enable-pubsub-experiment to use")
 	}
 
 	err := api.checkOnline(false)
@@ -97,6 +114,9 @@ func (sub *pubSubSubscription) Close() error {
 }
 
 func (sub *pubSubSubscription) Next(ctx context.Context) (coreiface.PubSubMessage, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.PubSubSubscription", "Next")
+	defer span.End()
+
 	msg, err := sub.subscription.Next(ctx)
 	if err != nil {
 		return nil, err

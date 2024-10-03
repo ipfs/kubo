@@ -6,13 +6,15 @@ import (
 
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipld/go-ipld-prime/multicodec"
 	basicnode "github.com/ipld/go-ipld-prime/node/basic"
 
+	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
 	mc "github.com/multiformats/go-multicodec"
 
@@ -31,10 +33,24 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 		return err
 	}
 
+	nd, err := cmdenv.GetNode(env)
+	if err != nil {
+		return err
+	}
+
+	cfg, err := nd.Repo.Config()
+	if err != nil {
+		return err
+	}
+
 	inputCodec, _ := req.Options["input-codec"].(string)
 	storeCodec, _ := req.Options["store-codec"].(string)
 	hash, _ := req.Options["hash"].(string)
 	dopin, _ := req.Options["pin"].(bool)
+
+	if hash == "" {
+		hash = cfg.Import.HashFunction.WithDefault(config.DefaultHashFunction)
+	}
 
 	var icodec mc.Code
 	if err := icodec.Set(inputCodec); err != nil {
@@ -100,6 +116,10 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 		ln := ipldlegacy.LegacyNode{
 			Block: blk,
 			Node:  n,
+		}
+
+		if err := cmdutils.CheckBlockSize(req, uint64(bd.Len())); err != nil {
+			return err
 		}
 
 		if err := b.Add(req.Context, &ln); err != nil {

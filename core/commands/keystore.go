@@ -2,26 +2,29 @@ package commands
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
 
+	keystore "github.com/ipfs/boxo/keystore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
-	keystore "github.com/ipfs/go-ipfs-keystore"
-	oldcmds "github.com/ipfs/go-ipfs/commands"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/ipfs/go-ipfs/core/commands/e"
-	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	migrations "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	oldcmds "github.com/ipfs/kubo/commands"
+	config "github.com/ipfs/kubo/config"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/e"
+	ke "github.com/ipfs/kubo/core/commands/keyencode"
+	options "github.com/ipfs/kubo/core/coreiface/options"
+	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
+	migrations "github.com/ipfs/kubo/repo/fsrepo/migrations"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	mbase "github.com/multiformats/go-multibase"
 )
 
 var KeyCmd = &cmds.Command{
@@ -49,12 +52,14 @@ publish'.
 		"rename": keyRenameCmd,
 		"rm":     keyRmCmd,
 		"rotate": keyRotateCmd,
+		"sign":   keySignCmd,
+		"verify": keyVerifyCmd,
 	},
 }
 
 type KeyOutput struct {
 	Name string
-	Id   string
+	Id   string //nolint
 }
 
 type KeyOutputList struct {
@@ -65,7 +70,7 @@ type KeyOutputList struct {
 type KeyRenameOutput struct {
 	Was       string
 	Now       string
-	Id        string
+	Id        string //nolint
 	Overwrite bool
 }
 
@@ -116,7 +121,6 @@ var keyGenCmd = &cmds.Command{
 		}
 
 		key, err := api.Key().Generate(req.Context, name, opts...)
-
 		if err != nil {
 			return err
 		}
@@ -135,6 +139,14 @@ var keyGenCmd = &cmds.Command{
 	Type: KeyOutput{},
 }
 
+const (
+	// Key format options used both for importing and exporting.
+	keyFormatOptionName            = "format"
+	keyFormatPemCleartextOption    = "pem-pkcs8-cleartext"
+	keyFormatLibp2pCleartextOption = "libp2p-protobuf-cleartext"
+	keyAllowAnyTypeOptionName      = "allow-any-key-type"
+)
+
 var keyExportCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Export a keypair",
@@ -143,6 +155,13 @@ Exports a named libp2p key to disk.
 
 By default, the output will be stored at './<key-name>.key', but an alternate
 path can be specified with '--output=<path>' or '-o=<path>'.
+
+It is possible to export a private key to interoperable PEM PKCS8 format by explicitly
+passing '--format=pem-pkcs8-cleartext'. The resulting PEM file can then be consumed
+elsewhere. For example, using openssl to get a PEM with public key:
+
+  $ ipfs key export testkey --format=pem-pkcs8-cleartext -o privkey.pem
+  $ openssl pkey -in privkey.pem -pubout > pubkey.pem
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -150,6 +169,7 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
+		cmds.StringOption(keyFormatOptionName, "f", "The format of the exported private key, libp2p-protobuf-cleartext or pem-pkcs8-cleartext.").WithDefault(keyFormatLibp2pCleartextOption),
 	},
 	NoRemote: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -186,12 +206,37 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			return fmt.Errorf("key with name '%s' doesn't exist", name)
 		}
 
-		encoded, err := crypto.MarshalPrivateKey(sk)
-		if err != nil {
-			return err
+		exportFormat, _ := req.Options[keyFormatOptionName].(string)
+		var formattedKey []byte
+		switch exportFormat {
+		case keyFormatPemCleartextOption:
+			stdKey, err := crypto.PrivKeyToStdKey(sk)
+			if err != nil {
+				return fmt.Errorf("converting libp2p private key to std Go key: %w", err)
+			}
+			// For some reason the ed25519.PrivateKey does not use pointer
+			// receivers, so we need to convert it for MarshalPKCS8PrivateKey.
+			// (We should probably change this upstream in PrivKeyToStdKey).
+			if ed25519KeyPointer, ok := stdKey.(*ed25519.PrivateKey); ok {
+				stdKey = *ed25519KeyPointer
+			}
+			// This function supports a restricted list of public key algorithms,
+			// but we generate and use only the RSA and ed25519 types that are on that list.
+			formattedKey, err = x509.MarshalPKCS8PrivateKey(stdKey)
+			if err != nil {
+				return fmt.Errorf("marshalling key to PKCS8 format: %w", err)
+			}
+
+		case keyFormatLibp2pCleartextOption:
+			formattedKey, err = crypto.MarshalPrivateKey(sk)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unrecognized export format: %s", exportFormat)
 		}
 
-		return res.Emit(bytes.NewReader(encoded))
+		return res.Emit(bytes.NewReader(formattedKey))
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
@@ -208,8 +253,16 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			}
 
 			outPath, _ := req.Options[outputOptionName].(string)
+			exportFormat, _ := req.Options[keyFormatOptionName].(string)
 			if outPath == "" {
-				trimmed := strings.TrimRight(fmt.Sprintf("%s.key", req.Arguments[0]), "/")
+				var fileExtension string
+				switch exportFormat {
+				case keyFormatPemCleartextOption:
+					fileExtension = "pem"
+				case keyFormatLibp2pCleartextOption:
+					fileExtension = "key"
+				}
+				trimmed := strings.TrimRight(fmt.Sprintf("%s.%s", req.Arguments[0], fileExtension), "/")
 				_, outPath = filepath.Split(trimmed)
 				outPath = filepath.Clean(outPath)
 			}
@@ -221,9 +274,26 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			}
 			defer file.Close()
 
-			_, err = io.Copy(file, outReader)
-			if err != nil {
-				return err
+			switch exportFormat {
+			case keyFormatPemCleartextOption:
+				privKeyBytes, err := io.ReadAll(outReader)
+				if err != nil {
+					return err
+				}
+
+				err = pem.Encode(file, &pem.Block{
+					Type:  "PRIVATE KEY",
+					Bytes: privKeyBytes,
+				})
+				if err != nil {
+					return fmt.Errorf("encoding PEM block: %w", err)
+				}
+
+			case keyFormatLibp2pCleartextOption:
+				_, err = io.Copy(file, outReader)
+				if err != nil {
+					return err
+				}
 			}
 
 			return nil
@@ -234,9 +304,23 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 var keyImportCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Import a key and prints imported key id",
+		ShortDescription: `
+Imports a key and stores it under the provided name.
+
+By default, the key is assumed to be in 'libp2p-protobuf-cleartext' format,
+however it is possible to import private keys wrapped in interoperable PEM PKCS8
+by passing '--format=pem-pkcs8-cleartext'.
+
+The PEM format allows for key generation outside of the IPFS node:
+
+  $ openssl genpkey -algorithm ED25519 > ed25519.pem
+  $ ipfs key import test-openssl -f pem-pkcs8-cleartext ed25519.pem
+`,
 	},
 	Options: []cmds.Option{
 		ke.OptionIPNSBase,
+		cmds.StringOption(keyFormatOptionName, "f", "The format of the private key to import, libp2p-protobuf-cleartext or pem-pkcs8-cleartext.").WithDefault(keyFormatLibp2pCleartextOption),
+		cmds.BoolOption(keyAllowAnyTypeOptionName, "Allow importing any key type.").WithDefault(false),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name to associate with key in keychain"),
@@ -260,14 +344,66 @@ var keyImportCmd = &cmds.Command{
 		}
 		defer file.Close()
 
-		data, err := ioutil.ReadAll(file)
+		data, err := io.ReadAll(file)
 		if err != nil {
 			return err
 		}
 
-		sk, err := crypto.UnmarshalPrivateKey(data)
-		if err != nil {
-			return err
+		importFormat, _ := req.Options[keyFormatOptionName].(string)
+		var sk crypto.PrivKey
+		switch importFormat {
+		case keyFormatPemCleartextOption:
+			pemBlock, rest := pem.Decode(data)
+			if pemBlock == nil {
+				return fmt.Errorf("PEM block not found in input data:\n%s", rest)
+			}
+
+			if pemBlock.Type != "PRIVATE KEY" {
+				return fmt.Errorf("expected PRIVATE KEY type in PEM block but got: %s", pemBlock.Type)
+			}
+
+			stdKey, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
+			if err != nil {
+				return fmt.Errorf("parsing PKCS8 format: %w", err)
+			}
+
+			// In case ed25519.PrivateKey is returned we need the pointer for
+			// conversion to libp2p (see export command for more details).
+			if ed25519KeyPointer, ok := stdKey.(ed25519.PrivateKey); ok {
+				stdKey = &ed25519KeyPointer
+			}
+
+			sk, _, err = crypto.KeyPairFromStdKey(stdKey)
+			if err != nil {
+				return fmt.Errorf("converting std Go key to libp2p key: %w", err)
+			}
+		case keyFormatLibp2pCleartextOption:
+			sk, err = crypto.UnmarshalPrivateKey(data)
+			if err != nil {
+				// check if data is PEM, if so, provide user with hint
+				pemBlock, _ := pem.Decode(data)
+				if pemBlock != nil {
+					return fmt.Errorf("unexpected PEM block for format=%s: try again with format=%s", keyFormatLibp2pCleartextOption, keyFormatPemCleartextOption)
+				}
+				return fmt.Errorf("unable to unmarshall format=%s: %w", keyFormatLibp2pCleartextOption, err)
+			}
+
+		default:
+			return fmt.Errorf("unrecognized import format: %s", importFormat)
+		}
+
+		// We only allow importing keys of the same type we generate (see list in
+		// https://github.com/ipfs/interface-go-ipfs-core/blob/1c3d8fc/options/key.go#L58-L60),
+		// unless explicitly stated by the user.
+		allowAnyKeyType, _ := req.Options[keyAllowAnyTypeOptionName].(bool)
+		if !allowAnyKeyType {
+			switch t := sk.(type) {
+			case *crypto.RsaPrivateKey, *crypto.Ed25519PrivateKey:
+			default:
+				return fmt.Errorf("key type %T is not allowed to be imported, only RSA or Ed25519;"+
+					" use flag --%s if you are sure of what you're doing",
+					t, keyAllowAnyTypeOptionName)
+			}
 		}
 
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
@@ -553,6 +689,139 @@ func keyOutputListEncoders() cmds.EncoderFunc {
 		tw.Flush()
 		return nil
 	})
+}
+
+type KeySignOutput struct {
+	Key       KeyOutput
+	Signature string
+}
+
+var keySignCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Generates a signature for the given data with a specified key. Useful for proving the key ownership.",
+		LongDescription: `
+Sign arbitrary bytes, such as to prove ownership of a Peer ID or an IPNS Name.
+To avoid signature reuse, the signed payload is always prefixed with
+"libp2p-key signed message:".
+`,
+	},
+	Options: []cmds.Option{
+		cmds.StringOption("key", "k", "The name of the key to use for signing."),
+		ke.OptionIPNSBase,
+	},
+	Arguments: []cmds.Argument{
+		cmds.FileArg("data", true, false, "The data to sign.").EnableStdin(),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.OptionIPNSBase.Name()].(string))
+		if err != nil {
+			return err
+		}
+
+		name, _ := req.Options["key"].(string)
+
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		data, err := io.ReadAll(file)
+		if err != nil {
+			return err
+		}
+
+		key, signature, err := api.Key().Sign(req.Context, name, data)
+		if err != nil {
+			return err
+		}
+
+		encodedSignature, err := mbase.Encode(mbase.Base64url, signature)
+		if err != nil {
+			return err
+		}
+
+		return res.Emit(&KeySignOutput{
+			Key: KeyOutput{
+				Name: key.Name(),
+				Id:   keyEnc.FormatID(key.ID()),
+			},
+			Signature: encodedSignature,
+		})
+	},
+	Type: KeySignOutput{},
+}
+
+type KeyVerifyOutput struct {
+	Key            KeyOutput
+	SignatureValid bool
+}
+
+var keyVerifyCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Verify that the given data and signature match.",
+		LongDescription: `
+Verify if the given data and signatures match. To avoid the signature reuse,
+the signed payload is always prefixed with "libp2p-key signed message:".
+`,
+	},
+	Options: []cmds.Option{
+		cmds.StringOption("key", "k", "The name of the key to use for signing."),
+		cmds.StringOption("signature", "s", "Multibase-encoded signature to verify."),
+		ke.OptionIPNSBase,
+	},
+	Arguments: []cmds.Argument{
+		cmds.FileArg("data", true, false, "The data to verify against the given signature.").EnableStdin(),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.OptionIPNSBase.Name()].(string))
+		if err != nil {
+			return err
+		}
+
+		name, _ := req.Options["key"].(string)
+		encodedSignature, _ := req.Options["signature"].(string)
+
+		_, signature, err := mbase.Decode(encodedSignature)
+		if err != nil {
+			return err
+		}
+
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		data, err := io.ReadAll(file)
+		if err != nil {
+			return err
+		}
+
+		key, valid, err := api.Key().Verify(req.Context, name, signature, data)
+		if err != nil {
+			return err
+		}
+
+		return res.Emit(&KeyVerifyOutput{
+			Key: KeyOutput{
+				Name: key.Name(),
+				Id:   keyEnc.FormatID(key.ID()),
+			},
+			SignatureValid: valid,
+		})
+	},
+	Type: KeyVerifyOutput{},
 }
 
 // DaemonNotRunning checks to see if the ipfs repo is locked, indicating that

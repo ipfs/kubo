@@ -1,7 +1,21 @@
-name: Publish Docker image
+name: Docker Push
 
 on:
   workflow_dispatch:
+    inputs:
+      push:
+        description: 'Push to Docker Hub'
+        required: true
+        default: 'false'
+      tags:
+        description: 'Custom tags to use for the push'
+        required: false
+        default: ''
+  # # If we decide to build all images on every PR, we should make sure that
+  # # they are NOT pushed to Docker Hub.
+  # pull_request:
+  #   paths-ignore:
+  #     - '**/*.md'
   push:
     branches:
       - 'master'
@@ -9,26 +23,112 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
-  push_to_registry:
+  docker-hub:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     env:
-      IMAGE_NAME: ipfs/go-ipfs
-      WIP_IMAGE_TAG: wip
+      IMAGE_NAME: ipfs/kubo
+      LEGACY_IMAGE_NAME: ipfs/go-ipfs
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Build wip Docker image
-        run: docker build -t $IMAGE_NAME:$WIP_IMAGE_TAG .
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Get tags
+        id: tags
+        if: github.event.inputs.tags == ''
+        run: |
+          echo "value<<EOF" >> $GITHUB_OUTPUT
+          ./bin/get-docker-tags.sh "$(date -u +%F)" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Publish Docker Image to Docker Hub
-        run: ./bin/push-docker-tags.sh $(date -u +%F)
+      # We have to build each platform separately because when using multi-arch
+      # builds, only one platform is being loaded into the cache. This would
+      # prevent us from testing the other platforms.
+      - name: Build Docker image (linux/amd64)
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64
+          context: .
+          push: false
+          load: true
+          file: ./Dockerfile
+          tags: ${{ env.IMAGE_NAME }}:linux-amd64
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
 
+      - name: Build Docker image (linux/arm/v7)
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/arm/v7
+          context: .
+          push: false
+          load: true
+          file: ./Dockerfile
+          tags: ${{ env.IMAGE_NAME }}:linux-arm-v7
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      - name: Build Docker image (linux/arm64/v8)
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/arm64/v8
+          context: .
+          push: false
+          load: true
+          file: ./Dockerfile
+          tags: ${{ env.IMAGE_NAME }}:linux-arm64-v8
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      # We test all the images on amd64 host here. This uses QEMU to emulate
+      # the other platforms.
+      - run: docker run --rm $IMAGE_NAME:linux-amd64 --version
+      - run: docker run --rm $IMAGE_NAME:linux-arm-v7 --version
+      - run: docker run --rm $IMAGE_NAME:linux-arm64-v8 --version
+
+      # This will only push the previously built images.
+      - if: github.event_name != 'workflow_dispatch' || github.event.inputs.push == 'true'
+        name: Publish to Docker Hub
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
+          context: .
+          push: true
+          file: ./Dockerfile
+          tags: "${{ github.event.inputs.tags || steps.tags.outputs.value }}"
+          cache-from: type=local,src=/tmp/.buildx-cache-new
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache to limit growth
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

@@ -1,0 +1,11 @@
+linters:
+  enable:
+    - stylecheck
+
+linters-settings:
+  stylecheck:
+    checks:
+    - all
+    - '-ST1003'
+    dot-import-whitelist:
+      - github.com/ipfs/kubo/test/cli/testutils

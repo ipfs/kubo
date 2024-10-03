@@ -1,3 +1,4 @@
+//go:build !nofuse
 // +build !nofuse
 
 package node
@@ -9,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	core "github.com/ipfs/go-ipfs/core"
+	core "github.com/ipfs/kubo/core"
 
 	"github.com/blang/semver/v4"
 	unix "golang.org/x/sys/unix"
@@ -24,7 +25,7 @@ func init() {
 // skip fuse checks.
 const dontCheckOSXFUSEConfigKey = "DontCheckOSXFUSE"
 
-// fuseVersionPkg is the go pkg url for fuse-version
+// fuseVersionPkg is the go pkg url for fuse-version.
 const fuseVersionPkg = "github.com/jbenet/go-fuse-version/fuse-version"
 
 // errStrFuseRequired is returned when we're sure the user does not have fuse.
@@ -38,7 +39,7 @@ It is recommended you install it from the OSXFUSE website:
 
 For more help, see:
 
-	https://github.com/ipfs/go-ipfs/issues/177
+	https://github.com/ipfs/kubo/issues/177
 `
 
 // errStrNoFuseHeaders is included in the output of `go get <fuseVersionPkg>` if there
@@ -55,7 +56,7 @@ It is recommended you install it from the OSXFUSE website:
 
 For more help, see:
 
-	https://github.com/ipfs/go-ipfs/issues/177
+	https://github.com/ipfs/kubo/issues/177
 `
 
 type errNeedFuseVersion struct {
@@ -81,8 +82,8 @@ version you have by running:
 
 	ipfs config --bool %s true
 
-[1]: https://github.com/ipfs/go-ipfs/issues/177
-[2]: https://github.com/ipfs/go-ipfs/pull/533
+[1]: https://github.com/ipfs/kubo/issues/177
+[2]: https://github.com/ipfs/kubo/pull/533
 [3]: %s
 `, fuseVersionPkg, dontCheckOSXFUSEConfigKey, me.cause)
 }
@@ -112,8 +113,8 @@ trying to run these checks with:
 
 	ipfs config --bool %s true
 
-[1]: https://github.com/ipfs/go-ipfs/issues/177
-[2]: https://github.com/ipfs/go-ipfs/pull/533
+[1]: https://github.com/ipfs/kubo/issues/177
+[2]: https://github.com/ipfs/kubo/pull/533
 [3]: %s
 `
 
@@ -122,7 +123,7 @@ You may be able to get this error to go away by setting it again:
 
 	ipfs config --bool %s true
 
-Either way, please tell us at: http://github.com/ipfs/go-ipfs/issues
+Either way, please tell us at: http://github.com/ipfs/kubo/issues
 `
 
 func darwinFuseCheckVersion(node *core.IpfsNode) error {
@@ -140,9 +141,8 @@ func darwinFuseCheckVersion(node *core.IpfsNode) error {
 			return err
 		} else if skip {
 			return nil // user told us not to check version... ok....
-		} else {
-			return errGFV
 		}
+		return errGFV
 	}
 
 	log.Debug("mount: osxfuse version:", ov)

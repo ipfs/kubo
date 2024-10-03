@@ -4,7 +4,7 @@ import (
 	"compress/zlib"
 	"io"
 
-	"github.com/ipfs/go-ipfs/plugin"
+	"github.com/ipfs/kubo/plugin"
 
 	// Note that depending on this package registers it's multicodec encoder and decoder.
 	git "github.com/ipfs/go-ipld-git"
@@ -13,7 +13,7 @@ import (
 	mc "github.com/multiformats/go-multicodec"
 )
 
-// Plugins is exported list of plugins that will be loaded
+// Plugins is exported list of plugins that will be loaded.
 var Plugins = []plugin.Plugin{
 	&gitPlugin{},
 }

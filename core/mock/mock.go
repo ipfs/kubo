@@ -3,40 +3,47 @@ package coremock
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 
-	libp2p2 "github.com/ipfs/go-ipfs/core/node/libp2p"
+	libp2p2 "github.com/ipfs/kubo/core/node/libp2p"
 
-	"github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/kubo/commands"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/repo"
 
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/kubo/config"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
 // NewMockNode constructs an IpfsNode for use in tests.
 func NewMockNode() (*core.IpfsNode, error) {
-	ctx := context.Background()
-
 	// effectively offline, only peer in its network
-	return core.NewNode(ctx, &core.BuildCfg{
+	return core.NewNode(context.Background(), &core.BuildCfg{
 		Online: true,
-		Host:   MockHostOption(mocknet.New(ctx)),
+		Host:   MockHostOption(mocknet.New()),
 	})
 }
 
 func MockHostOption(mn mocknet.Mocknet) libp2p2.HostOption {
-	return func(id peer.ID, ps pstore.Peerstore, _ ...libp2p.Option) (host.Host, error) {
+	return func(id peer.ID, ps pstore.Peerstore, opts ...libp2p.Option) (host.Host, error) {
+		var cfg libp2p.Config
+		if err := cfg.Apply(opts...); err != nil {
+			return nil, err
+		}
+
+		// The mocknet does not use the provided libp2p.Option. This options include
+		// the listening addresses we want our peer listening on. Therefore, we have
+		// to manually parse the configuration and add them here.
+		ps.AddAddrs(id, cfg.ListenAddrs, pstore.PermanentAddrTTL)
 		return mn.AddPeerWithPeerstore(id, ps)
 	}
 }
@@ -69,9 +76,6 @@ func MockCmdsCtx() (commands.Context, error) {
 
 	return commands.Context{
 		ConfigRoot: "/tmp/.mockipfsconfig",
-		LoadConfig: func(path string) (*config.Config, error) {
-			return &conf, nil
-		},
 		ConstructNode: func() (*core.IpfsNode, error) {
 			return node, nil
 		},
@@ -80,7 +84,7 @@ func MockCmdsCtx() (commands.Context, error) {
 
 func MockPublicNode(ctx context.Context, mn mocknet.Mocknet) (*core.IpfsNode, error) {
 	ds := syncds.MutexWrap(datastore.NewMapDatastore())
-	cfg, err := config.Init(ioutil.Discard, 2048)
+	cfg, err := config.Init(io.Discard, 2048)
 	if err != nil {
 		return nil, err
 	}

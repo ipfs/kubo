@@ -11,9 +11,10 @@ import (
 	"github.com/cheggaaa/pb"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ipld "github.com/ipfs/go-ipld-format"
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
+	iface "github.com/ipfs/kubo/core/coreiface"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	gocar "github.com/ipld/go-car"
@@ -21,18 +22,23 @@ import (
 )
 
 func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-	c, err := cid.Decode(req.Arguments[0])
+	// Accept CID or a content path
+	p, err := cmdutils.PathOrCidPath(req.Arguments[0])
 	if err != nil {
-		return fmt.Errorf(
-			"unable to parse root specification (currently only bare CIDs are supported): %s",
-			err,
-		)
+		return err
 	}
 
 	api, err := cmdenv.GetApi(env, req)
 	if err != nil {
 		return err
 	}
+
+	// Resolve path and confirm the root block is available, fail fast if not
+	b, err := api.Block().Stat(req.Context, p)
+	if err != nil {
+		return err
+	}
+	c := b.Path().RootCid()
 
 	pipeR, pipeW := io.Pipe()
 
@@ -63,8 +69,7 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	err = <-errCh
 
 	// minimal user friendliness
-	if err != nil &&
-		err == ipld.ErrNotFound {
+	if ipld.IsNotFound(err) {
 		explicitOffline, _ := req.Options["offline"].(bool)
 		if explicitOffline {
 			err = fmt.Errorf("%s (currently offline, perhaps retry without the offline flag)", err)
@@ -80,13 +85,12 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 }
 
 func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
-
 	var showProgress bool
 	val, specified := res.Request().Options[progressOptionName]
 	if !specified {
 		// default based on TTY availability
 		errStat, _ := os.Stderr.Stat()
-		if 0 != (errStat.Mode() & os.ModeCharDevice) {
+		if (errStat.Mode() & os.ModeCharDevice) != 0 {
 			showProgress = true
 		}
 	} else if val.(bool) {
@@ -135,12 +139,12 @@ func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
 	}
 }
 
+// FIXME(@Jorropo): https://github.com/ipld/go-car/issues/315
 type dagStore struct {
 	dag iface.APIDagService
 	ctx context.Context
 }
 
-func (ds dagStore) Get(c cid.Cid) (blocks.Block, error) {
-	obj, err := ds.dag.Get(ds.ctx, c)
-	return obj, err
+func (ds dagStore) Get(_ context.Context, c cid.Cid) (blocks.Block, error) {
+	return ds.dag.Get(ds.ctx, c)
 }

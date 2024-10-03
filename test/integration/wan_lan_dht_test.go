@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs/core"
-	mock "github.com/ipfs/go-ipfs/core/mock"
-	libp2p2 "github.com/ipfs/go-ipfs/core/node/libp2p"
+	"github.com/ipfs/kubo/core"
+	mock "github.com/ipfs/kubo/core/mock"
+	libp2p2 "github.com/ipfs/kubo/core/node/libp2p"
 
-	corenet "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
+	corenet "github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 
 	ma "github.com/multiformats/go-multiaddr"
@@ -51,8 +51,10 @@ func TestDHTConnectivitySlowRouting(t *testing.T) {
 }
 
 // wan prefix must have a real corresponding ASN for the peer diversity filter to work.
-var wanPrefix = net.ParseIP("2001:218:3004::")
-var lanPrefix = net.ParseIP("fe80::")
+var (
+	wanPrefix = net.ParseIP("2001:218:3004::")
+	lanPrefix = net.ParseIP("fe80::")
+)
 
 func makeAddr(n uint32, wan bool) ma.Multiaddr {
 	var ip net.IP
@@ -72,7 +74,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	defer cancel()
 
 	// create network
-	mn := mocknet.New(ctx)
+	mn := mocknet.New()
 	mn.SetLinkDefaults(mocknet.LinkOptions{
 		Latency:   conf.NetworkLatency,
 		Bandwidth: math.MaxInt32,
@@ -209,9 +211,9 @@ WanStartupWait:
 	for {
 		select {
 		case err := <-testPeer.DHT.WAN.RefreshRoutingTable():
-			//if err != nil {
+			// if err != nil {
 			//	fmt.Printf("Error refreshing routing table: %v\n", err)
-			//}
+			// }
 			if testPeer.DHT.WAN.RoutingTable() == nil ||
 				testPeer.DHT.WAN.RoutingTable().Size() == 0 ||
 				err != nil {

@@ -8,11 +8,11 @@ import (
 	"net/url"
 	"strings"
 
-	core "github.com/ipfs/go-ipfs/core"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	core "github.com/ipfs/kubo/core"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	p2phttp "github.com/libp2p/go-libp2p-http"
+	protocol "github.com/libp2p/go-libp2p/core/protocol"
 )
 
 // P2PProxyOption is an endpoint for proxying a HTTP request to another ipfs peer
@@ -58,11 +58,11 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 
 	split := strings.SplitN(path, "/", 5)
 	if len(split) < 5 {
-		return nil, fmt.Errorf("Invalid request path '%s'", path)
+		return nil, fmt.Errorf("invalid request path '%s'", path)
 	}
 
 	if _, err := peer.Decode(split[2]); err != nil {
-		return nil, fmt.Errorf("Invalid request path '%s'", path)
+		return nil, fmt.Errorf("invalid request path '%s'", path)
 	}
 
 	if split[3] == "http" {
@@ -71,7 +71,7 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 
 	split = strings.SplitN(path, "/", 7)
 	if len(split) < 7 || split[3] != "x" || split[5] != "http" {
-		return nil, fmt.Errorf("Invalid request path '%s'", path)
+		return nil, fmt.Errorf("invalid request path '%s'", path)
 	}
 
 	return &proxyRequest{split[2], protocol.ID("/x/" + split[4] + "/http"), split[6]}, nil

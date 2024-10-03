@@ -1,18 +1,18 @@
 package dagcmd
 
 import (
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
+	"path"
 
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	ipfspath "github.com/ipfs/go-path"
-	//gipfree "github.com/ipld/go-ipld-prime/impl/free"
-	//gipselector "github.com/ipld/go-ipld-prime/traversal/selector"
-	//gipselectorbuilder "github.com/ipld/go-ipld-prime/traversal/selector/builder"
 )
 
 const (
@@ -29,9 +29,9 @@ var DagCmd = &cmds.Command{
 		ShortDescription: `
 'ipfs dag' is used for creating and manipulating DAG objects/hierarchies.
 
-This subcommand is currently an experimental feature, but it is intended
-to deprecate and replace the existing 'ipfs object' command moving forward.
-		`,
+This subcommand is intended to deprecate and replace
+the existing 'ipfs object' command moving forward.
+`,
 	},
 	Subcommands: map[string]*cmds.Command{
 		"put":     DagPutCmd,
@@ -87,7 +87,8 @@ into an object of the specified format.
 		cmds.StringOption("store-codec", "Codec that the stored object will be encoded with").WithDefault("dag-cbor"),
 		cmds.StringOption("input-codec", "Codec that the input object is encoded in").WithDefault("dag-json"),
 		cmds.BoolOption("pin", "Pin this object when adding."),
-		cmds.StringOption("hash", "Hash function to use").WithDefault("sha2-256"),
+		cmds.StringOption("hash", "Hash function to use"),
+		cmdutils.AllowBigBlockOption,
 	},
 	Run:  dagPut,
 	Type: OutputObject{},
@@ -156,7 +157,7 @@ var DagResolveCmd = &cmds.Command{
 			}
 			p := enc.Encode(out.Cid)
 			if out.RemPath != "" {
-				p = ipfspath.Join([]string{p, out.RemPath})
+				p = path.Join(p, out.RemPath)
 			}
 
 			fmt.Fprint(w, p)
@@ -164,13 +165,6 @@ var DagResolveCmd = &cmds.Command{
 		}),
 	},
 	Type: ResolveOutput{},
-}
-
-type importResult struct {
-	blockCount      uint64
-	blockBytesCount uint64
-	roots           map[cid.Cid]struct{}
-	err             error
 }
 
 // DagImportCmd is a command for importing a car to ipfs
@@ -195,7 +189,8 @@ Note:
   currently present in the blockstore does not represent a complete DAG,
   pinning of that individual root will fail.
 
-Maximum supported CAR version: 1
+Maximum supported CAR version: 2
+Specification of CAR formats: https://ipld.io/specs/transport/car/
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -205,12 +200,12 @@ Maximum supported CAR version: 1
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
+		cmdutils.AllowBigBlockOption,
 	},
 	Type: CarImportOutput{},
 	Run:  dagImport,
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *CarImportOutput) error {
-
 			silent, _ := req.Options[silentOptionName].(bool)
 			if silent {
 				return nil
@@ -219,7 +214,7 @@ Maximum supported CAR version: 1
 			// event should have only one of `Root` or `Stats` set, not both
 			if event.Root == nil {
 				if event.Stats == nil {
-					return fmt.Errorf("Unexpected message from DAG import")
+					return fmt.Errorf("unexpected message from DAG import")
 				}
 				stats, _ := req.Options[statsOptionName].(bool)
 				if stats {
@@ -229,7 +224,7 @@ Maximum supported CAR version: 1
 			}
 
 			if event.Stats != nil {
-				return fmt.Errorf("Unexpected message from DAG import")
+				return fmt.Errorf("unexpected message from DAG import")
 			}
 
 			enc, err := cmdenv.GetLowLevelCidEncoder(req)
@@ -238,10 +233,10 @@ Maximum supported CAR version: 1
 			}
 
 			if event.Root.PinErrorMsg != "" {
-				event.Root.PinErrorMsg = fmt.Sprintf("FAILED: %s", event.Root.PinErrorMsg)
-			} else {
-				event.Root.PinErrorMsg = "success"
+				return fmt.Errorf("pinning root %q FAILED: %s", enc.Encode(event.Root.Cid), event.Root.PinErrorMsg)
 			}
+
+			event.Root.PinErrorMsg = "success"
 
 			_, err = fmt.Fprintf(
 				w,
@@ -262,6 +257,7 @@ var DagExportCmd = &cmds.Command{
 'ipfs dag export' fetches a DAG and streams it out as a well-formed .car file.
 Note that at present only single root selections / .car files are supported.
 The output of blocks happens in strict DAG-traversal, first-seen, order.
+CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -278,12 +274,83 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 
 // DagStat is a dag stat command response
 type DagStat struct {
-	Size      uint64
-	NumBlocks int64
+	Cid       cid.Cid `json:",omitempty"`
+	Size      uint64  `json:",omitempty"`
+	NumBlocks int64   `json:",omitempty"`
 }
 
 func (s *DagStat) String() string {
-	return fmt.Sprintf("Size: %d, NumBlocks: %d", s.Size, s.NumBlocks)
+	return fmt.Sprintf("%s  %d  %d", s.Cid.String()[:20], s.Size, s.NumBlocks)
+}
+
+func (s *DagStat) MarshalJSON() ([]byte, error) {
+	type Alias DagStat
+	/*
+		We can't rely on cid.Cid.MarshalJSON since it uses the {"/": "..."}
+		format. To make the output consistent and follow the Kubo API patterns
+		we use the Cid.String method
+	*/
+	return json.Marshal(struct {
+		Cid string `json:"Cid"`
+		*Alias
+	}{
+		Cid:   s.Cid.String(),
+		Alias: (*Alias)(s),
+	})
+}
+
+func (s *DagStat) UnmarshalJSON(data []byte) error {
+	/*
+		We can't rely on cid.Cid.UnmarshalJSON since it uses the {"/": "..."}
+		format. To make the output consistent and follow the Kubo API patterns
+		we use the Cid.Parse method
+	*/
+	type Alias DagStat
+	aux := struct {
+		Cid string `json:"Cid"`
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	Cid, err := cid.Parse(aux.Cid)
+	if err != nil {
+		return err
+	}
+	s.Cid = Cid
+	return nil
+}
+
+type DagStatSummary struct {
+	redundantSize uint64     `json:"-"`
+	UniqueBlocks  int        `json:",omitempty"`
+	TotalSize     uint64     `json:",omitempty"`
+	SharedSize    uint64     `json:",omitempty"`
+	Ratio         float32    `json:",omitempty"`
+	DagStatsArray []*DagStat `json:"DagStats,omitempty"`
+}
+
+func (s *DagStatSummary) String() string {
+	return fmt.Sprintf("Total Size: %d\nUnique Blocks: %d\nShared Size: %d\nRatio: %f", s.TotalSize, s.UniqueBlocks, s.SharedSize, s.Ratio)
+}
+
+func (s *DagStatSummary) incrementTotalSize(size uint64) {
+	s.TotalSize += size
+}
+
+func (s *DagStatSummary) incrementRedundantSize(size uint64) {
+	s.redundantSize += size
+}
+
+func (s *DagStatSummary) appendStats(stats *DagStat) {
+	s.DagStatsArray = append(s.DagStatsArray, stats)
+}
+
+func (s *DagStatSummary) calculateSummary() {
+	s.Ratio = float32(s.redundantSize) / float32(s.TotalSize)
+	s.SharedSize = s.redundantSize - s.TotalSize
 }
 
 // DagStatCmd is a command for getting size information about an ipfs-stored dag
@@ -298,24 +365,50 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "CID of a DAG root to get statistics for").EnableStdin(),
+		cmds.StringArg("root", true, true, "CID of a DAG root to get statistics for").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(progressOptionName, "p", "Return progressive data while reading through the DAG").WithDefault(true),
 	},
 	Run:  dagStat,
-	Type: DagStat{},
+	Type: DagStatSummary{},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: finishCLIStat,
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStat) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStatSummary) error {
+			fmt.Fprintln(w)
+			csvWriter := csv.NewWriter(w)
+			csvWriter.Comma = '\t'
+			cidSpacing := len(event.DagStatsArray[0].Cid.String())
+			header := []string{fmt.Sprintf("%-*s", cidSpacing, "CID"), fmt.Sprintf("%-15s", "Blocks"), "Size"}
+			if err := csvWriter.Write(header); err != nil {
+				return err
+			}
+			for _, dagStat := range event.DagStatsArray {
+				numBlocksStr := fmt.Sprint(dagStat.NumBlocks)
+				err := csvWriter.Write([]string{
+					dagStat.Cid.String(),
+					fmt.Sprintf("%-15s", numBlocksStr),
+					fmt.Sprint(dagStat.Size),
+				})
+				if err != nil {
+					return err
+				}
+			}
+			csvWriter.Flush()
+			fmt.Fprint(w, "\nSummary\n")
 			_, err := fmt.Fprintf(
 				w,
 				"%v\n",
 				event,
 			)
+			fmt.Fprint(w, "\n\n")
 			return err
 		}),
+		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStatSummary) error {
+			return json.NewEncoder(w).Encode(event)
+		},
+		),
 	},
 }

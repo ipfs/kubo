@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 	ping "github.com/libp2p/go-libp2p/p2p/protocol/ping"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -79,7 +79,7 @@ trip latency information.
 		if len(n.Peerstore.Addrs(pid)) == 0 {
 			// Make sure we can find the node in question
 			if err := res.Emit(&PingResult{
-				Text:    fmt.Sprintf("Looking up peer %s", pid.Pretty()),
+				Text:    fmt.Sprintf("Looking up peer %s", pid),
 				Success: true,
 			}); err != nil {
 				return err
@@ -95,7 +95,7 @@ trip latency information.
 		}
 
 		if err := res.Emit(&PingResult{
-			Text:    fmt.Sprintf("PING %s.", pid.Pretty()),
+			Text:    fmt.Sprintf("PING %s.", pid),
 			Success: true,
 		}); err != nil {
 			return err

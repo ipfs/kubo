@@ -1,0 +1,10 @@
+# Code owners are automatically requested for review when someone opens a pull
+# request that modifies code that they own. Code owners are not automatically
+# requested to review draft pull requests.
+
+# Default
+* @ipfs/kubo-maintainers 
+
+# HTTP Gateway
+core/corehttp/  @lidel
+test/sharness/*gateway*.sh  @lidel

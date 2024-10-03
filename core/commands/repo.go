@@ -11,13 +11,16 @@ import (
 	"sync"
 	"text/tabwriter"
 
-	humanize "github.com/dustin/go-humanize"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	oldcmds "github.com/ipfs/kubo/commands"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	corerepo "github.com/ipfs/kubo/core/corerepo"
+	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
 
+	humanize "github.com/dustin/go-humanize"
+	bstore "github.com/ipfs/boxo/blockstore"
 	cid "github.com/ipfs/go-cid"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
@@ -36,9 +39,10 @@ var RepoCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"stat":    repoStatCmd,
 		"gc":      repoGcCmd,
-		"fsck":    repoFsckCmd,
 		"version": repoVersionCmd,
 		"verify":  repoVerifyCmd,
+		"migrate": repoMigrateCmd,
+		"ls":      RefsLocalCmd,
 	},
 }
 
@@ -49,8 +53,10 @@ type GcResult struct {
 }
 
 const (
-	repoStreamErrorsOptionName = "stream-errors"
-	repoQuietOptionName        = "quiet"
+	repoStreamErrorsOptionName   = "stream-errors"
+	repoQuietOptionName          = "quiet"
+	repoSilentOptionName         = "silent"
+	repoAllowDowngradeOptionName = "allow-downgrade"
 )
 
 var repoGcCmd = &cmds.Command{
@@ -65,6 +71,7 @@ order to reclaim hard disk space.
 	Options: []cmds.Option{
 		cmds.BoolOption(repoStreamErrorsOptionName, "Stream errors."),
 		cmds.BoolOption(repoQuietOptionName, "q", "Write minimal output."),
+		cmds.BoolOption(repoSilentOptionName, "Write no output."),
 	},
 	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -72,6 +79,7 @@ order to reclaim hard disk space.
 			return err
 		}
 
+		silent, _ := req.Options[repoSilentOptionName].(bool)
 		streamErrors, _ := req.Options[repoStreamErrorsOptionName].(bool)
 
 		gcOutChan := corerepo.GarbageCollectAsync(n, req.Context)
@@ -95,6 +103,9 @@ order to reclaim hard disk space.
 			}
 		} else {
 			err := corerepo.CollectResult(req.Context, gcOutChan, func(k cid.Cid) {
+				if silent {
+					return
+				}
 				// Nothing to do with this error, really. This
 				// most likely means that the client is gone but
 				// we still need to let the GC finish.
@@ -111,6 +122,11 @@ order to reclaim hard disk space.
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, gcr *GcResult) error {
 			quiet, _ := req.Options[repoQuietOptionName].(bool)
+			silent, _ := req.Options[repoSilentOptionName].(bool)
+
+			if silent {
+				return nil
+			}
 
 			if gcr.Error != "" {
 				_, err := fmt.Fprintf(w, "Error: %s\n", gcr.Error)
@@ -205,26 +221,6 @@ Version         string The repo version.
 				fmt.Fprintf(wtr, "Version:\t%s\n", stat.Version)
 			}
 
-			return nil
-		}),
-	},
-}
-
-var repoFsckCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Remove repo lockfiles.",
-		ShortDescription: `
-'ipfs repo fsck' is now a no-op.
-`,
-	},
-	NoRemote: true,
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		return cmds.EmitOnce(res, &MessageOutput{"`ipfs repo fsck` is deprecated and does nothing.\n"})
-	},
-	Type: MessageOutput{},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *MessageOutput) error {
-			fmt.Fprintf(w, out.Message)
 			return nil
 		}),
 	},
@@ -373,5 +369,68 @@ var repoVersionCmd = &cmds.Command{
 			}
 			return nil
 		}),
+	},
+}
+
+var repoMigrateCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Apply any outstanding migrations to the repo.",
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(repoAllowDowngradeOptionName, "Allow downgrading to a lower repo version"),
+	},
+	NoRemote: true,
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		cctx := env.(*oldcmds.Context)
+		allowDowngrade, _ := req.Options[repoAllowDowngradeOptionName].(bool)
+
+		_, err := fsrepo.Open(cctx.ConfigRoot)
+
+		if err == nil {
+			fmt.Println("Repo does not require migration.")
+			return nil
+		} else if err != fsrepo.ErrNeedMigration {
+			return err
+		}
+
+		fmt.Println("Found outdated fs-repo, starting migration.")
+
+		// Read Migration section of IPFS config
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		migrationCfg, err := migrations.ReadMigrationConfig(cctx.ConfigRoot, configFileOpt)
+		if err != nil {
+			return err
+		}
+
+		// Define function to create IPFS fetcher.  Do not supply an
+		// already-constructed IPFS fetcher, because this may be expensive and
+		// not needed according to migration config. Instead, supply a function
+		// to construct the particular IPFS fetcher implementation used here,
+		// which is called only if an IPFS fetcher is needed.
+		newIpfsFetcher := func(distPath string) migrations.Fetcher {
+			return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot, configFileOpt)
+		}
+
+		// Fetch migrations from current distribution, or location from environ
+		fetchDistPath := migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
+
+		// Create fetchers according to migrationCfg.DownloadSources
+		fetcher, err := migrations.GetMigrationFetcher(migrationCfg.DownloadSources, fetchDistPath, newIpfsFetcher)
+		if err != nil {
+			return err
+		}
+		defer fetcher.Close()
+
+		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", allowDowngrade)
+		if err != nil {
+			fmt.Println("The migrations of fs-repo failed:")
+			fmt.Printf("  %s\n", err)
+			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
+			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
+			return err
+		}
+
+		fmt.Printf("Success: fs-repo has been migrated to version %d.\n", fsrepo.RepoVersion)
+		return nil
 	},
 }

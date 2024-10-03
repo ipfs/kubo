@@ -5,27 +5,53 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	gopath "path"
+	"strconv"
 	"strings"
+	"time"
 
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	"github.com/cheggaaa/pb"
+	"github.com/ipfs/boxo/files"
+	mfs "github.com/ipfs/boxo/mfs"
+	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	files "github.com/ipfs/go-ipfs-files"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/options"
+	ipld "github.com/ipfs/go-ipld-format"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	mh "github.com/multiformats/go-multihash"
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
+type TimeParts struct {
+	t *time.Time
+}
+
+func (t TimeParts) MarshalJSON() ([]byte, error) {
+	return t.t.MarshalJSON()
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// The time is expected to be a quoted string in RFC 3339 format.
+func (t *TimeParts) UnmarshalJSON(data []byte) (err error) {
+	// Fractional seconds are handled implicitly by Parse.
+	tt, err := time.Parse("\"2006-01-02T15:04:05Z\"", string(data))
+	*t = TimeParts{&tt}
+	return
+}
+
 type AddEvent struct {
-	Name  string
-	Hash  string `json:",omitempty"`
-	Bytes int64  `json:",omitempty"`
-	Size  string `json:",omitempty"`
+	Name       string
+	Hash       string `json:",omitempty"`
+	Bytes      int64  `json:",omitempty"`
+	Size       string `json:",omitempty"`
+	Mode       string `json:",omitempty"`
+	Mtime      int64  `json:",omitempty"`
+	MtimeNsecs int    `json:",omitempty"`
 }
 
 const (
@@ -45,6 +71,13 @@ const (
 	hashOptionName        = "hash"
 	inlineOptionName      = "inline"
 	inlineLimitOptionName = "inline-limit"
+	toFilesOptionName     = "to-files"
+
+	preserveModeOptionName  = "preserve-mode"
+	preserveMtimeOptionName = "preserve-mtime"
+	modeOptionName          = "mode"
+	mtimeOptionName         = "mtime"
+	mtimeNsecsOptionName    = "mtime-nsecs"
 )
 
 const adderOutChanSize = 8
@@ -79,6 +112,20 @@ You can now refer to the added file in a gateway, like so:
 
   /ipfs/QmaG4FuMqEBnQNn3C8XJ5bpW8kLs7zq2ZXgHptJHbKDDVx/example.jpg
 
+Files imported with 'ipfs add' are protected from GC (implicit '--pin=true'),
+but it is up to you to remember the returned CID to get the data back later.
+
+Passing '--to-files' creates a reference in Files API (MFS), making it easier
+to find it in the future:
+
+  > ipfs files mkdir -p /myfs/dir
+  > ipfs add example.jpg --to-files /myfs/dir/
+  > ipfs files ls /myfs/dir/
+  example.jpg
+
+See 'ipfs files --help' to learn more about using MFS
+for keeping track of added files and directories.
+
 The chunker option, '-s', specifies the chunking strategy that dictates
 how to break files into blocks. Blocks with same content can
 be deduplicated. Different chunking strategies will produce different
@@ -107,10 +154,16 @@ You can now check what blocks have been created by:
   QmerURi9k4XzKCaaPbsK6BL5pMEjF7PGphjDvkkjDtsVf3 868
   QmQB28iwSriSUSMqG2nXDTLtdPHgWb4rebBrU7Q1j4vxPv 338
 
-Finally, a note on hash determinism. While not guaranteed, adding the same
-file/directory with the same flags will almost always result in the same output
-hash. However, almost all of the flags provided by this command (other than pin,
-only-hash, and progress/status related flags) will change the final hash.
+Finally, a note on hash (CID) determinism and 'ipfs add' command.
+
+Almost all the flags provided by this command will change the final CID, and
+new flags may be added in the future. It is not guaranteed for the implicit
+defaults of 'ipfs add' to remain the same in future Kubo releases, or for other
+IPFS software to use the same import parameters as Kubo.
+
+If you need to back up or transport content-addressed data using a non-IPFS
+medium, CID can be preserved with CAR files.
+See 'dag export' and 'dag import' for more information.
 `,
 	},
 
@@ -131,31 +184,34 @@ only-hash, and progress/status related flags) will change the final hash.
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash").WithDefault("size-262144"),
-		cmds.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
+		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash"),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true."),
-		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
+		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)"),
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
+		cmds.BoolOption(pinOptionName, "Pin locally to protect added files from garbage collection.").WithDefault(true),
+		cmds.StringOption(toFilesOptionName, "Add reference to Files API (MFS) at the provided path."),
+		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries. Disables raw-leaves. (experimental)"),
+		cmds.BoolOption(preserveMtimeOptionName, "Apply existing POSIX modification time to created UnixFS entries. Disables raw-leaves. (experimental)"),
+		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. Disables raw-leaves. (experimental)"),
+		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). Disables raw-leaves. (experimental)"),
+		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
 		quieter, _ := req.Options[quieterOptionName].(bool)
 		quiet = quiet || quieter
-
 		silent, _ := req.Options[silentOptionName].(bool)
 
-		if quiet || silent {
-			return nil
-		}
-
-		// ipfs cli progress bar defaults to true unless quiet or silent is used
-		_, found := req.Options[progressOptionName].(bool)
-		if !found {
-			req.Options[progressOptionName] = true
+		if !quiet && !silent {
+			// ipfs cli progress bar defaults to true unless quiet or silent is used
+			_, found := req.Options[progressOptionName].(bool)
+			if !found {
+				req.Options[progressOptionName] = true
+			}
 		}
 
 		return nil
@@ -166,10 +222,20 @@ only-hash, and progress/status related flags) will change the final hash.
 			return err
 		}
 
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+
 		progress, _ := req.Options[progressOptionName].(bool)
 		trickle, _ := req.Options[trickleOptionName].(bool)
 		wrap, _ := req.Options[wrapOptionName].(bool)
-		hash, _ := req.Options[onlyHashOptionName].(bool)
+		onlyHash, _ := req.Options[onlyHashOptionName].(bool)
 		silent, _ := req.Options[silentOptionName].(bool)
 		chunker, _ := req.Options[chunkerOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
@@ -180,10 +246,51 @@ only-hash, and progress/status related flags) will change the final hash.
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
+		toFilesStr, toFilesSet := req.Options[toFilesOptionName].(string)
+		preserveMode, _ := req.Options[preserveModeOptionName].(bool)
+		preserveMtime, _ := req.Options[preserveMtimeOptionName].(bool)
+		mode, _ := req.Options[modeOptionName].(uint)
+		mtime, _ := req.Options[mtimeOptionName].(int64)
+		mtimeNsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
+
+		if chunker == "" {
+			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
+		}
+
+		if hashFunStr == "" {
+			hashFunStr = cfg.Import.HashFunction.WithDefault(config.DefaultHashFunction)
+		}
+
+		if !cidVerSet && !cfg.Import.CidVersion.IsDefault() {
+			cidVerSet = true
+			cidVer = int(cfg.Import.CidVersion.WithDefault(config.DefaultCidVersion))
+		}
+
+		if !rbset && cfg.Import.UnixFSRawLeaves != config.Default {
+			rbset = true
+			rawblks = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
+		}
+
+		// Storing optional mode or mtime (UnixFS 1.5) requires root block
+		// to always be 'dag-pb' and not 'raw'. Below adjusts raw-leaves setting, if possible.
+		if preserveMode || preserveMtime || mode != 0 || mtime != 0 {
+			// Error if --raw-leaves flag was explicitly passed by the user.
+			// (let user make a decision to manually disable it and retry)
+			if rbset && rawblks {
+				return fmt.Errorf("%s can't be used with UnixFS metadata like mode or modification time", rawLeavesOptionName)
+			}
+			// No explicit preference from user, disable raw-leaves and continue
+			rbset = true
+			rawblks = false
+		}
+
+		if onlyHash && toFilesSet {
+			return fmt.Errorf("%s and %s options are not compatible", onlyHashOptionName, toFilesOptionName)
+		}
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
-			return fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
+			return fmt.Errorf("unrecognized hash function: %q", strings.ToLower(hashFunStr))
 		}
 
 		enc, err := cmdenv.GetCidEncoder(req)
@@ -207,12 +314,25 @@ only-hash, and progress/status related flags) will change the final hash.
 			options.Unixfs.Chunker(chunker),
 
 			options.Unixfs.Pin(dopin),
-			options.Unixfs.HashOnly(hash),
+			options.Unixfs.HashOnly(onlyHash),
 			options.Unixfs.FsCache(fscache),
 			options.Unixfs.Nocopy(nocopy),
 
 			options.Unixfs.Progress(progress),
 			options.Unixfs.Silent(silent),
+
+			options.Unixfs.PreserveMode(preserveMode),
+			options.Unixfs.PreserveMtime(preserveMtime),
+		}
+
+		if mode != 0 {
+			opts = append(opts, options.Unixfs.Mode(os.FileMode(mode)))
+		}
+
+		if mtime != 0 {
+			opts = append(opts, options.Unixfs.Mtime(mtime, uint32(mtimeNsecs)))
+		} else if mtimeNsecs != 0 {
+			return fmt.Errorf("option %q requires %q to be provided as well", mtimeNsecsOptionName, mtimeOptionName)
 		}
 
 		if cidVerSet {
@@ -229,7 +349,12 @@ only-hash, and progress/status related flags) will change the final hash.
 
 		opts = append(opts, nil) // events option placeholder
 
+		ipfsNode, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
 		var added int
+		var fileAddedToMFS bool
 		addit := toadd.Entries()
 		for addit.Next() {
 			_, dir := addit.Node().(files.Directory)
@@ -240,7 +365,65 @@ only-hash, and progress/status related flags) will change the final hash.
 			go func() {
 				var err error
 				defer close(events)
-				_, err = api.Unixfs().Add(req.Context, addit.Node(), opts...)
+				pathAdded, err := api.Unixfs().Add(req.Context, addit.Node(), opts...)
+				if err != nil {
+					errCh <- err
+					return
+				}
+
+				// creating MFS pointers when optional --to-files is set
+				if toFilesSet {
+					if toFilesStr == "" {
+						toFilesStr = "/"
+					}
+					toFilesDst, err := checkPath(toFilesStr)
+					if err != nil {
+						errCh <- fmt.Errorf("%s: %w", toFilesOptionName, err)
+						return
+					}
+					dstAsDir := toFilesDst[len(toFilesDst)-1] == '/'
+
+					if dstAsDir {
+						mfsNode, err := mfs.Lookup(ipfsNode.FilesRoot, toFilesDst)
+						// confirm dst exists
+						if err != nil {
+							errCh <- fmt.Errorf("%s: MFS destination directory %q does not exist: %w", toFilesOptionName, toFilesDst, err)
+							return
+						}
+						// confirm dst is a dir
+						if mfsNode.Type() != mfs.TDir {
+							errCh <- fmt.Errorf("%s: MFS destination %q is not a directory", toFilesOptionName, toFilesDst)
+							return
+						}
+						// if MFS destination is a dir, append filename to the dir path
+						toFilesDst += gopath.Base(addit.Name())
+					}
+
+					// error if we try to overwrite a preexisting file destination
+					if fileAddedToMFS && !dstAsDir {
+						errCh <- fmt.Errorf("%s: MFS destination is a file: only one entry can be copied to %q", toFilesOptionName, toFilesDst)
+						return
+					}
+
+					_, err = mfs.Lookup(ipfsNode.FilesRoot, gopath.Dir(toFilesDst))
+					if err != nil {
+						errCh <- fmt.Errorf("%s: MFS destination parent %q %q does not exist: %w", toFilesOptionName, toFilesDst, gopath.Dir(toFilesDst), err)
+						return
+					}
+
+					var nodeAdded ipld.Node
+					nodeAdded, err = api.Dag().Get(req.Context, pathAdded.RootCid())
+					if err != nil {
+						errCh <- err
+						return
+					}
+					err = mfs.PutNode(ipfsNode.FilesRoot, toFilesDst, nodeAdded)
+					if err != nil {
+						errCh <- fmt.Errorf("%s: cannot put node in path %q: %w", toFilesOptionName, toFilesDst, err)
+						return
+					}
+					fileAddedToMFS = true
+				}
 				errCh <- err
 			}()
 
@@ -251,22 +434,43 @@ only-hash, and progress/status related flags) will change the final hash.
 				}
 
 				h := ""
-				if output.Path != nil {
-					h = enc.Encode(output.Path.Cid())
+				if (output.Path != path.ImmutablePath{}) {
+					h = enc.Encode(output.Path.RootCid())
 				}
 
 				if !dir && addit.Name() != "" {
 					output.Name = addit.Name()
 				} else {
-					output.Name = path.Join(addit.Name(), output.Name)
+					output.Name = gopath.Join(addit.Name(), output.Name)
 				}
 
-				if err := res.Emit(&AddEvent{
-					Name:  output.Name,
-					Hash:  h,
-					Bytes: output.Bytes,
-					Size:  output.Size,
-				}); err != nil {
+				output.Mode = addit.Node().Mode()
+				if ts := addit.Node().ModTime(); !ts.IsZero() {
+					output.Mtime = addit.Node().ModTime().Unix()
+					output.MtimeNsecs = addit.Node().ModTime().Nanosecond()
+				}
+
+				addEvent := AddEvent{
+					Name:       output.Name,
+					Hash:       h,
+					Bytes:      output.Bytes,
+					Size:       output.Size,
+					Mtime:      output.Mtime,
+					MtimeNsecs: output.MtimeNsecs,
+				}
+
+				if output.Mode != 0 {
+					addEvent.Mode = "0" + strconv.FormatUint(uint64(output.Mode), 8)
+				}
+
+				if output.Mtime > 0 {
+					addEvent.Mtime = output.Mtime
+					if output.MtimeNsecs > 0 {
+						addEvent.MtimeNsecs = output.MtimeNsecs
+					}
+				}
+
+				if err := res.Emit(&addEvent); err != nil {
 					return err
 				}
 			}

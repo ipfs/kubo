@@ -6,15 +6,16 @@ import (
 	"os"
 	"sort"
 	"text/tabwriter"
+	"time"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
+	unixfs "github.com/ipfs/boxo/ipld/unixfs"
+	unixfs_pb "github.com/ipfs/boxo/ipld/unixfs/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	unixfs "github.com/ipfs/go-unixfs"
-	unixfs_pb "github.com/ipfs/go-unixfs/pb"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 // LsLink contains printable data for a single ipld link in ls output
@@ -23,6 +24,8 @@ type LsLink struct {
 	Size       uint64
 	Type       unixfs_pb.Data_DataType
 	Target     string
+	Mode       os.FileMode
+	ModTime    time.Time
 }
 
 // LsObject is an element of LsOutput
@@ -131,7 +134,12 @@ The JSON output contains type information.
 		}
 
 		for i, fpath := range paths {
-			results, err := api.Unixfs().Ls(req.Context, path.New(fpath),
+			pth, err := cmdutils.PathOrCidPath(fpath)
+			if err != nil {
+				return err
+			}
+
+			results, err := api.Unixfs().Ls(req.Context, pth,
 				options.Unixfs.ResolveChildren(resolveSize || resolveType))
 			if err != nil {
 				return err
@@ -158,6 +166,9 @@ The JSON output contains type information.
 					Size:   link.Size,
 					Type:   ftype,
 					Target: link.Target,
+
+					Mode:    link.Mode,
+					ModTime: link.ModTime,
 				}
 				if err := processLink(paths[i], lsLink); err != nil {
 					return err
@@ -251,6 +262,7 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 				}
 			}
 
+			// TODO: Print link.Mode and link.ModTime?
 			fmt.Fprintf(tw, s, link.Hash, link.Size, cmdenv.EscNonPrint(link.Name))
 		}
 	}

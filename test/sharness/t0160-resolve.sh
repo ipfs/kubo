@@ -30,17 +30,11 @@ test_resolve_setup_name() {
   local key="$1"
   local ref="$2"
 
+  # we pass here --ttl=0s to ensure that it does not get cached by namesys.
+  # the alternative would be to wait between tests to ensure that the namesys
+  # cache gets purged in time, but that adds runtime time for the tests.
   test_expect_success "resolve: prepare $key" '
-    ipfs name publish --key="$key" --allow-offline "$ref"
-  '
-}
-
-test_resolve_setup_name_fail() {
-  local key="$1"
-  local ref="$2"
-
-  test_expect_failure "resolve: prepare $key" '
-    ipfs name publish --key="$key" --allow-offline "$ref"
+    ipfs name publish --key="$key" --ttl=0s --allow-offline "$ref"
   '
 }
 
@@ -121,31 +115,15 @@ test_resolve_cmd_b32() {
 
   # peer ID represented as CIDv1 require libp2p-key multicodec
   # https://github.com/libp2p/specs/blob/master/RFC/0001-text-peerid-cid.md
-  local self_hash_b32protobuf=$(echo $self_hash | ipfs cid format -v 1 -b b --codec protobuf)
-  local self_hash_b32libp2pkey=$(echo $self_hash | ipfs cid format -v 1 -b b --codec libp2p-key)
+  local self_hash_b32protobuf=$(echo $self_hash | ipfs cid format -v 1 -b b --mc dag-pb)
+  local self_hash_b32libp2pkey=$(echo $self_hash | ipfs cid format -v 1 -b b --mc libp2p-key)
   test_expect_success "resolve of /ipns/{cidv1} with multicodec other than libp2p-key returns a meaningful error" '
     test_expect_code 1 ipfs resolve /ipns/$self_hash_b32protobuf 2>cidcodec_error &&
-    grep "Error: peer ID represented as CIDv1 require libp2p-key multicodec: retry with /ipns/$self_hash_b32libp2pkey" cidcodec_error
+    test_should_contain "Error: peer ID represented as CIDv1 require libp2p-key multicodec: retry with /ipns/$self_hash_b32libp2pkey" cidcodec_error
   '
 }
 
-
-#todo remove this once the online resolve is fixed
-test_resolve_fail() {
-  src=$1
-  dst=$2
-
-  test_expect_failure "resolve succeeds: $src" '
-    ipfs resolve "$src" >actual
-  '
-
-  test_expect_failure "resolved correctly: $src -> $dst" '
-    printf "$dst" >expected &&
-    test_cmp expected actual
-  '
-}
-
-test_resolve_cmd_fail() {
+test_resolve_cmd_success() {
   test_resolve "/ipfs/$a_hash" "/ipfs/$a_hash"
   test_resolve "/ipfs/$a_hash/b" "/ipfs/$b_hash"
   test_resolve "/ipfs/$a_hash/b/c" "/ipfs/$c_hash"
@@ -155,23 +133,16 @@ test_resolve_cmd_fail() {
   test_resolve "/ipld/$dag_hash/i/j" "/ipld/$dag_hash/i/j"
   test_resolve "/ipld/$dag_hash/i" "/ipld/$dag_hash/i"
 
-  # At the moment, publishing _fails_ because we fail to put to the DHT.
-  # However, resolving succeeds because we resolve the record we put to our own
-  # node.
-  #
-  # We should find a nice way to truly support offline publishing. But this
-  # behavior isn't terrible.
-
-  test_resolve_setup_name_fail "self" "/ipfs/$a_hash"
+  test_resolve_setup_name "self" "/ipfs/$a_hash"
   test_resolve "/ipns/$self_hash" "/ipfs/$a_hash"
   test_resolve "/ipns/$self_hash/b" "/ipfs/$b_hash"
   test_resolve "/ipns/$self_hash/b/c" "/ipfs/$c_hash"
 
-  test_resolve_setup_name_fail "self" "/ipfs/$b_hash"
+  test_resolve_setup_name "self" "/ipfs/$b_hash"
   test_resolve "/ipns/$self_hash" "/ipfs/$b_hash"
   test_resolve "/ipns/$self_hash/c" "/ipfs/$c_hash"
 
-  test_resolve_setup_name_fail "self" "/ipfs/$c_hash"
+  test_resolve_setup_name "self" "/ipfs/$c_hash"
   test_resolve "/ipns/$self_hash" "/ipfs/$c_hash"
 }
 
@@ -181,7 +152,7 @@ test_resolve_cmd_b32
 
 # should work online
 test_launch_ipfs_daemon
-test_resolve_cmd_fail
+test_resolve_cmd_success
 test_kill_ipfs_daemon
 
 test_done

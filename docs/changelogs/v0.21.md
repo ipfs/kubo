@@ -1,0 +1,351 @@
+# Kubo changelog v0.21
+
+- [v0.21.1](#v0211)
+- [v0.21.0](#v0210)
+
+## v0.21.1
+
+- Update go-libp2p:
+  - [v0.27.8](https://github.com/libp2p/go-libp2p/releases/tag/v0.27.8)
+  - [v0.27.9](https://github.com/libp2p/go-libp2p/releases/tag/v0.27.9)
+- Update Boxo to v0.10.3 ([ipfs/boxo#412](https://github.com/ipfs/boxo/pull/412)).
+
+## v0.21.0
+
+- [Overview](#overview)
+- [🔦 Highlights](#-highlights)
+  - [Saving previously seen nodes for later bootstrapping](#saving-previously-seen-nodes-for-later-bootstrapping)
+  - [Gateway: `DeserializedResponses` config flag](#gateway-deserializedresponses-config-flag)
+  - [`client/rpc` migration of `go-ipfs-http-client`](#clientrpc-migration-of-go-ipfs-http-client)
+  - [Gateway: DAG-CBOR/-JSON previews and improved error pages](#gateway-dag-cbor-json-previews-and-improved-error-pages)
+  - [Gateway: subdomain redirects are now `text/html`](#gateway-subdomain-redirects-are-now-texthtml)
+  - [Gateway: support for partial CAR export parameters (IPIP-402)](#gateway-support-for-partial-car-export-parameters-ipip-402)
+  - [`ipfs dag stat` deduping statistics](#ipfs-dag-stat-deduping-statistics)
+  - [Accelerated DHT Client is no longer experimental](#accelerated-dht-client-is-no-longer-experimental)
+- [📝 Changelog](#-changelog)
+- [👨‍👩‍👧‍👦 Contributors](#-contributors)
+
+### Overview
+
+### 🔦 Highlights
+
+#### Saving previously seen nodes for later bootstrapping
+
+Kubo now stores a subset of connected peers as backup bootstrap nodes ([kubo#8856](https://github.com/ipfs/kubo/pull/8856)).
+These nodes are used in addition to the explicitly defined bootstrappers in the
+[`Bootstrap`](https://github.com/ipfs/kubo/blob/master/docs/config.md#bootstrap) configuration.
+
+This enhancement improves the resiliency of the system, as it eliminates the
+necessity of relying solely on the default bootstrappers operated by Protocol
+Labs for joining the public IPFS swarm. Previously, this level of robustness
+was only available in LAN contexts with [mDNS peer discovery](https://github.com/ipfs/kubo/blob/master/docs/config.md#discoverymdns)
+enabled.
+
+With this update, the same level of robustness is applied to peers that lack
+mDNS peers and solely rely on the public DHT.
+
+#### Gateway: `DeserializedResponses` config flag
+
+This release introduces the
+[`Gateway.DeserializedResponses`](https://github.com/ipfs/kubo/blob/master/docs/config.md#gatewaydeserializedresponses)
+configuration flag.
+
+With this flag, one can explicitly configure whether the gateway responds to
+deserialized requests or not. By default, this flag is enabled.
+
+Disabling deserialized responses allows the
+gateway to operate
+as a [Trustless Gateway](https://specs.ipfs.tech/http-gateways/trustless-gateway/)
+limited to three [verifiable](https://docs.ipfs.tech/reference/http/gateway/#trustless-verifiable-retrieval)
+response types:
+[application/vnd.ipld.raw](https://www.iana.org/assignments/media-types/application/vnd.ipld.raw),
+[application/vnd.ipld.car](https://www.iana.org/assignments/media-types/application/vnd.ipld.car),
+and [application/vnd.ipfs.ipns-record](https://www.iana.org/assignments/media-types/application/vnd.ipfs.ipns-record).
+
+With deserialized responses disabled, the Kubo gateway can serve as a block
+backend for other software (like
+[bifrost-gateway](https://github.com/ipfs/bifrost-gateway#readme),
+[IPFS in Chromium](https://github.com/little-bear-labs/ipfs-chromium/blob/main/README.md)
+etc) without the usual risks associated with hosting deserialized data behind
+third-party CIDs.
+
+#### `client/rpc` migration of `go-ipfs-http-client`
+
+The [`go-ipfs-http-client`](https://github.com/ipfs/go-ipfs-http-client) RPC has
+been migrated into [`kubo/client/rpc`](../../client/rpc).
+
+With this change the two will be kept in sync, in some previous releases we
+updated the CoreAPI with new Kubo features but forgot to port thoses to the
+http-client, making it impossible to use them together with the same coreapi
+version.
+
+For smooth transition `v0.7.0` of `go-ipfs-http-client` provides updated stubs
+for Kubo `v0.21`.
+
+#### Gateway: DAG-CBOR/-JSON previews and improved error pages
+
+In this release, we improved the HTML templates of our HTTP gateway:
+
+1. You can now preview the contents of a DAG-CBOR and DAG-JSON document from your browser, as well as follow any IPLD Links ([CBOR Tag 42](https://github.com/ipld/cid-cbor/)) contained within them.
+2. The HTML directory listings now contain [updated, higher-definition icons](https://user-images.githubusercontent.com/5447088/241224419-5385793a-d3bb-40aa-8cb0-0382b5bc56a0.png).
+3. On gateway error, instead of a plain text error message, web browsers will now get a friendly HTML response with more details regarding the problem.
+
+HTML responses are returned when request's `Accept` header includes `text/html`.
+
+| DAG-CBOR Preview | Error Page |
+| ---- | ---- |
+| ![DAG-CBOR Preview](https://github.com/ipfs/boxo/assets/5447088/973f05d1-5731-4469-9da5-d1d776891899) | ![Error Page](https://github.com/ipfs/boxo/assets/5447088/14c453df-adbc-4634-b038-133121914550) |
+
+#### Gateway: subdomain redirects are now `text/html`
+
+HTTP 301 redirects [from path to subdomain](https://specs.ipfs.tech/http-gateways/subdomain-gateway/#migrating-from-path-to-subdomain-gateway)
+no longer include the target data in the body.
+The data is returned only once, with the final HTTP 200 returned from the
+target subdomain.
+
+The HTTP 301 body now includes human-readable `text/html` message
+for clients that do not follow redirects by default:
+
+```console
+$ curl "https://subdomain-gw.example.net/ipfs/${cid}/"
+<a href="https://${cid}.ipfs.subdomain-gw.example.net/">Moved Permanently</a>.
+```
+
+Rationale can be found in [kubo#9913](https://github.com/ipfs/kubo/pull/9913).
+
+#### Gateway: support for partial CAR export parameters (IPIP-402)
+
+The gateway now supports optional CAR export parameters
+`dag-scope=block|entity|all` and `entity-bytes=from:to` as specified in
+[IPIP-402](https://specs.ipfs.tech/ipips/ipip-0402/).
+
+Batch block retrieval minimizes round trips, catering to the requirements of
+light HTTP clients for directory enumeration, range requests, and content path
+resolution.
+
+#### `ipfs dag stat` deduping statistics
+
+`ipfs dat stat` now accept multiple CIDs and will dump advanced statistics
+on the number of shared blocks and size of each CID.
+
+```console
+$ ipfs dag stat --progress=false QmfXuRxzyVy5H2LssLgtXrKCrNvDY8UBvMp2aoW8LS8AYA QmfZDyu2UFfUhL4VdHaw7Hofivmn5D4DdQj38Lwo86RsnB
+
+CID                                           	Blocks         	Size
+QmfXuRxzyVy5H2LssLgtXrKCrNvDY8UBvMp2aoW8LS8AYA	3              	2151
+QmfZDyu2UFfUhL4VdHaw7Hofivmn5D4DdQj38Lwo86RsnB	4              	3223
+
+Summary
+Total Size: 3326
+Unique Blocks: 5
+Shared Size: 2048
+Ratio: 1.615755
+```
+
+`ipfs --enc=json dag stat`'s keys are a non breaking change, new keys have been added but old keys with previous sementics are still here.
+
+#### Accelerated DHT Client is no longer experimental
+
+The [accelerated DHT client](docs/config.md#routingaccelerateddhtclient) is now
+the main recommended solution for users who are hosting lots of data.
+By trading some upfront DHT caching and increased memory usage,
+one gets provider throughput improvements up to 6 millions times bigger dataset.
+See [the docs](docs/config.md#routingaccelerateddhtclient) for more info.
+
+The `Experimental.AcceleratedDHTClient` flag moved to [`Routing.AcceleratedDHTClient`](/docs/config.md#routingaccelerateddhtclient).
+A config migration has been added to handle this automatically.
+
+A new tracker estimates the providing speed and warns users if they
+should be using AcceleratedDHTClient because they are falling behind.
+
+### 📝 Changelog
+
+<details><summary>Full Changelog</summary>
+
+- github.com/ipfs/kubo:
+  - fix: correctly handle migration of configs
+  - fix(gateway): include CORS on subdomain redirects (#9994) ([ipfs/kubo#9994](https://github.com/ipfs/kubo/pull/9994))
+  - fix: docker repository initialization race condition
+  - chore: update version
+  -  ([ipfs/kubo#9981](https://github.com/ipfs/kubo/pull/9981))
+  -  ([ipfs/kubo#9960](https://github.com/ipfs/kubo/pull/9960))
+  -  ([ipfs/kubo#9936](https://github.com/ipfs/kubo/pull/9936))
+- github.com/ipfs/boxo (v0.8.1 -> v0.10.2-0.20230629143123-2d3edc552442):
+  - chore: version 0.10.2
+  - fix(gateway): include CORS on subdomain redirects (#395) ([ipfs/boxo#395](https://github.com/ipfs/boxo/pull/395))
+  - fix(gateway): ensure 'X-Ipfs-Root' header is valid (#337) ([ipfs/boxo#337](https://github.com/ipfs/boxo/pull/337))
+  - docs: prepare changelog for next release [ci skip]
+  - chore: version 0.10.1 (#359) ([ipfs/boxo#359](https://github.com/ipfs/boxo/pull/359))
+  - fix(gateway): allow CAR trustless requests with path
+  - blockstore: replace go.uber.org/atomic with sync/atomic
+  - fix(gateway): remove handleUnsupportedHeaders after go-ipfs 0.13 (#350) ([ipfs/boxo#350](https://github.com/ipfs/boxo/pull/350))
+  - docs: update RELEASE.md based on 0.9 release (#343) ([ipfs/boxo#343](https://github.com/ipfs/boxo/pull/343))
+  - chore: v0.10.0 (#345) ([ipfs/boxo#345](https://github.com/ipfs/boxo/pull/345))
+  - docs(changelog): car params from ipip-402
+  - docs(changelog): add gateway deserialized responses (#341) ([ipfs/boxo#341](https://github.com/ipfs/boxo/pull/341))
+  - feat(gateway): implement IPIP-402 extensions for gateway CAR requests (#303) ([ipfs/boxo#303](https://github.com/ipfs/boxo/pull/303))
+  - chore: release v0.9.0
+  - changelog: update for 0.8.1 and 0.9.0
+  - provider: second round of reprovider refactor
+  - feat(unixfs): change protobuf package name to unixfs.v1.pb to prevent collisions with go-unixfs. Also regenerate protobufs with latest gogo
+  - feat(ipld/merkledag): remove use of go-ipld-format global registry
+  - feat(ipld/merkledag): updated to use its own global go-ipld-legacy registry instead of a shared global registry
+  - chore: do not rely on deprecated logger
+  - changelog: add changelog for async pin listing (#336) ([ipfs/boxo#336](https://github.com/ipfs/boxo/pull/336))
+  - pinner: change the interface to have async pin listing
+  - provider: revert throughput callback and related refactor
+  - fix(gateway): question marks in url.Path when redirecting (#313) ([ipfs/boxo#313](https://github.com/ipfs/boxo/pull/313))
+  - fix(gateway)!: no duplicate payload during subdomain redirects (#326) ([ipfs/boxo#326](https://github.com/ipfs/boxo/pull/326))
+  - provider: add breaking changes to the changelog (#330) ([ipfs/boxo#330](https://github.com/ipfs/boxo/pull/330))
+  - relocated magic numbers, updated Reprovide Interval from 24h to 22h
+  - provider: refactor to only maintain one batched implementation and add throughput callback
+  - feat(gateway): HTML preview for dag-cbor and dag-json (#315) ([ipfs/boxo#315](https://github.com/ipfs/boxo/pull/315))
+  - coreiface: add a testing.T argument to the provider
+  - feat(gateway): improved templates, user friendly errors (#298) ([ipfs/boxo#298](https://github.com/ipfs/boxo/pull/298))
+  - feat(gateway)!: deserialised responses turned off by default (#252) ([ipfs/boxo#252](https://github.com/ipfs/boxo/pull/252))
+  - fix(gw): missing return in error case ([ipfs/boxo#319](https://github.com/ipfs/boxo/pull/319))
+  - feat(routing/http): pass records limit on routing.FindProviders (#299) ([ipfs/boxo#299](https://github.com/ipfs/boxo/pull/299))
+  - bitswap/client: fix PeerResponseTrackerProbabilityOneKnownOneUnknownPeer
+  - feat(gw): add ipfs_http_gw_car_stream_fail_duration_seconds (#312) ([ipfs/boxo#312](https://github.com/ipfs/boxo/pull/312))
+  - feat(gw): add ipfs_http_gw_request_types metric (#311) ([ipfs/boxo#311](https://github.com/ipfs/boxo/pull/311))
+  - refactor: simplify ipns validation in example
+  - feat: add deprecator
+  - fix(routing/v1): add newline in NDJSON responses (#300) ([ipfs/boxo#300](https://github.com/ipfs/boxo/pull/300))
+  - feat(gateway): redirect ipns b58mh to cid (#236) ([ipfs/boxo#236](https://github.com/ipfs/boxo/pull/236))
+  - refactor: replace assert.Nil for assert.NoError
+  - tar: add test cases for validatePlatformPath
+  - feat(ipns): helper ValidateWithPeerID and UnmarshalIpnsEntry (#294) ([ipfs/boxo#294](https://github.com/ipfs/boxo/pull/294))
+  - Revert "feat: reusable ipns verify (#292)"
+  - feat: reusable ipns verify (#292) ([ipfs/boxo#292](https://github.com/ipfs/boxo/pull/292))
+  - refactor: remove badger, leveldb dependencies (#286) ([ipfs/boxo#286](https://github.com/ipfs/boxo/pull/286))
+  - feat(routing/http): add streaming support (#18) ([ipfs/boxo#18](https://github.com/ipfs/boxo/pull/18))
+  - feat(routing): allow-offline with routing put (#278) ([ipfs/boxo#278](https://github.com/ipfs/boxo/pull/278))
+  - refactor(gateway): switch to xxhash/v2 (#285) ([ipfs/boxo#285](https://github.com/ipfs/boxo/pull/285))
+- github.com/ipfs/go-ipfs-util (v0.0.2 -> v0.0.3):
+  - docs: remove contribution section
+  - chore: bump version
+  - chore: deprecate types and readme
+  - sync: update CI config files (#12) ([ipfs/go-ipfs-util#12](https://github.com/ipfs/go-ipfs-util/pull/12))
+  - fix staticcheck ([ipfs/go-ipfs-util#9](https://github.com/ipfs/go-ipfs-util/pull/9))
+- github.com/ipfs/go-ipld-format (v0.4.0 -> v0.5.0):
+  - chore: release version v0.5.0
+  - feat: remove block decoding global registry
+  - sync: update CI config files (#75) ([ipfs/go-ipld-format#75](https://github.com/ipfs/go-ipld-format/pull/75))
+  - sync: update CI config files (#74) ([ipfs/go-ipld-format#74](https://github.com/ipfs/go-ipld-format/pull/74))
+- github.com/ipfs/go-ipld-legacy (v0.1.1 -> v0.2.1):
+  - v0.2.1 ([ipfs/go-ipld-legacy#15](https://github.com/ipfs/go-ipld-legacy/pull/15))
+  - Expose a constructor for making a decoder with an existing link system ([ipfs/go-ipld-legacy#14](https://github.com/ipfs/go-ipld-legacy/pull/14))
+  - Update to v0.2.0 ([ipfs/go-ipld-legacy#13](https://github.com/ipfs/go-ipld-legacy/pull/13))
+  - Remove global variable ([ipfs/go-ipld-legacy#12](https://github.com/ipfs/go-ipld-legacy/pull/12))
+  - sync: update CI config files (#8) ([ipfs/go-ipld-legacy#8](https://github.com/ipfs/go-ipld-legacy/pull/8))
+- github.com/ipfs/go-unixfsnode (v1.6.0 -> v1.7.1):
+  - chore: bump to v1.7.1
+  - test: remove unnecessary t.Log
+  - test: check if reader reads only necessary blocks
+  - fix: do not read extra block if offset = at+childSize
+  - doc: added simple doc for testutil package
+  - bump v1.7.0
+  - feat(testutil): add test data generation utils (extracted from Lassie)
+- github.com/libp2p/go-libp2p (v0.27.3 -> v0.27.7):
+  - Release v0.27.7 (#2374) ([libp2p/go-libp2p#2374](https://github.com/libp2p/go-libp2p/pull/2374))
+  - Release v0.27.6 (#2359) ([libp2p/go-libp2p#2359](https://github.com/libp2p/go-libp2p/pull/2359))
+  - Release v0.27.5 (#2324) ([libp2p/go-libp2p#2324](https://github.com/libp2p/go-libp2p/pull/2324))
+  - Bump version to v0.27.4
+  - identify: reject signed peer records on peer ID mismatch
+  - swarm: change maps with multiaddress keys to use strings (#2284) ([libp2p/go-libp2p#2284](https://github.com/libp2p/go-libp2p/pull/2284))
+  - identify: avoid spuriously triggering pushes (#2299) ([libp2p/go-libp2p#2299](https://github.com/libp2p/go-libp2p/pull/2299))
+- github.com/libp2p/go-libp2p-kad-dht (v0.23.0 -> v0.24.2):
+  - chore: release v0.24.2
+  - chore: release v0.24.1
+  - fix: decrease tests noise, update kbucket and fix fixRTIUfNeeded
+  - refactor: remove goprocess
+  - fix: leaking go routines
+  - chore: release v0.24.0
+  - fix: don't add unresponsive DHT servers to the Routing Table (#820) ([libp2p/go-libp2p-kad-dht#820](https://github.com/libp2p/go-libp2p-kad-dht/pull/820))
+- github.com/libp2p/go-libp2p-kbucket (v0.5.0 -> v0.6.3):
+  - fix: fix abba bug in UsefullNewPeer ([libp2p/go-libp2p-kbucket#122](https://github.com/libp2p/go-libp2p-kbucket/pull/122))
+  - chore: release v0.6.2 ([libp2p/go-libp2p-kbucket#121](https://github.com/libp2p/go-libp2p-kbucket/pull/121))
+  - Replacing UsefulPeer() with UsefulNewPeer() ([libp2p/go-libp2p-kbucket#120](https://github.com/libp2p/go-libp2p-kbucket/pull/120))
+  - chore: release 0.6.1 ([libp2p/go-libp2p-kbucket#119](https://github.com/libp2p/go-libp2p-kbucket/pull/119))
+  - UsefulPeer function ([libp2p/go-libp2p-kbucket#113](https://github.com/libp2p/go-libp2p-kbucket/pull/113))
+  - Fixed peer replacement with bucket size of 1. ([libp2p/go-libp2p-kbucket#117](https://github.com/libp2p/go-libp2p-kbucket/pull/117))
+  - GenRandomKey function ([libp2p/go-libp2p-kbucket#116](https://github.com/libp2p/go-libp2p-kbucket/pull/116))
+  - Removed maintainers from readme ([libp2p/go-libp2p-kbucket#115](https://github.com/libp2p/go-libp2p-kbucket/pull/115))
+  - Add maintainers ([libp2p/go-libp2p-kbucket#114](https://github.com/libp2p/go-libp2p-kbucket/pull/114))
+  - sync: update CI config files (#112) ([libp2p/go-libp2p-kbucket#112](https://github.com/libp2p/go-libp2p-kbucket/pull/112))
+- github.com/libp2p/go-libp2p-routing-helpers (v0.6.2 -> v0.7.0):
+  - chore: release v0.7.0
+  - fix: iterate over keys manually in ProvideMany
+- github.com/libp2p/go-reuseport (v0.2.0 -> v0.3.0):
+  - release v0.3.0 (#103) ([libp2p/go-reuseport#103](https://github.com/libp2p/go-reuseport/pull/103))
+  - fix error handling when setting socket options (#102) ([libp2p/go-reuseport#102](https://github.com/libp2p/go-reuseport/pull/102))
+  - minor README updates (#96) ([libp2p/go-reuseport#96](https://github.com/libp2p/go-reuseport/pull/96))
+  - sync: update CI config files (#94) ([libp2p/go-reuseport#94](https://github.com/libp2p/go-reuseport/pull/94))
+  - feat: add a DialTimeout function ([libp2p/go-reuseport#92](https://github.com/libp2p/go-reuseport/pull/92))
+- github.com/multiformats/go-multicodec (v0.8.1 -> v0.9.0):
+  - Bump v0.9.0
+  - Bump v0.8.2
+  - chore: update submodules and go generate
+  - chore: update submodules and go generate
+  - chore: update submodules and go generate
+  - chore: update submodules and go generate
+  - chore: update submodules and go generate
+  - chore: update submodules and go generate
+- github.com/multiformats/go-multihash (v0.2.1 -> v0.2.3):
+  - chore: release v0.2.3
+  - perf: outline logic in Decode to allow for stack allocations
+  - chore: release v0.2.2
+  - sha256: drop minio in favor of crypto/sha256 for go1.21 and above
+  - sync: update CI config files (#169) ([multiformats/go-multihash#169](https://github.com/multiformats/go-multihash/pull/169))
+  - add handler for hasher.Write returned error ([multiformats/go-multihash#167](https://github.com/multiformats/go-multihash/pull/167))
+  - sync: update CI config files (#165) ([multiformats/go-multihash#165](https://github.com/multiformats/go-multihash/pull/165))
+  - test: add benchmark for all hash functions Sum
+
+</details>
+
+### 👨‍👩‍👧‍👦 Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| Jorropo | 47 | +4394/-4458 | 202 |
+| Henrique Dias | 48 | +4344/-3962 | 205 |
+| Łukasz Magiera | 68 | +3604/-886 | 172 |
+| Adin Schmahmann | 8 | +1754/-1057 | 37 |
+| galargh | 7 | +1355/-1302 | 15 |
+| Gus Eggert | 7 | +1566/-655 | 33 |
+| rvagg | 1 | +396/-389 | 3 |
+| Michael Muré | 3 | +547/-202 | 14 |
+| Guillaume Michel - guissou | 5 | +153/-494 | 17 |
+| guillaumemichel | 15 | +446/-189 | 28 |
+| Laurent Senta | 4 | +472/-152 | 29 |
+| Rod Vagg | 6 | +554/-37 | 23 |
+| Marcin Rataj | 11 | +330/-82 | 21 |
+| Arthur Gavazza | 1 | +296/-87 | 7 |
+| Lucas Molas | 1 | +323/-56 | 6 |
+| Marco Munizaga | 5 | +227/-97 | 17 |
+| Alex | 8 | +163/-116 | 10 |
+| Steven Allen | 11 | +154/-114 | 14 |
+| Marten Seemann | 6 | +214/-41 | 12 |
+| web3-bot | 9 | +76/-75 | 28 |
+| Hector Sanjuan | 2 | +5/-96 | 4 |
+| Sukun | 1 | +83/-17 | 3 |
+| Steve Loeppky | 2 | +100/-0 | 2 |
+| Edgar Lee | 1 | +46/-46 | 12 |
+| Ivan Schasny | 1 | +67/-5 | 4 |
+| imthe1 | 1 | +65/-3 | 5 |
+| godcong | 2 | +30/-31 | 5 |
+| Will Scott | 4 | +36/-23 | 6 |
+| Petar Maymounkov | 1 | +45/-9 | 1 |
+| Ross Jones | 1 | +43/-1 | 2 |
+| William Entriken | 1 | +38/-0 | 1 |
+| João Pedro | 1 | +35/-0 | 1 |
+| jhertz | 1 | +21/-0 | 2 |
+| Nikhilesh Susarla | 1 | +21/-0 | 3 |
+| Matt Joiner | 1 | +11/-9 | 2 |
+| Vlad | 2 | +4/-2 | 2 |
+| Russell Dempsey | 2 | +4/-2 | 2 |
+| Will | 2 | +2/-2 | 2 |
+| Piotr Galar | 1 | +1/-1 | 1 |
+| Joel Gustafson | 1 | +1/-1 | 1 |
+| Dennis Trautwein | 1 | +1/-1 | 1 |
+| Bryan Stenson | 1 | +1/-1 | 1 |

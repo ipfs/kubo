@@ -1,14 +1,14 @@
 package dagjose
 
 import (
-	"github.com/ipfs/go-ipfs/plugin"
+	"github.com/ipfs/kubo/plugin"
 
 	"github.com/ceramicnetwork/go-dag-jose/dagjose"
 	"github.com/ipld/go-ipld-prime/multicodec"
 	mc "github.com/multiformats/go-multicodec"
 )
 
-// Plugins is exported list of plugins that will be loaded
+// Plugins is exported list of plugins that will be loaded.
 var Plugins = []plugin.Plugin{
 	&dagjosePlugin{},
 }

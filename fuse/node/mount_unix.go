@@ -1,3 +1,4 @@
+//go:build !windows && !openbsd && !netbsd && !plan9 && !nofuse
 // +build !windows,!openbsd,!netbsd,!plan9,!nofuse
 
 package node
@@ -8,24 +9,24 @@ import (
 	"strings"
 	"sync"
 
-	core "github.com/ipfs/go-ipfs/core"
-	ipns "github.com/ipfs/go-ipfs/fuse/ipns"
-	mount "github.com/ipfs/go-ipfs/fuse/mount"
-	rofs "github.com/ipfs/go-ipfs/fuse/readonly"
+	core "github.com/ipfs/kubo/core"
+	ipns "github.com/ipfs/kubo/fuse/ipns"
+	mount "github.com/ipfs/kubo/fuse/mount"
+	rofs "github.com/ipfs/kubo/fuse/readonly"
 
 	logging "github.com/ipfs/go-log"
 )
 
 var log = logging.Logger("node")
 
-// fuseNoDirectory used to check the returning fuse error
+// fuseNoDirectory used to check the returning fuse error.
 const fuseNoDirectory = "fusermount: failed to access mountpoint"
 
-// fuseExitStatus1 used to check the returning fuse error
+// fuseExitStatus1 used to check the returning fuse error.
 const fuseExitStatus1 = "fusermount: exit status 1"
 
 // platformFuseChecks can get overridden by arch-specific files
-// to run fuse checks (like checking the OSXFUSE version)
+// to run fuse checks (like checking the OSXFUSE version).
 var platformFuseChecks = func(*core.IpfsNode) error {
 	return nil
 }

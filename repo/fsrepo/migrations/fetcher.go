@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 
@@ -9,19 +10,18 @@ import (
 )
 
 const (
-	// Current distribution to fetch migrations from
-	CurrentIpfsDist = "/ipfs/QmPweMoUxWFt1MSpYwLWsHB1GBcyYYDKPnANdERMY4U6hK" // fs-repo-11-to-12 v1.0.1
+	// Current distribution to fetch migrations from.
+	CurrentIpfsDist = "/ipfs/QmRzRGJEjYDfbHHaALnHBuhzzrkXGdwcPMrgd5fgM7hqbe" // fs-repo-15-to-16 v1.0.1
 	// Latest distribution path.  Default for fetchers.
-	LatestIpfsDist = "/ipns/dist.ipfs.io"
+	LatestIpfsDist = "/ipns/dist.ipfs.tech"
 
-	// Distribution environ variable
+	// Distribution environ variable.
 	envIpfsDistPath = "IPFS_DIST_PATH"
 )
 
 type Fetcher interface {
 	// Fetch attempts to fetch the file at the given ipfs path.
-	// Returns io.ReadCloser on success, which caller must close.
-	Fetch(ctx context.Context, filePath string) (io.ReadCloser, error)
+	Fetch(ctx context.Context, filePath string) ([]byte, error)
 	// Close performs any cleanup after the fetcher is not longer needed.
 	Close() error
 }
@@ -38,8 +38,8 @@ type limitReadCloser struct {
 }
 
 // NewMultiFetcher creates a MultiFetcher with the given Fetchers.  The
-// Fetchers are tried in order ther passed to this function.
-func NewMultiFetcher(f ...Fetcher) Fetcher {
+// Fetchers are tried in order, then passed to this function.
+func NewMultiFetcher(f ...Fetcher) *MultiFetcher {
 	mf := &MultiFetcher{
 		fetchers: make([]Fetcher, len(f)),
 	}
@@ -48,14 +48,14 @@ func NewMultiFetcher(f ...Fetcher) Fetcher {
 }
 
 // Fetch attempts to fetch the file at each of its fetchers until one succeeds.
-// Returns io.ReadCloser on success, which caller must close.
-func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) (io.ReadCloser, error) {
+func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) ([]byte, error) {
 	var errs error
 	for _, fetcher := range f.fetchers {
-		rc, err := fetcher.Fetch(ctx, ipfsPath)
+		out, err := fetcher.Fetch(ctx, ipfsPath)
 		if err == nil {
-			return rc, nil
+			return out, nil
 		}
+		fmt.Printf("Error fetching: %s\n", err.Error())
 		errs = multierror.Append(errs, err)
 	}
 	return nil, errs
@@ -94,7 +94,7 @@ func NewLimitReadCloser(rc io.ReadCloser, limit int64) io.ReadCloser {
 // then returns the IPNS path.
 //
 // To get the IPFS path of the latest distribution, if not overriddin by the
-// environ variable: GetDistPathEnv(CurrentIpfsDist)
+// environ variable: GetDistPathEnv(CurrentIpfsDist).
 func GetDistPathEnv(distPath string) string {
 	if dist := os.Getenv(envIpfsDistPath); dist != "" {
 		return dist

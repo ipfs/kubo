@@ -3,23 +3,24 @@ package blockstoreutil
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 
+	bs "github.com/ipfs/boxo/blockstore"
+	pin "github.com/ipfs/boxo/pinning/pinner"
 	cid "github.com/ipfs/go-cid"
-	bs "github.com/ipfs/go-ipfs-blockstore"
-	pin "github.com/ipfs/go-ipfs-pinner"
+	format "github.com/ipfs/go-ipld-format"
 )
 
 // RemovedBlock is used to represent the result of removing a block.
-// If a block was removed successfully, then the Error string will be
-// empty.  If a block could not be removed, then Error will contain the
+// If a block was removed successfully, then the Error will be empty.
+// If a block could not be removed, then Error will contain the
 // reason the block could not be removed.  If the removal was aborted
 // due to a fatal error, Hash will be empty, Error will contain the
 // reason, and no more results will be sent.
 type RemovedBlock struct {
-	Hash  string `json:",omitempty"`
-	Error string `json:",omitempty"`
+	Hash  string
+	Error error
 }
 
 // RmBlocksOpts is used to wrap options for RmBlocks().
@@ -50,17 +51,17 @@ func RmBlocks(ctx context.Context, blocks bs.GCBlockstore, pins pin.Pinner, cids
 			// remove this sometime in the future.
 			has, err := blocks.Has(ctx, c)
 			if err != nil {
-				out <- &RemovedBlock{Hash: c.String(), Error: err.Error()}
+				out <- &RemovedBlock{Hash: c.String(), Error: err}
 				continue
 			}
 			if !has && !opts.Force {
-				out <- &RemovedBlock{Hash: c.String(), Error: bs.ErrNotFound.Error()}
+				out <- &RemovedBlock{Hash: c.String(), Error: format.ErrNotFound{Cid: c}}
 				continue
 			}
 
 			err = blocks.DeleteBlock(ctx, c)
 			if err != nil {
-				out <- &RemovedBlock{Hash: c.String(), Error: err.Error()}
+				out <- &RemovedBlock{Hash: c.String(), Error: err}
 			} else if !opts.Quiet {
 				out <- &RemovedBlock{Hash: c.String()}
 			}
@@ -78,7 +79,7 @@ func FilterPinned(ctx context.Context, pins pin.Pinner, out chan<- interface{}, 
 	stillOkay := make([]cid.Cid, 0, len(cids))
 	res, err := pins.CheckIfPinned(ctx, cids...)
 	if err != nil {
-		out <- &RemovedBlock{Error: fmt.Sprintf("pin check failed: %s", err)}
+		out <- &RemovedBlock{Error: fmt.Errorf("pin check failed: %w", err)}
 		return nil
 	}
 	for _, r := range res {
@@ -87,36 +88,9 @@ func FilterPinned(ctx context.Context, pins pin.Pinner, out chan<- interface{}, 
 		} else {
 			out <- &RemovedBlock{
 				Hash:  r.Key.String(),
-				Error: r.String(),
+				Error: errors.New(r.String()),
 			}
 		}
 	}
 	return stillOkay
-}
-
-// ProcRmOutput takes a function which returns a result from RmBlocks or EOF if there is no input.
-// It then writes to stdout/stderr according to the RemovedBlock object returned from the function.
-func ProcRmOutput(next func() (interface{}, error), sout io.Writer, serr io.Writer) error {
-	someFailed := false
-	for {
-		res, err := next()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-		r := res.(*RemovedBlock)
-		if r.Hash == "" && r.Error != "" {
-			return fmt.Errorf("aborted: %s", r.Error)
-		} else if r.Error != "" {
-			someFailed = true
-			fmt.Fprintf(serr, "cannot remove %s: %s\n", r.Hash, r.Error)
-		} else {
-			fmt.Fprintf(sout, "removed %s\n", r.Hash)
-		}
-	}
-	if someFailed {
-		return fmt.Errorf("some blocks not removed")
-	}
-	return nil
 }

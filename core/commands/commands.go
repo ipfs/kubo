@@ -1,6 +1,6 @@
 // Package commands implements the ipfs command interface
 //
-// Using github.com/ipfs/go-ipfs/commands to define the command line and HTTP
+// Using github.com/ipfs/kubo/commands to define the command line and HTTP
 // APIs.  This is the interface available to folks using IPFS from outside of
 // the Go language.
 package commands
@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
 type commandEncoder struct {
@@ -163,6 +163,60 @@ To install the completions permanently, they can be moved to
 				Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 					var buf bytes.Buffer
 					if err := writeBashCompletions(root, &buf); err != nil {
+						return err
+					}
+					res.SetLength(uint64(buf.Len()))
+					return res.Emit(&buf)
+				},
+			},
+			"zsh": {
+				Helptext: cmds.HelpText{
+					Tagline:          "Generate zsh shell completions.",
+					ShortDescription: "Generates command completions for the zsh shell.",
+					LongDescription: `
+Generates command completions for the zsh shell.
+
+The simplest way to see it working is write the completions
+to a file and then source it:
+
+  > ipfs commands completion zsh > ipfs-completion.zsh
+  > source ./ipfs-completion.zsh
+
+To install the completions permanently, they can be moved to
+/etc/zsh/completions or sourced from your ~/.zshrc file.
+`,
+				},
+				NoRemote: true,
+				Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+					var buf bytes.Buffer
+					if err := writeZshCompletions(root, &buf); err != nil {
+						return err
+					}
+					res.SetLength(uint64(buf.Len()))
+					return res.Emit(&buf)
+				},
+			},
+			"fish": {
+				Helptext: cmds.HelpText{
+					Tagline:          "Generate fish shell completions.",
+					ShortDescription: "Generates command completions for the fish shell.",
+					LongDescription: `
+Generates command completions for the fish shell.
+
+The simplest way to see it working is write the completions
+to a file and then source it:
+
+  > ipfs commands completion fish > ipfs-completion.fish
+  > source ./ipfs-completion.fish
+
+To install the completions permanently, they can be moved to
+/etc/fish/completions or ~/.config/fish/completions or sourced from your ~/.config/fish/config.fish file.
+`,
+				},
+				NoRemote: true,
+				Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+					var buf bytes.Buffer
+					if err := writeFishCompletions(root, &buf); err != nil {
 						return err
 					}
 					res.SetLength(uint64(buf.Len()))

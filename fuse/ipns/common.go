@@ -3,11 +3,11 @@ package ipns
 import (
 	"context"
 
-	"github.com/ipfs/go-ipfs/core"
-	nsys "github.com/ipfs/go-namesys"
-	path "github.com/ipfs/go-path"
-	ft "github.com/ipfs/go-unixfs"
-	ci "github.com/libp2p/go-libp2p-core/crypto"
+	ft "github.com/ipfs/boxo/ipld/unixfs"
+	"github.com/ipfs/boxo/namesys"
+	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/kubo/core"
+	ci "github.com/libp2p/go-libp2p/core/crypto"
 )
 
 // InitializeKeyspace sets the ipns record for the given key to
@@ -18,7 +18,7 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 
 	emptyDir := ft.EmptyDirNode()
 
-	err := n.Pinning.Pin(ctx, emptyDir, false)
+	err := n.Pinning.Pin(ctx, emptyDir, false, "")
 	if err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 		return err
 	}
 
-	pub := nsys.NewIpnsPublisher(n.Routing, n.Repo.Datastore())
+	pub := namesys.NewIPNSPublisher(n.Routing, n.Repo.Datastore())
 
 	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))
 }

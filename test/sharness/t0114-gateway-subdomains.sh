@@ -91,50 +91,31 @@ test_expect_success "ipfs init" '
 
 test_launch_ipfs_daemon_without_network
 
-# CIDv0to1 is necessary because raw-leaves are enabled by default during
-# "ipfs add" with CIDv1 and disabled with CIDv0
-test_expect_success "Add test text file" '
-  CID_VAL="hello"
-  CIDv1=$(echo $CID_VAL | ipfs add --cid-version 1 -Q)
-  CIDv0=$(echo $CID_VAL | ipfs add --cid-version 0 -Q)
-  CIDv0to1=$(echo "$CIDv0" | ipfs cid base32)
-  echo CIDv0to1=${CIDv0to1}
-'
+# Import test case
+# See the static fixtures in ./t0114-gateway-subdomains/
+CID_VAL=hello
+CIDv1=bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am
+CIDv0=QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+CIDv0to1=bafybeiffndsajwhk3lwjewwdxqntmjm4b5wxaaanokonsggenkbw6slwk4
+CIDv1_TOO_LONG=bafkrgqhhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dlfsthi4hn7zgh4uvlsb5xncykzapi3ocd4lzogukir6ksdy6wzrnz6ohnv4aglcs
+DIR_CID=bafybeiht6dtwk3les7vqm6ibpvz6qpohidvlshsfyr7l5mpysdw2vmbbhe
 
-# Directory tree crafted to test for edge cases like "/ipfs/ipfs/ipns/bar"
-test_expect_success "Add the test directory" '
-  mkdir -p testdirlisting/ipfs/ipns &&
-  echo "hello" > testdirlisting/hello &&
-  echo "text-file-content" > testdirlisting/ipfs/ipns/bar &&
-  mkdir -p testdirlisting/api &&
-  mkdir -p testdirlisting/ipfs &&
-  echo "I am a txt file" > testdirlisting/api/file.txt &&
-  echo "I am a txt file" > testdirlisting/ipfs/file.txt &&
-  DIR_CID=$(ipfs add -Qr --cid-version 1 testdirlisting)
-'
+RSA_KEY=QmVujd5Vb7moysJj8itnGufN7MEtPRCNHkKpNuA4onsRa3
+RSA_IPNS_IDv0=QmVujd5Vb7moysJj8itnGufN7MEtPRCNHkKpNuA4onsRa3
+RSA_IPNS_IDv1=k2k4r8m7xvggw5pxxk3abrkwyer625hg01hfyggrai7lk1m63fuihi7w
+RSA_IPNS_IDv1_DAGPB=k2jmtxu61bnhrtj301lw7zizknztocdbeqhxgv76l2q9t36fn9jbzipo
 
-test_expect_success "Publish test text file to IPNS using RSA keys" '
-  RSA_KEY=$(ipfs key gen --ipns-base=b58mh --type=rsa --size=2048 test_key_rsa | head -n1 | tr -d "\n")
-  RSA_IPNS_IDv0=$(echo "$RSA_KEY" | ipfs cid format -v 0)
-  RSA_IPNS_IDv1=$(echo "$RSA_KEY" | ipfs cid format -v 1 --codec libp2p-key -b base36)
-  RSA_IPNS_IDv1_DAGPB=$(echo "$RSA_IPNS_IDv0" | ipfs cid format -v 1 -b base36)
-  test_check_peerid "${RSA_KEY}" &&
-  ipfs name publish --key test_key_rsa --allow-offline -Q "/ipfs/$CIDv1" > name_publish_out &&
-  ipfs name resolve "$RSA_KEY"  > output &&
-  printf "/ipfs/%s\n" "$CIDv1" > expected2 &&
-  test_cmp expected2 output
-'
+ED25519_KEY=12D3KooWLQzUv2FHWGVPXTXSZpdHs7oHbXub2G5WC8Tx4NQhyd2d
+ED25519_IPNS_IDv0=12D3KooWLQzUv2FHWGVPXTXSZpdHs7oHbXub2G5WC8Tx4NQhyd2d
+ED25519_IPNS_IDv1=k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam
+ED25519_IPNS_IDv1_DAGPB=k50rm9yjlt0jey4fqg6wafvqprktgbkpgkqdg27tpqje6iimzxewnhvtin9hhq
+IPNS_ED25519_B58MH=12D3KooWLQzUv2FHWGVPXTXSZpdHs7oHbXub2G5WC8Tx4NQhyd2d
+IPNS_ED25519_B36CID=k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam
 
-test_expect_success "Publish test text file to IPNS using ED25519 keys" '
-  ED25519_KEY=$(ipfs key gen --ipns-base=b58mh --type=ed25519 test_key_ed25519 | head -n1 | tr -d "\n")
-  ED25519_IPNS_IDv0=$ED25519_KEY
-  ED25519_IPNS_IDv1=$(ipfs key list -l --ipns-base=base36 | grep test_key_ed25519 | cut -d " " -f1 | tr -d "\n")
-  ED25519_IPNS_IDv1_DAGPB=$(echo "$ED25519_IPNS_IDv1" | ipfs cid format -v 1 -b base36 --codec protobuf)
-  test_check_peerid "${ED25519_KEY}" &&
-  ipfs name publish --key test_key_ed25519 --allow-offline -Q "/ipfs/$CIDv1" > name_publish_out &&
-  ipfs name resolve "$ED25519_KEY"  > output &&
-  printf "/ipfs/%s\n" "$CIDv1" > expected2 &&
-  test_cmp expected2 output
+test_expect_success "Add the test fixtures" '
+  ipfs dag import --pin-roots ../t0114-gateway-subdomains/fixtures.car &&
+  ipfs routing put --allow-offline /ipns/${RSA_KEY} ../t0114-gateway-subdomains/${RSA_KEY}.ipns-record &&
+  ipfs routing put --allow-offline /ipns/${ED25519_KEY} ../t0114-gateway-subdomains/${ED25519_KEY}.ipns-record
 '
 
 # ensure we start with empty Gateway.PublicGateways
@@ -181,14 +162,17 @@ test_localhost_gateway_response_should_contain \
   "http://localhost:$GWAY_PORT/ipfs/$DIR_CID/" \
   "Location: http://$DIR_CID.ipfs.localhost:$GWAY_PORT/"
 
-# We return body with HTTP 301 so existing cli scripts that use path-based
-# gateway do not break (curl doesn't auto-redirect without passing -L; wget
-# does not span across hostnames by default)
-# Context: https://github.com/ipfs/go-ipfs/issues/6975
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+
+# We return human-readable body with HTTP 301 so existing cli scripts that use path-based
+# gateway are informed to enable following HTTP redirects
 test_localhost_gateway_response_should_contain \
-  "request for localhost/ipfs/{CIDv1} includes valid payload in body for CLI tools like curl" \
+  "request for localhost/ipfs/{CIDv1} includes human-readable link and redirect info in HTTP 301 body" \
   "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
-  "$CID_VAL"
+  ">Moved Permanently</a>"
+
+# end Kubo specific end-to-end test
 
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{CIDv0} redirects to CIDv1 representation in subdomain" \
@@ -209,29 +193,15 @@ test_localhost_gateway_response_should_contain \
 
 # /ipns/<dnslink-fqdn>
 
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain" \
   "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
   "Location: http://en.wikipedia-on-ipfs.org.ipns.localhost:$GWAY_PORT/wiki"
 
-# API on localhost subdomain gateway
-
-# /api/v0 present on the root hostname
-test_localhost_gateway_response_should_contain \
-  "request for localhost/api" \
-  "http://localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "Ref"
-
-# /api/v0 not mounted on content root subdomains
-test_localhost_gateway_response_should_contain \
-  "request for {cid}.ipfs.localhost/api returns data if present on the content root" \
-  "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
-
-test_localhost_gateway_response_should_contain \
-  "request for {cid}.ipfs.localhost/api/v0/refs returns 404" \
-  "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
+# end Kubo specific end-to-end test
 
 ## ============================================================================
 ## Test subdomain-based requests to a local gateway with default config
@@ -257,6 +227,10 @@ test_localhost_gateway_response_should_contain \
   "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/ipfs/file.txt" \
   "I am a txt file"
 
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+# This tests link to parent specific to boxo + relative pathing end-to-end tests specific to Kubo.
+
 # {CID}.ipfs.localhost/sub/dir (Directory Listing)
 DIR_HOSTNAME="${DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
@@ -268,7 +242,7 @@ test_expect_success "valid file and subdirectory paths in directory listing at {
 
 test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.localhost/sub/dir" '
   curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/ipfs/ipns/" > list_response &&
-  test_should_contain "<a href=\"/ipfs/ipns/./..\">..</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/..\">..</a>" list_response &&
   test_should_contain "<a href=\"/ipfs/ipns/bar\">bar</a>" list_response
 '
 
@@ -276,7 +250,7 @@ test_expect_success "request for deep path resource at {cid}.ipfs.localhost/sub/
   curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/ipfs/ipns/bar" > list_response &&
   test_should_contain "text-file-content" list_response
 '
-
+# end Kubo specific end-to-end test
 
 # *.ipns.localhost
 
@@ -315,13 +289,37 @@ test_localhost_gateway_response_should_contain \
   "http://$DNSLINK_FQDN.ipns.localhost:$GWAY_PORT" \
   "$CID_VAL"
 
-# api.localhost/api
+## ============================================================================
+## Test DNSLink inlining on HTTP gateways
+## ============================================================================
 
-# Note: we use DIR_CID so refs -r returns some CIDs for child nodes
+# set explicit subdomain gateway config for the hostname
+ipfs config --json Gateway.PublicGateways '{
+  "localhost": {
+    "UseSubdomains": true,
+    "InlineDNSLink": true,
+    "Paths": ["/ipfs", "/ipns", "/api"]
+  },
+  "example.com": {
+    "UseSubdomains": true,
+    "InlineDNSLink": true,
+    "Paths": ["/ipfs", "/ipns", "/api"]
+  }
+}' || exit 1
+# restart daemon to apply config changes
+test_kill_ipfs_daemon
+test_launch_ipfs_daemon_without_network
+
 test_localhost_gateway_response_should_contain \
-  "request for api.localhost returns API response" \
-  "http://api.localhost:$GWAY_PORT/api/v0/refs?arg=$DIR_CID&r=true" \
-  "Ref"
+  "request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain with DNS inlining" \
+  "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
+  "Location: http://en-wikipedia--on--ipfs-org.ipns.localhost:$GWAY_PORT/wiki"
+
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipns/{fqdn} redirects to DNSLink in subdomain with DNS inlining" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
+  "Location: http://en-wikipedia--on--ipfs-org.ipns.example.com/wiki"
 
 ## ============================================================================
 ## Test subdomain-based requests with a custom hostname config
@@ -430,6 +428,10 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
   "404 Not Found"
 
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+# HTML specific to Boxo/Kubo, and relative pathing specific to code in Kubo
+
 # {CID}.ipfs.example.com/sub/dir (Directory Listing)
 DIR_FQDN="${DIR_CID}.ipfs.example.com"
 
@@ -441,7 +443,7 @@ test_expect_success "valid file and directory paths in directory listing at {cid
 
 test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.example.com/sub/dir" '
   curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/ > list_response &&
-  test_should_contain "<a href=\"/ipfs/ipns/./..\">..</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/..\">..</a>" list_response &&
   test_should_contain "<a href=\"/ipfs/ipns/bar\">bar</a>" list_response
 '
 
@@ -452,6 +454,8 @@ test_expect_success "valid breadcrumb links in the header of directory listing a
   test_should_contain "Index of" list_response &&
   test_should_contain "/ipfs/<a href=\"//example.com/ipfs/${DIR_CID}\">${DIR_CID}</a>/<a href=\"//example.com/ipfs/${DIR_CID}/ipfs\">ipfs</a>/<a href=\"//example.com/ipfs/${DIR_CID}/ipfs/ipns\">ipns</a>" list_response
 '
+
+# end Kubo specific end-to-end test
 
 test_expect_success "request for deep path resource {cid}.ipfs.example.com/sub/dir/file" '
   curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/bar > list_response &&
@@ -487,54 +491,6 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT" \
   "Location: http://${ED25519_IPNS_IDv1}.ipns.example.com/"
 
-# API on subdomain gateway example.com
-# ============================================================================
-
-# present at the root domain
-test_hostname_gateway_response_should_contain \
-  "request for example.com/api/v0/refs returns expected payload when /api is on Paths whitelist" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "Ref"
-
-# not mounted on content root subdomains
-test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api returns data if present on the content root" \
-  "$DIR_CID.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
-
-test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api/v0/refs returns 404" \
-  "$CIDv1.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
-
-# disable /api on example.com
-ipfs config --json Gateway.PublicGateways '{
-  "example.com": {
-    "UseSubdomains": true,
-    "Paths": ["/ipfs", "/ipns"]
-  }
-}' || exit 1
-# restart daemon to apply config changes
-test_kill_ipfs_daemon
-test_launch_ipfs_daemon_without_network
-
-# not mounted at the root domain
-test_hostname_gateway_response_should_contain \
-  "request for example.com/api/v0/refs returns 404 if /api not on Paths whitelist" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
-
-# not mounted on content root subdomains
-test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api returns data if present on the content root" \
-  "$DIR_CID.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
-
 # DNSLink: <dnslink-fqdn>.ipns.example.com
 # (not really useful outside of localhost, as setting TLS for more than one
 # level of wildcard is a pain, but we support it if someone really wants it)
@@ -563,13 +519,6 @@ test_expect_success \
 ## Test subdomain handling of CIDs that do not fit in a single DNS Label (>63chars)
 ## https://github.com/ipfs/go-ipfs/issues/7318
 ## ============================================================================
-
-# ed25519 fits under 63 char limit when represented in base36
-IPNS_KEY="test_key_ed25519"
-IPNS_ED25519_B58MH=$(ipfs key list -l --ipns-base b58mh | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
-IPNS_ED25519_B36CID=$(ipfs key list -l --ipns-base base36 | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
-# sha512 will be over 63char limit, even when represented in Base36
-CIDv1_TOO_LONG=$(echo $CID_VAL | ipfs add --cid-version 1 --hash sha2-512 -Q)
 
 # local: *.localhost
 test_localhost_gateway_response_should_contain \
@@ -851,6 +800,10 @@ test_expect_success "request for http://fake.domain.com/ipfs/{CID} with X-Forwar
   test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
 "
 
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+# test cofiguration beign wired up correctly end-to-end
+
 ## ============================================================================
 ## Test support for wildcards in gateway config
 ## ============================================================================
@@ -962,3 +915,5 @@ test_expect_success "clean up ipfs dir" '
 '
 
 test_done
+
+# end Kubo specific end-to-end test

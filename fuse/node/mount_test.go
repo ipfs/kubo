@@ -1,9 +1,10 @@
+//go:build !openbsd && !nofuse && !netbsd && !plan9
 // +build !openbsd,!nofuse,!netbsd,!plan9
 
 package node
 
 import (
-	"io/ioutil"
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -11,11 +12,9 @@ import (
 
 	"bazil.org/fuse"
 
-	"context"
-
-	core "github.com/ipfs/go-ipfs/core"
-	ipns "github.com/ipfs/go-ipfs/fuse/ipns"
-	mount "github.com/ipfs/go-ipfs/fuse/mount"
+	core "github.com/ipfs/kubo/core"
+	ipns "github.com/ipfs/kubo/fuse/ipns"
+	mount "github.com/ipfs/kubo/fuse/mount"
 
 	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
@@ -33,7 +32,7 @@ func mkdir(t *testing.T, path string) {
 	}
 }
 
-// Test externally unmounting, then trying to unmount in code
+// Test externally unmounting, then trying to unmount in code.
 func TestExternalUnmount(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -52,11 +51,8 @@ func TestExternalUnmount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// get the test dir paths (/tmp/fusetestXXXX)
-	dir, err := ioutil.TempDir("", "fusetest")
-	if err != nil {
-		t.Fatal(err)
-	}
+	// get the test dir paths (/tmp/TestExternalUnmount)
+	dir := t.TempDir()
 
 	ipfsDir := dir + "/ipfs"
 	ipnsDir := dir + "/ipns"

@@ -1,7 +1,7 @@
 # IPFS API Implementation Doc
 
 This short document aims to give a quick guide to anyone implementing API
-bindings for IPFS implementations-- in particular go-ipfs.
+bindings for IPFS implementations-- in particular kubo.
 
 Sections:
 - IPFS Types
@@ -28,7 +28,7 @@ handled for you by writes to the request body blocking.)
 ## API Transports
 
 Like with everything else, IPFS aims to be flexible regarding the API transports.
-Currently, the [go-ipfs](https://github.com/ipfs/go-ipfs) implementation supports
+Currently, the [kubo](https://github.com/ipfs/kubo) implementation supports
 both an in-process API and an HTTP API. More can be added easily, by mapping the
 API functions over a transport. (This is similar to how gRPC is also _mapped on
 top of transports_, like HTTP).
@@ -39,13 +39,12 @@ function calls. For example:
 #### CLI API Transport
 
 In the commandline, IPFS uses a traditional flag and arg-based mapping, where:
-- the first arguments selects the command, as in git - e.g. `ipfs object get`
+- the first arguments selects the command, as in git - e.g. `ipfs dag get`
 - the flags specify options - e.g. `--enc=protobuf -q`
-- the rest are positional arguments - e.g.
-  `ipfs object patch <hash1> add-linkfoo <hash2>`
+- the rest are positional arguments - e.g. `ipfs key rename <name> <newName>`
 - files are specified by filename, or through stdin
 
-(NOTE: When go-ipfs runs the daemon, the CLI API is actually converted to HTTP
+(NOTE: When kubo runs the daemon, the CLI API is actually converted to HTTP
 calls. otherwise, they execute in the same process)
 
 #### HTTP API Transport
@@ -62,8 +61,8 @@ In HTTP, our API layering uses a REST-like mapping, where:
 ## API Commands
 
 There is a "standard IPFS API" which is currently defined as "all the commands
-exposed by the go-ipfs implementation". There are auto-generated [API Docs](https://ipfs.io/docs/api/).
-You can Also see [a listing here](https://git.io/v5KG1), or get a list of
+exposed by the kubo implementation". There are auto-generated [API Docs](https://ipfs.io/docs/api/).
+You can Also see [a listing here](https://github.com/ipfs/kubo/blob/94b832df861728c65e912935641d08880c341e0a/core/commands/root.go#L96-L130), or get a list of
 commands by running `ipfs commands` locally.
 
 ## Implementing bindings for the HTTP API
@@ -76,40 +75,24 @@ As mentioned above, the API commands map to HTTP with:
 - the request body streams file data - reads files or stdin
   - multiple streams are muxed with multipart (todo: add tar stream support)
 
-To date, we have two different HTTP API clients:
-
-- [js-ipfs-api](https://github.com/ipfs/js-ipfs-api) - simple javascript
-  wrapper -- best to look at
-- [go-ipfs/commands/http](https://git.io/v5KnB) -
-  generalized transport based on the [command definitions](https://git.io/v5KnE)
+You can see the latest [list of our HTTP RPC clients here](http-rpc-clients.md)
 
 The Go implementation is good to answer harder questions, like how is multipart
 handled, or what headers should be set in edge conditions. But the javascript
 implementation is very concise, and easy to follow.
 
-#### Anatomy of node-ipfs-api
-
-Currently, node-ipfs-api has three main files
-- [src/index.js](https://git.io/v5Kn2) defines the functions clients of the API
-  module will use. uses `RequestAPI`, and translates function call parameters to
-  the API almost directly.
-- [src/get-files-stream.js](https://git.io/v5Knr) implements the hardest part:
-  file streaming. This one uses multipart.
-- [src/request-api.js](https://git.io/v5KnP) generic function call to perform
-  the actual HTTP requests
-
 ## Note on multipart + inspecting requests
 
 Despite all the generalization spoken about above, the IPFS API is actually very
 simple. You can inspect all the requests made with `nc` and the `--api` option
-(as of [this PR](https://github.com/ipfs/go-ipfs/pull/1598), or `0.3.8`):
+(as of [this PR](https://github.com/ipfs/kubo/pull/1598), or `0.3.8`):
 
 ```
 > nc -l 5002 &
 > ipfs --api /ip4/127.0.0.1/tcp/5002 swarm addrs local --enc=json
 POST /api/v0/version?enc=json&stream-channels=true HTTP/1.1
 Host: 127.0.0.1:5002
-User-Agent: /go-ipfs/0.3.8/
+User-Agent: /kubo/0.14.0/
 Content-Length: 0
 Content-Type: application/octet-stream
 Accept-Encoding: gzip
@@ -118,7 +101,7 @@ Accept-Encoding: gzip
 ```
 
 The only hard part is getting the file streaming right. It is (now) fairly easy
-to stream files to go-ipfs using multipart. Basically, we end up with HTTP
+to stream files to kubo using multipart. Basically, we end up with HTTP
 requests like this:
 
 ```
@@ -126,7 +109,7 @@ requests like this:
 > ipfs --api /ip4/127.0.0.1/tcp/5002 add -r ~/demo/basic/test
 POST /api/v0/add?encoding=json&progress=true&r=true&stream-channels=true HTTP/1.1
 Host: 127.0.0.1:5002
-User-Agent: /go-ipfs/0.3.8/
+User-Agent: /kubo/0.14.0/
 Transfer-Encoding: chunked
 Content-Disposition: form-data: name="files"
 Content-Type: multipart/form-data; boundary=2186ef15d8f2c4f100af72d6d345afe36a4d17ef11264ec5b8ec4436447f

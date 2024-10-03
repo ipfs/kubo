@@ -41,17 +41,17 @@ IGNORE_FILES=(
     "go.mod"
     "go.sum"
     ".github"
-    ".circleci"
     "*.pb.go"
     "cbor_gen.go"
     "ipldsch_*.go"
+    "*.gen.go"
 )
 
 ##########################################################################################
 
 if [[ ${#INCLUDE_MODULES[@]} -gt 0 ]]; then
     INCLUDE_REGEX="(${$(printf "|%s" "${INCLUDE_MODULES[@]}"):1})"
-else 
+else
     INCLUDE_REGEX="" # "match anything"
 fi
 
@@ -148,11 +148,12 @@ pr_link() {
 }
 
 ignored_commit() {
-    local commit="$1"
+    local repo="$1"
+    local commit="$2"
     local matches
 
     # Check to see if this commit includes any non-ignored files.
-    matches=$(git -C "$dir" diff-tree --no-commit-id --name-only -r "$commit^" "$commit" \
+    matches=$(git -C "$repo" diff-tree --no-commit-id --name-only -r "$commit^" "$commit" \
                   -- "${IGNORE_FILES_PATHSPEC[@]}" | wc -l)
     [[ "$matches" -eq 0 ]]
 }
@@ -174,7 +175,7 @@ release_log() {
         "$start..$end" |
         while read commit subject; do
             # Skip commits that only touch ignored files.
-            if ignored_commit "$commit"; then
+            if ignored_commit "$dir" "$commit"; then
                 continue
             fi
 
@@ -259,6 +260,11 @@ recursive_release_log() {
 
         printf -- "Generating Changelog for %s %s..%s\n" "$module" "$start" "$end" >&2
 
+        echo "### 📝 Changelog"
+        echo
+        echo "<details><summary>Full Changelog</summary>"
+        echo
+
         printf -- "- %s:\n" "$module"
         release_log "$module" "$start" "$end" | indent
 
@@ -284,7 +290,9 @@ recursive_release_log() {
             done
 
         echo
-        echo "Contributors"
+        echo "</details>"
+        echo
+        echo "### 👨‍👩‍👧‍👦 Contributors"
         echo
 
         echo "| Contributor | Commits | Lines ± | Files Changed |"

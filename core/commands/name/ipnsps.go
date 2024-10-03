@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	ke "github.com/ipfs/kubo/core/commands/keyencode"
 	record "github.com/libp2p/go-libp2p-record"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type ipnsPubsubState struct {
@@ -26,6 +26,7 @@ type stringList struct {
 
 // IpnsPubsubCmd is the subcommand that allows us to manage the IPNS pubsub system
 var IpnsPubsubCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "IPNS pubsub management",
 		ShortDescription: `
@@ -42,6 +43,7 @@ Note: this command is experimental and subject to change as the system is refine
 }
 
 var ipnspsStateCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Query the state of IPNS pubsub.",
 	},
@@ -70,6 +72,7 @@ var ipnspsStateCmd = &cmds.Command{
 }
 
 var ipnspsSubsCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Show current name subscriptions.",
 	},
@@ -97,7 +100,7 @@ var ipnspsSubsCmd = &cmds.Command{
 				// Not necessarily an error.
 				continue
 			}
-			pid, err := peer.IDFromString(k)
+			pid, err := peer.IDFromBytes([]byte(k))
 			if err != nil {
 				log.Errorf("ipns key not a valid peer ID: %s", err)
 				continue
@@ -114,6 +117,7 @@ var ipnspsSubsCmd = &cmds.Command{
 }
 
 var ipnspsCancelCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Cancel a name subscription.",
 	},
@@ -131,7 +135,7 @@ var ipnspsCancelCmd = &cmds.Command{
 		name = strings.TrimPrefix(name, "/ipns/")
 		pid, err := peer.Decode(name)
 		if err != nil {
-			return cmds.Errorf(cmds.ErrClient, err.Error())
+			return cmds.Errorf(cmds.ErrClient, "not a valid IPNS name: %s", err)
 		}
 
 		ok, err := n.PSRouter.Cancel("/ipns/" + string(pid))

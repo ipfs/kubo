@@ -230,6 +230,8 @@ test_files_api() {
     echo "Size: 4" >> file1stat_expect &&
     echo "ChildBlocks: 0" >> file1stat_expect &&
     echo "Type: file" >> file1stat_expect &&
+    echo "Mode: not set (not set)" >> file1stat_expect &&
+    echo "Mtime: not set" >> file1stat_expect &&
     test_cmp file1stat_expect file1stat_actual
   '
 
@@ -243,6 +245,8 @@ test_files_api() {
     echo "Size: 4" >> file1stat_expect &&
     echo "ChildBlocks: 0" >> file1stat_expect &&
     echo "Type: file" >> file1stat_expect &&
+    echo "Mode: not set (not set)" >> file1stat_expect &&
+    echo "Mtime: not set" >> file1stat_expect &&
     test_cmp file1stat_expect file1stat_actual
   '
 
@@ -875,8 +879,7 @@ test_expect_success "set up automatic sharding/unsharding data" '
   done
 '
 
-# TODO: This does not need to report an error https://github.com/ipfs/go-ipfs/issues/8088
-test_expect_failure "reset automatic sharding" '
+test_expect_success "reset automatic sharding" '
   ipfs config --json Internal.UnixFSShardingSizeThreshold null
 '
 

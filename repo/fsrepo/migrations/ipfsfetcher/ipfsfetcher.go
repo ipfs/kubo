@@ -5,37 +5,37 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
-	"path"
+	gopath "path"
 	"strings"
 	"sync"
 
-	"github.com/ipfs/go-ipfs-config"
-	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreapi"
-	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/options"
-	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core/coreapi"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/repo/fsrepo"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 const (
-	// Default maximum download size
+	// Default maximum download size.
 	defaultFetchLimit = 1024 * 1024 * 512
 
-	tempNodeTcpAddr = "/ip4/127.0.0.1/tcp/0"
+	tempNodeTCPAddr = "/ip4/127.0.0.1/tcp/0"
 )
 
 type IpfsFetcher struct {
-	distPath string
-	limit    int64
-	repoRoot *string
+	distPath       string
+	limit          int64
+	repoRoot       *string
+	userConfigFile string
 
 	openOnce  sync.Once
 	openErr   error
@@ -46,11 +46,13 @@ type IpfsFetcher struct {
 	ipfsTmpDir   string
 	ipfsStopFunc func()
 
-	fetched []ipath.Path
+	fetched []path.Path
 	mutex   sync.Mutex
 
 	addrInfo peer.AddrInfo
 }
+
+var _ migrations.Fetcher = (*IpfsFetcher)(nil)
 
 // NewIpfsFetcher creates a new IpfsFetcher
 //
@@ -60,11 +62,12 @@ type IpfsFetcher struct {
 // Bootstrap and peer information in read from the IPFS config file in
 // repoRoot, unless repoRoot is nil.  If repoRoot is empty (""), then read the
 // config from the default IPFS directory.
-func NewIpfsFetcher(distPath string, fetchLimit int64, repoRoot *string) *IpfsFetcher {
+func NewIpfsFetcher(distPath string, fetchLimit int64, repoRoot *string, userConfigFile string) *IpfsFetcher {
 	f := &IpfsFetcher{
-		limit:    defaultFetchLimit,
-		distPath: migrations.LatestIpfsDist,
-		repoRoot: repoRoot,
+		limit:          defaultFetchLimit,
+		distPath:       migrations.LatestIpfsDist,
+		repoRoot:       repoRoot,
+		userConfigFile: userConfigFile,
 	}
 
 	if distPath != "" {
@@ -85,13 +88,12 @@ func NewIpfsFetcher(distPath string, fetchLimit int64, repoRoot *string) *IpfsFe
 }
 
 // Fetch attempts to fetch the file at the given path, from the distribution
-// site configured for this HttpFetcher.  Returns io.ReadCloser on success,
-// which caller must close.
-func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser, error) {
+// site configured for this HttpFetcher.
+func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error) {
 	// Initialize and start IPFS node on first call to Fetch, since the fetcher
 	// may be created by not used.
 	f.openOnce.Do(func() {
-		bootstrap, peers := readIpfsConfig(f.repoRoot)
+		bootstrap, peers := readIpfsConfig(f.repoRoot, f.userConfigFile)
 		f.ipfsTmpDir, f.openErr = initTempNode(ctx, bootstrap, peers)
 		if f.openErr != nil {
 			return
@@ -106,7 +108,7 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 		return nil, f.openErr
 	}
 
-	iPath, err := parsePath(path.Join(f.distPath, filePath))
+	iPath, err := parsePath(gopath.Join(f.distPath, filePath))
 	if err != nil {
 		return nil, err
 	}
@@ -123,10 +125,15 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 		return nil, fmt.Errorf("%q is not a file", filePath)
 	}
 
+	var rc io.ReadCloser
 	if f.limit != 0 {
-		return migrations.NewLimitReadCloser(fileNode, f.limit), nil
+		rc = migrations.NewLimitReadCloser(fileNode, f.limit)
+	} else {
+		rc = fileNode
 	}
-	return fileNode, nil
+	defer rc.Close()
+
+	return io.ReadAll(rc)
 }
 
 func (f *IpfsFetcher) Close() error {
@@ -148,14 +155,14 @@ func (f *IpfsFetcher) AddrInfo() peer.AddrInfo {
 	return f.addrInfo
 }
 
-// FetchedPaths returns the IPFS paths of all items fetched by this fetcher
-func (f *IpfsFetcher) FetchedPaths() []ipath.Path {
+// FetchedPaths returns the IPFS paths of all items fetched by this fetcher.
+func (f *IpfsFetcher) FetchedPaths() []path.Path {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	return f.fetched
 }
 
-func (f *IpfsFetcher) recordFetched(fetchedPath ipath.Path) {
+func (f *IpfsFetcher) recordFetched(fetchedPath path.Path) {
 	// Mutex protects against update by concurrent calls to Fetch
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
@@ -163,7 +170,7 @@ func (f *IpfsFetcher) recordFetched(fetchedPath ipath.Path) {
 }
 
 func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo) (string, error) {
-	identity, err := config.CreateIdentity(ioutil.Discard, []options.KeyGenerateOption{
+	identity, err := config.CreateIdentity(io.Discard, []options.KeyGenerateOption{
 		options.Key.Type(options.Ed25519Key),
 	})
 	if err != nil {
@@ -175,18 +182,18 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 	}
 
 	// create temporary ipfs directory
-	dir, err := ioutil.TempDir("", "ipfs-temp")
+	dir, err := os.MkdirTemp("", "ipfs-temp")
 	if err != nil {
 		return "", fmt.Errorf("failed to get temp dir: %s", err)
 	}
 
 	// configure the temporary node
-	cfg.Routing.Type = "dhtclient"
+	cfg.Routing.Type = config.NewOptionalString("dhtclient")
 
 	// Disable listening for inbound connections
 	cfg.Addresses.Gateway = []string{}
 	cfg.Addresses.API = []string{}
-	cfg.Addresses.Swarm = []string{tempNodeTcpAddr}
+	cfg.Addresses.Swarm = []string{tempNodeTCPAddr}
 
 	if len(bootstrap) != 0 {
 		cfg.Bootstrap = bootstrap
@@ -239,8 +246,6 @@ func (f *IpfsFetcher) startTempNode(ctx context.Context) error {
 		cancel()
 		// Wait until ipfs is stopped
 		<-node.Context().Done()
-
-		fmt.Println("migration peer", node.Identity, "shutdown")
 	}
 
 	addrs, err := ipfs.Swarm().LocalAddrs(ctx)
@@ -262,9 +267,8 @@ func (f *IpfsFetcher) startTempNode(ctx context.Context) error {
 	return nil
 }
 
-func parsePath(fetchPath string) (ipath.Path, error) {
-	ipfsPath := ipath.New(fetchPath)
-	if ipfsPath.IsValid() == nil {
+func parsePath(fetchPath string) (path.Path, error) {
+	if ipfsPath, err := path.NewPath(fetchPath); err == nil {
 		return ipfsPath, nil
 	}
 
@@ -275,19 +279,18 @@ func parsePath(fetchPath string) (ipath.Path, error) {
 
 	switch proto := u.Scheme; proto {
 	case "ipfs", "ipld", "ipns":
-		ipfsPath = ipath.New(path.Join("/", proto, u.Host, u.Path))
+		return path.NewPath(gopath.Join("/", proto, u.Host, u.Path))
 	default:
 		return nil, fmt.Errorf("%q is not an IPFS path", fetchPath)
 	}
-	return ipfsPath, ipfsPath.IsValid()
 }
 
-func readIpfsConfig(repoRoot *string) (bootstrap []string, peers []peer.AddrInfo) {
+func readIpfsConfig(repoRoot *string, userConfigFile string) (bootstrap []string, peers []peer.AddrInfo) {
 	if repoRoot == nil {
 		return
 	}
 
-	cfgPath, err := config.Filename(*repoRoot)
+	cfgPath, err := config.Filename(*repoRoot, userConfigFile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

@@ -1,4 +1,4 @@
-name: Sync github release assets with dist.ipfs.io
+name: Sync GitHub Release Assets
 
 on:
   workflow_dispatch:
@@ -9,26 +9,31 @@ concurrency:
   group: release-assets-dist-sync
   cancel-in-progress: true
 
+permissions:
+  contents: write  #  to upload release asset
+
 jobs:
-  sync-github-and-dist-ipfs-io:
+  dist-ipfs-tech:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: "ubuntu-latest"
+    timeout-minutes: 15
     steps:
       - uses: ipfs/download-ipfs-distribution-action@v1
       - uses: ipfs/start-ipfs-daemon-action@v1
         with:
           args: --init --init-profile=flatfs,server --enable-gc=false
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: 14
       - name: Sync the latest 5 github releases
-        uses: actions/github-script@v4
+        uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs').promises
             const max_synced = 5
 
             // fetch github releases
-            resp = await github.repos.listReleases({
+            resp = await github.rest.repos.listReleases({
               owner: context.repo.owner,
               repo: context.repo.repo,
               page: 1,
@@ -49,8 +54,8 @@ jobs:
                 github_assets.add(asset.name)
               }
 
-              // fetch asset info from dist.ipfs.io
-              p = '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name
+              // fetch asset info from dist.ipfs.tech
+              p = '/ipns/dist.ipfs.tech/kubo/' + release.tag_name
               let stdout = ''
               const options = {}
               options.listeners = {
@@ -73,7 +78,7 @@ jobs:
                 }
               }
 
-              // if dist.ipfs.io has files not found in github, copy them over
+              // if dist.ipfs.tech has files not found in github, copy them over
               for (const file of missing_files) {
                 file_sha = file + ".sha512"
                 file_cid = file + ".cid"
@@ -81,12 +86,12 @@ jobs:
                 // skip files that don't have .cid and .sha512 checksum files
                 if (!dist_assets.has(file_sha) || !dist_assets.has(file_cid)) {
                   if (!file.endsWith('.cid') && !file.endsWith('.sha512')) { // silent skip of .sha512.sha512 :)
-                    console.log(`skipping "${file}" as dist.ipfs.io does not provide .cid and .sha512 checksum files for it`)
+                    console.log(`skipping "${file}" as dist.ipfs.tech does not provide .cid and .sha512 checksum files for it`)
                   }
                   continue
                 }
 
-                console.log("fetching", file, "from dist.ipfs.io")
+                console.log("fetching", file, "from dist.ipfs.tech")
                 await exec.exec('ipfs', ['get', p + '/' + file])
                 await exec.exec('ipfs', ['get', p + '/' + file_sha])
                 await exec.exec('ipfs', ['get', p + '/' + file_cid])
@@ -111,7 +116,7 @@ jobs:
                 }
 
                 console.log("uploading", file, "to github release", release.tag_name)
-                const uploadReleaseAsset = async (file) => github.repos.uploadReleaseAsset({
+                const uploadReleaseAsset = async (file) => github.rest.repos.uploadReleaseAsset({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   release_id: release.id,

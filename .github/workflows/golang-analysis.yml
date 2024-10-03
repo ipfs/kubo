@@ -1,0 +1,54 @@
+name: Go Check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+  push:
+    branches:
+      - 'master'
+
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go-check:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+      - name: Check that go.mod is tidy
+        uses: protocol/multiple-go-modules@v1.4
+        with:
+          run: |
+            go mod tidy
+            if [[ -n $(git ls-files --other --exclude-standard --directory -- go.sum) ]]; then
+              echo "go.sum was added by go mod tidy"
+              exit 1
+            fi
+            git diff --exit-code -- go.sum go.mod
+      - name: go fmt
+        if: always() # run this step even if the previous one failed
+        run: |
+          out=$(go fmt ./...)
+          if [[ -n "$out" ]]; then
+            echo "Files are not go-fmt-ed:"
+            echo "$out"
+            exit 1
+          fi
+      - name: go vet
+        if: always() # run this step even if the previous one failed
+        uses: protocol/multiple-go-modules@v1.4
+        with:
+          run: go vet ./...

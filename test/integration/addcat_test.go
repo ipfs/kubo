@@ -11,16 +11,16 @@ import (
 	"testing"
 	"time"
 
-	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/bootstrap"
-	"github.com/ipfs/go-ipfs/core/coreapi"
-	mock "github.com/ipfs/go-ipfs/core/mock"
-	"github.com/ipfs/go-ipfs/thirdparty/unit"
+	"github.com/ipfs/boxo/bootstrap"
+	"github.com/ipfs/boxo/files"
 	logging "github.com/ipfs/go-log"
-	random "github.com/jbenet/go-random"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ipfs/go-test/random"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core/coreapi"
+	mock "github.com/ipfs/kubo/core/mock"
+	"github.com/ipfs/kubo/thirdparty/unit"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
+	"github.com/libp2p/go-libp2p/core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
@@ -84,12 +84,8 @@ func AddCatPowers(conf testutil.LatencyConfig, megabytesMax int64) error {
 }
 
 func RandomBytes(n int64) []byte {
-	var data bytes.Buffer
-	err := random.WritePseudoRandomBytes(n, &data, kSeed)
-	if err != nil {
-		panic(err)
-	}
-	return data.Bytes()
+	random.SetSeed(kSeed)
+	return random.Bytes(int(n))
 }
 
 func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
@@ -97,7 +93,7 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	defer cancel()
 
 	// create network
-	mn := mocknet.New(ctx)
+	mn := mocknet.New()
 	mn.SetLinkDefaults(mocknet.LinkOptions{
 		Latency: conf.NetworkLatency,
 		// TODO add to conf. This is tricky because we want 0 values to be functional.
@@ -122,12 +118,12 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	}
 	defer catter.Close()
 
-	adderApi, err := coreapi.NewCoreAPI(adder)
+	adderAPI, err := coreapi.NewCoreAPI(adder)
 	if err != nil {
 		return err
 	}
 
-	catterApi, err := coreapi.NewCoreAPI(catter)
+	catterAPI, err := coreapi.NewCoreAPI(catter)
 	if err != nil {
 		return err
 	}
@@ -147,12 +143,12 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	added, err := adderApi.Unixfs().Add(ctx, files.NewBytesFile(data))
+	added, err := adderAPI.Unixfs().Add(ctx, files.NewBytesFile(data))
 	if err != nil {
 		return err
 	}
 
-	readerCatted, err := catterApi.Unixfs().Get(ctx, added)
+	readerCatted, err := catterAPI.Unixfs().Get(ctx, added)
 	if err != nil {
 		return err
 	}

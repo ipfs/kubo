@@ -1,3 +1,4 @@
+//go:build !nofuse && !openbsd && !netbsd && !plan9
 // +build !nofuse,!openbsd,!netbsd,!plan9
 
 package ipns
@@ -7,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	mrand "math/rand"
 	"os"
 	"sync"
@@ -15,12 +15,12 @@ import (
 
 	"bazil.org/fuse"
 
-	core "github.com/ipfs/go-ipfs/core"
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	core "github.com/ipfs/kubo/core"
+	coreapi "github.com/ipfs/kubo/core/coreapi"
 
 	fstest "bazil.org/fuse/fs/fstestutil"
 	racedet "github.com/ipfs/go-detect-race"
-	u "github.com/ipfs/go-ipfs-util"
+	"github.com/ipfs/go-test/random"
 	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
 
@@ -32,7 +32,7 @@ func maybeSkipFuseTests(t *testing.T) {
 
 func randBytes(size int) []byte {
 	b := make([]byte, size)
-	_, err := io.ReadFull(u.NewTimeSeededRand(), b)
+	_, err := io.ReadFull(random.NewRand(), b)
 	if err != nil {
 		panic(err)
 	}
@@ -56,12 +56,12 @@ func writeFileOrFail(t *testing.T, size int, path string) []byte {
 
 func writeFile(size int, path string) ([]byte, error) {
 	data := randBytes(size)
-	err := ioutil.WriteFile(path, data, 0666)
+	err := os.WriteFile(path, data, 0o666)
 	return data, err
 }
 
 func verifyFile(t *testing.T, path string, wantData []byte) {
-	isData, err := ioutil.ReadFile(path)
+	isData, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,12 +116,12 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 		}
 	}
 
-	coreApi, err := coreapi.NewCoreAPI(node)
+	coreAPI, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fs, err := NewFileSystem(node.Context(), coreApi, "", "")
+	fs, err := NewFileSystem(node.Context(), coreAPI, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,12 +151,12 @@ func TestIpnsLocalLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if linksto != nd.Identity.Pretty() {
+	if linksto != nd.Identity.String() {
 		t.Fatal("Link invalid")
 	}
 }
 
-// Test writing a file and reading it back
+// Test writing a file and reading it back.
 func TestIpnsBasicIO(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -167,7 +167,7 @@ func TestIpnsBasicIO(t *testing.T) {
 	fname := mnt.Dir + "/local/testfile"
 	data := writeFileOrFail(t, 10, fname)
 
-	rbuf, err := ioutil.ReadFile(fname)
+	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,8 +176,8 @@ func TestIpnsBasicIO(t *testing.T) {
 		t.Fatal("Incorrect Read!")
 	}
 
-	fname2 := mnt.Dir + "/" + nd.Identity.Pretty() + "/testfile"
-	rbuf, err = ioutil.ReadFile(fname2)
+	fname2 := mnt.Dir + "/" + nd.Identity.String() + "/testfile"
+	rbuf, err = os.ReadFile(fname2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func TestIpnsBasicIO(t *testing.T) {
 	}
 }
 
-// Test to make sure file changes persist over mounts of ipns
+// Test to make sure file changes persist over mounts of ipns.
 func TestFilePersistence(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -203,7 +203,7 @@ func TestFilePersistence(t *testing.T) {
 	_, mnt = setupIpnsTest(t, node)
 	defer mnt.Close()
 
-	rbuf, err := ioutil.ReadFile(mnt.Dir + fname)
+	rbuf, err := os.ReadFile(mnt.Dir + fname)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +250,7 @@ func TestMultipleDirs(t *testing.T) {
 	mnt.Close()
 }
 
-// Test to make sure the filesystem reports file sizes correctly
+// Test to make sure the filesystem reports file sizes correctly.
 func TestFileSizeReporting(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -271,7 +271,7 @@ func TestFileSizeReporting(t *testing.T) {
 	}
 }
 
-// Test to make sure you can't create multiple entries with the same name
+// Test to make sure you can't create multiple entries with the same name.
 func TestDoubleEntryFailure(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -280,12 +280,12 @@ func TestDoubleEntryFailure(t *testing.T) {
 	defer mnt.Close()
 
 	dname := mnt.Dir + "/local/thisisadir"
-	err := os.Mkdir(dname, 0777)
+	err := os.Mkdir(dname, 0o777)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = os.Mkdir(dname, 0777)
+	err = os.Mkdir(dname, 0o777)
 	if err == nil {
 		t.Fatal("Should have gotten error one creating new directory.")
 	}
@@ -301,7 +301,7 @@ func TestAppendFile(t *testing.T) {
 	fname := mnt.Dir + "/local/file"
 	data := writeFileOrFail(t, 1300, fname)
 
-	fi, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND, 0666)
+	fi, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND, 0o666)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -323,7 +323,7 @@ func TestAppendFile(t *testing.T) {
 
 	data = append(data, nudata...)
 
-	rbuf, err := ioutil.ReadFile(fname)
+	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -452,7 +452,7 @@ func TestFSThrash(t *testing.T) {
 
 	wg.Wait()
 	for name, data := range files {
-		out, err := ioutil.ReadFile(name)
+		out, err := os.ReadFile(name)
 		if err != nil {
 			t.Error(err)
 		}
@@ -463,9 +463,8 @@ func TestFSThrash(t *testing.T) {
 	}
 }
 
-// Test writing a medium sized file one byte at a time
+// Test writing a medium sized file one byte at a time.
 func TestMultiWrite(t *testing.T) {
-
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -491,7 +490,7 @@ func TestMultiWrite(t *testing.T) {
 	}
 	fi.Close()
 
-	rbuf, err := ioutil.ReadFile(fpath)
+	rbuf, err := os.ReadFile(fpath)
 	if err != nil {
 		t.Fatal(err)
 	}

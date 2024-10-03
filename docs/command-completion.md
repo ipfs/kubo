@@ -11,3 +11,29 @@ The simplest way to "eval" the completions logic:
 
 To install the completions permanently, they can be moved to
 `/etc/bash_completion.d` or sourced from your `~/.bashrc` file.
+
+## Fish
+
+The fish shell is also supported:
+
+The simplest way to use the completions logic:
+
+```bash
+> ipfs commands completion fish | source
+```
+
+To install the completions permanently, they can be moved to
+`/etc/fish/completions` or `~/.config/fish/completions` or sourced from your `~/.config/fish/config.fish` file.
+
+## ZSH
+
+The zsh shell is also supported:
+
+The simplest way to "eval" the completions logic:
+
+```bash
+> eval "$(ipfs commands completion zsh)"
+```
+
+To install the completions permanently, they can be moved to
+`/etc/bash_completion.d` or sourced from your `~/.zshrc` file.

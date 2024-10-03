@@ -3,7 +3,6 @@
 import os
 import sys
 import datetime
-import subprocess
 
 from subprocess import check_output
 

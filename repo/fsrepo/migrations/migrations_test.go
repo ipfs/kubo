@@ -3,14 +3,13 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/kubo/config"
 )
 
 func TestFindMigrations(t *testing.T) {
@@ -111,9 +110,7 @@ func TestFetchMigrations(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ts := createTestServer()
-	defer ts.Close()
-	fetcher := NewHttpFetcher(CurrentIpfsDist, ts.URL, "", 0)
+	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
 	tmpDir := t.TempDir()
 
@@ -163,9 +160,7 @@ func TestRunMigrations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ts := createTestServer()
-	defer ts.Close()
-	fetcher := NewHttpFetcher(CurrentIpfsDist, ts.URL, "", 0)
+	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -192,7 +187,7 @@ func createFakeBin(from, to int, tmpDir string) {
 		panic(err)
 	}
 	emptyFile.Close()
-	err = os.Chmod(migPath, 0755)
+	err = os.Chmod(migPath, 0o755)
 	if err != nil {
 		panic(err)
 	}
@@ -222,7 +217,7 @@ var testConfig = `
 func TestReadMigrationConfigDefaults(t *testing.T) {
 	tmpDir := makeConfig(t, "{}")
 
-	cfg, err := ReadMigrationConfig(tmpDir)
+	cfg, err := ReadMigrationConfig(tmpDir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +239,7 @@ func TestReadMigrationConfigDefaults(t *testing.T) {
 func TestReadMigrationConfigErrors(t *testing.T) {
 	tmpDir := makeConfig(t, `{"Migration": {"Keep": "badvalue"}}`)
 
-	_, err := ReadMigrationConfig(tmpDir)
+	_, err := ReadMigrationConfig(tmpDir, "")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -253,13 +248,13 @@ func TestReadMigrationConfigErrors(t *testing.T) {
 	}
 
 	os.RemoveAll(tmpDir)
-	_, err = ReadMigrationConfig(tmpDir)
+	_, err = ReadMigrationConfig(tmpDir, "")
 	if err == nil {
 		t.Fatal("expected error")
 	}
 
 	tmpDir = makeConfig(t, `}{`)
-	_, err = ReadMigrationConfig(tmpDir)
+	_, err = ReadMigrationConfig(tmpDir, "")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -268,7 +263,7 @@ func TestReadMigrationConfigErrors(t *testing.T) {
 func TestReadMigrationConfig(t *testing.T) {
 	tmpDir := makeConfig(t, testConfig)
 
-	cfg, err := ReadMigrationConfig(tmpDir)
+	cfg, err := ReadMigrationConfig(tmpDir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +285,9 @@ func TestReadMigrationConfig(t *testing.T) {
 
 type mockIpfsFetcher struct{}
 
-func (m *mockIpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser, error) {
+var _ Fetcher = (*mockIpfsFetcher)(nil)
+
+func (m *mockIpfsFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error) {
 	return nil, nil
 }
 
@@ -323,7 +320,9 @@ func TestGetMigrationFetcher(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := f.(*HttpFetcher); !ok {
+	if rf, ok := f.(*RetryFetcher); !ok {
+		t.Fatal("expected RetryFetcher")
+	} else if _, ok := rf.Fetcher.(*HttpFetcher); !ok {
 		t.Fatal("expected HttpFetcher")
 	}
 
@@ -341,7 +340,9 @@ func TestGetMigrationFetcher(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := f.(*HttpFetcher); !ok {
+	if rf, ok := f.(*RetryFetcher); !ok {
+		t.Fatal("expected RetryFetcher")
+	} else if _, ok := rf.Fetcher.(*HttpFetcher); !ok {
 		t.Fatal("expected HttpFetcher")
 	}
 

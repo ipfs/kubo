@@ -1,0 +1,40 @@
+name: Go Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+  push:
+    branches:
+      - 'master'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go-build:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "4xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 20
+    env:
+      TEST_DOCKER: 0
+      TEST_VERBOSE: 1
+      TRAVIS: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.22.x
+      - uses: actions/checkout@v4
+      - run: make cmd/ipfs-try-build
+        env:
+          TEST_FUSE: 1
+      - run: make cmd/ipfs-try-build
+        env:
+          TEST_FUSE: 0

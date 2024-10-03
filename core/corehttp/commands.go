@@ -9,23 +9,21 @@ import (
 	"strconv"
 	"strings"
 
-	version "github.com/ipfs/go-ipfs"
-	oldcmds "github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/core"
-	corecommands "github.com/ipfs/go-ipfs/core/commands"
-
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdsHttp "github.com/ipfs/go-ipfs-cmds/http"
-	config "github.com/ipfs/go-ipfs-config"
-	path "github.com/ipfs/go-path"
+	version "github.com/ipfs/kubo"
+	oldcmds "github.com/ipfs/kubo/commands"
+	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core"
+	corecommands "github.com/ipfs/kubo/core/commands"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-var (
-	errAPIVersionMismatch = errors.New("api version mismatch")
-)
+var errAPIVersionMismatch = errors.New("api version mismatch")
 
-const originEnvKey = "API_ORIGIN"
-const originEnvKeyDeprecate = `You are using the ` + originEnvKey + `ENV Variable.
+const (
+	originEnvKey          = "API_ORIGIN"
+	originEnvKeyDeprecate = `You are using the ` + originEnvKey + `ENV Variable.
 This functionality is deprecated, and will be removed in future versions.
 Instead, try either adding headers to the config, or passing them via
 cli arguments:
@@ -33,6 +31,7 @@ cli arguments:
 	ipfs config API.HTTPHeaders --json '{"Access-Control-Allow-Origin": ["*"]}'
 	ipfs daemon
 `
+)
 
 // APIPath is the path at which the API is mounted.
 const APIPath = "/api/v0"
@@ -44,6 +43,11 @@ var defaultLocalhostOrigins = []string{
 	"https://[::1]:<port>",
 	"http://localhost:<port>",
 	"https://localhost:<port>",
+}
+
+var companionBrowserExtensionOrigins = []string{
+	"chrome-extension://nibjojkomfdiaoajekhjakgkdhaomnch", // ipfs-companion
+	"chrome-extension://hjoieblefckbooibpepigmacodalfndh", // ipfs-companion-beta
 }
 
 func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
@@ -80,14 +84,13 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 			c.Headers[h] = v
 		}
 	}
-	c.Headers["Server"] = []string{"go-ipfs/" + version.CurrentVersionNumber}
+	c.Headers["Server"] = []string{"kubo/" + version.CurrentVersionNumber}
 }
 
 func addCORSDefaults(c *cmdsHttp.ServerConfig) {
-	// by default use localhost origins
-	if len(c.AllowedOrigins()) == 0 {
-		c.SetAllowedOrigins(defaultLocalhostOrigins...)
-	}
+	// always safelist certain origins
+	c.AppendAllowedOrigins(defaultLocalhostOrigins...)
+	c.AppendAllowedOrigins(companionBrowserExtensionOrigins...)
 
 	// by default, use GET, PUT, POST
 	if len(c.AllowedMethods()) == 0 {
@@ -96,7 +99,6 @@ func addCORSDefaults(c *cmdsHttp.ServerConfig) {
 }
 
 func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
-
 	// we have to grab the port from an addr, which may be an ip6 addr.
 	// TODO: this should take multiaddrs and derive port from there.
 	port := ""
@@ -119,17 +121,13 @@ func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
 	c.SetAllowedOrigins(newOrigins...)
 }
 
-func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) ServeOption {
+func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-
 		cfg := cmdsHttp.NewServerConfig()
-		cfg.AllowGet = allowGet
-		corsAllowedMethods := []string{http.MethodPost}
-		if allowGet {
-			corsAllowedMethods = append(corsAllowedMethods, http.MethodGet)
-		}
 
-		cfg.SetAllowedMethods(corsAllowedMethods...)
+		cfg.AddAllowedHeaders("Origin", "Accept", "Content-Type", "X-Requested-With")
+		cfg.SetAllowedMethods(http.MethodPost)
+
 		cfg.APIPath = APIPath
 		rcfg, err := n.Repo.Config()
 		if err != nil {
@@ -142,39 +140,85 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) 
 		patchCORSVars(cfg, l.Addr())
 
 		cmdHandler := cmdsHttp.NewHandler(&cctx, command, cfg)
+
+		if len(rcfg.API.Authorizations) > 0 {
+			authorizations := convertAuthorizationsMap(rcfg.API.Authorizations)
+			cmdHandler = withAuthSecrets(authorizations, cmdHandler)
+		}
+
+		cmdHandler = otelhttp.NewHandler(cmdHandler, "corehttp.cmdsHandler")
 		mux.Handle(APIPath+"/", cmdHandler)
 		return mux, nil
 	}
 }
 
+type rpcAuthScopeWithUser struct {
+	config.RPCAuthScope
+	User string
+}
+
+func convertAuthorizationsMap(authScopes map[string]*config.RPCAuthScope) map[string]rpcAuthScopeWithUser {
+	// authorizations is a map where we can just check for the header value to match.
+	authorizations := map[string]rpcAuthScopeWithUser{}
+	for user, authScope := range authScopes {
+		expectedHeader := config.ConvertAuthSecret(authScope.AuthSecret)
+		if expectedHeader != "" {
+			authorizations[expectedHeader] = rpcAuthScopeWithUser{
+				RPCAuthScope: *authScopes[user],
+				User:         user,
+			}
+		}
+	}
+
+	return authorizations
+}
+
+func withAuthSecrets(authorizations map[string]rpcAuthScopeWithUser, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorizationHeader := r.Header.Get("Authorization")
+		auth, ok := authorizations[authorizationHeader]
+
+		if ok {
+			// version check is implicitly allowed
+			if r.URL.Path == "/api/v0/version" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			// everything else has to be safelisted via AllowedPaths
+			for _, prefix := range auth.AllowedPaths {
+				if strings.HasPrefix(r.URL.Path, prefix) {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+		}
+
+		http.Error(w, "Kubo RPC Access Denied: Please provide a valid authorization token as defined in the API.Authorizations configuration.", http.StatusForbidden)
+	})
+}
+
 // CommandsOption constructs a ServerOption for hooking the commands into the
 // HTTP server. It will NOT allow GET requests.
 func CommandsOption(cctx oldcmds.Context) ServeOption {
-	return commandsOption(cctx, corecommands.Root, false)
+	return commandsOption(cctx, corecommands.Root)
 }
 
-// CommandsROOption constructs a ServerOption for hooking the read-only commands
-// into the HTTP server. It will allow GET requests.
-func CommandsROOption(cctx oldcmds.Context) ServeOption {
-	return commandsOption(cctx, corecommands.RootRO, true)
-}
-
-// CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/go-ipfs/`
+// CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/kubo/` or `/go-ipfs/`
 func CheckVersionOption() ServeOption {
 	daemonVersion := version.ApiVersion
 
-	return ServeOption(func(n *core.IpfsNode, l net.Listener, parent *http.ServeMux) (*http.ServeMux, error) {
+	return func(n *core.IpfsNode, l net.Listener, parent *http.ServeMux) (*http.ServeMux, error) {
 		mux := http.NewServeMux()
 		parent.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(r.URL.Path, APIPath) {
 				cmdqry := r.URL.Path[len(APIPath):]
-				pth := path.SplitList(cmdqry)
+				pth := strings.Split(cmdqry, "/")
 
 				// backwards compatibility to previous version check
 				if len(pth) >= 2 && pth[1] != "version" {
 					clientVersion := r.UserAgent()
-					// skips check if client is not go-ipfs
-					if strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
+					// skips check if client is not kubo (go-ipfs)
+					if (strings.Contains(clientVersion, "/go-ipfs/") || strings.Contains(clientVersion, "/kubo/")) && daemonVersion != clientVersion {
 						http.Error(w, fmt.Sprintf("%s (%s != %s)", errAPIVersionMismatch, daemonVersion, clientVersion), http.StatusBadRequest)
 						return
 					}
@@ -185,5 +229,5 @@ func CheckVersionOption() ServeOption {
 		})
 
 		return mux, nil
-	})
+	}
 }

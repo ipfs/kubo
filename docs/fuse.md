@@ -1,6 +1,8 @@
 # FUSE
 
-`go-ipfs` makes it possible to mount `/ipfs` and `/ipns` namespaces in your OS,
+**EXPERIMENTAL:** FUSE support is limited, YMMV.
+
+Kubo makes it possible to mount `/ipfs` and `/ipns` namespaces in your OS,
 allowing arbitrary apps access to IPFS.
 
 ## Install FUSE
@@ -143,6 +145,16 @@ set for user running `ipfs mount` command.
 ```
 sudo umount /ipfs
 sudo umount /ipns
+```
+
+#### Mounting fails with "error mounting: could not resolve name"
+
+Make sure your node's IPNS address has a directory published:
+```
+$ mkdir hello/; echo 'hello' > hello/hello.txt; ipfs add -rQ ./hello/
+QmU5PLEGqjetW4RAmXgHpEFL7nVCL3vFnEyrCKUfRk4MSq
+
+$ ipfs name publish QmU5PLEGqjetW4RAmXgHpEFL7nVCL3vFnEyrCKUfRk4MSq
 ```
 
 If you manage to mount on other systems (or followed an alternative path to one

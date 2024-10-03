@@ -6,19 +6,17 @@ import (
 	"io"
 	"time"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
+	ipns "github.com/ipfs/boxo/ipns"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	ke "github.com/ipfs/kubo/core/commands/keyencode"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
-var (
-	errAllowOffline = errors.New("can't publish while offline: pass `--allow-offline` to override")
-)
+var errAllowOffline = errors.New("can't publish while offline: pass `--allow-offline` to override")
 
 const (
 	ipfsPathOptionName     = "ipfs-path"
@@ -28,6 +26,7 @@ const (
 	ttlOptionName          = "ttl"
 	keyOptionName          = "key"
 	quieterOptionName      = "quieter"
+	v1compatOptionName     = "v1compat"
 )
 
 var PublishCmd = &cmds.Command{
@@ -61,7 +60,7 @@ Publish an <ipfs-path> with another name, added by an 'ipfs key' command:
   > ipfs name publish --key=mykey /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   Published to QmSrPmbaUKA3ZodhzPWZnpFgcPMFWF4QsxXbkWfEptTBJd: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
-Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by 
+Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 'ipfs key list -l'):
 
  > ipfs name publish --key=QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
@@ -74,15 +73,13 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		cmds.StringArg(ipfsPathOptionName, true, false, "ipfs path of the object to be published.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(resolveOptionName, "Check if the given path can be resolved before publishing.").WithDefault(true),
-		cmds.StringOption(lifeTimeOptionName, "t",
-			`Time duration that the record will be valid for. <<default>>
-    This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
-    "ns", "us" (or "µs"), "ms", "s", "m", "h".`).WithDefault("24h"),
-		cmds.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
-		cmds.StringOption(ttlOptionName, "Time duration this record should be cached for. Uses the same syntax as the lifetime option. (caution: experimental)"),
 		cmds.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'.").WithDefault("self"),
-		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
+		cmds.BoolOption(resolveOptionName, "Check if the given path can be resolved before publishing.").WithDefault(true),
+		cmds.StringOption(lifeTimeOptionName, "t", `Time duration the signed record will be valid for. Accepts durations such as "300s", "1.5h" or "7d2h45m"`).WithDefault(ipns.DefaultRecordLifetime.String()),
+		cmds.StringOption(ttlOptionName, "Time duration hint, akin to --lifetime, indicating how long to cache this record before checking for updates.").WithDefault(ipns.DefaultRecordTTL.String()),
+		cmds.BoolOption(quieterOptionName, "Q", "Write only final IPNS Name encoded as CIDv1 (for use in /ipns content paths)."),
+		cmds.BoolOption(v1compatOptionName, "Produce a backward-compatible IPNS Record by including fields for both V1 and V2 signatures.").WithDefault(true),
+		cmds.BoolOption(allowOfflineOptionName, "When --offline, save the IPNS record to the local datastore without broadcasting to the network (instead of failing)."),
 		ke.OptionIPNSBase,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -90,12 +87,9 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		if err != nil {
 			return err
 		}
-		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.OptionIPNSBase.Name()].(string))
-		if err != nil {
-			return err
-		}
 
 		allowOffline, _ := req.Options[allowOfflineOptionName].(bool)
+		compatibleWithV1, _ := req.Options[v1compatOptionName].(bool)
 		kname, _ := req.Options[keyOptionName].(string)
 
 		validTimeOpt, _ := req.Options[lifeTimeOptionName].(string)
@@ -108,6 +102,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 			options.Name.AllowOffline(allowOffline),
 			options.Name.Key(kname),
 			options.Name.ValidTime(validTime),
+			options.Name.CompatibleWithV1(compatibleWithV1),
 		}
 
 		if ttl, found := req.Options[ttlOptionName].(string); found {
@@ -119,7 +114,10 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 			opts = append(opts, options.Name.TTL(d))
 		}
 
-		p := path.New(req.Arguments[0])
+		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
 
 		if verifyExists, _ := req.Options[resolveOptionName].(bool); verifyExists {
 			_, err := api.ResolveNode(req.Context, p)
@@ -128,7 +126,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 			}
 		}
 
-		out, err := api.Name().Publish(req.Context, p, opts...)
+		name, err := api.Name().Publish(req.Context, p, opts...)
 		if err != nil {
 			if err == iface.ErrOffline {
 				err = errAllowOffline
@@ -136,15 +134,9 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 			return err
 		}
 
-		// parse path, extract cid, re-base cid, reconstruct path
-		pid, err := peer.Decode(out.Name())
-		if err != nil {
-			return err
-		}
-
 		return cmds.EmitOnce(res, &IpnsEntry{
-			Name:  keyEnc.FormatID(pid),
-			Value: out.Value().String(),
+			Name:  name.String(),
+			Value: p.String(),
 		})
 	},
 	Encoders: cmds.EncoderMap{

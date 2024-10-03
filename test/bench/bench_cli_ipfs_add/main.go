@@ -3,17 +3,17 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/thirdparty/unit"
+	"github.com/ipfs/kubo/thirdparty/unit"
 
-	config "github.com/ipfs/go-ipfs-config"
-	random "github.com/jbenet/go-random"
+	random "github.com/ipfs/go-test/random"
+	config "github.com/ipfs/kubo/config"
 )
 
 var (
@@ -46,12 +46,7 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 		b.SetBytes(amount)
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
-			tmpDir, err := ioutil.TempDir("", "")
-			if err != nil {
-				benchmarkError = err
-				b.Fatal(err)
-			}
-			defer os.RemoveAll(tmpDir)
+			tmpDir := b.TempDir()
 
 			env := append(
 				[]string{fmt.Sprintf("%s=%s", config.EnvDir, path.Join(tmpDir, config.DefaultPathName))}, // first in order to override
@@ -65,7 +60,7 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 				}
 			}
 
-			initCmd := exec.Command("ipfs", "init", "-b=2048")
+			initCmd := exec.Command("ipfs", "init")
 			setupCmd(initCmd)
 			if err := initCmd.Run(); err != nil {
 				benchmarkError = err
@@ -73,14 +68,18 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 			}
 
 			const seed = 1
-			f, err := ioutil.TempFile("", "")
+			f, err := os.CreateTemp("", "")
 			if err != nil {
 				benchmarkError = err
 				b.Fatal(err)
 			}
 			defer os.Remove(f.Name())
 
-			if err := random.WritePseudoRandomBytes(amount, f, seed); err != nil {
+			randReader := &io.LimitedReader{
+				R: random.NewSeededRand(seed),
+				N: amount,
+			}
+			if _, err := io.Copy(f, randReader); err != nil {
 				benchmarkError = err
 				b.Fatal(err)
 			}

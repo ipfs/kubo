@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ipfs/go-ipfs/plugin"
-	"github.com/ipfs/go-ipfs/repo"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/kubo/plugin"
+	"github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo/fsrepo"
 
 	flatfs "github.com/ipfs/go-ds-flatfs"
 )
 
-// Plugins is exported list of plugins that will be loaded
+// Plugins is exported list of plugins that will be loaded.
 var Plugins = []plugin.Plugin{
 	&flatfsPlugin{},
 }
@@ -43,7 +43,7 @@ type datastoreConfig struct {
 }
 
 // BadgerdsDatastoreConfig returns a configuration stub for a badger datastore
-// from the given parameters
+// from the given parameters.
 func (*flatfsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 	return func(params map[string]interface{}) (fsrepo.DatastoreConfig, error) {
 		var c datastoreConfig

@@ -97,4 +97,16 @@ test_expect_success "pin ls fails when daemon is running but API file is missing
 
 test_kill_ipfs_daemon
 
+APIPORT=32563
+
+test_expect_success "Verify gateway file diallable while on unspecified" '
+  ipfs config Addresses.API /ip4/0.0.0.0/tcp/$APIPORT &&
+  test_launch_ipfs_daemon &&
+  cat "$IPFS_PATH/api" > api_file_actual &&
+  echo -n "/ip4/127.0.0.1/tcp/$APIPORT" > api_file_expected &&
+  test_cmp api_file_expected api_file_actual
+'
+
+test_kill_ipfs_daemon
+
 test_done

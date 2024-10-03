@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -39,16 +40,15 @@ func LatestDistVersion(ctx context.Context, fetcher Fetcher, dist string, stable
 // available on the distriburion site.  List is in ascending order, unless
 // sortDesc is true.
 func DistVersions(ctx context.Context, fetcher Fetcher, dist string, sortDesc bool) ([]string, error) {
-	rc, err := fetcher.Fetch(ctx, path.Join(dist, distVersions))
+	versionBytes, err := fetcher.Fetch(ctx, path.Join(dist, distVersions))
 	if err != nil {
 		return nil, err
 	}
-	defer rc.Close()
 
 	prefix := "v"
 	var vers []semver.Version
 
-	scan := bufio.NewScanner(rc)
+	scan := bufio.NewScanner(bytes.NewReader(versionBytes))
 	for scan.Scan() {
 		ver, err := semver.Make(strings.TrimLeft(scan.Text(), prefix))
 		if err != nil {
@@ -57,7 +57,7 @@ func DistVersions(ctx context.Context, fetcher Fetcher, dist string, sortDesc bo
 		vers = append(vers, ver)
 	}
 	if scan.Err() != nil {
-		return nil, fmt.Errorf("could not read versions: %s", scan.Err())
+		return nil, fmt.Errorf("could not read versions: %w", scan.Err())
 	}
 
 	if sortDesc {

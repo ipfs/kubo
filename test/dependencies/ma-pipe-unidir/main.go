@@ -4,12 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 const USAGE = "ma-pipe-unidir [-l|--listen] [--pidFile=path] [-h|--help] <send|recv> <multiaddr>\n"
@@ -58,7 +57,7 @@ func app() int {
 
 		if len(opts.PidFile) > 0 {
 			data := []byte(strconv.Itoa(os.Getpid()))
-			err := ioutil.WriteFile(opts.PidFile, data, 0644)
+			err := os.WriteFile(opts.PidFile, data, 0o644)
 			if err != nil {
 				return 1
 			}
@@ -79,7 +78,7 @@ func app() int {
 
 		if len(opts.PidFile) > 0 {
 			data := []byte(strconv.Itoa(os.Getpid()))
-			err := ioutil.WriteFile(opts.PidFile, data, 0644)
+			err := os.WriteFile(opts.PidFile, data, 0o644)
 			if err != nil {
 				return 1
 			}

@@ -1,3 +1,4 @@
+//go:build !plan9
 // +build !plan9
 
 package main
@@ -11,22 +12,23 @@ import (
 	"path/filepath"
 	"syscall"
 
-	commands "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
-	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	commands "github.com/ipfs/kubo/commands"
+	core "github.com/ipfs/kubo/core"
+	coreapi "github.com/ipfs/kubo/core/coreapi"
+	corehttp "github.com/ipfs/kubo/core/corehttp"
+	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
 	fsnotify "github.com/fsnotify/fsnotify"
-	config "github.com/ipfs/go-ipfs-config"
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/boxo/files"
 	process "github.com/jbenet/goprocess"
 	homedir "github.com/mitchellh/go-homedir"
 )
 
-var http = flag.Bool("http", false, "expose IPFS HTTP API")
-var repoPath = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
-var watchPath = flag.String("path", ".", "the path to watch")
+var (
+	http      = flag.Bool("http", false, "expose IPFS HTTP API")
+	repoPath  = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
+	watchPath = flag.String("path", ".", "the path to watch")
+)
 
 func main() {
 	flag.Parse()
@@ -52,7 +54,6 @@ func main() {
 }
 
 func run(ipfsPath, watchPath string) error {
-
 	proc := process.WithParent(process.Background())
 	log.Printf("running IPFSWatch on '%s' using repo at '%s'...", watchPath, ipfsPath)
 
@@ -93,8 +94,8 @@ func run(ipfsPath, watchPath string) error {
 
 	if *http {
 		addr := "/ip4/127.0.0.1/tcp/5001"
-		var opts = []corehttp.ServeOption{
-			corehttp.GatewayOption(true, "/ipfs", "/ipns"),
+		opts := []corehttp.ServeOption{
+			corehttp.GatewayOption("/ipfs", "/ipns"),
 			corehttp.WebUIOption,
 			corehttp.CommandsOption(cmdCtx(node, ipfsPath)),
 		}
@@ -216,9 +217,6 @@ func IsHidden(path string) bool {
 func cmdCtx(node *core.IpfsNode, repoPath string) commands.Context {
 	return commands.Context{
 		ConfigRoot: repoPath,
-		LoadConfig: func(path string) (*config.Config, error) {
-			return node.Repo.Config()
-		},
 		ConstructNode: func() (*core.IpfsNode, error) {
 			return node, nil
 		},

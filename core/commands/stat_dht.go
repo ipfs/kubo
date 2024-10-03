@@ -6,14 +6,14 @@ import (
 	"text/tabwriter"
 	"time"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/libp2p/go-libp2p-core/network"
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
+	"github.com/libp2p/go-libp2p/core/network"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 )
 
 type dhtPeerInfo struct {

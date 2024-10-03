@@ -9,36 +9,28 @@ import (
 	"sort"
 	"strings"
 
-	version "github.com/ipfs/go-ipfs"
-	core "github.com/ipfs/go-ipfs/core"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	version "github.com/ipfs/kubo"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"
-	ic "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
+	ke "github.com/ipfs/kubo/core/commands/keyencode"
 	kb "github.com/libp2p/go-libp2p-kbucket"
-	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
-const offlineIdErrorMessage = `'ipfs id' currently cannot query information on remote
-peers without a running daemon; we are working to fix this.
-In the meantime, if you want to query remote peers using 'ipfs id',
-please run the daemon:
+const offlineIDErrorMessage = "'ipfs id' cannot query information on remote peers without a running daemon; if you only want to convert --peerid-base, pass --offline option"
 
-    ipfs daemon &
-    ipfs id QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
-`
-
-type IdOutput struct {
-	ID              string
-	PublicKey       string
-	Addresses       []string
-	AgentVersion    string
-	ProtocolVersion string
-	Protocols       []string
+type IdOutput struct { // nolint
+	ID           string
+	PublicKey    string
+	Addresses    []string
+	AgentVersion string
+	Protocols    []protocol.ID
 }
 
 const (
@@ -59,6 +51,7 @@ If no peer is specified, prints out information for local peers.
 <pver>: Protocol version.
 <pubkey>: Public key.
 <addrs>: Addresses (newline delimited).
+<protocols>: Libp2p Protocol registrations (newline delimited).
 
 EXAMPLE:
 
@@ -102,19 +95,21 @@ EXAMPLE:
 			return cmds.EmitOnce(res, output)
 		}
 
-		// TODO handle offline mode with polymorphism instead of conditionals
-		if !n.IsOnline {
-			return errors.New(offlineIdErrorMessage)
+		offline, _ := req.Options[OfflineOption].(bool)
+		if !offline && !n.IsOnline {
+			return errors.New(offlineIDErrorMessage)
 		}
 
-		// We need to actually connect to run identify.
-		err = n.PeerHost.Connect(req.Context, peer.AddrInfo{ID: id})
-		switch err {
-		case nil:
-		case kb.ErrLookupFailure:
-			return errors.New(offlineIdErrorMessage)
-		default:
-			return err
+		if !offline {
+			// We need to actually connect to run identify.
+			err = n.PeerHost.Connect(req.Context, peer.AddrInfo{ID: id})
+			switch err {
+			case nil:
+			case kb.ErrLookupFailure:
+				return errors.New(offlineIDErrorMessage)
+			default:
+				return err
+			}
 		}
 
 		output, err := printPeer(keyEnc, n.Peerstore, id)
@@ -130,10 +125,9 @@ EXAMPLE:
 				output := format
 				output = strings.Replace(output, "<id>", out.ID, -1)
 				output = strings.Replace(output, "<aver>", out.AgentVersion, -1)
-				output = strings.Replace(output, "<pver>", out.ProtocolVersion, -1)
 				output = strings.Replace(output, "<pubkey>", out.PublicKey, -1)
 				output = strings.Replace(output, "<addrs>", strings.Join(out.Addresses, "\n"), -1)
-				output = strings.Replace(output, "<protocols>", strings.Join(out.Protocols, "\n"), -1)
+				output = strings.Replace(output, "<protocols>", strings.Join(protocol.ConvertToStrings(out.Protocols), "\n"), -1)
 				output = strings.Replace(output, "\\n", "\n", -1)
 				output = strings.Replace(output, "\\t", "\t", -1)
 				fmt.Fprint(w, output)
@@ -179,16 +173,9 @@ func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (interface{
 	sort.Strings(info.Addresses)
 
 	protocols, _ := ps.GetProtocols(p) // don't care about errors here.
-	for _, p := range protocols {
-		info.Protocols = append(info.Protocols, string(p))
-	}
-	sort.Strings(info.Protocols)
+	info.Protocols = append(info.Protocols, protocols...)
+	sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
 
-	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
-		if vs, ok := v.(string); ok {
-			info.ProtocolVersion = vs
-		}
-	}
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
 			info.AgentVersion = vs
@@ -220,9 +207,8 @@ func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (interface{}, error) {
 		}
 		sort.Strings(info.Addresses)
 		info.Protocols = node.PeerHost.Mux().Protocols()
-		sort.Strings(info.Protocols)
+		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
 	}
-	info.ProtocolVersion = identify.LibP2PVersion
 	info.AgentVersion = version.GetUserAgentVersion()
 	return info, nil
 }

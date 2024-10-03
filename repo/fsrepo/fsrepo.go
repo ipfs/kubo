@@ -5,38 +5,39 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	filestore "github.com/ipfs/go-filestore"
-	keystore "github.com/ipfs/go-ipfs-keystore"
-	repo "github.com/ipfs/go-ipfs/repo"
-	"github.com/ipfs/go-ipfs/repo/common"
-	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
+	filestore "github.com/ipfs/boxo/filestore"
+	keystore "github.com/ipfs/boxo/keystore"
+	repo "github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo/common"
+	dir "github.com/ipfs/kubo/thirdparty/dir"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 
+	util "github.com/ipfs/boxo/util"
 	ds "github.com/ipfs/go-datastore"
 	measure "github.com/ipfs/go-ds-measure"
 	lockfile "github.com/ipfs/go-fs-lock"
-	config "github.com/ipfs/go-ipfs-config"
-	serialize "github.com/ipfs/go-ipfs-config/serialize"
-	util "github.com/ipfs/go-ipfs-util"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	logging "github.com/ipfs/go-log"
+	config "github.com/ipfs/kubo/config"
+	serialize "github.com/ipfs/kubo/config/serialize"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
 // LockFile is the filename of the repo lock, relative to config dir
-// TODO rename repo lock and hide name
+// TODO rename repo lock and hide name.
 const LockFile = "repo.lock"
 
 var log = logging.Logger("fsrepo")
 
-// version number that we are currently expecting to see
-var RepoVersion = 12
+// RepoVersion is the version number that we are currently expecting to see.
+var RepoVersion = 16
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`
@@ -50,7 +51,7 @@ See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md for details.`
 var (
 	ErrNoVersion     = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
 	ErrOldRepo       = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
-	ErrNeedMigration = errors.New("ipfs repo needs migration")
+	ErrNeedMigration = errors.New("ipfs repo needs migration, please run migration tool.\n" + migrationInstructions)
 )
 
 type NoRepoError struct {
@@ -63,8 +64,11 @@ func (err NoRepoError) Error() string {
 	return fmt.Sprintf("no IPFS repo found in %s.\nplease run: 'ipfs init'", err.Path)
 }
 
-const apiFile = "api"
-const swarmKeyFile = "swarm.key"
+const (
+	apiFile      = "api"
+	gatewayFile  = "gateway"
+	swarmKeyFile = "swarm.key"
+)
 
 const specFn = "datastore_spec"
 
@@ -96,13 +100,17 @@ type FSRepo struct {
 	closed bool
 	// path is the file-system path
 	path string
+	// Path to the configuration file that may or may not be inside the FSRepo
+	// path (see config.Filename for more details).
+	configFilePath string
 	// lockfile is the file system lock to prevent others from opening
 	// the same fsrepo path concurrently
-	lockfile io.Closer
-	config   *config.Config
-	ds       repo.Datastore
-	keystore keystore.Keystore
-	filemgr  *filestore.FileManager
+	lockfile              io.Closer
+	config                *config.Config
+	userResourceOverrides rcmgr.PartialLimitConfig
+	ds                    repo.Datastore
+	keystore              keystore.Keystore
+	filemgr               *filestore.FileManager
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -111,16 +119,25 @@ var _ repo.Repo = (*FSRepo)(nil)
 // initialized.
 func Open(repoPath string) (repo.Repo, error) {
 	fn := func() (repo.Repo, error) {
-		return open(repoPath)
+		return open(repoPath, "")
 	}
 	return onlyOne.Open(repoPath, fn)
 }
 
-func open(repoPath string) (repo.Repo, error) {
+// OpenWithUserConfig is the equivalent to the Open function above but with the
+// option to set the configuration file path instead of using the default.
+func OpenWithUserConfig(repoPath string, userConfigFilePath string) (repo.Repo, error) {
+	fn := func() (repo.Repo, error) {
+		return open(repoPath, userConfigFilePath)
+	}
+	return onlyOne.Open(repoPath, fn)
+}
+
+func open(repoPath string, userConfigFilePath string) (repo.Repo, error) {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	r, err := newFSRepo(repoPath)
+	r, err := newFSRepo(repoPath, userConfigFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +184,10 @@ func open(repoPath string) (repo.Repo, error) {
 		return nil, err
 	}
 
+	if err := r.openUserResourceOverrides(); err != nil {
+		return nil, err
+	}
+
 	if err := r.openDatastore(); err != nil {
 		return nil, err
 	}
@@ -185,13 +206,19 @@ func open(repoPath string) (repo.Repo, error) {
 	return r, nil
 }
 
-func newFSRepo(rpath string) (*FSRepo, error) {
+func newFSRepo(rpath string, userConfigFilePath string) (*FSRepo, error) {
 	expPath, err := homedir.Expand(filepath.Clean(rpath))
 	if err != nil {
 		return nil, err
 	}
 
-	return &FSRepo{path: expPath}, nil
+	configFilePath, err := config.Filename(rpath, userConfigFilePath)
+	if err != nil {
+		// FIXME: Personalize this when the user config path is "".
+		return nil, fmt.Errorf("finding config filepath from repo %s and user config %s: %w",
+			rpath, userConfigFilePath, err)
+	}
+	return &FSRepo{path: expPath, configFilePath: configFilePath}, nil
 }
 
 func checkInitialized(path string) error {
@@ -205,26 +232,10 @@ func checkInitialized(path string) error {
 	return nil
 }
 
-// ConfigAt returns an error if the FSRepo at the given path is not
-// initialized. This function allows callers to read the config file even when
-// another process is running and holding the lock.
-func ConfigAt(repoPath string) (*config.Config, error) {
-
-	// packageLock must be held to ensure that the Read is atomic.
-	packageLock.Lock()
-	defer packageLock.Unlock()
-
-	configFilename, err := config.Filename(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	return serialize.Load(configFilename)
-}
-
 // configIsInitialized returns true if the repo is initialized at
 // provided |path|.
 func configIsInitialized(path string) bool {
-	configFilename, err := config.Filename(path)
+	configFilename, err := config.Filename(path, "")
 	if err != nil {
 		return false
 	}
@@ -238,7 +249,7 @@ func initConfig(path string, conf *config.Config) error {
 	if configIsInitialized(path) {
 		return nil
 	}
-	configFilename, err := config.Filename(path)
+	configFilename, err := config.Filename(path, "")
 	if err != nil {
 		return err
 	}
@@ -268,13 +279,12 @@ func initSpec(path string, conf map[string]interface{}) error {
 	}
 	bytes := dsc.DiskSpec().Bytes()
 
-	return ioutil.WriteFile(fn, bytes, 0600)
+	return os.WriteFile(fn, bytes, 0o600)
 }
 
 // Init initializes a new FSRepo at the given path with the provided config.
 // TODO add support for custom datastores.
 func Init(repoPath string, conf *config.Config) error {
-
 	// packageLock must be held to ensure that the repo is not initialized more
 	// than once.
 	packageLock.Lock()
@@ -336,7 +346,7 @@ func APIAddr(repoPath string) (ma.Multiaddr, error) {
 	// some hidden wisdom. However, I'm fixing it such that:
 	// 1. We don't read too little.
 	// 2. We don't truncate and succeed.
-	buf, err := ioutil.ReadAll(io.LimitReader(f, 2048))
+	buf, err := io.ReadAll(io.LimitReader(f, 2048))
 	if err != nil {
 		return nil, err
 	}
@@ -380,24 +390,69 @@ func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	}
 	// Remove the temp file when rename return error
 	if err1 := os.Remove(filepath.Join(r.path, "."+apiFile+".tmp")); err1 != nil {
-		return fmt.Errorf("File Rename error: %s, File remove error: %s", err.Error(),
+		return fmt.Errorf("file Rename error: %s, file remove error: %s", err.Error(),
 			err1.Error())
+	}
+	return err
+}
+
+// SetGatewayAddr writes the Gateway Addr to the /gateway file.
+func (r *FSRepo) SetGatewayAddr(addr net.Addr) error {
+	// Create a temp file to write the address, so that we don't leave empty file when the
+	// program crashes after creating the file.
+	tmpPath := filepath.Join(r.path, "."+gatewayFile+".tmp")
+	f, err := os.Create(tmpPath)
+	if err != nil {
+		return err
+	}
+	var good bool
+	// Silently remove as worst last case with defers.
+	defer func() {
+		if !good {
+			os.Remove(tmpPath)
+		}
+	}()
+	defer f.Close()
+
+	if _, err := fmt.Fprintf(f, "http://%s", addr.String()); err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+
+	// Atomically rename the temp file to the correct file name.
+	err = os.Rename(tmpPath, filepath.Join(r.path, gatewayFile))
+	good = err == nil
+	if good {
+		return nil
+	}
+	// Remove the temp file when rename return error
+	if err1 := os.Remove(tmpPath); err1 != nil {
+		return fmt.Errorf("file Rename error: %w, file remove error: %s", err, err1.Error())
 	}
 	return err
 }
 
 // openConfig returns an error if the config file is not present.
 func (r *FSRepo) openConfig() error {
-	configFilename, err := config.Filename(r.path)
-	if err != nil {
-		return err
-	}
-	conf, err := serialize.Load(configFilename)
+	conf, err := serialize.Load(r.configFilePath)
 	if err != nil {
 		return err
 	}
 	r.config = conf
 	return nil
+}
+
+// openUserResourceOverrides will remove all overrides if the file is not present.
+// It will error if the decoding fails.
+func (r *FSRepo) openUserResourceOverrides() error {
+	// This filepath is documented in docs/libp2p-resource-management.md and be kept in sync.
+	err := serialize.ReadConfigFile(filepath.Join(r.path, "libp2p-resource-limit-overrides.json"), &r.userResourceOverrides)
+	if errors.Is(err, serialize.ErrNotInitialized) {
+		err = nil
+	}
+	return err
 }
 
 func (r *FSRepo) openKeystore() error {
@@ -420,7 +475,7 @@ func (r *FSRepo) openDatastore() error {
 		return fmt.Errorf("required Datastore.Spec entry missing from config file")
 	}
 	if r.config.Datastore.NoSync {
-		log.Warn("NoSync is now deprecated in favor of datastore specific settings. If you want to disable fsync on flatfs set 'sync' to false. See https://github.com/ipfs/go-ipfs/blob/master/docs/datastores.md#flatfs.")
+		log.Warn("NoSync is now deprecated in favor of datastore specific settings. If you want to disable fsync on flatfs set 'sync' to false. See https://github.com/ipfs/kubo/blob/master/docs/datastores.md#flatfs.")
 	}
 
 	dsc, err := AnyDatastoreConfig(r.config.Datastore.Spec)
@@ -456,7 +511,7 @@ func (r *FSRepo) readSpec() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	b, err := ioutil.ReadFile(fn)
+	b, err := os.ReadFile(fn)
 	if err != nil {
 		return "", err
 	}
@@ -475,6 +530,11 @@ func (r *FSRepo) Close() error {
 	err := os.Remove(filepath.Join(r.path, apiFile))
 	if err != nil && !os.IsNotExist(err) {
 		log.Warn("error removing api file: ", err)
+	}
+
+	err = os.Remove(filepath.Join(r.path, gatewayFile))
+	if err != nil && !os.IsNotExist(err) {
+		log.Warn("error removing gateway file: ", err)
 	}
 
 	if err := r.ds.Close(); err != nil {
@@ -512,23 +572,33 @@ func (r *FSRepo) Config() (*config.Config, error) {
 	return r.config, nil
 }
 
+func (r *FSRepo) UserResourceOverrides() (rcmgr.PartialLimitConfig, error) {
+	// It is not necessary to hold the package lock since the repo is in an
+	// opened state. The package lock is _not_ meant to ensure that the repo is
+	// thread-safe. The package lock is only meant to guard against removal and
+	// coordinate the lockfile. However, we provide thread-safety to keep
+	// things simple.
+	packageLock.Lock()
+	defer packageLock.Unlock()
+
+	if r.closed {
+		return rcmgr.PartialLimitConfig{}, errors.New("cannot access config, repo not open")
+	}
+	return r.userResourceOverrides, nil
+}
+
 func (r *FSRepo) FileManager() *filestore.FileManager {
 	return r.filemgr
 }
 
 func (r *FSRepo) BackupConfig(prefix string) (string, error) {
-	temp, err := ioutil.TempFile(r.path, "config-"+prefix)
+	temp, err := os.CreateTemp(r.path, "config-"+prefix)
 	if err != nil {
 		return "", err
 	}
 	defer temp.Close()
 
-	configFilename, err := config.Filename(r.path)
-	if err != nil {
-		return "", err
-	}
-
-	orig, err := os.OpenFile(configFilename, os.O_RDONLY, 0600)
+	orig, err := os.OpenFile(r.configFilePath, os.O_RDONLY, 0o600)
 	if err != nil {
 		return "", err
 	}
@@ -542,44 +612,44 @@ func (r *FSRepo) BackupConfig(prefix string) (string, error) {
 	return orig.Name(), nil
 }
 
-// setConfigUnsynced is for private use.
-func (r *FSRepo) setConfigUnsynced(updated *config.Config) error {
-	configFilename, err := config.Filename(r.path)
-	if err != nil {
-		return err
-	}
+// SetConfig updates the FSRepo's config. The user must not modify the config
+// object after calling this method.
+// FIXME: There is an inherent contradiction with storing non-user-generated
+// Go config.Config structures as user-generated JSON nested maps. This is
+// evidenced by the issue of `omitempty` property of fields that aren't defined
+// by the user and Go still needs to initialize them to its default (which
+// is not reflected in the repo's config file, see
+// https://github.com/ipfs/kubo/issues/8088 for more details).
+// In general we should call this API with a JSON nested maps as argument
+// (`map[string]interface{}`). Many calls to this function are forced to
+// synthesize the config.Config struct from their available JSON map just to
+// satisfy this (causing incompatibilities like the `omitempty` one above).
+// We need to comb SetConfig calls and replace them when possible with a
+// JSON map variant.
+func (r *FSRepo) SetConfig(updated *config.Config) error {
+	// packageLock is held to provide thread-safety.
+	packageLock.Lock()
+	defer packageLock.Unlock()
+
 	// to avoid clobbering user-provided keys, must read the config from disk
 	// as a map, write the updated struct values to the map and write the map
 	// to disk.
 	var mapconf map[string]interface{}
-	if err := serialize.ReadConfigFile(configFilename, &mapconf); err != nil {
+	if err := serialize.ReadConfigFile(r.configFilePath, &mapconf); err != nil {
 		return err
 	}
 	m, err := config.ToMap(updated)
 	if err != nil {
 		return err
 	}
-	for k, v := range m {
-		mapconf[k] = v
-	}
-	if err := serialize.WriteConfigFile(configFilename, mapconf); err != nil {
+	mergedMap := common.MapMergeDeep(mapconf, m)
+	if err := serialize.WriteConfigFile(r.configFilePath, mergedMap); err != nil {
 		return err
 	}
 	// Do not use `*r.config = ...`. This will modify the *shared* config
 	// returned by `r.Config`.
 	r.config = updated
 	return nil
-}
-
-// SetConfig updates the FSRepo's config. The user must not modify the config
-// object after calling this method.
-func (r *FSRepo) SetConfig(updated *config.Config) error {
-
-	// packageLock is held to provide thread-safety.
-	packageLock.Lock()
-	defer packageLock.Unlock()
-
-	return r.setConfigUnsynced(updated)
 }
 
 // GetConfigKey retrieves only the value of a particular key.
@@ -591,12 +661,8 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 		return nil, errors.New("repo is closed")
 	}
 
-	filename, err := config.Filename(r.path)
-	if err != nil {
-		return nil, err
-	}
 	var cfg map[string]interface{}
-	if err := serialize.ReadConfigFile(filename, &cfg); err != nil {
+	if err := serialize.ReadConfigFile(r.configFilePath, &cfg); err != nil {
 		return nil, err
 	}
 	return common.MapGetKV(cfg, key)
@@ -611,13 +677,9 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		return errors.New("repo is closed")
 	}
 
-	filename, err := config.Filename(r.path)
-	if err != nil {
-		return err
-	}
 	// Load into a map so we don't end up writing any additional defaults to the config file.
 	var mapconf map[string]interface{}
-	if err := serialize.ReadConfigFile(filename, &mapconf); err != nil {
+	if err := serialize.ReadConfigFile(r.configFilePath, &mapconf); err != nil {
 		return err
 	}
 
@@ -645,10 +707,13 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	if err != nil {
 		return err
 	}
-	if err := serialize.WriteConfigFile(filename, mapconf); err != nil {
+	r.config = conf
+
+	if err := serialize.WriteConfigFile(r.configFilePath, mapconf); err != nil {
 		return err
 	}
-	return r.setConfigUnsynced(conf) // TODO roll this into this method
+
+	return nil
 }
 
 // Datastore returns a repo-owned datastore. If FSRepo is Closed, return value
@@ -660,7 +725,7 @@ func (r *FSRepo) Datastore() repo.Datastore {
 	return d
 }
 
-// GetStorageUsage computes the storage space taken by the repo in bytes
+// GetStorageUsage computes the storage space taken by the repo in bytes.
 func (r *FSRepo) GetStorageUsage(ctx context.Context) (uint64, error) {
 	return ds.DiskUsage(ctx, r.Datastore())
 }
@@ -678,11 +743,13 @@ func (r *FSRepo) SwarmKey() ([]byte, error) {
 	}
 	defer f.Close()
 
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
-var _ io.Closer = &FSRepo{}
-var _ repo.Repo = &FSRepo{}
+var (
+	_ io.Closer = &FSRepo{}
+	_ repo.Repo = &FSRepo{}
+)
 
 // IsInitialized returns true if the repo is initialized at provided |path|.
 func IsInitialized(path string) bool {

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	core "github.com/ipfs/go-ipfs/core"
+	core "github.com/ipfs/kubo/core"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/zpages"
 
@@ -46,6 +46,30 @@ func MetricsOpenCensusCollectionOption() ServeOption {
 		// Construct the mux
 		zpages.Handle(mux, "/debug/metrics/oc/debugz")
 		mux.Handle("/debug/metrics/oc", pe)
+
+		return mux, nil
+	}
+}
+
+// MetricsOpenCensusDefaultPrometheusRegistry registers the default prometheus
+// registry as an exporter to OpenCensus metrics. This means that OpenCensus
+// metrics will show up in the prometheus metrics endpoint
+func MetricsOpenCensusDefaultPrometheusRegistry() ServeOption {
+	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
+		log.Info("Init OpenCensus with default prometheus registry")
+
+		pe, err := ocprom.NewExporter(ocprom.Options{
+			Registry: prometheus.DefaultRegisterer.(*prometheus.Registry),
+			OnError: func(err error) {
+				log.Errorw("OC default registry ERROR", "error", err)
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// register prometheus with opencensus
+		view.RegisterExporter(pe)
 
 		return mux, nil
 	}
@@ -127,20 +151,18 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 	}
 }
 
-var (
-	peersTotalMetric = prometheus.NewDesc(
-		prometheus.BuildFQName("ipfs", "p2p", "peers_total"),
-		"Number of connected peers",
-		[]string{"transport"},
-		nil,
-	)
+var peersTotalMetric = prometheus.NewDesc(
+	prometheus.BuildFQName("ipfs", "p2p", "peers_total"),
+	"Number of connected peers",
+	[]string{"transport"},
+	nil,
 )
 
 type IpfsNodeCollector struct {
 	Node *core.IpfsNode
 }
 
-func (_ IpfsNodeCollector) Describe(ch chan<- *prometheus.Desc) {
+func (IpfsNodeCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- peersTotalMetric
 }
 

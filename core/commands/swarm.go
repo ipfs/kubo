@@ -2,23 +2,31 @@ package commands
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"path"
 	"sort"
+	"strconv"
 	"sync"
+	"text/tabwriter"
 	"time"
 
-	commands "github.com/ipfs/go-ipfs/commands"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	repo "github.com/ipfs/go-ipfs/repo"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/kubo/commands"
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo/fsrepo"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
-	inet "github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
+	inet "github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
@@ -52,14 +60,19 @@ ipfs peers in the internet.
 		"filters":    swarmFiltersCmd,
 		"peers":      swarmPeersCmd,
 		"peering":    swarmPeeringCmd,
+		"resources":  swarmResourcesCmd, // libp2p Network Resource Manager
+
 	},
 }
 
 const (
-	swarmVerboseOptionName   = "verbose"
-	swarmStreamsOptionName   = "streams"
-	swarmLatencyOptionName   = "latency"
-	swarmDirectionOptionName = "direction"
+	swarmVerboseOptionName           = "verbose"
+	swarmStreamsOptionName           = "streams"
+	swarmLatencyOptionName           = "latency"
+	swarmDirectionOptionName         = "direction"
+	swarmResetLimitsOptionName       = "reset"
+	swarmUsedResourcesPercentageName = "min-used-limit-perc"
+	swarmIdentifyOptionName          = "identify"
 )
 
 type peeringResult struct {
@@ -71,8 +84,8 @@ var swarmPeeringCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Modify the peering subsystem.",
 		ShortDescription: `
-'ipfs swarm peering' manages the peering subsystem. 
-Peers in the peering subsystem is maintained to be connected, reconnected 
+'ipfs swarm peering' manages the peering subsystem.
+Peers in the peering subsystem are maintained to be connected, reconnected
 on disconnect with a back-off.
 The changes are not saved to the config.
 `,
@@ -115,6 +128,9 @@ var swarmPeeringAddCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+		if !node.IsOnline {
+			return ErrNotOnline
+		}
 
 		for _, addrinfo := range addInfos {
 			node.Peering.AddPeer(addrinfo)
@@ -146,6 +162,10 @@ var swarmPeeringLsCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+		if !node.IsOnline {
+			return ErrNotOnline
+		}
+
 		peers := node.Peering.ListPeers()
 		return cmds.EmitOnce(res, addrInfos{Peers: peers})
 	},
@@ -182,6 +202,9 @@ var swarmPeeringRmCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+		if !node.IsOnline {
+			return ErrNotOnline
+		}
 
 		for _, arg := range req.Arguments {
 			id, err := peer.Decode(arg)
@@ -199,7 +222,7 @@ var swarmPeeringRmCmd = &cmds.Command{
 	Type: peeringResult{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, pr *peeringResult) error {
-			fmt.Fprintf(w, "add %s %s\n", pr.ID.String(), pr.Status)
+			fmt.Fprintf(w, "remove %s %s\n", pr.ID.String(), pr.Status)
 			return nil
 		}),
 	},
@@ -217,17 +240,18 @@ var swarmPeersCmd = &cmds.Command{
 		cmds.BoolOption(swarmStreamsOptionName, "Also list information about open streams for each peer"),
 		cmds.BoolOption(swarmLatencyOptionName, "Also list information about latency to each peer"),
 		cmds.BoolOption(swarmDirectionOptionName, "Also list information about the direction of connection"),
+		cmds.BoolOption(swarmIdentifyOptionName, "Also list information about peers identify"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
-
 		verbose, _ := req.Options[swarmVerboseOptionName].(bool)
 		latency, _ := req.Options[swarmLatencyOptionName].(bool)
 		streams, _ := req.Options[swarmStreamsOptionName].(bool)
 		direction, _ := req.Options[swarmDirectionOptionName].(bool)
+		identify, _ := req.Options[swarmIdentifyOptionName].(bool)
 
 		conns, err := api.Swarm().Peers(req.Context)
 		if err != nil {
@@ -238,7 +262,7 @@ var swarmPeersCmd = &cmds.Command{
 		for _, c := range conns {
 			ci := connInfo{
 				Addr: c.Address().String(),
-				Peer: c.ID().Pretty(),
+				Peer: c.ID().String(),
 			}
 
 			if verbose || direction {
@@ -267,6 +291,15 @@ var swarmPeersCmd = &cmds.Command{
 				for _, s := range strs {
 					ci.Streams = append(ci.Streams, streamInfo{Protocol: string(s)})
 				}
+			}
+
+			if verbose || identify {
+				n, err := cmdenv.GetNode(env)
+				if err != nil {
+					return err
+				}
+				identifyResult, _ := ci.identifyPeer(n.Peerstore, c.ID())
+				ci.Identify = identifyResult
 			}
 			sort.Sort(&ci)
 			out.Peers = append(out.Peers, ci)
@@ -304,17 +337,102 @@ var swarmPeersCmd = &cmds.Command{
 	Type: connInfos{},
 }
 
+var swarmResourcesCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Get a summary of all resources accounted for by the libp2p Resource Manager.",
+		LongDescription: `
+Get a summary of all resources accounted for by the libp2p Resource Manager.
+This includes the limits and the usage against those limits.
+This can output a human readable table and JSON encoding.
+`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		if node.ResourceManager == nil {
+			return libp2p.ErrNoResourceMgr
+		}
+
+		cfg, err := node.Repo.Config()
+		if err != nil {
+			return err
+		}
+
+		userResourceOverrides, err := node.Repo.UserResourceOverrides()
+		if err != nil {
+			return err
+		}
+
+		// FIXME: we shouldn't recompute limits, either save them or load them from libp2p (https://github.com/libp2p/go-libp2p/issues/2166)
+		limitConfig, _, err := libp2p.LimitConfig(cfg.Swarm, userResourceOverrides)
+		if err != nil {
+			return err
+		}
+
+		rapi, ok := node.ResourceManager.(rcmgr.ResourceManagerState)
+		if !ok { // NullResourceManager
+			return libp2p.ErrNoResourceMgr
+		}
+
+		return cmds.EmitOnce(res, libp2p.MergeLimitsAndStatsIntoLimitsConfigAndUsage(limitConfig, rapi.Stat()))
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, limitsAndUsage libp2p.LimitsConfigAndUsage) error {
+			return json.NewEncoder(w).Encode(limitsAndUsage)
+		}),
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, limitsAndUsage libp2p.LimitsConfigAndUsage) error {
+			tw := tabwriter.NewWriter(w, 20, 8, 0, '\t', 0)
+			defer tw.Flush()
+
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t\n", "Scope", "Limit Name", "Limit Value", "Limit Usage Amount", "Limit Usage Percent")
+			for _, ri := range libp2p.LimitConfigsToInfo(limitsAndUsage) {
+				var limit, percentage string
+				switch ri.LimitValue {
+				case rcmgr.Unlimited64:
+					limit = "unlimited"
+					percentage = "n/a"
+				case rcmgr.BlockAllLimit64:
+					limit = "blockAll"
+					percentage = "n/a"
+				default:
+					limit = strconv.FormatInt(int64(ri.LimitValue), 10)
+					if ri.CurrentUsage == 0 {
+						percentage = "0%"
+					} else {
+						percentage = strconv.FormatFloat(float64(ri.CurrentUsage)/float64(ri.LimitValue)*100, 'f', 1, 64) + "%"
+					}
+				}
+				fmt.Fprintf(tw, "%s\t%s\t%s\t%d\t%s\t\n",
+					ri.ScopeName,
+					ri.LimitName,
+					limit,
+					ri.CurrentUsage,
+					percentage,
+				)
+			}
+
+			return nil
+		}),
+	},
+	Type: libp2p.LimitsConfigAndUsage{},
+}
+
 type streamInfo struct {
 	Protocol string
 }
 
 type connInfo struct {
-	Addr      string
-	Peer      string
-	Latency   string
-	Muxer     string
-	Direction inet.Direction
-	Streams   []streamInfo
+	Addr      string         `json:",omitempty"`
+	Peer      string         `json:",omitempty"`
+	Latency   string         `json:",omitempty"`
+	Muxer     string         `json:",omitempty"`
+	Direction inet.Direction `json:",omitempty"`
+	Streams   []streamInfo   `json:",omitempty"`
+	Identify  IdOutput       `json:",omitempty"`
 }
 
 func (ci *connInfo) Less(i, j int) bool {
@@ -343,6 +461,43 @@ func (ci connInfos) Len() int {
 
 func (ci connInfos) Swap(i, j int) {
 	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
+}
+
+func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, error) {
+	var info IdOutput
+	info.ID = p.String()
+
+	if pk := ps.PubKey(p); pk != nil {
+		pkb, err := ic.MarshalPublicKey(pk)
+		if err != nil {
+			return IdOutput{}, err
+		}
+		info.PublicKey = base64.StdEncoding.EncodeToString(pkb)
+	}
+
+	addrInfo := ps.PeerInfo(p)
+	addrs, err := peer.AddrInfoToP2pAddrs(&addrInfo)
+	if err != nil {
+		return IdOutput{}, err
+	}
+
+	for _, a := range addrs {
+		info.Addresses = append(info.Addresses, a.String())
+	}
+	sort.Strings(info.Addresses)
+
+	if protocols, err := ps.GetProtocols(p); err == nil {
+		info.Protocols = append(info.Protocols, protocols...)
+		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
+	}
+
+	if v, err := ps.Get(p, "AgentVersion"); err == nil {
+		if vs, ok := v.(string); ok {
+			info.AgentVersion = vs
+		}
+	}
+
+	return info, nil
 }
 
 // directionString transfers to string
@@ -381,7 +536,7 @@ var swarmAddrsCmd = &cmds.Command{
 
 		out := make(map[string][]string)
 		for p, paddrs := range addrs {
-			s := p.Pretty()
+			s := p.String()
 			for _, a := range paddrs {
 				out[s] = append(out[s], a.String())
 			}
@@ -402,7 +557,7 @@ var swarmAddrsCmd = &cmds.Command{
 				paddrs := am.Addrs[p]
 				fmt.Fprintf(w, "%s (%d)\n", p, len(paddrs))
 				for _, addr := range paddrs {
-					fmt.Fprintf(w, "\t"+addr+"\n")
+					fmt.Fprintf(w, "\t%s\n", addr)
 				}
 			}
 
@@ -444,7 +599,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 		for _, addr := range maddrs {
 			saddr := addr.String()
 			if showid {
-				saddr = path.Join(saddr, p2pProtocolName, self.ID().Pretty())
+				saddr = path.Join(saddr, p2pProtocolName, self.ID().String())
 			}
 			addrs = append(addrs, saddr)
 		}
@@ -491,11 +646,13 @@ var swarmAddrsListenCmd = &cmds.Command{
 
 var swarmConnectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Open connection to a given address.",
+		Tagline: "Open connection to a given peer.",
 		ShortDescription: `
-'ipfs swarm connect' opens a new direct connection to a peer address.
+'ipfs swarm connect' attempts to ensure a connection to a given peer.
 
-The address format is an IPFS multiaddr:
+Multiaddresses given are advisory, for example the node may already be aware of other addresses for a given peer or may already have an established connection to the peer.
+
+The address format is a libp2p multiaddr:
 
 ipfs swarm connect /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 `,
@@ -523,7 +680,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N
 
 		output := make([]string, len(pis))
 		for i, pi := range pis {
-			output[i] = "connect " + pi.ID.Pretty()
+			output[i] = "connect " + pi.ID.String()
 
 			err := api.Swarm().Connect(req.Context, pi)
 			if err != nil {
@@ -588,7 +745,7 @@ it will reconnect.
 			// a good backwards compat solution. Right now, I'm just
 			// preserving the current behavior.
 			for _, addr := range maddrs {
-				msg := "disconnect " + ainfo.ID.Pretty()
+				msg := "disconnect " + ainfo.ID.String()
 				if err := api.Swarm().Disconnect(req.Context, addr); err != nil {
 					msg += " failure: " + err.Error()
 				} else {
@@ -707,7 +864,7 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -743,7 +900,7 @@ var swarmFiltersAddCmd = &cmds.Command{
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -799,7 +956,7 @@ var swarmFiltersRmCmd = &cmds.Command{
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 
