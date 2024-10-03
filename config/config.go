@@ -37,6 +37,7 @@ type Config struct {
 	Plugins      Plugins
 	Pinning      Pinning
 	Import       Import
+	Version      Version
 
 	Internal Internal // experimental/unstable options
 }

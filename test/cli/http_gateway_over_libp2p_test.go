@@ -71,7 +71,7 @@ func TestGatewayOverLibp2p(t *testing.T) {
 	t.Run("WillNotServeRemoteContent", func(t *testing.T) {
 		resp, err := http.Get(fmt.Sprintf("http://%s/ipfs/%s?format=raw", p2pProxyNodeHTTPListenAddr, cidDataNotOnGatewayNode))
 		require.NoError(t, err)
-		require.Equal(t, 500, resp.StatusCode)
+		require.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
 
 	t.Run("WillNotServeDeserializedResponses", func(t *testing.T) {

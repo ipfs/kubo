@@ -303,7 +303,10 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	}
 
 	// Resolve the API addr.
-	apiAddr, err = resolveAddr(req.Context, apiAddr)
+	//
+	// Do not replace apiAddr with the resolved addr so that the requested
+	// hostname is kept for use in the request's HTTP header.
+	_, err = resolveAddr(req.Context, apiAddr)
 	if err != nil {
 		return nil, err
 	}

@@ -89,6 +89,8 @@ func TestCommands(t *testing.T) {
 		"/files/rm",
 		"/files/stat",
 		"/files/write",
+		"/files/chmod",
+		"/files/touch",
 		"/filestore",
 		"/filestore/dups",
 		"/filestore/ls",
@@ -199,6 +201,7 @@ func TestCommands(t *testing.T) {
 		"/swarm/resources",
 		"/update",
 		"/version",
+		"/version/check",
 		"/version/deps",
 	}
 

@@ -260,8 +260,7 @@ Passing --verify will verify signature against provided public key.
 			if out.HexDump != "" {
 				tw.Flush()
 
-				fmt.Fprintf(w, "\nHex Dump:\n")
-				fmt.Fprintf(w, out.HexDump)
+				fmt.Fprintf(w, "\nHex Dump:\n%s", out.HexDump)
 			}
 
 			return nil

@@ -105,7 +105,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		// to dhtclient.
 		fallthrough
 	case config.AutoNATServiceEnabled:
-		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle))
+		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle, false))
+	case config.AutoNATServiceEnabledV1Only:
+		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle, true))
 	}
 
 	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(true) // nolint
@@ -130,7 +132,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(libp2p.UserAgent()),
 
 		// Services (resource management)
-		fx.Provide(libp2p.ResourceManager(cfg.Swarm, userResourceOverrides)),
+		fx.Provide(libp2p.ResourceManager(bcfg.Repo.Path(), cfg.Swarm, userResourceOverrides)),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),

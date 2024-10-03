@@ -63,7 +63,7 @@ jobs:
         shell: bash
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20
+        uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -72,7 +72,7 @@ jobs:
       # builds, only one platform is being loaded into the cache. This would
       # prevent us from testing the other platforms.
       - name: Build Docker image (linux/amd64)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64
           context: .
@@ -84,7 +84,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
       - name: Build Docker image (linux/arm/v7)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/arm/v7
           context: .
@@ -96,7 +96,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
       - name: Build Docker image (linux/arm64/v8)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/arm64/v8
           context: .
@@ -116,7 +116,7 @@ jobs:
       # This will only push the previously built images.
       - if: github.event_name != 'workflow_dispatch' || github.event.inputs.push == 'true'
         name: Publish to Docker Hub
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
           context: .

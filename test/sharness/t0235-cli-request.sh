@@ -28,7 +28,7 @@ test_expect_success "start nc" '
 '
 
 test_expect_success "can make http request against nc server" '
-  ipfs cat /ipfs/Qmabcdef --api /ip4/127.0.0.1/tcp/5005 &
+  ipfs cat /ipfs/Qmabcdef --api /dns4/localhost/tcp/5005 &
   IPFSPID=$!
 
   # handle request for /api/v0/version
@@ -78,6 +78,10 @@ test_expect_success "request looks good" '
 
 test_expect_success "api flag does not appear in request" '
   test_expect_code 1 grep "api=/ip4" nc_out
+'
+
+test_expect_success "host has dns name not ip address" '
+  grep "Host: localhost:5005" nc_out
 '
 
 test_done

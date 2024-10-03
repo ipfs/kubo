@@ -557,7 +557,7 @@ var swarmAddrsCmd = &cmds.Command{
 				paddrs := am.Addrs[p]
 				fmt.Fprintf(w, "%s (%d)\n", p, len(paddrs))
 				for _, addr := range paddrs {
-					fmt.Fprintf(w, "\t"+addr+"\n")
+					fmt.Fprintf(w, "\t%s\n", addr)
 				}
 			}
 
