@@ -174,10 +174,12 @@ functionality - performance of content discovery and data
 fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
+			// Disable "server" services (dht, autonat, limited relay)
 			c.Routing.Type = NewOptionalString("autoclient")
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
-			c.Reprovider.Interval = NewOptionalDuration(0)
+			c.Swarm.RelayService.Enabled = False
 
+			// Keep bare minimum connections around
 			lowWater := int64(20)
 			highWater := int64(40)
 			gracePeriod := time.Minute
@@ -185,6 +187,29 @@ fetching may be degraded.
 			c.Swarm.ConnMgr.LowWater = &OptionalInteger{value: &lowWater}
 			c.Swarm.ConnMgr.HighWater = &OptionalInteger{value: &highWater}
 			c.Swarm.ConnMgr.GracePeriod = &OptionalDuration{&gracePeriod}
+			return nil
+		},
+	},
+	"announce-off": {
+		Description: `Disables Reprovide system (and announcing to Amino DHT).
+
+		USE WITH CAUTION:
+		The main use case for this is setups with manual Peering.Peers config.
+		Data from this node will not be announced on the DHT. This will make
+		DHT-based routing an data retrieval impossible if this node is the only
+		one hosting it, and other peers are not already connected to it.
+`,
+		Transform: func(c *Config) error {
+			c.Reprovider.Interval = NewOptionalDuration(0) // 0 disables periodic reprovide
+			c.Experimental.StrategicProviding = true       // this is not a typo (the name is counter-intuitive)
+			return nil
+		},
+	},
+	"announce-on": {
+		Description: `Re-enables Reprovide system (reverts announce-off profile).`,
+		Transform: func(c *Config) error {
+			c.Reprovider.Interval = NewOptionalDuration(DefaultReproviderInterval) // have to apply explicit default because nil would be ignored
+			c.Experimental.StrategicProviding = false                              // this is not a typo (the name is counter-intuitive)
 			return nil
 		},
 	},
