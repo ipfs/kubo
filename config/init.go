@@ -146,7 +146,7 @@ func pebbleSpec() map[string]interface{} {
 			"type":                        "pebbleds",
 			"path":                        "pebbleds",
 			"bytesPerSync":                0,
-			"bisableWAL":                  false,
+			"disableWAL":                  false,
 			"cacheSize":                   0,
 			"l0CompactionThreshold":       0,
 			"l0StopWritesThreshold":       0,
