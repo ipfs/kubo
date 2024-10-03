@@ -143,19 +143,8 @@ func pebbleSpec() map[string]interface{} {
 		"type":   "measure",
 		"prefix": "pebble.datastore",
 		"child": map[string]interface{}{
-			"type":                        "pebbleds",
-			"path":                        "pebbleds",
-			"bytesPerSync":                0,
-			"disableWAL":                  false,
-			"cacheSize":                   0,
-			"l0CompactionThreshold":       0,
-			"l0StopWritesThreshold":       0,
-			"lBaseMaxBytes":               0,
-			"maxConcurrentCompactions":    0,
-			"memTableSize":                0,
-			"memTableStopWritesThreshold": 0,
-			"walBytesPerSync":             0,
-			"walMinSyncSeconds":           0,
+			"type": "pebbleds",
+			"path": "pebbleds",
 		},
 	}
 }
