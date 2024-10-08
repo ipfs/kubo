@@ -1,6 +1,8 @@
 module github.com/ipfs/kubo/examples/kubo-as-a-library
 
-go 1.22
+go 1.23
+
+toolchain go1.23.2
 
 // Used to keep this in sync with the current version of kubo. You should remove
 // this if you copy this example.
