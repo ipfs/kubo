@@ -50,7 +50,7 @@ This will build the Docker images, upload them to ECR, and then launch the exper
 
 ## Analyze Results
 
-Add a log entry in https://www.notion.so/pl-strflt/ce2d1bd56f3541028d960d3711465659 and link to it from the release issue, so that experiment results are publicly visible.
+Add a log entry in https://www.notion.so/ceb2047e79f2498494077a2739a6c493 and link to it from the release issue, so that experiment results are publicly visible.
 
 The `deploy` command will output a link to the Grafana dashboard for the experiment. We don't currently have rigorous acceptance criteria, so you should look for anomalies or changes in the metrics and make sure they are tolerable and explainable. Unexplainable anomalies should be noted in the log with a screenshot, and then root caused.
 

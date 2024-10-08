@@ -2,8 +2,6 @@ package libp2p
 
 import (
 	"context"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/ipfs/go-datastore"
@@ -31,23 +29,10 @@ type RoutingOptionArgs struct {
 
 type RoutingOption func(args RoutingOptionArgs) (routing.Routing, error)
 
-// Default HTTP routers used in parallel to DHT when Routing.Type = "auto"
-var defaultHTTPRouters = []string{
-	"https://cid.contact", // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
-	// TODO: add an independent router from Cloudflare
-}
-
-func init() {
-	// Override HTTP routers if custom ones were passed via env
-	if routers := os.Getenv("IPFS_HTTP_ROUTERS"); routers != "" {
-		defaultHTTPRouters = strings.Split(routers, " ")
-	}
-}
-
 func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.ParallelRouter, error) {
 	var routers []*routinghelpers.ParallelRouter
 	// Append HTTP routers for additional speed
-	for _, endpoint := range defaultHTTPRouters {
+	for _, endpoint := range config.DefaultHTTPRouters {
 		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey)
 		if err != nil {
 			return nil, err

@@ -42,7 +42,7 @@ type datastoreConfig struct {
 	syncField bool
 }
 
-// BadgerdsDatastoreConfig returns a configuration stub for a badger datastore
+// BadgerdsDatastoreConfig returns a configuration stub for a flatfs datastore
 // from the given parameters.
 func (*flatfsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 	return func(params map[string]interface{}) (fsrepo.DatastoreConfig, error) {

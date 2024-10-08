@@ -175,7 +175,7 @@ OPTIONS:
 
 DESCRIPTION:
 
-    'ipfs crypt encrypt' is a command used to encypt data so that only holders of a certain
+    'ipfs crypt encrypt' is a command used to encrypt data so that only holders of a certain
     key can read it.
 ```
 

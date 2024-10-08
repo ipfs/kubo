@@ -23,6 +23,9 @@ type Repo interface {
 	// to the returned config are not automatically persisted.
 	Config() (*config.Config, error)
 
+	// Path is the repo file-system path
+	Path() string
+
 	// UserResourceOverrides returns optional user resource overrides for the
 	// libp2p resource manager.
 	UserResourceOverrides() (rcmgr.PartialLimitConfig, error)

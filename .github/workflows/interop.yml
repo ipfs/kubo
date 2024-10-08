@@ -10,7 +10,7 @@ on:
       - 'master'
 
 env:
-  GO_VERSION: 1.22.x
+  GO_VERSION: 1.23.x
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
@@ -70,27 +70,9 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ github.job }}-helia-
       - run: sudo apt update
       - run: sudo apt install -y libxkbcommon0 libxdamage1 libgbm1 libpango-1.0-0 libcairo2 # dependencies for playwright
-
-      # TODO: for now run against version from https://github.com/ipfs/helia/pull/584
-      - name: Checkout helia-interop with provisional fix
-        uses: actions/checkout@v4
-        with:
-          repository: ipfs/helia
-          ref: ab6b385787075ad9932f24362293b3bb82ff1d96
-          path: helia
-      - name: Run provisional build of helia
-        run: npm i && npm run build
-        working-directory: helia
-      - name: Run provisional build of helia-interop
-        run: npm i && npm run build && npx .
-        working-directory: helia/packages/interop
+      - run: npx --package @helia/interop helia-interop
         env:
           KUBO_BINARY: ${{ github.workspace }}/cmd/ipfs/ipfs
-
-      # TODO: switch back to release once https://github.com/ipfs/helia/pull/584 ships
-      #- run: npx --package @helia/interop helia-interop
-      #  env:
-      #    KUBO_BINARY: ${{ github.workspace }}/cmd/ipfs/ipfs
   ipfs-webui:
     needs: [interop-prep]
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}

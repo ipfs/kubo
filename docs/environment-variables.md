@@ -131,6 +131,18 @@ The above will replace implicit HTTP routers with single one, allowing for
 inspection/debug of HTTP requests sent by Kubo via `while true ; do nc -l 7423; done`
 or more advanced tools like [mitmproxy](https://docs.mitmproxy.org/stable/#mitmproxy).
 
+Default: `config.DefaultHTTPRouters`
+
+## `IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS`
+
+Overrides values passed with `filter-protocols` parameter defined in IPIP-484.
+Value is space-separated.
+
+```console
+$ IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS="unknown transport-bitswap transport-foo" ipfs daemon
+```
+
+Default: `config.DefaultHTTPRoutersFilterProtocols`
 
 ## `IPFS_CONTENT_BLOCKING_DISABLE`
 

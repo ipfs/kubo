@@ -1,14 +1,19 @@
 package kubo
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
 
 	merkledag "github.com/ipfs/boxo/ipld/merkledag"
 	ipld "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log/v2"
 	config "github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -60,25 +65,37 @@ func isErrorSimilar(e1, e2 error) bool {
 }
 
 func TestPinMFSConfigError(t *testing.T) {
-	ctx := &testPinMFSContext{
-		ctx: context.Background(),
+	ctx, cancel := context.WithTimeout(context.Background(), 2*testConfigPollInterval)
+	defer cancel()
+
+	cctx := &testPinMFSContext{
+		ctx: ctx,
 		cfg: nil,
 		err: fmt.Errorf("couldn't read config"),
 	}
 	node := &testPinMFSNode{}
-	errCh := make(chan error)
-	go pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
-	if !isErrorSimilar(<-errCh, ctx.err) {
-		t.Errorf("error did not propagate")
+
+	logReader := logging.NewPipeReader()
+	go func() {
+		pinMFSOnChange(cctx, testConfigPollInterval, node)
+		logReader.Close()
+	}()
+
+	level, msg := readLogLine(t, logReader)
+	if level != "error" {
+		t.Error("expected error to be logged")
 	}
-	if !isErrorSimilar(<-errCh, ctx.err) {
+	if !isErrorSimilar(errors.New(msg), cctx.err) {
 		t.Errorf("error did not propagate")
 	}
 }
 
 func TestPinMFSRootNodeError(t *testing.T) {
-	ctx := &testPinMFSContext{
-		ctx: context.Background(),
+	ctx, cancel := context.WithTimeout(context.Background(), 2*testConfigPollInterval)
+	defer cancel()
+
+	cctx := &testPinMFSContext{
+		ctx: ctx,
 		cfg: &config.Config{
 			Pinning: config.Pinning{},
 		},
@@ -87,12 +104,16 @@ func TestPinMFSRootNodeError(t *testing.T) {
 	node := &testPinMFSNode{
 		err: fmt.Errorf("cannot create root node"),
 	}
-	errCh := make(chan error)
-	go pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
-	if !isErrorSimilar(<-errCh, node.err) {
-		t.Errorf("error did not propagate")
+	logReader := logging.NewPipeReader()
+	go func() {
+		pinMFSOnChange(cctx, testConfigPollInterval, node)
+		logReader.Close()
+	}()
+	level, msg := readLogLine(t, logReader)
+	if level != "error" {
+		t.Error("expected error to be logged")
 	}
-	if !isErrorSimilar(<-errCh, node.err) {
+	if !isErrorSimilar(errors.New(msg), node.err) {
 		t.Errorf("error did not propagate")
 	}
 }
@@ -155,7 +176,8 @@ func TestPinMFSService(t *testing.T) {
 }
 
 func testPinMFSServiceWithError(t *testing.T, cfg *config.Config, expectedErrorPrefix string) {
-	goctx, cancel := context.WithCancel(context.Background())
+	goctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	ctx := &testPinMFSContext{
 		ctx: goctx,
 		cfg: cfg,
@@ -164,16 +186,36 @@ func testPinMFSServiceWithError(t *testing.T, cfg *config.Config, expectedErrorP
 	node := &testPinMFSNode{
 		err: nil,
 	}
-	errCh := make(chan error)
-	go pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
-	defer cancel()
-	// first pass through the pinning loop
-	err := <-errCh
-	if !strings.Contains((err).Error(), expectedErrorPrefix) {
+	logReader := logging.NewPipeReader()
+	go func() {
+		pinMFSOnChange(ctx, testConfigPollInterval, node)
+		logReader.Close()
+	}()
+	level, msg := readLogLine(t, logReader)
+	if level != "error" {
+		t.Error("expected error to be logged")
+	}
+	if !strings.Contains(msg, expectedErrorPrefix) {
 		t.Errorf("expecting error containing %q", expectedErrorPrefix)
 	}
-	// second pass through the pinning loop
-	if !strings.Contains((err).Error(), expectedErrorPrefix) {
-		t.Errorf("expecting error containing %q", expectedErrorPrefix)
+}
+
+func readLogLine(t *testing.T, logReader io.Reader) (string, string) {
+	t.Helper()
+
+	r := bufio.NewReader(logReader)
+	data, err := r.ReadBytes('\n')
+	if err != nil {
+		t.Fatal(err)
 	}
+
+	logInfo := struct {
+		Level string `json:"level"`
+		Msg   string `json:"msg"`
+	}{}
+	err = json.Unmarshal(data, &logInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return logInfo.Level, logInfo.Msg
 }

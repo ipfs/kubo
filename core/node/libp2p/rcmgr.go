@@ -28,7 +28,7 @@ const NetLimitTraceFilename = "rcmgr.json.gz"
 
 var ErrNoResourceMgr = fmt.Errorf("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
 
-func ResourceManager(cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimitConfig) interface{} {
+func ResourceManager(repoPath string, cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimitConfig) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 		var manager network.ResourceManager
 		var opts Libp2pOpts
@@ -45,11 +45,6 @@ func ResourceManager(cfg config.SwarmConfig, userResourceOverrides rcmgr.Partial
 
 		if enabled {
 			log.Debug("libp2p resource manager is enabled")
-
-			repoPath, err := config.PathRoot()
-			if err != nil {
-				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
-			}
 
 			limitConfig, msg, err := LimitConfig(cfg, userResourceOverrides)
 			if err != nil {

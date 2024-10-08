@@ -138,6 +138,17 @@ func DefaultDatastoreConfig() Datastore {
 	}
 }
 
+func pebbleSpec() map[string]interface{} {
+	return map[string]interface{}{
+		"type":   "measure",
+		"prefix": "pebble.datastore",
+		"child": map[string]interface{}{
+			"type": "pebbleds",
+			"path": "pebbleds",
+		},
+	}
+}
+
 func badgerSpec() map[string]interface{} {
 	return map[string]interface{}{
 		"type":   "measure",

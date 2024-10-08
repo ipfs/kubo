@@ -6,7 +6,6 @@ import (
 
 	"github.com/ipfs-shipyard/nopfs"
 	"github.com/ipfs-shipyard/nopfs/ipfs"
-	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/plugin"
@@ -20,7 +19,10 @@ var Plugins = []plugin.Plugin{
 
 // fxtestPlugin is used for testing the fx plugin.
 // It merely adds an fx option that logs a debug statement, so we can verify that it works in tests.
-type nopfsPlugin struct{}
+type nopfsPlugin struct {
+	// Path to the IPFS repo.
+	repo string
+}
 
 var _ plugin.PluginFx = (*nopfsPlugin)(nil)
 
@@ -33,29 +35,28 @@ func (p *nopfsPlugin) Version() string {
 }
 
 func (p *nopfsPlugin) Init(env *plugin.Environment) error {
+	p.repo = env.Repo
+
 	return nil
 }
 
 // MakeBlocker is a factory for the blocker so that it can be provided with Fx.
-func MakeBlocker() (*nopfs.Blocker, error) {
-	ipfsPath, err := config.PathRoot()
-	if err != nil {
-		return nil, err
+func MakeBlocker(repoPath string) func() (*nopfs.Blocker, error) {
+	return func() (*nopfs.Blocker, error) {
+		defaultFiles, err := nopfs.GetDenylistFiles()
+		if err != nil {
+			return nil, err
+		}
+
+		kuboFiles, err := nopfs.GetDenylistFilesInDir(filepath.Join(repoPath, "denylists"))
+		if err != nil {
+			return nil, err
+		}
+
+		files := append(defaultFiles, kuboFiles...)
+
+		return nopfs.NewBlocker(files)
 	}
-
-	defaultFiles, err := nopfs.GetDenylistFiles()
-	if err != nil {
-		return nil, err
-	}
-
-	kuboFiles, err := nopfs.GetDenylistFilesInDir(filepath.Join(ipfsPath, "denylists"))
-	if err != nil {
-		return nil, err
-	}
-
-	files := append(defaultFiles, kuboFiles...)
-
-	return nopfs.NewBlocker(files)
 }
 
 // PathResolvers returns wrapped PathResolvers for Kubo.
@@ -76,7 +77,7 @@ func (p *nopfsPlugin) Options(info core.FXNodeInfo) ([]fx.Option, error) {
 
 	opts := append(
 		info.FXOptions,
-		fx.Provide(MakeBlocker),
+		fx.Provide(MakeBlocker(p.repo)),
 		fx.Decorate(ipfs.WrapBlockService),
 		fx.Decorate(ipfs.WrapNameSystem),
 		fx.Decorate(PathResolvers),

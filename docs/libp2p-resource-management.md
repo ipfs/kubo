@@ -91,7 +91,7 @@ These values trump anything else and are parsed directly by go-libp2p.
 ## FAQ
 
 ### What do these "Protected from exceeding resource limits" log messages mean?
-"Protected from exceeding resource limits" log messages denote that the resource manager is working and that it prevented additional resources being used beyond the set limits.  Per [libp2p code](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/scope.go), these messages take the form of "$scope: cannot reserve $limitKey".  
+"Protected from exceeding resource limits" log messages denote that the resource manager is working and that it prevented additional resources from being used beyond the set limits.  Per [libp2p code](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/scope.go), these messages take the form of "$scope: cannot reserve $limitKey".  
 
 As an example:
 
@@ -133,7 +133,7 @@ Kubo performs sanity checks to ensure that some of the hard limits of the Resour
 The soft limit of `Swarm.ConnMgr.HighWater` needs to be less than the resource manager hard limit `System.ConnsInbound` for the configuration to make sense.
 This ensures the ConnMgr cleans up connections based on connection priorities before the hard limits of the ResourceMgr are applied.
 If `Swarm.ConnMgr.HighWater` is greater than resource manager's `System.ConnsInbound`,
-existing low priority idle connections can prevent new high priority connections from being established.
+existing low-priority idle connections can prevent new high-priority connections from being established.
 The ResourceMgr doesn't know that the new connection is high priority and simply blocks it because of the limit its enforcing.
 
 To ensure the ConnMgr and ResourceMgr are congruent, the ResourceMgr [computed default limits](#computed-default-limits) are adjusted such that:

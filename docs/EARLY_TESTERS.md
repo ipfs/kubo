@@ -27,7 +27,7 @@ We will ask early testers to participate at two points in the process:
 - [ ] Infura (@MichaelMure)
 - [ ] OrbitDB (@haydenyoung)
 - [ ] Pinata (@obo20)
-- [ ] PL EngRes bifrost (@cewood ns4plabs)
+- [ ] Shipyard (@cewood, @ns4plabs)
 - [ ] Siderus (@koalalorenzo)
 - [ ] Textile (@sanderpick)
 - [ ] @RubenKelevra
