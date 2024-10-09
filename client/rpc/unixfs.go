@@ -144,10 +144,16 @@ type lsOutput struct {
 	Objects []lsObject
 }
 
-func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...caopts.UnixfsLsOption) (<-chan iface.DirEntry, error) {
+func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...caopts.UnixfsLsOption) (<-chan iface.DirEntry, <-chan error) {
+	out := make(chan iface.DirEntry)
+	errOut := make(chan error, 1)
+
 	options, err := caopts.UnixfsLsOptions(opts...)
 	if err != nil {
-		return nil, err
+		errOut <- err
+		close(out)
+		close(errOut)
+		return out, errOut
 	}
 
 	resp, err := api.core().Request("ls", p.String()).
@@ -156,45 +162,41 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...caopts.Unixfs
 		Option("stream", true).
 		Send(ctx)
 	if err != nil {
-		return nil, err
+		errOut <- err
+		close(out)
+		close(errOut)
+		return out, errOut
 	}
 	if resp.Error != nil {
-		return nil, resp.Error
+		errOut <- resp.Error
+		close(out)
+		close(errOut)
+		return out, errOut
 	}
 
 	dec := json.NewDecoder(resp.Output)
-	out := make(chan iface.DirEntry)
 
 	go func() {
 		defer resp.Close()
 		defer close(out)
+		defer close(errOut)
 
 		for {
 			var link lsOutput
 			if err := dec.Decode(&link); err != nil {
-				if err == io.EOF {
-					return
-				}
-				select {
-				case out <- iface.DirEntry{Err: err}:
-				case <-ctx.Done():
+				if err != io.EOF {
+					errOut <- err
 				}
 				return
 			}
 
 			if len(link.Objects) != 1 {
-				select {
-				case out <- iface.DirEntry{Err: errors.New("unexpected Objects len")}:
-				case <-ctx.Done():
-				}
+				errOut <- errors.New("unexpected Objects len")
 				return
 			}
 
 			if len(link.Objects[0].Links) != 1 {
-				select {
-				case out <- iface.DirEntry{Err: errors.New("unexpected Links len")}:
-				case <-ctx.Done():
-				}
+				errOut <- errors.New("unexpected Links len")
 				return
 			}
 
@@ -202,10 +204,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...caopts.Unixfs
 
 			c, err := cid.Decode(l0.Hash)
 			if err != nil {
-				select {
-				case out <- iface.DirEntry{Err: err}:
-				case <-ctx.Done():
-				}
+				errOut <- err
 				return
 			}
 
@@ -235,7 +234,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...caopts.Unixfs
 		}
 	}()
 
-	return out, nil
+	return out, errOut
 }
 
 func (api *UnixfsAPI) core() *HttpApi {
