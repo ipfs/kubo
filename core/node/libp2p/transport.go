@@ -2,8 +2,8 @@ package libp2p
 
 import (
 	"fmt"
-
 	"github.com/ipfs/kubo/config"
+	"github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/metrics"
 	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
@@ -16,12 +16,13 @@ import (
 )
 
 func Transports(tptConfig config.Transports) interface{} {
-	return func(pnet struct {
+	return func(params struct {
 		fx.In
-		Fprint PNetFingerprint `optional:"true"`
+		Fprint   PNetFingerprint         `optional:"true"`
+		ForgeMgr *client.P2PForgeCertMgr `optional:"true"`
 	},
 	) (opts Libp2pOpts, err error) {
-		privateNetworkEnabled := pnet.Fprint != nil
+		privateNetworkEnabled := params.Fprint != nil
 
 		if tptConfig.Network.TCP.WithDefault(true) {
 			// TODO(9290): Make WithMetrics configurable
@@ -29,7 +30,11 @@ func Transports(tptConfig config.Transports) interface{} {
 		}
 
 		if tptConfig.Network.Websocket.WithDefault(true) {
-			opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New))
+			if params.ForgeMgr == nil {
+				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New))
+			} else {
+				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New, websocket.WithTLSConfig(params.ForgeMgr.TLSConfig())))
+			}
 		}
 
 		if tptConfig.Network.QUIC.WithDefault(!privateNetworkEnabled) {

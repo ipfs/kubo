@@ -1716,6 +1716,32 @@ Default: `true`
 
 Type: `flag`
 
+#### `Swarm.ForgeClient`
+
+Configuration options for optional [p2p-forge](https://github.com/ipshipyard/p2p-forge) client.
+
+Default: `{}`
+
+Type: `object`
+
+#### `Swarm.ForgeClient.Enabled`
+
+Enables [p2p-forge](https://github.com/ipshipyard/p2p-forge) client and uses
+it for obtaining DNS name and a trusted TLS certificates
+for Secure WebSocket (WSS) listener without manual intervention.
+
+> [!CAUTION]
+> This is EXPERIMENTAL feature and should not be used in production yet.
+> Feel free to enable it and report issues if you want to help with testing.
+
+> [!NOTE]
+> The TLS certificate is tied to DNS name with the PeerID of your Kubo node and relies on public good
+> infrastructure at `libp2p.direct` run by team at [Interplanetary Shipyard](https://ipshipyard.com).
+
+Default: `false`
+
+Type: `flag`
+
 ### `Swarm.EnableAutoRelay`
 
 **REMOVED**
@@ -1837,7 +1863,10 @@ Type: `optionalInteger`
 
 Maximum number of reservations originating from the same peer.
 
-Default: `4`
+> [!WARNING]
+> Deprecated since [go-libp2p#2974](https://github.com/libp2p/go-libp2p/pull/2974), might be removed in future.
+
+Default: `1`
 
 Type: `optionalInteger`
 
