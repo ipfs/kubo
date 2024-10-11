@@ -139,7 +139,7 @@ func P2PForgeCertMgr(cfg config.ForgeClient) interface{} {
 			return nil, err
 		}
 
-		certmagic.Default.Logger = logging.Logger("certmagic").Desugar()
+		certmagic.Default.Logger = logging.Logger("p2p-forge/certmagic").Desugar()
 
 		certMgr, err := p2pforge.NewP2PForgeCertMgr(
 			p2pforge.WithForgeDomain(cfg.ForgeDomain.WithDefault(config.DefaultForgeDomain)),
