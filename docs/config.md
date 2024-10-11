@@ -1863,7 +1863,10 @@ Type: `optionalInteger`
 
 Maximum number of reservations originating from the same peer.
 
-Default: `4`
+> [!WARNING]
+> Deprecated since [go-libp2p#2974](https://github.com/libp2p/go-libp2p/pull/2974), might be removed in future.
+
+Default: `1`
 
 Type: `optionalInteger`
 

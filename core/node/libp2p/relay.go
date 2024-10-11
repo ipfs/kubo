@@ -38,7 +38,7 @@ func RelayService(enable bool, relayOpts config.RelayService) func() (opts Libp2
 				ReservationTTL:         relayOpts.ReservationTTL.WithDefault(def.ReservationTTL),
 				MaxReservations:        int(relayOpts.MaxReservations.WithDefault(int64(def.MaxReservations))),
 				MaxReservationsPerIP:   int(relayOpts.MaxReservationsPerIP.WithDefault(int64(def.MaxReservationsPerIP))),
-				MaxReservationsPerPeer: int(relayOpts.MaxReservationsPerPeer.WithDefault(int64(def.MaxReservationsPerPeer))),
+				MaxReservationsPerPeer: int(relayOpts.MaxReservationsPerPeer.WithDefault(int64(def.MaxReservationsPerPeer))), // nolint
 				MaxReservationsPerASN:  int(relayOpts.MaxReservationsPerASN.WithDefault(int64(def.MaxReservationsPerASN))),
 			})))
 		}
