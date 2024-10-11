@@ -27,7 +27,7 @@ jobs:
           submodules: recursive
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22.x"
+          go-version: "1.23.x"
       - name: Check that go.mod is tidy
         uses: protocol/multiple-go-modules@v1.4
         with:

@@ -586,7 +586,7 @@ take effect.
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
 	// start MFS pinning thread
-	startPinMFS(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node})
+	startPinMFS(cctx, daemonConfigPollInterval, &ipfsPinMFSNode{node})
 
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
@@ -600,8 +600,25 @@ take effect.
 		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
 	}()
 
-	// Give the user heads up if daemon running in online mode has no peers after 1 minute
 	if !offline {
+		// Warn users who were victims of 'lowprofile' footgun (https://github.com/ipfs/kubo/pull/10524)
+		if cfg.Experimental.StrategicProviding {
+			fmt.Print(`
+⚠️ Reprovide system is disabled due to 'Experimental.StrategicProviding=true'
+⚠️ Local CIDs will not be announced to Amino DHT, making them impossible to retrieve without manual peering
+⚠️ If this is not intentional, call 'ipfs config profile apply announce-on'
+
+`)
+		} else if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) == 0 {
+			fmt.Print(`
+⚠️ Reprovider system is disabled due to 'Reprovider.Interval=0'
+⚠️ Local CIDs will not be announced to Amino DHT, making them impossible to retrieve without manual peering
+⚠️ If this is not intentional, call 'ipfs config profile apply announce-on', or set 'Reprovider.Interval=22h'
+
+`)
+		}
+
+		// Give the user heads up if daemon running in online mode has no peers after 1 minute
 		time.AfterFunc(1*time.Minute, func() {
 			cfg, err := cctx.GetConfig()
 			if err != nil {
@@ -706,10 +723,18 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 	for _, listener := range listeners {
 		// we might have listened to /tcp/0 - let's see what we are listing on
 		fmt.Printf("RPC API server listening on %s\n", listener.Multiaddr())
-		// Browsers require TCP.
+		// Browsers require TCP with explicit host.
 		switch listener.Addr().Network() {
 		case "tcp", "tcp4", "tcp6":
-			fmt.Printf("WebUI: http://%s/webui\n", listener.Addr())
+			rpc := listener.Addr().String()
+			// replace catch-all with explicit localhost URL that works in browsers
+			// https://github.com/ipfs/kubo/issues/10515
+			if strings.Contains(rpc, "0.0.0.0:") {
+				rpc = strings.Replace(rpc, "0.0.0.0:", "127.0.0.1:", 1)
+			} else if strings.Contains(rpc, "[::]:") {
+				rpc = strings.Replace(rpc, "[::]:", "[::1]:", 1)
+			}
+			fmt.Printf("WebUI: http://%s/webui\n", rpc)
 		}
 	}
 
