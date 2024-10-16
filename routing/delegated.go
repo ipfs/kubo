@@ -206,6 +206,9 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 		drclient.WithIdentity(key),
 		drclient.WithProviderInfo(addrInfo.ID, addrInfo.Addrs),
 		drclient.WithUserAgent(version.GetUserAgentVersion()),
+		drclient.WithProtocolFilter(config.DefaultHTTPRoutersFilterProtocols),
+		drclient.WithStreamResultsRequired(),       // https://specs.ipfs.tech/routing/http-routing-v1/#streaming
+		drclient.WithDisabledLocalFiltering(false), // force local filtering in case remote server does not support IPIP-484
 	)
 	if err != nil {
 		return nil, err

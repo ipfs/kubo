@@ -27,6 +27,10 @@ func (m *Mock) Config() (*config.Config, error) {
 	return &m.C, nil // FIXME threadsafety
 }
 
+func (m *Mock) Path() string {
+	return ""
+}
+
 func (m *Mock) UserResourceOverrides() (rcmgr.PartialLimitConfig, error) {
 	return rcmgr.PartialLimitConfig{}, nil
 }
