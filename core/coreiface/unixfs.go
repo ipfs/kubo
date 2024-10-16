@@ -2,6 +2,7 @@ package iface
 
 import (
 	"context"
+	"iter"
 	"os"
 	"time"
 
@@ -97,7 +98,6 @@ type UnixfsAPI interface {
 	Ls(context.Context, path.Path, ...options.UnixfsLsOption) (<-chan DirEntry, <-chan error)
 }
 
-/* TODO: Uncomment after go1.23 required.
 // LsIter returns a go iterator that allows ranging over DirEntry results.
 // Iteration stops if the context is canceled or if the iterator yields an
 // error.
@@ -120,9 +120,8 @@ func LsIter(ctx context.Context, api UnixfsAPI, p path.Path, opts ...options.Uni
 				return
 			}
 		}
-		if err != <-asyncErr; err != nil {
-			yield(nil, err)
+		if err := <-asyncErr; err != nil {
+			yield(DirEntry{}, err)
 		}
 	}
 }
-*/
