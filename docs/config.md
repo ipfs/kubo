@@ -117,6 +117,12 @@ config file at runtime.
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
     - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
     - [`Swarm.EnableHolePunching`](#swarmenableholepunching)
+    - [`Swarm.ForgeClient`](#swarmforgeclient)
+      - [`Swarm.ForgeClient.Enabled`](#swarmforgeclientenabled)
+      - [`Swarm.ForgeClient.ForgeDomain`](#swarmforgeclientforgedomain)
+      - [`Swarm.ForgeClient.ForgeEndpoint`](#swarmforgeclientforgeendpoint)
+      - [`Swarm.ForgeClient.ForgeAuth`](#swarmforgeclientforgeauth)
+      - [`Swarm.ForgeClient.CAEndpoint`](#swarmforgeclientcaendpoint)
     - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
     - [`Swarm.RelayClient`](#swarmrelayclient)
       - [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled)
@@ -1716,7 +1722,7 @@ Default: `true`
 
 Type: `flag`
 
-#### `Swarm.ForgeClient`
+### `Swarm.ForgeClient`
 
 Configuration options for optional [p2p-forge] client that provides Kubo with DNS+TLS+WebSockets multiaddrs that allow for direct connections from JS running in web browsers.
 
