@@ -139,9 +139,16 @@ func P2PForgeCertMgr(cfg config.ForgeClient) interface{} {
 			return nil, err
 		}
 
-		certmagic.Default.Logger = logging.Logger("p2p-forge/certmagic").Desugar()
+		forgeLogger := logging.Logger("p2p-forge/client").Desugar()
+		// TODO: revisit is below is still needed.
+		// seems that certmagic is written in a way that logs things using default logger
+		// before a custom one is set, this is the only way to ensure we don't lose
+		// early logs such as 'maintenance' and 'obtain' events :-/
+		certmagic.Default.Logger = forgeLogger
+		certmagic.DefaultACME.Logger = forgeLogger
 
 		certMgr, err := p2pforge.NewP2PForgeCertMgr(
+			p2pforge.WithLogger(forgeLogger.Sugar()),
 			p2pforge.WithForgeDomain(cfg.ForgeDomain.WithDefault(config.DefaultForgeDomain)),
 			p2pforge.WithForgeRegistrationEndpoint(cfg.ForgeEndpoint.WithDefault(config.DefaultForgeEndpoint)),
 			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),

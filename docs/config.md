@@ -1752,6 +1752,8 @@ and SNI is matching `Swarm.ForgeClient.ForgeDomain`, and set up a trusted TLS ce
 
 If you want to test this, add `/ip4/0.0.0.0/tcp/4082/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm).
 
+Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,p2p-forge/client=debug"`
+
 Default: `false`
 
 Type: `flag`
