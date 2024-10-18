@@ -84,17 +84,18 @@ This section covers tasks to be done during each release.
     - [ ] verify the image is available on [Docker Hub](https://hub.docker.com/r/ipfs/kubo/tags)
   - [ ] Publish the release to [dist.ipfs.tech](https://dist.ipfs.tech) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) publish-to-distributions` or ...</summary>
     - [ ] check out [ipfs/distributions](https://github.com/ipfs/distributions)
+    - [ ] create new branch: run `git checkout -b release-kubo-X.Y.Z(-rcN)` 
     - [ ] run `./dist.sh add-version kubo vX.Y.Z(-RCN)` to add the new version to the `versions` file
       - [usage](https://github.com/ipfs/distributions#usage)
-    - [ ] create and merge the PR which updates `dists/kubo/versions` and `dists/go-ipfs/versions` (![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) and `dists/kubo/current_version` and `dists/go-ipfs/current_version`)
+    - [ ] create and merge the PR which updates `dists/kubo/versions` and `dists/go-ipfs/versions` (![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) and `dists/kubo/current` and `dists/go-ipfs/current`)
       - [example](https://github.com/ipfs/distributions/pull/760)
     - [ ] wait for the [CI](https://github.com/ipfs/distributions/actions/workflows/main.yml) workflow run initiated by the merge to master to finish
     - [ ] verify the release is available on [dist.ipfs.tech](https://dist.ipfs.tech/#kubo)
     </details>
-  - [ ] Publish the release to [NPM](https://www.npmjs.com/package/go-ipfs?activeTab=versions) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) publish-to-npm` (⚠️ you might need to run the command a couple of times because GHA might not be able to see the new distribution straight away due to caching) or ...</summary>
+  - [ ] Publish the release to [NPM](https://www.npmjs.com/package/kubo?activeTab=versions) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) publish-to-npm` (⚠️ you might need to run the command a couple of times because GHA might not be able to see the new distribution straight away due to caching) or ...</summary>
     - [ ] run the [Release to npm](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) workflow
     - [ ] check [Release to npm](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) workflow run logs to verify it discovered the new release
-    - [ ] verify the release is available on [NPM](https://www.npmjs.com/package/go-ipfs?activeTab=versions)
+    - [ ] verify the release is available on [NPM](https://www.npmjs.com/package/kubo?activeTab=versions)
     </details>
   - [ ] Publish the release to [GitHub](https://github.com/ipfs/kubo/releases) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) publish-to-github` or ...</summary>
     - [ ] create a new release on [GitHub](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release)
