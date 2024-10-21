@@ -65,8 +65,6 @@ type RelayService struct {
 	// BufferSize is the size of the relayed connection buffers.
 	BufferSize *OptionalInteger `json:",omitempty"`
 
-	// MaxReservationsPerPeer is the maximum number of reservations originating from the same peer.
-	MaxReservationsPerPeer *OptionalInteger `json:",omitempty"`
 	// MaxReservationsPerIP is the maximum number of reservations originating from the same IP address.
 	MaxReservationsPerIP *OptionalInteger `json:",omitempty"`
 	// MaxReservationsPerASN is the maximum number of reservations origination from the same ASN.
