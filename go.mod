@@ -43,7 +43,7 @@ require (
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-test v0.0.4
-	github.com/ipfs/go-unixfsnode v1.9.1
+	github.com/ipfs/go-unixfsnode v1.9.2
 	github.com/ipld/go-car v0.6.2
 	github.com/ipld/go-car/v2 v2.14.2
 	github.com/ipld/go-codec-dagpb v1.6.0
