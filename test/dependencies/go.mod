@@ -10,7 +10,7 @@ require (
 	github.com/ipfs/go-cidutil v0.1.0
 	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/hang-fds v0.1.0
-	github.com/ipfs/iptb v1.4.0
+	github.com/ipfs/iptb v1.4.1-0.20241021175750-78ac5c57f800
 	github.com/ipfs/iptb-plugins v0.5.0
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
@@ -54,7 +54,7 @@ require (
 	github.com/charithe/durationcheck v0.0.10 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
 	github.com/ckaznocha/intrange v0.1.2 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/curioswitch/go-reassign v0.2.0 // indirect
 	github.com/daixiang0/gci v0.13.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -101,7 +101,6 @@ require (
 	github.com/gostaticanalysis/comment v1.4.2 // indirect
 	github.com/gostaticanalysis/forcetypeassert v0.1.0 // indirect
 	github.com/gostaticanalysis/nilerr v0.1.1 // indirect
-	github.com/gxed/go-shellwords v1.0.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
@@ -159,6 +158,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
+	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/mgechev/revive v1.3.9 // indirect
 	github.com/miekg/dns v1.1.62 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
@@ -232,7 +232,7 @@ require (
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1 // indirect
 	github.com/ultraware/funlen v0.1.0 // indirect
 	github.com/ultraware/whitespace v0.1.1 // indirect
-	github.com/urfave/cli v1.22.10 // indirect
+	github.com/urfave/cli v1.22.16 // indirect
 	github.com/uudashr/gocognit v1.1.3 // indirect
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
