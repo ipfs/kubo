@@ -55,12 +55,16 @@ COPY --from=utilities /etc/ssl/certs /etc/ssl/certs
 COPY --from=builder $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
 COPY --from=builder $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
 COPY --from=builder $SRC_DIR/bin/container_init_run /usr/local/bin/container_init_run
+COPY --from=builder $SRC_DIR/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 # Add suid bit on fusermount so it will run properly
 RUN chmod 4755 /usr/local/bin/fusermount
 
 # Fix permissions on start_ipfs (ignore the build machine's permissions)
 RUN chmod 0755 /usr/local/bin/start_ipfs
+
+# Fix permissions for entrypoint.sh
+RUN chmod 0755 /usr/local/bin/entrypoint.sh
 
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001
@@ -98,12 +102,9 @@ ENV IPFS_LOGGING ""
 # This just makes sure that:
 # 1. There's an fs-repo, and initializes one if there isn't.
 # 2. The API and Gateway are accessible from outside the container.
-ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/start_ipfs"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Healthcheck for the container
 # QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn is the CID of empty folder
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD ipfs --api=/ip4/127.0.0.1/tcp/5001 dag stat /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn || exit 1
-
-# Execute the daemon subcommand by default
-CMD ["daemon", "--migrate=true", "--agent-version-suffix=docker"]
