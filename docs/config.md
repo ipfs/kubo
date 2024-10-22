@@ -1835,12 +1835,7 @@ Type: `optionalInteger`
 
 #### `Swarm.RelayService.MaxReservationsPerPeer`
 
-Maximum number of reservations originating from the same peer.
-
-Default: `4`
-
-Type: `optionalInteger`
-
+**REMOVED in kubo 0.32 due to removal from go-libp2p v0.37**
 
 #### `Swarm.RelayService.MaxReservationsPerIP`
 
