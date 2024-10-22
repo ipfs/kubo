@@ -2,8 +2,6 @@ module github.com/ipfs/kubo
 
 go 1.23
 
-toolchain go1.23.2
-
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
@@ -54,7 +52,7 @@ require (
 	github.com/jbenet/goprocess v0.1.4
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/libp2p/go-doh-resolver v0.4.0
-	github.com/libp2p/go-libp2p v0.36.5
+	github.com/libp2p/go-libp2p v0.37.0
 	github.com/libp2p/go-libp2p-http v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.26.1
 	github.com/libp2p/go-libp2p-kbucket v0.6.4
@@ -266,6 +264,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
-
-// Temporary prior to go-libp2p v0.37.0 release
-replace github.com/libp2p/go-libp2p => github.com/libp2p/go-libp2p v0.36.3-0.20241022183817-df7dfb647035

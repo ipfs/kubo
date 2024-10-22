@@ -2,8 +2,6 @@ module github.com/ipfs/kubo/examples/kubo-as-a-library
 
 go 1.23
 
-toolchain go1.23.2
-
 // Used to keep this in sync with the current version of kubo. You should remove
 // this if you copy this example.
 replace github.com/ipfs/kubo => ./../../..
@@ -11,7 +9,7 @@ replace github.com/ipfs/kubo => ./../../..
 require (
 	github.com/ipfs/boxo v0.24.0
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
-	github.com/libp2p/go-libp2p v0.36.5
+	github.com/libp2p/go-libp2p v0.37.0
 	github.com/multiformats/go-multiaddr v0.13.0
 )
 
@@ -235,6 +233,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
-
-// Temporary prior to go-libp2p v0.37.0 release
-replace github.com/libp2p/go-libp2p => github.com/libp2p/go-libp2p v0.36.3-0.20241022183817-df7dfb647035
