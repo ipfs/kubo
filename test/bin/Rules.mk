@@ -5,7 +5,7 @@ TGTS_$(d) :=
 define go-build-testdep
 	OUT="$(CURDIR)/$@" ; \
 	cd "test/dependencies" ; \
-	$(GOCC) build $(go-flags-with-tags) -o "$${OUT}" "$<"
+	$(GOCC) build $(go-flags-with-tags) -o "$${OUT}" "$<" 2>&1
 endef
 
 .PHONY: github.com/ipfs/kubo/test/dependencies/pollEndpoint
