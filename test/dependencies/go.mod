@@ -274,4 +274,4 @@ require (
 )
 
 // Temporary prior to go-libp2p v0.37.0 release
-replace github.com/libp2p/go-libp2p => github.com/libp2p/go-libp2p v0.36.3-0.20241018175510-868635d2ca72
+replace github.com/libp2p/go-libp2p => github.com/libp2p/go-libp2p v0.36.3-0.20241022183817-df7dfb647035

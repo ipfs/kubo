@@ -182,7 +182,7 @@ require (
 	github.com/prometheus/common v0.60.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/quic-go/quic-go v0.48.0 // indirect
+	github.com/quic-go/quic-go v0.48.1 // indirect
 	github.com/quic-go/webtransport-go v0.8.1-0.20241018022711-4ac2c9250e66 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
@@ -237,4 +237,4 @@ require (
 )
 
 // Temporary prior to go-libp2p v0.37.0 release
-replace github.com/libp2p/go-libp2p => github.com/libp2p/go-libp2p v0.36.3-0.20241018175510-868635d2ca72
+replace github.com/libp2p/go-libp2p => github.com/libp2p/go-libp2p v0.36.3-0.20241022183817-df7dfb647035
