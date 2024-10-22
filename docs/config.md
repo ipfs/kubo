@@ -204,7 +204,7 @@ Contains information about various listener addresses to be used by this node.
 
 ### `Addresses.API`
 
-Multiaddr or array of multiaddrs describing the address to serve
+[Multiaddr][multiaddr] or array of multiaddrs describing the address to serve
 the local [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`).
 
 Supported Transports:
@@ -214,11 +214,11 @@ Supported Transports:
 
 Default: `/ip4/127.0.0.1/tcp/5001`
 
-Type: `strings` (multiaddrs)
+Type: `strings` ([multiaddrs][multiaddr])
 
 ### `Addresses.Gateway`
 
-Multiaddr or array of multiaddrs describing the address to serve
+[Multiaddr][multiaddr] or array of multiaddrs describing the address to serve
 the local [HTTP gateway](https://specs.ipfs.tech/http-gateways/) (`/ipfs`, `/ipns`) on.
 
 Supported Transports:
@@ -228,11 +228,11 @@ Supported Transports:
 
 Default: `/ip4/127.0.0.1/tcp/8080`
 
-Type: `strings` (multiaddrs)
+Type: `strings` ([multiaddrs][multiaddr])
 
 ### `Addresses.Swarm`
 
-An array of multiaddrs describing which addresses to listen on for p2p swarm
+An array of [multiaddrs][multiaddr] describing which addresses to listen on for p2p swarm
 connections.
 
 Supported Transports:
@@ -256,7 +256,7 @@ Default:
 ]
 ```
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ### `Addresses.Announce`
 
@@ -265,7 +265,7 @@ network. If empty, the daemon will announce inferred swarm addresses.
 
 Default: `[]`
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ### `Addresses.AppendAnnounce`
 
@@ -274,7 +274,7 @@ override inferred swarm addresses if non-empty.
 
 Default: `[]`
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ### `Addresses.NoAnnounce`
 
@@ -284,12 +284,12 @@ Takes precedence over `Addresses.Announce` and `Addresses.AppendAnnounce`.
 > [!TIP]
 > The [`server` configuration profile](#server-profile) fills up this list with sensible defaults,
 > preventing announcement of non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
-> which is the multiaddress representation of `192.168.0.0/16`) but you should always
+> which is the [multiaddress][multiaddr] representation of `192.168.0.0/16`) but you should always
 > check settings against your own network and/or hosting provider.
 
 Default: `[]`
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ## `API`
 
@@ -451,11 +451,11 @@ Type: `duration` (when `0`/unset, the default value is used)
 
 ## `Bootstrap`
 
-Bootstrap is an array of multiaddrs of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
+Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
 
 Default: The ipfs.io bootstrap nodes
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ## `Datastore`
 
@@ -1671,7 +1671,7 @@ trigger netscan alerts on some hosting providers or cause strain in some setups.
 > [!TIP]
 > The [`server` configuration profile](#server-profile) fills up this list with sensible defaults,
 > preventing dials to all non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
-> which is the multiaddress representation of `192.168.0.0/16`) but you should always
+> which is the [multiaddress][multiaddr] representation of `192.168.0.0/16`) but you should always
 > check settings against your own network and/or hosting provider.
 
 Default: `[]`
@@ -1991,12 +1991,12 @@ Type: `optionalInteger`
 
 #### `Swarm.ResourceMgr.Allowlist`
 
-A list of multiaddrs that can bypass normal system limits (but are still limited by the allowlist scope).
+A list of [multiaddrs][libp2p-multiaddrs] that can bypass normal system limits (but are still limited by the allowlist scope).
 Convenience config around [go-libp2p-resource-manager#Allowlist.Add](https://pkg.go.dev/github.com/libp2p/go-libp2p/p2p/host/resource-manager#Allowlist.Add).
 
 Default: `[]`
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ### `Swarm.Transports`
 
@@ -2068,7 +2068,7 @@ Listen Addresses:
 [Libp2p Relay](https://github.com/libp2p/specs/tree/master/relay) proxy
 transport that forms connections by hopping between multiple libp2p nodes.
 Allows IPFS node to connect to other peers using their `/p2p-circuit`
-multiaddrs.  This transport is primarily useful for bypassing firewalls and
+[multiaddrs][libp2p-multiaddrs].  This transport is primarily useful for bypassing firewalls and
 NATs.
 
 See also:
@@ -2218,7 +2218,7 @@ Please remove this option from your config.
 
 ## `DNS`
 
-Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.tech/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
+Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.tech/concepts/dnslink/) and `/dns*` [Multiaddrs][libp2p-multiaddrs].
 
 ### `DNS.Resolvers`
 
@@ -2578,3 +2578,7 @@ an implicit default when missing from the config file:
 
 - `null`/missing will apply the default value defined in Kubo sources (`.WithDefault("1h2m3s")`)
 - a string with a valid [go duration](#duration)  (e.g, `"1d2h4m40.01s"`).
+
+----
+
+[multiaddr]: https://docs.ipfs.tech/concepts/glossary/#multiaddr
