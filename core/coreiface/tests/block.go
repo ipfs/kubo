@@ -323,8 +323,13 @@ func (tp *TestSuite) TestBlockPin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if pins, err := api.Pin().Ls(ctx); err != nil || len(pins) != 0 {
+	pinsCh, errCh := api.Pin().Ls(ctx)
+	_, ok := <-pinsCh
+	if ok {
 		t.Fatal("expected 0 pins")
+	}
+	if err = <-errCh; err != nil {
+		t.Fatal(err)
 	}
 
 	res, err := api.Block().Put(

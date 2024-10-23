@@ -285,19 +285,15 @@ Pass '--status=queued,pinning,pinned,failed' to list pins in all states.
 		cmds.DelimitedStringsOption(",", pinStatusOptionName, "Return pins with the specified statuses (queued,pinning,pinned,failed).").WithDefault([]string{"pinned"}),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx, cancel := context.WithCancel(req.Context)
-		defer cancel()
-
 		c, err := getRemotePinServiceFromRequest(req, env)
 		if err != nil {
 			return err
 		}
 
-		psCh, errCh, err := lsRemote(ctx, req, c)
-		if err != nil {
-			return err
-		}
+		ctx, cancel := context.WithCancel(req.Context)
+		defer cancel()
 
+		psCh, errCh := lsRemote(ctx, req, c)
 		for ps := range psCh {
 			if err := res.Emit(toRemotePinOutput(ps)); err != nil {
 				return err
@@ -317,7 +313,7 @@ Pass '--status=queued,pinning,pinned,failed' to list pins in all states.
 }
 
 // Executes GET /pins/?query-with-filters
-func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
+func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (<-chan pinclient.PinStatusGetter, <-chan error) {
 	opts := []pinclient.LsOption{}
 	if name, nameFound := req.Options[pinNameOptionName]; nameFound {
 		nameStr := name.(string)
@@ -330,7 +326,12 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan
 		for _, rawCID := range cidsRawArr {
 			parsedCID, err := cid.Decode(rawCID)
 			if err != nil {
-				return nil, nil, fmt.Errorf("CID %q cannot be parsed: %v", rawCID, err)
+				psCh := make(chan pinclient.PinStatusGetter)
+				errCh := make(chan error, 1)
+				errCh <- fmt.Errorf("CID %q cannot be parsed: %v", rawCID, err)
+				close(psCh)
+				close(errCh)
+				return psCh, errCh
 			}
 			parsedCIDs = append(parsedCIDs, parsedCID)
 		}
@@ -342,16 +343,19 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan
 		for _, rawStatus := range statusRawArr {
 			s := pinclient.Status(rawStatus)
 			if s.String() == string(pinclient.StatusUnknown) {
-				return nil, nil, fmt.Errorf("status %q is not valid", rawStatus)
+				psCh := make(chan pinclient.PinStatusGetter)
+				errCh := make(chan error, 1)
+				errCh <- fmt.Errorf("status %q is not valid", rawStatus)
+				close(psCh)
+				close(errCh)
+				return psCh, errCh
 			}
 			parsedStatuses = append(parsedStatuses, s)
 		}
 		opts = append(opts, pinclient.PinOpts.FilterStatus(parsedStatuses...))
 	}
 
-	psCh, errCh := c.Ls(ctx, opts...)
-
-	return psCh, errCh, nil
+	return c.Ls(ctx, opts...)
 }
 
 var rmRemotePinCmd = &cmds.Command{
@@ -403,10 +407,7 @@ To list and then remove all pending pin requests, pass an explicit status list:
 
 		rmIDs := []string{}
 		if len(req.Arguments) == 0 {
-			psCh, errCh, err := lsRemote(ctx, req, c)
-			if err != nil {
-				return err
-			}
+			psCh, errCh := lsRemote(ctx, req, c)
 			for ps := range psCh {
 				rmIDs = append(rmIDs, ps.GetRequestId())
 			}
