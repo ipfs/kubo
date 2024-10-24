@@ -56,7 +56,6 @@ Before opening an issue, consider using one of the following locations to ensure
 
 [Milestones on GitHub](https://github.com/ipfs/kubo/milestones)
 
-
 ## Table of Contents
 
 - [What is Kubo?](#what-is-kubo)
