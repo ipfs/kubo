@@ -1724,9 +1724,11 @@ Type: `flag`
 
 ### `Swarm.ForgeClient`
 
-Configuration options for optional [p2p-forge] client that provides Kubo with DNS+TLS+WebSockets multiaddrs that allow for direct connections from JS running in web browsers.
+AutoTLS enables publicly reachable Kubo nodes, i.e. nodes dialable from the public internet, to get a wildcard TLS certificate unique to their PeerID at `*.[PeerID].libp2p.direct` without needing to register and configure a domain name. This enables direct libp2p connections and direct retrieval of IPFS content from browsers using Secure WebSockets.
 
-The default settings use instance at `libp2p.direct` and TLS certificates from Let's Encrypt.
+Under the hood, the `libp2p.direct` acts as a an [ACME DNS-01 Challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) broker for getting wildcard TLS certificate for `*.[PeerID].libp2p.direct`.
+
+By default, AutoTLS requests TLS certificates from Let's Encrypt and uses a `libp2p.direct` subdomain.
 Origin and rationale for this project can be found in [community.letsencrypt.org discussion].
 
 In short, [p2p-forge] provides a publicly diallable Kubo with a domain name for their PeerID (`peerid.libp2p.direct`),
