@@ -139,7 +139,7 @@ func P2PForgeCertMgr(cfg config.AutoTLS) interface{} {
 			return nil, err
 		}
 
-		forgeLogger := logging.Logger("p2p-forge/client").Desugar()
+		forgeLogger := logging.Logger("autotls").Desugar()
 		// TODO: revisit is below is still needed.
 		// seems that certmagic is written in a way that logs things using default logger
 		// before a custom one is set, this is the only way to ensure we don't lose
