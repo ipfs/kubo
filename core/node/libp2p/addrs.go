@@ -132,7 +132,7 @@ func ListenOn(addresses []string) interface{} {
 	}
 }
 
-func P2PForgeCertMgr(cfg config.ForgeClient) interface{} {
+func P2PForgeCertMgr(cfg config.AutoTLS) interface{} {
 	return func() (*p2pforge.P2PForgeCertMgr, error) {
 		storagePath, err := config.Path("", "p2p-forge-certs")
 		if err != nil {
@@ -149,10 +149,10 @@ func P2PForgeCertMgr(cfg config.ForgeClient) interface{} {
 
 		certMgr, err := p2pforge.NewP2PForgeCertMgr(
 			p2pforge.WithLogger(forgeLogger.Sugar()),
-			p2pforge.WithForgeDomain(cfg.ForgeDomain.WithDefault(config.DefaultForgeDomain)),
-			p2pforge.WithForgeRegistrationEndpoint(cfg.ForgeEndpoint.WithDefault(config.DefaultForgeEndpoint)),
+			p2pforge.WithForgeDomain(cfg.DomainSuffix.WithDefault(config.DefaultDomainSuffix)),
+			p2pforge.WithForgeRegistrationEndpoint(cfg.RegistrationEndpoint.WithDefault(config.DefaultRegistrationEndpoint)),
 			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),
-			p2pforge.WithForgeAuth(cfg.ForgeAuth.WithDefault(os.Getenv(p2pforge.ForgeAuthEnv))),
+			p2pforge.WithForgeAuth(cfg.RegistrationToken.WithDefault(os.Getenv(p2pforge.ForgeAuthEnv))),
 			p2pforge.WithUserAgent(version.GetUserAgentVersion()),
 			p2pforge.WithCertificateStorage(&certmagic.FileStorage{Path: storagePath}))
 		if err != nil {
@@ -163,7 +163,7 @@ func P2PForgeCertMgr(cfg config.ForgeClient) interface{} {
 	}
 }
 
-func StartP2PForgeClient(lc fx.Lifecycle, certMgr *p2pforge.P2PForgeCertMgr, h host.Host) {
+func StartP2PAutoTLS(lc fx.Lifecycle, certMgr *p2pforge.P2PForgeCertMgr, h host.Host) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			certMgr.ProvideHost(h)
