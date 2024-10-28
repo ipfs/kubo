@@ -140,13 +140,7 @@ func P2PForgeCertMgr(cfg config.AutoTLS) interface{} {
 		}
 
 		forgeLogger := logging.Logger("autotls").Desugar()
-		// TODO: revisit is below is still needed.
-		// seems that certmagic is written in a way that logs things using default logger
-		// before a custom one is set, this is the only way to ensure we don't lose
-		// early logs such as 'maintenance' and 'obtain' events :-/
-		certmagic.Default.Logger = forgeLogger
-		certmagic.DefaultACME.Logger = forgeLogger
-
+		certStorage := &certmagic.FileStorage{Path: storagePath}
 		certMgr, err := p2pforge.NewP2PForgeCertMgr(
 			p2pforge.WithLogger(forgeLogger.Sugar()),
 			p2pforge.WithForgeDomain(cfg.DomainSuffix.WithDefault(config.DefaultDomainSuffix)),
@@ -154,7 +148,8 @@ func P2PForgeCertMgr(cfg config.AutoTLS) interface{} {
 			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),
 			p2pforge.WithForgeAuth(cfg.RegistrationToken.WithDefault(os.Getenv(p2pforge.ForgeAuthEnv))),
 			p2pforge.WithUserAgent(version.GetUserAgentVersion()),
-			p2pforge.WithCertificateStorage(&certmagic.FileStorage{Path: storagePath}))
+			p2pforge.WithCertificateStorage(certStorage),
+		)
 		if err != nil {
 			return nil, err
 		}

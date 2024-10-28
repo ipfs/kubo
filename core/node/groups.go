@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -124,8 +125,22 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 			logger.Fatal("Failed to enable `Swarm.RelayClient`, it requires `Swarm.Transports.Network.Relay` to be true.")
 		}
 	}
-	if enableAutoTLS && !cfg.Swarm.Transports.Network.Websocket.WithDefault(true) {
-		logger.Fatal("Failed to enable `Swarm.AutoTLS`, it requires `Swarm.Transports.Network.Websocket` to be true.")
+	if enableAutoTLS {
+		if !cfg.Swarm.Transports.Network.Websocket.WithDefault(true) {
+			logger.Fatal("Failed to enable `Swarm.AutoTLS`, it requires `Swarm.Transports.Network.Websocket` to be true.")
+		}
+
+		wssWildcard := fmt.Sprintf("/tls/sni/*.%s/ws", cfg.Swarm.AutoTLS.DomainSuffix.WithDefault(config.DefaultDomainSuffix))
+		wssWildcardPresent := false
+		for _, listener := range cfg.Addresses.Swarm {
+			if strings.Contains(listener, wssWildcard) {
+				wssWildcardPresent = true
+				break
+			}
+		}
+		if !wssWildcardPresent {
+			logger.Fatal(fmt.Sprintf("Failed to enable `Swarm.AutoTLS`, it requires `Addresses.Swarm` listener matching %q to be present, see https://github.com/ipfs/kubo/blob/master/docs/config.md#swarmautotls", wssWildcard))
+		}
 	}
 
 	// Gather all the options
