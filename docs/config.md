@@ -460,6 +460,7 @@ Type: `duration` (when `0`/unset, the default value is used)
 > [!CAUTION]
 > This is an **EXPERIMENTAL** opt-in feature and should not be used in production yet.
 > Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
+> Track progress in [kubo#10560](https://github.com/ipfs/kubo/issues/10560).
 
 AutoTLS feature enables publicly reachable Kubo nodes (those dialable from the public
 internet) to automatically obtain a wildcard TLS certificate for a DNS name
@@ -489,6 +490,7 @@ Type: `object`
 > [!CAUTION]
 > This is an **EXPERIMENTAL** opt-in feature and should not be used in production yet.
 > Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
+> Track progress in [kubo#10560](https://github.com/ipfs/kubo/issues/10560).
 
 Enables AutoTLS feature to get DNS+TLS for libp2p Secure WebSocket connections.
 
