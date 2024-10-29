@@ -492,21 +492,24 @@ Type: `object`
 > Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
 > Track progress in [kubo#10560](https://github.com/ipfs/kubo/issues/10560).
 
-Enables AutoTLS feature to get DNS+TLS for libp2p Secure WebSocket connections.
+Enables AutoTLS feature to get DNS+TLS for [libp2p Secure WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) listeners defined in [`Addresses.Swarm`](#addressesswarm), such as `/ip4/0.0.0.0/tcp/4002/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4002/tls/sni/*.libp2p.direct/ws`.
 
-If enabled, it will detect when `.../tls/sni/.../ws` [multiaddr] is present in [`Addresses.Swarm`](#addressesswarm)
-and SNI is matching `AutoTLS.DomainSuffix`, and set up a trusted TLS certificate matching the domain name used in [libp2p Secure WebSockets (WSS)](https://github.com/libp2p/specs/blob/master/websockets/README.md) listener.
+If `.../tls/sni/*.libp2p.direct/ws` [multiaddr] is present in [`Addresses.Swarm`](#addressesswarm)
+with SNI segment ending with [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix),
+Kubo will obtain and set up a trusted PKI TLS certificate for it, making it diallable from web browser's [Secure Contexts](https://w3c.github.io/webappsec-secure-contexts/).
 
 > [!IMPORTANT]
 > Caveats:
-> - This works only if your Kubo node is publicly diallable.
+> - Requires your Kubo node to be publicly diallable.
+>   - If you want to test this with a node that is behind a NAT and uses manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`),
+>     add catch-all `/ip4/0.0.0.0/tcp/4002/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4002/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm)
+>     and **wait 5-15 minutes** for libp2p node to set up and learn about own public addresses via [AutoNAT](#autonat).
+>   - If your node is fresh and just started, the [p2p-forge] client may produce and log ERRORs during this time, but once a publicly diallable addresses are set up, a subsequent retry should be successful.
+> - Requires manually updating [`Addresses.Swarm`](#addressesswarm) and opening a new port
+>   - A separate port has to be used instead of `4001` because we wait for TCP port sharing ([go-libp2p#2984](https://github.com/libp2p/go-libp2p/issues/2684)) to be implemented.
+>   - If you use manual port forwarding, make sure incoming connections to this additional port are allowed the same way `4001` ones already are.
 > - The TLS certificate is used only for [libp2p WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) connections.
-> - This is NOT used for hosting a [Gateway](#gateway) over HTTPS (it still requies manual TLS setup and your own domain).
-> - If you want to test this with a node that is behind a NAT and uses manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`),
->   add `/ip4/0.0.0.0/tcp/4082/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm)
->   and wait up to 5-15 minutes for libp2p node to set up and learn about own public addresses via [AutoNAT](#autonat).
->   - Note: the [p2p-forge] client may produce and log ERROR during this time, but once a publicly diallable addresses are set up,
->     a subsequent retry should be successful.
+>   - Right now, this is NOT used for hosting a [Gateway](#gateway) over HTTPS (that use case still requires manual TLS setup on reverse proxy, and your own domain).
 
 > [!TIP]
 > Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`
@@ -528,6 +531,11 @@ Type: `optionalString`
 
 Optional override of [p2p-forge] HTTP registration API.
 Do not change this unless you self-host [p2p-forge].
+
+> [!IMPORTANT]
+> The default endpoint performs [libp2p Peer ID Authentication over HTTP](https://github.com/libp2p/specs/blob/master/http/peer-id-auth.md)
+> (prooving ownership of PeerID), probes if your Kubo node can correctly answer to a [libp2p Identify](https://github.com/libp2p/specs/tree/master/identify) query.
+> This ensures only a correctly configured, publicly diallable Kubo can initiate [ACME DNS-01 challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) for `peerid.libp2p.direct`.
 
 Default: `https://registration.libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
 
