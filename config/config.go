@@ -26,6 +26,7 @@ type Config struct {
 	API       API       // local node's API settings
 	Swarm     SwarmConfig
 	AutoNAT   AutoNATConfig
+	AutoTLS   AutoTLS
 	Pubsub    PubsubConfig
 	Peering   Peering
 	DNS       DNS

@@ -27,6 +27,12 @@ config file at runtime.
     - [`AutoNAT.Throttle.GlobalLimit`](#autonatthrottlegloballimit)
     - [`AutoNAT.Throttle.PeerLimit`](#autonatthrottlepeerlimit)
     - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
+  - [`AutoTLS`](#autotls)
+    - [`AutoTLS.Enabled`](#autotlsenabled)
+    - [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)
+    - [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint)
+    - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
+    - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
   - [`Bootstrap`](#bootstrap)
   - [`Datastore`](#datastore)
     - [`Datastore.StorageMax`](#datastorestoragemax)
@@ -117,12 +123,6 @@ config file at runtime.
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
     - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
     - [`Swarm.EnableHolePunching`](#swarmenableholepunching)
-    - [`Swarm.AutoTLS`](#swarmautotls)
-      - [`Swarm.AutoTLS.Enabled`](#swarmautotlsenabled)
-      - [`Swarm.AutoTLS.DomainSuffix`](#swarmautotlsdomainsuffix)
-      - [`Swarm.AutoTLS.RegistrationEndpoint`](#swarmautotlsregistrationendpoint)
-      - [`Swarm.AutoTLS.RegistrationToken`](#swarmautotlsregistrationtoken)
-      - [`Swarm.AutoTLS.CAEndpoint`](#swarmautotlscaendpoint)
     - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
     - [`Swarm.RelayClient`](#swarmrelayclient)
       - [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled)
@@ -454,6 +454,99 @@ Configures the interval for the above limits.
 Default: 1 Minute
 
 Type: `duration` (when `0`/unset, the default value is used)
+
+## `AutoTLS`
+
+> [!CAUTION]
+> This is an **EXPERIMENTAL** opt-in feature and should not be used in production yet.
+> Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
+
+AutoTLS feature enables publicly reachable Kubo nodes (those dialable from the public
+internet) to automatically obtain a wildcard TLS certificate for a DNS name
+unique to their PeerID at `*.[PeerID].libp2p.direct`. This enables direct
+libp2p connections and retrieval of IPFS content from browsers [Secure Context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
+using transports such as [Secure WebSockets](https://github.com/libp2p/specs/blob/master/websockets/README.md),
+without requiring user to do any manual domain registration and ceritficate configuration.
+
+Under the hood, [p2p-forge] client uses public utility service at `libp2p.direct` as an [ACME DNS-01 Challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
+broker enabling peer to obtain a wildcard TLS certificate tied to public key of their [PeerID](https://docs.libp2p.io/concepts/fundamentals/peers/#peer-id).
+
+By default, the certificates are requested from Let's Encrypt. Origin and rationale for this project can be found in [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003).
+
+> [!NOTE]
+> Public good DNS and [p2p-forge] infrastructure at `libp2p.direct` is run by the team at [Interplanetary Shipyard](https://ipshipyard.com).
+>
+> <a href="https://ipshipyard.com/"><img src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
+
+[p2p-forge]: https://github.com/ipshipyard/p2p-forge
+
+Default: `{}`
+
+Type: `object`
+
+### `AutoTLS.Enabled`
+
+> [!CAUTION]
+> This is an **EXPERIMENTAL** opt-in feature and should not be used in production yet.
+> Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
+
+Enables AutoTLS feature to get DNS+TLS for libp2p Secure WebSocket connections.
+
+If enabled, it will detect when `.../tls/sni/.../ws` [multiaddr] is present in [`Addresses.Swarm`](#addressesswarm)
+and SNI is matching `AutoTLS.DomainSuffix`, and set up a trusted TLS certificate matching the domain name used in [libp2p Secure WebSockets (WSS)](https://github.com/libp2p/specs/blob/master/websockets/README.md) listener.
+
+> [!IMPORTANT]
+> Caveats:
+> - This works only if your Kubo node is publicly diallable.
+> - The TLS certificate is used only for [libp2p WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) connections.
+> - This is NOT used for hosting a [Gateway](#gateway) over HTTPS (it still requies manual TLS setup and your own domain).
+> - If you want to test this with a node that is behind a NAT and uses manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`),
+>   add `/ip4/0.0.0.0/tcp/4082/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm)
+>   and wait up to 5-15 minutes for libp2p node to set up and learn about own public addresses via [AutoNAT](#autonat).
+>   - Note: the [p2p-forge] client may produce and log ERROR during this time, but once a publicly diallable addresses are set up,
+>     a subsequent retry should be successful.
+
+> [!TIP]
+> Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`
+
+Default: `false`
+
+Type: `flag`
+
+### `AutoTLS.DomainSuffix`
+
+Optional override of the parent domain suffix that will be used in DNS+TLS+WebSockets multiaddrs generated by [p2p-forge] client.
+Do not change this unless you self-host [p2p-forge].
+
+Default: `libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
+
+Type: `optionalString`
+
+### `AutoTLS.RegistrationEndpoint`
+
+Optional override of [p2p-forge] HTTP registration API.
+Do not change this unless you self-host [p2p-forge].
+
+Default: `https://registration.libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
+
+Type: `optionalString`
+
+### `AutoTLS.RegistrationToken`
+
+Optional value for `Forge-Authorization` token sent with request to `RegistrationEndpoint`
+(useful for private/self-hosted/test instances of [p2p-forge], unset by default).
+
+Default: `""`
+
+Type: `optionalString`
+
+### `AutoTLS.CAEndpoint`
+
+Optional override of CA ACME API used by [p2p-forge] system.
+
+Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddyserver/certmagic#pkg-constants) (see [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003))
+
+Type: `optionalString`
 
 ## `Bootstrap`
 
@@ -1721,86 +1814,6 @@ This feature requires `Swarm.RelayClient.Enabled` to be set to `true`.
 Default: `true`
 
 Type: `flag`
-
-### `Swarm.AutoTLS`
-
-AutoTLS enables publicly reachable Kubo nodes (those dialable from the public
-internet) to automatically obtain a wildcard TLS certificate for a DNS name
-unique to their PeerID at `*.[PeerID].libp2p.direct`. This enables direct
-libp2p connections and retrieval of IPFS content from browsers using Secure
-WebSockets, without requiring manual domain registration and configuration.
-
-Under the hood, `libp2p.direct` acts as an [ACME DNS-01 Challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
-broker for obtaining these wildcard TLS certificates.
-
-By default, the certificates are requested from Let's Encrypt.
-Origin and rationale for this project can be found in [community.letsencrypt.org discussion].
-
-> [!NOTE]
-> Public good infrastructure at `libp2p.direct` is run by the team at [Interplanetary Shipyard](https://ipshipyard.com).
->
-> <a href="http://ipshipyard.com/"><img src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
-
-[p2p-forge]: https://github.com/ipshipyard/p2p-forge
-[community.letsencrypt.org discussion]: https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003
-
-Default: `{}`
-
-Type: `object`
-
-#### `Swarm.AutoTLS.Enabled`
-
-> [!CAUTION]
-> This is an EXPERIMENTAL feature and should not be used in production yet.
-> Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
-
-Enables **EXPERIMENTAL** [p2p-forge] client. This feature works only if your Kubo node is publicly diallable.
-
-If enabled, it will detect when `.../tls/sni/.../ws` is present in [`Addresses.Swarm`](#addressesswarm)
-and SNI is matching `Swarm.AutoTLS.DomainSuffix`, and set up a trusted TLS certificate matching the domain name used in Secure WebSockets (WSS) listener.
-
-If you want to test this, add `/ip4/0.0.0.0/tcp/4082/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm).
-
-Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`
-
-Default: `false`
-
-Type: `flag`
-
-#### `Swarm.AutoTLS.DomainSuffix`
-
-Optional override of the parent domain suffix that will be used in DNS+TLS+WebSockets multiaddrs generated by [p2p-forge] client.
-Do not change this unless you self-host [p2p-forge].
-
-Default: `libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
-
-Type: `optionalString`
-
-#### `Swarm.AutoTLS.RegistrationEndpoint`
-
-Optional override of [p2p-forge] HTTP registration API.
-Do not change this unless you self-host [p2p-forge].
-
-Default: `https://registration.libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
-
-Type: `optionalString`
-
-#### `Swarm.AutoTLS.RegistrationToken`
-
-Optional value for `Forge-Authorization` token sent with request to `RegistrationEndpoint`
-(useful for private/self-hosted/test instances of [p2p-forge]).
-
-Default: `""`
-
-Type: `optionalString`
-
-#### `Swarm.AutoTLS.CAEndpoint`
-
-Optional override of CA ACME API used by [p2p-forge] system.
-
-Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddyserver/certmagic#pkg-constants) (see [community.letsencrypt.org discussion])
-
-Type: `optionalString`
 
 ### `Swarm.EnableAutoRelay`
 

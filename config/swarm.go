@@ -32,11 +32,6 @@ type SwarmConfig struct {
 
 	// ResourceMgr configures the libp2p Network Resource Manager
 	ResourceMgr ResourceMgr
-
-	// AutoTLS controls the client of a service for obtaining and configuring a
-	// domain and TLS certificate to improve connectivity for web browser
-	// clients.
-	AutoTLS AutoTLS
 }
 
 type RelayClient struct {

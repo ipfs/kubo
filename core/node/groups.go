@@ -114,7 +114,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(true) // nolint
 	enableRelayService := cfg.Swarm.RelayService.Enabled.WithDefault(enableRelayTransport)
 	enableRelayClient := cfg.Swarm.RelayClient.Enabled.WithDefault(enableRelayTransport)
-	enableAutoTLS := cfg.Swarm.AutoTLS.Enabled.WithDefault(config.DefaultAutoTLSEnabled)
+	enableAutoTLS := cfg.AutoTLS.Enabled.WithDefault(config.DefaultAutoTLSEnabled)
 
 	// Log error when relay subsystem could not be initialized due to missing dependency
 	if !enableRelayTransport {
@@ -127,10 +127,10 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	}
 	if enableAutoTLS {
 		if !cfg.Swarm.Transports.Network.Websocket.WithDefault(true) {
-			logger.Fatal("Failed to enable `Swarm.AutoTLS`, it requires `Swarm.Transports.Network.Websocket` to be true.")
+			logger.Fatal("Invalid configuration: AutoTLS.Enabled=true requires Swarm.Transports.Network.Websocket to be true as well.")
 		}
 
-		wssWildcard := fmt.Sprintf("/tls/sni/*.%s/ws", cfg.Swarm.AutoTLS.DomainSuffix.WithDefault(config.DefaultDomainSuffix))
+		wssWildcard := fmt.Sprintf("/tls/sni/*.%s/ws", cfg.AutoTLS.DomainSuffix.WithDefault(config.DefaultDomainSuffix))
 		wssWildcardPresent := false
 		for _, listener := range cfg.Addresses.Swarm {
 			if strings.Contains(listener, wssWildcard) {
@@ -139,7 +139,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 			}
 		}
 		if !wssWildcardPresent {
-			logger.Fatal(fmt.Sprintf("Failed to enable `Swarm.AutoTLS`, it requires `Addresses.Swarm` listener matching %q to be present, see https://github.com/ipfs/kubo/blob/master/docs/config.md#swarmautotls", wssWildcard))
+			logger.Fatal(fmt.Sprintf("Invalid configuration: AutoTLS.Enabled=true requires a catch-all Addresses.Swarm listener ending with %q to be present, see https://github.com/ipfs/kubo/blob/master/docs/config.md#autotls", wssWildcard))
 		}
 	}
 
@@ -152,7 +152,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		// Services (resource management)
 		fx.Provide(libp2p.ResourceManager(bcfg.Repo.Path(), cfg.Swarm, userResourceOverrides)),
-		maybeProvide(libp2p.P2PForgeCertMgr(cfg.Swarm.AutoTLS), enableAutoTLS),
+		maybeProvide(libp2p.P2PForgeCertMgr(cfg.AutoTLS), enableAutoTLS),
 		maybeInvoke(libp2p.StartP2PAutoTLS, enableAutoTLS),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
