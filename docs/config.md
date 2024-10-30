@@ -510,6 +510,7 @@ Kubo will obtain and set up a trusted PKI TLS certificate for it, making it dial
 >   - If you use manual port forwarding, make sure incoming connections to this additional port are allowed the same way `4001` ones already are.
 > - The TLS certificate is used only for [libp2p WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) connections.
 >   - Right now, this is NOT used for hosting a [Gateway](#gateway) over HTTPS (that use case still requires manual TLS setup on reverse proxy, and your own domain).
+> - Listeners defined in [`Addresses.Swarm`](#addressesswarm) with `/tls/sni` must use a separate port from other TCP listeners, e.g. `4002` instead of the default `4001`.
 
 > [!TIP]
 > Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`
