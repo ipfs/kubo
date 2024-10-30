@@ -152,7 +152,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		// Services (resource management)
 		fx.Provide(libp2p.ResourceManager(bcfg.Repo.Path(), cfg.Swarm, userResourceOverrides)),
-		maybeProvide(libp2p.P2PForgeCertMgr(cfg.AutoTLS), enableAutoTLS),
+		maybeProvide(libp2p.P2PForgeCertMgr(bcfg.Repo.Path(), cfg.AutoTLS), enableAutoTLS),
 		maybeInvoke(libp2p.StartP2PAutoTLS, enableAutoTLS),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
