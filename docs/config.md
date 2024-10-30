@@ -512,7 +512,8 @@ Kubo will obtain and set up a trusted PKI TLS certificate for it, making it dial
 >   - Right now, this is NOT used for hosting a [Gateway](#gateway) over HTTPS (that use case still requires manual TLS setup on reverse proxy, and your own domain).
 
 > [!TIP]
-> Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`
+> - Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`
+> - Certificates are stored in `$IPFS_PATH/p2p-forge-certs`. Removing directory and restarting daemon will trigger certificate rotation.
 
 Default: `false`
 
@@ -530,7 +531,7 @@ Type: `optionalString`
 ### `AutoTLS.RegistrationEndpoint`
 
 Optional override of [p2p-forge] HTTP registration API.
-Do not change this unless you self-host [p2p-forge].
+Do not change this unless you self-host [p2p-forge] under own domain.
 
 > [!IMPORTANT]
 > The default endpoint performs [libp2p Peer ID Authentication over HTTP](https://github.com/libp2p/specs/blob/master/http/peer-id-auth.md)
@@ -553,6 +554,10 @@ Type: `optionalString`
 ### `AutoTLS.CAEndpoint`
 
 Optional override of CA ACME API used by [p2p-forge] system.
+Do not change this unless you self-host [p2p-forge] under own domain.
+
+> [!IMPORTANT]
+> CAA DNS record at `libp2p.direct` limits CA choice to Let's Encrypt. If you want to use a different CA, use your own domain.
 
 Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddyserver/certmagic#pkg-constants) (see [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003))
 

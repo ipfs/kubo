@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	logging "github.com/ipfs/go-log"
 	version "github.com/ipfs/kubo"
@@ -132,12 +133,9 @@ func ListenOn(addresses []string) interface{} {
 	}
 }
 
-func P2PForgeCertMgr(cfg config.AutoTLS) interface{} {
+func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS) interface{} {
 	return func() (*p2pforge.P2PForgeCertMgr, error) {
-		storagePath, err := config.Path("", "p2p-forge-certs")
-		if err != nil {
-			return nil, err
-		}
+		storagePath := filepath.Join(repoPath, "p2p-forge-certs")
 
 		forgeLogger := logging.Logger("autotls").Desugar()
 		certStorage := &certmagic.FileStorage{Path: storagePath}
