@@ -505,8 +505,8 @@ Kubo will obtain and set up a trusted PKI TLS certificate for it, making it dial
 >     add catch-all `/ip4/0.0.0.0/tcp/4002/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4002/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm)
 >     and **wait 5-15 minutes** for libp2p node to set up and learn about own public addresses via [AutoNAT](#autonat).
 >   - If your node is fresh and just started, the [p2p-forge] client may produce and log ERRORs during this time, but once a publicly diallable addresses are set up, a subsequent retry should be successful.
-> - Requires manually updating [`Addresses.Swarm`](#addressesswarm) and opening a new port
->   - A separate port has to be used instead of `4001` because we wait for TCP port sharing ([go-libp2p#2984](https://github.com/libp2p/go-libp2p/issues/2684)) to be implemented.
+> - Listeners defined in [`Addresses.Swarm`](#addressesswarm) with `/tls/sni` must use a separate port from other TCP listeners, e.g. `4002` instead of the default `4001`.
+>   - A separate port (`/tcp/4002`) has to be used instead of `/tcp/4001` because we wait for TCP port sharing ([go-libp2p#2984](https://github.com/libp2p/go-libp2p/issues/2684)) to be implemented.
 >   - If you use manual port forwarding, make sure incoming connections to this additional port are allowed the same way `4001` ones already are.
 > - The TLS certificate is used only for [libp2p WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) connections.
 >   - Right now, this is NOT used for hosting a [Gateway](#gateway) over HTTPS (that use case still requires manual TLS setup on reverse proxy, and your own domain).
