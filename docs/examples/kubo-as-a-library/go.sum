@@ -298,8 +298,8 @@ github.com/ipfs-shipyard/nopfs/ipfs v0.13.2-0.20231027223058-cde3b5ba964c h1:7Uy
 github.com/ipfs-shipyard/nopfs/ipfs v0.13.2-0.20231027223058-cde3b5ba964c/go.mod h1:6EekK/jo+TynwSE/ZOiOJd4eEvRXoavEC3vquKtv4yI=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.24.3 h1:gldDPOWdM3Rz0v5LkVLtZu7A7gFNvAlWcmxhCqlHR3c=
-github.com/ipfs/boxo v0.24.3/go.mod h1:h0DRzOY1IBFDHp6KNvrJLMFdSXTYID0Zf+q7X05JsNg=
+github.com/ipfs/boxo v0.24.3-0.20241030212043-d15e9528c333 h1:2OvIEEviF9OEqnEp4khojrAR+cxn2OVpx9VAZNJV9jc=
+github.com/ipfs/boxo v0.24.3-0.20241030212043-d15e9528c333/go.mod h1:cDmTBd0IEM6UuOIZGXfxhumKlGr5CK/kfh+2Ka662lc=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-bitswap v0.11.0 h1:j1WVvhDX1yhG32NTC9xfxnqycqYIlhzEzLXG/cU1HyQ=
@@ -405,7 +405,6 @@ github.com/ipshipyard/p2p-forge v0.0.2 h1:86y9LxGB8sGxYQ/If5sNx+c8C/huSpBUg3UZ1u
 github.com/ipshipyard/p2p-forge v0.0.2/go.mod h1:taPeh3PDSO8Ual0/N2tIOAUXPV8gZoPF3uPXoUyiq14=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
 github.com/jackpal/go-nat-pmp v1.0.2/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
-github.com/jbenet/go-cienv v0.1.0 h1:Vc/s0QbQtoxX8MwwSLWWh+xNNZvM3Lw7NsTcHrvvhMc=
 github.com/jbenet/go-cienv v0.1.0/go.mod h1:TqNnHUmJgXau0nCzC7kXWeotg3J9W34CUv5Djy1+FlA=
 github.com/jbenet/go-temp-err-catcher v0.1.0 h1:zpb3ZH6wIE8Shj2sKS+khgRvf7T7RABoLk/+KKHggpk=
 github.com/jbenet/go-temp-err-catcher v0.1.0/go.mod h1:0kJRvmDZXNMIiJirNPEYfhpPwbGVtZVWC34vc5WLsDk=

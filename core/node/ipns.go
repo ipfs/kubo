@@ -45,8 +45,8 @@ func Namesys(cacheSize int, cacheMaxTTL time.Duration) func(rt irouting.ProvideM
 }
 
 // IpnsRepublisher runs new IPNS republisher service
-func IpnsRepublisher(repubPeriod time.Duration, recordLifetime time.Duration) func(lcProcess, namesys.NameSystem, repo.Repo, crypto.PrivKey) error {
-	return func(lc lcProcess, namesys namesys.NameSystem, repo repo.Repo, privKey crypto.PrivKey) error {
+func IpnsRepublisher(repubPeriod time.Duration, recordLifetime time.Duration) func(lcStartStop, namesys.NameSystem, repo.Repo, crypto.PrivKey) error {
+	return func(lc lcStartStop, namesys namesys.NameSystem, repo repo.Repo, privKey crypto.PrivKey) error {
 		repub := republisher.NewRepublisher(namesys, repo.Datastore(), privKey, repo.Keystore())
 
 		if repubPeriod != 0 {
