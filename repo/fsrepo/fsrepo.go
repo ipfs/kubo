@@ -18,15 +18,14 @@ import (
 	dir "github.com/ipfs/kubo/thirdparty/dir"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 
-	util "github.com/ipfs/boxo/util"
 	ds "github.com/ipfs/go-datastore"
 	measure "github.com/ipfs/go-ds-measure"
 	lockfile "github.com/ipfs/go-fs-lock"
 	logging "github.com/ipfs/go-log"
 	config "github.com/ipfs/kubo/config"
 	serialize "github.com/ipfs/kubo/config/serialize"
+	"github.com/ipfs/kubo/misc/fsutil"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
-	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -207,7 +206,7 @@ func open(repoPath string, userConfigFilePath string) (repo.Repo, error) {
 }
 
 func newFSRepo(rpath string, userConfigFilePath string) (*FSRepo, error) {
-	expPath, err := homedir.Expand(filepath.Clean(rpath))
+	expPath, err := fsutil.ExpandHome(filepath.Clean(rpath))
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +238,7 @@ func configIsInitialized(path string) bool {
 	if err != nil {
 		return false
 	}
-	if !util.FileExists(configFilename) {
+	if !fsutil.FileExists(configFilename) {
 		return false
 	}
 	return true
@@ -269,7 +268,7 @@ func initSpec(path string, conf map[string]interface{}) error {
 		return err
 	}
 
-	if util.FileExists(fn) {
+	if fsutil.FileExists(fn) {
 		return nil
 	}
 

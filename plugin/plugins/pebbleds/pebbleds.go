@@ -1,15 +1,13 @@
 package pebbleds
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
-	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/cockroachdb/pebble"
 	pebbleds "github.com/ipfs/go-ds-pebble"
+	"github.com/ipfs/kubo/misc/fsutil"
 	"github.com/ipfs/kubo/plugin"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
@@ -172,75 +170,9 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 		p = filepath.Join(path, p)
 	}
 
-	if err := dirWritable(p); err != nil {
+	if err := fsutil.DirWritable(p); err != nil {
 		return nil, err
 	}
 
 	return pebbleds.NewDatastore(p, pebbleds.WithCacheSize(c.cacheSize), pebbleds.WithPebbleOpts(c.pebbleOpts))
-}
-
-// dirWritable checks if a directory is writable. If the directory does
-// not exist it is created with writable permission.
-func dirWritable(dir string) error {
-	if dir == "" {
-		return errors.New("directory not specified")
-	}
-	var err error
-	dir, err = expandHome(dir)
-	if err != nil {
-		return err
-	}
-
-	fi, err := os.Stat(dir)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			// Directory does not exist, so create it.
-			err = os.Mkdir(dir, 0775)
-			if err == nil {
-				return nil
-			}
-		}
-		if errors.Is(err, fs.ErrPermission) {
-			err = fs.ErrPermission
-		}
-		return fmt.Errorf("directory not writable: %s: %w", dir, err)
-	}
-	if !fi.IsDir() {
-		return fmt.Errorf("not a directory: %s", dir)
-	}
-
-	// Directory exists, check that a file can be written.
-	file, err := os.CreateTemp(dir, "writetest")
-	if err != nil {
-		if errors.Is(err, fs.ErrPermission) {
-			err = fs.ErrPermission
-		}
-		return fmt.Errorf("directory not writable: %s: %w", dir, err)
-	}
-	file.Close()
-	return os.Remove(file.Name())
-}
-
-// expandHome expands the path to include the home directory if the path is
-// prefixed with `~`. If it isn't prefixed with `~`, the path is returned
-// as-is.
-func expandHome(path string) (string, error) {
-	if path == "" {
-		return path, nil
-	}
-
-	if path[0] != '~' {
-		return path, nil
-	}
-
-	if len(path) > 1 && path[1] != '/' && path[1] != '\\' {
-		return "", errors.New("cannot expand user-specific home dir")
-	}
-
-	dir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(dir, path[1:]), nil
 }
