@@ -361,8 +361,8 @@ github.com/ipfs-shipyard/nopfs/ipfs v0.13.2-0.20231027223058-cde3b5ba964c h1:7Uy
 github.com/ipfs-shipyard/nopfs/ipfs v0.13.2-0.20231027223058-cde3b5ba964c/go.mod h1:6EekK/jo+TynwSE/ZOiOJd4eEvRXoavEC3vquKtv4yI=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.24.3-0.20241104202815-8c2af13f484a h1:tkF7MkeKKppru5oEURV72iRgqj04H+O0zJwzWORk7Ug=
-github.com/ipfs/boxo v0.24.3-0.20241104202815-8c2af13f484a/go.mod h1:h0DRzOY1IBFDHp6KNvrJLMFdSXTYID0Zf+q7X05JsNg=
+github.com/ipfs/boxo v0.24.3-0.20241107005151-611af32fff5d h1:XKlnElwj8z3qtRACQ3nQhmwTLLuMh1uY0IFNLvy8DWA=
+github.com/ipfs/boxo v0.24.3-0.20241107005151-611af32fff5d/go.mod h1:h0DRzOY1IBFDHp6KNvrJLMFdSXTYID0Zf+q7X05JsNg=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-bitswap v0.11.0 h1:j1WVvhDX1yhG32NTC9xfxnqycqYIlhzEzLXG/cU1HyQ=
@@ -468,6 +468,8 @@ github.com/ipld/go-ipld-prime v0.21.0 h1:n4JmcpOlPDIxBcY037SVfpd1G+Sj1nKZah0m6QH
 github.com/ipld/go-ipld-prime v0.21.0/go.mod h1:3RLqy//ERg/y5oShXXdx5YIp50cFGOanyMctpPjsvxQ=
 github.com/ipld/go-ipld-prime/storage/bsadapter v0.0.0-20230102063945-1a409dc236dd h1:gMlw/MhNr2Wtp5RwGdsW23cs+yCuj9k2ON7i9MiJlRo=
 github.com/ipld/go-ipld-prime/storage/bsadapter v0.0.0-20230102063945-1a409dc236dd/go.mod h1:wZ8hH8UxeryOs4kJEJaiui/s00hDSbE37OKsL47g+Sw=
+github.com/ipshipyard/p2p-forge v0.0.2-0.20241107005857-17d209bbd833 h1:qZdQFuEZaN2NkdS+NTu0ImeZG0dooIEQnhvD+EMcmyA=
+github.com/ipshipyard/p2p-forge v0.0.2-0.20241107005857-17d209bbd833/go.mod h1:taPeh3PDSO8Ual0/N2tIOAUXPV8gZoPF3uPXoUyiq14=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
 github.com/jackpal/go-nat-pmp v1.0.2/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/jbenet/go-cienv v0.1.0 h1:Vc/s0QbQtoxX8MwwSLWWh+xNNZvM3Lw7NsTcHrvvhMc=
