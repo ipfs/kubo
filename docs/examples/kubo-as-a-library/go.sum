@@ -401,8 +401,8 @@ github.com/ipld/go-ipld-prime v0.21.0 h1:n4JmcpOlPDIxBcY037SVfpd1G+Sj1nKZah0m6QH
 github.com/ipld/go-ipld-prime v0.21.0/go.mod h1:3RLqy//ERg/y5oShXXdx5YIp50cFGOanyMctpPjsvxQ=
 github.com/ipld/go-ipld-prime/storage/bsadapter v0.0.0-20230102063945-1a409dc236dd h1:gMlw/MhNr2Wtp5RwGdsW23cs+yCuj9k2ON7i9MiJlRo=
 github.com/ipld/go-ipld-prime/storage/bsadapter v0.0.0-20230102063945-1a409dc236dd/go.mod h1:wZ8hH8UxeryOs4kJEJaiui/s00hDSbE37OKsL47g+Sw=
-github.com/ipshipyard/p2p-forge v0.0.1 h1:7Wy3Ul4gGLIPx4LjMjGaO6MoKa54ITDqwMOyXshrvO4=
-github.com/ipshipyard/p2p-forge v0.0.1/go.mod h1:taPeh3PDSO8Ual0/N2tIOAUXPV8gZoPF3uPXoUyiq14=
+github.com/ipshipyard/p2p-forge v0.0.2-0.20241107005857-17d209bbd833 h1:qZdQFuEZaN2NkdS+NTu0ImeZG0dooIEQnhvD+EMcmyA=
+github.com/ipshipyard/p2p-forge v0.0.2-0.20241107005857-17d209bbd833/go.mod h1:taPeh3PDSO8Ual0/N2tIOAUXPV8gZoPF3uPXoUyiq14=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
 github.com/jackpal/go-nat-pmp v1.0.2/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/jbenet/go-cienv v0.1.0 h1:Vc/s0QbQtoxX8MwwSLWWh+xNNZvM3Lw7NsTcHrvvhMc=

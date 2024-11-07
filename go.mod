@@ -49,7 +49,7 @@ require (
 	github.com/ipld/go-car/v2 v2.14.2
 	github.com/ipld/go-codec-dagpb v1.6.0
 	github.com/ipld/go-ipld-prime v0.21.0
-	github.com/ipshipyard/p2p-forge v0.0.1
+	github.com/ipshipyard/p2p-forge v0.0.2-0.20241107005857-17d209bbd833
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/julienschmidt/httprouter v1.3.0
@@ -271,3 +271,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
+
+replace github.com/ipshipyard/p2p-forge => /home/lidel/project/p2p-forge
