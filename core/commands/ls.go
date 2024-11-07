@@ -133,14 +133,21 @@ The JSON output contains type information.
 			}
 		}
 
+		lsCtx, cancel := context.WithCancel(req.Context)
+		defer cancel()
+
 		for i, fpath := range paths {
 			pth, err := cmdutils.PathOrCidPath(fpath)
 			if err != nil {
 				return err
 			}
 
-			results, errCh := api.Unixfs().Ls(req.Context, pth,
-				options.Unixfs.ResolveChildren(resolveSize || resolveType))
+			results := make(chan iface.DirEntry)
+			var lsErr error
+			go func() {
+				lsErr = api.Unixfs().Ls(lsCtx, pth, results,
+					options.Unixfs.ResolveChildren(resolveSize || resolveType))
+			}()
 
 			processLink, dirDone = processDir()
 			for link := range results {
@@ -164,12 +171,12 @@ The JSON output contains type information.
 					Mode:    link.Mode,
 					ModTime: link.ModTime,
 				}
-				if err := processLink(paths[i], lsLink); err != nil {
+				if err = processLink(paths[i], lsLink); err != nil {
 					return err
 				}
 			}
-			if err = <-errCh; err != nil {
-				return err
+			if lsErr != nil {
+				return lsErr
 			}
 			dirDone(i)
 		}

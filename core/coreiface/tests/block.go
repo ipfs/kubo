@@ -323,12 +323,15 @@ func (tp *TestSuite) TestBlockPin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pinsCh, errCh := api.Pin().Ls(ctx)
-	_, ok := <-pinsCh
-	if ok {
+	pinCh := make(chan coreiface.Pin)
+	go func() {
+		err = api.Pin().Ls(ctx, pinCh)
+	}()
+
+	for range pinCh {
 		t.Fatal("expected 0 pins")
 	}
-	if err = <-errCh; err != nil {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -342,7 +345,7 @@ func (tp *TestSuite) TestBlockPin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pins, err := accPins(api.Pin().Ls(ctx))
+	pins, err := accPins(ctx, api)
 	if err != nil {
 		t.Fatal(err)
 	}

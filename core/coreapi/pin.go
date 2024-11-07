@@ -51,18 +51,14 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 	return api.pinning.Flush(ctx)
 }
 
-func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan coreiface.Pin, <-chan error) {
+func (api *PinAPI) Ls(ctx context.Context, pins chan<- coreiface.Pin, opts ...caopts.PinLsOption) error {
 	ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "Ls")
 	defer span.End()
 
 	settings, err := caopts.PinLsOptions(opts...)
 	if err != nil {
-		outCh := make(chan coreiface.Pin)
-		errCh := make(chan error, 1)
-		errCh <- err
-		close(outCh)
-		close(errCh)
-		return outCh, errCh
+		close(pins)
+		return err
 	}
 
 	span.SetAttributes(attribute.String("type", settings.Type))
@@ -70,15 +66,11 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan c
 	switch settings.Type {
 	case "all", "direct", "indirect", "recursive":
 	default:
-		outCh := make(chan coreiface.Pin)
-		errCh := make(chan error, 1)
-		errCh <- fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", settings.Type)
-		close(outCh)
-		close(errCh)
-		return outCh, errCh
+		close(pins)
+		return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", settings.Type)
 	}
 
-	return api.pinLsAll(ctx, settings.Type, settings.Detailed, settings.Name)
+	return api.pinLsAll(ctx, settings.Type, settings.Detailed, settings.Name, pins)
 }
 
 func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.PinIsPinnedOption) (string, bool, error) {
@@ -283,8 +275,8 @@ func (p *pinInfo) Name() string {
 //
 // The caller must keep reading results until the channel is closed to prevent
 // leaking the goroutine that is fetching pins.
-func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string, detailed bool, name string) (<-chan coreiface.Pin, <-chan error) {
-	out := make(chan coreiface.Pin, 1)
+func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string, detailed bool, name string, out chan<- coreiface.Pin) error {
+	defer close(out)
 	emittedSet := cid.NewSet()
 
 	AddToResultKeys := func(c cid.Cid, pinName, typeStr string) error {
@@ -302,90 +294,82 @@ func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string, detailed bool, 
 		return nil
 	}
 
-	errOut := make(chan error, 1)
-
-	go func() {
-		defer close(out)
-		defer close(errOut)
-
-		var rkeys []cid.Cid
-		var err error
-		if typeStr == "recursive" || typeStr == "all" {
-			for streamedCid := range api.pinning.RecursiveKeys(ctx, detailed) {
-				if streamedCid.Err != nil {
-					errOut <- streamedCid.Err
-					return
-				}
-				if err = AddToResultKeys(streamedCid.Pin.Key, streamedCid.Pin.Name, "recursive"); err != nil {
-					errOut <- err
-					return
-				}
-				rkeys = append(rkeys, streamedCid.Pin.Key)
+	var rkeys []cid.Cid
+	var err error
+	if typeStr == "recursive" || typeStr == "all" {
+		for streamedCid := range api.pinning.RecursiveKeys(ctx, detailed) {
+			if streamedCid.Err != nil {
+				return streamedCid.Err
+			}
+			if err = AddToResultKeys(streamedCid.Pin.Key, streamedCid.Pin.Name, "recursive"); err != nil {
+				return err
+			}
+			rkeys = append(rkeys, streamedCid.Pin.Key)
+		}
+	}
+	if typeStr == "direct" || typeStr == "all" {
+		for streamedCid := range api.pinning.DirectKeys(ctx, detailed) {
+			if streamedCid.Err != nil {
+				return streamedCid.Err
+			}
+			if err = AddToResultKeys(streamedCid.Pin.Key, streamedCid.Pin.Name, "direct"); err != nil {
+				return err
 			}
 		}
-		if typeStr == "direct" || typeStr == "all" {
-			for streamedCid := range api.pinning.DirectKeys(ctx, detailed) {
-				if streamedCid.Err != nil {
-					errOut <- streamedCid.Err
-					return
-				}
-				if err = AddToResultKeys(streamedCid.Pin.Key, streamedCid.Pin.Name, "direct"); err != nil {
-					errOut <- err
-					return
-				}
+	}
+	if typeStr == "indirect" {
+		// We need to first visit the direct pins that have priority
+		// without emitting them
+
+		for streamedCid := range api.pinning.DirectKeys(ctx, detailed) {
+			if streamedCid.Err != nil {
+				return streamedCid.Err
+			}
+			emittedSet.Add(streamedCid.Pin.Key)
+		}
+
+		for streamedCid := range api.pinning.RecursiveKeys(ctx, detailed) {
+			if streamedCid.Err != nil {
+				return streamedCid.Err
+			}
+			emittedSet.Add(streamedCid.Pin.Key)
+			rkeys = append(rkeys, streamedCid.Pin.Key)
+		}
+	}
+	if typeStr == "indirect" || typeStr == "all" {
+		if len(rkeys) == 0 {
+			return nil
+		}
+		var addErr error
+		walkingSet := cid.NewSet()
+		for _, k := range rkeys {
+			err = merkledag.Walk(
+				ctx, merkledag.GetLinksWithDAG(api.dag), k,
+				func(c cid.Cid) bool {
+					if !walkingSet.Visit(c) {
+						return false
+					}
+					if emittedSet.Has(c) {
+						return true // skipped
+					}
+					addErr := AddToResultKeys(c, "", "indirect")
+					if addErr != nil {
+						return false
+					}
+					return true
+				},
+				merkledag.SkipRoot(), merkledag.Concurrent(),
+			)
+			if err != nil {
+				return err
+			}
+			if addErr != nil {
+				return addErr
 			}
 		}
-		if typeStr == "indirect" {
-			// We need to first visit the direct pins that have priority
-			// without emitting them
+	}
 
-			for streamedCid := range api.pinning.DirectKeys(ctx, detailed) {
-				if streamedCid.Err != nil {
-					errOut <- streamedCid.Err
-					return
-				}
-				emittedSet.Add(streamedCid.Pin.Key)
-			}
-
-			for streamedCid := range api.pinning.RecursiveKeys(ctx, detailed) {
-				if streamedCid.Err != nil {
-					errOut <- streamedCid.Err
-					return
-				}
-				emittedSet.Add(streamedCid.Pin.Key)
-				rkeys = append(rkeys, streamedCid.Pin.Key)
-			}
-		}
-		if typeStr == "indirect" || typeStr == "all" {
-			walkingSet := cid.NewSet()
-			for _, k := range rkeys {
-				err = merkledag.Walk(
-					ctx, merkledag.GetLinksWithDAG(api.dag), k,
-					func(c cid.Cid) bool {
-						if !walkingSet.Visit(c) {
-							return false
-						}
-						if emittedSet.Has(c) {
-							return true // skipped
-						}
-						err := AddToResultKeys(c, "", "indirect")
-						if err != nil {
-							errOut <- err
-							return false
-						}
-						return true
-					},
-					merkledag.SkipRoot(), merkledag.Concurrent(),
-				)
-				if err != nil {
-					errOut <- err
-					return
-				}
-			}
-		}
-	}()
-
-	return out, errOut
+	return nil
 }
 
 func (api *PinAPI) core() coreiface.CoreAPI {

@@ -144,16 +144,12 @@ type lsOutput struct {
 	Objects []lsObject
 }
 
-func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...caopts.UnixfsLsOption) (<-chan iface.DirEntry, <-chan error) {
-	out := make(chan iface.DirEntry)
-	errOut := make(chan error, 1)
+func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, out chan<- iface.DirEntry, opts ...caopts.UnixfsLsOption) error {
+	defer close(out)
 
 	options, err := caopts.UnixfsLsOptions(opts...)
 	if err != nil {
-		errOut <- err
-		close(out)
-		close(errOut)
-		return out, errOut
+		return err
 	}
 
 	resp, err := api.core().Request("ls", p.String()).
@@ -162,79 +158,66 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...caopts.Unixfs
 		Option("stream", true).
 		Send(ctx)
 	if err != nil {
-		errOut <- err
-		close(out)
-		close(errOut)
-		return out, errOut
+		return err
 	}
 	if resp.Error != nil {
-		errOut <- resp.Error
-		close(out)
-		close(errOut)
-		return out, errOut
+		return err
 	}
+	defer resp.Close()
 
 	dec := json.NewDecoder(resp.Output)
 
-	go func() {
-		defer resp.Close()
-		defer close(out)
-		defer close(errOut)
-
-		for {
-			var link lsOutput
-			if err := dec.Decode(&link); err != nil {
-				if err != io.EOF {
-					errOut <- err
-				}
-				return
+	for {
+		var link lsOutput
+		if err = dec.Decode(&link); err != nil {
+			if err != io.EOF {
+				return err
 			}
-
-			if len(link.Objects) != 1 {
-				errOut <- errors.New("unexpected Objects len")
-				return
-			}
-
-			if len(link.Objects[0].Links) != 1 {
-				errOut <- errors.New("unexpected Links len")
-				return
-			}
-
-			l0 := link.Objects[0].Links[0]
-
-			c, err := cid.Decode(l0.Hash)
-			if err != nil {
-				errOut <- err
-				return
-			}
-
-			var ftype iface.FileType
-			switch l0.Type {
-			case unixfs.TRaw, unixfs.TFile:
-				ftype = iface.TFile
-			case unixfs.THAMTShard, unixfs.TDirectory, unixfs.TMetadata:
-				ftype = iface.TDirectory
-			case unixfs.TSymlink:
-				ftype = iface.TSymlink
-			}
-
-			select {
-			case out <- iface.DirEntry{
-				Name:   l0.Name,
-				Cid:    c,
-				Size:   l0.Size,
-				Type:   ftype,
-				Target: l0.Target,
-
-				Mode:    l0.Mode,
-				ModTime: l0.ModTime,
-			}:
-			case <-ctx.Done():
-			}
+			return nil
 		}
-	}()
 
-	return out, errOut
+		if len(link.Objects) != 1 {
+			return errors.New("unexpected Objects len")
+		}
+
+		if len(link.Objects[0].Links) != 1 {
+			return errors.New("unexpected Links len")
+		}
+
+		l0 := link.Objects[0].Links[0]
+
+		c, err := cid.Decode(l0.Hash)
+		if err != nil {
+			return err
+		}
+
+		var ftype iface.FileType
+		switch l0.Type {
+		case unixfs.TRaw, unixfs.TFile:
+			ftype = iface.TFile
+		case unixfs.THAMTShard, unixfs.TDirectory, unixfs.TMetadata:
+			ftype = iface.TDirectory
+		case unixfs.TSymlink:
+			ftype = iface.TSymlink
+		}
+
+		select {
+		case out <- iface.DirEntry{
+			Name:   l0.Name,
+			Cid:    c,
+			Size:   l0.Size,
+			Type:   ftype,
+			Target: l0.Target,
+
+			Mode:    l0.Mode,
+			ModTime: l0.ModTime,
+		}:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
+	return nil
 }
 
 func (api *UnixfsAPI) core() *HttpApi {

@@ -313,7 +313,7 @@ Pass '--status=queued,pinning,pinned,failed' to list pins in all states.
 }
 
 // Executes GET /pins/?query-with-filters
-func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (<-chan pinclient.PinStatusGetter, <-chan error) {
+func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client, out chan<- pinclient.PinStatusGetter) error {
 	opts := []pinclient.LsOption{}
 	if name, nameFound := req.Options[pinNameOptionName]; nameFound {
 		nameStr := name.(string)
@@ -326,12 +326,8 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (<-ch
 		for _, rawCID := range cidsRawArr {
 			parsedCID, err := cid.Decode(rawCID)
 			if err != nil {
-				psCh := make(chan pinclient.PinStatusGetter)
-				errCh := make(chan error, 1)
-				errCh <- fmt.Errorf("CID %q cannot be parsed: %v", rawCID, err)
-				close(psCh)
-				close(errCh)
-				return psCh, errCh
+				close(out)
+				return fmt.Errorf("CID %q cannot be parsed: %v", rawCID, err)
 			}
 			parsedCIDs = append(parsedCIDs, parsedCID)
 		}
@@ -343,19 +339,15 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (<-ch
 		for _, rawStatus := range statusRawArr {
 			s := pinclient.Status(rawStatus)
 			if s.String() == string(pinclient.StatusUnknown) {
-				psCh := make(chan pinclient.PinStatusGetter)
-				errCh := make(chan error, 1)
-				errCh <- fmt.Errorf("status %q is not valid", rawStatus)
-				close(psCh)
-				close(errCh)
-				return psCh, errCh
+				close(out)
+				return fmt.Errorf("status %q is not valid", rawStatus)
 			}
 			parsedStatuses = append(parsedStatuses, s)
 		}
 		opts = append(opts, pinclient.PinOpts.FilterStatus(parsedStatuses...))
 	}
 
-	return c.Ls(ctx, opts...)
+	return c.Ls(ctx, out, opts...)
 }
 
 var rmRemotePinCmd = &cmds.Command{
