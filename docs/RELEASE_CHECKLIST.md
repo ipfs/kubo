@@ -1,4 +1,4 @@
-<!-- Last updated during [v0.30.0 release](https://github.com/ipfs/kubo/pull/10496) -->
+<!-- Last updated during [v0.32.0 release](https://github.com/ipfs/kubo/issues/10547) -->
 
 # ✅ Release Checklist (vX.Y.Z[-rcN])
 
