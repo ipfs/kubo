@@ -14,7 +14,7 @@ type lcStartStop struct {
 	LC fx.Lifecycle
 }
 
-// Append wraps a finction into a fx.Hook and appends it to the fx.Lifecycle.
+// Append wraps a function into a fx.Hook and appends it to the fx.Lifecycle.
 func (lcss *lcStartStop) Append(f func() func()) {
 	// Hooks are guaranteed to run in sequence. If a hook fails to start, its
 	// OnStop won't be executed.
