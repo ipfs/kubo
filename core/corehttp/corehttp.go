@@ -31,9 +31,9 @@ const shutdownTimeout = 30 * time.Second
 // initially passed in if not.
 type ServeOption func(*core.IpfsNode, net.Listener, *http.ServeMux) (*http.ServeMux, error)
 
-// makeHandler turns a list of ServeOptions into a http.Handler that implements
+// MakeHandler turns a list of ServeOptions into a http.Handler that implements
 // all of the given options, in order.
-func makeHandler(n *core.IpfsNode, l net.Listener, options ...ServeOption) (http.Handler, error) {
+func MakeHandler(n *core.IpfsNode, l net.Listener, options ...ServeOption) (http.Handler, error) {
 	topMux := http.NewServeMux()
 	mux := topMux
 	for _, option := range options {
@@ -75,7 +75,7 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 
 	// we might have listened to /tcp/0 - let's see what we are listing on
 	addr = list.Multiaddr()
-	fmt.Printf("API server listening on %s\n", addr)
+	fmt.Printf("RPC API server listening on %s\n", addr)
 
 	return Serve(n, manet.NetListener(list), options...)
 }
@@ -86,7 +86,7 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 	// make sure we close this no matter what.
 	defer lis.Close()
 
-	handler, err := makeHandler(node, lis, options...)
+	handler, err := MakeHandler(node, lis, options...)
 	if err != nil {
 		return err
 	}

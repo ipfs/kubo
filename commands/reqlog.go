@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// ReqLogEntry is an entry in the request log
+// ReqLogEntry is an entry in the request log.
 type ReqLogEntry struct {
 	StartTime time.Time
 	EndTime   time.Time
@@ -18,14 +18,14 @@ type ReqLogEntry struct {
 	log *ReqLog
 }
 
-// Copy returns a copy of the ReqLogEntry
+// Copy returns a copy of the ReqLogEntry.
 func (r *ReqLogEntry) Copy() *ReqLogEntry {
 	out := *r
 	out.log = nil
 	return &out
 }
 
-// ReqLog is a log of requests
+// ReqLog is a log of requests.
 type ReqLog struct {
 	Requests []*ReqLogEntry
 	nextID   int
@@ -33,7 +33,7 @@ type ReqLog struct {
 	keep     time.Duration
 }
 
-// AddEntry adds an entry to the log
+// AddEntry adds an entry to the log.
 func (rl *ReqLog) AddEntry(rle *ReqLogEntry) {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()
@@ -47,7 +47,7 @@ func (rl *ReqLog) AddEntry(rle *ReqLogEntry) {
 	}
 }
 
-// ClearInactive removes stale entries
+// ClearInactive removes stale entries.
 func (rl *ReqLog) ClearInactive() {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()
@@ -79,14 +79,14 @@ func (rl *ReqLog) cleanup() {
 	rl.Requests = rl.Requests[:i]
 }
 
-// SetKeepTime sets a duration after which an entry will be considered inactive
+// SetKeepTime sets a duration after which an entry will be considered inactive.
 func (rl *ReqLog) SetKeepTime(t time.Duration) {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()
 	rl.keep = t
 }
 
-// Report generates a copy of all the entries in the requestlog
+// Report generates a copy of all the entries in the requestlog.
 func (rl *ReqLog) Report() []*ReqLogEntry {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()
@@ -99,7 +99,7 @@ func (rl *ReqLog) Report() []*ReqLogEntry {
 	return out
 }
 
-// Finish marks an entry in the log as finished
+// Finish marks an entry in the log as finished.
 func (rl *ReqLog) Finish(rle *ReqLogEntry) {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()

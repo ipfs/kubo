@@ -7,13 +7,13 @@ import (
 )
 
 func RequiresDocker(t *testing.T) {
-	if os.Getenv("TEST_NO_DOCKER") == "1" {
+	if os.Getenv("TEST_DOCKER") != "1" {
 		t.SkipNow()
 	}
 }
 
 func RequiresFUSE(t *testing.T) {
-	if os.Getenv("TEST_NO_FUSE") == "1" {
+	if os.Getenv("TEST_FUSE") != "1" {
 		t.SkipNow()
 	}
 }
@@ -25,7 +25,7 @@ func RequiresExpensive(t *testing.T) {
 }
 
 func RequiresPlugins(t *testing.T) {
-	if os.Getenv("TEST_NO_PLUGIN") == "1" {
+	if os.Getenv("TEST_PLUGIN") != "1" {
 		t.SkipNow()
 	}
 }

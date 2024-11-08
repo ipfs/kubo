@@ -5,25 +5,28 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	gopath "path"
 	"strconv"
+	"time"
 
+	bstore "github.com/ipfs/boxo/blockstore"
+	chunker "github.com/ipfs/boxo/chunker"
+	"github.com/ipfs/boxo/files"
+	posinfo "github.com/ipfs/boxo/filestore/posinfo"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipld/unixfs"
+	"github.com/ipfs/boxo/ipld/unixfs/importer/balanced"
+	ihelper "github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
+	"github.com/ipfs/boxo/ipld/unixfs/importer/trickle"
+	"github.com/ipfs/boxo/mfs"
+	"github.com/ipfs/boxo/path"
+	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/go-cid"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	chunker "github.com/ipfs/go-ipfs-chunker"
-	files "github.com/ipfs/go-ipfs-files"
-	pin "github.com/ipfs/go-ipfs-pinner"
-	posinfo "github.com/ipfs/go-ipfs-posinfo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-mfs"
-	"github.com/ipfs/go-unixfs"
-	"github.com/ipfs/go-unixfs/importer/balanced"
-	ihelper "github.com/ipfs/go-unixfs/importer/helpers"
-	"github.com/ipfs/go-unixfs/importer/trickle"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/path"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+
 	"github.com/ipfs/kubo/tracing"
 )
 
@@ -80,6 +83,11 @@ type Adder struct {
 	tempRoot   cid.Cid
 	CidBuilder cid.Builder
 	liveNodes  uint64
+
+	PreserveMode  bool
+	PreserveMtime bool
+	FileMode      os.FileMode
+	FileMtime     time.Time
 }
 
 func (adder *Adder) mfsRoot() (*mfs.Root, error) {
@@ -112,11 +120,13 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 	}
 
 	params := ihelper.DagBuilderParams{
-		Dagserv:    adder.bufferedDS,
-		RawLeaves:  adder.RawLeaves,
-		Maxlinks:   ihelper.DefaultLinksPerBlock,
-		NoCopy:     adder.NoCopy,
-		CidBuilder: adder.CidBuilder,
+		Dagserv:     adder.bufferedDS,
+		RawLeaves:   adder.RawLeaves,
+		Maxlinks:    ihelper.DefaultLinksPerBlock,
+		NoCopy:      adder.NoCopy,
+		CidBuilder:  adder.CidBuilder,
+		FileMode:    adder.FileMode,
+		FileModTime: adder.FileMtime,
 	}
 
 	db, err := params.New(chnk)
@@ -185,7 +195,11 @@ func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node) error {
 		adder.tempRoot = rnk
 	}
 
-	adder.pinning.PinWithMode(rnk, pin.Recursive)
+	err = adder.pinning.PinWithMode(ctx, rnk, pin.Recursive, "")
+	if err != nil {
+		return err
+	}
+
 	return adder.pinning.Flush(ctx)
 }
 
@@ -354,6 +368,14 @@ func (adder *Adder) addFileNode(ctx context.Context, path string, file files.Nod
 		return err
 	}
 
+	if adder.PreserveMtime {
+		adder.FileMtime = file.ModTime()
+	}
+
+	if adder.PreserveMode {
+		adder.FileMode = file.Mode()
+	}
+
 	if adder.liveNodes >= liveCacheSize {
 		// TODO: A smarter cache that uses some sort of lru cache with an eviction handler
 		mr, err := adder.mfsRoot()
@@ -384,6 +406,18 @@ func (adder *Adder) addSymlink(path string, l *files.Symlink) error {
 	sdata, err := unixfs.SymlinkData(l.Target)
 	if err != nil {
 		return err
+	}
+
+	if !adder.FileMtime.IsZero() {
+		fsn, err := unixfs.FSNodeFromBytes(sdata)
+		if err != nil {
+			return err
+		}
+
+		fsn.SetModTime(adder.FileMtime)
+		if sdata, err = fsn.GetBytes(); err != nil {
+			return err
+		}
 	}
 
 	dagnode := dag.NodeWithData(sdata)
@@ -424,6 +458,20 @@ func (adder *Adder) addFile(path string, file files.File) error {
 func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory, toplevel bool) error {
 	log.Infof("adding directory: %s", path)
 
+	// if we need to store mode or modification time then create a new root which includes that data
+	if toplevel && (adder.FileMode != 0 || !adder.FileMtime.IsZero()) {
+		nd := unixfs.EmptyDirNodeWithStat(adder.FileMode, adder.FileMtime)
+		err := nd.SetCidBuilder(adder.CidBuilder)
+		if err != nil {
+			return err
+		}
+		mr, err := mfs.NewRoot(ctx, adder.dagService, nd, nil)
+		if err != nil {
+			return err
+		}
+		adder.SetMfsRoot(mr)
+	}
+
 	if !(toplevel && path == "") {
 		mr, err := adder.mfsRoot()
 		if err != nil {
@@ -433,6 +481,8 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 			Mkparents:  true,
 			Flush:      false,
 			CidBuilder: adder.CidBuilder,
+			Mode:       adder.FileMode,
+			ModTime:    adder.FileMtime,
 		})
 		if err != nil {
 			return err
@@ -501,7 +551,7 @@ func getOutput(dagnode ipld.Node) (*coreiface.AddEvent, error) {
 	}
 
 	output := &coreiface.AddEvent{
-		Path: path.IpfsPath(c),
+		Path: path.FromCid(c),
 		Size: strconv.FormatUint(s, 10),
 	}
 

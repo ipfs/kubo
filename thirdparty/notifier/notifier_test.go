@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// test data structures
+// test data structures.
 type Router struct {
 	queue    chan Packet
 	notifier Notifier
@@ -36,7 +36,6 @@ func (r *Router) notifyAll(notify func(n RouterNotifiee)) {
 }
 
 func (r *Router) Receive(p Packet) {
-
 	select {
 	case r.queue <- p: // enqueued
 		r.notifyAll(func(n RouterNotifiee) {
@@ -100,7 +99,6 @@ func (m *Metrics) String() string {
 }
 
 func TestNotifies(t *testing.T) {
-
 	m := Metrics{received: make(chan struct{})}
 	r := Router{queue: make(chan Packet, 10)}
 	r.Notify(&m)

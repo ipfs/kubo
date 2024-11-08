@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ipfs/kubo/test/cli/harness"
@@ -29,7 +30,8 @@ func TestPing(t *testing.T) {
 		badPeer := "QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJx"
 		res := node1.RunIPFS("ping", "-n", "2", "--", badPeer)
 		assert.Contains(t, res.Stdout.String(), fmt.Sprintf("Looking up peer %s", badPeer))
-		assert.Contains(t, res.Stderr.String(), "Error: ping failed")
+		msg := res.Stderr.String()
+		assert.Truef(t, strings.HasPrefix(msg, "Error:"), "should fail got this instead: %q", msg)
 	})
 
 	t.Run("self", func(t *testing.T) {

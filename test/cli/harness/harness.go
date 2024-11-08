@@ -11,6 +11,8 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	. "github.com/ipfs/kubo/test/cli/testutils"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multiaddr"
 )
 
 // Harness tracks state for a test, such as temp dirs and IFPS nodes, and cleans them up after the test.
@@ -119,15 +121,19 @@ func (h *Harness) TempFile() *os.File {
 }
 
 // WriteFile writes a file given a filename and its contents.
-// The filename should be a relative path.
+// The filename must be a relative path, or this panics.
 func (h *Harness) WriteFile(filename, contents string) {
 	if filepath.IsAbs(filename) {
 		log.Panicf("%s must be a relative path", filename)
 	}
 	absPath := filepath.Join(h.Runner.Dir, filename)
-	err := os.WriteFile(absPath, []byte(contents), 0644)
+	err := os.MkdirAll(filepath.Dir(absPath), 0o777)
 	if err != nil {
-		log.Panicf("writing '%s' ('%s'): %s", filename, absPath, err.Error())
+		log.Panicf("creating intermediate dirs for %q: %s", filename, err.Error())
+	}
+	err = os.WriteFile(absPath, []byte(contents), 0o644)
+	if err != nil {
+		log.Panicf("writing %q (%q): %s", filename, absPath, err.Error())
 	}
 }
 
@@ -140,8 +146,7 @@ func WaitForFile(path string, timeout time.Duration) error {
 	for {
 		select {
 		case <-timer.C:
-			end := time.Now()
-			return fmt.Errorf("timeout waiting for %s after %v", path, end.Sub(start))
+			return fmt.Errorf("timeout waiting for %s after %v", path, time.Since(start))
 		case <-ticker.C:
 			_, err := os.Stat(path)
 			if err == nil {
@@ -161,14 +166,14 @@ func (h *Harness) Mkdirs(paths ...string) {
 			log.Panicf("%s must be a relative path when making dirs", path)
 		}
 		absPath := filepath.Join(h.Runner.Dir, path)
-		err := os.MkdirAll(absPath, 0777)
+		err := os.MkdirAll(absPath, 0o777)
 		if err != nil {
 			log.Panicf("recursively making dirs under %s: %s", absPath, err)
 		}
 	}
 }
 
-func (h *Harness) Sh(expr string) RunResult {
+func (h *Harness) Sh(expr string) *RunResult {
 	return h.Runner.Run(RunRequest{
 		Path: "bash",
 		Args: []string{"-c", expr},
@@ -184,4 +189,23 @@ func (h *Harness) Cleanup() {
 	if err != nil {
 		log.Panicf("removing temp dir %s: %s", h.Dir, err)
 	}
+}
+
+// ExtractPeerID extracts a peer ID from the given multiaddr, and fatals if it does not contain a peer ID.
+func (h *Harness) ExtractPeerID(m multiaddr.Multiaddr) peer.ID {
+	var peerIDStr string
+	multiaddr.ForEach(m, func(c multiaddr.Component) bool {
+		if c.Protocol().Code == multiaddr.P_P2P {
+			peerIDStr = c.Value()
+		}
+		return true
+	})
+	if peerIDStr == "" {
+		panic(multiaddr.ErrProtocolNotFound)
+	}
+	peerID, err := peer.Decode(peerIDStr)
+	if err != nil {
+		panic(err)
+	}
+	return peerID
 }

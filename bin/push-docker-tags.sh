@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-
+#
+# TODO: this script is legacy, use get-docker-tags.sh instead.
+#
 # push-docker-tags.sh
 #
-# Run from ci to tag images based on the current branch or tag name. 
+# Run from ci to tag images based on the current branch or tag name.
 # A bit like dockerhub autobuild config, but somewhere we can version control it.
-# 
-# The `docker-build` job in .circleci/config.yml builds the current commit
-# in docker and tags it as ipfs/go-ipfs:wip
+#
+# The `docker-build` job builds the current commit in docker and tags it as ipfs/go-ipfs:wip
 #
 # Then the `docker-publish` job runs this script to decide what tag, if any,
 # to publish to dockerhub.
@@ -17,15 +18,12 @@
 # Example:
 #   # dry run. pass a 5th arg to have it print what it would do rather than do it.
 #   ./push-docker-tags.sh $(date -u +%F) testingsha master "" dryrun
-#    
+#
 #   # push tag for the master branch
 #   ./push-docker-tags.sh $(date -u +%F) testingsha master
 #
 #   # push tag for a release tag
 #   ./push-docker-tags.sh $(date -u +%F) testingsha release v0.5.0
-#
-#   # Serving suggestion in circle ci - https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
-#   ./push-docker-tags.sh $(date -u +%F) "$CIRCLE_SHA1" "$CIRCLE_BRANCH" "$CIRCLE_TAG"
 #
 set -euo pipefail
 
@@ -72,9 +70,9 @@ elif [[ $GIT_BRANCH =~ ^bifrost-.* ]]; then
   branch=$(echo "$GIT_BRANCH" | tr '/' '-' | tr --delete --complement '[:alnum:]-')
   pushTag "${branch}-${BUILD_NUM}-${GIT_SHA1_SHORT}"
 
-elif [ "$GIT_BRANCH" = "master" ]; then
-  pushTag "master-${BUILD_NUM}-${GIT_SHA1_SHORT}"
-  pushTag "master-latest"
+elif [ "$GIT_BRANCH" = "master" ] || [ "$GIT_BRANCH" = "staging" ]; then
+  pushTag "${GIT_BRANCH}-${BUILD_NUM}-${GIT_SHA1_SHORT}"
+  pushTag "${GIT_BRANCH}-latest"
 
 else
   echo "Nothing to do. No docker tag defined for branch: $GIT_BRANCH, tag: $GIT_TAG"

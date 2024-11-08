@@ -38,9 +38,20 @@ func (n *Node) SetIPFSConfig(key string, val interface{}, flags ...string) {
 	n.IPFS(args...)
 
 	// validate the config was set correctly
-	var newVal string
-	n.GetIPFSConfig(key, &newVal)
-	if val != newVal {
+
+	// Create a new value which is a pointer to the same type as the source.
+	var newVal any
+	if val != nil {
+		// If it is not nil grab the type with reflect.
+		newVal = reflect.New(reflect.TypeOf(val)).Interface()
+	} else {
+		// else just set a pointer to an any.
+		var anything any
+		newVal = &anything
+	}
+	n.GetIPFSConfig(key, newVal)
+	// dereference newVal using reflect to load the resulting value
+	if !reflect.DeepEqual(val, reflect.ValueOf(newVal).Elem().Interface()) {
 		log.Panicf("key '%s' did not retain value '%s' after it was set, got '%s'", key, val, newVal)
 	}
 }
@@ -77,4 +88,23 @@ func (n *Node) IPFSAdd(content io.Reader, args ...string) string {
 	out := strings.TrimSpace(res.Stdout.String())
 	log.Debugf("add result: %q", out)
 	return out
+}
+
+func (n *Node) IPFSDagImport(content io.Reader, cid string, args ...string) error {
+	log.Debugf("node %d dag import with args: %v", n.ID, args)
+	fullArgs := []string{"dag", "import", "--pin-roots=false"}
+	fullArgs = append(fullArgs, args...)
+	res := n.Runner.MustRun(RunRequest{
+		Path:    n.IPFSBin,
+		Args:    fullArgs,
+		CmdOpts: []CmdOpt{RunWithStdin(content)},
+	})
+	if res.Err != nil {
+		return res.Err
+	}
+	res = n.Runner.MustRun(RunRequest{
+		Path: n.IPFSBin,
+		Args: []string{"block", "stat", "--offline", cid},
+	})
+	return res.Err
 }

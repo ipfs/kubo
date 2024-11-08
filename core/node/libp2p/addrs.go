@@ -1,13 +1,23 @@
 package libp2p
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
+	logging "github.com/ipfs/go-log"
+	version "github.com/ipfs/kubo"
+	"github.com/ipfs/kubo/config"
+	p2pforge "github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/host"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
+
+	"github.com/caddyserver/certmagic"
+	"go.uber.org/fx"
 )
 
 func AddrFilters(filters []string) func() (*ma.Filters, Libp2pOpts, error) {
@@ -88,48 +98,73 @@ func makeAddrsFactory(announce []string, appendAnnouce []string, noAnnounce []st
 	}, nil
 }
 
-func AddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string) func() (opts Libp2pOpts, err error) {
-	return func() (opts Libp2pOpts, err error) {
-		addrsFactory, err := makeAddrsFactory(announce, appendAnnouce, noAnnounce)
+func AddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string) interface{} {
+	return func(params struct {
+		fx.In
+		ForgeMgr *p2pforge.P2PForgeCertMgr `optional:"true"`
+	},
+	) (opts Libp2pOpts, err error) {
+		var addrsFactory p2pbhost.AddrsFactory
+		announceAddrsFactory, err := makeAddrsFactory(announce, appendAnnouce, noAnnounce)
 		if err != nil {
 			return opts, err
+		}
+		if params.ForgeMgr == nil {
+			addrsFactory = announceAddrsFactory
+		} else {
+			addrsFactory = func(multiaddrs []ma.Multiaddr) []ma.Multiaddr {
+				forgeProcessing := params.ForgeMgr.AddressFactory()(multiaddrs)
+				annouceProcessing := announceAddrsFactory(forgeProcessing)
+				return annouceProcessing
+			}
 		}
 		opts.Opts = append(opts.Opts, libp2p.AddrsFactory(addrsFactory))
 		return
 	}
 }
 
-func listenAddresses(addresses []string) ([]ma.Multiaddr, error) {
-	listen := make([]ma.Multiaddr, len(addresses))
-	for i, addr := range addresses {
-		maddr, err := ma.NewMultiaddr(addr)
-		if err != nil {
-			return nil, fmt.Errorf("failure to parse config.Addresses.Swarm: %s", addresses)
+func ListenOn(addresses []string) interface{} {
+	return func() (opts Libp2pOpts) {
+		return Libp2pOpts{
+			Opts: []libp2p.Option{
+				libp2p.ListenAddrStrings(addresses...),
+			},
 		}
-		listen[i] = maddr
 	}
-
-	return listen, nil
 }
 
-func StartListening(addresses []string) func(host host.Host) error {
-	return func(host host.Host) error {
-		listenAddrs, err := listenAddresses(addresses)
+func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS) interface{} {
+	return func() (*p2pforge.P2PForgeCertMgr, error) {
+		storagePath := filepath.Join(repoPath, "p2p-forge-certs")
+
+		forgeLogger := logging.Logger("autotls").Desugar()
+		certStorage := &certmagic.FileStorage{Path: storagePath}
+		certMgr, err := p2pforge.NewP2PForgeCertMgr(
+			p2pforge.WithLogger(forgeLogger.Sugar()),
+			p2pforge.WithForgeDomain(cfg.DomainSuffix.WithDefault(config.DefaultDomainSuffix)),
+			p2pforge.WithForgeRegistrationEndpoint(cfg.RegistrationEndpoint.WithDefault(config.DefaultRegistrationEndpoint)),
+			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),
+			p2pforge.WithForgeAuth(cfg.RegistrationToken.WithDefault(os.Getenv(p2pforge.ForgeAuthEnv))),
+			p2pforge.WithUserAgent(version.GetUserAgentVersion()),
+			p2pforge.WithCertificateStorage(certStorage),
+		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		// Actually start listening:
-		if err := host.Network().Listen(listenAddrs...); err != nil {
-			return err
-		}
-
-		// list out our addresses
-		addrs, err := host.Network().InterfaceListenAddresses()
-		if err != nil {
-			return err
-		}
-		log.Infof("Swarm listening at: %s", addrs)
-		return nil
+		return certMgr, nil
 	}
+}
+
+func StartP2PAutoTLS(lc fx.Lifecycle, certMgr *p2pforge.P2PForgeCertMgr, h host.Host) {
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			certMgr.ProvideHost(h)
+			return certMgr.Start()
+		},
+		OnStop: func(ctx context.Context) error {
+			certMgr.Stop()
+			return nil
+		},
+	})
 }

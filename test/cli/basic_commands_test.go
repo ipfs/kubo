@@ -88,6 +88,7 @@ func TestAllSubcommandsAcceptHelp(t *testing.T) {
 	t.Parallel()
 	node := harness.NewT(t).NewNode()
 	for _, cmd := range node.IPFSCommands() {
+		cmd := cmd
 		t.Run(fmt.Sprintf("command %q accepts help", cmd), func(t *testing.T) {
 			t.Parallel()
 			splitCmd := strings.Split(cmd, " ")[1:]
@@ -115,9 +116,6 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 	notInHelp := map[string]bool{
 		"object":   true,
 		"shutdown": true,
-		"tar":      true,
-		"urlstore": true,
-		"dns":      true,
 	}
 
 	helpMsg := strings.TrimSpace(node.IPFS("--help").Stdout.String())
@@ -149,16 +147,13 @@ func TestCommandDocsWidth(t *testing.T) {
 		"ipfs swarm addrs listen":       true,
 		"ipfs dag resolve":              true,
 		"ipfs dag get":                  true,
-		"ipfs object stat":              true,
 		"ipfs pin remote add":           true,
 		"ipfs config show":              true,
 		"ipfs config edit":              true,
 		"ipfs pin remote rm":            true,
 		"ipfs pin remote ls":            true,
 		"ipfs pin verify":               true,
-		"ipfs dht get":                  true,
 		"ipfs pin remote service add":   true,
-		"ipfs file ls":                  true,
 		"ipfs pin update":               true,
 		"ipfs pin rm":                   true,
 		"ipfs p2p":                      true,
@@ -168,18 +163,13 @@ func TestCommandDocsWidth(t *testing.T) {
 		"ipfs object diff":              true,
 		"ipfs object patch add-link":    true,
 		"ipfs name":                     true,
-		"ipfs object patch append-data": true,
-		"ipfs object patch set-data":    true,
-		"ipfs dht put":                  true,
 		"ipfs diag profile":             true,
 		"ipfs diag cmds":                true,
 		"ipfs swarm addrs local":        true,
 		"ipfs files ls":                 true,
 		"ipfs stats bw":                 true,
-		"ipfs urlstore add":             true,
 		"ipfs swarm peers":              true,
 		"ipfs pubsub sub":               true,
-		"ipfs repo fsck":                true,
 		"ipfs files write":              true,
 		"ipfs swarm limit":              true,
 		"ipfs commands completion fish": true,
@@ -209,7 +199,6 @@ func TestCommandDocsWidth(t *testing.T) {
 			for _, line := range SplitLines(res) {
 				assert.LessOrEqualf(t, len(line), 80, "expected width %d < 80 for %q", len(line), cmd)
 			}
-
 		})
 	}
 }
@@ -225,7 +214,6 @@ func TestAllCommandsFailWhenPassedBadFlag(t *testing.T) {
 			assert.Equal(t, 1, res.Cmd.ProcessState.ExitCode())
 		})
 	}
-
 }
 
 func TestCommandsFlags(t *testing.T) {

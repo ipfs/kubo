@@ -7,10 +7,10 @@ import (
 	"strings"
 	"unicode"
 
+	verifcid "github.com/ipfs/boxo/verifcid"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	verifcid "github.com/ipfs/go-verifcid"
 	ipldmulticodec "github.com/ipld/go-ipld-prime/multicodec"
 	mbase "github.com/multiformats/go-multibase"
 	mc "github.com/multiformats/go-multicodec"
@@ -80,10 +80,15 @@ The optional format string is a printf style format string:
 
 		switch verStr {
 		case "":
-			// noop
+			if baseStr != "" {
+				opts.verConv = toCidV1
+			}
 		case "0":
 			if opts.newCodec != 0 && opts.newCodec != cid.DagProtobuf {
 				return fmt.Errorf("cannot convert to CIDv0 with any codec other than dag-pb")
+			}
+			if baseStr != "" && baseStr != "base58btc" {
+				return fmt.Errorf("cannot convert to CIDv0 with any multibase other than the implicit base58btc")
 			}
 			opts.verConv = toCidV0
 		case "1":
@@ -377,7 +382,7 @@ var hashesCmd = &cmds.Command{
 		var res []CodeAndName
 		// use mhash.Codes in case at some point there are multiple names for a given code
 		for code, name := range mhash.Codes {
-			if !verifcid.IsGoodHash(code) {
+			if !verifcid.DefaultAllowlist.IsAllowed(code) {
 				continue
 			}
 			res = append(res, CodeAndName{int(code), name})

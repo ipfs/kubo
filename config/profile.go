@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-// Transformer is a function which takes configuration and applies some filter to it
+// Transformer is a function which takes configuration and applies some filter to it.
 type Transformer func(c *Config) error
 
-// Profile contains the profile transformer the description of the profile
+// Profile contains the profile transformer the description of the profile.
 type Profile struct {
 	// Description briefly describes the functionality of the profile.
 	Description string
@@ -43,7 +43,7 @@ var defaultServerFilters = []string{
 	"/ip6/fe80::/ipcidr/10",
 }
 
-// Profiles is a map holding configuration transformers. Docs are in docs/config.md
+// Profiles is a map holding configuration transformers. Docs are in docs/config.md.
 var Profiles = map[string]Profile{
 	"server": {
 		Description: `Disables local host discovery, recommended when
@@ -82,6 +82,7 @@ is useful when using the daemon in test environments.`,
 			}
 
 			c.Swarm.DisableNatPortMap = true
+			c.Routing.LoopbackAddressesOnLanDHT = True
 
 			c.Bootstrap = []string{}
 			c.Discovery.MDNS.Enabled = false
@@ -123,7 +124,7 @@ This profile may only be applied when first initializing the node.
 	"flatfs": {
 		Description: `Configures the node to use the flatfs datastore.
 
-This is the most battle-tested and reliable datastore. 
+This is the most battle-tested and reliable datastore.
 You should use this datastore if:
 
 * You need a very simple and very reliable datastore, and you trust your
@@ -134,7 +135,11 @@ You should use this datastore if:
 * You want to minimize memory usage.
 * You are ok with the default speed of data import, or prefer to use --nocopy.
 
-This profile may only be applied when first initializing the node.
+See configuration documentation at:
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#flatfs
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs'
 `,
 
 		InitOnly: true,
@@ -143,24 +148,54 @@ This profile may only be applied when first initializing the node.
 			return nil
 		},
 	},
-	"badgerds": {
-		Description: `Configures the node to use the experimental badger datastore.
+	"pebbleds": {
+		Description: `Configures the node to use the pebble high-performance datastore.
 
-Use this datastore if some aspects of performance, 
-especially the speed of adding many gigabytes of files, are critical.
-However, be aware that:
+Pebble is a LevelDB/RocksDB inspired key-value store focused on performance
+and internal usage by CockroachDB.
+You should use this datastore if:
+
+- You need a datastore that is focused on performance.
+- You need reliability by default, but may choose to disable WAL for maximum performance when reliability is not critical.
+- This datastore is good for multi-terabyte data sets.
+- May benefit from tuning depending on read/write patterns and throughput.
+- Performance is helped significantly by running on a system with plenty of memory.
+
+See configuration documentation at:
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#pebbleds
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile pebbleds'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = pebbleSpec()
+			return nil
+		},
+	},
+	"badgerds": {
+		Description: `Configures the node to use the legacy badgerv1 datastore.
+
+NOTE: this is badger 1.x, which has known bugs and is no longer supported by the upstream team.
+It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
+
+Other caveats:
 
 * This datastore will not properly reclaim space when your datastore is
   smaller than several gigabytes.  If you run IPFS with --enable-gc, you plan
   on storing very little data in your IPFS node, and disk usage is more
   critical than performance, consider using flatfs.
-* This datastore uses up to several gigabytes of memory.  
+* This datastore uses up to several gigabytes of memory.
 * Good for medium-size datastores, but may run into performance issues
   if your dataset is bigger than a terabyte.
-* The current implementation is based on old badger 1.x
-  which is no longer supported by the upstream team.
 
-This profile may only be applied when first initializing the node.`,
+See configuration documentation at:
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#badgerds
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile badgerds'
+`,
 
 		InitOnly: true,
 		Transform: func(c *Config) error {
@@ -174,10 +209,12 @@ functionality - performance of content discovery and data
 fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
-			c.Routing.Type = NewOptionalString("dhtclient") // TODO: https://github.com/ipfs/kubo/issues/9480
+			// Disable "server" services (dht, autonat, limited relay)
+			c.Routing.Type = NewOptionalString("autoclient")
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
-			c.Reprovider.Interval = NewOptionalDuration(0)
+			c.Swarm.RelayService.Enabled = False
 
+			// Keep bare minimum connections around
 			lowWater := int64(20)
 			highWater := int64(40)
 			gracePeriod := time.Minute
@@ -185,6 +222,29 @@ fetching may be degraded.
 			c.Swarm.ConnMgr.LowWater = &OptionalInteger{value: &lowWater}
 			c.Swarm.ConnMgr.HighWater = &OptionalInteger{value: &highWater}
 			c.Swarm.ConnMgr.GracePeriod = &OptionalDuration{&gracePeriod}
+			return nil
+		},
+	},
+	"announce-off": {
+		Description: `Disables Reprovide system (and announcing to Amino DHT).
+
+		USE WITH CAUTION:
+		The main use case for this is setups with manual Peering.Peers config.
+		Data from this node will not be announced on the DHT. This will make
+		DHT-based routing an data retrieval impossible if this node is the only
+		one hosting it, and other peers are not already connected to it.
+`,
+		Transform: func(c *Config) error {
+			c.Reprovider.Interval = NewOptionalDuration(0) // 0 disables periodic reprovide
+			c.Experimental.StrategicProviding = true       // this is not a typo (the name is counter-intuitive)
+			return nil
+		},
+	},
+	"announce-on": {
+		Description: `Re-enables Reprovide system (reverts announce-off profile).`,
+		Transform: func(c *Config) error {
+			c.Reprovider.Interval = NewOptionalDuration(DefaultReproviderInterval) // have to apply explicit default because nil would be ignored
+			c.Experimental.StrategicProviding = false                              // this is not a typo (the name is counter-intuitive)
 			return nil
 		},
 	},
@@ -200,6 +260,28 @@ fetching may be degraded.
 				fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
 				fmt.Sprintf("/ip6/::/tcp/%d", port),
 			}
+			return nil
+		},
+	},
+	"legacy-cid-v0": {
+		Description: `Makes UnixFS import produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.`,
+
+		Transform: func(c *Config) error {
+			c.Import.CidVersion = *NewOptionalInteger(0)
+			c.Import.UnixFSRawLeaves = False
+			c.Import.UnixFSChunker = *NewOptionalString("size-262144")
+			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			return nil
+		},
+	},
+	"test-cid-v1": {
+		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.`,
+
+		Transform: func(c *Config) error {
+			c.Import.CidVersion = *NewOptionalInteger(1)
+			c.Import.UnixFSRawLeaves = True
+			c.Import.UnixFSChunker = *NewOptionalString("size-1048576")
+			c.Import.HashFunction = *NewOptionalString("sha2-256")
 			return nil
 		},
 	},

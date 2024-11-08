@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"time"
 
-	util "github.com/ipfs/go-ipfs-util"
-	"github.com/ipfs/go-ipns"
+	"github.com/ipfs/boxo/ipns"
+	util "github.com/ipfs/boxo/util"
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
-	"github.com/ipfs/go-namesys"
-	"github.com/ipfs/go-namesys/republisher"
+	"github.com/ipfs/boxo/namesys"
+	"github.com/ipfs/boxo/namesys/republisher"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
 )
@@ -28,11 +28,12 @@ func RecordValidator(ps peerstore.Peerstore) record.Validator {
 }
 
 // Namesys creates new name system
-func Namesys(cacheSize int) func(rt irouting.ProvideManyRouter, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
+func Namesys(cacheSize int, cacheMaxTTL time.Duration) func(rt irouting.ProvideManyRouter, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
 	return func(rt irouting.ProvideManyRouter, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
 		opts := []namesys.Option{
 			namesys.WithDatastore(repo.Datastore()),
 			namesys.WithDNSResolver(rslv),
+			namesys.WithMaxCacheTTL(cacheMaxTTL),
 		}
 
 		if cacheSize > 0 {

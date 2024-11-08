@@ -1,68 +1,27 @@
 package routing
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"testing"
 
 	"github.com/ipfs/kubo/config"
-	crypto "github.com/libp2p/go-libp2p/core/crypto"
-	peer "github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
-
-func TestReframeRoutingFromConfig(t *testing.T) {
-	require := require.New(t)
-
-	r, err := reframeRoutingFromConfig(config.Router{
-		Type:       config.RouterTypeReframe,
-		Parameters: &config.ReframeRouterParams{},
-	}, nil)
-
-	require.Nil(r)
-	require.EqualError(err, "configuration param 'Endpoint' is needed for reframe delegated routing types")
-
-	r, err = reframeRoutingFromConfig(config.Router{
-		Type: config.RouterTypeReframe,
-		Parameters: &config.ReframeRouterParams{
-			Endpoint: "test",
-		},
-	}, nil)
-
-	require.NoError(err)
-	require.NotNil(r)
-
-	priv, pub, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
-	require.NoError(err)
-
-	id, err := peer.IDFromPublicKey(pub)
-	require.NoError(err)
-
-	privM, err := crypto.MarshalPrivateKey(priv)
-	require.NoError(err)
-
-	r, err = reframeRoutingFromConfig(config.Router{
-		Type: config.RouterTypeReframe,
-		Parameters: &config.ReframeRouterParams{
-			Endpoint: "test",
-		},
-	}, &ExtraHTTPParams{
-		PeerID:     id.String(),
-		Addrs:      []string{"/ip4/0.0.0.0/tcp/4001"},
-		PrivKeyB64: base64.StdEncoding.EncodeToString(privM),
-	})
-
-	require.NotNil(r)
-	require.NoError(err)
-}
 
 func TestParser(t *testing.T) {
 	require := require.New(t)
 
+	pid, sk, err := generatePeerID()
+	require.NoError(err)
+
 	router, err := Parse(config.Routers{
 		"r1": config.RouterParser{
 			Router: config.Router{
-				Type: config.RouterTypeReframe,
-				Parameters: &config.ReframeRouterParams{
+				Type: config.RouterTypeHTTP,
+				Parameters: &config.HTTPRouterParams{
 					Endpoint: "testEndpoint",
 				},
 			},
@@ -95,7 +54,10 @@ func TestParser(t *testing.T) {
 		config.MethodNameProvide: config.Method{
 			RouterName: "r2",
 		},
-	}, &ExtraDHTParams{}, nil)
+	}, &ExtraDHTParams{}, &ExtraHTTPParams{
+		PeerID:     string(pid),
+		PrivKeyB64: sk,
+	})
 
 	require.NoError(err)
 
@@ -109,27 +71,30 @@ func TestParser(t *testing.T) {
 func TestParserRecursive(t *testing.T) {
 	require := require.New(t)
 
+	pid, sk, err := generatePeerID()
+	require.NoError(err)
+
 	router, err := Parse(config.Routers{
-		"reframe1": config.RouterParser{
+		"http1": config.RouterParser{
 			Router: config.Router{
-				Type: config.RouterTypeReframe,
-				Parameters: &config.ReframeRouterParams{
+				Type: config.RouterTypeHTTP,
+				Parameters: &config.HTTPRouterParams{
 					Endpoint: "testEndpoint1",
 				},
 			},
 		},
-		"reframe2": config.RouterParser{
+		"http2": config.RouterParser{
 			Router: config.Router{
-				Type: config.RouterTypeReframe,
-				Parameters: &config.ReframeRouterParams{
+				Type: config.RouterTypeHTTP,
+				Parameters: &config.HTTPRouterParams{
 					Endpoint: "testEndpoint2",
 				},
 			},
 		},
-		"reframe3": config.RouterParser{
+		"http3": config.RouterParser{
 			Router: config.Router{
-				Type: config.RouterTypeReframe,
-				Parameters: &config.ReframeRouterParams{
+				Type: config.RouterTypeHTTP,
+				Parameters: &config.HTTPRouterParams{
 					Endpoint: "testEndpoint3",
 				},
 			},
@@ -140,10 +105,10 @@ func TestParserRecursive(t *testing.T) {
 				Parameters: &config.ComposableRouterParams{
 					Routers: []config.ConfigRouter{
 						{
-							RouterName: "reframe1",
+							RouterName: "http1",
 						},
 						{
-							RouterName: "reframe2",
+							RouterName: "http2",
 						},
 					},
 				},
@@ -158,7 +123,7 @@ func TestParserRecursive(t *testing.T) {
 							RouterName: "composable1",
 						},
 						{
-							RouterName: "reframe3",
+							RouterName: "http3",
 						},
 					},
 				},
@@ -180,13 +145,15 @@ func TestParserRecursive(t *testing.T) {
 		config.MethodNameProvide: config.Method{
 			RouterName: "composable2",
 		},
-	}, &ExtraDHTParams{}, nil)
+	}, &ExtraDHTParams{}, &ExtraHTTPParams{
+		PeerID:     string(pid),
+		PrivKeyB64: sk,
+	})
 
 	require.NoError(err)
 
 	_, ok := router.(*Composer)
 	require.True(ok)
-
 }
 
 func TestParserRecursiveLoop(t *testing.T) {
@@ -236,4 +203,24 @@ func TestParserRecursiveLoop(t *testing.T) {
 	}, &ExtraDHTParams{}, nil)
 
 	require.ErrorContains(err, "dependency loop creating router with name \"composable2\"")
+}
+
+func generatePeerID() (string, string, error) {
+	sk, pk, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		return "", "", err
+	}
+
+	bytes, err := crypto.MarshalPrivateKey(sk)
+	if err != nil {
+		return "", "", err
+	}
+
+	enc := base64.StdEncoding.EncodeToString(bytes)
+	if err != nil {
+		return "", "", err
+	}
+
+	pid, err := peer.IDFromPublicKey(pk)
+	return pid.String(), enc, err
 }

@@ -4,14 +4,13 @@
 package node
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"bazil.org/fuse"
-
-	"context"
 
 	core "github.com/ipfs/kubo/core"
 	ipns "github.com/ipfs/kubo/fuse/ipns"
@@ -33,7 +32,7 @@ func mkdir(t *testing.T, path string) {
 	}
 }
 
-// Test externally unmounting, then trying to unmount in code
+// Test externally unmounting, then trying to unmount in code.
 func TestExternalUnmount(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -52,11 +51,8 @@ func TestExternalUnmount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// get the test dir paths (/tmp/fusetestXXXX)
-	dir, err := os.MkdirTemp("", "fusetest")
-	if err != nil {
-		t.Fatal(err)
-	}
+	// get the test dir paths (/tmp/TestExternalUnmount)
+	dir := t.TempDir()
 
 	ipfsDir := dir + "/ipfs"
 	ipnsDir := dir + "/ipns"

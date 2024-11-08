@@ -4,7 +4,7 @@ test_description="Tests for various fixed issues and regressions."
 
 . lib/test-lib.sh
 
-test_init_ipfs
+test_init_ipfs --empty-repo=false
 
 test_launch_ipfs_daemon
 
@@ -29,7 +29,7 @@ test_expect_success "no panic traces on daemon" '
 
 test_expect_success "metrics work" '
   curl -X POST "$API_ADDR/debug/metrics/prometheus" > pro_data &&
-  grep "ipfs_bs_cache_arc_hits_total" < pro_data ||
+  grep "ipfs_bs_cache_boxo_blockstore_cache_total" < pro_data ||
   test_fsh cat pro_data
 '
 

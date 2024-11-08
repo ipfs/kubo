@@ -6,9 +6,11 @@ import (
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 )
 
-const IdentityTag = "Identity"
-const PrivKeyTag = "PrivKey"
-const PrivKeySelector = IdentityTag + "." + PrivKeyTag
+const (
+	IdentityTag     = "Identity"
+	PrivKeyTag      = "PrivKey"
+	PrivKeySelector = IdentityTag + "." + PrivKeyTag
+)
 
 // Identity tracks the configuration of the local node's identity.
 type Identity struct {
@@ -16,7 +18,7 @@ type Identity struct {
 	PrivKey string `json:",omitempty"`
 }
 
-// DecodePrivateKey is a helper to decode the users PrivateKey
+// DecodePrivateKey is a helper to decode the users PrivateKey.
 func (i *Identity) DecodePrivateKey(passphrase string) (ic.PrivKey, error) {
 	pkb, err := base64.StdEncoding.DecodeString(i.PrivKey)
 	if err != nil {

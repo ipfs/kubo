@@ -1,10 +1,16 @@
 # Developer Documentation and Guides
 
-If you are looking for User Documentation & Guides, please visit [docs.ipfs.tech](https://docs.ipfs.tech/).
+If you are looking for User Documentation & Guides, please visit [docs.ipfs.tech](https://docs.ipfs.tech/) or check [General Documentation](#general-documentation).
 
 If you’re experiencing an issue with IPFS, **please follow [our issue guide](github-issue-guide.md) when filing an issue!**
 
 Otherwise, check out the following guides to using and developing IPFS:
+
+## General Documentation
+
+- [Configuration reference](config.md)
+    - [Datastore configuration](datastores.md)
+    - [Experimental features](experimental-features.md)
 
 ## Developing `kubo`
 
@@ -22,9 +28,6 @@ Otherwise, check out the following guides to using and developing IPFS:
 ## Advanced User Guides
 
 - [Transferring a File Over IPFS](file-transfer.md)
-- [Configuration reference](config.md)
-    - [Datastore configuration](datastores.md)
-    - [Experimental features](experimental-features.md)
 - [Installing command completion](command-completion.md)
 - [Mounting IPFS with FUSE](fuse.md)
 - [Installing plugins](plugins.md)

@@ -39,10 +39,9 @@ function calls. For example:
 #### CLI API Transport
 
 In the commandline, IPFS uses a traditional flag and arg-based mapping, where:
-- the first arguments selects the command, as in git - e.g. `ipfs object get`
+- the first arguments selects the command, as in git - e.g. `ipfs dag get`
 - the flags specify options - e.g. `--enc=protobuf -q`
-- the rest are positional arguments - e.g.
-  `ipfs object patch <hash1> add-linkfoo <hash2>`
+- the rest are positional arguments - e.g. `ipfs key rename <name> <newName>`
 - files are specified by filename, or through stdin
 
 (NOTE: When kubo runs the daemon, the CLI API is actually converted to HTTP

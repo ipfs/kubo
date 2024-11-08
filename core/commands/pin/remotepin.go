@@ -15,13 +15,13 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	pinclient "github.com/ipfs/boxo/pinning/remote/client"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
-	pinclient "github.com/ipfs/go-pinning-service-http-client"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -54,16 +54,18 @@ var remotePinServiceCmd = &cmds.Command{
 	},
 }
 
-const pinNameOptionName = "name"
-const pinCIDsOptionName = "cid"
-const pinStatusOptionName = "status"
-const pinServiceNameOptionName = "service"
-const pinServiceNameArgName = pinServiceNameOptionName
-const pinServiceEndpointArgName = "endpoint"
-const pinServiceKeyArgName = "key"
-const pinServiceStatOptionName = "stat"
-const pinBackgroundOptionName = "background"
-const pinForceOptionName = "force"
+const (
+	pinNameOptionName         = "name"
+	pinCIDsOptionName         = "cid"
+	pinStatusOptionName       = "status"
+	pinServiceNameOptionName  = "service"
+	pinServiceNameArgName     = pinServiceNameOptionName
+	pinServiceEndpointArgName = "endpoint"
+	pinServiceKeyArgName      = "key"
+	pinServiceStatOptionName  = "stat"
+	pinBackgroundOptionName   = "background"
+	pinForceOptionName        = "force"
+)
 
 type RemotePinOutput struct {
 	Status string
@@ -155,7 +157,12 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 		if err != nil {
 			return err
 		}
-		rp, err := api.ResolvePath(ctx, path.New(req.Arguments[0]))
+		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		rp, _, err := api.ResolvePath(ctx, p)
 		if err != nil {
 			return err
 		}
@@ -175,7 +182,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 			return err
 		}
 
-		isInBlockstore, err := node.Blockstore.Has(req.Context, rp.Cid())
+		isInBlockstore, err := node.Blockstore.Has(req.Context, rp.RootCid())
 		if err != nil {
 			return err
 		}
@@ -192,7 +199,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 
 		// Execute remote pin request
 		// TODO: fix panic when pinning service is down
-		ps, err := c.Add(ctx, rp.Cid(), opts...)
+		ps, err := c.Add(ctx, rp.RootCid(), opts...)
 		if err != nil {
 			return err
 		}
@@ -214,6 +221,8 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 
 		// Block unless --background=true is passed
 		if !req.Options[pinBackgroundOptionName].(bool) {
+			const pinWaitTime = 500 * time.Millisecond
+			var timer *time.Timer
 			requestID := ps.GetRequestId()
 			for {
 				ps, err = c.GetStatusByID(ctx, requestID)
@@ -230,10 +239,15 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 				if s == pinclient.StatusFailed {
 					return fmt.Errorf("remote service failed to pin requestid=%q", requestID)
 				}
-				tmr := time.NewTimer(time.Second / 2)
+				if timer == nil {
+					timer = time.NewTimer(pinWaitTime)
+				} else {
+					timer.Reset(pinWaitTime)
+				}
 				select {
-				case <-tmr.C:
+				case <-timer.C:
 				case <-ctx.Done():
+					timer.Stop()
 					return fmt.Errorf("waiting for pin interrupted, requestid=%q remains on remote service", requestID)
 				}
 			}

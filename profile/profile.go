@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"runtime/trace"
 	"sync"
 	"time"
 
@@ -22,10 +23,12 @@ const (
 	CollectorGoroutinesPprof = "goroutines-pprof"
 	CollectorVersion         = "version"
 	CollectorHeap            = "heap"
+	CollectorAllocs          = "allocs"
 	CollectorBin             = "bin"
 	CollectorCPU             = "cpu"
 	CollectorMutex           = "mutex"
 	CollectorBlock           = "block"
+	CollectorTrace           = "trace"
 )
 
 var (
@@ -71,6 +74,11 @@ var collectors = map[string]collector{
 		collectFunc: heapProfile,
 		enabledFunc: func(opts Options) bool { return true },
 	},
+	CollectorAllocs: {
+		outputFile:  "allocs.pprof",
+		collectFunc: allocsProfile,
+		enabledFunc: func(opts Options) bool { return true },
+	},
 	CollectorBin: {
 		outputFile:   "ipfs",
 		isExecutable: true,
@@ -91,6 +99,11 @@ var collectors = map[string]collector{
 		outputFile:  "block.pprof",
 		collectFunc: blockProfile,
 		enabledFunc: func(opts Options) bool { return opts.ProfileDuration > 0 && opts.BlockProfileRate > 0 },
+	},
+	CollectorTrace: {
+		outputFile:  "trace",
+		collectFunc: captureTrace,
+		enabledFunc: func(opts Options) bool { return opts.ProfileDuration > 0 },
 	},
 }
 
@@ -197,6 +210,10 @@ func heapProfile(ctx context.Context, _ Options, w io.Writer) error {
 	return pprof.Lookup("heap").WriteTo(w, 0)
 }
 
+func allocsProfile(ctx context.Context, _ Options, w io.Writer) error {
+	return pprof.Lookup("allocs").WriteTo(w, 0)
+}
+
 func versionInfo(ctx context.Context, _ Options, w io.Writer) error {
 	return json.NewEncoder(w).Encode(version.GetVersionInfo())
 }
@@ -253,6 +270,15 @@ func profileCPU(ctx context.Context, opts Options, w io.Writer) error {
 		return err
 	}
 	defer pprof.StopCPUProfile()
+	return waitOrCancel(ctx, opts.ProfileDuration)
+}
+
+func captureTrace(ctx context.Context, opts Options, w io.Writer) error {
+	err := trace.Start(w)
+	if err != nil {
+		return err
+	}
+	defer trace.Stop()
 	return waitOrCancel(ctx, opts.ProfileDuration)
 }
 

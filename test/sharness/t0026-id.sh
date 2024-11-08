@@ -32,12 +32,6 @@ test_expect_success "checking AgentVersion" '
   test_cmp expected-agent-version actual-agent-version
 '
 
-test_expect_success "checking ProtocolVersion" '
-  echo "ipfs/0.1.0" > expected-protocol-version &&
-  ipfs id -f "<pver>\n" > actual-protocol-version &&
-  test_cmp expected-protocol-version actual-protocol-version
-'
-
 test_expect_success "checking ID of self" '
   ipfs config Identity.PeerID > expected-id &&
   ipfs id -f "<id>\n" > actual-id &&
@@ -67,7 +61,20 @@ test_expect_success "checking AgentVersion with suffix (fetched via libp2p ident
   ipfsi 1 id "$(ipfsi 0 config Identity.PeerID)" -f "<aver>\n" > actual-libp2p-identify-agent-version &&
   test_cmp expected-identify-agent-version actual-libp2p-identify-agent-version
 '
+iptb stop
+
 test_kill_ipfs_daemon
 
+# Version.AgentSuffix overrides --agent-version-suffix (local, offline)
+test_expect_success "setting Version.AgentSuffix in config" '
+  ipfs config Version.AgentSuffix json-config-suffix
+'
+test_launch_ipfs_daemon --agent-version-suffix=ignored-cli-suffix
+test_expect_success "checking AgentVersion with suffix set via JSON config" '
+  test_id_compute_agent json-config-suffix > expected-agent-version &&
+  ipfs id -f "<aver>\n" > actual-agent-version &&
+  test_cmp expected-agent-version actual-agent-version
+'
+test_kill_ipfs_daemon
 
 test_done
