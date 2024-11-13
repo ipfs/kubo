@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mitchellh/go-homedir"
+	"github.com/ipfs/kubo/misc/fsutil"
 )
 
 // Config is used to load ipfs config files.
@@ -59,7 +59,7 @@ func PathRoot() (string, error) {
 	dir := os.Getenv(EnvDir)
 	var err error
 	if len(dir) == 0 {
-		dir, err = homedir.Expand(DefaultPathRoot)
+		dir, err = fsutil.ExpandHome(DefaultPathRoot)
 	}
 	return dir, err
 }

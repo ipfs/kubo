@@ -32,7 +32,7 @@ jobs:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 15
     env:
       IMAGE_NAME: ipfs/kubo
       LEGACY_IMAGE_NAME: ipfs/go-ipfs
