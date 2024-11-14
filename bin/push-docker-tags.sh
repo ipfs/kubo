@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-
+#
+# TODO: this script is legacy, use get-docker-tags.sh instead.
+#
 # push-docker-tags.sh
 #
 # Run from ci to tag images based on the current branch or tag name.
@@ -68,9 +70,9 @@ elif [[ $GIT_BRANCH =~ ^bifrost-.* ]]; then
   branch=$(echo "$GIT_BRANCH" | tr '/' '-' | tr --delete --complement '[:alnum:]-')
   pushTag "${branch}-${BUILD_NUM}-${GIT_SHA1_SHORT}"
 
-elif [ "$GIT_BRANCH" = "master" ]; then
-  pushTag "master-${BUILD_NUM}-${GIT_SHA1_SHORT}"
-  pushTag "master-latest"
+elif [ "$GIT_BRANCH" = "master" ] || [ "$GIT_BRANCH" = "staging" ]; then
+  pushTag "${GIT_BRANCH}-${BUILD_NUM}-${GIT_SHA1_SHORT}"
+  pushTag "${GIT_BRANCH}-latest"
 
 else
   echo "Nothing to do. No docker tag defined for branch: $GIT_BRANCH, tag: $GIT_TAG"

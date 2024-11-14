@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mitchellh/go-homedir"
+	"github.com/ipfs/kubo/misc/fsutil"
 )
 
 const (
@@ -16,10 +16,6 @@ const (
 	defIpfsDir  = ".ipfs"
 	versionFile = "version"
 )
-
-func init() {
-	homedir.DisableCache = true
-}
 
 // IpfsDir returns the path of the ipfs directory.  If dir specified, then
 // returns the expanded version dir.  If dir is "", then return the directory
@@ -31,14 +27,14 @@ func IpfsDir(dir string) (string, error) {
 		dir = os.Getenv(envIpfsPath)
 	}
 	if dir != "" {
-		dir, err = homedir.Expand(dir)
+		dir, err = fsutil.ExpandHome(dir)
 		if err != nil {
 			return "", err
 		}
 		return dir, nil
 	}
 
-	home, err := homedir.Dir()
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}

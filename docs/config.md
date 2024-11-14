@@ -27,6 +27,12 @@ config file at runtime.
     - [`AutoNAT.Throttle.GlobalLimit`](#autonatthrottlegloballimit)
     - [`AutoNAT.Throttle.PeerLimit`](#autonatthrottlepeerlimit)
     - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
+  - [`AutoTLS`](#autotls)
+    - [`AutoTLS.Enabled`](#autotlsenabled)
+    - [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)
+    - [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint)
+    - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
+    - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
   - [`Bootstrap`](#bootstrap)
   - [`Datastore`](#datastore)
     - [`Datastore.StorageMax`](#datastorestoragemax)
@@ -204,7 +210,7 @@ Contains information about various listener addresses to be used by this node.
 
 ### `Addresses.API`
 
-Multiaddr or array of multiaddrs describing the address to serve
+[Multiaddr][multiaddr] or array of multiaddrs describing the address to serve
 the local [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`).
 
 Supported Transports:
@@ -214,11 +220,11 @@ Supported Transports:
 
 Default: `/ip4/127.0.0.1/tcp/5001`
 
-Type: `strings` (multiaddrs)
+Type: `strings` ([multiaddrs][multiaddr])
 
 ### `Addresses.Gateway`
 
-Multiaddr or array of multiaddrs describing the address to serve
+[Multiaddr][multiaddr] or array of multiaddrs describing the address to serve
 the local [HTTP gateway](https://specs.ipfs.tech/http-gateways/) (`/ipfs`, `/ipns`) on.
 
 Supported Transports:
@@ -228,11 +234,11 @@ Supported Transports:
 
 Default: `/ip4/127.0.0.1/tcp/8080`
 
-Type: `strings` (multiaddrs)
+Type: `strings` ([multiaddrs][multiaddr])
 
 ### `Addresses.Swarm`
 
-An array of multiaddrs describing which addresses to listen on for p2p swarm
+An array of [multiaddrs][multiaddr] describing which addresses to listen on for p2p swarm
 connections.
 
 Supported Transports:
@@ -256,7 +262,7 @@ Default:
 ]
 ```
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ### `Addresses.Announce`
 
@@ -265,7 +271,7 @@ network. If empty, the daemon will announce inferred swarm addresses.
 
 Default: `[]`
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ### `Addresses.AppendAnnounce`
 
@@ -274,7 +280,7 @@ override inferred swarm addresses if non-empty.
 
 Default: `[]`
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ### `Addresses.NoAnnounce`
 
@@ -284,12 +290,12 @@ Takes precedence over `Addresses.Announce` and `Addresses.AppendAnnounce`.
 > [!TIP]
 > The [`server` configuration profile](#server-profile) fills up this list with sensible defaults,
 > preventing announcement of non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
-> which is the multiaddress representation of `192.168.0.0/16`) but you should always
+> which is the [multiaddress][multiaddr] representation of `192.168.0.0/16`) but you should always
 > check settings against your own network and/or hosting provider.
 
 Default: `[]`
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ## `API`
 
@@ -449,13 +455,121 @@ Default: 1 Minute
 
 Type: `duration` (when `0`/unset, the default value is used)
 
+## `AutoTLS`
+
+> [!CAUTION]
+> This is an **EXPERIMENTAL** opt-in feature and should not be used in production yet.
+> Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
+> Track progress in [kubo#10560](https://github.com/ipfs/kubo/issues/10560).
+
+AutoTLS feature enables publicly reachable Kubo nodes (those dialable from the public
+internet) to automatically obtain a wildcard TLS certificate for a DNS name
+unique to their PeerID at `*.[PeerID].libp2p.direct`. This enables direct
+libp2p connections and retrieval of IPFS content from browsers [Secure Context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
+using transports such as [Secure WebSockets](https://github.com/libp2p/specs/blob/master/websockets/README.md),
+without requiring user to do any manual domain registration and ceritficate configuration.
+
+Under the hood, [p2p-forge] client uses public utility service at `libp2p.direct` as an [ACME DNS-01 Challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
+broker enabling peer to obtain a wildcard TLS certificate tied to public key of their [PeerID](https://docs.libp2p.io/concepts/fundamentals/peers/#peer-id).
+
+By default, the certificates are requested from Let's Encrypt. Origin and rationale for this project can be found in [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003).
+
+> [!NOTE]
+> Public good DNS and [p2p-forge] infrastructure at `libp2p.direct` is run by the team at [Interplanetary Shipyard](https://ipshipyard.com).
+>
+> <a href="https://ipshipyard.com/"><img src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
+
+[p2p-forge]: https://github.com/ipshipyard/p2p-forge
+
+Default: `{}`
+
+Type: `object`
+
+### `AutoTLS.Enabled`
+
+> [!CAUTION]
+> This is an **EXPERIMENTAL** opt-in feature and should not be used in production yet.
+> Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
+> Track progress in [kubo#10560](https://github.com/ipfs/kubo/issues/10560).
+
+Enables AutoTLS feature to get DNS+TLS for [libp2p Secure WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) listeners defined in [`Addresses.Swarm`](#addressesswarm), such as `/ip4/0.0.0.0/tcp/4002/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4002/tls/sni/*.libp2p.direct/ws`.
+
+If `.../tls/sni/*.libp2p.direct/ws` [multiaddr] is present in [`Addresses.Swarm`](#addressesswarm)
+with SNI segment ending with [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix),
+Kubo will obtain and set up a trusted PKI TLS certificate for it, making it diallable from web browser's [Secure Contexts](https://w3c.github.io/webappsec-secure-contexts/).
+
+> [!IMPORTANT]
+> Caveats:
+> - Requires your Kubo node to be publicly diallable.
+>   - If you want to test this with a node that is behind a NAT and uses manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`),
+>     add catch-all `/ip4/0.0.0.0/tcp/4002/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4002/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm)
+>     and **wait 5-15 minutes** for libp2p node to set up and learn about own public addresses via [AutoNAT](#autonat).
+>   - If your node is fresh and just started, the [p2p-forge] client may produce and log ERRORs during this time, but once a publicly diallable addresses are set up, a subsequent retry should be successful.
+> - Listeners defined in [`Addresses.Swarm`](#addressesswarm) with `/tls/sni` must use a separate port from other TCP listeners, e.g. `4002` instead of the default `4001`.
+>   - A separate port (`/tcp/4002`) has to be used instead of `/tcp/4001` because we wait for TCP port sharing ([go-libp2p#2984](https://github.com/libp2p/go-libp2p/issues/2684)) to be implemented.
+>   - If you use manual port forwarding, make sure incoming connections to this additional port are allowed the same way `4001` ones already are.
+> - The TLS certificate is used only for [libp2p WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) connections.
+>   - Right now, this is NOT used for hosting a [Gateway](#gateway) over HTTPS (that use case still requires manual TLS setup on reverse proxy, and your own domain).
+
+> [!TIP]
+> - Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`
+> - Certificates are stored in `$IPFS_PATH/p2p-forge-certs`. Removing directory and restarting daemon will trigger certificate rotation.
+
+Default: `false`
+
+Type: `flag`
+
+### `AutoTLS.DomainSuffix`
+
+Optional override of the parent domain suffix that will be used in DNS+TLS+WebSockets multiaddrs generated by [p2p-forge] client.
+Do not change this unless you self-host [p2p-forge].
+
+Default: `libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
+
+Type: `optionalString`
+
+### `AutoTLS.RegistrationEndpoint`
+
+Optional override of [p2p-forge] HTTP registration API.
+Do not change this unless you self-host [p2p-forge] under own domain.
+
+> [!IMPORTANT]
+> The default endpoint performs [libp2p Peer ID Authentication over HTTP](https://github.com/libp2p/specs/blob/master/http/peer-id-auth.md)
+> (prooving ownership of PeerID), probes if your Kubo node can correctly answer to a [libp2p Identify](https://github.com/libp2p/specs/tree/master/identify) query.
+> This ensures only a correctly configured, publicly diallable Kubo can initiate [ACME DNS-01 challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) for `peerid.libp2p.direct`.
+
+Default: `https://registration.libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
+
+Type: `optionalString`
+
+### `AutoTLS.RegistrationToken`
+
+Optional value for `Forge-Authorization` token sent with request to `RegistrationEndpoint`
+(useful for private/self-hosted/test instances of [p2p-forge], unset by default).
+
+Default: `""`
+
+Type: `optionalString`
+
+### `AutoTLS.CAEndpoint`
+
+Optional override of CA ACME API used by [p2p-forge] system.
+Do not change this unless you self-host [p2p-forge] under own domain.
+
+> [!IMPORTANT]
+> CAA DNS record at `libp2p.direct` limits CA choice to Let's Encrypt. If you want to use a different CA, use your own domain.
+
+Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddyserver/certmagic#pkg-constants) (see [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003))
+
+Type: `optionalString`
+
 ## `Bootstrap`
 
-Bootstrap is an array of multiaddrs of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
+Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
 
 Default: The ipfs.io bootstrap nodes
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ## `Datastore`
 
@@ -1671,7 +1785,7 @@ trigger netscan alerts on some hosting providers or cause strain in some setups.
 > [!TIP]
 > The [`server` configuration profile](#server-profile) fills up this list with sensible defaults,
 > preventing dials to all non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
-> which is the multiaddress representation of `192.168.0.0/16`) but you should always
+> which is the [multiaddress][multiaddr] representation of `192.168.0.0/16`) but you should always
 > check settings against your own network and/or hosting provider.
 
 Default: `[]`
@@ -1835,12 +1949,7 @@ Type: `optionalInteger`
 
 #### `Swarm.RelayService.MaxReservationsPerPeer`
 
-Maximum number of reservations originating from the same peer.
-
-Default: `4`
-
-Type: `optionalInteger`
-
+**REMOVED in kubo 0.32 due to [go-libp2p#2974](https://github.com/libp2p/go-libp2p/pull/2974)**
 
 #### `Swarm.RelayService.MaxReservationsPerIP`
 
@@ -1991,12 +2100,12 @@ Type: `optionalInteger`
 
 #### `Swarm.ResourceMgr.Allowlist`
 
-A list of multiaddrs that can bypass normal system limits (but are still limited by the allowlist scope).
+A list of [multiaddrs][libp2p-multiaddrs] that can bypass normal system limits (but are still limited by the allowlist scope).
 Convenience config around [go-libp2p-resource-manager#Allowlist.Add](https://pkg.go.dev/github.com/libp2p/go-libp2p/p2p/host/resource-manager#Allowlist.Add).
 
 Default: `[]`
 
-Type: `array[string]` (multiaddrs)
+Type: `array[string]` ([multiaddrs][multiaddr])
 
 ### `Swarm.Transports`
 
@@ -2068,7 +2177,7 @@ Listen Addresses:
 [Libp2p Relay](https://github.com/libp2p/specs/tree/master/relay) proxy
 transport that forms connections by hopping between multiple libp2p nodes.
 Allows IPFS node to connect to other peers using their `/p2p-circuit`
-multiaddrs.  This transport is primarily useful for bypassing firewalls and
+[multiaddrs][libp2p-multiaddrs].  This transport is primarily useful for bypassing firewalls and
 NATs.
 
 See also:
@@ -2218,7 +2327,7 @@ Please remove this option from your config.
 
 ## `DNS`
 
-Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.tech/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
+Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.tech/concepts/dnslink/) and `/dns*` [Multiaddrs][libp2p-multiaddrs].
 
 ### `DNS.Resolvers`
 
@@ -2578,3 +2687,7 @@ an implicit default when missing from the config file:
 
 - `null`/missing will apply the default value defined in Kubo sources (`.WithDefault("1h2m3s")`)
 - a string with a valid [go duration](#duration)  (e.g, `"1d2h4m40.01s"`).
+
+----
+
+[multiaddr]: https://docs.ipfs.tech/concepts/glossary/#multiaddr
