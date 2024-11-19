@@ -12,7 +12,7 @@ import (
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipld/go-ipld-prime/multicodec"
 
-	serialize "github.com/ipfs/kubo/config/serialize"
+	"github.com/ipfs/kubo/config/serialize"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 	plugin "github.com/ipfs/kubo/plugin"
