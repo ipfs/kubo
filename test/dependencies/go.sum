@@ -318,8 +318,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.24.3 h1:gldDPOWdM3Rz0v5LkVLtZu7A7gFNvAlWcmxhCqlHR3c=
-github.com/ipfs/boxo v0.24.3/go.mod h1:h0DRzOY1IBFDHp6KNvrJLMFdSXTYID0Zf+q7X05JsNg=
+github.com/ipfs/boxo v0.24.4-0.20241119153247-5929aca3037f h1:3qgBUQ6BYfEAPaoSYoH90PKwVT1/iFLX7fDGGkvXZ8Y=
+github.com/ipfs/boxo v0.24.4-0.20241119153247-5929aca3037f/go.mod h1:Kxk43F+avGAsJSwhJW4isNYrpGwXHRJCvJ19Pt+MQc4=
 github.com/ipfs/go-block-format v0.2.0 h1:ZqrkxBA2ICbDRbK8KJs/u0O3dlp6gmAuuXUJNiW1Ycs=
 github.com/ipfs/go-block-format v0.2.0/go.mod h1:+jpL11nFx5A/SPpsoBn6Bzkra/zaArfSmsknbPMYgzM=
 github.com/ipfs/go-cid v0.4.1 h1:A/T3qGvxi4kpKWWcPC/PgbvDA2bjVLO7n4UeVwnbs/s=
@@ -435,8 +435,8 @@ github.com/libp2p/go-libp2p v0.37.1-0.20241112045349-6eae9ab059b1 h1:evgdAgV+s/o
 github.com/libp2p/go-libp2p v0.37.1-0.20241112045349-6eae9ab059b1/go.mod h1:GOKmSN99scDuYGTwaTbQPR8Nt6dxrK3ue7OjW2NGDg4=
 github.com/libp2p/go-libp2p-asn-util v0.4.1 h1:xqL7++IKD9TBFMgnLPZR6/6iYhawHKHl950SO9L6n94=
 github.com/libp2p/go-libp2p-asn-util v0.4.1/go.mod h1:d/NI6XZ9qxw67b4e+NgpQexCIiFYJjErASrYW4PFDN8=
-github.com/libp2p/go-libp2p-kad-dht v0.27.0 h1:1Ea32tVTPiAfaLpPMbaBWFJgbsi/JpMqC2YBuFdf32o=
-github.com/libp2p/go-libp2p-kad-dht v0.27.0/go.mod h1:ixhjLuzaXSGtWsKsXTj7erySNuVC4UP7NO015cRrF14=
+github.com/libp2p/go-libp2p-kad-dht v0.28.1 h1:DVTfzG8Ybn88g9RycIq47evWCRss5f0Wm8iWtpwyHso=
+github.com/libp2p/go-libp2p-kad-dht v0.28.1/go.mod h1:0wHURlSFdAC42+wF7GEmpLoARw8JuS8do2guCtc/Y/w=
 github.com/libp2p/go-libp2p-kbucket v0.6.4 h1:OjfiYxU42TKQSB8t8WYd8MKhYhMJeO2If+NiuKfb6iQ=
 github.com/libp2p/go-libp2p-kbucket v0.6.4/go.mod h1:jp6w82sczYaBsAypt5ayACcRJi0lgsba7o4TzJKEfWA=
 github.com/libp2p/go-libp2p-record v0.2.0 h1:oiNUOCWno2BFuxt3my4i1frNrt7PerzB3queqa1NkQ0=

@@ -512,7 +512,11 @@ take effect.
 	if err != nil {
 		return err
 	}
-	node.Process.AddChild(goprocess.WithTeardown(cctx.Plugins.Close))
+	select {
+	case <-node.Process.Closing():
+	default:
+		node.Process.AddChild(goprocess.WithTeardown(cctx.Plugins.Close))
+	}
 
 	// construct api endpoint - every time
 	apiErrc, err := serveHTTPApi(req, cctx)

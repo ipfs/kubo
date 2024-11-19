@@ -138,6 +138,13 @@ func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS) interface{} {
 		storagePath := filepath.Join(repoPath, "p2p-forge-certs")
 
 		forgeLogger := logging.Logger("autotls").Desugar()
+
+		// TODO: this should not be necessary, but we do it to help tracking
+		// down any race conditions causing
+		// https://github.com/ipshipyard/p2p-forge/issues/8
+		certmagic.Default.Logger = forgeLogger.Named("default_fixme")
+		certmagic.DefaultACME.Logger = forgeLogger.Named("default_acme_client_fixme")
+
 		certStorage := &certmagic.FileStorage{Path: storagePath}
 		certMgr, err := p2pforge.NewP2PForgeCertMgr(
 			p2pforge.WithLogger(forgeLogger.Sugar()),

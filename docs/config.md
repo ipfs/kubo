@@ -210,7 +210,7 @@ Contains information about various listener addresses to be used by this node.
 
 ### `Addresses.API`
 
-[Multiaddr][multiaddr] or array of multiaddrs describing the address to serve
+[Multiaddr][multiaddr] or array of multiaddrs describing the addresses to serve
 the local [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`).
 
 Supported Transports:
@@ -334,7 +334,7 @@ secret.
 
 Default: `null`
 
-Type: `object[string -> object]` (user name -> authorization object, see bellow)
+Type: `object[string -> object]` (user name -> authorization object, see below)
 
 For example, to limit RPC access to Alice (access `id` and MFS `files` commands with HTTP Basic Auth)
 and Bob (full access with Bearer token):
@@ -467,7 +467,7 @@ internet) to automatically obtain a wildcard TLS certificate for a DNS name
 unique to their PeerID at `*.[PeerID].libp2p.direct`. This enables direct
 libp2p connections and retrieval of IPFS content from browsers [Secure Context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
 using transports such as [Secure WebSockets](https://github.com/libp2p/specs/blob/master/websockets/README.md),
-without requiring user to do any manual domain registration and ceritficate configuration.
+without requiring user to do any manual domain registration and certificate configuration.
 
 Under the hood, [p2p-forge] client uses public utility service at `libp2p.direct` as an [ACME DNS-01 Challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
 broker enabling peer to obtain a wildcard TLS certificate tied to public key of their [PeerID](https://docs.libp2p.io/concepts/fundamentals/peers/#peer-id).
@@ -532,7 +532,7 @@ Do not change this unless you self-host [p2p-forge] under own domain.
 
 > [!IMPORTANT]
 > The default endpoint performs [libp2p Peer ID Authentication over HTTP](https://github.com/libp2p/specs/blob/master/http/peer-id-auth.md)
-> (prooving ownership of PeerID), probes if your Kubo node can correctly answer to a [libp2p Identify](https://github.com/libp2p/specs/tree/master/identify) query.
+> (proving ownership of PeerID), probes if your Kubo node can correctly answer to a [libp2p Identify](https://github.com/libp2p/specs/tree/master/identify) query.
 > This ensures only a correctly configured, publicly diallable Kubo can initiate [ACME DNS-01 challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) for `peerid.libp2p.direct`.
 
 Default: `https://registration.libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
