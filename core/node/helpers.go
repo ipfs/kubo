@@ -22,10 +22,16 @@ func (lcss *lcStartStop) Append(f func() func()) {
 
 	lcss.LC.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
+			if ctx.Err() != nil {
+				return nil
+			}
 			stopFunc = f()
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
+			if ctx.Err() != nil {
+				return nil
+			}
 			if stopFunc == nil { // Theoretically this shouldn't ever happen
 				return errors.New("lcStatStop: stopFunc was nil")
 			}
