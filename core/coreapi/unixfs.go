@@ -173,7 +173,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	}
 
 	if !settings.OnlyHash {
-		if err := api.provider.Provide(nd.Cid()); err != nil {
+		if err := api.provider.Provide(ctx, nd.Cid(), true); err != nil {
 			return path.ImmutablePath{}, err
 		}
 	}
