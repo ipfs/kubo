@@ -567,7 +567,7 @@ Type: `optionalString`
 
 Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
 
-Default: The ipfs.io bootstrap nodes
+Default: [`config.DefaultBootstrapAddresses`](https://github.com/ipfs/kubo/blob/master/config/bootstrap_peers.go)
 
 Type: `array[string]` ([multiaddrs][multiaddr])
 
