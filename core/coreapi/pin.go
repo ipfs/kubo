@@ -352,11 +352,8 @@ func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string, detailed bool, 
 					if emittedSet.Has(c) {
 						return true // skipped
 					}
-					addErr := AddToResultKeys(c, "", "indirect")
-					if addErr != nil {
-						return false
-					}
-					return true
+					addErr = AddToResultKeys(c, "", "indirect")
+					return addErr == nil
 				},
 				merkledag.SkipRoot(), merkledag.Concurrent(),
 			)
