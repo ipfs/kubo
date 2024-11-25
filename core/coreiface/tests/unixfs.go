@@ -681,7 +681,11 @@ func (tp *TestSuite) TestLs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries, errCh := api.Unixfs().Ls(ctx, p)
+	errCh := make(chan error, 1)
+	entries := make(chan coreiface.DirEntry)
+	go func() {
+		errCh <- api.Unixfs().Ls(ctx, p, entries)
+	}()
 
 	entry, ok := <-entries
 	if !ok {
@@ -777,7 +781,12 @@ func (tp *TestSuite) TestLsEmptyDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	links, errCh := api.Unixfs().Ls(ctx, p)
+	errCh := make(chan error, 1)
+	links := make(chan coreiface.DirEntry)
+	go func() {
+		errCh <- api.Unixfs().Ls(ctx, p, links)
+	}()
+
 	var count int
 	for range links {
 		count++
@@ -810,7 +819,12 @@ func (tp *TestSuite) TestLsNonUnixfs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	links, errCh := api.Unixfs().Ls(ctx, path.FromCid(nd.Cid()))
+	errCh := make(chan error, 1)
+	links := make(chan coreiface.DirEntry)
+	go func() {
+		errCh <- api.Unixfs().Ls(ctx, path.FromCid(nd.Cid()), links)
+	}()
+
 	var count int
 	for range links {
 		count++

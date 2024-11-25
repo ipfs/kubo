@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -143,9 +144,9 @@ The JSON output contains type information.
 			}
 
 			results := make(chan iface.DirEntry)
-			var lsErr error
+			lsErr := make(chan error, 1)
 			go func() {
-				lsErr = api.Unixfs().Ls(lsCtx, pth, results,
+				lsErr <- api.Unixfs().Ls(lsCtx, pth, results,
 					options.Unixfs.ResolveChildren(resolveSize || resolveType))
 			}()
 
@@ -175,8 +176,8 @@ The JSON output contains type information.
 					return err
 				}
 			}
-			if lsErr != nil {
-				return lsErr
+			if err = <-lsErr; err != nil {
+				return err
 			}
 			dirDone(i)
 		}

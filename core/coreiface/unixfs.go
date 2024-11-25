@@ -80,22 +80,25 @@ type UnixfsAPI interface {
 	// to operations performed on the returned file
 	Get(context.Context, path.Path) (files.Node, error)
 
-	// Ls returns the list of links in a directory. Links aren't guaranteed to
-	// be returned in order. If an error occurs, the DirEntry channel is closed
-	// and an error is output on the error channel. Both channels are closed if
-	// the context is canceled.
+	// Ls writes the links in a directory to the DirEntry channel. Links aren't
+	// guaranteed to be returned in order. If an error occurs or the context is
+	// canceled, the DirEntry channel is closed and an error is returned.
 	//
 	// Example:
 	//
-	//	dirs, errs := Ls(ctx, p)
+	//  dirs := make(chan DirEntry)
+	//  lsErr := make(chan error, 1)
+	//  go func() {
+	//		lsErr <- Ls(ctx, p, dirs)
+	//  }()
 	//	for dirEnt := range dirs {
 	//		fmt.Println("Dir name:", dirEnt.Name)
 	//	}
-	//	err := <-errs
+	//	err := <-lsErr
 	//	if err != nil {
 	//		return fmt.Errorf("error listing directory: %w", err)
 	//	}
-	Ls(context.Context, path.Path, ...options.UnixfsLsOption) (<-chan DirEntry, <-chan error)
+	Ls(context.Context, path.Path, chan<- DirEntry, ...options.UnixfsLsOption) error
 }
 
 // LsIter returns a go iterator that allows ranging over DirEntry results.
@@ -114,13 +117,18 @@ func LsIter(ctx context.Context, api UnixfsAPI, p path.Path, opts ...options.Uni
 	return func(yield func(DirEntry, error) bool) {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel() // cancel Ls if done iterating early
-		results, asyncErr := api.Ls(ctx, p, opts...)
-		for result := range results {
-			if !yield(result, nil) {
+
+		dirs := make(chan DirEntry)
+		lsErr := make(chan error, 1)
+		go func() {
+			lsErr <- api.Ls(ctx, p, dirs, opts...)
+		}()
+		for dirEnt := range dirs {
+			if !yield(dirEnt, nil) {
 				return
 			}
 		}
-		if err := <-asyncErr; err != nil {
+		if err := <-lsErr; err != nil {
 			yield(DirEntry{}, err)
 		}
 	}

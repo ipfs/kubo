@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	blockservice "github.com/ipfs/boxo/blockservice"
@@ -197,18 +198,15 @@ func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) 
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
 // `<link base58 hash> <link size in bytes> <link name>`
-func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...options.UnixfsLsOption) (<-chan coreiface.DirEntry, <-chan error) {
+func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, out chan<- coreiface.DirEntry, opts ...options.UnixfsLsOption) error {
 	ctx, span := tracing.Span(ctx, "CoreAPI.UnixfsAPI", "Ls", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
 
+	defer close(out)
+
 	settings, err := options.UnixfsLsOptions(opts...)
 	if err != nil {
-		errOut := make(chan error, 1)
-		errOut <- err
-		close(errOut)
-		out := make(chan coreiface.DirEntry)
-		close(out)
-		return out, errOut
+		return err
 	}
 
 	span.SetAttributes(attribute.Bool("resolvechildren", settings.ResolveChildren))
@@ -218,28 +216,18 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...options.Unixf
 
 	dagnode, err := ses.ResolveNode(ctx, p)
 	if err != nil {
-		errOut := make(chan error, 1)
-		errOut <- err
-		close(errOut)
-		out := make(chan coreiface.DirEntry)
-		close(out)
-		return out, errOut
+		return err
 	}
 
 	dir, err := uio.NewDirectoryFromNode(ses.dag, dagnode)
 	if err != nil {
-		if err == uio.ErrNotADir {
-			return uses.lsFromLinks(ctx, dagnode.Links(), settings)
+		if errors.Is(err, uio.ErrNotADir) {
+			return uses.lsFromLinks(ctx, dagnode.Links(), settings, out)
 		}
-		errOut := make(chan error, 1)
-		errOut <- err
-		close(errOut)
-		out := make(chan coreiface.DirEntry)
-		close(out)
-		return out, errOut
+		return err
 	}
 
-	return uses.lsFromLinksAsync(ctx, dir, settings)
+	return uses.lsFromDirLinks(ctx, dir, settings, out)
 }
 
 func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, settings *options.UnixfsLsSettings) (coreiface.DirEntry, error) {
@@ -300,55 +288,47 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 	return lnk, nil
 }
 
-func (api *UnixfsAPI) lsFromLinksAsync(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, <-chan error) {
-	out := make(chan coreiface.DirEntry, uio.DefaultShardWidth)
-	errOut := make(chan error, 1)
-
-	go func() {
-		defer close(out)
-		defer close(errOut)
-
-		for l := range dir.EnumLinksAsync(ctx) {
-			dirEnt, err := api.processLink(ctx, l, settings) // TODO: perf: processing can be done in background and in parallel
-			if err != nil {
-				errOut <- err
-				return
-			}
-			select {
-			case out <- dirEnt:
-			case <-ctx.Done():
-				return
-			}
+func (api *UnixfsAPI) lsFromDirLinks(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings, out chan<- coreiface.DirEntry) error {
+	for l := range dir.EnumLinksAsync(ctx) {
+		dirEnt, err := api.processLink(ctx, l, settings) // TODO: perf: processing can be done in background and in parallel
+		if err != nil {
+			return err
 		}
-	}()
-
-	return out, errOut
+		select {
+		case out <- dirEnt:
+		case <-ctx.Done():
+			return nil
+		}
+	}
+	return nil
 }
 
-func (api *UnixfsAPI) lsFromLinks(ctx context.Context, ndlinks []*ipld.Link, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, <-chan error) {
-	out := make(chan coreiface.DirEntry, uio.DefaultShardWidth)
-	errOut := make(chan error, 1)
-
+func (api *UnixfsAPI) lsFromLinks(ctx context.Context, ndlinks []*ipld.Link, settings *options.UnixfsLsSettings, out chan<- coreiface.DirEntry) error {
+	// Create links channel large enough to not block when writing to out is slower.
+	links := make(chan coreiface.DirEntry, len(ndlinks))
+	errs := make(chan error, 1)
 	go func() {
-		defer close(out)
-		defer close(errOut)
-
+		defer close(links)
+		defer close(errs)
 		for _, l := range ndlinks {
 			lr := ft.LinkResult{Link: &ipld.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}}
-			dirEnt, err := api.processLink(ctx, lr, settings) // TODO: perf: processing can be done in background and in parallel
+			lnk, err := api.processLink(ctx, lr, settings) // TODO: can be parallel if settings.Async
 			if err != nil {
-				errOut <- err
+				errs <- err
 				return
 			}
 			select {
-			case out <- dirEnt:
+			case links <- lnk:
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
 
-	return out, errOut
+	for lnk := range links {
+		out <- lnk
+	}
+	return <-errs
 }
 
 func (api *UnixfsAPI) core() *CoreAPI {

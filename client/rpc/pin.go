@@ -87,7 +87,7 @@ func (api *PinAPI) Ls(ctx context.Context, pins chan<- iface.Pin, opts ...caopts
 			if err != io.EOF {
 				return err
 			}
-			return nil
+			break
 		}
 
 		c, err := cid.Parse(out.Cid)

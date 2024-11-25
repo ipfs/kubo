@@ -173,7 +173,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, out chan<- iface.DirE
 			if err != io.EOF {
 				return err
 			}
-			return nil
+			break
 		}
 
 		if len(link.Objects) != 1 {
