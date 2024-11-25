@@ -53,7 +53,7 @@ Uses [pebble](https://github.com/cockroachdb/pebble) as a key value store.
 }
 ```
 
-The following options are availble for tuning pebble.
+The following options are available for tuning pebble.
 If they are not configured (or assigned their zero-valued), then default values are used.
 
 * `bytesPerSync`: int, Sync sstables periodically in order to smooth out writes to disk. (default: 512KB)
