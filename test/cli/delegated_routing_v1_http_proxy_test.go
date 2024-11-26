@@ -15,9 +15,11 @@ func TestRoutingV1Proxy(t *testing.T) {
 	t.Parallel()
 
 	setupNodes := func(t *testing.T) harness.Nodes {
-		nodes := harness.NewT(t).NewNodes(2).Init()
+		nodes := harness.NewT(t).NewNodes(3).Init()
 
-		// Node 0 uses DHT and exposes the Routing API.
+		// Node 0 uses DHT and exposes the Routing API.  For the DHT
+		// to actually work there will need to be another DHT-enabled
+		// node.
 		nodes[0].UpdateConfig(func(cfg *config.Config) {
 			cfg.Gateway.ExposeRoutingAPI = config.True
 			cfg.Discovery.MDNS.Enabled = false
@@ -48,6 +50,15 @@ func TestRoutingV1Proxy(t *testing.T) {
 			}
 		})
 		nodes[1].StartDaemon()
+
+		// This is the second DHT node. Only used so that the DHT is
+		// operative.
+		nodes[2].UpdateConfig(func(cfg *config.Config) {
+			cfg.Gateway.ExposeRoutingAPI = config.True
+			cfg.Discovery.MDNS.Enabled = false
+			cfg.Routing.Type = config.NewOptionalString("dht")
+		})
+		nodes[2].StartDaemon()
 
 		// Connect them.
 		nodes.Connect()
