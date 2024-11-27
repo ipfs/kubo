@@ -16,7 +16,6 @@ import (
 
 	"github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
-	coreiface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/files"
 	pi "github.com/ipfs/boxo/filestore/posinfo"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
@@ -25,6 +24,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
 	config "github.com/ipfs/kubo/config"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
 )
 
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
@@ -133,7 +133,7 @@ func TestAddMultipleGCLive(t *testing.T) {
 	}
 
 	for o := range out {
-		if _, ok := removedHashes[o.(*coreiface.AddEvent).Path.Cid().String()]; ok {
+		if _, ok := removedHashes[o.(*coreiface.AddEvent).Path.RootCid().String()]; ok {
 			t.Fatal("gc'ed a hash we just added")
 		}
 	}
@@ -179,17 +179,15 @@ func TestAddGCLive(t *testing.T) {
 		defer close(addDone)
 		defer close(out)
 		_, err := adder.AddAllAndPin(context.Background(), slf)
-
 		if err != nil {
 			t.Error(err)
 		}
-
 	}()
 
 	addedHashes := make(map[string]struct{})
 	select {
 	case o := <-out:
-		addedHashes[o.(*coreiface.AddEvent).Path.Cid().String()] = struct{}{}
+		addedHashes[o.(*coreiface.AddEvent).Path.RootCid().String()] = struct{}{}
 	case <-addDone:
 		t.Fatal("add shouldn't complete yet")
 	}
@@ -219,7 +217,7 @@ func TestAddGCLive(t *testing.T) {
 
 	// receive next object from adder
 	o := <-out
-	addedHashes[o.(*coreiface.AddEvent).Path.Cid().String()] = struct{}{}
+	addedHashes[o.(*coreiface.AddEvent).Path.RootCid().String()] = struct{}{}
 
 	<-gcstarted
 
@@ -235,7 +233,7 @@ func TestAddGCLive(t *testing.T) {
 	var last cid.Cid
 	for a := range out {
 		// wait for it to finish
-		c, err := cid.Decode(a.(*coreiface.AddEvent).Path.Cid().String())
+		c, err := cid.Decode(a.(*coreiface.AddEvent).Path.RootCid().String())
 		if err != nil {
 			t.Fatal(err)
 		}

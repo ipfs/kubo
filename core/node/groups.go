@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -105,12 +106,15 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		// to dhtclient.
 		fallthrough
 	case config.AutoNATServiceEnabled:
-		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle))
+		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle, false))
+	case config.AutoNATServiceEnabledV1Only:
+		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle, true))
 	}
 
 	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(true) // nolint
 	enableRelayService := cfg.Swarm.RelayService.Enabled.WithDefault(enableRelayTransport)
 	enableRelayClient := cfg.Swarm.RelayClient.Enabled.WithDefault(enableRelayTransport)
+	enableAutoTLS := cfg.AutoTLS.Enabled.WithDefault(config.DefaultAutoTLSEnabled)
 
 	// Log error when relay subsystem could not be initialized due to missing dependency
 	if !enableRelayTransport {
@@ -121,23 +125,22 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 			logger.Fatal("Failed to enable `Swarm.RelayClient`, it requires `Swarm.Transports.Network.Relay` to be true.")
 		}
 	}
+	if enableAutoTLS {
+		if !cfg.Swarm.Transports.Network.Websocket.WithDefault(true) {
+			logger.Fatal("Invalid configuration: AutoTLS.Enabled=true requires Swarm.Transports.Network.Websocket to be true as well.")
+		}
 
-	// Force users to migrate old config.
-	// nolint
-	if cfg.Swarm.DisableRelay {
-		logger.Fatal("The 'Swarm.DisableRelay' config field was removed." +
-			"Use the 'Swarm.Transports.Network.Relay' instead.")
-	}
-	// nolint
-	if cfg.Swarm.EnableAutoRelay {
-		logger.Fatal("The 'Swarm.EnableAutoRelay' config field was removed." +
-			"Use the 'Swarm.RelayClient.Enabled' instead.")
-	}
-	// nolint
-	if cfg.Swarm.EnableRelayHop {
-		logger.Fatal("The `Swarm.EnableRelayHop` config field was removed.\n" +
-			"Use `Swarm.RelayService` to configure the circuit v2 relay.\n" +
-			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://dist.ipfs.tech/#libp2p-relay-daemon (with RelayV1.Enabled: true)")
+		wssWildcard := fmt.Sprintf("/tls/sni/*.%s/ws", cfg.AutoTLS.DomainSuffix.WithDefault(config.DefaultDomainSuffix))
+		wssWildcardPresent := false
+		for _, listener := range cfg.Addresses.Swarm {
+			if strings.Contains(listener, wssWildcard) {
+				wssWildcardPresent = true
+				break
+			}
+		}
+		if !wssWildcardPresent {
+			logger.Fatal(fmt.Sprintf("Invalid configuration: AutoTLS.Enabled=true requires a catch-all Addresses.Swarm listener ending with %q to be present, see https://github.com/ipfs/kubo/blob/master/docs/config.md#autotls", wssWildcard))
+		}
 	}
 
 	// Gather all the options
@@ -148,7 +151,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(libp2p.UserAgent()),
 
 		// Services (resource management)
-		fx.Provide(libp2p.ResourceManager(cfg.Swarm, userResourceOverrides)),
+		fx.Provide(libp2p.ResourceManager(bcfg.Repo.Path(), cfg.Swarm, userResourceOverrides)),
+		maybeProvide(libp2p.P2PForgeCertMgr(bcfg.Repo.Path(), cfg.AutoTLS), enableAutoTLS),
+		maybeInvoke(libp2p.StartP2PAutoTLS, enableAutoTLS),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
@@ -196,7 +201,7 @@ func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(RepoConfig),
 		fx.Provide(Datastore),
-		fx.Provide(BaseBlockstoreCtor(cacheOpts, bcfg.NilRepo, cfg.Datastore.HashOnRead)),
+		fx.Provide(BaseBlockstoreCtor(cacheOpts, cfg.Datastore.HashOnRead)),
 		finalBstore,
 	)
 }
@@ -248,7 +253,6 @@ var IPNS = fx.Options(
 
 // Online groups online-only units
 func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
-
 	// Namesys params
 
 	ipnsCacheSize := cfg.Ipns.ResolveCacheSize
@@ -289,11 +293,13 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	shouldBitswapProvide := !cfg.Experimental.StrategicProviding
 
 	return fx.Options(
-		fx.Provide(BitswapOptions(cfg, shouldBitswapProvide)),
+		fx.Provide(BitswapOptions(cfg)),
+		fx.Provide(Bitswap(shouldBitswapProvide)),
 		fx.Provide(OnlineExchange()),
-		maybeProvide(Graphsync, cfg.Experimental.GraphsyncEnabled),
+		// Replace our Exchange with a Providing exchange!
+		fx.Decorate(ProvidingExchange(shouldBitswapProvide)),
 		fx.Provide(DNSResolver),
-		fx.Provide(Namesys(ipnsCacheSize)),
+		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),
 		PeerWith(cfg.Peering.Peers...),
 
@@ -306,7 +312,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 			cfg.Experimental.StrategicProviding,
 			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
 			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
-			cfg.Routing.AcceleratedDHTClient,
+			cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient),
 		),
 	)
 }
@@ -316,7 +322,7 @@ func Offline(cfg *config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(offline.Exchange),
 		fx.Provide(DNSResolver),
-		fx.Provide(Namesys(0)),
+		fx.Provide(Namesys(0, 0)),
 		fx.Provide(libp2p.Routing),
 		fx.Provide(libp2p.ContentRouting),
 		fx.Provide(libp2p.OfflineRouting),

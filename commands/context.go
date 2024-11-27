@@ -10,16 +10,16 @@ import (
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	loader "github.com/ipfs/kubo/plugin/loader"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
-	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
 	config "github.com/ipfs/kubo/config"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 var log = logging.Logger("command")
 
-// Context represents request context
+// Context represents request context.
 type Context struct {
 	ConfigRoot string
 	ReqLog     *ReqLog
@@ -54,7 +54,7 @@ func (c *Context) GetNode() (*core.IpfsNode, error) {
 }
 
 // GetAPI returns CoreAPI instance backed by ipfs node.
-// It may construct the node with the provided function
+// It may construct the node with the provided function.
 func (c *Context) GetAPI() (coreiface.CoreAPI, error) {
 	if c.api == nil {
 		n, err := c.GetNode()

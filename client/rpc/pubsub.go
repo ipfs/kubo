@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"io"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/libp2p/go-libp2p/core/peer"
 	mbase "github.com/multiformats/go-multibase"
 )
@@ -152,7 +152,6 @@ func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 	}
 	*/
 	resp, err := api.core().Request("pubsub/sub", toMultibase([]byte(topic))).Send(ctx)
-
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +206,7 @@ func (api *PubsubAPI) core() *HttpApi {
 	return (*HttpApi)(api)
 }
 
-// Encodes bytes into URL-safe multibase that can be sent over HTTP RPC (URL or body)
+// Encodes bytes into URL-safe multibase that can be sent over HTTP RPC (URL or body).
 func toMultibase(data []byte) string {
 	mb, _ := mbase.Encode(mbase.Base64url, data)
 	return mb

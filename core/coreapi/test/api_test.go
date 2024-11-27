@@ -8,20 +8,20 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/filestore"
 	keystore "github.com/ipfs/boxo/keystore"
 	"github.com/ipfs/kubo/core"
-	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/coreapi"
 	mock "github.com/ipfs/kubo/core/mock"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/tests"
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/kubo/config"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/tests"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
@@ -56,7 +56,7 @@ func (NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdentity
 			}
 
 			ident = config.Identity{
-				PeerID:  id.Pretty(),
+				PeerID:  id.String(),
 				PrivKey: base64.StdEncoding.EncodeToString(kbytes),
 			}
 		} else {

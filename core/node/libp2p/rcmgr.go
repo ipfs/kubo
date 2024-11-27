@@ -19,7 +19,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/fx"
 )
 
@@ -29,7 +28,7 @@ const NetLimitTraceFilename = "rcmgr.json.gz"
 
 var ErrNoResourceMgr = fmt.Errorf("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
 
-func ResourceManager(cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimitConfig) interface{} {
+func ResourceManager(repoPath string, cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimitConfig) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 		var manager network.ResourceManager
 		var opts Libp2pOpts
@@ -46,11 +45,6 @@ func ResourceManager(cfg config.SwarmConfig, userResourceOverrides rcmgr.Partial
 
 		if enabled {
 			log.Debug("libp2p resource manager is enabled")
-
-			repoPath, err := config.PathRoot()
-			if err != nil {
-				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
-			}
 
 			limitConfig, msg, err := LimitConfig(cfg, userResourceOverrides)
 			if err != nil {
@@ -74,8 +68,22 @@ filled in with autocomputed defaults.`)
 			if err != nil {
 				return nil, opts, err
 			}
-			rcmgrObs.MustRegisterWith(prometheus.DefaultRegisterer)
-			ropts := []rcmgr.Option{rcmgr.WithTraceReporter(str)}
+
+			ropts := []rcmgr.Option{
+				rcmgr.WithTraceReporter(str),
+				rcmgr.WithLimitPerSubnet(
+					nil,
+					[]rcmgr.ConnLimitPerSubnet{
+						{
+							ConnCount:    16,
+							PrefixLength: 56,
+						},
+						{
+							ConnCount:    8 * 16,
+							PrefixLength: 48,
+						},
+					}),
+			}
 
 			if len(cfg.ResourceMgr.Allowlist) > 0 {
 				var mas []multiaddr.Multiaddr
@@ -119,7 +127,8 @@ filled in with autocomputed defaults.`)
 		lc.Append(fx.Hook{
 			OnStop: func(_ context.Context) error {
 				return manager.Close()
-			}})
+			},
+		})
 
 		return manager, opts, nil
 	}
@@ -181,7 +190,7 @@ func LimitConfig(cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimi
 
 	// This effectively overrides the computed default LimitConfig with any non-"useDefault" values from the userResourceOverrides file.
 	// Because of how how Build works, any rcmgr.Default value in userResourceOverrides
-	// will be overriden with a computed default value.
+	// will be overridden with a computed default value.
 	limitConfig = userResourceOverrides.Build(limitConfig)
 
 	return limitConfig, msg, nil
@@ -360,7 +369,7 @@ func LimitConfigsToInfo(stats LimitsConfigAndUsage) ResourceInfos {
 
 	for i, p := range stats.Peers {
 		result = append(result, resourceLimitsAndUsageToResourceInfo(
-			config.ResourceMgrPeerScopePrefix+i.Pretty(),
+			config.ResourceMgrPeerScopePrefix+i.String(),
 			p,
 		)...)
 	}
@@ -471,7 +480,7 @@ resource manager System.ConnsInbound (%d) must be bigger than ConnMgr.HighWater 
 See: https://github.com/ipfs/kubo/blob/master/docs/libp2p-resource-management.md#how-does-the-resource-manager-resourcemgr-relate-to-the-connection-manager-connmgr
 `, rcm.System.ConnsInbound, highWater)
 	}
-	if rcm.System.Streams > rcmgr.DefaultLimit || rcm.System.Streams == rcmgr.BlockAllLimit && int64(rcm.System.Streams) <= highWater {
+	if (rcm.System.Streams > rcmgr.DefaultLimit || rcm.System.Streams == rcmgr.BlockAllLimit) && int64(rcm.System.Streams) <= highWater {
 		// nolint
 		return fmt.Errorf(`
 Unable to initialize libp2p due to conflicting resource manager limit configuration.

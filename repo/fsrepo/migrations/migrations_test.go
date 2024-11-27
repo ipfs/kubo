@@ -110,9 +110,7 @@ func TestFetchMigrations(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ts := createTestServer()
-	defer ts.Close()
-	fetcher := NewHttpFetcher(CurrentIpfsDist, ts.URL, "", 0)
+	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
 	tmpDir := t.TempDir()
 
@@ -162,9 +160,7 @@ func TestRunMigrations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ts := createTestServer()
-	defer ts.Close()
-	fetcher := NewHttpFetcher(CurrentIpfsDist, ts.URL, "", 0)
+	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -191,7 +187,7 @@ func createFakeBin(from, to int, tmpDir string) {
 		panic(err)
 	}
 	emptyFile.Close()
-	err = os.Chmod(migPath, 0755)
+	err = os.Chmod(migPath, 0o755)
 	if err != nil {
 		panic(err)
 	}

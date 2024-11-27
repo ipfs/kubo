@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
-	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/ipns"
+	"github.com/ipfs/boxo/namesys"
+	"github.com/ipfs/boxo/path"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 type NameAPI HttpApi
@@ -49,9 +49,9 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		return nil, err
 	}
 
-	ropts := nsopts.ProcessOpts(options.ResolveOpts)
-	if ropts.Depth != nsopts.DefaultDepthLimit && ropts.Depth != 1 {
-		return nil, fmt.Errorf("Name.Resolve: depth other than 1 or %d not supported", nsopts.DefaultDepthLimit)
+	ropts := namesys.ProcessResolveOptions(options.ResolveOpts)
+	if ropts.Depth != namesys.DefaultDepthLimit && ropts.Depth != 1 {
+		return nil, fmt.Errorf("Name.Resolve: depth other than 1 or %d not supported", namesys.DefaultDepthLimit)
 	}
 
 	req := api.core().Request("name/resolve", name).
@@ -84,7 +84,11 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 			}
 			var ires iface.IpnsResult
 			if err == nil {
-				ires.Path = path.New(out.Path)
+				p, err := path.NewPath(out.Path)
+				if err != nil {
+					return
+				}
+				ires.Path = p
 			}
 
 			select {
@@ -106,9 +110,9 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		return nil, err
 	}
 
-	ropts := nsopts.ProcessOpts(options.ResolveOpts)
-	if ropts.Depth != nsopts.DefaultDepthLimit && ropts.Depth != 1 {
-		return nil, fmt.Errorf("Name.Resolve: depth other than 1 or %d not supported", nsopts.DefaultDepthLimit)
+	ropts := namesys.ProcessResolveOptions(options.ResolveOpts)
+	if ropts.Depth != namesys.DefaultDepthLimit && ropts.Depth != 1 {
+		return nil, fmt.Errorf("Name.Resolve: depth other than 1 or %d not supported", namesys.DefaultDepthLimit)
 	}
 
 	req := api.core().Request("name/resolve", name).
@@ -122,7 +126,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		return nil, err
 	}
 
-	return path.New(out.Path), nil
+	return path.NewPath(out.Path)
 }
 
 func (api *NameAPI) core() *HttpApi {

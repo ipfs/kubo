@@ -162,12 +162,17 @@ test_localhost_gateway_response_should_contain \
   "http://localhost:$GWAY_PORT/ipfs/$DIR_CID/" \
   "Location: http://$DIR_CID.ipfs.localhost:$GWAY_PORT/"
 
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+
 # We return human-readable body with HTTP 301 so existing cli scripts that use path-based
 # gateway are informed to enable following HTTP redirects
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{CIDv1} includes human-readable link and redirect info in HTTP 301 body" \
   "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
   ">Moved Permanently</a>"
+
+# end Kubo specific end-to-end test
 
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{CIDv0} redirects to CIDv1 representation in subdomain" \
@@ -188,29 +193,15 @@ test_localhost_gateway_response_should_contain \
 
 # /ipns/<dnslink-fqdn>
 
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain" \
   "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
   "Location: http://en.wikipedia-on-ipfs.org.ipns.localhost:$GWAY_PORT/wiki"
 
-# API on localhost subdomain gateway
-
-# /api/v0 present on the root hostname
-test_localhost_gateway_response_should_contain \
-  "request for localhost/api" \
-  "http://localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "Ref"
-
-# /api/v0 not mounted on content root subdomains
-test_localhost_gateway_response_should_contain \
-  "request for {cid}.ipfs.localhost/api returns data if present on the content root" \
-  "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
-
-test_localhost_gateway_response_should_contain \
-  "request for {cid}.ipfs.localhost/api/v0/refs returns 404" \
-  "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
+# end Kubo specific end-to-end test
 
 ## ============================================================================
 ## Test subdomain-based requests to a local gateway with default config
@@ -236,6 +227,10 @@ test_localhost_gateway_response_should_contain \
   "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/ipfs/file.txt" \
   "I am a txt file"
 
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+# This tests link to parent specific to boxo + relative pathing end-to-end tests specific to Kubo.
+
 # {CID}.ipfs.localhost/sub/dir (Directory Listing)
 DIR_HOSTNAME="${DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
@@ -255,7 +250,7 @@ test_expect_success "request for deep path resource at {cid}.ipfs.localhost/sub/
   curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/ipfs/ipns/bar" > list_response &&
   test_should_contain "text-file-content" list_response
 '
-
+# end Kubo specific end-to-end test
 
 # *.ipns.localhost
 
@@ -293,14 +288,6 @@ test_localhost_gateway_response_should_contain \
   "request for {dnslink}.ipns.localhost returns expected payload" \
   "http://$DNSLINK_FQDN.ipns.localhost:$GWAY_PORT" \
   "$CID_VAL"
-
-# api.localhost/api
-
-# Note: we use DIR_CID so refs -r returns some CIDs for child nodes
-test_localhost_gateway_response_should_contain \
-  "request for api.localhost returns API response" \
-  "http://api.localhost:$GWAY_PORT/api/v0/refs?arg=$DIR_CID&r=true" \
-  "Ref"
 
 ## ============================================================================
 ## Test DNSLink inlining on HTTP gateways
@@ -441,6 +428,10 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
   "404 Not Found"
 
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+# HTML specific to Boxo/Kubo, and relative pathing specific to code in Kubo
+
 # {CID}.ipfs.example.com/sub/dir (Directory Listing)
 DIR_FQDN="${DIR_CID}.ipfs.example.com"
 
@@ -463,6 +454,8 @@ test_expect_success "valid breadcrumb links in the header of directory listing a
   test_should_contain "Index of" list_response &&
   test_should_contain "/ipfs/<a href=\"//example.com/ipfs/${DIR_CID}\">${DIR_CID}</a>/<a href=\"//example.com/ipfs/${DIR_CID}/ipfs\">ipfs</a>/<a href=\"//example.com/ipfs/${DIR_CID}/ipfs/ipns\">ipns</a>" list_response
 '
+
+# end Kubo specific end-to-end test
 
 test_expect_success "request for deep path resource {cid}.ipfs.example.com/sub/dir/file" '
   curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/bar > list_response &&
@@ -497,54 +490,6 @@ test_hostname_gateway_response_should_contain \
   "${ED25519_IPNS_IDv1_DAGPB}.ipns.example.com" \
   "http://127.0.0.1:$GWAY_PORT" \
   "Location: http://${ED25519_IPNS_IDv1}.ipns.example.com/"
-
-# API on subdomain gateway example.com
-# ============================================================================
-
-# present at the root domain
-test_hostname_gateway_response_should_contain \
-  "request for example.com/api/v0/refs returns expected payload when /api is on Paths whitelist" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "Ref"
-
-# not mounted on content root subdomains
-test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api returns data if present on the content root" \
-  "$DIR_CID.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
-
-test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api/v0/refs returns 404" \
-  "$CIDv1.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
-
-# disable /api on example.com
-ipfs config --json Gateway.PublicGateways '{
-  "example.com": {
-    "UseSubdomains": true,
-    "Paths": ["/ipfs", "/ipns"]
-  }
-}' || exit 1
-# restart daemon to apply config changes
-test_kill_ipfs_daemon
-test_launch_ipfs_daemon_without_network
-
-# not mounted at the root domain
-test_hostname_gateway_response_should_contain \
-  "request for example.com/api/v0/refs returns 404 if /api not on Paths whitelist" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
-
-# not mounted on content root subdomains
-test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api returns data if present on the content root" \
-  "$DIR_CID.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
 
 # DNSLink: <dnslink-fqdn>.ipns.example.com
 # (not really useful outside of localhost, as setting TLS for more than one
@@ -855,6 +800,10 @@ test_expect_success "request for http://fake.domain.com/ipfs/{CID} with X-Forwar
   test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
 "
 
+# Kubo specific end-to-end test
+# (independend of gateway-conformance)
+# test cofiguration beign wired up correctly end-to-end
+
 ## ============================================================================
 ## Test support for wildcards in gateway config
 ## ============================================================================
@@ -966,3 +915,5 @@ test_expect_success "clean up ipfs dir" '
 '
 
 test_done
+
+# end Kubo specific end-to-end test

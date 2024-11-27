@@ -22,6 +22,7 @@ func TestProfiler(t *testing.T) {
 		CollectorCPU,
 		CollectorMutex,
 		CollectorBlock,
+		CollectorTrace,
 	}
 
 	cases := []struct {
@@ -49,6 +50,7 @@ func TestProfiler(t *testing.T) {
 				"cpu.pprof",
 				"mutex.pprof",
 				"block.pprof",
+				"trace",
 			},
 		},
 		{
@@ -70,6 +72,7 @@ func TestProfiler(t *testing.T) {
 				"cpu.pprof",
 				"mutex.pprof",
 				"block.pprof",
+				"trace",
 			},
 		},
 		{
@@ -104,6 +107,7 @@ func TestProfiler(t *testing.T) {
 				"ipfs",
 				"cpu.pprof",
 				"block.pprof",
+				"trace",
 			},
 		},
 		{
@@ -123,6 +127,7 @@ func TestProfiler(t *testing.T) {
 				"ipfs",
 				"cpu.pprof",
 				"mutex.pprof",
+				"trace",
 			},
 		},
 		{

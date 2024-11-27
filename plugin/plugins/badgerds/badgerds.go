@@ -13,7 +13,7 @@ import (
 	badgerds "github.com/ipfs/go-ds-badger"
 )
 
-// Plugins is exported list of plugins that will be loaded
+// Plugins is exported list of plugins that will be loaded.
 var Plugins = []plugin.Plugin{
 	&badgerdsPlugin{},
 }
@@ -47,7 +47,7 @@ type datastoreConfig struct {
 }
 
 // BadgerdsDatastoreConfig returns a configuration stub for a badger datastore
-// from the given parameters
+// from the given parameters.
 func (*badgerdsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 	return func(params map[string]interface{}) (fsrepo.DatastoreConfig, error) {
 		var c datastoreConfig
@@ -113,7 +113,7 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 		p = filepath.Join(path, p)
 	}
 
-	err := os.MkdirAll(p, 0755)
+	err := os.MkdirAll(p, 0o755)
 	if err != nil {
 		return nil, err
 	}

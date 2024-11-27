@@ -7,11 +7,11 @@ import (
 	"github.com/ipfs/kubo/repo/fsrepo"
 )
 
-// CurrentCommit is the current git commit, this is set as a ldflag in the Makefile
+// CurrentCommit is the current git commit, this is set as a ldflag in the Makefile.
 var CurrentCommit string
 
-// CurrentVersionNumber is the current application's version literal
-const CurrentVersionNumber = "0.23.0-dev"
+// CurrentVersionNumber is the current application's version literal.
+const CurrentVersionNumber = "0.33.0-dev"
 
 const ApiVersion = "/kubo/" + CurrentVersionNumber + "/" //nolint
 
@@ -48,7 +48,7 @@ func GetVersionInfo() *VersionInfo {
 		Version: CurrentVersionNumber,
 		Commit:  CurrentCommit,
 		Repo:    fmt.Sprint(fsrepo.RepoVersion),
-		System:  runtime.GOARCH + "/" + runtime.GOOS, //TODO: Precise version here
+		System:  runtime.GOARCH + "/" + runtime.GOOS, // TODO: Precise version here
 		Golang:  runtime.Version(),
 	}
 }

@@ -12,6 +12,5 @@ func TestScrubMapInternalDelete(t *testing.T) {
 	}
 	if len(m) != 0 {
 		t.Errorf("expecting an empty map, got a non-empty map")
-
 	}
 }

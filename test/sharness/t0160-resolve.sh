@@ -30,8 +30,11 @@ test_resolve_setup_name() {
   local key="$1"
   local ref="$2"
 
+  # we pass here --ttl=0s to ensure that it does not get cached by namesys.
+  # the alternative would be to wait between tests to ensure that the namesys
+  # cache gets purged in time, but that adds runtime time for the tests.
   test_expect_success "resolve: prepare $key" '
-    ipfs name publish --key="$key" --allow-offline "$ref"
+    ipfs name publish --key="$key" --ttl=0s --allow-offline "$ref"
   '
 }
 

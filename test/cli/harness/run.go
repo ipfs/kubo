@@ -3,6 +3,7 @@ package harness
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -14,8 +15,10 @@ type Runner struct {
 	Verbose bool
 }
 
-type CmdOpt func(*exec.Cmd)
-type RunFunc func(*exec.Cmd) error
+type (
+	CmdOpt  func(*exec.Cmd)
+	RunFunc func(*exec.Cmd) error
+)
 
 var RunFuncStart = (*exec.Cmd).Start
 
@@ -46,6 +49,11 @@ func environToMap(environ []string) map[string]string {
 	m := map[string]string{}
 	for _, e := range environ {
 		kv := strings.Split(e, "=")
+		// Skip environment variables that start with =
+		// These can occur in Windows https://github.com/golang/go/issues/61956
+		if kv[0] == "" {
+			continue
+		}
 		m[kv[0]] = kv[1]
 	}
 	return m
@@ -53,8 +61,27 @@ func environToMap(environ []string) map[string]string {
 
 func (r *Runner) Run(req RunRequest) *RunResult {
 	cmd := exec.Command(req.Path, req.Args...)
-	stdout := &Buffer{}
-	stderr := &Buffer{}
+	var stdout io.Writer
+	var stderr io.Writer
+	outbuf := &Buffer{}
+	errbuf := &Buffer{}
+
+	if r.Verbose {
+		or, ow := io.Pipe()
+		errr, errw := io.Pipe()
+		stdout = io.MultiWriter(outbuf, ow)
+		stderr = io.MultiWriter(errbuf, errw)
+		go func() {
+			_, _ = io.Copy(os.Stdout, or)
+		}()
+		go func() {
+			_, _ = io.Copy(os.Stderr, errr)
+		}()
+	} else {
+		stdout = outbuf
+		stderr = errbuf
+	}
+
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.Dir = r.Dir
@@ -76,8 +103,8 @@ func (r *Runner) Run(req RunRequest) *RunResult {
 	err := req.RunFunc(cmd)
 
 	result := RunResult{
-		Stdout: stdout,
-		Stderr: stderr,
+		Stdout: outbuf,
+		Stderr: errbuf,
 		Cmd:    cmd,
 		Err:    err,
 	}
@@ -100,11 +127,9 @@ func (r *Runner) AssertNoError(result *RunResult) {
 	if result.ExitErr != nil {
 		log.Panicf("'%s' returned error, code: %d, err: %s\nstdout:%s\nstderr:%s\n",
 			result.Cmd.Args, result.ExitErr.ExitCode(), result.ExitErr.Error(), result.Stdout.String(), result.Stderr.String())
-
 	}
 	if result.Err != nil {
 		log.Panicf("unable to run %s: %s", result.Cmd.Path, result.Err)
-
 	}
 }
 

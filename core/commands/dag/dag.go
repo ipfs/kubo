@@ -5,17 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path"
 
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
-	ipfspath "github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	//gipfree "github.com/ipld/go-ipld-prime/impl/free"
-	//gipselector "github.com/ipld/go-ipld-prime/traversal/selector"
-	//gipselectorbuilder "github.com/ipld/go-ipld-prime/traversal/selector/builder"
 )
 
 const (
@@ -90,7 +87,7 @@ into an object of the specified format.
 		cmds.StringOption("store-codec", "Codec that the stored object will be encoded with").WithDefault("dag-cbor"),
 		cmds.StringOption("input-codec", "Codec that the input object is encoded in").WithDefault("dag-json"),
 		cmds.BoolOption("pin", "Pin this object when adding."),
-		cmds.StringOption("hash", "Hash function to use").WithDefault("sha2-256"),
+		cmds.StringOption("hash", "Hash function to use"),
 		cmdutils.AllowBigBlockOption,
 	},
 	Run:  dagPut,
@@ -160,7 +157,7 @@ var DagResolveCmd = &cmds.Command{
 			}
 			p := enc.Encode(out.Cid)
 			if out.RemPath != "" {
-				p = ipfspath.Join([]string{p, out.RemPath})
+				p = path.Join(p, out.RemPath)
 			}
 
 			fmt.Fprint(w, p)
@@ -209,7 +206,6 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 	Run:  dagImport,
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *CarImportOutput) error {
-
 			silent, _ := req.Options[silentOptionName].(bool)
 			if silent {
 				return nil
@@ -238,9 +234,9 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 
 			if event.Root.PinErrorMsg != "" {
 				return fmt.Errorf("pinning root %q FAILED: %s", enc.Encode(event.Root.Cid), event.Root.PinErrorMsg)
-			} else {
-				event.Root.PinErrorMsg = "success"
 			}
+
+			event.Root.PinErrorMsg = "success"
 
 			_, err = fmt.Fprintf(
 				w,
@@ -343,9 +339,11 @@ func (s *DagStatSummary) String() string {
 func (s *DagStatSummary) incrementTotalSize(size uint64) {
 	s.TotalSize += size
 }
+
 func (s *DagStatSummary) incrementRedundantSize(size uint64) {
 	s.redundantSize += size
 }
+
 func (s *DagStatSummary) appendStats(stats *DagStat) {
 	s.DagStatsArray = append(s.DagStatsArray, stats)
 }

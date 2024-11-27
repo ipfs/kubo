@@ -25,12 +25,12 @@ We will ask early testers to participate at two points in the process:
 - [ ] Charity Engine (@rytiss, @tristanolive)
 - [ ] Fission (@bmann)
 - [ ] Infura (@MichaelMure)
-- [ ] OrbitDB (@aphelionz)
-- [ ] pacman.store (@RubenKelevra)
+- [ ] OrbitDB (@haydenyoung)
 - [ ] Pinata (@obo20)
-- [ ] PL EngRes bifrost (@gmasgras)
+- [ ] Shipyard (@cewood, @ns4plabs)
 - [ ] Siderus (@koalalorenzo)
 - [ ] Textile (@sanderpick)
+- [ ] @RubenKelevra
 
 ## How to sign up?
 

@@ -10,12 +10,12 @@ import (
 )
 
 const (
-	// Current distribution to fetch migrations from
-	CurrentIpfsDist = "/ipfs/QmYerugGRCZWA8yQMKDsd9daEVXUR3C5nuw3VXuX1mggHa" // fs-repo-13-to-14 v1.0.0
+	// Current distribution to fetch migrations from.
+	CurrentIpfsDist = "/ipfs/QmRzRGJEjYDfbHHaALnHBuhzzrkXGdwcPMrgd5fgM7hqbe" // fs-repo-15-to-16 v1.0.1
 	// Latest distribution path.  Default for fetchers.
 	LatestIpfsDist = "/ipns/dist.ipfs.tech"
 
-	// Distribution environ variable
+	// Distribution environ variable.
 	envIpfsDistPath = "IPFS_DIST_PATH"
 )
 
@@ -40,7 +40,6 @@ type limitReadCloser struct {
 // NewMultiFetcher creates a MultiFetcher with the given Fetchers.  The
 // Fetchers are tried in order, then passed to this function.
 func NewMultiFetcher(f ...Fetcher) *MultiFetcher {
-
 	mf := &MultiFetcher{
 		fetchers: make([]Fetcher, len(f)),
 	}
@@ -95,7 +94,7 @@ func NewLimitReadCloser(rc io.ReadCloser, limit int64) io.ReadCloser {
 // then returns the IPNS path.
 //
 // To get the IPFS path of the latest distribution, if not overriddin by the
-// environ variable: GetDistPathEnv(CurrentIpfsDist)
+// environ variable: GetDistPathEnv(CurrentIpfsDist).
 func GetDistPathEnv(distPath string) string {
 	if dist := os.Getenv(envIpfsDistPath); dist != "" {
 		return dist

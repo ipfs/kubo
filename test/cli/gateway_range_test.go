@@ -41,7 +41,7 @@ func TestGatewayHAMTDirectory(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
-func TestGatewayMultiRange(t *testing.T) {
+func TestGatewayHAMTRanges(t *testing.T) {
 	t.Parallel()
 
 	const (
@@ -65,11 +65,36 @@ func TestGatewayMultiRange(t *testing.T) {
 	err = node.IPFSDagImport(r, fixtureCid)
 	assert.NoError(t, err)
 
-	// Succeeds fetching a range of blocks we have
-	resp := client.Get(fmt.Sprintf("/ipfs/%s", fileCid), func(r *http.Request) {
-		r.Header.Set("Range", "bytes=1276-1279, 29839070-29839080")
+	t.Run("Succeeds Fetching Range", func(t *testing.T) {
+		t.Parallel()
+
+		resp := client.Get(fmt.Sprintf("/ipfs/%s", fileCid), func(r *http.Request) {
+			r.Header.Set("Range", "bytes=1276-1279")
+		})
+		assert.Equal(t, http.StatusPartialContent, resp.StatusCode)
+		assert.Equal(t, "bytes 1276-1279/109266405", resp.Headers.Get("Content-Range"))
+		assert.Equal(t, "iana", resp.Body)
 	})
-	assert.Equal(t, http.StatusPartialContent, resp.StatusCode)
-	assert.Contains(t, resp.Body, "Content-Range: bytes 1276-1279/109266405\r\nContent-Type: text/plain; charset=utf-8\r\n\r\niana\r\n")
-	assert.Contains(t, resp.Body, "Content-Range: bytes 29839070-29839080/109266405\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nEXAMPLE.COM\r\n")
+
+	t.Run("Succeeds Fetching Second Range", func(t *testing.T) {
+		t.Parallel()
+
+		resp := client.Get(fmt.Sprintf("/ipfs/%s", fileCid), func(r *http.Request) {
+			r.Header.Set("Range", "bytes=29839070-29839080")
+		})
+		assert.Equal(t, http.StatusPartialContent, resp.StatusCode)
+		assert.Equal(t, "bytes 29839070-29839080/109266405", resp.Headers.Get("Content-Range"))
+		assert.Equal(t, "EXAMPLE.COM", resp.Body)
+	})
+
+	t.Run("Succeeds Fetching First Range of Multi-range Request", func(t *testing.T) {
+		t.Parallel()
+
+		resp := client.Get(fmt.Sprintf("/ipfs/%s", fileCid), func(r *http.Request) {
+			r.Header.Set("Range", "bytes=1276-1279, 29839070-29839080")
+		})
+		assert.Equal(t, http.StatusPartialContent, resp.StatusCode)
+		assert.Equal(t, "bytes 1276-1279/109266405", resp.Headers.Get("Content-Range"))
+		assert.Equal(t, "iana", resp.Body)
+	})
 }

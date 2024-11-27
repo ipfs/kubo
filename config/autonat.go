@@ -20,6 +20,9 @@ const (
 	// AutoNATServiceDisabled indicates that the user has disabled the
 	// AutoNATService.
 	AutoNATServiceDisabled
+	// AutoNATServiceEnabledV1Only forces use of V1 and disables V2
+	// (used for testing)
+	AutoNATServiceEnabledV1Only
 )
 
 func (m *AutoNATServiceMode) UnmarshalText(text []byte) error {
@@ -30,6 +33,8 @@ func (m *AutoNATServiceMode) UnmarshalText(text []byte) error {
 		*m = AutoNATServiceEnabled
 	case "disabled":
 		*m = AutoNATServiceDisabled
+	case "legacy-v1":
+		*m = AutoNATServiceEnabledV1Only
 	default:
 		return fmt.Errorf("unknown autonat mode: %s", string(text))
 	}
@@ -44,6 +49,8 @@ func (m AutoNATServiceMode) MarshalText() ([]byte, error) {
 		return []byte("enabled"), nil
 	case AutoNATServiceDisabled:
 		return []byte("disabled"), nil
+	case AutoNATServiceEnabledV1Only:
+		return []byte("legacy-v1"), nil
 	default:
 		return nil, fmt.Errorf("unknown autonat mode: %d", m)
 	}
@@ -64,7 +71,7 @@ type AutoNATConfig struct {
 	Throttle *AutoNATThrottleConfig `json:",omitempty"`
 }
 
-// AutoNATThrottleConfig configures the throttle limites
+// AutoNATThrottleConfig configures the throttle limites.
 type AutoNATThrottleConfig struct {
 	// GlobalLimit and PeerLimit sets the global and per-peer dialback
 	// limits. The AutoNAT service will only perform the specified number of

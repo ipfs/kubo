@@ -2,6 +2,7 @@ package loader
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -93,7 +94,7 @@ type PluginLoader struct {
 	repo    string
 }
 
-// NewPluginLoader creates new plugin loader
+// NewPluginLoader creates new plugin loader.
 func NewPluginLoader(repo string) (*PluginLoader, error) {
 	loader := &PluginLoader{plugins: make([]plugin.Plugin, 0, len(preloadPlugins)), repo: repo}
 	if repo != "" {
@@ -226,7 +227,7 @@ func loadDynamicPlugins(pluginDir string) ([]plugin.Plugin, error) {
 			return nil
 		}
 
-		if info.Mode().Perm()&0111 == 0 {
+		if info.Mode().Perm()&0o111 == 0 {
 			// file is not executable let's not load it
 			// this is to prevent loading plugins from for example non-executable
 			// mounts, some /tmp mounts are marked as such for security
@@ -245,7 +246,7 @@ func loadDynamicPlugins(pluginDir string) ([]plugin.Plugin, error) {
 	return plugins, err
 }
 
-// Initialize initializes all loaded plugins
+// Initialize initializes all loaded plugins.
 func (loader *PluginLoader) Initialize() error {
 	if err := loader.transition(loaderLoading, loaderInitializing); err != nil {
 		return err
@@ -361,7 +362,7 @@ func (loader *PluginLoader) Close() error {
 	}
 	if errs != nil {
 		loader.state = loaderFailed
-		return fmt.Errorf(strings.Join(errs, "\n"))
+		return errors.New(strings.Join(errs, "\n"))
 	}
 	loader.state = loaderClosed
 	return nil
