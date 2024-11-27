@@ -22,7 +22,7 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/ipfs-shipyard/nopfs v0.0.12
 	github.com/ipfs-shipyard/nopfs/ipfs v0.13.2-0.20231027223058-cde3b5ba964c
-	github.com/ipfs/boxo v0.24.4-0.20241125210908-37756ce2eeb1
+	github.com/ipfs/boxo v0.24.4-0.20241127172419-52a6a06b605d
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-cidutil v0.1.0
@@ -125,6 +125,8 @@ require (
 	github.com/flynn/noise v1.1.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.6 // indirect
+	github.com/gammazero/chanqueue v1.0.0 // indirect
+	github.com/gammazero/deque v1.0.0 // indirect
 	github.com/getsentry/sentry-go v0.27.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
