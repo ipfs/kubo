@@ -6,7 +6,7 @@
 //
 // Tracing is configured through environment variables, as consistent with the OpenTelemetry spec as possible:
 //
-// https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md
+// https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
 //
 // OTEL_TRACES_EXPORTER: a comma-separated list of exporters:
 //   - otlp
