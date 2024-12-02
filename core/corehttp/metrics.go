@@ -151,13 +151,11 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 	}
 }
 
-var (
-	peersTotalMetric = prometheus.NewDesc(
-		prometheus.BuildFQName("ipfs", "p2p", "peers_total"),
-		"Number of connected peers",
-		[]string{"transport"},
-		nil,
-	)
+var peersTotalMetric = prometheus.NewDesc(
+	prometheus.BuildFQName("ipfs", "p2p", "peers_total"),
+	"Number of connected peers",
+	[]string{"transport"},
+	nil,
 )
 
 type IpfsNodeCollector struct {

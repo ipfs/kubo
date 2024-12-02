@@ -3,11 +3,13 @@ package config
 const (
 	DefaultInlineDNSLink         = false
 	DefaultDeserializedResponses = true
+	DefaultDisableHTMLErrors     = false
+	DefaultExposeRoutingAPI      = false
 )
 
 type GatewaySpec struct {
 	// Paths is explicit list of path prefixes that should be handled by
-	// this gateway. Example: `["/ipfs", "/ipns", "/api"]`
+	// this gateway. Example: `["/ipfs", "/ipns"]`
 	Paths []string
 
 	// UseSubdomains indicates whether or not this gateway uses subdomains
@@ -37,7 +39,6 @@ type GatewaySpec struct {
 
 // Gateway contains options for the HTTP gateway server.
 type Gateway struct {
-
 	// HTTPHeaders configures the headers that should be returned by this
 	// gateway.
 	HTTPHeaders map[string][]string // HTTP headers to return with the gateway
@@ -45,15 +46,6 @@ type Gateway struct {
 	// RootRedirect is the path to which requests to `/` on this gateway
 	// should be redirected.
 	RootRedirect string
-
-	// REMOVED: modern replacement tracked in https://github.com/ipfs/specs/issues/375
-	Writable Flag `json:",omitempty"`
-
-	// PathPrefixes was removed: https://github.com/ipfs/go-ipfs/issues/7702
-	PathPrefixes []string
-
-	// FIXME: Not yet implemented: https://github.com/ipfs/kubo/issues/8059
-	APICommands []string
 
 	// NoFetch configures the gateway to _not_ fetch blocks in response to
 	// requests.
@@ -70,7 +62,15 @@ type Gateway struct {
 	// be overridden per FQDN in PublicGateways.
 	DeserializedResponses Flag
 
+	// DisableHTMLErrors disables pretty HTML pages when an error occurs. Instead, a `text/plain`
+	// page will be sent with the raw error message.
+	DisableHTMLErrors Flag
+
 	// PublicGateways configures behavior of known public gateways.
 	// Each key is a fully qualified domain name (FQDN).
 	PublicGateways map[string]*GatewaySpec
+
+	// ExposeRoutingAPI configures the gateway port to expose
+	// routing system as HTTP API at /routing/v1 (https://specs.ipfs.tech/routing/http-routing-v1/).
+	ExposeRoutingAPI Flag
 }

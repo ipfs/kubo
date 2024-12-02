@@ -36,7 +36,7 @@ type Data struct {
 // The Fixture file represents a dag where 2 nodes of size = 46B each, have a common child of 7B
 // when traversing the DAG from the root's children (node1 and node2) we count (46 + 7)x2 bytes (counting redundant bytes) = 106
 // since both nodes share a common child of 7 bytes we actually had to read (46)x2 + 7 =  99 bytes
-// we should get a dedup ratio of 106/99 that results in approximatelly 1.0707071
+// we should get a dedup ratio of 106/99 that results in approximately 1.0707071
 
 func TestDag(t *testing.T) {
 	t.Parallel()
@@ -101,5 +101,4 @@ func TestDag(t *testing.T) {
 		stat := node.RunIPFS("dag", "stat", "--progress=false", node1Cid, node2Cid)
 		assert.Equal(t, content, stat.Stdout.Bytes())
 	})
-
 }

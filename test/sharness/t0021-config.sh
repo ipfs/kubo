@@ -281,7 +281,7 @@ test_config_cmd() {
 
   # won't work as it changes datastore definition, which makes ipfs not launch
   # without converting first
-  # test_profile_apply_revert badgerds
+  # test_profile_apply_revert pebbleds
 
   test_expect_success "cleanup config backups" '
     find "$IPFS_PATH" -name "config-*" -exec rm {} \;

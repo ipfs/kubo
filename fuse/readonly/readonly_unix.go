@@ -16,7 +16,7 @@ import (
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
-	path "github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
@@ -49,7 +49,7 @@ type Root struct {
 
 // Attr returns file attributes.
 func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Mode = os.ModeDir | 0111 // -rw+x
+	a.Mode = os.ModeDir | 0o111 // -rw+x
 	return nil
 }
 
@@ -59,32 +59,38 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
-		return nil, fuse.ENOENT
+		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
-	p, err := path.ParsePath(name)
+	p, err := path.NewPath("/ipfs/" + name)
 	if err != nil {
 		log.Debugf("fuse failed to parse path: %q: %s", name, err)
-		return nil, fuse.ENOENT
+		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
-	nd, ndLnk, err := s.Ipfs.UnixFSPathResolver.ResolvePath(ctx, p)
+	imPath, err := path.NewImmutablePath(p)
+	if err != nil {
+		log.Debugf("fuse failed to convert path: %q: %s", name, err)
+		return nil, syscall.Errno(syscall.ENOENT)
+	}
+
+	nd, ndLnk, err := s.Ipfs.UnixFSPathResolver.ResolvePath(ctx, imPath)
 	if err != nil {
 		// todo: make this error more versatile.
-		return nil, fuse.ENOENT
+		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
 	cidLnk, ok := ndLnk.(cidlink.Link)
 	if !ok {
 		log.Debugf("non-cidlink returned from ResolvePath: %v", ndLnk)
-		return nil, fuse.ENOENT
+		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
 	// convert ipld-prime node to universal node
 	blk, err := s.Ipfs.Blockstore.Get(ctx, cidLnk.Cid)
 	if err != nil {
 		log.Debugf("fuse failed to retrieve block: %v: %s", cidLnk, err)
-		return nil, fuse.ENOENT
+		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
 	var fnd ipld.Node
@@ -101,11 +107,11 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		fnd, err = mdag.RawNodeConverter(blk, nd)
 	default:
 		log.Error("fuse node was not a supported type")
-		return nil, fuse.ENOTSUP
+		return nil, syscall.Errno(syscall.ENOTSUP)
 	}
 	if err != nil {
-		log.Error("could not convert protobuf or raw node")
-		return nil, fuse.ENOENT
+		log.Errorf("could not convert protobuf or raw node: %s", err)
+		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
 	return &Node{Ipfs: s.Ipfs, Nd: fnd}, nil
@@ -114,7 +120,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 // ReadDirAll reads a particular directory. Disallowed for root.
 func (*Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("read Root")
-	return nil, fuse.EPERM
+	return nil, syscall.Errno(syscall.EPERM)
 }
 
 // Node is the core object representing a filesystem tree node.
@@ -139,7 +145,7 @@ func (s *Node) loadData() error {
 func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Node attr")
 	if rawnd, ok := s.Nd.(*mdag.RawNode); ok {
-		a.Mode = 0444
+		a.Mode = 0o444
 		a.Size = uint64(len(rawnd.RawData()))
 		a.Blocks = 1
 		return nil
@@ -152,18 +158,18 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	}
 	switch s.cached.Type() {
 	case ft.TDirectory, ft.THAMTShard:
-		a.Mode = os.ModeDir | 0555
+		a.Mode = os.ModeDir | 0o555
 	case ft.TFile:
 		size := s.cached.FileSize()
-		a.Mode = 0444
+		a.Mode = 0o444
 		a.Size = uint64(size)
 		a.Blocks = uint64(len(s.Nd.Links()))
 	case ft.TRaw:
-		a.Mode = 0444
+		a.Mode = 0o444
 		a.Size = uint64(len(s.cached.Data()))
 		a.Blocks = uint64(len(s.Nd.Links()))
 	case ft.TSymlink:
-		a.Mode = 0777 | os.ModeSymlink
+		a.Mode = 0o777 | os.ModeSymlink
 		a.Size = uint64(len(s.cached.Data()))
 	default:
 		return fmt.Errorf("invalid data type - %s", s.cached.Type())
@@ -178,12 +184,12 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	switch err {
 	case os.ErrNotExist, mdag.ErrLinkNotFound:
 		// todo: make this error more versatile.
-		return nil, fuse.ENOENT
+		return nil, syscall.Errno(syscall.ENOENT)
 	case nil:
 		// noop
 	default:
 		log.Errorf("fuse lookup %q: %s", name, err)
-		return nil, fuse.EIO
+		return nil, syscall.Errno(syscall.EIO)
 	}
 
 	nd, err := s.Ipfs.DAG.Get(ctx, link.Cid)
@@ -195,7 +201,7 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	return &Node{Ipfs: s.Ipfs, Nd: nd}, nil
 }
 
-// ReadDirAll reads the link structure as directory entries
+// ReadDirAll reads the link structure as directory entries.
 func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Node ReadDir")
 	dir, err := uio.NewDirectoryFromNode(s.Ipfs.DAG, s.Nd)
@@ -246,7 +252,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	if len(entries) > 0 {
 		return entries, nil
 	}
-	return nil, fuse.ENOENT
+	return nil, syscall.Errno(syscall.ENOENT)
 }
 
 func (s *Node) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
@@ -284,7 +290,7 @@ func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 	return nil // may be non-nil / not succeeded
 }
 
-// to check that out Node implements all the interfaces we want
+// to check that our Node implements all the interfaces we want.
 type roRoot interface {
 	fs.Node
 	fs.HandleReadDirAller

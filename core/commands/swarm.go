@@ -262,7 +262,7 @@ var swarmPeersCmd = &cmds.Command{
 		for _, c := range conns {
 			ci := connInfo{
 				Addr: c.Address().String(),
-				Peer: c.ID().Pretty(),
+				Peer: c.ID().String(),
 			}
 
 			if verbose || direction {
@@ -345,7 +345,8 @@ var swarmResourcesCmd = &cmds.Command{
 Get a summary of all resources accounted for by the libp2p Resource Manager.
 This includes the limits and the usage against those limits.
 This can output a human readable table and JSON encoding.
-`},
+`,
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -490,11 +491,6 @@ func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, erro
 		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
 	}
 
-	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
-		if vs, ok := v.(string); ok {
-			info.ProtocolVersion = vs
-		}
-	}
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
 			info.AgentVersion = vs
@@ -540,7 +536,7 @@ var swarmAddrsCmd = &cmds.Command{
 
 		out := make(map[string][]string)
 		for p, paddrs := range addrs {
-			s := p.Pretty()
+			s := p.String()
 			for _, a := range paddrs {
 				out[s] = append(out[s], a.String())
 			}
@@ -561,7 +557,7 @@ var swarmAddrsCmd = &cmds.Command{
 				paddrs := am.Addrs[p]
 				fmt.Fprintf(w, "%s (%d)\n", p, len(paddrs))
 				for _, addr := range paddrs {
-					fmt.Fprintf(w, "\t"+addr+"\n")
+					fmt.Fprintf(w, "\t%s\n", addr)
 				}
 			}
 
@@ -603,7 +599,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 		for _, addr := range maddrs {
 			saddr := addr.String()
 			if showid {
-				saddr = path.Join(saddr, p2pProtocolName, self.ID().Pretty())
+				saddr = path.Join(saddr, p2pProtocolName, self.ID().String())
 			}
 			addrs = append(addrs, saddr)
 		}
@@ -650,11 +646,13 @@ var swarmAddrsListenCmd = &cmds.Command{
 
 var swarmConnectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Open connection to a given address.",
+		Tagline: "Open connection to a given peer.",
 		ShortDescription: `
-'ipfs swarm connect' opens a new direct connection to a peer address.
+'ipfs swarm connect' attempts to ensure a connection to a given peer.
 
-The address format is an IPFS multiaddr:
+Multiaddresses given are advisory, for example the node may already be aware of other addresses for a given peer or may already have an established connection to the peer.
+
+The address format is a libp2p multiaddr:
 
 ipfs swarm connect /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 `,
@@ -682,7 +680,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N
 
 		output := make([]string, len(pis))
 		for i, pi := range pis {
-			output[i] = "connect " + pi.ID.Pretty()
+			output[i] = "connect " + pi.ID.String()
 
 			err := api.Swarm().Connect(req.Context, pi)
 			if err != nil {
@@ -747,7 +745,7 @@ it will reconnect.
 			// a good backwards compat solution. Right now, I'm just
 			// preserving the current behavior.
 			for _, addr := range maddrs {
-				msg := "disconnect " + ainfo.ID.Pretty()
+				msg := "disconnect " + ainfo.ID.String()
 				if err := api.Swarm().Disconnect(req.Context, addr); err != nil {
 					msg += " failure: " + err.Error()
 				} else {

@@ -15,15 +15,16 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-var (
-	ErrApiNotRunning = errors.New("api not running") //nolint
-)
+var ErrApiNotRunning = errors.New("api not running") //nolint
 
 // Repo represents all persistent data of a given ipfs node.
 type Repo interface {
 	// Config returns the ipfs configuration file from the repo. Changes made
 	// to the returned config are not automatically persisted.
 	Config() (*config.Config, error)
+
+	// Path is the repo file-system path
+	Path() string
 
 	// UserResourceOverrides returns optional user resource overrides for the
 	// libp2p resource manager.

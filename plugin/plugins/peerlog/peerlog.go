@@ -20,7 +20,7 @@ var log = logging.Logger("plugin/peerlog")
 type eventType int
 
 var (
-	// size of the event queue buffer
+	// size of the event queue buffer.
 	eventQueueSize = 64 * 1024
 	// number of events to drop when busy.
 	busyDropAmount = eventQueueSize / 8
@@ -54,7 +54,7 @@ type peerLogPlugin struct {
 
 var _ plugin.PluginDaemonInternal = (*peerLogPlugin)(nil)
 
-// Plugins is exported list of plugins that will be loaded
+// Plugins is exported list of plugins that will be loaded.
 var Plugins = []plugin.Plugin{
 	&peerLogPlugin{},
 }
@@ -94,7 +94,7 @@ func extractEnabled(config interface{}) bool {
 	return enabled
 }
 
-// Init initializes plugin
+// Init initializes plugin.
 func (pl *peerLogPlugin) Init(env *plugin.Environment) error {
 	pl.events = make(chan plEvent, eventQueueSize)
 	pl.enabled = extractEnabled(env.Config)
@@ -148,7 +148,7 @@ func (pl *peerLogPlugin) collectEvents(node *core.IpfsNode) {
 		case e = <-pl.events:
 		}
 
-		peerID := zap.String("peer", e.peer.Pretty())
+		peerID := zap.String("peer", e.peer.String())
 
 		switch e.kind {
 		case eventConnect:

@@ -13,26 +13,6 @@ type SwarmConfig struct {
 	// DisableNatPortMap turns off NAT port mapping (UPnP, etc.).
 	DisableNatPortMap bool
 
-	// DisableRelay explicitly disables the relay transport.
-	//
-	// Deprecated: This flag is deprecated and is overridden by
-	// `Swarm.Transports.Relay` if specified.
-	DisableRelay bool `json:",omitempty"`
-
-	// EnableRelayHop makes this node act as a public relay v1
-	//
-	// Deprecated: The circuit v1 protocol is deprecated.
-	// Use `Swarm.RelayService` to configure the circuit v2 relay.
-	EnableRelayHop bool `json:",omitempty"`
-
-	// EnableAutoRelay enables the "auto relay user" feature.
-	// Node will find and use advertised public relays when it determines that
-	// it's not reachable from the public internet.
-	//
-	// Deprecated: This flag is deprecated and is overridden by
-	// `Swarm.RelayClient.Enabled` if specified.
-	EnableAutoRelay bool `json:",omitempty"`
-
 	// RelayClient controls the client side of "auto relay" feature.
 	// When enabled, the node will use relays if it is not publicly reachable.
 	RelayClient RelayClient
@@ -85,8 +65,6 @@ type RelayService struct {
 	// BufferSize is the size of the relayed connection buffers.
 	BufferSize *OptionalInteger `json:",omitempty"`
 
-	// MaxReservationsPerPeer is the maximum number of reservations originating from the same peer.
-	MaxReservationsPerPeer *OptionalInteger `json:",omitempty"`
 	// MaxReservationsPerIP is the maximum number of reservations originating from the same IP address.
 	MaxReservationsPerIP *OptionalInteger `json:",omitempty"`
 	// MaxReservationsPerASN is the maximum number of reservations origination from the same ASN.
@@ -98,12 +76,13 @@ type Transports struct {
 	// listen on a transport, add the transport to your Addresses.Swarm.
 	Network struct {
 		// All default to on.
-		QUIC      Flag `json:",omitempty"`
-		TCP       Flag `json:",omitempty"`
-		Websocket Flag `json:",omitempty"`
-		Relay     Flag `json:",omitempty"`
-		// except WebTransport which is experimental and optin.
+		QUIC         Flag `json:",omitempty"`
+		TCP          Flag `json:",omitempty"`
+		Websocket    Flag `json:",omitempty"`
+		Relay        Flag `json:",omitempty"`
 		WebTransport Flag `json:",omitempty"`
+		// except WebRTCDirect which is experimental and opt-in.
+		WebRTCDirect Flag `json:",omitempty"`
 	}
 
 	// Security specifies the transports used to encrypt insecure network
@@ -111,8 +90,6 @@ type Transports struct {
 	Security struct {
 		// Defaults to 100.
 		TLS Priority `json:",omitempty"`
-		// Defaults to 200.
-		SECIO Priority `json:",omitempty"`
 		// Defaults to 300.
 		Noise Priority `json:",omitempty"`
 	}
@@ -122,12 +99,10 @@ type Transports struct {
 	Multiplexers struct {
 		// Defaults to 100.
 		Yamux Priority `json:",omitempty"`
-		// Defaults to 200.
-		Mplex Priority `json:",omitempty"`
 	}
 }
 
-// ConnMgr defines configuration options for the libp2p connection manager
+// ConnMgr defines configuration options for the libp2p connection manager.
 type ConnMgr struct {
 	Type        *OptionalString   `json:",omitempty"`
 	LowWater    *OptionalInteger  `json:",omitempty"`

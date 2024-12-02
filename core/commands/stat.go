@@ -96,7 +96,7 @@ Example:
 
 		// Must be online!
 		if !nd.IsOnline {
-			return cmds.Errorf(cmds.ErrClient, ErrNotOnline.Error())
+			return cmds.Errorf(cmds.ErrClient, "unable to run offline: %s", ErrNotOnline)
 		}
 
 		if nd.Reporter == nil {

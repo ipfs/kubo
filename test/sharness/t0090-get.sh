@@ -129,9 +129,8 @@ test_get_cmd() {
   '
 
   test_expect_success "ipfs get ../.. should fail" '
-    echo "Error: invalid path \"../..\": invalid cid: selected encoding not supported" >expected &&
     test_must_fail ipfs get ../.. 2>actual &&
-    test_cmp expected actual
+    test_should_contain "Error: invalid path \"../..\"" actual
   '
 
   test_expect_success "create small file" '
@@ -158,13 +157,13 @@ test_get_cmd() {
 test_get_fail() {
   test_expect_success "create an object that has unresolvable links" '
     cat <<-\EOF >bad_object &&
-{ "Links": [ { "Name": "foo", "Hash": "QmZzaC6ydNXiR65W8VjGA73ET9MZ6VFAqUT1ngYMXcpihn", "Size": 1897 }, { "Name": "bar", "Hash": "Qmd4mG6pDFDmDTn6p3hX1srP8qTbkyXKj5yjpEsiHDX3u8", "Size": 56 }, { "Name": "baz", "Hash": "QmUTjwRnG28dSrFFVTYgbr6LiDLsBmRr2SaUSTGheK2YqG", "Size": 24266 } ], "Data": "\b\u0001" }
+{"Data":{"/":{"bytes":"CAE"}},"Links":[{"Hash":{"/":"Qmd4mG6pDFDmDTn6p3hX1srP8qTbkyXKj5yjpEsiHDX3u8"},"Name":"bar","Tsize":56},{"Hash":{"/":"QmUTjwRnG28dSrFFVTYgbr6LiDLsBmRr2SaUSTGheK2YqG"},"Name":"baz","Tsize":24266},{"Hash":{"/":"QmZzaC6ydNXiR65W8VjGA73ET9MZ6VFAqUT1ngYMXcpihn"},"Name":"foo","Tsize":1897}]}
 EOF
-    cat bad_object | ipfs object put > put_out
+    cat bad_object | ipfs dag put --store-codec dag-pb > put_out
   '
 
   test_expect_success "output looks good" '
-    echo "added QmaGidyrnX8FMbWJoxp8HVwZ1uRKwCyxBJzABnR1S2FVUr" > put_exp &&
+    echo "bafybeifrjjol3gixedca6etdwccnvwfvhurc4wb3i5mnk2rvwvyfcgwxd4" > put_exp &&
     test_cmp put_exp put_out
   '
 

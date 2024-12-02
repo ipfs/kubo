@@ -370,9 +370,7 @@ var p2pCloseCmd = &cmds.Command{
 
 		proto := protocol.ID(protoOpt)
 
-		var (
-			target, listen ma.Multiaddr
-		)
+		var target, listen ma.Multiaddr
 
 		if l {
 			listen, err = ma.NewMultiaddr(listenOpt)

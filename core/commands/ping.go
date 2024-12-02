@@ -79,7 +79,7 @@ trip latency information.
 		if len(n.Peerstore.Addrs(pid)) == 0 {
 			// Make sure we can find the node in question
 			if err := res.Emit(&PingResult{
-				Text:    fmt.Sprintf("Looking up peer %s", pid.Pretty()),
+				Text:    fmt.Sprintf("Looking up peer %s", pid),
 				Success: true,
 			}); err != nil {
 				return err
@@ -95,7 +95,7 @@ trip latency information.
 		}
 
 		if err := res.Emit(&PingResult{
-			Text:    fmt.Sprintf("PING %s.", pid.Pretty()),
+			Text:    fmt.Sprintf("PING %s.", pid),
 			Success: true,
 		}); err != nil {
 			return err

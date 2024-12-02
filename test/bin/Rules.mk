@@ -5,7 +5,7 @@ TGTS_$(d) :=
 define go-build-testdep
 	OUT="$(CURDIR)/$@" ; \
 	cd "test/dependencies" ; \
-	$(GOCC) build $(go-flags-with-tags) -o "$${OUT}" "$<"
+	$(GOCC) build $(go-flags-with-tags) -o "$${OUT}" "$<" 2>&1
 endef
 
 .PHONY: github.com/ipfs/kubo/test/dependencies/pollEndpoint
@@ -17,11 +17,6 @@ TGTS_$(d) += $(d)/pollEndpoint
 $(d)/go-sleep: github.com/ipfs/kubo/test/dependencies/go-sleep
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/go-sleep
-
-.PHONY: github.com/ipfs/kubo/test/dependencies/graphsync-get
-$(d)/graphsync-get: github.com/ipfs/kubo/test/dependencies/graphsync-get
-	$(go-build-testdep)
-TGTS_$(d) += $(d)/graphsync-get
 
 .PHONY: github.com/ipfs/kubo/test/dependencies/go-timeout
 $(d)/go-timeout: github.com/ipfs/kubo/test/dependencies/go-timeout

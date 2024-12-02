@@ -5,7 +5,7 @@
 # MIT Licensed; see the LICENSE file in this repository.
 #
 
-gitrepo=pl-strflt/sharness
+gitrepo=ipfs/sharness
 githash=803df39d3cba16bb7d493dd6cd8bc5e29826da61
 
 if test ! -n "$clonedir" ; then

@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
  - name: Getting Help on IPFS
-   url: https://ipfs.io/help
+   url: https://ipfs.tech/help
    about: All information about how and where to get help on IPFS.
  - name: Kubo configuration reference
    url: https://github.com/ipfs/kubo/blob/master/docs/config.md#readme
@@ -9,9 +9,9 @@ contact_links:
  - name: Kubo experimental features docs
    url: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#readme
    about: Documentation on Private Networks, Filestore and other experimental features.
- - name: RPC API Reference
+ - name: Kubo RPC API Reference
    url: https://docs.ipfs.tech/reference/kubo/rpc/
    about: Documentation of all Kubo RPC API endpoints.
- - name: IPFS Official Forum
-   url: https://discuss.ipfs.io
+ - name: IPFS Official Discussion Forum
+   url: https://discuss.ipfs.tech
    about: Please post general questions, support requests, and discussions here.

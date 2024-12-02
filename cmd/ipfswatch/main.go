@@ -16,17 +16,19 @@ import (
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	corehttp "github.com/ipfs/kubo/core/corehttp"
+	"github.com/ipfs/kubo/misc/fsutil"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
 	fsnotify "github.com/fsnotify/fsnotify"
 	"github.com/ipfs/boxo/files"
 	process "github.com/jbenet/goprocess"
-	homedir "github.com/mitchellh/go-homedir"
 )
 
-var http = flag.Bool("http", false, "expose IPFS HTTP API")
-var repoPath = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
-var watchPath = flag.String("path", ".", "the path to watch")
+var (
+	http      = flag.Bool("http", false, "expose IPFS HTTP API")
+	repoPath  = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
+	watchPath = flag.String("path", ".", "the path to watch")
+)
 
 func main() {
 	flag.Parse()
@@ -52,11 +54,10 @@ func main() {
 }
 
 func run(ipfsPath, watchPath string) error {
-
 	proc := process.WithParent(process.Background())
 	log.Printf("running IPFSWatch on '%s' using repo at '%s'...", watchPath, ipfsPath)
 
-	ipfsPath, err := homedir.Expand(ipfsPath)
+	ipfsPath, err := fsutil.ExpandHome(ipfsPath)
 	if err != nil {
 		return err
 	}
@@ -93,7 +94,7 @@ func run(ipfsPath, watchPath string) error {
 
 	if *http {
 		addr := "/ip4/127.0.0.1/tcp/5001"
-		var opts = []corehttp.ServeOption{
+		opts := []corehttp.ServeOption{
 			corehttp.GatewayOption("/ipfs", "/ipns"),
 			corehttp.WebUIOption,
 			corehttp.CommandsOption(cmdCtx(node, ipfsPath)),

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	iface "github.com/ipfs/boxo/coreiface"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	config "github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	peer "github.com/libp2p/go-libp2p/core/peer"

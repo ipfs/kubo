@@ -9,39 +9,53 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/boxo/routing/http/server"
 	"github.com/ipfs/boxo/routing/http/types"
 	"github.com/ipfs/boxo/routing/http/types/iter"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/stretchr/testify/assert"
 )
 
 type fakeHTTPContentRouter struct {
-	m                  sync.Mutex
-	findProvidersCalls int
-	provideCalls       int
+	m                   sync.Mutex
+	provideBitswapCalls int
+	findProvidersCalls  int
+	findPeersCalls      int
 }
 
-func (r *fakeHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, limit int) (iter.ResultIter[types.ProviderResponse], error) {
+func (r *fakeHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, limit int) (iter.ResultIter[types.Record], error) {
 	r.m.Lock()
 	defer r.m.Unlock()
 	r.findProvidersCalls++
-	return iter.FromSlice([]iter.Result[types.ProviderResponse]{}), nil
+	return iter.FromSlice([]iter.Result[types.Record]{}), nil
 }
 
+// nolint deprecated
 func (r *fakeHTTPContentRouter) ProvideBitswap(ctx context.Context, req *server.BitswapWriteProvideRequest) (time.Duration, error) {
 	r.m.Lock()
 	defer r.m.Unlock()
-	r.provideCalls++
+	r.provideBitswapCalls++
 	return 0, nil
 }
-func (r *fakeHTTPContentRouter) Provide(ctx context.Context, req *server.WriteProvideRequest) (types.ProviderResponse, error) {
+
+func (r *fakeHTTPContentRouter) FindPeers(ctx context.Context, pid peer.ID, limit int) (iter.ResultIter[*types.PeerRecord], error) {
 	r.m.Lock()
 	defer r.m.Unlock()
-	r.provideCalls++
-	return nil, nil
+	r.findPeersCalls++
+	return iter.FromSlice([]iter.Result[*types.PeerRecord]{}), nil
+}
+
+func (r *fakeHTTPContentRouter) GetIPNS(ctx context.Context, name ipns.Name) (*ipns.Record, error) {
+	return nil, routing.ErrNotSupported
+}
+
+func (r *fakeHTTPContentRouter) PutIPNS(ctx context.Context, name ipns.Name, rec *ipns.Record) error {
+	return routing.ErrNotSupported
 }
 
 func (r *fakeHTTPContentRouter) numFindProvidersCalls() int {

@@ -15,7 +15,7 @@ import (
 
 var errTODO = errors.New("TODO: mock repo")
 
-// Mock is not thread-safe
+// Mock is not thread-safe.
 type Mock struct {
 	C config.Config
 	D Datastore
@@ -25,6 +25,10 @@ type Mock struct {
 
 func (m *Mock) Config() (*config.Config, error) {
 	return &m.C, nil // FIXME threadsafety
+}
+
+func (m *Mock) Path() string {
+	return ""
 }
 
 func (m *Mock) UserResourceOverrides() (rcmgr.PartialLimitConfig, error) {

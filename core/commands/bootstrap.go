@@ -374,9 +374,7 @@ func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []string) ([]stri
 			removed = append(removed, p)
 			continue
 		}
-		var (
-			keptAddrs, removedAddrs []ma.Multiaddr
-		)
+		var keptAddrs, removedAddrs []ma.Multiaddr
 		// remove specific addresses
 	filter:
 		for _, addr := range p.Addrs {

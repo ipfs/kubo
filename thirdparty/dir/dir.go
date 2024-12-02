@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-// Writable ensures the directory exists and is writable
+// Writable ensures the directory exists and is writable.
 func Writable(path string) error {
 	// Construct the path if missing
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {

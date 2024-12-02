@@ -3,50 +3,46 @@ package rpc
 import (
 	"context"
 
-	"github.com/ipfs/boxo/coreiface/path"
-	ipfspath "github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 )
 
-func (api *HttpApi) ResolvePath(ctx context.Context, p path.Path) (path.Resolved, error) {
+func (api *HttpApi) ResolvePath(ctx context.Context, p path.Path) (path.ImmutablePath, []string, error) {
 	var out struct {
 		Cid     cid.Cid
 		RemPath string
 	}
 
-	//TODO: this is hacky, fixing https://github.com/ipfs/go-ipfs/issues/5703 would help
-
 	var err error
-	if p.Namespace() == "ipns" {
+	if p.Namespace() == path.IPNSNamespace {
 		if p, err = api.Name().Resolve(ctx, p.String()); err != nil {
-			return nil, err
+			return path.ImmutablePath{}, nil, err
 		}
 	}
 
 	if err := api.Request("dag/resolve", p.String()).Exec(ctx, &out); err != nil {
-		return nil, err
+		return path.ImmutablePath{}, nil, err
 	}
 
-	// TODO:
-	ipath, err := ipfspath.FromSegments("/"+p.Namespace()+"/", out.Cid.String(), out.RemPath)
+	p, err = path.NewPathFromSegments(p.Namespace(), out.Cid.String(), out.RemPath)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, nil, err
 	}
 
-	root, err := cid.Parse(ipfspath.Path(p.String()).Segments()[1])
+	imPath, err := path.NewImmutablePath(p)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, nil, err
 	}
 
-	return path.NewResolvedPath(ipath, out.Cid, root, out.RemPath), nil
+	return imPath, path.StringToSegments(out.RemPath), nil
 }
 
 func (api *HttpApi) ResolveNode(ctx context.Context, p path.Path) (ipld.Node, error) {
-	rp, err := api.ResolvePath(ctx, p)
+	rp, _, err := api.ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
-	return api.Dag().Get(ctx, rp.Cid())
+	return api.Dag().Get(ctx, rp.RootCid())
 }

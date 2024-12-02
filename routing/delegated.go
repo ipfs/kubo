@@ -105,10 +105,11 @@ func parse(visited map[string]bool,
 			}
 
 			pr = append(pr, &routinghelpers.ParallelRouter{
-				Router:       ri,
-				IgnoreError:  cr.IgnoreErrors,
-				Timeout:      cr.Timeout.Duration,
-				ExecuteAfter: cr.ExecuteAfter.WithDefault(0),
+				Router:                  ri,
+				IgnoreError:             cr.IgnoreErrors,
+				DoNotWaitForSearchValue: true,
+				Timeout:                 cr.Timeout.Duration,
+				ExecuteAfter:            cr.ExecuteAfter.WithDefault(0),
 			})
 
 		}
@@ -205,6 +206,9 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 		drclient.WithIdentity(key),
 		drclient.WithProviderInfo(addrInfo.ID, addrInfo.Addrs),
 		drclient.WithUserAgent(version.GetUserAgentVersion()),
+		drclient.WithProtocolFilter(config.DefaultHTTPRoutersFilterProtocols),
+		drclient.WithStreamResultsRequired(),       // https://specs.ipfs.tech/routing/http-routing-v1/#streaming
+		drclient.WithDisabledLocalFiltering(false), // force local filtering in case remote server does not support IPIP-484
 	)
 	if err != nil {
 		return nil, err
@@ -223,6 +227,8 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 
 	return &httpRoutingWrapper{
 		ContentRouting:    cr,
+		PeerRouting:       cr,
+		ValueStore:        cr,
 		ProvideManyRouter: cr,
 	}, nil
 }

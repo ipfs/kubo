@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/files"
 	logging "github.com/ipfs/go-log"
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/core"
-	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/coreapi"
 	mock "github.com/ipfs/kubo/core/mock"
 	"github.com/ipfs/kubo/thirdparty/unit"
-	"github.com/jbenet/go-random"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
 	"github.com/libp2p/go-libp2p/core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
@@ -84,12 +84,8 @@ func AddCatPowers(conf testutil.LatencyConfig, megabytesMax int64) error {
 }
 
 func RandomBytes(n int64) []byte {
-	var data bytes.Buffer
-	err := random.WritePseudoRandomBytes(n, &data, kSeed)
-	if err != nil {
-		panic(err)
-	}
-	return data.Bytes()
+	random.SetSeed(kSeed)
+	return random.Bytes(int(n))
 }
 
 func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {

@@ -26,7 +26,6 @@ func CreatePeerNodes(t *testing.T, n int, peerings []Peering) (*Harness, Nodes) 
 			cfg.Routing.Type = config.NewOptionalString("none")
 			cfg.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", NewRandPort())}
 		})
-
 	})
 
 	for _, peering := range peerings {

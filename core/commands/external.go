@@ -41,7 +41,7 @@ func ExternalBinary(instructions string) *cmds.Command {
 			cmd := exec.Command(binname, req.Arguments...)
 
 			// TODO: make commands lib be able to pass stdin through daemon
-			//cmd.Stdin = req.Stdin()
+			// cmd.Stdin = req.Stdin()
 			cmd.Stdin = io.LimitReader(nil, 0)
 			cmd.Stdout = w
 			cmd.Stderr = w

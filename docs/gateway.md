@@ -12,14 +12,20 @@ Kubo's Gateway implementation follows [ipfs/specs: Specification for HTTP Gatewa
 
 By default, Kubo nodes run
 a [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://127.0.0.1:8080/`
-and a [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://localhost:8080/`
+and a [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://localhost:8080/`.
+
+The path one also implements [trustless gateway spec](https://specs.ipfs.tech/http-gateways/trustless-gateway/)
+and supports [trustless responses](https://docs.ipfs.tech/reference/http/gateway/#trustless-verifiable-retrieval) as opt-in via `Accept` header.
 
 Additional listening addresses and gateway behaviors can be set in the [config](#configuration) file.
 
 ### Public gateways
 
-Protocol Labs provides a public gateway at `https://ipfs.io` (path) and `https://dweb.link` (subdomain).
-If you've ever seen a link in the form `https://ipfs.io/ipfs/Qm...`, that's being served from *our* gateway.
+Protocol Labs provides a public gateway at
+`https://ipfs.io` ([path](https://specs.ipfs.tech/http-gateways/path-gateway/)),
+`https://dweb.link` ([subdomain](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway)),
+and `https://trustless-gateway.link` ([trustless](https://specs.ipfs.tech/http-gateways/trustless-gateway/) only).
+If you've ever seen a link in the form `https://ipfs.io/ipfs/Qm...`, that's being served from a *public goods* gateway.
 
 There is a list of third-party public gateways provided by the IPFS community at https://ipfs.github.io/public-gateway-checker/
 
@@ -61,7 +67,7 @@ Gateway](https://dnslink.dev/#example-ipfs-gateway) for instructions.
 When downloading files, browsers will usually guess a file's filename by looking
 at the last component of the path. Unfortunately, when linking *directly* to a
 file (with no containing directory), the final component is just a CID
-(`Qm...`). This isn't exactly user-friendly.
+(`bafy..` or `Qm...`). This isn't exactly user-friendly.
 
 To work around this issue, you can add a `filename=some_filename` parameter to
 your query string to explicitly specify the filename. For example:
@@ -85,6 +91,11 @@ or by sending `Accept: application/vnd.ipld.{format}` HTTP header with one of su
 
 ## Content-Types
 
+Majority of resources can be retrieved trustlessly by requesting specific content type via `Accept` header or `?format=raw|car|ipns-record` URL query parameter.
+
+See [trustless gateway specification](https://specs.ipfs.tech/http-gateways/trustless-gateway/)
+and [verifiable retrieval documentation](https://docs.ipfs.tech/reference/http/gateway/#trustless-verifiable-retrieval) for more details.
+
 ### `application/vnd.ipld.raw`
 
 Returns a byte array for a single `raw` block.
@@ -103,11 +114,9 @@ Support for user-provided IPLD selectors is tracked in https://github.com/ipfs/k
 
 This is a rough equivalent of `ipfs dag export`.
 
-## Deprecated Subset of RPC API
+### `application/vnd.ipfs.ipns-record`
 
-For legacy reasons, the gateway port exposes a small subset of RPC API under `/api/v0/`.
-While this read-only API exposes a read-only, "safe" subset of the normal API,
-it is deprecated and should not be used for greenfield projects.
+Only works on `/ipns/{ipns-name}` content paths that use cryptographically signed [IPNS Records](https://specs.ipfs.tech/ipns/ipns-record/).
 
-Where possible, leverage `/ipfs/` and `/ipns/` endpoints.
-along with `application/vnd.ipld.*` Content-Types instead.
+Returns [IPNS Record in Protobuf Serialization Format](https://specs.ipfs.tech/ipns/ipns-record/#record-serialization-format)
+which can be verified on end client, without trusting gateway.
