@@ -32,7 +32,7 @@ jobs:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 15
     env:
       IMAGE_NAME: ipfs/kubo
       LEGACY_IMAGE_NAME: ipfs/go-ipfs
@@ -110,9 +110,17 @@ jobs:
 
       # We test all the images on amd64 host here. This uses QEMU to emulate
       # the other platforms.
-      - run: docker run --rm $IMAGE_NAME:linux-amd64 --version
-      - run: docker run --rm $IMAGE_NAME:linux-arm-v7 --version
-      - run: docker run --rm $IMAGE_NAME:linux-arm64-v8 --version
+      # NOTE: --version should finish instantly, but sometimes
+      # it hangs on github CI (could be qemu issue), so we retry to remove false negatives
+      - name: Smoke-test linux-amd64
+        run: for i in {1..3}; do timeout 15s docker run --rm $IMAGE_NAME:linux-amd64 version --all && break || [ $i = 3 ] && exit 1; done
+        timeout-minutes: 1
+      - name: Smoke-test linux-arm-v7
+        run: for i in {1..3}; do timeout 15s docker run --rm $IMAGE_NAME:linux-arm-v7 version --all && break || [ $i = 3 ] && exit 1; done
+        timeout-minutes: 1
+      - name: Smoke-test linux-arm64-v8
+        run: for i in {1..3}; do timeout 15s docker run --rm $IMAGE_NAME:linux-arm64-v8 version --all && break || [ $i = 3 ] && exit 1; done
+        timeout-minutes: 1
 
       # This will only push the previously built images.
       - if: github.event_name != 'workflow_dispatch' || github.event.inputs.push == 'true'

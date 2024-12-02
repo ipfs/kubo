@@ -44,7 +44,7 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 		return fmt.Errorf("pin: %s", err)
 	}
 
-	if err := api.provider.Provide(dagNode.Cid()); err != nil {
+	if err := api.provider.Provide(ctx, dagNode.Cid(), true); err != nil {
 		return err
 	}
 
