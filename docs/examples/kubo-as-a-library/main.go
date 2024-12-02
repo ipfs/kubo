@@ -11,9 +11,9 @@ import (
 	"strings"
 	"sync"
 
-	icore "github.com/ipfs/boxo/coreiface"
-	icorepath "github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/path"
+	icore "github.com/ipfs/kubo/core/coreiface"
 	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/ipfs/kubo/config"
@@ -85,7 +85,7 @@ func createTempRepo() (string, error) {
 
 /// ------ Spawning the node
 
-// Creates an IPFS node and returns its coreAPI
+// Creates an IPFS node and returns its coreAPI.
 func createNode(ctx context.Context, repoPath string) (*core.IpfsNode, error) {
 	// Open the repo
 	repo, err := fsrepo.Open(repoPath)
@@ -107,7 +107,7 @@ func createNode(ctx context.Context, repoPath string) (*core.IpfsNode, error) {
 
 var loadPluginsOnce sync.Once
 
-// Spawns a node to be used just for this run (i.e. creates a tmp repo)
+// Spawns a node to be used just for this run (i.e. creates a tmp repo).
 func spawnEphemeral(ctx context.Context) (icore.CoreAPI, *core.IpfsNode, error) {
 	var onceErr error
 	loadPluginsOnce.Do(func() {
@@ -320,11 +320,11 @@ func main() {
 		}
 	}()
 
-	exampleCIDStr := peerCidFile.Cid().String()
+	exampleCIDStr := peerCidFile.RootCid().String()
 
 	fmt.Printf("Fetching a file from the network with CID %s\n", exampleCIDStr)
 	outputPath := outputBasePath + exampleCIDStr
-	testCID := icorepath.New(exampleCIDStr)
+	testCID := path.FromCid(peerCidFile.RootCid())
 
 	rootNode, err := ipfsB.Unixfs().Get(ctx, testCID)
 	if err != nil {

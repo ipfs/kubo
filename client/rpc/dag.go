@@ -6,20 +6,22 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
-	"github.com/ipfs/go-block-format"
+	"github.com/ipfs/boxo/path"
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	multicodec "github.com/multiformats/go-multicodec"
 )
 
-type httpNodeAdder HttpApi
-type HttpDagServ httpNodeAdder
-type pinningHttpNodeAdder httpNodeAdder
+type (
+	httpNodeAdder        HttpApi
+	HttpDagServ          httpNodeAdder
+	pinningHttpNodeAdder httpNodeAdder
+)
 
 func (api *HttpDagServ) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
-	r, err := api.core().Block().Get(ctx, path.IpldPath(c))
+	r, err := api.core().Block().Get(ctx, path.FromCid(c))
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +79,8 @@ func (api *httpNodeAdder) add(ctx context.Context, nd format.Node, pin bool) err
 	if err != nil {
 		return err
 	}
-	if !stat.Path().Cid().Equals(c) {
-		return fmt.Errorf("cids didn't match - local %s, remote %s", c.String(), stat.Path().Cid().String())
+	if !stat.Path().RootCid().Equals(c) {
+		return fmt.Errorf("cids didn't match - local %s, remote %s", c.String(), stat.Path().RootCid().String())
 	}
 	return nil
 }
@@ -114,7 +116,7 @@ func (api *HttpDagServ) Pinning() format.NodeAdder {
 }
 
 func (api *HttpDagServ) Remove(ctx context.Context, c cid.Cid) error {
-	return api.core().Block().Rm(ctx, path.IpldPath(c)) //TODO: should we force rm?
+	return api.core().Block().Rm(ctx, path.FromCid(c)) // TODO: should we force rm?
 }
 
 func (api *HttpDagServ) RemoveMany(ctx context.Context, cids []cid.Cid) error {

@@ -154,9 +154,9 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 // Descendants recursively finds all the descendants of the given roots and
 // adds them to the given cid.Set, using the provided dag.GetLinks function
 // to walk the tree.
-func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots <-chan pin.StreamedCid) error {
+func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots <-chan pin.StreamedPin) error {
 	verifyGetLinks := func(ctx context.Context, c cid.Cid) ([]*ipld.Link, error) {
-		err := verifcid.ValidateCid(c)
+		err := verifcid.ValidateCid(verifcid.DefaultAllowlist, c)
 		if err != nil {
 			return nil, err
 		}
@@ -188,10 +188,9 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 			}
 
 			// Walk recursively walks the dag and adds the keys to the given set
-			err := dag.Walk(ctx, verifyGetLinks, wrapper.C, func(k cid.Cid) bool {
+			err := dag.Walk(ctx, verifyGetLinks, wrapper.Pin.Key, func(k cid.Cid) bool {
 				return set.Visit(toCidV1(k))
 			}, dag.Concurrent())
-
 			if err != nil {
 				err = verboseCidError(err)
 				return err
@@ -227,7 +226,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 		return links, nil
 	}
-	rkeys := pn.RecursiveKeys(ctx)
+	rkeys := pn.RecursiveKeys(ctx, false)
 	err := Descendants(ctx, getLinks, gcs, rkeys)
 	if err != nil {
 		errors = true
@@ -250,14 +249,14 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 		return links, nil
 	}
-	bestEffortRootsChan := make(chan pin.StreamedCid)
+	bestEffortRootsChan := make(chan pin.StreamedPin)
 	go func() {
 		defer close(bestEffortRootsChan)
 		for _, root := range bestEffortRoots {
 			select {
 			case <-ctx.Done():
 				return
-			case bestEffortRootsChan <- pin.StreamedCid{C: root}:
+			case bestEffortRootsChan <- pin.StreamedPin{Pin: pin.Pinned{Key: root}}:
 			}
 		}
 	}()
@@ -271,15 +270,15 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 	}
 
-	dkeys := pn.DirectKeys(ctx)
+	dkeys := pn.DirectKeys(ctx, false)
 	for k := range dkeys {
 		if k.Err != nil {
 			return nil, k.Err
 		}
-		gcs.Add(toCidV1(k.C))
+		gcs.Add(toCidV1(k.Pin.Key))
 	}
 
-	ikeys := pn.InternalPins(ctx)
+	ikeys := pn.InternalPins(ctx, false)
 	err = Descendants(ctx, getLinks, gcs, ikeys)
 	if err != nil {
 		errors = true

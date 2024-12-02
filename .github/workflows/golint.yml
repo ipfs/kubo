@@ -29,11 +29,8 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v5
         with:
-          go-version: 1.19.x
-      - uses: actions/checkout@v3
-      - uses: protocol/cache-go-action@v1
-        with:
-          name: ${{ github.job }}
+          go-version: 1.23.x
+      - uses: actions/checkout@v4
       - run: make -O test_go_lint

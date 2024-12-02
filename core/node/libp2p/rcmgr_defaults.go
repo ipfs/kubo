@@ -32,7 +32,7 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (limitConfig rcmgr.Concret
 	// At least as of 2023-01-25, it's possible to open a connection that
 	// doesn't ask for any memory usage with the libp2p Resource Manager/Accountant
 	// (see https://github.com/libp2p/go-libp2p/issues/2010#issuecomment-1404280736).
-	// As a result, we can't curretly rely on Memory limits to full protect us.
+	// As a result, we can't currently rely on Memory limits to full protect us.
 	// Until https://github.com/libp2p/go-libp2p/issues/2010 is addressed,
 	// we take a proxy now of restricting to 1 inbound connection per MB.
 	// Note: this is more generous than go-libp2p's default autoscaled limits which do
@@ -114,7 +114,7 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (limitConfig rcmgr.Concret
 	// Anything in scalingLimitConfig that wasn't defined in partialLimits above will be added (e.g., libp2p's default service limits).
 	partialLimits = partialLimits.Build(scalingLimitConfig.Scale(int64(maxMemory), maxFD)).ToPartialLimitConfig()
 
-	// Simple checks to overide autoscaling ensuring limits make sense versus the connmgr values.
+	// Simple checks to override autoscaling ensuring limits make sense versus the connmgr values.
 	// There are ways to break this, but this should catch most problems already.
 	// We might improve this in the future.
 	// See: https://github.com/ipfs/kubo/issues/9545
@@ -140,7 +140,7 @@ Computed default go-libp2p Resource Manager limits based on:
     - 'Swarm.ResourceMgr.MaxMemory': %q
     - 'Swarm.ResourceMgr.MaxFileDescriptors': %d
 
-Theses can be inspected with 'ipfs swarm resources'.
+These can be inspected with 'ipfs swarm resources'.
 
 `, maxMemoryString, maxFD)
 

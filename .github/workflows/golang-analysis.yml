@@ -22,14 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v5
         with:
-          go-version: "1.19.x"
+          go-version: "1.23.x"
       - name: Check that go.mod is tidy
-        uses: protocol/multiple-go-modules@v1.2
+        uses: protocol/multiple-go-modules@v1.4
         with:
           run: |
             go mod tidy
@@ -49,6 +49,6 @@ jobs:
           fi
       - name: go vet
         if: always() # run this step even if the previous one failed
-        uses: protocol/multiple-go-modules@v1.2
+        uses: protocol/multiple-go-modules@v1.4
         with:
           run: go vet ./...

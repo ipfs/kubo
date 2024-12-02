@@ -1,34 +1,55 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
 	"errors"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/ipns"
+	"github.com/ipfs/boxo/path"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multibase"
 )
 
 type KeyAPI HttpApi
 
-type keyOutput struct {
-	JName string `json:"Name"`
-	Id    string
-
-	pid peer.ID
+type key struct {
+	name string
+	pid  peer.ID
+	path path.Path
 }
 
-func (k *keyOutput) Name() string {
-	return k.JName
+func newKey(name, pidStr string) (*key, error) {
+	pid, err := peer.Decode(pidStr)
+	if err != nil {
+		return nil, err
+	}
+
+	path, err := path.NewPath("/ipns/" + ipns.NameFromPeer(pid).String())
+	if err != nil {
+		return nil, err
+	}
+
+	return &key{name: name, pid: pid, path: path}, nil
 }
 
-func (k *keyOutput) Path() path.Path {
-	return path.New("/ipns/" + k.Id)
+func (k *key) Name() string {
+	return k.name
 }
 
-func (k *keyOutput) ID() peer.ID {
+func (k *key) Path() path.Path {
+	return k.path
+}
+
+func (k *key) ID() peer.ID {
 	return k.pid
+}
+
+type keyOutput struct {
+	Name string
+	Id   string
 }
 
 func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.KeyGenerateOption) (iface.Key, error) {
@@ -45,8 +66,8 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 	if err != nil {
 		return nil, err
 	}
-	out.pid, err = peer.Decode(out.Id)
-	return &out, err
+
+	return newKey(out.Name, out.Id)
 }
 
 func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, opts ...caopts.KeyRenameOption) (iface.Key, bool, error) {
@@ -68,25 +89,29 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 		return nil, false, err
 	}
 
-	id := &keyOutput{JName: out.Now, Id: out.Id}
-	id.pid, err = peer.Decode(id.Id)
-	return id, out.Overwrite, err
+	key, err := newKey(out.Now, out.Id)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return key, out.Overwrite, err
 }
 
 func (api *KeyAPI) List(ctx context.Context) ([]iface.Key, error) {
-	var out struct{ Keys []*keyOutput }
+	var out struct {
+		Keys []keyOutput
+	}
 	if err := api.core().Request("key/list").Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 
 	res := make([]iface.Key, len(out.Keys))
 	for i, k := range out.Keys {
-		var err error
-		k.pid, err = peer.Decode(k.Id)
+		key, err := newKey(k.Name, k.Id)
 		if err != nil {
 			return nil, err
 		}
-		res[i] = k
+		res[i] = key
 	}
 
 	return res, nil
@@ -98,14 +123,13 @@ func (api *KeyAPI) Self(ctx context.Context) (iface.Key, error) {
 		return nil, err
 	}
 
-	var err error
-	out := keyOutput{JName: "self", Id: id.ID}
-	out.pid, err = peer.Decode(out.Id)
-	return &out, err
+	return newKey("self", id.ID)
 }
 
 func (api *KeyAPI) Remove(ctx context.Context, name string) (iface.Key, error) {
-	var out struct{ Keys []keyOutput }
+	var out struct {
+		Keys []keyOutput
+	}
 	if err := api.core().Request("key/rm", name).Exec(ctx, &out); err != nil {
 		return nil, err
 	}
@@ -113,11 +137,59 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (iface.Key, error) {
 		return nil, errors.New("got unexpected number of keys back")
 	}
 
-	var err error
-	out.Keys[0].pid, err = peer.Decode(out.Keys[0].Id)
-	return &out.Keys[0], err
+	return newKey(out.Keys[0].Name, out.Keys[0].Id)
 }
 
 func (api *KeyAPI) core() *HttpApi {
 	return (*HttpApi)(api)
+}
+
+func (api *KeyAPI) Sign(ctx context.Context, name string, data []byte) (iface.Key, []byte, error) {
+	var out struct {
+		Key       keyOutput
+		Signature string
+	}
+
+	err := api.core().Request("key/sign").
+		Option("key", name).
+		FileBody(bytes.NewReader(data)).
+		Exec(ctx, &out)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	key, err := newKey(out.Key.Name, out.Key.Id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	_, signature, err := multibase.Decode(out.Signature)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return key, signature, nil
+}
+
+func (api *KeyAPI) Verify(ctx context.Context, keyOrName string, signature, data []byte) (iface.Key, bool, error) {
+	var out struct {
+		Key            keyOutput
+		SignatureValid bool
+	}
+
+	err := api.core().Request("key/verify").
+		Option("key", keyOrName).
+		Option("signature", toMultibase(signature)).
+		FileBody(bytes.NewReader(data)).
+		Exec(ctx, &out)
+	if err != nil {
+		return nil, false, err
+	}
+
+	key, err := newKey(out.Key.Name, out.Key.Id)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return key, out.SignatureValid, nil
 }

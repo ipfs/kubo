@@ -16,7 +16,7 @@ import (
 
 var ErrNotMounted = errors.New("not mounted")
 
-// mount implements go-ipfs/fuse/mount
+// mount implements go-ipfs/fuse/mount.
 type mount struct {
 	mpoint   string
 	filesys  fs.FS
@@ -34,7 +34,7 @@ func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allowOther boo
 	var conn *fuse.Conn
 	var err error
 
-	var mountOpts = []fuse.MountOption{
+	mountOpts := []fuse.MountOption{
 		fuse.MaxReadahead(64 * 1024 * 1024),
 		fuse.AsyncRead(),
 	}
@@ -102,7 +102,7 @@ func (m *mount) mount() error {
 	return nil
 }
 
-// umount is called exactly once to unmount this service.
+// unmount is called exactly once to unmount this service.
 // note that closing the connection will not always unmount
 // properly. If that happens, we bring out the big guns
 // (mount.ForceUnmountManyTimes, exec unmount).

@@ -11,7 +11,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
-	"path"
+	gopath "path"
 	"strings"
 	"sync"
 	"testing"
@@ -24,13 +24,13 @@ import (
 
 	fstest "bazil.org/fuse/fs/fstestutil"
 	chunker "github.com/ipfs/boxo/chunker"
-	ipath "github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	importer "github.com/ipfs/boxo/ipld/unixfs/importer"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
-	u "github.com/ipfs/boxo/util"
+	"github.com/ipfs/boxo/path"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-test/random"
 	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
 
@@ -42,7 +42,7 @@ func maybeSkipFuseTests(t *testing.T) {
 
 func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	buf := make([]byte, size)
-	_, err := io.ReadFull(u.NewTimeSeededRand(), buf)
+	_, err := io.ReadFull(random.NewRand(), buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 	return node, mnt
 }
 
-// Test writing an object and reading it back through fuse
+// Test writing an object and reading it back through fuse.
 func TestIpfsBasicRead(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -89,7 +89,7 @@ func TestIpfsBasicRead(t *testing.T) {
 
 	fi, data := randObj(t, nd, 10000)
 	k := fi.Cid()
-	fname := path.Join(mnt.Dir, k.String())
+	fname := gopath.Join(mnt.Dir, k.String())
 	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
@@ -116,13 +116,13 @@ func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.ProtoNode) 
 			t.Fatal(dag.ErrNotProtobuf)
 		}
 
-		sub := getPaths(t, ipfs, path.Join(name, lnk.Name), childpb)
+		sub := getPaths(t, ipfs, gopath.Join(name, lnk.Name), childpb)
 		out = append(out, sub...)
 	}
 	return out
 }
 
-// Perform a large number of concurrent reads to stress the system
+// Perform a large number of concurrent reads to stress the system.
 func TestIpfsStressRead(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -184,18 +184,22 @@ func TestIpfsStressRead(t *testing.T) {
 			defer wg.Done()
 
 			for i := 0; i < 2000; i++ {
-				item := ipath.New(paths[rand.Intn(len(paths))])
+				item, err := path.NewPath(paths[rand.Intn(len(paths))])
+				if err != nil {
+					errs <- err
+					continue
+				}
 
 				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
-				fname := path.Join(mnt.Dir, relpath)
+				fname := gopath.Join(mnt.Dir, relpath)
 
 				rbuf, err := os.ReadFile(fname)
 				if err != nil {
 					errs <- err
 				}
 
-				//nd.Context() is never closed which leads to
-				//hitting 8128 goroutine limit in go test -race mode
+				// nd.Context() is never closed which leads to
+				// hitting 8128 goroutine limit in go test -race mode
 				ctx, cancelFunc := context.WithCancel(context.Background())
 
 				read, err := api.Unixfs().Get(ctx, item)
@@ -229,7 +233,7 @@ func TestIpfsStressRead(t *testing.T) {
 	}
 }
 
-// Test writing a file and reading it back
+// Test writing a file and reading it back.
 func TestIpfsBasicDirRead(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -257,8 +261,8 @@ func TestIpfsBasicDirRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dirname := path.Join(mnt.Dir, d1nd.Cid().String())
-	fname := path.Join(dirname, "actual")
+	dirname := gopath.Join(mnt.Dir, d1nd.Cid().String())
+	fname := gopath.Join(dirname, "actual")
 	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
@@ -280,7 +284,7 @@ func TestIpfsBasicDirRead(t *testing.T) {
 	}
 }
 
-// Test to make sure the filesystem reports file sizes correctly
+// Test to make sure the filesystem reports file sizes correctly.
 func TestFileSizeReporting(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -291,7 +295,7 @@ func TestFileSizeReporting(t *testing.T) {
 	fi, data := randObj(t, nd, 10000)
 	k := fi.Cid()
 
-	fname := path.Join(mnt.Dir, k.String())
+	fname := gopath.Join(mnt.Dir, k.String())
 
 	finfo, err := os.Stat(fname)
 	if err != nil {

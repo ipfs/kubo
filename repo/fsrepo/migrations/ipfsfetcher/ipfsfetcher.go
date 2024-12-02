@@ -7,17 +7,17 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"path"
+	gopath "path"
 	"strings"
 	"sync"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
-	ipath "github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	// Default maximum download size
+	// Default maximum download size.
 	defaultFetchLimit = 1024 * 1024 * 512
 
 	tempNodeTCPAddr = "/ip4/127.0.0.1/tcp/0"
@@ -46,7 +46,7 @@ type IpfsFetcher struct {
 	ipfsTmpDir   string
 	ipfsStopFunc func()
 
-	fetched []ipath.Path
+	fetched []path.Path
 	mutex   sync.Mutex
 
 	addrInfo peer.AddrInfo
@@ -108,7 +108,7 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error
 		return nil, f.openErr
 	}
 
-	iPath, err := parsePath(path.Join(f.distPath, filePath))
+	iPath, err := parsePath(gopath.Join(f.distPath, filePath))
 	if err != nil {
 		return nil, err
 	}
@@ -155,14 +155,14 @@ func (f *IpfsFetcher) AddrInfo() peer.AddrInfo {
 	return f.addrInfo
 }
 
-// FetchedPaths returns the IPFS paths of all items fetched by this fetcher
-func (f *IpfsFetcher) FetchedPaths() []ipath.Path {
+// FetchedPaths returns the IPFS paths of all items fetched by this fetcher.
+func (f *IpfsFetcher) FetchedPaths() []path.Path {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	return f.fetched
 }
 
-func (f *IpfsFetcher) recordFetched(fetchedPath ipath.Path) {
+func (f *IpfsFetcher) recordFetched(fetchedPath path.Path) {
 	// Mutex protects against update by concurrent calls to Fetch
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
@@ -267,9 +267,8 @@ func (f *IpfsFetcher) startTempNode(ctx context.Context) error {
 	return nil
 }
 
-func parsePath(fetchPath string) (ipath.Path, error) {
-	ipfsPath := ipath.New(fetchPath)
-	if ipfsPath.IsValid() == nil {
+func parsePath(fetchPath string) (path.Path, error) {
+	if ipfsPath, err := path.NewPath(fetchPath); err == nil {
 		return ipfsPath, nil
 	}
 
@@ -280,11 +279,10 @@ func parsePath(fetchPath string) (ipath.Path, error) {
 
 	switch proto := u.Scheme; proto {
 	case "ipfs", "ipld", "ipns":
-		ipfsPath = ipath.New(path.Join("/", proto, u.Host, u.Path))
+		return path.NewPath(gopath.Join("/", proto, u.Host, u.Path))
 	default:
 		return nil, fmt.Errorf("%q is not an IPFS path", fetchPath)
 	}
-	return ipfsPath, ipfsPath.IsValid()
 }
 
 func readIpfsConfig(repoRoot *string, userConfigFile string) (bootstrap []string, peers []peer.AddrInfo) {

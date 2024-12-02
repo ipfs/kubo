@@ -19,14 +19,14 @@ import (
 
 var log = logging.Logger("node")
 
-// fuseNoDirectory used to check the returning fuse error
+// fuseNoDirectory used to check the returning fuse error.
 const fuseNoDirectory = "fusermount: failed to access mountpoint"
 
-// fuseExitStatus1 used to check the returning fuse error
+// fuseExitStatus1 used to check the returning fuse error.
 const fuseExitStatus1 = "fusermount: exit status 1"
 
 // platformFuseChecks can get overridden by arch-specific files
-// to run fuse checks (like checking the OSXFUSE version)
+// to run fuse checks (like checking the OSXFUSE version).
 var platformFuseChecks = func(*core.IpfsNode) error {
 	return nil
 }

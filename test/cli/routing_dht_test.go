@@ -111,7 +111,7 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 				node.WriteBytes("foo", []byte("foo"))
 				res := node.RunIPFS("routing", "put", "/ipns/"+node.PeerID().String(), "foo")
 				assert.Equal(t, 1, res.ExitCode())
-				assert.Contains(t, res.Stderr.String(), "this action must be run in online mode")
+				assert.Contains(t, res.Stderr.String(), "can't put while offline: pass `--allow-offline` to override")
 			})
 		})
 	})

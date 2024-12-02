@@ -33,13 +33,12 @@ func RelayService(enable bool, relayOpts config.RelayService) func() (opts Libp2
 					Data:     relayOpts.ConnectionDataLimit.WithDefault(def.Limit.Data),
 					Duration: relayOpts.ConnectionDurationLimit.WithDefault(def.Limit.Duration),
 				},
-				MaxCircuits:            int(relayOpts.MaxCircuits.WithDefault(int64(def.MaxCircuits))),
-				BufferSize:             int(relayOpts.BufferSize.WithDefault(int64(def.BufferSize))),
-				ReservationTTL:         relayOpts.ReservationTTL.WithDefault(def.ReservationTTL),
-				MaxReservations:        int(relayOpts.MaxReservations.WithDefault(int64(def.MaxReservations))),
-				MaxReservationsPerIP:   int(relayOpts.MaxReservations.WithDefault(int64(def.MaxReservationsPerIP))),
-				MaxReservationsPerPeer: int(relayOpts.MaxReservations.WithDefault(int64(def.MaxReservationsPerPeer))),
-				MaxReservationsPerASN:  int(relayOpts.MaxReservations.WithDefault(int64(def.MaxReservationsPerASN))),
+				MaxCircuits:           int(relayOpts.MaxCircuits.WithDefault(int64(def.MaxCircuits))),
+				BufferSize:            int(relayOpts.BufferSize.WithDefault(int64(def.BufferSize))),
+				ReservationTTL:        relayOpts.ReservationTTL.WithDefault(def.ReservationTTL),
+				MaxReservations:       int(relayOpts.MaxReservations.WithDefault(int64(def.MaxReservations))),
+				MaxReservationsPerIP:  int(relayOpts.MaxReservationsPerIP.WithDefault(int64(def.MaxReservationsPerIP))),
+				MaxReservationsPerASN: int(relayOpts.MaxReservationsPerASN.WithDefault(int64(def.MaxReservationsPerASN))),
 			})))
 		}
 		return

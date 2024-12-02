@@ -5,55 +5,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 )
-
-func createTestServer() *httptest.Server {
-	reqHandler := func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-		if strings.Contains(r.URL.Path, "not-here") {
-			http.NotFound(w, r)
-		} else if strings.HasSuffix(r.URL.Path, "versions") {
-			fmt.Fprint(w, "v1.0.0\nv1.1.0\nv1.1.2\nv2.0.0-rc1\n2.0.0\nv2.0.1\n")
-		} else if strings.HasSuffix(r.URL.Path, ".tar.gz") {
-			createFakeArchive(r.URL.Path, false, w)
-		} else if strings.HasSuffix(r.URL.Path, "zip") {
-			createFakeArchive(r.URL.Path, true, w)
-		} else {
-			http.NotFound(w, r)
-		}
-	}
-	return httptest.NewServer(http.HandlerFunc(reqHandler))
-}
-
-func createFakeArchive(name string, archZip bool, w io.Writer) {
-	fileName := strings.Split(path.Base(name), "_")[0]
-	root := path.Base(path.Dir(path.Dir(name)))
-
-	// Simulate fetching go-ipfs, which has "ipfs" as the name in the archive.
-	if fileName == "go-ipfs" {
-		fileName = "ipfs"
-	}
-	fileName = ExeName(fileName)
-
-	var err error
-	if archZip {
-		err = writeZip(root, fileName, "FAKE DATA", w)
-	} else {
-		err = writeTarGzip(root, fileName, "FAKE DATA", w)
-	}
-	if err != nil {
-		panic(err)
-	}
-}
 
 func TestGetDistPath(t *testing.T) {
 	os.Unsetenv(envIpfsDistPath)
@@ -91,12 +48,9 @@ func TestHttpFetch(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ts := createTestServer()
-	defer ts.Close()
+	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
-	fetcher := NewHttpFetcher("", ts.URL, "", 0)
-
-	out, err := fetcher.Fetch(ctx, "/versions")
+	out, err := fetcher.Fetch(ctx, "/kubo/versions")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +74,7 @@ func TestHttpFetch(t *testing.T) {
 
 	// Check not found
 	_, err = fetcher.Fetch(ctx, "/no_such_file")
-	if err == nil || !strings.Contains(err.Error(), "404") {
+	if err == nil || !strings.Contains(err.Error(), "no link") {
 		t.Fatal("expected error 404")
 	}
 }
@@ -131,10 +85,7 @@ func TestFetchBinary(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ts := createTestServer()
-	defer ts.Close()
-
-	fetcher := NewHttpFetcher("", ts.URL, "", 0)
+	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
 	vers, err := DistVersions(ctx, fetcher, distFSRM, false)
 	if err != nil {
@@ -154,7 +105,7 @@ func TestFetchBinary(t *testing.T) {
 
 	t.Log("downloaded and unpacked", fi.Size(), "byte file:", fi.Name())
 
-	bin, err = FetchBinary(ctx, fetcher, "go-ipfs", "v0.3.5", "ipfs", tmpDir)
+	bin, err = FetchBinary(ctx, fetcher, "go-ipfs", "v1.0.0", "ipfs", tmpDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,12 +118,12 @@ func TestFetchBinary(t *testing.T) {
 	t.Log("downloaded and unpacked", fi.Size(), "byte file:", fi.Name())
 
 	// Check error is destination already exists and is not directory
-	_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v0.3.5", "ipfs", bin)
+	_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v1.0.0", "ipfs", bin)
 	if !os.IsExist(err) {
 		t.Fatal("expected 'exists' error, got", err)
 	}
 
-	_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v0.3.5", "ipfs", tmpDir)
+	_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v1.0.0", "ipfs", tmpDir)
 	if !os.IsExist(err) {
 		t.Error("expected 'exists' error, got:", err)
 	}
@@ -184,7 +135,7 @@ func TestFetchBinary(t *testing.T) {
 	// Windows doesn't have read-only directories https://github.com/golang/go/issues/35042 this would need to be
 	// tested another way
 	if runtime.GOOS != "windows" {
-		err = os.Chmod(tmpDir, 0555)
+		err = os.Chmod(tmpDir, 0o555)
 		if err != nil {
 			panic(err)
 		}
@@ -192,7 +143,7 @@ func TestFetchBinary(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v0.3.5", "ipfs", tmpDir)
+		_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v1.0.0", "ipfs", tmpDir)
 		if !os.IsPermission(err) {
 			t.Error("expected 'permission' error, got:", err)
 		}
@@ -200,20 +151,20 @@ func TestFetchBinary(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		err = os.Chmod(tmpDir, 0755)
+		err = os.Chmod(tmpDir, 0o755)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	// Check error if failure to fetch due to bad dist
-	_, err = FetchBinary(ctx, fetcher, "not-here", "v0.3.5", "ipfs", tmpDir)
-	if err == nil || !strings.Contains(err.Error(), "Not Found") {
+	_, err = FetchBinary(ctx, fetcher, "not-here", "v1.0.0", "ipfs", tmpDir)
+	if err == nil || !strings.Contains(err.Error(), "no link") {
 		t.Error("expected 'Not Found' error, got:", err)
 	}
 
 	// Check error if failure to unpack archive
-	_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v0.3.5", "not-such-bin", tmpDir)
+	_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v1.0.0", "not-such-bin", tmpDir)
 	if err == nil || err.Error() != "no binary found in archive" {
 		t.Error("expected 'no binary found in archive' error")
 	}
@@ -223,15 +174,12 @@ func TestMultiFetcher(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ts := createTestServer()
-	defer ts.Close()
-
 	badFetcher := NewHttpFetcher("", "bad-url", "", 0)
-	fetcher := NewHttpFetcher("", ts.URL, "", 0)
+	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
 	mf := NewMultiFetcher(badFetcher, fetcher)
 
-	vers, err := mf.Fetch(ctx, "/versions")
+	vers, err := mf.Fetch(ctx, "/kubo/versions")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/tracing"
 	inet "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -29,8 +29,10 @@ type connInfo struct {
 }
 
 // tag used in the connection manager when explicitly connecting to a peer.
-const connectionManagerTag = "user-connect"
-const connectionManagerWeight = 100
+const (
+	connectionManagerTag    = "user-connect"
+	connectionManagerWeight = 100
+)
 
 func (api *SwarmAPI) Connect(ctx context.Context, pi peer.AddrInfo) error {
 	ctx, span := tracing.Span(ctx, "CoreAPI.SwarmAPI", "Connect", trace.WithAttributes(attribute.String("peerid", pi.ID.String())))

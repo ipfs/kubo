@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	iface "github.com/ipfs/boxo/coreiface"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -14,7 +14,7 @@ import (
 type SwarmAPI HttpApi
 
 func (api *SwarmAPI) Connect(ctx context.Context, pi peer.AddrInfo) error {
-	pidma, err := multiaddr.NewComponent("p2p", pi.ID.Pretty())
+	pidma, err := multiaddr.NewComponent("p2p", pi.ID.String())
 	if err != nil {
 		return err
 	}

@@ -1,3 +1,4 @@
+# If we decide to run build-image.yml on every PR, we could deprecate this workflow.
 name: Docker Build
 
 on:
@@ -25,8 +26,9 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v5
         with:
-          go-version: 1.19.x
-      - uses: actions/checkout@v3
+          go-version: 1.23.x
+      - uses: actions/checkout@v4
       - run: docker build -t $IMAGE_NAME:$WIP_IMAGE_TAG .
+      - run: docker run --rm $IMAGE_NAME:$WIP_IMAGE_TAG --version

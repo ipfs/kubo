@@ -3,10 +3,32 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"runtime"
+	"strings"
 )
 
-// Routing defines configuration options for libp2p routing
+const (
+	DefaultAcceleratedDHTClient      = false
+	DefaultLoopbackAddressesOnLanDHT = false
+)
+
+var (
+	// Default HTTP routers used in parallel to DHT when Routing.Type = "auto"
+	DefaultHTTPRouters = getEnvOrDefault("IPFS_HTTP_ROUTERS", []string{
+		"https://cid.contact", // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
+	})
+
+	// Default filter-protocols to pass along with delegated routing requests (as defined in IPIP-484)
+	// and also filter out locally
+	DefaultHTTPRoutersFilterProtocols = getEnvOrDefault("IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS", []string{
+		"unknown", // allow results without protocol list, we can do libp2p identify to test them
+		"transport-bitswap",
+		// TODO: add 'transport-ipfs-gateway-http' once https://github.com/ipfs/rainbow/issues/125 is addressed
+	})
+)
+
+// Routing defines configuration options for libp2p routing.
 type Routing struct {
 	// Type sets default daemon routing mode.
 	//
@@ -15,7 +37,9 @@ type Routing struct {
 	// When "custom" is set, user-provided Routing.Routers is used.
 	Type *OptionalString `json:",omitempty"`
 
-	AcceleratedDHTClient bool
+	AcceleratedDHTClient Flag `json:",omitempty"`
+
+	LoopbackAddressesOnLanDHT Flag `json:",omitempty"`
 
 	Routers Routers
 
@@ -23,7 +47,6 @@ type Routing struct {
 }
 
 type Router struct {
-
 	// Router type ID. See RouterType for more info.
 	Type RouterType
 
@@ -32,11 +55,12 @@ type Router struct {
 	Parameters interface{}
 }
 
-type Routers map[string]RouterParser
-type Methods map[MethodName]Method
+type (
+	Routers map[string]RouterParser
+	Methods map[MethodName]Method
+)
 
 func (m Methods) Check() error {
-
 	// Check supported methods
 	for _, mn := range MethodNameList {
 		_, ok := m[mn]
@@ -172,4 +196,14 @@ type ConfigRouter struct {
 
 type Method struct {
 	RouterName string
+}
+
+// getEnvOrDefault reads space or comma separated strings from env if present,
+// and uses provided defaultValue as a fallback
+func getEnvOrDefault(key string, defaultValue []string) []string {
+	if value, exists := os.LookupEnv(key); exists {
+		splitFunc := func(r rune) bool { return r == ',' || r == ' ' }
+		return strings.FieldsFunc(value, splitFunc)
+	}
+	return defaultValue
 }

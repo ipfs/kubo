@@ -2,9 +2,9 @@ package node
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jbenet/goprocess"
-	"github.com/pkg/errors"
 	"go.uber.org/fx"
 )
 

@@ -109,7 +109,7 @@ var bitswapStatCmd = &cmds.Command{
 		}
 
 		if !nd.IsOnline {
-			return cmds.Errorf(cmds.ErrClient, ErrNotOnline.Error())
+			return cmds.Errorf(cmds.ErrClient, "unable to run offline: %s", ErrNotOnline)
 		}
 
 		bs, ok := nd.Exchange.(*bitswap.Bitswap)

@@ -9,60 +9,64 @@ import (
 	"strings"
 	"testing"
 
-	namesys "github.com/ipfs/boxo/namesys"
+	"github.com/ipfs/boxo/namesys"
 	version "github.com/ipfs/kubo"
-	core "github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
-	repo "github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo"
 	"github.com/stretchr/testify/assert"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
-	path "github.com/ipfs/boxo/path"
-	datastore "github.com/ipfs/go-datastore"
+	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/config"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
-	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
 type mockNamesys map[string]path.Path
 
-func (m mockNamesys) Resolve(ctx context.Context, name string, opts ...nsopts.ResolveOpt) (value path.Path, err error) {
-	cfg := nsopts.DefaultResolveOpts()
+func (m mockNamesys) Resolve(ctx context.Context, p path.Path, opts ...namesys.ResolveOption) (namesys.Result, error) {
+	cfg := namesys.DefaultResolveOptions()
 	for _, o := range opts {
 		o(&cfg)
 	}
 	depth := cfg.Depth
-	if depth == nsopts.UnlimitedDepth {
+	if depth == namesys.UnlimitedDepth {
 		// max uint
 		depth = ^uint(0)
 	}
+	var (
+		value path.Path
+	)
+	name := path.SegmentsToString(p.Segments()[:2]...)
 	for strings.HasPrefix(name, "/ipns/") {
 		if depth == 0 {
-			return value, namesys.ErrResolveRecursion
+			return namesys.Result{Path: value}, namesys.ErrResolveRecursion
 		}
 		depth--
 
-		var ok bool
-		value, ok = m[name]
+		v, ok := m[name]
 		if !ok {
-			return "", namesys.ErrResolveFailed
+			return namesys.Result{}, namesys.ErrResolveFailed
 		}
+		value = v
 		name = value.String()
 	}
-	return value, nil
+
+	value, err := path.Join(value, p.Segments()[2:]...)
+	return namesys.Result{Path: value}, err
 }
 
-func (m mockNamesys) ResolveAsync(ctx context.Context, name string, opts ...nsopts.ResolveOpt) <-chan namesys.Result {
-	out := make(chan namesys.Result, 1)
-	v, err := m.Resolve(ctx, name, opts...)
-	out <- namesys.Result{Path: v, Err: err}
+func (m mockNamesys) ResolveAsync(ctx context.Context, p path.Path, opts ...namesys.ResolveOption) <-chan namesys.AsyncResult {
+	out := make(chan namesys.AsyncResult, 1)
+	res, err := m.Resolve(ctx, p, opts...)
+	out <- namesys.AsyncResult{Path: res.Path, TTL: res.TTL, LastMod: res.LastMod, Err: err}
 	close(out)
 	return out
 }
 
-func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path, opts ...nsopts.PublishOption) error {
+func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path, opts ...namesys.PublishOption) error {
 	return errors.New("not implemented for mockNamesys")
 }
 
@@ -122,7 +126,7 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, iface
 	ts := httptest.NewServer(dh)
 	t.Cleanup(func() { ts.Close() })
 
-	dh.Handler, err = makeHandler(n,
+	dh.Handler, err = MakeHandler(n,
 		ts.Listener,
 		HostnameOption(),
 		GatewayOption("/ipfs", "/ipns"),
@@ -169,10 +173,6 @@ func TestVersion(t *testing.T) {
 	if !strings.Contains(s, "Client Version: "+version.GetUserAgentVersion()) {
 		t.Fatalf("response doesn't contain client version:\n%s", s)
 	}
-
-	if !strings.Contains(s, "Protocol Version: "+id.DefaultProtocolVersion) {
-		t.Fatalf("response doesn't contain protocol version:\n%s", s)
-	}
 }
 
 func TestDeserializedResponsesInheritance(t *testing.T) {
@@ -206,7 +206,7 @@ func TestDeserializedResponsesInheritance(t *testing.T) {
 		n, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
 		assert.NoError(t, err)
 
-		gwCfg, err := getGatewayConfig(n)
+		gwCfg, _, err := getGatewayConfig(n)
 		assert.NoError(t, err)
 
 		assert.Contains(t, gwCfg.PublicGateways, "example.com")

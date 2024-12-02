@@ -9,8 +9,10 @@ import (
 	"time"
 )
 
-var AlphabetEasy = []rune("abcdefghijklmnopqrstuvwxyz01234567890-_")
-var AlphabetHard = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890!@#$%^&*()-_+= ;.,<>'\"[]{}() ")
+var (
+	AlphabetEasy = []rune("abcdefghijklmnopqrstuvwxyz01234567890-_")
+	AlphabetHard = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890!@#$%^&*()-_+= ;.,<>'\"[]{}() ")
+)
 
 type RandFiles struct {
 	Rand         *rand.Rand
@@ -104,7 +106,7 @@ func (r *RandFiles) WriteRandomDir(root string, depth int) error {
 	n := rand.Intn(r.FilenameSize-4) + 4
 	name := r.RandomFilename(n)
 	root = path.Join(root, name)
-	if err := os.MkdirAll(root, 0755); err != nil {
+	if err := os.MkdirAll(root, 0o755); err != nil {
 		return fmt.Errorf("creating random dir: %w", err)
 	}
 

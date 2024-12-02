@@ -83,7 +83,7 @@ func commandToCompletions(name string, fullName string, cmd *cmds.Command) *comp
 	return parsed
 }
 
-var bashCompletionTemplate, fishCompletionTemplate *template.Template
+var bashCompletionTemplate, fishCompletionTemplate, zshCompletionTemplate *template.Template
 
 func init() {
 	commandTemplate := template.Must(template.New("command").Parse(`
@@ -155,6 +155,28 @@ _ipfs() {
 complete -o nosort -o nospace -o default -F _ipfs ipfs
 `))
 
+	zshCompletionTemplate = template.Must(commandTemplate.New("root").Parse(`#!bin/zsh
+autoload bashcompinit
+bashcompinit
+_ipfs_compgen() {
+local oldifs="$IFS"
+IFS=$'\n'
+while read -r line; do
+	COMPREPLY+=("$line")
+done < <(compgen "$@")
+IFS="$oldifs"
+}
+
+_ipfs() {
+COMPREPLY=()
+local index=1
+local argidx=0
+local word="${COMP_WORDS[COMP_CWORD]}"
+{{ template "command" . }}
+}
+complete -o nosort -o nospace -o default -F _ipfs ipfs
+`))
+
 	fishCommandTemplate := template.Must(template.New("command").Parse(`
 {{- if .IsFinal -}}
 complete -c ipfs -n '__fish_ipfs_seen_all_subcommands_from{{ .FullName }}' -F
@@ -208,7 +230,6 @@ complete -c ipfs --keep-order --no-files
 
 {{ template "command" . }}
 `))
-
 }
 
 // writeBashCompletions generates a bash completion script for the given command tree.
@@ -221,4 +242,9 @@ func writeBashCompletions(cmd *cmds.Command, out io.Writer) error {
 func writeFishCompletions(cmd *cmds.Command, out io.Writer) error {
 	cmds := commandToCompletions("ipfs", "", cmd)
 	return fishCompletionTemplate.Execute(out, cmds)
+}
+
+func writeZshCompletions(cmd *cmds.Command, out io.Writer) error {
+	cmds := commandToCompletions("ipfs", "", cmd)
+	return zshCompletionTemplate.Execute(out, cmds)
 }

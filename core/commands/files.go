@@ -2,30 +2,34 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	gopath "path"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	humanize "github.com/dustin/go-humanize"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	bservice "github.com/ipfs/boxo/blockservice"
-	iface "github.com/ipfs/boxo/coreiface"
-	path "github.com/ipfs/boxo/coreiface/path"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	mfs "github.com/ipfs/boxo/mfs"
+	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -80,6 +84,8 @@ operations.
 		"rm":    filesRmCmd,
 		"flush": filesFlushCmd,
 		"chcid": filesChcidCmd,
+		"chmod": filesChmodCmd,
+		"touch": filesTouchCmd,
 	},
 }
 
@@ -88,8 +94,10 @@ const (
 	filesHashOptionName       = "hash"
 )
 
-var cidVersionOption = cmds.IntOption(filesCidVersionOptionName, "cid-ver", "Cid version to use. (experimental)")
-var hashOption = cmds.StringOption(filesHashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)")
+var (
+	cidVersionOption = cmds.IntOption(filesCidVersionOptionName, "cid-ver", "Cid version to use. (experimental)")
+	hashOption       = cmds.StringOption(filesHashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)")
+)
 
 var errFormat = errors.New("format was set by multiple options. Only one format option is allowed")
 
@@ -102,6 +110,43 @@ type statOutput struct {
 	WithLocality   bool   `json:",omitempty"`
 	Local          bool   `json:",omitempty"`
 	SizeLocal      uint64 `json:",omitempty"`
+	Mode           uint32 `json:",omitempty"`
+	Mtime          int64  `json:",omitempty"`
+	MtimeNsecs     int    `json:",omitempty"`
+}
+
+func (s *statOutput) MarshalJSON() ([]byte, error) {
+	type so statOutput
+	out := &struct {
+		*so
+		Mode string `json:",omitempty"`
+	}{so: (*so)(s)}
+
+	if s.Mode != 0 {
+		out.Mode = fmt.Sprintf("%04o", s.Mode)
+	}
+	return json.Marshal(out)
+}
+
+func (s *statOutput) UnmarshalJSON(data []byte) error {
+	var err error
+	type so statOutput
+	tmp := &struct {
+		*so
+		Mode string `json:",omitempty"`
+	}{so: (*so)(s)}
+
+	if err := json.Unmarshal(data, &tmp); err != nil {
+		return err
+	}
+
+	if tmp.Mode != "" {
+		mode, err := strconv.ParseUint(tmp.Mode, 8, 32)
+		if err == nil {
+			s.Mode = uint32(mode)
+		}
+	}
+	return err
 }
 
 const (
@@ -109,10 +154,13 @@ const (
 Size: <size>
 CumulativeSize: <cumulsize>
 ChildBlocks: <childs>
-Type: <type>`
+Type: <type>
+Mode: <mode> (<mode-octal>)
+Mtime: <mtime>`
 	filesFormatOptionName    = "format"
 	filesSizeOptionName      = "size"
 	filesWithLocalOptionName = "with-local"
+	filesStatUnspecified     = "not set"
 )
 
 var filesStatCmd = &cmds.Command{
@@ -125,16 +173,16 @@ var filesStatCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(filesFormatOptionName, "Print statistics in given format. Allowed tokens: "+
-			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").WithDefault(defaultStatFormat),
+			"<hash> <size> <cumulsize> <type> <childs> and optional <mode> <mode-octal> <mtime> <mtime-secs> <mtime-nsecs>."+
+			"Conflicts with other format options.").WithDefault(defaultStatFormat),
 		cmds.BoolOption(filesHashOptionName, "Print only hash. Implies '--format=<hash>'. Conflicts with other format options."),
 		cmds.BoolOption(filesSizeOptionName, "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options."),
 		cmds.BoolOption(filesWithLocalOptionName, "Compute the amount of the dag that is local, and if possible the total size"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-
 		_, err := statGetFormatOptions(req)
 		if err != nil {
-			return cmds.Errorf(cmds.ErrClient, err.Error())
+			return cmds.Errorf(cmds.ErrClient, "invalid parameters: %s", err)
 		}
 
 		node, err := cmdenv.GetNode(env)
@@ -197,12 +245,29 @@ var filesStatCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *statOutput) error {
+			mode, modeo := filesStatUnspecified, filesStatUnspecified
+			if out.Mode != 0 {
+				mode = strings.ToLower(os.FileMode(out.Mode).String())
+				modeo = "0" + strconv.FormatInt(int64(out.Mode&0x1FF), 8)
+			}
+			mtime, mtimes, mtimens := filesStatUnspecified, filesStatUnspecified, filesStatUnspecified
+			if out.Mtime > 0 {
+				mtime = time.Unix(out.Mtime, int64(out.MtimeNsecs)).UTC().Format("2 Jan 2006, 15:04:05 MST")
+				mtimes = strconv.FormatInt(out.Mtime, 10)
+				mtimens = strconv.Itoa(out.MtimeNsecs)
+			}
+
 			s, _ := statGetFormatOptions(req)
 			s = strings.Replace(s, "<hash>", out.Hash, -1)
 			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
 			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
 			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
 			s = strings.Replace(s, "<type>", out.Type, -1)
+			s = strings.Replace(s, "<mode>", mode, -1)
+			s = strings.Replace(s, "<mode-octal>", modeo, -1)
+			s = strings.Replace(s, "<mtime>", mtime, -1)
+			s = strings.Replace(s, "<mtime-secs>", mtimes, -1)
+			s = strings.Replace(s, "<mtime-nsecs>", mtimens, -1)
 
 			fmt.Fprintln(w, s)
 
@@ -225,7 +290,6 @@ func moreThanOne(a, b, c bool) bool {
 }
 
 func statGetFormatOptions(req *cmds.Request) (string, error) {
-
 	hash, _ := req.Options[filesHashOptionName].(bool)
 	size, _ := req.Options[filesSizeOptionName].(bool)
 	format, _ := req.Options[filesFormatOptionName].(string)
@@ -253,28 +317,7 @@ func statNode(nd ipld.Node, enc cidenc.Encoder) (*statOutput, error) {
 
 	switch n := nd.(type) {
 	case *dag.ProtoNode:
-		d, err := ft.FSNodeFromBytes(n.Data())
-		if err != nil {
-			return nil, err
-		}
-
-		var ndtype string
-		switch d.Type() {
-		case ft.TDirectory, ft.THAMTShard:
-			ndtype = "directory"
-		case ft.TFile, ft.TMetadata, ft.TRaw:
-			ndtype = "file"
-		default:
-			return nil, fmt.Errorf("unrecognized node type: %s", d.Type())
-		}
-
-		return &statOutput{
-			Hash:           enc.Encode(c),
-			Blocks:         len(nd.Links()),
-			Size:           d.FileSize(),
-			CumulativeSize: cumulsize,
-			Type:           ndtype,
-		}, nil
+		return statProtoNode(n, enc, c, cumulsize)
 	case *dag.RawNode:
 		return &statOutput{
 			Hash:           enc.Encode(c),
@@ -286,6 +329,44 @@ func statNode(nd ipld.Node, enc cidenc.Encoder) (*statOutput, error) {
 	default:
 		return nil, fmt.Errorf("not unixfs node (proto or raw)")
 	}
+}
+
+func statProtoNode(n *dag.ProtoNode, enc cidenc.Encoder, cid cid.Cid, cumulsize uint64) (*statOutput, error) {
+	d, err := ft.FSNodeFromBytes(n.Data())
+	if err != nil {
+		return nil, err
+	}
+
+	stat := statOutput{
+		Hash:           enc.Encode(cid),
+		Blocks:         len(n.Links()),
+		Size:           d.FileSize(),
+		CumulativeSize: cumulsize,
+	}
+
+	switch d.Type() {
+	case ft.TDirectory, ft.THAMTShard:
+		stat.Type = "directory"
+	case ft.TFile, ft.TSymlink, ft.TMetadata, ft.TRaw:
+		stat.Type = "file"
+	default:
+		return nil, fmt.Errorf("unrecognized node type: %s", d.Type())
+	}
+
+	if mode := d.Mode(); mode != 0 {
+		stat.Mode = uint32(mode)
+	} else if d.Type() == ft.TSymlink {
+		stat.Mode = uint32(os.ModeSymlink | 0x1FF)
+	}
+
+	if mt := d.ModTime(); !mt.IsZero() {
+		stat.Mtime = mt.Unix()
+		if ns := mt.Nanosecond(); ns > 0 {
+			stat.MtimeNsecs = ns
+		}
+	}
+
+	return &stat, nil
 }
 
 func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool, uint64, error) {
@@ -307,7 +388,6 @@ func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool
 		}
 
 		childLocal, childLocalSize, err := walkBlock(ctx, dagserv, child)
-
 		if err != nil {
 			return local, sizeLocal, err
 		}
@@ -341,7 +421,7 @@ $ ipfs add --quieter --pin=false <your file>
 $ ipfs files cp /ipfs/<CID> /your/desired/mfs/path
 
 If you wish to fully copy content from a different IPFS peer into MFS, do not
-forget to force IPFS to fetch to full DAG after doing the "cp" operation. i.e:
+forget to force IPFS to fetch the full DAG after doing a "cp" operation. i.e:
 
 $ ipfs files cp /ipfs/<CID> /your/desired/mfs/path
 $ ipfs pin add <CID>
@@ -424,7 +504,12 @@ being GC'ed.
 func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI, p string) (ipld.Node, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
-		return api.ResolveNode(ctx, path.New(p))
+		pth, err := path.NewPath(p)
+		if err != nil {
+			return nil, err
+		}
+
+		return api.ResolveNode(ctx, pth)
 	default:
 		fsn, err := mfs.Lookup(node.FilesRoot, p)
 		if err != nil {
@@ -798,18 +883,28 @@ See '--to-files' in 'ipfs add --help' for more information.
 			return err
 		}
 
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+
 		create, _ := req.Options[filesCreateOptionName].(bool)
 		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		trunc, _ := req.Options[filesTruncateOptionName].(bool)
 		flush, _ := req.Options[filesFlushOptionName].(bool)
 		rawLeaves, rawLeavesDef := req.Options[filesRawLeavesOptionName].(bool)
 
-		prefix, err := getPrefixNew(req)
-		if err != nil {
-			return err
+		if !rawLeavesDef && cfg.Import.UnixFSRawLeaves != config.Default {
+			rawLeavesDef = true
+			rawLeaves = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
 		}
 
-		nd, err := cmdenv.GetNode(env)
+		prefix, err := getPrefixNew(req)
 		if err != nil {
 			return err
 		}
@@ -1297,4 +1392,87 @@ func getParentDir(root *mfs.Root, dir string) (*mfs.Directory, error) {
 		return nil, errors.New("expected *mfs.Directory, didn't get it. This is likely a race condition")
 	}
 	return pdir, nil
+}
+
+var filesChmodCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Change optional POSIX mode permissions",
+		ShortDescription: `
+The mode argument must be specified in Unix numeric notation.
+
+    $ ipfs files chmod 0644 /foo
+    $ ipfs files stat /foo
+    ...
+    Type: file
+    Mode: -rw-r--r-- (0644)
+    ...
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("mode", true, false, "Mode to apply to node (numeric notation)"),
+		cmds.StringArg("path", true, false, "Path to apply mode"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		path, err := checkPath(req.Arguments[1])
+		if err != nil {
+			return err
+		}
+
+		mode, err := strconv.ParseInt(req.Arguments[0], 8, 32)
+		if err != nil {
+			return err
+		}
+
+		return mfs.Chmod(nd.FilesRoot, path, os.FileMode(mode))
+	},
+}
+
+var filesTouchCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Set or change optional POSIX modification times.",
+		ShortDescription: `
+Examples:
+    # set modification time to now.
+    $ ipfs files touch /foo
+    # set a custom modification time.
+    $ ipfs files touch --mtime=1630937926 /foo
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("path", true, false, "Path of target to update."),
+	},
+	Options: []cmds.Option{
+		cmds.Int64Option(mtimeOptionName, "Modification time in seconds before or since the Unix Epoch to apply to created UnixFS entries."),
+		cmds.UintOption(mtimeNsecsOptionName, "Modification time fraction in nanoseconds"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		path, err := checkPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		mtime, _ := req.Options[mtimeOptionName].(int64)
+		nsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
+
+		var ts time.Time
+		if mtime != 0 {
+			ts = time.Unix(mtime, int64(nsecs)).UTC()
+		} else {
+			ts = time.Now().UTC()
+		}
+
+		return mfs.Touch(nd.FilesRoot, path, ts)
+	},
 }
