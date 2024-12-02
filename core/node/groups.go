@@ -293,8 +293,11 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	shouldBitswapProvide := !cfg.Experimental.StrategicProviding
 
 	return fx.Options(
-		fx.Provide(BitswapOptions(cfg, shouldBitswapProvide)),
+		fx.Provide(BitswapOptions(cfg)),
+		fx.Provide(Bitswap(shouldBitswapProvide)),
 		fx.Provide(OnlineExchange()),
+		// Replace our Exchange with a Providing exchange!
+		fx.Decorate(ProvidingExchange(shouldBitswapProvide)),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),
