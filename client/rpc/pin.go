@@ -87,7 +87,7 @@ func (api *PinAPI) Ls(ctx context.Context, pins chan<- iface.Pin, opts ...caopts
 			if err != io.EOF {
 				return err
 			}
-			break
+			return nil
 		}
 
 		c, err := cid.Parse(out.Cid)
@@ -101,7 +101,6 @@ func (api *PinAPI) Ls(ctx context.Context, pins chan<- iface.Pin, opts ...caopts
 			return ctx.Err()
 		}
 	}
-	return nil
 }
 
 // IsPinned returns whether or not the given cid is pinned
