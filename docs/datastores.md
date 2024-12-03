@@ -53,11 +53,11 @@ Uses [pebble](https://github.com/cockroachdb/pebble) as a key value store.
 }
 ```
 
-The following options are availble for tuning pebble.
+The following options are available for tuning pebble.
 If they are not configured (or assigned their zero-valued), then default values are used.
 
 * `bytesPerSync`: int, Sync sstables periodically in order to smooth out writes to disk. (default: 512KB)
-* `bisableWAL`: true|false, Disable the write-ahead log (WAL) at expense of prohibiting crash recovery. (default: false)
+* `disableWAL`: true|false, Disable the write-ahead log (WAL) at expense of prohibiting crash recovery. (default: false)
 * `cacheSize`: Size of pebble's shared block cache. (default: 8MB)
 * `l0CompactionThreshold`: int, Count of L0 files necessary to trigger an L0 compaction.
 * `l0StopWritesThreshold`: int, Limit on L0 read-amplification, computed as the number of L0 sublevels.

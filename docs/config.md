@@ -496,15 +496,15 @@ Enables AutoTLS feature to get DNS+TLS for [libp2p Secure WebSocket](https://git
 
 If `.../tls/sni/*.libp2p.direct/ws` [multiaddr] is present in [`Addresses.Swarm`](#addressesswarm)
 with SNI segment ending with [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix),
-Kubo will obtain and set up a trusted PKI TLS certificate for it, making it diallable from web browser's [Secure Contexts](https://w3c.github.io/webappsec-secure-contexts/).
+Kubo will obtain and set up a trusted PKI TLS certificate for it, making it dialable from web browser's [Secure Contexts](https://w3c.github.io/webappsec-secure-contexts/).
 
 > [!IMPORTANT]
 > Caveats:
-> - Requires your Kubo node to be publicly diallable.
+> - Requires your Kubo node to be publicly dialable.
 >   - If you want to test this with a node that is behind a NAT and uses manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`),
 >     add catch-all `/ip4/0.0.0.0/tcp/4001/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4001/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm)
 >     and **wait 5-15 minutes** for libp2p node to set up and learn about own public addresses via [AutoNAT](#autonat).
->   - If your node is fresh and just started, the [p2p-forge] client may produce and log ERRORs during this time, but once a publicly diallable addresses are set up, a subsequent retry should be successful.
+>   - If your node is fresh and just started, the [p2p-forge] client may produce and log ERRORs during this time, but once a publicly dialable addresses are set up, a subsequent retry should be successful.
 > - The TLS certificate is used only for [libp2p WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) connections.
 >   - Right now, this is NOT used for hosting a [Gateway](#gateway) over HTTPS (that use case still requires manual TLS setup on reverse proxy, and your own domain).
 
@@ -533,7 +533,7 @@ Do not change this unless you self-host [p2p-forge] under own domain.
 > [!IMPORTANT]
 > The default endpoint performs [libp2p Peer ID Authentication over HTTP](https://github.com/libp2p/specs/blob/master/http/peer-id-auth.md)
 > (proving ownership of PeerID), probes if your Kubo node can correctly answer to a [libp2p Identify](https://github.com/libp2p/specs/tree/master/identify) query.
-> This ensures only a correctly configured, publicly diallable Kubo can initiate [ACME DNS-01 challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) for `peerid.libp2p.direct`.
+> This ensures only a correctly configured, publicly dialable Kubo can initiate [ACME DNS-01 challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) for `peerid.libp2p.direct`.
 
 Default: `https://registration.libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
 
@@ -564,7 +564,7 @@ Type: `optionalString`
 
 Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
 
-Default: The ipfs.io bootstrap nodes
+Default: [`config.DefaultBootstrapAddresses`](https://github.com/ipfs/kubo/blob/master/config/bootstrap_peers.go)
 
 Type: `array[string]` ([multiaddrs][multiaddr])
 

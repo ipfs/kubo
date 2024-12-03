@@ -9,8 +9,9 @@ BP1="/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTez
 BP2="/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa"
 BP3="/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb"
 BP4="/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt"
-BP5="/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
-BP6="/ip4/104.131.131.82/udp/4001/quic-v1/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+BP5="/dnsaddr/va1.bootstrap.libp2p.io/p2p/12D3KooWKnDdG3iXw9eTFijk3EWSunZcFi54Zka4wmtqtt6rPxc8"
+BP6="/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+BP7="/ip4/104.131.131.82/udp/4001/quic-v1/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
 
 test_description="Test ipfs repo operations"
 
@@ -93,10 +94,11 @@ test_bootstrap_cmd() {
     echo "added $BP4" >>add2_expected &&
     echo "added $BP5" >>add2_expected &&
     echo "added $BP6" >>add2_expected &&
+    echo "added $BP7" >>add2_expected &&
     test_cmp add2_expected add2_actual
   '
 
-  test_bootstrap_list_cmd $BP1 $BP2 $BP3 $BP4 $BP5 $BP6
+  test_bootstrap_list_cmd $BP1 $BP2 $BP3 $BP4 $BP5 $BP6 $BP7
 
   test_expect_success "'ipfs bootstrap rm --all' succeeds" '
     ipfs bootstrap rm --all >rm2_actual
@@ -109,6 +111,7 @@ test_bootstrap_cmd() {
     echo "removed $BP4" >>rm2_expected &&
     echo "removed $BP5" >>rm2_expected &&
     echo "removed $BP6" >>rm2_expected &&
+    echo "removed $BP7" >>rm2_expected &&
     test_cmp rm2_expected rm2_actual
   '
 
