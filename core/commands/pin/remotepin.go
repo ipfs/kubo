@@ -351,7 +351,7 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client, out c
 		opts = append(opts, pinclient.PinOpts.FilterStatus(parsedStatuses...))
 	}
 
-	return c.Ls2(ctx, out, opts...)
+	return c.Ls(ctx, out, opts...)
 }
 
 var rmRemotePinCmd = &cmds.Command{
