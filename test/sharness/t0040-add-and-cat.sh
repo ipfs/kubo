@@ -355,10 +355,10 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
-    test_must_fail "ipfs add with multiple files of same name but different dirs fails" '
+    test_expect_success "ipfs add with multiple files of same name but different dirs fails" '
       mkdir -p mountdir/same-file/ &&
       cp mountdir/hello.txt mountdir/same-file/hello.txt &&
-      ipfs add mountdir/hello.txt mountdir/same-file/hello.txt >actual &&
+      test_expect_code 1 ipfs add mountdir/hello.txt mountdir/same-file/hello.txt >actual &&
       rm mountdir/same-file/hello.txt  &&
       rmdir mountdir/same-file
     '
@@ -466,6 +466,15 @@ test_add_cat_file() {
     test_should_contain "test" lsout &&
     test_should_not_contain "mfs1.txt" lsout &&
     test_should_not_contain "mfs2.txt" lsout &&
+    ipfs files rm -r --force /mfs
+  '
+
+  # confirm -w and --to-files are exclusive
+  # context: https://github.com/ipfs/kubo/issues/10611
+  test_expect_success "ipfs add -r -w dir --to-files /mfs/subdir5/ errors (-w and --to-files are exclusive)" '
+    ipfs files mkdir -p /mfs/subdir5 &&
+    test_expect_code 1 ipfs add -r -w test --to-files /mfs/subdir5/ >actual 2>&1 &&
+    test_should_contain "Error" actual &&
     ipfs files rm -r --force /mfs
   '
 
