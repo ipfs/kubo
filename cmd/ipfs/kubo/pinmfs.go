@@ -183,7 +183,7 @@ func pinMFS(ctx context.Context, node pinMFSNode, cid cid.Cid, svcName string, s
 
 	// check if MFS pin exists (across all possible states) and inspect its CID
 	pinStatuses := []pinclient.Status{pinclient.StatusQueued, pinclient.StatusPinning, pinclient.StatusPinned, pinclient.StatusFailed}
-	lsPinCh, lsErrCh := c.Ls(ctx, pinclient.PinOpts.FilterName(pinName), pinclient.PinOpts.FilterStatus(pinStatuses...))
+	lsPinCh, lsErrCh := c.GoLs(ctx, pinclient.PinOpts.FilterName(pinName), pinclient.PinOpts.FilterStatus(pinStatuses...))
 	existingRequestID := "" // is there any pre-existing MFS pin with pinName (for any CID)?
 	pinning := false        // is CID for current MFS already being pinned?
 	pinTime := time.Now().UTC()
