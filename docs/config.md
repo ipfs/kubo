@@ -633,6 +633,19 @@ Default: `0` (disabled)
 
 Type: `integer` (non-negative, bytes)
 
+### `Datastore.BlockKeyCacheSize`
+
+A number representing the maximum size in bytes of the blockstore's Two-Queue
+cache, which caches block-cids and their block-sizes. Use `0` to disable.
+
+This cache, once primed, can greatly speed up operations like `ipfs repo stat`
+as there is no need to read full blocks to know their sizes. Size should be
+adjusted depending on the number of CIDs on disk.
+
+Default: `65536` (64KiB)
+
+Type: `integer` (non-negative, bytes)
+
 ### `Datastore.Spec`
 
 Spec defines the structure of the ipfs datastore. It is a composable structure,
