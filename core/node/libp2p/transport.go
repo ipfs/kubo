@@ -24,12 +24,14 @@ func Transports(tptConfig config.Transports) interface{} {
 	) (opts Libp2pOpts, err error) {
 		privateNetworkEnabled := params.Fprint != nil
 
-		if tptConfig.Network.TCP.WithDefault(true) {
+		tcpEnabled := tptConfig.Network.TCP.WithDefault(true)
+		wsEnabled := tptConfig.Network.Websocket.WithDefault(true)
+		if tcpEnabled {
 			// TODO(9290): Make WithMetrics configurable
 			opts.Opts = append(opts.Opts, libp2p.Transport(tcp.NewTCPTransport, tcp.WithMetrics()))
 		}
 
-		if tptConfig.Network.Websocket.WithDefault(true) {
+		if wsEnabled {
 			if params.ForgeMgr == nil {
 				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New))
 			} else {
@@ -62,6 +64,10 @@ func Transports(tptConfig config.Transports) interface{} {
 				)
 			}
 			opts.Opts = append(opts.Opts, libp2p.Transport(webrtc.New))
+		}
+
+		if tcpEnabled || wsEnabled {
+			opts.Opts = append(opts.Opts, libp2p.ShareTCPListener())
 		}
 
 		return opts, nil
