@@ -21,8 +21,9 @@ type Datastore struct {
 
 	Spec map[string]interface{}
 
-	HashOnRead      bool
-	BloomFilterSize int
+	HashOnRead        bool
+	BloomFilterSize   int
+	BlockKeyCacheSize int
 }
 
 // DataStorePath returns the default data store path given a configuration root

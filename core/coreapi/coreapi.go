@@ -207,12 +207,12 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		return nil
 	}
 
-	if settings.Offline {
-		cfg, err := n.Repo.Config()
-		if err != nil {
-			return nil, err
-		}
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return nil, err
+	}
 
+	if settings.Offline {
 		cs := cfg.Ipns.ResolveCacheSize
 		if cs == 0 {
 			cs = node.DefaultIpnsCacheSize
@@ -244,7 +244,12 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 
 	if settings.Offline || !settings.FetchBlocks {
 		subAPI.exchange = offlinexch.Exchange(subAPI.blockstore)
-		subAPI.blocks = bserv.New(subAPI.blockstore, subAPI.exchange)
+		var bsopts []bserv.Option
+		// If bloom filter disable, do not do Has() when writing.
+		if cfg.Datastore.BloomFilterSize == 0 {
+			bsopts = append(bsopts, bserv.WriteThrough())
+		}
+		subAPI.blocks = bserv.New(subAPI.blockstore, subAPI.exchange, bsopts...)
 		subAPI.dag = dag.NewDAGService(subAPI.blocks)
 	}
 
