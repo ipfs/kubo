@@ -29,6 +29,7 @@ config file at runtime.
     - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
   - [`AutoTLS`](#autotls)
     - [`AutoTLS.Enabled`](#autotlsenabled)
+    - [`AutoTLS.AutoWSS`](#autotlsautowss)
     - [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)
     - [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint)
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
@@ -492,27 +493,36 @@ Type: `object`
 > Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
 > Track progress in [kubo#10560](https://github.com/ipfs/kubo/issues/10560).
 
-Enables AutoTLS feature to get DNS+TLS for [libp2p Secure WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) listeners defined in [`Addresses.Swarm`](#addressesswarm), such as `/ip4/0.0.0.0/tcp/4001/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4001/tls/sni/*.libp2p.direct/ws`.
+Enables AutoTLS feature to get DNS+TLS for [libp2p Secure WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) on `/tcp` port.
 
-If `.../tls/sni/*.libp2p.direct/ws` [multiaddr] is present in [`Addresses.Swarm`](#addressesswarm)
+If `AutoTLS.AutoWSS` is `true`, or `/tcp/../tls/sni/*.libp2p.direct/ws` [multiaddr] is present in [`Addresses.Swarm`](#addressesswarm)
 with SNI segment ending with [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix),
-Kubo will obtain and set up a trusted PKI TLS certificate for it, making it dialable from web browser's [Secure Contexts](https://w3c.github.io/webappsec-secure-contexts/).
+Kubo will obtain and set up a trusted PKI TLS certificate for `*.peerid.libp2p.direct`, making it dialable from web browser's [Secure Contexts](https://w3c.github.io/webappsec-secure-contexts/).
+
+> [!TIP]
+> - Most users don't need custom `/ws` config in `Addresses.Swarm`. Try running this with `AutoTLS.AutoWSS=true`: it will reuse preexisting catch-all `/tcp` ports that were already forwarded/safelisted on your firewall.
+> - Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`. Less noisy `GOLOG_LOG_LEVEL="error,autotls=info` may be informative enough.
+> - Certificates are stored in `$IPFS_PATH/p2p-forge-certs`. Removing directory and restarting daemon will trigger certificate rotation.
 
 > [!IMPORTANT]
 > Caveats:
 > - Requires your Kubo node to be publicly dialable.
->   - If you want to test this with a node that is behind a NAT and uses manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`),
+>   - If you want to test this with a node that is behind a NAT and uses manual TCP port forwarding or UPnP (`Swarm.DisableNatPortMap=false`), use `AutoTLS.AutoWSS=true`, or manually
 >     add catch-all `/ip4/0.0.0.0/tcp/4001/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4001/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm)
 >     and **wait 5-15 minutes** for libp2p node to set up and learn about own public addresses via [AutoNAT](#autonat).
 >   - If your node is fresh and just started, the [p2p-forge] client may produce and log ERRORs during this time, but once a publicly dialable addresses are set up, a subsequent retry should be successful.
 > - The TLS certificate is used only for [libp2p WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) connections.
 >   - Right now, this is NOT used for hosting a [Gateway](#gateway) over HTTPS (that use case still requires manual TLS setup on reverse proxy, and your own domain).
 
-> [!TIP]
-> - Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`
-> - Certificates are stored in `$IPFS_PATH/p2p-forge-certs`. Removing directory and restarting daemon will trigger certificate rotation.
-
 Default: `false`
+
+Type: `flag`
+
+### `AutoTLS.AutoWSS`
+
+Optional. Controls if Kubo should add `/tls/sni/*.libp2p.direct/ws` listener to every pre-existing `/tcp` port IFF no explicit `/ws` is defined in [`Addresses.Swarm`](#addressesswarm) already.
+
+Default: `true` (active only if `AutoTLS.Enabled` is `true` as well)
 
 Type: `flag`
 
