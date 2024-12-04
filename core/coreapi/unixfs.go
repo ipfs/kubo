@@ -91,7 +91,12 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		pinning = nil                                   // pinner will never be used
 	}
 
-	bserv := blockservice.New(addblockstore, exch) // hash security 001
+	var bsopts []blockservice.Option
+	// If bloom filter disabled, do not do Has() when writing.
+	if cfg.Datastore.BloomFilterSize == 0 {
+		bsopts = append(bsopts, blockservice.WriteThrough())
+	}
+	bserv := blockservice.New(addblockstore, exch, bsopts...) // hash security 001
 	dserv := merkledag.NewDAGService(bserv)
 
 	// add a sync call to the DagService

@@ -134,6 +134,7 @@ func DefaultDatastoreConfig() Datastore {
 		StorageGCWatermark: 90, // 90%
 		GCPeriod:           "1h",
 		BloomFilterSize:    0,
+		BlockKeyCacheSize:  64 << 10, // 64KiB
 		Spec:               flatfsSpec(),
 	}
 }

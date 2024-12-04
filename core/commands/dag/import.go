@@ -55,7 +55,14 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	// this is *not* a transaction
 	// it is simply a way to relieve pressure on the blockstore
 	// similar to pinner.Pin/pinner.Flush
-	batch := ipld.NewBatch(req.Context, api.Dag())
+	batch := ipld.NewBatch(req.Context, api.Dag(),
+		// 128 file descriptors needed in flatfs
+		ipld.MaxNodesBatchOption(128),
+		// 100MiB. When setting block size to 1MiB, we can add 100
+		// nodes maximum. With default 256KiB block-size, we will hit
+		// the max nodes limit at 32MiB.
+		ipld.MaxSizeBatchOption(100<<20),
+	)
 
 	roots := cid.NewSet()
 	var blockCount, blockBytesCount uint64
