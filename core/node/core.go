@@ -24,21 +24,32 @@ import (
 	dagpb "github.com/ipld/go-codec-dagpb"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 )
 
 // BlockService creates new blockservice which provides an interface to fetch content-addressable blocks
-func BlockService(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
-	bsvc := blockservice.New(bs, rem)
+func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
+	return func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
+		var opts []blockservice.Option
+		// If bloom filter is disabled, do not do Has() when writing.
+		// We defer to the datastore how to handle this efficiently,
+		// but we cannot assume that triggering Reads for every white
+		// is fine.
+		if cfg.Datastore.BloomFilterSize == 0 {
+			opts = append(opts, blockservice.WriteThrough())
+		}
+		bsvc := blockservice.New(bs, rem, opts...)
 
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			return bsvc.Close()
-		},
-	})
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return bsvc.Close()
+			},
+		})
 
-	return bsvc
+		return bsvc
+	}
 }
 
 // Pinning creates new pinner which tells GC which blocks should be kept
