@@ -78,7 +78,7 @@ var queryDhtCmd = &cmds.Command{
 		}
 
 		if d, ok := client.(kademlia); !ok {
-			return fmt.Errorf("dht client does not support GetClosestPeers")
+			return errors.New("dht client does not support GetClosestPeers")
 		} else {
 			errCh := make(chan error, 1)
 			go func() {

@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -214,5 +215,5 @@ func keylookup(self ci.PrivKey, kstore keystore.Keystore, k string) (ci.PrivKey,
 		}
 	}
 
-	return nil, fmt.Errorf("no key by the given name or PeerID was found")
+	return nil, errors.New("no key by the given name or PeerID was found")
 }

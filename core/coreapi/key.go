@@ -65,7 +65,7 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 	}
 
 	if name == "self" {
-		return nil, fmt.Errorf("cannot create key with name 'self'")
+		return nil, errors.New("cannot create key with name 'self'")
 	}
 
 	_, err = api.repo.Keystore().Get(name)
@@ -168,11 +168,11 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 	ks := api.repo.Keystore()
 
 	if oldName == "self" {
-		return nil, false, fmt.Errorf("cannot rename key with name 'self'")
+		return nil, false, errors.New("cannot rename key with name 'self'")
 	}
 
 	if newName == "self" {
-		return nil, false, fmt.Errorf("cannot overwrite key with name 'self'")
+		return nil, false, errors.New("cannot overwrite key with name 'self'")
 	}
 
 	oldKey, err := ks.Get(oldName)
@@ -232,7 +232,7 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Key, erro
 	ks := api.repo.Keystore()
 
 	if name == "self" {
-		return nil, fmt.Errorf("cannot remove key with name 'self'")
+		return nil, errors.New("cannot remove key with name 'self'")
 	}
 
 	removed, err := ks.Get(name)

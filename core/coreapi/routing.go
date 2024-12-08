@@ -109,7 +109,7 @@ func (api *RoutingAPI) FindProviders(ctx context.Context, p path.Path, opts ...c
 
 	numProviders := settings.NumProviders
 	if numProviders < 1 {
-		return nil, fmt.Errorf("number of providers must be greater than 0")
+		return nil, errors.New("number of providers must be greater than 0")
 	}
 
 	pchan := api.routing.FindProvidersAsync(ctx, rp.RootCid(), numProviders)

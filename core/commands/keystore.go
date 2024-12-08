@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -101,12 +102,12 @@ var keyGenCmd = &cmds.Command{
 
 		typ, f := req.Options[keyStoreTypeOptionName].(string)
 		if !f {
-			return fmt.Errorf("please specify a key type with --type")
+			return errors.New("please specify a key type with --type")
 		}
 
 		name := req.Arguments[0]
 		if name == "self" {
-			return fmt.Errorf("cannot create key with name 'self'")
+			return errors.New("cannot create key with name 'self'")
 		}
 
 		opts := []options.KeyGenerateOption{options.Key.Type(typ)}
