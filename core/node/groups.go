@@ -260,7 +260,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		ipnsCacheSize = DefaultIpnsCacheSize
 	}
 	if ipnsCacheSize < 0 {
-		return fx.Error(fmt.Errorf("cannot specify negative resolve cache size"))
+		return fx.Error(errors.New("cannot specify negative resolve cache size"))
 	}
 
 	// Republisher params
