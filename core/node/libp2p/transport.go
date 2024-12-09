@@ -66,7 +66,7 @@ func Transports(tptConfig config.Transports) interface{} {
 			opts.Opts = append(opts.Opts, libp2p.Transport(webrtc.New))
 		}
 
-		if tcpEnabled || wsEnabled {
+		if tcpEnabled && wsEnabled {
 			opts.Opts = append(opts.Opts, libp2p.ShareTCPListener())
 		}
 
