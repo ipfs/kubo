@@ -327,7 +327,7 @@ func statNode(nd ipld.Node, enc cidenc.Encoder) (*statOutput, error) {
 			Type:           "file",
 		}, nil
 	default:
-		return nil, fmt.Errorf("not unixfs node (proto or raw)")
+		return nil, errors.New("not unixfs node (proto or raw)")
 	}
 }
 

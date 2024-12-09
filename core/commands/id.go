@@ -81,7 +81,7 @@ EXAMPLE:
 			var err error
 			id, err = peer.Decode(req.Arguments[0])
 			if err != nil {
-				return fmt.Errorf("invalid peer id")
+				return errors.New("invalid peer id")
 			}
 		} else {
 			id = n.Identity

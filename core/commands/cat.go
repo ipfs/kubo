@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"io"
 	"os"
 
@@ -43,13 +43,13 @@ var CatCmd = &cmds.Command{
 
 		offset, _ := req.Options[offsetOptionName].(int64)
 		if offset < 0 {
-			return fmt.Errorf("cannot specify negative offset")
+			return errors.New("cannot specify negative offset")
 		}
 
 		max, found := req.Options[lengthOptionName].(int64)
 
 		if max < 0 {
-			return fmt.Errorf("cannot specify negative length")
+			return errors.New("cannot specify negative length")
 		}
 		if !found {
 			max = -1
