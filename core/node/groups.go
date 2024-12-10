@@ -189,7 +189,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	cacheOpts := blockstore.DefaultCacheOpts()
 	cacheOpts.HasBloomFilterSize = cfg.Datastore.BloomFilterSize
-	cacheOpts.HasTwoQueueCacheSize = cfg.Datastore.BlockKeyCacheSize
+	cacheOpts.HasTwoQueueCacheSize = int(cfg.Datastore.BlockKeyCacheSize.WithDefault(config.DefaultBlockKeyCacheSize))
 	if !bcfg.Permanent {
 		cacheOpts.HasBloomFilterSize = 0
 	}

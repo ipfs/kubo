@@ -644,7 +644,7 @@ adjusted depending on the number of CIDs on disk.
 
 Default: `65536` (64KiB)
 
-Type: `integer` (non-negative, bytes)
+Type: `optionalInteger` (non-negative, bytes)
 
 ### `Datastore.Spec`
 
