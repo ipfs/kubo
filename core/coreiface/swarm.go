@@ -54,4 +54,6 @@ type SwarmAPI interface {
 
 	// ListenAddrs returns the list of all listening addresses
 	ListenAddrs(context.Context) ([]ma.Multiaddr, error)
+
+	BlockAll(context.Context) error
 }

@@ -2,6 +2,8 @@ package coreapi
 
 import (
 	"context"
+	"fmt"
+	"runtime"
 	"sort"
 	"time"
 
@@ -165,6 +167,13 @@ func (api *SwarmAPI) Peers(ctx context.Context) ([]coreiface.ConnectionInfo, err
 	}
 
 	return out, nil
+}
+
+func (api *SwarmAPI) BlockAll(ctx context.Context) error {
+	fmt.Println("blocking all connections")
+	api.peerHost.Network().(interface{ BlockAll() }).BlockAll()
+	runtime.GC()
+	return nil
 }
 
 func (ci *connInfo) ID() peer.ID {
