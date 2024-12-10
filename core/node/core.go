@@ -33,11 +33,7 @@ import (
 func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
 	return func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
 		var opts []blockservice.Option
-		// If bloom filter is disabled, do not do Has() when writing.
-		// We defer to the datastore how to handle this efficiently,
-		// but we cannot assume that triggering Reads for every white
-		// is fine.
-		if cfg.Datastore.BloomFilterSize == 0 {
+		if cfg.Datastore.WriteThrough {
 			opts = append(opts, blockservice.WriteThrough())
 		}
 		bsvc := blockservice.New(bs, rem, opts...)
