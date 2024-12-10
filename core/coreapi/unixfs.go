@@ -92,8 +92,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	}
 
 	var bsopts []blockservice.Option
-	// If bloom filter disabled, do not do Has() when writing.
-	if cfg.Datastore.BloomFilterSize == 0 {
+	if cfg.Datastore.WriteThrough {
 		bsopts = append(bsopts, blockservice.WriteThrough())
 	}
 	bserv := blockservice.New(addblockstore, exch, bsopts...) // hash security 001

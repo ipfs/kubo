@@ -245,8 +245,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 	if settings.Offline || !settings.FetchBlocks {
 		subAPI.exchange = offlinexch.Exchange(subAPI.blockstore)
 		var bsopts []bserv.Option
-		// If bloom filter disable, do not do Has() when writing.
-		if cfg.Datastore.BloomFilterSize == 0 {
+		if cfg.Datastore.WriteThrough {
 			bsopts = append(bsopts, bserv.WriteThrough())
 		}
 		subAPI.blocks = bserv.New(subAPI.blockstore, subAPI.exchange, bsopts...)

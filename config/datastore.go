@@ -11,6 +11,13 @@ const (
 	// DefaultBlockKeyCacheSize is the size for the blockstore two-queue
 	// cache which caches block keys and sizes.
 	DefaultBlockKeyCacheSize = 64 << 10
+
+	// DefaultWriteThrough specifies whether to use a "write-through"
+	// Blockstore and Blockservice. This means that they will write
+	// without performing any reads to check if the incoming blocks are
+	// already present in the datastore. Enable for datastores with fast
+	// writes and slower reads.
+	DefaultWriteThrough = true
 )
 
 // Datastore tracks the configuration of the datastore.
@@ -30,6 +37,7 @@ type Datastore struct {
 	HashOnRead        bool
 	BloomFilterSize   int
 	BlockKeyCacheSize OptionalInteger
+	WriteThrough      bool
 }
 
 // DataStorePath returns the default data store path given a configuration root
