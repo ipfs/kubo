@@ -36,7 +36,7 @@ type Datastore struct {
 
 	HashOnRead        bool
 	BloomFilterSize   int
-	BlockKeyCacheSize OptionalInteger
+	BlockKeyCacheSize OptionalInteger `json:",omitempty"`
 	WriteThrough      bool
 }
 
