@@ -4,8 +4,14 @@ import (
 	"encoding/json"
 )
 
-// DefaultDataStoreDirectory is the directory to store all the local IPFS data.
-const DefaultDataStoreDirectory = "datastore"
+const (
+	// DefaultDataStoreDirectory is the directory to store all the local IPFS data.
+	DefaultDataStoreDirectory = "datastore"
+
+	// DefaultBlockKeyCacheSize is the size for the blockstore two-queue
+	// cache which caches block keys and sizes.
+	DefaultBlockKeyCacheSize = 64 << 10
+)
 
 // Datastore tracks the configuration of the datastore.
 type Datastore struct {
@@ -23,7 +29,7 @@ type Datastore struct {
 
 	HashOnRead        bool
 	BloomFilterSize   int
-	BlockKeyCacheSize int
+	BlockKeyCacheSize OptionalInteger
 }
 
 // DataStorePath returns the default data store path given a configuration root
