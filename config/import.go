@@ -5,6 +5,8 @@ const (
 	DefaultUnixFSRawLeaves = false
 	DefaultUnixFSChunker   = "size-262144"
 	DefaultHashFunction    = "sha2-256"
+	DefaultBatchMaxNodes   = 128
+	DefaultBatchMaxSize    = 100 << 20 // 20MiB
 )
 
 // Import configures the default options for ingesting data. This affects commands
@@ -14,4 +16,6 @@ type Import struct {
 	UnixFSRawLeaves Flag
 	UnixFSChunker   OptionalString
 	HashFunction    OptionalString
+	BatchMaxNodes   OptionalInteger
+	BatchMaxSize    OptionalInteger
 }

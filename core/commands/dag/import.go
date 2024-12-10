@@ -11,6 +11,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/coreiface/options"
 	gocarv2 "github.com/ipld/go-car/v2"
 
@@ -20,6 +21,11 @@ import (
 
 func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 	node, err := cmdenv.GetNode(env)
+	if err != nil {
+		return err
+	}
+
+	cfg, err := node.Repo.Config()
 	if err != nil {
 		return err
 	}
@@ -56,12 +62,12 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	// it is simply a way to relieve pressure on the blockstore
 	// similar to pinner.Pin/pinner.Flush
 	batch := ipld.NewBatch(req.Context, api.Dag(),
-		// 128 file descriptors needed in flatfs
-		ipld.MaxNodesBatchOption(128),
-		// 100MiB. When setting block size to 1MiB, we can add 100
-		// nodes maximum. With default 256KiB block-size, we will hit
-		// the max nodes limit at 32MiB.
-		ipld.MaxSizeBatchOption(100<<20),
+		// Default: 128. Means 128 file descriptors needed in flatfs
+		ipld.MaxNodesBatchOption(int(cfg.Import.BatchMaxNodes.WithDefault(config.DefaultBatchMaxNodes))),
+		// Default 100MiB. When setting block size to 1MiB, we can add
+		// ~100 nodes maximum. With default 256KiB block-size, we will
+		// hit the max nodes limit at 32MiB.p
+		ipld.MaxSizeBatchOption(int(cfg.Import.BatchMaxSize.WithDefault(config.DefaultBatchMaxSize))),
 	)
 
 	roots := cid.NewSet()
