@@ -314,4 +314,4 @@ require (
 	mvdan.cc/unparam v0.0.0-20240528143540-8a5130ca722f // indirect
 )
 
-replace github.com/libp2p/go-libp2p => github.com/libp2p/go-libp2p v0.37.1-0.20241202220543-9024f8e8c86e
+replace github.com/libp2p/go-libp2p => github.com/libp2p/go-libp2p v0.37.1-0.20241209232721-faa71af9d36f
