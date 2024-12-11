@@ -178,6 +178,8 @@ config file at runtime.
     - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
     - [`Import.UnixFSChunker`](#importunixfschunker)
     - [`Import.HashFunction`](#importhashfunction)
+    - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
+    - [`Import.BatchMaxSize`](#importbatchmaxsize)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -2460,6 +2462,22 @@ The default hash function. Commands affected: `ipfs add`, `ipfs block put`, `ipf
 Default: `sha2-256`
 
 Type: `optionalString`
+
+### `Import.BatchMaxNodes
+
+The maximum number of nodes in a write-batch. The total size of the batch is limited by `BatchMaxnodes` and `BatchMaxSize`.
+
+Default: `128`
+
+Type: `optionalInteger`
+
+### `Import.BatchMaxSize`
+
+The maximum size of a single write-batch (computed as the sum of the sizes of the blocks). The total size of the batch is limited by `BatchMaxnodes` and `BatchMaxSize`.
+
+Default: `20971520` (20MiB)
+
+Type: `optionalInteger`
 
 ## `Version`
 
