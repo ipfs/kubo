@@ -48,8 +48,8 @@ Logging can also be configured at runtime, both globally and on a per-subsystem 
 
 Specifies the log message format.  It supports the following values:
 
-- `color` -- human readable, colorized (ANSI) output
-- `nocolor` -- human readable, plain-text output.
+- `color` -- human-readable, colorized (ANSI) output
+- `nocolor` -- human-readable, plain-text output.
 - `json` -- structured JSON.
 
 For example, to log structured JSON (for easier parsing):
