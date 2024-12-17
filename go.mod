@@ -49,12 +49,12 @@ require (
 	github.com/ipld/go-car/v2 v2.14.2
 	github.com/ipld/go-codec-dagpb v1.6.0
 	github.com/ipld/go-ipld-prime v0.21.0
-	github.com/ipshipyard/p2p-forge v0.1.0
+	github.com/ipshipyard/p2p-forge v0.1.1-0.20241217214441-d2c176ba1739
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/libp2p/go-doh-resolver v0.4.0
-	github.com/libp2p/go-libp2p v0.37.2
+	github.com/libp2p/go-libp2p v0.37.1-0.20241217191429-37fbd7e2071c
 	github.com/libp2p/go-libp2p-http v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.28.1
 	github.com/libp2p/go-libp2p-kbucket v0.6.4
@@ -274,5 +274,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
-
-replace github.com/libp2p/go-libp2p => github.com/libp2p/go-libp2p v0.37.1-0.20241210164036-4e85c9611ae6

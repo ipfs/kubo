@@ -111,7 +111,7 @@ require (
 	github.com/ipld/go-car/v2 v2.14.2 // indirect
 	github.com/ipld/go-codec-dagpb v1.6.0 // indirect
 	github.com/ipld/go-ipld-prime v0.21.0 // indirect
-	github.com/ipshipyard/p2p-forge v0.1.0 // indirect
+	github.com/ipshipyard/p2p-forge v0.1.1-0.20241217214441-d2c176ba1739 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
@@ -240,5 +240,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
-
-replace github.com/libp2p/go-libp2p => github.com/libp2p/go-libp2p v0.37.1-0.20241210164036-4e85c9611ae6
