@@ -85,7 +85,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	if settings.OnlyHash {
 		// setup a /dev/null pipeline to simulate adding the data
 		dstore := dssync.MutexWrap(ds.NewNullDatastore())
-		bs := bstore.NewBlockstore(dstore, bstore.WriteThrough())
+		bs := bstore.NewBlockstore(dstore, bstore.WriteThrough(true))
 		addblockstore = bstore.NewGCBlockstore(bs, nil) // gclocker will never be used
 		exch = nil                                      // exchange will never be used
 		pinning = nil                                   // pinner will never be used
