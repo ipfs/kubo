@@ -92,7 +92,8 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	}
 
 	bserv := blockservice.New(addblockstore, exch,
-		blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(true))) // hash security 001
+		blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(true)),
+	) // hash security 001
 	dserv := merkledag.NewDAGService(bserv)
 
 	// add a sync call to the DagService
