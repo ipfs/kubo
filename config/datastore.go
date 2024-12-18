@@ -17,7 +17,7 @@ const (
 	// without performing any reads to check if the incoming blocks are
 	// already present in the datastore. Enable for datastores with fast
 	// writes and slower reads.
-	DefaultWriteThrough = true
+	DefaultWriteThrough Flag = True
 )
 
 // Datastore tracks the configuration of the datastore.
@@ -37,7 +37,7 @@ type Datastore struct {
 	HashOnRead        bool
 	BloomFilterSize   int
 	BlockKeyCacheSize OptionalInteger `json:",omitempty"`
-	WriteThrough      bool
+	WriteThrough      Flag            `json:",omitempty"`
 }
 
 // DataStorePath returns the default data store path given a configuration root

@@ -30,11 +30,9 @@ type BaseBlocks blockstore.Blockstore
 func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, hashOnRead bool, writeThrough bool) func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 	return func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 		// hash security
-		var opts []blockstore.Option
-		if writeThrough {
-			opts = append(opts, blockstore.WriteThrough())
-		}
-		bs = blockstore.NewBlockstore(repo.Datastore(), opts...)
+		bs = blockstore.NewBlockstore(repo.Datastore(),
+			blockstore.WriteThrough(writeThrough),
+		)
 		bs = &verifbs.VerifBS{Blockstore: bs}
 		bs, err = blockstore.CachedBlockstore(helpers.LifecycleCtx(mctx, lc), bs, cacheOpts)
 		if err != nil {

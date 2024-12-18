@@ -32,11 +32,9 @@ import (
 // BlockService creates new blockservice which provides an interface to fetch content-addressable blocks
 func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
 	return func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
-		var opts []blockservice.Option
-		if cfg.Datastore.WriteThrough {
-			opts = append(opts, blockservice.WriteThrough())
-		}
-		bsvc := blockservice.New(bs, rem, opts...)
+		bsvc := blockservice.New(bs, rem,
+			blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(true)),
+		)
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
