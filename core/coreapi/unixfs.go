@@ -85,13 +85,15 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	if settings.OnlyHash {
 		// setup a /dev/null pipeline to simulate adding the data
 		dstore := dssync.MutexWrap(ds.NewNullDatastore())
-		bs := bstore.NewBlockstore(dstore, bstore.WriteThrough())
+		bs := bstore.NewBlockstore(dstore, bstore.WriteThrough(true))
 		addblockstore = bstore.NewGCBlockstore(bs, nil) // gclocker will never be used
 		exch = nil                                      // exchange will never be used
 		pinning = nil                                   // pinner will never be used
 	}
 
-	bserv := blockservice.New(addblockstore, exch) // hash security 001
+	bserv := blockservice.New(addblockstore, exch,
+		blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(true)),
+	) // hash security 001
 	dserv := merkledag.NewDAGService(bserv)
 
 	// add a sync call to the DagService

@@ -20,9 +20,9 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.7.0
-	github.com/ipfs-shipyard/nopfs v0.0.13
+	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.25.0
+	github.com/ipfs/boxo v0.25.1-0.20241217205303-00f508d1ca56
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-cidutil v0.1.0
@@ -89,11 +89,11 @@ require (
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.31.0
-	golang.org/x/exp v0.0.0-20241210194714-1829a127f884
-	golang.org/x/mod v0.22.0
+	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
+	golang.org/x/mod v0.21.0
 	golang.org/x/sync v0.10.0
 	golang.org/x/sys v0.28.0
-	google.golang.org/protobuf v1.35.2
+	google.golang.org/protobuf v1.35.1
 )
 
 require (
@@ -122,6 +122,7 @@ require (
 	github.com/elastic/gosigar v0.14.3 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/filecoin-project/go-clock v0.1.0 // indirect
 	github.com/flynn/noise v1.1.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.6 // indirect
@@ -160,7 +161,7 @@ require (
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.3 // indirect
 	github.com/ipfs/go-merkledag v0.11.0 // indirect
-	github.com/ipfs/go-peertaskqueue v0.8.1 // indirect
+	github.com/ipfs/go-peertaskqueue v0.8.2 // indirect
 	github.com/ipfs/go-verifcid v0.0.3 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
@@ -264,7 +265,7 @@ require (
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/term v0.27.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/tools v0.28.0 // indirect
+	golang.org/x/tools v0.26.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
