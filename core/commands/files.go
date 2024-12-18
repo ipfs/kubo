@@ -491,9 +491,13 @@ being GC'ed.
 		}
 
 		if flush {
-			_, err := mfs.FlushPath(req.Context, nd.FilesRoot, dst)
-			if err != nil {
+			if _, err := mfs.FlushPath(req.Context, nd.FilesRoot, dst); err != nil {
 				return fmt.Errorf("cp: cannot flush the created file %s: %s", dst, err)
+			}
+			// Flush parent to clear directory cache and free memory.
+			parent := gopath.Dir(dst)
+			if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, parent); err != nil {
+				return fmt.Errorf("cp: cannot flush the created file's parent folder %s: %s", dst, err)
 			}
 		}
 
@@ -792,10 +796,30 @@ Example:
 		}
 
 		err = mfs.Mv(nd.FilesRoot, src, dst)
-		if err == nil && flush {
-			_, err = mfs.FlushPath(req.Context, nd.FilesRoot, "/")
+		if err != nil {
+			return err
 		}
-		return err
+		if flush {
+			parentSrc := gopath.Dir(src)
+			parentDst := gopath.Dir(dst)
+			// Flush parent to clear directory cache and free memory.
+			if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, parentDst); err != nil {
+				return fmt.Errorf("cp: cannot flush the destination file's parent folder %s: %s", dst, err)
+			}
+
+			// Avoid re-flushing when moving within the same folder.
+			if parentSrc != parentDst {
+				if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, parentSrc); err != nil {
+					return fmt.Errorf("cp: cannot flush the source's file's parent folder %s: %s", dst, err)
+				}
+			}
+
+			if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, "/"); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	},
 }
 
@@ -941,6 +965,17 @@ See '--to-files' in 'ipfs add --help' for more information.
 					retErr = err
 				} else {
 					flog.Error("files: error closing file mfs file descriptor", err)
+				}
+			}
+			if flush {
+				// Flush parent to clear directory cache and free memory.
+				parent := gopath.Dir(path)
+				if _, err := mfs.FlushPath(req.Context, nd.FilesRoot, parent); err != nil {
+					if retErr == nil {
+						retErr = err
+					} else {
+						flog.Error("files: flushing the parent folder", err)
+					}
 				}
 			}
 		}()
@@ -1105,11 +1140,20 @@ Change the CID version or hash function of the root node of a given path.
 			return err
 		}
 
-		err = updatePath(nd.FilesRoot, path, prefix)
-		if err == nil && flush {
-			_, err = mfs.FlushPath(req.Context, nd.FilesRoot, path)
+		if err := updatePath(nd.FilesRoot, path, prefix); err != nil {
+			return err
 		}
-		return err
+		if flush {
+			if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, path); err != nil {
+				return err
+			}
+			// Flush parent to clear directory cache and free memory.
+			parent := gopath.Dir(path)
+			if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, parent); err != nil {
+				return err
+			}
+		}
+		return nil
 	},
 }
 
