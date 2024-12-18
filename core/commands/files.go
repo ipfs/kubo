@@ -59,16 +59,18 @@ Content added with "ipfs add" (which by default also becomes pinned), is not
 added to MFS. Any content can be lazily referenced from MFS with the command
 "ipfs files cp /ipfs/<cid> /some/path/" (see ipfs files cp --help).
 
-
-NOTE:
-Most of the subcommands of 'ipfs files' accept the '--flush' flag. It defaults
-to true. Use caution when setting this flag to false. It will improve
+NOTE: Most of the subcommands of 'ipfs files' accept the '--flush' flag. It
+defaults to true and ensures two things: 1) that the changes are reflected in
+the full MFS structure (updated CIDs) 2) that the parent-folder's cache is
+cleared. Use caution when setting this flag to false. It will improve
 performance for large numbers of file operations, but it does so at the cost
-of consistency guarantees. If the daemon is unexpectedly killed before running
-'ipfs files flush' on the files in question, then data may be lost. This also
-applies to run 'ipfs repo gc' concurrently with '--flush=false'
-operations.
-`,
+of consistency guarantees and unbound growth of the directories' in-memory
+caches.  If the daemon is unexpectedly killed before running 'ipfs files
+flush' on the files in question, then data may be lost. This also applies to
+run 'ipfs repo gc' concurrently with '--flush=false' operations. We recommend
+flushing paths reguarly with 'ipfs files flush', specially the folders on
+which many write operations are happening, as a way to clear the directory
+cache, free memory and speed up read operations.`,
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(filesFlushOptionName, "f", "Flush target and ancestors after write.").WithDefault(true),
