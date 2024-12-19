@@ -40,7 +40,7 @@ config file at runtime.
     - [`Datastore.GCPeriod`](#datastoregcperiod)
     - [`Datastore.HashOnRead`](#datastorehashonread)
     - [`Datastore.BloomFilterSize`](#datastorebloomfiltersize)
-    - [`Datastore.WriteTrhough`](#datastorewritethrough)
+    - [`Datastore.WriteThrough`](#datastorewritethrough)
     - [`Datastore.BlockKeyCacheSize`](#datastoreblockkeycachesize)
     - [`Datastore.Spec`](#datastorespec)
   - [`Discovery`](#discovery)
@@ -2463,9 +2463,11 @@ Default: `sha2-256`
 
 Type: `optionalString`
 
-### `Import.BatchMaxNodes
+### `Import.BatchMaxNodes`
 
 The maximum number of nodes in a write-batch. The total size of the batch is limited by `BatchMaxnodes` and `BatchMaxSize`.
+
+Increasing this will batch more items together when importing data with `ipfs dag import`, which can speed things up.
 
 Default: `128`
 
@@ -2474,6 +2476,8 @@ Type: `optionalInteger`
 ### `Import.BatchMaxSize`
 
 The maximum size of a single write-batch (computed as the sum of the sizes of the blocks). The total size of the batch is limited by `BatchMaxnodes` and `BatchMaxSize`.
+
+Increasing this will batch more items together when importing data with `ipfs dag import`, which can speed things up.
 
 Default: `20971520` (20MiB)
 
