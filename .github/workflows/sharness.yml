@@ -52,6 +52,7 @@ jobs:
           TEST_EXPENSIVE: 1
           IPFS_CHECK_RCMGR_DEFAULTS: 1
           CONTINUE_ON_S_FAILURE: 1
+          LIBP2P_TCP_MUX: false # TODO
           # increasing parallelism beyond 10 doesn't speed up the tests much
           PARALLEL: ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
       - name: Upload coverage report

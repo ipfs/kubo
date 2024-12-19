@@ -155,7 +155,14 @@ Kubo tries to reuse the same source port for all connections to improve NAT
 traversal. If this is an issue, you can disable it by setting
 `LIBP2P_TCP_REUSEPORT` to false.
 
-Default: true
+Default: `true`
+
+## `LIBP2P_TCP_MUX`
+
+Kubo tries to reuse the same listener port for raw TCP and WebSockers transports.
+If this is an issue, you can disable it by setting `LIBP2P_TCP_MUX` to `false`.
+
+Default: `true`
 
 ## `LIBP2P_MUX_PREFS`
 

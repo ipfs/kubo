@@ -2,6 +2,8 @@ package libp2p
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/ipfs/kubo/config"
 	"github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p"
@@ -66,7 +68,7 @@ func Transports(tptConfig config.Transports) interface{} {
 			opts.Opts = append(opts.Opts, libp2p.Transport(webrtc.New))
 		}
 
-		if tcpEnabled && wsEnabled {
+		if tcpEnabled && wsEnabled && os.Getenv("LIBP2P_TCP_MUX") != "false" {
 			opts.Opts = append(opts.Opts, libp2p.ShareTCPListener())
 		}
 
