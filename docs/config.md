@@ -2119,13 +2119,19 @@ Type: `flag`
 
 #### `Swarm.ResourceMgr.MaxMemory`
 
-This is the max amount of memory to allow libp2p to use.
+This is the max amount of memory to allow go-libp2p to use.
+
 libp2p's resource manager will prevent additional resource creation while this limit is reached.
 This value is also used to scale the limit on various resources at various scopes
 when the default limits (discussed in [libp2p resource management](./libp2p-resource-management.md)) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
 It is possible to inspect the runtime limits via `ipfs swarm resources --help`.
+
+> [!IMPORTANT]
+> `Swarm.ResourceMgr.MaxMemory` is the memory limit for go-libp2p networking stack alone, and not for entire Kubo or Bitswap.
+>
+> To set memory limit for the entire Kubo process, use [`GOMEMLIMIT` environment variable](http://web.archive.org/web/20240222201412/https://kupczynski.info/posts/go-container-aware/) which all Go programs recognize, and then set `Swarm.ResourceMgr.MaxMemory` to less than your custom `GOMEMLIMIT`.
 
 Default: `[TOTAL_SYSTEM_MEMORY]/2`
 Type: `optionalBytes`
