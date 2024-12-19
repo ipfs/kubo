@@ -254,7 +254,7 @@ You can also install it through the Solus software center.
 
 #### Guix
 
-[Community Package for go-ipfs](https://packages.guix.gnu.org/packages/go-ipfs/0.11.0/) is no out-of-date.
+[Community Package for go-ipfs](https://packages.guix.gnu.org/packages/go-ipfs/0.11.0/) is now out-of-date.
 
 #### Snap
 
@@ -482,7 +482,7 @@ Kubo is maintained by [Shipyard](https://ipshipyard.com/).
 
 [![](https://cdn.rawgit.com/jbenet/contribute-ipfs-gif/master/img/contribute.gif)](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md)
 
-We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what it is without you! If you want to help out, please see [CONTRIBUTING.md](CONTRIBUTING.md).
+We ❤️ all [our contributors](docs/AUTHORS); this project  wouldn’t be what it is without you! If you want to help out, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
 
