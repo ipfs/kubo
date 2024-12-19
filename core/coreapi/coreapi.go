@@ -14,6 +14,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-mfs"
 
 	bserv "github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
@@ -77,6 +78,8 @@ type CoreAPI struct {
 	checkPublishAllowed func() error
 	checkOnline         func(allowOffline bool) error
 
+	filesRoot *mfs.Root // TODO: option filtering
+
 	// ONLY for re-applying options in WithOptions, DO NOT USE ANYWHERE ELSE
 	nd         *core.IpfsNode
 	parentOpts options.ApiSettings
@@ -123,6 +126,10 @@ func (api *CoreAPI) Key() coreiface.KeyAPI {
 // Object returns the ObjectAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Object() coreiface.ObjectAPI {
 	return (*ObjectAPI)(api)
+}
+
+func (api *CoreAPI) Mfs() coreiface.MfsAPI {
+	return (*MfsAPI)(api)
 }
 
 // Pin returns the PinAPI interface implementation backed by the go-ipfs node
