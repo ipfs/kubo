@@ -135,7 +135,6 @@ func DefaultDatastoreConfig() Datastore {
 		GCPeriod:           "1h",
 		BloomFilterSize:    0,
 		Spec:               flatfsSpec(),
-		WriteThrough:       DefaultWriteThrough,
 	}
 }
 

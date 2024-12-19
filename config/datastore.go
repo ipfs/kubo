@@ -17,7 +17,7 @@ const (
 	// without performing any reads to check if the incoming blocks are
 	// already present in the datastore. Enable for datastores with fast
 	// writes and slower reads.
-	DefaultWriteThrough Flag = True
+	DefaultWriteThrough bool = true
 )
 
 // Datastore tracks the configuration of the datastore.

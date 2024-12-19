@@ -33,7 +33,7 @@ import (
 func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
 	return func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
 		bsvc := blockservice.New(bs, rem,
-			blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(true)),
+			blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough)),
 		)
 
 		lc.Append(fx.Hook{

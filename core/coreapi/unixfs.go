@@ -21,6 +21,7 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/core/coreunix"
@@ -85,14 +86,14 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	if settings.OnlyHash {
 		// setup a /dev/null pipeline to simulate adding the data
 		dstore := dssync.MutexWrap(ds.NewNullDatastore())
-		bs := bstore.NewBlockstore(dstore, bstore.WriteThrough(true))
-		addblockstore = bstore.NewGCBlockstore(bs, nil) // gclocker will never be used
-		exch = nil                                      // exchange will never be used
-		pinning = nil                                   // pinner will never be used
+		bs := bstore.NewBlockstore(dstore, bstore.WriteThrough(true)) // we use NewNullDatastore, so ok to always WriteThrough when OnlyHash
+		addblockstore = bstore.NewGCBlockstore(bs, nil)               // gclocker will never be used
+		exch = nil                                                    // exchange will never be used
+		pinning = nil                                                 // pinner will never be used
 	}
 
 	bserv := blockservice.New(addblockstore, exch,
-		blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(true)),
+		blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough)),
 	) // hash security 001
 	dserv := merkledag.NewDAGService(bserv)
 
