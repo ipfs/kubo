@@ -40,6 +40,8 @@ config file at runtime.
     - [`Datastore.GCPeriod`](#datastoregcperiod)
     - [`Datastore.HashOnRead`](#datastorehashonread)
     - [`Datastore.BloomFilterSize`](#datastorebloomfiltersize)
+    - [`Datastore.WriteThrough`](#datastorewritethrough)
+    - [`Datastore.BlockKeyCacheSize`](#datastoreblockkeycachesize)
     - [`Datastore.Spec`](#datastorespec)
   - [`Discovery`](#discovery)
     - [`Discovery.MDNS`](#discoverymdns)
@@ -176,6 +178,8 @@ config file at runtime.
     - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
     - [`Import.UnixFSChunker`](#importunixfschunker)
     - [`Import.HashFunction`](#importhashfunction)
+    - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
+    - [`Import.BatchMaxSize`](#importbatchmaxsize)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -629,9 +633,47 @@ we'd want to use 1199120 bytes. As of writing, [7 hash
 functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22)
 are used, so the constant `k` is 7 in the formula.
 
+Enabling the BloomFilter can provide performance improvements specially when
+responding to many requests for inexistant blocks. It however requires a full
+sweep of all the datastore keys on daemon start. On very large datastores this
+can be a very taxing operation, particulary if the datastore does not support
+querying existing keys without reading their values at the same time (blocks).
+
 Default: `0` (disabled)
 
 Type: `integer` (non-negative, bytes)
+
+### `Datastore.WriteThrough`
+
+This option controls whether a block that already exist in the datastore
+should be written to it. When set to `false`, a `Has()` call is performed
+against the datastore prior to writing every block. If the block is already
+stored, the write is skipped. This check happens both on the Blockservice and
+the Blockstore layers and this setting affects both.
+
+When set to `true`, no checks are performed and blocks are written to the
+datastore, which depending on the implementation may perform its own checks.
+
+This option can affect performance and the strategy should be taken in
+conjunction with [`BlockKeyCacheSize`](#datastoreblockkeycachesize) and
+[`BloomFilterSize`](#datastoreboomfiltersize`).
+
+Default: `true`
+
+Type: `bool`
+
+### `Datastore.BlockKeyCacheSize`
+
+A number representing the maximum size in bytes of the blockstore's Two-Queue
+cache, which caches block-cids and their block-sizes. Use `0` to disable.
+
+This cache, once primed, can greatly speed up operations like `ipfs repo stat`
+as there is no need to read full blocks to know their sizes. Size should be
+adjusted depending on the number of CIDs on disk (`NumObjects in `ipfs repo stat`).
+
+Default: `65536` (64KiB)
+
+Type: `optionalInteger` (non-negative, bytes)
 
 ### `Datastore.Spec`
 
@@ -2420,6 +2462,26 @@ The default hash function. Commands affected: `ipfs add`, `ipfs block put`, `ipf
 Default: `sha2-256`
 
 Type: `optionalString`
+
+### `Import.BatchMaxNodes`
+
+The maximum number of nodes in a write-batch. The total size of the batch is limited by `BatchMaxnodes` and `BatchMaxSize`.
+
+Increasing this will batch more items together when importing data with `ipfs dag import`, which can speed things up.
+
+Default: `128`
+
+Type: `optionalInteger`
+
+### `Import.BatchMaxSize`
+
+The maximum size of a single write-batch (computed as the sum of the sizes of the blocks). The total size of the batch is limited by `BatchMaxnodes` and `BatchMaxSize`.
+
+Increasing this will batch more items together when importing data with `ipfs dag import`, which can speed things up.
+
+Default: `20971520` (20MiB)
+
+Type: `optionalInteger`
 
 ## `Version`
 

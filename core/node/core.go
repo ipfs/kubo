@@ -24,21 +24,26 @@ import (
 	dagpb "github.com/ipld/go-codec-dagpb"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 )
 
 // BlockService creates new blockservice which provides an interface to fetch content-addressable blocks
-func BlockService(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
-	bsvc := blockservice.New(bs, rem)
+func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
+	return func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
+		bsvc := blockservice.New(bs, rem,
+			blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough)),
+		)
 
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			return bsvc.Close()
-		},
-	})
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return bsvc.Close()
+			},
+		})
 
-	return bsvc
+		return bsvc
+	}
 }
 
 // Pinning creates new pinner which tells GC which blocks should be kept

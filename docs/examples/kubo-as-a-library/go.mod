@@ -75,7 +75,7 @@ require (
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
-	github.com/ipfs-shipyard/nopfs v0.0.13 // indirect
+	github.com/ipfs-shipyard/nopfs v0.0.14 // indirect
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
