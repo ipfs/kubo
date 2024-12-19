@@ -230,6 +230,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	cacheOpts := blockstore.DefaultCacheOpts()
 	cacheOpts.HasBloomFilterSize = cfg.Datastore.BloomFilterSize
+	cacheOpts.HasTwoQueueCacheSize = int(cfg.Datastore.BlockKeyCacheSize.WithDefault(config.DefaultBlockKeyCacheSize))
 	if !bcfg.Permanent {
 		cacheOpts.HasBloomFilterSize = 0
 	}
@@ -242,7 +243,7 @@ func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(RepoConfig),
 		fx.Provide(Datastore),
-		fx.Provide(BaseBlockstoreCtor(cacheOpts, cfg.Datastore.HashOnRead)),
+		fx.Provide(BaseBlockstoreCtor(cacheOpts, cfg.Datastore.HashOnRead, cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough))),
 		finalBstore,
 	)
 }
@@ -373,7 +374,6 @@ func Offline(cfg *config.Config) fx.Option {
 
 // Core groups basic IPFS services
 var Core = fx.Options(
-	fx.Provide(BlockService),
 	fx.Provide(Dag),
 	fx.Provide(FetcherConfig),
 	fx.Provide(PathResolverConfig),
@@ -428,7 +428,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		Identity(cfg),
 		IPNS,
 		Networked(bcfg, cfg, userResourceOverrides),
-
+		fx.Provide(BlockService(cfg)),
 		Core,
 	)
 }
