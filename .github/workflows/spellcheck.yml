@@ -21,3 +21,4 @@ jobs:
         run: |
           codespell \
             --ignore-words=.codespell-ignore \
+            --skip="*.pdf"
