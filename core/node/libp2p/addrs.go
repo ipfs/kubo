@@ -133,21 +133,20 @@ func ListenOn(addresses []string) interface{} {
 	}
 }
 
-func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS) interface{} {
+func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEventLogger) interface{} {
 	return func() (*p2pforge.P2PForgeCertMgr, error) {
 		storagePath := filepath.Join(repoPath, "p2p-forge-certs")
-
-		forgeLogger := logging.Logger("autotls").Desugar()
 
 		// TODO: this should not be necessary, but we do it to help tracking
 		// down any race conditions causing
 		// https://github.com/ipshipyard/p2p-forge/issues/8
-		certmagic.Default.Logger = forgeLogger.Named("default_fixme")
-		certmagic.DefaultACME.Logger = forgeLogger.Named("default_acme_client_fixme")
+		rawLogger := atlsLog.Desugar()
+		certmagic.Default.Logger = rawLogger.Named("default_fixme")
+		certmagic.DefaultACME.Logger = rawLogger.Named("default_acme_client_fixme")
 
 		certStorage := &certmagic.FileStorage{Path: storagePath}
 		certMgr, err := p2pforge.NewP2PForgeCertMgr(
-			p2pforge.WithLogger(forgeLogger.Sugar()),
+			p2pforge.WithLogger(rawLogger.Sugar()),
 			p2pforge.WithForgeDomain(cfg.DomainSuffix.WithDefault(config.DefaultDomainSuffix)),
 			p2pforge.WithForgeRegistrationEndpoint(cfg.RegistrationEndpoint.WithDefault(config.DefaultRegistrationEndpoint)),
 			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),
