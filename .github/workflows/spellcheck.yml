@@ -1,10 +1,6 @@
 name: Spell Check
 
-on:
-  push:
-    branches:
-      - ci-spell
-  pull_request:
+on: [push, pull_request]
 
 jobs:
   spellcheck:
