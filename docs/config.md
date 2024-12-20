@@ -634,9 +634,9 @@ functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b
 are used, so the constant `k` is 7 in the formula.
 
 Enabling the BloomFilter can provide performance improvements specially when
-responding to many requests for inexistant blocks. It however requires a full
+responding to many requests for inexistent blocks. It however requires a full
 sweep of all the datastore keys on daemon start. On very large datastores this
-can be a very taxing operation, particulary if the datastore does not support
+can be a very taxing operation, particularly if the datastore does not support
 querying existing keys without reading their values at the same time (blocks).
 
 Default: `0` (disabled)
