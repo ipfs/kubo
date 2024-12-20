@@ -423,7 +423,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		// and they will show up at https://crt.sh/?q=libp2p.direct
 		// Below ensures we hard fail if someone tries to enable both
 		if cfg.AutoTLS.Enabled.WithDefault(config.DefaultAutoTLSEnabled) {
-			return errors.New("Private networking (swarm.key / LIBP2P_FORCE_PNET) does not work with AutoTLS.Enabled=true. Update config to remove this message.")
+			return errors.New("private networking (swarm.key / LIBP2P_FORCE_PNET) does not work with AutoTLS.Enabled=true, update config to remove this message")
 		}
 	}
 
