@@ -5,6 +5,15 @@ const (
 	DefaultUnixFSRawLeaves = false
 	DefaultUnixFSChunker   = "size-262144"
 	DefaultHashFunction    = "sha2-256"
+
+	// DefaultBatchMaxNodes controls the maximum number of nodes in a
+	// write-batch. The total size of the batch is limited by
+	// BatchMaxnodes and BatchMaxSize.
+	DefaultBatchMaxNodes = 128
+	// DefaultBatchMaxSize controls the maximum size of a single
+	// write-batch. The total size of the batch is limited by
+	// BatchMaxnodes and BatchMaxSize.
+	DefaultBatchMaxSize = 100 << 20 // 20MiB
 )
 
 // Import configures the default options for ingesting data. This affects commands
@@ -14,4 +23,6 @@ type Import struct {
 	UnixFSRawLeaves Flag
 	UnixFSChunker   OptionalString
 	HashFunction    OptionalString
+	BatchMaxNodes   OptionalInteger
+	BatchMaxSize    OptionalInteger
 }

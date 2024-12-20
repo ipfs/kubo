@@ -36,6 +36,7 @@ LIBP2P_FORCE_PNET=1 test_launch_ipfs_daemon
 test_expect_success "set up iptb testbed" '
   iptb testbed create -type localipfs -count 5 -force -init &&
   iptb run -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true &&
+  iptb run -- ipfs config --json "Swarm.Transports.Network.Websocket" false &&
   iptb run -- ipfs config --json Addresses.Swarm  '"'"'["/ip4/127.0.0.1/tcp/0"]'"'"'
 '
 

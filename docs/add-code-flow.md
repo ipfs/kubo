@@ -1,6 +1,6 @@
 # IPFS : The `Add` command demystified
 
-The goal of this document is to capture the code flow for adding a file (see the `coreapi` package) using the IPFS CLI, in the process exploring some datastructures and packages like `ipld.Node` (aka `dagnode`), `FSNode`, `MFS`, etc.
+The goal of this document is to capture the code flow for adding a file (see the `coreapi` package) using the IPFS CLI, in the process exploring some data structures and packages like `ipld.Node` (aka `dagnode`), `FSNode`, `MFS`, etc.
 
 ## Concepts
 - [Files](https://github.com/ipfs/docs/issues/133)

@@ -29,6 +29,7 @@ config file at runtime.
     - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
   - [`AutoTLS`](#autotls)
     - [`AutoTLS.Enabled`](#autotlsenabled)
+    - [`AutoTLS.AutoWSS`](#autotlsautowss)
     - [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)
     - [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint)
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
@@ -40,6 +41,8 @@ config file at runtime.
     - [`Datastore.GCPeriod`](#datastoregcperiod)
     - [`Datastore.HashOnRead`](#datastorehashonread)
     - [`Datastore.BloomFilterSize`](#datastorebloomfiltersize)
+    - [`Datastore.WriteThrough`](#datastorewritethrough)
+    - [`Datastore.BlockKeyCacheSize`](#datastoreblockkeycachesize)
     - [`Datastore.Spec`](#datastorespec)
   - [`Discovery`](#discovery)
     - [`Discovery.MDNS`](#discoverymdns)
@@ -176,6 +179,8 @@ config file at runtime.
     - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
     - [`Import.UnixFSChunker`](#importunixfschunker)
     - [`Import.HashFunction`](#importhashfunction)
+    - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
+    - [`Import.BatchMaxSize`](#importbatchmaxsize)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -210,7 +215,7 @@ Contains information about various listener addresses to be used by this node.
 
 ### `Addresses.API`
 
-[Multiaddr][multiaddr] or array of multiaddrs describing the address to serve
+[Multiaddr][multiaddr] or array of multiaddrs describing the addresses to serve
 the local [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`).
 
 Supported Transports:
@@ -334,7 +339,7 @@ secret.
 
 Default: `null`
 
-Type: `object[string -> object]` (user name -> authorization object, see bellow)
+Type: `object[string -> object]` (user name -> authorization object, see below)
 
 For example, to limit RPC access to Alice (access `id` and MFS `files` commands with HTTP Basic Auth)
 and Bob (full access with Bearer token):
@@ -467,7 +472,7 @@ internet) to automatically obtain a wildcard TLS certificate for a DNS name
 unique to their PeerID at `*.[PeerID].libp2p.direct`. This enables direct
 libp2p connections and retrieval of IPFS content from browsers [Secure Context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
 using transports such as [Secure WebSockets](https://github.com/libp2p/specs/blob/master/websockets/README.md),
-without requiring user to do any manual domain registration and ceritficate configuration.
+without requiring user to do any manual domain registration and certificate configuration.
 
 Under the hood, [p2p-forge] client uses public utility service at `libp2p.direct` as an [ACME DNS-01 Challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
 broker enabling peer to obtain a wildcard TLS certificate tied to public key of their [PeerID](https://docs.libp2p.io/concepts/fundamentals/peers/#peer-id).
@@ -492,30 +497,36 @@ Type: `object`
 > Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
 > Track progress in [kubo#10560](https://github.com/ipfs/kubo/issues/10560).
 
-Enables AutoTLS feature to get DNS+TLS for [libp2p Secure WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) listeners defined in [`Addresses.Swarm`](#addressesswarm), such as `/ip4/0.0.0.0/tcp/4002/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4002/tls/sni/*.libp2p.direct/ws`.
+Enables AutoTLS feature to get DNS+TLS for [libp2p Secure WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) on `/tcp` port.
 
-If `.../tls/sni/*.libp2p.direct/ws` [multiaddr] is present in [`Addresses.Swarm`](#addressesswarm)
+If `AutoTLS.AutoWSS` is `true`, or `/tcp/../tls/sni/*.libp2p.direct/ws` [multiaddr] is present in [`Addresses.Swarm`](#addressesswarm)
 with SNI segment ending with [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix),
-Kubo will obtain and set up a trusted PKI TLS certificate for it, making it diallable from web browser's [Secure Contexts](https://w3c.github.io/webappsec-secure-contexts/).
+Kubo will obtain and set up a trusted PKI TLS certificate for `*.peerid.libp2p.direct`, making it dialable from web browser's [Secure Contexts](https://w3c.github.io/webappsec-secure-contexts/).
+
+> [!TIP]
+> - Most users don't need custom `/ws` config in `Addresses.Swarm`. Try running this with `AutoTLS.AutoWSS=true`: it will reuse preexisting catch-all `/tcp` ports that were already forwarded/safelisted on your firewall.
+> - Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`. Less noisy `GOLOG_LOG_LEVEL="error,autotls=info` may be informative enough.
+> - Certificates are stored in `$IPFS_PATH/p2p-forge-certs`. Removing directory and restarting daemon will trigger certificate rotation.
 
 > [!IMPORTANT]
 > Caveats:
-> - Requires your Kubo node to be publicly diallable.
->   - If you want to test this with a node that is behind a NAT and uses manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`),
->     add catch-all `/ip4/0.0.0.0/tcp/4002/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4002/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm)
+> - Requires your Kubo node to be publicly dialable.
+>   - If you want to test this with a node that is behind a NAT and uses manual TCP port forwarding or UPnP (`Swarm.DisableNatPortMap=false`), use `AutoTLS.AutoWSS=true`, or manually
+>     add catch-all `/ip4/0.0.0.0/tcp/4001/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4001/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm)
 >     and **wait 5-15 minutes** for libp2p node to set up and learn about own public addresses via [AutoNAT](#autonat).
->   - If your node is fresh and just started, the [p2p-forge] client may produce and log ERRORs during this time, but once a publicly diallable addresses are set up, a subsequent retry should be successful.
-> - Listeners defined in [`Addresses.Swarm`](#addressesswarm) with `/tls/sni` must use a separate port from other TCP listeners, e.g. `4002` instead of the default `4001`.
->   - A separate port (`/tcp/4002`) has to be used instead of `/tcp/4001` because we wait for TCP port sharing ([go-libp2p#2984](https://github.com/libp2p/go-libp2p/issues/2684)) to be implemented.
->   - If you use manual port forwarding, make sure incoming connections to this additional port are allowed the same way `4001` ones already are.
+>   - If your node is fresh and just started, the [p2p-forge] client may produce and log ERRORs during this time, but once a publicly dialable addresses are set up, a subsequent retry should be successful.
 > - The TLS certificate is used only for [libp2p WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) connections.
 >   - Right now, this is NOT used for hosting a [Gateway](#gateway) over HTTPS (that use case still requires manual TLS setup on reverse proxy, and your own domain).
 
-> [!TIP]
-> - Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`
-> - Certificates are stored in `$IPFS_PATH/p2p-forge-certs`. Removing directory and restarting daemon will trigger certificate rotation.
-
 Default: `false`
+
+Type: `flag`
+
+### `AutoTLS.AutoWSS`
+
+Optional. Controls if Kubo should add `/tls/sni/*.libp2p.direct/ws` listener to every pre-existing `/tcp` port IFF no explicit `/ws` is defined in [`Addresses.Swarm`](#addressesswarm) already.
+
+Default: `true` (active only if `AutoTLS.Enabled` is `true` as well)
 
 Type: `flag`
 
@@ -535,8 +546,8 @@ Do not change this unless you self-host [p2p-forge] under own domain.
 
 > [!IMPORTANT]
 > The default endpoint performs [libp2p Peer ID Authentication over HTTP](https://github.com/libp2p/specs/blob/master/http/peer-id-auth.md)
-> (prooving ownership of PeerID), probes if your Kubo node can correctly answer to a [libp2p Identify](https://github.com/libp2p/specs/tree/master/identify) query.
-> This ensures only a correctly configured, publicly diallable Kubo can initiate [ACME DNS-01 challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) for `peerid.libp2p.direct`.
+> (proving ownership of PeerID), probes if your Kubo node can correctly answer to a [libp2p Identify](https://github.com/libp2p/specs/tree/master/identify) query.
+> This ensures only a correctly configured, publicly dialable Kubo can initiate [ACME DNS-01 challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) for `peerid.libp2p.direct`.
 
 Default: `https://registration.libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
 
@@ -567,7 +578,7 @@ Type: `optionalString`
 
 Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
 
-Default: The ipfs.io bootstrap nodes
+Default: [`config.DefaultBootstrapAddresses`](https://github.com/ipfs/kubo/blob/master/config/bootstrap_peers.go)
 
 Type: `array[string]` ([multiaddrs][multiaddr])
 
@@ -629,9 +640,47 @@ we'd want to use 1199120 bytes. As of writing, [7 hash
 functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22)
 are used, so the constant `k` is 7 in the formula.
 
+Enabling the BloomFilter can provide performance improvements specially when
+responding to many requests for inexistant blocks. It however requires a full
+sweep of all the datastore keys on daemon start. On very large datastores this
+can be a very taxing operation, particulary if the datastore does not support
+querying existing keys without reading their values at the same time (blocks).
+
 Default: `0` (disabled)
 
 Type: `integer` (non-negative, bytes)
+
+### `Datastore.WriteThrough`
+
+This option controls whether a block that already exist in the datastore
+should be written to it. When set to `false`, a `Has()` call is performed
+against the datastore prior to writing every block. If the block is already
+stored, the write is skipped. This check happens both on the Blockservice and
+the Blockstore layers and this setting affects both.
+
+When set to `true`, no checks are performed and blocks are written to the
+datastore, which depending on the implementation may perform its own checks.
+
+This option can affect performance and the strategy should be taken in
+conjunction with [`BlockKeyCacheSize`](#datastoreblockkeycachesize) and
+[`BloomFilterSize`](#datastoreboomfiltersize`).
+
+Default: `true`
+
+Type: `bool`
+
+### `Datastore.BlockKeyCacheSize`
+
+A number representing the maximum size in bytes of the blockstore's Two-Queue
+cache, which caches block-cids and their block-sizes. Use `0` to disable.
+
+This cache, once primed, can greatly speed up operations like `ipfs repo stat`
+as there is no need to read full blocks to know their sizes. Size should be
+adjusted depending on the number of CIDs on disk (`NumObjects in `ipfs repo stat`).
+
+Default: `65536` (64KiB)
+
+Type: `optionalInteger` (non-negative, bytes)
 
 ### `Datastore.Spec`
 
@@ -2077,13 +2126,19 @@ Type: `flag`
 
 #### `Swarm.ResourceMgr.MaxMemory`
 
-This is the max amount of memory to allow libp2p to use.
+This is the max amount of memory to allow go-libp2p to use.
+
 libp2p's resource manager will prevent additional resource creation while this limit is reached.
 This value is also used to scale the limit on various resources at various scopes
 when the default limits (discussed in [libp2p resource management](./libp2p-resource-management.md)) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
 It is possible to inspect the runtime limits via `ipfs swarm resources --help`.
+
+> [!IMPORTANT]
+> `Swarm.ResourceMgr.MaxMemory` is the memory limit for go-libp2p networking stack alone, and not for entire Kubo or Bitswap.
+>
+> To set memory limit for the entire Kubo process, use [`GOMEMLIMIT` environment variable](http://web.archive.org/web/20240222201412/https://kupczynski.info/posts/go-container-aware/) which all Go programs recognize, and then set `Swarm.ResourceMgr.MaxMemory` to less than your custom `GOMEMLIMIT`.
 
 Default: `[TOTAL_SYSTEM_MEMORY]/2`
 Type: `optionalBytes`
@@ -2150,8 +2205,8 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
-* /ip4/0.0.0.0/tcp/4002/ws
-* /ip6/::/tcp/4002/ws
+* /ip4/0.0.0.0/tcp/4001/ws
+* /ip6/::/tcp/4001/ws
 
 #### `Swarm.Transports.Network.QUIC`
 
@@ -2420,6 +2475,26 @@ The default hash function. Commands affected: `ipfs add`, `ipfs block put`, `ipf
 Default: `sha2-256`
 
 Type: `optionalString`
+
+### `Import.BatchMaxNodes`
+
+The maximum number of nodes in a write-batch. The total size of the batch is limited by `BatchMaxnodes` and `BatchMaxSize`.
+
+Increasing this will batch more items together when importing data with `ipfs dag import`, which can speed things up.
+
+Default: `128`
+
+Type: `optionalInteger`
+
+### `Import.BatchMaxSize`
+
+The maximum size of a single write-batch (computed as the sum of the sizes of the blocks). The total size of the batch is limited by `BatchMaxnodes` and `BatchMaxSize`.
+
+Increasing this will batch more items together when importing data with `ipfs dag import`, which can speed things up.
+
+Default: `20971520` (20MiB)
+
+Type: `optionalInteger`
 
 ## `Version`
 

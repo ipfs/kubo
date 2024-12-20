@@ -84,7 +84,10 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 		t.Run("ipfs routing findprovs", func(t *testing.T) {
 			t.Parallel()
 			hash := nodes[3].IPFSAddStr("some stuff")
-			res := nodes[4].IPFS("routing", "findprovs", hash)
+			// Reprovide as initialProviderDelay still ongoing
+			res := nodes[3].IPFS("bitswap", "reprovide")
+			require.NoError(t, res.Err)
+			res = nodes[4].IPFS("routing", "findprovs", hash)
 			assert.Equal(t, nodes[3].PeerID().String(), res.Stdout.Trimmed())
 		})
 

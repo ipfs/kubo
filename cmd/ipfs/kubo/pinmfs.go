@@ -90,33 +90,45 @@ func pinMFSOnChange(cctx pinMFSContext, configPollInterval time.Duration, node p
 		case <-cctx.Context().Done():
 			return
 		case <-tmo.C:
-			tmo.Reset(configPollInterval)
-		}
+			// reread the config, which may have changed in the meantime
+			cfg, err := cctx.GetConfig()
+			if err != nil {
+				mfslog.Errorf("pinning reading config (%v)", err)
+				continue
+			}
+			mfslog.Debugf("pinning loop is awake, %d remote services", len(cfg.Pinning.RemoteServices))
 
-		// reread the config, which may have changed in the meantime
-		cfg, err := cctx.GetConfig()
-		if err != nil {
-			mfslog.Errorf("pinning reading config (%v)", err)
-			continue
+			// pin to all remote services in parallel
+			pinAllMFS(cctx.Context(), node, cfg, lastPins)
 		}
-		mfslog.Debugf("pinning loop is awake, %d remote services", len(cfg.Pinning.RemoteServices))
-
-		// get the most recent MFS root cid
-		rootNode, err := node.RootNode()
-		if err != nil {
-			mfslog.Errorf("pinning reading MFS root (%v)", err)
-			continue
-		}
-
-		// pin to all remote services in parallel
-		pinAllMFS(cctx.Context(), node, cfg, rootNode.Cid(), lastPins)
+		// pinAllMFS may take long. Reset interval only when we are done doing it
+		// so that we are not pinning constantly.
+		tmo.Reset(configPollInterval)
 	}
 }
 
 // pinAllMFS pins on all remote services in parallel to overcome DoS attacks.
-func pinAllMFS(ctx context.Context, node pinMFSNode, cfg *config.Config, rootCid cid.Cid, lastPins map[string]lastPin) {
+func pinAllMFS(ctx context.Context, node pinMFSNode, cfg *config.Config, lastPins map[string]lastPin) {
 	ch := make(chan lastPin)
 	var started int
+
+	// Bail out to mitigate issue below when not needing to do anything.
+	if len(cfg.Pinning.RemoteServices) == 0 {
+		return
+	}
+
+	// get the most recent MFS root cid.
+	// Warning! This can be super expensive.
+	// See https://github.com/ipfs/boxo/pull/751
+	// and https://github.com/ipfs/kubo/issues/8694
+	// Reading an MFS-directory nodes can take minutes due to
+	// ever growing cache being synced to unixfs.
+	rootNode, err := node.RootNode()
+	if err != nil {
+		mfslog.Errorf("pinning reading MFS root (%v)", err)
+		return
+	}
+	rootCid := rootNode.Cid()
 
 	for svcName, svcConfig := range cfg.Pinning.RemoteServices {
 		if ctx.Err() != nil {
@@ -183,7 +195,7 @@ func pinMFS(ctx context.Context, node pinMFSNode, cid cid.Cid, svcName string, s
 
 	// check if MFS pin exists (across all possible states) and inspect its CID
 	pinStatuses := []pinclient.Status{pinclient.StatusQueued, pinclient.StatusPinning, pinclient.StatusPinned, pinclient.StatusFailed}
-	lsPinCh, lsErrCh := c.Ls(ctx, pinclient.PinOpts.FilterName(pinName), pinclient.PinOpts.FilterStatus(pinStatuses...))
+	lsPinCh, lsErrCh := c.GoLs(ctx, pinclient.PinOpts.FilterName(pinName), pinclient.PinOpts.FilterStatus(pinStatuses...))
 	existingRequestID := "" // is there any pre-existing MFS pin with pinName (for any CID)?
 	pinning := false        // is CID for current MFS already being pinned?
 	pinTime := time.Now().UTC()

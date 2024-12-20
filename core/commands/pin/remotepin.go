@@ -285,26 +285,26 @@ Pass '--status=queued,pinning,pinned,failed' to list pins in all states.
 		cmds.DelimitedStringsOption(",", pinStatusOptionName, "Return pins with the specified statuses (queued,pinning,pinned,failed).").WithDefault([]string{"pinned"}),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx, cancel := context.WithCancel(req.Context)
-		defer cancel()
-
 		c, err := getRemotePinServiceFromRequest(req, env)
 		if err != nil {
 			return err
 		}
 
-		psCh, errCh, err := lsRemote(ctx, req, c)
-		if err != nil {
-			return err
-		}
+		ctx, cancel := context.WithCancel(req.Context)
+		defer cancel()
 
+		psCh := make(chan pinclient.PinStatusGetter)
+		lsErr := make(chan error, 1)
+		go func() {
+			lsErr <- lsRemote(ctx, req, c, psCh)
+		}()
 		for ps := range psCh {
 			if err := res.Emit(toRemotePinOutput(ps)); err != nil {
 				return err
 			}
 		}
 
-		return <-errCh
+		return <-lsErr
 	},
 	Type: RemotePinOutput{},
 	Encoders: cmds.EncoderMap{
@@ -317,7 +317,7 @@ Pass '--status=queued,pinning,pinned,failed' to list pins in all states.
 }
 
 // Executes GET /pins/?query-with-filters
-func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
+func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client, out chan<- pinclient.PinStatusGetter) error {
 	opts := []pinclient.LsOption{}
 	if name, nameFound := req.Options[pinNameOptionName]; nameFound {
 		nameStr := name.(string)
@@ -330,7 +330,8 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan
 		for _, rawCID := range cidsRawArr {
 			parsedCID, err := cid.Decode(rawCID)
 			if err != nil {
-				return nil, nil, fmt.Errorf("CID %q cannot be parsed: %v", rawCID, err)
+				close(out)
+				return fmt.Errorf("CID %q cannot be parsed: %v", rawCID, err)
 			}
 			parsedCIDs = append(parsedCIDs, parsedCID)
 		}
@@ -342,16 +343,15 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan
 		for _, rawStatus := range statusRawArr {
 			s := pinclient.Status(rawStatus)
 			if s.String() == string(pinclient.StatusUnknown) {
-				return nil, nil, fmt.Errorf("status %q is not valid", rawStatus)
+				close(out)
+				return fmt.Errorf("status %q is not valid", rawStatus)
 			}
 			parsedStatuses = append(parsedStatuses, s)
 		}
 		opts = append(opts, pinclient.PinOpts.FilterStatus(parsedStatuses...))
 	}
 
-	psCh, errCh := c.Ls(ctx, opts...)
-
-	return psCh, errCh, nil
+	return c.Ls(ctx, out, opts...)
 }
 
 var rmRemotePinCmd = &cmds.Command{
@@ -393,36 +393,37 @@ To list and then remove all pending pin requests, pass an explicit status list:
 		cmds.BoolOption(pinForceOptionName, "Allow removal of multiple pins matching the query without additional confirmation.").WithDefault(false),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx, cancel := context.WithCancel(req.Context)
-		defer cancel()
-
 		c, err := getRemotePinServiceFromRequest(req, env)
 		if err != nil {
 			return err
 		}
 
 		rmIDs := []string{}
-		if len(req.Arguments) == 0 {
-			psCh, errCh, err := lsRemote(ctx, req, c)
-			if err != nil {
-				return err
-			}
-			for ps := range psCh {
-				rmIDs = append(rmIDs, ps.GetRequestId())
-			}
-			if err = <-errCh; err != nil {
-				return fmt.Errorf("error while listing remote pins: %v", err)
-			}
-
-			if len(rmIDs) > 1 && !req.Options[pinForceOptionName].(bool) {
-				return fmt.Errorf("multiple remote pins are matching this query, add --force to confirm the bulk removal")
-			}
-		} else {
+		if len(req.Arguments) != 0 {
 			return fmt.Errorf("unexpected argument %q", req.Arguments[0])
 		}
 
+		psCh := make(chan pinclient.PinStatusGetter)
+		errCh := make(chan error, 1)
+		ctx, cancel := context.WithCancel(req.Context)
+		defer cancel()
+
+		go func() {
+			errCh <- lsRemote(ctx, req, c, psCh)
+		}()
+		for ps := range psCh {
+			rmIDs = append(rmIDs, ps.GetRequestId())
+		}
+		if err = <-errCh; err != nil {
+			return fmt.Errorf("error while listing remote pins: %v", err)
+		}
+
+		if len(rmIDs) > 1 && !req.Options[pinForceOptionName].(bool) {
+			return fmt.Errorf("multiple remote pins are matching this query, add --force to confirm the bulk removal")
+		}
+
 		for _, rmID := range rmIDs {
-			if err := c.DeleteByID(ctx, rmID); err != nil {
+			if err = c.DeleteByID(ctx, rmID); err != nil {
 				return fmt.Errorf("removing pin identified by requestid=%q failed: %v", rmID, err)
 			}
 		}

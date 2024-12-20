@@ -42,6 +42,9 @@ func TestProvider(t *testing.T) {
 		defer nodes.StopDaemons()
 
 		cid := nodes[0].IPFSAddStr(time.Now().String())
+		// Reprovide as initialProviderDelay still ongoing
+		res := nodes[0].IPFS("bitswap", "reprovide")
+		require.NoError(t, res.Err)
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 

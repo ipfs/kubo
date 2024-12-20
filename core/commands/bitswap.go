@@ -5,7 +5,6 @@ import (
 	"io"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
-	e "github.com/ipfs/kubo/core/commands/e"
 
 	humanize "github.com/dustin/go-humanize"
 	bitswap "github.com/ipfs/boxo/bitswap"
@@ -53,10 +52,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 			return ErrNotOnline
 		}
 
-		bs, ok := nd.Exchange.(*bitswap.Bitswap)
-		if !ok {
-			return e.TypeErr(bs, nd.Exchange)
-		}
+		bs := nd.Bitswap
 
 		pstr, found := req.Options[peerOptionName].(string)
 		if found {
@@ -112,12 +108,7 @@ var bitswapStatCmd = &cmds.Command{
 			return cmds.Errorf(cmds.ErrClient, "unable to run offline: %s", ErrNotOnline)
 		}
 
-		bs, ok := nd.Exchange.(*bitswap.Bitswap)
-		if !ok {
-			return e.TypeErr(bs, nd.Exchange)
-		}
-
-		st, err := bs.Stat()
+		st, err := nd.Bitswap.Stat()
 		if err != nil {
 			return err
 		}
@@ -134,7 +125,6 @@ var bitswapStatCmd = &cmds.Command{
 			human, _ := req.Options[bitswapHumanOptionName].(bool)
 
 			fmt.Fprintln(w, "bitswap status")
-			fmt.Fprintf(w, "\tprovides buffer: %d / %d\n", s.ProvideBufLen, bitswap.HasBlockBufferSize)
 			fmt.Fprintf(w, "\tblocks received: %d\n", s.BlocksReceived)
 			fmt.Fprintf(w, "\tblocks sent: %d\n", s.BlocksSent)
 			if human {
@@ -190,17 +180,12 @@ prints the ledger associated with a given peer.
 			return ErrNotOnline
 		}
 
-		bs, ok := nd.Exchange.(*bitswap.Bitswap)
-		if !ok {
-			return e.TypeErr(bs, nd.Exchange)
-		}
-
 		partner, err := peer.Decode(req.Arguments[0])
 		if err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, bs.LedgerForPeer(partner))
+		return cmds.EmitOnce(res, nd.Bitswap.LedgerForPeer(partner))
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *server.Receipt) error {

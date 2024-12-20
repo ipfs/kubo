@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -85,10 +86,10 @@ The optional format string is a printf style format string:
 			}
 		case "0":
 			if opts.newCodec != 0 && opts.newCodec != cid.DagProtobuf {
-				return fmt.Errorf("cannot convert to CIDv0 with any codec other than dag-pb")
+				return errors.New("cannot convert to CIDv0 with any codec other than dag-pb")
 			}
 			if baseStr != "" && baseStr != "base58btc" {
-				return fmt.Errorf("cannot convert to CIDv0 with any multibase other than the implicit base58btc")
+				return errors.New("cannot convert to CIDv0 with any multibase other than the implicit base58btc")
 			}
 			opts.verConv = toCidV0
 		case "1":

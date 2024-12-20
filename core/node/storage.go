@@ -27,10 +27,12 @@ func Datastore(repo repo.Repo) datastore.Datastore {
 type BaseBlocks blockstore.Blockstore
 
 // BaseBlockstoreCtor creates cached blockstore backed by the provided datastore
-func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, hashOnRead bool) func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, hashOnRead bool, writeThrough bool) func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 	return func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 		// hash security
-		bs = blockstore.NewBlockstore(repo.Datastore())
+		bs = blockstore.NewBlockstore(repo.Datastore(),
+			blockstore.WriteThrough(writeThrough),
+		)
 		bs = &verifbs.VerifBS{Blockstore: bs}
 		bs, err = blockstore.CachedBlockstore(helpers.LifecycleCtx(mctx, lc), bs, cacheOpts)
 		if err != nil {

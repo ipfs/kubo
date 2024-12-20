@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -100,7 +101,7 @@ Example:
 		}
 
 		if nd.Reporter == nil {
-			return fmt.Errorf("bandwidth reporter disabled in config")
+			return errors.New("bandwidth reporter disabled in config")
 		}
 
 		pstr, pfound := req.Options[statPeerOptionName].(string)

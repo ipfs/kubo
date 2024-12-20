@@ -1,4 +1,4 @@
-<!-- Last updated during [v0.30.0 release](https://github.com/ipfs/kubo/pull/10496) -->
+<!-- Last updated during [v0.32.0 release](https://github.com/ipfs/kubo/issues/10547) -->
 
 # ✅ Release Checklist (vX.Y.Z[-rcN])
 
@@ -56,7 +56,7 @@ This section covers tasks to be done during each release.
     - use `release` as base if `Z > 0`
   - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) update the `CurrentVersionNumber` in [version.go](version.go) in the `master` branch to `vX.Y+1.0-dev`
     - [example](https://github.com/ipfs/kubo/pull/9305)
-  - [ ] update the `CurrentVersionNumber` in [version.go](version.go) in the `release-vX.Y` branch to `vX.Y.Z(-RCN)`
+  - [ ] update the `CurrentVersionNumber` in [version.go](version.go) in the `release-vX.Y` branch to `vX.Y.Z(-rcN)`
     - [example](https://github.com/ipfs/kubo/pull/9394)
   - [ ] create a draft PR from `release-vX.Y` to `release`
     - [example](https://github.com/ipfs/kubo/pull/9306)
@@ -71,10 +71,10 @@ This section covers tasks to be done during each release.
   </details>
 - [ ] Create the release tag <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) tag` or ...</summary>
   - This is a dangerous operation! Go and Docker publishing are difficult to reverse! Have the release reviewer verify all the commands marked with ⚠️!
-  - [ ] ⚠️ ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) tag the HEAD commit using `git tag -s vX.Y.Z(-RCN) -m 'Prerelease X.Y.Z(-RCN)'`
+  - [ ] ⚠️ ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) tag the HEAD commit using `git tag -s vX.Y.Z(-rcN) -m 'Prerelease X.Y.Z(-rcN)'`
   - [ ] ⚠️ ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) tag the HEAD commit of the `release` branch using `git tag -s vX.Y.Z -m 'Release X.Y.Z'`
-  - [ ] ⚠️ verify the tag is signed and tied to the correct commit using `git show vX.Y.Z(-RCN)`
-  - [ ] ⚠️ push the tag to GitHub using `git push origin vX.Y.Z(-RCN)`
+  - [ ] ⚠️ verify the tag is signed and tied to the correct commit using `git show vX.Y.Z(-rcN)`
+  - [ ] ⚠️ push the tag to GitHub using `git push origin vX.Y.Z(-rcN)`
     - do **NOT** use `git push --tags` because it pushes all your local tags
   </details>
 - [ ] Verify [ipfs/distributions](https://github.com/ipfs/distributions)'s `.tool-versions`'s `golang` entry is set to the [latest go release](https://go.dev/doc/devel/release) on the major go branch [Kubo is being tested on](https://github.com/ipfs/kubo/blob/master/.github/workflows/gotest.yml) (see `go-version:`).
@@ -85,7 +85,7 @@ This section covers tasks to be done during each release.
   - [ ] Publish the release to [dist.ipfs.tech](https://dist.ipfs.tech) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) publish-to-distributions` or ...</summary>
     - [ ] check out [ipfs/distributions](https://github.com/ipfs/distributions)
     - [ ] create new branch: run `git checkout -b release-kubo-X.Y.Z(-rcN)` 
-    - [ ] run `./dist.sh add-version kubo vX.Y.Z(-RCN)` to add the new version to the `versions` file
+    - [ ] run `./dist.sh add-version kubo vX.Y.Z(-rcN)` to add the new version to the `versions` file
       - [usage](https://github.com/ipfs/distributions#usage)
     - [ ] create and merge the PR which updates `dists/kubo/versions` and `dists/go-ipfs/versions` (![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) and `dists/kubo/current` and `dists/go-ipfs/current`)
       - [example](https://github.com/ipfs/distributions/pull/760)
@@ -101,7 +101,7 @@ This section covers tasks to be done during each release.
     - [ ] create a new release on [GitHub](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release)
       - [RC example](https://github.com/ipfs/kubo/releases/tag/v0.17.0-rc1)
       - [FINAL example](https://github.com/ipfs/kubo/releases/tag/v0.17.0)
-      - [ ] use the `vX.Y.Z(-RCN)` tag
+      - [ ] use the `vX.Y.Z(-rcN)` tag
       - [ ] link to the release issue
       - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) link to the changelog in the description
       - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) check the `This is a pre-release` checkbox
@@ -109,7 +109,7 @@ This section covers tasks to be done during each release.
       - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) do **NOT** check the `This is a pre-release` checkbox
     - [ ] run the [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow
     - [ ] wait for the [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow run to finish
-    - [ ] verify the release assets are present in the [GitHub release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN))
+    - [ ] verify the release assets are present in the [GitHub release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-rcN))
     </details>
 - [ ] Update Kubo staging environment, see the [Running Kubo tests on staging](https://www.notion.so/Running-Kubo-tests-on-staging-488578bb46154f9bad982e4205621af8) for details.
   - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) Test last release against the current RC
@@ -118,7 +118,7 @@ This section covers tasks to be done during each release.
   - [ ] create an [IPFS Discourse](https://discuss.ipfs.tech) topic
     - [prerelease example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248)
     - [release example](https://discuss.ipfs.tech/t/kubo-v0-16-0-release-is-out/15249)
-    - [ ] use `Kubo vX.Y.Z(-RCN) is out!` as the title
+    - [ ] use `Kubo vX.Y.Z(-rcN) is out!` as the title
     - [ ] use `kubo` and `go-ipfs` as topics
     - [ ] repeat the title as a heading (`##`) in the description
     - [ ] link to the GitHub Release, binaries on IPNS, docker pull command and release notes in the description
@@ -128,7 +128,7 @@ This section covers tasks to be done during each release.
     - [ ] [#ipfs-chatter](https://discord.com/channels/669268347736686612/669268347736686615) in IPFS Discord
     - [ ] [#ipfs-chatter](https://filecoinproject.slack.com/archives/C018EJ8LWH1) in FIL Slack
     - [ ] [#ipfs-chatter:ipfs.io](https://matrix.to/#/#ipfs-chatter:ipfs.io) in Matrix
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add the link to the [IPFS Discourse](https://discuss.ipfs.tech) topic to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) description
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Add the link to the [IPFS Discourse](https://discuss.ipfs.tech) topic to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-rcN)) description
     - [example](https://github.com/ipfs/kubo/releases/tag/v0.17.0)
   - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) create an issue comment mentioning early testers on the release issue
     - [example](https://github.com/ipfs/kubo/issues/9319#issuecomment-1311002478)
@@ -136,12 +136,12 @@ This section covers tasks to be done during each release.
     - [example](https://github.com/ipfs/kubo/issues/9417#issuecomment-1400740975)
   - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) ask the marketing team to tweet about the release in [#shared-pl-marketing-requests](https://filecoinproject.slack.com/archives/C018EJ8LWH1) in FIL Slack
     - [example](https://filecoinproject.slack.com/archives/C018EJ8LWH1/p1664885305374900)
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) post the link to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-RCN)) to [Reddit](https://reddit.com/r/ipfs)
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-yellow?style=flat-square) post the link to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-rcN)) to [Reddit](https://reddit.com/r/ipfs)
     - [example](https://www.reddit.com/r/ipfs/comments/9x0q0k/kubo_v0160_release_is_out/)
   </details>
 - [ ] ~~Test the new version with `ipfs-companion`~~ ([currently skipped](https://github.com/ipfs/ipfs-companion/issues/1300)) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) test-ipfs-companion` or ...</summary>
   - [ ] run the [e2e](https://github.com/ipfs/ipfs-companion/actions/workflows/e2e.yml)
-    - use `vX.Y.Z(-RCN)` as the Kubo image version
+    - use `vX.Y.Z(-rcN)` as the Kubo image version
   - [ ] wait for the [e2e](https://github.com/ipfs/ipfs-companion/actions/workflows/e2e.yml) workflow run to finish
   </details>
 - [ ] ![](https://img.shields.io/badge/only-FINAL-green?style=flat-square) Update Kubo in [ipfs-desktop](https://github.com/ipfs/ipfs-desktop) <details><summary>using `./kuboreleaser release --version vX.Y.Z(-rcN) update-ipfs-desktop` or ...</summary>

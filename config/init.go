@@ -173,7 +173,7 @@ func flatfsSpec() map[string]interface{} {
 				"child": map[string]interface{}{
 					"type":      "flatfs",
 					"path":      "blocks",
-					"sync":      true,
+					"sync":      false,
 					"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
 				},
 			},

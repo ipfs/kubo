@@ -32,8 +32,9 @@ body:
       label: Installation method
       description: Please select your installation method
       options:
+        - dist.ipfs.tech or ipfs-update
+        - docker image
         - ipfs-desktop
-        - ipfs-update or dist.ipfs.tech
         - third-party binary
         - built from source
   - type: textarea

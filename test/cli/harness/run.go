@@ -3,6 +3,7 @@ package harness
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -60,8 +61,27 @@ func environToMap(environ []string) map[string]string {
 
 func (r *Runner) Run(req RunRequest) *RunResult {
 	cmd := exec.Command(req.Path, req.Args...)
-	stdout := &Buffer{}
-	stderr := &Buffer{}
+	var stdout io.Writer
+	var stderr io.Writer
+	outbuf := &Buffer{}
+	errbuf := &Buffer{}
+
+	if r.Verbose {
+		or, ow := io.Pipe()
+		errr, errw := io.Pipe()
+		stdout = io.MultiWriter(outbuf, ow)
+		stderr = io.MultiWriter(errbuf, errw)
+		go func() {
+			_, _ = io.Copy(os.Stdout, or)
+		}()
+		go func() {
+			_, _ = io.Copy(os.Stderr, errr)
+		}()
+	} else {
+		stdout = outbuf
+		stderr = errbuf
+	}
+
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.Dir = r.Dir
@@ -83,8 +103,8 @@ func (r *Runner) Run(req RunRequest) *RunResult {
 	err := req.RunFunc(cmd)
 
 	result := RunResult{
-		Stdout: stdout,
-		Stderr: stderr,
+		Stdout: outbuf,
+		Stderr: errbuf,
 		Cmd:    cmd,
 		Err:    err,
 	}
