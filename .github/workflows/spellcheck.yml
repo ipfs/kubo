@@ -21,4 +21,4 @@ jobs:
         run: |
           codespell \
             --ignore-words=.codespell-ignore \
-            find . -name "*.md" | xargs codespell \
+            find . -name "*.md" -print0 | xargs -0 codespell \
