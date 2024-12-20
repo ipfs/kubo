@@ -29,6 +29,8 @@ The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descri
 }
 ```
 
+- `sync`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a slowdown when adding files).
+
 NOTE: flatfs must only be used as a block store (mounted at `/blocks`) as it only partially implements the datastore interface. You can mount flatfs for /blocks only using the mount datastore (described below).
 
 ## levelds
