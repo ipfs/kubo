@@ -33,13 +33,14 @@ type Config struct {
 	DNS       DNS
 	Migration Migration
 
-	Provider     Provider
-	Reprovider   Reprovider
-	Experimental Experiments
-	Plugins      Plugins
-	Pinning      Pinning
-	Import       Import
-	Version      Version
+	Provider      Provider
+	Reprovider    Reprovider
+	HTTPRetrieval HTTPRetrieval
+	Experimental  Experiments
+	Plugins       Plugins
+	Pinning       Pinning
+	Import        Import
+	Version       Version
 
 	Internal Internal // experimental/unstable options
 }

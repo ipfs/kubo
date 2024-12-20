@@ -33,7 +33,7 @@ func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.Parallel
 	var routers []*routinghelpers.ParallelRouter
 	// Append HTTP routers for additional speed
 	for _, endpoint := range config.DefaultHTTPRouters {
-		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey)
+		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, cfg.HTTPRetrieval.Enabled)
 		if err != nil {
 			return nil, err
 		}
@@ -119,7 +119,7 @@ func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
 }
 
 // ConstructDelegatedRouting is used when Routing.Type = "custom"
-func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs config.Addresses, privKey string) RoutingOption {
+func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs config.Addresses, privKey string, httpRetrieval bool) RoutingOption {
 	return func(args RoutingOptionArgs) (routing.Routing, error) {
 		return irouting.Parse(routers, methods,
 			&irouting.ExtraDHTParams{
@@ -130,9 +130,10 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 				Context:        args.Ctx,
 			},
 			&irouting.ExtraHTTPParams{
-				PeerID:     peerID,
-				Addrs:      httpAddrsFromConfig(addrs),
-				PrivKeyB64: privKey,
+				PeerID:        peerID,
+				Addrs:         httpAddrsFromConfig(addrs),
+				PrivKeyB64:    privKey,
+				HTTPRetrieval: httpRetrieval,
 			},
 		)
 	}
