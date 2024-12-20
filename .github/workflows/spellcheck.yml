@@ -21,4 +21,4 @@ jobs:
         run: |
           codespell \
             --ignore-words=.codespell-ignore \
-            --skip="*.mod,*.sum,*.pdf,./test/sharness/t0275-cid-security-data,./test/sharness/t0280-plugin-dag-jose-data"
+            --skip="*.mod,*.sum,*.pdf,./test/sharness/t0275-cid-security-data,./test/sharness/t0280-plugin-dag-jose-data,./bin"
