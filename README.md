@@ -254,7 +254,7 @@ You can also install it through the Solus software center.
 
 #### Guix
 
-[Community Package for go-ipfs](https://packages.guix.gnu.org/packages/go-ipfs/0.11.0/) is no out-of-date.
+[Community Package for go-ipfs](https://packages.guix.gnu.org/packages/go-ipfs/0.11.0/) is now out-of-date.
 
 #### Snap
 
