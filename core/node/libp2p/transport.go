@@ -2,6 +2,8 @@ package libp2p
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/ipfs/kubo/config"
 	"github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p"
@@ -24,12 +26,14 @@ func Transports(tptConfig config.Transports) interface{} {
 	) (opts Libp2pOpts, err error) {
 		privateNetworkEnabled := params.Fprint != nil
 
-		if tptConfig.Network.TCP.WithDefault(true) {
+		tcpEnabled := tptConfig.Network.TCP.WithDefault(true)
+		wsEnabled := tptConfig.Network.Websocket.WithDefault(true)
+		if tcpEnabled {
 			// TODO(9290): Make WithMetrics configurable
 			opts.Opts = append(opts.Opts, libp2p.Transport(tcp.NewTCPTransport, tcp.WithMetrics()))
 		}
 
-		if tptConfig.Network.Websocket.WithDefault(true) {
+		if wsEnabled {
 			if params.ForgeMgr == nil {
 				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New))
 			} else {
@@ -62,6 +66,10 @@ func Transports(tptConfig config.Transports) interface{} {
 				)
 			}
 			opts.Opts = append(opts.Opts, libp2p.Transport(webrtc.New))
+		}
+
+		if tcpEnabled && wsEnabled && os.Getenv("LIBP2P_TCP_MUX") != "false" {
+			opts.Opts = append(opts.Opts, libp2p.ShareTCPListener())
 		}
 
 		return opts, nil
