@@ -21,4 +21,4 @@ jobs:
         run: |
           codespell \
             --ignore-words=.codespell-ignore \
-            --skip="*.min.js,*.json,*.lock,*.bin,*.svg"
+            --skip="*.min.js,*.json,*.lock,*.bin,*.svg,*.data,*.pdf"
