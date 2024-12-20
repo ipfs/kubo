@@ -54,7 +54,7 @@ jobs:
           CONTINUE_ON_S_FAILURE: 1
           LIBP2P_TCP_MUX: true # TODO
           # increasing parallelism beyond 10 doesn't speed up the tests much
-          PARALLEL: ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
+          PARALLEL: 1 # TODO ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
       - name: Upload coverage report
         uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.1
         if: failure() || success()
