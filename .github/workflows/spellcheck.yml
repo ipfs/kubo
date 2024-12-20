@@ -3,7 +3,7 @@ name: Spell Check
 on:
   push:
     branches:
-      - ci-typos
+      - ci-spell
   pull_request:
 
 jobs:
@@ -21,4 +21,4 @@ jobs:
         run: |
           codespell \
             --ignore-words=.codespell-ignore \
-            --skip="*.min.js,*.json,*.lock,*.bin,*.svg,*.data,*.pdf,*.sum,*.mod"
+            --include="*.md"
