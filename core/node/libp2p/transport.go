@@ -41,6 +41,14 @@ func Transports(tptConfig config.Transports) interface{} {
 			}
 		}
 
+		if tcpEnabled && wsEnabled && os.Getenv("LIBP2P_TCP_MUX") != "false" {
+			if privateNetworkEnabled {
+				log.Error("libp2p.ShareTCPListener() is not supported in private networks, please disable Swarm.Transports.Network.Websocket or run with LIBP2P_TCP_MUX=false to make this message go away")
+			} else {
+				opts.Opts = append(opts.Opts, libp2p.ShareTCPListener())
+			}
+		}
+
 		if tptConfig.Network.QUIC.WithDefault(!privateNetworkEnabled) {
 			if privateNetworkEnabled {
 				return opts, fmt.Errorf(
@@ -66,10 +74,6 @@ func Transports(tptConfig config.Transports) interface{} {
 				)
 			}
 			opts.Opts = append(opts.Opts, libp2p.Transport(webrtc.New))
-		}
-
-		if tcpEnabled && wsEnabled && os.Getenv("LIBP2P_TCP_MUX") != "false" {
-			opts.Opts = append(opts.Opts, libp2p.ShareTCPListener())
 		}
 
 		return opts, nil

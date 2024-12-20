@@ -410,12 +410,20 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
-	// Private setups can't leverage peers returned by default IPNIs (Routing.Type=auto)
-	// To avoid breaking existing setups, switch them to DHT-only.
-	if routingOption == routingOptionAutoKwd {
-		if key, _ := repo.SwarmKey(); key != nil || pnet.ForcePrivateNetwork {
+	if key, _ := repo.SwarmKey(); key != nil || pnet.ForcePrivateNetwork {
+		// Private setups can't leverage peers returned by default IPNIs (Routing.Type=auto)
+		// To avoid breaking existing setups, switch them to DHT-only.
+		if routingOption == routingOptionAutoKwd {
 			log.Error("Private networking (swarm.key / LIBP2P_FORCE_PNET) does not work with public HTTP IPNIs enabled by Routing.Type=auto. Kubo will use Routing.Type=dht instead. Update config to remove this message.")
 			routingOption = routingOptionDHTKwd
+		}
+
+		// Private setups should not use public AutoTLS infrastructure
+		// as it will leak their existence and PeerID identity to CA
+		// and they will show up at https://crt.sh/?q=libp2p.direct
+		// Below ensures we hard fail if someone tries to enable both
+		if cfg.AutoTLS.Enabled.WithDefault(config.DefaultAutoTLSEnabled) {
+			return errors.New("Private networking (swarm.key / LIBP2P_FORCE_PNET) does not work with AutoTLS.Enabled=true. Update config to remove this message.")
 		}
 	}
 
@@ -467,7 +475,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		fmt.Printf("Swarm key fingerprint: %x\n", node.PNetFingerprint)
 	}
 
-	if (pnet.ForcePrivateNetwork || node.PNetFingerprint != nil) && routingOption == routingOptionAutoKwd {
+	if (pnet.ForcePrivateNetwork || node.PNetFingerprint != nil) && (routingOption == routingOptionAutoKwd || routingOption == routingOptionAutoClientKwd) {
 		// This should never happen, but better safe than sorry
 		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
 	}
