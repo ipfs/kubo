@@ -17,7 +17,7 @@ jobs:
   sharness-test:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "4xlarge"]' || '"ubuntu-latest"') }}
-    timeout-minutes: 20
+    timeout-minutes: ${{ github.repository == 'ipfs/kubo' && 15 || 60 }}
     defaults:
       run:
         shell: bash
@@ -52,7 +52,6 @@ jobs:
           TEST_EXPENSIVE: 1
           IPFS_CHECK_RCMGR_DEFAULTS: 1
           CONTINUE_ON_S_FAILURE: 1
-          LIBP2P_TCP_MUX: true # TODO
           # increasing parallelism beyond 10 doesn't speed up the tests much
           PARALLEL: ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
       - name: Upload coverage report
