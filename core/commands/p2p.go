@@ -127,7 +127,7 @@ Example:
 		allowCustom, _ := req.Options[allowCustomProtocolOptionName].(bool)
 
 		if !allowCustom && !strings.HasPrefix(string(proto), P2PProtoPrefix) {
-			return errors.New("protocol name must be within '" + P2PProtoPrefix + "' namespace")
+			return fmt.Errorf("protocol name must be within '" + P2PProtoPrefix + "' namespace")
 		}
 
 		return forwardLocal(n.Context(), n.P2P, n.Peerstore, proto, listen, targets)
@@ -154,7 +154,7 @@ func parseIpfsAddr(addr string) (*peer.AddrInfo, error) {
 		return nil, err
 	}
 	if len(addrs) == 0 {
-		return nil, errors.New("fail to resolve the multiaddr:" + multiaddr.String())
+		return nil, fmt.Errorf("fail to resolve the multiaddr:" + multiaddr.String())
 	}
 	var info peer.AddrInfo
 	for _, addr := range addrs {
@@ -228,7 +228,7 @@ Example:
 		reportPeerID, _ := req.Options[reportPeerIDOptionName].(bool)
 
 		if !allowCustom && !strings.HasPrefix(string(proto), P2PProtoPrefix) {
-			return errors.New("protocol name must be within '" + P2PProtoPrefix + "' namespace")
+			return fmt.Errorf("protocol name must be within '" + P2PProtoPrefix + "' namespace")
 		}
 
 		_, err = n.P2P.ForwardRemote(n.Context(), proto, target, reportPeerID)
