@@ -643,7 +643,7 @@ are used, so the constant `k` is 7 in the formula.
 Enabling the BloomFilter can provide performance improvements specially when
 responding to many requests for inexistant blocks. It however requires a full
 sweep of all the datastore keys on daemon start. On very large datastores this
-can be a very taxing operation, particulary if the datastore does not support
+can be a very taxing operation, particularly if the datastore does not support
 querying existing keys without reading their values at the same time (blocks).
 
 Default: `0` (disabled)
@@ -2610,7 +2610,7 @@ Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and 
 You should use this datastore if:
 
 - You need a datastore that is focused on performance.
-- You need a datastore that is good for multi-terrabyte data sets.
+- You need a datastore that is good for multi-terabyte data sets.
 - You need reliability by default, but may choose to disable WAL for maximum performance when reliability is not critical.
 - You want a datastore that does not need GC cycles and does not use more space than necessary
 - You want a datastore that does not take several minutes to start with large repositories
