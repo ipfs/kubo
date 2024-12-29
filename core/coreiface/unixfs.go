@@ -105,7 +105,7 @@ type UnixfsAPI interface {
 // Iteration stops if the context is canceled or if the iterator yields an
 // error.
 //
-// Exmaple:
+// Example:
 //
 //	for dirEnt, err := LsIter(ctx, ufsAPI, p) {
 //		if err != nil {
