@@ -68,7 +68,7 @@ of consistency guarantees and unbound growth of the directories' in-memory
 caches.  If the daemon is unexpectedly killed before running 'ipfs files
 flush' on the files in question, then data may be lost. This also applies to
 run 'ipfs repo gc' concurrently with '--flush=false' operations. We recommend
-flushing paths reguarly with 'ipfs files flush', specially the folders on
+flushing paths regularly with 'ipfs files flush', specially the folders on
 which many write operations are happening, as a way to clear the directory
 cache, free memory and speed up read operations.`,
 	},
