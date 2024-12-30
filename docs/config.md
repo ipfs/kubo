@@ -641,7 +641,7 @@ functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b
 are used, so the constant `k` is 7 in the formula.
 
 Enabling the BloomFilter can provide performance improvements specially when
-responding to many requests for inexistant blocks. It however requires a full
+responding to many requests for inexistent blocks. It however requires a full
 sweep of all the datastore keys on daemon start. On very large datastores this
 can be a very taxing operation, particularly if the datastore does not support
 querying existing keys without reading their values at the same time (blocks).
@@ -1013,7 +1013,7 @@ Below is a list of the most common public gateway setups.
 
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
 
-   - **X-Forwarded-Proto:** if you run Kubo behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
+   - **X-Forwarded-Proto:** if you run Kubo behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcard TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
 
      `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
 
