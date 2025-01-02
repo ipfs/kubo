@@ -55,6 +55,11 @@ Get the value of the 'Datastore.Path' key:
 Set the value of the 'Datastore.Path' key:
 
   $ ipfs config Datastore.Path ~/.ipfs/datastore
+
+Set multiple values in the 'Addresses.AppendAnnounce' array:
+
+  $ ipfs config Addresses.AppendAnnounce --json \
+      '["/dns4/a.example.com/tcp/4001", "/dns4/b.example.com/tcp/4002"]'
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
