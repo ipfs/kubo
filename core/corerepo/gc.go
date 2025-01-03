@@ -4,21 +4,29 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
-	"github.com/ipfs/kubo/core"
-	"github.com/ipfs/kubo/gc"
-	"github.com/ipfs/kubo/repo"
-
 	"github.com/dustin/go-humanize"
+	"github.com/gammazero/fsutil/disk"
 	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/gc"
+	"github.com/ipfs/kubo/repo"
 )
 
 var log = logging.Logger("corerepo")
 
 var ErrMaxStorageExceeded = errors.New("maximum storage limit exceeded. Try to unpin some files")
+
+// Datastore default values.
+const (
+	defaultDiskMinFreePercent = 95
+	defaultStorageGCWatermark = 90
+	defaultStorageMax         = "10GB"
+)
 
 type GC struct {
 	Node       *core.IpfsNode
@@ -27,6 +35,8 @@ type GC struct {
 	StorageGC  uint64
 	SlackGB    uint64
 	Storage    uint64
+
+	diskMinFreePercent float64
 }
 
 func NewGC(n *core.IpfsNode) (*GC, error) {
@@ -40,16 +50,22 @@ func NewGC(n *core.IpfsNode) (*GC, error) {
 	// TODO: there should be a general check for all of the cfg fields
 	// maybe distinguish between user config file and default struct?
 	if cfg.Datastore.StorageMax == "" {
-		if err := r.SetConfigKey("Datastore.StorageMax", "10GB"); err != nil {
+		if err := r.SetConfigKey("Datastore.StorageMax", defaultStorageMax); err != nil {
 			return nil, err
 		}
-		cfg.Datastore.StorageMax = "10GB"
+		cfg.Datastore.StorageMax = defaultStorageMax
 	}
 	if cfg.Datastore.StorageGCWatermark == 0 {
-		if err := r.SetConfigKey("Datastore.StorageGCWatermark", 90); err != nil {
+		if err := r.SetConfigKey("Datastore.StorageGCWatermark", defaultStorageGCWatermark); err != nil {
 			return nil, err
 		}
-		cfg.Datastore.StorageGCWatermark = 90
+		cfg.Datastore.StorageGCWatermark = defaultStorageGCWatermark
+	}
+	if cfg.Datastore.DiskMinFreePercent == 0 {
+		if err := r.SetConfigKey("Datastore.DiskMinFreePercent", defaultDiskMinFreePercent); err != nil {
+			return nil, err
+		}
+		cfg.Datastore.DiskMinFreePercent = defaultDiskMinFreePercent
 	}
 
 	storageMax, err := humanize.ParseBytes(cfg.Datastore.StorageMax)
@@ -71,6 +87,8 @@ func NewGC(n *core.IpfsNode) (*GC, error) {
 		StorageMax: storageMax,
 		StorageGC:  storageGC,
 		SlackGB:    slackGB,
+
+		diskMinFreePercent: cfg.Datastore.DiskMinFreePercent,
 	}, nil
 }
 
@@ -205,6 +223,14 @@ func ConditionalGC(ctx context.Context, node *core.IpfsNode, offset uint64) erro
 }
 
 func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
+	full, err := checkDiskFull(gc.Repo.Path(), gc.diskMinFreePercent)
+	if err != nil {
+		return err
+	}
+	if full {
+		return gc.doGC(ctx)
+	}
+
 	storage, err := gc.Repo.GetStorageUsage(ctx)
 	if err != nil {
 		return err
@@ -217,11 +243,33 @@ func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
 
 		// Do GC here
 		log.Info("Watermark exceeded. Starting repo GC...")
-
-		if err := GarbageCollect(gc.Node, ctx); err != nil {
-			return err
-		}
-		log.Infof("Repo GC done. See `ipfs repo stat` to see how much space got freed.\n")
+		return gc.doGC(ctx)
 	}
+
 	return nil
+}
+
+func (gc *GC) doGC(ctx context.Context) error {
+	if err := GarbageCollect(gc.Node, ctx); err != nil {
+		return err
+	}
+	log.Infof("Repo GC done. See `ipfs repo stat` to see how much space got freed.\n")
+	return nil
+}
+
+func checkDiskFull(repoPath string, diskMinFreePercent float64) (bool, error) {
+	if diskMinFreePercent < 0 || diskMinFreePercent > 100 {
+		return false, nil
+	}
+	du, err := disk.Usage(repoPath)
+	if err != nil {
+		return false, fmt.Errorf("cannot get disk usage at path %q: %w", repoPath, err)
+	}
+
+	if du.Percent >= diskMinFreePercent {
+		log.Warnf("Disk usage CRITICAL (%.2f%%), starting repo GC", du.Percent)
+		return true, nil
+	}
+	return false, nil
+
 }

@@ -130,6 +130,7 @@ func addressesConfig() Addresses {
 // DefaultDatastoreConfig is an internal function exported to aid in testing.
 func DefaultDatastoreConfig() Datastore {
 	return Datastore{
+		DiskMinFreePercent: 95,
 		StorageMax:         "10GB",
 		StorageGCWatermark: 90, // 90%
 		GCPeriod:           "1h",

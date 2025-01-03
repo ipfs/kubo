@@ -22,6 +22,7 @@ const (
 
 // Datastore tracks the configuration of the datastore.
 type Datastore struct {
+	DiskMinFreePercent float64
 	StorageMax         string // in B, kB, kiB, MB, ...
 	StorageGCWatermark int64  // in percentage to multiply on StorageMax
 	GCPeriod           string // in ns, us, ms, s, m, h
