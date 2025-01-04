@@ -206,7 +206,7 @@ func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	return routinghelpers.NewComposableParallel(cRouters)
 }
 
-// OfflineRouting provides a special Router to the routers list when we are creating a offline node.
+// OfflineRouting provides a special Router to the routers list when we are creating an offline node.
 func OfflineRouting(dstore ds.Datastore, validator record.Validator) p2pRouterOut {
 	return p2pRouterOut{
 		Router: Router{
