@@ -41,7 +41,7 @@ jobs:
     steps:
       # 1. Download the gateway-conformance fixtures
       - name: Download gateway-conformance fixtures
-        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.6
+        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.7
         with:
           output: fixtures
 
@@ -94,7 +94,7 @@ jobs:
 
       # 6. Run the gateway-conformance tests
       - name: Run gateway-conformance tests
-        uses: ipfs/gateway-conformance/.github/actions/test@v0.6
+        uses: ipfs/gateway-conformance/.github/actions/test@v0.7
         with:
           gateway-url: http://127.0.0.1:8080
           subdomain-url: http://localhost:8080
@@ -128,7 +128,7 @@ jobs:
     steps:
       # 1. Download the gateway-conformance fixtures
       - name: Download gateway-conformance fixtures
-        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.6
+        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.7
         with:
           output: fixtures
 
@@ -201,7 +201,7 @@ jobs:
 
       # 9. Run the gateway-conformance tests over libp2p
       - name: Run gateway-conformance tests over libp2p
-        uses: ipfs/gateway-conformance/.github/actions/test@v0.6
+        uses: ipfs/gateway-conformance/.github/actions/test@v0.7
         with:
           gateway-url: http://127.0.0.1:8092
           args: --specs "trustless-gateway,-trustless-ipns-gateway" -skip 'TestGatewayCar/GET_response_for_application/vnd.ipld.car/Header_Content-Length'
