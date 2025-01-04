@@ -16,7 +16,7 @@ var (
 )
 
 // GetCidEncoder processes the `cid-base` and `output-cidv1` options and
-// returns a encoder to use based on those parameters.
+// returns an encoder to use based on those parameters.
 func GetCidEncoder(req *cmds.Request) (cidenc.Encoder, error) {
 	return getCidBase(req, true)
 }
