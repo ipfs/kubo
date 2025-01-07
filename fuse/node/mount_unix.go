@@ -110,7 +110,7 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 		return fmtFuseErr(err2, nsdir)
 	}
 
-	// setup node state, so that it can be cancelled
+	// setup node state, so that it can be canceled
 	node.Mounts.Ipfs = fsmount
 	node.Mounts.Ipns = nsmount
 	return nil
