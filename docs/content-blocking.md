@@ -44,7 +44,7 @@ caused the request to be blocked.
 [NOpfs](https://github.com/ipfs-shipyard/nopfs) supports the format from [IPIP-383](https://github.com/ipfs/specs/pull/383).
 
 Clear-text rules are simple: just put content paths to block, one per line.
-Paths with unicode and whitespace need to be percend-encoded:
+Paths with unicode and whitespace need to be percent-encoded:
 
 ```
 /ipfs/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR

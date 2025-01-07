@@ -36,7 +36,7 @@ doesn't even know it has to connect to node A.
 
 ### Checking for existing connections 
 
-The first thing to do is to double check that both nodes are in fact running
+The first thing to do is to double-check that both nodes are in fact running
 and online. To do this, run `ipfs id` on each machine. If both nodes show some
 addresses (like the example below), then your nodes are online.
 
