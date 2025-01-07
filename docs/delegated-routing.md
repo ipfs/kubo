@@ -338,7 +338,7 @@ As test fixtures we can add different use cases here and see how the configurati
 
 ~~We need to create a config migration using [fs-repo-migrations](https://github.com/ipfs/fs-repo-migrations). We should remove the `Routing.Type` param and add the configuration specified [previously](#Mimic-previous-dual-DHT-config).~~
 
-We don't need to create any config migration! To avoid to the users the hassle of understanding how the new routing system works, we are gonna keep the old behavior. We will add the Type `custom` to make available the new Routing system.
+We don't need to create any config migration! To avoid to the users the hassle of understanding how the new routing system works, we are going to keep the old behavior. We will add the Type `custom` to make available the new Routing system.
 
 ### Security
 
