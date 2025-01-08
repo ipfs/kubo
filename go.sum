@@ -475,8 +475,8 @@ github.com/ipld/go-ipld-prime v0.21.0 h1:n4JmcpOlPDIxBcY037SVfpd1G+Sj1nKZah0m6QH
 github.com/ipld/go-ipld-prime v0.21.0/go.mod h1:3RLqy//ERg/y5oShXXdx5YIp50cFGOanyMctpPjsvxQ=
 github.com/ipld/go-ipld-prime/storage/bsadapter v0.0.0-20230102063945-1a409dc236dd h1:gMlw/MhNr2Wtp5RwGdsW23cs+yCuj9k2ON7i9MiJlRo=
 github.com/ipld/go-ipld-prime/storage/bsadapter v0.0.0-20230102063945-1a409dc236dd/go.mod h1:wZ8hH8UxeryOs4kJEJaiui/s00hDSbE37OKsL47g+Sw=
-github.com/ipshipyard/p2p-forge v0.2.0 h1:ZboFW1h6SE5ZTHz3YrCRSup/C0GMMOzHux82zMEPWtk=
-github.com/ipshipyard/p2p-forge v0.2.0/go.mod h1:RcA03Mn9o31M3HKBa9mrnTDthWGRlAxTipQFQjDOOvc=
+github.com/ipshipyard/p2p-forge v0.2.1 h1:7tsriNf+crQyFD501SN50rcA1SpF4lKnGMj6BGfETj4=
+github.com/ipshipyard/p2p-forge v0.2.1/go.mod h1:pJ/BLfMTs/UE16wdcJnGsUE0eYCOPFu6H/Oz7gJVmHA=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
 github.com/jackpal/go-nat-pmp v1.0.2/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/jbenet/go-cienv v0.1.0 h1:Vc/s0QbQtoxX8MwwSLWWh+xNNZvM3Lw7NsTcHrvvhMc=
@@ -616,8 +616,6 @@ github.com/mattn/go-runewidth v0.0.15/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b h1:j7+1HpAFS1zy5+Q4qx1fWh90gTKwiN4QCGoY9TWyyO4=
 github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b/go.mod h1:01TrycV0kFyexm33Z7vhZRXopbI8J3TDReVlkTgMUxE=
-github.com/mholt/acmez/v2 v2.0.3 h1:CgDBlEwg3QBp6s45tPQmFIBrkRIkBT4rW4orMM6p4sw=
-github.com/mholt/acmez/v2 v2.0.3/go.mod h1:pQ1ysaDeGrIMvJ9dfJMk5kJNkn7L2sb3UhyrX6Q91cw=
 github.com/mholt/acmez/v3 v3.0.0 h1:r1NcjuWR0VaKP2BTjDK9LRFBw/WvURx3jlaEUl9Ht8E=
 github.com/mholt/acmez/v3 v3.0.0/go.mod h1:L1wOU06KKvq7tswuMDwKdcHeKpFFgkppZy/y0DFxagQ=
 github.com/microcosm-cc/bluemonday v1.0.1/go.mod h1:hsXNsILzKxV+sX77C5b8FSuKF00vh2OMYv+xgHpAMF4=

@@ -131,7 +131,7 @@ require (
 	github.com/ipfs/kubo v0.31.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.6.0 // indirect
 	github.com/ipld/go-ipld-prime v0.21.0 // indirect
-	github.com/ipshipyard/p2p-forge v0.2.0 // indirect
+	github.com/ipshipyard/p2p-forge v0.2.1 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
@@ -178,7 +178,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/mgechev/revive v1.3.9 // indirect
-	github.com/mholt/acmez/v2 v2.0.3 // indirect
 	github.com/mholt/acmez/v3 v3.0.0 // indirect
 	github.com/miekg/dns v1.1.62 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
