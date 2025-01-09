@@ -106,6 +106,6 @@ See `tracing/doc.go` for more details.
 
 ### Other
 
-If you have any questions, or want us to analyze some weird kubo behaviour,
+If you have any questions, or want us to analyze some weird kubo behavior,
 just let us know, and be sure to include all the profiling information
 mentioned at the top.
