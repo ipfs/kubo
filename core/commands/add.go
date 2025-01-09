@@ -24,6 +24,8 @@ import (
 	mh "github.com/multiformats/go-multihash"
 )
 
+var toFilesWrap bool
+
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
 var ErrDepthLimitExceeded = errors.New("depth limit exceeded")
 
@@ -287,9 +289,9 @@ See 'dag export' and 'dag import' for more information.
 		if onlyHash && toFilesSet {
 			return fmt.Errorf("%s and %s options are not compatible", onlyHashOptionName, toFilesOptionName)
 		}
-
+//1736410917 comment:line 290
 		if wrap && toFilesSet {
-			return fmt.Errorf("%s and %s options are not compatible", wrapOptionName, toFilesOptionName)
+//1736410917 commented out			return fmt.Errorf("%s and %s options are not compatible", wrapOptionName, toFilesOptionName)
 		}
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
@@ -375,12 +377,13 @@ See 'dag export' and 'dag import' for more information.
 					return
 				}
 
+//1736410917 comment:line 378
 				// creating MFS pointers when optional --to-files is set
 				if toFilesSet {
-					if addit.Name() == "" {
-						errCh <- fmt.Errorf("%s: cannot add unnamed files to MFS", toFilesOptionName)
-						return
-					}
+//1736410917 commented out					if addit.Name() == "" {
+//1736410917 commented out						errCh <- fmt.Errorf("%s: cannot add unnamed files to MFS", toFilesOptionName)
+//1736410917 commented out						return
+//1736410917 commented out					}
 
 					if toFilesStr == "" {
 						toFilesStr = "/"
@@ -405,7 +408,10 @@ See 'dag export' and 'dag import' for more information.
 							return
 						}
 						// if MFS destination is a dir, append filename to the dir path
-						toFilesDst += gopath.Base(addit.Name())
+//1736410917 Was:
+//1736410917            toFilesDst += gopath.Base(addit.Name())
+						toFilesDst += gopath.Base(pathAdded.RootCid().String())
+//1736410917 Luckily, pathAdded.RootCid() is like the same thing as lastHash. You can see lastHash elsewhere in this file.
 					}
 
 					// error if we try to overwrite a preexisting file destination
@@ -538,6 +544,7 @@ See 'dag export' and 'dag import' for more information.
 				}
 
 				lastFile := ""
+//1736410917 comment:line 542: first instance of lastHash below
 				lastHash := ""
 				var totalProgress, prevFiles, lastBytes int64
 
