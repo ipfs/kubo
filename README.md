@@ -1,3 +1,9 @@
+PURPOSE OF THIS BRANCH/FORK AS OF
+* https://github.com/ipfs/kubo/commit/3335fc81030eac1fae2078e29518b3028556c0e6
+* https://github.com/ProximaNova/kubo/commit/3335fc81030eac1fae2078e29518b3028556c0e6
+
+IS TO DO THE FOLLOWING. Make ipfs add + --to-files + --wrap-with-directory work by adding the root CID of what was added to MFS. The is different from past official Kubo which did this: added a literal "." folder to MFS (bug). It's also different from current official Kubo: disallow add to be ran with to-files and wrap. Todo or ideas for this fork: make something like --to-files-cid which only adds root added CID to MFS, whether it's a file, folder, ran with wrap, ran without wrap. Also/or: add+to-files+wrap always defaults to adding the CID to MFS and not literal "." and not disabled; this is the best or easier idea to do.
+
 <h1 align="center">
   <br>
   <a href="https://docs.ipfs.tech/how-to/command-line-quick-start/"><img src="https://user-images.githubusercontent.com/157609/250148884-d6d12db8-fdcf-4be3-8546-2550b69845d8.png" alt="Kubo logo" title="Kubo logo" width="200"></a>
