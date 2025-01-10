@@ -24,8 +24,6 @@ import (
 	mh "github.com/multiformats/go-multihash"
 )
 
-var toFilesWrap bool
-
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
 var ErrDepthLimitExceeded = errors.New("depth limit exceeded")
 
@@ -290,8 +288,10 @@ See 'dag export' and 'dag import' for more information.
 			return fmt.Errorf("%s and %s options are not compatible", onlyHashOptionName, toFilesOptionName)
 		}
 //1736410917 comment:line 290
+		var toFilesWrap bool = false
 		if wrap && toFilesSet {
 //1736410917 commented out			return fmt.Errorf("%s and %s options are not compatible", wrapOptionName, toFilesOptionName)
+			toFilesWrap = true
 		}
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
@@ -409,8 +409,11 @@ See 'dag export' and 'dag import' for more information.
 						}
 						// if MFS destination is a dir, append filename to the dir path
 //1736410917 Was:
-//1736410917            toFilesDst += gopath.Base(addit.Name())
-						toFilesDst += gopath.Base(pathAdded.RootCid().String())
+						if toFilesWrap {
+							toFilesDst += gopath.Base(pathAdded.RootCid().String())
+						} else {
+							toFilesDst += gopath.Base(addit.Name())
+						}
 //1736410917 Luckily, pathAdded.RootCid() is like the same thing as lastHash. You can see lastHash elsewhere in this file.
 					}
 
