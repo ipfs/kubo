@@ -287,10 +287,8 @@ See 'dag export' and 'dag import' for more information.
 		if onlyHash && toFilesSet {
 			return fmt.Errorf("%s and %s options are not compatible", onlyHashOptionName, toFilesOptionName)
 		}
-//1736410917 comment:line 290
 		var toFilesWrap bool = false
 		if wrap && toFilesSet {
-//1736410917 commented out			return fmt.Errorf("%s and %s options are not compatible", wrapOptionName, toFilesOptionName)
 			toFilesWrap = true
 		}
 
@@ -377,13 +375,12 @@ See 'dag export' and 'dag import' for more information.
 					return
 				}
 
-//1736410917 comment:line 378
 				// creating MFS pointers when optional --to-files is set
 				if toFilesSet {
-//1736410917 commented out					if addit.Name() == "" {
-//1736410917 commented out						errCh <- fmt.Errorf("%s: cannot add unnamed files to MFS", toFilesOptionName)
-//1736410917 commented out						return
-//1736410917 commented out					}
+//					if addit.Name() == "" {
+//						errCh <- fmt.Errorf("%s: cannot add unnamed files to MFS", toFilesOptionName)
+//						return
+//					}
 
 					if toFilesStr == "" {
 						toFilesStr = "/"
@@ -408,13 +405,12 @@ See 'dag export' and 'dag import' for more information.
 							return
 						}
 						// if MFS destination is a dir, append filename to the dir path
-//1736410917 Was:
 						if toFilesWrap {
+							// pathAdded.RootCid() is like the same thing as lastHash. See lastHash below in this file.
 							toFilesDst += gopath.Base(pathAdded.RootCid().String())
 						} else {
 							toFilesDst += gopath.Base(addit.Name())
 						}
-//1736410917 Luckily, pathAdded.RootCid() is like the same thing as lastHash. You can see lastHash elsewhere in this file.
 					}
 
 					// error if we try to overwrite a preexisting file destination
@@ -547,7 +543,6 @@ See 'dag export' and 'dag import' for more information.
 				}
 
 				lastFile := ""
-//1736410917 comment:line 542: first instance of lastHash below
 				lastHash := ""
 				var totalProgress, prevFiles, lastBytes int64
 
