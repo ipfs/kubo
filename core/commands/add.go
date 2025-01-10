@@ -287,9 +287,9 @@ See 'dag export' and 'dag import' for more information.
 		if onlyHash && toFilesSet {
 			return fmt.Errorf("%s and %s options are not compatible", onlyHashOptionName, toFilesOptionName)
 		}
-
+		var toFilesWrap bool = false
 		if wrap && toFilesSet {
-			return fmt.Errorf("%s and %s options are not compatible", wrapOptionName, toFilesOptionName)
+			toFilesWrap = true
 		}
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
@@ -377,10 +377,10 @@ See 'dag export' and 'dag import' for more information.
 
 				// creating MFS pointers when optional --to-files is set
 				if toFilesSet {
-					if addit.Name() == "" {
-						errCh <- fmt.Errorf("%s: cannot add unnamed files to MFS", toFilesOptionName)
-						return
-					}
+//					if addit.Name() == "" {
+//						errCh <- fmt.Errorf("%s: cannot add unnamed files to MFS", toFilesOptionName)
+//						return
+//					}
 
 					if toFilesStr == "" {
 						toFilesStr = "/"
@@ -405,7 +405,12 @@ See 'dag export' and 'dag import' for more information.
 							return
 						}
 						// if MFS destination is a dir, append filename to the dir path
-						toFilesDst += gopath.Base(addit.Name())
+						if toFilesWrap {
+							// pathAdded.RootCid() is like the same thing as lastHash. See lastHash below in this file.
+							toFilesDst += gopath.Base(pathAdded.RootCid().String())
+						} else {
+							toFilesDst += gopath.Base(addit.Name())
+						}
 					}
 
 					// error if we try to overwrite a preexisting file destination
