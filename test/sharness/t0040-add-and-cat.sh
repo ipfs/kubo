@@ -882,7 +882,7 @@ test_expect_success "'ipfs add -rn' succeeds" '
   mkdir -p mountdir/moons/saturn &&
   echo "Hello Europa!" >mountdir/moons/jupiter/europa.txt &&
   echo "Hello Titan!" >mountdir/moons/saturn/titan.txt &&
-  echo "hey youre no moon!" >mountdir/moons/mercury.txt &&
+  echo "hey you are no moon!" >mountdir/moons/mercury.txt &&
   ipfs add -rn mountdir/moons >actual
 '
 
