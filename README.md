@@ -80,6 +80,7 @@ Before opening an issue, consider using one of the following locations to ensure
     - [Guix](#guix)
     - [Snap](#snap)
     - [Ubuntu PPA](#ubuntu-ppa)
+    - [Fedora](#fedora-copr)
   - [Unofficial Windows packages](#unofficial-windows-packages)
     - [Chocolatey](#chocolatey)
     - [Scoop](#scoop)
@@ -207,6 +208,7 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 - [Guix](#guix)
 - [Snap](#snap)
 - [Ubuntu PPA](#ubuntu-ppa)
+- [Fedora](#fedora-copr)
 
 #### Arch Linux
 
@@ -270,6 +272,10 @@ sudo add-apt-repository ppa:twdragon/ipfs
 sudo apt update
 sudo apt install ipfs-kubo
 ```
+
+### Fedora COPR
+
+[`taw00/ipfs-rpm`](https://github.com/taw00/ipfs-rpm)
 
 ##### Any Ubuntu version
 
