@@ -1013,7 +1013,7 @@ Below is a list of the most common public gateway setups.
 
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
 
-   - **X-Forwarded-Proto:** if you run Kubo behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
+   - **X-Forwarded-Proto:** if you run Kubo behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcard TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
 
      `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
 
@@ -2408,11 +2408,11 @@ Example:
 Be mindful that:
 - Currently only `https://` URLs for [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported as values.
 - The default catch-all resolver is the cleartext one provided by your operating system. It can be overridden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
-- Out-of-the-box support for selected decentralized TLDs relies on a [centralized service which is provided on best-effort basis](https://www.cloudflare.com/distributed-web-gateway-terms/). The implicit DoH resolvers are:
+- Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis. The implicit DoH resolvers are:
   ```json
   {
-    "eth.": "https://resolver.cloudflare-eth.com/dns-query",
-    "crypto.": "https://resolver.cloudflare-eth.com/dns-query"
+    "eth.": "https://dns.eth.limo/dns-query",
+    "crypto.": "https://resolver.unstoppable.io/dns-query"
   }
   ```
   To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
@@ -2610,7 +2610,7 @@ Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and 
 You should use this datastore if:
 
 - You need a datastore that is focused on performance.
-- You need a datastore that is good for multi-terrabyte data sets.
+- You need a datastore that is good for multi-terabyte data sets.
 - You need reliability by default, but may choose to disable WAL for maximum performance when reliability is not critical.
 - You want a datastore that does not need GC cycles and does not use more space than necessary
 - You want a datastore that does not take several minutes to start with large repositories
