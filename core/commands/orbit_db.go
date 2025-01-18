@@ -11,9 +11,9 @@ import (
 	"strings"
 	"sync"
 
-	iface "github.com/ipfs/kubo/core/coreiface"
 	config "github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	"go.uber.org/zap"
 
@@ -30,6 +30,7 @@ const dbNameIssue = "issue"
 const dbNameEvent = "event"
 const dbNameGift = "gift"
 const dbNameRide = "ride"
+const dbNameUser = "user"
 
 var OrbitCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -526,6 +527,14 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 
 	var addr address.Address
 	switch dbName {
+	case dbNameUser:
+		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		if err != nil {
+			_, err = db.Create(ctx, dbNameUser, "docstore", &orbitdb.CreateDBOptions{})
+			if err != nil {
+				return db, nil, err
+			}
+		}
 	case dbNameIssue:
 		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
