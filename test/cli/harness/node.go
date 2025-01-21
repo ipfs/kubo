@@ -486,7 +486,7 @@ func (n *Node) SwarmAddrsWithPeerIDs() []multiaddr.Multiaddr {
 			if err != nil {
 				panic(err)
 			}
-			ma = ma.Encapsulate(comp)
+			ma = ma.EncapsulateC(comp)
 		}
 		addrs = append(addrs, ma)
 	}
@@ -496,15 +496,15 @@ func (n *Node) SwarmAddrsWithPeerIDs() []multiaddr.Multiaddr {
 func (n *Node) SwarmAddrsWithoutPeerIDs() []multiaddr.Multiaddr {
 	var addrs []multiaddr.Multiaddr
 	for _, ma := range n.SwarmAddrs() {
-		var components []multiaddr.Multiaddr
+		var components []multiaddr.Component
 		multiaddr.ForEach(ma, func(c multiaddr.Component) bool {
 			if c.Protocol().Code == multiaddr.P_IPFS {
 				return true
 			}
-			components = append(components, &c)
+			components = append(components, c)
 			return true
 		})
-		ma = multiaddr.Join(components...)
+		ma = multiaddr.JoinComponents(components...)
 		addrs = append(addrs, ma)
 	}
 	return addrs

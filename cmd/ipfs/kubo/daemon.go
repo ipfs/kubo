@@ -816,9 +816,9 @@ func rewriteMaddrToUseLocalhostIfItsAny(maddr ma.Multiaddr) ma.Multiaddr {
 	first, rest := ma.SplitFirst(maddr)
 
 	switch {
-	case first.Equal(manet.IP4Unspecified):
+	case first.Equal(manet.IP4Unspecified[0]):
 		return manet.IP4Loopback.Encapsulate(rest)
-	case first.Equal(manet.IP6Unspecified):
+	case first.Equal(manet.IP6Unspecified[0]):
 		return manet.IP6Loopback.Encapsulate(rest)
 	default:
 		return maddr // not ip

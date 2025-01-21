@@ -807,7 +807,7 @@ func resolveAddresses(ctx context.Context, addrs []string, rslv *madns.Resolver)
 			// filter out addresses that still doesn't end in `ipfs/Qm...`
 			found := 0
 			for _, raddr := range raddrs {
-				if _, last := ma.SplitLast(raddr); last != nil && last.Protocol().Code == ma.P_IPFS {
+				if _, last := ma.SplitLast(raddr); !last.Empty() && last.Protocol().Code == ma.P_IPFS {
 					maddrC <- raddr
 					found++
 				}
