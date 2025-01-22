@@ -30,6 +30,7 @@ config file at runtime.
   - [`AutoTLS`](#autotls)
     - [`AutoTLS.Enabled`](#autotlsenabled)
     - [`AutoTLS.AutoWSS`](#autotlsautowss)
+    - [`AutoTLS.ShortAddrs`](#autotlsshortaddrs)
     - [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)
     - [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint)
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
@@ -527,6 +528,17 @@ Type: `flag`
 Optional. Controls if Kubo should add `/tls/sni/*.libp2p.direct/ws` listener to every pre-existing `/tcp` port IFF no explicit `/ws` is defined in [`Addresses.Swarm`](#addressesswarm) already.
 
 Default: `true` (active only if `AutoTLS.Enabled` is `true` as well)
+
+Type: `flag`
+
+### `AutoTLS.ShortAddrs`
+
+Optional. Controls if final AutoTLS listeners are announced under shorter `/dnsX/A.B.C.D.peerid.libp2p.direct/tcp/4001/tls/ws` addresses instead of fully resolved `/ip4/A.B.C.D/tcp/4001/tls/sni/A-B-C-D.peerid.libp2p.direct/tls/ws`.
+
+> [!TIP]
+> The main use for AutoTLS is allowing connectivity from Secure Context in a web browser, and DNS lookup needs to happen there anyway, making `/dnsX` a more compact, more interoperable option without obvious downside.
+
+Default: `true`
 
 Type: `flag`
 
