@@ -136,11 +136,12 @@ func ListenOn(addresses []string) interface{} {
 func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEventLogger) interface{} {
 	return func() (*p2pforge.P2PForgeCertMgr, error) {
 		storagePath := filepath.Join(repoPath, "p2p-forge-certs")
-
-		// TODO: this should not be necessary, but we do it to help tracking
-		// down any race conditions causing
-		// https://github.com/ipshipyard/p2p-forge/issues/8
 		rawLogger := atlsLog.Desugar()
+
+		// TODO: this should not be necessary after
+		// https://github.com/ipshipyard/p2p-forge/pull/42 but keep it here for
+		// now to help tracking down any remaining conditions causing
+		// https://github.com/ipshipyard/p2p-forge/issues/8
 		certmagic.Default.Logger = rawLogger.Named("default_fixme")
 		certmagic.DefaultACME.Logger = rawLogger.Named("default_acme_client_fixme")
 
@@ -153,6 +154,7 @@ func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEv
 			p2pforge.WithForgeAuth(cfg.RegistrationToken.WithDefault(os.Getenv(p2pforge.ForgeAuthEnv))),
 			p2pforge.WithUserAgent(version.GetUserAgentVersion()),
 			p2pforge.WithCertificateStorage(certStorage),
+			p2pforge.WithShortForgeAddrs(cfg.ShortAddrs.WithDefault(config.DefaultAutoTLSShortAddrs)),
 		)
 		if err != nil {
 			return nil, err

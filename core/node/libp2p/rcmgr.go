@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 
-	"github.com/benbjohnson/clock"
+	"github.com/filecoin-project/go-clock"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/network"

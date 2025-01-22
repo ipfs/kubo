@@ -23,6 +23,9 @@ type AutoTLS struct {
 
 	// Optional override of CA ACME API used by p2p-forge system
 	CAEndpoint *OptionalString `json:",omitempty"`
+
+	// Optional, controls if features like AutoWSS should generate shorter /dnsX instead of /ipX/../sni/..
+	ShortAddrs Flag `json:",omitempty"`
 }
 
 const (
@@ -31,4 +34,5 @@ const (
 	DefaultRegistrationEndpoint = p2pforge.DefaultForgeEndpoint
 	DefaultCAEndpoint           = p2pforge.DefaultCAEndpoint
 	DefaultAutoWSS              = true // requires AutoTLS.Enabled
+	DefaultAutoTLSShortAddrs    = true // requires AutoTLS.Enabled
 )
