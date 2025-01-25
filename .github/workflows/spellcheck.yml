@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install Codespell
-        run: pip install codespell
+        run: pip install codespell==2.4.0
 
       - name: Run Codespell
         run: |
