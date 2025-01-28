@@ -14,10 +14,13 @@ jobs:
         run: pip install codespell==2.4.0
 
       - name: Run Codespell
-        run: |
-          codespell \
-            --ignore-words=.codespell-ignore \
-            --skip="
+        uses: codespell-project/actions-codespell@v2
+        with:
+          only_warn: 1
+          ignore_words_file: .codespell-ignore
+          skip: |
             *.mod,*.sum,*.pdf,
-            ./test/sharness/t0275-cid-security-data,./test/sharness/t0280-plugin-dag-jose-data,./bin,./docs/AUTHORS
-            "
+            ./test/sharness/t0275-cid-security-data,
+            ./test/sharness/t0280-plugin-dag-jose-data,
+            ./bin,
+            ./docs/AUTHORS
