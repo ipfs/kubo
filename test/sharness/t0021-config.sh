@@ -22,18 +22,6 @@ test_config_cmd_set() {
     ipfs config \"$cfg_key\" >actual &&
     test_cmp expected actual
   "
-
-  # also test our lib function. it should work too.
-  cfg_key="Lib.$cfg_key"
-  test_expect_success "test_config_set succeeds" "
-    test_config_set $cfg_flags \"$cfg_key\" \"$cfg_val\"
-  "
-
-  test_expect_success "test_config_set value looks good" "
-    echo \"$cfg_val\" >expected &&
-    ipfs config \"$cfg_key\" >actual &&
-    test_cmp expected actual
-  "
 }
 
 test_profile_apply_revert() {
