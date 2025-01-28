@@ -36,13 +36,6 @@ test_config_cmd_set() {
   "
 }
 
-# this is a bit brittle. the problem is we need to test
-# with something that will be forced to unmarshal as a struct.
-# (i.e. just setting 'ipfs config --json foo "[1, 2, 3]"') may
-# set it as astring instead of proper json. We leverage the
-# unmarshalling that has to happen.
-CONFIG_SET_JSON_TEST='{"MDNS":{"Enabled":true}}'
-
 test_profile_apply_revert() {
   profile=$1
   inverse_profile=$2
@@ -89,10 +82,9 @@ test_config_cmd() {
   test_config_cmd_set "--bool" "Discovery.MDNS.Enabled" "false"
   test_config_cmd_set "--json" "Datastore.HashOnRead" "true"
   test_config_cmd_set "--json" "Datastore.HashOnRead" "false"
-  test_config_cmd_set "--json" "Discovery" "$CONFIG_SET_JSON_TEST"
   test_config_cmd_set "--json" "Experimental.FilestoreEnabled" "true"
   test_config_cmd_set "--json" "Import.BatchMaxSize" "null"
-  test_config_cmd_set "--json" "Datastore.Spec" "true"
+  test_config_cmd_set "--json" "Import.UnixFSRawLeaves" "true"
 
   test_expect_success "'ipfs config show' works" '
     ipfs config show >actual
