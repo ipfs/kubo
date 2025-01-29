@@ -155,7 +155,17 @@ Kubo tries to reuse the same source port for all connections to improve NAT
 traversal. If this is an issue, you can disable it by setting
 `LIBP2P_TCP_REUSEPORT` to false.
 
-Default: true
+Default: `true`
+
+## `LIBP2P_TCP_MUX`
+
+By default Kubo tries to reuse the same listener port for raw TCP and WebSockets transports via experimental `libp2p.ShareTCPListener()` feature introduced in [go-libp2p#2984](https://github.com/libp2p/go-libp2p/pull/2984).
+If this is an issue, you can disable it by setting `LIBP2P_TCP_MUX` to `false` and use separate ports for each TCP transport.
+
+> [!CAUTION]
+> This configuration option may be removed once `libp2p.ShareTCPListener()`  becomes default in go-libp2p.
+
+Default: `true`
 
 ## `LIBP2P_MUX_PREFS`
 

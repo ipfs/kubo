@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -55,7 +56,7 @@ to a particular peer, use the 'peer' option along with that peer's multihash
 id. To specify a specific protocol, use the 'proto' option. The 'peer' and
 'proto' options cannot be specified simultaneously. The protocols that are
 queried using this method are outlined in the specification:
-https://github.com/libp2p/specs/blob/master/7-properties.md#757-protocol-multicodecs
+https://github.com/libp2p/specs/blob/master/_archive/7-properties.md#757-protocol-multicodecs
 
 Example protocol options:
   - /ipfs/id/1.0.0
@@ -100,7 +101,7 @@ Example:
 		}
 
 		if nd.Reporter == nil {
-			return fmt.Errorf("bandwidth reporter disabled in config")
+			return errors.New("bandwidth reporter disabled in config")
 		}
 
 		pstr, pfound := req.Options[statPeerOptionName].(string)

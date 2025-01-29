@@ -6,8 +6,11 @@ import p2pforge "github.com/ipshipyard/p2p-forge/client"
 // for obtaining a domain and TLS certificate to improve connectivity for web
 // browser clients. More: https://github.com/ipshipyard/p2p-forge#readme
 type AutoTLS struct {
-	// Enables the p2p-forge feature
+	// Enables the p2p-forge feature and all related features.
 	Enabled Flag `json:",omitempty"`
+
+	// Optional, controls if Kubo should add /tls/sni/.../ws listener to every /tcp port if no explicit /ws is defined in Addresses.Swarm
+	AutoWSS Flag `json:",omitempty"`
 
 	// Optional override of the parent domain that will be used
 	DomainSuffix *OptionalString `json:",omitempty"`
@@ -20,6 +23,9 @@ type AutoTLS struct {
 
 	// Optional override of CA ACME API used by p2p-forge system
 	CAEndpoint *OptionalString `json:",omitempty"`
+
+	// Optional, controls if features like AutoWSS should generate shorter /dnsX instead of /ipX/../sni/..
+	ShortAddrs Flag `json:",omitempty"`
 }
 
 const (
@@ -27,4 +33,6 @@ const (
 	DefaultDomainSuffix         = p2pforge.DefaultForgeDomain
 	DefaultRegistrationEndpoint = p2pforge.DefaultForgeEndpoint
 	DefaultCAEndpoint           = p2pforge.DefaultCAEndpoint
+	DefaultAutoWSS              = true // requires AutoTLS.Enabled
+	DefaultAutoTLSShortAddrs    = true // requires AutoTLS.Enabled
 )

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -115,6 +116,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	enableRelayService := cfg.Swarm.RelayService.Enabled.WithDefault(enableRelayTransport)
 	enableRelayClient := cfg.Swarm.RelayClient.Enabled.WithDefault(enableRelayTransport)
 	enableAutoTLS := cfg.AutoTLS.Enabled.WithDefault(config.DefaultAutoTLSEnabled)
+	enableAutoWSS := cfg.AutoTLS.AutoWSS.WithDefault(config.DefaultAutoWSS)
+	atlsLog := log.Logger("autotls")
 
 	// Log error when relay subsystem could not be initialized due to missing dependency
 	if !enableRelayTransport {
@@ -125,21 +128,59 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 			logger.Fatal("Failed to enable `Swarm.RelayClient`, it requires `Swarm.Transports.Network.Relay` to be true.")
 		}
 	}
+
 	if enableAutoTLS {
+		if !cfg.Swarm.Transports.Network.TCP.WithDefault(true) {
+			logger.Fatal("Invalid configuration: AutoTLS.Enabled=true requires Swarm.Transports.Network.TCP to be true as well.")
+		}
 		if !cfg.Swarm.Transports.Network.Websocket.WithDefault(true) {
 			logger.Fatal("Invalid configuration: AutoTLS.Enabled=true requires Swarm.Transports.Network.Websocket to be true as well.")
 		}
 
+		// AutoTLS for Secure WebSockets: ensure WSS listeners are in place (manual or automatic)
 		wssWildcard := fmt.Sprintf("/tls/sni/*.%s/ws", cfg.AutoTLS.DomainSuffix.WithDefault(config.DefaultDomainSuffix))
 		wssWildcardPresent := false
+		customWsPresent := false
+		customWsRegex := regexp.MustCompile(`/wss?$`)
+		tcpRegex := regexp.MustCompile(`/tcp/\d+$`)
+
+		// inspect listeners defined in config at Addresses.Swarm
+		var tcpListeners []string
 		for _, listener := range cfg.Addresses.Swarm {
+			// detect if user manually added /tls/sni/.../ws listener matching AutoTLS.DomainSuffix
 			if strings.Contains(listener, wssWildcard) {
+				atlsLog.Infof("found compatible wildcard listener in Addresses.Swarm. AutoTLS will be used on %s", listener)
 				wssWildcardPresent = true
 				break
 			}
+			// detect if user manually added own /ws or /wss listener that is
+			// not related to AutoTLS feature
+			if customWsRegex.MatchString(listener) {
+				atlsLog.Infof("found custom /ws listener set by user in Addresses.Swarm. AutoTLS will not be used on %s.", listener)
+				customWsPresent = true
+				break
+			}
+			// else, remember /tcp listeners that can be reused for /tls/sni/../ws
+			if tcpRegex.MatchString(listener) {
+				tcpListeners = append(tcpListeners, listener)
+			}
 		}
-		if !wssWildcardPresent {
-			logger.Fatal(fmt.Sprintf("Invalid configuration: AutoTLS.Enabled=true requires a catch-all Addresses.Swarm listener ending with %q to be present, see https://github.com/ipfs/kubo/blob/master/docs/config.md#autotls", wssWildcard))
+
+		// Append AutoTLS's wildcard listener
+		// if no manual /ws listener was set by the user
+		if enableAutoWSS && !wssWildcardPresent && !customWsPresent {
+			if len(tcpListeners) == 0 {
+				logger.Fatal("Invalid configuration: AutoTLS.AutoWSS=true requires at least one /tcp listener present in Addresses.Swarm, see https://github.com/ipfs/kubo/blob/master/docs/config.md#autotls")
+			}
+			for _, tcpListener := range tcpListeners {
+				wssListener := tcpListener + wssWildcard
+				cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, wssListener)
+				atlsLog.Infof("appended AutoWSS listener: %s", wssListener)
+			}
+		}
+
+		if !wssWildcardPresent && !enableAutoWSS {
+			logger.Fatal(fmt.Sprintf("Invalid configuration: AutoTLS.Enabled=true requires a /tcp listener ending with %q to be present in Addresses.Swarm or AutoTLS.AutoWSS=true, see https://github.com/ipfs/kubo/blob/master/docs/config.md#autotls", wssWildcard))
 		}
 	}
 
@@ -152,7 +193,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		// Services (resource management)
 		fx.Provide(libp2p.ResourceManager(bcfg.Repo.Path(), cfg.Swarm, userResourceOverrides)),
-		maybeProvide(libp2p.P2PForgeCertMgr(bcfg.Repo.Path(), cfg.AutoTLS), enableAutoTLS),
+		maybeProvide(libp2p.P2PForgeCertMgr(bcfg.Repo.Path(), cfg.AutoTLS, atlsLog), enableAutoTLS),
 		maybeInvoke(libp2p.StartP2PAutoTLS, enableAutoTLS),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
@@ -189,6 +230,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	cacheOpts := blockstore.DefaultCacheOpts()
 	cacheOpts.HasBloomFilterSize = cfg.Datastore.BloomFilterSize
+	cacheOpts.HasTwoQueueCacheSize = int(cfg.Datastore.BlockKeyCacheSize.WithDefault(config.DefaultBlockKeyCacheSize))
 	if !bcfg.Permanent {
 		cacheOpts.HasBloomFilterSize = 0
 	}
@@ -201,7 +243,7 @@ func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(RepoConfig),
 		fx.Provide(Datastore),
-		fx.Provide(BaseBlockstoreCtor(cacheOpts, cfg.Datastore.HashOnRead)),
+		fx.Provide(BaseBlockstoreCtor(cacheOpts, cfg.Datastore.HashOnRead, cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough))),
 		finalBstore,
 	)
 }
@@ -260,7 +302,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		ipnsCacheSize = DefaultIpnsCacheSize
 	}
 	if ipnsCacheSize < 0 {
-		return fx.Error(fmt.Errorf("cannot specify negative resolve cache size"))
+		return fx.Error(errors.New("cannot specify negative resolve cache size"))
 	}
 
 	// Republisher params
@@ -293,8 +335,11 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	shouldBitswapProvide := !cfg.Experimental.StrategicProviding
 
 	return fx.Options(
-		fx.Provide(BitswapOptions(cfg, shouldBitswapProvide)),
+		fx.Provide(BitswapOptions(cfg)),
+		fx.Provide(Bitswap(shouldBitswapProvide)),
 		fx.Provide(OnlineExchange()),
+		// Replace our Exchange with a Providing exchange!
+		fx.Decorate(ProvidingExchange(shouldBitswapProvide)),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),
@@ -329,7 +374,6 @@ func Offline(cfg *config.Config) fx.Option {
 
 // Core groups basic IPFS services
 var Core = fx.Options(
-	fx.Provide(BlockService),
 	fx.Provide(Dag),
 	fx.Provide(FetcherConfig),
 	fx.Provide(PathResolverConfig),
@@ -384,7 +428,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		Identity(cfg),
 		IPNS,
 		Networked(bcfg, cfg, userResourceOverrides),
-
+		fx.Provide(BlockService(cfg)),
 		Core,
 	)
 }

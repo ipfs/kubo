@@ -295,7 +295,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		if !domigrate {
 			fmt.Println("Not running migrations of fs-repo now.")
 			fmt.Println("Please get fs-repo-migrations from https://dist.ipfs.tech")
-			return fmt.Errorf("fs-repo requires migration")
+			return errors.New("fs-repo requires migration")
 		}
 
 		// Read Migration section of IPFS config
@@ -410,12 +410,20 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
-	// Private setups can't leverage peers returned by default IPNIs (Routing.Type=auto)
-	// To avoid breaking existing setups, switch them to DHT-only.
-	if routingOption == routingOptionAutoKwd {
-		if key, _ := repo.SwarmKey(); key != nil || pnet.ForcePrivateNetwork {
+	if key, _ := repo.SwarmKey(); key != nil || pnet.ForcePrivateNetwork {
+		// Private setups can't leverage peers returned by default IPNIs (Routing.Type=auto)
+		// To avoid breaking existing setups, switch them to DHT-only.
+		if routingOption == routingOptionAutoKwd {
 			log.Error("Private networking (swarm.key / LIBP2P_FORCE_PNET) does not work with public HTTP IPNIs enabled by Routing.Type=auto. Kubo will use Routing.Type=dht instead. Update config to remove this message.")
 			routingOption = routingOptionDHTKwd
+		}
+
+		// Private setups should not use public AutoTLS infrastructure
+		// as it will leak their existence and PeerID identity to CA
+		// and they will show up at https://crt.sh/?q=libp2p.direct
+		// Below ensures we hard fail if someone tries to enable both
+		if cfg.AutoTLS.Enabled.WithDefault(config.DefaultAutoTLSEnabled) {
+			return errors.New("private networking (swarm.key / LIBP2P_FORCE_PNET) does not work with AutoTLS.Enabled=true, update config to remove this message")
 		}
 	}
 
@@ -436,7 +444,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		ncfg.Routing = libp2p.NilRouterOption
 	case routingOptionCustomKwd:
 		if cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient) {
-			return fmt.Errorf("Routing.AcceleratedDHTClient option is set even tho Routing.Type is custom, using custom .AcceleratedDHTClient needs to be set on DHT routers individually")
+			return errors.New("Routing.AcceleratedDHTClient option is set even tho Routing.Type is custom, using custom .AcceleratedDHTClient needs to be set on DHT routers individually")
 		}
 		ncfg.Routing = libp2p.ConstructDelegatedRouting(
 			cfg.Routing.Routers,
@@ -467,7 +475,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		fmt.Printf("Swarm key fingerprint: %x\n", node.PNetFingerprint)
 	}
 
-	if (pnet.ForcePrivateNetwork || node.PNetFingerprint != nil) && routingOption == routingOptionAutoKwd {
+	if (pnet.ForcePrivateNetwork || node.PNetFingerprint != nil) && (routingOption == routingOptionAutoKwd || routingOption == routingOptionAutoClientKwd) {
 		// This should never happen, but better safe than sorry
 		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
 	}
@@ -512,7 +520,11 @@ take effect.
 	if err != nil {
 		return err
 	}
-	node.Process.AddChild(goprocess.WithTeardown(cctx.Plugins.Close))
+	select {
+	case <-node.Process.Closing():
+	default:
+		node.Process.AddChild(goprocess.WithTeardown(cctx.Plugins.Close))
+	}
 
 	// construct api endpoint - every time
 	apiErrc, err := serveHTTPApi(req, cctx)

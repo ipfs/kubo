@@ -17,16 +17,15 @@ import (
 // ConfigFromMap creates a new datastore config from a map.
 type ConfigFromMap func(map[string]interface{}) (DatastoreConfig, error)
 
-// DatastoreConfig is an abstraction of a datastore config.  A "spec"
-// is first converted to a DatastoreConfig and then Create() is called
-// to instantiate a new datastore.
+// DatastoreConfig is an abstraction of a datastore config. A "spec" is first
+// converted to a DatastoreConfig and then Create() is called to instantiate a
+// new datastore.
 type DatastoreConfig interface {
-	// DiskSpec returns a minimal configuration of the datastore
-	// represting what is stored on disk.  Run time values are
-	// excluded.
+	// DiskSpec returns a minimal configuration of the datastore representing
+	// what is stored on disk. Run time values are excluded.
 	DiskSpec() DiskSpec
 
-	// Create instantiate a new datastore from this config
+	// Create instantiates a new datastore from this config.
 	Create(path string) (repo.Datastore, error)
 }
 

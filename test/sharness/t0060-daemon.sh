@@ -131,21 +131,21 @@ test_expect_success "ipfs help output looks good" '
 # check transport is encrypted by default and no plaintext is allowed
 
 test_expect_success SOCAT "default transport should support encryption (TLS, needs socat )" '
-  socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-tls &&
+  socat -s - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-tls &&
   grep -q "/tls" swarmnc &&
   test_must_fail grep -q "na" swarmnc ||
   test_fsh cat swarmnc
 '
 
 test_expect_success SOCAT "default transport should support encryption (Noise, needs socat )" '
-  socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-noise &&
+  socat -s - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-noise &&
   grep -q "/noise" swarmnc &&
   test_must_fail grep -q "na" swarmnc ||
   test_fsh cat swarmnc
 '
 
 test_expect_success SOCAT "default transport should not support plaintext (needs socat )" '
-  socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-plaintext &&
+  socat -s - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-plaintext &&
   grep -q "na" swarmnc &&
   test_must_fail grep -q "/plaintext" swarmnc ||
   test_fsh cat swarmnc

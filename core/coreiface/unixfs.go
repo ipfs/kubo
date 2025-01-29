@@ -2,6 +2,7 @@ package iface
 
 import (
 	"context"
+	"iter"
 	"os"
 	"time"
 
@@ -63,8 +64,6 @@ type DirEntry struct {
 
 	Mode    os.FileMode
 	ModTime time.Time
-
-	Err error
 }
 
 // UnixfsAPI is the basic interface to immutable files in IPFS
@@ -81,7 +80,56 @@ type UnixfsAPI interface {
 	// to operations performed on the returned file
 	Get(context.Context, path.Path) (files.Node, error)
 
-	// Ls returns the list of links in a directory. Links aren't guaranteed to be
-	// returned in order
-	Ls(context.Context, path.Path, ...options.UnixfsLsOption) (<-chan DirEntry, error)
+	// Ls writes the links in a directory to the DirEntry channel. Links aren't
+	// guaranteed to be returned in order. If an error occurs or the context is
+	// canceled, the DirEntry channel is closed and an error is returned.
+	//
+	// Example:
+	//
+	//  dirs := make(chan DirEntry)
+	//  lsErr := make(chan error, 1)
+	//  go func() {
+	//		lsErr <- Ls(ctx, p, dirs)
+	//  }()
+	//	for dirEnt := range dirs {
+	//		fmt.Println("Dir name:", dirEnt.Name)
+	//	}
+	//	err := <-lsErr
+	//	if err != nil {
+	//		return fmt.Errorf("error listing directory: %w", err)
+	//	}
+	Ls(context.Context, path.Path, chan<- DirEntry, ...options.UnixfsLsOption) error
+}
+
+// LsIter returns a go iterator that allows ranging over DirEntry results.
+// Iteration stops if the context is canceled or if the iterator yields an
+// error.
+//
+// Example:
+//
+//	for dirEnt, err := LsIter(ctx, ufsAPI, p) {
+//		if err != nil {
+//			return fmt.Errorf("error listing directory: %w", err)
+//		}
+//		fmt.Println("Dir name:", dirEnt.Name)
+//	}
+func LsIter(ctx context.Context, api UnixfsAPI, p path.Path, opts ...options.UnixfsLsOption) iter.Seq2[DirEntry, error] {
+	return func(yield func(DirEntry, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel() // cancel Ls if done iterating early
+
+		dirs := make(chan DirEntry)
+		lsErr := make(chan error, 1)
+		go func() {
+			lsErr <- api.Ls(ctx, p, dirs, opts...)
+		}()
+		for dirEnt := range dirs {
+			if !yield(dirEnt, nil) {
+				return
+			}
+		}
+		if err := <-lsErr; err != nil {
+			yield(DirEntry{}, err)
+		}
+	}
 }

@@ -70,7 +70,7 @@ var findProvidersRoutingCmd = &cmds.Command{
 
 		numProviders, _ := req.Options[numProvidersOptionName].(int)
 		if numProviders < 1 {
-			return fmt.Errorf("number of providers must be greater than 0")
+			return errors.New("number of providers must be greater than 0")
 		}
 
 		c, err := cid.Parse(req.Arguments[0])

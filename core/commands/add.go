@@ -25,7 +25,7 @@ import (
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
-var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
+var ErrDepthLimitExceeded = errors.New("depth limit exceeded")
 
 type TimeParts struct {
 	t *time.Time
@@ -288,6 +288,10 @@ See 'dag export' and 'dag import' for more information.
 			return fmt.Errorf("%s and %s options are not compatible", onlyHashOptionName, toFilesOptionName)
 		}
 
+		if wrap && toFilesSet {
+			return fmt.Errorf("%s and %s options are not compatible", wrapOptionName, toFilesOptionName)
+		}
+
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
 			return fmt.Errorf("unrecognized hash function: %q", strings.ToLower(hashFunStr))
@@ -373,6 +377,11 @@ See 'dag export' and 'dag import' for more information.
 
 				// creating MFS pointers when optional --to-files is set
 				if toFilesSet {
+					if addit.Name() == "" {
+						errCh <- fmt.Errorf("%s: cannot add unnamed files to MFS", toFilesOptionName)
+						return
+					}
+
 					if toFilesStr == "" {
 						toFilesStr = "/"
 					}
