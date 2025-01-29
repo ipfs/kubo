@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/ipfs/kubo/misc/fsutil"
@@ -137,6 +138,27 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 	return m, nil
 }
 
+// Convert config to a map, without using encoding/json.
+func ReflectToMap(conf interface{}) map[string]interface{} {
+	confmap := make(map[string]interface{})
+	rv := reflect.ValueOf(conf)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+
+	for i := 0; i < rv.NumField(); i++ {
+		field := rv.Field(i)
+		if field.CanInterface() {
+			if field.Kind() == reflect.Struct {
+				confmap[rv.Type().Field(i).Name] = ReflectToMap(field.Interface())
+			} else {
+				confmap[rv.Type().Field(i).Name] = field.Interface()
+			}
+		}
+	}
+	return confmap
+}
+
 // Clone copies the config. Use when updating.
 func (c *Config) Clone() (*Config, error) {
 	var newConfig Config
@@ -155,10 +177,12 @@ func (c *Config) Clone() (*Config, error) {
 
 // Check if the provided key is present in the structure.
 func CheckKey(key string) error {
-	confmap, err := ToMap(&Config{})
-	if err != nil {
-		return err
-	}
+	conf := Config{}
+
+	// Convert an empty config to a map without JSON.
+	confmap := ReflectToMap(&conf)
+
+	// Parse the key and verify it's presence in the map.
 	var ok bool
 	var mcursor map[string]interface{}
 	var cursor interface{} = confmap
