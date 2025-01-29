@@ -36,8 +36,8 @@ test_expect_success "docker image build succeeds" '
 '
 
 test_expect_success "write init scripts" '
-  echo "ipfs config Foo Bar" > 001.sh &&
-  echo "ipfs config Baz Qux" > 002.sh &&
+  echo "ipfs config Provider.Strategy Bar" > 001.sh &&
+  echo "ipfs config Datastore.Path Qux" > 002.sh &&
   chmod +x 002.sh
 '
 

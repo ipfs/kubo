@@ -151,6 +151,8 @@ func ReflectToMap(conf interface{}) map[string]interface{} {
 		if field.CanInterface() {
 			if field.Kind() == reflect.Struct {
 				confmap[rv.Type().Field(i).Name] = ReflectToMap(field.Interface())
+			} else if field.Kind() == reflect.Map {
+				confmap[rv.Type().Field(i).Name] = "map"
 			} else {
 				confmap[rv.Type().Field(i).Name] = field.Interface()
 			}
@@ -193,6 +195,10 @@ func CheckKey(key string) error {
 
 		mcursor, ok = cursor.(map[string]interface{})
 		if !ok {
+			s, ok := cursor.(string)
+			if ok && s == "map" {
+				return nil
+			}
 			return fmt.Errorf("%s key is not a map", sofar)
 		}
 
