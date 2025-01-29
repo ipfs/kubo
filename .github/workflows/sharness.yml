@@ -31,7 +31,7 @@ jobs:
         with:
           path: kubo
       - name: Install missing tools
-        run: sudo apt update && sudo apt install -y socat net-tools fish libxml2-utils
+        run: sudo apt update && sudo apt install -y socat=1.7.4.4-2 net-tools fish libxml2-utils
       - uses: actions/cache@v4
         with:
           path: test/sharness/lib/dependencies
