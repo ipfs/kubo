@@ -65,10 +65,10 @@ test_expect_success "check that init scripts were run correctly and in the corre
 
 test_expect_success "check that init script configs were applied" '
   echo Bar > expected &&
-  docker exec "$DOC_ID" ipfs config Foo > actual &&
+  docker exec "$DOC_ID" ipfs config Provider.Strategy > actual &&
   test_cmp actual expected &&
   echo Qux > expected &&
-  docker exec "$DOC_ID" ipfs config Baz > actual &&
+  docker exec "$DOC_ID" ipfs config Datastore.Path > actual &&
   test_cmp actual expected
 '
 
