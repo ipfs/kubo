@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   pull_request:
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
   push:
     branches:
-      - 'master'
+      - "master"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
@@ -31,7 +31,7 @@ jobs:
         with:
           path: kubo
       - name: Install missing tools
-        run: sudo apt update && sudo apt install -y socat net-tools fish libxml2-utils
+        run: sudo apt update && sudo apt install -y socat net-tools fish libxml2-utils && socat -V
       - uses: actions/cache@v4
         with:
           path: test/sharness/lib/dependencies
