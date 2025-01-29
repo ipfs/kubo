@@ -119,9 +119,7 @@ func FromMap(v map[string]interface{}) (*Config, error) {
 		return nil, err
 	}
 	var conf Config
-	decoder := json.NewDecoder(buf)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&conf); err != nil {
+	if err := json.NewDecoder(buf).Decode(&conf); err != nil {
 		return nil, fmt.Errorf("failure to decode config: %w", err)
 	}
 	return &conf, nil
@@ -153,4 +151,37 @@ func (c *Config) Clone() (*Config, error) {
 	}
 
 	return &newConfig, nil
+}
+
+// Check if the provided key is present in the structure.
+func CheckKey(key string) error {
+	confmap, err := ToMap(&Config{})
+	if err != nil {
+		return err
+	}
+	var ok bool
+	var mcursor map[string]interface{}
+	var cursor interface{} = confmap
+
+	parts := strings.Split(key, ".")
+	for i, part := range parts {
+		sofar := strings.Join(parts[:i], ".")
+
+		mcursor, ok = cursor.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("%s key is not a map", sofar)
+		}
+
+		cursor, ok = mcursor[part]
+		if !ok {
+			// Construct the current path traversed to print a nice error message
+			var path string
+			if len(sofar) > 0 {
+				path += sofar + "."
+			}
+			path += part
+			return fmt.Errorf("%s not found", path)
+		}
+	}
+	return nil
 }
