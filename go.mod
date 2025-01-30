@@ -278,4 +278,4 @@ require (
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
 
-replace github.com/ipfs/boxo => github.com/gsergey418alt/boxo v0.0.0-20250130100910-c664359ed14f
+replace github.com/ipfs/boxo => github.com/gsergey418alt/boxo v0.0.0-20250130153134-5bc192e098c3
