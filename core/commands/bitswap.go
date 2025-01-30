@@ -21,9 +21,9 @@ var BitswapCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"stat":      bitswapStatCmd,
-		"wantlist":  showWantlistCmd,
-		"ledger":    ledgerCmd,
+		"stat":     bitswapStatCmd,
+		"wantlist": showWantlistCmd,
+		"ledger":   ledgerCmd,
 	},
 }
 
