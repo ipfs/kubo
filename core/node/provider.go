@@ -110,6 +110,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 					}
 					return false
 				}, sampledBatchSize))
+		} else {
+			opts = append(opts, provider.AcceleratedDHTClient(true))
 		}
 		sys, err := provider.New(repo.Datastore(), opts...)
 		if err != nil {
