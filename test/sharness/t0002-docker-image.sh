@@ -37,7 +37,7 @@ test_expect_success "docker image build succeeds" '
 
 test_expect_success "write init scripts" '
   echo "ipfs config Provider.Strategy Bar" > 001.sh &&
-  echo "ipfs config Datastore.Path Qux" > 002.sh &&
+  echo "ipfs config Pubsub.Router Qux" > 002.sh &&
   chmod +x 002.sh
 '
 
@@ -68,7 +68,7 @@ test_expect_success "check that init script configs were applied" '
   docker exec "$DOC_ID" ipfs config Provider.Strategy > actual &&
   test_cmp actual expected &&
   echo Qux > expected &&
-  docker exec "$DOC_ID" ipfs config Datastore.Path > actual &&
+  docker exec "$DOC_ID" ipfs config Pubsub.Router > actual &&
   test_cmp actual expected
 '
 
