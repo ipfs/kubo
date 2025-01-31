@@ -138,66 +138,6 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 	return m, nil
 }
 
-// Convert config to a map, without using encoding/json, since
-// zero/empty/'omitempty' fields are exclused by encoding/json during
-// marshaling.
-func ReflectToMap(conf interface{}) interface{} {
-	v := reflect.ValueOf(conf)
-	if !v.IsValid() {
-		return nil
-	}
-
-	// Handle pointer type
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			// Create a zero value of the pointer's element type
-			elemType := v.Type().Elem()
-			zero := reflect.Zero(elemType)
-			return ReflectToMap(zero.Interface())
-		}
-		v = v.Elem()
-	}
-
-	switch v.Kind() {
-	case reflect.Struct:
-		result := make(map[string]interface{})
-		t := v.Type()
-		for i := 0; i < v.NumField(); i++ {
-			field := v.Field(i)
-			// Only include exported fields
-			if field.CanInterface() {
-				result[t.Field(i).Name] = ReflectToMap(field.Interface())
-			}
-		}
-		return result
-
-	case reflect.Map:
-		result := make(map[string]interface{})
-		iter := v.MapRange()
-		for iter.Next() {
-			key := iter.Key()
-			// Convert map keys to strings for consistency
-			keyStr := fmt.Sprint(ReflectToMap(key.Interface()))
-			result[keyStr] = ReflectToMap(iter.Value().Interface())
-		}
-		return result
-
-	case reflect.Slice, reflect.Array:
-		result := make([]interface{}, v.Len())
-		for i := 0; i < v.Len(); i++ {
-			result[i] = ReflectToMap(v.Index(i).Interface())
-		}
-		return result
-
-	default:
-		// For basic types (int, string, etc.), just return the value
-		if v.CanInterface() {
-			return v.Interface()
-		}
-		return nil
-	}
-}
-
 // Clone copies the config. Use when updating.
 func (c *Config) Clone() (*Config, error) {
 	var newConfig Config
@@ -219,7 +159,7 @@ func CheckKey(key string) error {
 	conf := Config{}
 
 	// Convert an empty config to a map without JSON.
-	confmap := ReflectToMap(&conf)
+	confmap := GetValidationMap(&conf)
 
 	// Parse the key and verify it's presence in the map.
 	var ok bool
@@ -251,4 +191,57 @@ func CheckKey(key string) error {
 		}
 	}
 	return nil
+}
+
+// Convert config to a map, without using encoding/json, since
+// zero/empty/'omitempty' fields are exclused by encoding/json during
+// marshaling.
+func GetValidationMap(conf interface{}) interface{} {
+	v := reflect.ValueOf(conf)
+	if !v.IsValid() {
+		return nil
+	}
+
+	// Handle pointer type
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			// Create a zero value of the pointer's element type
+			elemType := v.Type().Elem()
+			zero := reflect.Zero(elemType)
+			return GetValidationMap(zero.Interface())
+		}
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Struct:
+		result := make(map[string]interface{})
+		t := v.Type()
+		for i := 0; i < v.NumField(); i++ {
+			field := v.Field(i)
+			// Only include exported fields
+			if field.CanInterface() {
+				result[t.Field(i).Name] = GetValidationMap(field.Interface())
+			}
+		}
+		return result
+
+	case reflect.Map:
+		result := "map"
+		return result
+
+	case reflect.Slice, reflect.Array:
+		result := make([]interface{}, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			result[i] = GetValidationMap(v.Index(i).Interface())
+		}
+		return result
+
+	default:
+		// For basic types (int, string, etc.), just return the value
+		if v.CanInterface() {
+			return v.Interface()
+		}
+		return nil
+	}
 }

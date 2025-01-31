@@ -19,8 +19,14 @@ test_config_cmd_set() {
 
   test_expect_success "ipfs config output looks good" "
     echo \"$cfg_val\" >expected &&
-    ipfs config \"$cfg_key\" >actual &&
-    test_cmp expected actual
+    if [$cfg_flags != \"--json\"]; then
+      ipfs config \"$cfg_key\" >actual &&
+      test_cmp expected actual
+    else 
+      ipfs config \"$cfg_key\" | tr -d \"\\n\\t \" >actual &&
+      echo >>actual &&
+      test_cmp expected actual
+    fi
   "
 }
 
@@ -73,6 +79,7 @@ test_config_cmd() {
   test_config_cmd_set "--json" "Experimental.FilestoreEnabled" "true"
   test_config_cmd_set "--json" "Import.BatchMaxSize" "null"
   test_config_cmd_set "--json" "Import.UnixFSRawLeaves" "true"
+  test_config_cmd_set "--json" "Routing.Routers.Test" "{\\\"Parameters\\\":\\\"Test\\\",\\\"Type\\\":\\\"Test\\\"}"
 
   test_expect_success "'ipfs config show' works" '
     ipfs config show >actual
