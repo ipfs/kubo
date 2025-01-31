@@ -2,6 +2,8 @@ module github.com/ipfs/kubo
 
 go 1.23
 
+replace github.com/ipfs/boxo => github.com/gsergey418alt/boxo v0.0.0-20250131104755-01f1a835f3e6
+
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
@@ -277,5 +279,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
-
-replace github.com/ipfs/boxo => github.com/gsergey418alt/boxo v0.0.0-20250130153134-5bc192e098c3
