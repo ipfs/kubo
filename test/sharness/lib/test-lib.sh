@@ -158,8 +158,8 @@ test_wait_open_tcp_port_10_sec() {
   for i in $(test_seq 1 100)
   do
     # this is not a perfect check, but it's portable.
-    # cant count on ss. not installed everywhere.
-    # cant count on netstat using : or . as port delim. differ across platforms.
+    # can't count on ss. not installed everywhere.
+    # can't count on netstat using : or . as port delim. differ across platforms.
     echo $(netstat -aln | egrep "^tcp.*LISTEN" | egrep "[.:]$1" | wc -l) -gt 0
     if [ $(netstat -aln | egrep "^tcp.*LISTEN" | egrep "[.:]$1" | wc -l) -gt 0 ]; then
       return 0
