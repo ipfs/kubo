@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/ipfs/kubo/misc/fsutil"
@@ -151,4 +152,96 @@ func (c *Config) Clone() (*Config, error) {
 	}
 
 	return &newConfig, nil
+}
+
+// Check if the provided key is present in the structure.
+func CheckKey(key string) error {
+	conf := Config{}
+
+	// Convert an empty config to a map without JSON.
+	confmap := GetValidationMap(&conf)
+
+	// Parse the key and verify it's presence in the map.
+	var ok bool
+	var mcursor map[string]interface{}
+	cursor := confmap
+
+	parts := strings.Split(key, ".")
+	for i, part := range parts {
+		sofar := strings.Join(parts[:i], ".")
+
+		mcursor, ok = cursor.(map[string]interface{})
+		if !ok {
+			s, ok := cursor.(string)
+			if ok && s == "map" {
+				return nil
+			}
+			return fmt.Errorf("%s key is not a map", sofar)
+		}
+
+		cursor, ok = mcursor[part]
+		if !ok {
+			// Construct the current path traversed to print a nice error message
+			var path string
+			if len(sofar) > 0 {
+				path += sofar + "."
+			}
+			path += part
+			return fmt.Errorf("%s not found", path)
+		}
+	}
+	return nil
+}
+
+// Convert config to a map, without using encoding/json, since
+// zero/empty/'omitempty' fields are exclused by encoding/json during
+// marshaling.
+func GetValidationMap(conf interface{}) interface{} {
+	v := reflect.ValueOf(conf)
+	if !v.IsValid() {
+		return nil
+	}
+
+	// Handle pointer type
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			// Create a zero value of the pointer's element type
+			elemType := v.Type().Elem()
+			zero := reflect.Zero(elemType)
+			return GetValidationMap(zero.Interface())
+		}
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Struct:
+		result := make(map[string]interface{})
+		t := v.Type()
+		for i := 0; i < v.NumField(); i++ {
+			field := v.Field(i)
+			// Only include exported fields
+			if field.CanInterface() {
+				result[t.Field(i).Name] = GetValidationMap(field.Interface())
+			}
+		}
+		return result
+
+	case reflect.Map:
+		result := "map"
+		return result
+
+	case reflect.Slice, reflect.Array:
+		result := make([]interface{}, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			result[i] = GetValidationMap(v.Index(i).Interface())
+		}
+		return result
+
+	default:
+		// For basic types (int, string, etc.), just return the value
+		if v.CanInterface() {
+			return v.Interface()
+		}
+		return nil
+	}
 }
