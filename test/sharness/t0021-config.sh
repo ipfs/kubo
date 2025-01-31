@@ -72,6 +72,7 @@ test_config_cmd() {
   test_config_cmd_set "Addresses.API" "foo"
   test_config_cmd_set "Addresses.Gateway" "bar"
   test_config_cmd_set "Datastore.GCPeriod" "baz"
+  test_config_cmd_set "AutoNAT.ServiceMode" "enabled"
   test_config_cmd_set "--bool" "Discovery.MDNS.Enabled" "true"
   test_config_cmd_set "--bool" "Discovery.MDNS.Enabled" "false"
   test_config_cmd_set "--json" "Datastore.HashOnRead" "true"
@@ -80,6 +81,8 @@ test_config_cmd() {
   test_config_cmd_set "--json" "Import.BatchMaxSize" "null"
   test_config_cmd_set "--json" "Import.UnixFSRawLeaves" "true"
   test_config_cmd_set "--json" "Routing.Routers.Test" "{\\\"Parameters\\\":\\\"Test\\\",\\\"Type\\\":\\\"Test\\\"}"
+  test_config_cmd_set "--json" "Experimental.OptimisticProvideJobsPoolSize" "1337"
+  test_config_cmd_set "--json" "Addresses.Swarm" "[\\\"test\\\",\\\"test\\\",\\\"test\\\"]"
 
   test_expect_success "'ipfs config show' works" '
     ipfs config show >actual
