@@ -43,7 +43,7 @@ func TestProvider(t *testing.T) {
 
 		cid := nodes[0].IPFSAddStr(time.Now().String())
 		// Reprovide as initialProviderDelay still ongoing
-		res := nodes[0].IPFS("bitswap", "reprovide")
+		res := nodes[0].IPFS("routing", "reprovide")
 		require.NoError(t, res.Err)
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
@@ -72,7 +72,7 @@ func TestProvider(t *testing.T) {
 
 		expectNoProviders(t, cid, nodes[1:]...)
 
-		nodes[0].IPFS("bitswap", "reprovide")
+		nodes[0].IPFS("routing", "reprovide")
 
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
@@ -89,7 +89,7 @@ func TestProvider(t *testing.T) {
 
 		expectNoProviders(t, cid, nodes[1:]...)
 
-		nodes[0].IPFS("bitswap", "reprovide")
+		nodes[0].IPFS("routing", "reprovide")
 
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
@@ -113,7 +113,7 @@ func TestProvider(t *testing.T) {
 		expectNoProviders(t, cidBar, nodes[1:]...)
 		expectNoProviders(t, cidBarDir, nodes[1:]...)
 
-		nodes[0].IPFS("bitswap", "reprovide")
+		nodes[0].IPFS("routing", "reprovide")
 
 		expectNoProviders(t, cidFoo, nodes[1:]...)
 		expectProviders(t, cidBar, nodes[0].PeerID().String(), nodes[1:]...)
@@ -141,7 +141,7 @@ func TestProvider(t *testing.T) {
 		expectNoProviders(t, cidBar, nodes[1:]...)
 		expectNoProviders(t, cidBarDir, nodes[1:]...)
 
-		nodes[0].IPFS("bitswap", "reprovide")
+		nodes[0].IPFS("routing", "reprovide")
 
 		expectNoProviders(t, cidFoo, nodes[1:]...)
 		expectNoProviders(t, cidBar, nodes[1:]...)
@@ -161,7 +161,7 @@ func TestProvider(t *testing.T) {
 
 		expectNoProviders(t, cid, nodes[1:]...)
 
-		nodes[0].IPFS("bitswap", "reprovide")
+		nodes[0].IPFS("routing", "reprovide")
 
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
