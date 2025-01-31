@@ -46,6 +46,9 @@ Uses a leveldb database to store key value pairs.
 
 ## pebbleds
 
+> [!WARNING]
+> This is still **EXPERIMENTAL** opt-in. Datastore format can be set when first initializing the node via `ipfs init --profile pebbleds`.
+
 Uses [pebble](https://github.com/cockroachdb/pebble) as a key value store.
 
 ```json

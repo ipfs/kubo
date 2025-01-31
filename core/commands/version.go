@@ -227,7 +227,7 @@ func DetectNewKuboVersion(nd *core.IpfsNode, minPercent int64) (VersionCheckOutp
 			return
 		}
 
-		// Ignore prerelases and development releases (-dev, -rcX)
+		// Ignore prereleases and development releases (-dev, -rcX)
 		if peerVersion.Metadata() != "" || peerVersion.Prerelease() != "" {
 			return
 		}

@@ -2616,7 +2616,7 @@ You should use this datastore if:
 
 ### `pebbleds` profile
 
-Configures the node to use the pebble high-performance datastore.
+Configures the node to use the **EXPERIMENTAL** pebble high-performance datastore.
 
 Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and internal usage by CockroachDB.
 You should use this datastore if:
@@ -2636,7 +2636,7 @@ You should use this datastore if:
 
 ### `badgerds` profile
 
-Configures the node to use the legacy badgerv1 datastore.
+Configures the node to use the **legacy** badgerv1 datastore.
 
 > [!CAUTION]
 > This is based on very old badger 1.x, which has known bugs and is no longer supported by the upstream team.
