@@ -21,7 +21,7 @@ func (api *SwarmAPI) Connect(ctx context.Context, pi peer.AddrInfo) error {
 
 	saddrs := make([]string, len(pi.Addrs))
 	for i, addr := range pi.Addrs {
-		saddrs[i] = addr.Encapsulate(pidma).String()
+		saddrs[i] = addr.EncapsulateC(pidma).String()
 	}
 
 	return api.core().Request("swarm/connect", saddrs...).Exec(ctx, nil)
