@@ -114,7 +114,10 @@ Please follow [`SECURITY.md`](SECURITY.md).
 
 ### Minimal System Requirements
 
-IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 4 GB of RAM and 2 CPU cores (kubo is highly parallel). On systems with less memory, it may not be completely stable, and you run on your own risk.
+IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 6 GB of RAM and 2 CPU cores (ideally more, Kubo is highly parallel).
+
+> [!CAUTION]
+> On systems with less memory, it may not be completely stable, and you run on your own risk.
 
 ## Install
 
