@@ -28,9 +28,9 @@ func TestClone(t *testing.T) {
 	}
 }
 
-func TestGetValidationMap(t *testing.T) {
+func TestReflectToMap(t *testing.T) {
 	// Helper function to create a test config with various field types
-	reflectedConfig := GetValidationMap(new(Config))
+	reflectedConfig := ReflectToMap(new(Config))
 
 	mapConfig, ok := reflectedConfig.(map[string]interface{})
 	if !ok {
@@ -116,7 +116,7 @@ func TestGetValidationMap(t *testing.T) {
 		t.Fatal("Resolvers field not found in DNS")
 	}
 	// Test map field
-	if v, _ := reflectedResolvers.(string); v != "map" {
+	if _, ok := reflectedResolvers.(map[string]interface{}); !ok {
 		t.Fatal("Resolvers field didn't convert to map")
 	}
 
