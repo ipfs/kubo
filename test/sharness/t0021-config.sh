@@ -84,6 +84,7 @@ test_config_cmd() {
   test_config_cmd_set "--json" "Experimental.OptimisticProvideJobsPoolSize" "1337"
   test_config_cmd_set "--json" "Addresses.Swarm" "[\\\"test\\\",\\\"test\\\",\\\"test\\\"]"
   test_config_cmd_set "--json" "Gateway.PublicGateways.Foo" "{\\\"DeserializedResponses\\\":true,\\\"InlineDNSLink\\\":false,\\\"NoDNSLink\\\":false,\\\"Paths\\\":[\\\"Bar\\\",\\\"Baz\\\"],\\\"UseSubdomains\\\":true}"
+  test_config_cmd_set "--bool" "Gateway.PublicGateways.Foo.UseSubdomains" "false"
 
   test_expect_success "'ipfs config show' works" '
     ipfs config show >actual
