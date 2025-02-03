@@ -52,8 +52,8 @@ func newListenersP2P(host p2phost.Host) *Listeners {
 		defer reg.RUnlock()
 
 		l := reg.Listeners[stream.Protocol()]
-		if l != nil {
-			go l.(*remoteListener).handleStream(stream)
+		if rl, ok := l.(*remoteListener); ok && rl != nil {
+			go rl.handleStream(stream)
 		}
 	})
 
