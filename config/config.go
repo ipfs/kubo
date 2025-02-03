@@ -225,8 +225,6 @@ func CheckKey(key string) error {
 
 	// Convert an empty config to a map without JSON.
 	confmap := ReflectToMap(&conf)
-	b, _ := json.MarshalIndent(confmap, "", "    ")
-	fmt.Printf("%s\n", b)
 
 	// Parse the key and verify it's presence in the map.
 	var ok bool
