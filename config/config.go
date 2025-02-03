@@ -180,6 +180,7 @@ func ReflectToMap(conf interface{}) interface{} {
 			keyStr := fmt.Sprint(ReflectToMap(key.Interface()))
 			result[keyStr] = ReflectToMap(iter.Value().Interface())
 		}
+		// Add a sample to differentiate between a map and a struct on validation.
 		sample := reflect.Zero(v.Type().Elem())
 		if sample.CanInterface() {
 			result["*"] = ReflectToMap(sample.Interface())
@@ -243,6 +244,7 @@ func CheckKey(key string) error {
 
 		cursor, ok = mcursor[part]
 		if !ok {
+			// If the config sections is a map, validate against the default entry.
 			if cursor, ok = mcursor["*"]; ok {
 				continue
 			}
