@@ -180,6 +180,10 @@ func ReflectToMap(conf interface{}) interface{} {
 			keyStr := fmt.Sprint(ReflectToMap(key.Interface()))
 			result[keyStr] = ReflectToMap(iter.Value().Interface())
 		}
+		sample := reflect.Zero(v.Type().Elem())
+		if sample.CanInterface() {
+			result["*"] = ReflectToMap(sample.Interface())
+		}
 		return result
 
 	case reflect.Slice, reflect.Array:
@@ -220,6 +224,8 @@ func CheckKey(key string) error {
 
 	// Convert an empty config to a map without JSON.
 	confmap := ReflectToMap(&conf)
+	b, _ := json.MarshalIndent(confmap, "", "    ")
+	fmt.Printf("%s\n", b)
 
 	// Parse the key and verify it's presence in the map.
 	var ok bool
@@ -232,15 +238,14 @@ func CheckKey(key string) error {
 
 		mcursor, ok = cursor.(map[string]interface{})
 		if !ok {
-			s, ok := cursor.(string)
-			if ok && s == "map" {
-				return nil
-			}
 			return fmt.Errorf("%s key is not a map", sofar)
 		}
 
 		cursor, ok = mcursor[part]
 		if !ok {
+			if cursor, ok = mcursor["*"]; ok {
+				continue
+			}
 			// Construct the current path traversed to print a nice error message
 			var path string
 			if len(sofar) > 0 {
