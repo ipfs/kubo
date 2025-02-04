@@ -153,4 +153,9 @@ func TestCheckKey(t *testing.T) {
 	if err == nil {
 		t.Fatal("Gateway.PublicGateways.Foo.Bar isn't a valid key in the config")
 	}
+
+	err = CheckKey("Plugins.Plugins.peerlog.Config.Enabled")
+	if err != nil {
+		t.Fatalf("%s: %s", err, "Plugins.Plugins.peerlog.Config.Enabled is a valid key in the config")
+	}
 }
