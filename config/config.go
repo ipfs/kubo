@@ -144,7 +144,7 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 func ReflectToMap(conf interface{}) interface{} {
 	v := reflect.ValueOf(conf)
 	if !v.IsValid() {
-		return "any"
+		return nil
 	}
 
 	// Handle pointer type
@@ -234,7 +234,7 @@ func CheckKey(key string) error {
 	for i, part := range parts {
 		mapCursor, ok = cursor.(map[string]interface{})
 		if !ok {
-			if v, ok := cursor.(string); ok && v == "any" {
+			if cursor == nil {
 				return nil
 			}
 			path := strings.Join(parts[:i], ".")
