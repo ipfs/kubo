@@ -126,3 +126,31 @@ func TestReflectToMap(t *testing.T) {
 		t.Fatal("MaxCacheTTL field didn't convert to map")
 	}
 }
+
+// Test validation of options set through "ipfs config"
+func TestCheckKey(t *testing.T) {
+	err := CheckKey("Foo.Bar")
+	if err == nil {
+		t.Fatal("Foo.Bar isn't a valid key in the config")
+	}
+
+	err = CheckKey("Provider.Strategy")
+	if err != nil {
+		t.Fatalf("%s: %s", err, "Provider.Strategy is a valid key in the config")
+	}
+
+	err = CheckKey("Provider.Foo")
+	if err == nil {
+		t.Fatal("Provider.Foo isn't a valid key in the config")
+	}
+
+	err = CheckKey("Gateway.PublicGateways.Foo.Paths")
+	if err != nil {
+		t.Fatalf("%s: %s", err, "Gateway.PublicGateways.Foo.Paths is a valid key in the config")
+	}
+
+	err = CheckKey("Gateway.PublicGateways.Foo.Bar")
+	if err == nil {
+		t.Fatal("Gateway.PublicGateways.Foo.Bar isn't a valid key in the config")
+	}
+}
