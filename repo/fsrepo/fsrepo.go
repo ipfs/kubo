@@ -676,6 +676,12 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		return errors.New("repo is closed")
 	}
 
+	// Validate the key's presence in the config structure.
+	err := config.CheckKey(key)
+	if err != nil {
+		return err
+	}
+
 	// Load into a map so we don't end up writing any additional defaults to the config file.
 	var mapconf map[string]interface{}
 	if err := serialize.ReadConfigFile(r.configFilePath, &mapconf); err != nil {
