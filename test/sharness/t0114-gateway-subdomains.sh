@@ -163,7 +163,7 @@ test_localhost_gateway_response_should_contain \
   "Location: http://$DIR_CID.ipfs.localhost:$GWAY_PORT/"
 
 # Kubo specific end-to-end test
-# (independend of gateway-conformance)
+# (independent of gateway-conformance)
 
 # We return human-readable body with HTTP 301 so existing cli scripts that use path-based
 # gateway are informed to enable following HTTP redirects
@@ -194,7 +194,7 @@ test_localhost_gateway_response_should_contain \
 # /ipns/<dnslink-fqdn>
 
 # Kubo specific end-to-end test
-# (independend of gateway-conformance)
+# (independent of gateway-conformance)
 
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain" \
@@ -228,7 +228,7 @@ test_localhost_gateway_response_should_contain \
   "I am a txt file"
 
 # Kubo specific end-to-end test
-# (independend of gateway-conformance)
+# (independent of gateway-conformance)
 # This tests link to parent specific to boxo + relative pathing end-to-end tests specific to Kubo.
 
 # {CID}.ipfs.localhost/sub/dir (Directory Listing)
@@ -429,7 +429,7 @@ test_hostname_gateway_response_should_contain \
   "404 Not Found"
 
 # Kubo specific end-to-end test
-# (independend of gateway-conformance)
+# (independent of gateway-conformance)
 # HTML specific to Boxo/Kubo, and relative pathing specific to code in Kubo
 
 # {CID}.ipfs.example.com/sub/dir (Directory Listing)
@@ -801,8 +801,8 @@ test_expect_success "request for http://fake.domain.com/ipfs/{CID} with X-Forwar
 "
 
 # Kubo specific end-to-end test
-# (independend of gateway-conformance)
-# test cofiguration beign wired up correctly end-to-end
+# (independent of gateway-conformance)
+# test configuration beign wired up correctly end-to-end
 
 ## ============================================================================
 ## Test support for wildcards in gateway config
