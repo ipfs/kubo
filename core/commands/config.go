@@ -48,13 +48,13 @@ file inside your IPFS repository (IPFS_PATH).
 
 Examples:
 
-Get the value of the 'Datastore.Path' key:
+Get the value of the 'Routing.Type' key:
 
-  $ ipfs config Datastore.Path
+  $ ipfs config Routing.Type
 
-Set the value of the 'Datastore.Path' key:
+Set the value of the 'Routing.Type' key:
 
-  $ ipfs config Datastore.Path ~/.ipfs/datastore
+  $ ipfs config Routing.Type auto
 
 Set multiple values in the 'Addresses.AppendAnnounce' array:
 
