@@ -224,34 +224,27 @@ func CheckKey(key string) error {
 	conf := Config{}
 
 	// Convert an empty config to a map without JSON.
-	confmap := ReflectToMap(&conf)
+	cursor := ReflectToMap(&conf)
 
 	// Parse the key and verify it's presence in the map.
 	var ok bool
-	var mcursor map[string]interface{}
-	cursor := confmap
+	var mapCursor map[string]interface{}
 
 	parts := strings.Split(key, ".")
 	for i, part := range parts {
-		sofar := strings.Join(parts[:i], ".")
-
-		mcursor, ok = cursor.(map[string]interface{})
+		mapCursor, ok = cursor.(map[string]interface{})
 		if !ok {
-			return fmt.Errorf("%s key is not a map", sofar)
+			path := strings.Join(parts[:i], ".")
+			return fmt.Errorf("%s key is not a map", path)
 		}
 
-		cursor, ok = mcursor[part]
+		cursor, ok = mapCursor[part]
 		if !ok {
 			// If the config sections is a map, validate against the default entry.
-			if cursor, ok = mcursor["*"]; ok {
+			if cursor, ok = mapCursor["*"]; ok {
 				continue
 			}
-			// Construct the current path traversed to print a nice error message
-			var path string
-			if len(sofar) > 0 {
-				path += sofar + "."
-			}
-			path += part
+			path := strings.Join(parts[:i+1], ".")
 			return fmt.Errorf("%s not found", path)
 		}
 	}
