@@ -139,7 +139,7 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 }
 
 // Convert config to a map, without using encoding/json, since
-// zero/empty/'omitempty' fields are exclused by encoding/json during
+// zero/empty/'omitempty' fields are excluded by encoding/json during
 // marshaling.
 func ReflectToMap(conf interface{}) interface{} {
 	v := reflect.ValueOf(conf)
