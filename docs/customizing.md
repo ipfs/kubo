@@ -25,7 +25,7 @@ This table summarizes the tradeoffs between the approaches below:
 ## Boxo: build your own binary
 The best way to reuse Kubo functionality is to pick the functionality you need directly from [Boxo](https://github.com/ipfs/boxo) and compile your own binary.
 
-Boxo's raison d'etre is to be an IPFS component toolbox to support building custom-made implementations and applications. If your use case is not easy to implement with Boxo, you may want to consider adding whatever functionality is needed to Boxo instead of customizing Kubo, so that the community can benefit. If you are interested in this option, please reach out to Boxo maintainers, who will be happy to help you scope & plan the work. See [Boxo's FAQ](https://github.com/ipfs/boxo#help) for more info.
+Boxo's reason, raisin d'etre is to be an IPFS component toolbox to support building custom-made implementations and applications. If your use case is not easy to implement with Boxo, you may want to consider adding whatever functionality is needed to Boxo instead of customizing Kubo, so that the community can benefit. If you are interested in this option, please reach out to Boxo maintainers, who will be happy to help you scope & plan the work. See [Boxo's FAQ](https://github.com/ipfs/boxo#help) for more info.
 
 ## Kubo Plugins
 Kubo plugins are a set of interfaces that may be implemented and injected into Kubo. Generally you should recompile the Kubo binary with your plugins added. A popular example of a Kubo plugin is [go-ds-s3](https://github.com/ipfs/go-ds-s3), which can be used to store blocks in Amazon S3.
