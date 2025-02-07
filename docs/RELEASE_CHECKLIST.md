@@ -35,7 +35,7 @@ This section covers tasks to be done during each release.
     - use `master` as base if `Z == 0`
     - use `release` as base if `Z > 0`
   - [ ] ![](https://img.shields.io/badge/only-RC1-blue?style=flat-square) update the `CurrentVersionNumber` in [version.go](version.go) in the `master` branch to `vX.Y+1.0-dev` ([example](https://github.com/ipfs/kubo/pull/9305))
-  - [ ] update the `CurrentVersionNumber` in [version.go](version.go) in the `release-vX.Y` branch to `vX.Y.Z(-rcN)`  ([example](https://github.com/ipfs/kubo/pull/9394))
+  - [ ] update the `CurrentVersionNumber` in [version.go](version.go) in the `release-vX.Y.Z` branch to `vX.Y.Z(-rcN)`  ([example](https://github.com/ipfs/kubo/pull/9394))
   - [ ] create a draft PR from `release-vX.Y.Z` to `release` ([example](https://github.com/ipfs/kubo/pull/9306))
   - [ ] Cherry-pick commits from `master` to the `release-vX.Y.Z` using `git cherry-pick -x <commit>`  ([example](https://github.com/ipfs/kubo/pull/10636/commits/033de22e3bc6191dbb024ad6472f5b96b34e3ccf))
     - **NOTE:** cherry-picking with `-x` is important
