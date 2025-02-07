@@ -171,21 +171,21 @@ func newProvidingStrategy(onlyPinned, onlyRoots bool) interface{} {
 	}
 	return func(in input) provider.KeyChanFunc {
 		if onlyRoots {
-			return NewPinnedProviderWithMFS(true, in.Pinner, in.IPLDFetcher, in.Root)
+			return NewPinnedProviderWithMFS(true, in.Pinner, in.IPLDFetcher, in.Root, in.Blockstore)
 		}
 
 		if onlyPinned {
-			return NewPinnedProviderWithMFS(false, in.Pinner, in.IPLDFetcher, in.Root)
+			return NewPinnedProviderWithMFS(false, in.Pinner, in.IPLDFetcher, in.Root, in.Blockstore)
 		}
 
 		return provider.NewPrioritizedProvider(
-			NewPinnedProviderWithMFS(true, in.Pinner, in.IPLDFetcher, in.Root),
+			NewPinnedProviderWithMFS(true, in.Pinner, in.IPLDFetcher, in.Root, in.Blockstore),
 			provider.NewBlockstoreProvider(in.Blockstore),
 		)
 	}
 }
 
-func NewPinnedProviderWithMFS(onlyRoots bool, pinner pin.Pinner, fetcher fetcher.Factory, root *mfs.Root) provider.KeyChanFunc {
+func NewPinnedProviderWithMFS(onlyRoots bool, pinner pin.Pinner, fetcher fetcher.Factory, root *mfs.Root, bs blockstore.Blockstore) provider.KeyChanFunc {
 	return func(ctx context.Context) (<-chan cid.Cid, error) {
 		out := make(chan cid.Cid)
 
@@ -210,7 +210,7 @@ func NewPinnedProviderWithMFS(onlyRoots bool, pinner pin.Pinner, fetcher fetcher
 			}
 
 			// Then handle MFS content
-			if err := walkMFS(ctx, root, onlyRoots, out); err != nil {
+			if err := walkMFS(ctx, root, onlyRoots, out, bs); err != nil {
 				logger.Errorf("error walking MFS: %s", err)
 				return
 			}
@@ -220,7 +220,7 @@ func NewPinnedProviderWithMFS(onlyRoots bool, pinner pin.Pinner, fetcher fetcher
 	}
 }
 
-func walkMFS(ctx context.Context, root *mfs.Root, onlyRoots bool, out chan<- cid.Cid) error {
+func walkMFS(ctx context.Context, root *mfs.Root, onlyRoots bool, out chan<- cid.Cid, bs blockstore.Blockstore) error {
 	if root == nil {
 		return nil
 	}
@@ -259,6 +259,10 @@ func walkMFS(ctx context.Context, root *mfs.Root, onlyRoots bool, out chan<- cid
 					if err != nil {
 						continue
 					}
+					c := n.Cid()
+					if exists, err := bs.Has(ctx, c); err != nil || !exists {
+						continue // Skip if not in local blockstore
+					}
 					select {
 					case out <- n.Cid():
 					case <-ctx.Done():
@@ -289,6 +293,10 @@ func walkMFS(ctx context.Context, root *mfs.Root, onlyRoots bool, out chan<- cid
 				c := n.Cid()
 
 				if onlyRoots || c.Prefix().Codec == cid.Raw {
+					c := n.Cid()
+					if exists, err := bs.Has(ctx, c); err != nil || !exists {
+						continue // Skip if not in local blockstore
+					}
 					select {
 					case out <- c:
 					case <-ctx.Done():
