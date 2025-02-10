@@ -37,11 +37,14 @@ func (t TimeParts) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 // The time is expected to be a quoted string in RFC 3339 format.
-func (t *TimeParts) UnmarshalJSON(data []byte) (err error) {
+func (t *TimeParts) UnmarshalJSON(data []byte) error {
 	// Fractional seconds are handled implicitly by Parse.
 	tt, err := time.Parse("\"2006-01-02T15:04:05Z\"", string(data))
+	if err != nil {
+		return err
+	}
 	*t = TimeParts{&tt}
-	return
+	return nil
 }
 
 type AddEvent struct {
