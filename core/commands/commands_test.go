@@ -20,6 +20,7 @@ func TestCommands(t *testing.T) {
 		"/add",
 		"/bitswap",
 		"/bitswap/ledger",
+		"/bitswap/reprovide",
 		"/bitswap/stat",
 		"/bitswap/wantlist",
 		"/block",
