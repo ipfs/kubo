@@ -14,7 +14,7 @@ require (
 	github.com/ipfs/iptb-plugins v0.5.1
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
-	github.com/multiformats/go-multiaddr v0.14.0
+	github.com/multiformats/go-multiaddr v0.14.1-0.20250212223446-9a126cc3817d
 	github.com/multiformats/go-multihash v0.2.3
 	gotest.tools/gotestsum v1.12.0
 )
