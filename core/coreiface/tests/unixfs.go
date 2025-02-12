@@ -659,8 +659,14 @@ func (tp *TestSuite) TestGetNonUnixfs(t *testing.T) {
 	}
 
 	_, err = api.Unixfs().Get(ctx, path.FromCid(nd.Cid()))
-	if !strings.Contains(err.Error(), "proto: required field") {
-		t.Fatalf("expected protobuf error, got: %s", err)
+	// Error string may have tab or space.
+	expect := "proto:"
+	if !strings.Contains(err.Error(), expect) {
+		t.Fatalf("expected contains %q, got: %q", expect, err.Error())
+	}
+	expect = "required field"
+	if !strings.Contains(err.Error(), expect) {
+		t.Fatalf("expected contains %q, got: %q", expect, err.Error())
 	}
 }
 
