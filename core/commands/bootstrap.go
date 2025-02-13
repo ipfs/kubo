@@ -301,7 +301,7 @@ func bootstrapAdd(r repo.Repo, cfg *config.Config, peers []string) ([]string, er
 			return nil, err
 		}
 		tpt, p2ppart := ma.SplitLast(m)
-		if p2ppart == nil || p2ppart.Protocol().Code != ma.P_P2P {
+		if p2ppart.Empty() || p2ppart.Protocol().Code != ma.P_P2P {
 			return nil, fmt.Errorf("invalid bootstrap address: %s", p)
 		}
 		if tpt == nil {
