@@ -22,12 +22,12 @@ var LogCmd = &cmds.Command{
 'ipfs log' contains utility commands to affect or read the logging
 output of a running daemon.
 
-There are also two environmental variables that direct the logging 
+There are also two environmental variables that direct the logging
 system (not just for the daemon logs, but all commands):
-    IPFS_LOGGING - sets the level of verbosity of the logging.
+    GOLOG_LOG_LEVEL - sets the level of verbosity of the logging.
         One of: debug, info, warn, error, dpanic, panic, fatal
-    IPFS_LOGGING_FMT - sets formatting of the log output.
-        One of: color, nocolor
+    GOLOG_LOG_FMT - sets formatting of the log output.
+        One of: color, nocolor, json
 `,
 	},
 

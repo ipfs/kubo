@@ -11,7 +11,7 @@ bootstrap:
         - "4011"
         - "4012/udp"
     environment:
-        IPFS_LOGGING: debug
+        GOLOG_LOG_LEVEL: debug
 
 server:
     build: ./server
@@ -23,7 +23,7 @@ server:
         - "4021"
         - "4022/udp"
     environment:
-        IPFS_LOGGING: debug
+        GOLOG_LOG_LEVEL: debug
 
 client:
     build: ./client
@@ -35,4 +35,4 @@ client:
         - "4031"
         - "4032/udp"
     environment:
-        IPFS_LOGGING: debug
+        GOLOG_LOG_LEVEL: debug
