@@ -80,6 +80,7 @@ Before opening an issue, consider using one of the following locations to ensure
     - [Guix](#guix)
     - [Snap](#snap)
     - [Ubuntu PPA](#ubuntu-ppa)
+    - [Fedora](#fedora-copr)
   - [Unofficial Windows packages](#unofficial-windows-packages)
     - [Chocolatey](#chocolatey)
     - [Scoop](#scoop)
@@ -113,7 +114,10 @@ Please follow [`SECURITY.md`](SECURITY.md).
 
 ### Minimal System Requirements
 
-IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 4 GB of RAM and 2 CPU cores (kubo is highly parallel). On systems with less memory, it may not be completely stable, and you run on your own risk.
+IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 6 GB of RAM and 2 CPU cores (ideally more, Kubo is highly parallel).
+
+> [!CAUTION]
+> On systems with less memory, it may not be completely stable, and you run on your own risk.
 
 ## Install
 
@@ -207,6 +211,7 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 - [Guix](#guix)
 - [Snap](#snap)
 - [Ubuntu PPA](#ubuntu-ppa)
+- [Fedora](#fedora-copr)
 
 #### Arch Linux
 
@@ -270,6 +275,10 @@ sudo add-apt-repository ppa:twdragon/ipfs
 sudo apt update
 sudo apt install ipfs-kubo
 ```
+
+### Fedora COPR
+
+[`taw00/ipfs-rpm`](https://github.com/taw00/ipfs-rpm)
 
 ##### Any Ubuntu version
 

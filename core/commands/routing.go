@@ -42,6 +42,7 @@ var RoutingCmd = &cmds.Command{
 		"get":       getValueRoutingCmd,
 		"put":       putValueRoutingCmd,
 		"provide":   provideRefRoutingCmd,
+		"reprovide": reprovideRoutingCmd,
 	},
 }
 
@@ -233,6 +234,33 @@ var provideRefRoutingCmd = &cmds.Command{
 		}),
 	},
 	Type: routing.QueryEvent{},
+}
+
+var reprovideRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Trigger reprovider.",
+		ShortDescription: `
+Trigger reprovider to announce our data to network.
+`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		if !nd.IsOnline {
+			return ErrNotOnline
+		}
+
+		err = nd.Provider.Reprovide(req.Context)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
 }
 
 func provideKeys(ctx context.Context, r routing.Routing, cids []cid.Cid) error {
