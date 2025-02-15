@@ -440,6 +440,7 @@ being GC'ed.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(filesParentsOptionName, "p", "Make parent directories as needed."),
+		cmds.BoolOption(forceOptionName, "f", "Force copy even if the node is not a valid UnixFS node."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		mkParents, _ := req.Options[filesParentsOptionName].(bool)
@@ -478,6 +479,22 @@ being GC'ed.
 		node, err := getNodeFromPath(req.Context, nd, api, src)
 		if err != nil {
 			return fmt.Errorf("cp: cannot get node from path %s: %s", src, err)
+		}
+
+		force, _ := req.Options[forceOptionName].(bool)
+		if !force {
+			// Check if it's a raw node
+			if _, ok := node.(*dag.RawNode); !ok {
+				// If not raw, must be ProtoNode with valid UnixFS data
+				if protoNode, ok := node.(*dag.ProtoNode); ok {
+					_, err := ft.FSNodeFromBytes(protoNode.Data())
+					if err != nil {
+						return fmt.Errorf("cp: source must be a UnixFS node or raw data: %s", err)
+					}
+				} else {
+					return fmt.Errorf("cp: source must be a UnixFS node or raw data")
+				}
+			}
 		}
 
 		if mkParents {
