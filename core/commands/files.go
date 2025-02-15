@@ -485,14 +485,11 @@ being GC'ed.
 		if !force {
 			// Check if it's a raw node
 			if _, ok := node.(*dag.RawNode); !ok {
-				// If not raw, must be ProtoNode with valid UnixFS data
-				if protoNode, ok := node.(*dag.ProtoNode); ok {
-					_, err := ft.FSNodeFromBytes(protoNode.Data())
-					if err != nil {
-						return fmt.Errorf("cp: source must be a UnixFS node or raw data: %s", err)
-					}
-				} else {
+				if _, ok := node.(*dag.ProtoNode); !ok {
 					return fmt.Errorf("cp: source must be a UnixFS node or raw data")
+				}
+				if _, err = ft.FSNodeFromBytes(node.(*dag.ProtoNode).Data()); err != nil {
+					return fmt.Errorf("cp: source must be a UnixFS node or raw data: %s", err)
 				}
 			}
 		}
