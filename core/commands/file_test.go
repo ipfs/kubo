@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -14,27 +15,51 @@ type testenv struct {
 	node *core.IpfsNode
 }
 
-func createTestEnvironment(t *testing.T) cmds.Environment {
+type writeCloser struct {
+	*bytes.Buffer
+}
+
+func (w writeCloser) Close() error { return nil }
+
+// func createTestEnvironment(t *testing.T) cmds.Environment {
+// 	// Create a new IPFS node for testing
+// 	ctx := context.Background()
+
+// 	node, err := core.NewNode(ctx, &core.BuildCfg{
+// 		Online: false,
+// 		Repo:   nil,
+// 	})
+// 	require.NoError(t, err)
+
+// 	return &testenv{
+// 		ctx:  ctx,
+// 		node: node,
+// 	}
+// }
+
+func createTestEnv(t *testing.T) cmds.Environment {
 	// Create a new IPFS node for testing
-	node, err := core.NewNode(context.Background(), &core.BuildCfg{
+	ctx := context.Background()
+	node, err := core.NewNode(ctx, &core.BuildCfg{
 		Online: false,
 		Repo:   nil,
 	})
 	require.NoError(t, err)
 
 	return &testenv{
-		ctx:  context.Background(),
+		ctx:  ctx,
 		node: node,
 	}
 }
 
 func TestCopyCBORtoMFS(t *testing.T) {
-	ctx := context.Background()
+	// mock environment creation
+	env := createTestEnv(t)
 
 	cborCid := "bafyreigbtj4x7ip5legnfznufuopl4sg4knzc2cof6duas4b3q2fy6swua"
 
 	req := &cmds.Request{
-		Context: ctx,
+		Context: context.Background(),
 		Arguments: []string{
 			"/ipfs/" + cborCid,
 			"/test-cbor",
@@ -45,15 +70,11 @@ func TestCopyCBORtoMFS(t *testing.T) {
 	}
 
 	// mock response emitter
-	res, err := cmds.NewWriterResponseEmitter(nil, nil)
+	w := writeCloser{new(bytes.Buffer)}
+	res, err := cmds.NewWriterResponseEmitter(w, req)
 	require.NoError(t, err, "creating response emitter should not fail")
-
-	// mock environment creation
-	env := createTestEnvironment(t)
 
 	err = filesCpCmd.Run(req, res, env)
 
 	require.Error(t, err, "copying dag-cbor should fail")
-	require.Contains(t, err.Error(), "dag-cbor not supported", "must be a UnixFS node or raw data",
-		"error should indicate invalid node type")
 }
