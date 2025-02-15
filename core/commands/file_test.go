@@ -5,9 +5,28 @@ import (
 	"testing"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core"
 	"github.com/stretchr/testify/require"
 )
+
+type testenv struct {
+	ctx  context.Context
+	node *core.IpfsNode
+}
+
+func createTestEnvironment(t *testing.T) cmds.Environment {
+	// Create a new IPFS node for testing
+	node, err := core.NewNode(context.Background(), &core.BuildCfg{
+		Online: false,
+		Repo:   nil,
+	})
+	require.NoError(t, err)
+
+	return &testenv{
+		ctx:  context.Background(),
+		node: node,
+	}
+}
 
 func TestCopyCBORtoMFS(t *testing.T) {
 	ctx := context.Background()
@@ -26,12 +45,13 @@ func TestCopyCBORtoMFS(t *testing.T) {
 	}
 
 	// mock response emitter
-	res := new(cmds.EmptyResponse)
+	res, err := cmds.NewWriterResponseEmitter(nil, nil)
+	require.NoError(t, err, "creating response emitter should not fail")
 
 	// mock environment creation
-	env := &cmdenv.Environment{}
+	env := createTestEnvironment(t)
 
-	err := filesCpCmd.Run(req, res, env)
+	err = filesCpCmd.Run(req, res, env)
 
 	require.Error(t, err, "copying dag-cbor should fail")
 	require.Contains(t, err.Error(), "dag-cbor not supported", "must be a UnixFS node or raw data",
