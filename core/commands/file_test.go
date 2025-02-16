@@ -6,101 +6,36 @@ import (
 	"strings"
 	"testing"
 
+	dag "github.com/ipfs/boxo/ipld/merkledag"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	coremock "github.com/ipfs/kubo/core/mock"
 )
 
-// type testenv struct {
-// 	ctx     context.Context
-// 	node    *core.IpfsNode
-// 	reqchan chan<- string
-// }
-
-// type writeCloser struct {
-// 	*bytes.Buffer
-// }
-
-// func (w writeCloser) Close() error { return nil }
-
-// func createTestEnv(t *testing.T, ctx context.Context) cmds.Environment {
-// 	ds := sync.MutexWrap(datastore.NewMapDatastore())
-// 	node, err := core.NewNode(ctx, &core.BuildCfg{
-// 		Online: false,
-// 		Repo: &repo.Mock{
-// 			C: config.Config{
-// 				Identity: config.Identity{
-// 					PeerID: "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe",
-// 				},
-// 			},
-// 			D: ds,
-// 		},
-// 	})
-// 	require.NoError(t, err)
-
-// 	return &testenv{
-// 		ctx:  ctx,
-// 		node: node,
-// 	}
-
-// }
-
-// func TestCopyCBORtoMFS(t *testing.T) {
-// 	// mock environment creation
-// 	ctx := context.Background()
-// 	env := createTestEnv(t, ctx)
-
-// 	cborCid := "bafyreigbtj4x7ip5legnfznufuopl4sg4knzc2cof6duas4b3q2fy6swua"
-
-// 	req := &cmds.Request{
-// 		Context: ctx,
-// 		Arguments: []string{
-// 			"/ipfs/" + cborCid,
-// 			"/test-cbor",
-// 		},
-// 		Options: map[string]interface{}{
-// 			filesFlushOptionName: true,
-// 		},
-// 	}
-
-// 	// mock response emitter
-// 	w := writeCloser{new(bytes.Buffer)}
-// 	require.NoError(t, err, "creating response emitter should not fail")
-
-// 	err = filesCpCmd.Run(req, res, env)
-// 	if err != nil {
-// 		t.Logf("Error during file copy: %v", err) // Print actual error
-// 		fmt.Println("Error:", err)                // Alternative direct print
-// 	}
-
-// 	require.Error(t, err, "copying dag-cbor should fail")
-// 	require.Contains(t, err.Error(), "must be a UnixFS node or raw data")
-// 	// return fmt.Errorf("cp: source must be a UnixFS node or raw data")
-// }
-
 func TestFilesCp_DagCborNodeFails(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	// _, err := coremock.NewMockNode()
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
 
 	cmdCtx, err := coremock.MockCmdsCtx()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// env := cmdenv.Environment{
-	// 	Node:    node,
-	// 	CoreAPI: coreapi.NewCoreAPI(node),
-	// }
+	node, err := cmdCtx.ConstructNode()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	cborCID := "bafyreigbtj4x7ip5legnfznufuopl4sg4knzc2cof6duas4b3q2fy6swua"
+	cborData := []byte{0x80}
+	cborNode := dag.NewRawNode(cborData)
+	err = node.DAG.Add(ctx, cborNode)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	req := &cmds.Request{
 		Context: ctx,
 		Arguments: []string{
-			"/ipfs/" + cborCID,
+			"/ipfs/" + cborNode.Cid().String(),
 			"/test-destination",
 		},
 		Options: map[string]interface{}{
@@ -113,6 +48,7 @@ func TestFilesCp_DagCborNodeFails(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	err = filesCpCmd.Run(req, res, &cmdCtx)
 
 	if err == nil {
