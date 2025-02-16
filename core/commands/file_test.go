@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"testing"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -20,22 +21,6 @@ type writeCloser struct {
 }
 
 func (w writeCloser) Close() error { return nil }
-
-// func createTestEnvironment(t *testing.T) cmds.Environment {
-// 	// Create a new IPFS node for testing
-// 	ctx := context.Background()
-
-// 	node, err := core.NewNode(ctx, &core.BuildCfg{
-// 		Online: false,
-// 		Repo:   nil,
-// 	})
-// 	require.NoError(t, err)
-
-// 	return &testenv{
-// 		ctx:  ctx,
-// 		node: node,
-// 	}
-// }
 
 func createTestEnv(t *testing.T) cmds.Environment {
 	// Create a new IPFS node for testing
@@ -75,6 +60,12 @@ func TestCopyCBORtoMFS(t *testing.T) {
 	require.NoError(t, err, "creating response emitter should not fail")
 
 	err = filesCpCmd.Run(req, res, env)
+	if err != nil {
+		t.Logf("Error during file copy: %v", err) // Print actual error
+		fmt.Println("Error:", err)                // Alternative direct print
+	}
 
 	require.Error(t, err, "copying dag-cbor should fail")
+	// require.Contains(t, err.Error(), "must be a UnixFS node or raw data")
+	// return fmt.Errorf("cp: source must be a UnixFS node or raw data")
 }
