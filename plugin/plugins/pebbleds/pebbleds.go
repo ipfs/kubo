@@ -111,7 +111,7 @@ func (*pebbledsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 		}
 
 		// Use latest version by default. This will ensure that format is
-		// comatible across database upgrades.
+		// compatible across database upgrades.
 		if formatMajorVersion == 0 {
 			formatMajorVersion = pebble.FormatNewest
 		}
