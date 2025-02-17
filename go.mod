@@ -28,7 +28,7 @@ require (
 	github.com/ipfs/go-cidutil v0.1.0
 	github.com/ipfs/go-datastore v0.6.0
 	github.com/ipfs/go-detect-race v0.0.1
-	github.com/ipfs/go-ds-badger v0.3.0
+	github.com/ipfs/go-ds-badger v0.3.1
 	github.com/ipfs/go-ds-flatfs v0.5.1
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ds-measure v0.2.0
