@@ -68,5 +68,5 @@ func Load(filename string) (*config.Config, error) {
 		return nil, err
 	}
 
-	return &cfg, err
+	return &cfg, nil
 }
