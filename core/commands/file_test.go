@@ -25,9 +25,9 @@ func TestFilesCp_DagCborNodeFails(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cborData := []byte{0x80}
-	cborNode := dag.NewRawNode(cborData)
-	err = node.DAG.Add(ctx, cborNode)
+	invalidData := []byte{0x00}
+	protoNode := dag.NodeWithData(invalidData)
+	err = node.DAG.Add(ctx, protoNode)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestFilesCp_DagCborNodeFails(t *testing.T) {
 	req := &cmds.Request{
 		Context: ctx,
 		Arguments: []string{
-			"/ipfs/" + cborNode.Cid().String(),
+			"/ipfs/" + protoNode.Cid().String(),
 			"/test-destination",
 		},
 		Options: map[string]interface{}{
