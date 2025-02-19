@@ -22,11 +22,11 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.27.5-0.20250218222933-8a343d91d82a
+	github.com/ipfs/boxo v0.27.5-0.20250218225304-7c3ac0d8f9e1
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-cidutil v0.1.0
-	github.com/ipfs/go-datastore v0.6.0
+	github.com/ipfs/go-datastore v0.6.1-0.20250219035147-8f51f823e8fc
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.3.1
 	github.com/ipfs/go-ds-flatfs v0.5.1

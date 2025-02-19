@@ -7,7 +7,7 @@ go 1.23
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.27.5-0.20250218222933-8a343d91d82a
+	github.com/ipfs/boxo v0.27.5-0.20250218225304-7c3ac0d8f9e1
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.39.1
 	github.com/multiformats/go-multiaddr v0.14.0
@@ -83,7 +83,7 @@ require (
 	github.com/ipfs/go-blockservice v0.5.2 // indirect
 	github.com/ipfs/go-cid v0.5.0 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
-	github.com/ipfs/go-datastore v0.6.0 // indirect
+	github.com/ipfs/go-datastore v0.6.1-0.20250219035147-8f51f823e8fc // indirect
 	github.com/ipfs/go-ds-badger v0.3.1 // indirect
 	github.com/ipfs/go-ds-flatfs v0.5.1 // indirect
 	github.com/ipfs/go-ds-leveldb v0.5.0 // indirect

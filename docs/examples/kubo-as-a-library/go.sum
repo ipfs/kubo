@@ -304,8 +304,8 @@ github.com/ipfs-shipyard/nopfs/ipfs v0.25.0 h1:OqNqsGZPX8zh3eFMO8Lf8EHRRnSGBMqcd
 github.com/ipfs-shipyard/nopfs/ipfs v0.25.0/go.mod h1:BxhUdtBgOXg1B+gAPEplkg/GpyTZY+kCMSfsJvvydqU=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.27.5-0.20250218222933-8a343d91d82a h1:YAhxGV3QLgRZnAFKgrReZ/SPW1qVyx79NpdQEtFT/Y0=
-github.com/ipfs/boxo v0.27.5-0.20250218222933-8a343d91d82a/go.mod h1:IWhbMBP+NlopXfxaMfa97FVc27SZIGrBOhzwiDNk8XQ=
+github.com/ipfs/boxo v0.27.5-0.20250218225304-7c3ac0d8f9e1 h1:AeYYLJdk0fhyaawLATZNx9wXBhJWC0lhPIjfDgP6C00=
+github.com/ipfs/boxo v0.27.5-0.20250218225304-7c3ac0d8f9e1/go.mod h1:IWhbMBP+NlopXfxaMfa97FVc27SZIGrBOhzwiDNk8XQ=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-bitswap v0.11.0 h1:j1WVvhDX1yhG32NTC9xfxnqycqYIlhzEzLXG/cU1HyQ=
@@ -325,8 +325,8 @@ github.com/ipfs/go-cidutil v0.1.0/go.mod h1:e7OEVBMIv9JaOxt9zaGEmAoSlXW9jdFZ5lP/
 github.com/ipfs/go-datastore v0.1.0/go.mod h1:d4KVXhMt913cLBEI/PXAy6ko+W7e9AhyAKBGh803qeE=
 github.com/ipfs/go-datastore v0.1.1/go.mod h1:w38XXW9kVFNp57Zj5knbKWM2T+KOZCGDRVNdgPHtbHw=
 github.com/ipfs/go-datastore v0.5.0/go.mod h1:9zhEApYMTl17C8YDp7JmU7sQZi2/wqiYh73hakZ90Bk=
-github.com/ipfs/go-datastore v0.6.0 h1:JKyz+Gvz1QEZw0LsX1IBn+JFCJQH4SJVFtM4uWU0Myk=
-github.com/ipfs/go-datastore v0.6.0/go.mod h1:rt5M3nNbSO/8q1t4LNkLyUwRs8HupMeN/8O4Vn9YAT8=
+github.com/ipfs/go-datastore v0.6.1-0.20250219035147-8f51f823e8fc h1:RZbg6p3TAvK6xlmV48ipUnPG4cX+oFMAZr3M7U02Xcc=
+github.com/ipfs/go-datastore v0.6.1-0.20250219035147-8f51f823e8fc/go.mod h1:ucOWMfbOPI6ZEyaIB1q/+78RPLBPERfuUVYX1EPnNpQ=
 github.com/ipfs/go-detect-race v0.0.1 h1:qX/xay2W3E4Q1U7d9lNs1sU9nvguX0a7319XbyQ6cOk=
 github.com/ipfs/go-detect-race v0.0.1/go.mod h1:8BNT7shDZPo99Q74BpGMK+4D8Mn4j46UU0LZ723meps=
 github.com/ipfs/go-ds-badger v0.0.7/go.mod h1:qt0/fWzZDoPW6jpQeqUjR5kBfhDNB65jd9YlmAvpQBk=
