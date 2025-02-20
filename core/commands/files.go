@@ -94,6 +94,7 @@ cache, free memory and speed up read operations.`,
 const (
 	filesCidVersionOptionName = "cid-version"
 	filesHashOptionName       = "hash"
+	filesNoValidateOptionName = "no-validate"
 )
 
 var (
@@ -440,7 +441,7 @@ being GC'ed.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(filesParentsOptionName, "p", "Make parent directories as needed."),
-		cmds.BoolOption(forceOptionName, "force", "Force copy even if the node is not a valid UnixFS node."),
+		cmds.BoolOption(filesNoValidateOptionName, "Copy even if the node is not a valid UnixFS node."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		mkParents, _ := req.Options[filesParentsOptionName].(bool)
@@ -481,7 +482,7 @@ being GC'ed.
 			return fmt.Errorf("cp: cannot get node from path %s: %s", src, err)
 		}
 
-		force, _ := req.Options[forceOptionName].(bool)
+		force, _ := req.Options[filesNoValidateOptionName].(bool)
 		if !force {
 			// Check if it's a raw node
 			if _, ok := node.(*dag.RawNode); !ok {
