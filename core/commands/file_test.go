@@ -3,12 +3,12 @@ package commands
 import (
 	"context"
 	"io"
-	"strings"
 	"testing"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	coremock "github.com/ipfs/kubo/core/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFilesCp_DagCborNodeFails(t *testing.T) {
@@ -16,21 +16,15 @@ func TestFilesCp_DagCborNodeFails(t *testing.T) {
 	defer cancel()
 
 	cmdCtx, err := coremock.MockCmdsCtx()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	node, err := cmdCtx.ConstructNode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	invalidData := []byte{0x00}
 	protoNode := dag.NodeWithData(invalidData)
 	err = node.DAG.Add(ctx, protoNode)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	req := &cmds.Request{
 		Context: ctx,
@@ -45,18 +39,9 @@ func TestFilesCp_DagCborNodeFails(t *testing.T) {
 
 	_, pw := io.Pipe()
 	res, err := cmds.NewWriterResponseEmitter(pw, req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = filesCpCmd.Run(req, res, &cmdCtx)
-
-	if err == nil {
-		t.Fatal("expected error but got nil")
-	}
-
-	expectedErr := "cp: source must be a UnixFS node or raw data"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Errorf("got error %q, want %q", err.Error(), expectedErr)
-	}
+	require.Error(t, err)
+	require.ErrorContains(t, err, "cp: source must be a UnixFS node or raw data")
 }
