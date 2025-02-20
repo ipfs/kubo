@@ -33,3 +33,6 @@ docs/examples/go-ipfs-as-a-library/example-folder/Qm*
 /parts
 /stage
 /prime
+
+encrypted_aes_key.bin
+orbitdb_private.pem
