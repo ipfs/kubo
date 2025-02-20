@@ -8,7 +8,6 @@ import (
 	gopath "path"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -26,23 +25,6 @@ import (
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
 var ErrDepthLimitExceeded = errors.New("depth limit exceeded")
-
-type TimeParts struct {
-	t *time.Time
-}
-
-func (t TimeParts) MarshalJSON() ([]byte, error) {
-	return t.t.MarshalJSON()
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-// The time is expected to be a quoted string in RFC 3339 format.
-func (t *TimeParts) UnmarshalJSON(data []byte) (err error) {
-	// Fractional seconds are handled implicitly by Parse.
-	tt, err := time.Parse("\"2006-01-02T15:04:05Z\"", string(data))
-	*t = TimeParts{&tt}
-	return
-}
 
 type AddEvent struct {
 	Name       string
