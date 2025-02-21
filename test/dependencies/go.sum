@@ -351,8 +351,8 @@ github.com/ipfs/go-metrics-interface v0.0.1 h1:j+cpbjYvu4R8zbleSs36gvB7jR+wsL2fG
 github.com/ipfs/go-metrics-interface v0.0.1/go.mod h1:6s6euYU4zowdslK0GKHmqaIZ3j/b/tL7HTWtJ4VPgWY=
 github.com/ipfs/go-peertaskqueue v0.8.2 h1:PaHFRaVFdxQk1Qo3OKiHPYjmmusQy7gKQUaL8JDszAU=
 github.com/ipfs/go-peertaskqueue v0.8.2/go.mod h1:L6QPvou0346c2qPJNiJa6BvOibxDfaiPlqHInmzg0FA=
-github.com/ipfs/go-test v0.0.4 h1:DKT66T6GBB6PsDFLoO56QZPrOmzJkqU1FZH5C9ySkew=
-github.com/ipfs/go-test v0.0.4/go.mod h1:qhIM1EluEfElKKM6fnWxGn822/z9knUGM1+I/OAQNKI=
+github.com/ipfs/go-test v0.1.0 h1:cDFM0C5nXt+FYS4/6zslG7SX6utmBRCc0/tEkNw5UPY=
+github.com/ipfs/go-test v0.1.0/go.mod h1:dzu+KB9cmWjuJnXFDYJwC25T3j1GcN57byN+ixmK39M=
 github.com/ipfs/hang-fds v0.1.0 h1:deBiFlWHsVGzJ0ZMaqscEqRM1r2O1rFZ59UiQXb1Xko=
 github.com/ipfs/hang-fds v0.1.0/go.mod h1:29VLWOn3ftAgNNgXg/al7b11UzuQ+w7AwtCGcTaWkbM=
 github.com/ipfs/iptb v1.4.1 h1:faXd3TKGPswbHyZecqqg6UfbES7RDjTKQb+6VFPKDUo=
@@ -370,8 +370,6 @@ github.com/jackpal/go-nat-pmp v1.0.2/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+
 github.com/jbenet/go-cienv v0.1.0/go.mod h1:TqNnHUmJgXau0nCzC7kXWeotg3J9W34CUv5Djy1+FlA=
 github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c h1:uUx61FiAa1GI6ZmVd2wf2vULeQZIKG66eybjNXKYCz4=
 github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c/go.mod h1:sdx1xVM9UuLw1tXnhJWN3piypTUO3vCIHYmG15KE/dU=
-github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded h1:fHCa28iw+qaRWZK4IqrntHxXALD5kKr/ESrpOCRRdrg=
-github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded/go.mod h1:FKvZrl5nnaGnTAMewcq0i7wM5zHD75e0lwlnF8q46uo=
 github.com/jbenet/go-temp-err-catcher v0.1.0 h1:zpb3ZH6wIE8Shj2sKS+khgRvf7T7RABoLk/+KKHggpk=
 github.com/jbenet/go-temp-err-catcher v0.1.0/go.mod h1:0kJRvmDZXNMIiJirNPEYfhpPwbGVtZVWC34vc5WLsDk=
 github.com/jbenet/goprocess v0.1.4 h1:DRGOFReOMqqDNXwW70QkacFW0YN9QnwLV0Vqk+3oU0o=

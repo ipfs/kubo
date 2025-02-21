@@ -63,8 +63,8 @@ $(d)/random: github.com/jbenet/go-random/random
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/random
 
-.PHONY: github.com/jbenet/go-random-files/random-files
-$(d)/random-files: github.com/jbenet/go-random-files/random-files
+.PHONY: github.com/ipfs/go-test/random/files/random-files
+$(d)/random-files: github.com/ipfs/go-test/random/files/random-files
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/random-files
 
