@@ -40,7 +40,9 @@ const dbNameIssue = "issue"
 const dbNameEvent = "event"
 const dbNameGift = "gift"
 const dbNameRide = "ride"
-const dbNameUser = "user"
+const dbUser = "user"
+const dbIncome = "income"
+const dbUserBalance = "user_balance"
 
 const (
 	privateKeyFile      = "orbitdb_private.pem"   // Define a constant for the private key file name
@@ -677,8 +679,22 @@ var OrbitQueryDocsCmd = &cmds.Command{
 			return err
 		}
 
-		if err := res.Emit(&q); err != nil {
-			return err
+		// Convert the slice of interfaces to JSON string
+		dataBytes, err := json.Marshal(&q)
+		if err != nil {
+			panic(err)
+		}
+
+		dataString := string(dataBytes)
+
+		if dataString == "null" {
+			if err := res.Emit(nil); err != nil {
+				return err
+			}
+		} else {
+			if err := res.Emit(&q); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -709,7 +725,7 @@ var OrbitQueryDocsEncryptedCmd = &cmds.Command{
 
 		dbName := req.Arguments[0]
 		key := req.Arguments[1]
-		value := req.Arguments[2]
+		// value := req.Arguments[2]
 
 		db, store, err := ConnectDocs(req.Context, dbName, api, func(address string) {})
 		if err != nil {
@@ -719,29 +735,10 @@ var OrbitQueryDocsEncryptedCmd = &cmds.Command{
 		defer db.Close()
 
 		q, err := store.Query(req.Context, func(e interface{}) (bool, error) {
-			record := e.(map[string]interface{})
 			if key == "all" {
 				return true, nil
-			} else if strings.Contains(value, ",") {
-				values := strings.Split(value, ",")
-				recs, ok := record[key].(string)
-				if !ok {
-					return false, nil
-				}
-				if strings.Contains(recs, ",") {
-					records := strings.Split(recs, ",")
-					for _, r := range records {
-						for _, v := range values {
-							if r == v {
-								return true, nil
-							}
-						}
-					}
-				}
-
-			} else if record[key] == value {
-				return true, nil
 			}
+
 			return false, nil
 		})
 
@@ -932,10 +929,26 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 
 	var addr address.Address
 	switch dbName {
-	case dbNameUser:
+	case dbIncome:
 		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
-			_, err = db.Create(ctx, dbNameUser, "docstore", &orbitdb.CreateDBOptions{})
+			_, err = db.Create(ctx, dbIncome, "docstore", &orbitdb.CreateDBOptions{})
+			if err != nil {
+				return db, nil, err
+			}
+		}
+	case dbUserBalance:
+		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		if err != nil {
+			_, err = db.Create(ctx, dbUserBalance, "docstore", &orbitdb.CreateDBOptions{})
+			if err != nil {
+				return db, nil, err
+			}
+		}
+	case dbUser:
+		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		if err != nil {
+			_, err = db.Create(ctx, dbUser, "docstore", &orbitdb.CreateDBOptions{})
 			if err != nil {
 				return db, nil, err
 			}
