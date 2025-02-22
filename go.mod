@@ -54,9 +54,9 @@ require (
 	github.com/jbenet/goprocess v0.1.4
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/libp2p/go-doh-resolver v0.5.0
-	github.com/libp2p/go-libp2p v0.40.0
+	github.com/libp2p/go-libp2p v0.40.1-0.20250222025449-f7079146d841
 	github.com/libp2p/go-libp2p-http v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.28.2
+	github.com/libp2p/go-libp2p-kad-dht v0.28.3-0.20250222033035-115949eefde2
 	github.com/libp2p/go-libp2p-kbucket v0.6.4
 	github.com/libp2p/go-libp2p-pubsub v0.12.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
@@ -64,7 +64,7 @@ require (
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.4
 	github.com/libp2p/go-libp2p-testing v0.12.0
 	github.com/libp2p/go-socket-activation v0.1.0
-	github.com/multiformats/go-multiaddr v0.14.0
+	github.com/multiformats/go-multiaddr v0.14.1-0.20250222024214-3d78370b4a00
 	github.com/multiformats/go-multiaddr-dns v0.4.1
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multicodec v0.9.0

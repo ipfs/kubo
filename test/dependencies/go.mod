@@ -14,7 +14,7 @@ require (
 	github.com/ipfs/iptb v1.4.1
 	github.com/ipfs/iptb-plugins v0.5.1
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
-	github.com/multiformats/go-multiaddr v0.14.0
+	github.com/multiformats/go-multiaddr v0.14.1-0.20250222024214-3d78370b4a00
 	github.com/multiformats/go-multihash v0.2.3
 	gotest.tools/gotestsum v1.12.0
 )
@@ -157,9 +157,9 @@ require (
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.2.0 // indirect
-	github.com/libp2p/go-libp2p v0.40.0 // indirect
+	github.com/libp2p/go-libp2p v0.40.1-0.20250222025449-f7079146d841 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.28.2 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.28.3-0.20250222033035-115949eefde2 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.6.4 // indirect
 	github.com/libp2p/go-libp2p-record v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.4 // indirect
