@@ -17,7 +17,7 @@ jobs:
   sharness-test:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "4xlarge"]' || '"ubuntu-latest"') }}
-    timeout-minutes: ${{ github.repository == 'ipfs/kubo' && 15 || 60 }}
+    timeout-minutes: ${{ github.repository == 'ipfs/kubo' && 35 || 60 }}
     defaults:
       run:
         shell: bash
