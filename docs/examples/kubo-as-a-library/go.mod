@@ -1,6 +1,8 @@
 module github.com/ipfs/kubo/examples/kubo-as-a-library
 
-go 1.23
+go 1.23.0
+
+toolchain go1.23.4
 
 // Used to keep this in sync with the current version of kubo. You should remove
 // this if you copy this example.
@@ -9,8 +11,8 @@ replace github.com/ipfs/kubo => ./../../..
 require (
 	github.com/ipfs/boxo v0.27.4
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
-	github.com/libp2p/go-libp2p v0.40.0
-	github.com/multiformats/go-multiaddr v0.14.0
+	github.com/libp2p/go-libp2p v0.40.1-0.20250222025449-f7079146d841
+	github.com/multiformats/go-multiaddr v0.14.1-0.20250222024214-3d78370b4a00
 )
 
 require (
@@ -39,7 +41,7 @@ require (
 	github.com/crackcomm/go-gitignore v0.0.0-20241020182519-7843d2ba8fdf // indirect
 	github.com/cskr/pubsub v1.0.2 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -82,7 +84,7 @@ require (
 	github.com/ipfs/go-blockservice v0.5.2 // indirect
 	github.com/ipfs/go-cid v0.5.0 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
-	github.com/ipfs/go-datastore v0.6.0 // indirect
+	github.com/ipfs/go-datastore v0.7.0 // indirect
 	github.com/ipfs/go-ds-badger v0.3.1 // indirect
 	github.com/ipfs/go-ds-flatfs v0.5.1 // indirect
 	github.com/ipfs/go-ds-leveldb v0.5.0 // indirect
@@ -126,11 +128,11 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.28.2 // indirect
-	github.com/libp2p/go-libp2p-kbucket v0.6.4 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.29.1 // indirect
+	github.com/libp2p/go-libp2p-kbucket v0.6.5 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.12.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
-	github.com/libp2p/go-libp2p-record v0.2.0 // indirect
+	github.com/libp2p/go-libp2p-record v0.3.1 // indirect
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.4 // indirect
 	github.com/libp2p/go-libp2p-xor v0.1.0 // indirect
 	github.com/libp2p/go-msgio v0.3.0 // indirect
@@ -184,7 +186,7 @@ require (
 	github.com/pion/webrtc/v4 v4.0.9 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
-	github.com/prometheus/client_golang v1.20.5 // indirect
+	github.com/prometheus/client_golang v1.21.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
@@ -206,16 +208,17 @@ require (
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
+	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.56.0 // indirect
-	go.opentelemetry.io/otel v1.31.0 // indirect
+	go.opentelemetry.io/otel v1.34.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.31.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.31.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.31.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.31.0 // indirect
 	go.opentelemetry.io/otel/exporters/zipkin v1.31.0 // indirect
-	go.opentelemetry.io/otel/metric v1.31.0 // indirect
+	go.opentelemetry.io/otel/metric v1.34.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.31.0 // indirect
-	go.opentelemetry.io/otel/trace v1.31.0 // indirect
+	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/dig v1.18.0 // indirect
@@ -226,7 +229,7 @@ require (
 	go.uber.org/zap/exp v0.3.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
-	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
+	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
 	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
@@ -234,7 +237,7 @@ require (
 	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/tools v0.30.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
-	gonum.org/v1/gonum v0.15.0 // indirect
+	gonum.org/v1/gonum v0.15.1 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241007155032-5fefd90f89a9 // indirect
 	google.golang.org/grpc v1.67.1 // indirect
