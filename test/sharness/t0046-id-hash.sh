@@ -25,7 +25,8 @@ test_expect_success "ipfs add succeeds with identity hash" '
 '
 
 test_expect_success "content not actually added" '
-  ipfs refs local | fgrep -q -v $HASH
+  ipfs refs local > locals &&
+  test_should_not_contain $HASH locals
 '
 
 test_expect_success "but can fetch it anyway" '
@@ -98,7 +99,8 @@ test_expect_success "ipfs add succeeds with identity hash and --nocopy" '
 '
 
 test_expect_success "content not actually added (filestore enabled)" '
-  ipfs refs local | fgrep -q -v $HASH
+  ipfs refs local > locals &&
+  test_should_not_contain $HASH locals
 '
 
 test_expect_success "but can fetch it anyway (filestore enabled)" '
