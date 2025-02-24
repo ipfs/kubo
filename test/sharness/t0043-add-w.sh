@@ -53,7 +53,7 @@ add_w_r='QmUerh2irM8cngqJHLGKCn4AGBSyHYAUi8i8zyVzXKNYyb'
 
 test_add_w() {
 
-  test_expect_success "go-random-files is installed" '
+  test_expect_success "random-files is installed" '
     type random-files
   '
 

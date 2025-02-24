@@ -15,8 +15,8 @@ test_init_ipfs
 #
 
 test_expect_success "create two small files" '
-  random 1000 7 > afile
-  random 1000 9 > bfile
+  random-data -size=1000 -seed=7 > afile
+  random-data -size=1000 -seed=9 > bfile
 '
 
 test_expect_success "add file using CIDv1 but don't pin" '

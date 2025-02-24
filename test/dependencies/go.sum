@@ -130,8 +130,6 @@ github.com/dnephin/pflag v1.0.7/go.mod h1:uxE91IoWURlOiTUIA8Mq5ZZkAv3dPUfZNaT80Z
 github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4=
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
-github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
-github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/elastic/gosigar v0.14.3 h1:xwkKwPia+hSfg9GqrCUKYdId102m9qTJIIr7egmK/uo=
 github.com/elastic/gosigar v0.14.3/go.mod h1:iXRIGg2tLnu7LBdpqzyQfGDEidKCfWcCMS0WKyPWoMs=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
@@ -351,8 +349,8 @@ github.com/ipfs/go-metrics-interface v0.0.1 h1:j+cpbjYvu4R8zbleSs36gvB7jR+wsL2fG
 github.com/ipfs/go-metrics-interface v0.0.1/go.mod h1:6s6euYU4zowdslK0GKHmqaIZ3j/b/tL7HTWtJ4VPgWY=
 github.com/ipfs/go-peertaskqueue v0.8.2 h1:PaHFRaVFdxQk1Qo3OKiHPYjmmusQy7gKQUaL8JDszAU=
 github.com/ipfs/go-peertaskqueue v0.8.2/go.mod h1:L6QPvou0346c2qPJNiJa6BvOibxDfaiPlqHInmzg0FA=
-github.com/ipfs/go-test v0.2.0 h1:tKJ722lo/c8+04Qm67BZ1XsI2UfTtF2hsfmxqkuBnHs=
-github.com/ipfs/go-test v0.2.0/go.mod h1:dzu+KB9cmWjuJnXFDYJwC25T3j1GcN57byN+ixmK39M=
+github.com/ipfs/go-test v0.2.1 h1:/D/a8xZ2JzkYqcVcV/7HYlCnc7bv/pKHQiX5TdClkPE=
+github.com/ipfs/go-test v0.2.1/go.mod h1:dzu+KB9cmWjuJnXFDYJwC25T3j1GcN57byN+ixmK39M=
 github.com/ipfs/hang-fds v0.1.0 h1:deBiFlWHsVGzJ0ZMaqscEqRM1r2O1rFZ59UiQXb1Xko=
 github.com/ipfs/hang-fds v0.1.0/go.mod h1:29VLWOn3ftAgNNgXg/al7b11UzuQ+w7AwtCGcTaWkbM=
 github.com/ipfs/iptb v1.4.1 h1:faXd3TKGPswbHyZecqqg6UfbES7RDjTKQb+6VFPKDUo=
@@ -368,8 +366,6 @@ github.com/ipshipyard/p2p-forge v0.3.0/go.mod h1:L0TJMzniMEDjX8G+RB201U2woHvASwb
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
 github.com/jackpal/go-nat-pmp v1.0.2/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/jbenet/go-cienv v0.1.0/go.mod h1:TqNnHUmJgXau0nCzC7kXWeotg3J9W34CUv5Djy1+FlA=
-github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c h1:uUx61FiAa1GI6ZmVd2wf2vULeQZIKG66eybjNXKYCz4=
-github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c/go.mod h1:sdx1xVM9UuLw1tXnhJWN3piypTUO3vCIHYmG15KE/dU=
 github.com/jbenet/go-temp-err-catcher v0.1.0 h1:zpb3ZH6wIE8Shj2sKS+khgRvf7T7RABoLk/+KKHggpk=
 github.com/jbenet/go-temp-err-catcher v0.1.0/go.mod h1:0kJRvmDZXNMIiJirNPEYfhpPwbGVtZVWC34vc5WLsDk=
 github.com/jbenet/goprocess v0.1.4 h1:DRGOFReOMqqDNXwW70QkacFW0YN9QnwLV0Vqk+3oU0o=
