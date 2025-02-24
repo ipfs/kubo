@@ -26,7 +26,7 @@ test_expect_success "daemon output includes info about the reason" '
 pnet_key() {
   echo '/key/swarm/psk/1.0.0/'
   echo '/bin/'
-  random 32
+  random-data -size=32
 }
 
 pnet_key > "${IPFS_PATH}/swarm.key"
@@ -101,7 +101,7 @@ run_single_file_test() {
   node2=$2
 
   test_expect_success "add a file on node$node1" '
-    random 1000000 > filea &&
+    random-data -size=1000000 > filea &&
     FILEA_HASH=$(ipfsi $node1 add -q filea)
   '
 

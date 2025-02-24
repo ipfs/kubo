@@ -49,7 +49,7 @@ test_expect_success "'ipfs pin rm' output looks good" '
 
 test_expect_success "ipfs repo gc fully reverse ipfs add (part 1)" '
   ipfs repo gc &&
-  random 100000 41 >gcfile &&
+  random-data -size=100000 -seed=41 >gcfile &&
   find "$IPFS_PATH/blocks" -type f -name "*.data" | sort -u > expected_blocks &&
   hash=$(ipfs add -q gcfile) &&
   ipfs pin rm -r $hash &&
@@ -142,7 +142,7 @@ test_expect_success "'ipfs refs local' no longer shows file" '
 '
 
 test_expect_success "adding multiblock random file succeeds" '
-  random 1000000 >multiblock &&
+  random-data -size=1000000 >multiblock &&
   MBLOCKHASH=`ipfs add -q multiblock`
 '
 

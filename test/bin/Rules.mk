@@ -58,10 +58,10 @@ $(d)/cid-fmt: github.com/ipfs/go-cidutil/cid-fmt
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/cid-fmt
 
-.PHONY: github.com/jbenet/go-random/random
-$(d)/random: github.com/jbenet/go-random/random
+.PHONY: github.com/ipfs/go-test/cli/random-data
+$(d)/random-data: github.com/ipfs/go-test/cli/random-data
 	$(go-build-testdep)
-TGTS_$(d) += $(d)/random
+TGTS_$(d) += $(d)/random-data
 
 .PHONY: github.com/ipfs/go-test/cli/random-files
 $(d)/random-files: github.com/ipfs/go-test/cli/random-files
