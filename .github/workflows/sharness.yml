@@ -51,9 +51,9 @@ jobs:
           TEST_JUNIT: 1
           TEST_EXPENSIVE: 1
           IPFS_CHECK_RCMGR_DEFAULTS: 1
-          CONTINUE_ON_S_FAILURE: 0 # TODO
+          CONTINUE_ON_S_FAILURE: 1
           # increasing parallelism beyond 10 doesn't speed up the tests much
-          PARALLEL: 1 # TODO ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
+          PARALLEL: ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
       - name: Upload coverage report
         uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3 # v5.3.1
         if: failure() || success()
