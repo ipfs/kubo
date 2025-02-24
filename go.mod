@@ -54,7 +54,7 @@ require (
 	github.com/jbenet/goprocess v0.1.4
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/libp2p/go-doh-resolver v0.5.0
-	github.com/libp2p/go-libp2p v0.40.1-0.20250224202341-9d1e3894c756
+	github.com/libp2p/go-libp2p v0.40.1-0.20250224202805-551c6037aceb
 	github.com/libp2p/go-libp2p-http v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.28.3-0.20250222033035-115949eefde2
 	github.com/libp2p/go-libp2p-kbucket v0.6.4
