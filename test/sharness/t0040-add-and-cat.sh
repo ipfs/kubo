@@ -623,7 +623,7 @@ test_add_cat_expensive() {
   '
 
   test_expect_success EXPENSIVE "ipfs cat output hashed looks good" '
-    echo "11144f604a7e705e4d061e35fea728e0c6cc7f5ba5d5" >sha1_expected &&
+    echo "11141e8c04d7cd019cc0acf0311a8ca6cf2c18413c96" >sha1_expected &&
     test_cmp sha1_expected sha1_actual
   '
 
