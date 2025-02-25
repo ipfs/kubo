@@ -16,7 +16,7 @@ get_api_port() {
 
 test_ls_cmd() {
   test_expect_success "make a file with multiple refs" '
-    HASH=$(random 1000000 | ipfs add -q)
+    HASH=$(random-data -size=1000000 | ipfs add -q)
   '
 
   test_expect_success "can get refs through curl" '
