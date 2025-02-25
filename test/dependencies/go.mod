@@ -13,7 +13,7 @@ require (
 	github.com/ipfs/hang-fds v0.1.0
 	github.com/ipfs/iptb v1.4.1
 	github.com/ipfs/iptb-plugins v0.5.1
-	github.com/multiformats/go-multiaddr v0.14.1-0.20250224201533-d8782ae271bb
+	github.com/multiformats/go-multiaddr v0.15.0
 	github.com/multiformats/go-multihash v0.2.3
 	gotest.tools/gotestsum v1.12.0
 )

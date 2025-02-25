@@ -64,7 +64,7 @@ require (
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.4
 	github.com/libp2p/go-libp2p-testing v0.12.0
 	github.com/libp2p/go-socket-activation v0.1.0
-	github.com/multiformats/go-multiaddr v0.14.1-0.20250224201533-d8782ae271bb
+	github.com/multiformats/go-multiaddr v0.15.0
 	github.com/multiformats/go-multiaddr-dns v0.4.1
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multicodec v0.9.0
