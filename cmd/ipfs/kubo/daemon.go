@@ -421,9 +421,16 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		// Private setups should not use public AutoTLS infrastructure
 		// as it will leak their existence and PeerID identity to CA
 		// and they will show up at https://crt.sh/?q=libp2p.direct
-		// Below ensures we hard fail if someone tries to enable both
-		if cfg.AutoTLS.Enabled.WithDefault(config.DefaultAutoTLSEnabled) {
-			return errors.New("private networking (swarm.key / LIBP2P_FORCE_PNET) does not work with AutoTLS.Enabled=true, update config to remove this message")
+		enableAutoTLS := cfg.AutoTLS.Enabled.WithDefault(config.DefaultAutoTLSEnabled)
+		if enableAutoTLS {
+			if cfg.AutoTLS.Enabled != config.Default {
+				// hard fail if someone tries to explicitly enable both
+				return errors.New("private networking (swarm.key / LIBP2P_FORCE_PNET) does not work with AutoTLS.Enabled=true, update config to remove this message")
+			} else {
+				// print error and disable autotls if user runs on default settings
+				log.Error("private networking (swarm.key / LIBP2P_FORCE_PNET) is not compatible with AutoTLS. Set AutoTLS.Enabled=false in config to remove this message.")
+				cfg.AutoTLS.Enabled = config.False
+			}
 		}
 	}
 

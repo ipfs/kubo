@@ -94,6 +94,7 @@ func TestTransports(t *testing.T) {
 				cfg.Swarm.Transports.Network.QUIC = config.True
 				cfg.Swarm.Transports.Network.WebTransport = config.False
 				cfg.Swarm.Transports.Network.WebRTCDirect = config.False
+				cfg.Swarm.Transports.Network.Websocket = config.False
 			})
 		})
 		disableRouting(nodes)
@@ -111,6 +112,7 @@ func TestTransports(t *testing.T) {
 				cfg.Swarm.Transports.Network.QUIC = config.True
 				cfg.Swarm.Transports.Network.WebTransport = config.True
 				cfg.Swarm.Transports.Network.WebRTCDirect = config.False
+				cfg.Swarm.Transports.Network.Websocket = config.False
 			})
 		})
 		disableRouting(nodes)
@@ -150,6 +152,7 @@ func TestTransports(t *testing.T) {
 				cfg.Swarm.Transports.Network.QUIC = config.False
 				cfg.Swarm.Transports.Network.WebTransport = config.False
 				cfg.Swarm.Transports.Network.WebRTCDirect = config.True
+				cfg.Swarm.Transports.Network.Websocket = config.False
 			})
 		})
 		disableRouting(nodes)

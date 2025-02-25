@@ -34,6 +34,7 @@ config file at runtime.
     - [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)
     - [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint)
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
+    - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
   - [`Bootstrap`](#bootstrap)
   - [`Datastore`](#datastore)
@@ -463,12 +464,7 @@ Type: `duration` (when `0`/unset, the default value is used)
 
 ## `AutoTLS`
 
-> [!CAUTION]
-> This is an **EXPERIMENTAL** opt-in feature and should not be used in production yet.
-> Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
-> Track progress in [kubo#10560](https://github.com/ipfs/kubo/issues/10560).
-
-AutoTLS feature enables publicly reachable Kubo nodes (those dialable from the public
+The [AutoTLS](https://blog.libp2p.io/autotls/) feature enables publicly reachable Kubo nodes (those dialable from the public
 internet) to automatically obtain a wildcard TLS certificate for a DNS name
 unique to their PeerID at `*.[PeerID].libp2p.direct`. This enables direct
 libp2p connections and retrieval of IPFS content from browsers [Secure Context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
@@ -480,11 +476,11 @@ broker enabling peer to obtain a wildcard TLS certificate tied to public key of 
 
 By default, the certificates are requested from Let's Encrypt. Origin and rationale for this project can be found in [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003).
 
+<a href="https://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
+
 > [!NOTE]
 > Public good DNS and [p2p-forge] infrastructure at `libp2p.direct` is run by the team at [Interplanetary Shipyard](https://ipshipyard.com).
 >
-> <a href="https://ipshipyard.com/"><img src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
-
 [p2p-forge]: https://github.com/ipshipyard/p2p-forge
 
 Default: `{}`
@@ -493,33 +489,22 @@ Type: `object`
 
 ### `AutoTLS.Enabled`
 
-> [!CAUTION]
-> This is an **EXPERIMENTAL** opt-in feature and should not be used in production yet.
-> Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
-> Track progress in [kubo#10560](https://github.com/ipfs/kubo/issues/10560).
+Enables the AutoTLS feature to provide DNS and TLS support for [libp2p Secure WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) over a `/tcp` port,
+to allow JS clients running in web browser [Secure Context](https://w3c.github.io/webappsec-secure-contexts/) to connect to Kubo directly.
 
-Enables AutoTLS feature to get DNS+TLS for [libp2p Secure WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) on `/tcp` port.
+When activated, together with [`AutoTLS.AutoWSS`](#autotlsautowss) (default) or manually including a `/tcp/{port}/tls/sni/*.libp2p.direct/ws` multiaddr in [`Addresses.Swarm`](#addressesswarm)
+(with SNI suffix matching [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)), Kubo retrieves a trusted PKI TLS certificate for `*.{peerid}.libp2p.direct` and configures the `/ws` listener to use it.
 
-If `AutoTLS.AutoWSS` is `true`, or `/tcp/../tls/sni/*.libp2p.direct/ws` [multiaddr] is present in [`Addresses.Swarm`](#addressesswarm)
-with SNI segment ending with [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix),
-Kubo will obtain and set up a trusted PKI TLS certificate for `*.peerid.libp2p.direct`, making it dialable from web browser's [Secure Contexts](https://w3c.github.io/webappsec-secure-contexts/).
+**Note:**
 
-> [!TIP]
-> - Most users don't need custom `/ws` config in `Addresses.Swarm`. Try running this with `AutoTLS.AutoWSS=true`: it will reuse preexisting catch-all `/tcp` ports that were already forwarded/safelisted on your firewall.
-> - Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`. Less noisy `GOLOG_LOG_LEVEL="error,autotls=info` may be informative enough.
-> - Certificates are stored in `$IPFS_PATH/p2p-forge-certs`. Removing directory and restarting daemon will trigger certificate rotation.
+- This feature requires a publicly reachable node. If behind NAT, manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`) is required.
+- The first time AutoTLS is used, it may take 5-15 minutes + [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay) before `/ws` listener is added. Be patient.
+- Avoid manual configuration. [`AutoTLS.AutoWSS=true`](#autotlsautowss) should automatically add `/ws` listener to existing, firewall-forwarded `/tcp` ports.
+- To troubleshoot, use `GOLOG_LOG_LEVEL="error,autotls=debug` for detailed logs, or `GOLOG_LOG_LEVEL="error,autotls=info` for quieter output.
+- Certificates are stored in `$IPFS_PATH/p2p-forge-certs`; deleting this directory and restarting the daemon forces a certificate rotation.
+- For now, the TLS cert applies solely to `/ws` libp2p WebSocket connections, not HTTP [`Gateway`](#gateway), which still need separate reverse proxy TLS setup with a custom domain.
 
-> [!IMPORTANT]
-> Caveats:
-> - Requires your Kubo node to be publicly dialable.
->   - If you want to test this with a node that is behind a NAT and uses manual TCP port forwarding or UPnP (`Swarm.DisableNatPortMap=false`), use `AutoTLS.AutoWSS=true`, or manually
->     add catch-all `/ip4/0.0.0.0/tcp/4001/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4001/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm)
->     and **wait 5-15 minutes** for libp2p node to set up and learn about own public addresses via [AutoNAT](#autonat).
->   - If your node is fresh and just started, the [p2p-forge] client may produce and log ERRORs during this time, but once a publicly dialable addresses are set up, a subsequent retry should be successful.
-> - The TLS certificate is used only for [libp2p WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) connections.
->   - Right now, this is NOT used for hosting a [Gateway](#gateway) over HTTPS (that use case still requires manual TLS setup on reverse proxy, and your own domain).
-
-Default: `false`
+Default: `true`
 
 Type: `flag`
 
@@ -527,7 +512,7 @@ Type: `flag`
 
 Optional. Controls if Kubo should add `/tls/sni/*.libp2p.direct/ws` listener to every pre-existing `/tcp` port IFF no explicit `/ws` is defined in [`Addresses.Swarm`](#addressesswarm) already.
 
-Default: `true` (active only if `AutoTLS.Enabled` is `true` as well)
+Default: `true` (if `AutoTLS.Enabled`)
 
 Type: `flag`
 
@@ -535,8 +520,7 @@ Type: `flag`
 
 Optional. Controls if final AutoTLS listeners are announced under shorter `/dnsX/A.B.C.D.peerid.libp2p.direct/tcp/4001/tls/ws` addresses instead of fully resolved `/ip4/A.B.C.D/tcp/4001/tls/sni/A-B-C-D.peerid.libp2p.direct/tls/ws`.
 
-> [!TIP]
-> The main use for AutoTLS is allowing connectivity from Secure Context in a web browser, and DNS lookup needs to happen there anyway, making `/dnsX` a more compact, more interoperable option without obvious downside.
+The main use for AutoTLS is allowing connectivity from Secure Context in a web browser, and DNS lookup needs to happen there anyway, making `/dnsX` a more compact, more interoperable option without obvious downside.
 
 Default: `true`
 
@@ -573,6 +557,17 @@ Optional value for `Forge-Authorization` token sent with request to `Registratio
 Default: `""`
 
 Type: `optionalString`
+
+### `AutoTLS.RegistrationDelay`
+
+An additional delay applied before sending a request to the `RegistrationEndpoint`.
+
+The default delay is bypassed if the user explicitly set `AutoTLS.Enabled=true` in the JSON configuration file.
+This ensures that ephemeral nodes using the default configuration do not spam the`AutoTLS.CAEndpoint` with unnecessary ACME requests.
+
+Default: `1h` (or `0` if explicit `AutoTLS.Enabled=true`)
+
+Type: `optionalDuration`
 
 ### `AutoTLS.CAEndpoint`
 
