@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	logging "github.com/ipfs/go-log"
 	version "github.com/ipfs/kubo"
@@ -145,11 +146,19 @@ func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEv
 		certmagic.Default.Logger = rawLogger.Named("default_fixme")
 		certmagic.DefaultACME.Logger = rawLogger.Named("default_acme_client_fixme")
 
+		registrationDelay := cfg.RegistrationDelay.WithDefault(config.DefaultAutoTLSRegistrationDelay)
+		if cfg.Enabled == config.True && cfg.RegistrationDelay.IsDefault() {
+			// Skip delay if user explicitly enabled AutoTLS.Enabled in config
+			// and did not set custom AutoTLS.RegistrationDelay
+			registrationDelay = 0 * time.Second
+		}
+
 		certStorage := &certmagic.FileStorage{Path: storagePath}
 		certMgr, err := p2pforge.NewP2PForgeCertMgr(
 			p2pforge.WithLogger(rawLogger.Sugar()),
 			p2pforge.WithForgeDomain(cfg.DomainSuffix.WithDefault(config.DefaultDomainSuffix)),
 			p2pforge.WithForgeRegistrationEndpoint(cfg.RegistrationEndpoint.WithDefault(config.DefaultRegistrationEndpoint)),
+			p2pforge.WithRegistrationDelay(registrationDelay),
 			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),
 			p2pforge.WithForgeAuth(cfg.RegistrationToken.WithDefault(os.Getenv(p2pforge.ForgeAuthEnv))),
 			p2pforge.WithUserAgent(version.GetUserAgentVersion()),
