@@ -434,8 +434,8 @@ github.com/libp2p/go-cidranger v1.1.0 h1:ewPN8EZ0dd1LSnrtuwd4709PXVcITVeuwbag38y
 github.com/libp2p/go-cidranger v1.1.0/go.mod h1:KWZTfSr+r9qEo9OkI9/SIEeAtw+NNoU0dXIXt15Okic=
 github.com/libp2p/go-flow-metrics v0.2.0 h1:EIZzjmeOE6c8Dav0sNv35vhZxATIXWZg6j/C08XmmDw=
 github.com/libp2p/go-flow-metrics v0.2.0/go.mod h1:st3qqfu8+pMfh+9Mzqb2GTiwrAGjIPszEjZmtksN8Jc=
-github.com/libp2p/go-libp2p v0.40.1-0.20250225165447-857c6f035ac5 h1:4kk3aUifE29I6wmZv9UA+CfqKzE0PoMPXFhYE+KFnhI=
-github.com/libp2p/go-libp2p v0.40.1-0.20250225165447-857c6f035ac5/go.mod h1:Be8QYqC4JW6Xq8buukNeoZJjyT1XUDcGoIooCHm1ye4=
+github.com/libp2p/go-libp2p v0.41.0 h1:JRaD39dqf/tBBGapJ0T38N73vOaDCsWgcx3mE6HgXWk=
+github.com/libp2p/go-libp2p v0.41.0/go.mod h1:Be8QYqC4JW6Xq8buukNeoZJjyT1XUDcGoIooCHm1ye4=
 github.com/libp2p/go-libp2p-asn-util v0.4.1 h1:xqL7++IKD9TBFMgnLPZR6/6iYhawHKHl950SO9L6n94=
 github.com/libp2p/go-libp2p-asn-util v0.4.1/go.mod h1:d/NI6XZ9qxw67b4e+NgpQexCIiFYJjErASrYW4PFDN8=
 github.com/libp2p/go-libp2p-kad-dht v0.29.1 h1:RyD1RnnkXOh1gwBCrMQ6ZVfTJECY5yDOY6qxt9VNqE4=
