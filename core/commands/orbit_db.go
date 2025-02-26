@@ -43,6 +43,7 @@ const dbNameRide = "ride"
 const dbUser = "user"
 const dbIncome = "income"
 const dbUserBalance = "user_balance"
+const dbTransaction = "transaction"
 
 const (
 	privateKeyFile      = "orbitdb_private.pem"   // Define a constant for the private key file name
@@ -929,6 +930,14 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 
 	var addr address.Address
 	switch dbName {
+	case dbTransaction:
+		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		if err != nil {
+			_, err = db.Create(ctx, dbTransaction, "docstore", &orbitdb.CreateDBOptions{})
+			if err != nil {
+				return db, nil, err
+			}
+		}
 	case dbIncome:
 		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
