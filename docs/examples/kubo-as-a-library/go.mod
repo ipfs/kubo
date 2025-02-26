@@ -7,7 +7,7 @@ go 1.24
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.28.0
+	github.com/ipfs/boxo v0.28.1-0.20250226015319-55fac8255c3d
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.41.0
 	github.com/multiformats/go-multiaddr v0.15.0
@@ -82,12 +82,12 @@ require (
 	github.com/ipfs/go-blockservice v0.5.2 // indirect
 	github.com/ipfs/go-cid v0.5.0 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
-	github.com/ipfs/go-datastore v0.7.0 // indirect
-	github.com/ipfs/go-ds-badger v0.3.1 // indirect
-	github.com/ipfs/go-ds-flatfs v0.5.1 // indirect
-	github.com/ipfs/go-ds-leveldb v0.5.0 // indirect
-	github.com/ipfs/go-ds-measure v0.2.0 // indirect
-	github.com/ipfs/go-ds-pebble v0.4.2 // indirect
+	github.com/ipfs/go-datastore v0.7.1-0.20250226000051-0dbca94435fd // indirect
+	github.com/ipfs/go-ds-badger v0.3.2-0.20250226001010-9c7a3c9bf2d9 // indirect
+	github.com/ipfs/go-ds-flatfs v0.5.2-0.20250226000527-4ee312cec7a3 // indirect
+	github.com/ipfs/go-ds-leveldb v0.5.1-0.20250226000650-b5d31f18e7b9 // indirect
+	github.com/ipfs/go-ds-measure v0.2.1-0.20250226000342-bad096bb76a4 // indirect
+	github.com/ipfs/go-ds-pebble v0.4.3-0.20250226000621-88962cb6f5fc // indirect
 	github.com/ipfs/go-fs-lock v0.0.7 // indirect
 	github.com/ipfs/go-ipfs-blockstore v1.3.1 // indirect
 	github.com/ipfs/go-ipfs-delay v0.0.1 // indirect
@@ -126,7 +126,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.29.1 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.29.2-0.20250226000227-c700e434e34a // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.6.5 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.12.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
