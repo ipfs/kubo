@@ -26,9 +26,9 @@ require (
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-cidutil v0.1.0
-	github.com/ipfs/go-datastore v0.7.1-0.20250226000051-0dbca94435fd
+	github.com/ipfs/go-datastore v0.8.0
 	github.com/ipfs/go-detect-race v0.0.1
-	github.com/ipfs/go-ds-badger v0.3.2-0.20250226001010-9c7a3c9bf2d9
+	github.com/ipfs/go-ds-badger v0.3.2-0.20250226175613-0c451d9aed78
 	github.com/ipfs/go-ds-flatfs v0.5.2-0.20250226000527-4ee312cec7a3
 	github.com/ipfs/go-ds-leveldb v0.5.1-0.20250226000650-b5d31f18e7b9
 	github.com/ipfs/go-ds-measure v0.2.1-0.20250226000342-bad096bb76a4
