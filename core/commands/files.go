@@ -487,10 +487,10 @@ being GC'ed.
 			// Check if it's a raw node
 			if _, ok := node.(*dag.RawNode); !ok {
 				if _, ok := node.(*dag.ProtoNode); !ok {
-					return fmt.Errorf("cp: source must be a UnixFS node or raw data")
+					return fmt.Errorf("cp: source must be a valid UnixFS (dag-pb or raw codec)")
 				}
 				if _, err = ft.FSNodeFromBytes(node.(*dag.ProtoNode).Data()); err != nil {
-					return fmt.Errorf("cp: source must be a UnixFS node or raw data: %s", err)
+					return fmt.Errorf("cp: source must be a valid UnixFS (dag-pb or raw codec): %s", err)
 				}
 			}
 		}
