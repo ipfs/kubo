@@ -441,7 +441,7 @@ being GC'ed.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(filesParentsOptionName, "p", "Make parent directories as needed."),
-		cmds.BoolOption(filesNoValidateOptionName, "Copy even if the node is not a valid UnixFS node."),
+		cmds.BoolOption(filesForceOptionName, "f", "Force operation: ignore format validation errors and UnixFS safety checks."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		mkParents, _ := req.Options[filesParentsOptionName].(bool)
