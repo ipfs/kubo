@@ -94,7 +94,7 @@ cache, free memory and speed up read operations.`,
 const (
 	filesCidVersionOptionName = "cid-version"
 	filesHashOptionName       = "hash"
-	filesNoValidateOptionName = "no-validate"
+	filesForceOptionName = "force
 )
 
 var (
