@@ -394,8 +394,8 @@ github.com/ipfs/go-detect-race v0.0.1/go.mod h1:8BNT7shDZPo99Q74BpGMK+4D8Mn4j46U
 github.com/ipfs/go-ds-badger v0.0.7/go.mod h1:qt0/fWzZDoPW6jpQeqUjR5kBfhDNB65jd9YlmAvpQBk=
 github.com/ipfs/go-ds-badger v0.3.2 h1:b3ngFa49ySnZA/nXMIiFvnrEtbkjuDi2OQyj/NcRFmU=
 github.com/ipfs/go-ds-badger v0.3.2/go.mod h1:SzDIGGEQhBFzxqQZkV5wUCmH0kJgaznUWC/H6xdWDWE=
-github.com/ipfs/go-ds-flatfs v0.5.2-0.20250227071437-204767751e4e h1:eVwBiIOH1+0rElnrJbgi/E7qzhtMJliYIacAg5Q8jOE=
-github.com/ipfs/go-ds-flatfs v0.5.2-0.20250227071437-204767751e4e/go.mod h1:hCh3OKNvlqPQ+retNJy8402Oej6QpX4U18OYzLrfLR8=
+github.com/ipfs/go-ds-flatfs v0.5.2 h1:cGhG7HXdoLZ/t1NcPt43Yi3sDSivOjaU6y6Gnenb68k=
+github.com/ipfs/go-ds-flatfs v0.5.2/go.mod h1:hCh3OKNvlqPQ+retNJy8402Oej6QpX4U18OYzLrfLR8=
 github.com/ipfs/go-ds-leveldb v0.1.0/go.mod h1:hqAW8y4bwX5LWcCtku2rFNX3vjDZCy5LZCg+cSZvYb8=
 github.com/ipfs/go-ds-leveldb v0.5.1 h1:Tf72nrJ1FecwJDQjtxc32sfvoqp0j8P5Jwb723LBxTI=
 github.com/ipfs/go-ds-leveldb v0.5.1/go.mod h1:1Spu3TBKk5GBarr2qc8q2cV26rdBjA3M8XjZkULvUtQ=
