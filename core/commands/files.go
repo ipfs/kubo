@@ -94,7 +94,7 @@ cache, free memory and speed up read operations.`,
 const (
 	filesCidVersionOptionName = "cid-version"
 	filesHashOptionName       = "hash"
-	filesForceOptionName = "force
+	filesForceOptionName      = "force"
 )
 
 var (
@@ -482,7 +482,7 @@ being GC'ed.
 			return fmt.Errorf("cp: cannot get node from path %s: %s", src, err)
 		}
 
-		force, _ := req.Options[filesNoValidateOptionName].(bool)
+		force, _ := req.Options[filesForceOptionName].(bool)
 		if !force {
 			// Check if it's a raw node
 			if _, ok := node.(*dag.RawNode); !ok {
