@@ -83,11 +83,11 @@ require (
 	github.com/ipfs/go-cid v0.5.0 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
 	github.com/ipfs/go-datastore v0.8.0 // indirect
-	github.com/ipfs/go-ds-badger v0.3.2-0.20250226175613-0c451d9aed78 // indirect
-	github.com/ipfs/go-ds-flatfs v0.5.2-0.20250226000527-4ee312cec7a3 // indirect
-	github.com/ipfs/go-ds-leveldb v0.5.1-0.20250226000650-b5d31f18e7b9 // indirect
-	github.com/ipfs/go-ds-measure v0.2.1-0.20250226000342-bad096bb76a4 // indirect
-	github.com/ipfs/go-ds-pebble v0.4.3-0.20250226000621-88962cb6f5fc // indirect
+	github.com/ipfs/go-ds-badger v0.3.2 // indirect
+	github.com/ipfs/go-ds-flatfs v0.5.2-0.20250227071437-204767751e4e // indirect
+	github.com/ipfs/go-ds-leveldb v0.5.1 // indirect
+	github.com/ipfs/go-ds-measure v0.2.1 // indirect
+	github.com/ipfs/go-ds-pebble v0.4.3 // indirect
 	github.com/ipfs/go-fs-lock v0.0.7 // indirect
 	github.com/ipfs/go-ipfs-blockstore v1.3.1 // indirect
 	github.com/ipfs/go-ipfs-delay v0.0.1 // indirect
@@ -105,7 +105,7 @@ require (
 	github.com/ipfs/go-merkledag v0.11.0 // indirect
 	github.com/ipfs/go-metrics-interface v0.0.1 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.2 // indirect
-	github.com/ipfs/go-unixfsnode v1.9.2 // indirect
+	github.com/ipfs/go-unixfsnode v1.10.0 // indirect
 	github.com/ipfs/go-verifcid v0.0.3 // indirect
 	github.com/ipld/go-car v0.6.2 // indirect
 	github.com/ipld/go-car/v2 v2.14.2 // indirect
@@ -126,7 +126,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.29.2-0.20250226000227-c700e434e34a // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.29.2 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.6.5 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.12.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
