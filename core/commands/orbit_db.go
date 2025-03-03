@@ -15,11 +15,15 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	logger "log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/google/uuid"
 	config "github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	iface "github.com/ipfs/kubo/core/coreiface"
@@ -44,12 +48,43 @@ const dbUser = "user"
 const dbIncome = "income"
 const dbUserBalance = "user_balance"
 const dbTransaction = "transaction"
+const dbInflation = "inflation"
+const transactionsPerPerson = 100
 
 const (
 	privateKeyFile      = "orbitdb_private.pem"   // Define a constant for the private key file name
 	encryptedAESKeyFile = "encrypted_aes_key.bin" // File to store the encrypted AES key
 	saltSize            = 16                      // Size of the random salt in bytes
 )
+
+type Transaction struct {
+	ID         string `mapstructure:"_id" json:"_id" validate:"uuid_rfc4122"`                 // Unique identifier for the transaction
+	SenderID   string `mapstructure:"sender_id" json:"sender_id" validate:"uuid_rfc4122"`     // Sender user id
+	ReceiverID string `mapstructure:"receiver_id" json:"receiver_id" validate:"uuid_rfc4122"` // Recipient user id
+	ProductOrService
+	Timestamp time.Time `mapstructure:"timestamp" json:"timestamp" validate:"uuid_rfc4122"` // Timestamp of the transaction
+	Date      string    `mapstructure:"date" json:"date" validate:"uuid_rfc4122"`           // Date of the transaction in the format YY/MM
+	Processed bool      `mapstructure:"processed" json:"processed" validate:"uuid_rfc4122"` // Flag if it was already processed by inflation indexer
+}
+
+type ProductOrService struct {
+	ID     string `mapstructure:"_id" json:"_id" validate:"uuid_rfc4122"` // Unique identifier for the product
+	Name   string `mapstructure:"name" json:"name" validate:"uuid_rfc4122"`
+	Price  int    `mapstructure:"price" json:"price" validate:"uuid_rfc4122"`
+	Amount int    `mapstructure:"amount" json:"amount" validate:"uuid_rfc4122"`
+}
+
+type Income struct {
+	ID     string `mapstructure:"_id" json:"_id" validate:"uuid_rfc4122"`       // Unique identifier for the income
+	Amount int    `mapstructure:"amount" json:"amount" validate:"uuid_rfc4122"` // Amount of the income in cents
+	Period string `mapstructure:"period" json:"period" validate:"uuid_rfc4122"` // Period the income is valid for
+}
+
+type Inflation struct {
+	ID              string    `mapstructure:"_id" json:"_id" validate:"uuid_rfc4122"`                           // Unique identifier for the income
+	DiffPercentages []float64 `mapstructure:"diff_percentages" json:"diff_percentages" validate:"uuid_rfc4122"` // Amount of the income in cents
+	Period          string    `mapstructure:"period" json:"period" validate:"uuid_rfc4122"`                     // Period the income is valid for
+}
 
 // --- Key Management ---
 
@@ -284,6 +319,7 @@ orbit db is a p2p database on top of ipfs node
 		"docsquery":    OrbitQueryDocsCmd,
 		"docsqueryenc": OrbitQueryDocsEncryptedCmd,
 		"docsdel":      OrbitDelDocsCmd,
+		"runindexer":   OrbitIndexerCmd,
 	},
 }
 
@@ -472,7 +508,7 @@ var OrbitPutDocsCmd = &cmds.Command{
 		}
 
 		dd := make(map[string]interface{})
-		if err := json.Unmarshal([]byte(data), &dd); err != nil {
+		if err := json.Unmarshal(data, &dd); err != nil {
 			panic(err)
 		}
 
@@ -617,6 +653,503 @@ var OrbitGetDocsCmd = &cmds.Command{
 	Type: []byte{},
 }
 
+func generateDummyTransactions(req *cmds.Request, store orbitdb.DocumentStore) error {
+	transactions := make([]Transaction, 400)
+	for i := 0; i <= 199; i++ {
+		// previous month
+		transactions[i] = Transaction{
+			ID:         uuid.NewString(),
+			SenderID:   "7c7d5a26-3bf3-4547-9559-5c7725bc5562",
+			ReceiverID: "c143d122-5880-4b11-b89c-b9afc8e49815",
+			ProductOrService: ProductOrService{
+				ID:     uuid.NewString(),
+				Name:   "bread",
+				Price:  100,
+				Amount: 1,
+			},
+			Timestamp: time.Now(),
+			Date:      strconv.Itoa(time.Now().Year()) + "/" + strconv.Itoa(int(time.Now().Month()-1)),
+		}
+		// current month
+		transactions[199+i] = Transaction{
+			ID:         uuid.NewString(),
+			SenderID:   "7c7d5a26-3bf3-4547-9559-5c7725bc5562",
+			ReceiverID: "c143d122-5880-4b11-b89c-b9afc8e49815",
+			ProductOrService: ProductOrService{
+				ID:     uuid.NewString(),
+				Name:   "bread",
+				Price:  200,
+				Amount: 1,
+			},
+			Timestamp: time.Now(),
+			Date:      strconv.Itoa(time.Now().Year()) + "/" + strconv.Itoa(int(time.Now().Month())),
+		}
+	}
+
+	// Insert each transaction into the database
+	processAndStoreTransactions(transactions, false, store)
+
+	return nil
+}
+
+func processAndStoreTransactions(transactions []Transaction, processed bool, storeTr orbitdb.DocumentStore) error {
+	timeBeforeTrProcessedLoop := time.Now()
+
+	var wg sync.WaitGroup
+
+	// Process and store transactions in parallel
+	for _, transaction := range transactions {
+		wg.Add(1)
+		go func(transaction Transaction) {
+			defer wg.Done()
+			processAndStoreTransaction(transaction, processed, storeTr)
+		}(transaction)
+	}
+
+	wg.Wait()
+
+	logger.Printf("Processed transactions storing completed in: %f seconds", time.Since(timeBeforeTrProcessedLoop).Seconds())
+
+	return nil
+}
+
+func processAndStoreTransaction(transaction Transaction, processed bool, storeTr orbitdb.DocumentStore) {
+	transaction.Processed = processed
+
+	// Directly marshal to JSON and store without unmarshaling
+	processedJSON, err := json.Marshal(transaction)
+	if err != nil {
+		logger.Println("dbTransactions merge json marshal error: ", err)
+		return
+	}
+
+	processedMap := make(map[string]interface{})
+
+	err = json.Unmarshal(processedJSON, &processedMap)
+	if err != nil {
+		logger.Println("dbTransactions merge json unmarshal error: ", err)
+		return
+	}
+
+	// Store the JSON directly
+	_, err = storeTr.Put(context.Background(), processedMap)
+	if err != nil {
+		logger.Println("dbTransactions merge put error: ", err)
+		return
+	}
+}
+
+// aggregatePrices aggregates prices by product.
+func aggregatePrices(transactions []Transaction) map[string][]int {
+	pricesByProduct := make(map[string][]int)
+	for _, t := range transactions {
+		pricesByProduct[t.Name] = append(pricesByProduct[t.Name], t.Price)
+	}
+	return pricesByProduct
+}
+
+// calculateAveragePrice calculates the average price for a slice of prices.
+func calculateAveragePrice(prices []int) float64 {
+	sum := 0
+	for _, p := range prices {
+		sum += p
+	}
+	return float64(sum) / float64(len(prices))
+}
+
+// calculateInflation calculates inflation/deflation for matching products and returns a slice of inflation results.
+func calculateInflation(prevMonth, currMonth []Transaction) []float64 {
+	// Aggregate prices by product for both months.
+	prevMonthPrices := aggregatePrices(prevMonth)
+	currMonthPrices := aggregatePrices(currMonth)
+
+	var inflationResults []float64
+
+	// Iterate through products from previous month.
+	for product, prevPrices := range prevMonthPrices {
+		if currPrices, ok := currMonthPrices[product]; ok {
+			// Calculate average prices.
+			avgPrevPrice := calculateAveragePrice(prevPrices)
+			avgCurrPrice := calculateAveragePrice(currPrices)
+
+			// Calculate inflation/deflation.
+			inflation := (avgCurrPrice - avgPrevPrice) / avgPrevPrice * 100
+			inflationResults = append(inflationResults, inflation)
+		} else {
+			fmt.Printf("No current price found for %s\n", product)
+		}
+	}
+
+	// Check for products only in current month.
+	for product := range currMonthPrices {
+		if _, ok := prevMonthPrices[product]; !ok {
+			fmt.Printf("No previous price found for %s\n", product)
+		}
+	}
+
+	return inflationResults
+}
+
+var OrbitIndexerCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Adjust basic income based on inflation/deflation",
+		ShortDescription: `Inflation indexer`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		timeStart := time.Now()
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			logger.Println("cmdenv.GetApi error: ", err)
+			return err
+		}
+
+		// Define the log file name
+		logFileName := "indexer.log"
+
+		// Open the log file in append mode
+		logFile, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			logger.Println("os.OpenFile error: ", err)
+			return err
+		}
+		defer logFile.Close()
+
+		// Create a new logger that writes to the log file
+		logger := logger.New(logFile, "", logger.LstdFlags)
+
+		logger.Println("Indexer started")
+
+		dbTr, storeTr, err := ConnectDocs(req.Context, dbTransaction, api, func(address string) {})
+		if err != nil {
+			logger.Println("dbTransaction ConnectDocs error: ", err)
+			return err
+		}
+
+		// logger.Println("generateDummyTransactions started")
+
+		// timeBeforeGenerateDummyTransactions := time.Now()
+
+		// err = generateDummyTransactions(req, storeTr)
+		// if err != nil {
+		// 	logger.Println("generateDummyTransactions error: ", err)
+		// 	return err
+		// }
+
+		// logger.Printf("generateDummyTransactions completed in: %f seconds", time.Since(timeBeforeGenerateDummyTransactions).Seconds())
+
+		// return errors.New("force stop after generateDummyTransactions")
+
+		timeBeforeQueryTransactions := time.Now()
+
+		transactions, err := storeTr.Query(req.Context, func(e interface{}) (bool, error) {
+			record := e.(map[string]interface{})
+
+			// previous month
+			if record["date"] == strconv.Itoa(time.Now().Year())+"/"+strconv.Itoa(int(time.Now().Month()-1)) {
+				if record["processed"] == false {
+					return true, nil
+				}
+				return false, nil
+				// this month
+			} else if record["date"] == strconv.Itoa(time.Now().Year())+"/"+strconv.Itoa(int(time.Now().Month())) {
+				if record["processed"] == false {
+					return true, nil
+				}
+				return false, nil
+			}
+
+			return false, nil
+		})
+
+		if err != nil {
+			logger.Println("transactions query error: ", err)
+			return err
+		}
+
+		dbTr.Close()
+
+		logger.Printf("Query transactions completed in: %f seconds", time.Since(timeBeforeQueryTransactions).Seconds())
+		// logger.Println("Transactions: ", transactions)
+
+		// Convert the slice of interfaces to JSON string
+		transactionsBytes, err := json.Marshal(&transactions)
+		if err != nil {
+			logger.Println("transactions marshal error: ", err)
+			return err
+		}
+
+		transactionsString := string(transactionsBytes)
+		transactionsPrevMonth := []Transaction{}
+		transactionsCurrentMonth := []Transaction{}
+		var transactionsTotal int
+		var transactionsCollected int
+
+		if transactionsString == "null" {
+			logger.Println("no transactions found")
+			logger.Println("check if income for next month exists")
+
+			timeBeforeQueryIncome := time.Now()
+
+			dbInc, storeInc, err := ConnectDocs(req.Context, dbIncome, api, func(address string) {})
+			if err != nil {
+				logger.Println("dbIncome connect error: ", err)
+				return err
+			}
+
+			income, err := storeInc.Query(req.Context, func(e interface{}) (bool, error) {
+				return true, nil
+			})
+
+			if err != nil {
+				logger.Println("income query error: ", err)
+				return err
+			}
+
+			dbInc.Close()
+
+			logger.Printf("Query income completed in: %f seconds", time.Since(timeBeforeQueryIncome).Seconds())
+
+			// Convert the slice of interfaces to JSON string
+			incomeBytes, err := json.Marshal(&income)
+			if err != nil {
+				logger.Println("income json marshal error: ", err)
+				return err
+			}
+
+			incomeString := string(incomeBytes)
+
+			if incomeString == "null" {
+				logger.Println("no income records found for current month")
+				return nil
+			} else {
+				var incomes []Income
+				err = json.Unmarshal(incomeBytes, &incomes)
+				if err != nil {
+					logger.Println("income json unmarshal error: ", err)
+					return err
+				}
+
+				var currentIncome int
+
+				for _, in := range incomes {
+					if in.Period == strconv.Itoa(time.Now().Year())+"/"+strconv.Itoa(int(time.Now().Month()+1)) {
+						logger.Println("income for next month exists, quitting")
+						return errors.New("income for next month already exists")
+					} else if in.Period == strconv.Itoa(time.Now().Year())+"/"+strconv.Itoa(int(time.Now().Month())) {
+						currentIncome = in.Amount
+					}
+				}
+
+				if currentIncome > 0 {
+					// query  inflation db with date this month
+					logger.Println("query inflation db with date this month")
+					timeBeforeQueryInflation := time.Now()
+
+					dbInf, storeInf, err := ConnectDocs(req.Context, dbInflation, api, func(address string) {})
+					if err != nil {
+						logger.Println("dbInflation connect error: ", err)
+						return err
+					}
+
+					inflation, err := storeInf.Query(req.Context, func(e interface{}) (bool, error) {
+						record := e.(map[string]interface{})
+						if record["period"] == strconv.Itoa(time.Now().Year())+"/"+strconv.Itoa(int(time.Now().Month())) {
+							return true, nil
+						}
+						return false, nil
+					})
+
+					if err != nil {
+						logger.Println("inflation query error: ", err)
+						return err
+					}
+
+					dbInf.Close()
+
+					logger.Printf("Query inflation completed in: %f seconds", time.Since(timeBeforeQueryInflation).Seconds())
+
+					// Convert the slice of interfaces to JSON string
+					inflationBytes, err := json.Marshal(&inflation)
+					if err != nil {
+						logger.Println("inflation json marshal error: ", err)
+						return err
+					}
+
+					inflationString := string(inflationBytes)
+
+					if inflationString == "null" {
+						logger.Println("no inflation records found for current month")
+						return nil
+					} else {
+						var inflations []Inflation
+						err = json.Unmarshal(inflationBytes, &inflations)
+						if err != nil {
+							logger.Println("inflation json unmarshal error: ", err)
+							return err
+						}
+
+						// if there is get diffPercentages and calculate new income
+						timeBeforeDiffPercentagesLoop := time.Now()
+
+						var diffs []float64
+						for _, df := range inflations {
+							diffs = append(diffs, df.DiffPercentages...)
+						}
+
+						var sum float64
+						for _, value := range diffs {
+							sum += value
+						}
+
+						logger.Printf("DiffPercentage loop logic completed in: %f seconds", time.Since(timeBeforeDiffPercentagesLoop).Seconds())
+
+						percentageChange := sum / float64(len(inflations))
+						logger.Printf("inflation/deflation: %v percent", percentageChange)
+
+						// store new income in income db
+						newIncomeAmount := float64(incomes[0].Amount) + (float64(incomes[0].Amount) * (percentageChange / 100))
+						logger.Println("newIncomeAmount: ", newIncomeAmount)
+						newIncome := Income{
+							ID:     uuid.NewString(),
+							Amount: int(newIncomeAmount),
+							Period: strconv.Itoa(time.Now().Year()) + "/" + strconv.Itoa(int(time.Now().Month()+1)),
+						}
+
+						newIncomeJSON, err := json.Marshal(newIncome)
+						if err != nil {
+							logger.Println("new income json marshal error: ", err)
+							return err
+						}
+
+						newIncomeMap := make(map[string]interface{})
+
+						err = json.Unmarshal(newIncomeJSON, &newIncomeMap)
+						if err != nil {
+							logger.Println("new income json unmarshal error: ", err)
+							return err
+						}
+
+						dbInc, storeInc, err := ConnectDocs(req.Context, dbIncome, api, func(address string) {})
+						if err != nil {
+							logger.Println("dbIncome connect error: ", err)
+							return err
+						}
+
+						_, err = storeInc.Put(req.Context, newIncomeMap)
+						if err != nil {
+							logger.Println("new income db put error: ", err)
+							return err
+						}
+
+						logger.Println("new income stored")
+
+						dbInc.Close()
+						return nil
+					}
+				}
+				return nil
+			}
+		} else {
+			var transactions []Transaction
+			err = json.Unmarshal(transactionsBytes, &transactions)
+			if err != nil {
+				logger.Println("transactions json unmarshal error: ", err)
+				return err
+			}
+
+			timeBeforeTransactionsLoop := time.Now()
+
+			for _, tr := range transactions {
+				transactionsTotal++
+				if transactionsTotal <= transactionsPerPerson {
+					transactionsCollected++
+					if tr.Date == strconv.Itoa(time.Now().Year())+"/"+strconv.Itoa(int(time.Now().Month()-1)) {
+						transactionsPrevMonth = append(transactionsPrevMonth, tr)
+					} else {
+						transactionsCurrentMonth = append(transactionsCurrentMonth, tr)
+					}
+				}
+			}
+
+			logger.Println("Transactions not processed yet: ", len(transactions))
+			logger.Println("Transactions collected for processing: ", transactionsCollected)
+			logger.Printf("Transactions loop logic completed in: %f seconds", time.Since(timeBeforeTransactionsLoop).Seconds())
+		}
+
+		if len(transactionsPrevMonth) > 0 && len(transactionsCurrentMonth) > 0 {
+			timeBeforeMainLoop := time.Now()
+
+			diffPercentages := calculateInflation(transactionsPrevMonth, transactionsCurrentMonth)
+
+			logger.Printf("Main loop logic completed in: %f seconds", time.Since(timeBeforeMainLoop).Seconds())
+
+			timeBeforeTrProcessedLoop := time.Now()
+
+			processedTransactions := append(transactionsPrevMonth, transactionsCurrentMonth...)
+
+			dbTr, storeTr, err := ConnectDocs(req.Context, dbTransaction, api, func(address string) {})
+			if err != nil {
+				logger.Println("dbTransactions merge connect error: ", err)
+				return err
+			}
+
+			processAndStoreTransactions(processedTransactions, true, storeTr)
+
+			dbTr.Close()
+
+			logger.Printf("Processed transactions storing completed in: %f seconds", time.Since(timeBeforeTrProcessedLoop).Seconds())
+
+			if len(diffPercentages) > 0 {
+				// store diffPercentages in inflation db
+				// with slice, date
+				newInflation := Inflation{
+					ID:              uuid.NewString(),
+					DiffPercentages: diffPercentages,
+					Period:          strconv.Itoa(time.Now().Year()) + "/" + strconv.Itoa(int(time.Now().Month())),
+				}
+
+				newInflationJSON, err := json.Marshal(newInflation)
+				if err != nil {
+					logger.Println("new inflation json marshal error: ", err)
+					return err
+				}
+
+				var newInflationMap map[string]interface{}
+
+				err = json.Unmarshal(newInflationJSON, &newInflationMap)
+				if err != nil {
+					logger.Println("new inflation json unmarshal error: ", err)
+					return err
+				}
+
+				dbInf, storeInf, err := ConnectDocs(req.Context, dbInflation, api, func(address string) {})
+				if err != nil {
+					logger.Println("dbInflation connect error: ", err)
+					return err
+				}
+
+				_, err = storeInf.Put(req.Context, newInflationMap)
+				if err != nil {
+					logger.Println("new inflation db put error: ", err)
+					return err
+				}
+
+				logger.Println("new inflation stored")
+
+				dbInf.Close()
+			}
+		} else if len(transactionsPrevMonth) == 0 {
+			logger.Println("no unprocessed transactions for previous month found")
+		} else if len(transactionsCurrentMonth) == 0 {
+			logger.Println("no unprocessed transactions for current month found")
+		}
+
+		logger.Printf("Indexer completed in: %f seconds", time.Since(timeStart).Seconds())
+
+		return nil
+	},
+}
+
 var OrbitQueryDocsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Query docs by key and value",
@@ -669,7 +1202,18 @@ var OrbitQueryDocsCmd = &cmds.Command{
 						}
 					}
 				}
+			} else if strings.Contains(key, ",") {
+				keys := strings.Split(key, ",")
+				for _, k := range keys {
+					record, ok := record[k].(string)
+					if !ok {
+						return false, nil
+					}
 
+					if record == value {
+						return true, nil
+					}
+				}
 			} else if record[key] == value {
 				return true, nil
 			}
@@ -930,6 +1474,14 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 
 	var addr address.Address
 	switch dbName {
+	case dbInflation:
+		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		if err != nil {
+			_, err = db.Create(ctx, dbInflation, "docstore", &orbitdb.CreateDBOptions{})
+			if err != nil {
+				return db, nil, err
+			}
+		}
 	case dbTransaction:
 		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
