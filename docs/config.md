@@ -225,6 +225,19 @@ Supported Transports:
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
 * unix - `/unix/path/to/socket`
 
+> [!CAUTION]
+> **NEVER EXPOSE UNPROTECTED ADMIN RPC TO LAN OR THE PUBLIC INTERNET**
+>
+> The RPC API grants admin-level access to your Kubo IPFS node, including
+> configuration and secret key management.
+>
+> By default, it is bound to localhost for security reasons. Exposing it to LAN
+> or the public internet is highly risky—similar to exposing a SQL database or
+> backend service without authentication middleware
+>
+> - If you need secure access to a subset of RPC, secure it with [`API.Authorizations`](#apiauthorizations) or custom auth middleware running in front of the localhost-only RPC port defined here.
+> - If you are looking for an interface designed for browsers and public internet, use [`Addresses.Gateway`](#addressesgateway) port instead.
+
 Default: `/ip4/127.0.0.1/tcp/5001`
 
 Type: `strings` ([multiaddrs][multiaddr])
@@ -254,6 +267,9 @@ Supported Transports:
 * websocket - `/ipN/.../tcp/.../ws`
 * quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic-v1/webtransport`
 * webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic-v1`
+
+> [!IMPORTANT]
+> Make sure your firewall rules allow incoming connections on both TCP and UDP ports defined here.
 
 Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
@@ -329,7 +345,7 @@ The `API.Authorizations` field defines user-based access restrictions for the
 [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/), which is located at
 `Addresses.API` under `/api/v0` paths.
 
-By default, the RPC API is accessible without restrictions as it is only
+By default, the admin-level RPC API is accessible without restrictions as it is only
 exposed on `127.0.0.1` and safeguarded with Origin check and implicit
 [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) headers that
 block random websites from accessing the RPC.
@@ -338,6 +354,15 @@ When entries are defined in `API.Authorizations`, RPC requests will be declined
 unless a corresponding secret is present in the HTTP [`Authorization` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization),
 and the requested path is included in the `AllowedPaths` list for that specific
 secret.
+
+> [!CAUTION]
+> **NEVER EXPOSE UNPROTECTED ADMIN RPC TO LAN OR THE PUBLIC INTERNET**
+>
+> The RPC API is vast. It grants admin-level access to your Kubo IPFS node, including
+> configuration and secret key management.
+>
+> - If you need secure access to a subset of RPC, make sure you undersand the risk, block everything by default and and allow basic auth access with [`API.Authorizations`](#apiauthorizations) or custom auth middleware running in front of the localhost-only port defined in [`Addresses.API`](#addressesapi).
+> - If you are looking for an interface designed for browsers and public internet, use [`Addresses.Gateway`](#addressesgateway) port instead.
 
 Default: `null`
 
