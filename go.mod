@@ -22,17 +22,17 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.28.1-0.20250226015319-55fac8255c3d
+	github.com/ipfs/boxo v0.28.1-0.20250304205927-6d6e2df26a96
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-cidutil v0.1.0
-	github.com/ipfs/go-datastore v0.8.1
+	github.com/ipfs/go-datastore v0.8.2
 	github.com/ipfs/go-detect-race v0.0.1
-	github.com/ipfs/go-ds-badger v0.3.3
-	github.com/ipfs/go-ds-flatfs v0.5.4
-	github.com/ipfs/go-ds-leveldb v0.5.1
-	github.com/ipfs/go-ds-measure v0.2.1
-	github.com/ipfs/go-ds-pebble v0.4.3
+	github.com/ipfs/go-ds-badger v0.3.4
+	github.com/ipfs/go-ds-flatfs v0.5.5
+	github.com/ipfs/go-ds-leveldb v0.5.2
+	github.com/ipfs/go-ds-measure v0.2.2
+	github.com/ipfs/go-ds-pebble v0.4.4
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-ipfs-cmds v0.14.1
 	github.com/ipfs/go-ipld-cbor v0.2.0
@@ -41,7 +41,7 @@ require (
 	github.com/ipfs/go-ipld-legacy v0.2.1
 	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/go-log/v2 v2.5.1
-	github.com/ipfs/go-metrics-interface v0.0.1
+	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.0.3
 	github.com/ipfs/go-test v0.2.1
 	github.com/ipfs/go-unixfsnode v1.10.0
@@ -56,9 +56,9 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0
 	github.com/libp2p/go-libp2p v0.41.0
 	github.com/libp2p/go-libp2p-http v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.30.0
+	github.com/libp2p/go-libp2p-kad-dht v0.30.1
 	github.com/libp2p/go-libp2p-kbucket v0.6.5
-	github.com/libp2p/go-libp2p-pubsub v0.12.0
+	github.com/libp2p/go-libp2p-pubsub v0.13.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
 	github.com/libp2p/go-libp2p-record v0.3.1
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.4
