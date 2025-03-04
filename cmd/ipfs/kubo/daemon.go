@@ -17,8 +17,6 @@ import (
 	"sync"
 	"time"
 
-	multierror "github.com/hashicorp/go-multierror"
-
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mprome "github.com/ipfs/go-metrics-prometheus"
 	version "github.com/ipfs/kubo"
@@ -47,6 +45,7 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promauto "github.com/prometheus/client_golang/prometheus/promauto"
+	"go.uber.org/multierr"
 )
 
 const (
@@ -685,7 +684,7 @@ take effect.
 	var errs error
 	for err := range merge(apiErrc, gwErrc, gcErrc, p2pGwErrc) {
 		if err != nil {
-			errs = multierror.Append(errs, err)
+			errs = multierr.Append(errs, err)
 		}
 	}
 
