@@ -7,6 +7,7 @@ import (
 
 	"github.com/ipfs/boxo/blockstore"
 	"github.com/ipfs/boxo/fetcher"
+	"github.com/ipfs/boxo/mfs"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/kubo/repo"
@@ -165,18 +166,24 @@ func newProvidingStrategy(onlyPinned, onlyRoots bool) interface{} {
 		Pinner      pin.Pinner
 		Blockstore  blockstore.Blockstore
 		IPLDFetcher fetcher.Factory `name:"ipldFetcher"`
+		Root        *mfs.Root
 	}
 	return func(in input) provider.KeyChanFunc {
-		if onlyRoots {
-			return provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher)
-		}
+		pinnedProvider := provider.NewPinnedProvider(onlyRoots, in.Pinner, in.IPLDFetcher)
 
-		if onlyPinned {
-			return provider.NewPinnedProvider(false, in.Pinner, in.IPLDFetcher)
+		if onlyRoots || onlyPinned {
+			mfsRoot, err := in.Root.GetDirectory().GetNode()
+			if err != nil {
+				logger.Errorf("Error getting MFS root: %s", err)
+				return pinnedProvider
+			}
+
+			mfsProvider := provider.NewDAGProvider(mfsRoot.Cid(), in.IPLDFetcher)
+			return provider.NewPrioritizedProvider(pinnedProvider, mfsProvider)
 		}
 
 		return provider.NewPrioritizedProvider(
-			provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher),
+			pinnedProvider,
 			provider.NewBlockstoreProvider(in.Blockstore),
 		)
 	}
