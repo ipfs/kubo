@@ -402,6 +402,7 @@ func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool
 	return local, sizeLocal, nil
 }
 
+var errFilesCpInvalidUnixFS = errors.New("cp: source must be a valid UnixFS (dag-pb or raw codec)")
 var filesCpCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add references to IPFS files and directories in MFS (or copy within MFS).",
@@ -478,6 +479,25 @@ being GC'ed.
 		node, err := getNodeFromPath(req.Context, nd, api, src)
 		if err != nil {
 			return fmt.Errorf("cp: cannot get node from path %s: %s", src, err)
+		}
+
+		// Sanity-check: ensure root CID is a valid UnixFS (dag-pb or raw block)
+		// Context: https://github.com/ipfs/kubo/issues/10331
+		srcCidType := node.Cid().Type()
+		switch srcCidType {
+		case cid.Raw:
+			if _, ok := node.(*dag.RawNode); !ok {
+				return errFilesCpInvalidUnixFS
+			}
+		case cid.DagProtobuf:
+			if _, ok := node.(*dag.ProtoNode); !ok {
+				return errFilesCpInvalidUnixFS
+			}
+			if _, err = ft.FSNodeFromBytes(node.(*dag.ProtoNode).Data()); err != nil {
+				return fmt.Errorf("%w: %v", errFilesCpInvalidUnixFS, err)
+			}
+		default:
+			return errFilesCpInvalidUnixFS
 		}
 
 		if mkParents {
