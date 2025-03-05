@@ -43,5 +43,5 @@ func TestFilesCp_DagCborNodeFails(t *testing.T) {
 
 	err = filesCpCmd.Run(req, res, &cmdCtx)
 	require.Error(t, err)
-	require.ErrorContains(t, err, "cp: source must be a UnixFS node or raw data")
+	require.ErrorContains(t, err, "cp: source must be a valid UnixFS (dag-pb or raw codec)")
 }
