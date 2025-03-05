@@ -58,16 +58,17 @@ const (
 )
 
 type Transaction struct {
-	ID         string `mapstructure:"_id" json:"_id" validate:"uuid_rfc4122"`                 // Unique identifier for the transaction
-	SenderID   string `mapstructure:"sender_id" json:"sender_id" validate:"uuid_rfc4122"`     // Sender user id
-	ReceiverID string `mapstructure:"receiver_id" json:"receiver_id" validate:"uuid_rfc4122"` // Recipient user id
-	ProductOrService
-	Timestamp time.Time `mapstructure:"timestamp" json:"timestamp" validate:"uuid_rfc4122"` // Timestamp of the transaction
-	Date      string    `mapstructure:"date" json:"date" validate:"uuid_rfc4122"`           // Date of the transaction in the format YY/MM
-	Processed bool      `mapstructure:"processed" json:"processed" validate:"uuid_rfc4122"` // Flag if it was already processed by inflation indexer
+	ID               string `mapstructure:"_id" json:"_id" validate:"uuid_rfc4122"`                 // Unique identifier for the transaction
+	SenderID         string `mapstructure:"sender_id" json:"sender_id" validate:"uuid_rfc4122"`     // Sender user id
+	ReceiverID       string `mapstructure:"receiver_id" json:"receiver_id" validate:"uuid_rfc4122"` // Recipient user id
+	ProductsServices []ProductService
+	TotalCost        int       `mapstructure:"total_cost" json:"total_cost" validate:"uuid_rfc4122"` // Total cost of transaction
+	Timestamp        time.Time `mapstructure:"timestamp" json:"timestamp" validate:"uuid_rfc4122"`   // Timestamp of the transaction
+	Date             string    `mapstructure:"date" json:"date" validate:"uuid_rfc4122"`             // Date of the transaction in the format YY/MM
+	Processed        bool      `mapstructure:"processed" json:"processed" validate:"uuid_rfc4122"`   // Flag if it was already processed by inflation indexer
 }
 
-type ProductOrService struct {
+type ProductService struct {
 	ID     string `mapstructure:"_id" json:"_id" validate:"uuid_rfc4122"` // Unique identifier for the product
 	Name   string `mapstructure:"name" json:"name" validate:"uuid_rfc4122"`
 	Price  int    `mapstructure:"price" json:"price" validate:"uuid_rfc4122"`
@@ -653,7 +654,7 @@ var OrbitGetDocsCmd = &cmds.Command{
 	Type: []byte{},
 }
 
-func generateDummyTransactions(req *cmds.Request, store orbitdb.DocumentStore) error {
+func generateDummyTransactions(store orbitdb.DocumentStore) error {
 	transactions := make([]Transaction, 400)
 	for i := 0; i <= 199; i++ {
 		// previous month
@@ -661,12 +662,15 @@ func generateDummyTransactions(req *cmds.Request, store orbitdb.DocumentStore) e
 			ID:         uuid.NewString(),
 			SenderID:   "7c7d5a26-3bf3-4547-9559-5c7725bc5562",
 			ReceiverID: "c143d122-5880-4b11-b89c-b9afc8e49815",
-			ProductOrService: ProductOrService{
-				ID:     uuid.NewString(),
-				Name:   "bread",
-				Price:  100,
-				Amount: 1,
+			ProductsServices: []ProductService{
+				{
+					ID:     uuid.NewString(),
+					Name:   "bread",
+					Price:  100,
+					Amount: 1,
+				},
 			},
+			TotalCost: 100,
 			Timestamp: time.Now(),
 			Date:      strconv.Itoa(time.Now().Year()) + "/" + strconv.Itoa(int(time.Now().Month()-1)),
 		}
@@ -675,12 +679,15 @@ func generateDummyTransactions(req *cmds.Request, store orbitdb.DocumentStore) e
 			ID:         uuid.NewString(),
 			SenderID:   "7c7d5a26-3bf3-4547-9559-5c7725bc5562",
 			ReceiverID: "c143d122-5880-4b11-b89c-b9afc8e49815",
-			ProductOrService: ProductOrService{
-				ID:     uuid.NewString(),
-				Name:   "bread",
-				Price:  200,
-				Amount: 1,
+			ProductsServices: []ProductService{
+				{
+					ID:     uuid.NewString(),
+					Name:   "bread",
+					Price:  200,
+					Amount: 1,
+				},
 			},
+			TotalCost: 200,
 			Timestamp: time.Now(),
 			Date:      strconv.Itoa(time.Now().Year()) + "/" + strconv.Itoa(int(time.Now().Month())),
 		}
@@ -742,8 +749,10 @@ func processAndStoreTransaction(transaction Transaction, processed bool, storeTr
 // aggregatePrices aggregates prices by product.
 func aggregatePrices(transactions []Transaction) map[string][]int {
 	pricesByProduct := make(map[string][]int)
-	for _, t := range transactions {
-		pricesByProduct[t.Name] = append(pricesByProduct[t.Name], t.Price)
+	for i := range transactions {
+		for _, n := range transactions[i].ProductsServices {
+			pricesByProduct[n.Name] = append(pricesByProduct[n.Name], n.Price)
+		}
 	}
 	return pricesByProduct
 }
@@ -829,11 +838,13 @@ var OrbitIndexerCmd = &cmds.Command{
 
 		// timeBeforeGenerateDummyTransactions := time.Now()
 
-		// err = generateDummyTransactions(req, storeTr)
+		// err = generateDummyTransactions(storeTr)
 		// if err != nil {
 		// 	logger.Println("generateDummyTransactions error: ", err)
 		// 	return err
 		// }
+
+		// dbTr.Close()
 
 		// logger.Printf("generateDummyTransactions completed in: %f seconds", time.Since(timeBeforeGenerateDummyTransactions).Seconds())
 
