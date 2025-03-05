@@ -94,7 +94,6 @@ cache, free memory and speed up read operations.`,
 const (
 	filesCidVersionOptionName = "cid-version"
 	filesHashOptionName       = "hash"
-	filesForceOptionName      = "force"
 )
 
 var (
@@ -403,6 +402,7 @@ func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool
 	return local, sizeLocal, nil
 }
 
+var errFilesCpInvalidUnixFS = errors.New("cp: source must be a valid UnixFS (dag-pb or raw codec)")
 var filesCpCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add references to IPFS files and directories in MFS (or copy within MFS).",
@@ -441,7 +441,6 @@ being GC'ed.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(filesParentsOptionName, "p", "Make parent directories as needed."),
-		cmds.BoolOption(filesForceOptionName, "f", "Force operation: ignore format validation errors and UnixFS safety checks."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		mkParents, _ := req.Options[filesParentsOptionName].(bool)
@@ -482,17 +481,23 @@ being GC'ed.
 			return fmt.Errorf("cp: cannot get node from path %s: %s", src, err)
 		}
 
-		force, _ := req.Options[filesForceOptionName].(bool)
-		if !force {
-			// Check if it's a raw node
+		// Sanity-check: ensure root CID is a valid UnixFS (dag-pb or raw block)
+		// Context: https://github.com/ipfs/kubo/issues/10331
+		srcCidType := node.Cid().Type()
+		switch srcCidType {
+		case cid.Raw:
 			if _, ok := node.(*dag.RawNode); !ok {
-				if _, ok := node.(*dag.ProtoNode); !ok {
-					return fmt.Errorf("cp: source must be a valid UnixFS (dag-pb or raw codec)")
-				}
-				if _, err = ft.FSNodeFromBytes(node.(*dag.ProtoNode).Data()); err != nil {
-					return fmt.Errorf("cp: source must be a valid UnixFS (dag-pb or raw codec): %s", err)
-				}
+				return errFilesCpInvalidUnixFS
 			}
+		case cid.DagProtobuf:
+			if _, ok := node.(*dag.ProtoNode); !ok {
+				return errFilesCpInvalidUnixFS
+			}
+			if _, err = ft.FSNodeFromBytes(node.(*dag.ProtoNode).Data()); err != nil {
+				return fmt.Errorf("%w: %v", errFilesCpInvalidUnixFS, err)
+			}
+		default:
+			return errFilesCpInvalidUnixFS
 		}
 
 		if mkParents {
