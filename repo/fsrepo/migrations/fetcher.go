@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/hashicorp/go-multierror"
+	"go.uber.org/multierr"
 )
 
 const (
@@ -56,7 +56,7 @@ func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) ([]byte, erro
 			return out, nil
 		}
 		fmt.Printf("Error fetching: %s\n", err.Error())
-		errs = multierror.Append(errs, err)
+		errs = multierr.Append(errs, err)
 	}
 	return nil, errs
 }
@@ -65,7 +65,7 @@ func (f *MultiFetcher) Close() error {
 	var errs error
 	for _, fetcher := range f.fetchers {
 		if err := fetcher.Close(); err != nil {
-			errs = multierror.Append(errs, err)
+			errs = multierr.Append(errs, err)
 		}
 	}
 	return errs

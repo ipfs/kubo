@@ -22,7 +22,7 @@ test_expect_success "ipfs pin ls --help succeeds when input remains open" '
 '
 
 test_expect_success "ipfs add on 1MB from stdin woks" '
-  random 1048576 42 | ipfs add -q > 1MB.hash
+  random-data -size=1048576 -seed=42 | ipfs add -q > 1MB.hash
 '
 
 test_expect_success "'ipfs refs -r -e \$(cat 1MB.hash)' succeeds" '

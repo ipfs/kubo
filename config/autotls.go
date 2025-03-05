@@ -1,6 +1,10 @@
 package config
 
-import p2pforge "github.com/ipshipyard/p2p-forge/client"
+import (
+	"time"
+
+	p2pforge "github.com/ipshipyard/p2p-forge/client"
+)
 
 // AutoTLS includes optional configuration of p2p-forge client of service
 // for obtaining a domain and TLS certificate to improve connectivity for web
@@ -21,6 +25,9 @@ type AutoTLS struct {
 	// Optional Authorization token, used with private/test instances of p2p-forge
 	RegistrationToken *OptionalString `json:",omitempty"`
 
+	// Optional registration delay used when AutoTLS.Enabled is not explicitly set to true in config
+	RegistrationDelay *OptionalDuration `json:",omitempty"`
+
 	// Optional override of CA ACME API used by p2p-forge system
 	CAEndpoint *OptionalString `json:",omitempty"`
 
@@ -29,10 +36,11 @@ type AutoTLS struct {
 }
 
 const (
-	DefaultAutoTLSEnabled       = false // experimental, opt-in for now (https://github.com/ipfs/kubo/pull/10521)
-	DefaultDomainSuffix         = p2pforge.DefaultForgeDomain
-	DefaultRegistrationEndpoint = p2pforge.DefaultForgeEndpoint
-	DefaultCAEndpoint           = p2pforge.DefaultCAEndpoint
-	DefaultAutoWSS              = true // requires AutoTLS.Enabled
-	DefaultAutoTLSShortAddrs    = true // requires AutoTLS.Enabled
+	DefaultAutoTLSEnabled           = true // with DefaultAutoTLSRegistrationDelay, unless explicitly enabled  in config
+	DefaultDomainSuffix             = p2pforge.DefaultForgeDomain
+	DefaultRegistrationEndpoint     = p2pforge.DefaultForgeEndpoint
+	DefaultCAEndpoint               = p2pforge.DefaultCAEndpoint
+	DefaultAutoWSS                  = true // requires AutoTLS.Enabled
+	DefaultAutoTLSShortAddrs        = true // requires AutoTLS.Enabled
+	DefaultAutoTLSRegistrationDelay = 1 * time.Hour
 )
