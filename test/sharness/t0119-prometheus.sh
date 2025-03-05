@@ -23,7 +23,7 @@ test_expect_success "collect metrics" '
 test_kill_ipfs_daemon
 
 test_expect_success "filter metrics" '
-  sed -ne "s/^\([a-z0-9_]\+\).*/\1/p" raw_metrics | LC_ALL=C sort | uniq > filtered_metrics
+  gsed -ne "s/^\([a-z0-9_]\+\).*/\1/p" raw_metrics | LC_ALL=C sort | uniq > filtered_metrics
 '
 
 test_expect_success "make sure metrics haven't changed" '
@@ -49,7 +49,7 @@ test_expect_success "collect metrics" '
 test_kill_ipfs_daemon
 
 test_expect_success "filter metrics and find ones added by enabling ResourceMgr" '
-  sed -ne "s/^\([a-z0-9_]\+\).*/\1/p" raw_metrics | LC_ALL=C sort > filtered_metrics &&
+  gsed -ne "s/^\([a-z0-9_]\+\).*/\1/p" raw_metrics | LC_ALL=C sort > filtered_metrics &&
   grep -v -x -f ../t0119-prometheus-data/prometheus_metrics filtered_metrics | LC_ALL=C sort | uniq > rcmgr_metrics
 '
 
