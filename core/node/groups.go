@@ -112,6 +112,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle, true))
 	}
 
+	enableTCPTransport := cfg.Swarm.Transports.Network.TCP.WithDefault(true)
+	enableWebsocketTransport := cfg.Swarm.Transports.Network.Websocket.WithDefault(true)
 	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(true) // nolint
 	enableRelayService := cfg.Swarm.RelayService.Enabled.WithDefault(enableRelayTransport)
 	enableRelayClient := cfg.Swarm.RelayClient.Enabled.WithDefault(enableRelayTransport)
@@ -129,14 +131,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		}
 	}
 
-	if enableAutoTLS {
-		if !cfg.Swarm.Transports.Network.TCP.WithDefault(true) {
-			logger.Fatal("Invalid configuration: AutoTLS.Enabled=true requires Swarm.Transports.Network.TCP to be true as well.")
-		}
-		if !cfg.Swarm.Transports.Network.Websocket.WithDefault(true) {
-			logger.Fatal("Invalid configuration: AutoTLS.Enabled=true requires Swarm.Transports.Network.Websocket to be true as well.")
-		}
-
+	switch {
+	case enableAutoTLS && enableTCPTransport && enableWebsocketTransport:
 		// AutoTLS for Secure WebSockets: ensure WSS listeners are in place (manual or automatic)
 		wssWildcard := fmt.Sprintf("/tls/sni/*.%s/ws", cfg.AutoTLS.DomainSuffix.WithDefault(config.DefaultDomainSuffix))
 		wssWildcardPresent := false
@@ -170,7 +166,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		// if no manual /ws listener was set by the user
 		if enableAutoWSS && !wssWildcardPresent && !customWsPresent {
 			if len(tcpListeners) == 0 {
-				logger.Fatal("Invalid configuration: AutoTLS.AutoWSS=true requires at least one /tcp listener present in Addresses.Swarm, see https://github.com/ipfs/kubo/blob/master/docs/config.md#autotls")
+				logger.Error("Invalid configuration, AutoTLS will be disabled: AutoTLS.AutoWSS=true requires at least one /tcp listener present in Addresses.Swarm, see https://github.com/ipfs/kubo/blob/master/docs/config.md#autotls")
+				enableAutoTLS = false
 			}
 			for _, tcpListener := range tcpListeners {
 				wssListener := tcpListener + wssWildcard
@@ -180,8 +177,15 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		}
 
 		if !wssWildcardPresent && !enableAutoWSS {
-			logger.Fatal(fmt.Sprintf("Invalid configuration: AutoTLS.Enabled=true requires a /tcp listener ending with %q to be present in Addresses.Swarm or AutoTLS.AutoWSS=true, see https://github.com/ipfs/kubo/blob/master/docs/config.md#autotls", wssWildcard))
+			logger.Error(fmt.Sprintf("Invalid configuration, AutoTLS will be disabled: AutoTLS.Enabled=true requires a /tcp listener ending with %q to be present in Addresses.Swarm or AutoTLS.AutoWSS=true, see https://github.com/ipfs/kubo/blob/master/docs/config.md#autotls", wssWildcard))
+			enableAutoTLS = false
 		}
+	case enableAutoTLS && !enableTCPTransport:
+		logger.Error("Invalid configuration: AutoTLS.Enabled=true requires Swarm.Transports.Network.TCP to be true as well. AutoTLS will be disabled.")
+		enableAutoTLS = false
+	case enableAutoTLS && !enableWebsocketTransport:
+		logger.Error("Invalid configuration: AutoTLS.Enabled=true requires Swarm.Transports.Network.Websocket to be true as well. AutoTLS will be disabled.")
+		enableAutoTLS = false
 	}
 
 	// Gather all the options

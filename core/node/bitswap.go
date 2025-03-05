@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ipfs/boxo/bitswap"
-	"github.com/ipfs/boxo/bitswap/network"
+	bsnet "github.com/ipfs/boxo/bitswap/network/bsnet"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	exchange "github.com/ipfs/boxo/exchange"
 	"github.com/ipfs/boxo/exchange/providing"
@@ -72,7 +72,7 @@ type bitswapIn struct {
 // group.
 func Bitswap(provide bool) interface{} {
 	return func(in bitswapIn, lc fx.Lifecycle) *bitswap.Bitswap {
-		bitswapNetwork := network.NewFromIpfsHost(in.Host)
+		bitswapNetwork := bsnet.NewFromIpfsHost(in.Host)
 
 		var provider routing.ContentDiscovery
 		if provide {

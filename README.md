@@ -80,6 +80,7 @@ Before opening an issue, consider using one of the following locations to ensure
     - [Guix](#guix)
     - [Snap](#snap)
     - [Ubuntu PPA](#ubuntu-ppa)
+    - [Fedora](#fedora-copr)
   - [Unofficial Windows packages](#unofficial-windows-packages)
     - [Chocolatey](#chocolatey)
     - [Scoop](#scoop)
@@ -113,7 +114,10 @@ Please follow [`SECURITY.md`](SECURITY.md).
 
 ### Minimal System Requirements
 
-IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 4 GB of RAM and 2 CPU cores (kubo is highly parallel). On systems with less memory, it may not be completely stable, and you run on your own risk.
+IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 6 GB of RAM and 2 CPU cores (ideally more, Kubo is highly parallel).
+
+> [!CAUTION]
+> On systems with less memory, it may not be completely stable, and you run on your own risk.
 
 ## Install
 
@@ -121,18 +125,23 @@ The canonical download instructions for IPFS are over at: https://docs.ipfs.tech
 
 ### Docker
 
-Official images are published at https://hub.docker.com/r/ipfs/kubo/:
+Official images are published at https://hub.docker.com/r/ipfs/kubo/: [![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ipfs/kubo?color=blue&label=kubo%20docker%20image&logo=docker&sort=semver&style=flat-square&cacheSeconds=3600)](https://hub.docker.com/r/ipfs/kubo/)
 
-[![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ipfs/kubo?color=blue&label=kubo%20docker%20image&logo=docker&sort=semver&style=flat-square&cacheSeconds=3600)](https://hub.docker.com/r/ipfs/kubo/)
+#### 🟢 Release Images
+  - These are production grade images. Use them.
+  - `latest` and [`release`](https://hub.docker.com/r/ipfs/kubo/tags?name=release) tags always point at [the latest stable release](https://github.com/ipfs/kubo/releases/latest). If you use this, remember to `docker pull` periodically to update.
+  - [`vN.N.N`](https://hub.docker.com/r/ipfs/kubo/tags?name=v) points at a specific [release tag](https://github.com/ipfs/kubo/releases)
 
-- 🟢 Releases
-  - `latest` and `release` tags always point at [the latest stable release](https://github.com/ipfs/kubo/releases/latest)
-  - `vN.N.N` points at a specific [release tag](https://github.com/ipfs/kubo/releases)
-  - These are production grade images.
-- 🟠 We also provide experimental developer builds
-  - `master-latest` always points at the `HEAD` of the `master` branch
-  - `master-YYYY-DD-MM-GITSHA` points at a specific commit from the `master` branch
+#### 🟠 Developer Preview Images
   - These tags are used by developers for internal testing, not intended for end users or production use.
+  - [`master-latest`](https://hub.docker.com/r/ipfs/kubo/tags?name=master-latest) always points at the `HEAD` of the [`master`](https://github.com/ipfs/kubo/commits/master/) branch
+  - [`master-YYYY-DD-MM-GITSHA`](https://hub.docker.com/r/ipfs/kubo/tags?name=master-2) points at a specific commit from the `master` branch
+
+#### 🔴 Internal Staging Images
+  - We use `staging` for testing arbitrary commits and experimental patches.
+    - To build image for current HEAD, force push to `staging` via  `git push origin HEAD:staging --force`)
+  - [`staging-latest`](https://hub.docker.com/r/ipfs/kubo/tags?name=staging-latest) always points at the `HEAD` of the [`staging`](https://github.com/ipfs/kubo/commits/staging/) branch
+  - [`staging-YYYY-DD-MM-GITSHA`](https://hub.docker.com/r/ipfs/kubo/tags?name=staging-2) points at a specific commit from the `staging` branch
 
 ```console
 $ docker pull ipfs/kubo:latest
@@ -207,6 +216,7 @@ $ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip   
 - [Guix](#guix)
 - [Snap](#snap)
 - [Ubuntu PPA](#ubuntu-ppa)
+- [Fedora](#fedora-copr)
 
 #### Arch Linux
 
@@ -270,6 +280,10 @@ sudo add-apt-repository ppa:twdragon/ipfs
 sudo apt update
 sudo apt install ipfs-kubo
 ```
+
+### Fedora COPR
+
+[`taw00/ipfs-rpm`](https://github.com/taw00/ipfs-rpm)
 
 ##### Any Ubuntu version
 

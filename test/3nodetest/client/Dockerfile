@@ -8,7 +8,7 @@ RUN ipfs id
 EXPOSE 4031 4032/udp
 
 ENV IPFS_PROF true
-ENV IPFS_LOGGING_FMT nocolor
+ENV GOLOG_LOG_FMT nocolor
 
 ENTRYPOINT ["/bin/bash"]
 CMD ["/tmp/id/run.sh"]
