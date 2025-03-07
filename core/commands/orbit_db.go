@@ -568,17 +568,19 @@ var OrbitPutDocsEncryptedCmd = &cmds.Command{
 		}
 
 		for key, val := range dd {
-			valJSON, err := json.Marshal(val)
-			if err != nil {
-				panic(err)
-			}
+			if key != "_id" {
+				valJSON, err := json.Marshal(val)
+				if err != nil {
+					panic(err)
+				}
 
-			encryptedData, err := encryptData(valJSON)
-			if err != nil {
-				panic(err)
-			}
+				encryptedData, err := encryptData(valJSON)
+				if err != nil {
+					panic(err)
+				}
 
-			dd[key] = encryptedData
+				dd[key] = encryptedData
+			}
 		}
 
 		dbName := req.Arguments[0]
@@ -1323,12 +1325,14 @@ var OrbitQueryDocsEncryptedCmd = &cmds.Command{
 
 			for _, item := range dd {
 				for key, val := range item {
-					decryptedData, err := decryptData(val)
-					if err != nil {
-						return err
-					}
+					if key != "_id" {
+						decryptedData, err := decryptData(val)
+						if err != nil {
+							return err
+						}
 
-					item[key] = string(decryptedData)
+						item[key] = string(decryptedData)
+					}
 				}
 			}
 
