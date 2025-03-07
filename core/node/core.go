@@ -29,6 +29,12 @@ import (
 	"github.com/ipfs/kubo/repo"
 )
 
+var FilesRootDatastoreKey datastore.Key
+
+func init() {
+	FilesRootDatastoreKey = datastore.NewKey("/local/filesroot")
+}
+
 // BlockService creates new blockservice which provides an interface to fetch content-addressable blocks
 func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
 	return func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
@@ -152,7 +158,6 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 
 // Files loads persisted MFS root
 func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore) (*mfs.Root, error) {
-	dsk := datastore.NewKey("/local/filesroot")
 	pf := func(ctx context.Context, c cid.Cid) error {
 		rootDS := repo.Datastore()
 		if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
@@ -162,15 +167,15 @@ func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.
 			return err
 		}
 
-		if err := rootDS.Put(ctx, dsk, c.Bytes()); err != nil {
+		if err := rootDS.Put(ctx, FilesRootDatastoreKey, c.Bytes()); err != nil {
 			return err
 		}
-		return rootDS.Sync(ctx, dsk)
+		return rootDS.Sync(ctx, FilesRootDatastoreKey)
 	}
 
 	var nd *merkledag.ProtoNode
 	ctx := helpers.LifecycleCtx(mctx, lc)
-	val, err := repo.Datastore().Get(ctx, dsk)
+	val, err := repo.Datastore().Get(ctx, FilesRootDatastoreKey)
 
 	switch {
 	case err == datastore.ErrNotFound || val == nil:
