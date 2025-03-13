@@ -49,6 +49,7 @@ const dbIncome = "income"
 const dbUserBalance = "user_balance"
 const dbTransaction = "transaction"
 const dbInflation = "inflation"
+const dbPlan = "plan"
 const transactionsPerPerson = 100
 
 const (
@@ -1489,6 +1490,14 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 
 	var addr address.Address
 	switch dbName {
+	case dbPlan:
+		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		if err != nil {
+			_, err = db.Create(ctx, dbPlan, "docstore", &orbitdb.CreateDBOptions{})
+			if err != nil {
+				return db, nil, err
+			}
+		}
 	case dbInflation:
 		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
