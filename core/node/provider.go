@@ -176,6 +176,7 @@ func mfsRootProvider(mfsRoot *mfs.Root) provider.KeyChanFunc {
 		}
 		ch := make(chan cid.Cid, 1)
 		ch <- rootNode.Cid()
+		close(ch)
 		return ch, nil
 	}
 }
