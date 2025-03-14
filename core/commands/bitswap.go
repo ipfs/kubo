@@ -24,13 +24,24 @@ var BitswapCmd = &cmds.Command{
 		"stat":      bitswapStatCmd,
 		"wantlist":  showWantlistCmd,
 		"ledger":    ledgerCmd,
-		"reprovide": reprovideCmd,
+		"reprovide": deprecatedBitswapReprovideCmd,
 	},
 }
 
 const (
 	peerOptionName = "peer"
 )
+
+var deprecatedBitswapReprovideCmd = &cmds.Command{
+	Status: cmds.Deprecated,
+	Helptext: cmds.HelpText{
+		Tagline: "Deprecated command to announce to bitswap. Use 'ipfs routing reprovide' instead.",
+		ShortDescription: `
+'ipfs bitswap reprovide' is a legacy plumbing command used to announce to DHT.
+Deprecated, use modern 'ipfs routing reprovide' instead.`,
+	},
+	Run: reprovideRoutingCmd.Run, // alias to routing reprovide to not break existing users
+}
 
 var showWantlistCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -198,31 +209,5 @@ prints the ledger associated with a given peer.
 				out.Sent, out.Recv)
 			return nil
 		}),
-	},
-}
-
-var reprovideCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Trigger reprovider.",
-		ShortDescription: `
-Trigger reprovider to announce our data to network.
-`,
-	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-
-		if !nd.IsOnline {
-			return ErrNotOnline
-		}
-
-		err = nd.Provider.Reprovide(req.Context)
-		if err != nil {
-			return err
-		}
-
-		return nil
 	},
 }

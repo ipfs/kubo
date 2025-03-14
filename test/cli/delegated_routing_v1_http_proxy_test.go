@@ -72,7 +72,7 @@ func TestRoutingV1Proxy(t *testing.T) {
 
 		cidStr := nodes[0].IPFSAddStr(testutils.RandomStr(1000))
 		// Reprovide as initialProviderDelay still ongoing
-		res := nodes[0].IPFS("bitswap", "reprovide")
+		res := nodes[0].IPFS("routing", "reprovide")
 		require.NoError(t, res.Err)
 		res = nodes[1].IPFS("routing", "findprovs", cidStr)
 		assert.Equal(t, nodes[0].PeerID().String(), res.Stdout.Trimmed())

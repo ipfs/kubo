@@ -34,7 +34,7 @@ var CidCmd = &cmds.Command{
 
 const (
 	cidFormatOptionName    = "f"
-	cidVerisonOptionName   = "v"
+	cidToVersionOptionName = "v"
 	cidCodecOptionName     = "mc"
 	cidMultibaseOptionName = "b"
 )
@@ -53,13 +53,13 @@ The optional format string is a printf style format string:
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(cidFormatOptionName, "Printf style format string.").WithDefault("%s"),
-		cmds.StringOption(cidVerisonOptionName, "CID version to convert to."),
+		cmds.StringOption(cidToVersionOptionName, "CID version to convert to."),
 		cmds.StringOption(cidCodecOptionName, "CID multicodec to convert to."),
 		cmds.StringOption(cidMultibaseOptionName, "Multibase to display CID in."),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
 		fmtStr, _ := req.Options[cidFormatOptionName].(string)
-		verStr, _ := req.Options[cidVerisonOptionName].(string)
+		verStr, _ := req.Options[cidToVersionOptionName].(string)
 		codecStr, _ := req.Options[cidCodecOptionName].(string)
 		baseStr, _ := req.Options[cidMultibaseOptionName].(string)
 

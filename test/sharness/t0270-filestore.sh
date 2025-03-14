@@ -13,7 +13,7 @@ test_expect_success "create a dataset" '
   random-files -seed=483 -depth=3 -dirs=4 -files=6 -filesize=1000000 somedir > /dev/null
 '
 
-EXPHASH="QmW4JLyeTxEWGwa4mkE9mHzdtAkyhMX2ToGFEKZNjCiJud"
+EXPHASH="QmXKtATsEt42CF5JoSsmzJstrvwEB5P89YQtdX4mdf9E3M"
 
 get_repo_size() {
   disk_usage "$IPFS_PATH"

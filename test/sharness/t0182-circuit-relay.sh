@@ -11,7 +11,7 @@ test_expect_success 'init iptb' '
   iptb run -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true
 '
 
-# Network toplogy: A <-> Relay <-> B
+# Network topology: A <-> Relay <-> B
 test_expect_success 'start up nodes for configuration' '
   iptb start -wait -- --routing=none
 '

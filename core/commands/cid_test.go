@@ -40,7 +40,7 @@ func TestCidFmtCmd(t *testing.T) {
 			// Mock request
 			req := &cmds.Request{
 				Options: map[string]interface{}{
-					cidVerisonOptionName:   "0",
+					cidToVersionOptionName: "0",
 					cidMultibaseOptionName: e.MultibaseName,
 					cidFormatOptionName:    "%s",
 				},
@@ -91,7 +91,7 @@ func TestCidFmtCmd(t *testing.T) {
 			// Mock request
 			req := &cmds.Request{
 				Options: map[string]interface{}{
-					cidVerisonOptionName:   e.Ver,
+					cidToVersionOptionName: e.Ver,
 					cidMultibaseOptionName: e.MultibaseName,
 					cidFormatOptionName:    "%s",
 				},

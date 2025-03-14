@@ -65,6 +65,14 @@ Experimental.
 
 ### How to enable
 
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides the IPFS [`add` command](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-add) with access to
+> the local filesystem. Consequently, any user with access to CLI or the HTTP [`/v0/add` RPC API](https://docs.ipfs.tech/reference/kubo/rpc/#api-v0-add) can read
+> files from the local filesystem with the same permissions as the Kubo daemon.
+> If you enable this, secure your RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
+
 Modify your ipfs config:
 ```
 ipfs config --json Experimental.FilestoreEnabled true
@@ -95,6 +103,14 @@ Experimental.
 v0.4.17
 
 ### How to enable
+
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides the IPFS [`add` CLI command](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-add) with access to
+> the local filesystem. Consequently, any user with access to the CLI or HTTP [`/v0/add` RPC API](https://docs.ipfs.tech/reference/kubo/rpc/#api-v0-add) can read
+> files from the local filesystem with the same permissions as the Kubo daemon.
+> If you enable this, secure your RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
 
 Modify your ipfs config:
 ```
@@ -189,6 +205,13 @@ Experimental, will be stabilized in 0.6.0
 0.4.10
 
 ### How to enable
+
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides CLI and HTTP RPC user with ability to set up port forwarding for all localhost and LAN ports.
+> If you enable this and plan to expose CLI or HTTP RPC to other users or machines,
+> secure RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
 
 The `p2p` command needs to be enabled in the config:
 
@@ -296,6 +319,13 @@ Experimental
 0.4.19
 
 ### How to enable
+
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides CLI and HTTP RPC user with ability to set up HTTP forwarding for all localhost and LAN ports.
+> If you enable this and plan to expose CLI or HTTP RPC to other users or machines,
+> secure RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
 
 The `p2p` command needs to be enabled in the config:
 
