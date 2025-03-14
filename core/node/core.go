@@ -115,6 +115,7 @@ func FetcherConfig(bs blockservice.BlockService) FetchersOut {
 	// path resolution should not fetch new blocks via exchange.
 	offlineBs := blockservice.New(bs.Blockstore(), offline.Exchange(bs.Blockstore()))
 	offlineIpldFetcher := bsfetcher.NewFetcherConfig(offlineBs)
+	offlineIpldFetcher.SkipNotFound = true // carries on to the UnixFSFetcher below
 	offlineIpldFetcher.PrototypeChooser = dagpb.AddSupportToChooser(bsfetcher.DefaultPrototypeChooser)
 	offlineUnixFSFetcher := offlineIpldFetcher.WithReifier(unixfsnode.Reify)
 
