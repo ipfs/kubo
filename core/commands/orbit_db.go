@@ -89,6 +89,15 @@ type Inflation struct {
 	Period          string    `mapstructure:"period" json:"period" validate:"uuid_rfc4122"`                     // Period the income is valid for
 }
 
+type Subscription struct {
+	ID        string    `mapstructure:"_id" json:"_id" validate:"uuid_rfc4122"`               // Unique identifier for the transaction
+	PlanID    string    `mapstructure:"plan_id" json:"plan_id" validate:"uuid_rfc4122"`       // Plan id
+	UserID    string    `mapstructure:"user_id" json:"user_id" validate:"uuid_rfc4122"`       // User id
+	Price     int       `mapstructure:"price" json:"price" validate:"uuid_rfc4122"`           // Price
+	StartDate time.Time `mapstructure:"start_date" json:"start_date" validate:"uuid_rfc4122"` // Start date of subscription
+	EndDate   time.Time `mapstructure:"end_date" json:"end_date" validate:"uuid_rfc4122"`     // End date of subscription
+}
+
 // --- Key Management ---
 
 // generatePrivateKey generates an RSA private key and saves it to a file.
@@ -323,6 +332,7 @@ orbit db is a p2p database on top of ipfs node
 		"docsqueryenc": OrbitQueryDocsEncryptedCmd,
 		"docsdel":      OrbitDelDocsCmd,
 		"runindexer":   OrbitIndexerCmd,
+		"delexpsubs":   OrbitExpSubsCmd,
 	},
 }
 
@@ -803,6 +813,101 @@ func calculateInflation(prevMonth, currMonth []Transaction) []float64 {
 	return inflationResults
 }
 
+var OrbitExpSubsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Adjust basic income based on inflation/deflation",
+		ShortDescription: `Inflation indexer`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		timeStart := time.Now()
+
+		// Define the log file name
+		logFileName := "expired-subscriptions.log"
+
+		// Open the log file in append mode
+		logFile, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			logger.Println("os.OpenFile error: ", err)
+			return err
+		}
+		defer logFile.Close()
+
+		// Create a new logger that writes to the log file
+		logger := logger.New(logFile, "", logger.LstdFlags)
+
+		logger.Println("Cleaner started")
+
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			logger.Println("cmdenv.GetApi error: ", err)
+			return err
+		}
+
+		db, store, err := ConnectDocs(req.Context, dbSubscription, api, func(address string) {})
+		if err != nil {
+			logger.Println("dbTransaction ConnectDocs error: ", err)
+			return err
+		}
+
+		defer db.Close()
+
+		expiredSubs, err := store.Query(req.Context, func(e interface{}) (bool, error) {
+			record := e.(map[string]interface{})
+			// Define the format string
+			layout := "2006-01-02T15:04:05.999999999-07:00" // Adjusted layout to include fractional seconds and offset
+			endDate, err := time.Parse(layout, record["end_date"].(string))
+			if err != nil {
+				logger.Println("expired subs time parse error: ", err)
+				return false, err
+			}
+
+			if time.Now().After(endDate) {
+				return true, nil
+			}
+
+			return false, nil
+		})
+
+		if err != nil {
+			logger.Println("expired subs query error: ", err)
+			return err
+		}
+
+		// Convert the slice of interfaces to JSON string
+		expiredSubsBytes, err := json.Marshal(&expiredSubs)
+		if err != nil {
+			logger.Println("expired subs json marshal error: ", err)
+			return err
+		}
+
+		expiredSubsString := string(expiredSubsBytes)
+
+		if expiredSubsString == "null" {
+			logger.Println("no expired subs found")
+		} else {
+			var subscriptions []Subscription
+			err = json.Unmarshal(expiredSubsBytes, &subscriptions)
+			if err != nil {
+				logger.Println("expired subs json unmarshal error: ", err)
+				return err
+			}
+
+			for _, sub := range subscriptions {
+				logger.Println("deleting expired subscription: ", sub.ID)
+				_, err := store.Delete(req.Context, sub.ID)
+				if err != nil {
+					logger.Println("expired subs delete error: ", err)
+					return err
+				}
+			}
+		}
+
+		logger.Printf("Delete expired subscriptions completed in: %f seconds", time.Since(timeStart).Seconds())
+
+		return nil
+	},
+}
+
 var OrbitIndexerCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Adjust basic income based on inflation/deflation",
@@ -810,11 +915,6 @@ var OrbitIndexerCmd = &cmds.Command{
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		timeStart := time.Now()
-		api, err := cmdenv.GetApi(env, req)
-		if err != nil {
-			logger.Println("cmdenv.GetApi error: ", err)
-			return err
-		}
 
 		// Define the log file name
 		logFileName := "indexer.log"
@@ -831,6 +931,12 @@ var OrbitIndexerCmd = &cmds.Command{
 		logger := logger.New(logFile, "", logger.LstdFlags)
 
 		logger.Println("Indexer started")
+
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			logger.Println("cmdenv.GetApi error: ", err)
+			return err
+		}
 
 		dbTr, storeTr, err := ConnectDocs(req.Context, dbTransaction, api, func(address string) {})
 		if err != nil {
@@ -1295,7 +1401,7 @@ var OrbitQueryDocsEncryptedCmd = &cmds.Command{
 		defer db.Close()
 
 		q, err := store.Query(req.Context, func(e interface{}) (bool, error) {
-			if key == "all" {
+			if key == "me" {
 				return true, nil
 			}
 
@@ -1325,21 +1431,35 @@ var OrbitQueryDocsEncryptedCmd = &cmds.Command{
 				panic(err)
 			}
 
+			canDecrypt := true
+			var found int
+			var foundItems []map[string]string
+
 			for _, item := range dd {
 				for key, val := range item {
 					if key != "_id" {
 						decryptedData, err := decryptData(val)
 						if err != nil {
-							return err
+							canDecrypt = false
+							break
 						}
-
 						item[key] = string(decryptedData)
 					}
 				}
+				if canDecrypt {
+					foundItems = append(foundItems, item)
+					found++
+				}
 			}
 
-			if err := res.Emit(&dd); err != nil {
-				return err
+			if found > 0 {
+				if err := res.Emit(foundItems); err != nil {
+					return err
+				}
+			} else {
+				if err := res.Emit(nil); err != nil {
+					return err
+				}
 			}
 		}
 

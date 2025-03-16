@@ -37,3 +37,4 @@ docs/examples/go-ipfs-as-a-library/example-folder/Qm*
 encrypted_aes_key.bin
 orbitdb_private.pem
 indexer.log
+expired-subscriptions.log
