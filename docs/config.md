@@ -1586,12 +1586,10 @@ Type: `optionalDuration` (unset for the default)
 Tells reprovider what should be announced. Valid strategies are:
 
 - `"all"` - announce all CIDs of stored blocks
-  - Order: root blocks of direct and recursive pins are announced first, then MFS root CID, then the rest of blockstore.
-  - ** NOTE **: all pinset-related to-be-announced CIDs are buffered in memory.
-- `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks) and MFS CIDs.
-  - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins, then the MFS root and the CIDs in the MFS DAG.
-  - ** NOTE **: all pinset-related to-be-announced CIDs are buffered in memory.
-- `"roots"` - only announce the root block of explicitly pinned CIDs and the MFS root, in that order.
+  - Order: root blocks of direct and recursive pins are announced first, then the rest of blockstore
+- `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks)
+  - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
+- `"roots"` - only announce the root block of explicitly pinned CIDs
   - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
     It makes sense only for use cases where the entire DAG is fetched in full,
     and a graceful resume does not have to be guaranteed: the lack of child
@@ -1600,6 +1598,8 @@ Tells reprovider what should be announced. Valid strategies are:
     happens to already be connected to a provider and ask for child CID over
     bitswap.
 - `"mfs"` - announce only the CIDs that are part of the MFS DAG. Note that MFS is lazy-loaded. Only the MFS blocks present locally are announced.
+- `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
+  - Order: first `pinned` and then `mfs`.
 - `"flat"` - same as `all`, announce all CIDs of stored blocks, but without prioritizing anything.
 
 Default: `"all"`
