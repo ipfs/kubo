@@ -186,19 +186,19 @@ func newProvidingStrategy(strategy string) interface{} {
 		fx.In
 		Pinner               pin.Pinner
 		Blockstore           blockstore.Blockstore
-		IPLDFetcher          fetcher.Factory `name:"ipldFetcher"`
+		OfflineIPLDFetcher   fetcher.Factory `name:"offlineIpldFetcher"`
 		OfflineUnixFSFetcher fetcher.Factory `name:"offlineUnixfsFetcher"`
 		MFSRoot              *mfs.Root
 	}
 	return func(in input) provider.KeyChanFunc {
 		switch strategy {
 		case "roots":
-			return provider.NewBufferedProvider(provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher))
+			return provider.NewBufferedProvider(provider.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher))
 		case "pinned":
-			return provider.NewBufferedProvider(provider.NewPinnedProvider(false, in.Pinner, in.IPLDFetcher))
+			return provider.NewBufferedProvider(provider.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher))
 		case "pinned+mfs":
 			return provider.NewPrioritizedProvider(
-				provider.NewBufferedProvider(provider.NewPinnedProvider(false, in.Pinner, in.IPLDFetcher)),
+				provider.NewBufferedProvider(provider.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher)),
 				mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher),
 			)
 		case "mfs":
@@ -208,7 +208,7 @@ func newProvidingStrategy(strategy string) interface{} {
 		default: // "all", ""
 			return provider.NewPrioritizedProvider(
 				provider.NewPrioritizedProvider(
-					provider.NewBufferedProvider(provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher)),
+					provider.NewBufferedProvider(provider.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher)),
 					mfsRootProvider(in.MFSRoot),
 				),
 				provider.NewBlockstoreProvider(in.Blockstore),
