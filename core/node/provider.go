@@ -138,7 +138,7 @@ func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, repro
 
 	var keyProvider fx.Option
 	switch reprovideStrategy {
-	case "all", "", "roots", "pinned", "mfs", "flat":
+	case "all", "", "roots", "pinned", "mfs", "pinned+mfs", "flat":
 		keyProvider = fx.Provide(newProvidingStrategy(reprovideStrategy))
 	default:
 		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", reprovideStrategy))
@@ -193,11 +193,10 @@ func newProvidingStrategy(strategy string) interface{} {
 	return func(in input) provider.KeyChanFunc {
 		switch strategy {
 		case "roots":
-			return provider.NewPrioritizedProvider(
-				provider.NewBufferedProvider(provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher)),
-				mfsRootProvider(in.MFSRoot),
-			)
+			return provider.NewBufferedProvider(provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher))
 		case "pinned":
+			return provider.NewBufferedProvider(provider.NewPinnedProvider(false, in.Pinner, in.IPLDFetcher))
+		case "pinned+mfs":
 			return provider.NewPrioritizedProvider(
 				provider.NewBufferedProvider(provider.NewPinnedProvider(false, in.Pinner, in.IPLDFetcher)),
 				mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher),
