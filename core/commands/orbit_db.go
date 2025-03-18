@@ -580,7 +580,7 @@ var OrbitPutDocsEncryptedCmd = &cmds.Command{
 		}
 
 		for key, val := range dd {
-			if key != "_id" {
+			if key != "_id" && key != "name" && key != "display_name" && key != "vat" && key != "country" {
 				valJSON, err := json.Marshal(val)
 				if err != nil {
 					panic(err)
@@ -1401,7 +1401,7 @@ var OrbitQueryDocsEncryptedCmd = &cmds.Command{
 		defer db.Close()
 
 		q, err := store.Query(req.Context, func(e interface{}) (bool, error) {
-			if key == "me" {
+			if key == "own" || key == "all" {
 				return true, nil
 			}
 
@@ -1436,14 +1436,16 @@ var OrbitQueryDocsEncryptedCmd = &cmds.Command{
 			var foundItems []map[string]string
 
 			for _, item := range dd {
-				for key, val := range item {
-					if key != "_id" {
-						decryptedData, err := decryptData(val)
-						if err != nil {
-							canDecrypt = false
-							break
+				for k, v := range item {
+					if key == "own" {
+						if k != "_id" && k != "name" && k != "display_name" && k != "vat" && k != "country" {
+							decryptedData, err := decryptData(v)
+							if err != nil {
+								canDecrypt = false
+								break
+							}
+							item[k] = string(decryptedData)
 						}
-						item[key] = string(decryptedData)
 					}
 				}
 				if canDecrypt {
