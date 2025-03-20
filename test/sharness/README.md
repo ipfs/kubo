@@ -13,7 +13,7 @@ The usual ipfs env flags also apply:
 
 ```sh
 # the output will make your eyes bleed
-IPFS_LOGGING=debug TEST_VERBOSE=1 make
+GOLOG_LOG_LEVEL=debug TEST_VERBOSE=1 make
 ```
 
 To make the tests abort as soon as an error occurs, use the TEST_IMMEDIATE env variable:

@@ -65,7 +65,7 @@ test_expect_success "ipfs add --inline --raw-leaves outputs the correct hash" '
 '
 
 test_expect_success "create 1000 bytes file and get its hash" '
-  random 1000 2 > 1000bytes &&
+  random-data -size=1000 -seed=2 > 1000bytes &&
   HASH0=$(ipfs add -q --raw-leaves --only-hash 1000bytes)
 '
 

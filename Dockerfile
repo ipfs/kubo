@@ -1,4 +1,4 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23 AS builder
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.24 AS builder
 
 ARG TARGETOS TARGETARCH
 
@@ -93,7 +93,7 @@ RUN mkdir /container-init.d \
 VOLUME $IPFS_PATH
 
 # The default logging level
-ENV IPFS_LOGGING ""
+ENV GOLOG_LOG_LEVEL ""
 
 # This just makes sure that:
 # 1. There's an fs-repo, and initializes one if there isn't.

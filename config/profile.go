@@ -86,6 +86,7 @@ is useful when using the daemon in test environments.`,
 
 			c.Bootstrap = []string{}
 			c.Discovery.MDNS.Enabled = false
+			c.AutoTLS.Enabled = False
 			return nil
 		},
 	},
@@ -104,6 +105,7 @@ Inverse profile of the test profile.`,
 
 			c.Swarm.DisableNatPortMap = false
 			c.Discovery.MDNS.Enabled = true
+			c.AutoTLS.Enabled = Default
 			return nil
 		},
 	},

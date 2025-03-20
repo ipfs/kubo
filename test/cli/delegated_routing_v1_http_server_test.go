@@ -40,7 +40,7 @@ func TestRoutingV1Server(t *testing.T) {
 		cidStr := nodes[2].IPFSAddStr(text)
 		_ = nodes[3].IPFSAddStr(text)
 		// Reprovide as initialProviderDelay still ongoing
-		res := nodes[3].IPFS("bitswap", "reprovide")
+		res := nodes[3].IPFS("routing", "reprovide")
 		require.NoError(t, res.Err)
 
 		cid, err := cid.Decode(cidStr)

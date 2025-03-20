@@ -72,6 +72,11 @@ func (*pebbledsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 		if err != nil {
 			return nil, err
 		}
+		fmv, err := getConfigInt("formatMajorVersion", params)
+		if err != nil {
+			return nil, err
+		}
+		formatMajorVersion := pebble.FormatMajorVersion(fmv)
 		l0CompactionThreshold, err := getConfigInt("l0CompactionThreshold", params)
 		if err != nil {
 			return nil, err
@@ -105,10 +110,17 @@ func (*pebbledsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 			return nil, err
 		}
 
-		if bytesPerSync != 0 || disableWAL || l0CompactionThreshold != 0 || l0StopWritesThreshold != 0 || lBaseMaxBytes != 0 || maxConcurrentCompactions != 0 || memTableSize != 0 || memTableStopWritesThreshold != 0 || walBytesPerSync != 0 || walMinSyncSec != 0 {
+		// Use latest version by default. This will ensure that format is
+		// compatible across database upgrades.
+		if formatMajorVersion == 0 {
+			formatMajorVersion = pebble.FormatNewest
+		}
+
+		if bytesPerSync != 0 || disableWAL || formatMajorVersion != 0 || l0CompactionThreshold != 0 || l0StopWritesThreshold != 0 || lBaseMaxBytes != 0 || maxConcurrentCompactions != 0 || memTableSize != 0 || memTableStopWritesThreshold != 0 || walBytesPerSync != 0 || walMinSyncSec != 0 {
 			c.pebbleOpts = &pebble.Options{
 				BytesPerSync:                bytesPerSync,
 				DisableWAL:                  disableWAL,
+				FormatMajorVersion:          formatMajorVersion,
 				L0CompactionThreshold:       l0CompactionThreshold,
 				L0StopWritesThreshold:       l0StopWritesThreshold,
 				LBaseMaxBytes:               int64(lBaseMaxBytes),

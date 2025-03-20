@@ -1,0 +1,21 @@
+name: Spell Check
+
+on: [push, pull_request]
+
+jobs:
+  spellcheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Codespell
+        run: pip install codespell==2.4.0
+
+      - name: Run Codespell
+        uses: codespell-project/actions-codespell@v2
+        with:
+          only_warn: 1
+          ignore_words_file: .codespell-ignore
+          skip: "*.mod,*.sum,*.pdf,./docs/AUTHORS,./test/sharness/t0275-cid-security-data,./test/sharness/t0280-plugin-dag-jose-data,./bin"

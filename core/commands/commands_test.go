@@ -72,6 +72,7 @@ func TestCommands(t *testing.T) {
 		"/routing/findpeer",
 		"/routing/findprovs",
 		"/routing/provide",
+		"/routing/reprovide",
 		"/diag",
 		"/diag/cmds",
 		"/diag/cmds/clear",

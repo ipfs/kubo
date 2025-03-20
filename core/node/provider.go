@@ -167,16 +167,23 @@ func newProvidingStrategy(onlyPinned, onlyRoots bool) interface{} {
 		IPLDFetcher fetcher.Factory `name:"ipldFetcher"`
 	}
 	return func(in input) provider.KeyChanFunc {
+		// Pinner-related CIDs will be buffered in memory to avoid
+		// deadlocking the pinner when the providing process is slow.
+
 		if onlyRoots {
-			return provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher)
+			return provider.NewBufferedProvider(
+				provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher),
+			)
 		}
 
 		if onlyPinned {
-			return provider.NewPinnedProvider(false, in.Pinner, in.IPLDFetcher)
+			return provider.NewBufferedProvider(
+				provider.NewPinnedProvider(false, in.Pinner, in.IPLDFetcher),
+			)
 		}
 
 		return provider.NewPrioritizedProvider(
-			provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher),
+			provider.NewBufferedProvider(provider.NewPinnedProvider(true, in.Pinner, in.IPLDFetcher)),
 			provider.NewBlockstoreProvider(in.Blockstore),
 		)
 	}

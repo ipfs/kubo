@@ -47,7 +47,7 @@ func (c *Config) SetBootstrapPeers(bps []peer.AddrInfo) {
 	c.Bootstrap = BootstrapPeerStrings(bps)
 }
 
-// ParseBootstrapPeer parses a bootstrap list into a list of AddrInfos.
+// ParseBootstrapPeers parses a bootstrap list into a list of AddrInfos.
 func ParseBootstrapPeers(addrs []string) ([]peer.AddrInfo, error) {
 	maddrs := make([]ma.Multiaddr, len(addrs))
 	for i, addr := range addrs {

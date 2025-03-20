@@ -29,7 +29,7 @@ const dontCheckOSXFUSEConfigKey = "DontCheckOSXFUSE"
 const fuseVersionPkg = "github.com/jbenet/go-fuse-version/fuse-version"
 
 // errStrFuseRequired is returned when we're sure the user does not have fuse.
-var errStrFuseRequired = `OSXFUSE not found.
+const errStrFuseRequired = `OSXFUSE not found.
 
 OSXFUSE is required to mount, please install it.
 NOTE: Version 2.7.2 or higher required; prior versions are known to kernel panic!

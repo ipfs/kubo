@@ -6,58 +6,54 @@
 
 test_description="Test add -w"
 
-add_w_m='QmazHkwx6mPmmCEi1jR5YzjjQd1g5XzKfYQLzRAg7x5uUk'
+add_w_m='QmbDfuW3tZ5PmAucyLBAMzVeETHCHM7Ho9CWdBvWxRGd3i'
 
-add_w_1='added Qme987pqNBhZZXy4ckeXiR7zaRQwBabB7fTgHurW2yJfNu 4r93
-added Qmf82PSsMpUHcrqxa69KG6Qp5yeK7K9BTizXgG3nvzWcNG '
+add_w_1='added QmP9WCV5SjQRoxoCkgywzw4q5X23rhHJJXzPQt4VbNa9M5 0h0r91
+added Qmave82G8vLbtx6JCokrrhLPpFNfWj5pbXobddiUASfpe3 '
 
-add_w_12='added Qme987pqNBhZZXy4ckeXiR7zaRQwBabB7fTgHurW2yJfNu 4r93
-added QmVb4ntSZZnT2J2zvCmXKMJc52cmZYH6AB37MzeYewnkjs 4u6ead
-added QmZPASVB6EsADrLN8S2sak34zEHL8mx4TAVsPJU9cNnQQJ '
+add_w_12='added QmP9WCV5SjQRoxoCkgywzw4q5X23rhHJJXzPQt4VbNa9M5 0h0r91
+added QmNUiT9caQy5zXvw942UYXkjLseQLWBkf7ZJD6RCfk8JgP 951op
+added QmWXoq9vUtdNxmM16kvJRgyQdi4S4gfYSjd2MsRprBXWmG '
 
-add_w_21='added Qme987pqNBhZZXy4ckeXiR7zaRQwBabB7fTgHurW2yJfNu 4r93
-added QmVb4ntSZZnT2J2zvCmXKMJc52cmZYH6AB37MzeYewnkjs 4u6ead
-added QmZPASVB6EsADrLN8S2sak34zEHL8mx4TAVsPJU9cNnQQJ '
+add_w_d1='added QmQKZCZKKL71zcMNpFFVcWzoh5dimX45mKgUu3LhvdaCRn 3s78oa/cb5v5v
+added QmPng2maSno8o659Lu2QtKg2d2L53RMahoyK6wNkifYaxY 3s78oa/cnd062l-rh
+added QmX3s7jJjFQhKRuGpDA3W4BYHdCWAyL3oB6U3iSoaYxVxs 3s78oa/es3gm9ck7b
+added QmSUZXb48DoNjUPpX9Jue1mUpyCghEDZY62iif1JhdofoG 3s78oa/kfo77-6i_hp0ttz
+added QmdC215Wp2sH47aw6R9CLBVa5uxJB4zEag1gtsKqjYGDb5 3s78oa/p91vs5t
+added QmSEGJRYb5wrJRBxNsse91YJSpmgf5ikKRtCwvGZ1V1Nc2 3s78oa
+added QmS2ML7DPVisc4gQtSrwMi3qwS9eyzGR7zVdwqwRPU9rGz '
 
-add_w_d1='added QmPcaX84tDiTfzdTn8GQxexodgeWH6mHjSss5Zfr5ojssb _jo7/-s782qgs
-added QmaVBqquUuXKjkyWHXaXfsaQUxAnsCKS95VRDHU8PzGA4K _jo7/15totauzkak-
-added QmaAHFG8cmhW3WLjofx5siSp44VV25ETN6ThzrU8iAqpkR _jo7/galecuirrj4r
-added QmeuSfhJNKwBESp1W9H8cfoMdBfW3AeHQDWXbNXQJYWp53 _jo7/mzo50r-1xidf5zx
-added QmYC3u5jGWuyFwvTxtvLYm2K3SpWZ31tg3NjpVVvh9cJaJ _jo7/wzvsihy
-added QmQkib3f9XNX5sj6WEahLUPFpheTcwSRJwUCSvjcv8b9by _jo7
-added QmNQoesMj1qp8ApE51NbtTjFYksyzkezPD4cat7V2kzbKN '
+add_w_d1_v1='added bafkreibpfapmbmf55elpipnoofmda7xbs5spthba2srrovnchttzplmrnm fvmq97/0vz12t0yf
+added bafkreihc5hdzpjwbqy6b5r2h2oxbm6mp4sx4eqll253k6f5yijsismvoxy fvmq97/2hpfk8slf0
+added bafkreihlmwk6pkk7klsmypmk2wfkgijbk7wavhtrcvgrfxvug7x5ndawge fvmq97/nda000755cd76
+added bafkreigpntro6bt4m6c5pcnmvk24qyiq3lwffhwry7k2hqtretqhfsfvqa fvmq97/nsz0wsonz
+added bafkreieeznfvzr6742npktcn4ajzxujst6j2uztwfninhvic4bbvm356u4 fvmq97/pq3f6t0
+added bafybeiatm3oos62mm5hu4cmq234wipw2fjaqflq2cdqgc6i6dcgzamxwrm fvmq97
+added bafybeifp4ioszjk2377psexdhk7thcxnpaj2wls4yifsntbgxzti7ds4uy '
 
-add_w_d1_v1='added bafkreif7rizm7yeem72okzlwr2ls73cyemfyv5mjghdew3kzhtfznzz4dq _jo7/-s782qgs
-added bafkreifkecyeevzcocvjliaz3ssiej5tkp32xyuogizonybihapdzovlsu _jo7/15totauzkak-
-added bafkreif5xhyhjhqp3muvj52wp37nutafsznckeuhikrl3h6w2sx3xdyeqm _jo7/galecuirrj4r
-added bafkreia6ooswgjtadq5n5zxkn2qyw3dpuyutvam7grtxn36ywykv52vkje _jo7/mzo50r-1xidf5zx
-added bafkreibhvbkg6zgra4bu56a36h25g52g6yxsb25qvgqv2trx4zbmhkmxku _jo7/wzvsihy
-added bafybeietuhja6ipwwnxefjecz6c5yls4j4q7r5gxiesyzfzkwsaimpa5mu _jo7
-added bafybeihxnrujsxdwyzuf3rq6wigzitrj6vjvxphttrtsx6tqabzpqfbd54 '
+add_w_d2='added QmP9WCV5SjQRoxoCkgywzw4q5X23rhHJJXzPQt4VbNa9M5 0h0r91
+added QmPpv7rFgkBqMYKJok6kVixqJgAGkyPiX3Jrr7n9rU1gcv 1o8ef-25onywi
+added QmW7zDxGpaJTRpte7uCvMA9eXJ5L274FfsFPK9pE5RShq9 2ju9tn-b09/-qw1d8j9
+added QmNNm9D3pn8NXbuYSde614qbb9xE67g9TNV6zXePgSZvHj 2ju9tn-b09/03rfc61t4qq_m
+added QmUYefaFAWka9LWarDeetQFe8CCSHaAtj4JR7YToYPSJyi 2ju9tn-b09/57dl-1lbjvu
+added QmcMLvVinwJsHtYxTUXEoPd8XkbuyvJNffZ85PT11cWDc2 2ju9tn-b09/t8h1_w
+added QmUTZE57VoF7xqWmrrcDNtDXrEs6znTQaRwmwkawGDs1GA 2ju9tn-b09/ugqi0nmv-1
+added QmfX5q9CMquL4JnAuG4H13RXjTb9DncMfu9pvpEsWkECJk fvmq97/0vz12t0yf
+added Qmdr3jR1UATLFeuoieBTHLNNwhCUJbgN5oat7U9X8TtfdZ fvmq97/2hpfk8slf0
+added QmfUKgXSiE1wCQuX3Pws9FftthJuAMXrDWhG5EhhnmA6gQ fvmq97/nda000755cd76
+added QmYM35pgHvLdKH8ssw9kJeiUY5kcjhb5h3BTiDhAgbsYYh fvmq97/nsz0wsonz
+added QmNarBSVwzYjLeEjGMJqTNtRCYGCLGo6TJqd21hPi7WXFT fvmq97/pq3f6t0
+added QmUNhQpFBZvfH4JyNxiE8QY31bZDpQHMmjSRRnbRZYZ3be 2ju9tn-b09
+added QmWtZu8dv4XRK8zPmwbNjS6biqe4bGEF9J5zb51sBJCMro fvmq97
+added QmYp7QoL8wRacLn9pJftJSkiiSmNGdWb7qT5ENDW2HXBcu '
 
-add_w_d2='added Qme987pqNBhZZXy4ckeXiR7zaRQwBabB7fTgHurW2yJfNu 4r93
-added QmU9Jqks8TPu4vFr6t7EKkAKQrSJuEujNj1AkzoCeTEDFJ gnz66h/1k0xpx34
-added QmSLYZycXAufRw3ePMVH2brbtYWCcWsmksGLbHcT8ia9Ke gnz66h/9cwudvacx
-added QmfYmpCCAMU9nLe7xbrYsHf5z2R2GxeQnsm4zavUhX9vq2 gnz66h/9ximv51cbo8
-added QmWgEE4e2kfx3b8HZcBk5cLrfhoi8kTMQP2MipgPhykuV3 gnz66h/b54ygh6gs
-added QmcLbqEqhREGednc6mrVtanee4WHKp5JnUfiwTTHCJwuDf gnz66h/lbl5
-added QmPcaX84tDiTfzdTn8GQxexodgeWH6mHjSss5Zfr5ojssb _jo7/-s782qgs
-added QmaVBqquUuXKjkyWHXaXfsaQUxAnsCKS95VRDHU8PzGA4K _jo7/15totauzkak-
-added QmaAHFG8cmhW3WLjofx5siSp44VV25ETN6ThzrU8iAqpkR _jo7/galecuirrj4r
-added QmeuSfhJNKwBESp1W9H8cfoMdBfW3AeHQDWXbNXQJYWp53 _jo7/mzo50r-1xidf5zx
-added QmYC3u5jGWuyFwvTxtvLYm2K3SpWZ31tg3NjpVVvh9cJaJ _jo7/wzvsihy
-added QmVaKAt2eVftNKFfKhiBV7Mu5HjCugffuLqWqobSSFgiA7 h3qpecj0
-added QmQkib3f9XNX5sj6WEahLUPFpheTcwSRJwUCSvjcv8b9by _jo7
-added QmVPwNy8pZegpsNmsjjZvdTQn4uCeuZgtzhgWhRSQWjK9x gnz66h
-added QmTmc46fhKC8Liuh5soy1VotdnHcqLu3r6HpPGwDZCnqL1 '
-
-add_w_r='QmcCksBMDuuyuyfAMMNzEAx6Z7jTrdRy9a23WpufAhG9ji'
+add_w_r='QmUerh2irM8cngqJHLGKCn4AGBSyHYAUi8i8zyVzXKNYyb'
 
 . lib/test-lib.sh
 
 test_add_w() {
 
-  test_expect_success "go-random-files is installed" '
+  test_expect_success "random-files is installed" '
     type random-files
   '
 
@@ -70,7 +66,7 @@ test_add_w() {
 
   # test single file
   test_expect_success "ipfs add -w (single file) succeeds" '
-    ipfs add -w m/4r93 >actual
+    ipfs add -w m/0h0r91 >actual
   '
 
   test_expect_success "ipfs add -w (single file) is correct" '
@@ -80,7 +76,7 @@ test_add_w() {
 
   # test two files together
   test_expect_success "ipfs add -w (multiple) succeeds" '
-    ipfs add -w m/4r93 m/4u6ead >actual
+    ipfs add -w m/0h0r91 m/951op >actual
   '
 
   test_expect_success "ipfs add -w (multiple) is correct" '
@@ -89,17 +85,17 @@ test_add_w() {
   '
 
   test_expect_success "ipfs add -w (multiple) succeeds" '
-    ipfs add -w m/4u6ead m/4r93 >actual
+    ipfs add -w m/951op m/0h0r91 >actual
   '
 
   test_expect_success "ipfs add -w (multiple) orders" '
-    echo "$add_w_21" >expected  &&
+    echo "$add_w_12" >expected  &&
     test_sort_cmp expected actual
   '
 
   # test a directory
   test_expect_success "ipfs add -w -r (dir) succeeds" '
-    ipfs add -r -w m/t_1wp-8a2/_jo7 >actual
+    ipfs add -r -w m/9m7mh3u51z3b/3s78oa >actual
   '
 
   test_expect_success "ipfs add -w -r (dir) is correct" '
@@ -109,8 +105,8 @@ test_add_w() {
 
   # test files and directory
   test_expect_success "ipfs add -w -r <many> succeeds" '
-    ipfs add -w -r m/t_1wp-8a2/h3qpecj0 \
-      m/ha6f0x7su6/gnz66h m/t_1wp-8a2/_jo7 m/4r93 >actual
+    ipfs add -w -r m/9m7mh3u51z3b/1o8ef-25onywi \
+      m/vck_-2/2ju9tn-b09 m/9m7mh3u51z3b/fvmq97 m/0h0r91 >actual
   '
 
   test_expect_success "ipfs add -w -r <many> is correct" '
@@ -130,10 +126,10 @@ test_add_w() {
 
   # test repeats together
   test_expect_success "ipfs add -w (repeats) succeeds" '
-    ipfs add -Q -w -r m/t_1wp-8a2/h3qpecj0 m/ha6f0x7su6/gnz66h \
-      m/t_1wp-8a2/_jo7 m/4r93 m/t_1wp-8a2 m/t_1wp-8a2 m/4r93 \
-      m/4r93 m/ha6f0x7su6/_rwujlf3qh_g08 \
-      m/ha6f0x7su6/gnz66h/9cwudvacx >actual
+    ipfs add -Q -w -r m/9m7mh3u51z3b/1o8ef-25onywi m/vck_-2/2ju9tn-b09 \
+      m/9m7mh3u51z3b/fvmq97 m/0h0r91 m/9m7mh3u51z3b m/9m7mh3u51z3b m/0h0r91 \
+      m/0h0r91 m/vck_-2/0dl083je2 \
+      m/vck_-2/2ju9tn-b09/-qw1d8j9 >actual
   '
 
   test_expect_success "ipfs add -w (repeats) is correct" '
@@ -142,7 +138,7 @@ test_add_w() {
   '
 
   test_expect_success "ipfs add -w -r (dir) --cid-version=1 succeeds" '
-    ipfs add -r -w --cid-version=1 m/t_1wp-8a2/_jo7 >actual
+    ipfs add -r -w --cid-version=1 m/9m7mh3u51z3b/fvmq97 >actual
   '
 
   test_expect_success "ipfs add -w -r (dir) --cid-version=1 is correct" '
@@ -151,7 +147,7 @@ test_add_w() {
   '
 
   test_expect_success "ipfs add -w -r -n (dir) --cid-version=1 succeeds" '
-    ipfs add -r -w -n --cid-version=1 m/t_1wp-8a2/_jo7 >actual
+    ipfs add -r -w -n --cid-version=1 m/9m7mh3u51z3b/fvmq97 >actual
   '
 
   test_expect_success "ipfs add -w -r -n (dir) --cid-version=1 is correct" '

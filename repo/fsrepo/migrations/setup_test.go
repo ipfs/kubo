@@ -32,9 +32,10 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	t := &testing.T{}
+
 	// Setup test data
-	testDataDir := makeTestData()
-	defer os.RemoveAll(testDataDir)
+	testDataDir := makeTestData(t)
 
 	testCar := makeTestCar(testDataDir)
 	defer os.RemoveAll(testCar)
@@ -47,18 +48,15 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func makeTestData() string {
-	tempDir, err := os.MkdirTemp("", "kubo-migrations-test-*")
-	if err != nil {
-		panic(err)
-	}
+func makeTestData(t testing.TB) string {
+	tempDir := t.TempDir()
 
 	versions := []string{"v1.0.0", "v1.1.0", "v1.1.2", "v2.0.0-rc1", "2.0.0", "v2.0.1"}
 	packages := []string{"kubo", "go-ipfs", "fs-repo-migrations", "fs-repo-1-to-2", "fs-repo-2-to-3", "fs-repo-9-to-10", "fs-repo-10-to-11"}
 
 	// Generate fake data
 	for _, name := range packages {
-		err = os.MkdirAll(filepath.Join(tempDir, name), 0777)
+		err := os.MkdirAll(filepath.Join(tempDir, name), 0777)
 		if err != nil {
 			panic(err)
 		}
