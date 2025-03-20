@@ -1597,6 +1597,9 @@ Tells reprovider what should be announced. Valid strategies are:
     providers for the missing block in the middle of a file, unless the peer
     happens to already be connected to a provider and ask for child CID over
     bitswap.
+- `"mfs"` - announce only the CIDs that are part of the MFS DAG. Note that MFS is lazy-loaded. Only the MFS blocks present locally are announced.
+- `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
+  - Order: first `pinned` and then `mfs`.
 - `"flat"` - same as `all`, announce all CIDs of stored blocks, but without prioritizing anything.
 
 > [!IMPORTANT]
