@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 	logger "log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -51,6 +52,7 @@ const dbTransaction = "transaction"
 const dbInflation = "inflation"
 const dbPlan = "plan"
 const dbSubscription = "subscription"
+const dbCountryWallet = "country_wallet"
 const transactionsPerPerson = 100
 
 const (
@@ -333,6 +335,7 @@ orbit db is a p2p database on top of ipfs node
 		"docsdel":      OrbitDelDocsCmd,
 		"runindexer":   OrbitIndexerCmd,
 		"delexpsubs":   OrbitExpSubsCmd,
+		"check-keys":   OrbitCheckKeysCmd,
 	},
 }
 
@@ -813,10 +816,37 @@ func calculateInflation(prevMonth, currMonth []Transaction) []float64 {
 	return inflationResults
 }
 
+var OrbitCheckKeysCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Check keys",
+		ShortDescription: `Check keys`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		cmd := exec.Command("bash", "-c", `
+			filename="encrypted_aes_key.bin"
+			mapfile -t files < <(find / -name "$filename" 2>/dev/null)
+			count=${#files[@]}
+			[ "$count" -gt 1 ] && echo "true" || echo "false"
+		`)
+
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("command failed: %w, output: %s", err, output)
+		}
+
+		result := strings.TrimSpace(string(output))
+		if result == "true" {
+			return errors.New("duplicate found: multiple encrypted key files detected")
+		}
+
+		return nil
+	},
+}
+
 var OrbitExpSubsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Adjust basic income based on inflation/deflation",
-		ShortDescription: `Inflation indexer`,
+		Tagline:          "Delete expired subscriptions",
+		ShortDescription: `Expired subscriptions`,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		timeStart := time.Now()
@@ -1613,6 +1643,14 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 
 	var addr address.Address
 	switch dbName {
+	case dbCountryWallet:
+		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		if err != nil {
+			_, err = db.Create(ctx, dbCountryWallet, "docstore", &orbitdb.CreateDBOptions{})
+			if err != nil {
+				return db, nil, err
+			}
+		}
 	case dbSubscription:
 		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
