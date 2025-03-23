@@ -17,7 +17,6 @@ import (
 	"io/ioutil"
 	logger "log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -335,7 +334,6 @@ orbit db is a p2p database on top of ipfs node
 		"docsdel":      OrbitDelDocsCmd,
 		"runindexer":   OrbitIndexerCmd,
 		"delexpsubs":   OrbitExpSubsCmd,
-		"check-keys":   OrbitCheckKeysCmd,
 	},
 }
 
@@ -814,33 +812,6 @@ func calculateInflation(prevMonth, currMonth []Transaction) []float64 {
 	}
 
 	return inflationResults
-}
-
-var OrbitCheckKeysCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline:          "Check keys",
-		ShortDescription: `Check keys`,
-	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		cmd := exec.Command("bash", "-c", `
-			filename="encrypted_aes_key.bin"
-			mapfile -t files < <(find / -name "$filename" 2>/dev/null)
-			count=${#files[@]}
-			[ "$count" -gt 1 ] && echo "true" || echo "false"
-		`)
-
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("command failed: %w, output: %s", err, output)
-		}
-
-		result := strings.TrimSpace(string(output))
-		if result == "true" {
-			return errors.New("duplicate found: multiple encrypted key files detected")
-		}
-
-		return nil
-	},
 }
 
 var OrbitExpSubsCmd = &cmds.Command{
