@@ -5,17 +5,16 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	logger "log"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -29,7 +28,6 @@ import (
 	iface "github.com/ipfs/kubo/core/coreiface"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/pbkdf2"
 
 	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	orbitdb "github.com/stateless-minds/go-orbit-db"
@@ -52,10 +50,10 @@ const dbInflation = "inflation"
 const dbPlan = "plan"
 const dbSubscription = "subscription"
 const dbCountryWallet = "country_wallet"
+const dbUserDevice = "user_device"
 const transactionsPerPerson = 100
 
 const (
-	privateKeyFile      = "orbitdb_private.pem"   // Define a constant for the private key file name
 	encryptedAESKeyFile = "encrypted_aes_key.bin" // File to store the encrypted AES key
 	saltSize            = 16                      // Size of the random salt in bytes
 )
@@ -101,133 +99,90 @@ type Subscription struct {
 
 // --- Key Management ---
 
-// generatePrivateKey generates an RSA private key and saves it to a file.
-func generatePrivateKey() (*rsa.PrivateKey, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048) // You can adjust the key size
+// Decrypt the AES key using the hashed MAC address as the decryption key
+func decryptAESKey(encryptedKey []byte, hashKey string) ([]byte, error) {
+	// Convert the hash key to a byte array
+	key, err := hex.DecodeString(hashKey)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert private key to PEM format
-	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-	privateKeyBlock := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: privateKeyBytes,
-	}
-
-	// Create the private key file
-	file, err := os.Create(privateKeyFile)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	// Write the private key to the file
-	err = pem.Encode(file, privateKeyBlock)
+	// Create a new AES cipher block
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 
-	return privateKey, nil
+	// Create a GCM (Galois/Counter Mode) for authenticated decryption
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract the nonce from the beginning of the encrypted data
+	nonceSize := gcm.NonceSize()
+	if len(encryptedKey) < nonceSize {
+		return nil, errors.New("encrypted key too short")
+	}
+	nonce, encrypted := encryptedKey[:nonceSize], encryptedKey[nonceSize:]
+
+	// Decrypt the AES key
+	decrypted, err := gcm.Open(nil, nonce, encrypted, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return decrypted, nil
 }
 
-// loadPrivateKey loads an RSA private key from a file.
-func loadPrivateKey() (*rsa.PrivateKey, error) {
-	privateKeyFileBytes, err := os.ReadFile(privateKeyFile)
+// Get the MAC address of the host machine
+func getMacAddr() (addr string) {
+	interfaces, err := net.Interfaces()
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
-	privateKeyBlock, _ := pem.Decode(privateKeyFileBytes)
-	if privateKeyBlock == nil {
-		return nil, err
+	for _, i := range interfaces {
+		if i.Flags&net.FlagUp != 0 && len(i.HardwareAddr) > 0 {
+			addr = i.HardwareAddr.String()
+			break
+		}
 	}
 
-	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return privateKey, nil
+	return
 }
 
-// getPrivateKey retrieves the private key, generating it if it doesn't exist.
-func getPrivateKey() (*rsa.PrivateKey, error) {
-	if _, err := os.Stat(privateKeyFile); os.IsNotExist(err) {
-		return generatePrivateKey()
-	}
-	return loadPrivateKey()
+// Hash the MAC address using SHA-256
+func hashMacAddr(macAddr string) string {
+	hash := sha256.Sum256([]byte(macAddr))
+	return hex.EncodeToString(hash[:])
 }
 
-// getAesKey retrieves the AES key, generating it if it doesn't exist.
+// getAesKey retrieves the AES key and decrypts it
 func getAesKey() ([]byte, error) {
-	if _, err := os.Stat(encryptedAESKeyFile); os.IsNotExist(err) {
-		aesKey, err := deriveAESKey()
-		if err != nil {
-			return nil, err
-		}
-
-		// Encrypt the AES key with RSA for storage.
-		privateKey, err := getPrivateKey()
-		if err != nil {
-			return nil, err
-		}
-
-		encryptedAESKeyBytes, err := rsa.EncryptPKCS1v15(rand.Reader, &privateKey.PublicKey, aesKey)
-		if err != nil {
-			return nil, err
-		}
-
-		// Store the encrypted AES key in a file.
-		if err = os.WriteFile(encryptedAESKeyFile, encryptedAESKeyBytes, 0644); err != nil {
-			return nil, err
-		}
-
-		return aesKey, nil // Return the newly generated AES key
-	}
-
-	// If the encrypted AES key file exists, read and decrypt it.
 	data, err := ioutil.ReadFile(encryptedAESKeyFile)
 	if err != nil {
 		return nil, err
 	}
 
-	privateKey, err := getPrivateKey()
+	macAddr := getMacAddr()
+
+	var hashedMacAddr string
+	if macAddr != "" {
+		hashedMacAddr = hashMacAddr(macAddr)
+	} else {
+		log.Fatal("no mac address found")
+	}
+
+	aesKey, err := decryptAESKey(data, hashedMacAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	aesKeyBytes, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, data)
-	if err != nil {
-		return nil, err
-	}
-
-	return aesKeyBytes, nil // Return the decrypted AES key
+	return aesKey, nil // Return the decrypted AES key
 }
 
 // --- Password Management ---
-
-// deriveAESKey derives an AES key from a password using PBKDF2.
-func deriveAESKey() ([]byte, error) {
-	password := os.Getenv("ENC_PASSWORD") // Retrieve the password from the environment variable
-	if password == "" {
-		return nil, errors.New("no password found in environment variable")
-	}
-	salt, err := generateRandomSalt(saltSize)
-	if err != nil {
-		return nil, err
-	}
-	return pbkdf2.Key([]byte(password), []byte(salt), 10000, 32, sha256.New), nil // 32 bytes for AES-256
-}
-
-// generateRandomSalt generates a random salt of specified size.
-func generateRandomSalt(size int) ([]byte, error) {
-	salt := make([]byte, size)
-	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
-		return nil, err
-	}
-	return salt, nil
-}
 
 // --- Encryption/Decryption ---
 
@@ -636,6 +591,13 @@ var OrbitGetDocsCmd = &cmds.Command{
 
 		dbName := req.Arguments[0]
 		key := req.Arguments[1]
+		if key == "mac" {
+			data, err := ioutil.ReadFile(encryptedAESKeyFile)
+			if err != nil {
+				return err
+			}
+			key = hex.EncodeToString(data)
+		}
 
 		db, store, err := ConnectDocs(req.Context, dbName, api, func(address string) {})
 		if err != nil {
@@ -659,7 +621,7 @@ var OrbitGetDocsCmd = &cmds.Command{
 				return err
 			}
 
-			if err := res.Emit(&val[0]); err != nil {
+			if err := res.Emit(&val); err != nil {
 				return err
 			}
 		}
@@ -1614,6 +1576,14 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 
 	var addr address.Address
 	switch dbName {
+	case dbUserDevice:
+		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		if err != nil {
+			_, err = db.Create(ctx, dbUserDevice, "docstore", &orbitdb.CreateDBOptions{})
+			if err != nil {
+				return db, nil, err
+			}
+		}
 	case dbCountryWallet:
 		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
