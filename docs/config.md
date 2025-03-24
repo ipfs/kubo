@@ -119,6 +119,7 @@ config file at runtime.
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
+	- [`Routing.IgnoreProviders`](#routingignoreproviders)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -1717,6 +1718,19 @@ Most users do not need this setting. It can be useful during testing, when multi
 Default: `false`
 
 Type: `bool` (missing means `false`)
+
+### `Routing.IgnoreProviders`
+
+An array of peerIDs. Any provider record associated to one of these peer IDs is ignored.
+
+Apart from ignoring specific providers for reasons like misbehaviour etc. this
+setting is useful to ignore providers as a way to indicate preference, when the same provider
+is found under different peerIDs (i.e. one for HTTP and one for Bitswap retrieval).
+
+Default: `[]`
+
+Type: `array[peerID]`
+
 
 ### `Routing.Routers`
 

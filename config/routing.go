@@ -6,6 +6,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
+
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 const (
@@ -40,6 +42,8 @@ type Routing struct {
 	AcceleratedDHTClient Flag `json:",omitempty"`
 
 	LoopbackAddressesOnLanDHT Flag `json:",omitempty"`
+
+	IgnoreProviders []peer.ID
 
 	Routers Routers
 

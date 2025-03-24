@@ -5,11 +5,13 @@ import (
 	"time"
 
 	"github.com/ipfs/boxo/bitswap"
+	"github.com/ipfs/boxo/bitswap/client"
 	bsnet "github.com/ipfs/boxo/bitswap/network/bsnet"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	exchange "github.com/ipfs/boxo/exchange"
 	"github.com/ipfs/boxo/exchange/providing"
 	provider "github.com/ipfs/boxo/provider"
+	rpqm "github.com/ipfs/boxo/routing/providerquerymanager"
 	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -61,6 +63,7 @@ type bitswapIn struct {
 	fx.In
 
 	Mctx        helpers.MetricsCtx
+	Cfg         *config.Config
 	Host        host.Host
 	Rt          irouting.ProvideManyRouter
 	Bs          blockstore.GCBlockstore
@@ -71,12 +74,24 @@ type bitswapIn struct {
 // Additional options to bitswap.New can be provided via the "bitswap-options"
 // group.
 func Bitswap(provide bool) interface{} {
-	return func(in bitswapIn, lc fx.Lifecycle) *bitswap.Bitswap {
+	return func(in bitswapIn, lc fx.Lifecycle) (*bitswap.Bitswap, error) {
 		bitswapNetwork := bsnet.NewFromIpfsHost(in.Host)
 
 		var provider routing.ContentDiscovery
 		if provide {
-			provider = in.Rt
+			// We need to hardcode the default because it is an
+			// internal setting in boxo.
+			pqm, err := rpqm.New(bitswapNetwork,
+				in.Rt,
+				rpqm.WithMaxProviders(10),
+				rpqm.WithIgnoreProviders(in.Cfg.Routing.IgnoreProviders...),
+			)
+			if err != nil {
+				return nil, err
+			}
+			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
+			provider = pqm
+
 		}
 		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetwork, provider, in.Bs, in.BitswapOpts...)
 
@@ -85,7 +100,7 @@ func Bitswap(provide bool) interface{} {
 				return bs.Close()
 			},
 		})
-		return bs
+		return bs, nil
 	}
 }
 
