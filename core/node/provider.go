@@ -26,7 +26,7 @@ func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool) fx.
 			provider.ReproviderInterval(reprovideInterval),
 			provider.KeyProvider(keyProvider),
 		}
-		if !acceleratedDHTClient {
+		if !acceleratedDHTClient && reprovideInterval > 0 {
 			// The estimation kinda suck if you are running with accelerated DHT client,
 			// given this message is just trying to push people to use the acceleratedDHTClient
 			// let's not report on through if it's in use
@@ -68,7 +68,7 @@ func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool) fx.
 🔔🔔🔔 YOU MAY BE FALLING BEHIND DHT REPROVIDES! 🔔🔔🔔
 
 ⚠️ Your system might be struggling to keep up with DHT reprovides!
-This means your content could partially or completely inaccessible on the network.
+This means your content could be partially or completely inaccessible on the network.
 We observed that you recently provided %d keys at an average rate of %v per key.
 
 🕑 An attempt to estimate your blockstore size timed out after 5 minutes,
@@ -97,7 +97,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 🔔🔔🔔 YOU ARE FALLING BEHIND DHT REPROVIDES! 🔔🔔🔔
 
 ⚠️ Your system is struggling to keep up with DHT reprovides!
-This means your content could partially or completely inaccessible on the network.
+This means your content could be partially or completely inaccessible on the network.
 We observed that you recently provided %d keys at an average rate of %v per key.
 
 💾 Your total CID count is ~%d which would total at %v reprovide process.
