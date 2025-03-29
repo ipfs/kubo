@@ -89,11 +89,11 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 	wg.Wait()
 
 	if err1 != nil {
-		log.Errorf("error mounting: %s", err1)
+		log.Errorf("error mounting IPFS %s: %s", fsdir, err1)
 	}
 
 	if err2 != nil {
-		log.Errorf("error mounting: %s", err2)
+		log.Errorf("error mounting IPNS %s for IPFS %s: %s", nsdir, fsdir, err2)
 	}
 
 	if err1 != nil || err2 != nil {
