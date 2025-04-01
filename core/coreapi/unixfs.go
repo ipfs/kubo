@@ -50,6 +50,8 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		attribute.Int("inlinelimit", settings.InlineLimit),
 		attribute.Bool("rawleaves", settings.RawLeaves),
 		attribute.Bool("rawleavesset", settings.RawLeavesSet),
+		attribute.Int("maxlinks", settings.MaxLinks),
+		attribute.Bool("maxlinksset", settings.MaxLinksSet),
 		attribute.Int("layout", int(settings.Layout)),
 		attribute.Bool("pin", settings.Pin),
 		attribute.Bool("onlyhash", settings.OnlyHash),
@@ -132,6 +134,9 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	fileAdder.Pin = settings.Pin && !settings.OnlyHash
 	fileAdder.Silent = settings.Silent
 	fileAdder.RawLeaves = settings.RawLeaves
+	if settings.MaxLinksSet {
+		fileAdder.MaxLinks = settings.MaxLinks
+	}
 	fileAdder.NoCopy = settings.NoCopy
 	fileAdder.CidBuilder = prefix
 	fileAdder.PreserveMode = settings.PreserveMode

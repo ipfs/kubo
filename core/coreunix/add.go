@@ -17,6 +17,7 @@ import (
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/unixfs"
 	"github.com/ipfs/boxo/ipld/unixfs/importer/balanced"
+	"github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
 	ihelper "github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
 	"github.com/ipfs/boxo/ipld/unixfs/importer/trickle"
 	"github.com/ipfs/boxo/mfs"
@@ -59,6 +60,7 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 		Progress:   false,
 		Pin:        true,
 		Trickle:    false,
+		MaxLinks:   helpers.DefaultLinksPerBlock,
 		Chunker:    "",
 	}, nil
 }
@@ -75,6 +77,7 @@ type Adder struct {
 	Pin        bool
 	Trickle    bool
 	RawLeaves  bool
+	MaxLinks   int
 	Silent     bool
 	NoCopy     bool
 	Chunker    string
@@ -94,6 +97,17 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 	if adder.mroot != nil {
 		return adder.mroot, nil
 	}
+
+	var dirOpts []unixfs.DirectoryOption
+	dirOpts = append(dirOpts, unixfs.WithCidBuilder(adder.CidBuilder))
+	if ml := adder.MaxLinks; ml > 0 {
+		if ml > 0 && (ml&(ml-1)) == 0 && ml%8 == 0 { // We have a valid width
+
+		} else {
+			return nil, errors.New("MaxWidth invalid: must be power of 2 and multiple of 8 for dynamic folders")
+		}
+	}
+
 	rnode := unixfs.EmptyDirNode()
 	err := rnode.SetCidBuilder(adder.CidBuilder)
 	if err != nil {
@@ -122,7 +136,7 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 	params := ihelper.DagBuilderParams{
 		Dagserv:     adder.bufferedDS,
 		RawLeaves:   adder.RawLeaves,
-		Maxlinks:    ihelper.DefaultLinksPerBlock,
+		Maxlinks:    adder.MaxLinks,
 		NoCopy:      adder.NoCopy,
 		CidBuilder:  adder.CidBuilder,
 		FileMode:    adder.FileMode,

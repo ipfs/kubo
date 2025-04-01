@@ -7,6 +7,7 @@ import (
 	"time"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
 	cid "github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -26,6 +27,8 @@ type UnixfsAddSettings struct {
 	InlineLimit  int
 	RawLeaves    bool
 	RawLeavesSet bool
+	MaxLinks     int
+	MaxLinksSet  bool
 
 	Chunker string
 	Layout  Layout
@@ -64,6 +67,8 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		InlineLimit:  32,
 		RawLeaves:    false,
 		RawLeavesSet: false,
+		MaxLinks:     helpers.DefaultLinksPerBlock,
+		MaxLinksSet:  false,
 
 		Chunker: "size-262144",
 		Layout:  BalancedLayout,
@@ -186,6 +191,16 @@ func (unixfsOpts) RawLeaves(enable bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.RawLeaves = enable
 		settings.RawLeavesSet = true
+		return nil
+	}
+}
+
+// MaxLinks specifies the maximum width of the UnixFS DAG. It affects files
+// and folders.
+func (unixfsOpts) MaxLinks(n int) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.MaxLinks = n
+		settings.MaxLinksSet = true
 		return nil
 	}
 }

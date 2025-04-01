@@ -47,6 +47,7 @@ const (
 	chunkerOptionName     = "chunker"
 	pinOptionName         = "pin"
 	rawLeavesOptionName   = "raw-leaves"
+	maxLinksOptionName    = "max-links"
 	noCopyOptionName      = "nocopy"
 	fstoreCacheOptionName = "fscache"
 	cidVersionOptionName  = "cid-version"
@@ -168,6 +169,7 @@ See 'dag export' and 'dag import' for more information.
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash"),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
+		cmds.BoolOption(maxLinksOptionName, "Limit the maximum number of links to this value (power of 2, multiple of 8)."),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true."),
@@ -222,6 +224,7 @@ See 'dag export' and 'dag import' for more information.
 		chunker, _ := req.Options[chunkerOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
 		rawblks, rbset := req.Options[rawLeavesOptionName].(bool)
+		maxLinks, maxLinksSet := req.Options[maxLinksOptionName].(int)
 		nocopy, _ := req.Options[noCopyOptionName].(bool)
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
@@ -251,6 +254,16 @@ See 'dag export' and 'dag import' for more information.
 		if !rbset && cfg.Import.UnixFSRawLeaves != config.Default {
 			rbset = true
 			rawblks = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
+		}
+
+		if !maxLinksSet && !cfg.Import.UnixFSDAGMaxLinks.IsDefault() {
+			// We cannot use a fixed default value here as we have
+			// different defaults for folders/files which take
+			// effect when leaving things unset. Setting maxLinks
+			// aligns maxLinks for files and folders, which are
+			// normally different.
+			maxLinksSet = true
+			maxLinks = int(cfg.Import.UnixFSDAGMaxLinks.WithDefault(0))
 		}
 
 		// Storing optional mode or mtime (UnixFS 1.5) requires root block
@@ -327,6 +340,10 @@ See 'dag export' and 'dag import' for more information.
 
 		if rbset {
 			opts = append(opts, options.Unixfs.RawLeaves(rawblks))
+		}
+
+		if maxLinksSet {
+			opts = append(opts, options.Unixfs.MaxLinks(maxLinks))
 		}
 
 		if trickle {
