@@ -184,6 +184,8 @@ config file at runtime.
     - [`Import.HashFunction`](#importhashfunction)
     - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
     - [`Import.BatchMaxSize`](#importbatchmaxsize)
+    - [`Import.MaxLinks`](#importmaxlinks)
+    - [`Import.MaxHAMTFanout`](#importmaxhamtfanout)	
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -2544,6 +2546,39 @@ The maximum size of a single write-batch (computed as the sum of the sizes of th
 Increasing this will batch more items together when importing data with `ipfs dag import`, which can speed things up.
 
 Default: `20971520` (20MiB)
+
+Type: `optionalInteger`
+
+### `Import.MaxLinks`
+
+The maximum number of links that a node part of a UnixFS DAG can have
+when building the DAG while importing.
+
+This setting controls both the fanout in files as well as the fanout for
+basic, non-HAMT folder. When unset (0), the default for files is `174`, while the
+default for folders is dynamic. A size-estimation function chooses when to
+convert the folders to HAMT-based directories and amount of links can vary depending
+on their size.
+
+This setting will cause basic directories to be converted to HAMTs when they
+exceed the maximum number of children. This happens transparently during the
+add process. The fanout of HAMT nodes is controlled by `MaxHAMTFanout`.
+
+Default: `0`
+
+Type: `optionalInteger`
+
+### `Import.MaxHAMTFanout`
+
+The maximum number of children that a node part of a Unixfs HAMT directory
+(aka sharded directory) can have.
+
+HAMT directory have unlimited children and are used when basic directories
+become too big or reach `MaxLinks`. A HAMT is an structure made of unixfs
+nodes that store the list of elements in the folder. This option controls the
+maximum number of children that the HAMT nodes can have.
+
+Default: `256`
 
 Type: `optionalInteger`
 

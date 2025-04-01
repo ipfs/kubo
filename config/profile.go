@@ -277,13 +277,15 @@ fetching may be degraded.
 		},
 	},
 	"test-cid-v1": {
-		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.`,
+		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks and 1024 links at most.`,
 
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
 			c.Import.UnixFSRawLeaves = True
 			c.Import.UnixFSChunker = *NewOptionalString("size-1048576")
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSDAGMaxLinks = *NewOptionalInteger(1024)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
 			return nil
 		},
 	},
