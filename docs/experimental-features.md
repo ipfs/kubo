@@ -87,6 +87,10 @@ filestore instead of copying the files into your local IPFS repo.
 
 - [ ] Needs more people to use and report on how well it works.
 - [ ] Need to address error states and failure conditions
+  - [ ] cleanup of broken filesystem references (if file is deleted)
+  - [ ] tests that confirm ability to override preexisting filesystem links (allowing user to fix broken link)
+  - [ ] support for a a single block having more than one sources in filesystem  (blocks can be shared by unrelated files, and not be broken when some files are unpinned / gc'd)
+  - [ ] [other known issues](https://github.com/ipfs/kubo/issues/7161)
 - [ ] Need to write docs on usage, advantages, disadvantages
 - [ ] Need to merge utility commands to aid in maintenance and repair of filestore
 
@@ -122,6 +126,9 @@ And then add a file at a specific URL using `ipfs urlstore add <url>`
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works.
 - [ ] Need to address error states and failure conditions
+  - [ ] cleanup of broken URL+range references (if URL starts returning 404 or error)
+  - [ ] tests that confirm ability to override preexisting URL+range links (allowing user to fix broken link)
+  - [ ] support for a a single block having more than one URL+range  (blocks can be shared by unrelated URLs)
 - [ ] Need to write docs on usage, advantages, disadvantages
 - [ ] Need to implement caching
 - [ ] Need to add metrics to monitor performance
