@@ -89,7 +89,7 @@ filestore instead of copying the files into your local IPFS repo.
 - [ ] Need to address error states and failure conditions
   - [ ] cleanup of broken filesystem references (if file is deleted)
   - [ ] tests that confirm ability to override preexisting filesystem links (allowing user to fix broken link)
-  - [ ] support for a a single block having more than one sources in filesystem  (blocks can be shared by unrelated files, and not be broken when some files re unpinned / gc'd)
+  - [ ] support for a a single block having more than one sources in filesystem  (blocks can be shared by unrelated files, and not be broken when some files are unpinned / gc'd)
   - [ ] [other known issues](https://github.com/ipfs/kubo/issues/7161)
 - [ ] Need to write docs on usage, advantages, disadvantages
 - [ ] Need to merge utility commands to aid in maintenance and repair of filestore
