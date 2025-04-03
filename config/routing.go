@@ -24,8 +24,9 @@ var (
 	// Default filter-protocols to pass along with delegated routing requests (as defined in IPIP-484)
 	// and also filter out locally
 	DefaultHTTPRoutersFilterProtocols = getEnvOrDefault("IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS", []string{
-		"unknown", // allow results without protocol list, we can do libp2p identify to test them
+		//"unknown", // allow results without protocol list, we can do libp2p identify to test them
 		"transport-bitswap",
+		"transport-ipfs-gateway-http",
 		// TODO: add 'transport-ipfs-gateway-http' once https://github.com/ipfs/rainbow/issues/125 is addressed
 	})
 )

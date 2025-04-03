@@ -1,5 +1,12 @@
 package config
 
+type HTTPRetrieval struct {
+	Enabled    bool             `json:",omitempty"`
+	NumWorkers *OptionalInteger `json:",omitempty"`
+	Allowlist  []string         `json:",omitempty"`
+	Denylist   []string         `json:",omitempty"`
+}
+
 type Experiments struct {
 	FilestoreEnabled              bool
 	UrlstoreEnabled               bool
@@ -10,6 +17,8 @@ type Experiments struct {
 	OptimisticProvide             bool
 	OptimisticProvideJobsPoolSize int
 	GatewayOverLibp2p             bool `json:",omitempty"`
+
+	HTTPRetrieval HTTPRetrieval
 
 	GraphsyncEnabled     graphsyncEnabled                 `json:",omitempty"`
 	AcceleratedDHTClient experimentalAcceleratedDHTClient `json:",omitempty"`
