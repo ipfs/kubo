@@ -79,7 +79,8 @@ config file at runtime.
       - [`Internal.Bitswap.EngineBlockstoreWorkerCount`](#internalbitswapengineblockstoreworkercount)
       - [`Internal.Bitswap.EngineTaskWorkerCount`](#internalbitswapenginetaskworkercount)
       - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
-    - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
+      - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
+      - [`Internal.Bitswap.ProviderSearchMaxResults`](#internalbitswapprovidersearchmaxresults)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
@@ -119,7 +120,7 @@ config file at runtime.
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
-	- [`Routing.IgnoreProviders`](#routingignoreproviders)
+    - [`Routing.IgnoreProviders`](#routingignoreproviders)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -1181,13 +1182,20 @@ deteriorate the quality provided to less aggressively-wanting peers.
 
 Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 
-### `Internal.Bitswap.ProviderSearchDelay`
+#### `Internal.Bitswap.ProviderSearchDelay`
 
 This parameter determines how long to wait before looking for providers outside of bitswap.
 Other routing systems like the Amino DHT are able to provide results in less than a second, so lowering
 this number will allow faster peers lookups in some cases.
 
 Type: `optionalDuration` (`null` means default which is 1s)
+
+#### `Internal.Bitswap.ProviderSearchMaxResults`
+
+Maximum number of providers bitswap client should aim at before it stops searching for new ones.
+Setting to 0 means unlimited.
+
+Type: `optionalInteger` (`null` means default which is 10)
 
 ### `Internal.UnixFSShardingSizeThreshold`
 

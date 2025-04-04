@@ -28,6 +28,7 @@ const (
 	DefaultEngineTaskWorkerCount       = 8
 	DefaultMaxOutstandingBytesPerPeer  = 1 << 20
 	DefaultProviderSearchDelay         = 1000 * time.Millisecond
+	DefaultMaxProviders                = 10 // matching BitswapClientDefaultMaxProviders from https://github.com/ipfs/boxo/blob/v0.29.1/bitswap/internal/defaults/defaults.go#L15
 	DefaultWantHaveReplaceSize         = 1024
 )
 
@@ -79,11 +80,13 @@ func Bitswap(provide bool) interface{} {
 
 		var provider routing.ContentDiscovery
 		if provide {
-			// We need to hardcode the default because it is an
-			// internal setting in boxo.
+			var maxProviders int = DefaultMaxProviders
+			if in.Cfg.Internal.Bitswap != nil {
+				maxProviders = int(in.Cfg.Internal.Bitswap.ProviderSearchMaxResults.WithDefault(DefaultMaxProviders))
+			}
 			pqm, err := rpqm.New(bitswapNetwork,
 				in.Rt,
-				rpqm.WithMaxProviders(10),
+				rpqm.WithMaxProviders(maxProviders),
 				rpqm.WithIgnoreProviders(in.Cfg.Routing.IgnoreProviders...),
 			)
 			if err != nil {
