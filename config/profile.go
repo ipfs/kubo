@@ -285,6 +285,7 @@ fetching may be degraded.
 			c.Import.UnixFSChunker = *NewOptionalString("size-1048576")
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
 			c.Import.UnixFSDAGMaxLinks = *NewOptionalInteger(1024)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
 			return nil
 		},
 	},

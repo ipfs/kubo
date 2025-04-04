@@ -37,24 +37,25 @@ type AddEvent struct {
 }
 
 const (
-	quietOptionName       = "quiet"
-	quieterOptionName     = "quieter"
-	silentOptionName      = "silent"
-	progressOptionName    = "progress"
-	trickleOptionName     = "trickle"
-	wrapOptionName        = "wrap-with-directory"
-	onlyHashOptionName    = "only-hash"
-	chunkerOptionName     = "chunker"
-	pinOptionName         = "pin"
-	rawLeavesOptionName   = "raw-leaves"
-	maxLinksOptionName    = "max-links"
-	noCopyOptionName      = "nocopy"
-	fstoreCacheOptionName = "fscache"
-	cidVersionOptionName  = "cid-version"
-	hashOptionName        = "hash"
-	inlineOptionName      = "inline"
-	inlineLimitOptionName = "inline-limit"
-	toFilesOptionName     = "to-files"
+	quietOptionName         = "quiet"
+	quieterOptionName       = "quieter"
+	silentOptionName        = "silent"
+	progressOptionName      = "progress"
+	trickleOptionName       = "trickle"
+	wrapOptionName          = "wrap-with-directory"
+	onlyHashOptionName      = "only-hash"
+	chunkerOptionName       = "chunker"
+	pinOptionName           = "pin"
+	rawLeavesOptionName     = "raw-leaves"
+	maxLinksOptionName      = "max-links"
+	maxHAMTFanoutOptionName = "max-hamt-fanout"
+	noCopyOptionName        = "nocopy"
+	fstoreCacheOptionName   = "fscache"
+	cidVersionOptionName    = "cid-version"
+	hashOptionName          = "hash"
+	inlineOptionName        = "inline"
+	inlineLimitOptionName   = "inline-limit"
+	toFilesOptionName       = "to-files"
 
 	preserveModeOptionName  = "preserve-mode"
 	preserveMtimeOptionName = "preserve-mtime"
@@ -169,7 +170,8 @@ See 'dag export' and 'dag import' for more information.
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash"),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
-		cmds.BoolOption(maxLinksOptionName, "Limit the maximum number of links to this value (power of 2, multiple of 8)."),
+		cmds.BoolOption(maxLinksOptionName, "Limit the maximum number of links in UnixFS file and basic directory nodes to this value."),
+		cmds.BoolOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8)."),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true."),
@@ -225,6 +227,7 @@ See 'dag export' and 'dag import' for more information.
 		dopin, _ := req.Options[pinOptionName].(bool)
 		rawblks, rbset := req.Options[rawLeavesOptionName].(bool)
 		maxLinks, maxLinksSet := req.Options[maxLinksOptionName].(int)
+		maxHAMTFanout, maxHAMTFanoutSet := req.Options[maxHAMTFanoutOptionName].(int)
 		nocopy, _ := req.Options[noCopyOptionName].(bool)
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
@@ -257,13 +260,13 @@ See 'dag export' and 'dag import' for more information.
 		}
 
 		if !maxLinksSet && !cfg.Import.UnixFSDAGMaxLinks.IsDefault() {
-			// We cannot use a fixed default value here as we have
-			// different defaults for folders/files which take
-			// effect when leaving things unset. Setting maxLinks
-			// aligns maxLinks for files and folders, which are
-			// normally different.
 			maxLinksSet = true
 			maxLinks = int(cfg.Import.UnixFSDAGMaxLinks.WithDefault(0))
+		}
+
+		if !maxHAMTFanoutSet && !cfg.Import.UnixFSHAMTDirectoryMaxFanout.IsDefault() {
+			maxHAMTFanoutSet = true
+			maxHAMTFanout = int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(0))
 		}
 
 		// Storing optional mode or mtime (UnixFS 1.5) requires root block
@@ -344,6 +347,10 @@ See 'dag export' and 'dag import' for more information.
 
 		if maxLinksSet {
 			opts = append(opts, options.Unixfs.MaxLinks(maxLinks))
+		}
+
+		if maxHAMTFanoutSet {
+			opts = append(opts, options.Unixfs.MaxHAMTFanout(maxHAMTFanout))
 		}
 
 		if trickle {
