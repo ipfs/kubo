@@ -17,6 +17,7 @@ import (
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/unixfs"
 	"github.com/ipfs/boxo/ipld/unixfs/importer/balanced"
+	"github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
 	ihelper "github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
 	"github.com/ipfs/boxo/ipld/unixfs/importer/trickle"
 	"github.com/ipfs/boxo/mfs"
@@ -124,10 +125,15 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 		return nil, err
 	}
 
+	maxLinks := helpers.DefaultLinksPerBlock
+	if adder.MaxLinks > 0 {
+		maxLinks = adder.MaxLinks
+	}
+
 	params := ihelper.DagBuilderParams{
 		Dagserv:     adder.bufferedDS,
 		RawLeaves:   adder.RawLeaves,
-		Maxlinks:    adder.MaxLinks,
+		Maxlinks:    maxLinks,
 		NoCopy:      adder.NoCopy,
 		CidBuilder:  adder.CidBuilder,
 		FileMode:    adder.FileMode,
@@ -257,6 +263,7 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 	if err != nil {
 		return err
 	}
+
 	dir := gopath.Dir(path)
 	if dir != "." {
 		opts := mfs.MkdirOpts{
