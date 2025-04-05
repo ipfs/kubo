@@ -19,10 +19,12 @@ const (
 // Import configures the default options for ingesting data. This affects commands
 // that ingest data, such as 'ipfs add', 'ipfs dag put, 'ipfs block put', 'ipfs files write'.
 type Import struct {
-	CidVersion      OptionalInteger
-	UnixFSRawLeaves Flag
-	UnixFSChunker   OptionalString
-	HashFunction    OptionalString
-	BatchMaxNodes   OptionalInteger
-	BatchMaxSize    OptionalInteger
+	CidVersion                   OptionalInteger
+	UnixFSRawLeaves              Flag
+	UnixFSChunker                OptionalString
+	HashFunction                 OptionalString
+	UnixFSDAGMaxLinks            OptionalInteger
+	UnixFSHAMTDirectoryMaxFanout OptionalInteger
+	BatchMaxNodes                OptionalInteger
+	BatchMaxSize                 OptionalInteger
 }
