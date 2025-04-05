@@ -19,7 +19,6 @@ import (
 	"github.com/ipfs/boxo/ipld/unixfs/importer/balanced"
 	ihelper "github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
 	"github.com/ipfs/boxo/ipld/unixfs/importer/trickle"
-	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	pin "github.com/ipfs/boxo/pinning/pinner"
@@ -100,14 +99,12 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 		return adder.mroot, nil
 	}
 
-	dirOpts := []uio.DirectoryOption{
-		uio.WithCidBuilder(adder.CidBuilder),
-		uio.WithMaxLinks(adder.MaxLinks),
-		uio.WithMaxHAMTFanout(adder.MaxHAMTFanout),
-	}
-
 	// Note, this adds it to DAGService already.
-	mr, err := mfs.NewEmptyRoot(adder.ctx, adder.dagService, nil, dirOpts...)
+	mr, err := mfs.NewEmptyRoot(adder.ctx, adder.dagService, nil, mfs.MkdirOpts{
+		CidBuilder:    adder.CidBuilder,
+		MaxLinks:      adder.MaxLinks,
+		MaxHAMTFanout: adder.MaxHAMTFanout,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -263,9 +260,11 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 	dir := gopath.Dir(path)
 	if dir != "." {
 		opts := mfs.MkdirOpts{
-			Mkparents:  true,
-			Flush:      false,
-			CidBuilder: adder.CidBuilder,
+			Mkparents:     true,
+			Flush:         false,
+			CidBuilder:    adder.CidBuilder,
+			MaxLinks:      adder.MaxLinks,
+			MaxHAMTFanout: adder.MaxHAMTFanout,
 		}
 		if err := mfs.Mkdir(mr, dir, opts); err != nil {
 			return err
@@ -469,11 +468,13 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 	// if we need to store mode or modification time then create a new root which includes that data
 	if toplevel && (adder.FileMode != 0 || !adder.FileMtime.IsZero()) {
 		mr, err := mfs.NewEmptyRoot(ctx, adder.dagService, nil,
-			uio.WithCidBuilder(adder.CidBuilder),
-			uio.WithMaxLinks(adder.MaxLinks),
-			uio.WithMaxHAMTFanout(adder.MaxHAMTFanout),
-			uio.WithStat(adder.FileMode, adder.FileMtime),
-		)
+			mfs.MkdirOpts{
+				CidBuilder:    adder.CidBuilder,
+				MaxLinks:      adder.MaxLinks,
+				MaxHAMTFanout: adder.MaxHAMTFanout,
+				ModTime:       adder.FileMtime,
+				Mode:          adder.FileMode,
+			})
 		if err != nil {
 			return err
 		}
@@ -486,11 +487,13 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 			return err
 		}
 		err = mfs.Mkdir(mr, path, mfs.MkdirOpts{
-			Mkparents:  true,
-			Flush:      false,
-			CidBuilder: adder.CidBuilder,
-			Mode:       adder.FileMode,
-			ModTime:    adder.FileMtime,
+			Mkparents:     true,
+			Flush:         false,
+			CidBuilder:    adder.CidBuilder,
+			Mode:          adder.FileMode,
+			ModTime:       adder.FileMtime,
+			MaxLinks:      adder.MaxLinks,
+			MaxHAMTFanout: adder.MaxHAMTFanout,
 		})
 		if err != nil {
 			return err
