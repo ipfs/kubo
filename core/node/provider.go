@@ -157,6 +157,10 @@ func OfflineProviders() fx.Option {
 
 func mfsProvider(mfsRoot *mfs.Root, fetcher fetcher.Factory) provider.KeyChanFunc {
 	return func(ctx context.Context) (<-chan cid.Cid, error) {
+		err := mfsRoot.FlushMemFree(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error flushing mfs, cannot provide MFS: %w", err)
+		}
 		rootNode, err := mfsRoot.GetDirectory().GetNode()
 		if err != nil {
 			return nil, fmt.Errorf("error loading mfs root, cannot provide MFS: %w", err)
