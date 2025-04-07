@@ -134,6 +134,7 @@ type IpfsNode struct {
 type Mounts struct {
 	Ipfs mount.Mount
 	Ipns mount.Mount
+	Mfs  mount.Mount
 }
 
 // Close calls Close() on the App object

@@ -18,6 +18,7 @@ import (
 const (
 	mountIPFSPathOptionName = "ipfs-path"
 	mountIPNSPathOptionName = "ipns-path"
+	mountMFSPathOptionName  = "mfs-path"
 )
 
 var MountCmd = &cmds.Command{
@@ -81,6 +82,7 @@ baz
 	Options: []cmds.Option{
 		cmds.StringOption(mountIPFSPathOptionName, "f", "The path where IPFS should be mounted."),
 		cmds.StringOption(mountIPNSPathOptionName, "n", "The path where IPNS should be mounted."),
+		cmds.StringOption(mountMFSPathOptionName, "m", "The path where MFS should be mounted."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfg, err := env.(*oldcmds.Context).GetConfig()
@@ -109,7 +111,12 @@ baz
 			nsdir = cfg.Mounts.IPNS // NB: be sure to not redeclare!
 		}
 
-		err = nodeMount.Mount(nd, fsdir, nsdir)
+		mfdir, found := req.Options[mountMFSPathOptionName].(string)
+		if !found {
+			nsdir = cfg.Mounts.MFS
+		}
+
+		err = nodeMount.Mount(nd, fsdir, nsdir, mfdir)
 		if err != nil {
 			return err
 		}
@@ -124,6 +131,7 @@ baz
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, mounts *config.Mounts) error {
 			fmt.Fprintf(w, "IPFS mounted at: %s\n", cmdenv.EscNonPrint(mounts.IPFS))
 			fmt.Fprintf(w, "IPNS mounted at: %s\n", cmdenv.EscNonPrint(mounts.IPNS))
+			fmt.Fprintf(w, "MFS mounted at: %s\n", cmdenv.EscNonPrint(mounts.MFS))
 
 			return nil
 		}),
