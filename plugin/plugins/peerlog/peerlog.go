@@ -191,7 +191,7 @@ func (pl *peerLogPlugin) Start(node *core.IpfsNode) error {
 		return fmt.Errorf("failed to set log level: %w", err)
 	}
 
-	sub, err := node.PeerHost.EventBus().Subscribe(new(event.EvtPeerIdentificationCompleted))
+	sub, err := node.PeerHost.EventBus().Subscribe(event.EvtPeerIdentificationCompleted{})
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to identify notifications")
 	}
