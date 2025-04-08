@@ -6,7 +6,9 @@ import (
 
 	"github.com/ipfs/boxo/bitswap"
 	"github.com/ipfs/boxo/bitswap/client"
+	"github.com/ipfs/boxo/bitswap/network"
 	bsnet "github.com/ipfs/boxo/bitswap/network/bsnet"
+	"github.com/ipfs/boxo/bitswap/network/httpnet"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	exchange "github.com/ipfs/boxo/exchange"
 	"github.com/ipfs/boxo/exchange/providing"
@@ -75,13 +77,25 @@ type bitswapIn struct {
 // group.
 func Bitswap(provide bool) interface{} {
 	return func(in bitswapIn, lc fx.Lifecycle) (*bitswap.Bitswap, error) {
+		var ntwk network.BitSwapNetwork
 		bitswapNetwork := bsnet.NewFromIpfsHost(in.Host)
+
+		if httpCfg := in.Cfg.HTTPRetrieval; httpCfg.Enabled {
+			htnet := httpnet.New(in.Host,
+				httpnet.WithHTTPWorkers(int(httpCfg.NumWorkers.WithDefault(16))),
+				httpnet.WithAllowlist(httpCfg.Allowlist),
+				httpnet.WithDenylist(httpCfg.Denylist),
+			)
+			ntwk = network.New(in.Host.Peerstore(), bitswapNetwork, htnet)
+		} else {
+			ntwk = bitswapNetwork
+		}
 
 		var provider routing.ContentDiscovery
 		if provide {
 			// We need to hardcode the default because it is an
 			// internal setting in boxo.
-			pqm, err := rpqm.New(bitswapNetwork,
+			pqm, err := rpqm.New(ntwk,
 				in.Rt,
 				rpqm.WithMaxProviders(10),
 				rpqm.WithIgnoreProviders(in.Cfg.Routing.IgnoreProviders...),
@@ -93,7 +107,7 @@ func Bitswap(provide bool) interface{} {
 			provider = pqm
 
 		}
-		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetwork, provider, in.Bs, in.BitswapOpts...)
+		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), ntwk, provider, in.Bs, in.BitswapOpts...)
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {

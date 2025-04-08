@@ -26,7 +26,8 @@ var (
 	DefaultHTTPRoutersFilterProtocols = getEnvOrDefault("IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS", []string{
 		"unknown", // allow results without protocol list, we can do libp2p identify to test them
 		"transport-bitswap",
-		// TODO: add 'transport-ipfs-gateway-http' once https://github.com/ipfs/rainbow/issues/125 is addressed
+		// http is added dynamically in routing/delegated.go.
+		// 'transport-ipfs-gateway-http'
 	})
 )
 
