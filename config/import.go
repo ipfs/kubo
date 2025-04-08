@@ -23,9 +23,9 @@ const (
 )
 
 var (
-	DefaultUnixFSHAMTDirectoryMaxFanout = io.DefaultShardWidth
-	DefaultUnixFSFileMaxLinks           = helpers.DefaultLinksPerBlock
-	DefaultUnixFSDirectoryMaxLinks      = 0
+	DefaultUnixFSHAMTDirectoryMaxFanout = int64(io.DefaultShardWidth)
+	DefaultUnixFSFileMaxLinks           = int64(helpers.DefaultLinksPerBlock)
+	DefaultUnixFSDirectoryMaxLinks      = int64(0)
 )
 
 // Import configures the default options for ingesting data. This affects commands

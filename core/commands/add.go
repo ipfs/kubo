@@ -264,17 +264,17 @@ See 'dag export' and 'dag import' for more information.
 
 		if !maxFileLinksSet && !cfg.Import.UnixFSFileMaxLinks.IsDefault() {
 			maxFileLinksSet = true
-			maxFileLinks = int(cfg.Import.UnixFSFileMaxLinks.WithDefault(int64(config.DefaultUnixFSFileMaxLinks)))
+			maxFileLinks = int(cfg.Import.UnixFSFileMaxLinks.WithDefault(config.DefaultUnixFSFileMaxLinks))
 		}
 
 		if !maxDirectoryLinksSet && !cfg.Import.UnixFSDirectoryMaxLinks.IsDefault() {
 			maxDirectoryLinksSet = true
-			maxDirectoryLinks = int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(int64(config.DefaultUnixFSDirectoryMaxLinks)))
+			maxDirectoryLinks = int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
 		}
 
 		if !maxHAMTFanoutSet && !cfg.Import.UnixFSHAMTDirectoryMaxFanout.IsDefault() {
 			maxHAMTFanoutSet = true
-			maxHAMTFanout = int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(0))
+			maxHAMTFanout = int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
 		}
 
 		// Storing optional mode or mtime (UnixFS 1.5) requires root block
