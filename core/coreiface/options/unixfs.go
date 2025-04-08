@@ -24,14 +24,16 @@ type UnixfsAddSettings struct {
 	CidVersion int
 	MhType     uint64
 
-	Inline           bool
-	InlineLimit      int
-	RawLeaves        bool
-	RawLeavesSet     bool
-	MaxLinks         int
-	MaxLinksSet      bool
-	MaxHAMTFanout    int
-	MaxHAMTFanoutSet bool
+	Inline               bool
+	InlineLimit          int
+	RawLeaves            bool
+	RawLeavesSet         bool
+	MaxFileLinks         int
+	MaxFileLinksSet      bool
+	MaxDirectoryLinks    int
+	MaxDirectoryLinksSet bool
+	MaxHAMTFanout        int
+	MaxHAMTFanoutSet     bool
 
 	Chunker string
 	Layout  Layout
@@ -66,14 +68,16 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		CidVersion: -1,
 		MhType:     mh.SHA2_256,
 
-		Inline:           false,
-		InlineLimit:      32,
-		RawLeaves:        false,
-		RawLeavesSet:     false,
-		MaxLinks:         helpers.DefaultLinksPerBlock,
-		MaxLinksSet:      false,
-		MaxHAMTFanout:    io.DefaultShardWidth,
-		MaxHAMTFanoutSet: false,
+		Inline:               false,
+		InlineLimit:          32,
+		RawLeaves:            false,
+		RawLeavesSet:         false,
+		MaxFileLinks:         helpers.DefaultLinksPerBlock,
+		MaxFileLinksSet:      false,
+		MaxDirectoryLinks:    0,
+		MaxDirectoryLinksSet: false,
+		MaxHAMTFanout:        io.DefaultShardWidth,
+		MaxHAMTFanoutSet:     false,
 
 		Chunker: "size-262144",
 		Layout:  BalancedLayout,
@@ -200,12 +204,22 @@ func (unixfsOpts) RawLeaves(enable bool) UnixfsAddOption {
 	}
 }
 
-// MaxLinks specifies the maximum width of the UnixFS DAG. It affects files
-// and basic folders.
-func (unixfsOpts) MaxLinks(n int) UnixfsAddOption {
+// MaxFileLinks specifies the maximum number of children for UnixFS file
+// nodes.
+func (unixfsOpts) MaxFileLinks(n int) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
-		settings.MaxLinks = n
-		settings.MaxLinksSet = true
+		settings.MaxFileLinks = n
+		settings.MaxFileLinksSet = true
+		return nil
+	}
+}
+
+// MaxDirectoryLinks specifies the maximum number of children for UnixFS basic
+// directory nodes.
+func (unixfsOpts) MaxDirectoryLinks(n int) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.MaxDirectoryLinks = n
+		settings.MaxDirectoryLinksSet = true
 		return nil
 	}
 }

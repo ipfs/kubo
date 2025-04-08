@@ -184,7 +184,8 @@ config file at runtime.
     - [`Import.HashFunction`](#importhashfunction)
     - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
     - [`Import.BatchMaxSize`](#importbatchmaxsize)
-    - [`Import.MaxLinks`](#importmaxlinks)
+    - [`Import.MaxFileLinks`](#importmaxfilelinks)
+    - [`Import.MaxDirectoryLinks`](#importmaxDirectorylinks)
     - [`Import.MaxHAMTFanout`](#importmaxhamtfanout)	
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
@@ -2549,16 +2550,28 @@ Default: `20971520` (20MiB)
 
 Type: `optionalInteger`
 
-### `Import.MaxLinks`
+### `Import.MaxFileLinks`
 
-The maximum number of links that a node part of a UnixFS DAG can have
+The maximum number of links that a node part of a UnixFS File can have
 when building the DAG while importing.
 
-This setting controls both the fanout in files as well as the fanout for
-basic, non-HAMT folder. When unset (0), the default for files is `174`, while the
-default for folders is dynamic. A size-estimation function chooses when to
-convert the folders to HAMT-based directories and amount of links can vary depending
-on their size.
+This setting controls both the fanout in files that are chunked into several
+blocks and grouped as a Unixfs (dag-pb) DAG.
+
+Default: `174`
+
+Type: `optionalInteger`
+
+### `Import.MaxDirectoryLinks`
+
+The maximum number of links that a node part of a UnixFS basic directory can
+have when building the DAG while importing.
+
+This setting controls both the fanout for basic, non-HAMT folder nodes. It
+sets a limit after which directories are converted to a HAMT-based structure.
+
+When unset (0), no limit exists for chilcren. Directories will be converted to
+HAMTs based on their estimated size only.
 
 This setting will cause basic directories to be converted to HAMTs when they
 exceed the maximum number of children. This happens transparently during the
@@ -2567,6 +2580,7 @@ add process. The fanout of HAMT nodes is controlled by `MaxHAMTFanout`.
 Default: `0`
 
 Type: `optionalInteger`
+
 
 ### `Import.MaxHAMTFanout`
 

@@ -37,25 +37,26 @@ type AddEvent struct {
 }
 
 const (
-	quietOptionName         = "quiet"
-	quieterOptionName       = "quieter"
-	silentOptionName        = "silent"
-	progressOptionName      = "progress"
-	trickleOptionName       = "trickle"
-	wrapOptionName          = "wrap-with-directory"
-	onlyHashOptionName      = "only-hash"
-	chunkerOptionName       = "chunker"
-	pinOptionName           = "pin"
-	rawLeavesOptionName     = "raw-leaves"
-	maxLinksOptionName      = "max-links"
-	maxHAMTFanoutOptionName = "max-hamt-fanout"
-	noCopyOptionName        = "nocopy"
-	fstoreCacheOptionName   = "fscache"
-	cidVersionOptionName    = "cid-version"
-	hashOptionName          = "hash"
-	inlineOptionName        = "inline"
-	inlineLimitOptionName   = "inline-limit"
-	toFilesOptionName       = "to-files"
+	quietOptionName             = "quiet"
+	quieterOptionName           = "quieter"
+	silentOptionName            = "silent"
+	progressOptionName          = "progress"
+	trickleOptionName           = "trickle"
+	wrapOptionName              = "wrap-with-directory"
+	onlyHashOptionName          = "only-hash"
+	chunkerOptionName           = "chunker"
+	pinOptionName               = "pin"
+	rawLeavesOptionName         = "raw-leaves"
+	maxFileLinksOptionName      = "max-file-links"
+	maxDirectoryLinksOptionName = "max-directory-links"
+	maxHAMTFanoutOptionName     = "max-hamt-fanout"
+	noCopyOptionName            = "nocopy"
+	fstoreCacheOptionName       = "fscache"
+	cidVersionOptionName        = "cid-version"
+	hashOptionName              = "hash"
+	inlineOptionName            = "inline"
+	inlineLimitOptionName       = "inline-limit"
+	toFilesOptionName           = "to-files"
 
 	preserveModeOptionName  = "preserve-mode"
 	preserveMtimeOptionName = "preserve-mtime"
@@ -170,7 +171,8 @@ See 'dag export' and 'dag import' for more information.
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash"),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
-		cmds.IntOption(maxLinksOptionName, "Limit the maximum number of links in UnixFS file and basic directory nodes to this value."),
+		cmds.IntOption(maxFileLinksOptionName, "Limit the maximum number of links in UnixFS file nodes to this value."),
+		cmds.IntOption(maxDirectoryLinksOptionName, "Limit the maximum number of links in UnixFS basic directory nodes to this value."),
 		cmds.IntOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8)."),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
@@ -226,7 +228,8 @@ See 'dag export' and 'dag import' for more information.
 		chunker, _ := req.Options[chunkerOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
 		rawblks, rbset := req.Options[rawLeavesOptionName].(bool)
-		maxLinks, maxLinksSet := req.Options[maxLinksOptionName].(int)
+		maxFileLinks, maxFileLinksSet := req.Options[maxFileLinksOptionName].(int)
+		maxDirectoryLinks, maxDirectoryLinksSet := req.Options[maxDirectoryLinksOptionName].(int)
 		maxHAMTFanout, maxHAMTFanoutSet := req.Options[maxHAMTFanoutOptionName].(int)
 		nocopy, _ := req.Options[noCopyOptionName].(bool)
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
@@ -259,9 +262,14 @@ See 'dag export' and 'dag import' for more information.
 			rawblks = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
 		}
 
-		if !maxLinksSet && !cfg.Import.UnixFSDAGMaxLinks.IsDefault() {
-			maxLinksSet = true
-			maxLinks = int(cfg.Import.UnixFSDAGMaxLinks.WithDefault(0))
+		if !maxFileLinksSet && !cfg.Import.UnixFSFileMaxLinks.IsDefault() {
+			maxFileLinksSet = true
+			maxFileLinks = int(cfg.Import.UnixFSFileMaxLinks.WithDefault(int64(config.DefaultUnixFSFileMaxLinks)))
+		}
+
+		if !maxDirectoryLinksSet && !cfg.Import.UnixFSDirectoryMaxLinks.IsDefault() {
+			maxDirectoryLinksSet = true
+			maxDirectoryLinks = int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(int64(config.DefaultUnixFSDirectoryMaxLinks)))
 		}
 
 		if !maxHAMTFanoutSet && !cfg.Import.UnixFSHAMTDirectoryMaxFanout.IsDefault() {
@@ -345,8 +353,12 @@ See 'dag export' and 'dag import' for more information.
 			opts = append(opts, options.Unixfs.RawLeaves(rawblks))
 		}
 
-		if maxLinksSet {
-			opts = append(opts, options.Unixfs.MaxLinks(maxLinks))
+		if maxFileLinksSet {
+			opts = append(opts, options.Unixfs.MaxFileLinks(maxFileLinks))
+		}
+
+		if maxDirectoryLinksSet {
+			opts = append(opts, options.Unixfs.MaxDirectoryLinks(maxDirectoryLinks))
 		}
 
 		if maxHAMTFanoutSet {

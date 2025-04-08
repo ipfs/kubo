@@ -1,5 +1,10 @@
 package config
 
+import (
+	"github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
+	"github.com/ipfs/boxo/ipld/unixfs/io"
+)
+
 const (
 	DefaultCidVersion      = 0
 	DefaultUnixFSRawLeaves = false
@@ -14,6 +19,13 @@ const (
 	// write-batch. The total size of the batch is limited by
 	// BatchMaxnodes and BatchMaxSize.
 	DefaultBatchMaxSize = 100 << 20 // 20MiB
+
+)
+
+var (
+	DefaultUnixFSHAMTDirectoryMaxFanout = io.DefaultShardWidth
+	DefaultUnixFSFileMaxLinks           = helpers.DefaultLinksPerBlock
+	DefaultUnixFSDirectoryMaxLinks      = 0
 )
 
 // Import configures the default options for ingesting data. This affects commands
@@ -23,7 +35,8 @@ type Import struct {
 	UnixFSRawLeaves              Flag
 	UnixFSChunker                OptionalString
 	HashFunction                 OptionalString
-	UnixFSDAGMaxLinks            OptionalInteger
+	UnixFSDirectoryMaxLinks      OptionalInteger
+	UnixFSFileMaxLinks           OptionalInteger
 	UnixFSHAMTDirectoryMaxFanout OptionalInteger
 	BatchMaxNodes                OptionalInteger
 	BatchMaxSize                 OptionalInteger

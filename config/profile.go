@@ -273,6 +273,9 @@ fetching may be degraded.
 			c.Import.UnixFSRawLeaves = False
 			c.Import.UnixFSChunker = *NewOptionalString("size-262144")
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
 			return nil
 		},
 	},
@@ -284,7 +287,8 @@ fetching may be degraded.
 			c.Import.UnixFSRawLeaves = True
 			c.Import.UnixFSChunker = *NewOptionalString("size-1048576")
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
-			c.Import.UnixFSDAGMaxLinks = *NewOptionalInteger(1024)
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
 			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
 			return nil
 		},
