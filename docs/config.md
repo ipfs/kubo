@@ -79,7 +79,8 @@ config file at runtime.
       - [`Internal.Bitswap.EngineBlockstoreWorkerCount`](#internalbitswapengineblockstoreworkercount)
       - [`Internal.Bitswap.EngineTaskWorkerCount`](#internalbitswapenginetaskworkercount)
       - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
-    - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
+      - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
+      - [`Internal.Bitswap.ProviderSearchMaxResults`](#internalbitswapprovidersearchmaxresults)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
@@ -119,7 +120,7 @@ config file at runtime.
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
-	- [`Routing.IgnoreProviders`](#routingignoreproviders)
+    - [`Routing.IgnoreProviders`](#routingignoreproviders)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -1181,13 +1182,20 @@ deteriorate the quality provided to less aggressively-wanting peers.
 
 Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 
-### `Internal.Bitswap.ProviderSearchDelay`
+#### `Internal.Bitswap.ProviderSearchDelay`
 
 This parameter determines how long to wait before looking for providers outside of bitswap.
 Other routing systems like the Amino DHT are able to provide results in less than a second, so lowering
 this number will allow faster peers lookups in some cases.
 
 Type: `optionalDuration` (`null` means default which is 1s)
+
+#### `Internal.Bitswap.ProviderSearchMaxResults`
+
+Maximum number of providers bitswap client should aim at before it stops searching for new ones.
+Setting to 0 means unlimited.
+
+Type: `optionalInteger` (`null` means default which is 10)
 
 ### `Internal.UnixFSShardingSizeThreshold`
 
@@ -1587,10 +1595,10 @@ Type: `optionalDuration` (unset for the default)
 Tells reprovider what should be announced. Valid strategies are:
 
 - `"all"` - announce all CIDs of stored blocks
-  - Order: root blocks of direct and recursive pins are announced first, then the rest of blockstore
-- `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks)
+  - Order: root blocks of direct and recursive pins and MFS root are announced first, then the rest of blockstore
+- `"pinned"` - only announce recursively pinned CIDs (`ipfs pin add -r`, both roots and child blocks)
   - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
-- `"roots"` - only announce the root block of explicitly pinned CIDs
+- `"roots"` - only announce the root block of explicitly pinned CIDs (`ipfs pin add`)
   - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
     It makes sense only for use cases where the entire DAG is fetched in full,
     and a graceful resume does not have to be guaranteed: the lack of child
@@ -1598,10 +1606,15 @@ Tells reprovider what should be announced. Valid strategies are:
     providers for the missing block in the middle of a file, unless the peer
     happens to already be connected to a provider and ask for child CID over
     bitswap.
+- `"mfs"` - announce only the local CIDs that are part of the MFS (`ipfs files`)
+   - Note: MFS is lazy-loaded. Only the MFS blocks present in local datastore are announced.
+- `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
+  - **ℹ️ NOTE:** This is the suggested strategy for users who run without GC and don't want to provide everything in cache.
+  - Order: first `pinned` and then the locally available part of `mfs`.
 - `"flat"` - same as `all`, announce all CIDs of stored blocks, but without prioritizing anything.
 
 > [!IMPORTANT]
-> Reproviding larger pinsets using the `all`, `pinned`, or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
+> Reproviding larger pinsets using the `all`, `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
 > This is due to the use of a buffered provider, which avoids holding a lock on the entire pinset during the reprovide cycle.
 > The `flat` strategy can be used to lower memory requirements, but only recommended if memory utilization is too high, prioritization of pins is not necessary, and it is acceptable to announce every block cached in the local repository.
 
