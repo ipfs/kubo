@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/ipfs/boxo/bitswap"
@@ -12,12 +13,15 @@ import (
 	"github.com/ipfs/boxo/exchange/providing"
 	provider "github.com/ipfs/boxo/provider"
 	rpqm "github.com/ipfs/boxo/routing/providerquerymanager"
+	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"go.uber.org/fx"
 
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/kubo/core/node/helpers"
 )
 
@@ -71,16 +75,16 @@ type bitswapIn struct {
 }
 
 // Bitswap creates the BitSwap server/client instance.
-// Additional options to bitswap.New can be provided via the "bitswap-options"
-// group.
+// If Bitswap.ServerEnabled is false, the node will act only as a client
+// using an empty blockstore to prevent serving blocks to other peers.
 func Bitswap(provide bool) interface{} {
 	return func(in bitswapIn, lc fx.Lifecycle) (*bitswap.Bitswap, error) {
 		bitswapNetwork := bsnet.NewFromIpfsHost(in.Host)
-
+		var blockstoree blockstore.Blockstore = in.Bs
 		var provider routing.ContentDiscovery
-		if provide {
-			// We need to hardcode the default because it is an
-			// internal setting in boxo.
+		serverEnabled := in.Cfg.Bitswap.ServerEnabled.WithDefault(true)
+
+		if serverEnabled {
 			pqm, err := rpqm.New(bitswapNetwork,
 				in.Rt,
 				rpqm.WithMaxProviders(10),
@@ -91,9 +95,13 @@ func Bitswap(provide bool) interface{} {
 			}
 			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
 			provider = pqm
-
+		} else {
+			provider = nil
+			// When server is disabled, use an empty blockstore to prevent serving blocks
+			blockstoree = blockstore.NewBlockstore(datastore.NewMapDatastore())
 		}
-		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetwork, provider, in.Bs, in.BitswapOpts...)
+
+		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetwork, provider, blockstoree, in.BitswapOpts...)
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
@@ -105,8 +113,12 @@ func Bitswap(provide bool) interface{} {
 }
 
 // OnlineExchange creates new LibP2P backed block exchange.
-func OnlineExchange() interface{} {
+// Returns a no-op exchange if Bitswap is disabled.
+func OnlineExchange(isBitswapActive bool) interface{} {
 	return func(in *bitswap.Bitswap, lc fx.Lifecycle) exchange.Interface {
+		if !isBitswapActive {
+			return &noopExchange{closer: in}
+		}
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
 				return in.Close()
@@ -140,4 +152,26 @@ func ProvidingExchange(provide bool) interface{} {
 		}
 		return exch
 	}
+}
+
+type noopExchange struct {
+	closer io.Closer
+}
+
+func (e *noopExchange) GetBlock(ctx context.Context, c cid.Cid) (blocks.Block, error) {
+	return nil, nil
+}
+
+func (e *noopExchange) GetBlocks(ctx context.Context, cids []cid.Cid) (<-chan blocks.Block, error) {
+	ch := make(chan blocks.Block)
+	close(ch)
+	return ch, nil
+}
+
+func (e *noopExchange) NotifyNewBlocks(ctx context.Context, blocks ...blocks.Block) error {
+	return nil
+}
+
+func (e *noopExchange) Close() error {
+	return e.closer.Close()
 }
