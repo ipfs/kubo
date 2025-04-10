@@ -6,8 +6,9 @@ package mfs
 
 import (
 	"context"
+	"io"
 	"os"
-	"strings"
+	"sync"
 	"syscall"
 
 	"bazil.org/fuse"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/kubo/core"
-	"github.com/spaolacci/murmur3"
 )
 
 // FUSE filesystem mounted at /mfs.
@@ -28,11 +28,6 @@ func (fs *FileSystem) Root() (fs.Node, error) {
 	return &fs.root, nil
 }
 
-// Inode numbers generated with murmur3 of the file path.
-func GetInode(path string) uint64 {
-	return uint64(murmur3.Sum32([]byte(path)))
-}
-
 // FUSE Adapter for MFS directories.
 type Dir struct {
 	mfsDir *mfs.Directory
@@ -41,6 +36,8 @@ type Dir struct {
 // Directory attributes.
 func (dir *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
 	attr.Mode = os.FileMode(os.ModeDir | 0755)
+	attr.Size = 4096
+	attr.Blocks = 8
 	return nil
 }
 
@@ -52,15 +49,13 @@ func (dir *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.
 	}
 	switch mfsNode.Type() {
 	case mfs.TDir:
-		mfsDir := mfsNode.(*mfs.Directory)
 		result := Dir{
-			mfsDir: mfsDir,
+			mfsDir: mfsNode.(*mfs.Directory),
 		}
 		return &result, nil
 	case mfs.TFile:
-		mfsFile := mfsNode.(*mfs.File)
 		result := File{
-			mfsFile: mfsFile,
+			mfsFile: mfsNode.(*mfs.File),
 		}
 		return &result, nil
 	}
@@ -78,9 +73,8 @@ func (dir *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 	for _, node := range nodes {
 		res = append(res, fuse.Dirent{
-			Inode: GetInode(strings.Join([]string{dir.mfsDir.Path(), node.Name}, "/")),
-			Type:  fuse.DT_File,
-			Name:  node.Name,
+			Type: fuse.DT_File,
+			Name: node.Name,
 		})
 	}
 	return res, nil
@@ -98,6 +92,11 @@ func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 		return err
 	}
 	attr.Size = uint64(size)
+	if size%512 == 0 {
+		attr.Blocks = uint64(size / 512)
+	} else {
+		attr.Blocks = uint64(size/512 + 1)
+	}
 
 	mtime, err := file.mfsFile.ModTime()
 	if err != nil {
@@ -111,6 +110,53 @@ func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	}
 	attr.Mode = mode
 	return nil
+}
+
+// Open an MFS file.
+func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
+	accessMode := req.Flags & fuse.OpenAccessModeMask
+	flags := mfs.Flags{
+		Read:  accessMode == fuse.OpenReadOnly || accessMode == fuse.OpenReadWrite,
+		Write: accessMode == fuse.OpenWriteOnly || accessMode == fuse.OpenReadWrite,
+		Sync:  req.Flags|fuse.OpenSync > 0,
+	}
+	fd, err := file.mfsFile.Open(flags)
+	if err != nil {
+		return nil, err
+	}
+	return &FileHandler{
+		mfsFD: fd,
+	}, nil
+}
+
+// Wrapper for MFS's file descriptor that conforms to the FUSE fs.Handler
+// interface.
+type FileHandler struct {
+	mfsFD mfs.FileDescriptor
+	mu    sync.Mutex
+}
+
+// Read a opened MFS file.
+func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
+	fh.mu.Lock()
+	defer fh.mu.Unlock()
+
+	_, err := fh.mfsFD.Seek(req.Offset, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	buf := make([]byte, req.Size)
+	l, err := fh.mfsFD.Read(buf)
+
+	resp.Data = buf[:l]
+
+	switch err {
+	case nil, io.EOF, io.ErrUnexpectedEOF:
+		return nil
+	default:
+		return err
+	}
 }
 
 // Create new filesystem.
