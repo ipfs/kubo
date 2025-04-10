@@ -82,9 +82,8 @@ func Bitswap(provide bool) interface{} {
 		bitswapNetwork := bsnet.NewFromIpfsHost(in.Host)
 		var blockstoree blockstore.Blockstore = in.Bs
 		var provider routing.ContentDiscovery
-		serverEnabled := in.Cfg.Bitswap.ServerEnabled.WithDefault(true)
 
-		if serverEnabled {
+		if provide {
 			pqm, err := rpqm.New(bitswapNetwork,
 				in.Rt,
 				rpqm.WithMaxProviders(10),
