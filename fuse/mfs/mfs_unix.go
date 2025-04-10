@@ -31,9 +31,10 @@ func (fs *FileSystem) Root() (fs.Node, error) {
 // FUSE Adapter for MFS directories.
 type Dir struct {
 	mfsDir *mfs.Directory
+	mu     sync.Mutex
 }
 
-// Directory attributes.
+// Directory attributes (stat).
 func (dir *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
 	attr.Mode = os.FileMode(os.ModeDir | 0755)
 	attr.Size = 4096
@@ -63,7 +64,7 @@ func (dir *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.
 	return nil, syscall.Errno(syscall.ENOENT)
 }
 
-// List MFS directory (ls).
+// List (ls) MFS directory.
 func (dir *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	var res []fuse.Dirent
 	nodes, err := dir.mfsDir.List(ctx)
@@ -80,7 +81,7 @@ func (dir *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	return res, nil
 }
 
-// Mkdir in MFS.
+// Mkdir (mkdir) in MFS.
 func (dir *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
 	mfsDir, err := dir.mfsDir.Mkdir(req.Name)
 	if err != nil {
@@ -89,6 +90,54 @@ func (dir *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, err
 	return &Dir{
 		mfsDir: mfsDir,
 	}, nil
+}
+
+// Remove (rm/rmdir) an MFS file.
+func (dir *Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
+	// Check for empty directory.
+	if req.Dir {
+		targetNode, err := dir.mfsDir.Child(req.Name)
+		if err != nil {
+			return err
+		}
+		target := targetNode.(*mfs.Directory)
+
+		children, err := target.ListNames(ctx)
+		if err != nil {
+			return err
+		}
+		if len(children) > 0 {
+			return os.ErrExist
+		}
+	}
+	err := dir.mfsDir.Unlink(req.Name)
+	if err != nil {
+		return err
+	}
+	return dir.mfsDir.Flush()
+}
+
+// Move (mv) an MFS file.
+func (dir *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
+	dir.mu.Lock()
+	defer dir.mu.Unlock()
+
+	file, err := dir.mfsDir.Child(req.OldName)
+	if err != nil {
+		return err
+	}
+	node, err := file.GetNode()
+	if err != nil {
+		return err
+	}
+	targetDir := newDir.(*Dir)
+
+	err = targetDir.mfsDir.AddChild(req.NewName, node)
+	if err != nil {
+		return err
+	}
+
+	return dir.mfsDir.Unlink(req.OldName)
 }
 
 // FUSE adapter for MFS files.
@@ -185,6 +234,8 @@ type mfDir interface {
 	fs.HandleReadDirAller
 	fs.NodeRequestLookuper
 	fs.NodeMkdirer
+	fs.NodeRenamer
+	fs.NodeRemover
 }
 
 var _ mfDir = (*Dir)(nil)
