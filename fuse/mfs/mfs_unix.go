@@ -80,6 +80,17 @@ func (dir *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	return res, nil
 }
 
+// Mkdir in MFS.
+func (dir *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
+	mfsDir, err := dir.mfsDir.Mkdir(req.Name)
+	if err != nil {
+		return nil, err
+	}
+	return &Dir{
+		mfsDir: mfsDir,
+	}, nil
+}
+
 // FUSE adapter for MFS files.
 type File struct {
 	mfsFile *mfs.File
@@ -167,3 +178,27 @@ func NewFileSystem(ipfs *core.IpfsNode) fs.FS {
 		},
 	}
 }
+
+// Check that our structs implement all the interfaces we want.
+type mfDir interface {
+	fs.Node
+	fs.HandleReadDirAller
+	fs.NodeRequestLookuper
+	fs.NodeMkdirer
+}
+
+var _ mfDir = (*Dir)(nil)
+
+type mfFile interface {
+	fs.Node
+	fs.NodeOpener
+}
+
+var _ mfFile = (*File)(nil)
+
+type mfHandler interface {
+	fs.Handle
+	fs.HandleReader
+}
+
+var _ mfHandler = (*FileHandler)(nil)
