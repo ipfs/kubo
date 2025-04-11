@@ -280,7 +280,7 @@ fetching may be degraded.
 		},
 	},
 	"legacy-cid-v1": {
-		Description: `Makes UnixFS import produce legacy CIDv1 with the same suboptimal settings as legacy-cid-v0, but with CIDv1 and raw leaves. Use only if legacy behavior is required.`,
+		Description: `Makes UnixFS import produce legacy CIDv1 with the same suboptimal settings as legacy-cid-v0, but with 1MiB file chunk, CIDv1 and raw leaves. Use only if legacy behavior is required.`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
 			c.Import.UnixFSRawLeaves = True
@@ -293,7 +293,7 @@ fetching may be degraded.
 			return nil
 		},
 	},
-	"test-cid-v1-2025q2": {
+	"test-cid-v1-2025-v35": {
 		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks and wider file DAGs (1024 links per level).`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
