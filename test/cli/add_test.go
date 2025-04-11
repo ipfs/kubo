@@ -106,9 +106,9 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, shortStringCidV0, cidStr)
 	})
 
-	t.Run("ipfs init --profile=test-cid-v1 produces modern CIDv1", func(t *testing.T) {
+	t.Run("ipfs init --profile=legacy-cid-v1 produces modern CIDv1", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init("--profile=test-cid-v1")
+		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v1")
 		node.StartDaemon()
 		defer node.StopDaemon()
 
