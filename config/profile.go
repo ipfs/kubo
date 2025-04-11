@@ -276,11 +276,27 @@ fetching may be degraded.
 			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
 			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
 			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			// TODO:  move `Internal.UnixFSShardingSizeThreshold` to Import and set here
 			return nil
 		},
 	},
-	"test-cid-v1": {
-		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks and 1024 links at most.`,
+	"legacy-cid-v1": {
+		Description: `Makes UnixFS import produce legacy CIDv1 with the same DAG width as in legacy CIDv0.`,
+
+		Transform: func(c *Config) error {
+			c.Import.CidVersion = *NewOptionalInteger(1)
+			c.Import.UnixFSRawLeaves = True
+			c.Import.UnixFSChunker = *NewOptionalString("size-1048576")
+			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			// TODO:  move `Internal.UnixFSShardingSizeThreshold` to Import and set here
+			return nil
+		},
+	},
+	"test-cid-v1-2025q2": {
+		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks and wider file DAGs (1024 links per level).`,
 
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
@@ -290,6 +306,7 @@ fetching may be degraded.
 			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
 			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
 			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			// TODO:  move `Internal.UnixFSShardingSizeThreshold` to Import and set here
 			return nil
 		},
 	},

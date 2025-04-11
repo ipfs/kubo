@@ -23,9 +23,9 @@ const (
 )
 
 var (
-	DefaultUnixFSHAMTDirectoryMaxFanout = int64(io.DefaultShardWidth)
 	DefaultUnixFSFileMaxLinks           = int64(helpers.DefaultLinksPerBlock)
 	DefaultUnixFSDirectoryMaxLinks      = int64(0)
+	DefaultUnixFSHAMTDirectoryMaxFanout = int64(io.DefaultShardWidth)
 )
 
 // Import configures the default options for ingesting data. This affects commands
@@ -35,8 +35,8 @@ type Import struct {
 	UnixFSRawLeaves              Flag
 	UnixFSChunker                OptionalString
 	HashFunction                 OptionalString
-	UnixFSDirectoryMaxLinks      OptionalInteger
 	UnixFSFileMaxLinks           OptionalInteger
+	UnixFSDirectoryMaxLinks      OptionalInteger
 	UnixFSHAMTDirectoryMaxFanout OptionalInteger
 	BatchMaxNodes                OptionalInteger
 	BatchMaxSize                 OptionalInteger

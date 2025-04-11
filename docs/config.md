@@ -119,7 +119,7 @@ config file at runtime.
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
-	- [`Routing.IgnoreProviders`](#routingignoreproviders)
+    - [`Routing.IgnoreProviders`](#routingignoreproviders)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -184,9 +184,9 @@ config file at runtime.
     - [`Import.HashFunction`](#importhashfunction)
     - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
     - [`Import.BatchMaxSize`](#importbatchmaxsize)
-    - [`Import.MaxFileLinks`](#importmaxfilelinks)
-    - [`Import.MaxDirectoryLinks`](#importmaxDirectorylinks)
-    - [`Import.MaxHAMTFanout`](#importmaxhamtfanout)	
+    - [`Import.UnixFSFileMaxLinks`](#importunixfsfilemaxlinks)
+    - [`Import.UnixFSDirectoryMaxLinks`](#importunixfsdirectorymaxlinks)
+    - [`Import.UnixFSHAMTDirectoryMaxFanout`](#importunixfshamtdirectorymaxfanout)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -2550,7 +2550,7 @@ Default: `20971520` (20MiB)
 
 Type: `optionalInteger`
 
-### `Import.MaxFileLinks`
+### `Import.UnixFSFileMaxLinks`
 
 The maximum number of links that a node part of a UnixFS File can have
 when building the DAG while importing.
@@ -2562,7 +2562,7 @@ Default: `174`
 
 Type: `optionalInteger`
 
-### `Import.MaxDirectoryLinks`
+### `Import.UnixFSDirectoryMaxLinks`
 
 The maximum number of links that a node part of a UnixFS basic directory can
 have when building the DAG while importing.
@@ -2577,12 +2577,11 @@ This setting will cause basic directories to be converted to HAMTs when they
 exceed the maximum number of children. This happens transparently during the
 add process. The fanout of HAMT nodes is controlled by `MaxHAMTFanout`.
 
-Default: `0`
+Default: `0` (no limit, because [`Internal.UnixFSShardingSizeThreshold`](https://github.com/ipfs/kubo/blob/master/docs/config.md#internalunixfsshardingsizethreshold) triggers the switch to HAMT if a directory grows too big)
 
 Type: `optionalInteger`
 
-
-### `Import.MaxHAMTFanout`
+### `Import.UnixFSHAMTDirectoryMaxFanout`
 
 The maximum number of children that a node part of a Unixfs HAMT directory
 (aka sharded directory) can have.
