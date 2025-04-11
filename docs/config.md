@@ -187,6 +187,7 @@ config file at runtime.
     - [`Import.UnixFSFileMaxLinks`](#importunixfsfilemaxlinks)
     - [`Import.UnixFSDirectoryMaxLinks`](#importunixfsdirectorymaxlinks)
     - [`Import.UnixFSHAMTDirectoryMaxFanout`](#importunixfshamtdirectorymaxfanout)
+    - [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -1194,15 +1195,7 @@ Type: `optionalDuration` (`null` means default which is 1s)
 
 ### `Internal.UnixFSShardingSizeThreshold`
 
-The sharding threshold used internally to decide whether a UnixFS directory should be sharded or not.
-This value is not strictly related to the size of the UnixFS directory block and any increases in
-the threshold should come with being careful that block sizes stay under 2MiB in order for them to be
-reliably transferable through the networking stack (IPFS peers on the public swarm tend to ignore requests for blocks bigger than 2MiB).
-
-Decreasing this value to 1B is functionally equivalent to the previous experimental sharding option to
-shard all directories.
-
-Type: `optionalBytes` (`null` means default which is 256KiB)
+**MOVED:** see [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
 
 ## `Ipns`
 
@@ -2577,7 +2570,7 @@ This setting will cause basic directories to be converted to HAMTs when they
 exceed the maximum number of children. This happens transparently during the
 add process. The fanout of HAMT nodes is controlled by `MaxHAMTFanout`.
 
-Default: `0` (no limit, because [`Internal.UnixFSShardingSizeThreshold`](https://github.com/ipfs/kubo/blob/master/docs/config.md#internalunixfsshardingsizethreshold) triggers the switch to HAMT if a directory grows too big)
+Default: `0` (no limit, because [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold) triggers controls when to switch to HAMT sharding when a directory grows too big)
 
 Type: `optionalInteger`
 
@@ -2594,6 +2587,23 @@ maximum number of children that the HAMT nodes can have.
 Default: `256`
 
 Type: `optionalInteger`
+
+### `Import.UnixFSHAMTDirectorySizeThreshold`
+
+The sharding threshold to decide whether a basic UnixFS directory
+should be sharded (converted into HAMT Directory) or not.
+
+This value is not strictly related to the size of the UnixFS directory block
+and any increases in the threshold should come with being careful that block
+sizes stay under 2MiB in order for them to be reliably transferable through the
+networking stack. At the time of writing this, IPFS peers on the public swarm
+tend to ignore requests for blocks bigger than 2MiB.
+
+Setting to `1B` is functionally equivalent to always using HAMT (useful in testing).
+
+Default: `256KiB` (may change, inspect `DefaultUnixFSHAMTDirectorySizeThreshold` to confirm)
+
+Type: `optionalBytes`
 
 ## `Version`
 
