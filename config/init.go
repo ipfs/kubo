@@ -58,6 +58,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		Mounts: Mounts{
 			IPFS: "/ipfs",
 			IPNS: "/ipns",
+			MFS:  "/mfs",
 		},
 
 		Ipns: Ipns{
