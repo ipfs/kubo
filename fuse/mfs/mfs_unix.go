@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync"
 	"syscall"
+	"time"
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
@@ -176,6 +177,8 @@ func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.
 	if err != nil {
 		return nil, nil, err
 	}
+	mfsNode.SetModTime(time.Now())
+
 	mfsFile := mfsNode.(*mfs.File)
 
 	file := File{
@@ -204,10 +207,14 @@ func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.
 // FUSE adapter for MFS files.
 type File struct {
 	mfsFile *mfs.File
+	mu      sync.RWMutex
 }
 
 // File attributes.
 func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
+	file.mu.RLock()
+	defer file.mu.RUnlock()
+
 	size, err := file.mfsFile.Size()
 	if err != nil {
 		return err
@@ -235,6 +242,9 @@ func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 
 // Open an MFS file.
 func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
+	file.mu.Lock()
+	defer file.mu.Unlock()
+
 	accessMode := req.Flags & fuse.OpenAccessModeMask
 	flags := mfs.Flags{
 		Read:  accessMode == fuse.OpenReadOnly || accessMode == fuse.OpenReadWrite,
@@ -245,6 +255,14 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 	if err != nil {
 		return nil, err
 	}
+
+	if flags.Write {
+		err := file.mfsFile.SetModTime(time.Now())
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &FileHandler{
 		mfsFD: fd,
 	}, nil
@@ -252,6 +270,9 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 
 // Sync the file's contents to MFS.
 func (file *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
+	file.mu.Lock()
+	defer file.mu.Unlock()
+
 	return file.mfsFile.Sync()
 }
 
@@ -289,12 +310,10 @@ func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fu
 
 // Write writes to an opened MFS file.
 func (fh *FileHandler) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
-	l, err := func() (int, error) {
-		fh.mu.Lock()
-		defer fh.mu.Unlock()
+	fh.mu.Lock()
+	defer fh.mu.Unlock()
 
-		return fh.mfsFD.WriteAt(req.Data, req.Offset)
-	}()
+	l, err := fh.mfsFD.WriteAt(req.Data, req.Offset)
 	if err != nil {
 		return err
 	}
