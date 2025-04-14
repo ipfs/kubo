@@ -5,6 +5,7 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -106,13 +107,53 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, shortStringCidV0, cidStr)
 	})
 
-	t.Run("ipfs init --profile=legacy-cid-v1 produces modern CIDv1", func(t *testing.T) {
+	t.Run("ipfs init --profile=legacy-cid-v0 applies UnixFSChunker=size-262144 and UnixFSFileMaxLinks=174", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v0")
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Add 44544KiB file:
+		// 174 * 256KiB should fit in single DAG layer
+		cidStr := node.IPFSAddFromSeed("44544KiB", "v0-seed")
+		root, err := node.InspectPBNode(cidStr)
+		assert.NoError(t, err)
+		require.Equal(t, 174, len(root.Links))
+
+		// add 256KiB (one more block), it should force rebalancing DAG and moving most to second layer
+		cidStr = node.IPFSAddFromSeed("44800KiB", "v0-seed")
+		root, err = node.InspectPBNode(cidStr)
+		assert.NoError(t, err)
+		require.Equal(t, 2, len(root.Links))
+	})
+
+	t.Run("ipfs init --profile=legacy-cid-v1 produces CIDv1 with raw leaves", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v1")
 		node.StartDaemon()
 		defer node.StopDaemon()
 
 		cidStr := node.IPFSAddStr(shortString)
-		require.Equal(t, shortStringCidV1, cidStr)
+		require.Equal(t, shortStringCidV1, cidStr) // raw leaf
+	})
+
+	t.Run("ipfs init --profile=legacy-cid-v1 applies UnixFSChunker=size-1048576 and UnixFSFileMaxLinks=174", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v1")
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Add 174MiB file:
+		// 174 * 1MiB should fit in single layer
+		cidStr := node.IPFSAddFromSeed("174MiB", "v1-seed")
+		root, err := node.InspectPBNode(cidStr)
+		assert.NoError(t, err)
+		require.Equal(t, 174, len(root.Links))
+
+		// add +1MiB (one more block), it should force rebalancing DAG and moving most to second layer
+		cidStr = node.IPFSAddFromSeed("175MiB", "v1-seed")
+		root, err = node.InspectPBNode(cidStr)
+		assert.NoError(t, err)
+		require.Equal(t, 2, len(root.Links))
 	})
 }
