@@ -56,6 +56,7 @@ const (
 	initProfileOptionKwd       = "init-profile"
 	ipfsMountKwd               = "mount-ipfs"
 	ipnsMountKwd               = "mount-ipns"
+	mfsMountKwd                = "mount-mfs"
 	migrateKwd                 = "migrate"
 	mountKwd                   = "mount"
 	offlineKwd                 = "offline" // global option
@@ -173,6 +174,7 @@ Headers.
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
+		cmds.StringOption(mfsMountKwd, "Path to the mountpoint for MFS (if using --mount). Defaults to config setting."),
 		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow RPC API access to unlisted hashes"),
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
@@ -1058,17 +1060,23 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 		nsdir = cfg.Mounts.IPNS
 	}
 
+	mfdir, found := req.Options[mfsMountKwd].(string)
+	if !found {
+		mfdir = cfg.Mounts.MFS
+	}
+
 	node, err := cctx.ConstructNode()
 	if err != nil {
 		return fmt.Errorf("mountFuse: ConstructNode() failed: %s", err)
 	}
 
-	err = nodeMount.Mount(node, fsdir, nsdir)
+	err = nodeMount.Mount(node, fsdir, nsdir, mfdir)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("IPFS mounted at: %s\n", fsdir)
 	fmt.Printf("IPNS mounted at: %s\n", nsdir)
+	fmt.Printf("MFS mounted at: %s\n", mfdir)
 	return nil
 }
 
