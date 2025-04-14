@@ -34,7 +34,6 @@ func (fs *FileSystem) Root() (fs.Node, error) {
 // FUSE Adapter for MFS directories.
 type Dir struct {
 	mfsDir *mfs.Directory
-	mu     sync.RWMutex
 }
 
 // Directory attributes (stat).
@@ -47,9 +46,6 @@ func (dir *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
 
 // Access files in a directory.
 func (dir *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.LookupResponse) (fs.Node, error) {
-	dir.mu.RLock()
-	defer dir.mu.RUnlock()
-
 	mfsNode, err := dir.mfsDir.Child(req.Name)
 	if err != nil {
 		return nil, syscall.Errno(syscall.ENOENT)
@@ -72,9 +68,6 @@ func (dir *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.
 
 // List (ls) MFS directory.
 func (dir *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	dir.mu.RLock()
-	defer dir.mu.RUnlock()
-
 	var res []fuse.Dirent
 	nodes, err := dir.mfsDir.List(ctx)
 	if err != nil {
@@ -92,9 +85,6 @@ func (dir *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 // Mkdir (mkdir) in MFS.
 func (dir *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
-	dir.mu.Lock()
-	defer dir.mu.Unlock()
-
 	mfsDir, err := dir.mfsDir.Mkdir(req.Name)
 	if err != nil {
 		return nil, err
@@ -106,9 +96,6 @@ func (dir *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, err
 
 // Remove (rm/rmdir) an MFS file.
 func (dir *Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
-	dir.mu.Lock()
-	defer dir.mu.Unlock()
-
 	// Check for empty directory.
 	if req.Dir {
 		targetNode, err := dir.mfsDir.Child(req.Name)
@@ -134,9 +121,6 @@ func (dir *Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 
 // Move (mv) an MFS file.
 func (dir *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
-	dir.mu.Lock()
-	defer dir.mu.Unlock()
-
 	file, err := dir.mfsDir.Child(req.OldName)
 	if err != nil {
 		return err
@@ -157,9 +141,6 @@ func (dir *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.N
 
 // Create (touch) an MFS file.
 func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
-	dir.mu.Lock()
-	defer dir.mu.Unlock()
-
 	node := dag.NodeWithData(ft.FilePBData(nil, 0))
 	if err := node.SetCidBuilder(dir.mfsDir.GetCidBuilder()); err != nil {
 		return nil, nil, err
@@ -177,7 +158,9 @@ func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.
 	if err != nil {
 		return nil, nil, err
 	}
-	mfsNode.SetModTime(time.Now())
+	if err := mfsNode.SetModTime(time.Now()); err != nil {
+		return nil, nil, err
+	}
 
 	mfsFile := mfsNode.(*mfs.File)
 
@@ -207,14 +190,10 @@ func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.
 // FUSE adapter for MFS files.
 type File struct {
 	mfsFile *mfs.File
-	mu      sync.RWMutex
 }
 
 // File attributes.
 func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
-	file.mu.RLock()
-	defer file.mu.RUnlock()
-
 	size, err := file.mfsFile.Size()
 	if err != nil {
 		return err
@@ -242,9 +221,6 @@ func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 
 // Open an MFS file.
 func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
-	file.mu.Lock()
-	defer file.mu.Unlock()
-
 	accessMode := req.Flags & fuse.OpenAccessModeMask
 	flags := mfs.Flags{
 		Read:  accessMode == fuse.OpenReadOnly || accessMode == fuse.OpenReadWrite,
@@ -257,8 +233,7 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 	}
 
 	if flags.Write {
-		err := file.mfsFile.SetModTime(time.Now())
-		if err != nil {
+		if err := file.mfsFile.SetModTime(time.Now()); err != nil {
 			return nil, err
 		}
 	}
@@ -270,9 +245,6 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 
 // Sync the file's contents to MFS.
 func (file *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
-	file.mu.Lock()
-	defer file.mu.Unlock()
-
 	return file.mfsFile.Sync()
 }
 
@@ -285,18 +257,16 @@ type FileHandler struct {
 
 // Read a opened MFS file.
 func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
+	fh.mu.Lock()
+	defer fh.mu.Unlock()
+
+	_, err := fh.mfsFD.Seek(req.Offset, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
 	buf := make([]byte, req.Size)
-
-	l, err := func() (int, error) {
-		fh.mu.Lock()
-		defer fh.mu.Unlock()
-
-		_, err := fh.mfsFD.Seek(req.Offset, io.SeekStart)
-		if err != nil {
-			return 0, err
-		}
-		return fh.mfsFD.Read(buf)
-	}()
+	l, err := fh.mfsFD.Read(buf)
 
 	resp.Data = buf[:l]
 

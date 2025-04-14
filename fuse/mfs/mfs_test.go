@@ -7,8 +7,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"errors"
 	iofs "io/fs"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -52,7 +54,7 @@ func TestReadWrite(t *testing.T) {
 	defer mnt.Close()
 
 	path := mnt.Dir + "/testrw"
-	content := make([]byte, 1024)
+	content := make([]byte, 8196)
 	_, err := rand.Read(content)
 	if err != nil {
 		t.Fatal(err)
@@ -77,7 +79,7 @@ func TestReadWrite(t *testing.T) {
 		}
 		defer f.Close()
 
-		buf := make([]byte, 1024)
+		buf := make([]byte, 8196)
 		l, err := f.Read(buf)
 		if err != nil {
 			t.Fatal(err)
@@ -119,7 +121,7 @@ func TestPersistence(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	content := make([]byte, 1024)
+	content := make([]byte, 8196)
 	_, err = rand.Read(content)
 	if err != nil {
 		t.Fatal(err)
@@ -152,7 +154,7 @@ func TestPersistence(t *testing.T) {
 		}
 		defer f.Close()
 
-		buf := make([]byte, 1024)
+		buf := make([]byte, 8196)
 		l, err := f.Read(buf)
 		if err != nil {
 			t.Fatal(err)
@@ -169,7 +171,7 @@ func TestAttr(t *testing.T) {
 	defer mnt.Close()
 
 	path := mnt.Dir + "/testattr"
-	content := make([]byte, 1024)
+	content := make([]byte, 8196)
 	_, err := rand.Read(content)
 	if err != nil {
 		t.Fatal(err)
@@ -208,8 +210,86 @@ func TestAttr(t *testing.T) {
 			t.Fatal("invalid filename")
 		}
 
-		if fi.Size() != 1024 {
+		if fi.Size() != 8196 {
 			t.Fatal("invalid size")
+		}
+	})
+}
+
+// Test concurrent access to the filesystem.
+func TestConcurrentRW(t *testing.T) {
+	_, mnt := setUp(t, nil)
+	defer mnt.Close()
+
+	files := 5
+	fileWorkers := 5
+
+	path := mnt.Dir + "/testconcurrent"
+	content := make([][]byte, files)
+
+	for i := range content {
+		content[i] = make([]byte, 8196)
+		_, err := rand.Read(content[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	t.Run("write", func(t *testing.T) {
+		errs := make(chan (error), 1)
+		for i := 0; i < files; i++ {
+			go func() {
+				var err error
+				defer func() { errs <- err }()
+
+				f, err := os.Create(path + strconv.Itoa(i))
+				if err != nil {
+					return
+				}
+				defer f.Close()
+
+				_, err = f.Write(content[i])
+				if err != nil {
+					return
+				}
+			}()
+		}
+		for i := 0; i < files; i++ {
+			err := <-errs
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	})
+	t.Run("read", func(t *testing.T) {
+		errs := make(chan (error), 1)
+		for i := 0; i < files*fileWorkers; i++ {
+			go func() {
+				var err error
+				defer func() { errs <- err }()
+
+				f, err := os.Open(path + strconv.Itoa(i/fileWorkers))
+				if err != nil {
+					return
+				}
+				defer f.Close()
+
+				buf := make([]byte, 8196)
+				l, err := f.Read(buf)
+				if err != nil {
+					return
+				}
+				if bytes.Equal(content[i/fileWorkers], buf[:l]) != true {
+					err = errors.New("read and write not equal")
+					return
+				}
+			}()
+		}
+		for i := 0; i < files; i++ {
+			err := <-errs
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 	})
 }
