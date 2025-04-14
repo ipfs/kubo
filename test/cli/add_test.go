@@ -107,24 +107,33 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, shortStringCidV0, cidStr)
 	})
 
-	t.Run("ipfs init --profile=legacy-cid-v0 applies UnixFSChunker=size-262144 and UnixFSFileMaxLinks=174", func(t *testing.T) {
+	t.Run("ipfs init --profile=legacy-cid-v0 applies UnixFSChunker=size-262144 and UnixFSFileMaxLinks", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v0")
 		node.StartDaemon()
 		defer node.StopDaemon()
+		seed := "v0-seed"
 
-		// Add 44544KiB file:
-		// 174 * 256KiB should fit in single DAG layer
-		cidStr := node.IPFSAddFromSeed("44544KiB", "v0-seed")
-		root, err := node.InspectPBNode(cidStr)
-		assert.NoError(t, err)
-		require.Equal(t, 174, len(root.Links))
+		t.Run("under UnixFSFileMaxLinks=174", func(t *testing.T) {
+			// Add 44544KiB file:
+			// 174 * 256KiB should fit in single DAG layer
+			cidStr := node.IPFSAddFromSeed("44544KiB", seed)
+			root, err := node.InspectPBNode(cidStr)
+			assert.NoError(t, err)
+			require.Equal(t, 174, len(root.Links))
+			// expect same CID every time
+			require.Equal(t, "QmUbBALi174SnogsUzLpYbD4xPiBSFANF4iztWCsHbMKh2", cidStr)
+		})
 
-		// add 256KiB (one more block), it should force rebalancing DAG and moving most to second layer
-		cidStr = node.IPFSAddFromSeed("44800KiB", "v0-seed")
-		root, err = node.InspectPBNode(cidStr)
-		assert.NoError(t, err)
-		require.Equal(t, 2, len(root.Links))
+		t.Run("above UnixFSFileMaxLinks=174", func(t *testing.T) {
+			// add 256KiB (one more block), it should force rebalancing DAG and moving most to second layer
+			cidStr := node.IPFSAddFromSeed("44800KiB", seed)
+			root, err := node.InspectPBNode(cidStr)
+			assert.NoError(t, err)
+			require.Equal(t, 2, len(root.Links))
+			// expect same CID every time
+			require.Equal(t, "QmepeWtdmS1hHXx1oZXsPUv6bMrfRRKfZcoPPU4eEfjnbf", cidStr)
+		})
 	})
 
 	t.Run("ipfs init --profile=legacy-cid-v1 produces CIDv1 with raw leaves", func(t *testing.T) {
@@ -137,23 +146,61 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, shortStringCidV1, cidStr) // raw leaf
 	})
 
-	t.Run("ipfs init --profile=legacy-cid-v1 applies UnixFSChunker=size-1048576 and UnixFSFileMaxLinks=174", func(t *testing.T) {
+	t.Run("ipfs init --profile=legacy-cid-v1 applies UnixFSChunker=size-1048576 and UnixFSFileMaxLinks", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v1")
 		node.StartDaemon()
 		defer node.StopDaemon()
+		seed := "v1-seed"
 
-		// Add 174MiB file:
-		// 174 * 1MiB should fit in single layer
-		cidStr := node.IPFSAddFromSeed("174MiB", "v1-seed")
-		root, err := node.InspectPBNode(cidStr)
-		assert.NoError(t, err)
-		require.Equal(t, 174, len(root.Links))
+		t.Run("under UnixFSFileMaxLinks=174", func(t *testing.T) {
+			// Add 174MiB file:
+			// 174 * 1MiB should fit in single layer
+			cidStr := node.IPFSAddFromSeed("174MiB", seed)
+			root, err := node.InspectPBNode(cidStr)
+			assert.NoError(t, err)
+			require.Equal(t, 174, len(root.Links))
+			// expect same CID every time
+			require.Equal(t, "bafybeigwduxcf2aawppv3isnfeshnimkyplvw3hthxjhr2bdeje4tdaicu", cidStr)
+		})
 
-		// add +1MiB (one more block), it should force rebalancing DAG and moving most to second layer
-		cidStr = node.IPFSAddFromSeed("175MiB", "v1-seed")
-		root, err = node.InspectPBNode(cidStr)
-		assert.NoError(t, err)
-		require.Equal(t, 2, len(root.Links))
+		t.Run("above UnixFSFileMaxLinks=174", func(t *testing.T) {
+			// add +1MiB (one more block), it should force rebalancing DAG and moving most to second layer
+			cidStr := node.IPFSAddFromSeed("175MiB", seed)
+			root, err := node.InspectPBNode(cidStr)
+			assert.NoError(t, err)
+			require.Equal(t, 2, len(root.Links))
+			// expect same CID every time
+			require.Equal(t, "bafybeidhd7lo2n2v7lta5yamob3xwhbxcczmmtmhquwhjesi35jntf7mpu", cidStr)
+		})
+	})
+
+	t.Run("ipfs init --profile=test-cid-v1-2025-v35 applies UnixFSChunker=size-1048576 and UnixFSFileMaxLinks", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init("--profile=test-cid-v1-2025-v35")
+		node.StartDaemon()
+		defer node.StopDaemon()
+		seed := "v1-seed-1024"
+
+		t.Run("under UnixFSFileMaxLinks=1024", func(t *testing.T) {
+			// Add 174MiB file:
+			// 1024 * 1MiB should fit in single layer
+			cidStr := node.IPFSAddFromSeed("1024MiB", seed)
+			root, err := node.InspectPBNode(cidStr)
+			assert.NoError(t, err)
+			require.Equal(t, 1024, len(root.Links))
+			// expect same CID every time
+			require.Equal(t, "bafybeiej5w63ir64oxgkr5htqmlerh5k2rqflurn2howimexrlkae64xru", cidStr)
+		})
+
+		t.Run("above UnixFSFileMaxLinks=1024", func(t *testing.T) {
+			// add +1MiB (one more block), it should force rebalancing DAG and moving most to second layer
+			cidStr := node.IPFSAddFromSeed("1025MiB", seed)
+			root, err := node.InspectPBNode(cidStr)
+			assert.NoError(t, err)
+			require.Equal(t, 2, len(root.Links))
+			// expect same CID every time
+			require.Equal(t, "bafybeieilp2qx24pe76hxrxe6bpef5meuxto3kj5dd6mhb5kplfeglskdm", cidStr)
+		})
 	})
 }
