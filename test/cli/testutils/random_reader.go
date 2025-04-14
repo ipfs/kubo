@@ -1,4 +1,4 @@
-package harness
+package testutils
 
 import (
 	"crypto/sha256"
@@ -29,7 +29,7 @@ func (r *randomReader) Read(p []byte) (int, error) {
 
 // createRandomReader produces specified number of pseudo-random bytes
 // from a seed.
-func createRandomReader(sizeStr string, seed string) (io.Reader, error) {
+func RandomReader(sizeStr string, seed string) (io.Reader, error) {
 	size, err := humanize.ParseBytes(sizeStr)
 	if err != nil {
 		return nil, err

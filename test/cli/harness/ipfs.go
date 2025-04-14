@@ -80,7 +80,7 @@ func (n *Node) IPFSAddStr(content string, args ...string) string {
 // This ensures deterministic CID on the other end, that can be used in tests.
 func (n *Node) IPFSAddFromSeed(size string, seed string, args ...string) string {
 	log.Debugf("node %d adding %s of deterministic pseudo-random data with seed %q and args: %v", n.ID, size, seed, args)
-	reader, err := createRandomReader(size, seed)
+	reader, err := RandomReader(size, seed)
 	if err != nil {
 		panic(err)
 	}
