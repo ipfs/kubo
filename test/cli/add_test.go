@@ -108,6 +108,33 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, shortStringCidV1NoRawLeaves, cidStr)
 	})
 
+	t.Run("produced unixfs max file links: command flag --max-file-links overrides configuration in Import.UnixFSFileMaxLinks", func(t *testing.T) {
+		t.Parallel()
+
+		//
+		// UnixFSChunker=size-262144 (256KiB)
+		// Import.UnixFSFileMaxLinks=174
+		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v0") // legacy-cid-v0 for determinism across all params
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.UnixFSChunker = *config.NewOptionalString("size-262144") // 256 KiB chunks
+			cfg.Import.UnixFSFileMaxLinks = *config.NewOptionalInteger(174)     // max 174 per level
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Add 174MiB file:
+		// 1024 * 256KiB should fit in single layer
+		seed := shortString
+		cidStr := node.IPFSAddDeterministic("262144KiB", seed, "--max-file-links", "1024")
+		root, err := node.InspectPBNode(cidStr)
+		assert.NoError(t, err)
+
+		// Expect 1024 links due to cli parameter raising link limit from 174 to 1024
+		require.Equal(t, 1024, len(root.Links))
+		// expect same CID every time
+		require.Equal(t, "QmbBftNHWmjSWKLC49dMVrfnY8pjrJYntiAXirFJ7oJrNk", cidStr)
+	})
+
 	t.Run("ipfs init --profile=legacy-cid-v0 sets config that produces legacy CIDv0", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v0")
