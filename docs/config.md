@@ -185,6 +185,10 @@ config file at runtime.
     - [`Import.HashFunction`](#importhashfunction)
     - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
     - [`Import.BatchMaxSize`](#importbatchmaxsize)
+    - [`Import.UnixFSFileMaxLinks`](#importunixfsfilemaxlinks)
+    - [`Import.UnixFSDirectoryMaxLinks`](#importunixfsdirectorymaxlinks)
+    - [`Import.UnixFSHAMTDirectoryMaxFanout`](#importunixfshamtdirectorymaxfanout)
+    - [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -1199,15 +1203,7 @@ Type: `optionalInteger` (`null` means default which is 10)
 
 ### `Internal.UnixFSShardingSizeThreshold`
 
-The sharding threshold used internally to decide whether a UnixFS directory should be sharded or not.
-This value is not strictly related to the size of the UnixFS directory block and any increases in
-the threshold should come with being careful that block sizes stay under 2MiB in order for them to be
-reliably transferable through the networking stack (IPFS peers on the public swarm tend to ignore requests for blocks bigger than 2MiB).
-
-Decreasing this value to 1B is functionally equivalent to the previous experimental sharding option to
-shard all directories.
-
-Type: `optionalBytes` (`null` means default which is 256KiB)
+**MOVED:** see [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
 
 ## `Ipns`
 
@@ -2560,6 +2556,80 @@ Default: `20971520` (20MiB)
 
 Type: `optionalInteger`
 
+### `Import.UnixFSFileMaxLinks`
+
+The maximum number of links that a node part of a UnixFS File can have
+when building the DAG while importing.
+
+This setting controls both the fanout in files that are chunked into several
+blocks and grouped as a Unixfs (dag-pb) DAG.
+
+Default: `174`
+
+Type: `optionalInteger`
+
+### `Import.UnixFSDirectoryMaxLinks`
+
+The maximum number of links that a node part of a UnixFS basic directory can
+have when building the DAG while importing.
+
+This setting controls both the fanout for basic, non-HAMT folder nodes. It
+sets a limit after which directories are converted to a HAMT-based structure.
+
+When unset (0), no limit exists for chilcren. Directories will be converted to
+HAMTs based on their estimated size only.
+
+This setting will cause basic directories to be converted to HAMTs when they
+exceed the maximum number of children. This happens transparently during the
+add process. The fanout of HAMT nodes is controlled by `MaxHAMTFanout`.
+
+Commands affected: `ipfs add`
+
+Default: `0` (no limit, because [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold) triggers controls when to switch to HAMT sharding when a directory grows too big)
+
+Type: `optionalInteger`
+
+### `Import.UnixFSHAMTDirectoryMaxFanout`
+
+The maximum number of children that a node part of a Unixfs HAMT directory
+(aka sharded directory) can have.
+
+HAMT directory have unlimited children and are used when basic directories
+become too big or reach `MaxLinks`. A HAMT is an structure made of unixfs
+nodes that store the list of elements in the folder. This option controls the
+maximum number of children that the HAMT nodes can have.
+
+Needs to be a power of two (shard entry size) and multiple of 8 (bitfield size).
+
+Commands affected: `ipfs add`, `ipfs daemon` (globally overrides [`boxo/ipld/unixfs/io.DefaultShardWidth`](https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L30C5-L30C22))
+
+Default: `256`
+
+Type: `optionalInteger`
+
+### `Import.UnixFSHAMTDirectorySizeThreshold`
+
+The sharding threshold to decide whether a basic UnixFS directory
+should be sharded (converted into HAMT Directory) or not.
+
+This value is not strictly related to the size of the UnixFS directory block
+and any increases in the threshold should come with being careful that block
+sizes stay under 2MiB in order for them to be reliably transferable through the
+networking stack. At the time of writing this, IPFS peers on the public swarm
+tend to ignore requests for blocks bigger than 2MiB.
+
+Uses implementation from `boxo/ipld/unixfs/io/directory`, where the size is not
+the *exact* block size of the encoded directory but just the estimated size
+based byte length of DAG-PB Links names and CIDs.
+
+Setting to `1B` is functionally equivalent to always using HAMT (useful in testing).
+
+Commands affected: `ipfs add`, `ipfs daemon` (globally overrides [`boxo/ipld/unixfs/io.HAMTShardingSize`](https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L26))
+
+Default: `256KiB` (may change, inspect `DefaultUnixFSHAMTDirectorySizeThreshold` to confirm)
+
+Type: `optionalBytes`
+
 ## `Version`
 
 Options to configure agent version announced to the swarm, and leveraging
@@ -2742,16 +2812,38 @@ Disables [Reprovider](#reprovider) system (and announcing to Amino DHT).
 
 Makes UnixFS import (`ipfs add`) produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.
 
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
+
 > [!NOTE]
 > This profile is provided for legacy users and should not be used for new projects.
 
 ### `test-cid-v1` profile
 
-Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.
+Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256
+and 1 MiB chunks (max 174 links per file, 256 per HAMT node, switch dir to HAMT
+above 256KiB).
+
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
 
 > [!NOTE]
-> This profile will become the new implicit default, provided for testing purposes.
-> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details.
+> [`Import.*`](#import) settings applied by this profile MAY change in future release. Provided for testing purposes.
+>
+> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
+> and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
+
+### `test-cid-v1-wide` profile
+
+Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256
+and 1 MiB chunks and wider file DAGs (max 1024 links per every node type,
+switch dir to HAMT above 1MiB).
+
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
+
+> [!NOTE]
+> [`Import.*`](#import) settings applied by this profile MAY change in future release. Provided for testing purposes.
+>
+> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
+> and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
 
 ## Types
 

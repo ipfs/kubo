@@ -150,7 +150,10 @@ func TestIpfsStressRead(t *testing.T) {
 
 	// Now make a bunch of dirs
 	for i := 0; i < ndiriter; i++ {
-		db := uio.NewDirectory(nd.DAG)
+		db, err := uio.NewDirectory(nd.DAG)
+		if err != nil {
+			t.Fatal(err)
+		}
 		for j := 0; j < 1+rand.Intn(10); j++ {
 			name := fmt.Sprintf("child%d", j)
 
@@ -245,8 +248,11 @@ func TestIpfsBasicDirRead(t *testing.T) {
 	fi, data := randObj(t, nd, 10000)
 
 	// Make a directory and put that file in it
-	db := uio.NewDirectory(nd.DAG)
-	err := db.AddChild(nd.Context(), "actual", fi)
+	db, err := uio.NewDirectory(nd.DAG)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = db.AddChild(nd.Context(), "actual", fi)
 	if err != nil {
 		t.Fatal(err)
 	}
