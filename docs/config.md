@@ -2800,16 +2800,38 @@ Disables [Reprovider](#reprovider) system (and announcing to Amino DHT).
 
 Makes UnixFS import (`ipfs add`) produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.
 
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
+
 > [!NOTE]
 > This profile is provided for legacy users and should not be used for new projects.
 
 ### `test-cid-v1` profile
 
-Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.
+Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256
+and 1 MiB chunks (max 174 links per file, 256 per HAMT node, switch dir to HAMT
+above 256KiB).
+
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
 
 > [!NOTE]
-> This profile will become the new implicit default, provided for testing purposes.
-> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details.
+> [`Import.*`](#import) settings applied by this profile MAY change in future release. Provided for testing purposes.
+>
+> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
+> and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
+
+### `test-cid-v1-wide` profile
+
+Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256
+and 1 MiB chunks and wider file DAGs (max 1024 links per every node type,
+switch dir to HAMT above 1MiB).
+
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
+
+> [!NOTE]
+> [`Import.*`](#import) settings applied by this profile MAY change in future release. Provided for testing purposes.
+>
+> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
+> and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
 
 ## Types
 

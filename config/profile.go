@@ -280,7 +280,7 @@ fetching may be degraded.
 		},
 	},
 	"test-cid-v1": {
-		Description: `Makes UnixFS import produce legacy CIDv1 with the same suboptimal settings as legacy-cid-v0, but with 1MiB file chunk, CIDv1 and raw leaves. Use only if legacy behavior is required.`,
+		Description: `Makes UnixFS import produce CIDv1 with raw leaves, sha2-256 and 1 MiB chunks (max 174 links per file, 256 per HAMT node, switch dir to HAMT above 256KiB).`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
 			c.Import.UnixFSRawLeaves = True
@@ -293,8 +293,8 @@ fetching may be degraded.
 			return nil
 		},
 	},
-	"test-cid-v1-2025-v35": {
-		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks and wider file DAGs (1024 links per level).`,
+	"test-cid-v1-wide": {
+		Description: `Makes UnixFS import produce CIDv1 with raw leaves, sha2-256 and 1MiB chunks and wider file DAGs (max 1024 links per every node type, switch dir to HAMT above 1MiB).`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
 			c.Import.UnixFSRawLeaves = True
@@ -302,7 +302,7 @@ fetching may be degraded.
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
 			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
 			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0) // no limit here, use size-based Import.UnixFSHAMTDirectorySizeThreshold instead
-			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(1024)
 			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("1MiB") // 1MiB
 			return nil
 		},

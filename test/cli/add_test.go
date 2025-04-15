@@ -199,7 +199,7 @@ func TestAdd(t *testing.T) {
 			require.NoError(t, err)
 			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-			// Confirm the number of links is more than UnixFSHAMTDirectoryMaxFanout=256 (indicating regular "basic" directory"
+			// Confirm the number of links is more than UnixFSHAMTDirectorySizeThreshold (indicating regular "basic" directory"
 			root, err := node.InspectPBNode(cidStr)
 			assert.NoError(t, err)
 			require.Equal(t, 903, len(root.Links))
@@ -219,7 +219,7 @@ func TestAdd(t *testing.T) {
 			require.NoError(t, err)
 			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-			// Confirm this time, the number of links is less than UnixFSHAMTDirectoryMaxFanout=256
+			// Confirm this time, the number of links is less than UnixFSHAMTDirectorySizeThreshold
 			root, err := node.InspectPBNode(cidStr)
 			assert.NoError(t, err)
 			require.Equal(t, 252, len(root.Links))
@@ -290,7 +290,7 @@ func TestAdd(t *testing.T) {
 			require.NoError(t, err)
 			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-			// Confirm the number of links is more than UnixFSHAMTDirectoryMaxFanout=256 (indicating regular "basic" directory"
+			// Confirm the number of links is more than UnixFSHAMTDirectoryMaxFanout (indicating regular "basic" directory"
 			root, err := node.InspectPBNode(cidStr)
 			assert.NoError(t, err)
 			require.Equal(t, 897, len(root.Links))
@@ -310,17 +310,17 @@ func TestAdd(t *testing.T) {
 			require.NoError(t, err)
 			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-			// Confirm this time, the number of links is less than UnixFSHAMTDirectoryMaxFanout=256
+			// Confirm this time, the number of links is less than UnixFSHAMTDirectoryMaxFanout
 			root, err := node.InspectPBNode(cidStr)
 			assert.NoError(t, err)
 			require.Equal(t, 252, len(root.Links))
 		})
 	})
 
-	t.Run("ipfs init --profile=test-cid-v1-2025-v35 applies UnixFSChunker=size-1048576 and UnixFSFileMaxLinks=1024", func(t *testing.T) {
+	t.Run("ipfs init --profile=test-cid-v1-wide applies UnixFSChunker=size-1048576 and UnixFSFileMaxLinks=1024", func(t *testing.T) {
 		t.Parallel()
 		seed := "v1-seed-1024"
-		profile := "--profile=test-cid-v1-2025-v35"
+		profile := "--profile=test-cid-v1-wide"
 
 		t.Run("under UnixFSFileMaxLinks=1024", func(t *testing.T) {
 			t.Parallel()
@@ -352,10 +352,10 @@ func TestAdd(t *testing.T) {
 		})
 	})
 
-	t.Run("ipfs init --profile=test-cid-v1-2025-v35 applies UnixFSHAMTDirectoryMaxFanout=256 and UnixFSHAMTDirectorySizeThreshold=1MiB", func(t *testing.T) {
+	t.Run("ipfs init --profile=test-cid-v1-wide applies UnixFSHAMTDirectoryMaxFanout=256 and UnixFSHAMTDirectorySizeThreshold=1MiB", func(t *testing.T) {
 		t.Parallel()
 		seed := "hamt-cid-v1"
-		profile := "--profile=test-cid-v1-2025-v35"
+		profile := "--profile=test-cid-v1-wide"
 
 		t.Run("under UnixFSHAMTDirectorySizeThreshold=1MiB", func(t *testing.T) {
 			t.Parallel()
@@ -371,7 +371,7 @@ func TestAdd(t *testing.T) {
 			require.NoError(t, err)
 			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-			// Confirm the number of links is more than UnixFSHAMTDirectoryMaxFanout=256 (indicating regular "basic" directory"
+			// Confirm the number of links is more than UnixFSHAMTDirectoryMaxFanout (indicating regular "basic" directory"
 			root, err := node.InspectPBNode(cidStr)
 			assert.NoError(t, err)
 			require.Equal(t, 3599, len(root.Links))
@@ -391,10 +391,10 @@ func TestAdd(t *testing.T) {
 			require.NoError(t, err)
 			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-			// Confirm this time, the number of links is less than UnixFSHAMTDirectoryMaxFanout=256
+			// Confirm this time, the number of links is less than UnixFSHAMTDirectoryMaxFanout
 			root, err := node.InspectPBNode(cidStr)
 			assert.NoError(t, err)
-			require.Equal(t, 256, len(root.Links))
+			require.Equal(t, 992, len(root.Links))
 		})
 	})
 
