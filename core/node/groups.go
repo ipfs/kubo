@@ -409,18 +409,20 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	}
 
 	// Auto-sharding settings
-	shardSizeString := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
-	shardSizeInt, err := humanize.ParseBytes(shardSizeString)
+	shardingThresholdString := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
+	shardSingThresholdInt, err := humanize.ParseBytes(shardingThresholdString)
 	if err != nil {
 		return fx.Error(err)
 	}
+	shardMaxFanout := cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout)
 	// TODO: avoid overriding this globally, see if we can extend Directory interface like Get/SetMaxLinks from https://github.com/ipfs/boxo/pull/906
-	uio.HAMTShardingSize = int(shardSizeInt)
+	uio.HAMTShardingSize = int(shardSingThresholdInt)
+	uio.DefaultShardWidth = int(shardMaxFanout)
 
 	// Migrate users of deprecated Experimental.ShardingEnabled flag
 	if cfg.Experimental.ShardingEnabled {
 		logger.Fatal("The `Experimental.ShardingEnabled` field is no longer used, please remove it from the config.\n" +
-			"go-ipfs now automatically shards when directory block is bigger than  `" + shardSizeString + "`.\n" +
+			"go-ipfs now automatically shards when directory block is bigger than  `" + shardingThresholdString + "`.\n" +
 			"If you need to restore the old behavior (sharding everything) set `Import.UnixFSHAMTDirectorySizeThreshold` to `1B`.\n")
 	}
 	if !cfg.Internal.UnixFSShardingSizeThreshold.IsDefault() {

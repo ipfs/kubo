@@ -2583,6 +2583,8 @@ This setting will cause basic directories to be converted to HAMTs when they
 exceed the maximum number of children. This happens transparently during the
 add process. The fanout of HAMT nodes is controlled by `MaxHAMTFanout`.
 
+Commands affected: `ipfs add`
+
 Default: `0` (no limit, because [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold) triggers controls when to switch to HAMT sharding when a directory grows too big)
 
 Type: `optionalInteger`
@@ -2596,6 +2598,10 @@ HAMT directory have unlimited children and are used when basic directories
 become too big or reach `MaxLinks`. A HAMT is an structure made of unixfs
 nodes that store the list of elements in the folder. This option controls the
 maximum number of children that the HAMT nodes can have.
+
+Needs to be a power of two (shard entry size) and multiple of 8 (bitfield size).
+
+Commands affected: `ipfs add`, `ipfs daemon` (globally overrides [`boxo/ipld/unixfs/io.DefaultShardWidth`](https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L30C5-L30C22))
 
 Default: `256`
 
@@ -2612,7 +2618,13 @@ sizes stay under 2MiB in order for them to be reliably transferable through the
 networking stack. At the time of writing this, IPFS peers on the public swarm
 tend to ignore requests for blocks bigger than 2MiB.
 
+Uses implementation from `boxo/ipld/unixfs/io/directory`, where the size is not
+the *exact* block size of the encoded directory but just the estimated size
+based byte length of DAG-PB Links names and CIDs.
+
 Setting to `1B` is functionally equivalent to always using HAMT (useful in testing).
+
+Commands affected: `ipfs add`, `ipfs daemon` (globally overrides [`boxo/ipld/unixfs/io.HAMTShardingSize`](https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L26))
 
 Default: `256KiB` (may change, inspect `DefaultUnixFSHAMTDirectorySizeThreshold` to confirm)
 
