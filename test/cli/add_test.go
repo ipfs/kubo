@@ -226,9 +226,9 @@ func TestAdd(t *testing.T) {
 		})
 	})
 
-	t.Run("ipfs init --profile=legacy-cid-v1 produces CIDv1 with raw leaves", func(t *testing.T) {
+	t.Run("ipfs init --profile=test-cid-v1 produces CIDv1 with raw leaves", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v1")
+		node := harness.NewT(t).NewNode().Init("--profile=test-cid-v1")
 		node.StartDaemon()
 		defer node.StopDaemon()
 
@@ -236,10 +236,10 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, shortStringCidV1, cidStr) // raw leaf
 	})
 
-	t.Run("ipfs init --profile=legacy-cid-v1 applies UnixFSChunker=size-1048576", func(t *testing.T) {
+	t.Run("ipfs init --profile=test-cid-v1 applies UnixFSChunker=size-1048576", func(t *testing.T) {
 		t.Parallel()
 		seed := "v1-seed"
-		profile := "--profile=legacy-cid-v1"
+		profile := "--profile=test-cid-v1"
 
 		t.Run("under UnixFSFileMaxLinks=174", func(t *testing.T) {
 			t.Parallel()
@@ -271,10 +271,10 @@ func TestAdd(t *testing.T) {
 		})
 	})
 
-	t.Run("ipfs init --profile=legacy-cid-v1 applies UnixFSHAMTDirectoryMaxFanout=256 and UnixFSHAMTDirectorySizeThreshold=256KiB", func(t *testing.T) {
+	t.Run("ipfs init --profile=test-cid-v1 applies UnixFSHAMTDirectoryMaxFanout=256 and UnixFSHAMTDirectorySizeThreshold=256KiB", func(t *testing.T) {
 		t.Parallel()
-		seed := "hamt-legacy-cid-v1"
-		profile := "--profile=legacy-cid-v1"
+		seed := "hamt-cid-v1"
+		profile := "--profile=test-cid-v1"
 
 		t.Run("under UnixFSHAMTDirectorySizeThreshold=256KiB", func(t *testing.T) {
 			t.Parallel()
@@ -313,7 +313,7 @@ func TestAdd(t *testing.T) {
 			// Confirm this time, the number of links is less than UnixFSHAMTDirectoryMaxFanout=256
 			root, err := node.InspectPBNode(cidStr)
 			assert.NoError(t, err)
-			require.Equal(t, 245, len(root.Links))
+			require.Equal(t, 252, len(root.Links))
 		})
 	})
 
@@ -354,7 +354,7 @@ func TestAdd(t *testing.T) {
 
 	t.Run("ipfs init --profile=test-cid-v1-2025-v35 applies UnixFSHAMTDirectoryMaxFanout=256 and UnixFSHAMTDirectorySizeThreshold=1MiB", func(t *testing.T) {
 		t.Parallel()
-		seed := "hamt-legacy-cid-v1"
+		seed := "hamt-cid-v1"
 		profile := "--profile=test-cid-v1-2025-v35"
 
 		t.Run("under UnixFSHAMTDirectorySizeThreshold=1MiB", func(t *testing.T) {

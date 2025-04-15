@@ -279,7 +279,7 @@ fetching may be degraded.
 			return nil
 		},
 	},
-	"legacy-cid-v1": {
+	"test-cid-v1": {
 		Description: `Makes UnixFS import produce legacy CIDv1 with the same suboptimal settings as legacy-cid-v0, but with 1MiB file chunk, CIDv1 and raw leaves. Use only if legacy behavior is required.`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
