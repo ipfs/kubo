@@ -146,6 +146,9 @@ new flags may be added in the future. It is not guaranteed for the implicit
 defaults of 'ipfs add' to remain the same in future Kubo releases, or for other
 IPFS software to use the same import parameters as Kubo.
 
+Use Import.* configuration options to override global implicit defaults:
+https://github.com/ipfs/kubo/blob/master/docs/config.md#import
+
 If you need to back up or transport content-addressed data using a non-IPFS
 medium, CID can be preserved with CAR files.
 See 'dag export' and 'dag import' for more information.
@@ -169,15 +172,15 @@ See 'dag export' and 'dag import' for more information.
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash"),
-		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
-		cmds.IntOption(maxFileLinksOptionName, "Limit the maximum number of links in UnixFS file nodes to this value."),
-		cmds.IntOption(maxDirectoryLinksOptionName, "Limit the maximum number of links in UnixFS basic directory nodes to this value. WARNING: use with caution, Import.UnixFSHAMTThreshold is a safer alternative."),
-		cmds.IntOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8)."),
+		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash. Default: Import.UnixFSChunker"),
+		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. Default: Import.UnixFSRawLeaves"),
+		cmds.IntOption(maxFileLinksOptionName, "Limit the maximum number of links in UnixFS file nodes to this value. (experimental) Default: Import.UnixFSFileMaxLinks"),
+		cmds.IntOption(maxDirectoryLinksOptionName, "Limit the maximum number of links in UnixFS basic directory nodes to this value. Default: Import.UnixFSDirectoryMaxLinks. WARNING: experimental, Import.UnixFSHAMTThreshold is a safer alternative."),
+		cmds.IntOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8). Default: Import.UnixFSHAMTDirectoryMaxFanout WARNING: experimental, see Import.UnixFSHAMTDirectorySizeThreshold as well."),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
-		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true."),
-		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)"),
+		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true. Default: Import.CidVersion"),
+		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. Default: Import.HashFunction"),
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 		cmds.BoolOption(pinOptionName, "Pin locally to protect added files from garbage collection.").WithDefault(true),
