@@ -359,7 +359,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
 			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
 			cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient),
-			cfg.Provider.WorkerCount,
+			int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount)),
 		),
 	)
 }

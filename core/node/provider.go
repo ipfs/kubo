@@ -21,7 +21,7 @@ import (
 // and in 'ipfs stats provide' report.
 const sampledBatchSize = 1000
 
-func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount uint) fx.Option {
+func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
 	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, keyProvider provider.KeyChanFunc, repo repo.Repo, bs blockstore.Blockstore) (provider.System, error) {
 		opts := []provider.Option{
 			provider.Online(cr),
@@ -132,7 +132,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 // ONLINE/OFFLINE
 
 // OnlineProviders groups units managing provider routing records online
-func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount uint) fx.Option {
+func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
 	if useStrategicProviding {
 		return OfflineProviders()
 	}
