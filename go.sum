@@ -362,8 +362,8 @@ github.com/ipfs-shipyard/nopfs/ipfs v0.25.0 h1:OqNqsGZPX8zh3eFMO8Lf8EHRRnSGBMqcd
 github.com/ipfs-shipyard/nopfs/ipfs v0.25.0/go.mod h1:BxhUdtBgOXg1B+gAPEplkg/GpyTZY+kCMSfsJvvydqU=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.29.2-0.20250409143222-7a8f29cb4c25 h1:4NEUKdqzASso0L4rN/Cx/b4st4anWrd/jZ9uHOe+/3Q=
-github.com/ipfs/boxo v0.29.2-0.20250409143222-7a8f29cb4c25/go.mod h1:omQZmLS7LegSpBy3m4CrAB9/SO7Fq3pfv+5y1FOd+gI=
+github.com/ipfs/boxo v0.29.2-0.20250416081723-47720cbbd8d3 h1:7IZ+dJCQSHRuPKkogansDPNRKS3rn18a0uaHJl2mRpw=
+github.com/ipfs/boxo v0.29.2-0.20250416081723-47720cbbd8d3/go.mod h1:omQZmLS7LegSpBy3m4CrAB9/SO7Fq3pfv+5y1FOd+gI=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-bitswap v0.11.0 h1:j1WVvhDX1yhG32NTC9xfxnqycqYIlhzEzLXG/cU1HyQ=
