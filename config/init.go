@@ -69,6 +69,9 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			NoFetch:      false,
 			HTTPHeaders:  map[string][]string{},
 		},
+		Provider: Provider{
+			WorkerCount: 64,
+		},
 		Reprovider: Reprovider{
 			Interval: nil,
 			Strategy: nil,
