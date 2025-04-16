@@ -105,6 +105,8 @@ config file at runtime.
           - [`Pinning.RemoteServices: Policies.MFS.Enabled`](#pinningremoteservices-policiesmfsenabled)
           - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
           - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
+  - [`Provider`](#provider)
+    - [`Provider.WorkerCount`](#providerworkercount)
   - [`Pubsub`](#pubsub)
     - [`Pubsub.Enabled`](#pubsubenabled)
     - [`Pubsub.Router`](#pubsubrouter)
@@ -1403,6 +1405,14 @@ If left empty, the default interval will be used. Values lower than `1m` will be
 Default: `"5m"`
 
 Type: `duration`
+
+## `Provider`
+
+### `Provider.WorkerCount`
+
+Default: `64`
+
+Type: `integer` (non-negative, 0 means unlimited number of workers)
 
 ## `Pubsub`
 
