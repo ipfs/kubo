@@ -408,20 +408,29 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		return fx.Error(err)
 	}
 
+	// Migrate users of deprecated Experimental.ShardingEnabled flag
+	if cfg.Experimental.ShardingEnabled {
+		logger.Fatal("The `Experimental.ShardingEnabled` field is no longer used, please remove it from the config. Use Import.UnixFSHAMTDirectorySizeThreshold instead.")
+	}
+	if !cfg.Internal.UnixFSShardingSizeThreshold.IsDefault() {
+		msg := "The `Internal.UnixFSShardingSizeThreshold` field was renamed to `Import.UnixFSHAMTDirectorySizeThreshold`. Please update your config.\n"
+		if !cfg.Import.UnixFSHAMTDirectorySizeThreshold.IsDefault() {
+			logger.Fatal(msg) // conflicting values, hard fail
+		}
+		logger.Error(msg)
+		cfg.Import.UnixFSHAMTDirectorySizeThreshold = *cfg.Internal.UnixFSShardingSizeThreshold
+	}
+
 	// Auto-sharding settings
-	shardSizeString := cfg.Internal.UnixFSShardingSizeThreshold.WithDefault("256kiB")
-	shardSizeInt, err := humanize.ParseBytes(shardSizeString)
+	shardingThresholdString := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
+	shardSingThresholdInt, err := humanize.ParseBytes(shardingThresholdString)
 	if err != nil {
 		return fx.Error(err)
 	}
-	uio.HAMTShardingSize = int(shardSizeInt)
-
-	// Migrate users of deprecated Experimental.ShardingEnabled flag
-	if cfg.Experimental.ShardingEnabled {
-		logger.Fatal("The `Experimental.ShardingEnabled` field is no longer used, please remove it from the config.\n" +
-			"go-ipfs now automatically shards when directory block is bigger than  `" + shardSizeString + "`.\n" +
-			"If you need to restore the old behavior (sharding everything) set `Internal.UnixFSShardingSizeThreshold` to `1B`.\n")
-	}
+	shardMaxFanout := cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout)
+	// TODO: avoid overriding this globally, see if we can extend Directory interface like Get/SetMaxLinks from https://github.com/ipfs/boxo/pull/906
+	uio.HAMTShardingSize = int(shardSingThresholdInt)
+	uio.DefaultShardWidth = int(shardMaxFanout)
 
 	return fx.Options(
 		bcfgOpts,
