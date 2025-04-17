@@ -43,7 +43,7 @@ type Config struct {
 
 	Internal Internal // experimental/unstable options
 
-	Bitswap BitswapConfig `json:",omitempty"`
+	Bitswap Bitswap `json:",omitempty"`
 }
 
 const (
