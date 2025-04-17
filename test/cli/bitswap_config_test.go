@@ -67,14 +67,14 @@ func TestBitswapConfig(t *testing.T) {
 
 		provider := h.NewNode().Init()
 		provider.SetIPFSConfig("Bitswap.ServerEnabled", false)
-		provider = provider.StartDaemon()
+		provider.StartDaemon()
 
 		requester := h.NewNode().Init().StartDaemon()
 		hash := requester.IPFSAddStr(string(testData))
 
 		provider.Connect(requester)
 
-		// even when the server is disabled, the client should be able to retrieve data
+		// Even when the server is disabled, the client should be able to retrieve data
 		res := provider.RunIPFS("cat", hash)
 		assert.Equal(t, testData, res.Stdout.Bytes(), "retrieved data should match original")
 	})
@@ -95,7 +95,7 @@ func TestBitswapConfig(t *testing.T) {
 
 		requester.Connect(provider)
 		res := requester.RunIPFS("cat", hash)
-		assert.Equal(t, []uint8([]byte{}), res.Stdout.Bytes(), "cat should not return any data")
+		assert.Equal(t, []byte{}, res.Stdout.Bytes(), "cat should not return any data")
 
 		// Verify that basic operations still work with bitswap disabled
 		res = requester.IPFS("id")
@@ -106,8 +106,31 @@ func TestBitswapConfig(t *testing.T) {
 		assert.Equal(t, 0, res.ExitCode(), "bitswap wantlist should work even with bitswap disabled")
 
 		// Verify local operations still work
-		hash_new := requester.IPFSAddStr(string("random"))
-		res = requester.IPFS("cat", hash_new)
-		assert.Equal(t, []uint8([]byte("random")), res.Stdout.Bytes(), "cat should return the added data")
+		hashNew := requester.IPFSAddStr("random")
+		res = requester.IPFS("cat", hashNew)
+		assert.Equal(t, []byte("random"), res.Stdout.Bytes(), "cat should return the added data")
 	})
+
+	// t.Run("bitswap protocols disabled", func(t *testing.T) {
+	// 	t.Parallel()
+	// 	harness.EnableDebugLogging()
+	// 	h := harness.NewT(t)
+
+	// 	provider := h.NewNode().Init()
+	// 	provider.SetIPFSConfig("Bitswap.ServerEnabled", false)
+	// 	provider = provider.StartDaemon()
+	// 	requester := h.NewNode().Init().StartDaemon()
+	// 	requester.Connect(provider)
+	// 	// Parse and check ID output
+	// 	res := provider.IPFS("id", "-f", "<protocols>")
+	// 	protocols := strings.Split(strings.TrimSpace(res.Stdout.String()), "\n")
+
+	// 	// No bitswap protocols should be present
+	// 	for _, proto := range protocols {
+	// 		assert.NotContains(t, proto, bsnet.ProtocolBitswap, "bitswap protocol %s should not be advertised when server is disabled", proto)
+	// 		assert.NotContains(t, proto, bsnet.ProtocolBitswapNoVers, "bitswap protocol %s should not be advertised when server is disabled", proto)
+	// 		assert.NotContains(t, proto, bsnet.ProtocolBitswapOneOne, "bitswap protocol %s should not be advertised when server is disabled", proto)
+	// 		assert.NotContains(t, proto, bsnet.ProtocolBitswapOneZero, "bitswap protocol %s should not be advertised when server is disabled", proto)
+	// 	}
+	// })
 }

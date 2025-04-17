@@ -100,11 +100,13 @@ func Bitswap(provide bool) interface{} {
 				return nil, err
 			}
 			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
+			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithServerEnabled(true))
 			provider = pqm
 		} else {
 			provider = nil
 			// When server is disabled, use an empty blockstore to prevent serving blocks
 			blockstoree = blockstore.NewBlockstore(datastore.NewMapDatastore())
+			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithServerEnabled(false))
 		}
 
 		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetwork, provider, blockstoree, in.BitswapOpts...)
