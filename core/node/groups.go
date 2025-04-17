@@ -335,13 +335,14 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		recordLifetime = d
 	}
 
-	/* don't provide from bitswap when the strategic provider service is active */
-	shouldBitswapProvide := !cfg.Experimental.StrategicProviding
+	isBitswapEnabled := cfg.Bitswap.Enabled.WithDefault(true) && cfg.Bitswap.ServerEnabled.WithDefault(true)
+	// Don't provide from bitswap when the strategic provider service is active
+	shouldBitswapProvide := isBitswapEnabled && !cfg.Experimental.StrategicProviding
 
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),
 		fx.Provide(Bitswap(shouldBitswapProvide)),
-		fx.Provide(OnlineExchange()),
+		fx.Provide(OnlineExchange(cfg.Bitswap.Enabled.WithDefault(true))),
 		// Replace our Exchange with a Providing exchange!
 		fx.Decorate(ProvidingExchange(shouldBitswapProvide)),
 		fx.Provide(DNSResolver),
