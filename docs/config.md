@@ -367,7 +367,7 @@ secret.
 > The RPC API is vast. It grants admin-level access to your Kubo IPFS node, including
 > configuration and secret key management.
 >
-> - If you need secure access to a subset of RPC, make sure you understand the risk, block everything by default and and allow basic auth access with [`API.Authorizations`](#apiauthorizations) or custom auth middleware running in front of the localhost-only port defined in [`Addresses.API`](#addressesapi).
+> - If you need secure access to a subset of RPC, make sure you understand the risk, block everything by default and allow basic auth access with [`API.Authorizations`](#apiauthorizations) or custom auth middleware running in front of the localhost-only port defined in [`Addresses.API`](#addressesapi).
 > - If you are looking for an interface designed for browsers and public internet, use [`Addresses.Gateway`](#addressesgateway) port instead.
 
 Default: `null`
