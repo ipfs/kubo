@@ -8,7 +8,7 @@ test_description="Test prometheus metrics are exposed correctly"
 
 . lib/test-lib.sh
 
-test_init_ipfs
+test_init_ipfs_measure
 
 test_expect_success "enable ResourceMgr in the config" '
   ipfs config --json Swarm.ResourceMgr.Enabled false
