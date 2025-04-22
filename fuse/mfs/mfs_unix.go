@@ -187,6 +187,21 @@ func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.
 	return &file, &handler, nil
 }
 
+// Get dir xattr.
+func (dir *Dir) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
+	switch req.Name {
+	case "ipfs_cid":
+		node, err := dir.mfsDir.GetNode()
+		if err != nil {
+			return err
+		}
+		resp.Xattr = []byte(node.Cid().String())
+		return nil
+	default:
+		return fuse.ErrNoXattr
+	}
+}
+
 // FUSE adapter for MFS files.
 type File struct {
 	mfsFile *mfs.File
@@ -246,6 +261,21 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 // Sync the file's contents to MFS.
 func (file *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	return file.mfsFile.Sync()
+}
+
+// Get file xattr.
+func (file *File) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
+	switch req.Name {
+	case "ipfs_cid":
+		node, err := file.mfsFile.GetNode()
+		if err != nil {
+			return err
+		}
+		resp.Xattr = []byte(node.Cid().String())
+		return nil
+	default:
+		return fuse.ErrNoXattr
+	}
 }
 
 // Wrapper for MFS's file descriptor that conforms to the FUSE fs.Handler
@@ -320,6 +350,7 @@ func NewFileSystem(ipfs *core.IpfsNode) fs.FS {
 // Check that our structs implement all the interfaces we want.
 type mfsDir interface {
 	fs.Node
+	fs.NodeGetxattrer
 	fs.HandleReadDirAller
 	fs.NodeRequestLookuper
 	fs.NodeMkdirer
@@ -332,6 +363,7 @@ var _ mfsDir = (*Dir)(nil)
 
 type mfsFile interface {
 	fs.Node
+	fs.NodeGetxattrer
 	fs.NodeOpener
 	fs.NodeFsyncer
 }

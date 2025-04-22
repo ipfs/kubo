@@ -10,6 +10,7 @@ import (
 	"errors"
 	iofs "io/fs"
 	"os"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -292,4 +293,40 @@ func TestConcurrentRW(t *testing.T) {
 			}
 		}
 	})
+}
+
+// Test ipfs_cid extended attribute
+func TestMFSRootXattr(t *testing.T) {
+	ipfs, err := core.NewNode(context.Background(), &node.BuildCfg{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fs, mnt := setUp(t, ipfs)
+	defer mnt.Close()
+
+	node, err := fs.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	root := node.(*Dir)
+
+	req := fuse.GetxattrRequest{
+		Name: "ipfs_cid",
+	}
+	res := fuse.GetxattrResponse{}
+	err = root.Getxattr(context.Background(), &req, &res)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ipldNode, err := ipfs.FilesRoot.GetDirectory().GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if slices.Compare(res.Xattr, []byte(ipldNode.Cid().String())) != 0 {
+		t.Fatal("xattr cid not equal to mfs root cid")
+	}
 }
