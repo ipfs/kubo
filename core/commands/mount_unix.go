@@ -111,12 +111,12 @@ baz
 			nsdir = cfg.Mounts.IPNS // NB: be sure to not redeclare!
 		}
 
-		mfdir, found := req.Options[mountMFSPathOptionName].(string)
+		mfsdir, found := req.Options[mountMFSPathOptionName].(string)
 		if !found {
 			nsdir = cfg.Mounts.MFS
 		}
 
-		err = nodeMount.Mount(nd, fsdir, nsdir, mfdir)
+		err = nodeMount.Mount(nd, fsdir, nsdir, mfsdir)
 		if err != nil {
 			return err
 		}

@@ -2,7 +2,7 @@
 
 **EXPERIMENTAL:** FUSE support is limited, YMMV.
 
-Kubo makes it possible to mount `/ipfs` and `/ipns` namespaces in your OS,
+Kubo makes it possible to mount `/ipfs`, `/ipns` and `/mfs` namespaces in your OS,
 allowing arbitrary apps access to IPFS.
 
 ## Install FUSE
@@ -50,18 +50,20 @@ speak with us, or if you figure something new out, please add to this document!
 
 ## Prepare mountpoints
 
-By default ipfs uses `/ipfs` and `/ipns` directories for mounting, this can be
-changed in config. You will have to create the `/ipfs` and `/ipns` directories
+By default ipfs uses `/ipfs`, `/ipns` and `/mfs` directories for mounting, this can be
+changed in config. You will have to create the `/ipfs`, `/ipns` and `/mfs` directories
 explicitly. Note that modifying root requires sudo permissions.
 
 ```sh
 # make the directories
 sudo mkdir /ipfs
 sudo mkdir /ipns
+sudo mkdir /mfs
 
 # chown them so ipfs can use them without root permissions
 sudo chown <username> /ipfs
 sudo chown <username> /ipns
+sudo chown <username> /mfs
 ```
 
 Depending on whether you are using OSX or Linux, follow the proceeding instructions. 
@@ -145,6 +147,7 @@ set for user running `ipfs mount` command.
 ```
 sudo umount /ipfs
 sudo umount /ipns
+sudo umount /mfs
 ```
 
 #### Mounting fails with "error mounting: could not resolve name"

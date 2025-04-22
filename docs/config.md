@@ -1315,6 +1315,14 @@ Default: `/ipns`
 
 Type: `string` (filesystem path)
 
+### `Mounts.MFS`
+
+Mountpoint for `/mfs/`.
+
+Default: `/mfs`
+
+Type: `string` (filesystem path)
+
 ### `Mounts.FuseAllowOther`
 
 Sets the 'FUSE allow other'-option on the mount point.

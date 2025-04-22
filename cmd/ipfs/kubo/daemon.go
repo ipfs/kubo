@@ -1060,9 +1060,9 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 		nsdir = cfg.Mounts.IPNS
 	}
 
-	mfdir, found := req.Options[mfsMountKwd].(string)
+	mfsdir, found := req.Options[mfsMountKwd].(string)
 	if !found {
-		mfdir = cfg.Mounts.MFS
+		mfsdir = cfg.Mounts.MFS
 	}
 
 	node, err := cctx.ConstructNode()
@@ -1070,13 +1070,13 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 		return fmt.Errorf("mountFuse: ConstructNode() failed: %s", err)
 	}
 
-	err = nodeMount.Mount(node, fsdir, nsdir, mfdir)
+	err = nodeMount.Mount(node, fsdir, nsdir, mfsdir)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("IPFS mounted at: %s\n", fsdir)
 	fmt.Printf("IPNS mounted at: %s\n", nsdir)
-	fmt.Printf("MFS mounted at: %s\n", mfdir)
+	fmt.Printf("MFS mounted at: %s\n", mfsdir)
 	return nil
 }
 

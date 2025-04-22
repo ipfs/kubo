@@ -318,7 +318,7 @@ func NewFileSystem(ipfs *core.IpfsNode) fs.FS {
 }
 
 // Check that our structs implement all the interfaces we want.
-type mfDir interface {
+type mfsDir interface {
 	fs.Node
 	fs.HandleReadDirAller
 	fs.NodeRequestLookuper
@@ -328,17 +328,17 @@ type mfDir interface {
 	fs.NodeCreater
 }
 
-var _ mfDir = (*Dir)(nil)
+var _ mfsDir = (*Dir)(nil)
 
-type mfFile interface {
+type mfsFile interface {
 	fs.Node
 	fs.NodeOpener
 	fs.NodeFsyncer
 }
 
-var _ mfFile = (*File)(nil)
+var _ mfsFile = (*File)(nil)
 
-type mfHandler interface {
+type mfsHandler interface {
 	fs.Handle
 	fs.HandleReader
 	fs.HandleWriter
@@ -346,4 +346,4 @@ type mfHandler interface {
 	fs.HandleReleaser
 }
 
-var _ mfHandler = (*FileHandler)(nil)
+var _ mfsHandler = (*FileHandler)(nil)

@@ -32,7 +32,7 @@ var platformFuseChecks = func(*core.IpfsNode) error {
 	return nil
 }
 
-func Mount(node *core.IpfsNode, fsdir, nsdir, mfdir string) error {
+func Mount(node *core.IpfsNode, fsdir, nsdir, mfsdir string) error {
 	// check if we already have live mounts.
 	// if the user said "Mount", then there must be something wrong.
 	// so, close them and try again.
@@ -53,10 +53,10 @@ func Mount(node *core.IpfsNode, fsdir, nsdir, mfdir string) error {
 		return err
 	}
 
-	return doMount(node, fsdir, nsdir, mfdir)
+	return doMount(node, fsdir, nsdir, mfsdir)
 }
 
-func doMount(node *core.IpfsNode, fsdir, nsdir, mfdir string) error {
+func doMount(node *core.IpfsNode, fsdir, nsdir, mfsdir string) error {
 	fmtFuseErr := func(err error, mountpoint string) error {
 		s := err.Error()
 		if strings.Contains(s, fuseNoDirectory) {
@@ -94,7 +94,7 @@ func doMount(node *core.IpfsNode, fsdir, nsdir, mfdir string) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		mfmount, err3 = mfs.Mount(node, mfdir)
+		mfmount, err3 = mfs.Mount(node, mfsdir)
 	}()
 
 	wg.Wait()
@@ -108,7 +108,7 @@ func doMount(node *core.IpfsNode, fsdir, nsdir, mfdir string) error {
 	}
 
 	if err3 != nil {
-		log.Errorf("error mounting MFS %s: %s", mfdir, err3)
+		log.Errorf("error mounting MFS %s: %s", mfsdir, err3)
 	}
 
 	if err1 != nil || err2 != nil || err3 != nil {
@@ -128,7 +128,7 @@ func doMount(node *core.IpfsNode, fsdir, nsdir, mfdir string) error {
 		if err2 != nil {
 			return fmtFuseErr(err2, nsdir)
 		}
-		return fmtFuseErr(err3, mfdir)
+		return fmtFuseErr(err3, mfsdir)
 	}
 
 	// setup node state, so that it can be canceled
