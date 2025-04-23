@@ -178,6 +178,11 @@ config file at runtime.
   - [`DNS`](#dns)
     - [`DNS.Resolvers`](#dnsresolvers)
     - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
+  - [`HTTPRetrieval`](#httpretrieval)
+    - [`HTTPRetrieval.Enabled`](#httpretrievalenabled)
+    - [`HTTPRetrieval.NumWorkers`](#httpretrievalnumworkers)
+    - [`HTTPRetrieval.Allowlist`](#httpretrievalallowlist)
+    - [`HTTPRetrieval.Denylist`](#httpretrievaldenylist)
   - [`Import`](#import)
     - [`Import.CidVersion`](#importcidversion)
     - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
@@ -207,6 +212,7 @@ config file at runtime.
     - [`announce-on` profile](#announce-on-profile)
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
     - [`test-cid-v1` profile](#test-cid-v1-profile)
+    - [`test-cid-v1-wide` profile](#test-cid-v1-wide-profile)
   - [Types](#types)
     - [`flag`](#flag)
     - [`priority`](#priority)
@@ -2497,6 +2503,70 @@ Note: this does NOT work with Go's default DNS resolver. To make this a global s
 Default: Respect DNS Response TTL
 
 Type: `optionalDuration`
+
+## `HTTPRetrieval`
+
+`HTTPRetrieval` is configuration for pure HTTP retrieval based on Trustless HTTP Gateways'
+[Block Responses (`application/vnd.ipld.raw`)](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
+which can be used in addition to or instead of retrieving blocks with Bitswap over Libp2p.
+
+Default: `{}`
+
+Type: `object`
+
+### `HTTPRetrieval.Enabled`
+
+> [!CAUTION]
+> This feature is **EXPERIMENTAL** and may change in future release. Enable with caution, and provide feedback if any issues.
+
+Controls whether HTTP-based block retrieval is enabled.
+
+When enabled, Kubo will use [Trustless HTTP Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/)
+to perform [block retrievals](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
+in addition to [Bitswap](https://specs.ipfs.tech/bitswap-protocol/) over Libp2p connections (if enabled).
+
+HTTP requests for `application/vnd.ipld.raw` will be issued instead of Bitswap over HTTP if a peer has a `/tls/http` multiaddr
+and the HTTPS server returns HTTP 200 for the [probe path](https://specs.ipfs.tech/http-gateways/trustless-gateway/#dedicated-probe-paths).
+
+> [!IMPORTANT]
+> - This feature works in the same way as Bitswap: connected HTTP-peers receive optimistic block requests even for content that they are not announcing.
+> - HTTP client does not follow redirects. Providers should keep announcements up to date.
+> - IPFS ecosystem is working towards [supporting HTTP providers on Amino DHT](https://github.com/ipfs/specs/issues/496). Currently, HTTP providers are mostly limited to results from delegated routing (e.g., from IPNI at `cid.contact` if `Routing.Type=auto`)
+
+Default: `false`
+
+Type: `flag`
+
+### `HTTPRetrieval.NumWorkers`
+
+The number of worker goroutines to use for concurrent HTTP retrieval operations.
+This setting controls the level of parallelism for HTTP-based block retrieval operations.
+Higher values can improve performance when retrieving many blocks but may increase resource usage.
+
+Default: `16`
+
+Type: `optionalInteger`
+
+### `HTTPRetrieval.Allowlist`
+
+Optional list of hostnames for which HTTP retrieval is allowed for.
+If this list is not empty, only hosts matching these entries will be allowed for HTTP retrieval.
+
+> [!TIP]
+> To limit HTTP retrieval to a provider at `/dns4/example.com/tcp/443/tls/http` (which would serve `HEAD|GET https://exmaple.com/ipfs/cid?format=raw`), set this to `["example.com"]`
+
+Default: `[]`
+
+Type: `array[string]`
+
+### `HTTPRetrieval.Denylist`
+
+Optional list of hostnames for which HTTP retrieval is allowed for.
+Denylist entries take precedence over Allowlist entries.
+
+Default: `[]`
+
+Type: `array[string]`
 
 ## `Import`
 
