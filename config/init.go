@@ -7,6 +7,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/cockroachdb/pebble/v2"
 	"github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -144,8 +145,9 @@ func pebbleSpec() map[string]interface{} {
 		"type":   "measure",
 		"prefix": "pebble.datastore",
 		"child": map[string]interface{}{
-			"type": "pebbleds",
-			"path": "pebbleds",
+			"formatMajorVersion": int(pebble.FormatNewest),
+			"type":               "pebbleds",
+			"path":               "pebbleds",
 		},
 	}
 }
