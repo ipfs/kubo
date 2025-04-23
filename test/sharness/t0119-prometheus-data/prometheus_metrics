@@ -1,3 +1,4 @@
+exchange_bitswap_requests_in_flight
 exchange_bitswap_response_bytes_bucket
 exchange_bitswap_response_bytes_count
 exchange_bitswap_response_bytes_sum
