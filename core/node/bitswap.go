@@ -78,18 +78,18 @@ type bitswapIn struct {
 // group.
 func Bitswap(provide bool) interface{} {
 	return func(in bitswapIn, lc fx.Lifecycle) (*bitswap.Bitswap, error) {
-		var ntwk network.BitSwapNetwork
-		bitswapNetwork := bsnet.NewFromIpfsHost(in.Host)
+		var bitswapNetworks network.BitSwapNetwork
+		bitswapLibp2p := bsnet.NewFromIpfsHost(in.Host)
 
-		if httpCfg := in.Cfg.HTTPRetrieval; httpCfg.Enabled {
-			htnet := httpnet.New(in.Host,
-				httpnet.WithHTTPWorkers(int(httpCfg.NumWorkers.WithDefault(16))),
+		if httpCfg := in.Cfg.HTTPRetrieval; httpCfg.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled) {
+			bitswapHTTP := httpnet.New(in.Host,
+				httpnet.WithHTTPWorkers(int(httpCfg.NumWorkers.WithDefault(config.DefaultHTTPRetrievalNumWorkers))),
 				httpnet.WithAllowlist(httpCfg.Allowlist),
 				httpnet.WithDenylist(httpCfg.Denylist),
 			)
-			ntwk = network.New(in.Host.Peerstore(), bitswapNetwork, htnet)
+			bitswapNetworks = network.New(in.Host.Peerstore(), bitswapLibp2p, bitswapHTTP)
 		} else {
-			ntwk = bitswapNetwork
+			bitswapNetworks = bitswapLibp2p
 		}
 
 		var provider routing.ContentDiscovery
@@ -98,7 +98,7 @@ func Bitswap(provide bool) interface{} {
 			if in.Cfg.Internal.Bitswap != nil {
 				maxProviders = int(in.Cfg.Internal.Bitswap.ProviderSearchMaxResults.WithDefault(DefaultMaxProviders))
 			}
-			pqm, err := rpqm.New(bitswapNetwork,
+			pqm, err := rpqm.New(bitswapLibp2p,
 				in.Rt,
 				rpqm.WithMaxProviders(maxProviders),
 				rpqm.WithIgnoreProviders(in.Cfg.Routing.IgnoreProviders...),
@@ -110,7 +110,7 @@ func Bitswap(provide bool) interface{} {
 			provider = pqm
 
 		}
-		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), ntwk, provider, in.Bs, in.BitswapOpts...)
+		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetworks, provider, in.Bs, in.BitswapOpts...)
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {

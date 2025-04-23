@@ -33,7 +33,7 @@ func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.Parallel
 	var routers []*routinghelpers.ParallelRouter
 	// Append HTTP routers for additional speed
 	for _, endpoint := range config.DefaultHTTPRouters {
-		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, cfg.HTTPRetrieval.Enabled)
+		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled))
 		if err != nil {
 			return nil, err
 		}
