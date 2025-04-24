@@ -46,9 +46,6 @@ Uses a leveldb database to store key value pairs.
 
 ## pebbleds
 
-> [!WARNING]
-> This is still **EXPERIMENTAL** opt-in. Datastore format can be set when first initializing the node via `ipfs init --profile pebbleds`.
-
 Uses [pebble](https://github.com/cockroachdb/pebble) as a key value store.
 
 ```json
@@ -64,6 +61,7 @@ If they are not configured (or assigned their zero-valued), then default values 
 * `bytesPerSync`: int, Sync sstables periodically in order to smooth out writes to disk. (default: 512KB)
 * `disableWAL`: true|false, Disable the write-ahead log (WAL) at expense of prohibiting crash recovery. (default: false)
 * `cacheSize`: Size of pebble's shared block cache. (default: 8MB)
+* `formatVersionMajor`: int, Sets the format of pebble on-disk files. If 0 or unset, automatically convert to latest format.
 * `l0CompactionThreshold`: int, Count of L0 files necessary to trigger an L0 compaction.
 * `l0StopWritesThreshold`: int, Limit on L0 read-amplification, computed as the number of L0 sublevels.
 * `lBaseMaxBytes`: int, Maximum number of bytes for LBase. The base level is the level which L0 is compacted into.
@@ -75,6 +73,16 @@ If they are not configured (or assigned their zero-valued), then default values 
 
 > [!TIP]
 > Start using pebble with only default values and configure tuning items are needed for your needs. For a more complete description of these values, see: `https://pkg.go.dev/github.com/cockroachdb/pebble@vA.B.C#Options` (where `A.B.C` is pebble version from Kubo's `go.mod`).
+
+UUsing a pebble datastore can be set when initializing kubo `ipfs init --profile pebbleds`.
+
+#### Use of `formatMajorVersion`
+
+When IPFS is initialized to use the pebbleds datastore (`ipfs init --profile=pebbleds`), the latest pebble database format is configured in the pebble datastore config as `"formatMajorVersion"`. Setting this in the datastore config prevents automatically upgrading to the latest available version when kubo is upgraded. If a later version becomes available, the kubo daemon prints a startup message to indicate this. The user can them update the config to use the latest format when they are certain a downgrade will not be necessary.
+
+Without the `"formatMajorVersion"` in the pebble datastore config, the database format is automatically upgraded to the latest version. If this happens, then it is possible a downgrade back to the previous version of kubo will not work if new format is not compatible with the pebble datastore in the previous version of kubo.
+
+When installing a new version of kubo when `"formatMajorVersion"` is configured, migration does not upgrade this to the latest available version. This is done because a user may have reasons not to upgrade the pebble database format, and may want to be able to downgrade kubo if something else is not working in the new version. If the configured pebble database format in the old kubo is not supported in the new kubo, then the configured version must be updated and the old kubo run, before installing the new kubo.
 
 ## badgerds
 
