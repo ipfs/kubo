@@ -1410,9 +1410,24 @@ Type: `duration`
 
 ### `Provider.WorkerCount`
 
+Sets the maximum number of _concurrent_ DHT provide operations. DHT reprovides
+operations do **not** count against that limit. A value of `0` allows an
+unlimited number of provide workers.
+
+If the [accelerated DHT client](#routingaccelerateddhtclient) is enabled, each
+provide operation opens ~20 connections in parallel. With the standard DHT
+client (accelerated disabled), each provide opens between 20 and 60
+connections, with at most 10 active at once. Provides complete more quickly
+when using the accelerated client. Be mindful of how many simultaneous
+connections this setting can generate.
+
+For nodes without strict connection limits that need to provide large volumes
+of content immediately, we recommend enabling the accelerated DHT client and
+setting `Provider.WorkerCount` to `0` (unlimited).
+
 Default: `64`
 
-Type: `integer` (non-negative, 0 means unlimited number of workers)
+Type: `integer` (non-negative; `0` means unlimited number of workers)
 
 ## `Pubsub`
 
