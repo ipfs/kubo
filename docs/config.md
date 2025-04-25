@@ -2568,6 +2568,20 @@ Default: `16`
 
 Type: `optionalInteger`
 
+### `HTTPRetrieval.MaxBlockSize`
+
+Sets the maximum size of a block that the HTTP retrieval client will accept.
+
+> [!NOTE]
+> This setting is a security feature designed to protect Kubo from malicious providers who might send excessively large or invalid data.
+> Increasing this value allows Kubo to retrieve larger blocks from compatible HTTP providers, but doing so reduces interoperability with Bitswap, and increases potential security risks.
+>
+> Learn more: [Supporting Large IPLD Blocks: Why block limits?](https://discuss.ipfs.tech/t/supporting-large-ipld-blocks/15093#why-block-limits-5)
+
+Default: `2MiB` (matching [Bitswap size limit](https://specs.ipfs.tech/bitswap-protocol/#block-sizes))
+
+Type: `optionalString`
+
 ### `HTTPRetrieval.TLSInsecureSkipVerify`
 
 Disables TLS certificate validation.

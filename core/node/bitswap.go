@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/ipfs/boxo/bitswap"
 	"github.com/ipfs/boxo/bitswap/client"
 	"github.com/ipfs/boxo/bitswap/network"
@@ -14,6 +15,7 @@ import (
 	"github.com/ipfs/boxo/exchange/providing"
 	provider "github.com/ipfs/boxo/provider"
 	rpqm "github.com/ipfs/boxo/routing/providerquerymanager"
+	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -82,12 +84,17 @@ func Bitswap(provide bool) interface{} {
 		bitswapLibp2p := bsnet.NewFromIpfsHost(in.Host)
 
 		if httpCfg := in.Cfg.HTTPRetrieval; httpCfg.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled) {
+			maxBlockSize, err := humanize.ParseBytes(httpCfg.MaxBlockSize.WithDefault(config.DefaultHTTPRetrievalMaxBlockSize))
+			if err != nil {
+				return nil, err
+			}
 			bitswapHTTP := httpnet.New(in.Host,
 				httpnet.WithHTTPWorkers(int(httpCfg.NumWorkers.WithDefault(config.DefaultHTTPRetrievalNumWorkers))),
 				httpnet.WithAllowlist(httpCfg.Allowlist),
 				httpnet.WithDenylist(httpCfg.Denylist),
 				httpnet.WithInsecureSkipVerify(httpCfg.TLSInsecureSkipVerify.WithDefault(config.DefaultHTTPRetrievalTLSInsecureSkipVerify)),
-				// TODO: add WithMaxBlockSize to config
+				httpnet.WithMaxBlockSize(int64(maxBlockSize)),
+				httpnet.WithUserAgent(version.GetUserAgentVersion()),
 			)
 			bitswapNetworks = network.New(in.Host.Peerstore(), bitswapLibp2p, bitswapHTTP)
 		} else {

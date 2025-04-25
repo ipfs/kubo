@@ -7,11 +7,13 @@ type HTTPRetrieval struct {
 	Allowlist             []string         `json:",omitempty"`
 	Denylist              []string         `json:",omitempty"`
 	NumWorkers            *OptionalInteger `json:",omitempty"`
+	MaxBlockSize          *OptionalString  `json:",omitempty"`
 	TLSInsecureSkipVerify Flag             `json:",omitempty"`
 }
 
 const (
 	DefaultHTTPRetrievalEnabled               = false // opt-in for now, until we figure out https://github.com/ipfs/specs/issues/496
 	DefaultHTTPRetrievalNumWorkers            = 16
-	DefaultHTTPRetrievalTLSInsecureSkipVerify = false // only for testing with self-signed HTTPS certs
+	DefaultHTTPRetrievalTLSInsecureSkipVerify = false  // only for testing with self-signed HTTPS certs
+	DefaultHTTPRetrievalMaxBlockSize          = "2MiB" // matching bitswap: https://specs.ipfs.tech/bitswap-protocol/#block-sizes
 )
