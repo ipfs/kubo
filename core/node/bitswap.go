@@ -86,6 +86,8 @@ func Bitswap(provide bool) interface{} {
 				httpnet.WithHTTPWorkers(int(httpCfg.NumWorkers.WithDefault(config.DefaultHTTPRetrievalNumWorkers))),
 				httpnet.WithAllowlist(httpCfg.Allowlist),
 				httpnet.WithDenylist(httpCfg.Denylist),
+				httpnet.WithInsecureSkipVerify(httpCfg.TLSInsecureSkipVerify.WithDefault(config.DefaultHTTPRetrievalTLSInsecureSkipVerify)),
+				// TODO: add WithMaxBlockSize to config
 			)
 			bitswapNetworks = network.New(in.Host.Peerstore(), bitswapLibp2p, bitswapHTTP)
 		} else {

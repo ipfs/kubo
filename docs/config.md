@@ -2537,16 +2537,6 @@ Default: `false`
 
 Type: `flag`
 
-### `HTTPRetrieval.NumWorkers`
-
-The number of worker goroutines to use for concurrent HTTP retrieval operations.
-This setting controls the level of parallelism for HTTP-based block retrieval operations.
-Higher values can improve performance when retrieving many blocks but may increase resource usage.
-
-Default: `16`
-
-Type: `optionalInteger`
-
 ### `HTTPRetrieval.Allowlist`
 
 Optional list of hostnames for which HTTP retrieval is allowed for.
@@ -2567,6 +2557,26 @@ Denylist entries take precedence over Allowlist entries.
 Default: `[]`
 
 Type: `array[string]`
+
+### `HTTPRetrieval.NumWorkers`
+
+The number of worker goroutines to use for concurrent HTTP retrieval operations.
+This setting controls the level of parallelism for HTTP-based block retrieval operations.
+Higher values can improve performance when retrieving many blocks but may increase resource usage.
+
+Default: `16`
+
+Type: `optionalInteger`
+
+### `HTTPRetrieval.TLSInsecureSkipVerify`
+
+Disables TLS certificate validation.
+Allows making HTTPS connections to HTTP/2 test servers with self-signed TLS certificates.
+Only for testing, do not use in production.
+
+Default: `false`
+
+Type: `flag`
 
 ## `Import`
 
