@@ -2,6 +2,7 @@ package httprouting
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -23,9 +24,13 @@ type MockHTTPContentRouter struct {
 	findProvidersCalls  int
 	findPeersCalls      int
 	providers           map[cid.Cid][]types.Record
+	Debug               bool
 }
 
 func (r *MockHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, limit int) (iter.ResultIter[types.Record], error) {
+	if r.Debug {
+		fmt.Printf("MockHTTPContentRouter.FindProviders(%s)\n", key.String())
+	}
 	r.m.Lock()
 	defer r.m.Unlock()
 	r.findProvidersCalls++
@@ -39,6 +44,9 @@ func (r *MockHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, 
 	results := make([]iter.Result[types.Record], len(records))
 	for i, rec := range records {
 		results[i] = iter.Result[types.Record]{Val: rec}
+		if r.Debug {
+			fmt.Printf("MockHTTPContentRouter.FindProviders(%s) result: %+v\n", key.String(), rec)
+		}
 	}
 	return iter.FromSlice(results), nil
 }
