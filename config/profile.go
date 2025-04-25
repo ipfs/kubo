@@ -266,24 +266,44 @@ fetching may be degraded.
 		},
 	},
 	"legacy-cid-v0": {
-		Description: `Makes UnixFS import produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.`,
-
+		Description: `Makes UnixFS import produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks. This is likely the least optimal preset, use only if legacy behavior is required.`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(0)
 			c.Import.UnixFSRawLeaves = False
 			c.Import.UnixFSChunker = *NewOptionalString("size-262144")
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("256KiB")
 			return nil
 		},
 	},
 	"test-cid-v1": {
-		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.`,
-
+		Description: `Makes UnixFS import produce CIDv1 with raw leaves, sha2-256 and 1 MiB chunks (max 174 links per file, 256 per HAMT node, switch dir to HAMT above 256KiB).`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
 			c.Import.UnixFSRawLeaves = True
 			c.Import.UnixFSChunker = *NewOptionalString("size-1048576")
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("256KiB")
+			return nil
+		},
+	},
+	"test-cid-v1-wide": {
+		Description: `Makes UnixFS import produce CIDv1 with raw leaves, sha2-256 and 1MiB chunks and wider file DAGs (max 1024 links per every node type, switch dir to HAMT above 1MiB).`,
+		Transform: func(c *Config) error {
+			c.Import.CidVersion = *NewOptionalInteger(1)
+			c.Import.UnixFSRawLeaves = True
+			c.Import.UnixFSChunker = *NewOptionalString("size-1048576") // 1MiB
+			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0) // no limit here, use size-based Import.UnixFSHAMTDirectorySizeThreshold instead
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(1024)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("1MiB") // 1MiB
 			return nil
 		},
 	},
