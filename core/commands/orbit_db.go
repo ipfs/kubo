@@ -1,25 +1,16 @@
 package commands
 
 import (
-	"bytes"
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/subtle"
-	"crypto/x509"
-	"encoding/base64"
-	"encoding/binary"
+	"encoding/gob"
+	"encoding/hex"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	logger "log"
-	"math"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -27,20 +18,20 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/crypto/pbkdf2"
+	"slices"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	config "github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	peer "github.com/libp2p/go-libp2p/core/peer"
-	"go.uber.org/zap"
-
 	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	orbitdb "github.com/stateless-minds/go-orbit-db"
-	"github.com/stateless-minds/go-orbit-db/address"
+	address "github.com/stateless-minds/go-orbit-db/address"
 	orbitdb_iface "github.com/stateless-minds/go-orbit-db/iface"
-	"github.com/stateless-minds/go-orbit-db/stores"
+	stores "github.com/stateless-minds/go-orbit-db/stores"
+	"go.uber.org/zap"
 )
 
 const dbNameDemandSupply = "demand_supply"
@@ -59,14 +50,16 @@ const dbSubscription = "subscription"
 const dbCountryWallet = "country_wallet"
 const transactionsPerPerson = 100
 
-const (
-	privateKeyFile      = "orbitdb_private.pem"   // Define a constant for the private key file name
-	encryptedAESKeyFile = "encrypted_aes_key.bin" // File to store the encrypted AES key
-	encryptedSaltFile   = "encrypted_salt.bin"    // File to store encrypted salt
-	origDescFile        = "desc-orig.txt"
-	testDescFile        = "desc-test.txt"
-	saltSize            = 16 // Size of the random salt in bytes
-)
+type User struct {
+	ID            []byte                      `mapstructure:"_id" json:"_id" validate:"uuid_rfc4122"`                       // Unique identifier for the user (should be a byte array)
+	Name          string                      `mapstructure:"name" json:"name" validate:"uuid_rfc4122"`                     // Username or identifier for the user
+	DisplayName   string                      `mapstructure:"display_name" json:"display_name" validate:"uuid_rfc4122"`     // Display name for the user
+	CredentialIDs []webauthn.Credential       `mapstructure:"credential_ids" json:"credential_ids" validate:"uuid_rfc4122"` // List of credential IDs associated with the user
+	Descriptor    map[string]map[int][]string `mapstructure:"descriptor" json:"descriptor" validate:"uuid_rfc4122"`         // Face descriptor for the user
+	VAT           string                      `mapstructure:"vat" json:"vat" validate:"uuid_rfc4122"`                       // VAT when company
+	Country       string                      `mapstructure:"country" json:"country" validate:"uuid_rfc4122"`
+	Region        string                      `mapstructure:"region" json:"region" validate:"uuid_rfc4122"` // Country
+}
 
 type Transaction struct {
 	ID               string `mapstructure:"_id" json:"_id" validate:"uuid_rfc4122"`                 // Unique identifier for the transaction
@@ -107,404 +100,6 @@ type Subscription struct {
 	EndDate   time.Time `mapstructure:"end_date" json:"end_date" validate:"uuid_rfc4122"`     // End date of subscription
 }
 
-// --- Key Management ---
-
-func ToByte(in []float32) []byte {
-	buf := new(bytes.Buffer)
-	for _, f := range in {
-		binary.Write(buf, binary.LittleEndian, f)
-	}
-	return buf.Bytes()
-}
-
-// Decrypt the AES key using the hashed MAC address as the decryption key
-func decryptAESKey(encryptedKey []byte, descriptor []float32) ([]byte, error) {
-	// Convert the hash key to a byte array
-	key := ToByte(descriptor)
-
-	// Create a new AES cipher block
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a GCM (Galois/Counter Mode) for authenticated decryption
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract the nonce from the beginning of the encrypted data
-	nonceSize := gcm.NonceSize()
-	if len(encryptedKey) < nonceSize {
-		return nil, errors.New("encrypted key too short")
-	}
-	nonce, encrypted := encryptedKey[:nonceSize], encryptedKey[nonceSize:]
-
-	// Decrypt the AES key
-	decrypted, err := gcm.Open(nil, nonce, encrypted, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return decrypted, nil
-}
-
-// generatePrivateKey generates an RSA private key and saves it to a file.
-func generatePrivateKey() (*rsa.PrivateKey, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048) // You can adjust the key size
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert private key to PEM format
-	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-	privateKeyBlock := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: privateKeyBytes,
-	}
-
-	// Create the private key file
-	file, err := os.Create(privateKeyFile)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	// Write the private key to the file
-	err = pem.Encode(file, privateKeyBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	return privateKey, nil
-}
-
-// loadPrivateKey loads an RSA private key from a file.
-func loadPrivateKey() (*rsa.PrivateKey, error) {
-	privateKeyFileBytes, err := os.ReadFile(privateKeyFile)
-	if err != nil {
-		return nil, err
-	}
-
-	privateKeyBlock, _ := pem.Decode(privateKeyFileBytes)
-	if privateKeyBlock == nil {
-		return nil, err
-	}
-
-	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return privateKey, nil
-}
-
-// getPrivateKey retrieves the private key, generating it if it doesn't exist.
-func getPrivateKey() (*rsa.PrivateKey, error) {
-	if _, err := os.Stat(privateKeyFile); os.IsNotExist(err) {
-		return generatePrivateKey()
-	}
-	return loadPrivateKey()
-}
-
-func getSalt() ([]byte, error) {
-	if _, err := os.Stat(encryptedSaltFile); os.IsNotExist(err) {
-		salt, err := generateRandomSalt(saltSize)
-		if err != nil {
-			return nil, err
-		}
-		return salt, nil
-	}
-
-	salt, err := ioutil.ReadFile(encryptedSaltFile)
-	if err != nil {
-		return nil, err
-	}
-
-	privateKey, err := getPrivateKey()
-	if err != nil {
-		return nil, err
-	}
-
-	saltDecrypted, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, salt)
-	if err != nil {
-		return nil, err
-	}
-	return saltDecrypted, nil
-}
-
-// getAesKey retrieves the AES key and decrypts it
-func getAesKey(descriptor string) ([]byte, error) {
-	if _, err := os.Stat(encryptedAESKeyFile); os.IsNotExist(err) {
-		// If the encrypted AES key file exists, read and decrypt it.
-		salt, err := getSalt()
-		if err != nil {
-			return nil, err
-		}
-
-		aesKey, err := generateAESKey(descriptor, salt)
-		if err != nil {
-			return nil, err
-		}
-
-		// Encrypt the AES key with RSA for storage.
-		privateKey, err := getPrivateKey()
-		if err != nil {
-			return nil, err
-		}
-
-		encryptedAESKeyBytes, err := rsa.EncryptPKCS1v15(rand.Reader, &privateKey.PublicKey, aesKey)
-		if err != nil {
-			return nil, err
-		}
-
-		// Store the encrypted AES key in a file.
-		if err = os.WriteFile(encryptedAESKeyFile, encryptedAESKeyBytes, 0644); err != nil {
-			return nil, err
-		}
-
-		return aesKey, nil // Return the newly generated AES key
-	}
-
-	// If the encrypted AES key file exists, read and decrypt it.
-	aesKey, err := ioutil.ReadFile(encryptedAESKeyFile)
-	if err != nil {
-		return nil, err
-	}
-
-	privateKey, err := getPrivateKey()
-	if err != nil {
-		return nil, err
-	}
-
-	originalKey, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, aesKey)
-	if err != nil {
-		return nil, err
-	}
-
-	salt, err := getSalt()
-	if err != nil {
-		return nil, err
-	}
-
-	sumDesc, err := sumAndRound(descriptor)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create or truncate the file
-	file, err := os.Create(testDescFile)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	// Write the string to the file
-	_, err = file.WriteString(fmt.Sprintf("%f", sumDesc))
-	if err != nil {
-		return nil, err
-	}
-
-	start := sumDesc - 0.1
-	end := sumDesc + 0.1
-	step := 0.001
-
-	// Loop using integer steps to avoid floating-point precision issues
-	for i := 0; i <= int((end-start)/step); i++ {
-		value := start + float64(i)*step
-		str := fmt.Sprintf("%f", value)
-		reDerivedKey, err := deriveAESKey(str, salt)
-		if err != nil {
-			return nil, err
-		}
-		if subtle.ConstantTimeCompare(originalKey, reDerivedKey) == 1 {
-			return originalKey, nil // Return the decrypted AES key
-		}
-	}
-
-	return nil, errors.New("key mismatch")
-}
-
-// --- Password Management ---
-
-// --- Encryption/Decryption ---
-
-// aesEncrypt encrypts data using AES.
-func aesEncrypt(data []byte, aesKey []byte) ([]byte, error) {
-	block, err := aes.NewCipher(aesKey)
-	if err != nil {
-		return nil, err
-	}
-	aesGCM, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	nonce := make([]byte, aesGCM.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
-	}
-
-	ciphertext := aesGCM.Seal(nonce, nonce, data, nil)
-	return ciphertext, nil
-}
-
-// aesDecrypt decrypts data using AES.
-func aesDecrypt(ciphertext []byte, aesKey []byte) ([]byte, error) {
-	block, err := aes.NewCipher(aesKey)
-	if err != nil {
-		return nil, err
-	}
-	aesGCM, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	nonceSize := aesGCM.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return nil, io.ErrUnexpectedEOF
-	}
-
-	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-
-	decryptedData, err := aesGCM.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return decryptedData, nil
-}
-
-// generateRandomSalt generates a random salt of specified size.
-func generateRandomSalt(size int) ([]byte, error) {
-	salt := make([]byte, size)
-	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
-		return nil, err
-	}
-	return salt, nil
-}
-
-func sumAndRound(input string) (float64, error) {
-	// Strip the '[' and ']' from the input string
-	input = strings.Trim(input, "[]")
-
-	// Split the string by commas to get individual float values
-	components := strings.Split(input, ",")
-
-	// Initialize a variable for the sum
-	var sum float32
-
-	// Iterate over each component, convert to float32, and add to the sum
-	for _, comp := range components {
-		comp = strings.TrimSpace(comp) // Remove any surrounding whitespace
-		if f, err := strconv.ParseFloat(comp, 32); err == nil {
-			sum += float32(f)
-		} else {
-			return 0, fmt.Errorf("invalid float value: %v", comp)
-		}
-	}
-
-	// Step 1: Ensure positivity
-	positiveValue := math.Abs(float64(sum))
-
-	// Round the sum to the second decimal place
-	roundedSum := float64(math.Round(positiveValue*100) / 100)
-
-	return roundedSum, nil
-}
-
-// generateAESKey generates an AES key from a descriptor using PBKDF2.
-func generateAESKey(descriptor string, salt []byte) ([]byte, error) {
-	sumDesc, err := sumAndRound(descriptor)
-	if err != nil {
-		return nil, err
-	}
-
-	str := fmt.Sprintf("%f", sumDesc)
-
-	// Create or truncate the file
-	file, err := os.Create(origDescFile)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	// Write the string to the file
-	_, err = file.WriteString(str)
-	if err != nil {
-		return nil, err
-	}
-
-	// Encrypt the AES key with RSA for storage.
-	privateKey, err := getPrivateKey()
-	if err != nil {
-		return nil, err
-	}
-
-	encryptedSalt, err := rsa.EncryptPKCS1v15(rand.Reader, &privateKey.PublicKey, salt)
-	if err != nil {
-		return nil, err
-	}
-
-	// Store the encrypted AES key in a file.
-	if err = os.WriteFile(encryptedSaltFile, encryptedSalt, 0644); err != nil {
-		return nil, err
-	}
-
-	return pbkdf2.Key([]byte(str), []byte(salt), 10000, 32, sha256.New), nil // 32 bytes for AES-256
-}
-
-// deriveAESKey derives an AES key from a descriptor using PBKDF2.
-func deriveAESKey(descriptor string, salt []byte) ([]byte, error) {
-	sumDesc, err := sumAndRound(descriptor)
-	if err != nil {
-		return nil, err
-	}
-
-	str := fmt.Sprintf("%f", sumDesc)
-
-	return pbkdf2.Key([]byte(str), []byte(salt), 10000, 32, sha256.New), nil // 32 bytes for AES-256
-}
-
-// encryptData encrypts data using AES and returns encrypted data while storing encrypted AES key.
-func encryptData(data []byte, descriptor string) (string, error) {
-	aesKey, err := getAesKey(descriptor)
-	if err != nil {
-		return "", err
-	}
-
-	encryptedData, err := aesEncrypt(data, aesKey)
-	if err != nil {
-		return "", err
-	}
-
-	return base64.StdEncoding.EncodeToString(encryptedData), nil
-}
-
-// decryptData decrypts the encrypted data using the user's password.
-func decryptData(encryptedData, descriptor string) ([]byte, error) {
-	// Decode base64 strings.
-	encryptedDataBytes, err := base64.StdEncoding.DecodeString(encryptedData)
-	if err != nil {
-		return nil, err
-	}
-
-	// Derive AES key from descriptor.
-	derivedAESKey, err := getAesKey(descriptor)
-	if err != nil {
-		return nil, err
-	}
-
-	// Decrypt data with AES using the derived AES key.
-	data, err := aesDecrypt(encryptedDataBytes, derivedAESKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
 var OrbitCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "An experimental orbit-db integration on ipfs.",
@@ -513,18 +108,15 @@ orbit db is a p2p database on top of ipfs node
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"kvput":        OrbitPutKVCmd,
-		"kvget":        OrbitGetKVCmd,
-		"kvdel":        OrbitDelKVCmd,
-		"docsput":      OrbitPutDocsCmd,
-		"docsputenc":   OrbitPutDocsEncryptedCmd,
-		"docsget":      OrbitGetDocsCmd,
-		"docsquery":    OrbitQueryDocsCmd,
-		"docsqueryenc": OrbitQueryDocsEncryptedCmd,
-		"docsdel":      OrbitDelDocsCmd,
-		"runindexer":   OrbitIndexerCmd,
-		"delexpsubs":   OrbitExpSubsCmd,
-		"checkkeys":    OrbitKeysCmd,
+		"kvput":      OrbitPutKVCmd,
+		"kvget":      OrbitGetKVCmd,
+		"kvdel":      OrbitDelKVCmd,
+		"docsput":    OrbitPutDocsCmd,
+		"docsget":    OrbitGetDocsCmd,
+		"docsquery":  OrbitQueryDocsCmd,
+		"docsdel":    OrbitDelDocsCmd,
+		"runindexer": OrbitIndexerCmd,
+		"delexpsubs": OrbitExpSubsCmd,
 	},
 }
 
@@ -558,7 +150,7 @@ var OrbitPutKVCmd = &cmds.Command{
 		}
 		defer file.Close()
 
-		data, err := ioutil.ReadAll(file)
+		data, err := io.ReadAll(file)
 		if err != nil {
 			return err
 		}
@@ -681,6 +273,119 @@ var OrbitDelKVCmd = &cmds.Command{
 	},
 }
 
+// Generate random hyperplanes for LSH
+func generateHyperplanes(dim, numHashes int) [][]float64 {
+	rand.Seed(time.Now().UnixNano())
+	hyperplanes := make([][]float64, numHashes)
+	for i := 0; i < numHashes; i++ {
+		hp := make([]float64, dim)
+		for j := 0; j < dim; j++ {
+			hp[j] = rand.NormFloat64() // Gaussian random values
+		}
+		hyperplanes[i] = hp
+	}
+	return hyperplanes
+}
+
+// Compute binary LSH hash signature from descriptor vector and hyperplanes
+func computeLSHHash(descriptor []float64, hyperplanes [][]float64) []bool {
+	signature := make([]bool, len(hyperplanes))
+	for i, hp := range hyperplanes {
+		dot := 0.0
+		for j, val := range descriptor {
+			dot += val * hp[j]
+		}
+		signature[i] = dot >= 0
+	}
+	return signature
+}
+
+// Convert bool slice to string of '0' and '1'
+func boolSliceToString(bits []bool) string {
+	s := make([]byte, len(bits))
+	for i, bit := range bits {
+		if bit {
+			s[i] = '1'
+		} else {
+			s[i] = '0'
+		}
+	}
+	return string(s)
+}
+
+// Optionally hash the binary string to get a fixed-length bucket key
+func hashBand(band string) string {
+	h := sha256.Sum256([]byte(band))
+	return hex.EncodeToString(h[:])
+}
+
+func ConvertToFloatSlice(input []interface{}) ([]float64, error) {
+	result := make([]float64, len(input))
+
+	for i, val := range input {
+		f, ok := val.(float64)
+		if !ok {
+			return nil, fmt.Errorf("element %d is type %T (not float64)", i, val)
+		}
+		result[i] = f
+	}
+	return result, nil
+}
+
+func uniqueStrings(input []string) []string {
+	m := make(map[string]struct{})
+	var result []string
+	for _, s := range input {
+		if _, exists := m[s]; !exists {
+			m[s] = struct{}{}
+			result = append(result, s)
+		}
+	}
+	return result
+}
+
+// SaveHyperplanes saves the hyperplanes matrix to a file
+func SaveHyperplanes(filename string, hyperplanes [][]float64) error {
+	// Check if file exists
+	if _, err := os.Stat(filename); err == nil {
+		// File exists, do not overwrite
+		return nil
+	} else if !os.IsNotExist(err) {
+		// Some other error (e.g., permission)
+		return err
+	}
+
+	// File does not exist, create and write
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := gob.NewEncoder(file)
+	if err := encoder.Encode(hyperplanes); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// LoadHyperplanes loads the hyperplanes matrix from a file
+func LoadHyperplanes(filename string) ([][]float64, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var hyperplanes [][]float64
+	decoder := gob.NewDecoder(file)
+	if err := decoder.Decode(&hyperplanes); err != nil {
+		return nil, err
+	}
+	return hyperplanes, nil
+}
+
 var OrbitPutDocsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Put value related to key",
@@ -707,86 +412,64 @@ var OrbitPutDocsCmd = &cmds.Command{
 		}
 		defer file.Close()
 
-		data, err := ioutil.ReadAll(file)
+		data, err := io.ReadAll(file)
 		if err != nil {
 			return err
 		}
 
 		dd := make(map[string]interface{})
 		if err := json.Unmarshal(data, &dd); err != nil {
-			panic(err)
-		}
-
-		dbName := req.Arguments[0]
-
-		db, store, err := ConnectDocs(req.Context, dbName, api, func(address string) {})
-		if err != nil {
 			return err
 		}
 
-		defer db.Close()
+		if _, ok := dd["descriptor"]; ok {
+			d, ok := dd["descriptor"].(map[string]interface{})
+			if !ok {
+				return errors.New("descriptor not of correct type")
+			}
+			for key, descriptor := range d {
+				desc, ok := descriptor.([]interface{})
+				if ok {
+					descFloat, err := ConvertToFloatSlice(desc)
+					if err != nil {
+						continue
+					}
 
-		_, err = store.Put(req.Context, dd)
-		if err != nil {
-			return err
-		}
+					descriptorsLSH := make(map[int][]string)
 
-		return nil
-	},
-}
+					var hyperplanes [][]float64
 
-var OrbitPutDocsEncryptedCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Put value related to key",
-		ShortDescription: `Key value store put
-`,
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("dbName", true, false, "DB address or name"),
-		cmds.StringArg("descriptor", true, false, "descriptor"),
-	},
-	PreRun: urlArgsEncoder,
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env, req)
-		if err != nil {
-			return err
-		}
-		if err := urlArgsDecoder(req, env); err != nil {
-			return err
-		}
+					hyperplanes, err = LoadHyperplanes("hyperplanes.gob")
+					if err != nil {
+						// Generate 32 random hyperplanes for LSH
+						hyperplanes := generateHyperplanes(128, 32)
 
-		// read data passed as a file
-		file, err := cmdenv.GetFileArg(req.Files.Entries())
-		if err != nil {
-			return err
-		}
-		defer file.Close()
+						// Save to file
+						if err := SaveHyperplanes("hyperplanes.gob", hyperplanes); err != nil {
+							log.Fatal("Failed to save hyperplanes:", err)
+						}
+					}
 
-		data, err := ioutil.ReadAll(file)
-		if err != nil {
-			return err
-		}
+					// Compute binary LSH signature
+					signature := computeLSHHash(descFloat, hyperplanes)
 
-		dd := make(map[string]interface{})
-		if err := json.Unmarshal(data, &dd); err != nil {
-			panic(err)
-		}
+					// Split signature into 8 bands of 4 bits each and hash each band
+					bands := 8
+					rowsPerBand := len(signature) / bands
+					for b := range bands {
+						bandBits := signature[b*rowsPerBand : (b+1)*rowsPerBand]
+						bandStr := boolSliceToString(bandBits)
+						bucketKey := hashBand(bandStr)
+						descriptorsLSH[b] = append(descriptorsLSH[b], bucketKey)
+						descriptorsLSH[b] = uniqueStrings(descriptorsLSH[b])
+					}
+					d, ok := dd["descriptor"].(map[string]interface{})
+					if !ok {
+						return errors.New("descriptor not of correct type")
+					}
 
-		descriptor := req.Arguments[1]
-
-		for key, val := range dd {
-			if key != "_id" && key != "name" && key != "display_name" && key != "vat" && key != "country" {
-				valJSON, err := json.Marshal(val)
-				if err != nil {
-					panic(err)
+					d[key] = descriptorsLSH
 				}
-
-				encryptedData, err := encryptData(valJSON, descriptor)
-				if err != nil {
-					panic(err)
-				}
-
-				dd[key] = encryptedData
 			}
 		}
 
@@ -1466,6 +1149,31 @@ var OrbitIndexerCmd = &cmds.Command{
 	},
 }
 
+func isDescriptorMatch(stored map[int][]string, newBuckets map[int]string, threshold int) bool {
+	matches := 0
+	for band, newKey := range newBuckets {
+		// Check if this band exists in stored data
+		storedKeys, ok := stored[band]
+		if !ok {
+			continue // No data for this band
+		}
+
+		// Check if newKey exists in storedKeys
+		if slices.Contains(storedKeys, newKey) {
+			matches++ // Match found for this band
+		}
+
+		logger.Println("matches: ", matches)
+
+		// Early exit if threshold met
+		if matches >= threshold {
+			return true
+		}
+	}
+
+	return matches >= threshold
+}
+
 var OrbitQueryDocsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Query docs by key and value",
@@ -1500,7 +1208,7 @@ var OrbitQueryDocsCmd = &cmds.Command{
 
 		q, err := store.Query(req.Context, func(e interface{}) (bool, error) {
 			record := e.(map[string]interface{})
-			if key == "all" {
+			if key == "all" || key == "descriptor" {
 				return true, nil
 			} else if strings.Contains(value, ",") {
 				values := strings.Split(value, ",")
@@ -1543,7 +1251,7 @@ var OrbitQueryDocsCmd = &cmds.Command{
 		// Convert the slice of interfaces to JSON string
 		dataBytes, err := json.Marshal(&q)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		dataString := string(dataBytes)
@@ -1553,8 +1261,54 @@ var OrbitQueryDocsCmd = &cmds.Command{
 				return err
 			}
 		} else {
-			if err := res.Emit(&q); err != nil {
-				return err
+			if key == "descriptor" {
+				users := []User{}
+				logger.Println("users: ", dataString)
+				err := json.Unmarshal(dataBytes, &users)
+				if err != nil {
+					return err
+				}
+
+				descriptor := []float64{}
+
+				err = json.Unmarshal([]byte(value), &descriptor)
+				if err != nil {
+					logger.Println(value)
+					return err
+				}
+
+				newBuckets := make(map[int]string)
+				loadedHyperplanes, err := LoadHyperplanes("hyperplanes.gob")
+				if err != nil {
+					log.Fatal("Failed to load hyperplanes:", err)
+				}
+
+				for _, user := range users {
+					// Compute binary LSH signature
+					signature := computeLSHHash(descriptor, loadedHyperplanes)
+					// Split signature into 8 bands of 4 bits each and hash each band
+					bands := 8
+					rowsPerBand := len(signature) / bands
+					for b := range bands {
+						bandBits := signature[b*rowsPerBand : (b+1)*rowsPerBand]
+						bandStr := boolSliceToString(bandBits)
+						bucketKey := hashBand(bandStr)
+						newBuckets[b] = bucketKey
+					}
+
+					for _, storedDesc := range user.Descriptor {
+						match := isDescriptorMatch(storedDesc, newBuckets, 6)
+						if match {
+							if err := res.Emit(&user); err != nil {
+								return err
+							}
+						}
+					}
+				}
+			} else {
+				if err := res.Emit(&q); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -1563,107 +1317,28 @@ var OrbitQueryDocsCmd = &cmds.Command{
 	Type: []byte{},
 }
 
-var OrbitQueryDocsEncryptedCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Query docs by key and value",
-		ShortDescription: `Query docs store by key and value
-`,
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("dbName", true, false, "DB address or name"),
-		cmds.StringArg("key", true, false, "Key to query"),
-		cmds.StringArg("descriptor", true, false, "descriptor"),
-	},
-	PreRun: urlArgsEncoder,
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env, req)
+func stringToFloat64Slice(str string) ([]float64, error) {
+	// Remove leading and trailing brackets
+	str = strings.Trim(str, "[]")
+
+	// Split the string into substrings representing numbers
+	parts := strings.Split(str, ",")
+
+	var floats []float64
+	for _, part := range parts {
+		// Trim whitespace from the part
+		part = strings.TrimSpace(part)
+
+		// Parse the part into a float64
+		f, err := strconv.ParseFloat(part, 64)
 		if err != nil {
-			return err
-		}
-		if err := urlArgsDecoder(req, env); err != nil {
-			return err
+			return nil, err
 		}
 
-		dbName := req.Arguments[0]
-		key := req.Arguments[1]
-		descriptor := req.Arguments[2]
-		// value := req.Arguments[2]
+		floats = append(floats, f)
+	}
 
-		db, store, err := ConnectDocs(req.Context, dbName, api, func(address string) {})
-		if err != nil {
-			return err
-		}
-
-		defer db.Close()
-
-		q, err := store.Query(req.Context, func(e interface{}) (bool, error) {
-			if key == "own" || key == "all" {
-				return true, nil
-			}
-
-			return false, nil
-		})
-
-		if err != nil {
-			return err
-		}
-
-		// Convert the slice of interfaces to JSON string
-		dataBytes, err := json.Marshal(&q)
-		if err != nil {
-			panic(err)
-		}
-
-		dataString := string(dataBytes)
-
-		if dataString == "null" {
-			if err := res.Emit(nil); err != nil {
-				return err
-			}
-		} else {
-			var dd []map[string]string
-
-			if err := json.Unmarshal(dataBytes, &dd); err != nil {
-				panic(err)
-			}
-
-			canDecrypt := true
-			var found int
-			var foundItems []map[string]string
-
-			for _, item := range dd {
-				for k, v := range item {
-					if key == "own" {
-						if k != "_id" && k != "name" && k != "display_name" && k != "vat" && k != "country" {
-							decryptedData, err := decryptData(v, descriptor)
-							if err != nil {
-								canDecrypt = false
-								break
-							}
-							item[k] = string(decryptedData)
-						}
-					}
-				}
-				if canDecrypt {
-					foundItems = append(foundItems, item)
-					found++
-				}
-			}
-
-			if found > 0 {
-				if err := res.Emit(foundItems); err != nil {
-					return err
-				}
-			} else {
-				if err := res.Emit(nil); err != nil {
-					return err
-				}
-			}
-		}
-
-		return nil
-	},
-	Type: []byte{},
+	return floats, nil
 }
 
 var OrbitDelDocsCmd = &cmds.Command{
@@ -1682,6 +1357,7 @@ var OrbitDelDocsCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+
 		if err := urlArgsDecoder(req, env); err != nil {
 			return err
 		}
@@ -1723,31 +1399,6 @@ var OrbitDelDocsCmd = &cmds.Command{
 			if err != nil {
 				return err
 			}
-		}
-
-		return nil
-	},
-}
-
-var OrbitKeysCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline:          "Check keys",
-		ShortDescription: `Check if keys match`,
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("descriptor", true, false, "descriptor"),
-	},
-	PreRun: urlArgsEncoder,
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		if err := urlArgsDecoder(req, env); err != nil {
-			return err
-		}
-
-		descriptor := req.Arguments[0]
-
-		_, err := getAesKey(descriptor)
-		if err != nil {
-			return err
 		}
 
 		return nil

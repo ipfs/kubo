@@ -34,10 +34,6 @@ docs/examples/go-ipfs-as-a-library/example-folder/Qm*
 /stage
 /prime
 
+hyperplanes.gob
 indexer.log
 expired-subscriptions.log
-desc-orig.txt
-desc-test.txt
-encrypted_aes_key.bin
-encrypted_salt.bin
-orbitdb_private.pem

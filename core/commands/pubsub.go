@@ -11,8 +11,8 @@ import (
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	mbase "github.com/multiformats/go-multibase"
 
-	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	options "github.com/ipfs/kubo/core/coreiface/options"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 var PubsubCmd = &cmds.Command{
