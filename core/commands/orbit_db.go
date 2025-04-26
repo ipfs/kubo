@@ -1263,7 +1263,6 @@ var OrbitQueryDocsCmd = &cmds.Command{
 		} else {
 			if key == "descriptor" {
 				users := []User{}
-				logger.Println("users: ", dataString)
 				err := json.Unmarshal(dataBytes, &users)
 				if err != nil {
 					return err
@@ -1273,19 +1272,26 @@ var OrbitQueryDocsCmd = &cmds.Command{
 
 				err = json.Unmarshal([]byte(value), &descriptor)
 				if err != nil {
-					logger.Println(value)
 					return err
 				}
 
+				var hyperplanes [][]float64
+
 				newBuckets := make(map[int]string)
-				loadedHyperplanes, err := LoadHyperplanes("hyperplanes.gob")
+				hyperplanes, err = LoadHyperplanes("hyperplanes.gob")
 				if err != nil {
-					log.Fatal("Failed to load hyperplanes:", err)
+					// Generate 32 random hyperplanes for LSH
+					hyperplanes := generateHyperplanes(128, 32)
+
+					// Save to file
+					if err := SaveHyperplanes("hyperplanes.gob", hyperplanes); err != nil {
+						log.Fatal("Failed to save hyperplanes:", err)
+					}
 				}
 
 				for _, user := range users {
 					// Compute binary LSH signature
-					signature := computeLSHHash(descriptor, loadedHyperplanes)
+					signature := computeLSHHash(descriptor, hyperplanes)
 					// Split signature into 8 bands of 4 bits each and hash each band
 					bands := 8
 					rowsPerBand := len(signature) / bands
