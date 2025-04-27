@@ -74,9 +74,13 @@ If they are not configured (or assigned their zero-valued), then default values 
 > [!TIP]
 > Start using pebble with only default values and configure tuning items are needed for your needs. For a more complete description of these values, see: `https://pkg.go.dev/github.com/cockroachdb/pebble@vA.B.C#Options` (where `A.B.C` is pebble version from Kubo's `go.mod`).
 
-UUsing a pebble datastore can be set when initializing kubo `ipfs init --profile pebbleds`.
+Using a pebble datastore can be set when initializing kubo `ipfs init --profile pebbleds`.
 
 #### Use of `formatMajorVersion`
+
+[Pebble's `FormatMajorVersion`](https://github.com/cockroachdb/pebble/tree/master?tab=readme-ov-file#format-major-versions) is a constant controlling the format of persisted data. Backwards incompatible changes to durable formats are gated behind new format major versions.
+
+At any point, a database's format major version may be bumped. However, once a database's format major version is increased, previous versions of Pebble will refuse to open the database.
 
 When IPFS is initialized to use the pebbleds datastore (`ipfs init --profile=pebbleds`), the latest pebble database format is configured in the pebble datastore config as `"formatMajorVersion"`. Setting this in the datastore config prevents automatically upgrading to the latest available version when kubo is upgraded. If a later version becomes available, the kubo daemon prints a startup message to indicate this. The user can them update the config to use the latest format when they are certain a downgrade will not be necessary.
 
