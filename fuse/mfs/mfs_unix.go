@@ -21,6 +21,14 @@ import (
 	"github.com/ipfs/kubo/core"
 )
 
+const (
+	ipfsCIDXattr = "ipfs_cid"
+	mfsDirMode   = os.ModeDir | 0755
+	mfsFileMode  = 0644
+	blockSize    = 512
+	dirSize      = 8
+)
+
 // FUSE filesystem mounted at /mfs.
 type FileSystem struct {
 	root Dir
@@ -38,18 +46,23 @@ type Dir struct {
 
 // Directory attributes (stat).
 func (dir *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
-	attr.Mode = os.FileMode(os.ModeDir | 0755)
-	attr.Size = 4096
-	attr.Blocks = 8
+	attr.Mode = mfsDirMode
+	attr.Size = dirSize * blockSize
+	attr.Blocks = dirSize
 	return nil
 }
 
 // Access files in a directory.
 func (dir *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.LookupResponse) (fs.Node, error) {
 	mfsNode, err := dir.mfsDir.Child(req.Name)
-	if err != nil {
+	switch err {
+	case os.ErrNotExist:
 		return nil, syscall.Errno(syscall.ENOENT)
+	case nil:
+	default:
+		return nil, err
 	}
+
 	switch mfsNode.Type() {
 	case mfs.TDir:
 		result := Dir{
@@ -75,8 +88,12 @@ func (dir *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	}
 
 	for _, node := range nodes {
+		nodeType := fuse.DT_File
+		if node.Type == 1 {
+			nodeType = fuse.DT_Dir
+		}
 		res = append(res, fuse.Dirent{
-			Type: fuse.DT_File,
+			Type: nodeType,
 			Name: node.Name,
 		})
 	}
@@ -131,12 +148,23 @@ func (dir *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.N
 	}
 	targetDir := newDir.(*Dir)
 
+	// Remove file if exists
+	err = targetDir.mfsDir.Unlink(req.NewName)
+	if err != nil && err != os.ErrNotExist {
+		return err
+	}
+
 	err = targetDir.mfsDir.AddChild(req.NewName, node)
 	if err != nil {
 		return err
 	}
 
-	return dir.mfsDir.Unlink(req.OldName)
+	err = dir.mfsDir.Unlink(req.OldName)
+	if err != nil {
+		return err
+	}
+
+	return dir.mfsDir.Flush()
 }
 
 // Create (touch) an MFS file.
@@ -187,10 +215,16 @@ func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.
 	return &file, &handler, nil
 }
 
+// List dir xattr.
+func (dir *Dir) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
+	resp.Append(ipfsCIDXattr)
+	return nil
+}
+
 // Get dir xattr.
 func (dir *Dir) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
 	switch req.Name {
-	case "ipfs_cid":
+	case ipfsCIDXattr:
 		node, err := dir.mfsDir.GetNode()
 		if err != nil {
 			return err
@@ -209,28 +243,19 @@ type File struct {
 
 // File attributes.
 func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
-	size, err := file.mfsFile.Size()
-	if err != nil {
-		return err
-	}
+	size, _ := file.mfsFile.Size()
+
 	attr.Size = uint64(size)
-	if size%512 == 0 {
-		attr.Blocks = uint64(size / 512)
+	if size%blockSize == 0 {
+		attr.Blocks = uint64(size / blockSize)
 	} else {
-		attr.Blocks = uint64(size/512 + 1)
+		attr.Blocks = uint64(size/blockSize + 1)
 	}
 
-	mtime, err := file.mfsFile.ModTime()
-	if err != nil {
-		return err
-	}
+	mtime, _ := file.mfsFile.ModTime()
 	attr.Mtime = mtime
 
-	mode, err := file.mfsFile.Mode()
-	if err != nil {
-		return err
-	}
-	attr.Mode = mode
+	attr.Mode = mfsFileMode
 	return nil
 }
 
@@ -263,10 +288,16 @@ func (file *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	return file.mfsFile.Sync()
 }
 
+// List file xattr.
+func (file *File) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
+	resp.Append(ipfsCIDXattr)
+	return nil
+}
+
 // Get file xattr.
 func (file *File) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
 	switch req.Name {
-	case "ipfs_cid":
+	case ipfsCIDXattr:
 		node, err := file.mfsFile.GetNode()
 		if err != nil {
 			return err
@@ -351,6 +382,7 @@ func NewFileSystem(ipfs *core.IpfsNode) fs.FS {
 type mfsDir interface {
 	fs.Node
 	fs.NodeGetxattrer
+	fs.NodeListxattrer
 	fs.HandleReadDirAller
 	fs.NodeRequestLookuper
 	fs.NodeMkdirer
@@ -364,6 +396,7 @@ var _ mfsDir = (*Dir)(nil)
 type mfsFile interface {
 	fs.Node
 	fs.NodeGetxattrer
+	fs.NodeListxattrer
 	fs.NodeOpener
 	fs.NodeFsyncer
 }

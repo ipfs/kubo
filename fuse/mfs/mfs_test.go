@@ -312,11 +312,21 @@ func TestMFSRootXattr(t *testing.T) {
 
 	root := node.(*Dir)
 
-	req := fuse.GetxattrRequest{
+	listReq := fuse.ListxattrRequest{}
+	listRes := fuse.ListxattrResponse{}
+	err = root.Listxattr(context.Background(), &listReq, &listRes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.Compare(listRes.Xattr, []byte("ipfs_cid\x00")) != 0 {
+		t.Fatal("list xattr returns invalid value")
+	}
+
+	getReq := fuse.GetxattrRequest{
 		Name: "ipfs_cid",
 	}
-	res := fuse.GetxattrResponse{}
-	err = root.Getxattr(context.Background(), &req, &res)
+	getRes := fuse.GetxattrResponse{}
+	err = root.Getxattr(context.Background(), &getReq, &getRes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,7 +336,7 @@ func TestMFSRootXattr(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if slices.Compare(res.Xattr, []byte(ipldNode.Cid().String())) != 0 {
+	if slices.Compare(getRes.Xattr, []byte(ipldNode.Cid().String())) != 0 {
 		t.Fatal("xattr cid not equal to mfs root cid")
 	}
 }

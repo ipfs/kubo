@@ -107,6 +107,25 @@ ipfs config --json Mounts.FuseAllowOther true
 ipfs daemon --mount
 ```
 
+## MFS mountpoint
+
+Since kubo release v0.35.0, it supports mounting the MFS(Mutable File System)
+root as a FUSE filesystem at `/mfs`, which enables you to manipulate
+content-addressed data like regular files. The CID of a file/directory is
+retrievable via the `ipfs_cid` extended attribute.
+
+```sh
+getfattr -n ipfs_cid /mfs/welcome-to-IPFS.jpg 
+getfattr: Removing leading '/' from absolute path names
+# file: mfs/welcome-to-IPFS.jpg
+ipfs_cid="QmaeXDdwpUeKQcMy7d5SFBfVB4y7LtREbhm5KizawPsBSH"
+```
+
+Please note that the operations supported by the MFS FUSE mountpoint are
+limited. Since the MFS wasn't designed to store file attributes like ownership
+information, permissions and creation date, some applications like `vim` and
+`sed` may misbehave due to missing functionality.
+
 ## Troubleshooting
 
 #### `Permission denied` or `fusermount: user has no write access to mountpoint` error in Linux
