@@ -11,12 +11,12 @@ test_description="Test user-provided config values"
 test_init_ipfs
 
 test_expect_success "bootstrap doesn't overwrite user-provided config keys (top-level)" '
-  ipfs config Provider.Strategy >previous &&
-  ipfs config Provider.Strategy foo &&
+  ipfs config Reprovider.Strategy >previous &&
+  ipfs config Reprovider.Strategy foo &&
   ipfs bootstrap rm --all &&
   echo "foo" >expected &&
-  ipfs config Provider.Strategy >actual &&
-  ipfs config Provider.Strategy $(cat previous) &&
+  ipfs config Reprovider.Strategy >actual &&
+  ipfs config Reprovider.Strategy $(cat previous) &&
   test_cmp expected actual
 '
 

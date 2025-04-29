@@ -485,6 +485,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		// This should never happen, but better safe than sorry
 		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
 	}
+	if cfg.Provider.Strategy != "" && cfg.Reprovider.Strategy.IsDefault() {
+		// Provider.Strategy isn't used anywhere.
+		log.Fatal("Switch to using Reprovider.Strategy instead of Provider.Strategy. Update your config to remove this message.")
+	}
 
 	printLibp2pPorts(node)
 

@@ -13,10 +13,11 @@ import (
 var statProvideCmd = &cmds.Command{
 	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
-		Tagline: "Deprecated command to get provider+reprovider statistics. Use 'ipfs stats reprovide' instead.",
+		Tagline: "Deprecated command, use 'ipfs stats reprovide' instead.",
 		ShortDescription: `
-'ipfs stats provide' is depreacted because provide and reprovide operations are now distinct.
-This command may be replaced by provide only stats in the future.
+'ipfs stats provide' is depreacted because provide and reprovide operations
+are now distinct. This command may be replaced by provide only stats in the
+future.
 `,
 	},
 	Arguments: []cmds.Argument{},
