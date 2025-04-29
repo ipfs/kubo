@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ipfs/boxo/routing/http/server"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/ipfs/kubo/test/cli/testutils/httprouting"
@@ -35,7 +36,10 @@ func TestContentRoutingHTTP(t *testing.T) {
 
 	// setup the node
 	node := harness.NewT(t).NewNode().Init()
-	node.Runner.Env["IPFS_HTTP_ROUTERS"] = server.URL
+	node.UpdateConfig(func(cfg *config.Config) {
+		// setup Kubo node to use mocked HTTP Router
+		cfg.Routing.DelegatedRouters = []string{server.URL}
+	})
 	node.StartDaemon()
 
 	// compute a random CID

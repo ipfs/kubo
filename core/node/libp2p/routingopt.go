@@ -2,6 +2,7 @@ package libp2p
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/ipfs/go-datastore"
@@ -34,8 +35,18 @@ var noopRouter = routinghelpers.Null{}
 func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.ParallelRouter, error) {
 	var routers []*routinghelpers.ParallelRouter
 	httpRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
+
+	// Use config.DefaultHTTPRouters if custom override was sent via config.EnvHTTPRouters
+	// or if user did not set any preference in cfg.Routing.DelegatedRouters
+	var httpRouterEndpoints []string
+	if os.Getenv(config.EnvHTTPRouters) != "" || len(cfg.Routing.DelegatedRouters) == 0 {
+		httpRouterEndpoints = config.DefaultHTTPRouters
+	} else {
+		httpRouterEndpoints = cfg.Routing.DelegatedRouters
+	}
+
 	// Append HTTP routers for additional speed
-	for _, endpoint := range config.DefaultHTTPRouters {
+	for _, endpoint := range httpRouterEndpoints {
 		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, httpRetrievalEnabled)
 		if err != nil {
 			return nil, err

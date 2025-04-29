@@ -121,6 +121,7 @@ config file at runtime.
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
     - [`Routing.IgnoreProviders`](#routingignoreproviders)
+    - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -180,9 +181,11 @@ config file at runtime.
     - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
   - [`HTTPRetrieval`](#httpretrieval)
     - [`HTTPRetrieval.Enabled`](#httpretrievalenabled)
-    - [`HTTPRetrieval.NumWorkers`](#httpretrievalnumworkers)
     - [`HTTPRetrieval.Allowlist`](#httpretrievalallowlist)
     - [`HTTPRetrieval.Denylist`](#httpretrievaldenylist)
+    - [`HTTPRetrieval.NumWorkers`](#httpretrievalnumworkers)
+    - [`HTTPRetrieval.MaxBlockSize`](#httpretrievalmaxblocksize)
+    - [`HTTPRetrieval.TLSInsecureSkipVerify`](#httpretrievaltlsinsecureskipverify)
   - [`Import`](#import)
     - [`Import.CidVersion`](#importcidversion)
     - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
@@ -1633,7 +1636,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
 
 * **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
-  and parallel HTTP routers listed below for additional speed.
+  and parallel [`Routing.DelegatedRouters`](#routingdelegatedrouters) for additional speed.
 
 * If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
 
@@ -1667,11 +1670,11 @@ by leveraging HTTP endpoints compatible with [Delegated Routing V1 HTTP API](htt
 introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
 in addition to the Amino DHT.
 By default, an instance of [IPNI](https://github.com/ipni/specs/blob/main/IPNI.md#readme)
-at https://cid.contact is used.
+at https://cid.contact is used. Custom HTTP endpoints can be set via [`Routing.DelegatedRouters`](#routingdelegatedrouters).
 
 Alternative routing rules can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
 
-Default: `auto` (DHT + IPNI)
+Default: `auto` (DHT + `Routing.DelegatedRouters`)
 
 Type: `optionalString` (`null`/missing means the default)
 
@@ -1746,6 +1749,18 @@ Default: `[]`
 
 Type: `array[peerID]`
 
+### `Routing.DelegatedRouters`
+
+This is an array of URL hostnames that support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) will be used alongside the DHT when [`Routing.Type`](#routingtype) is set to `auto` or `autoclient`.
+
+> [!TIP]
+> Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
+>
+> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to the Amino DHT and other delegated routing servers, such as the Network Indexer at `cid.contact`. Public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
+
+Default: `["https://cid.contact"]` (empty or `nil` will also use this default; to disable delegated routing, set `Routing.Type` to `dht` or `dhtclient`)
+
+Type: `array[string]`
 
 ### `Routing.Routers`
 
