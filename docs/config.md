@@ -1408,6 +1408,12 @@ Type: `duration`
 
 ## `Provider`
 
+Configuration applied to the initial one-time announcement of fresh CIDs
+created with `ipfs add`, `ipfs files`, `ipfs dag import`, `ipfs block|dag put`
+commands.
+
+For periodical DHT reprovide settings, see [`Reprovide.*`](#reprovider).
+
 ### `Provider.WorkerCount`
 
 Sets the maximum number of _concurrent_ DHT provide operations. DHT reprovides

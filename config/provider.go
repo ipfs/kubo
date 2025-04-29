@@ -5,6 +5,6 @@ const (
 )
 
 type Provider struct {
-	Strategy    string          // Which keys to announce
-	WorkerCount OptionalInteger // Number of concurrent provides allowed, 0 means unlimited
+	Strategy    string           // Which keys to announce
+	WorkerCount *OptionalInteger `json:",omitempty"` // Number of concurrent provides allowed, 0 means unlimited
 }
