@@ -24,6 +24,7 @@ type MockHTTPContentRouter struct {
 	findProvidersCalls  int
 	findPeersCalls      int
 	providers           map[cid.Cid][]types.Record
+	peers               map[peer.ID][]*types.PeerRecord
 	Debug               bool
 }
 
@@ -63,7 +64,23 @@ func (r *MockHTTPContentRouter) FindPeers(ctx context.Context, pid peer.ID, limi
 	r.m.Lock()
 	defer r.m.Unlock()
 	r.findPeersCalls++
-	return iter.FromSlice([]iter.Result[*types.PeerRecord]{}), nil
+
+	if r.peers == nil {
+		r.peers = make(map[peer.ID][]*types.PeerRecord)
+	}
+	records, found := r.peers[pid]
+	if !found {
+		return iter.FromSlice([]iter.Result[*types.PeerRecord]{}), nil
+	}
+
+	results := make([]iter.Result[*types.PeerRecord], len(records))
+	for i, rec := range records {
+		results[i] = iter.Result[*types.PeerRecord]{Val: rec}
+		if r.Debug {
+			fmt.Printf("MockHTTPContentRouter.FindPeers(%s) result: %+v\n", pid.String(), rec)
+		}
+	}
+	return iter.FromSlice(results), nil
 }
 
 func (r *MockHTTPContentRouter) GetIPNS(ctx context.Context, name ipns.Name) (*ipns.Record, error) {
@@ -88,4 +105,13 @@ func (r *MockHTTPContentRouter) AddProvider(key cid.Cid, record types.Record) {
 		r.providers = make(map[cid.Cid][]types.Record)
 	}
 	r.providers[key] = append(r.providers[key], record)
+
+	peerRecord, ok := record.(*types.PeerRecord)
+	if ok {
+		if r.peers == nil {
+			r.peers = make(map[peer.ID][]*types.PeerRecord)
+		}
+		pid := peerRecord.ID
+		r.peers[*pid] = append(r.peers[*pid], peerRecord)
+	}
 }

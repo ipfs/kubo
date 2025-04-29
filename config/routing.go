@@ -13,12 +13,14 @@ import (
 const (
 	DefaultAcceleratedDHTClient      = false
 	DefaultLoopbackAddressesOnLanDHT = false
+	CidContactRoutingURL             = "https://cid.contact"
+	PublicGoodDelegatedRoutingURL    = "https://delegated-ipfs.dev" // cid.contact + amino dht (incl. IPNS PUTs)
 )
 
 var (
 	// Default HTTP routers used in parallel to DHT when Routing.Type = "auto"
 	DefaultHTTPRouters = getEnvOrDefault("IPFS_HTTP_ROUTERS", []string{
-		"https://cid.contact", // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
+		CidContactRoutingURL, // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
 	})
 
 	// Default filter-protocols to pass along with delegated routing requests (as defined in IPIP-484)
