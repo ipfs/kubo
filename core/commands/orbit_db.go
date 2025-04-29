@@ -56,7 +56,7 @@ type User struct {
 	DisplayName   string                      `mapstructure:"display_name" json:"display_name" validate:"uuid_rfc4122"`     // Display name for the user
 	CredentialIDs []webauthn.Credential       `mapstructure:"credential_ids" json:"credential_ids" validate:"uuid_rfc4122"` // List of credential IDs associated with the user
 	Descriptor    map[string]map[int][]string `mapstructure:"descriptor" json:"descriptor" validate:"uuid_rfc4122"`         // Face descriptor for the user
-	VAT           string                      `mapstructure:"vat" json:"vat" validate:"uuid_rfc4122"`                       // VAT when company
+	BusinessID    string                      `mapstructure:"business_id" json:"business_id" validate:"uuid_rfc4122"`       // VAT when company
 	Country       string                      `mapstructure:"country" json:"country" validate:"uuid_rfc4122"`
 	Region        string                      `mapstructure:"region" json:"region" validate:"uuid_rfc4122"` // Country
 }
