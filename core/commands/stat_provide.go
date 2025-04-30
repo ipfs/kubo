@@ -15,7 +15,7 @@ var statProvideCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Deprecated command, use 'ipfs stats reprovide' instead.",
 		ShortDescription: `
-'ipfs stats provide' is depreacted because provide and reprovide operations
+'ipfs stats provide' is deprecated because provide and reprovide operations
 are now distinct. This command may be replaced by provide only stats in the
 future.
 `,

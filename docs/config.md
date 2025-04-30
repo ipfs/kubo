@@ -1428,7 +1428,7 @@ when using the accelerated client. Be mindful of how many simultaneous
 connections this setting can generate.
 
 For nodes without strict connection limits that need to provide large volumes
-of content immediately, we recommend enabling the accelerated DHT client and
+of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
 setting `Provider.WorkerCount` to `0` (unlimited).
 
 Default: `64`

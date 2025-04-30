@@ -20,12 +20,15 @@ type reprovideStats struct {
 }
 
 var statReprovideCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Returns statistics about the node's reprovider system.",
 		ShortDescription: `
-Returns statistics about the content the node is reproviding.
+Returns statistics about the content the node is reproviding every Reprovider.Interval.
 
 This interface is not stable and may change from release to release.
+
+See https://github.com/ipfs/kubo/blob/master/docs/config.md#reprovider
 `,
 	},
 	Arguments: []cmds.Argument{},
