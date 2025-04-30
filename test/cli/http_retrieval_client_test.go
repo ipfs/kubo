@@ -74,7 +74,7 @@ func TestHTTPRetrievalClient(t *testing.T) {
 	node.StartDaemon()
 
 	if debug {
-		fmt.Printf("IPFS_HTTP_ROUTERS: %s\n", node.Runner.Env["IPFS_HTTP_ROUTERS"])
+		fmt.Printf("delegatedRoutingServer.URL: %s\n", delegatedRoutingServer.URL)
 		fmt.Printf("httpProviderServer.URL: %s\n", httpProviderServer.URL)
 		fmt.Printf("httpProviderServer.Multiaddr: %s\n", mockHTTPMultiaddr)
 		fmt.Printf("testCid: %s\n", testCid)
@@ -86,16 +86,16 @@ func TestHTTPRetrievalClient(t *testing.T) {
 	findprovsRes := node.IPFS("routing", "findprovs", testCid.String())
 	assert.Equal(t, mockHTTPProviderPeerID, findprovsRes.Stdout.Trimmed())
 
-	/* TODO
 	// Second, confirm peer Multiaddr
+	/* TODO
 	findpeerRes := node.IPFS("routing", "findpeer", mockHTTPProviderPeerID)
 	assert.Equal(t, mockHTTPProviderPeerID, findpeerRes.Stdout.Trimmed())
+	*/
 
 	// Ok, now attempt retrieval.
 	// If there was no timeout and returned bytes match expected body, HTTP routing and retrieval worked end-to-end.
 	catRes := node.IPFS("cat", testCid.String())
 	assert.Equal(t, randStr, catRes.Stdout.Trimmed())
-	*/
 }
 
 // NewMockHTTPProviderServer pretends to be http provider that supports
@@ -109,9 +109,11 @@ func NewMockHTTPProviderServer(c cid.Cid, body string, debug bool) *httptest.Ser
 		if strings.HasPrefix(req.URL.Path, expectedPathPrefix) {
 			w.Header().Set("Content-Type", "application/vnd.ipld.raw")
 			w.WriteHeader(http.StatusOK)
-			_, err := w.Write([]byte(body))
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "NewMockHTTPProviderServer GET %s error: %v\n", req.URL.Path, err)
+			if req.Method == "GET" {
+				_, err := w.Write([]byte(body))
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "NewMockHTTPProviderServer GET %s error: %v\n", req.URL.Path, err)
+				}
 			}
 		} else if strings.HasPrefix(req.URL.Path, "/ipfs/bafkqaaa") {
 			// This is probe from https://specs.ipfs.tech/http-gateways/trustless-gateway/#dedicated-probe-paths
