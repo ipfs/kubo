@@ -24,11 +24,12 @@ var statReprovideCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Returns statistics about the node's reprovider system.",
 		ShortDescription: `
-Returns statistics about the content the node is reproviding every Reprovider.Interval.
+Returns statistics about the content the node is reproviding every
+Reprovider.Interval according to Reprovider.Strategy:
+https://github.com/ipfs/kubo/blob/master/docs/config.md#reprovider
 
 This interface is not stable and may change from release to release.
 
-See https://github.com/ipfs/kubo/blob/master/docs/config.md#reprovider
 `,
 	},
 	Arguments: []cmds.Argument{},

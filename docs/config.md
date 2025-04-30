@@ -106,6 +106,7 @@ config file at runtime.
           - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
           - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
   - [`Provider`](#provider)
+    - [`Provider.Strategy`](#providerstrategy)
     - [`Provider.WorkerCount`](#providerworkercount)
   - [`Pubsub`](#pubsub)
     - [`Pubsub.Enabled`](#pubsubenabled)
@@ -209,6 +210,7 @@ config file at runtime.
     - [`announce-on` profile](#announce-on-profile)
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
     - [`test-cid-v1` profile](#test-cid-v1-profile)
+    - [`test-cid-v1-wide` profile](#test-cid-v1-wide-profile)
   - [Types](#types)
     - [`flag`](#flag)
     - [`priority`](#priority)
@@ -1413,6 +1415,10 @@ created with `ipfs add`, `ipfs files`, `ipfs dag import`, `ipfs block|dag put`
 commands.
 
 For periodical DHT reprovide settings, see [`Reprovide.*`](#reprovider).
+
+### `Provider.Strategy`
+
+Legacy, not used at the moment, see [`Reprovider.Strategy`](#reproviderstrategy) instead.
 
 ### `Provider.WorkerCount`
 
