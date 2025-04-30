@@ -36,6 +36,9 @@ config file at runtime.
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
     - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
+  - [`Bitswap`](#bitswap)
+    - [`Bitswap.Enabled`](#bitswapenabled)
+    - [`Bitswap.ServerEnabled`](#bitswapserverenabled)
   - [`Bootstrap`](#bootstrap)
   - [`Datastore`](#datastore)
     - [`Datastore.StorageMax`](#datastorestoragemax)
@@ -616,6 +619,33 @@ Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddy
 
 Type: `optionalString`
 
+## `Bitswap`
+
+High level client and server configuration of the [Bitswap Protocol](https://specs.ipfs.tech/bitswap-protocol/).
+
+For internal configuration see [`Internal.Bitswap`](#internalbitswap).
+
+### `Bitswap.Enabled`
+
+Manages both Bitswap client and server functionality. For testing or operating a node without Bitswap requirements.
+
+> [!WARNING]
+> Bitswap is a core component of Kubo, and disabling it completely may cause unpredictable outcomes. Treat this as experimental and use it solely for testing purposes.
+
+Default: `true`
+
+Type: `flag`
+
+### `Bitswap.ServerEnabled`
+
+Determines whether Kubo functions as a Bitswap server to host and respond to block requests.
+
+Disabling the server retains client and protocol support in libp2p identify responses but causes Kubo to reply with "don't have" to all block requests.
+
+Default: `true`
+
+Type: `flag`
+
 ## `Bootstrap`
 
 Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
@@ -1124,6 +1154,10 @@ This section includes internal knobs for various subsystems to allow advanced us
 ### `Internal.Bitswap`
 
 `Internal.Bitswap` contains knobs for tuning bitswap resource utilization.
+
+> [!TIP]
+> For high level configuration see [`Bitswap`](#bitswap).
+
 The knobs (below) document how their value should related to each other.
 Whether their values should be raised or lowered should be determined
 based on the metrics `ipfs_bitswap_active_tasks`, `ipfs_bitswap_pending_tasks`,
