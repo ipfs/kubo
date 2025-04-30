@@ -486,7 +486,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
 	}
 	if cfg.Provider.Strategy.WithDefault("") != "" && cfg.Reprovider.Strategy.IsDefault() {
-		log.Fatal("Invalid config. Remove unsued Provider.Strategy and set Reprovider.Strategy instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy")
+		log.Fatal("Invalid config. Remove unused Provider.Strategy and set Reprovider.Strategy instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy")
 	}
 
 	printLibp2pPorts(node)
