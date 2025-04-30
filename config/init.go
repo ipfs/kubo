@@ -7,6 +7,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/cockroachdb/pebble/v2"
 	"github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -141,16 +142,36 @@ func DefaultDatastoreConfig() Datastore {
 
 func pebbleSpec() map[string]interface{} {
 	return map[string]interface{}{
+		"type":               "pebbleds",
+		"prefix":             "pebble.datastore",
+		"path":               "pebbleds",
+		"formatMajorVersion": int(pebble.FormatNewest),
+	}
+}
+
+func pebbleSpecMeasure() map[string]interface{} {
+	return map[string]interface{}{
 		"type":   "measure",
 		"prefix": "pebble.datastore",
 		"child": map[string]interface{}{
-			"type": "pebbleds",
-			"path": "pebbleds",
+			"formatMajorVersion": int(pebble.FormatNewest),
+			"type":               "pebbleds",
+			"path":               "pebbleds",
 		},
 	}
 }
 
 func badgerSpec() map[string]interface{} {
+	return map[string]interface{}{
+		"type":       "badgerds",
+		"prefix":     "badger.datastore",
+		"path":       "badgerds",
+		"syncWrites": false,
+		"truncate":   true,
+	}
+}
+
+func badgerSpecMeasure() map[string]interface{} {
 	return map[string]interface{}{
 		"type":   "measure",
 		"prefix": "badger.datastore",
@@ -164,6 +185,29 @@ func badgerSpec() map[string]interface{} {
 }
 
 func flatfsSpec() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "mount",
+		"mounts": []interface{}{
+			map[string]interface{}{
+				"mountpoint": "/blocks",
+				"type":       "flatfs",
+				"prefix":     "flatfs.datastore",
+				"path":       "blocks",
+				"sync":       false,
+				"shardFunc":  "/repo/flatfs/shard/v1/next-to-last/2",
+			},
+			map[string]interface{}{
+				"mountpoint":  "/",
+				"type":        "levelds",
+				"prefix":      "leveldb.datastore",
+				"path":        "datastore",
+				"compression": "none",
+			},
+		},
+	}
+}
+
+func flatfsSpecMeasure() map[string]interface{} {
 	return map[string]interface{}{
 		"type": "mount",
 		"mounts": []interface{}{

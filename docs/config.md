@@ -36,6 +36,9 @@ config file at runtime.
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
     - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
+  - [`Bitswap`](#bitswap)
+    - [`Bitswap.Enabled`](#bitswapenabled)
+    - [`Bitswap.ServerEnabled`](#bitswapserverenabled)
   - [`Bootstrap`](#bootstrap)
   - [`Datastore`](#datastore)
     - [`Datastore.StorageMax`](#datastorestoragemax)
@@ -105,6 +108,9 @@ config file at runtime.
           - [`Pinning.RemoteServices: Policies.MFS.Enabled`](#pinningremoteservices-policiesmfsenabled)
           - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
           - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
+  - [`Provider`](#provider)
+    - [`Provider.Strategy`](#providerstrategy)
+    - [`Provider.WorkerCount`](#providerworkercount)
   - [`Pubsub`](#pubsub)
     - [`Pubsub.Enabled`](#pubsubenabled)
     - [`Pubsub.Router`](#pubsubrouter)
@@ -208,8 +214,11 @@ config file at runtime.
     - [`local-discovery` profile](#local-discovery-profile)
     - [`default-networking` profile](#default-networking-profile)
     - [`flatfs` profile](#flatfs-profile)
+    - [`flatfs-measure` profile](#flatfs-measure-profile)
     - [`pebbleds` profile](#pebbleds-profile)
+    - [`pebbleds-measure` profile](#pebbleds-measure-profile)
     - [`badgerds` profile](#badgerds-profile)
+    - [`badgerds-measure` profile](#badgerds-measure-profile)
     - [`lowpower` profile](#lowpower-profile)
     - [`announce-off` profile](#announce-off-profile)
     - [`announce-on` profile](#announce-on-profile)
@@ -376,7 +385,7 @@ secret.
 > The RPC API is vast. It grants admin-level access to your Kubo IPFS node, including
 > configuration and secret key management.
 >
-> - If you need secure access to a subset of RPC, make sure you understand the risk, block everything by default and and allow basic auth access with [`API.Authorizations`](#apiauthorizations) or custom auth middleware running in front of the localhost-only port defined in [`Addresses.API`](#addressesapi).
+> - If you need secure access to a subset of RPC, make sure you understand the risk, block everything by default and allow basic auth access with [`API.Authorizations`](#apiauthorizations) or custom auth middleware running in front of the localhost-only port defined in [`Addresses.API`](#addressesapi).
 > - If you are looking for an interface designed for browsers and public internet, use [`Addresses.Gateway`](#addressesgateway) port instead.
 
 Default: `null`
@@ -621,6 +630,33 @@ Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddy
 
 Type: `optionalString`
 
+## `Bitswap`
+
+High level client and server configuration of the [Bitswap Protocol](https://specs.ipfs.tech/bitswap-protocol/).
+
+For internal configuration see [`Internal.Bitswap`](#internalbitswap).
+
+### `Bitswap.Enabled`
+
+Manages both Bitswap client and server functionality. For testing or operating a node without Bitswap requirements.
+
+> [!WARNING]
+> Bitswap is a core component of Kubo, and disabling it completely may cause unpredictable outcomes. Treat this as experimental and use it solely for testing purposes.
+
+Default: `true`
+
+Type: `flag`
+
+### `Bitswap.ServerEnabled`
+
+Determines whether Kubo functions as a Bitswap server to host and respond to block requests.
+
+Disabling the server retains client and protocol support in libp2p identify responses but causes Kubo to reply with "don't have" to all block requests.
+
+Default: `true`
+
+Type: `flag`
+
 ## `Bootstrap`
 
 Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
@@ -739,6 +775,30 @@ datastores to provide extra functionality (eg metrics, logging, or caching).
 > For more information on possible values for this configuration option, see [`kubo/docs/datastores.md`](datastores.md)
 
 Default:
+```
+{
+  "mounts": [
+  {
+    "mountpoint": "/blocks",
+    "path": "blocks",
+    "prefix": "flatfs.datastore",
+    "shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+    "sync": false,
+    "type": "flatfs"
+  },
+  {
+    "compression": "none",
+    "mountpoint": "/",
+    "path": "datastore",
+    "prefix": "leveldb.datastore",
+    "type": "levelds"
+  }
+  ],
+  "type": "mount"
+}
+```
+
+With `flatfs-measure` profile:
 ```
 {
   "mounts": [
@@ -1129,6 +1189,10 @@ This section includes internal knobs for various subsystems to allow advanced us
 ### `Internal.Bitswap`
 
 `Internal.Bitswap` contains knobs for tuning bitswap resource utilization.
+
+> [!TIP]
+> For high level configuration see [`Bitswap`](#bitswap).
+
 The knobs (below) document how their value should related to each other.
 Whether their values should be raised or lowered should be determined
 based on the metrics `ipfs_bitswap_active_tasks`, `ipfs_bitswap_pending_tasks`,
@@ -1412,6 +1476,39 @@ If left empty, the default interval will be used. Values lower than `1m` will be
 Default: `"5m"`
 
 Type: `duration`
+
+## `Provider`
+
+Configuration applied to the initial one-time announcement of fresh CIDs
+created with `ipfs add`, `ipfs files`, `ipfs dag import`, `ipfs block|dag put`
+commands.
+
+For periodical DHT reprovide settings, see [`Reprovide.*`](#reprovider).
+
+### `Provider.Strategy`
+
+Legacy, not used at the moment, see [`Reprovider.Strategy`](#reproviderstrategy) instead.
+
+### `Provider.WorkerCount`
+
+Sets the maximum number of _concurrent_ DHT provide operations. DHT reprovides
+operations do **not** count against that limit. A value of `0` allows an
+unlimited number of provide workers.
+
+If the [accelerated DHT client](#routingaccelerateddhtclient) is enabled, each
+provide operation opens ~20 connections in parallel. With the standard DHT
+client (accelerated disabled), each provide opens between 20 and 60
+connections, with at most 10 active at once. Provides complete more quickly
+when using the accelerated client. Be mindful of how many simultaneous
+connections this setting can generate.
+
+For nodes without strict connection limits that need to provide large volumes
+of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
+setting `Provider.WorkerCount` to `0` (unlimited).
+
+Default: `64`
+
+Type: `integer` (non-negative; `0` means unlimited number of workers)
 
 ## `Pubsub`
 
@@ -2845,9 +2942,13 @@ You should use this datastore if:
 > [!NOTE]
 > See caveats and configuration options at [`datastores.md#flatfs`](datastores.md#flatfs)
 
+### `flatfs-measure` profile
+
+Configures the node to use the flatfs datastore with metrics. This is the same as [`flatfs` profile](#flatfs-profile) with the addition of the `measure` datastore wrapper.
+
 ### `pebbleds` profile
 
-Configures the node to use the **EXPERIMENTAL** pebble high-performance datastore.
+Configures the node to use the pebble high-performance datastore.
 
 Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and internal usage by CockroachDB.
 You should use this datastore if:
@@ -2864,6 +2965,10 @@ You should use this datastore if:
 
 > [!NOTE]
 > See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
+
+### `pebbleds-measure` profile
+
+Configures the node to use the pebble datastore with metrics. This is the same as [`pebbleds` profile](#pebble-profile) with the addition of the `measure` datastore wrapper.
 
 ### `badgerds` profile
 
@@ -2889,6 +2994,10 @@ Also, be aware that:
 
 > [!NOTE]
 > See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
+
+### `badgerds-measure` profile
+
+Configures the node to use the **legacy** badgerv1 datastore with metrics. This is the same as [`badgerds` profile](#badger-profile) with the addition of the `measure` datastore wrapper.
 
 ### `lowpower` profile
 

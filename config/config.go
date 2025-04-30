@@ -43,6 +43,8 @@ type Config struct {
 	Version       Version
 
 	Internal Internal // experimental/unstable options
+
+	Bitswap Bitswap `json:",omitempty"`
 }
 
 const (
