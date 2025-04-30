@@ -152,7 +152,7 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 	},
 	"flatfs-measure": {
 		Description: `Configures the node to use the flatfs datastore with metrics tracking wrapper.
-Additonal '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
 
 NOTE: This profile may only be applied when first initializing node at IPFS_PATH
       via 'ipfs init --profile flatfs-measure'
@@ -192,7 +192,7 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 	},
 	"pebbleds-measure": {
 		Description: `Configures the node to use the pebble datastore with metrics tracking wrapper.
-Additonal '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
 
 NOTE: This profile may only be applied when first initializing node at IPFS_PATH
       via 'ipfs init --profile pebbleds-measure'
@@ -235,7 +235,7 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 	},
 	"badgerds-measure": {
 		Description: `Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
-Additonal '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
 
 NOTE: This profile may only be applied when first initializing node at IPFS_PATH
       via 'ipfs init --profile badgerds-measure'
