@@ -168,7 +168,7 @@ type noopExchange struct {
 }
 
 func (e *noopExchange) GetBlock(ctx context.Context, c cid.Cid) (blocks.Block, error) {
-	return nil, ipld.ErrNotFound{c}
+	return nil, ipld.ErrNotFound{Cid: c}
 }
 
 func (e *noopExchange) GetBlocks(ctx context.Context, cids []cid.Cid) (<-chan blocks.Block, error) {
