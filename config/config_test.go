@@ -134,9 +134,9 @@ func TestCheckKey(t *testing.T) {
 		t.Fatal("Foo.Bar isn't a valid key in the config")
 	}
 
-	err = CheckKey("Provider.Strategy")
+	err = CheckKey("Reprovider.Strategy")
 	if err != nil {
-		t.Fatalf("%s: %s", err, "Provider.Strategy is a valid key in the config")
+		t.Fatalf("%s: %s", err, "Reprovider.Strategy is a valid key in the config")
 	}
 
 	err = CheckKey("Provider.Foo")

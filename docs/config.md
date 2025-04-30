@@ -105,6 +105,9 @@ config file at runtime.
           - [`Pinning.RemoteServices: Policies.MFS.Enabled`](#pinningremoteservices-policiesmfsenabled)
           - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
           - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
+  - [`Provider`](#provider)
+    - [`Provider.Strategy`](#providerstrategy)
+    - [`Provider.WorkerCount`](#providerworkercount)
   - [`Pubsub`](#pubsub)
     - [`Pubsub.Enabled`](#pubsubenabled)
     - [`Pubsub.Router`](#pubsubrouter)
@@ -207,6 +210,7 @@ config file at runtime.
     - [`announce-on` profile](#announce-on-profile)
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
     - [`test-cid-v1` profile](#test-cid-v1-profile)
+    - [`test-cid-v1-wide` profile](#test-cid-v1-wide-profile)
   - [Types](#types)
     - [`flag`](#flag)
     - [`priority`](#priority)
@@ -1403,6 +1407,39 @@ If left empty, the default interval will be used. Values lower than `1m` will be
 Default: `"5m"`
 
 Type: `duration`
+
+## `Provider`
+
+Configuration applied to the initial one-time announcement of fresh CIDs
+created with `ipfs add`, `ipfs files`, `ipfs dag import`, `ipfs block|dag put`
+commands.
+
+For periodical DHT reprovide settings, see [`Reprovide.*`](#reprovider).
+
+### `Provider.Strategy`
+
+Legacy, not used at the moment, see [`Reprovider.Strategy`](#reproviderstrategy) instead.
+
+### `Provider.WorkerCount`
+
+Sets the maximum number of _concurrent_ DHT provide operations. DHT reprovides
+operations do **not** count against that limit. A value of `0` allows an
+unlimited number of provide workers.
+
+If the [accelerated DHT client](#routingaccelerateddhtclient) is enabled, each
+provide operation opens ~20 connections in parallel. With the standard DHT
+client (accelerated disabled), each provide opens between 20 and 60
+connections, with at most 10 active at once. Provides complete more quickly
+when using the accelerated client. Be mindful of how many simultaneous
+connections this setting can generate.
+
+For nodes without strict connection limits that need to provide large volumes
+of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
+setting `Provider.WorkerCount` to `0` (unlimited).
+
+Default: `64`
+
+Type: `integer` (non-negative; `0` means unlimited number of workers)
 
 ## `Pubsub`
 
