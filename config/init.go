@@ -142,9 +142,10 @@ func DefaultDatastoreConfig() Datastore {
 
 func pebbleSpec() map[string]interface{} {
 	return map[string]interface{}{
-		"type":   "pebbleds",
-		"prefix": "pebble.datastore",
-		"path":   "pebbleds",
+		"type":               "pebbleds",
+		"prefix":             "pebble.datastore",
+		"path":               "pebbleds",
+		"formatMajorVersion": int(pebble.FormatNewest),
 	}
 }
 
