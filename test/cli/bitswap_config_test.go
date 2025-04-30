@@ -96,6 +96,7 @@ func TestBitswapConfig(t *testing.T) {
 		requester.Connect(provider)
 		res := requester.RunIPFS("cat", hash)
 		assert.Equal(t, []byte{}, res.Stdout.Bytes(), "cat should not return any data")
+		assert.Contains(t, res.Stderr.String(), "Error: ipld: could not find")
 
 		// Verify that basic operations still work with bitswap disabled
 		res = requester.IPFS("id")
@@ -111,6 +112,7 @@ func TestBitswapConfig(t *testing.T) {
 		assert.Equal(t, []byte("random"), res.Stdout.Bytes(), "cat should return the added data")
 	})
 
+	// TODO: Disabling Bitswap.Enabled should remove /ifps/bitswap* protocols from `ipfs id`
 	// t.Run("bitswap protocols disabled", func(t *testing.T) {
 	// 	t.Parallel()
 	// 	harness.EnableDebugLogging()

@@ -15,6 +15,7 @@ import (
 	rpqm "github.com/ipfs/boxo/routing/providerquerymanager"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -167,7 +168,7 @@ type noopExchange struct {
 }
 
 func (e *noopExchange) GetBlock(ctx context.Context, c cid.Cid) (blocks.Block, error) {
-	return nil, nil
+	return nil, ipld.ErrNotFound{c}
 }
 
 func (e *noopExchange) GetBlocks(ctx context.Context, cids []cid.Cid) (<-chan blocks.Block, error) {
