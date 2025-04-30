@@ -49,7 +49,6 @@ future.
 			wtr := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
 			defer wtr.Flush()
 
-
 			fmt.Fprintf(wtr, "TotalProvides:\t%s\n", humanNumber(s.TotalReprovides))
 			fmt.Fprintf(wtr, "AvgProvideDuration:\t%s\n", humanDuration(s.AvgReprovideDuration))
 			fmt.Fprintf(wtr, "LastReprovideDuration:\t%s\n", humanDuration(s.LastReprovideDuration))
