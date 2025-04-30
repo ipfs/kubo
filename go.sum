@@ -564,8 +564,8 @@ github.com/libp2p/go-libp2p-kbucket v0.3.1/go.mod h1:oyjT5O7tS9CQurok++ERgc46YLw
 github.com/libp2p/go-libp2p-kbucket v0.7.0 h1:vYDvRjkyJPeWunQXqcW2Z6E93Ywx7fX0jgzb/dGOKCs=
 github.com/libp2p/go-libp2p-kbucket v0.7.0/go.mod h1:blOINGIj1yiPYlVEX0Rj9QwEkmVnz3EP8LK1dRKBC6g=
 github.com/libp2p/go-libp2p-peerstore v0.1.4/go.mod h1:+4BDbDiiKf4PzpANZDAT+knVdLxvqh7hXOujessqdzs=
-github.com/libp2p/go-libp2p-pubsub v0.13.0 h1:RmFQ2XAy3zQtbt2iNPy7Tt0/3fwTnHpCQSSnmGnt1Ps=
-github.com/libp2p/go-libp2p-pubsub v0.13.0/go.mod h1:m0gpUOyrXKXdE7c8FNQ9/HLfWbxaEw7xku45w+PaqZo=
+github.com/libp2p/go-libp2p-pubsub v0.13.1 h1:tV3ttzzZSCk0EtEXnxVmWIXgjVxXx+20Jwjbs/Ctzjo=
+github.com/libp2p/go-libp2p-pubsub v0.13.1/go.mod h1:MKPU5vMI8RRFyTP0HfdsF9cLmL1nHAeJm44AxJGJx44=
 github.com/libp2p/go-libp2p-pubsub-router v0.6.0 h1:D30iKdlqDt5ZmLEYhHELCMRj8b4sFAqrUcshIUvVP/s=
 github.com/libp2p/go-libp2p-pubsub-router v0.6.0/go.mod h1:FY/q0/RBTKsLA7l4vqC2cbRbOvyDotg8PJQ7j8FDudE=
 github.com/libp2p/go-libp2p-record v0.3.1 h1:cly48Xi5GjNw5Wq+7gmjfBiG9HCzQVkiZOUZ8kUl+Fg=
