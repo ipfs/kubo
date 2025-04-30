@@ -150,6 +150,20 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 			return nil
 		},
 	},
+	"flatfs-measure": {
+		Description: `Configures the node to use the flatfs datastore with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = flatfsSpecMeasure()
+			return nil
+		},
+	},
 	"pebbleds": {
 		Description: `Configures the node to use the pebble high-performance datastore.
 
@@ -173,6 +187,20 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 		InitOnly: true,
 		Transform: func(c *Config) error {
 			c.Datastore.Spec = pebbleSpec()
+			return nil
+		},
+	},
+	"pebbleds-measure": {
+		Description: `Configures the node to use the pebble datastore with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile pebbleds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = pebbleSpecMeasure()
 			return nil
 		},
 	},
@@ -202,6 +230,20 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 		InitOnly: true,
 		Transform: func(c *Config) error {
 			c.Datastore.Spec = badgerSpec()
+			return nil
+		},
+	},
+	"badgerds-measure": {
+		Description: `Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile badgerds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = badgerSpecMeasure()
 			return nil
 		},
 	},

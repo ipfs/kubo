@@ -203,8 +203,11 @@ config file at runtime.
     - [`local-discovery` profile](#local-discovery-profile)
     - [`default-networking` profile](#default-networking-profile)
     - [`flatfs` profile](#flatfs-profile)
+    - [`flatfs-measure` profile](#flatfs-measure-profile)
     - [`pebbleds` profile](#pebbleds-profile)
+    - [`pebbleds-measure` profile](#pebbleds-measure-profile)
     - [`badgerds` profile](#badgerds-profile)
+    - [`badgerds-measure` profile](#badgerds-measure-profile)
     - [`lowpower` profile](#lowpower-profile)
     - [`announce-off` profile](#announce-off-profile)
     - [`announce-on` profile](#announce-on-profile)
@@ -734,6 +737,30 @@ datastores to provide extra functionality (eg metrics, logging, or caching).
 > For more information on possible values for this configuration option, see [`kubo/docs/datastores.md`](datastores.md)
 
 Default:
+```
+{
+  "mounts": [
+  {
+    "mountpoint": "/blocks",
+    "path": "blocks",
+    "prefix": "flatfs.datastore",
+    "shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+    "sync": false,
+    "type": "flatfs"
+  },
+  {
+    "compression": "none",
+    "mountpoint": "/",
+    "path": "datastore",
+    "prefix": "leveldb.datastore",
+    "type": "levelds"
+  }
+  ],
+  "type": "mount"
+}
+```
+
+With `flatfs-measure` profile:
 ```
 {
   "mounts": [
@@ -2773,9 +2800,13 @@ You should use this datastore if:
 > [!NOTE]
 > See caveats and configuration options at [`datastores.md#flatfs`](datastores.md#flatfs)
 
+### `flatfs-measure` profile
+
+Configures the node to use the flatfs datastore with metrics. This is the same as [`flatfs` profile](#flatfs-profile) with the addition of the `measure` datastore wrapper.
+
 ### `pebbleds` profile
 
-Configures the node to use the **EXPERIMENTAL** pebble high-performance datastore.
+Configures the node to use the pebble high-performance datastore.
 
 Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and internal usage by CockroachDB.
 You should use this datastore if:
@@ -2792,6 +2823,10 @@ You should use this datastore if:
 
 > [!NOTE]
 > See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
+
+### `pebbleds-measure` profile
+
+Configures the node to use the pebble datastore with metrics. This is the same as [`pebbleds` profile](#pebble-profile) with the addition of the `measure` datastore wrapper.
 
 ### `badgerds` profile
 
@@ -2817,6 +2852,10 @@ Also, be aware that:
 
 > [!NOTE]
 > See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
+
+### `badgerds-measure` profile
+
+Configures the node to use the **legacy** badgerv1 datastore with metrics. This is the same as [`badgerds` profile](#badger-profile) with the addition of the `measure` datastore wrapper.
 
 ### `lowpower` profile
 

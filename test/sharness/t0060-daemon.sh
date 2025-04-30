@@ -8,7 +8,7 @@ test_description="Test daemon command"
 
 . lib/test-lib.sh
 
-test_expect_success "create badger config" '
+test_expect_success "create pebble config" '
   ipfs init --profile=pebbleds,test > /dev/null &&
   cp "$IPFS_PATH/config" init-config
 '
@@ -21,7 +21,7 @@ test_launch_ipfs_daemon --init --init-config="$(pwd)/init-config" --init-profile
 test_kill_ipfs_daemon
 
 test_expect_success "daemon initialization with existing config works" '
-  ipfs config "Datastore.Spec.child.path" >actual &&
+  ipfs config "Datastore.Spec.path" >actual &&
   test $(cat actual) = "pebbleds" &&
   ipfs config Addresses > orig_addrs
 '

@@ -214,6 +214,27 @@ test_init_ipfs() {
 
 }
 
+test_init_ipfs_measure() {
+  args=("$@")
+
+  # we set the Addresses.API config variable.
+  # the cli client knows to use it, so only need to set.
+  # todo: in the future, use env?
+
+  test_expect_success "ipfs init succeeds" '
+    export IPFS_PATH="$(pwd)/.ipfs" &&
+    ipfs init "${args[@]}" --profile=test,flatfs-measure > /dev/null
+  '
+
+  test_expect_success "prepare config -- mounting" '
+    mkdir mountdir ipfs ipns &&
+    test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
+    test_config_set Mounts.IPNS "$(pwd)/ipns" ||
+    test_fsh cat "\"$IPFS_PATH/config\""
+  '
+
+}
+
 test_wait_for_file() {
   loops=$1
   delay=$2
