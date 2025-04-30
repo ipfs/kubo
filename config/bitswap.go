@@ -7,3 +7,8 @@ type Bitswap struct {
 	// ServerEnabled controls if the node responds to WANTs (depends on Enabled, enabled by default)
 	ServerEnabled Flag `json:",omitempty"`
 }
+
+const (
+	DefaultBitswapEnabled       = true
+	DefaultBitswapServerEnabled = true
+)
