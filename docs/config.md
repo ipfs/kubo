@@ -1836,15 +1836,19 @@ Type: `bool` (missing means `false`)
 
 ### `Routing.IgnoreProviders`
 
-An array of peerIDs. Any provider record associated to one of these peer IDs is ignored.
+An array of [string-encoded PeerIDs](https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#string-representation). Any provider record associated to one of these peer IDs is ignored.
 
 Apart from ignoring specific providers for reasons like misbehaviour etc. this
 setting is useful to ignore providers as a way to indicate preference, when the same provider
 is found under different peerIDs (i.e. one for HTTP and one for Bitswap retrieval).
 
+> [!TIP]
+> This denylist operates on PeerIDs.
+> To deny specific HTTP Provider URL, use [`HTTPRetrieval.Denylist`](#httpretrievaldenylist) instead.
+
 Default: `[]`
 
-Type: `array[peerID]`
+Type: `array[string]`
 
 ### `Routing.DelegatedRouters`
 
@@ -2669,7 +2673,7 @@ Denylist entries take precedence over Allowlist entries.
 
 > [!TIP]
 > This denylist operates on HTTP endpoint hostnames.
-> To deny specific PeerID, use `Routing.IgnoreProviders` instead.
+> To deny specific PeerID, use [`Routing.IgnoreProviders`](#routingignoreproviders) instead.
 
 Default: `[]`
 

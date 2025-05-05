@@ -22,6 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestHTTPRetrievalClient uses local /routing/v1/providers/{cid} and
+// /ipfs/{cid} HTTP servers to confirm HTTP-only retrieval works end-to-end.
 func TestHTTPRetrievalClient(t *testing.T) {
 	t.Parallel()
 
@@ -85,12 +87,6 @@ func TestHTTPRetrievalClient(t *testing.T) {
 	// First, confirm delegatedRoutingServer returned HTTP provider
 	findprovsRes := node.IPFS("routing", "findprovs", testCid.String())
 	assert.Equal(t, mockHTTPProviderPeerID, findprovsRes.Stdout.Trimmed())
-
-	// Second, confirm peer Multiaddr
-	/* TODO
-	findpeerRes := node.IPFS("routing", "findpeer", mockHTTPProviderPeerID)
-	assert.Equal(t, mockHTTPProviderPeerID, findpeerRes.Stdout.Trimmed())
-	*/
 
 	// Ok, now attempt retrieval.
 	// If there was no timeout and returned bytes match expected body, HTTP routing and retrieval worked end-to-end.

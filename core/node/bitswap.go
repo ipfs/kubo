@@ -23,7 +23,7 @@ import (
 	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"
-	"github.com/libp2p/go-libp2p/core/routing"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 	"go.uber.org/fx"
 
 	blocks "github.com/ipfs/go-block-format"
@@ -107,31 +107,39 @@ func Bitswap(provide bool) interface{} {
 			bitswapNetworks = bitswapLibp2p
 		}
 
-		var provider routing.ContentDiscovery
-
-		if provide {
-			var maxProviders int = DefaultMaxProviders
-			if in.Cfg.Internal.Bitswap != nil {
-				maxProviders = int(in.Cfg.Internal.Bitswap.ProviderSearchMaxResults.WithDefault(DefaultMaxProviders))
-			}
-			pqm, err := rpqm.New(bitswapLibp2p,
-				in.Rt,
-				rpqm.WithMaxProviders(maxProviders),
-				rpqm.WithIgnoreProviders(in.Cfg.Routing.IgnoreProviders...),
-			)
+		// Kubo uses own, customized ProviderQueryManager
+		in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
+		var maxProviders int = DefaultMaxProviders
+		if in.Cfg.Internal.Bitswap != nil {
+			maxProviders = int(in.Cfg.Internal.Bitswap.ProviderSearchMaxResults.WithDefault(DefaultMaxProviders))
+		}
+		ignoredPeerIDs := make([]peer.ID, 0, len(in.Cfg.Routing.IgnoreProviders))
+		for _, str := range in.Cfg.Routing.IgnoreProviders {
+			pid, err := peer.Decode(str)
 			if err != nil {
 				return nil, err
 			}
-			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
+			ignoredPeerIDs = append(ignoredPeerIDs, pid)
+		}
+		providerQueryMgr, err := rpqm.New(bitswapNetworks,
+			in.Rt,
+			rpqm.WithMaxProviders(maxProviders),
+			rpqm.WithIgnoreProviders(ignoredPeerIDs...),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Explicitly enable/disable server to ensure desired provide mode
+		if provide {
 			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithServerEnabled(true))
-			provider = pqm
 		} else {
-			provider = nil
+			// TODO: do we need custom blockstore here? is it creating memory leak?
 			// When server is disabled, use an empty blockstore to prevent serving blocks
 			bitswapBlockstore = blockstore.NewBlockstore(datastore.NewMapDatastore())
 			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithServerEnabled(false))
 		}
-		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetworks, provider, bitswapBlockstore, in.BitswapOpts...)
+		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetworks, providerQueryMgr, bitswapBlockstore, in.BitswapOpts...)
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {

@@ -6,8 +6,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-
-	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 const (
@@ -48,7 +46,7 @@ type Routing struct {
 
 	LoopbackAddressesOnLanDHT Flag `json:",omitempty"`
 
-	IgnoreProviders []peer.ID `json:",omitempty"`
+	IgnoreProviders []string `json:",omitempty"`
 
 	DelegatedRouters []string `json:",omitempty"`
 
