@@ -37,7 +37,7 @@ test_expect_success "'ipfs mount' output looks good" '
 '
 
 test_expect_success "setup and publish default IPNS value" '
-  mkdir "$(pwd)/ipfs" "$(pwd)/ipns" &&
+  mkdir "$(pwd)/ipfs" "$(pwd)/ipns" "$(pwd)/mfs" &&
   ipfsi 0 name publish QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
 '
 
@@ -46,12 +46,14 @@ test_expect_success "setup and publish default IPNS value" '
 test_expect_success FUSE "'ipfs mount' succeeds" '
   do_umount "$(pwd)/ipfs" || true &&
   do_umount "$(pwd)/ipns" || true &&
-  ipfsi 0 mount -f "$(pwd)/ipfs" -n "$(pwd)/ipns" >actual
+  do_umount "$(pwd)/mfs" || true &&
+  ipfsi 0 mount -f "$(pwd)/ipfs" -n "$(pwd)/ipns" -m "$(pwd)/mfs" >actual
 '
 
 test_expect_success FUSE "'ipfs mount' output looks good" '
   echo "IPFS mounted at: $(pwd)/ipfs" >expected &&
   echo "IPNS mounted at: $(pwd)/ipns" >>expected &&
+  echo "MFS mounted at: $(pwd)/mfs" >>expected &&
   test_cmp expected actual
 '
 
@@ -67,13 +69,45 @@ test_expect_success FUSE "can resolve ipns names" '
   test_cmp expected actual
 '
 
+test_expect_success FUSE "create mfs file" '
+  touch mfs/testfile &&
+  ipfs files ls | grep testfile
+'
+
+test_expect_success FUSE "create mfs dir" '
+  mkdir mfs/testdir &&
+  ipfs files ls | grep testdir
+'
+
+test_expect_success FUSE "read mfs file from fuse" '
+  echo content | ipfs files write -e /testfile &&
+  cat mfs/testfile | grep content
+'
+
+test_expect_success FUSE "test file xattr" '
+  echo content > mfs/testfile &&
+  getfattr -n ipfs_cid mfs/testfile
+'
+
+test_expect_success FUSE "test file removal" '
+  touch mfs/testfile &&
+  rm mfs/testfile
+'
+
+test_expect_success FUSE "test nested dirs" '
+  mkdir -p mfs/foo/bar/baz/qux &&
+  echo content > mfs/foo/bar/baz/qux/quux &&
+  ipfs files stat /foo/bar/baz/qux/quux
+'
+
 test_expect_success "mount directories cannot be removed while active" '
-  test_must_fail rmdir ipfs ipns 2>/dev/null
+  test_must_fail rmdir ipfs ipns mfs 2>/dev/null
 '
 
 test_expect_success "unmount directories" '
   do_umount "$(pwd)/ipfs" &&
-  do_umount "$(pwd)/ipns"
+  do_umount "$(pwd)/ipns" &&
+  do_umount "$(pwd)/mfs"
 '
 
 test_expect_success "mount directories can be removed after shutdown" '

@@ -63,7 +63,7 @@ test_filestore_adds() {
 
 init_ipfs_filestore() {
   test_expect_success "clean up old node" '
-    rm -rf "$IPFS_PATH" mountdir ipfs ipns
+    rm -rf "$IPFS_PATH" mountdir ipfs ipns mfs
   '
 
   test_init_ipfs
