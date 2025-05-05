@@ -1848,7 +1848,7 @@ Type: `array[peerID]`
 
 ### `Routing.DelegatedRouters`
 
-This is an array of URL hostnames that support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) will be used alongside the DHT when [`Routing.Type`](#routingtype) is set to `auto` or `autoclient`.
+This is an array of URL hostnames that support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) which are used alongside the DHT when [`Routing.Type`](#routingtype) is set to `auto` or `autoclient`.
 
 > [!TIP]
 > Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
@@ -2655,7 +2655,7 @@ Optional list of hostnames for which HTTP retrieval is allowed for.
 If this list is not empty, only hosts matching these entries will be allowed for HTTP retrieval.
 
 > [!TIP]
-> To limit HTTP retrieval to a provider at `/dns4/example.com/tcp/443/tls/http` (which would serve `HEAD|GET https://exmaple.com/ipfs/cid?format=raw`), set this to `["example.com"]`
+> To limit HTTP retrieval to a provider at `/dns4/example.com/tcp/443/tls/http` (which would serve `HEAD|GET https://example.com/ipfs/cid?format=raw`), set this to `["example.com"]`
 
 Default: `[]`
 
@@ -2663,8 +2663,13 @@ Type: `array[string]`
 
 ### `HTTPRetrieval.Denylist`
 
-Optional list of hostnames for which HTTP retrieval is allowed for.
+Optional list of hostnames for which HTTP retrieval is not allowed.
 Denylist entries take precedence over Allowlist entries.
+
+
+> [!TIP]
+> This denylist operates on HTTP endpoint hostnames.
+> To deny specific PeerID, use `Routing.IgnoreProviders` instead.
 
 Default: `[]`
 
