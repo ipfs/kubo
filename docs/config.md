@@ -97,6 +97,7 @@ config file at runtime.
   - [`Mounts`](#mounts)
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
+    - [`Mounts.MFS`](#mountsmfs)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
   - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
@@ -1368,7 +1369,8 @@ Default: `cache`
 
 ## `Mounts`
 
-**EXPERIMENTAL:** read about current limitations at [fuse.md](./fuse.md).
+> [!CAUTION]
+> **EXPERIMENTAL:** read about current limitations at [fuse.md](./fuse.md).
 
 FUSE mount point configuration options.
 
@@ -1390,7 +1392,10 @@ Type: `string` (filesystem path)
 
 ### `Mounts.MFS`
 
-Mountpoint for `/mfs/`.
+Mountpoint for Mutable File System (MFS) behind the `ipfs files` API.
+
+> [!CAUTION]
+> Write support is highly experimental. Do not use for mission-critical deployments.
 
 Default: `/mfs`
 
