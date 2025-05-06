@@ -1395,7 +1395,8 @@ Type: `string` (filesystem path)
 Mountpoint for Mutable File System (MFS) behind the `ipfs files` API.
 
 > [!CAUTION]
-> Write support is highly experimental. Do not use for mission-critical deployments.
+> - Write support is highly experimental and not recommended for mission-critical deployments.
+> - Avoid storing lazy-loaded datasets in MFS. Exposing a partially local, lazy-loaded DAG risks operating system search indexers crawling it, which may trigger unintended network prefetching of non-local DAG components.
 
 Default: `/mfs`
 
