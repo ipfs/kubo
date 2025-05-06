@@ -97,6 +97,7 @@ config file at runtime.
   - [`Mounts`](#mounts)
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
+    - [`Mounts.MFS`](#mountsmfs)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
   - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
@@ -1368,7 +1369,8 @@ Default: `cache`
 
 ## `Mounts`
 
-**EXPERIMENTAL:** read about current limitations at [fuse.md](./fuse.md).
+> [!CAUTION]
+> **EXPERIMENTAL:** read about current limitations at [fuse.md](./fuse.md).
 
 FUSE mount point configuration options.
 
@@ -1385,6 +1387,18 @@ Type: `string` (filesystem path)
 Mountpoint for `/ipns/`.
 
 Default: `/ipns`
+
+Type: `string` (filesystem path)
+
+### `Mounts.MFS`
+
+Mountpoint for Mutable File System (MFS) behind the `ipfs files` API.
+
+> [!CAUTION]
+> - Write support is highly experimental and not recommended for mission-critical deployments.
+> - Avoid storing lazy-loaded datasets in MFS. Exposing a partially local, lazy-loaded DAG risks operating system search indexers crawling it, which may trigger unintended network prefetching of non-local DAG components.
+
+Default: `/mfs`
 
 Type: `string` (filesystem path)
 

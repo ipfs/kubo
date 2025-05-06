@@ -2,7 +2,7 @@
 
 **EXPERIMENTAL:** FUSE support is limited, YMMV.
 
-Kubo makes it possible to mount `/ipfs` and `/ipns` namespaces in your OS,
+Kubo makes it possible to mount `/ipfs`, `/ipns` and `/mfs` namespaces in your OS,
 allowing arbitrary apps access to IPFS.
 
 ## Install FUSE
@@ -50,18 +50,20 @@ speak with us, or if you figure something new out, please add to this document!
 
 ## Prepare mountpoints
 
-By default ipfs uses `/ipfs` and `/ipns` directories for mounting, this can be
-changed in config. You will have to create the `/ipfs` and `/ipns` directories
+By default ipfs uses `/ipfs`, `/ipns` and `/mfs` directories for mounting, this can be
+changed in config. You will have to create the `/ipfs`, `/ipns` and `/mfs` directories
 explicitly. Note that modifying root requires sudo permissions.
 
 ```sh
 # make the directories
 sudo mkdir /ipfs
 sudo mkdir /ipns
+sudo mkdir /mfs
 
 # chown them so ipfs can use them without root permissions
 sudo chown <username> /ipfs
 sudo chown <username> /ipns
+sudo chown <username> /mfs
 ```
 
 Depending on whether you are using OSX or Linux, follow the proceeding instructions. 
@@ -105,6 +107,25 @@ ipfs config --json Mounts.FuseAllowOther true
 ipfs daemon --mount
 ```
 
+## MFS mountpoint
+
+Kubo v0.35.0 and later supports mounting the MFS (Mutable File System) root as
+a FUSE filesystem, enabling manipulation of content-addressed data like regular
+files. The CID for any file or directory is retrievable via the `ipfs_cid`
+extended attribute.
+
+```sh
+getfattr -n ipfs_cid /mfs/welcome-to-IPFS.jpg 
+getfattr: Removing leading '/' from absolute path names
+# file: mfs/welcome-to-IPFS.jpg
+ipfs_cid="QmaeXDdwpUeKQcMy7d5SFBfVB4y7LtREbhm5KizawPsBSH"
+```
+
+Please note that the operations supported by the MFS FUSE mountpoint are
+limited. Since the MFS wasn't designed to store file attributes like ownership
+information, permissions and creation date, some applications like `vim` and
+`sed` may misbehave due to missing functionality.
+
 ## Troubleshooting
 
 #### `Permission denied` or `fusermount: user has no write access to mountpoint` error in Linux
@@ -145,6 +166,7 @@ set for user running `ipfs mount` command.
 ```
 sudo umount /ipfs
 sudo umount /ipns
+sudo umount /mfs
 ```
 
 #### Mounting fails with "error mounting: could not resolve name"

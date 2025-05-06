@@ -4,5 +4,6 @@ package config
 type Mounts struct {
 	IPFS           string
 	IPNS           string
+	MFS            string
 	FuseAllowOther bool
 }

@@ -167,7 +167,7 @@ func TestBitswapConfig(t *testing.T) {
 		node.UpdateConfig(func(cfg *config.Config) {
 			cfg.HTTPRetrieval.Enabled = config.False
 			cfg.Bitswap.Libp2pEnabled = config.False
-			cfg.Bitswap.ServerEnabled = config.True // bad user config: cant enable server when libp2p is down
+			cfg.Bitswap.ServerEnabled = config.True // bad user config: can't enable server when libp2p is down
 		})
 		res := node.RunIPFS("daemon")
 		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Bitswap.Libp2pEnabled and HTTPRetrieval.Enabled are both disabled, unable to initialize Bitswap")

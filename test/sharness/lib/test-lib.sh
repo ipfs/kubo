@@ -206,9 +206,10 @@ test_init_ipfs() {
   '
 
   test_expect_success "prepare config -- mounting" '
-    mkdir mountdir ipfs ipns &&
+    mkdir mountdir ipfs ipns mfs &&
     test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
-    test_config_set Mounts.IPNS "$(pwd)/ipns" ||
+    test_config_set Mounts.IPNS "$(pwd)/ipns" &&
+    test_config_set Mounts.MFS "$(pwd)/mfs" ||
     test_fsh cat "\"$IPFS_PATH/config\""
   '
 
@@ -321,12 +322,14 @@ test_mount_ipfs() {
   test_expect_success FUSE "'ipfs mount' succeeds" '
     do_umount "$(pwd)/ipfs" || true &&
     do_umount "$(pwd)/ipns" || true &&
+    do_umount "$(pwd)/mfs" || true &&
     ipfs mount >actual
   '
 
   test_expect_success FUSE "'ipfs mount' output looks good" '
     echo "IPFS mounted at: $(pwd)/ipfs" >expected &&
     echo "IPNS mounted at: $(pwd)/ipns" >>expected &&
+    echo "MFS mounted at: $(pwd)/mfs" >>expected &&
     test_cmp expected actual
   '
 
