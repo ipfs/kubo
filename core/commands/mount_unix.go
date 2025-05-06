@@ -26,14 +26,14 @@ var MountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Mounts IPFS to the filesystem (read-only).",
 		ShortDescription: `
-Mount IPFS at a read-only mountpoint on the OS (default: /ipfs and /ipns).
+Mount IPFS at a read-only mountpoint on the OS (default: /ipfs, /ipns, /mfs).
 All IPFS objects will be accessible under that directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
 You may have to create /ipfs and /ipns before using 'ipfs mount':
 
-> sudo mkdir /ipfs /ipns
-> sudo chown $(whoami) /ipfs /ipns
+> sudo mkdir /ipfs /ipns /mfs
+> sudo chown $(whoami) /ipfs /ipns /mfs
 > ipfs daemon &
 > ipfs mount
 `,
@@ -45,8 +45,8 @@ root will not be listable, as it is virtual. Access known paths directly.
 
 You may have to create /ipfs and /ipns before using 'ipfs mount':
 
-> sudo mkdir /ipfs /ipns
-> sudo chown $(whoami) /ipfs /ipns
+> sudo mkdir /ipfs /ipns /mfs
+> sudo chown $(whoami) /ipfs /ipns /mfs
 > ipfs daemon &
 > ipfs mount
 
@@ -68,6 +68,7 @@ baz
 > ipfs mount
 IPFS mounted at: /ipfs
 IPNS mounted at: /ipns
+MFS  mounted at: /mfs
 > cd /ipfs/QmSh5e7S6fdcu75LAbXNZAFY2nGyZUJXyLCJDvn2zRkWyC
 > ls
 bar
@@ -113,7 +114,7 @@ baz
 
 		mfsdir, found := req.Options[mountMFSPathOptionName].(string)
 		if !found {
-			nsdir = cfg.Mounts.MFS
+			mfsdir = cfg.Mounts.MFS
 		}
 
 		err = nodeMount.Mount(nd, fsdir, nsdir, mfsdir)
@@ -124,6 +125,7 @@ baz
 		var output config.Mounts
 		output.IPFS = fsdir
 		output.IPNS = nsdir
+		output.MFS = mfsdir
 		return cmds.EmitOnce(res, &output)
 	},
 	Type: config.Mounts{},
