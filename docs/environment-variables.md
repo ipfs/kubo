@@ -149,6 +149,15 @@ Default: `config.DefaultHTTPRoutersFilterProtocols`
 Disables the content-blocking subsystem. No denylists will be watched and no
 content will be blocked.
 
+## `IPFS_WAIT_REPO_LOCK`
+
+Specifies the amount of time to wait for the repo lock. Set the value of this variable to a string that can be [parsed](https://pkg.go.dev/time@go1.24.3#ParseDuration) as a golang `time.Duration`. For example:
+```
+IPFS_WAIT_REPO_LOCK="15s"
+```
+
+If the lock cannot be acquired because someone else has the lock, and `IPFS_WAIT_REPO_LOCK` is set to a valid value, then acquiring the lock is retried every second until the lock is acquired or the specified wait time has elapsed.
+
 ## `LIBP2P_TCP_REUSEPORT`
 
 Kubo tries to reuse the same source port for all connections to improve NAT
