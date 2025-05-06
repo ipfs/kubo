@@ -16,7 +16,7 @@ to your distribution manual to get things working.
 
 Install `fuse` with your favorite package manager:
 ```
-sudo apt-get install fuse
+sudo apt-get install fuse3
 ```
 
 On some older Linux distributions, you may need to add yourself to the `fuse` group.  

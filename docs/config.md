@@ -36,6 +36,9 @@ config file at runtime.
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
     - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
+  - [`Bitswap`](#bitswap)
+    - [`Bitswap.Libp2pEnabled`](#bitswaplibp2penabled)
+    - [`Bitswap.ServerEnabled`](#bitswapserverenabled)
   - [`Bootstrap`](#bootstrap)
   - [`Datastore`](#datastore)
     - [`Datastore.StorageMax`](#datastorestoragemax)
@@ -105,6 +108,9 @@ config file at runtime.
           - [`Pinning.RemoteServices: Policies.MFS.Enabled`](#pinningremoteservices-policiesmfsenabled)
           - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
           - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
+  - [`Provider`](#provider)
+    - [`Provider.Strategy`](#providerstrategy)
+    - [`Provider.WorkerCount`](#providerworkercount)
   - [`Pubsub`](#pubsub)
     - [`Pubsub.Enabled`](#pubsubenabled)
     - [`Pubsub.Router`](#pubsubrouter)
@@ -121,6 +127,7 @@ config file at runtime.
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
     - [`Routing.IgnoreProviders`](#routingignoreproviders)
+    - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -178,6 +185,13 @@ config file at runtime.
   - [`DNS`](#dns)
     - [`DNS.Resolvers`](#dnsresolvers)
     - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
+  - [`HTTPRetrieval`](#httpretrieval)
+    - [`HTTPRetrieval.Enabled`](#httpretrievalenabled)
+    - [`HTTPRetrieval.Allowlist`](#httpretrievalallowlist)
+    - [`HTTPRetrieval.Denylist`](#httpretrievaldenylist)
+    - [`HTTPRetrieval.NumWorkers`](#httpretrievalnumworkers)
+    - [`HTTPRetrieval.MaxBlockSize`](#httpretrievalmaxblocksize)
+    - [`HTTPRetrieval.TLSInsecureSkipVerify`](#httpretrievaltlsinsecureskipverify)
   - [`Import`](#import)
     - [`Import.CidVersion`](#importcidversion)
     - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
@@ -200,13 +214,17 @@ config file at runtime.
     - [`local-discovery` profile](#local-discovery-profile)
     - [`default-networking` profile](#default-networking-profile)
     - [`flatfs` profile](#flatfs-profile)
+    - [`flatfs-measure` profile](#flatfs-measure-profile)
     - [`pebbleds` profile](#pebbleds-profile)
+    - [`pebbleds-measure` profile](#pebbleds-measure-profile)
     - [`badgerds` profile](#badgerds-profile)
+    - [`badgerds-measure` profile](#badgerds-measure-profile)
     - [`lowpower` profile](#lowpower-profile)
     - [`announce-off` profile](#announce-off-profile)
     - [`announce-on` profile](#announce-on-profile)
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
     - [`test-cid-v1` profile](#test-cid-v1-profile)
+    - [`test-cid-v1-wide` profile](#test-cid-v1-wide-profile)
   - [Types](#types)
     - [`flag`](#flag)
     - [`priority`](#priority)
@@ -612,6 +630,37 @@ Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddy
 
 Type: `optionalString`
 
+## `Bitswap`
+
+High level client and server configuration of the [Bitswap Protocol](https://specs.ipfs.tech/bitswap-protocol/) over libp2p.
+
+For internal configuration see [`Internal.Bitswap`](#internalbitswap).
+
+For HTTP version see [`HTTPRetrieval`](#httpretrieval).
+
+### `Bitswap.Libp2pEnabled`
+
+Determines whether Kubo will use Bitswap over libp2p.
+
+Disabling this, will remove `/ipfs/bitswap/*` protocol support from [libp2p identify](https://github.com/libp2p/specs/blob/master/identify/README.md) responses, effectively shutting down both Bitswap libp2p client and server.
+
+> [!WARNING]
+> Bitswap over libp2p is a core component of Kubo and the oldest way of exchanging blocks. Disabling it completely may cause unpredictable outcomes, such as retrieval failures, if the only providers were libp2p ones. Treat this as experimental and use it solely for testing purposes with `HTTPRetrieval.Enabled`.
+
+Default: `true`
+
+Type: `flag`
+
+### `Bitswap.ServerEnabled`
+
+Determines whether Kubo functions as a Bitswap server to host and respond to block requests.
+
+Disabling the server retains client and protocol support in [libp2p identify](https://github.com/libp2p/specs/blob/master/identify/README.md) responses but causes Kubo to reply with "don't have" to all block requests.
+
+Default: `true` (requires `Bitswap.Libp2pEnabled`)
+
+Type: `flag`
+
 ## `Bootstrap`
 
 Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
@@ -730,6 +779,30 @@ datastores to provide extra functionality (eg metrics, logging, or caching).
 > For more information on possible values for this configuration option, see [`kubo/docs/datastores.md`](datastores.md)
 
 Default:
+```
+{
+  "mounts": [
+  {
+    "mountpoint": "/blocks",
+    "path": "blocks",
+    "prefix": "flatfs.datastore",
+    "shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+    "sync": false,
+    "type": "flatfs"
+  },
+  {
+    "compression": "none",
+    "mountpoint": "/",
+    "path": "datastore",
+    "prefix": "leveldb.datastore",
+    "type": "levelds"
+  }
+  ],
+  "type": "mount"
+}
+```
+
+With `flatfs-measure` profile:
 ```
 {
   "mounts": [
@@ -1120,6 +1193,10 @@ This section includes internal knobs for various subsystems to allow advanced us
 ### `Internal.Bitswap`
 
 `Internal.Bitswap` contains knobs for tuning bitswap resource utilization.
+
+> [!TIP]
+> For high level configuration see [`Bitswap`](#bitswap).
+
 The knobs (below) document how their value should related to each other.
 Whether their values should be raised or lowered should be determined
 based on the metrics `ipfs_bitswap_active_tasks`, `ipfs_bitswap_pending_tasks`,
@@ -1412,6 +1489,39 @@ Default: `"5m"`
 
 Type: `duration`
 
+## `Provider`
+
+Configuration applied to the initial one-time announcement of fresh CIDs
+created with `ipfs add`, `ipfs files`, `ipfs dag import`, `ipfs block|dag put`
+commands.
+
+For periodical DHT reprovide settings, see [`Reprovide.*`](#reprovider).
+
+### `Provider.Strategy`
+
+Legacy, not used at the moment, see [`Reprovider.Strategy`](#reproviderstrategy) instead.
+
+### `Provider.WorkerCount`
+
+Sets the maximum number of _concurrent_ DHT provide operations. DHT reprovides
+operations do **not** count against that limit. A value of `0` allows an
+unlimited number of provide workers.
+
+If the [accelerated DHT client](#routingaccelerateddhtclient) is enabled, each
+provide operation opens ~20 connections in parallel. With the standard DHT
+client (accelerated disabled), each provide opens between 20 and 60
+connections, with at most 10 active at once. Provides complete more quickly
+when using the accelerated client. Be mindful of how many simultaneous
+connections this setting can generate.
+
+For nodes without strict connection limits that need to provide large volumes
+of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
+setting `Provider.WorkerCount` to `0` (unlimited).
+
+Default: `64`
+
+Type: `integer` (non-negative; `0` means unlimited number of workers)
+
 ## `Pubsub`
 
 **DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
@@ -1635,7 +1745,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
 
 * **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
-  and parallel HTTP routers listed below for additional speed.
+  and parallel [`Routing.DelegatedRouters`](#routingdelegatedrouters) for additional speed.
 
 * If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
 
@@ -1665,15 +1775,13 @@ To force a specific Amino DHT-only mode, client or server, set `Routing.Type` to
 unless you're sure your node is reachable from the public network.
 
 When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate some types of routing
-by leveraging HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
+by leveraging [`Routing.DelegatedRouters`](#routingdelegatedrouters) HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
 introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
 in addition to the Amino DHT.
-By default, an instance of [IPNI](https://github.com/ipni/specs/blob/main/IPNI.md#readme)
-at https://cid.contact is used.
 
-Alternative routing rules can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
+[Advanced routing rules](https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md) can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
 
-Default: `auto` (DHT + IPNI)
+Default: `auto` (DHT + [`Routing.DelegatedRouters`](#routingdelegatedrouters))
 
 Type: `optionalString` (`null`/missing means the default)
 
@@ -1738,16 +1846,32 @@ Type: `bool` (missing means `false`)
 
 ### `Routing.IgnoreProviders`
 
-An array of peerIDs. Any provider record associated to one of these peer IDs is ignored.
+An array of [string-encoded PeerIDs](https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#string-representation). Any provider record associated to one of these peer IDs is ignored.
 
 Apart from ignoring specific providers for reasons like misbehaviour etc. this
 setting is useful to ignore providers as a way to indicate preference, when the same provider
 is found under different peerIDs (i.e. one for HTTP and one for Bitswap retrieval).
 
+> [!TIP]
+> This denylist operates on PeerIDs.
+> To deny specific HTTP Provider URL, use [`HTTPRetrieval.Denylist`](#httpretrievaldenylist) instead.
+
 Default: `[]`
 
-Type: `array[peerID]`
+Type: `array[string]`
 
+### `Routing.DelegatedRouters`
+
+This is an array of URL hostnames that support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) which are used alongside the DHT when [`Routing.Type`](#routingtype) is set to `auto` or `autoclient`.
+
+> [!TIP]
+> Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
+>
+> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to the Amino DHT and other delegated routing servers, such as the Network Indexer at `cid.contact`. Public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
+
+Default: `["https://cid.contact"]` (empty or `nil` will also use this default; to disable delegated routing, set `Routing.Type` to `dht` or `dhtclient`)
+
+Type: `array[string]`
 
 ### `Routing.Routers`
 
@@ -2506,6 +2630,100 @@ Default: Respect DNS Response TTL
 
 Type: `optionalDuration`
 
+## `HTTPRetrieval`
+
+`HTTPRetrieval` is configuration for pure HTTP retrieval based on Trustless HTTP Gateways'
+[Block Responses (`application/vnd.ipld.raw`)](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
+which can be used in addition to or instead of retrieving blocks with [Bitswap over Libp2p](#bitswap).
+
+Default: `{}`
+
+Type: `object`
+
+### `HTTPRetrieval.Enabled`
+
+> [!CAUTION]
+> This feature is **EXPERIMENTAL** and may change in future release. Enable with caution, and provide feedback via GitHub issues.
+
+Controls whether HTTP-based block retrieval is enabled.
+
+When enabled, Kubo will be able to act on `/tls/http` (HTTP/2) providers ([Trustless HTTP Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/)) returned by the [`Routing.DelegatedRouters`](#routingdelegatedrouters)
+to perform pure HTTP [block retrievals](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
+in addition to [Bitswap over Libp2p](#bitswap).
+
+HTTP requests for `application/vnd.ipld.raw` will be issued instead of Bitswap if a peer has a `/tls/http` multiaddr
+and the HTTPS server returns HTTP 200 for the [probe path](https://specs.ipfs.tech/http-gateways/trustless-gateway/#dedicated-probe-paths).
+
+> [!IMPORTANT]
+> - Requires TLS and HTTP/2.
+> - This feature works in the same way as Bitswap: connected HTTP-peers receive optimistic block requests even for content that they are not announcing.
+> - HTTP client does not follow redirects. Providers should keep announcements up to date.
+> - IPFS ecosystem is working towards [supporting HTTP providers on Amino DHT](https://github.com/ipfs/specs/issues/496). Currently, HTTP providers are mostly limited to results from [`Routing.DelegatedRouters`](#routingdelegatedrouters) endpoints and requires `Routing.Type=auto|autoclient`.
+
+Default: `false`
+
+Type: `flag`
+
+### `HTTPRetrieval.Allowlist`
+
+Optional list of hostnames for which HTTP retrieval is allowed for.
+If this list is not empty, only hosts matching these entries will be allowed for HTTP retrieval.
+
+> [!TIP]
+> To limit HTTP retrieval to a provider at `/dns4/example.com/tcp/443/tls/http` (which would serve `HEAD|GET https://example.com/ipfs/cid?format=raw`), set this to `["example.com"]`
+
+Default: `[]`
+
+Type: `array[string]`
+
+### `HTTPRetrieval.Denylist`
+
+Optional list of hostnames for which HTTP retrieval is not allowed.
+Denylist entries take precedence over Allowlist entries.
+
+
+> [!TIP]
+> This denylist operates on HTTP endpoint hostnames.
+> To deny specific PeerID, use [`Routing.IgnoreProviders`](#routingignoreproviders) instead.
+
+Default: `[]`
+
+Type: `array[string]`
+
+### `HTTPRetrieval.NumWorkers`
+
+The number of worker goroutines to use for concurrent HTTP retrieval operations.
+This setting controls the level of parallelism for HTTP-based block retrieval operations.
+Higher values can improve performance when retrieving many blocks but may increase resource usage.
+
+Default: `16`
+
+Type: `optionalInteger`
+
+### `HTTPRetrieval.MaxBlockSize`
+
+Sets the maximum size of a block that the HTTP retrieval client will accept.
+
+> [!NOTE]
+> This setting is a security feature designed to protect Kubo from malicious providers who might send excessively large or invalid data.
+> Increasing this value allows Kubo to retrieve larger blocks from compatible HTTP providers, but doing so reduces interoperability with Bitswap, and increases potential security risks.
+>
+> Learn more: [Supporting Large IPLD Blocks: Why block limits?](https://discuss.ipfs.tech/t/supporting-large-ipld-blocks/15093#why-block-limits-5)
+
+Default: `2MiB` (matching [Bitswap size limit](https://specs.ipfs.tech/bitswap-protocol/#block-sizes))
+
+Type: `optionalString`
+
+### `HTTPRetrieval.TLSInsecureSkipVerify`
+
+Disables TLS certificate validation.
+Allows making HTTPS connections to HTTP/2 test servers with self-signed TLS certificates.
+Only for testing, do not use in production.
+
+Default: `false`
+
+Type: `flag`
+
 ## `Import`
 
 Options to configure the default options used for ingesting data, in commands such as `ipfs add` or `ipfs block put`. All affected commands are detailed per option.
@@ -2744,9 +2962,13 @@ You should use this datastore if:
 > [!NOTE]
 > See caveats and configuration options at [`datastores.md#flatfs`](datastores.md#flatfs)
 
+### `flatfs-measure` profile
+
+Configures the node to use the flatfs datastore with metrics. This is the same as [`flatfs` profile](#flatfs-profile) with the addition of the `measure` datastore wrapper.
+
 ### `pebbleds` profile
 
-Configures the node to use the **EXPERIMENTAL** pebble high-performance datastore.
+Configures the node to use the pebble high-performance datastore.
 
 Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and internal usage by CockroachDB.
 You should use this datastore if:
@@ -2763,6 +2985,10 @@ You should use this datastore if:
 
 > [!NOTE]
 > See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
+
+### `pebbleds-measure` profile
+
+Configures the node to use the pebble datastore with metrics. This is the same as [`pebbleds` profile](#pebble-profile) with the addition of the `measure` datastore wrapper.
 
 ### `badgerds` profile
 
@@ -2788,6 +3014,10 @@ Also, be aware that:
 
 > [!NOTE]
 > See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
+
+### `badgerds-measure` profile
+
+Configures the node to use the **legacy** badgerv1 datastore with metrics. This is the same as [`badgerds` profile](#badger-profile) with the addition of the `measure` datastore wrapper.
 
 ### `lowpower` profile
 

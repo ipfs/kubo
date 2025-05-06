@@ -460,6 +460,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			cfg.Identity.PeerID,
 			cfg.Addresses,
 			cfg.Identity.PrivKey,
+			cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled),
 		)
 	default:
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
@@ -486,6 +487,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if (pnet.ForcePrivateNetwork || node.PNetFingerprint != nil) && (routingOption == routingOptionAutoKwd || routingOption == routingOptionAutoClientKwd) {
 		// This should never happen, but better safe than sorry
 		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
+	}
+	if cfg.Provider.Strategy.WithDefault("") != "" && cfg.Reprovider.Strategy.IsDefault() {
+		log.Fatal("Invalid config. Remove unused Provider.Strategy and set Reprovider.Strategy instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy")
 	}
 
 	printLibp2pPorts(node)

@@ -6,27 +6,30 @@ import (
 	"os"
 	"runtime"
 	"strings"
-
-	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 const (
 	DefaultAcceleratedDHTClient      = false
 	DefaultLoopbackAddressesOnLanDHT = false
+	CidContactRoutingURL             = "https://cid.contact"
+	PublicGoodDelegatedRoutingURL    = "https://delegated-ipfs.dev" // cid.contact + amino dht (incl. IPNS PUTs)
+	EnvHTTPRouters                   = "IPFS_HTTP_ROUTERS"
+	EnvHTTPRoutersFilterProtocols    = "IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS"
 )
 
 var (
 	// Default HTTP routers used in parallel to DHT when Routing.Type = "auto"
-	DefaultHTTPRouters = getEnvOrDefault("IPFS_HTTP_ROUTERS", []string{
-		"https://cid.contact", // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
+	DefaultHTTPRouters = getEnvOrDefault(EnvHTTPRouters, []string{
+		CidContactRoutingURL, // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
 	})
 
 	// Default filter-protocols to pass along with delegated routing requests (as defined in IPIP-484)
 	// and also filter out locally
-	DefaultHTTPRoutersFilterProtocols = getEnvOrDefault("IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS", []string{
+	DefaultHTTPRoutersFilterProtocols = getEnvOrDefault(EnvHTTPRoutersFilterProtocols, []string{
 		"unknown", // allow results without protocol list, we can do libp2p identify to test them
 		"transport-bitswap",
-		// TODO: add 'transport-ipfs-gateway-http' once https://github.com/ipfs/rainbow/issues/125 is addressed
+		// http is added dynamically in routing/delegated.go.
+		// 'transport-ipfs-gateway-http'
 	})
 )
 
@@ -43,11 +46,13 @@ type Routing struct {
 
 	LoopbackAddressesOnLanDHT Flag `json:",omitempty"`
 
-	IgnoreProviders []peer.ID
+	IgnoreProviders []string `json:",omitempty"`
 
-	Routers Routers
+	DelegatedRouters []string `json:",omitempty"`
 
-	Methods Methods
+	Routers Routers `json:",omitempty"`
+
+	Methods Methods `json:",omitempty"`
 }
 
 type Router struct {
