@@ -109,10 +109,10 @@ ipfs daemon --mount
 
 ## MFS mountpoint
 
-Since kubo release v0.35.0, it supports mounting the MFS(Mutable File System)
-root as a FUSE filesystem at `/mfs`, which enables you to manipulate
-content-addressed data like regular files. The CID of a file/directory is
-retrievable via the `ipfs_cid` extended attribute.
+Kubo v0.35.0 and later supports mounting the MFS (Mutable File System) root as
+a FUSE filesystem, enabling manipulation of content-addressed data like regular
+files. The CID for any file or directory is retrievable via the `ipfs_cid`
+extended attribute.
 
 ```sh
 getfattr -n ipfs_cid /mfs/welcome-to-IPFS.jpg 
