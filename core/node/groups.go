@@ -335,7 +335,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		recordLifetime = d
 	}
 
-	isBitswapEnabled := cfg.Bitswap.Enabled.WithDefault(config.DefaultBitswapEnabled)
+	isBitswapLibp2pEnabled := cfg.Bitswap.Libp2pEnabled.WithDefault(config.DefaultBitswapLibp2pEnabled)
 	isBitswapServerEnabled := cfg.Bitswap.ServerEnabled.WithDefault(config.DefaultBitswapServerEnabled)
 
 	// Don't provide from bitswap when the legacy noop experiment "strategic provider service" is active
@@ -344,7 +344,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),
 		fx.Provide(Bitswap(isBitswapServerEnabled)),
-		fx.Provide(OnlineExchange(isBitswapEnabled)),
+		fx.Provide(OnlineExchange(isBitswapLibp2pEnabled)),
 		// Replace our Exchange with a Providing exchange!
 		fx.Decorate(ProvidingExchange(isBitswapServerEnabled)),
 		fx.Provide(DNSResolver),

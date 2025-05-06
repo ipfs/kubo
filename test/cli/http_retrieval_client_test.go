@@ -22,76 +22,78 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestHTTPRetrievalClient uses local /routing/v1/providers/{cid} and
-// /ipfs/{cid} HTTP servers to confirm HTTP-only retrieval works end-to-end.
 func TestHTTPRetrievalClient(t *testing.T) {
 	t.Parallel()
 
 	// many moving pieces here, show more when debug is needed
 	debug := os.Getenv("DEBUG") == "true"
 
-	// setup mocked HTTP Router to handle /routing/v1/providers/cid
-	mockRouter := &httprouting.MockHTTPContentRouter{Debug: debug}
-	delegatedRoutingServer := httptest.NewServer(server.Handler(mockRouter))
-	t.Cleanup(func() { delegatedRoutingServer.Close() })
+	// usee local /routing/v1/providers/{cid} and
+	// /ipfs/{cid} HTTP servers to confirm HTTP-only retrieval works end-to-end.
+	t.Run("works end-to-end with an HTTP-only provider", func(t *testing.T) {
+		// setup mocked HTTP Router to handle /routing/v1/providers/cid
+		mockRouter := &httprouting.MockHTTPContentRouter{Debug: debug}
+		delegatedRoutingServer := httptest.NewServer(server.Handler(mockRouter))
+		t.Cleanup(func() { delegatedRoutingServer.Close() })
 
-	// init Kubo repo
-	node := harness.NewT(t).NewNode().Init()
+		// init Kubo repo
+		node := harness.NewT(t).NewNode().Init()
 
-	node.UpdateConfig(func(cfg *config.Config) {
-		// explicitly enable http client
-		cfg.HTTPRetrieval.Enabled = config.True
-		// allow NewMockHTTPProviderServer to use self-signed TLS cert
-		cfg.HTTPRetrieval.TLSInsecureSkipVerify = config.True
-		// setup client-only routing which asks both HTTP + DHT
-		// cfg.Routing.Type = config.NewOptionalString("autoclient")
-		// setup Kubo node to use mocked HTTP Router
-		cfg.Routing.DelegatedRouters = []string{delegatedRoutingServer.URL}
+		node.UpdateConfig(func(cfg *config.Config) {
+			// explicitly enable http client
+			cfg.HTTPRetrieval.Enabled = config.True
+			// allow NewMockHTTPProviderServer to use self-signed TLS cert
+			cfg.HTTPRetrieval.TLSInsecureSkipVerify = config.True
+			// setup client-only routing which asks both HTTP + DHT
+			// cfg.Routing.Type = config.NewOptionalString("autoclient")
+			// setup Kubo node to use mocked HTTP Router
+			cfg.Routing.DelegatedRouters = []string{delegatedRoutingServer.URL}
+		})
+
+		// compute a random CID
+		randStr := string(testutils.RandomBytes(100))
+		res := node.PipeStrToIPFS(randStr, "add", "-qn", "--cid-version", "1") // -n means dont add to local repo, just produce CID
+		wantCIDStr := res.Stdout.Trimmed()
+		testCid := cid.MustParse(wantCIDStr)
+
+		// setup mock HTTP provider
+		httpProviderServer := NewMockHTTPProviderServer(testCid, randStr, debug)
+		t.Cleanup(func() { httpProviderServer.Close() })
+		httpHost, httpPort, err := splitHostPort(httpProviderServer.URL)
+		assert.NoError(t, err)
+
+		// setup /routing/v1/providers/cid result that points at our mocked HTTP provider
+		mockHTTPProviderPeerID := "12D3KooWCjfPiojcCUmv78Wd1NJzi4Mraj1moxigp7AfQVQvGLwH" // static, it does not matter, we only care about multiaddr
+		mockHTTPMultiaddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%s/tls/http", httpHost, httpPort))
+		mpid, _ := peer.Decode(mockHTTPProviderPeerID)
+		mockRouter.AddProvider(testCid, &types.PeerRecord{
+			Schema: types.SchemaPeer,
+			ID:     &mpid,
+			Addrs:  []types.Multiaddr{{Multiaddr: mockHTTPMultiaddr}},
+			// no explicit Protocols, ensure multiaddr alone is enough
+		})
+
+		// Start Kubo
+		node.StartDaemon()
+
+		if debug {
+			fmt.Printf("delegatedRoutingServer.URL: %s\n", delegatedRoutingServer.URL)
+			fmt.Printf("httpProviderServer.URL: %s\n", httpProviderServer.URL)
+			fmt.Printf("httpProviderServer.Multiaddr: %s\n", mockHTTPMultiaddr)
+			fmt.Printf("testCid: %s\n", testCid)
+		}
+
+		// Now, make Kubo to read testCid. it was not added to local blockstore, so it has only one provider -- a HTTP server.
+
+		// First, confirm delegatedRoutingServer returned HTTP provider
+		findprovsRes := node.IPFS("routing", "findprovs", testCid.String())
+		assert.Equal(t, mockHTTPProviderPeerID, findprovsRes.Stdout.Trimmed())
+
+		// Ok, now attempt retrieval.
+		// If there was no timeout and returned bytes match expected body, HTTP routing and retrieval worked end-to-end.
+		catRes := node.IPFS("cat", testCid.String())
+		assert.Equal(t, randStr, catRes.Stdout.Trimmed())
 	})
-
-	// compute a random CID
-	randStr := string(testutils.RandomBytes(100))
-	res := node.PipeStrToIPFS(randStr, "add", "-qn", "--cid-version", "1") // -n means dont add to local repo, just produce CID
-	wantCIDStr := res.Stdout.Trimmed()
-	testCid := cid.MustParse(wantCIDStr)
-
-	// setup mock HTTP provider
-	httpProviderServer := NewMockHTTPProviderServer(testCid, randStr, debug)
-	t.Cleanup(func() { httpProviderServer.Close() })
-	httpHost, httpPort, err := splitHostPort(httpProviderServer.URL)
-	assert.NoError(t, err)
-
-	// setup /routing/v1/providers/cid result that points at our mocked HTTP provider
-	mockHTTPProviderPeerID := "12D3KooWCjfPiojcCUmv78Wd1NJzi4Mraj1moxigp7AfQVQvGLwH" // static, it does not matter, we only care about multiaddr
-	mockHTTPMultiaddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%s/tls/http", httpHost, httpPort))
-	mpid, _ := peer.Decode(mockHTTPProviderPeerID)
-	mockRouter.AddProvider(testCid, &types.PeerRecord{
-		Schema: types.SchemaPeer,
-		ID:     &mpid,
-		Addrs:  []types.Multiaddr{{Multiaddr: mockHTTPMultiaddr}},
-		// no explicit Protocols, ensure multiaddr alone is enough
-	})
-
-	// Start Kubo
-	node.StartDaemon()
-
-	if debug {
-		fmt.Printf("delegatedRoutingServer.URL: %s\n", delegatedRoutingServer.URL)
-		fmt.Printf("httpProviderServer.URL: %s\n", httpProviderServer.URL)
-		fmt.Printf("httpProviderServer.Multiaddr: %s\n", mockHTTPMultiaddr)
-		fmt.Printf("testCid: %s\n", testCid)
-	}
-
-	// Now, make Kubo to read testCid. it was not added to local blockstore, so it has only one provider -- a HTTP server.
-
-	// First, confirm delegatedRoutingServer returned HTTP provider
-	findprovsRes := node.IPFS("routing", "findprovs", testCid.String())
-	assert.Equal(t, mockHTTPProviderPeerID, findprovsRes.Stdout.Trimmed())
-
-	// Ok, now attempt retrieval.
-	// If there was no timeout and returned bytes match expected body, HTTP routing and retrieval worked end-to-end.
-	catRes := node.IPFS("cat", testCid.String())
-	assert.Equal(t, randStr, catRes.Stdout.Trimmed())
 }
 
 // NewMockHTTPProviderServer pretends to be http provider that supports

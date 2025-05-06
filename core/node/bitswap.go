@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"io"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 	provider "github.com/ipfs/boxo/provider"
 	rpqm "github.com/ipfs/boxo/routing/providerquerymanager"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-datastore"
 	ipld "github.com/ipfs/go-ipld-format"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
@@ -83,11 +83,15 @@ type bitswapIn struct {
 // Bitswap creates the BitSwap server/client instance.
 // If Bitswap.ServerEnabled is false, the node will act only as a client
 // using an empty blockstore to prevent serving blocks to other peers.
-func Bitswap(provide bool) interface{} {
+func Bitswap(serverEnabled bool) interface{} {
 	return func(in bitswapIn, lc fx.Lifecycle) (*bitswap.Bitswap, error) {
-		var bitswapNetworks network.BitSwapNetwork
+		var bitswapNetworks, bitswapLibp2p network.BitSwapNetwork
 		var bitswapBlockstore blockstore.Blockstore = in.Bs
-		bitswapLibp2p := bsnet.NewFromIpfsHost(in.Host)
+
+		libp2pEnabled := in.Cfg.Bitswap.Libp2pEnabled.WithDefault(config.DefaultBitswapLibp2pEnabled)
+		if libp2pEnabled {
+			bitswapLibp2p = bsnet.NewFromIpfsHost(in.Host)
+		}
 
 		if httpCfg := in.Cfg.HTTPRetrieval; httpCfg.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled) {
 			maxBlockSize, err := humanize.ParseBytes(httpCfg.MaxBlockSize.WithDefault(config.DefaultHTTPRetrievalMaxBlockSize))
@@ -103,8 +107,10 @@ func Bitswap(provide bool) interface{} {
 				httpnet.WithUserAgent(version.GetUserAgentVersion()),
 			)
 			bitswapNetworks = network.New(in.Host.Peerstore(), bitswapLibp2p, bitswapHTTP)
-		} else {
+		} else if libp2pEnabled {
 			bitswapNetworks = bitswapLibp2p
+		} else {
+			return nil, errors.New("invalid configuration: Bitswap.Libp2pEnabled and HTTPRetrieval.Enabled are both disabled, unable to initialize Bitswap")
 		}
 
 		// Kubo uses own, customized ProviderQueryManager
@@ -131,14 +137,8 @@ func Bitswap(provide bool) interface{} {
 		}
 
 		// Explicitly enable/disable server to ensure desired provide mode
-		if provide {
-			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithServerEnabled(true))
-		} else {
-			// TODO: do we need custom blockstore here? is it creating memory leak?
-			// When server is disabled, use an empty blockstore to prevent serving blocks
-			bitswapBlockstore = blockstore.NewBlockstore(datastore.NewMapDatastore())
-			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithServerEnabled(false))
-		}
+		in.BitswapOpts = append(in.BitswapOpts, bitswap.WithServerEnabled(serverEnabled))
+
 		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetworks, providerQueryMgr, bitswapBlockstore, in.BitswapOpts...)
 
 		lc.Append(fx.Hook{

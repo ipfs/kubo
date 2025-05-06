@@ -37,7 +37,7 @@ config file at runtime.
     - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
   - [`Bitswap`](#bitswap)
-    - [`Bitswap.Enabled`](#bitswapenabled)
+    - [`Bitswap.Libp2pEnabled`](#bitswaplibp2penabled)
     - [`Bitswap.ServerEnabled`](#bitswapserverenabled)
   - [`Bootstrap`](#bootstrap)
   - [`Datastore`](#datastore)
@@ -632,16 +632,20 @@ Type: `optionalString`
 
 ## `Bitswap`
 
-High level client and server configuration of the [Bitswap Protocol](https://specs.ipfs.tech/bitswap-protocol/).
+High level client and server configuration of the [Bitswap Protocol](https://specs.ipfs.tech/bitswap-protocol/) over libp2p.
 
 For internal configuration see [`Internal.Bitswap`](#internalbitswap).
 
-### `Bitswap.Enabled`
+For HTTP version see [`HTTPRetrieval`](#httpretrieval).
 
-Manages both Bitswap client and server functionality. For testing or operating a node without Bitswap requirements.
+### `Bitswap.Libp2pEnabled`
+
+Determines whether Kubo will use Bitswap over libp2p.
+
+Disabling this, will remove `/ipfs/bitswap/*` protocol support from [libp2p identify](https://github.com/libp2p/specs/blob/master/identify/README.md) responses, effectively shutting down both Bitswap libp2p client and server.
 
 > [!WARNING]
-> Bitswap is a core component of Kubo, and disabling it completely may cause unpredictable outcomes. Treat this as experimental and use it solely for testing purposes.
+> Bitswap over libp2p is a core component of Kubo and the oldest way of exchanging blocks. Disabling it completely may cause unpredictable outcomes, such as retrieval failures, if the only providers were libp2p ones. Treat this as experimental and use it solely for testing purposes with `HTTPRetrieval.Enabled`.
 
 Default: `true`
 
@@ -651,9 +655,9 @@ Type: `flag`
 
 Determines whether Kubo functions as a Bitswap server to host and respond to block requests.
 
-Disabling the server retains client and protocol support in libp2p identify responses but causes Kubo to reply with "don't have" to all block requests.
+Disabling the server retains client and protocol support in [libp2p identify](https://github.com/libp2p/specs/blob/master/identify/README.md) responses but causes Kubo to reply with "don't have" to all block requests.
 
-Default: `true`
+Default: `true` (requires `Bitswap.Libp2pEnabled`)
 
 Type: `flag`
 
@@ -1763,15 +1767,13 @@ To force a specific Amino DHT-only mode, client or server, set `Routing.Type` to
 unless you're sure your node is reachable from the public network.
 
 When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate some types of routing
-by leveraging HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
+by leveraging [`Routing.DelegatedRouters`](#routingdelegatedrouters) HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
 introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
 in addition to the Amino DHT.
-By default, an instance of [IPNI](https://github.com/ipni/specs/blob/main/IPNI.md#readme)
-at https://cid.contact is used. Custom HTTP endpoints can be set via [`Routing.DelegatedRouters`](#routingdelegatedrouters).
 
-Alternative routing rules can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
+[Advanced routing rules](https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md) can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
 
-Default: `auto` (DHT + `Routing.DelegatedRouters`)
+Default: `auto` (DHT + [`Routing.DelegatedRouters`](#routingdelegatedrouters))
 
 Type: `optionalString` (`null`/missing means the default)
 
@@ -2624,7 +2626,7 @@ Type: `optionalDuration`
 
 `HTTPRetrieval` is configuration for pure HTTP retrieval based on Trustless HTTP Gateways'
 [Block Responses (`application/vnd.ipld.raw`)](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
-which can be used in addition to or instead of retrieving blocks with Bitswap over Libp2p.
+which can be used in addition to or instead of retrieving blocks with [Bitswap over Libp2p](#bitswap).
 
 Default: `{}`
 
@@ -2633,21 +2635,22 @@ Type: `object`
 ### `HTTPRetrieval.Enabled`
 
 > [!CAUTION]
-> This feature is **EXPERIMENTAL** and may change in future release. Enable with caution, and provide feedback if any issues.
+> This feature is **EXPERIMENTAL** and may change in future release. Enable with caution, and provide feedback via GitHub issues.
 
 Controls whether HTTP-based block retrieval is enabled.
 
-When enabled, Kubo will use [Trustless HTTP Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/)
+When enabled, Kubo will be able to act on `/tls/http` (HTTP/2) providers ([Trustless HTTP Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/)) returned by the [`Routing.DelegatedRouters`](#routingdelegatedrouters)
 to perform [block retrievals](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
-in addition to [Bitswap](https://specs.ipfs.tech/bitswap-protocol/) over Libp2p connections (if enabled).
+in addition to [Bitswap over Libp2p](#bitswap).
 
 HTTP requests for `application/vnd.ipld.raw` will be issued instead of Bitswap over HTTP if a peer has a `/tls/http` multiaddr
 and the HTTPS server returns HTTP 200 for the [probe path](https://specs.ipfs.tech/http-gateways/trustless-gateway/#dedicated-probe-paths).
 
 > [!IMPORTANT]
+> - Requires TLS and HTTP/2.
 > - This feature works in the same way as Bitswap: connected HTTP-peers receive optimistic block requests even for content that they are not announcing.
 > - HTTP client does not follow redirects. Providers should keep announcements up to date.
-> - IPFS ecosystem is working towards [supporting HTTP providers on Amino DHT](https://github.com/ipfs/specs/issues/496). Currently, HTTP providers are mostly limited to results from delegated routing (e.g., from IPNI at `cid.contact` if `Routing.Type=auto`)
+> - IPFS ecosystem is working towards [supporting HTTP providers on Amino DHT](https://github.com/ipfs/specs/issues/496). Currently, HTTP providers are mostly limited to results from [`Routing.DelegatedRouters`](#routingdelegatedrouters) endpoints and requires `Routing.Type=auto|autoclient`.
 
 Default: `false`
 

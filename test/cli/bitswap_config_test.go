@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/ipfs/boxo/bitswap/network/bsnet"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
@@ -61,32 +63,32 @@ func TestBitswapConfig(t *testing.T) {
 		}
 	})
 
-	t.Run("server disabled and client enabled", func(t *testing.T) {
+	t.Run("client still works when server disabled", func(t *testing.T) {
 		t.Parallel()
 		h := harness.NewT(t)
 
-		provider := h.NewNode().Init()
-		provider.SetIPFSConfig("Bitswap.ServerEnabled", false)
-		provider.StartDaemon()
+		requester := h.NewNode().Init()
+		requester.SetIPFSConfig("Bitswap.ServerEnabled", false)
+		requester.StartDaemon()
 
-		requester := h.NewNode().Init().StartDaemon()
-		hash := requester.IPFSAddStr(string(testData))
-
-		provider.Connect(requester)
+		provider := h.NewNode().Init().StartDaemon()
+		hash := provider.IPFSAddStr(string(testData))
+		requester.Connect(provider)
 
 		// Even when the server is disabled, the client should be able to retrieve data
-		res := provider.RunIPFS("cat", hash)
+		res := requester.RunIPFS("cat", hash)
 		assert.Equal(t, testData, res.Stdout.Bytes(), "retrieved data should match original")
 	})
 
-	t.Run("bitswap completely disabled", func(t *testing.T) {
+	t.Run("bitswap over libp2p disabled", func(t *testing.T) {
 		t.Parallel()
 		h := harness.NewT(t)
 
 		requester := h.NewNode().Init()
 		requester.UpdateConfig(func(cfg *config.Config) {
-			cfg.Bitswap.Enabled = config.False
+			cfg.Bitswap.Libp2pEnabled = config.False
 			cfg.Bitswap.ServerEnabled = config.False
+			cfg.HTTPRetrieval.Enabled = config.True
 		})
 		requester.StartDaemon()
 
@@ -112,27 +114,63 @@ func TestBitswapConfig(t *testing.T) {
 		assert.Equal(t, []byte("random"), res.Stdout.Bytes(), "cat should return the added data")
 	})
 
-	// TODO: Disabling Bitswap.Enabled should remove /ifps/bitswap* protocols from `ipfs id`
-	// t.Run("bitswap protocols disabled", func(t *testing.T) {
-	// 	t.Parallel()
-	// 	harness.EnableDebugLogging()
-	// 	h := harness.NewT(t)
+	// Disabling Bitswap.Libp2pEnabled should remove /ipfs/bitswap* protocols from `ipfs id`
+	t.Run("disabling bitswap over libp2p removes it from identify protocol list", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
 
-	// 	provider := h.NewNode().Init()
-	// 	provider.SetIPFSConfig("Bitswap.ServerEnabled", false)
-	// 	provider = provider.StartDaemon()
-	// 	requester := h.NewNode().Init().StartDaemon()
-	// 	requester.Connect(provider)
-	// 	// Parse and check ID output
-	// 	res := provider.IPFS("id", "-f", "<protocols>")
-	// 	protocols := strings.Split(strings.TrimSpace(res.Stdout.String()), "\n")
+		provider := h.NewNode().Init()
+		provider.UpdateConfig(func(cfg *config.Config) {
+			cfg.Bitswap.Libp2pEnabled = config.False
+			cfg.Bitswap.ServerEnabled = config.False
+			cfg.HTTPRetrieval.Enabled = config.True
+		})
+		provider = provider.StartDaemon()
+		requester := h.NewNode().Init().StartDaemon()
+		requester.Connect(provider)
 
-	// 	// No bitswap protocols should be present
-	// 	for _, proto := range protocols {
-	// 		assert.NotContains(t, proto, bsnet.ProtocolBitswap, "bitswap protocol %s should not be advertised when server is disabled", proto)
-	// 		assert.NotContains(t, proto, bsnet.ProtocolBitswapNoVers, "bitswap protocol %s should not be advertised when server is disabled", proto)
-	// 		assert.NotContains(t, proto, bsnet.ProtocolBitswapOneOne, "bitswap protocol %s should not be advertised when server is disabled", proto)
-	// 		assert.NotContains(t, proto, bsnet.ProtocolBitswapOneZero, "bitswap protocol %s should not be advertised when server is disabled", proto)
-	// 	}
-	// })
+		// read libp2p identify from remote peer, and print protocols
+		res := requester.IPFS("id", "-f", "<protocols>", provider.PeerID().String())
+		protocols := strings.Split(strings.TrimSpace(res.Stdout.String()), "\n")
+
+		// No bitswap protocols should be present
+		for _, proto := range protocols {
+			assert.NotContains(t, proto, bsnet.ProtocolBitswap, "bitswap protocol %s should not be advertised when server is disabled", proto)
+			assert.NotContains(t, proto, bsnet.ProtocolBitswapNoVers, "bitswap protocol %s should not be advertised when server is disabled", proto)
+			assert.NotContains(t, proto, bsnet.ProtocolBitswapOneOne, "bitswap protocol %s should not be advertised when server is disabled", proto)
+			assert.NotContains(t, proto, bsnet.ProtocolBitswapOneZero, "bitswap protocol %s should not be advertised when server is disabled", proto)
+		}
+	})
+
+	// HTTPRetrieval uses bitswap engine, we need it
+	t.Run("errors when both HTTP and libp2p are disabled", func(t *testing.T) {
+		t.Parallel()
+
+		// init Kubo repo
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.HTTPRetrieval.Enabled = config.False
+			cfg.Bitswap.Libp2pEnabled = config.False
+			cfg.Bitswap.ServerEnabled = config.Default
+		})
+		res := node.RunIPFS("daemon")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Bitswap.Libp2pEnabled and HTTPRetrieval.Enabled are both disabled, unable to initialize Bitswap")
+		assert.Equal(t, 1, res.ExitCode())
+	})
+
+	// HTTPRetrieval uses bitswap engine, we need it
+	t.Run("errors when user set conflicting HTTP and libp2p flags", func(t *testing.T) {
+		t.Parallel()
+
+		// init Kubo repo
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.HTTPRetrieval.Enabled = config.False
+			cfg.Bitswap.Libp2pEnabled = config.False
+			cfg.Bitswap.ServerEnabled = config.True // bad user config: cant enable server when libp2p is down
+		})
+		res := node.RunIPFS("daemon")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Bitswap.Libp2pEnabled and HTTPRetrieval.Enabled are both disabled, unable to initialize Bitswap")
+		assert.Equal(t, 1, res.ExitCode())
+	})
 }
