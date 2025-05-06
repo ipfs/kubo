@@ -2640,10 +2640,10 @@ Type: `object`
 Controls whether HTTP-based block retrieval is enabled.
 
 When enabled, Kubo will be able to act on `/tls/http` (HTTP/2) providers ([Trustless HTTP Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/)) returned by the [`Routing.DelegatedRouters`](#routingdelegatedrouters)
-to perform [block retrievals](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
+to perform pure HTTP [block retrievals](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
 in addition to [Bitswap over Libp2p](#bitswap).
 
-HTTP requests for `application/vnd.ipld.raw` will be issued instead of Bitswap over HTTP if a peer has a `/tls/http` multiaddr
+HTTP requests for `application/vnd.ipld.raw` will be issued instead of Bitswap if a peer has a `/tls/http` multiaddr
 and the HTTPS server returns HTTP 200 for the [probe path](https://specs.ipfs.tech/http-gateways/trustless-gateway/#dedicated-probe-paths).
 
 > [!IMPORTANT]
