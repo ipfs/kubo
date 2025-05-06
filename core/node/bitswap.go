@@ -2,24 +2,28 @@ package node
 
 import (
 	"context"
+	"errors"
 	"io"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/ipfs/boxo/bitswap"
 	"github.com/ipfs/boxo/bitswap/client"
+	"github.com/ipfs/boxo/bitswap/network"
 	bsnet "github.com/ipfs/boxo/bitswap/network/bsnet"
+	"github.com/ipfs/boxo/bitswap/network/httpnet"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	exchange "github.com/ipfs/boxo/exchange"
 	"github.com/ipfs/boxo/exchange/providing"
 	provider "github.com/ipfs/boxo/provider"
 	rpqm "github.com/ipfs/boxo/routing/providerquerymanager"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-datastore"
 	ipld "github.com/ipfs/go-ipld-format"
+	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"
-	"github.com/libp2p/go-libp2p/core/routing"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 	"go.uber.org/fx"
 
 	blocks "github.com/ipfs/go-block-format"
@@ -79,38 +83,63 @@ type bitswapIn struct {
 // Bitswap creates the BitSwap server/client instance.
 // If Bitswap.ServerEnabled is false, the node will act only as a client
 // using an empty blockstore to prevent serving blocks to other peers.
-func Bitswap(provide bool) interface{} {
+func Bitswap(serverEnabled bool) interface{} {
 	return func(in bitswapIn, lc fx.Lifecycle) (*bitswap.Bitswap, error) {
-		bitswapNetwork := bsnet.NewFromIpfsHost(in.Host)
-		var blockstoree blockstore.Blockstore = in.Bs
-		var provider routing.ContentDiscovery
+		var bitswapNetworks, bitswapLibp2p network.BitSwapNetwork
+		var bitswapBlockstore blockstore.Blockstore = in.Bs
 
-		if provide {
+		libp2pEnabled := in.Cfg.Bitswap.Libp2pEnabled.WithDefault(config.DefaultBitswapLibp2pEnabled)
+		if libp2pEnabled {
+			bitswapLibp2p = bsnet.NewFromIpfsHost(in.Host)
+		}
 
-			var maxProviders int = DefaultMaxProviders
-			if in.Cfg.Internal.Bitswap != nil {
-				maxProviders = int(in.Cfg.Internal.Bitswap.ProviderSearchMaxResults.WithDefault(DefaultMaxProviders))
-			}
-
-			pqm, err := rpqm.New(bitswapNetwork,
-				in.Rt,
-				rpqm.WithMaxProviders(maxProviders),
-				rpqm.WithIgnoreProviders(in.Cfg.Routing.IgnoreProviders...),
-			)
+		if httpCfg := in.Cfg.HTTPRetrieval; httpCfg.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled) {
+			maxBlockSize, err := humanize.ParseBytes(httpCfg.MaxBlockSize.WithDefault(config.DefaultHTTPRetrievalMaxBlockSize))
 			if err != nil {
 				return nil, err
 			}
-			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
-			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithServerEnabled(true))
-			provider = pqm
+			bitswapHTTP := httpnet.New(in.Host,
+				httpnet.WithHTTPWorkers(int(httpCfg.NumWorkers.WithDefault(config.DefaultHTTPRetrievalNumWorkers))),
+				httpnet.WithAllowlist(httpCfg.Allowlist),
+				httpnet.WithDenylist(httpCfg.Denylist),
+				httpnet.WithInsecureSkipVerify(httpCfg.TLSInsecureSkipVerify.WithDefault(config.DefaultHTTPRetrievalTLSInsecureSkipVerify)),
+				httpnet.WithMaxBlockSize(int64(maxBlockSize)),
+				httpnet.WithUserAgent(version.GetUserAgentVersion()),
+			)
+			bitswapNetworks = network.New(in.Host.Peerstore(), bitswapLibp2p, bitswapHTTP)
+		} else if libp2pEnabled {
+			bitswapNetworks = bitswapLibp2p
 		} else {
-			provider = nil
-			// When server is disabled, use an empty blockstore to prevent serving blocks
-			blockstoree = blockstore.NewBlockstore(datastore.NewMapDatastore())
-			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithServerEnabled(false))
+			return nil, errors.New("invalid configuration: Bitswap.Libp2pEnabled and HTTPRetrieval.Enabled are both disabled, unable to initialize Bitswap")
 		}
 
-		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetwork, provider, blockstoree, in.BitswapOpts...)
+		// Kubo uses own, customized ProviderQueryManager
+		in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
+		var maxProviders int = DefaultMaxProviders
+		if in.Cfg.Internal.Bitswap != nil {
+			maxProviders = int(in.Cfg.Internal.Bitswap.ProviderSearchMaxResults.WithDefault(DefaultMaxProviders))
+		}
+		ignoredPeerIDs := make([]peer.ID, 0, len(in.Cfg.Routing.IgnoreProviders))
+		for _, str := range in.Cfg.Routing.IgnoreProviders {
+			pid, err := peer.Decode(str)
+			if err != nil {
+				return nil, err
+			}
+			ignoredPeerIDs = append(ignoredPeerIDs, pid)
+		}
+		providerQueryMgr, err := rpqm.New(bitswapNetworks,
+			in.Rt,
+			rpqm.WithMaxProviders(maxProviders),
+			rpqm.WithIgnoreProviders(ignoredPeerIDs...),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Explicitly enable/disable server to ensure desired provide mode
+		in.BitswapOpts = append(in.BitswapOpts, bitswap.WithServerEnabled(serverEnabled))
+
+		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetworks, providerQueryMgr, bitswapBlockstore, in.BitswapOpts...)
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {

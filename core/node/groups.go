@@ -335,17 +335,18 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		recordLifetime = d
 	}
 
-	isBitswapEnabled := cfg.Bitswap.Enabled.WithDefault(config.DefaultBitswapEnabled)
+	isBitswapLibp2pEnabled := cfg.Bitswap.Libp2pEnabled.WithDefault(config.DefaultBitswapLibp2pEnabled)
 	isBitswapServerEnabled := cfg.Bitswap.ServerEnabled.WithDefault(config.DefaultBitswapServerEnabled)
-	// Don't provide from bitswap when the strategic provider service is active
-	shouldBitswapProvide := isBitswapEnabled && isBitswapServerEnabled && !cfg.Experimental.StrategicProviding
+
+	// Don't provide from bitswap when the legacy noop experiment "strategic provider service" is active
+	isBitswapServerEnabled = isBitswapServerEnabled && !cfg.Experimental.StrategicProviding
 
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),
-		fx.Provide(Bitswap(shouldBitswapProvide)),
-		fx.Provide(OnlineExchange(isBitswapEnabled)),
+		fx.Provide(Bitswap(isBitswapServerEnabled)),
+		fx.Provide(OnlineExchange(isBitswapLibp2pEnabled)),
 		// Replace our Exchange with a Providing exchange!
-		fx.Decorate(ProvidingExchange(shouldBitswapProvide)),
+		fx.Decorate(ProvidingExchange(isBitswapServerEnabled)),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),

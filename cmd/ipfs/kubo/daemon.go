@@ -458,6 +458,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			cfg.Identity.PeerID,
 			cfg.Addresses,
 			cfg.Identity.PrivKey,
+			cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled),
 		)
 	default:
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)

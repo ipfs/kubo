@@ -48,13 +48,6 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			},
 		},
 
-		Routing: Routing{
-			Type:            nil,
-			Methods:         nil,
-			Routers:         nil,
-			IgnoreProviders: []peer.ID{},
-		},
-
 		// setup the node mount points.
 		Mounts: Mounts{
 			IPFS: "/ipfs",
