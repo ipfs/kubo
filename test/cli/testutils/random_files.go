@@ -24,20 +24,22 @@ type RandFiles struct {
 	FanoutFiles int // how many files per dir
 	FanoutDirs  int // how many dirs per dir
 
-	RandomSize   bool // randomize file sizes
-	RandomFanout bool // randomize fanout numbers
+	RandomSize     bool // randomize file sizes
+	RandomNameSize bool // randomize filename lengths
+	RandomFanout   bool // randomize fanout numbers
 }
 
 func NewRandFiles() *RandFiles {
 	return &RandFiles{
-		Rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
-		FileSize:     4096,
-		FilenameSize: 16,
-		Alphabet:     AlphabetEasy,
-		FanoutDepth:  2,
-		FanoutDirs:   5,
-		FanoutFiles:  10,
-		RandomSize:   true,
+		Rand:           rand.New(rand.NewSource(time.Now().UnixNano())),
+		FileSize:       4096,
+		FilenameSize:   16,
+		Alphabet:       AlphabetEasy,
+		FanoutDepth:    2,
+		FanoutDirs:     5,
+		FanoutFiles:    10,
+		RandomSize:     true,
+		RandomNameSize: true,
 	}
 }
 
@@ -83,7 +85,10 @@ func (r *RandFiles) WriteRandomFile(root string) error {
 		filesize = r.Rand.Int63n(filesize) + 1
 	}
 
-	n := rand.Intn(r.FilenameSize-4) + 4
+	n := r.FilenameSize
+	if r.RandomNameSize {
+		n = rand.Intn(r.FilenameSize-4) + 4
+	}
 	name := r.RandomFilename(n)
 	filepath := path.Join(root, name)
 	f, err := os.Create(filepath)

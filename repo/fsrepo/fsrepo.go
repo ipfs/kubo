@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	filestore "github.com/ipfs/boxo/filestore"
 	keystore "github.com/ipfs/boxo/keystore"
@@ -146,7 +147,23 @@ func open(repoPath string, userConfigFilePath string) (repo.Repo, error) {
 		return nil, err
 	}
 
-	r.lockfile, err = lockfile.Lock(r.path, LockFile)
+	text := os.Getenv("IPFS_WAIT_REPO_LOCK")
+	if text != "" {
+		var lockWaitTime time.Duration
+		lockWaitTime, err = time.ParseDuration(text)
+		if err != nil {
+			log.Errorw("Cannot parse value of IPFS_WAIT_REPO_LOCK as duration, not waiting for repo lock", "err", err, "value", text)
+			r.lockfile, err = lockfile.Lock(r.path, LockFile)
+		} else if lockWaitTime <= 0 {
+			r.lockfile, err = lockfile.WaitLock(context.Background(), r.path, LockFile)
+		} else {
+			ctx, cancel := context.WithTimeout(context.Background(), lockWaitTime)
+			r.lockfile, err = lockfile.WaitLock(ctx, r.path, LockFile)
+			cancel()
+		}
+	} else {
+		r.lockfile, err = lockfile.Lock(r.path, LockFile)
+	}
 	if err != nil {
 		return nil, err
 	}

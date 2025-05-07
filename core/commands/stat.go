@@ -27,11 +27,12 @@ for your IPFS node.`,
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"bw":      statBwCmd,
-		"repo":    repoStatCmd,
-		"bitswap": bitswapStatCmd,
-		"dht":     statDhtCmd,
-		"provide": statProvideCmd,
+		"bw":        statBwCmd,
+		"repo":      repoStatCmd,
+		"bitswap":   bitswapStatCmd,
+		"dht":       statDhtCmd,
+		"provide":   statProvideCmd,
+		"reprovide": statReprovideCmd,
 	},
 }
 

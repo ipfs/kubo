@@ -108,6 +108,7 @@ func (c *datastoreConfig) DiskSpec() fsrepo.DiskSpec {
 }
 
 func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
+	fmt.Fprintln(os.Stderr, "⚠️ badgerds is based on badger 1.x, which has known bugs and is no longer supported by the upstream team. Please switch to a newer datastore such as pebbleds or flatfs.")
 	p := c.path
 	if !filepath.IsAbs(p) {
 		p = filepath.Join(path, p)

@@ -56,6 +56,7 @@ const (
 	initProfileOptionKwd       = "init-profile"
 	ipfsMountKwd               = "mount-ipfs"
 	ipnsMountKwd               = "mount-ipns"
+	mfsMountKwd                = "mount-mfs"
 	migrateKwd                 = "migrate"
 	mountKwd                   = "mount"
 	offlineKwd                 = "offline" // global option
@@ -173,6 +174,7 @@ Headers.
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
+		cmds.StringOption(mfsMountKwd, "Path to the mountpoint for MFS (if using --mount). Defaults to config setting."),
 		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow RPC API access to unlisted hashes"),
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
@@ -458,6 +460,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			cfg.Identity.PeerID,
 			cfg.Addresses,
 			cfg.Identity.PrivKey,
+			cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled),
 		)
 	default:
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
@@ -484,6 +487,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if (pnet.ForcePrivateNetwork || node.PNetFingerprint != nil) && (routingOption == routingOptionAutoKwd || routingOption == routingOptionAutoClientKwd) {
 		// This should never happen, but better safe than sorry
 		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
+	}
+	if cfg.Provider.Strategy.WithDefault("") != "" && cfg.Reprovider.Strategy.IsDefault() {
+		log.Fatal("Invalid config. Remove unused Provider.Strategy and set Reprovider.Strategy instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy")
 	}
 
 	printLibp2pPorts(node)
@@ -1058,17 +1064,23 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 		nsdir = cfg.Mounts.IPNS
 	}
 
+	mfsdir, found := req.Options[mfsMountKwd].(string)
+	if !found {
+		mfsdir = cfg.Mounts.MFS
+	}
+
 	node, err := cctx.ConstructNode()
 	if err != nil {
 		return fmt.Errorf("mountFuse: ConstructNode() failed: %s", err)
 	}
 
-	err = nodeMount.Mount(node, fsdir, nsdir)
+	err = nodeMount.Mount(node, fsdir, nsdir, mfsdir)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("IPFS mounted at: %s\n", fsdir)
 	fmt.Printf("IPNS mounted at: %s\n", nsdir)
+	fmt.Printf("MFS mounted at: %s\n", mfsdir)
 	return nil
 }
 

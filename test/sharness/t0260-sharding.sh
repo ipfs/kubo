@@ -34,7 +34,7 @@ test_init_ipfs
 UNSHARDED="QmavrTrQG4VhoJmantURAYuw3bowq3E2WcvP36NRQDAC1N"
 
 test_expect_success "force sharding off" '
-ipfs config --json Internal.UnixFSShardingSizeThreshold "\"1G\""
+ipfs config --json Import.UnixFSHAMTDirectorySizeThreshold "\"1G\""
 '
 
 test_add_dir "$UNSHARDED"
@@ -46,7 +46,7 @@ test_add_dir "$UNSHARDED"
 test_kill_ipfs_daemon
 
 test_expect_success "force sharding on" '
-  ipfs config --json Internal.UnixFSShardingSizeThreshold "\"1B\""
+  ipfs config --json Import.UnixFSHAMTDirectorySizeThreshold "\"1B\""
 '
 
 SHARDED="QmSCJD1KYLhVVHqBK3YyXuoEqHt7vggyJhzoFYbT8v1XYL"

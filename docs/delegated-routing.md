@@ -16,6 +16,14 @@ which then got changed and standardized as [Routing V1 HTTP API](https://specs.i
 
 Kubo 0.23.0 release added support for [self-hosting Routing V1 HTTP API server](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.23.md#self-hosting-routingv1-endpoint-for-delegated-routing-needs).
 
+
+> [!TIP]
+> Kubo 0.35 added support for [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+>
+> Most of users are best served by setting delegated HTTP router URLs there and `Routing.Type` to `auto` or `autoclient`, rather than custom routing with complex `Routing.Routers` and `Routing.Methods` directly.
+>
+> The rest of this documentation should be considered only by advanced users and researchers.
+
 Now we need a better way to add different routers using different protocols
 like [Routing V1](https://specs.ipfs.tech/routing/http-routing-v1/) or Amino
 DHT, and be able to configure them (future routing systems to come) to cover different use cases.
