@@ -1,7 +1,6 @@
 package corehttp
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 	"net/http"
@@ -16,22 +15,34 @@ func LogOption() ServeOption {
 			// The log data comes from an io.Reader, and we need to constantly
 			// read from it and then write to the HTTP response.
 			pipeReader := logging.NewPipeReader()
-			defer pipeReader.Close()
+			done := make(chan struct{})
+
+			// Close the pipe reader if the request context is canceled. This
+			// is necessary to avoiding blocking on reading from the pipe
+			// reader when the client terminates the request.
+			go func() {
+				select {
+				case <-r.Context().Done(): // Client canceled request
+				case <-n.Context().Done(): // Node shutdown
+				case <-done: // log reader goroutine exitex
+				}
+				pipeReader.Close()
+			}()
 
 			errs := make(chan error, 1)
 
 			go func() {
 				defer close(errs)
-				var b bytes.Buffer
+				defer close(done)
+				buf := make([]byte, 4096)
 				for {
-					// FIXME: We may block on read and not catch the context
-					// cancellation.
-					_, err := b.ReadFrom(pipeReader)
+					// Read log data into limited size buffer and send buffer to client.
+					size, err := pipeReader.Read(buf)
 					if err != nil {
 						errs <- fmt.Errorf("error reading log event: %s", err)
 						return
 					}
-					_, err = b.WriteTo(w)
+					_, err = w.Write(buf[:size])
 					if err != nil {
 						// Failed to write to client, probably disconnected.
 						return
@@ -40,6 +51,9 @@ func LogOption() ServeOption {
 						f.Flush()
 					}
 					if r.Context().Err() != nil {
+						return
+					}
+					if n.Context().Err() != nil {
 						return
 					}
 				}
