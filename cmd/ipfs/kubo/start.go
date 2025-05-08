@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/google/uuid"
 	u "github.com/ipfs/boxo/util"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-cmds/cli"
@@ -159,6 +158,7 @@ func BuildEnv(pl PluginPreloader) func(ctx context.Context, req *cmds.Request) (
 // - output the response
 // - if anything fails, print error, maybe with help.
 func Start(buildEnv func(ctx context.Context, req *cmds.Request) (cmds.Environment, error)) (exitCode int) {
+	ctx := context.Background()
 	tp, err := tracing.NewTracerProvider(ctx)
 	if err != nil {
 		return printErr(err)
