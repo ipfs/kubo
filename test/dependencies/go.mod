@@ -9,7 +9,7 @@ require (
 	github.com/golangci/golangci-lint v1.60.2
 	github.com/ipfs/go-cidutil v0.1.0
 	github.com/ipfs/go-log/v2 v2.6.0
-	github.com/ipfs/go-test v0.2.1
+	github.com/ipfs/go-test v0.2.2
 	github.com/ipfs/hang-fds v0.1.0
 	github.com/ipfs/iptb v1.4.1
 	github.com/ipfs/iptb-plugins v0.5.1
@@ -326,7 +326,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.5.1 // indirect
-	lukechampine.com/blake3 v1.4.0 // indirect
+	lukechampine.com/blake3 v1.4.1 // indirect
 	mvdan.cc/gofumpt v0.7.0 // indirect
 	mvdan.cc/unparam v0.0.0-20240528143540-8a5130ca722f // indirect
 )

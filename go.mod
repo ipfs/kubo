@@ -41,7 +41,7 @@ require (
 	github.com/ipfs/go-log/v2 v2.6.0
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
-	github.com/ipfs/go-test v0.2.1
+	github.com/ipfs/go-test v0.2.2
 	github.com/ipfs/go-unixfsnode v1.10.0
 	github.com/ipld/go-car v0.6.2
 	github.com/ipld/go-car/v2 v2.14.3-0.20250507065545-2ff63cb226cc
@@ -277,5 +277,5 @@ require (
 	google.golang.org/grpc v1.67.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	lukechampine.com/blake3 v1.4.0 // indirect
+	lukechampine.com/blake3 v1.4.1 // indirect
 )
