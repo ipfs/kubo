@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	core "github.com/ipfs/kubo/core"
 	plugin "github.com/ipfs/kubo/plugin"
 	event "github.com/libp2p/go-libp2p/core/event"

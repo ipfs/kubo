@@ -1,7 +1,7 @@
 package p2p
 
 import (
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	p2phost "github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	pstore "github.com/libp2p/go-libp2p/core/peerstore"

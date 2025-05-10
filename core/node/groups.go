@@ -13,7 +13,7 @@ import (
 	offline "github.com/ipfs/boxo/exchange/offline"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	util "github.com/ipfs/boxo/util"
-	"github.com/ipfs/go-log"
+	"github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/p2p"
