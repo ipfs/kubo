@@ -413,8 +413,8 @@ github.com/ipfs/go-ipfs-blockstore v1.3.1 h1:cEI9ci7V0sRNivqaOr0elDsamxXFxJMMMy7
 github.com/ipfs/go-ipfs-blockstore v1.3.1/go.mod h1:KgtZyc9fq+P2xJUiCAzbRdhhqJHvsw8u2Dlqy2MyRTE=
 github.com/ipfs/go-ipfs-blocksutil v0.0.1 h1:Eh/H4pc1hsvhzsQoMEP3Bke/aW5P5rVM1IWFJMcGIPQ=
 github.com/ipfs/go-ipfs-blocksutil v0.0.1/go.mod h1:Yq4M86uIOmxmGPUHv/uI7uKqZNtLb449gwKqXjIsnRk=
-github.com/ipfs/go-ipfs-cmds v0.14.2-0.20250508052455-a36c6e012d09 h1:AUZ0MuRI/ifE0ojULW/ETFJxzYK91320MObICAemY9c=
-github.com/ipfs/go-ipfs-cmds v0.14.2-0.20250508052455-a36c6e012d09/go.mod h1:6ClgRNitu0WTTiCvgDto3BnozENuen+q8Enpoti5XRY=
+github.com/ipfs/go-ipfs-cmds v0.14.2-0.20250512173539-7811370f5051 h1:XxZOGZ+oFnbhDLMwRR2+dJviNG3iVN/yg+FyBV/QEyg=
+github.com/ipfs/go-ipfs-cmds v0.14.2-0.20250512173539-7811370f5051/go.mod h1:VABf/mv/wqvYX6hLG6Z+40eNAEw3FQO0bSm370Or3Wk=
 github.com/ipfs/go-ipfs-delay v0.0.0-20181109222059-70721b86a9a8/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
 github.com/ipfs/go-ipfs-delay v0.0.1 h1:r/UXYyRcddO6thwOnhiznIAiSvxMECGgtv35Xs1IeRQ=
 github.com/ipfs/go-ipfs-delay v0.0.1/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
@@ -464,8 +464,8 @@ github.com/ipfs/go-verifcid v0.0.3 h1:gmRKccqhWDocCRkC+a59g5QW7uJw5bpX9HWBevXa0z
 github.com/ipfs/go-verifcid v0.0.3/go.mod h1:gcCtGniVzelKrbk9ooUSX/pM3xlH73fZZJDzQJRvOUw=
 github.com/ipld/go-car v0.6.2 h1:Hlnl3Awgnq8icK+ze3iRghk805lu8YNq3wlREDTF2qc=
 github.com/ipld/go-car v0.6.2/go.mod h1:oEGXdwp6bmxJCZ+rARSkDliTeYnVzv3++eXajZ+Bmr8=
-github.com/ipld/go-car/v2 v2.14.3-0.20250507065545-2ff63cb226cc h1:CVe4dRR6qbt7uM2kc1BU9Hw66dfq1GNpQ84Kv7H/jJ8=
-github.com/ipld/go-car/v2 v2.14.3-0.20250507065545-2ff63cb226cc/go.mod h1:/vpSvPngOX8UnvmdFJ3o/mDgXa9LuyXsn7wxOzHDYQE=
+github.com/ipld/go-car/v2 v2.14.3 h1:1Mhl82/ny8MVP+w1M4LXbj4j99oK3gnuZG2GmG1IhC8=
+github.com/ipld/go-car/v2 v2.14.3/go.mod h1:/vpSvPngOX8UnvmdFJ3o/mDgXa9LuyXsn7wxOzHDYQE=
 github.com/ipld/go-codec-dagpb v1.7.0 h1:hpuvQjCSVSLnTnHXn+QAMR0mLmb1gA6wl10LExo2Ts0=
 github.com/ipld/go-codec-dagpb v1.7.0/go.mod h1:rD3Zg+zub9ZnxcLwfol/OTQRVjaLzXypgy4UqHQvilM=
 github.com/ipld/go-ipld-prime v0.11.0/go.mod h1:+WIAkokurHmZ/KwzDOMUuoeJgaRQktHtEaLglS3ZeV8=
