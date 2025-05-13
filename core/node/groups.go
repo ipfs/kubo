@@ -337,16 +337,23 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 	isBitswapLibp2pEnabled := cfg.Bitswap.Libp2pEnabled.WithDefault(config.DefaultBitswapLibp2pEnabled)
 	isBitswapServerEnabled := cfg.Bitswap.ServerEnabled.WithDefault(config.DefaultBitswapServerEnabled)
+	isHTTPRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
 
-	// Don't provide from bitswap when the legacy noop experiment "strategic provider service" is active
-	isBitswapServerEnabled = isBitswapServerEnabled && !cfg.Experimental.StrategicProviding
+	isProviderEnabled := cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) && isBitswapServerEnabled && !cfg.Experimental.StrategicProviding
+	isAcceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
+
+	// Accelerated DHT client has routing table cached, this able to handle bigger worker pool
+	defaultProviderWorkerCount := int64(config.DefaultProviderWorkerCount)
+	if isAcceleratedDHTClient {
+		defaultProviderWorkerCount = config.DefaultProviderWorkerCountAcceleratedDHT
+	}
 
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),
-		fx.Provide(Bitswap(isBitswapServerEnabled)),
+		fx.Provide(Bitswap(isBitswapServerEnabled, isBitswapLibp2pEnabled, isHTTPRetrievalEnabled)),
 		fx.Provide(OnlineExchange(isBitswapLibp2pEnabled)),
 		// Replace our Exchange with a Providing exchange!
-		fx.Decorate(ProvidingExchange(isBitswapServerEnabled)),
+		fx.Decorate(ProvidingExchange(isProviderEnabled)),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),
@@ -358,11 +365,11 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		LibP2P(bcfg, cfg, userResourceOverrides),
 		OnlineProviders(
-			cfg.Experimental.StrategicProviding,
+			isProviderEnabled,
 			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
 			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
-			cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient),
-			int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount)),
+			isAcceleratedDHTClient,
+			int(cfg.Provider.WorkerCount.WithDefault(defaultProviderWorkerCount)),
 		),
 	)
 }

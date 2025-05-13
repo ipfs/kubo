@@ -110,6 +110,7 @@ config file at runtime.
           - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
           - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
   - [`Provider`](#provider)
+    - [`Provider.Enabled`](#providerenabled)
     - [`Provider.Strategy`](#providerstrategy)
     - [`Provider.WorkerCount`](#providerworkercount)
   - [`Pubsub`](#pubsub)
@@ -962,7 +963,7 @@ We are working on developing a modern replacement. To support our efforts, pleas
 on specified hostnames that point at your Kubo instance.
 
 It is useful when you want to run [Path gateway](https://specs.ipfs.tech/http-gateways/path-gateway/) on `example.com/ipfs/cid`,
-and [Subdomain gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/) on `cid.ipfs.example.org`, 
+and [Subdomain gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/) on `cid.ipfs.example.org`,
 or limit `verifiable.example.net` to response types defined in [Trustless Gateway](https://specs.ipfs.tech/http-gateways/trustless-gateway/) specification.
 
 > [!CAUTION]
@@ -1000,7 +1001,7 @@ Type: `array[string]`
 #### `Gateway.PublicGateways: UseSubdomains`
 
 A boolean to configure whether the gateway at the hostname should be
-a [Subdomain Gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/) 
+a [Subdomain Gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/)
 and provide [Origin isolation](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)
 between content roots.
 
@@ -1503,15 +1504,28 @@ commands.
 
 For periodical DHT reprovide settings, see [`Reprovide.*`](#reprovider).
 
+### `Provider.Enabled`
+
+Controls whether Kubo provider and reprovide systems are enabled.
+
+> [!CAUTION]
+> Disabling this, will disable BOTH `Provider` system for new CIDs
+> and the periodical reprovide ([`Reprovider.Interval`](#reprovider)) of old CIDs.
+
+Default: `true`
+
+Type: `flag`
+
 ### `Provider.Strategy`
 
 Legacy, not used at the moment, see [`Reprovider.Strategy`](#reproviderstrategy) instead.
 
 ### `Provider.WorkerCount`
 
-Sets the maximum number of _concurrent_ DHT provide operations. DHT reprovides
-operations do **not** count against that limit. A value of `0` allows an
-unlimited number of provide workers.
+Sets the maximum number of _concurrent_ DHT provide operations (announcement of new CIDs).
+
+[`Reprovider`](#reprovider) operations do **not** count against this limit.
+A value of `0` allows an unlimited number of provide workers.
 
 If the [accelerated DHT client](#routingaccelerateddhtclient) is enabled, each
 provide operation opens ~20 connections in parallel. With the standard DHT
@@ -1524,7 +1538,11 @@ For nodes without strict connection limits that need to provide large volumes
 of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
 setting `Provider.WorkerCount` to `0` (unlimited).
 
-Default: `64`
+> [!CAUTION]
+> Raising this value too high may lead to increased load.
+> Proceed with caution.
+
+Default: `16` (`64` if `Routing.AcceleratedDHTClient=true`)
 
 Type: `integer` (non-negative; `0` means unlimited number of workers)
 
@@ -1705,6 +1723,10 @@ Note: disabling content reproviding will result in other nodes on the network
 not being able to discover that you have the objects that you have. If you want
 to have this disabled and keep the network aware of what you have, you must
 manually announce your content periodically.
+
+> [!CAUTION]
+> Setting `Reprovider.Interval=0` will only disable the periodic reprovides.
+> New CIDs will stil lbe announced. To disable both, set [`Provider.Enabled=false`](#providerenabled) as well.
 
 Default: `22h` (`DefaultReproviderInterval`)
 
