@@ -33,11 +33,11 @@ func TestProvider(t *testing.T) {
 		}
 	}
 
-	t.Run("Basic Providing", func(t *testing.T) {
+	t.Run("Provider.Enabled=true", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Experimental.StrategicProviding", false)
+			n.SetIPFSConfig("Provider.Enabled", true)
 		})
 		defer nodes.StopDaemons()
 
@@ -48,11 +48,11 @@ func TestProvider(t *testing.T) {
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
-	t.Run("Basic Strategic Providing", func(t *testing.T) {
+	t.Run("Provider.Enabled=false", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Experimental.StrategicProviding", true)
+			n.SetIPFSConfig("Provider.Enabled", false)
 		})
 		defer nodes.StopDaemons()
 

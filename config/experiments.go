@@ -6,7 +6,7 @@ type Experiments struct {
 	ShardingEnabled               bool `json:",omitempty"` // deprecated by autosharding: https://github.com/ipfs/kubo/pull/8527
 	Libp2pStreamMounting          bool
 	P2pHttpProxy                  bool //nolint
-	StrategicProviding            bool
+	StrategicProviding            bool `json:",omitempty"` // removed, use Provider.Enabled instead
 	OptimisticProvide             bool
 	OptimisticProvideJobsPoolSize int
 	GatewayOverLibp2p             bool `json:",omitempty"`

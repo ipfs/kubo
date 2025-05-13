@@ -339,7 +339,10 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	isBitswapServerEnabled := cfg.Bitswap.ServerEnabled.WithDefault(config.DefaultBitswapServerEnabled)
 	isHTTPRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
 
-	isProviderEnabled := cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) && isBitswapServerEnabled && !cfg.Experimental.StrategicProviding
+	// Right now Provider and Reprovider systems are tied together - disabling Reprovider by setting interval to 0 disables Provider
+	// and vice versa: Provider.Enabled=false will disable both Provider of new CIDs and the Reprovider of old ones.
+	isProviderEnabled := cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) && cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) != 0
+
 	isAcceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
 
 	// Accelerated DHT client has routing table cached, this able to handle bigger worker pool
@@ -353,7 +356,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(Bitswap(isBitswapServerEnabled, isBitswapLibp2pEnabled, isHTTPRetrievalEnabled)),
 		fx.Provide(OnlineExchange(isBitswapLibp2pEnabled)),
 		// Replace our Exchange with a Providing exchange!
-		fx.Decorate(ProvidingExchange(isProviderEnabled)),
+		fx.Decorate(ProvidingExchange(isProviderEnabled && isBitswapServerEnabled)),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),
