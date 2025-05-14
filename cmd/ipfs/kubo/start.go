@@ -88,18 +88,6 @@ func printErr(err error) int {
 	return 1
 }
 
-/*
-func newUUID(key string) logging.Metadata {
-	ids := "#UUID-ERROR#"
-	if id, err := uuid.NewRandom(); err == nil {
-		ids = id.String()
-	}
-	return logging.Metadata{
-		key: ids,
-	}
-    }
-*/
-
 func BuildDefaultEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
 	return BuildEnv(nil)(ctx, req)
 }
