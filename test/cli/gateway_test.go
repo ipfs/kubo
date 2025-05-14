@@ -242,47 +242,6 @@ func TestGateway(t *testing.T) {
 		assert.Contains(t, []int{302, 301}, resp.StatusCode)
 	})
 
-	t.Run("GET /logs returns logs", func(t *testing.T) {
-		apiClient := node.APIClient()
-
-		// Set server log level to "info".
-		reqURL := apiClient.BuildURL("/log/level?*=info")
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, reqURL, nil)
-		require.NoError(t, err)
-		resp, err := apiClient.Client.Do(req)
-		require.NoError(t, err)
-		resp.Body.Close()
-
-		reqURL = apiClient.BuildURL("/logs")
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-
-		req, err = http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-		require.NoError(t, err)
-
-		resp, err = apiClient.Client.Do(req)
-		require.NoError(t, err)
-		defer resp.Body.Close()
-
-		var found bool
-		scanner := bufio.NewScanner(resp.Body)
-		for scanner.Scan() {
-			if strings.Contains(scanner.Text(), "log API client connected") {
-				found = true
-			}
-		}
-		assert.True(t, found)
-
-		// Set server log level to "error".
-		reqURL = apiClient.BuildURL("/log/level?*=debug")
-		req, err = http.NewRequestWithContext(context.Background(), http.MethodPost, reqURL, nil)
-		require.NoError(t, err)
-		resp, err = apiClient.Client.Do(req)
-		require.NoError(t, err)
-		resp.Body.Close()
-	})
-
 	t.Run("POST /api/v0/version succeeds", func(t *testing.T) {
 		t.Parallel()
 		resp := node.APIClient().Post("/api/v0/version", nil)
@@ -578,4 +537,49 @@ func TestGateway(t *testing.T) {
 			assert.NotContains(t, res.Resp.Header.Get("Content-Type"), "text/html")
 		})
 	})
+}
+
+// TestLogs tests that GET /logs returns log messages. This test is separate
+// because it requires setting the server's log level to "info" which may
+// change the output expected by other tests.
+func TestLogs(t *testing.T) {
+	h := harness.NewT(t)
+
+	os.Setenv("GOLOG_LOG_LEVEL", "info")
+	defer os.Unsetenv("GOLOG_LOG_LEVEL")
+
+	node := h.NewNode().Init().StartDaemon("--offline")
+	cid := node.IPFSAddStr("Hello Worlds!")
+
+	peerID, err := peer.ToCid(node.PeerID()).StringOfBase(multibase.Base36)
+	assert.NoError(t, err)
+
+	client := node.GatewayClient()
+	client.TemplateData = map[string]string{
+		"CID":    cid,
+		"PeerID": peerID,
+	}
+
+	apiClient := node.APIClient()
+	reqURL := apiClient.BuildURL("/logs")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	require.NoError(t, err)
+
+	resp, err := apiClient.Client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	var found bool
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), "log API client connected") {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found)
 }
