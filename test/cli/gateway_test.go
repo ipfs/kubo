@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
@@ -25,6 +27,8 @@ import (
 func TestGateway(t *testing.T) {
 	t.Parallel()
 	h := harness.NewT(t)
+	os.Setenv("GOLOG_LOG_LEVEL", "info")
+	defer os.Unsetenv("GOLOG_LOG_LEVEL")
 	node := h.NewNode().Init().StartDaemon("--offline")
 	cid := node.IPFSAddStr("Hello Worlds!")
 
@@ -243,7 +247,7 @@ func TestGateway(t *testing.T) {
 		apiClient := node.APIClient()
 		reqURL := apiClient.BuildURL("/logs")
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
@@ -253,13 +257,14 @@ func TestGateway(t *testing.T) {
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		// read the first line of the output and parse its JSON
-		dec := json.NewDecoder(resp.Body)
-		event := struct{ Event string }{}
-		err = dec.Decode(&event)
-		require.NoError(t, err)
-
-		assert.Equal(t, "log API client connected", event.Event)
+		var found bool
+		scanner := bufio.NewScanner(resp.Body)
+		for scanner.Scan() {
+			if strings.Contains(scanner.Text(), "log API client connected") {
+				found = true
+			}
+		}
+		assert.True(t, found)
 	})
 
 	t.Run("POST /api/v0/version succeeds", func(t *testing.T) {

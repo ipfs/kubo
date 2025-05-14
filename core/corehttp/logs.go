@@ -58,6 +58,7 @@ func LogOption() ServeOption {
 					}
 				}
 			}()
+			log.Info("log API client connected")
 			err := <-errs
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
