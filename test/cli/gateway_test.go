@@ -243,17 +243,25 @@ func TestGateway(t *testing.T) {
 	})
 
 	t.Run("GET /logs returns logs", func(t *testing.T) {
-		t.Parallel()
 		apiClient := node.APIClient()
-		reqURL := apiClient.BuildURL("/logs")
+
+		// Set server log level to "info".
+		reqURL := apiClient.BuildURL("/log/level?*=info")
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, reqURL, nil)
+		require.NoError(t, err)
+		resp, err := apiClient.Client.Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		reqURL = apiClient.BuildURL("/logs")
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 		require.NoError(t, err)
 
-		resp, err := apiClient.Client.Do(req)
+		resp, err = apiClient.Client.Do(req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -265,6 +273,14 @@ func TestGateway(t *testing.T) {
 			}
 		}
 		assert.True(t, found)
+
+		// Set server log level to "error".
+		reqURL = apiClient.BuildURL("/log/level?*=debug")
+		req, err = http.NewRequestWithContext(context.Background(), http.MethodPost, reqURL, nil)
+		require.NoError(t, err)
+		resp, err = apiClient.Client.Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
 	})
 
 	t.Run("POST /api/v0/version succeeds", func(t *testing.T) {
