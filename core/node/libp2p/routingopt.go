@@ -45,12 +45,19 @@ func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.Parallel
 		httpRouterEndpoints = cfg.Routing.DelegatedRouters
 	}
 
-	// Append HTTP routers for additional speed
+	// Settings for delegated http routers
+	ignoreError := true               // assuming DHT is always present as a fallback: https://github.com/ipfs/kubo/pull/9475#discussion_r1042507387
+	routerTimeout := 15 * time.Second // 5x server value from https://github.com/ipfs/kubo/pull/9475#discussion_r1042428529
+	doNotWaitForSearchValue := true
+	executeAfter := 0 * time.Second
+
+	// Append General-purpose HTTP routers for additional speed
 	for _, endpoint := range httpRouterEndpoints {
 		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, httpRetrievalEnabled)
 		if err != nil {
 			return nil, err
 		}
+
 		// Mapping router to /routing/v1/* endpoints
 		// https://specs.ipfs.tech/routing/http-routing-v1/
 		r := &irouting.Composer{
@@ -61,6 +68,7 @@ func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.Parallel
 			FindProvidersRouter: httpRouter, // /routing/v1/providers
 		}
 
+		// TODO: we do this here for legacy reasons
 		if endpoint == config.CidContactRoutingURL {
 			// Special-case: cid.contact only supports /routing/v1/providers/cid
 			// we disable other endpoints to avoid sending requests that always fail
@@ -72,12 +80,79 @@ func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.Parallel
 
 		routers = append(routers, &routinghelpers.ParallelRouter{
 			Router:                  r,
-			IgnoreError:             true,             // https://github.com/ipfs/kubo/pull/9475#discussion_r1042507387
-			Timeout:                 15 * time.Second, // 5x server value from https://github.com/ipfs/kubo/pull/9475#discussion_r1042428529
-			DoNotWaitForSearchValue: true,
-			ExecuteAfter:            0,
+			IgnoreError:             ignoreError,
+			Timeout:                 routerTimeout,
+			DoNotWaitForSearchValue: doNotWaitForSearchValue,
+			ExecuteAfter:            executeAfter,
 		})
 	}
+
+	// Append Provider-only HTTP routers
+	for _, endpoint := range cfg.Routing.DelegatedProviderRouters {
+		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, httpRetrievalEnabled)
+		if err != nil {
+			return nil, err
+		}
+		r := &irouting.Composer{
+			GetValueRouter:      noopRouter,
+			PutValueRouter:      noopRouter,
+			ProvideRouter:       noopRouter,
+			FindPeersRouter:     noopRouter,
+			FindProvidersRouter: httpRouter, // GET /routing/v1/providers
+		}
+		routers = append(routers, &routinghelpers.ParallelRouter{
+			Router:                  r,
+			IgnoreError:             ignoreError,
+			Timeout:                 routerTimeout,
+			DoNotWaitForSearchValue: doNotWaitForSearchValue,
+			ExecuteAfter:            executeAfter,
+		})
+	}
+
+	// Append Peer-only HTTP routers
+	for _, endpoint := range cfg.Routing.DelegatedPeerRouters {
+		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, httpRetrievalEnabled)
+		if err != nil {
+			return nil, err
+		}
+		r := &irouting.Composer{
+			GetValueRouter:      noopRouter,
+			PutValueRouter:      noopRouter,
+			ProvideRouter:       noopRouter,
+			FindPeersRouter:     httpRouter, // GET /routing/v1/peers
+			FindProvidersRouter: noopRouter,
+		}
+		routers = append(routers, &routinghelpers.ParallelRouter{
+			Router:                  r,
+			IgnoreError:             ignoreError,
+			Timeout:                 routerTimeout,
+			DoNotWaitForSearchValue: doNotWaitForSearchValue,
+			ExecuteAfter:            executeAfter,
+		})
+	}
+
+	// Append IPNS-only HTTP routers
+	for _, endpoint := range cfg.Routing.DelegatedIPNSRouters {
+		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, httpRetrievalEnabled)
+		if err != nil {
+			return nil, err
+		}
+		r := &irouting.Composer{
+			GetValueRouter:      httpRouter, // GET /routing/v1/ipns
+			PutValueRouter:      httpRouter, // PUT /routing/v1/ipns
+			ProvideRouter:       noopRouter,
+			FindPeersRouter:     noopRouter,
+			FindProvidersRouter: noopRouter,
+		}
+		routers = append(routers, &routinghelpers.ParallelRouter{
+			Router:                  r,
+			IgnoreError:             ignoreError,
+			Timeout:                 routerTimeout,
+			DoNotWaitForSearchValue: doNotWaitForSearchValue,
+			ExecuteAfter:            executeAfter,
+		})
+	}
+
 	return routers, nil
 }
 

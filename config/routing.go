@@ -48,10 +48,14 @@ type Routing struct {
 
 	IgnoreProviders []string `json:",omitempty"`
 
-	DelegatedRouters []string `json:",omitempty"`
+	// Simplified configuration used when Routing.Type=auto (or autoclient)
+	DelegatedRouters         []string `json:",omitempty"`
+	DelegatedProviderRouters []string `json:",omitempty"`
+	DelegatedPeerRouters     []string `json:",omitempty"`
+	DelegatedIPNSRouters     []string `json:",omitempty"`
 
+	// Advanced configuration used when Routing.Type=custom
 	Routers Routers `json:",omitempty"`
-
 	Methods Methods `json:",omitempty"`
 }
 
