@@ -1065,15 +1065,24 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 	if !found {
 		fsdir = cfg.Mounts.IPFS
 	}
+	if err := checkFusePath("Mounts.IPFS", fsdir); err != nil {
+		return err
+	}
 
 	nsdir, found := req.Options[ipnsMountKwd].(string)
 	if !found {
 		nsdir = cfg.Mounts.IPNS
 	}
+	if err := checkFusePath("Mounts.IPNS", nsdir); err != nil {
+		return err
+	}
 
 	mfsdir, found := req.Options[mfsMountKwd].(string)
 	if !found {
 		mfsdir = cfg.Mounts.MFS
+	}
+	if err := checkFusePath("Mounts.MFS", mfsdir); err != nil {
+		return err
 	}
 
 	node, err := cctx.ConstructNode()
@@ -1088,6 +1097,26 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 	fmt.Printf("IPFS mounted at: %s\n", fsdir)
 	fmt.Printf("IPNS mounted at: %s\n", nsdir)
 	fmt.Printf("MFS mounted at: %s\n", mfsdir)
+	return nil
+}
+
+func checkFusePath(name, path string) error {
+	if path == "" {
+		return fmt.Errorf("%s path cannot be empty", name)
+	}
+
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("%s path (%q) does not exist: %w", name, path, err)
+		}
+		return fmt.Errorf("error while inspecting %s path (%q): %w", name, path, err)
+	}
+
+	if !fileInfo.IsDir() {
+		return fmt.Errorf("%s path (%q) is not a directory", name, path)
+	}
+
 	return nil
 }
 

@@ -16,6 +16,7 @@ import (
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
+	"github.com/ipfs/boxo/namesys"
 	"github.com/ipfs/boxo/path"
 
 	fuse "bazil.org/fuse"
@@ -95,7 +96,7 @@ func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key) (*mfs.Root
 	node, err := ipfs.ResolveNode(ctx, key.Path())
 	switch err {
 	case nil:
-	case iface.ErrResolveFailed:
+	case namesys.ErrResolveFailed:
 		node = ft.EmptyDirNode()
 	default:
 		log.Errorf("looking up %s: %s", key.Path(), err)
