@@ -849,7 +849,7 @@ tests_for_files_api "with-daemon"
 test_kill_ipfs_daemon
 
 test_expect_success "enable sharding in config" '
-  ipfs config --json Internal.UnixFSShardingSizeThreshold "\"1B\""
+  ipfs config --json Import.UnixFSHAMTDirectorySizeThreshold "\"1B\""
 '
 
 test_launch_ipfs_daemon_without_network
@@ -880,7 +880,7 @@ test_expect_success "set up automatic sharding/unsharding data" '
 '
 
 test_expect_success "reset automatic sharding" '
-  ipfs config --json Internal.UnixFSShardingSizeThreshold null
+  ipfs config --json Import.UnixFSHAMTDirectorySizeThreshold null
 '
 
 test_launch_ipfs_daemon_without_network

@@ -50,6 +50,12 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		attribute.Int("inlinelimit", settings.InlineLimit),
 		attribute.Bool("rawleaves", settings.RawLeaves),
 		attribute.Bool("rawleavesset", settings.RawLeavesSet),
+		attribute.Int("maxfilelinks", settings.MaxFileLinks),
+		attribute.Bool("maxfilelinksset", settings.MaxFileLinksSet),
+		attribute.Int("maxdirectorylinks", settings.MaxDirectoryLinks),
+		attribute.Bool("maxdirectorylinksset", settings.MaxDirectoryLinksSet),
+		attribute.Int("maxhamtfanout", settings.MaxHAMTFanout),
+		attribute.Bool("maxhamtfanoutset", settings.MaxHAMTFanoutSet),
 		attribute.Int("layout", int(settings.Layout)),
 		attribute.Bool("pin", settings.Pin),
 		attribute.Bool("onlyhash", settings.OnlyHash),
@@ -132,6 +138,16 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	fileAdder.Pin = settings.Pin && !settings.OnlyHash
 	fileAdder.Silent = settings.Silent
 	fileAdder.RawLeaves = settings.RawLeaves
+	if settings.MaxFileLinksSet {
+		fileAdder.MaxLinks = settings.MaxFileLinks
+	}
+	if settings.MaxDirectoryLinksSet {
+		fileAdder.MaxDirectoryLinks = settings.MaxDirectoryLinks
+	}
+
+	if settings.MaxHAMTFanoutSet {
+		fileAdder.MaxHAMTFanout = settings.MaxHAMTFanout
+	}
 	fileAdder.NoCopy = settings.NoCopy
 	fileAdder.CidBuilder = prefix
 	fileAdder.PreserveMode = settings.PreserveMode

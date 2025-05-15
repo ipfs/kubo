@@ -16,7 +16,7 @@ fi
 test_init_ipfs
 
 test_expect_success 'force sharding' '
-  ipfs config --json Internal.UnixFSShardingSizeThreshold "\"1B\""
+  ipfs config --json Import.UnixFSHAMTDirectorySizeThreshold "\"1B\""
 '
 
 test_launch_ipfs_daemon

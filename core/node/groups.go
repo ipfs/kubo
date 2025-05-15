@@ -335,15 +335,20 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		recordLifetime = d
 	}
 
-	/* don't provide from bitswap when the strategic provider service is active */
-	shouldBitswapProvide := !cfg.Experimental.StrategicProviding
+	isBitswapLibp2pEnabled := cfg.Bitswap.Libp2pEnabled.WithDefault(config.DefaultBitswapLibp2pEnabled)
+	isBitswapServerEnabled := cfg.Bitswap.ServerEnabled.WithDefault(config.DefaultBitswapServerEnabled)
+	isHTTPRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
+
+	// Right now Provider and Reprovider systems are tied together - disabling Reprovider by setting interval to 0 disables Provider
+	// and vice versa: Provider.Enabled=false will disable both Provider of new CIDs and the Reprovider of old ones.
+	isProviderEnabled := cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) && cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) != 0
 
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),
-		fx.Provide(Bitswap(shouldBitswapProvide)),
-		fx.Provide(OnlineExchange()),
+		fx.Provide(Bitswap(isBitswapServerEnabled, isBitswapLibp2pEnabled, isHTTPRetrievalEnabled)),
+		fx.Provide(OnlineExchange(isBitswapLibp2pEnabled)),
 		// Replace our Exchange with a Providing exchange!
-		fx.Decorate(ProvidingExchange(shouldBitswapProvide)),
+		fx.Decorate(ProvidingExchange(isProviderEnabled && isBitswapServerEnabled)),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),
@@ -355,10 +360,11 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		LibP2P(bcfg, cfg, userResourceOverrides),
 		OnlineProviders(
-			cfg.Experimental.StrategicProviding,
+			isProviderEnabled,
 			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
 			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
 			cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient),
+			int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount)),
 		),
 	)
 }
@@ -408,20 +414,29 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		return fx.Error(err)
 	}
 
+	// Migrate users of deprecated Experimental.ShardingEnabled flag
+	if cfg.Experimental.ShardingEnabled {
+		logger.Fatal("The `Experimental.ShardingEnabled` field is no longer used, please remove it from the config. Use Import.UnixFSHAMTDirectorySizeThreshold instead.")
+	}
+	if !cfg.Internal.UnixFSShardingSizeThreshold.IsDefault() {
+		msg := "The `Internal.UnixFSShardingSizeThreshold` field was renamed to `Import.UnixFSHAMTDirectorySizeThreshold`. Please update your config.\n"
+		if !cfg.Import.UnixFSHAMTDirectorySizeThreshold.IsDefault() {
+			logger.Fatal(msg) // conflicting values, hard fail
+		}
+		logger.Error(msg)
+		cfg.Import.UnixFSHAMTDirectorySizeThreshold = *cfg.Internal.UnixFSShardingSizeThreshold
+	}
+
 	// Auto-sharding settings
-	shardSizeString := cfg.Internal.UnixFSShardingSizeThreshold.WithDefault("256kiB")
-	shardSizeInt, err := humanize.ParseBytes(shardSizeString)
+	shardingThresholdString := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
+	shardSingThresholdInt, err := humanize.ParseBytes(shardingThresholdString)
 	if err != nil {
 		return fx.Error(err)
 	}
-	uio.HAMTShardingSize = int(shardSizeInt)
-
-	// Migrate users of deprecated Experimental.ShardingEnabled flag
-	if cfg.Experimental.ShardingEnabled {
-		logger.Fatal("The `Experimental.ShardingEnabled` field is no longer used, please remove it from the config.\n" +
-			"go-ipfs now automatically shards when directory block is bigger than  `" + shardSizeString + "`.\n" +
-			"If you need to restore the old behavior (sharding everything) set `Internal.UnixFSShardingSizeThreshold` to `1B`.\n")
-	}
+	shardMaxFanout := cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout)
+	// TODO: avoid overriding this globally, see if we can extend Directory interface like Get/SetMaxLinks from https://github.com/ipfs/boxo/pull/906
+	uio.HAMTShardingSize = int(shardSingThresholdInt)
+	uio.DefaultShardWidth = int(shardMaxFanout)
 
 	return fx.Options(
 		bcfgOpts,

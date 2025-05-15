@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cockroachdb/pebble"
+	"github.com/cockroachdb/pebble/v2"
 	pebbleds "github.com/ipfs/go-ds-pebble"
 	"github.com/ipfs/kubo/misc/fsutil"
 	"github.com/ipfs/kubo/plugin"
@@ -110,10 +110,15 @@ func (*pebbledsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 			return nil, err
 		}
 
-		// Use latest version by default. This will ensure that format is
-		// compatible across database upgrades.
 		if formatMajorVersion == 0 {
+			// Pebble DB format not configured. Automatically ratchet the
+			// database to the latest format. This may prevent downgrade.
 			formatMajorVersion = pebble.FormatNewest
+		} else if formatMajorVersion < pebble.FormatNewest {
+			// Pebble DB format is configured, but is not the latest.
+			fmt.Println("⚠️ A newer pebble db format is available.")
+			fmt.Println("  To upgrade, set the following in the pebble datastore config:")
+			fmt.Println("    \"formatMajorVersion\":", int(pebble.FormatNewest))
 		}
 
 		if bytesPerSync != 0 || disableWAL || formatMajorVersion != 0 || l0CompactionThreshold != 0 || l0StopWritesThreshold != 0 || lBaseMaxBytes != 0 || maxConcurrentCompactions != 0 || memTableSize != 0 || memTableStopWritesThreshold != 0 || walBytesPerSync != 0 || walMinSyncSec != 0 {
