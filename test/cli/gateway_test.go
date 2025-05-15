@@ -27,8 +27,6 @@ import (
 func TestGateway(t *testing.T) {
 	t.Parallel()
 	h := harness.NewT(t)
-	os.Setenv("GOLOG_LOG_LEVEL", "info")
-	defer os.Unsetenv("GOLOG_LOG_LEVEL")
 	node := h.NewNode().Init().StartDaemon("--offline")
 	cid := node.IPFSAddStr("Hello Worlds!")
 
@@ -545,8 +543,7 @@ func TestGateway(t *testing.T) {
 func TestLogs(t *testing.T) {
 	h := harness.NewT(t)
 
-	os.Setenv("GOLOG_LOG_LEVEL", "info")
-	defer os.Unsetenv("GOLOG_LOG_LEVEL")
+	t.Setenv("GOLOG_LOG_LEVEL", "info")
 
 	node := h.NewNode().Init().StartDaemon("--offline")
 	cid := node.IPFSAddStr("Hello Worlds!")
