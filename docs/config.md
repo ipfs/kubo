@@ -1890,12 +1890,13 @@ Type: `array[string]`
 
 ### `Routing.DelegatedRouters`
 
-This is an array of URL hostnames that support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) which are used alongside the DHT when [`Routing.Type`](#routingtype) is set to `auto` or `autoclient`.
+An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
+These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
 
 > [!TIP]
 > Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
 >
-> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to the Amino DHT and other delegated routing servers, such as the Network Indexer at `cid.contact`. Public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
+> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
 
 Default: `["https://cid.contact"]` (empty or `nil` will also use this default; to disable delegated routing, set `Routing.Type` to `dht` or `dhtclient`)
 
@@ -1903,11 +1904,14 @@ Type: `array[string]`
 
 ### `Routing.Routers`
 
-**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+Alternative configuration used when `Routing.Type=custom`.
 
-Map of additional Routers.
+> [!WARNING]
+> **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+>
+> Consider this advanced low-level config: Most users can simply use `Routing.Type=auto` or `autoclient` and set up basic config in user-friendly [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
 
-Allows for extending the default routing (Amino DHT) with alternative Router
+Allows for replacing the default routing (Amino DHT) with alternative Router
 implementations.
 
 The map key is a name of a Router, and the value is its configuration.
@@ -1967,7 +1971,14 @@ Type: `object[string->string]`
 
 ### `Routing: Methods`
 
-`Methods:map` will define which routers will be executed per method. The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list.
+`Methods:map` will define which routers will be executed per method used when `Routing.Type=custom`.
+
+> [!WARNING]
+> **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+>
+> Consider this advanced low-level config: Most users can simply use `Routing.Type=auto` or `autoclient` and set up basic config in user-friendly [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+
+The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list.
 
 The value will contain:
 - `RouterName:string`: Name of the router. It should be one of the previously added to `Routing.Routers` list.
