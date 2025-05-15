@@ -129,6 +129,9 @@ config file at runtime.
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
     - [`Routing.IgnoreProviders`](#routingignoreproviders)
     - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
+    - [`Routing.DelegatedProviderRouters`](#routingdelegatedproviderrouters)
+    - [`Routing.DelegatedPeerRouters`](#routingdelegatedpeerrouters)
+    - [`Routing.DelegatedIPNSRouters`](#routingdelegatedipnsrouters)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -1868,7 +1871,7 @@ Type: `array[string]`
 
 ### `Routing.DelegatedRouters`
 
-This is an array of URL hostnames that support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) which are used alongside the DHT when [`Routing.Type`](#routingtype) is set to `auto` or `autoclient`.
+This is an array of URL hostnames that support all endpoints from the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) which are used alongside the DHT when [`Routing.Type`](#routingtype) is set to `auto` or `autoclient`.
 
 > [!TIP]
 > Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
@@ -1879,11 +1882,38 @@ Default: `["https://cid.contact"]` (empty or `nil` will also use this default; t
 
 Type: `array[string]`
 
+### `Routing.DelegatedProviderRouters`
+
+Same as  `Routing.DelegatedRouters` but limited to `GET /routing/v1/providers`.
+
+Default: `[]`
+
+Type: `array[string]`
+
+### `Routing.DelegatedPeerRouters`
+
+Same as  `Routing.DelegatedRouters` but limited to `GET /routing/v1/peers`.
+
+Default: `[]`
+
+Type: `array[string]`
+
+### `Routing.DelegatedIPNSRouters`
+
+Same as  `Routing.DelegatedRouters` but limited to `GET|PUT /routing/v1/ipns`.
+
+Default: `[]`
+
+Type: `array[string]`
+
 ### `Routing.Routers`
 
 **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
 
-Map of additional Routers.
+Map of additional Routers used when `Routing.Type=custom`.
+
+> [!TIP]
+> Most users should use `Routing.Type=auto` or `autoclient` and set simplified config in `Routing.DelegatedRouters` instead.
 
 Allows for extending the default routing (Amino DHT) with alternative Router
 implementations.
@@ -1946,6 +1976,9 @@ Type: `object[string->string]`
 ### `Routing: Methods`
 
 `Methods:map` will define which routers will be executed per method. The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list.
+
+> [!TIP]
+> Most users should use `Routing.Type=auto` or `autoclient` and set simplified config in `Routing.DelegatedRouters` instead.
 
 The value will contain:
 - `RouterName:string`: Name of the router. It should be one of the previously added to `Routing.Routers` list.
