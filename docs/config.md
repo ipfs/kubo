@@ -110,6 +110,7 @@ config file at runtime.
           - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
           - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
   - [`Provider`](#provider)
+    - [`Provider.Enabled`](#providerenabled)
     - [`Provider.Strategy`](#providerstrategy)
     - [`Provider.WorkerCount`](#providerworkercount)
   - [`Pubsub`](#pubsub)
@@ -962,7 +963,7 @@ We are working on developing a modern replacement. To support our efforts, pleas
 on specified hostnames that point at your Kubo instance.
 
 It is useful when you want to run [Path gateway](https://specs.ipfs.tech/http-gateways/path-gateway/) on `example.com/ipfs/cid`,
-and [Subdomain gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/) on `cid.ipfs.example.org`, 
+and [Subdomain gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/) on `cid.ipfs.example.org`,
 or limit `verifiable.example.net` to response types defined in [Trustless Gateway](https://specs.ipfs.tech/http-gateways/trustless-gateway/) specification.
 
 > [!CAUTION]
@@ -1000,7 +1001,7 @@ Type: `array[string]`
 #### `Gateway.PublicGateways: UseSubdomains`
 
 A boolean to configure whether the gateway at the hostname should be
-a [Subdomain Gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/) 
+a [Subdomain Gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/)
 and provide [Origin isolation](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)
 between content roots.
 
@@ -1110,7 +1111,7 @@ $ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 
 ### `Gateway` recipes
 
-Below is a list of the most common public gateway setups.
+Below is a list of the most common gateway setups.
 
 * Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
    ```console
@@ -1121,6 +1122,7 @@ Below is a list of the most common public gateway setups.
        }
      }'
    ```
+   - **Performance:** consider running with `Routing.AcceleratedDHTClient=true` and either `Provider.Enabled=false` (avoid providing newly retrieved blocks) or `Provider.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
    - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
 
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
@@ -1145,6 +1147,7 @@ Below is a list of the most common public gateway setups.
        }
      }'
    ```
+   - **Performance:** when running an open, recursive gateway consider running with `Routing.AcceleratedDHTClient=true` and either `Provider.Enabled=false` (avoid providing newly retrieved blocks) or `Provider.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
 
 * Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
   ```console
@@ -1503,15 +1506,28 @@ commands.
 
 For periodical DHT reprovide settings, see [`Reprovide.*`](#reprovider).
 
+### `Provider.Enabled`
+
+Controls whether Kubo provider and reprovide systems are enabled.
+
+> [!CAUTION]
+> Disabling this, will disable BOTH `Provider` system for new CIDs
+> and the periodical reprovide ([`Reprovider.Interval`](#reprovider)) of old CIDs.
+
+Default: `true`
+
+Type: `flag`
+
 ### `Provider.Strategy`
 
 Legacy, not used at the moment, see [`Reprovider.Strategy`](#reproviderstrategy) instead.
 
 ### `Provider.WorkerCount`
 
-Sets the maximum number of _concurrent_ DHT provide operations. DHT reprovides
-operations do **not** count against that limit. A value of `0` allows an
-unlimited number of provide workers.
+Sets the maximum number of _concurrent_ DHT provide operations (announcement of new CIDs).
+
+[`Reprovider`](#reprovider) operations do **not** count against this limit.
+A value of `0` allows an unlimited number of provide workers.
 
 If the [accelerated DHT client](#routingaccelerateddhtclient) is enabled, each
 provide operation opens ~20 connections in parallel. With the standard DHT
@@ -1520,13 +1536,17 @@ connections, with at most 10 active at once. Provides complete more quickly
 when using the accelerated client. Be mindful of how many simultaneous
 connections this setting can generate.
 
-For nodes without strict connection limits that need to provide large volumes
-of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
-setting `Provider.WorkerCount` to `0` (unlimited).
+> [!CAUTION]
+> For nodes without strict connection limits that need to provide large volumes
+> of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
+> setting `Provider.WorkerCount` to `0` (unlimited).
+>
+> At the same time, mind that raising this value too high may lead to increased load.
+> Proceed with caution, ensure proper hardware and networking are in place.
 
-Default: `64`
+Default: `16`
 
-Type: `integer` (non-negative; `0` means unlimited number of workers)
+Type: `optionalInteger` (non-negative; `0` means unlimited number of workers)
 
 ## `Pubsub`
 
@@ -1704,7 +1724,11 @@ system.
 Note: disabling content reproviding will result in other nodes on the network
 not being able to discover that you have the objects that you have. If you want
 to have this disabled and keep the network aware of what you have, you must
-manually announce your content periodically.
+manually announce your content periodically or run your own routing system
+and convince users to add it to [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+
+> [!CAUTION]
+> To maintain backward-compatibility, setting `Reprovider.Interval=0` will also disable Provider system (equivalent of `Provider.Enabled=false`)
 
 Default: `22h` (`DefaultReproviderInterval`)
 
@@ -1868,12 +1892,13 @@ Type: `array[string]`
 
 ### `Routing.DelegatedRouters`
 
-This is an array of URL hostnames that support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) which are used alongside the DHT when [`Routing.Type`](#routingtype) is set to `auto` or `autoclient`.
+An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
+These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
 
 > [!TIP]
 > Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
 >
-> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to the Amino DHT and other delegated routing servers, such as the Network Indexer at `cid.contact`. Public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
+> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
 
 Default: `["https://cid.contact"]` (empty or `nil` will also use this default; to disable delegated routing, set `Routing.Type` to `dht` or `dhtclient`)
 
@@ -1881,11 +1906,14 @@ Type: `array[string]`
 
 ### `Routing.Routers`
 
-**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+Alternative configuration used when `Routing.Type=custom`.
 
-Map of additional Routers.
+> [!WARNING]
+> **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+>
+> Consider this advanced low-level config: Most users can simply use `Routing.Type=auto` or `autoclient` and set up basic config in user-friendly [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
 
-Allows for extending the default routing (Amino DHT) with alternative Router
+Allows for replacing the default routing (Amino DHT) with alternative Router
 implementations.
 
 The map key is a name of a Router, and the value is its configuration.
@@ -1945,7 +1973,14 @@ Type: `object[string->string]`
 
 ### `Routing: Methods`
 
-`Methods:map` will define which routers will be executed per method. The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list.
+`Methods:map` will define which routers will be executed per method used when `Routing.Type=custom`.
+
+> [!WARNING]
+> **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+>
+> Consider this advanced low-level config: Most users can simply use `Routing.Type=auto` or `autoclient` and set up basic config in user-friendly [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+
+The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list.
 
 The value will contain:
 - `RouterName:string`: Name of the router. It should be one of the previously added to `Routing.Routers` list.

@@ -337,16 +337,18 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 	isBitswapLibp2pEnabled := cfg.Bitswap.Libp2pEnabled.WithDefault(config.DefaultBitswapLibp2pEnabled)
 	isBitswapServerEnabled := cfg.Bitswap.ServerEnabled.WithDefault(config.DefaultBitswapServerEnabled)
+	isHTTPRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
 
-	// Don't provide from bitswap when the legacy noop experiment "strategic provider service" is active
-	isBitswapServerEnabled = isBitswapServerEnabled && !cfg.Experimental.StrategicProviding
+	// Right now Provider and Reprovider systems are tied together - disabling Reprovider by setting interval to 0 disables Provider
+	// and vice versa: Provider.Enabled=false will disable both Provider of new CIDs and the Reprovider of old ones.
+	isProviderEnabled := cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) && cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) != 0
 
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),
-		fx.Provide(Bitswap(isBitswapServerEnabled)),
+		fx.Provide(Bitswap(isBitswapServerEnabled, isBitswapLibp2pEnabled, isHTTPRetrievalEnabled)),
 		fx.Provide(OnlineExchange(isBitswapLibp2pEnabled)),
 		// Replace our Exchange with a Providing exchange!
-		fx.Decorate(ProvidingExchange(isBitswapServerEnabled)),
+		fx.Decorate(ProvidingExchange(isProviderEnabled && isBitswapServerEnabled)),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),
@@ -358,7 +360,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		LibP2P(bcfg, cfg, userResourceOverrides),
 		OnlineProviders(
-			cfg.Experimental.StrategicProviding,
+			isProviderEnabled,
 			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
 			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
 			cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient),
