@@ -1111,7 +1111,7 @@ $ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 
 ### `Gateway` recipes
 
-Below is a list of the most common public gateway setups.
+Below is a list of the most common gateway setups.
 
 * Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
    ```console
@@ -1122,6 +1122,7 @@ Below is a list of the most common public gateway setups.
        }
      }'
    ```
+   - **Performance:** consider running with `Routing.AcceleratedDHTClient=true` and either `Provider.Enabled=false` (avoid providing newly retrieved blocks) or `Provider.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
    - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
 
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
@@ -1146,6 +1147,7 @@ Below is a list of the most common public gateway setups.
        }
      }'
    ```
+   - **Performance:** when running an open, recursive gateway consider running with `Routing.AcceleratedDHTClient=true` and either `Provider.Enabled=false` (avoid providing newly retrieved blocks) or `Provider.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
 
 * Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
   ```console
@@ -1534,17 +1536,17 @@ connections, with at most 10 active at once. Provides complete more quickly
 when using the accelerated client. Be mindful of how many simultaneous
 connections this setting can generate.
 
-For nodes without strict connection limits that need to provide large volumes
-of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
-setting `Provider.WorkerCount` to `0` (unlimited).
-
 > [!CAUTION]
-> Raising this value too high may lead to increased load.
-> Proceed with caution.
+> For nodes without strict connection limits that need to provide large volumes
+> of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
+> setting `Provider.WorkerCount` to `0` (unlimited).
+>
+> At the same time, mind that raising this value too high may lead to increased load.
+> Proceed with caution, ensure proper hardware and networking are in place.
 
-Default: `16` (`64` if `Routing.AcceleratedDHTClient=true`)
+Default: `16`
 
-Type: `integer` (non-negative; `0` means unlimited number of workers)
+Type: `optionalInteger` (non-negative; `0` means unlimited number of workers)
 
 ## `Pubsub`
 
@@ -1722,11 +1724,11 @@ system.
 Note: disabling content reproviding will result in other nodes on the network
 not being able to discover that you have the objects that you have. If you want
 to have this disabled and keep the network aware of what you have, you must
-manually announce your content periodically.
+manually announce your content periodically or run your own routing system
+and convince users to add it to [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
 
 > [!CAUTION]
-> Setting `Reprovider.Interval=0` will only disable the periodic reprovides.
-> New CIDs will stil lbe announced. To disable both, set [`Provider.Enabled=false`](#providerenabled) as well.
+> To maintain backward-compatibility, setting `Reprovider.Interval=0` will also disable Provider system (equivalent of `Provider.Enabled=false`)
 
 Default: `22h` (`DefaultReproviderInterval`)
 

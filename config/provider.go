@@ -1,9 +1,8 @@
 package config
 
 const (
-	DefaultProviderEnabled                   = true
-	DefaultProviderWorkerCount               = 16
-	DefaultProviderWorkerCountAcceleratedDHT = 64
+	DefaultProviderEnabled     = true
+	DefaultProviderWorkerCount = 16
 )
 
 // Provider configuration describes how NEW CIDs are announced the moment they are created.

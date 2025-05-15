@@ -343,14 +343,6 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	// and vice versa: Provider.Enabled=false will disable both Provider of new CIDs and the Reprovider of old ones.
 	isProviderEnabled := cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) && cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) != 0
 
-	isAcceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
-
-	// Accelerated DHT client has routing table cached, this able to handle bigger worker pool
-	defaultProviderWorkerCount := int64(config.DefaultProviderWorkerCount)
-	if isAcceleratedDHTClient {
-		defaultProviderWorkerCount = config.DefaultProviderWorkerCountAcceleratedDHT
-	}
-
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),
 		fx.Provide(Bitswap(isBitswapServerEnabled, isBitswapLibp2pEnabled, isHTTPRetrievalEnabled)),
@@ -371,8 +363,8 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 			isProviderEnabled,
 			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
 			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
-			isAcceleratedDHTClient,
-			int(cfg.Provider.WorkerCount.WithDefault(defaultProviderWorkerCount)),
+			cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient),
+			int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount)),
 		),
 	)
 }
