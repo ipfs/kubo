@@ -18,7 +18,7 @@ import (
 	plugin "github.com/ipfs/kubo/plugin"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	opentracing "github.com/opentracing/opentracing-go"
 )
 

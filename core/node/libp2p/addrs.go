@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	p2pforge "github.com/ipshipyard/p2p-forge/client"

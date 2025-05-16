@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ipfs/go-log"
+	"github.com/ipfs/go-log/v2"
 	version "github.com/ipfs/kubo"
 )
 
