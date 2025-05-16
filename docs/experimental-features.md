@@ -537,27 +537,9 @@ ipfs config --json Swarm.RelayClient.Enabled true
 
 ### State
 
-Experimental, disabled by default.
+`Experimental.StrategicProviding` was removed in Kubo v0.35.
 
-Replaces the existing provide mechanism with a robust, strategic provider system. Currently enabling this option will provide nothing.
-
-### How to enable
-
-Modify your ipfs config:
-
-```
-ipfs config --json Experimental.StrategicProviding true
-```
-
-### Road to being a real feature
-
-- [ ] needs real-world testing
-- [ ] needs adoption
-- [ ] needs to support all provider subsystem features
-    - [X] provide nothing
-    - [ ] provide roots
-    - [ ] provide all
-    - [ ] provide strategic
+Replaced by [`Provide.Enabled`](https://github.com/ipfs/kubo/blob/master/docs/config.md#providerenabled) and [`Reprovider.Strategy`](https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy).
 
 ## GraphSync
 

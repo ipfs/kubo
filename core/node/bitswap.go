@@ -83,7 +83,7 @@ type bitswapIn struct {
 // Bitswap creates the BitSwap server/client instance.
 // If Bitswap.ServerEnabled is false, the node will act only as a client
 // using an empty blockstore to prevent serving blocks to other peers.
-func Bitswap(serverEnabled bool) interface{} {
+func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 	return func(in bitswapIn, lc fx.Lifecycle) (*bitswap.Bitswap, error) {
 		var bitswapNetworks, bitswapLibp2p network.BitSwapNetwork
 		var bitswapBlockstore blockstore.Blockstore = in.Bs
@@ -93,7 +93,8 @@ func Bitswap(serverEnabled bool) interface{} {
 			bitswapLibp2p = bsnet.NewFromIpfsHost(in.Host)
 		}
 
-		if httpCfg := in.Cfg.HTTPRetrieval; httpCfg.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled) {
+		if httpEnabled {
+			httpCfg := in.Cfg.HTTPRetrieval
 			maxBlockSize, err := humanize.ParseBytes(httpCfg.MaxBlockSize.WithDefault(config.DefaultHTTPRetrievalMaxBlockSize))
 			if err != nil {
 				return nil, err
@@ -136,7 +137,7 @@ func Bitswap(serverEnabled bool) interface{} {
 			return nil, err
 		}
 
-		// Explicitly enable/disable server to ensure desired provide mode
+		// Explicitly enable/disable server
 		in.BitswapOpts = append(in.BitswapOpts, bitswap.WithServerEnabled(serverEnabled))
 
 		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetworks, providerQueryMgr, bitswapBlockstore, in.BitswapOpts...)
