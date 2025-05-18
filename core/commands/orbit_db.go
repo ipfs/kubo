@@ -18,8 +18,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mrz1836/go-countries"
+
 	"slices"
 
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	config "github.com/ipfs/kubo/config"
@@ -42,12 +45,11 @@ const dbNameGift = "gift"
 const dbNameRide = "ride"
 const dbUser = "user"
 const dbIncome = "income"
-const dbUserBalance = "user_balance"
+const dbWallet = "wallet"
 const dbTransaction = "transaction"
 const dbInflation = "inflation"
 const dbPlan = "plan"
 const dbSubscription = "subscription"
-const dbCountryWallet = "country_wallet"
 const transactionsPerPerson = 100
 
 type User struct {
@@ -56,9 +58,18 @@ type User struct {
 	DisplayName   string                      `mapstructure:"display_name" json:"display_name" validate:"uuid_rfc4122"`     // Display name for the user
 	CredentialIDs []webauthn.Credential       `mapstructure:"credential_ids" json:"credential_ids" validate:"uuid_rfc4122"` // List of credential IDs associated with the user
 	Descriptor    map[string]map[int][]string `mapstructure:"descriptor" json:"descriptor" validate:"uuid_rfc4122"`         // Face descriptor for the user
-	BusinessID    string                      `mapstructure:"business_id" json:"business_id" validate:"uuid_rfc4122"`       // VAT when company
-	Country       string                      `mapstructure:"country" json:"country" validate:"uuid_rfc4122"`
-	Region        string                      `mapstructure:"region" json:"region" validate:"uuid_rfc4122"` // Country
+	BusinessID    string                      `mapstructure:"business_id" json:"business_id" validate:"uuid_rfc4122"`       // Company business ID
+	GovernmentID  string                      `mapstructure:"government_id" json:"government_id" validate:"uuid_rfc4122"`   // Government ID
+	CountryCode   string                      `mapstructure:"country_code" json:"country_code" validate:"uuid_rfc4122"`     // Country Code
+	Region        string                      `mapstructure:"region" json:"region" validate:"uuid_rfc4122"`                 // Region
+}
+
+type Wallet struct {
+	ID           string `mapstructure:"_id" json:"_id" validate:"uuid_rfc4122"`                     // Unique identifier for the user
+	CountryCode  string `mapstructure:"country_code" json:"country_code" validate:"uuid_rfc4122"`   // Unique identifier for the country
+	Balance      int    `mapstructure:"balance" json:"balance" validate:"uuid_rfc4122"`             // Balance of the user in cents
+	Income       int    `mapstructure:"income" json:"income" validate:"uuid_rfc4122"`               // Recurring income of the user in cents
+	LastReceived string `mapstructure:"last_received" json:"last_received" validate:"uuid_rfc4122"` // Date when basic income was last received
 }
 
 type Transaction struct {
@@ -108,15 +119,18 @@ orbit db is a p2p database on top of ipfs node
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"kvput":      OrbitPutKVCmd,
-		"kvget":      OrbitGetKVCmd,
-		"kvdel":      OrbitDelKVCmd,
-		"docsput":    OrbitPutDocsCmd,
-		"docsget":    OrbitGetDocsCmd,
-		"docsquery":  OrbitQueryDocsCmd,
-		"docsdel":    OrbitDelDocsCmd,
-		"runindexer": OrbitIndexerCmd,
-		"delexpsubs": OrbitExpSubsCmd,
+		"kvput":                   OrbitPutKVCmd,
+		"kvget":                   OrbitGetKVCmd,
+		"kvdel":                   OrbitDelKVCmd,
+		"docsput":                 OrbitPutDocsCmd,
+		"docsget":                 OrbitGetDocsCmd,
+		"docsquery":               OrbitQueryDocsCmd,
+		"docsdel":                 OrbitDelDocsCmd,
+		"create-country-accounts": OrbitCreateCountryAccountsCmd,
+		"update-country-account":  OrbitUpdateCountryAccountCmd,
+		"create-country-wallets":  OrbitCreateCountryWalletsCmd,
+		"runindexer":              OrbitIndexerCmd,
+		"delexpsubs":              OrbitExpSubsCmd,
 	},
 }
 
@@ -786,6 +800,304 @@ var OrbitExpSubsCmd = &cmds.Command{
 	},
 }
 
+var OrbitCreateCountryAccountsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Create country accounts",
+		ShortDescription: `Create country accounts`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		db, store, err := ConnectDocs(req.Context, dbUser, api, func(address string) {})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		defer db.Close()
+
+		countriesMap := make(map[string]string)
+
+		countries := countries.GetAll()
+		for _, country := range countries {
+			countriesMap[country.Alpha2] = country.Name
+		}
+
+		var users []map[string]interface{}
+
+		for code, country := range countriesMap {
+			user := User{
+				Name:        country,
+				DisplayName: country,
+				ID:          protocol.URLEncodedBase64(uuid.NewString()),
+				Descriptor:  nil,
+				CountryCode: code,
+			}
+
+			userJSON, err := json.Marshal(user)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			userMap := make(map[string]interface{})
+
+			err = json.Unmarshal(userJSON, &userMap)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			users = append(users, userMap)
+		}
+
+		values := make([]interface{}, len(users))
+		for i, u := range users {
+			values[i] = u
+			_, err = store.Put(req.Context, values[i])
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		logger.Println("createCountryAccounts finished")
+
+		return nil
+	},
+}
+
+var OrbitUpdateCountryAccountCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Update country account",
+		ShortDescription: `Update country account`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("country", true, false, "Country"),
+		cmds.StringArg("government_id", true, false, "Government ID"),
+		cmds.StringArg("name", true, false, "Name"),
+		cmds.StringArg("descriptor", true, false, "Face descriptor"),
+		cmds.StringArg("credential_id", true, false, "Credential ID"),
+	},
+	PreRun: urlArgsEncoder,
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err := urlArgsDecoder(req, env); err != nil {
+			return err
+		}
+
+		country := req.Arguments[0]
+		governmentID := req.Arguments[1]
+		name := req.Arguments[2]
+		descriptor := req.Arguments[3]
+		credentialID := req.Arguments[4]
+
+		db, store, err := ConnectDocs(req.Context, dbUser, api, func(address string) {})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		defer db.Close()
+
+		q, err := store.Query(req.Context, func(e interface{}) (bool, error) {
+			record := e.(map[string]interface{})
+			if record["name"] == country {
+				return true, nil
+			}
+			return false, nil
+		})
+
+		// Convert the slice of interfaces to JSON string
+		dataBytes, err := json.Marshal(&q)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		dataString := string(dataBytes)
+
+		if dataString == "null" {
+			log.Fatal("no country account found")
+		}
+
+		users := []User{}
+		err = json.Unmarshal(dataBytes, &users)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		descriptorsLSH := make(map[int][]string)
+
+		var hyperplanes [][]float64
+
+		hyperplanes, err = LoadHyperplanes("hyperplanes.gob")
+		if err != nil {
+			// Generate 32 random hyperplanes for LSH
+			hyperplanes := generateHyperplanes(128, 32)
+
+			// Save to file
+			if err := SaveHyperplanes("hyperplanes.gob", hyperplanes); err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		var descFloat []float64
+
+		err = json.Unmarshal([]byte(descriptor), &descFloat)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Compute binary LSH signature
+		signature := computeLSHHash(descFloat, hyperplanes)
+
+		// Split signature into 8 bands of 4 bits each and hash each band
+		bands := 8
+		rowsPerBand := len(signature) / bands
+		for b := range bands {
+			bandBits := signature[b*rowsPerBand : (b+1)*rowsPerBand]
+			bandStr := boolSliceToString(bandBits)
+			bucketKey := hashBand(bandStr)
+			descriptorsLSH[b] = append(descriptorsLSH[b], bucketKey)
+			descriptorsLSH[b] = uniqueStrings(descriptorsLSH[b])
+		}
+
+		users[0].GovernmentID = governmentID
+
+		users[0].Descriptor = make(map[string]map[int][]string)
+		users[0].Descriptor[name] = descriptorsLSH
+		users[0].CredentialIDs = []webauthn.Credential{
+			{
+				ID: []byte(credentialID),
+			},
+		}
+
+		userJSON, err := json.Marshal(users[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		userMap := make(map[string]interface{})
+
+		err = json.Unmarshal(userJSON, &userMap)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		_, err = store.Put(req.Context, userMap)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		logger.Println("updateCountryAccount finished")
+
+		return nil
+	},
+}
+
+var OrbitCreateCountryWalletsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Create country wallets",
+		ShortDescription: `Create country wallets`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		dbu, storeUsers, err := ConnectDocs(req.Context, dbUser, api, func(address string) {})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		u, err := storeUsers.Query(req.Context, func(doc interface{}) (bool, error) {
+			return true, nil
+		})
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		usersBytes, err := json.Marshal(u)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		usersString := string(usersBytes)
+
+		if len(usersString) == 0 {
+			log.Fatal("no country users found")
+		}
+
+		users := []User{}
+
+		err = json.Unmarshal(usersBytes, &users)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		countriesMap := make(map[string]string)
+
+		countries := countries.GetAll()
+		for _, country := range countries {
+			countriesMap[country.Alpha2] = country.Name
+		}
+
+		var wallets []map[string]interface{}
+
+		for code := range countriesMap {
+			countryWallet := &Wallet{
+				CountryCode: code,
+			}
+
+			for _, user := range users {
+				if user.CountryCode == countryWallet.CountryCode {
+					countryWallet.ID = string(user.ID)
+				}
+			}
+
+			countryWalletJSON, err := json.Marshal(countryWallet)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			countryWalletMap := make(map[string]interface{})
+
+			err = json.Unmarshal(countryWalletJSON, &countryWalletMap)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			wallets = append(wallets, countryWalletMap)
+		}
+
+		dbu.Close()
+
+		dbw, storeWallets, err := ConnectDocs(req.Context, dbWallet, api, func(address string) {})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		values := make([]interface{}, len(wallets))
+		for i, u := range wallets {
+			values[i] = u
+			_, err = storeWallets.Put(req.Context, values[i])
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		dbw.Close()
+
+		logger.Println("createCountryWallets finished")
+
+		return nil
+	},
+}
+
 var OrbitIndexerCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Adjust basic income based on inflation/deflation",
@@ -904,8 +1216,6 @@ var OrbitIndexerCmd = &cmds.Command{
 				return err
 			}
 
-			dbInc.Close()
-
 			logger.Printf("Query income completed in: %f seconds", time.Since(timeBeforeQueryIncome).Seconds())
 
 			// Convert the slice of interfaces to JSON string
@@ -929,15 +1239,63 @@ var OrbitIndexerCmd = &cmds.Command{
 				}
 
 				var currentIncome int
+				var currentMonthExists bool
+				var prevMonthExists bool
+				var prevMonthAmount int
 
 				for _, in := range incomes {
 					if in.Period == strconv.Itoa(time.Now().Year())+"/"+strconv.Itoa(int(time.Now().Month()+1)) {
 						logger.Println("income for next month exists, quitting")
 						return errors.New("income for next month already exists")
 					} else if in.Period == strconv.Itoa(time.Now().Year())+"/"+strconv.Itoa(int(time.Now().Month())) {
+						currentMonthExists = true
 						currentIncome = in.Amount
+					} else if in.Period == strconv.Itoa(time.Now().Year())+"/"+strconv.Itoa(int(time.Now().Month()-1)) {
+						prevMonthExists = true
+						prevMonthAmount = in.Amount
 					}
 				}
+
+				if !currentMonthExists {
+					var amount int
+					if prevMonthExists {
+						amount = prevMonthAmount
+					} else {
+						amount = 200000
+					}
+
+					inc := Income{
+						ID:     uuid.NewString(),
+						Period: strconv.Itoa(time.Now().Year()) + "/" + strconv.Itoa(int(time.Now().Month())),
+						Amount: amount,
+					}
+
+					incomeJSON, err := json.Marshal(inc)
+					if err != nil {
+						logger.Println("income json marshal error: ", err)
+						return err
+					}
+
+					incomeMap := make(map[string]interface{})
+
+					err = json.Unmarshal(incomeJSON, &incomeMap)
+					if err != nil {
+						logger.Println("income json unmarshal error: ", err)
+						return err
+					}
+
+					_, err = storeInc.Put(req.Context, incomeMap)
+					if err != nil {
+						dbInc.Close()
+						logger.Println("could not insert current month, err: ", err)
+						return errors.New("could not insert current month")
+					}
+
+					logger.Println("current month income updated")
+					return nil
+				}
+
+				dbInc.Close()
 
 				if currentIncome > 0 {
 					// query  inflation db with date this month
@@ -1206,22 +1564,133 @@ var OrbitQueryDocsCmd = &cmds.Command{
 
 		defer db.Close()
 
+		// w, err := store.Query(req.Context, func(e interface{}) (bool, error) {
+		// 	record := e.(map[string]interface{})
+		// 	if record["country_code"] == "BG" {
+		// 		return true, nil
+		// 	}
+
+		// 	return false, nil
+		// })
+
+		// if err != nil {
+		// 	return err
+		// }
+
+		// // Convert the slice of interfaces to JSON string
+		// walletsBytes, err := json.Marshal(&w)
+		// if err != nil {
+		// 	return err
+		// }
+
+		// var wallets []Wallet
+
+		// err = json.Unmarshal(walletsBytes, &wallets)
+		// if err != nil {
+		// 	return err
+		// }
+
+		// for _, wallet := range wallets {
+		// 	wallet.Balance = 1000000
+		// 	walletJSON, err := json.Marshal(wallet)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+
+		// 	walletMap := make(map[string]interface{})
+
+		// 	err = json.Unmarshal(walletJSON, &walletMap)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+
+		// 	_, err = store.Put(req.Context, walletMap)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// }
+
+		// db.Close()
+
+		// return errors.New("top up BG wallets")
+
+		var index int
+
 		q, err := store.Query(req.Context, func(e interface{}) (bool, error) {
 			record := e.(map[string]interface{})
-			if key == "all" || key == "descriptor" {
+			if (key == "all" && value == "") || key == "descriptor" {
 				return true, nil
-			} else if strings.Contains(value, ",") {
-				values := strings.Split(value, ",")
-				recs, ok := record[key].(string)
-				if !ok {
+			} else if key == "all" && strings.Contains(value, "range") {
+				// value is range
+				indexRange := strings.Split(value, "=")
+				indexes := strings.Split(indexRange[1], "-")
+				start, err := strconv.Atoi(indexes[0])
+				if err != nil {
+					return false, err
+				}
+				end, err := strconv.Atoi(indexes[1])
+				if err != nil {
+					return false, err
+				}
+
+				if index >= start && index <= end {
+					index++
+					return true, nil
+				} else {
+					index++
 					return false, nil
 				}
-				if strings.Contains(recs, ",") {
-					records := strings.Split(recs, ",")
-					for _, r := range records {
+			} else if strings.Contains(value, ",") {
+				values := strings.Split(value, ",")
+				var start int
+				var end int
+				for i, val := range values {
+					if strings.Contains(val, "range") {
+						// value is range
+						indexRange := strings.Split(value, "=")
+						indexes := strings.Split(indexRange[1], "-")
+						start, err = strconv.Atoi(indexes[0])
+						if err != nil {
+							return false, err
+						}
+						end, err = strconv.Atoi(indexes[1])
+						if err != nil {
+							return false, err
+						}
+
+						values = slices.Delete(values, i, i+1)
+					}
+				}
+
+				if strings.Contains(key, ",") {
+					keys := strings.Split(key, ",")
+					for _, k := range keys {
+						record, ok := record[k].(string)
+						if !ok {
+							return false, nil
+						}
+
 						for _, v := range values {
-							if r == v {
+							if record == v {
+								if index >= start && index <= end {
+									index++
+									return true, nil
+								} else {
+									index++
+									return false, nil
+								}
+							}
+						}
+					}
+				} else {
+					for _, v := range values {
+						if record[key] == v {
+							if index >= start && index <= end {
+								index++
 								return true, nil
+							} else {
+								index++
+								return false, nil
 							}
 						}
 					}
@@ -1468,7 +1937,7 @@ func ConnectKV(ctx context.Context, dbName string, api iface.CoreAPI, onReady fu
 		}
 	}()
 
-	store.Load(ctx, -1)
+	err = store.Load(ctx, -1)
 	if err != nil {
 		return db, nil, err
 	}
@@ -1491,14 +1960,6 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 
 	var addr address.Address
 	switch dbName {
-	case dbCountryWallet:
-		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
-		if err != nil {
-			_, err = db.Create(ctx, dbCountryWallet, "docstore", &orbitdb.CreateDBOptions{})
-			if err != nil {
-				return db, nil, err
-			}
-		}
 	case dbSubscription:
 		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
@@ -1539,10 +2000,10 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 				return db, nil, err
 			}
 		}
-	case dbUserBalance:
+	case dbWallet:
 		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
-			_, err = db.Create(ctx, dbUserBalance, "docstore", &orbitdb.CreateDBOptions{})
+			_, err = db.Create(ctx, dbWallet, "docstore", &orbitdb.CreateDBOptions{})
 			if err != nil {
 				return db, nil, err
 			}
