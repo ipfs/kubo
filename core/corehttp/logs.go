@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"net/http"
@@ -34,15 +35,16 @@ func LogOption() ServeOption {
 			go func() {
 				defer close(errs)
 				defer close(done)
-				buf := make([]byte, 4096)
+
+				rdr := bufio.NewReader(pipeReader)
 				for {
-					// Read log data into limited size buffer and send buffer to client.
-					size, err := pipeReader.Read(buf)
+					// Read a line of log data and send it to the client.
+					line, err := rdr.ReadString('\n')
 					if err != nil {
-						errs <- fmt.Errorf("error reading log event: %s", err)
+						errs <- fmt.Errorf("error reading log message: %s", err)
 						return
 					}
-					_, err = w.Write(buf[:size])
+					_, err = w.Write([]byte(line))
 					if err != nil {
 						// Failed to write to client, probably disconnected.
 						return
@@ -51,9 +53,6 @@ func LogOption() ServeOption {
 						f.Flush()
 					}
 					if r.Context().Err() != nil {
-						return
-					}
-					if n.Context().Err() != nil {
 						return
 					}
 				}
