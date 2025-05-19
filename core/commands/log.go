@@ -108,15 +108,22 @@ const logLevelOption = "log-level"
 var logTailCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Read the event log.",
+		Tagline: "Read and outpt log messages.",
 		ShortDescription: `
-Outputs event log messages (not other log messages) as they are generated.
+Outputs log messages as they are generated.
+
+NOTE: --log-level requires the server to be logging at least at this level
+
+Example:
+
+  GOLOG_LOG_LEVEL="error,bitswap=debug" ipfs daemon
+  ipfs log tail --log-level info
+
+This will only return 'info' logs from bitswap and skip 'debug'.
 `,
 	},
 
 	Options: []cmds.Option{
-		// FIXME: The PipeReader doesn't support per-subsystem log levels like
-		//  https://github.com/ipfs/go-log#golog_log_level, just a global one.
 		cmds.StringOption(logLevelOption, "Log level to listen to.").WithDefault(""),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
