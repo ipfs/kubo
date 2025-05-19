@@ -6,16 +6,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/libp2p/go-libp2p/core/host"
-	peer "github.com/libp2p/go-libp2p/core/peer"
-
 	pinclient "github.com/ipfs/boxo/pinning/remote/client"
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
-
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
+	"github.com/libp2p/go-libp2p/core/host"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 // mfslog is the logger for remote mfs pinning.
