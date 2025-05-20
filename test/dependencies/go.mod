@@ -140,7 +140,7 @@ require (
 	github.com/ipfs/kubo v0.31.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.6.0 // indirect
 	github.com/ipld/go-ipld-prime v0.21.0 // indirect
-	github.com/ipshipyard/p2p-forge v0.4.0 // indirect
+	github.com/ipshipyard/p2p-forge v0.5.1 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jgautheron/goconst v1.7.1 // indirect
