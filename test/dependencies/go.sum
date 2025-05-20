@@ -440,8 +440,8 @@ github.com/libp2p/go-libp2p v0.41.1 h1:8ecNQVT5ev/jqALTvisSJeVNvXYJyK4NhQx1nNRXQ
 github.com/libp2p/go-libp2p v0.41.1/go.mod h1:DcGTovJzQl/I7HMrby5ZRjeD0kQkGiy+9w6aEkSZpRI=
 github.com/libp2p/go-libp2p-asn-util v0.4.1 h1:xqL7++IKD9TBFMgnLPZR6/6iYhawHKHl950SO9L6n94=
 github.com/libp2p/go-libp2p-asn-util v0.4.1/go.mod h1:d/NI6XZ9qxw67b4e+NgpQexCIiFYJjErASrYW4PFDN8=
-github.com/libp2p/go-libp2p-kad-dht v0.32.0 h1:dpyq7o00od98vPQG0IZvNHpeLnKyuICN1nVzGnVMC9k=
-github.com/libp2p/go-libp2p-kad-dht v0.32.0/go.mod h1:vQU5oE9hMHXJhSQawbZapC9u0U9dc+tWC0DYasGmIAA=
+github.com/libp2p/go-libp2p-kad-dht v0.33.0 h1:lB6JFgLpsfEKTmcy27sPFulexEZMeN40zRsmIx8aFcw=
+github.com/libp2p/go-libp2p-kad-dht v0.33.0/go.mod h1:CdmNk4VeGJa9EXM9SLNyNVySEvduKvb+5rSC/H4pLAo=
 github.com/libp2p/go-libp2p-kbucket v0.7.0 h1:vYDvRjkyJPeWunQXqcW2Z6E93Ywx7fX0jgzb/dGOKCs=
 github.com/libp2p/go-libp2p-kbucket v0.7.0/go.mod h1:blOINGIj1yiPYlVEX0Rj9QwEkmVnz3EP8LK1dRKBC6g=
 github.com/libp2p/go-libp2p-record v0.3.1 h1:cly48Xi5GjNw5Wq+7gmjfBiG9HCzQVkiZOUZ8kUl+Fg=
@@ -494,8 +494,8 @@ github.com/mgechev/revive v1.3.9/go.mod h1:+uxEIr5UH0TjXWHTno3xh4u7eg6jDpXKzQccA
 github.com/mholt/acmez/v3 v3.0.0 h1:r1NcjuWR0VaKP2BTjDK9LRFBw/WvURx3jlaEUl9Ht8E=
 github.com/mholt/acmez/v3 v3.0.0/go.mod h1:L1wOU06KKvq7tswuMDwKdcHeKpFFgkppZy/y0DFxagQ=
 github.com/microcosm-cc/bluemonday v1.0.1/go.mod h1:hsXNsILzKxV+sX77C5b8FSuKF00vh2OMYv+xgHpAMF4=
-github.com/miekg/dns v1.1.65 h1:0+tIPHzUW0GCge7IiK3guGP57VAw7hoPDfApjkMD1Fc=
-github.com/miekg/dns v1.1.65/go.mod h1:Dzw9769uoKVaLuODMDZz9M6ynFU6Em65csPuoi8G0ck=
+github.com/miekg/dns v1.1.66 h1:FeZXOS3VCVsKnEAd+wBkjMC3D2K+ww66Cq3VnCINuJE=
+github.com/miekg/dns v1.1.66/go.mod h1:jGFzBsSNbJw6z1HYut1RKBKHA9PBdxeHrZG8J+gC2WE=
 github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b h1:z78hV3sbSMAUoyUMM0I83AUIT6Hu17AWfgjzIbtrYFc=
 github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b/go.mod h1:lxPUiZwKoFL8DUUmalo2yJJUCxbPKtm8OKfqr2/FTNU=
 github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc h1:PTfri+PuQmWDqERdnNMiD9ZejrlswWrCpBEZgWOiTrc=
