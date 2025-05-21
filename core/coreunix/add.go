@@ -25,7 +25,7 @@ import (
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 
 	"github.com/ipfs/kubo/tracing"

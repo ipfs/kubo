@@ -1,4 +1,4 @@
-name: Close Stale Issues
+name: Close Generated PRs
 
 on:
   schedule:
@@ -11,4 +11,4 @@ permissions:
 
 jobs:
   stale:
-    uses: ipdxco/unified-github-workflows/.github/workflows/reusable-stale-issue.yml@v1
+    uses: ipdxco/unified-github-workflows/.github/workflows/reusable-generated-pr.yml@v1

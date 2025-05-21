@@ -10,7 +10,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/pin"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("core/commands")
