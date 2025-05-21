@@ -57,4 +57,28 @@ test_expect_success "make sure initial metrics added by setting ResourceMgr.Enab
   diff -u ../t0119-prometheus-data/prometheus_metrics_added_by_enabling_rcmgr rcmgr_metrics
 '
 
+# Reinitialize ipfs with --profile=flatfs-measure and check metrics.
+
+test_expect_success "remove ipfs directory" '
+  rm -rf .ipfs mountdir ipfs ipns
+'
+
+test_init_ipfs_measure
+
+test_launch_ipfs_daemon
+
+test_expect_success "collect metrics" '
+  curl "$API_ADDR/debug/metrics/prometheus" > raw_metrics
+'
+test_kill_ipfs_daemon
+
+test_expect_success "filter metrics and find ones added by enabling flatfs-measure profile" '
+  sed -ne "s/^\([a-z0-9_]\+\).*/\1/p" raw_metrics | LC_ALL=C sort > filtered_metrics &&
+  grep -v -x -f ../t0119-prometheus-data/prometheus_metrics filtered_metrics | LC_ALL=C sort | uniq > measure_metrics
+'
+
+test_expect_success "make sure initial metrics added by initializing with flatfs-measure profile haven't changed" '
+  diff -u ../t0119-prometheus-data/prometheus_metrics_added_by_measure_profile measure_metrics
+'
+
 test_done

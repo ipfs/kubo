@@ -80,8 +80,8 @@ RUN mkdir -p $IPFS_PATH \
   && chown ipfs:users $IPFS_PATH
 
 # Create mount points for `ipfs mount` command
-RUN mkdir /ipfs /ipns \
-  && chown ipfs:users /ipfs /ipns
+RUN mkdir /ipfs /ipns /mfs \
+  && chown ipfs:users /ipfs /ipns /mfs
 
 # Create the init scripts directory
 RUN mkdir /container-init.d \
