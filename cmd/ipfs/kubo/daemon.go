@@ -19,7 +19,6 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 
-	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	mprome "github.com/ipfs/go-metrics-prometheus"
 	version "github.com/ipfs/kubo"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
@@ -47,6 +46,7 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promauto "github.com/prometheus/client_golang/prometheus/promauto"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 const (

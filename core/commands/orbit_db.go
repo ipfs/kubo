@@ -2090,7 +2090,7 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		}
 	}()
 
-	store.Load(ctx, -1)
+	err = store.Load(ctx, -1)
 	if err != nil {
 		return db, nil, err
 	}
