@@ -2095,6 +2095,8 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		return db, nil, err
 	}
 
+	logger.Println(db.Identity().ID)
+
 	return db, store, nil
 }
 
