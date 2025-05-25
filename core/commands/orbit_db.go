@@ -25,12 +25,14 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
+	"github.com/ipfs/go-cid"
 	config "github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	orbitdb "github.com/stateless-minds/go-orbit-db"
+	"github.com/stateless-minds/go-orbit-db/accesscontroller"
 	address "github.com/stateless-minds/go-orbit-db/address"
 	orbitdb_iface "github.com/stateless-minds/go-orbit-db/iface"
 	stores "github.com/stateless-minds/go-orbit-db/stores"
@@ -2089,7 +2091,23 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		return db, nil, errors.New("unexpected dbName")
 	}
 
-	store, err := db.Docs(ctx, addr.String(), &orbitdb.CreateDBOptions{})
+	writeAccess := []string{db.Identity().ID}
+
+	ipfsAccessController := accesscontroller.NewManifestParams(cid.Cid{}, true, "ipfs")
+
+	ipfsAccessController.SetAccess("write", writeAccess)
+
+	authorized := ipfsAccessController.GetAllAccess()
+
+	logger.Println("my identity: ", db.Identity().ID)
+
+	logger.Println("authorized list: ", authorized)
+
+	opts := &orbitdb.CreateDBOptions{
+		AccessController: ipfsAccessController,
+	}
+
+	store, err := db.Docs(ctx, addr.String(), opts)
 	if err != nil {
 		return db, nil, err
 	}
