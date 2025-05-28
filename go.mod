@@ -21,7 +21,7 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.30.0
+	github.com/ipfs/boxo v0.30.1-0.20250528003338-5f2eea04f726
 	github.com/ipfs/go-block-format v0.2.1
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-cidutil v0.1.0
@@ -42,7 +42,7 @@ require (
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
 	github.com/ipfs/go-test v0.2.2
-	github.com/ipfs/go-unixfsnode v1.10.0
+	github.com/ipfs/go-unixfsnode v1.10.1
 	github.com/ipld/go-car v0.6.2
 	github.com/ipld/go-car/v2 v2.14.3
 	github.com/ipld/go-codec-dagpb v1.7.0
