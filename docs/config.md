@@ -846,7 +846,7 @@ Options for [ZeroConf](https://github.com/libp2p/zeroconf#readme) Multicast DNS-
 
 #### `Discovery.MDNS.Enabled`
 
-A boolean value for whether or not Multicast DNS-SD should be active.
+A boolean value to activate or deactivate Multicast DNS-SD.
 
 Default: `true`
 
@@ -934,7 +934,7 @@ Type: `object[string -> array[string]]`
 
 ### `Gateway.RootRedirect`
 
-A url to redirect requests for `/` to.
+A URL to redirect requests for `/` to.
 
 Default: `""`
 
@@ -1410,7 +1410,7 @@ Type: `string` (filesystem path)
 
 ### `Mounts.FuseAllowOther`
 
-Sets the 'FUSE allow other'-option on the mount point.
+Sets the 'FUSE allow-other' option on the mount point.
 
 ## `Pinning`
 
