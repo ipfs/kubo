@@ -724,7 +724,7 @@ Examples:
 
 		fsn, err := mfs.Lookup(nd.FilesRoot, path)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", path, err)
 		}
 
 		fi, ok := fsn.(*mfs.File)
