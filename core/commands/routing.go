@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
@@ -158,6 +159,14 @@ var provideRefRoutingCmd = &cmds.Command{
 		if !nd.IsOnline {
 			return ErrNotOnline
 		}
+		// respect global config
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+		if !cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) {
+			return errors.New("invalid configuration: Provider.Enabled is set to 'false'")
+		}
 
 		if len(nd.PeerHost.Network().Conns()) == 0 {
 			return errors.New("cannot provide, no connected peers")
@@ -252,6 +261,18 @@ Trigger reprovider to announce our data to network.
 
 		if !nd.IsOnline {
 			return ErrNotOnline
+		}
+
+		// respect global config
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+		if !cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) {
+			return errors.New("invalid configuration: Provider.Enabled is set to 'false'")
+		}
+		if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) == 0 {
+			return errors.New("invalid configuration: Reprovider.Interval is set to '0'")
 		}
 
 		err = nd.Provider.Reprovide(req.Context)

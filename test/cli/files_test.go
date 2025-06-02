@@ -65,7 +65,7 @@ func TestFilesCp(t *testing.T) {
 		// we manually changed codec from raw to dag-pb to test "bad dag-pb" scenario
 		cid := "bafybeic7pdbte5heh6u54vszezob3el6exadoiw4wc4ne7ny2x7kvajzkm"
 
-		// should fail because node cant be read as a valid dag-pb
+		// should fail because node cannot be read as a valid dag-pb
 		cpResNoForce := node.RunIPFS("files", "cp", fmt.Sprintf("/ipfs/%s", cid), "/invalid-proto")
 		assert.NotEqual(t, 0, cpResNoForce.ExitErr.ExitCode())
 		assert.Contains(t, cpResNoForce.Stderr.String(), "Error")

@@ -13,7 +13,7 @@ import (
 
 	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/files"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"

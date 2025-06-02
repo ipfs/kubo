@@ -150,6 +150,20 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 			return nil
 		},
 	},
+	"flatfs-measure": {
+		Description: `Configures the node to use the flatfs datastore with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = flatfsSpecMeasure()
+			return nil
+		},
+	},
 	"pebbleds": {
 		Description: `Configures the node to use the pebble high-performance datastore.
 
@@ -173,6 +187,20 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 		InitOnly: true,
 		Transform: func(c *Config) error {
 			c.Datastore.Spec = pebbleSpec()
+			return nil
+		},
+	},
+	"pebbleds-measure": {
+		Description: `Configures the node to use the pebble datastore with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile pebbleds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = pebbleSpecMeasure()
 			return nil
 		},
 	},
@@ -205,6 +233,20 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 			return nil
 		},
 	},
+	"badgerds-measure": {
+		Description: `Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile badgerds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = badgerSpecMeasure()
+			return nil
+		},
+	},
 	"lowpower": {
 		Description: `Reduces daemon overhead on the system. May affect node
 functionality - performance of content discovery and data
@@ -228,7 +270,7 @@ fetching may be degraded.
 		},
 	},
 	"announce-off": {
-		Description: `Disables Reprovide system (and announcing to Amino DHT).
+		Description: `Disables Provide and Reprovide systems (announcing to Amino DHT).
 
 		USE WITH CAUTION:
 		The main use case for this is setups with manual Peering.Peers config.
@@ -237,16 +279,16 @@ fetching may be degraded.
 		one hosting it, and other peers are not already connected to it.
 `,
 		Transform: func(c *Config) error {
+			c.Provider.Enabled = False
 			c.Reprovider.Interval = NewOptionalDuration(0) // 0 disables periodic reprovide
-			c.Experimental.StrategicProviding = true       // this is not a typo (the name is counter-intuitive)
 			return nil
 		},
 	},
 	"announce-on": {
-		Description: `Re-enables Reprovide system (reverts announce-off profile).`,
+		Description: `Re-enables Provide and Reprovide systems (reverts announce-off profile).`,
 		Transform: func(c *Config) error {
+			c.Provider.Enabled = True
 			c.Reprovider.Interval = NewOptionalDuration(DefaultReproviderInterval) // have to apply explicit default because nil would be ignored
-			c.Experimental.StrategicProviding = false                              // this is not a typo (the name is counter-intuitive)
 			return nil
 		},
 	},
@@ -266,24 +308,44 @@ fetching may be degraded.
 		},
 	},
 	"legacy-cid-v0": {
-		Description: `Makes UnixFS import produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.`,
-
+		Description: `Makes UnixFS import produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks. This is likely the least optimal preset, use only if legacy behavior is required.`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(0)
 			c.Import.UnixFSRawLeaves = False
 			c.Import.UnixFSChunker = *NewOptionalString("size-262144")
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("256KiB")
 			return nil
 		},
 	},
 	"test-cid-v1": {
-		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.`,
-
+		Description: `Makes UnixFS import produce CIDv1 with raw leaves, sha2-256 and 1 MiB chunks (max 174 links per file, 256 per HAMT node, switch dir to HAMT above 256KiB).`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
 			c.Import.UnixFSRawLeaves = True
 			c.Import.UnixFSChunker = *NewOptionalString("size-1048576")
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("256KiB")
+			return nil
+		},
+	},
+	"test-cid-v1-wide": {
+		Description: `Makes UnixFS import produce CIDv1 with raw leaves, sha2-256 and 1MiB chunks and wider file DAGs (max 1024 links per every node type, switch dir to HAMT above 1MiB).`,
+		Transform: func(c *Config) error {
+			c.Import.CidVersion = *NewOptionalInteger(1)
+			c.Import.UnixFSRawLeaves = True
+			c.Import.UnixFSChunker = *NewOptionalString("size-1048576") // 1MiB
+			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0) // no limit here, use size-based Import.UnixFSHAMTDirectorySizeThreshold instead
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(1024)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("1MiB") // 1MiB
 			return nil
 		},
 	},
