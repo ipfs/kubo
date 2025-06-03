@@ -440,10 +440,10 @@ being GC'ed.
 		cmds.StringArg("dest", true, false, "Destination within MFS."),
 	},
 	Options: []cmds.Option{
+		cmds.BoolOption(forceOptionName, "Force overwrite of existing files."),
 		cmds.BoolOption(filesParentsOptionName, "p", "Make parent directories as needed."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -458,8 +458,6 @@ being GC'ed.
 		if err != nil {
 			return err
 		}
-
-		flush, _ := req.Options[filesFlushOptionName].(bool)
 
 		src, err := checkPath(req.Arguments[0])
 		if err != nil {
@@ -500,10 +498,18 @@ being GC'ed.
 			return errFilesCpInvalidUnixFS
 		}
 
+		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		if mkParents {
 			err := ensureContainingDirectoryExists(nd.FilesRoot, dst, prefix)
 			if err != nil {
 				return err
+			}
+		}
+
+		force, _ := req.Options[forceOptionName].(bool)
+		if force {
+			if err = unlinkNodeIfExists(nd, dst); err != nil {
+				return fmt.Errorf("cp: cannot unlink existing file: %s", err)
 			}
 		}
 
@@ -512,6 +518,7 @@ being GC'ed.
 			return fmt.Errorf("cp: cannot put node in path %s: %s", dst, err)
 		}
 
+		flush, _ := req.Options[filesFlushOptionName].(bool)
 		if flush {
 			if _, err := mfs.FlushPath(req.Context, nd.FilesRoot, dst); err != nil {
 				return fmt.Errorf("cp: cannot flush the created file %s: %s", dst, err)
@@ -544,6 +551,35 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI
 
 		return fsn.GetNode()
 	}
+}
+
+func unlinkNodeIfExists(node *core.IpfsNode, path string) error {
+	dir, name := gopath.Split(path)
+	parent, err := mfs.Lookup(node.FilesRoot, dir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+
+	pdir, ok := parent.(*mfs.Directory)
+	if !ok {
+		return fmt.Errorf("not a directory: %s", dir)
+	}
+
+	// Attempt to unlink if child is a file, ignore error since
+	// we are only concerned with unlinking an existing file.
+	child, err := pdir.Child(name)
+	if err != nil {
+		return nil // no child file, nothing to unlink
+	}
+
+	if child.Type() != mfs.TFile {
+		return fmt.Errorf("not a file: %s", path)
+	}
+
+	return pdir.Unlink(name)
 }
 
 type filesLsOutput struct {
