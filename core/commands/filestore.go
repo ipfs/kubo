@@ -131,7 +131,7 @@ For ERROR entries the error will also be printed to stderr.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(fileOrderOptionName, "verify the objects based on the order of the backing file"),
-		cmds.BoolOption(removeBadBlocksOptionName, "remove bas blocks. WARNING: This may remove pinned data. You should run 'ipfs pin verify' after running this command and correct any issues."),
+		cmds.BoolOption(removeBadBlocksOptionName, "remove bad blocks. WARNING: This may remove pinned data. You should run 'ipfs pin verify' after running this command and correct any issues."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		_, fs, err := getFilestore(env)
