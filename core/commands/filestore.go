@@ -158,10 +158,12 @@ For ERROR entries the error will also be printed to stderr.
 			}
 
 			if removeBadBlocks && (r.Status != filestore.StatusOk) && (r.Status != filestore.StatusOtherError) {
-				fs.FileManager().DeleteBlock(r.Key)
+				if err = fs.FileManager().DeleteBlock(req.Context, r.Key); err != nil {
+					return err
+				}
 			}
 
-			if err := res.Emit(r); err != nil {
+			if err = res.Emit(r); err != nil {
 				return err
 			}
 		}
@@ -273,10 +275,12 @@ func listByArgs(ctx context.Context, res cmds.ResponseEmitter, fs *filestore.Fil
 		r := filestore.Verify(ctx, fs, c)
 
 		if removeBadBlocks && (r.Status != filestore.StatusOk) && (r.Status != filestore.StatusOtherError) {
-			fs.FileManager().DeleteBlock(r.Key)
+			if err = fs.FileManager().DeleteBlock(ctx, r.Key); err != nil {
+				return err
+			}
 		}
 
-		if err := res.Emit(r); err != nil {
+		if err = res.Emit(r); err != nil {
 			return err
 		}
 	}
