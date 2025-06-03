@@ -48,13 +48,18 @@ file inside your IPFS repository (IPFS_PATH).
 
 Examples:
 
-Get the value of the 'Datastore.Path' key:
+Get the value of the 'Routing.Type' key:
 
-  $ ipfs config Datastore.Path
+  $ ipfs config Routing.Type
 
-Set the value of the 'Datastore.Path' key:
+Set the value of the 'Routing.Type' key:
 
-  $ ipfs config Datastore.Path ~/.ipfs/datastore
+  $ ipfs config Routing.Type auto
+
+Set multiple values in the 'Addresses.AppendAnnounce' array:
+
+  $ ipfs config Addresses.AppendAnnounce --json \
+      '["/dns4/a.example.com/tcp/4001", "/dns4/b.example.com/tcp/4002"]'
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -204,6 +209,11 @@ NOTE: For security reasons, this command will omit your private key and remote s
 		}
 
 		cfg, err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
+		if err != nil {
+			return err
+		}
+
+		cfg, err = scrubValue(cfg, []string{config.APITag, config.AuthorizationTag})
 		if err != nil {
 			return err
 		}
@@ -581,5 +591,4 @@ func getRemotePinningServices(r repo.Repo) (map[string]config.RemotePinningServi
 		}
 	}
 	return oldServices, nil
-
 }

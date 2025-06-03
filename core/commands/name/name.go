@@ -10,7 +10,6 @@ import (
 
 	"github.com/ipfs/boxo/ipns"
 	ipns_pb "github.com/ipfs/boxo/ipns/pb"
-	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"google.golang.org/protobuf/proto"
@@ -87,7 +86,7 @@ type IpnsInspectValidation struct {
 // IpnsInspectEntry contains the deserialized values from an IPNS Entry:
 // https://github.com/ipfs/specs/blob/main/ipns/IPNS.md#record-serialization-format
 type IpnsInspectEntry struct {
-	Value        *path.Path
+	Value        string
 	ValidityType *ipns.ValidityType
 	Validity     *time.Time
 	Sequence     *uint64
@@ -157,7 +156,7 @@ Passing --verify will verify signature against provided public key.
 
 		// Best effort to get the fields. Show everything we can.
 		if v, err := rec.Value(); err == nil {
-			result.Entry.Value = &v
+			result.Entry.Value = v.String()
 		}
 
 		if v, err := rec.ValidityType(); err == nil {
@@ -221,8 +220,8 @@ Passing --verify will verify signature against provided public key.
 			tw := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
 			defer tw.Flush()
 
-			if out.Entry.Value != nil {
-				fmt.Fprintf(tw, "Value:\t%q\n", out.Entry.Value.String())
+			if out.Entry.Value != "" {
+				fmt.Fprintf(tw, "Value:\t%q\n", out.Entry.Value)
 			}
 
 			if out.Entry.ValidityType != nil {
@@ -246,7 +245,7 @@ Passing --verify will verify signature against provided public key.
 
 			if out.Validation == nil {
 				tw.Flush()
-				fmt.Fprintf(w, "\nThis record was not validated.\n")
+				fmt.Fprintf(w, "\nThis record was not verified. Pass '--verify k51...' to verify.\n")
 			} else {
 				tw.Flush()
 				fmt.Fprintf(w, "\nValidation results:\n")
@@ -261,8 +260,7 @@ Passing --verify will verify signature against provided public key.
 			if out.HexDump != "" {
 				tw.Flush()
 
-				fmt.Fprintf(w, "\nHex Dump:\n")
-				fmt.Fprintf(w, out.HexDump)
+				fmt.Fprintf(w, "\nHex Dump:\n%s", out.HexDump)
 			}
 
 			return nil

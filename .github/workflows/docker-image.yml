@@ -7,6 +7,10 @@ on:
         description: 'Push to Docker Hub'
         required: true
         default: 'false'
+      tags:
+        description: 'Custom tags to use for the push'
+        required: false
+        default: ''
   # # If we decide to build all images on every PR, we should make sure that
   # # they are NOT pushed to Docker Hub.
   # pull_request:
@@ -15,6 +19,7 @@ on:
   push:
     branches:
       - 'master'
+      - 'staging'
       - 'bifrost-*'
     tags:
       - 'v*'
@@ -27,22 +32,22 @@ jobs:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 15
     env:
       IMAGE_NAME: ipfs/kubo
       LEGACY_IMAGE_NAME: ipfs/go-ipfs
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Cache Docker layers
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
@@ -51,6 +56,7 @@ jobs:
 
       - name: Get tags
         id: tags
+        if: github.event.inputs.tags == ''
         run: |
           echo "value<<EOF" >> $GITHUB_OUTPUT
           ./bin/get-docker-tags.sh "$(date -u +%F)" >> $GITHUB_OUTPUT
@@ -58,7 +64,7 @@ jobs:
         shell: bash
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc
+        uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -67,7 +73,7 @@ jobs:
       # builds, only one platform is being loaded into the cache. This would
       # prevent us from testing the other platforms.
       - name: Build Docker image (linux/amd64)
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64
           context: .
@@ -79,7 +85,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
       - name: Build Docker image (linux/arm/v7)
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/arm/v7
           context: .
@@ -91,7 +97,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
       - name: Build Docker image (linux/arm64/v8)
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/arm64/v8
           context: .
@@ -104,20 +110,28 @@ jobs:
 
       # We test all the images on amd64 host here. This uses QEMU to emulate
       # the other platforms.
-      - run: docker run --rm $IMAGE_NAME:linux-amd64 --version
-      - run: docker run --rm $IMAGE_NAME:linux-arm-v7 --version
-      - run: docker run --rm $IMAGE_NAME:linux-arm64-v8 --version
+      # NOTE: --version should finish instantly, but sometimes
+      # it hangs on github CI (could be qemu issue), so we retry to remove false negatives
+      - name: Smoke-test linux-amd64
+        run: for i in {1..3}; do timeout 15s docker run --rm $IMAGE_NAME:linux-amd64 version --all && break || [ $i = 3 ] && exit 1; done
+        timeout-minutes: 1
+      - name: Smoke-test linux-arm-v7
+        run: for i in {1..3}; do timeout 15s docker run --rm $IMAGE_NAME:linux-arm-v7 version --all && break || [ $i = 3 ] && exit 1; done
+        timeout-minutes: 1
+      - name: Smoke-test linux-arm64-v8
+        run: for i in {1..3}; do timeout 15s docker run --rm $IMAGE_NAME:linux-arm64-v8 version --all && break || [ $i = 3 ] && exit 1; done
+        timeout-minutes: 1
 
       # This will only push the previously built images.
       - if: github.event_name != 'workflow_dispatch' || github.event.inputs.push == 'true'
         name: Publish to Docker Hub
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
           context: .
           push: true
           file: ./Dockerfile
-          tags: "${{ steps.tags.outputs.value }}"
+          tags: "${{ github.event.inputs.tags || steps.tags.outputs.value }}"
           cache-from: type=local,src=/tmp/.buildx-cache-new
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 

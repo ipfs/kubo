@@ -2,17 +2,17 @@ package commands
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"io"
 	"os"
 
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	"github.com/cheggaaa/pb"
-	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	iface "github.com/ipfs/kubo/core/coreiface"
 )
 
 const (
@@ -43,13 +43,13 @@ var CatCmd = &cmds.Command{
 
 		offset, _ := req.Options[offsetOptionName].(int64)
 		if offset < 0 {
-			return fmt.Errorf("cannot specify negative offset")
+			return errors.New("cannot specify negative offset")
 		}
 
 		max, found := req.Options[lengthOptionName].(int64)
 
 		if max < 0 {
-			return fmt.Errorf("cannot specify negative length")
+			return errors.New("cannot specify negative length")
 		}
 		if !found {
 			max = -1
@@ -127,8 +127,13 @@ func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, m
 	if max == 0 {
 		return nil, 0, nil
 	}
-	for _, p := range paths {
-		f, err := api.Unixfs().Get(ctx, path.New(p))
+	for _, pString := range paths {
+		p, err := cmdutils.PathOrCidPath(pString)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		f, err := api.Unixfs().Get(ctx, p)
 		if err != nil {
 			return nil, 0, err
 		}

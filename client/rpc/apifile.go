@@ -1,43 +1,62 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"strconv"
+	"time"
 
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 )
 
-const forwardSeekLimit = 1 << 14 //16k
+const forwardSeekLimit = 1 << 14 // 16k
 
 func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) {
 	if p.Mutable() { // use resolved path in case we are dealing with IPNS / MFS
 		var err error
-		p, err = api.core().ResolvePath(ctx, p)
+		p, _, err = api.core().ResolvePath(ctx, p)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	var stat struct {
-		Hash string
-		Type string
-		Size int64 // unixfs size
+		Hash       string
+		Type       string
+		Size       int64 // unixfs size
+		Mode       string
+		Mtime      int64
+		MtimeNsecs int
 	}
 	err := api.core().Request("files/stat", p.String()).Exec(ctx, &stat)
 	if err != nil {
 		return nil, err
 	}
 
+	mode, err := stringToFileMode(stat.Mode)
+	if err != nil {
+		return nil, err
+	}
+
+	var modTime time.Time
+	if stat.Mtime != 0 {
+		modTime = time.Unix(stat.Mtime, int64(stat.MtimeNsecs)).UTC()
+	}
+
 	switch stat.Type {
 	case "file":
-		return api.getFile(ctx, p, stat.Size)
+		return api.getFile(ctx, p, stat.Size, mode, modTime)
 	case "directory":
-		return api.getDir(ctx, p, stat.Size)
+		return api.getDir(ctx, p, stat.Size, mode, modTime)
+	case "symlink":
+		return api.getSymlink(ctx, p, modTime)
 	default:
 		return nil, fmt.Errorf("unsupported file type '%s'", stat.Type)
 	}
@@ -48,6 +67,9 @@ type apiFile struct {
 	core *HttpApi
 	size int64
 	path path.Path
+
+	mode  os.FileMode
+	mtime time.Time
 
 	r  *Response
 	at int64
@@ -107,11 +129,11 @@ func (f *apiFile) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		offset = f.at + offset
 	}
-	if f.at == offset { //noop
+	if f.at == offset { // noop
 		return offset, nil
 	}
 
-	if f.at < offset && offset-f.at < forwardSeekLimit { //forward skip
+	if f.at < offset && offset-f.at < forwardSeekLimit { // forward skip
 		r, err := io.CopyN(io.Discard, f.r.Output, offset-f.at)
 
 		f.at += r
@@ -128,16 +150,37 @@ func (f *apiFile) Close() error {
 	return nil
 }
 
+func (f *apiFile) Mode() os.FileMode {
+	return f.mode
+}
+
+func (f *apiFile) ModTime() time.Time {
+	return f.mtime
+}
+
 func (f *apiFile) Size() (int64, error) {
 	return f.size, nil
 }
 
-func (api *UnixfsAPI) getFile(ctx context.Context, p path.Path, size int64) (files.Node, error) {
+func stringToFileMode(mode string) (os.FileMode, error) {
+	if mode == "" {
+		return 0, nil
+	}
+	mode64, err := strconv.ParseUint(mode, 8, 32)
+	if err != nil {
+		return 0, fmt.Errorf("cannot parse mode %s: %s", mode, err)
+	}
+	return os.FileMode(uint32(mode64)), nil
+}
+
+func (api *UnixfsAPI) getFile(ctx context.Context, p path.Path, size int64, mode os.FileMode, mtime time.Time) (files.Node, error) {
 	f := &apiFile{
-		ctx:  ctx,
-		core: api.core(),
-		size: size,
-		path: p,
+		ctx:   ctx,
+		core:  api.core(),
+		size:  size,
+		path:  p,
+		mode:  mode,
+		mtime: mtime,
 	}
 
 	return f, f.reset()
@@ -195,13 +238,19 @@ func (it *apiIter) Next() bool {
 
 	switch it.cur.Type {
 	case unixfs.THAMTShard, unixfs.TMetadata, unixfs.TDirectory:
-		it.curFile, err = it.core.getDir(it.ctx, path.IpfsPath(c), int64(it.cur.Size))
+		it.curFile, err = it.core.getDir(it.ctx, path.FromCid(c), int64(it.cur.Size), it.cur.Mode, it.cur.ModTime)
 		if err != nil {
 			it.err = err
 			return false
 		}
 	case unixfs.TFile:
-		it.curFile, err = it.core.getFile(it.ctx, path.IpfsPath(c), int64(it.cur.Size))
+		it.curFile, err = it.core.getFile(it.ctx, path.FromCid(c), int64(it.cur.Size), it.cur.Mode, it.cur.ModTime)
+		if err != nil {
+			it.err = err
+			return false
+		}
+	case unixfs.TSymlink:
+		it.curFile, err = it.core.getSymlink(it.ctx, path.FromCid(c), it.cur.ModTime)
 		if err != nil {
 			it.err = err
 			return false
@@ -223,11 +272,22 @@ type apiDir struct {
 	size int64
 	path path.Path
 
+	mode  os.FileMode
+	mtime time.Time
+
 	dec *json.Decoder
 }
 
 func (d *apiDir) Close() error {
 	return nil
+}
+
+func (d *apiDir) Mode() os.FileMode {
+	return d.mode
+}
+
+func (d *apiDir) ModTime() time.Time {
+	return d.mtime
 }
 
 func (d *apiDir) Size() (int64, error) {
@@ -242,11 +302,10 @@ func (d *apiDir) Entries() files.DirIterator {
 	}
 }
 
-func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64) (files.Node, error) {
+func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64, mode os.FileMode, modTime time.Time) (files.Node, error) {
 	resp, err := api.core().Request("ls", p.String()).
 		Option("resolve-size", true).
 		Option("stream", true).Send(ctx)
-
 	if err != nil {
 		return nil, err
 	}
@@ -254,17 +313,44 @@ func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64) (file
 		return nil, resp.Error
 	}
 
-	d := &apiDir{
-		ctx:  ctx,
-		core: api,
-		size: size,
-		path: p,
+	data, _ := io.ReadAll(resp.Output)
+	rdr := bytes.NewReader(data)
 
-		dec: json.NewDecoder(resp.Output),
+	d := &apiDir{
+		ctx:   ctx,
+		core:  api,
+		size:  size,
+		path:  p,
+		mode:  mode,
+		mtime: modTime,
+
+		//dec: json.NewDecoder(resp.Output),
+		dec: json.NewDecoder(rdr),
 	}
 
 	return d, nil
 }
 
-var _ files.File = &apiFile{}
-var _ files.Directory = &apiDir{}
+func (api *UnixfsAPI) getSymlink(ctx context.Context, p path.Path, modTime time.Time) (files.Node, error) {
+	resp, err := api.core().Request("cat", p.String()).
+		Option("resolve-size", true).
+		Option("stream", true).Send(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	target, err := io.ReadAll(resp.Output)
+	if err != nil {
+		return nil, err
+	}
+
+	return files.NewSymlinkFile(string(target), modTime), nil
+}
+
+var (
+	_ files.File      = &apiFile{}
+	_ files.Directory = &apiDir{}
+)

@@ -16,17 +16,17 @@ jobs:
   dist-ipfs-tech:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: "ubuntu-latest"
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: ipfs/download-ipfs-distribution-action@v1
       - uses: ipfs/start-ipfs-daemon-action@v1
         with:
           args: --init --init-profile=flatfs,server --enable-gc=false
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: 14
       - name: Sync the latest 5 github releases
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs').promises

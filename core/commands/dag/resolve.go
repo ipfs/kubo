@@ -1,8 +1,9 @@
 package dagcmd
 
 import (
-	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
@@ -13,13 +14,18 @@ func dagResolve(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environmen
 		return err
 	}
 
-	rp, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
+	p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+	if err != nil {
+		return err
+	}
+
+	rp, remainder, err := api.ResolvePath(req.Context, p)
 	if err != nil {
 		return err
 	}
 
 	return cmds.EmitOnce(res, &ResolveOutput{
-		Cid:     rp.Cid(),
-		RemPath: rp.Remainder(),
+		Cid:     rp.RootCid(),
+		RemPath: path.SegmentsToString(remainder...),
 	})
 }

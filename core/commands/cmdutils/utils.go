@@ -5,8 +5,9 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
 )
 
 const (
@@ -47,5 +48,20 @@ func CheckBlockSize(req *cmds.Request, size uint64) error {
 		return fmt.Errorf("produced block is over 1MiB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
 	}
 	return nil
+}
 
+// PathOrCidPath returns a path.Path built from the argument. It keeps the old
+// behaviour by building a path from a CID string.
+func PathOrCidPath(str string) (path.Path, error) {
+	p, err := path.NewPath(str)
+	if err == nil {
+		return p, nil
+	}
+
+	if p, err := path.NewPath("/ipfs/" + str); err == nil {
+		return p, nil
+	}
+
+	// Send back original err.
+	return nil, err
 }

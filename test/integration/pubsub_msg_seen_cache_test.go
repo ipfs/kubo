@@ -10,9 +10,9 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
-	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/coreapi"
 	libp2p2 "github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"

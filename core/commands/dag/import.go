@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	gocarv2 "github.com/ipld/go-car/v2"
 
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -20,6 +21,11 @@ import (
 
 func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 	node, err := cmdenv.GetNode(env)
+	if err != nil {
+		return err
+	}
+
+	cfg, err := node.Repo.Config()
 	if err != nil {
 		return err
 	}
@@ -55,7 +61,14 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	// this is *not* a transaction
 	// it is simply a way to relieve pressure on the blockstore
 	// similar to pinner.Pin/pinner.Flush
-	batch := ipld.NewBatch(req.Context, api.Dag())
+	batch := ipld.NewBatch(req.Context, api.Dag(),
+		// Default: 128. Means 128 file descriptors needed in flatfs
+		ipld.MaxNodesBatchOption(int(cfg.Import.BatchMaxNodes.WithDefault(config.DefaultBatchMaxNodes))),
+		// Default 100MiB. When setting block size to 1MiB, we can add
+		// ~100 nodes maximum. With default 256KiB block-size, we will
+		// hit the max nodes limit at 32MiB.p
+		ipld.MaxSizeBatchOption(int(cfg.Import.BatchMaxSize.WithDefault(config.DefaultBatchMaxSize))),
+	)
 
 	roots := cid.NewSet()
 	var blockCount, blockBytesCount uint64
@@ -152,7 +165,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 				ret.PinErrorMsg = err.Error()
 			} else if nd, err := blockDecoder.DecodeNode(req.Context, block); err != nil {
 				ret.PinErrorMsg = err.Error()
-			} else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
+			} else if err := node.Pinning.Pin(req.Context, nd, true, ""); err != nil {
 				ret.PinErrorMsg = err.Error()
 			} else if err := node.Pinning.Flush(req.Context); err != nil {
 				ret.PinErrorMsg = err.Error()

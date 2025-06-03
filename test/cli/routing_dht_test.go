@@ -84,7 +84,10 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 		t.Run("ipfs routing findprovs", func(t *testing.T) {
 			t.Parallel()
 			hash := nodes[3].IPFSAddStr("some stuff")
-			res := nodes[4].IPFS("routing", "findprovs", hash)
+			// Reprovide as initialProviderDelay still ongoing
+			res := nodes[3].IPFS("routing", "reprovide")
+			require.NoError(t, res.Err)
+			res = nodes[4].IPFS("routing", "findprovs", hash)
 			assert.Equal(t, nodes[3].PeerID().String(), res.Stdout.Trimmed())
 		})
 
@@ -111,7 +114,7 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 				node.WriteBytes("foo", []byte("foo"))
 				res := node.RunIPFS("routing", "put", "/ipns/"+node.PeerID().String(), "foo")
 				assert.Equal(t, 1, res.ExitCode())
-				assert.Contains(t, res.Stderr.String(), "this action must be run in online mode")
+				assert.Contains(t, res.Stderr.String(), "can't put while offline: pass `--allow-offline` to override")
 			})
 		})
 	})

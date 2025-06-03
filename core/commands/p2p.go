@@ -250,7 +250,7 @@ func checkPort(target ma.Multiaddr) error {
 		if sport != "" {
 			return sport, nil
 		}
-		return "", fmt.Errorf("address does not contain tcp or udp protocol")
+		return "", errors.New("address does not contain tcp or udp protocol")
 	}
 
 	sport, err := getPort()
@@ -264,7 +264,7 @@ func checkPort(target ma.Multiaddr) error {
 	}
 
 	if port == 0 {
-		return fmt.Errorf("port can not be 0")
+		return errors.New("port can not be 0")
 	}
 
 	return nil
@@ -370,9 +370,7 @@ var p2pCloseCmd = &cmds.Command{
 
 		proto := protocol.ID(protoOpt)
 
-		var (
-			target, listen ma.Multiaddr
-		)
+		var target, listen ma.Multiaddr
 
 		if l {
 			listen, err = ma.NewMultiaddr(listenOpt)

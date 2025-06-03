@@ -16,7 +16,7 @@ to_raw_cid() {
 test_gc_robust_part1() {
 
   test_expect_success "add a 1MB file with --raw-leaves" '
-    random 1048576 56 > afile &&
+    random-data -size=1048576 -seed=56 > afile &&
     HASH1=`ipfs add --raw-leaves -q --cid-version 1 afile` &&
     REFS=`ipfs refs -r $HASH1` &&
     read LEAF1 LEAF2 LEAF3 LEAF4 < <(echo $REFS)
@@ -96,20 +96,20 @@ test_gc_robust_part1() {
 test_gc_robust_part2() {
 
   test_expect_success "add 1MB file normally (i.e., without raw leaves)" '
-    random 1048576 56 > afile &&
+    random-data -size=1048576 -seed=56 > afile &&
     HASH2=`ipfs add -q afile`
   '
 
-  LEAF1=QmSijovevteoY63Uj1uC5b8pkpDU5Jgyk2dYBqz3sMJUPc
-  LEAF1FILE=.ipfs/blocks/ME/CIQECF2K344QITW5S6E6H6T4DOXDDB2XA2V7BBOCIMN2VVF4Q77SMEY.data
+  LEAF1=QmcNNR6JSCUhJ9nyoVQgBhABPgcgdsuYJgdSB1f2g6BF5c
+  LEAF1FILE=.ipfs/blocks/RA/CIQNA5C3BLRUX3LZ7X6UTOV3KSHLARNXVDK3W5KUO6GVHNRP4SGLRAY.data
 
-  LEAF2=QmTbPEyrA1JyGUHFvmtx1FNZVzdBreMv8Hc8jV9sBRWhNA
-  LEAF2FILE=.ipfs/blocks/WM/CIQE4EFIJN2SUTQYSKMKNG7VM75W3SXT6LWJCHJJ73UAWN73WCX3WMY.data
+  LEAF2=QmPvtiBLgwuwF2wyf9VL8PaYgSt1XwGJ2Yu4AscRGEQvqR
+  LEAF2FILE=.ipfs/blocks/RN/CIQBPIKEATBI7TIHVYRQJZAKEWF2H22PXW3A7LCEPB6MFFL7IA2CRNA.data
 
 
   test_expect_success "add some additional unpinned content" '
-    random 1000 3 > junk1 &&
-    random 1000 4 > junk2 &&
+    random-data -size=1000 -seed=3 > junk1 &&
+    random-data -size=1000 -seed=4 > junk2 &&
     JUNK1=`ipfs add --pin=false -q junk1` &&
     JUNK2=`ipfs add --pin=false -q junk2`
   '

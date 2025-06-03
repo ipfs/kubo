@@ -28,11 +28,12 @@ func RecordValidator(ps peerstore.Peerstore) record.Validator {
 }
 
 // Namesys creates new name system
-func Namesys(cacheSize int) func(rt irouting.ProvideManyRouter, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
+func Namesys(cacheSize int, cacheMaxTTL time.Duration) func(rt irouting.ProvideManyRouter, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
 	return func(rt irouting.ProvideManyRouter, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
 		opts := []namesys.Option{
 			namesys.WithDatastore(repo.Datastore()),
 			namesys.WithDNSResolver(rslv),
+			namesys.WithMaxCacheTTL(cacheMaxTTL),
 		}
 
 		if cacheSize > 0 {
@@ -44,8 +45,8 @@ func Namesys(cacheSize int) func(rt irouting.ProvideManyRouter, rslv *madns.Reso
 }
 
 // IpnsRepublisher runs new IPNS republisher service
-func IpnsRepublisher(repubPeriod time.Duration, recordLifetime time.Duration) func(lcProcess, namesys.NameSystem, repo.Repo, crypto.PrivKey) error {
-	return func(lc lcProcess, namesys namesys.NameSystem, repo repo.Repo, privKey crypto.PrivKey) error {
+func IpnsRepublisher(repubPeriod time.Duration, recordLifetime time.Duration) func(lcStartStop, namesys.NameSystem, repo.Repo, crypto.PrivKey) error {
+	return func(lc lcStartStop, namesys namesys.NameSystem, repo repo.Repo, privKey crypto.PrivKey) error {
 		repub := republisher.NewRepublisher(namesys, repo.Datastore(), privKey, repo.Keystore())
 
 		if repubPeriod != 0 {

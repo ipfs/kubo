@@ -1,20 +1,22 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"sort"
 	"text/tabwriter"
+	"time"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	options "github.com/ipfs/boxo/coreiface/options"
-	path "github.com/ipfs/boxo/coreiface/path"
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
 	unixfs_pb "github.com/ipfs/boxo/ipld/unixfs/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 // LsLink contains printable data for a single ipld link in ls output
@@ -23,6 +25,8 @@ type LsLink struct {
 	Size       uint64
 	Type       unixfs_pb.Data_DataType
 	Target     string
+	Mode       os.FileMode
+	ModTime    time.Time
 }
 
 // LsObject is an element of LsOutput
@@ -130,18 +134,24 @@ The JSON output contains type information.
 			}
 		}
 
+		lsCtx, cancel := context.WithCancel(req.Context)
+		defer cancel()
+
 		for i, fpath := range paths {
-			results, err := api.Unixfs().Ls(req.Context, path.New(fpath),
-				options.Unixfs.ResolveChildren(resolveSize || resolveType))
+			pth, err := cmdutils.PathOrCidPath(fpath)
 			if err != nil {
 				return err
 			}
 
+			results := make(chan iface.DirEntry)
+			lsErr := make(chan error, 1)
+			go func() {
+				lsErr <- api.Unixfs().Ls(lsCtx, pth, results,
+					options.Unixfs.ResolveChildren(resolveSize || resolveType))
+			}()
+
 			processLink, dirDone = processDir()
 			for link := range results {
-				if link.Err != nil {
-					return link.Err
-				}
 				var ftype unixfs_pb.Data_DataType
 				switch link.Type {
 				case iface.TFile:
@@ -158,10 +168,16 @@ The JSON output contains type information.
 					Size:   link.Size,
 					Type:   ftype,
 					Target: link.Target,
+
+					Mode:    link.Mode,
+					ModTime: link.ModTime,
 				}
-				if err := processLink(paths[i], lsLink); err != nil {
+				if err = processLink(paths[i], lsLink); err != nil {
 					return err
 				}
+			}
+			if err = <-lsErr; err != nil {
+				return err
 			}
 			dirDone(i)
 		}
@@ -251,6 +267,7 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 				}
 			}
 
+			// TODO: Print link.Mode and link.ModTime?
 			fmt.Fprintf(tw, s, link.Hash, link.Size, cmdenv.EscNonPrint(link.Name))
 		}
 	}

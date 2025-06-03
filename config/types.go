@@ -42,8 +42,10 @@ func (o Strings) MarshalJSON() ([]byte, error) {
 	}
 }
 
-var _ json.Unmarshaler = (*Strings)(nil)
-var _ json.Marshaler = (*Strings)(nil)
+var (
+	_ json.Unmarshaler = (*Strings)(nil)
+	_ json.Marshaler   = (*Strings)(nil)
+)
 
 // Flag represents a ternary value: false (-1), default (0), or true (+1).
 //
@@ -113,8 +115,10 @@ func (f Flag) String() string {
 	}
 }
 
-var _ json.Unmarshaler = (*Flag)(nil)
-var _ json.Marshaler = (*Flag)(nil)
+var (
+	_ json.Unmarshaler = (*Flag)(nil)
+	_ json.Marshaler   = (*Flag)(nil)
+)
 
 // Priority represents a value with a priority where 0 means "default" and -1
 // means "disabled".
@@ -210,17 +214,19 @@ func (p Priority) String() string {
 	}
 }
 
-var _ json.Unmarshaler = (*Priority)(nil)
-var _ json.Marshaler = (*Priority)(nil)
+var (
+	_ json.Unmarshaler = (*Priority)(nil)
+	_ json.Marshaler   = (*Priority)(nil)
+)
 
 // OptionalDuration wraps time.Duration to provide json serialization and deserialization.
 //
-// NOTE: the zero value encodes to JSON nill
+// NOTE: the zero value encodes to JSON nill.
 type OptionalDuration struct {
 	value *time.Duration
 }
 
-// NewOptionalDuration returns an OptionalDuration from a string
+// NewOptionalDuration returns an OptionalDuration from a string.
 func NewOptionalDuration(d time.Duration) *OptionalDuration {
 	return &OptionalDuration{value: &d}
 }
@@ -266,8 +272,10 @@ func (d OptionalDuration) String() string {
 	return d.value.String()
 }
 
-var _ json.Unmarshaler = (*OptionalDuration)(nil)
-var _ json.Marshaler = (*OptionalDuration)(nil)
+var (
+	_ json.Unmarshaler = (*OptionalDuration)(nil)
+	_ json.Marshaler   = (*OptionalDuration)(nil)
+)
 
 type Duration struct {
 	time.Duration
@@ -298,17 +306,19 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	}
 }
 
-var _ json.Unmarshaler = (*Duration)(nil)
-var _ json.Marshaler = (*Duration)(nil)
+var (
+	_ json.Unmarshaler = (*Duration)(nil)
+	_ json.Marshaler   = (*Duration)(nil)
+)
 
 // OptionalInteger represents an integer that has a default value
 //
-// When encoded in json, Default is encoded as "null"
+// When encoded in json, Default is encoded as "null".
 type OptionalInteger struct {
 	value *int64
 }
 
-// NewOptionalInteger returns an OptionalInteger from a int64
+// NewOptionalInteger returns an OptionalInteger from a int64.
 func NewOptionalInteger(v int64) *OptionalInteger {
 	return &OptionalInteger{value: &v}
 }
@@ -321,7 +331,7 @@ func (p *OptionalInteger) WithDefault(defaultValue int64) (value int64) {
 	return *p.value
 }
 
-// IsDefault returns if this is a default optional integer
+// IsDefault returns if this is a default optional integer.
 func (p *OptionalInteger) IsDefault() bool {
 	return p == nil || p.value == nil
 }
@@ -355,17 +365,19 @@ func (p OptionalInteger) String() string {
 	return fmt.Sprintf("%d", *p.value)
 }
 
-var _ json.Unmarshaler = (*OptionalInteger)(nil)
-var _ json.Marshaler = (*OptionalInteger)(nil)
+var (
+	_ json.Unmarshaler = (*OptionalInteger)(nil)
+	_ json.Marshaler   = (*OptionalInteger)(nil)
+)
 
 // OptionalString represents a string that has a default value
 //
-// When encoded in json, Default is encoded as "null"
+// When encoded in json, Default is encoded as "null".
 type OptionalString struct {
 	value *string
 }
 
-// NewOptionalString returns an OptionalString from a string
+// NewOptionalString returns an OptionalString from a string.
 func NewOptionalString(s string) *OptionalString {
 	return &OptionalString{value: &s}
 }
@@ -378,7 +390,7 @@ func (p *OptionalString) WithDefault(defaultValue string) (value string) {
 	return *p.value
 }
 
-// IsDefault returns if this is a default optional integer
+// IsDefault returns if this is a default optional integer.
 func (p *OptionalString) IsDefault() bool {
 	return p == nil || p.value == nil
 }
@@ -412,8 +424,10 @@ func (p OptionalString) String() string {
 	return *p.value
 }
 
-var _ json.Unmarshaler = (*OptionalInteger)(nil)
-var _ json.Marshaler = (*OptionalInteger)(nil)
+var (
+	_ json.Unmarshaler = (*OptionalInteger)(nil)
+	_ json.Marshaler   = (*OptionalInteger)(nil)
+)
 
 type swarmLimits doNotUse
 
@@ -467,3 +481,27 @@ func (experimentalAcceleratedDHTClient) UnmarshalJSON(b []byte) error {
 // does not support omitempty on structs and I can't be bothered to write custom
 // marshalers on all structs that have a doNotUse field.
 type doNotUse bool
+
+type graphsyncEnabled doNotUse
+
+var _ json.Unmarshaler = graphsyncEnabled(false)
+
+func (graphsyncEnabled) UnmarshalJSON(b []byte) error {
+	d := json.NewDecoder(bytes.NewReader(b))
+	for {
+		switch tok, err := d.Token(); err {
+		case io.EOF:
+			return nil
+		case nil:
+			switch tok {
+			case json.Delim('{'), json.Delim('}'), false:
+				// accept empty objects and false
+				continue
+			}
+			//nolint
+			return fmt.Errorf("Support for Experimental.GraphsyncEnabled has been removed in Kubo 0.25.0, please remove this key. For more details see https://github.com/ipfs/kubo/pull/9747.")
+		default:
+			return err
+		}
+	}
+}

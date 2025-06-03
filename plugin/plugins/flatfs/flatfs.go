@@ -11,7 +11,7 @@ import (
 	flatfs "github.com/ipfs/go-ds-flatfs"
 )
 
-// Plugins is exported list of plugins that will be loaded
+// Plugins is exported list of plugins that will be loaded.
 var Plugins = []plugin.Plugin{
 	&flatfsPlugin{},
 }
@@ -42,8 +42,8 @@ type datastoreConfig struct {
 	syncField bool
 }
 
-// BadgerdsDatastoreConfig returns a configuration stub for a badger datastore
-// from the given parameters
+// BadgerdsDatastoreConfig returns a configuration stub for a flatfs datastore
+// from the given parameters.
 func (*flatfsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 	return func(params map[string]interface{}) (fsrepo.DatastoreConfig, error) {
 		var c datastoreConfig

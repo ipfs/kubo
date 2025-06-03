@@ -1,6 +1,6 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.19-buster AS builder
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.24 AS builder
 
-ARG TARGETPLATFORM TARGETOS TARGETARCH
+ARG TARGETOS TARGETARCH
 
 ENV SRC_DIR /kubo
 
@@ -15,16 +15,19 @@ COPY . $SRC_DIR
 # e.g. docker build --build-arg IPFS_PLUGINS="foo bar baz"
 ARG IPFS_PLUGINS
 
+# Allow for other targets to be built, e.g.: docker build --build-arg MAKE_TARGET="nofuse"
+ARG MAKE_TARGET=build
+
 # Build the thing.
 # Also: fix getting HEAD commit hash via git rev-parse.
 RUN cd $SRC_DIR \
   && mkdir -p .git/objects \
-  && GOOS=$TARGETOS GOARCH=$TARGETARCH GOFLAGS=-buildvcs=false make build GOTAGS=openssl IPFS_PLUGINS=$IPFS_PLUGINS
+  && GOOS=$TARGETOS GOARCH=$TARGETARCH GOFLAGS=-buildvcs=false make ${MAKE_TARGET} IPFS_PLUGINS=$IPFS_PLUGINS
 
 # Using Debian Buster because the version of busybox we're using is based on it
 # and we want to make sure the libraries we're using are compatible. That's also
 # why we're running this for the target platform.
-FROM debian:buster-slim AS utilities
+FROM debian:stable-slim AS utilities
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y \
@@ -37,37 +40,27 @@ RUN set -eux; \
     # This installs fusermount which we later copy over to the target image.
     fuse \
     ca-certificates \
-    # This installs libssl.so and libcrypto.so which we later copy over to the
-    # target image. We need these to be able to use the OpenSSL plugin.
-    libssl-dev \
 	; \
 	rm -rf /var/lib/apt/lists/*
 
 # Now comes the actual target image, which aims to be as small as possible.
-FROM busybox:1.31.1-glibc
+FROM busybox:stable-glibc
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
 ENV SRC_DIR /kubo
-COPY --from=builder $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
-COPY --from=builder $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
-COPY --from=builder $SRC_DIR/bin/container_init_run /usr/local/bin/container_init_run
 COPY --from=utilities /usr/sbin/gosu /sbin/gosu
 COPY --from=utilities /usr/bin/tini /sbin/tini
 COPY --from=utilities /bin/fusermount /usr/local/bin/fusermount
 COPY --from=utilities /etc/ssl/certs /etc/ssl/certs
+COPY --from=builder $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
+COPY --from=builder $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
+COPY --from=builder $SRC_DIR/bin/container_init_run /usr/local/bin/container_init_run
 
 # Add suid bit on fusermount so it will run properly
 RUN chmod 4755 /usr/local/bin/fusermount
 
 # Fix permissions on start_ipfs (ignore the build machine's permissions)
 RUN chmod 0755 /usr/local/bin/start_ipfs
-
-# This shared lib (part of glibc) doesn't seem to be included with busybox.
-COPY --from=utilities /lib/*-linux-gnu*/libdl.so.2 /lib/
-
-# Copy over SSL libraries.
-COPY --from=utilities /usr/lib/*-linux-gnu*/libssl.so* /usr/lib/
-COPY --from=utilities /usr/lib/*-linux-gnu*/libcrypto.so* /usr/lib/
 
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001
@@ -87,8 +80,8 @@ RUN mkdir -p $IPFS_PATH \
   && chown ipfs:users $IPFS_PATH
 
 # Create mount points for `ipfs mount` command
-RUN mkdir /ipfs /ipns \
-  && chown ipfs:users /ipfs /ipns
+RUN mkdir /ipfs /ipns /mfs \
+  && chown ipfs:users /ipfs /ipns /mfs
 
 # Create the init scripts directory
 RUN mkdir /container-init.d \
@@ -100,7 +93,7 @@ RUN mkdir /container-init.d \
 VOLUME $IPFS_PATH
 
 # The default logging level
-ENV IPFS_LOGGING ""
+ENV GOLOG_LOG_LEVEL ""
 
 # This just makes sure that:
 # 1. There's an fs-repo, and initializes one if there isn't.

@@ -7,7 +7,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/cockroachdb/pebble/v2"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -47,16 +48,11 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			},
 		},
 
-		Routing: Routing{
-			Type:    nil,
-			Methods: nil,
-			Routers: nil,
-		},
-
 		// setup the node mount points.
 		Mounts: Mounts{
 			IPFS: "/ipfs",
 			IPNS: "/ipns",
+			MFS:  "/mfs",
 		},
 
 		Ipns: Ipns{
@@ -66,9 +62,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		Gateway: Gateway{
 			RootRedirect: "",
 			NoFetch:      false,
-			PathPrefixes: []string{},
 			HTTPHeaders:  map[string][]string{},
-			APICommands:  []string{},
 		},
 		Reprovider: Reprovider{
 			Interval: nil,
@@ -90,15 +84,15 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 }
 
 // DefaultConnMgrHighWater is the default value for the connection managers
-// 'high water' mark
+// 'high water' mark.
 const DefaultConnMgrHighWater = 96
 
 // DefaultConnMgrLowWater is the default value for the connection managers 'low
-// water' mark
+// water' mark.
 const DefaultConnMgrLowWater = 32
 
 // DefaultConnMgrGracePeriod is the default value for the connection managers
-// grace period
+// grace period.
 const DefaultConnMgrGracePeriod = time.Second * 20
 
 // DefaultConnMgrType is the default value for the connection managers
@@ -114,10 +108,10 @@ func addressesConfig() Addresses {
 		Swarm: []string{
 			"/ip4/0.0.0.0/tcp/4001",
 			"/ip6/::/tcp/4001",
-			"/ip4/0.0.0.0/udp/4001/quic",
+			"/ip4/0.0.0.0/udp/4001/webrtc-direct",
 			"/ip4/0.0.0.0/udp/4001/quic-v1",
 			"/ip4/0.0.0.0/udp/4001/quic-v1/webtransport",
-			"/ip6/::/udp/4001/quic",
+			"/ip6/::/udp/4001/webrtc-direct",
 			"/ip6/::/udp/4001/quic-v1",
 			"/ip6/::/udp/4001/quic-v1/webtransport",
 		},
@@ -140,7 +134,38 @@ func DefaultDatastoreConfig() Datastore {
 	}
 }
 
+func pebbleSpec() map[string]interface{} {
+	return map[string]interface{}{
+		"type":               "pebbleds",
+		"prefix":             "pebble.datastore",
+		"path":               "pebbleds",
+		"formatMajorVersion": int(pebble.FormatNewest),
+	}
+}
+
+func pebbleSpecMeasure() map[string]interface{} {
+	return map[string]interface{}{
+		"type":   "measure",
+		"prefix": "pebble.datastore",
+		"child": map[string]interface{}{
+			"formatMajorVersion": int(pebble.FormatNewest),
+			"type":               "pebbleds",
+			"path":               "pebbleds",
+		},
+	}
+}
+
 func badgerSpec() map[string]interface{} {
+	return map[string]interface{}{
+		"type":       "badgerds",
+		"prefix":     "badger.datastore",
+		"path":       "badgerds",
+		"syncWrites": false,
+		"truncate":   true,
+	}
+}
+
+func badgerSpecMeasure() map[string]interface{} {
 	return map[string]interface{}{
 		"type":   "measure",
 		"prefix": "badger.datastore",
@@ -159,12 +184,35 @@ func flatfsSpec() map[string]interface{} {
 		"mounts": []interface{}{
 			map[string]interface{}{
 				"mountpoint": "/blocks",
+				"type":       "flatfs",
+				"prefix":     "flatfs.datastore",
+				"path":       "blocks",
+				"sync":       false,
+				"shardFunc":  "/repo/flatfs/shard/v1/next-to-last/2",
+			},
+			map[string]interface{}{
+				"mountpoint":  "/",
+				"type":        "levelds",
+				"prefix":      "leveldb.datastore",
+				"path":        "datastore",
+				"compression": "none",
+			},
+		},
+	}
+}
+
+func flatfsSpecMeasure() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "mount",
+		"mounts": []interface{}{
+			map[string]interface{}{
+				"mountpoint": "/blocks",
 				"type":       "measure",
 				"prefix":     "flatfs.datastore",
 				"child": map[string]interface{}{
 					"type":      "flatfs",
 					"path":      "blocks",
-					"sync":      true,
+					"sync":      false,
 					"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
 				},
 			},
@@ -239,7 +287,7 @@ func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, 
 	if err != nil {
 		return ident, err
 	}
-	ident.PeerID = id.Pretty()
+	ident.PeerID = id.String()
 	fmt.Fprintf(out, "peer identity: %s\n", ident.PeerID)
 	return ident, nil
 }

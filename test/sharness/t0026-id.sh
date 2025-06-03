@@ -65,5 +65,16 @@ iptb stop
 
 test_kill_ipfs_daemon
 
+# Version.AgentSuffix overrides --agent-version-suffix (local, offline)
+test_expect_success "setting Version.AgentSuffix in config" '
+  ipfs config Version.AgentSuffix json-config-suffix
+'
+test_launch_ipfs_daemon --agent-version-suffix=ignored-cli-suffix
+test_expect_success "checking AgentVersion with suffix set via JSON config" '
+  test_id_compute_agent json-config-suffix > expected-agent-version &&
+  ipfs id -f "<aver>\n" > actual-agent-version &&
+  test_cmp expected-agent-version actual-agent-version
+'
+test_kill_ipfs_daemon
 
 test_done

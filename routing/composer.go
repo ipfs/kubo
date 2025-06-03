@@ -2,17 +2,20 @@ package routing
 
 import (
 	"context"
+	"errors"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-cid"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/multiformats/go-multihash"
+	"go.uber.org/multierr"
 )
 
-var _ routinghelpers.ProvideManyRouter = &Composer{}
-var _ routing.Routing = &Composer{}
+var (
+	_ routinghelpers.ProvideManyRouter = &Composer{}
+	_ routing.Routing                  = &Composer{}
+)
 
 type Composer struct {
 	GetValueRouter      routing.Routing
@@ -27,7 +30,6 @@ func (c *Composer) Provide(ctx context.Context, cid cid.Cid, provide bool) error
 	err := c.ProvideRouter.Provide(ctx, cid, provide)
 	if err != nil {
 		log.Debug("composer: calling provide: ", cid, " error: ", err)
-
 	}
 
 	return err
@@ -102,7 +104,7 @@ func (c *Composer) SearchValue(ctx context.Context, key string, opts ...routing.
 	ch, err := c.GetValueRouter.SearchValue(ctx, key, opts...)
 
 	// avoid nil channels on implementations not supporting SearchValue method.
-	if err == routing.ErrNotFound && ch == nil {
+	if errors.Is(err, routing.ErrNotFound) && ch == nil {
 		out := make(chan []byte)
 		close(out)
 		return out, err
@@ -122,7 +124,7 @@ func (c *Composer) Bootstrap(ctx context.Context) error {
 	errgv := c.GetValueRouter.Bootstrap(ctx)
 	errpv := c.PutValueRouter.Bootstrap(ctx)
 	errp := c.ProvideRouter.Bootstrap(ctx)
-	err := multierror.Append(errfp, errfps, errgv, errpv, errp)
+	err := multierr.Combine(errfp, errfps, errgv, errpv, errp)
 	if err != nil {
 		log.Debug("composer: calling bootstrap error: ", err)
 	}

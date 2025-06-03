@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,11 +14,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
-	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
-	path "github.com/ipfs/boxo/coreiface/path"
-	ipath "github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/path"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
@@ -51,11 +50,6 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 		return ipns.Name{}, err
 	}
 
-	pth, err := ipath.ParsePath(p.String())
-	if err != nil {
-		return ipns.Name{}, err
-	}
-
 	k, err := keylookup(api.privateKey, api.repo.Keystore(), options.Key)
 	if err != nil {
 		return ipns.Name{}, err
@@ -63,16 +57,16 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 
 	eol := time.Now().Add(options.ValidTime)
 
-	publishOptions := []nsopts.PublishOption{
-		nsopts.PublishWithEOL(eol),
-		nsopts.PublishCompatibleWithV1(options.CompatibleWithV1),
+	publishOptions := []namesys.PublishOption{
+		namesys.PublishWithEOL(eol),
+		namesys.PublishWithIPNSOption(ipns.WithV1Compatibility(options.CompatibleWithV1)),
 	}
 
 	if options.TTL != nil {
-		publishOptions = append(publishOptions, nsopts.PublishWithTTL(*options.TTL))
+		publishOptions = append(publishOptions, namesys.PublishWithTTL(*options.TTL))
 	}
 
-	err = api.namesys.Publish(ctx, k, pth, publishOptions...)
+	err = api.namesys.Publish(ctx, k, p, publishOptions...)
 	if err != nil {
 		return ipns.Name{}, err
 	}
@@ -115,12 +109,17 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		name = "/ipns/" + name
 	}
 
+	p, err := path.NewPath(name)
+	if err != nil {
+		return nil, err
+	}
+
 	out := make(chan coreiface.IpnsResult)
 	go func() {
 		defer close(out)
-		for res := range resolver.ResolveAsync(ctx, name, options.ResolveOpts...) {
+		for res := range resolver.ResolveAsync(ctx, p, options.ResolveOpts...) {
 			select {
-			case out <- coreiface.IpnsResult{Path: path.New(res.Path.String()), Err: res.Err}:
+			case out <- coreiface.IpnsResult{Path: res.Path, Err: res.Err}:
 			case <-ctx.Done():
 				return
 			}
@@ -216,5 +215,5 @@ func keylookup(self ci.PrivKey, kstore keystore.Keystore, k string) (ci.PrivKey,
 		}
 	}
 
-	return nil, fmt.Errorf("no key by the given name or PeerID was found")
+	return nil, errors.New("no key by the given name or PeerID was found")
 }

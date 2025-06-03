@@ -36,7 +36,6 @@ func TestSwarm(t *testing.T) {
 		err := json.Unmarshal(res.Stdout.Bytes(), &output)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(output.Peers))
-
 	})
 	t.Run("ipfs swarm peers with flag identify outputs expected identify information about connected peers", func(t *testing.T) {
 		t.Parallel()
@@ -63,7 +62,6 @@ func TestSwarm(t *testing.T) {
 		assert.Len(t, actualAdresses, 1)
 		assert.Equal(t, expectedAddresses[0], actualAdresses[0])
 		assert.Greater(t, len(actualProtocols), 0)
-
 	})
 
 	t.Run("ipfs swarm peers with flag identify outputs Identify field with data that matches calling ipfs id on a peer", func(t *testing.T) {
@@ -88,6 +86,5 @@ func TestSwarm(t *testing.T) {
 		assert.Equal(t, outputIdentify.AgentVersion, otherNodeIDOutput.AgentVersion)
 		assert.ElementsMatch(t, outputIdentify.Addresses, otherNodeIDOutput.Addresses)
 		assert.ElementsMatch(t, outputIdentify.Protocols, otherNodeIDOutput.Protocols)
-
 	})
 }

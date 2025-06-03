@@ -12,7 +12,7 @@ import (
 
 var maPrefix = "/" + ma.ProtocolWithCode(ma.P_IPFS).Name + "/"
 
-// remoteListener accepts libp2p streams and proxies them to a manet host
+// remoteListener accepts libp2p streams and proxies them to a manet host.
 type remoteListener struct {
 	p2p *P2P
 
@@ -27,7 +27,7 @@ type remoteListener struct {
 	reportRemote bool
 }
 
-// ForwardRemote creates new p2p listener
+// ForwardRemote creates new p2p listener.
 func (p2p *P2P) ForwardRemote(ctx context.Context, proto protocol.ID, addr ma.Multiaddr, reportRemote bool) (Listener, error) {
 	listener := &remoteListener{
 		p2p: p2p,
@@ -55,13 +55,13 @@ func (l *remoteListener) handleStream(remote net.Stream) {
 	peer := remote.Conn().RemotePeer()
 
 	if l.reportRemote {
-		if _, err := fmt.Fprintf(local, "%s\n", peer.Pretty()); err != nil {
+		if _, err := fmt.Fprintf(local, "%s\n", peer); err != nil {
 			_ = remote.Reset()
 			return
 		}
 	}
 
-	peerMa, err := ma.NewMultiaddr(maPrefix + peer.Pretty())
+	peerMa, err := ma.NewMultiaddr(maPrefix + peer.String())
 	if err != nil {
 		_ = remote.Reset()
 		return
@@ -88,7 +88,7 @@ func (l *remoteListener) Protocol() protocol.ID {
 }
 
 func (l *remoteListener) ListenAddress() ma.Multiaddr {
-	addr, err := ma.NewMultiaddr(maPrefix + l.p2p.identity.Pretty())
+	addr, err := ma.NewMultiaddr(maPrefix + l.p2p.identity.String())
 	if err != nil {
 		panic(err)
 	}

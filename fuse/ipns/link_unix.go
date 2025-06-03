@@ -17,7 +17,7 @@ type Link struct {
 
 func (l *Link) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Link attr.")
-	a.Mode = os.ModeSymlink | 0555
+	a.Mode = os.ModeSymlink | 0o555
 	return nil
 }
 

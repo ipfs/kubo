@@ -8,10 +8,10 @@ import (
 	"github.com/ipfs/kubo/commands"
 	"github.com/ipfs/kubo/core"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
-	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 var log = logging.Logger("core/commands/cmdenv")

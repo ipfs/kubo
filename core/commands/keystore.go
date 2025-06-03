@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,7 +13,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	options "github.com/ipfs/boxo/coreiface/options"
 	keystore "github.com/ipfs/boxo/keystore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	oldcmds "github.com/ipfs/kubo/commands"
@@ -20,10 +20,12 @@ import (
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/e"
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	migrations "github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	peer "github.com/libp2p/go-libp2p/core/peer"
+	mbase "github.com/multiformats/go-multibase"
 )
 
 var KeyCmd = &cmds.Command{
@@ -51,6 +53,8 @@ publish'.
 		"rename": keyRenameCmd,
 		"rm":     keyRmCmd,
 		"rotate": keyRotateCmd,
+		"sign":   keySignCmd,
+		"verify": keyVerifyCmd,
 	},
 }
 
@@ -98,12 +102,12 @@ var keyGenCmd = &cmds.Command{
 
 		typ, f := req.Options[keyStoreTypeOptionName].(string)
 		if !f {
-			return fmt.Errorf("please specify a key type with --type")
+			return errors.New("please specify a key type with --type")
 		}
 
 		name := req.Arguments[0]
 		if name == "self" {
-			return fmt.Errorf("cannot create key with name 'self'")
+			return errors.New("cannot create key with name 'self'")
 		}
 
 		opts := []options.KeyGenerateOption{options.Key.Type(typ)}
@@ -118,7 +122,6 @@ var keyGenCmd = &cmds.Command{
 		}
 
 		key, err := api.Key().Generate(req.Context, name, opts...)
-
 		if err != nil {
 			return err
 		}
@@ -211,7 +214,6 @@ elsewhere. For example, using openssl to get a PEM with public key:
 			stdKey, err := crypto.PrivKeyToStdKey(sk)
 			if err != nil {
 				return fmt.Errorf("converting libp2p private key to std Go key: %w", err)
-
 			}
 			// For some reason the ed25519.PrivateKey does not use pointer
 			// receivers, so we need to convert it for MarshalPKCS8PrivateKey.
@@ -375,7 +377,6 @@ The PEM format allows for key generation outside of the IPFS node:
 			sk, _, err = crypto.KeyPairFromStdKey(stdKey)
 			if err != nil {
 				return fmt.Errorf("converting std Go key to libp2p key: %w", err)
-
 			}
 		case keyFormatLibp2pCleartextOption:
 			sk, err = crypto.UnmarshalPrivateKey(data)
@@ -689,6 +690,139 @@ func keyOutputListEncoders() cmds.EncoderFunc {
 		tw.Flush()
 		return nil
 	})
+}
+
+type KeySignOutput struct {
+	Key       KeyOutput
+	Signature string
+}
+
+var keySignCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Generates a signature for the given data with a specified key. Useful for proving the key ownership.",
+		LongDescription: `
+Sign arbitrary bytes, such as to prove ownership of a Peer ID or an IPNS Name.
+To avoid signature reuse, the signed payload is always prefixed with
+"libp2p-key signed message:".
+`,
+	},
+	Options: []cmds.Option{
+		cmds.StringOption("key", "k", "The name of the key to use for signing."),
+		ke.OptionIPNSBase,
+	},
+	Arguments: []cmds.Argument{
+		cmds.FileArg("data", true, false, "The data to sign.").EnableStdin(),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.OptionIPNSBase.Name()].(string))
+		if err != nil {
+			return err
+		}
+
+		name, _ := req.Options["key"].(string)
+
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		data, err := io.ReadAll(file)
+		if err != nil {
+			return err
+		}
+
+		key, signature, err := api.Key().Sign(req.Context, name, data)
+		if err != nil {
+			return err
+		}
+
+		encodedSignature, err := mbase.Encode(mbase.Base64url, signature)
+		if err != nil {
+			return err
+		}
+
+		return res.Emit(&KeySignOutput{
+			Key: KeyOutput{
+				Name: key.Name(),
+				Id:   keyEnc.FormatID(key.ID()),
+			},
+			Signature: encodedSignature,
+		})
+	},
+	Type: KeySignOutput{},
+}
+
+type KeyVerifyOutput struct {
+	Key            KeyOutput
+	SignatureValid bool
+}
+
+var keyVerifyCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Verify that the given data and signature match.",
+		LongDescription: `
+Verify if the given data and signatures match. To avoid the signature reuse,
+the signed payload is always prefixed with "libp2p-key signed message:".
+`,
+	},
+	Options: []cmds.Option{
+		cmds.StringOption("key", "k", "The name of the key to use for signing."),
+		cmds.StringOption("signature", "s", "Multibase-encoded signature to verify."),
+		ke.OptionIPNSBase,
+	},
+	Arguments: []cmds.Argument{
+		cmds.FileArg("data", true, false, "The data to verify against the given signature.").EnableStdin(),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.OptionIPNSBase.Name()].(string))
+		if err != nil {
+			return err
+		}
+
+		name, _ := req.Options["key"].(string)
+		encodedSignature, _ := req.Options["signature"].(string)
+
+		_, signature, err := mbase.Decode(encodedSignature)
+		if err != nil {
+			return err
+		}
+
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		data, err := io.ReadAll(file)
+		if err != nil {
+			return err
+		}
+
+		key, valid, err := api.Key().Verify(req.Context, name, signature, data)
+		if err != nil {
+			return err
+		}
+
+		return res.Emit(&KeyVerifyOutput{
+			Key: KeyOutput{
+				Name: key.Name(),
+				Id:   keyEnc.FormatID(key.ID()),
+			},
+			SignatureValid: valid,
+		})
+	},
+	Type: KeyVerifyOutput{},
 }
 
 // DaemonNotRunning checks to see if the ipfs repo is locked, indicating that
