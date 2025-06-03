@@ -119,7 +119,7 @@ error:    there was some other problem reading the file
 missing:  <obj> could not be found in the filestore
 ERROR:    internal error, most likely due to a corrupt database
 
-Where <action> is one of:
+Where <action> is present only when removing bad blocks and is one of:
 remove:   link will be removed
 nop:      nothing to do with it
 
@@ -197,12 +197,15 @@ For ERROR entries the error will also be printed to stderr.
 					fmt.Fprintf(os.Stderr, "%s\n", list.ErrorMsg)
 				}
 
-				action := "nop"
-				if removeBadBlocks && (list.Status != filestore.StatusOk) && (list.Status != filestore.StatusOtherError) {
-					action = "remove"
+				if removeBadBlocks {
+					action := "nop"
+					if removeBadBlocks && (list.Status != filestore.StatusOk) && (list.Status != filestore.StatusOtherError) {
+						action = "remove"
+					}
+					fmt.Fprintf(os.Stdout, "%s %s %s\n", list.Status.Format(), list.FormatLong(enc.Encode), action)
+				} else {
+					fmt.Fprintf(os.Stdout, "%s %s\n", list.Status.Format(), list.FormatLong(enc.Encode))
 				}
-
-				fmt.Fprintf(os.Stdout, "%s %s %s\n", list.Status.Format(), list.FormatLong(enc.Encode), action)
 			}
 		},
 	},
