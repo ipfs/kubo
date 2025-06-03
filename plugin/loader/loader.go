@@ -1,23 +1,24 @@
 package loader
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
-	config "github.com/ipfs/go-ipfs-config"
-	cserialize "github.com/ipfs/go-ipfs-config/serialize"
+	config "github.com/ipfs/kubo/config"
+	"github.com/ipld/go-ipld-prime/multicodec"
 
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreapi"
-	coredag "github.com/ipfs/go-ipfs/core/coredag"
-	plugin "github.com/ipfs/go-ipfs/plugin"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core/coreapi"
+	plugin "github.com/ipfs/kubo/plugin"
+	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
-	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	opentracing "github.com/opentracing/opentracing-go"
 )
 
@@ -30,8 +31,8 @@ func Preload(plugins ...plugin.Plugin) {
 
 var log = logging.Logger("plugin/loader")
 
-var loadPluginsFunc = func(string) ([]plugin.Plugin, error) {
-	return nil, nil
+var loadPluginFunc = func(string) ([]plugin.Plugin, error) {
+	return nil, fmt.Errorf("unsupported platform %s", runtime.GOOS)
 }
 
 type loaderState int
@@ -79,33 +80,33 @@ func (ls loaderState) String() string {
 // PluginLoader keeps track of loaded plugins.
 //
 // To use:
-// 1. Load any desired plugins with Load and LoadDirectory. Preloaded plugins
-//    will automatically be loaded.
-// 2. Call Initialize to run all initialization logic.
-// 3. Call Inject to register the plugins.
-// 4. Optionally call Start to start plugins.
-// 5. Call Close to close all plugins.
+//  1. Load any desired plugins with Load and LoadDirectory. Preloaded plugins
+//     will automatically be loaded.
+//  2. Call Initialize to run all initialization logic.
+//  3. Call Inject to register the plugins.
+//  4. Optionally call Start to start plugins.
+//  5. Call Close to close all plugins.
 type PluginLoader struct {
 	state   loaderState
-	plugins map[string]plugin.Plugin
+	plugins []plugin.Plugin
 	started []plugin.Plugin
 	config  config.Plugins
 	repo    string
 }
 
-// NewPluginLoader creates new plugin loader
+// NewPluginLoader creates new plugin loader.
 func NewPluginLoader(repo string) (*PluginLoader, error) {
-	loader := &PluginLoader{plugins: make(map[string]plugin.Plugin, len(preloadPlugins)), repo: repo}
+	loader := &PluginLoader{plugins: make([]plugin.Plugin, 0, len(preloadPlugins)), repo: repo}
 	if repo != "" {
-		cfg, err := cserialize.Load(filepath.Join(repo, config.DefaultConfigFile))
-		switch err {
-		case cserialize.ErrNotInitialized:
-		case nil:
-			loader.config = cfg.Plugins
+		switch plugins, err := readPluginsConfig(repo, config.DefaultConfigFile); {
+		case err == nil:
+			loader.config = plugins
+		case os.IsNotExist(err):
 		default:
 			return nil, err
 		}
 	}
+
 	for _, v := range preloadPlugins {
 		if err := loader.Load(v); err != nil {
 			return nil, err
@@ -116,6 +117,33 @@ func NewPluginLoader(repo string) (*PluginLoader, error) {
 		return nil, err
 	}
 	return loader, nil
+}
+
+// readPluginsConfig reads the Plugins section of the IPFS config, avoiding
+// reading anything other than the Plugin section. That way, we're free to
+// make arbitrary changes to all _other_ sections in migrations.
+func readPluginsConfig(repoRoot string, userConfigFile string) (config.Plugins, error) {
+	var cfg struct {
+		Plugins config.Plugins
+	}
+
+	cfgPath, err := config.Filename(repoRoot, userConfigFile)
+	if err != nil {
+		return config.Plugins{}, err
+	}
+
+	cfgFile, err := os.Open(cfgPath)
+	if err != nil {
+		return config.Plugins{}, err
+	}
+	defer cfgFile.Close()
+
+	err = json.NewDecoder(cfgFile).Decode(&cfg)
+	if err != nil {
+		return config.Plugins{}, err
+	}
+
+	return cfg.Plugins, nil
 }
 
 func (loader *PluginLoader) assertState(state loaderState) error {
@@ -140,18 +168,22 @@ func (loader *PluginLoader) Load(pl plugin.Plugin) error {
 	}
 
 	name := pl.Name()
-	if ppl, ok := loader.plugins[name]; ok {
-		// plugin is already loaded
-		return fmt.Errorf(
-			"plugin: %s, is duplicated in version: %s, "+
-				"while trying to load dynamically: %s",
-			name, ppl.Version(), pl.Version())
+
+	for _, p := range loader.plugins {
+		if p.Name() == name {
+			// plugin is already loaded
+			return fmt.Errorf(
+				"plugin: %s, is duplicated in version: %s, "+
+					"while trying to load dynamically: %s",
+				name, p.Version(), pl.Version())
+		}
 	}
+
 	if loader.config.Plugins[name].Disabled {
 		log.Infof("not loading disabled plugin %s", name)
 		return nil
 	}
-	loader.plugins[name] = pl
+	loader.plugins = append(loader.plugins, pl)
 	return nil
 }
 
@@ -182,18 +214,47 @@ func loadDynamicPlugins(pluginDir string) ([]plugin.Plugin, error) {
 		return nil, err
 	}
 
-	return loadPluginsFunc(pluginDir)
+	var plugins []plugin.Plugin
+
+	err = filepath.Walk(pluginDir, func(fi string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			if fi != pluginDir {
+				log.Warnf("found directory inside plugins directory: %s", fi)
+			}
+			return nil
+		}
+
+		if info.Mode().Perm()&0o111 == 0 {
+			// file is not executable let's not load it
+			// this is to prevent loading plugins from for example non-executable
+			// mounts, some /tmp mounts are marked as such for security
+			log.Errorf("non-executable file in plugins directory: %s", fi)
+			return nil
+		}
+
+		if newPlugins, err := loadPluginFunc(fi); err == nil {
+			plugins = append(plugins, newPlugins...)
+		} else {
+			return fmt.Errorf("loading plugin %s: %s", fi, err)
+		}
+		return nil
+	})
+
+	return plugins, err
 }
 
-// Initialize initializes all loaded plugins
+// Initialize initializes all loaded plugins.
 func (loader *PluginLoader) Initialize() error {
 	if err := loader.transition(loaderLoading, loaderInitializing); err != nil {
 		return err
 	}
-	for name, p := range loader.plugins {
+	for _, p := range loader.plugins {
 		err := p.Init(&plugin.Environment{
 			Repo:   loader.repo,
-			Config: loader.config.Plugins[name].Config,
+			Config: loader.config.Plugins[p.Name()].Config,
 		})
 		if err != nil {
 			loader.state = loaderFailed
@@ -227,6 +288,13 @@ func (loader *PluginLoader) Inject() error {
 		}
 		if pl, ok := pl.(plugin.PluginDatastore); ok {
 			err := injectDatastorePlugin(pl)
+			if err != nil {
+				loader.state = loaderFailed
+				return err
+			}
+		}
+		if pl, ok := pl.(plugin.PluginFx); ok {
+			err := injectFxPlugin(pl)
 			if err != nil {
 				loader.state = loaderFailed
 				return err
@@ -268,7 +336,7 @@ func (loader *PluginLoader) Start(node *core.IpfsNode) error {
 	return loader.transition(loaderStarting, loaderStarted)
 }
 
-// StopDaemon stops all long-running plugins.
+// Close stops all long-running plugins.
 func (loader *PluginLoader) Close() error {
 	switch loader.state {
 	case loaderClosing, loaderFailed, loaderClosed:
@@ -294,7 +362,7 @@ func (loader *PluginLoader) Close() error {
 	}
 	if errs != nil {
 		loader.state = loaderFailed
-		return fmt.Errorf(strings.Join(errs, "\n"))
+		return errors.New(strings.Join(errs, "\n"))
 	}
 	loader.state = loaderClosed
 	return nil
@@ -305,18 +373,20 @@ func injectDatastorePlugin(pl plugin.PluginDatastore) error {
 }
 
 func injectIPLDPlugin(pl plugin.PluginIPLD) error {
-	err := pl.RegisterBlockDecoders(ipld.DefaultBlockDecoder)
-	if err != nil {
-		return err
-	}
-	return pl.RegisterInputEncParsers(coredag.DefaultInputEncParsers)
+	return pl.Register(multicodec.DefaultRegistry)
 }
 
 func injectTracerPlugin(pl plugin.PluginTracer) error {
+	log.Warn("Tracer plugins are deprecated, it's recommended to configure an OpenTelemetry collector instead.")
 	tracer, err := pl.InitTracer()
 	if err != nil {
 		return err
 	}
 	opentracing.SetGlobalTracer(tracer)
+	return nil
+}
+
+func injectFxPlugin(pl plugin.PluginFx) error {
+	core.RegisterFXOptionFunc(pl.Options)
 	return nil
 }

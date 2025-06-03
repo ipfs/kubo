@@ -1,4 +1,5 @@
-// +build !nofuse,!windows,!openbsd,!netbsd
+//go:build !nofuse && !windows && !openbsd && !netbsd && !plan9
+// +build !nofuse,!windows,!openbsd,!netbsd,!plan9
 
 package mount
 
@@ -15,7 +16,7 @@ import (
 
 var ErrNotMounted = errors.New("not mounted")
 
-// mount implements go-ipfs/fuse/mount
+// mount implements go-ipfs/fuse/mount.
 type mount struct {
 	mpoint   string
 	filesys  fs.FS
@@ -29,15 +30,19 @@ type mount struct {
 
 // Mount mounts a fuse fs.FS at a given location, and returns a Mount instance.
 // parent is a ContextGroup to bind the mount's ContextGroup to.
-func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allow_other bool) (Mount, error) {
+func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allowOther bool) (Mount, error) {
 	var conn *fuse.Conn
 	var err error
 
-	if allow_other {
-		conn, err = fuse.Mount(mountpoint, fuse.AllowOther())
-	} else {
-		conn, err = fuse.Mount(mountpoint)
+	mountOpts := []fuse.MountOption{
+		fuse.MaxReadahead(64 * 1024 * 1024),
+		fuse.AsyncRead(),
 	}
+
+	if allowOther {
+		mountOpts = append(mountOpts, fuse.AllowOther())
+	}
+	conn, err = fuse.Mount(mountpoint, mountOpts...)
 
 	if err != nil {
 		return nil, err
@@ -97,7 +102,7 @@ func (m *mount) mount() error {
 	return nil
 }
 
-// umount is called exactly once to unmount this service.
+// unmount is called exactly once to unmount this service.
 // note that closing the connection will not always unmount
 // properly. If that happens, we bring out the big guns
 // (mount.ForceUnmountManyTimes, exec unmount).

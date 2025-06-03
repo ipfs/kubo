@@ -18,7 +18,7 @@ test_expect_success "daemon won't start with force pnet env but with no key" '
 
 unset LIBP2P_FORCE_PNET
 
-test_expect_success "daemon output incudes info about the reason" '
+test_expect_success "daemon output includes info about the reason" '
   grep "private network was not configured but is enforced by the environment" stdout ||
   test_fsh cat stdout
 '
@@ -26,7 +26,7 @@ test_expect_success "daemon output incudes info about the reason" '
 pnet_key() {
   echo '/key/swarm/psk/1.0.0/'
   echo '/bin/'
-  random 32
+  random-data -size=32
 }
 
 pnet_key > "${IPFS_PATH}/swarm.key"
@@ -35,6 +35,8 @@ LIBP2P_FORCE_PNET=1 test_launch_ipfs_daemon
 
 test_expect_success "set up iptb testbed" '
   iptb testbed create -type localipfs -count 5 -force -init &&
+  iptb run -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true &&
+  iptb run -- ipfs config --json "Swarm.Transports.Network.Websocket" false &&
   iptb run -- ipfs config --json Addresses.Swarm  '"'"'["/ip4/127.0.0.1/tcp/0"]'"'"'
 '
 
@@ -99,7 +101,7 @@ run_single_file_test() {
   node2=$2
 
   test_expect_success "add a file on node$node1" '
-    random 1000000 > filea &&
+    random-data -size=1000000 > filea &&
     FILEA_HASH=$(ipfsi $node1 add -q filea)
   '
 

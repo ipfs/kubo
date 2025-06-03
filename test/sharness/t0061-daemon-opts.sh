@@ -18,15 +18,15 @@ apiaddr=$API_ADDR
 
 # Odd. this fails here, but the inverse works on t0060-daemon.
 test_expect_success SOCAT 'transport should be unencrypted ( needs socat )' '
-  socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-ls &&
-  grep -q -v "/secio" swarmnc &&
-  grep -q "/plaintext" swarmnc ||
+  socat -s - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-plaintext &&
+  grep -q "/plaintext" swarmnc &&
+  test_must_fail grep -q "na" swarmnc ||
   test_fsh cat swarmnc
 '
 
 test_kill_ipfs_daemon
 
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 gwyaddr=$GWAY_ADDR
 apiaddr=$API_ADDR

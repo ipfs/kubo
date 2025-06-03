@@ -1,11 +1,12 @@
+//go:build (linux || darwin || freebsd) && !nofuse
 // +build linux darwin freebsd
 // +build !nofuse
 
 package readonly
 
 import (
-	core "github.com/ipfs/go-ipfs/core"
-	mount "github.com/ipfs/go-ipfs/fuse/mount"
+	core "github.com/ipfs/kubo/core"
+	mount "github.com/ipfs/kubo/fuse/mount"
 )
 
 // Mount mounts IPFS at a given location, and returns a mount.Mount instance.
@@ -14,7 +15,7 @@ func Mount(ipfs *core.IpfsNode, mountpoint string) (mount.Mount, error) {
 	if err != nil {
 		return nil, err
 	}
-	allow_other := cfg.Mounts.FuseAllowOther
+	allowOther := cfg.Mounts.FuseAllowOther
 	fsys := NewFileSystem(ipfs)
-	return mount.NewMount(ipfs.Process, fsys, mountpoint, allow_other)
+	return mount.NewMount(ipfs.Process, fsys, mountpoint, allowOther)
 }

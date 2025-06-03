@@ -1,0 +1,123 @@
+name: Sharness
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+  push:
+    branches:
+      - 'master'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sharness-test:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "4xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: ${{ github.repository == 'ipfs/kubo' && 15 || 60 }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.x
+      - name: Checkout Kubo
+        uses: actions/checkout@v4
+        with:
+          path: kubo
+      - name: Install missing tools
+        run: sudo apt update && sudo apt install -y socat net-tools fish libxml2-utils
+      - uses: actions/cache@v4
+        with:
+          path: test/sharness/lib/dependencies
+          key: ${{ runner.os }}-test-generate-junit-html-${{ hashFiles('test/sharness/lib/test-generate-junit-html.sh') }}
+      - name: Run Sharness tests
+        run: |
+          make -O -j "$PARALLEL" \
+            test_sharness \
+            coverage/sharness_tests.coverprofile \
+            test/sharness/test-results/sharness.xml
+        working-directory: kubo
+        env:
+          TEST_DOCKER: 1
+          TEST_PLUGIN: 0
+          TEST_FUSE: 0
+          TEST_VERBOSE: 1
+          TEST_JUNIT: 1
+          TEST_EXPENSIVE: 1
+          IPFS_CHECK_RCMGR_DEFAULTS: 1
+          CONTINUE_ON_S_FAILURE: 1
+          # increasing parallelism beyond 10 doesn't speed up the tests much
+          PARALLEL: ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
+      - name: Upload coverage report
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
+        if: failure() || success()
+        with:
+          name: sharness
+          files: kubo/coverage/sharness_tests.coverprofile
+      - name: Aggregate results
+        run: find kubo/test/sharness/test-results -name 't*-*.sh.*.counts' | kubo/test/sharness/lib/sharness/aggregate-results.sh > kubo/test/sharness/test-results/summary.txt
+      - name: 👉️ If this step failed, go to «Summary» (top left) → «HTML Report» → inspect the «Failures» column
+        run: |
+          cat kubo/test/sharness/test-results/summary.txt &&
+          grep 'failed\s*0' kubo/test/sharness/test-results/summary.txt
+      - name: Add aggregate results to the summary
+        if: failure() || success()
+        run: |
+          echo "# Summary" >> $GITHUB_STEP_SUMMARY
+          echo >> $GITHUB_STEP_SUMMARY
+          cat kubo/test/sharness/test-results/summary.txt >> $GITHUB_STEP_SUMMARY
+      - name: Generate one-page HTML report
+        uses: ipdxco/junit-xml-to-html@v1
+        if: failure() || success()
+        with:
+          mode: no-frames
+          input: kubo/test/sharness/test-results/sharness.xml
+          output: kubo/test/sharness/test-results/sharness.html
+      - name: Upload one-page HTML report to S3
+        id: one-page
+        uses: ipdxco/custom-github-runners/.github/actions/upload-artifact@main
+        if: github.repository == 'ipfs/kubo' && (failure() || success())
+        with:
+          source: kubo/test/sharness/test-results/sharness.html
+          destination: sharness.html
+      - name: Upload one-page HTML report
+        if: github.repository != 'ipfs/kubo' && (failure() || success())
+        uses: actions/upload-artifact@v4
+        with:
+          name: sharness.html
+          path: kubo/test/sharness/test-results/sharness.html
+      - name: Generate full HTML report
+        uses: ipdxco/junit-xml-to-html@v1
+        if: failure() || success()
+        with:
+          mode: frames
+          input: kubo/test/sharness/test-results/sharness.xml
+          output: kubo/test/sharness/test-results/sharness-html
+      - name: Upload full HTML report to S3
+        id: full
+        uses: ipdxco/custom-github-runners/.github/actions/upload-artifact@main
+        if: github.repository == 'ipfs/kubo' && (failure() || success())
+        with:
+          source: kubo/test/sharness/test-results/sharness-html
+          destination: sharness-html/
+      - name: Upload full HTML report
+        if: github.repository != 'ipfs/kubo' && (failure() || success())
+        uses: actions/upload-artifact@v4
+        with:
+          name: sharness-html
+          path: kubo/test/sharness/test-results/sharness-html
+      - name: Add S3 links to the summary
+        if: github.repository == 'ipfs/kubo' && (failure() || success())
+        run: echo "$MD" >> $GITHUB_STEP_SUMMARY
+        env:
+          MD: |
+            # HTML Reports
+
+            - View the [one page HTML report](${{ steps.one-page.outputs.url }})
+            - View the [full HTML report](${{ steps.full.outputs.url }}index.html)

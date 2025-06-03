@@ -94,11 +94,10 @@ test_expect_success "'ipfs add dir' succeeds" '
   echo "some text 6" >dir1/dir2/dir4/file6 &&
   echo "some text 2" >dir1/dir3/file2 &&
   echo "some text 5" >dir1/dir3/file5 &&
-  ipfs add -q -r dir1 >actualall &&
-  tail -n1 actualall >actual1 &&
-  echo "$HASH_DIR1" >expected1 &&
+  ipfs add -Q -r dir1 >actual &&
+  echo "$HASH_DIR1" >expected &&
   ipfs repo gc && # remove the patch chaff
-  test_cmp expected1 actual1
+  test_cmp expected actual
 '
 
 test_expect_success "objects are there" '
@@ -115,8 +114,8 @@ test_expect_success "objects are there" '
 '
 
 # saving this output for later
-test_expect_success "ipfs object links $HASH_DIR1 works" '
-  ipfs object links $HASH_DIR1 > DIR1_objlink
+test_expect_success "ipfs dag get $HASH_DIR1 works" '
+  ipfs dag get $HASH_DIR1 | jq -r ".Links[] | .Hash | .[\"/\"]" > DIR1_objlink
 '
 
 
@@ -208,11 +207,10 @@ test_expect_success "pin lists look good" '
 '
 
 test_expect_success "'ipfs repo gc' succeeds" '
-  ipfs repo gc >gc_out_actual2 &&
-  echo "removed $HASH_FILE3" > gc_out_exp2 &&
-  echo "removed $HASH_FILE5" >> gc_out_exp2 &&
-  echo "removed $HASH_DIR3" >> gc_out_exp2 &&
-  test_includes_lines gc_out_exp2 gc_out_actual2
+  ipfs repo gc &&
+  test_must_fail ipfs block stat $HASH_FILE3 &&
+  test_must_fail ipfs block stat $HASH_FILE5 &&
+  test_must_fail ipfs block stat $HASH_DIR3
 '
 
 # use object links for HASH_DIR1 here because its children
@@ -226,7 +224,7 @@ test_expect_success "some objects are still there" '
   ipfs cat "$HASH_FILE1" >>actual8 &&
   ipfs ls "$HASH_DIR4"   >>actual8 &&
   ipfs ls "$HASH_DIR2"   >>actual8 &&
-  ipfs object links "$HASH_DIR1" >>actual8 &&
+  ipfs dag get "$HASH_DIR1" | jq -r ".Links[] | .Hash | .[\"/\"]" >>actual8 &&
   test_cmp expected8 actual8
 '
 
@@ -237,10 +235,10 @@ test_expect_success "some are no longer there" '
   test_must_fail ipfs ls "$HASH_DIR3"
 '
 
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 test_expect_success "recursive pin fails without objects" '
   test_must_fail ipfs pin add -r "$HASH_DIR1" 2>err_expected8 &&
-  grep "pin: merkledag: not found" err_expected8 ||
+  grep "ipld: could not find" err_expected8 ||
   test_fsh cat err_expected8
 '
 
@@ -265,9 +263,9 @@ test_expect_success "test add nopin dir" '
   mkdir nopin_dir1 &&
   echo "some nopin text 1" >nopin_dir1/file1 &&
   echo "some nopin text 2" >nopin_dir1/file2 &&
-  ipfs add -q -r --pin=false nopin_dir1 | tail -n1 >actual1 &&
-  echo "$HASH_NOPINDIR" >expected1 &&
-  test_cmp actual1 expected1 &&
+  ipfs add -Q -r --pin=false nopin_dir1 >actual &&
+  echo "$HASH_NOPINDIR" >expected &&
+  test_cmp actual expected &&
   test_pin_flag "$HASH_NOPINDIR" direct false &&
   test_pin_flag "$HASH_NOPINDIR" indirect false &&
   test_pin_flag "$HASH_NOPINDIR" recursive false &&

@@ -1,0 +1,109 @@
+name: Go Test
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+  push:
+    branches:
+      - 'master'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go-test:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 20
+    env:
+      TEST_DOCKER: 0
+      TEST_FUSE: 0
+      TEST_VERBOSE: 1
+      TRAVIS: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.x
+      - name: Check out Kubo
+        uses: actions/checkout@v4
+      - name: Install missing tools
+        run: sudo apt update && sudo apt install -y zsh
+      - name: 👉️ If this step failed, go to «Summary» (top left) → inspect the «Failures/Errors» table
+        env:
+          # increasing parallelism beyond 2 doesn't speed up the tests much
+          PARALLEL: 2
+        run: |
+          make -j "$PARALLEL" test/unit/gotest.junit.xml &&
+            [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
+        if: failure() || success()
+        with:
+          name: unittests
+          files: coverage/unit_tests.coverprofile
+      - name: Test kubo-as-a-library example
+        run: |
+          # we want to first test with the kubo version in the go.mod file
+          go test -v ./...
+
+          # we also want to test the examples against the current version of kubo
+          # however, that version might be in a fork so we need to replace the dependency
+
+          # backup the go.mod and go.sum files to restore them after we run the tests
+          cp go.mod go.mod.bak
+          cp go.sum go.sum.bak
+
+          # make sure the examples run against the current version of kubo
+          go mod edit -replace github.com/ipfs/kubo=./../../..
+          go mod tidy
+
+          go test -v ./...
+
+          # restore the go.mod and go.sum files to their original state
+          mv go.mod.bak go.mod
+          mv go.sum.bak go.sum
+        working-directory: docs/examples/kubo-as-a-library
+      - name: Create a proper JUnit XML report
+        uses: ipdxco/gotest-json-to-junit-xml@v1
+        with:
+          input: test/unit/gotest.json
+          output: test/unit/gotest.junit.xml
+        if: failure() || success()
+      - name: Archive the JUnit XML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit
+          path: test/unit/gotest.junit.xml
+        if: failure() || success()
+      - name: Create a HTML report
+        uses: ipdxco/junit-xml-to-html@v1
+        with:
+          mode: no-frames
+          input: test/unit/gotest.junit.xml
+          output: test/unit/gotest.html
+        if: failure() || success()
+      - name: Archive the HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: html
+          path: test/unit/gotest.html
+        if: failure() || success()
+      - name: Create a Markdown report
+        uses: ipdxco/junit-xml-to-html@v1
+        with:
+          mode: summary
+          input: test/unit/gotest.junit.xml
+          output: test/unit/gotest.md
+        if: failure() || success()
+      - name: Set the summary
+        run: cat test/unit/gotest.md >> $GITHUB_STEP_SUMMARY
+        if: failure() || success()

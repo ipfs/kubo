@@ -2,17 +2,17 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/thirdparty/unit"
+	"github.com/ipfs/kubo/thirdparty/unit"
 
-	config "github.com/ipfs/go-ipfs-config"
-	random "github.com/jbenet/go-random"
+	random "github.com/ipfs/go-test/random"
+	config "github.com/ipfs/kubo/config"
 )
 
 func main() {
@@ -38,31 +38,31 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 		b.SetBytes(amount)
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
-			tmpDir, err := ioutil.TempDir("", "")
-			if err != nil {
-				b.Fatal(err)
-			}
-			defer os.RemoveAll(tmpDir)
+			tmpDir := b.TempDir()
 
 			env := append(os.Environ(), fmt.Sprintf("%s=%s", config.EnvDir, path.Join(tmpDir, config.DefaultPathName)))
 			setupCmd := func(cmd *exec.Cmd) {
 				cmd.Env = env
 			}
 
-			cmd := exec.Command("ipfs", "init", "-b=2048")
+			cmd := exec.Command("ipfs", "init")
 			setupCmd(cmd)
 			if err := cmd.Run(); err != nil {
 				b.Fatal(err)
 			}
 
 			const seed = 1
-			f, err := ioutil.TempFile("", "")
+			f, err := os.CreateTemp("", "")
 			if err != nil {
 				b.Fatal(err)
 			}
 			defer os.Remove(f.Name())
 
-			err = random.WritePseudoRandomBytes(amount, f, seed)
+			randReader := &io.LimitedReader{
+				R: random.NewSeededRand(seed),
+				N: amount,
+			}
+			_, err = io.Copy(f, randReader)
 			if err != nil {
 				b.Fatal(err)
 			}

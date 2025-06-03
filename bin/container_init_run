@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+# used by the container startup script for running initialization scripts
+
+script="$1"
+if [ -x "$script" ] ; then
+    printf "Executing '%s'...\n" "$script"
+    "$script"
+else
+    printf "Sourcing '%s'...\n" "$script"
+    . "$script"
+fi

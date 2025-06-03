@@ -1,24 +1,24 @@
-# Experimental features of go-ipfs
+# Experimental features of Kubo
 
-This document contains a list of experimental features in go-ipfs.
+This document contains a list of experimental features in Kubo.
 These features, commands, and APIs aren't mature, and you shouldn't rely on them.
 Once they reach maturity, there's going to be mention in the changelog and
 release posts. If they don't reach maturity, the same applies, and their code is
 removed.
 
-Subscribe to https://github.com/ipfs/go-ipfs/issues/3397 to get updates.
+Subscribe to https://github.com/ipfs/kubo/issues/3397 to get updates.
 
-When you add a new experimental feature to go-ipfs or change an experimental
+When you add a new experimental feature to kubo or change an experimental
 feature, you MUST please make a PR updating this document, and link the PR in
 the above issue.
 
-- [ipfs pubsub](#ipfs-pubsub)
 - [Raw leaves for unixfs files](#raw-leaves-for-unixfs-files)
 - [ipfs filestore](#ipfs-filestore)
 - [ipfs urlstore](#ipfs-urlstore)
 - [Private Networks](#private-networks)
 - [ipfs p2p](#ipfs-p2p)
 - [p2p http proxy](#p2p-http-proxy)
+- [FUSE](#fuse)
 - [Plugins](#plugins)
 - [Directory Sharding / HAMT](#directory-sharding--hamt)
 - [IPNS PubSub](#ipns-pubsub)
@@ -26,30 +26,10 @@ the above issue.
 - [Strategic Providing](#strategic-providing)
 - [Graphsync](#graphsync)
 - [Noise](#noise)
+- [Optimistic Provide](#optimistic-provide)
+- [HTTP Gateway over Libp2p](#http-gateway-over-libp2p)
 
 ---
-
-## ipfs pubsub
-
-### State
-
-Candidate, disabled by default but will be enabled by default in 0.6.0.
-
-### In Version
-
-0.4.5
-
-### How to enable
-
-run your daemon with the `--enable-pubsub-experiment` flag. Then use the
-`ipfs pubsub` commands.
-
-Configuration documentation can be found in [./config.md]()
-
-### Road to being a real feature
-
-- [ ] Needs to not impact peers who don't use pubsub:
-      https://github.com/libp2p/go-libp2p-pubsub/issues/332
 
 ## Raw Leaves for unixfs files
 
@@ -85,6 +65,14 @@ Experimental.
 
 ### How to enable
 
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides the IPFS [`add` command](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-add) with access to
+> the local filesystem. Consequently, any user with access to CLI or the HTTP [`/v0/add` RPC API](https://docs.ipfs.tech/reference/kubo/rpc/#api-v0-add) can read
+> files from the local filesystem with the same permissions as the Kubo daemon.
+> If you enable this, secure your RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
+
 Modify your ipfs config:
 ```
 ipfs config --json Experimental.FilestoreEnabled true
@@ -99,6 +87,10 @@ filestore instead of copying the files into your local IPFS repo.
 
 - [ ] Needs more people to use and report on how well it works.
 - [ ] Need to address error states and failure conditions
+  - [ ] cleanup of broken filesystem references (if file is deleted)
+  - [ ] tests that confirm ability to override preexisting filesystem links (allowing user to fix broken link)
+  - [ ] support for a single block having more than one sources in filesystem  (blocks can be shared by unrelated files, and not be broken when some files are unpinned / gc'd)
+  - [ ] [other known issues](https://github.com/ipfs/kubo/issues/7161)
 - [ ] Need to write docs on usage, advantages, disadvantages
 - [ ] Need to merge utility commands to aid in maintenance and repair of filestore
 
@@ -116,6 +108,14 @@ v0.4.17
 
 ### How to enable
 
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides the IPFS [`add` CLI command](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-add) with access to
+> the local filesystem. Consequently, any user with access to the CLI or HTTP [`/v0/add` RPC API](https://docs.ipfs.tech/reference/kubo/rpc/#api-v0-add) can read
+> files from the local filesystem with the same permissions as the Kubo daemon.
+> If you enable this, secure your RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
+
 Modify your ipfs config:
 ```
 ipfs config --json Experimental.UrlstoreEnabled true
@@ -126,6 +126,9 @@ And then add a file at a specific URL using `ipfs urlstore add <url>`
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works.
 - [ ] Need to address error states and failure conditions
+  - [ ] cleanup of broken URL+range references (if URL starts returning 404 or error)
+  - [ ] tests that confirm ability to override preexisting URL+range links (allowing user to fix broken link)
+  - [ ] support for a single block having more than one URL+range  (blocks can be shared by unrelated URLs)
 - [ ] Need to write docs on usage, advantages, disadvantages
 - [ ] Need to implement caching
 - [ ] Need to add metrics to monitor performance
@@ -138,6 +141,9 @@ It allows ipfs to only connect to other peers who have a shared secret key.
 
 Stable but not quite ready for prime-time.
 
+> [!WARNING]
+> Limited to TCP transport, comes with overhead of double-encryption. See details below.
+
 ### In Version
 
 0.4.7
@@ -146,7 +152,7 @@ Stable but not quite ready for prime-time.
 
 Generate a pre-shared-key using [ipfs-swarm-key-gen](https://github.com/Kubuxu/go-ipfs-swarm-key-gen)):
 ```
-go get github.com/Kubuxu/go-ipfs-swarm-key-gen/ipfs-swarm-key-gen
+go install github.com/Kubuxu/go-ipfs-swarm-key-gen/ipfs-swarm-key-gen@latest
 ipfs-swarm-key-gen > ~/.ipfs/swarm.key
 ```
 
@@ -184,7 +190,12 @@ configured, the daemon will fail to start.
 
 - [x] Needs more people to use and report on how well it works
 - [ ] More documentation
-- [ ] Needs better tooling/UX.
+- [ ] Improve / future proof libp2p support (see [libp2p/specs#489](https://github.com/libp2p/specs/issues/489))
+  - [ ] Currently limited to TCP-only, and double-encrypts all data sent on TCP. This is slow.
+  - [ ] Does not work with QUIC: [go-libp2p#1432](https://github.com/libp2p/go-libp2p/issues/1432)
+- [ ] Needs better tooling/UX
+  - [ ] Detect lack of peers when swarm key is present and prompt user to set up bootstrappers/peering
+  - [ ] ipfs-webui will not load  unless blocks are present in private swarm. Detect it and prompt user to import CAR with webui.
 
 ## ipfs p2p
 
@@ -201,6 +212,13 @@ Experimental, will be stabilized in 0.6.0
 0.4.10
 
 ### How to enable
+
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides CLI and HTTP RPC user with ability to set up port forwarding for all localhost and LAN ports.
+> If you enable this and plan to expose CLI or HTTP RPC to other users or machines,
+> secure RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
 
 The `p2p` command needs to be enabled in the config:
 
@@ -309,6 +327,13 @@ Experimental
 
 ### How to enable
 
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides CLI and HTTP RPC user with ability to set up HTTP forwarding for all localhost and LAN ports.
+> If you enable this and plan to expose CLI or HTTP RPC to other users or machines,
+> secure RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
+
 The `p2p` command needs to be enabled in the config:
 
 ```sh
@@ -373,9 +398,18 @@ We also support the use of protocol names of the form /x/$NAME/http where $NAME 
 ### Road to being a real feature
 
 - [ ] Needs p2p streams to graduate from experiments
-- [ ] Needs more people to use and report on how well it works / fits use cases
+- [ ] Needs more people to use and report on how well it works and fits use cases
 - [ ] More documentation
 - [ ] Need better integration with the subdomain gateway feature.
+
+## FUSE
+
+FUSE makes it possible to mount `/ipfs`, `/ipns` and `/mfs` namespaces in your OS,
+allowing arbitrary apps access to IPFS using a subset of filesystem abstractions.
+
+It is considered  EXPERIMENTAL due to limited (and buggy) support on some platforms.
+
+See [fuse.md](./fuse.md) for more details.
 
 ## Plugins
 
@@ -401,27 +435,22 @@ See [Plugin docs](./plugins.md)
 ## Directory Sharding / HAMT
 
 ### In Version
-0.4.8
+
+- 0.4.8:
+  - Introduced `Experimental.ShardingEnabled` which enabled sharding globally.
+  - All-or-nothing, unnecessary sharding of small directories.
+
+- 0.11.0 :
+  - Removed support for `Experimental.ShardingEnabled`
+  - Replaced with automatic sharding based on the block size
 
 ### State
-Experimental
 
-Allows creating directories with an unlimited number of entries.
+Replaced by autosharding.
 
-**Caveats:**
-1. right now it is a GLOBAL FLAG which will impact the final CID of all directories produced by `ipfs.add` (even the small ones)
-2. currently size of unixfs directories is limited by the maximum block size
+The `Experimental.ShardingEnabled` config field is no longer used, please remove it from your configs.
 
-### Basic Usage:
-
-```
-ipfs config --json Experimental.ShardingEnabled true
-```
-
-### Road to being a real feature
-
-- [ ] Make sure that objects that don't have to be sharded aren't
-- [ ] Generalize sharding and define a new layer between IPLD and IPFS
+kubo now automatically shards when directory block is bigger than 256KB, ensuring every block is small enough to be exchanged with other peers
 
 ## IPNS pubsub
 
@@ -430,11 +459,14 @@ ipfs config --json Experimental.ShardingEnabled true
 0.4.14 :
   - Introduced
 
-0.5.0 : 
+0.5.0 :
    - No longer needs to use the DHT for the first resolution
    - When discovering PubSub peers via the DHT, the DHT key is different from previous versions
       - This leads to 0.5 IPNS pubsub peers and 0.4 IPNS pubsub peers not being able to find each other in the DHT
    - Robustness improvements
+
+0.11.0 :
+  - Can be enabled via `Ipns.UsePubsub` flag in config
 
 ### State
 
@@ -456,7 +488,15 @@ Users interested in this feature should upgrade to at least 0.5.0
 
 ### How to enable
 
-run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
+Run your daemon with the `--enable-namesys-pubsub` flag
+or modify your ipfs config and restart the daemon:
+```
+ipfs config --json Ipns.UsePubsub true
+```
+
+NOTE:
+- This feature implicitly enables [ipfs pubsub](#ipfs-pubsub).
+- Passing `--enable-namesys-pubsub` CLI flag overrides `Ipns.UsePubsub` config.
 
 ### Road to being a real feature
 
@@ -467,7 +507,11 @@ run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
 
 ### In Version
 
-0.4.19
+- 0.4.19 :
+  - Introduced Circuit Relay v1
+- 0.11.0 :
+  - Deprecated v1
+  - Introduced [Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)
 
 ### State
 
@@ -480,85 +524,159 @@ Automatically discovers relays and advertises relay addresses when the node is b
 Modify your ipfs config:
 
 ```
-ipfs config --json Swarm.EnableRelayHop false
-ipfs config --json Swarm.EnableAutoRelay true
+ipfs config --json Swarm.RelayClient.Enabled true
 ```
-
-NOTE: Ensuring `Swarm.EnableRelayHop` is _false_ is extremely important here. If you set it to true, you will _act_ as a public relay for the rest of the network instead of _using_ the public relays.
 
 ### Road to being a real feature
 
 - [ ] needs testing
+- [ ] needs to be automatically enabled when AutoNAT detects node is behind an impenetrable NAT.
+
 
 ## Strategic Providing
 
 ### State
 
-Experimental, disabled by default.
+`Experimental.StrategicProviding` was removed in Kubo v0.35.
 
-Replaces the existing provide mechanism with a robust, strategic provider system.
+Replaced by [`Provide.Enabled`](https://github.com/ipfs/kubo/blob/master/docs/config.md#providerenabled) and [`Reprovider.Strategy`](https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy).
 
-### How to enable
-
-Modify your ipfs config:
-
-```
-ipfs config --json Experimental.StrategicProviding true
-```
-
-### Road to being a real feature
-
-- [ ] needs real-world testing
-- [ ] needs adoption
-- [ ] needs to support all provider subsystem features
-    - [X] provide nothing
-    - [ ] provide roots
-    - [ ] provide all
-    - [ ] provide strategic
-    
 ## GraphSync
 
 ### State
 
-Experimental, disabled by default.
+Removed, no plans to reintegrate either as experimental or stable feature.
 
-[GraphSync](https://github.com/ipfs/go-graphsync) is the next-gen graph exchange
-protocol for IPFS.
+[Trustless Gateway over Libp2p](#http-gateway-over-libp2p) should be easier to use for unixfs usecases and support basic wildcard car streams for non unixfs.
 
-When this feature is enabled, IPFS will make files available over the graphsync
-protocol. However, IPFS will not currently use this protocol to _fetch_ files.
-
-### How to enable
-
-Modify your ipfs config:
-
-```
-ipfs config --json Experimental.GraphsyncEnabled true
-```
-
-### Road to being a real feature
-
-- [ ] We need to confirm that it can't be used to DoS a node. The server-side logic for GraphSync is quite complex and, if we're not careful, the server might end up performing unbounded work when responding to a malicious request.
+See https://github.com/ipfs/kubo/pull/9747 for more information.
 
 ## Noise
 
 ### State
 
-Experimental, enabled by default
+Stable, enabled by default
 
-[Noise](https://github.com/libp2p/specs/tree/master/noise) libp2p transport based on the [Noise Protocol Framework](https://noiseprotocol.org/noise.html). While TLS remains the default transport in go-ipfs, Noise is easier to implement and will thus serve as the "interop" transport between IPFS and libp2p implementations, eventually replacing SECIO.
+[Noise](https://github.com/libp2p/specs/tree/master/noise) libp2p transport based on the [Noise Protocol Framework](https://noiseprotocol.org/noise.html). While TLS remains the default transport in Kubo, Noise is easier to implement and is thus the "interop" transport between IPFS and libp2p implementations.
 
-### How to enable
+## Optimistic Provide
 
-While the Noise transport is now shipped and enabled by default in go-ipfs, it won't be used by default for most connections because TLS and SECIO are currently preferred. If you'd like to test out the Noise transport, you can use the `Experimental.OverrideSecurityTransports` option to enable, disable, and reorder security transports.
+### In Version
 
-For example, to prefer noise over TLS and disable SECIO, run:
+0.20.0
+
+### State
+
+Experimental, disabled by default.
+
+When the Amino DHT client tries to store a provider in the DHT, it typically searches for the 20 peers that are closest to the
+target key. However, this process can be time-consuming, as the search terminates only after no closer peers are found
+among the three currently (during the query) known closest ones. In cases where these closest peers are slow to respond
+(which often happens if they are located at the edge of the DHT network), the query gets blocked by the slowest peer.
+
+To address this issue, the `OptimisticProvide` feature can be enabled. This feature allows the client to estimate the
+network size and determine how close a peer _likely_ needs to be to the target key to be within the 20 closest peers.
+While searching for the closest peers in the DHT, the client will _optimistically_ store the provider record with peers
+and abort the query completely when the set of currently known 20 closest peers are also _likely_ the actual 20 closest
+ones. This heuristic approach can significantly speed up the process, resulting in a speed improvement of 2x to >10x.
+
+When it is enabled:
+
+- Amino DHT provide operations should complete much faster than with it disabled
+- This can be tested with commands such as `ipfs routing provide`
+
+**Tradeoffs**
+
+There are now the classic client, the accelerated DHT client, and optimistic provide that improve the provider process.
+There are different trade-offs with all of them. The accelerated DHT client is still faster to provide large amounts
+of provider records at the cost of high resource requirements. Optimistic provide doesn't have the high resource
+requirements but might not choose optimal peers and is not as fast as the accelerated client, but still much faster
+than the classic client.
+
+**Caveats:**
+
+1. Providing optimistically requires a current network size estimation. This estimation is calculated through routing
+   table refresh queries and is only available after the daemon has been running for some time. If there is no network
+   size estimation available the client will transparently fall back to the classic approach.
+2. The chosen peers to store the provider records might not be the actual closest ones. Measurements showed that this
+   is not a problem.
+3. The optimistic provide process returns already after 15 out of the 20 provider records were stored with peers. The
+   reasoning here is that one out of the remaining 5 peers are very likely to time out and delay the whole process. To
+   limit the number of in-flight async requests there is the second `OptimisticProvideJobsPoolSize` setting. Currently,
+   this is set to 60. This means that at most 60 parallel background requests are allowed to be in-flight. If this
+   limit is exceeded optimistic provide will block until all 20 provider records are written. This is still 2x faster
+   than the classic approach but not as fast as returning early which yields >10x speed-ups.
+4. Since the in-flight background requests are likely to time out, they are not consuming many resources and the job
+   pool size could probably be much higher.
+
+For more information, see:
+
+- Project doc: https://protocollabs.notion.site/Optimistic-Provide-2c79745820fa45649d48de038516b814
+- go-libp2p-kad-dht: https://github.com/libp2p/go-libp2p-kad-dht/pull/783
+
+### Configuring
+To enable:
 
 ```
-ipfs config --json Experimental.OverrideSecurityTransports '["noise", "tls"]'
+ipfs config --json Experimental.OptimisticProvide true
+```
+
+If you want to change the `OptimisticProvideJobsPoolSize` setting from its default of 60:
+
+```
+ipfs config --json Experimental.OptimisticProvideJobsPoolSize 120
 ```
 
 ### Road to being a real feature
 
-- [ ] Needs real-world testing.
-- [ ] Ideally a js-ipfs and a rust-ipfs release would include support for Noise.
+- [ ] Needs more people to use and report on how well it works
+- [ ] Should prove at least equivalent availability of provider records as the classic approach
+
+## HTTP Gateway over Libp2p
+
+### In Version
+
+0.23.0
+
+### State
+
+Experimental, disabled by default.
+
+Enables serving a subset of the [IPFS HTTP Gateway](https://specs.ipfs.tech/http-gateways/) semantics over libp2p `/http/1.1` protocol.
+
+Notes:
+- This feature only about serving verifiable gateway requests over libp2p:
+  - Deserialized responses are not supported.
+  - Only operate on `/ipfs` resources (no `/ipns` atm)
+  - Only support requests for `application/vnd.ipld.raw` and
+    `application/vnd.ipld.car` (from [Trustless Gateway Specification](https://specs.ipfs.tech/http-gateways/trustless-gateway/),
+    where data integrity can be verified).
+  - Only serve data that is already local to the node (i.e. similar to a
+    [`Gateway.NoFetch`](https://github.com/ipfs/kubo/blob/master/docs/config.md#gatewaynofetch))
+- While Kubo currently mounts the gateway API at the root (i.e. `/`) of the
+  libp2p `/http/1.1` protocol, that is subject to change.
+  - The way to reliably discover where a given HTTP protocol is mounted on a
+    libp2p endpoint is via the `.well-known/libp2p` resource specified in the
+    [http+libp2p specification](https://github.com/libp2p/specs/pull/508)
+    - The identifier of the protocol mount point under `/http/1.1` listener is
+      `/ipfs/gateway`, as noted in
+      [ipfs/specs#434](https://github.com/ipfs/specs/pull/434).
+
+### How to enable
+
+Modify your ipfs config:
+
+```
+ipfs config --json Experimental.GatewayOverLibp2p true
+```
+
+### Road to being a real feature
+
+- [ ] Needs more people to use and report on how well it works
+- [ ] Needs UX work for exposing non-recursive "HTTP transport" (NoFetch) over both libp2p and plain TCP (and sharing the configuration)
+- [ ] Needs a mechanism for HTTP handler to signal supported features ([IPIP-425](https://github.com/ipfs/specs/pull/425))
+- [ ] Needs an option for Kubo to detect peers that have it enabled and prefer HTTP transport before falling back to bitswap (and use CAR if peer supports dag-scope=entity from [IPIP-402](https://github.com/ipfs/specs/pull/402))
+
+## Accelerated DHT Client
+
+This feature now lives at [`Routing.AcceleratedDHTClient`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtclient).

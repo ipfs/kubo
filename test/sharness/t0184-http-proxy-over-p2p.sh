@@ -142,6 +142,7 @@ function curl_send_multipart_form_request() {
 
 test_expect_success 'configure nodes' '
     iptb testbed create -type localipfs -count 2 -force -init &&
+    iptb run -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true &&
     ipfsi 0 config --json Experimental.Libp2pStreamMounting true &&
     ipfsi 1 config --json Experimental.Libp2pStreamMounting true &&
     ipfsi 0 config --json Experimental.P2pHttpProxy true &&
@@ -167,7 +168,8 @@ test_expect_success 'setup p2p listener on the receiver' '
 '
 
 test_expect_success 'setup environment' '
-    RECEIVER_ID="$(iptb attr get 1 id)"
+    RECEIVER_ID=$(ipfsi 1 id -f="<id>" --peerid-base=b58mh)
+    RECEIVER_ID_CIDv1=$(ipfsi 1 id -f="<id>" --peerid-base=base36)
 '
 
 test_expect_success 'handle proxy http request sends bad-gateway when remote server not available ' '
@@ -193,7 +195,12 @@ test_expect_success 'handle proxy http request invalid request' '
 '
 
 test_expect_success 'handle proxy http request unknown proxy peer ' '
-    curl_check_response_code 502 p2p/unknown_peer/http/index.txt
+    UNKNOWN_PEER="k51qzi5uqu5dlmbel1sd8rs4emr3bfosk9bm4eb42514r4lakt4oxw3a3fa2tm" &&
+    curl_check_response_code 502 p2p/$UNKNOWN_PEER/http/index.txt
+'
+
+test_expect_success 'handle proxy http request to invalid proxy peer ' '
+    curl_check_response_code 400 p2p/invalid_peer/http/index.txt
 '
 
 test_expect_success 'handle proxy http request to custom protocol' '
@@ -214,9 +221,6 @@ test_expect_success 'handle multipart/form-data http request' '
     serve_content "OK" &&
     curl_send_multipart_form_request 200
 '
-
-# subdomain gateway at *.p2p.example.com requires PeerdID in base32
-RECEIVER_ID_CIDv1=$( ipfs cid format -v 1 -b b --codec libp2p-key -- $RECEIVER_ID)
 
 # OK: $peerid.p2p.example.com/http/index.txt
 test_expect_success "handle http request to a subdomain gateway" '

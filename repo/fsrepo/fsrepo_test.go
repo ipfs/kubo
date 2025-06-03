@@ -2,29 +2,20 @@ package fsrepo
 
 import (
 	"bytes"
-	"io/ioutil"
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/thirdparty/assert"
+	"github.com/ipfs/kubo/thirdparty/assert"
 
 	datastore "github.com/ipfs/go-datastore"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/kubo/config"
 )
-
-// swap arg order
-func testRepoPath(p string, t *testing.T) string {
-	name, err := ioutil.TempDir("", p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return name
-}
 
 func TestInitIdempotence(t *testing.T) {
 	t.Parallel()
-	path := testRepoPath("", t)
+	path := t.TempDir()
 	for i := 0; i < 10; i++ {
 		assert.Nil(Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t, "multiple calls to init should succeed")
 	}
@@ -37,8 +28,8 @@ func Remove(repoPath string) error {
 
 func TestCanManageReposIndependently(t *testing.T) {
 	t.Parallel()
-	pathA := testRepoPath("a", t)
-	pathB := testRepoPath("b", t)
+	pathA := t.TempDir()
+	pathB := t.TempDir()
 
 	t.Log("initialize two repos")
 	assert.Nil(Init(pathA, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t, "a", "should initialize successfully")
@@ -65,7 +56,7 @@ func TestCanManageReposIndependently(t *testing.T) {
 
 func TestDatastoreGetNotAllowedAfterClose(t *testing.T) {
 	t.Parallel()
-	path := testRepoPath("test", t)
+	path := t.TempDir()
 
 	assert.True(!IsInitialized(path), t, "should NOT be initialized")
 	assert.Nil(Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t, "should initialize successfully")
@@ -74,16 +65,16 @@ func TestDatastoreGetNotAllowedAfterClose(t *testing.T) {
 
 	k := "key"
 	data := []byte(k)
-	assert.Nil(r.Datastore().Put(datastore.NewKey(k), data), t, "Put should be successful")
+	assert.Nil(r.Datastore().Put(context.Background(), datastore.NewKey(k), data), t, "Put should be successful")
 
 	assert.Nil(r.Close(), t)
-	_, err = r.Datastore().Get(datastore.NewKey(k))
+	_, err = r.Datastore().Get(context.Background(), datastore.NewKey(k))
 	assert.Err(err, t, "after closer, Get should be fail")
 }
 
 func TestDatastorePersistsFromRepoToRepo(t *testing.T) {
 	t.Parallel()
-	path := testRepoPath("test", t)
+	path := t.TempDir()
 
 	assert.Nil(Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t)
 	r1, err := Open(path)
@@ -91,12 +82,12 @@ func TestDatastorePersistsFromRepoToRepo(t *testing.T) {
 
 	k := "key"
 	expected := []byte(k)
-	assert.Nil(r1.Datastore().Put(datastore.NewKey(k), expected), t, "using first repo, Put should be successful")
+	assert.Nil(r1.Datastore().Put(context.Background(), datastore.NewKey(k), expected), t, "using first repo, Put should be successful")
 	assert.Nil(r1.Close(), t)
 
 	r2, err := Open(path)
 	assert.Nil(err, t)
-	actual, err := r2.Datastore().Get(datastore.NewKey(k))
+	actual, err := r2.Datastore().Get(context.Background(), datastore.NewKey(k))
 	assert.Nil(err, t, "using second repo, Get should be successful")
 	assert.Nil(r2.Close(), t)
 	assert.True(bytes.Equal(expected, actual), t, "data should match")
@@ -104,7 +95,7 @@ func TestDatastorePersistsFromRepoToRepo(t *testing.T) {
 
 func TestOpenMoreThanOnceInSameProcess(t *testing.T) {
 	t.Parallel()
-	path := testRepoPath("", t)
+	path := t.TempDir()
 	assert.Nil(Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t)
 
 	r1, err := Open(path)

@@ -7,7 +7,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	oldcmds "github.com/ipfs/go-ipfs/commands"
+	oldcmds "github.com/ipfs/kubo/commands"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
@@ -23,6 +23,7 @@ var ActiveReqsCmd = &cmds.Command{
 Lists running and recently run commands.
 `,
 	},
+	NoLocal: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx := env.(*oldcmds.Context)
 		return cmds.EmitOnce(res, ctx.ReqLog.Report())

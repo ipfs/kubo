@@ -3,12 +3,11 @@ package integrationtest
 import (
 	"testing"
 
-	"github.com/ipfs/go-ipfs/thirdparty/unit"
+	"github.com/ipfs/kubo/thirdparty/unit"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
 )
 
 func benchmarkAddCat(numBytes int64, conf testutil.LatencyConfig, b *testing.B) {
-
 	b.StopTimer()
 	b.SetBytes(numBytes)
 	data := RandomBytes(numBytes) // we don't want to measure the time it takes to generate this data

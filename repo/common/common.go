@@ -21,7 +21,13 @@ func MapGetKV(v map[string]interface{}, key string) (interface{}, error) {
 
 		cursor, ok = mcursor[part]
 		if !ok {
-			return nil, fmt.Errorf("%s key has no attributes", sofar)
+			// Construct the current path traversed to print a nice error message
+			var path string
+			if len(sofar) > 0 {
+				path += sofar + "."
+			}
+			path += part
+			return nil, fmt.Errorf("%s not found", path)
 		}
 	}
 	return cursor, nil
@@ -53,4 +59,34 @@ func MapSetKV(v map[string]interface{}, key string, value interface{}) error {
 		}
 	}
 	return nil
+}
+
+// MapMergeDeep merges the right map into the left map, recursively traversing
+// child maps until a non-map value is found.
+func MapMergeDeep(left, right map[string]interface{}) map[string]interface{} {
+	// We want to alter a copy of the map, not the original
+	result := make(map[string]interface{})
+	for k, v := range left {
+		result[k] = v
+	}
+
+	for key, rightVal := range right {
+		// If right value is a map
+		if rightMap, ok := rightVal.(map[string]interface{}); ok {
+			// If key is in left
+			if leftVal, found := result[key]; found {
+				// If left value is also a map
+				if leftMap, ok := leftVal.(map[string]interface{}); ok {
+					// Merge nested map
+					result[key] = MapMergeDeep(leftMap, rightMap)
+					continue
+				}
+			}
+		}
+
+		// Otherwise set new value to result
+		result[key] = rightVal
+	}
+
+	return result
 }

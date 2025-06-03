@@ -8,8 +8,8 @@ test_description="Test daemon command"
 
 . lib/test-lib.sh
 
-test_expect_success "create badger config" '
-  ipfs init --profile=badgerds,test > /dev/null &&
+test_expect_success "create pebble config" '
+  ipfs init --profile=pebbleds,test > /dev/null &&
   cp "$IPFS_PATH/config" init-config
 '
 
@@ -21,8 +21,8 @@ test_launch_ipfs_daemon --init --init-config="$(pwd)/init-config" --init-profile
 test_kill_ipfs_daemon
 
 test_expect_success "daemon initialization with existing config works" '
-  ipfs config "Datastore.Spec.child.path" >actual &&
-  test $(cat actual) = "badgerds" &&
+  ipfs config "Datastore.Spec.path" >actual &&
+  test $(cat actual) = "pebbleds" &&
   ipfs config Addresses > orig_addrs
 '
 
@@ -43,6 +43,10 @@ test_expect_success "cleanup repo" '
 '
 
 test_init_ipfs
+test_expect_success "set Resource Manager variables showed at startup" '
+    ipfs config --json Swarm.ResourceMgr.MaxFileDescriptors 1024 &&
+    ipfs config Swarm.ResourceMgr.MaxMemory 4GB
+'
 test_launch_ipfs_daemon
 
 # this errors if we didn't --init $IPFS_PATH correctly
@@ -72,17 +76,16 @@ test_expect_success "ipfs gateway works with the correct allowed origin port" '
   curl -s -X POST -H "Origin:http://localhost:$GWAY_PORT" -I "http://$GWAY_ADDR/api/v0/version"
 '
 
-test_expect_success "ipfs daemon output looks good" '
-  STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
-  echo "Initializing daemon..." >expected_daemon &&
-  ipfs version --all >> expected_daemon &&
-  sed "s/^/Swarm listening on /" listen_addrs >>expected_daemon &&
-  sed "s/^/Swarm announcing /" local_addrs >>expected_daemon &&
-  echo "API server listening on '$API_MADDR'" >>expected_daemon &&
-  echo "WebUI: http://'$API_ADDR'/webui" >>expected_daemon &&
-  echo "Gateway (readonly) server listening on '$GWAY_MADDR'" >>expected_daemon &&
-  echo "Daemon is ready" >>expected_daemon &&
-  test_cmp expected_daemon actual_daemon
+test_expect_success "ipfs daemon output includes looks good" '
+  test_should_contain "Initializing daemon..." actual_daemon &&
+  test_should_contain "$(ipfs version --all)" actual_daemon &&
+  test_should_contain "PeerID: $(ipfs config Identity.PeerID)" actual_daemon &&
+  test_should_contain "Swarm listening on 127.0.0.1:" actual_daemon &&
+  test_should_contain "RPC API server listening on '$API_MADDR'" actual_daemon &&
+  test_should_contain "WebUI: http://'$API_ADDR'/webui" actual_daemon &&
+  test_should_contain "Gateway server listening on '$GWAY_MADDR'" actual_daemon &&
+  test_should_contain "Daemon is ready" actual_daemon &&
+  cat actual_daemon
 '
 
 test_expect_success ".ipfs/ has been created" '
@@ -125,11 +128,26 @@ test_expect_success "ipfs help output looks good" '
   test_fsh cat help.txt
 '
 
-# check transport is encrypted
-test_expect_success SOCAT "transport should be encrypted ( needs socat )" '
-  socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-ls &&
-  grep -q "/secio" swarmnc &&
-  test_must_fail grep -q "/plaintext/1.0.0" swarmnc ||
+# check transport is encrypted by default and no plaintext is allowed
+
+test_expect_success SOCAT "default transport should support encryption (TLS, needs socat )" '
+  socat -s - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-tls &&
+  grep -q "/tls" swarmnc &&
+  test_must_fail grep -q "na" swarmnc ||
+  test_fsh cat swarmnc
+'
+
+test_expect_success SOCAT "default transport should support encryption (Noise, needs socat )" '
+  socat -s - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-noise &&
+  grep -q "/noise" swarmnc &&
+  test_must_fail grep -q "na" swarmnc ||
+  test_fsh cat swarmnc
+'
+
+test_expect_success SOCAT "default transport should not support plaintext (needs socat )" '
+  socat -s - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-plaintext &&
+  grep -q "na" swarmnc &&
+  test_must_fail grep -q "/plaintext" swarmnc ||
   test_fsh cat swarmnc
 '
 

@@ -10,18 +10,20 @@ import (
 	mbase "github.com/multiformats/go-multibase"
 )
 
-var OptionCidBase = cmds.StringOption("cid-base", "Multibase encoding used for version 1 CIDs in output.")
-var OptionUpgradeCidV0InOutput = cmds.BoolOption("upgrade-cidv0-in-output", "Upgrade version 0 to version 1 CIDs in output.")
+var (
+	OptionCidBase              = cmds.StringOption("cid-base", "Multibase encoding used for version 1 CIDs in output.")
+	OptionUpgradeCidV0InOutput = cmds.BoolOption("upgrade-cidv0-in-output", "Upgrade version 0 to version 1 CIDs in output.")
+)
 
 // GetCidEncoder processes the `cid-base` and `output-cidv1` options and
-// returns a encoder to use based on those parameters.
+// returns an encoder to use based on those parameters.
 func GetCidEncoder(req *cmds.Request) (cidenc.Encoder, error) {
 	return getCidBase(req, true)
 }
 
-// GetLowLevelCidEncoder is like GetCidEncoder but meant to be used by
-// lower level commands.  It differs from GetCidEncoder in that CIDv0
-// are not, by default, auto-upgraded to CIDv1.
+// GetLowLevelCidEncoder is like GetCidEncoder but meant to be used by lower
+// level commands. It differs from GetCidEncoder in that CIDv0 are not, by
+// default, auto-upgraded to CIDv1.
 func GetLowLevelCidEncoder(req *cmds.Request) (cidenc.Encoder, error) {
 	return getCidBase(req, false)
 }
@@ -50,19 +52,19 @@ func getCidBase(req *cmds.Request, autoUpgrade bool) (cidenc.Encoder, error) {
 	return e, nil
 }
 
-// CidBaseDefined returns true if the `cid-base` option is specified
-// on the command line
+// CidBaseDefined returns true if the `cid-base` option is specified on the
+// command line
 func CidBaseDefined(req *cmds.Request) bool {
 	base, _ := req.Options["cid-base"].(string)
 	return base != ""
 }
 
-// CidEncoderFromPath creates a new encoder that is influenced from
-// the encoded Cid in a Path.  For CidV0 the multibase from the base
-// encoder is used and automatic upgrades are disabled.  For CidV1 the
-// multibase from the CID is used and upgrades are enabled.
+// CidEncoderFromPath creates a new encoder that is influenced from the encoded
+// Cid in a Path. For CIDv0 the multibase from the base encoder is used and
+// automatic upgrades are disabled. For CIDv1 the multibase from the CID is
+// used and upgrades are enabled.
 //
-// This logic is intentionally fuzzy and will match anything of the form
+// This logic is intentionally fuzzy and matches anything of the form
 // `CidLike`, `CidLike/...`, or `/namespace/CidLike/...`.
 //
 // For example:

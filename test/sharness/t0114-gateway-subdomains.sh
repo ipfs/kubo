@@ -84,47 +84,45 @@ test_hostname_gateway_response_should_contain() {
 ## Start IPFS Node and prepare test CIDs
 ## ============================================================================
 
-test_init_ipfs
-test_launch_ipfs_daemon --offline
-
-# CIDv0to1 is necessary because raw-leaves are enabled by default during
-# "ipfs add" with CIDv1 and disabled with CIDv0
-test_expect_success "Add test text file" '
-  CID_VAL="hello"
-  CIDv1=$(echo $CID_VAL | ipfs add --cid-version 1 -Q)
-  CIDv0=$(echo $CID_VAL | ipfs add --cid-version 0 -Q)
-  CIDv0to1=$(echo "$CIDv0" | ipfs cid base32)
+test_expect_success "ipfs init" '
+  export IPFS_PATH="$(pwd)/.ipfs" &&
+  ipfs init --profile=test > /dev/null
 '
 
-test_expect_success "Add the test directory" '
-  mkdir -p testdirlisting/subdir1/subdir2 &&
-  echo "hello" > testdirlisting/hello &&
-  echo "subdir2-bar" > testdirlisting/subdir1/subdir2/bar &&
-  mkdir -p testdirlisting/api &&
-  mkdir -p testdirlisting/ipfs &&
-  echo "I am a txt file" > testdirlisting/api/file.txt &&
-  echo "I am a txt file" > testdirlisting/ipfs/file.txt &&
-  DIR_CID=$(ipfs add -Qr --cid-version 1 testdirlisting)
-'
+test_launch_ipfs_daemon_without_network
 
-test_expect_success "Publish test text file to IPNS" '
-  PEERID=$(ipfs id --format="<id>")
-  IPNS_IDv0=$(echo "$PEERID" | ipfs cid format -v 0)
-  IPNS_IDv1=$(echo "$PEERID" | ipfs cid format -v 1 --codec libp2p-key -b base32)
-  IPNS_IDv1_DAGPB=$(echo "$IPNS_IDv0" | ipfs cid format -v 1 -b base32)
-  test_check_peerid "${PEERID}" &&
-  ipfs name publish --allow-offline -Q "/ipfs/$CIDv1" > name_publish_out &&
-  ipfs name resolve "$PEERID"  > output &&
-  printf "/ipfs/%s\n" "$CIDv1" > expected2 &&
-  test_cmp expected2 output
-'
+# Import test case
+# See the static fixtures in ./t0114-gateway-subdomains/
+CID_VAL=hello
+CIDv1=bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am
+CIDv0=QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+CIDv0to1=bafybeiffndsajwhk3lwjewwdxqntmjm4b5wxaaanokonsggenkbw6slwk4
+CIDv1_TOO_LONG=bafkrgqhhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dlfsthi4hn7zgh4uvlsb5xncykzapi3ocd4lzogukir6ksdy6wzrnz6ohnv4aglcs
+DIR_CID=bafybeiht6dtwk3les7vqm6ibpvz6qpohidvlshsfyr7l5mpysdw2vmbbhe
 
+RSA_KEY=QmVujd5Vb7moysJj8itnGufN7MEtPRCNHkKpNuA4onsRa3
+RSA_IPNS_IDv0=QmVujd5Vb7moysJj8itnGufN7MEtPRCNHkKpNuA4onsRa3
+RSA_IPNS_IDv1=k2k4r8m7xvggw5pxxk3abrkwyer625hg01hfyggrai7lk1m63fuihi7w
+RSA_IPNS_IDv1_DAGPB=k2jmtxu61bnhrtj301lw7zizknztocdbeqhxgv76l2q9t36fn9jbzipo
+
+ED25519_KEY=12D3KooWLQzUv2FHWGVPXTXSZpdHs7oHbXub2G5WC8Tx4NQhyd2d
+ED25519_IPNS_IDv0=12D3KooWLQzUv2FHWGVPXTXSZpdHs7oHbXub2G5WC8Tx4NQhyd2d
+ED25519_IPNS_IDv1=k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam
+ED25519_IPNS_IDv1_DAGPB=k50rm9yjlt0jey4fqg6wafvqprktgbkpgkqdg27tpqje6iimzxewnhvtin9hhq
+IPNS_ED25519_B58MH=12D3KooWLQzUv2FHWGVPXTXSZpdHs7oHbXub2G5WC8Tx4NQhyd2d
+IPNS_ED25519_B36CID=k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam
+
+test_expect_success "Add the test fixtures" '
+  ipfs dag import --pin-roots ../t0114-gateway-subdomains/fixtures.car &&
+  ipfs routing put --allow-offline /ipns/${RSA_KEY} ../t0114-gateway-subdomains/${RSA_KEY}.ipns-record &&
+  ipfs routing put --allow-offline /ipns/${ED25519_KEY} ../t0114-gateway-subdomains/${ED25519_KEY}.ipns-record
+'
 
 # ensure we start with empty Gateway.PublicGateways
 test_expect_success 'start daemon with empty config for Gateway.PublicGateways' '
   test_kill_ipfs_daemon &&
   ipfs config --json Gateway.PublicGateways "{}" &&
-  test_launch_ipfs_daemon --offline
+  test_launch_ipfs_daemon_without_network
 '
 
 ## ============================================================================
@@ -164,21 +162,17 @@ test_localhost_gateway_response_should_contain \
   "http://localhost:$GWAY_PORT/ipfs/$DIR_CID/" \
   "Location: http://$DIR_CID.ipfs.localhost:$GWAY_PORT/"
 
-# Responses to the root domain of subdomain gateway hostname should Clear-Site-Data
-# https://github.com/ipfs/go-ipfs/issues/6975#issuecomment-597472477
-test_localhost_gateway_response_should_contain \
-  "request for localhost/ipfs/{CIDv1} returns Clear-Site-Data header to purge Origin cookies and storage" \
-  "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
-  'Clear-Site-Data: \"cookies\", \"storage\"'
+# Kubo specific end-to-end test
+# (independent of gateway-conformance)
 
-# We return body with HTTP 301 so existing cli scripts that use path-based
-# gateway do not break (curl doesn't auto-redirect without passing -L; wget
-# does not span across hostnames by default)
-# Context: https://github.com/ipfs/go-ipfs/issues/6975
+# We return human-readable body with HTTP 301 so existing cli scripts that use path-based
+# gateway are informed to enable following HTTP redirects
 test_localhost_gateway_response_should_contain \
-  "request for localhost/ipfs/{CIDv1} includes valid payload in body for CLI tools like curl" \
+  "request for localhost/ipfs/{CIDv1} includes human-readable link and redirect info in HTTP 301 body" \
   "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
-  "$CID_VAL"
+  ">Moved Permanently</a>"
+
+# end Kubo specific end-to-end test
 
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{CIDv0} redirects to CIDv1 representation in subdomain" \
@@ -189,34 +183,25 @@ test_localhost_gateway_response_should_contain \
 
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
-  "http://localhost:$GWAY_PORT/ipns/$IPNS_IDv0" \
-  "Location: http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
+  "http://localhost:$GWAY_PORT/ipns/$RSA_IPNS_IDv0" \
+  "Location: http://${RSA_IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
+
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
+  "http://localhost:$GWAY_PORT/ipns/$ED25519_IPNS_IDv0" \
+  "Location: http://${ED25519_IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
 
 # /ipns/<dnslink-fqdn>
+
+# Kubo specific end-to-end test
+# (independent of gateway-conformance)
 
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain" \
   "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
   "Location: http://en.wikipedia-on-ipfs.org.ipns.localhost:$GWAY_PORT/wiki"
 
-# API on localhost subdomain gateway
-
-# /api/v0 present on the root hostname
-test_localhost_gateway_response_should_contain \
-  "request for localhost/api" \
-  "http://localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "Ref"
-
-# /api/v0 not mounted on content root subdomains
-test_localhost_gateway_response_should_contain \
-  "request for {cid}.ipfs.localhost/api returns data if present on the content root" \
-  "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
-
-test_localhost_gateway_response_should_contain \
-  "request for {cid}.ipfs.localhost/api/v0/refs returns 404" \
-  "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
+# end Kubo specific end-to-end test
 
 ## ============================================================================
 ## Test subdomain-based requests to a local gateway with default config
@@ -242,25 +227,30 @@ test_localhost_gateway_response_should_contain \
   "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/ipfs/file.txt" \
   "I am a txt file"
 
+# Kubo specific end-to-end test
+# (independent of gateway-conformance)
+# This tests link to parent specific to boxo + relative pathing end-to-end tests specific to Kubo.
+
 # {CID}.ipfs.localhost/sub/dir (Directory Listing)
 DIR_HOSTNAME="${DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
 test_expect_success "valid file and subdirectory paths in directory listing at {cid}.ipfs.localhost" '
   curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME" > list_response &&
   test_should_contain "<a href=\"/hello\">hello</a>" list_response &&
-  test_should_contain "<a href=\"/subdir1\">subdir1</a>" list_response
+  test_should_contain "<a href=\"/ipfs\">ipfs</a>" list_response
 '
 
 test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.localhost/sub/dir" '
-  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/subdir1/subdir2/" > list_response &&
-  test_should_contain "<a href=\"/subdir1/subdir2/./..\">..</a>" list_response &&
-  test_should_contain "<a href=\"/subdir1/subdir2/bar\">bar</a>" list_response
+  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/ipfs/ipns/" > list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/..\">..</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/bar\">bar</a>" list_response
 '
 
 test_expect_success "request for deep path resource at {cid}.ipfs.localhost/sub/dir/file" '
-  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/subdir1/subdir2/bar" > list_response &&
-  test_should_contain "subdir2-bar" list_response
+  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/ipfs/ipns/bar" > list_response &&
+  test_should_contain "text-file-content" list_response
 '
+# end Kubo specific end-to-end test
 
 # *.ipns.localhost
 
@@ -268,13 +258,23 @@ test_expect_success "request for deep path resource at {cid}.ipfs.localhost/sub/
 
 test_localhost_gateway_response_should_contain \
   "request for {CIDv1-libp2p-key}.ipns.localhost returns expected payload" \
-  "http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT" \
+  "http://${RSA_IPNS_IDv1}.ipns.localhost:$GWAY_PORT" \
   "$CID_VAL"
 
 test_localhost_gateway_response_should_contain \
-  "request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
-  "http://${IPNS_IDv1_DAGPB}.ipns.localhost:$GWAY_PORT" \
-  "Location: http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
+  "request for {CIDv1-libp2p-key}.ipns.localhost returns expected payload" \
+  "http://${ED25519_IPNS_IDv1}.ipns.localhost:$GWAY_PORT" \
+  "$CID_VAL"
+
+test_localhost_gateway_response_should_contain \
+  "localhost request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
+  "http://${RSA_IPNS_IDv1_DAGPB}.ipns.localhost:$GWAY_PORT" \
+  "Location: http://${RSA_IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
+
+test_localhost_gateway_response_should_contain \
+  "localhost request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
+  "http://${ED25519_IPNS_IDv1_DAGPB}.ipns.localhost:$GWAY_PORT" \
+  "Location: http://${ED25519_IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
 
 # <dnslink-fqdn>.ipns.localhost
 
@@ -289,13 +289,37 @@ test_localhost_gateway_response_should_contain \
   "http://$DNSLINK_FQDN.ipns.localhost:$GWAY_PORT" \
   "$CID_VAL"
 
-# api.localhost/api
+## ============================================================================
+## Test DNSLink inlining on HTTP gateways
+## ============================================================================
 
-# Note: we use DIR_CID so refs -r returns some CIDs for child nodes
+# set explicit subdomain gateway config for the hostname
+ipfs config --json Gateway.PublicGateways '{
+  "localhost": {
+    "UseSubdomains": true,
+    "InlineDNSLink": true,
+    "Paths": ["/ipfs", "/ipns", "/api"]
+  },
+  "example.com": {
+    "UseSubdomains": true,
+    "InlineDNSLink": true,
+    "Paths": ["/ipfs", "/ipns", "/api"]
+  }
+}' || exit 1
+# restart daemon to apply config changes
+test_kill_ipfs_daemon
+test_launch_ipfs_daemon_without_network
+
 test_localhost_gateway_response_should_contain \
-  "request for api.localhost returns API response" \
-  "http://api.localhost:$GWAY_PORT/api/v0/refs?arg=$DIR_CID&r=true" \
-  "Ref"
+  "request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain with DNS inlining" \
+  "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
+  "Location: http://en-wikipedia--on--ipfs-org.ipns.localhost:$GWAY_PORT/wiki"
+
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipns/{fqdn} redirects to DNSLink in subdomain with DNS inlining" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
+  "Location: http://en-wikipedia--on--ipfs-org.ipns.example.com/wiki"
 
 ## ============================================================================
 ## Test subdomain-based requests with a custom hostname config
@@ -311,7 +335,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 
 # example.com/ip(f|n)s/*
@@ -346,15 +370,26 @@ test_expect_success "request for http://example.com/ipfs/{CID} with X-Forwarded-
   test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
 "
 
-
+# Support ipfs:// in https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipfs/?uri=ipfs%3A%2F%2F.. produces redirect to /ipfs/.. content path" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/?uri=ipfs%3A%2F%2FQmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco%2Fwiki%2FDiego_Maradona.html" \
+  "Location: /ipfs/QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/wiki/Diego_Maradona.html"
 
 # example.com/ipns/<libp2p-key>
 
 test_hostname_gateway_response_should_contain \
   "request for example.com/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
   "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_IDv0" \
-  "Location: http://${IPNS_IDv1}.ipns.example.com/"
+  "http://127.0.0.1:$GWAY_PORT/ipns/$RSA_IPNS_IDv0" \
+  "Location: http://${RSA_IPNS_IDv1}.ipns.example.com/"
+
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/$ED25519_IPNS_IDv0" \
+  "Location: http://${ED25519_IPNS_IDv1}.ipns.example.com/"
 
 # example.com/ipns/<dnslink-fqdn>
 
@@ -363,6 +398,21 @@ test_hostname_gateway_response_should_contain \
   "example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
   "Location: http://en.wikipedia-on-ipfs.org.ipns.example.com/wiki"
+
+# DNSLink on Public gateway with a single-level wildcard TLS cert
+# "Option C" from  https://github.com/ipfs/in-web-browsers/issues/169
+test_expect_success \
+  "request for example.com/ipns/{fqdn} with X-Forwarded-Proto redirects to TLS-safe label in subdomain" "
+  curl -H \"Host: example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki\" > response &&
+  test_should_contain \"Location: https://en-wikipedia--on--ipfs-org.ipns.example.com/wiki\" response
+  "
+
+# Support ipns:// in https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipns/?uri=ipns%3A%2F%2F.. produces redirect to /ipns/.. content path" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/?uri=ipns%3A%2F%2Fen.wikipedia-on-ipfs.org" \
+  "Location: /ipns/en.wikipedia-on-ipfs.org"
 
 # *.ipfs.example.com: subdomain requests made with custom FQDN in Host header
 
@@ -378,24 +428,38 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
   "404 Not Found"
 
+# Kubo specific end-to-end test
+# (independent of gateway-conformance)
+# HTML specific to Boxo/Kubo, and relative pathing specific to code in Kubo
+
 # {CID}.ipfs.example.com/sub/dir (Directory Listing)
 DIR_FQDN="${DIR_CID}.ipfs.example.com"
 
 test_expect_success "valid file and directory paths in directory listing at {cid}.ipfs.example.com" '
   curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT > list_response &&
   test_should_contain "<a href=\"/hello\">hello</a>" list_response &&
-  test_should_contain "<a href=\"/subdir1\">subdir1</a>" list_response
+  test_should_contain "<a href=\"/ipfs\">ipfs</a>" list_response
 '
 
 test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.example.com/sub/dir" '
-  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/subdir1/subdir2/ > list_response &&
-  test_should_contain "<a href=\"/subdir1/subdir2/./..\">..</a>" list_response &&
-  test_should_contain "<a href=\"/subdir1/subdir2/bar\">bar</a>" list_response
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/ > list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/..\">..</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/bar\">bar</a>" list_response
 '
 
+# Note 1: we test for sneaky subdir names  {cid}.ipfs.example.com/ipfs/ipns/ :^)
+# Note 2: example.com/ipfs/.. present in HTML will be redirected to subdomain, so this is expected behavior
+test_expect_success "valid breadcrumb links in the header of directory listing at {cid}.ipfs.example.com/sub/dir" '
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/ > list_response &&
+  test_should_contain "Index of" list_response &&
+  test_should_contain "/ipfs/<a href=\"//example.com/ipfs/${DIR_CID}\">${DIR_CID}</a>/<a href=\"//example.com/ipfs/${DIR_CID}/ipfs\">ipfs</a>/<a href=\"//example.com/ipfs/${DIR_CID}/ipfs/ipns\">ipns</a>" list_response
+'
+
+# end Kubo specific end-to-end test
+
 test_expect_success "request for deep path resource {cid}.ipfs.example.com/sub/dir/file" '
-  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/subdir1/subdir2/bar > list_response &&
-  test_should_contain "subdir2-bar" list_response
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/bar > list_response &&
+  test_should_contain "text-file-content" list_response
 '
 
 # *.ipns.example.com
@@ -405,63 +469,27 @@ test_expect_success "request for deep path resource {cid}.ipfs.example.com/sub/d
 
 test_hostname_gateway_response_should_contain \
   "request for {CIDv1-libp2p-key}.ipns.example.com returns expected payload" \
-  "${IPNS_IDv1}.ipns.example.com" \
+  "${RSA_IPNS_IDv1}.ipns.example.com" \
   "http://127.0.0.1:$GWAY_PORT" \
   "$CID_VAL"
 
 test_hostname_gateway_response_should_contain \
-  "request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
-  "${IPNS_IDv1_DAGPB}.ipns.example.com" \
+  "request for {CIDv1-libp2p-key}.ipns.example.com returns expected payload" \
+  "${ED25519_IPNS_IDv1}.ipns.example.com" \
   "http://127.0.0.1:$GWAY_PORT" \
-  "Location: http://${IPNS_IDv1}.ipns.example.com/"
-
-# API on subdomain gateway example.com
-# ============================================================================
-
-# present at the root domain
-test_hostname_gateway_response_should_contain \
-  "request for example.com/api/v0/refs returns expected payload when /api is on Paths whitelist" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "Ref"
-
-# not mounted on content root subdomains
-test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api returns data if present on the content root" \
-  "$DIR_CID.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
+  "$CID_VAL"
 
 test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api/v0/refs returns 404" \
-  "$CIDv1.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
+  "hostname request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
+  "${RSA_IPNS_IDv1_DAGPB}.ipns.example.com" \
+  "http://127.0.0.1:$GWAY_PORT" \
+  "Location: http://${RSA_IPNS_IDv1}.ipns.example.com/"
 
-# disable /api on example.com
-ipfs config --json Gateway.PublicGateways '{
-  "example.com": {
-    "UseSubdomains": true,
-    "Paths": ["/ipfs", "/ipns"]
-  }
-}' || exit 1
-# restart daemon to apply config changes
-test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
-
-# not mounted at the root domain
 test_hostname_gateway_response_should_contain \
-  "request for example.com/api/v0/refs returns 404 if /api not on Paths whitelist" \
-  "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "404 Not Found"
-
-# not mounted on content root subdomains
-test_hostname_gateway_response_should_contain \
-  "request for {cid}.ipfs.example.com/api returns data if present on the content root" \
-  "$DIR_CID.ipfs.example.com" \
-  "http://127.0.0.1:$GWAY_PORT/api/file.txt" \
-  "I am a txt file"
+  "hostname request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
+  "${ED25519_IPNS_IDv1_DAGPB}.ipns.example.com" \
+  "http://127.0.0.1:$GWAY_PORT" \
+  "Location: http://${ED25519_IPNS_IDv1}.ipns.example.com/"
 
 # DNSLink: <dnslink-fqdn>.ipns.example.com
 # (not really useful outside of localhost, as setting TLS for more than one
@@ -480,6 +508,67 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT" \
   "$CID_VAL"
 
+# DNSLink on Public gateway with a single-level wildcard TLS cert
+# "Option C" from  https://github.com/ipfs/in-web-browsers/issues/169
+test_expect_success \
+  "request for {single-label-dnslink}.ipns.example.com with X-Forwarded-Proto returns expected payload" "
+  curl -H \"Host: dnslink--subdomain--gw--test-example-org.ipns.example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT\" > response &&
+  test_should_contain \"$CID_VAL\" response
+  "
+
+## Test subdomain handling of CIDs that do not fit in a single DNS Label (>63chars)
+## https://github.com/ipfs/go-ipfs/issues/7318
+## ============================================================================
+
+# local: *.localhost
+test_localhost_gateway_response_should_contain \
+  "request for a ED25519 libp2p-key at localhost/ipns/{b58mh} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
+  "http://localhost:$GWAY_PORT/ipns/$IPNS_ED25519_B58MH" \
+  "Location: http://${IPNS_ED25519_B36CID}.ipns.localhost:$GWAY_PORT/"
+
+# router should not redirect to hostnames that could fail due to DNS limits
+test_localhost_gateway_response_should_contain \
+  "request for a too long CID at localhost/ipfs/{CIDv1} returns human readable error" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "CID incompatible with DNS label length limit of 63"
+
+test_localhost_gateway_response_should_contain \
+  "request for a too long CID at localhost/ipfs/{CIDv1} returns HTTP Error 400 Bad Request" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "400 Bad Request"
+
+# direct request should also fail (provides the same UX as router and avoids confusion)
+test_localhost_gateway_response_should_contain \
+  "request for a too long CID at {CIDv1}.ipfs.localhost returns expected payload" \
+  "http://$CIDv1_TOO_LONG.ipfs.localhost:$GWAY_PORT" \
+  "400 Bad Request"
+
+# public subdomain gateway: *.example.com
+
+test_hostname_gateway_response_should_contain \
+  "request for a ED25519 libp2p-key at example.com/ipns/{b58mh} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_ED25519_B58MH" \
+  "Location: http://${IPNS_ED25519_B36CID}.ipns.example.com"
+
+test_hostname_gateway_response_should_contain \
+  "request for a too long CID at example.com/ipfs/{CIDv1} returns human readable error" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "CID incompatible with DNS label length limit of 63"
+
+test_hostname_gateway_response_should_contain \
+  "request for a too long CID at example.com/ipfs/{CIDv1} returns HTTP Error 400 Bad Request" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "400 Bad Request"
+
+test_hostname_gateway_response_should_contain \
+  "request for a too long CID at {CIDv1}.ipfs.example.com returns HTTP Error 400 Bad Request" \
+  "$CIDv1_TOO_LONG.ipfs.example.com" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "400 Bad Request"
+
 # Disable selected Paths for the subdomain gateway hostname
 # =============================================================================
 
@@ -492,21 +581,26 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # refuse requests to Paths that were not explicitly whitelisted for the hostname
 test_hostname_gateway_response_should_contain \
   "request for *.ipns.example.com returns HTTP 404 Not Found when /ipns is not on Paths whitelist" \
-  "${IPNS_IDv1}.ipns.example.com" \
+  "${RSA_IPNS_IDv1}.ipns.example.com" \
   "http://127.0.0.1:$GWAY_PORT" \
   "404 Not Found"
 
+test_hostname_gateway_response_should_contain \
+  "request for *.ipns.example.com returns HTTP 404 Not Found when /ipns is not on Paths whitelist" \
+  "${ED25519_IPNS_IDv1}.ipns.example.com" \
+  "http://127.0.0.1:$GWAY_PORT" \
+  "404 Not Found"
 
 ## ============================================================================
 ## Test path-based requests with a custom hostname config
 ## ============================================================================
 
-# set explicit subdomain gateway config for the hostname
+# set explicit no-subdomain gateway config for the hostname
 ipfs config --json Gateway.PublicGateways '{
   "example.com": {
     "UseSubdomains": false,
@@ -516,7 +610,7 @@ ipfs config --json Gateway.PublicGateways '{
 
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # example.com/ip(f|n)s/* smoke-tests
 # =============================================================================
@@ -540,7 +634,13 @@ test_hostname_gateway_response_should_contain \
 test_hostname_gateway_response_should_contain \
   "request for example.com/ipns/ returns HTTP 404 Not Found when /ipns is not on Paths whitelist" \
   "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_IDv1" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/$RSA_IPNS_IDv1" \
+  "404 Not Found"
+
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipns/ returns HTTP 404 Not Found when /ipns is not on Paths whitelist" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/$ED25519_IPNS_IDv1" \
   "404 Not Found"
 
 ## ============================================================================
@@ -613,7 +713,13 @@ test_hostname_gateway_response_should_contain \
 test_hostname_gateway_response_should_contain \
   "request for {dnslink-fqdn}/ipns/{peerid} returns 404 when path is not whitelisted" \
   "$DNSLINK_FQDN" \
-  "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_IDv0" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/$RSA_IPNS_IDv0" \
+  "404 Not Found"
+
+test_hostname_gateway_response_should_contain \
+  "request for {dnslink-fqdn}/ipns/{peerid} returns 404 when path is not whitelisted" \
+  "$DNSLINK_FQDN" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/$ED25519_IPNS_IDv0" \
   "404 Not Found"
 
 # DNSLink disabled
@@ -664,9 +770,150 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT/" \
   "$CID_VAL"
 
+## ============================================================================
+## Test support for X-Forwarded-Host
+## ============================================================================
+
+# set explicit subdomain gateway config for the hostname
+ipfs config --json Gateway.PublicGateways '{
+  "example.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs", "/ipns", "/api"]
+  }
+}' || exit 1
+# restart daemon to apply config changes
+test_kill_ipfs_daemon
+test_launch_ipfs_daemon_without_network
+
+test_expect_success "request for http://fake.domain.com/ipfs/{CID} doesn't match the example.com gateway" "
+  curl -H \"Host: fake.domain.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
+  test_should_contain \"200 OK\" response
+"
+
+test_expect_success "request for http://fake.domain.com/ipfs/{CID} with X-Forwarded-Host: example.com match the example.com gateway" "
+  curl -H \"Host: fake.domain.com\" -H \"X-Forwarded-Host: example.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
+  test_should_contain \"Location: http://$CIDv1.ipfs.example.com/\" response
+"
+
+test_expect_success "request for http://fake.domain.com/ipfs/{CID} with X-Forwarded-Host: example.com and X-Forwarded-Proto: https match the example.com gateway, redirect with https" "
+  curl -H \"Host: fake.domain.com\" -H \"X-Forwarded-Host: example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
+  test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
+"
+
+# Kubo specific end-to-end test
+# (independent of gateway-conformance)
+# test configuration beign wired up correctly end-to-end
+
+## ============================================================================
+## Test support for wildcards in gateway config
+## ============================================================================
+
+# set explicit subdomain gateway config for the hostnames
+ipfs config --json Gateway.PublicGateways '{
+  "*.example1.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs"]
+  },
+  "*.*.example2.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs"]
+  },
+  "foo.*.example3.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs"]
+  },
+  "foo.bar-*-boo.example4.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs"]
+  }
+}' || exit 1
+# restart daemon to apply config changes
+test_kill_ipfs_daemon
+test_launch_ipfs_daemon_without_network
+
+# *.example1.com
+
+test_hostname_gateway_response_should_contain \
+  "request for foo.example1.com/ipfs/{CIDv1} produces redirect to {CIDv1}.ipfs.foo.example1.com" \
+  "foo.example1.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
+  "Location: http://$CIDv1.ipfs.foo.example1.com/"
+
+test_hostname_gateway_response_should_contain \
+  "request for {CID}.ipfs.foo.example1.com should return expected payload" \
+  "${CIDv1}.ipfs.foo.example1.com" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "$CID_VAL"
+
+# *.*.example2.com
+
+test_hostname_gateway_response_should_contain \
+  "request for foo.bar.example2.com/ipfs/{CIDv1} produces redirect to {CIDv1}.ipfs.foo.bar.example2.com" \
+  "foo.bar.example2.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
+  "Location: http://$CIDv1.ipfs.foo.bar.example2.com/"
+
+test_hostname_gateway_response_should_contain \
+  "request for {CID}.ipfs.foo.bar.example2.com should return expected payload" \
+  "${CIDv1}.ipfs.foo.bar.example2.com" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "$CID_VAL"
+
+# foo.*.example3.com
+
+test_hostname_gateway_response_should_contain \
+  "request for foo.bar.example3.com/ipfs/{CIDv1} produces redirect to {CIDv1}.ipfs.foo.bar.example3.com" \
+  "foo.bar.example3.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
+  "Location: http://$CIDv1.ipfs.foo.bar.example3.com/"
+
+test_hostname_gateway_response_should_contain \
+  "request for {CID}.ipfs.foo.bar.example3.com should return expected payload" \
+  "${CIDv1}.ipfs.foo.bar.example3.com" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "$CID_VAL"
+
+# foo.bar-*-boo.example4.com
+
+test_hostname_gateway_response_should_contain \
+  "request for foo.bar-dev-boo.example4.com/ipfs/{CIDv1} produces redirect to {CIDv1}.ipfs.foo.bar-dev-boo.example4.com" \
+  "foo.bar-dev-boo.example4.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
+  "Location: http://$CIDv1.ipfs.foo.bar-dev-boo.example4.com/"
+
+test_hostname_gateway_response_should_contain \
+  "request for {CID}.ipfs.foo.bar-dev-boo.example4.com should return expected payload" \
+  "${CIDv1}.ipfs.foo.bar-dev-boo.example4.com" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "$CID_VAL"
+
+## ============================================================================
+## Test support for overriding implicit defaults
+## ============================================================================
+
+# disable subdomain gateway at localhost by removing implicit config
+ipfs config --json Gateway.PublicGateways '{
+  "localhost": null
+}' || exit 1
+
+# restart daemon to apply config changes
+test_kill_ipfs_daemon
+test_launch_ipfs_daemon_without_network
+
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipfs/{CID} stays on path when subdomain gw is explicitly disabled" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
+  "$CID_VAL"
+
 # =============================================================================
 # ensure we end with empty Gateway.PublicGateways
 ipfs config --json Gateway.PublicGateways '{}'
 test_kill_ipfs_daemon
 
+test_expect_success "clean up ipfs dir" '
+  rm -rf "$IPFS_PATH"
+'
+
 test_done
+
+# end Kubo specific end-to-end test

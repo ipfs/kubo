@@ -3,25 +3,30 @@ package libp2p
 import (
 	"time"
 
-	"github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p"
 )
 
 var NatPortMap = simpleOpt(libp2p.NATPortMap())
 
-func AutoNATService(throttle *config.AutoNATThrottleConfig) func() Libp2pOpts {
+func AutoNATService(throttle *config.AutoNATThrottleConfig, v1only bool) func() Libp2pOpts {
 	return func() (opts Libp2pOpts) {
 		opts.Opts = append(opts.Opts, libp2p.EnableNATService())
 		if throttle != nil {
-			global := throttle.GlobalLimit
-			peer := throttle.PeerLimit
-			interval := time.Duration(throttle.Interval)
-			if interval == 0 {
-				interval = time.Minute
-			}
 			opts.Opts = append(opts.Opts,
-				libp2p.AutoNATServiceRateLimit(global, peer, interval),
+				libp2p.AutoNATServiceRateLimit(
+					throttle.GlobalLimit,
+					throttle.PeerLimit,
+					throttle.Interval.WithDefault(time.Minute),
+				),
 			)
+		}
+
+		// While V1 still exists and V2 rollout is in progress
+		// (https://github.com/ipfs/kubo/issues/10091) we check a flag that
+		// allows users to disable V2 and run V1-only mode
+		if !v1only {
+			opts.Opts = append(opts.Opts, libp2p.EnableAutoNATv2())
 		}
 		return opts
 	}

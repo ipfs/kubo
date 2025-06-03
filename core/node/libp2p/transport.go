@@ -2,64 +2,81 @@ package libp2p
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/ipfs/kubo/config"
+	"github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p"
-	metrics "github.com/libp2p/go-libp2p-core/metrics"
-	noise "github.com/libp2p/go-libp2p-noise"
-	libp2pquic "github.com/libp2p/go-libp2p-quic-transport"
-	secio "github.com/libp2p/go-libp2p-secio"
-	tls "github.com/libp2p/go-libp2p-tls"
+	"github.com/libp2p/go-libp2p/core/metrics"
+	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
+	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
+	webrtc "github.com/libp2p/go-libp2p/p2p/transport/webrtc"
+	"github.com/libp2p/go-libp2p/p2p/transport/websocket"
+	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 
 	"go.uber.org/fx"
 )
 
-// default security transports for libp2p
-var defaultSecurityTransports = []string{"tls", "secio", "noise"}
+func Transports(tptConfig config.Transports) interface{} {
+	return func(params struct {
+		fx.In
+		Fprint   PNetFingerprint         `optional:"true"`
+		ForgeMgr *client.P2PForgeCertMgr `optional:"true"`
+	},
+	) (opts Libp2pOpts, err error) {
+		privateNetworkEnabled := params.Fprint != nil
 
-func Transports(pnet struct {
-	fx.In
-	Fprint PNetFingerprint `optional:"true"`
-}) (opts Libp2pOpts) {
-	opts.Opts = append(opts.Opts, libp2p.DefaultTransports)
-	if pnet.Fprint == nil {
-		opts.Opts = append(opts.Opts, libp2p.Transport(libp2pquic.NewTransport))
-	}
-	return opts
-}
-
-func Security(enabled bool, securityTransportOverride []string) interface{} {
-	if !enabled {
-		return func() (opts Libp2pOpts) {
-			// TODO: shouldn't this be Errorf to guarantee visibility?
-			log.Warnf(`Your IPFS node has been configured to run WITHOUT ENCRYPTED CONNECTIONS.
-		You will not be able to connect to any nodes configured to use encrypted connections`)
-			opts.Opts = append(opts.Opts, libp2p.NoSecurity)
-			return opts
+		tcpEnabled := tptConfig.Network.TCP.WithDefault(true)
+		wsEnabled := tptConfig.Network.Websocket.WithDefault(true)
+		if tcpEnabled {
+			// TODO(9290): Make WithMetrics configurable
+			opts.Opts = append(opts.Opts, libp2p.Transport(tcp.NewTCPTransport, tcp.WithMetrics()))
 		}
-	}
 
-	securityTransports := defaultSecurityTransports
-	if len(securityTransportOverride) > 0 {
-		securityTransports = securityTransportOverride
-	}
-
-	var libp2pOpts []libp2p.Option
-	for _, tpt := range securityTransports {
-		switch tpt {
-		case "tls":
-			libp2pOpts = append(libp2pOpts, libp2p.Security(tls.ID, tls.New))
-		case "secio":
-			libp2pOpts = append(libp2pOpts, libp2p.Security(secio.ID, secio.New))
-		case "noise":
-			libp2pOpts = append(libp2pOpts, libp2p.Security(noise.ID, noise.New))
-		default:
-			return fx.Error(fmt.Errorf("invalid security transport specified in config: %s", tpt))
+		if wsEnabled {
+			if params.ForgeMgr == nil {
+				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New))
+			} else {
+				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New, websocket.WithTLSConfig(params.ForgeMgr.TLSConfig())))
+			}
 		}
-	}
 
-	return func() (opts Libp2pOpts) {
-		opts.Opts = append(opts.Opts, libp2p.ChainOptions(libp2pOpts...))
-		return opts
+		if tcpEnabled && wsEnabled && os.Getenv("LIBP2P_TCP_MUX") != "false" {
+			if privateNetworkEnabled {
+				log.Error("libp2p.ShareTCPListener() is not supported in private networks, please disable Swarm.Transports.Network.Websocket or run with LIBP2P_TCP_MUX=false to make this message go away")
+			} else {
+				opts.Opts = append(opts.Opts, libp2p.ShareTCPListener())
+			}
+		}
+
+		if tptConfig.Network.QUIC.WithDefault(!privateNetworkEnabled) {
+			if privateNetworkEnabled {
+				return opts, fmt.Errorf(
+					"QUIC transport does not support private networks, please disable Swarm.Transports.Network.QUIC",
+				)
+			}
+			opts.Opts = append(opts.Opts, libp2p.Transport(quic.NewTransport))
+		}
+
+		if tptConfig.Network.WebTransport.WithDefault(!privateNetworkEnabled) {
+			if privateNetworkEnabled {
+				return opts, fmt.Errorf(
+					"WebTransport transport does not support private networks, please disable Swarm.Transports.Network.WebTransport",
+				)
+			}
+			opts.Opts = append(opts.Opts, libp2p.Transport(webtransport.New))
+		}
+
+		if tptConfig.Network.WebRTCDirect.WithDefault(!privateNetworkEnabled) {
+			if privateNetworkEnabled {
+				return opts, fmt.Errorf(
+					"WebRTC Direct transport does not support private networks, please disable Swarm.Transports.Network.WebRTCDirect",
+				)
+			}
+			opts.Opts = append(opts.Opts, libp2p.Transport(webrtc.New))
+		}
+
+		return opts, nil
 	}
 }
 

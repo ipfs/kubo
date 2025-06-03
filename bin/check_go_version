@@ -39,6 +39,6 @@ type ${GOCC} >/dev/null 2>&1 || die_upgrade "go is not installed or not in the P
 
 VERS_STR=$(${GOCC} version 2>&1) || die "'go version' failed with output: $VERS_STR"
 
-GO_CUR_VERSION=$(expr "$VERS_STR" : ".*go version go\([^ ]*\) .*") || die "Invalid 'go version' output: $VERS_STR"
+GO_CUR_VERSION=$(expr "$VERS_STR" : ".*go version.* go\([^[:space:]]*\) .*") || die "Invalid 'go version' output: $VERS_STR"
 
 check_at_least_version "$GO_MIN_VERSION" "$GO_CUR_VERSION" "${GOCC}"

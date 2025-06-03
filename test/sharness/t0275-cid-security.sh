@@ -11,7 +11,7 @@ test_description="Cid Security"
 test_init_ipfs
 
 test_expect_success "adding using unsafe function fails with error" '
-  echo foo | test_must_fail ipfs add --hash murmur3-128 2>add_out
+  echo foo | test_must_fail ipfs add --hash shake-128 2>add_out
 '
 
 test_expect_success "error reason is pointed out" '
@@ -23,7 +23,7 @@ test_expect_success "adding using too short of a hash function gives out an erro
 '
 
 test_expect_success "error reason is pointed out" '
-  grep "hashes must be at 20 least bytes long" block_out
+  grep "hashes must be at least 20 bytes long" block_out
 '
 
 
@@ -45,15 +45,15 @@ test_cat_get() {
     '
 
   test_expect_success "error reason is pointed out" '
-     grep "hashes must be at 20 least bytes long" ipfs_get
+     grep "hashes must be at least 20 bytes long" ipfs_get
   '
 }
 
 
 test_gc() {
   test_expect_success "injecting insecure block" '
-    mkdir -p "$IPFS_PATH/blocks/JZ" &&
-    cp -f ../t0275-cid-security-data/AFKSEBCGPUJZE.data "$IPFS_PATH/blocks/JZ"
+    mkdir -p "$IPFS_PATH/blocks/TS" &&
+    cp -f ../t0275-cid-security-data/EICEM7ITSI.data "$IPFS_PATH/blocks/TS"
   '
 
   test_expect_success "gc works" 'ipfs repo gc > gc_out'
@@ -78,7 +78,7 @@ test_expect_success "add block linking to insecure" '
 '
 
 test_expect_success "ipfs cat fails with code 1 and not timeout" '
-  test_expect_code 1 go-timeout 1s ipfs cat QmVpsktzNeJdfWEpyeix93QJdQaBSgRNxebSbYSo9SQPGx
+  test_expect_code 1 go-timeout 1 ipfs cat QmVpsktzNeJdfWEpyeix93QJdQaBSgRNxebSbYSo9SQPGx
 '
 
 test_kill_ipfs_daemon

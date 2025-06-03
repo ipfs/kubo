@@ -7,16 +7,16 @@ import (
 	"fmt"
 	"strings"
 
-	bserv "github.com/ipfs/go-blockservice"
+	bserv "github.com/ipfs/boxo/blockservice"
+	bstore "github.com/ipfs/boxo/blockstore"
+	offline "github.com/ipfs/boxo/exchange/offline"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	pin "github.com/ipfs/boxo/pinning/pinner"
+	"github.com/ipfs/boxo/verifcid"
 	cid "github.com/ipfs/go-cid"
 	dstore "github.com/ipfs/go-datastore"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	pin "github.com/ipfs/go-ipfs-pinner"
 	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
-	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-verifcid"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("gc")
@@ -26,6 +26,16 @@ var log = logging.Logger("gc")
 type Result struct {
 	KeyRemoved cid.Cid
 	Error      error
+}
+
+// converts a set of CIDs with different codecs to a set of CIDs with the raw codec.
+func toRawCids(set *cid.Set) (*cid.Set, error) {
+	newSet := cid.NewSet()
+	err := set.ForEach(func(c cid.Cid) error {
+		newSet.Add(cid.NewCidV1(cid.Raw, c.Hash()))
+		return nil
+	})
+	return newSet, err
 }
 
 // GC performs a mark and sweep garbage collection of the blocks in the blockstore
@@ -40,7 +50,7 @@ type Result struct {
 func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn pin.Pinner, bestEffortRoots []cid.Cid) <-chan Result {
 	ctx, cancel := context.WithCancel(ctx)
 
-	unlocker := bs.GCLock()
+	unlocker := bs.GCLock(ctx)
 
 	bsrv := bserv.New(bs, offline.Exchange(bs))
 	ds := dag.NewDAGService(bsrv)
@@ -50,7 +60,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 	go func() {
 		defer cancel()
 		defer close(output)
-		defer unlocker.Unlock()
+		defer unlocker.Unlock(ctx)
 
 		gcs, err := ColoredSet(ctx, pn, ds, bestEffortRoots, output)
 		if err != nil {
@@ -60,6 +70,17 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 			}
 			return
 		}
+
+		// The blockstore reports raw blocks. We need to remove the codecs from the CIDs.
+		gcs, err = toRawCids(gcs)
+		if err != nil {
+			select {
+			case output <- Result{Error: err}:
+			case <-ctx.Done():
+			}
+			return
+		}
+
 		keychan, err := bs.AllKeysChan(ctx)
 		if err != nil {
 			select {
@@ -79,8 +100,10 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 				if !ok {
 					break loop
 				}
+				// NOTE: assumes that all CIDs returned by the keychan are _raw_ CIDv1 CIDs.
+				// This means we keep the block as long as we want it somewhere (CIDv1, CIDv0, Raw, other...).
 				if !gcs.Has(k) {
-					err := bs.DeleteBlock(k)
+					err := bs.DeleteBlock(ctx, k)
 					removed++
 					if err != nil {
 						errors = true
@@ -115,7 +138,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 			return
 		}
 
-		err = gds.CollectGarbage()
+		err = gds.CollectGarbage(ctx)
 		if err != nil {
 			select {
 			case output <- Result{Error: err}:
@@ -131,9 +154,9 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 // Descendants recursively finds all the descendants of the given roots and
 // adds them to the given cid.Set, using the provided dag.GetLinks function
 // to walk the tree.
-func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []cid.Cid) error {
+func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots <-chan pin.StreamedPin) error {
 	verifyGetLinks := func(ctx context.Context, c cid.Cid) ([]*ipld.Link, error) {
-		err := verifcid.ValidateCid(c)
+		err := verifcid.ValidateCid(verifcid.DefaultAllowlist, c)
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +167,7 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 	verboseCidError := func(err error) error {
 		if strings.Contains(err.Error(), verifcid.ErrBelowMinimumHashLength.Error()) ||
 			strings.Contains(err.Error(), verifcid.ErrPossiblyInsecureHashFunction.Error()) {
-			err = fmt.Errorf("\"%s\"\nPlease run 'ipfs pin verify'"+
+			err = fmt.Errorf("\"%s\"\nPlease run 'ipfs pin verify'"+ // nolint
 				" to list insecure hashes. If you want to read them,"+
 				" please downgrade your go-ipfs to 0.4.13\n", err)
 			log.Error(err)
@@ -152,17 +175,36 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 		return err
 	}
 
-	for _, c := range roots {
-		// Walk recursively walks the dag and adds the keys to the given set
-		err := dag.Walk(ctx, verifyGetLinks, c, set.Visit, dag.Concurrent())
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case wrapper, ok := <-roots:
+			if !ok {
+				return nil
+			}
+			if wrapper.Err != nil {
+				return wrapper.Err
+			}
 
-		if err != nil {
-			err = verboseCidError(err)
-			return err
+			// Walk recursively walks the dag and adds the keys to the given set
+			err := dag.Walk(ctx, verifyGetLinks, wrapper.Pin.Key, func(k cid.Cid) bool {
+				return set.Visit(toCidV1(k))
+			}, dag.Concurrent())
+			if err != nil {
+				err = verboseCidError(err)
+				return err
+			}
 		}
 	}
+}
 
-	return nil
+// toCidV1 converts any CIDv0s to CIDv1s.
+func toCidV1(c cid.Cid) cid.Cid {
+	if c.Version() == 0 {
+		return cid.NewCidV1(c.Type(), c.Hash())
+	}
+	return c
 }
 
 // ColoredSet computes the set of nodes in the graph that are pinned by the
@@ -184,11 +226,8 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 		return links, nil
 	}
-	rkeys, err := pn.RecursiveKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
-	err = Descendants(ctx, getLinks, gcs, rkeys)
+	rkeys := pn.RecursiveKeys(ctx, false)
+	err := Descendants(ctx, getLinks, gcs, rkeys)
 	if err != nil {
 		errors = true
 		select {
@@ -200,7 +239,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 
 	bestEffortGetLinks := func(ctx context.Context, cid cid.Cid) ([]*ipld.Link, error) {
 		links, err := ipld.GetLinks(ctx, ng, cid)
-		if err != nil && err != ipld.ErrNotFound {
+		if err != nil && !ipld.IsNotFound(err) {
 			errors = true
 			select {
 			case output <- Result{Error: &CannotFetchLinksError{cid, err}}:
@@ -210,7 +249,18 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 		return links, nil
 	}
-	err = Descendants(ctx, bestEffortGetLinks, gcs, bestEffortRoots)
+	bestEffortRootsChan := make(chan pin.StreamedPin)
+	go func() {
+		defer close(bestEffortRootsChan)
+		for _, root := range bestEffortRoots {
+			select {
+			case <-ctx.Done():
+				return
+			case bestEffortRootsChan <- pin.StreamedPin{Pin: pin.Pinned{Key: root}}:
+			}
+		}
+	}()
+	err = Descendants(ctx, bestEffortGetLinks, gcs, bestEffortRootsChan)
 	if err != nil {
 		errors = true
 		select {
@@ -220,18 +270,15 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 	}
 
-	dkeys, err := pn.DirectKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, k := range dkeys {
-		gcs.Add(k)
+	dkeys := pn.DirectKeys(ctx, false)
+	for k := range dkeys {
+		if k.Err != nil {
+			return nil, k.Err
+		}
+		gcs.Add(toCidV1(k.Pin.Key))
 	}
 
-	ikeys, err := pn.InternalPins(ctx)
-	if err != nil {
-		return nil, err
-	}
+	ikeys := pn.InternalPins(ctx, false)
 	err = Descendants(ctx, getLinks, gcs, ikeys)
 	if err != nil {
 		errors = true

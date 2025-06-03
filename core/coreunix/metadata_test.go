@@ -4,24 +4,23 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"testing"
 
-	bserv "github.com/ipfs/go-blockservice"
-	core "github.com/ipfs/go-ipfs/core"
-	merkledag "github.com/ipfs/go-merkledag"
-	ft "github.com/ipfs/go-unixfs"
-	importer "github.com/ipfs/go-unixfs/importer"
-	uio "github.com/ipfs/go-unixfs/io"
+	bserv "github.com/ipfs/boxo/blockservice"
+	merkledag "github.com/ipfs/boxo/ipld/merkledag"
+	ft "github.com/ipfs/boxo/ipld/unixfs"
+	importer "github.com/ipfs/boxo/ipld/unixfs/importer"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
+	core "github.com/ipfs/kubo/core"
 
+	bstore "github.com/ipfs/boxo/blockstore"
+	chunker "github.com/ipfs/boxo/chunker"
+	offline "github.com/ipfs/boxo/exchange/offline"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	chunker "github.com/ipfs/go-ipfs-chunker"
-	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	u "github.com/ipfs/go-ipfs-util"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-test/random"
 )
 
 func getDagserv(t *testing.T) ipld.DAGService {
@@ -36,7 +35,7 @@ func TestMetadata(t *testing.T) {
 	// Make some random node
 	ds := getDagserv(t)
 	data := make([]byte, 1000)
-	_, err := io.ReadFull(u.NewTimeSeededRand(), data)
+	_, err := io.ReadFull(random.NewRand(), data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +86,7 @@ func TestMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out, err := ioutil.ReadAll(ndr)
+	out, err := io.ReadAll(ndr)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,13 +1,17 @@
 # General performance debugging guidelines
 
-This is a document for helping debug go-ipfs. Please add to it if you can!
+This is a document for helping debug Kubo. Please add to it if you can!
 
-### Table of Contents
-- [Beginning](#beginning)
-- [Analyzing the stack dump](#analyzing-the-stack-dump)
-- [Analyzing the CPU Profile](#analyzing-the-cpu-profile)
-- [Analyzing vars and memory statistics](#analyzing-vars-and-memory-statistics)
-- [Other](#other)
+# Table of Contents
+
+- [General performance debugging guidelines](#general-performance-debugging-guidelines)
+- [Table of Contents](#table-of-contents)
+    - [Beginning](#beginning)
+    - [Analyzing the stack dump](#analyzing-the-stack-dump)
+    - [Analyzing the CPU Profile](#analyzing-the-cpu-profile)
+    - [Analyzing vars and memory statistics](#analyzing-vars-and-memory-statistics)
+    - [Tracing](#tracing)
+    - [Other](#other)
 
 ### Beginning
 
@@ -15,8 +19,8 @@ When you see ipfs doing something (using lots of CPU, memory, or otherwise
 being weird), the first thing you want to do is gather all the relevant
 profiling information.
 
-There's a script (`bin/collect-profiles.sh`) that will do this for you and
-bundle the results up into a tarball, ready to be attached to a bug report.
+There's a command (`ipfs diag profile`) that will do this for you and
+bundle the results up into a zip file, ready to be attached to a bug report.
 
 If you feel intrepid, you can dump this information and investigate it yourself:
 
@@ -79,6 +83,9 @@ that goroutine in the middle of a short wait for something. If the wait time is
 over a few minutes, that either means that goroutine doesn't do much, or
 something is pretty wrong.
 
+If you're seeing a lot of goroutines, consider using
+[stackparse](https://github.com/whyrusleeping/stackparse) to filter, sort, and summarize them.
+
 ### Analyzing the CPU Profile
 
 The go team wrote an [excellent article on profiling go
@@ -92,9 +99,13 @@ the quickest way to easily point out where the hot spots in the code are.
 
 The output is JSON formatted and includes badger store statistics, the command line run, and the output from Go's [runtime.ReadMemStats](https://golang.org/pkg/runtime/#ReadMemStats). The [MemStats](https://golang.org/pkg/runtime/#MemStats) has useful information about memory allocation and garbage collection.
 
+### Tracing
+
+Experimental tracing via OpenTelemetry suite of tools is available.
+See `tracing/doc.go` for more details.
+
 ### Other
 
-If you have any questions, or want us to analyze some weird go-ipfs behaviour,
+If you have any questions, or want us to analyze some weird kubo behavior,
 just let us know, and be sure to include all the profiling information
 mentioned at the top.
-

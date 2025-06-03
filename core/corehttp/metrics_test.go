@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/kubo/core"
 
-	inet "github.com/libp2p/go-libp2p-core/network"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
+	inet "github.com/libp2p/go-libp2p/core/network"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 )
 
 // This test is based on go-libp2p/p2p/net/swarm.TestConnectednessCorrect
@@ -20,7 +20,11 @@ func TestPeersTotal(t *testing.T) {
 
 	hosts := make([]*bhost.BasicHost, 4)
 	for i := 0; i < 4; i++ {
-		hosts[i] = bhost.New(swarmt.GenSwarm(t, ctx))
+		var err error
+		hosts[i], err = bhost.NewHost(swarmt.GenSwarm(t), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	dial := func(a, b inet.Network) {
@@ -40,11 +44,13 @@ func TestPeersTotal(t *testing.T) {
 
 	node := &core.IpfsNode{PeerHost: hosts[0]}
 	collector := IpfsNodeCollector{Node: node}
-	actual := collector.PeersTotalValues()
-	if len(actual) != 1 {
-		t.Fatalf("expected 1 peers transport, got %d", len(actual))
+	peersTransport := collector.PeersTotalValues()
+	if len(peersTransport) > 2 {
+		t.Fatalf("expected at most 2 peers transport (tcp and upd/quic), got %d, transport map %v",
+			len(peersTransport), peersTransport)
 	}
-	if actual["/ip4/tcp"] != float64(3) {
-		t.Fatalf("expected 3 peers, got %f", actual["/ip4/tcp"])
+	totalPeers := peersTransport["/ip4/tcp"] + peersTransport["/ip4/udp/quic-v1"]
+	if totalPeers != 3 {
+		t.Fatalf("expected 3 peers in either tcp or upd/quic transport, got %f", totalPeers)
 	}
 }

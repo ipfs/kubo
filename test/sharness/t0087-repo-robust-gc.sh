@@ -9,31 +9,35 @@ test_description="Test robustness of garbage collector"
 . lib/test-lib.sh
 set -e
 
+to_raw_cid() {
+    ipfs cid format -b b --mc raw -v 1 "$1"
+}
+
 test_gc_robust_part1() {
 
   test_expect_success "add a 1MB file with --raw-leaves" '
-    random 1048576 56 > afile &&
-    HASH1=`ipfs add --raw-leaves -q afile`
+    random-data -size=1048576 -seed=56 > afile &&
+    HASH1=`ipfs add --raw-leaves -q --cid-version 1 afile` &&
+    REFS=`ipfs refs -r $HASH1` &&
+    read LEAF1 LEAF2 LEAF3 LEAF4 < <(echo $REFS)
   '
 
-  HASH1FILE=.ipfs/blocks/L3/CIQNIPL4GP62ZMNNSLZ2G33Z3T5VAN3YHCJTGT5FG45XWH5FGZRXL3A.data
-
-  LEAF1=bafkreibkrcw7hf6nhr6dvwecqxc5rqc7u7pkhkti53byyznqp23dk5fc2y
-  LEAF1FILE=.ipfs/blocks/C2/AFKREIBKRCW7HF6NHR6DVWECQXC5RQC7U7PKHKTI53BYYZNQP23DK5FC2Y.data
-
-  LEAF2=bafkreidfsuir43gjphndxxqa45gjvnrzbet3crpumyjcblk3rtn7zamq6q
-  LEAF2FILE=.ipfs/blocks/Q6/BAFKREIDFSUIR43GJPHNDXXQA45GJVNRZBET3CRPUMYJCBLK3RTN7ZAMQ6Q
-
-  LEAF3=bafkreihsipwnaj3mrc5plg24lpy6dw2bpixl2pe5iapzvc6ct2n33uhqjm
-  LEAF4=bafkreihrzs3rh4yxel4olv54vxettu5hv6wxy3krh6huzwhjub7kusnen4
+  test_expect_success "find data blocks for added file" '
+    HASH1MH=`cid-fmt -b base32 "%M" $HASH1` &&
+    LEAF1MH=`cid-fmt -b base32 "%M" $LEAF1` &&
+    LEAF2MH=`cid-fmt -b base32 "%M" $LEAF2` &&
+    HASH1FILE=`find .ipfs/blocks -type f | grep -i $HASH1MH` &&
+    LEAF1FILE=`find .ipfs/blocks -type f | grep -i $LEAF1MH` &&
+    LEAF2FILE=`find .ipfs/blocks -type f | grep -i $LEAF2MH`
+  '
 
   test_expect_success "remove a leaf node from the repo manually" '
     rm "$LEAF1FILE"
   '
 
-  test_expect_success "check that the node is removed" '
-    test_must_fail ipfs cat $HASH1
-  '
+ test_expect_success "check that the node is removed" '
+   test_must_fail ipfs cat $HASH1
+ '
 
   test_expect_success "'ipfs repo gc' should still be fine" '
     ipfs repo gc
@@ -69,12 +73,14 @@ test_gc_robust_part1() {
     grep -q "permission denied" block_rm_err
   '
 
+  # repo gc outputs raw multihashes. We check HASH1 with block stat rather than
+  # grepping the output since it's not a raw multihash
   test_expect_success "'ipfs repo gc' should still run and remove as much as possible" '
     test_must_fail ipfs repo gc 2>&1 | tee repo_gc_out &&
-    grep -q "removed $HASH1" repo_gc_out &&
     grep -q "could not remove $LEAF2" repo_gc_out &&
-    grep -q "removed $LEAF3" repo_gc_out &&
-    grep -q "removed $LEAF4" repo_gc_out
+    grep -q "removed $(to_raw_cid $LEAF3)" repo_gc_out &&
+    grep -q "removed $(to_raw_cid $LEAF4)" repo_gc_out &&
+    test_must_fail ipfs block stat $HASH1
   '
 
   test_expect_success "fix the permission problem" '
@@ -83,26 +89,27 @@ test_gc_robust_part1() {
 
   test_expect_success "'ipfs repo gc' should be ok now" '
     ipfs repo gc | tee repo_gc_out
-    grep -q "removed $LEAF2" repo_gc_out
+    grep -q "removed $(to_raw_cid $LEAF2)" repo_gc_out
   '
 }
 
 test_gc_robust_part2() {
 
   test_expect_success "add 1MB file normally (i.e., without raw leaves)" '
-    random 1048576 56 > afile &&
+    random-data -size=1048576 -seed=56 > afile &&
     HASH2=`ipfs add -q afile`
   '
 
-  LEAF1=QmSijovevteoY63Uj1uC5b8pkpDU5Jgyk2dYBqz3sMJUPc
-  LEAF1FILE=.ipfs/blocks/ME/CIQECF2K344QITW5S6E6H6T4DOXDDB2XA2V7BBOCIMN2VVF4Q77SMEY.data
+  LEAF1=QmcNNR6JSCUhJ9nyoVQgBhABPgcgdsuYJgdSB1f2g6BF5c
+  LEAF1FILE=.ipfs/blocks/RA/CIQNA5C3BLRUX3LZ7X6UTOV3KSHLARNXVDK3W5KUO6GVHNRP4SGLRAY.data
 
-  LEAF2=QmTbPEyrA1JyGUHFvmtx1FNZVzdBreMv8Hc8jV9sBRWhNA
-  LEAF2FILE=.ipfs/blocks/WM/CIQE4EFIJN2SUTQYSKMKNG7VM75W3SXT6LWJCHJJ73UAWN73WCX3WMY.data
+  LEAF2=QmPvtiBLgwuwF2wyf9VL8PaYgSt1XwGJ2Yu4AscRGEQvqR
+  LEAF2FILE=.ipfs/blocks/RN/CIQBPIKEATBI7TIHVYRQJZAKEWF2H22PXW3A7LCEPB6MFFL7IA2CRNA.data
+
 
   test_expect_success "add some additional unpinned content" '
-    random 1000 3 > junk1 &&
-    random 1000 4 > junk2 &&
+    random-data -size=1000 -seed=3 > junk1 &&
+    random-data -size=1000 -seed=4 > junk2 &&
     JUNK1=`ipfs add --pin=false -q junk1` &&
     JUNK2=`ipfs add --pin=false -q junk2`
   '
@@ -147,8 +154,8 @@ test_gc_robust_part2() {
 
   test_expect_success "'ipfs repo gc' should be fine now" '
     ipfs repo gc | tee repo_gc_out &&
-    grep -q "removed $HASH2" repo_gc_out &&
-    grep -q "removed $LEAF2" repo_gc_out
+    grep -q "removed $(to_raw_cid $HASH2)" repo_gc_out &&
+    grep -q "removed $(to_raw_cid $LEAF2)" repo_gc_out
   '
 }
 
@@ -157,7 +164,7 @@ test_init_ipfs
 test_gc_robust_part1
 test_gc_robust_part2
 
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 test_gc_robust_part1
 test_gc_robust_part2

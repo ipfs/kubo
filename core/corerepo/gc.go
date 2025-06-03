@@ -6,14 +6,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/gc"
-	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/gc"
+	"github.com/ipfs/kubo/repo"
 
 	"github.com/dustin/go-humanize"
+	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/go-cid"
-	logging "github.com/ipfs/go-log"
-	"github.com/ipfs/go-mfs"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("corerepo")
@@ -205,7 +205,7 @@ func ConditionalGC(ctx context.Context, node *core.IpfsNode, offset uint64) erro
 }
 
 func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
-	storage, err := gc.Repo.GetStorageUsage()
+	storage, err := gc.Repo.GetStorageUsage(ctx)
 	if err != nil {
 		return err
 	}

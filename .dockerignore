@@ -5,6 +5,8 @@ Dockerfile.fast
 !.git/refs/
 !.git/packed-refs
 test/sharness/lib/sharness/
+test/sharness/trash*
+rb-pinning-service-api/
 
 # The Docker client might not be running on Linux
 # so delete any compiled binaries

@@ -15,8 +15,8 @@ test_init_ipfs
 #
 
 test_expect_success "create two small files" '
-  random 1000 7 > afile
-  random 1000 9 > bfile
+  random-data -size=1000 -seed=7 > afile
+  random-data -size=1000 -seed=9 > bfile
 '
 
 test_expect_success "add file using CIDv1 but don't pin" '
@@ -28,17 +28,17 @@ test_expect_success "add file using CIDv0" '
 '
 
 test_expect_success "check hashes" '
-  test "$(cid-fmt %v-%c $AHASHv0)" = "cidv0-protobuf" &&
-  test "$(cid-fmt %v-%c $AHASHv1)" = "cidv1-protobuf" &&
+  test "$(cid-fmt %v-%c $AHASHv0)" = "cidv0-dag-pb" &&
+  test "$(cid-fmt %v-%c $AHASHv1)" = "cidv1-dag-pb" &&
   test "$(cid-fmt -b z -v 0 %s $AHASHv1)" = "$AHASHv0"
 '
 
 test_expect_success "make sure CIDv1 hash really is in the repo" '
-  ipfs refs local | grep -q $AHASHv1
+  ipfs block stat $AHASHv1
 '
 
 test_expect_success "make sure CIDv0 hash really is in the repo" '
-  ipfs refs local | grep -q $AHASHv0
+  ipfs block stat $AHASHv0
 '
 
 test_expect_success "run gc" '
@@ -46,7 +46,7 @@ test_expect_success "run gc" '
 '
 
 test_expect_success "make sure the CIDv0 hash is in the repo" '
-  ipfs refs local | grep -q $AHASHv0
+  ipfs block stat $AHASHv0
 '
 
 test_expect_success "make sure we can get CIDv0 added file" '
@@ -95,7 +95,8 @@ test_expect_success "check that we can access the file when converted to CIDv1" 
 #
 
 test_expect_success "set up iptb testbed" '
-  iptb testbed create -type localipfs -count 2 -init
+  iptb testbed create -type localipfs -count 2 -init  &&
+  iptb run -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true
 '
 
 test_expect_success "start nodes" '

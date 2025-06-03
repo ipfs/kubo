@@ -17,6 +17,7 @@ func ExternalBinary(instructions string) *cmds.Command {
 			cmds.StringArg("args", false, true, "Arguments for subcommand."),
 		},
 		External: true,
+		NoRemote: true,
 		Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 			binname := strings.Join(append([]string{"ipfs"}, req.Path...), "-")
 			_, err := exec.LookPath(binname)
@@ -40,7 +41,7 @@ func ExternalBinary(instructions string) *cmds.Command {
 			cmd := exec.Command(binname, req.Arguments...)
 
 			// TODO: make commands lib be able to pass stdin through daemon
-			//cmd.Stdin = req.Stdin()
+			// cmd.Stdin = req.Stdin()
 			cmd.Stdin = io.LimitReader(nil, 0)
 			cmd.Stdout = w
 			cmd.Stderr = w

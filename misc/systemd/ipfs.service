@@ -1,6 +1,6 @@
 # This file will be overwritten on package upgrades, avoid customizations here.
 #
-# To make persistant changes, create file in 
+# To make persistent changes, create file in 
 # "/etc/systemd/system/ipfs.service.d/overwrite.conf" with 
 # `systemctl edit ipfs.service`. This file will be parsed after this 
 # file has been parsed.
@@ -8,13 +8,13 @@
 # To overwrite a variable, like ExecStart you have to specify it once
 # blank and a second time with a new value, like:
 # ExecStart=
-# ExecStart=/usr/bin/ipfs daemon --flag1 --flag2
+# ExecStart=/usr/local/bin/ipfs daemon --flag1 --flag2
 #
 # For more info about custom unit files see systemd.unit(5).
 
 [Unit]
 Description=InterPlanetary File System (IPFS) daemon
-Documentation=https://docs.ipfs.io/
+Documentation=https://docs.ipfs.tech/
 After=network.target
 
 [Service]
@@ -29,11 +29,19 @@ After=network.target
 #don't use swap
 MemorySwapMax=0
 
+# Don't timeout on startup. Opening the IPFS repo can take a long time in some cases (e.g., when
+# badger is recovering) and migrations can delay startup.
+#
+# Ideally, we'd be a bit smarter about this but there's no good way to do that without hooking
+# systemd dependencies deeper into go-ipfs.
+TimeoutStartSec=infinity
+
 Type=notify
 User=ipfs
 Group=ipfs
 StateDirectory=ipfs
-ExecStart=/usr/bin/ipfs daemon --init --migrate
+Environment=IPFS_PATH="${HOME}"
+ExecStart=/usr/local/bin/ipfs daemon --init --migrate
 Restart=on-failure
 KillSignal=SIGINT
 

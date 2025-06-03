@@ -2,7 +2,7 @@ include mk/header.mk
 
 GOCC ?= go
 
-$(d)/coverage_deps: $$(DEPS_GO)
+$(d)/coverage_deps: $$(DEPS_GO) cmd/ipfs/ipfs
 	rm -rf $(@D)/unitcover && mkdir $(@D)/unitcover
 	rm -rf $(@D)/sharnesscover && mkdir $(@D)/sharnesscover
 
@@ -13,8 +13,7 @@ endif
 .PHONY: $(d)/coverage_deps
 
 # unit tests coverage
-UTESTS_$(d) := $(shell $(GOCC) list -f '{{if (len .TestGoFiles)}}{{.ImportPath}}{{end}}' $(go-flags-with-tags) ./...)
-UTESTS_$(d) += $(shell $(GOCC) list -f '{{if (len .XTestGoFiles)}}{{.ImportPath}}{{end}}' $(go-flags-with-tags) ./... | grep -v go-ipfs/vendor | grep -v go-ipfs/Godeps)
+UTESTS_$(d) := $(shell $(GOCC) list -f '{{if (or (len .TestGoFiles) (len .XTestGoFiles))}}{{.ImportPath}}{{end}}' $(go-flags-with-tags) ./... | grep -v go-ipfs/vendor | grep -v go-ipfs/Godeps)
 
 UCOVER_$(d) := $(addsuffix .coverprofile,$(addprefix $(d)/unitcover/, $(subst /,_,$(UTESTS_$(d)))))
 
@@ -46,8 +45,8 @@ endif
 
 export IPFS_COVER_DIR:= $(realpath $(d))/sharnesscover/
 
-$(d)/sharness_tests.coverprofile: export TEST_NO_PLUGIN=1
-$(d)/sharness_tests.coverprofile: $(d)/ipfs cmd/ipfs/ipfs-test-cover $(d)/coverage_deps test_sharness_short
+$(d)/sharness_tests.coverprofile: export TEST_PLUGIN=0
+$(d)/sharness_tests.coverprofile: $(d)/ipfs cmd/ipfs/ipfs-test-cover $(d)/coverage_deps test_sharness
 	(cd $(@D)/sharnesscover && find . -type f | gocovmerge -list -) > $@
 
 

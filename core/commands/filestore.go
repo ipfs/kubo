@@ -1,17 +1,18 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 
-	filestore "github.com/ipfs/go-filestore"
-	core "github.com/ipfs/go-ipfs/core"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
+	filestore "github.com/ipfs/boxo/filestore"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	core "github.com/ipfs/kubo/core"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	e "github.com/ipfs/kubo/core/commands/e"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs-cmds"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -57,17 +58,17 @@ The output is:
 		}
 		args := req.Arguments
 		if len(args) > 0 {
-			return listByArgs(res, fs, args, false)
+			return listByArgs(req.Context, res, fs, args, false)
 		}
 
 		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
-		next, err := filestore.ListAll(fs, fileOrder)
+		next, err := filestore.ListAll(req.Context, fs, fileOrder)
 		if err != nil {
 			return err
 		}
 
 		for {
-			r := next()
+			r := next(req.Context)
 			if r == nil {
 				break
 			}
@@ -141,17 +142,17 @@ For ERROR entries the error will also be printed to stderr.
 		removeBadBlocks, _ := req.Options[removeBadBlocksOptionName].(bool)
 		args := req.Arguments
 		if len(args) > 0 {
-			return listByArgs(res, fs, args, removeBadBlocks)
+			return listByArgs(req.Context, res, fs, args, removeBadBlocks)
 		}
 
 		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
-		next, err := filestore.VerifyAll(fs, fileOrder)
+		next, err := filestore.VerifyAll(req.Context, fs, fileOrder)
 		if err != nil {
 			return err
 		}
 
 		for {
-			r := next()
+			r := next(req.Context)
 			if r == nil {
 				break
 			}
@@ -227,7 +228,7 @@ var dupsFileStore = &cmds.Command{
 		}
 
 		for cid := range ch {
-			have, err := fs.MainBlockstore().Has(cid)
+			have, err := fs.MainBlockstore().Has(req.Context, cid)
 			if err != nil {
 				return res.Emit(&RefWrapper{Err: err.Error()})
 			}
@@ -256,7 +257,7 @@ func getFilestore(env cmds.Environment) (*core.IpfsNode, *filestore.Filestore, e
 	return n, fs, err
 }
 
-func listByArgs(res cmds.ResponseEmitter, fs *filestore.Filestore, args []string, removeBadBlocks bool) error {
+func listByArgs(ctx context.Context, res cmds.ResponseEmitter, fs *filestore.Filestore, args []string, removeBadBlocks bool) error {
 	for _, arg := range args {
 		c, err := cid.Decode(arg)
 		if err != nil {
@@ -269,7 +270,7 @@ func listByArgs(res cmds.ResponseEmitter, fs *filestore.Filestore, args []string
 			}
 			continue
 		}
-		r := filestore.Verify(fs, c)
+		r := filestore.Verify(ctx, fs, c)
 
 		if removeBadBlocks && (r.Status != filestore.StatusOk) && (r.Status != filestore.StatusOtherError) {
 			fs.FileManager().DeleteBlock(r.Key)

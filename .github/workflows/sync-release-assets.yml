@@ -1,0 +1,139 @@
+name: Sync GitHub Release Assets
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+concurrency:
+  group: release-assets-dist-sync
+  cancel-in-progress: true
+
+permissions:
+  contents: write  #  to upload release asset
+
+jobs:
+  dist-ipfs-tech:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 15
+    steps:
+      - uses: ipfs/download-ipfs-distribution-action@v1
+      - uses: ipfs/start-ipfs-daemon-action@v1
+        with:
+          args: --init --init-profile=flatfs,server --enable-gc=false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 14
+      - name: Sync the latest 5 github releases
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs').promises
+            const max_synced = 5
+
+            // fetch github releases
+            resp = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              page: 1,
+              per_page: max_synced
+            })
+            const release_assets = [];
+            num_synced = 0;
+            for (const release of resp.data) {
+              console.log("checking release tagged", release.tag_name)
+              if (num_synced > max_synced) {
+                console.log("done: synced", max_synced, "latest releases")
+                break;
+              }
+              num_synced += 1
+
+              const github_assets = new Set()
+              for (const asset of release.assets) {
+                github_assets.add(asset.name)
+              }
+
+              // fetch asset info from dist.ipfs.tech
+              p = '/ipns/dist.ipfs.tech/kubo/' + release.tag_name
+              let stdout = ''
+              const options = {}
+              options.listeners = {
+                stdout: (data) => {
+                  stdout += data.toString();
+                }
+              }
+              await exec.exec('ipfs', ['ls', p], options)
+
+              const dist_assets = new Set()
+              const missing_files = []
+              for (const raw_line of stdout.split("\n")) {
+                line = raw_line.trim();
+                if (line.length != 0) {
+                  file = line.split(/(\s+)/).filter( function(e) { return e.trim().length > 0; } )[2]
+                  dist_assets.add(file)
+                  if (!github_assets.has(file)) {
+                    missing_files.push(file)
+                  }
+                }
+              }
+
+              // if dist.ipfs.tech has files not found in github, copy them over
+              for (const file of missing_files) {
+                file_sha = file + ".sha512"
+                file_cid = file + ".cid"
+
+                // skip files that don't have .cid and .sha512 checksum files
+                if (!dist_assets.has(file_sha) || !dist_assets.has(file_cid)) {
+                  if (!file.endsWith('.cid') && !file.endsWith('.sha512')) { // silent skip of .sha512.sha512 :)
+                    console.log(`skipping "${file}" as dist.ipfs.tech does not provide .cid and .sha512 checksum files for it`)
+                  }
+                  continue
+                }
+
+                console.log("fetching", file, "from dist.ipfs.tech")
+                await exec.exec('ipfs', ['get', p + '/' + file])
+                await exec.exec('ipfs', ['get', p + '/' + file_sha])
+                await exec.exec('ipfs', ['get', p + '/' + file_cid])
+                console.log("verifying contents of", file)
+
+                // compute sha512 output for file
+                let sha_stdout = ''
+                const sha_options = {}
+                sha_options.listeners = {
+                  stdout: (data) => {
+                    sha_stdout += data.toString();
+                  }
+                }
+                await exec.exec('sha512sum', [file], sha_options)
+                // read expected sha512 output
+                const sha_data = await fs.readFile(file_sha, "utf8")
+                const digest = (s) => s.split(' ').shift()
+                if (digest(sha_data) != digest(sha_stdout)) {
+                  console.log(`${file}.sha512: ${sha_data}`)
+                  console.log(`sha512sum ${file}: ${sha_stdout}`)
+                  throw "checksum verification failed for " + file
+                }
+
+                console.log("uploading", file, "to github release", release.tag_name)
+                const uploadReleaseAsset = async (file) => github.rest.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                  headers: {
+                    "content-type": "application/octet-stream",
+                    "content-length": `${(await fs.stat(file)).size}`
+                  },
+                  name: file,
+                  data: await fs.readFile(file)
+                })
+                await uploadReleaseAsset(file)
+                await uploadReleaseAsset(file_sha)
+                await uploadReleaseAsset(file_cid)
+
+              }
+              // summary of assets on both sides
+              release_assets.push({ tag: release.tag_name, github_assets, dist_assets })
+            }
+            console.log(release_assets)
+            return release_assets

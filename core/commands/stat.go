@@ -1,18 +1,19 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"time"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
 	humanize "github.com/dustin/go-humanize"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	metrics "github.com/libp2p/go-libp2p-core/metrics"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	metrics "github.com/libp2p/go-libp2p/core/metrics"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	protocol "github.com/libp2p/go-libp2p/core/protocol"
 )
 
 var StatsCmd = &cmds.Command{
@@ -26,10 +27,12 @@ for your IPFS node.`,
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"bw":      statBwCmd,
-		"repo":    repoStatCmd,
-		"bitswap": bitswapStatCmd,
-		"dht":     statDhtCmd,
+		"bw":        statBwCmd,
+		"repo":      repoStatCmd,
+		"bitswap":   bitswapStatCmd,
+		"dht":       statDhtCmd,
+		"provide":   statProvideCmd,
+		"reprovide": statReprovideCmd,
 	},
 }
 
@@ -42,7 +45,7 @@ const (
 
 var statBwCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Print ipfs bandwidth information.",
+		Tagline: "Print IPFS bandwidth information.",
 		ShortDescription: `'ipfs stats bw' prints bandwidth information for the ipfs daemon.
 It displays: TotalIn, TotalOut, RateIn, RateOut.
 		`,
@@ -54,7 +57,7 @@ to a particular peer, use the 'peer' option along with that peer's multihash
 id. To specify a specific protocol, use the 'proto' option. The 'peer' and
 'proto' options cannot be specified simultaneously. The protocols that are
 queried using this method are outlined in the specification:
-https://github.com/libp2p/specs/blob/master/7-properties.md#757-protocol-multicodecs
+https://github.com/libp2p/specs/blob/master/_archive/7-properties.md#757-protocol-multicodecs
 
 Example protocol options:
   - /ipfs/id/1.0.0
@@ -95,11 +98,11 @@ Example:
 
 		// Must be online!
 		if !nd.IsOnline {
-			return cmds.Errorf(cmds.ErrClient, ErrNotOnline.Error())
+			return cmds.Errorf(cmds.ErrClient, "unable to run offline: %s", ErrNotOnline)
 		}
 
 		if nd.Reporter == nil {
-			return fmt.Errorf("bandwidth reporter disabled in config")
+			return errors.New("bandwidth reporter disabled in config")
 		}
 
 		pstr, pfound := req.Options[statPeerOptionName].(string)
@@ -131,8 +134,8 @@ Example:
 					return err
 				}
 			} else if tfound {
-				protoId := protocol.ID(tstr)
-				stats := nd.Reporter.GetBandwidthForProtocol(protoId)
+				protoID := protocol.ID(tstr)
+				stats := nd.Reporter.GetBandwidthForProtocol(protoID)
 				if err := res.Emit(&stats); err != nil {
 					return err
 				}
