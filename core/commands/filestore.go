@@ -121,7 +121,7 @@ ERROR:    internal error, most likely due to a corrupt database
 
 Where <action> is present only when removing bad blocks and is one of:
 remove:   link to the block will be removed from datastore
-nop:      nothing to do with it
+keep:     keep link, nothing to do
 
 For ERROR entries the error will also be printed to stderr.
 `,
@@ -198,7 +198,7 @@ For ERROR entries the error will also be printed to stderr.
 				}
 
 				if removeBadBlocks {
-					action := "nop"
+					action := "keep"
 					if removeBadBlocks && (list.Status != filestore.StatusOk) && (list.Status != filestore.StatusOtherError) {
 						action = "remove"
 					}

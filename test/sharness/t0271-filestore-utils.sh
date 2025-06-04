@@ -64,8 +64,8 @@ EOF
 sort < verify_expect_file_order > verify_expect_key_order
 
 cat <<EOF > verify_rm_expect
-ok      bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0 nop
-ok      bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0 nop
+ok      bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0 keep
+ok      bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0 keep
 changed bafkreiemzfmzws23c2po4m6deiueknqfty7r3voes3e3zujmobrooc2ngm 262144 somedir/file3 0 remove
 changed bafkreifjcthslybjizk36xffcsb32fsbguxz3ptkl7723wz4u3qikttmam 213568 somedir/file3 786432 remove
 changed bafkreigl2pjptgxz6cexcnua56zc5dwsyrc4ph2eulmcb634oes6gzvmuy 262144 somedir/file3 524288 remove
