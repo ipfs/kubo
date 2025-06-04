@@ -109,7 +109,7 @@ otherwise verify all objects.
 
 The output is:
 
-<status> <hash> <size> <path> <offset> <action>
+<status> <hash> <size> <path> <offset> [<action>]
 
 Where <status> is one of:
 ok:       the block can be reconstructed
