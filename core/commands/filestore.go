@@ -120,7 +120,7 @@ missing:  <obj> could not be found in the filestore
 ERROR:    internal error, most likely due to a corrupt database
 
 Where <action> is present only when removing bad blocks and is one of:
-remove:   link will be removed
+remove:   link to the block will be removed from datastore
 nop:      nothing to do with it
 
 For ERROR entries the error will also be printed to stderr.
