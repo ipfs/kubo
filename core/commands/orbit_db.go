@@ -31,6 +31,7 @@ import (
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	cmds "github.com/stateless-minds/go-ipfs-cmds"
 	orbitdb "github.com/stateless-minds/go-orbit-db"
+	"github.com/stateless-minds/go-orbit-db/accesscontroller"
 	address "github.com/stateless-minds/go-orbit-db/address"
 	orbitdb_iface "github.com/stateless-minds/go-orbit-db/iface"
 	stores "github.com/stateless-minds/go-orbit-db/stores"
@@ -1954,18 +1955,74 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 	db, err := orbitdb.NewOrbitDB(ctx, api, &orbitdb.NewOrbitDBOptions{
 		Directory: &datastore,
 	})
+
+	if _, ok := db.(orbitdb_iface.OrbitDBKVStoreProvider); !ok {
+		log.Fatal("OrbitDB instance does not implement KeyValue")
+	}
+
 	if err != nil {
 		return db, nil, err
 	}
 
+	selfEnrollAccessController := &accesscontroller.CreateAccessControllerOptions{
+		Type: "orbitdb_selfenroll",
+		Access: map[string][]string{
+			"write": {db.Identity().ID},
+		},
+	}
+
+	// Get current authorized list
+	authorized := selfEnrollAccessController.GetAccess("write")
+	var exists bool
+	for _, a := range authorized {
+		if a == db.Identity().ID {
+			exists = true
+		}
+	}
+
+	if !exists {
+		// Add new identity ID
+		authorized = append(authorized, db.Identity().ID)
+		// Update the controller
+		selfEnrollAccessController.SetAccess("write", authorized)
+	}
+
+	logger.Println("my identity: ", db.Identity().ID)
+
+	logger.Println("authorized list: ", authorized)
+
+	overwrite := true
+
+	opts := &orbitdb.CreateDBOptions{
+		AccessController: selfEnrollAccessController,
+		Overwrite:        &overwrite,
+	}
+
 	var addr address.Address
 	switch dbName {
+	case dbUser:
+		addr, err = address.Parse("/orbitdb/bafyreieoetecy3mcsec5dzrpxej4lnohondzebb422xhux3mchwo6ewqzq/user")
+		if err != nil {
+			return db, nil, err
+		}
+
+		// _, err = db.Create(ctx, dbUser, "docstore", opts)
+		// if err != nil {
+		// 	return db, nil, err
+		// }
+
+		// addr, err = db.DetermineAddress(ctx, dbUser, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		// if err != nil {
+		// 	return db, nil, err
+		// }
+
+		logger.Println("addr dbUser: ", addr.String())
 	case dbSubscription:
 		addr, err = address.Parse("/orbitdb/bafyreidx3h677sge45q7phks6absvzffhtkdq2eikbcw44v5ah5aznxi2q/subscription")
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		// addr, err = db.DetermineAddress(ctx, dbSubscription, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		// if err != nil {
 		// 	_, err = db.Create(ctx, dbSubscription, "docstore", &orbitdb.CreateDBOptions{})
 		// 	if err != nil {
@@ -1977,7 +2034,7 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		// addr, err = db.DetermineAddress(ctx, dbPlan, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		// if err != nil {
 		// 	_, err = db.Create(ctx, dbPlan, "docstore", &orbitdb.CreateDBOptions{})
 		// 	if err != nil {
@@ -1989,7 +2046,7 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		// addr, err = db.DetermineAddress(ctx, dbInflation, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		// if err != nil {
 		// 	_, err = db.Create(ctx, dbInflation, "docstore", &orbitdb.CreateDBOptions{})
 		// 	if err != nil {
@@ -2001,7 +2058,7 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		// addr, err = db.DetermineAddress(ctx, dbTransaction, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		// if err != nil {
 		// 	_, err = db.Create(ctx, dbTransaction, "docstore", &orbitdb.CreateDBOptions{})
 		// 	if err != nil {
@@ -2013,7 +2070,7 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		// addr, err = db.DetermineAddress(ctx, dbIncome, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		// if err != nil {
 		// 	_, err = db.Create(ctx, dbIncome, "docstore", &orbitdb.CreateDBOptions{})
 		// 	if err != nil {
@@ -2025,27 +2082,15 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		// addr, err = db.DetermineAddress(ctx, dbWallet, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		// if err != nil {
 		// 	_, err = db.Create(ctx, dbWallet, "docstore", &orbitdb.CreateDBOptions{})
 		// 	if err != nil {
 		// 		return db, nil, err
 		// 	}
 		// }
-	case dbUser:
-		addr, err = address.Parse("/orbitdb/bafyreifr7e2axymbr2ufaxzgedoiy4oli24uy3zz7psoau4tglh7th6h7u/user")
-		if err != nil {
-			return db, nil, err
-		}
-		// addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
-		// if err != nil {
-		// 	_, err = db.Create(ctx, dbUser, "docstore", &orbitdb.CreateDBOptions{})
-		// 	if err != nil {
-		// 		return db, nil, err
-		// 	}
-		// }
 	case dbNameIssue:
-		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		addr, err = db.DetermineAddress(ctx, dbNameIssue, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
 			_, err = db.Create(ctx, dbNameIssue, "docstore", &orbitdb.CreateDBOptions{})
 			if err != nil {
@@ -2053,7 +2098,7 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 			}
 		}
 	case dbNameCitizenReputation:
-		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		addr, err = db.DetermineAddress(ctx, dbNameCitizenReputation, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
 			_, err = db.Create(ctx, dbNameCitizenReputation, "docstore", &orbitdb.CreateDBOptions{})
 			if err != nil {
@@ -2061,7 +2106,7 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 			}
 		}
 	case dbNameEvent:
-		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		addr, err = db.DetermineAddress(ctx, dbNameEvent, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
 			_, err = db.Create(ctx, dbNameEvent, "docstore", &orbitdb.CreateDBOptions{})
 			if err != nil {
@@ -2069,7 +2114,7 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 			}
 		}
 	case dbNameGift:
-		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		addr, err = db.DetermineAddress(ctx, dbNameGift, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
 			_, err = db.Create(ctx, dbNameGift, "docstore", &orbitdb.CreateDBOptions{})
 			if err != nil {
@@ -2077,7 +2122,7 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 			}
 		}
 	case dbNameRide:
-		addr, err = db.DetermineAddress(ctx, dbName, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+		addr, err = db.DetermineAddress(ctx, dbNameRide, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
 			_, err = db.Create(ctx, dbNameRide, "docstore", &orbitdb.CreateDBOptions{})
 			if err != nil {
@@ -2089,23 +2134,7 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		return db, nil, errors.New("unexpected dbName")
 	}
 
-	// writeAccess := []string{db.Identity().ID}
-
-	// ipfsAccessController := accesscontroller.NewManifestParams(cid.Cid{}, true, "ipfs")
-
-	// ipfsAccessController.SetAccess("write", writeAccess)
-
-	// authorized := ipfsAccessController.GetAllAccess()
-
-	// logger.Println("my identity: ", db.Identity().ID)
-
-	// logger.Println("authorized list: ", authorized)
-
-	// opts := &orbitdb.CreateDBOptions{
-	// 	AccessController: ipfsAccessController,
-	// }
-
-	store, err := db.Docs(ctx, addr.String(), &orbitdb_iface.CreateDBOptions{})
+	store, err := db.Docs(ctx, addr.String(), opts)
 	if err != nil {
 		return db, nil, err
 	}
