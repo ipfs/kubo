@@ -164,6 +164,7 @@ config file at runtime.
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
+        - [`Swarm.ConnMgr.SilencePeriod`](#swarmconnmgrsilenceperiod)
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.MaxMemory`](#swarmresourcemgrmaxmemory)
@@ -2294,8 +2295,9 @@ Type: `optionalString` (default when unset or empty)
 
 The basic connection manager uses a "high water", a "low water", and internal
 scoring to periodically close connections to free up resources. When a node
-using the basic connection manager reaches `HighWater` idle connections, it will
-close the least useful ones until it reaches `LowWater` idle connections.
+using the basic connection manager reaches `HighWater` idle connections, it
+will close the least useful ones until it reaches `LowWater` idle
+connections. The process of closing connections happens every `SilencePeriod`.
 
 The connection manager considers a connection idle if:
 
@@ -2314,7 +2316,8 @@ The connection manager considers a connection idle if:
       "Type": "basic",
       "LowWater": 100,
       "HighWater": 200,
-      "GracePeriod": "30s"
+      "GracePeriod": "30s",
+      "SilencePeriod": "10s"
     }
   }
 }
@@ -2345,6 +2348,14 @@ GracePeriod is a time duration that new connections are immune from being closed
 by the connection manager.
 
 Default: `"20s"`
+
+Type: `optionalDuration`
+
+##### `Swarm.ConnMgr.SilencePeriod`
+
+SilencePeriod is the time duration between connection manager runs, when connections that are idle are closed.
+
+Default: `"10s"`
 
 Type: `optionalDuration`
 
