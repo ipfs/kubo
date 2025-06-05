@@ -16,4 +16,10 @@ type InternalBitswap struct {
 	ProviderSearchDelay         OptionalDuration
 	ProviderSearchMaxResults    OptionalInteger
 	WantHaveReplaceSize         OptionalInteger
+
+	BroadcastNoReduction     bool `json:",omitempty"`
+	BroadcastLimitPeers      int  `json:",omitempty"`
+	BroadcastReduceLocal     bool `json:",omitempty"`
+	BroadcastSendSkipped     int  `json:",omitempty"`
+	BroadcastSendWithPending bool `json:",omitempty"`
 }

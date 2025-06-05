@@ -84,6 +84,11 @@ config file at runtime.
       - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
       - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
       - [`Internal.Bitswap.ProviderSearchMaxResults`](#internalbitswapprovidersearchmaxresults)
+      - [`BroadcastNoReduction`](#internalbitswapbroadcastnoreduction)
+      - [`BroadcastLimitPeers`](#internalbitswapbroadcastlimitpeers)
+      - [`BroadcastReduceLocal`](#internalbitswapbroadcastreducelocal)
+      - [`BroadcastSendSkipped`](#internalbitswapbroadcastsendskipped)
+      - [`BroadcastSendWithPending`](#internalbitswapbroadcastsendwithpending)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
@@ -1281,6 +1286,34 @@ Maximum number of providers bitswap client should aim at before it stops searchi
 Setting to 0 means unlimited.
 
 Type: `optionalInteger` (`null` means default which is 10)
+
+#### `Internal.Bitswap.BroadcastNoReduction`
+
+Type: `bool`
+
+#### `Internal.Bitswap.BroadcastLimitPeers`
+
+This is the hard limit on the number of peers to send broadcasts to. A value of 0 means there is no limit, and all peers targeted for receiving broadcasts will receive broadcasts.
+
+Type: `integer` (non-negative, 0 means no limit) 
+
+#### `Internal.Bitswap.BroadcastReduceLocal`
+
+When this parameter is true, apply broadcast reduction logic to peers on the local network the same as peers on other networks. When false, always broadcast to peers on the local network.
+
+Type: `bool`
+
+#### `Internal.Bitswap.BroadcastSendSkipped`
+
+This is the number peers to broadcast to anyway, that otherwise would have been skipped by broadcast reduction logic. Setting this to a non-zero value ensures at least this number of random peers receives a broadcast.
+
+Type: `integer` (non-negative, 0 means do not ignore any skip)
+
+#### `Internal.Bitswap.BroadcastSendWithPending`
+
+When this parameter is set to true, bitswap sends broadcasts any peer that the client already have a pending message for.
+
+Type: `bool`
 
 ### `Internal.UnixFSShardingSizeThreshold`
 

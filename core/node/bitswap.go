@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -118,7 +119,18 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 		in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
 		var maxProviders int = DefaultMaxProviders
 		if in.Cfg.Internal.Bitswap != nil {
+			disposition := "enabled"
 			maxProviders = int(in.Cfg.Internal.Bitswap.ProviderSearchMaxResults.WithDefault(DefaultMaxProviders))
+			if in.Cfg.Internal.Bitswap.BroadcastNoReduction {
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduction(false)))
+				disposition = "disabled"
+			} else {
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastLimitPeers(in.Cfg.Internal.Bitswap.BroadcastLimitPeers)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduceLocal(in.Cfg.Internal.Bitswap.BroadcastReduceLocal)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendSkipped(in.Cfg.Internal.Bitswap.BroadcastSendSkipped)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendWithPending(in.Cfg.Internal.Bitswap.BroadcastSendWithPending)))
+			}
+			fmt.Println("---> bitswap client broadcast reduction", disposition)
 		}
 		ignoredPeerIDs := make([]peer.ID, 0, len(in.Cfg.Routing.IgnoreProviders))
 		for _, str := range in.Cfg.Routing.IgnoreProviders {
