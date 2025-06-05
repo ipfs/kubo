@@ -61,6 +61,7 @@ jobs:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
+      - run: cmd/ipfs/ipfs config --json "Internal.Bitswap.BroadcastNoReduction" true
       - run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
         id: npm-cache-dir
       - uses: actions/cache@v4
