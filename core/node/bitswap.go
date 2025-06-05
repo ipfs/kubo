@@ -3,7 +3,6 @@ package node
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"time"
 
@@ -130,7 +129,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendSkipped(in.Cfg.Internal.Bitswap.BroadcastSendSkipped)))
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendWithPending(in.Cfg.Internal.Bitswap.BroadcastSendWithPending)))
 			}
-			fmt.Println("---> bitswap client broadcast reduction", disposition)
+			logger.Infof("bitswap client broadcast reduction %s", disposition)
 		}
 		ignoredPeerIDs := make([]peer.ID, 0, len(in.Cfg.Routing.IgnoreProviders))
 		for _, str := range in.Cfg.Routing.IgnoreProviders {
