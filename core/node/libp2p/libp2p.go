@@ -25,9 +25,12 @@ type Libp2pOpts struct {
 	Opts []libp2p.Option `group:"libp2p"`
 }
 
-func ConnectionManager(low, high int, grace time.Duration) func() (opts Libp2pOpts, err error) {
+func ConnectionManager(low, high int, grace, silence time.Duration) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {
-		cm, err := connmgr.NewConnManager(low, high, connmgr.WithGracePeriod(grace))
+		cm, err := connmgr.NewConnManager(low, high,
+			connmgr.WithGracePeriod(grace),
+			connmgr.WithSilencePeriod(silence),
+		)
 		if err != nil {
 			return opts, err
 		}
