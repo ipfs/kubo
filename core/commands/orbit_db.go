@@ -2133,6 +2133,7 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 	fmt.Println("original acList: ", acList)
 
 	if !contains(acList, myID) {
+		fmt.Println("acList does not contain my ID, granting access")
 		ac.Grant(ctx, "write", myID)
 	}
 
