@@ -1971,26 +1971,6 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		},
 	}
 
-	// Get current authorized list
-	authorized := selfEnrollAccessController.GetAccess("write")
-	var exists bool
-	for _, a := range authorized {
-		if a == db.Identity().ID {
-			exists = true
-		}
-	}
-
-	if !exists {
-		// Add new identity ID
-		authorized = append(authorized, db.Identity().ID)
-		// Update the controller
-		selfEnrollAccessController.SetAccess("write", authorized)
-	}
-
-	logger.Println("my identity: ", db.Identity().ID)
-
-	logger.Println("authorized list: ", authorized)
-
 	overwrite := true
 
 	opts := &orbitdb.CreateDBOptions{
@@ -2139,6 +2119,30 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		return db, nil, err
 	}
 
+	myID := db.Identity().ID
+
+	fmt.Println("myID: ", myID)
+
+	ac := store.AccessController()
+
+	acList, err := ac.GetAuthorizedByRole("write")
+	if err != nil {
+		return db, nil, err
+	}
+
+	fmt.Println("original acList: ", acList)
+
+	if !contains(acList, myID) {
+		ac.Grant(ctx, "write", myID)
+	}
+
+	acList, err = ac.GetAuthorizedByRole("write")
+	if err != nil {
+		return db, nil, err
+	}
+
+	fmt.Println("updated acList: ", acList)
+
 	sub, err := db.EventBus().Subscribe(new(stores.EventReady))
 	if err != nil {
 		return db, nil, err
@@ -2169,6 +2173,16 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 	}
 
 	return db, store, nil
+}
+
+// contains checks if a slice contains a given string
+func contains(slice []string, str string) bool {
+	for _, v := range slice {
+		if v == str {
+			return true
+		}
+	}
+	return false
 }
 
 func connectToPeers(c iface.CoreAPI, ctx context.Context) error {
