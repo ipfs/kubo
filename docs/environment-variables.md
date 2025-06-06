@@ -23,6 +23,7 @@
   - [`LIBP2P_MUX_PREFS`](#libp2p_mux_prefs)
   - [`LIBP2P_RCMGR`](#libp2p_rcmgr)
   - [`LIBP2P_DEBUG_RCMGR`](#libp2p_debug_rcmgr)
+  - [`LIBP2P_SWARM_FD_LIMIT`](#libp2p_swarm_fd_limit)
 - [Tracing](#tracing)
 
 # Variables
@@ -234,6 +235,14 @@ and outputs it to `rcmgr.json.gz`
 
 
 Default: disabled (not set)
+
+## `LIBP2P_SWARM_FD_LIMIT`
+
+This variable controls the number of concurrent outbound dials (except dials to relay addresses which have their own limiting logic).
+
+Reducing it slows down connection ballooning but might affect performance negatively.
+
+Default: [160](https://github.com/libp2p/go-libp2p/blob/master/p2p/net/swarm/swarm_dial.go#L91) (not set)
 
 # Tracing
 
