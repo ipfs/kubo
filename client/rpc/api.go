@@ -18,6 +18,7 @@ import (
 	"github.com/ipfs/go-cid"
 	legacy "github.com/ipfs/go-ipld-legacy"
 	ipfs "github.com/ipfs/kubo"
+	daemon "github.com/ipfs/kubo/cmd/ipfs/kubo"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/misc/fsutil"
@@ -109,6 +110,7 @@ func NewApi(a ma.Multiaddr) (*HttpApi, error) {
 		return nil, err
 	}
 	if network == "unix" {
+		address = daemon.NormalizeUnixMultiaddr(address)
 		transport.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
 			return net.Dial("unix", address)
 		}

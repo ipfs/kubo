@@ -9,7 +9,9 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"sort"
@@ -704,6 +706,24 @@ take effect.
 	return errs
 }
 
+// TODO: should a  version of this live in https://github.com/multiformats/go-multiaddr
+// so we dont need to duplicate code here and in client/rpc/api.go ?
+func NormalizeUnixMultiaddr(address string) string {
+	// Support legacy and modern /unix addrs
+	// https://github.com/multiformats/multiaddr/pull/174
+	socketPath, err := url.PathUnescape(address)
+	if err != nil {
+		return address // nil, fmt.Errorf("failed to unescape /unix socket path: %w", err)
+	}
+	// Ensure the path is absolute
+	if !strings.HasPrefix(socketPath, string(filepath.Separator)) {
+		socketPath = string(filepath.Separator) + socketPath
+	}
+	// Normalize path
+	socketPath = filepath.Clean(socketPath)
+	return socketPath
+}
+
 // serveHTTPApi collects options, creates listener, prints status message and starts serving requests.
 func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error) {
 	cfg, err := cctx.GetConfig()
@@ -730,6 +750,9 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 	}
 
 	for _, addr := range apiAddrs {
+		if strings.HasPrefix(addr, "/unix/") {
+			addr = NormalizeUnixMultiaddr(addr)
+		}
 		apiMaddr, err := ma.NewMultiaddr(addr)
 		if err != nil {
 			return nil, fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", addr, err)
@@ -919,6 +942,9 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 	gatewayAddrs := cfg.Addresses.Gateway
 	for _, addr := range gatewayAddrs {
+		if strings.HasPrefix(addr, "/unix/") {
+			addr = NormalizeUnixMultiaddr(addr)
+		}
 		gatewayMaddr, err := ma.NewMultiaddr(addr)
 		if err != nil {
 			return nil, fmt.Errorf("serveHTTPGateway: invalid gateway address: %q (err: %s)", addr, err)
