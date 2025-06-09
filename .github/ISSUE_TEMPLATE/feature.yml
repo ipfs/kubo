@@ -2,6 +2,7 @@ name: Feature
 description: Suggest a new feature in Kubo.
 labels:
   - kind/feature
+  - need/triage
 body:
   - type: markdown
     attributes:
