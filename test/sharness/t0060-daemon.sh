@@ -195,7 +195,7 @@ TEST_ULIMIT_PRESET=1
 test_launch_ipfs_daemon
 
 test_expect_success "daemon raised its fd limit" '
-  grep -v "setting file descriptor limit" actual_daemon > /dev/null
+  test_should_not_contain "setting file descriptor limit" actual_daemon
 '
 
 test_expect_success "daemon actually can handle 2048 file descriptors" '
