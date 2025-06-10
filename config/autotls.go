@@ -42,5 +42,5 @@ const (
 	DefaultCAEndpoint               = p2pforge.DefaultCAEndpoint
 	DefaultAutoWSS                  = true // requires AutoTLS.Enabled
 	DefaultAutoTLSShortAddrs        = true // requires AutoTLS.Enabled
-	DefaultAutoTLSRegistrationDelay = 1 * time.Hour
+	DefaultAutoTLSRegistrationDelay = 1 * time.Minute
 )
