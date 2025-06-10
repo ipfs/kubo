@@ -675,9 +675,9 @@ test_files_api() {
   '
 
   test_expect_success "test copy --force overwrites files" '
-    ipfs files cp /ipfs/$FILE1 /file1
-    ipfs files cp /ipfs/$FILE2 /file2
-    ipfs files cp --force /file1 /file2
+    ipfs files cp /ipfs/$FILE1 /file1 &&
+    ipfs files cp /ipfs/$FILE2 /file2 &&
+    ipfs files cp --force /file1 /file2 &&
     test "`ipfs files read /file1`" = "`ipfs files read /file2`"
   '
 
