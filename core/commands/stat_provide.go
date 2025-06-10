@@ -1,10 +1,12 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"text/tabwriter"
 
+	"github.com/ipfs/boxo/provider"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
@@ -31,8 +33,12 @@ future.
 		if !nd.IsOnline {
 			return ErrNotOnline
 		}
+		provideSystem, ok := nd.Provider.(provider.System)
+		if !ok {
+			return errors.New("configured provider system doesn't implement stats")
+		}
 
-		stats, err := nd.Provider.Stat()
+		stats, err := provideSystem.Stat()
 		if err != nil {
 			return err
 		}

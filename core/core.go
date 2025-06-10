@@ -106,7 +106,7 @@ type IpfsNode struct {
 	Exchange                  exchange.Interface         // the block exchange + strategy
 	Bitswap                   *bitswap.Bitswap           `optional:"true"` // The Bitswap instance
 	Namesys                   namesys.NameSystem         // the name system, resolves paths to hashes
-	Provider                  provider.System            // the value provider system
+	Provider                  provider.Provider          // the value provider system
 	IpnsRepub                 *ipnsrp.Republisher        `optional:"true"`
 	ResourceManager           network.ResourceManager    `optional:"true"`
 
