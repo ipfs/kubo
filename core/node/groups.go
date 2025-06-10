@@ -372,6 +372,10 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 			cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient),
 			int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount)),
 		),
+		KadProvider(
+			isProviderEnabled,
+			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
+		),
 	)
 }
 
