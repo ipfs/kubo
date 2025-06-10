@@ -1956,12 +1956,12 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		Directory: &datastore,
 	})
 
-	if _, ok := db.(orbitdb_iface.OrbitDBKVStoreProvider); !ok {
-		log.Fatal("OrbitDB instance does not implement KeyValue")
-	}
-
 	if err != nil {
 		return db, nil, err
+	}
+
+	if _, ok := db.(orbitdb_iface.OrbitDBKVStoreProvider); !ok {
+		log.Fatal("OrbitDB instance does not implement KeyValue")
 	}
 
 	selfEnrollAccessController := &accesscontroller.CreateAccessControllerOptions{
@@ -1981,20 +1981,17 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 	var addr address.Address
 	switch dbName {
 	case dbUser:
-		addr, err = address.Parse("/orbitdb/bafyreieoetecy3mcsec5dzrpxej4lnohondzebb422xhux3mchwo6ewqzq/user")
+		// _, err := db.Create(ctx, "user", "docstore", opts)
+		// if err != nil {
+		// 	return db, nil, err
+		// }
+
+		addr, err = db.DetermineAddress(ctx, "user", "docstore", &orbitdb_iface.DetermineAddressOptions{
+			AccessController: opts.AccessController,
+		})
 		if err != nil {
 			return db, nil, err
 		}
-
-		// _, err = db.Create(ctx, dbUser, "docstore", opts)
-		// if err != nil {
-		// 	return db, nil, err
-		// }
-
-		// addr, err = db.DetermineAddress(ctx, dbUser, "docstore", &orbitdb_iface.DetermineAddressOptions{})
-		// if err != nil {
-		// 	return db, nil, err
-		// }
 
 		logger.Println("addr dbUser: ", addr.String())
 	case dbSubscription:
@@ -2124,6 +2121,10 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 	fmt.Println("myID: ", myID)
 
 	ac := store.AccessController()
+
+	fmt.Println("ac.Type(): ", ac.Type())
+
+	fmt.Println("ac.Address(): ", ac.Address().String())
 
 	acList, err := ac.GetAuthorizedByRole("write")
 	if err != nil {
