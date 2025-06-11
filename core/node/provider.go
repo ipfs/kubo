@@ -25,7 +25,7 @@ import (
 const sampledBatchSize = 1000
 
 func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
-	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, keyProvider provider.KeyChanFunc, repo repo.Repo, bs blockstore.Blockstore) (provider.Provider, error) {
+	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, keyProvider provider.KeyChanFunc, repo repo.Repo, bs blockstore.Blockstore) (provider.System, error) {
 		opts := []provider.Option{
 			provider.Online(cr),
 			provider.ReproviderInterval(reprovideInterval),
@@ -168,7 +168,7 @@ func SweepingReprovider(provide bool, reprovideStrategy string, opts ...reprovid
 
 	return fx.Options(
 		keyProvider,
-		fx.Provide(func(d *dual.DHT, keyProvider provider.KeyChanFunc, opts ...reprovider.Option) (provider.Provider, error) {
+		fx.Provide(func(d *dual.DHT, keyProvider provider.KeyChanFunc, opts ...reprovider.Option) (provider.System, error) {
 			ctx := context.Background()
 			// Create DHT Sweeping Reprovider
 			r, err := d.NewSweepingReprovider(opts...)
@@ -194,12 +194,7 @@ func SweepingReprovider(provide bool, reprovideStrategy string, opts ...reprovid
 
 // OfflineProviders groups units managing provider routing records offline
 func OfflineProviders() fx.Option {
-	return fx.Provide(
-		fx.Annotate(
-			provider.NewNoopProvider,
-			fx.As(new(provider.Provider)),
-		),
-	)
+	return fx.Provide(provider.NewNoopProvider)
 }
 
 func mfsProvider(mfsRoot *mfs.Root, fetcher fetcher.Factory) provider.KeyChanFunc {
@@ -231,7 +226,7 @@ func mfsRootProvider(mfsRoot *mfs.Root) provider.KeyChanFunc {
 	}
 }
 
-func newProvidingStrategy(strategy string) any {
+func newProvidingStrategy(strategy string) interface{} {
 	type input struct {
 		fx.In
 		Pinner               pin.Pinner

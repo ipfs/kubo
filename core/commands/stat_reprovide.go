@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"text/tabwriter"
@@ -45,12 +44,7 @@ This interface is not stable and may change from release to release.
 			return ErrNotOnline
 		}
 
-		provideSystem, ok := nd.Provider.(provider.System)
-		if !ok {
-			return errors.New("configured provider system doesn't implement stats")
-		}
-
-		stats, err := provideSystem.Stat()
+		stats, err := nd.Provider.Stat()
 		if err != nil {
 			return err
 		}

@@ -70,7 +70,7 @@ type CoreAPI struct {
 	ipldPathResolver   pathresolver.Resolver
 	unixFSPathResolver pathresolver.Resolver
 
-	provider provider.Provider
+	provider provider.System
 
 	pubSub *pubsub.PubSub
 

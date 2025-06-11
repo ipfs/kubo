@@ -171,11 +171,11 @@ type providingExchangeIn struct {
 	fx.In
 
 	BaseExch exchange.Interface
-	Provider provider.Provider
+	Provider provider.System
 }
 
 // ProvidingExchange creates a providing.Exchange with the existing exchange
-// and the provider.Provider.
+// and the provider.System.
 // We cannot do this in OnlineExchange because it causes cycles so this is for
 // a decorator.
 func ProvidingExchange(provide bool) interface{} {
