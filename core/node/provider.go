@@ -179,7 +179,7 @@ func SweepingReprovider(provide bool, reprovideStrategy string, opts ...reprovid
 
 	return fx.Options(
 		keyProvider,
-		fx.Provide(func(d *dual.DHT, keyProvider provider.KeyChanFunc, opts ...reprovider.Option) (provider.Provider, error) {
+		fx.Provide(func(d *dual.DHT, keyProvider provider.KeyChanFunc, opts ...reprovider.Option) (provider.System, error) {
 			ctx := context.Background()
 			// Create DHT Sweeping Reprovider
 			r, err := d.NewSweepingReprovider(opts...)
@@ -205,12 +205,7 @@ func SweepingReprovider(provide bool, reprovideStrategy string, opts ...reprovid
 
 // OfflineProviders groups units managing provider routing records offline
 func OfflineProviders() fx.Option {
-	return fx.Provide(
-		fx.Annotate(
-			provider.NewNoopProvider,
-			fx.As(new(provider.Provider)),
-		),
-	)
+	return fx.Provide(provider.NewNoopProvider)
 }
 
 func mfsProvider(mfsRoot *mfs.Root, fetcher fetcher.Factory) provider.KeyChanFunc {
