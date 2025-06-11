@@ -18,8 +18,12 @@ import (
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
+	dht_pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	"github.com/libp2p/go-libp2p-kad-dht/reprovider"
+	"github.com/libp2p/go-libp2p/core/host"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/routing"
+	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
 	"go.uber.org/fx"
 )
@@ -166,7 +170,20 @@ func OnlineProviders(provide bool, providerStrategy string, reprovideInterval ti
 	)
 }
 
-func KadProvider(provide bool, reprovideStrategy string, d *dht.IpfsDHT, opts ...reprovider.Option) fx.Option {
+type kadClient interface {
+	GetClosestPeers(context.Context, string) ([]peer.ID, error)
+	Provide(context.Context, cid.Cid, bool) error
+	Context() context.Context
+	Host() host.Host
+	MessageSender() dht_pb.MessageSender
+}
+
+type kadClientWithAddrsFilter interface {
+	kadClient
+	FilteredAddrs() []ma.Multiaddr
+}
+
+func SweepingReprovider(provide bool, reprovideStrategy string, opts ...reprovider.Option) fx.Option {
 	if !provide {
 		return OfflineProviders()
 	}
@@ -180,10 +197,32 @@ func KadProvider(provide bool, reprovideStrategy string, d *dht.IpfsDHT, opts ..
 
 	return fx.Options(
 		keyProvider,
-		fx.Provide(func(d *dht.IpfsDHT, keyProvider provider.KeyChanFunc, opts ...reprovider.Option) (provider.Provider, error) {
+		fx.Provide(func(router routing.Routing, keyProvider provider.KeyChanFunc, opts ...reprovider.Option) (provider.Provider, error) {
 			ctx := context.Background()
+
+			dhtClient, ok := router.(kadClient)
+			if !ok {
+				return nil, errors.New("reprovide sweep only available for normal and accelerated DHT clients")
+			}
+
+			var selfAddrs func() []ma.Multiaddr
+			if client, addrsFilter := dhtClient.(kadClientWithAddrsFilter); addrsFilter {
+				selfAddrs = client.FilteredAddrs
+			} else {
+				// Accelerated DHT doesn't have an address filter
+				selfAddrs = dhtClient.Host().Addrs
+			}
+
+			opts = append(opts,
+				reprovider.WithPeerID(dhtClient.Host().ID()),
+				reprovider.WithRouter(dhtClient),
+				reprovider.WithSelfAddrs(selfAddrs),
+				reprovider.WithMessageSender(dhtClient.MessageSender()),
+				reprovider.WithAddLocalRecord(func(h mh.Multihash) error { return dhtClient.Provide(ctx, cid.NewCidV1(cid.Raw, h), false) }),
+			)
+
 			// Create DHT Sweeping Reprovider
-			r, err := reprovider.NewDHTReprovider(d, opts...)
+			r, err := reprovider.NewReprovider(dhtClient.Context(), opts...)
 			if err != nil {
 				return nil, err
 			}
