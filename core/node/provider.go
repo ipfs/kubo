@@ -22,7 +22,6 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/reprovider"
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
-	"github.com/libp2p/go-libp2p/core/routing"
 	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
 	"go.uber.org/fx"
@@ -197,7 +196,7 @@ func SweepingReprovider(provide bool, reprovideStrategy string, opts ...reprovid
 
 	return fx.Options(
 		keyProvider,
-		fx.Provide(func(router routing.Routing, keyProvider provider.KeyChanFunc, opts ...reprovider.Option) (provider.Provider, error) {
+		fx.Provide(func(router irouting.ProvideManyRouter, keyProvider provider.KeyChanFunc, opts ...reprovider.Option) (provider.Provider, error) {
 			ctx := context.Background()
 
 			dhtClient, ok := router.(kadClient)
