@@ -908,8 +908,8 @@ github.com/stateless-minds/go-ipfs-cmds v0.14.0 h1:SGhsIisBynj3euRxMbw4DR8mq5H+7
 github.com/stateless-minds/go-ipfs-cmds v0.14.0/go.mod h1:XZf3HbTeL5aDSKfaC8eBlYAYebPXIseXQOyRpIfQOJM=
 github.com/stateless-minds/go-ipfs-log v1.10.5 h1:NX/rLawbg8/3uR9qNuT4H9nxlkQizVNKdYQPOZJku1s=
 github.com/stateless-minds/go-ipfs-log v1.10.5/go.mod h1:GA3zzndpH183QbdF4yPjQWxoLieQUpy8B9AKOSFaie8=
-github.com/stateless-minds/go-orbit-db v1.23.12 h1:3hatfX6CJdLGV3U3D6//brEMcrGbVD6FOnYtdwbvxoo=
-github.com/stateless-minds/go-orbit-db v1.23.12/go.mod h1:QdkGbSStvQC5Nh00LO/x7tfHQ8+SbU3banFFBoE0sBE=
+github.com/stateless-minds/go-orbit-db v1.23.13 h1:mJLMtiWIxwgEoBDv7+NMiO5oZ714wikz/+ioyTU/lBs=
+github.com/stateless-minds/go-orbit-db v1.23.13/go.mod h1:QdkGbSStvQC5Nh00LO/x7tfHQ8+SbU3banFFBoE0sBE=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=

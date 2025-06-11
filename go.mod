@@ -76,8 +76,7 @@ require (
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/prometheus/client_golang v1.20.5
 	github.com/stateless-minds/go-ipfs-cmds v0.14.0
-	github.com/stateless-minds/go-ipfs-log v1.10.5
-	github.com/stateless-minds/go-orbit-db v1.23.12
+	github.com/stateless-minds/go-orbit-db v1.23.13
 	github.com/stretchr/testify v1.10.0
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d
 	github.com/tidwall/gjson v1.16.0
@@ -246,6 +245,7 @@ require (
 	github.com/samber/lo v1.47.0 // indirect
 	github.com/slok/go-http-metrics v0.13.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
+	github.com/stateless-minds/go-ipfs-log v1.10.5 // indirect
 	github.com/texttheater/golang-levenshtein v1.0.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect

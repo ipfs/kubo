@@ -1981,17 +1981,22 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 	var addr address.Address
 	switch dbName {
 	case dbUser:
+		addr, err = address.Parse("/orbitdb/bafyreigmlijfphmq4csgz5ctkpakcj2cc3t2tcphbcsafppk6smku73za4/user")
+		if err != nil {
+			return db, nil, err
+		}
+
 		// _, err := db.Create(ctx, "user", "docstore", opts)
 		// if err != nil {
 		// 	return db, nil, err
 		// }
 
-		addr, err = db.DetermineAddress(ctx, "user", "docstore", &orbitdb_iface.DetermineAddressOptions{
-			AccessController: opts.AccessController,
-		})
-		if err != nil {
-			return db, nil, err
-		}
+		// addr, err = db.DetermineAddress(ctx, "user", "docstore", &orbitdb_iface.DetermineAddressOptions{
+		// 	AccessController: opts.AccessController,
+		// })
+		// if err != nil {
+		// 	return db, nil, err
+		// }
 
 		logger.Println("addr dbUser: ", addr.String())
 	case dbSubscription:
