@@ -25,7 +25,7 @@ type InternalBitswap struct {
 }
 
 const (
-	DefaultBroadcastReductionEnabled = false
+	DefaultBroadcastReductionEnabled = true
 	DefaultBroadcastLimitPeers       = 0
 	DefaultBroadcastReduceLocal      = false
 	DefaultBroadcastSendSkipped      = 0
