@@ -245,7 +245,12 @@ func SweepingReprovider(provide bool, reprovideStrategy string, opts ...reprovid
 
 // OfflineProviders groups units managing provider routing records offline
 func OfflineProviders() fx.Option {
-	return fx.Provide(provider.NewNoopProvider)
+	return fx.Provide(
+		fx.Annotate(
+			provider.NewNoopProvider,
+			fx.As(new(provider.Provider)),
+		),
+	)
 }
 
 func mfsProvider(mfsRoot *mfs.Root, fetcher fetcher.Factory) provider.KeyChanFunc {
