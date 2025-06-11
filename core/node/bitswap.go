@@ -117,19 +117,33 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 		// Kubo uses own, customized ProviderQueryManager
 		in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
 		var maxProviders int = DefaultMaxProviders
+
 		if in.Cfg.Internal.Bitswap != nil {
 			disposition := "enabled"
 			maxProviders = int(in.Cfg.Internal.Bitswap.ProviderSearchMaxResults.WithDefault(DefaultMaxProviders))
-			if in.Cfg.Internal.Bitswap.BroadcastNoReduction {
-				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduction(false)))
-				disposition = "disabled"
+			bcastReduction := in.Cfg.Internal.Bitswap.BroadcastReductionEnabled.WithDefault(config.DefaultBroadcastReductionEnabled)
+			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduction(bcastReduction)))
+			if bcastReduction {
+				limitPeers := int(in.Cfg.Internal.Bitswap.BroadcastLimitPeers.WithDefault(config.DefaultBroadcastLimitPeers))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastLimitPeers(limitPeers)))
+				reduceLocal := in.Cfg.Internal.Bitswap.BroadcastReduceLocal.WithDefault(config.DefaultBroadcastReduceLocal)
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduceLocal(reduceLocal)))
+				sendSkipped := int(in.Cfg.Internal.Bitswap.BroadcastSendSkipped.WithDefault(config.DefaultBroadcastSendSkipped))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendSkipped(sendSkipped)))
+				sendWithPending := in.Cfg.Internal.Bitswap.BroadcastSendWithPending.WithDefault(config.DefaultBroadcastSendWithPending)
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendWithPending(sendWithPending)))
 			} else {
-				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastLimitPeers(in.Cfg.Internal.Bitswap.BroadcastLimitPeers)))
-				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduceLocal(in.Cfg.Internal.Bitswap.BroadcastReduceLocal)))
-				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendSkipped(in.Cfg.Internal.Bitswap.BroadcastSendSkipped)))
-				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendWithPending(in.Cfg.Internal.Bitswap.BroadcastSendWithPending)))
+				disposition = "disabled"
 			}
 			logger.Infof("bitswap client broadcast reduction %s", disposition)
+		} else {
+			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduction(config.DefaultBroadcastReductionEnabled)))
+			if config.DefaultBroadcastReductionEnabled {
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastLimitPeers(config.DefaultBroadcastLimitPeers)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduceLocal(config.DefaultBroadcastReduceLocal)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendSkipped(config.DefaultBroadcastSendSkipped)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendWithPending(config.DefaultBroadcastSendWithPending)))
+			}
 		}
 		ignoredPeerIDs := make([]peer.ID, 0, len(in.Cfg.Routing.IgnoreProviders))
 		for _, str := range in.Cfg.Routing.IgnoreProviders {
