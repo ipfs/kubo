@@ -84,7 +84,7 @@ config file at runtime.
       - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
       - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
       - [`Internal.Bitswap.ProviderSearchMaxResults`](#internalbitswapprovidersearchmaxresults)
-      - [`BroadcastNoReduction`](#internalbitswapbroadcastnoreduction)
+      - [`BroadcastReductionEnabled`](#internalbitswapbroadcastreductionenabled)
       - [`BroadcastLimitPeers`](#internalbitswapbroadcastlimitpeers)
       - [`BroadcastReduceLocal`](#internalbitswapbroadcastreducelocal)
       - [`BroadcastSendSkipped`](#internalbitswapbroadcastsendskipped)
@@ -1289,7 +1289,7 @@ Type: `optionalInteger` (`null` means default which is 10)
 
 #### `Internal.Bitswap.BroadcastReductionEnabled`
 
-Default: `false` (Disabled)
+Default: `true` (Enabled)
 
 Type: `flag`
 
