@@ -1986,91 +1986,133 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 			return db, nil, err
 		}
 
-		// _, err := db.Create(ctx, "user", "docstore", opts)
+		// _, err := db.Create(ctx, dbUser, "docstore", opts)
 		// if err != nil {
 		// 	return db, nil, err
 		// }
 
-		// addr, err = db.DetermineAddress(ctx, "user", "docstore", &orbitdb_iface.DetermineAddressOptions{
+		// addr, err = db.DetermineAddress(ctx, dbUser, "docstore", &orbitdb_iface.DetermineAddressOptions{
 		// 	AccessController: opts.AccessController,
 		// })
 		// if err != nil {
 		// 	return db, nil, err
 		// }
 
-		logger.Println("addr dbUser: ", addr.String())
+		// logger.Println("addr dbUser: ", addr.String())
 	case dbSubscription:
-		addr, err = address.Parse("/orbitdb/bafyreidx3h677sge45q7phks6absvzffhtkdq2eikbcw44v5ah5aznxi2q/subscription")
+		addr, err = address.Parse("/orbitdb/bafyreighmpd7v5vum4l72t6sdmgqfiio44aijfql4z37asyq4bgzaql35y/subscription")
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbSubscription, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+
+		// _, err := db.Create(ctx, dbSubscription, "docstore", opts)
 		// if err != nil {
-		// 	_, err = db.Create(ctx, dbSubscription, "docstore", &orbitdb.CreateDBOptions{})
-		// 	if err != nil {
-		// 		return db, nil, err
-		// 	}
+		// 	return db, nil, err
 		// }
+
+		// addr, err = db.DetermineAddress(ctx, dbSubscription, "docstore", &orbitdb_iface.DetermineAddressOptions{
+		// 	AccessController: opts.AccessController,
+		// })
+		// if err != nil {
+		// 	return db, nil, err
+		// }
+
+		// logger.Println("addr dbSubscription: ", addr.String())
 	case dbPlan:
-		addr, err = address.Parse("/orbitdb/bafyreif4qtyuyd257xtykgtxrkasczxtkltypadwhisu6d433lk4bwfww4/plan")
+		addr, err = address.Parse("/orbitdb/bafyreihys2vkuudvhmzromkgycvmpn76rn7bj4hc2hs72amxgjjle6zqxi/plan")
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbPlan, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+
+		// _, err := db.Create(ctx, dbPlan, "docstore", opts)
 		// if err != nil {
-		// 	_, err = db.Create(ctx, dbPlan, "docstore", &orbitdb.CreateDBOptions{})
-		// 	if err != nil {
-		// 		return db, nil, err
-		// 	}
+		// 	return db, nil, err
 		// }
+
+		// addr, err = db.DetermineAddress(ctx, dbPlan, "docstore", &orbitdb_iface.DetermineAddressOptions{
+		// 	AccessController: opts.AccessController,
+		// })
+		// if err != nil {
+		// 	return db, nil, err
+		// }
+
+		// logger.Println("addr dbPlan: ", addr.String())
 	case dbInflation:
-		addr, err = address.Parse("/orbitdb/bafyreia2equctbkzplsu4iwbhy7yagbddrdewxrpa3dejb3husompg5pde/inflation")
+		addr, err = address.Parse("/orbitdb/bafyreidrc44tpuqyjxss54etovfug6snvxkdtnsf76ovab3jm3jjkwubeq/inflation")
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbInflation, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+
+		// _, err := db.Create(ctx, dbInflation, "docstore", opts)
 		// if err != nil {
-		// 	_, err = db.Create(ctx, dbInflation, "docstore", &orbitdb.CreateDBOptions{})
-		// 	if err != nil {
-		// 		return db, nil, err
-		// 	}
+		// 	return db, nil, err
 		// }
+
+		// addr, err = db.DetermineAddress(ctx, dbInflation, "docstore", &orbitdb_iface.DetermineAddressOptions{
+		// 	AccessController: opts.AccessController,
+		// })
+		// if err != nil {
+		// 	return db, nil, err
+		// }
+
+		// logger.Println("addr dbInflation: ", addr.String())
 	case dbTransaction:
-		addr, err = address.Parse("/orbitdb/bafyreic2jvgdf3yegqxr6fecn7vlxw456xmn3kwzgajmygkmhlhhrqh54y/transaction")
+		addr, err = address.Parse("/orbitdb/bafyreibnneqztqkn3lmllphusovojuibsijfemx5yjuqnbhkh5z2b36fgi/transaction")
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbTransaction, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+
+		// _, err := db.Create(ctx, dbTransaction, "docstore", opts)
 		// if err != nil {
-		// 	_, err = db.Create(ctx, dbTransaction, "docstore", &orbitdb.CreateDBOptions{})
-		// 	if err != nil {
-		// 		return db, nil, err
-		// 	}
+		// 	return db, nil, err
 		// }
+
+		// addr, err = db.DetermineAddress(ctx, dbTransaction, "docstore", &orbitdb_iface.DetermineAddressOptions{
+		// 	AccessController: opts.AccessController,
+		// })
+		// if err != nil {
+		// 	return db, nil, err
+		// }
+
+		// logger.Println("addr dbTransaction: ", addr.String())
 	case dbIncome:
-		addr, err = address.Parse("/orbitdb/bafyreiconechfko4uyw3ftnvwal3aen2xkcjgmbnnyxqappxr6g67xooxa/income")
+		addr, err = address.Parse("/orbitdb/bafyreifbh25ibtu3qmrec6qr5kmxx27tgapsxex5jwhfqmluthewjua544/income")
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbIncome, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+
+		// _, err := db.Create(ctx, dbIncome, "docstore", opts)
 		// if err != nil {
-		// 	_, err = db.Create(ctx, dbIncome, "docstore", &orbitdb.CreateDBOptions{})
-		// 	if err != nil {
-		// 		return db, nil, err
-		// 	}
+		// 	return db, nil, err
 		// }
+
+		// addr, err = db.DetermineAddress(ctx, dbIncome, "docstore", &orbitdb_iface.DetermineAddressOptions{
+		// 	AccessController: opts.AccessController,
+		// })
+		// if err != nil {
+		// 	return db, nil, err
+		// }
+
+		// logger.Println("addr dbIncome: ", addr.String())
 	case dbWallet:
-		addr, err = address.Parse("/orbitdb/bafyreib6gs7jzfprajuxwg5wk6x33zueenah7h53tsks2tklusfx3iqz6q/wallet")
+		addr, err = address.Parse("/orbitdb/bafyreigwhm4hiz4szlq2n74o6nb6chtbcpfte5al4uujbk43dfdwnlxnuu/wallet")
 		if err != nil {
 			return db, nil, err
 		}
-		// addr, err = db.DetermineAddress(ctx, dbWallet, "docstore", &orbitdb_iface.DetermineAddressOptions{})
+
+		// _, err := db.Create(ctx, dbWallet, "docstore", opts)
 		// if err != nil {
-		// 	_, err = db.Create(ctx, dbWallet, "docstore", &orbitdb.CreateDBOptions{})
-		// 	if err != nil {
-		// 		return db, nil, err
-		// 	}
+		// 	return db, nil, err
 		// }
+
+		// addr, err = db.DetermineAddress(ctx, dbWallet, "docstore", &orbitdb_iface.DetermineAddressOptions{
+		// 	AccessController: opts.AccessController,
+		// })
+		// if err != nil {
+		// 	return db, nil, err
+		// }
+
+		// logger.Println("addr dbWallet: ", addr.String())
 	case dbNameIssue:
 		addr, err = db.DetermineAddress(ctx, dbNameIssue, "docstore", &orbitdb_iface.DetermineAddressOptions{})
 		if err != nil {
