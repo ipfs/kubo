@@ -128,8 +128,8 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastLimitPeers(limitPeers)))
 				reduceLocal := in.Cfg.Internal.Bitswap.BroadcastReduceLocal.WithDefault(config.DefaultBroadcastReduceLocal)
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduceLocal(reduceLocal)))
-				sendSkipped := int(in.Cfg.Internal.Bitswap.BroadcastSendSkipped.WithDefault(config.DefaultBroadcastSendSkipped))
-				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendSkipped(sendSkipped)))
+				sendRandomPeers := int(in.Cfg.Internal.Bitswap.BroadcastSendRandomPeers.WithDefault(config.DefaultBroadcastSendRandomPeers))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendRandomPeers(sendRandomPeers)))
 				sendWithPending := in.Cfg.Internal.Bitswap.BroadcastSendWithPending.WithDefault(config.DefaultBroadcastSendWithPending)
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendWithPending(sendWithPending)))
 			} else {
@@ -141,7 +141,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 			if config.DefaultBroadcastReductionEnabled {
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastLimitPeers(config.DefaultBroadcastLimitPeers)))
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduceLocal(config.DefaultBroadcastReduceLocal)))
-				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendSkipped(config.DefaultBroadcastSendSkipped)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendRandomPeers(config.DefaultBroadcastSendRandomPeers)))
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendWithPending(config.DefaultBroadcastSendWithPending)))
 			}
 		}
