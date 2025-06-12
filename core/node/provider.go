@@ -200,8 +200,8 @@ func SweepingReprovider(provide bool, reprovideStrategy string, opts ...reprovid
 				}
 			}()
 			// Feed the reprovider with cids it needs to keep reproviding.
-			err = r.ResetReprovideSet(ctx, mhChan)
-			return r, err
+			go r.ResetReprovideSet(ctx, mhChan)
+			return r, nil
 		}),
 	)
 }
