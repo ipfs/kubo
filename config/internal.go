@@ -19,8 +19,9 @@ type InternalBitswap struct {
 
 	// BroadcastReductioEnabled enables or disables broadcast reduction logic.
 	// If broadcast reduction logic is disabled, then the other Broadcast
-	// configuration items are ignored. Seting this to false restores previous
-	// broadcast behavior. Default is DefaultBroadcastReductionEnabled.
+	// configuration items are ignored. Setting this to false restores the
+	// previous broadcast behavior of broadcasting to all peers. Default is
+	// DefaultBroadcastReductionEnabled.
 	BroadcastReductionEnabled Flag `json:",omitempty"`
 	// BroadcastLimitPeers sets a hard limit on the number of peers to send
 	// broadcasts to. A value of 0 means there is no limit. Default is
@@ -39,11 +40,11 @@ type InternalBitswap struct {
 	// cases where peers that are not receiving broadcasts my have wanted blocks.
 	// Default is DefaultBroadcastSendRandomPeers.
 	BroadcastSendRandomPeers OptionalInteger `json:",omitempty"`
-	// BroadcastSendWithPending, if true, sends broadcasts to any peers that
-	// already have a pending message to send. This sends broadcasts to many
-	// more peers, but in a way that does not increase the number of separate
-	// broadcast messages. There is still the increased cost of the recipients
-	// having to process and respond to the broadcasts. Default is
+	// BroadcastSendWithPending, if true, enables sending broadcasts to any
+	// peers that already have a pending message to send. This sends broadcasts
+	// to many more peers, but in a way that does not increase the number of
+	// separate broadcast messages. There is still the increased cost of the
+	// recipients having to process and respond to the broadcasts. Default is
 	// DefaultBroadcastSendWithPending.
 	BroadcastSendWithPending Flag `json:",omitempty"`
 }
