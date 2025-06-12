@@ -1317,7 +1317,7 @@ Sets the number of peers to broadcast to anyway, even though broadcast reduction
 
 Default: `0` (do not send broadcasts to any peers that are not targets for broadcasts)
 
-Type: `optionalInteger` (non-negative, 0 means do not ignore any skip)
+Type: `optionalInteger` (non-negative, 0 means do not broadcast to any random peers)
 
 #### `Internal.Bitswap.BroadcastSendWithPending`
 
