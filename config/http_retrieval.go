@@ -12,7 +12,7 @@ type HTTPRetrieval struct {
 }
 
 const (
-	DefaultHTTPRetrievalEnabled               = false // opt-in for now, until we figure out https://github.com/ipfs/specs/issues/496
+	DefaultHTTPRetrievalEnabled               = true
 	DefaultHTTPRetrievalNumWorkers            = 16
 	DefaultHTTPRetrievalTLSInsecureSkipVerify = false  // only for testing with self-signed HTTPS certs
 	DefaultHTTPRetrievalMaxBlockSize          = "2MiB" // matching bitswap: https://specs.ipfs.tech/bitswap-protocol/#block-sizes
