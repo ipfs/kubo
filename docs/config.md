@@ -87,7 +87,7 @@ config file at runtime.
       - [`BroadcastReductionEnabled`](#internalbitswapbroadcastreductionenabled)
       - [`BroadcastLimitPeers`](#internalbitswapbroadcastlimitpeers)
       - [`BroadcastReduceLocal`](#internalbitswapbroadcastreducelocal)
-      - [`BroadcastSendSkipped`](#internalbitswapbroadcastsendskipped)
+      - [`BroadcastSendRandomPeers`](#internalbitswapbroadcastsendrandompeers)
       - [`BroadcastSendWithPending`](#internalbitswapbroadcastsendwithpending)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
   - [`Ipns`](#ipns)
@@ -1289,13 +1289,15 @@ Type: `optionalInteger` (`null` means default which is 10)
 
 #### `Internal.Bitswap.BroadcastReductionEnabled`
 
+Enables or disables broadcast reduction logic. If broadcast reduction logic is disabled, then the other Broadcast configuration items are ignored. Setting this to false restores previous broadcast behavior.
+
 Default: `true` (Enabled)
 
 Type: `flag`
 
 #### `Internal.Bitswap.BroadcastLimitPeers`
 
-This is the hard limit on the number of peers to send broadcasts to. A value of 0 means there is no limit, and all peers targeted for receiving broadcasts will receive broadcasts.
+Sets a hard limit on the number of peers to send broadcasts to. A value of 0 means there is no limit.
 
 Default: `0` (no limit)
 
@@ -1303,15 +1305,15 @@ Type: `optionalInteger` (non-negative, 0 means no limit)
 
 #### `Internal.Bitswap.BroadcastReduceLocal`
 
-When this parameter is true, apply broadcast reduction logic to peers on the local network the same as peers on other networks. When false, always broadcast to peers on the local network.
+Enables or disables broadcast reduction for peers on the local network. If false, always broadcast to peers on the local network. If true, apply broadcast reduction logic to peers on the local network the same as peers on other networks.
 
 Default: `false` (Always broadcast to peers on local network)
 
 Type: `flag`
 
-#### `Internal.Bitswap.BroadcastSendSkipped`
+#### `Internal.Bitswap.BroadcastSendRandomPeers`
 
-This is the number peers to broadcast to anyway, that otherwise would have been skipped by broadcast reduction logic. Setting this to a non-zero value ensures at least this number of random peers receives a broadcast.
+Sets the number of peers to broadcast to anyway, even though broadcast reduction logic has determined that they are not broadcast targets. Setting this to a non-zero value ensures at least this number of random peers receives a broadcast. This may be helpful in cases where peers that are not receiving broadcasts my have wanted blocks.
 
 Default: `0` (do not send broadcasts to any peers that are not targets for broadcasts)
 
@@ -1319,7 +1321,7 @@ Type: `optionalInteger` (non-negative, 0 means do not ignore any skip)
 
 #### `Internal.Bitswap.BroadcastSendWithPending`
 
-When this parameter is set to true, bitswap sends broadcasts any peer that the client already have a pending message for.
+If true, enables sending broadcasts to any peers that already have a pending message to send. This sends broadcasts to many more peers, but in a way that does not increase the number of separate broadcast messages. There is still the increased cost of the recipients having to process and respond to the broadcasts.
 
 Default: `false` (Do not send broadcasts to all peers that have pending messages)
 
