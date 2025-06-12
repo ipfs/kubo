@@ -19,7 +19,6 @@ import (
 	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/reprovider"
-	mh "github.com/multiformats/go-multihash"
 	"go.uber.org/fx"
 )
 
@@ -183,24 +182,24 @@ func SweepingReprovider(provide bool, reprovideStrategy string, opts ...reprovid
 			if d == nil {
 				return provider.NewNoopProvider(), nil
 			}
-			ctx := context.Background()
 			// Create DHT Sweeping Reprovider
 			r, err := d.NewSweepingReprovider(opts...)
 			if err != nil {
 				return nil, err
 			}
-			providingChan, err := keyProvider(ctx)
-			if err != nil {
-				return nil, err
-			}
-			mhChan := make(chan mh.Multihash, 16)
-			go func() {
-				for c := range providingChan {
-					mhChan <- c.Hash()
-				}
-			}()
-			// Feed the reprovider with cids it needs to keep reproviding.
-			go r.ResetReprovideSet(ctx, mhChan)
+			// ctx := context.Background()
+			// providingChan, err := keyProvider(ctx)
+			// if err != nil {
+			// 	return nil, err
+			// }
+			// mhChan := make(chan mh.Multihash, 16)
+			// go func() {
+			// 	for c := range providingChan {
+			// 		mhChan <- c.Hash()
+			// 	}
+			// }()
+			// // Feed the reprovider with cids it needs to keep reproviding.
+			// go r.ResetReprovideSet(ctx, mhChan)
 			return r, nil
 		}),
 	)
