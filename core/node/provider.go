@@ -180,6 +180,9 @@ func SweepingReprovider(provide bool, reprovideStrategy string, opts ...reprovid
 	return fx.Options(
 		keyProvider,
 		fx.Provide(func(d *dual.DHT, keyProvider provider.KeyChanFunc, opts ...reprovider.Option) (provider.System, error) {
+			if d == nil {
+				return provider.NewNoopProvider(), nil
+			}
 			ctx := context.Background()
 			// Create DHT Sweeping Reprovider
 			r, err := d.NewSweepingReprovider(opts...)
