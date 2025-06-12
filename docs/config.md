@@ -2686,25 +2686,26 @@ Type: `object`
 
 ### `HTTPRetrieval.Enabled`
 
-> [!CAUTION]
-> This feature is **EXPERIMENTAL** and may change in future release. Enable with caution, and provide feedback via GitHub issues.
-
 Controls whether HTTP-based block retrieval is enabled.
 
-When enabled, Kubo will be able to act on `/tls/http` (HTTP/2) providers ([Trustless HTTP Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/)) returned by the [`Routing.DelegatedRouters`](#routingdelegatedrouters)
+When enabled, Kubo will act on `/tls/http` (HTTP/2) providers ([Trustless HTTP Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/)) returned by the [`Routing.DelegatedRouters`](#routingdelegatedrouters)
 to perform pure HTTP [block retrievals](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
-in addition to [Bitswap over Libp2p](#bitswap).
+(`/ipfs/cid?format=raw`, `Accept: application/vnd.ipld.raw`)
+alongside [Bitswap over Libp2p](#bitswap).
 
-HTTP requests for `application/vnd.ipld.raw` will be issued instead of Bitswap if a peer has a `/tls/http` multiaddr
+HTTP requests for `application/vnd.ipld.raw` will be made instead of Bitswap when a peer has a `/tls/http` multiaddr
 and the HTTPS server returns HTTP 200 for the [probe path](https://specs.ipfs.tech/http-gateways/trustless-gateway/#dedicated-probe-paths).
 
 > [!IMPORTANT]
-> - Requires TLS and HTTP/2.
+> This feature is relatively new. Please report any issues via [Github](https://github.com/ipfs/kubo/issues/new).
+>
+> Important notes:
+> - TLS and HTTP/2 are required. For privacy reasons, and to maintain feature-parity with browsers, unencrypted `http://` providers are ignored and not used.
 > - This feature works in the same way as Bitswap: connected HTTP-peers receive optimistic block requests even for content that they are not announcing.
-> - HTTP client does not follow redirects. Providers should keep announcements up to date.
+> - For performance reasons, and to avoid loops, the HTTP client does not follow redirects. Providers should keep announcements up to date.
 > - IPFS ecosystem is working towards [supporting HTTP providers on Amino DHT](https://github.com/ipfs/specs/issues/496). Currently, HTTP providers are mostly limited to results from [`Routing.DelegatedRouters`](#routingdelegatedrouters) endpoints and requires `Routing.Type=auto|autoclient`.
 
-Default: `false`
+Default: `true`
 
 Type: `flag`
 
