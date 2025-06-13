@@ -161,6 +161,7 @@ func (api *RoutingAPI) Provide(ctx context.Context, path path.Path, opts ...caop
 
 func provideKeys(ctx context.Context, r routing.Routing, cids []cid.Cid) error {
 	for _, c := range cids {
+		// TODO: only provide cids according to Provide.Strategy
 		err := r.Provide(ctx, c, true)
 		if err != nil {
 			return err
@@ -186,6 +187,7 @@ func provideKeysRec(ctx context.Context, r routing.Routing, bs blockstore.Blocks
 	for {
 		select {
 		case k := <-provided.New:
+			// TODO: only provide cids according to Provide.Strategy
 			err := r.Provide(ctx, k, true)
 			if err != nil {
 				return err
