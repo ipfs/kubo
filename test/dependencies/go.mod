@@ -169,8 +169,8 @@ require (
 	github.com/libp2p/go-flow-metrics v0.2.0 // indirect
 	github.com/libp2p/go-libp2p v0.41.1 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.33.1 // indirect
-	github.com/libp2p/go-libp2p-kbucket v0.7.0 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250612131512-80dc8926e774 // indirect
+	github.com/libp2p/go-libp2p-kbucket v0.7.1-0.20250514131430-6bb8b16e312b // indirect
 	github.com/libp2p/go-libp2p-record v0.3.1 // indirect
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.5 // indirect
 	github.com/libp2p/go-msgio v0.3.0 // indirect
@@ -215,12 +215,12 @@ require (
 	github.com/pion/dtls/v2 v2.2.12 // indirect
 	github.com/pion/dtls/v3 v3.0.4 // indirect
 	github.com/pion/ice/v4 v4.0.8 // indirect
-	github.com/pion/interceptor v0.1.37 // indirect
+	github.com/pion/interceptor v0.1.39 // indirect
 	github.com/pion/logging v0.2.3 // indirect
 	github.com/pion/mdns/v2 v2.0.7 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.15 // indirect
-	github.com/pion/rtp v1.8.11 // indirect
+	github.com/pion/rtp v1.8.18 // indirect
 	github.com/pion/sctp v1.8.37 // indirect
 	github.com/pion/sdp/v3 v3.0.10 // indirect
 	github.com/pion/srtp/v3 v3.0.4 // indirect
