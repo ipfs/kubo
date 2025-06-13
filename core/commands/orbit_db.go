@@ -2179,11 +2179,6 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 		}
 	}
 
-	acList, err = ac.GetAuthorizedByRole("write")
-	if err != nil {
-		return db, nil, err
-	}
-
 	sub, err := db.EventBus().Subscribe(new(stores.EventReady))
 	if err != nil {
 		return db, nil, err
