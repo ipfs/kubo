@@ -2165,23 +2165,14 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 
 	myID := db.Identity().ID
 
-	fmt.Println("myID: ", myID)
-
 	ac := store.AccessController()
-
-	fmt.Println("ac.Type(): ", ac.Type())
-
-	fmt.Println("ac.Address(): ", ac.Address().String())
 
 	acList, err := ac.GetAuthorizedByRole("write")
 	if err != nil {
 		return db, nil, err
 	}
 
-	fmt.Println("original acList: ", acList)
-
 	if !contains(acList, myID) {
-		fmt.Println("acList does not contain my ID, granting access")
 		err := ac.Grant(ctx, "write", myID)
 		if err != nil {
 			return db, nil, err
@@ -2192,8 +2183,6 @@ func ConnectDocs(ctx context.Context, dbName string, api iface.CoreAPI, onReady 
 	if err != nil {
 		return db, nil, err
 	}
-
-	fmt.Println("updated acList: ", acList)
 
 	sub, err := db.EventBus().Subscribe(new(stores.EventReady))
 	if err != nil {
