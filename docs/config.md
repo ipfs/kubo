@@ -84,11 +84,13 @@ config file at runtime.
       - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
       - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
       - [`Internal.Bitswap.ProviderSearchMaxResults`](#internalbitswapprovidersearchmaxresults)
-      - [`BroadcastReductionEnabled`](#internalbitswapbroadcastreductionenabled)
-      - [`BroadcastLimitPeers`](#internalbitswapbroadcastlimitpeers)
-      - [`BroadcastReduceLocal`](#internalbitswapbroadcastreducelocal)
-      - [`BroadcastSendRandomPeers`](#internalbitswapbroadcastsendrandompeers)
-      - [`BroadcastSendWithPending`](#internalbitswapbroadcastsendwithpending)
+        - [`Internal.Bitswap.BroadcastControl`](#internalbitswapbroadcastcontrol)
+          - [`Enable`](#internalbitswapbroadcastcontrolenable)
+          - [`MaxPeers`](#internalbitswapbroadcastcontrolmaxpeers)
+          - [`LocalPeers`](#internalbitswapbroadcastcontrollocalpeers)
+          - [`PeeredPeers`](#internalbitswapbroadcastcontrolpeeredpeers)
+          - [`MaxRandomPeers`](#internalbitswapbroadcastcontrolmaxrandompeers)
+          - [`SendToPendingPeers`](#internalbitswapbroadcastcontrolsendtopendingpeers)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
@@ -1287,7 +1289,9 @@ Setting to 0 means unlimited.
 
 Type: `optionalInteger` (`null` means default which is 10)
 
-#### `Internal.Bitswap.BroadcastReductionEnabled`
+#### `Internal.Bitswap.BroadcastControl.Enable`
+
+Enables or disables broadcast control functionality. Setting this to `false` disables broadcast control functionality and restores the previous broadcast behavior of sending broadcasts to all peers. When disabled, all other `BroadcastControl` configuration items are ignored.
 
 Enables or disables broadcast reduction logic. If broadcast reduction logic is disabled, then the other Broadcast configuration items are ignored. Setting this to false restores previous broadcast behavior.
 
@@ -1295,35 +1299,43 @@ Default: `true` (Enabled)
 
 Type: `flag`
 
-#### `Internal.Bitswap.BroadcastLimitPeers`
+#### `Internal.Bitswap.BroadcastControl.MaxPeers`
 
-Sets a hard limit on the number of peers to send broadcasts to. A value of 0 means there is no limit.
+Sets a hard limit on the number of peers to send broadcasts to. A value of `0` means no broadcasts are sent. A value of `-1` means there is no limit.
 
 Default: `0` (no limit)
 
 Type: `optionalInteger` (non-negative, 0 means no limit) 
 
-#### `Internal.Bitswap.BroadcastReduceLocal`
+#### `Internal.Bitswap.BroadcastControl.LocalPeers`
 
-Enables or disables broadcast reduction for peers on the local network. If false, always broadcast to peers on the local network. If true, apply broadcast reduction logic to peers on the local network the same as peers on other networks.
+Enables or disables broadcast control for peers on the local network. If `false`, than always broadcast to peers on the local network. If `true`, apply broadcast control to local peers.
 
 Default: `false` (Always broadcast to peers on local network)
 
 Type: `flag`
 
-#### `Internal.Bitswap.BroadcastSendRandomPeers`
+#### `Internal.Bitswap.BroadcastControl.PeeredPeers`
 
-Sets the number of peers to broadcast to anyway, even though broadcast reduction logic has determined that they are not broadcast targets. Setting this to a non-zero value ensures at least this number of random peers receives a broadcast. This may be helpful in cases where peers that are not receiving broadcasts my have wanted blocks.
+Enables or disables broadcast reduction for peers configured for peering. If `false`, than always broadcast to peers configured for peering. If `true`, apply broadcast reduction to peered peers.
 
-Default: `0` (do not send broadcasts to any peers that are not targets for broadcasts)
+Default: `false` (Always broadcast to peers configured for peering)
+
+Type: `flag`
+
+#### `Internal.Bitswap.BroadcastControl.MaxRandomPeers`
+
+Sets the number of peers to broadcast to anyway, even though broadcast control logic has determined that they are not broadcast targets. Setting this to a non-zero value ensures at least this number of random peers receives a broadcast. This may be helpful in cases where peers that are not receiving broadcasts my have wanted blocks.
+
+Default: `0` (do not send broadcasts to peers not already targeted broadcast control)
 
 Type: `optionalInteger` (non-negative, 0 means do not broadcast to any random peers)
 
-#### `Internal.Bitswap.BroadcastSendWithPending`
+#### `Internal.Bitswap.BroadcastControl.SendToPendingPeers`
 
-If true, enables sending broadcasts to any peers that already have a pending message to send. This sends broadcasts to many more peers, but in a way that does not increase the number of separate broadcast messages. There is still the increased cost of the recipients having to process and respond to the broadcasts.
-
-Default: `false` (Do not send broadcasts to all peers that have pending messages)
+Enables or disables sending broadcasts to any peers to which there is a pending message to send. When enabled, this sends broadcasts to many more peers, but does so in a way that does not increase the number of separate broadcast messages. There is still the increased cost of the recipients having to process and respond to the broadcasts.
+    
+Default: `false` (Do not send broadcasts to all peers for which there are pending messages)
 
 Type: `flag`
 
