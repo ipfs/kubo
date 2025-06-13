@@ -126,8 +126,8 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 			if bcastReduction {
 				limitPeers := int(in.Cfg.Internal.Bitswap.BroadcastLimitPeers.WithDefault(config.DefaultBroadcastLimitPeers))
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastLimitPeers(limitPeers)))
-				reduceLocal := in.Cfg.Internal.Bitswap.BroadcastReduceLocal.WithDefault(config.DefaultBroadcastReduceLocal)
-				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduceLocal(reduceLocal)))
+				reduceAll := in.Cfg.Internal.Bitswap.BroadcastReduceAll.WithDefault(config.DefaultBroadcastReduceAll)
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduceAll(reduceAll)))
 				sendRandomPeers := int(in.Cfg.Internal.Bitswap.BroadcastSendRandomPeers.WithDefault(config.DefaultBroadcastSendRandomPeers))
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendRandomPeers(sendRandomPeers)))
 				sendWithPending := in.Cfg.Internal.Bitswap.BroadcastSendWithPending.WithDefault(config.DefaultBroadcastSendWithPending)
@@ -140,7 +140,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduction(config.DefaultBroadcastReductionEnabled)))
 			if config.DefaultBroadcastReductionEnabled {
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastLimitPeers(config.DefaultBroadcastLimitPeers)))
-				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduceLocal(config.DefaultBroadcastReduceLocal)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastReduceAll(config.DefaultBroadcastReduceAll)))
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendRandomPeers(config.DefaultBroadcastSendRandomPeers)))
 				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithBroadcastSendWithPending(config.DefaultBroadcastSendWithPending)))
 			}

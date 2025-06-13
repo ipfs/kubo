@@ -24,21 +24,23 @@ type InternalBitswap struct {
 	// DefaultBroadcastReductionEnabled.
 	BroadcastReductionEnabled Flag `json:",omitempty"`
 	// BroadcastLimitPeers sets a hard limit on the number of peers to send
-	// broadcasts to. A value of 0 means there is no limit. Default is
+	// broadcasts to. A value of 0 means no broadcasts are sent. A value of -1
+	// means there is no limit. Default is -1. Default is
 	// DefaultBroadcastLimitPeers.
 	BroadcastLimitPeers OptionalInteger `json:",omitempty"`
-	// BroadcastReduceLocal enables or disables broadcast reduction for peers
-	// on the local network. If false, always broadcast to peers on the local
-	// network. If true, apply broadcast reduction logic to peers on the local
-	// network the same as peers on other networks. Default is
-	// DefaultBroadcastReduceLocal.
-	BroadcastReduceLocal Flag `json:",omitempty"`
+	// BroadcastReduceAll enables or disables broadcast reduction for peers on
+	// the local network and peers configured for peering. If false, than
+	// always broadcast to peers on the local network and peers configured for
+	// peering. If true, apply broadcast reduction to all peers without special
+	// consideration for local and peering peers. Default is
+	// DefaultBroadcastReduceAll.
+	BroadcastReduceAll Flag `json:",omitempty"`
 	// BroadcastSendRandomPeers sets the number of peers to broadcast to
-	// anyway, even though broadcast reduction logic has determined that they are
-	// not broadcast targets. Setting this to a non-zero value ensures at least
-	// this number of random peers receives a broadcast. This may be helpful in
-	// cases where peers that are not receiving broadcasts my have wanted blocks.
-	// Default is DefaultBroadcastSendRandomPeers.
+	// anyway, even though broadcast reduction logic has determined that they
+	// are not broadcast targets. Setting this to a non-zero value ensures at
+	// least this number of random peers receives a broadcast. This may be
+	// helpful in cases where peers that are not receiving broadcasts my have
+	// wanted blocks. Default is DefaultBroadcastSendRandomPeers.
 	BroadcastSendRandomPeers OptionalInteger `json:",omitempty"`
 	// BroadcastSendWithPending, if true, enables sending broadcasts to any
 	// peers that already have a pending message to send. This sends broadcasts
@@ -51,8 +53,8 @@ type InternalBitswap struct {
 
 const (
 	DefaultBroadcastReductionEnabled = true
-	DefaultBroadcastLimitPeers       = 0
-	DefaultBroadcastReduceLocal      = false
+	DefaultBroadcastLimitPeers       = -1
+	DefaultBroadcastReduceAll        = false
 	DefaultBroadcastSendRandomPeers  = 0
 	DefaultBroadcastSendWithPending  = false
 )
