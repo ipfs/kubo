@@ -1293,7 +1293,9 @@ Type: `optionalInteger` (`null` means default which is 10)
 
 `Internal.Bitswap.BroadcastControl` contains settings for the bitswap client's broadcast control functionality.
 
-The broadcast control tries to reduce the number of bitswap broadcast messages sent to peers by choosing a subset of of the peers to send to. The settings here change how peers are selected as broadcast targets. Broadcast control can also be completely disabled to return bitswap to its previous behavior before broadcast control was introduced.
+Broadcast control tries to reduce the number of bitswap broadcast messages sent to peers by choosing a subset of of the peers to send to. Peers are chosen based on whether they have previously responded indicating they have wanted blocks, as well as other configurable criteria. The settings here change how peers are selected as broadcast targets. Broadcast control can also be completely disabled to return bitswap to its previous behavior before broadcast control was introduced.
+
+Enabling broadcast control should generally reduce the number of broadcasts significantly without significantly degrading the ability to discover which peers have wanted blocks. However, if block discovery on your network relies sufficiently on broadcasts to discover peers that have wanted blocks, then adjusting the broadcast control configuration or disabling it altogether, may be helpful.
 
 ##### `Internal.Bitswap.BroadcastControl.Enable`
 
@@ -1315,7 +1317,7 @@ Type: `optionalInteger` (non-negative, 0 means no limit)
 
 ##### `Internal.Bitswap.BroadcastControl.LocalPeers`
 
-Enables or disables broadcast control for peers on the local network. If `false`, than always broadcast to peers on the local network. If `true`, apply broadcast control to local peers.
+Enables or disables broadcast control for peers on the local network. Peers that have private or loopback addresses are considered to be on the local network. If this setting is `false`, than always broadcast to peers on the local network. If `true`, apply broadcast control to local peers.
 
 Default: `false` (Always broadcast to peers on local network)
 
