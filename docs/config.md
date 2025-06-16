@@ -468,7 +468,7 @@ field can take one of two values:
 
 * `enabled` - Enable the V1+V2 service (unless the node determines that it,
   itself, isn't reachable by the public internet).
-* `legacy-v1` - Same as `enabled` but only V1 service is enabled. Used for testing
+* `legacy-v1` - **DEPRECATED** Same as `enabled` but only V1 service is enabled. Used for testing
   during as few releases as we [transition to V2](https://github.com/ipfs/kubo/issues/10091), will be removed in the future.
 * `disabled` - Disable the service.
 
@@ -477,7 +477,7 @@ Additional modes may be added in the future.
 > [!IMPORTANT]
 > We are in the progress of [rolling out AutoNAT V2](https://github.com/ipfs/kubo/issues/10091).
 > Right now, by default, a publicly dialable Kubo provides both V1 and V2 service to other peers,
-> but only V1 is used by Kubo as a client. In a future release we will remove V1 and switch client to use V2.
+> and V1 is still used by Kubo for Autorelay feature. In a future release we will remove V1 and switch all features to use V2.
 
 Default: `enabled`
 
