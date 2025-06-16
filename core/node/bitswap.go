@@ -133,7 +133,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 					bcLocalPeers := bcCfg.LocalPeers.WithDefault(config.DefaultBroadcastControlLocalPeers)
 					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlLocalPeers(bcLocalPeers)))
 
-					bcPeeredPeers := bcCfg.LocalPeers.WithDefault(config.DefaultBroadcastControlPeeredPeers)
+					bcPeeredPeers := bcCfg.PeeredPeers.WithDefault(config.DefaultBroadcastControlPeeredPeers)
 					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlPeeredPeers(bcPeeredPeers)))
 
 					bcMaxRandomPeers := int(bcCfg.MaxRandomPeers.WithDefault(config.DefaultBroadcastControlMaxRandomPeers))
