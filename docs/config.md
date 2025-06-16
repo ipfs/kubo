@@ -84,13 +84,13 @@ config file at runtime.
       - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
       - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
       - [`Internal.Bitswap.ProviderSearchMaxResults`](#internalbitswapprovidersearchmaxresults)
-        - [`Internal.Bitswap.BroadcastControl`](#internalbitswapbroadcastcontrol)
-          - [`Enable`](#internalbitswapbroadcastcontrolenable)
-          - [`MaxPeers`](#internalbitswapbroadcastcontrolmaxpeers)
-          - [`LocalPeers`](#internalbitswapbroadcastcontrollocalpeers)
-          - [`PeeredPeers`](#internalbitswapbroadcastcontrolpeeredpeers)
-          - [`MaxRandomPeers`](#internalbitswapbroadcastcontrolmaxrandompeers)
-          - [`SendToPendingPeers`](#internalbitswapbroadcastcontrolsendtopendingpeers)
+      - [`Internal.Bitswap.BroadcastControl`](#internalbitswapbroadcastcontrol)
+        - [`Internal.Bitswap.BroadcastControl.Enable`](#internalbitswapbroadcastcontrolenable)
+        - [`Internal.Bitswap.BroadcastControl.MaxPeers`](#internalbitswapbroadcastcontrolmaxpeers)
+        - [`Internal.Bitswap.BroadcastControl.LocalPeers`](#internalbitswapbroadcastcontrollocalpeers)
+        - [`Internal.Bitswap.BroadcastControl.PeeredPeers`](#internalbitswapbroadcastcontrolpeeredpeers)
+        - [`Internal.Bitswap.BroadcastControl.MaxRandomPeers`](#internalbitswapbroadcastcontrolmaxrandompeers)
+        - [`Internal.Bitswap.BroadcastControl.SendToPendingPeers`](#internalbitswapbroadcastcontrolsendtopendingpeers)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
@@ -1299,9 +1299,7 @@ Enabling broadcast control should generally reduce the number of broadcasts sign
 
 ##### `Internal.Bitswap.BroadcastControl.Enable`
 
-Enables or disables broadcast control functionality. Setting this to `false` disables broadcast control functionality and restores the previous broadcast behavior of sending broadcasts to all peers. When disabled, all other `BroadcastControl` configuration items are ignored.
-
-Enables or disables broadcast reduction logic. If broadcast reduction logic is disabled, then the other Broadcast configuration items are ignored. Setting this to false restores previous broadcast behavior.
+Enables or disables broadcast control functionality. Setting this to `false` disables broadcast reduction logic and restores the previous (Kubo < 0.36) broadcast behavior of sending broadcasts to all peers. When disabled, all other `Bitswap.BroadcastControl` configuration items are ignored.
 
 Default: `true` (Enabled)
 
@@ -1313,7 +1311,7 @@ Sets a hard limit on the number of peers to send broadcasts to. A value of `0` m
 
 Default: `0` (no limit)
 
-Type: `optionalInteger` (non-negative, 0 means no limit) 
+Type: `optionalInteger` (non-negative, 0 means no limit)
 
 ##### `Internal.Bitswap.BroadcastControl.LocalPeers`
 
@@ -1342,7 +1340,7 @@ Type: `optionalInteger` (non-negative, 0 means do not broadcast to any random pe
 ##### `Internal.Bitswap.BroadcastControl.SendToPendingPeers`
 
 Enables or disables sending broadcasts to any peers to which there is a pending message to send. When enabled, this sends broadcasts to many more peers, but does so in a way that does not increase the number of separate broadcast messages. There is still the increased cost of the recipients having to process and respond to the broadcasts.
-    
+
 Default: `false` (Do not send broadcasts to all peers for which there are pending messages)
 
 Type: `flag`
