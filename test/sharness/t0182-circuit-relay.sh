@@ -57,14 +57,7 @@ test_expect_success 'connect B <-> Relay' '
 '
 
 test_expect_success 'wait until relay is ready to do work' '
-  while ! ipfsi 2 swarm connect /p2p/$PEERID_1/p2p-circuit/p2p/$PEERID_0; do
-    iptb stop &&
-    iptb_wait_stop &&
-    iptb start -wait -- --routing=none &&
-    iptb connect 0 1 &&
-    iptb connect 2 1 &&
-    sleep 5
-  done
+  sleep 1
 '
 
 test_expect_success 'connect A <-Relay-> B' '
