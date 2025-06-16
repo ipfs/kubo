@@ -359,8 +359,8 @@ github.com/ipld/go-codec-dagpb v1.7.0 h1:hpuvQjCSVSLnTnHXn+QAMR0mLmb1gA6wl10LExo
 github.com/ipld/go-codec-dagpb v1.7.0/go.mod h1:rD3Zg+zub9ZnxcLwfol/OTQRVjaLzXypgy4UqHQvilM=
 github.com/ipld/go-ipld-prime v0.21.0 h1:n4JmcpOlPDIxBcY037SVfpd1G+Sj1nKZah0m6QH9C2E=
 github.com/ipld/go-ipld-prime v0.21.0/go.mod h1:3RLqy//ERg/y5oShXXdx5YIp50cFGOanyMctpPjsvxQ=
-github.com/ipshipyard/p2p-forge v0.5.2-0.20250610163546-9ee563d22ebf h1:Cyl6LIw13nN6t6sTXDQjxe37mpNR2nMfMcJbcDVAmkc=
-github.com/ipshipyard/p2p-forge v0.5.2-0.20250610163546-9ee563d22ebf/go.mod h1:GAiqiCXRfXRP92YPJkUGzU3CqrwZXjLJmNBCq4gH0K4=
+github.com/ipshipyard/p2p-forge v0.5.2-0.20250616211529-2c25ee655b22 h1:J9UVOPm9gSOKM9BurRyHLRVpG5d5TPsYaSwZe1iTNqQ=
+github.com/ipshipyard/p2p-forge v0.5.2-0.20250616211529-2c25ee655b22/go.mod h1:eCkvoEuBwYJpPjMaBtVwLuIU9dzMWiO2hej3zfpbu+4=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
 github.com/jackpal/go-nat-pmp v1.0.2/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/jbenet/go-temp-err-catcher v0.1.0 h1:zpb3ZH6wIE8Shj2sKS+khgRvf7T7RABoLk/+KKHggpk=
