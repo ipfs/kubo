@@ -104,7 +104,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		}
 		defer wanPeer.Close()
 		wanAddr := makeAddr(uint32(i), true)
-		wanPeer.PeerHost.Network().Listen(wanAddr)
+		_ = wanPeer.PeerHost.Network().Listen(wanAddr)
 		for _, p := range wanPeers {
 			_, _ = mn.LinkPeers(p.Identity, wanPeer.Identity)
 			_ = wanPeer.PeerHost.Connect(connectionContext, p.Peerstore.PeerInfo(p.Identity))
@@ -120,7 +120,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		}
 		defer lanPeer.Close()
 		lanAddr := makeAddr(uint32(i), false)
-		lanPeer.PeerHost.Network().Listen(lanAddr)
+		_ = lanPeer.PeerHost.Network().Listen(lanAddr)
 		for _, p := range lanPeers {
 			_, _ = mn.LinkPeers(p.Identity, lanPeer.Identity)
 			_ = lanPeer.PeerHost.Connect(connectionContext, p.Peerstore.PeerInfo(p.Identity))
@@ -131,9 +131,9 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 
 	// Add interfaces / addresses to test peer.
 	wanAddr := makeAddr(0, true)
-	testPeer.PeerHost.Network().Listen(wanAddr)
+	_ = testPeer.PeerHost.Network().Listen(wanAddr)
 	lanAddr := makeAddr(0, false)
-	testPeer.PeerHost.Network().Listen(lanAddr)
+	_ = testPeer.PeerHost.Network().Listen(lanAddr)
 	// The test peer is connected to one lan peer.
 	for _, p := range lanPeers {
 		if _, err := mn.LinkPeers(testPeer.Identity, p.Identity); err != nil {
