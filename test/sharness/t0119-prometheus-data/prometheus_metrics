@@ -56,7 +56,6 @@ go_sched_gomaxprocs_threads
 go_threads
 ipfs_bitswap_active_block_tasks
 ipfs_bitswap_active_tasks
-ipfs_bitswap_bcast_skips_total
 ipfs_bitswap_blocks_received
 ipfs_bitswap_haves_received
 ipfs_bitswap_pending_block_tasks
