@@ -398,7 +398,7 @@ We also support the use of protocol names of the form /x/$NAME/http where $NAME 
 ### Road to being a real feature
 
 - [ ] Needs p2p streams to graduate from experiments
-- [ ] Needs more people to use and report on how well it works / fits use cases
+- [ ] Needs more people to use and report on how well it works and fits use cases
 - [ ] More documentation
 - [ ] Need better integration with the subdomain gateway feature.
 

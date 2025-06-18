@@ -48,6 +48,21 @@ go get github.com/jbenet/go-fuse-version/fuse-version
 If you run into any problems installing FUSE or mounting IPFS, hop on IRC and
 speak with us, or if you figure something new out, please add to this document!
 
+#### FreeBSD
+```sh
+sudo pkg install fusefs-ext2
+```
+
+Load the fuse kernel module:
+```sh
+sudo kldload fusefs
+```
+
+To load automatically on boot:
+```sh
+sudo echo fusefs_load="YES" >> /boot/loader.conf
+```
+
 ## Prepare mountpoints
 
 By default ipfs uses `/ipfs`, `/ipns` and `/mfs` directories for mounting, this can be
@@ -105,6 +120,11 @@ Next set `Mounts.FuseAllowOther` config option to `true`:
 ```sh
 ipfs config --json Mounts.FuseAllowOther true
 ipfs daemon --mount
+```
+
+If using FreeBSD, it is necessary to run `ipfs` as root:
+```sh
+sudo HOME=$HOME ipfs daemon --mount
 ```
 
 ## MFS mountpoint

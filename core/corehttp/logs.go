@@ -1,57 +1,68 @@
 package corehttp
 
 import (
-	"io"
+	"bufio"
+	"fmt"
 	"net"
 	"net/http"
 
-	lwriter "github.com/ipfs/go-log/writer"
+	logging "github.com/ipfs/go-log/v2"
 	core "github.com/ipfs/kubo/core"
 )
-
-type writeErrNotifier struct {
-	w    io.Writer
-	errs chan error
-}
-
-func newWriteErrNotifier(w io.Writer) (io.WriteCloser, <-chan error) {
-	ch := make(chan error, 1)
-	return &writeErrNotifier{
-		w:    w,
-		errs: ch,
-	}, ch
-}
-
-func (w *writeErrNotifier) Write(b []byte) (int, error) {
-	n, err := w.w.Write(b)
-	if err != nil {
-		select {
-		case w.errs <- err:
-		default:
-		}
-	}
-	if f, ok := w.w.(http.Flusher); ok {
-		f.Flush()
-	}
-	return n, err
-}
-
-func (w *writeErrNotifier) Close() error {
-	select {
-	case w.errs <- io.EOF:
-	default:
-	}
-	return nil
-}
 
 func LogOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(200)
-			wnf, errs := newWriteErrNotifier(w)
-			lwriter.WriterGroup.AddWriter(wnf)
-			log.Event(n.Context(), "log API client connected") //nolint deprecated
-			<-errs
+			// The log data comes from an io.Reader, and we need to constantly
+			// read from it and then write to the HTTP response.
+			pipeReader := logging.NewPipeReader()
+			done := make(chan struct{})
+
+			// Close the pipe reader if the request context is canceled. This
+			// is necessary to avoiding blocking on reading from the pipe
+			// reader when the client terminates the request.
+			go func() {
+				select {
+				case <-r.Context().Done(): // Client canceled request
+				case <-n.Context().Done(): // Node shutdown
+				case <-done: // log reader goroutine exitex
+				}
+				pipeReader.Close()
+			}()
+
+			errs := make(chan error, 1)
+
+			go func() {
+				defer close(errs)
+				defer close(done)
+
+				rdr := bufio.NewReader(pipeReader)
+				for {
+					// Read a line of log data and send it to the client.
+					line, err := rdr.ReadString('\n')
+					if err != nil {
+						errs <- fmt.Errorf("error reading log message: %s", err)
+						return
+					}
+					_, err = w.Write([]byte(line))
+					if err != nil {
+						// Failed to write to client, probably disconnected.
+						return
+					}
+					if f, ok := w.(http.Flusher); ok {
+						f.Flush()
+					}
+					if r.Context().Err() != nil {
+						return
+					}
+				}
+			}()
+			log.Info("log API client connected")
+			err := <-errs
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		})
 		return mux, nil
 	}
