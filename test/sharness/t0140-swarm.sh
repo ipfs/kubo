@@ -160,6 +160,35 @@ test_expect_success 'peering is removed' '
 
 test_kill_ipfs_daemon
 
+test_launch_ipfs_daemon
+
+peeringID='QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N'
+peeringID2='QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5K'
+peeringAddr='/ip4/1.2.3.4/tcp/1234/p2p/QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N'
+peeringAddr2='/ip4/1.2.3.4/tcp/1234/p2p/QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5K'
+
+test_expect_success "'ipfs swarm peering add' with save option mutates config" '
+  ipfs config Peering.Peers > start-peers &&
+  ipfs swarm peering add ${peeringAddr} ${peeringAddr2} --save &&
+  ipfs config Peering.Peers > end-peers &&
+  ! test_cmp start-peers end-peers &&
+  test_should_contain "${peeringID}" end-peers &&
+  test_should_contain ${peeringID2} end-peers &&
+  rm start-peers end-peers
+'
+
+test_expect_success "'ipfs swarm peering rm' with save option mutates config" '
+  ipfs config Peering.Peers > start-peers &&
+  ipfs swarm peering rm ${peeringID} --save &&
+  ipfs config Peering.Peers > end-peers &&
+  ! test_cmp start-peers end-peers &&
+  test_should_not_contain "${peeringID}" end-peers &&
+  test_should_contain ${peeringID2} end-peers &&
+  rm start-peers end-peers
+'
+
+test_kill_ipfs_daemon
+
 test_expect_success "set up tcp testbed" '
   iptb testbed create -type localipfs -count 2 -force -init
 '
