@@ -124,16 +124,17 @@ func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
 	var processedOneResponse bool
 	for {
 		v, err := res.Next()
-		if err == io.EOF {
-
-			// We only write the final bar update on success
-			// On error it looks too weird
-			bar.Finish()
-
-			return re.Close()
-		} else if err != nil {
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				// We only write the final bar update on success
+				// On error it looks too weird
+				bar.Finish()
+				return re.Close()
+			}
 			return re.CloseWithError(err)
-		} else if processedOneResponse {
+		}
+
+		if processedOneResponse {
 			return re.CloseWithError(errors.New("unexpected multipart response during emit, please file a bugreport"))
 		}
 
@@ -145,13 +146,12 @@ func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
 
 		processedOneResponse = true
 
-		if err := re.Emit(bar.NewProxyReader(r)); err != nil {
+		if err = re.Emit(bar.NewProxyReader(r)); err != nil {
 			return err
 		}
 	}
 }
 
-// FIXME(@Jorropo): https://github.com/ipld/go-car/issues/315
 type dagStore struct {
 	dag iface.APIDagService
 	ctx context.Context
@@ -183,7 +183,6 @@ func (ds *dagStore) Has(ctx context.Context, key string) (bool, error) {
 		}
 		return false, err
 	}
-
 	return true, nil
 }
 
