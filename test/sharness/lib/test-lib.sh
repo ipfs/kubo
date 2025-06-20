@@ -158,8 +158,8 @@ test_wait_open_tcp_port_10_sec() {
   for i in $(test_seq 1 100)
   do
     # this is not a perfect check, but it's portable.
-    # cant count on ss. not installed everywhere.
-    # cant count on netstat using : or . as port delim. differ across platforms.
+    # can't count on ss. not installed everywhere.
+    # can't count on netstat using : or . as port delim. differ across platforms.
     echo $(netstat -aln | egrep "^tcp.*LISTEN" | egrep "[.:]$1" | wc -l) -gt 0
     if [ $(netstat -aln | egrep "^tcp.*LISTEN" | egrep "[.:]$1" | wc -l) -gt 0 ]; then
       return 0
@@ -203,6 +203,28 @@ test_init_ipfs() {
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
     ipfs init "${args[@]}" --profile=test > /dev/null
+  '
+
+  test_expect_success "prepare config -- mounting" '
+    mkdir mountdir ipfs ipns mfs &&
+    test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
+    test_config_set Mounts.IPNS "$(pwd)/ipns" &&
+    test_config_set Mounts.MFS "$(pwd)/mfs" ||
+    test_fsh cat "\"$IPFS_PATH/config\""
+  '
+
+}
+
+test_init_ipfs_measure() {
+  args=("$@")
+
+  # we set the Addresses.API config variable.
+  # the cli client knows to use it, so only need to set.
+  # todo: in the future, use env?
+
+  test_expect_success "ipfs init succeeds" '
+    export IPFS_PATH="$(pwd)/.ipfs" &&
+    ipfs init "${args[@]}" --profile=test,flatfs-measure > /dev/null
   '
 
   test_expect_success "prepare config -- mounting" '
@@ -300,12 +322,14 @@ test_mount_ipfs() {
   test_expect_success FUSE "'ipfs mount' succeeds" '
     do_umount "$(pwd)/ipfs" || true &&
     do_umount "$(pwd)/ipns" || true &&
+    do_umount "$(pwd)/mfs" || true &&
     ipfs mount >actual
   '
 
   test_expect_success FUSE "'ipfs mount' output looks good" '
     echo "IPFS mounted at: $(pwd)/ipfs" >expected &&
     echo "IPNS mounted at: $(pwd)/ipns" >>expected &&
+    echo "MFS mounted at: $(pwd)/mfs" >>expected &&
     test_cmp expected actual
   '
 

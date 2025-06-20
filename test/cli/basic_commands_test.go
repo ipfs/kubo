@@ -62,7 +62,7 @@ func TestIPFSVersionDeps(t *testing.T) {
 	res = strings.TrimSpace(res)
 	lines := SplitLines(res)
 
-	assert.Equal(t, "github.com/ipfs/kubo@(devel)", lines[0])
+	assert.True(t, strings.HasPrefix(lines[0], "github.com/ipfs/kubo@v"))
 
 	for _, depLine := range lines[1:] {
 		split := strings.Split(depLine, " => ")
@@ -112,7 +112,7 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 
 	// a few base commands are not expected to be in the help message
 	// but we default to requiring them to be in the help message, so that we
-	// have to make an conscious decision to exclude them
+	// have to make a conscious decision to exclude them
 	notInHelp := map[string]bool{
 		"object":   true,
 		"shutdown": true,

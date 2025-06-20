@@ -56,10 +56,12 @@ func TestExternalUnmount(t *testing.T) {
 
 	ipfsDir := dir + "/ipfs"
 	ipnsDir := dir + "/ipns"
+	mfsDir := dir + "/mfs"
 	mkdir(t, ipfsDir)
 	mkdir(t, ipnsDir)
+	mkdir(t, mfsDir)
 
-	err = Mount(node, ipfsDir, ipnsDir)
+	err = Mount(node, ipfsDir, ipnsDir, mfsDir)
 	if err != nil {
 		if strings.Contains(err.Error(), "unable to check fuse version") || err == fuse.ErrOSXFUSENotFound {
 			t.Skip(err)

@@ -557,15 +557,16 @@ func pinLsAll(req *cmds.Request, typeStr string, detailed bool, name string, api
 		panic("unhandled pin type")
 	}
 
-	pins, err := api.Pin().Ls(req.Context, opt, options.Pin.Ls.Detailed(detailed), options.Pin.Ls.Name(name))
-	if err != nil {
-		return err
-	}
+	pins := make(chan coreiface.Pin)
+	lsErr := make(chan error, 1)
+	lsCtx, cancel := context.WithCancel(req.Context)
+	defer cancel()
+
+	go func() {
+		lsErr <- api.Pin().Ls(lsCtx, pins, opt, options.Pin.Ls.Detailed(detailed), options.Pin.Ls.Name(name))
+	}()
 
 	for p := range pins {
-		if err := p.Err(); err != nil {
-			return err
-		}
 		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: p.Type(),
@@ -577,8 +578,7 @@ func pinLsAll(req *cmds.Request, typeStr string, detailed bool, name string, api
 			return err
 		}
 	}
-
-	return nil
+	return <-lsErr
 }
 
 const (

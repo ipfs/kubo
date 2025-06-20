@@ -1,5 +1,33 @@
 # Kubo environment variables
 
+- [Variables](#variables)
+  - [`IPFS_PATH`](#ipfs_path)
+  - [`IPFS_LOGGING`](#ipfs_logging)
+  - [`IPFS_LOGGING_FMT`](#ipfs_logging_fmt)
+  - [`GOLOG_LOG_LEVEL`](#golog_log_level)
+  - [`GOLOG_LOG_FMT`](#golog_log_fmt)
+  - [`GOLOG_FILE`](#golog_file)
+  - [`GOLOG_OUTPUT`](#golog_output)
+  - [`GOLOG_TRACING_FILE`](#golog_tracing_file)
+  - [`IPFS_FUSE_DEBUG`](#ipfs_fuse_debug)
+  - [`YAMUX_DEBUG`](#yamux_debug)
+  - [`IPFS_FD_MAX`](#ipfs_fd_max)
+  - [`IPFS_DIST_PATH`](#ipfs_dist_path)
+  - [`IPFS_NS_MAP`](#ipfs_ns_map)
+  - [`IPFS_HTTP_ROUTERS`](#ipfs_http_routers)
+  - [`IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS`](#ipfs_http_routers_filter_protocols)
+  - [`IPFS_CONTENT_BLOCKING_DISABLE`](#ipfs_content_blocking_disable)
+  - [`IPFS_WAIT_REPO_LOCK`](#ipfs_wait_repo_lock)
+  - [`LIBP2P_TCP_REUSEPORT`](#libp2p_tcp_reuseport)
+  - [`LIBP2P_TCP_MUX`](#libp2p_tcp_mux)
+  - [`LIBP2P_MUX_PREFS`](#libp2p_mux_prefs)
+  - [`LIBP2P_RCMGR`](#libp2p_rcmgr)
+  - [`LIBP2P_DEBUG_RCMGR`](#libp2p_debug_rcmgr)
+  - [`LIBP2P_SWARM_FD_LIMIT`](#libp2p_swarm_fd_limit)
+- [Tracing](#tracing)
+
+# Variables
+
 ## `IPFS_PATH`
 
 Sets the location of the IPFS repo (where the config, blocks, etc.
@@ -62,6 +90,14 @@ The logging format defaults to `color` when the output is a terminal, and `nocol
 ## `GOLOG_FILE`
 
 Sets the file to which Kubo logs. By default, Kubo logs to standard error.
+
+## `GOLOG_OUTPUT`
+
+When stderr and/or stdout options are configured or specified by the `GOLOG_OUTPUT` environ variable, log only to the output(s) specified. For example:
+
+- `GOLOG_OUTPUT="stderr"` logs only to stderr
+- `GOLOG_OUTPUT="stdout"` logs only to stdout
+- `GOLOG_OUTPUT="stderr+stdout"` logs to both stderr and stdout
 
 ## `GOLOG_TRACING_FILE`
 
@@ -149,13 +185,32 @@ Default: `config.DefaultHTTPRoutersFilterProtocols`
 Disables the content-blocking subsystem. No denylists will be watched and no
 content will be blocked.
 
+## `IPFS_WAIT_REPO_LOCK`
+
+Specifies the amount of time to wait for the repo lock. Set the value of this variable to a string that can be [parsed](https://pkg.go.dev/time@go1.24.3#ParseDuration) as a golang `time.Duration`. For example:
+```
+IPFS_WAIT_REPO_LOCK="15s"
+```
+
+If the lock cannot be acquired because someone else has the lock, and `IPFS_WAIT_REPO_LOCK` is set to a valid value, then acquiring the lock is retried every second until the lock is acquired or the specified wait time has elapsed.
+
 ## `LIBP2P_TCP_REUSEPORT`
 
 Kubo tries to reuse the same source port for all connections to improve NAT
 traversal. If this is an issue, you can disable it by setting
 `LIBP2P_TCP_REUSEPORT` to false.
 
-Default: true
+Default: `true`
+
+## `LIBP2P_TCP_MUX`
+
+By default Kubo tries to reuse the same listener port for raw TCP and WebSockets transports via experimental `libp2p.ShareTCPListener()` feature introduced in [go-libp2p#2984](https://github.com/libp2p/go-libp2p/pull/2984).
+If this is an issue, you can disable it by setting `LIBP2P_TCP_MUX` to `false` and use separate ports for each TCP transport.
+
+> [!CAUTION]
+> This configuration option may be removed once `libp2p.ShareTCPListener()`  becomes default in go-libp2p.
+
+Default: `true`
 
 ## `LIBP2P_MUX_PREFS`
 
@@ -180,6 +235,14 @@ and outputs it to `rcmgr.json.gz`
 
 
 Default: disabled (not set)
+
+## `LIBP2P_SWARM_FD_LIMIT`
+
+This variable controls the number of concurrent outbound dials (except dials to relay addresses which have their own limiting logic).
+
+Reducing it slows down connection ballooning but might affect performance negatively.
+
+Default: [160](https://github.com/libp2p/go-libp2p/blob/master/p2p/net/swarm/swarm_dial.go#L91) (not set)
 
 # Tracing
 

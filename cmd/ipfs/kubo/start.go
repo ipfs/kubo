@@ -16,12 +16,8 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/google/uuid"
 	u "github.com/ipfs/boxo/util"
-	cmds "github.com/stateless-minds/go-ipfs-cmds"
-	"github.com/stateless-minds/go-ipfs-cmds/cli"
-	cmdhttp "github.com/stateless-minds/go-ipfs-cmds/http"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	ipfs "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/client/rpc/auth"
 	"github.com/ipfs/kubo/cmd/ipfs/util"
@@ -37,6 +33,9 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr/net"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
+	"github.com/stateless-minds/go-ipfs-cmds/cli"
+	cmdhttp "github.com/stateless-minds/go-ipfs-cmds/http"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/contrib/propagators/autoprop"
 	"go.opentelemetry.io/otel"
@@ -87,16 +86,6 @@ func loadPlugins(repoPath string, preload PluginPreloader) (*loader.PluginLoader
 func printErr(err error) int {
 	fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 	return 1
-}
-
-func newUUID(key string) logging.Metadata {
-	ids := "#UUID-ERROR#"
-	if id, err := uuid.NewRandom(); err == nil {
-		ids = id.String()
-	}
-	return logging.Metadata{
-		key: ids,
-	}
 }
 
 func BuildDefaultEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
@@ -157,8 +146,7 @@ func BuildEnv(pl PluginPreloader) func(ctx context.Context, req *cmds.Request) (
 // - output the response
 // - if anything fails, print error, maybe with help.
 func Start(buildEnv func(ctx context.Context, req *cmds.Request) (cmds.Environment, error)) (exitCode int) {
-	ctx := logging.ContextWithLoggable(context.Background(), newUUID("session"))
-
+	ctx := context.Background()
 	tp, err := tracing.NewTracerProvider(ctx)
 	if err != nil {
 		return printErr(err)
@@ -226,7 +214,10 @@ func insideGUI() bool {
 func checkDebug(req *cmds.Request) {
 	// check if user wants to debug. option OR env var.
 	debug, _ := req.Options["debug"].(bool)
-	if debug || os.Getenv("IPFS_LOGGING") == "debug" {
+	ipfsLogLevel, _ := logging.LevelFromString(os.Getenv("IPFS_LOGGING")) // IPFS_LOGGING is deprecated
+	goLogLevel, _ := logging.LevelFromString(os.Getenv("GOLOG_LOG_LEVEL"))
+
+	if debug || goLogLevel == logging.LevelDebug || ipfsLogLevel == logging.LevelDebug {
 		u.Debug = true
 		logging.SetDebugLogging()
 	}
@@ -330,6 +321,11 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	switch network {
 	case "tcp", "tcp4", "tcp6":
 		tpt = http.DefaultTransport
+		// RPC over HTTPS requires explicit schema in the address passed to cmdhttp.NewClient
+		httpAddr := apiAddr.String()
+		if !strings.HasPrefix(host, "http:") && !strings.HasPrefix(host, "https:") && (strings.Contains(httpAddr, "/https") || strings.Contains(httpAddr, "/tls/http")) {
+			host = "https://" + host
+		}
 	case "unix":
 		path := host
 		host = "unix"

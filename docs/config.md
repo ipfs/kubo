@@ -29,10 +29,16 @@ config file at runtime.
     - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
   - [`AutoTLS`](#autotls)
     - [`AutoTLS.Enabled`](#autotlsenabled)
+    - [`AutoTLS.AutoWSS`](#autotlsautowss)
+    - [`AutoTLS.ShortAddrs`](#autotlsshortaddrs)
     - [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)
     - [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint)
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
+    - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
+  - [`Bitswap`](#bitswap)
+    - [`Bitswap.Libp2pEnabled`](#bitswaplibp2penabled)
+    - [`Bitswap.ServerEnabled`](#bitswapserverenabled)
   - [`Bootstrap`](#bootstrap)
   - [`Datastore`](#datastore)
     - [`Datastore.StorageMax`](#datastorestoragemax)
@@ -40,6 +46,8 @@ config file at runtime.
     - [`Datastore.GCPeriod`](#datastoregcperiod)
     - [`Datastore.HashOnRead`](#datastorehashonread)
     - [`Datastore.BloomFilterSize`](#datastorebloomfiltersize)
+    - [`Datastore.WriteThrough`](#datastorewritethrough)
+    - [`Datastore.BlockKeyCacheSize`](#datastoreblockkeycachesize)
     - [`Datastore.Spec`](#datastorespec)
   - [`Discovery`](#discovery)
     - [`Discovery.MDNS`](#discoverymdns)
@@ -74,7 +82,15 @@ config file at runtime.
       - [`Internal.Bitswap.EngineBlockstoreWorkerCount`](#internalbitswapengineblockstoreworkercount)
       - [`Internal.Bitswap.EngineTaskWorkerCount`](#internalbitswapenginetaskworkercount)
       - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
-    - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
+      - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
+      - [`Internal.Bitswap.ProviderSearchMaxResults`](#internalbitswapprovidersearchmaxresults)
+      - [`Internal.Bitswap.BroadcastControl`](#internalbitswapbroadcastcontrol)
+        - [`Internal.Bitswap.BroadcastControl.Enable`](#internalbitswapbroadcastcontrolenable)
+        - [`Internal.Bitswap.BroadcastControl.MaxPeers`](#internalbitswapbroadcastcontrolmaxpeers)
+        - [`Internal.Bitswap.BroadcastControl.LocalPeers`](#internalbitswapbroadcastcontrollocalpeers)
+        - [`Internal.Bitswap.BroadcastControl.PeeredPeers`](#internalbitswapbroadcastcontrolpeeredpeers)
+        - [`Internal.Bitswap.BroadcastControl.MaxRandomPeers`](#internalbitswapbroadcastcontrolmaxrandompeers)
+        - [`Internal.Bitswap.BroadcastControl.SendToPendingPeers`](#internalbitswapbroadcastcontrolsendtopendingpeers)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
@@ -88,6 +104,7 @@ config file at runtime.
   - [`Mounts`](#mounts)
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
+    - [`Mounts.MFS`](#mountsmfs)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
   - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
@@ -99,6 +116,10 @@ config file at runtime.
           - [`Pinning.RemoteServices: Policies.MFS.Enabled`](#pinningremoteservices-policiesmfsenabled)
           - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
           - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
+  - [`Provider`](#provider)
+    - [`Provider.Enabled`](#providerenabled)
+    - [`Provider.Strategy`](#providerstrategy)
+    - [`Provider.WorkerCount`](#providerworkercount)
   - [`Pubsub`](#pubsub)
     - [`Pubsub.Enabled`](#pubsubenabled)
     - [`Pubsub.Router`](#pubsubrouter)
@@ -114,6 +135,8 @@ config file at runtime.
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
+    - [`Routing.IgnoreProviders`](#routingignoreproviders)
+    - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -148,6 +171,7 @@ config file at runtime.
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
+        - [`Swarm.ConnMgr.SilencePeriod`](#swarmconnmgrsilenceperiod)
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.MaxMemory`](#swarmresourcemgrmaxmemory)
@@ -171,11 +195,24 @@ config file at runtime.
   - [`DNS`](#dns)
     - [`DNS.Resolvers`](#dnsresolvers)
     - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
+  - [`HTTPRetrieval`](#httpretrieval)
+    - [`HTTPRetrieval.Enabled`](#httpretrievalenabled)
+    - [`HTTPRetrieval.Allowlist`](#httpretrievalallowlist)
+    - [`HTTPRetrieval.Denylist`](#httpretrievaldenylist)
+    - [`HTTPRetrieval.NumWorkers`](#httpretrievalnumworkers)
+    - [`HTTPRetrieval.MaxBlockSize`](#httpretrievalmaxblocksize)
+    - [`HTTPRetrieval.TLSInsecureSkipVerify`](#httpretrievaltlsinsecureskipverify)
   - [`Import`](#import)
     - [`Import.CidVersion`](#importcidversion)
     - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
     - [`Import.UnixFSChunker`](#importunixfschunker)
     - [`Import.HashFunction`](#importhashfunction)
+    - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
+    - [`Import.BatchMaxSize`](#importbatchmaxsize)
+    - [`Import.UnixFSFileMaxLinks`](#importunixfsfilemaxlinks)
+    - [`Import.UnixFSDirectoryMaxLinks`](#importunixfsdirectorymaxlinks)
+    - [`Import.UnixFSHAMTDirectoryMaxFanout`](#importunixfshamtdirectorymaxfanout)
+    - [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -187,13 +224,17 @@ config file at runtime.
     - [`local-discovery` profile](#local-discovery-profile)
     - [`default-networking` profile](#default-networking-profile)
     - [`flatfs` profile](#flatfs-profile)
+    - [`flatfs-measure` profile](#flatfs-measure-profile)
     - [`pebbleds` profile](#pebbleds-profile)
+    - [`pebbleds-measure` profile](#pebbleds-measure-profile)
     - [`badgerds` profile](#badgerds-profile)
+    - [`badgerds-measure` profile](#badgerds-measure-profile)
     - [`lowpower` profile](#lowpower-profile)
     - [`announce-off` profile](#announce-off-profile)
     - [`announce-on` profile](#announce-on-profile)
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
     - [`test-cid-v1` profile](#test-cid-v1-profile)
+    - [`test-cid-v1-wide` profile](#test-cid-v1-wide-profile)
   - [Types](#types)
     - [`flag`](#flag)
     - [`priority`](#priority)
@@ -217,6 +258,19 @@ Supported Transports:
 
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
 * unix - `/unix/path/to/socket`
+
+> [!CAUTION]
+> **NEVER EXPOSE UNPROTECTED ADMIN RPC TO LAN OR THE PUBLIC INTERNET**
+>
+> The RPC API grants admin-level access to your Kubo IPFS node, including
+> configuration and secret key management.
+>
+> By default, it is bound to localhost for security reasons. Exposing it to LAN
+> or the public internet is highly risky—similar to exposing a SQL database or
+> backend service without authentication middleware
+>
+> - If you need secure access to a subset of RPC, secure it with [`API.Authorizations`](#apiauthorizations) or custom auth middleware running in front of the localhost-only RPC port defined here.
+> - If you are looking for an interface designed for browsers and public internet, use [`Addresses.Gateway`](#addressesgateway) port instead.
 
 Default: `/ip4/127.0.0.1/tcp/5001`
 
@@ -247,6 +301,9 @@ Supported Transports:
 * websocket - `/ipN/.../tcp/.../ws`
 * quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic-v1/webtransport`
 * webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic-v1`
+
+> [!IMPORTANT]
+> Make sure your firewall rules allow incoming connections on both TCP and UDP ports defined here.
 
 Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
@@ -322,7 +379,7 @@ The `API.Authorizations` field defines user-based access restrictions for the
 [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/), which is located at
 `Addresses.API` under `/api/v0` paths.
 
-By default, the RPC API is accessible without restrictions as it is only
+By default, the admin-level RPC API is accessible without restrictions as it is only
 exposed on `127.0.0.1` and safeguarded with Origin check and implicit
 [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) headers that
 block random websites from accessing the RPC.
@@ -331,6 +388,15 @@ When entries are defined in `API.Authorizations`, RPC requests will be declined
 unless a corresponding secret is present in the HTTP [`Authorization` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization),
 and the requested path is included in the `AllowedPaths` list for that specific
 secret.
+
+> [!CAUTION]
+> **NEVER EXPOSE UNPROTECTED ADMIN RPC TO LAN OR THE PUBLIC INTERNET**
+>
+> The RPC API is vast. It grants admin-level access to your Kubo IPFS node, including
+> configuration and secret key management.
+>
+> - If you need secure access to a subset of RPC, make sure you understand the risk, block everything by default and allow basic auth access with [`API.Authorizations`](#apiauthorizations) or custom auth middleware running in front of the localhost-only port defined in [`Addresses.API`](#addressesapi).
+> - If you are looking for an interface designed for browsers and public internet, use [`Addresses.Gateway`](#addressesgateway) port instead.
 
 Default: `null`
 
@@ -410,7 +476,7 @@ field can take one of two values:
 
 * `enabled` - Enable the V1+V2 service (unless the node determines that it,
   itself, isn't reachable by the public internet).
-* `legacy-v1` - Same as `enabled` but only V1 service is enabled. Used for testing
+* `legacy-v1` - **DEPRECATED** Same as `enabled` but only V1 service is enabled. Used for testing
   during as few releases as we [transition to V2](https://github.com/ipfs/kubo/issues/10091), will be removed in the future.
 * `disabled` - Disable the service.
 
@@ -419,7 +485,7 @@ Additional modes may be added in the future.
 > [!IMPORTANT]
 > We are in the progress of [rolling out AutoNAT V2](https://github.com/ipfs/kubo/issues/10091).
 > Right now, by default, a publicly dialable Kubo provides both V1 and V2 service to other peers,
-> but only V1 is used by Kubo as a client. In a future release we will remove V1 and switch client to use V2.
+> and V1 is still used by Kubo for Autorelay feature. In a future release we will remove V1 and switch all features to use V2.
 
 Default: `enabled`
 
@@ -457,12 +523,7 @@ Type: `duration` (when `0`/unset, the default value is used)
 
 ## `AutoTLS`
 
-> [!CAUTION]
-> This is an **EXPERIMENTAL** opt-in feature and should not be used in production yet.
-> Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
-> Track progress in [kubo#10560](https://github.com/ipfs/kubo/issues/10560).
-
-AutoTLS feature enables publicly reachable Kubo nodes (those dialable from the public
+The [AutoTLS](https://blog.libp2p.io/autotls/) feature enables publicly reachable Kubo nodes (those dialable from the public
 internet) to automatically obtain a wildcard TLS certificate for a DNS name
 unique to their PeerID at `*.[PeerID].libp2p.direct`. This enables direct
 libp2p connections and retrieval of IPFS content from browsers [Secure Context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
@@ -474,11 +535,11 @@ broker enabling peer to obtain a wildcard TLS certificate tied to public key of 
 
 By default, the certificates are requested from Let's Encrypt. Origin and rationale for this project can be found in [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003).
 
+<a href="https://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
+
 > [!NOTE]
 > Public good DNS and [p2p-forge] infrastructure at `libp2p.direct` is run by the team at [Interplanetary Shipyard](https://ipshipyard.com).
 >
-> <a href="https://ipshipyard.com/"><img src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
-
 [p2p-forge]: https://github.com/ipshipyard/p2p-forge
 
 Default: `{}`
@@ -487,35 +548,40 @@ Type: `object`
 
 ### `AutoTLS.Enabled`
 
-> [!CAUTION]
-> This is an **EXPERIMENTAL** opt-in feature and should not be used in production yet.
-> Feel free to enable it and [report issues](https://github.com/ipfs/kubo/issues/new/choose) if you want to help with testing.
-> Track progress in [kubo#10560](https://github.com/ipfs/kubo/issues/10560).
+Enables the AutoTLS feature to provide DNS and TLS support for [libp2p Secure WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) over a `/tcp` port,
+to allow JS clients running in web browser [Secure Context](https://w3c.github.io/webappsec-secure-contexts/) to connect to Kubo directly.
 
-Enables AutoTLS feature to get DNS+TLS for [libp2p Secure WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) listeners defined in [`Addresses.Swarm`](#addressesswarm), such as `/ip4/0.0.0.0/tcp/4002/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4002/tls/sni/*.libp2p.direct/ws`.
+When activated, together with [`AutoTLS.AutoWSS`](#autotlsautowss) (default) or manually including a `/tcp/{port}/tls/sni/*.libp2p.direct/ws` multiaddr in [`Addresses.Swarm`](#addressesswarm)
+(with SNI suffix matching [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)), Kubo retrieves a trusted PKI TLS certificate for `*.{peerid}.libp2p.direct` and configures the `/ws` listener to use it.
 
-If `.../tls/sni/*.libp2p.direct/ws` [multiaddr] is present in [`Addresses.Swarm`](#addressesswarm)
-with SNI segment ending with [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix),
-Kubo will obtain and set up a trusted PKI TLS certificate for it, making it dialable from web browser's [Secure Contexts](https://w3c.github.io/webappsec-secure-contexts/).
+**Note:**
 
-> [!IMPORTANT]
-> Caveats:
-> - Requires your Kubo node to be publicly dialable.
->   - If you want to test this with a node that is behind a NAT and uses manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`),
->     add catch-all `/ip4/0.0.0.0/tcp/4002/tls/sni/*.libp2p.direct/ws` and `/ip6/::/tcp/4002/tls/sni/*.libp2p.direct/ws` to [`Addresses.Swarm`](#addressesswarm)
->     and **wait 5-15 minutes** for libp2p node to set up and learn about own public addresses via [AutoNAT](#autonat).
->   - If your node is fresh and just started, the [p2p-forge] client may produce and log ERRORs during this time, but once a publicly dialable addresses are set up, a subsequent retry should be successful.
-> - Listeners defined in [`Addresses.Swarm`](#addressesswarm) with `/tls/sni` must use a separate port from other TCP listeners, e.g. `4002` instead of the default `4001`.
->   - A separate port (`/tcp/4002`) has to be used instead of `/tcp/4001` because we wait for TCP port sharing ([go-libp2p#2984](https://github.com/libp2p/go-libp2p/issues/2684)) to be implemented.
->   - If you use manual port forwarding, make sure incoming connections to this additional port are allowed the same way `4001` ones already are.
-> - The TLS certificate is used only for [libp2p WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) connections.
->   - Right now, this is NOT used for hosting a [Gateway](#gateway) over HTTPS (that use case still requires manual TLS setup on reverse proxy, and your own domain).
+- This feature requires a publicly reachable node. If behind NAT, manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`) is required.
+- The first time AutoTLS is used, it may take 5-15 minutes + [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay) before `/ws` listener is added. Be patient.
+- Avoid manual configuration. [`AutoTLS.AutoWSS=true`](#autotlsautowss) should automatically add `/ws` listener to existing, firewall-forwarded `/tcp` ports.
+- To troubleshoot, use `GOLOG_LOG_LEVEL="error,autotls=debug` for detailed logs, or `GOLOG_LOG_LEVEL="error,autotls=info` for quieter output.
+- Certificates are stored in `$IPFS_PATH/p2p-forge-certs`; deleting this directory and restarting the daemon forces a certificate rotation.
+- For now, the TLS cert applies solely to `/ws` libp2p WebSocket connections, not HTTP [`Gateway`](#gateway), which still need separate reverse proxy TLS setup with a custom domain.
 
-> [!TIP]
-> - Debugging can be enabled by setting environment variable `GOLOG_LOG_LEVEL="error,autotls=debug,p2p-forge/client=debug"`
-> - Certificates are stored in `$IPFS_PATH/p2p-forge-certs`. Removing directory and restarting daemon will trigger certificate rotation.
+Default: `true`
 
-Default: `false`
+Type: `flag`
+
+### `AutoTLS.AutoWSS`
+
+Optional. Controls if Kubo should add `/tls/sni/*.libp2p.direct/ws` listener to every pre-existing `/tcp` port IFF no explicit `/ws` is defined in [`Addresses.Swarm`](#addressesswarm) already.
+
+Default: `true` (if `AutoTLS.Enabled`)
+
+Type: `flag`
+
+### `AutoTLS.ShortAddrs`
+
+Optional. Controls if final AutoTLS listeners are announced under shorter `/dnsX/A.B.C.D.peerid.libp2p.direct/tcp/4001/tls/ws` addresses instead of fully resolved `/ip4/A.B.C.D/tcp/4001/tls/sni/A-B-C-D.peerid.libp2p.direct/tls/ws`.
+
+The main use for AutoTLS is allowing connectivity from Secure Context in a web browser, and DNS lookup needs to happen there anyway, making `/dnsX` a more compact, more interoperable option without obvious downside.
+
+Default: `true`
 
 Type: `flag`
 
@@ -551,6 +617,17 @@ Default: `""`
 
 Type: `optionalString`
 
+### `AutoTLS.RegistrationDelay`
+
+An additional delay applied before sending a request to the `RegistrationEndpoint`.
+
+The default delay is bypassed if the user explicitly set `AutoTLS.Enabled=true` in the JSON configuration file.
+This ensures that ephemeral nodes using the default configuration do not spam the`AutoTLS.CAEndpoint` with unnecessary ACME requests.
+
+Default: `1h` (or `0` if explicit `AutoTLS.Enabled=true`)
+
+Type: `optionalDuration`
+
 ### `AutoTLS.CAEndpoint`
 
 Optional override of CA ACME API used by [p2p-forge] system.
@@ -562,6 +639,37 @@ Do not change this unless you self-host [p2p-forge] under own domain.
 Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddyserver/certmagic#pkg-constants) (see [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003))
 
 Type: `optionalString`
+
+## `Bitswap`
+
+High level client and server configuration of the [Bitswap Protocol](https://specs.ipfs.tech/bitswap-protocol/) over libp2p.
+
+For internal configuration see [`Internal.Bitswap`](#internalbitswap).
+
+For HTTP version see [`HTTPRetrieval`](#httpretrieval).
+
+### `Bitswap.Libp2pEnabled`
+
+Determines whether Kubo will use Bitswap over libp2p.
+
+Disabling this, will remove `/ipfs/bitswap/*` protocol support from [libp2p identify](https://github.com/libp2p/specs/blob/master/identify/README.md) responses, effectively shutting down both Bitswap libp2p client and server.
+
+> [!WARNING]
+> Bitswap over libp2p is a core component of Kubo and the oldest way of exchanging blocks. Disabling it completely may cause unpredictable outcomes, such as retrieval failures, if the only providers were libp2p ones. Treat this as experimental and use it solely for testing purposes with `HTTPRetrieval.Enabled`.
+
+Default: `true`
+
+Type: `flag`
+
+### `Bitswap.ServerEnabled`
+
+Determines whether Kubo functions as a Bitswap server to host and respond to block requests.
+
+Disabling the server retains client and protocol support in [libp2p identify](https://github.com/libp2p/specs/blob/master/identify/README.md) responses but causes Kubo to reply with "don't have" to all block requests.
+
+Default: `true` (requires `Bitswap.Libp2pEnabled`)
+
+Type: `flag`
 
 ## `Bootstrap`
 
@@ -629,9 +737,47 @@ we'd want to use 1199120 bytes. As of writing, [7 hash
 functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22)
 are used, so the constant `k` is 7 in the formula.
 
+Enabling the BloomFilter can provide performance improvements specially when
+responding to many requests for inexistent blocks. It however requires a full
+sweep of all the datastore keys on daemon start. On very large datastores this
+can be a very taxing operation, particularly if the datastore does not support
+querying existing keys without reading their values at the same time (blocks).
+
 Default: `0` (disabled)
 
 Type: `integer` (non-negative, bytes)
+
+### `Datastore.WriteThrough`
+
+This option controls whether a block that already exist in the datastore
+should be written to it. When set to `false`, a `Has()` call is performed
+against the datastore prior to writing every block. If the block is already
+stored, the write is skipped. This check happens both on the Blockservice and
+the Blockstore layers and this setting affects both.
+
+When set to `true`, no checks are performed and blocks are written to the
+datastore, which depending on the implementation may perform its own checks.
+
+This option can affect performance and the strategy should be taken in
+conjunction with [`BlockKeyCacheSize`](#datastoreblockkeycachesize) and
+[`BloomFilterSize`](#datastoreboomfiltersize`).
+
+Default: `true`
+
+Type: `bool`
+
+### `Datastore.BlockKeyCacheSize`
+
+A number representing the maximum size in bytes of the blockstore's Two-Queue
+cache, which caches block-cids and their block-sizes. Use `0` to disable.
+
+This cache, once primed, can greatly speed up operations like `ipfs repo stat`
+as there is no need to read full blocks to know their sizes. Size should be
+adjusted depending on the number of CIDs on disk (`NumObjects in `ipfs repo stat`).
+
+Default: `65536` (64KiB)
+
+Type: `optionalInteger` (non-negative, bytes)
 
 ### `Datastore.Spec`
 
@@ -643,6 +789,30 @@ datastores to provide extra functionality (eg metrics, logging, or caching).
 > For more information on possible values for this configuration option, see [`kubo/docs/datastores.md`](datastores.md)
 
 Default:
+```
+{
+  "mounts": [
+  {
+    "mountpoint": "/blocks",
+    "path": "blocks",
+    "prefix": "flatfs.datastore",
+    "shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+    "sync": false,
+    "type": "flatfs"
+  },
+  {
+    "compression": "none",
+    "mountpoint": "/",
+    "path": "datastore",
+    "prefix": "leveldb.datastore",
+    "type": "levelds"
+  }
+  ],
+  "type": "mount"
+}
+```
+
+With `flatfs-measure` profile:
 ```
 {
   "mounts": [
@@ -684,7 +854,7 @@ Options for [ZeroConf](https://github.com/libp2p/zeroconf#readme) Multicast DNS-
 
 #### `Discovery.MDNS.Enabled`
 
-A boolean value for whether or not Multicast DNS-SD should be active.
+A boolean value to activate or deactivate Multicast DNS-SD.
 
 Default: `true`
 
@@ -772,7 +942,7 @@ Type: `object[string -> array[string]]`
 
 ### `Gateway.RootRedirect`
 
-A url to redirect requests for `/` to.
+A URL to redirect requests for `/` to.
 
 Default: `""`
 
@@ -801,7 +971,7 @@ We are working on developing a modern replacement. To support our efforts, pleas
 on specified hostnames that point at your Kubo instance.
 
 It is useful when you want to run [Path gateway](https://specs.ipfs.tech/http-gateways/path-gateway/) on `example.com/ipfs/cid`,
-and [Subdomain gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/) on `cid.ipfs.example.org`, 
+and [Subdomain gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/) on `cid.ipfs.example.org`,
 or limit `verifiable.example.net` to response types defined in [Trustless Gateway](https://specs.ipfs.tech/http-gateways/trustless-gateway/) specification.
 
 > [!CAUTION]
@@ -839,7 +1009,7 @@ Type: `array[string]`
 #### `Gateway.PublicGateways: UseSubdomains`
 
 A boolean to configure whether the gateway at the hostname should be
-a [Subdomain Gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/) 
+a [Subdomain Gateway](https://specs.ipfs.tech/http-gateways/subdomain-gateway/)
 and provide [Origin isolation](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)
 between content roots.
 
@@ -949,7 +1119,7 @@ $ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 
 ### `Gateway` recipes
 
-Below is a list of the most common public gateway setups.
+Below is a list of the most common gateway setups.
 
 * Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
    ```console
@@ -960,11 +1130,12 @@ Below is a list of the most common public gateway setups.
        }
      }'
    ```
+   - **Performance:** consider running with `Routing.AcceleratedDHTClient=true` and either `Provider.Enabled=false` (avoid providing newly retrieved blocks) or `Provider.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
    - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
 
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
 
-   - **X-Forwarded-Proto:** if you run Kubo behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
+   - **X-Forwarded-Proto:** if you run Kubo behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcard TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
 
      `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
 
@@ -984,6 +1155,7 @@ Below is a list of the most common public gateway setups.
        }
      }'
    ```
+   - **Performance:** when running an open, recursive gateway consider running with `Routing.AcceleratedDHTClient=true` and either `Provider.Enabled=false` (avoid providing newly retrieved blocks) or `Provider.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
 
 * Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
   ```console
@@ -1033,6 +1205,10 @@ This section includes internal knobs for various subsystems to allow advanced us
 ### `Internal.Bitswap`
 
 `Internal.Bitswap` contains knobs for tuning bitswap resource utilization.
+
+> [!TIP]
+> For high level configuration see [`Bitswap`](#bitswap).
+
 The knobs (below) document how their value should related to each other.
 Whether their values should be raised or lowered should be determined
 based on the metrics `ipfs_bitswap_active_tasks`, `ipfs_bitswap_pending_tasks`,
@@ -1099,7 +1275,7 @@ deteriorate the quality provided to less aggressively-wanting peers.
 
 Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 
-### `Internal.Bitswap.ProviderSearchDelay`
+#### `Internal.Bitswap.ProviderSearchDelay`
 
 This parameter determines how long to wait before looking for providers outside of bitswap.
 Other routing systems like the Amino DHT are able to provide results in less than a second, so lowering
@@ -1107,17 +1283,72 @@ this number will allow faster peers lookups in some cases.
 
 Type: `optionalDuration` (`null` means default which is 1s)
 
+#### `Internal.Bitswap.ProviderSearchMaxResults`
+
+Maximum number of providers bitswap client should aim at before it stops searching for new ones.
+Setting to 0 means unlimited.
+
+Type: `optionalInteger` (`null` means default which is 10)
+
+#### `Internal.Bitswap.BroadcastControl`
+
+`Internal.Bitswap.BroadcastControl` contains settings for the bitswap client's broadcast control functionality.
+
+Broadcast control tries to reduce the number of bitswap broadcast messages sent to peers by choosing a subset of of the peers to send to. Peers are chosen based on whether they have previously responded indicating they have wanted blocks, as well as other configurable criteria. The settings here change how peers are selected as broadcast targets. Broadcast control can also be completely disabled to return bitswap to its previous behavior before broadcast control was introduced.
+
+Enabling broadcast control should generally reduce the number of broadcasts significantly without significantly degrading the ability to discover which peers have wanted blocks. However, if block discovery on your network relies sufficiently on broadcasts to discover peers that have wanted blocks, then adjusting the broadcast control configuration or disabling it altogether, may be helpful.
+
+##### `Internal.Bitswap.BroadcastControl.Enable`
+
+Enables or disables broadcast control functionality. Setting this to `false` disables broadcast reduction logic and restores the previous (Kubo < 0.36) broadcast behavior of sending broadcasts to all peers. When disabled, all other `Bitswap.BroadcastControl` configuration items are ignored.
+
+Default: `true` (Enabled)
+
+Type: `flag`
+
+##### `Internal.Bitswap.BroadcastControl.MaxPeers`
+
+Sets a hard limit on the number of peers to send broadcasts to. A value of `0` means no broadcasts are sent. A value of `-1` means there is no limit.
+
+Default: `0` (no limit)
+
+Type: `optionalInteger` (non-negative, 0 means no limit)
+
+##### `Internal.Bitswap.BroadcastControl.LocalPeers`
+
+Enables or disables broadcast control for peers on the local network. Peers that have private or loopback addresses are considered to be on the local network. If this setting is `false`, than always broadcast to peers on the local network. If `true`, apply broadcast control to local peers.
+
+Default: `false` (Always broadcast to peers on local network)
+
+Type: `flag`
+
+##### `Internal.Bitswap.BroadcastControl.PeeredPeers`
+
+Enables or disables broadcast reduction for peers configured for peering. If `false`, than always broadcast to peers configured for peering. If `true`, apply broadcast reduction to peered peers.
+
+Default: `false` (Always broadcast to peers configured for peering)
+
+Type: `flag`
+
+##### `Internal.Bitswap.BroadcastControl.MaxRandomPeers`
+
+Sets the number of peers to broadcast to anyway, even though broadcast control logic has determined that they are not broadcast targets. Setting this to a non-zero value ensures at least this number of random peers receives a broadcast. This may be helpful in cases where peers that are not receiving broadcasts my have wanted blocks.
+
+Default: `0` (do not send broadcasts to peers not already targeted broadcast control)
+
+Type: `optionalInteger` (non-negative, 0 means do not broadcast to any random peers)
+
+##### `Internal.Bitswap.BroadcastControl.SendToPendingPeers`
+
+Enables or disables sending broadcasts to any peers to which there is a pending message to send. When enabled, this sends broadcasts to many more peers, but does so in a way that does not increase the number of separate broadcast messages. There is still the increased cost of the recipients having to process and respond to the broadcasts.
+
+Default: `false` (Do not send broadcasts to all peers for which there are pending messages)
+
+Type: `flag`
+
 ### `Internal.UnixFSShardingSizeThreshold`
 
-The sharding threshold used internally to decide whether a UnixFS directory should be sharded or not.
-This value is not strictly related to the size of the UnixFS directory block and any increases in
-the threshold should come with being careful that block sizes stay under 2MiB in order for them to be
-reliably transferable through the networking stack (IPFS peers on the public swarm tend to ignore requests for blocks bigger than 2MiB).
-
-Decreasing this value to 1B is functionally equivalent to the previous experimental sharding option to
-shard all directories.
-
-Type: `optionalBytes` (`null` means default which is 256KiB)
+**MOVED:** see [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
 
 ## `Ipns`
 
@@ -1205,7 +1436,11 @@ Default: `cache`
 
 ## `Mounts`
 
-**EXPERIMENTAL:** read about current limitations at [fuse.md](./fuse.md).
+> [!CAUTION]
+> **EXPERIMENTAL:**
+> This feature is disabled by default, requires an explicit opt-in with  `ipfs mount` or `ipfs daemon --mount`.
+>
+> Read about current limitations at [fuse.md](./fuse.md).
 
 FUSE mount point configuration options.
 
@@ -1225,9 +1460,21 @@ Default: `/ipns`
 
 Type: `string` (filesystem path)
 
+### `Mounts.MFS`
+
+Mountpoint for Mutable File System (MFS) behind the `ipfs files` API.
+
+> [!CAUTION]
+> - Write support is highly experimental and not recommended for mission-critical deployments.
+> - Avoid storing lazy-loaded datasets in MFS. Exposing a partially local, lazy-loaded DAG risks operating system search indexers crawling it, which may trigger unintended network prefetching of non-local DAG components.
+
+Default: `/mfs`
+
+Type: `string` (filesystem path)
+
 ### `Mounts.FuseAllowOther`
 
-Sets the 'FUSE allow other'-option on the mount point.
+Sets the 'FUSE allow-other' option on the mount point.
 
 ## `Pinning`
 
@@ -1317,6 +1564,56 @@ If left empty, the default interval will be used. Values lower than `1m` will be
 Default: `"5m"`
 
 Type: `duration`
+
+## `Provider`
+
+Configuration applied to the initial one-time announcement of fresh CIDs
+created with `ipfs add`, `ipfs files`, `ipfs dag import`, `ipfs block|dag put`
+commands.
+
+For periodical DHT reprovide settings, see [`Reprovide.*`](#reprovider).
+
+### `Provider.Enabled`
+
+Controls whether Kubo provider and reprovide systems are enabled.
+
+> [!CAUTION]
+> Disabling this, will disable BOTH `Provider` system for new CIDs
+> and the periodical reprovide ([`Reprovider.Interval`](#reprovider)) of old CIDs.
+
+Default: `true`
+
+Type: `flag`
+
+### `Provider.Strategy`
+
+Legacy, not used at the moment, see [`Reprovider.Strategy`](#reproviderstrategy) instead.
+
+### `Provider.WorkerCount`
+
+Sets the maximum number of _concurrent_ DHT provide operations (announcement of new CIDs).
+
+[`Reprovider`](#reprovider) operations do **not** count against this limit.
+A value of `0` allows an unlimited number of provide workers.
+
+If the [accelerated DHT client](#routingaccelerateddhtclient) is enabled, each
+provide operation opens ~20 connections in parallel. With the standard DHT
+client (accelerated disabled), each provide opens between 20 and 60
+connections, with at most 10 active at once. Provides complete more quickly
+when using the accelerated client. Be mindful of how many simultaneous
+connections this setting can generate.
+
+> [!CAUTION]
+> For nodes without strict connection limits that need to provide large volumes
+> of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
+> setting `Provider.WorkerCount` to `0` (unlimited).
+>
+> At the same time, mind that raising this value too high may lead to increased load.
+> Proceed with caution, ensure proper hardware and networking are in place.
+
+Default: `16`
+
+Type: `optionalInteger` (non-negative; `0` means unlimited number of workers)
 
 ## `Pubsub`
 
@@ -1494,7 +1791,11 @@ system.
 Note: disabling content reproviding will result in other nodes on the network
 not being able to discover that you have the objects that you have. If you want
 to have this disabled and keep the network aware of what you have, you must
-manually announce your content periodically.
+manually announce your content periodically or run your own routing system
+and convince users to add it to [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+
+> [!CAUTION]
+> To maintain backward-compatibility, setting `Reprovider.Interval=0` will also disable Provider system (equivalent of `Provider.Enabled=false`)
 
 Default: `22h` (`DefaultReproviderInterval`)
 
@@ -1505,10 +1806,10 @@ Type: `optionalDuration` (unset for the default)
 Tells reprovider what should be announced. Valid strategies are:
 
 - `"all"` - announce all CIDs of stored blocks
-  - Order: root blocks of direct and recursive pins are announced first, then the rest of blockstore
-- `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks)
+  - Order: root blocks of direct and recursive pins and MFS root are announced first, then the rest of blockstore
+- `"pinned"` - only announce recursively pinned CIDs (`ipfs pin add -r`, both roots and child blocks)
   - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
-- `"roots"` - only announce the root block of explicitly pinned CIDs
+- `"roots"` - only announce the root block of explicitly pinned CIDs (`ipfs pin add`)
   - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
     It makes sense only for use cases where the entire DAG is fetched in full,
     and a graceful resume does not have to be guaranteed: the lack of child
@@ -1516,7 +1817,17 @@ Tells reprovider what should be announced. Valid strategies are:
     providers for the missing block in the middle of a file, unless the peer
     happens to already be connected to a provider and ask for child CID over
     bitswap.
-- `"flat"` - same as `all`, announce all CIDs of stored blocks, but without prioritizing anything
+- `"mfs"` - announce only the local CIDs that are part of the MFS (`ipfs files`)
+   - Note: MFS is lazy-loaded. Only the MFS blocks present in local datastore are announced.
+- `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
+  - **ℹ️ NOTE:** This is the suggested strategy for users who run without GC and don't want to provide everything in cache.
+  - Order: first `pinned` and then the locally available part of `mfs`.
+- `"flat"` - same as `all`, announce all CIDs of stored blocks, but without prioritizing anything.
+
+> [!IMPORTANT]
+> Reproviding larger pinsets using the `all`, `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
+> This is due to the use of a buffered provider, which avoids holding a lock on the entire pinset during the reprovide cycle.
+> The `flat` strategy can be used to lower memory requirements, but only recommended if memory utilization is too high, prioritization of pins is not necessary, and it is acceptable to announce every block cached in the local repository.
 
 Default: `"all"`
 
@@ -1531,7 +1842,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
 
 * **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
-  and parallel HTTP routers listed below for additional speed.
+  and parallel [`Routing.DelegatedRouters`](#routingdelegatedrouters) for additional speed.
 
 * If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
 
@@ -1561,15 +1872,13 @@ To force a specific Amino DHT-only mode, client or server, set `Routing.Type` to
 unless you're sure your node is reachable from the public network.
 
 When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate some types of routing
-by leveraging HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
+by leveraging [`Routing.DelegatedRouters`](#routingdelegatedrouters) HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
 introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
 in addition to the Amino DHT.
-By default, an instance of [IPNI](https://github.com/ipni/specs/blob/main/IPNI.md#readme)
-at https://cid.contact is used.
 
-Alternative routing rules can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
+[Advanced routing rules](https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md) can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
 
-Default: `auto` (DHT + IPNI)
+Default: `auto` (DHT + [`Routing.DelegatedRouters`](#routingdelegatedrouters))
 
 Type: `optionalString` (`null`/missing means the default)
 
@@ -1632,13 +1941,46 @@ Default: `false`
 
 Type: `bool` (missing means `false`)
 
+### `Routing.IgnoreProviders`
+
+An array of [string-encoded PeerIDs](https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#string-representation). Any provider record associated to one of these peer IDs is ignored.
+
+Apart from ignoring specific providers for reasons like misbehaviour etc. this
+setting is useful to ignore providers as a way to indicate preference, when the same provider
+is found under different peerIDs (i.e. one for HTTP and one for Bitswap retrieval).
+
+> [!TIP]
+> This denylist operates on PeerIDs.
+> To deny specific HTTP Provider URL, use [`HTTPRetrieval.Denylist`](#httpretrievaldenylist) instead.
+
+Default: `[]`
+
+Type: `array[string]`
+
+### `Routing.DelegatedRouters`
+
+An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
+These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
+
+> [!TIP]
+> Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
+>
+> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
+
+Default: `["https://cid.contact"]` (empty or `nil` will also use this default; to disable delegated routing, set `Routing.Type` to `dht` or `dhtclient`)
+
+Type: `array[string]`
+
 ### `Routing.Routers`
 
-**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+Alternative configuration used when `Routing.Type=custom`.
 
-Map of additional Routers.
+> [!WARNING]
+> **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+>
+> Consider this advanced low-level config: Most users can simply use `Routing.Type=auto` or `autoclient` and set up basic config in user-friendly [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
 
-Allows for extending the default routing (Amino DHT) with alternative Router
+Allows for replacing the default routing (Amino DHT) with alternative Router
 implementations.
 
 The map key is a name of a Router, and the value is its configuration.
@@ -1698,7 +2040,14 @@ Type: `object[string->string]`
 
 ### `Routing: Methods`
 
-`Methods:map` will define which routers will be executed per method. The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list.
+`Methods:map` will define which routers will be executed per method used when `Routing.Type=custom`.
+
+> [!WARNING]
+> **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+>
+> Consider this advanced low-level config: Most users can simply use `Routing.Type=auto` or `autoclient` and set up basic config in user-friendly [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+
+The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list.
 
 The value will contain:
 - `RouterName:string`: Name of the router. It should be one of the previously added to `Routing.Routers` list.
@@ -2009,8 +2358,9 @@ Type: `optionalString` (default when unset or empty)
 
 The basic connection manager uses a "high water", a "low water", and internal
 scoring to periodically close connections to free up resources. When a node
-using the basic connection manager reaches `HighWater` idle connections, it will
-close the least useful ones until it reaches `LowWater` idle connections.
+using the basic connection manager reaches `HighWater` idle connections, it
+will close the least useful ones until it reaches `LowWater` idle
+connections. The process of closing connections happens every `SilencePeriod`.
 
 The connection manager considers a connection idle if:
 
@@ -2029,7 +2379,8 @@ The connection manager considers a connection idle if:
       "Type": "basic",
       "LowWater": 100,
       "HighWater": 200,
-      "GracePeriod": "30s"
+      "GracePeriod": "30s",
+      "SilencePeriod": "10s"
     }
   }
 }
@@ -2063,6 +2414,14 @@ Default: `"20s"`
 
 Type: `optionalDuration`
 
+##### `Swarm.ConnMgr.SilencePeriod`
+
+SilencePeriod is the time duration between connection manager runs, when connections that are idle are closed.
+
+Default: `"10s"`
+
+Type: `optionalDuration`
+
 ### `Swarm.ResourceMgr`
 
 Learn more about Kubo's usage of libp2p Network Resource Manager
@@ -2077,13 +2436,19 @@ Type: `flag`
 
 #### `Swarm.ResourceMgr.MaxMemory`
 
-This is the max amount of memory to allow libp2p to use.
+This is the max amount of memory to allow go-libp2p to use.
+
 libp2p's resource manager will prevent additional resource creation while this limit is reached.
 This value is also used to scale the limit on various resources at various scopes
 when the default limits (discussed in [libp2p resource management](./libp2p-resource-management.md)) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
 It is possible to inspect the runtime limits via `ipfs swarm resources --help`.
+
+> [!IMPORTANT]
+> `Swarm.ResourceMgr.MaxMemory` is the memory limit for go-libp2p networking stack alone, and not for entire Kubo or Bitswap.
+>
+> To set memory limit for the entire Kubo process, use [`GOMEMLIMIT` environment variable](http://web.archive.org/web/20240222201412/https://kupczynski.info/posts/go-container-aware/) which all Go programs recognize, and then set `Swarm.ResourceMgr.MaxMemory` to less than your custom `GOMEMLIMIT`.
 
 Default: `[TOTAL_SYSTEM_MEMORY]/2`
 Type: `optionalBytes`
@@ -2150,8 +2515,8 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
-* /ip4/0.0.0.0/tcp/4002/ws
-* /ip6/::/tcp/4002/ws
+* /ip4/0.0.0.0/tcp/4001/ws
+* /ip6/::/tcp/4001/ws
 
 #### `Swarm.Transports.Network.QUIC`
 
@@ -2353,11 +2718,11 @@ Example:
 Be mindful that:
 - Currently only `https://` URLs for [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported as values.
 - The default catch-all resolver is the cleartext one provided by your operating system. It can be overridden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
-- Out-of-the-box support for selected decentralized TLDs relies on a [centralized service which is provided on best-effort basis](https://www.cloudflare.com/distributed-web-gateway-terms/). The implicit DoH resolvers are:
+- Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis. The implicit DoH resolvers are:
   ```json
   {
-    "eth.": "https://resolver.cloudflare-eth.com/dns-query",
-    "crypto.": "https://resolver.cloudflare-eth.com/dns-query"
+    "eth.": "https://dns.eth.limo/dns-query",
+    "crypto.": "https://resolver.unstoppable.io/dns-query"
   }
   ```
   To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
@@ -2382,6 +2747,101 @@ Note: this does NOT work with Go's default DNS resolver. To make this a global s
 Default: Respect DNS Response TTL
 
 Type: `optionalDuration`
+
+## `HTTPRetrieval`
+
+`HTTPRetrieval` is configuration for pure HTTP retrieval based on Trustless HTTP Gateways'
+[Block Responses (`application/vnd.ipld.raw`)](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
+which can be used in addition to or instead of retrieving blocks with [Bitswap over Libp2p](#bitswap).
+
+Default: `{}`
+
+Type: `object`
+
+### `HTTPRetrieval.Enabled`
+
+Controls whether HTTP-based block retrieval is enabled.
+
+When enabled, Kubo will act on `/tls/http` (HTTP/2) providers ([Trustless HTTP Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/)) returned by the [`Routing.DelegatedRouters`](#routingdelegatedrouters)
+to perform pure HTTP [block retrievals](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
+(`/ipfs/cid?format=raw`, `Accept: application/vnd.ipld.raw`)
+alongside [Bitswap over Libp2p](#bitswap).
+
+HTTP requests for `application/vnd.ipld.raw` will be made instead of Bitswap when a peer has a `/tls/http` multiaddr
+and the HTTPS server returns HTTP 200 for the [probe path](https://specs.ipfs.tech/http-gateways/trustless-gateway/#dedicated-probe-paths).
+
+> [!IMPORTANT]
+> This feature is relatively new. Please report any issues via [Github](https://github.com/ipfs/kubo/issues/new).
+>
+> Important notes:
+> - TLS and HTTP/2 are required. For privacy reasons, and to maintain feature-parity with browsers, unencrypted `http://` providers are ignored and not used.
+> - This feature works in the same way as Bitswap: connected HTTP-peers receive optimistic block requests even for content that they are not announcing.
+> - For performance reasons, and to avoid loops, the HTTP client does not follow redirects. Providers should keep announcements up to date.
+> - IPFS ecosystem is working towards [supporting HTTP providers on Amino DHT](https://github.com/ipfs/specs/issues/496). Currently, HTTP providers are mostly limited to results from [`Routing.DelegatedRouters`](#routingdelegatedrouters) endpoints and requires `Routing.Type=auto|autoclient`.
+
+Default: `true`
+
+Type: `flag`
+
+### `HTTPRetrieval.Allowlist`
+
+Optional list of hostnames for which HTTP retrieval is allowed for.
+If this list is not empty, only hosts matching these entries will be allowed for HTTP retrieval.
+
+> [!TIP]
+> To limit HTTP retrieval to a provider at `/dns4/example.com/tcp/443/tls/http` (which would serve `HEAD|GET https://example.com/ipfs/cid?format=raw`), set this to `["example.com"]`
+
+Default: `[]`
+
+Type: `array[string]`
+
+### `HTTPRetrieval.Denylist`
+
+Optional list of hostnames for which HTTP retrieval is not allowed.
+Denylist entries take precedence over Allowlist entries.
+
+
+> [!TIP]
+> This denylist operates on HTTP endpoint hostnames.
+> To deny specific PeerID, use [`Routing.IgnoreProviders`](#routingignoreproviders) instead.
+
+Default: `[]`
+
+Type: `array[string]`
+
+### `HTTPRetrieval.NumWorkers`
+
+The number of worker goroutines to use for concurrent HTTP retrieval operations.
+This setting controls the level of parallelism for HTTP-based block retrieval operations.
+Higher values can improve performance when retrieving many blocks but may increase resource usage.
+
+Default: `16`
+
+Type: `optionalInteger`
+
+### `HTTPRetrieval.MaxBlockSize`
+
+Sets the maximum size of a block that the HTTP retrieval client will accept.
+
+> [!NOTE]
+> This setting is a security feature designed to protect Kubo from malicious providers who might send excessively large or invalid data.
+> Increasing this value allows Kubo to retrieve larger blocks from compatible HTTP providers, but doing so reduces interoperability with Bitswap, and increases potential security risks.
+>
+> Learn more: [Supporting Large IPLD Blocks: Why block limits?](https://discuss.ipfs.tech/t/supporting-large-ipld-blocks/15093#why-block-limits-5)
+
+Default: `2MiB` (matching [Bitswap size limit](https://specs.ipfs.tech/bitswap-protocol/#block-sizes))
+
+Type: `optionalString`
+
+### `HTTPRetrieval.TLSInsecureSkipVerify`
+
+Disables TLS certificate validation.
+Allows making HTTPS connections to HTTP/2 test servers with self-signed TLS certificates.
+Only for testing, do not use in production.
+
+Default: `false`
+
+Type: `flag`
 
 ## `Import`
 
@@ -2420,6 +2880,100 @@ The default hash function. Commands affected: `ipfs add`, `ipfs block put`, `ipf
 Default: `sha2-256`
 
 Type: `optionalString`
+
+### `Import.BatchMaxNodes`
+
+The maximum number of nodes in a write-batch. The total size of the batch is limited by `BatchMaxnodes` and `BatchMaxSize`.
+
+Increasing this will batch more items together when importing data with `ipfs dag import`, which can speed things up.
+
+Default: `128`
+
+Type: `optionalInteger`
+
+### `Import.BatchMaxSize`
+
+The maximum size of a single write-batch (computed as the sum of the sizes of the blocks). The total size of the batch is limited by `BatchMaxnodes` and `BatchMaxSize`.
+
+Increasing this will batch more items together when importing data with `ipfs dag import`, which can speed things up.
+
+Default: `20971520` (20MiB)
+
+Type: `optionalInteger`
+
+### `Import.UnixFSFileMaxLinks`
+
+The maximum number of links that a node part of a UnixFS File can have
+when building the DAG while importing.
+
+This setting controls both the fanout in files that are chunked into several
+blocks and grouped as a Unixfs (dag-pb) DAG.
+
+Default: `174`
+
+Type: `optionalInteger`
+
+### `Import.UnixFSDirectoryMaxLinks`
+
+The maximum number of links that a node part of a UnixFS basic directory can
+have when building the DAG while importing.
+
+This setting controls both the fanout for basic, non-HAMT folder nodes. It
+sets a limit after which directories are converted to a HAMT-based structure.
+
+When unset (0), no limit exists for chilcren. Directories will be converted to
+HAMTs based on their estimated size only.
+
+This setting will cause basic directories to be converted to HAMTs when they
+exceed the maximum number of children. This happens transparently during the
+add process. The fanout of HAMT nodes is controlled by `MaxHAMTFanout`.
+
+Commands affected: `ipfs add`
+
+Default: `0` (no limit, because [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold) triggers controls when to switch to HAMT sharding when a directory grows too big)
+
+Type: `optionalInteger`
+
+### `Import.UnixFSHAMTDirectoryMaxFanout`
+
+The maximum number of children that a node part of a Unixfs HAMT directory
+(aka sharded directory) can have.
+
+HAMT directory have unlimited children and are used when basic directories
+become too big or reach `MaxLinks`. A HAMT is an structure made of unixfs
+nodes that store the list of elements in the folder. This option controls the
+maximum number of children that the HAMT nodes can have.
+
+Needs to be a power of two (shard entry size) and multiple of 8 (bitfield size).
+
+Commands affected: `ipfs add`, `ipfs daemon` (globally overrides [`boxo/ipld/unixfs/io.DefaultShardWidth`](https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L30C5-L30C22))
+
+Default: `256`
+
+Type: `optionalInteger`
+
+### `Import.UnixFSHAMTDirectorySizeThreshold`
+
+The sharding threshold to decide whether a basic UnixFS directory
+should be sharded (converted into HAMT Directory) or not.
+
+This value is not strictly related to the size of the UnixFS directory block
+and any increases in the threshold should come with being careful that block
+sizes stay under 2MiB in order for them to be reliably transferable through the
+networking stack. At the time of writing this, IPFS peers on the public swarm
+tend to ignore requests for blocks bigger than 2MiB.
+
+Uses implementation from `boxo/ipld/unixfs/io/directory`, where the size is not
+the *exact* block size of the encoded directory but just the estimated size
+based byte length of DAG-PB Links names and CIDs.
+
+Setting to `1B` is functionally equivalent to always using HAMT (useful in testing).
+
+Commands affected: `ipfs add`, `ipfs daemon` (globally overrides [`boxo/ipld/unixfs/io.HAMTShardingSize`](https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L26))
+
+Default: `256KiB` (may change, inspect `DefaultUnixFSHAMTDirectorySizeThreshold` to confirm)
+
+Type: `optionalBytes`
 
 ## `Version`
 
@@ -2527,6 +3081,10 @@ You should use this datastore if:
 > [!NOTE]
 > See caveats and configuration options at [`datastores.md#flatfs`](datastores.md#flatfs)
 
+### `flatfs-measure` profile
+
+Configures the node to use the flatfs datastore with metrics. This is the same as [`flatfs` profile](#flatfs-profile) with the addition of the `measure` datastore wrapper.
+
 ### `pebbleds` profile
 
 Configures the node to use the pebble high-performance datastore.
@@ -2535,7 +3093,7 @@ Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and 
 You should use this datastore if:
 
 - You need a datastore that is focused on performance.
-- You need a datastore that is good for multi-terrabyte data sets.
+- You need a datastore that is good for multi-terabyte data sets.
 - You need reliability by default, but may choose to disable WAL for maximum performance when reliability is not critical.
 - You want a datastore that does not need GC cycles and does not use more space than necessary
 - You want a datastore that does not take several minutes to start with large repositories
@@ -2547,9 +3105,13 @@ You should use this datastore if:
 > [!NOTE]
 > See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
 
+### `pebbleds-measure` profile
+
+Configures the node to use the pebble datastore with metrics. This is the same as [`pebbleds` profile](#pebble-profile) with the addition of the `measure` datastore wrapper.
+
 ### `badgerds` profile
 
-Configures the node to use the legacy badgerv1 datastore.
+Configures the node to use the **legacy** badgerv1 datastore.
 
 > [!CAUTION]
 > This is based on very old badger 1.x, which has known bugs and is no longer supported by the upstream team.
@@ -2571,6 +3133,10 @@ Also, be aware that:
 
 > [!NOTE]
 > See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
+
+### `badgerds-measure` profile
+
+Configures the node to use the **legacy** badgerv1 datastore with metrics. This is the same as [`badgerds` profile](#badger-profile) with the addition of the `measure` datastore wrapper.
 
 ### `lowpower` profile
 
@@ -2603,16 +3169,38 @@ Disables [Reprovider](#reprovider) system (and announcing to Amino DHT).
 
 Makes UnixFS import (`ipfs add`) produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.
 
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
+
 > [!NOTE]
 > This profile is provided for legacy users and should not be used for new projects.
 
 ### `test-cid-v1` profile
 
-Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.
+Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256
+and 1 MiB chunks (max 174 links per file, 256 per HAMT node, switch dir to HAMT
+above 256KiB).
+
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
 
 > [!NOTE]
-> This profile will become the new implicit default, provided for testing purposes.
-> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details.
+> [`Import.*`](#import) settings applied by this profile MAY change in future release. Provided for testing purposes.
+>
+> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
+> and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
+
+### `test-cid-v1-wide` profile
+
+Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256
+and 1 MiB chunks and wider file DAGs (max 1024 links per every node type,
+switch dir to HAMT above 1MiB).
+
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
+
+> [!NOTE]
+> [`Import.*`](#import) settings applied by this profile MAY change in future release. Provided for testing purposes.
+>
+> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
+> and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
 
 ## Types
 

@@ -40,7 +40,7 @@ test_expect_success "path gw: backlink on root CID should be hidden" '
 test_expect_success "path gw: redirect dir listing to URL with trailing slash" '
   curl -sD - http://127.0.0.1:$GWAY_PORT/ipfs/${DIR_CID}/ą/ę > list_response &&
   test_should_contain "HTTP/1.1 301 Moved Permanently" list_response &&
-  test_should_contain "Location: /ipfs/${DIR_CID}/%c4%85/%c4%99/" list_response
+  test_should_contain "Location: /ipfs/${DIR_CID}/%C4%85/%C4%99/" list_response
 '
 
 test_expect_success "path gw: Etag should be present" '
@@ -81,7 +81,7 @@ test_expect_success "subdomain gw: backlink on root CID should be hidden" '
 test_expect_success "subdomain gw: redirect dir listing to URL with trailing slash" '
   curl -sD - --resolve $DIR_HOSTNAME:$GWAY_PORT:127.0.0.1 http://$DIR_HOSTNAME:$GWAY_PORT/ą/ę > list_response &&
   test_should_contain "HTTP/1.1 301 Moved Permanently" list_response &&
-  test_should_contain "Location: /%c4%85/%c4%99/" list_response
+  test_should_contain "Location: /%C4%85/%C4%99/" list_response
 '
 
 test_expect_success "subdomain gw: Etag should be present" '
@@ -130,7 +130,7 @@ test_expect_success "dnslink gw: backlink on root CID should be hidden" '
 test_expect_success "dnslink gw: redirect dir listing to URL with trailing slash" '
   curl -sD - --resolve $DNSLINK_HOSTNAME:$GWAY_PORT:127.0.0.1 http://$DNSLINK_HOSTNAME:$GWAY_PORT/ą/ę > list_response &&
   test_should_contain "HTTP/1.1 301 Moved Permanently" list_response &&
-  test_should_contain "Location: /%c4%85/%c4%99/" list_response
+  test_should_contain "Location: /%C4%85/%C4%99/" list_response
 '
 
 test_expect_success "dnslink gw: Etag should be present" '

@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/hashicorp/go-multierror"
+	"go.uber.org/multierr"
 )
 
 const (
@@ -56,7 +56,7 @@ func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) ([]byte, erro
 			return out, nil
 		}
 		fmt.Printf("Error fetching: %s\n", err.Error())
-		errs = multierror.Append(errs, err)
+		errs = multierr.Append(errs, err)
 	}
 	return nil, errs
 }
@@ -65,7 +65,7 @@ func (f *MultiFetcher) Close() error {
 	var errs error
 	for _, fetcher := range f.fetchers {
 		if err := fetcher.Close(); err != nil {
-			errs = multierror.Append(errs, err)
+			errs = multierr.Append(errs, err)
 		}
 	}
 	return errs
@@ -79,7 +79,7 @@ func (f *MultiFetcher) Fetchers() []Fetcher {
 	return f.fetchers
 }
 
-// NewLimitReadCloser returns a new io.ReadCloser with the reader wrappen in a
+// NewLimitReadCloser returns a new io.ReadCloser with the reader wrapped in a
 // io.LimitedReader limited to reading the amount specified.
 func NewLimitReadCloser(rc io.ReadCloser, limit int64) io.ReadCloser {
 	return limitReadCloser{
@@ -93,7 +93,7 @@ func NewLimitReadCloser(rc io.ReadCloser, limit int64) io.ReadCloser {
 // variable is not set, then returns the provided distPath, and if that is not set
 // then returns the IPNS path.
 //
-// To get the IPFS path of the latest distribution, if not overriddin by the
+// To get the IPFS path of the latest distribution, if not overridden by the
 // environ variable: GetDistPathEnv(CurrentIpfsDist).
 func GetDistPathEnv(distPath string) string {
 	if dist := os.Getenv(envIpfsDistPath); dist != "" {

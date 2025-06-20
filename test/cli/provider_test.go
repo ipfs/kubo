@@ -7,6 +7,7 @@ import (
 
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,30 +34,99 @@ func TestProvider(t *testing.T) {
 		}
 	}
 
-	t.Run("Basic Providing", func(t *testing.T) {
+	t.Run("Provider.Enabled=true announces new CIDs created by ipfs add", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Experimental.StrategicProviding", false)
+			n.SetIPFSConfig("Provider.Enabled", true)
 		})
 		defer nodes.StopDaemons()
 
 		cid := nodes[0].IPFSAddStr(time.Now().String())
 		// Reprovide as initialProviderDelay still ongoing
-		res := nodes[0].IPFS("bitswap", "reprovide")
+		res := nodes[0].IPFS("routing", "reprovide")
 		require.NoError(t, res.Err)
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
-	t.Run("Basic Strategic Providing", func(t *testing.T) {
+	t.Run("Provider.Enabled=false disables announcement of new CID from ipfs add", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Experimental.StrategicProviding", true)
+			n.SetIPFSConfig("Provider.Enabled", false)
 		})
 		defer nodes.StopDaemons()
 
 		cid := nodes[0].IPFSAddStr(time.Now().String())
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
+
+	t.Run("Provider.Enabled=false disables manual announcement via RPC command", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provider.Enabled", false)
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+		res := nodes[0].RunIPFS("routing", "provide", cid)
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provider.Enabled is set to 'false'")
+		assert.Equal(t, 1, res.ExitCode())
+
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
+
+	// Right now Provide and Reprovide are tied together
+	t.Run("Reprovide.Interval=0 disables announcement of new CID too", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Interval", "0")
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
+
+	// It is a lesser evil - forces users to fix their config and have some sort of interval
+	t.Run("Manual Reprovider trigger does not work when periodic Reprovider is disabled", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Interval", "0")
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String(), "--offline")
+
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		res := nodes[0].RunIPFS("routing", "reprovide")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Reprovider.Interval is set to '0'")
+		assert.Equal(t, 1, res.ExitCode())
+
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
+
+	// It is a lesser evil - forces users to fix their config and have some sort of interval
+	t.Run("Manual Reprovider trigger does not work when Provider system is disabled", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provider.Enabled", false)
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String(), "--offline")
+
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		res := nodes[0].RunIPFS("routing", "reprovide")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provider.Enabled is set to 'false'")
+		assert.Equal(t, 1, res.ExitCode())
+
 		expectNoProviders(t, cid, nodes[1:]...)
 	})
 
@@ -72,7 +142,7 @@ func TestProvider(t *testing.T) {
 
 		expectNoProviders(t, cid, nodes[1:]...)
 
-		nodes[0].IPFS("bitswap", "reprovide")
+		nodes[0].IPFS("routing", "reprovide")
 
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
@@ -89,7 +159,7 @@ func TestProvider(t *testing.T) {
 
 		expectNoProviders(t, cid, nodes[1:]...)
 
-		nodes[0].IPFS("bitswap", "reprovide")
+		nodes[0].IPFS("routing", "reprovide")
 
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
@@ -113,7 +183,7 @@ func TestProvider(t *testing.T) {
 		expectNoProviders(t, cidBar, nodes[1:]...)
 		expectNoProviders(t, cidBarDir, nodes[1:]...)
 
-		nodes[0].IPFS("bitswap", "reprovide")
+		nodes[0].IPFS("routing", "reprovide")
 
 		expectNoProviders(t, cidFoo, nodes[1:]...)
 		expectProviders(t, cidBar, nodes[0].PeerID().String(), nodes[1:]...)
@@ -141,7 +211,7 @@ func TestProvider(t *testing.T) {
 		expectNoProviders(t, cidBar, nodes[1:]...)
 		expectNoProviders(t, cidBarDir, nodes[1:]...)
 
-		nodes[0].IPFS("bitswap", "reprovide")
+		nodes[0].IPFS("routing", "reprovide")
 
 		expectNoProviders(t, cidFoo, nodes[1:]...)
 		expectNoProviders(t, cidBar, nodes[1:]...)
@@ -149,20 +219,4 @@ func TestProvider(t *testing.T) {
 		expectProviders(t, cidBarDir, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
-	t.Run("Providing works without ticking", func(t *testing.T) {
-		t.Parallel()
-
-		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Interval", "0")
-		})
-		defer nodes.StopDaemons()
-
-		cid := nodes[0].IPFSAddStr(time.Now().String(), "--offline")
-
-		expectNoProviders(t, cid, nodes[1:]...)
-
-		nodes[0].IPFS("bitswap", "reprovide")
-
-		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
-	})
 }

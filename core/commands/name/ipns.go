@@ -9,10 +9,10 @@ import (
 
 	"github.com/ipfs/boxo/namesys"
 	"github.com/ipfs/boxo/path"
-	cmds "github.com/stateless-minds/go-ipfs-cmds"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	options "github.com/ipfs/kubo/core/coreiface/options"
+	cmds "github.com/stateless-minds/go-ipfs-cmds"
 )
 
 var log = logging.Logger("core/commands/ipns")

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	p2pforge "github.com/ipshipyard/p2p-forge/client"
@@ -133,27 +134,36 @@ func ListenOn(addresses []string) interface{} {
 	}
 }
 
-func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS) interface{} {
+func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEventLogger) interface{} {
 	return func() (*p2pforge.P2PForgeCertMgr, error) {
 		storagePath := filepath.Join(repoPath, "p2p-forge-certs")
+		rawLogger := atlsLog.Desugar()
 
-		forgeLogger := logging.Logger("autotls").Desugar()
-
-		// TODO: this should not be necessary, but we do it to help tracking
-		// down any race conditions causing
+		// TODO: this should not be necessary after
+		// https://github.com/ipshipyard/p2p-forge/pull/42 but keep it here for
+		// now to help tracking down any remaining conditions causing
 		// https://github.com/ipshipyard/p2p-forge/issues/8
-		certmagic.Default.Logger = forgeLogger.Named("default_fixme")
-		certmagic.DefaultACME.Logger = forgeLogger.Named("default_acme_client_fixme")
+		certmagic.Default.Logger = rawLogger.Named("default_fixme")
+		certmagic.DefaultACME.Logger = rawLogger.Named("default_acme_client_fixme")
+
+		registrationDelay := cfg.RegistrationDelay.WithDefault(config.DefaultAutoTLSRegistrationDelay)
+		if cfg.Enabled == config.True && cfg.RegistrationDelay.IsDefault() {
+			// Skip delay if user explicitly enabled AutoTLS.Enabled in config
+			// and did not set custom AutoTLS.RegistrationDelay
+			registrationDelay = 0 * time.Second
+		}
 
 		certStorage := &certmagic.FileStorage{Path: storagePath}
 		certMgr, err := p2pforge.NewP2PForgeCertMgr(
-			p2pforge.WithLogger(forgeLogger.Sugar()),
+			p2pforge.WithLogger(rawLogger.Sugar()),
 			p2pforge.WithForgeDomain(cfg.DomainSuffix.WithDefault(config.DefaultDomainSuffix)),
 			p2pforge.WithForgeRegistrationEndpoint(cfg.RegistrationEndpoint.WithDefault(config.DefaultRegistrationEndpoint)),
+			p2pforge.WithRegistrationDelay(registrationDelay),
 			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),
 			p2pforge.WithForgeAuth(cfg.RegistrationToken.WithDefault(os.Getenv(p2pforge.ForgeAuthEnv))),
 			p2pforge.WithUserAgent(version.GetUserAgentVersion()),
 			p2pforge.WithCertificateStorage(certStorage),
+			p2pforge.WithShortForgeAddrs(cfg.ShortAddrs.WithDefault(config.DefaultAutoTLSShortAddrs)),
 		)
 		if err != nil {
 			return nil, err

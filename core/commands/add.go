@@ -8,7 +8,6 @@ import (
 	gopath "path"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -25,24 +24,7 @@ import (
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
-var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
-
-type TimeParts struct {
-	t *time.Time
-}
-
-func (t TimeParts) MarshalJSON() ([]byte, error) {
-	return t.t.MarshalJSON()
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-// The time is expected to be a quoted string in RFC 3339 format.
-func (t *TimeParts) UnmarshalJSON(data []byte) (err error) {
-	// Fractional seconds are handled implicitly by Parse.
-	tt, err := time.Parse("\"2006-01-02T15:04:05Z\"", string(data))
-	*t = TimeParts{&tt}
-	return
-}
+var ErrDepthLimitExceeded = errors.New("depth limit exceeded")
 
 type AddEvent struct {
 	Name       string
@@ -55,23 +37,26 @@ type AddEvent struct {
 }
 
 const (
-	quietOptionName       = "quiet"
-	quieterOptionName     = "quieter"
-	silentOptionName      = "silent"
-	progressOptionName    = "progress"
-	trickleOptionName     = "trickle"
-	wrapOptionName        = "wrap-with-directory"
-	onlyHashOptionName    = "only-hash"
-	chunkerOptionName     = "chunker"
-	pinOptionName         = "pin"
-	rawLeavesOptionName   = "raw-leaves"
-	noCopyOptionName      = "nocopy"
-	fstoreCacheOptionName = "fscache"
-	cidVersionOptionName  = "cid-version"
-	hashOptionName        = "hash"
-	inlineOptionName      = "inline"
-	inlineLimitOptionName = "inline-limit"
-	toFilesOptionName     = "to-files"
+	quietOptionName             = "quiet"
+	quieterOptionName           = "quieter"
+	silentOptionName            = "silent"
+	progressOptionName          = "progress"
+	trickleOptionName           = "trickle"
+	wrapOptionName              = "wrap-with-directory"
+	onlyHashOptionName          = "only-hash"
+	chunkerOptionName           = "chunker"
+	pinOptionName               = "pin"
+	rawLeavesOptionName         = "raw-leaves"
+	maxFileLinksOptionName      = "max-file-links"
+	maxDirectoryLinksOptionName = "max-directory-links"
+	maxHAMTFanoutOptionName     = "max-hamt-fanout"
+	noCopyOptionName            = "nocopy"
+	fstoreCacheOptionName       = "fscache"
+	cidVersionOptionName        = "cid-version"
+	hashOptionName              = "hash"
+	inlineOptionName            = "inline"
+	inlineLimitOptionName       = "inline-limit"
+	toFilesOptionName           = "to-files"
 
 	preserveModeOptionName  = "preserve-mode"
 	preserveMtimeOptionName = "preserve-mtime"
@@ -161,6 +146,9 @@ new flags may be added in the future. It is not guaranteed for the implicit
 defaults of 'ipfs add' to remain the same in future Kubo releases, or for other
 IPFS software to use the same import parameters as Kubo.
 
+Use Import.* configuration options to override global implicit defaults:
+https://github.com/ipfs/kubo/blob/master/docs/config.md#import
+
 If you need to back up or transport content-addressed data using a non-IPFS
 medium, CID can be preserved with CAR files.
 See 'dag export' and 'dag import' for more information.
@@ -184,12 +172,15 @@ See 'dag export' and 'dag import' for more information.
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash"),
-		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
+		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash. Default: Import.UnixFSChunker"),
+		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. Default: Import.UnixFSRawLeaves"),
+		cmds.IntOption(maxFileLinksOptionName, "Limit the maximum number of links in UnixFS file nodes to this value. (experimental) Default: Import.UnixFSFileMaxLinks"),
+		cmds.IntOption(maxDirectoryLinksOptionName, "Limit the maximum number of links in UnixFS basic directory nodes to this value. Default: Import.UnixFSDirectoryMaxLinks. WARNING: experimental, Import.UnixFSHAMTThreshold is a safer alternative."),
+		cmds.IntOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8). Default: Import.UnixFSHAMTDirectoryMaxFanout WARNING: experimental, see Import.UnixFSHAMTDirectorySizeThreshold as well."),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
-		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true."),
-		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)"),
+		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true. Default: Import.CidVersion"),
+		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. Default: Import.HashFunction"),
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 		cmds.BoolOption(pinOptionName, "Pin locally to protect added files from garbage collection.").WithDefault(true),
@@ -240,6 +231,9 @@ See 'dag export' and 'dag import' for more information.
 		chunker, _ := req.Options[chunkerOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
 		rawblks, rbset := req.Options[rawLeavesOptionName].(bool)
+		maxFileLinks, maxFileLinksSet := req.Options[maxFileLinksOptionName].(int)
+		maxDirectoryLinks, maxDirectoryLinksSet := req.Options[maxDirectoryLinksOptionName].(int)
+		maxHAMTFanout, maxHAMTFanoutSet := req.Options[maxHAMTFanoutOptionName].(int)
 		nocopy, _ := req.Options[noCopyOptionName].(bool)
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
@@ -271,6 +265,21 @@ See 'dag export' and 'dag import' for more information.
 			rawblks = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
 		}
 
+		if !maxFileLinksSet && !cfg.Import.UnixFSFileMaxLinks.IsDefault() {
+			maxFileLinksSet = true
+			maxFileLinks = int(cfg.Import.UnixFSFileMaxLinks.WithDefault(config.DefaultUnixFSFileMaxLinks))
+		}
+
+		if !maxDirectoryLinksSet && !cfg.Import.UnixFSDirectoryMaxLinks.IsDefault() {
+			maxDirectoryLinksSet = true
+			maxDirectoryLinks = int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+		}
+
+		if !maxHAMTFanoutSet && !cfg.Import.UnixFSHAMTDirectoryMaxFanout.IsDefault() {
+			maxHAMTFanoutSet = true
+			maxHAMTFanout = int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
+		}
+
 		// Storing optional mode or mtime (UnixFS 1.5) requires root block
 		// to always be 'dag-pb' and not 'raw'. Below adjusts raw-leaves setting, if possible.
 		if preserveMode || preserveMtime || mode != 0 || mtime != 0 {
@@ -286,6 +295,10 @@ See 'dag export' and 'dag import' for more information.
 
 		if onlyHash && toFilesSet {
 			return fmt.Errorf("%s and %s options are not compatible", onlyHashOptionName, toFilesOptionName)
+		}
+
+		if wrap && toFilesSet {
+			return fmt.Errorf("%s and %s options are not compatible", wrapOptionName, toFilesOptionName)
 		}
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
@@ -343,6 +356,18 @@ See 'dag export' and 'dag import' for more information.
 			opts = append(opts, options.Unixfs.RawLeaves(rawblks))
 		}
 
+		if maxFileLinksSet {
+			opts = append(opts, options.Unixfs.MaxFileLinks(maxFileLinks))
+		}
+
+		if maxDirectoryLinksSet {
+			opts = append(opts, options.Unixfs.MaxDirectoryLinks(maxDirectoryLinks))
+		}
+
+		if maxHAMTFanoutSet {
+			opts = append(opts, options.Unixfs.MaxHAMTFanout(maxHAMTFanout))
+		}
+
 		if trickle {
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
 		}
@@ -373,6 +398,11 @@ See 'dag export' and 'dag import' for more information.
 
 				// creating MFS pointers when optional --to-files is set
 				if toFilesSet {
+					if addit.Name() == "" {
+						errCh <- fmt.Errorf("%s: cannot add unnamed files to MFS", toFilesOptionName)
+						return
+					}
+
 					if toFilesStr == "" {
 						toFilesStr = "/"
 					}

@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"io"
 
+	logging "github.com/ipfs/go-log/v2"
 	cmds "github.com/stateless-minds/go-ipfs-cmds"
-	logging "github.com/ipfs/go-log"
-	lwriter "github.com/ipfs/go-log/writer"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
@@ -22,12 +21,12 @@ var LogCmd = &cmds.Command{
 'ipfs log' contains utility commands to affect or read the logging
 output of a running daemon.
 
-There are also two environmental variables that direct the logging 
+There are also two environmental variables that direct the logging
 system (not just for the daemon logs, but all commands):
-    IPFS_LOGGING - sets the level of verbosity of the logging.
+    GOLOG_LOG_LEVEL - sets the level of verbosity of the logging.
         One of: debug, info, warn, error, dpanic, panic, fatal
-    IPFS_LOGGING_FMT - sets formatting of the log output.
-        One of: color, nocolor
+    GOLOG_LOG_FMT - sets formatting of the log output.
+        One of: color, nocolor, json
 `,
 	},
 
@@ -104,25 +103,46 @@ subsystems of a running daemon.
 	Type: stringList{},
 }
 
+const logLevelOption = "log-level"
+
 var logTailCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Read the event log.",
+		Tagline: "Read and outpt log messages.",
 		ShortDescription: `
-Outputs event log messages (not other log messages) as they are generated.
+Outputs log messages as they are generated.
 
-Currently broken. Follow https://github.com/ipfs/kubo/issues/9245 for updates.
+NOTE: --log-level requires the server to be logging at least at this level
+
+Example:
+
+  GOLOG_LOG_LEVEL="error,bitswap=debug" ipfs daemon
+  ipfs log tail --log-level info
+
+This will only return 'info' logs from bitswap and skip 'debug'.
 `,
 	},
 
+	Options: []cmds.Option{
+		cmds.StringOption(logLevelOption, "Log level to listen to.").WithDefault(""),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx := req.Context
-		r, w := io.Pipe()
+		var pipeReader *logging.PipeReader
+		logLevelString, _ := req.Options[logLevelOption].(string)
+		if logLevelString != "" {
+			logLevel, err := logging.LevelFromString(logLevelString)
+			if err != nil {
+				return fmt.Errorf("setting log level %s: %w", logLevelString, err)
+			}
+			pipeReader = logging.NewPipeReader(logging.PipeLevel(logLevel))
+		} else {
+			pipeReader = logging.NewPipeReader()
+		}
+
 		go func() {
-			defer w.Close()
-			<-ctx.Done()
+			<-req.Context.Done()
+			pipeReader.Close()
 		}()
-		lwriter.WriterGroup.AddWriter(w)
-		return res.Emit(r)
+		return res.Emit(pipeReader)
 	},
 }

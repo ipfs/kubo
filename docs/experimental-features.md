@@ -65,6 +65,14 @@ Experimental.
 
 ### How to enable
 
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides the IPFS [`add` command](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-add) with access to
+> the local filesystem. Consequently, any user with access to CLI or the HTTP [`/v0/add` RPC API](https://docs.ipfs.tech/reference/kubo/rpc/#api-v0-add) can read
+> files from the local filesystem with the same permissions as the Kubo daemon.
+> If you enable this, secure your RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
+
 Modify your ipfs config:
 ```
 ipfs config --json Experimental.FilestoreEnabled true
@@ -79,6 +87,10 @@ filestore instead of copying the files into your local IPFS repo.
 
 - [ ] Needs more people to use and report on how well it works.
 - [ ] Need to address error states and failure conditions
+  - [ ] cleanup of broken filesystem references (if file is deleted)
+  - [ ] tests that confirm ability to override preexisting filesystem links (allowing user to fix broken link)
+  - [ ] support for a single block having more than one sources in filesystem  (blocks can be shared by unrelated files, and not be broken when some files are unpinned / gc'd)
+  - [ ] [other known issues](https://github.com/ipfs/kubo/issues/7161)
 - [ ] Need to write docs on usage, advantages, disadvantages
 - [ ] Need to merge utility commands to aid in maintenance and repair of filestore
 
@@ -96,6 +108,14 @@ v0.4.17
 
 ### How to enable
 
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides the IPFS [`add` CLI command](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-add) with access to
+> the local filesystem. Consequently, any user with access to the CLI or HTTP [`/v0/add` RPC API](https://docs.ipfs.tech/reference/kubo/rpc/#api-v0-add) can read
+> files from the local filesystem with the same permissions as the Kubo daemon.
+> If you enable this, secure your RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
+
 Modify your ipfs config:
 ```
 ipfs config --json Experimental.UrlstoreEnabled true
@@ -106,6 +126,9 @@ And then add a file at a specific URL using `ipfs urlstore add <url>`
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works.
 - [ ] Need to address error states and failure conditions
+  - [ ] cleanup of broken URL+range references (if URL starts returning 404 or error)
+  - [ ] tests that confirm ability to override preexisting URL+range links (allowing user to fix broken link)
+  - [ ] support for a single block having more than one URL+range  (blocks can be shared by unrelated URLs)
 - [ ] Need to write docs on usage, advantages, disadvantages
 - [ ] Need to implement caching
 - [ ] Need to add metrics to monitor performance
@@ -189,6 +212,13 @@ Experimental, will be stabilized in 0.6.0
 0.4.10
 
 ### How to enable
+
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides CLI and HTTP RPC user with ability to set up port forwarding for all localhost and LAN ports.
+> If you enable this and plan to expose CLI or HTTP RPC to other users or machines,
+> secure RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
 
 The `p2p` command needs to be enabled in the config:
 
@@ -297,6 +327,13 @@ Experimental
 
 ### How to enable
 
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides CLI and HTTP RPC user with ability to set up HTTP forwarding for all localhost and LAN ports.
+> If you enable this and plan to expose CLI or HTTP RPC to other users or machines,
+> secure RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
+
 The `p2p` command needs to be enabled in the config:
 
 ```sh
@@ -361,13 +398,13 @@ We also support the use of protocol names of the form /x/$NAME/http where $NAME 
 ### Road to being a real feature
 
 - [ ] Needs p2p streams to graduate from experiments
-- [ ] Needs more people to use and report on how well it works / fits use cases
+- [ ] Needs more people to use and report on how well it works and fits use cases
 - [ ] More documentation
 - [ ] Need better integration with the subdomain gateway feature.
 
 ## FUSE
 
-FUSE makes it possible to mount `/ipfs` and `/ipns` namespaces in your OS,
+FUSE makes it possible to mount `/ipfs`, `/ipns` and `/mfs` namespaces in your OS,
 allowing arbitrary apps access to IPFS using a subset of filesystem abstractions.
 
 It is considered  EXPERIMENTAL due to limited (and buggy) support on some platforms.
@@ -500,27 +537,9 @@ ipfs config --json Swarm.RelayClient.Enabled true
 
 ### State
 
-Experimental, disabled by default.
+`Experimental.StrategicProviding` was removed in Kubo v0.35.
 
-Replaces the existing provide mechanism with a robust, strategic provider system. Currently enabling this option will provide nothing.
-
-### How to enable
-
-Modify your ipfs config:
-
-```
-ipfs config --json Experimental.StrategicProviding true
-```
-
-### Road to being a real feature
-
-- [ ] needs real-world testing
-- [ ] needs adoption
-- [ ] needs to support all provider subsystem features
-    - [X] provide nothing
-    - [ ] provide roots
-    - [ ] provide all
-    - [ ] provide strategic
+Replaced by [`Provide.Enabled`](https://github.com/ipfs/kubo/blob/master/docs/config.md#providerenabled) and [`Reprovider.Strategy`](https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy).
 
 ## GraphSync
 
