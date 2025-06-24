@@ -59,21 +59,27 @@ Content added with "ipfs add" (which by default also becomes pinned), is not
 added to MFS. Any content can be lazily referenced from MFS with the command
 "ipfs files cp /ipfs/<cid> /some/path/" (see ipfs files cp --help).
 
-NOTE: Most of the subcommands of 'ipfs files' accept the '--flush' flag. It
-defaults to true and ensures two things: 1) that the changes are reflected in
-the full MFS structure (updated CIDs) 2) that the parent-folder's cache is
-cleared. Use caution when setting this flag to false. It will improve
-performance for large numbers of file operations, but it does so at the cost
-of consistency guarantees and unbound growth of the directories' in-memory
-caches.  If the daemon is unexpectedly killed before running 'ipfs files
-flush' on the files in question, then data may be lost. This also applies to
+NOTE: Most of the subcommands of 'ipfs files' accept the '--flush' flag.
+It defaults to true and ensures two things:
+1) that the changes are reflected in the full MFS structure (updated CIDs)
+2) that the parent-folder's cache is cleared.
+
+WARNING: Use caution when calling commands with '--flush=false'.
+Make sure to call 'ipfs files flush' after each batch.
+
+Passing '--flush=false' will improve performance for large numbers of file
+operations, but it does so at the cost of consistency guarantees and unbound
+growth of the directories' in-memory caches.
+
+If the daemon is unexpectedly killed before running 'ipfs files flush'
+on the files in question, then data may be lost. This also applies to
 run 'ipfs repo gc' concurrently with '--flush=false' operations. We recommend
 flushing paths regularly with 'ipfs files flush', specially the folders on
 which many write operations are happening, as a way to clear the directory
 cache, free memory and speed up read operations.`,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(filesFlushOptionName, "f", "Flush target and ancestors after write.").WithDefault(true),
+		cmds.BoolOption(filesFlushOptionName, "f", "Flush target and ancestors after write. (DANGEROUS: setting to 'false' requires you to call 'ipfs files flush' manually after each batch of operations!)").WithDefault(true),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  filesReadCmd,
@@ -433,6 +439,13 @@ The lazy-copy feature can also be used to protect partial DAG contents from
 garbage collection. i.e. adding the Wikipedia root to MFS would not download
 all the Wikipedia, but will prevent any downloaded Wikipedia-DAG content from
 being GC'ed.
+
+WARNING:
+
+Use caution when calling commands with '--flush=false'. Passing '--flush=false'
+may improve performance for large numbers of file operations, but it does so at
+the cost of consistency guarantees and unbound growth of the directories'
+in-memory caches. Make sure to call 'ipfs files flush' after each batch.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -829,6 +842,12 @@ Example:
 
     $ ipfs files mv /myfs/a/b/c /myfs/foo/newc
 
+WARNING:
+
+Use caution when calling commands with '--flush=false'. Passing '--flush=false'
+may improve performance for large numbers of file operations, but it does so at
+the cost of consistency guarantees and unbound growth of the directories'
+in-memory caches. Make sure to call 'ipfs files flush' after each batch.
 `,
 	},
 
@@ -1084,6 +1103,13 @@ Examples:
 
     $ ipfs files mkdir /test/newdir
     $ ipfs files mkdir -p /test/does/not/exist/yet
+
+WARNING:
+
+Use caution when calling commands with '--flush=false'. Passing '--flush=false'
+may improve performance for large numbers of file operations, but it does so at
+the cost of consistency guarantees and unbound growth of the directories'
+in-memory caches. Make sure to call 'ipfs files flush' after each batch.
 `,
 	},
 
@@ -1171,6 +1197,13 @@ var filesChcidCmd = &cmds.Command{
 		Tagline: "Change the CID version or hash function of the root node of a given path.",
 		ShortDescription: `
 Change the CID version or hash function of the root node of a given path.
+
+WARNING:
+
+Use caution when calling commands with '--flush=false'. Passing '--flush=false'
+may improve performance for large numbers of file operations, but it does so at
+the cost of consistency guarantees and unbound growth of the directories'
+in-memory caches. Make sure to call 'ipfs files flush' after each batch.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -1262,10 +1295,12 @@ Remove files or directories.
 		if err != nil {
 			return err
 		}
+
 		// if '--force' specified, it will remove anything else,
 		// including file, directory, corrupted node, etc
 		force, _ := req.Options[forceOptionName].(bool)
 		dashr, _ := req.Options[recursiveOptionName].(bool)
+		flush, _ := req.Options[filesFlushOptionName].(bool)
 		var errs []error
 		for _, arg := range req.Arguments {
 			path, err := checkPath(arg)
@@ -1274,7 +1309,7 @@ Remove files or directories.
 				continue
 			}
 
-			if err := removePath(nd.FilesRoot, path, force, dashr); err != nil {
+			if err := removePath(req.Context, nd.FilesRoot, path, force, dashr, flush); err != nil {
 				errs = append(errs, fmt.Errorf("%s: %w", path, err))
 			}
 		}
@@ -1291,7 +1326,7 @@ Remove files or directories.
 	},
 }
 
-func removePath(filesRoot *mfs.Root, path string, force bool, dashr bool) error {
+func removePath(ctx context.Context, filesRoot *mfs.Root, path string, force bool, dashr bool, flush bool) error {
 	if path == "/" {
 		return fmt.Errorf("cannot delete root")
 	}
@@ -1313,35 +1348,34 @@ func removePath(filesRoot *mfs.Root, path string, force bool, dashr bool) error 
 
 	if force {
 		err := pdir.Unlink(name)
-		if err != nil {
-			if err == os.ErrNotExist {
-				return nil
-			}
+		// --force ignores os.ErrNotExist errors and continues
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
-		return pdir.Flush()
-	}
+	} else {
+		// get child node by name, when the node is corrupted and nonexistent,
+		// it will return specific error.
+		child, err := pdir.Child(name)
+		if err != nil {
+			return err
+		}
 
-	// get child node by name, when the node is corrupted and nonexistent,
-	// it will return specific error.
-	child, err := pdir.Child(name)
-	if err != nil {
-		return err
-	}
-
-	switch child.(type) {
-	case *mfs.Directory:
-		if !dashr {
+		if _, ok := child.(*mfs.Directory); ok && !dashr {
 			return fmt.Errorf("path is a directory, use -r to remove directories")
+		}
+
+		if err := pdir.Unlink(name); err != nil {
+			return err
 		}
 	}
 
-	err = pdir.Unlink(name)
-	if err != nil {
-		return err
+	if flush {
+		// Flush parent to clear directory cache and free memory.
+		if _, err = mfs.FlushPath(ctx, filesRoot, dir); err != nil {
+			return fmt.Errorf("rm: cannot flush the removed item's parent folder %q: %s", dir, err)
+		}
 	}
-
-	return pdir.Flush()
+	return nil
 }
 
 func getPrefixNew(req *cmds.Request) (cid.Builder, error) {
