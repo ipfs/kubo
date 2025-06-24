@@ -2,7 +2,6 @@ package node
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	provider "github.com/ipfs/boxo/provider"
@@ -19,6 +18,15 @@ import (
 	mh "github.com/multiformats/go-multihash"
 	"go.uber.org/fx"
 )
+
+type NoopReprovider struct{}
+
+var _ reprovider.Reprovider = &NoopReprovider{}
+
+func (r *NoopReprovider) StartProviding(...mh.Multihash)                        {}
+func (r *NoopReprovider) StopProviding(...mh.Multihash)                         {}
+func (r *NoopReprovider) InstantProvide(context.Context, ...mh.Multihash) error { return nil }
+func (r *NoopReprovider) ForceProvide(context.Context, ...mh.Multihash) error   { return nil }
 
 func Reprovider(cfg *config.Config) fx.Option {
 	mhStore := fx.Provide(func(keyProvider provider.KeyChanFunc, repo repo.Repo) (*rds.MHStore, error) {
@@ -42,42 +50,46 @@ func Reprovider(cfg *config.Config) fx.Option {
 
 		switch dht := in.DHT.(type) {
 		case *dual.DHT:
-			return dreprovider.NewSweepingReprovider(dht,
-				dreprovider.WithMHStore(in.MHStore),
+			if dht != nil {
+				return dreprovider.NewSweepingReprovider(dht,
+					dreprovider.WithMHStore(in.MHStore),
 
-				dreprovider.WithReprovideInterval(reprovideInterval),
-				dreprovider.WithMaxReprovideDelay(maxReprovideDelay),
+					dreprovider.WithReprovideInterval(reprovideInterval),
+					dreprovider.WithMaxReprovideDelay(maxReprovideDelay),
 
-				dreprovider.WithMaxWorkers(4),
-				dreprovider.WithDedicatedPeriodicWorkers(2),
-				dreprovider.WithDedicatedPeriodicWorkers(1),
-				dreprovider.WithMaxProvideConnsPerWorker(20),
-			)
+					dreprovider.WithMaxWorkers(4),
+					dreprovider.WithDedicatedPeriodicWorkers(2),
+					dreprovider.WithDedicatedPeriodicWorkers(1),
+					dreprovider.WithMaxProvideConnsPerWorker(20),
+				)
+			}
 		case *fullrt.FullRT:
-			return reprovider.NewReprovider(context.Background(),
-				reprovider.WithMHStore(in.MHStore),
+			if dht != nil {
+				return reprovider.NewReprovider(context.Background(),
+					reprovider.WithMHStore(in.MHStore),
 
-				reprovider.WithRouter(dht),
-				reprovider.WithMessageSender(dht.MessageSender()),
-				reprovider.WithPeerID(dht.Host().ID()),
-				reprovider.WithSelfAddrs(func() []ma.Multiaddr { return dht.Host().Addrs() }),
-				reprovider.WithAddLocalRecord(func(h mh.Multihash) error {
-					return dht.Provide(context.Background(), cid.NewCidV1(cid.Raw, h), false)
-				}),
+					reprovider.WithRouter(dht),
+					reprovider.WithMessageSender(dht.MessageSender()),
+					reprovider.WithPeerID(dht.Host().ID()),
+					reprovider.WithSelfAddrs(func() []ma.Multiaddr { return dht.Host().Addrs() }),
+					reprovider.WithAddLocalRecord(func(h mh.Multihash) error {
+						return dht.Provide(context.Background(), cid.NewCidV1(cid.Raw, h), false)
+					}),
 
-				reprovider.WithReplicationFactor(20),
-				reprovider.WithReprovideInterval(reprovideInterval),
-				reprovider.WithMaxReprovideDelay(maxReprovideDelay),
-				reprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
-				reprovider.WithConnectivityCheckOfflineInterval(5*time.Minute),
+					reprovider.WithReplicationFactor(20),
+					reprovider.WithReprovideInterval(reprovideInterval),
+					reprovider.WithMaxReprovideDelay(maxReprovideDelay),
+					reprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
+					reprovider.WithConnectivityCheckOfflineInterval(5*time.Minute),
 
-				reprovider.WithMaxWorkers(4),
-				reprovider.WithDedicatedPeriodicWorkers(2),
-				reprovider.WithDedicatedPeriodicWorkers(1),
-				reprovider.WithMaxProvideConnsPerWorker(20),
-			)
+					reprovider.WithMaxWorkers(4),
+					reprovider.WithDedicatedPeriodicWorkers(2),
+					reprovider.WithDedicatedPeriodicWorkers(1),
+					reprovider.WithMaxProvideConnsPerWorker(20),
+				)
+			}
 		}
-		return nil, errors.New("IpfsNode DHTClient must be either *dual.DHT or *fullrt.FullRT")
+		return &NoopReprovider{}, nil
 	})
 
 	closeMHStore := fx.Invoke(func(lc fx.Lifecycle, mhStore *rds.MHStore) {
