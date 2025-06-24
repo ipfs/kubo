@@ -17,8 +17,6 @@ import (
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
-	"github.com/libp2p/go-libp2p-kad-dht/dual"
-	"github.com/libp2p/go-libp2p-kad-dht/reprovider"
 	"go.uber.org/fx"
 )
 
@@ -161,47 +159,6 @@ func OnlineProviders(provide bool, providerStrategy string, reprovideInterval ti
 	return fx.Options(
 		fx.Provide(setReproviderKeyProvider(providerStrategy)),
 		ProviderSys(reprovideInterval, acceleratedDHTClient, provideWorkerCount),
-	)
-}
-
-func SweepingReprovider(provide bool, reprovideStrategy string, opts ...reprovider.Option) fx.Option {
-	if !provide {
-		return OfflineProviders()
-	}
-
-	switch reprovideStrategy {
-	case "all", "", "roots", "pinned", "mfs", "pinned+mfs", "flat":
-	default:
-		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", reprovideStrategy))
-	}
-	keyProvider := fx.Provide(newProvidingStrategy(reprovideStrategy))
-
-	return fx.Options(
-		keyProvider,
-		fx.Provide(func(d *dual.DHT, keyProvider provider.KeyChanFunc, opts ...reprovider.Option) (provider.System, error) {
-			if d == nil {
-				return provider.NewNoopProvider(), nil
-			}
-			// Create DHT Sweeping Reprovider
-			r, err := d.NewSweepingReprovider(opts...)
-			if err != nil {
-				return nil, err
-			}
-			// ctx := context.Background()
-			// providingChan, err := keyProvider(ctx)
-			// if err != nil {
-			// 	return nil, err
-			// }
-			// mhChan := make(chan mh.Multihash, 16)
-			// go func() {
-			// 	for c := range providingChan {
-			// 		mhChan <- c.Hash()
-			// 	}
-			// }()
-			// // Feed the reprovider with cids it needs to keep reproviding.
-			// go r.ResetReprovideSet(ctx, mhChan)
-			return r, nil
-		}),
 	)
 }
 
