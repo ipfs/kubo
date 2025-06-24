@@ -49,7 +49,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		grace := cfg.Swarm.ConnMgr.GracePeriod.WithDefault(config.DefaultConnMgrGracePeriod)
 		low := int(cfg.Swarm.ConnMgr.LowWater.WithDefault(config.DefaultConnMgrLowWater))
 		high := int(cfg.Swarm.ConnMgr.HighWater.WithDefault(config.DefaultConnMgrHighWater))
-		connmgr = fx.Provide(libp2p.ConnectionManager(low, high, grace))
+		silence := cfg.Swarm.ConnMgr.SilencePeriod.WithDefault(config.DefaultConnMgrSilencePeriod)
+		connmgr = fx.Provide(libp2p.ConnectionManager(low, high, grace, silence))
+
 	default:
 		return fx.Error(fmt.Errorf("unrecognized Swarm.ConnMgr.Type: %q", connMgrType))
 	}
