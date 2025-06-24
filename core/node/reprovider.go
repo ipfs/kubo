@@ -29,7 +29,14 @@ func (r *NoopReprovider) StopProviding(...mh.Multihash)                         
 func (r *NoopReprovider) InstantProvide(context.Context, ...mh.Multihash) error { return nil }
 func (r *NoopReprovider) ForceProvide(context.Context, ...mh.Multihash) error   { return nil }
 
-func Reprovider(cfg *config.Config) fx.Option {
+func Reprovider(reprovide bool, cfg *config.Config) fx.Option {
+	if !reprovide {
+		return fx.Options(
+			fx.Provide(func() reprovider.Reprovider {
+				return &NoopReprovider{}
+			}))
+	}
+
 	mhStore := fx.Provide(func(keyProvider provider.KeyChanFunc, repo repo.Repo) (*rds.MHStore, error) {
 		return rds.NewMHStore(context.Background(), repo.Datastore(),
 			rds.WithPrefixLen(10),
