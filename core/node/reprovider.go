@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
@@ -29,7 +30,7 @@ func (r *NoopReprovider) InstantProvide(context.Context, ...mh.Multihash) error 
 func (r *NoopReprovider) ForceProvide(context.Context, ...mh.Multihash) error   { return nil }
 
 func Reprovider(cfg *config.Config) fx.Option {
-	mhStore := fx.Provide(func(keyProvider rds.KeyChanFunc, repo repo.Repo) (*rds.MHStore, error) {
+	mhStore := fx.Provide(func(keyProvider provider.KeyChanFunc, repo repo.Repo) (*rds.MHStore, error) {
 		return rds.NewMHStore(context.Background(), repo.Datastore(),
 			rds.WithPrefixLen(10),
 			rds.WithDatastorePrefix("/reprovider/mhs"),
