@@ -169,7 +169,7 @@ require (
 	github.com/libp2p/go-flow-metrics v0.3.0 // indirect
 	github.com/libp2p/go-libp2p v0.43.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250612131512-80dc8926e774 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250624090855-c702532cfd60 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.7.1-0.20250514131430-6bb8b16e312b // indirect
 	github.com/libp2p/go-libp2p-record v0.3.1 // indirect
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.5 // indirect

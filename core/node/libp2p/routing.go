@@ -12,7 +12,10 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
+	dreprovider "github.com/libp2p/go-libp2p-kad-dht/dual/reprovider"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
+	"github.com/libp2p/go-libp2p-kad-dht/reprovider"
+	reproviderds "github.com/libp2p/go-libp2p-kad-dht/reprovider/datastore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	namesys "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
@@ -56,6 +59,7 @@ type processInitialRoutingOut struct {
 
 	Router        Router                 `group:"routers"`
 	ContentRouter routing.ContentRouting `group:"content-routers"`
+	Reprovider    reprovider.Reprovider
 
 	DHT       *ddht.DHT
 	DHTClient routing.Routing `name:"dhtc"`
@@ -119,6 +123,24 @@ func BaseRouting(cfg *config.Config) interface{} {
 				},
 			})
 
+			mhStore, err := reproviderds.NewMHStore(context.Background(), in.Repo.Datastore())
+			if err != nil {
+				return out, err
+			}
+			sweepingReprovider, err := reprovider.NewReprovider(context.Background(),
+				reprovider.WithMHStore(mhStore),
+				reprovider.WithRouter(fullRTClient),
+				reprovider.WithMessageSender(fullRTClient.MessageSender()),
+				reprovider.WithReplicationFactor(20),
+				reprovider.WithReprovideInterval(22*time.Hour),
+				reprovider.WithMaxReprovideDelay(time.Hour),
+				reprovider.WithConnectivityCheckOnlineInterval(time.Minute),
+				reprovider.WithConnectivityCheckOfflineInterval(time.Minute),
+			)
+			if err != nil {
+				return out, err
+			}
+
 			// we want to also use the default HTTP routers, so wrap the FullRT client
 			// in a parallel router that calls them in parallel
 			httpRouters, err := constructDefaultHTTPRouters(cfg)
@@ -139,9 +161,31 @@ func BaseRouting(cfg *config.Config) interface{} {
 				DHT:           dualDHT,
 				DHTClient:     fullRTClient,
 				ContentRouter: fullRTClient,
+				Reprovider:    sweepingReprovider,
 			}, nil
 		}
 
+		mhStore, err := reproviderds.NewMHStore(context.Background(),
+			in.Repo.Datastore(),
+			reproviderds.WithPrefixLen(10),
+			reproviderds.WithDatastorePrefix("/reprovider/mhs"),
+			reproviderds.WithGCInterval(22*time.Hour),
+			reproviderds.WithGCBatchSize(1<<14), // ~544 KiB per batch (34 bytes per multihash)
+		)
+		if err != nil {
+			return out, err
+		}
+		sweepingReprovider, err := dreprovider.NewSweepingReprovider(dualDHT,
+			dreprovider.WithMHStore(mhStore),
+			dreprovider.WithReprovideInterval(22*time.Hour),
+			dreprovider.WithMaxWorkers(4),
+			dreprovider.WithDedicatedPeriodicWorkers(2),
+			dreprovider.WithDedicatedBurstWorkers(1),
+			dreprovider.WithMaxProvideConnsPerWorker(20),
+		)
+		if err != nil {
+			return out, err
+		}
 		return processInitialRoutingOut{
 			Router: Router{
 				Priority: 1000,
@@ -150,6 +194,7 @@ func BaseRouting(cfg *config.Config) interface{} {
 			DHT:           dualDHT,
 			DHTClient:     dualDHT,
 			ContentRouter: in.Router,
+			Reprovider:    sweepingReprovider,
 		}, nil
 	}
 }

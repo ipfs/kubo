@@ -17,7 +17,6 @@ import (
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/p2p"
-	"github.com/libp2p/go-libp2p-kad-dht/reprovider"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/timecache"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -366,18 +365,14 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(p2p.New),
 
 		LibP2P(bcfg, cfg, userResourceOverrides),
-		// OnlineProviders(
-		// 	isProviderEnabled,
-		// 	cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
-		// 	cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
-		// 	cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient),
-		// 	int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount)),
-		// ),
-		SweepingReprovider(
+		OnlineProviders(
 			isProviderEnabled,
 			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
-			reprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
+			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
+			cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient),
+			int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount)),
 		),
+		Reprovider(cfg),
 	)
 }
 

@@ -266,8 +266,8 @@ github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7/go.mod h1:Fecb
 github.com/grpc-ecosystem/grpc-gateway v1.5.0/go.mod h1:RSKVYQBd5MCa4OVpNdGskqpgL2+G+NZTnrVHpWWfpdw=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1 h1:X5VWvz21y3gzm9Nw/kaUeku/1+uBhcekkmy4IkffJww=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1/go.mod h1:Zanoh4+gvIgluNqcfMVTJueD4wSS5hT7zTt4Mrutd90=
-github.com/guillaumemichel/reservedpool v0.0.0-20250528150143-39abfe9e5b68 h1:jfcqE8Ygq+SKmrhmQ1eEBIKxU9VKIX+3WbpxRLUT/3o=
-github.com/guillaumemichel/reservedpool v0.0.0-20250528150143-39abfe9e5b68/go.mod h1:sXSDIaef81TFdAJglsCFCMfgF5E5Z5xK1tFhjDhvbUc=
+github.com/guillaumemichel/reservedpool v0.1.0 h1:QOG3bsExi+Erk2TBzGan87uqA48Ns27uhhnwgCJup+Y=
+github.com/guillaumemichel/reservedpool v0.1.0/go.mod h1:sXSDIaef81TFdAJglsCFCMfgF5E5Z5xK1tFhjDhvbUc=
 github.com/gxed/hashland/keccakpg v0.0.1/go.mod h1:kRzw3HkwxFU1mpmPP8v1WyQzwdGfmKFJ6tItnhQ67kU=
 github.com/gxed/hashland/murmur3 v0.0.1/go.mod h1:KjXop02n4/ckmZSnY2+HKcLud/tcmvhST0bie/0lS48=
 github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
@@ -428,8 +428,8 @@ github.com/libp2p/go-libp2p-asn-util v0.4.1 h1:xqL7++IKD9TBFMgnLPZR6/6iYhawHKHl9
 github.com/libp2p/go-libp2p-asn-util v0.4.1/go.mod h1:d/NI6XZ9qxw67b4e+NgpQexCIiFYJjErASrYW4PFDN8=
 github.com/libp2p/go-libp2p-core v0.2.4/go.mod h1:STh4fdfa5vDYr0/SzYYeqnt+E6KfEV5VxfIrm0bcI0g=
 github.com/libp2p/go-libp2p-core v0.3.0/go.mod h1:ACp3DmS3/N64c2jDzcV429ukDpicbL6+TrrxANBjPGw=
-github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250612131512-80dc8926e774 h1:UHLHMpu1ZqzwHK26WZmlV02voU6QAckwDd8GgDPke5g=
-github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250612131512-80dc8926e774/go.mod h1:qClA9rcXllQFnnBTRVPepAjAZktsJjCcPSbNVaR6Aps=
+github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250624090855-c702532cfd60 h1:0JbY2/FQb88uTQXXG6umwkE4BiN4IbW4nvE3i3mL/7Y=
+github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250624090855-c702532cfd60/go.mod h1:n+8rQFfgnghh4Rc8gtGSLjW4hycqJgz9y2Ic9VH+d1A=
 github.com/libp2p/go-libp2p-kbucket v0.3.1/go.mod h1:oyjT5O7tS9CQurok++ERgc46YLwEpuGoFq9ubvoUOio=
 github.com/libp2p/go-libp2p-kbucket v0.7.1-0.20250514131430-6bb8b16e312b h1:qh7OgCwt5AjJohJH+oXKZw6iDeIWKJOZaLXwkxrW0WQ=
 github.com/libp2p/go-libp2p-kbucket v0.7.1-0.20250514131430-6bb8b16e312b/go.mod h1:3CofRbwJbTybT8WVM2z/h5dj2FPNar6YLyxUc4Tmv1E=

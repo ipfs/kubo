@@ -65,7 +65,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1 // indirect
-	github.com/guillaumemichel/reservedpool v0.0.0-20250528150143-39abfe9e5b68 // indirect
+	github.com/guillaumemichel/reservedpool v0.1.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
@@ -112,7 +112,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.3.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250612131512-80dc8926e774 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250624090855-c702532cfd60 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.7.1-0.20250514131430-6bb8b16e312b // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.14.2 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
