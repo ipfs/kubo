@@ -116,9 +116,9 @@ type IpfsNode struct {
 
 	Routing    irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
 	Provider   provider.System            // the value provider system
-	Reprovider reprovider.Reprovider
-	DHT        *ddht.DHT       `optional:"true"`
-	DHTClient  routing.Routing `name:"dhtc" optional:"true"`
+	Reprovider reprovider.Reprovider      `optional:"true"`
+	DHT        *ddht.DHT                  `optional:"true"`
+	DHTClient  routing.Routing            `name:"dhtc" optional:"true"`
 
 	P2P *p2p.P2P `optional:"true"`
 
