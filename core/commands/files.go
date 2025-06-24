@@ -442,10 +442,11 @@ being GC'ed.
 
 WARNING:
 
-Use caution when calling commands with '--flush=false'. Passing '--flush=false'
-may improve performance for large numbers of file operations, but it does so at
-the cost of consistency guarantees and unbound growth of the directories'
-in-memory caches. Make sure to call 'ipfs files flush' after each batch.
+Use caution when calling commands with '--flush=false'.
+Passing '--flush=false' may improve performance for large numbers of file
+operations, but it does so at the cost of consistency guarantees and unbound
+growth of the directories' in-memory caches.
+Make sure to call 'ipfs files flush' after each batch of work.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -844,10 +845,11 @@ Example:
 
 WARNING:
 
-Use caution when calling commands with '--flush=false'. Passing '--flush=false'
-may improve performance for large numbers of file operations, but it does so at
-the cost of consistency guarantees and unbound growth of the directories'
-in-memory caches. Make sure to call 'ipfs files flush' after each batch.
+Use caution when calling commands with '--flush=false'.
+Passing '--flush=false' may improve performance for large numbers of file
+operations, but it does so at the cost of consistency guarantees and unbound
+growth of the directories' in-memory caches.
+Make sure to call 'ipfs files flush' after each batch of work.
 `,
 	},
 
@@ -1106,10 +1108,11 @@ Examples:
 
 WARNING:
 
-Use caution when calling commands with '--flush=false'. Passing '--flush=false'
-may improve performance for large numbers of file operations, but it does so at
-the cost of consistency guarantees and unbound growth of the directories'
-in-memory caches. Make sure to call 'ipfs files flush' after each batch.
+Use caution when calling commands with '--flush=false'.
+Passing '--flush=false' may improve performance for large numbers of file
+operations, but it does so at the cost of consistency guarantees and unbound
+growth of the directories' in-memory caches.
+Make sure to call 'ipfs files flush' after each batch of work.
 `,
 	},
 
@@ -1200,10 +1203,11 @@ Change the CID version or hash function of the root node of a given path.
 
 WARNING:
 
-Use caution when calling commands with '--flush=false'. Passing '--flush=false'
-may improve performance for large numbers of file operations, but it does so at
-the cost of consistency guarantees and unbound growth of the directories'
-in-memory caches. Make sure to call 'ipfs files flush' after each batch.
+Use caution when calling commands with '--flush=false'.
+Passing '--flush=false' may improve performance for large numbers of file
+operations, but it does so at the cost of consistency guarantees and unbound
+growth of the directories' in-memory caches.
+Make sure to call 'ipfs files flush' after each batch of work.
 `,
 	},
 	Arguments: []cmds.Argument{
