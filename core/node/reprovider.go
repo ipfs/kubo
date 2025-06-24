@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
+	"github.com/libp2p/go-libp2p-kad-dht/amino"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	dreprovider "github.com/libp2p/go-libp2p-kad-dht/dual/reprovider"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
@@ -29,7 +29,7 @@ func (r *NoopReprovider) InstantProvide(context.Context, ...mh.Multihash) error 
 func (r *NoopReprovider) ForceProvide(context.Context, ...mh.Multihash) error   { return nil }
 
 func Reprovider(cfg *config.Config) fx.Option {
-	mhStore := fx.Provide(func(keyProvider provider.KeyChanFunc, repo repo.Repo) (*rds.MHStore, error) {
+	mhStore := fx.Provide(func(keyProvider rds.KeyChanFunc, repo repo.Repo) (*rds.MHStore, error) {
 		return rds.NewMHStore(context.Background(), repo.Datastore(),
 			rds.WithPrefixLen(10),
 			rds.WithDatastorePrefix("/reprovider/mhs"),
@@ -45,17 +45,14 @@ func Reprovider(cfg *config.Config) fx.Option {
 		MHStore *rds.MHStore
 	}
 	sweepingReprovider := fx.Provide(func(in input) (reprovider.Reprovider, error) {
-		reprovideInterval := 22 * time.Hour
-		maxReprovideDelay := 1 * time.Hour
-
 		switch dht := in.DHT.(type) {
 		case *dual.DHT:
 			if dht != nil {
 				return dreprovider.NewSweepingReprovider(dht,
 					dreprovider.WithMHStore(in.MHStore),
 
-					dreprovider.WithReprovideInterval(reprovideInterval),
-					dreprovider.WithMaxReprovideDelay(maxReprovideDelay),
+					dreprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
+					dreprovider.WithMaxReprovideDelay(time.Hour),
 
 					dreprovider.WithMaxWorkers(4),
 					dreprovider.WithDedicatedPeriodicWorkers(2),
@@ -76,9 +73,9 @@ func Reprovider(cfg *config.Config) fx.Option {
 						return dht.Provide(context.Background(), cid.NewCidV1(cid.Raw, h), false)
 					}),
 
-					reprovider.WithReplicationFactor(20),
-					reprovider.WithReprovideInterval(reprovideInterval),
-					reprovider.WithMaxReprovideDelay(maxReprovideDelay),
+					reprovider.WithReplicationFactor(amino.DefaultBucketSize),
+					reprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
+					reprovider.WithMaxReprovideDelay(time.Hour),
 					reprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
 					reprovider.WithConnectivityCheckOfflineInterval(5*time.Minute),
 
