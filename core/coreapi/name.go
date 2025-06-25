@@ -66,6 +66,10 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 		publishOptions = append(publishOptions, namesys.PublishWithTTL(*options.TTL))
 	}
 
+	if options.Sequence != nil {
+		publishOptions = append(publishOptions, namesys.PublishWithSequence(*options.Sequence))
+	}
+
 	err = api.namesys.Publish(ctx, k, p, publishOptions...)
 	if err != nil {
 		return ipns.Name{}, err
