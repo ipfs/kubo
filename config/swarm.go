@@ -104,10 +104,11 @@ type Transports struct {
 
 // ConnMgr defines configuration options for the libp2p connection manager.
 type ConnMgr struct {
-	Type        *OptionalString   `json:",omitempty"`
-	LowWater    *OptionalInteger  `json:",omitempty"`
-	HighWater   *OptionalInteger  `json:",omitempty"`
-	GracePeriod *OptionalDuration `json:",omitempty"`
+	Type          *OptionalString   `json:",omitempty"`
+	LowWater      *OptionalInteger  `json:",omitempty"`
+	HighWater     *OptionalInteger  `json:",omitempty"`
+	GracePeriod   *OptionalDuration `json:",omitempty"`
+	SilencePeriod *OptionalDuration `json:",omitempty"`
 }
 
 // ResourceMgr defines configuration options for the libp2p Network Resource Manager
