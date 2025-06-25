@@ -41,7 +41,7 @@ func Reprovider(reprovide bool, cfg *config.Config) fx.Option {
 		mhStore, err := rds.NewMHStore(context.Background(), repo.Datastore(),
 			rds.WithPrefixLen(10),
 			rds.WithDatastorePrefix("/reprovider/mhs"),
-			rds.WithGCInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
+			rds.WithGCInterval(cfg.Reprovider.Sweep.MHStoreGCInterval.WithDefault(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval))),
 			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.MHStoreBatchSize.WithDefault(config.DefaultReproviderSweepMHStoreBatchSize))),
 			rds.WithGCFunc(keyProvider),
 		)
