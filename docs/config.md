@@ -1851,6 +1851,151 @@ Default: `"all"`
 
 Type: `optionalString` (unset for the default)
 
+### Reprovider.Sweep
+
+Reprovider Sweep is a resource efficient technique for advertising content to
+the Amino DHT swarm.
+
+The Reprovider module tracks the keys that should be periodically reprovided in
+the `MHStore` (multihash datastore). It splits the keys into DHT keyspace
+regions by proximity (XOR distance), and schedules when reprovides should
+happen in order to spread the reprovide operation over time to avoid a spike in
+resource utilization. It basically sweeps the keyspace _from left to right_
+over the [`Reprovider.Interval`](#reproviderinterval) time period, and
+reprovides keys matching to the visited keyspace region.
+
+Reprovider Sweep aims at replacing the inefficient legacy `boxo/provider`
+module, and is currently opt-in.
+
+Whenever new keys should be advertised to the Amino DHT, `kubo` calls
+`StartProviding()`, triggering an initial `provide` operation for the given
+keys. The keys will be added to the `MHStore` tracking which keys should be
+reprovided and when they should be reprovided. Calling `StopProviding()`
+removes the keys from the `MHStore`. However, it is currently tricky for `kubo`
+to detect when a key should stop being advertised. Hence, `kubo` will
+periodically `Reset()` the `MHStore` by providing it a channel of all the keys
+it is expected to contain. During this operation, all keys in the `MHstore` are
+purged, and only the given ones remain scheduled.
+
+#### Reprovider.Sweep.Enabled
+
+Whether Reprovider Sweep is enabled. If not enabled, the
+[`boxo/provider`](https://github.com/ipfs/boxo/tree/main/provider) is used for
+both provides and reprovides.
+
+Default: `false`
+
+Type: `flag`
+
+#### Reprovider.Sweep.MaxWorkers
+
+The maximum number of workers used by the `SweepingReprovider` to provide and
+reprovide CIDs to the DHT swarm.
+
+A worker performs Kademlia `GetClosestPeers` operations (max 1 at a time) to
+explore a region of the DHT keyspace, and then sends provider records to the
+nodes from that keyspace region. `GetClosestPeers` is capped to `10` concurrent
+connections [`amino` DHT
+defaults](https://github.com/libp2p/go-libp2p-kad-dht/blob/master/amino/defaults.go).
+The number of simultaneous connections used to send provider records is defined
+by
+[`Reprovider.Sweep.MaxProvideConnsPerWorker`](#reprovidersweepmaxprovideconnsperworker).
+
+The workers are split between two tasks categories:
+
+1. Periodic reprovides (see
+   [`Reprovider.Sweep.DedicatedPeriodicWorkers`](#reprovidersweepdedicatedperiodicworkers))
+2. Burst provides (see
+   [`Reprovider.Sweep.DedicatedBurstWorkers`](#reprovidersweepdedicatedburstworkers))
+
+[`Reprovider.Sweep.DedicatedPeriodicWorkers`](#reprovidersweepdedicatedperiodicworkers)
+workers are allocated to the periodic reprovides only,
+[`Reprovider.Sweep.DedicatedBurstWorkers`](#reprovidersweepdedicatedburstworkers)
+workers are allocated to burst provides only, and the rest of
+[`Reprovider.Sweep.MaxWorkers`](#reprovidersweepmaxworkers) can be used for
+either task (first come, first served).
+
+Default: `4`
+
+Type: `optionalInteger` (non-negative)
+
+#### Reprovider.Sweep.DedicatedPeriodicWorkers
+
+Number of workers dedicated to periodic keyspace region reprovides.
+
+Among the [`Reprovider.Sweep.MaxWorkers`](#reprovidersweepmaxworkers), this
+number of workers will be dedicated to the periodic region reprovide only. In
+addition to these, if there are available workers in the pool, they can also be
+used for periodic reprovides.
+
+Default: `2`
+
+Type: `optionalInteger` (`0` means there are no dedicated workers, but the
+operation can be performed by free non-dedicated workers)
+
+#### Reprovider.Sweep.DedicatedBurstWorkers
+
+Number of workers dedicated to burst provides.
+
+Burst provides are triggered when a new keys must be advertised to the DHT
+immediately, or when a node comes back online and must catch up the reprovides
+that should have happened while it was offline.
+
+Among the [`Reprovider.Sweep.MaxWorkers`](#reprovidersweepmaxworkers), this
+number of workers will be dedicated to burst provides only. In addition to
+these, if there are available workers in the pool, they can also be used for
+burst provides.
+
+Default: `1`
+
+Type: `optionalInteger` (`0` means there are no dedicated workers, but the
+operation can be performed by free non-dedicated workers)
+
+#### Reprovider.Sweep.MaxProvideConnsPerWorker
+
+Maximum number of connections that a single worker can use to send provider
+records over the network.
+
+When reproviding CIDs corresponding to a keyspace region, the reprovider must
+send a provider record to the 20 closest peers to the CID (in XOR distance) for
+each CID belonging to this keyspace region.
+
+The reprovider opens a connection to a peer from that region, send it all its
+allocated provider records. Once done, it opens a connection to the next peer
+from that keyspace region until all provider records are assigned.
+
+This option defines how many such connections can be open concurrently by a
+single worker.
+
+Default: `16`
+
+Type: `optionalInteger` (non-negative)
+
+#### Reprovider.Sweep.MHStoreGCInterval
+
+Interval at which the reprovider's MHStore state is purged and replaced by keys
+matching the [`Reprovider.Strategy`](#reproviderstrategy). This operation is
+necessary to garbage collect keys that shouldn't be advertised anymore to the
+DHT swarm.
+
+Default: [`Reprovider.Interval`](#reproviderinterval)
+
+Type: `optionalDuration`
+
+#### Reprovider.Sweep.MHStoreBatchSize
+
+During the garbage collection, all keys stored in the MHStore are removed, and
+the keys are streamed from a channel to fill the MHStore again with up-to-date
+keys. Since a high number of CIDs to reprovide can easily fill up the memory,
+keys are read and written in batches to optimize for memory usage.
+
+This option defines how many multihashes should be contained within a batch. A
+multihash is usually represented by 34 bytes.
+
+Default: `16384` (~544 KiB per batch)
+
+Type: `optionalInteger` (non-negative)
+
 ## `Routing`
 
 Contains options for content, peer, and IPNS routing mechanisms.

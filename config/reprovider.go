@@ -45,7 +45,8 @@ type Sweep struct {
 	DedicatedBurstWorkers    *OptionalInteger // Number of workers dedicated to initial provides or burst reproviding keyspace regions after a period of inactivity.
 	MaxProvideConnsPerWorker *OptionalInteger // Number of connections that a worker is able to open to send provider records during a (re)provide operation.
 
-	MHStoreBatchSize *OptionalInteger // Number of multihashes to keep in memory when gc'ing the MHStore.
+	MHStoreGCInterval *OptionalDuration // Interval for garbage collection in MHStore.
+	MHStoreBatchSize  *OptionalInteger  // Number of multihashes to keep in memory when gc'ing the MHStore.
 }
 
 func ParseReproviderStrategy(s string) ReproviderStrategy {
