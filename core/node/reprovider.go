@@ -38,13 +38,25 @@ func Reprovider(reprovide bool, cfg *config.Config) fx.Option {
 	}
 
 	mhStore := fx.Provide(func(keyProvider provider.KeyChanFunc, repo repo.Repo) (*rds.MHStore, error) {
-		return rds.NewMHStore(context.Background(), repo.Datastore(),
+		mhStore, err := rds.NewMHStore(context.Background(), repo.Datastore(),
 			rds.WithPrefixLen(10),
 			rds.WithDatastorePrefix("/reprovider/mhs"),
 			rds.WithGCInterval(22*time.Hour),
 			rds.WithGCBatchSize(1<<14), // ~544 KiB per batch (1 multihash = 34 bytes)
 			rds.WithGCFunc(keyProvider),
 		)
+		if err != nil {
+			return nil, err
+		}
+		keysChan, err := keyProvider(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		err = mhStore.Reset(context.Background(), keysChan)
+		if err != nil {
+			return nil, err
+		}
+		return mhStore, nil
 	})
 
 	type input struct {
