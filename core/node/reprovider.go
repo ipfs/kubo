@@ -30,7 +30,7 @@ func (r *NoopReprovider) InstantProvide(context.Context, ...mh.Multihash) error 
 func (r *NoopReprovider) ForceProvide(context.Context, ...mh.Multihash) error   { return nil }
 
 func Reprovider(reprovide bool, cfg *config.Config) fx.Option {
-	if !reprovide {
+	if !reprovide || cfg.Reprovider.Sweep.Enabled.WithDefault(config.DefaultReproviderSweepEnabled) {
 		return fx.Options(
 			fx.Provide(func() reprovider.Reprovider {
 				return &NoopReprovider{}
@@ -41,8 +41,8 @@ func Reprovider(reprovide bool, cfg *config.Config) fx.Option {
 		mhStore, err := rds.NewMHStore(context.Background(), repo.Datastore(),
 			rds.WithPrefixLen(10),
 			rds.WithDatastorePrefix("/reprovider/mhs"),
-			rds.WithGCInterval(22*time.Hour),
-			rds.WithGCBatchSize(1<<14), // ~544 KiB per batch (1 multihash = 34 bytes)
+			rds.WithGCInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
+			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.MHStoreBatchSize.WithDefault(config.DefaultReproviderSweepMHStoreBatchSize))),
 			rds.WithGCFunc(keyProvider),
 		)
 		if err != nil {
@@ -74,10 +74,10 @@ func Reprovider(reprovide bool, cfg *config.Config) fx.Option {
 					dreprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
 					dreprovider.WithMaxReprovideDelay(time.Hour),
 
-					dreprovider.WithMaxWorkers(4),
-					dreprovider.WithDedicatedPeriodicWorkers(2),
-					dreprovider.WithDedicatedPeriodicWorkers(1),
-					dreprovider.WithMaxProvideConnsPerWorker(20),
+					dreprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
+					dreprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
+					dreprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
+					dreprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
 				)
 			}
 		case *fullrt.FullRT:
@@ -99,10 +99,10 @@ func Reprovider(reprovide bool, cfg *config.Config) fx.Option {
 					reprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
 					reprovider.WithConnectivityCheckOfflineInterval(5*time.Minute),
 
-					reprovider.WithMaxWorkers(4),
-					reprovider.WithDedicatedPeriodicWorkers(2),
-					reprovider.WithDedicatedPeriodicWorkers(1),
-					reprovider.WithMaxProvideConnsPerWorker(20),
+					reprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
+					reprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
+					reprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
+					reprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
 				)
 			}
 		}
