@@ -141,7 +141,7 @@ require (
 	github.com/ipfs/kubo v0.31.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.21.0 // indirect
-	github.com/ipshipyard/p2p-forge v0.5.2-0.20250616211529-2c25ee655b22 // indirect
+	github.com/ipshipyard/p2p-forge v0.6.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jgautheron/goconst v1.7.1 // indirect
@@ -168,7 +168,7 @@ require (
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.3.0 // indirect
-	github.com/libp2p/go-libp2p v0.42.0-alpha-3 // indirect
+	github.com/libp2p/go-libp2p v0.42.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
 	github.com/libp2p/go-libp2p-kad-dht v0.33.1 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.7.0 // indirect

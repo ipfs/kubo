@@ -359,8 +359,8 @@ github.com/ipld/go-codec-dagpb v1.7.0 h1:hpuvQjCSVSLnTnHXn+QAMR0mLmb1gA6wl10LExo
 github.com/ipld/go-codec-dagpb v1.7.0/go.mod h1:rD3Zg+zub9ZnxcLwfol/OTQRVjaLzXypgy4UqHQvilM=
 github.com/ipld/go-ipld-prime v0.21.0 h1:n4JmcpOlPDIxBcY037SVfpd1G+Sj1nKZah0m6QH9C2E=
 github.com/ipld/go-ipld-prime v0.21.0/go.mod h1:3RLqy//ERg/y5oShXXdx5YIp50cFGOanyMctpPjsvxQ=
-github.com/ipshipyard/p2p-forge v0.5.2-0.20250616211529-2c25ee655b22 h1:J9UVOPm9gSOKM9BurRyHLRVpG5d5TPsYaSwZe1iTNqQ=
-github.com/ipshipyard/p2p-forge v0.5.2-0.20250616211529-2c25ee655b22/go.mod h1:eCkvoEuBwYJpPjMaBtVwLuIU9dzMWiO2hej3zfpbu+4=
+github.com/ipshipyard/p2p-forge v0.6.0 h1:kNhYxgYGtqF3MLts/i0hw+7ygtgNB4Qv8h6fo7j6Iq4=
+github.com/ipshipyard/p2p-forge v0.6.0/go.mod h1:pj8Zcs+ex5OMq5a1bFLHqW0oL3qYO0v5eGLZmit0l7U=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
 github.com/jackpal/go-nat-pmp v1.0.2/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/jbenet/go-temp-err-catcher v0.1.0 h1:zpb3ZH6wIE8Shj2sKS+khgRvf7T7RABoLk/+KKHggpk=
@@ -425,8 +425,8 @@ github.com/libp2p/go-cidranger v1.1.0 h1:ewPN8EZ0dd1LSnrtuwd4709PXVcITVeuwbag38y
 github.com/libp2p/go-cidranger v1.1.0/go.mod h1:KWZTfSr+r9qEo9OkI9/SIEeAtw+NNoU0dXIXt15Okic=
 github.com/libp2p/go-flow-metrics v0.3.0 h1:q31zcHUvHnwDO0SHaukewPYgwOBSxtt830uJtUx6784=
 github.com/libp2p/go-flow-metrics v0.3.0/go.mod h1:nuhlreIwEguM1IvHAew3ij7A8BMlyHQJ279ao24eZZo=
-github.com/libp2p/go-libp2p v0.42.0-alpha-3 h1:ZB6rEUmNt9mHWaGxCKlrddKw4PM527/NhmUW+jFMvhY=
-github.com/libp2p/go-libp2p v0.42.0-alpha-3/go.mod h1:4NGcjbD9OIvFiSRb0XueCO19zJ4kSPK5vkyyOUYmMro=
+github.com/libp2p/go-libp2p v0.42.0 h1:A8foZk+ZEhZTv0Jb++7xUFlrFhBDv4j2Vh/uq4YX+KE=
+github.com/libp2p/go-libp2p v0.42.0/go.mod h1:4NGcjbD9OIvFiSRb0XueCO19zJ4kSPK5vkyyOUYmMro=
 github.com/libp2p/go-libp2p-asn-util v0.4.1 h1:xqL7++IKD9TBFMgnLPZR6/6iYhawHKHl950SO9L6n94=
 github.com/libp2p/go-libp2p-asn-util v0.4.1/go.mod h1:d/NI6XZ9qxw67b4e+NgpQexCIiFYJjErASrYW4PFDN8=
 github.com/libp2p/go-libp2p-kad-dht v0.33.1 h1:hKFhHMf7WH69LDjaxsJUWOU6qZm71uO47M/a5ijkiP0=

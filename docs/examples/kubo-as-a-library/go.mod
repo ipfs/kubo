@@ -9,7 +9,7 @@ replace github.com/ipfs/kubo => ./../../..
 require (
 	github.com/ipfs/boxo v0.32.0
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
-	github.com/libp2p/go-libp2p v0.42.0-alpha-3
+	github.com/libp2p/go-libp2p v0.42.0
 	github.com/multiformats/go-multiaddr v0.16.0
 )
 
@@ -98,7 +98,7 @@ require (
 	github.com/ipld/go-car/v2 v2.14.3 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.21.0 // indirect
-	github.com/ipshipyard/p2p-forge v0.5.2-0.20250616211529-2c25ee655b22 // indirect
+	github.com/ipshipyard/p2p-forge v0.6.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
