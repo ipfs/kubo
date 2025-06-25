@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   pull_request:
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
   push:
     branches:
-      - 'master'
+      - "master"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
@@ -17,7 +17,7 @@ jobs:
   sharness-test:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "4xlarge"]' || '"ubuntu-latest"') }}
-    timeout-minutes: 30 # TODO: restore ${{ github.repository == 'ipfs/kubo' && 15 || 60 }}
+    timeout-minutes: ${{ github.repository == 'ipfs/kubo' && 15 || 60 }}
     defaults:
       run:
         shell: bash
@@ -53,7 +53,7 @@ jobs:
           IPFS_CHECK_RCMGR_DEFAULTS: 1
           CONTINUE_ON_S_FAILURE: 1
           # increasing parallelism beyond 10 doesn't speed up the tests much
-          PARALLEL: 1 # TODO: restore ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
+          PARALLEL: ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
       - name: Upload coverage report
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
         if: failure() || success()
