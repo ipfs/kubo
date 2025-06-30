@@ -407,7 +407,7 @@ func (s multibaseSorter) Less(i, j int) bool {
 	if a != b {
 		return a < b
 	}
-	// lowecase letters should come before uppercase
+	// lowercase letters should come before uppercase
 	return s.data[i].Code > s.data[j].Code
 }
 

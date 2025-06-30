@@ -81,7 +81,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 			return
 		}
 
-		keychan, err := bs.AllKeysChan(ctx)
+		keychain, err := bs.AllKeysChan(ctx)
 		if err != nil {
 			select {
 			case output <- Result{Error: err}:
@@ -96,11 +96,11 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 	loop:
 		for ctx.Err() == nil { // select may not notice that we're "done".
 			select {
-			case k, ok := <-keychan:
+			case k, ok := <-keychain:
 				if !ok {
 					break loop
 				}
-				// NOTE: assumes that all CIDs returned by the keychan are _raw_ CIDv1 CIDs.
+				// NOTE: assumes that all CIDs returned by the keychain are _raw_ CIDv1 CIDs.
 				// This means we keep the block as long as we want it somewhere (CIDv1, CIDv0, Raw, other...).
 				if !gcs.Has(k) {
 					err := bs.DeleteBlock(ctx, k)

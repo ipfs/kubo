@@ -118,7 +118,7 @@ cat <<EOF > codecs_expect
   130  leofcoin-tx
   131  leofcoin-pr
   133  dag-jose
-  134  dag-cose
+  134  dag-case
   144  eth-block
   145  eth-block-list
   146  eth-tx-trie

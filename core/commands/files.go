@@ -155,7 +155,7 @@ const (
 	defaultStatFormat = `<hash>
 Size: <size>
 CumulativeSize: <cumulsize>
-ChildBlocks: <childs>
+ChildBlocks: <children>
 Type: <type>
 Mode: <mode> (<mode-octal>)
 Mtime: <mtime>`
@@ -175,7 +175,7 @@ var filesStatCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(filesFormatOptionName, "Print statistics in given format. Allowed tokens: "+
-			"<hash> <size> <cumulsize> <type> <childs> and optional <mode> <mode-octal> <mtime> <mtime-secs> <mtime-nsecs>."+
+			"<hash> <size> <cumulsize> <type> <children> and optional <mode> <mode-octal> <mtime> <mtime-secs> <mtime-nsecs>."+
 			"Conflicts with other format options.").WithDefault(defaultStatFormat),
 		cmds.BoolOption(filesHashOptionName, "Print only hash. Implies '--format=<hash>'. Conflicts with other format options."),
 		cmds.BoolOption(filesSizeOptionName, "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options."),
@@ -263,7 +263,7 @@ var filesStatCmd = &cmds.Command{
 			s = strings.Replace(s, "<hash>", out.Hash, -1)
 			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
 			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
-			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
+			s = strings.Replace(s, "<children>", fmt.Sprintf("%d", out.Blocks), -1)
 			s = strings.Replace(s, "<type>", out.Type, -1)
 			s = strings.Replace(s, "<mode>", mode, -1)
 			s = strings.Replace(s, "<mode-octal>", modeo, -1)
