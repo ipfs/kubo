@@ -50,7 +50,7 @@ func TestSwarm(t *testing.T) {
 		actualID := output.Peers[0].Identify.ID
 		actualPublicKey := output.Peers[0].Identify.PublicKey
 		actualAgentVersion := output.Peers[0].Identify.AgentVersion
-		actualAdresses := output.Peers[0].Identify.Addresses
+		actualAddresses := output.Peers[0].Identify.Addresses
 		actualProtocols := output.Peers[0].Identify.Protocols
 
 		expectedID := otherNode.PeerID().String()
@@ -59,8 +59,8 @@ func TestSwarm(t *testing.T) {
 		assert.Equal(t, actualID, expectedID)
 		assert.NotNil(t, actualPublicKey)
 		assert.NotNil(t, actualAgentVersion)
-		assert.Len(t, actualAdresses, 1)
-		assert.Equal(t, expectedAddresses[0], actualAdresses[0])
+		assert.Len(t, actualAddresses, 1)
+		assert.Equal(t, expectedAddresses[0], actualAddresses[0])
 		assert.Greater(t, len(actualProtocols), 0)
 	})
 
