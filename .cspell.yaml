@@ -1,0 +1,6 @@
+ignoreWords:
+  - childs # This spelling is used in the files command
+  - NodeCreater # This spelling is used in the fuse dependency
+  - Boddy # One of the contributors to the project - Chris Boddy
+  - Botto # One of the contributors to the project - Santiago Botto
+  - cose # dag-cose
