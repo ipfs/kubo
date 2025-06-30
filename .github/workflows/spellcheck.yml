@@ -15,4 +15,4 @@ concurrency:
 
 jobs:
   spellcheck:
-    uses: ipdxco/unified-github-workflows/.github/workflows/spellcheck.yml@spellcheck
+    uses: ipdxco/unified-github-workflows/.github/workflows/reusable-spellcheck.yml@spellcheck
