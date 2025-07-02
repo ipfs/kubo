@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"slices"
 	"sort"
 	"strconv"
 	"sync"
@@ -488,7 +489,7 @@ func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, erro
 
 	if protocols, err := ps.GetProtocols(p); err == nil {
 		info.Protocols = append(info.Protocols, protocols...)
-		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
+		slices.Sort(info.Protocols)
 	}
 
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {

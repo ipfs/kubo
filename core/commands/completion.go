@@ -2,6 +2,7 @@ package commands
 
 import (
 	"io"
+	"slices"
 	"sort"
 	"text/template"
 
@@ -68,18 +69,10 @@ func commandToCompletions(name string, fullName string, cmd *cmds.Command) *comp
 			parsed.Options = append(parsed.Options, flag)
 		}
 	}
-	sort.Slice(parsed.LongFlags, func(i, j int) bool {
-		return parsed.LongFlags[i] < parsed.LongFlags[j]
-	})
-	sort.Slice(parsed.ShortFlags, func(i, j int) bool {
-		return parsed.ShortFlags[i] < parsed.ShortFlags[j]
-	})
-	sort.Slice(parsed.LongOptions, func(i, j int) bool {
-		return parsed.LongOptions[i] < parsed.LongOptions[j]
-	})
-	sort.Slice(parsed.ShortOptions, func(i, j int) bool {
-		return parsed.ShortOptions[i] < parsed.ShortOptions[j]
-	})
+	slices.Sort(parsed.LongFlags)
+	slices.Sort(parsed.ShortFlags)
+	slices.Sort(parsed.LongOptions)
+	slices.Sort(parsed.ShortOptions)
 	return parsed
 }
 

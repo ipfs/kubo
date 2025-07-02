@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 
@@ -174,7 +175,7 @@ func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (interface{
 
 	protocols, _ := ps.GetProtocols(p) // don't care about errors here.
 	info.Protocols = append(info.Protocols, protocols...)
-	sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
+	slices.Sort(info.Protocols)
 
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
@@ -207,7 +208,7 @@ func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (interface{}, error) {
 		}
 		sort.Strings(info.Addresses)
 		info.Protocols = node.PeerHost.Mux().Protocols()
-		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
+		slices.Sort(info.Protocols)
 	}
 	info.AgentVersion = version.GetUserAgentVersion()
 	return info, nil
