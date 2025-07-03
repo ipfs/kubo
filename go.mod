@@ -5,6 +5,7 @@ go 1.24
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
+	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239
 	github.com/blang/semver/v4 v4.0.0
 	github.com/caddyserver/certmagic v0.21.6
 	github.com/cenkalti/backoff/v4 v4.3.0
