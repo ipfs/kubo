@@ -99,6 +99,11 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 			if err != nil {
 				return nil, err
 			}
+			logger.Infof("HTTP Retrieval enabled: Allowlist: %t. Denylist: %t",
+				httpCfg.Allowlist != nil,
+				httpCfg.Denylist != nil,
+			)
+
 			bitswapHTTP := httpnet.New(in.Host,
 				httpnet.WithHTTPWorkers(int(httpCfg.NumWorkers.WithDefault(config.DefaultHTTPRetrievalNumWorkers))),
 				httpnet.WithAllowlist(httpCfg.Allowlist),
