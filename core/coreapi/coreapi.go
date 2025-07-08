@@ -29,7 +29,6 @@ import (
 	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/options"
-	"github.com/libp2p/go-libp2p-kad-dht/provider"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
@@ -73,7 +72,7 @@ type CoreAPI struct {
 	ipldPathResolver   pathresolver.Resolver
 	unixFSPathResolver pathresolver.Resolver
 
-	provider          provider.Provider
+	provider          node.Provider
 	providingStrategy config.ReproviderStrategy
 
 	pubSub *pubsub.PubSub

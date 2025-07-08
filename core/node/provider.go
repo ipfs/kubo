@@ -39,7 +39,41 @@ const sampledBatchSize = 1000
 // Datastore key used to store previous reprovide strategy.
 const reprovideStrategyKey = "/reprovideStrategy"
 
-func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
+type NoopProvider struct{}
+
+func (r *NoopProvider) StartProviding(...mh.Multihash)                        {}
+func (r *NoopProvider) StopProviding(...mh.Multihash)                         {}
+func (r *NoopProvider) InstantProvide(context.Context, ...mh.Multihash) error { return nil }
+func (r *NoopProvider) ForceProvide(context.Context, ...mh.Multihash) error   { return nil }
+
+type Provider interface {
+	// StartProviding provides the given keys to the DHT swarm unless they were
+	// already provided in the past. The keys will be periodically reprovided until
+	// StopProviding is called for the same keys or user defined garbage collection
+	// deletes the keys.
+	StartProviding(...mh.Multihash)
+
+	// StopProviding stops reproviding the given keys to the DHT swarm. The node
+	// stops being referred as a provider when the provider records in the DHT
+	// swarm expire.
+	StopProviding(...mh.Multihash)
+
+	// InstantProvide only sends provider records for the given keys out to the DHT
+	// swarm. It does NOT take the responsibility to reprovide these keys.
+	InstantProvide(context.Context, ...mh.Multihash) error
+
+	// ForceProvide is similar to StartProviding, but it sends provider records out
+	// to the DHT even if the keys were already provided in the past.
+	ForceProvide(context.Context, ...mh.Multihash) error
+}
+
+var (
+	_ Provider = &ddhtprovider.SweepingProvider{}
+	_ Provider = &dhtprovider.SweepingProvider{}
+	_ Provider = &NoopProvider{}
+)
+
+func BurstProvider(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
 	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, repo repo.Repo) (provider.System, error) {
 		// Initialize provider.System first, before pinner/blockstore/etc.
 		// The KeyChanFunc will be set later via SetKeyProvider() once we have
@@ -158,15 +192,6 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 	})
 }
 
-type NoopProvider struct{}
-
-var _ dhtprovider.Provider = &NoopProvider{}
-
-func (r *NoopProvider) StartProviding(...mh.Multihash)                        {}
-func (r *NoopProvider) StopProviding(...mh.Multihash)                         {}
-func (r *NoopProvider) InstantProvide(context.Context, ...mh.Multihash) error { return nil }
-func (r *NoopProvider) ForceProvide(context.Context, ...mh.Multihash) error   { return nil }
-
 func SweepingProvider(cfg *config.Config) fx.Option {
 	mhStore := fx.Provide(func(keyProvider provider.KeyChanFunc, repo repo.Repo) (*rds.MHStore, error) {
 		mhStore, err := rds.NewMHStore(context.Background(), repo.Datastore(),
@@ -195,7 +220,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 		DHT     routing.Routing `name:"dhtc"`
 		MHStore *rds.MHStore
 	}
-	sweepingReprovider := fx.Provide(func(in input) (dhtprovider.Provider, error) {
+	sweepingReprovider := fx.Provide(func(in input) (Provider, error) {
 		switch dht := in.DHT.(type) {
 		case *dual.DHT:
 			if dht != nil {
@@ -276,7 +301,7 @@ func OnlineProviders(provide bool, providerStrategy string, reprovideInterval ti
 
 // OfflineProviders groups units managing provider routing records offline
 func OfflineProviders() fx.Option {
-	return fx.Provide(provider.NewNoopProvider)
+	return fx.Provide(&NoopProvider{})
 }
 
 func mfsProvider(mfsRoot *mfs.Root, fetcher fetcher.Factory) provider.KeyChanFunc {
