@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -131,7 +131,7 @@ func cmdPathStrings(cmd *Command, showOptions bool) []string {
 	}
 
 	recurse("", cmd)
-	sort.Strings(cmds)
+	slices.Sort(cmds)
 	return cmds
 }
 
