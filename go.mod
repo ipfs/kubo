@@ -21,8 +21,8 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.32.0
-	github.com/ipfs/go-block-format v0.2.1
+	github.com/ipfs/boxo v0.33.0
+	github.com/ipfs/go-block-format v0.2.2
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-cidutil v0.1.0
 	github.com/ipfs/go-datastore v0.8.2
@@ -35,9 +35,9 @@ require (
 	github.com/ipfs/go-fs-lock v0.1.1
 	github.com/ipfs/go-ipfs-cmds v0.15.0
 	github.com/ipfs/go-ipld-cbor v0.2.0
-	github.com/ipfs/go-ipld-format v0.6.1
+	github.com/ipfs/go-ipld-format v0.6.2
 	github.com/ipfs/go-ipld-git v0.1.1
-	github.com/ipfs/go-ipld-legacy v0.2.1
+	github.com/ipfs/go-ipld-legacy v0.2.2
 	github.com/ipfs/go-log/v2 v2.6.0
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
@@ -64,7 +64,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.16.0
 	github.com/multiformats/go-multiaddr-dns v0.4.1
 	github.com/multiformats/go-multibase v0.2.0
-	github.com/multiformats/go-multicodec v0.9.1
+	github.com/multiformats/go-multicodec v0.9.2
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
@@ -86,7 +86,7 @@ require (
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.39.0
-	golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476
+	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
 	golang.org/x/mod v0.25.0
 	golang.org/x/sync v0.15.0
 	golang.org/x/sys v0.33.0
