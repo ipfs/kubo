@@ -14,6 +14,7 @@ import (
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipns"
+	"github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -263,6 +264,11 @@ Trigger reprovider to announce our data to network.
 			return ErrNotOnline
 		}
 
+		provideSys, ok := nd.Provider.(provider.System)
+		if !ok {
+			return errors.New("manual reprovide not supported with sweeping provider")
+		}
+
 		// respect global config
 		cfg, err := nd.Repo.Config()
 		if err != nil {
@@ -275,7 +281,7 @@ Trigger reprovider to announce our data to network.
 			return errors.New("invalid configuration: Reprovider.Interval is set to '0'")
 		}
 
-		err = nd.Provider.Reprovide(req.Context)
+		err = provideSys.Reprovide(req.Context)
 		if err != nil {
 			return err
 		}

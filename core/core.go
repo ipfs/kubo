@@ -26,11 +26,10 @@ import (
 	"github.com/ipfs/boxo/fetcher"
 	mfs "github.com/ipfs/boxo/mfs"
 	pathresolver "github.com/ipfs/boxo/path/resolver"
-	provider "github.com/ipfs/boxo/provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
-	"github.com/libp2p/go-libp2p-kad-dht/reprovider"
+	"github.com/libp2p/go-libp2p-kad-dht/provider"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
@@ -114,11 +113,10 @@ type IpfsNode struct {
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
 
-	Routing    irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
-	Provider   provider.System            // the value provider system
-	Reprovider reprovider.Reprovider      `optional:"true"`
-	DHT        *ddht.DHT                  `optional:"true"`
-	DHTClient  routing.Routing            `name:"dhtc" optional:"true"`
+	Routing   irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
+	Provider  provider.Provider          // the value provider system
+	DHT       *ddht.DHT                  `optional:"true"`
+	DHTClient routing.Routing            `name:"dhtc" optional:"true"`
 
 	P2P *p2p.P2P `optional:"true"`
 
