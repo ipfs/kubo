@@ -1,10 +1,12 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"text/tabwriter"
 
+	"github.com/ipfs/boxo/provider"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
@@ -32,7 +34,12 @@ future.
 			return ErrNotOnline
 		}
 
-		stats, err := nd.Provider.Stat()
+		provideSys, ok := nd.Provider.(provider.System)
+		if !ok {
+			return errors.New("provide stats not supported with sweeping provider")
+		}
+
+		stats, err := provideSys.Stat()
 		if err != nil {
 			return err
 		}
