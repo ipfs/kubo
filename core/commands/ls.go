@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
+	"slices"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -118,8 +119,8 @@ The JSON output contains type information.
 						return nil
 					}, func(i int) {
 						// after each dir
-						sort.Slice(outputLinks, func(i, j int) bool {
-							return outputLinks[i].Name < outputLinks[j].Name
+						slices.SortFunc(outputLinks, func(a, b LsLink) int {
+							return strings.Compare(a.Name, b.Name)
 						})
 
 						output[i] = LsObject{

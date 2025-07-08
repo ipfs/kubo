@@ -22,7 +22,7 @@ func TestParser(t *testing.T) {
 			Router: config.Router{
 				Type: config.RouterTypeHTTP,
 				Parameters: &config.HTTPRouterParams{
-					Endpoint: "testEndpoint",
+					Endpoint: "http://testEndpoint",
 				},
 			},
 		},
@@ -79,7 +79,7 @@ func TestParserRecursive(t *testing.T) {
 			Router: config.Router{
 				Type: config.RouterTypeHTTP,
 				Parameters: &config.HTTPRouterParams{
-					Endpoint: "testEndpoint1",
+					Endpoint: "http://testEndpoint1",
 				},
 			},
 		},
@@ -87,7 +87,7 @@ func TestParserRecursive(t *testing.T) {
 			Router: config.Router{
 				Type: config.RouterTypeHTTP,
 				Parameters: &config.HTTPRouterParams{
-					Endpoint: "testEndpoint2",
+					Endpoint: "http://testEndpoint2",
 				},
 			},
 		},
@@ -95,7 +95,7 @@ func TestParserRecursive(t *testing.T) {
 			Router: config.Router{
 				Type: config.RouterTypeHTTP,
 				Parameters: &config.HTTPRouterParams{
-					Endpoint: "testEndpoint3",
+					Endpoint: "http://testEndpoint3",
 				},
 			},
 		},

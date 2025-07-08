@@ -99,6 +99,11 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 			if err != nil {
 				return nil, err
 			}
+			logger.Infof("HTTP Retrieval enabled: Allowlist: %t. Denylist: %t",
+				httpCfg.Allowlist != nil,
+				httpCfg.Denylist != nil,
+			)
+
 			bitswapHTTP := httpnet.New(in.Host,
 				httpnet.WithHTTPWorkers(int(httpCfg.NumWorkers.WithDefault(config.DefaultHTTPRetrievalNumWorkers))),
 				httpnet.WithAllowlist(httpCfg.Allowlist),
@@ -106,6 +111,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 				httpnet.WithInsecureSkipVerify(httpCfg.TLSInsecureSkipVerify.WithDefault(config.DefaultHTTPRetrievalTLSInsecureSkipVerify)),
 				httpnet.WithMaxBlockSize(int64(maxBlockSize)),
 				httpnet.WithUserAgent(version.GetUserAgentVersion()),
+				httpnet.WithMetricsLabelsForEndpoints(httpCfg.Allowlist),
 			)
 			bitswapNetworks = network.New(in.Host.Peerstore(), bitswapLibp2p, bitswapHTTP)
 		} else if libp2pEnabled {
@@ -117,9 +123,52 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 		// Kubo uses own, customized ProviderQueryManager
 		in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
 		var maxProviders int = DefaultMaxProviders
+
+		var bcDisposition string
 		if in.Cfg.Internal.Bitswap != nil {
 			maxProviders = int(in.Cfg.Internal.Bitswap.ProviderSearchMaxResults.WithDefault(DefaultMaxProviders))
+			if in.Cfg.Internal.Bitswap.BroadcastControl != nil {
+				bcCfg := in.Cfg.Internal.Bitswap.BroadcastControl
+				bcEnable := bcCfg.Enable.WithDefault(config.DefaultBroadcastControlEnable)
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlEnable(bcEnable)))
+				if bcEnable {
+					bcDisposition = "enabled"
+					bcMaxPeers := int(bcCfg.MaxPeers.WithDefault(config.DefaultBroadcastControlMaxPeers))
+					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlMaxPeers(bcMaxPeers)))
+
+					bcLocalPeers := bcCfg.LocalPeers.WithDefault(config.DefaultBroadcastControlLocalPeers)
+					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlLocalPeers(bcLocalPeers)))
+
+					bcPeeredPeers := bcCfg.PeeredPeers.WithDefault(config.DefaultBroadcastControlPeeredPeers)
+					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlPeeredPeers(bcPeeredPeers)))
+
+					bcMaxRandomPeers := int(bcCfg.MaxRandomPeers.WithDefault(config.DefaultBroadcastControlMaxRandomPeers))
+					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlMaxRandomPeers(bcMaxRandomPeers)))
+
+					bcSendToPendingPeers := bcCfg.SendToPendingPeers.WithDefault(config.DefaultBroadcastControlSendToPendingPeers)
+					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlSendToPendingPeers(bcSendToPendingPeers)))
+				} else {
+					bcDisposition = "disabled"
+				}
+			}
 		}
+
+		// If broadcast control is not configured, then configure with defaults.
+		if bcDisposition == "" {
+			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlEnable(config.DefaultBroadcastControlEnable)))
+			if config.DefaultBroadcastControlEnable {
+				bcDisposition = "enabled"
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlMaxPeers(config.DefaultBroadcastControlMaxPeers)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlLocalPeers(config.DefaultBroadcastControlLocalPeers)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlPeeredPeers(config.DefaultBroadcastControlPeeredPeers)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlMaxRandomPeers(config.DefaultBroadcastControlMaxRandomPeers)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlSendToPendingPeers(config.DefaultBroadcastControlSendToPendingPeers)))
+			} else {
+				bcDisposition = "enabled"
+			}
+		}
+		logger.Infof("bitswap client broadcast control %s", bcDisposition)
+
 		ignoredPeerIDs := make([]peer.ID, 0, len(in.Cfg.Routing.IgnoreProviders))
 		for _, str := range in.Cfg.Routing.IgnoreProviders {
 			pid, err := peer.Decode(str)

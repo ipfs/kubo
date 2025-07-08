@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sort"
+	"slices"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	mbase "github.com/multiformats/go-multibase"
@@ -325,7 +325,7 @@ TOPIC AND DATA ENCODING
 		for _, peer := range peers {
 			list.Strings = append(list.Strings, peer.String())
 		}
-		sort.Strings(list.Strings)
+		slices.Sort(list.Strings)
 		return cmds.EmitOnce(res, list)
 	},
 	Type: stringList{},

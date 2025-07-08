@@ -4,14 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sort"
-
-	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
-	repo "github.com/ipfs/kubo/repo"
-	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
+	"slices"
+	"strings"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/kubo/config"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	repo "github.com/ipfs/kubo/repo"
+	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -284,7 +284,9 @@ var bootstrapListCmd = &cmds.Command{
 }
 
 func bootstrapWritePeers(w io.Writer, prefix string, peers []string) error {
-	sort.Stable(sort.StringSlice(peers))
+	slices.SortStableFunc(peers, func(a, b string) int {
+		return strings.Compare(a, b)
+	})
 	for _, peer := range peers {
 		_, err := w.Write([]byte(prefix + peer + "\n"))
 		if err != nil {

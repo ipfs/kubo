@@ -12,13 +12,13 @@ field in the ipfs configuration file.
 
 ## flatfs
 
-Stores each key value pair as a file on the filesystem.
+Stores each key-value pair as a file on the filesystem.
 
 The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descriptor of the sharding strategy. Some example values are:
 - `/repo/flatfs/shard/v1/next-to-last/2`
   - Shards on the two next to last characters of the key
 - `/repo/flatfs/shard/v1/prefix/2`
-  - Shards based on the two character prefix of the key
+  - Shards based on the two-character prefix of the key
 
 ```json
 {
@@ -34,7 +34,7 @@ The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descri
 NOTE: flatfs must only be used as a block store (mounted at `/blocks`) as it only partially implements the datastore interface. You can mount flatfs for /blocks only using the mount datastore (described below).
 
 ## levelds
-Uses a leveldb database to store key value pairs.
+Uses a leveldb database to store key-value pairs.
 
 ```json
 {
@@ -46,7 +46,7 @@ Uses a leveldb database to store key value pairs.
 
 ## pebbleds
 
-Uses [pebble](https://github.com/cockroachdb/pebble) as a key value store.
+Uses [pebble](https://github.com/cockroachdb/pebble) as a key-value store.
 
 ```json
 {
@@ -90,7 +90,7 @@ When installing a new version of kubo when `"formatMajorVersion"` is configured,
 
 ## badgerds
 
-Uses [badger](https://github.com/dgraph-io/badger) as a key value store.
+Uses [badger](https://github.com/dgraph-io/badger) as a key-value store.
 
 > [!CAUTION]
 > This is based on very old badger 1.x, which has known bugs and is no longer supported by the upstream team.
@@ -99,7 +99,7 @@ Uses [badger](https://github.com/dgraph-io/badger) as a key value store.
 
 
 * `syncWrites`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a 2-3x slowdown when adding files).
-* `truncate`: Truncate the DB if a partially written sector is found (defaults to true). There is no good reason to set this to false unless you want to manually recover partially written (and unpinned) blocks if kubo crashes half-way through adding a file.
+* `truncate`: Truncate the DB if a partially written sector is found (defaults to true). There is no good reason to set this to false unless you want to manually recover partially written (and unpinned) blocks if kubo crashes half-way through a write operation.
 
 ```json
 {

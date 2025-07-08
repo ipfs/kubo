@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"errors"
+	"net"
 	"sync"
 	"time"
 
@@ -162,6 +163,10 @@ func (n *loggingResourceManager) Stat() rcmgr.ResourceManagerStat {
 	}
 
 	return rapi.Stat()
+}
+
+func (n *loggingResourceManager) VerifySourceAddress(addr net.Addr) bool {
+	return n.delegate.VerifySourceAddress(addr)
 }
 
 func (s *loggingScope) ReserveMemory(size int, prio uint8) error {

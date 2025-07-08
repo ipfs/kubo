@@ -13,7 +13,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/go-cid"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("corerepo")
