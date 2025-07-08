@@ -30,7 +30,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	goprocess "github.com/jbenet/goprocess"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
-	"github.com/libp2p/go-libp2p-kad-dht/provider"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
@@ -112,7 +111,7 @@ type IpfsNode struct {
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
 
 	Routing   irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
-	Provider  provider.Provider          // the value provider system
+	Provider  node.Provider              // the value provider system
 	DHT       *ddht.DHT                  `optional:"true"`
 	DHTClient routing.Routing            `name:"dhtc" optional:"true"`
 
