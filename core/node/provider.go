@@ -64,9 +64,52 @@ var (
 	_ Provider = &ddhtprovider.SweepingProvider{}
 	_ Provider = &dhtprovider.SweepingProvider{}
 	_ Provider = &NoopProvider{}
+	_ Provider = &BurstReprovider{}
 )
 
-func BurstProvider(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
+// BurstReprovider is a wrapper around the boxo/provider.System. This DHT
+// provide system manages reprovides by bursts where it sequentially reprovides
+// all keys.
+type BurstReprovider struct {
+	provider.System
+}
+
+// StartProviding doesn't keep track of which keys have been provided so far.
+// It simply calls InstantProvide to provide the given keys to the network, and
+// returns instantly.
+func (r *BurstReprovider) StartProviding(keys ...mh.Multihash) {
+	go r.InstantProvide(context.Background(), keys...)
+}
+
+// StopProviding is a no op, since reprovider isn't tracking the keys to be
+// reprovided over time.
+func (r *BurstReprovider) StopProviding(keys ...mh.Multihash) {
+}
+
+// InstantProvide provides the given keys to the network without waiting.
+//
+// If an error is returned by the Provide operation, don't try to provide the
+// remaining keys, and return the error.
+func (r *BurstReprovider) InstantProvide(ctx context.Context, keys ...mh.Multihash) error {
+	for _, k := range keys {
+		err := r.Provide(ctx, cid.NewCidV1(cid.Raw, k), true)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ForceProvide is an alias for InstantProvide, it provides the given keys to
+// the network, but doesn't track which keys should be reprovided since
+// reprovider doesn't hold such a state.
+func (r *BurstReprovider) ForceProvide(ctx context.Context, keys ...mh.Multihash) error {
+	return r.InstantProvide(ctx, keys...)
+}
+
+// BurstProvider creates a BurstReprovider to be used as provider in the
+// IpfsNode
+func BurstReproviderOpt(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
 	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, keyProvider provider.KeyChanFunc, repo repo.Repo, bs blockstore.Blockstore) (Provider, error) {
 		opts := []provider.Option{
 			provider.Online(cr),
@@ -159,20 +202,18 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 					return false
 				}, sampledBatchSize))
 		}
-		prov, err := provider.NewProvider(repo.Datastore(), opts...)
+		sys, err := provider.New(repo.Datastore(), opts...)
 		if err != nil {
 			return nil, err
 		}
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				sys, ok := prov.(provider.System)
-				if ok {
-					return sys.Close()
-				}
-				return nil
+				return sys.Close()
 			},
 		})
+
+		prov := &BurstReprovider{sys}
 
 		return prov, nil
 	})
@@ -290,7 +331,7 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 		acceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
 		provideWorkerCount := int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount))
 
-		opts = append(opts, BurstProvider(reprovideInterval, acceleratedDHTClient, provideWorkerCount))
+		opts = append(opts, BurstReproviderOpt(reprovideInterval, acceleratedDHTClient, provideWorkerCount))
 	} else {
 		opts = append(opts, SweepingProvider(cfg))
 	}
