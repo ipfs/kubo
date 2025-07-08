@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 	gopath "path"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -698,8 +698,8 @@ Examples:
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *filesLsOutput) error {
 			noSort, _ := req.Options[dontSortOptionName].(bool)
 			if !noSort {
-				sort.Slice(out.Entries, func(i, j int) bool {
-					return strings.Compare(out.Entries[i].Name, out.Entries[j].Name) < 0
+				slices.SortFunc(out.Entries, func(a, b mfs.NodeListing) int {
+					return strings.Compare(a.Name, b.Name)
 				})
 			}
 

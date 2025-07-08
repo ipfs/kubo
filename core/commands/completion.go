@@ -2,7 +2,8 @@ package commands
 
 import (
 	"io"
-	"sort"
+	"slices"
+	"strings"
 	"text/template"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -39,8 +40,8 @@ func commandToCompletions(name string, fullName string, cmd *cmds.Command) *comp
 		parsed.Subcommands = append(parsed.Subcommands,
 			commandToCompletions(name, fullName+" "+name, subCmd))
 	}
-	sort.Slice(parsed.Subcommands, func(i, j int) bool {
-		return parsed.Subcommands[i].Name < parsed.Subcommands[j].Name
+	slices.SortFunc(parsed.Subcommands, func(a, b *completionCommand) int {
+		return strings.Compare(a.Name, b.Name)
 	})
 
 	for _, opt := range cmd.Options {
@@ -68,18 +69,10 @@ func commandToCompletions(name string, fullName string, cmd *cmds.Command) *comp
 			parsed.Options = append(parsed.Options, flag)
 		}
 	}
-	sort.Slice(parsed.LongFlags, func(i, j int) bool {
-		return parsed.LongFlags[i] < parsed.LongFlags[j]
-	})
-	sort.Slice(parsed.ShortFlags, func(i, j int) bool {
-		return parsed.ShortFlags[i] < parsed.ShortFlags[j]
-	})
-	sort.Slice(parsed.LongOptions, func(i, j int) bool {
-		return parsed.LongOptions[i] < parsed.LongOptions[j]
-	})
-	sort.Slice(parsed.ShortOptions, func(i, j int) bool {
-		return parsed.ShortOptions[i] < parsed.ShortOptions[j]
-	})
+	slices.Sort(parsed.LongFlags)
+	slices.Sort(parsed.ShortFlags)
+	slices.Sort(parsed.LongOptions)
+	slices.Sort(parsed.ShortOptions)
 	return parsed
 }
 
