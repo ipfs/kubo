@@ -26,7 +26,6 @@ import (
 	"github.com/ipfs/boxo/fetcher"
 	mfs "github.com/ipfs/boxo/mfs"
 	pathresolver "github.com/ipfs/boxo/path/resolver"
-	provider "github.com/ipfs/boxo/provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	goprocess "github.com/jbenet/goprocess"
@@ -93,28 +92,28 @@ type IpfsNode struct {
 	RecordValidator             record.Validator
 
 	// Online
-	PeerHost                  p2phost.Host               `optional:"true"` // the network host (server+client)
-	Peering                   *peering.PeeringService    `optional:"true"`
-	Filters                   *ma.Filters                `optional:"true"`
-	Bootstrapper              io.Closer                  `optional:"true"` // the periodic bootstrapper
-	Routing                   irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
-	DNSResolver               *madns.Resolver            // the DNS resolver
-	IPLDPathResolver          pathresolver.Resolver      `name:"ipldPathResolver"`          // The IPLD path resolver
-	UnixFSPathResolver        pathresolver.Resolver      `name:"unixFSPathResolver"`        // The UnixFS path resolver
-	OfflineIPLDPathResolver   pathresolver.Resolver      `name:"offlineIpldPathResolver"`   // The IPLD path resolver that uses only locally available blocks
-	OfflineUnixFSPathResolver pathresolver.Resolver      `name:"offlineUnixFSPathResolver"` // The UnixFS path resolver that uses only locally available blocks
-	Exchange                  exchange.Interface         // the block exchange + strategy
-	Bitswap                   *bitswap.Bitswap           `optional:"true"` // The Bitswap instance
-	Namesys                   namesys.NameSystem         // the name system, resolves paths to hashes
-	Provider                  provider.System            // the value provider system
-	IpnsRepub                 *ipnsrp.Republisher        `optional:"true"`
-	ResourceManager           network.ResourceManager    `optional:"true"`
+	PeerHost                  p2phost.Host            `optional:"true"` // the network host (server+client)
+	Peering                   *peering.PeeringService `optional:"true"`
+	Filters                   *ma.Filters             `optional:"true"`
+	Bootstrapper              io.Closer               `optional:"true"` // the periodic bootstrapper
+	DNSResolver               *madns.Resolver         // the DNS resolver
+	IPLDPathResolver          pathresolver.Resolver   `name:"ipldPathResolver"`          // The IPLD path resolver
+	UnixFSPathResolver        pathresolver.Resolver   `name:"unixFSPathResolver"`        // The UnixFS path resolver
+	OfflineIPLDPathResolver   pathresolver.Resolver   `name:"offlineIpldPathResolver"`   // The IPLD path resolver that uses only locally available blocks
+	OfflineUnixFSPathResolver pathresolver.Resolver   `name:"offlineUnixFSPathResolver"` // The UnixFS path resolver that uses only locally available blocks
+	Exchange                  exchange.Interface      // the block exchange + strategy
+	Bitswap                   *bitswap.Bitswap        `optional:"true"` // The Bitswap instance
+	Namesys                   namesys.NameSystem      // the name system, resolves paths to hashes
+	IpnsRepub                 *ipnsrp.Republisher     `optional:"true"`
+	ResourceManager           network.ResourceManager `optional:"true"`
 
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
 
-	DHT       *ddht.DHT       `optional:"true"`
-	DHTClient routing.Routing `name:"dhtc" optional:"true"`
+	Routing   irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
+	Provider  node.Provider              // the value provider system
+	DHT       *ddht.DHT                  `optional:"true"`
+	DHTClient routing.Routing            `name:"dhtc" optional:"true"`
 
 	P2P *p2p.P2P `optional:"true"`
 

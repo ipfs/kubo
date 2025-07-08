@@ -23,7 +23,6 @@ import (
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	pathresolver "github.com/ipfs/boxo/path/resolver"
 	pin "github.com/ipfs/boxo/pinning/pinner"
-	provider "github.com/ipfs/boxo/provider"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/kubo/config"
@@ -70,7 +69,7 @@ type CoreAPI struct {
 	ipldPathResolver   pathresolver.Resolver
 	unixFSPathResolver pathresolver.Resolver
 
-	provider provider.System
+	provider node.Provider
 
 	pubSub *pubsub.PubSub
 
@@ -235,7 +234,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
 
-		subAPI.provider = provider.NewNoopProvider()
+		subAPI.provider = &node.NoopProvider{}
 
 		subAPI.peerstore = nil
 		subAPI.peerHost = nil

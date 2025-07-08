@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"text/tabwriter"
@@ -44,7 +45,11 @@ This interface is not stable and may change from release to release.
 			return ErrNotOnline
 		}
 
-		stats, err := nd.Provider.Stat()
+		provideSys, ok := nd.Provider.(provider.System)
+		if !ok {
+			return errors.New("reprovide stats not supported with sweeping provider")
+		}
+		stats, err := provideSys.Stat()
 		if err != nil {
 			return err
 		}

@@ -9,11 +9,22 @@ import (
 	"github.com/ipfs/boxo/fetcher"
 	"github.com/ipfs/boxo/mfs"
 	pin "github.com/ipfs/boxo/pinning/pinner"
-	provider "github.com/ipfs/boxo/provider"
+	"github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
 	"go.uber.org/fx"
+
+	"github.com/ipfs/kubo/config"
+	"github.com/libp2p/go-libp2p-kad-dht/amino"
+	"github.com/libp2p/go-libp2p-kad-dht/dual"
+	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/dual/provider"
+	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
+	dhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider"
+	rds "github.com/libp2p/go-libp2p-kad-dht/provider/datastore"
+	"github.com/libp2p/go-libp2p/core/routing"
+	ma "github.com/multiformats/go-multiaddr"
+	mh "github.com/multiformats/go-multihash"
 )
 
 // The size of a batch that will be used for calculating average announcement
@@ -21,8 +32,85 @@ import (
 // and in 'ipfs stats provide' report.
 const sampledBatchSize = 1000
 
-func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
-	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, keyProvider provider.KeyChanFunc, repo repo.Repo, bs blockstore.Blockstore) (provider.System, error) {
+type NoopProvider struct{}
+
+func (r *NoopProvider) StartProviding(...mh.Multihash)                        {}
+func (r *NoopProvider) StopProviding(...mh.Multihash)                         {}
+func (r *NoopProvider) InstantProvide(context.Context, ...mh.Multihash) error { return nil }
+func (r *NoopProvider) ForceProvide(context.Context, ...mh.Multihash) error   { return nil }
+
+type Provider interface {
+	// StartProviding provides the given keys to the DHT swarm unless they were
+	// already provided in the past. The keys will be periodically reprovided until
+	// StopProviding is called for the same keys or user defined garbage collection
+	// deletes the keys.
+	StartProviding(...mh.Multihash)
+
+	// StopProviding stops reproviding the given keys to the DHT swarm. The node
+	// stops being referred as a provider when the provider records in the DHT
+	// swarm expire.
+	StopProviding(...mh.Multihash)
+
+	// InstantProvide only sends provider records for the given keys out to the DHT
+	// swarm. It does NOT take the responsibility to reprovide these keys.
+	InstantProvide(context.Context, ...mh.Multihash) error
+
+	// ForceProvide is similar to StartProviding, but it sends provider records out
+	// to the DHT even if the keys were already provided in the past.
+	ForceProvide(context.Context, ...mh.Multihash) error
+}
+
+var (
+	_ Provider = &ddhtprovider.SweepingProvider{}
+	_ Provider = &dhtprovider.SweepingProvider{}
+	_ Provider = &NoopProvider{}
+	_ Provider = &BurstReprovider{}
+)
+
+// BurstReprovider is a wrapper around the boxo/provider.System. This DHT
+// provide system manages reprovides by bursts where it sequentially reprovides
+// all keys.
+type BurstReprovider struct {
+	provider.System
+}
+
+// StartProviding doesn't keep track of which keys have been provided so far.
+// It simply calls InstantProvide to provide the given keys to the network, and
+// returns instantly.
+func (r *BurstReprovider) StartProviding(keys ...mh.Multihash) {
+	go r.InstantProvide(context.Background(), keys...)
+}
+
+// StopProviding is a no op, since reprovider isn't tracking the keys to be
+// reprovided over time.
+func (r *BurstReprovider) StopProviding(keys ...mh.Multihash) {
+}
+
+// InstantProvide provides the given keys to the network without waiting.
+//
+// If an error is returned by the Provide operation, don't try to provide the
+// remaining keys, and return the error.
+func (r *BurstReprovider) InstantProvide(ctx context.Context, keys ...mh.Multihash) error {
+	for _, k := range keys {
+		err := r.Provide(ctx, cid.NewCidV1(cid.Raw, k), true)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ForceProvide is an alias for InstantProvide, it provides the given keys to
+// the network, but doesn't track which keys should be reprovided since
+// reprovider doesn't hold such a state.
+func (r *BurstReprovider) ForceProvide(ctx context.Context, keys ...mh.Multihash) error {
+	return r.InstantProvide(ctx, keys...)
+}
+
+// BurstProvider creates a BurstReprovider to be used as provider in the
+// IpfsNode
+func BurstReproviderOpt(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
+	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, keyProvider provider.KeyChanFunc, repo repo.Repo, bs blockstore.Blockstore) (Provider, error) {
 		opts := []provider.Option{
 			provider.Online(cr),
 			provider.ReproviderInterval(reprovideInterval),
@@ -125,17 +213,109 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 			},
 		})
 
-		return sys, nil
+		prov := &BurstReprovider{sys}
+
+		return prov, nil
 	})
+}
+
+func SweepingProvider(cfg *config.Config) fx.Option {
+	mhStore := fx.Provide(func(keyProvider provider.KeyChanFunc, repo repo.Repo) (*rds.MHStore, error) {
+		mhStore, err := rds.NewMHStore(context.Background(), repo.Datastore(),
+			rds.WithPrefixLen(10),
+			rds.WithDatastorePrefix("/reprovider/mhs"),
+			rds.WithGCInterval(cfg.Reprovider.Sweep.MHStoreGCInterval.WithDefault(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval))),
+			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.MHStoreBatchSize.WithDefault(config.DefaultReproviderSweepMHStoreBatchSize))),
+			rds.WithGCFunc(keyProvider),
+		)
+		if err != nil {
+			return nil, err
+		}
+		keysChan, err := keyProvider(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		err = mhStore.ResetCids(context.Background(), keysChan)
+		if err != nil {
+			return nil, err
+		}
+		return mhStore, nil
+	})
+
+	type input struct {
+		fx.In
+		DHT     routing.Routing `name:"dhtc"`
+		MHStore *rds.MHStore
+	}
+	sweepingReprovider := fx.Provide(func(in input) (Provider, error) {
+		switch dht := in.DHT.(type) {
+		case *dual.DHT:
+			if dht != nil {
+				return ddhtprovider.NewSweepingProvider(dht,
+					ddhtprovider.WithMHStore(in.MHStore),
+
+					ddhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
+					ddhtprovider.WithMaxReprovideDelay(time.Hour),
+
+					ddhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
+					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
+					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
+					ddhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
+				)
+			}
+		case *fullrt.FullRT:
+			if dht != nil {
+				return dhtprovider.NewProvider(context.Background(),
+					dhtprovider.WithMHStore(in.MHStore),
+
+					dhtprovider.WithRouter(dht),
+					dhtprovider.WithMessageSender(dht.MessageSender()),
+					dhtprovider.WithPeerID(dht.Host().ID()),
+					dhtprovider.WithSelfAddrs(func() []ma.Multiaddr { return dht.Host().Addrs() }),
+					dhtprovider.WithAddLocalRecord(func(h mh.Multihash) error {
+						return dht.Provide(context.Background(), cid.NewCidV1(cid.Raw, h), false)
+					}),
+
+					dhtprovider.WithReplicationFactor(amino.DefaultBucketSize),
+					dhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
+					dhtprovider.WithMaxReprovideDelay(time.Hour),
+					dhtprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
+					dhtprovider.WithConnectivityCheckOfflineInterval(5*time.Minute),
+
+					dhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
+					dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
+					dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
+					dhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
+				)
+			}
+		}
+		return &NoopProvider{}, nil
+	})
+
+	closeMHStore := fx.Invoke(func(lc fx.Lifecycle, mhStore *rds.MHStore) {
+		lc.Append(fx.Hook{
+			OnStop: func(_ context.Context) error {
+				return mhStore.Close()
+			},
+		})
+	})
+
+	return fx.Options(
+		mhStore,
+		sweepingReprovider,
+		closeMHStore,
+	)
 }
 
 // ONLINE/OFFLINE
 
 // OnlineProviders groups units managing provider routing records online
-func OnlineProviders(provide bool, reprovideStrategy string, reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
+func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	if !provide {
 		return OfflineProviders()
 	}
+
+	reprovideStrategy := cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
 
 	var keyProvider fx.Option
 	switch reprovideStrategy {
@@ -145,15 +325,23 @@ func OnlineProviders(provide bool, reprovideStrategy string, reprovideInterval t
 		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", reprovideStrategy))
 	}
 
-	return fx.Options(
-		keyProvider,
-		ProviderSys(reprovideInterval, acceleratedDHTClient, provideWorkerCount),
-	)
+	opts := []fx.Option{keyProvider}
+	if cfg.Reprovider.Sweep.Enabled.WithDefault(config.DefaultReproviderSweepEnabled) {
+		reprovideInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
+		acceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
+		provideWorkerCount := int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount))
+
+		opts = append(opts, BurstReproviderOpt(reprovideInterval, acceleratedDHTClient, provideWorkerCount))
+	} else {
+		opts = append(opts, SweepingProvider(cfg))
+	}
+
+	return fx.Options(opts...)
 }
 
 // OfflineProviders groups units managing provider routing records offline
 func OfflineProviders() fx.Option {
-	return fx.Provide(provider.NewNoopProvider)
+	return fx.Provide(&NoopProvider{})
 }
 
 func mfsProvider(mfsRoot *mfs.Root, fetcher fetcher.Factory) provider.KeyChanFunc {
