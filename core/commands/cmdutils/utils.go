@@ -5,9 +5,9 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
 )
 
 const (

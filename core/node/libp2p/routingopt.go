@@ -3,7 +3,6 @@ package libp2p
 import (
 	"context"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/ipfs/go-datastore"
@@ -26,38 +25,49 @@ type RoutingOptionArgs struct {
 	BootstrapPeers                []peer.AddrInfo
 	OptimisticProvide             bool
 	OptimisticProvideJobsPoolSize int
+	LoopbackAddressesOnLanDHT     bool
 }
 
 type RoutingOption func(args RoutingOptionArgs) (routing.Routing, error)
 
-// Default HTTP routers used in parallel to DHT when Routing.Type = "auto"
-var defaultHTTPRouters = []string{
-	"https://cid.contact", // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
-	// TODO: add an independent router from Cloudflare
-}
-
-func init() {
-	// Override HTTP routers if custom ones were passed via env
-	if routers := os.Getenv("IPFS_HTTP_ROUTERS"); routers != "" {
-		defaultHTTPRouters = strings.Split(routers, " ")
-	}
-}
+var noopRouter = routinghelpers.Null{}
 
 func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.ParallelRouter, error) {
 	var routers []*routinghelpers.ParallelRouter
+	httpRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
+
+	// Use config.DefaultHTTPRouters if custom override was sent via config.EnvHTTPRouters
+	// or if user did not set any preference in cfg.Routing.DelegatedRouters
+	var httpRouterEndpoints []string
+	if os.Getenv(config.EnvHTTPRouters) != "" || len(cfg.Routing.DelegatedRouters) == 0 {
+		httpRouterEndpoints = config.DefaultHTTPRouters
+	} else {
+		httpRouterEndpoints = cfg.Routing.DelegatedRouters
+	}
+
 	// Append HTTP routers for additional speed
-	for _, endpoint := range defaultHTTPRouters {
-		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey)
+	for _, endpoint := range httpRouterEndpoints {
+		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, httpRetrievalEnabled)
 		if err != nil {
 			return nil, err
 		}
-
+		// Mapping router to /routing/v1/* endpoints
+		// https://specs.ipfs.tech/routing/http-routing-v1/
 		r := &irouting.Composer{
-			GetValueRouter:      routinghelpers.Null{},
-			PutValueRouter:      routinghelpers.Null{},
-			ProvideRouter:       routinghelpers.Null{}, // modify this when indexers supports provide
-			FindPeersRouter:     routinghelpers.Null{},
-			FindProvidersRouter: httpRouter,
+			GetValueRouter:      httpRouter, // GET /routing/v1/ipns
+			PutValueRouter:      httpRouter, // PUT /routing/v1/ipns
+			ProvideRouter:       noopRouter, // we don't have spec for sending provides to /routing/v1 (revisit once https://github.com/ipfs/specs/pull/378 or similar is ratified)
+			FindPeersRouter:     httpRouter, // /routing/v1/peers
+			FindProvidersRouter: httpRouter, // /routing/v1/providers
+		}
+
+		if endpoint == config.CidContactRoutingURL {
+			// Special-case: cid.contact only supports /routing/v1/providers/cid
+			// we disable other endpoints to avoid sending requests that always fail
+			r.GetValueRouter = noopRouter
+			r.PutValueRouter = noopRouter
+			r.ProvideRouter = noopRouter
+			r.FindPeersRouter = noopRouter
 		}
 
 		routers = append(routers, &routinghelpers.ParallelRouter{
@@ -116,16 +126,24 @@ func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
 		if args.OptimisticProvideJobsPoolSize != 0 {
 			dhtOpts = append(dhtOpts, dht.OptimisticProvideJobsPoolSize(args.OptimisticProvideJobsPoolSize))
 		}
+		wanOptions := []dht.Option{
+			dht.BootstrapPeers(args.BootstrapPeers...),
+		}
+		lanOptions := []dht.Option{}
+		if args.LoopbackAddressesOnLanDHT {
+			lanOptions = append(lanOptions, dht.AddressFilter(nil))
+		}
 		return dual.New(
 			args.Ctx, args.Host,
 			dual.DHTOption(dhtOpts...),
-			dual.WanDHTOption(dht.BootstrapPeers(args.BootstrapPeers...)),
+			dual.WanDHTOption(wanOptions...),
+			dual.LanDHTOption(lanOptions...),
 		)
 	}
 }
 
 // ConstructDelegatedRouting is used when Routing.Type = "custom"
-func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs config.Addresses, privKey string) RoutingOption {
+func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs config.Addresses, privKey string, httpRetrieval bool) RoutingOption {
 	return func(args RoutingOptionArgs) (routing.Routing, error) {
 		return irouting.Parse(routers, methods,
 			&irouting.ExtraDHTParams{
@@ -136,9 +154,10 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 				Context:        args.Ctx,
 			},
 			&irouting.ExtraHTTPParams{
-				PeerID:     peerID,
-				Addrs:      httpAddrsFromConfig(addrs),
-				PrivKeyB64: privKey,
+				PeerID:        peerID,
+				Addrs:         httpAddrsFromConfig(addrs),
+				PrivKeyB64:    privKey,
+				HTTPRetrieval: httpRetrieval,
 			},
 		)
 	}

@@ -208,6 +208,7 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 		cfg.Addresses.Gateway = []string{n.GatewayListenAddr.String()}
 		cfg.Swarm.DisableNatPortMap = true
 		cfg.Discovery.MDNS.Enabled = n.EnableMDNS
+		cfg.Routing.LoopbackAddressesOnLanDHT = config.True
 	})
 	return n
 }
@@ -223,7 +224,7 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 //			harness.RunWithStdout(os.Stdout),
 //		 },
 //	 })
-func (n *Node) StartDaemonWithReq(req RunRequest) *Node {
+func (n *Node) StartDaemonWithReq(req RunRequest, authorization string) *Node {
 	alive := n.IsAlive()
 	if alive {
 		log.Panicf("node %d is already running", n.ID)
@@ -239,14 +240,20 @@ func (n *Node) StartDaemonWithReq(req RunRequest) *Node {
 	n.Daemon = res
 
 	log.Debugf("node %d started, checking API", n.ID)
-	n.WaitOnAPI()
+	n.WaitOnAPI(authorization)
 	return n
 }
 
 func (n *Node) StartDaemon(ipfsArgs ...string) *Node {
 	return n.StartDaemonWithReq(RunRequest{
 		Args: ipfsArgs,
-	})
+	}, "")
+}
+
+func (n *Node) StartDaemonWithAuthorization(secret string, ipfsArgs ...string) *Node {
+	return n.StartDaemonWithReq(RunRequest{
+		Args: ipfsArgs,
+	}, secret)
 }
 
 func (n *Node) signalAndWait(watch <-chan struct{}, signal os.Signal, t time.Duration) bool {
@@ -337,12 +344,23 @@ func (n *Node) TryAPIAddr() (multiaddr.Multiaddr, error) {
 	return ma, nil
 }
 
-func (n *Node) checkAPI() bool {
+func (n *Node) checkAPI(authorization string) bool {
 	apiAddr, err := n.TryAPIAddr()
 	if err != nil {
 		log.Debugf("node %d API addr not available yet: %s", n.ID, err.Error())
 		return false
 	}
+
+	if unixAddr, err := apiAddr.ValueForProtocol(multiaddr.P_UNIX); err == nil {
+		parts := strings.SplitN(unixAddr, "/", 2)
+		if len(parts) < 1 {
+			panic("malformed unix socket address")
+		}
+		fileName := "/" + parts[1]
+		_, err := os.Stat(fileName)
+		return !errors.Is(err, fs.ErrNotExist)
+	}
+
 	ip, err := apiAddr.ValueForProtocol(multiaddr.P_IP4)
 	if err != nil {
 		panic(err)
@@ -353,7 +371,16 @@ func (n *Node) checkAPI() bool {
 	}
 	url := fmt.Sprintf("http://%s:%s/api/v0/id", ip, port)
 	log.Debugf("checking API for node %d at %s", n.ID, url)
-	httpResp, err := http.Post(url, "", nil)
+
+	req, err := http.NewRequest(http.MethodPost, url, nil)
+	if err != nil {
+		panic(err)
+	}
+	if authorization != "" {
+		req.Header.Set("Authorization", authorization)
+	}
+
+	httpResp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Debugf("node %d API check error: %s", err.Error())
 		return false
@@ -402,10 +429,10 @@ func (n *Node) PeerID() peer.ID {
 	return id
 }
 
-func (n *Node) WaitOnAPI() *Node {
+func (n *Node) WaitOnAPI(authorization string) *Node {
 	log.Debugf("waiting on API for node %d", n.ID)
 	for i := 0; i < 50; i++ {
-		if n.checkAPI() {
+		if n.checkAPI(authorization) {
 			log.Debugf("daemon API found, daemon stdout: %s", n.Daemon.Stdout.String())
 			return n
 		}
@@ -469,16 +496,18 @@ func (n *Node) SwarmAddrsWithPeerIDs() []multiaddr.Multiaddr {
 func (n *Node) SwarmAddrsWithoutPeerIDs() []multiaddr.Multiaddr {
 	var addrs []multiaddr.Multiaddr
 	for _, ma := range n.SwarmAddrs() {
-		var components []multiaddr.Multiaddr
-		multiaddr.ForEach(ma, func(c multiaddr.Component) bool {
+		i := 0
+		for _, c := range ma {
 			if c.Protocol().Code == multiaddr.P_IPFS {
-				return true
+				continue
 			}
-			components = append(components, &c)
-			return true
-		})
-		ma = multiaddr.Join(components...)
-		addrs = append(addrs, ma)
+			ma[i] = c
+			i++
+		}
+		ma = ma[:i]
+		if len(ma) > 0 {
+			addrs = append(addrs, ma)
+		}
 	}
 	return addrs
 }

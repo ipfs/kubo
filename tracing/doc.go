@@ -6,24 +6,15 @@
 //
 // Tracing is configured through environment variables, as consistent with the OpenTelemetry spec as possible:
 //
-// https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md
+// https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
 //
 // OTEL_TRACES_EXPORTER: a comma-separated list of exporters:
 //   - otlp
-//   - jaeger
 //   - zipkin
 //   - file
 //
 // Different exporters have their own set of environment variables, depending on the exporter. These are typically
 // standard environment variables. Some common ones:
-//
-// Jaeger:
-//
-//   - OTEL_EXPORTER_JAEGER_AGENT_HOST
-//   - OTEL_EXPORTER_JAEGER_AGENT_PORT
-//   - OTEL_EXPORTER_JAEGER_ENDPOINT
-//   - OTEL_EXPORTER_JAEGER_USER
-//   - OTEL_EXPORTER_JAEGER_PASSWORD
 //
 // OTLP HTTP/gRPC:
 //
@@ -47,21 +38,24 @@
 //     default: `$PWD/traces.json`
 //
 // For example, if you run a local IPFS daemon, you can use the jaegertracing/all-in-one Docker image to run
-// a full Jaeger stack and configure go-ipfs to publish traces to it:
+// a full Jaeger stack and configure Kubo to publish traces to it:
 //
-//	docker run -d --name jaeger \
-//	  -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 \
-//	  -p 5775:5775/udp \
-//	  -p 6831:6831/udp \
-//	  -p 6832:6832/udp \
-//	  -p 5778:5778 \
-//	  -p 16686:16686 \
-//	  -p 14268:14268 \
-//	  -p 14269:14269 \
-//	  -p 14250:14250 \
-//	  -p 9411:9411 \
-//	  jaegertracing/all-in-one
-//	OTEL_TRACES_EXPORTER=jaeger ipfs daemon
+//	docker run -d --rm --name jaeger \
+//	 -e COLLECTOR_OTLP_ENABLED=true \
+//	 -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 \
+//	 -p 5775:5775/udp \
+//	 -p 6831:6831/udp \
+//	 -p 6832:6832/udp \
+//	 -p 5778:5778 \
+//	 -p 16686:16686 \
+//	 -p 14250:14250 \
+//	 -p 14268:14268 \
+//	 -p 14269:14269 \
+//	 -p 4317:4317 \
+//	 -p 4318:4318 \
+//	 -p 9411:9411 \
+//	 jaegertracing/all-in-one
+//	OTEL_EXPORTER_OTLP_INSECURE=true OTEL_TRACES_EXPORTER=otlp ipfs daemon --init
 //
 //	# In this example the Jaeger UI is available at http://localhost:16686.
 //

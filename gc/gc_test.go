@@ -38,14 +38,14 @@ func TestGC(t *testing.T) {
 		// direct
 		root, _, err := daggen.MakeDagNode(dserv.Add, 0, 1)
 		require.NoError(t, err)
-		err = pinner.PinWithMode(ctx, root, pin.Direct)
+		err = pinner.PinWithMode(ctx, root, pin.Direct, "")
 		require.NoError(t, err)
 		expectedKept = append(expectedKept, root.Hash())
 
 		// recursive
 		root, allCids, err := daggen.MakeDagNode(dserv.Add, 5, 2)
 		require.NoError(t, err)
-		err = pinner.PinWithMode(ctx, root, pin.Recursive)
+		err = pinner.PinWithMode(ctx, root, pin.Recursive, "")
 		require.NoError(t, err)
 		expectedKept = append(expectedKept, toMHs(allCids)...)
 	}

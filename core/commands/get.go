@@ -1,6 +1,7 @@
 package commands
 
 import (
+	gotar "archive/tar"
 	"bufio"
 	"compress/gzip"
 	"errors"
@@ -331,12 +332,18 @@ func fileArchive(f files.Node, name string, archive bool, compression int) (io.R
 			closeGzwAndPipe() // everything seems to be ok
 		}()
 	} else {
-		// the case for 1. archive, and 2. not archived and not compressed, in which tar is used anyway as a transport format
+		// the case for 1. archive, and 2. not archived and not compressed, in
+		// which tar is used anyway as a transport format
 
 		// construct the tar writer
 		w, err := files.NewTarWriter(maybeGzw)
 		if checkErrAndClosePipe(err) {
 			return nil, err
+		}
+
+		// if not creating an archive set the format to PAX in order to preserve nanoseconds
+		if !archive {
+			w.SetFormat(gotar.FormatPAX)
 		}
 
 		go func() {

@@ -11,10 +11,11 @@ import (
 
 	core "github.com/ipfs/kubo/core"
 	ipns "github.com/ipfs/kubo/fuse/ipns"
+	mfs "github.com/ipfs/kubo/fuse/mfs"
 	mount "github.com/ipfs/kubo/fuse/mount"
 	rofs "github.com/ipfs/kubo/fuse/readonly"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("node")
@@ -31,7 +32,7 @@ var platformFuseChecks = func(*core.IpfsNode) error {
 	return nil
 }
 
-func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
+func Mount(node *core.IpfsNode, fsdir, nsdir, mfsdir string) error {
 	// check if we already have live mounts.
 	// if the user said "Mount", then there must be something wrong.
 	// so, close them and try again.
@@ -43,15 +44,19 @@ func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
 		// best effort
 		_ = node.Mounts.Ipns.Unmount()
 	}
+	if node.Mounts.Mfs != nil && node.Mounts.Mfs.IsActive() {
+		// best effort
+		_ = node.Mounts.Mfs.Unmount()
+	}
 
 	if err := platformFuseChecks(node); err != nil {
 		return err
 	}
 
-	return doMount(node, fsdir, nsdir)
+	return doMount(node, fsdir, nsdir, mfsdir)
 }
 
-func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
+func doMount(node *core.IpfsNode, fsdir, nsdir, mfsdir string) error {
 	fmtFuseErr := func(err error, mountpoint string) error {
 		s := err.Error()
 		if strings.Contains(s, fuseNoDirectory) {
@@ -67,8 +72,8 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 	}
 
 	// this sync stuff is so that both can be mounted simultaneously.
-	var fsmount, nsmount mount.Mount
-	var err1, err2 error
+	var fsmount, nsmount, mfmount mount.Mount
+	var err1, err2, err3 error
 
 	var wg sync.WaitGroup
 
@@ -86,32 +91,49 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 		}()
 	}
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		mfmount, err3 = mfs.Mount(node, mfsdir)
+	}()
+
 	wg.Wait()
 
 	if err1 != nil {
-		log.Errorf("error mounting: %s", err1)
+		log.Errorf("error mounting IPFS %s: %s", fsdir, err1)
 	}
 
 	if err2 != nil {
-		log.Errorf("error mounting: %s", err2)
+		log.Errorf("error mounting IPNS %s for IPFS %s: %s", nsdir, fsdir, err2)
 	}
 
-	if err1 != nil || err2 != nil {
+	if err3 != nil {
+		log.Errorf("error mounting MFS %s: %s", mfsdir, err3)
+	}
+
+	if err1 != nil || err2 != nil || err3 != nil {
 		if fsmount != nil {
 			_ = fsmount.Unmount()
 		}
 		if nsmount != nil {
 			_ = nsmount.Unmount()
 		}
+		if mfmount != nil {
+			_ = mfmount.Unmount()
+		}
 
 		if err1 != nil {
 			return fmtFuseErr(err1, fsdir)
 		}
-		return fmtFuseErr(err2, nsdir)
+		if err2 != nil {
+			return fmtFuseErr(err2, nsdir)
+		}
+		return fmtFuseErr(err3, mfsdir)
 	}
 
-	// setup node state, so that it can be cancelled
+	// setup node state, so that it can be canceled
 	node.Mounts.Ipfs = fsmount
 	node.Mounts.Ipns = nsmount
+	node.Mounts.Mfs = mfmount
 	return nil
 }

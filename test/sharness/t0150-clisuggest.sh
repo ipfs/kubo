@@ -18,13 +18,13 @@ test_suggest() {
   '
 
   test_expect_success "test command fails" '
-    test_must_fail ipfs lis 2>actual
+    test_must_fail ipfs li 2>actual
   '
 
   test_expect_success "test multiple commands are suggested" '
     grep "Did you mean any of these?" actual &&
     grep "ls" actual &&
-    grep "id" actual ||
+    grep "log" actual ||
     test_fsh cat actual
   '
 

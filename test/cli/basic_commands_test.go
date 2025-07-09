@@ -62,7 +62,7 @@ func TestIPFSVersionDeps(t *testing.T) {
 	res = strings.TrimSpace(res)
 	lines := SplitLines(res)
 
-	assert.Equal(t, "github.com/ipfs/kubo@(devel)", lines[0])
+	assert.True(t, strings.HasPrefix(lines[0], "github.com/ipfs/kubo@v"))
 
 	for _, depLine := range lines[1:] {
 		split := strings.Split(depLine, " => ")
@@ -112,13 +112,10 @@ func TestAllRootCommandsAreMentionedInHelpText(t *testing.T) {
 
 	// a few base commands are not expected to be in the help message
 	// but we default to requiring them to be in the help message, so that we
-	// have to make an conscious decision to exclude them
+	// have to make a conscious decision to exclude them
 	notInHelp := map[string]bool{
 		"object":   true,
 		"shutdown": true,
-		"tar":      true,
-		"urlstore": true,
-		"dns":      true,
 	}
 
 	helpMsg := strings.TrimSpace(node.IPFS("--help").Stdout.String())
@@ -150,16 +147,13 @@ func TestCommandDocsWidth(t *testing.T) {
 		"ipfs swarm addrs listen":       true,
 		"ipfs dag resolve":              true,
 		"ipfs dag get":                  true,
-		"ipfs object stat":              true,
 		"ipfs pin remote add":           true,
 		"ipfs config show":              true,
 		"ipfs config edit":              true,
 		"ipfs pin remote rm":            true,
 		"ipfs pin remote ls":            true,
 		"ipfs pin verify":               true,
-		"ipfs dht get":                  true,
 		"ipfs pin remote service add":   true,
-		"ipfs file ls":                  true,
 		"ipfs pin update":               true,
 		"ipfs pin rm":                   true,
 		"ipfs p2p":                      true,
@@ -169,18 +163,13 @@ func TestCommandDocsWidth(t *testing.T) {
 		"ipfs object diff":              true,
 		"ipfs object patch add-link":    true,
 		"ipfs name":                     true,
-		"ipfs object patch append-data": true,
-		"ipfs object patch set-data":    true,
-		"ipfs dht put":                  true,
 		"ipfs diag profile":             true,
 		"ipfs diag cmds":                true,
 		"ipfs swarm addrs local":        true,
 		"ipfs files ls":                 true,
 		"ipfs stats bw":                 true,
-		"ipfs urlstore add":             true,
 		"ipfs swarm peers":              true,
 		"ipfs pubsub sub":               true,
-		"ipfs repo fsck":                true,
 		"ipfs files write":              true,
 		"ipfs swarm limit":              true,
 		"ipfs commands completion fish": true,

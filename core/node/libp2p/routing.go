@@ -90,7 +90,7 @@ func BaseRouting(cfg *config.Config) interface{} {
 			}
 		}
 
-		if dualDHT != nil && cfg.Routing.AcceleratedDHTClient {
+		if dualDHT != nil && cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient) {
 			cfg, err := in.Repo.Config()
 			if err != nil {
 				return out, err
@@ -184,9 +184,8 @@ type p2pOnlineRoutingIn struct {
 	Validator record.Validator
 }
 
-// Routing will get all routers obtained from different methods
-// (delegated routers, pub-sub, and so on) and add them all together
-// using a TieredRouter.
+// Routing will get all routers obtained from different methods (delegated
+// routers, pub-sub, and so on) and add them all together using a TieredRouter.
 func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	routers := in.Routers
 
@@ -206,7 +205,8 @@ func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	return routinghelpers.NewComposableParallel(cRouters)
 }
 
-// OfflineRouting provides a special Router to the routers list when we are creating a offline node.
+// OfflineRouting provides a special Router to the routers list when we are
+// creating an offline node.
 func OfflineRouting(dstore ds.Datastore, validator record.Validator) p2pRouterOut {
 	return p2pRouterOut{
 		Router: Router{

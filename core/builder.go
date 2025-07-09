@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ipfs/kubo/core/bootstrap"
+	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/kubo/core/node"
 
 	"github.com/ipfs/go-metrics-interface"

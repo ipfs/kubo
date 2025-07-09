@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ipfs/boxo/gateway"
 	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/boxo/routing/http/server"
 	"github.com/ipfs/boxo/routing/http/types"
@@ -18,7 +19,13 @@ import (
 
 func RoutingOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
+		_, headers, err := getGatewayConfig(n)
+		if err != nil {
+			return nil, err
+		}
+
 		handler := server.Handler(&contentRouter{n})
+		handler = gateway.NewHeaders(headers).ApplyCors().Wrap(handler)
 		mux.Handle("/routing/v1/", handler)
 		return mux, nil
 	}

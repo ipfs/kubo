@@ -11,9 +11,9 @@ import (
 	"strings"
 	"sync"
 
-	icore "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
+	icore "github.com/ipfs/kubo/core/coreiface"
 	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/ipfs/kubo/config"

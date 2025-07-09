@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,9 +14,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/path"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
@@ -214,5 +215,5 @@ func keylookup(self ci.PrivKey, kstore keystore.Keystore, k string) (ci.PrivKey,
 		}
 	}
 
-	return nil, fmt.Errorf("no key by the given name or PeerID was found")
+	return nil, errors.New("no key by the given name or PeerID was found")
 }

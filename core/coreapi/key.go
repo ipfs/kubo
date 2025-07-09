@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"sort"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/boxo/path"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/tracing"
 	crypto "github.com/libp2p/go-libp2p/core/crypto"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -65,7 +65,7 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 	}
 
 	if name == "self" {
-		return nil, fmt.Errorf("cannot create key with name 'self'")
+		return nil, errors.New("cannot create key with name 'self'")
 	}
 
 	_, err = api.repo.Keystore().Get(name)
@@ -168,11 +168,11 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 	ks := api.repo.Keystore()
 
 	if oldName == "self" {
-		return nil, false, fmt.Errorf("cannot rename key with name 'self'")
+		return nil, false, errors.New("cannot rename key with name 'self'")
 	}
 
 	if newName == "self" {
-		return nil, false, fmt.Errorf("cannot overwrite key with name 'self'")
+		return nil, false, errors.New("cannot overwrite key with name 'self'")
 	}
 
 	oldKey, err := ks.Get(oldName)
@@ -232,7 +232,7 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Key, erro
 	ks := api.repo.Keystore()
 
 	if name == "self" {
-		return nil, fmt.Errorf("cannot remove key with name 'self'")
+		return nil, errors.New("cannot remove key with name 'self'")
 	}
 
 	removed, err := ks.Get(name)
@@ -261,4 +261,84 @@ func (api *KeyAPI) Self(ctx context.Context) (coreiface.Key, error) {
 	}
 
 	return newKey("self", api.identity)
+}
+
+const signedMessagePrefix = "libp2p-key signed message:"
+
+func (api *KeyAPI) Sign(ctx context.Context, name string, data []byte) (coreiface.Key, []byte, error) {
+	var (
+		sk  crypto.PrivKey
+		err error
+	)
+	if name == "" || name == "self" {
+		name = "self"
+		sk = api.privateKey
+	} else {
+		sk, err = api.repo.Keystore().Get(name)
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pid, err := peer.IDFromPrivateKey(sk)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	key, err := newKey(name, pid)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	data = append([]byte(signedMessagePrefix), data...)
+
+	sig, err := sk.Sign(data)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return key, sig, nil
+}
+
+func (api *KeyAPI) Verify(ctx context.Context, keyOrName string, signature, data []byte) (coreiface.Key, bool, error) {
+	var (
+		name string
+		pk   crypto.PubKey
+		err  error
+	)
+	if keyOrName == "" || keyOrName == "self" {
+		name = "self"
+		pk = api.privateKey.GetPublic()
+	} else if sk, err := api.repo.Keystore().Get(keyOrName); err == nil {
+		name = keyOrName
+		pk = sk.GetPublic()
+	} else if ipnsName, err := ipns.NameFromString(keyOrName); err == nil {
+		// This works for both IPNS names and Peer IDs.
+		name = ""
+		pk, err = ipnsName.Peer().ExtractPublicKey()
+		if err != nil {
+			return nil, false, err
+		}
+	} else {
+		return nil, false, fmt.Errorf("'%q' is not a known key, an IPNS Name, or a valid PeerID", keyOrName)
+	}
+
+	pid, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		return nil, false, err
+	}
+
+	key, err := newKey(name, pid)
+	if err != nil {
+		return nil, false, err
+	}
+
+	data = append([]byte(signedMessagePrefix), data...)
+
+	valid, err := pk.Verify(data, signature)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return key, valid, nil
 }

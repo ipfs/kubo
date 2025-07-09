@@ -8,20 +8,20 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/filestore"
 	keystore "github.com/ipfs/boxo/keystore"
 	"github.com/ipfs/kubo/core"
-	"github.com/ipfs/kubo/core/bootstrap"
 	"github.com/ipfs/kubo/core/coreapi"
 	mock "github.com/ipfs/kubo/core/mock"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"
 
-	coreiface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/tests"
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/kubo/config"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/tests"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
@@ -69,6 +69,7 @@ func (NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdentity
 		c.Addresses.Swarm = []string{fmt.Sprintf("/ip4/18.0.%d.1/tcp/4001", i)}
 		c.Identity = ident
 		c.Experimental.FilestoreEnabled = true
+		c.AutoTLS.Enabled = config.False // disable so no /ws listener is added
 
 		ds := syncds.MutexWrap(datastore.NewMapDatastore())
 		r := &repo.Mock{

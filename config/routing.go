@@ -3,7 +3,34 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"runtime"
+	"strings"
+)
+
+const (
+	DefaultAcceleratedDHTClient      = false
+	DefaultLoopbackAddressesOnLanDHT = false
+	CidContactRoutingURL             = "https://cid.contact"
+	PublicGoodDelegatedRoutingURL    = "https://delegated-ipfs.dev" // cid.contact + amino dht (incl. IPNS PUTs)
+	EnvHTTPRouters                   = "IPFS_HTTP_ROUTERS"
+	EnvHTTPRoutersFilterProtocols    = "IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS"
+)
+
+var (
+	// Default HTTP routers used in parallel to DHT when Routing.Type = "auto"
+	DefaultHTTPRouters = getEnvOrDefault(EnvHTTPRouters, []string{
+		CidContactRoutingURL, // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
+	})
+
+	// Default filter-protocols to pass along with delegated routing requests (as defined in IPIP-484)
+	// and also filter out locally
+	DefaultHTTPRoutersFilterProtocols = getEnvOrDefault(EnvHTTPRoutersFilterProtocols, []string{
+		"unknown", // allow results without protocol list, we can do libp2p identify to test them
+		"transport-bitswap",
+		// http is added dynamically in routing/delegated.go.
+		// 'transport-ipfs-gateway-http'
+	})
 )
 
 // Routing defines configuration options for libp2p routing.
@@ -15,11 +42,18 @@ type Routing struct {
 	// When "custom" is set, user-provided Routing.Routers is used.
 	Type *OptionalString `json:",omitempty"`
 
-	AcceleratedDHTClient bool
+	AcceleratedDHTClient Flag `json:",omitempty"`
 
-	Routers Routers
+	LoopbackAddressesOnLanDHT Flag `json:",omitempty"`
 
-	Methods Methods
+	IgnoreProviders []string `json:",omitempty"`
+
+	// Simplified configuration used by default when Routing.Type=auto|autoclient
+	DelegatedRouters []string `json:",omitempty"`
+
+	// Advanced configuration used when Routing.Type=custom
+	Routers Routers `json:",omitempty"`
+	Methods Methods `json:",omitempty"`
 }
 
 type Router struct {
@@ -172,4 +206,14 @@ type ConfigRouter struct {
 
 type Method struct {
 	RouterName string
+}
+
+// getEnvOrDefault reads space or comma separated strings from env if present,
+// and uses provided defaultValue as a fallback
+func getEnvOrDefault(key string, defaultValue []string) []string {
+	if value, exists := os.LookupEnv(key); exists {
+		splitFunc := func(r rune) bool { return r == ',' || r == ' ' }
+		return strings.FieldsFunc(value, splitFunc)
+	}
+	return defaultValue
 }

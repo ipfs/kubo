@@ -17,8 +17,6 @@ import (
 
 	bserv "github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
 	exchange "github.com/ipfs/boxo/exchange"
 	offlinexch "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/fetcher"
@@ -28,6 +26,9 @@ import (
 	provider "github.com/ipfs/boxo/provider"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/kubo/config"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
@@ -129,11 +130,6 @@ func (api *CoreAPI) Pin() coreiface.PinAPI {
 	return (*PinAPI)(api)
 }
 
-// Dht returns the DhtAPI interface implementation backed by the go-ipfs node
-func (api *CoreAPI) Dht() coreiface.DhtAPI {
-	return (*DhtAPI)(api)
-}
-
 // Swarm returns the SwarmAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Swarm() coreiface.SwarmAPI {
 	return (*SwarmAPI)(api)
@@ -211,26 +207,30 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		return nil
 	}
 
-	if settings.Offline {
-		cfg, err := n.Repo.Config()
-		if err != nil {
-			return nil, err
-		}
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return nil, err
+	}
 
+	if settings.Offline {
 		cs := cfg.Ipns.ResolveCacheSize
 		if cs == 0 {
 			cs = node.DefaultIpnsCacheSize
 		}
 		if cs < 0 {
-			return nil, fmt.Errorf("cannot specify negative resolve cache size")
+			return nil, errors.New("cannot specify negative resolve cache size")
+		}
+
+		nsOptions := []namesys.Option{
+			namesys.WithDatastore(subAPI.repo.Datastore()),
+			namesys.WithDNSResolver(subAPI.dnsResolver),
+			namesys.WithCache(cs),
+			namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL)),
 		}
 
 		subAPI.routing = offlineroute.NewOfflineRouter(subAPI.repo.Datastore(), subAPI.recordValidator)
 
-		subAPI.namesys, err = namesys.NewNameSystem(subAPI.routing,
-			namesys.WithDatastore(subAPI.repo.Datastore()),
-			namesys.WithDNSResolver(subAPI.dnsResolver),
-			namesys.WithCache(cs))
+		subAPI.namesys, err = namesys.NewNameSystem(subAPI.routing, nsOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
@@ -244,7 +244,9 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 
 	if settings.Offline || !settings.FetchBlocks {
 		subAPI.exchange = offlinexch.Exchange(subAPI.blockstore)
-		subAPI.blocks = bserv.New(subAPI.blockstore, subAPI.exchange)
+		subAPI.blocks = bserv.New(subAPI.blockstore, subAPI.exchange,
+			bserv.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough)),
+		)
 		subAPI.dag = dag.NewDAGService(subAPI.blocks)
 	}
 

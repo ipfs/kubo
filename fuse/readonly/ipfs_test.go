@@ -29,8 +29,8 @@ import (
 	importer "github.com/ipfs/boxo/ipld/unixfs/importer"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/path"
-	u "github.com/ipfs/boxo/util"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-test/random"
 	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
 
@@ -42,7 +42,7 @@ func maybeSkipFuseTests(t *testing.T) {
 
 func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	buf := make([]byte, size)
-	_, err := io.ReadFull(u.NewTimeSeededRand(), buf)
+	_, err := io.ReadFull(random.NewRand(), buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,10 @@ func TestIpfsStressRead(t *testing.T) {
 
 	// Now make a bunch of dirs
 	for i := 0; i < ndiriter; i++ {
-		db := uio.NewDirectory(nd.DAG)
+		db, err := uio.NewDirectory(nd.DAG)
+		if err != nil {
+			t.Fatal(err)
+		}
 		for j := 0; j < 1+rand.Intn(10); j++ {
 			name := fmt.Sprintf("child%d", j)
 
@@ -245,8 +248,11 @@ func TestIpfsBasicDirRead(t *testing.T) {
 	fi, data := randObj(t, nd, 10000)
 
 	// Make a directory and put that file in it
-	db := uio.NewDirectory(nd.DAG)
-	err := db.AddChild(nd.Context(), "actual", fi)
+	db, err := uio.NewDirectory(nd.DAG)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = db.AddChild(nd.Context(), "actual", fi)
 	if err != nil {
 		t.Fatal(err)
 	}

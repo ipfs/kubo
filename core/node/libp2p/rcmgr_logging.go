@@ -3,10 +3,11 @@ package libp2p
 import (
 	"context"
 	"errors"
+	"net"
 	"sync"
 	"time"
 
-	"github.com/benbjohnson/clock"
+	"github.com/filecoin-project/go-clock"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -162,6 +163,10 @@ func (n *loggingResourceManager) Stat() rcmgr.ResourceManagerStat {
 	}
 
 	return rapi.Stat()
+}
+
+func (n *loggingResourceManager) VerifySourceAddress(addr net.Addr) bool {
+	return n.delegate.VerifySourceAddress(addr)
 }
 
 func (s *loggingScope) ReserveMemory(size int, prio uint8) error {

@@ -36,8 +36,8 @@ test_expect_success "docker image build succeeds" '
 '
 
 test_expect_success "write init scripts" '
-  echo "ipfs config Foo Bar" > 001.sh &&
-  echo "ipfs config Baz Qux" > 002.sh &&
+  echo "ipfs config Mounts.IPFS Bar" > 001.sh &&
+  echo "ipfs config Pubsub.Router Qux" > 002.sh &&
   chmod +x 002.sh
 '
 
@@ -50,7 +50,7 @@ test_expect_success "docker image runs" '
 '
 
 test_expect_success "docker container gateway is up" '
-  pollEndpoint -host=/ip4/127.0.0.1/tcp/8080 -http-url http://localhost:8080/api/v0/version -v -tries 30 -tout 1s
+  pollEndpoint -host=/ip4/127.0.0.1/tcp/8080 -http-url http://localhost:8080/ipfs/bafkqaddimvwgy3zao5xxe3debi -v -tries 30 -tout 1s
 '
 
 test_expect_success "docker container API is up" '
@@ -65,10 +65,10 @@ test_expect_success "check that init scripts were run correctly and in the corre
 
 test_expect_success "check that init script configs were applied" '
   echo Bar > expected &&
-  docker exec "$DOC_ID" ipfs config Foo > actual &&
+  docker exec "$DOC_ID" ipfs config Mounts.IPFS > actual &&
   test_cmp actual expected &&
   echo Qux > expected &&
-  docker exec "$DOC_ID" ipfs config Baz > actual &&
+  docker exec "$DOC_ID" ipfs config Pubsub.Router > actual &&
   test_cmp actual expected
 '
 

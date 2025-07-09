@@ -9,14 +9,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipns"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
 )
@@ -41,6 +43,7 @@ var RoutingCmd = &cmds.Command{
 		"get":       getValueRoutingCmd,
 		"put":       putValueRoutingCmd,
 		"provide":   provideRefRoutingCmd,
+		"reprovide": reprovideRoutingCmd,
 	},
 }
 
@@ -69,7 +72,7 @@ var findProvidersRoutingCmd = &cmds.Command{
 
 		numProviders, _ := req.Options[numProvidersOptionName].(int)
 		if numProviders < 1 {
-			return fmt.Errorf("number of providers must be greater than 0")
+			return errors.New("number of providers must be greater than 0")
 		}
 
 		c, err := cid.Parse(req.Arguments[0])
@@ -80,10 +83,9 @@ var findProvidersRoutingCmd = &cmds.Command{
 		ctx, cancel := context.WithCancel(req.Context)
 		ctx, events := routing.RegisterForQueryEvents(ctx)
 
-		pchan := n.Routing.FindProvidersAsync(ctx, c, numProviders)
-
 		go func() {
 			defer cancel()
+			pchan := n.Routing.FindProvidersAsync(ctx, c, numProviders)
 			for p := range pchan {
 				np := p
 				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
@@ -156,6 +158,14 @@ var provideRefRoutingCmd = &cmds.Command{
 
 		if !nd.IsOnline {
 			return ErrNotOnline
+		}
+		// respect global config
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+		if !cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) {
+			return errors.New("invalid configuration: Provider.Enabled is set to 'false'")
 		}
 
 		if len(nd.PeerHost.Network().Conns()) == 0 {
@@ -233,6 +243,45 @@ var provideRefRoutingCmd = &cmds.Command{
 		}),
 	},
 	Type: routing.QueryEvent{},
+}
+
+var reprovideRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Trigger reprovider.",
+		ShortDescription: `
+Trigger reprovider to announce our data to network.
+`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		if !nd.IsOnline {
+			return ErrNotOnline
+		}
+
+		// respect global config
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+		if !cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) {
+			return errors.New("invalid configuration: Provider.Enabled is set to 'false'")
+		}
+		if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) == 0 {
+			return errors.New("invalid configuration: Reprovider.Interval is set to '0'")
+		}
+
+		err = nd.Provider.Reprovide(req.Context)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
 }
 
 func provideKeys(ctx context.Context, r routing.Routing, cids []cid.Cid) error {
@@ -426,7 +475,7 @@ identified by QmFoo.
 		cmds.FileArg("value-file", true, false, "A path to a file containing the value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
+		cmds.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the local datastore without broadcasting to the network instead of simply failing."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -451,12 +500,12 @@ identified by QmFoo.
 			options.Put.AllowOffline(allowOffline),
 		}
 
-		err = api.Routing().Put(req.Context, req.Arguments[0], data, opts...)
+		ipnsName, err := ipns.NameFromString(req.Arguments[0])
 		if err != nil {
 			return err
 		}
 
-		id, err := api.Key().Self(req.Context)
+		err = api.Routing().Put(req.Context, req.Arguments[0], data, opts...)
 		if err != nil {
 			if err == iface.ErrOffline {
 				err = errAllowOffline
@@ -466,7 +515,7 @@ identified by QmFoo.
 
 		return res.Emit(routing.QueryEvent{
 			Type: routing.Value,
-			ID:   id.ID(),
+			ID:   ipnsName.Peer(),
 		})
 	},
 	Encoders: cmds.EncoderMap{

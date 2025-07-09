@@ -9,13 +9,13 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/ipfs/kubo/core/commands/cmdenv"
-	"github.com/ipfs/kubo/repo"
-	"github.com/ipfs/kubo/repo/fsrepo"
-
+	"github.com/anmitsu/go-shlex"
 	"github.com/elgris/jsondiff"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo/fsrepo"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -48,13 +48,18 @@ file inside your IPFS repository (IPFS_PATH).
 
 Examples:
 
-Get the value of the 'Datastore.Path' key:
+Get the value of the 'Routing.Type' key:
 
-  $ ipfs config Datastore.Path
+  $ ipfs config Routing.Type
 
-Set the value of the 'Datastore.Path' key:
+Set the value of the 'Routing.Type' key:
 
-  $ ipfs config Datastore.Path ~/.ipfs/datastore
+  $ ipfs config Routing.Type auto
+
+Set multiple values in the 'Addresses.AppendAnnounce' array:
+
+  $ ipfs config Addresses.AppendAnnounce --json \
+      '["/dns4/a.example.com/tcp/4001", "/dns4/b.example.com/tcp/4002"]'
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -204,6 +209,11 @@ NOTE: For security reasons, this command will omit your private key and remote s
 		}
 
 		cfg, err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
+		if err != nil {
+			return err
+		}
+
+		cfg, err = scrubValue(cfg, []string{config.APITag, config.AuthorizationTag})
 		if err != nil {
 			return err
 		}
@@ -502,7 +512,14 @@ func editConfig(filename string) error {
 		return errors.New("ENV variable $EDITOR not set")
 	}
 
-	cmd := exec.Command(editor, filename)
+	editorAndArgs, err := shlex.Split(editor, true)
+	if err != nil {
+		return fmt.Errorf("cannot parse $EDITOR value: %s", err)
+	}
+	editor = editorAndArgs[0]
+	args := append(editorAndArgs[1:], filename)
+
+	cmd := exec.Command(editor, args...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd.Run()
 }

@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/tests"
 	"github.com/ipfs/boxo/path"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/tests"
 	"github.com/ipfs/kubo/test/cli/harness"
 	ma "github.com/multiformats/go-multiaddr"
 	"go.uber.org/multierr"
@@ -46,7 +46,6 @@ func (np NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdent
 				c := n.ReadConfig()
 				c.Experimental.FilestoreEnabled = true
 				n.WriteConfig(c)
-
 				n.StartDaemon("--enable-pubsub-experiment", "--offline="+strconv.FormatBool(!online))
 
 				if online {

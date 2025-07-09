@@ -3,15 +3,16 @@ package coreapi
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	bserv "github.com/ipfs/boxo/blockservice"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/path"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/go-cid"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -38,25 +39,26 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 
 	defer api.blockstore.PinLock(ctx).Unlock(ctx)
 
-	err = api.pinning.Pin(ctx, dagNode, settings.Recursive)
+	err = api.pinning.Pin(ctx, dagNode, settings.Recursive, settings.Name)
 	if err != nil {
 		return fmt.Errorf("pin: %s", err)
 	}
 
-	if err := api.provider.Provide(dagNode.Cid()); err != nil {
+	if err := api.provider.Provide(ctx, dagNode.Cid(), true); err != nil {
 		return err
 	}
 
 	return api.pinning.Flush(ctx)
 }
 
-func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan coreiface.Pin, error) {
+func (api *PinAPI) Ls(ctx context.Context, pins chan<- coreiface.Pin, opts ...caopts.PinLsOption) error {
 	ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "Ls")
 	defer span.End()
 
 	settings, err := caopts.PinLsOptions(opts...)
 	if err != nil {
-		return nil, err
+		close(pins)
+		return err
 	}
 
 	span.SetAttributes(attribute.String("type", settings.Type))
@@ -64,10 +66,11 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan c
 	switch settings.Type {
 	case "all", "direct", "indirect", "recursive":
 	default:
-		return nil, fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", settings.Type)
+		close(pins)
+		return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", settings.Type)
 	}
 
-	return api.pinLsAll(ctx, settings.Type), nil
+	return api.pinLsAll(ctx, settings.Type, settings.Detailed, settings.Name, pins)
 }
 
 func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.PinIsPinnedOption) (string, bool, error) {
@@ -229,14 +232,15 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 	}
 
 	out := make(chan coreiface.PinStatus)
+
 	go func() {
 		defer close(out)
-		for p := range api.pinning.RecursiveKeys(ctx) {
+		for p := range api.pinning.RecursiveKeys(ctx, false) {
 			var res *pinStatus
 			if p.Err != nil {
 				res = &pinStatus{err: p.Err}
 			} else {
-				res = checkPin(p.C)
+				res = checkPin(p.Pin.Key)
 			}
 			select {
 			case <-ctx.Done():
@@ -252,7 +256,7 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 type pinInfo struct {
 	pinType string
 	path    path.ImmutablePath
-	err     error
+	name    string
 }
 
 func (p *pinInfo) Path() path.ImmutablePath {
@@ -263,24 +267,24 @@ func (p *pinInfo) Type() string {
 	return p.pinType
 }
 
-func (p *pinInfo) Err() error {
-	return p.err
+func (p *pinInfo) Name() string {
+	return p.name
 }
 
 // pinLsAll is an internal function for returning a list of pins
 //
 // The caller must keep reading results until the channel is closed to prevent
 // leaking the goroutine that is fetching pins.
-func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string) <-chan coreiface.Pin {
-	out := make(chan coreiface.Pin, 1)
-
+func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string, detailed bool, name string, out chan<- coreiface.Pin) error {
+	defer close(out)
 	emittedSet := cid.NewSet()
 
-	AddToResultKeys := func(c cid.Cid, typeStr string) error {
-		if emittedSet.Visit(c) {
+	AddToResultKeys := func(c cid.Cid, pinName, typeStr string) error {
+		if emittedSet.Visit(c) && (name == "" || strings.Contains(pinName, name)) {
 			select {
 			case out <- &pinInfo{
 				pinType: typeStr,
+				name:    pinName,
 				path:    path.FromCid(c),
 			}:
 			case <-ctx.Done():
@@ -290,87 +294,79 @@ func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string) <-chan coreifac
 		return nil
 	}
 
-	go func() {
-		defer close(out)
-
-		var rkeys []cid.Cid
-		var err error
-		if typeStr == "recursive" || typeStr == "all" {
-			for streamedCid := range api.pinning.RecursiveKeys(ctx) {
-				if streamedCid.Err != nil {
-					out <- &pinInfo{err: streamedCid.Err}
-					return
-				}
-				if err = AddToResultKeys(streamedCid.C, "recursive"); err != nil {
-					out <- &pinInfo{err: err}
-					return
-				}
-				rkeys = append(rkeys, streamedCid.C)
+	var rkeys []cid.Cid
+	var err error
+	if typeStr == "recursive" || typeStr == "all" {
+		for streamedCid := range api.pinning.RecursiveKeys(ctx, detailed) {
+			if streamedCid.Err != nil {
+				return streamedCid.Err
+			}
+			if err = AddToResultKeys(streamedCid.Pin.Key, streamedCid.Pin.Name, "recursive"); err != nil {
+				return err
+			}
+			rkeys = append(rkeys, streamedCid.Pin.Key)
+		}
+	}
+	if typeStr == "direct" || typeStr == "all" {
+		for streamedCid := range api.pinning.DirectKeys(ctx, detailed) {
+			if streamedCid.Err != nil {
+				return streamedCid.Err
+			}
+			if err = AddToResultKeys(streamedCid.Pin.Key, streamedCid.Pin.Name, "direct"); err != nil {
+				return err
 			}
 		}
-		if typeStr == "direct" || typeStr == "all" {
-			for streamedCid := range api.pinning.DirectKeys(ctx) {
-				if streamedCid.Err != nil {
-					out <- &pinInfo{err: streamedCid.Err}
-					return
-				}
-				if err = AddToResultKeys(streamedCid.C, "direct"); err != nil {
-					out <- &pinInfo{err: err}
-					return
-				}
+	}
+	if typeStr == "indirect" {
+		// We need to first visit the direct pins that have priority
+		// without emitting them
+
+		for streamedCid := range api.pinning.DirectKeys(ctx, detailed) {
+			if streamedCid.Err != nil {
+				return streamedCid.Err
+			}
+			emittedSet.Add(streamedCid.Pin.Key)
+		}
+
+		for streamedCid := range api.pinning.RecursiveKeys(ctx, detailed) {
+			if streamedCid.Err != nil {
+				return streamedCid.Err
+			}
+			emittedSet.Add(streamedCid.Pin.Key)
+			rkeys = append(rkeys, streamedCid.Pin.Key)
+		}
+	}
+	if typeStr == "indirect" || typeStr == "all" {
+		if len(rkeys) == 0 {
+			return nil
+		}
+		var addErr error
+		walkingSet := cid.NewSet()
+		for _, k := range rkeys {
+			err = merkledag.Walk(
+				ctx, merkledag.GetLinksWithDAG(api.dag), k,
+				func(c cid.Cid) bool {
+					if !walkingSet.Visit(c) {
+						return false
+					}
+					if emittedSet.Has(c) {
+						return true // skipped
+					}
+					addErr = AddToResultKeys(c, "", "indirect")
+					return addErr == nil
+				},
+				merkledag.SkipRoot(), merkledag.Concurrent(),
+			)
+			if err != nil {
+				return err
+			}
+			if addErr != nil {
+				return addErr
 			}
 		}
-		if typeStr == "indirect" {
-			// We need to first visit the direct pins that have priority
-			// without emitting them
+	}
 
-			for streamedCid := range api.pinning.DirectKeys(ctx) {
-				if streamedCid.Err != nil {
-					out <- &pinInfo{err: streamedCid.Err}
-					return
-				}
-				emittedSet.Add(streamedCid.C)
-			}
-
-			for streamedCid := range api.pinning.RecursiveKeys(ctx) {
-				if streamedCid.Err != nil {
-					out <- &pinInfo{err: streamedCid.Err}
-					return
-				}
-				emittedSet.Add(streamedCid.C)
-				rkeys = append(rkeys, streamedCid.C)
-			}
-		}
-		if typeStr == "indirect" || typeStr == "all" {
-			walkingSet := cid.NewSet()
-			for _, k := range rkeys {
-				err = merkledag.Walk(
-					ctx, merkledag.GetLinksWithDAG(api.dag), k,
-					func(c cid.Cid) bool {
-						if !walkingSet.Visit(c) {
-							return false
-						}
-						if emittedSet.Has(c) {
-							return true // skipped
-						}
-						err := AddToResultKeys(c, "indirect")
-						if err != nil {
-							out <- &pinInfo{err: err}
-							return false
-						}
-						return true
-					},
-					merkledag.SkipRoot(), merkledag.Concurrent(),
-				)
-				if err != nil {
-					out <- &pinInfo{err: err}
-					return
-				}
-			}
-		}
-	}()
-
-	return out
+	return nil
 }
 
 func (api *PinAPI) core() coreiface.CoreAPI {

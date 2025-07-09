@@ -1,13 +1,15 @@
 //go:build testrunmain
 // +build testrunmain
 
-package main
+package main_test
 
 import (
 	"flag"
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/ipfs/kubo/cmd/ipfs/kubo"
 )
 
 // this abuses go so much that I felt dirty writing this code
@@ -16,7 +18,8 @@ import (
 func TestRunMain(t *testing.T) {
 	args := flag.Args()
 	os.Args = append([]string{os.Args[0]}, args...)
-	ret := mainRet()
+
+	ret := kubo.Start(kubo.BuildDefaultEnv)
 
 	p := os.Getenv("IPFS_COVER_RET_FILE")
 	if len(p) != 0 {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,16 +14,16 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	iface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/go-cid"
 	legacy "github.com/ipfs/go-ipld-legacy"
 	ipfs "github.com/ipfs/kubo"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/misc/fsutil"
 	dagpb "github.com/ipld/go-codec-dagpb"
 	_ "github.com/ipld/go-ipld-prime/codec/dagcbor"
 	"github.com/ipld/go-ipld-prime/node/basicnode"
-	"github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 )
@@ -81,7 +82,7 @@ func NewPathApi(ipfspath string) (*HttpApi, error) {
 
 // ApiAddr reads api file in specified ipfs path.
 func ApiAddr(ipfspath string) (ma.Multiaddr, error) {
-	baseDir, err := homedir.Expand(ipfspath)
+	baseDir, err := fsutil.ExpandHome(ipfspath)
 	if err != nil {
 		return nil, err
 	}
@@ -98,11 +99,29 @@ func ApiAddr(ipfspath string) (ma.Multiaddr, error) {
 
 // NewApi constructs HttpApi with specified endpoint.
 func NewApi(a ma.Multiaddr) (*HttpApi, error) {
+	transport := &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
+		DisableKeepAlives: true,
+	}
+
+	network, address, err := manet.DialArgs(a)
+	if err != nil {
+		return nil, err
+	}
+	if network == "unix" {
+		transport.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", address)
+		}
+		c := &http.Client{
+			Transport: transport,
+		}
+		// This will create an API client which
+		// makes requests to `http://unix`.
+		return NewURLApiWithClient(network, c)
+	}
+
 	c := &http.Client{
-		Transport: &http.Transport{
-			Proxy:             http.ProxyFromEnvironment,
-			DisableKeepAlives: true,
-		},
+		Transport: transport,
 	}
 
 	return NewApiWithClient(a, c)
@@ -225,10 +244,6 @@ func (api *HttpApi) Pin() iface.PinAPI {
 
 func (api *HttpApi) Object() iface.ObjectAPI {
 	return (*ObjectAPI)(api)
-}
-
-func (api *HttpApi) Dht() iface.DhtAPI {
-	return (*DhtAPI)(api)
 }
 
 func (api *HttpApi) Swarm() iface.SwarmAPI {

@@ -17,10 +17,10 @@ check_ipfs_storage() {
 
 test_init_ipfs
 
-test_expect_success "generate 2 600 kB files and 2 MB file using go-random" '
-  random 600k 41 >600k1 &&
-  random 600k 42 >600k2 &&
-  random 2M 43 >2M
+test_expect_success "generate 2 600 kB files and 2 MB file using random-data" '
+  random-data -size=614400 -seed=41 >600k1 &&
+  random-data -size=614400 -seed=42 >600k2 &&
+  random-data -size=2097152 -seed=43 >2M
 '
 
 test_expect_success "set ipfs gc watermark, storage max, and gc timeout" '
