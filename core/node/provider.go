@@ -137,7 +137,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 			return nil, err
 		}
 		if strategyChanged {
-			logger.Infow("reporvide strategy changed, clearing reprovide queue", "previous", string(prev), "current", reprovideStrategy)
+			logger.Infow("reporvide strategy changed, clearing provide queue", "previous", string(prev), "current", reprovideStrategy)
 			sys.Clear()
 			if reprovideStrategy == "" {
 				err = ds.Delete(ctx, strategyKey)
