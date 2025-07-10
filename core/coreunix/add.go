@@ -102,7 +102,7 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 	}
 
 	// Note, this adds it to DAGService already.
-	mr, err := mfs.NewEmptyRoot(adder.ctx, adder.dagService, nil, mfs.MkdirOpts{
+	mr, err := mfs.NewEmptyRoot(adder.ctx, adder.dagService, nil, nil, mfs.MkdirOpts{
 		CidBuilder:    adder.CidBuilder,
 		MaxLinks:      adder.MaxDirectoryLinks,
 		MaxHAMTFanout: adder.MaxHAMTFanout,
@@ -475,7 +475,7 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 
 	// if we need to store mode or modification time then create a new root which includes that data
 	if toplevel && (adder.FileMode != 0 || !adder.FileMtime.IsZero()) {
-		mr, err := mfs.NewEmptyRoot(ctx, adder.dagService, nil,
+		mr, err := mfs.NewEmptyRoot(ctx, adder.dagService, nil, nil,
 			mfs.MkdirOpts{
 				CidBuilder:    adder.CidBuilder,
 				MaxLinks:      adder.MaxDirectoryLinks,

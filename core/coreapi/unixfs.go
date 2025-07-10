@@ -179,7 +179,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		if err != nil {
 			return path.ImmutablePath{}, err
 		}
-		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil)
+		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil, nil)
 		if err != nil {
 			return path.ImmutablePath{}, err
 		}

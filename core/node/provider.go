@@ -10,9 +10,11 @@ import (
 	"github.com/ipfs/boxo/fetcher"
 	"github.com/ipfs/boxo/mfs"
 	pin "github.com/ipfs/boxo/pinning/pinner"
+	"github.com/ipfs/boxo/pinning/pinner/dspinner"
 	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/query"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
 	"go.uber.org/fx"
@@ -26,12 +28,11 @@ const sampledBatchSize = 1000
 // Datastore key used to store previous reprovide strategy.
 const reprovideStrategyKey = "/reprovideStrategy"
 
-func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int, reprovideStrategy string) fx.Option {
-	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, keyProvider provider.KeyChanFunc, repo repo.Repo, bs blockstore.Blockstore) (provider.System, error) {
+func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
+	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, repo repo.Repo) (provider.System, error) {
 		opts := []provider.Option{
 			provider.Online(cr),
 			provider.ReproviderInterval(reprovideInterval),
-			provider.KeyProvider(keyProvider),
 			provider.ProvideWorkerCount(provideWorkerCount),
 		}
 		if !acceleratedDHTClient && reprovideInterval > 0 {
@@ -50,16 +51,20 @@ func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, pro
 						defer cancel()
 
 						// FIXME: I want a running counter of blocks so size of blockstore can be an O(1) lookup.
-						ch, err := bs.AllKeysChan(ctx)
+						// Note: talk to datastore directly, as to not depend on Blockstore here.
+						qr, err := repo.Datastore().Query(ctx, query.Query{
+							Prefix:   "/blocks",
+							KeysOnly: true})
 						if err != nil {
 							logger.Errorf("fetching AllKeysChain in provider ThroughputReport: %v", err)
 							return false
 						}
+						defer qr.Close()
 						count = 0
 					countLoop:
 						for {
 							select {
-							case _, ok := <-ch:
+							case _, ok := <-qr.Next():
 								if !ok {
 									break countLoop
 								}
@@ -120,33 +125,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 				}, sampledBatchSize))
 		}
 
-		var strategyChanged bool
-		ctx := context.Background()
-		ds := repo.Datastore()
-		strategyKey := datastore.NewKey(reprovideStrategyKey)
-
-		prev, err := ds.Get(ctx, strategyKey)
-		if err != nil && !errors.Is(err, datastore.ErrNotFound) {
-			logger.Error("cannot read previous reprovide strategy", "err", err)
-		} else if string(prev) != reprovideStrategy {
-			strategyChanged = true
-		}
-
-		sys, err := provider.New(ds, opts...)
+		sys, err := provider.New(repo.Datastore(), opts...)
 		if err != nil {
 			return nil, err
-		}
-		if strategyChanged {
-			logger.Infow("Reprovider.Strategy changed, clearing provide queue", "previous", string(prev), "current", reprovideStrategy)
-			sys.Clear()
-			if reprovideStrategy == "" {
-				err = ds.Delete(ctx, strategyKey)
-			} else {
-				err = ds.Put(ctx, strategyKey, []byte(reprovideStrategy))
-			}
-			if err != nil {
-				logger.Error("cannot update reprovide strategy", "err", err)
-			}
 		}
 
 		lc.Append(fx.Hook{
@@ -177,7 +158,7 @@ func OnlineProviders(provide bool, reprovideStrategy string, reprovideInterval t
 
 	return fx.Options(
 		keyProvider,
-		ProviderSys(reprovideInterval, acceleratedDHTClient, provideWorkerCount, reprovideStrategy),
+		ProviderSys(reprovideInterval, acceleratedDHTClient, provideWorkerCount),
 	)
 }
 
@@ -223,30 +204,62 @@ func newProvidingStrategy(strategy string) interface{} {
 		OfflineIPLDFetcher   fetcher.Factory `name:"offlineIpldFetcher"`
 		OfflineUnixFSFetcher fetcher.Factory `name:"offlineUnixfsFetcher"`
 		MFSRoot              *mfs.Root
+		Provider             provider.System
+		Repo                 repo.Repo
 	}
 	return func(in input) provider.KeyChanFunc {
+		var kcf provider.KeyChanFunc
+
 		switch strategy {
 		case "roots":
-			return provider.NewBufferedProvider(provider.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher))
+			kcf = provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher))
 		case "pinned":
-			return provider.NewBufferedProvider(provider.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher))
+			kcf = provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher))
 		case "pinned+mfs":
-			return provider.NewPrioritizedProvider(
-				provider.NewBufferedProvider(provider.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher)),
+			kcf = provider.NewPrioritizedProvider(
+				provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher)),
 				mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher),
 			)
 		case "mfs":
-			return mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher)
+			kcf = mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher)
 		case "flat":
-			return provider.NewBlockstoreProvider(in.Blockstore)
+			kcf = in.Blockstore.AllKeysChan
 		default: // "all", ""
-			return provider.NewPrioritizedProvider(
+			kcf = provider.NewPrioritizedProvider(
 				provider.NewPrioritizedProvider(
-					provider.NewBufferedProvider(provider.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher)),
+					provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher)),
 					mfsRootProvider(in.MFSRoot),
 				),
-				provider.NewBlockstoreProvider(in.Blockstore),
+				in.Blockstore.AllKeysChan,
 			)
 		}
+		in.Provider.SetKeyProvider(kcf)
+
+		var strategyChanged bool
+		ctx := context.Background()
+		ds := in.Repo.Datastore()
+		strategyKey := datastore.NewKey(reprovideStrategyKey)
+
+		prev, err := ds.Get(ctx, strategyKey)
+		if err != nil && !errors.Is(err, datastore.ErrNotFound) {
+			logger.Error("cannot read previous reprovide strategy", "err", err)
+		} else if string(prev) != strategy {
+			strategyChanged = true
+		}
+
+		if strategyChanged {
+			logger.Infow("Reprovider.Strategy changed, clearing provide queue", "previous", string(prev), "current", strategy)
+			in.Provider.Clear()
+			if strategy == "" {
+				err = ds.Delete(ctx, strategyKey)
+			} else {
+				err = ds.Put(ctx, strategyKey, []byte(strategy))
+			}
+			if err != nil {
+				logger.Error("cannot update reprovide strategy", "err", err)
+			}
+		}
+
+		return kcf
 	}
 }

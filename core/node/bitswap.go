@@ -14,8 +14,6 @@ import (
 	"github.com/ipfs/boxo/bitswap/network/httpnet"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	exchange "github.com/ipfs/boxo/exchange"
-	"github.com/ipfs/boxo/exchange/providing"
-	provider "github.com/ipfs/boxo/provider"
 	rpqm "github.com/ipfs/boxo/routing/providerquerymanager"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -213,32 +211,6 @@ func OnlineExchange(isBitswapActive bool) interface{} {
 			},
 		})
 		return in
-	}
-}
-
-type providingExchangeIn struct {
-	fx.In
-
-	BaseExch exchange.Interface
-	Provider provider.System
-}
-
-// ProvidingExchange creates a providing.Exchange with the existing exchange
-// and the provider.System.
-// We cannot do this in OnlineExchange because it causes cycles so this is for
-// a decorator.
-func ProvidingExchange(provide bool) interface{} {
-	return func(in providingExchangeIn, lc fx.Lifecycle) exchange.Interface {
-		exch := in.BaseExch
-		if provide {
-			exch = providing.New(in.BaseExch, in.Provider)
-			lc.Append(fx.Hook{
-				OnStop: func(ctx context.Context) error {
-					return exch.Close()
-				},
-			})
-		}
-		return exch
 	}
 }
 

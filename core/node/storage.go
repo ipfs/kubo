@@ -2,6 +2,7 @@ package node
 
 import (
 	blockstore "github.com/ipfs/boxo/blockstore"
+	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-datastore"
 	config "github.com/ipfs/kubo/config"
 	"go.uber.org/fx"
@@ -27,11 +28,25 @@ func Datastore(repo repo.Repo) datastore.Datastore {
 type BaseBlocks blockstore.Blockstore
 
 // BaseBlockstoreCtor creates cached blockstore backed by the provided datastore
-func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, hashOnRead bool, writeThrough bool) func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
-	return func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+func BaseBlockstoreCtor(
+	cacheOpts blockstore.CacheOpts,
+	hashOnRead bool,
+	writeThrough bool,
+	reprovidingStrategy string,
+
+) func(mctx helpers.MetricsCtx, repo repo.Repo, prov provider.System, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+	return func(mctx helpers.MetricsCtx, repo repo.Repo, prov provider.System, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+		opts := []blockstore.Option{blockstore.WriteThrough(writeThrough)}
+		switch reprovidingStrategy {
+		case "all", "flat":
+			opts = append(opts, blockstore.Provider(prov))
+		default:
+		}
+
 		// hash security
-		bs = blockstore.NewBlockstore(repo.Datastore(),
-			blockstore.WriteThrough(writeThrough),
+		bs = blockstore.NewBlockstore(
+			repo.Datastore(),
+			opts...,
 		)
 		bs = &verifbs.VerifBS{Blockstore: bs}
 		bs, err = blockstore.CachedBlockstore(helpers.LifecycleCtx(mctx, lc), bs, cacheOpts)
