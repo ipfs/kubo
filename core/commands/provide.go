@@ -14,7 +14,7 @@ const (
 
 var ProvideCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Control provide opertaions.",
+		Tagline: "Control provide operations.",
 		ShortDescription: `
 'ipfs provide' is a utility command used to control provide operations.
 `,
