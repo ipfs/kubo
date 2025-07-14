@@ -506,13 +506,18 @@ func setConfig(r repo.Repo, key string, value interface{}) (*ConfigField, error)
 	return getConfig(r, key)
 }
 
+// parseEditorCommand parses the EDITOR environment variable into command and arguments
+func parseEditorCommand(editor string) ([]string, error) {
+	return shlex.Split(editor, true)
+}
+
 func editConfig(filename string) error {
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		return errors.New("ENV variable $EDITOR not set")
 	}
 
-	editorAndArgs, err := shlex.Split(editor, true)
+	editorAndArgs, err := parseEditorCommand(editor)
 	if err != nil {
 		return fmt.Errorf("cannot parse $EDITOR value: %s", err)
 	}

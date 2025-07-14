@@ -111,6 +111,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 				httpnet.WithInsecureSkipVerify(httpCfg.TLSInsecureSkipVerify.WithDefault(config.DefaultHTTPRetrievalTLSInsecureSkipVerify)),
 				httpnet.WithMaxBlockSize(int64(maxBlockSize)),
 				httpnet.WithUserAgent(version.GetUserAgentVersion()),
+				httpnet.WithMetricsLabelsForEndpoints(httpCfg.Allowlist),
 			)
 			bitswapNetworks = network.New(in.Host.Peerstore(), bitswapLibp2p, bitswapHTTP)
 		} else if libp2pEnabled {

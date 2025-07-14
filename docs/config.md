@@ -1,6 +1,6 @@
 # The Kubo config file
 
-The Kubo (go-ipfs) config file is a JSON document located at `$IPFS_PATH/config`. It
+The Kubo config file is a JSON document located at `$IPFS_PATH/config`. It
 is read once at node instantiation, either for an offline command, or when
 starting the daemon. Commands that execute on a running daemon do not read the
 config file at runtime.
