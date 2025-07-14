@@ -104,28 +104,19 @@ This section covers tasks to be done during each release.
     - [ ] repeat the title as a heading (`##`) in the description
     - [ ] link to the GitHub Release, binaries on IPNS, docker pull command and release notes in the description
     - [ ] pin the [IPFS Discourse](https://discuss.ipfs.tech) topic globally, you can make the topic a banner if there is no banner already
-  - [ ] verify the [IPFS Discourse](https://discuss.ipfs.tech) topic was copied to:
-    - [ ] [#ipfs-chatter](https://discord.com/channels/669268347736686612/669268347736686615) in IPFS Discord
-    - [ ] [#ipfs-chatter](https://filecoinproject.slack.com/archives/C018EJ8LWH1) in FIL Slack
-    - [ ] [#ipfs-chatter:ipfs.io](https://matrix.to/#/#ipfs-chatter:ipfs.io) in Matrix
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) Add the link to the [IPFS Discourse](https://discuss.ipfs.tech) topic to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-rcN)) description ([example](https://github.com/ipfs/kubo/releases/tag/v0.17.0))
+  - [ ] verify the [IPFS Discourse](https://discuss.ipfs.tech) topic was posted by a chatbot to [#ipfs-chatter](https://discord.com/channels/669268347736686612/669268347736686615) in IPFS Discord or [#ipfs-chatter:ipfs.io](https://matrix.to/#/#ipfs-chatter:ipfs.io) in Matrix
   - [ ] ![](https://img.shields.io/badge/only-RC-blue?style=flat-square) create an issue comment mentioning early testers on the release issue ([example](https://github.com/ipfs/kubo/issues/9319#issuecomment-1311002478))
   - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) create an issue comment linking to the release on the release issue ([example](https://github.com/ipfs/kubo/issues/9417#issuecomment-1400740975))
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-orange?style=flat-square) promote on bsky.app  ([example](https://bsky.app/profile/ipshipyard.com/post/3lh2brzrwbs2c))
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-orange?style=flat-square) promote on x.com ([example](https://x.com/ipshipyard/status/1885346348808929609))
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-orange?style=flat-square) post the link to the [GitHub Release](https://github.com/ipfs/kubo/releases/tag/vX.Y.Z(-rcN)) to [Reddit](https://reddit.com/r/ipfs) ([example](https://www.reddit.com/r/ipfs/comments/9x0q0k/kubo_v0160_release_is_out/))
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-orange?style=flat-square) (optional) promote on bsky.app ([example](https://bsky.app/profile/ipshipyard.com/post/3ltxcsrbn5s2k))
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-orange?style=flat-square) (optional) promote on x.com ([example](https://x.com/ipshipyard/status/1944867893226635603))
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-orange?style=flat-square) (optional) post to [Reddit](https://reddit.com/r/ipfs)
 - [ ] Manually smoke-test the new version with [IPFS Companion Browser Extension](https://docs.ipfs.tech/install/ipfs-companion/)
 - [ ] Update Kubo in [ipfs-desktop](https://github.com/ipfs/ipfs-desktop)
   - [ ] create a PR which updates `kubo` version to the tagged version in `package.json` and `package-lock.json`
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) switch to final release and merge
-- [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) Update Kubo docs  at docs.ipfs.tech:
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) run the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) merge the PR created by the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow run
+  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) merge and create or request a new release
+- [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) Update Kubo docs at [docs.ipfs.tech](https://docs.ipfs.tech/): run the [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow and merge the PR it creates
   </details>
-- [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) Create a blog entry on [blog.ipfs.tech](https://blog.ipfs.tech)
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) create a PR which adds a release note for the new Kubo version ([example](https://github.com/ipfs/ipfs-blog/pull/529))
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) merge the PR
-  - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) verify the blog entry was published
+- [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) Create a blog entry on [blog.ipfs.tech](https://blog.ipfs.tech): create a PR which adds a release note for the new Kubo version ([example](https://github.com/ipfs/ipfs-blog/pull/529)), merge it, and verify the blog entry was published
 - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-orange?style=flat-square) Create a dependency update PR
   - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-orange?style=flat-square) check out [ipfs/kubo](https://github.com/ipfs/kubo)
   - [ ] ![](https://img.shields.io/badge/only-FINAL-darkgreen?style=flat-square) ![](https://img.shields.io/badge/not-PATCH-orange?style=flat-square) go over direct dependencies from `go.mod` in the root directory (NOTE: do not run `go get -u` as it will upgrade indirect dependencies which may cause problems)
