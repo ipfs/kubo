@@ -253,7 +253,7 @@ Kubo will send anonymized information to the developers:
   - How?   An HTTP request to %s.
 
 To opt-out, CTRL-C now and:
-    * Set %s to "optput", or
+    * Set %s to "optout", or
     * Run 'ipfs config Plugins.Plugins.telemetry.Config.Mode optout'
     * This message will be shown only once.
 
