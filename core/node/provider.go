@@ -145,7 +145,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 				err = ds.Put(ctx, strategyKey, []byte(reprovideStrategy))
 			}
 			if err != nil {
-				logger.Error("cannot update reprovide stratedy", "err", err)
+				logger.Error("cannot update reprovide strategy", "err", err)
 			}
 		}
 
