@@ -1,18 +1,28 @@
 package telemetry
 
 import (
-	"errors"
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
+	ipfs "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core/corerepo"
 	"github.com/ipfs/kubo/plugin"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/pnet"
+	multiaddr "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 var log = logging.Logger("telemetry")
@@ -31,55 +41,81 @@ const (
 	modeOptOut
 )
 
-type LogEvent struct {
-	UUID string `json:"uuid"`
-
-	AgentVersion string `json:"agent_version"`
-
-	PrivateNetwork bool `json:"private_network"`
-
-	BootstrappersCustom bool `json:"bootstrappers_custom"`
-
-	RepoSizeBucket int `json:"repo_size_bucket"`
-
-	UptimeBucket int `json:"uptime_bucket"`
-
-	ReproviderStrategy string `json:"reprovider_strategy"`
-
-	RoutingType                 string `json:"routing_type"`
-	RoutingAcceleratedDHTClient bool   `json:"routing_accelerated_dht_client"`
-	RoutingDelegatedCount       int    `json:"routing_delegated_count"`
-
-	AutoNATServiceMode       string `json:"autonat_service_mode"`
-	AutoNATPubliclyDiallable bool   `json:"autonat_publicly_diallable"`
-
-	SwarmEnableHolePunching  bool `json:"swarm_enable_hole_punching"`
-	SwarmRelayAddresses      bool `json:"swarm_relay_addresses"`
-	SwarmIPv4PublicAddresses bool `json:"swarm_ipv4_public_addresses"`
-	SwarmIPv6PublicAddresses bool `json:"swarm_ipv6_public_addresses"`
-
-	AutoTLSAutoWSS            bool `json:"auto_tls_auto_wss"`
-	AutoTLSDomainSuffixCustom bool `json:"auto_tls_domain_suffix_custom"`
-
-	DiscoveryMDNSEnabled bool `json:"discovery_mdns_enabled"`
-
-	PlatformOS            string `json:"platform_os"`
-	PlatformArch          string `json:"platform_arch"`
-	PlatformContainerized bool   `json:"platform_containerized"`
+// repoSizeBuckets defines size thresholds for categorizing repository sizes.
+// Each value represents the upper limit of a bucket in bytes (except the last)
+var repoSizeBuckets = []uint64{
+	1 << 30,   // 1 GB
+	5 << 30,   // 5 GB
+	10 << 30,  // 10 GB
+	100 << 30, // 100 GB
+	500 << 30, // 500 GB
+	1 << 40,   // 1 TB
+	10 << 40,  // 10 TB
+	11 << 40,  // + anything more than 10TB falls here.
 }
 
-// Plugins sets the list of plugins to be loaded.
+var uptimeBuckets = []time.Duration{
+	1 * 24 * time.Hour,
+	24 * time.Hour,
+	3 * 24 * time.Hour,
+	7 * 24 * time.Hour,
+	14 * 24 * time.Hour,
+	30 * 24 * time.Hour,
+	31 * 24 * time.Hour, // + anything more than 30 days falls here.
+}
+
+// A LogEvent is the object sent to the telemetry endpoint.
+type LogEvent struct {
+	UUID *string `json:"uuid"`
+
+	AgentVersion *string `json:"agent_version"`
+
+	PrivateNetwork *bool `json:"private_network"`
+
+	BootstrappersCustom *bool `json:"bootstrappers_custom"`
+
+	RepoSizeBucket *uint64 `json:"repo_size_bucket"`
+
+	UptimeBucket *time.Duration `json:"uptime_bucket"`
+
+	ReproviderStrategy *string `json:"reprovider_strategy"`
+
+	RoutingType                 *string `json:"routing_type"`
+	RoutingAcceleratedDHTClient *string `json:"routing_accelerated_dht_client"`
+	RoutingDelegatedCount       *int    `json:"routing_delegated_count"`
+
+	AutoNATServiceMode  *string `json:"autonat_service_mode"`
+	AutoNATReachability *string `json:"autonat_reachability"`
+
+	SwarmEnableHolePunching  *string `json:"swarm_enable_hole_punching"`
+	SwarmCircuitAddresses    *bool   `json:"swarm_circuit_addresses"`
+	SwarmIPv4PublicAddresses *bool   `json:"swarm_ipv4_public_addresses"`
+	SwarmIPv6PublicAddresses *bool   `json:"swarm_ipv6_public_addresses"`
+
+	AutoTLSAutoWSS            *string `json:"auto_tls_auto_wss"`
+	AutoTLSDomainSuffixCustom *bool   `json:"auto_tls_domain_suffix_custom"`
+
+	DiscoveryMDNSEnabled *bool `json:"discovery_mdns_enabled"`
+
+	PlatformOS            *string `json:"platform_os"`
+	PlatformArch          *string `json:"platform_arch"`
+	PlatformContainerized *bool   `json:"platform_containerized"`
+}
+
 var Plugins = []plugin.Plugin{
 	&telemetryPlugin{},
 }
 
-// telemetryPlugin is an FX plugin for Kubo that detects if the node is running on a private network.
 type telemetryPlugin struct {
 	uuidFilename string
 	mode         pluginMode
+	endpoint     string
+	runOnce      bool
 
-	node  *core.IpfsNode
-	event *LogEvent
+	node      *core.IpfsNode
+	config    *config.Config
+	event     *LogEvent
+	startTime time.Time
 }
 
 func (p *telemetryPlugin) Name() string {
@@ -90,28 +126,28 @@ func (p *telemetryPlugin) Version() string {
 	return "0.0.1"
 }
 
+func readFromConfig(cfg interface{}, key string) string {
+	if cfg == nil {
+		return ""
+	}
+
+	pcfg, ok := cfg.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+
+	val, ok := pcfg[key].(string)
+	if !ok {
+		return ""
+	}
+	return val
+}
+
 func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 	// logging.SetLogLevel("telemetry", "DEBUG")
 	log.Debug("telemetry plugin Init()")
-	// Whatever the setting, if we are not in daemon mode
-	// or we an in offline mode, we auto-opt out.
-	isDaemon := false
-	isOffline := false
-	for _, arg := range os.Args {
-		if arg == "daemon" {
-			isDaemon = true
-		}
-		if arg == "--offline" {
-			isOffline = true
-		}
-	}
-	if !isDaemon || isOffline {
-		log.Debug("telemetry mode: optout (offline/one-shot)")
-		p.mode = modeOptOut
-		return nil
-
-	}
 	p.event = &LogEvent{}
+	p.startTime = time.Now()
 
 	repoPath := env.Repo
 	p.uuidFilename = path.Join(repoPath, uuidFilename)
@@ -119,18 +155,17 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 	v := os.Getenv(modeEnvVar)
 	if v != "" {
 		log.Debug("mode set from env-var")
-	} else if cfg := env.Config; cfg != nil { // try with config
-		pcfg, ok := cfg.(map[string]interface{})
-		if ok {
-			pmode, ok := pcfg["Mode"].(string)
-			if ok {
-				v = pmode
-				log.Debug("mode set from config")
-			}
-		}
+	} else if pmode := readFromConfig(env.Config, "Mode"); pmode != "" {
+		v = pmode
+		log.Debug("mode set from config")
 	}
 
-	log.Debug("telemetry mode: ", v)
+	p.endpoint = endpoint
+	if ep := readFromConfig(env.Config, "Endpoint"); ep != "" {
+		log.Debug("endpoint set from config", ep)
+		p.endpoint = ep
+	}
+
 	switch v {
 	case "optout":
 		p.mode = modeOptOut
@@ -140,6 +175,7 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 	default:
 		p.mode = modeOptIn
 	}
+	log.Debug("telemetry mode: ", p.mode)
 
 	// loadUUID might switch to modeInfo when generating a new uuid
 	if err := p.loadUUID(); err != nil {
@@ -160,19 +196,21 @@ func (p *telemetryPlugin) loadUUID() error {
 			log.Errorf("cannot parse telemetry uuid: %s", err)
 			return err
 		}
-		p.event.UUID = uid.String()
-		return err
+		uidstr := uid.String()
+		p.event.UUID = &uidstr
+		return nil
 	} else if os.IsNotExist(err) {
 		uid, err := uuid.NewRandom()
 		if err != nil {
 			log.Errorf("cannot generate telemetry uuid: %s", err)
 			return err
 		}
-		p.event.UUID = uid.String()
+		uidstr := uid.String()
+		p.event.UUID = &uidstr
 		p.mode = modeInfo
 
 		// Write the UUID to disk
-		if err := os.WriteFile(p.uuidFilename, []byte(p.event.UUID), 0600); err != nil {
+		if err := os.WriteFile(p.uuidFilename, []byte(*p.event.UUID), 0600); err != nil {
 			log.Errorf("cannot write telemetry uuid: %s", err)
 			return err
 		}
@@ -183,114 +221,9 @@ func (p *telemetryPlugin) loadUUID() error {
 	return nil
 }
 
-// func (p *telemetryPlugin) setupTelemetry(cfg *config.Config, repo repo.Repo) {
-// 	// noop on opt out
-// 	if p.mode == modeOptOut {
-// 		return
-// 	}
-
-// 	// We should have a UUID
-// 	if len(p.event.UUID) == 0 {
-// 		return
-// 	}
-
-// 	if p.mode == modeInfo {
-// 		p.showInfo()
-// 	}
-
-// 	// Check whether we have a standard setup.
-// 	standardSetup := true
-// 	if pnet.ForcePrivateNetwork {
-// 		standardSetup = false
-// 	} else if key, _ := repo.SwarmKey(); key != nil {
-// 		standardSetup = false
-// 	} else if !hasDefaultBootstrapPeers(cfg) {
-// 		standardSetup = false
-// 	}
-
-// 	// in a standard setup we don't ask, assume opt-in. This does not
-// 	// change the status-quo as tracking already exist via
-// 	// bootstrappers/peerlog. We are just officializing it under a
-// 	// separate telemetry-protocol.
-// 	if standardSetup {
-// 		p.mode = modeOptIn
-// 		return
-// 	}
-
-// 	// on non-standard setups, we ask
-
-// 	// user gave permission already
-// 	if p.mode == modeOptIn {
-// 		p.pnet = true
-// 		return
-// 	}
-
-// 	// ask and send if allowed.
-// 	if p.pnetPromptWithTimeout(15 * time.Second) {
-// 		p.pnet = true
-// 		return
-// 	}
-// }
-
-// // ParamsIn are the params for the decorator. Includes golibp2p.Option so that
-// // it is called before initializing a Host.
-// type ParamsIn struct {
-// 	fx.In
-// 	Repo repo.Repo
-// 	Cfg  *config.Config
-// 	Opts [][]golibp2p.Option `group:"libp2p"`
-// }
-
-// // ParamsOut includes the modified Opts from the decorator.
-// type ParamsOut struct {
-// 	fx.Out
-// 	Opts [][]golibp2p.Option `group:"libp2p"`
-// }
-
-// // Decorator hijacks the initialization process. Params ensures that we are
-// // called before the libp2p Host is initialized and starts listening, as we declare that we want to return a Libp2p Option (even if we don't).
-// func (p *telemetryPlugin) Decorator(in ParamsIn) (out ParamsOut) {
-// 	log.Debug("telemetry decorator executed")
-// 	p.setupTelemetry(in.Cfg, in.Repo)
-// 	// out.Opts = append(in.Opts, []golibp2p.Option{golibp2p.UserAgent("my ass")})
-// 	out.Opts = in.Opts
-// 	return
-// }
-
-// type TelemetryIn struct {
-// 	fx.In
-
-// 	Host host.Host `optional:"true"`
-// }
-
-// func (p *telemetryPlugin) Telemetry(in TelemetryIn) {
-// 	if p.mode == modeOptOut || in.Host == nil {
-// 		return
-// 	}
-
-// 	if p.pnet {
-// 		sendPnetTelemetry(in.Host)
-// 		return
-// 	}
-// 	sendTelemetry(in.Host)
-// }
-
-// func (p *telemetryPlugin) Options(info core.FXNodeInfo) ([]fx.Option, error) {
-// 	if p.mode == modeOptOut {
-// 		return info.FXOptions, nil
-// 	}
-
-// 	opts := append(
-// 		info.FXOptions,
-// 		fx.Decorate(p.Decorator), //  runs pre Host creation
-// 		fx.Invoke(p.Telemetry),   // runs post Host creation
-// 	)
-// 	return opts, nil
-// }
-
-func hasDefaultBootstrapPeers(cfg *config.Config) bool {
+func (p *telemetryPlugin) hasDefaultBootstrapPeers() bool {
 	defaultPeers := config.DefaultBootstrapAddresses
-	currentPeers := cfg.Bootstrap
+	currentPeers := p.config.Bootstrap
 	if len(defaultPeers) != len(currentPeers) {
 		return false
 	}
@@ -315,8 +248,8 @@ Kubo will send anonymized information to the developers:
   - Why?   The developers want to better understand the usage of different
            features.
   - What?  Anonymized information only. You can inspect it with
-           'GOLOG_LOG_LEVEL="telemetry=debug"
-  - When?  Soon after daemon's boot, or every 24h.
+           'GOLOG_LOG_LEVEL="telemetry=debug"'
+  - When?  1 minute after daemon's boot, or every 24h.
   - How?   An HTTP request to %s.
 
 To opt-out, CTRL-C now and:
@@ -326,17 +259,40 @@ To opt-out, CTRL-C now and:
 
 Your telemetry UUID is: %s
 
-`, endpoint, modeEnvVar, p.event.UUID)
+`, endpoint, modeEnvVar, *p.event.UUID)
 }
 
+// Start finishes telemetry initialization once the IpfsNode is ready,
+// collects telemetry data and sends it to the endpoint.
 func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
+	// We should not be crashing the daemon due to problems with telemetry
+	// so this is always going to return nil and panics are going to be
+	// handled.
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("telemetry plugin panicked: %v", r)
+		}
+	}()
+
 	p.node = n
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		log.Error("error getting the repo.Config: %s", err)
+		return nil
+	}
+	p.config = cfg
 	if p.mode == modeOptOut {
 		return nil
 	}
 
-	// We should have a UUID
-	if len(p.event.UUID) == 0 {
+	if !n.IsDaemon || !n.IsOnline {
+		log.Debugf("skipping telemetry. Daemon: %t. Online: %t", n.IsDaemon, n.IsOnline)
+		return nil
+	}
+
+	// loadUUID might switch to modeInfo when generating a new uuid
+	if err := p.loadUUID(); err != nil {
+		p.mode = modeOptOut
 		return nil
 	}
 
@@ -344,145 +300,222 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 		p.showInfo()
 	}
 
-	time.AfterFunc(time.Second, func() {
+	if p.runOnce {
+		p.prepareEvent()
+		return p.sendTelemetry()
+	}
 
-		sendTelemetry()
-	})
+	timer := time.NewTimer(time.Minute)
+	for range timer.C {
+		p.prepareEvent()
+		_ = p.sendTelemetry()
+		timer.Reset(24 * time.Hour)
+	}
 
-	return errors.New("does this crash it?")
+	return nil
 }
 
-// func (p *telemetryPlugin) pnetPromptWithTimeout(timeout time.Duration) bool {
-// 	fmt.Print(`
+func (p *telemetryPlugin) prepareEvent() {
+	p.collectBasicInfo()
+	p.collectRoutingInfo()
+	p.collectAutoNATInfo()
+	p.collectSwarmInfo()
+	p.collectAutoTLSInfo()
+	p.collectDiscoveryInfo()
+	p.collectPlatformInfo()
+}
 
-// *********************************************
-// *********************************************
-// ATTENTION: IT SEEMS YOU ARE RUNNING KUBO ON:
+// Collects:
+// * AgentVersion
+// * PrivateNetwork
+// * RepoSizeBucket
+// * BootstrappersCustom
+// * UptimeBucket
+// * ReproviderStrategy
+func (p *telemetryPlugin) collectBasicInfo() {
+	agent := ipfs.GetUserAgentVersion()
+	p.event.AgentVersion = &agent
 
-//   * A PRIVATE NETWORK, or using
-//   * NON-STANDARD configuration (custom bootstrappers, amino DHT protocols)
+	privNet := false
+	if pnet.ForcePrivateNetwork {
+		privNet = true
+	} else if key, _ := p.node.Repo.SwarmKey(); key != nil {
+		privNet = true
+	}
+	p.event.PrivateNetwork = &privNet
 
-// The Kubo team is interested in learning more about how IPFS is used in private
-// networks. For example, we would like to understand if features like "private
-// networks" are used or can be removed in future releases.
+	bootstrappersCustom := !p.hasDefaultBootstrapPeers()
+	p.event.BootstrappersCustom = &bootstrappersCustom
 
-// Would you like to OPT-IN to send some anonymized telemetry to help us understand
-// your usage? If you OPT-IN:
-//   * A stable but temporary peer ID will be generated
-//   * The peer will bootstrap to our public bootstrappers
-//   * Anonymized metrics will be sent via the Telemetry protocol on every boot
-//   * No IP logging will happen
-//   * The temporary peer will disconnect aftewards
-//   * Telemetry can be controlled any time by setting:
-//     * Setting ` + envVar + ` to:
-//       * "ask" : Asks on every daemon start (default)
-//       * "optin": Sends telemetry on every daemon start.
-//       * "optout": Does not send telemetry and disables this message.
-//     * Creating $IPFS_HOME/` + filename + ` with the "ask", "optin", "optout" contents per the above.
+	repoSizeBucket := repoSizeBuckets[len(repoSizeBuckets)-1]
+	sizeStat, err := corerepo.RepoSize(context.Background(), p.node)
+	if err == nil {
+		for _, b := range repoSizeBuckets {
+			if sizeStat.RepoSize > b {
+				continue
+			}
+			repoSizeBucket = b
+			break
+		}
+		p.event.RepoSizeBucket = &repoSizeBucket
+	} else {
+		log.Debugf("error setting sizeStat: %s", err)
+	}
 
-// IF YOU WOULD LIKE TO OPT-IN to telemetry, PRESS "Y".
+	uptime := time.Since(p.startTime)
+	uptimeBucket := uptimeBuckets[len(uptimeBuckets)-1]
+	for _, bucket := range uptimeBuckets {
+		if uptime > bucket {
+			continue
 
-// IF YOU WOULD LIKE TO OPT-OUT to telemetry, PRESS "N".
+		}
+		uptimeBucket = bucket
+		break
+	}
+	p.event.UptimeBucket = &uptimeBucket
 
-// (boot will continue in 15s)
+	reprovStrategy := p.config.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
+	p.event.ReproviderStrategy = &reprovStrategy
+}
 
-// Your answer (Y/N): `)
+func (p *telemetryPlugin) collectRoutingInfo() {
+	routingType := p.config.Routing.Type.WithDefault("auto")
+	p.event.RoutingType = &routingType
+	accelDHTClient := p.config.Routing.AcceleratedDHTClient.String()
+	p.event.RoutingAcceleratedDHTClient = &accelDHTClient
+	delegatedCount := len(p.config.Routing.DelegatedRouters)
+	p.event.RoutingDelegatedCount = &delegatedCount
+}
 
-// 	pr, pw, err := os.Pipe()
-// 	if err != nil {
-// 		log.Error(err)
-// 		return false
-// 	}
+type reachabilityHost interface {
+	Reachability() network.Reachability
+}
 
-// 	// We want to read a single key press without waiting
-// 	// for the user to press enter.
-// 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-// 	if err != nil {
-// 		return false
-// 	}
+func (p *telemetryPlugin) collectAutoNATInfo() {
+	autonat := p.config.AutoNAT.ServiceMode
+	if autonat == config.AutoNATServiceUnset {
+		autonat = config.AutoNATServiceEnabled
+	}
+	autoNATSvcModeB, err := autonat.MarshalText()
+	if err == nil {
+		autoNATSvcMode := string(autoNATSvcModeB)
+		if autoNATSvcMode == "" {
+			autoNATSvcMode = "unset"
+		}
+		p.event.AutoNATServiceMode = &autoNATSvcMode
+	}
 
-// 	// nolint:errcheck
-// 	go io.CopyN(pw, os.Stdin, 1)
+	h := p.node.PeerHost
+	reachHost, ok := h.(reachabilityHost)
+	if ok {
+		reachStatus := reachHost.Reachability().String()
+		p.event.AutoNATReachability = &reachStatus
+	}
+}
 
-// 	// Pipes support ReadDeadlines, so it seems nicer to use that
-// 	// than signaling over a channel.
-// 	err = pr.SetReadDeadline(time.Now().Add(timeout))
-// 	if err != nil {
-// 		// nolint:errcheck
-// 		term.Restore(int(os.Stdin.Fd()), oldState)
-// 		return false
-// 	}
+func (p *telemetryPlugin) collectSwarmInfo() {
+	holePunching := p.config.Swarm.EnableHolePunching.String()
+	p.event.SwarmEnableHolePunching = &holePunching
 
-// 	// Attempt to read one byte from the pipe
-// 	b := make([]byte, 1)
-// 	_, err = pr.Read(b)
+	var circuitAddrs, publicIP4Addrs, publicIP6Addrs bool
+	for _, addr := range p.node.PeerHost.Addrs() {
+		if manet.IsPublicAddr(addr) {
+			if _, err := addr.ValueForProtocol(multiaddr.P_IP4); err == nil {
+				publicIP4Addrs = true
+			} else if _, err := addr.ValueForProtocol(multiaddr.P_IP6); err == nil {
+				publicIP6Addrs = true
+			}
+		}
+		if _, err := addr.ValueForProtocol(multiaddr.P_CIRCUIT); err == nil {
+			circuitAddrs = true
+		}
+	}
 
-// 	// nolint:errcheck
-// 	term.Restore(int(os.Stdin.Fd()), oldState)
+	p.event.SwarmCircuitAddresses = &circuitAddrs
+	p.event.SwarmIPv4PublicAddresses = &publicIP4Addrs
+	p.event.SwarmIPv6PublicAddresses = &publicIP6Addrs
+}
 
-// 	// We timed out.
-// 	// The following section is the only way to
-// 	// achieve waiting for user input until a time-out happens.
-// 	//
-// 	// Read() is a blocking operation and there is NO WAY to cancel it.
-// 	// We cannot close Stdin. We cannot write to Stdin. We can continue on
-// 	// timeout but the reader on Stdin will remain blocked and we will
-// 	// at least leak a goroutine until some input comes it.
-// 	//
-// 	// So the only way out of this is to Exec() ourselves again and
-// 	// replace our running copy with a new one.
-// 	// TODO: Test with supported architectures.
-// 	if errors.Is(err, os.ErrDeadlineExceeded) {
-// 		fmt.Printf("(Timed-out. Answer: Ask later)\n\n\n")
+func (p *telemetryPlugin) collectAutoTLSInfo() {
+	autoWSS := p.config.AutoTLS.AutoWSS.String()
+	p.event.AutoTLSAutoWSS = &autoWSS
+	domainSuffix := p.config.AutoTLS.DomainSuffix.WithDefault(config.DefaultDomainSuffix)
 
-// 		time.Sleep(2 * time.Second)
+	domainSuffixCustom := domainSuffix != config.DefaultDomainSuffix
+	p.event.AutoTLSDomainSuffixCustom = &domainSuffixCustom
+}
 
-// 		exec, err := os.Executable()
-// 		if err != nil {
-// 			return false
-// 		}
+func (p *telemetryPlugin) collectDiscoveryInfo() {
+	mdns := p.config.Discovery.MDNS.Enabled
+	p.event.DiscoveryMDNSEnabled = &mdns
+}
 
-// 		// make sure we do not re-execute the checks
-// 		os.Setenv(envVar, "optout")
-// 		env := os.Environ()
+func (p *telemetryPlugin) collectPlatformInfo() {
+	os := runtime.GOOS
+	p.event.PlatformOS = &os
 
-// 		// js/wasm doesn't have this. I hope reasonable architectures
-// 		// have this.
-// 		err = syscall.Exec(exec, os.Args, env)
-// 		if err != nil {
-// 			log.Error(err)
-// 		}
-// 		return false
-// 	}
+	arch := runtime.GOARCH
+	p.event.PlatformArch = &arch
 
-// 	// We didn't timeout. We errored in some other way or we actually
-// 	// got user input.
-// 	input := string(b[0])
-// 	fmt.Println(input)
+	containerized := isRunningInContainerOrVM()
+	p.event.PlatformContainerized = &containerized
+}
 
-// 	// Close pipes.
-// 	pr.Close()
-// 	pw.Close()
+// Note: this function has been written by an LLM.
+func isRunningInContainerOrVM() bool {
+	// Check for Docker container
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return true
+	}
 
-// 	switch input {
-// 	case "y", "Y":
-// 		err = os.WriteFile(p.filename, []byte("optin"), 0600)
-// 		if err != nil {
-// 			log.Errorf("error saving telemetry preferences: %s", err)
-// 		}
-// 		return true
-// 	case "n", "N":
-// 		err = os.WriteFile(p.filename, []byte("optout"), 0600)
-// 		if err != nil {
-// 			log.Errorf("error saving telemetry preferences: %s", err)
-// 		}
+	// Check cgroup for container
+	content, err := os.ReadFile("/proc/self/cgroup")
+	if err == nil {
+		if strings.Contains(string(content), "docker") || strings.Contains(string(content), "lxc") {
+			return true
+		}
+	}
 
-// 		return false
-// 	default:
-// 		return false
-// 	}
-// }
+	// Check for VM
+	if _, err := os.Stat("/sys/hypervisor/uuid"); err == nil {
+		return true
+	}
 
-func sendTelemetry() {
-	fmt.Println("Sending Telemetry (TODO)")
+	// Check for other VM indicators
+	if _, err := os.Stat("/dev/virt-0"); err == nil {
+		return true
+	}
+
+	return false
+}
+
+func (p *telemetryPlugin) sendTelemetry() error {
+	data, err := json.MarshalIndent(p.event, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("sending telemetry:\n %s", data)
+
+	req, err := http.NewRequest("POST", p.endpoint, bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Close = true
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Debugf("error sending telemetry: %s", err)
+		return err
+	}
+	resp.Body.Close()
+	if resp.StatusCode > 400 {
+		err := fmt.Errorf("telemetry endpoint returned an error (%d)", resp.StatusCode)
+		log.Debug(err)
+		return err
+	}
+	log.Debugf("telemetry sent (%d)", resp.StatusCode)
+	return nil
 }
