@@ -95,6 +95,9 @@ const DefaultConnMgrLowWater = 32
 // grace period.
 const DefaultConnMgrGracePeriod = time.Second * 20
 
+// DefaultConnMgrSilencePeriod controls how often the connection manager enforces the limits.
+const DefaultConnMgrSilencePeriod = time.Second * 10
+
 // DefaultConnMgrType is the default value for the connection managers
 // type.
 const DefaultConnMgrType = "basic"

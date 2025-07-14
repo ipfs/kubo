@@ -15,7 +15,7 @@ import (
 	mount "github.com/ipfs/kubo/fuse/mount"
 	rofs "github.com/ipfs/kubo/fuse/readonly"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("node")

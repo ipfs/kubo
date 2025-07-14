@@ -1,6 +1,6 @@
 # The Kubo config file
 
-The Kubo (go-ipfs) config file is a JSON document located at `$IPFS_PATH/config`. It
+The Kubo config file is a JSON document located at `$IPFS_PATH/config`. It
 is read once at node instantiation, either for an offline command, or when
 starting the daemon. Commands that execute on a running daemon do not read the
 config file at runtime.
@@ -84,6 +84,13 @@ config file at runtime.
       - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
       - [`Internal.Bitswap.ProviderSearchDelay`](#internalbitswapprovidersearchdelay)
       - [`Internal.Bitswap.ProviderSearchMaxResults`](#internalbitswapprovidersearchmaxresults)
+      - [`Internal.Bitswap.BroadcastControl`](#internalbitswapbroadcastcontrol)
+        - [`Internal.Bitswap.BroadcastControl.Enable`](#internalbitswapbroadcastcontrolenable)
+        - [`Internal.Bitswap.BroadcastControl.MaxPeers`](#internalbitswapbroadcastcontrolmaxpeers)
+        - [`Internal.Bitswap.BroadcastControl.LocalPeers`](#internalbitswapbroadcastcontrollocalpeers)
+        - [`Internal.Bitswap.BroadcastControl.PeeredPeers`](#internalbitswapbroadcastcontrolpeeredpeers)
+        - [`Internal.Bitswap.BroadcastControl.MaxRandomPeers`](#internalbitswapbroadcastcontrolmaxrandompeers)
+        - [`Internal.Bitswap.BroadcastControl.SendToPendingPeers`](#internalbitswapbroadcastcontrolsendtopendingpeers)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
@@ -164,6 +171,7 @@ config file at runtime.
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
+        - [`Swarm.ConnMgr.SilencePeriod`](#swarmconnmgrsilenceperiod)
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.MaxMemory`](#swarmresourcemgrmaxmemory)
@@ -468,7 +476,7 @@ field can take one of two values:
 
 * `enabled` - Enable the V1+V2 service (unless the node determines that it,
   itself, isn't reachable by the public internet).
-* `legacy-v1` - Same as `enabled` but only V1 service is enabled. Used for testing
+* `legacy-v1` - **DEPRECATED** Same as `enabled` but only V1 service is enabled. Used for testing
   during as few releases as we [transition to V2](https://github.com/ipfs/kubo/issues/10091), will be removed in the future.
 * `disabled` - Disable the service.
 
@@ -477,7 +485,7 @@ Additional modes may be added in the future.
 > [!IMPORTANT]
 > We are in the progress of [rolling out AutoNAT V2](https://github.com/ipfs/kubo/issues/10091).
 > Right now, by default, a publicly dialable Kubo provides both V1 and V2 service to other peers,
-> but only V1 is used by Kubo as a client. In a future release we will remove V1 and switch client to use V2.
+> and V1 is still used by Kubo for Autorelay feature. In a future release we will remove V1 and switch all features to use V2.
 
 Default: `enabled`
 
@@ -846,7 +854,7 @@ Options for [ZeroConf](https://github.com/libp2p/zeroconf#readme) Multicast DNS-
 
 #### `Discovery.MDNS.Enabled`
 
-A boolean value for whether or not Multicast DNS-SD should be active.
+A boolean value to activate or deactivate Multicast DNS-SD.
 
 Default: `true`
 
@@ -934,7 +942,7 @@ Type: `object[string -> array[string]]`
 
 ### `Gateway.RootRedirect`
 
-A url to redirect requests for `/` to.
+A URL to redirect requests for `/` to.
 
 Default: `""`
 
@@ -1282,6 +1290,62 @@ Setting to 0 means unlimited.
 
 Type: `optionalInteger` (`null` means default which is 10)
 
+#### `Internal.Bitswap.BroadcastControl`
+
+`Internal.Bitswap.BroadcastControl` contains settings for the bitswap client's broadcast control functionality.
+
+Broadcast control tries to reduce the number of bitswap broadcast messages sent to peers by choosing a subset of of the peers to send to. Peers are chosen based on whether they have previously responded indicating they have wanted blocks, as well as other configurable criteria. The settings here change how peers are selected as broadcast targets. Broadcast control can also be completely disabled to return bitswap to its previous behavior before broadcast control was introduced.
+
+Enabling broadcast control should generally reduce the number of broadcasts significantly without significantly degrading the ability to discover which peers have wanted blocks. However, if block discovery on your network relies sufficiently on broadcasts to discover peers that have wanted blocks, then adjusting the broadcast control configuration or disabling it altogether, may be helpful.
+
+##### `Internal.Bitswap.BroadcastControl.Enable`
+
+Enables or disables broadcast control functionality. Setting this to `false` disables broadcast reduction logic and restores the previous (Kubo < 0.36) broadcast behavior of sending broadcasts to all peers. When disabled, all other `Bitswap.BroadcastControl` configuration items are ignored.
+
+Default: `true` (Enabled)
+
+Type: `flag`
+
+##### `Internal.Bitswap.BroadcastControl.MaxPeers`
+
+Sets a hard limit on the number of peers to send broadcasts to. A value of `0` means no broadcasts are sent. A value of `-1` means there is no limit.
+
+Default: `0` (no limit)
+
+Type: `optionalInteger` (non-negative, 0 means no limit)
+
+##### `Internal.Bitswap.BroadcastControl.LocalPeers`
+
+Enables or disables broadcast control for peers on the local network. Peers that have private or loopback addresses are considered to be on the local network. If this setting is `false`, than always broadcast to peers on the local network. If `true`, apply broadcast control to local peers.
+
+Default: `false` (Always broadcast to peers on local network)
+
+Type: `flag`
+
+##### `Internal.Bitswap.BroadcastControl.PeeredPeers`
+
+Enables or disables broadcast reduction for peers configured for peering. If `false`, than always broadcast to peers configured for peering. If `true`, apply broadcast reduction to peered peers.
+
+Default: `false` (Always broadcast to peers configured for peering)
+
+Type: `flag`
+
+##### `Internal.Bitswap.BroadcastControl.MaxRandomPeers`
+
+Sets the number of peers to broadcast to anyway, even though broadcast control logic has determined that they are not broadcast targets. Setting this to a non-zero value ensures at least this number of random peers receives a broadcast. This may be helpful in cases where peers that are not receiving broadcasts my have wanted blocks.
+
+Default: `0` (do not send broadcasts to peers not already targeted broadcast control)
+
+Type: `optionalInteger` (non-negative, 0 means do not broadcast to any random peers)
+
+##### `Internal.Bitswap.BroadcastControl.SendToPendingPeers`
+
+Enables or disables sending broadcasts to any peers to which there is a pending message to send. When enabled, this sends broadcasts to many more peers, but does so in a way that does not increase the number of separate broadcast messages. There is still the increased cost of the recipients having to process and respond to the broadcasts.
+
+Default: `false` (Do not send broadcasts to all peers for which there are pending messages)
+
+Type: `flag`
+
 ### `Internal.UnixFSShardingSizeThreshold`
 
 **MOVED:** see [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
@@ -1410,7 +1474,7 @@ Type: `string` (filesystem path)
 
 ### `Mounts.FuseAllowOther`
 
-Sets the 'FUSE allow other'-option on the mount point.
+Sets the 'FUSE allow-other' option on the mount point.
 
 ## `Pinning`
 
@@ -2294,8 +2358,9 @@ Type: `optionalString` (default when unset or empty)
 
 The basic connection manager uses a "high water", a "low water", and internal
 scoring to periodically close connections to free up resources. When a node
-using the basic connection manager reaches `HighWater` idle connections, it will
-close the least useful ones until it reaches `LowWater` idle connections.
+using the basic connection manager reaches `HighWater` idle connections, it
+will close the least useful ones until it reaches `LowWater` idle
+connections. The process of closing connections happens every `SilencePeriod`.
 
 The connection manager considers a connection idle if:
 
@@ -2314,7 +2379,8 @@ The connection manager considers a connection idle if:
       "Type": "basic",
       "LowWater": 100,
       "HighWater": 200,
-      "GracePeriod": "30s"
+      "GracePeriod": "30s",
+      "SilencePeriod": "10s"
     }
   }
 }
@@ -2345,6 +2411,14 @@ GracePeriod is a time duration that new connections are immune from being closed
 by the connection manager.
 
 Default: `"20s"`
+
+Type: `optionalDuration`
+
+##### `Swarm.ConnMgr.SilencePeriod`
+
+SilencePeriod is the time duration between connection manager runs, when connections that are idle are closed.
+
+Default: `"10s"`
 
 Type: `optionalDuration`
 
@@ -2686,25 +2760,26 @@ Type: `object`
 
 ### `HTTPRetrieval.Enabled`
 
-> [!CAUTION]
-> This feature is **EXPERIMENTAL** and may change in future release. Enable with caution, and provide feedback via GitHub issues.
-
 Controls whether HTTP-based block retrieval is enabled.
 
-When enabled, Kubo will be able to act on `/tls/http` (HTTP/2) providers ([Trustless HTTP Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/)) returned by the [`Routing.DelegatedRouters`](#routingdelegatedrouters)
+When enabled, Kubo will act on `/tls/http` (HTTP/2) providers ([Trustless HTTP Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/)) returned by the [`Routing.DelegatedRouters`](#routingdelegatedrouters)
 to perform pure HTTP [block retrievals](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
-in addition to [Bitswap over Libp2p](#bitswap).
+(`/ipfs/cid?format=raw`, `Accept: application/vnd.ipld.raw`)
+alongside [Bitswap over Libp2p](#bitswap).
 
-HTTP requests for `application/vnd.ipld.raw` will be issued instead of Bitswap if a peer has a `/tls/http` multiaddr
+HTTP requests for `application/vnd.ipld.raw` will be made instead of Bitswap when a peer has a `/tls/http` multiaddr
 and the HTTPS server returns HTTP 200 for the [probe path](https://specs.ipfs.tech/http-gateways/trustless-gateway/#dedicated-probe-paths).
 
 > [!IMPORTANT]
-> - Requires TLS and HTTP/2.
+> This feature is relatively new. Please report any issues via [Github](https://github.com/ipfs/kubo/issues/new).
+>
+> Important notes:
+> - TLS and HTTP/2 are required. For privacy reasons, and to maintain feature-parity with browsers, unencrypted `http://` providers are ignored and not used.
 > - This feature works in the same way as Bitswap: connected HTTP-peers receive optimistic block requests even for content that they are not announcing.
-> - HTTP client does not follow redirects. Providers should keep announcements up to date.
+> - For performance reasons, and to avoid loops, the HTTP client does not follow redirects. Providers should keep announcements up to date.
 > - IPFS ecosystem is working towards [supporting HTTP providers on Amino DHT](https://github.com/ipfs/specs/issues/496). Currently, HTTP providers are mostly limited to results from [`Routing.DelegatedRouters`](#routingdelegatedrouters) endpoints and requires `Routing.Type=auto|autoclient`.
 
-Default: `false`
+Default: `true`
 
 Type: `flag`
 

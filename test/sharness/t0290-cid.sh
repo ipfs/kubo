@@ -113,6 +113,7 @@ cat <<EOF > codecs_expect
   120  git-raw
   123  torrent-info
   124  torrent-file
+  128  blake3-hashseq
   129  leofcoin-block
   130  leofcoin-tx
   131  leofcoin-pr
@@ -128,7 +129,7 @@ cat <<EOF > codecs_expect
   151  eth-account-snapshot
   152  eth-storage-trie
   153  eth-receipt-log-trie
-  154  eth-reciept-log
+  154  eth-receipt-log
   176  bitcoin-block
   177  bitcoin-tx
   178  bitcoin-witness-commitment
@@ -146,7 +147,7 @@ cat <<EOF > codecs_expect
   297  dag-json
   496  swhid-1-snp
   512  json
-46083  urdca-2015-canon
+46083  rdfc-1
 46593  json-jcs
 EOF
 

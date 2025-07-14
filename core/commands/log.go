@@ -5,8 +5,7 @@ import (
 	"io"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	logging "github.com/ipfs/go-log"
-	lwriter "github.com/ipfs/go-log/writer"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
@@ -104,25 +103,46 @@ subsystems of a running daemon.
 	Type: stringList{},
 }
 
+const logLevelOption = "log-level"
+
 var logTailCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Read the event log.",
+		Tagline: "Read and outpt log messages.",
 		ShortDescription: `
-Outputs event log messages (not other log messages) as they are generated.
+Outputs log messages as they are generated.
 
-Currently broken. Follow https://github.com/ipfs/kubo/issues/9245 for updates.
+NOTE: --log-level requires the server to be logging at least at this level
+
+Example:
+
+  GOLOG_LOG_LEVEL="error,bitswap=debug" ipfs daemon
+  ipfs log tail --log-level info
+
+This will only return 'info' logs from bitswap and skip 'debug'.
 `,
 	},
 
+	Options: []cmds.Option{
+		cmds.StringOption(logLevelOption, "Log level to listen to.").WithDefault(""),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx := req.Context
-		r, w := io.Pipe()
+		var pipeReader *logging.PipeReader
+		logLevelString, _ := req.Options[logLevelOption].(string)
+		if logLevelString != "" {
+			logLevel, err := logging.LevelFromString(logLevelString)
+			if err != nil {
+				return fmt.Errorf("setting log level %s: %w", logLevelString, err)
+			}
+			pipeReader = logging.NewPipeReader(logging.PipeLevel(logLevel))
+		} else {
+			pipeReader = logging.NewPipeReader()
+		}
+
 		go func() {
-			defer w.Close()
-			<-ctx.Done()
+			<-req.Context.Done()
+			pipeReader.Close()
 		}()
-		lwriter.WriterGroup.AddWriter(w)
-		return res.Emit(r)
+		return res.Emit(pipeReader)
 	},
 }
