@@ -8,8 +8,9 @@ import (
 	"fmt"
 	"io"
 	"path"
-	"sort"
+	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"text/tabwriter"
 	"time"
@@ -301,11 +302,11 @@ var swarmPeersCmd = &cmds.Command{
 				identifyResult, _ := ci.identifyPeer(n.Peerstore, c.ID())
 				ci.Identify = identifyResult
 			}
-			sort.Sort(&ci)
+			ci.Sort()
 			out.Peers = append(out.Peers, ci)
 		}
 
-		sort.Sort(&out)
+		out.Sort()
 		return cmds.EmitOnce(res, &out)
 	},
 	Encoders: cmds.EncoderMap{
@@ -435,32 +436,20 @@ type connInfo struct {
 	Identify  IdOutput       `json:",omitempty"`
 }
 
-func (ci *connInfo) Less(i, j int) bool {
-	return ci.Streams[i].Protocol < ci.Streams[j].Protocol
-}
-
-func (ci *connInfo) Len() int {
-	return len(ci.Streams)
-}
-
-func (ci *connInfo) Swap(i, j int) {
-	ci.Streams[i], ci.Streams[j] = ci.Streams[j], ci.Streams[i]
+func (ci *connInfo) Sort() {
+	slices.SortFunc(ci.Streams, func(a, b streamInfo) int {
+		return strings.Compare(a.Protocol, b.Protocol)
+	})
 }
 
 type connInfos struct {
 	Peers []connInfo
 }
 
-func (ci connInfos) Less(i, j int) bool {
-	return ci.Peers[i].Addr < ci.Peers[j].Addr
-}
-
-func (ci connInfos) Len() int {
-	return len(ci.Peers)
-}
-
-func (ci connInfos) Swap(i, j int) {
-	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
+func (ci *connInfos) Sort() {
+	slices.SortFunc(ci.Peers, func(a, b connInfo) int {
+		return strings.Compare(a.Addr, b.Addr)
+	})
 }
 
 func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, error) {
@@ -484,11 +473,11 @@ func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, erro
 	for _, a := range addrs {
 		info.Addresses = append(info.Addresses, a.String())
 	}
-	sort.Strings(info.Addresses)
+	slices.Sort(info.Addresses)
 
 	if protocols, err := ps.GetProtocols(p); err == nil {
 		info.Protocols = append(info.Protocols, protocols...)
-		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
+		slices.Sort(info.Protocols)
 	}
 
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
@@ -551,7 +540,7 @@ var swarmAddrsCmd = &cmds.Command{
 			for p := range am.Addrs {
 				ids = append(ids, p)
 			}
-			sort.Strings(ids)
+			slices.Sort(ids)
 
 			for _, p := range ids {
 				paddrs := am.Addrs[p]
@@ -603,7 +592,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 			}
 			addrs = append(addrs, saddr)
 		}
-		sort.Strings(addrs)
+		slices.Sort(addrs)
 		return cmds.EmitOnce(res, &stringList{addrs})
 	},
 	Type: stringList{},
@@ -634,7 +623,7 @@ var swarmAddrsListenCmd = &cmds.Command{
 		for _, addr := range maddrs {
 			addrs = append(addrs, addr.String())
 		}
-		sort.Strings(addrs)
+		slices.Sort(addrs)
 
 		return cmds.EmitOnce(res, &stringList{addrs})
 	},
