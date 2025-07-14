@@ -81,19 +81,19 @@ type LogEvent struct {
 	ReproviderStrategy *string `json:"reprovider_strategy"`
 
 	RoutingType                 *string `json:"routing_type"`
-	RoutingAcceleratedDHTClient *string `json:"routing_accelerated_dht_client"`
+	RoutingAcceleratedDHTClient *bool   `json:"routing_accelerated_dht_client"`
 	RoutingDelegatedCount       *int    `json:"routing_delegated_count"`
 
 	AutoNATServiceMode  *string `json:"autonat_service_mode"`
 	AutoNATReachability *string `json:"autonat_reachability"`
 
-	SwarmEnableHolePunching  *string `json:"swarm_enable_hole_punching"`
-	SwarmCircuitAddresses    *bool   `json:"swarm_circuit_addresses"`
-	SwarmIPv4PublicAddresses *bool   `json:"swarm_ipv4_public_addresses"`
-	SwarmIPv6PublicAddresses *bool   `json:"swarm_ipv6_public_addresses"`
+	SwarmEnableHolePunching  *bool `json:"swarm_enable_hole_punching"`
+	SwarmCircuitAddresses    *bool `json:"swarm_circuit_addresses"`
+	SwarmIPv4PublicAddresses *bool `json:"swarm_ipv4_public_addresses"`
+	SwarmIPv6PublicAddresses *bool `json:"swarm_ipv6_public_addresses"`
 
-	AutoTLSAutoWSS            *string `json:"auto_tls_auto_wss"`
-	AutoTLSDomainSuffixCustom *bool   `json:"auto_tls_domain_suffix_custom"`
+	AutoTLSAutoWSS            *bool `json:"auto_tls_auto_wss"`
+	AutoTLSDomainSuffixCustom *bool `json:"auto_tls_domain_suffix_custom"`
 
 	DiscoveryMDNSEnabled *bool `json:"discovery_mdns_enabled"`
 
@@ -381,7 +381,7 @@ func (p *telemetryPlugin) collectBasicInfo() {
 func (p *telemetryPlugin) collectRoutingInfo() {
 	routingType := p.config.Routing.Type.WithDefault("auto")
 	p.event.RoutingType = &routingType
-	accelDHTClient := p.config.Routing.AcceleratedDHTClient.String()
+	accelDHTClient := p.config.Routing.AcceleratedDHTClient.WithDefault(false)
 	p.event.RoutingAcceleratedDHTClient = &accelDHTClient
 	delegatedCount := len(p.config.Routing.DelegatedRouters)
 	p.event.RoutingDelegatedCount = &delegatedCount
@@ -414,7 +414,7 @@ func (p *telemetryPlugin) collectAutoNATInfo() {
 }
 
 func (p *telemetryPlugin) collectSwarmInfo() {
-	holePunching := p.config.Swarm.EnableHolePunching.String()
+	holePunching := p.config.Swarm.EnableHolePunching.WithDefault(true)
 	p.event.SwarmEnableHolePunching = &holePunching
 
 	var circuitAddrs, publicIP4Addrs, publicIP6Addrs bool
@@ -437,7 +437,7 @@ func (p *telemetryPlugin) collectSwarmInfo() {
 }
 
 func (p *telemetryPlugin) collectAutoTLSInfo() {
-	autoWSS := p.config.AutoTLS.AutoWSS.String()
+	autoWSS := p.config.AutoTLS.AutoWSS.WithDefault(config.DefaultAutoWSS)
 	p.event.AutoTLSAutoWSS = &autoWSS
 	domainSuffix := p.config.AutoTLS.DomainSuffix.WithDefault(config.DefaultDomainSuffix)
 
