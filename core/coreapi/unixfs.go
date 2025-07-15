@@ -193,9 +193,8 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	}
 
 	if !settings.OnlyHash {
-		if err := api.provider.Provide(ctx, nd.Cid(), true); err != nil {
-			return path.ImmutablePath{}, err
-		}
+		// TODO: only provide cids according to Provide.Strategy
+		api.provider.StartProviding(nd.Cid().Hash())
 	}
 
 	return path.FromCid(nd.Cid()), nil
