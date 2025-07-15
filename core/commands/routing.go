@@ -29,6 +29,7 @@ const (
 	dhtVerboseOptionName   = "verbose"
 	numProvidersOptionName = "num-providers"
 	allowOfflineOptionName = "allow-offline"
+	provideQuietOptionName = "quiet"
 )
 
 var RoutingCmd = &cmds.Command{
@@ -143,6 +144,10 @@ var provideRefRoutingCmd = &cmds.Command{
 		Tagline: "Announce to the network that you are providing given values.",
 	},
 
+	Subcommands: map[string]*cmds.Command{
+		"clear": provideClearCmd,
+	},
+
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, true, "The key[s] to send provide records for.").EnableStdin(),
 	},
@@ -243,6 +248,50 @@ var provideRefRoutingCmd = &cmds.Command{
 		}),
 	},
 	Type: routing.QueryEvent{},
+}
+
+var provideClearCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Clear all CIDs from the provide queue.",
+		ShortDescription: `
+'ipfs routing provide clear' is a utility command that removes all CIDs
+from the current provide queue, both in memory and the datastore.
+`,
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(provideQuietOptionName, "q", "Do not write output."),
+	},
+	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
+		n, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		quiet, _ := req.Options[provideQuietOptionName].(bool)
+		if n.Provider == nil {
+			return nil
+		}
+
+		cleared := n.Provider.Clear()
+		if quiet {
+			return nil
+		}
+		_ = re.Emit(cleared)
+
+		return nil
+	},
+	Type: int(0),
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, cleared int) error {
+			quiet, _ := req.Options[provideQuietOptionName].(bool)
+			if quiet {
+				return nil
+			}
+
+			_, err := fmt.Fprintf(w, "removed %d items from provide queue\n", cleared)
+			return err
+		}),
+	},
 }
 
 var reprovideRoutingCmd = &cmds.Command{
