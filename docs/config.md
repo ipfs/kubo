@@ -1847,7 +1847,7 @@ Tells reprovider what should be announced. Valid strategies are:
 - This is due to the use of a buffered provider, which avoids holding a lock on the entire pinset during the reprovide cycle.
 - The `flat` strategy can be used to lower memory requirements, but only recommended if memory utilization is too high, prioritization of pins is not necessary, and it is acceptable to announce every block cached in the local repository.
 
-[Default](Default): `"all"`
+Default: `"all"`
 
 Type: `optionalString` (unset for the default)
 
