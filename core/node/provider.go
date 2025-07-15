@@ -127,7 +127,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 
 		prev, err := ds.Get(ctx, strategyKey)
 		if err != nil && !errors.Is(err, datastore.ErrNotFound) {
-			logger.Error("cannot read previous reprovide stratedy", "err", err)
+			logger.Error("cannot read previous reprovide strategy", "err", err)
 		} else if string(prev) != reprovideStrategy {
 			strategyChanged = true
 		}
