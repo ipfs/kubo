@@ -443,8 +443,6 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	return fx.Options(
 		bcfgOpts,
 
-		fx.Provide(baseProcess),
-
 		Storage(bcfg, cfg),
 		Identity(cfg),
 		IPNS,

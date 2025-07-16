@@ -35,7 +35,6 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
-	goprocess "github.com/jbenet/goprocess"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	pnet "github.com/libp2p/go-libp2p/core/pnet"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -538,9 +537,13 @@ take effect.
 		return err
 	}
 	select {
-	case <-node.Process.Closing():
+	case <-node.Context().Done():
 	default:
-		node.Process.AddChild(goprocess.WithTeardown(cctx.Plugins.Close))
+		node.WG().Add(1)
+		context.AfterFunc(node.Context(), func() {
+			cctx.Plugins.Close()
+			node.WG().Done()
+		})
 	}
 
 	// construct api endpoint - every time
@@ -695,7 +698,7 @@ take effect.
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
 	var errs error
-	for err := range merge(apiErrc, gwErrc, gcErrc, p2pGwErrc) {
+	for err := range merge(node.WG(), apiErrc, gwErrc, gcErrc, p2pGwErrc) {
 		if err != nil {
 			errs = multierr.Append(errs, err)
 		}
@@ -1040,16 +1043,18 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 	h.ServeMux = http.NewServeMux()
 	h.ServeMux.Handle("/", handler)
 
+	wg := node.WG()
+	wg.Add(1)
 	errc := make(chan error, 1)
 	go func() {
 		defer close(errc)
 		errc <- h.Serve()
+		wg.Done()
 	}()
 
-	go func() {
-		<-node.Process.Closing()
+	context.AfterFunc(node.Context(), func() {
 		h.Close()
-	}()
+	})
 
 	return errc, nil
 }
@@ -1134,14 +1139,13 @@ func maybeRunGC(req *cmds.Request, node *core.IpfsNode) (<-chan error, error) {
 	return errc, nil
 }
 
-// merge does fan-in of multiple read-only error channels
-// taken from http://blog.golang.org/pipelines
-func merge(cs ...<-chan error) <-chan error {
-	var wg sync.WaitGroup
+// merge does fan-in of multiple read-only error channels.
+func merge(wg *sync.WaitGroup, cs ...<-chan error) <-chan error {
 	out := make(chan error)
 
-	// Start an output goroutine for each input channel in cs.  output
-	// copies values from c to out until c is closed, then calls wg.Done.
+	// Start a goroutine for each input channel in cs, that copies values from
+	// the input channel to the output channel until the input channel is
+	// closed.
 	output := func(c <-chan error) {
 		for n := range c {
 			out <- n
@@ -1155,8 +1159,8 @@ func merge(cs ...<-chan error) <-chan error {
 		}
 	}
 
-	// Start a goroutine to close out once all the output goroutines are
-	// done.  This must start after the wg.Add call.
+	// Start a goroutine to close out once all the output goroutines, and other
+	// things to wait on, are done.
 	go func() {
 		wg.Wait()
 		close(out)
@@ -1226,8 +1230,6 @@ Visit https://github.com/ipfs/kubo/releases or https://dist.ipfs.tech/#kubo and 
 			}
 			select {
 			case <-ctx.Done():
-				return
-			case <-nd.Process.Closing():
 				return
 			case <-ticker.C:
 				continue

@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/ipfs/boxo/filestore"
@@ -29,7 +30,6 @@ import (
 	provider "github.com/ipfs/boxo/provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
-	goprocess "github.com/jbenet/goprocess"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
@@ -118,8 +118,9 @@ type IpfsNode struct {
 
 	P2P *p2p.P2P `optional:"true"`
 
-	Process goprocess.Process
-	ctx     context.Context
+	ctx context.Context
+
+	wg sync.WaitGroup
 
 	stop func() error
 
@@ -148,6 +149,10 @@ func (n *IpfsNode) Context() context.Context {
 		n.ctx = context.TODO()
 	}
 	return n.ctx
+}
+
+func (n *IpfsNode) WG() *sync.WaitGroup {
+	return &n.wg
 }
 
 // Bootstrap will set and call the IpfsNodes bootstrap function.

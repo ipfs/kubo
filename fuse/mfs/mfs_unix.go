@@ -18,8 +18,11 @@ import (
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	"github.com/ipfs/boxo/mfs"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/core"
 )
+
+var log = logging.Logger("fuse/mfs")
 
 const (
 	ipfsCIDXattr = "ipfs_cid"

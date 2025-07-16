@@ -5,6 +5,9 @@
 package ipns
 
 import (
+	"context"
+	"errors"
+
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	mount "github.com/ipfs/kubo/fuse/mount"
@@ -29,5 +32,17 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
 		return nil, err
 	}
 
-	return mount.NewMount(ipfs.Process, fsys, ipnsmp, allowOther)
+	mnt, err := mount.NewMount(fsys, ipnsmp, allowOther)
+	if err != nil {
+		return nil, err
+	}
+	ipfs.WG().Add(1)
+	context.AfterFunc(ipfs.Context(), func() {
+		err := mnt.Unmount()
+		if err != nil && !errors.Is(err, mount.ErrNotMounted) {
+			log.Errorw("failed to unmount", "err", err)
+		}
+		ipfs.WG().Done()
+	})
+	return mnt, nil
 }

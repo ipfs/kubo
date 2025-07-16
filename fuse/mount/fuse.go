@@ -11,7 +11,6 @@ import (
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	"github.com/jbenet/goprocess"
 )
 
 var ErrNotMounted = errors.New("not mounted")
@@ -25,12 +24,12 @@ type mount struct {
 	active     bool
 	activeLock *sync.RWMutex
 
-	proc goprocess.Process
+	unmountOnce sync.Once
 }
 
 // Mount mounts a fuse fs.FS at a given location, and returns a Mount instance.
-// parent is a ContextGroup to bind the mount's ContextGroup to.
-func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allowOther bool) (Mount, error) {
+// ctx is parent is a ContextGroup to bind the mount's ContextGroup to.
+func NewMount(fsys fs.FS, mountpoint string, allowOther bool) (Mount, error) {
 	var conn *fuse.Conn
 	var err error
 
@@ -54,12 +53,10 @@ func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allowOther boo
 		filesys:    fsys,
 		active:     false,
 		activeLock: &sync.RWMutex{},
-		proc:       goprocess.WithParent(p), // link it to parent.
 	}
-	m.proc.SetTeardown(m.unmount)
 
 	// launch the mounting process.
-	if err := m.mount(); err != nil {
+	if err = m.mount(); err != nil {
 		_ = m.Unmount() // just in case.
 		return nil, err
 	}
@@ -135,10 +132,6 @@ func (m *mount) unmount() error {
 	return nil
 }
 
-func (m *mount) Process() goprocess.Process {
-	return m.proc
-}
-
 func (m *mount) MountPoint() string {
 	return m.mpoint
 }
@@ -148,8 +141,12 @@ func (m *mount) Unmount() error {
 		return ErrNotMounted
 	}
 
-	// call Process Close(), which calls unmount() exactly once.
-	return m.proc.Close()
+	var err error
+	m.unmountOnce.Do(func() {
+		err = m.unmount()
+	})
+
+	return err
 }
 
 func (m *mount) IsActive() bool {
