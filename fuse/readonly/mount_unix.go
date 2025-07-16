@@ -6,6 +6,7 @@ package readonly
 
 import (
 	"context"
+	"errors"
 
 	core "github.com/ipfs/kubo/core"
 	mount "github.com/ipfs/kubo/fuse/mount"
@@ -25,7 +26,7 @@ func Mount(ipfs *core.IpfsNode, mountpoint string) (mount.Mount, error) {
 	}
 	context.AfterFunc(ipfs.Context(), func() {
 		err := mnt.Unmount()
-		if err != nil {
+		if err != nil && !errors.Is(err, mount.ErrNotMounted) {
 			log.Errorw("failed to unmount", "err", err)
 		}
 	})

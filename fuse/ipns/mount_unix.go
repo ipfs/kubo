@@ -6,6 +6,7 @@ package ipns
 
 import (
 	"context"
+	"errors"
 
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
@@ -37,7 +38,7 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
 	}
 	context.AfterFunc(ipfs.Context(), func() {
 		err := mnt.Unmount()
-		if err != nil {
+		if err != nil && !errors.Is(err, mount.ErrNotMounted) {
 			log.Errorw("failed to unmount", "err", err)
 		}
 	})
