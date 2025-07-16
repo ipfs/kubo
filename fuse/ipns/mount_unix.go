@@ -36,7 +36,10 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
 		return nil, err
 	}
 	context.AfterFunc(ipfs.Context(), func() {
-		mnt.Unmount()
+		err := mnt.Unmount()
+		if err != nil {
+			log.Errorw("failed to unmount", "err", err)
+		}
 	})
 	return mnt, nil
 }
