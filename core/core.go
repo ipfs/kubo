@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/ipfs/boxo/filestore"
@@ -119,6 +120,8 @@ type IpfsNode struct {
 
 	ctx context.Context
 
+	wg sync.WaitGroup
+
 	stop func() error
 
 	// Flags
@@ -146,6 +149,10 @@ func (n *IpfsNode) Context() context.Context {
 		n.ctx = context.TODO()
 	}
 	return n.ctx
+}
+
+func (n *IpfsNode) WG() *sync.WaitGroup {
+	return &n.wg
 }
 
 // Bootstrap will set and call the IpfsNodes bootstrap function.
