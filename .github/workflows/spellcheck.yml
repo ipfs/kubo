@@ -3,7 +3,7 @@ name: Spell Check
 on:
   pull_request:
   push:
-    branches: ["spellcheck"] # ["master"]
+    branches: ["master"]
   workflow_dispatch:
 
 permissions:
@@ -15,4 +15,4 @@ concurrency:
 
 jobs:
   spellcheck:
-    uses: ipdxco/unified-github-workflows/.github/workflows/reusable-spellcheck.yml@spellcheck
+    uses: ipdxco/unified-github-workflows/.github/workflows/reusable-spellcheck.yml@v1
