@@ -35,7 +35,6 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
-	goprocess "github.com/jbenet/goprocess"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	pnet "github.com/libp2p/go-libp2p/core/pnet"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -538,9 +537,11 @@ take effect.
 		return err
 	}
 	select {
-	case <-node.Process.Closing():
+	case <-node.Context().Done():
 	default:
-		node.Process.AddChild(goprocess.WithTeardown(cctx.Plugins.Close))
+		context.AfterFunc(node.Context(), func() {
+			cctx.Plugins.Close()
+		})
 	}
 
 	// construct api endpoint - every time
@@ -1046,10 +1047,9 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 		errc <- h.Serve()
 	}()
 
-	go func() {
-		<-node.Process.Closing()
+	context.AfterFunc(node.Context(), func() {
 		h.Close()
-	}()
+	})
 
 	return errc, nil
 }
@@ -1226,8 +1226,6 @@ Visit https://github.com/ipfs/kubo/releases or https://dist.ipfs.tech/#kubo and 
 			}
 			select {
 			case <-ctx.Done():
-				return
-			case <-nd.Process.Closing():
 				return
 			case <-ticker.C:
 				continue

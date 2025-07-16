@@ -5,6 +5,8 @@
 package mfs
 
 import (
+	"context"
+
 	core "github.com/ipfs/kubo/core"
 	mount "github.com/ipfs/kubo/fuse/mount"
 )
@@ -17,5 +19,12 @@ func Mount(ipfs *core.IpfsNode, mountpoint string) (mount.Mount, error) {
 	}
 	allowOther := cfg.Mounts.FuseAllowOther
 	fsys := NewFileSystem(ipfs)
-	return mount.NewMount(ipfs.Process, fsys, mountpoint, allowOther)
+	mnt, err := mount.NewMount(fsys, mountpoint, allowOther)
+	if err != nil {
+		return nil, err
+	}
+	context.AfterFunc(ipfs.Context(), func() {
+		mnt.Unmount()
+	})
+	return mnt, nil
 }
