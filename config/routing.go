@@ -37,7 +37,7 @@ var (
 type Routing struct {
 	// Type sets default daemon routing mode.
 	//
-	// Can be one of "auto", "autoclient", "dht", "dhtclient", "dhtserver", "none", or "custom".
+	// Can be one of "auto", "autoclient", "delegated", "dht", "dhtclient", "dhtserver", "none", or "custom".
 	// When unset or set to "auto", DHT and implicit routers are used.
 	// When "custom" is set, user-provided Routing.Routers is used.
 	Type *OptionalString `json:",omitempty"`
@@ -48,7 +48,7 @@ type Routing struct {
 
 	IgnoreProviders []string `json:",omitempty"`
 
-	// Simplified configuration used by default when Routing.Type=auto|autoclient
+	// Simplified configuration used by default when Routing.Type=auto|autoclient|delegated
 	DelegatedRouters []string `json:",omitempty"`
 
 	// Advanced configuration used when Routing.Type=custom
