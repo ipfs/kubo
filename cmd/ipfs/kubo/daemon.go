@@ -649,6 +649,17 @@ take effect.
 `)
 		}
 
+		// Inform user about Routing.AcceleratedDHTClient when enabled
+		if cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient) {
+			fmt.Print(`
+
+⚠️ Routing.AcceleratedDHTClient is enabled for faster content discovery
+⚠️ and DHT reprovides. Routing table is initializing. IPFS is ready to use,
+⚠️ but performance will improve in a few minutes as more peers are discovered
+
+`)
+		}
+
 		// Give the user heads up if daemon running in online mode has no peers after 1 minute
 		time.AfterFunc(1*time.Minute, func() {
 			cfg, err := cctx.GetConfig()
