@@ -22,6 +22,7 @@ const (
 	// BatchMaxnodes and BatchMaxSize.
 	DefaultBatchMaxSize = 100 << 20 // 20MiB
 
+	DefaultPinName = "default" // Default name for the pin when using the 'ipfs add' command with --pin option
 )
 
 var (

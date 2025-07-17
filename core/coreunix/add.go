@@ -76,6 +76,7 @@ type Adder struct {
 	Out               chan<- interface{}
 	Progress          bool
 	Pin               bool
+	PinName           string
 	Trickle           bool
 	RawLeaves         bool
 	MaxLinks          int
@@ -369,7 +370,18 @@ func (adder *Adder) AddAllAndPin(ctx context.Context, file files.Node) (ipld.Nod
 	if !adder.Pin {
 		return nd, nil
 	}
-	return nd, adder.PinRoot(ctx, nd)
+
+	if err := adder.PinRoot(ctx, nd); err != nil {
+		return nil, err
+	}
+
+	if adder.PinName != "" {
+		if err := adder.pinning.PinWithMode(ctx, nd.Cid(), pin.Recursive, adder.PinName); err != nil {
+			return nil, fmt.Errorf("failed to pin %s with name %s: %w", nd.Cid(), adder.PinName, err)
+		}
+	}
+
+	return nd, nil
 }
 
 func (adder *Adder) addFileNode(ctx context.Context, path string, file files.Node, toplevel bool) error {

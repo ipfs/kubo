@@ -37,6 +37,7 @@ type AddEvent struct {
 }
 
 const (
+	pinNameOptionName           = "pin-name"
 	quietOptionName             = "quiet"
 	quieterOptionName           = "quieter"
 	silentOptionName            = "silent"
@@ -184,6 +185,7 @@ See 'dag export' and 'dag import' for more information.
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 		cmds.BoolOption(pinOptionName, "Pin locally to protect added files from garbage collection.").WithDefault(true),
+		cmds.StringOption(pinNameOptionName, "Name to use for the pin in the remote pinning service. If not set, the file name will be used.").WithDefault(config.DefaultPinName),
 		cmds.StringOption(toFilesOptionName, "Add reference to Files API (MFS) at the provided path."),
 		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries. Disables raw-leaves. (experimental)"),
 		cmds.BoolOption(preserveMtimeOptionName, "Apply existing POSIX modification time to created UnixFS entries. Disables raw-leaves. (experimental)"),
@@ -230,6 +232,7 @@ See 'dag export' and 'dag import' for more information.
 		silent, _ := req.Options[silentOptionName].(bool)
 		chunker, _ := req.Options[chunkerOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
+		pinName, _ := req.Options[pinNameOptionName].(string)
 		rawblks, rbset := req.Options[rawLeavesOptionName].(bool)
 		maxFileLinks, maxFileLinksSet := req.Options[maxFileLinksOptionName].(int)
 		maxDirectoryLinks, maxDirectoryLinksSet := req.Options[maxDirectoryLinksOptionName].(int)
@@ -326,7 +329,7 @@ See 'dag export' and 'dag import' for more information.
 
 			options.Unixfs.Chunker(chunker),
 
-			options.Unixfs.Pin(dopin),
+			options.Unixfs.Pin(dopin, pinName),
 			options.Unixfs.HashOnly(onlyHash),
 			options.Unixfs.FsCache(fscache),
 			options.Unixfs.Nocopy(nocopy),

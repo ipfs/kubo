@@ -49,6 +49,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 		Option("nocopy", options.NoCopy).
 		Option("only-hash", options.OnlyHash).
 		Option("pin", options.Pin).
+		Option("pin-name", options.PinName).
 		Option("silent", options.Silent).
 		Option("progress", options.Progress)
 
