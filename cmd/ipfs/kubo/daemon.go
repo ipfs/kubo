@@ -70,6 +70,7 @@ const (
 	routingOptionDefaultKwd    = "default"
 	routingOptionAutoKwd       = "auto"
 	routingOptionAutoClientKwd = "autoclient"
+	routingOptionDelegatedKwd  = "delegated"
 	unencryptTransportKwd      = "disable-transport-encryption"
 	unrestrictedAPIAccessKwd   = "unrestricted-api"
 	enablePubSubKwd            = "enable-pubsub-experiment"
@@ -442,6 +443,27 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		ncfg.Routing = libp2p.ConstructDefaultRouting(cfg, libp2p.DHTOption)
 	case routingOptionAutoClientKwd:
 		ncfg.Routing = libp2p.ConstructDefaultRouting(cfg, libp2p.DHTClientOption)
+	case routingOptionDelegatedKwd:
+		routers := make(config.Routers)
+		for _, dr := range cfg.Routing.DelegatedRouters {
+			routers[dr] = config.RouterParser{
+				Router: config.Router{
+					Type: config.RouterTypeHTTP,
+					Parameters: &config.HTTPRouterParams{
+						Endpoint: dr,
+					},
+				},
+			}
+		}
+
+		ncfg.Routing = libp2p.ConstructDelegatedRouting(
+			routers,
+			cfg.Routing.Methods,
+			cfg.Identity.PeerID,
+			cfg.Addresses,
+			cfg.Identity.PrivKey,
+			cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled),
+		)
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = libp2p.DHTClientOption
 	case routingOptionDHTKwd:
@@ -628,6 +650,15 @@ take effect.
 		fmt.Println("Received interrupt signal, shutting down...")
 		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
 	}()
+
+	if routingOption == routingOptionDelegatedKwd {
+		fmt.Print(`
+⚠️ WARNING: Running with Routing.Type=delegated
+⚠️ There is no Spec for Delegated Provides over HTTP.
+⚠️ Your node will NOT be able to provide or reprovide data on the Amino DHT.
+
+`)
+	}
 
 	if !offline {
 		// Warn users when provide systems are disabled
