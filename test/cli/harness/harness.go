@@ -22,6 +22,7 @@ type Harness struct {
 	Runner    *Runner
 	NodesRoot string
 	Nodes     Nodes
+	t         *testing.T // Store test reference to check for failures
 }
 
 // TODO: use zaptest.NewLogger(t) instead
@@ -35,6 +36,7 @@ func EnableDebugLogging() {
 // NewT constructs a harness that cleans up after the given test is done.
 func NewT(t *testing.T, options ...func(h *Harness)) *Harness {
 	h := New(options...)
+	h.t = t // Store test reference
 	t.Cleanup(h.Cleanup)
 	return h
 }
@@ -183,7 +185,13 @@ func (h *Harness) Sh(expr string) *RunResult {
 func (h *Harness) Cleanup() {
 	log.Debugf("cleaning up cluster")
 	h.Nodes.StopDaemons()
-	// TODO: don't do this if test fails, not sure how?
+	
+	// Check if test failed and skip cleanup if configured to do so
+	if h.t != nil && h.t.Failed() {
+		log.Debugf("test failed, preserving harness dir for debugging: %s", h.Dir)
+		return
+	}
+	
 	log.Debugf("removing harness dir")
 	err := os.RemoveAll(h.Dir)
 	if err != nil {
