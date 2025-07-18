@@ -169,7 +169,7 @@ func TestRunMigrations(t *testing.T) {
 
 	err = RunMigration(ctx, fetcher, targetVer, fakeIpfs, false)
 	if err == nil || !strings.HasPrefix(err.Error(), "downgrade not allowed") {
-		t.Fatal("expected 'downgrade not alloed' error")
+		t.Fatal("expected 'downgrade not allowed' error")
 	}
 
 	err = RunMigration(ctx, fetcher, targetVer, fakeIpfs, true)
