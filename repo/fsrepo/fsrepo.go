@@ -16,7 +16,6 @@ import (
 	keystore "github.com/ipfs/boxo/keystore"
 	repo "github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/common"
-	dir "github.com/ipfs/kubo/thirdparty/dir"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 
 	ds "github.com/ipfs/go-datastore"
@@ -192,7 +191,7 @@ func open(repoPath string, userConfigFilePath string) (repo.Repo, error) {
 	}
 
 	// check repo path, then check all constituent parts.
-	if err := dir.Writable(r.path); err != nil {
+	if err := fsutil.DirWritable(r.path); err != nil {
 		return nil, err
 	}
 
