@@ -97,11 +97,12 @@ Inverse profile of the test profile.`,
 		Transform: func(c *Config) error {
 			c.Addresses = addressesConfig()
 
-			bootstrapPeers, err := DefaultBootstrapPeers()
-			if err != nil {
-				return err
+			// Use AutoConfig system for bootstrap peers
+			c.Bootstrap = []string{"auto"}
+			c.AutoConfig.Enabled = True
+			if c.AutoConfig.URL == "" {
+				c.AutoConfig.URL = DefaultAutoConfigURL
 			}
-			c.Bootstrap = appendSingle(c.Bootstrap, BootstrapPeerStrings(bootstrapPeers))
 
 			c.Swarm.DisableNatPortMap = false
 			c.Discovery.MDNS.Enabled = true

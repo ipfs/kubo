@@ -125,7 +125,9 @@ func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 		return nil, err
 	}
 
-	c.Bootstrap = cfg.DefaultBootstrapAddresses
+	// Empty bootstrap list for test isolation - tests using defaultRepo don't need
+	// real bootstrap peers as they use mock networks or test local functionality
+	c.Bootstrap = []string{}
 	c.Addresses.Swarm = []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"}
 	c.Identity.PeerID = pid.String()
 	c.Identity.PrivKey = base64.StdEncoding.EncodeToString(privkeyb)

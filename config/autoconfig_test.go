@@ -22,12 +22,12 @@ func TestAutoConfigDefaults(t *testing.T) {
 		t.Error("expected AutoConfig.Enabled to be true by default")
 	}
 
-	// Test default interval
-	if cfg.AutoConfig.Interval == nil {
+	// Test default check interval
+	if cfg.AutoConfig.CheckInterval == nil {
 		// This is expected - nil means use default
 		duration := (*OptionalDuration)(nil).WithDefault(DefaultAutoConfigInterval)
 		if duration != 24*time.Hour {
-			t.Errorf("expected default interval to be 24h, got %v", duration)
+			t.Errorf("expected default check interval to be 24h, got %v", duration)
 		}
 	}
 }

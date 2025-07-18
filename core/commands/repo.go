@@ -57,6 +57,7 @@ const (
 	repoQuietOptionName          = "quiet"
 	repoSilentOptionName         = "silent"
 	repoAllowDowngradeOptionName = "allow-downgrade"
+	repoToVersionOptionName      = "to"
 )
 
 var repoGcCmd = &cmds.Command{
@@ -374,26 +375,71 @@ var repoVersionCmd = &cmds.Command{
 
 var repoMigrateCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Apply any outstanding migrations to the repo.",
+		Tagline: "Apply repository migrations to a specific version.",
+		ShortDescription: `
+'ipfs repo migrate' applies repository migrations to bring the repository
+to a specific version. By default, migrates to the latest version supported
+by this IPFS binary.
+
+Examples:
+  ipfs repo migrate                # Migrate to latest version
+  ipfs repo migrate --to=17       # Migrate to version 17
+  ipfs repo migrate --to=16 --allow-downgrade  # Downgrade to version 16
+
+WARNING: Downgrading a repository may cause data loss and requires using
+an older IPFS binary that supports the target version. After downgrading,
+you must use an IPFS implementation compatible with that repository version.
+
+Repository versions 16+ use embedded migrations for faster, more reliable
+migration. Versions below 16 require external migration tools.
+`,
 	},
 	Options: []cmds.Option{
+		cmds.IntOption(repoToVersionOptionName, "Target repository version").WithDefault(fsrepo.RepoVersion),
 		cmds.BoolOption(repoAllowDowngradeOptionName, "Allow downgrading to a lower repo version"),
 	},
 	NoRemote: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
 		allowDowngrade, _ := req.Options[repoAllowDowngradeOptionName].(bool)
+		targetVersion, _ := req.Options[repoToVersionOptionName].(int)
 
-		_, err := fsrepo.Open(cctx.ConfigRoot)
-
-		if err == nil {
-			fmt.Println("Repo does not require migration.")
-			return nil
-		} else if err != fsrepo.ErrNeedMigration {
-			return err
+		// Get current repo version
+		currentVersion, err := migrations.RepoVersion(cctx.ConfigRoot)
+		if err != nil {
+			return fmt.Errorf("could not get current repo version: %w", err)
 		}
 
-		fmt.Println("Found outdated fs-repo, starting migration.")
+		// Check if migration is needed
+		if currentVersion == targetVersion {
+			fmt.Printf("Repository is already at version %d.\n", targetVersion)
+			return nil
+		}
+
+		// Validate downgrade request
+		if targetVersion < currentVersion && !allowDowngrade {
+			return fmt.Errorf("downgrade from version %d to %d requires --allow-downgrade flag", currentVersion, targetVersion)
+		}
+
+		fmt.Printf("Migrating repository from version %d to %d...\n", currentVersion, targetVersion)
+
+		// Try embedded migrations first (for versions 16+)
+		const embeddedMigrationsMinVersion = 16
+		if targetVersion >= embeddedMigrationsMinVersion && currentVersion >= embeddedMigrationsMinVersion {
+			err = migrations.RunEmbeddedMigrations(cctx.Context(), targetVersion, cctx.ConfigRoot, allowDowngrade)
+			if err == nil {
+				fmt.Printf("Repository successfully migrated to version %d.\n", targetVersion)
+				if targetVersion < fsrepo.RepoVersion {
+					fmt.Println("WARNING: After downgrading, you must use an IPFS binary compatible with this repository version.")
+				}
+				return nil
+			}
+			fmt.Printf("Embedded migrations failed: %v\n", err)
+			fmt.Println("Falling back to external migration tools...")
+		}
+
+		// Fall back to external migrations
+		fmt.Println("Using external migration tools...")
 
 		// Read Migration section of IPFS config
 		configFileOpt, _ := req.Options[ConfigFileOption].(string)
@@ -421,7 +467,7 @@ var repoMigrateCmd = &cmds.Command{
 		}
 		defer fetcher.Close()
 
-		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", allowDowngrade)
+		err = migrations.RunMigration(cctx.Context(), fetcher, targetVersion, "", allowDowngrade)
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")
 			fmt.Printf("  %s\n", err)
@@ -430,7 +476,10 @@ var repoMigrateCmd = &cmds.Command{
 			return err
 		}
 
-		fmt.Printf("Success: fs-repo has been migrated to version %d.\n", fsrepo.RepoVersion)
+		fmt.Printf("Repository successfully migrated to version %d.\n", targetVersion)
+		if targetVersion < fsrepo.RepoVersion {
+			fmt.Println("WARNING: After downgrading, you must use an IPFS binary compatible with this repository version.")
+		}
 		return nil
 	},
 }

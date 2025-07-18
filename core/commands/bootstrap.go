@@ -41,10 +41,6 @@ Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 	},
 }
 
-const (
-	defaultOptionName = "default"
-)
-
 var bootstrapAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add peers to the bootstrap list.",
@@ -57,24 +53,16 @@ in the bootstrap list).
 		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
 
-	Options: []cmds.Option{
-		cmds.BoolOption(defaultOptionName, "Add default bootstrap nodes. (Deprecated, use 'default' subcommand instead)"),
-	},
 	Subcommands: map[string]*cmds.Command{
 		"default": bootstrapAddDefaultCmd,
+		"auto":    bootstrapAddDefaultCmd, // Alias for "default"
 	},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		deflt, _ := req.Options[defaultOptionName].(bool)
-
-		inputPeers := config.DefaultBootstrapAddresses
-		if !deflt {
-			if err := req.ParseBodyArgs(); err != nil {
-				return err
-			}
-
-			inputPeers = req.Arguments
+		if err := req.ParseBodyArgs(); err != nil {
+			return err
 		}
+		inputPeers := req.Arguments
 
 		if len(inputPeers) == 0 {
 			return errors.New("no bootstrap peers to add")
@@ -133,7 +121,11 @@ in the bootstrap list).`,
 			return err
 		}
 
-		added, err := bootstrapAdd(r, cfg, config.DefaultBootstrapAddresses)
+		if !cfg.AutoConfig.Enabled.WithDefault(true) {
+			return errors.New("cannot add default bootstrap peers: AutoConfig is disabled. Enable AutoConfig or add specific peer addresses")
+		}
+
+		added, err := bootstrapAdd(r, cfg, []string{"auto"})
 		if err != nil {
 			return err
 		}

@@ -277,7 +277,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	var cacheMigrations, pinMigrations bool
-	var fetcher migrations.Fetcher
+	var externalMigrationFetcher migrations.Fetcher
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
@@ -294,65 +294,78 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 
 		if !domigrate {
-			fmt.Println("Not running migrations of fs-repo now.")
-			fmt.Println("Please get fs-repo-migrations from https://dist.ipfs.tech")
+			fmt.Println("Not running migrations of fs-repo now. Re-run daemon with --migrate or see 'ipfs repo migrate --help'")
 			return errors.New("fs-repo requires migration")
 		}
 
-		// Read Migration section of IPFS config
-		configFileOpt, _ := req.Options[commands.ConfigFileOption].(string)
-		migrationCfg, err := migrations.ReadMigrationConfig(cctx.ConfigRoot, configFileOpt)
+		// Try embedded migrations first
+		err = migrations.RunEmbeddedMigrations(cctx.Context(), fsrepo.RepoVersion, cctx.ConfigRoot, false)
 		if err != nil {
-			return err
-		}
+			fmt.Println("Embedded Kubo migrations failed, falling back to external binary migrations:")
+			fmt.Printf("  %s\n", err)
 
-		// Define function to create IPFS fetcher.  Do not supply an
-		// already-constructed IPFS fetcher, because this may be expensive and
-		// not needed according to migration config. Instead, supply a function
-		// to construct the particular IPFS fetcher implementation used here,
-		// which is called only if an IPFS fetcher is needed.
-		newIpfsFetcher := func(distPath string) migrations.Fetcher {
-			return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot, configFileOpt)
-		}
-
-		// Fetch migrations from current distribution, or location from environ
-		fetchDistPath := migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
-
-		// Create fetchers according to migrationCfg.DownloadSources
-		fetcher, err = migrations.GetMigrationFetcher(migrationCfg.DownloadSources, fetchDistPath, newIpfsFetcher)
-		if err != nil {
-			return err
-		}
-		defer fetcher.Close()
-
-		if migrationCfg.Keep == "cache" {
-			cacheMigrations = true
-		} else if migrationCfg.Keep == "pin" {
-			pinMigrations = true
-		}
-
-		if cacheMigrations || pinMigrations {
-			// Create temp directory to store downloaded migration archives
-			migrations.DownloadDirectory, err = os.MkdirTemp("", "migrations")
+			// Read Migration section of IPFS config for external migration fallback
+			// Note: External migrations only apply to repo versions <17. From repo version 17+,
+			// all migrations are embedded in Kubo and don't require external binaries.
+			configFileOpt, _ := req.Options[commands.ConfigFileOption].(string)
+			migrationCfg, err := migrations.ReadMigrationConfig(cctx.ConfigRoot, configFileOpt)
 			if err != nil {
 				return err
 			}
-			// Defer cleanup of download directory so that it gets cleaned up
-			// if daemon returns early due to error
-			defer func() {
-				if migrations.DownloadDirectory != "" {
-					os.RemoveAll(migrations.DownloadDirectory)
-				}
-			}()
-		}
 
-		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
-		if err != nil {
-			fmt.Println("The migrations of fs-repo failed:")
-			fmt.Printf("  %s\n", err)
-			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
-			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
-			return err
+			// Define function to create IPFS fetcher.  Do not supply an
+			// already-constructed IPFS fetcher, because this may be expensive and
+			// not needed according to migration config. Instead, supply a function
+			// to construct the particular IPFS fetcher implementation used here,
+			// which is called only if an IPFS fetcher is needed.
+			newIpfsFetcher := func(distPath string) migrations.Fetcher {
+				return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot, configFileOpt)
+			}
+
+			// Fetch migrations from current distribution, or location from environ
+			fetchDistPath := migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
+
+			// Create fetchers according to migrationCfg.DownloadSources
+			fetcher, err := migrations.GetMigrationFetcher(migrationCfg.DownloadSources, fetchDistPath, newIpfsFetcher)
+			if err != nil {
+				return err
+			}
+			defer fetcher.Close()
+
+			if migrationCfg.Keep == "cache" {
+				cacheMigrations = true
+			} else if migrationCfg.Keep == "pin" {
+				pinMigrations = true
+			}
+
+			if cacheMigrations || pinMigrations {
+				// Create temp directory to store downloaded migration archives
+				migrations.DownloadDirectory, err = os.MkdirTemp("", "migrations")
+				if err != nil {
+					return err
+				}
+				// Defer cleanup of download directory so that it gets cleaned up
+				// if daemon returns early due to error
+				defer func() {
+					if migrations.DownloadDirectory != "" {
+						os.RemoveAll(migrations.DownloadDirectory)
+					}
+				}()
+			}
+
+			// Fall back to external migration system
+			err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
+			if err != nil {
+				fmt.Println("The legacy migrations of fs-repo failed:")
+				fmt.Printf("  %s\n", err)
+				fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
+				fmt.Println("  https://github.com/ipfs/kubo")
+				return err
+			}
+
+			// External migrations completed successfully.
+			// Store migration data for later processing after node is created.
+			externalMigrationFetcher = fetcher
 		}
 
 		repo, err = fsrepo.Open(cctx.ConfigRoot)
@@ -566,9 +579,9 @@ take effect.
 		return err
 	}
 
-	// Add any files downloaded by migration.
-	if cacheMigrations || pinMigrations {
-		err = addMigrations(cctx.Context(), node, fetcher, pinMigrations)
+	// Add any files downloaded by external migrations (embedded migrations don't download files)
+	if externalMigrationFetcher != nil && (cacheMigrations || pinMigrations) {
+		err = addMigrations(cctx.Context(), node, externalMigrationFetcher, pinMigrations)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Could not add migration to IPFS:", err)
 		}
@@ -577,10 +590,10 @@ take effect.
 		os.RemoveAll(migrations.DownloadDirectory)
 		migrations.DownloadDirectory = ""
 	}
-	if fetcher != nil {
+	if externalMigrationFetcher != nil {
 		// If there is an error closing the IpfsFetcher, then print error, but
 		// do not fail because of it.
-		err = fetcher.Close()
+		err = externalMigrationFetcher.Close()
 		if err != nil {
 			log.Errorf("error closing IPFS fetcher: %s", err)
 		}

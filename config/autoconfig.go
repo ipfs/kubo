@@ -15,12 +15,13 @@ type AutoConfig struct {
 	// LastUpdate is the timestamp of when the autoconfig was last successfully updated
 	LastUpdate *time.Time `json:",omitempty"`
 
-	// LastVersion stores the ETag or Last-Modified value from the last successful fetch
+	// LastVersion stores a string representation of AutoConfigVersion from the autoconfig.json file (if present),
+	// or falls back to ETag or Last-Modified header value from the last successful fetch
 	LastVersion string `json:",omitempty"`
 
-	// Interval is how often to check for updates
+	// CheckInterval is how often to check for updates
 	// Default: 24h
-	Interval *OptionalDuration `json:",omitempty"`
+	CheckInterval *OptionalDuration `json:",omitempty"`
 
 	// TLSInsecureSkipVerify allows skipping TLS verification (for testing only)
 	// Default: false

@@ -36,6 +36,13 @@ config file at runtime.
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
     - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
+  - [`AutoConfig`](#autoconfig)
+    - [`AutoConfig.URL`](#autoconfigurl)
+    - [`AutoConfig.Enabled`](#autoconfigenabled)
+    - [`AutoConfig.LastUpdate`](#autoconfiglastupdate)
+    - [`AutoConfig.LastVersion`](#autoconfiglastversion)
+    - [`AutoConfig.CheckInterval`](#autoconfigcheckinterval)
+    - [`AutoConfig.TLSInsecureSkipVerify`](#autoconfigtlsinsecureskipverify)
   - [`Bitswap`](#bitswap)
     - [`Bitswap.Libp2pEnabled`](#bitswaplibp2penabled)
     - [`Bitswap.ServerEnabled`](#bitswapserverenabled)
@@ -98,6 +105,7 @@ config file at runtime.
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
     - [`Ipns.MaxCacheTTL`](#ipnsmaxcachettl)
     - [`Ipns.UsePubsub`](#ipnsusepubsub)
+    - [`Ipns.DelegatedPublishers`](#ipnsdelegatedpublishers)
   - [`Migration`](#migration)
     - [`Migration.DownloadSources`](#migrationdownloadsources)
     - [`Migration.Keep`](#migrationkeep)
@@ -654,6 +662,56 @@ Do not change this unless you self-host [p2p-forge] under own domain.
 Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddyserver/certmagic#pkg-constants) (see [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003))
 
 Type: `optionalString`
+
+## `AutoConfig`
+
+AutoConfig enables automatic configuration management for IPFS nodes, allowing them to automatically fetch and apply network configuration updates from a remote service. This system helps keep network defaults up-to-date without manual intervention.
+
+When enabled, Kubo periodically fetches configuration from the specified URL and automatically applies updates to network settings like bootstrap peers, DNS resolvers, and routing configuration. Custom user settings are preserved while default values are updated.
+
+### `AutoConfig.URL`
+
+The URL of the AutoConfig service endpoint from which to fetch network configuration updates.
+
+Default: `"https://config.ipfs-mainnet.org/autoconfig.json"`
+
+Type: `string`
+
+### `AutoConfig.Enabled`
+
+Controls whether AutoConfig is enabled. When enabled, Kubo will periodically fetch network configuration from the configured URL and apply appropriate updates.
+
+Default: `true`
+
+Type: `flag`
+
+### `AutoConfig.LastUpdate`
+
+The timestamp of when the autoconfig was last successfully updated. This field is automatically managed by Kubo and should not be manually modified.
+
+Type: `time` (read-only)
+
+### `AutoConfig.LastVersion`
+
+Stores a string representation of the AutoConfigVersion from the autoconfig.json file (if present), or falls back to the ETag or Last-Modified header value from the last successful fetch. This field is used for efficient HTTP caching and change detection, and is automatically managed by Kubo.
+
+Type: `string` (read-only)
+
+### `AutoConfig.CheckInterval`
+
+How frequently to check for configuration updates from the AutoConfig service.
+
+Default: `"24h"`
+
+Type: `optionalDuration`
+
+### `AutoConfig.TLSInsecureSkipVerify`
+
+Whether to skip TLS certificate verification when fetching from the AutoConfig URL. Should only be used for testing purposes.
+
+Default: `false`
+
+Type: `flag`
 
 ## `Bitswap`
 
@@ -1432,6 +1490,16 @@ Enables IPFS over pubsub experiment for publishing IPNS records in real time.
 Default: `disabled`
 
 Type: `flag`
+
+### `Ipns.DelegatedPublishers`
+
+A list of IPNS publishers to delegate publishing operations to. When configured, IPNS publish operations may be sent to these remote services rather than being handled locally.
+
+The special value `"auto"` uses the network's default publisher services when AutoConfig is enabled.
+
+Default: `["auto"]`
+
+Type: `array[string]` (URLs or `"auto"`)
 
 ## `Migration`
 
