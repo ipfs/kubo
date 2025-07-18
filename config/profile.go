@@ -349,6 +349,25 @@ fetching may be degraded.
 			return nil
 		},
 	},
+	"autoconfig": {
+		Description: `Sets configuration to use implicit defaults from remote autoconfig service.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to "auto".
+This profile requires AutoConfig to be enabled and configured.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = []string{"auto"}
+			c.DNS.Resolvers = map[string]string{
+				".": "auto",
+			}
+			c.Routing.DelegatedRouters = []string{"auto"}
+			c.Ipns.DelegatedPublishers = []string{"auto"}
+			c.AutoConfig.Enabled = True
+			if c.AutoConfig.URL == "" {
+				c.AutoConfig.URL = DefaultAutoConfigURL
+			}
+			return nil
+		},
+	},
 }
 
 func getAvailablePort() (port int, err error) {

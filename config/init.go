@@ -23,11 +23,6 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 }
 
 func InitWithIdentity(identity Identity) (*Config, error) {
-	bootstrapPeers, err := DefaultBootstrapPeers()
-	if err != nil {
-		return nil, err
-	}
-
 	datastore := DefaultDatastoreConfig()
 
 	conf := &Config{
@@ -40,7 +35,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		Addresses: addressesConfig(),
 
 		Datastore: datastore,
-		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
+		Bootstrap: []string{"auto"},
 		Identity:  identity,
 		Discovery: Discovery{
 			MDNS: MDNS{
@@ -56,7 +51,8 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		},
 
 		Ipns: Ipns{
-			ResolveCacheSize: 128,
+			ResolveCacheSize:    128,
+			DelegatedPublishers: []string{"auto"},
 		},
 
 		Gateway: Gateway{
@@ -72,11 +68,20 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			RemoteServices: map[string]RemotePinningService{},
 		},
 		DNS: DNS{
-			Resolvers: map[string]string{},
+			Resolvers: map[string]string{
+				".": "auto",
+			},
 		},
 		Migration: Migration{
 			DownloadSources: []string{},
 			Keep:            "",
+		},
+		AutoConfig: AutoConfig{
+			URL:     DefaultAutoConfigURL,
+			Enabled: True,
+		},
+		Routing: Routing{
+			DelegatedRouters: []string{"auto"},
 		},
 	}
 
