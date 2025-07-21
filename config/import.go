@@ -22,6 +22,7 @@ const (
 	// BatchMaxnodes and BatchMaxSize.
 	DefaultBatchMaxSize = 100 << 20 // 20MiB
 
+	DefaultPinName = ""
 )
 
 var (
