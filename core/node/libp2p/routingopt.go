@@ -102,13 +102,16 @@ func constructDefaultHTTPRouters(cfg *config.Config, r repo.Repo) ([]*routinghel
 	var routers []*routinghelpers.ParallelRouter
 	httpRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
 
+	// First resolve auto values to get actual delegated routers
+	resolvedRouters := cfg.DelegatedRoutersWithAutoConfig(r.Path())
+	
 	// Use config.DefaultHTTPRouters if custom override was sent via config.EnvHTTPRouters
-	// or if user did not set any preference in cfg.Routing.DelegatedRouters
+	// or if resolved delegated routers list is empty
 	var httpRouterEndpoints []string
-	if os.Getenv(config.EnvHTTPRouters) != "" || len(cfg.Routing.DelegatedRouters) == 0 {
+	if os.Getenv(config.EnvHTTPRouters) != "" || len(resolvedRouters) == 0 {
 		httpRouterEndpoints = config.DefaultHTTPRouters
 	} else {
-		httpRouterEndpoints = cfg.DelegatedRoutersWithAutoConfig(r.Path())
+		httpRouterEndpoints = resolvedRouters
 	}
 
 	// Append HTTP routers for additional speed
