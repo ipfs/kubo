@@ -12,7 +12,7 @@ import (
 func TestLogGetLevel(t *testing.T) {
 
 	t.Run("get-level shows all subsystems", func(t *testing.T) {
-		// t.Parallel()
+		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
@@ -23,7 +23,6 @@ func TestLogGetLevel(t *testing.T) {
 		output := res.Stdout.String()
 		lines := SplitLines(output)
 
-		// Should contain multiple subsystems
 		assert.Greater(t, len(lines), 10)
 
 		// Check that each line has the format "subsystem: level"
@@ -39,7 +38,7 @@ func TestLogGetLevel(t *testing.T) {
 	})
 
 	t.Run("get-level with specific subsystem", func(t *testing.T) {
-		// t.Parallel()
+		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
@@ -51,10 +50,8 @@ func TestLogGetLevel(t *testing.T) {
 		output := res.Stdout.String()
 		lines := SplitLines(output)
 
-		// Should contain exactly one line
 		assert.Equal(t, 1, len(lines))
 
-		// Check format
 		line := strings.TrimSpace(lines[0])
 		parts := strings.Split(line, ": ")
 		assert.Equal(t, 2, len(parts), "Line should have format 'subsystem: level', got: %s", line)
@@ -63,7 +60,7 @@ func TestLogGetLevel(t *testing.T) {
 	})
 
 	t.Run("get-level with 'all' returns global level", func(t *testing.T) {
-		// t.Parallel()
+		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
@@ -78,10 +75,8 @@ func TestLogGetLevel(t *testing.T) {
 		output := res.Stdout.String()
 		lines := SplitLines(output)
 
-		// Should contain exactly one line
 		assert.Equal(t, 1, len(lines))
 
-		// Check format
 		line := strings.TrimSpace(lines[0])
 		parts := strings.Split(line, ": ")
 		assert.Equal(t, 2, len(parts), "Line should have format 'subsystem: level', got: %s", line)
@@ -90,7 +85,6 @@ func TestLogGetLevel(t *testing.T) {
 	})
 
 	t.Run("get-level with '*' returns global level", func(t *testing.T) {
-		// t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
@@ -102,10 +96,8 @@ func TestLogGetLevel(t *testing.T) {
 		output := res.Stdout.String()
 		lines := SplitLines(output)
 
-		// Should contain exactly one line
 		assert.Equal(t, 1, len(lines))
 
-		// Check format
 		line := strings.TrimSpace(lines[0])
 		parts := strings.Split(line, ": ")
 		assert.Equal(t, 2, len(parts), "Line should have format 'subsystem: level', got: %s", line)
@@ -114,21 +106,19 @@ func TestLogGetLevel(t *testing.T) {
 	})
 
 	t.Run("get-level reflects environment variable changes", func(t *testing.T) {
+		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon("--offline")
 		defer node.StopDaemon()
 
 		node.IPFS("log", "level", "core", "debug")
 		res := node.IPFS("log", "get-level", "core")
 		assert.NoError(t, res.Err)
-		// Note: stderr might contain daemon output, so we don't check it
 
 		output := res.Stdout.String()
 		lines := SplitLines(output)
 
-		// Should contain exactly one line
 		assert.Equal(t, 1, len(lines))
 
-		// Check format (note: environment variable may not be reflected due to go-log implementation)
 		line := strings.TrimSpace(lines[0])
 		parts := strings.Split(line, ": ")
 		assert.Equal(t, 2, len(parts), "Line should have format 'subsystem: level', got: %s", line)
@@ -137,7 +127,7 @@ func TestLogGetLevel(t *testing.T) {
 	})
 
 	t.Run("get-level with non-existent subsystem returns error", func(t *testing.T) {
-		// t.Parallel()
+		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
