@@ -11,24 +11,7 @@ import (
 var ErrInvalidPeerAddr = errors.New("invalid peer address")
 
 func (c *Config) BootstrapPeers() ([]peer.AddrInfo, error) {
-	// Check if we need to resolve "auto" values
-	hasAutoValues := false
-	for _, peer := range c.Bootstrap {
-		if peer == AutoPlaceholder {
-			hasAutoValues = true
-			break
-		}
-	}
-
-	// If no auto values, use bootstrap list as-is
-	if !hasAutoValues {
-		return ParseBootstrapPeers(c.Bootstrap)
-	}
-
-	// For auto values, we need to use empty repoPath to force cache-only behavior
-	// This matches the pattern used in core/node/dns.go
-	resolvedBootstrap := c.BootstrapPeersWithAutoConfig("")
-	return ParseBootstrapPeers(resolvedBootstrap)
+	return ParseBootstrapPeers(c.Bootstrap)
 }
 
 func (c *Config) SetBootstrapPeers(bps []peer.AddrInfo) {

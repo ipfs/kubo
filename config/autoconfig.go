@@ -108,7 +108,7 @@ func (c *Config) BootstrapPeersWithAutoConfig(repoPath string) []string {
 
 // getAutoConfig is a helper to get autoconfig data with fallbacks
 func (c *Config) getAutoConfig(repoPath string) *autoconfig.AutoConfig {
-	if !c.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled) || c.AutoConfig.URL == "" || repoPath == "" {
+	if !c.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled) || c.AutoConfig.URL == "" {
 		return nil
 	}
 

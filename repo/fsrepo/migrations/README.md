@@ -20,8 +20,17 @@ Starting from **repo version 17**, Kubo uses **embedded migrations** that are bu
 - **Dependencies**: Self-contained, uses only Kubo's internal dependencies
 - **Usage**: Primary migration method for modern repo versions
 
+**Parameters**:
+- `ctx`: Context for cancellation and timeouts
+- `targetVersion`: Target repository version to migrate to
+- `repoPath`: Path to the IPFS repository directory
+- `allowDowngrade`: Whether to allow downgrade migrations
+
 ```go
 err = migrations.RunEmbeddedMigrations(ctx, targetVersion, repoPath, allowDowngrade)
+if err != nil {
+    // Handle migration failure, may fall back to external migrations
+}
 ```
 
 #### `migrations.RunMigration()` with `migrations.ReadMigrationConfig()`
