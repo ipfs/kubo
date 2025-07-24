@@ -18,8 +18,10 @@ import (
 	"time"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	logging "github.com/ipfs/go-log/v2"
 	mprome "github.com/ipfs/go-metrics-prometheus"
 	version "github.com/ipfs/kubo"
+	"github.com/ipfs/kubo/boxo/autoconfig"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
 	config "github.com/ipfs/kubo/config"
@@ -32,6 +34,7 @@ import (
 	corerepo "github.com/ipfs/kubo/core/corerepo"
 	libp2p "github.com/ipfs/kubo/core/node/libp2p"
 	nodeMount "github.com/ipfs/kubo/fuse/node"
+	"github.com/ipfs/kubo/repo"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
@@ -299,7 +302,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 
 		// Try embedded migrations first
-		err = migrations.RunEmbeddedMigrations(cctx.Context(), fsrepo.RepoVersion, cctx.ConfigRoot, false)
+		err = migrations.RunEmbeddedMigrations(cctx.Context(), version.RepoVersion, cctx.ConfigRoot, false)
 		if err != nil {
 			fmt.Println("Embedded Kubo migrations failed, falling back to external binary migrations:")
 			fmt.Printf("  %s\n", err)
@@ -354,7 +357,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			}
 
 			// Fall back to external migration system
-			err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
+			err = migrations.RunMigration(cctx.Context(), fetcher, version.RepoVersion, "", false)
 			if err != nil {
 				fmt.Println("The legacy migrations of fs-repo failed:")
 				fmt.Printf("  %s\n", err)
@@ -392,6 +395,22 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	cfg, err := repo.Config()
 	if err != nil {
 		return err
+	}
+
+	// Validate autoconfig setup - check for private network conflict
+	swarmKey, _ := repo.SwarmKey()
+	isPrivateNetwork := swarmKey != nil || pnet.ForcePrivateNetwork
+	if err := config.ValidateAutoConfigWithRepo(cfg, isPrivateNetwork); err != nil {
+		return err
+	}
+
+	// Start background AutoConfig updater if enabled
+	if cfg.AutoConfig.Enabled.WithDefault(config.DefaultAutoConfigEnabled) {
+		autoConfigURL := cfg.AutoConfig.URL
+		if autoConfigURL == "" {
+			return fmt.Errorf("AutoConfig is enabled but AutoConfig.URL is empty - please provide a URL")
+		}
+		startAutoConfigUpdater(cctx.Context(), repo, autoConfigURL, version.GetUserAgentVersion())
 	}
 
 	fmt.Printf("PeerID: %s\n", cfg.Identity.PeerID)
@@ -447,6 +466,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			}
 		}
 	}
+
+	// Use config for routing construction
 
 	switch routingOption {
 	case routingOptionSupernodeKwd:
@@ -1247,4 +1268,74 @@ Visit https://github.com/ipfs/kubo/releases or https://dist.ipfs.tech/#kubo and 
 			}
 		}
 	}()
+}
+
+// startAutoConfigUpdater starts a background service that periodically checks for AutoConfig updates
+func startAutoConfigUpdater(ctx context.Context, r repo.Repo, autoConfigURL, userAgent string) {
+	autoconfigLog := logging.Logger("autoconfig")
+
+	// Get current config to read CheckInterval
+	cfg, err := r.Config()
+	if err != nil {
+		autoconfigLog.Errorf("failed to read config for autoconfig updater: %v", err)
+		return
+	}
+
+	// Don't start if AutoConfig is disabled
+	if !cfg.AutoConfig.Enabled.WithDefault(config.DefaultAutoConfigEnabled) {
+		return
+	}
+
+	// Create autoconfig client
+	client, err := config.NewAutoConfigClientWithConfig(r.Path(), cfg, userAgent)
+	if err != nil {
+		autoconfigLog.Errorf("failed to create autoconfig client: %v", err)
+		return
+	}
+
+	// Create background updater with callbacks to maintain existing behavior
+	checkInterval := cfg.AutoConfig.CheckInterval.WithDefault(config.DefaultAutoConfigInterval)
+	updater, err := autoconfig.NewBackgroundUpdater(client, autoConfigURL,
+		autoconfig.WithUpdateInterval(checkInterval),
+		autoconfig.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {
+			autoconfigLog.Errorf("new autoconfig version %d published at %s - restart node to apply updates to \"auto\" entries in Kubo config", newVersion, configURL)
+		}),
+		autoconfig.WithOnUpdateSuccess(func(resp *autoconfig.AutoConfigResponse) {
+			// Update config metadata only (not live config values)
+			if err := updateAutoConfigMetadata(r, resp); err != nil {
+				autoconfigLog.Errorf("failed to update autoconfig metadata: %v", err)
+			} else {
+				autoconfigLog.Debugf("updated autoconfig metadata: version %s, fetch time %s", resp.Version, resp.FetchTime.Format(time.RFC3339))
+			}
+		}),
+		autoconfig.WithOnUpdateError(func(err error) {
+			autoconfigLog.Error(err)
+		}),
+	)
+	if err != nil {
+		autoconfigLog.Errorf("failed to create background updater: %v", err)
+		return
+	}
+
+	// Start the updater
+	if err := updater.Start(ctx); err != nil {
+		autoconfigLog.Errorf("failed to start background updater: %v", err)
+		return
+	}
+
+	// Stop updater when context is cancelled
+	go func() {
+		<-ctx.Done()
+		updater.Stop()
+	}()
+}
+
+// updateAutoConfigMetadata updates only the LastUpdate field in config
+func updateAutoConfigMetadata(r repo.Repo, resp *autoconfig.AutoConfigResponse) error {
+	// Update LastUpdate with local fetch time
+	if err := r.SetConfigKey("AutoConfig.LastUpdate", resp.FetchTime); err != nil {
+		return fmt.Errorf("failed to update AutoConfig.LastUpdate: %w", err)
+	}
+
+	return nil
 }

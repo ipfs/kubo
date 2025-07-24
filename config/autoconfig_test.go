@@ -63,20 +63,20 @@ func TestAutoConfigProfile(t *testing.T) {
 	}
 
 	// Check that values were set to "auto"
-	if len(cfg.Bootstrap) != 1 || cfg.Bootstrap[0] != "auto" {
-		t.Errorf("expected Bootstrap to be [\"auto\"], got %v", cfg.Bootstrap)
+	if len(cfg.Bootstrap) != 1 || cfg.Bootstrap[0] != AutoPlaceholder {
+		t.Errorf("expected Bootstrap to be [%s], got %v", AutoPlaceholder, cfg.Bootstrap)
 	}
 
-	if cfg.DNS.Resolvers["."] != "auto" {
-		t.Errorf("expected DNS.Resolvers[\".\"] to be \"auto\", got %s", cfg.DNS.Resolvers["."])
+	if cfg.DNS.Resolvers["."] != AutoPlaceholder {
+		t.Errorf("expected DNS.Resolvers[\".\"] to be %s, got %s", AutoPlaceholder, cfg.DNS.Resolvers["."])
 	}
 
-	if len(cfg.Routing.DelegatedRouters) != 1 || cfg.Routing.DelegatedRouters[0] != "auto" {
-		t.Errorf("expected DelegatedRouters to be [\"auto\"], got %v", cfg.Routing.DelegatedRouters)
+	if len(cfg.Routing.DelegatedRouters) != 1 || cfg.Routing.DelegatedRouters[0] != AutoPlaceholder {
+		t.Errorf("expected DelegatedRouters to be [%s], got %v", AutoPlaceholder, cfg.Routing.DelegatedRouters)
 	}
 
-	if len(cfg.Ipns.DelegatedPublishers) != 1 || cfg.Ipns.DelegatedPublishers[0] != "auto" {
-		t.Errorf("expected DelegatedPublishers to be [\"auto\"], got %v", cfg.Ipns.DelegatedPublishers)
+	if len(cfg.Ipns.DelegatedPublishers) != 1 || cfg.Ipns.DelegatedPublishers[0] != AutoPlaceholder {
+		t.Errorf("expected DelegatedPublishers to be [%s], got %v", AutoPlaceholder, cfg.Ipns.DelegatedPublishers)
 	}
 
 	// Check that AutoConfig was enabled
@@ -101,23 +101,23 @@ func TestInitWithAutoValues(t *testing.T) {
 	}
 
 	// Check that Bootstrap is set to "auto"
-	if len(cfg.Bootstrap) != 1 || cfg.Bootstrap[0] != "auto" {
-		t.Errorf("expected Bootstrap to be [\"auto\"], got %v", cfg.Bootstrap)
+	if len(cfg.Bootstrap) != 1 || cfg.Bootstrap[0] != AutoPlaceholder {
+		t.Errorf("expected Bootstrap to be [%s], got %v", AutoPlaceholder, cfg.Bootstrap)
 	}
 
 	// Check that DNS resolver is set to "auto"
-	if cfg.DNS.Resolvers["."] != "auto" {
-		t.Errorf("expected DNS.Resolvers[\".\"] to be \"auto\", got %s", cfg.DNS.Resolvers["."])
+	if cfg.DNS.Resolvers["."] != AutoPlaceholder {
+		t.Errorf("expected DNS.Resolvers[\".\"] to be %s, got %s", AutoPlaceholder, cfg.DNS.Resolvers["."])
 	}
 
 	// Check that DelegatedRouters is set to "auto"
-	if len(cfg.Routing.DelegatedRouters) != 1 || cfg.Routing.DelegatedRouters[0] != "auto" {
-		t.Errorf("expected DelegatedRouters to be [\"auto\"], got %v", cfg.Routing.DelegatedRouters)
+	if len(cfg.Routing.DelegatedRouters) != 1 || cfg.Routing.DelegatedRouters[0] != AutoPlaceholder {
+		t.Errorf("expected DelegatedRouters to be [%s], got %v", AutoPlaceholder, cfg.Routing.DelegatedRouters)
 	}
 
 	// Check that DelegatedPublishers is set to "auto"
-	if len(cfg.Ipns.DelegatedPublishers) != 1 || cfg.Ipns.DelegatedPublishers[0] != "auto" {
-		t.Errorf("expected DelegatedPublishers to be [\"auto\"], got %v", cfg.Ipns.DelegatedPublishers)
+	if len(cfg.Ipns.DelegatedPublishers) != 1 || cfg.Ipns.DelegatedPublishers[0] != AutoPlaceholder {
+		t.Errorf("expected DelegatedPublishers to be [%s], got %v", AutoPlaceholder, cfg.Ipns.DelegatedPublishers)
 	}
 
 	// Check that AutoConfig is enabled with correct URL

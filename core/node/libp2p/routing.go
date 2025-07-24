@@ -121,7 +121,7 @@ func BaseRouting(cfg *config.Config) interface{} {
 
 			// we want to also use the default HTTP routers, so wrap the FullRT client
 			// in a parallel router that calls them in parallel
-			httpRouters, err := constructDefaultHTTPRouters(cfg)
+			httpRouters, err := constructDefaultHTTPRouters(cfg, in.Repo)
 			if err != nil {
 				return out, err
 			}

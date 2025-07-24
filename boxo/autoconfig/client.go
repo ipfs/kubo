@@ -112,6 +112,9 @@ func WithTimeout(timeout time.Duration) Option {
 // WithTLSInsecureSkipVerify sets whether to skip TLS verification (for testing)
 func WithTLSInsecureSkipVerify(skip bool) Option {
 	return func(c *Client) error {
+		if skip {
+			log.Warnf("TLS certificate verification is disabled - this should only be used for testing")
+		}
 		if c.httpClient.Transport == nil {
 			c.httpClient.Transport = http.DefaultTransport.(*http.Transport).Clone()
 		}
@@ -148,20 +151,35 @@ func (c *Client) getCacheDir(configURL string) (string, error) {
 
 // readCachedMetadata reads cached ETag and Last-Modified values
 func (c *Client) readCachedMetadata(cacheDir string) (etag, lastModified string) {
-	etagData, _ := os.ReadFile(filepath.Join(cacheDir, etagFile))
-	lastModData, _ := os.ReadFile(filepath.Join(cacheDir, lastModifiedFile))
+	// Sanitize cache directory path
+	cleanCacheDir := filepath.Clean(cacheDir)
+
+	etagData, err := os.ReadFile(filepath.Join(cleanCacheDir, etagFile))
+	if err != nil {
+		log.Debugf("failed to read cached etag: %v", err)
+	}
+
+	lastModData, err := os.ReadFile(filepath.Join(cleanCacheDir, lastModifiedFile))
+	if err != nil {
+		log.Debugf("failed to read cached last-modified: %v", err)
+	}
+
 	return strings.TrimSpace(string(etagData)), strings.TrimSpace(string(lastModData))
 }
 
 // writeCachedMetadata writes ETag and Last-Modified values to cache
 func (c *Client) writeCachedMetadata(cacheDir, etag, lastModified string) error {
+	// Sanitize cache directory path
+	cleanCacheDir := filepath.Clean(cacheDir)
 	if etag != "" {
-		if err := os.WriteFile(filepath.Join(cacheDir, etagFile), []byte(etag), 0644); err != nil {
+		// Use owner-only permissions (0600) for security
+		if err := os.WriteFile(filepath.Join(cleanCacheDir, etagFile), []byte(etag), 0600); err != nil {
 			return fmt.Errorf("failed to write etag: %w", err)
 		}
 	}
 	if lastModified != "" {
-		if err := os.WriteFile(filepath.Join(cacheDir, lastModifiedFile), []byte(lastModified), 0644); err != nil {
+		// Use owner-only permissions (0600) for security
+		if err := os.WriteFile(filepath.Join(cleanCacheDir, lastModifiedFile), []byte(lastModified), 0600); err != nil {
 			return fmt.Errorf("failed to write last-modified: %w", err)
 		}
 	}

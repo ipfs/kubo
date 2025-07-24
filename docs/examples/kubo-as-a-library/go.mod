@@ -6,6 +6,8 @@ go 1.24
 // this if you copy this example.
 replace github.com/ipfs/kubo => ./../../..
 
+replace github.com/ipfs/kubo/boxo/autoconfig => ./../../../boxo/autoconfig
+
 require (
 	github.com/ipfs/boxo v0.33.1-0.20250710085426-6cfa79448bb1
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
@@ -96,6 +98,7 @@ require (
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.2 // indirect
 	github.com/ipfs/go-unixfsnode v1.10.1 // indirect
+	github.com/ipfs/kubo/boxo/autoconfig v0.0.0-00010101000000-000000000000 // indirect
 	github.com/ipld/go-car/v2 v2.14.3 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.21.0 // indirect

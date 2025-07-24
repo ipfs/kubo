@@ -10,7 +10,7 @@ type DNS struct {
 	//
 	// Example:
 	// - Custom resolver for ENS:          `eth.` → `https://dns.eth.limo/dns-query`
-	// - Override the default OS resolver: `.`    → `https://doh.applied-privacy.net/query`
+	// - Override the default OS resolver: `.`    → `https://dns.example.com/dns-query`
 	Resolvers map[string]string
 	// MaxCacheTTL is the maximum duration DNS entries are valid in the cache.
 	MaxCacheTTL *OptionalDuration `json:",omitempty"`

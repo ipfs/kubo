@@ -55,7 +55,6 @@ in the bootstrap list).
 
 	Subcommands: map[string]*cmds.Command{
 		"default": bootstrapAddDefaultCmd,
-		"auto":    bootstrapAddDefaultCmd, // Alias for "default"
 	},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -122,7 +121,7 @@ in the bootstrap list).`,
 		}
 
 		if !cfg.AutoConfig.Enabled.WithDefault(true) {
-			return errors.New("cannot add default bootstrap peers: AutoConfig is disabled. Enable AutoConfig or add specific peer addresses")
+			return errors.New("cannot add default bootstrap peers: AutoConfig is disabled (AutoConfig.Enabled=false). Enable AutoConfig by setting AutoConfig.Enabled=true in your config, or add specific peer addresses instead of using 'default'")
 		}
 
 		added, err := bootstrapAdd(r, cfg, []string{"auto"})
@@ -243,6 +242,9 @@ var bootstrapListCmd = &cmds.Command{
 		Tagline:          "Show peers in the bootstrap list.",
 		ShortDescription: "Peers are output in the format '<multiaddr>/<peerID>'.",
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption(configExpandAutoName, "Expand 'auto' placeholders to their expanded values from AutoConfig service."),
+	},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
@@ -260,12 +262,16 @@ var bootstrapListCmd = &cmds.Command{
 			return err
 		}
 
-		peers, err := cfg.BootstrapPeers()
-		if err != nil {
-			return err
+		// Check if user wants to expand auto values
+		expandAuto, _ := req.Options[configExpandAutoName].(bool)
+		if expandAuto {
+			// Use the same expansion method as the daemon
+			expandedBootstrap := cfg.BootstrapPeersWithAutoConfig(cfgRoot)
+			return cmds.EmitOnce(res, &BootstrapOutput{expandedBootstrap})
 		}
 
-		return cmds.EmitOnce(res, &BootstrapOutput{config.BootstrapPeerStrings(peers)})
+		// Simply return the bootstrap config as-is, including any "auto" values
+		return cmds.EmitOnce(res, &BootstrapOutput{cfg.Bootstrap})
 	},
 	Type: BootstrapOutput{},
 	Encoders: cmds.EncoderMap{
@@ -339,6 +345,22 @@ func bootstrapAdd(r repo.Repo, cfg *config.Config, peers []string) ([]string, er
 }
 
 func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []string) ([]string, error) {
+	// Check if bootstrap contains "auto"
+	hasAuto := false
+	for _, peer := range cfg.Bootstrap {
+		if peer == config.AutoPlaceholder {
+			hasAuto = true
+			break
+		}
+	}
+
+	if hasAuto && cfg.AutoConfig.Enabled.WithDefault(config.DefaultAutoConfigEnabled) {
+		// Cannot selectively remove peers when using "auto" bootstrap
+		// Users should either disable AutoConfig or replace "auto" with specific peers
+		return nil, fmt.Errorf("cannot remove individual bootstrap peers when using 'auto' placeholder: the 'auto' value is managed by AutoConfig. Either disable AutoConfig by setting AutoConfig.Enabled=false and replace 'auto' with specific peer addresses, or use 'ipfs bootstrap rm --all' to remove all peers")
+	}
+
+	// Original logic for non-auto bootstrap
 	removed := make([]peer.AddrInfo, 0, len(toRemove))
 	keep := make([]peer.AddrInfo, 0, len(cfg.Bootstrap))
 

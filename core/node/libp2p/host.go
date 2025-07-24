@@ -56,6 +56,7 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 
 	routingOptArgs := RoutingOptionArgs{
 		Ctx:                           ctx,
+		Repo:                          params.Repo,
 		Datastore:                     params.Repo.Datastore(),
 		Validator:                     params.Validator,
 		BootstrapPeers:                bootstrappers,

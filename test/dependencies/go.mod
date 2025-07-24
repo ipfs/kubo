@@ -4,6 +4,8 @@ go 1.24
 
 replace github.com/ipfs/kubo => ../../
 
+replace github.com/ipfs/kubo/boxo/autoconfig => ../../boxo/autoconfig
+
 require (
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/golangci/golangci-lint v1.60.2
@@ -139,6 +141,7 @@ require (
 	github.com/ipfs/go-ipld-legacy v0.2.2 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/kubo v0.31.0 // indirect
+	github.com/ipfs/kubo/boxo/autoconfig v0.0.0-00010101000000-000000000000 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.21.0 // indirect
 	github.com/ipshipyard/p2p-forge v0.6.0 // indirect

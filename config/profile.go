@@ -98,7 +98,7 @@ Inverse profile of the test profile.`,
 			c.Addresses = addressesConfig()
 
 			// Use AutoConfig system for bootstrap peers
-			c.Bootstrap = []string{"auto"}
+			c.Bootstrap = []string{AutoPlaceholder}
 			c.AutoConfig.Enabled = True
 			if c.AutoConfig.URL == "" {
 				c.AutoConfig.URL = DefaultAutoConfigURL
@@ -350,22 +350,36 @@ fetching may be degraded.
 			return nil
 		},
 	},
-	"autoconfig": {
+	"autoconfig-on": {
 		Description: `Sets configuration to use implicit defaults from remote autoconfig service.
 Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to "auto".
 This profile requires AutoConfig to be enabled and configured.`,
 
 		Transform: func(c *Config) error {
-			c.Bootstrap = []string{"auto"}
+			c.Bootstrap = []string{AutoPlaceholder}
 			c.DNS.Resolvers = map[string]string{
-				".": "auto",
+				".": AutoPlaceholder,
 			}
-			c.Routing.DelegatedRouters = []string{"auto"}
-			c.Ipns.DelegatedPublishers = []string{"auto"}
+			c.Routing.DelegatedRouters = []string{AutoPlaceholder}
+			c.Ipns.DelegatedPublishers = []string{AutoPlaceholder}
 			c.AutoConfig.Enabled = True
 			if c.AutoConfig.URL == "" {
 				c.AutoConfig.URL = DefaultAutoConfigURL
 			}
+			return nil
+		},
+	},
+	"autoconfig-off": {
+		Description: `Disables AutoConfig and sets networking fields to empty for manual configuration.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to empty.
+Use this when you want normal networking but prefer manual control over all endpoints.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = []string{}
+			c.DNS.Resolvers = map[string]string{}
+			c.Routing.DelegatedRouters = []string{}
+			c.Ipns.DelegatedPublishers = []string{}
+			c.AutoConfig.Enabled = False
 			return nil
 		},
 	},

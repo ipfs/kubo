@@ -35,7 +35,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		Addresses: addressesConfig(),
 
 		Datastore: datastore,
-		Bootstrap: []string{"auto"},
+		Bootstrap: []string{AutoPlaceholder},
 		Identity:  identity,
 		Discovery: Discovery{
 			MDNS: MDNS{
@@ -52,7 +52,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 
 		Ipns: Ipns{
 			ResolveCacheSize:    128,
-			DelegatedPublishers: []string{"auto"},
+			DelegatedPublishers: []string{AutoPlaceholder},
 		},
 
 		Gateway: Gateway{
@@ -69,7 +69,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		},
 		DNS: DNS{
 			Resolvers: map[string]string{
-				".": "auto",
+				".": AutoPlaceholder,
 			},
 		},
 		Migration: Migration{
@@ -81,7 +81,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			Enabled: True,
 		},
 		Routing: Routing{
-			DelegatedRouters: []string{"auto"},
+			DelegatedRouters: []string{AutoPlaceholder},
 		},
 	}
 

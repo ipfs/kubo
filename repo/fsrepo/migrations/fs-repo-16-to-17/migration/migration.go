@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/fs-repo-16-to-17/atomicfile"
@@ -166,7 +167,7 @@ func checkVersion(repoPath string, expectedVersion string) error {
 	if err != nil {
 		return fmt.Errorf("could not read version file: %w", err)
 	}
-	version := string(versionBytes)
+	version := strings.TrimSpace(string(versionBytes))
 	if version != expectedVersion {
 		return fmt.Errorf("expected version %s, got %s", expectedVersion, version)
 	}
@@ -310,7 +311,7 @@ func migrateDNSResolvers(confMap map[string]any) error {
 		// No DNS section, create it with "auto"
 		confMap["DNS"] = map[string]any{
 			"Resolvers": map[string]string{
-				".": "auto",
+				".": config.AutoPlaceholder,
 			},
 		}
 		return nil
@@ -321,7 +322,7 @@ func migrateDNSResolvers(confMap map[string]any) error {
 		// Invalid DNS format, replace with "auto"
 		confMap["DNS"] = map[string]any{
 			"Resolvers": map[string]string{
-				".": "auto",
+				".": config.AutoPlaceholder,
 			},
 		}
 		return nil
@@ -331,7 +332,7 @@ func migrateDNSResolvers(confMap map[string]any) error {
 	if !exists {
 		// No resolvers, add "auto"
 		dns["Resolvers"] = map[string]string{
-			".": "auto",
+			".": config.AutoPlaceholder,
 		}
 		return nil
 	}
@@ -340,7 +341,7 @@ func migrateDNSResolvers(confMap map[string]any) error {
 	if !ok {
 		// Invalid resolvers format, replace with "auto"
 		dns["Resolvers"] = map[string]string{
-			".": "auto",
+			".": config.AutoPlaceholder,
 		}
 		return nil
 	}

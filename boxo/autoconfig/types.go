@@ -1,5 +1,14 @@
 package autoconfig
 
+import "time"
+
+// Mainnet profile constants for node type classification
+const (
+	MainnetProfileNodesWithDHT    = "mainnet-for-nodes-with-dht"
+	MainnetProfileNodesWithoutDHT = "mainnet-for-nodes-without-dht"
+	MainnetProfileIPNSPublishers  = "mainnet-for-ipns-publishers-with-http"
+)
+
 // AutoConfig represents the full autoconfig.json structure
 type AutoConfig struct {
 	AutoConfigVersion   int64                               `json:"AutoConfigVersion"`
@@ -11,13 +20,16 @@ type AutoConfig struct {
 }
 
 // DelegatedRouterConfig represents a delegated router configuration
-type DelegatedRouterConfig struct {
-	Providers []string `json:"providers,omitempty"`
-	Peers     []string `json:"peers,omitempty"`
-	IPNS      []string `json:"ipns,omitempty"`
-}
+type DelegatedRouterConfig []string
 
 // DelegatedPublisherConfig represents a delegated publisher configuration
-type DelegatedPublisherConfig struct {
-	IPNS []string `json:"ipns,omitempty"`
+type DelegatedPublisherConfig []string
+
+// AutoConfigResponse contains the autoconfig and metadata from the fetch
+type AutoConfigResponse struct {
+	Config    *AutoConfig
+	FetchTime time.Time
+	Version   string // AutoConfigVersion as string, or ETag, or Last-Modified
+	FromCache bool
+	CacheAge  time.Duration // only set when FromCache is true
 }

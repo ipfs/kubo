@@ -5,8 +5,6 @@ import (
 	"os"
 	"testing"
 	"time"
-
-	"github.com/ipfs/kubo"
 )
 
 const defaultAutoConfigURL = "https://config.ipfs-mainnet.org/autoconfig.json"
@@ -24,7 +22,7 @@ func TestRealAutoConfigURL(t *testing.T) {
 
 	client, err := NewClient(
 		WithCacheDir(tmpDir),
-		WithUserAgent(ipfs.GetUserAgentVersion()),
+		WithUserAgent("kubo-autoconfig-test/1.0"),
 		WithTimeout(10*time.Second),
 	)
 	if err != nil {

@@ -7,10 +7,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
-
-	"github.com/ipfs/kubo"
 )
 
 func TestNewClient(t *testing.T) {
@@ -33,7 +32,7 @@ func TestWithOptions(t *testing.T) {
 	client, err := NewClient(
 		WithCacheDir(tmpDir),
 		WithCacheSize(5),
-		WithUserAgent(ipfs.GetUserAgentVersion()),
+		WithUserAgent("kubo-autoconfig-test/1.0"),
 		WithTimeout(10*time.Second),
 	)
 	if err != nil {
@@ -56,17 +55,13 @@ func TestGetLatest(t *testing.T) {
 	testConfig := &AutoConfig{
 		AutoConfigVersion: 2025071802,
 		AutoConfigSchema:  2,
-		Bootstrap:         []string{"/ip4/127.0.0.1/tcp/4001/p2p/QmTest"},
+		Bootstrap:         []string{"/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWGzxzKZYveHXtpG6AsrUJBcWxHBFS2HsEoGTxrMLvKXtf"},
 		DNSResolvers:      map[string][]string{"eth.": {"https://example.com"}},
 		DelegatedRouters: map[string]DelegatedRouterConfig{
-			"for-nodes-with-dht": {
-				Providers: []string{"https://cid.contact"},
-			},
+			"mainnet-for-nodes-with-dht": {"https://cid.contact/routing/v1/providers"},
 		},
 		DelegatedPublishers: map[string]DelegatedPublisherConfig{
-			"for-ipns-publishers-with-http": {
-				IPNS: []string{"https://delegated-ipfs.dev"},
-			},
+			"mainnet-for-ipns-publishers-with-http": {"https://delegated-ipfs.dev/routing/v1/ipns"},
 		},
 	}
 
@@ -87,7 +82,7 @@ func TestGetLatest(t *testing.T) {
 
 	client, err := NewClient(
 		WithCacheDir(tmpDir),
-		WithUserAgent(ipfs.GetUserAgentVersion()),
+		WithUserAgent("kubo-autoconfig-test/1.0"),
 	)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
@@ -110,9 +105,25 @@ func TestGetLatest(t *testing.T) {
 		t.Fatalf("failed to get cache dir: %v", err)
 	}
 
-	cachedFile := filepath.Join(cacheDir, "2025071802.json")
-	if _, err := os.Stat(cachedFile); os.IsNotExist(err) {
-		t.Errorf("expected cache file %s to exist", cachedFile)
+	// List files in cache dir for debugging
+	files, err := os.ReadDir(cacheDir)
+	if err != nil {
+		t.Logf("failed to read cache dir %s: %v", cacheDir, err)
+	} else {
+		t.Logf("cache dir %s contains: %v", cacheDir, files)
+	}
+
+	// Check that some autoconfig JSON file exists (filename may vary based on timestamp)
+	foundCacheFile := false
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".json") && strings.Contains(file.Name(), "autoconfig") {
+			foundCacheFile = true
+			t.Logf("found cache file: %s", file.Name())
+			break
+		}
+	}
+	if !foundCacheFile {
+		t.Errorf("expected some autoconfig cache file to exist in %s, but none found", cacheDir)
 	}
 }
 
