@@ -16,6 +16,11 @@ func TestLogGetLevel(t *testing.T) {
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
+		// Get expected subsystem count from 'ipfs log ls'
+		lsRes := node.IPFS("log", "ls")
+		assert.NoError(t, lsRes.Err)
+		expectedSubsystems := len(SplitLines(lsRes.Stdout.String()))
+
 		res := node.IPFS("log", "get-level")
 		assert.NoError(t, res.Err)
 		assert.Equal(t, 0, len(res.Stderr.Lines()))
@@ -23,7 +28,8 @@ func TestLogGetLevel(t *testing.T) {
 		output := res.Stdout.String()
 		lines := SplitLines(output)
 
-		assert.Greater(t, len(lines), 10)
+		// Should show all subsystems plus the global '*' level
+		assert.GreaterOrEqual(t, len(lines), expectedSubsystems)
 
 		// Check that each line has the format "subsystem: level"
 		for _, line := range lines {
@@ -85,6 +91,7 @@ func TestLogGetLevel(t *testing.T) {
 	})
 
 	t.Run("get-level with '*' returns global level", func(t *testing.T) {
+		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
@@ -105,7 +112,7 @@ func TestLogGetLevel(t *testing.T) {
 		assert.Equal(t, "dpanic", parts[1])
 	})
 
-	t.Run("get-level reflects environment variable changes", func(t *testing.T) {
+	t.Run("get-level reflects runtime log level changes", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon("--offline")
 		defer node.StopDaemon()
@@ -135,4 +142,5 @@ func TestLogGetLevel(t *testing.T) {
 		assert.Error(t, res.Err)
 		assert.NotEqual(t, 0, len(res.Stderr.Lines()))
 	})
+
 }

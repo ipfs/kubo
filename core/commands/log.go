@@ -109,7 +109,7 @@ const logLevelOption = "log-level"
 var logTailCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Read and outpt log messages.",
+		Tagline: "Read and output log messages.",
 		ShortDescription: `
 Outputs log messages as they are generated.
 
@@ -152,7 +152,13 @@ var logGetLevelCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get the current logging level.",
 		ShortDescription: `
-Get the current logging level for a specific subsystem or all subsystems.
+'ipfs log get-level' is a utility command used to get the current logging
+level for a specific subsystem or all subsystems.
+
+Examples:
+  ipfs log get-level       # Show levels for all subsystems
+  ipfs log get-level all   # Show the global default level
+  ipfs log get-level core  # Show the core subsystem level
 `,
 	},
 
