@@ -31,9 +31,10 @@ system (not just for the daemon logs, but all commands):
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"level": logLevelCmd,
-		"ls":    logLsCmd,
-		"tail":  logTailCmd,
+		"level":     logLevelCmd,
+		"get-level": logGetLevelCmd,
+		"ls":        logLsCmd,
+		"tail":      logTailCmd,
 	},
 }
 
@@ -145,4 +146,63 @@ This will only return 'info' logs from bitswap and skip 'debug'.
 		}()
 		return res.Emit(pipeReader)
 	},
+}
+
+var logGetLevelCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Get the current logging level.",
+		ShortDescription: `
+Get the current logging level for a specific subsystem or all subsystems.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("subsystem", false, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for all subsystems. If not specified, returns levels for all subsystems.", logAllKeyword)),
+	},
+	NoLocal: true,
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		var subsystem string
+		if len(req.Arguments) > 0 {
+			subsystem = req.Arguments[0]
+		}
+
+		if subsystem == logAllKeyword || subsystem == "*" {
+			// Return the global log level
+			level, err := logging.GetLogLevel()
+			if err != nil {
+				return err
+			}
+			levelMap := map[string]string{"*": level}
+			return cmds.EmitOnce(res, &logLevelsOutput{Levels: levelMap})
+		} else if subsystem == "" {
+			// Return levels for all subsystems (default behavior)
+			levels := logging.GetAllLogLevels()
+			// Also get the global level
+			if globalLevel, err := logging.GetLogLevel(); err == nil {
+				levels["*"] = globalLevel
+			}
+			return cmds.EmitOnce(res, &logLevelsOutput{Levels: levels})
+		} else {
+			// Return level for a specific subsystem
+			level, err := logging.GetLogLevel(subsystem)
+			if err != nil {
+				return err
+			}
+			levelMap := map[string]string{subsystem: level}
+			return cmds.EmitOnce(res, &logLevelsOutput{Levels: levelMap})
+		}
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *logLevelsOutput) error {
+			for subsystem, level := range out.Levels {
+				fmt.Fprintf(w, "%s: %s\n", subsystem, level)
+			}
+			return nil
+		}),
+	},
+	Type: logLevelsOutput{},
+}
+
+type logLevelsOutput struct {
+	Levels map[string]string
 }

@@ -268,3 +268,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
+
+// TODO: remove this once the new version is released. see https://github.com/ipfs/go-log/pull/160
+replace github.com/ipfs/go-log/v2 => github.com/ipfs/go-log/v2 v2.6.1-0.20250724175712-a4f06c3cd11b
