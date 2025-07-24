@@ -65,7 +65,7 @@ func testDaemonMigrationWithAuto(t *testing.T) {
 
 	// Debug: Print the actual output
 	t.Logf("Daemon output:\n%s", stdoutOutput)
-	
+
 	// Verify migration was successful based on monitoring
 	require.True(t, migrationSuccess, "Migration should have been successful")
 	require.Contains(t, stdoutOutput, "applying 16-to-17 repo migration", "Migration should have been triggered")
@@ -143,289 +143,6 @@ func testDaemonMigrationWithoutAuto(t *testing.T) {
 // =============================================================================
 // Tests using 'ipfs daemon --migrate' command
 // =============================================================================
-
-func testForwardMigrationWithDaemon(t *testing.T) {
-	// TEST: Forward migration using 'ipfs daemon --migrate' command
-	// This is critical because --migrate is enabled by default in the Dockerfile,
-	// so daemon startup must be able to perform migrations automatically
-	node := harness.NewT(t).NewNode()
-
-	// Static v16 config fixture with default bootstrap peers that will be replaced with "auto"
-	v16ConfigJSON := `{
-  "API": {
-    "HTTPHeaders": {}
-  },
-  "Addresses": {
-    "API": "/ip4/127.0.0.1/tcp/5001",
-    "Gateway": "/ip4/127.0.0.1/tcp/8080"
-  },
-  "Bootstrap": [
-    "/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-    "/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa"
-  ],
-  "Datastore": {
-    "StorageMax": "10GB",
-    "StorageGCWatermark": 90,
-    "GCPeriod": "1h",
-    "Spec": {
-      "type": "mount",
-      "mounts": [
-        {
-          "mountpoint": "/blocks",
-          "type": "flatfs",
-          "path": "blocks",
-          "shardFunc": "/repo/flatfs/shard/v1/next-to-last/2"
-        },
-        {
-          "mountpoint": "/",
-          "type": "levelds",
-          "path": "datastore",
-          "compression": "none"
-        }
-      ]
-    }
-  },
-  "DNS": {
-    "Resolvers": {
-      "eth.": "https://dns.eth.limo/dns-query"
-    }
-  },
-  "Identity": {
-    "PeerID": "12D3KooWTest",
-    "PrivKey": "CAESQTest"
-  },
-  "Routing": {
-    "Type": "dht"
-  }
-}`
-
-	// Write v16 config and version files
-	configPath := filepath.Join(node.Dir, "config")
-	require.NoError(t, os.WriteFile(configPath, []byte(v16ConfigJSON), 0644))
-
-	versionPath := filepath.Join(node.Dir, "version")
-	require.NoError(t, os.WriteFile(versionPath, []byte("16"), 0644))
-
-	// Test that daemon --migrate performs the migration (without requiring full daemon startup)
-	// Note: This test is essential because --migrate is enabled by default in the Dockerfile,
-	// ensuring that Kubo containers can automatically upgrade repositories on startup
-
-	// Run daemon with --migrate - expect migration to succeed but daemon to fail due to corrupted config
-	stdoutOutput, migrationSuccess := runDaemonMigrationWithMonitoring(t, node)
-
-	// Migration should succeed even if daemon fails to start due to config issues
-	require.True(t, migrationSuccess, "Migration should have been successful despite config corruption")
-	require.Contains(t, stdoutOutput, "applying 16-to-17 repo migration", "Migration should have been triggered")
-	require.Contains(t, stdoutOutput, "Migration 16 to 17 succeeded", "Migration should have completed successfully")
-
-	// Verify version was updated to 17 (this proves the migration ran)
-	versionData, err := os.ReadFile(versionPath)
-	require.NoError(t, err)
-	require.Equal(t, "17", strings.TrimSpace(string(versionData)), "Version should be updated to 17 by daemon --migrate")
-
-	// Verify migration results using DRY helper
-	helper := NewMigrationTestHelper(t, configPath)
-	helper.RequireAutoConfigDefaults().
-		RequireArrayContains("Bootstrap", "auto").
-		RequireArrayLength("Bootstrap", 1). // Should only contain "auto" when all peers were defaults
-		RequireArrayContains("Routing.DelegatedRouters", "auto").
-		RequireArrayContains("Ipns.DelegatedPublishers", "auto")
-
-	// Check that eth. resolver was replaced with "auto" since it was a default URL
-	helper.RequireFieldEquals("DNS.Resolvers[eth.]", "auto")
-}
-
-func testBackwardMigration(t *testing.T) {
-	// TEST: Backward migration using 'ipfs repo migrate --to=16 --allow-downgrade' command
-	// Test downgrading from v17 to v16
-	// Should remove autoconfig fields and replace auto values with defaults
-	node := harness.NewT(t).NewNode()
-
-	// Create a v16-style config (no AutoConfig, no "auto" values)
-	v16Config := map[string]interface{}{
-		"API": map[string]interface{}{
-			"HTTPHeaders": map[string]interface{}{},
-		},
-		"Addresses": map[string]interface{}{
-			"API":     "/ip4/127.0.0.1/tcp/5001",
-			"Gateway": "/ip4/127.0.0.1/tcp/8080",
-		},
-		"Bootstrap": []string{
-			"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-		},
-		"DNS": map[string]interface{}{
-			"Resolvers": map[string]string{
-				".": "https://dns.example.com/dns-query",
-			},
-		},
-		"Identity": map[string]interface{}{
-			"PeerID":  "12D3KooWTest",
-			"PrivKey": "CAESQTest",
-		},
-		"Routing": map[string]interface{}{
-			"Type": "dht",
-		},
-	}
-
-	// Write v16 config and version
-	configPath := filepath.Join(node.Dir, "config")
-	configData, err := json.MarshalIndent(v16Config, "", "  ")
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(configPath, configData, 0644))
-
-	versionPath := filepath.Join(node.Dir, "version")
-	require.NoError(t, os.WriteFile(versionPath, []byte("16"), 0644))
-
-	// First run forward migration to get to v17 and create backup using CLI
-	result := node.RunIPFS("repo", "migrate")
-	require.Empty(t, result.Stderr.String(), "Forward migration should succeed")
-
-	// Verify we're at v17 and AutoConfig was added
-	versionData, err := os.ReadFile(versionPath)
-	require.NoError(t, err)
-	require.Equal(t, "17", strings.TrimSpace(string(versionData)), "Should be at version 17 after forward migration")
-
-	// Verify AutoConfig was added during forward migration
-	var v17Config map[string]interface{}
-	configData, err = os.ReadFile(configPath)
-	require.NoError(t, err)
-	require.NoError(t, json.Unmarshal(configData, &v17Config))
-	_, exists := v17Config["AutoConfig"]
-	require.True(t, exists, "AutoConfig should exist after forward migration")
-
-	// Now run reverse migration back to v16 using CLI
-	result = node.RunIPFS("repo", "migrate", "--to=16", "--allow-downgrade")
-	require.Empty(t, result.Stderr.String(), "Reverse migration should succeed")
-
-	// Verify version was downgraded to 16
-	versionData, err = os.ReadFile(versionPath)
-	require.NoError(t, err)
-	require.Equal(t, "16", strings.TrimSpace(string(versionData)), "Version should be downgraded to 16")
-
-	// Verify backward migration results: AutoConfig removed and no "auto" values remain
-	NewMigrationTestHelper(t, configPath).
-		RequireFieldAbsent("AutoConfig").
-		RequireNoAutoValues()
-
-	// After revert, the config should contain the original v16 config (backup was moved to become main config)
-	// The original v16 config should be restored exactly
-	var revertedConfig map[string]interface{}
-	configData, err = os.ReadFile(configPath)
-	require.NoError(t, err)
-	require.NoError(t, json.Unmarshal(configData, &revertedConfig))
-
-	// Verify it matches the original v16 config structure
-	require.Equal(t, v16Config["Identity"], revertedConfig["Identity"], "Identity should be restored exactly")
-
-	// Check Bootstrap content (type might differ due to JSON marshaling)
-	originalBootstrap := v16Config["Bootstrap"].([]string)
-	revertedBootstrap, ok := revertedConfig["Bootstrap"].([]interface{})
-	require.True(t, ok, "Bootstrap should be an array")
-	require.Len(t, revertedBootstrap, len(originalBootstrap), "Bootstrap should have same length")
-	for i, peer := range originalBootstrap {
-		require.Equal(t, peer, revertedBootstrap[i], "Bootstrap peer %d should match", i)
-	}
-}
-
-func testCorruptedConfigHandling(t *testing.T) {
-	// TEST: Error handling using 'ipfs repo migrate' command with corrupted config
-	// Test what happens when config file is corrupted during migration
-	node := harness.NewT(t).NewNode()
-
-	// Create corrupted config
-	configPath := filepath.Join(node.Dir, "config")
-	corruptedJson := `{"Bootstrap": [invalid json}`
-	require.NoError(t, os.WriteFile(configPath, []byte(corruptedJson), 0644))
-
-	// Write version file indicating v16
-	versionPath := filepath.Join(node.Dir, "version")
-	require.NoError(t, os.WriteFile(versionPath, []byte("16"), 0644))
-
-	// Run migration with corrupted config using CLI
-	result := node.RunIPFS("repo", "migrate")
-
-	// Verify graceful failure handling
-	require.NotEmpty(t, result.Stderr.String(), "Migration should fail with corrupted config")
-	errorOutput := result.Stderr.String()
-	require.True(t, strings.Contains(errorOutput, "json") || strings.Contains(errorOutput, "invalid character"), "Error should mention JSON parsing issue")
-
-	// Verify atomic failure: nothing should be changed
-	backupPath := configPath + ".16-to-17.bak"
-	// Note: Backup may or may not exist depending on when the error occurs
-	if _, err := os.Stat(backupPath); err == nil {
-		// If backup exists, verify it contains the original corrupted content
-		backupContent, err := os.ReadFile(backupPath)
-		require.NoError(t, err)
-		require.Equal(t, corruptedJson, string(backupContent), "Backup should contain original corrupted config")
-	}
-
-	versionData, err := os.ReadFile(versionPath)
-	require.NoError(t, err)
-	require.Equal(t, "16", strings.TrimSpace(string(versionData)), "Version should remain unchanged after failed migration")
-
-	originalContent, err := os.ReadFile(configPath)
-	require.NoError(t, err)
-	require.Equal(t, corruptedJson, string(originalContent), "Original config should be unchanged after failed migration")
-
-	// Verify no migration artifacts remain
-	entries, err := os.ReadDir(node.Dir)
-	require.NoError(t, err)
-	for _, entry := range entries {
-		name := entry.Name()
-		require.NotContains(t, name, ".tmp", "No temporary files should exist after failed migration")
-		require.NotContains(t, name, ".partial", "No partial migration files should exist")
-	}
-}
-
-func testMissingFieldsHandling(t *testing.T) {
-	// TEST: Migration using 'ipfs repo migrate' command with minimal config
-	// Test migration when config is missing expected fields
-	node := harness.NewT(t).NewNode()
-
-	// Create minimal config missing many fields
-	minimalConfig := map[string]interface{}{
-		"Identity": map[string]interface{}{
-			"PeerID": "12D3KooWTest",
-		},
-		// Missing: Bootstrap, DNS, Routing, Ipns, etc.
-	}
-
-	configPath := filepath.Join(node.Dir, "config")
-	configData, err := json.MarshalIndent(minimalConfig, "", "  ")
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(configPath, configData, 0644))
-
-	// Write version file indicating v16
-	versionPath := filepath.Join(node.Dir, "version")
-	require.NoError(t, os.WriteFile(versionPath, []byte("16"), 0644))
-
-	// Run migration using CLI
-	result := node.RunIPFS("repo", "migrate")
-	require.Empty(t, result.Stderr.String(), "Migration should succeed even with missing fields")
-
-	// Verify version was updated
-	versionData, err := os.ReadFile(versionPath)
-	require.NoError(t, err)
-	require.Equal(t, "17", strings.TrimSpace(string(versionData)), "Version should be updated to 17")
-
-	// Read migrated config
-	var migratedConfig map[string]interface{}
-	configData, err = os.ReadFile(configPath)
-	require.NoError(t, err)
-	require.NoError(t, json.Unmarshal(configData, &migratedConfig))
-
-	// Verify migration adds all required fields to minimal config
-	NewMigrationTestHelper(t, configPath).
-		RequireAutoConfigDefaults().
-		RequireAutoFieldsSetToAuto().
-		RequireFieldExists("Identity.PeerID") // Original identity preserved from static fixture
-
-	// Verify only expected fields were added (no extras)
-	expectedTopLevelFields := []string{"Identity", "AutoConfig", "Bootstrap", "DNS", "Routing", "Ipns"}
-	for field := range migratedConfig {
-		require.Contains(t, expectedTopLevelFields, field, "Only expected fields should be present in migrated minimal config")
-	}
-}
 
 // Test helper structs and functions for cleaner, more DRY tests
 
@@ -711,13 +428,6 @@ func cloneStaticRepoFixture(t *testing.T, srcPath, dstPath string) {
 	}
 }
 
-// Legacy helper function - kept for backward compatibility but now uses new helper
-func verifyMigratedConfig(t *testing.T, configPath string) {
-	NewMigrationTestHelper(t, configPath).
-		RequireAutoConfigDefaults().
-		RequireArrayContains("Bootstrap", "auto")
-}
-
 // Placeholder stubs for new test functions - to be implemented
 func testDaemonCorruptedConfigHandling(t *testing.T) {
 	// TEST: Error handling using 'ipfs daemon --migrate' command with corrupted config (PRIMARY)
@@ -923,7 +633,7 @@ func runDaemonWithMigrationMonitoring(t *testing.T, node *harness.Node, migratio
 		case <-ctx.Done():
 			// Timeout - kill the process
 			if cmd.Process != nil {
-				cmd.Process.Kill()
+				_ = cmd.Process.Kill()
 			}
 			t.Logf("Daemon migration timed out after 60 seconds")
 			return allOutput.String(), false
@@ -941,12 +651,12 @@ func runDaemonWithMigrationMonitoring(t *testing.T, node *harness.Node, migratio
 					t.Logf("Warning: ipfs shutdown failed: %v", err)
 					// Force kill if graceful shutdown fails
 					if cmd.Process != nil {
-						cmd.Process.Kill()
+						_ = cmd.Process.Kill()
 					}
 				}
 
 				// Wait for process to exit
-				cmd.Wait()
+				_ = cmd.Wait()
 
 				// Return success if we detected migration
 				success := migrationDetected && migrationSucceeded

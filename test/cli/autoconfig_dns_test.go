@@ -133,7 +133,7 @@ func (m *mockDoHServer) handleDNSQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/dns-message")
-	w.Write(responseData)
+	_, _ = w.Write(responseData)
 }
 
 func (m *mockDoHServer) getRequests() []string {
@@ -164,7 +164,7 @@ func testDNSResolutionWithAutoDoH(t *testing.T) {
 	// Create autoconfig server
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(autoConfigData))
+		_, _ = w.Write([]byte(autoConfigData))
 	}))
 	defer autoConfigServer.Close()
 
@@ -234,7 +234,7 @@ func testDNSErrorHandling(t *testing.T) {
 	// Create autoconfig server
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(autoConfigData))
+		_, _ = w.Write([]byte(autoConfigData))
 	}))
 	defer autoConfigServer.Close()
 

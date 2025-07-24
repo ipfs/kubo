@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/ipfs/kubo/boxo/autoconfig"
-	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,7 +55,7 @@ func testFuzzAutoConfigVersion(t *testing.T) {
 
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write(jsonData)
+				_, _ = w.Write(jsonData)
 			}))
 			defer server.Close()
 
@@ -110,7 +109,7 @@ func testFuzzBootstrapArrays(t *testing.T) {
 
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write(jsonData)
+				_, _ = w.Write(jsonData)
 			}))
 			defer server.Close()
 
@@ -161,7 +160,7 @@ func testFuzzDNSResolvers(t *testing.T) {
 
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write(jsonData)
+				_, _ = w.Write(jsonData)
 			}))
 			defer server.Close()
 
@@ -210,7 +209,7 @@ func testFuzzDelegatedRouters(t *testing.T) {
 
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write(jsonData)
+				_, _ = w.Write(jsonData)
 			}))
 			defer server.Close()
 
@@ -251,7 +250,7 @@ func testFuzzMalformedJSON(t *testing.T) {
 		t.Run(fmt.Sprintf("malformed_%d", i), func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(malformedJSON))
+				_, _ = w.Write([]byte(malformedJSON))
 			}))
 			defer server.Close()
 
@@ -294,7 +293,7 @@ func testFuzzLargePayloads(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(jsonData)
+		_, _ = w.Write(jsonData)
 	}))
 	defer server.Close()
 
@@ -306,92 +305,6 @@ func testFuzzLargePayloads(t *testing.T) {
 	require.NoError(t, err, "Should handle large payloads")
 	require.NotNil(t, autoConf, "Should return valid config")
 	require.Len(t, autoConf.Bootstrap, 10000, "Should preserve all bootstrap entries")
-}
-
-// testFuzzWithDaemon tests that the daemon can handle various autoconfig responses
-// without crashing, even if the configs are unusual
-func testFuzzWithDaemon(t *testing.T) {
-	// Test daemon startup with various fuzzed autoconfig scenarios
-	testCases := []struct {
-		name          string
-		config        map[string]interface{}
-		shouldSucceed bool
-	}{
-		{
-			name: "valid config with auto values",
-			config: map[string]interface{}{
-				"AutoConfigVersion": 2025072301,
-				"AutoConfigSchema":  3,
-				"Bootstrap": []string{
-					"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-				},
-				"DNSResolvers": map[string][]string{
-					".": []string{"https://cloudflare-dns.com/dns-query"},
-				},
-			},
-			shouldSucceed: true,
-		},
-		{
-			name: "empty bootstrap array",
-			config: map[string]interface{}{
-				"AutoConfigVersion": 2025072301,
-				"AutoConfigSchema":  3,
-				"Bootstrap":         []string{},
-				"DNSResolvers": map[string][]string{
-					".": []string{"https://cloudflare-dns.com/dns-query"},
-				},
-			},
-			shouldSucceed: true,
-		},
-		{
-			name: "minimal valid config",
-			config: map[string]interface{}{
-				"AutoConfigVersion": 2025072301,
-				"AutoConfigSchema":  3,
-			},
-			shouldSucceed: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Create autoconfig server with test data
-			jsonData, err := json.Marshal(tc.config)
-			require.NoError(t, err)
-
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.Write(jsonData)
-			}))
-			defer server.Close()
-
-			// Create IPFS node with auto values
-			node := harness.NewT(t).NewNode().Init("--profile=test")
-			node.SetIPFSConfig("AutoConfig.URL", server.URL)
-			node.SetIPFSConfig("AutoConfig.Enabled", true)
-			node.SetIPFSConfig("Bootstrap", []string{"auto"})
-
-			// Test daemon startup
-			if tc.shouldSucceed {
-				// Daemon should start successfully
-				node.StartDaemon()
-				defer node.StopDaemon()
-
-				// Verify daemon is running
-				result := node.RunIPFS("version")
-				require.Equal(t, 0, result.ExitCode(), "Daemon should be running with config: %s", tc.name)
-			} else {
-				// For invalid configs, we expect graceful degradation rather than startup failure
-				// The daemon should start but autoconfig should fail silently
-				node.StartDaemon()
-				defer node.StopDaemon()
-
-				// Even with bad autoconfig, daemon should still work
-				result := node.RunIPFS("version")
-				require.Equal(t, 0, result.ExitCode(), "Daemon should start even with invalid autoconfig: %s", tc.name)
-			}
-		})
-	}
 }
 
 // Helper function to generate many DNS resolvers for testing

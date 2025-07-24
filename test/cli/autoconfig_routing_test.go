@@ -98,12 +98,6 @@ func (m *mockRoutingServer) handleProviders(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (m *mockRoutingServer) getRequests() []string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return append([]string{}, m.requests...)
-}
-
 func (m *mockRoutingServer) close() {
 	m.server.Close()
 }
@@ -126,7 +120,7 @@ func testDelegatedRoutingWithAuto(t *testing.T) {
 	// Create autoconfig server
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(autoConfigData))
+		_, _ = w.Write([]byte(autoConfigData))
 	}))
 	defer autoConfigServer.Close()
 
@@ -185,7 +179,7 @@ func testRoutingErrorHandling(t *testing.T) {
 	// Create autoconfig server
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(autoConfigData))
+		_, _ = w.Write([]byte(autoConfigData))
 	}))
 	defer autoConfigServer.Close()
 

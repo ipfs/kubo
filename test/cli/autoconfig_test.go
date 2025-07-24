@@ -404,7 +404,7 @@ func testDaemonUsesResolvedBootstrap(t *testing.T) {
 
 	// Get bootstrap node's peer ID and swarm address
 	bootstrapPeerID := bootstrapNode.PeerID()
-	
+
 	// Use the configured swarm address (we set it to a specific port above)
 	bootstrapMultiaddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/14001/p2p/%s", bootstrapPeerID.String())
 	t.Logf("Bootstrap node configured at: %s", bootstrapMultiaddr)
@@ -441,8 +441,8 @@ func testDaemonUsesResolvedBootstrap(t *testing.T) {
 	// Step 5: Verify both nodes are responsive
 	result := bootstrapNode.RunIPFS("id")
 	require.Equal(t, 0, result.ExitCode(), "Bootstrap node should be responsive: %s", result.Stderr.String())
-	
-	result = autoconfigNode.RunIPFS("id") 
+
+	result = autoconfigNode.RunIPFS("id")
 	require.Equal(t, 0, result.ExitCode(), "Autoconfig node should be responsive: %s", result.Stderr.String())
 
 	// Step 6: Verify that autoconfig node connected to bootstrap node
