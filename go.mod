@@ -270,4 +270,4 @@ require (
 )
 
 // TODO: remove this once the new version is released. see https://github.com/ipfs/go-log/pull/160
-replace github.com/ipfs/go-log/v2 => github.com/ipfs/go-log/v2 v2.6.1-0.20250724175712-a4f06c3cd11b
+replace github.com/ipfs/go-log/v2 => github.com/sgtpooki/go-log/v2 v2.0.0-20250724190757-1d9b5d3dc8e2
