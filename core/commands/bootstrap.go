@@ -295,7 +295,11 @@ func bootstrapWritePeers(w io.Writer, prefix string, peers []string) error {
 }
 
 func bootstrapAdd(r repo.Repo, cfg *config.Config, peers []string) ([]string, error) {
+	// Validate peers - skip validation for "auto" placeholder
 	for _, p := range peers {
+		if p == config.AutoPlaceholder {
+			continue // Skip validation for "auto" placeholder
+		}
 		m, err := ma.NewMultiaddr(p)
 		if err != nil {
 			return nil, err
@@ -420,16 +424,35 @@ func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []string) ([]stri
 }
 
 func bootstrapRemoveAll(r repo.Repo, cfg *config.Config) ([]string, error) {
-	removed, err := cfg.BootstrapPeers()
-	if err != nil {
-		return nil, err
+	// Check if bootstrap contains "auto" - if so, we need special handling
+	hasAuto := false
+	for _, peer := range cfg.Bootstrap {
+		if peer == config.AutoPlaceholder {
+			hasAuto = true
+			break
+		}
+	}
+
+	var removed []string
+	if hasAuto {
+		// When "auto" is present, we can't parse it as peer.AddrInfo
+		// Just return the raw bootstrap list as strings for display
+		removed = make([]string, len(cfg.Bootstrap))
+		copy(removed, cfg.Bootstrap)
+	} else {
+		// Original logic for configs without "auto"
+		removedPeers, err := cfg.BootstrapPeers()
+		if err != nil {
+			return nil, err
+		}
+		removed = config.BootstrapPeerStrings(removedPeers)
 	}
 
 	cfg.Bootstrap = nil
 	if err := r.SetConfig(cfg); err != nil {
 		return nil, err
 	}
-	return config.BootstrapPeerStrings(removed), nil
+	return removed, nil
 }
 
 const bootstrapSecurityWarning = `
