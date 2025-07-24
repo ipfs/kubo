@@ -185,13 +185,13 @@ func testFuzzDelegatedRouters(t *testing.T) {
 		expectError bool
 	}{
 		{"valid routers", map[string][]string{
-			"for-nodes-with-dht": []string{"https://cid.contact"},
+			autoconfig.MainnetProfileNodesWithDHT: []string{"https://cid.contact"},
 		}, false},
 		{"empty routers", map[string]interface{}{}, false},
 		{"null routers", nil, false},
 		{"invalid nested structure", map[string]string{"invalid": "structure"}, true},
 		{"invalid router URLs", map[string][]string{
-			"for-nodes-with-dht": []string{"not-a-url"},
+			autoconfig.MainnetProfileNodesWithDHT: []string{"not-a-url"},
 		}, false}, // Should not error at parse time, validation happens later
 	}
 

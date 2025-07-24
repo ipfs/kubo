@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ipfs/kubo/boxo/autoconfig"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,10 +54,10 @@ func testAllAutoConfigFieldsResolve(t *testing.T) {
 			"eth.": {"https://dns.google/dns-query"},
 		},
 		"DelegatedRouters": map[string][]string{
-			"for-nodes-with-dht": {"https://cid.contact/routing/v1/providers"},
+			autoconfig.MainnetProfileNodesWithDHT: {"https://cid.contact/routing/v1/providers"},
 		},
 		"DelegatedPublishers": map[string][]string{
-			"mainnet-for-ipns-publishers-with-http": {"https://ipns.live"},
+			autoconfig.MainnetProfileIPNSPublishers: {"https://ipns.live"},
 		},
 	}
 
@@ -66,7 +67,7 @@ func testAllAutoConfigFieldsResolve(t *testing.T) {
 	// Create HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(autoConfigData)
+		_, _ = w.Write(autoConfigData)
 	}))
 	defer server.Close()
 
@@ -140,7 +141,7 @@ func testBootstrapCommandConsistency(t *testing.T) {
 	// Create HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(autoConfigData)
+		_, _ = w.Write(autoConfigData)
 	}))
 	defer server.Close()
 
@@ -223,7 +224,7 @@ func testConfigShowExpandAutoComplete(t *testing.T) {
 	// Create HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(autoConfigData)
+		_, _ = w.Write(autoConfigData)
 	}))
 	defer server.Close()
 

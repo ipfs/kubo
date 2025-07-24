@@ -58,10 +58,10 @@ func TestGetLatest(t *testing.T) {
 		Bootstrap:         []string{"/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWGzxzKZYveHXtpG6AsrUJBcWxHBFS2HsEoGTxrMLvKXtf"},
 		DNSResolvers:      map[string][]string{"eth.": {"https://example.com"}},
 		DelegatedRouters: map[string]DelegatedRouterConfig{
-			"mainnet-for-nodes-with-dht": {"https://cid.contact/routing/v1/providers"},
+			MainnetProfileNodesWithDHT: {"https://cid.contact/routing/v1/providers"},
 		},
 		DelegatedPublishers: map[string]DelegatedPublisherConfig{
-			"mainnet-for-ipns-publishers-with-http": {"https://delegated-ipfs.dev/routing/v1/ipns"},
+			MainnetProfileIPNSPublishers: {"https://delegated-ipfs.dev/routing/v1/ipns"},
 		},
 	}
 

@@ -22,16 +22,16 @@ func TestValidateAutoConfig(t *testing.T) {
 				"foo.": {"http://localhost:8080/dns-query", "https://1.2.3.4/dns-query"},
 			},
 			DelegatedRouters: map[string]DelegatedRouterConfig{
-				"mainnet-for-nodes-with-dht": {
+				MainnetProfileNodesWithDHT: {
 					"https://cid.contact/routing/v1/providers",
 					"http://192.168.1.1:8080/routing/v1/providers",
 				},
-				"mainnet-for-nodes-without-dht": {
+				MainnetProfileNodesWithoutDHT: {
 					"https://delegated-ipfs.dev/routing/v1/ipns",
 				},
 			},
 			DelegatedPublishers: map[string]DelegatedPublisherConfig{
-				"mainnet-for-ipns-publishers-with-http": {
+				MainnetProfileIPNSPublishers: {
 					"https://delegated-ipfs.dev/routing/v1/ipns",
 					"http://localhost:9090/routing/v1/ipns",
 				},

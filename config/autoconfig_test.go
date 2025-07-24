@@ -52,9 +52,9 @@ func TestAutoConfigProfile(t *testing.T) {
 	}
 
 	// Apply autoconfig profile
-	profile, ok := Profiles["autoconfig"]
+	profile, ok := Profiles["autoconfig-on"]
 	if !ok {
-		t.Fatal("autoconfig profile not found")
+		t.Fatal("autoconfig-on profile not found")
 	}
 
 	err := profile.Transform(cfg)

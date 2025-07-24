@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ipfs/kubo/boxo/autoconfig"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -113,9 +114,9 @@ func testDelegatedRoutingWithAuto(t *testing.T) {
 		"AutoConfigSchema": 3,
 		"Bootstrap": [],
 		"DelegatedRouters": {
-			"for-nodes-with-dht": ["%s"]
+			\"%s\": [\"%s\"]
 		}
-	}`, routingServer.server.URL)
+	}`, autoconfig.MainnetProfileNodesWithDHT, routingServer.server.URL)
 
 	// Create autoconfig server
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -172,9 +173,9 @@ func testRoutingErrorHandling(t *testing.T) {
 		"AutoConfigSchema": 3,
 		"Bootstrap": [],
 		"DelegatedRouters": {
-			"for-nodes-with-dht": ["%s"]
+			\"%s\": [\"%s\"]
 		}
-	}`, routingServer.server.URL)
+	}`, autoconfig.MainnetProfileNodesWithDHT, routingServer.server.URL)
 
 	// Create autoconfig server
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

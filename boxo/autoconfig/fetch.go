@@ -67,11 +67,11 @@ func (c *Client) MustGetConfigWithMainnetFallbacks(ctx context.Context, configUR
 			Bootstrap:    FallbackBootstrapPeers,
 			DNSResolvers: FallbackDNSResolvers,
 			DelegatedRouters: map[string]DelegatedRouterConfig{
-				"mainnet-for-nodes-with-dht":    DelegatedRouterConfig(FallbackDelegatedRouters),
-				"mainnet-for-nodes-without-dht": DelegatedRouterConfig(FallbackDelegatedRouters),
+				MainnetProfileNodesWithDHT:    DelegatedRouterConfig(FallbackDelegatedRouters),
+				MainnetProfileNodesWithoutDHT: DelegatedRouterConfig(FallbackDelegatedRouters),
 			},
 			DelegatedPublishers: map[string]DelegatedPublisherConfig{
-				"mainnet-for-ipns-publishers-with-http": DelegatedPublisherConfig(FallbackDelegatedPublishers),
+				MainnetProfileIPNSPublishers: DelegatedPublisherConfig(FallbackDelegatedPublishers),
 			},
 		}
 	}
@@ -86,17 +86,17 @@ func (c *Client) MustGetConfigWithMainnetFallbacks(ctx context.Context, configUR
 	if config.DelegatedRouters == nil {
 		config.DelegatedRouters = make(map[string]DelegatedRouterConfig)
 	}
-	if len(config.DelegatedRouters["mainnet-for-nodes-with-dht"]) == 0 {
-		config.DelegatedRouters["mainnet-for-nodes-with-dht"] = DelegatedRouterConfig(FallbackDelegatedRouters)
+	if len(config.DelegatedRouters[MainnetProfileNodesWithDHT]) == 0 {
+		config.DelegatedRouters[MainnetProfileNodesWithDHT] = DelegatedRouterConfig(FallbackDelegatedRouters)
 	}
-	if len(config.DelegatedRouters["mainnet-for-nodes-without-dht"]) == 0 {
-		config.DelegatedRouters["mainnet-for-nodes-without-dht"] = DelegatedRouterConfig(FallbackDelegatedRouters)
+	if len(config.DelegatedRouters[MainnetProfileNodesWithoutDHT]) == 0 {
+		config.DelegatedRouters[MainnetProfileNodesWithoutDHT] = DelegatedRouterConfig(FallbackDelegatedRouters)
 	}
 	if config.DelegatedPublishers == nil {
 		config.DelegatedPublishers = make(map[string]DelegatedPublisherConfig)
 	}
-	if len(config.DelegatedPublishers["mainnet-for-ipns-publishers-with-http"]) == 0 {
-		config.DelegatedPublishers["mainnet-for-ipns-publishers-with-http"] = DelegatedPublisherConfig(FallbackDelegatedPublishers)
+	if len(config.DelegatedPublishers[MainnetProfileIPNSPublishers]) == 0 {
+		config.DelegatedPublishers[MainnetProfileIPNSPublishers] = DelegatedPublisherConfig(FallbackDelegatedPublishers)
 	}
 
 	return config

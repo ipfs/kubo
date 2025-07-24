@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ipfs/kubo/boxo/autoconfig"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -131,9 +132,9 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 		"AutoConfigSchema": 3,
 		"Bootstrap": [],
 		"DelegatedPublishers": {
-			"for-ipns-publishers-with-http": ["%s"]
+			\"%s\": [\"%s\"]
 		}
-	}`, ipnsPublisher.server.URL)
+	}`, autoconfig.MainnetProfileIPNSPublishers, ipnsPublisher.server.URL)
 
 	// Create autoconfig server
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -200,9 +201,9 @@ func testIPNSPublishingErrorHandling(t *testing.T) {
 		"AutoConfigSchema": 3,
 		"Bootstrap": [],
 		"DelegatedPublishers": {
-			"for-ipns-publishers-with-http": ["%s"]
+			\"%s\": [\"%s\"]
 		}
-	}`, ipnsPublisher.server.URL)
+	}`, autoconfig.MainnetProfileIPNSPublishers, ipnsPublisher.server.URL)
 
 	// Create autoconfig server
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
