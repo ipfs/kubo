@@ -7,6 +7,7 @@ import (
 
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/boxo/autoconfig"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 // AutoConfig contains the configuration for the autoconfig subsystem
@@ -85,8 +86,8 @@ func (c *Config) DNSResolversWithAutoConfig(repoPath string) map[string]string {
 	return resolved
 }
 
-// BootstrapPeersWithAutoConfig returns bootstrap peers with "auto" values replaced by autoconfig values
-func (c *Config) BootstrapPeersWithAutoConfig(repoPath string) []string {
+// BootstrapWithAutoConfig returns bootstrap config with "auto" values replaced by autoconfig values
+func (c *Config) BootstrapWithAutoConfig(repoPath string) []string {
 	var resolved []string
 	autoConfig := c.getAutoConfig(repoPath)
 
@@ -121,6 +122,13 @@ func (c *Config) getAutoConfig(repoPath string) *autoconfig.AutoConfig {
 
 	ctx := context.Background()
 	return client.MustGetConfigWithMainnetFallbacks(ctx, c.AutoConfig.URL)
+}
+
+// BootstrapPeersWithAutoConfig returns bootstrap peers with "auto" values replaced by autoconfig values
+// and parsed into peer.AddrInfo structures
+func (c *Config) BootstrapPeersWithAutoConfig(repoPath string) ([]peer.AddrInfo, error) {
+	bootstrapStrings := c.BootstrapWithAutoConfig(repoPath)
+	return ParseBootstrapPeers(bootstrapStrings)
 }
 
 // DelegatedRoutersWithAutoConfig returns delegated routers with "auto" values replaced by autoconfig values
@@ -183,7 +191,7 @@ func (c *Config) ExpandAutoConfigValues(cfgRoot string, cfg map[string]interface
 
 	// Expand Bootstrap using the shared method
 	if _, exists := expandedCfg["Bootstrap"]; exists {
-		expanded := c.BootstrapPeersWithAutoConfig(cfgRoot)
+		expanded := c.BootstrapWithAutoConfig(cfgRoot)
 		expandedCfg["Bootstrap"] = stringSliceToInterfaceSlice(expanded)
 	}
 
@@ -228,7 +236,7 @@ func (c *Config) ExpandConfigField(key string, value interface{}, cfgRoot string
 	switch key {
 	case "Bootstrap":
 		// Use the shared method from config/autoconfig.go
-		expanded := c.BootstrapPeersWithAutoConfig(cfgRoot)
+		expanded := c.BootstrapWithAutoConfig(cfgRoot)
 		return stringSliceToInterfaceSlice(expanded)
 
 	case "DNS.Resolvers":

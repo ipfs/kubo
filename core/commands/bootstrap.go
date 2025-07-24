@@ -266,7 +266,7 @@ var bootstrapListCmd = &cmds.Command{
 		expandAuto, _ := req.Options[configExpandAutoName].(bool)
 		if expandAuto {
 			// Use the same expansion method as the daemon
-			expandedBootstrap := cfg.BootstrapPeersWithAutoConfig(cfgRoot)
+			expandedBootstrap := cfg.BootstrapWithAutoConfig(cfgRoot)
 			return cmds.EmitOnce(res, &BootstrapOutput{expandedBootstrap})
 		}
 

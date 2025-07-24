@@ -96,8 +96,7 @@ func BaseRouting(cfg *config.Config) interface{} {
 				return out, err
 			}
 			// Use auto-config resolution for actual connectivity
-			resolvedBootstrap := cfg.BootstrapPeersWithAutoConfig(in.Repo.Path())
-			bspeers, err := config.ParseBootstrapPeers(resolvedBootstrap)
+			bspeers, err := cfg.BootstrapPeersWithAutoConfig(in.Repo.Path())
 			if err != nil {
 				return out, err
 			}
