@@ -84,7 +84,10 @@ func makeNode(t *testing.T) (node *core.IpfsNode, repopath string) {
 		t.Fatal("bad datastore plugin")
 	}
 
-	fsrepo.AddDatastoreConfigHandler(pebbledspl.DatastoreTypeName(), pebbledspl.DatastoreConfigParser())
+	err = fsrepo.AddDatastoreConfigHandler(pebbledspl.DatastoreTypeName(), pebbledspl.DatastoreConfigParser())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Create a config with default options and a 2048 bit key
 	cfg, err := config.Init(io.Discard, 2048)
@@ -129,7 +132,9 @@ func makeNode(t *testing.T) (node *core.IpfsNode, repopath string) {
 }
 
 func TestSendTelemetry(t *testing.T) {
-	logging.SetLogLevel("telemetry", "DEBUG")
+	if err := logging.SetLogLevel("telemetry", "DEBUG"); err != nil {
+		t.Fatal(err)
+	}
 	ts, eventGetter := mockServer(t)
 	defer ts.Close()
 
