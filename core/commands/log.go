@@ -44,13 +44,16 @@ var logLevelCmd = &cmds.Command{
 		ShortDescription: `
 Change the verbosity of one or all subsystems log output. This does not affect
 the event log.
+
+This provides a dynamic, runtime alternative to the GOLOG_LOG_LEVEL environment
+variable documented in 'ipfs log'.
 `,
 	},
 
 	Arguments: []cmds.Argument{
 		// TODO use a different keyword for 'all' because all can theoretically
 		// clash with a subsystem name
-		cmds.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for all subsystems.", logAllKeyword)),
+		cmds.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' to set the global default level.", logAllKeyword)),
 		cmds.StringArg("level", true, false, `The log level, with 'debug' the most verbose and 'fatal' the least verbose.
 			One of: debug, info, warn, error, dpanic, panic, fatal.
 		`),
@@ -150,10 +153,14 @@ This will only return 'info' logs from bitswap and skip 'debug'.
 
 var logGetLevelCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get the current logging level.",
+		Tagline: "Get the logging level.",
 		ShortDescription: `
-'ipfs log get-level' is a utility command used to get the current logging
-level for a specific subsystem or all subsystems.
+'ipfs log get-level' is a utility command used to get the logging level for
+a specific subsystem, the global default, or all subsystems.
+
+This complements 'ipfs log level' and provides runtime visibility into the
+current logging configuration (whether set by GOLOG_LOG_LEVEL environment
+variable or changed dynamically).
 
 Examples:
   ipfs log get-level       # Show levels for all subsystems
@@ -163,7 +170,7 @@ Examples:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("subsystem", false, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for all subsystems. If not specified, returns levels for all subsystems.", logAllKeyword)),
+		cmds.StringArg("subsystem", false, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for the global default level. If not specified, returns levels for all subsystems.", logAllKeyword)),
 	},
 	NoLocal: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
