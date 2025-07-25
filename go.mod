@@ -39,7 +39,7 @@ require (
 	github.com/ipfs/go-ipld-format v0.6.2
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.2.2
-	github.com/ipfs/go-log/v2 v2.6.0
+	github.com/ipfs/go-log/v2 v2.6.1-0.20250724190757-1d9b5d3dc8e2
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
 	github.com/ipfs/go-test v0.2.2
@@ -268,6 +268,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
-
-// TODO: remove this once the new version is released. see https://github.com/ipfs/go-log/pull/160
-replace github.com/ipfs/go-log/v2 => github.com/sgtpooki/go-log/v2 v2.0.0-20250724190757-1d9b5d3dc8e2

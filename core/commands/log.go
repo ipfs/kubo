@@ -45,8 +45,8 @@ var logLevelCmd = &cmds.Command{
 Change the verbosity of one or all subsystems log output. This does not affect
 the event log.
 
-This provides a dynamic, runtime alternative to the GOLOG_LOG_LEVEL environment
-variable documented in 'ipfs log'.
+This provides a dynamic, runtime alternative to the GOLOG_LOG_LEVEL
+environment variable documented in 'ipfs log'.
 `,
 	},
 
