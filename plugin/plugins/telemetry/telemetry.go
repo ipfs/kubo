@@ -261,7 +261,7 @@ Kubo will send anonymized information to the developers:
            features.
   - What?  Anonymized information only. You can inspect it with
            'GOLOG_LOG_LEVEL="telemetry=debug"'
-  - When?  1 minute after daemon's boot, or every 24h.
+  - When?  %s after daemon's boot, or every 24h.
   - How?   An HTTP request to %s.
 
 To opt-out, CTRL-C now and:
@@ -271,7 +271,7 @@ To opt-out, CTRL-C now and:
 
 Your telemetry UUID is: %s
 
-`, endpoint, modeEnvVar, p.event.UUID)
+`, p.sendDelay, endpoint, modeEnvVar, p.event.UUID)
 }
 
 // Start finishes telemetry initialization once the IpfsNode is ready,
