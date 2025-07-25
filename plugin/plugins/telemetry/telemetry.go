@@ -190,12 +190,6 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 		p.mode = modeOptIn
 	}
 	log.Debug("telemetry mode: ", p.mode)
-
-	// loadUUID might switch to modeInfo when generating a new uuid
-	if err := p.loadUUID(); err != nil {
-		p.mode = modeOptOut
-		return nil
-	}
 	return nil
 }
 
@@ -317,12 +311,14 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 		return p.sendTelemetry()
 	}
 
-	timer := time.NewTimer(p.sendDelay)
-	for range timer.C {
-		p.prepareEvent()
-		_ = p.sendTelemetry()
-		timer.Reset(24 * time.Hour)
-	}
+	go func() {
+		timer := time.NewTimer(p.sendDelay)
+		for range timer.C {
+			p.prepareEvent()
+			_ = p.sendTelemetry()
+			timer.Reset(24 * time.Hour)
+		}
+	}()
 
 	return nil
 }
