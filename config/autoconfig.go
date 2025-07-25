@@ -6,10 +6,13 @@ import (
 	"path/filepath"
 	"time"
 
+	logging "github.com/ipfs/go-log/v2"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/boxo/autoconfig"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
+
+var log = logging.Logger("config")
 
 // AutoConfig contains the configuration for the autoconfig subsystem
 type AutoConfig struct {
@@ -55,6 +58,7 @@ func (c *Config) DNSResolversWithAutoConfig(repoPath string) map[string]string {
 
 	resolved := make(map[string]string)
 	autoConfig := c.getAutoConfig(repoPath)
+	autoExpanded := 0
 
 	// Process each resolver
 	for domain, resolver := range c.DNS.Resolvers {
@@ -63,7 +67,9 @@ func (c *Config) DNSResolversWithAutoConfig(repoPath string) map[string]string {
 			if autoConfig != nil && autoConfig.DNSResolvers != nil {
 				if resolvers, exists := autoConfig.DNSResolvers[domain]; exists && len(resolvers) > 0 {
 					// Use random resolver from autoconfig for load balancing
-					resolved[domain] = resolvers[rand.Intn(len(resolvers))]
+					selectedResolver := resolvers[rand.Intn(len(resolvers))]
+					resolved[domain] = selectedResolver
+					autoExpanded++
 				}
 			}
 			// If autoConfig is nil (disabled), skip this "auto" resolver - don't expand it
@@ -84,28 +90,46 @@ func (c *Config) DNSResolversWithAutoConfig(repoPath string) map[string]string {
 	}
 	// If autoConfig is nil (disabled), don't add any default resolvers
 
+	// Log expansion if any "auto" values were found
+	if autoExpanded > 0 {
+		log.Debugf("expanding 'auto' DNS.Resolvers placeholder to %d resolvers from autoconfig", autoExpanded)
+	}
+
+	return resolved
+}
+
+// expandAutoConfigSlice is a generic helper for expanding "auto" placeholders in string slices
+// It handles the common pattern of: iterate through slice, expand "auto" once, keep custom values
+func expandAutoConfigSlice(sourceSlice []string, autoConfigData []string, fieldName string) []string {
+	var resolved []string
+	autoExpanded := false
+
+	for _, item := range sourceSlice {
+		if item == AutoPlaceholder {
+			// Replace with autoconfig data (only once)
+			if autoConfigData != nil && !autoExpanded {
+				log.Debugf("expanding 'auto' %s placeholder to %d items from autoconfig", fieldName, len(autoConfigData))
+				resolved = append(resolved, autoConfigData...)
+				autoExpanded = true
+			}
+			// If autoConfigData is nil or already expanded, skip redundant "auto" entries silently
+		} else {
+			// Keep custom item
+			resolved = append(resolved, item)
+		}
+	}
+
 	return resolved
 }
 
 // BootstrapWithAutoConfig returns bootstrap config with "auto" values replaced by autoconfig values
 func (c *Config) BootstrapWithAutoConfig(repoPath string) []string {
-	var resolved []string
 	autoConfig := c.getAutoConfig(repoPath)
-
-	for _, peer := range c.Bootstrap {
-		if peer == AutoPlaceholder {
-			// Replace with bootstrap peers from autoconfig library
-			if autoConfig != nil {
-				resolved = append(resolved, autoConfig.Bootstrap...)
-			}
-			// If autoConfig is nil (disabled), skip this "auto" peer - don't expand it
-		} else {
-			// Keep custom peer
-			resolved = append(resolved, peer)
-		}
+	var autoConfigData []string
+	if autoConfig != nil {
+		autoConfigData = autoConfig.Bootstrap
 	}
-
-	return resolved
+	return expandAutoConfigSlice(c.Bootstrap, autoConfigData, "Bootstrap")
 }
 
 // getAutoConfig is a helper to get autoconfig data with fallbacks
@@ -143,49 +167,27 @@ func (c *Config) BootstrapPeersWithAutoConfig(repoPath string) ([]peer.AddrInfo,
 
 // DelegatedRoutersWithAutoConfig returns delegated routers with "auto" values replaced by autoconfig values
 func (c *Config) DelegatedRoutersWithAutoConfig(repoPath string) []string {
-	var resolved []string
 	autoConfig := c.getAutoConfig(repoPath)
 	nodeType := c.getNodeType()
-
-	for _, router := range c.Routing.DelegatedRouters {
-		if router == AutoPlaceholder {
-			// Replace with delegated routers from autoconfig library
-			if autoConfig != nil && autoConfig.DelegatedRouters != nil {
-				if routers, exists := autoConfig.DelegatedRouters[nodeType]; exists {
-					resolved = append(resolved, routers...)
-				}
-			}
-			// If autoConfig is nil (disabled), skip this "auto" router - don't expand it
-		} else {
-			// Keep custom router
-			resolved = append(resolved, router)
+	var autoConfigData []string
+	if autoConfig != nil && autoConfig.DelegatedRouters != nil {
+		if routers, exists := autoConfig.DelegatedRouters[nodeType]; exists {
+			autoConfigData = routers
 		}
 	}
-
-	return resolved
+	return expandAutoConfigSlice(c.Routing.DelegatedRouters, autoConfigData, "DelegatedRouters")
 }
 
 // DelegatedPublishersWithAutoConfig returns delegated publishers with "auto" values replaced by autoconfig values
 func (c *Config) DelegatedPublishersWithAutoConfig(repoPath string) []string {
-	var resolved []string
 	autoConfig := c.getAutoConfig(repoPath)
-
-	for _, publisher := range c.Ipns.DelegatedPublishers {
-		if publisher == AutoPlaceholder {
-			// Replace with delegated publishers from autoconfig library
-			if autoConfig != nil && autoConfig.DelegatedPublishers != nil {
-				if publishers, exists := autoConfig.DelegatedPublishers[autoconfig.MainnetProfileIPNSPublishers]; exists {
-					resolved = append(resolved, publishers...)
-				}
-			}
-			// If autoConfig is nil (disabled), skip this "auto" publisher - don't expand it
-		} else {
-			// Keep custom publisher
-			resolved = append(resolved, publisher)
+	var autoConfigData []string
+	if autoConfig != nil && autoConfig.DelegatedPublishers != nil {
+		if publishers, exists := autoConfig.DelegatedPublishers[autoconfig.MainnetProfileIPNSPublishers]; exists {
+			autoConfigData = publishers
 		}
 	}
-
-	return resolved
+	return expandAutoConfigSlice(c.Ipns.DelegatedPublishers, autoConfigData, "DelegatedPublishers")
 }
 
 // ExpandAutoConfigValues expands "auto" placeholders in config with their actual values using the same methods as the daemon

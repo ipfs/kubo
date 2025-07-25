@@ -2,7 +2,6 @@ package config
 
 import (
 	"testing"
-	"time"
 )
 
 func TestAutoConfigDefaults(t *testing.T) {

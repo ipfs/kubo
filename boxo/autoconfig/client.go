@@ -16,6 +16,12 @@ import (
 
 var log = logging.Logger("autoconfig")
 
+
+// writeOwnerOnlyFile writes data to a file with owner-only permissions (0600)
+func writeOwnerOnlyFile(filename string, data []byte) error {
+	return os.WriteFile(filename, data, 0600)
+}
+
 const (
 	defaultTimeout         = 5 * time.Second
 	defaultCacheSize       = 3
@@ -164,7 +170,6 @@ func (c *Client) getCacheDir(configURL string) (string, error) {
 
 // readMetadata reads cached ETag and Last-Modified values
 func (c *Client) readMetadata(cacheDir string) (etag, lastModified string) {
-	// Sanitize cache directory path
 	cleanCacheDir := filepath.Clean(cacheDir)
 
 	etagData, err := os.ReadFile(filepath.Join(cleanCacheDir, etagFile))
@@ -182,17 +187,14 @@ func (c *Client) readMetadata(cacheDir string) (etag, lastModified string) {
 
 // writeMetadata writes ETag and Last-Modified values to cache
 func (c *Client) writeMetadata(cacheDir, etag, lastModified string) error {
-	// Sanitize cache directory path
 	cleanCacheDir := filepath.Clean(cacheDir)
 	if etag != "" {
-		// Use owner-only permissions (0600) for security
-		if err := os.WriteFile(filepath.Join(cleanCacheDir, etagFile), []byte(etag), 0600); err != nil {
+		if err := writeOwnerOnlyFile(filepath.Join(cleanCacheDir, etagFile), []byte(etag)); err != nil {
 			return fmt.Errorf("failed to write etag: %w", err)
 		}
 	}
 	if lastModified != "" {
-		// Use owner-only permissions (0600) for security
-		if err := os.WriteFile(filepath.Join(cleanCacheDir, lastModifiedFile), []byte(lastModified), 0600); err != nil {
+		if err := writeOwnerOnlyFile(filepath.Join(cleanCacheDir, lastModifiedFile), []byte(lastModified)); err != nil {
 			return fmt.Errorf("failed to write last-modified: %w", err)
 		}
 	}

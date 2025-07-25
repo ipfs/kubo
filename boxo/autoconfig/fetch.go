@@ -33,11 +33,15 @@ func (c *Client) GetLatest(ctx context.Context, configURL string, refreshInterva
 	// Check if we have cached data that's still within refreshInterval
 	cachedResp, cacheErr := c.getCached(cacheDir)
 	if cacheErr == nil && cachedResp.CacheAge < refreshInterval {
-		log.Debugf("using cached autoconfig (age: %s, refresh interval: %s)", formatDuration(cachedResp.CacheAge), formatDuration(refreshInterval))
+		freshFor := refreshInterval - cachedResp.CacheAge
+		log.Debugf("using cached autoconfig (age: %s, fresh for %s)", formatDuration(cachedResp.CacheAge), formatDuration(freshFor))
 		return cachedResp, nil
 	}
 
 	// Cache is stale or doesn't exist, try to fetch from remote
+	if cacheErr == nil {
+		log.Debugf("cache stale (age: %s), checking for updates", formatDuration(cachedResp.CacheAge))
+	}
 	resp, err := c.fetchFromRemote(ctx, configURL, cacheDir)
 	if err != nil {
 		log.Warnf("failed to fetch from remote: %v", err)
@@ -166,8 +170,12 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 	etag, lastModified := c.readMetadata(cacheDir)
 	if etag != "" {
 		req.Header.Set("If-None-Match", etag)
+		log.Debugf("conditional request to %q with ETag: %q", configURL, etag)
 	} else if lastModified != "" {
 		req.Header.Set("If-Modified-Since", lastModified)
+		log.Debugf("conditional request to %q with If-Modified-Since: %q", configURL, lastModified)
+	} else {
+		log.Debugf("fetching autoconfig from %q", configURL)
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -178,7 +186,7 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 
 	// If not modified, refresh cache timestamp and return cached version
 	if resp.StatusCode == http.StatusNotModified {
-		log.Debugf("config not modified, refreshing cache timestamp")
+		log.Debugf("HTTP 304 Not Modified, refreshing cache timestamp")
 
 		// Refresh the cache file's modification time to reset TTL
 		if err := c.touchCache(cacheDir); err != nil {
@@ -199,6 +207,11 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read response body: %w", err)
 	}
+
+	// Log successful HTTP response details
+	newEtag := resp.Header.Get("ETag")
+	newLastModified := resp.Header.Get("Last-Modified")
+	log.Debugf("HTTP %d, got %d bytes, ETag: %q, Last-Modified: %q", resp.StatusCode, len(body), newEtag, newLastModified)
 
 	// Parse JSON
 	var config Config
@@ -227,9 +240,7 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 		log.Warnf("failed to save to cache: %v", err)
 	}
 
-	// Save metadata
-	newEtag := resp.Header.Get("ETag")
-	newLastModified := resp.Header.Get("Last-Modified")
+	// Save metadata (reuse already read headers)
 	if err := c.writeMetadata(cacheDir, newEtag, newLastModified); err != nil {
 		log.Warnf("failed to save metadata: %v", err)
 	}
@@ -308,7 +319,6 @@ func (c *Client) getCached(cacheDir string) (*Response, error) {
 
 // listCacheFiles returns all cached files sorted by timestamp (newest first)
 func (c *Client) listCacheFiles(cacheDir string) ([]string, error) {
-	// Sanitize cache directory path
 	cleanCacheDir := filepath.Clean(cacheDir)
 	entries, err := os.ReadDir(cleanCacheDir)
 	if err != nil {
@@ -332,15 +342,13 @@ func (c *Client) listCacheFiles(cacheDir string) ([]string, error) {
 
 // saveToCache saves config to cache using unix timestamp
 func (c *Client) saveToCache(cacheDir string, data []byte) error {
-	// Sanitize cache directory path
 	cleanCacheDir := filepath.Clean(cacheDir)
 
 	// Use unix timestamp for filename to avoid trusting external values
 	timestamp := time.Now().Unix()
 	filename := filepath.Join(cleanCacheDir, fmt.Sprintf("autoconfig-%d.json", timestamp))
 
-	// Restrict permissions to owner-only (0600) for security
-	if err := os.WriteFile(filename, data, 0600); err != nil {
+	if err := writeOwnerOnlyFile(filename, data); err != nil {
 		return fmt.Errorf("failed to write cache file: %w", err)
 	}
 	return nil

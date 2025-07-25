@@ -172,6 +172,8 @@ func (u *BackgroundUpdater) runUpdater() {
 
 // performUpdate performs a single background autoconfig update
 func (u *BackgroundUpdater) performUpdate() error {
+	log.Debug("background update check starting")
+
 	// Get the current cached version before fetching
 	cacheDir, cacheDirErr := u.client.getCacheDir(u.configURL)
 	var oldVersion int64 = 0
@@ -190,6 +192,11 @@ func (u *BackgroundUpdater) performUpdate() error {
 
 	// Check if we got a new version and notify via callback
 	if !resp.FromCache && resp.Config.AutoConfigVersion != oldVersion {
+		if oldVersion == 0 {
+			log.Infof("fetched autoconfig version %d", resp.Config.AutoConfigVersion)
+		} else {
+			log.Infof("fetched autoconfig version %d (updated from %d)", resp.Config.AutoConfigVersion, oldVersion)
+		}
 		if u.onVersionChange != nil {
 			u.onVersionChange(oldVersion, resp.Config.AutoConfigVersion, u.configURL)
 		}
