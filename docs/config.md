@@ -40,7 +40,7 @@ config file at runtime.
     - [`AutoConfig.URL`](#autoconfigurl)
     - [`AutoConfig.Enabled`](#autoconfigenabled)
     - [`AutoConfig.LastUpdate`](#autoconfiglastupdate)
-    - [`AutoConfig.CheckInterval`](#autoconfigcheckinterval)
+    - [`AutoConfig.RefreshInterval`](#autoconfigrefreshinterval)
     - [`AutoConfig.TLSInsecureSkipVerify`](#autoconfigtlsinsecureskipverify)
   - [`Bitswap`](#bitswap)
     - [`Bitswap.Libp2pEnabled`](#bitswaplibp2penabled)
@@ -574,9 +574,9 @@ AutoConfig can resolve `"auto"` placeholders in the following configuration fiel
 ```json
 {
   "AutoConfig": {
-    "URL": "https://config.ipfs-mainnet.org/autoconfig.json",
+    "URL": "https://example.com/autoconfig.json",
     "Enabled": true,
-    "CheckInterval": "24h"
+    "RefreshInterval": "24h"
   },
   "Bootstrap": ["auto"],
   "DNS": {
@@ -664,7 +664,7 @@ The URL must serve a JSON document matching the AutoConfig schema. Kubo validate
 > [!NOTE]
 > Public good autoconfig manifest at `config.ipfs-mainnet.org` is provided by the team at [Shipyard](https://ipshipyard.com).
 
-Default: `"https://config.ipfs-mainnet.org/autoconfig.json"`
+Default: `"https://example.com/autoconfig.json"`
 
 Type: `optionalString`
 
@@ -676,9 +676,9 @@ Default: `""`
 
 Type: `string` (RFC3339 format)
 
-### `AutoConfig.CheckInterval`
+### `AutoConfig.RefreshInterval`
 
-Specifies how frequently Kubo should check for autoconfig updates in the background. The background service runs continuously after daemon startup, checking for new configuration at this interval.
+Specifies how frequently Kubo should refresh autoconfig data. This controls both how often cached autoconfig data is considered fresh and how frequently the background service checks for new configuration updates.
 
 When a new configuration version is detected during background updates, Kubo logs an ERROR message informing the user that a node restart is required to apply the changes to any `"auto"` entries in their configuration.
 

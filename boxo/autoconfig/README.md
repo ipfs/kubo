@@ -24,7 +24,7 @@ if err != nil {
 }
 
 // Fetch the latest config
-config, err := client.GetLatest(ctx, "https://config.ipfs-mainnet.org/autoconfig.json", 24*time.Hour)
+config, err := client.GetLatest(ctx, "https://example.com/autoconfig.json", autoconfig.DefaultRefreshInterval)
 if err != nil {
     return err
 }
@@ -59,7 +59,7 @@ func main() {
         panic(err)
     }
 
-    config, err := client.GetLatest(context.Background(), "https://config.ipfs-mainnet.org/autoconfig.json", 24*time.Hour)
+    config, err := client.GetLatest(context.Background(), "https://example.com/autoconfig.json", autoconfig.DefaultRefreshInterval)
     if err != nil {
         panic(err)
     }
@@ -84,7 +84,7 @@ func main() {
     }
 
     // Create background updater with custom callbacks
-    updater, err := autoconfig.NewBackgroundUpdater(client, "https://config.ipfs-mainnet.org/autoconfig.json",
+    updater, err := autoconfig.NewBackgroundUpdater(client, "https://example.com/autoconfig.json",
         autoconfig.WithUpdateInterval(6*time.Hour), // Check every 6 hours
         autoconfig.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {
             fmt.Printf("New config version %d available (was %d) - consider restarting\n", newVersion, oldVersion)
@@ -118,7 +118,7 @@ The cache is organized by hostname and version:
 ```
 $CACHE_DIR/
   autoconfig/
-    config.ipfs-mainnet.org/
+    example.com/
       2025071801.json
       2025071802.json
       .etag

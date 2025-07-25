@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-const (
-	defaultUpdateInterval = 24 * time.Hour
-)
-
 // BackgroundUpdater handles periodic autoconfig updates
 type BackgroundUpdater struct {
 	client          *Client
@@ -43,7 +39,7 @@ func NewBackgroundUpdater(client *Client, configURL string, options ...UpdaterOp
 	updater := &BackgroundUpdater{
 		client:         client,
 		configURL:      configURL,
-		updateInterval: defaultUpdateInterval,
+		updateInterval: DefaultRefreshInterval,
 	}
 
 	for _, opt := range options {

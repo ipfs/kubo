@@ -22,6 +22,19 @@ const (
 	defaultMaxResponseSize = 2 * 1024 * 1024 // 2MiB
 	etagFile               = ".etag"
 	lastModifiedFile       = ".last-modified"
+
+	// DefaultRefreshInterval is the default interval for refreshing autoconfig data.
+	// This interval strikes a balance between staying up-to-date with network changes
+	// and avoiding excessive HTTP requests to the autoconfig server. Most IPFS nodes
+	// can operate effectively with daily configuration refreshes.
+	DefaultRefreshInterval = 24 * time.Hour
+
+	// MainnetAutoConfigURL is the default URL for fetching autoconfig for the IPFS Mainnet.
+	// See https://docs.ipfs.tech/concepts/glossary/#mainnet for more information about IPFS Mainnet.
+	// This is a specific version that is known to work fine with current implementation,
+	// and it makes it a safe default while iterating on format.
+	// TODO: change it back to https://config.ipfs-mainnet.org/autoconfig.json before shipping
+	MainnetAutoConfigURL = "https://github.com/ipshipyard/config.ipfs-mainnet.org/raw/8fc9d8a793d13922be0fc5ea0634162613eadf6f/autoconfig.json"
 )
 
 // Client is the autoconfig client
@@ -156,12 +169,12 @@ func (c *Client) readMetadata(cacheDir string) (etag, lastModified string) {
 
 	etagData, err := os.ReadFile(filepath.Join(cleanCacheDir, etagFile))
 	if err != nil {
-		log.Debugf("failed to read cached etag: %v", err)
+		log.Debugf("previous etag not found: %v", err)
 	}
 
 	lastModData, err := os.ReadFile(filepath.Join(cleanCacheDir, lastModifiedFile))
 	if err != nil {
-		log.Debugf("failed to read cached last-modified: %v", err)
+		log.Debugf("previous last-modified not found: %v", err)
 	}
 
 	return strings.TrimSpace(string(etagData)), strings.TrimSpace(string(lastModData))

@@ -18,8 +18,8 @@ import (
 )
 
 // GetLatest fetches the latest config with metadata, using cache when possible
-// The checkInterval parameter determines how long cached configs are considered fresh
-func (c *Client) GetLatest(ctx context.Context, configURL string, checkInterval time.Duration) (*Response, error) {
+// The refreshInterval parameter determines how long cached configs are considered fresh
+func (c *Client) GetLatest(ctx context.Context, configURL string, refreshInterval time.Duration) (*Response, error) {
 	cacheDir, err := c.getCacheDir(configURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cache dir: %w", err)
@@ -30,10 +30,10 @@ func (c *Client) GetLatest(ctx context.Context, configURL string, checkInterval 
 		return nil, fmt.Errorf("failed to create cache dir: %w", err)
 	}
 
-	// Check if we have cached data that's still within checkInterval
+	// Check if we have cached data that's still within refreshInterval
 	cachedResp, cacheErr := c.getCached(cacheDir)
-	if cacheErr == nil && cachedResp.CacheAge < checkInterval {
-		log.Debugf("using cached autoconfig (age: %s, check interval: %s)", formatDuration(cachedResp.CacheAge), formatDuration(checkInterval))
+	if cacheErr == nil && cachedResp.CacheAge < refreshInterval {
+		log.Debugf("using cached autoconfig (age: %s, refresh interval: %s)", formatDuration(cachedResp.CacheAge), formatDuration(refreshInterval))
 		return cachedResp, nil
 	}
 
@@ -71,8 +71,8 @@ func (c *Client) GetCached(cacheDir string) (*Response, error) {
 // MustGetConfig returns config with fallbacks to hardcoded defaults
 // For cache-only behavior, pass a cancelled context
 // This method never returns an error and always returns usable mainnet values
-func (c *Client) MustGetConfig(ctx context.Context, configURL string, checkInterval time.Duration) *Config {
-	resp, err := c.GetLatest(ctx, configURL, checkInterval)
+func (c *Client) MustGetConfig(ctx context.Context, configURL string, refreshInterval time.Duration) *Config {
+	resp, err := c.GetLatest(ctx, configURL, refreshInterval)
 	var config *Config
 	if err == nil {
 		config = resp.Config
@@ -478,14 +478,4 @@ func (c *Client) validateConfig(config *Config) error {
 	}
 
 	return nil
-}
-
-// GetLatestConfig fetches the latest config only, using cache when possible
-// Uses a default check interval of 24 hours
-func (c *Client) GetLatestConfig(ctx context.Context, configURL string) (*Config, error) {
-	resp, err := c.GetLatest(ctx, configURL, 24*time.Hour)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Config, nil
 }

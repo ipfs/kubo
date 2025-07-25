@@ -14,7 +14,7 @@ func TestAutoConfigDefaults(t *testing.T) {
 		},
 	}
 
-	if cfg.AutoConfig.URL != "https://config.ipfs-mainnet.org/autoconfig.json" {
+	if cfg.AutoConfig.URL != DefaultAutoConfigURL {
 		t.Errorf("expected AutoConfig.URL to be %s, got %s", DefaultAutoConfigURL, cfg.AutoConfig.URL)
 	}
 
@@ -22,12 +22,12 @@ func TestAutoConfigDefaults(t *testing.T) {
 		t.Error("expected AutoConfig.Enabled to be true by default")
 	}
 
-	// Test default check interval
-	if cfg.AutoConfig.CheckInterval == nil {
+	// Test default refresh interval
+	if cfg.AutoConfig.RefreshInterval == nil {
 		// This is expected - nil means use default
-		duration := (*OptionalDuration)(nil).WithDefault(DefaultAutoConfigInterval)
-		if duration != 24*time.Hour {
-			t.Errorf("expected default check interval to be 24h, got %v", duration)
+		duration := (*OptionalDuration)(nil).WithDefault(DefaultAutoConfigRefreshInterval)
+		if duration != DefaultAutoConfigRefreshInterval {
+			t.Errorf("expected default refresh interval to be 24h, got %v", duration)
 		}
 	}
 }

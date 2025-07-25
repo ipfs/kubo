@@ -1286,7 +1286,7 @@ Visit https://github.com/ipfs/kubo/releases or https://dist.ipfs.tech/#kubo and 
 func startAutoConfigUpdater(ctx context.Context, r repo.Repo, autoConfigURL, userAgent string) {
 	autoconfigLog := logging.Logger("autoconfig")
 
-	// Get current config to read CheckInterval
+	// Get current config to read RefreshInterval
 	cfg, err := r.Config()
 	if err != nil {
 		autoconfigLog.Errorf("failed to read config for autoconfig updater: %v", err)
@@ -1306,9 +1306,9 @@ func startAutoConfigUpdater(ctx context.Context, r repo.Repo, autoConfigURL, use
 	}
 
 	// Create background updater with callbacks to maintain existing behavior
-	checkInterval := cfg.AutoConfig.CheckInterval.WithDefault(config.DefaultAutoConfigInterval)
+	refreshInterval := cfg.AutoConfig.RefreshInterval.WithDefault(config.DefaultAutoConfigRefreshInterval)
 	updater, err := autoconfig.NewBackgroundUpdater(client, autoConfigURL,
-		autoconfig.WithUpdateInterval(checkInterval),
+		autoconfig.WithUpdateInterval(refreshInterval),
 		autoconfig.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {
 			autoconfigLog.Errorf("new autoconfig version %d published at %s - restart node to apply updates to \"auto\" entries in Kubo config", newVersion, configURL)
 		}),

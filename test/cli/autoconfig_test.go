@@ -94,7 +94,7 @@ func testAutoConfigBasicFunctionality(t *testing.T) {
 	node.SetIPFSConfig("AutoConfig.URL", server.URL)
 	node.SetIPFSConfig("AutoConfig.Enabled", true)
 	// Disable background updates to prevent multiple requests
-	node.SetIPFSConfig("AutoConfig.CheckInterval", "24h")
+	node.SetIPFSConfig("AutoConfig.RefreshInterval", "24h")
 
 	// Test with normal bootstrap peers (not "auto") to avoid multiaddr parsing issues
 	// This tests that autoconfig fetching works without complex auto replacement
@@ -154,7 +154,7 @@ func testAutoConfigBackgroundUpdates(t *testing.T) {
 	node := harness.NewT(t).NewNode().Init("--profile=test")
 	node.SetIPFSConfig("AutoConfig.URL", server.URL)
 	node.SetIPFSConfig("AutoConfig.Enabled", true)
-	node.SetIPFSConfig("AutoConfig.CheckInterval", "2s") // Very short for testing
+	node.SetIPFSConfig("AutoConfig.RefreshInterval", "2s") // Very short for testing
 
 	// Use normal bootstrap values instead of "auto" to avoid parsing issues during node construction
 	node.SetIPFSConfig("Bootstrap", []string{"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"})
@@ -254,7 +254,7 @@ func testAutoConfigCaching(t *testing.T) {
 	node.SetIPFSConfig("AutoConfig.Enabled", true)
 	// Set short check interval to ensure cache is considered stale on second daemon start
 	// This ensures conditional requests will be made (testing 304 Not Modified response)
-	node.SetIPFSConfig("AutoConfig.CheckInterval", "100ms")
+	node.SetIPFSConfig("AutoConfig.RefreshInterval", "100ms")
 	// Use normal bootstrap values instead of "auto" to avoid parsing issues during node construction
 	node.SetIPFSConfig("Bootstrap", []string{"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"})
 
@@ -268,7 +268,7 @@ func testAutoConfigCaching(t *testing.T) {
 	atomic.StoreInt32(&requestCount, 0)
 	atomic.StoreInt32(&conditionalRequestCount, 0)
 
-	// Wait to ensure cache age exceeds CheckInterval (100ms)
+	// Wait to ensure cache age exceeds RefreshInterval (100ms)
 	time.Sleep(150 * time.Millisecond)
 
 	// Start the same node again (should make conditional request and get 304)

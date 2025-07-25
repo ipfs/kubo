@@ -14,7 +14,7 @@ import (
 // AutoConfig contains the configuration for the autoconfig subsystem
 type AutoConfig struct {
 	// URL is the HTTP(S) URL to fetch the autoconfig.json from
-	// Default: "https://config.ipfs-mainnet.org/autoconfig.json"
+	// Default: see boxo/autoconfig.MainnetAutoConfigURL
 	URL string
 
 	// Enabled determines whether to use autoconfig
@@ -24,9 +24,9 @@ type AutoConfig struct {
 	// LastUpdate is the timestamp of when the autoconfig was last successfully updated
 	LastUpdate *time.Time `json:",omitempty"`
 
-	// CheckInterval is how often to check for updates
+	// RefreshInterval is how often to refresh autoconfig data
 	// Default: 24h
-	CheckInterval *OptionalDuration `json:",omitempty"`
+	RefreshInterval *OptionalDuration `json:",omitempty"`
 
 	// TLSInsecureSkipVerify allows skipping TLS verification (for testing only)
 	// Default: false
@@ -41,10 +41,10 @@ const (
 	DefaultAutoConfigEnabled = true
 
 	// DefaultAutoConfigURL is the default URL for fetching autoconfig
-	DefaultAutoConfigURL = "https://config.ipfs-mainnet.org/autoconfig.json"
+	DefaultAutoConfigURL = autoconfig.MainnetAutoConfigURL
 
-	// DefaultAutoConfigInterval is the default interval for checking updates
-	DefaultAutoConfigInterval = 24 * time.Hour
+	// DefaultAutoConfigRefreshInterval is the default interval for refreshing autoconfig data
+	DefaultAutoConfigRefreshInterval = autoconfig.DefaultRefreshInterval
 )
 
 // DNSResolversWithAutoConfig returns DNS resolvers with "auto" values replaced by autoconfig values
@@ -116,7 +116,7 @@ func (c *Config) getAutoConfig(repoPath string) *autoconfig.Config {
 
 	// Normal operation - use kubo user agent and allow network access
 	userAgent := version.GetUserAgentVersion()
-	checkInterval := c.AutoConfig.CheckInterval.WithDefault(DefaultAutoConfigInterval)
+	refreshInterval := c.AutoConfig.RefreshInterval.WithDefault(DefaultAutoConfigRefreshInterval)
 
 	// Create client
 	cacheDir := filepath.Join(repoPath, "autoconfig")
@@ -131,7 +131,7 @@ func (c *Config) getAutoConfig(repoPath string) *autoconfig.Config {
 	}
 
 	ctx := context.Background()
-	return client.MustGetConfig(ctx, c.AutoConfig.URL, checkInterval)
+	return client.MustGetConfig(ctx, c.AutoConfig.URL, refreshInterval)
 }
 
 // BootstrapPeersWithAutoConfig returns bootstrap peers with "auto" values replaced by autoconfig values

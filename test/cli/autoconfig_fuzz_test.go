@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/ipfs/kubo/boxo/autoconfig"
 	"github.com/stretchr/testify/require"
@@ -63,7 +62,7 @@ func testFuzzAutoConfigVersion(t *testing.T) {
 			// Test that our autoconfig parser handles this gracefully
 			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
 			require.NoError(t, err)
-			_, err = client.GetLatest(context.Background(), server.URL, 24*time.Hour)
+			_, err = client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
 
 			if tc.expectError {
 				require.Error(t, err, "Expected error for %s", tc.name)
@@ -116,7 +115,7 @@ func testFuzzBootstrapArrays(t *testing.T) {
 
 			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
 			require.NoError(t, err)
-			autoConf, err := client.GetLatest(context.Background(), server.URL, 24*time.Hour)
+			autoConf, err := client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
 
 			if tc.expectError {
 				require.Error(t, err, "Expected error for %s", tc.name)
@@ -167,7 +166,7 @@ func testFuzzDNSResolvers(t *testing.T) {
 
 			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
 			require.NoError(t, err)
-			_, err = client.GetLatest(context.Background(), server.URL, 24*time.Hour)
+			_, err = client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
 
 			if tc.expectError {
 				require.Error(t, err, "Expected error for %s", tc.name)
@@ -216,7 +215,7 @@ func testFuzzDelegatedRouters(t *testing.T) {
 
 			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
 			require.NoError(t, err)
-			_, err = client.GetLatest(context.Background(), server.URL, 24*time.Hour)
+			_, err = client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
 
 			if tc.expectError {
 				require.Error(t, err, "Expected error for %s", tc.name)
@@ -257,7 +256,7 @@ func testFuzzMalformedJSON(t *testing.T) {
 
 			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
 			require.NoError(t, err)
-			_, err = client.GetLatest(context.Background(), server.URL, 24*time.Hour)
+			_, err = client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
 
 			// All malformed JSON should result in errors
 			require.Error(t, err, "Expected error for malformed JSON: %s", malformedJSON)
@@ -300,7 +299,7 @@ func testFuzzLargePayloads(t *testing.T) {
 
 	client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
 	require.NoError(t, err)
-	autoConf, err := client.GetLatest(context.Background(), server.URL, 24*time.Hour)
+	autoConf, err := client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
 
 	// Should handle large payloads gracefully (up to reasonable limits)
 	require.NoError(t, err, "Should handle large payloads")

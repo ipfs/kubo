@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-const defaultAutoConfigURL = "https://config.ipfs-mainnet.org/autoconfig.json"
-
 func TestRealAutoConfigURL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -33,10 +31,11 @@ func TestRealAutoConfigURL(t *testing.T) {
 	defer cancel()
 
 	// Test with the real autoconfig URL
-	config, err := client.GetLatestConfig(ctx, defaultAutoConfigURL)
+	resp, err := client.GetLatest(ctx, MainnetAutoConfigURL, DefaultRefreshInterval)
 	if err != nil {
 		t.Fatalf("failed to get real autoconfig: %v", err)
 	}
+	config := resp.Config
 
 	// Verify the config structure
 	if config.AutoConfigVersion == 0 {
@@ -57,11 +56,12 @@ func TestRealAutoConfigURL(t *testing.T) {
 	t.Logf("Delegated publishers: %d", len(config.DelegatedPublishers))
 
 	// Test cache functionality by fetching again
-	config2, err := client.GetLatestConfig(ctx, defaultAutoConfigURL)
+	resp2, err := client.GetLatest(ctx, MainnetAutoConfigURL, DefaultRefreshInterval)
 	if err != nil {
 		t.Fatalf("failed to get cached autoconfig: %v", err)
 	}
 
+	config2 := resp2.Config
 	if config2.AutoConfigVersion != config.AutoConfigVersion {
 		t.Errorf("cache version mismatch: expected %d, got %d",
 			config.AutoConfigVersion, config2.AutoConfigVersion)

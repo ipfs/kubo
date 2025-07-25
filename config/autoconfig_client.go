@@ -44,12 +44,17 @@ func NewAutoConfigClientWithConfig(repoPath string, cfg interface{}, userAgent s
 }
 
 // GetAutoConfig is a convenience function to get the latest config with a default client
+// Uses the default check interval - for user-configured intervals, use GetLatest directly
 func GetAutoConfig(ctx context.Context, configURL, repoPath, userAgent string) (*autoconfig.Config, error) {
 	client, err := NewAutoConfigClient(repoPath, userAgent)
 	if err != nil {
 		return nil, err
 	}
-	return client.GetLatestConfig(ctx, configURL)
+	resp, err := client.GetLatest(ctx, configURL, autoconfig.DefaultRefreshInterval)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Config, nil
 }
 
 // GetAutoConfigWithMetadata is a convenience function to get the latest config with metadata using a default client
@@ -59,7 +64,7 @@ func GetAutoConfigWithMetadata(ctx context.Context, configURL, repoPath, userAge
 	if err != nil {
 		return nil, err
 	}
-	return client.GetLatest(ctx, configURL, 24*time.Hour)
+	return client.GetLatest(ctx, configURL, autoconfig.DefaultRefreshInterval)
 }
 
 // GetAutoConfigFromCacheOnly is a convenience function to get cached autoconfig without trying to fetch from remote
