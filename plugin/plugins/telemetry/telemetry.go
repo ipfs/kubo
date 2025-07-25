@@ -454,10 +454,25 @@ func isRunningInContainer() bool {
 	// Check cgroup for container
 	content, err := os.ReadFile("/proc/self/cgroup")
 	if err == nil {
-		if strings.Contains(string(content), "docker") || strings.Contains(string(content), "lxc") {
+		if strings.Contains(string(content), "docker") || strings.Contains(string(content), "lxc") || strings.Contains(string(content), "/kubepods") {
 			return true
 		}
 	}
+
+	content, err = os.ReadFile("/proc/self/mountinfo")
+	if err == nil {
+		for line := range strings.Lines(string(content)) {
+			if strings.Contains(line, "overlay") && strings.Contains(line, "/var/lib/containers/storage/overlay") {
+				return true
+			}
+		}
+	}
+
+	// Also check for systemd-nspawn
+	if _, err := os.Stat("/run/systemd/container"); err == nil {
+		return true
+	}
+
 	return false
 }
 
