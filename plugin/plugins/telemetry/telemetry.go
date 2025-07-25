@@ -31,6 +31,7 @@ const (
 	modeEnvVar   = "IPFS_TELEMETRY_PLUGIN_MODE"
 	uuidFilename = "telemetry_uuid"
 	endpoint     = "http://127.0.0.1:8083"
+	sendDelay    = 15 * time.Minute
 )
 
 type pluginMode int
@@ -112,6 +113,7 @@ type telemetryPlugin struct {
 	mode         pluginMode
 	endpoint     string
 	runOnce      bool
+	sendDelay    time.Duration
 
 	node      *core.IpfsNode
 	config    *config.Config
@@ -159,6 +161,17 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 	} else if pmode := readFromConfig(env.Config, "Mode"); pmode != "" {
 		v = pmode
 		log.Debug("mode set from config")
+	}
+
+	// read "Delay" from the config. Parse as duration. Set p.delay to it
+	// or set default.
+	if delayStr := readFromConfig(env.Config, "Delay"); delayStr != "" {
+		delay, err := time.ParseDuration(delayStr)
+		if err != nil {
+			p.sendDelay = sendDelay
+		} else {
+			p.sendDelay = delay
+		}
 	}
 
 	p.endpoint = endpoint
@@ -304,7 +317,7 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 		return p.sendTelemetry()
 	}
 
-	timer := time.NewTimer(time.Minute)
+	timer := time.NewTimer(p.sendDelay)
 	for range timer.C {
 		p.prepareEvent()
 		_ = p.sendTelemetry()
