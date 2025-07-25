@@ -16,7 +16,6 @@ import (
 
 var log = logging.Logger("autoconfig")
 
-
 // writeOwnerOnlyFile writes data to a file with owner-only permissions (0600)
 func writeOwnerOnlyFile(filename string, data []byte) error {
 	return os.WriteFile(filename, data, 0600)
@@ -28,6 +27,7 @@ const (
 	defaultMaxResponseSize = 2 * 1024 * 1024 // 2MiB
 	etagFile               = ".etag"
 	lastModifiedFile       = ".last-modified"
+	lastRefreshFile        = ".last-refresh"
 
 	// DefaultRefreshInterval is the default interval for refreshing autoconfig data.
 	// This interval strikes a balance between staying up-to-date with network changes
@@ -197,6 +197,34 @@ func (c *Client) writeMetadata(cacheDir, etag, lastModified string) error {
 		if err := writeOwnerOnlyFile(filepath.Join(cleanCacheDir, lastModifiedFile), []byte(lastModified)); err != nil {
 			return fmt.Errorf("failed to write last-modified: %w", err)
 		}
+	}
+	return nil
+}
+
+// readLastRefresh reads the last HTTP request timestamp from cache
+func (c *Client) readLastRefresh(cacheDir string) (time.Time, error) {
+	cleanCacheDir := filepath.Clean(cacheDir)
+
+	data, err := os.ReadFile(filepath.Join(cleanCacheDir, lastRefreshFile))
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to read last refresh time: %w", err)
+	}
+
+	timestamp, err := time.Parse(time.RFC3339, strings.TrimSpace(string(data)))
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to parse last refresh time: %w", err)
+	}
+
+	return timestamp, nil
+}
+
+// writeLastRefresh writes the last HTTP request timestamp to cache
+func (c *Client) writeLastRefresh(cacheDir string, refreshTime time.Time) error {
+	cleanCacheDir := filepath.Clean(cacheDir)
+	timestampStr := refreshTime.Format(time.RFC3339)
+
+	if err := writeOwnerOnlyFile(filepath.Join(cleanCacheDir, lastRefreshFile), []byte(timestampStr)); err != nil {
+		return fmt.Errorf("failed to write last refresh time: %w", err)
 	}
 	return nil
 }

@@ -179,18 +179,19 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 	}
 
 	resp, err := c.httpClient.Do(req)
+	httpRequestTime := time.Now() // Record actual HTTP request time
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch config: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// If not modified, refresh cache timestamp and return cached version
+	// If not modified, record refresh time and return cached version
 	if resp.StatusCode == http.StatusNotModified {
-		log.Debugf("HTTP 304 Not Modified, refreshing cache timestamp")
+		log.Debugf("HTTP 304 Not Modified, updating last refresh time")
 
-		// Refresh the cache file's modification time to reset TTL
-		if err := c.touchCache(cacheDir); err != nil {
-			log.Warnf("failed to refresh cache timestamp: %v", err)
+		// Record when we last checked for updates
+		if err := c.writeLastRefresh(cacheDir, httpRequestTime); err != nil {
+			log.Warnf("failed to write last refresh time: %v", err)
 		}
 
 		config, err := c.getCachedConfig(cacheDir)
@@ -245,6 +246,11 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 		log.Warnf("failed to save metadata: %v", err)
 	}
 
+	// Record when we successfully fetched new data
+	if err := c.writeLastRefresh(cacheDir, httpRequestTime); err != nil {
+		log.Warnf("failed to write last refresh time: %v", err)
+	}
+
 	log.Infof("fetched autoconfig version %d", config.AutoConfigVersion)
 	return resp, &config, nil
 }
@@ -283,20 +289,13 @@ func (c *Client) getCached(cacheDir string) (*Response, error) {
 		return nil, err
 	}
 
-	// Get cache file modification time to calculate age
-	files, err := c.listCacheFiles(cacheDir)
-	if err != nil || len(files) == 0 {
-		return nil, fmt.Errorf("no cached versions available")
-	}
-
-	latestFile := files[0]
-
-	stat, err := os.Stat(latestFile)
+	// Get last HTTP request time to calculate cache age
+	lastRefresh, err := c.readLastRefresh(cacheDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to stat cache file: %w", err)
+		return nil, fmt.Errorf("failed to read last refresh time: %w", err)
 	}
 
-	fetchTime := stat.ModTime()
+	fetchTime := lastRefresh
 	cacheAge := time.Since(fetchTime)
 
 	// Get version from cached metadata
@@ -413,24 +412,6 @@ func (c *Client) validateURL(configURL string) error {
 	default:
 		return fmt.Errorf("unsupported URL scheme '%s' - only HTTP and HTTPS are allowed", u.Scheme)
 	}
-}
-
-// touchCache updates the modification time of the latest cached file to reset TTL
-func (c *Client) touchCache(cacheDir string) error {
-	files, err := c.listCacheFiles(cacheDir)
-	if err != nil || len(files) == 0 {
-		return fmt.Errorf("no cached files to refresh")
-	}
-
-	// Touch the latest cached file to update its modification time
-	latestFile := files[0]
-	currentTime := time.Now()
-	if err := os.Chtimes(latestFile, currentTime, currentTime); err != nil {
-		return fmt.Errorf("failed to update cache timestamp: %w", err)
-	}
-
-	log.Debugf("refreshed cache timestamp for %s", filepath.Base(latestFile))
-	return nil
 }
 
 // formatDuration formats a duration in human-readable format

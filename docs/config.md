@@ -559,6 +559,7 @@ AutoConfig works by using special `"auto"` placeholder values in configuration f
 - **Validation**: Ensures all fetched configuration values are valid multiaddrs and URLs
 - **Caching**: Stores multiple versions locally with ETags for efficient updates
 - **User Notification**: Logs ERROR when new configuration is available requiring node restart
+- **Debug Logging**: AutoConfig operations can be inspected by setting `GOLOG_LOG_LEVEL="error,autoconfig=debug"`
 
 ### Supported Fields
 
