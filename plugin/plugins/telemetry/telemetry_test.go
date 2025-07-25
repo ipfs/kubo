@@ -159,10 +159,7 @@ func TestSendTelemetry(t *testing.T) {
 	}
 
 	e := eventGetter()
-	if e.UUID == nil {
-		t.Fatal("event not received correctly on the server")
-	}
-	if *e.UUID != *p.event.UUID {
+	if e.UUID != p.event.UUID {
 		t.Fatal("uuid mismatch")
 	}
 }

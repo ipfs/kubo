@@ -66,40 +66,40 @@ var uptimeBuckets = []time.Duration{
 
 // A LogEvent is the object sent to the telemetry endpoint.
 type LogEvent struct {
-	UUID *string `json:"uuid"`
+	UUID string `json:"uuid"`
 
-	AgentVersion *string `json:"agent_version"`
+	AgentVersion string `json:"agent_version"`
 
-	PrivateNetwork *bool `json:"private_network"`
+	PrivateNetwork bool `json:"private_network"`
 
-	BootstrappersCustom *bool `json:"bootstrappers_custom"`
+	BootstrappersCustom bool `json:"bootstrappers_custom"`
 
-	RepoSizeBucket *uint64 `json:"repo_size_bucket"`
+	RepoSizeBucket uint64 `json:"repo_size_bucket"`
 
-	UptimeBucket *time.Duration `json:"uptime_bucket"`
+	UptimeBucket time.Duration `json:"uptime_bucket"`
 
-	ReproviderStrategy *string `json:"reprovider_strategy"`
+	ReproviderStrategy string `json:"reprovider_strategy"`
 
-	RoutingType                 *string `json:"routing_type"`
-	RoutingAcceleratedDHTClient *bool   `json:"routing_accelerated_dht_client"`
-	RoutingDelegatedCount       *int    `json:"routing_delegated_count"`
+	RoutingType                 string `json:"routing_type"`
+	RoutingAcceleratedDHTClient bool   `json:"routing_accelerated_dht_client"`
+	RoutingDelegatedCount       int    `json:"routing_delegated_count"`
 
-	AutoNATServiceMode  *string `json:"autonat_service_mode"`
-	AutoNATReachability *string `json:"autonat_reachability"`
+	AutoNATServiceMode  string `json:"autonat_service_mode"`
+	AutoNATReachability string `json:"autonat_reachability"`
 
-	SwarmEnableHolePunching  *bool `json:"swarm_enable_hole_punching"`
-	SwarmCircuitAddresses    *bool `json:"swarm_circuit_addresses"`
-	SwarmIPv4PublicAddresses *bool `json:"swarm_ipv4_public_addresses"`
-	SwarmIPv6PublicAddresses *bool `json:"swarm_ipv6_public_addresses"`
+	SwarmEnableHolePunching  bool `json:"swarm_enable_hole_punching"`
+	SwarmCircuitAddresses    bool `json:"swarm_circuit_addresses"`
+	SwarmIPv4PublicAddresses bool `json:"swarm_ipv4_public_addresses"`
+	SwarmIPv6PublicAddresses bool `json:"swarm_ipv6_public_addresses"`
 
-	AutoTLSAutoWSS            *bool `json:"auto_tls_auto_wss"`
-	AutoTLSDomainSuffixCustom *bool `json:"auto_tls_domain_suffix_custom"`
+	AutoTLSAutoWSS            bool `json:"auto_tls_auto_wss"`
+	AutoTLSDomainSuffixCustom bool `json:"auto_tls_domain_suffix_custom"`
 
-	DiscoveryMDNSEnabled *bool `json:"discovery_mdns_enabled"`
+	DiscoveryMDNSEnabled bool `json:"discovery_mdns_enabled"`
 
-	PlatformOS            *string `json:"platform_os"`
-	PlatformArch          *string `json:"platform_arch"`
-	PlatformContainerized *bool   `json:"platform_containerized"`
+	PlatformOS            string `json:"platform_os"`
+	PlatformArch          string `json:"platform_arch"`
+	PlatformContainerized bool   `json:"platform_containerized"`
 }
 
 var Plugins = []plugin.Plugin{
@@ -196,8 +196,7 @@ func (p *telemetryPlugin) loadUUID() error {
 			log.Errorf("cannot parse telemetry uuid: %s", err)
 			return err
 		}
-		uidstr := uid.String()
-		p.event.UUID = &uidstr
+		p.event.UUID = uid.String()
 		return nil
 	} else if os.IsNotExist(err) {
 		uid, err := uuid.NewRandom()
@@ -205,12 +204,11 @@ func (p *telemetryPlugin) loadUUID() error {
 			log.Errorf("cannot generate telemetry uuid: %s", err)
 			return err
 		}
-		uidstr := uid.String()
-		p.event.UUID = &uidstr
+		p.event.UUID = uid.String()
 		p.mode = modeInfo
 
 		// Write the UUID to disk
-		if err := os.WriteFile(p.uuidFilename, []byte(*p.event.UUID), 0600); err != nil {
+		if err := os.WriteFile(p.uuidFilename, []byte(p.event.UUID), 0600); err != nil {
 			log.Errorf("cannot write telemetry uuid: %s", err)
 			return err
 		}
@@ -259,7 +257,7 @@ To opt-out, CTRL-C now and:
 
 Your telemetry UUID is: %s
 
-`, endpoint, modeEnvVar, *p.event.UUID)
+`, endpoint, modeEnvVar, p.event.UUID)
 }
 
 // Start finishes telemetry initialization once the IpfsNode is ready,
@@ -333,8 +331,7 @@ func (p *telemetryPlugin) prepareEvent() {
 // * UptimeBucket
 // * ReproviderStrategy
 func (p *telemetryPlugin) collectBasicInfo() {
-	agent := ipfs.GetUserAgentVersion()
-	p.event.AgentVersion = &agent
+	p.event.AgentVersion = ipfs.GetUserAgentVersion()
 
 	privNet := false
 	if pnet.ForcePrivateNetwork {
@@ -342,10 +339,9 @@ func (p *telemetryPlugin) collectBasicInfo() {
 	} else if key, _ := p.node.Repo.SwarmKey(); key != nil {
 		privNet = true
 	}
-	p.event.PrivateNetwork = &privNet
+	p.event.PrivateNetwork = privNet
 
-	bootstrappersCustom := !p.hasDefaultBootstrapPeers()
-	p.event.BootstrappersCustom = &bootstrappersCustom
+	p.event.BootstrappersCustom = !p.hasDefaultBootstrapPeers()
 
 	repoSizeBucket := repoSizeBuckets[len(repoSizeBuckets)-1]
 	sizeStat, err := corerepo.RepoSize(context.Background(), p.node)
@@ -357,7 +353,7 @@ func (p *telemetryPlugin) collectBasicInfo() {
 			repoSizeBucket = b
 			break
 		}
-		p.event.RepoSizeBucket = &repoSizeBucket
+		p.event.RepoSizeBucket = repoSizeBucket
 	} else {
 		log.Debugf("error setting sizeStat: %s", err)
 	}
@@ -372,19 +368,15 @@ func (p *telemetryPlugin) collectBasicInfo() {
 		uptimeBucket = bucket
 		break
 	}
-	p.event.UptimeBucket = &uptimeBucket
+	p.event.UptimeBucket = uptimeBucket
 
-	reprovStrategy := p.config.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
-	p.event.ReproviderStrategy = &reprovStrategy
+	p.event.ReproviderStrategy = p.config.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
 }
 
 func (p *telemetryPlugin) collectRoutingInfo() {
-	routingType := p.config.Routing.Type.WithDefault("auto")
-	p.event.RoutingType = &routingType
-	accelDHTClient := p.config.Routing.AcceleratedDHTClient.WithDefault(false)
-	p.event.RoutingAcceleratedDHTClient = &accelDHTClient
-	delegatedCount := len(p.config.Routing.DelegatedRouters)
-	p.event.RoutingDelegatedCount = &delegatedCount
+	p.event.RoutingType = p.config.Routing.Type.WithDefault("auto")
+	p.event.RoutingAcceleratedDHTClient = p.config.Routing.AcceleratedDHTClient.WithDefault(false)
+	p.event.RoutingDelegatedCount = len(p.config.Routing.DelegatedRouters)
 }
 
 type reachabilityHost interface {
@@ -402,20 +394,18 @@ func (p *telemetryPlugin) collectAutoNATInfo() {
 		if autoNATSvcMode == "" {
 			autoNATSvcMode = "unset"
 		}
-		p.event.AutoNATServiceMode = &autoNATSvcMode
+		p.event.AutoNATServiceMode = autoNATSvcMode
 	}
 
 	h := p.node.PeerHost
 	reachHost, ok := h.(reachabilityHost)
 	if ok {
-		reachStatus := reachHost.Reachability().String()
-		p.event.AutoNATReachability = &reachStatus
+		p.event.AutoNATReachability = reachHost.Reachability().String()
 	}
 }
 
 func (p *telemetryPlugin) collectSwarmInfo() {
-	holePunching := p.config.Swarm.EnableHolePunching.WithDefault(true)
-	p.event.SwarmEnableHolePunching = &holePunching
+	p.event.SwarmEnableHolePunching = p.config.Swarm.EnableHolePunching.WithDefault(true)
 
 	var circuitAddrs, publicIP4Addrs, publicIP6Addrs bool
 	for _, addr := range p.node.PeerHost.Addrs() {
@@ -431,34 +421,25 @@ func (p *telemetryPlugin) collectSwarmInfo() {
 		}
 	}
 
-	p.event.SwarmCircuitAddresses = &circuitAddrs
-	p.event.SwarmIPv4PublicAddresses = &publicIP4Addrs
-	p.event.SwarmIPv6PublicAddresses = &publicIP6Addrs
+	p.event.SwarmCircuitAddresses = circuitAddrs
+	p.event.SwarmIPv4PublicAddresses = publicIP4Addrs
+	p.event.SwarmIPv6PublicAddresses = publicIP6Addrs
 }
 
 func (p *telemetryPlugin) collectAutoTLSInfo() {
-	autoWSS := p.config.AutoTLS.AutoWSS.WithDefault(config.DefaultAutoWSS)
-	p.event.AutoTLSAutoWSS = &autoWSS
+	p.event.AutoTLSAutoWSS = p.config.AutoTLS.AutoWSS.WithDefault(config.DefaultAutoWSS)
 	domainSuffix := p.config.AutoTLS.DomainSuffix.WithDefault(config.DefaultDomainSuffix)
-
-	domainSuffixCustom := domainSuffix != config.DefaultDomainSuffix
-	p.event.AutoTLSDomainSuffixCustom = &domainSuffixCustom
+	p.event.AutoTLSDomainSuffixCustom = domainSuffix != config.DefaultDomainSuffix
 }
 
 func (p *telemetryPlugin) collectDiscoveryInfo() {
-	mdns := p.config.Discovery.MDNS.Enabled
-	p.event.DiscoveryMDNSEnabled = &mdns
+	p.event.DiscoveryMDNSEnabled = p.config.Discovery.MDNS.Enabled
 }
 
 func (p *telemetryPlugin) collectPlatformInfo() {
-	os := runtime.GOOS
-	p.event.PlatformOS = &os
-
-	arch := runtime.GOARCH
-	p.event.PlatformArch = &arch
-
-	containerized := isRunningInContainerOrVM()
-	p.event.PlatformContainerized = &containerized
+	p.event.PlatformOS = runtime.GOOS
+	p.event.PlatformArch = runtime.GOARCH
+	p.event.PlatformContainerized = isRunningInContainerOrVM()
 }
 
 // Note: this function has been written by an LLM.
