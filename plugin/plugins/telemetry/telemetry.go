@@ -100,6 +100,7 @@ type LogEvent struct {
 	PlatformOS            string `json:"platform_os"`
 	PlatformArch          string `json:"platform_arch"`
 	PlatformContainerized bool   `json:"platform_containerized"`
+	PlatformVM            bool   `json:"platform_vm"`
 }
 
 var Plugins = []plugin.Plugin{
@@ -439,11 +440,12 @@ func (p *telemetryPlugin) collectDiscoveryInfo() {
 func (p *telemetryPlugin) collectPlatformInfo() {
 	p.event.PlatformOS = runtime.GOOS
 	p.event.PlatformArch = runtime.GOARCH
-	p.event.PlatformContainerized = isRunningInContainerOrVM()
+	p.event.PlatformContainerized = isRunningInContainer()
+	p.event.PlatformVM = isRunningInVM()
 }
 
 // Note: this function has been written by an LLM.
-func isRunningInContainerOrVM() bool {
+func isRunningInContainer() bool {
 	// Check for Docker container
 	if _, err := os.Stat("/.dockerenv"); err == nil {
 		return true
@@ -456,7 +458,10 @@ func isRunningInContainerOrVM() bool {
 			return true
 		}
 	}
+	return false
+}
 
+func isRunningInVM() bool {
 	// Check for VM
 	if _, err := os.Stat("/sys/hypervisor/uuid"); err == nil {
 		return true
