@@ -44,7 +44,7 @@ func testInvalidAutoConfigJSONPreventsCaching(t *testing.T) {
 		t.Logf("Invalid autoconfig server request #%d: %s %s", requestCount, r.Method, r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("ETag", `"invalid-config-123"`)
-		w.Write([]byte(invalidAutoConfigData))
+		_, _ = w.Write([]byte(invalidAutoConfigData))
 	}))
 	defer server.Close()
 
@@ -80,7 +80,7 @@ func testMalformedMultiaddrInAutoConfig(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(invalidAutoConfigData))
+		_, _ = w.Write([]byte(invalidAutoConfigData))
 	}))
 	defer server.Close()
 
@@ -112,7 +112,7 @@ func testMalformedURLInAutoConfig(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(invalidAutoConfigData))
+		_, _ = w.Write([]byte(invalidAutoConfigData))
 	}))
 	defer server.Close()
 

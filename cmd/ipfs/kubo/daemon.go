@@ -70,6 +70,7 @@ const (
 	routingOptionDHTServerKwd  = "dhtserver"
 	routingOptionNoneKwd       = "none"
 	routingOptionCustomKwd     = "custom"
+	routingOptionDelegatedKwd  = "delegated"
 	routingOptionDefaultKwd    = "default"
 	routingOptionAutoKwd       = "auto"
 	routingOptionAutoClientKwd = "autoclient"
@@ -436,7 +437,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
-	if routingOption == routingOptionDefaultKwd {
+	if routingOption == routingOptionDefaultKwd || routingOption == "" {
 		routingOption = cfg.Routing.Type.WithDefault(routingOptionAutoKwd)
 		if routingOption == "" {
 			routingOption = routingOptionAutoKwd
@@ -484,6 +485,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		ncfg.Routing = libp2p.DHTServerOption
 	case routingOptionNoneKwd:
 		ncfg.Routing = libp2p.NilRouterOption
+	case routingOptionDelegatedKwd:
+		ncfg.Routing = libp2p.ConstructDelegatedOnlyRouting(cfg)
 	case routingOptionCustomKwd:
 		if cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient) {
 			return errors.New("Routing.AcceleratedDHTClient option is set even tho Routing.Type is custom, using custom .AcceleratedDHTClient needs to be set on DHT routers individually")
@@ -529,6 +532,15 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		log.Error("Experimental.StrategicProviding was removed. Remove it from your config and set Provider.Enabled=false to remove this message. Documentation: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#strategic-providing")
 		cfg.Experimental.StrategicProviding = false
 		cfg.Provider.Enabled = config.False
+	}
+	if routingOption == routingOptionDelegatedKwd {
+		// Delegated routing is read-only mode - content providing must be disabled
+		if cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) {
+			log.Fatal("Routing.Type=delegated does not support content providing. Set Provider.Enabled=false in your config.")
+		}
+		if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) != 0 {
+			log.Fatal("Routing.Type=delegated does not support content providing. Set Reprovider.Interval='0' in your config.")
+		}
 	}
 
 	printLibp2pPorts(node)
@@ -1300,7 +1312,7 @@ func startAutoConfigUpdater(ctx context.Context, r repo.Repo, autoConfigURL, use
 		autoconfig.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {
 			autoconfigLog.Errorf("new autoconfig version %d published at %s - restart node to apply updates to \"auto\" entries in Kubo config", newVersion, configURL)
 		}),
-		autoconfig.WithOnUpdateSuccess(func(resp *autoconfig.AutoConfigResponse) {
+		autoconfig.WithOnUpdateSuccess(func(resp *autoconfig.Response) {
 			// Update config metadata only (not live config values)
 			if err := updateAutoConfigMetadata(r, resp); err != nil {
 				autoconfigLog.Errorf("failed to update autoconfig metadata: %v", err)
@@ -1331,7 +1343,7 @@ func startAutoConfigUpdater(ctx context.Context, r repo.Repo, autoConfigURL, use
 }
 
 // updateAutoConfigMetadata updates only the LastUpdate field in config
-func updateAutoConfigMetadata(r repo.Repo, resp *autoconfig.AutoConfigResponse) error {
+func updateAutoConfigMetadata(r repo.Repo, resp *autoconfig.Response) error {
 	// Update LastUpdate with local fetch time
 	if err := r.SetConfigKey("AutoConfig.LastUpdate", resp.FetchTime); err != nil {
 		return fmt.Errorf("failed to update AutoConfig.LastUpdate: %w", err)

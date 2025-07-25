@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"math/rand"
+	"path/filepath"
 	"time"
 
 	version "github.com/ipfs/kubo"
@@ -108,20 +109,29 @@ func (c *Config) BootstrapWithAutoConfig(repoPath string) []string {
 }
 
 // getAutoConfig is a helper to get autoconfig data with fallbacks
-func (c *Config) getAutoConfig(repoPath string) *autoconfig.AutoConfig {
+func (c *Config) getAutoConfig(repoPath string) *autoconfig.Config {
 	if !c.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled) || c.AutoConfig.URL == "" {
 		return nil
 	}
 
 	// Normal operation - use kubo user agent and allow network access
 	userAgent := version.GetUserAgentVersion()
-	client, err := NewAutoConfigClient(repoPath, userAgent)
+	checkInterval := c.AutoConfig.CheckInterval.WithDefault(DefaultAutoConfigInterval)
+
+	// Create client
+	cacheDir := filepath.Join(repoPath, "autoconfig")
+	client, err := autoconfig.NewClient(
+		autoconfig.WithCacheDir(cacheDir),
+		autoconfig.WithUserAgent(userAgent),
+		autoconfig.WithCacheSize(3),
+		autoconfig.WithTimeout(5*time.Second),
+	)
 	if err != nil {
 		return nil
 	}
 
 	ctx := context.Background()
-	return client.MustGetConfigWithMainnetFallbacks(ctx, c.AutoConfig.URL)
+	return client.MustGetConfig(ctx, c.AutoConfig.URL, checkInterval)
 }
 
 // BootstrapPeersWithAutoConfig returns bootstrap peers with "auto" values replaced by autoconfig values

@@ -33,7 +33,7 @@ func TestRealAutoConfigURL(t *testing.T) {
 	defer cancel()
 
 	// Test with the real autoconfig URL
-	config, err := client.GetLatest(ctx, defaultAutoConfigURL)
+	config, err := client.GetLatestConfig(ctx, defaultAutoConfigURL)
 	if err != nil {
 		t.Fatalf("failed to get real autoconfig: %v", err)
 	}
@@ -57,7 +57,7 @@ func TestRealAutoConfigURL(t *testing.T) {
 	t.Logf("Delegated publishers: %d", len(config.DelegatedPublishers))
 
 	// Test cache functionality by fetching again
-	config2, err := client.GetLatest(ctx, defaultAutoConfigURL)
+	config2, err := client.GetLatestConfig(ctx, defaultAutoConfigURL)
 	if err != nil {
 		t.Fatalf("failed to get cached autoconfig: %v", err)
 	}

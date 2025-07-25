@@ -114,7 +114,7 @@ func testExpandAutoWithMalformedResponse(t *testing.T) {
 	// Create server that returns malformed JSON
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"invalid": "json", "Bootstrap": [incomplete`)) // Malformed JSON
+		_, _ = w.Write([]byte(`{"invalid": "json", "Bootstrap": [incomplete`)) // Malformed JSON
 	}))
 	defer server.Close()
 
@@ -145,7 +145,7 @@ func testExpandAutoMixedConfigPreservesStatic(t *testing.T) {
 	// Create HTTP server that serves autoconfig.json
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(autoConfigData)
+		_, _ = w.Write(autoConfigData)
 	}))
 	defer server.Close()
 

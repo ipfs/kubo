@@ -17,7 +17,7 @@ type BackgroundUpdater struct {
 	configURL       string
 	updateInterval  time.Duration
 	onVersionChange func(oldVersion, newVersion int64, configURL string)
-	onUpdateSuccess func(*AutoConfigResponse)
+	onUpdateSuccess func(*Response)
 	onUpdateError   func(error)
 
 	// Internal state
@@ -76,8 +76,8 @@ func WithOnVersionChange(callback func(oldVersion, newVersion int64, configURL s
 }
 
 // WithOnUpdateSuccess sets a callback for successful updates
-// The callback receives the AutoConfigResponse for metadata persistence
-func WithOnUpdateSuccess(callback func(*AutoConfigResponse)) UpdaterOption {
+// The callback receives the Response for metadata persistence
+func WithOnUpdateSuccess(callback func(*Response)) UpdaterOption {
 	return func(u *BackgroundUpdater) error {
 		u.onUpdateSuccess = callback
 		return nil
@@ -177,14 +177,17 @@ func (u *BackgroundUpdater) runUpdater() {
 // performUpdate performs a single background autoconfig update
 func (u *BackgroundUpdater) performUpdate() error {
 	// Get the current cached version before fetching
-	oldConfig, err := u.client.GetLatestFromCacheOnly(u.client.cacheDir)
+	cacheDir, cacheDirErr := u.client.getCacheDir(u.configURL)
 	var oldVersion int64 = 0
-	if err == nil && oldConfig != nil {
-		oldVersion = oldConfig.AutoConfigVersion
+	if cacheDirErr == nil {
+		oldConfig, err := u.client.GetCachedConfig(cacheDir)
+		if err == nil && oldConfig != nil {
+			oldVersion = oldConfig.AutoConfigVersion
+		}
 	}
 
-	// Get fresh autoconfig with metadata
-	resp, err := u.client.GetLatestWithMetadata(u.ctx, u.configURL)
+	// Get config with metadata, using the update interval as check interval
+	resp, err := u.client.GetLatest(u.ctx, u.configURL, u.updateInterval)
 	if err != nil {
 		return fmt.Errorf("failed to fetch autoconfig: %w", err)
 	}

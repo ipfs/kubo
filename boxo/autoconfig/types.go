@@ -9,8 +9,8 @@ const (
 	MainnetProfileIPNSPublishers  = "mainnet-for-ipns-publishers-with-http"
 )
 
-// AutoConfig represents the full autoconfig.json structure
-type AutoConfig struct {
+// Config represents the full autoconfig.json structure
+type Config struct {
 	AutoConfigVersion   int64                               `json:"AutoConfigVersion"`
 	AutoConfigSchema    int                                 `json:"AutoConfigSchema"`
 	Bootstrap           []string                            `json:"Bootstrap"`
@@ -25,9 +25,9 @@ type DelegatedRouterConfig []string
 // DelegatedPublisherConfig represents a delegated publisher configuration
 type DelegatedPublisherConfig []string
 
-// AutoConfigResponse contains the autoconfig and metadata from the fetch
-type AutoConfigResponse struct {
-	Config    *AutoConfig
+// Response contains the config and metadata from the fetch
+type Response struct {
+	Config    *Config
 	FetchTime time.Time
 	Version   string // AutoConfigVersion as string, or ETag, or Last-Modified
 	FromCache bool

@@ -84,7 +84,7 @@ func testAutoConfigBasicFunctionality(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("ETag", etag)
 		w.Header().Set("Last-Modified", "Wed, 21 Oct 2015 07:28:00 GMT")
-		w.Write(autoConfigData)
+		_, _ = w.Write(autoConfigData)
 	}))
 	defer server.Close()
 
@@ -145,7 +145,7 @@ func testAutoConfigBackgroundUpdates(t *testing.T) {
 			currentData = updatedData
 		}
 
-		w.Write(currentData)
+		_, _ = w.Write(currentData)
 	}))
 	defer server.Close()
 
@@ -197,7 +197,7 @@ func testAutoConfigHTTPErrors(t *testing.T) {
 			// Create server that returns error
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
-				w.Write([]byte(tt.body))
+				_, _ = w.Write([]byte(tt.body))
 			}))
 			defer server.Close()
 
@@ -243,7 +243,7 @@ func testAutoConfigCaching(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("ETag", etag)
 		w.Header().Set("Last-Modified", "Wed, 21 Oct 2015 07:28:00 GMT")
-		w.Write(autoConfigData)
+		_, _ = w.Write(autoConfigData)
 	}))
 	defer server.Close()
 
@@ -252,8 +252,9 @@ func testAutoConfigCaching(t *testing.T) {
 	node := harness.NewT(t).NewNode().Init("--profile=test")
 	node.SetIPFSConfig("AutoConfig.URL", server.URL)
 	node.SetIPFSConfig("AutoConfig.Enabled", true)
-	// Disable background updates to prevent extra requests
-	node.SetIPFSConfig("AutoConfig.CheckInterval", "24h")
+	// Set short check interval to ensure cache is considered stale on second daemon start
+	// This ensures conditional requests will be made (testing 304 Not Modified response)
+	node.SetIPFSConfig("AutoConfig.CheckInterval", "100ms")
 	// Use normal bootstrap values instead of "auto" to avoid parsing issues during node construction
 	node.SetIPFSConfig("Bootstrap", []string{"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"})
 
@@ -266,6 +267,9 @@ func testAutoConfigCaching(t *testing.T) {
 	// Reset counters to track only subsequent requests
 	atomic.StoreInt32(&requestCount, 0)
 	atomic.StoreInt32(&conditionalRequestCount, 0)
+
+	// Wait to ensure cache age exceeds CheckInterval (100ms)
+	time.Sleep(150 * time.Millisecond)
 
 	// Start the same node again (should make conditional request and get 304)
 	node.StartDaemon()
@@ -328,7 +332,7 @@ func testBootstrapListResolved(t *testing.T) {
 	// Create HTTP server that serves autoconfig.json
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(autoConfigData)
+		_, _ = w.Write(autoConfigData)
 	}))
 	defer server.Close()
 
@@ -418,7 +422,7 @@ func testDaemonUsesResolvedBootstrap(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(autoConfigData))
+		_, _ = w.Write([]byte(autoConfigData))
 	}))
 	defer server.Close()
 
@@ -517,7 +521,7 @@ func testStaleCacheWithUnreachableServer(t *testing.T) {
 	autoConfigData := loadTestData(t, "valid_autoconfig.json")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(autoConfigData)
+		_, _ = w.Write(autoConfigData)
 	}))
 
 	// Create node and fetch autoconfig to populate cache

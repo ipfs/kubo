@@ -499,27 +499,54 @@ func (n *Node) SwarmAddrs() []multiaddr.Multiaddr {
 	})
 	if res.ExitCode() != 0 {
 		// If swarm command fails (e.g., daemon not online), return empty slice
-		log.Debugf("swarm addrs local failed: %s", res.Stderr.String())
+		log.Debugf("Node %d: swarm addrs local failed (exit %d): %s", n.ID, res.ExitCode(), res.Stderr.String())
 		return []multiaddr.Multiaddr{}
 	}
 	out := strings.TrimSpace(res.Stdout.String())
+	if out == "" {
+		log.Debugf("Node %d: swarm addrs local returned empty output", n.ID)
+		return []multiaddr.Multiaddr{}
+	}
+	log.Debugf("Node %d: swarm addrs local output: %s", n.ID, out)
 	outLines := strings.Split(out, "\n")
 	var addrs []multiaddr.Multiaddr
 	for _, addrStr := range outLines {
+		addrStr = strings.TrimSpace(addrStr)
+		if addrStr == "" {
+			continue
+		}
 		ma, err := multiaddr.NewMultiaddr(addrStr)
 		if err != nil {
 			panic(err)
 		}
 		addrs = append(addrs, ma)
 	}
+	log.Debugf("Node %d: parsed %d swarm addresses", n.ID, len(addrs))
 	return addrs
 }
 
+// SwarmAddrsWithTimeout waits for swarm addresses to be available
+func (n *Node) SwarmAddrsWithTimeout(timeout time.Duration) []multiaddr.Multiaddr {
+	start := time.Now()
+	for time.Since(start) < timeout {
+		addrs := n.SwarmAddrs()
+		if len(addrs) > 0 {
+			return addrs
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return []multiaddr.Multiaddr{}
+}
+
 func (n *Node) SwarmAddrsWithPeerIDs() []multiaddr.Multiaddr {
+	return n.SwarmAddrsWithPeerIDsTimeout(5 * time.Second)
+}
+
+func (n *Node) SwarmAddrsWithPeerIDsTimeout(timeout time.Duration) []multiaddr.Multiaddr {
 	ipfsProtocol := multiaddr.ProtocolWithCode(multiaddr.P_IPFS).Name
 	peerID := n.PeerID()
 	var addrs []multiaddr.Multiaddr
-	for _, ma := range n.SwarmAddrs() {
+	for _, ma := range n.SwarmAddrsWithTimeout(timeout) {
 		// add the peer ID to the multiaddr if it doesn't have it
 		_, err := ma.ValueForProtocol(multiaddr.P_IPFS)
 		if errors.Is(err, multiaddr.ErrProtocolNotFound) {
@@ -570,6 +597,42 @@ func (n *Node) Connect(other *Node) *Node {
 		log.Debugf("swarm connect failed: %s", res.Stderr.String())
 	}
 	return n
+}
+
+// ConnectAndWait connects to another node and waits for the connection to be established
+func (n *Node) ConnectAndWait(other *Node, timeout time.Duration) error {
+	// Get the peer addresses to connect to - wait up to half the timeout for addresses
+	addrs := other.SwarmAddrsWithPeerIDsTimeout(timeout / 2)
+	if len(addrs) == 0 {
+		return fmt.Errorf("no swarm addresses available for node %d after waiting %v", other.ID, timeout/2)
+	}
+
+	otherPeerID := other.PeerID()
+
+	// Try to connect
+	res := n.Runner.Run(RunRequest{
+		Path: n.IPFSBin,
+		Args: []string{"swarm", "connect", addrs[0].String()},
+	})
+	if res.ExitCode() != 0 {
+		return fmt.Errorf("swarm connect failed: %s", res.Stderr.String())
+	}
+
+	// Wait for connection to be established
+	start := time.Now()
+	for time.Since(start) < timeout {
+		peers := n.Peers()
+		for _, peerAddr := range peers {
+			if peerID, err := peerAddr.ValueForProtocol(multiaddr.P_P2P); err == nil {
+				if peerID == otherPeerID.String() {
+					return nil // Connection established
+				}
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	return fmt.Errorf("timeout waiting for connection to node %d (peer %s)", other.ID, otherPeerID)
 }
 
 func (n *Node) Peers() []multiaddr.Multiaddr {

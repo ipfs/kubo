@@ -44,32 +44,33 @@ func NewAutoConfigClientWithConfig(repoPath string, cfg interface{}, userAgent s
 }
 
 // GetAutoConfig is a convenience function to get the latest config with a default client
-func GetAutoConfig(ctx context.Context, configURL, repoPath, userAgent string) (*autoconfig.AutoConfig, error) {
+func GetAutoConfig(ctx context.Context, configURL, repoPath, userAgent string) (*autoconfig.Config, error) {
 	client, err := NewAutoConfigClient(repoPath, userAgent)
 	if err != nil {
 		return nil, err
 	}
-	return client.GetLatest(ctx, configURL)
+	return client.GetLatestConfig(ctx, configURL)
 }
 
 // GetAutoConfigWithMetadata is a convenience function to get the latest config with metadata using a default client
-func GetAutoConfigWithMetadata(ctx context.Context, configURL, repoPath, userAgent string) (*autoconfig.AutoConfigResponse, error) {
+// Uses a default check interval of 24 hours
+func GetAutoConfigWithMetadata(ctx context.Context, configURL, repoPath, userAgent string) (*autoconfig.Response, error) {
 	client, err := NewAutoConfigClient(repoPath, userAgent)
 	if err != nil {
 		return nil, err
 	}
-	return client.GetLatestWithMetadata(ctx, configURL)
+	return client.GetLatest(ctx, configURL, 24*time.Hour)
 }
 
 // GetAutoConfigFromCacheOnly is a convenience function to get cached autoconfig without trying to fetch from remote
-func GetAutoConfigFromCacheOnly(repoPath string) (*autoconfig.AutoConfig, error) {
+func GetAutoConfigFromCacheOnly(repoPath string) (*autoconfig.Config, error) {
 	// Since this is cache-only, no network requests are made, so user agent is not needed
 	client, err := autoconfig.NewClient()
 	if err != nil {
 		return nil, err
 	}
 	cacheDir := filepath.Join(repoPath, "autoconfig")
-	return client.GetLatestFromCacheOnly(cacheDir)
+	return client.GetCachedConfig(cacheDir)
 }
 
 // ValidateAutoConfigAtStartup validates that autoconfig setup is correct at daemon startup

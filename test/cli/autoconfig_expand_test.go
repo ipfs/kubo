@@ -118,7 +118,7 @@ func testConfigCommandsShowAutoValues(t *testing.T) {
 		// Create HTTP server that serves autoconfig.json
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			w.Write(autoConfigData)
+			_, _ = w.Write(autoConfigData)
 		}))
 		defer server.Close()
 

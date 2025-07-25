@@ -39,6 +39,7 @@ var noopRouter = routinghelpers.Null{}
 
 // EndpointCapabilities represents which routing operations are supported
 type EndpointCapabilities struct {
+	All       bool // true when no path specified - all capabilities available
 	Providers bool
 	Peers     bool
 	IPNS      bool
@@ -65,26 +66,30 @@ func parseEndpointPath(endpoint string) (baseURL string, capabilities EndpointCa
 	// Handle different path patterns
 	switch {
 	case path == "":
-		// No path specified - assume all capabilities (backward compatibility)
+		// No path specified - all capabilities available (backward compatibility)
 		capabilities = EndpointCapabilities{
+			All:       true,
 			Providers: true,
 			Peers:     true,
 			IPNS:      true,
 		}
 	case path == "routing/v1/providers":
 		capabilities = EndpointCapabilities{
+			All:       false,
 			Providers: true,
 			Peers:     false,
 			IPNS:      false,
 		}
 	case path == "routing/v1/peers":
 		capabilities = EndpointCapabilities{
+			All:       false,
 			Providers: false,
 			Peers:     true,
 			IPNS:      false,
 		}
 	case path == "routing/v1/ipns":
 		capabilities = EndpointCapabilities{
+			All:       false,
 			Providers: false,
 			Peers:     false,
 			IPNS:      true,
@@ -104,7 +109,7 @@ func constructDefaultHTTPRouters(cfg *config.Config, r repo.Repo) ([]*routinghel
 
 	// First resolve auto values to get actual delegated routers
 	resolvedRouters := cfg.DelegatedRoutersWithAutoConfig(r.Path())
-	
+
 	// Use config.DefaultHTTPRouters if custom override was sent via config.EnvHTTPRouters
 	// or if resolved delegated routers list is empty
 	var httpRouterEndpoints []string
@@ -130,17 +135,22 @@ func constructDefaultHTTPRouters(cfg *config.Config, r repo.Repo) ([]*routinghel
 
 		// Configure router operations based on path-determined capabilities
 		// https://specs.ipfs.tech/routing/http-routing-v1/
+		//
+		// IMPORTANT: IPNS publishing (PutValue) is intentionally disabled here.
+		// IPNS publishing is handled separately via Ipns.DelegatedPublishers configuration.
+		// This separation allows users to configure different endpoints for resolution vs publishing.
 		r := &irouting.Composer{
-			GetValueRouter:      noopRouter, // Default disabled
+			GetValueRouter:      noopRouter, // Default disabled, enabled below based on capabilities
 			PutValueRouter:      noopRouter, // IPNS publishing is handled by Ipns.DelegatedPublishers
 			ProvideRouter:       noopRouter, // we don't have spec for sending provides to /routing/v1 (revisit once https://github.com/ipfs/specs/pull/378 or similar is ratified)
-			FindPeersRouter:     noopRouter, // Default disabled
-			FindProvidersRouter: noopRouter, // Default disabled
+			FindPeersRouter:     noopRouter, // Default disabled, enabled below based on capabilities
+			FindProvidersRouter: noopRouter, // Default disabled, enabled below based on capabilities
 		}
 
 		// Enable specific capabilities based on URL path
+		// Note: When All=true, individual capabilities are also true (set in parseEndpointPath)
 		if capabilities.IPNS {
-			r.GetValueRouter = httpRouter // GET /routing/v1/ipns
+			r.GetValueRouter = httpRouter // GET /routing/v1/ipns for IPNS resolution
 		}
 		if capabilities.Peers {
 			r.FindPeersRouter = httpRouter // GET /routing/v1/peers
@@ -151,8 +161,9 @@ func constructDefaultHTTPRouters(cfg *config.Config, r repo.Repo) ([]*routinghel
 
 		// Handle special cases and backward compatibility
 		if baseURL == config.CidContactRoutingURL {
-			// Special-case: cid.contact only supports /routing/v1/providers/cid
-			// Ensure only providers capability is enabled for cid.contact
+			// Special-case: cid.contact only supports /routing/v1/providers/cid endpoint
+			// Override any capabilities detected from URL path to ensure only providers is enabled
+			// TODO: Consider moving this to configuration or removing once cid.contact adds more capabilities
 			r.GetValueRouter = noopRouter
 			r.PutValueRouter = noopRouter
 			r.ProvideRouter = noopRouter
@@ -171,6 +182,17 @@ func constructDefaultHTTPRouters(cfg *config.Config, r repo.Repo) ([]*routinghel
 	return routers, nil
 }
 
+// addIPNSPublishers adds IPNS delegated publishers to the routers list
+// This is used by both ConstructDefaultRouting and ConstructDelegatedOnlyRouting to avoid duplication
+func addIPNSPublishers(cfg *config.Config, r repo.Repo, routers *[]*routinghelpers.ParallelRouter) error {
+	ipnsPublishers, err := constructIPNSDelegatedPublishers(cfg, r)
+	if err != nil {
+		return err
+	}
+	*routers = append(*routers, ipnsPublishers...)
+	return nil
+}
+
 func constructIPNSDelegatedPublishers(cfg *config.Config, r repo.Repo) ([]*routinghelpers.ParallelRouter, error) {
 	var routers []*routinghelpers.ParallelRouter
 	httpRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
@@ -187,8 +209,8 @@ func constructIPNSDelegatedPublishers(cfg *config.Config, r repo.Repo) ([]*routi
 		}
 
 		// Validate that this endpoint supports IPNS operations
-		if !capabilities.IPNS && endpoint != baseURL {
-			// If a path was specified but it doesn't support IPNS, that's an error
+		// Note: When All=true, IPNS is also true (set in parseEndpointPath)
+		if !capabilities.IPNS {
 			return nil, fmt.Errorf("IPNS publisher endpoint %q does not support IPNS operations (path must be /routing/v1/ipns or no path)", endpoint)
 		}
 
@@ -218,6 +240,36 @@ func constructIPNSDelegatedPublishers(cfg *config.Config, r repo.Repo) ([]*routi
 	return routers, nil
 }
 
+// ConstructDelegatedOnlyRouting returns routers used when Routing.Type is set to "delegated"
+// This provides HTTP-only routing without DHT, using only delegated routers and IPNS publishers.
+// Useful for environments where DHT connectivity is not available or desired
+func ConstructDelegatedOnlyRouting(cfg *config.Config) RoutingOption {
+	return func(args RoutingOptionArgs) (routing.Routing, error) {
+		// Use only HTTP routers and IPNS publishers - no DHT
+		var routers []*routinghelpers.ParallelRouter
+
+		// Add HTTP delegated routers
+		httpRouters, err := constructDefaultHTTPRouters(cfg, args.Repo)
+		if err != nil {
+			return nil, err
+		}
+		routers = append(routers, httpRouters...)
+
+		// Add IPNS delegated publishers
+		if err := addIPNSPublishers(cfg, args.Repo, &routers); err != nil {
+			return nil, err
+		}
+
+		// Validate that we have at least one router configured
+		if len(routers) == 0 {
+			return nil, fmt.Errorf("no delegated routers or publishers configured for 'delegated' routing mode")
+		}
+
+		routing := routinghelpers.NewComposableParallel(routers)
+		return routing, nil
+	}
+}
+
 // ConstructDefaultRouting returns routers used when Routing.Type is unset or set to "auto"
 func ConstructDefaultRouting(cfg *config.Config, routingOpt RoutingOption) RoutingOption {
 	return func(args RoutingOptionArgs) (routing.Routing, error) {
@@ -244,12 +296,9 @@ func ConstructDefaultRouting(cfg *config.Config, routingOpt RoutingOption) Routi
 		routers = append(routers, httpRouters...)
 
 		// Add IPNS delegated publishers
-		ipnsPublishers, err := constructIPNSDelegatedPublishers(cfg, args.Repo)
-		if err != nil {
+		if err := addIPNSPublishers(cfg, args.Repo, &routers); err != nil {
 			return nil, err
 		}
-
-		routers = append(routers, ipnsPublishers...)
 
 		routing := routinghelpers.NewComposableParallel(routers)
 		return routing, nil

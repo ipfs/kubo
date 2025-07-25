@@ -52,7 +52,7 @@ func TestWithOptions(t *testing.T) {
 
 func TestGetLatest(t *testing.T) {
 	// Create test config
-	testConfig := &AutoConfig{
+	testConfig := &Config{
 		AutoConfigVersion: 2025071802,
 		AutoConfigSchema:  2,
 		Bootstrap:         []string{"/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWGzxzKZYveHXtpG6AsrUJBcWxHBFS2HsEoGTxrMLvKXtf"},
@@ -90,7 +90,7 @@ func TestGetLatest(t *testing.T) {
 
 	// Test fetching
 	ctx := context.Background()
-	config, err := client.GetLatest(ctx, server.URL)
+	config, err := client.GetLatestConfig(ctx, server.URL)
 	if err != nil {
 		t.Fatalf("failed to get latest config: %v", err)
 	}
@@ -145,13 +145,13 @@ func TestCacheMetadata(t *testing.T) {
 	}
 
 	// Test writing metadata
-	err = client.writeCachedMetadata(cacheDir, "test-etag", "test-lastmod")
+	err = client.writeMetadata(cacheDir, "test-etag", "test-lastmod")
 	if err != nil {
 		t.Fatalf("failed to write metadata: %v", err)
 	}
 
 	// Test reading metadata
-	etag, lastMod := client.readCachedMetadata(cacheDir)
+	etag, lastMod := client.readMetadata(cacheDir)
 	if etag != "test-etag" {
 		t.Errorf("expected etag 'test-etag', got '%s'", etag)
 	}

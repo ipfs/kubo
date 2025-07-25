@@ -2030,7 +2030,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 ### `Routing.Type`
 
-There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
+There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", "delegated", and "custom".
 
 * **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
   and parallel [`Routing.DelegatedRouters`](#routingdelegatedrouters) for additional speed.
@@ -2066,6 +2066,15 @@ When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate s
 by leveraging [`Routing.DelegatedRouters`](#routingdelegatedrouters) HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
 introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
 in addition to the Amino DHT.
+
+When `Routing.Type` is set to `delegated`, your node will use **only** HTTP delegated routers and IPNS publishers,
+without initializing the Amino DHT at all. This mode is useful for environments where peer-to-peer DHT connectivity
+is not available or desired, while still enabling content routing and IPNS publishing via HTTP APIs.
+This mode requires configuring [`Routing.DelegatedRouters`](#routingdelegatedrouters) for content routing and 
+[`Ipns.DelegatedPublishers`](#ipnsdelegatedpublishers) for IPNS publishing.
+
+**Note:** `delegated` mode operates as read-only for content providing - your node cannot announce content to the network
+since there is no DHT connectivity. Content providing is automatically disabled when using this routing type.
 
 [Advanced routing rules](https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md) can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
 

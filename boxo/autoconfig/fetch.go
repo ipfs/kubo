@@ -17,8 +17,9 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// GetLatestWithMetadata fetches the latest autoconfig with metadata, using cache when possible
-func (c *Client) GetLatestWithMetadata(ctx context.Context, configURL string) (*AutoConfigResponse, error) {
+// GetLatest fetches the latest config with metadata, using cache when possible
+// The checkInterval parameter determines how long cached configs are considered fresh
+func (c *Client) GetLatest(ctx context.Context, configURL string, checkInterval time.Duration) (*Response, error) {
 	cacheDir, err := c.getCacheDir(configURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cache dir: %w", err)
@@ -29,18 +30,24 @@ func (c *Client) GetLatestWithMetadata(ctx context.Context, configURL string) (*
 		return nil, fmt.Errorf("failed to create cache dir: %w", err)
 	}
 
-	// Try to fetch from remote first
-	resp, err := c.fetchFromRemoteWithMetadata(ctx, configURL, cacheDir)
+	// Check if we have cached data that's still within checkInterval
+	cachedResp, cacheErr := c.getCached(cacheDir)
+	if cacheErr == nil && cachedResp.CacheAge < checkInterval {
+		log.Debugf("using cached autoconfig (age: %s, check interval: %s)", formatDuration(cachedResp.CacheAge), formatDuration(checkInterval))
+		return cachedResp, nil
+	}
+
+	// Cache is stale or doesn't exist, try to fetch from remote
+	resp, err := c.fetchFromRemote(ctx, configURL, cacheDir)
 	if err != nil {
 		log.Warnf("failed to fetch from remote: %v", err)
-		// Fall back to cached version
-		resp, cacheErr := c.getLatestCachedWithMetadata(cacheDir)
-		if cacheErr != nil {
-			return nil, fmt.Errorf("failed to fetch from remote (%w) and no valid cache available (%w)", err, cacheErr)
+		// Fall back to cached version if available, even if stale
+		if cacheErr == nil {
+			log.Errorf("using %s-old cached autoconfig (last successful fetch: %s)",
+				formatDuration(cachedResp.CacheAge), cachedResp.FetchTime.Format(time.RFC3339))
+			return cachedResp, nil
 		}
-		log.Errorf("using %s-old cached autoconfig (last successful fetch: %s)",
-			formatDuration(resp.CacheAge), resp.FetchTime.Format(time.RFC3339))
-		return resp, nil
+		return nil, fmt.Errorf("failed to fetch from remote (%w) and no valid cache available (%w)", err, cacheErr)
 	}
 
 	// Clean up old versions
@@ -51,19 +58,28 @@ func (c *Client) GetLatestWithMetadata(ctx context.Context, configURL string) (*
 	return resp, nil
 }
 
-// GetLatestFromCacheOnly returns the latest cached autoconfig without trying to fetch from remote
-func (c *Client) GetLatestFromCacheOnly(cacheDir string) (*AutoConfig, error) {
-	return c.getLatestCached(cacheDir)
+// GetCachedConfig returns the latest cached config without trying to fetch from remote
+func (c *Client) GetCachedConfig(cacheDir string) (*Config, error) {
+	return c.getCachedConfig(cacheDir)
 }
 
-// MustGetConfigWithMainnetFallbacks returns autoconfig with fallbacks to hardcoded defaults
+// GetCached returns the latest cached config with metadata without trying to fetch from remote
+func (c *Client) GetCached(cacheDir string) (*Response, error) {
+	return c.getCached(cacheDir)
+}
+
+// MustGetConfig returns config with fallbacks to hardcoded defaults
 // For cache-only behavior, pass a cancelled context
 // This method never returns an error and always returns usable mainnet values
-func (c *Client) MustGetConfigWithMainnetFallbacks(ctx context.Context, configURL string) *AutoConfig {
-	config, err := c.GetLatest(ctx, configURL)
+func (c *Client) MustGetConfig(ctx context.Context, configURL string, checkInterval time.Duration) *Config {
+	resp, err := c.GetLatest(ctx, configURL, checkInterval)
+	var config *Config
+	if err == nil {
+		config = resp.Config
+	}
 	if err != nil {
 		// Return fallback config
-		return &AutoConfig{
+		return &Config{
 			Bootstrap:    FallbackBootstrapPeers,
 			DNSResolvers: FallbackDNSResolvers,
 			DelegatedRouters: map[string]DelegatedRouterConfig{
@@ -102,8 +118,8 @@ func (c *Client) MustGetConfigWithMainnetFallbacks(ctx context.Context, configUR
 	return config
 }
 
-// fetchFromRemoteWithMetadata fetches config from remote URL with metadata
-func (c *Client) fetchFromRemoteWithMetadata(ctx context.Context, configURL, cacheDir string) (*AutoConfigResponse, error) {
+// fetchFromRemote fetches config from remote URL with metadata
+func (c *Client) fetchFromRemote(ctx context.Context, configURL, cacheDir string) (*Response, error) {
 	// Use local time for fetch time, not HTTP headers
 	fetchTime := time.Now()
 
@@ -120,7 +136,7 @@ func (c *Client) fetchFromRemoteWithMetadata(ctx context.Context, configURL, cac
 		version = lastMod
 	}
 
-	return &AutoConfigResponse{
+	return &Response{
 		Config:    config,
 		FetchTime: fetchTime,
 		Version:   version,
@@ -130,9 +146,9 @@ func (c *Client) fetchFromRemoteWithMetadata(ctx context.Context, configURL, cac
 }
 
 // fetchFromRemoteRaw fetches config from remote URL (internal helper)
-func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir string) (*http.Response, *AutoConfig, error) {
+func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir string) (*http.Response, *Config, error) {
 	// Validate URL scheme for security
-	if err := c.validateConfigURL(configURL); err != nil {
+	if err := c.validateURL(configURL); err != nil {
 		return nil, nil, fmt.Errorf("invalid config URL: %w", err)
 	}
 
@@ -147,7 +163,7 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 	}
 
 	// Add conditional headers for caching
-	etag, lastModified := c.readCachedMetadata(cacheDir)
+	etag, lastModified := c.readMetadata(cacheDir)
 	if etag != "" {
 		req.Header.Set("If-None-Match", etag)
 	} else if lastModified != "" {
@@ -160,10 +176,16 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 	}
 	defer resp.Body.Close()
 
-	// If not modified, return cached version
+	// If not modified, refresh cache timestamp and return cached version
 	if resp.StatusCode == http.StatusNotModified {
-		log.Debugf("config not modified, using cached version")
-		config, err := c.getLatestCached(cacheDir)
+		log.Debugf("config not modified, refreshing cache timestamp")
+
+		// Refresh the cache file's modification time to reset TTL
+		if err := c.touchCache(cacheDir); err != nil {
+			log.Warnf("failed to refresh cache timestamp: %v", err)
+		}
+
+		config, err := c.getCachedConfig(cacheDir)
 		return resp, config, err
 	}
 
@@ -179,7 +201,7 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 	}
 
 	// Parse JSON
-	var config AutoConfig
+	var config Config
 	if err := json.Unmarshal(body, &config); err != nil {
 		return nil, nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
@@ -190,7 +212,7 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 	}
 
 	// Validate all multiaddr and URL values
-	if err := c.validateAutoConfig(&config); err != nil {
+	if err := c.validateConfig(&config); err != nil {
 		return nil, nil, fmt.Errorf("invalid autoconfig JSON: %w", err)
 	}
 
@@ -201,14 +223,14 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 	}
 
 	// Save to cache with unix timestamp
-	if err := c.saveToCacheWithTimestamp(cacheDir, body); err != nil {
+	if err := c.saveToCache(cacheDir, body); err != nil {
 		log.Warnf("failed to save to cache: %v", err)
 	}
 
 	// Save metadata
 	newEtag := resp.Header.Get("ETag")
 	newLastModified := resp.Header.Get("Last-Modified")
-	if err := c.writeCachedMetadata(cacheDir, newEtag, newLastModified); err != nil {
+	if err := c.writeMetadata(cacheDir, newEtag, newLastModified); err != nil {
 		log.Warnf("failed to save metadata: %v", err)
 	}
 
@@ -216,9 +238,9 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 	return resp, &config, nil
 }
 
-// getLatestCached returns the latest cached config
-func (c *Client) getLatestCached(cacheDir string) (*AutoConfig, error) {
-	files, err := c.getCachedFiles(cacheDir)
+// getCachedConfig returns the latest cached config
+func (c *Client) getCachedConfig(cacheDir string) (*Config, error) {
+	files, err := c.listCacheFiles(cacheDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cached files: %w", err)
 	}
@@ -235,7 +257,7 @@ func (c *Client) getLatestCached(cacheDir string) (*AutoConfig, error) {
 		return nil, fmt.Errorf("failed to read cached config: %w", err)
 	}
 
-	var config AutoConfig
+	var config Config
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse cached config: %w", err)
 	}
@@ -243,15 +265,15 @@ func (c *Client) getLatestCached(cacheDir string) (*AutoConfig, error) {
 	return &config, nil
 }
 
-// getLatestCachedWithMetadata returns the latest cached config with metadata
-func (c *Client) getLatestCachedWithMetadata(cacheDir string) (*AutoConfigResponse, error) {
-	config, err := c.getLatestCached(cacheDir)
+// getCached returns the latest cached config with metadata
+func (c *Client) getCached(cacheDir string) (*Response, error) {
+	config, err := c.getCachedConfig(cacheDir)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get cache file modification time to calculate age
-	files, err := c.getCachedFiles(cacheDir)
+	files, err := c.listCacheFiles(cacheDir)
 	if err != nil || len(files) == 0 {
 		return nil, fmt.Errorf("no cached versions available")
 	}
@@ -267,7 +289,7 @@ func (c *Client) getLatestCachedWithMetadata(cacheDir string) (*AutoConfigRespon
 	cacheAge := time.Since(fetchTime)
 
 	// Get version from cached metadata
-	etag, lastModified := c.readCachedMetadata(cacheDir)
+	etag, lastModified := c.readMetadata(cacheDir)
 	version := ""
 	if etag != "" {
 		version = etag
@@ -275,7 +297,7 @@ func (c *Client) getLatestCachedWithMetadata(cacheDir string) (*AutoConfigRespon
 		version = lastModified
 	}
 
-	return &AutoConfigResponse{
+	return &Response{
 		Config:    config,
 		FetchTime: fetchTime,
 		Version:   version,
@@ -284,8 +306,8 @@ func (c *Client) getLatestCachedWithMetadata(cacheDir string) (*AutoConfigRespon
 	}, nil
 }
 
-// getCachedFiles returns all cached files sorted by timestamp (newest first)
-func (c *Client) getCachedFiles(cacheDir string) ([]string, error) {
+// listCacheFiles returns all cached files sorted by timestamp (newest first)
+func (c *Client) listCacheFiles(cacheDir string) ([]string, error) {
 	// Sanitize cache directory path
 	cleanCacheDir := filepath.Clean(cacheDir)
 	entries, err := os.ReadDir(cleanCacheDir)
@@ -308,8 +330,8 @@ func (c *Client) getCachedFiles(cacheDir string) ([]string, error) {
 	return files, nil
 }
 
-// saveToCacheWithTimestamp saves config to cache using unix timestamp
-func (c *Client) saveToCacheWithTimestamp(cacheDir string, data []byte) error {
+// saveToCache saves config to cache using unix timestamp
+func (c *Client) saveToCache(cacheDir string, data []byte) error {
 	// Sanitize cache directory path
 	cleanCacheDir := filepath.Clean(cacheDir)
 
@@ -326,7 +348,7 @@ func (c *Client) saveToCacheWithTimestamp(cacheDir string, data []byte) error {
 
 // isNewPayload checks if the payload is different from the latest cached version
 func (c *Client) isNewPayload(cacheDir string, newData []byte) bool {
-	files, err := c.getCachedFiles(cacheDir)
+	files, err := c.listCacheFiles(cacheDir)
 	if err != nil || len(files) == 0 {
 		// No cached files, this is new
 		return true
@@ -345,7 +367,7 @@ func (c *Client) isNewPayload(cacheDir string, newData []byte) bool {
 
 // cleanupOldVersions removes old cached versions beyond maxVersions
 func (c *Client) cleanupOldVersions(cacheDir string) error {
-	files, err := c.getCachedFiles(cacheDir)
+	files, err := c.listCacheFiles(cacheDir)
 	if err != nil {
 		return fmt.Errorf("failed to get cached files: %w", err)
 	}
@@ -366,8 +388,8 @@ func (c *Client) cleanupOldVersions(cacheDir string) error {
 	return nil
 }
 
-// validateConfigURL validates that the autoconfig URL uses an allowed scheme
-func (c *Client) validateConfigURL(configURL string) error {
+// validateURL validates that the config URL uses an allowed scheme
+func (c *Client) validateURL(configURL string) error {
 	u, err := url.Parse(configURL)
 	if err != nil {
 		return fmt.Errorf("failed to parse URL: %w", err)
@@ -383,6 +405,24 @@ func (c *Client) validateConfigURL(configURL string) error {
 	default:
 		return fmt.Errorf("unsupported URL scheme '%s' - only HTTP and HTTPS are allowed", u.Scheme)
 	}
+}
+
+// touchCache updates the modification time of the latest cached file to reset TTL
+func (c *Client) touchCache(cacheDir string) error {
+	files, err := c.listCacheFiles(cacheDir)
+	if err != nil || len(files) == 0 {
+		return fmt.Errorf("no cached files to refresh")
+	}
+
+	// Touch the latest cached file to update its modification time
+	latestFile := files[0]
+	currentTime := time.Now()
+	if err := os.Chtimes(latestFile, currentTime, currentTime); err != nil {
+		return fmt.Errorf("failed to update cache timestamp: %w", err)
+	}
+
+	log.Debugf("refreshed cache timestamp for %s", filepath.Base(latestFile))
+	return nil
 }
 
 // formatDuration formats a duration in human-readable format
@@ -401,8 +441,8 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%.1f-week", weeks)
 }
 
-// validateAutoConfig validates all multiaddr and URL values in the autoconfig
-func (c *Client) validateAutoConfig(config *AutoConfig) error {
+// validateConfig validates all multiaddr and URL values in the config
+func (c *Client) validateConfig(config *Config) error {
 	// Validate Bootstrap multiaddrs
 	for i, bootstrap := range config.Bootstrap {
 		if _, err := ma.NewMultiaddr(bootstrap); err != nil {
@@ -440,9 +480,10 @@ func (c *Client) validateAutoConfig(config *AutoConfig) error {
 	return nil
 }
 
-// GetLatest fetches the latest autoconfig, using cache when possible (backward compatibility)
-func (c *Client) GetLatest(ctx context.Context, configURL string) (*AutoConfig, error) {
-	resp, err := c.GetLatestWithMetadata(ctx, configURL)
+// GetLatestConfig fetches the latest config only, using cache when possible
+// Uses a default check interval of 24 hours
+func (c *Client) GetLatestConfig(ctx context.Context, configURL string) (*Config, error) {
+	resp, err := c.GetLatest(ctx, configURL, 24*time.Hour)
 	if err != nil {
 		return nil, err
 	}

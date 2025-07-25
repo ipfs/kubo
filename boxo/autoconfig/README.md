@@ -24,7 +24,7 @@ if err != nil {
 }
 
 // Fetch the latest config
-config, err := client.GetLatest(ctx, "https://config.ipfs-mainnet.org/autoconfig.json")
+config, err := client.GetLatest(ctx, "https://config.ipfs-mainnet.org/autoconfig.json", 24*time.Hour)
 if err != nil {
     return err
 }
@@ -59,7 +59,7 @@ func main() {
         panic(err)
     }
 
-    config, err := client.GetLatest(context.Background(), "https://config.ipfs-mainnet.org/autoconfig.json")
+    config, err := client.GetLatest(context.Background(), "https://config.ipfs-mainnet.org/autoconfig.json", 24*time.Hour)
     if err != nil {
         panic(err)
     }
@@ -89,7 +89,7 @@ func main() {
         autoconfig.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {
             fmt.Printf("New config version %d available (was %d) - consider restarting\n", newVersion, oldVersion)
         }),
-        autoconfig.WithOnUpdateSuccess(func(resp *autoconfig.AutoConfigResponse) {
+        autoconfig.WithOnUpdateSuccess(func(resp *autoconfig.Response) {
             fmt.Printf("Updated config cache at %s\n", resp.FetchTime.Format(time.RFC3339))
         }),
         autoconfig.WithOnUpdateError(func(err error) {

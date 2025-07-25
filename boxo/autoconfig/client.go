@@ -149,8 +149,8 @@ func (c *Client) getCacheDir(configURL string) (string, error) {
 	return filepath.Join(c.cacheDir, "autoconfig", host), nil
 }
 
-// readCachedMetadata reads cached ETag and Last-Modified values
-func (c *Client) readCachedMetadata(cacheDir string) (etag, lastModified string) {
+// readMetadata reads cached ETag and Last-Modified values
+func (c *Client) readMetadata(cacheDir string) (etag, lastModified string) {
 	// Sanitize cache directory path
 	cleanCacheDir := filepath.Clean(cacheDir)
 
@@ -167,8 +167,8 @@ func (c *Client) readCachedMetadata(cacheDir string) (etag, lastModified string)
 	return strings.TrimSpace(string(etagData)), strings.TrimSpace(string(lastModData))
 }
 
-// writeCachedMetadata writes ETag and Last-Modified values to cache
-func (c *Client) writeCachedMetadata(cacheDir, etag, lastModified string) error {
+// writeMetadata writes ETag and Last-Modified values to cache
+func (c *Client) writeMetadata(cacheDir, etag, lastModified string) error {
 	// Sanitize cache directory path
 	cleanCacheDir := filepath.Clean(cacheDir)
 	if etag != "" {

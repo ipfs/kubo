@@ -7,11 +7,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestValidateAutoConfig(t *testing.T) {
+func TestValidateConfig(t *testing.T) {
 	client := &Client{}
 
 	t.Run("valid config passes validation", func(t *testing.T) {
-		config := &AutoConfig{
+		config := &Config{
 			AutoConfigVersion: 123,
 			Bootstrap: []string{
 				"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
@@ -38,12 +38,12 @@ func TestValidateAutoConfig(t *testing.T) {
 			},
 		}
 
-		err := client.validateAutoConfig(config)
+		err := client.validateConfig(config)
 		assert.NoError(t, err)
 	})
 
 	t.Run("invalid bootstrap multiaddr fails validation", func(t *testing.T) {
-		config := &AutoConfig{
+		config := &Config{
 			AutoConfigVersion: 123,
 			Bootstrap: []string{
 				"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
@@ -51,14 +51,14 @@ func TestValidateAutoConfig(t *testing.T) {
 			},
 		}
 
-		err := client.validateAutoConfig(config)
+		err := client.validateConfig(config)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Bootstrap[1] invalid multiaddr")
 		assert.Contains(t, err.Error(), "invalid-multiaddr")
 	})
 
 	t.Run("invalid DNS resolver URL fails validation", func(t *testing.T) {
-		config := &AutoConfig{
+		config := &Config{
 			AutoConfigVersion: 123,
 			DNSResolvers: map[string][]string{
 				"eth.": {"https://valid.example.com"},
@@ -66,14 +66,14 @@ func TestValidateAutoConfig(t *testing.T) {
 			},
 		}
 
-		err := client.validateAutoConfig(config)
+		err := client.validateConfig(config)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "DNSResolvers[\"bad.\"][0] invalid URL")
 		assert.Contains(t, err.Error(), "://invalid-url")
 	})
 
 	t.Run("invalid delegated router URL fails validation", func(t *testing.T) {
-		config := &AutoConfig{
+		config := &Config{
 			AutoConfigVersion: 123,
 			DelegatedRouters: map[string]DelegatedRouterConfig{
 				"test": {
@@ -83,14 +83,14 @@ func TestValidateAutoConfig(t *testing.T) {
 			},
 		}
 
-		err := client.validateAutoConfig(config)
+		err := client.validateConfig(config)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "DelegatedRouters[\"test\"][1] invalid URL")
 		assert.Contains(t, err.Error(), "://invalid-missing-scheme")
 	})
 
 	t.Run("invalid delegated publisher URL fails validation", func(t *testing.T) {
-		config := &AutoConfig{
+		config := &Config{
 			AutoConfigVersion: 123,
 			DelegatedPublishers: map[string]DelegatedPublisherConfig{
 				"test": {
@@ -101,23 +101,23 @@ func TestValidateAutoConfig(t *testing.T) {
 			},
 		}
 
-		err := client.validateAutoConfig(config)
+		err := client.validateConfig(config)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "DelegatedPublishers[\"test\"][2] invalid URL")
 		assert.Contains(t, err.Error(), "ht!@#$%^&*()tp://invalid-escape")
 	})
 
 	t.Run("empty config passes validation", func(t *testing.T) {
-		config := &AutoConfig{
+		config := &Config{
 			AutoConfigVersion: 123,
 		}
 
-		err := client.validateAutoConfig(config)
+		err := client.validateConfig(config)
 		assert.NoError(t, err)
 	})
 
 	t.Run("various valid URL schemes are accepted", func(t *testing.T) {
-		config := &AutoConfig{
+		config := &Config{
 			AutoConfigVersion: 123,
 			DNSResolvers: map[string][]string{
 				"test.": {
@@ -130,7 +130,7 @@ func TestValidateAutoConfig(t *testing.T) {
 			},
 		}
 
-		err := client.validateAutoConfig(config)
+		err := client.validateConfig(config)
 		assert.NoError(t, err)
 	})
 }
