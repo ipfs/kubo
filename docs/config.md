@@ -1,6 +1,6 @@
 # The Kubo config file
 
-The Kubo (go-ipfs) config file is a JSON document located at `$IPFS_PATH/config`. It
+The Kubo config file is a JSON document located at `$IPFS_PATH/config`. It
 is read once at node instantiation, either for an offline command, or when
 starting the daemon. Commands that execute on a running daemon do not read the
 config file at runtime.
@@ -235,6 +235,9 @@ config file at runtime.
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
     - [`test-cid-v1` profile](#test-cid-v1-profile)
     - [`test-cid-v1-wide` profile](#test-cid-v1-wide-profile)
+  - [Security](#security)
+    - [Port and Network Exposure](#port-and-network-exposure)
+    - [Security Best Practices](#security-best-practices)
   - [Types](#types)
     - [`flag`](#flag)
     - [`priority`](#priority)
@@ -271,6 +274,7 @@ Supported Transports:
 >
 > - If you need secure access to a subset of RPC, secure it with [`API.Authorizations`](#apiauthorizations) or custom auth middleware running in front of the localhost-only RPC port defined here.
 > - If you are looking for an interface designed for browsers and public internet, use [`Addresses.Gateway`](#addressesgateway) port instead.
+> - See [Security section](#security) for network exposure considerations.
 
 Default: `/ip4/127.0.0.1/tcp/5001`
 
@@ -285,6 +289,16 @@ Supported Transports:
 
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
 * unix - `/unix/path/to/socket`
+
+> [!CAUTION]
+> **SECURITY CONSIDERATIONS FOR GATEWAY EXPOSURE**
+>
+> By default, the gateway is bound to localhost for security. If you bind to `0.0.0.0`
+> or a public IP, anyone with access can trigger retrieval of arbitrary CIDs, causing
+> bandwidth usage and potential exposure to malicious content. Limit with
+> [`Gateway.NoFetch`](#gatewaynofetch). Consider firewall rules, authentication,
+> and [`Gateway.PublicGateways`](#gatewaypublicgateways) for public exposure.
+> See [Security section](#security) for network exposure considerations.
 
 Default: `/ip4/127.0.0.1/tcp/8080`
 
@@ -304,6 +318,7 @@ Supported Transports:
 
 > [!IMPORTANT]
 > Make sure your firewall rules allow incoming connections on both TCP and UDP ports defined here.
+> See [Security section](#security) for network exposure considerations.
 
 Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
@@ -1824,10 +1839,13 @@ Tells reprovider what should be announced. Valid strategies are:
   - Order: first `pinned` and then the locally available part of `mfs`.
 - `"flat"` - same as `all`, announce all CIDs of stored blocks, but without prioritizing anything.
 
-> [!IMPORTANT]
-> Reproviding larger pinsets using the `all`, `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
-> This is due to the use of a buffered provider, which avoids holding a lock on the entire pinset during the reprovide cycle.
-> The `flat` strategy can be used to lower memory requirements, but only recommended if memory utilization is too high, prioritization of pins is not necessary, and it is acceptable to announce every block cached in the local repository.
+**Strategy changes automatically clear the provide queue.** When you change `Reprovider.Strategy` and restart Kubo, the provide queue is automatically cleared to ensure only content matching your new strategy is announced. You can also manually clear the queue using `ipfs provide clear`.
+
+**Memory requirements:**
+
+- Reproviding larger pinsets using the `all`, `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
+- This is due to the use of a buffered provider, which avoids holding a lock on the entire pinset during the reprovide cycle.
+- The `flat` strategy can be used to lower memory requirements, but only recommended if memory utilization is too high, prioritization of pins is not necessary, and it is acceptable to announce every block cached in the local repository.
 
 Default: `"all"`
 
@@ -2484,6 +2502,14 @@ this section will be used for dialing. However, to receive connections on these
 transports, multiaddrs for these transports must be added to `Addresses.Swarm`.
 
 Supported transports are: QUIC, TCP, WS, Relay, WebTransport and WebRTCDirect.
+
+> [!CAUTION]
+> **SECURITY CONSIDERATIONS FOR NETWORK TRANSPORTS**
+>
+> Enabling network transports allows your node to accept connections from the internet.
+> Ensure your firewall rules and [`Addresses.Swarm`](#addressesswarm) configuration
+> align with your security requirements.
+> See [Security section](#security) for network exposure considerations.
 
 Each field in this section is a `flag`.
 
@@ -3201,6 +3227,27 @@ See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Imp
 >
 > Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
 > and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
+
+## Security
+
+This section provides an overview of security considerations for configurations that expose network services.
+
+### Port and Network Exposure
+
+Several configuration options expose TCP or UDP ports that can make your Kubo node accessible from the network:
+
+- **[`Addresses.API`](#addressesapi)** - Exposes the admin RPC API (default: localhost:5001)
+- **[`Addresses.Gateway`](#addressesgateway)** - Exposes the HTTP gateway (default: localhost:8080)
+- **[`Addresses.Swarm`](#addressesswarm)** - Exposes P2P connectivity (default: 0.0.0.0:4001, both UDP and TCP)
+- **[`Swarm.Transports.Network`](#swarmtransportsnetwork)** - Controls which P2P transport protocols are enabled over TCP and UDP
+
+### Security Best Practices
+
+- Keep admin services ([`Addresses.API`](#addressesapi)) bound to localhost unless authentication ([`API.Authorizations`](#apiauthorizations)) is configured
+- Use [`Gateway.NoFetch`](#gatewaynofetch) to prevent arbitrary CID retrieval if Kubo is acting as a public gateway available to anyone
+- Configure firewall rules to restrict access to exposed ports. Note that [`Addresses.Swarm`](#addressesswarm) is special - all incoming traffic to swarm ports should be allowed to ensure proper P2P connectivity
+- Control which public-facing addresses are announced to other peers using [`Addresses.NoAnnounce`](#addressesnoannounce), [`Addresses.Announce`](#addressesannounce), and [`Addresses.AppendAnnounce`](#addressesappendannounce)
+- Consider using the [`server` profile](#server-profile) for production deployments
 
 ## Types
 

@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
 	"go.uber.org/fx"
@@ -21,7 +23,10 @@ import (
 // and in 'ipfs stats provide' report.
 const sampledBatchSize = 1000
 
-func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
+// Datastore key used to store previous reprovide strategy.
+const reprovideStrategyKey = "/reprovideStrategy"
+
+func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int, reprovideStrategy string) fx.Option {
 	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, keyProvider provider.KeyChanFunc, repo repo.Repo, bs blockstore.Blockstore) (provider.System, error) {
 		opts := []provider.Option{
 			provider.Online(cr),
@@ -114,9 +119,34 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 					return false
 				}, sampledBatchSize))
 		}
-		sys, err := provider.New(repo.Datastore(), opts...)
+
+		var strategyChanged bool
+		ctx := context.Background()
+		ds := repo.Datastore()
+		strategyKey := datastore.NewKey(reprovideStrategyKey)
+
+		prev, err := ds.Get(ctx, strategyKey)
+		if err != nil && !errors.Is(err, datastore.ErrNotFound) {
+			logger.Error("cannot read previous reprovide strategy", "err", err)
+		} else if string(prev) != reprovideStrategy {
+			strategyChanged = true
+		}
+
+		sys, err := provider.New(ds, opts...)
 		if err != nil {
 			return nil, err
+		}
+		if strategyChanged {
+			logger.Infow("Reprovider.Strategy changed, clearing provide queue", "previous", string(prev), "current", reprovideStrategy)
+			sys.Clear()
+			if reprovideStrategy == "" {
+				err = ds.Delete(ctx, strategyKey)
+			} else {
+				err = ds.Put(ctx, strategyKey, []byte(reprovideStrategy))
+			}
+			if err != nil {
+				logger.Error("cannot update reprovide strategy", "err", err)
+			}
 		}
 
 		lc.Append(fx.Hook{
@@ -147,7 +177,7 @@ func OnlineProviders(provide bool, reprovideStrategy string, reprovideInterval t
 
 	return fx.Options(
 		keyProvider,
-		ProviderSys(reprovideInterval, acceleratedDHTClient, provideWorkerCount),
+		ProviderSys(reprovideInterval, acceleratedDHTClient, provideWorkerCount, reprovideStrategy),
 	)
 }
 
