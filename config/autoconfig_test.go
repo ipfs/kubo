@@ -17,7 +17,7 @@ func TestAutoConfigDefaults(t *testing.T) {
 		t.Errorf("expected AutoConfig.URL to be %s, got %s", DefaultAutoConfigURL, cfg.AutoConfig.URL)
 	}
 
-	if !cfg.AutoConfig.Enabled.WithDefault(true) {
+	if !cfg.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled) {
 		t.Error("expected AutoConfig.Enabled to be true by default")
 	}
 
@@ -79,7 +79,7 @@ func TestAutoConfigProfile(t *testing.T) {
 	}
 
 	// Check that AutoConfig was enabled
-	if !cfg.AutoConfig.Enabled.WithDefault(true) {
+	if !cfg.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled) {
 		t.Error("expected AutoConfig.Enabled to be true after applying profile")
 	}
 
@@ -120,7 +120,7 @@ func TestInitWithAutoValues(t *testing.T) {
 	}
 
 	// Check that AutoConfig is enabled with correct URL
-	if !cfg.AutoConfig.Enabled.WithDefault(true) {
+	if !cfg.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled) {
 		t.Error("expected AutoConfig.Enabled to be true")
 	}
 

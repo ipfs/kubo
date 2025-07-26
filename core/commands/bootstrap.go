@@ -46,15 +46,15 @@ var bootstrapAddCmd = &cmds.Command{
 		Tagline: "Add peers to the bootstrap list.",
 		ShortDescription: `Outputs a list of peers that were added (that weren't already
 in the bootstrap list).
+
+The special values 'default' and 'auto' can be used to add the default bootstrap
+peers. Both are equivalent and will add the 'auto' placeholder to the bootstrap
+list, which gets resolved using the AutoConfig system.
 ` + bootstrapSecurityWarning,
 	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
-	},
-
-	Subcommands: map[string]*cmds.Command{
-		"default": bootstrapAddDefaultCmd,
 	},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -67,6 +67,13 @@ in the bootstrap list).
 			return errors.New("no bootstrap peers to add")
 		}
 
+		// Convert "default" to "auto" for backward compatibility
+		for i, peer := range inputPeers {
+			if peer == "default" {
+				inputPeers[i] = "auto"
+			}
+		}
+
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
 			return err
@@ -80,51 +87,16 @@ in the bootstrap list).
 		cfg, err := r.Config()
 		if err != nil {
 			return err
+		}
+
+		// Check if trying to add "auto" when AutoConfig is disabled
+		for _, peer := range inputPeers {
+			if peer == "auto" && !cfg.AutoConfig.Enabled.WithDefault(config.DefaultAutoConfigEnabled) {
+				return errors.New("cannot add default bootstrap peers: AutoConfig is disabled (AutoConfig.Enabled=false). Enable AutoConfig by setting AutoConfig.Enabled=true in your config, or add specific peer addresses instead")
+			}
 		}
 
 		added, err := bootstrapAdd(r, cfg, inputPeers)
-		if err != nil {
-			return err
-		}
-
-		return cmds.EmitOnce(res, &BootstrapOutput{added})
-	},
-	Type: BootstrapOutput{},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *BootstrapOutput) error {
-			return bootstrapWritePeers(w, "added ", out.Peers)
-		}),
-	},
-}
-
-var bootstrapAddDefaultCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Add default peers to the bootstrap list.",
-		ShortDescription: `Outputs a list of peers that were added (that weren't already
-in the bootstrap list).`,
-	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		cfgRoot, err := cmdenv.GetConfigRoot(env)
-		if err != nil {
-			return err
-		}
-
-		r, err := fsrepo.Open(cfgRoot)
-		if err != nil {
-			return err
-		}
-
-		defer r.Close()
-		cfg, err := r.Config()
-		if err != nil {
-			return err
-		}
-
-		if !cfg.AutoConfig.Enabled.WithDefault(true) {
-			return errors.New("cannot add default bootstrap peers: AutoConfig is disabled (AutoConfig.Enabled=false). Enable AutoConfig by setting AutoConfig.Enabled=true in your config, or add specific peer addresses instead of using 'default'")
-		}
-
-		added, err := bootstrapAdd(r, cfg, []string{"auto"})
 		if err != nil {
 			return err
 		}
