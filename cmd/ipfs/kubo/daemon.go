@@ -561,6 +561,11 @@ take effect.
 		if err := mountFuse(req, cctx); err != nil {
 			return err
 		}
+		defer func() {
+			if _err != nil {
+				unmountFuse(cctx)
+			}
+		}()
 	}
 
 	// repo blockstore GC - if --enable-gc flag is present
@@ -695,10 +700,17 @@ take effect.
 		log.Fatal("Support for IPFS_REUSEPORT was removed. Use LIBP2P_TCP_REUSEPORT instead.")
 	}
 
+	var cleanup func()
+	if mount {
+		cleanup = func() {
+			nodeMount.Unmount(node)
+		}
+	}
+
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
 	var errs error
-	for err := range merge(node.WG(), apiErrc, gwErrc, gcErrc, p2pGwErrc) {
+	for err := range merge(node.WG(), cleanup, apiErrc, gwErrc, gcErrc, p2pGwErrc) {
 		if err != nil {
 			errs = multierr.Append(errs, err)
 		}
@@ -1105,6 +1117,16 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 	return nil
 }
 
+func unmountFuse(cctx *oldcmds.Context) error {
+	node, err := cctx.ConstructNode()
+	if err != nil {
+		return fmt.Errorf("unmountFuse: ConstructNode() failed: %s", err)
+	}
+
+	nodeMount.Unmount(node)
+	return nil
+}
+
 func checkFusePath(name, path string) error {
 	if path == "" {
 		return fmt.Errorf("%s path cannot be empty", name)
@@ -1140,7 +1162,7 @@ func maybeRunGC(req *cmds.Request, node *core.IpfsNode) (<-chan error, error) {
 }
 
 // merge does fan-in of multiple read-only error channels.
-func merge(wg *sync.WaitGroup, cs ...<-chan error) <-chan error {
+func merge(wg *sync.WaitGroup, cleanup func(), cs ...<-chan error) <-chan error {
 	out := make(chan error)
 
 	// Start a goroutine for each input channel in cs, that copies values from
@@ -1162,6 +1184,9 @@ func merge(wg *sync.WaitGroup, cs ...<-chan error) <-chan error {
 	// Start a goroutine to close out once all the output goroutines, and other
 	// things to wait on, are done.
 	go func() {
+		if cleanup != nil {
+			cleanup()
+		}
 		wg.Wait()
 		close(out)
 	}()
