@@ -90,13 +90,13 @@ func TestGetLatest(t *testing.T) {
 
 	// Test fetching
 	ctx := context.Background()
-	config, err := client.GetLatestConfig(ctx, server.URL)
+	response, err := client.GetLatest(ctx, server.URL, time.Hour)
 	if err != nil {
 		t.Fatalf("failed to get latest config: %v", err)
 	}
 
-	if config.AutoConfigVersion != testConfig.AutoConfigVersion {
-		t.Errorf("expected version %d, got %d", testConfig.AutoConfigVersion, config.AutoConfigVersion)
+	if response.Config.AutoConfigVersion != testConfig.AutoConfigVersion {
+		t.Errorf("expected version %d, got %d", testConfig.AutoConfigVersion, response.Config.AutoConfigVersion)
 	}
 
 	// Verify cache was created
