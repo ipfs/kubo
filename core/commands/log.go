@@ -207,8 +207,21 @@ Examples:
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *logLevelsOutput) error {
+			// Check if this is an RPC call by looking for the encoding option
+			encoding, _ := req.Options["encoding"].(string)
+			isRPC := encoding == "json"
+
+			// If there are multiple subsystems (no specific subsystem requested), always show names
+			showNames := isRPC || len(out.Levels) > 1
+
 			for subsystem, level := range out.Levels {
-				fmt.Fprintf(w, "%s: %s\n", subsystem, level)
+				if showNames {
+					// Show subsystem name when it's RPC or when showing multiple subsystems
+					fmt.Fprintf(w, "%s: %s\n", subsystem, level)
+				} else {
+					// For CLI calls with single subsystem, only show the level
+					fmt.Fprintf(w, "%s\n", level)
+				}
 			}
 			return nil
 		}),
