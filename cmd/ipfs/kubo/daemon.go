@@ -568,7 +568,7 @@ take effect.
 		}
 		defer func() {
 			if _err != nil {
-				unmountFuse(cctx)
+				nodeMount.Unmount(node)
 			}
 		}()
 	}
@@ -1116,16 +1116,6 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 	fmt.Printf("IPFS mounted at: %s\n", fsdir)
 	fmt.Printf("IPNS mounted at: %s\n", nsdir)
 	fmt.Printf("MFS mounted at: %s\n", mfsdir)
-	return nil
-}
-
-func unmountFuse(cctx *oldcmds.Context) error {
-	node, err := cctx.ConstructNode()
-	if err != nil {
-		return fmt.Errorf("unmountFuse: ConstructNode() failed: %s", err)
-	}
-
-	nodeMount.Unmount(node)
 	return nil
 }
 
