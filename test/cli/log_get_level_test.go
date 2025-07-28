@@ -59,10 +59,7 @@ func TestLogGetLevel(t *testing.T) {
 		assert.Equal(t, 1, len(lines))
 
 		line := strings.TrimSpace(lines[0])
-		parts := strings.Split(line, ": ")
-		assert.Equal(t, 2, len(parts), "Line should have format 'subsystem: level', got: %s", line)
-		assert.Equal(t, "core", parts[0])
-		assert.Equal(t, "debug", parts[1])
+		assert.Equal(t, "debug", line)
 	})
 
 	t.Run("get-level with 'all' returns global level", func(t *testing.T) {
@@ -84,10 +81,7 @@ func TestLogGetLevel(t *testing.T) {
 		assert.Equal(t, 1, len(lines))
 
 		line := strings.TrimSpace(lines[0])
-		parts := strings.Split(line, ": ")
-		assert.Equal(t, 2, len(parts), "Line should have format 'subsystem: level', got: %s", line)
-		assert.Equal(t, "*", parts[0])
-		assert.Equal(t, "fatal", parts[1])
+		assert.Equal(t, "fatal", line)
 	})
 
 	t.Run("get-level with '*' returns global level", func(t *testing.T) {
@@ -106,10 +100,7 @@ func TestLogGetLevel(t *testing.T) {
 		assert.Equal(t, 1, len(lines))
 
 		line := strings.TrimSpace(lines[0])
-		parts := strings.Split(line, ": ")
-		assert.Equal(t, 2, len(parts), "Line should have format 'subsystem: level', got: %s", line)
-		assert.Equal(t, "*", parts[0])
-		assert.Equal(t, "dpanic", parts[1])
+		assert.Equal(t, "dpanic", line)
 	})
 
 	t.Run("get-level reflects runtime log level changes", func(t *testing.T) {
@@ -127,10 +118,7 @@ func TestLogGetLevel(t *testing.T) {
 		assert.Equal(t, 1, len(lines))
 
 		line := strings.TrimSpace(lines[0])
-		parts := strings.Split(line, ": ")
-		assert.Equal(t, 2, len(parts), "Line should have format 'subsystem: level', got: %s", line)
-		assert.Equal(t, "core", parts[0])
-		assert.Equal(t, "debug", parts[1])
+		assert.Equal(t, "debug", line)
 	})
 
 	t.Run("get-level with non-existent subsystem returns error", func(t *testing.T) {
