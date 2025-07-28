@@ -536,13 +536,18 @@ take effect.
 	if err != nil {
 		return err
 	}
+
+	pluginErrc := make(chan error, 1)
 	select {
 	case <-node.Context().Done():
+		close(pluginErrc)
 	default:
-		node.WG().Add(1)
 		context.AfterFunc(node.Context(), func() {
-			cctx.Plugins.Close()
-			node.WG().Done()
+			err := cctx.Plugins.Close()
+			if err != nil {
+				pluginErrc <- fmt.Errorf("closing plugins: %w", err)
+			}
+			close(pluginErrc)
 		})
 	}
 
@@ -700,17 +705,17 @@ take effect.
 		log.Fatal("Support for IPFS_REUSEPORT was removed. Use LIBP2P_TCP_REUSEPORT instead.")
 	}
 
-	var cleanup func()
-	if mount {
-		cleanup = func() {
-			nodeMount.Unmount(node)
-		}
-	}
+	unmountErrc := make(chan error)
+	context.AfterFunc(node.Context(), func() {
+		<-node.Context().Done()
+		nodeMount.Unmount(node)
+		close(unmountErrc)
+	})
 
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
 	var errs error
-	for err := range merge(node.WG(), cleanup, apiErrc, gwErrc, gcErrc, p2pGwErrc) {
+	for err := range merge(apiErrc, gwErrc, gcErrc, p2pGwErrc, pluginErrc, unmountErrc) {
 		if err != nil {
 			errs = multierr.Append(errs, err)
 		}
@@ -1055,13 +1060,10 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 	h.ServeMux = http.NewServeMux()
 	h.ServeMux.Handle("/", handler)
 
-	wg := node.WG()
-	wg.Add(1)
 	errc := make(chan error, 1)
 	go func() {
-		defer close(errc)
 		errc <- h.Serve()
-		wg.Done()
+		close(errc)
 	}()
 
 	context.AfterFunc(node.Context(), func() {
@@ -1162,7 +1164,8 @@ func maybeRunGC(req *cmds.Request, node *core.IpfsNode) (<-chan error, error) {
 }
 
 // merge does fan-in of multiple read-only error channels.
-func merge(wg *sync.WaitGroup, cleanup func(), cs ...<-chan error) <-chan error {
+func merge(cs ...<-chan error) <-chan error {
+	var wg sync.WaitGroup
 	out := make(chan error)
 
 	// Start a goroutine for each input channel in cs, that copies values from
@@ -1184,9 +1187,6 @@ func merge(wg *sync.WaitGroup, cleanup func(), cs ...<-chan error) <-chan error 
 	// Start a goroutine to close out once all the output goroutines, and other
 	// things to wait on, are done.
 	go func() {
-		if cleanup != nil {
-			cleanup()
-		}
 		wg.Wait()
 		close(out)
 	}()
