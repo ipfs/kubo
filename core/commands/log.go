@@ -181,7 +181,7 @@ Examples:
 
 		if subsystem == logAllKeyword || subsystem == "*" {
 			// Return the global log level
-			level, err := logging.GetLogLevel()
+			level, err := logging.GetLogLevel("*")
 			if err != nil {
 				return err
 			}
@@ -191,7 +191,7 @@ Examples:
 			// Return levels for all subsystems (default behavior)
 			levels := logging.GetAllLogLevels()
 			// Also get the global level
-			if globalLevel, err := logging.GetLogLevel(); err == nil {
+			if globalLevel, err := logging.GetLogLevel("*"); err == nil {
 				levels["*"] = globalLevel
 			}
 			return cmds.EmitOnce(res, &logLevelsOutput{Levels: levels})
