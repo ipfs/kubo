@@ -29,5 +29,5 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
 		return nil, err
 	}
 
-	return mount.NewMount(ipfs.Process, fsys, ipnsmp, allowOther)
+	return mount.NewMount(fsys, ipnsmp, allowOther)
 }
