@@ -108,7 +108,10 @@ func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key) (*mfs.Root
 		return nil, nil, dag.ErrNotProtobuf
 	}
 
-	root, err := mfs.NewRoot(ctx, ipfs.Dag(), pbnode, ipnsPubFunc(ipfs, key))
+	// We have no access to provider.System from the CoreAPI. The Routing
+	// part offers Provide through the router so it may be slow/risky
+	// to give that here to MFS. Therefore we leave as nil.
+	root, err := mfs.NewRoot(ctx, ipfs.Dag(), pbnode, ipnsPubFunc(ipfs, key), nil)
 	if err != nil {
 		return nil, nil, err
 	}

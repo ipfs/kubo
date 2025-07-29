@@ -17,6 +17,7 @@ import (
 	pathresolver "github.com/ipfs/boxo/path/resolver"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/boxo/pinning/pinner/dspinner"
+	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	format "github.com/ipfs/go-ipld-format"
@@ -47,25 +48,38 @@ func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blocks
 }
 
 // Pinning creates new pinner which tells GC which blocks should be kept
-func Pinning(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo) (pin.Pinner, error) {
-	rootDS := repo.Datastore()
+func Pinning(reprovidingStrategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov provider.System) (pin.Pinner, error) {
+	return func(bstore blockstore.Blockstore,
+		ds format.DAGService,
+		repo repo.Repo,
+		prov provider.System) (pin.Pinner, error) {
+		rootDS := repo.Datastore()
 
-	syncFn := func(ctx context.Context) error {
-		if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
-			return err
+		syncFn := func(ctx context.Context) error {
+			if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
+				return err
+			}
+			return rootDS.Sync(ctx, filestore.FilestorePrefix)
 		}
-		return rootDS.Sync(ctx, filestore.FilestorePrefix)
+		syncDs := &syncDagService{ds, syncFn}
+
+		ctx := context.TODO()
+
+		var opts []dspinner.Option
+		switch reprovidingStrategy {
+		case "roots":
+			opts = append(opts, dspinner.WithRootsProvider(prov))
+		case "pinned", "pinned+mfs":
+			opts = append(opts, dspinner.WithPinnedProvider(prov))
+		}
+
+		pinning, err := dspinner.New(ctx, rootDS, syncDs, opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		return pinning, nil
 	}
-	syncDs := &syncDagService{ds, syncFn}
-
-	ctx := context.TODO()
-
-	pinning, err := dspinner.New(ctx, rootDS, syncDs)
-	if err != nil {
-		return nil, err
-	}
-
-	return pinning, nil
 }
 
 var (
@@ -152,7 +166,7 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 }
 
 // Files loads persisted MFS root
-func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore) (*mfs.Root, error) {
+func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov provider.System) (*mfs.Root, error) {
 	dsk := datastore.NewKey("/local/filesroot")
 	pf := func(ctx context.Context, c cid.Cid) error {
 		rootDS := repo.Datastore()
@@ -202,7 +216,7 @@ func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.
 		return nil, err
 	}
 
-	root, err := mfs.NewRoot(ctx, dag, nd, pf)
+	root, err := mfs.NewRoot(ctx, dag, nd, pf, prov)
 
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
