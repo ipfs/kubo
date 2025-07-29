@@ -12,6 +12,6 @@ func Mount(node *core.IpfsNode, fsdir, nsdir, mfsdir string) error {
 
 func Unmount(node *core.IpfsNode) {
 	// TODO
-	// currently a no-op, but we don't want to return an error
-	return nil
+	// currently a no-op
+	return
 }
