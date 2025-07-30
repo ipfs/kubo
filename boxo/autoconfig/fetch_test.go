@@ -86,7 +86,7 @@ func TestValidateConfig(t *testing.T) {
 
 		err := client.validateConfig(config)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "DNSResolvers[\"bad.\"][0] invalid URL")
+		assert.Contains(t, err.Error(), "DNSResolvers[\"bad.\"][0] URL")
 		assert.Contains(t, err.Error(), "://invalid-url")
 	})
 
@@ -154,6 +154,289 @@ func TestValidateConfig(t *testing.T) {
 		err := client.validateConfig(config)
 		assert.NoError(t, err)
 	})
+
+	t.Run("DNS resolvers must use HTTP/HTTPS", func(t *testing.T) {
+		testCases := []struct {
+			name        string
+			url         string
+			errContains string
+		}{
+			{
+				name:        "relative URL",
+				url:         "not-a-url",
+				errContains: "must be absolute (missing scheme)",
+			},
+			{
+				name:        "FTP URL",
+				url:         "ftp://example.com/dns-query",
+				errContains: "must use http or https scheme, got \"ftp\"",
+			},
+			{
+				name:        "missing host",
+				url:         "https:///dns-query",
+				errContains: "must have a host",
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				config := &Config{
+					AutoConfigVersion: 123,
+					AutoConfigSchema:  4,
+					DNSResolvers: map[string][]string{
+						"test.": {tc.url},
+					},
+				}
+
+				err := client.validateConfig(config)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errContains)
+			})
+		}
+	})
+
+	t.Run("delegated endpoints must use HTTP/HTTPS", func(t *testing.T) {
+		testCases := []struct {
+			name        string
+			url         string
+			errContains string
+		}{
+			{
+				name:        "relative URL",
+				url:         "ipni.example.com",
+				errContains: "must be absolute (missing scheme)",
+			},
+			{
+				name:        "ws URL",
+				url:         "ws://example.com/socket",
+				errContains: "must use http or https scheme, got \"ws\"",
+			},
+			{
+				name:        "empty URL",
+				url:         "",
+				errContains: "must be absolute (missing scheme)",
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				config := &Config{
+					AutoConfigVersion: 123,
+					AutoConfigSchema:  4,
+					DelegatedEndpoints: map[string]EndpointConfig{
+						tc.url: {
+							Systems: []string{SystemIPNI},
+							Read:    []string{"/routing/v1/providers"},
+							Write:   []string{},
+						},
+					},
+				}
+
+				err := client.validateConfig(config)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errContains)
+			})
+		}
+	})
+}
+
+func TestValidateHTTPURL(t *testing.T) {
+	client := &Client{}
+
+	tests := []struct {
+		name         string
+		url          string
+		fieldContext string
+		wantErr      bool
+		errContains  string
+	}{
+		// Valid URLs
+		{
+			name:         "valid HTTPS URL",
+			url:          "https://example.com/dns-query",
+			fieldContext: "test",
+			wantErr:      false,
+		},
+		{
+			name:         "valid HTTP URL",
+			url:          "http://localhost:8080/dns-query",
+			fieldContext: "test",
+			wantErr:      false,
+		},
+		{
+			name:         "valid HTTPS with IP",
+			url:          "https://192.168.1.1:443/path",
+			fieldContext: "test",
+			wantErr:      false,
+		},
+		{
+			name:         "valid HTTP with IPv6",
+			url:          "http://[::1]:8080/dns-query",
+			fieldContext: "test",
+			wantErr:      false,
+		},
+		{
+			name:         "valid HTTPS with port",
+			url:          "https://example.com:8443/dns-query",
+			fieldContext: "test",
+			wantErr:      false,
+		},
+		{
+			name:         "valid HTTP with query params",
+			url:          "http://example.com/dns-query?format=json",
+			fieldContext: "test",
+			wantErr:      false,
+		},
+		{
+			name:         "valid HTTPS with fragment",
+			url:          "https://example.com/dns-query#section",
+			fieldContext: "test",
+			wantErr:      false,
+		},
+		{
+			name:         "valid HTTP with auth",
+			url:          "http://user:pass@example.com/dns-query",
+			fieldContext: "test",
+			wantErr:      false,
+		},
+		// Invalid URLs - parsing errors
+		{
+			name:         "invalid URL format",
+			url:          "://invalid-missing-scheme",
+			fieldContext: "DNSResolver",
+			wantErr:      true,
+			errContains:  "DNSResolver URL \"://invalid-missing-scheme\" invalid:",
+		},
+		{
+			name:         "URL with spaces",
+			url:          "https://exam ple.com/dns-query",
+			fieldContext: "DNSResolver",
+			wantErr:      true,
+			errContains:  "DNSResolver URL \"https://exam ple.com/dns-query\" invalid:",
+		},
+		{
+			name:         "URL with newlines",
+			url:          "https://example.com\n/dns-query",
+			fieldContext: "DNSResolver",
+			wantErr:      true,
+			errContains:  "DNSResolver URL",
+		},
+		// Invalid URLs - missing components
+		{
+			name:         "missing scheme (relative URL)",
+			url:          "example.com/dns-query",
+			fieldContext: "DelegatedEndpoint",
+			wantErr:      true,
+			errContains:  "DelegatedEndpoint URL \"example.com/dns-query\" must be absolute (missing scheme)",
+		},
+		{
+			name:         "missing scheme (path only)",
+			url:          "/dns-query",
+			fieldContext: "DelegatedEndpoint",
+			wantErr:      true,
+			errContains:  "DelegatedEndpoint URL \"/dns-query\" must be absolute (missing scheme)",
+		},
+		{
+			name:         "missing host",
+			url:          "https:///dns-query",
+			fieldContext: "DNSResolver",
+			wantErr:      true,
+			errContains:  "DNSResolver URL \"https:///dns-query\" must have a host",
+		},
+		{
+			name:         "empty URL",
+			url:          "",
+			fieldContext: "DNSResolver",
+			wantErr:      true,
+			errContains:  "DNSResolver URL \"\" must be absolute (missing scheme)",
+		},
+		// Invalid URLs - wrong scheme
+		{
+			name:         "FTP scheme",
+			url:          "ftp://example.com/file",
+			fieldContext: "DelegatedEndpoint",
+			wantErr:      true,
+			errContains:  "DelegatedEndpoint URL \"ftp://example.com/file\" must use http or https scheme, got \"ftp\"",
+		},
+		{
+			name:         "file scheme",
+			url:          "file:///etc/hosts",
+			fieldContext: "DNSResolver",
+			wantErr:      true,
+			errContains:  "DNSResolver URL \"file:///etc/hosts\" must use http or https scheme, got \"file\"",
+		},
+		{
+			name:         "custom scheme",
+			url:          "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+			fieldContext: "DNSResolver",
+			wantErr:      true,
+			errContains:  "DNSResolver URL \"ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi\" must use http or https scheme, got \"ipfs\"",
+		},
+		{
+			name:         "data URL",
+			url:          "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==",
+			fieldContext: "DNSResolver",
+			wantErr:      true,
+			errContains:  "DNSResolver URL \"data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==\" must use http or https scheme, got \"data\"",
+		},
+		{
+			name:         "ws scheme",
+			url:          "ws://example.com/socket",
+			fieldContext: "DelegatedEndpoint",
+			wantErr:      true,
+			errContains:  "DelegatedEndpoint URL \"ws://example.com/socket\" must use http or https scheme, got \"ws\"",
+		},
+		{
+			name:         "mixed case scheme",
+			url:          "HtTpS://example.com/dns-query",
+			fieldContext: "DNSResolver",
+			wantErr:      false, // url.Parse normalizes scheme to lowercase
+		},
+		// Edge cases
+		{
+			name:         "localhost without scheme",
+			url:          "localhost:8080/dns-query",
+			fieldContext: "DNSResolver",
+			wantErr:      true,
+			errContains:  "must use http or https scheme, got \"localhost\"", // url.Parse treats this as scheme "localhost"
+		},
+		{
+			name:         "IP without scheme",
+			url:          "192.168.1.1:8080/dns-query",
+			fieldContext: "DNSResolver",
+			wantErr:      true,
+			errContains:  "DNSResolver URL \"192.168.1.1:8080/dns-query\" invalid:", // url.Parse fails on this
+		},
+		{
+			name:         "just domain",
+			url:          "example.com",
+			fieldContext: "DelegatedEndpoint",
+			wantErr:      true,
+			errContains:  "DelegatedEndpoint URL \"example.com\" must be absolute (missing scheme)",
+		},
+		{
+			name:         "URL with only scheme",
+			url:          "https://",
+			fieldContext: "DNSResolver",
+			wantErr:      true,
+			errContains:  "DNSResolver URL \"https://\" must have a host",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := client.validateHTTPURL(tt.url, tt.fieldContext)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestCalculateEffectiveRefreshInterval(t *testing.T) {

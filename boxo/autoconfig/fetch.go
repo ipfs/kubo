@@ -504,6 +504,31 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%.1f-week", weeks)
 }
 
+// validateHTTPURL validates that a URL is an absolute HTTP/HTTPS URL
+func (c *Client) validateHTTPURL(urlStr, fieldContext string) error {
+	parsed, err := url.Parse(urlStr)
+	if err != nil {
+		return fmt.Errorf("%s URL %q invalid: %w", fieldContext, urlStr, err)
+	}
+
+	// Require absolute URLs with HTTP/HTTPS scheme
+	if parsed.Scheme == "" {
+		return fmt.Errorf("%s URL %q must be absolute (missing scheme)", fieldContext, urlStr)
+	}
+
+	// Check scheme first before host to provide better error messages
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return fmt.Errorf("%s URL %q must use http or https scheme, got %q", fieldContext, urlStr, parsed.Scheme)
+	}
+
+	// Only check host after confirming valid scheme
+	if parsed.Host == "" {
+		return fmt.Errorf("%s URL %q must have a host", fieldContext, urlStr)
+	}
+
+	return nil
+}
+
 // validateConfig validates all multiaddr and URL values in the config
 func (c *Client) validateConfig(config *Config) error {
 	// Validate SystemRegistry bootstrap multiaddrs
@@ -517,31 +542,20 @@ func (c *Client) validateConfig(config *Config) error {
 		}
 	}
 
-	// Validate DNS resolver URLs
-	for tld, resolverURL := range config.DNSResolvers {
-		for i, urlStr := range resolverURL {
-			if _, err := url.Parse(urlStr); err != nil {
-				return fmt.Errorf("DNSResolvers[%q][%d] invalid URL %q: %w", tld, i, urlStr, err)
+	// Validate DNS resolver URLs (must be absolute HTTP/HTTPS URLs like DelegatedEndpoints)
+	for tld, resolverURLs := range config.DNSResolvers {
+		for i, urlStr := range resolverURLs {
+			fieldContext := fmt.Sprintf("DNSResolvers[%q][%d]", tld, i)
+			if err := c.validateHTTPURL(urlStr, fieldContext); err != nil {
+				return err
 			}
 		}
 	}
 
 	// Validate DelegatedEndpoints URLs (must be absolute HTTP/HTTPS URLs)
 	for endpointURL, endpointConfig := range config.DelegatedEndpoints {
-		parsed, err := url.Parse(endpointURL)
-		if err != nil {
-			return fmt.Errorf("DelegatedEndpoints URL %q invalid: %w", endpointURL, err)
-		}
-
-		// Require absolute URLs with HTTP/HTTPS scheme
-		if parsed.Scheme == "" {
-			return fmt.Errorf("DelegatedEndpoints URL %q must be absolute (missing scheme)", endpointURL)
-		}
-		if parsed.Host == "" {
-			return fmt.Errorf("DelegatedEndpoints URL %q must have a host", endpointURL)
-		}
-		if parsed.Scheme != "http" && parsed.Scheme != "https" {
-			return fmt.Errorf("DelegatedEndpoints URL %q must use http or https scheme, got %q", endpointURL, parsed.Scheme)
+		if err := c.validateHTTPURL(endpointURL, "DelegatedEndpoints"); err != nil {
+			return err
 		}
 
 		// Validate Read paths

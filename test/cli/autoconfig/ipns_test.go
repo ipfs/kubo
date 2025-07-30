@@ -29,10 +29,6 @@ func TestAutoConfigIPNS(t *testing.T) {
 		t.Parallel()
 		testIPNSPublishingErrorHandling(t)
 	})
-
-	// TODO: Add test for multiple delegated publishers in parallel
-	// Should verify that when Ipns.DelegatedPublishers = ["auto"] resolves to multiple URLs,
-	// IPNS publishing sends identical HTTP PUT requests to all publishers concurrently
 }
 
 // mockIPNSPublisher implements a simple IPNS publishing HTTP API server
@@ -326,13 +322,6 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	// IPNS records are protobuf encoded, so we can at least verify it's not empty and has reasonable size
 	require.Greater(t, len(recordPayload), 50, "IPNS record should be substantial (>50 bytes)")
 	require.Less(t, len(recordPayload), 10000, "IPNS record should be reasonable size (<10KB)")
-
-	// TODO: Add validation that the record payload matches the published IPNS record
-	// This would require:
-	// 1. Parsing the protobuf IPNS record from recordPayload
-	// 2. Verifying it contains the expected CID (testCID)
-	// 3. Verifying the signature is valid for the peer ID
-	// 4. Checking that the record is properly formed according to IPNS spec
 
 	t.Logf("✅ IPNS autoconfig test completed successfully:")
 	t.Logf("  - --delegated-only flag used HTTP delegated IPNS publishing exclusively")

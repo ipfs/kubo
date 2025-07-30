@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/kubo/boxo/autoconfig"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -84,20 +85,77 @@ func testFuzzAutoConfigVersion(t *testing.T) {
 }
 
 func testFuzzBootstrapArrays(t *testing.T) {
-	testCases := []struct {
+	type testCase struct {
 		name        string
 		bootstrap   interface{}
 		expectError bool
-	}{
-		{"valid bootstrap", []string{"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"}, false},
-		{"empty bootstrap", []string{}, false},
-		{"null bootstrap", nil, false},                             // Should be handled gracefully
-		{"invalid multiaddr", []string{"invalid-multiaddr"}, true}, // Should error due to validation
-		{"very long multiaddr", []string{"/dnsaddr/" + strings.Repeat("a", 100) + ".com/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"}, false},
-		{"bootstrap as string", "/dnsaddr/test", true}, // Should be array
-		{"bootstrap as number", 123, true},
-		{"mixed types in array", []interface{}{"/dnsaddr/test", 123, nil}, true},
-		{"extremely large array", make([]string, 1000), false}, // Test memory limits
+		validate    func(*testing.T, *autoconfig.Response)
+	}
+
+	testCases := []testCase{
+		{
+			name:      "valid bootstrap",
+			bootstrap: []string{"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"},
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				expected := []string{"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"}
+				bootstrapPeers := resp.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				assert.Equal(t, expected, bootstrapPeers, "Bootstrap peers should match configured values")
+			},
+		},
+		{
+			name:      "empty bootstrap",
+			bootstrap: []string{},
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				bootstrapPeers := resp.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				assert.Empty(t, bootstrapPeers, "Empty bootstrap should result in empty peers")
+			},
+		},
+		{
+			name:      "null bootstrap",
+			bootstrap: nil,
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				bootstrapPeers := resp.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				assert.Empty(t, bootstrapPeers, "Null bootstrap should result in empty peers")
+			},
+		},
+		{
+			name:        "invalid multiaddr",
+			bootstrap:   []string{"invalid-multiaddr"},
+			expectError: true,
+		},
+		{
+			name:      "very long multiaddr",
+			bootstrap: []string{"/dnsaddr/" + strings.Repeat("a", 100) + ".com/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"},
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				expected := []string{"/dnsaddr/" + strings.Repeat("a", 100) + ".com/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"}
+				bootstrapPeers := resp.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				assert.Equal(t, expected, bootstrapPeers, "Very long multiaddr should be preserved")
+			},
+		},
+		{
+			name:        "bootstrap as string",
+			bootstrap:   "/dnsaddr/test",
+			expectError: true,
+		},
+		{
+			name:        "bootstrap as number",
+			bootstrap:   123,
+			expectError: true,
+		},
+		{
+			name:        "mixed types in array",
+			bootstrap:   []interface{}{"/dnsaddr/test", 123, nil},
+			expectError: true,
+		},
+		{
+			name:      "extremely large array",
+			bootstrap: make([]string, 1000),
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				// Array will be filled in the loop below
+				bootstrapPeers := resp.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				assert.Len(t, bootstrapPeers, 1000, "Large bootstrap array should be preserved")
+			},
+		},
 	}
 
 	// Fill the large array with valid multiaddrs
@@ -141,10 +199,15 @@ func testFuzzBootstrapArrays(t *testing.T) {
 				require.Error(t, err, "Expected error for %s", tc.name)
 			} else {
 				require.NoError(t, err, "Expected no error for %s", tc.name)
-				if err == nil && autoConf != nil {
-					// Verify structure is reasonable
-					bootstrapPeers := autoConf.Config.GetBootstrapPeers([]string{"AminoDHT"})
-					require.IsType(t, []string{}, bootstrapPeers, "Bootstrap should be []string")
+				require.NotNil(t, autoConf, "AutoConfig should not be nil for successful parsing")
+
+				// Verify structure is reasonable
+				bootstrapPeers := autoConf.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				require.IsType(t, []string{}, bootstrapPeers, "Bootstrap should be []string")
+
+				// Run test-specific validation if provided
+				if tc.validate != nil {
+					tc.validate(t, autoConf)
 				}
 			}
 		})
@@ -152,19 +215,78 @@ func testFuzzBootstrapArrays(t *testing.T) {
 }
 
 func testFuzzDNSResolvers(t *testing.T) {
-	testCases := []struct {
+	type testCase struct {
 		name        string
 		resolvers   interface{}
 		expectError bool
-	}{
-		{"valid resolvers", map[string][]string{".": {"https://dns.google/dns-query"}}, false},
-		{"empty resolvers", map[string][]string{}, false},
-		{"null resolvers", nil, false},
-		{"invalid URL", map[string][]string{".": {"not-a-url"}}, false}, // Should accept, validate later
-		{"very long domain", map[string][]string{strings.Repeat("a", 1000) + ".com": {"https://dns.google/dns-query"}}, false},
-		{"many resolvers", generateManyResolvers(100), false},
-		{"resolvers as array", []string{"https://dns.google/dns-query"}, true}, // Should be map
-		{"nested invalid structure", map[string]interface{}{".": map[string]string{"invalid": "structure"}}, true},
+		validate    func(*testing.T, *autoconfig.Response)
+	}
+
+	testCases := []testCase{
+		{
+			name:      "valid resolvers",
+			resolvers: map[string][]string{".": {"https://dns.google/dns-query"}},
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				expected := map[string][]string{".": {"https://dns.google/dns-query"}}
+				assert.Equal(t, expected, resp.Config.DNSResolvers, "DNS resolvers should match configured values")
+			},
+		},
+		{
+			name:      "empty resolvers",
+			resolvers: map[string][]string{},
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				assert.Empty(t, resp.Config.DNSResolvers, "Empty resolvers should result in empty map")
+			},
+		},
+		{
+			name:      "null resolvers",
+			resolvers: nil,
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				assert.Empty(t, resp.Config.DNSResolvers, "Null resolvers should result in empty map")
+			},
+		},
+		{
+			name:        "relative URL (missing scheme)",
+			resolvers:   map[string][]string{".": {"not-a-url"}},
+			expectError: true, // Should error due to strict HTTP/HTTPS validation
+		},
+		{
+			name:        "invalid URL format",
+			resolvers:   map[string][]string{".": {"://invalid-missing-scheme"}},
+			expectError: true, // Should error because url.Parse() fails
+		},
+		{
+			name:        "non-HTTP scheme",
+			resolvers:   map[string][]string{".": {"ftp://example.com/dns-query"}},
+			expectError: true, // Should error due to non-HTTP/HTTPS scheme
+		},
+		{
+			name:      "very long domain",
+			resolvers: map[string][]string{strings.Repeat("a", 1000) + ".com": {"https://dns.google/dns-query"}},
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				expected := map[string][]string{strings.Repeat("a", 1000) + ".com": {"https://dns.google/dns-query"}}
+				assert.Equal(t, expected, resp.Config.DNSResolvers, "Very long domain should be preserved")
+			},
+		},
+		{
+			name:      "many resolvers",
+			resolvers: generateManyResolvers(100),
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				expected := generateManyResolvers(100)
+				assert.Equal(t, expected, resp.Config.DNSResolvers, "Many resolvers should be preserved")
+				assert.Equal(t, 100, len(resp.Config.DNSResolvers), "Should have 100 resolvers")
+			},
+		},
+		{
+			name:        "resolvers as array",
+			resolvers:   []string{"https://dns.google/dns-query"},
+			expectError: true,
+		},
+		{
+			name:        "nested invalid structure",
+			resolvers:   map[string]interface{}{".": map[string]string{"invalid": "structure"}},
+			expectError: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -196,12 +318,18 @@ func testFuzzDNSResolvers(t *testing.T) {
 
 			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
 			require.NoError(t, err)
-			_, err = client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
+			autoConf, err := client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
 
 			if tc.expectError {
 				require.Error(t, err, "Expected error for %s", tc.name)
 			} else {
 				require.NoError(t, err, "Expected no error for %s", tc.name)
+				require.NotNil(t, autoConf, "AutoConfig should not be nil for successful parsing")
+
+				// Run test-specific validation if provided
+				if tc.validate != nil {
+					tc.validate(t, autoConf)
+				}
 			}
 		})
 	}
@@ -209,28 +337,62 @@ func testFuzzDNSResolvers(t *testing.T) {
 
 func testFuzzDelegatedRouters(t *testing.T) {
 	// Test various malformed delegated router configurations
-	testCases := []struct {
+	type testCase struct {
 		name        string
 		routers     interface{}
 		expectError bool
-	}{
-		{"valid endpoints", map[string]interface{}{
-			"https://ipni.example.com": map[string]interface{}{
-				"Systems": []string{"IPNI"},
-				"Read":    []string{"/routing/v1/providers"},
-				"Write":   []string{},
+		validate    func(*testing.T, *autoconfig.Response)
+	}
+
+	testCases := []testCase{
+		{
+			name: "valid endpoints",
+			routers: map[string]interface{}{
+				"https://ipni.example.com": map[string]interface{}{
+					"Systems": []string{"IPNI"},
+					"Read":    []string{"/routing/v1/providers"},
+					"Write":   []string{},
+				},
 			},
-		}, false},
-		{"empty routers", map[string]interface{}{}, false},
-		{"null routers", nil, false},
-		{"invalid nested structure", map[string]string{"invalid": "structure"}, true},
-		{"invalid endpoint URLs", map[string]interface{}{
-			"not-a-url": map[string]interface{}{
-				"Systems": []string{"IPNI"},
-				"Read":    []string{"/routing/v1/providers"},
-				"Write":   []string{},
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				assert.Len(t, resp.Config.DelegatedEndpoints, 1, "Should have 1 delegated endpoint")
+				for url, config := range resp.Config.DelegatedEndpoints {
+					assert.Contains(t, url, "ipni.example.com", "Endpoint URL should contain expected domain")
+					assert.Contains(t, config.Systems, "IPNI", "Endpoint should have IPNI system")
+					assert.Contains(t, config.Read, "/routing/v1/providers", "Endpoint should have providers read path")
+				}
 			},
-		}, true}, // Should error due to URL validation
+		},
+		{
+			name:    "empty routers",
+			routers: map[string]interface{}{},
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				assert.Empty(t, resp.Config.DelegatedEndpoints, "Empty routers should result in empty endpoints")
+			},
+		},
+		{
+			name:    "null routers",
+			routers: nil,
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				assert.Empty(t, resp.Config.DelegatedEndpoints, "Null routers should result in empty endpoints")
+			},
+		},
+		{
+			name:        "invalid nested structure",
+			routers:     map[string]string{"invalid": "structure"},
+			expectError: true,
+		},
+		{
+			name: "invalid endpoint URLs",
+			routers: map[string]interface{}{
+				"not-a-url": map[string]interface{}{
+					"Systems": []string{"IPNI"},
+					"Read":    []string{"/routing/v1/providers"},
+					"Write":   []string{},
+				},
+			},
+			expectError: true, // Should error due to URL validation
+		},
 	}
 
 	for _, tc := range testCases {
@@ -262,12 +424,18 @@ func testFuzzDelegatedRouters(t *testing.T) {
 
 			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
 			require.NoError(t, err)
-			_, err = client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
+			autoConf, err := client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
 
 			if tc.expectError {
 				require.Error(t, err, "Expected error for %s", tc.name)
 			} else {
 				require.NoError(t, err, "Expected no error for %s", tc.name)
+				require.NotNil(t, autoConf, "AutoConfig should not be nil for successful parsing")
+
+				// Run test-specific validation if provided
+				if tc.validate != nil {
+					tc.validate(t, autoConf)
+				}
 			}
 		})
 	}
@@ -275,8 +443,102 @@ func testFuzzDelegatedRouters(t *testing.T) {
 
 func testFuzzDelegatedPublishers(t *testing.T) {
 	// DelegatedPublishers use the same autoclient library validation as DelegatedRouters
-	// so we don't need separate fuzz testing - the code paths are already covered
-	t.Skip("Redundant test - delegated publishers use same validation as delegated routers")
+	// Test that URL validation works for delegated publishers
+	type testCase struct {
+		name      string
+		urls      []string
+		expectErr bool
+		validate  func(*testing.T, *autoconfig.Response)
+	}
+
+	testCases := []testCase{
+		{
+			name: "valid HTTPS URLs",
+			urls: []string{"https://delegated-ipfs.dev", "https://another-publisher.com"},
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				assert.Len(t, resp.Config.DelegatedEndpoints, 2, "Should have 2 delegated endpoints")
+				foundURLs := make([]string, 0, len(resp.Config.DelegatedEndpoints))
+				for url := range resp.Config.DelegatedEndpoints {
+					foundURLs = append(foundURLs, url)
+				}
+				expectedURLs := []string{"https://delegated-ipfs.dev", "https://another-publisher.com"}
+				for _, expectedURL := range expectedURLs {
+					assert.Contains(t, foundURLs, expectedURL, "Should contain configured URL: %s", expectedURL)
+				}
+			},
+		},
+		{
+			name:      "invalid URL",
+			urls:      []string{"not-a-url"},
+			expectErr: true,
+		},
+		{
+			name: "HTTP URL (accepted during parsing)",
+			urls: []string{"http://insecure-publisher.com"},
+			validate: func(t *testing.T, resp *autoconfig.Response) {
+				assert.Len(t, resp.Config.DelegatedEndpoints, 1, "Should have 1 delegated endpoint")
+				for url := range resp.Config.DelegatedEndpoints {
+					assert.Equal(t, "http://insecure-publisher.com", url, "HTTP URL should be preserved during parsing")
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			autoConfigData := map[string]interface{}{
+				"AutoConfigVersion": 2025072301,
+				"AutoConfigSchema":  4,
+				"CacheTTL":          86400,
+				"SystemRegistry": map[string]interface{}{
+					"TestSystem": map[string]interface{}{
+						"Description": "Test system for fuzz testing",
+						"DelegatedConfig": map[string]interface{}{
+							"Read":  []string{"/routing/v1/ipns"},
+							"Write": []string{"/routing/v1/ipns"},
+						},
+					},
+				},
+				"DNSResolvers":       map[string]interface{}{},
+				"DelegatedEndpoints": map[string]interface{}{},
+			}
+
+			// Add test URLs as delegated endpoints
+			for _, url := range tc.urls {
+				autoConfigData["DelegatedEndpoints"].(map[string]interface{})[url] = map[string]interface{}{
+					"Systems": []string{"TestSystem"},
+					"Read":    []string{"/routing/v1/ipns"},
+					"Write":   []string{"/routing/v1/ipns"},
+				}
+			}
+
+			jsonData, err := json.Marshal(autoConfigData)
+			require.NoError(t, err)
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write(jsonData)
+			}))
+			defer server.Close()
+
+			// Test that our autoconfig parser handles this gracefully
+			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
+			require.NoError(t, err)
+			autoConf, err := client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
+
+			if tc.expectErr {
+				require.Error(t, err, "Expected error for %s", tc.name)
+			} else {
+				require.NoError(t, err, "Expected no error for %s", tc.name)
+				require.NotNil(t, autoConf, "AutoConfig should not be nil for successful parsing")
+
+				// Run test-specific validation if provided
+				if tc.validate != nil {
+					tc.validate(t, autoConf)
+				}
+			}
+		})
+	}
 }
 
 func testFuzzMalformedJSON(t *testing.T) {
