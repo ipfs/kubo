@@ -104,6 +104,7 @@ func (c *Client) MustGetConfig(ctx context.Context, configURL string, refreshInt
 		config = resp.Config
 	}
 	if err != nil {
+		log.Errorf("AutoConfig fetch failed for mainnet URL, falling back to hardcoded bootstrap peers")
 		// Return fallback config with new structure
 		return &Config{
 			AutoConfigVersion: 0, // Indicates fallback config
@@ -129,7 +130,7 @@ func (c *Client) MustGetConfig(ctx context.Context, configURL string, refreshInt
 			},
 			DNSResolvers: FallbackDNSResolvers,
 			DelegatedEndpoints: map[string]EndpointConfig{
-				"https://ipni.example.com": {
+				"https://cid.contact": {
 					Systems: []string{SystemIPNI},
 					Read:    []string{"/routing/v1/providers"},
 					Write:   []string{},
