@@ -848,9 +848,14 @@ Type: `flag`
 
 ## `Bootstrap`
 
-Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
+Bootstrap peers help your node discover and connect to the IPFS network when starting up. This array contains [multiaddrs][multiaddr] of trusted nodes that your node contacts first to find other peers and content.
 
-The special value `"auto"` uses bootstrap peers from [AutoConfig](#autoconfig) when enabled.
+The special value `"auto"` automatically uses curated, up-to-date bootstrap peers from [AutoConfig](#autoconfig), ensuring your node can always connect to the healthy network without manual maintenance.
+
+**What this gives you:**
+- **Reliable startup**: Your node can always find the network, even if some bootstrap peers go offline
+- **Automatic updates**: New bootstrap peers are added as the network evolves
+- **Custom control**: Add your own trusted peers alongside or instead of the defaults
 
 Default: `["auto"]`
 
