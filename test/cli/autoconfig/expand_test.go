@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestAutoConfigExpand(t *testing.T) {
 	t.Parallel()
 

@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestExpandAutoComprehensive(t *testing.T) {
 	t.Parallel()
 

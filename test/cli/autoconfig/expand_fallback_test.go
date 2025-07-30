@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestExpandAutoFallbacks(t *testing.T) {
 	t.Parallel()
 
