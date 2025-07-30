@@ -8,11 +8,14 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 )
 
-// Golang os.Args overrides * and replaces the character argument with
-// an array which includes every file in the user's CWD. As a
-// workaround, we use 'all' instead. The util library still uses * so
-// we convert it at this step.
-var logAllKeyword = "all"
+const (
+	// allLogSubsystems is used to specify all log subsystems when setting the
+	// log level.
+	allLogSubsystems = "all"
+	// defaultLogLevel is used to request and to identify the default log
+	// level.
+	defaultLogLevel = "default"
+)
 
 var LogCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -53,8 +56,8 @@ environment variable documented in 'ipfs log'.
 	Arguments: []cmds.Argument{
 		// TODO use a different keyword for 'all' because all can theoretically
 		// clash with a subsystem name
-		cmds.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' to set the global default level.", logAllKeyword)),
-		cmds.StringArg("level", true, false, `The log level, with 'debug' the most verbose and 'fatal' the least verbose.
+		cmds.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' to set all subsystems and the default level.", allLogSubsystems)),
+		cmds.StringArg("level", true, false, `The log level, with 'debug' as the most verbose and 'fatal' the least verbose.
 			One of: debug, info, warn, error, dpanic, panic, fatal.
 		`),
 	},
@@ -63,7 +66,7 @@ environment variable documented in 'ipfs log'.
 		args := req.Arguments
 		subsystem, level := args[0], args[1]
 
-		if subsystem == logAllKeyword {
+		if subsystem == allLogSubsystems || subsystem == "*" {
 			subsystem = "*"
 		}
 
@@ -134,7 +137,7 @@ This will only return 'info' logs from bitswap and skip 'debug'.
 		var pipeReader *logging.PipeReader
 		logLevelString, _ := req.Options[logLevelOption].(string)
 		if logLevelString != "" {
-			logLevel, err := logging.LevelFromString(logLevelString)
+			logLevel, err := logging.Parse(logLevelString)
 			if err != nil {
 				return fmt.Errorf("setting log level %s: %w", logLevelString, err)
 			}
@@ -170,7 +173,7 @@ Examples:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("subsystem", false, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for the global default level. If not specified, returns levels for all subsystems.", logAllKeyword)),
+		cmds.StringArg("subsystem", false, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for the default level. If not specified, returns levels for all subsystems.", defaultLogLevel)),
 	},
 	NoLocal: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -179,25 +182,22 @@ Examples:
 			subsystem = req.Arguments[0]
 		}
 
-		if subsystem == logAllKeyword || subsystem == "*" {
-			// Return the global log level
-			level, err := logging.GetLogLevel("*")
-			if err != nil {
-				return err
-			}
-			levelMap := map[string]string{"*": level}
-			return cmds.EmitOnce(res, &logLevelsOutput{Levels: levelMap})
-		} else if subsystem == "" {
+		switch subsystem {
+		case "":
 			// Return levels for all subsystems (default behavior)
-			levels := logging.GetAllLogLevels()
-			// Also get the global level
-			if globalLevel, err := logging.GetLogLevel("*"); err == nil {
-				levels["*"] = globalLevel
-			}
+			levels := logging.SubsystemLevelNames()
+
+			// Replace the log package default name with the command default name.
+			delete(levels, logging.DefaultName)
+			levels[defaultLogLevel] = logging.DefaultLevel().String()
 			return cmds.EmitOnce(res, &logLevelsOutput{Levels: levels})
-		} else {
-			// Return level for a specific subsystem
-			level, err := logging.GetLogLevel(subsystem)
+		case defaultLogLevel:
+			// Return the default log level
+			levelMap := map[string]string{defaultLogLevel: logging.DefaultLevel().String()}
+			return cmds.EmitOnce(res, &logLevelsOutput{Levels: levelMap})
+		default:
+			// Return level for a specific subsystem.
+			level, err := logging.SubsystemLevelName(subsystem)
 			if err != nil {
 				return err
 			}
