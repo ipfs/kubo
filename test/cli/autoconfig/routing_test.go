@@ -1,4 +1,4 @@
-package cli
+package autoconfig
 
 import (
 	"encoding/json"
@@ -9,7 +9,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ipfs/kubo/boxo/autoconfig"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -111,12 +110,25 @@ func testDelegatedRoutingWithAuto(t *testing.T) {
 	// Create autoconfig data with delegated router
 	autoConfigData := fmt.Sprintf(`{
 		"AutoConfigVersion": 2025072302,
-		"AutoConfigSchema": 3,
-		"Bootstrap": [],
-		"DelegatedRouters": {
-			\"%s\": [\"%s\"]
+		"AutoConfigSchema": 4,
+		"CacheTTL": 86400,
+		"SystemRegistry": {
+			"AminoDHT": {
+				"Description": "Test AminoDHT system",
+				"NativeConfig": {
+					"Bootstrap": []
+				}
+			}
+		},
+		"DNSResolvers": {},
+		"DelegatedEndpoints": {
+			"%s": {
+				"Systems": ["AminoDHT", "IPNI"],
+				"Read": ["/routing/v1/providers", "/routing/v1/peers", "/routing/v1/ipns"],
+				"Write": []
+			}
 		}
-	}`, autoconfig.MainnetProfileNodesWithDHT, routingServer.server.URL)
+	}`, routingServer.server.URL)
 
 	// Create autoconfig server
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -170,12 +182,25 @@ func testRoutingErrorHandling(t *testing.T) {
 	// Create autoconfig data
 	autoConfigData := fmt.Sprintf(`{
 		"AutoConfigVersion": 2025072302,
-		"AutoConfigSchema": 3,
-		"Bootstrap": [],
-		"DelegatedRouters": {
-			\"%s\": [\"%s\"]
+		"AutoConfigSchema": 4,
+		"CacheTTL": 86400,
+		"SystemRegistry": {
+			"AminoDHT": {
+				"Description": "Test AminoDHT system",
+				"NativeConfig": {
+					"Bootstrap": []
+				}
+			}
+		},
+		"DNSResolvers": {},
+		"DelegatedEndpoints": {
+			"%s": {
+				"Systems": ["AminoDHT", "IPNI"],
+				"Read": ["/routing/v1/providers", "/routing/v1/peers", "/routing/v1/ipns"],
+				"Write": []
+			}
 		}
-	}`, autoconfig.MainnetProfileNodesWithDHT, routingServer.server.URL)
+	}`, routingServer.server.URL)
 
 	// Create autoconfig server
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

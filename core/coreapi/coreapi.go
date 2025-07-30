@@ -175,9 +175,9 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		ipldFetcherFactory:   n.IPLDFetcherFactory,
 		unixFSFetcherFactory: n.UnixFSFetcherFactory,
 
-		peerstore:          n.Peerstore,
-		peerHost:           n.PeerHost,
-		namesys:            n.Namesys,
+		peerstore: n.Peerstore,
+		peerHost:  n.PeerHost,
+		// namesys will be created below with current routing (including IPNS publishers)
 		recordValidator:    n.RecordValidator,
 		exchange:           n.Exchange,
 		routing:            n.Routing,
@@ -228,6 +228,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 			namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL)),
 		}
 
+		// Use offline routing when in offline mode
 		subAPI.routing = offlineroute.NewOfflineRouter(subAPI.repo.Datastore(), subAPI.recordValidator)
 
 		subAPI.namesys, err = namesys.NewNameSystem(subAPI.routing, nsOptions...)
@@ -240,6 +241,28 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		subAPI.peerstore = nil
 		subAPI.peerHost = nil
 		subAPI.recordValidator = nil
+	} else {
+		// Online case - create namesys with current routing that includes IPNS publishers
+		cs := cfg.Ipns.ResolveCacheSize
+		if cs == 0 {
+			cs = node.DefaultIpnsCacheSize
+		}
+		if cs < 0 {
+			return nil, errors.New("cannot specify negative resolve cache size")
+		}
+
+		nsOptions := []namesys.Option{
+			namesys.WithDatastore(subAPI.repo.Datastore()),
+			namesys.WithDNSResolver(subAPI.dnsResolver),
+			namesys.WithCache(cs),
+			namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL)),
+		}
+
+		// Use current routing which includes IPNS delegated publishers
+		subAPI.namesys, err = namesys.NewNameSystem(subAPI.routing, nsOptions...)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing online namesys: %w", err)
+		}
 	}
 
 	if settings.Offline || !settings.FetchBlocks {

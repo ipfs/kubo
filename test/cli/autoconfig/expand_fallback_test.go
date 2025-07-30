@@ -1,4 +1,4 @@
-package cli
+package autoconfig
 
 import (
 	"encoding/json"
@@ -197,7 +197,7 @@ func loadTestDataForFallback(t *testing.T, filename string) []byte {
 		return file
 	}())
 
-	dataPath := filepath.Join(testDir, "autoconfig_test_data", filename)
+	dataPath := filepath.Join(testDir, "testdata", filename)
 	data, err := os.ReadFile(dataPath)
 	require.NoError(t, err, "Failed to read test data file: %s", filename)
 

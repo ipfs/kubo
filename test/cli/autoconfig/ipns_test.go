@@ -1,4 +1,4 @@
-package cli
+package autoconfig
 
 import (
 	"encoding/json"
@@ -146,29 +146,41 @@ func (m *mockIPNSPublisher) close() {
 }
 
 func testIPNSPublishingWithAuto(t *testing.T) {
-	// TODO: Fix IPNS delegated publishing test reliability
-	// This test is skipped because it has networking issues in the test environment
-	// that prevent the HTTP PUT request from reliably reaching the mock server.
-	// The test should be refactored to:
-	// 1. Properly fail when the HTTP PUT /routing/v1/ipns request is not made to the mock server
-	// 2. Validate that the record payload matches the published IPNS record
-	// 3. Remove the fallback logic that makes the test pass even when networking fails
-	// See CLAUDE.md for more details.
-	t.Skip("IPNS delegated publishing test has networking reliability issues - needs refactoring")
+	// Test IPNS delegated publishing with autoconfig resolution
 
 	// Create mock IPNS publisher that will capture the HTTP PUT request
 	ipnsPublisher := newMockIPNSPublisher(t)
 	defer ipnsPublisher.close()
 
-	// Create autoconfig data with delegated publisher
+	// Create autoconfig data with delegated publisher using IPNI system (not native)
 	autoConfigData := fmt.Sprintf(`{
 		"AutoConfigVersion": 2025072302,
-		"AutoConfigSchema": 3,
-		"Bootstrap": [],
-		"DelegatedPublishers": {
-			"%s": ["%s"]
+		"AutoConfigSchema": 4,
+		"CacheTTL": 86400,
+		"SystemRegistry": {
+			"AminoDHT": {
+				"Description": "Test AminoDHT system",
+				"NativeConfig": {
+					"Bootstrap": []
+				}
+			},
+			"CustomIPNS": {
+				"Description": "Test custom IPNS system for delegated publishing",
+				"DelegatedConfig": {
+					"Read": ["/routing/v1/ipns"],
+					"Write": ["/routing/v1/ipns"]
+				}
+			}
+		},
+		"DNSResolvers": {},
+		"DelegatedEndpoints": {
+			"%s": {
+				"Systems": ["CustomIPNS"],
+				"Read": ["/routing/v1/ipns"],
+				"Write": ["/routing/v1/ipns"]
+			}
 		}
-	}`, autoconfig.MainnetProfileIPNSPublishers, ipnsPublisher.server.URL)
+	}`, ipnsPublisher.server.URL)
 
 	// Create autoconfig server
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -182,19 +194,40 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	// Create test harness and main node
 	h := harness.NewT(t)
 
-	// Create main IPFS node with auto delegated publisher using delegated-only routing
+	// Create main IPFS node with auto delegated publisher using auto routing
 	mainNode := h.NewNode().Init("--profile=test")
 	mainNode.SetIPFSConfig("AutoConfig.URL", autoConfigServer.URL)
 	mainNode.SetIPFSConfig("AutoConfig.Enabled", true)
 	mainNode.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
-	mainNode.SetIPFSConfig("Routing.Type", "delegated")
+	// Use auto routing to enable both DHT (for "online" status) and delegated routing
+	// This allows the node to be considered online while still using delegated IPNS publishers
+	mainNode.SetIPFSConfig("Routing.Type", "auto")
+
+	// Add fallback bootstrap peers so the daemon can be considered "online"
+	// Use the same bootstrap peers from boxo/autoconfig fallbacks
+	mainNode.SetIPFSConfig("Bootstrap", autoconfig.FallbackBootstrapPeers)
 
 	// Start main daemon (delegated routing set in config)
 	mainNode.StartDaemon()
 	defer mainNode.StopDaemon()
 
-	t.Log("Waiting for daemon to be ready...")
-	time.Sleep(5 * time.Second)
+	t.Log("Waiting for daemon to be ready and establish peer connections...")
+	time.Sleep(10 * time.Second)
+
+	// Debug: Check if node has peer connections
+	peersResult := mainNode.RunIPFS("swarm", "peers")
+	connectedPeers := strings.TrimSpace(peersResult.Stdout.String())
+	if connectedPeers == "" {
+		t.Logf("No peer connections established")
+	} else {
+		peerCount := len(strings.Split(connectedPeers, "\n"))
+		t.Logf("Connected peers: %d", peerCount)
+		t.Logf("Peer list: %s", connectedPeers)
+	}
+
+	// Debug: Check routing type and DHT status
+	routingResult := mainNode.RunIPFS("routing", "findpeer", "--help")
+	t.Logf("Routing findpeer help available: %d", routingResult.ExitCode())
 
 	// Verify config shows "auto" and resolves correctly
 	configResult := mainNode.RunIPFS("config", "Ipns.DelegatedPublishers")
@@ -205,12 +238,12 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"auto"}, publishers, "IPNS delegated publishers config should show 'auto'")
 
-	// Check that Routing.Type is actually set to "delegated"
+	// Check that Routing.Type is actually set to "auto"
 	routingTypeResult := mainNode.RunIPFS("config", "Routing.Type")
 	require.Equal(t, 0, routingTypeResult.ExitCode())
 	routingType := strings.TrimSpace(routingTypeResult.Stdout.String())
 	t.Logf("Routing.Type config: %q", routingType)
-	assert.Equal(t, "delegated", routingType, "Routing.Type should be set to 'delegated'")
+	assert.Equal(t, "auto", routingType, "Routing.Type should be set to 'auto'")
 
 	// Check that autoconfig resolved the delegated publishers
 	resolvedResult := mainNode.RunIPFS("config", "Ipns.DelegatedPublishers", "--expand-auto")
@@ -231,14 +264,17 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	// Test IPNS publishing with specific CID (bafkqablimvwgy3y is inlined "hello")
 	testCID := "bafkqablimvwgy3y"
 
-	// Attempt IPNS publishing in online mode using delegated routing (no DHT, only HTTP)
-	t.Log("Attempting IPNS publish using Routing.Type=delegated (HTTP-only)...")
-	publishResult := mainNode.RunIPFS("name", "publish", "/ipfs/"+testCID)
+	// Attempt IPNS publishing using --delegated-only mode to test HTTP delegated publishing
+	// This ensures we're specifically testing the delegated publisher functionality
+	t.Log("Attempting IPNS publish using --delegated-only mode...")
+	publishResult := mainNode.RunIPFS("name", "publish", "--delegated-only", "/ipfs/"+testCID)
 
 	if publishResult.ExitCode() != 0 {
 		t.Logf("IPNS publish failed: %s", publishResult.Stderr.String())
 		t.Logf("IPNS publish stdout: %s", publishResult.Stdout.String())
-		require.Equal(t, 0, publishResult.ExitCode(), "IPNS publish should succeed")
+		require.Equal(t, 0, publishResult.ExitCode(), "IPNS publish should succeed in --delegated-only mode")
+	} else {
+		t.Log("✅ IPNS publish succeeded in --delegated-only mode")
 	}
 
 	output := publishResult.Stdout.String()
@@ -265,8 +301,8 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	var publishedKeys map[string]string
 	var recordPayload []byte
 
-	// Poll for up to 3 seconds to see if mock server receives the request
-	for i := 0; i < 6; i++ {
+	// Poll for up to 10 seconds to see if mock server receives the request
+	for i := 0; i < 20; i++ {
 		publishedKeys = ipnsPublisher.getPublishedKeys()
 		recordPayload = ipnsPublisher.getRecordPayload(peerID)
 
@@ -275,6 +311,7 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 			break
 		}
 
+		t.Logf("Polling attempt %d/20: %d keys published so far", i+1, len(publishedKeys))
 		time.Sleep(500 * time.Millisecond)
 	}
 
@@ -298,9 +335,9 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	// 4. Checking that the record is properly formed according to IPNS spec
 
 	t.Logf("✅ IPNS autoconfig test completed successfully:")
-	t.Logf("  - Routing.Type=delegated enabled HTTP-only IPNS publishing (no DHT required)")
+	t.Logf("  - --delegated-only flag used HTTP delegated IPNS publishing exclusively")
 	t.Logf("  - AutoConfig resolved 'auto' to: %s", ipnsPublisher.server.URL)
-	t.Logf("  - IPNS publishing successful in online mode using only HTTP delegated publishing")
+	t.Logf("  - IPNS publishing successful in --delegated-only mode")
 	t.Logf("  - Published IPNS name: %s", ipnsName)
 	t.Logf("  - ✅ HTTP PUT request made to delegated publisher with %d byte payload", len(recordPayload))
 	t.Logf("  - ✅ Key validation: HTTP PUT to /routing/v1/ipns with valid IPNS record payload")
@@ -331,12 +368,25 @@ func testIPNSPublishing404Error(t *testing.T) {
 	// Create autoconfig data
 	autoConfigData := fmt.Sprintf(`{
 		"AutoConfigVersion": 2025072302,
-		"AutoConfigSchema": 3,
-		"Bootstrap": [],
-		"DelegatedPublishers": {
-			"%s": ["%s"]
+		"AutoConfigSchema": 4,
+		"CacheTTL": 86400,
+		"SystemRegistry": {
+			"AminoDHT": {
+				"Description": "Test AminoDHT system",
+				"NativeConfig": {
+					"Bootstrap": []
+				}
+			}
+		},
+		"DNSResolvers": {},
+		"DelegatedEndpoints": {
+			"%s": {
+				"Systems": ["AminoDHT"],
+				"Read": ["/routing/v1/ipns"],
+				"Write": ["/routing/v1/ipns"]
+			}
 		}
-	}`, autoconfig.MainnetProfileIPNSPublishers, ipnsPublisher.server.URL)
+	}`, ipnsPublisher.server.URL)
 
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -350,8 +400,10 @@ func testIPNSPublishing404Error(t *testing.T) {
 	node.SetIPFSConfig("AutoConfig.Enabled", true)
 	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
 
-	// Set Routing.Type to auto to ensure delegated routers and publishers are used
-	node.SetIPFSConfig("Routing.Type", "auto")
+	// Set Routing.Type to delegated to ensure delegated routers and publishers are used
+	node.SetIPFSConfig("Routing.Type", "delegated")
+	node.SetIPFSConfig("Provider.Enabled", false)   // Required for delegated routing
+	node.SetIPFSConfig("Reprovider.Interval", "0s") // Required for delegated routing
 
 	// Add fallback bootstrap peers so the daemon can be considered "online"
 	// Use the same bootstrap peers from boxo/autoconfig fallbacks
@@ -394,12 +446,25 @@ func testIPNSPublishing500Error(t *testing.T) {
 	// Create autoconfig data
 	autoConfigData := fmt.Sprintf(`{
 		"AutoConfigVersion": 2025072302,
-		"AutoConfigSchema": 3,
-		"Bootstrap": [],
-		"DelegatedPublishers": {
-			"%s": ["%s"]
+		"AutoConfigSchema": 4,
+		"CacheTTL": 86400,
+		"SystemRegistry": {
+			"AminoDHT": {
+				"Description": "Test AminoDHT system",
+				"NativeConfig": {
+					"Bootstrap": []
+				}
+			}
+		},
+		"DNSResolvers": {},
+		"DelegatedEndpoints": {
+			"%s": {
+				"Systems": ["AminoDHT"],
+				"Read": ["/routing/v1/ipns"],
+				"Write": ["/routing/v1/ipns"]
+			}
 		}
-	}`, autoconfig.MainnetProfileIPNSPublishers, ipnsPublisher.server.URL)
+	}`, ipnsPublisher.server.URL)
 
 	autoConfigServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -413,8 +478,10 @@ func testIPNSPublishing500Error(t *testing.T) {
 	node.SetIPFSConfig("AutoConfig.Enabled", true)
 	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
 
-	// Set Routing.Type to auto to ensure delegated routers and publishers are used
-	node.SetIPFSConfig("Routing.Type", "auto")
+	// Set Routing.Type to delegated to ensure delegated routers and publishers are used
+	node.SetIPFSConfig("Routing.Type", "delegated")
+	node.SetIPFSConfig("Provider.Enabled", false)   // Required for delegated routing
+	node.SetIPFSConfig("Reprovider.Interval", "0s") // Required for delegated routing
 
 	// Add fallback bootstrap peers so the daemon can be considered "online"
 	// Use the same bootstrap peers from boxo/autoconfig fallbacks

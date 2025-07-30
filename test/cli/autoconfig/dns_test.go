@@ -1,4 +1,4 @@
-package cli
+package autoconfig
 
 import (
 	"encoding/base64"
@@ -154,11 +154,20 @@ func testDNSResolutionWithAutoDoH(t *testing.T) {
 	// Create autoconfig data with DoH resolver for "foo." domain
 	autoConfigData := fmt.Sprintf(`{
 		"AutoConfigVersion": 2025072302,
-		"AutoConfigSchema": 3,
-		"Bootstrap": [],
+		"AutoConfigSchema": 4,
+		"CacheTTL": 86400,
+		"SystemRegistry": {
+			"AminoDHT": {
+				"Description": "Test AminoDHT system",
+				"NativeConfig": {
+					"Bootstrap": []
+				}
+			}
+		},
 		"DNSResolvers": {
 			"foo.": ["%s/dns-query"]
-		}
+		},
+		"DelegatedEndpoints": {}
 	}`, dohServer.server.URL)
 
 	// Create autoconfig server
@@ -224,11 +233,20 @@ func testDNSErrorHandling(t *testing.T) {
 	// Create autoconfig data with DoH resolver
 	autoConfigData := fmt.Sprintf(`{
 		"AutoConfigVersion": 2025072302,
-		"AutoConfigSchema": 3,
-		"Bootstrap": [],
+		"AutoConfigSchema": 4,
+		"CacheTTL": 86400,
+		"SystemRegistry": {
+			"AminoDHT": {
+				"Description": "Test AminoDHT system",
+				"NativeConfig": {
+					"Bootstrap": []
+				}
+			}
+		},
 		"DNSResolvers": {
 			"bar.": ["%s/dns-query"]
-		}
+		},
+		"DelegatedEndpoints": {}
 	}`, dohServer.server.URL)
 
 	// Create autoconfig server

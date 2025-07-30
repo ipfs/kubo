@@ -44,16 +44,19 @@ func TestRealAutoConfigURL(t *testing.T) {
 	if config.AutoConfigSchema == 0 {
 		t.Error("expected non-zero AutoConfigSchema")
 	}
-	if len(config.Bootstrap) == 0 {
-		t.Error("expected non-empty Bootstrap")
+
+	// Get bootstrap peers from all systems to verify
+	bootstrapPeers := config.GetBootstrapPeers([]string{SystemAminoDHT})
+	if len(bootstrapPeers) == 0 {
+		t.Error("expected non-empty bootstrap peers")
 	}
 
 	t.Logf("Successfully fetched autoconfig version %d with schema %d",
 		config.AutoConfigVersion, config.AutoConfigSchema)
-	t.Logf("Bootstrap peers: %d", len(config.Bootstrap))
+	t.Logf("Bootstrap peers: %d", len(bootstrapPeers))
 	t.Logf("DNS resolvers: %d", len(config.DNSResolvers))
-	t.Logf("Delegated routers: %d", len(config.DelegatedRouters))
-	t.Logf("Delegated publishers: %d", len(config.DelegatedPublishers))
+	t.Logf("System registry: %d", len(config.SystemRegistry))
+	t.Logf("Delegated endpoints: %d", len(config.DelegatedEndpoints))
 
 	// Test cache functionality by fetching again
 	resp2, err := client.GetLatest(ctx, MainnetAutoConfigURL, DefaultRefreshInterval)

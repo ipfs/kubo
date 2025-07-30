@@ -30,7 +30,7 @@ var (
 	// FallbackDelegatedRouters are the default delegated routing endpoints from Kubo 0.36
 	// Used as last-resort fallback when autoconfig fetch fails
 	FallbackDelegatedRouters = []string{
-		"https://cid.contact/routing/v1/providers",
+		"https://ipni.example.com/routing/v1/providers",
 	}
 
 	// FallbackDelegatedPublishers are the default delegated IPNS publishers matching mainnet autoconfig

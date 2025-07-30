@@ -1,4 +1,4 @@
-package cli
+package autoconfig
 
 import (
 	"fmt"
@@ -316,7 +316,7 @@ func loadTestData(t *testing.T, filename string) []byte {
 		return file
 	}())
 
-	dataPath := filepath.Join(testDir, "autoconfig_test_data", filename)
+	dataPath := filepath.Join(testDir, "testdata", filename)
 	data, err := os.ReadFile(dataPath)
 	require.NoError(t, err, "Failed to read test data file: %s", filename)
 
@@ -416,8 +416,18 @@ func testDaemonUsesResolvedBootstrap(t *testing.T) {
 	// Step 2: Create autoconfig server that returns bootstrap node's address
 	autoConfigData := fmt.Sprintf(`{
 		"AutoConfigVersion": 2025072301,
-		"AutoConfigSchema": 3,
-		"Bootstrap": ["%s"]
+		"AutoConfigSchema": 4,
+		"CacheTTL": 86400,
+		"SystemRegistry": {
+			"AminoDHT": {
+				"Description": "Test AminoDHT system",
+				"NativeConfig": {
+					"Bootstrap": ["%s"]
+				}
+			}
+		},
+		"DNSResolvers": {},
+		"DelegatedEndpoints": {}
 	}`, bootstrapMultiaddr)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

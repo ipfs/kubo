@@ -850,9 +850,11 @@ Type: `flag`
 
 Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
 
-Default: [`config.DefaultBootstrapAddresses`](https://github.com/ipfs/kubo/blob/master/config/bootstrap_peers.go)
+The special value `"auto"` uses bootstrap peers from [AutoConfig](#autoconfig) when enabled.
 
-Type: `array[string]` ([multiaddrs][multiaddr])
+Default: `["auto"]`
+
+Type: `array[string]` ([multiaddrs][multiaddr] or `"auto"`)
 
 ## `Datastore`
 
@@ -1595,13 +1597,24 @@ Type: `flag`
 
 ### `Ipns.DelegatedPublishers`
 
-A list of IPNS publishers to delegate publishing operations to. When configured, IPNS publish operations may be sent to these remote services rather than being handled locally.
+A list of IPNS publishers to delegate publishing operations to. When configured, IPNS publish operations are sent to these remote HTTP services in addition to or instead of local DHT publishing, depending on [`Routing.Type`](#routingtype) configuration.
 
-The special value `"auto"` uses the network's default publisher services when AutoConfig is enabled.
+These endpoints must support the [IPNS API](https://specs.ipfs.tech/routing/http-routing-v1/#ipns-api) from the Delegated Routing V1 HTTP specification.
 
-For self-hosting, you can run your own `/routing/v1/ipns` endpoint using [someguy](https://github.com/ipfs/someguy/), which provides a standalone implementation of the IPNS publishing HTTP API.
+The special value `"auto"` uses delegated publishers from [AutoConfig](#autoconfig) when enabled.
 
-**Note:** Signed IPNS records are only published (cached) at the HTTP endpoint - there is no delegated DHT republishing. You should still publish to the DHT for broader network availability. The HTTP endpoint acts as a performance/cache optimization that only benefits peers configured to use the same endpoint.
+**Publishing behavior depends on routing configuration:**
+
+- `Routing.Type=auto` (default): Uses both DHT and HTTP delegated publishers
+- `Routing.Type=delegated`: Uses only HTTP delegated publishers (DHT disabled)
+
+**Command flags control publishing method:**
+
+- `ipfs name publish /ipfs/QmHash` - Uses configured routing (default behavior)
+- `ipfs name publish --allow-offline /ipfs/QmHash` - Local datastore only, no network requests
+- `ipfs name publish --delegated-only /ipfs/QmHash` - HTTP delegated publishers only, requires configuration
+
+For self-hosting, you can run your own `/routing/v1/ipns` endpoint using [someguy](https://github.com/ipfs/someguy/).
 
 Default: `["auto"]`
 
@@ -2163,14 +2176,16 @@ Type: `array[string]`
 An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
 These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
 
+The special value `"auto"` uses delegated routers from [AutoConfig](#autoconfig) when enabled.
+
 > [!TIP]
 > Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
 >
 > One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
 
-Default: `["https://cid.contact"]` (empty or `nil` will also use this default; to disable delegated routing, set `Routing.Type` to `dht` or `dhtclient`)
+Default: `["auto"]`
 
-Type: `array[string]`
+Type: `array[string]` (URLs or `"auto"`)
 
 ### `Routing.Routers`
 
@@ -2927,16 +2942,10 @@ Example:
 Be mindful that:
 - Currently only `https://` URLs for [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported as values.
 - The default catch-all resolver is the cleartext one provided by your operating system. It can be overridden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
-- Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis. The implicit DoH resolvers are:
-  ```json
-  {
-    "eth.": "https://dns.eth.limo/dns-query",
-    "crypto.": "https://resolver.unstoppable.io/dns-query"
-  }
-  ```
-  To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
+- Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis. 
+- The special value `"auto"` uses DNS resolvers from [AutoConfig](#autoconfig) when enabled. For example: `{".": "auto"}` uses any custom DoH resolver (global or per TLD) provided by AutoConfig system.
 
-Default: `{}`
+Default: `{".": "auto"}`
 
 Type: `object[string -> string]`
 

@@ -1,4 +1,4 @@
-package cli
+package autoconfig
 
 import (
 	"context"
@@ -44,10 +44,20 @@ func testFuzzAutoConfigVersion(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			config := map[string]interface{}{
 				"AutoConfigVersion": tc.version,
-				"AutoConfigSchema":  2,
-				"Bootstrap": []string{
-					"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+				"AutoConfigSchema":  4,
+				"CacheTTL":          86400,
+				"SystemRegistry": map[string]interface{}{
+					"AminoDHT": map[string]interface{}{
+						"Description": "Test AminoDHT system",
+						"NativeConfig": map[string]interface{}{
+							"Bootstrap": []string{
+								"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+							},
+						},
+					},
 				},
+				"DNSResolvers":       map[string]interface{}{},
+				"DelegatedEndpoints": map[string]interface{}{},
 			}
 
 			jsonData, err := json.Marshal(config)
@@ -100,8 +110,18 @@ func testFuzzBootstrapArrays(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			config := map[string]interface{}{
 				"AutoConfigVersion": 2025072301,
-				"AutoConfigSchema":  3,
-				"Bootstrap":         tc.bootstrap,
+				"AutoConfigSchema":  4,
+				"CacheTTL":          86400,
+				"SystemRegistry": map[string]interface{}{
+					"AminoDHT": map[string]interface{}{
+						"Description": "Test AminoDHT system",
+						"NativeConfig": map[string]interface{}{
+							"Bootstrap": tc.bootstrap,
+						},
+					},
+				},
+				"DNSResolvers":       map[string]interface{}{},
+				"DelegatedEndpoints": map[string]interface{}{},
 			}
 
 			jsonData, err := json.Marshal(config)
@@ -123,7 +143,8 @@ func testFuzzBootstrapArrays(t *testing.T) {
 				require.NoError(t, err, "Expected no error for %s", tc.name)
 				if err == nil && autoConf != nil {
 					// Verify structure is reasonable
-					require.IsType(t, []string{}, autoConf.Config.Bootstrap, "Bootstrap should be []string")
+					bootstrapPeers := autoConf.Config.GetBootstrapPeers([]string{"AminoDHT"})
+					require.IsType(t, []string{}, bootstrapPeers, "Bootstrap should be []string")
 				}
 			}
 		})
@@ -150,9 +171,18 @@ func testFuzzDNSResolvers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			config := map[string]interface{}{
 				"AutoConfigVersion": 2025072301,
-				"AutoConfigSchema":  3,
-				"Bootstrap":         []string{"/dnsaddr/test"},
-				"DNSResolvers":      tc.resolvers,
+				"AutoConfigSchema":  4,
+				"CacheTTL":          86400,
+				"SystemRegistry": map[string]interface{}{
+					"AminoDHT": map[string]interface{}{
+						"Description": "Test AminoDHT system",
+						"NativeConfig": map[string]interface{}{
+							"Bootstrap": []string{"/dnsaddr/test"},
+						},
+					},
+				},
+				"DNSResolvers":       tc.resolvers,
+				"DelegatedEndpoints": map[string]interface{}{},
 			}
 
 			jsonData, err := json.Marshal(config)
@@ -184,24 +214,41 @@ func testFuzzDelegatedRouters(t *testing.T) {
 		routers     interface{}
 		expectError bool
 	}{
-		{"valid routers", map[string][]string{
-			autoconfig.MainnetProfileNodesWithDHT: []string{"https://cid.contact"},
+		{"valid endpoints", map[string]interface{}{
+			"https://ipni.example.com": map[string]interface{}{
+				"Systems": []string{"IPNI"},
+				"Read":    []string{"/routing/v1/providers"},
+				"Write":   []string{},
+			},
 		}, false},
 		{"empty routers", map[string]interface{}{}, false},
 		{"null routers", nil, false},
 		{"invalid nested structure", map[string]string{"invalid": "structure"}, true},
-		{"invalid router URLs", map[string][]string{
-			autoconfig.MainnetProfileNodesWithDHT: []string{"not-a-url"},
-		}, false}, // Should not error at parse time, validation happens later
+		{"invalid endpoint URLs", map[string]interface{}{
+			"not-a-url": map[string]interface{}{
+				"Systems": []string{"IPNI"},
+				"Read":    []string{"/routing/v1/providers"},
+				"Write":   []string{},
+			},
+		}, true}, // Should error due to URL validation
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			config := map[string]interface{}{
 				"AutoConfigVersion": 2025072301,
-				"AutoConfigSchema":  3,
-				"Bootstrap":         []string{"/dnsaddr/test"},
-				"DelegatedRouters":  tc.routers,
+				"AutoConfigSchema":  4,
+				"CacheTTL":          86400,
+				"SystemRegistry": map[string]interface{}{
+					"AminoDHT": map[string]interface{}{
+						"Description": "Test AminoDHT system",
+						"NativeConfig": map[string]interface{}{
+							"Bootstrap": []string{"/dnsaddr/test"},
+						},
+					},
+				},
+				"DNSResolvers":       map[string]interface{}{},
+				"DelegatedEndpoints": tc.routers,
 			}
 
 			jsonData, err := json.Marshal(config)
@@ -281,9 +328,18 @@ func testFuzzLargePayloads(t *testing.T) {
 
 	config := map[string]interface{}{
 		"AutoConfigVersion": 2025072301,
-		"AutoConfigSchema":  3,
-		"Bootstrap":         largeBootstrap,
-		"DNSResolvers":      largeDNSResolvers,
+		"AutoConfigSchema":  4,
+		"CacheTTL":          86400,
+		"SystemRegistry": map[string]interface{}{
+			"AminoDHT": map[string]interface{}{
+				"Description": "Test AminoDHT system",
+				"NativeConfig": map[string]interface{}{
+					"Bootstrap": largeBootstrap,
+				},
+			},
+		},
+		"DNSResolvers":       largeDNSResolvers,
+		"DelegatedEndpoints": map[string]interface{}{},
 	}
 
 	jsonData, err := json.Marshal(config)
@@ -304,7 +360,10 @@ func testFuzzLargePayloads(t *testing.T) {
 	// Should handle large payloads gracefully (up to reasonable limits)
 	require.NoError(t, err, "Should handle large payloads")
 	require.NotNil(t, autoConf, "Should return valid config")
-	require.Len(t, autoConf.Config.Bootstrap, 10000, "Should preserve all bootstrap entries")
+
+	// Verify bootstrap entries were preserved
+	bootstrapPeers := autoConf.Config.GetBootstrapPeers([]string{"AminoDHT"})
+	require.Len(t, bootstrapPeers, 10000, "Should preserve all bootstrap entries")
 }
 
 // Helper function to generate many DNS resolvers for testing

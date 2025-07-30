@@ -18,7 +18,8 @@ import (
 )
 
 // GetLatest fetches the latest config with metadata, using cache when possible
-// The refreshInterval parameter determines how long cached configs are considered fresh
+// The refreshInterval parameter determines how long cached configs are considered fresh.
+// The effective refresh interval will be the minimum of refreshInterval and the server's CacheTTL.
 func (c *Client) GetLatest(ctx context.Context, configURL string, refreshInterval time.Duration) (*Response, error) {
 	cacheDir, err := c.getCacheDir(configURL)
 	if err != nil {
@@ -54,6 +55,26 @@ func (c *Client) GetLatest(ctx context.Context, configURL string, refreshInterva
 		return nil, fmt.Errorf("failed to fetch from remote (%w) and no valid cache available (%w)", err, cacheErr)
 	}
 
+	// Successfully fetched new config, now check if server CacheTTL requires using cached version
+	if resp.Config != nil && cacheErr == nil {
+		effectiveInterval := calculateEffectiveRefreshInterval(refreshInterval, resp.Config.CacheTTL)
+		if effectiveInterval < refreshInterval {
+			log.Debugf("server CacheTTL (%ds) is shorter than user refresh interval (%s), using effective interval %s",
+				resp.Config.CacheTTL, refreshInterval, effectiveInterval)
+
+			// Re-check if cached version is still fresh under the effective (shorter) interval
+			if cachedResp.CacheAge < effectiveInterval {
+				log.Debugf("cached config is still fresh under server CacheTTL (%s)", effectiveInterval)
+				return cachedResp, nil
+			}
+			// If cached version is also stale under server TTL, continue with newly fetched config
+			log.Debugf("cached config is stale even under server CacheTTL, using newly fetched config")
+		} else {
+			log.Debugf("using user refresh interval (%s), server CacheTTL (%ds) is longer or not specified",
+				refreshInterval, resp.Config.CacheTTL)
+		}
+	}
+
 	// Clean up old versions
 	if err := c.cleanupOldVersions(cacheDir); err != nil {
 		log.Warnf("failed to cleanup old versions: %v", err)
@@ -75,6 +96,7 @@ func (c *Client) GetCached(cacheDir string) (*Response, error) {
 // MustGetConfig returns config with fallbacks to hardcoded defaults
 // For cache-only behavior, pass a cancelled context
 // This method never returns an error and always returns usable mainnet values
+// The effective refresh interval will be the minimum of refreshInterval and the server's CacheTTL
 func (c *Client) MustGetConfig(ctx context.Context, configURL string, refreshInterval time.Duration) *Config {
 	resp, err := c.GetLatest(ctx, configURL, refreshInterval)
 	var config *Config
@@ -82,41 +104,93 @@ func (c *Client) MustGetConfig(ctx context.Context, configURL string, refreshInt
 		config = resp.Config
 	}
 	if err != nil {
-		// Return fallback config
+		// Return fallback config with new structure
 		return &Config{
-			Bootstrap:    FallbackBootstrapPeers,
-			DNSResolvers: FallbackDNSResolvers,
-			DelegatedRouters: map[string]DelegatedRouterConfig{
-				MainnetProfileNodesWithDHT:    DelegatedRouterConfig(FallbackDelegatedRouters),
-				MainnetProfileNodesWithoutDHT: DelegatedRouterConfig(FallbackDelegatedRouters),
+			AutoConfigVersion: 0, // Indicates fallback config
+			AutoConfigSchema:  4,
+			SystemRegistry: map[string]SystemConfig{
+				SystemAminoDHT: {
+					Description: "Fallback AminoDHT configuration",
+					NativeConfig: &NativeConfig{
+						Bootstrap: FallbackBootstrapPeers,
+					},
+					DelegatedConfig: &DelegatedConfig{
+						Read:  []string{"/routing/v1/providers", "/routing/v1/peers", "/routing/v1/ipns"},
+						Write: []string{"/routing/v1/ipns"},
+					},
+				},
+				SystemIPNI: {
+					Description: "Fallback IPNI configuration",
+					DelegatedConfig: &DelegatedConfig{
+						Read:  []string{"/routing/v1/providers"},
+						Write: []string{},
+					},
+				},
 			},
-			DelegatedPublishers: map[string]DelegatedPublisherConfig{
-				MainnetProfileIPNSPublishers: DelegatedPublisherConfig(FallbackDelegatedPublishers),
+			DNSResolvers: FallbackDNSResolvers,
+			DelegatedEndpoints: map[string]EndpointConfig{
+				"https://ipni.example.com": {
+					Systems: []string{SystemIPNI},
+					Read:    []string{"/routing/v1/providers"},
+					Write:   []string{},
+				},
 			},
 		}
 	}
 
-	// Fill in missing fields with fallbacks
-	if len(config.Bootstrap) == 0 {
-		config.Bootstrap = FallbackBootstrapPeers
+	// Fill in missing fields with fallbacks for new structure
+	if config.SystemRegistry == nil {
+		config.SystemRegistry = make(map[string]SystemConfig)
 	}
 	if len(config.DNSResolvers) == 0 {
 		config.DNSResolvers = FallbackDNSResolvers
 	}
-	if config.DelegatedRouters == nil {
-		config.DelegatedRouters = make(map[string]DelegatedRouterConfig)
+	if config.DelegatedEndpoints == nil {
+		config.DelegatedEndpoints = make(map[string]EndpointConfig)
 	}
-	if len(config.DelegatedRouters[MainnetProfileNodesWithDHT]) == 0 {
-		config.DelegatedRouters[MainnetProfileNodesWithDHT] = DelegatedRouterConfig(FallbackDelegatedRouters)
+
+	// Ensure AminoDHT system exists with fallback bootstrap
+	if _, exists := config.SystemRegistry[SystemAminoDHT]; !exists {
+		config.SystemRegistry[SystemAminoDHT] = SystemConfig{
+			Description: "Fallback AminoDHT configuration",
+			NativeConfig: &NativeConfig{
+				Bootstrap: FallbackBootstrapPeers,
+			},
+			DelegatedConfig: &DelegatedConfig{
+				Read:  []string{"/routing/v1/providers", "/routing/v1/peers", "/routing/v1/ipns"},
+				Write: []string{"/routing/v1/ipns"},
+			},
+		}
+	} else if config.SystemRegistry[SystemAminoDHT].NativeConfig == nil || len(config.SystemRegistry[SystemAminoDHT].NativeConfig.Bootstrap) == 0 {
+		// Update existing system with fallback bootstrap if missing
+		system := config.SystemRegistry[SystemAminoDHT]
+		if system.NativeConfig == nil {
+			system.NativeConfig = &NativeConfig{}
+		}
+		if len(system.NativeConfig.Bootstrap) == 0 {
+			system.NativeConfig.Bootstrap = FallbackBootstrapPeers
+		}
+		config.SystemRegistry[SystemAminoDHT] = system
 	}
-	if len(config.DelegatedRouters[MainnetProfileNodesWithoutDHT]) == 0 {
-		config.DelegatedRouters[MainnetProfileNodesWithoutDHT] = DelegatedRouterConfig(FallbackDelegatedRouters)
+
+	// Ensure IPNI system exists
+	if _, exists := config.SystemRegistry[SystemIPNI]; !exists {
+		config.SystemRegistry[SystemIPNI] = SystemConfig{
+			Description: "Fallback IPNI configuration",
+			DelegatedConfig: &DelegatedConfig{
+				Read:  []string{"/routing/v1/providers"},
+				Write: []string{},
+			},
+		}
 	}
-	if config.DelegatedPublishers == nil {
-		config.DelegatedPublishers = make(map[string]DelegatedPublisherConfig)
-	}
-	if len(config.DelegatedPublishers[MainnetProfileIPNSPublishers]) == 0 {
-		config.DelegatedPublishers[MainnetProfileIPNSPublishers] = DelegatedPublisherConfig(FallbackDelegatedPublishers)
+
+	// Ensure at least one delegated endpoint exists
+	if len(config.DelegatedEndpoints) == 0 {
+		config.DelegatedEndpoints["https://ipni.example.com"] = EndpointConfig{
+			Systems: []string{SystemIPNI},
+			Read:    []string{"/routing/v1/providers"},
+			Write:   []string{},
+		}
 	}
 
 	return config
@@ -432,10 +506,14 @@ func formatDuration(d time.Duration) string {
 
 // validateConfig validates all multiaddr and URL values in the config
 func (c *Client) validateConfig(config *Config) error {
-	// Validate Bootstrap multiaddrs
-	for i, bootstrap := range config.Bootstrap {
-		if _, err := ma.NewMultiaddr(bootstrap); err != nil {
-			return fmt.Errorf("Bootstrap[%d] invalid multiaddr %q: %w", i, bootstrap, err)
+	// Validate SystemRegistry bootstrap multiaddrs
+	for systemName, system := range config.SystemRegistry {
+		if system.NativeConfig != nil {
+			for i, bootstrap := range system.NativeConfig.Bootstrap {
+				if _, err := ma.NewMultiaddr(bootstrap); err != nil {
+					return fmt.Errorf("SystemRegistry[%q].NativeConfig.Bootstrap[%d] invalid multiaddr %q: %w", systemName, i, bootstrap, err)
+				}
+			}
 		}
 	}
 
@@ -448,23 +526,57 @@ func (c *Client) validateConfig(config *Config) error {
 		}
 	}
 
-	// Validate DelegatedRouters URLs
-	for routerType, routerConfig := range config.DelegatedRouters {
-		for i, urlStr := range routerConfig {
-			if _, err := url.Parse(urlStr); err != nil {
-				return fmt.Errorf("DelegatedRouters[%q][%d] invalid URL %q: %w", routerType, i, urlStr, err)
+	// Validate DelegatedEndpoints URLs (must be absolute HTTP/HTTPS URLs)
+	for endpointURL, endpointConfig := range config.DelegatedEndpoints {
+		parsed, err := url.Parse(endpointURL)
+		if err != nil {
+			return fmt.Errorf("DelegatedEndpoints URL %q invalid: %w", endpointURL, err)
+		}
+
+		// Require absolute URLs with HTTP/HTTPS scheme
+		if parsed.Scheme == "" {
+			return fmt.Errorf("DelegatedEndpoints URL %q must be absolute (missing scheme)", endpointURL)
+		}
+		if parsed.Host == "" {
+			return fmt.Errorf("DelegatedEndpoints URL %q must have a host", endpointURL)
+		}
+		if parsed.Scheme != "http" && parsed.Scheme != "https" {
+			return fmt.Errorf("DelegatedEndpoints URL %q must use http or https scheme, got %q", endpointURL, parsed.Scheme)
+		}
+
+		// Validate Read paths
+		for i, path := range endpointConfig.Read {
+			if !strings.HasPrefix(path, "/") {
+				return fmt.Errorf("DelegatedEndpoints[%q].Read[%d] path %q must start with /", endpointURL, i, path)
 			}
 		}
-	}
 
-	// Validate DelegatedPublishers URLs
-	for publisherType, publisherConfig := range config.DelegatedPublishers {
-		for i, urlStr := range publisherConfig {
-			if _, err := url.Parse(urlStr); err != nil {
-				return fmt.Errorf("DelegatedPublishers[%q][%d] invalid URL %q: %w", publisherType, i, urlStr, err)
+		// Validate Write paths
+		for i, path := range endpointConfig.Write {
+			if !strings.HasPrefix(path, "/") {
+				return fmt.Errorf("DelegatedEndpoints[%q].Write[%d] path %q must start with /", endpointURL, i, path)
 			}
 		}
 	}
 
 	return nil
+}
+
+// calculateEffectiveRefreshInterval returns the minimum of user-provided interval and server CacheTTL.
+// This ensures that both user preferences and server cache policies are respected.
+// If cacheTTLSeconds is 0 or negative, only the user interval is used.
+func calculateEffectiveRefreshInterval(userInterval time.Duration, cacheTTLSeconds int) time.Duration {
+	if cacheTTLSeconds <= 0 {
+		// Server doesn't specify TTL or specifies invalid TTL, use user preference
+		return userInterval
+	}
+
+	serverTTL := time.Duration(cacheTTLSeconds) * time.Second
+	if serverTTL < userInterval {
+		// Server wants shorter cache period, respect it
+		return serverTTL
+	}
+
+	// User wants shorter cache period or same as server, respect user preference
+	return userInterval
 }

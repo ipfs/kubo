@@ -40,7 +40,7 @@ const (
 	// This is a specific version that is known to work fine with current implementation,
 	// and it makes it a safe default while iterating on format.
 	// TODO: change it back to https://config.ipfs-mainnet.org/autoconfig.json before shipping
-	MainnetAutoConfigURL = "https://github.com/ipshipyard/config.ipfs-mainnet.org/raw/8fc9d8a793d13922be0fc5ea0634162613eadf6f/autoconfig.json"
+	MainnetAutoConfigURL = "https://github.com/ipshipyard/config.ipfs-mainnet.org/raw/753001eab598b722d0377bef41287502105da8f8/autoconfig.json"
 )
 
 // Client is the autoconfig client

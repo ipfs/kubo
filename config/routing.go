@@ -19,8 +19,10 @@ const (
 
 var (
 	// Default HTTP routers used in parallel to DHT when Routing.Type = "auto"
+	// NOTE: Hardcoded defaults removed - system now relies on autoconfig for delegated routing endpoints
+	// This exposes any bugs in autoconfig endpoint filtering rather than masking them with fallbacks
 	DefaultHTTPRouters = getEnvOrDefault(EnvHTTPRouters, []string{
-		CidContactRoutingURL + "/routing/v1/providers", // https://github.com/ipfs/kubo/issues/9422#issuecomment-1338142084
+		// No hardcoded defaults - autoconfig should provide endpoints via DelegatedEndpointsWithAutoConfig()
 	})
 
 	// Default filter-protocols to pass along with delegated routing requests (as defined in IPIP-484)

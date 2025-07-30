@@ -1,4 +1,4 @@
-package cli
+package autoconfig
 
 import (
 	"net/http"
@@ -32,10 +32,16 @@ func testInvalidAutoConfigJSONPreventsCaching(t *testing.T) {
 	// Create server that serves invalid autoconfig JSON
 	invalidAutoConfigData := `{
 		"AutoConfigVersion": 123,
-		"AutoConfigSchema": 3,
-		"Bootstrap": [
-			"invalid-multiaddr-that-should-fail"
-		]
+		"AutoConfigSchema": 4,
+		"SystemRegistry": {
+			"AminoDHT": {
+				"NativeConfig": {
+					"Bootstrap": [
+						"invalid-multiaddr-that-should-fail"
+					]
+				}
+			}
+		}
 	}`
 
 	requestCount := 0
@@ -71,11 +77,17 @@ func testMalformedMultiaddrInAutoConfig(t *testing.T) {
 	// Create server that serves autoconfig with malformed multiaddr
 	invalidAutoConfigData := `{
 		"AutoConfigVersion": 456,
-		"AutoConfigSchema": 3,
-		"Bootstrap": [
-			"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-			"not-a-valid-multiaddr"
-		]
+		"AutoConfigSchema": 4,
+		"SystemRegistry": {
+			"AminoDHT": {
+				"NativeConfig": {
+					"Bootstrap": [
+						"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+						"not-a-valid-multiaddr"
+					]
+				}
+			}
+		}
 	}`
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +115,7 @@ func testMalformedURLInAutoConfig(t *testing.T) {
 	// Create server that serves autoconfig with malformed URL
 	invalidAutoConfigData := `{
 		"AutoConfigVersion": 789,
-		"AutoConfigSchema": 3,
+		"AutoConfigSchema": 4,
 		"DNSResolvers": {
 			"eth.": ["https://valid.example.com"],
 			"bad.": ["://malformed-url-missing-scheme"]

@@ -54,14 +54,27 @@ func TestGetLatest(t *testing.T) {
 	// Create test config
 	testConfig := &Config{
 		AutoConfigVersion: 2025071802,
-		AutoConfigSchema:  2,
-		Bootstrap:         []string{"/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWGzxzKZYveHXtpG6AsrUJBcWxHBFS2HsEoGTxrMLvKXtf"},
-		DNSResolvers:      map[string][]string{"eth.": {"https://example.com"}},
-		DelegatedRouters: map[string]DelegatedRouterConfig{
-			MainnetProfileNodesWithDHT: {"https://cid.contact/routing/v1/providers"},
+		AutoConfigSchema:  4,
+		CacheTTL:          86400,
+		SystemRegistry: map[string]SystemConfig{
+			SystemAminoDHT: {
+				Description: "Test AminoDHT system",
+				NativeConfig: &NativeConfig{
+					Bootstrap: []string{"/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWGzxzKZYveHXtpG6AsrUJBcWxHBFS2HsEoGTxrMLvKXtf"},
+				},
+				DelegatedConfig: &DelegatedConfig{
+					Read:  []string{"/routing/v1/providers"},
+					Write: []string{},
+				},
+			},
 		},
-		DelegatedPublishers: map[string]DelegatedPublisherConfig{
-			MainnetProfileIPNSPublishers: {"https://delegated-ipfs.dev/routing/v1/ipns"},
+		DNSResolvers: map[string][]string{"eth.": {"https://example.com"}},
+		DelegatedEndpoints: map[string]EndpointConfig{
+			"https://ipni.example.com": {
+				Systems: []string{SystemIPNI},
+				Read:    []string{"/routing/v1/providers"},
+				Write:   []string{},
+			},
 		},
 	}
 

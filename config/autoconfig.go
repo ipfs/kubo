@@ -50,6 +50,22 @@ const (
 	DefaultAutoConfigRefreshInterval = autoconfig.DefaultRefreshInterval
 )
 
+// GetNativeSystems returns the list of systems that should be used natively based on routing type
+func GetNativeSystems(routingType string) []string {
+	switch routingType {
+	case "dht", "dhtclient", "dhtserver":
+		return []string{autoconfig.SystemAminoDHT} // Only native DHT
+	case "auto", "autoclient":
+		return []string{autoconfig.SystemAminoDHT} // Native DHT, delegated others
+	case "delegated":
+		return []string{} // Everything delegated
+	case "none":
+		return []string{} // No native systems
+	default:
+		return []string{} // Custom mode
+	}
+}
+
 // DNSResolversWithAutoConfig returns DNS resolvers with "auto" values replaced by autoconfig values
 func (c *Config) DNSResolversWithAutoConfig(repoPath string) map[string]string {
 	if c.DNS.Resolvers == nil {
@@ -127,7 +143,9 @@ func (c *Config) BootstrapWithAutoConfig(repoPath string) []string {
 	autoConfig := c.getAutoConfig(repoPath)
 	var autoConfigData []string
 	if autoConfig != nil {
-		autoConfigData = autoConfig.Bootstrap
+		routingType := c.Routing.Type.WithDefault("auto")
+		nativeSystems := GetNativeSystems(routingType)
+		autoConfigData = autoConfig.GetBootstrapPeers(nativeSystems)
 	}
 	return expandAutoConfigSlice(c.Bootstrap, autoConfigData, "Bootstrap")
 }
@@ -135,6 +153,7 @@ func (c *Config) BootstrapWithAutoConfig(repoPath string) []string {
 // getAutoConfig is a helper to get autoconfig data with fallbacks
 func (c *Config) getAutoConfig(repoPath string) *autoconfig.Config {
 	if !c.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled) || c.AutoConfig.URL == "" {
+		log.Debugf("getAutoConfig: returning nil - Enabled=%v, URL='%s'", c.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled), c.AutoConfig.URL)
 		return nil
 	}
 
@@ -151,11 +170,14 @@ func (c *Config) getAutoConfig(repoPath string) *autoconfig.Config {
 		autoconfig.WithTimeout(5*time.Second),
 	)
 	if err != nil {
+		log.Debugf("getAutoConfig: client creation failed - %v", err)
 		return nil
 	}
 
 	ctx := context.Background()
-	return client.MustGetConfig(ctx, c.AutoConfig.URL, refreshInterval)
+	result := client.MustGetConfig(ctx, c.AutoConfig.URL, refreshInterval)
+	log.Debugf("getAutoConfig: returning config with %d DelegatedEndpoints", len(result.DelegatedEndpoints))
+	return result
 }
 
 // BootstrapPeersWithAutoConfig returns bootstrap peers with "auto" values replaced by autoconfig values
@@ -165,29 +187,57 @@ func (c *Config) BootstrapPeersWithAutoConfig(repoPath string) ([]peer.AddrInfo,
 	return ParseBootstrapPeers(bootstrapStrings)
 }
 
-// DelegatedRoutersWithAutoConfig returns delegated routers with "auto" values replaced by autoconfig values
-func (c *Config) DelegatedRoutersWithAutoConfig(repoPath string) []string {
+// DelegatedEndpointsWithAutoConfig returns delegated endpoints that don't overlap with native systems
+func (c *Config) DelegatedEndpointsWithAutoConfig(repoPath string) map[string]autoconfig.EndpointConfig {
 	autoConfig := c.getAutoConfig(repoPath)
-	nodeType := c.getNodeType()
-	var autoConfigData []string
-	if autoConfig != nil && autoConfig.DelegatedRouters != nil {
-		if routers, exists := autoConfig.DelegatedRouters[nodeType]; exists {
-			autoConfigData = routers
-		}
+	if autoConfig == nil {
+		log.Debugf("DelegatedEndpointsWithAutoConfig: getAutoConfig returned nil")
+		return nil
 	}
-	return expandAutoConfigSlice(c.Routing.DelegatedRouters, autoConfigData, "DelegatedRouters")
+
+	routingType := c.Routing.Type.WithDefault("auto")
+	nativeSystems := GetNativeSystems(routingType)
+	result := autoConfig.GetDelegatedEndpoints(nativeSystems)
+	log.Debugf("DelegatedEndpointsWithAutoConfig: returning %d endpoints (routingType=%s, nativeSystems=%v)", len(result), routingType, nativeSystems)
+	return result
+}
+
+// DelegatedRoutersWithAutoConfig returns delegated router URLs for backwards compatibility
+// Deprecated: Use DelegatedEndpointsWithAutoConfig instead
+func (c *Config) DelegatedRoutersWithAutoConfig(repoPath string) []string {
+	endpoints := c.DelegatedEndpointsWithAutoConfig(repoPath)
+	if endpoints == nil {
+		return expandAutoConfigSlice(c.Routing.DelegatedRouters, nil, "DelegatedRouters")
+	}
+
+	var routers []string
+	for url := range endpoints {
+		routers = append(routers, url)
+	}
+
+	return expandAutoConfigSlice(c.Routing.DelegatedRouters, routers, "DelegatedRouters")
 }
 
 // DelegatedPublishersWithAutoConfig returns delegated publishers with "auto" values replaced by autoconfig values
+// IPNS publishing is now handled through the AminoDHT system via DelegatedEndpointsWithAutoConfig
 func (c *Config) DelegatedPublishersWithAutoConfig(repoPath string) []string {
-	autoConfig := c.getAutoConfig(repoPath)
-	var autoConfigData []string
-	if autoConfig != nil && autoConfig.DelegatedPublishers != nil {
-		if publishers, exists := autoConfig.DelegatedPublishers[autoconfig.MainnetProfileIPNSPublishers]; exists {
-			autoConfigData = publishers
+	endpoints := c.DelegatedEndpointsWithAutoConfig(repoPath)
+	if endpoints == nil {
+		return expandAutoConfigSlice(c.Ipns.DelegatedPublishers, nil, "DelegatedPublishers")
+	}
+
+	var publishers []string
+	for url, config := range endpoints {
+		// Check if this endpoint supports IPNS write operations
+		for _, writeEndpoint := range config.Write {
+			if writeEndpoint == "/routing/v1/ipns" {
+				publishers = append(publishers, url)
+				break
+			}
 		}
 	}
-	return expandAutoConfigSlice(c.Ipns.DelegatedPublishers, autoConfigData, "DelegatedPublishers")
+
+	return expandAutoConfigSlice(c.Ipns.DelegatedPublishers, publishers, "DelegatedPublishers")
 }
 
 // ExpandAutoConfigValues expands "auto" placeholders in config with their actual values using the same methods as the daemon
@@ -287,17 +337,4 @@ func stringMapToInterfaceMap(m map[string]string) map[string]interface{} {
 		result[k] = v
 	}
 	return result
-}
-
-// getNodeType determines the node type based on Routing.Type configuration
-func (c *Config) getNodeType() string {
-	routingType := c.Routing.Type.WithDefault("auto")
-
-	// Node has DHT if Routing.Type is auto, autoclient, dht, or dhtclient
-	switch routingType {
-	case "auto", "autoclient", "dht", "dhtclient":
-		return autoconfig.MainnetProfileNodesWithDHT
-	default:
-		return autoconfig.MainnetProfileNodesWithoutDHT
-	}
 }

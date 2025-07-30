@@ -1,0 +1,16 @@
+{
+  "AutoConfigVersion": "invalid",
+  "AutoConfigSchema": "not-a-number",
+  "CacheTTL": "not-a-number",
+  "SystemRegistry": "not-an-object",
+  "DNSResolvers": {
+    ".eth": "not-an-array"
+  },
+  "DelegatedEndpoints": {
+    "invalid-url": {
+      "Systems": "not-an-array",
+      "Read": 12345,
+      "Write": "not-an-array"
+    }
+  }
+}
