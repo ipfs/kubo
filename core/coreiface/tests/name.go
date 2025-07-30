@@ -49,7 +49,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 	run := func(t *testing.T, ropts []opt.NameResolveOption) {
 		t.Run("basic", func(t *testing.T) {
 			api, p := init()
-			name, err := api.Name().Publish(ctx, p)
+			name, err := api.Name().Publish(ctx, p, opt.Name.AllowOffline(true))
 			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
@@ -66,7 +66,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 			p, err := path.Join(p, "/test")
 			require.NoError(t, err)
 
-			name, err := api.Name().Publish(ctx, p)
+			name, err := api.Name().Publish(ctx, p, opt.Name.AllowOffline(true))
 			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
@@ -80,7 +80,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 
 		t.Run("revolvePath", func(t *testing.T) {
 			api, p := init()
-			name, err := api.Name().Publish(ctx, p)
+			name, err := api.Name().Publish(ctx, p, opt.Name.AllowOffline(true))
 			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
@@ -97,7 +97,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 			p, err := path.Join(p, "/a")
 			require.NoError(t, err)
 
-			name, err := api.Name().Publish(ctx, p)
+			name, err := api.Name().Publish(ctx, p, opt.Name.AllowOffline(true))
 			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)

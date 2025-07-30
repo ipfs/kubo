@@ -150,7 +150,7 @@ func TestName(t *testing.T) {
 		res := node.RunIPFS("name", "publish", "/ipfs/"+fixtureCid)
 		require.Error(t, res.Err)
 		require.Equal(t, 1, res.ExitCode())
-		require.Contains(t, res.Stderr.String(), `can't publish while offline`)
+		require.Contains(t, res.Stderr.String(), "can't publish while offline: pass `--allow-offline` to override or `--delegated-only` if Ipns.DelegatedPublishers are set up")
 	})
 
 	t.Run("Publish V2-only record", func(t *testing.T) {
@@ -161,7 +161,7 @@ func TestName(t *testing.T) {
 		ipnsPath := ipns.NamespacePrefix + ipnsName
 		publishPath := "/ipfs/" + fixtureCid
 
-		res := node.IPFS("name", "publish", "--ttl=30m", "--v1compat=false", publishPath)
+		res := node.IPFS("name", "publish", "--ttl=30m", "--v1compat=false", "--allow-offline", publishPath)
 		require.Equal(t, fmt.Sprintf("Published to %s: %s\n", ipnsName, publishPath), res.Stdout.String())
 
 		res = node.IPFS("name", "resolve", ipnsPath)
@@ -190,7 +190,7 @@ func TestName(t *testing.T) {
 		ipnsPath := ipns.NamespacePrefix + ipns.NameFromPeer(node.PeerID()).String()
 		publishPath := "/ipfs/" + fixtureCid
 
-		_ = node.IPFS("name", "publish", "--ttl=30m", publishPath)
+		_ = node.IPFS("name", "publish", "--allow-offline", "--ttl=30m", publishPath)
 		res := node.IPFS("routing", "get", ipnsPath)
 		record := res.Stdout.Bytes()
 

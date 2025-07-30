@@ -16,7 +16,7 @@ import (
 	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
-var errAllowOffline = errors.New("can't publish while offline: pass `--allow-offline` for local-only publishing or `--delegated-only` for HTTP-only publishing")
+var errAllowOffline = errors.New("can't publish while offline: pass `--allow-offline` to override or `--delegated-only` if Ipns.DelegatedPublishers are set up")
 
 const (
 	ipfsPathOptionName      = "ipfs-path"
