@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -310,14 +308,7 @@ func testAutoConfigDisabled(t *testing.T) {
 func loadTestData(t *testing.T, filename string) []byte {
 	t.Helper()
 
-	// Get the test data directory relative to this test file
-	testDir := filepath.Dir(func() string {
-		_, file, _, _ := runtime.Caller(0)
-		return file
-	}())
-
-	dataPath := filepath.Join(testDir, "testdata", filename)
-	data, err := os.ReadFile(dataPath)
+	data, err := os.ReadFile("testdata/" + filename)
 	require.NoError(t, err, "Failed to read test data file: %s", filename)
 
 	return data

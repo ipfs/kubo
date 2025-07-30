@@ -5,14 +5,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
 
 func TestAutoConfigExpand(t *testing.T) {
 	t.Parallel()
@@ -299,14 +298,7 @@ func testConfigReplacePreservesAuto(t *testing.T) {
 func loadTestDataExpand(t *testing.T, filename string) []byte {
 	t.Helper()
 
-	// Get the test data directory relative to this test file
-	testDir := filepath.Dir(func() string {
-		_, file, _, _ := runtime.Caller(0)
-		return file
-	}())
-
-	dataPath := filepath.Join(testDir, "testdata", filename)
-	data, err := os.ReadFile(dataPath)
+	data, err := os.ReadFile("testdata/" + filename)
 	require.NoError(t, err, "Failed to read test data file: %s", filename)
 
 	return data
