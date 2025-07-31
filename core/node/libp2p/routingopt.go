@@ -234,7 +234,7 @@ func constructIPNSDelegatedPublishers(cfg *config.Config, r repo.Repo) ([]*routi
 
 		routers = append(routers, &routinghelpers.ParallelRouter{
 			Router:                  r,
-			IgnoreError:             true,             // Continue to other publishers if one fails
+			IgnoreError:             false,            // Continue to other publishers if one fails
 			Timeout:                 15 * time.Second, // Same timeout as delegated routers
 			DoNotWaitForSearchValue: true,
 			ExecuteAfter:            0,
