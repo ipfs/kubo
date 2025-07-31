@@ -151,7 +151,7 @@ func OnlineProviders(provide bool, reprovideStrategy string, reprovideInterval t
 	var keyProvider fx.Option
 	switch reprovideStrategy {
 	case "all", "", "roots", "pinned", "mfs", "pinned+mfs", "flat":
-		keyProvider = fx.Provide(newProvidingStrategy(reprovideStrategy))
+		keyProvider = fx.Invoke(newProvidingStrategy(reprovideStrategy))
 	default:
 		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", reprovideStrategy))
 	}
@@ -233,6 +233,7 @@ func newProvidingStrategy(strategy string) interface{} {
 				in.Blockstore.AllKeysChan,
 			)
 		}
+
 		in.Provider.SetKeyProvider(kcf)
 
 		var strategyChanged bool
