@@ -57,9 +57,7 @@ environment variable documented in 'ipfs log'.
 		// TODO use a different keyword for 'all' because all can theoretically
 		// clash with a subsystem name
 		cmds.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' to set all subsystems and the default level.", allLogSubsystems)),
-		cmds.StringArg("level", true, false, `The log level, with 'debug' as the most verbose and 'fatal' the least verbose.
-			One of: debug, info, warn, error, dpanic, panic, fatal.
-		`),
+		cmds.StringArg("level", true, false, fmt.Sprintf("The log level, with 'debug' as the most verbose and 'fatal' the least verbose. Use '%s' to set to the current default level.\n     One of: debug, info, warn, error, dpanic, panic, fatal, %s", defaultLogLevel, defaultLogLevel)),
 	},
 	NoLocal: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -68,6 +66,10 @@ environment variable documented in 'ipfs log'.
 
 		if subsystem == allLogSubsystems || subsystem == "*" {
 			subsystem = "*"
+		}
+
+		if level == defaultLogLevel {
+			level = logging.DefaultLevel().String()
 		}
 
 		if err := logging.SetLogLevel(subsystem, level); err != nil {

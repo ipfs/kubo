@@ -62,7 +62,7 @@ func TestLogGetLevel(t *testing.T) {
 		assert.Equal(t, "debug", line)
 	})
 
-	t.Run("get-level with 'all' returns global level", func(t *testing.T) {
+	t.Run("get-level with 'default' returns default level", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
@@ -71,7 +71,7 @@ func TestLogGetLevel(t *testing.T) {
 		assert.NoError(t, res1.Err)
 		assert.Equal(t, 0, len(res1.Stderr.Lines()))
 
-		res := node.IPFS("log", "get-level", "all")
+		res := node.IPFS("log", "get-level", "default")
 		assert.NoError(t, res.Err)
 		assert.Equal(t, 0, len(res.Stderr.Lines()))
 
@@ -82,25 +82,6 @@ func TestLogGetLevel(t *testing.T) {
 
 		line := strings.TrimSpace(lines[0])
 		assert.Equal(t, "fatal", line)
-	})
-
-	t.Run("get-level with '*' returns global level", func(t *testing.T) {
-		t.Parallel()
-		node := harness.NewT(t).NewNode().Init().StartDaemon()
-		defer node.StopDaemon()
-
-		node.IPFS("log", "level", "*", "dpanic")
-		res := node.IPFS("log", "get-level", "*")
-		assert.NoError(t, res.Err)
-		assert.Equal(t, 0, len(res.Stderr.Lines()))
-
-		output := res.Stdout.String()
-		lines := SplitLines(output)
-
-		assert.Equal(t, 1, len(lines))
-
-		line := strings.TrimSpace(lines[0])
-		assert.Equal(t, "dpanic", line)
 	})
 
 	t.Run("get-level reflects runtime log level changes", func(t *testing.T) {
