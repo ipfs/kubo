@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/options"
 
@@ -539,7 +540,7 @@ func (tp *TestSuite) TestAddPinned(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = api.Unixfs().Add(ctx, strFile(helloStr)(), options.Unixfs.Pin(true))
+	_, err = api.Unixfs().Add(ctx, strFile(helloStr)(), options.Unixfs.Pin(true, config.DefaultPinName))
 	if err != nil {
 		t.Fatal(err)
 	}
