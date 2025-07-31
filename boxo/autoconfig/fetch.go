@@ -27,7 +27,7 @@ func (c *Client) GetLatest(ctx context.Context, configURL string, refreshInterva
 	}
 
 	// Ensure cache directory exists
-	if err := os.MkdirAll(filepath.Clean(cacheDir), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Clean(cacheDir), dirPermOwnerGroupRead); err != nil {
 		return nil, fmt.Errorf("failed to create cache dir: %w", err)
 	}
 

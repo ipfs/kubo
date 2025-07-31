@@ -11,6 +11,7 @@ import (
 const (
 	DefaultAcceleratedDHTClient      = false
 	DefaultLoopbackAddressesOnLanDHT = false
+	DefaultRoutingType               = "auto"
 	CidContactRoutingURL             = "https://cid.contact"
 	PublicGoodDelegatedRoutingURL    = "https://delegated-ipfs.dev" // cid.contact + amino dht (incl. IPNS PUTs)
 	EnvHTTPRouters                   = "IPFS_HTTP_ROUTERS"

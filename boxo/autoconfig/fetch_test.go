@@ -440,6 +440,13 @@ func TestValidateHTTPURL(t *testing.T) {
 }
 
 func TestCalculateEffectiveRefreshInterval(t *testing.T) {
+	const (
+		// Test-specific constants for TTL values
+		testCacheTTLOneHour = 3600  // 1 hour in seconds
+		testCacheTTL12Hours = 43200 // 12 hours in seconds
+		testCacheTTL24Hours = 86400 // 24 hours in seconds
+	)
+
 	tests := []struct {
 		name           string
 		userInterval   time.Duration
@@ -450,21 +457,21 @@ func TestCalculateEffectiveRefreshInterval(t *testing.T) {
 		{
 			name:           "server TTL shorter than user interval",
 			userInterval:   24 * time.Hour,
-			cacheTTL:       3600, // 1 hour
+			cacheTTL:       testCacheTTLOneHour,
 			expectedResult: 1 * time.Hour,
 			description:    "should use server TTL when it's shorter",
 		},
 		{
 			name:           "server TTL longer than user interval",
 			userInterval:   1 * time.Hour,
-			cacheTTL:       86400, // 24 hours
+			cacheTTL:       testCacheTTL24Hours,
 			expectedResult: 1 * time.Hour,
 			description:    "should use user interval when it's shorter",
 		},
 		{
 			name:           "server TTL equal to user interval",
 			userInterval:   12 * time.Hour,
-			cacheTTL:       43200, // 12 hours
+			cacheTTL:       testCacheTTL12Hours,
 			expectedResult: 12 * time.Hour,
 			description:    "should use user interval when equal",
 		},

@@ -438,7 +438,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd || routingOption == "" {
-		routingOption = cfg.Routing.Type.WithDefault(routingOptionAutoKwd)
+		routingOption = cfg.Routing.Type.WithDefault(config.DefaultRoutingType)
 		if routingOption == "" {
 			routingOption = routingOptionAutoKwd
 		}

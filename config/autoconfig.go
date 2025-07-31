@@ -49,7 +49,44 @@ const (
 
 	// DefaultAutoConfigRefreshInterval is the default interval for refreshing autoconfig data
 	DefaultAutoConfigRefreshInterval = autoconfig.DefaultRefreshInterval
+
+	// AutoConfig client configuration constants
+	DefaultAutoconfigCacheSize = 3
+	DefaultAutoconfigTimeout   = 5 * time.Second
+
+	// Routing path constants
+	IPNSWritePath = "/routing/v1/ipns"
 )
+
+// buildEndpointURL constructs a URL from baseURL and path, ensuring no trailing slash
+func buildEndpointURL(baseURL, path string) string {
+	// Always trim trailing slash from baseURL
+	cleanBase := strings.TrimRight(baseURL, "/")
+
+	// Ensure path starts with / if not empty
+	if path != "" && !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	// Construct and ensure no trailing slash
+	fullURL := cleanBase + path
+	return strings.TrimRight(fullURL, "/")
+}
+
+// getDelegatedEndpointsForConfig is a helper that gets autoconfig and filtered endpoints
+// This eliminates duplication between DelegatedRoutersWithAutoConfig and DelegatedPublishersWithAutoConfig
+func (c *Config) getDelegatedEndpointsForConfig(repoPath string) (*autoconfig.Config, map[string]autoconfig.EndpointConfig) {
+	autoConfig := c.getAutoConfig(repoPath)
+	if autoConfig == nil {
+		return nil, nil
+	}
+
+	routingType := c.Routing.Type.WithDefault(DefaultRoutingType)
+	nativeSystems := GetNativeSystems(routingType)
+	endpoints := autoConfig.GetDelegatedEndpoints(nativeSystems)
+
+	return autoConfig, endpoints
+}
 
 // GetNativeSystems returns the list of systems that should be used natively based on routing type
 func GetNativeSystems(routingType string) []string {
@@ -67,6 +104,14 @@ func GetNativeSystems(routingType string) []string {
 	}
 }
 
+// selectRandomResolver picks a random resolver from a list for load balancing
+func selectRandomResolver(resolvers []string) string {
+	if len(resolvers) == 0 {
+		return ""
+	}
+	return resolvers[rand.Intn(len(resolvers))]
+}
+
 // DNSResolversWithAutoConfig returns DNS resolvers with "auto" values replaced by autoconfig values
 func (c *Config) DNSResolversWithAutoConfig(repoPath string) map[string]string {
 	if c.DNS.Resolvers == nil {
@@ -77,19 +122,17 @@ func (c *Config) DNSResolversWithAutoConfig(repoPath string) map[string]string {
 	autoConfig := c.getAutoConfig(repoPath)
 	autoExpanded := 0
 
-	// Process each resolver
+	// Process each configured resolver
 	for domain, resolver := range c.DNS.Resolvers {
 		if resolver == AutoPlaceholder {
 			// Try to resolve from autoconfig
 			if autoConfig != nil && autoConfig.DNSResolvers != nil {
 				if resolvers, exists := autoConfig.DNSResolvers[domain]; exists && len(resolvers) > 0 {
-					// Use random resolver from autoconfig for load balancing
-					selectedResolver := resolvers[rand.Intn(len(resolvers))]
-					resolved[domain] = selectedResolver
+					resolved[domain] = selectRandomResolver(resolvers)
 					autoExpanded++
 				}
 			}
-			// If autoConfig is nil (disabled), skip this "auto" resolver - don't expand it
+			// If autoConfig is disabled or domain not found, skip this "auto" resolver
 		} else {
 			// Keep custom resolver as-is
 			resolved[domain] = resolver
@@ -97,19 +140,17 @@ func (c *Config) DNSResolversWithAutoConfig(repoPath string) map[string]string {
 	}
 
 	// Add default resolvers from autoconfig that aren't already configured
-	// This handles the case where "." → "auto" means "include all autoconfig resolvers"
 	if autoConfig != nil && autoConfig.DNSResolvers != nil {
 		for domain, resolvers := range autoConfig.DNSResolvers {
 			if _, exists := resolved[domain]; !exists && len(resolvers) > 0 {
-				resolved[domain] = resolvers[rand.Intn(len(resolvers))]
+				resolved[domain] = selectRandomResolver(resolvers)
 			}
 		}
 	}
-	// If autoConfig is nil (disabled), don't add any default resolvers
 
-	// Log expansion if any "auto" values were found
+	// Log expansion statistics
 	if autoExpanded > 0 {
-		log.Debugf("expanding 'auto' DNS.Resolvers placeholder to %d resolvers from autoconfig", autoExpanded)
+		log.Debugf("expanded %d 'auto' DNS.Resolvers from autoconfig", autoExpanded)
 	}
 
 	return resolved
@@ -143,52 +184,66 @@ func expandAutoConfigSlice(sourceSlice []string, autoConfigData []string, fieldN
 func (c *Config) BootstrapWithAutoConfig(repoPath string) []string {
 	autoConfig := c.getAutoConfig(repoPath)
 	var autoConfigData []string
+
 	if autoConfig != nil {
-		routingType := c.Routing.Type.WithDefault("auto")
+		routingType := c.Routing.Type.WithDefault(DefaultRoutingType)
 		nativeSystems := GetNativeSystems(routingType)
 		autoConfigData = autoConfig.GetBootstrapPeers(nativeSystems)
-		log.Debugf("BootstrapWithAutoConfig: routingType=%s, nativeSystems=%v, autoConfigData=%d peers", routingType, nativeSystems, len(autoConfigData))
-		for i, peer := range autoConfigData {
-			log.Debugf("BootstrapWithAutoConfig: autoConfigData[%d]=%s", i, peer)
-		}
+		log.Debugf("BootstrapWithAutoConfig: routingType=%s nativeSystems=%v peers=%d",
+			routingType, nativeSystems, len(autoConfigData))
 	} else {
-		log.Debugf("BootstrapWithAutoConfig: autoConfig is nil, using original Bootstrap config")
+		log.Debugf("BootstrapWithAutoConfig: autoConfig disabled, using original config")
 	}
 
 	result := expandAutoConfigSlice(c.Bootstrap, autoConfigData, "Bootstrap")
-	log.Debugf("BootstrapWithAutoConfig: final result=%d peers", len(result))
-	for i, peer := range result {
-		log.Debugf("BootstrapWithAutoConfig: result[%d]=%s", i, peer)
-	}
+	log.Debugf("BootstrapWithAutoConfig: final result contains %d peers", len(result))
 	return result
+}
+
+// createAutoConfigClient creates a new autoconfig client with standard settings
+func createAutoConfigClient(repoPath string) (*autoconfig.Client, error) {
+	cacheDir := filepath.Join(repoPath, "autoconfig")
+	userAgent := version.GetUserAgentVersion()
+
+	return autoconfig.NewClient(
+		autoconfig.WithCacheDir(cacheDir),
+		autoconfig.WithUserAgent(userAgent),
+		autoconfig.WithCacheSize(DefaultAutoconfigCacheSize),
+		autoconfig.WithTimeout(DefaultAutoconfigTimeout),
+	)
 }
 
 // getAutoConfig is a helper to get autoconfig data with fallbacks
 func (c *Config) getAutoConfig(repoPath string) *autoconfig.Config {
-	if !c.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled) || c.AutoConfig.URL == "" {
-		log.Debugf("getAutoConfig: returning nil - Enabled=%v, URL='%s'", c.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled), c.AutoConfig.URL)
+	if !c.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled) {
+		log.Debugf("getAutoConfig: AutoConfig disabled, returning nil")
 		return nil
 	}
 
-	// Normal operation - use kubo user agent and allow network access
-	userAgent := version.GetUserAgentVersion()
-	refreshInterval := c.AutoConfig.RefreshInterval.WithDefault(DefaultAutoConfigRefreshInterval)
+	if c.AutoConfig.URL == "" {
+		log.Debugf("getAutoConfig: AutoConfig.URL is empty, returning nil")
+		return nil
+	}
 
-	// Create client
-	cacheDir := filepath.Join(repoPath, "autoconfig")
-	client, err := autoconfig.NewClient(
-		autoconfig.WithCacheDir(cacheDir),
-		autoconfig.WithUserAgent(userAgent),
-		autoconfig.WithCacheSize(3),
-		autoconfig.WithTimeout(5*time.Second),
-	)
+	// Create client with standard settings
+	client, err := createAutoConfigClient(repoPath)
 	if err != nil {
 		log.Debugf("getAutoConfig: client creation failed - %v", err)
 		return nil
 	}
 
+	// Fetch config with appropriate refresh interval
+	// Use context.Background() as this is called during config operations that don't have request context
 	ctx := context.Background()
+	refreshInterval := c.AutoConfig.RefreshInterval.WithDefault(DefaultAutoConfigRefreshInterval)
+
+	// MustGetConfig handles errors internally and returns nil on failure
 	result := client.MustGetConfig(ctx, c.AutoConfig.URL, refreshInterval)
+	if result == nil {
+		log.Debugf("getAutoConfig: MustGetConfig returned nil (fetch failed)")
+		return nil
+	}
+
 	log.Debugf("getAutoConfig: returning config with %d DelegatedEndpoints", len(result.DelegatedEndpoints))
 	return result
 }
@@ -200,17 +255,19 @@ func (c *Config) BootstrapPeersWithAutoConfig(repoPath string) ([]peer.AddrInfo,
 	return ParseBootstrapPeers(bootstrapStrings)
 }
 
-// DelegatedRoutersWithAutoConfig returns delegated router URLs without trailing slashes
-// URLs from autoconfig are returned with trailing slashes removed
-func (c *Config) DelegatedRoutersWithAutoConfig(repoPath string) []string {
-	autoConfig := c.getAutoConfig(repoPath)
-	if autoConfig == nil {
-		return expandAutoConfigSlice(c.Routing.DelegatedRouters, nil, "DelegatedRouters")
+// buildEndpointURLs creates URLs from base URL and paths, ensuring no trailing slashes
+func buildEndpointURLs(baseURL string, paths []string) []string {
+	var urls []string
+	for _, path := range paths {
+		url := buildEndpointURL(baseURL, path)
+		urls = append(urls, url)
 	}
+	return urls
+}
 
-	routingType := c.Routing.Type.WithDefault("auto")
-	nativeSystems := GetNativeSystems(routingType)
-	endpoints := autoConfig.GetDelegatedEndpoints(nativeSystems)
+// DelegatedRoutersWithAutoConfig returns delegated router URLs without trailing slashes
+func (c *Config) DelegatedRoutersWithAutoConfig(repoPath string) []string {
+	_, endpoints := c.getDelegatedEndpointsForConfig(repoPath)
 
 	if endpoints == nil {
 		return expandAutoConfigSlice(c.Routing.DelegatedRouters, nil, "DelegatedRouters")
@@ -218,21 +275,14 @@ func (c *Config) DelegatedRoutersWithAutoConfig(repoPath string) []string {
 
 	var routers []string
 	for baseURL, config := range endpoints {
-		// For each endpoint, add URLs with each supported Read path
-		for _, readPath := range config.Read {
-			// Ensure path starts with /
-			if !strings.HasPrefix(readPath, "/") {
-				readPath = "/" + readPath
-			}
-			// Construct full URL with path, trimming trailing slash from baseURL
-			fullURL := strings.TrimRight(baseURL, "/") + readPath
-			routers = append(routers, fullURL)
-		}
+		// Build URLs for all supported Read paths
+		urls := buildEndpointURLs(baseURL, config.Read)
+		routers = append(routers, urls...)
 	}
 
 	resolved := expandAutoConfigSlice(c.Routing.DelegatedRouters, routers, "DelegatedRouters")
 
-	// Ensure all URLs have trailing slashes trimmed
+	// Final safety check to guarantee no trailing slashes
 	for i, url := range resolved {
 		resolved[i] = strings.TrimRight(url, "/")
 	}
@@ -240,17 +290,19 @@ func (c *Config) DelegatedRoutersWithAutoConfig(repoPath string) []string {
 	return resolved
 }
 
-// DelegatedPublishersWithAutoConfig returns delegated publisher URLs without trailing slashes
-// URLs from autoconfig are returned with trailing slashes removed
-func (c *Config) DelegatedPublishersWithAutoConfig(repoPath string) []string {
-	autoConfig := c.getAutoConfig(repoPath)
-	if autoConfig == nil {
-		return expandAutoConfigSlice(c.Ipns.DelegatedPublishers, nil, "DelegatedPublishers")
+// containsPath checks if the given paths contain the target path
+func containsPath(paths []string, targetPath string) bool {
+	for _, path := range paths {
+		if path == targetPath {
+			return true
+		}
 	}
+	return false
+}
 
-	routingType := c.Routing.Type.WithDefault("auto")
-	nativeSystems := GetNativeSystems(routingType)
-	endpoints := autoConfig.GetDelegatedEndpoints(nativeSystems)
+// DelegatedPublishersWithAutoConfig returns delegated publisher URLs without trailing slashes
+func (c *Config) DelegatedPublishersWithAutoConfig(repoPath string) []string {
+	_, endpoints := c.getDelegatedEndpointsForConfig(repoPath)
 
 	if endpoints == nil {
 		return expandAutoConfigSlice(c.Ipns.DelegatedPublishers, nil, "DelegatedPublishers")
@@ -259,19 +311,15 @@ func (c *Config) DelegatedPublishersWithAutoConfig(repoPath string) []string {
 	var publishers []string
 	for baseURL, config := range endpoints {
 		// Check if this endpoint supports IPNS write operations
-		for _, writePath := range config.Write {
-			if writePath == "/routing/v1/ipns" {
-				// Construct full URL with the IPNS write path, trimming trailing slash from baseURL
-				fullURL := strings.TrimRight(baseURL, "/") + writePath
-				publishers = append(publishers, fullURL)
-				break // Only add once per endpoint
-			}
+		if containsPath(config.Write, IPNSWritePath) {
+			fullURL := buildEndpointURL(baseURL, IPNSWritePath)
+			publishers = append(publishers, fullURL)
 		}
 	}
 
 	resolved := expandAutoConfigSlice(c.Ipns.DelegatedPublishers, publishers, "DelegatedPublishers")
 
-	// Ensure all URLs have trailing slashes trimmed
+	// Final safety check to guarantee no trailing slashes
 	for i, url := range resolved {
 		resolved[i] = strings.TrimRight(url, "/")
 	}
@@ -279,81 +327,88 @@ func (c *Config) DelegatedPublishersWithAutoConfig(repoPath string) []string {
 	return resolved
 }
 
+// copyConfigMap creates a deep copy of a config map to avoid modifying the original
+func copyConfigMap(cfg map[string]interface{}) map[string]interface{} {
+	copied := make(map[string]interface{})
+	for k, v := range cfg {
+		copied[k] = v
+	}
+	return copied
+}
+
+// expandConfigField expands a specific config field with autoconfig values
+// Handles both top-level fields ("Bootstrap") and nested fields ("DNS.Resolvers")
+func (c *Config) expandConfigField(expandedCfg map[string]interface{}, fieldPath string, cfgRoot string) {
+	// Check if this field supports autoconfig expansion
+	expandFunc, supported := supportedAutoConfigFields[fieldPath]
+	if !supported {
+		return
+	}
+
+	// Handle top-level fields (no dot in path)
+	if !strings.Contains(fieldPath, ".") {
+		if _, exists := expandedCfg[fieldPath]; exists {
+			expandedCfg[fieldPath] = expandFunc(c, cfgRoot)
+		}
+		return
+	}
+
+	// Handle nested fields (section.field format)
+	parts := strings.SplitN(fieldPath, ".", 2)
+	if len(parts) != 2 {
+		return
+	}
+
+	sectionName, fieldName := parts[0], parts[1]
+	if section, exists := expandedCfg[sectionName]; exists {
+		if sectionMap, ok := section.(map[string]interface{}); ok {
+			if _, exists := sectionMap[fieldName]; exists {
+				sectionMap[fieldName] = expandFunc(c, cfgRoot)
+				expandedCfg[sectionName] = sectionMap
+			}
+		}
+	}
+}
+
 // ExpandAutoConfigValues expands "auto" placeholders in config with their actual values using the same methods as the daemon
 func (c *Config) ExpandAutoConfigValues(cfgRoot string, cfg map[string]interface{}) (map[string]interface{}, error) {
 	// Create a deep copy of the config map to avoid modifying the original
-	expandedCfg := make(map[string]interface{})
-	for k, v := range cfg {
-		expandedCfg[k] = v
-	}
+	expandedCfg := copyConfigMap(cfg)
 
-	// Use the same expansion methods that the daemon uses - always expand all auto-compatible fields
-	// This ensures consistency with what the daemon actually uses at runtime
-
-	// Expand Bootstrap using the shared method
-	if _, exists := expandedCfg["Bootstrap"]; exists {
-		expanded := c.BootstrapWithAutoConfig(cfgRoot)
-		expandedCfg["Bootstrap"] = stringSliceToInterfaceSlice(expanded)
-	}
-
-	// Expand DNS.Resolvers using the shared method
-	if dns, exists := expandedCfg["DNS"]; exists {
-		if dnsMap, ok := dns.(map[string]interface{}); ok {
-			if _, exists := dnsMap["Resolvers"]; exists {
-				expanded := c.DNSResolversWithAutoConfig(cfgRoot)
-				dnsMap["Resolvers"] = stringMapToInterfaceMap(expanded)
-				expandedCfg["DNS"] = dnsMap
-			}
-		}
-	}
-
-	// Expand Routing.DelegatedRouters using the shared method
-	if routing, exists := expandedCfg["Routing"]; exists {
-		if routingMap, ok := routing.(map[string]interface{}); ok {
-			if _, exists := routingMap["DelegatedRouters"]; exists {
-				expanded := c.DelegatedRoutersWithAutoConfig(cfgRoot)
-				routingMap["DelegatedRouters"] = stringSliceToInterfaceSlice(expanded)
-				expandedCfg["Routing"] = routingMap
-			}
-		}
-	}
-
-	// Expand Ipns.DelegatedPublishers using the shared method
-	if ipns, exists := expandedCfg["Ipns"]; exists {
-		if ipnsMap, ok := ipns.(map[string]interface{}); ok {
-			if _, exists := ipnsMap["DelegatedPublishers"]; exists {
-				expanded := c.DelegatedPublishersWithAutoConfig(cfgRoot)
-				ipnsMap["DelegatedPublishers"] = stringSliceToInterfaceSlice(expanded)
-				expandedCfg["Ipns"] = ipnsMap
-			}
-		}
-	}
+	// Use the same expansion methods that the daemon uses - ensures runtime consistency
+	// Unified expansion for all supported autoconfig fields
+	c.expandConfigField(expandedCfg, "Bootstrap", cfgRoot)
+	c.expandConfigField(expandedCfg, "DNS.Resolvers", cfgRoot)
+	c.expandConfigField(expandedCfg, "Routing.DelegatedRouters", cfgRoot)
+	c.expandConfigField(expandedCfg, "Ipns.DelegatedPublishers", cfgRoot)
 
 	return expandedCfg, nil
 }
 
-// ExpandConfigField expands auto values for a specific config field using the same methods as the daemon
-func (c *Config) ExpandConfigField(key string, value interface{}, cfgRoot string) interface{} {
-	switch key {
-	case "Bootstrap":
-		// Use the shared method from config/autoconfig.go
+// supportedAutoConfigFields maps field keys to their expansion functions
+var supportedAutoConfigFields = map[string]func(*Config, string) interface{}{
+	"Bootstrap": func(c *Config, cfgRoot string) interface{} {
 		expanded := c.BootstrapWithAutoConfig(cfgRoot)
 		return stringSliceToInterfaceSlice(expanded)
-
-	case "DNS.Resolvers":
-		// Use the shared method from config/autoconfig.go
+	},
+	"DNS.Resolvers": func(c *Config, cfgRoot string) interface{} {
 		expanded := c.DNSResolversWithAutoConfig(cfgRoot)
 		return stringMapToInterfaceMap(expanded)
-
-	case "Routing.DelegatedRouters":
-		// Use the shared method from config/autoconfig.go
+	},
+	"Routing.DelegatedRouters": func(c *Config, cfgRoot string) interface{} {
 		expanded := c.DelegatedRoutersWithAutoConfig(cfgRoot)
 		return stringSliceToInterfaceSlice(expanded)
-
-	case "Ipns.DelegatedPublishers":
-		// Use the shared method from config/autoconfig.go
+	},
+	"Ipns.DelegatedPublishers": func(c *Config, cfgRoot string) interface{} {
 		expanded := c.DelegatedPublishersWithAutoConfig(cfgRoot)
 		return stringSliceToInterfaceSlice(expanded)
+	},
+}
+
+// ExpandConfigField expands auto values for a specific config field using the same methods as the daemon
+func (c *Config) ExpandConfigField(key string, value interface{}, cfgRoot string) interface{} {
+	if expandFunc, supported := supportedAutoConfigFields[key]; supported {
+		return expandFunc(c, cfgRoot)
 	}
 
 	// Return original value if no expansion needed (not a field that supports auto values)

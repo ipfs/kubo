@@ -18,7 +18,7 @@ var log = logging.Logger("autoconfig")
 
 // writeOwnerOnlyFile writes data to a file with owner-only permissions (0600)
 func writeOwnerOnlyFile(filename string, data []byte) error {
-	return os.WriteFile(filename, data, 0600)
+	return os.WriteFile(filename, data, filePermOwnerReadWrite)
 }
 
 const (
@@ -28,6 +28,10 @@ const (
 	etagFile               = ".etag"
 	lastModifiedFile       = ".last-modified"
 	lastRefreshFile        = ".last-refresh"
+
+	// File and directory permission constants
+	filePermOwnerReadWrite = 0600 // Owner read/write only for sensitive cache files
+	dirPermOwnerGroupRead  = 0755 // Owner read/write/execute, group/others read/execute for cache directories
 
 	// DefaultRefreshInterval is the default interval for refreshing autoconfig data.
 	// This interval strikes a balance between staying up-to-date with network changes

@@ -34,89 +34,115 @@ func TestHttpAddrsFromConfig(t *testing.T) {
 		}), "AppendAnnounce addrs should be included if specified")
 }
 
-func TestParseEndpointPath(t *testing.T) {
+func TestDetermineCapabilities(t *testing.T) {
 	tests := []struct {
 		name                 string
-		endpoint             string
+		endpoint             EndpointSource
 		expectedBaseURL      string
 		expectedCapabilities EndpointCapabilities
 		expectError          bool
 	}{
 		{
-			name:            "URL with no path should have All capability",
-			endpoint:        "https://example.com",
+			name: "URL with no path should have all Read capabilities",
+			endpoint: EndpointSource{
+				URL:           "https://example.com",
+				SupportsRead:  true,
+				SupportsWrite: false,
+			},
 			expectedBaseURL: "https://example.com",
 			expectedCapabilities: EndpointCapabilities{
-				All:       true,
 				Providers: true,
 				Peers:     true,
-				IPNS:      true,
+				IPNSGet:   true,
+				IPNSPut:   false,
 			},
 			expectError: false,
 		},
 		{
-			name:            "URL with trailing slash should have All capability",
-			endpoint:        "https://example.com/",
+			name: "URL with trailing slash should have all Read capabilities",
+			endpoint: EndpointSource{
+				URL:           "https://example.com/",
+				SupportsRead:  true,
+				SupportsWrite: false,
+			},
 			expectedBaseURL: "https://example.com",
 			expectedCapabilities: EndpointCapabilities{
-				All:       true,
 				Providers: true,
 				Peers:     true,
-				IPNS:      true,
+				IPNSGet:   true,
+				IPNSPut:   false,
 			},
 			expectError: false,
 		},
 		{
-			name:            "URL with IPNS path should have only IPNS capability",
-			endpoint:        "https://example.com/routing/v1/ipns",
+			name: "URL with IPNS path should have only IPNS capabilities",
+			endpoint: EndpointSource{
+				URL:           "https://example.com/routing/v1/ipns",
+				SupportsRead:  true,
+				SupportsWrite: true,
+			},
 			expectedBaseURL: "https://example.com",
 			expectedCapabilities: EndpointCapabilities{
-				All:       false,
 				Providers: false,
 				Peers:     false,
-				IPNS:      true,
+				IPNSGet:   true,
+				IPNSPut:   true,
 			},
 			expectError: false,
 		},
 		{
-			name:            "URL with providers path should have only Providers capability",
-			endpoint:        "https://example.com/routing/v1/providers",
+			name: "URL with providers path should have only Providers capability",
+			endpoint: EndpointSource{
+				URL:           "https://example.com/routing/v1/providers",
+				SupportsRead:  true,
+				SupportsWrite: false,
+			},
 			expectedBaseURL: "https://example.com",
 			expectedCapabilities: EndpointCapabilities{
-				All:       false,
 				Providers: true,
 				Peers:     false,
-				IPNS:      false,
+				IPNSGet:   false,
+				IPNSPut:   false,
 			},
 			expectError: false,
 		},
 		{
-			name:            "URL with peers path should have only Peers capability",
-			endpoint:        "https://example.com/routing/v1/peers",
+			name: "URL with peers path should have only Peers capability",
+			endpoint: EndpointSource{
+				URL:           "https://example.com/routing/v1/peers",
+				SupportsRead:  true,
+				SupportsWrite: false,
+			},
 			expectedBaseURL: "https://example.com",
 			expectedCapabilities: EndpointCapabilities{
-				All:       false,
 				Providers: false,
 				Peers:     true,
-				IPNS:      false,
+				IPNSGet:   false,
+				IPNSPut:   false,
 			},
 			expectError: false,
 		},
 		{
-			name:        "URL with unsupported routing path should error",
-			endpoint:    "https://example.com/routing/v1/unsupported",
-			expectError: true,
-		},
-		{
-			name:        "URL with invalid path should error",
-			endpoint:    "https://example.com/invalid/path",
-			expectError: true,
+			name: "URL with Write support only should enable IPNSPut for no-path endpoint",
+			endpoint: EndpointSource{
+				URL:           "https://example.com",
+				SupportsRead:  false,
+				SupportsWrite: true,
+			},
+			expectedBaseURL: "https://example.com",
+			expectedCapabilities: EndpointCapabilities{
+				Providers: false,
+				Peers:     false,
+				IPNSGet:   false,
+				IPNSPut:   true,
+			},
+			expectError: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			baseURL, capabilities, err := parseEndpointPath(tt.endpoint)
+			baseURL, capabilities, err := determineCapabilities(tt.endpoint)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -130,26 +156,68 @@ func TestParseEndpointPath(t *testing.T) {
 	}
 }
 
-func TestEndpointCapabilitiesAllLogic(t *testing.T) {
-	t.Run("All capability should enable individual capabilities", func(t *testing.T) {
-		_, capabilities, err := parseEndpointPath("https://example.com")
+func TestEndpointCapabilitiesReadWriteLogic(t *testing.T) {
+	t.Run("Read endpoint with no path should enable read capabilities", func(t *testing.T) {
+		endpoint := EndpointSource{
+			URL:           "https://example.com",
+			SupportsRead:  true,
+			SupportsWrite: false,
+		}
+		_, capabilities, err := determineCapabilities(endpoint)
 		require.NoError(t, err)
 
-		// When All is true, all individual capabilities should also be true
-		assert.True(t, capabilities.All)
+		// Read endpoint with no path should enable all read capabilities
 		assert.True(t, capabilities.Providers)
 		assert.True(t, capabilities.Peers)
-		assert.True(t, capabilities.IPNS)
+		assert.True(t, capabilities.IPNSGet)
+		assert.False(t, capabilities.IPNSPut) // Write capability should be false
 	})
 
-	t.Run("Specific path should disable All capability", func(t *testing.T) {
-		_, capabilities, err := parseEndpointPath("https://example.com/routing/v1/ipns")
+	t.Run("Write endpoint with no path should enable write capabilities", func(t *testing.T) {
+		endpoint := EndpointSource{
+			URL:           "https://example.com",
+			SupportsRead:  false,
+			SupportsWrite: true,
+		}
+		_, capabilities, err := determineCapabilities(endpoint)
 		require.NoError(t, err)
 
-		// When a specific path is used, All should be false
-		assert.False(t, capabilities.All)
+		// Write endpoint with no path should only enable IPNS write capability
 		assert.False(t, capabilities.Providers)
 		assert.False(t, capabilities.Peers)
-		assert.True(t, capabilities.IPNS)
+		assert.False(t, capabilities.IPNSGet)
+		assert.True(t, capabilities.IPNSPut) // Only write capability should be true
+	})
+
+	t.Run("Specific path should only enable matching capabilities", func(t *testing.T) {
+		endpoint := EndpointSource{
+			URL:           "https://example.com/routing/v1/ipns",
+			SupportsRead:  true,
+			SupportsWrite: true,
+		}
+		_, capabilities, err := determineCapabilities(endpoint)
+		require.NoError(t, err)
+
+		// Specific IPNS path should only enable IPNS capabilities based on source
+		assert.False(t, capabilities.Providers)
+		assert.False(t, capabilities.Peers)
+		assert.True(t, capabilities.IPNSGet)  // Read capability enabled
+		assert.True(t, capabilities.IPNSPut)  // Write capability enabled
+	})
+
+	t.Run("Unsupported paths should result in empty capabilities", func(t *testing.T) {
+		endpoint := EndpointSource{
+			URL:           "https://example.com/routing/v1/unsupported",
+			SupportsRead:  true,
+			SupportsWrite: false,
+		}
+		_, capabilities, err := determineCapabilities(endpoint)
+		require.NoError(t, err)
+
+		// Unsupported paths should result in no capabilities
+		assert.False(t, capabilities.Providers)
+		assert.False(t, capabilities.Peers)
+		assert.False(t, capabilities.IPNSGet)
+		assert.False(t, capabilities.IPNSPut)
 	})
 }

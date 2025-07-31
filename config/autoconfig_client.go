@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/ipfs/kubo/boxo/autoconfig"
 
@@ -17,8 +16,8 @@ func NewAutoConfigClient(repoPath, userAgent string) (*autoconfig.Client, error)
 	return autoconfig.NewClient(
 		autoconfig.WithCacheDir(cacheDir),
 		autoconfig.WithUserAgent(userAgent),
-		autoconfig.WithCacheSize(3),           // defaultCacheSize
-		autoconfig.WithTimeout(5*time.Second), // defaultTimeout
+		autoconfig.WithCacheSize(DefaultAutoconfigCacheSize),
+		autoconfig.WithTimeout(DefaultAutoconfigTimeout),
 	)
 }
 
@@ -28,8 +27,8 @@ func NewAutoConfigClientWithConfig(repoPath string, cfg interface{}, userAgent s
 	options := []autoconfig.Option{
 		autoconfig.WithCacheDir(cacheDir),
 		autoconfig.WithUserAgent(userAgent),
-		autoconfig.WithCacheSize(3),             // defaultCacheSize
-		autoconfig.WithTimeout(5 * time.Second), // defaultTimeout
+		autoconfig.WithCacheSize(DefaultAutoconfigCacheSize),
+		autoconfig.WithTimeout(DefaultAutoconfigTimeout),
 	}
 
 	// Add TLS skip verify if config provides it

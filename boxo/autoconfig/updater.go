@@ -7,6 +7,13 @@ import (
 	"time"
 )
 
+const (
+	// Backoff configuration constants for failed update retries
+	backoffBaseInterval = time.Minute    // Base backoff interval (1 minute)
+	backoffMaxInterval  = 24 * time.Hour // Maximum backoff interval (24 hours)
+	backoffMaxMinutes   = 24 * 60        // Maximum backoff in minutes (1440 minutes = 24 hours)
+)
+
 // BackgroundUpdater handles periodic autoconfig updates
 type BackgroundUpdater struct {
 	client          *Client
@@ -215,14 +222,14 @@ func (u *BackgroundUpdater) calculateBackoffDelay(failureCount int) time.Duratio
 	// Start with 1 minute, double each time: 1m, 2m, 4m, 8m, 16m, 32m, 1h4m, 2h8m, 4h16m, 8h32m, 17h4m
 	// Cap at 24 hours
 	if failureCount <= 0 {
-		return time.Minute
+		return backoffBaseInterval
 	}
 
 	// Calculate exponential backoff: 1 << failureCount minutes
 	backoffMinutes := 1 << failureCount
-	if backoffMinutes > 24*60 { // Cap at 24 hours (1440 minutes)
-		backoffMinutes = 24 * 60
+	if backoffMinutes > backoffMaxMinutes {
+		backoffMinutes = backoffMaxMinutes
 	}
 
-	return time.Duration(backoffMinutes) * time.Minute
+	return time.Duration(backoffMinutes) * backoffBaseInterval
 }
