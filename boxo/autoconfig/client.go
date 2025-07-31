@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -44,7 +45,7 @@ const (
 	// This is a specific version that is known to work fine with current implementation,
 	// and it makes it a safe default while iterating on format.
 	// TODO: change it back to https://config.ipfs-mainnet.org/autoconfig.json before shipping
-	MainnetAutoConfigURL = "https://github.com/ipshipyard/config.ipfs-mainnet.org/raw/753001eab598b722d0377bef41287502105da8f8/autoconfig.json"
+	MainnetAutoConfigURL = "https://github.com/ipshipyard/config.ipfs-mainnet.org/raw/7a451de82a9aecd865e22e756582294622f3e06a/autoconfig.json"
 )
 
 // Client is the autoconfig client
@@ -54,6 +55,7 @@ type Client struct {
 	cacheSize       int
 	userAgent       string
 	maxResponseSize int64
+	cacheMu         sync.Mutex // Protects cache write operations
 }
 
 // Option is a function that configures the client
@@ -169,40 +171,25 @@ func (c *Client) getCacheDir(configURL string) (string, error) {
 	}
 
 	host := sanitizeForPath(u.Host)
-	return filepath.Join(c.cacheDir, "autoconfig", host), nil
+	return filepath.Join(c.cacheDir, host), nil
 }
 
 // readMetadata reads cached ETag and Last-Modified values
 func (c *Client) readMetadata(cacheDir string) (etag, lastModified string) {
 	cleanCacheDir := filepath.Clean(cacheDir)
 
-	etagData, err := os.ReadFile(filepath.Join(cleanCacheDir, etagFile))
-	if err != nil {
-		log.Debugf("previous etag not found: %v", err)
+	etagData, etagErr := os.ReadFile(filepath.Join(cleanCacheDir, etagFile))
+	lastModData, lastModErr := os.ReadFile(filepath.Join(cleanCacheDir, lastModifiedFile))
+
+	etag = strings.TrimSpace(string(etagData))
+	lastModified = strings.TrimSpace(string(lastModData))
+
+	// Only log if both are missing (first request)
+	if etagErr != nil && lastModErr != nil {
+		log.Debugf("no previous cache metadata found (ETag or Last-Modified)")
 	}
 
-	lastModData, err := os.ReadFile(filepath.Join(cleanCacheDir, lastModifiedFile))
-	if err != nil {
-		log.Debugf("previous last-modified not found: %v", err)
-	}
-
-	return strings.TrimSpace(string(etagData)), strings.TrimSpace(string(lastModData))
-}
-
-// writeMetadata writes ETag and Last-Modified values to cache
-func (c *Client) writeMetadata(cacheDir, etag, lastModified string) error {
-	cleanCacheDir := filepath.Clean(cacheDir)
-	if etag != "" {
-		if err := writeOwnerOnlyFile(filepath.Join(cleanCacheDir, etagFile), []byte(etag)); err != nil {
-			return fmt.Errorf("failed to write etag: %w", err)
-		}
-	}
-	if lastModified != "" {
-		if err := writeOwnerOnlyFile(filepath.Join(cleanCacheDir, lastModifiedFile), []byte(lastModified)); err != nil {
-			return fmt.Errorf("failed to write last-modified: %w", err)
-		}
-	}
-	return nil
+	return etag, lastModified
 }
 
 // readLastRefresh reads the last HTTP request timestamp from cache
@@ -220,15 +207,4 @@ func (c *Client) readLastRefresh(cacheDir string) (time.Time, error) {
 	}
 
 	return timestamp, nil
-}
-
-// writeLastRefresh writes the last HTTP request timestamp to cache
-func (c *Client) writeLastRefresh(cacheDir string, refreshTime time.Time) error {
-	cleanCacheDir := filepath.Clean(cacheDir)
-	timestampStr := refreshTime.Format(time.RFC3339)
-
-	if err := writeOwnerOnlyFile(filepath.Join(cleanCacheDir, lastRefreshFile), []byte(timestampStr)); err != nil {
-		return fmt.Errorf("failed to write last refresh time: %w", err)
-	}
-	return nil
 }

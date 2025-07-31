@@ -157,10 +157,12 @@ func TestCacheMetadata(t *testing.T) {
 		t.Fatalf("failed to create cache dir: %v", err)
 	}
 
-	// Test writing metadata
-	err = client.writeMetadata(cacheDir, "test-etag", "test-lastmod")
-	if err != nil {
-		t.Fatalf("failed to write metadata: %v", err)
+	// Test writing metadata directly (since writeMetadata is now inlined in saveToCache)
+	if err := writeOwnerOnlyFile(filepath.Join(cacheDir, etagFile), []byte("test-etag")); err != nil {
+		t.Fatalf("failed to write etag: %v", err)
+	}
+	if err := writeOwnerOnlyFile(filepath.Join(cacheDir, lastModifiedFile), []byte("test-lastmod")); err != nil {
+		t.Fatalf("failed to write last-modified: %v", err)
 	}
 
 	// Test reading metadata

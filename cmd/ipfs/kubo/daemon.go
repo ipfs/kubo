@@ -1305,21 +1305,8 @@ func startAutoConfigUpdater(ctx context.Context, r repo.Repo, autoConfigURL, use
 		return
 	}
 
-	// Pre-fetch autoconfig immediately to ensure it's cached before node construction
-	refreshInterval := cfg.AutoConfig.RefreshInterval.WithDefault(config.DefaultAutoConfigRefreshInterval)
-	autoconfigLog.Debug("Pre-fetching autoconfig to ensure it's cached before node construction")
-
-	prefetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	_, err = client.GetLatest(prefetchCtx, autoConfigURL, refreshInterval)
-	if err != nil {
-		autoconfigLog.Warnf("autoconfig pre-fetch failed (will retry in background): %v", err)
-	} else {
-		autoconfigLog.Debug("autoconfig pre-fetched successfully")
-	}
-
 	// Create background updater with callbacks to maintain existing behavior
+	refreshInterval := cfg.AutoConfig.RefreshInterval.WithDefault(config.DefaultAutoConfigRefreshInterval)
 	updater, err := autoconfig.NewBackgroundUpdater(client, autoConfigURL,
 		autoconfig.WithUpdateInterval(refreshInterval),
 		autoconfig.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {

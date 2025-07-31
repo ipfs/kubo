@@ -264,10 +264,13 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 	if resp.StatusCode == http.StatusNotModified {
 		log.Debugf("HTTP 304 Not Modified, updating last refresh time")
 
-		// Record when we last checked for updates
-		if err := c.writeLastRefresh(cacheDir, httpRequestTime); err != nil {
+		// Record when we last checked for updates (with lock for thread safety)
+		c.cacheMu.Lock()
+		timestampStr := httpRequestTime.Format(time.RFC3339)
+		if err := writeOwnerOnlyFile(filepath.Join(filepath.Clean(cacheDir), lastRefreshFile), []byte(timestampStr)); err != nil {
 			log.Warnf("failed to write last refresh time: %v", err)
 		}
+		c.cacheMu.Unlock()
 
 		config, err := c.getCachedConfig(cacheDir)
 		return resp, config, err
@@ -311,19 +314,9 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 		return resp, &config, nil
 	}
 
-	// Save to cache with unix timestamp
-	if err := c.saveToCache(cacheDir, body); err != nil {
+	// Save to cache with metadata and refresh time
+	if err := c.saveToCache(cacheDir, body, newEtag, newLastModified, httpRequestTime); err != nil {
 		log.Warnf("failed to save to cache: %v", err)
-	}
-
-	// Save metadata (reuse already read headers)
-	if err := c.writeMetadata(cacheDir, newEtag, newLastModified); err != nil {
-		log.Warnf("failed to save metadata: %v", err)
-	}
-
-	// Record when we successfully fetched new data
-	if err := c.writeLastRefresh(cacheDir, httpRequestTime); err != nil {
-		log.Warnf("failed to write last refresh time: %v", err)
 	}
 
 	log.Infof("fetched autoconfig version %d", config.AutoConfigVersion)
@@ -414,17 +407,41 @@ func (c *Client) listCacheFiles(cacheDir string) ([]string, error) {
 	return files, nil
 }
 
-// saveToCache saves config to cache using unix timestamp
-func (c *Client) saveToCache(cacheDir string, data []byte) error {
+// saveToCache saves config to cache with metadata and refresh time
+func (c *Client) saveToCache(cacheDir string, data []byte, etag, lastModified string, httpRequestTime time.Time) error {
+	// Lock to ensure thread-safe cache writes
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+
 	cleanCacheDir := filepath.Clean(cacheDir)
 
 	// Use unix timestamp for filename to avoid trusting external values
 	timestamp := time.Now().Unix()
 	filename := filepath.Join(cleanCacheDir, fmt.Sprintf("autoconfig-%d.json", timestamp))
 
+	// Save the main config file
 	if err := writeOwnerOnlyFile(filename, data); err != nil {
 		return fmt.Errorf("failed to write cache file: %w", err)
 	}
+
+	// Save metadata (ETag and Last-Modified)
+	if etag != "" {
+		if err := writeOwnerOnlyFile(filepath.Join(cleanCacheDir, etagFile), []byte(etag)); err != nil {
+			log.Warnf("failed to write etag: %v", err)
+		}
+	}
+	if lastModified != "" {
+		if err := writeOwnerOnlyFile(filepath.Join(cleanCacheDir, lastModifiedFile), []byte(lastModified)); err != nil {
+			log.Warnf("failed to write last-modified: %v", err)
+		}
+	}
+
+	// Save last refresh time
+	timestampStr := httpRequestTime.Format(time.RFC3339)
+	if err := writeOwnerOnlyFile(filepath.Join(cleanCacheDir, lastRefreshFile), []byte(timestampStr)); err != nil {
+		log.Warnf("failed to write last refresh time: %v", err)
+	}
+
 	return nil
 }
 
