@@ -207,15 +207,24 @@ func testAllAutoConfigFieldsResolve(t *testing.T) {
 	assert.NotContains(t, expandedRouters, "auto", "DelegatedRouters should not contain 'auto'")
 
 	// Test should strictly require mock autoconfig to work - no fallback acceptance
-	expectedMockURL := server.URL
-	require.Equal(t, 1, len(expandedRouters),
-		"Should have exactly 1 router from mock autoconfig. Got %d routers: %v. "+
+	// The mock endpoint has Read paths ["/routing/v1/providers", "/routing/v1/ipns"]
+	// so we expect 2 URLs with those paths
+	expectedMockURLs := []string{
+		server.URL + "/routing/v1/providers",
+		server.URL + "/routing/v1/ipns",
+	}
+	require.Equal(t, 2, len(expandedRouters),
+		"Should have exactly 2 routers from mock autoconfig (one for each Read path). Got %d routers: %v. "+
 			"This indicates autoconfig is not working properly - check if mock server data is being parsed and filtered correctly.",
 		len(expandedRouters), expandedRouters)
-	assert.Equal(t, expectedMockURL, expandedRouters[0],
-		"Should use mock autoconfig endpoint %s, not fallback. Got: %s. "+
-			"This indicates autoconfig endpoint filtering is not working properly.",
-		expectedMockURL, expandedRouters[0])
+
+	// Check that both expected URLs are present
+	for _, expectedURL := range expectedMockURLs {
+		assert.Contains(t, expandedRouters, expectedURL,
+			"Should contain mock autoconfig endpoint with path %s. Got: %v. "+
+				"This indicates autoconfig endpoint path generation is not working properly.",
+			expectedURL, expandedRouters)
+	}
 
 	// Test 4: Ipns.DelegatedPublishers resolution
 	result = node.RunIPFS("config", "Ipns.DelegatedPublishers", "--expand-auto")
@@ -228,15 +237,16 @@ func testAllAutoConfigFieldsResolve(t *testing.T) {
 	assert.NotContains(t, expandedPublishers, "auto", "DelegatedPublishers should not contain 'auto'")
 
 	// Test should require mock autoconfig endpoint for IPNS publishing
-	// The mock endpoint supports /routing/v1/ipns write operations, so it should be included
+	// The mock endpoint supports /routing/v1/ipns write operations, so it should be included with path
+	expectedMockPublisherURL := server.URL + "/routing/v1/ipns"
 	require.Equal(t, 1, len(expandedPublishers),
 		"Should have exactly 1 IPNS publisher from mock autoconfig. Got %d publishers: %v. "+
 			"This indicates autoconfig IPNS publisher filtering is not working properly.",
 		len(expandedPublishers), expandedPublishers)
-	assert.Equal(t, expectedMockURL, expandedPublishers[0],
+	assert.Equal(t, expectedMockPublisherURL, expandedPublishers[0],
 		"Should use mock autoconfig endpoint %s for IPNS publishing, not fallback. Got: %s. "+
 			"This indicates autoconfig IPNS publisher resolution is not working properly.",
-		expectedMockURL, expandedPublishers[0])
+		expectedMockPublisherURL, expandedPublishers[0])
 
 	// CRITICAL: Verify that mock server was actually used
 	finalRequestCount := atomic.LoadInt32(&requestCount)

@@ -55,6 +55,12 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 		return out, err
 	}
 
+	// Debug logging for bootstrap peers passed to libp2p
+	log.Debugf("Host construction: using %d bootstrap peers", len(bootstrappers))
+	for i, peer := range bootstrappers {
+		log.Debugf("Host construction: bootstrappers[%d]=%s", i, peer.String())
+	}
+
 	routingOptArgs := RoutingOptionArgs{
 		Ctx:                           ctx,
 		Repo:                          params.Repo,

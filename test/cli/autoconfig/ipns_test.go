@@ -248,8 +248,9 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	var resolvedPublishers []string
 	err = json.Unmarshal([]byte(resolvedResult.Stdout.String()), &resolvedPublishers)
 	require.NoError(t, err)
-	assert.Contains(t, resolvedPublishers, ipnsPublisher.server.URL,
-		"AutoConfig should resolve 'auto' to our mock IPNS publisher URL")
+	expectedPublisherURL := ipnsPublisher.server.URL + "/routing/v1/ipns"
+	assert.Contains(t, resolvedPublishers, expectedPublisherURL,
+		"AutoConfig should resolve 'auto' to our mock IPNS publisher URL with path")
 
 	// Get the main node's peer ID to identify the record in the mock server
 	idResult := mainNode.RunIPFS("id", "-f", "<id>")
@@ -416,8 +417,9 @@ func testIPNSPublishing404Error(t *testing.T) {
 	require.NoError(t, err)
 
 	// Confirm that our mock server URL was resolved from "auto"
-	assert.Contains(t, resolvedPublishers, ipnsPublisher.server.URL,
-		"AutoConfig should resolve 'auto' to mock IPNS publisher URL even when it returns 404")
+	expectedPublisherURL := ipnsPublisher.server.URL + "/routing/v1/ipns"
+	assert.Contains(t, resolvedPublishers, expectedPublisherURL,
+		"AutoConfig should resolve 'auto' to mock IPNS publisher URL with path even when it returns 404")
 
 	t.Log("✅ AutoConfig correctly resolved IPNS delegated publisher that would return 404 error")
 }
@@ -494,8 +496,9 @@ func testIPNSPublishing500Error(t *testing.T) {
 	require.NoError(t, err)
 
 	// Confirm that our mock server URL was resolved from "auto"
-	assert.Contains(t, resolvedPublishers, ipnsPublisher.server.URL,
-		"AutoConfig should resolve 'auto' to mock IPNS publisher URL even when it returns 500")
+	expectedPublisherURL := ipnsPublisher.server.URL + "/routing/v1/ipns"
+	assert.Contains(t, resolvedPublishers, expectedPublisherURL,
+		"AutoConfig should resolve 'auto' to mock IPNS publisher URL with path even when it returns 500")
 
 	t.Log("✅ AutoConfig correctly resolved IPNS delegated publisher that would return 500 error")
 }

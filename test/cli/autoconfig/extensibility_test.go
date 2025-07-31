@@ -224,9 +224,9 @@ func TestAutoConfigExtensibility_NewSystem(t *testing.T) {
 	// Convert to URLs for checking
 	routerURLs := expandedRouters
 
-	// Should contain NewSystem endpoint (not native)
+	// Should contain NewSystem endpoint (not native) - now with routing path
 	foundNewSystem := false
-	expectedNewSystemURL := newSystemServer.URL // Base URL without path, as per autoconfig schema
+	expectedNewSystemURL := newSystemServer.URL + "/routing/v1/providers" // Full URL with path, as returned by DelegatedRoutersWithAutoConfig
 	for _, url := range routerURLs {
 		if url == expectedNewSystemURL {
 			foundNewSystem = true
@@ -248,7 +248,7 @@ func TestAutoConfigExtensibility_NewSystem(t *testing.T) {
 	// Test passes - we've verified that:
 	// 1. Bootstrap peers are correctly resolved from native systems only
 	// 2. Delegated routers include both IPNI and NewSystem endpoints
-	// 3. URL format is correct (base URLs without paths)
+	// 3. URL format is correct (base URLs with paths)
 	// 4. Autoconfig extensibility works for unknown systems
 
 	t.Log("✅ NewSystem extensibility test passed - Kubo successfully discovered and used unknown routing system")

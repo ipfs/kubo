@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand"
 	"path/filepath"
+	"strings"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -146,8 +147,20 @@ func (c *Config) BootstrapWithAutoConfig(repoPath string) []string {
 		routingType := c.Routing.Type.WithDefault("auto")
 		nativeSystems := GetNativeSystems(routingType)
 		autoConfigData = autoConfig.GetBootstrapPeers(nativeSystems)
+		log.Debugf("BootstrapWithAutoConfig: routingType=%s, nativeSystems=%v, autoConfigData=%d peers", routingType, nativeSystems, len(autoConfigData))
+		for i, peer := range autoConfigData {
+			log.Debugf("BootstrapWithAutoConfig: autoConfigData[%d]=%s", i, peer)
+		}
+	} else {
+		log.Debugf("BootstrapWithAutoConfig: autoConfig is nil, using original Bootstrap config")
 	}
-	return expandAutoConfigSlice(c.Bootstrap, autoConfigData, "Bootstrap")
+
+	result := expandAutoConfigSlice(c.Bootstrap, autoConfigData, "Bootstrap")
+	log.Debugf("BootstrapWithAutoConfig: final result=%d peers", len(result))
+	for i, peer := range result {
+		log.Debugf("BootstrapWithAutoConfig: result[%d]=%s", i, peer)
+	}
+	return result
 }
 
 // getAutoConfig is a helper to get autoconfig data with fallbacks
@@ -187,57 +200,83 @@ func (c *Config) BootstrapPeersWithAutoConfig(repoPath string) ([]peer.AddrInfo,
 	return ParseBootstrapPeers(bootstrapStrings)
 }
 
-// DelegatedEndpointsWithAutoConfig returns delegated endpoints that don't overlap with native systems
-func (c *Config) DelegatedEndpointsWithAutoConfig(repoPath string) map[string]autoconfig.EndpointConfig {
+// DelegatedRoutersWithAutoConfig returns delegated router URLs without trailing slashes
+// URLs from autoconfig are returned with trailing slashes removed
+func (c *Config) DelegatedRoutersWithAutoConfig(repoPath string) []string {
 	autoConfig := c.getAutoConfig(repoPath)
 	if autoConfig == nil {
-		log.Debugf("DelegatedEndpointsWithAutoConfig: getAutoConfig returned nil")
-		return nil
+		return expandAutoConfigSlice(c.Routing.DelegatedRouters, nil, "DelegatedRouters")
 	}
 
 	routingType := c.Routing.Type.WithDefault("auto")
 	nativeSystems := GetNativeSystems(routingType)
-	result := autoConfig.GetDelegatedEndpoints(nativeSystems)
-	log.Debugf("DelegatedEndpointsWithAutoConfig: returning %d endpoints (routingType=%s, nativeSystems=%v)", len(result), routingType, nativeSystems)
-	return result
-}
+	endpoints := autoConfig.GetDelegatedEndpoints(nativeSystems)
 
-// DelegatedRoutersWithAutoConfig returns delegated router URLs for backwards compatibility
-// Deprecated: Use DelegatedEndpointsWithAutoConfig instead
-func (c *Config) DelegatedRoutersWithAutoConfig(repoPath string) []string {
-	endpoints := c.DelegatedEndpointsWithAutoConfig(repoPath)
 	if endpoints == nil {
 		return expandAutoConfigSlice(c.Routing.DelegatedRouters, nil, "DelegatedRouters")
 	}
 
 	var routers []string
-	for url := range endpoints {
-		routers = append(routers, url)
+	for baseURL, config := range endpoints {
+		// For each endpoint, add URLs with each supported Read path
+		for _, readPath := range config.Read {
+			// Ensure path starts with /
+			if !strings.HasPrefix(readPath, "/") {
+				readPath = "/" + readPath
+			}
+			// Construct full URL with path, trimming trailing slash from baseURL
+			fullURL := strings.TrimRight(baseURL, "/") + readPath
+			routers = append(routers, fullURL)
+		}
 	}
 
-	return expandAutoConfigSlice(c.Routing.DelegatedRouters, routers, "DelegatedRouters")
+	resolved := expandAutoConfigSlice(c.Routing.DelegatedRouters, routers, "DelegatedRouters")
+
+	// Ensure all URLs have trailing slashes trimmed
+	for i, url := range resolved {
+		resolved[i] = strings.TrimRight(url, "/")
+	}
+
+	return resolved
 }
 
-// DelegatedPublishersWithAutoConfig returns delegated publishers with "auto" values replaced by autoconfig values
-// IPNS publishing is now handled through the AminoDHT system via DelegatedEndpointsWithAutoConfig
+// DelegatedPublishersWithAutoConfig returns delegated publisher URLs without trailing slashes
+// URLs from autoconfig are returned with trailing slashes removed
 func (c *Config) DelegatedPublishersWithAutoConfig(repoPath string) []string {
-	endpoints := c.DelegatedEndpointsWithAutoConfig(repoPath)
+	autoConfig := c.getAutoConfig(repoPath)
+	if autoConfig == nil {
+		return expandAutoConfigSlice(c.Ipns.DelegatedPublishers, nil, "DelegatedPublishers")
+	}
+
+	routingType := c.Routing.Type.WithDefault("auto")
+	nativeSystems := GetNativeSystems(routingType)
+	endpoints := autoConfig.GetDelegatedEndpoints(nativeSystems)
+
 	if endpoints == nil {
 		return expandAutoConfigSlice(c.Ipns.DelegatedPublishers, nil, "DelegatedPublishers")
 	}
 
 	var publishers []string
-	for url, config := range endpoints {
+	for baseURL, config := range endpoints {
 		// Check if this endpoint supports IPNS write operations
-		for _, writeEndpoint := range config.Write {
-			if writeEndpoint == "/routing/v1/ipns" {
-				publishers = append(publishers, url)
-				break
+		for _, writePath := range config.Write {
+			if writePath == "/routing/v1/ipns" {
+				// Construct full URL with the IPNS write path, trimming trailing slash from baseURL
+				fullURL := strings.TrimRight(baseURL, "/") + writePath
+				publishers = append(publishers, fullURL)
+				break // Only add once per endpoint
 			}
 		}
 	}
 
-	return expandAutoConfigSlice(c.Ipns.DelegatedPublishers, publishers, "DelegatedPublishers")
+	resolved := expandAutoConfigSlice(c.Ipns.DelegatedPublishers, publishers, "DelegatedPublishers")
+
+	// Ensure all URLs have trailing slashes trimmed
+	for i, url := range resolved {
+		resolved[i] = strings.TrimRight(url, "/")
+	}
+
+	return resolved
 }
 
 // ExpandAutoConfigValues expands "auto" placeholders in config with their actual values using the same methods as the daemon

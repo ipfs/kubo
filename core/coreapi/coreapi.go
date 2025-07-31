@@ -173,9 +173,9 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		ipldFetcherFactory:   n.IPLDFetcherFactory,
 		unixFSFetcherFactory: n.UnixFSFetcherFactory,
 
-		peerstore: n.Peerstore,
-		peerHost:  n.PeerHost,
-		namesys:   n.Namesys,
+		peerstore:          n.Peerstore,
+		peerHost:           n.PeerHost,
+		namesys:            n.Namesys,
 		recordValidator:    n.RecordValidator,
 		exchange:           n.Exchange,
 		routing:            n.Routing,
