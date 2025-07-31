@@ -48,7 +48,7 @@ func (tp *TestSuite) TestRoutingGet(t *testing.T) {
 	require.NoError(t, err)
 
 	// Node 1: publishes an IPNS name
-	p, name := tp.testRoutingPublishKey(t, ctx, apis[0], options.Name.AllowOffline(true))
+	p, name := tp.testRoutingPublishKey(t, ctx, apis[0])
 
 	// Node 2: retrieves the best value for the IPNS name.
 	data, err := apis[1].Routing().Get(ctx, ipns.NamespacePrefix+name.String())
@@ -69,7 +69,7 @@ func (tp *TestSuite) TestRoutingPut(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create and publish IPNS entry.
-	_, name := tp.testRoutingPublishKey(t, ctx, apis[0], options.Name.AllowOffline(true))
+	_, name := tp.testRoutingPublishKey(t, ctx, apis[0])
 
 	// Get valid routing value.
 	data, err := apis[0].Routing().Get(ctx, ipns.NamespacePrefix+name.String())

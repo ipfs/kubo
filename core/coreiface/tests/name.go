@@ -49,7 +49,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 	run := func(t *testing.T, ropts []opt.NameResolveOption) {
 		t.Run("basic", func(t *testing.T) {
 			api, p := init()
-			name, err := api.Name().Publish(ctx, p, opt.Name.AllowOffline(true))
+			name, err := api.Name().Publish(ctx, p)
 			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
@@ -66,7 +66,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 			p, err := path.Join(p, "/test")
 			require.NoError(t, err)
 
-			name, err := api.Name().Publish(ctx, p, opt.Name.AllowOffline(true))
+			name, err := api.Name().Publish(ctx, p)
 			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
@@ -80,7 +80,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 
 		t.Run("revolvePath", func(t *testing.T) {
 			api, p := init()
-			name, err := api.Name().Publish(ctx, p, opt.Name.AllowOffline(true))
+			name, err := api.Name().Publish(ctx, p)
 			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
@@ -97,7 +97,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 			p, err := path.Join(p, "/a")
 			require.NoError(t, err)
 
-			name, err := api.Name().Publish(ctx, p, opt.Name.AllowOffline(true))
+			name, err := api.Name().Publish(ctx, p)
 			require.NoError(t, err)
 
 			self, err := api.Key().Self(ctx)
@@ -132,7 +132,7 @@ func (tp *TestSuite) TestBasicPublishResolveKey(t *testing.T) {
 	p, err := addTestObject(ctx, api)
 	require.NoError(t, err)
 
-	name, err := api.Name().Publish(ctx, p, opt.Name.Key(k.Name()), opt.Name.AllowOffline(true))
+	name, err := api.Name().Publish(ctx, p, opt.Name.Key(k.Name()))
 	require.NoError(t, err)
 	require.Equal(t, name.String(), ipns.NameFromPeer(k.ID()).String())
 
@@ -153,8 +153,7 @@ func (tp *TestSuite) TestBasicPublishResolveTimeout(t *testing.T) {
 	self, err := api.Key().Self(ctx)
 	require.NoError(t, err)
 
-	// Publish with 1 second ValidTime
-	name, err := api.Name().Publish(ctx, p, opt.Name.ValidTime(time.Second*1), opt.Name.AllowOffline(true))
+	name, err := api.Name().Publish(ctx, p, opt.Name.ValidTime(time.Second*1))
 	require.NoError(t, err)
 	require.Equal(t, name.String(), ipns.NameFromPeer(self.ID()).String())
 
