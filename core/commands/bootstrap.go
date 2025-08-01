@@ -91,7 +91,7 @@ list, which gets resolved using the AutoConfig system.
 
 		// Check if trying to add "auto" when AutoConfig is disabled
 		for _, peer := range inputPeers {
-			if peer == "auto" && !cfg.AutoConfig.Enabled.WithDefault(config.DefaultAutoConfigEnabled) {
+			if peer == config.AutoPlaceholder && !cfg.AutoConfig.Enabled.WithDefault(config.DefaultAutoConfigEnabled) {
 				return errors.New("cannot add default bootstrap peers: AutoConfig is disabled (AutoConfig.Enabled=false). Enable AutoConfig by setting AutoConfig.Enabled=true in your config, or add specific peer addresses instead")
 			}
 		}
