@@ -131,7 +131,7 @@ Set multiple values in the 'Addresses.AppendAnnounce' array:
 			// Check if user wants to expand auto values for getter
 			expandAuto, _ := req.Options[configExpandAutoName].(bool)
 			if expandAuto {
-				output, err = getConfigWithAutoExpand(r, key, cfgRoot)
+				output, err = getConfigWithAutoExpand(r, key)
 			} else {
 				output, err = getConfig(r, key)
 			}
@@ -232,7 +232,7 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			}
 
 			// Expand auto values and update the map
-			cfg, err = fullCfg.ExpandAutoConfigValues(cfgRoot, cfg)
+			cfg, err = fullCfg.ExpandAutoConfigValues(cfg)
 			if err != nil {
 				return err
 			}
@@ -528,7 +528,7 @@ func getConfig(r repo.Repo, key string) (*ConfigField, error) {
 	}, nil
 }
 
-func getConfigWithAutoExpand(r repo.Repo, key string, cfgRoot string) (*ConfigField, error) {
+func getConfigWithAutoExpand(r repo.Repo, key string) (*ConfigField, error) {
 	// First get the current value
 	value, err := r.GetConfigKey(key)
 	if err != nil {
@@ -542,7 +542,7 @@ func getConfigWithAutoExpand(r repo.Repo, key string, cfgRoot string) (*ConfigFi
 	}
 
 	// Expand auto values based on the key
-	expandedValue := fullCfg.ExpandConfigField(key, value, cfgRoot)
+	expandedValue := fullCfg.ExpandConfigField(key, value)
 
 	return &ConfigField{
 		Key:   key,

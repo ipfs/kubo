@@ -9,7 +9,6 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	dual "github.com/libp2p/go-libp2p-kad-dht/dual"
@@ -23,7 +22,6 @@ import (
 type RoutingOptionArgs struct {
 	Ctx                           context.Context
 	Host                          host.Host
-	Repo                          repo.Repo
 	Datastore                     datastore.Batching
 	Validator                     record.Validator
 	BootstrapPeers                []peer.AddrInfo
@@ -100,7 +98,7 @@ func determineCapabilities(endpoint EndpointSource) (string, EndpointCapabilitie
 }
 
 // collectAllEndpoints gathers URLs from both router and publisher sources
-func collectAllEndpoints(cfg *config.Config, repoPath string) []EndpointSource {
+func collectAllEndpoints(cfg *config.Config) []EndpointSource {
 	var endpoints []EndpointSource
 
 	// Get router URLs (Read operations)
@@ -112,7 +110,7 @@ func collectAllEndpoints(cfg *config.Config, repoPath string) []EndpointSource {
 		log.Warnf("Using HTTP routers from %s environment variable instead of config/autoconfig: %v", config.EnvHTTPRouters, routerURLs)
 	} else {
 		// Use delegated routers from autoconfig
-		routerURLs = cfg.DelegatedRoutersWithAutoConfig(repoPath)
+		routerURLs = cfg.DelegatedRoutersWithAutoConfig()
 		// No fallback - if autoconfig doesn't provide endpoints, use empty list
 		// This exposes any autoconfig issues rather than masking them with hardcoded defaults
 	}
@@ -127,7 +125,7 @@ func collectAllEndpoints(cfg *config.Config, repoPath string) []EndpointSource {
 	}
 
 	// Get publisher URLs (Write operations)
-	publisherURLs := cfg.DelegatedPublishersWithAutoConfig(repoPath)
+	publisherURLs := cfg.DelegatedPublishersWithAutoConfig()
 
 	// Add publisher URLs, merging with existing router URLs if they match
 	for _, url := range publisherURLs {
@@ -151,12 +149,12 @@ func collectAllEndpoints(cfg *config.Config, repoPath string) []EndpointSource {
 	return endpoints
 }
 
-func constructDefaultHTTPRouters(cfg *config.Config, r repo.Repo) ([]*routinghelpers.ParallelRouter, error) {
+func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.ParallelRouter, error) {
 	var routers []*routinghelpers.ParallelRouter
 	httpRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
 
 	// Collect URLs from both router and publisher sources
-	endpoints := collectAllEndpoints(cfg, r.Path())
+	endpoints := collectAllEndpoints(cfg)
 
 	// Group endpoints by origin (base URL) and aggregate capabilities
 	originCapabilities := make(map[string]EndpointCapabilities)
@@ -237,7 +235,7 @@ func ConstructDelegatedOnlyRouting(cfg *config.Config) RoutingOption {
 		var routers []*routinghelpers.ParallelRouter
 
 		// Add HTTP delegated routers (includes both router and publisher capabilities)
-		httpRouters, err := constructDefaultHTTPRouters(cfg, args.Repo)
+		httpRouters, err := constructDefaultHTTPRouters(cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -271,7 +269,7 @@ func ConstructDefaultRouting(cfg *config.Config, routingOpt RoutingOption) Routi
 			ExecuteAfter:            0,
 		})
 
-		httpRouters, err := constructDefaultHTTPRouters(cfg, args.Repo)
+		httpRouters, err := constructDefaultHTTPRouters(cfg)
 		if err != nil {
 			return nil, err
 		}

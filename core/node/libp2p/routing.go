@@ -96,7 +96,7 @@ func BaseRouting(cfg *config.Config) interface{} {
 				return out, err
 			}
 			// Use auto-config resolution for actual connectivity
-			bspeers, err := cfg.BootstrapPeersWithAutoConfig(in.Repo.Path())
+			bspeers, err := cfg.BootstrapPeersWithAutoConfig()
 			if err != nil {
 				return out, err
 			}
@@ -122,7 +122,7 @@ func BaseRouting(cfg *config.Config) interface{} {
 
 			// we want to also use the default HTTP routers, so wrap the FullRT client
 			// in a parallel router that calls them in parallel
-			httpRouters, err := constructDefaultHTTPRouters(cfg, in.Repo)
+			httpRouters, err := constructDefaultHTTPRouters(cfg)
 			if err != nil {
 				return out, err
 			}

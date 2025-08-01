@@ -122,8 +122,8 @@ func buildEndpointURL(baseURL, path string) string {
 
 // getDelegatedEndpointsForConfig is a helper that gets autoconfig and filtered endpoints
 // This eliminates duplication between DelegatedRoutersWithAutoConfig and DelegatedPublishersWithAutoConfig
-func (c *Config) getDelegatedEndpointsForConfig(repoPath string) (*autoconfig.Config, map[string]autoconfig.EndpointConfig) {
-	autoConfig := c.getAutoConfig(repoPath)
+func (c *Config) getDelegatedEndpointsForConfig() (*autoconfig.Config, map[string]autoconfig.EndpointConfig) {
+	autoConfig := c.getAutoConfig()
 	if autoConfig == nil {
 		return nil, nil
 	}
@@ -160,13 +160,13 @@ func selectRandomResolver(resolvers []string) string {
 }
 
 // DNSResolversWithAutoConfig returns DNS resolvers with "auto" values replaced by autoconfig values
-func (c *Config) DNSResolversWithAutoConfig(repoPath string) map[string]string {
+func (c *Config) DNSResolversWithAutoConfig() map[string]string {
 	if c.DNS.Resolvers == nil {
 		return nil
 	}
 
 	resolved := make(map[string]string)
-	autoConfig := c.getAutoConfig(repoPath)
+	autoConfig := c.getAutoConfig()
 	autoExpanded := 0
 
 	// Process each configured resolver
@@ -228,8 +228,8 @@ func expandAutoConfigSlice(sourceSlice []string, autoConfigData []string, fieldN
 }
 
 // BootstrapWithAutoConfig returns bootstrap config with "auto" values replaced by autoconfig values
-func (c *Config) BootstrapWithAutoConfig(repoPath string) []string {
-	autoConfig := c.getAutoConfig(repoPath)
+func (c *Config) BootstrapWithAutoConfig() []string {
+	autoConfig := c.getAutoConfig()
 	var autoConfigData []string
 
 	if autoConfig != nil {
@@ -248,7 +248,13 @@ func (c *Config) BootstrapWithAutoConfig(repoPath string) []string {
 }
 
 // getOrCreateAutoConfigClient returns a cached client or creates a new one with standard settings
-func getOrCreateAutoConfigClient(repoPath string) (*autoconfig.Client, error) {
+func getOrCreateAutoConfigClient() (*autoconfig.Client, error) {
+	// Use standard config path resolution
+	repoPath, err := PathRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get repo path: %w", err)
+	}
+
 	clientCacheMu.RLock()
 	if client, exists := clientCache[repoPath]; exists {
 		clientCacheMu.RUnlock()
@@ -258,7 +264,7 @@ func getOrCreateAutoConfigClient(repoPath string) (*autoconfig.Client, error) {
 
 	clientCacheMu.Lock()
 	defer clientCacheMu.Unlock()
-	
+
 	// Double-check after acquiring write lock
 	if client, exists := clientCache[repoPath]; exists {
 		return client, nil
@@ -282,7 +288,7 @@ func getOrCreateAutoConfigClient(repoPath string) (*autoconfig.Client, error) {
 }
 
 // getAutoConfig is a helper to get autoconfig data with fallbacks
-func (c *Config) getAutoConfig(repoPath string) *autoconfig.Config {
+func (c *Config) getAutoConfig() *autoconfig.Config {
 	if !c.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled) {
 		log.Debugf("getAutoConfig: AutoConfig disabled, returning nil")
 		return nil
@@ -294,7 +300,7 @@ func (c *Config) getAutoConfig(repoPath string) *autoconfig.Config {
 	}
 
 	// Create or get cached client with standard settings
-	client, err := getOrCreateAutoConfigClient(repoPath)
+	client, err := getOrCreateAutoConfigClient()
 	if err != nil {
 		log.Debugf("getAutoConfig: client creation failed - %v", err)
 		return nil
@@ -310,8 +316,8 @@ func (c *Config) getAutoConfig(repoPath string) *autoconfig.Config {
 
 // BootstrapPeersWithAutoConfig returns bootstrap peers with "auto" values replaced by autoconfig values
 // and parsed into peer.AddrInfo structures
-func (c *Config) BootstrapPeersWithAutoConfig(repoPath string) ([]peer.AddrInfo, error) {
-	bootstrapStrings := c.BootstrapWithAutoConfig(repoPath)
+func (c *Config) BootstrapPeersWithAutoConfig() ([]peer.AddrInfo, error) {
+	bootstrapStrings := c.BootstrapWithAutoConfig()
 	return ParseBootstrapPeers(bootstrapStrings)
 }
 
@@ -326,8 +332,8 @@ func buildEndpointURLs(baseURL string, paths []string) []string {
 }
 
 // DelegatedRoutersWithAutoConfig returns delegated router URLs without trailing slashes
-func (c *Config) DelegatedRoutersWithAutoConfig(repoPath string) []string {
-	_, endpoints := c.getDelegatedEndpointsForConfig(repoPath)
+func (c *Config) DelegatedRoutersWithAutoConfig() []string {
+	_, endpoints := c.getDelegatedEndpointsForConfig()
 
 	if endpoints == nil {
 		return expandAutoConfigSlice(c.Routing.DelegatedRouters, nil, "DelegatedRouters")
@@ -364,8 +370,8 @@ func containsPath(paths []string, targetPath string) bool {
 }
 
 // DelegatedPublishersWithAutoConfig returns delegated publisher URLs without trailing slashes
-func (c *Config) DelegatedPublishersWithAutoConfig(repoPath string) []string {
-	_, endpoints := c.getDelegatedEndpointsForConfig(repoPath)
+func (c *Config) DelegatedPublishersWithAutoConfig() []string {
+	_, endpoints := c.getDelegatedEndpointsForConfig()
 
 	if endpoints == nil {
 		return expandAutoConfigSlice(c.Ipns.DelegatedPublishers, nil, "DelegatedPublishers")
@@ -404,7 +410,7 @@ func copyConfigMap(cfg map[string]interface{}) map[string]interface{} {
 
 // expandConfigField expands a specific config field with autoconfig values
 // Handles both top-level fields ("Bootstrap") and nested fields ("DNS.Resolvers")
-func (c *Config) expandConfigField(expandedCfg map[string]interface{}, fieldPath string, cfgRoot string) {
+func (c *Config) expandConfigField(expandedCfg map[string]interface{}, fieldPath string) {
 	// Check if this field supports autoconfig expansion
 	expandFunc, supported := supportedAutoConfigFields[fieldPath]
 	if !supported {
@@ -414,7 +420,7 @@ func (c *Config) expandConfigField(expandedCfg map[string]interface{}, fieldPath
 	// Handle top-level fields (no dot in path)
 	if !strings.Contains(fieldPath, ".") {
 		if _, exists := expandedCfg[fieldPath]; exists {
-			expandedCfg[fieldPath] = expandFunc(c, cfgRoot)
+			expandedCfg[fieldPath] = expandFunc(c)
 		}
 		return
 	}
@@ -429,7 +435,7 @@ func (c *Config) expandConfigField(expandedCfg map[string]interface{}, fieldPath
 	if section, exists := expandedCfg[sectionName]; exists {
 		if sectionMap, ok := section.(map[string]interface{}); ok {
 			if _, exists := sectionMap[fieldName]; exists {
-				sectionMap[fieldName] = expandFunc(c, cfgRoot)
+				sectionMap[fieldName] = expandFunc(c)
 				expandedCfg[sectionName] = sectionMap
 			}
 		}
@@ -437,44 +443,44 @@ func (c *Config) expandConfigField(expandedCfg map[string]interface{}, fieldPath
 }
 
 // ExpandAutoConfigValues expands "auto" placeholders in config with their actual values using the same methods as the daemon
-func (c *Config) ExpandAutoConfigValues(cfgRoot string, cfg map[string]interface{}) (map[string]interface{}, error) {
+func (c *Config) ExpandAutoConfigValues(cfg map[string]interface{}) (map[string]interface{}, error) {
 	// Create a deep copy of the config map to avoid modifying the original
 	expandedCfg := copyConfigMap(cfg)
 
 	// Use the same expansion methods that the daemon uses - ensures runtime consistency
 	// Unified expansion for all supported autoconfig fields
-	c.expandConfigField(expandedCfg, "Bootstrap", cfgRoot)
-	c.expandConfigField(expandedCfg, "DNS.Resolvers", cfgRoot)
-	c.expandConfigField(expandedCfg, "Routing.DelegatedRouters", cfgRoot)
-	c.expandConfigField(expandedCfg, "Ipns.DelegatedPublishers", cfgRoot)
+	c.expandConfigField(expandedCfg, "Bootstrap")
+	c.expandConfigField(expandedCfg, "DNS.Resolvers")
+	c.expandConfigField(expandedCfg, "Routing.DelegatedRouters")
+	c.expandConfigField(expandedCfg, "Ipns.DelegatedPublishers")
 
 	return expandedCfg, nil
 }
 
 // supportedAutoConfigFields maps field keys to their expansion functions
-var supportedAutoConfigFields = map[string]func(*Config, string) interface{}{
-	"Bootstrap": func(c *Config, cfgRoot string) interface{} {
-		expanded := c.BootstrapWithAutoConfig(cfgRoot)
+var supportedAutoConfigFields = map[string]func(*Config) interface{}{
+	"Bootstrap": func(c *Config) interface{} {
+		expanded := c.BootstrapWithAutoConfig()
 		return stringSliceToInterfaceSlice(expanded)
 	},
-	"DNS.Resolvers": func(c *Config, cfgRoot string) interface{} {
-		expanded := c.DNSResolversWithAutoConfig(cfgRoot)
+	"DNS.Resolvers": func(c *Config) interface{} {
+		expanded := c.DNSResolversWithAutoConfig()
 		return stringMapToInterfaceMap(expanded)
 	},
-	"Routing.DelegatedRouters": func(c *Config, cfgRoot string) interface{} {
-		expanded := c.DelegatedRoutersWithAutoConfig(cfgRoot)
+	"Routing.DelegatedRouters": func(c *Config) interface{} {
+		expanded := c.DelegatedRoutersWithAutoConfig()
 		return stringSliceToInterfaceSlice(expanded)
 	},
-	"Ipns.DelegatedPublishers": func(c *Config, cfgRoot string) interface{} {
-		expanded := c.DelegatedPublishersWithAutoConfig(cfgRoot)
+	"Ipns.DelegatedPublishers": func(c *Config) interface{} {
+		expanded := c.DelegatedPublishersWithAutoConfig()
 		return stringSliceToInterfaceSlice(expanded)
 	},
 }
 
 // ExpandConfigField expands auto values for a specific config field using the same methods as the daemon
-func (c *Config) ExpandConfigField(key string, value interface{}, cfgRoot string) interface{} {
+func (c *Config) ExpandConfigField(key string, value interface{}) interface{} {
 	if expandFunc, supported := supportedAutoConfigFields[key]; supported {
-		return expandFunc(c, cfgRoot)
+		return expandFunc(c)
 	}
 
 	// Return original value if no expansion needed (not a field that supports auto values)

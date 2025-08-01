@@ -52,7 +52,7 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 		if err != nil {
 			return ipns.Name{}, fmt.Errorf("failed to read config: %w", err)
 		}
-		delegatedPublishers := cfg.DelegatedPublishersWithAutoConfig(api.repo.Path())
+		delegatedPublishers := cfg.DelegatedPublishersWithAutoConfig()
 		if len(delegatedPublishers) == 0 {
 			return ipns.Name{}, errors.New("no delegated publishers configured: add Ipns.DelegatedPublishers or use --allow-offline for local-only publishing")
 		}
