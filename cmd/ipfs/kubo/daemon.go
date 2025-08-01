@@ -1311,7 +1311,7 @@ func startAutoConfigUpdater(ctx context.Context, cfg *config.Config, userAgent s
 		primeCtx, cancel := context.WithTimeout(ctx, config.DefaultAutoconfigTimeout)
 		defer cancel()
 
-		result := client.MustGetConfigOnline(primeCtx, autoConfigURL, refreshInterval, autoconfig.GetMainnetFallbackConfig)
+		result := client.MustGetConfigWithRefresh(primeCtx, autoConfigURL, refreshInterval, autoconfig.GetMainnetFallbackConfig)
 		if result != nil {
 			autoconfigLog.Debugf("successfully primed autoconfig cache with version %d", result.AutoConfigVersion)
 		}

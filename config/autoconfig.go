@@ -236,8 +236,7 @@ func (c *Config) BootstrapWithAutoConfig() []string {
 		routingType := c.Routing.Type.WithDefault(DefaultRoutingType)
 		nativeSystems := GetNativeSystems(routingType)
 		autoConfigData = autoConfig.GetBootstrapPeers(nativeSystems)
-		log.Debugf("BootstrapWithAutoConfig: routingType=%s nativeSystems=%v peers=%d",
-			routingType, nativeSystems, len(autoConfigData))
+		log.Debugf("BootstrapWithAutoConfig: processing with routing type: %s", routingType)
 	} else {
 		log.Debugf("BootstrapWithAutoConfig: autoConfig disabled, using original config")
 	}
@@ -306,11 +305,11 @@ func (c *Config) getAutoConfig() *autoconfig.Config {
 		return nil
 	}
 
-	// Use MustGetConfigOffline to avoid network I/O during config operations
-	// This ensures offline nodes don't block on network operations
-	result := client.MustGetConfigOffline(c.AutoConfig.URL, autoconfig.GetMainnetFallbackConfig)
+	// Use MustGetConfigCached to avoid network I/O during config operations
+	// This ensures config retrieval doesn't block on network operations
+	result := client.MustGetConfigCached(c.AutoConfig.URL, autoconfig.GetMainnetFallbackConfig)
 
-	log.Debugf("getAutoConfig: returning config with %d DelegatedEndpoints", len(result.DelegatedEndpoints))
+	log.Debugf("getAutoConfig: returning autoconfig data")
 	return result
 }
 

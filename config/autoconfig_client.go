@@ -43,13 +43,13 @@ func NewAutoConfigClientWithConfig(repoPath string, cfg interface{}, userAgent s
 }
 
 // GetAutoConfig is a convenience function to get the latest config with a default client
-// Uses the default check interval - for user-configured intervals, use MustGetConfigOnline directly
+// Uses the default check interval - for user-configured intervals, use MustGetConfigWithRefresh directly
 func GetAutoConfig(ctx context.Context, configURL, repoPath, userAgent string) (*autoconfig.Config, error) {
 	client, err := NewAutoConfigClient(repoPath, userAgent)
 	if err != nil {
 		return nil, err
 	}
-	return client.MustGetConfigOnline(ctx, configURL, autoconfig.DefaultRefreshInterval, autoconfig.GetMainnetFallbackConfig), nil
+	return client.MustGetConfigWithRefresh(ctx, configURL, autoconfig.DefaultRefreshInterval, autoconfig.GetMainnetFallbackConfig), nil
 }
 
 

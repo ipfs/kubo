@@ -34,14 +34,13 @@ func (c *Client) getLatest(ctx context.Context, configURL string, refreshInterva
 	// Check if we have cached data that's still within refreshInterval
 	cachedResp, cacheErr := c.getCached(cacheDir)
 	if cacheErr == nil && cachedResp.CacheAge < refreshInterval {
-		freshFor := refreshInterval - cachedResp.CacheAge
-		log.Debugf("using cached autoconfig (age: %s, fresh for %s)", formatDuration(cachedResp.CacheAge), formatDuration(freshFor))
+		log.Debugf("using cached autoconfig within refresh interval")
 		return cachedResp, nil
 	}
 
 	// Cache is stale or doesn't exist, try to fetch from remote
 	if cacheErr == nil {
-		log.Debugf("cache stale (age: %s), checking for updates", formatDuration(cachedResp.CacheAge))
+		log.Debugf("cache stale, checking for updates")
 	}
 	resp, err := c.fetchFromRemote(ctx, configURL, cacheDir)
 	if err != nil {
@@ -59,19 +58,17 @@ func (c *Client) getLatest(ctx context.Context, configURL string, refreshInterva
 	if resp.Config != nil && cacheErr == nil {
 		effectiveInterval := calculateEffectiveRefreshInterval(refreshInterval, resp.Config.CacheTTL)
 		if effectiveInterval < refreshInterval {
-			log.Debugf("server CacheTTL (%ds) is shorter than user refresh interval (%s), using effective interval %s",
-				resp.Config.CacheTTL, refreshInterval, effectiveInterval)
+			log.Debugf("server CacheTTL is shorter than user refresh interval, using server CacheTTL")
 
 			// Re-check if cached version is still fresh under the effective (shorter) interval
 			if cachedResp.CacheAge < effectiveInterval {
-				log.Debugf("cached config is still fresh under server CacheTTL (%s)", effectiveInterval)
+				log.Debugf("cached config is still fresh under server CacheTTL")
 				return cachedResp, nil
 			}
 			// If cached version is also stale under server TTL, continue with newly fetched config
 			log.Debugf("cached config is stale even under server CacheTTL, using newly fetched config")
 		} else {
-			log.Debugf("using user refresh interval (%s), server CacheTTL (%ds) is longer or not specified",
-				refreshInterval, resp.Config.CacheTTL)
+			log.Debugf("using user refresh interval, server CacheTTL is longer or not specified")
 		}
 	}
 
@@ -83,11 +80,11 @@ func (c *Client) getLatest(ctx context.Context, configURL string, refreshInterva
 	return resp, nil
 }
 
-// MustGetConfigOffline returns config from cache or fallback without any network I/O.
+// MustGetConfigCached returns config from cache or fallback without any network I/O.
 //
 // This method guarantees no network operations will be performed, making it safe to
-// call from any context, including offline nodes and config validation routines.
-// It follows this priority order:
+// call from any context where network access should be avoided. It only uses locally
+// cached data or the provided fallback. It follows this priority order:
 //
 // 1. Return cached config if available (regardless of age)
 // 2. Call provided fallback function if cache miss occurs
@@ -96,10 +93,10 @@ func (c *Client) getLatest(ctx context.Context, configURL string, refreshInterva
 // This method is essential for preventing network blocking during config reads,
 // especially in scenarios where autoconfig is enabled but network access should
 // be avoided (e.g., config validation, offline node construction).
-func (c *Client) MustGetConfigOffline(configURL string, fallbackFunc func() *Config) *Config {
+func (c *Client) MustGetConfigCached(configURL string, fallbackFunc func() *Config) *Config {
 	cacheDir, err := c.getCacheDir(configURL)
 	if err != nil {
-		log.Debugf("MustGetConfigOffline: cache dir error: %v, using fallback", err)
+		log.Debugf("MustGetConfigCached: cache dir error: %v, using fallback", err)
 		if fallbackFunc != nil {
 			return fallbackFunc()
 		}
@@ -109,18 +106,18 @@ func (c *Client) MustGetConfigOffline(configURL string, fallbackFunc func() *Con
 	// Try to get from cache only
 	config, err := c.getCachedConfig(cacheDir)
 	if err != nil {
-		log.Debugf("MustGetConfigOffline: cache miss or error: %v, using fallback", err)
+		log.Debugf("MustGetConfigCached: cache miss or error: %v, using fallback", err)
 		if fallbackFunc != nil {
 			return fallbackFunc()
 		}
 		return GetMainnetFallbackConfig()
 	}
 
-	log.Debugf("MustGetConfigOffline: returning cached config")
+	log.Debugf("MustGetConfigCached: returning cached config")
 	return config
 }
 
-// MustGetConfigOnline fetches the latest config from network with fallback handling.
+// MustGetConfigWithRefresh fetches the latest config from network with fallback handling.
 //
 // This method will attempt to fetch fresh config from the network, respecting the
 // refreshInterval for cache freshness. If network fetch fails, it falls back to:
@@ -129,8 +126,8 @@ func (c *Client) MustGetConfigOffline(configURL string, fallbackFunc func() *Con
 // 3. Default mainnet fallback
 //
 // This method may block on network I/O and should be used when network operations
-// are acceptable. For config reads that must avoid network I/O, use MustGetConfigOffline.
-func (c *Client) MustGetConfigOnline(ctx context.Context, configURL string, refreshInterval time.Duration, fallbackFunc func() *Config) *Config {
+// are acceptable. For config reads that must avoid network I/O, use MustGetConfigCached.
+func (c *Client) MustGetConfigWithRefresh(ctx context.Context, configURL string, refreshInterval time.Duration, fallbackFunc func() *Config) *Config {
 	resp, err := c.getLatest(ctx, configURL, refreshInterval)
 	if err != nil {
 		log.Errorf("AutoConfig fetch failed: %v, falling back to provided fallback config", err)
@@ -138,13 +135,20 @@ func (c *Client) MustGetConfigOnline(ctx context.Context, configURL string, refr
 		log.Errorf("AutoConfig fetch returned nil response or config, falling back to provided fallback config")
 	} else {
 		// Return the fetched config as-is without any modification
+		if resp.FromCache {
+			log.Debugf("MustGetConfigWithRefresh: returning cached config")
+		} else {
+			log.Debugf("MustGetConfigWithRefresh: returning fresh config from network")
+		}
 		return resp.Config
 	}
 
 	// Use the provided fallback function if available, otherwise use default mainnet fallback
 	if fallbackFunc != nil {
+		log.Debugf("MustGetConfigWithRefresh: returning provided fallback config")
 		return fallbackFunc()
 	}
+	log.Debugf("MustGetConfigWithRefresh: returning default mainnet fallback config")
 	return GetMainnetFallbackConfig()
 }
 

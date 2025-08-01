@@ -110,7 +110,7 @@ func (u *BackgroundUpdater) Start(ctx context.Context) error {
 	u.wg.Add(1)
 	go u.runUpdater()
 
-	log.Debugf("started autoconfig background updater with interval %v", u.updateInterval)
+	log.Debugf("started autoconfig background updater")
 	return nil
 }
 
@@ -167,7 +167,7 @@ func (u *BackgroundUpdater) runUpdater() {
 			} else {
 				// Success - reset failure count
 				if failureCount > 0 {
-					log.Debugf("autoconfig background update succeeded after %d failed attempts", failureCount)
+					log.Debugf("autoconfig background update succeeded after retries")
 					failureCount = 0
 				} else {
 					log.Debug("autoconfig background update succeeded")

@@ -25,7 +25,7 @@ func testAutoConfigWithFallbackAndTimeout(t *testing.T, serverURL string, expect
 	client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
 	require.NoError(t, err)
 
-	// Use fallback detection to test error conditions with MustGetConfigOnline
+	// Use fallback detection to test error conditions with MustGetConfigWithRefresh
 	fallbackUsed := false
 	fallbackConfig := &autoconfig.Config{
 		AutoConfigVersion: -999, // Special marker to detect fallback usage
@@ -34,7 +34,7 @@ func testAutoConfigWithFallbackAndTimeout(t *testing.T, serverURL string, expect
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	result := client.MustGetConfigOnline(ctx, serverURL, autoconfig.DefaultRefreshInterval, func() *autoconfig.Config {
+	result := client.MustGetConfigWithRefresh(ctx, serverURL, autoconfig.DefaultRefreshInterval, func() *autoconfig.Config {
 		fallbackUsed = true
 		return fallbackConfig
 	})
