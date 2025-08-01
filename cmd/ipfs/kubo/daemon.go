@@ -572,6 +572,9 @@ take effect.
 		}
 	}()
 
+	// Clear any cached offline node and set the online daemon node
+	// This ensures HTTP RPC server uses the online node, not any cached offline node
+	cctx.ClearCachedNode()
 	cctx.ConstructNode = func() (*core.IpfsNode, error) {
 		return node, nil
 	}
@@ -896,6 +899,12 @@ func printLibp2pPorts(node *core.IpfsNode) {
 		return
 	}
 
+	if node.PeerHost == nil {
+		log.Error("PeerHost is nil - this should not happen and likely indicates an FX dependency injection issue or race condition")
+		fmt.Println("Swarm not properly initialized - node PeerHost is nil.")
+		return
+	}
+
 	ifaceAddrs, err := node.PeerHost.Network().InterfaceListenAddresses()
 	if err != nil {
 		log.Errorf("failed to read listening addresses: %s", err)
@@ -1075,6 +1084,10 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 	handler, err := corehttp.MakeHandler(node, nil, opts...)
 	if err != nil {
 		return nil, err
+	}
+
+	if node.PeerHost == nil {
+		return nil, fmt.Errorf("cannot create libp2p gateway: node PeerHost is nil (this should not happen and likely indicates an FX dependency injection issue or race condition)")
 	}
 
 	h := p2phttp.Host{
