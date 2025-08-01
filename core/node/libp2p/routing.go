@@ -177,6 +177,12 @@ func ContentRouting(in p2pOnlineContentRoutingIn) routing.ContentRouting {
 	}
 }
 
+// ContentDiscovery narrows down the given content routing facility so that it
+// only does discovery.
+func ContentDiscovery(in irouting.ProvideManyRouter) routing.ContentDiscovery {
+	return in
+}
+
 type p2pOnlineRoutingIn struct {
 	fx.In
 
@@ -185,7 +191,7 @@ type p2pOnlineRoutingIn struct {
 }
 
 // Routing will get all routers obtained from different methods (delegated
-// routers, pub-sub, and so on) and add them all together using a TieredRouter.
+// routers, pub-sub, and so on) and add them all together using a ParallelRouter.
 func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	routers := in.Routers
 

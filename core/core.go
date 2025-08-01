@@ -98,6 +98,7 @@ type IpfsNode struct {
 	Filters                   *ma.Filters                `optional:"true"`
 	Bootstrapper              io.Closer                  `optional:"true"` // the periodic bootstrapper
 	Routing                   irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
+	ContentDiscovery          routing.ContentDiscovery   `optional:"true"` // the discovery part of the routing system
 	DNSResolver               *madns.Resolver            // the DNS resolver
 	IPLDPathResolver          pathresolver.Resolver      `name:"ipldPathResolver"`          // The IPLD path resolver
 	UnixFSPathResolver        pathresolver.Resolver      `name:"unixFSPathResolver"`        // The UnixFS path resolver
