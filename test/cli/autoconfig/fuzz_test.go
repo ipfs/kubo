@@ -8,11 +8,47 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ipfs/kubo/boxo/autoconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// testAutoConfigWithFallback is a helper function that tests autoconfig parsing with fallback detection
+func testAutoConfigWithFallback(t *testing.T, serverURL string, expectError bool, expectErrorMsg string) (*autoconfig.Config, bool) {
+	return testAutoConfigWithFallbackAndTimeout(t, serverURL, expectError, expectErrorMsg, 10*time.Second)
+}
+
+// testAutoConfigWithFallbackAndTimeout is a helper function that tests autoconfig parsing with fallback detection and custom timeout
+func testAutoConfigWithFallbackAndTimeout(t *testing.T, serverURL string, expectError bool, expectErrorMsg string, timeout time.Duration) (*autoconfig.Config, bool) {
+	client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
+	require.NoError(t, err)
+
+	// Use fallback detection to test error conditions with MustGetConfigOnline
+	fallbackUsed := false
+	fallbackConfig := &autoconfig.Config{
+		AutoConfigVersion: -999, // Special marker to detect fallback usage
+		AutoConfigSchema:  -999,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	result := client.MustGetConfigOnline(ctx, serverURL, autoconfig.DefaultRefreshInterval, func() *autoconfig.Config {
+		fallbackUsed = true
+		return fallbackConfig
+	})
+
+	if expectError {
+		require.True(t, fallbackUsed, expectErrorMsg)
+		require.Equal(t, int64(-999), result.AutoConfigVersion, "Should return fallback config for error case")
+	} else {
+		require.False(t, fallbackUsed, "Expected no fallback to be used")
+		require.NotEqual(t, int64(-999), result.AutoConfigVersion, "Should return fetched config for success case")
+	}
+
+	return result, fallbackUsed
+}
 
 func TestAutoConfigFuzz(t *testing.T) {
 	t.Parallel()
@@ -71,15 +107,7 @@ func testFuzzAutoConfigVersion(t *testing.T) {
 			defer server.Close()
 
 			// Test that our autoconfig parser handles this gracefully
-			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
-			require.NoError(t, err)
-			_, err = client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
-
-			if tc.expectError {
-				require.Error(t, err, "Expected error for %s", tc.name)
-			} else {
-				require.NoError(t, err, "Expected no error for %s", tc.name)
-			}
+			_, _ = testAutoConfigWithFallback(t, server.URL, tc.expectError, fmt.Sprintf("Expected fallback to be used for %s", tc.name))
 		})
 	}
 }
@@ -191,23 +219,20 @@ func testFuzzBootstrapArrays(t *testing.T) {
 			}))
 			defer server.Close()
 
-			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
-			require.NoError(t, err)
-			autoConf, err := client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
+			autoConf, fallbackUsed := testAutoConfigWithFallback(t, server.URL, tc.expectError, fmt.Sprintf("Expected fallback to be used for %s", tc.name))
 
-			if tc.expectError {
-				require.Error(t, err, "Expected error for %s", tc.name)
-			} else {
-				require.NoError(t, err, "Expected no error for %s", tc.name)
+			if !tc.expectError {
 				require.NotNil(t, autoConf, "AutoConfig should not be nil for successful parsing")
 
 				// Verify structure is reasonable
-				bootstrapPeers := autoConf.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				bootstrapPeers := autoConf.GetBootstrapPeers([]string{"AminoDHT"})
 				require.IsType(t, []string{}, bootstrapPeers, "Bootstrap should be []string")
 
-				// Run test-specific validation if provided
-				if tc.validate != nil {
-					tc.validate(t, autoConf)
+				// Run test-specific validation if provided (only for non-fallback cases)
+				if tc.validate != nil && !fallbackUsed {
+					// Create a mock Response for compatibility with validation functions
+					mockResponse := &autoconfig.Response{Config: autoConf}
+					tc.validate(t, mockResponse)
 				}
 			}
 		})
@@ -316,19 +341,16 @@ func testFuzzDNSResolvers(t *testing.T) {
 			}))
 			defer server.Close()
 
-			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
-			require.NoError(t, err)
-			autoConf, err := client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
+			autoConf, fallbackUsed := testAutoConfigWithFallback(t, server.URL, tc.expectError, fmt.Sprintf("Expected fallback to be used for %s", tc.name))
 
-			if tc.expectError {
-				require.Error(t, err, "Expected error for %s", tc.name)
-			} else {
-				require.NoError(t, err, "Expected no error for %s", tc.name)
+			if !tc.expectError {
 				require.NotNil(t, autoConf, "AutoConfig should not be nil for successful parsing")
 
-				// Run test-specific validation if provided
-				if tc.validate != nil {
-					tc.validate(t, autoConf)
+				// Run test-specific validation if provided (only for non-fallback cases)
+				if tc.validate != nil && !fallbackUsed {
+					// Create a mock Response for compatibility with validation functions
+					mockResponse := &autoconfig.Response{Config: autoConf}
+					tc.validate(t, mockResponse)
 				}
 			}
 		})
@@ -422,19 +444,16 @@ func testFuzzDelegatedRouters(t *testing.T) {
 			}))
 			defer server.Close()
 
-			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
-			require.NoError(t, err)
-			autoConf, err := client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
+			autoConf, fallbackUsed := testAutoConfigWithFallback(t, server.URL, tc.expectError, fmt.Sprintf("Expected fallback to be used for %s", tc.name))
 
-			if tc.expectError {
-				require.Error(t, err, "Expected error for %s", tc.name)
-			} else {
-				require.NoError(t, err, "Expected no error for %s", tc.name)
+			if !tc.expectError {
 				require.NotNil(t, autoConf, "AutoConfig should not be nil for successful parsing")
 
-				// Run test-specific validation if provided
-				if tc.validate != nil {
-					tc.validate(t, autoConf)
+				// Run test-specific validation if provided (only for non-fallback cases)
+				if tc.validate != nil && !fallbackUsed {
+					// Create a mock Response for compatibility with validation functions
+					mockResponse := &autoconfig.Response{Config: autoConf}
+					tc.validate(t, mockResponse)
 				}
 			}
 		})
@@ -522,19 +541,16 @@ func testFuzzDelegatedPublishers(t *testing.T) {
 			defer server.Close()
 
 			// Test that our autoconfig parser handles this gracefully
-			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
-			require.NoError(t, err)
-			autoConf, err := client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
+			autoConf, fallbackUsed := testAutoConfigWithFallback(t, server.URL, tc.expectErr, fmt.Sprintf("Expected fallback to be used for %s", tc.name))
 
-			if tc.expectErr {
-				require.Error(t, err, "Expected error for %s", tc.name)
-			} else {
-				require.NoError(t, err, "Expected no error for %s", tc.name)
+			if !tc.expectErr {
 				require.NotNil(t, autoConf, "AutoConfig should not be nil for successful parsing")
 
-				// Run test-specific validation if provided
-				if tc.validate != nil {
-					tc.validate(t, autoConf)
+				// Run test-specific validation if provided (only for non-fallback cases)
+				if tc.validate != nil && !fallbackUsed {
+					// Create a mock Response for compatibility with validation functions
+					mockResponse := &autoconfig.Response{Config: autoConf}
+					tc.validate(t, mockResponse)
 				}
 			}
 		})
@@ -563,12 +579,8 @@ func testFuzzMalformedJSON(t *testing.T) {
 			}))
 			defer server.Close()
 
-			client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
-			require.NoError(t, err)
-			_, err = client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
-
-			// All malformed JSON should result in errors
-			require.Error(t, err, "Expected error for malformed JSON: %s", malformedJSON)
+			// All malformed JSON should result in fallback usage
+			_, _ = testAutoConfigWithFallback(t, server.URL, true, fmt.Sprintf("Expected fallback to be used for malformed JSON: %s", malformedJSON))
 		})
 	}
 }
@@ -615,16 +627,12 @@ func testFuzzLargePayloads(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := autoconfig.NewClient(autoconfig.WithUserAgent("test-agent"))
-	require.NoError(t, err)
-	autoConf, err := client.GetLatest(context.Background(), server.URL, autoconfig.DefaultRefreshInterval)
-
 	// Should handle large payloads gracefully (up to reasonable limits)
-	require.NoError(t, err, "Should handle large payloads")
+	autoConf, _ := testAutoConfigWithFallbackAndTimeout(t, server.URL, false, "Large payload should not trigger fallback", 30*time.Second)
 	require.NotNil(t, autoConf, "Should return valid config")
 
 	// Verify bootstrap entries were preserved
-	bootstrapPeers := autoConf.Config.GetBootstrapPeers([]string{"AminoDHT"})
+	bootstrapPeers := autoConf.GetBootstrapPeers([]string{"AminoDHT"})
 	require.Len(t, bootstrapPeers, 10000, "Should preserve all bootstrap entries")
 }
 
