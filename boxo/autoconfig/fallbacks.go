@@ -27,10 +27,10 @@ var (
 		},
 	}
 
-	// FallbackDelegatedRouters are the default delegated routing endpoints from Kubo 0.36
+	// FallbackDelegatedRouters are the default delegated routing endpoints matching mainnet autoconfig
 	// Used as last-resort fallback when autoconfig fetch fails
 	FallbackDelegatedRouters = []string{
-		"https://ipni.example.com/routing/v1/providers",
+		"https://cid.contact/routing/v1/providers",
 	}
 
 	// FallbackDelegatedPublishers are the default delegated IPNS publishers matching mainnet autoconfig
@@ -39,3 +39,59 @@ var (
 		"https://delegated-ipfs.dev/routing/v1/ipns",
 	}
 )
+
+// GetMainnetFallbackConfig returns a complete fallback config matching current mainnet values
+// This mirrors https://config.ipfs-mainnet.org/autoconfig.json exactly
+func GetMainnetFallbackConfig() *Config {
+	return &Config{
+		AutoConfigVersion: 2025072901, // Current mainnet version
+		AutoConfigSchema:  4,
+		SystemRegistry: map[string]SystemConfig{
+			SystemAminoDHT: {
+				URL:         "https://github.com/ipfs/specs/pull/497",
+				Description: "Public DHT swarm that implements the IPFS Kademlia DHT specification under protocol identifier /ipfs/kad/1.0.0",
+				NativeConfig: &NativeConfig{
+					Bootstrap: FallbackBootstrapPeers,
+				},
+				DelegatedConfig: &DelegatedConfig{
+					Read:  []string{"/routing/v1/providers", "/routing/v1/peers", "/routing/v1/ipns"},
+					Write: []string{"/routing/v1/ipns"},
+				},
+			},
+			SystemIPNI: {
+				URL:         "https://cid.contact",
+				Description: "Network Indexer - content routing database for large storage providers",
+				DelegatedConfig: &DelegatedConfig{
+					Read:  []string{"/routing/v1/providers"},
+					Write: []string{},
+				},
+			},
+			"Example": {
+				URL:         "https://example.com",
+				Description: "Test system for implementers to verify graceful handling of unknown systems and APIs. Production clients MUST ignore this system and its /example/* endpoints without errors.",
+				DelegatedConfig: &DelegatedConfig{
+					Read:  []string{"/example/v0/read"},
+					Write: []string{"/example/v0/write"},
+				},
+			},
+		},
+		DNSResolvers: FallbackDNSResolvers,
+		DelegatedEndpoints: map[string]EndpointConfig{
+			"https://cid.contact": {
+				Systems: []string{SystemIPNI},
+				Read:    []string{"/routing/v1/providers"},
+				Write:   []string{},
+			},
+			"https://delegated-ipfs.dev": {
+				Systems: []string{SystemAminoDHT, SystemIPNI},
+				Read:    []string{"/routing/v1/providers", "/routing/v1/peers", "/routing/v1/ipns"},
+				Write:   []string{"/routing/v1/ipns"},
+			},
+			"https://example.com": {
+				Systems: []string{"Example"},
+				Read:    []string{"/example/v0/read"},
+				Write:   []string{"/example/v0/write"},
+			},
+		},
+	}
+}

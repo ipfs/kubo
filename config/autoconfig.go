@@ -237,12 +237,9 @@ func (c *Config) getAutoConfig(repoPath string) *autoconfig.Config {
 	ctx := context.Background()
 	refreshInterval := c.AutoConfig.RefreshInterval.WithDefault(DefaultAutoConfigRefreshInterval)
 
-	// MustGetConfig handles errors internally and returns nil on failure
-	result := client.MustGetConfig(ctx, c.AutoConfig.URL, refreshInterval)
-	if result == nil {
-		log.Debugf("getAutoConfig: MustGetConfig returned nil (fetch failed)")
-		return nil
-	}
+	// MustGetConfig handles errors internally and never returns nil
+	// Use explicit mainnet fallback function
+	result := client.MustGetConfig(ctx, c.AutoConfig.URL, refreshInterval, autoconfig.GetMainnetFallbackConfig)
 
 	log.Debugf("getAutoConfig: returning config with %d DelegatedEndpoints", len(result.DelegatedEndpoints))
 	return result

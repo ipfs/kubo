@@ -146,9 +146,9 @@ $CACHE_DIR/
 The client implements graceful fallback:
 1. Try to fetch from remote URL
 2. If remote fails, fall back to latest cached version
-3. If no cache exists, fall back to hardcoded defaults (when using `MustGetConfigWithMainnetFallbacks`)
+3. If no cache exists, fall back to provided defaults (when using `MustGetConfig`)
 
-Note: `GetLatest()` returns errors, while `MustGetConfigWithMainnetFallbacks()` never fails and always returns usable configuration.
+Note: `GetLatest()` returns errors, while `MustGetConfig()` never fails and always returns usable configuration.
 
 ## Testing
 

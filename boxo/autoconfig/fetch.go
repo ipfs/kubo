@@ -93,108 +93,27 @@ func (c *Client) GetCached(cacheDir string) (*Response, error) {
 	return c.getCached(cacheDir)
 }
 
-// MustGetConfig returns config with fallbacks to hardcoded defaults
+// MustGetConfig returns config from URL or calls fallback function to get complete fallback config
 // For cache-only behavior, pass a cancelled context
-// This method never returns an error and always returns usable mainnet values
+// This method never returns an error and always returns usable values
+// If fetch succeeds, returns config as-is. If fetch fails, calls fallbackFunc to get complete fallback.
 // The effective refresh interval will be the minimum of refreshInterval and the server's CacheTTL
-func (c *Client) MustGetConfig(ctx context.Context, configURL string, refreshInterval time.Duration) *Config {
+func (c *Client) MustGetConfig(ctx context.Context, configURL string, refreshInterval time.Duration, fallbackFunc func() *Config) *Config {
 	resp, err := c.GetLatest(ctx, configURL, refreshInterval)
-	var config *Config
-	if err == nil {
-		config = resp.Config
-	}
 	if err != nil {
-		log.Errorf("AutoConfig fetch failed for mainnet URL, falling back to hardcoded bootstrap peers")
-		// Return fallback config with new structure
-		return &Config{
-			AutoConfigVersion: 0, // Indicates fallback config
-			AutoConfigSchema:  4,
-			SystemRegistry: map[string]SystemConfig{
-				SystemAminoDHT: {
-					Description: "Fallback AminoDHT configuration",
-					NativeConfig: &NativeConfig{
-						Bootstrap: FallbackBootstrapPeers,
-					},
-					DelegatedConfig: &DelegatedConfig{
-						Read:  []string{"/routing/v1/providers", "/routing/v1/peers", "/routing/v1/ipns"},
-						Write: []string{"/routing/v1/ipns"},
-					},
-				},
-				SystemIPNI: {
-					Description: "Fallback IPNI configuration",
-					DelegatedConfig: &DelegatedConfig{
-						Read:  []string{"/routing/v1/providers"},
-						Write: []string{},
-					},
-				},
-			},
-			DNSResolvers: FallbackDNSResolvers,
-			DelegatedEndpoints: map[string]EndpointConfig{
-				"https://cid.contact": {
-					Systems: []string{SystemIPNI},
-					Read:    []string{"/routing/v1/providers"},
-					Write:   []string{},
-				},
-			},
-		}
+		log.Errorf("AutoConfig fetch failed: %v, falling back to provided fallback config", err)
+	} else if resp == nil || resp.Config == nil {
+		log.Errorf("AutoConfig fetch returned nil response or config, falling back to provided fallback config")
+	} else {
+		// Return the fetched config as-is without any modification
+		return resp.Config
 	}
 
-	// Fill in missing fields with fallbacks for new structure
-	if config.SystemRegistry == nil {
-		config.SystemRegistry = make(map[string]SystemConfig)
+	// Use the provided fallback function if available, otherwise use default mainnet fallback
+	if fallbackFunc != nil {
+		return fallbackFunc()
 	}
-	if len(config.DNSResolvers) == 0 {
-		config.DNSResolvers = FallbackDNSResolvers
-	}
-	if config.DelegatedEndpoints == nil {
-		config.DelegatedEndpoints = make(map[string]EndpointConfig)
-	}
-
-	// Ensure AminoDHT system exists with fallback bootstrap
-	if _, exists := config.SystemRegistry[SystemAminoDHT]; !exists {
-		config.SystemRegistry[SystemAminoDHT] = SystemConfig{
-			Description: "Fallback AminoDHT configuration",
-			NativeConfig: &NativeConfig{
-				Bootstrap: FallbackBootstrapPeers,
-			},
-			DelegatedConfig: &DelegatedConfig{
-				Read:  []string{"/routing/v1/providers", "/routing/v1/peers", "/routing/v1/ipns"},
-				Write: []string{"/routing/v1/ipns"},
-			},
-		}
-	} else if config.SystemRegistry[SystemAminoDHT].NativeConfig == nil || len(config.SystemRegistry[SystemAminoDHT].NativeConfig.Bootstrap) == 0 {
-		// Update existing system with fallback bootstrap if missing
-		system := config.SystemRegistry[SystemAminoDHT]
-		if system.NativeConfig == nil {
-			system.NativeConfig = &NativeConfig{}
-		}
-		if len(system.NativeConfig.Bootstrap) == 0 {
-			system.NativeConfig.Bootstrap = FallbackBootstrapPeers
-		}
-		config.SystemRegistry[SystemAminoDHT] = system
-	}
-
-	// Ensure IPNI system exists
-	if _, exists := config.SystemRegistry[SystemIPNI]; !exists {
-		config.SystemRegistry[SystemIPNI] = SystemConfig{
-			Description: "Fallback IPNI configuration",
-			DelegatedConfig: &DelegatedConfig{
-				Read:  []string{"/routing/v1/providers"},
-				Write: []string{},
-			},
-		}
-	}
-
-	// Ensure at least one delegated endpoint exists
-	if len(config.DelegatedEndpoints) == 0 {
-		config.DelegatedEndpoints["https://ipni.example.com"] = EndpointConfig{
-			Systems: []string{SystemIPNI},
-			Read:    []string{"/routing/v1/providers"},
-			Write:   []string{},
-		}
-	}
-
-	return config
+	return GetMainnetFallbackConfig()
 }
 
 // fetchFromRemote fetches config from remote URL with metadata
