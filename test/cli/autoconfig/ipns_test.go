@@ -50,11 +50,25 @@ func newMockIPNSPublisher(t *testing.T) *mockIPNSPublisher {
 
 	// Default response function accepts all publishes
 	m.responseFunc = func(peerID string, record []byte) int {
+		m.t.Logf("🔍 Response function called with peerID=%s, record_len=%d", peerID, len(record))
 		return http.StatusOK
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/routing/v1/ipns/", m.handleIPNS)
+
+	// Add catch-all handler to see if requests go to other paths
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		m.t.Logf("🔍 Catch-all handler received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+		if r.URL.Path != "/routing/v1/ipns/" && !strings.HasPrefix(r.URL.Path, "/routing/v1/ipns/") {
+			m.t.Logf("⚠️ Request went to unexpected path: %s", r.URL.Path)
+			http.NotFound(w, r)
+			return
+		}
+		// This shouldn't happen if routing is correct
+		m.t.Logf("⚠️ Catch-all received IPNS request - routing issue")
+		m.handleIPNS(w, r)
+	})
 
 	m.server = httptest.NewServer(mux)
 	return m
@@ -65,6 +79,8 @@ func (m *mockIPNSPublisher) handleIPNS(w http.ResponseWriter, r *http.Request) {
 	defer m.mu.Unlock()
 
 	m.t.Logf("🔍 Mock IPNS publisher received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+	m.t.Logf("🔍 Full URL: %s", r.URL.String())
+	m.t.Logf("🔍 Request headers: %+v", r.Header)
 
 	// Extract peer ID from path
 	parts := strings.Split(r.URL.Path, "/")
@@ -79,24 +95,49 @@ func (m *mockIPNSPublisher) handleIPNS(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "PUT" {
 		// Handle IPNS record publication
+		m.t.Logf("🔍 Processing PUT request for peer %s", peerID)
+		m.t.Logf("🔍 Request headers: Content-Type=%s, Content-Length=%s",
+			r.Header.Get("Content-Type"), r.Header.Get("Content-Length"))
+
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
+			m.t.Logf("❌ Failed to read request body: %v", err)
 			http.Error(w, "failed to read body", http.StatusBadRequest)
 			return
 		}
 
+		m.t.Logf("🔍 Request body size: %d bytes", len(body))
+		if len(body) > 0 {
+			// Log first 100 bytes of payload for debugging (hex dump)
+			maxLog := 100
+			if len(body) < maxLog {
+				maxLog = len(body)
+			}
+			m.t.Logf("🔍 Request body (first %d bytes, hex): %x", maxLog, body[:maxLog])
+		} else {
+			m.t.Logf("⚠️ Request body is EMPTY!")
+		}
+
 		// Get response status from response function
 		status := m.responseFunc(peerID, body)
+		m.t.Logf("🔍 Response function returned status: %d", status)
 
 		if status == http.StatusOK {
-			// Store the actual record payload for later comparison
-			m.recordPayloads[peerID] = make([]byte, len(body))
-			copy(m.recordPayloads[peerID], body)
+			if len(body) > 0 {
+				// Store the actual record payload for later comparison
+				m.recordPayloads[peerID] = make([]byte, len(body))
+				copy(m.recordPayloads[peerID], body)
+				m.t.Logf("✅ Stored %d bytes of payload for peer %s", len(body), peerID)
+			} else {
+				m.t.Logf("⚠️ Not storing payload - body is empty")
+			}
 
 			// Mock successful publish - we don't actually parse the IPNS record
 			// but we can extract some info for testing
 			m.publishedKeys[peerID] = fmt.Sprintf("published-%d", time.Now().Unix())
 			m.t.Logf("IPNS publisher accepted record for peer: %s", peerID)
+		} else {
+			m.t.Logf("❌ Response function rejected request with status %d", status)
 		}
 
 		w.WriteHeader(status)
@@ -264,6 +305,7 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	// Attempt IPNS publishing using --delegated-only mode to test HTTP delegated publishing
 	// This ensures we're specifically testing the delegated publisher functionality
 	t.Log("Attempting IPNS publish using --delegated-only mode...")
+	t.Logf("🔍 Expected IPNS publisher URL: %s", ipnsPublisher.server.URL+"/routing/v1/ipns")
 	publishResult := mainNode.RunIPFS("name", "publish", "--delegated-only", "/ipfs/"+testCID)
 
 	if publishResult.ExitCode() != 0 {
@@ -295,20 +337,44 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	// CRITICAL TEST: Verify HTTP PUT request was made to delegated publisher with valid payload
 	// IPNS publishing to delegated publishers is asynchronous, so we need to wait for the HTTP PUT
 	t.Log("Waiting for HTTP PUT request to reach delegated publisher...")
+
+	// Convert peer ID to IPNS name format (base36 CIDv1) for correct lookup
+	// IPNS uses peer ID represented as CIDv1 in base36 format
+	ipnsKeyResult := mainNode.RunIPFS("id", "--peerid-base", "base36", "-f", "<id>")
+	require.Equal(t, 0, ipnsKeyResult.ExitCode(), "Should be able to get peer ID in base36 format")
+	ipnsKeyBase36 := strings.TrimSpace(ipnsKeyResult.Stdout.String())
+	t.Logf("🔍 Peer ID in base36 (IPNS key format): %s", ipnsKeyBase36)
+
 	var publishedKeys map[string]string
 	var recordPayload []byte
 
 	// Poll for up to 10 seconds to see if mock server receives the request
 	for i := 0; i < 20; i++ {
 		publishedKeys = ipnsPublisher.getPublishedKeys()
-		recordPayload = ipnsPublisher.getRecordPayload(peerID)
+		recordPayload = ipnsPublisher.getRecordPayload(ipnsKeyBase36) // Use base36 format for lookup
+
+		t.Logf("Polling attempt %d/20: keys=%d, payload_len=%d, peerID=%s, ipnsKey=%s",
+			i+1, len(publishedKeys), len(recordPayload), peerID, ipnsKeyBase36)
+
+		// Debug: show what keys we have
+		if len(publishedKeys) > 0 {
+			for key, value := range publishedKeys {
+				t.Logf("  Published key: %s -> %s", key, value)
+			}
+		}
+
+		// Debug: show payload info
+		if len(recordPayload) > 0 {
+			t.Logf("  Payload: %d bytes received", len(recordPayload))
+		} else {
+			t.Logf("  Payload: EMPTY or NIL")
+		}
 
 		if len(publishedKeys) > 0 && len(recordPayload) > 0 {
 			t.Logf("✅ HTTP PUT request received after %d polling attempts", i+1)
 			break
 		}
 
-		t.Logf("Polling attempt %d/20: %d keys published so far", i+1, len(publishedKeys))
 		time.Sleep(500 * time.Millisecond)
 	}
 
