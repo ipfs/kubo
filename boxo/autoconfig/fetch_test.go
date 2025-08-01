@@ -1,6 +1,11 @@
 package autoconfig
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -437,6 +442,117 @@ func TestValidateHTTPURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHTTPCachingBehavior(t *testing.T) {
+	t.Parallel()
+
+	// Create test autoconfig data
+	testConfig := &Config{
+		AutoConfigVersion: 2025080101,
+		AutoConfigSchema:  4,
+		CacheTTL:          3600,
+		SystemRegistry: map[string]SystemConfig{
+			SystemAminoDHT: {
+				Description: "Test AminoDHT system",
+				NativeConfig: &NativeConfig{
+					Bootstrap: []string{
+						"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+					},
+				},
+			},
+		},
+	}
+
+	configJSON, err := json.Marshal(testConfig)
+	require.NoError(t, err)
+
+	etag := `"test-etag-123"`
+	lastModified := "Wed, 21 Oct 2015 07:28:00 GMT"
+	var requestCount int32
+	var conditionalRequestCount int32
+
+	// Create server that tracks conditional requests
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count := atomic.AddInt32(&requestCount, 1)
+		t.Logf("HTTP caching test request #%d: %s, If-None-Match: %s, If-Modified-Since: %s",
+			count, r.Method, r.Header.Get("If-None-Match"), r.Header.Get("If-Modified-Since"))
+
+		// Check for conditional request headers
+		ifNoneMatch := r.Header.Get("If-None-Match")
+		ifModifiedSince := r.Header.Get("If-Modified-Since")
+
+		if ifNoneMatch == etag || ifModifiedSince == lastModified {
+			atomic.AddInt32(&conditionalRequestCount, 1)
+			// Return 304 Not Modified
+			t.Logf("Returning 304 Not Modified for conditional request")
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+
+		// Return full response with caching headers
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("ETag", etag)
+		w.Header().Set("Last-Modified", lastModified)
+		w.Header().Set("Cache-Control", "max-age=3600")
+		_, _ = w.Write(configJSON)
+	}))
+	defer server.Close()
+
+	// Create temporary cache directory
+	cacheDir := t.TempDir()
+
+	// Create autoconfig client
+	client, err := NewClient(
+		WithCacheDir(cacheDir),
+		WithUserAgent("test-user-agent"),
+		WithCacheSize(3),
+		WithTimeout(5*time.Second),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	fallbackFunc := func() *Config {
+		return &Config{
+			AutoConfigVersion: 1,
+			AutoConfigSchema:  4,
+		}
+	}
+
+	// First request - should fetch fresh data
+	config1 := client.MustGetConfigWithRefresh(ctx, server.URL, 100*time.Millisecond, fallbackFunc)
+	require.NotNil(t, config1)
+	assert.Equal(t, int64(2025080101), config1.AutoConfigVersion)
+
+	initialRequestCount := atomic.LoadInt32(&requestCount)
+	require.GreaterOrEqual(t, int(initialRequestCount), 1, "Should have made at least one initial request")
+
+	// Reset counters to track only subsequent requests
+	atomic.StoreInt32(&requestCount, 0)
+	atomic.StoreInt32(&conditionalRequestCount, 0)
+
+	// Wait to ensure cache is considered stale (100ms refresh interval)
+	time.Sleep(150 * time.Millisecond)
+
+	// Second request - should make conditional request and get 304
+	config2 := client.MustGetConfigWithRefresh(ctx, server.URL, 100*time.Millisecond, fallbackFunc)
+	require.NotNil(t, config2)
+	assert.Equal(t, int64(2025080101), config2.AutoConfigVersion)
+
+	// Wait for request to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Should have made at least one conditional request
+	finalRequestCount := atomic.LoadInt32(&requestCount)
+	finalConditionalCount := atomic.LoadInt32(&conditionalRequestCount)
+
+	t.Logf("Final request count: %d, conditional count: %d", finalRequestCount, finalConditionalCount)
+
+	assert.GreaterOrEqual(t, int(finalRequestCount), 1, "Should have made at least one request for refresh")
+	assert.GreaterOrEqual(t, int(finalConditionalCount), 1, "Should have made at least one conditional request that returned 304")
+
+	// All refresh requests should have been conditional (had If-None-Match or If-Modified-Since header)
+	assert.Equal(t, finalConditionalCount, finalRequestCount, "All refresh requests should have been conditional")
 }
 
 func TestCalculateEffectiveRefreshInterval(t *testing.T) {
