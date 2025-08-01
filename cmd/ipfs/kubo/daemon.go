@@ -34,7 +34,6 @@ import (
 	corerepo "github.com/ipfs/kubo/core/corerepo"
 	libp2p "github.com/ipfs/kubo/core/node/libp2p"
 	nodeMount "github.com/ipfs/kubo/fuse/node"
-	"github.com/ipfs/kubo/repo"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
@@ -411,7 +410,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		if autoConfigURL == "" {
 			return fmt.Errorf("AutoConfig is enabled but AutoConfig.URL is empty - please provide a URL")
 		}
-		startAutoConfigUpdater(cctx.Context(), repo, autoConfigURL, version.GetUserAgentVersion())
+		startAutoConfigUpdater(cctx.Context(), cfg, version.GetUserAgentVersion())
 	}
 
 	fmt.Printf("PeerID: %s\n", cfg.Identity.PeerID)
@@ -1283,23 +1282,21 @@ Visit https://github.com/ipfs/kubo/releases or https://dist.ipfs.tech/#kubo and 
 }
 
 // startAutoConfigUpdater starts a background service that periodically checks for AutoConfig updates
-func startAutoConfigUpdater(ctx context.Context, r repo.Repo, autoConfigURL, userAgent string) {
+func startAutoConfigUpdater(ctx context.Context, cfg *config.Config, userAgent string) {
 	autoconfigLog := logging.Logger("autoconfig")
-
-	// Get current config to read RefreshInterval
-	cfg, err := r.Config()
-	if err != nil {
-		autoconfigLog.Errorf("failed to read config for autoconfig updater: %v", err)
-		return
-	}
 
 	// Don't start if AutoConfig is disabled
 	if !cfg.AutoConfig.Enabled.WithDefault(config.DefaultAutoConfigEnabled) {
 		return
 	}
 
-	// Create autoconfig client
-	client, err := config.NewAutoConfigClientWithConfig(r.Path(), cfg, userAgent)
+	// Create autoconfig client using same cache path as WithAutoConfig methods
+	repoPath, err := config.PathRoot()
+	if err != nil {
+		autoconfigLog.Errorf("failed to get repo path for autoconfig client: %v", err)
+		return
+	}
+	client, err := config.NewAutoConfigClient(repoPath, userAgent)
 	if err != nil {
 		autoconfigLog.Errorf("failed to create autoconfig client: %v", err)
 		return
@@ -1307,6 +1304,7 @@ func startAutoConfigUpdater(ctx context.Context, r repo.Repo, autoConfigURL, use
 
 	// Prime cache if no cached config exists to ensure offline nodes work immediately
 	refreshInterval := cfg.AutoConfig.RefreshInterval.WithDefault(config.DefaultAutoConfigRefreshInterval)
+	autoConfigURL := cfg.AutoConfig.URL
 	if !client.HasCachedConfig(autoConfigURL) {
 		autoconfigLog.Debugf("no cached autoconfig found, priming cache with initial fetch")
 		// Use same timeout for cache priming as internal HTTP operations
