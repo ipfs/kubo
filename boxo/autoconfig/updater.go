@@ -185,14 +185,14 @@ func (u *BackgroundUpdater) performUpdate() error {
 	cacheDir, cacheDirErr := u.client.getCacheDir(u.configURL)
 	var oldVersion int64 = 0
 	if cacheDirErr == nil {
-		oldConfig, err := u.client.GetCachedConfig(cacheDir)
+		oldConfig, err := u.client.getCachedConfig(cacheDir)
 		if err == nil && oldConfig != nil {
 			oldVersion = oldConfig.AutoConfigVersion
 		}
 	}
 
 	// Get config with metadata, using the update interval as check interval
-	resp, err := u.client.GetLatest(u.ctx, u.configURL, u.updateInterval)
+	resp, err := u.client.getLatest(u.ctx, u.configURL, u.updateInterval)
 	if err != nil {
 		return fmt.Errorf("failed to fetch autoconfig: %w", err)
 	}

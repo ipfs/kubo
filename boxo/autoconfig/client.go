@@ -3,11 +3,10 @@ package autoconfig
 import (
 	"crypto/tls"
 	"fmt"
+	"hash/fnv"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -153,25 +152,17 @@ func WithTLSInsecureSkipVerify(skip bool) Option {
 	}
 }
 
-// sanitizeForPath sanitizes a string to be safe for use in file paths
-func sanitizeForPath(s string) string {
-	// Replace any character that's not alphanumeric, dash, underscore, or dot
-	re := regexp.MustCompile(`[^a-zA-Z0-9\-_\.]`)
-	sanitized := re.ReplaceAllString(s, "_")
-	// Replace consecutive dots with a single underscore
-	re2 := regexp.MustCompile(`\.{2,}`)
-	return re2.ReplaceAllString(sanitized, "_")
-}
-
 // getCacheDir returns the cache directory for a given URL
+// Uses FNV-1a hash for fast, uniform directory naming in flat structure
 func (c *Client) getCacheDir(configURL string) (string, error) {
-	u, err := url.Parse(configURL)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse URL: %w", err)
-	}
+	// Use FNV-1a for fast, uniform hashing (standard library)
+	h := fnv.New64a()
+	h.Write([]byte(configURL))
+	hash := h.Sum64()
 
-	host := sanitizeForPath(u.Host)
-	return filepath.Join(c.cacheDir, host), nil
+	// Simple flat structure - just the hash as directory name
+	hashStr := fmt.Sprintf("%016x", hash)
+	return filepath.Join(c.cacheDir, hashStr), nil
 }
 
 // readMetadata reads cached ETag and Last-Modified values

@@ -1,12 +1,12 @@
 package config
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"net/url"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -16,6 +16,12 @@ import (
 )
 
 var log = logging.Logger("config")
+
+// clientCache provides a simple singleton pattern for autoconfig clients
+var (
+	clientCache   = make(map[string]*autoconfig.Client)
+	clientCacheMu sync.RWMutex
+)
 
 // AutoConfig contains the configuration for the autoconfig subsystem
 type AutoConfig struct {
@@ -241,17 +247,38 @@ func (c *Config) BootstrapWithAutoConfig(repoPath string) []string {
 	return result
 }
 
-// createAutoConfigClient creates a new autoconfig client with standard settings
-func createAutoConfigClient(repoPath string) (*autoconfig.Client, error) {
+// getOrCreateAutoConfigClient returns a cached client or creates a new one with standard settings
+func getOrCreateAutoConfigClient(repoPath string) (*autoconfig.Client, error) {
+	clientCacheMu.RLock()
+	if client, exists := clientCache[repoPath]; exists {
+		clientCacheMu.RUnlock()
+		return client, nil
+	}
+	clientCacheMu.RUnlock()
+
+	clientCacheMu.Lock()
+	defer clientCacheMu.Unlock()
+	
+	// Double-check after acquiring write lock
+	if client, exists := clientCache[repoPath]; exists {
+		return client, nil
+	}
+
 	cacheDir := filepath.Join(repoPath, "autoconfig")
 	userAgent := version.GetUserAgentVersion()
 
-	return autoconfig.NewClient(
+	client, err := autoconfig.NewClient(
 		autoconfig.WithCacheDir(cacheDir),
 		autoconfig.WithUserAgent(userAgent),
 		autoconfig.WithCacheSize(DefaultAutoconfigCacheSize),
 		autoconfig.WithTimeout(DefaultAutoconfigTimeout),
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	clientCache[repoPath] = client
+	return client, nil
 }
 
 // getAutoConfig is a helper to get autoconfig data with fallbacks
@@ -266,21 +293,16 @@ func (c *Config) getAutoConfig(repoPath string) *autoconfig.Config {
 		return nil
 	}
 
-	// Create client with standard settings
-	client, err := createAutoConfigClient(repoPath)
+	// Create or get cached client with standard settings
+	client, err := getOrCreateAutoConfigClient(repoPath)
 	if err != nil {
 		log.Debugf("getAutoConfig: client creation failed - %v", err)
 		return nil
 	}
 
-	// Fetch config with appropriate refresh interval
-	// Use context.Background() as this is called during config operations that don't have request context
-	ctx := context.Background()
-	refreshInterval := c.AutoConfig.RefreshInterval.WithDefault(DefaultAutoConfigRefreshInterval)
-
-	// MustGetConfig handles errors internally and never returns nil
-	// Use explicit mainnet fallback function
-	result := client.MustGetConfig(ctx, c.AutoConfig.URL, refreshInterval, autoconfig.GetMainnetFallbackConfig)
+	// Use MustGetConfigOffline to avoid network I/O during config operations
+	// This ensures offline nodes don't block on network operations
+	result := client.MustGetConfigOffline(c.AutoConfig.URL, autoconfig.GetMainnetFallbackConfig)
 
 	log.Debugf("getAutoConfig: returning config with %d DelegatedEndpoints", len(result.DelegatedEndpoints))
 	return result

@@ -1305,8 +1305,23 @@ func startAutoConfigUpdater(ctx context.Context, r repo.Repo, autoConfigURL, use
 		return
 	}
 
-	// Create background updater with callbacks to maintain existing behavior
+	// Prime cache if no cached config exists to ensure offline nodes work immediately
 	refreshInterval := cfg.AutoConfig.RefreshInterval.WithDefault(config.DefaultAutoConfigRefreshInterval)
+	if !client.HasCachedConfig(autoConfigURL) {
+		autoconfigLog.Debugf("no cached autoconfig found, priming cache with initial fetch")
+		// Use same timeout for cache priming as internal HTTP operations
+		primeCtx, cancel := context.WithTimeout(ctx, config.DefaultAutoconfigTimeout)
+		defer cancel()
+
+		result := client.MustGetConfigOnline(primeCtx, autoConfigURL, refreshInterval, autoconfig.GetMainnetFallbackConfig)
+		if result != nil {
+			autoconfigLog.Debugf("successfully primed autoconfig cache with version %d", result.AutoConfigVersion)
+		}
+	} else {
+		autoconfigLog.Debugf("cached autoconfig found, skipping cache priming")
+	}
+
+	// Create background updater with callbacks to maintain existing behavior
 	updater, err := autoconfig.NewBackgroundUpdater(client, autoConfigURL,
 		autoconfig.WithUpdateInterval(refreshInterval),
 		autoconfig.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {

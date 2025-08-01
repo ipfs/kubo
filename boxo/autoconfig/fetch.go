@@ -17,17 +17,17 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// GetLatest fetches the latest config with metadata, using cache when possible
+// getLatest fetches the latest config with metadata, using cache when possible
 // The refreshInterval parameter determines how long cached configs are considered fresh.
 // The effective refresh interval will be the minimum of refreshInterval and the server's CacheTTL.
-func (c *Client) GetLatest(ctx context.Context, configURL string, refreshInterval time.Duration) (*Response, error) {
+func (c *Client) getLatest(ctx context.Context, configURL string, refreshInterval time.Duration) (*Response, error) {
 	cacheDir, err := c.getCacheDir(configURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cache dir: %w", err)
 	}
 
 	// Ensure cache directory exists
-	if err := os.MkdirAll(filepath.Clean(cacheDir), dirPermOwnerGroupRead); err != nil {
+	if err := os.MkdirAll(cleanCachePath(cacheDir), dirPermOwnerGroupRead); err != nil {
 		return nil, fmt.Errorf("failed to create cache dir: %w", err)
 	}
 
@@ -83,23 +83,55 @@ func (c *Client) GetLatest(ctx context.Context, configURL string, refreshInterva
 	return resp, nil
 }
 
-// GetCachedConfig returns the latest cached config without trying to fetch from remote
-func (c *Client) GetCachedConfig(cacheDir string) (*Config, error) {
-	return c.getCachedConfig(cacheDir)
+// MustGetConfigOffline returns config from cache or fallback without any network I/O.
+//
+// This method guarantees no network operations will be performed, making it safe to
+// call from any context, including offline nodes and config validation routines.
+// It follows this priority order:
+//
+// 1. Return cached config if available (regardless of age)
+// 2. Call provided fallback function if cache miss occurs
+// 3. Use default mainnet fallback if no fallback function provided
+//
+// This method is essential for preventing network blocking during config reads,
+// especially in scenarios where autoconfig is enabled but network access should
+// be avoided (e.g., config validation, offline node construction).
+func (c *Client) MustGetConfigOffline(configURL string, fallbackFunc func() *Config) *Config {
+	cacheDir, err := c.getCacheDir(configURL)
+	if err != nil {
+		log.Debugf("MustGetConfigOffline: cache dir error: %v, using fallback", err)
+		if fallbackFunc != nil {
+			return fallbackFunc()
+		}
+		return GetMainnetFallbackConfig()
+	}
+
+	// Try to get from cache only
+	config, err := c.getCachedConfig(cacheDir)
+	if err != nil {
+		log.Debugf("MustGetConfigOffline: cache miss or error: %v, using fallback", err)
+		if fallbackFunc != nil {
+			return fallbackFunc()
+		}
+		return GetMainnetFallbackConfig()
+	}
+
+	log.Debugf("MustGetConfigOffline: returning cached config")
+	return config
 }
 
-// GetCached returns the latest cached config with metadata without trying to fetch from remote
-func (c *Client) GetCached(cacheDir string) (*Response, error) {
-	return c.getCached(cacheDir)
-}
-
-// MustGetConfig returns config from URL or calls fallback function to get complete fallback config
-// For cache-only behavior, pass a cancelled context
-// This method never returns an error and always returns usable values
-// If fetch succeeds, returns config as-is. If fetch fails, calls fallbackFunc to get complete fallback.
-// The effective refresh interval will be the minimum of refreshInterval and the server's CacheTTL
-func (c *Client) MustGetConfig(ctx context.Context, configURL string, refreshInterval time.Duration, fallbackFunc func() *Config) *Config {
-	resp, err := c.GetLatest(ctx, configURL, refreshInterval)
+// MustGetConfigOnline fetches the latest config from network with fallback handling.
+//
+// This method will attempt to fetch fresh config from the network, respecting the
+// refreshInterval for cache freshness. If network fetch fails, it falls back to:
+// 1. Cached config (even if stale)
+// 2. Provided fallback function
+// 3. Default mainnet fallback
+//
+// This method may block on network I/O and should be used when network operations
+// are acceptable. For config reads that must avoid network I/O, use MustGetConfigOffline.
+func (c *Client) MustGetConfigOnline(ctx context.Context, configURL string, refreshInterval time.Duration, fallbackFunc func() *Config) *Config {
+	resp, err := c.getLatest(ctx, configURL, refreshInterval)
 	if err != nil {
 		log.Errorf("AutoConfig fetch failed: %v, falling back to provided fallback config", err)
 	} else if resp == nil || resp.Config == nil {
@@ -114,6 +146,28 @@ func (c *Client) MustGetConfig(ctx context.Context, configURL string, refreshInt
 		return fallbackFunc()
 	}
 	return GetMainnetFallbackConfig()
+}
+
+// HasCachedConfig checks if there's a cached config available for the given URL.
+//
+// This method performs a quick filesystem check to determine if cached autoconfig
+// data exists for the specified URL. It does not validate the cached data or
+// check if it's fresh - it only verifies that cache files are present and readable.
+//
+// Returns:
+//   - true: if cached config files exist and are accessible
+//   - false: if no cache exists, cache is unreadable, or any error occurs
+//
+// This method is useful for determining whether to perform cache priming or
+// for conditional logic that depends on cache availability.
+func (c *Client) HasCachedConfig(configURL string) bool {
+	cacheDir, err := c.getCacheDir(configURL)
+	if err != nil {
+		return false
+	}
+
+	files, err := c.listCacheFiles(cacheDir)
+	return err == nil && len(files) > 0
 }
 
 // fetchFromRemote fetches config from remote URL with metadata
@@ -186,7 +240,7 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 		// Record when we last checked for updates (with lock for thread safety)
 		c.cacheMu.Lock()
 		timestampStr := httpRequestTime.Format(time.RFC3339)
-		if err := writeOwnerOnlyFile(filepath.Join(filepath.Clean(cacheDir), lastRefreshFile), []byte(timestampStr)); err != nil {
+		if err := writeOwnerOnlyFile(cacheFilePath(cacheDir, lastRefreshFile), []byte(timestampStr)); err != nil {
 			log.Warnf("failed to write last refresh time: %v", err)
 		}
 		c.cacheMu.Unlock()
@@ -305,7 +359,7 @@ func (c *Client) getCached(cacheDir string) (*Response, error) {
 
 // listCacheFiles returns all cached files sorted by timestamp (newest first)
 func (c *Client) listCacheFiles(cacheDir string) ([]string, error) {
-	cleanCacheDir := filepath.Clean(cacheDir)
+	cleanCacheDir := cleanCachePath(cacheDir)
 	entries, err := os.ReadDir(cleanCacheDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read cache dir: %w", err)
@@ -332,7 +386,7 @@ func (c *Client) saveToCache(cacheDir string, data []byte, etag, lastModified st
 	c.cacheMu.Lock()
 	defer c.cacheMu.Unlock()
 
-	cleanCacheDir := filepath.Clean(cacheDir)
+	cleanCacheDir := cleanCachePath(cacheDir)
 
 	// Use unix timestamp for filename to avoid trusting external values
 	timestamp := time.Now().Unix()
@@ -464,6 +518,16 @@ func (c *Client) validateHTTPURL(urlStr, fieldContext string) error {
 	}
 
 	return nil
+}
+
+// cleanCachePath returns a clean cache directory path
+func cleanCachePath(cacheDir string) string {
+	return filepath.Clean(cacheDir)
+}
+
+// cacheFilePath joins a clean cache directory with filename
+func cacheFilePath(cacheDir, filename string) string {
+	return filepath.Join(cleanCachePath(cacheDir), filename)
 }
 
 // validateConfig validates all multiaddr and URL values in the config
