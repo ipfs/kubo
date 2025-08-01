@@ -164,18 +164,8 @@ func testAutoConfigBackgroundUpdates(t *testing.T) {
 	// Wait for initial autoconfig fetch to complete (daemon startup)
 	time.Sleep(2 * time.Second)
 
-	// Get initial LastUpdate as string (should be set after initial fetch)
-	var initialLastUpdate string
-	node.GetIPFSConfig("AutoConfig.LastUpdate", &initialLastUpdate)
-	require.NotEmpty(t, initialLastUpdate, "Initial LastUpdate should be set after daemon startup")
-
 	// Wait for background update (should happen within 3-6 seconds)
 	time.Sleep(7 * time.Second)
-
-	// Verify LastUpdate was updated
-	var updatedLastUpdate string
-	node.GetIPFSConfig("AutoConfig.LastUpdate", &updatedLastUpdate)
-	assert.NotEqual(t, initialLastUpdate, updatedLastUpdate, "LastUpdate should be updated by background service")
 	assert.Greater(t, requestCount, 1, "Server should have received multiple requests")
 }
 

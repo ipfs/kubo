@@ -29,6 +29,11 @@ func TestAutoConfigExpand(t *testing.T) {
 		t.Parallel()
 		testConfigReplacePreservesAuto(t)
 	})
+
+	t.Run("expand-auto filters unsupported URL paths", func(t *testing.T) {
+		t.Parallel()
+		testExpandAutoFiltersUnsupportedPaths(t)
+	})
 }
 
 func testConfigCommandsShowAutoValues(t *testing.T) {
@@ -291,6 +296,74 @@ func testConfigReplacePreservesAuto(t *testing.T) {
 	err = json.Unmarshal([]byte(result.Stdout.String()), &resolvers)
 	require.NoError(t, err)
 	assert.Equal(t, "auto", resolvers["foo."], "DNS resolver for foo. should still be auto after config replace")
+}
+
+func testExpandAutoFiltersUnsupportedPaths(t *testing.T) {
+	// Create IPFS node
+	node := harness.NewT(t).NewNode().Init("--profile=test")
+
+	// Set routing configuration to "delegated" so all systems are delegated and URLs from autoconfig are used
+	node.SetIPFSConfig("Routing.Type", "delegated")
+	node.SetIPFSConfig("Routing.DelegatedRouters", []string{"auto"})
+	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
+
+	// Load test autoconfig data with unsupported paths
+	autoConfigData := loadTestDataExpand(t, "autoconfig_with_unsupported_paths.json")
+
+	// Create HTTP server that serves autoconfig.json with unsupported paths
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(autoConfigData)
+	}))
+	defer server.Close()
+
+	// Configure autoconfig for the node
+	node.SetIPFSConfig("AutoConfig.URL", server.URL)
+	node.SetIPFSConfig("AutoConfig.Enabled", true)
+
+	// Verify the autoconfig URL is set correctly
+	result := node.RunIPFS("config", "AutoConfig.URL")
+	require.Equal(t, 0, result.ExitCode(), "config AutoConfig.URL should succeed")
+	t.Logf("AutoConfig URL is set to: %s", result.Stdout.String())
+	assert.Contains(t, result.Stdout.String(), "127.0.0.1", "AutoConfig URL should contain the test server address")
+
+	// Test Routing.DelegatedRouters field expansion filters unsupported paths
+	result = node.RunIPFS("config", "Routing.DelegatedRouters", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Routing.DelegatedRouters --expand-auto should succeed")
+
+	var expandedRouters []string
+	err := json.Unmarshal([]byte(result.Stdout.String()), &expandedRouters)
+	require.NoError(t, err)
+
+	// Verify supported URLs are included
+	assert.Contains(t, expandedRouters, "https://supported.example.com/routing/v1/providers", "Should contain supported provider URL")
+	assert.Contains(t, expandedRouters, "https://supported.example.com/routing/v1/peers", "Should contain supported peers URL")
+	assert.Contains(t, expandedRouters, "https://mixed.example.com/routing/v1/providers", "Should contain mixed provider URL")
+	assert.Contains(t, expandedRouters, "https://mixed.example.com/routing/v1/peers", "Should contain mixed peers URL")
+
+	// Verify unsupported URLs are filtered out
+	assert.NotContains(t, expandedRouters, "https://unsupported.example.com/example/v0/read", "Should filter out unsupported path /example/v0/read")
+	assert.NotContains(t, expandedRouters, "https://unsupported.example.com/api/v1/custom", "Should filter out unsupported path /api/v1/custom")
+	assert.NotContains(t, expandedRouters, "https://mixed.example.com/unsupported/path", "Should filter out unsupported path /unsupported/path")
+
+	t.Logf("Filtered routers: %v", expandedRouters)
+
+	// Test Ipns.DelegatedPublishers field expansion filters unsupported paths
+	result = node.RunIPFS("config", "Ipns.DelegatedPublishers", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Ipns.DelegatedPublishers --expand-auto should succeed")
+
+	var expandedPublishers []string
+	err = json.Unmarshal([]byte(result.Stdout.String()), &expandedPublishers)
+	require.NoError(t, err)
+
+	// Verify supported IPNS publisher URLs are included
+	assert.Contains(t, expandedPublishers, "https://supported.example.com/routing/v1/ipns", "Should contain supported IPNS URL")
+	assert.Contains(t, expandedPublishers, "https://mixed.example.com/routing/v1/ipns", "Should contain mixed IPNS URL")
+
+	// Verify unsupported URLs are filtered out (unsupported.example.com has /example/v0/write which is unsupported)
+	assert.NotContains(t, expandedPublishers, "https://unsupported.example.com/example/v0/write", "Should filter out unsupported write path")
+
+	t.Logf("Filtered publishers: %v", expandedPublishers)
 }
 
 // Helper function to load test data files

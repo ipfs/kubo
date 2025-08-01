@@ -3,7 +3,6 @@ package libp2p
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -60,34 +59,18 @@ type EndpointSource struct {
 	SupportsWrite bool // came from DelegatedPublishersWithAutoConfig (Write operations)
 }
 
-// parseEndpointURL extracts the base URL and path from an endpoint URL
-func parseEndpointURL(endpoint string) (baseURL string, path string, err error) {
-	parsedURL, err := url.Parse(endpoint)
-	if err != nil {
-		return "", "", fmt.Errorf("invalid URL %q: %w", endpoint, err)
-	}
-
-	// Build base URL without path
-	baseURL = fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
-
-	// Extract and normalize path
-	path = strings.TrimPrefix(parsedURL.Path, "/")
-	path = strings.TrimSuffix(path, "/")
-
-	return baseURL, path, nil
-}
-
 // determineCapabilities determines endpoint capabilities based on URL path and source
 func determineCapabilities(endpoint EndpointSource) (string, EndpointCapabilities, error) {
-	baseURL, path, err := parseEndpointURL(endpoint.URL)
+	baseURL, path, err := config.ParseAndValidateRoutingURL(endpoint.URL)
 	if err != nil {
-		return "", EndpointCapabilities{}, err
+		log.Debugf("Skipping endpoint %q: %v", endpoint.URL, err)
+		return "", EndpointCapabilities{}, nil // Return empty caps, not error
 	}
 
+	// Now we know the path is valid, just determine capabilities
 	var caps EndpointCapabilities
-
 	switch path {
-	case "": // No path - enable all operations based on source
+	case "": // Base URL - all operations
 		if endpoint.SupportsRead {
 			caps.Providers = true
 			caps.Peers = true
@@ -96,17 +79,14 @@ func determineCapabilities(endpoint EndpointSource) (string, EndpointCapabilitie
 		if endpoint.SupportsWrite {
 			caps.IPNSPut = true
 		}
-
 	case "routing/v1/providers":
 		if endpoint.SupportsRead {
 			caps.Providers = true
 		}
-
 	case "routing/v1/peers":
 		if endpoint.SupportsRead {
 			caps.Peers = true
 		}
-
 	case "routing/v1/ipns":
 		if endpoint.SupportsRead {
 			caps.IPNSGet = true
@@ -114,14 +94,6 @@ func determineCapabilities(endpoint EndpointSource) (string, EndpointCapabilitie
 		if endpoint.SupportsWrite {
 			caps.IPNSPut = true
 		}
-
-	default:
-		if strings.HasPrefix(path, "routing/v1/") {
-			log.Debugf("Skipping unsupported routing path %q in URL %q (supported: /routing/v1/providers, /routing/v1/peers, /routing/v1/ipns)", path, endpoint.URL)
-		} else if path != "" {
-			log.Debugf("Skipping URL with non-routing path %q in URL %q", path, endpoint.URL)
-		}
-		// Return empty capabilities - endpoint will be ignored
 	}
 
 	return baseURL, caps, nil

@@ -39,7 +39,6 @@ config file at runtime.
   - [`AutoConfig`](#autoconfig)
     - [`AutoConfig.URL`](#autoconfigurl)
     - [`AutoConfig.Enabled`](#autoconfigenabled)
-    - [`AutoConfig.LastUpdate`](#autoconfiglastupdate)
     - [`AutoConfig.RefreshInterval`](#autoconfigrefreshinterval)
     - [`AutoConfig.TLSInsecureSkipVerify`](#autoconfigtlsinsecureskipverify)
   - [`Bitswap`](#bitswap)
@@ -668,14 +667,6 @@ The URL must serve a JSON document matching the AutoConfig schema. Kubo validate
 Default: `"https://example.com/autoconfig.json"`
 
 Type: `optionalString`
-
-### `AutoConfig.LastUpdate`
-
-Contains the timestamp of the last successful autoconfig fetch. This field is automatically managed by Kubo and should not be modified manually. It's used internally to track when configuration was last updated and is displayed in logs.
-
-Default: `""`
-
-Type: `string` (RFC3339 format)
 
 ### `AutoConfig.RefreshInterval`
 

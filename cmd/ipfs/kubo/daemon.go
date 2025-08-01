@@ -1313,12 +1313,7 @@ func startAutoConfigUpdater(ctx context.Context, r repo.Repo, autoConfigURL, use
 			autoconfigLog.Errorf("new autoconfig version %d published at %s - restart node to apply updates to \"auto\" entries in Kubo config", newVersion, configURL)
 		}),
 		autoconfig.WithOnUpdateSuccess(func(resp *autoconfig.Response) {
-			// Update config metadata only (not live config values)
-			if err := updateAutoConfigMetadata(r, resp); err != nil {
-				autoconfigLog.Errorf("failed to update autoconfig metadata: %v", err)
-			} else {
-				autoconfigLog.Debugf("updated autoconfig metadata: version %s, fetch time %s", resp.Version, resp.FetchTime.Format(time.RFC3339))
-			}
+			autoconfigLog.Debugf("updated autoconfig metadata: version %s, fetch time %s", resp.Version, resp.FetchTime.Format(time.RFC3339))
 		}),
 		autoconfig.WithOnUpdateError(func(err error) {
 			autoconfigLog.Error(err)
@@ -1334,14 +1329,4 @@ func startAutoConfigUpdater(ctx context.Context, r repo.Repo, autoConfigURL, use
 		autoconfigLog.Errorf("failed to start background updater: %v", err)
 		return
 	}
-}
-
-// updateAutoConfigMetadata updates only the LastUpdate field in config
-func updateAutoConfigMetadata(r repo.Repo, resp *autoconfig.Response) error {
-	// Update LastUpdate with local fetch time
-	if err := r.SetConfigKey("AutoConfig.LastUpdate", resp.FetchTime); err != nil {
-		return fmt.Errorf("failed to update AutoConfig.LastUpdate: %w", err)
-	}
-
-	return nil
 }

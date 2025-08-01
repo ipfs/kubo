@@ -2,7 +2,9 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -24,9 +26,6 @@ type AutoConfig struct {
 	// Enabled determines whether to use autoconfig
 	// Default: true
 	Enabled Flag `json:",omitempty"`
-
-	// LastUpdate is the timestamp of when the autoconfig was last successfully updated
-	LastUpdate *time.Time `json:",omitempty"`
 
 	// RefreshInterval is how often to refresh autoconfig data
 	// Default: 24h
@@ -57,6 +56,48 @@ const (
 	// Routing path constants
 	IPNSWritePath = "/routing/v1/ipns"
 )
+
+// ParseAndValidateRoutingURL extracts base URL and validates routing path in one step
+// Returns error if URL is invalid or has unsupported routing path
+func ParseAndValidateRoutingURL(endpoint string) (baseURL string, path string, err error) {
+	parsedURL, err := url.Parse(endpoint)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid URL %q: %w", endpoint, err)
+	}
+
+	// Build base URL without path
+	baseURL = fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
+
+	// Extract and normalize path
+	path = strings.TrimPrefix(parsedURL.Path, "/")
+	path = strings.TrimSuffix(path, "/")
+
+	// Validate routing path
+	switch path {
+	case "": // No path - base URL
+	case "routing/v1/providers": // Provider lookups
+	case "routing/v1/peers": // Peer lookups
+	case "routing/v1/ipns": // IPNS resolution/publishing
+		// Valid paths - continue
+	default:
+		return "", "", fmt.Errorf("unsupported routing path %q", path)
+	}
+
+	return baseURL, path, nil
+}
+
+// filterValidRoutingURLs filters out URLs with unsupported routing paths
+func filterValidRoutingURLs(urls []string) []string {
+	var filtered []string
+	for _, urlStr := range urls {
+		if _, _, err := ParseAndValidateRoutingURL(urlStr); err == nil {
+			filtered = append(filtered, urlStr)
+		} else {
+			log.Debugf("Skipping invalid routing URL %q: %v", urlStr, err)
+		}
+	}
+	return filtered
+}
 
 // buildEndpointURL constructs a URL from baseURL and path, ensuring no trailing slash
 func buildEndpointURL(baseURL, path string) string {
@@ -279,6 +320,9 @@ func (c *Config) DelegatedRoutersWithAutoConfig(repoPath string) []string {
 
 	resolved := expandAutoConfigSlice(c.Routing.DelegatedRouters, routers, "DelegatedRouters")
 
+	// Filter out URLs with unsupported routing paths
+	resolved = filterValidRoutingURLs(resolved)
+
 	// Final safety check to guarantee no trailing slashes
 	for i, url := range resolved {
 		resolved[i] = strings.TrimRight(url, "/")
@@ -315,6 +359,9 @@ func (c *Config) DelegatedPublishersWithAutoConfig(repoPath string) []string {
 	}
 
 	resolved := expandAutoConfigSlice(c.Ipns.DelegatedPublishers, publishers, "DelegatedPublishers")
+
+	// Filter out URLs with unsupported routing paths
+	resolved = filterValidRoutingURLs(resolved)
 
 	// Final safety check to guarantee no trailing slashes
 	for i, url := range resolved {
