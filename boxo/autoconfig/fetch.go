@@ -80,6 +80,14 @@ func (c *Client) getLatest(ctx context.Context, configURL string, refreshInterva
 	return resp, nil
 }
 
+// GetLatest fetches the latest config with metadata, using cache when possible.
+// This is the public API method that returns errors for proper error handling.
+// The refreshInterval parameter determines how long cached configs are considered fresh.
+// The effective refresh interval will be the minimum of refreshInterval and the server's CacheTTL.
+func (c *Client) GetLatest(ctx context.Context, configURL string, refreshInterval time.Duration) (*Response, error) {
+	return c.getLatest(ctx, configURL, refreshInterval)
+}
+
 // MustGetConfigCached returns config from cache or fallback without any network I/O.
 //
 // This method guarantees no network operations will be performed, making it safe to

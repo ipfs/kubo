@@ -201,8 +201,8 @@ func TestEndpointCapabilitiesReadWriteLogic(t *testing.T) {
 		// Specific IPNS path should only enable IPNS capabilities based on source
 		assert.False(t, capabilities.Providers)
 		assert.False(t, capabilities.Peers)
-		assert.True(t, capabilities.IPNSGet)  // Read capability enabled
-		assert.True(t, capabilities.IPNSPut)  // Write capability enabled
+		assert.True(t, capabilities.IPNSGet) // Read capability enabled
+		assert.True(t, capabilities.IPNSPut) // Write capability enabled
 	})
 
 	t.Run("Unsupported paths should result in empty capabilities", func(t *testing.T) {

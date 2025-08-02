@@ -52,8 +52,6 @@ func GetAutoConfig(ctx context.Context, configURL, repoPath, userAgent string) (
 	return client.MustGetConfigWithRefresh(ctx, configURL, autoconfig.DefaultRefreshInterval, autoconfig.GetMainnetFallbackConfig), nil
 }
 
-
-
 // ValidateAutoConfigAtStartup validates that autoconfig setup is correct at daemon startup
 func ValidateAutoConfigAtStartup(cfg *Config) error {
 	if !cfg.AutoConfig.Enabled.WithDefault(DefaultAutoConfigEnabled) {
