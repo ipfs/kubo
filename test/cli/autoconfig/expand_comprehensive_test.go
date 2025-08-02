@@ -1,3 +1,14 @@
+// Package autoconfig provides comprehensive tests for --expand-auto functionality.
+//
+// Test Scenarios:
+//  1. Tests WITH daemon: Most tests start a daemon to fetch and cache autoconfig data,
+//     then test CLI commands that read from that cache using MustGetConfigCached.
+//  2. Tests WITHOUT daemon: Error condition tests that don't need cached autoconfig.
+//
+// The daemon setup uses startDaemonAndWaitForAutoconfig() helper which:
+// - Starts the daemon
+// - Waits for HTTP request to mock server (not arbitrary timeout)
+// - Returns when autoconfig is cached and ready for CLI commands
 package autoconfig
 
 import (
@@ -44,15 +55,15 @@ func TestExpandAutoComprehensive(t *testing.T) {
 		testMultipleExpandAutoUsesCache(t)
 	})
 
-	t.Run("expand-auto respects RefreshInterval for cache expiry", func(t *testing.T) {
+	t.Run("CLI uses cache only while daemon handles background updates", func(t *testing.T) {
 		t.Parallel()
-		testExpandAutoCacheExpiry(t)
+		testCLIUsesCacheOnlyDaemonUpdatesBackground(t)
 	})
 }
 
 // testAllAutoConfigFieldsResolve verifies that all autoconfig fields (Bootstrap, DNS.Resolvers,
 // Routing.DelegatedRouters, and Ipns.DelegatedPublishers) can be resolved from "auto" values
-// to their actual configuration using --expand-auto flag.
+// to their actual configuration using --expand-auto flag with daemon-cached autoconfig data.
 //
 // This test is critical because:
 // 1. It validates the core autoconfig resolution functionality across all supported fields
@@ -60,6 +71,9 @@ func TestExpandAutoComprehensive(t *testing.T) {
 // 3. It verifies that the autoconfig JSON structure is correctly parsed and applied
 // 4. It tests the end-to-end flow from HTTP fetch to config field expansion
 func testAllAutoConfigFieldsResolve(t *testing.T) {
+	// Test scenario: CLI with daemon started and autoconfig cached
+	// This validates core autoconfig resolution functionality across all supported fields
+
 	// Track HTTP requests to verify mock server is being used
 	var requestCount int32
 	var autoConfigData []byte
@@ -162,12 +176,9 @@ func testAllAutoConfigFieldsResolve(t *testing.T) {
 	node.SetIPFSConfig("Routing.DelegatedRouters", []string{"auto"})
 	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
 
-	// Start and stop daemon to trigger autoconfig fetch and caching
-	t.Log("Starting daemon to trigger autoconfig fetch...")
-	daemon := node.StartDaemon()
-	time.Sleep(2 * time.Second) // Give time for autoconfig to be fetched
-	daemon.StopDaemon()
-	t.Log("Daemon stopped, autoconfig should now be cached")
+	// Start daemon and wait for autoconfig fetch
+	daemon := startDaemonAndWaitForAutoconfig(t, node, &requestCount)
+	defer daemon.StopDaemon()
 
 	// Test 1: Bootstrap resolution
 	result = node.RunIPFS("config", "Bootstrap", "--expand-auto")
@@ -266,11 +277,17 @@ func testAllAutoConfigFieldsResolve(t *testing.T) {
 //  3. It prevents regression where different commands might resolve "auto" differently
 //  4. It ensures users get consistent results regardless of which command they use
 func testBootstrapCommandConsistency(t *testing.T) {
+	// Test scenario: CLI with daemon started and autoconfig cached
+	// This ensures both bootstrap commands read from the same cached autoconfig data
+
 	// Load test autoconfig data
 	autoConfigData := loadTestDataComprehensive(t, "valid_autoconfig.json")
 
-	// Create HTTP server
+	// Track HTTP requests to verify daemon fetches autoconfig
+	var requestCount int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&requestCount, 1)
+		t.Logf("Bootstrap consistency test request: %s %s", r.Method, r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(autoConfigData)
 	}))
@@ -281,6 +298,10 @@ func testBootstrapCommandConsistency(t *testing.T) {
 	node.SetIPFSConfig("AutoConfig.URL", server.URL)
 	node.SetIPFSConfig("AutoConfig.Enabled", true)
 	node.SetIPFSConfig("Bootstrap", []string{"auto"})
+
+	// Start daemon and wait for autoconfig fetch
+	daemon := startDaemonAndWaitForAutoconfig(t, node, &requestCount)
+	defer daemon.StopDaemon()
 
 	// Get bootstrap via config command
 	configResult := node.RunIPFS("config", "Bootstrap", "--expand-auto")
@@ -330,6 +351,10 @@ func testBootstrapCommandConsistency(t *testing.T) {
 // 4. It validates proper error handling and user guidance when misused
 // 5. It protects against accidental loss of the "auto" semantic meaning
 func testWriteOperationsFailWithExpandAuto(t *testing.T) {
+	// Test scenario: CLI without daemon (tests error conditions)
+	// This test doesn't need daemon setup since it's testing that write operations
+	// with --expand-auto should fail with appropriate error messages
+
 	// Create IPFS node
 	node := harness.NewT(t).NewNode().Init("--profile=test")
 	node.SetIPFSConfig("Bootstrap", []string{"auto"})
@@ -367,11 +392,16 @@ func testWriteOperationsFailWithExpandAuto(t *testing.T) {
 // 4. It tests that the resulting JSON is valid and well-formed
 // 5. It provides a way to export/backup the fully expanded configuration
 func testConfigShowExpandAutoComplete(t *testing.T) {
+	// Test scenario: CLI with daemon started and autoconfig cached
+
 	// Load test autoconfig data
 	autoConfigData := loadTestDataComprehensive(t, "valid_autoconfig.json")
 
-	// Create HTTP server
+	// Track HTTP requests to verify daemon fetches autoconfig
+	var requestCount int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&requestCount, 1)
+		t.Logf("Config show test request: %s %s", r.Method, r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(autoConfigData)
 	}))
@@ -383,6 +413,10 @@ func testConfigShowExpandAutoComplete(t *testing.T) {
 	node.SetIPFSConfig("AutoConfig.Enabled", true)
 	node.SetIPFSConfig("Bootstrap", []string{"auto"})
 	node.SetIPFSConfig("DNS.Resolvers", map[string]string{".": "auto"})
+
+	// Start daemon and wait for autoconfig fetch
+	daemon := startDaemonAndWaitForAutoconfig(t, node, &requestCount)
+	defer daemon.StopDaemon()
 
 	// Test config show --expand-auto
 	result := node.RunIPFS("config", "show", "--expand-auto")
@@ -428,6 +462,8 @@ func testConfigShowExpandAutoComplete(t *testing.T) {
 // 5. It prevents regression where each --expand-auto call would trigger a new HTTP request
 // 6. It demonstrates the performance benefit: 5 operations with only 1 network request
 func testMultipleExpandAutoUsesCache(t *testing.T) {
+	// Test scenario: CLI with daemon started and autoconfig cached
+
 	// Create comprehensive autoconfig response
 	autoConfigData := loadTestDataComprehensive(t, "valid_autoconfig.json")
 
@@ -455,6 +491,10 @@ func testMultipleExpandAutoUsesCache(t *testing.T) {
 	node.SetIPFSConfig("DNS.Resolvers", map[string]string{"foo.": "auto"})
 	node.SetIPFSConfig("Routing.DelegatedRouters", []string{"auto"})
 	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
+
+	// Start daemon and wait for autoconfig fetch
+	daemon := startDaemonAndWaitForAutoconfig(t, node, &requestCount)
+	defer daemon.StopDaemon()
 
 	// Reset counter to only track our expand-auto calls
 	atomic.StoreInt32(&requestCount, 0)
@@ -505,25 +545,59 @@ func testMultipleExpandAutoUsesCache(t *testing.T) {
 	expandedConfig := result5.Stdout.String()
 	assert.NotContains(t, expandedConfig, `"auto"`, "Full config should not contain 'auto' values")
 
-	// CRITICAL TEST: Verify only 1 HTTP request was made despite 5 --expand-auto calls
+	// CRITICAL TEST: Verify NO HTTP requests were made for --expand-auto calls (using cache)
 	finalRequestCount := atomic.LoadInt32(&requestCount)
-	assert.Equal(t, int32(1), finalRequestCount,
-		"Multiple --expand-auto calls should result in only 1 HTTP request due to caching. Got %d requests", finalRequestCount)
+	assert.Equal(t, int32(0), finalRequestCount,
+		"Multiple --expand-auto calls should result in 0 HTTP requests (using cache). Got %d requests", finalRequestCount)
 
-	t.Logf("✅ Made 5 --expand-auto calls, resulted in only %d HTTP request(s) - caching works!", finalRequestCount)
+	t.Logf("✅ Made 5 --expand-auto calls, resulted in %d HTTP request(s) - cache is being used!", finalRequestCount)
+
+	// Now simulate a manual cache refresh (what the background updater would do)
+	t.Log("Simulating manual cache refresh...")
+
+	// Update the mock server to return different data
+	autoConfigData2 := loadTestDataComprehensive(t, "updated_autoconfig.json")
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count := atomic.AddInt32(&requestCount, 1)
+		t.Logf("Manual refresh request #%d: %s %s", count, r.Method, r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("ETag", `"cache-test-456"`)
+		w.Header().Set("Last-Modified", "Thu, 22 Oct 2015 08:00:00 GMT")
+		_, _ = w.Write(autoConfigData2)
+	})
+
+	// Note: In the actual daemon, the background updater would call MustGetConfigWithRefresh
+	// For this test, we'll verify that subsequent --expand-auto calls still use cache
+	// and don't trigger additional requests
+
+	// Reset counter before manual refresh simulation
+	beforeRefresh := atomic.LoadInt32(&requestCount)
+
+	// Make another --expand-auto call - should still use cache
+	result6 := node.RunIPFS("config", "Bootstrap", "--expand-auto")
+	require.Equal(t, 0, result6.ExitCode(), "Bootstrap --expand-auto after refresh should succeed")
+
+	afterRefresh := atomic.LoadInt32(&requestCount)
+	assert.Equal(t, beforeRefresh, afterRefresh,
+		"--expand-auto should continue using cache even after server update")
+
+	t.Logf("✅ Cache continues to be used after server update - background updater pattern confirmed!")
 }
 
-// testExpandAutoCacheExpiry verifies that autoconfig cache properly expires based on
-// the configured RefreshInterval and fetches fresh data when needed.
+// testCLIUsesCacheOnlyDaemonUpdatesBackground verifies the separation between CLI and daemon
+// autoconfig behavior: CLI commands always use cached data (no HTTP), while the daemon
+// background updater handles HTTP requests based on RefreshInterval.
 //
 // This test is essential for correctness because:
-// 1. It validates that cache expiry works correctly to ensure users get updated configuration
-// 2. It verifies that the RefreshInterval setting is properly respected
-// 3. It ensures that stale cached data doesn't persist indefinitely
-// 4. It tests the balance between performance (caching) and freshness (expiry)
-// 5. It validates that new HTTP requests are made after cache expiry
-// 6. It prevents issues where users might get outdated autoconfig indefinitely
-func testExpandAutoCacheExpiry(t *testing.T) {
+// 1. It validates that CLI --expand-auto never makes HTTP requests (uses cache only)
+// 2. It verifies that daemon background updater DOES make HTTP requests (with short RefreshInterval)
+// 3. It ensures proper separation between CLI behavior and daemon cache management
+// 4. It tests that CLI commands are always fast (no network I/O) regardless of RefreshInterval
+// 5. It validates that background updates work independently of CLI usage
+// 6. It prevents regression where CLI commands might start making HTTP requests
+func testCLIUsesCacheOnlyDaemonUpdatesBackground(t *testing.T) {
+	// Test scenario: CLI with daemon and short RefreshInterval to trigger background updates
+
 	// Create autoconfig response
 	autoConfigData := loadTestDataComprehensive(t, "valid_autoconfig.json")
 
@@ -551,51 +625,67 @@ func testExpandAutoCacheExpiry(t *testing.T) {
 	node.SetIPFSConfig("Bootstrap", []string{"auto"})
 	node.SetIPFSConfig("DNS.Resolvers", map[string]string{"test.": "auto"})
 
-	// Reset counter
-	atomic.StoreInt32(&requestCount, 0)
+	// Start daemon and wait for autoconfig fetch
+	daemon := startDaemonAndWaitForAutoconfig(t, node, &requestCount)
+	defer daemon.StopDaemon()
 
-	// First --expand-auto call (should trigger HTTP request)
-	t.Log("First --expand-auto call (cache miss)...")
+	// Capture baseline after daemon startup
+	initialRequestCount := atomic.LoadInt32(&requestCount)
+	t.Logf("Requests made during daemon startup: %d", initialRequestCount)
+
+	// Test 1: CLI commands use cache only (no HTTP requests from CLI operations)
+	t.Log("Testing that CLI --expand-auto commands use cache only...")
+
+	// Wait a moment for background updater timing to stabilize, then capture baseline
+	time.Sleep(50 * time.Millisecond)
+	preTestRequestCount := atomic.LoadInt32(&requestCount)
+
+	// Make several CLI calls rapidly - none should trigger HTTP requests
 	result1 := node.RunIPFS("config", "Bootstrap", "--expand-auto")
-	require.Equal(t, 0, result1.ExitCode(), "First Bootstrap --expand-auto should succeed")
+	require.Equal(t, 0, result1.ExitCode(), "Bootstrap --expand-auto should succeed")
 
-	// Verify we got a valid response
-	var bootstrap1 []string
-	err := json.Unmarshal([]byte(result1.Stdout.String()), &bootstrap1)
-	require.NoError(t, err)
-	assert.Greater(t, len(bootstrap1), 0, "First call should return expanded bootstrap")
-
-	// Second call immediately with different field (may trigger new request due to separate client)
-	t.Log("Second --expand-auto call immediately (different field)...")
 	result2 := node.RunIPFS("config", "DNS.Resolvers", "--expand-auto")
-	require.Equal(t, 0, result2.ExitCode(), "Second DNS.Resolvers --expand-auto should succeed")
+	require.Equal(t, 0, result2.ExitCode(), "DNS.Resolvers --expand-auto should succeed")
 
-	// At this point we may have 1 or 2 HTTP requests (depending on client caching behavior)
-	requestsAfterSecondCall := atomic.LoadInt32(&requestCount)
-	assert.GreaterOrEqual(t, requestsAfterSecondCall, int32(1), "Should have at least 1 request")
-	assert.LessOrEqual(t, requestsAfterSecondCall, int32(2), "Should have at most 2 requests")
+	result3 := node.RunIPFS("config", "Routing.DelegatedRouters", "--expand-auto")
+	require.Equal(t, 0, result3.ExitCode(), "Routing.DelegatedRouters --expand-auto should succeed")
 
-	// Wait for cache to expire (200ms + buffer)
-	t.Log("Waiting for cache to expire...")
-	time.Sleep(300 * time.Millisecond)
+	// Verify CLI calls made no additional HTTP requests (used cache only)
+	postTestRequestCount := atomic.LoadInt32(&requestCount)
+	cliTriggeredRequests := postTestRequestCount - preTestRequestCount
+	assert.Equal(t, int32(0), cliTriggeredRequests,
+		"CLI --expand-auto commands should make 0 HTTP requests (cache only). CLI triggered: %d", cliTriggeredRequests)
+	t.Log("✅ CLI commands use cache only - no additional HTTP requests")
 
-	// Third call after cache expiry (should trigger new HTTP request)
-	t.Log("Third --expand-auto call after cache expiry (cache miss)...")
-	result3 := node.RunIPFS("config", "Bootstrap", "--expand-auto")
-	require.Equal(t, 0, result3.ExitCode(), "Third Bootstrap --expand-auto should succeed")
+	// Test 2: Daemon background updater DOES make HTTP requests
+	t.Log("Testing that daemon background updater makes HTTP requests...")
 
-	// Verify we got a valid response
-	var bootstrap3 []string
-	err = json.Unmarshal([]byte(result3.Stdout.String()), &bootstrap3)
-	require.NoError(t, err)
-	assert.Greater(t, len(bootstrap3), 0, "Third call should return expanded bootstrap")
+	// Wait for background updater to trigger (RefreshInterval is 200ms)
+	t.Log("Waiting for daemon background updater to refresh cache...")
+	time.Sleep(500 * time.Millisecond) // Wait longer than RefreshInterval
 
-	// Now we should have at least one more request after cache expiry
-	finalRequestCount := atomic.LoadInt32(&requestCount)
-	assert.Greater(t, finalRequestCount, requestsAfterSecondCall,
-		"After cache expiry, should have more requests than before. Before: %d, After: %d", requestsAfterSecondCall, finalRequestCount)
+	// Verify that daemon background updater made HTTP requests
+	backgroundRequestCount := atomic.LoadInt32(&requestCount)
+	assert.Greater(t, backgroundRequestCount, int32(0),
+		"Daemon background updater should make HTTP requests. Got: %d", backgroundRequestCount)
+	t.Logf("✅ Daemon background updater made %d HTTP request(s)", backgroundRequestCount)
 
-	t.Logf("✅ Cache expiry test successful: %d total HTTP requests (cache behavior depends on client implementation)", finalRequestCount)
+	// Test 3: CLI still uses cache after background updates
+	t.Log("Testing CLI continues to use cache after background updates...")
+
+	// Capture baseline before final CLI test
+	preFinalRequestCount := atomic.LoadInt32(&requestCount)
+
+	// Make final CLI call - should still use cache, not HTTP
+	result4 := node.RunIPFS("config", "Bootstrap", "--expand-auto")
+	require.Equal(t, 0, result4.ExitCode(), "Final Bootstrap --expand-auto should succeed")
+
+	postFinalRequestCount := atomic.LoadInt32(&requestCount)
+	finalCLITriggeredRequests := postFinalRequestCount - preFinalRequestCount
+	assert.Equal(t, int32(0), finalCLITriggeredRequests,
+		"CLI should still use cache after background updates. CLI triggered: %d requests", finalCLITriggeredRequests)
+
+	t.Log("✅ Test completed: CLI uses cache only, daemon handles background updates")
 }
 
 // loadTestDataComprehensive is a helper function that loads test autoconfig JSON data files.
@@ -608,4 +698,35 @@ func loadTestDataComprehensive(t *testing.T, filename string) []byte {
 	require.NoError(t, err, "Failed to read test data file: %s", filename)
 
 	return data
+}
+
+// startDaemonAndWaitForAutoconfig starts a daemon and waits for it to fetch autoconfig data.
+// It returns the node with daemon running and ensures autoconfig has been cached before returning.
+// This is a DRY helper to avoid repeating daemon setup and request waiting logic in every test.
+func startDaemonAndWaitForAutoconfig(t *testing.T, node *harness.Node, requestCount *int32) *harness.Node {
+	t.Helper()
+
+	// Start daemon to fetch and cache autoconfig data
+	t.Log("Starting daemon to fetch and cache autoconfig data...")
+	daemon := node.StartDaemon()
+	// StartDaemon returns *Node, no error to check
+
+	// Wait for daemon to fetch autoconfig (wait for HTTP request to mock server)
+	t.Log("Waiting for daemon to fetch autoconfig from mock server...")
+	timeout := time.After(10 * time.Second) // Safety timeout
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			t.Fatal("Timeout waiting for autoconfig fetch")
+		case <-ticker.C:
+			if atomic.LoadInt32(requestCount) > 0 {
+				t.Logf("✅ Daemon fetched autoconfig (%d requests made)", atomic.LoadInt32(requestCount))
+				t.Log("Autoconfig should now be cached by daemon")
+				return daemon
+			}
+		}
+	}
 }

@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
@@ -30,9 +31,34 @@ func TestAutoConfigExpand(t *testing.T) {
 		testConfigReplacePreservesAuto(t)
 	})
 
-	t.Run("expand-auto filters unsupported URL paths", func(t *testing.T) {
+	t.Run("expand-auto filters unsupported URL paths with delegated routing", func(t *testing.T) {
 		t.Parallel()
-		testExpandAutoFiltersUnsupportedPaths(t)
+		testExpandAutoFiltersUnsupportedPathsDelegated(t)
+	})
+
+	t.Run("expand-auto with auto routing uses NewRoutingSystem", func(t *testing.T) {
+		t.Parallel()
+		testExpandAutoWithAutoRouting(t)
+	})
+
+	t.Run("expand-auto with auto routing shows AminoDHT native vs IPNI delegated", func(t *testing.T) {
+		t.Parallel()
+		testExpandAutoWithMixedSystems(t)
+	})
+
+	t.Run("expand-auto filters paths with NewRoutingSystem and auto routing", func(t *testing.T) {
+		t.Parallel()
+		testExpandAutoWithFiltering(t)
+	})
+
+	t.Run("expand-auto falls back to defaults without cache (delegated)", func(t *testing.T) {
+		t.Parallel()
+		testExpandAutoWithoutCacheDelegated(t)
+	})
+
+	t.Run("expand-auto with auto routing without cache", func(t *testing.T) {
+		t.Parallel()
+		testExpandAutoWithoutCacheAuto(t)
 	})
 }
 
@@ -298,14 +324,21 @@ func testConfigReplacePreservesAuto(t *testing.T) {
 	assert.Equal(t, "auto", resolvers["foo."], "DNS resolver for foo. should still be auto after config replace")
 }
 
-func testExpandAutoFiltersUnsupportedPaths(t *testing.T) {
+func testExpandAutoFiltersUnsupportedPathsDelegated(t *testing.T) {
+	// Test scenario: CLI with daemon started and autoconfig cached using delegated routing
+	// This tests the production scenario where delegated routing is enabled and
+	// daemon has fetched and cached autoconfig data, and CLI commands read from that cache
+
 	// Create IPFS node
 	node := harness.NewT(t).NewNode().Init("--profile=test")
 
-	// Set routing configuration to "delegated" so all systems are delegated and URLs from autoconfig are used
+	// Configure delegated routing to use autoconfig URLs
 	node.SetIPFSConfig("Routing.Type", "delegated")
 	node.SetIPFSConfig("Routing.DelegatedRouters", []string{"auto"})
 	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
+	// Disable content providing when using delegated routing
+	node.SetIPFSConfig("Provider.Enabled", false)
+	node.SetIPFSConfig("Reprovider.Interval", "0")
 
 	// Load test autoconfig data with unsupported paths
 	autoConfigData := loadTestDataExpand(t, "autoconfig_with_unsupported_paths.json")
@@ -327,6 +360,15 @@ func testExpandAutoFiltersUnsupportedPaths(t *testing.T) {
 	t.Logf("AutoConfig URL is set to: %s", result.Stdout.String())
 	assert.Contains(t, result.Stdout.String(), "127.0.0.1", "AutoConfig URL should contain the test server address")
 
+	// Start daemon to fetch and cache autoconfig data
+	t.Log("Starting daemon to fetch and cache autoconfig data...")
+	daemon := node.StartDaemon()
+	defer daemon.StopDaemon()
+
+	// Wait for autoconfig fetch (use autoconfig default timeout + buffer)
+	time.Sleep(6 * time.Second) // defaultTimeout is 5s, add 1s buffer
+	t.Log("Autoconfig should now be cached by daemon")
+
 	// Test Routing.DelegatedRouters field expansion filters unsupported paths
 	result = node.RunIPFS("config", "Routing.DelegatedRouters", "--expand-auto")
 	require.Equal(t, 0, result.ExitCode(), "config Routing.DelegatedRouters --expand-auto should succeed")
@@ -335,13 +377,13 @@ func testExpandAutoFiltersUnsupportedPaths(t *testing.T) {
 	err := json.Unmarshal([]byte(result.Stdout.String()), &expandedRouters)
 	require.NoError(t, err)
 
-	// Verify supported URLs are included
+	// After cache prewarming, should get URLs from autoconfig that have supported paths
 	assert.Contains(t, expandedRouters, "https://supported.example.com/routing/v1/providers", "Should contain supported provider URL")
 	assert.Contains(t, expandedRouters, "https://supported.example.com/routing/v1/peers", "Should contain supported peers URL")
 	assert.Contains(t, expandedRouters, "https://mixed.example.com/routing/v1/providers", "Should contain mixed provider URL")
 	assert.Contains(t, expandedRouters, "https://mixed.example.com/routing/v1/peers", "Should contain mixed peers URL")
 
-	// Verify unsupported URLs are filtered out
+	// Verify unsupported URLs from autoconfig are filtered out (not in result)
 	assert.NotContains(t, expandedRouters, "https://unsupported.example.com/example/v0/read", "Should filter out unsupported path /example/v0/read")
 	assert.NotContains(t, expandedRouters, "https://unsupported.example.com/api/v1/custom", "Should filter out unsupported path /api/v1/custom")
 	assert.NotContains(t, expandedRouters, "https://mixed.example.com/unsupported/path", "Should filter out unsupported path /unsupported/path")
@@ -356,14 +398,327 @@ func testExpandAutoFiltersUnsupportedPaths(t *testing.T) {
 	err = json.Unmarshal([]byte(result.Stdout.String()), &expandedPublishers)
 	require.NoError(t, err)
 
-	// Verify supported IPNS publisher URLs are included
+	// After cache prewarming, should get URLs from autoconfig that have supported paths
 	assert.Contains(t, expandedPublishers, "https://supported.example.com/routing/v1/ipns", "Should contain supported IPNS URL")
 	assert.Contains(t, expandedPublishers, "https://mixed.example.com/routing/v1/ipns", "Should contain mixed IPNS URL")
 
-	// Verify unsupported URLs are filtered out (unsupported.example.com has /example/v0/write which is unsupported)
+	// Verify unsupported URLs from autoconfig are filtered out (not in result)
 	assert.NotContains(t, expandedPublishers, "https://unsupported.example.com/example/v0/write", "Should filter out unsupported write path")
 
 	t.Logf("Filtered publishers: %v", expandedPublishers)
+}
+
+func testExpandAutoWithoutCacheDelegated(t *testing.T) {
+	// Test scenario: CLI without daemon ever starting (no cached autoconfig) using delegated routing
+	// This tests the fallback scenario where delegated routing is configured but CLI commands
+	// cannot read from cache and must fall back to hardcoded defaults
+
+	// Create IPFS node but DO NOT start daemon
+	node := harness.NewT(t).NewNode().Init("--profile=test")
+
+	// Configure delegated routing to use autoconfig URLs (but no daemon to fetch them)
+	node.SetIPFSConfig("Routing.Type", "delegated")
+	node.SetIPFSConfig("Routing.DelegatedRouters", []string{"auto"})
+	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
+	// Disable content providing when using delegated routing
+	node.SetIPFSConfig("Provider.Enabled", false)
+	node.SetIPFSConfig("Reprovider.Interval", "0")
+
+	// Load test autoconfig data with unsupported paths (this won't be used since no daemon)
+	autoConfigData := loadTestDataExpand(t, "autoconfig_with_unsupported_paths.json")
+
+	// Create HTTP server that serves autoconfig.json with unsupported paths
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(autoConfigData)
+	}))
+	defer server.Close()
+
+	// Configure autoconfig for the node (but daemon never starts to fetch it)
+	node.SetIPFSConfig("AutoConfig.URL", server.URL)
+	node.SetIPFSConfig("AutoConfig.Enabled", true)
+
+	// Test Routing.DelegatedRouters field expansion without cached autoconfig
+	result := node.RunIPFS("config", "Routing.DelegatedRouters", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Routing.DelegatedRouters --expand-auto should succeed")
+
+	var expandedRouters []string
+	err := json.Unmarshal([]byte(result.Stdout.String()), &expandedRouters)
+	require.NoError(t, err)
+
+	// Without cached autoconfig, should get fallback URLs from GetMainnetFallbackConfig()
+	// NOTE: These values may change if autoconfig library updates GetMainnetFallbackConfig()
+	assert.Contains(t, expandedRouters, "https://cid.contact/routing/v1/providers", "Should contain fallback provider URL from GetMainnetFallbackConfig()")
+
+	t.Logf("Fallback routers (no cache): %v", expandedRouters)
+
+	// Test Ipns.DelegatedPublishers field expansion without cached autoconfig
+	result = node.RunIPFS("config", "Ipns.DelegatedPublishers", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Ipns.DelegatedPublishers --expand-auto should succeed")
+
+	var expandedPublishers []string
+	err = json.Unmarshal([]byte(result.Stdout.String()), &expandedPublishers)
+	require.NoError(t, err)
+
+	// Without cached autoconfig, should get fallback IPNS publishers from GetMainnetFallbackConfig()
+	// NOTE: These values may change if autoconfig library updates GetMainnetFallbackConfig()
+	assert.Contains(t, expandedPublishers, "https://delegated-ipfs.dev/routing/v1/ipns", "Should contain fallback IPNS URL from GetMainnetFallbackConfig()")
+
+	t.Logf("Fallback publishers (no cache): %v", expandedPublishers)
+}
+
+func testExpandAutoWithAutoRouting(t *testing.T) {
+	// Test scenario: CLI with daemon started using auto routing with NewRoutingSystem
+	// This tests that non-native systems (NewRoutingSystem) ARE delegated even with auto routing
+	// Only native systems like AminoDHT are handled internally with auto routing
+
+	// Create IPFS node
+	node := harness.NewT(t).NewNode().Init("--profile=test")
+
+	// Configure auto routing with non-native system
+	node.SetIPFSConfig("Routing.Type", "auto")
+	node.SetIPFSConfig("Routing.DelegatedRouters", []string{"auto"})
+	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
+
+	// Load test autoconfig data with NewRoutingSystem (non-native, will be delegated)
+	autoConfigData := loadTestDataExpand(t, "autoconfig_new_routing_system.json")
+
+	// Create HTTP server that serves autoconfig.json
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(autoConfigData)
+	}))
+	defer server.Close()
+
+	// Configure autoconfig for the node
+	node.SetIPFSConfig("AutoConfig.URL", server.URL)
+	node.SetIPFSConfig("AutoConfig.Enabled", true)
+
+	// Start daemon to fetch and cache autoconfig data
+	t.Log("Starting daemon to fetch and cache autoconfig data...")
+	daemon := node.StartDaemon()
+	defer daemon.StopDaemon()
+
+	// Wait for autoconfig fetch (use autoconfig default timeout + buffer)
+	time.Sleep(6 * time.Second) // defaultTimeout is 5s, add 1s buffer
+	t.Log("Autoconfig should now be cached by daemon")
+
+	// Test Routing.DelegatedRouters field expansion with auto routing
+	result := node.RunIPFS("config", "Routing.DelegatedRouters", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Routing.DelegatedRouters --expand-auto should succeed")
+
+	var expandedRouters []string
+	err := json.Unmarshal([]byte(result.Stdout.String()), &expandedRouters)
+	require.NoError(t, err)
+
+	// With auto routing and NewRoutingSystem (non-native), delegated endpoints should be populated
+	assert.Contains(t, expandedRouters, "https://new-routing.example.com/routing/v1/providers", "Should contain NewRoutingSystem provider URL")
+	assert.Contains(t, expandedRouters, "https://new-routing.example.com/routing/v1/peers", "Should contain NewRoutingSystem peers URL")
+
+	t.Logf("Auto routing routers (NewRoutingSystem delegated): %v", expandedRouters)
+
+	// Test Ipns.DelegatedPublishers field expansion with auto routing
+	result = node.RunIPFS("config", "Ipns.DelegatedPublishers", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Ipns.DelegatedPublishers --expand-auto should succeed")
+
+	var expandedPublishers []string
+	err = json.Unmarshal([]byte(result.Stdout.String()), &expandedPublishers)
+	require.NoError(t, err)
+
+	// With auto routing and NewRoutingSystem (non-native), delegated publishers should be populated
+	assert.Contains(t, expandedPublishers, "https://new-routing.example.com/routing/v1/ipns", "Should contain NewRoutingSystem IPNS URL")
+
+	t.Logf("Auto routing publishers (NewRoutingSystem delegated): %v", expandedPublishers)
+}
+
+func testExpandAutoWithMixedSystems(t *testing.T) {
+	// Test scenario: Auto routing with both AminoDHT (native) and IPNI (delegated) systems
+	// This explicitly confirms that AminoDHT is NOT delegated but IPNI at cid.contact IS delegated
+
+	// Create IPFS node
+	node := harness.NewT(t).NewNode().Init("--profile=test")
+
+	// Configure auto routing
+	node.SetIPFSConfig("Routing.Type", "auto")
+	node.SetIPFSConfig("Routing.DelegatedRouters", []string{"auto"})
+	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
+
+	// Load test autoconfig data with both AminoDHT and IPNI systems
+	autoConfigData := loadTestDataExpand(t, "autoconfig_amino_and_ipni.json")
+
+	// Create HTTP server that serves autoconfig.json
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(autoConfigData)
+	}))
+	defer server.Close()
+
+	// Configure autoconfig for the node
+	node.SetIPFSConfig("AutoConfig.URL", server.URL)
+	node.SetIPFSConfig("AutoConfig.Enabled", true)
+
+	// Start daemon to fetch and cache autoconfig data
+	t.Log("Starting daemon to fetch and cache autoconfig data...")
+	daemon := node.StartDaemon()
+	defer daemon.StopDaemon()
+
+	// Wait for autoconfig fetch (use autoconfig default timeout + buffer)
+	time.Sleep(6 * time.Second) // defaultTimeout is 5s, add 1s buffer
+	t.Log("Autoconfig should now be cached by daemon")
+
+	// Test Routing.DelegatedRouters field expansion
+	result := node.RunIPFS("config", "Routing.DelegatedRouters", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Routing.DelegatedRouters --expand-auto should succeed")
+
+	var expandedRouters []string
+	err := json.Unmarshal([]byte(result.Stdout.String()), &expandedRouters)
+	require.NoError(t, err)
+
+	// With auto routing: AminoDHT (native) should NOT be delegated, IPNI should be delegated
+	assert.Contains(t, expandedRouters, "https://cid.contact/routing/v1/providers", "Should contain IPNI provider URL (delegated)")
+	assert.NotContains(t, expandedRouters, "https://amino-dht.example.com", "Should NOT contain AminoDHT URLs (native)")
+
+	t.Logf("Mixed systems routers (IPNI delegated, AminoDHT native): %v", expandedRouters)
+
+	// Test Ipns.DelegatedPublishers field expansion
+	result = node.RunIPFS("config", "Ipns.DelegatedPublishers", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Ipns.DelegatedPublishers --expand-auto should succeed")
+
+	var expandedPublishers []string
+	err = json.Unmarshal([]byte(result.Stdout.String()), &expandedPublishers)
+	require.NoError(t, err)
+
+	// IPNI system doesn't have write endpoints, so publishers should be empty
+	// (or contain other systems if they have write endpoints)
+	t.Logf("Mixed systems publishers (IPNI has no write endpoints): %v", expandedPublishers)
+}
+
+func testExpandAutoWithFiltering(t *testing.T) {
+	// Test scenario: Auto routing with NewRoutingSystem and path filtering
+	// This tests that path filtering works for delegated systems even with auto routing
+
+	// Create IPFS node
+	node := harness.NewT(t).NewNode().Init("--profile=test")
+
+	// Configure auto routing
+	node.SetIPFSConfig("Routing.Type", "auto")
+	node.SetIPFSConfig("Routing.DelegatedRouters", []string{"auto"})
+	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
+
+	// Load test autoconfig data with NewRoutingSystem and mixed valid/invalid paths
+	autoConfigData := loadTestDataExpand(t, "autoconfig_new_routing_with_filtering.json")
+
+	// Create HTTP server that serves autoconfig.json
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(autoConfigData)
+	}))
+	defer server.Close()
+
+	// Configure autoconfig for the node
+	node.SetIPFSConfig("AutoConfig.URL", server.URL)
+	node.SetIPFSConfig("AutoConfig.Enabled", true)
+
+	// Start daemon to fetch and cache autoconfig data
+	t.Log("Starting daemon to fetch and cache autoconfig data...")
+	daemon := node.StartDaemon()
+	defer daemon.StopDaemon()
+
+	// Wait for autoconfig fetch (use autoconfig default timeout + buffer)
+	time.Sleep(6 * time.Second) // defaultTimeout is 5s, add 1s buffer
+	t.Log("Autoconfig should now be cached by daemon")
+
+	// Test Routing.DelegatedRouters field expansion with filtering
+	result := node.RunIPFS("config", "Routing.DelegatedRouters", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Routing.DelegatedRouters --expand-auto should succeed")
+
+	var expandedRouters []string
+	err := json.Unmarshal([]byte(result.Stdout.String()), &expandedRouters)
+	require.NoError(t, err)
+
+	// Should contain supported paths from NewRoutingSystem
+	assert.Contains(t, expandedRouters, "https://supported-new.example.com/routing/v1/providers", "Should contain supported provider URL")
+	assert.Contains(t, expandedRouters, "https://supported-new.example.com/routing/v1/peers", "Should contain supported peers URL")
+	assert.Contains(t, expandedRouters, "https://mixed-new.example.com/routing/v1/providers", "Should contain mixed provider URL")
+	assert.Contains(t, expandedRouters, "https://mixed-new.example.com/routing/v1/peers", "Should contain mixed peers URL")
+
+	// Should NOT contain unsupported paths
+	assert.NotContains(t, expandedRouters, "https://unsupported-new.example.com/custom/v0/read", "Should filter out unsupported path")
+	assert.NotContains(t, expandedRouters, "https://unsupported-new.example.com/api/v1/nonstandard", "Should filter out unsupported path")
+	assert.NotContains(t, expandedRouters, "https://mixed-new.example.com/invalid/path", "Should filter out invalid path from mixed endpoint")
+
+	t.Logf("Filtered routers (NewRoutingSystem with auto routing): %v", expandedRouters)
+
+	// Test Ipns.DelegatedPublishers field expansion with filtering
+	result = node.RunIPFS("config", "Ipns.DelegatedPublishers", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Ipns.DelegatedPublishers --expand-auto should succeed")
+
+	var expandedPublishers []string
+	err = json.Unmarshal([]byte(result.Stdout.String()), &expandedPublishers)
+	require.NoError(t, err)
+
+	// Should contain supported IPNS paths
+	assert.Contains(t, expandedPublishers, "https://supported-new.example.com/routing/v1/ipns", "Should contain supported IPNS URL")
+	assert.Contains(t, expandedPublishers, "https://mixed-new.example.com/routing/v1/ipns", "Should contain mixed IPNS URL")
+
+	// Should NOT contain unsupported write paths
+	assert.NotContains(t, expandedPublishers, "https://unsupported-new.example.com/custom/v0/write", "Should filter out unsupported write path")
+
+	t.Logf("Filtered publishers (NewRoutingSystem with auto routing): %v", expandedPublishers)
+}
+
+func testExpandAutoWithoutCacheAuto(t *testing.T) {
+	// Test scenario: CLI without daemon ever starting using auto routing (default)
+	// This tests the fallback scenario where auto routing is used but doesn't populate delegated config fields
+
+	// Create IPFS node but DO NOT start daemon
+	node := harness.NewT(t).NewNode().Init("--profile=test")
+
+	// Configure auto routing - delegated fields are set to "auto" but won't be populated
+	// because auto routing uses different internal mechanisms
+	node.SetIPFSConfig("Routing.Type", "auto")
+	node.SetIPFSConfig("Routing.DelegatedRouters", []string{"auto"})
+	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
+
+	// Load test autoconfig data (this won't be used since no daemon and auto routing doesn't use these fields)
+	autoConfigData := loadTestDataExpand(t, "autoconfig_with_unsupported_paths.json")
+
+	// Create HTTP server (won't be contacted since no daemon)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(autoConfigData)
+	}))
+	defer server.Close()
+
+	// Configure autoconfig for the node (but daemon never starts to fetch it)
+	node.SetIPFSConfig("AutoConfig.URL", server.URL)
+	node.SetIPFSConfig("AutoConfig.Enabled", true)
+
+	// Test Routing.DelegatedRouters field expansion without cached autoconfig
+	result := node.RunIPFS("config", "Routing.DelegatedRouters", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Routing.DelegatedRouters --expand-auto should succeed")
+
+	var expandedRouters []string
+	err := json.Unmarshal([]byte(result.Stdout.String()), &expandedRouters)
+	require.NoError(t, err)
+
+	// With auto routing, some fallback URLs are still populated from GetMainnetFallbackConfig()
+	// NOTE: These values may change if autoconfig library updates GetMainnetFallbackConfig()
+	assert.Contains(t, expandedRouters, "https://cid.contact/routing/v1/providers", "Should contain fallback provider URL from GetMainnetFallbackConfig()")
+
+	t.Logf("Auto routing fallback routers (with fallbacks): %v", expandedRouters)
+
+	// Test Ipns.DelegatedPublishers field expansion without cached autoconfig
+	result = node.RunIPFS("config", "Ipns.DelegatedPublishers", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Ipns.DelegatedPublishers --expand-auto should succeed")
+
+	var expandedPublishers []string
+	err = json.Unmarshal([]byte(result.Stdout.String()), &expandedPublishers)
+	require.NoError(t, err)
+
+	// With auto routing, delegated publishers may be empty for fallback scenario
+	// This can vary based on which systems have write endpoints in the fallback config
+	t.Logf("Auto routing fallback publishers: %v", expandedPublishers)
 }
 
 // Helper function to load test data files

@@ -47,9 +47,9 @@ var bootstrapAddCmd = &cmds.Command{
 		ShortDescription: `Outputs a list of peers that were added (that weren't already
 in the bootstrap list).
 
-The special values 'default' and 'auto' can be used to add the default bootstrap
-peers. Both are equivalent and will add the 'auto' placeholder to the bootstrap
-list, which gets resolved using the AutoConfig system.
+The special values 'default' and 'auto' can be used to add the default
+bootstrap peers. Both are equivalent and will add the 'auto' placeholder to
+the bootstrap list, which gets resolved using the AutoConfig system.
 ` + bootstrapSecurityWarning,
 	},
 
@@ -215,7 +215,7 @@ var bootstrapListCmd = &cmds.Command{
 		ShortDescription: "Peers are output in the format '<multiaddr>/<peerID>'.",
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(configExpandAutoName, "Expand 'auto' placeholders to their expanded values from AutoConfig service."),
+		cmds.BoolOption(configExpandAutoName, "Expand 'auto' placeholders from AutoConfig service."),
 	},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {

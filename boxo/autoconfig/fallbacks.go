@@ -26,18 +26,6 @@ var (
 			"https://dns.eth.link/dns-query",
 		},
 	}
-
-	// FallbackDelegatedRouters are the default delegated routing endpoints matching mainnet autoconfig
-	// Used as last-resort fallback when autoconfig fetch fails
-	FallbackDelegatedRouters = []string{
-		"https://cid.contact/routing/v1/providers",
-	}
-
-	// FallbackDelegatedPublishers are the default delegated IPNS publishers matching mainnet autoconfig
-	// Used as last-resort fallback when autoconfig fetch fails
-	FallbackDelegatedPublishers = []string{
-		"https://delegated-ipfs.dev/routing/v1/ipns",
-	}
 )
 
 // GetMainnetFallbackConfig returns a complete fallback config matching current mainnet values

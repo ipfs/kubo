@@ -6,7 +6,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/ipfs/kubo/boxo/autoconfig"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +35,11 @@ func TestExpandAutoFallbacks(t *testing.T) {
 	t.Run("expand-auto preserves static values in mixed config", func(t *testing.T) {
 		t.Parallel()
 		testExpandAutoMixedConfigPreservesStatic(t)
+	})
+
+	t.Run("daemon gracefully handles malformed autoconfig and uses fallbacks", func(t *testing.T) {
+		t.Parallel()
+		testDaemonWithMalformedAutoConfig(t)
 	})
 }
 
@@ -183,6 +190,89 @@ func testExpandAutoMixedConfigPreservesStatic(t *testing.T) {
 	assert.Equal(t, "/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWTest", bootstrap[0], "First peer should be preserved")
 	lastIndex := len(bootstrap) - 1
 	assert.Equal(t, "/ip4/127.0.0.2/tcp/4001/p2p/12D3KooWTest2", bootstrap[lastIndex], "Last peer should be preserved")
+}
+
+func testDaemonWithMalformedAutoConfig(t *testing.T) {
+	// Test scenario: Daemon starts with AutoConfig.URL pointing to server that returns malformed JSON
+	// This tests that daemon gracefully handles malformed responses and falls back to hardcoded defaults
+
+	// Create server that returns malformed JSON to simulate broken autoconfig service
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		// Return malformed JSON that cannot be parsed
+		_, _ = w.Write([]byte(`{"Bootstrap": ["incomplete array", "missing closing bracket"`))
+	}))
+	defer server.Close()
+
+	// Create IPFS node with autoconfig pointing to malformed server
+	node := harness.NewT(t).NewNode().Init("--profile=test")
+	node.SetIPFSConfig("AutoConfig.URL", server.URL)
+	node.SetIPFSConfig("AutoConfig.Enabled", true)
+	node.SetIPFSConfig("Bootstrap", []string{"auto"})
+	node.SetIPFSConfig("DNS.Resolvers", map[string]string{"foo.": "auto"})
+
+	// Start daemon - this will attempt to fetch autoconfig from malformed server
+	t.Log("Starting daemon with malformed autoconfig server...")
+	daemon := node.StartDaemon()
+	defer daemon.StopDaemon()
+
+	// Wait for daemon to attempt autoconfig fetch and handle the error gracefully
+	time.Sleep(6 * time.Second) // defaultTimeout is 5s, add 1s buffer
+	t.Log("Daemon should have attempted autoconfig fetch and fallen back to defaults")
+
+	// Test that daemon is still running and CLI commands work with fallback values
+	result := node.RunIPFS("config", "Bootstrap", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config Bootstrap --expand-auto should succeed with daemon running")
+
+	var bootstrap []string
+	err := json.Unmarshal([]byte(result.Stdout.String()), &bootstrap)
+	require.NoError(t, err)
+
+	// Should fall back to hardcoded defaults from GetMainnetFallbackConfig()
+	// NOTE: These values may change if autoconfig library updates GetMainnetFallbackConfig()
+	assert.NotContains(t, bootstrap, "auto", "Should not contain 'auto' after fallback")
+	assert.Greater(t, len(bootstrap), 0, "Should contain fallback bootstrap peers")
+
+	// Verify we got actual fallback bootstrap peers from GetMainnetFallbackConfig() AminoDHT NativeConfig
+	fallbackConfig := autoconfig.GetMainnetFallbackConfig()
+	aminoDHTSystem := fallbackConfig.SystemRegistry["AminoDHT"]
+	expectedBootstrapPeers := aminoDHTSystem.NativeConfig.Bootstrap
+
+	foundFallbackPeers := 0
+	for _, expectedPeer := range expectedBootstrapPeers {
+		for _, actualPeer := range bootstrap {
+			if actualPeer == expectedPeer {
+				foundFallbackPeers++
+				break
+			}
+		}
+	}
+	assert.Greater(t, foundFallbackPeers, 0, "Should contain bootstrap peers from GetMainnetFallbackConfig() AminoDHT NativeConfig")
+	assert.Equal(t, len(expectedBootstrapPeers), foundFallbackPeers, "Should contain all bootstrap peers from GetMainnetFallbackConfig() AminoDHT NativeConfig")
+
+	t.Logf("Daemon fallback bootstrap peers after malformed response: %v", bootstrap)
+
+	// Test DNS resolvers also fall back correctly
+	result = node.RunIPFS("config", "DNS.Resolvers", "--expand-auto")
+	require.Equal(t, 0, result.ExitCode(), "config DNS.Resolvers --expand-auto should succeed with daemon running")
+
+	var resolvers map[string]string
+	err = json.Unmarshal([]byte(result.Stdout.String()), &resolvers)
+	require.NoError(t, err)
+
+	// Should not contain "auto" and should have fallback DNS resolvers
+	assert.NotEqual(t, "auto", resolvers["foo."], "DNS resolver should not be 'auto' after fallback")
+	if resolvers["foo."] != "" {
+		// If resolver is populated, it should be a valid URL from fallbacks
+		assert.Contains(t, resolvers["foo."], "https://", "Fallback DNS resolver should be HTTPS URL")
+	}
+
+	t.Logf("Daemon fallback DNS resolvers after malformed response: %v", resolvers)
+
+	// Verify daemon is still healthy and responsive
+	versionResult := node.RunIPFS("version")
+	require.Equal(t, 0, versionResult.ExitCode(), "daemon should remain healthy after handling malformed autoconfig")
+	t.Log("✅ Daemon remains healthy after gracefully handling malformed autoconfig response")
 }
 
 // Helper function to load test data files for fallback tests
