@@ -95,7 +95,8 @@ func BaseRouting(cfg *config.Config) interface{} {
 			if err != nil {
 				return out, err
 			}
-			bspeers, err := cfg.BootstrapPeers()
+			// Use auto-config resolution for actual connectivity
+			bspeers, err := cfg.BootstrapPeersWithAutoConfig()
 			if err != nil {
 				return out, err
 			}

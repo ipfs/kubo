@@ -680,3 +680,4 @@ ipfs config --json Experimental.GatewayOverLibp2p true
 ## Accelerated DHT Client
 
 This feature now lives at [`Routing.AcceleratedDHTClient`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtclient).
+

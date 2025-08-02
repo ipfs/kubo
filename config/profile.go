@@ -97,11 +97,12 @@ Inverse profile of the test profile.`,
 		Transform: func(c *Config) error {
 			c.Addresses = addressesConfig()
 
-			bootstrapPeers, err := DefaultBootstrapPeers()
-			if err != nil {
-				return err
+			// Use AutoConfig system for bootstrap peers
+			c.Bootstrap = []string{AutoPlaceholder}
+			c.AutoConfig.Enabled = True
+			if c.AutoConfig.URL == "" {
+				c.AutoConfig.URL = DefaultAutoConfigURL
 			}
-			c.Bootstrap = appendSingle(c.Bootstrap, BootstrapPeerStrings(bootstrapPeers))
 
 			c.Swarm.DisableNatPortMap = false
 			c.Discovery.MDNS.Enabled = true
@@ -346,6 +347,39 @@ fetching may be degraded.
 			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0) // no limit here, use size-based Import.UnixFSHAMTDirectorySizeThreshold instead
 			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(1024)
 			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("1MiB") // 1MiB
+			return nil
+		},
+	},
+	"autoconfig-on": {
+		Description: `Sets configuration to use implicit defaults from remote autoconfig service.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to "auto".
+This profile requires AutoConfig to be enabled and configured.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = []string{AutoPlaceholder}
+			c.DNS.Resolvers = map[string]string{
+				".": AutoPlaceholder,
+			}
+			c.Routing.DelegatedRouters = []string{AutoPlaceholder}
+			c.Ipns.DelegatedPublishers = []string{AutoPlaceholder}
+			c.AutoConfig.Enabled = True
+			if c.AutoConfig.URL == "" {
+				c.AutoConfig.URL = DefaultAutoConfigURL
+			}
+			return nil
+		},
+	},
+	"autoconfig-off": {
+		Description: `Disables AutoConfig and sets networking fields to empty for manual configuration.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to empty.
+Use this when you want normal networking but prefer manual control over all endpoints.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = []string{}
+			c.DNS.Resolvers = map[string]string{}
+			c.Routing.DelegatedRouters = []string{}
+			c.Ipns.DelegatedPublishers = []string{}
+			c.AutoConfig.Enabled = False
 			return nil
 		},
 	},
