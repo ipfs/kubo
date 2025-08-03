@@ -10,6 +10,10 @@ test_description="Test private network feature"
 
 test_init_ipfs
 
+test_expect_success "disable AutoConfig for private network tests" '
+  ipfs config --json AutoConfig.Enabled false
+'
+
 export LIBP2P_FORCE_PNET=1
 
 test_expect_success "daemon won't start with force pnet env but with no key" '
@@ -135,5 +139,24 @@ test_expect_success "stop testbed" '
 '
 
 test_kill_ipfs_daemon
+
+# Test that AutoConfig with default mainnet URL fails on private networks
+test_expect_success "setup test repo with AutoConfig enabled and private network" '
+  export IPFS_PATH="$(pwd)/.ipfs-autoconfig-test" &&
+  ipfs init --profile=test > /dev/null &&
+  ipfs config --json AutoConfig.Enabled true &&
+  pnet_key > "${IPFS_PATH}/swarm.key"
+'
+
+test_expect_success "daemon fails with AutoConfig + private network error" '
+  export IPFS_PATH="$(pwd)/.ipfs-autoconfig-test" &&
+  test_expect_code 1 ipfs daemon > autoconfig_stdout 2> autoconfig_stderr
+'
+
+test_expect_success "error message mentions AutoConfig and private network conflict" '
+  grep "AutoConfig cannot use the default mainnet URL" autoconfig_stderr > /dev/null &&
+  grep "private network.*swarm.key" autoconfig_stderr > /dev/null &&
+  grep "AutoConfig.Enabled=false" autoconfig_stderr > /dev/null
+'
 
 test_done

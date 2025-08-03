@@ -54,7 +54,7 @@ cur_test_pwd="$(pwd)"
 while true ; do
   echo -n > stuck_cwd_list
 
-  lsof -c ipfs -Ffn 2>/dev/null | grep -A1 '^fcwd$' | grep '^n' | cut -b 2- | while read -r pwd_of_stuck ; do
+  timeout 5 lsof -c ipfs -Ffn 2>/dev/null | grep -A1 '^fcwd$' | grep '^n' | cut -b 2- | while read -r pwd_of_stuck ; do
     case "$pwd_of_stuck" in
       "$cur_test_pwd"*)
         echo "$pwd_of_stuck" >> stuck_cwd_list

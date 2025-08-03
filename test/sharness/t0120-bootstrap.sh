@@ -19,6 +19,10 @@ test_description="Test ipfs repo operations"
 
 test_init_ipfs
 
+test_expect_success "enable AutoConfig for bootstrap default expansion" '
+  ipfs config --json AutoConfig.Enabled true
+'
+
 # we use a function so that we can run it both offline + online
 test_bootstrap_list_cmd() {
   printf "" >list_expected
@@ -83,11 +87,11 @@ test_bootstrap_cmd() {
 
   test_bootstrap_list_cmd $BP2
 
-  test_expect_success "'ipfs bootstrap add --default' succeeds" '
-    ipfs bootstrap add --default >add2_actual
+  test_expect_success "'ipfs bootstrap add default' succeeds" '
+    ipfs bootstrap add default >add2_actual
   '
 
-  test_expect_success "'ipfs bootstrap add --default' output has default BP" '
+  test_expect_success "'ipfs bootstrap add default' output has default BP" '
     echo "added $BP1" >add2_expected &&
     echo "added $BP2" >>add2_expected &&
     echo "added $BP3" >>add2_expected &&

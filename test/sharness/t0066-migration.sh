@@ -54,11 +54,12 @@ test_expect_success "manually reset repo version to $MIGRATION_START" '
 '
 
 test_expect_success "ipfs daemon --migrate=false fails" '
-  test_expect_code 1 ipfs daemon --migrate=false > false_out
+  test_expect_code 1 ipfs daemon --migrate=false > false_out 2>&1
 '
 
 test_expect_success "output looks good" '
-  grep "Please get fs-repo-migrations from https://dist.ipfs.tech" false_out
+  grep "Kubo repository at .* has version .* and needs to be migrated to version" false_out &&
+  grep "Error: fs-repo requires migration" false_out
 '
 
 # The migrations will succeed, but the daemon will still exit with 1 because
@@ -75,13 +76,13 @@ test_expect_success "output looks good" '
 '
 
 test_expect_success "'ipfs daemon' prompts to auto migrate" '
-  test_expect_code 1 ipfs daemon > daemon_out 2> daemon_err
+  test_expect_code 1 ipfs daemon > daemon_out 2>&1
 '
 
 test_expect_success "output looks good" '
-  grep "Found outdated fs-repo" daemon_out > /dev/null &&
+  grep "Kubo repository at .* has version .* and needs to be migrated to version" daemon_out > /dev/null &&
   grep "Run migrations now?" daemon_out > /dev/null &&
-  grep "Please get fs-repo-migrations from https://dist.ipfs.tech" daemon_out > /dev/null
+  grep "Error: fs-repo requires migration" daemon_out > /dev/null
 '
 
 test_expect_success "ipfs repo migrate succeed" '
@@ -89,8 +90,8 @@ test_expect_success "ipfs repo migrate succeed" '
 '
 
 test_expect_success "output looks good" '
-  grep "Found outdated fs-repo, starting migration." migrate_out > /dev/null &&
-  grep "Success: fs-repo migrated to version $IPFS_REPO_VER" true_out > /dev/null
+  grep "Migrating repository from version" migrate_out > /dev/null &&
+  grep "Success: fs-repo migrated to version $IPFS_REPO_VER" migrate_out > /dev/null
 '
 
 test_expect_success "manually reset repo version to latest" '
@@ -102,7 +103,7 @@ test_expect_success "detect repo does not need migration" '
 '
 
 test_expect_success "output looks good" '
-  grep "Repo does not require migration" migrate_out > /dev/null
+  grep "Repository is already at version" migrate_out > /dev/null
 '
 
 # ensure that we get a lock error if we need to migrate and the daemon is running

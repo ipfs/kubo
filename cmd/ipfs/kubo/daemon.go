@@ -290,14 +290,23 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	case fsrepo.ErrNeedMigration:
 		domigrate, found := req.Options[migrateKwd].(bool)
-		fmt.Println("Found outdated fs-repo, migrations need to be run.")
+
+		// Get current repo version for more informative message
+		currentVersion, verErr := migrations.RepoVersion(cctx.ConfigRoot)
+		if verErr != nil {
+			// Fallback to generic message if we can't read version
+			fmt.Printf("Kubo repository at %s requires migration.\n", cctx.ConfigRoot)
+		} else {
+			fmt.Printf("Kubo repository at %s has version %d and needs to be migrated to version %d.\n",
+				cctx.ConfigRoot, currentVersion, version.RepoVersion)
+		}
 
 		if !found {
 			domigrate = YesNoPrompt("Run migrations now? [y/N]")
 		}
 
 		if !domigrate {
-			fmt.Println("Not running migrations of fs-repo now. Re-run daemon with --migrate or see 'ipfs repo migrate --help'")
+			fmt.Printf("Not running migrations on repository at %s. Re-run daemon with --migrate or see 'ipfs repo migrate --help'\n", cctx.ConfigRoot)
 			return errors.New("fs-repo requires migration")
 		}
 
