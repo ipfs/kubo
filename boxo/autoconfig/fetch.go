@@ -178,6 +178,10 @@ func (c *Client) HasCachedConfig(configURL string) bool {
 		return false
 	}
 
+	// Lock to ensure thread-safe cache reads
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+
 	files, err := c.listCacheFiles(cacheDir)
 	return err == nil && len(files) > 0
 }
@@ -310,6 +314,10 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 
 // getCachedConfig returns the latest cached config
 func (c *Client) getCachedConfig(cacheDir string) (*Config, error) {
+	// RLock to allow concurrent cache reads while preventing cleanup races
+	c.cacheMu.RLock()
+	defer c.cacheMu.RUnlock()
+
 	files, err := c.listCacheFiles(cacheDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cached files: %w", err)
@@ -432,6 +440,10 @@ func (c *Client) saveToCache(cacheDir string, data []byte, etag, lastModified st
 
 // isNewPayload checks if the payload is different from the latest cached version
 func (c *Client) isNewPayload(cacheDir string, newData []byte) bool {
+	// RLock to allow concurrent payload comparisons
+	c.cacheMu.RLock()
+	defer c.cacheMu.RUnlock()
+
 	files, err := c.listCacheFiles(cacheDir)
 	if err != nil || len(files) == 0 {
 		// No cached files, this is new
@@ -451,6 +463,10 @@ func (c *Client) isNewPayload(cacheDir string, newData []byte) bool {
 
 // cleanupOldVersions removes old cached versions beyond maxVersions
 func (c *Client) cleanupOldVersions(cacheDir string) error {
+	// Use write lock for cleanup operations (exclusive access needed)
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+
 	files, err := c.listCacheFiles(cacheDir)
 	if err != nil {
 		return fmt.Errorf("failed to get cached files: %w", err)
@@ -460,13 +476,12 @@ func (c *Client) cleanupOldVersions(cacheDir string) error {
 		return nil
 	}
 
-	// Remove files beyond cacheSize (keep 3 latest)
+	// Remove files beyond cacheSize (keep latest ones)
 	for _, file := range files[c.cacheSize:] {
 		if err := os.Remove(file); err != nil {
-			log.Warnf("failed to remove old cache file %s: %v", file, err)
-		} else {
-			log.Debugf("removed old cache file: %s", file)
+			return fmt.Errorf("failed to remove cache file %s: %w", file, err)
 		}
+		log.Debugf("removed old cache file: %s", file)
 	}
 
 	return nil

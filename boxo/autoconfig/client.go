@@ -54,7 +54,7 @@ type Client struct {
 	cacheSize       int
 	userAgent       string
 	maxResponseSize int64
-	cacheMu         sync.Mutex // Protects cache write operations
+	cacheMu         sync.RWMutex // Protects cache operations (allows concurrent reads)
 }
 
 // Option is a function that configures the client
