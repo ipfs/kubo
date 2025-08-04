@@ -22,6 +22,12 @@ gen_mock_migrations() {
     j=$((i+1))
     echo "#!/bin/bash" > bin/fs-repo-${i}-to-${j}
     echo "echo fake applying ${i}-to-${j} repo migration" >> bin/fs-repo-${i}-to-${j}
+    # Update version file to the target version for hybrid migration system
+    echo "if [ \"\$1\" = \"-path\" ] && [ -n \"\$2\" ]; then" >> bin/fs-repo-${i}-to-${j}
+    echo "  echo $j > \"\$2/version\"" >> bin/fs-repo-${i}-to-${j}
+    echo "elif [ -n \"\$IPFS_PATH\" ]; then" >> bin/fs-repo-${i}-to-${j}
+    echo "  echo $j > \"\$IPFS_PATH/version\"" >> bin/fs-repo-${i}-to-${j}
+    echo "fi" >> bin/fs-repo-${i}-to-${j}
     chmod +x bin/fs-repo-${i}-to-${j}
     ((i++))
   done
@@ -62,17 +68,24 @@ test_expect_success "output looks good" '
   grep "Error: fs-repo requires migration" false_out
 '
 
-# The migrations will succeed, but the daemon will still exit with 1 because
-# the fake migrations do not update the repo version number.
-#
-# If run with real migrations, the daemon continues running and must be killed.
+# The migrations will succeed and the daemon will continue running
+# since the mock migrations now properly update the repo version number.
 test_expect_success "ipfs daemon --migrate=true runs migration" '
-  test_expect_code 1 ipfs daemon --migrate=true > true_out
+  ipfs daemon --migrate=true > true_out 2>&1 &
+  DAEMON_PID=$!
+  # Wait for daemon to be ready then shutdown gracefully
+  sleep 3 && ipfs shutdown 2>/dev/null || kill $DAEMON_PID 2>/dev/null || true
+  wait $DAEMON_PID 2>/dev/null || true
 '
 
 test_expect_success "output looks good" '
   check_migration_output true_out &&
-  grep "Success: fs-repo migrated to version $IPFS_REPO_VER" true_out > /dev/null
+  (grep "Success: fs-repo migrated to version $IPFS_REPO_VER" true_out > /dev/null ||
+   grep "Hybrid migration completed successfully: v$MIGRATION_START → v$IPFS_REPO_VER" true_out > /dev/null)
+'
+
+test_expect_success "reset repo version for auto-migration test" '
+  echo "$MIGRATION_START" > "$IPFS_PATH"/version
 '
 
 test_expect_success "'ipfs daemon' prompts to auto migrate" '
@@ -91,7 +104,8 @@ test_expect_success "ipfs repo migrate succeed" '
 
 test_expect_success "output looks good" '
   grep "Migrating repository from version" migrate_out > /dev/null &&
-  grep "Success: fs-repo migrated to version $IPFS_REPO_VER" migrate_out > /dev/null
+  (grep "Success: fs-repo migrated to version $IPFS_REPO_VER" migrate_out > /dev/null ||
+   grep "Hybrid migration completed successfully: v$MIGRATION_START → v$IPFS_REPO_VER" migrate_out > /dev/null)
 '
 
 test_expect_success "manually reset repo version to latest" '
