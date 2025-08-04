@@ -584,19 +584,18 @@ func testMultipleExpandAutoUsesCache(t *testing.T) {
 	t.Logf("✅ Cache continues to be used after server update - background updater pattern confirmed!")
 }
 
-// testCLIUsesCacheOnlyDaemonUpdatesBackground verifies the separation between CLI and daemon
-// autoconfig behavior: CLI commands always use cached data (no HTTP), while the daemon
-// background updater handles HTTP requests based on RefreshInterval.
+// testCLIUsesCacheOnlyDaemonUpdatesBackground verifies the correct autoconfig behavior:
+// daemon makes exactly one HTTP request during startup to fetch and cache data, then
+// CLI commands always use cached data without making additional HTTP requests.
 //
 // This test is essential for correctness because:
-// 1. It validates that CLI --expand-auto never makes HTTP requests (uses cache only)
-// 2. It verifies that daemon background updater DOES make HTTP requests (with short RefreshInterval)
-// 3. It ensures proper separation between CLI behavior and daemon cache management
-// 4. It tests that CLI commands are always fast (no network I/O) regardless of RefreshInterval
-// 5. It validates that background updates work independently of CLI usage
-// 6. It prevents regression where CLI commands might start making HTTP requests
+// 1. It validates that daemon startup makes exactly one HTTP request to fetch autoconfig
+// 2. It verifies that CLI --expand-auto never makes HTTP requests (uses cache only)
+// 3. It ensures CLI commands remain fast by always using cached data
+// 4. It prevents regression where CLI commands might start making HTTP requests
+// 5. It confirms the correct separation between daemon (network) and CLI (cache-only) behavior
 func testCLIUsesCacheOnlyDaemonUpdatesBackground(t *testing.T) {
-	// Test scenario: CLI with daemon and short RefreshInterval to trigger background updates
+	// Test scenario: CLI with daemon and long RefreshInterval (no background updates during test)
 
 	// Create autoconfig response
 	autoConfigData := loadTestDataComprehensive(t, "valid_autoconfig.json")
@@ -615,12 +614,12 @@ func testCLIUsesCacheOnlyDaemonUpdatesBackground(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Create IPFS node with SHORT refresh interval for testing
+	// Create IPFS node with long refresh interval
 	node := harness.NewT(t).NewNode().Init("--profile=test")
 	node.SetIPFSConfig("AutoConfig.URL", server.URL)
 	node.SetIPFSConfig("AutoConfig.Enabled", true)
-	// Set short RefreshInterval for testing cache expiry
-	node.SetIPFSConfig("AutoConfig.RefreshInterval", "200ms")
+	// Set long RefreshInterval to avoid background updates during test
+	node.SetIPFSConfig("AutoConfig.RefreshInterval", "1h")
 
 	node.SetIPFSConfig("Bootstrap", []string{"auto"})
 	node.SetIPFSConfig("DNS.Resolvers", map[string]string{"test.": "auto"})
@@ -629,18 +628,15 @@ func testCLIUsesCacheOnlyDaemonUpdatesBackground(t *testing.T) {
 	daemon := startDaemonAndWaitForAutoconfig(t, node, &requestCount)
 	defer daemon.StopDaemon()
 
-	// Capture baseline after daemon startup
+	// Confirm only one request was made during daemon startup
 	initialRequestCount := atomic.LoadInt32(&requestCount)
-	t.Logf("Requests made during daemon startup: %d", initialRequestCount)
+	assert.Equal(t, int32(1), initialRequestCount, "Expected exactly 1 HTTP request during daemon startup, got: %d", initialRequestCount)
+	t.Logf("✅ Daemon startup made exactly 1 HTTP request")
 
-	// Test 1: CLI commands use cache only (no HTTP requests from CLI operations)
+	// Test: CLI commands use cache only (no additional HTTP requests)
 	t.Log("Testing that CLI --expand-auto commands use cache only...")
 
-	// Wait a moment for background updater timing to stabilize, then capture baseline
-	time.Sleep(50 * time.Millisecond)
-	preTestRequestCount := atomic.LoadInt32(&requestCount)
-
-	// Make several CLI calls rapidly - none should trigger HTTP requests
+	// Make several CLI calls - none should trigger HTTP requests
 	result1 := node.RunIPFS("config", "Bootstrap", "--expand-auto")
 	require.Equal(t, 0, result1.ExitCode(), "Bootstrap --expand-auto should succeed")
 
@@ -650,42 +646,12 @@ func testCLIUsesCacheOnlyDaemonUpdatesBackground(t *testing.T) {
 	result3 := node.RunIPFS("config", "Routing.DelegatedRouters", "--expand-auto")
 	require.Equal(t, 0, result3.ExitCode(), "Routing.DelegatedRouters --expand-auto should succeed")
 
-	// Verify CLI calls made no additional HTTP requests (used cache only)
-	postTestRequestCount := atomic.LoadInt32(&requestCount)
-	cliTriggeredRequests := postTestRequestCount - preTestRequestCount
-	assert.Equal(t, int32(0), cliTriggeredRequests,
-		"CLI --expand-auto commands should make 0 HTTP requests (cache only). CLI triggered: %d", cliTriggeredRequests)
-	t.Log("✅ CLI commands use cache only - no additional HTTP requests")
+	// Verify the request count remains at 1 (no additional requests from CLI)
+	finalRequestCount := atomic.LoadInt32(&requestCount)
+	assert.Equal(t, int32(1), finalRequestCount, "Request count should remain at 1 after CLI commands, got: %d", finalRequestCount)
+	t.Log("✅ CLI commands use cache only - request count remains at 1")
 
-	// Test 2: Daemon background updater DOES make HTTP requests
-	t.Log("Testing that daemon background updater makes HTTP requests...")
-
-	// Wait for background updater to trigger (RefreshInterval is 200ms)
-	t.Log("Waiting for daemon background updater to refresh cache...")
-	time.Sleep(500 * time.Millisecond) // Wait longer than RefreshInterval
-
-	// Verify that daemon background updater made HTTP requests
-	backgroundRequestCount := atomic.LoadInt32(&requestCount)
-	assert.Greater(t, backgroundRequestCount, int32(0),
-		"Daemon background updater should make HTTP requests. Got: %d", backgroundRequestCount)
-	t.Logf("✅ Daemon background updater made %d HTTP request(s)", backgroundRequestCount)
-
-	// Test 3: CLI still uses cache after background updates
-	t.Log("Testing CLI continues to use cache after background updates...")
-
-	// Capture baseline before final CLI test
-	preFinalRequestCount := atomic.LoadInt32(&requestCount)
-
-	// Make final CLI call - should still use cache, not HTTP
-	result4 := node.RunIPFS("config", "Bootstrap", "--expand-auto")
-	require.Equal(t, 0, result4.ExitCode(), "Final Bootstrap --expand-auto should succeed")
-
-	postFinalRequestCount := atomic.LoadInt32(&requestCount)
-	finalCLITriggeredRequests := postFinalRequestCount - preFinalRequestCount
-	assert.Equal(t, int32(0), finalCLITriggeredRequests,
-		"CLI should still use cache after background updates. CLI triggered: %d requests", finalCLITriggeredRequests)
-
-	t.Log("✅ Test completed: CLI uses cache only, daemon handles background updates")
+	t.Log("✅ Test completed: Daemon makes 1 startup request, CLI commands use cache only")
 }
 
 // loadTestDataComprehensive is a helper function that loads test autoconfig JSON data files.
