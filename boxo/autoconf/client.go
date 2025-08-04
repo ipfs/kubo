@@ -41,13 +41,21 @@ const (
 
 	// MainnetAutoConfURL is the default URL for fetching autoconf for the IPFS Mainnet.
 	// See https://docs.ipfs.tech/concepts/glossary/#mainnet for more information about IPFS Mainnet.
-	// This is a specific version that is known to work fine with current implementation,
-	// and it makes it a safe default while iterating on format.
-	// TODO: change it back to https://config.ipfs-mainnet.org/autoconf.json before shipping
-	MainnetAutoConfURL = "https://github.com/ipshipyard/config.ipfs-mainnet.org/raw/e422260d048e9266be7e88f7a36d46df43cdb45d/autoconf.json"
+	MainnetAutoConfURL = "https://config.ipfs-mainnet.org/autoconf.json"
 )
 
-// Client is the autoconf client
+// Client fetches, caches, and manages AutoConf configurations from HTTP endpoints.
+//
+// The client implements intelligent caching with HTTP conditional requests (ETags/Last-Modified),
+// version-based storage, and graceful fallback to cached data when remote servers are unreachable.
+// Multiple configuration versions are kept locally to ensure reliability during network issues.
+//
+// Key features:
+//   - HTTP conditional requests to minimize bandwidth
+//   - Version-based caching with automatic cleanup
+//   - Thread-safe operations with concurrent read support
+//   - Graceful fallback to cached data when networks fail
+//   - Hostname-based cache separation for multiple URLs
 type Client struct {
 	httpClient      *http.Client
 	cacheDir        string

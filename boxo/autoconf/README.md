@@ -30,7 +30,9 @@ if err != nil {
 }
 
 // Use the config
-fmt.Printf("Bootstrap peers: %v\n", config.Bootstrap)
+bootstrapPeers := config.GetBootstrapPeers([]string{"AminoDHT"})
+fmt.Printf("Bootstrap peers: %v\n", bootstrapPeers)
+fmt.Printf("DNS resolvers: %v\n", config.DNSResolvers)
 ```
 
 ### With Custom Options
@@ -64,7 +66,8 @@ func main() {
         panic(err)
     }
 
-    fmt.Printf("Bootstrap peers: %v\n", config.Bootstrap)
+    bootstrapPeers := config.GetBootstrapPeers([]string{"AminoDHT"})
+    fmt.Printf("Bootstrap peers: %v\n", bootstrapPeers)
     fmt.Printf("DNS resolvers: %v\n", config.DNSResolvers)
 }
 ```
@@ -113,17 +116,28 @@ func main() {
 
 ## Cache Structure
 
-The cache is organized by hostname and version:
+The cache is organized by hostname and version for efficient management:
 
 ```
 $CACHE_DIR/
   autoconf/
-    example.com/
-      2025071801.json
-      2025071802.json
+    example.com/                    # Hostname-based directory
+      autoconf-2025071801.json      # Versioned config files
+      autoconf-2025071802.json      # Multiple versions kept for reliability
+      .etag                         # HTTP ETag for conditional requests
+      .last-modified                # HTTP Last-Modified for cache validation
+      .last-refresh                 # Timestamp of last refresh attempt
+    config.ipfs-mainnet.org/
+      autoconf-2025072301.json
       .etag
       .last-modified
+      .last-refresh
 ```
+
+- **Version-based files**: Each AutoConfVersion gets its own JSON file
+- **Metadata files**: Store HTTP headers for efficient conditional requests
+- **Automatic cleanup**: Old versions are automatically removed (default: keep 3 versions)
+- **Hostname separation**: Multiple URLs cached independently
 
 ## Configuration Options
 
