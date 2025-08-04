@@ -354,7 +354,6 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(BitswapOptions(cfg)),
 		fx.Provide(Bitswap(isBitswapServerEnabled, isBitswapLibp2pEnabled, isHTTPRetrievalEnabled)),
 		fx.Provide(OnlineExchange(isBitswapLibp2pEnabled)),
-		// Replace our Exchange with a Providing exchange!
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),

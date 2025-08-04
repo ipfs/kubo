@@ -107,6 +107,8 @@ type IpfsNode struct {
 	Bitswap                   *bitswap.Bitswap           `optional:"true"` // The Bitswap instance
 	Namesys                   namesys.NameSystem         // the name system, resolves paths to hashes
 	Provider                  provider.System            // the value provider system
+	ProvidingStrategy         string                     `name:"providingStrategy" optional:"true"`
+	ProvidingKeyChanFunc      provider.KeyChanFunc       `optional:"true"`
 	IpnsRepub                 *ipnsrp.Republisher        `optional:"true"`
 	ResourceManager           network.ResourceManager    `optional:"true"`
 

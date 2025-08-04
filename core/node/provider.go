@@ -151,7 +151,7 @@ func OnlineProviders(provide bool, reprovideStrategy string, reprovideInterval t
 	var keyProvider fx.Option
 	switch reprovideStrategy {
 	case "all", "", "roots", "pinned", "mfs", "pinned+mfs", "flat":
-		keyProvider = fx.Invoke(newProvidingStrategy(reprovideStrategy))
+		keyProvider = fx.Provide(newProvidingStrategy(reprovideStrategy))
 	default:
 		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", reprovideStrategy))
 	}
@@ -207,7 +207,12 @@ func newProvidingStrategy(strategy string) interface{} {
 		Provider             provider.System
 		Repo                 repo.Repo
 	}
-	return func(in input) provider.KeyChanFunc {
+	type output struct {
+		fx.Out
+		ProvidingStrategy    string `name:"providingStrategy"`
+		ProvidingKeyChanFunc provider.KeyChanFunc
+	}
+	return func(in input) output {
 		var kcf provider.KeyChanFunc
 
 		switch strategy {
@@ -261,6 +266,9 @@ func newProvidingStrategy(strategy string) interface{} {
 			}
 		}
 
-		return kcf
+		return output{
+			ProvidingStrategy:    strategy,
+			ProvidingKeyChanFunc: kcf,
+		}
 	}
 }

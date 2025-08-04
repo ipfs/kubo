@@ -409,7 +409,7 @@ func (adder *Adder) addFileNode(ctx context.Context, path string, file files.Nod
 	case files.Directory:
 		return adder.addDir(ctx, path, f, toplevel)
 	case *files.Symlink:
-		return adder.addSymlink(path, f)
+		return adder.addSymlink(ctx, path, f)
 	case files.File:
 		return adder.addFile(path, f)
 	default:
@@ -417,7 +417,7 @@ func (adder *Adder) addFileNode(ctx context.Context, path string, file files.Nod
 	}
 }
 
-func (adder *Adder) addSymlink(path string, l *files.Symlink) error {
+func (adder *Adder) addSymlink(ctx context.Context, path string, l *files.Symlink) error {
 	sdata, err := unixfs.SymlinkData(l.Target)
 	if err != nil {
 		return err
