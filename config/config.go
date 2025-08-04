@@ -32,8 +32,8 @@ type Config struct {
 	Peering   Peering
 	DNS       DNS
 
-	Migration  Migration
-	AutoConfig AutoConfig
+	Migration Migration
+	AutoConf  AutoConf
 
 	Provider      Provider
 	Reprovider    Reprovider

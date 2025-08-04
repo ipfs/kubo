@@ -152,14 +152,14 @@ $ ipfs resolve -r /ipns/dnslink-test2.example.com
 
 ## `IPFS_HTTP_ROUTERS`
 
-Overrides AutoConfig and all other HTTP routers when set.
+Overrides AutoConf and all other HTTP routers when set.
 When `Routing.Type=auto`, this environment variable takes precedence over
-both AutoConfig-provided endpoints and any manually configured delegated routers.
+both AutoConf-provided endpoints and any manually configured delegated routers.
 The value should be a space or comma-separated list of HTTP routing endpoint URLs.
 
 This is useful for:
 - Testing and debugging in offline contexts
-- Overriding AutoConfig endpoints temporarily
+- Overriding AutoConf endpoints temporarily
 - Using custom or private HTTP routing services
 
 Example:
@@ -169,11 +169,11 @@ $ ipfs config Routing.Type auto
 $ IPFS_HTTP_ROUTERS="http://127.0.0.1:7423" ipfs daemon
 ```
 
-The above will replace all AutoConfig endpoints with a single local one, allowing for
+The above will replace all AutoConf endpoints with a single local one, allowing for
 inspection/debug of HTTP requests sent by Kubo via `while true ; do nc -l 7423; done`
 or more advanced tools like [mitmproxy](https://docs.mitmproxy.org/stable/#mitmproxy).
 
-When not set, Kubo uses endpoints from AutoConfig (when enabled) or manually configured `Routing.DelegatedRouters`.
+When not set, Kubo uses endpoints from AutoConf (when enabled) or manually configured `Routing.DelegatedRouters`.
 
 ## `IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS`
 

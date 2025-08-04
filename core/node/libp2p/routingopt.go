@@ -53,8 +53,8 @@ func (ec *EndpointCapabilities) Merge(other EndpointCapabilities) {
 // EndpointSource tracks where a URL came from to determine appropriate capabilities
 type EndpointSource struct {
 	URL           string
-	SupportsRead  bool // came from DelegatedRoutersWithAutoConfig (Read operations)
-	SupportsWrite bool // came from DelegatedPublishersWithAutoConfig (Write operations)
+	SupportsRead  bool // came from DelegatedRoutersWithAutoConf (Read operations)
+	SupportsWrite bool // came from DelegatedPublishersWithAutoConf (Write operations)
 }
 
 // determineCapabilities determines endpoint capabilities based on URL path and source
@@ -107,12 +107,12 @@ func collectAllEndpoints(cfg *config.Config) []EndpointSource {
 		// Use environment variable override if set (space or comma separated)
 		splitFunc := func(r rune) bool { return r == ',' || r == ' ' }
 		routerURLs = strings.FieldsFunc(envRouters, splitFunc)
-		log.Warnf("Using HTTP routers from %s environment variable instead of config/autoconfig: %v", config.EnvHTTPRouters, routerURLs)
+		log.Warnf("Using HTTP routers from %s environment variable instead of config/autoconf: %v", config.EnvHTTPRouters, routerURLs)
 	} else {
-		// Use delegated routers from autoconfig
-		routerURLs = cfg.DelegatedRoutersWithAutoConfig()
-		// No fallback - if autoconfig doesn't provide endpoints, use empty list
-		// This exposes any autoconfig issues rather than masking them with hardcoded defaults
+		// Use delegated routers from autoconf
+		routerURLs = cfg.DelegatedRoutersWithAutoConf()
+		// No fallback - if autoconf doesn't provide endpoints, use empty list
+		// This exposes any autoconf issues rather than masking them with hardcoded defaults
 	}
 
 	// Add router URLs to collection
@@ -125,7 +125,7 @@ func collectAllEndpoints(cfg *config.Config) []EndpointSource {
 	}
 
 	// Get publisher URLs (Write operations)
-	publisherURLs := cfg.DelegatedPublishersWithAutoConfig()
+	publisherURLs := cfg.DelegatedPublishersWithAutoConf()
 
 	// Add publisher URLs, merging with existing router URLs if they match
 	for _, url := range publisherURLs {

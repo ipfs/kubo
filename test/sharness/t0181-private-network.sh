@@ -10,8 +10,8 @@ test_description="Test private network feature"
 
 test_init_ipfs
 
-test_expect_success "disable AutoConfig for private network tests" '
-  ipfs config --json AutoConfig.Enabled false
+test_expect_success "disable AutoConf for private network tests" '
+  ipfs config --json AutoConf.Enabled false
 '
 
 export LIBP2P_FORCE_PNET=1
@@ -42,7 +42,7 @@ test_expect_success "set up iptb testbed" '
   iptb run -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true &&
   iptb run -- ipfs config --json "Swarm.Transports.Network.Websocket" false &&
   iptb run -- ipfs config --json Addresses.Swarm  '"'"'["/ip4/127.0.0.1/tcp/0"]'"'"' &&
-  iptb run -- ipfs config --json AutoConfig.Enabled false
+  iptb run -- ipfs config --json AutoConf.Enabled false
 '
 
 set_key() {
@@ -141,23 +141,23 @@ test_expect_success "stop testbed" '
 
 test_kill_ipfs_daemon
 
-# Test that AutoConfig with default mainnet URL fails on private networks
-test_expect_success "setup test repo with AutoConfig enabled and private network" '
-  export IPFS_PATH="$(pwd)/.ipfs-autoconfig-test" &&
+# Test that AutoConf with default mainnet URL fails on private networks
+test_expect_success "setup test repo with AutoConf enabled and private network" '
+  export IPFS_PATH="$(pwd)/.ipfs-autoconf-test" &&
   ipfs init --profile=test > /dev/null &&
-  ipfs config --json AutoConfig.Enabled true &&
+  ipfs config --json AutoConf.Enabled true &&
   pnet_key > "${IPFS_PATH}/swarm.key"
 '
 
-test_expect_success "daemon fails with AutoConfig + private network error" '
-  export IPFS_PATH="$(pwd)/.ipfs-autoconfig-test" &&
-  test_expect_code 1 ipfs daemon > autoconfig_stdout 2> autoconfig_stderr
+test_expect_success "daemon fails with AutoConf + private network error" '
+  export IPFS_PATH="$(pwd)/.ipfs-autoconf-test" &&
+  test_expect_code 1 ipfs daemon > autoconf_stdout 2> autoconf_stderr
 '
 
-test_expect_success "error message mentions AutoConfig and private network conflict" '
-  grep "AutoConfig cannot use the default mainnet URL" autoconfig_stderr > /dev/null &&
-  grep "private network.*swarm.key" autoconfig_stderr > /dev/null &&
-  grep "AutoConfig.Enabled=false" autoconfig_stderr > /dev/null
+test_expect_success "error message mentions AutoConf and private network conflict" '
+  grep "AutoConf cannot use the default mainnet URL" autoconf_stderr > /dev/null &&
+  grep "private network.*swarm.key" autoconf_stderr > /dev/null &&
+  grep "AutoConf.Enabled=false" autoconf_stderr > /dev/null
 '
 
 test_done

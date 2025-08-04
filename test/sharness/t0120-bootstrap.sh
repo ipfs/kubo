@@ -15,8 +15,8 @@ BP7="/ip4/104.131.131.82/udp/4001/quic-v1/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUt
 
 test_description="Test ipfs bootstrap operations"
 
-# NOTE: For AutoConfig bootstrap functionality (add default, --expand-auto, etc.)
-# see test/cli/bootstrap_auto_test.go and test/cli/autoconfig/expand_test.go
+# NOTE: For AutoConf bootstrap functionality (add default, --expand-auto, etc.)
+# see test/cli/bootstrap_auto_test.go and test/cli/autoconf/expand_test.go
 
 . lib/test-lib.sh
 

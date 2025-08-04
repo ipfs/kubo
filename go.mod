@@ -44,7 +44,7 @@ require (
 	github.com/ipfs/go-metrics-prometheus v0.1.0
 	github.com/ipfs/go-test v0.2.2
 	github.com/ipfs/go-unixfsnode v1.10.1
-	github.com/ipfs/kubo/boxo/autoconfig v0.0.0-00010101000000-000000000000
+	github.com/ipfs/kubo/boxo/autoconf v0.0.0-00010101000000-000000000000
 	github.com/ipld/go-car/v2 v2.14.3
 	github.com/ipld/go-codec-dagpb v1.7.0
 	github.com/ipld/go-ipld-prime v0.21.0
@@ -270,4 +270,4 @@ require (
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
 
-replace github.com/ipfs/kubo/boxo/autoconfig => ./boxo/autoconfig
+replace github.com/ipfs/kubo/boxo/autoconf => ./boxo/autoconf

@@ -15,7 +15,7 @@ func TestBootstrapCommandsWithAutoPlaceholder(t *testing.T) {
 		t.Parallel()
 		// Test that 'ipfs bootstrap add default' works correctly
 		node := harness.NewT(t).NewNode().Init("--profile=test")
-		node.SetIPFSConfig("AutoConfig.Enabled", true)
+		node.SetIPFSConfig("AutoConf.Enabled", true)
 		node.SetIPFSConfig("Bootstrap", []string{}) // Start with empty bootstrap
 
 		// Add default bootstrap peers via "auto" placeholder
@@ -39,7 +39,7 @@ func TestBootstrapCommandsWithAutoPlaceholder(t *testing.T) {
 		t.Parallel()
 		// Test that 'ipfs bootstrap add auto' works correctly
 		node := harness.NewT(t).NewNode().Init("--profile=test")
-		node.SetIPFSConfig("AutoConfig.Enabled", true)
+		node.SetIPFSConfig("AutoConf.Enabled", true)
 		node.SetIPFSConfig("Bootstrap", []string{}) // Start with empty bootstrap
 
 		// Add "auto" placeholder explicitly
@@ -76,29 +76,29 @@ func TestBootstrapCommandsWithAutoPlaceholder(t *testing.T) {
 		require.Equal(t, []string{"auto"}, bootstrap, "Bootstrap should contain ['auto']")
 	})
 
-	t.Run("bootstrap add default fails when AutoConfig disabled", func(t *testing.T) {
+	t.Run("bootstrap add default fails when AutoConf disabled", func(t *testing.T) {
 		t.Parallel()
-		// Test that adding default/auto fails when AutoConfig is disabled
+		// Test that adding default/auto fails when AutoConf is disabled
 		node := harness.NewT(t).NewNode().Init("--profile=test")
-		node.SetIPFSConfig("Bootstrap", []string{})     // Start with empty bootstrap
-		node.SetIPFSConfig("AutoConfig.Enabled", false) // Disable AutoConfig
+		node.SetIPFSConfig("Bootstrap", []string{})   // Start with empty bootstrap
+		node.SetIPFSConfig("AutoConf.Enabled", false) // Disable AutoConf
 
 		// Try to add default - should fail
 		result := node.RunIPFS("bootstrap", "add", "default")
-		require.NotEqual(t, 0, result.ExitCode(), "bootstrap add default should fail when AutoConfig disabled")
-		assert.Contains(t, result.Stderr.String(), "AutoConfig is disabled", "should mention AutoConfig is disabled")
+		require.NotEqual(t, 0, result.ExitCode(), "bootstrap add default should fail when AutoConf disabled")
+		assert.Contains(t, result.Stderr.String(), "AutoConf is disabled", "should mention AutoConf is disabled")
 
 		// Try to add auto - should also fail
 		result = node.RunIPFS("bootstrap", "add", "auto")
-		require.NotEqual(t, 0, result.ExitCode(), "bootstrap add auto should fail when AutoConfig disabled")
-		assert.Contains(t, result.Stderr.String(), "AutoConfig is disabled", "should mention AutoConfig is disabled")
+		require.NotEqual(t, 0, result.ExitCode(), "bootstrap add auto should fail when AutoConf disabled")
+		assert.Contains(t, result.Stderr.String(), "AutoConf is disabled", "should mention AutoConf is disabled")
 	})
 
 	t.Run("bootstrap rm with auto placeholder", func(t *testing.T) {
 		t.Parallel()
 		// Test that selective removal fails properly when "auto" is present
 		node := harness.NewT(t).NewNode().Init("--profile=test")
-		node.SetIPFSConfig("AutoConfig.Enabled", true)
+		node.SetIPFSConfig("AutoConf.Enabled", true)
 		node.SetIPFSConfig("Bootstrap", []string{"auto"}) // Start with auto
 
 		// Try to remove a specific peer - should fail with helpful error
@@ -109,8 +109,8 @@ func TestBootstrapCommandsWithAutoPlaceholder(t *testing.T) {
 		t.Logf("Bootstrap rm error output: %s", output)
 		assert.Contains(t, output, "cannot remove individual bootstrap peers when using 'auto' placeholder",
 			"should provide helpful error message about auto placeholder")
-		assert.Contains(t, output, "disable AutoConfig",
-			"should suggest disabling AutoConfig as solution")
+		assert.Contains(t, output, "disable AutoConf",
+			"should suggest disabling AutoConf as solution")
 		assert.Contains(t, output, "ipfs bootstrap rm --all",
 			"should suggest using rm --all as alternative")
 	})
@@ -119,7 +119,7 @@ func TestBootstrapCommandsWithAutoPlaceholder(t *testing.T) {
 		t.Parallel()
 		// Test that 'ipfs bootstrap rm --all' works with "auto" placeholder
 		node := harness.NewT(t).NewNode().Init("--profile=test")
-		node.SetIPFSConfig("AutoConfig.Enabled", true)
+		node.SetIPFSConfig("AutoConf.Enabled", true)
 		node.SetIPFSConfig("Bootstrap", []string{"auto"}) // Start with auto
 
 		// Remove all bootstrap peers
@@ -153,7 +153,7 @@ func TestBootstrapCommandsWithAutoPlaceholder(t *testing.T) {
 		t.Parallel()
 		// Test that bootstrap commands work when mixing "auto" with specific peers
 		node := harness.NewT(t).NewNode().Init("--profile=test")
-		node.SetIPFSConfig("AutoConfig.Enabled", true)
+		node.SetIPFSConfig("AutoConf.Enabled", true)
 		node.SetIPFSConfig("Bootstrap", []string{}) // Start with empty bootstrap
 
 		// Add a specific peer first

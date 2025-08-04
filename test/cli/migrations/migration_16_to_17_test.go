@@ -80,7 +80,7 @@ func testDaemonMigrationWithAuto(t *testing.T) {
 
 	// Verify migration results using DRY helper
 	helper := NewMigrationTestHelper(t, configPath)
-	helper.RequireAutoConfigDefaults().
+	helper.RequireAutoConfDefaults().
 		RequireArrayContains("Bootstrap", "auto").
 		RequireArrayLength("Bootstrap", 1). // Should only contain "auto" when all peers were defaults
 		RequireArrayContains("Routing.DelegatedRouters", "auto").
@@ -135,7 +135,7 @@ func testDaemonMigrationWithoutAuto(t *testing.T) {
 
 	// Verify migration results: custom values preserved alongside "auto"
 	helper := NewMigrationTestHelper(t, configPath)
-	helper.RequireAutoConfigDefaults().
+	helper.RequireAutoConfDefaults().
 		RequireArrayContains("Bootstrap", "auto").
 		RequireFieldEquals("DNS.Resolvers[.]", "https://custom-dns.example.com/dns-query")
 
@@ -212,12 +212,12 @@ func (h *MigrationTestHelper) RequireFieldAbsent(path string) *MigrationTestHelp
 	return h
 }
 
-func (h *MigrationTestHelper) RequireAutoConfigDefaults() *MigrationTestHelper {
-	return h.RequireFieldExists("AutoConfig").
-		RequireFieldEquals("AutoConfig.Enabled", true).
-		RequireFieldExists("AutoConfig.URL").
-		RequireFieldEquals("AutoConfig.Interval", "24h").
-		RequireFieldEquals("AutoConfig.TLSInsecureSkipVerify", false)
+func (h *MigrationTestHelper) RequireAutoConfDefaults() *MigrationTestHelper {
+	return h.RequireFieldExists("AutoConf").
+		RequireFieldEquals("AutoConf.Enabled", true).
+		RequireFieldExists("AutoConf.URL").
+		RequireFieldEquals("AutoConf.Interval", "24h").
+		RequireFieldEquals("AutoConf.TLSInsecureSkipVerify", false)
 }
 
 func (h *MigrationTestHelper) RequireAutoFieldsSetToAuto() *MigrationTestHelper {
@@ -495,7 +495,7 @@ func testDaemonMissingFieldsHandling(t *testing.T) {
 
 	// Verify migration adds all required fields to minimal config
 	NewMigrationTestHelper(t, configPath).
-		RequireAutoConfigDefaults().
+		RequireAutoConfDefaults().
 		RequireAutoFieldsSetToAuto().
 		RequireFieldExists("Identity.PeerID") // Original identity preserved from static fixture
 }
@@ -522,7 +522,7 @@ func testRepoMigrationWithAuto(t *testing.T) {
 
 	// Verify same results as daemon migrate
 	helper := NewMigrationTestHelper(t, configPath)
-	helper.RequireAutoConfigDefaults().
+	helper.RequireAutoConfDefaults().
 		RequireArrayContains("Bootstrap", "auto").
 		RequireArrayContains("Routing.DelegatedRouters", "auto").
 		RequireArrayContains("Ipns.DelegatedPublishers", "auto").
@@ -556,9 +556,9 @@ func testRepoBackwardMigration(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "16", strings.TrimSpace(string(versionData)), "Version should be downgraded to 16")
 
-	// Verify backward migration results: AutoConfig removed and no "auto" values remain
+	// Verify backward migration results: AutoConf removed and no "auto" values remain
 	NewMigrationTestHelper(t, configPath).
-		RequireFieldAbsent("AutoConfig").
+		RequireFieldAbsent("AutoConf").
 		RequireNoAutoValues()
 }
 

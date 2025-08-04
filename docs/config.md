@@ -36,11 +36,11 @@ config file at runtime.
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
     - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
-  - [`AutoConfig`](#autoconfig)
-    - [`AutoConfig.URL`](#autoconfigurl)
-    - [`AutoConfig.Enabled`](#autoconfigenabled)
-    - [`AutoConfig.RefreshInterval`](#autoconfigrefreshinterval)
-    - [`AutoConfig.TLSInsecureSkipVerify`](#autoconfigtlsinsecureskipverify)
+  - [`AutoConf`](#autoconf)
+    - [`AutoConf.URL`](#autoconfurl)
+    - [`AutoConf.Enabled`](#autoconfenabled)
+    - [`AutoConf.RefreshInterval`](#autoconfrefreshinterval)
+    - [`AutoConf.TLSInsecureSkipVerify`](#autoconftlsinsecureskipverify)
   - [`Bitswap`](#bitswap)
     - [`Bitswap.Libp2pEnabled`](#bitswaplibp2penabled)
     - [`Bitswap.ServerEnabled`](#bitswapserverenabled)
@@ -229,8 +229,8 @@ config file at runtime.
     - [`default-datastore` profile](#default-datastore-profile)
     - [`local-discovery` profile](#local-discovery-profile)
     - [`default-networking` profile](#default-networking-profile)
-    - [`autoconfig-on` profile](#autoconfig-on-profile)
-    - [`autoconfig-off` profile](#autoconfig-off-profile)
+    - [`autoconf-on` profile](#autoconf-on-profile)
+    - [`autoconf-off` profile](#autoconf-off-profile)
     - [`flatfs` profile](#flatfs-profile)
     - [`flatfs-measure` profile](#flatfs-measure-profile)
     - [`pebbleds` profile](#pebbleds-profile)
@@ -544,11 +544,11 @@ Default: 1 Minute
 
 Type: `duration` (when `0`/unset, the default value is used)
 
-## `AutoConfig`
+## `AutoConf`
 
-The AutoConfig feature enables Kubo nodes to automatically fetch and apply network configuration from a remote JSON endpoint. This system allows dynamic configuration updates for bootstrap peers, DNS resolvers, delegated routing, and IPNS publishing endpoints without requiring manual updates to each node's local config.
+The AutoConf feature enables Kubo nodes to automatically fetch and apply network configuration from a remote JSON endpoint. This system allows dynamic configuration updates for bootstrap peers, DNS resolvers, delegated routing, and IPNS publishing endpoints without requiring manual updates to each node's local config.
 
-AutoConfig works by using special `"auto"` placeholder values in configuration fields. When Kubo encounters these placeholders, it fetches the latest configuration from the specified URL and resolves the placeholders with the appropriate values at runtime. The original configuration file remains unchanged - `"auto"` values are preserved in the JSON and only resolved in memory during node operation.
+AutoConf works by using special `"auto"` placeholder values in configuration fields. When Kubo encounters these placeholders, it fetches the latest configuration from the specified URL and resolves the placeholders with the appropriate values at runtime. The original configuration file remains unchanged - `"auto"` values are preserved in the JSON and only resolved in memory during node operation.
 
 ### Key Features
 
@@ -558,11 +558,11 @@ AutoConfig works by using special `"auto"` placeholder values in configuration f
 - **Validation**: Ensures all fetched configuration values are valid multiaddrs and URLs
 - **Caching**: Stores multiple versions locally with ETags for efficient updates
 - **User Notification**: Logs ERROR when new configuration is available requiring node restart
-- **Debug Logging**: AutoConfig operations can be inspected by setting `GOLOG_LOG_LEVEL="error,autoconfig=debug"`
+- **Debug Logging**: AutoConf operations can be inspected by setting `GOLOG_LOG_LEVEL="error,autoconf=debug"`
 
 ### Supported Fields
 
-AutoConfig can resolve `"auto"` placeholders in the following configuration fields:
+AutoConf can resolve `"auto"` placeholders in the following configuration fields:
 
 - `Bootstrap` - Bootstrap peer addresses
 - `DNS.Resolvers` - DNS-over-HTTPS resolver endpoints
@@ -573,8 +573,8 @@ AutoConfig can resolve `"auto"` placeholders in the following configuration fiel
 
 ```json
 {
-  "AutoConfig": {
-    "URL": "https://example.com/autoconfig.json",
+  "AutoConf": {
+    "URL": "https://example.com/autoconf.json",
     "Enabled": true,
     "RefreshInterval": "24h"
   },
@@ -597,12 +597,12 @@ AutoConfig can resolve `"auto"` placeholders in the following configuration fiel
 - Configuration fetching happens at daemon startup and periodically in the background
 - When new configuration is detected, users must restart their node to apply changes
 - Mixed configurations are supported: you can use both `"auto"` and static values
-- If AutoConfig is disabled but `"auto"` values exist, daemon startup will fail with validation errors
-- Cache is stored in `$IPFS_PATH/autoconfig/` with up to 3 versions retained
+- If AutoConf is disabled but `"auto"` values exist, daemon startup will fail with validation errors
+- Cache is stored in `$IPFS_PATH/autoconf/` with up to 3 versions retained
 
 ### Path-Based Routing Configuration
 
-AutoConfig supports path-based routing URLs that automatically enable specific routing operations based on the URL path. This allows precise control over which HTTP Routing V1 endpoints are used for different operations:
+AutoConf supports path-based routing URLs that automatically enable specific routing operations based on the URL path. This allows precise control over which HTTP Routing V1 endpoints are used for different operations:
 
 **Supported paths:**
 - `/routing/v1/providers` - Enables provider record lookups only
@@ -610,7 +610,7 @@ AutoConfig supports path-based routing URLs that automatically enable specific r
 - `/routing/v1/ipns` - Enables IPNS record operations only
 - No path - Enables all routing operations (backward compatibility)
 
-**AutoConfig JSON structure with path-based routing:**
+**AutoConf JSON structure with path-based routing:**
 
 ```json
 {
@@ -643,34 +643,34 @@ Default: `{}`
 
 Type: `object`
 
-### `AutoConfig.Enabled`
+### `AutoConf.Enabled`
 
-Controls whether the AutoConfig system is active. When enabled, Kubo will fetch configuration from the specified URL and resolve `"auto"` placeholders at runtime. When disabled, any `"auto"` values in the configuration will cause daemon startup to fail with validation errors.
+Controls whether the AutoConf system is active. When enabled, Kubo will fetch configuration from the specified URL and resolve `"auto"` placeholders at runtime. When disabled, any `"auto"` values in the configuration will cause daemon startup to fail with validation errors.
 
-This provides a safety mechanism to ensure nodes don't start with unresolved placeholders when AutoConfig is intentionally disabled.
+This provides a safety mechanism to ensure nodes don't start with unresolved placeholders when AutoConf is intentionally disabled.
 
 Default: `true`
 
 Type: `flag`
 
-### `AutoConfig.URL`
+### `AutoConf.URL`
 
-Specifies the HTTP(S) URL from which to fetch the autoconfig JSON. The endpoint should return a JSON document containing Bootstrap peers, DNS resolvers, delegated routing endpoints, and IPNS publishing endpoints that will replace `"auto"` placeholders in the local configuration.
+Specifies the HTTP(S) URL from which to fetch the autoconf JSON. The endpoint should return a JSON document containing Bootstrap peers, DNS resolvers, delegated routing endpoints, and IPNS publishing endpoints that will replace `"auto"` placeholders in the local configuration.
 
-The URL must serve a JSON document matching the AutoConfig schema. Kubo validates all multiaddr and URL values before caching to ensure they are properly formatted.
+The URL must serve a JSON document matching the AutoConf schema. Kubo validates all multiaddr and URL values before caching to ensure they are properly formatted.
 
 <a href="https://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
 
 > [!NOTE]
-> Public good autoconfig manifest at `config.ipfs-mainnet.org` is provided by the team at [Shipyard](https://ipshipyard.com).
+> Public good autoconf manifest at `config.ipfs-mainnet.org` is provided by the team at [Shipyard](https://ipshipyard.com).
 
-Default: `"https://example.com/autoconfig.json"`
+Default: `"https://example.com/autoconf.json"`
 
 Type: `optionalString`
 
-### `AutoConfig.RefreshInterval`
+### `AutoConf.RefreshInterval`
 
-Specifies how frequently Kubo should refresh autoconfig data. This controls both how often cached autoconfig data is considered fresh and how frequently the background service checks for new configuration updates.
+Specifies how frequently Kubo should refresh autoconf data. This controls both how often cached autoconf data is considered fresh and how frequently the background service checks for new configuration updates.
 
 When a new configuration version is detected during background updates, Kubo logs an ERROR message informing the user that a node restart is required to apply the changes to any `"auto"` entries in their configuration.
 
@@ -678,9 +678,9 @@ Default: `24h`
 
 Type: `optionalDuration`
 
-### `AutoConfig.TLSInsecureSkipVerify`
+### `AutoConf.TLSInsecureSkipVerify`
 
-**FOR TESTING ONLY** - Allows skipping TLS certificate verification when fetching autoconfig from HTTPS URLs. This should never be enabled in production as it makes the configuration fetching vulnerable to man-in-the-middle attacks.
+**FOR TESTING ONLY** - Allows skipping TLS certificate verification when fetching autoconf from HTTPS URLs. This should never be enabled in production as it makes the configuration fetching vulnerable to man-in-the-middle attacks.
 
 Default: `false`
 
@@ -841,7 +841,7 @@ Type: `flag`
 
 Bootstrap peers help your node discover and connect to the IPFS network when starting up. This array contains [multiaddrs][multiaddr] of trusted nodes that your node contacts first to find other peers and content.
 
-The special value `"auto"` automatically uses curated, up-to-date bootstrap peers from [AutoConfig](#autoconfig), ensuring your node can always connect to the healthy network without manual maintenance.
+The special value `"auto"` automatically uses curated, up-to-date bootstrap peers from [AutoConf](#autoconf), ensuring your node can always connect to the healthy network without manual maintenance.
 
 **What this gives you:**
 - **Reliable startup**: Your node can always find the network, even if some bootstrap peers go offline
@@ -1597,7 +1597,7 @@ A list of IPNS publishers to delegate publishing operations to. When configured,
 
 These endpoints must support the [IPNS API](https://specs.ipfs.tech/routing/http-routing-v1/#ipns-api) from the Delegated Routing V1 HTTP specification.
 
-The special value `"auto"` uses delegated publishers from [AutoConfig](#autoconfig) when enabled.
+The special value `"auto"` uses delegated publishers from [AutoConf](#autoconf) when enabled.
 
 **Publishing behavior depends on routing configuration:**
 
@@ -2172,7 +2172,7 @@ Type: `array[string]`
 An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
 These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
 
-The special value `"auto"` uses delegated routers from [AutoConfig](#autoconfig) when enabled.
+The special value `"auto"` uses delegated routers from [AutoConf](#autoconf) when enabled.
 
 > [!TIP]
 > Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
@@ -2939,7 +2939,7 @@ Be mindful that:
 - Currently only `https://` URLs for [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported as values.
 - The default catch-all resolver is the cleartext one provided by your operating system. It can be overridden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
 - Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis. 
-- The special value `"auto"` uses DNS resolvers from [AutoConfig](#autoconfig) when enabled. For example: `{".": "auto"}` uses any custom DoH resolver (global or per TLD) provided by AutoConfig system.
+- The special value `"auto"` uses DNS resolvers from [AutoConf](#autoconf) when enabled. For example: `{".": "auto"}` uses any custom DoH resolver (global or per TLD) provided by AutoConf system.
 
 Default: `{".": "auto"}`
 
@@ -3274,14 +3274,14 @@ is useful when using the daemon in test environments.
 Restores default network settings.
 Inverse profile of the test profile.
 
-### `autoconfig-on` profile
+### `autoconf-on` profile
 
 Safe default for joining the public IPFS Mainnet swarm with automatic configuration.
-Can also be used with custom AutoConfig.URL for other networks.
+Can also be used with custom AutoConf.URL for other networks.
 
-### `autoconfig-off` profile
+### `autoconf-off` profile
 
-Disables AutoConfig and clears all networking fields for manual configuration.
+Disables AutoConf and clears all networking fields for manual configuration.
 Use this for private networks or when you want explicit control over all endpoints.
 
 ### `flatfs` profile

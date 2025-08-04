@@ -19,7 +19,7 @@ test/cli/migrations/testdata/** binary
 
 # Generated test data
 test/cli/migrations/testdata/** linguist-generated=true
-test/cli/autoconfig/testdata/** linguist-generated=true
+test/cli/autoconf/testdata/** linguist-generated=true
 test/cli/fixtures/** linguist-generated=true
 test/sharness/t0054-dag-car-import-export-data/** linguist-generated=true
 test/sharness/t0109-gateway-web-_redirects-data/** linguist-generated=true

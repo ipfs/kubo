@@ -98,9 +98,9 @@ func testDaemonMigration15To17(t *testing.T) {
 	finalBootstrap := getNestedValue(finalConfig, "Bootstrap")
 	require.NotNil(t, finalBootstrap, "Bootstrap should exist after migration")
 
-	// Verify AutoConfig was added by 16→17 migration
-	autoConfig := getNestedValue(finalConfig, "AutoConfig")
-	require.NotNil(t, autoConfig, "AutoConfig should be added by 16→17 migration")
+	// Verify AutoConf was added by 16→17 migration
+	autoConf := getNestedValue(finalConfig, "AutoConf")
+	require.NotNil(t, autoConf, "AutoConf should be added by 16→17 migration")
 }
 
 func testRepoMigration15To17(t *testing.T) {
@@ -146,7 +146,7 @@ func testRepoMigration15To17(t *testing.T) {
 	// Verify essential fields exist
 	require.NotNil(t, getNestedValue(finalConfig, "Identity.PeerID"), "Identity.PeerID should exist")
 	require.NotNil(t, getNestedValue(finalConfig, "Bootstrap"), "Bootstrap should exist")
-	require.NotNil(t, getNestedValue(finalConfig, "AutoConfig"), "AutoConfig should be added")
+	require.NotNil(t, getNestedValue(finalConfig, "AutoConf"), "AutoConf should be added")
 }
 
 // setupStaticV15Repo creates a test node using static v15 repo fixture
@@ -445,7 +445,7 @@ func testRepoReverseHybridMigration17To15(t *testing.T) {
 	finalBootstrap := getNestedValue(finalConfig, "Bootstrap")
 	require.NotNil(t, finalBootstrap, "Bootstrap should exist after migration")
 
-	// AutoConfig should be removed by the downgrade (was added in 16→17)
-	autoConfig := getNestedValue(finalConfig, "AutoConfig")
-	require.Nil(t, autoConfig, "AutoConfig should be removed by downgrade to v15")
+	// AutoConf should be removed by the downgrade (was added in 16→17)
+	autoConf := getNestedValue(finalConfig, "AutoConf")
+	require.Nil(t, autoConf, "AutoConf should be removed by downgrade to v15")
 }

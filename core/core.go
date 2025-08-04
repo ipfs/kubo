@@ -213,7 +213,7 @@ func (n *IpfsNode) loadBootstrapPeers() ([]peer.AddrInfo, error) {
 	}
 
 	// Use auto-config resolution for actual bootstrap connectivity
-	return cfg.BootstrapPeersWithAutoConfig()
+	return cfg.BootstrapPeersWithAutoConf()
 }
 
 func (n *IpfsNode) saveTempBootstrapPeers(ctx context.Context, peerList []peer.AddrInfo) error {

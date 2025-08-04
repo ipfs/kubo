@@ -97,11 +97,11 @@ Inverse profile of the test profile.`,
 		Transform: func(c *Config) error {
 			c.Addresses = addressesConfig()
 
-			// Use AutoConfig system for bootstrap peers
+			// Use AutoConf system for bootstrap peers
 			c.Bootstrap = []string{AutoPlaceholder}
-			c.AutoConfig.Enabled = True
-			if c.AutoConfig.URL == "" {
-				c.AutoConfig.URL = DefaultAutoConfigURL
+			c.AutoConf.Enabled = True
+			if c.AutoConf.URL == "" {
+				c.AutoConf.URL = DefaultAutoConfURL
 			}
 
 			c.Swarm.DisableNatPortMap = false
@@ -350,10 +350,10 @@ fetching may be degraded.
 			return nil
 		},
 	},
-	"autoconfig-on": {
-		Description: `Sets configuration to use implicit defaults from remote autoconfig service.
+	"autoconf-on": {
+		Description: `Sets configuration to use implicit defaults from remote autoconf service.
 Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to "auto".
-This profile requires AutoConfig to be enabled and configured.`,
+This profile requires AutoConf to be enabled and configured.`,
 
 		Transform: func(c *Config) error {
 			c.Bootstrap = []string{AutoPlaceholder}
@@ -362,15 +362,15 @@ This profile requires AutoConfig to be enabled and configured.`,
 			}
 			c.Routing.DelegatedRouters = []string{AutoPlaceholder}
 			c.Ipns.DelegatedPublishers = []string{AutoPlaceholder}
-			c.AutoConfig.Enabled = True
-			if c.AutoConfig.URL == "" {
-				c.AutoConfig.URL = DefaultAutoConfigURL
+			c.AutoConf.Enabled = True
+			if c.AutoConf.URL == "" {
+				c.AutoConf.URL = DefaultAutoConfURL
 			}
 			return nil
 		},
 	},
-	"autoconfig-off": {
-		Description: `Disables AutoConfig and sets networking fields to empty for manual configuration.
+	"autoconf-off": {
+		Description: `Disables AutoConf and sets networking fields to empty for manual configuration.
 Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to empty.
 Use this when you want normal networking but prefer manual control over all endpoints.`,
 
@@ -379,7 +379,7 @@ Use this when you want normal networking but prefer manual control over all endp
 			c.DNS.Resolvers = map[string]string{}
 			c.Routing.DelegatedRouters = []string{}
 			c.Ipns.DelegatedPublishers = []string{}
-			c.AutoConfig.Enabled = False
+			c.AutoConf.Enabled = False
 			return nil
 		},
 	},

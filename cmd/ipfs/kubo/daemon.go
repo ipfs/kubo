@@ -21,7 +21,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	mprome "github.com/ipfs/go-metrics-prometheus"
 	version "github.com/ipfs/kubo"
-	"github.com/ipfs/kubo/boxo/autoconfig"
+	"github.com/ipfs/kubo/boxo/autoconf"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
 	config "github.com/ipfs/kubo/config"
@@ -348,20 +348,20 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	// Validate autoconfig setup - check for private network conflict
+	// Validate autoconf setup - check for private network conflict
 	swarmKey, _ := repo.SwarmKey()
 	isPrivateNetwork := swarmKey != nil || pnet.ForcePrivateNetwork
-	if err := config.ValidateAutoConfigWithRepo(cfg, isPrivateNetwork); err != nil {
+	if err := config.ValidateAutoConfWithRepo(cfg, isPrivateNetwork); err != nil {
 		return err
 	}
 
-	// Start background AutoConfig updater if enabled
-	if cfg.AutoConfig.Enabled.WithDefault(config.DefaultAutoConfigEnabled) {
-		autoConfigURL := cfg.AutoConfig.URL
-		if autoConfigURL == "" {
-			return fmt.Errorf("AutoConfig is enabled but AutoConfig.URL is empty - please provide a URL")
+	// Start background AutoConf updater if enabled
+	if cfg.AutoConf.Enabled.WithDefault(config.DefaultAutoConfEnabled) {
+		autoConfURL := cfg.AutoConf.URL
+		if autoConfURL == "" {
+			return fmt.Errorf("AutoConf is enabled but AutoConf.URL is empty - please provide a URL")
 		}
-		startAutoConfigUpdater(cctx.Context(), cfg, version.GetUserAgentVersion())
+		startAutoConfUpdater(cctx.Context(), cfg, version.GetUserAgentVersion())
 	}
 
 	fmt.Printf("PeerID: %s\n", cfg.Identity.PeerID)
@@ -1245,65 +1245,65 @@ Visit https://github.com/ipfs/kubo/releases or https://dist.ipfs.tech/#kubo and 
 	}()
 }
 
-// startAutoConfigUpdater starts a background service that periodically checks for AutoConfig updates
-func startAutoConfigUpdater(ctx context.Context, cfg *config.Config, userAgent string) {
-	autoconfigLog := logging.Logger("autoconfig")
+// startAutoConfUpdater starts a background service that periodically checks for AutoConf updates
+func startAutoConfUpdater(ctx context.Context, cfg *config.Config, userAgent string) {
+	autoconfLog := logging.Logger("autoconf")
 
-	// Don't start if AutoConfig is disabled
-	if !cfg.AutoConfig.Enabled.WithDefault(config.DefaultAutoConfigEnabled) {
+	// Don't start if AutoConf is disabled
+	if !cfg.AutoConf.Enabled.WithDefault(config.DefaultAutoConfEnabled) {
 		return
 	}
 
-	// Create autoconfig client using same cache path as WithAutoConfig methods
+	// Create autoconf client using same cache path as WithAutoConf methods
 	repoPath, err := config.PathRoot()
 	if err != nil {
-		autoconfigLog.Errorf("failed to get repo path for autoconfig client: %v", err)
+		autoconfLog.Errorf("failed to get repo path for autoconf client: %v", err)
 		return
 	}
-	client, err := config.NewAutoConfigClient(repoPath, userAgent)
+	client, err := config.NewAutoConfClient(repoPath, userAgent)
 	if err != nil {
-		autoconfigLog.Errorf("failed to create autoconfig client: %v", err)
+		autoconfLog.Errorf("failed to create autoconf client: %v", err)
 		return
 	}
 
 	// Prime cache if no cached config exists to ensure offline nodes work immediately
-	refreshInterval := cfg.AutoConfig.RefreshInterval.WithDefault(config.DefaultAutoConfigRefreshInterval)
-	autoConfigURL := cfg.AutoConfig.URL
-	if !client.HasCachedConfig(autoConfigURL) {
-		autoconfigLog.Debugf("no cached autoconfig found, priming cache with initial fetch")
+	refreshInterval := cfg.AutoConf.RefreshInterval.WithDefault(config.DefaultAutoConfRefreshInterval)
+	autoConfURL := cfg.AutoConf.URL
+	if !client.HasCachedConfig(autoConfURL) {
+		autoconfLog.Debugf("no cached autoconf found, priming cache with initial fetch")
 		// Use same timeout for cache priming as internal HTTP operations
-		primeCtx, cancel := context.WithTimeout(ctx, config.DefaultAutoconfigTimeout)
+		primeCtx, cancel := context.WithTimeout(ctx, config.DefaultAutoConfTimeout)
 		defer cancel()
 
-		result := client.MustGetConfigWithRefresh(primeCtx, autoConfigURL, refreshInterval, autoconfig.GetMainnetFallbackConfig)
+		result := client.MustGetConfigWithRefresh(primeCtx, autoConfURL, refreshInterval, autoconf.GetMainnetFallbackConfig)
 		if result != nil {
-			autoconfigLog.Debugf("successfully primed autoconfig cache with version %d", result.AutoConfigVersion)
+			autoconfLog.Debugf("successfully primed autoconf cache with version %d", result.AutoConfVersion)
 		}
 	} else {
-		autoconfigLog.Debugf("cached autoconfig found, skipping cache priming")
+		autoconfLog.Debugf("cached autoconf found, skipping cache priming")
 	}
 
 	// Create background updater with callbacks to maintain existing behavior
-	updater, err := autoconfig.NewBackgroundUpdater(client, autoConfigURL,
-		autoconfig.WithUpdateInterval(refreshInterval),
-		autoconfig.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {
-			autoconfigLog.Errorf("new autoconfig version %d published at %s - restart node to apply updates to \"auto\" entries in Kubo config", newVersion, configURL)
+	updater, err := autoconf.NewBackgroundUpdater(client, autoConfURL,
+		autoconf.WithUpdateInterval(refreshInterval),
+		autoconf.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {
+			autoconfLog.Errorf("new autoconf version %d published at %s - restart node to apply updates to \"auto\" entries in Kubo config", newVersion, configURL)
 		}),
-		autoconfig.WithOnUpdateSuccess(func(resp *autoconfig.Response) {
-			autoconfigLog.Debugf("updated autoconfig metadata: version %s, fetch time %s", resp.Version, resp.FetchTime.Format(time.RFC3339))
+		autoconf.WithOnUpdateSuccess(func(resp *autoconf.Response) {
+			autoconfLog.Debugf("updated autoconf metadata: version %s, fetch time %s", resp.Version, resp.FetchTime.Format(time.RFC3339))
 		}),
-		autoconfig.WithOnUpdateError(func(err error) {
-			autoconfigLog.Error(err)
+		autoconf.WithOnUpdateError(func(err error) {
+			autoconfLog.Error(err)
 		}),
 	)
 	if err != nil {
-		autoconfigLog.Errorf("failed to create background updater: %v", err)
+		autoconfLog.Errorf("failed to create background updater: %v", err)
 		return
 	}
 
 	// Start the updater - it will automatically stop when context is cancelled
 	if err := updater.Start(ctx); err != nil {
-		autoconfigLog.Errorf("failed to start background updater: %v", err)
+		autoconfLog.Errorf("failed to start background updater: %v", err)
 		return
 	}
 }

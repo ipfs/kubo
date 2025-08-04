@@ -76,7 +76,7 @@ Set multiple values in the 'Addresses.AppendAnnounce' array:
 	Options: []cmds.Option{
 		cmds.BoolOption(configBoolOptionName, "Set a boolean value."),
 		cmds.BoolOption(configJSONOptionName, "Parse stringified JSON."),
-		cmds.BoolOption(configExpandAutoName, "Expand 'auto' placeholders to their expanded values from AutoConfig service."),
+		cmds.BoolOption(configExpandAutoName, "Expand 'auto' placeholders to their expanded values from AutoConf service."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		args := req.Arguments
@@ -232,7 +232,7 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			}
 
 			// Expand auto values and update the map
-			cfg, err = fullCfg.ExpandAutoConfigValues(cfg)
+			cfg, err = fullCfg.ExpandAutoConfValues(cfg)
 			if err != nil {
 				return err
 			}

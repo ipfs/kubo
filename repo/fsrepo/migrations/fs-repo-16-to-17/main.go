@@ -1,11 +1,11 @@
 // Package main implements fs-repo-16-to-17 migration for IPFS repositories.
 //
 // This migration transitions repositories from version 16 to 17, introducing
-// the AutoConfig system that replaces hardcoded network defaults with dynamic
-// configuration fetched from autoconfig.json.
+// the AutoConf system that replaces hardcoded network defaults with dynamic
+// configuration fetched from autoconf.json.
 //
 // Changes made:
-//   - Enables AutoConfig system with default settings
+//   - Enables AutoConf system with default settings
 //   - Migrates default bootstrap peers to "auto" sentinel value
 //   - Sets DNS.Resolvers["."] to "auto" for dynamic DNS resolver configuration
 //   - Migrates Routing.DelegatedRouters to ["auto"]

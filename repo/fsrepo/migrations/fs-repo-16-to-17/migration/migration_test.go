@@ -194,14 +194,14 @@ func TestMigration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Check AutoConfig was added
-	autoConfig, exists := updatedConfig["AutoConfig"]
+	// Check AutoConf was added
+	autoConf, exists := updatedConfig["AutoConf"]
 	if !exists {
-		t.Error("AutoConfig section not added")
+		t.Error("AutoConf section not added")
 	}
-	autoConfigMap := autoConfig.(map[string]interface{})
-	if autoConfigMap["URL"] != config.DefaultAutoConfigURL {
-		t.Errorf("Expected AutoConfig URL %s, got %s", config.DefaultAutoConfigURL, autoConfigMap["URL"])
+	autoConfMap := autoConf.(map[string]interface{})
+	if autoConfMap["URL"] != config.DefaultAutoConfURL {
+		t.Errorf("Expected AutoConf URL %s, got %s", config.DefaultAutoConfURL, autoConfMap["URL"])
 	}
 
 	// Check Bootstrap was updated
@@ -264,8 +264,8 @@ func TestConvert(t *testing.T) {
 
 	result := runMigrationOnJSON(t, input)
 
-	// Check that AutoConfig was added and enabled
-	assertMapKeyEquals(t, result, []string{"AutoConfig"}, "Enabled", true)
+	// Check that AutoConf was added and enabled
+	assertMapKeyEquals(t, result, []string{"AutoConf"}, "Enabled", true)
 
 	// Check that Bootstrap was updated to "auto"
 	assertSliceEquals(t, result, []string{"Bootstrap"}, []string{"auto"})
@@ -509,25 +509,25 @@ func TestIpnsMigration(t *testing.T) {
 }
 
 // =============================================================================
-// AutoConfig Migration Tests
+// AutoConf Migration Tests
 // =============================================================================
 
-func TestAutoConfigMigration(t *testing.T) {
+func TestAutoConfMigration(t *testing.T) {
 	t.Parallel()
 
-	t.Run("preserves existing AutoConfig fields unchanged", func(t *testing.T) {
+	t.Run("preserves existing AutoConf fields unchanged", func(t *testing.T) {
 		t.Parallel()
 		input := buildTestConfig(map[string]interface{}{
-			"AutoConfig": map[string]interface{}{
-				"URL":         "https://custom.example.com/autoconfig.json",
+			"AutoConf": map[string]interface{}{
+				"URL":         "https://custom.example.com/autoconf.json",
 				"Enabled":     false,
 				"CustomField": "preserved",
 			},
 		})
 
 		result := runMigrationOnJSON(t, input)
-		assertMapKeyEquals(t, result, []string{"AutoConfig"}, "URL", "https://custom.example.com/autoconfig.json")
-		assertMapKeyEquals(t, result, []string{"AutoConfig"}, "Enabled", false)
-		assertMapKeyEquals(t, result, []string{"AutoConfig"}, "CustomField", "preserved")
+		assertMapKeyEquals(t, result, []string{"AutoConf"}, "URL", "https://custom.example.com/autoconf.json")
+		assertMapKeyEquals(t, result, []string{"AutoConf"}, "Enabled", false)
+		assertMapKeyEquals(t, result, []string{"AutoConf"}, "CustomField", "preserved")
 	})
 }

@@ -49,7 +49,7 @@ in the bootstrap list).
 
 The special values 'default' and 'auto' can be used to add the default
 bootstrap peers. Both are equivalent and will add the 'auto' placeholder to
-the bootstrap list, which gets resolved using the AutoConfig system.
+the bootstrap list, which gets resolved using the AutoConf system.
 ` + bootstrapSecurityWarning,
 	},
 
@@ -89,10 +89,10 @@ the bootstrap list, which gets resolved using the AutoConfig system.
 			return err
 		}
 
-		// Check if trying to add "auto" when AutoConfig is disabled
+		// Check if trying to add "auto" when AutoConf is disabled
 		for _, peer := range inputPeers {
-			if peer == config.AutoPlaceholder && !cfg.AutoConfig.Enabled.WithDefault(config.DefaultAutoConfigEnabled) {
-				return errors.New("cannot add default bootstrap peers: AutoConfig is disabled (AutoConfig.Enabled=false). Enable AutoConfig by setting AutoConfig.Enabled=true in your config, or add specific peer addresses instead")
+			if peer == config.AutoPlaceholder && !cfg.AutoConf.Enabled.WithDefault(config.DefaultAutoConfEnabled) {
+				return errors.New("cannot add default bootstrap peers: AutoConf is disabled (AutoConf.Enabled=false). Enable AutoConf by setting AutoConf.Enabled=true in your config, or add specific peer addresses instead")
 			}
 		}
 
@@ -215,7 +215,7 @@ var bootstrapListCmd = &cmds.Command{
 		ShortDescription: "Peers are output in the format '<multiaddr>/<peerID>'.",
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(configExpandAutoName, "Expand 'auto' placeholders from AutoConfig service."),
+		cmds.BoolOption(configExpandAutoName, "Expand 'auto' placeholders from AutoConf service."),
 	},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -238,7 +238,7 @@ var bootstrapListCmd = &cmds.Command{
 		expandAuto, _ := req.Options[configExpandAutoName].(bool)
 		if expandAuto {
 			// Use the same expansion method as the daemon
-			expandedBootstrap := cfg.BootstrapWithAutoConfig()
+			expandedBootstrap := cfg.BootstrapWithAutoConf()
 			return cmds.EmitOnce(res, &BootstrapOutput{expandedBootstrap})
 		}
 
@@ -330,10 +330,10 @@ func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []string) ([]stri
 		}
 	}
 
-	if hasAuto && cfg.AutoConfig.Enabled.WithDefault(config.DefaultAutoConfigEnabled) {
+	if hasAuto && cfg.AutoConf.Enabled.WithDefault(config.DefaultAutoConfEnabled) {
 		// Cannot selectively remove peers when using "auto" bootstrap
-		// Users should either disable AutoConfig or replace "auto" with specific peers
-		return nil, fmt.Errorf("cannot remove individual bootstrap peers when using 'auto' placeholder: the 'auto' value is managed by AutoConfig. Either disable AutoConfig by setting AutoConfig.Enabled=false and replace 'auto' with specific peer addresses, or use 'ipfs bootstrap rm --all' to remove all peers")
+		// Users should either disable AutoConf or replace "auto" with specific peers
+		return nil, fmt.Errorf("cannot remove individual bootstrap peers when using 'auto' placeholder: the 'auto' value is managed by AutoConf. Either disable AutoConf by setting AutoConf.Enabled=false and replace 'auto' with specific peer addresses, or use 'ipfs bootstrap rm --all' to remove all peers")
 	}
 
 	// Original logic for non-auto bootstrap

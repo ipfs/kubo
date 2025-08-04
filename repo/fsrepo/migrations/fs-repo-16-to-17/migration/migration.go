@@ -2,7 +2,7 @@
 // This handles the following:
 // - Migrate default bootstrap peers to "auto"
 // - Migrate DNS resolvers to use "auto" for "." eTLD
-// - Enable AutoConfig system with default settings
+// - Enable AutoConf system with default settings
 // - Increment repo version to 17
 package mg16
 
@@ -67,7 +67,7 @@ func (m Migration) Apply(opts Options) error {
 	}
 
 	if opts.Verbose {
-		fmt.Println("> Upgrading config to use AutoConfig system")
+		fmt.Println("> Upgrading config to use AutoConf system")
 	}
 
 	path := filepath.Join(opts.Path, "config")
@@ -187,8 +187,8 @@ func convert(in io.Reader, out io.Writer, repoPath string) error {
 		return err
 	}
 
-	// Enable AutoConfig system
-	if err := enableAutoConfig(confMap); err != nil {
+	// Enable AutoConf system
+	if err := enableAutoConf(confMap); err != nil {
 		return err
 	}
 
@@ -225,16 +225,16 @@ func convert(in io.Reader, out io.Writer, repoPath string) error {
 	return err
 }
 
-// enableAutoConfig adds AutoConfig section to config
-func enableAutoConfig(confMap map[string]any) error {
-	// Check if AutoConfig already exists
-	if _, exists := confMap["AutoConfig"]; exists {
+// enableAutoConf adds AutoConf section to config
+func enableAutoConf(confMap map[string]any) error {
+	// Check if AutoConf already exists
+	if _, exists := confMap["AutoConf"]; exists {
 		return nil
 	}
 
-	// Add AutoConfig section
-	confMap["AutoConfig"] = map[string]any{
-		"URL":                   config.DefaultAutoConfigURL,
+	// Add AutoConf section
+	confMap["AutoConf"] = map[string]any{
+		"URL":                   config.DefaultAutoConfURL,
 		"Enabled":               true,
 		"Interval":              "24h",
 		"TLSInsecureSkipVerify": false,

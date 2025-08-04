@@ -16,8 +16,8 @@ func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {
 		dohOpts = append(dohOpts, doh.WithMaxCacheTTL(cfg.DNS.MaxCacheTTL.WithDefault(time.Duration(math.MaxUint32)*time.Second)))
 	}
 
-	// Replace "auto" DNS resolver placeholders with autoconfig values
-	resolvers := cfg.DNSResolversWithAutoConfig()
+	// Replace "auto" DNS resolver placeholders with autoconf values
+	resolvers := cfg.DNSResolversWithAutoConf()
 
 	return gateway.NewDNSResolver(resolvers, dohOpts...)
 }
