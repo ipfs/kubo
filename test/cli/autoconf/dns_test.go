@@ -154,7 +154,7 @@ func testDNSResolutionWithAutoDoH(t *testing.T) {
 	// Create autoconf data with DoH resolver for "foo." domain
 	autoConfData := fmt.Sprintf(`{
 		"AutoConfVersion": 2025072302,
-		"AutoConfSchema": 4,
+		"AutoConfSchema": 1,
 		"AutoConfTTL": 86400,
 		"SystemRegistry": {
 			"AminoDHT": {
@@ -233,7 +233,7 @@ func testDNSErrorHandling(t *testing.T) {
 	// Create autoconf data with DoH resolver
 	autoConfData := fmt.Sprintf(`{
 		"AutoConfVersion": 2025072302,
-		"AutoConfSchema": 4,
+		"AutoConfSchema": 1,
 		"AutoConfTTL": 86400,
 		"SystemRegistry": {
 			"AminoDHT": {

@@ -438,7 +438,7 @@ func testDaemonUsesResolvedBootstrap(t *testing.T) {
 	// Step 2: Create autoconf server that returns bootstrap node's address
 	autoConfData := fmt.Sprintf(`{
 		"AutoConfVersion": 2025072301,
-		"AutoConfSchema": 4,
+		"AutoConfSchema": 1,
 		"AutoConfTTL": 86400,
 		"SystemRegistry": {
 			"AminoDHT": {

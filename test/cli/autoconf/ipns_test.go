@@ -192,7 +192,7 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	// Create autoconf data with delegated publisher using IPNI system (not native)
 	autoConfData := fmt.Sprintf(`{
 		"AutoConfVersion": 2025072302,
-		"AutoConfSchema": 4,
+		"AutoConfSchema": 1,
 		"AutoConfTTL": 86400,
 		"SystemRegistry": {
 			"AminoDHT": {
@@ -424,7 +424,7 @@ func testIPNSPublishing404Error(t *testing.T) {
 	// Create autoconf data
 	autoConfData := fmt.Sprintf(`{
 		"AutoConfVersion": 2025072302,
-		"AutoConfSchema": 4,
+		"AutoConfSchema": 1,
 		"AutoConfTTL": 86400,
 		"SystemRegistry": {
 			"AminoDHT": {
@@ -503,7 +503,7 @@ func testIPNSPublishing500Error(t *testing.T) {
 	// Create autoconf data
 	autoConfData := fmt.Sprintf(`{
 		"AutoConfVersion": 2025072302,
-		"AutoConfSchema": 4,
+		"AutoConfSchema": 1,
 		"AutoConfTTL": 86400,
 		"SystemRegistry": {
 			"AminoDHT": {

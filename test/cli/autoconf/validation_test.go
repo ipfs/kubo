@@ -32,7 +32,7 @@ func testInvalidAutoConfJSONPreventsCaching(t *testing.T) {
 	// Create server that serves invalid autoconf JSON
 	invalidAutoConfData := `{
 		"AutoConfVersion": 123,
-		"AutoConfSchema": 4,
+		"AutoConfSchema": 1,
 		"SystemRegistry": {
 			"AminoDHT": {
 				"NativeConfig": {
@@ -77,7 +77,7 @@ func testMalformedMultiaddrInAutoConf(t *testing.T) {
 	// Create server that serves autoconf with malformed multiaddr
 	invalidAutoConfData := `{
 		"AutoConfVersion": 456,
-		"AutoConfSchema": 4,
+		"AutoConfSchema": 1,
 		"SystemRegistry": {
 			"AminoDHT": {
 				"NativeConfig": {
@@ -115,7 +115,7 @@ func testMalformedURLInAutoConf(t *testing.T) {
 	// Create server that serves autoconf with malformed URL
 	invalidAutoConfData := `{
 		"AutoConfVersion": 789,
-		"AutoConfSchema": 4,
+		"AutoConfSchema": 1,
 		"DNSResolvers": {
 			"eth.": ["https://valid.example.com"],
 			"bad.": ["://malformed-url-missing-scheme"]

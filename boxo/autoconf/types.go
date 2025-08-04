@@ -8,6 +8,13 @@ const (
 	SystemIPNI     = "IPNI"
 )
 
+// Schema version constants
+const (
+	// SupportedAutoConfSchema is the schema version this client supports
+	// This matches the current mainnet autoconf.json schema version
+	SupportedAutoConfSchema = 1
+)
+
 // Config represents the full autoconf.json structure
 type Config struct {
 	AutoConfVersion int64 `json:"AutoConfVersion"`

@@ -87,7 +87,7 @@ func testAllAutoConfFieldsResolve(t *testing.T) {
 		serverURL := fmt.Sprintf("http://%s", r.Host) // Get the server URL from the request
 		autoConf := map[string]interface{}{
 			"AutoConfVersion": 2025072301,
-			"AutoConfSchema":  4,
+			"AutoConfSchema":  1,
 			"AutoConfTTL":     86400,
 			"SystemRegistry": map[string]interface{}{
 				"AminoDHT": map[string]interface{}{

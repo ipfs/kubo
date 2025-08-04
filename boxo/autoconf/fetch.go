@@ -292,6 +292,14 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 		return nil, nil, fmt.Errorf("invalid config: missing AutoConfVersion")
 	}
 
+	// Validate schema version
+	if config.AutoConfSchema == 0 {
+		return nil, nil, fmt.Errorf("invalid config: missing AutoConfSchema")
+	}
+	if config.AutoConfSchema != SupportedAutoConfSchema {
+		return nil, nil, fmt.Errorf("unsupported autoconf schema version %d (this client supports version %d, consider updating)", config.AutoConfSchema, SupportedAutoConfSchema)
+	}
+
 	// Validate all multiaddr and URL values
 	if err := c.validateConfig(&config); err != nil {
 		return nil, nil, fmt.Errorf("invalid autoconf JSON: %w", err)

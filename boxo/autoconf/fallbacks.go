@@ -33,7 +33,7 @@ var (
 func GetMainnetFallbackConfig() *Config {
 	return &Config{
 		AutoConfVersion: 2025072901, // Current mainnet version
-		AutoConfSchema:  4,
+		AutoConfSchema:  1,
 		SystemRegistry: map[string]SystemConfig{
 			SystemAminoDHT: {
 				URL:         "https://github.com/ipfs/specs/pull/497",

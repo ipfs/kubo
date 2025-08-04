@@ -19,7 +19,7 @@ func TestValidateConfig(t *testing.T) {
 	t.Run("valid config passes validation", func(t *testing.T) {
 		config := &Config{
 			AutoConfVersion: 123,
-			AutoConfSchema:  4,
+			AutoConfSchema:  1,
 			SystemRegistry: map[string]SystemConfig{
 				SystemAminoDHT: {
 					Description: "Test AminoDHT system",
@@ -60,7 +60,7 @@ func TestValidateConfig(t *testing.T) {
 	t.Run("invalid bootstrap multiaddr fails validation", func(t *testing.T) {
 		config := &Config{
 			AutoConfVersion: 123,
-			AutoConfSchema:  4,
+			AutoConfSchema:  1,
 			SystemRegistry: map[string]SystemConfig{
 				SystemAminoDHT: {
 					NativeConfig: &NativeConfig{
@@ -82,7 +82,7 @@ func TestValidateConfig(t *testing.T) {
 	t.Run("invalid DNS resolver URL fails validation", func(t *testing.T) {
 		config := &Config{
 			AutoConfVersion: 123,
-			AutoConfSchema:  4,
+			AutoConfSchema:  1,
 			DNSResolvers: map[string][]string{
 				"eth.": {"https://valid.example.com"},
 				"bad.": {"://invalid-url"},
@@ -98,7 +98,7 @@ func TestValidateConfig(t *testing.T) {
 	t.Run("invalid delegated endpoint URL fails validation", func(t *testing.T) {
 		config := &Config{
 			AutoConfVersion: 123,
-			AutoConfSchema:  4,
+			AutoConfSchema:  1,
 			DelegatedEndpoints: map[string]EndpointConfig{
 				"://invalid-missing-scheme": {
 					Systems: []string{SystemIPNI},
@@ -116,7 +116,7 @@ func TestValidateConfig(t *testing.T) {
 	t.Run("invalid delegated endpoint path fails validation", func(t *testing.T) {
 		config := &Config{
 			AutoConfVersion: 123,
-			AutoConfSchema:  4,
+			AutoConfSchema:  1,
 			DelegatedEndpoints: map[string]EndpointConfig{
 				"https://valid.example.com": {
 					Systems: []string{SystemIPNI},
@@ -134,7 +134,7 @@ func TestValidateConfig(t *testing.T) {
 	t.Run("empty config passes validation", func(t *testing.T) {
 		config := &Config{
 			AutoConfVersion: 123,
-			AutoConfSchema:  4,
+			AutoConfSchema:  1,
 		}
 
 		err := client.validateConfig(config)
@@ -144,7 +144,7 @@ func TestValidateConfig(t *testing.T) {
 	t.Run("various valid URL schemes are accepted", func(t *testing.T) {
 		config := &Config{
 			AutoConfVersion: 123,
-			AutoConfSchema:  4,
+			AutoConfSchema:  1,
 			DNSResolvers: map[string][]string{
 				"test.": {
 					"https://example.com",
@@ -187,7 +187,7 @@ func TestValidateConfig(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				config := &Config{
 					AutoConfVersion: 123,
-					AutoConfSchema:  4,
+					AutoConfSchema:  1,
 					DNSResolvers: map[string][]string{
 						"test.": {tc.url},
 					},
@@ -227,7 +227,7 @@ func TestValidateConfig(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				config := &Config{
 					AutoConfVersion: 123,
-					AutoConfSchema:  4,
+					AutoConfSchema:  1,
 					DelegatedEndpoints: map[string]EndpointConfig{
 						tc.url: {
 							Systems: []string{SystemIPNI},
@@ -450,7 +450,7 @@ func TestHTTPCachingBehavior(t *testing.T) {
 	// Create test autoconf data
 	testConfig := &Config{
 		AutoConfVersion: 2025080101,
-		AutoConfSchema:  4,
+		AutoConfSchema:  1,
 		AutoConfTTL:     3600,
 		SystemRegistry: map[string]SystemConfig{
 			SystemAminoDHT: {
@@ -515,7 +515,7 @@ func TestHTTPCachingBehavior(t *testing.T) {
 	fallbackFunc := func() *Config {
 		return &Config{
 			AutoConfVersion: 1,
-			AutoConfSchema:  4,
+			AutoConfSchema:  1,
 		}
 	}
 

@@ -1,6 +1,6 @@
 {
   "AutoConfVersion": 2025072902,
-  "AutoConfSchema": 4,
+  "AutoConfSchema": 1,
   "AutoConfTTL": 86400,
   "SystemRegistry": {
     "AminoDHT": {

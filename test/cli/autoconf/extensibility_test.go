@@ -37,7 +37,7 @@ func TestAutoConfExtensibility_NewSystem(t *testing.T) {
 		// Create autoconf.json with NewSystem
 		autoconfData := map[string]interface{}{
 			"AutoConfVersion": 2025072901,
-			"AutoConfSchema":  4,
+			"AutoConfSchema":  1,
 			"AutoConfTTL":     86400,
 			"SystemRegistry": map[string]interface{}{
 				"AminoDHT": map[string]interface{}{
@@ -112,7 +112,7 @@ func TestAutoConfExtensibility_NewSystem(t *testing.T) {
 	mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		autoconfData := map[string]interface{}{
 			"AutoConfVersion": 2025072901,
-			"AutoConfSchema":  4,
+			"AutoConfSchema":  1,
 			"AutoConfTTL":     86400,
 			"SystemRegistry": map[string]interface{}{
 				"AminoDHT": map[string]interface{}{

@@ -54,7 +54,7 @@ func TestGetLatest(t *testing.T) {
 	// Create test config
 	testConfig := &Config{
 		AutoConfVersion: 2025071802,
-		AutoConfSchema:  4,
+		AutoConfSchema:  1,
 		AutoConfTTL:     86400,
 		SystemRegistry: map[string]SystemConfig{
 			SystemAminoDHT: {

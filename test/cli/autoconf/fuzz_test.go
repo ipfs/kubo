@@ -81,7 +81,7 @@ func testFuzzAutoConfVersion(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			config := map[string]interface{}{
 				"AutoConfVersion": tc.version,
-				"AutoConfSchema":  4,
+				"AutoConfSchema":  1,
 				"AutoConfTTL":     86400,
 				"SystemRegistry": map[string]interface{}{
 					"AminoDHT": map[string]interface{}{
@@ -196,7 +196,7 @@ func testFuzzBootstrapArrays(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			config := map[string]interface{}{
 				"AutoConfVersion": 2025072301,
-				"AutoConfSchema":  4,
+				"AutoConfSchema":  1,
 				"AutoConfTTL":     86400,
 				"SystemRegistry": map[string]interface{}{
 					"AminoDHT": map[string]interface{}{
@@ -318,7 +318,7 @@ func testFuzzDNSResolvers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			config := map[string]interface{}{
 				"AutoConfVersion": 2025072301,
-				"AutoConfSchema":  4,
+				"AutoConfSchema":  1,
 				"AutoConfTTL":     86400,
 				"SystemRegistry": map[string]interface{}{
 					"AminoDHT": map[string]interface{}{
@@ -421,7 +421,7 @@ func testFuzzDelegatedRouters(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			config := map[string]interface{}{
 				"AutoConfVersion": 2025072301,
-				"AutoConfSchema":  4,
+				"AutoConfSchema":  1,
 				"AutoConfTTL":     86400,
 				"SystemRegistry": map[string]interface{}{
 					"AminoDHT": map[string]interface{}{
@@ -507,7 +507,7 @@ func testFuzzDelegatedPublishers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			autoConfData := map[string]interface{}{
 				"AutoConfVersion": 2025072301,
-				"AutoConfSchema":  4,
+				"AutoConfSchema":  1,
 				"AutoConfTTL":     86400,
 				"SystemRegistry": map[string]interface{}{
 					"TestSystem": map[string]interface{}{
@@ -602,7 +602,7 @@ func testFuzzLargePayloads(t *testing.T) {
 
 	config := map[string]interface{}{
 		"AutoConfVersion": 2025072301,
-		"AutoConfSchema":  4,
+		"AutoConfSchema":  1,
 		"AutoConfTTL":     86400,
 		"SystemRegistry": map[string]interface{}{
 			"AminoDHT": map[string]interface{}{

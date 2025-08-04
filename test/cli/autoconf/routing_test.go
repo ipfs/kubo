@@ -110,7 +110,7 @@ func testDelegatedRoutingWithAuto(t *testing.T) {
 	// Create autoconf data with delegated router
 	autoConfData := fmt.Sprintf(`{
 		"AutoConfVersion": 2025072302,
-		"AutoConfSchema": 4,
+		"AutoConfSchema": 1,
 		"AutoConfTTL": 86400,
 		"SystemRegistry": {
 			"AminoDHT": {
@@ -182,7 +182,7 @@ func testRoutingErrorHandling(t *testing.T) {
 	// Create autoconf data
 	autoConfData := fmt.Sprintf(`{
 		"AutoConfVersion": 2025072302,
-		"AutoConfSchema": 4,
+		"AutoConfSchema": 1,
 		"AutoConfTTL": 86400,
 		"SystemRegistry": {
 			"AminoDHT": {
