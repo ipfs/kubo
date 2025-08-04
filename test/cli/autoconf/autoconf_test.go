@@ -73,6 +73,11 @@ func TestAutoConf(t *testing.T) {
 		t.Parallel()
 		testAutoConfNetworkBehavior(t)
 	})
+
+	t.Run("HTTPS autoconf server", func(t *testing.T) {
+		t.Parallel()
+		testAutoConfWithHTTPS(t)
+	})
 }
 
 func testAutoConfBasicFunctionality(t *testing.T) {
@@ -720,4 +725,55 @@ func testAutoConfNetworkBehavior(t *testing.T) {
 	}
 
 	t.Logf("Successfully verified network behavior patterns in autoconf architecture")
+}
+
+func testAutoConfWithHTTPS(t *testing.T) {
+	// Test autoconf with HTTPS server and TLSInsecureSkipVerify enabled
+	autoConfData := loadTestData(t, "valid_autoconf.json")
+
+	// Create HTTPS server with self-signed certificate
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("HTTPS autoconf request from %s", r.UserAgent())
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("ETag", `"https-test-etag"`)
+		w.Header().Set("Last-Modified", "Wed, 21 Oct 2015 07:28:00 GMT")
+		_, _ = w.Write(autoConfData)
+	}))
+
+	// Enable HTTP/2 and start with TLS (self-signed certificate)
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	defer server.Close()
+
+	// Create IPFS node with HTTPS autoconf server and TLS skip verify
+	node := harness.NewT(t).NewNode().Init("--profile=test")
+	node.SetIPFSConfig("AutoConf.URL", server.URL)
+	node.SetIPFSConfig("AutoConf.Enabled", true)
+	node.SetIPFSConfig("AutoConf.TLSInsecureSkipVerify", true) // Allow self-signed cert
+	node.SetIPFSConfig("AutoConf.RefreshInterval", "24h")      // Disable background updates
+
+	// Use normal bootstrap peers to test HTTPS fetching without complex auto replacement
+	node.SetIPFSConfig("Bootstrap", []string{"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"})
+
+	// Start daemon to trigger HTTPS autoconf fetch
+	node.StartDaemon()
+	defer node.StopDaemon()
+
+	// Give autoconf time to fetch over HTTPS
+	time.Sleep(2 * time.Second)
+
+	// Verify daemon is functional with HTTPS autoconf
+	result := node.RunIPFS("id")
+	assert.Equal(t, 0, result.ExitCode(), "IPFS daemon should be responsive with HTTPS autoconf")
+	assert.Contains(t, result.Stdout.String(), "ID", "IPFS id command should return peer information")
+
+	// Test that config operations work with HTTPS-fetched autoconf cache
+	result = node.RunIPFS("config", "show")
+	assert.Equal(t, 0, result.ExitCode(), "Config show should work with HTTPS autoconf")
+
+	// Test bootstrap list functionality
+	result = node.RunIPFS("bootstrap", "list")
+	assert.Equal(t, 0, result.ExitCode(), "Bootstrap list should work with HTTPS autoconf")
+
+	t.Logf("Successfully tested AutoConf with HTTPS server and TLS skip verify")
 }

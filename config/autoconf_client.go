@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 
@@ -19,53 +18,6 @@ func NewAutoConfClient(repoPath, userAgent string) (*autoconf.Client, error) {
 		autoconf.WithCacheSize(DefaultAutoConfCacheSize),
 		autoconf.WithTimeout(DefaultAutoConfTimeout),
 	)
-}
-
-// NewAutoConfClientWithConfig creates an autoconf client with config-specific settings
-func NewAutoConfClientWithConfig(repoPath string, cfg interface{}, userAgent string) (*autoconf.Client, error) {
-	cacheDir := filepath.Join(repoPath, "autoconf")
-	options := []autoconf.Option{
-		autoconf.WithCacheDir(cacheDir),
-		autoconf.WithUserAgent(userAgent),
-		autoconf.WithCacheSize(DefaultAutoConfCacheSize),
-		autoconf.WithTimeout(DefaultAutoConfTimeout),
-	}
-
-	// Add TLS skip verify if config provides it
-	type tlsConfig interface {
-		GetTLSInsecureSkipVerify() bool
-	}
-	if config, ok := cfg.(tlsConfig); ok && config.GetTLSInsecureSkipVerify() {
-		options = append(options, autoconf.WithTLSInsecureSkipVerify(true))
-	}
-
-	return autoconf.NewClient(options...)
-}
-
-// GetAutoConf is a convenience function to get the latest config with a default client
-// Uses the default check interval - for user-configured intervals, use MustGetConfigWithRefresh directly
-func GetAutoConf(ctx context.Context, configURL, repoPath, userAgent string) (*autoconf.Config, error) {
-	client, err := NewAutoConfClient(repoPath, userAgent)
-	if err != nil {
-		return nil, err
-	}
-	return client.MustGetConfigWithRefresh(ctx, configURL, autoconf.DefaultRefreshInterval, autoconf.GetMainnetFallbackConfig), nil
-}
-
-// ValidateAutoConfAtStartup validates that autoconf setup is correct at daemon startup
-func ValidateAutoConfAtStartup(cfg *Config) error {
-	if !cfg.AutoConf.Enabled.WithDefault(DefaultAutoConfEnabled) {
-		// AutoConf is disabled, check for "auto" values and warn
-		return validateAutoConfDisabled(cfg)
-	}
-
-	// AutoConf is enabled - validate URL is provided
-	if cfg.AutoConf.URL == "" {
-		return fmt.Errorf("AutoConf is enabled but AutoConf.URL is empty - please provide a URL")
-	}
-
-	// Further validation will happen lazily when config is accessed
-	return nil
 }
 
 // ValidateAutoConfWithRepo validates that autoconf setup is correct at daemon startup with repo access
