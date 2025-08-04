@@ -150,6 +150,14 @@ The client implements graceful fallback:
 
 Note: `GetLatest()` returns errors, while `MustGetConfigCached()` and `MustGetConfigWithRefresh()` never fail and always return usable configuration.
 
+### High-Level Functions
+
+- **`NewClient(options...)`**: Create configurable HTTP client with custom cache dir, timeouts, user-agent
+- **`GetLatest(ctx, url, refreshInterval)`**: Fetch latest config with cache fallback, returns errors
+- **`MustGetConfigCached(client, url, fallback)`**: Never-fail cache-first access, returns fallback if no cache
+- **`MustGetConfigWithRefresh(client, url, fallback, refreshInterval)`**: Never-fail with refresh attempt, guaranteed to return usable config
+- **`NewBackgroundUpdater(client, url, options...)`**: Periodic refresh daemon with customizable callbacks
+
 ## Testing
 
 Run tests with:

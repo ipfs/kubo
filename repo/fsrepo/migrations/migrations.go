@@ -25,6 +25,10 @@ const (
 
 // RunMigration finds, downloads, and runs the individual migrations needed to
 // migrate the repo from its current version to the target version.
+//
+// Deprecated: This function downloads migration binaries from the internet and will be removed
+// in a future version. Use RunHybridMigrations for modern migrations with embedded support,
+// or RunEmbeddedMigrations for repo versions ≥16.
 func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir string, allowDowngrade bool) error {
 	ipfsDir, err := CheckIpfsDir(ipfsDir)
 	if err != nil {
@@ -114,6 +118,9 @@ func ExeName(name string) string {
 // ReadMigrationConfig reads the Migration section of the IPFS config, avoiding
 // reading anything other than the Migration section. That way, we're free to
 // make arbitrary changes to all _other_ sections in migrations.
+//
+// Deprecated: This function is used by legacy migration downloads and will be removed
+// in a future version. Use RunHybridMigrations or RunEmbeddedMigrations instead.
 func ReadMigrationConfig(repoRoot string, userConfigFile string) (*config.Migration, error) {
 	var cfg struct {
 		Migration config.Migration
@@ -151,7 +158,10 @@ func ReadMigrationConfig(repoRoot string, userConfigFile string) (*config.Migrat
 }
 
 // GetMigrationFetcher creates one or more fetchers according to
-// downloadSources,.
+// downloadSources.
+//
+// Deprecated: This function is used by legacy migration downloads and will be removed
+// in a future version. Use RunHybridMigrations or RunEmbeddedMigrations instead.
 func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetcher func(string) Fetcher) (Fetcher, error) {
 	const httpUserAgent = "kubo/migration"
 	const numTriesPerHTTP = 3
@@ -200,6 +210,9 @@ func migrationName(from, to int) string {
 // findMigrations returns a list of migrations, ordered from first to last
 // migration to apply, and a map of locations of migration binaries of any
 // migrations that were found.
+//
+// Deprecated: This function is used by legacy migration downloads and will be removed
+// in a future version.
 func findMigrations(ctx context.Context, from, to int) ([]string, map[string]string, error) {
 	step := 1
 	count := to - from
@@ -248,6 +261,9 @@ func runMigration(ctx context.Context, binPath, ipfsDir string, revert bool, log
 
 // fetchMigrations downloads the requested migrations, and returns a slice with
 // the paths of each binary, in the same order specified by needed.
+//
+// Deprecated: This function downloads migration binaries from the internet and will be removed
+// in a future version. Use RunHybridMigrations or RunEmbeddedMigrations instead.
 func fetchMigrations(ctx context.Context, fetcher Fetcher, needed []string, destDir string, logger *log.Logger) ([]string, error) {
 	osv, err := osWithVariant()
 	if err != nil {
