@@ -327,12 +327,9 @@ func TestGetMigrationFetcher(t *testing.T) {
 	}
 
 	downloadSources = []string{"ipfs"}
-	f, err = GetMigrationFetcher(downloadSources, "", newIpfsFetcher)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := f.(*mockIpfsFetcher); !ok {
-		t.Fatal("expected IpfsFetcher")
+	_, err = GetMigrationFetcher(downloadSources, "", newIpfsFetcher)
+	if err == nil || !strings.Contains(err.Error(), "IPFS downloads are not supported for legacy migrations") {
+		t.Fatal("Expected IPFS downloads error, got:", err)
 	}
 
 	downloadSources = []string{"http"}
@@ -347,6 +344,12 @@ func TestGetMigrationFetcher(t *testing.T) {
 	}
 
 	downloadSources = []string{"IPFS", "HTTPS"}
+	_, err = GetMigrationFetcher(downloadSources, "", newIpfsFetcher)
+	if err == nil || !strings.Contains(err.Error(), "IPFS downloads are not supported for legacy migrations") {
+		t.Fatal("Expected IPFS downloads error, got:", err)
+	}
+
+	downloadSources = []string{"https", "some.domain.io"}
 	f, err = GetMigrationFetcher(downloadSources, "", newIpfsFetcher)
 	if err != nil {
 		t.Fatal(err)
@@ -357,19 +360,6 @@ func TestGetMigrationFetcher(t *testing.T) {
 	}
 	if mf.Len() != 2 {
 		t.Fatal("expected 2 fetchers in MultiFetcher")
-	}
-
-	downloadSources = []string{"ipfs", "https", "some.domain.io"}
-	f, err = GetMigrationFetcher(downloadSources, "", newIpfsFetcher)
-	if err != nil {
-		t.Fatal(err)
-	}
-	mf, ok = f.(*MultiFetcher)
-	if !ok {
-		t.Fatal("expected MultiFetcher")
-	}
-	if mf.Len() != 3 {
-		t.Fatal("expected 3 fetchers in MultiFetcher")
 	}
 
 	downloadSources = nil

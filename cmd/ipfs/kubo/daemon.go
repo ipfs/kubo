@@ -36,7 +36,6 @@ import (
 	nodeMount "github.com/ipfs/kubo/fuse/node"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
-	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
 	goprocess "github.com/jbenet/goprocess"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	pnet "github.com/libp2p/go-libp2p/core/pnet"
@@ -310,75 +309,18 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return errors.New("fs-repo requires migration")
 		}
 
-		// Try embedded migrations first
-		err = migrations.RunEmbeddedMigrations(cctx.Context(), version.RepoVersion, cctx.ConfigRoot, false)
+		// Use hybrid migration strategy that intelligently combines external and embedded migrations
+		err = migrations.RunHybridMigrations(cctx.Context(), version.RepoVersion, cctx.ConfigRoot, false)
 		if err != nil {
-			fmt.Println("Embedded Kubo migrations failed, falling back to external binary migrations:")
+			fmt.Println("Repository migration failed:")
 			fmt.Printf("  %s\n", err)
-
-			// Read Migration section of IPFS config for external migration fallback
-			// Note: External migrations only apply to repo versions <17. From repo version 17+,
-			// all migrations are embedded in Kubo and don't require external binaries.
-			configFileOpt, _ := req.Options[commands.ConfigFileOption].(string)
-			migrationCfg, err := migrations.ReadMigrationConfig(cctx.ConfigRoot, configFileOpt)
-			if err != nil {
-				return err
-			}
-
-			// Define function to create IPFS fetcher.  Do not supply an
-			// already-constructed IPFS fetcher, because this may be expensive and
-			// not needed according to migration config. Instead, supply a function
-			// to construct the particular IPFS fetcher implementation used here,
-			// which is called only if an IPFS fetcher is needed.
-			newIpfsFetcher := func(distPath string) migrations.Fetcher {
-				return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot, configFileOpt)
-			}
-
-			// Fetch migrations from current distribution, or location from environ
-			fetchDistPath := migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
-
-			// Create fetchers according to migrationCfg.DownloadSources
-			fetcher, err := migrations.GetMigrationFetcher(migrationCfg.DownloadSources, fetchDistPath, newIpfsFetcher)
-			if err != nil {
-				return err
-			}
-			defer fetcher.Close()
-
-			if migrationCfg.Keep == "cache" {
-				cacheMigrations = true
-			} else if migrationCfg.Keep == "pin" {
-				pinMigrations = true
-			}
-
-			if cacheMigrations || pinMigrations {
-				// Create temp directory to store downloaded migration archives
-				migrations.DownloadDirectory, err = os.MkdirTemp("", "migrations")
-				if err != nil {
-					return err
-				}
-				// Defer cleanup of download directory so that it gets cleaned up
-				// if daemon returns early due to error
-				defer func() {
-					if migrations.DownloadDirectory != "" {
-						os.RemoveAll(migrations.DownloadDirectory)
-					}
-				}()
-			}
-
-			// Fall back to external migration system
-			err = migrations.RunMigration(cctx.Context(), fetcher, version.RepoVersion, "", false)
-			if err != nil {
-				fmt.Println("The legacy migrations of fs-repo failed:")
-				fmt.Printf("  %s\n", err)
-				fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
-				fmt.Println("  https://github.com/ipfs/kubo")
-				return err
-			}
-
-			// External migrations completed successfully.
-			// Store migration data for later processing after node is created.
-			externalMigrationFetcher = fetcher
+			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
+			fmt.Println("  https://github.com/ipfs/kubo")
+			return err
 		}
+
+		// Note: Migration caching/pinning functionality has been deprecated
+		// The hybrid migration system handles legacy migrations more efficiently
 
 		repo, err = fsrepo.Open(cctx.ConfigRoot)
 		if err != nil {

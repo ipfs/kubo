@@ -51,6 +51,8 @@ func TestMigration16To17(t *testing.T) {
 func testDaemonMigrationWithAuto(t *testing.T) {
 	// TEST: Forward migration using 'ipfs daemon --migrate' command (PRIMARY)
 	// Use static v16 repo fixture from real Kubo 0.36 `ipfs init`
+	// NOTE: This test may need to be revised/updated once repo version 18 is released,
+	// at that point only keep tests that use 'ipfs repo migrate'
 	node := setupStaticV16Repo(t)
 
 	configPath := filepath.Join(node.Dir, "config")
@@ -91,6 +93,8 @@ func testDaemonMigrationWithAuto(t *testing.T) {
 func testDaemonMigrationWithoutAuto(t *testing.T) {
 	// TEST: Forward migration using 'ipfs daemon --migrate' command (PRIMARY)
 	// Test migration of a config that already has some custom values
+	// NOTE: This test may need to be revised/updated once repo version 18 is released,
+	// at that point only keep tests that use 'ipfs repo migrate'
 	// Should preserve existing settings and only add missing ones
 	node := setupStaticV16Repo(t)
 
@@ -432,6 +436,8 @@ func cloneStaticRepoFixture(t *testing.T, srcPath, dstPath string) {
 func testDaemonCorruptedConfigHandling(t *testing.T) {
 	// TEST: Error handling using 'ipfs daemon --migrate' command with corrupted config (PRIMARY)
 	// Test what happens when config file is corrupted during migration
+	// NOTE: This test may need to be revised/updated once repo version 18 is released,
+	// at that point only keep tests that use 'ipfs repo migrate'
 	node := setupStaticV16Repo(t)
 
 	// Create corrupted config
@@ -464,6 +470,8 @@ func testDaemonCorruptedConfigHandling(t *testing.T) {
 func testDaemonMissingFieldsHandling(t *testing.T) {
 	// TEST: Migration using 'ipfs daemon --migrate' command with minimal config (PRIMARY)
 	// Test migration when config is missing expected fields
+	// NOTE: This test may need to be revised/updated once repo version 18 is released,
+	// at that point only keep tests that use 'ipfs repo migrate'
 	node := setupStaticV16Repo(t)
 
 	// The static fixture already has all required fields, use it as-is

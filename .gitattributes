@@ -15,6 +15,7 @@ LICENSE text eol=auto
 # Binary assets
 assets/init-doc/*          binary
 core/coreunix/test_data/** binary
+test/cli/migrations/testdata/** binary
 
 # Generated test data
 test/cli/migrations/testdata/** linguist-generated=true

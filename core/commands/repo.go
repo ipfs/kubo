@@ -16,7 +16,6 @@ import (
 	corerepo "github.com/ipfs/kubo/core/corerepo"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
-	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
 
 	humanize "github.com/dustin/go-humanize"
 	bstore "github.com/ipfs/boxo/blockstore"
@@ -421,58 +420,24 @@ migration. Versions below 16 require external migration tools.
 			return fmt.Errorf("downgrade from version %d to %d requires --allow-downgrade flag", currentVersion, targetVersion)
 		}
 
+		// Check if repo is locked by daemon before running migration
+		locked, err := fsrepo.LockedByOtherProcess(cctx.ConfigRoot)
+		if err != nil {
+			return fmt.Errorf("could not check repo lock: %w", err)
+		}
+		if locked {
+			return fmt.Errorf("cannot run migration while daemon is running (repo.lock exists)")
+		}
+
 		fmt.Printf("Migrating repository from version %d to %d...\n", currentVersion, targetVersion)
 
-		// Try embedded migrations first (for versions 16+)
-		const embeddedMigrationsMinVersion = 16
-		if targetVersion >= embeddedMigrationsMinVersion && currentVersion >= embeddedMigrationsMinVersion {
-			err = migrations.RunEmbeddedMigrations(cctx.Context(), targetVersion, cctx.ConfigRoot, allowDowngrade)
-			if err == nil {
-				fmt.Printf("Repository successfully migrated to version %d.\n", targetVersion)
-				if targetVersion < fsrepo.RepoVersion {
-					fmt.Println("WARNING: After downgrading, you must use an IPFS binary compatible with this repository version.")
-				}
-				return nil
-			}
-			fmt.Printf("Embedded migrations failed: %v\n", err)
-			fmt.Println("Falling back to external migration tools...")
-		}
-
-		// Fall back to external migrations
-		fmt.Println("Using external migration tools...")
-
-		// Read Migration section of IPFS config
-		configFileOpt, _ := req.Options[ConfigFileOption].(string)
-		migrationCfg, err := migrations.ReadMigrationConfig(cctx.ConfigRoot, configFileOpt)
+		// Use hybrid migration strategy that intelligently combines external and embedded migrations
+		err = migrations.RunHybridMigrations(cctx.Context(), targetVersion, cctx.ConfigRoot, allowDowngrade)
 		if err != nil {
-			return err
-		}
-
-		// Define function to create IPFS fetcher.  Do not supply an
-		// already-constructed IPFS fetcher, because this may be expensive and
-		// not needed according to migration config. Instead, supply a function
-		// to construct the particular IPFS fetcher implementation used here,
-		// which is called only if an IPFS fetcher is needed.
-		newIpfsFetcher := func(distPath string) migrations.Fetcher {
-			return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot, configFileOpt)
-		}
-
-		// Fetch migrations from current distribution, or location from environ
-		fetchDistPath := migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
-
-		// Create fetchers according to migrationCfg.DownloadSources
-		fetcher, err := migrations.GetMigrationFetcher(migrationCfg.DownloadSources, fetchDistPath, newIpfsFetcher)
-		if err != nil {
-			return err
-		}
-		defer fetcher.Close()
-
-		err = migrations.RunMigration(cctx.Context(), fetcher, targetVersion, "", allowDowngrade)
-		if err != nil {
-			fmt.Println("The migrations of fs-repo failed:")
+			fmt.Println("Repository migration failed:")
 			fmt.Printf("  %s\n", err)
 			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
-			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
+			fmt.Println("  https://github.com/ipfs/kubo")
 			return err
 		}
 
