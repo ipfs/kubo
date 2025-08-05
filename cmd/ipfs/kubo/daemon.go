@@ -653,9 +653,9 @@ take effect.
 		if cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient) {
 			fmt.Print(`
 
-⚠️ Routing.AcceleratedDHTClient is enabled for faster content discovery
-⚠️ and DHT reprovides. Routing table is initializing. IPFS is ready to use,
-⚠️ but performance will improve in a few minutes as more peers are discovered
+ℹ️ Routing.AcceleratedDHTClient is enabled for faster content discovery
+ℹ️ and DHT provides. Routing table is initializing. IPFS is ready to use,
+ℹ️ but performance will improve over time as more peers are discovered
 
 `)
 		}
