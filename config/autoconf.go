@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	logging "github.com/ipfs/go-log/v2"
 	version "github.com/ipfs/kubo"
@@ -56,8 +55,8 @@ const (
 	DefaultAutoConfRefreshInterval = autoconf.DefaultRefreshInterval
 
 	// AutoConf client configuration constants
-	DefaultAutoConfCacheSize = 3
-	DefaultAutoConfTimeout   = 5 * time.Second
+	DefaultAutoConfCacheSize = autoconf.DefaultCacheSize
+	DefaultAutoConfTimeout   = autoconf.DefaultTimeout
 
 	// Routing path constants
 	IPNSWritePath = "/routing/v1/ipns"
@@ -130,7 +129,7 @@ func (c *Config) getDelegatedEndpointsForConfig() (*autoconf.Config, map[string]
 
 	routingType := c.Routing.Type.WithDefault(DefaultRoutingType)
 	nativeSystems := GetNativeSystems(routingType)
-	endpoints := autoConf.GetDelegatedEndpoints(nativeSystems)
+	endpoints := autoConf.GetDelegatedEndpoints(nativeSystems...)
 
 	return autoConf, endpoints
 }
@@ -235,7 +234,7 @@ func (c *Config) BootstrapWithAutoConf() []string {
 	if autoConf != nil {
 		routingType := c.Routing.Type.WithDefault(DefaultRoutingType)
 		nativeSystems := GetNativeSystems(routingType)
-		autoConfData = autoConf.GetBootstrapPeers(nativeSystems)
+		autoConfData = autoConf.GetBootstrapPeers(nativeSystems...)
 		log.Debugf("BootstrapWithAutoConf: processing with routing type: %s", routingType)
 	} else {
 		log.Debugf("BootstrapWithAutoConf: autoConf disabled, using original config")

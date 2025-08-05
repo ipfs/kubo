@@ -103,7 +103,7 @@ type Response struct {
 }
 
 // GetBootstrapPeers returns deduplicated bootstrap peers from the specified native systems
-func (c *Config) GetBootstrapPeers(nativeSystems []string) []string {
+func (c *Config) GetBootstrapPeers(nativeSystems ...string) []string {
 	bootstrapSet := make(map[string]bool) // For deduplication
 	var result []string
 
@@ -124,7 +124,7 @@ func (c *Config) GetBootstrapPeers(nativeSystems []string) []string {
 }
 
 // GetDelegatedEndpoints returns endpoints that don't overlap with the specified native systems
-func (c *Config) GetDelegatedEndpoints(ignoredNativeSystems []string) map[string]EndpointConfig {
+func (c *Config) GetDelegatedEndpoints(ignoredNativeSystems ...string) map[string]EndpointConfig {
 	if c.DelegatedEndpoints == nil {
 		return nil
 	}

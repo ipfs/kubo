@@ -12,38 +12,88 @@ This package provides a client library for fetching and caching IPFS autoconf.js
 
 ## Usage
 
-### Basic Usage
+### Turn-Key Solutions (Recommended)
+
+For most applications, use the "Must" methods that provide graceful fallbacks and never fail:
 
 ```go
 import "github.com/ipfs/kubo/boxo/autoconf"
 
+const autoconfURL = "https://config.ipfs-mainnet.org/autoconf.json"
+
 // Create a client with default options
 client, err := autoconf.NewClient()
 if err != nil {
-    return err
+    // handle
 }
 
-// Fetch the latest config
-config, err := client.GetLatest(ctx, "https://example.com/autoconf.json", autoconf.DefaultRefreshInterval)
-if err != nil {
-    return err
-}
+// Cache-first approach: use cached config, no network requests
+config := client.MustGetConfigCached(autoconfURL, autoconf.GetMainnetFallbackConfig)
 
-// Use the config
-bootstrapPeers := config.GetBootstrapPeers([]string{"AminoDHT"})
+// Use the config data
+nativelySupported := []string{"AminoDHT"}  // Systems your node runs locally (natively)
+bootstrapPeers := config.GetBootstrapPeers(nativelySupported...) // Bootstrap every native system
+delegatedEndpoints := config.GetDelegatedEndpoints(nativelySupported...) // Excludes native systems
+dnsResolvers := config.GetDNSResolvers()
+
 fmt.Printf("Bootstrap peers: %v\n", bootstrapPeers)
-fmt.Printf("DNS resolvers: %v\n", config.DNSResolvers)
+fmt.Printf("Delegated endpoints: %v\n", delegatedEndpoints)
+fmt.Printf("DNS resolvers: %v\n", dnsResolvers)
 ```
 
-### With Custom Options
+```go
+// With refresh: attempt network update, fall back to cache or defaults
+config := client.MustGetConfigWithRefresh(ctx, autoconfURL,
+    autoconf.DefaultRefreshInterval, autoconf.GetMainnetFallbackConfig)
+
+// Access config the same way - guaranteed to never be nil
+nativelySupported := []string{"AminoDHT"}  // Systems your node runs locally (natively)
+bootstrapPeers := config.GetBootstrapPeers(nativelySupported...) // Bootstrap every native system
+fmt.Printf("Bootstrap peers: %v\n", bootstrapPeers)
+```
+
+### Fine-Grained Control
+
+For applications that need explicit error handling and network control:
 
 ```go
+// Create client with custom options
 client, err := autoconf.NewClient(
     autoconf.WithCacheDir("/path/to/cache"),
     autoconf.WithUserAgent("my-app/1.0"),
-    autoconf.WithCacheSize(5),
-    autoconf.WithTimeout(10*time.Second),
+    autoconf.WithCacheSize(autoconf.DefaultCacheSize),
+    autoconf.WithTimeout(autoconf.DefaultTimeout),
 )
+if err != nil {
+    // handle
+}
+
+// GetLatest returns errors for explicit handling
+response, err := client.GetLatest(ctx, autoconfURL, autoconf.DefaultRefreshInterval)
+if err != nil {
+    // handle
+    return err
+}
+
+// Access the config and metadata
+config := response.Config
+fmt.Printf("Config: %+v\n", config)
+fmt.Printf("FetchTime: %v\n", response.FetchTime)
+fmt.Printf("Version: %s\n", response.Version)
+fmt.Printf("FromCache: %v\n", response.FromCache)
+fmt.Printf("CacheAge: %v\n", response.CacheAge)
+
+// Use all available getters
+nativelySupported := []string{"AminoDHT"}  // Systems your node runs locally (natively)
+bootstrapPeers := config.GetBootstrapPeers(nativelySupported...) // Bootstrap every native system
+delegatedEndpoints := config.GetDelegatedEndpoints(nativelySupported...) // Excludes native systems
+allEndpoints := config.GetDelegatedEndpoints() // All endpoints
+dnsResolvers := config.GetDNSResolvers()
+
+fmt.Printf("Bootstrap peers: %v\n", bootstrapPeers)
+fmt.Printf("Delegated endpoints: %v\n", delegatedEndpoints)
+fmt.Printf("All endpoints: %v\n", allEndpoints)
+fmt.Printf("DNS resolvers: %v\n", dnsResolvers)
 ```
 
 ### Integration with Applications
@@ -55,20 +105,27 @@ func main() {
     client, err := autoconf.NewClient(
         autoconf.WithCacheDir("/app/data/autoconf"),
         autoconf.WithUserAgent("myapp/1.2.3"),
-        autoconf.WithTimeout(10*time.Second),
+        autoconf.WithTimeout(autoconf.DefaultTimeout),
     )
     if err != nil {
-        panic(err)
+        // handle
     }
 
-    config, err := client.GetLatest(context.Background(), "https://example.com/autoconf.json", autoconf.DefaultRefreshInterval)
-    if err != nil {
-        panic(err)
-    }
+    // Use turn-key solution with refresh - never fails, always returns usable config
+    config := client.MustGetConfigWithRefresh(context.Background(),
+        autoconfURL,
+        autoconf.DefaultRefreshInterval,
+        autoconf.GetMainnetFallbackConfig)
 
-    bootstrapPeers := config.GetBootstrapPeers([]string{"AminoDHT"})
+    // Access all config types
+    nativelySupported := []string{"AminoDHT"}  // Systems your node runs locally (natively)
+    bootstrapPeers := config.GetBootstrapPeers(nativelySupported...) // Bootstrap every native system
+    delegatedEndpoints := config.GetDelegatedEndpoints(nativelySupported...)
+    dnsResolvers := config.GetDNSResolvers()
+
     fmt.Printf("Bootstrap peers: %v\n", bootstrapPeers)
-    fmt.Printf("DNS resolvers: %v\n", config.DNSResolvers)
+    fmt.Printf("Delegated endpoints: %v\n", delegatedEndpoints)
+    fmt.Printf("DNS resolvers: %v\n", dnsResolvers)
 }
 ```
 
@@ -83,12 +140,12 @@ func main() {
         autoconf.WithUserAgent("myapp/1.2.3"),
     )
     if err != nil {
-        panic(err)
+        // handle
     }
 
     // Create background updater with custom callbacks
-    updater, err := autoconf.NewBackgroundUpdater(client, "https://example.com/autoconf.json",
-        autoconf.WithUpdateInterval(6*time.Hour), // Check every 6 hours
+    updater, err := autoconf.NewBackgroundUpdater(client, autoconfURL,
+        autoconf.WithUpdateInterval(autoconf.DefaultRefreshInterval), // Default: 24h
         autoconf.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {
             fmt.Printf("New config version %d available (was %d) - consider restarting\n", newVersion, oldVersion)
         }),
@@ -100,12 +157,12 @@ func main() {
         }),
     )
     if err != nil {
-        panic(err)
+        // handle
     }
 
     ctx := context.Background()
     if err := updater.Start(ctx); err != nil {
-        panic(err)
+        // handle
     }
     defer updater.Stop()
 
@@ -164,13 +221,23 @@ The client implements graceful fallback:
 
 Note: `GetLatest()` returns errors, while `MustGetConfigCached()` and `MustGetConfigWithRefresh()` never fail and always return usable configuration.
 
-### High-Level Functions
+## API Overview
 
-- **`NewClient(options...)`**: Create configurable HTTP client with custom cache dir, timeouts, user-agent
-- **`GetLatest(ctx, url, refreshInterval)`**: Fetch latest config with cache fallback, returns errors
-- **`MustGetConfigCached(client, url, fallback)`**: Never-fail cache-first access, returns fallback if no cache
-- **`MustGetConfigWithRefresh(client, url, fallback, refreshInterval)`**: Never-fail with refresh attempt, guaranteed to return usable config
+### Turn-Key Methods (Recommended)
+- **`MustGetConfigCached(url, fallback)`**: Cache-first, never fails, no network requests
+- **`MustGetConfigWithRefresh(ctx, url, refreshInterval, fallback)`**: Attempts refresh, falls back gracefully, never fails
+
+### Fine-Grained Methods
+- **`GetLatest(ctx, url, refreshInterval)`**: Explicit error handling, returns Response with metadata
 - **`NewBackgroundUpdater(client, url, options...)`**: Periodic refresh daemon with customizable callbacks
+
+### Client Creation
+- **`NewClient(options...)`**: Create configurable HTTP client with custom cache dir, timeouts, user-agent
+
+### Config Data Access
+- **`GetBootstrapPeers(systems...)`**: Extract bootstrap peers for specified systems
+- **`GetDelegatedEndpoints(ignoredSystems...)`**: Get HTTP endpoints (optionally excluding native systems)
+- **`GetDNSResolvers()`**: Get all DNS-over-HTTPS resolver mappings
 
 ## Testing
 

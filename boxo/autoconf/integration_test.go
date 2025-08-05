@@ -46,7 +46,7 @@ func TestRealAutoConfURL(t *testing.T) {
 	}
 
 	// Get bootstrap peers from all systems to verify
-	bootstrapPeers := config.GetBootstrapPeers([]string{SystemAminoDHT})
+	bootstrapPeers := config.GetBootstrapPeers(SystemAminoDHT)
 	if len(bootstrapPeers) == 0 {
 		t.Error("expected non-empty bootstrap peers")
 	}

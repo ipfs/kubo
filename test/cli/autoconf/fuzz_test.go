@@ -126,7 +126,7 @@ func testFuzzBootstrapArrays(t *testing.T) {
 			bootstrap: []string{"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"},
 			validate: func(t *testing.T, resp *autoconf.Response) {
 				expected := []string{"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"}
-				bootstrapPeers := resp.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				bootstrapPeers := resp.Config.GetBootstrapPeers("AminoDHT")
 				assert.Equal(t, expected, bootstrapPeers, "Bootstrap peers should match configured values")
 			},
 		},
@@ -134,7 +134,7 @@ func testFuzzBootstrapArrays(t *testing.T) {
 			name:      "empty bootstrap",
 			bootstrap: []string{},
 			validate: func(t *testing.T, resp *autoconf.Response) {
-				bootstrapPeers := resp.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				bootstrapPeers := resp.Config.GetBootstrapPeers("AminoDHT")
 				assert.Empty(t, bootstrapPeers, "Empty bootstrap should result in empty peers")
 			},
 		},
@@ -142,7 +142,7 @@ func testFuzzBootstrapArrays(t *testing.T) {
 			name:      "null bootstrap",
 			bootstrap: nil,
 			validate: func(t *testing.T, resp *autoconf.Response) {
-				bootstrapPeers := resp.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				bootstrapPeers := resp.Config.GetBootstrapPeers("AminoDHT")
 				assert.Empty(t, bootstrapPeers, "Null bootstrap should result in empty peers")
 			},
 		},
@@ -156,7 +156,7 @@ func testFuzzBootstrapArrays(t *testing.T) {
 			bootstrap: []string{"/dnsaddr/" + strings.Repeat("a", 100) + ".com/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"},
 			validate: func(t *testing.T, resp *autoconf.Response) {
 				expected := []string{"/dnsaddr/" + strings.Repeat("a", 100) + ".com/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"}
-				bootstrapPeers := resp.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				bootstrapPeers := resp.Config.GetBootstrapPeers("AminoDHT")
 				assert.Equal(t, expected, bootstrapPeers, "Very long multiaddr should be preserved")
 			},
 		},
@@ -180,7 +180,7 @@ func testFuzzBootstrapArrays(t *testing.T) {
 			bootstrap: make([]string, 1000),
 			validate: func(t *testing.T, resp *autoconf.Response) {
 				// Array will be filled in the loop below
-				bootstrapPeers := resp.Config.GetBootstrapPeers([]string{"AminoDHT"})
+				bootstrapPeers := resp.Config.GetBootstrapPeers("AminoDHT")
 				assert.Len(t, bootstrapPeers, 1000, "Large bootstrap array should be preserved")
 			},
 		},
@@ -225,7 +225,7 @@ func testFuzzBootstrapArrays(t *testing.T) {
 				require.NotNil(t, autoConf, "AutoConf should not be nil for successful parsing")
 
 				// Verify structure is reasonable
-				bootstrapPeers := autoConf.GetBootstrapPeers([]string{"AminoDHT"})
+				bootstrapPeers := autoConf.GetBootstrapPeers("AminoDHT")
 				require.IsType(t, []string{}, bootstrapPeers, "Bootstrap should be []string")
 
 				// Run test-specific validation if provided (only for non-fallback cases)
@@ -632,7 +632,7 @@ func testFuzzLargePayloads(t *testing.T) {
 	require.NotNil(t, autoConf, "Should return valid config")
 
 	// Verify bootstrap entries were preserved
-	bootstrapPeers := autoConf.GetBootstrapPeers([]string{"AminoDHT"})
+	bootstrapPeers := autoConf.GetBootstrapPeers("AminoDHT")
 	require.Len(t, bootstrapPeers, 10000, "Should preserve all bootstrap entries")
 }
 

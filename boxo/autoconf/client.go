@@ -22,8 +22,13 @@ func writeOwnerOnlyFile(filename string, data []byte) error {
 }
 
 const (
-	defaultTimeout         = 5 * time.Second
-	defaultCacheSize       = 3
+	// DefaultTimeout is the default HTTP timeout for autoconf requests.
+	// This timeout balances responsiveness with reliability for most network conditions.
+	DefaultTimeout = 5 * time.Second
+	// DefaultCacheSize is the default number of cached autoconf versions to keep.
+	// Keeping multiple versions provides resilience against corrupted cache files
+	// and allows for safe rollback during updates.
+	DefaultCacheSize       = 3
 	defaultMaxResponseSize = 2 * 1024 * 1024 // 2MiB
 	etagFile               = ".etag"
 	lastModifiedFile       = ".last-modified"
@@ -71,8 +76,8 @@ type Option func(*Client) error
 // NewClient creates a new autoconf client with the given options
 func NewClient(options ...Option) (*Client, error) {
 	c := &Client{
-		httpClient:      &http.Client{Timeout: defaultTimeout},
-		cacheSize:       defaultCacheSize,
+		httpClient:      &http.Client{Timeout: DefaultTimeout},
+		cacheSize:       DefaultCacheSize,
 		maxResponseSize: defaultMaxResponseSize,
 	}
 
