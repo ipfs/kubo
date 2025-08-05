@@ -15,7 +15,6 @@ import (
 	"testing"
 
 	"github.com/ipfs/boxo/path"
-	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/options"
 
