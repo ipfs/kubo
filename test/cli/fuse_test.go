@@ -38,9 +38,10 @@ func TestFUSE(t *testing.T) {
 		require.NoError(t, err)
 
 		// Ensure any existing mounts are cleaned up first
-		doUnmount(t, ipfsMount)
-		doUnmount(t, ipnsMount)
-		doUnmount(t, mfsMount)
+		failOnError := false // mount points might not exist from previous runs
+		doUnmount(t, ipfsMount, failOnError)
+		doUnmount(t, ipnsMount, failOnError)
+		doUnmount(t, mfsMount, failOnError)
 
 		// Test mount operation
 		result := node.IPFS("mount", "-f", ipfsMount, "-n", ipnsMount, "-m", mfsMount)
@@ -120,17 +121,19 @@ func TestFUSE(t *testing.T) {
 		require.NoError(t, err)
 
 		// Clean up any existing mounts
-		doUnmount(t, ipfsMount)
-		doUnmount(t, ipnsMount)
-		doUnmount(t, mfsMount)
+		failOnError := false // mount points might not exist from previous runs
+		doUnmount(t, ipfsMount, failOnError)
+		doUnmount(t, ipnsMount, failOnError)
+		doUnmount(t, mfsMount, failOnError)
 
 		// Mount
 		node.IPFS("mount", "-f", ipfsMount, "-n", ipnsMount, "-m", mfsMount)
 
 		// Explicit unmount via platform-specific command
-		doUnmount(t, ipfsMount)
-		doUnmount(t, ipnsMount)
-		doUnmount(t, mfsMount)
+		failOnError = true // test that explicit unmount works correctly
+		doUnmount(t, ipfsMount, failOnError)
+		doUnmount(t, ipnsMount, failOnError)
+		doUnmount(t, mfsMount, failOnError)
 
 		// Verify directories can be removed after explicit unmount
 		err = os.Remove(ipfsMount)
@@ -145,14 +148,19 @@ func TestFUSE(t *testing.T) {
 }
 
 // doUnmount performs platform-specific unmount, similar to sharness do_umount
-func doUnmount(t *testing.T, mountPoint string) {
+// failOnError: if true, unmount errors cause test failure; if false, errors are ignored (useful for cleanup)
+func doUnmount(t *testing.T, mountPoint string, failOnError bool) {
 	t.Helper()
 	var cmd *exec.Cmd
 	if runtime.GOOS == "linux" {
-		cmd = exec.Command("fusermount", "-z", "-u", mountPoint)
+		// fusermount -u: unmount filesystem (strict - fails if busy)
+		cmd = exec.Command("fusermount", "-u", mountPoint)
 	} else {
 		cmd = exec.Command("umount", mountPoint)
 	}
-	// Ignore errors - mount point might not be mounted
-	cmd.Run()
+
+	err := cmd.Run()
+	if err != nil && failOnError {
+		t.Fatalf("failed to unmount %s: %v", mountPoint, err)
+	}
 }

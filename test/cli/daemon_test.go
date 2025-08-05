@@ -69,7 +69,7 @@ func TestDaemon(t *testing.T) {
 
 			// Wait for command to finish (when daemon stops)
 			if res.Cmd != nil {
-				res.Cmd.Wait()
+				_ = res.Cmd.Wait() // Ignore error, expect command to be killed during shutdown
 			}
 		}()
 
@@ -80,7 +80,7 @@ func TestDaemon(t *testing.T) {
 
 			// First add a file sized to ensure gateway request takes ~1 minute
 			largeData := make([]byte, 512*1024) // 512KB of data
-			rand.Read(largeData)
+			_, _ = rand.Read(largeData)         // Always succeeds for crypto/rand
 			testCID := node.IPFSAdd(bytes.NewReader(largeData))
 
 			// Get gateway address from config
@@ -150,7 +150,7 @@ func TestDaemon(t *testing.T) {
 type infiniteReader struct{}
 
 func (r *infiniteReader) Read(p []byte) (n int, err error) {
-	rand.Read(p)
+	_, _ = rand.Read(p)               // Always succeeds for crypto/rand
 	time.Sleep(50 * time.Millisecond) // Rate limit to simulate steady stream
 	return len(p), nil
 }
