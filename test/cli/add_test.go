@@ -117,8 +117,9 @@ func TestAdd(t *testing.T) {
 		cidStr := node.IPFSAddStr(shortString, "--pin-name", pinName)
 		require.Equal(t, shortStringCidV0, cidStr)
 
-		pinList := node.IPFS(testutils.StrCat("pin", "ls", "--name", pinName)...).Stdout.Trimmed()
+		pinList := node.IPFS("pin", "ls", "--names").Stdout.Trimmed()
 		require.Contains(t, pinList, shortStringCidV0)
+		require.Contains(t, pinList, pinName)
 	})
 
 	t.Run("ipfs add --pin=false --pin-name=foo returns an error", func(t *testing.T) {
@@ -131,6 +132,18 @@ func TestAdd(t *testing.T) {
 		result := node.RunIPFS("add", "--pin=false", "--pin-name=foo")
 		require.Error(t, result.Err, "Expected an error due to incompatible --pin and --pin-name")
 		require.Contains(t, result.Stderr.String(), "pin-name option requires pin to be set")
+	})
+
+	t.Run("ipfs add --pin-name without value should fail", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
+
+		// When --pin-name is passed without any value, it should fail
+		result := node.RunIPFS("add", "--pin-name")
+		require.Error(t, result.Err, "Expected an error when --pin-name has no value")
+		require.Contains(t, result.Stderr.String(), "missing argument for option \"pin-name\"")
 	})
 
 	t.Run("produced unixfs max file links: command flag --max-file-links overrides configuration in Import.UnixFSFileMaxLinks", func(t *testing.T) {
