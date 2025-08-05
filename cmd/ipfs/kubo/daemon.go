@@ -35,7 +35,6 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
-	goprocess "github.com/jbenet/goprocess"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	pnet "github.com/libp2p/go-libp2p/core/pnet"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -537,10 +536,19 @@ take effect.
 	if err != nil {
 		return err
 	}
+
+	pluginErrc := make(chan error, 1)
 	select {
-	case <-node.Process.Closing():
+	case <-node.Context().Done():
+		close(pluginErrc)
 	default:
-		node.Process.AddChild(goprocess.WithTeardown(cctx.Plugins.Close))
+		context.AfterFunc(node.Context(), func() {
+			err := cctx.Plugins.Close()
+			if err != nil {
+				pluginErrc <- fmt.Errorf("closing plugins: %w", err)
+			}
+			close(pluginErrc)
+		})
 	}
 
 	// construct api endpoint - every time
@@ -558,6 +566,11 @@ take effect.
 		if err := mountFuse(req, cctx); err != nil {
 			return err
 		}
+		defer func() {
+			if _err != nil {
+				nodeMount.Unmount(node)
+			}
+		}()
 	}
 
 	// repo blockstore GC - if --enable-gc flag is present
@@ -703,10 +716,17 @@ take effect.
 		log.Fatal("Support for IPFS_REUSEPORT was removed. Use LIBP2P_TCP_REUSEPORT instead.")
 	}
 
+	unmountErrc := make(chan error)
+	context.AfterFunc(node.Context(), func() {
+		<-node.Context().Done()
+		nodeMount.Unmount(node)
+		close(unmountErrc)
+	})
+
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
 	var errs error
-	for err := range merge(apiErrc, gwErrc, gcErrc, p2pGwErrc) {
+	for err := range merge(apiErrc, gwErrc, gcErrc, p2pGwErrc, pluginErrc, unmountErrc) {
 		if err != nil {
 			errs = multierr.Append(errs, err)
 		}
@@ -1053,14 +1073,13 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 
 	errc := make(chan error, 1)
 	go func() {
-		defer close(errc)
 		errc <- h.Serve()
+		close(errc)
 	}()
 
-	go func() {
-		<-node.Process.Closing()
+	context.AfterFunc(node.Context(), func() {
 		h.Close()
-	}()
+	})
 
 	return errc, nil
 }
@@ -1145,14 +1164,14 @@ func maybeRunGC(req *cmds.Request, node *core.IpfsNode) (<-chan error, error) {
 	return errc, nil
 }
 
-// merge does fan-in of multiple read-only error channels
-// taken from http://blog.golang.org/pipelines
+// merge does fan-in of multiple read-only error channels.
 func merge(cs ...<-chan error) <-chan error {
 	var wg sync.WaitGroup
 	out := make(chan error)
 
-	// Start an output goroutine for each input channel in cs.  output
-	// copies values from c to out until c is closed, then calls wg.Done.
+	// Start a goroutine for each input channel in cs, that copies values from
+	// the input channel to the output channel until the input channel is
+	// closed.
 	output := func(c <-chan error) {
 		for n := range c {
 			out <- n
@@ -1166,8 +1185,8 @@ func merge(cs ...<-chan error) <-chan error {
 		}
 	}
 
-	// Start a goroutine to close out once all the output goroutines are
-	// done.  This must start after the wg.Add call.
+	// Start a goroutine to close out once all the output goroutines, and other
+	// things to wait on, are done.
 	go func() {
 		wg.Wait()
 		close(out)
@@ -1237,8 +1256,6 @@ Visit https://github.com/ipfs/kubo/releases or https://dist.ipfs.tech/#kubo and 
 			}
 			select {
 			case <-ctx.Done():
-				return
-			case <-nd.Process.Closing():
 				return
 			case <-ticker.C:
 				continue
