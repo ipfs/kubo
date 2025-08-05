@@ -3,17 +3,19 @@ package config
 import (
 	"sort"
 	"testing"
+
+	"github.com/ipfs/kubo/boxo/autoconf"
 )
 
 func TestBoostrapPeerStrings(t *testing.T) {
-	parsed, err := ParseBootstrapPeers(DefaultBootstrapAddresses)
+	parsed, err := ParseBootstrapPeers(autoconf.FallbackBootstrapPeers)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	formatted := BootstrapPeerStrings(parsed)
 	sort.Strings(formatted)
-	expected := append([]string{}, DefaultBootstrapAddresses...)
+	expected := append([]string{}, autoconf.FallbackBootstrapPeers...)
 	sort.Strings(expected)
 
 	for i, s := range formatted {

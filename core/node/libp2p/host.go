@@ -49,9 +49,16 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 	if err != nil {
 		return out, err
 	}
-	bootstrappers, err := cfg.BootstrapPeers()
+	// Use auto-config resolution for actual connectivity
+	bootstrappers, err := cfg.BootstrapPeersWithAutoConf()
 	if err != nil {
 		return out, err
+	}
+
+	// Debug logging for bootstrap peers passed to libp2p
+	log.Debugf("Host construction: using %d bootstrap peers", len(bootstrappers))
+	for i, peer := range bootstrappers {
+		log.Debugf("Host construction: bootstrappers[%d]=%s", i, peer.String())
 	}
 
 	routingOptArgs := RoutingOptionArgs{
