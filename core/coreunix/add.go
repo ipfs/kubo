@@ -183,9 +183,10 @@ func (adder *Adder) curRootNode() (ipld.Node, error) {
 	return root, err
 }
 
-// Recursively pins the root node of Adder and
-// writes the pin state to the backing datastore.
-func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node) error {
+// PinRoot recursively pins the root node of Adder with an optional name and
+// writes the pin state to the backing datastore. If name is empty, the pin
+// will be created without a name.
+func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node, name string) error {
 	ctx, span := tracing.Span(ctx, "CoreUnix.Adder", "PinRoot")
 	defer span.End()
 
@@ -208,7 +209,7 @@ func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node) error {
 		adder.tempRoot = rnk
 	}
 
-	err = adder.pinning.PinWithMode(ctx, rnk, pin.Recursive, "")
+	err = adder.pinning.PinWithMode(ctx, rnk, pin.Recursive, name)
 	if err != nil {
 		return err
 	}
@@ -371,14 +372,8 @@ func (adder *Adder) AddAllAndPin(ctx context.Context, file files.Node) (ipld.Nod
 		return nd, nil
 	}
 
-	if err := adder.PinRoot(ctx, nd); err != nil {
+	if err := adder.PinRoot(ctx, nd, adder.PinName); err != nil {
 		return nil, err
-	}
-
-	if adder.PinName != "" {
-		if err := adder.pinning.PinWithMode(ctx, nd.Cid(), pin.Recursive, adder.PinName); err != nil {
-			return nil, fmt.Errorf("failed to pin %s with name %s: %w", nd.Cid(), adder.PinName, err)
-		}
 	}
 
 	return nd, nil
@@ -542,7 +537,7 @@ func (adder *Adder) maybePauseForGC(ctx context.Context) error {
 			return err
 		}
 
-		err = adder.PinRoot(ctx, rn)
+		err = adder.PinRoot(ctx, rn, "")
 		if err != nil {
 			return err
 		}

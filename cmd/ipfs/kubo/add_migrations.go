@@ -10,7 +10,6 @@ import (
 
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
-	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
@@ -87,7 +86,7 @@ func addMigrationFiles(ctx context.Context, node *core.IpfsNode, paths []string,
 			return err
 		}
 
-		ipfsPath, err := ufs.Add(ctx, files.NewReaderStatFile(f, fi), options.Unixfs.Pin(pin, config.DefaultPinName))
+		ipfsPath, err := ufs.Add(ctx, files.NewReaderStatFile(f, fi), options.Unixfs.Pin(pin, ""))
 		if err != nil {
 			return err
 		}

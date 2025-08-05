@@ -1,10 +1,8 @@
 package cli
 
 import (
-	"bytes"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -123,41 +121,16 @@ func TestAdd(t *testing.T) {
 		require.Contains(t, pinList, shortStringCidV0)
 	})
 
-	t.Run("ipfs add --pin-name without value picks filename as name", func(t *testing.T) {
-		t.Parallel()
-		h := harness.NewT(t)
-		node := h.NewNode().Init().StartDaemon()
-		defer node.StopDaemon()
-
-		bytes := testutils.RandomBytes(1 << 20) // 1 MiB
-		tmpFile := h.WriteToTemp(string(bytes))
-
-		// This passes --pin-name (without value), then the file path,
-		// so the file path gets used as the pin name
-		cid := node.IPFS("add", tmpFile).Stdout.Trimmed()
-		require.NotEmpty(t, cid)
-
-		// Now check if the pin name matches the filename
-		filename := filepath.Base(tmpFile)
-		pinList := node.IPFS("pin", "ls", "--name", filename).Stdout.Trimmed()
-		require.Contains(t, pinList, cid)
-	})
 	t.Run("ipfs add --pin=false --pin-name=foo returns an error", func(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
-		cmd := exec.Command(node.IPFSBin, "add", "--pin=false", "--pin-name=foo")
-		cmd.Stdin = strings.NewReader("")
-
-		var stderr bytes.Buffer
-		cmd.Stderr = &stderr
-
-		err := cmd.Run()
-
-		require.Error(t, err, "Expected an error due to incompatible --pin and --pin-name")
-		require.Contains(t, stderr.String(), "pin-name option requires pin to be set")
+		// Use RunIPFS to allow for errors without assertion
+		result := node.RunIPFS("add", "--pin=false", "--pin-name=foo")
+		require.Error(t, result.Err, "Expected an error due to incompatible --pin and --pin-name")
+		require.Contains(t, result.Stderr.String(), "pin-name option requires pin to be set")
 	})
 
 	t.Run("produced unixfs max file links: command flag --max-file-links overrides configuration in Import.UnixFSFileMaxLinks", func(t *testing.T) {
