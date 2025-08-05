@@ -53,122 +53,122 @@ func TestProvider(t *testing.T) {
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
-	// t.Run("Provider.Enabled=false disables announcement of new CID from ipfs add", func(t *testing.T) {
-	// 	t.Parallel()
+	t.Run("Provider.Enabled=false disables announcement of new CID from ipfs add", func(t *testing.T) {
+		t.Parallel()
 
-	// 	nodes := initNodes(t, 2, func(n *harness.Node) {
-	// 		n.SetIPFSConfig("Provider.Enabled", false)
-	// 	})
-	// 	defer nodes.StopDaemons()
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provider.Enabled", false)
+		})
+		defer nodes.StopDaemons()
 
-	// 	cid := nodes[0].IPFSAddStr(time.Now().String())
-	// 	expectNoProviders(t, cid, nodes[1:]...)
-	// })
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
 
-	// t.Run("Provider.Enabled=false disables manual announcement via RPC command", func(t *testing.T) {
-	// 	t.Parallel()
+	t.Run("Provider.Enabled=false disables manual announcement via RPC command", func(t *testing.T) {
+		t.Parallel()
 
-	// 	nodes := initNodes(t, 2, func(n *harness.Node) {
-	// 		n.SetIPFSConfig("Provider.Enabled", false)
-	// 	})
-	// 	defer nodes.StopDaemons()
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provider.Enabled", false)
+		})
+		defer nodes.StopDaemons()
 
-	// 	cid := nodes[0].IPFSAddStr(time.Now().String())
-	// 	res := nodes[0].RunIPFS("routing", "provide", cid)
-	// 	assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provider.Enabled is set to 'false'")
-	// 	assert.Equal(t, 1, res.ExitCode())
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+		res := nodes[0].RunIPFS("routing", "provide", cid)
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provider.Enabled is set to 'false'")
+		assert.Equal(t, 1, res.ExitCode())
 
-	// 	expectNoProviders(t, cid, nodes[1:]...)
-	// })
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
 
-	// // Right now Provide and Reprovide are tied together
-	// t.Run("Reprovide.Interval=0 disables announcement of new CID too", func(t *testing.T) {
-	// 	t.Parallel()
+	// Right now Provide and Reprovide are tied together
+	t.Run("Reprovide.Interval=0 disables announcement of new CID too", func(t *testing.T) {
+		t.Parallel()
 
-	// 	nodes := initNodes(t, 2, func(n *harness.Node) {
-	// 		n.SetIPFSConfig("Reprovider.Interval", "0")
-	// 	})
-	// 	defer nodes.StopDaemons()
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Interval", "0")
+		})
+		defer nodes.StopDaemons()
 
-	// 	cid := nodes[0].IPFSAddStr(time.Now().String())
-	// 	expectNoProviders(t, cid, nodes[1:]...)
-	// })
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
 
-	// // It is a lesser evil - forces users to fix their config and have some sort of interval
-	// t.Run("Manual Reprovider trigger does not work when periodic Reprovider is disabled", func(t *testing.T) {
-	// 	t.Parallel()
+	// It is a lesser evil - forces users to fix their config and have some sort of interval
+	t.Run("Manual Reprovider trigger does not work when periodic Reprovider is disabled", func(t *testing.T) {
+		t.Parallel()
 
-	// 	nodes := initNodes(t, 2, func(n *harness.Node) {
-	// 		n.SetIPFSConfig("Reprovider.Interval", "0")
-	// 	})
-	// 	defer nodes.StopDaemons()
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Interval", "0")
+		})
+		defer nodes.StopDaemons()
 
-	// 	cid := nodes[0].IPFSAddStr(time.Now().String())
+		cid := nodes[0].IPFSAddStr(time.Now().String())
 
-	// 	expectNoProviders(t, cid, nodes[1:]...)
+		expectNoProviders(t, cid, nodes[1:]...)
 
-	// 	res := nodes[0].RunIPFS("routing", "reprovide")
-	// 	assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Reprovider.Interval is set to '0'")
-	// 	assert.Equal(t, 1, res.ExitCode())
+		res := nodes[0].RunIPFS("routing", "reprovide")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Reprovider.Interval is set to '0'")
+		assert.Equal(t, 1, res.ExitCode())
 
-	// 	expectNoProviders(t, cid, nodes[1:]...)
-	// })
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
 
-	// // It is a lesser evil - forces users to fix their config and have some sort of interval
-	// t.Run("Manual Reprovider trigger does not work when Provider system is disabled", func(t *testing.T) {
-	// 	t.Parallel()
+	// It is a lesser evil - forces users to fix their config and have some sort of interval
+	t.Run("Manual Reprovider trigger does not work when Provider system is disabled", func(t *testing.T) {
+		t.Parallel()
 
-	// 	nodes := initNodes(t, 2, func(n *harness.Node) {
-	// 		n.SetIPFSConfig("Provider.Enabled", false)
-	// 	})
-	// 	defer nodes.StopDaemons()
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provider.Enabled", false)
+		})
+		defer nodes.StopDaemons()
 
-	// 	cid := nodes[0].IPFSAddStr(time.Now().String())
+		cid := nodes[0].IPFSAddStr(time.Now().String())
 
-	// 	expectNoProviders(t, cid, nodes[1:]...)
+		expectNoProviders(t, cid, nodes[1:]...)
 
-	// 	res := nodes[0].RunIPFS("routing", "reprovide")
-	// 	assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provider.Enabled is set to 'false'")
-	// 	assert.Equal(t, 1, res.ExitCode())
+		res := nodes[0].RunIPFS("routing", "reprovide")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provider.Enabled is set to 'false'")
+		assert.Equal(t, 1, res.ExitCode())
 
-	// 	expectNoProviders(t, cid, nodes[1:]...)
-	// })
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
 
-	// t.Run("Reprovides with 'all' strategy", func(t *testing.T) {
-	// 	t.Parallel()
+	t.Run("Reprovides with 'all' strategy", func(t *testing.T) {
+		t.Parallel()
 
-	// 	nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
-	// 		n.SetIPFSConfig("Reprovider.Strategy", "all")
-	// 	})
+		nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "all")
+		})
 
-	// 	cid := nodes[0].IPFSAddStr(time.Now().String())
+		cid := nodes[0].IPFSAddStr(time.Now().String())
 
-	// 	nodes = nodes.StartDaemons().Connect()
-	// 	defer nodes.StopDaemons()
-	// 	expectNoProviders(t, cid, nodes[1:]...)
+		nodes = nodes.StartDaemons().Connect()
+		defer nodes.StopDaemons()
+		expectNoProviders(t, cid, nodes[1:]...)
 
-	// 	nodes[0].IPFS("routing", "reprovide")
+		nodes[0].IPFS("routing", "reprovide")
 
-	// 	expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
-	// })
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
 
-	// t.Run("Reprovides with 'flat' strategy", func(t *testing.T) {
-	// 	t.Parallel()
+	t.Run("Reprovides with 'flat' strategy", func(t *testing.T) {
+		t.Parallel()
 
-	// 	nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
-	// 		n.SetIPFSConfig("Reprovider.Strategy", "flat")
-	// 	})
+		nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "flat")
+		})
 
-	// 	cid := nodes[0].IPFSAddStr(time.Now().String())
+		cid := nodes[0].IPFSAddStr(time.Now().String())
 
-	// 	nodes = nodes.StartDaemons().Connect()
-	// 	defer nodes.StopDaemons()
-	// 	expectNoProviders(t, cid, nodes[1:]...)
+		nodes = nodes.StartDaemons().Connect()
+		defer nodes.StopDaemons()
+		expectNoProviders(t, cid, nodes[1:]...)
 
-	// 	nodes[0].IPFS("routing", "reprovide")
+		nodes[0].IPFS("routing", "reprovide")
 
-	// 	expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
-	// })
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
 
 	t.Run("Reprovides with 'pinned' strategy", func(t *testing.T) {
 		t.Parallel()
@@ -235,6 +235,32 @@ func TestProvider(t *testing.T) {
 		expectProviders(t, cidFoo, n0pid, nodes[1:]...)
 		expectNoProviders(t, cidBar, nodes[1:]...)
 		expectProviders(t, cidBarDir, n0pid, nodes[1:]...)
+	})
+
+	t.Run("Reprovides with 'mfs' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		bar := testutils.RandomBytes(1000)
+
+		nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "mfs")
+		})
+		n0pid := nodes[0].PeerID().String()
+
+		// add something and lets put it in MFS
+		cidBar := nodes[0].IPFSAdd(bytes.NewReader(bar), "--pin=false", "-Q")
+		nodes[0].IPFS("files", "cp", "/ipfs/"+cidBar, "/myfile")
+
+		nodes = nodes.StartDaemons().Connect()
+		defer nodes.StopDaemons()
+
+		// cidBar is in MFS but not provided
+		expectNoProviders(t, cidBar, nodes[1:]...)
+
+		nodes[0].IPFS("routing", "reprovide")
+
+		// And now is provided
+		expectProviders(t, cidBar, n0pid, nodes[1:]...)
 	})
 
 	t.Run("provide clear command removes items from provide queue", func(t *testing.T) {
