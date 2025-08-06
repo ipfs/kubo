@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 
 	blockservice "github.com/ipfs/boxo/blockservice"
 	bstore "github.com/ipfs/boxo/blockstore"
@@ -116,7 +115,6 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	// nor by the pinner (it does not traverse the pinned DAG).
 	if settings.Pin && !settings.OnlyHash &&
 		(api.providingStrategy == "pinned" || api.providingStrategy == "pinned+mfs") {
-		fmt.Println(reflect.TypeOf(api.provider))
 		dserv = &providingDagService{dserv, api.provider}
 	}
 

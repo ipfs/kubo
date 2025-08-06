@@ -134,6 +134,83 @@ func TestProvider(t *testing.T) {
 		expectNoProviders(t, cid, nodes[1:]...)
 	})
 
+	t.Run("Provide with 'all' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "all")
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr("all strategy")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("Provide with 'flat' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "flat")
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr("flat strategy")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("Provide with 'pinned' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "pinned")
+		})
+		defer nodes.StopDaemons()
+
+		// Add a non-pinned CID (should not be provided)
+		cid := nodes[0].IPFSAddStr("pinned strategy", "--pin=false")
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		// Pin the CID (should now be provided)
+		nodes[0].IPFS("pin", "add", cid)
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("Provide with 'roots' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		// Add a root CID (should be provided)
+		cidRoot := nodes[0].IPFSAddStr("roots strategy", "-w", "-Q")
+		// the same without wrapping should give us a child node.
+		cidChild := nodes[0].IPFSAddStr("root strategy", "--pin=false")
+
+		expectProviders(t, cidRoot, nodes[0].PeerID().String(), nodes[1:]...)
+		expectNoProviders(t, cidChild, nodes[1:]...)
+	})
+
+	t.Run("Provide with 'mfs' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "mfs")
+		})
+		defer nodes.StopDaemons()
+
+		// Add a file to MFS (should be provided)
+		data := testutils.RandomBytes(1000)
+		cid := nodes[0].IPFSAdd(bytes.NewReader(data), "-Q")
+
+		// not yet in MFS
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		nodes[0].IPFS("files", "cp", "/ipfs/"+cid, "/myfile")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
 	t.Run("Reprovides with 'all' strategy", func(t *testing.T) {
 		t.Parallel()
 
