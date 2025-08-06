@@ -16,6 +16,9 @@ const (
 	// defaultLogLevel is used to request and to identify the default log
 	// level.
 	defaultLogLevel = "default"
+	// defaultSubsystemKey is the subsystem name that is used to denote the
+	// default log level.
+	defaultSubsystemKey = "(default)"
 	// logLevelOption is an option for the tail subcommand to select the log
 	// level to output.
 	logLevelOption = "log-level"
@@ -116,6 +119,10 @@ Examples setting log level:
 		case allLogSubsystems:
 			// Return levels for all subsystems (default behavior)
 			levels := logging.SubsystemLevelNames()
+
+			// Replace default subsystem key with defaultSubsystemKey.
+			levels[defaultSubsystemKey] = levels[logging.DefaultName]
+			delete(levels, logging.DefaultName)
 			return cmds.EmitOnce(res, &logLevelOutput{Levels: levels})
 		default:
 			// Return level for a specific subsystem.

@@ -11,7 +11,7 @@ import (
 
 func TestLogGetLevel(t *testing.T) {
 
-	t.Run("get-level shows all subsystems", func(t *testing.T) {
+	t.Run("level '*' shows all subsystems", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
@@ -21,9 +21,9 @@ func TestLogGetLevel(t *testing.T) {
 		assert.NoError(t, lsRes.Err)
 		expectedSubsystems := len(SplitLines(lsRes.Stdout.String()))
 
-		res := node.IPFS("log", "get-level")
+		res := node.IPFS("log", "level", "*")
 		assert.NoError(t, res.Err)
-		assert.Equal(t, 0, len(res.Stderr.Lines()))
+		assert.Empty(t, res.Stderr.Lines())
 
 		output := res.Stdout.String()
 		lines := SplitLines(output)
@@ -43,15 +43,15 @@ func TestLogGetLevel(t *testing.T) {
 		}
 	})
 
-	t.Run("get-level with specific subsystem", func(t *testing.T) {
+	t.Run("get level for specific subsystem", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
 		node.IPFS("log", "level", "core", "debug")
-		res := node.IPFS("log", "get-level", "core")
+		res := node.IPFS("log", "level", "core")
 		assert.NoError(t, res.Err)
-		assert.Equal(t, 0, len(res.Stderr.Lines()))
+		assert.Empty(t, res.Stderr.Lines())
 
 		output := res.Stdout.String()
 		lines := SplitLines(output)
@@ -62,16 +62,16 @@ func TestLogGetLevel(t *testing.T) {
 		assert.Equal(t, "debug", line)
 	})
 
-	t.Run("get-level with 'default' returns default level", func(t *testing.T) {
+	t.Run("get level with no args returns default level", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
-		res1 := node.IPFS("log", "level", "all", "fatal")
+		res1 := node.IPFS("log", "level", "*", "fatal")
 		assert.NoError(t, res1.Err)
-		assert.Equal(t, 0, len(res1.Stderr.Lines()))
+		assert.Empty(t, res1.Stderr.Lines())
 
-		res := node.IPFS("log", "get-level", "default")
+		res := node.IPFS("log", "level")
 		assert.NoError(t, res.Err)
 		assert.Equal(t, 0, len(res.Stderr.Lines()))
 
@@ -84,13 +84,13 @@ func TestLogGetLevel(t *testing.T) {
 		assert.Equal(t, "fatal", line)
 	})
 
-	t.Run("get-level reflects runtime log level changes", func(t *testing.T) {
+	t.Run("get level reflects runtime log level changes", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon("--offline")
 		defer node.StopDaemon()
 
 		node.IPFS("log", "level", "core", "debug")
-		res := node.IPFS("log", "get-level", "core")
+		res := node.IPFS("log", "level", "core")
 		assert.NoError(t, res.Err)
 
 		output := res.Stdout.String()
@@ -102,12 +102,12 @@ func TestLogGetLevel(t *testing.T) {
 		assert.Equal(t, "debug", line)
 	})
 
-	t.Run("get-level with non-existent subsystem returns error", func(t *testing.T) {
+	t.Run("get level with non-existent subsystem returns error", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
-		res := node.RunIPFS("log", "get-level", "non-existent-subsystem")
+		res := node.RunIPFS("log", "level", "non-existent-subsystem")
 		assert.Error(t, res.Err)
 		assert.NotEqual(t, 0, len(res.Stderr.Lines()))
 	})
