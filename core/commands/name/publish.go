@@ -27,6 +27,7 @@ const (
 	keyOptionName          = "key"
 	quieterOptionName      = "quieter"
 	v1compatOptionName     = "v1compat"
+	sequenceOptionName     = "sequence"
 )
 
 var PublishCmd = &cmds.Command{
@@ -80,6 +81,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final IPNS Name encoded as CIDv1 (for use in /ipns content paths)."),
 		cmds.BoolOption(v1compatOptionName, "Produce a backward-compatible IPNS Record by including fields for both V1 and V2 signatures.").WithDefault(true),
 		cmds.BoolOption(allowOfflineOptionName, "When --offline, save the IPNS record to the local datastore without broadcasting to the network (instead of failing)."),
+		cmds.Uint64Option(sequenceOptionName, "Custom sequence number for the IPNS record (for monotonic sequence check)."),
 		ke.OptionIPNSBase,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -112,6 +114,10 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 			}
 
 			opts = append(opts, options.Name.TTL(d))
+		}
+
+		if sequence, found := req.Options[sequenceOptionName].(uint64); found {
+			opts = append(opts, options.Name.Sequence(sequence))
 		}
 
 		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
