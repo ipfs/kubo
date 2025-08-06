@@ -109,7 +109,6 @@ func TestCommands(t *testing.T) {
 		"/key/sign",
 		"/key/verify",
 		"/log",
-		"/log/get-level",
 		"/log/level",
 		"/log/ls",
 		"/log/tail",

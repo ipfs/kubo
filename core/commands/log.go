@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"io"
+	"slices"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log/v2"
@@ -11,11 +12,19 @@ import (
 const (
 	// allLogSubsystems is used to specify all log subsystems when setting the
 	// log level.
-	allLogSubsystems = "all"
+	allLogSubsystems = "*"
 	// defaultLogLevel is used to request and to identify the default log
 	// level.
 	defaultLogLevel = "default"
+	// logLevelOption is an option for the tail subcommand to select the log
+	// level to output.
+	logLevelOption = "log-level"
 )
+
+type logLevelOutput struct {
+	Levels  map[string]string `json:",omitempty"`
+	Message string            `json:",omitempty"`
+}
 
 var LogCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -34,60 +43,123 @@ system (not just for the daemon logs, but all commands):
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"level":     logLevelCmd,
-		"get-level": logGetLevelCmd,
-		"ls":        logLsCmd,
-		"tail":      logTailCmd,
+		"level": logLevelCmd,
+		"ls":    logLsCmd,
+		"tail":  logTailCmd,
 	},
 }
 
 var logLevelCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Change the logging level.",
+		Tagline: "Change or get the logging level.",
 		ShortDescription: `
-Change the verbosity of one or all subsystems log output. This does not affect
-the event log.
+Get or change the logging level of one or all logging subsystems
+ including the default.
 
 This provides a dynamic, runtime alternative to the GOLOG_LOG_LEVEL
 environment variable documented in 'ipfs log'.
+
+Examples getting log level:
+  ipfs log level              # Show default log level only
+  ipfs log level '*'          # Show log level for every subsystem, including default
+  ipfs log level foo          # Show log level for "foo" facility only
+
+Examples setting log level:
+  ipfs log level '*' debug    # Set all subsystems and default to "debug" level
+  ipfs log level '*' default  # Set all subsystems to current default level
+  ipfs log level foo info     # Set level of "foo" subsystem to "info"
+  ipfs log level foo default  # Set level of "foo" subsystem to current default level
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		// TODO use a different keyword for 'all' because all can theoretically
-		// clash with a subsystem name
-		cmds.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' to set all subsystems and the default level.", allLogSubsystems)),
-		cmds.StringArg("level", true, false, fmt.Sprintf("The log level, with 'debug' as the most verbose and 'fatal' the least verbose. Use '%s' to set to the current default level.\n     One of: debug, info, warn, error, dpanic, panic, fatal, %s", defaultLogLevel, defaultLogLevel)),
+		cmds.StringArg("subsystem", false, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' to get or set the log level of all subsystems including the default. If not specified, only show the default log level.", allLogSubsystems)),
+		cmds.StringArg("level", false, false, fmt.Sprintf("The log level, with 'debug' as the most verbose and 'fatal' the least verbose. Use '%s' to set to the current default level.\n     One of: debug, info, warn, error, dpanic, panic, fatal, %s", defaultLogLevel, defaultLogLevel)),
 	},
 	NoLocal: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		args := req.Arguments
-		subsystem, level := args[0], args[1]
+		var level, subsystem string
 
-		if subsystem == allLogSubsystems || subsystem == "*" {
-			subsystem = "*"
+		if len(req.Arguments) > 0 {
+			subsystem = req.Arguments[0]
+			if len(req.Arguments) > 1 {
+				level = req.Arguments[1]
+			}
+
+			if allLogSubsystems != "*" && subsystem == allLogSubsystems {
+				subsystem = "*"
+			}
 		}
 
-		if level == defaultLogLevel {
-			level = logging.DefaultLevel().String()
+		// If a level is specified, then set the log level.
+		if level != "" {
+			if level == defaultLogLevel {
+				level = logging.DefaultLevel().String()
+			}
+
+			if err := logging.SetLogLevel(subsystem, level); err != nil {
+				return err
+			}
+
+			s := fmt.Sprintf("Changed log level of '%s' to '%s'\n", subsystem, level)
+			log.Info(s)
+
+			return cmds.EmitOnce(res, &logLevelOutput{Message: s})
 		}
 
-		if err := logging.SetLogLevel(subsystem, level); err != nil {
-			return err
+		// Get the level for the requested subsystem.
+		switch subsystem {
+		case "":
+			// Return the default log level
+			levelMap := map[string]string{logging.DefaultName: logging.DefaultLevel().String()}
+			return cmds.EmitOnce(res, &logLevelOutput{Levels: levelMap})
+		case allLogSubsystems:
+			// Return levels for all subsystems (default behavior)
+			levels := logging.SubsystemLevelNames()
+			return cmds.EmitOnce(res, &logLevelOutput{Levels: levels})
+		default:
+			// Return level for a specific subsystem.
+			level, err := logging.SubsystemLevelName(subsystem)
+			if err != nil {
+				return err
+			}
+			levelMap := map[string]string{subsystem: level}
+			return cmds.EmitOnce(res, &logLevelOutput{Levels: levelMap})
 		}
 
-		s := fmt.Sprintf("Changed log level of '%s' to '%s'\n", subsystem, level)
-		log.Info(s)
-
-		return cmds.EmitOnce(res, &MessageOutput{s})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *MessageOutput) error {
-			fmt.Fprint(w, out.Message)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *logLevelOutput) error {
+			if out.Message != "" {
+				fmt.Fprint(w, out.Message)
+				return nil
+			}
+
+			// Check if this is an RPC call by looking for the encoding option
+			encoding, _ := req.Options["encoding"].(string)
+			isRPC := encoding == "json"
+
+			// If there are multiple subsystems (no specific subsystem requested), always show names
+			showNames := isRPC || len(out.Levels) > 1
+
+			levelNames := make([]string, 0, len(out.Levels))
+			for subsystem, level := range out.Levels {
+				if showNames {
+					// Show subsystem name when it's RPC or when showing multiple subsystems
+					levelNames = append(levelNames, fmt.Sprintf("%s: %s", subsystem, level))
+				} else {
+					// For CLI calls with single subsystem, only show the level
+					levelNames = append(levelNames, level)
+				}
+			}
+			slices.Sort(levelNames)
+			for _, ln := range levelNames {
+				fmt.Fprintln(w, ln)
+			}
 			return nil
 		}),
 	},
-	Type: MessageOutput{},
+	Type: logLevelOutput{},
 }
 
 var logLsCmd = &cmds.Command{
@@ -111,8 +183,6 @@ subsystems of a running daemon.
 	},
 	Type: stringList{},
 }
-
-const logLevelOption = "log-level"
 
 var logTailCmd = &cmds.Command{
 	Status: cmds.Experimental,
@@ -154,83 +224,4 @@ This will only return 'info' logs from bitswap and skip 'debug'.
 		}()
 		return res.Emit(pipeReader)
 	},
-}
-
-var logGetLevelCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Get the logging level.",
-		ShortDescription: `
-'ipfs log get-level' is a utility command used to get the logging level for
-a specific subsystem, the global default, or all subsystems.
-
-This complements 'ipfs log level' and provides runtime visibility into the
-current logging configuration (whether set by GOLOG_LOG_LEVEL environment
-variable or changed dynamically).
-
-Examples:
-  ipfs log get-level       # Show levels for all subsystems
-  ipfs log get-level all   # Show the global default level
-  ipfs log get-level core  # Show the core subsystem level
-`,
-	},
-
-	Arguments: []cmds.Argument{
-		cmds.StringArg("subsystem", false, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for the default level. If not specified, returns levels for all subsystems.", defaultLogLevel)),
-	},
-	NoLocal: true,
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		var subsystem string
-		if len(req.Arguments) > 0 {
-			subsystem = req.Arguments[0]
-		}
-
-		switch subsystem {
-		case "":
-			// Return levels for all subsystems (default behavior)
-			levels := logging.SubsystemLevelNames()
-
-			// Replace the log package default name with the command default name.
-			delete(levels, logging.DefaultName)
-			levels[defaultLogLevel] = logging.DefaultLevel().String()
-			return cmds.EmitOnce(res, &logLevelsOutput{Levels: levels})
-		case defaultLogLevel:
-			// Return the default log level
-			levelMap := map[string]string{defaultLogLevel: logging.DefaultLevel().String()}
-			return cmds.EmitOnce(res, &logLevelsOutput{Levels: levelMap})
-		default:
-			// Return level for a specific subsystem.
-			level, err := logging.SubsystemLevelName(subsystem)
-			if err != nil {
-				return err
-			}
-			levelMap := map[string]string{subsystem: level}
-			return cmds.EmitOnce(res, &logLevelsOutput{Levels: levelMap})
-		}
-	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *logLevelsOutput) error {
-			// Check if this is an RPC call by looking for the encoding option
-			encoding, _ := req.Options["encoding"].(string)
-			isRPC := encoding == "json"
-
-			// If there are multiple subsystems (no specific subsystem requested), always show names
-			showNames := isRPC || len(out.Levels) > 1
-
-			for subsystem, level := range out.Levels {
-				if showNames {
-					// Show subsystem name when it's RPC or when showing multiple subsystems
-					fmt.Fprintf(w, "%s: %s\n", subsystem, level)
-				} else {
-					// For CLI calls with single subsystem, only show the level
-					fmt.Fprintf(w, "%s\n", level)
-				}
-			}
-			return nil
-		}),
-	},
-	Type: logLevelsOutput{},
-}
-
-type logLevelsOutput struct {
-	Levels map[string]string
 }
