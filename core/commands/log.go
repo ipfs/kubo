@@ -57,27 +57,27 @@ var logLevelCmd = &cmds.Command{
 		Tagline: "Change or get the logging level.",
 		ShortDescription: `
 Get or change the logging level of one or all logging subsystems
- including the default.
+including the default.
 
 This provides a dynamic, runtime alternative to the GOLOG_LOG_LEVEL
 environment variable documented in 'ipfs log'.
 
 Examples getting log level:
   ipfs log level              # Show default log level only
-  ipfs log level '*'          # Show log level for every subsystem, including default
+  ipfs log level '*'          # Show log level for every subsystem
   ipfs log level foo          # Show log level for "foo" facility only
 
 Examples setting log level:
-  ipfs log level '*' debug    # Set all subsystems and default to "debug" level
+  ipfs log level '*' debug    # Set all subsystems to "debug" level
   ipfs log level '*' default  # Set all subsystems to current default level
   ipfs log level foo info     # Set level of "foo" subsystem to "info"
-  ipfs log level foo default  # Set level of "foo" subsystem to current default level
+  ipfs log level foo default  # Set level of "foo" subsystem to default level
 `,
 	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("subsystem", false, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' to get or set the log level of all subsystems including the default. If not specified, only show the default log level.", allLogSubsystems)),
-		cmds.StringArg("level", false, false, fmt.Sprintf("The log level, with 'debug' as the most verbose and 'fatal' the least verbose. Use '%s' to set to the current default level.\n     One of: debug, info, warn, error, dpanic, panic, fatal, %s", defaultLogLevel, defaultLogLevel)),
+		cmds.StringArg("level", false, false, fmt.Sprintf("The log level, with 'debug' as the most verbose and 'fatal' the least verbose. Use '%s' to set to the current default level. One of: debug, info, warn, error, dpanic, panic, fatal, %s", defaultLogLevel, defaultLogLevel)),
 	},
 	NoLocal: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
