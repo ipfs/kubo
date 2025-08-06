@@ -802,7 +802,7 @@ test_expect_success "request for http://fake.domain.com/ipfs/{CID} with X-Forwar
 
 # Kubo specific end-to-end test
 # (independent of gateway-conformance)
-# test configuration beign wired up correctly end-to-end
+# test configuration being wired up correctly end-to-end
 
 ## ============================================================================
 ## Test support for wildcards in gateway config
