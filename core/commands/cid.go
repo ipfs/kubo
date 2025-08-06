@@ -121,7 +121,8 @@ The optional format string is a printf style format string:
 			return ""
 		}),
 	},
-	Type: CidFormatRes{},
+	Type:  CidFormatRes{},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 type CidFormatRes struct {
@@ -151,6 +152,7 @@ Useful when processing third-party CIDs which could come with arbitrary formats.
 	},
 	PostRun: cidFmtCmd.PostRun,
 	Type:    cidFmtCmd.Type,
+	Extra:   CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 type cidFormatOpts struct {
@@ -309,7 +311,8 @@ var basesCmd = &cmds.Command{
 			return nil
 		}),
 	},
-	Type: []CodeAndName{},
+	Type:  []CodeAndName{},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 const (
@@ -369,7 +372,8 @@ var codecsCmd = &cmds.Command{
 			return nil
 		}),
 	},
-	Type: []CodeAndName{},
+	Type:  []CodeAndName{},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 var hashesCmd = &cmds.Command{
@@ -393,6 +397,7 @@ var hashesCmd = &cmds.Command{
 	},
 	Encoders: codecsCmd.Encoders,
 	Type:     codecsCmd.Type,
+	Extra:    CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 type multibaseSorter struct {
