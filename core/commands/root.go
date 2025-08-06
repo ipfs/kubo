@@ -65,6 +65,7 @@ ADVANCED COMMANDS
   p2p           Libp2p stream mounting (experimental)
   filestore     Manage the filestore (experimental)
   mount         Mount an IPFS read-only mount point (experimental)
+  provide       Control providing operations
 
 NETWORK COMMANDS
   id            Show info about IPFS peers
@@ -133,6 +134,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"files":     FilesCmd,
 	"filestore": FileStoreCmd,
 	"get":       GetCmd,
+	"provide":   ProvideCmd,
 	"pubsub":    PubsubCmd,
 	"repo":      RepoCmd,
 	"stats":     StatsCmd,

@@ -539,7 +539,7 @@ func (tp *TestSuite) TestAddPinned(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = api.Unixfs().Add(ctx, strFile(helloStr)(), options.Unixfs.Pin(true))
+	_, err = api.Unixfs().Add(ctx, strFile(helloStr)(), options.Unixfs.Pin(true, ""))
 	if err != nil {
 		t.Fatal(err)
 	}
