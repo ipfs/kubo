@@ -47,9 +47,8 @@ require (
 	github.com/ipld/go-car/v2 v2.14.3
 	github.com/ipld/go-codec-dagpb v1.7.0
 	github.com/ipld/go-ipld-prime v0.21.0
-	github.com/ipshipyard/p2p-forge v0.6.0
+	github.com/ipshipyard/p2p-forge v0.6.1
 	github.com/jbenet/go-temp-err-catcher v0.1.0
-	github.com/jbenet/goprocess v0.1.4
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/libp2p/go-doh-resolver v0.5.0
 	github.com/libp2p/go-libp2p v0.42.1

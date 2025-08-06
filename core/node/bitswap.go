@@ -19,9 +19,9 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
-	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/routing"
 	"go.uber.org/fx"
 
 	blocks "github.com/ipfs/go-block-format"
@@ -73,7 +73,7 @@ type bitswapIn struct {
 	Mctx        helpers.MetricsCtx
 	Cfg         *config.Config
 	Host        host.Host
-	Rt          irouting.ProvideManyRouter
+	Discovery   routing.ContentDiscovery
 	Bs          blockstore.GCBlockstore
 	BitswapOpts []bitswap.Option `group:"bitswap-options"`
 }
@@ -176,7 +176,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 			ignoredPeerIDs = append(ignoredPeerIDs, pid)
 		}
 		providerQueryMgr, err := rpqm.New(bitswapNetworks,
-			in.Rt,
+			in.Discovery,
 			rpqm.WithMaxProviders(maxProviders),
 			rpqm.WithIgnoreProviders(ignoredPeerIDs...),
 		)

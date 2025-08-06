@@ -59,6 +59,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		attribute.Bool("maxhamtfanoutset", settings.MaxHAMTFanoutSet),
 		attribute.Int("layout", int(settings.Layout)),
 		attribute.Bool("pin", settings.Pin),
+		attribute.String("pin-name", settings.PinName),
 		attribute.Bool("onlyhash", settings.OnlyHash),
 		attribute.Bool("fscache", settings.FsCache),
 		attribute.Bool("nocopy", settings.NoCopy),
@@ -153,6 +154,9 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		fileAdder.Progress = settings.Progress
 	}
 	fileAdder.Pin = settings.Pin && !settings.OnlyHash
+	if settings.Pin {
+		fileAdder.PinName = settings.PinName
+	}
 	fileAdder.Silent = settings.Silent
 	fileAdder.RawLeaves = settings.RawLeaves
 	if settings.MaxFileLinksSet {
