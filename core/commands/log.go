@@ -13,6 +13,9 @@ const (
 	// allLogSubsystems is used to specify all log subsystems when setting the
 	// log level.
 	allLogSubsystems = "*"
+	// allLogSubsystemsAlias is a convenience alias for allLogSubsystems that
+	// doesn't require shell escaping.
+	allLogSubsystemsAlias = "all"
 	// defaultLogLevel is used to request and to identify the default log
 	// level.
 	defaultLogLevel = "default"
@@ -75,18 +78,20 @@ Setting '*' changes everything at once, including the default.
 EXAMPLES - Getting levels:
 
   ipfs log level              # Show only the default fallback level
-  ipfs log level '*'          # Show all subsystem levels (100+ lines)
+  ipfs log level all          # Show all subsystem levels (100+ lines)
   ipfs log level core         # Show level for 'core' subsystem only
 
 EXAMPLES - Setting levels:
 
   ipfs log level core debug   # Set 'core' to 'debug' (default unchanged)
-  ipfs log level '*' info     # Set ALL to 'info' (including default)
+  ipfs log level all info     # Set ALL to 'info' (including default)
   ipfs log level core default # Reset 'core' to use current default level
 
-SHELL ESCAPING NOTE:
+WILDCARD OPTIONS:
 
-Quote '*' to prevent shell expansion: '*' or "*" or \*
+Use 'all' (convenient) or '*' (requires escaping) to affect all subsystems:
+  ipfs log level all debug    # Convenient - no shell escaping needed
+  ipfs log level '*' debug    # Equivalent but needs quotes: '*' or "*" or \*
 
 BEHAVIOR EXAMPLES:
 
@@ -100,8 +105,8 @@ After setting one subsystem:
   $ ipfs log level core         => debug (explicitly set)
   $ ipfs log level dht          => error (still uses default)
 
-After setting everything with '*':
-  $ ipfs log level '*' info
+After setting everything with 'all':
+  $ ipfs log level all info
   $ ipfs log level              => info (default changed!)
   $ ipfs log level core         => info (all changed)
   $ ipfs log level dht          => info (all changed)
@@ -109,13 +114,13 @@ After setting everything with '*':
 The 'default' keyword always refers to the current default level:
   $ ipfs log level              => error
   $ ipfs log level core default  # Sets core to 'error'
-  $ ipfs log level '*' info      # Changes default to 'info'
+  $ ipfs log level all info      # Changes default to 'info'
   $ ipfs log level core default  # Now sets core to 'info'
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("subsystem", false, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' to get or set the log level of all subsystems including the default. If not specified, only show the default log level.", allLogSubsystems)),
+		cmds.StringArg("subsystem", false, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' or '%s' to get or set the log level of all subsystems including the default. If not specified, only show the default log level.", allLogSubsystemsAlias, allLogSubsystems)),
 		cmds.StringArg("level", false, false, fmt.Sprintf("The log level, with 'debug' as the most verbose and 'fatal' the least verbose. Use '%s' to set to the current default level. One of: debug, info, warn, error, dpanic, panic, fatal, %s", defaultLogLevel, defaultLogLevel)),
 	},
 	NoLocal: true,
@@ -128,7 +133,8 @@ The 'default' keyword always refers to the current default level:
 				level = req.Arguments[1]
 			}
 
-			if allLogSubsystems != "*" && subsystem == allLogSubsystems {
+			// Normalize aliases to the canonical "*" form
+			if subsystem == allLogSubsystems || subsystem == allLogSubsystemsAlias {
 				subsystem = "*"
 			}
 		}
@@ -155,7 +161,7 @@ The 'default' keyword always refers to the current default level:
 			// Return the default log level
 			levelMap := map[string]string{logging.DefaultName: logging.DefaultLevel().String()}
 			return cmds.EmitOnce(res, &logLevelOutput{Levels: levelMap})
-		case allLogSubsystems:
+		case allLogSubsystems, allLogSubsystemsAlias:
 			// Return levels for all subsystems (default behavior)
 			levels := logging.SubsystemLevelNames()
 
