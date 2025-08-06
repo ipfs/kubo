@@ -17,11 +17,14 @@ const (
 	// level.
 	defaultLogLevel = "default"
 	// defaultSubsystemKey is the subsystem name that is used to denote the
-	// default log level.
+	// default log level. We use parentheses for UI clarity to distinguish it
+	// from regular subsystem names.
 	defaultSubsystemKey = "(default)"
 	// logLevelOption is an option for the tail subcommand to select the log
 	// level to output.
 	logLevelOption = "log-level"
+	// noSubsystemSpecified is used when no subsystem argument is provided
+	noSubsystemSpecified = ""
 )
 
 type logLevelOutput struct {
@@ -56,22 +59,58 @@ var logLevelCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Change or get the logging level.",
 		ShortDescription: `
-Get or change the logging level of one or all logging subsystems
-including the default.
+Get or change the logging level of one or all logging subsystems.
 
-This provides a dynamic, runtime alternative to the GOLOG_LOG_LEVEL
-environment variable documented in 'ipfs log'.
+This command provides a runtime alternative to the GOLOG_LOG_LEVEL
+environment variable for debugging and troubleshooting.
 
-Examples getting log level:
-  ipfs log level              # Show default log level only
-  ipfs log level '*'          # Show log level for every subsystem
-  ipfs log level foo          # Show log level for "foo" facility only
+UNDERSTANDING DEFAULT vs '*':
 
-Examples setting log level:
-  ipfs log level '*' debug    # Set all subsystems to "debug" level
-  ipfs log level '*' default  # Set all subsystems to current default level
-  ipfs log level foo info     # Set level of "foo" subsystem to "info"
-  ipfs log level foo default  # Set level of "foo" subsystem to default level
+The "default" level is the fallback used by unconfigured subsystems.
+You cannot set the default level directly - it only changes when you use '*'.
+
+The '*' wildcard represents ALL subsystems including the default level.
+Setting '*' changes everything at once, including the default.
+
+EXAMPLES - Getting levels:
+
+  ipfs log level              # Show only the default fallback level
+  ipfs log level '*'          # Show all subsystem levels (100+ lines)
+  ipfs log level core         # Show level for 'core' subsystem only
+
+EXAMPLES - Setting levels:
+
+  ipfs log level core debug   # Set 'core' to 'debug' (default unchanged)
+  ipfs log level '*' info     # Set ALL to 'info' (including default)
+  ipfs log level core default # Reset 'core' to use current default level
+
+SHELL ESCAPING NOTE:
+
+Quote '*' to prevent shell expansion: '*' or "*" or \*
+
+BEHAVIOR EXAMPLES:
+
+Initial state (all using default 'error'):
+  $ ipfs log level              => error
+  $ ipfs log level core         => error
+
+After setting one subsystem:
+  $ ipfs log level core debug
+  $ ipfs log level              => error (default unchanged!)
+  $ ipfs log level core         => debug (explicitly set)
+  $ ipfs log level dht          => error (still uses default)
+
+After setting everything with '*':
+  $ ipfs log level '*' info
+  $ ipfs log level              => info (default changed!)
+  $ ipfs log level core         => info (all changed)
+  $ ipfs log level dht          => info (all changed)
+
+The 'default' keyword always refers to the current default level:
+  $ ipfs log level              => error
+  $ ipfs log level core default  # Sets core to 'error'
+  $ ipfs log level '*' info      # Changes default to 'info'
+  $ ipfs log level core default  # Now sets core to 'info'
 `,
 	},
 
@@ -112,7 +151,7 @@ Examples setting log level:
 
 		// Get the level for the requested subsystem.
 		switch subsystem {
-		case "":
+		case noSubsystemSpecified:
 			// Return the default log level
 			levelMap := map[string]string{logging.DefaultName: logging.DefaultLevel().String()}
 			return cmds.EmitOnce(res, &logLevelOutput{Levels: levelMap})
@@ -146,7 +185,10 @@ Examples setting log level:
 			encoding, _ := req.Options["encoding"].(string)
 			isRPC := encoding == "json"
 
-			// If there are multiple subsystems (no specific subsystem requested), always show names
+			// Determine whether to show subsystem names in output.
+			// Show subsystem names when:
+			// 1. It's an RPC call (needs JSON structure with named fields)
+			// 2. Multiple subsystems are displayed (for clarity when showing many levels)
 			showNames := isRPC || len(out.Levels) > 1
 
 			levelNames := make([]string, 0, len(out.Levels))
