@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -93,10 +92,6 @@ func (np NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdent
 
 func TestHttpApi(t *testing.T) {
 	t.Parallel()
-
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping due to #9905")
-	}
 
 	tests.TestApi(NodeProvider{})(t)
 }
