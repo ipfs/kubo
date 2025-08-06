@@ -394,7 +394,6 @@ var Core = fx.Options(
 	fx.Provide(Dag),
 	fx.Provide(FetcherConfig),
 	fx.Provide(PathResolverConfig),
-	fx.Provide(Files),
 )
 
 func Networked(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
@@ -444,6 +443,8 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	uio.HAMTShardingSize = int(shardSingThresholdInt)
 	uio.DefaultShardWidth = int(shardMaxFanout)
 
+	reproviderStrategy := cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
+
 	return fx.Options(
 		bcfgOpts,
 
@@ -452,7 +453,8 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		IPNS,
 		Networked(bcfg, cfg, userResourceOverrides),
 		fx.Provide(BlockService(cfg)),
-		fx.Provide(Pinning(cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy))),
+		fx.Provide(Pinning(reproviderStrategy)),
+		fx.Provide(Files(reproviderStrategy)),
 		Core,
 	)
 }

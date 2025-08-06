@@ -89,7 +89,6 @@ func (r *Runner) Run(req RunRequest) *RunResult {
 	for k, v := range r.Env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
-	// cmd.Env = append(cmd.Env, `GOLOG_LOG_LEVEL=provider=debug,pin=debug,blockstore=debug,merkledag=debug`)
 
 	for _, o := range req.CmdOpts {
 		o(cmd)

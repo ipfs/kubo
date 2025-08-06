@@ -166,63 +166,73 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 }
 
 // Files loads persisted MFS root
-func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov provider.System) (*mfs.Root, error) {
-	dsk := datastore.NewKey("/local/filesroot")
-	pf := func(ctx context.Context, c cid.Cid) error {
-		rootDS := repo.Datastore()
-		if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
-			return err
-		}
-		if err := rootDS.Sync(ctx, filestore.FilestorePrefix); err != nil {
-			return err
+func Files(reprovidingStrategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov provider.System) (*mfs.Root, error) {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov provider.System) (*mfs.Root, error) {
+		dsk := datastore.NewKey("/local/filesroot")
+		pf := func(ctx context.Context, c cid.Cid) error {
+			rootDS := repo.Datastore()
+			if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
+				return err
+			}
+			if err := rootDS.Sync(ctx, filestore.FilestorePrefix); err != nil {
+				return err
+			}
+
+			if err := rootDS.Put(ctx, dsk, c.Bytes()); err != nil {
+				return err
+			}
+			return rootDS.Sync(ctx, dsk)
 		}
 
-		if err := rootDS.Put(ctx, dsk, c.Bytes()); err != nil {
-			return err
-		}
-		return rootDS.Sync(ctx, dsk)
-	}
+		var nd *merkledag.ProtoNode
+		ctx := helpers.LifecycleCtx(mctx, lc)
+		val, err := repo.Datastore().Get(ctx, dsk)
 
-	var nd *merkledag.ProtoNode
-	ctx := helpers.LifecycleCtx(mctx, lc)
-	val, err := repo.Datastore().Get(ctx, dsk)
+		switch {
+		case err == datastore.ErrNotFound || val == nil:
+			nd = unixfs.EmptyDirNode()
+			err := dag.Add(ctx, nd)
+			if err != nil {
+				return nil, fmt.Errorf("failure writing filesroot to dagstore: %s", err)
+			}
+		case err == nil:
+			c, err := cid.Cast(val)
+			if err != nil {
+				return nil, err
+			}
 
-	switch {
-	case err == datastore.ErrNotFound || val == nil:
-		nd = unixfs.EmptyDirNode()
-		err := dag.Add(ctx, nd)
-		if err != nil {
-			return nil, fmt.Errorf("failure writing filesroot to dagstore: %s", err)
-		}
-	case err == nil:
-		c, err := cid.Cast(val)
-		if err != nil {
+			offineDag := merkledag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
+			rnd, err := offineDag.Get(ctx, c)
+			if err != nil {
+				return nil, fmt.Errorf("error loading filesroot from dagservice: %s", err)
+			}
+
+			pbnd, ok := rnd.(*merkledag.ProtoNode)
+			if !ok {
+				return nil, merkledag.ErrNotProtobuf
+			}
+
+			nd = pbnd
+		default:
 			return nil, err
 		}
 
-		offineDag := merkledag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
-		rnd, err := offineDag.Get(ctx, c)
-		if err != nil {
-			return nil, fmt.Errorf("error loading filesroot from dagservice: %s", err)
+		// disable providing from mfs when the strategy does not
+		// need that.
+		switch reprovidingStrategy {
+		case "mfs", "pinned+mfs":
+		default:
+			prov = nil
 		}
 
-		pbnd, ok := rnd.(*merkledag.ProtoNode)
-		if !ok {
-			return nil, merkledag.ErrNotProtobuf
-		}
+		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov)
 
-		nd = pbnd
-	default:
-		return nil, err
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return root.Close()
+			},
+		})
+
+		return root, err
 	}
-
-	root, err := mfs.NewRoot(ctx, dag, nd, pf, prov)
-
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			return root.Close()
-		},
-	})
-
-	return root, err
 }
