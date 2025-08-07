@@ -244,6 +244,11 @@ func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrat
 			)
 		}
 
+		// SetKeyProvider breaks the circular dependency between provider, blockstore, and pinner.
+		// We cannot create the blockstore without the provider (it needs to provide blocks),
+		// and we cannot determine the reproviding strategy without the pinner/blockstore.
+		// This deferred initialization allows us to create provider.System first,
+		// then set the actual key provider function after all dependencies are ready.
 		in.Provider.SetKeyProvider(kcf)
 
 		// Strategy change detection: when the reproviding strategy changes,

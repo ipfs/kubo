@@ -204,6 +204,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		if err != nil {
 			return path.ImmutablePath{}, err
 		}
+		// MFS root for OnlyHash mode: provider is nil since we're not storing/providing anything
 		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil, nil)
 		if err != nil {
 			return path.ImmutablePath{}, err
@@ -392,6 +393,10 @@ func (pds *providingDagService) Add(ctx context.Context, n ipld.Node) error {
 	if err := pds.DAGService.Add(ctx, n); err != nil {
 		return err
 	}
+	// Provider errors are logged but not propagated.
+	// We don't want DAG operations to fail due to providing issues.
+	// The user's data is still stored successfully even if the
+	// announcement to the routing system fails temporarily.
 	if err := pds.provider.Provide(ctx, n.Cid(), true); err != nil {
 		log.Error(err)
 	}
@@ -402,6 +407,9 @@ func (pds *providingDagService) AddMany(ctx context.Context, nds []ipld.Node) er
 	if err := pds.DAGService.AddMany(ctx, nds); err != nil {
 		return err
 	}
+	// Same error handling philosophy as Add(): log but don't fail.
+	// Note: Provide calls are intentionally blocking here - the Provider
+	// implementation should handle concurrency/queuing internally.
 	for _, n := range nds {
 		if err := pds.provider.Provide(ctx, n.Cid(), true); err != nil {
 			log.Error(err)

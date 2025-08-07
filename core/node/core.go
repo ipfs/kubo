@@ -75,7 +75,11 @@ func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGSe
 		roots := (strategyFlag & config.ReproviderStrategyRoots) != 0
 		pinned := (strategyFlag & config.ReproviderStrategyPinned) != 0
 
-		// prioritized pinned. "pinned+roots" would have no sense.
+		// Important: Only one of WithPinnedProvider or WithRootsProvider should be active.
+		// Having both would cause duplicate root advertisements since "pinned" includes all
+		// pinned content (roots + children), while "roots" is just the root CIDs.
+		// We prioritize "pinned" if both are somehow set (though this shouldn't happen
+		// with proper strategy parsing).
 		if pinned {
 			opts = append(opts, dspinner.WithPinnedProvider(prov))
 		} else if roots {
@@ -228,8 +232,10 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 
 		// MFS (Mutable File System) provider integration:
 		// Only pass the provider to MFS when the strategy includes "mfs".
-		// This allows MFS to directly provide blocks as they're added/modified.
-		// For other strategies, we set provider to nil to avoid unnecessary providing.
+		// MFS will call Provide() on every DAGService.Add() operation,
+		// which is sufficient for the "mfs" strategy - it ensures all
+		// MFS content gets announced as it's added or modified.
+		// For non-mfs strategies, we set provider to nil to avoid unnecessary providing.
 		strategyFlag := config.ParseReproviderStrategy(strategy)
 		if strategyFlag&config.ReproviderStrategyMFS == 0 {
 			prov = nil
