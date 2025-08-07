@@ -30,7 +30,7 @@ var log = logging.Logger("telemetry")
 const (
 	modeEnvVar   = "IPFS_TELEMETRY_PLUGIN_MODE"
 	uuidFilename = "telemetry_uuid"
-	endpoint     = "http://127.0.0.1:8083"
+	endpoint     = "https://telemetry.ipshipyard.dev"
 	sendDelay    = 15 * time.Minute
 )
 
@@ -168,10 +168,15 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 	if delayStr := readFromConfig(env.Config, "Delay"); delayStr != "" {
 		delay, err := time.ParseDuration(delayStr)
 		if err != nil {
+			log.Debug("sendDelay set from default")
 			p.sendDelay = sendDelay
 		} else {
+			log.Debug("sendDelay set from config")
 			p.sendDelay = delay
 		}
+	} else {
+		log.Debug("sendDelay set from default")
+		p.sendDelay = sendDelay
 	}
 
 	p.endpoint = endpoint
