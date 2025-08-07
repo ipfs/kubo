@@ -86,9 +86,14 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 		var bitswapNetworks, bitswapLibp2p network.BitSwapNetwork
 		var bitswapBlockstore blockstore.Blockstore = in.Bs
 
+		connEvtMgr := network.NewConnectEventManager()
+
 		libp2pEnabled := in.Cfg.Bitswap.Libp2pEnabled.WithDefault(config.DefaultBitswapLibp2pEnabled)
 		if libp2pEnabled {
-			bitswapLibp2p = bsnet.NewFromIpfsHost(in.Host)
+			bitswapLibp2p = bsnet.NewFromIpfsHost(
+				in.Host,
+				bsnet.WithConnectEventManager(connEvtMgr),
+			)
 		}
 
 		if httpEnabled {
@@ -110,6 +115,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 				httpnet.WithMaxBlockSize(int64(maxBlockSize)),
 				httpnet.WithUserAgent(version.GetUserAgentVersion()),
 				httpnet.WithMetricsLabelsForEndpoints(httpCfg.Allowlist),
+				httpnet.WithConnectEventManager(connEvtMgr),
 			)
 			bitswapNetworks = network.New(in.Host.Peerstore(), bitswapLibp2p, bitswapHTTP)
 		} else if libp2pEnabled {
