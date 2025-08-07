@@ -66,6 +66,34 @@ func TestProvider(t *testing.T) {
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
+	t.Run("Provider.Enabled=true announces new CIDs created by ipfs block put --pin=false with default strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provider.Enabled", true)
+			// Default strategy is "all" which should provide unpinned content from block put
+		})
+		defer nodes.StopDaemons()
+
+		data := testutils.RandomBytes(256)
+		cid := nodes[0].IPFSBlockPut(bytes.NewReader(data), "--pin=false")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("Provider.Enabled=true announces new CIDs created by ipfs dag put --pin=false with default strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provider.Enabled", true)
+			// Default strategy is "all" which should provide unpinned content from dag put
+		})
+		defer nodes.StopDaemons()
+
+		dagData := `{"hello": "world", "timestamp": "` + time.Now().String() + `"}`
+		cid := nodes[0].IPFSDAGPut(bytes.NewReader([]byte(dagData)), "--pin=false")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
 	t.Run("Provider.Enabled=false disables announcement of new CID from ipfs add", func(t *testing.T) {
 		t.Parallel()
 
