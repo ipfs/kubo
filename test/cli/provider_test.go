@@ -53,6 +53,19 @@ func TestProvider(t *testing.T) {
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
+	t.Run("Provider.Enabled=true announces new CIDs created by ipfs add --pin=false with default strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provider.Enabled", true)
+			// Default strategy is "all" which should provide even unpinned content
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String(), "--pin=false")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
 	t.Run("Provider.Enabled=false disables announcement of new CID from ipfs add", func(t *testing.T) {
 		t.Parallel()
 
