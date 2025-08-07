@@ -13,11 +13,11 @@ const (
 type ReproviderStrategy int
 
 const (
-	ReproviderStrategyAll ReproviderStrategy = 1 << iota
-	ReproviderStrategyFlat
-	ReproviderStrategyPinned
-	ReproviderStrategyRoots
-	ReproviderStrategyMFS
+	ReproviderStrategyAll    ReproviderStrategy = 1 << iota // 1  (0b00001)
+	ReproviderStrategyFlat                                  // 2  (0b00010)
+	ReproviderStrategyPinned                                // 4  (0b00100)
+	ReproviderStrategyRoots                                 // 8  (0b01000)
+	ReproviderStrategyMFS                                   // 16 (0b10000)
 )
 
 // Reprovider configuration describes how CID from local datastore are periodically re-announced to routing systems.

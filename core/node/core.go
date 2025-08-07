@@ -50,6 +50,9 @@ func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blocks
 
 // Pinning creates new pinner which tells GC which blocks should be kept
 func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov provider.System) (pin.Pinner, error) {
+	// Parse strategy at function creation time (not inside the returned function)
+	// This happens before the provider is created, which is why we pass the strategy
+	// string and parse it here, rather than using fx-provided ProvidingStrategy.
 	strategyFlag := config.ParseReproviderStrategy(strategy)
 
 	return func(bstore blockstore.Blockstore,
@@ -223,8 +226,10 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 			return nil, err
 		}
 
-		// disable providing from mfs when the strategy does not
-		// need that.
+		// MFS (Mutable File System) provider integration:
+		// Only pass the provider to MFS when the strategy includes "mfs".
+		// This allows MFS to directly provide blocks as they're added/modified.
+		// For other strategies, we set provider to nil to avoid unnecessary providing.
 		strategyFlag := config.ParseReproviderStrategy(strategy)
 		if strategyFlag&config.ReproviderStrategyMFS == 0 {
 			prov = nil

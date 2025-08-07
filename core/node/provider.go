@@ -31,6 +31,9 @@ const reprovideStrategyKey = "/reprovideStrategy"
 
 func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
 	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, repo repo.Repo) (provider.System, error) {
+		// Initialize provider.System first, before pinner/blockstore/etc.
+		// The KeyChanFunc will be set later via SetKeyProvider() once we have
+		// created the pinner, blockstore and other dependencies.
 		opts := []provider.Option{
 			provider.Online(cr),
 			provider.ReproviderInterval(reprovideInterval),
@@ -243,6 +246,9 @@ func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrat
 
 		in.Provider.SetKeyProvider(kcf)
 
+		// Strategy change detection: when the reproviding strategy changes,
+		// we clear the provide queue to avoid unexpected behavior from mixing
+		// strategies. This ensures a clean transition between different providing modes.
 		var strategyChanged bool
 		ctx := context.Background()
 		ds := in.Repo.Datastore()
@@ -258,6 +264,7 @@ func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrat
 		if strategyChanged {
 			logger.Infow("Reprovider.Strategy changed, clearing provide queue", "previous", string(prev), "current", strategy)
 			in.Provider.Clear()
+			// Persist the new strategy for future comparisons
 			if strategy == "" {
 				err = ds.Delete(ctx, strategyKey)
 			} else {

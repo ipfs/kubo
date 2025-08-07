@@ -113,7 +113,8 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	//   - "mfs" gets handled in mfs
 	// We need to provide the "pinned" cases only. Added blocks are not
 	// going to be provided by the blockstore (wrong strategy for that),
-	// nor by the pinner (it does not traverse the pinned DAG).
+	// nor by the pinner (the pinner doesn't traverse the pinned DAG itself, it only
+	// handles roots). This wrapping ensures all blocks of pinned content get provided.
 	if settings.Pin && !settings.OnlyHash &&
 		(api.providingStrategy&config.ReproviderStrategyPinned) != 0 {
 		dserv = &providingDagService{dserv, api.provider}
@@ -141,7 +142,10 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		}
 	}
 
-	// reminder: the dag server gets wrapped again (!) as a batching dagservice in coreunix.Adder.
+	// Note: the dag service gets wrapped multiple times:
+	// 1. providingDagService (if pinned strategy) - provides blocks as they're added
+	// 2. syncDagService - ensures data persistence
+	// 3. batchingDagService (in coreunix.Adder) - batches operations for efficiency
 
 	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, syncDserv)
 	if err != nil {
