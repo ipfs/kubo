@@ -209,6 +209,7 @@ func (p *telemetryPlugin) loadUUID() error {
 			log.Errorf("cannot parse telemetry uuid: %s", err)
 			return err
 		}
+		log.Debugf("uuid read from disk %s", uid)
 		p.event.UUID = uid.String()
 		return nil
 	} else if os.IsNotExist(err) {
@@ -219,6 +220,7 @@ func (p *telemetryPlugin) loadUUID() error {
 		}
 		p.event.UUID = uid.String()
 		p.mode = modeInfo
+		log.Debugf("new telemetry UUID %s. Mode set to Info", uid)
 
 		// Write the UUID to disk
 		if err := os.WriteFile(p.uuidFilename, []byte(p.event.UUID), 0600); err != nil {
