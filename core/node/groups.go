@@ -216,6 +216,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		fx.Provide(libp2p.Routing),
 		fx.Provide(libp2p.ContentRouting),
+		fx.Provide(libp2p.ContentDiscovery),
 
 		fx.Provide(libp2p.BaseRouting(cfg)),
 		maybeProvide(libp2p.PubsubRouter, bcfg.getOpt("ipnsps")),
@@ -380,6 +381,7 @@ func Offline(cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.Routing),
 		fx.Provide(libp2p.ContentRouting),
 		fx.Provide(libp2p.OfflineRouting),
+		fx.Provide(libp2p.ContentDiscovery),
 		OfflineProviders(),
 	)
 }
@@ -442,8 +444,6 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 
 	return fx.Options(
 		bcfgOpts,
-
-		fx.Provide(baseProcess),
 
 		Storage(bcfg, cfg),
 		Identity(cfg),
