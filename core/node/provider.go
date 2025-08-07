@@ -214,35 +214,107 @@ type provStrategyOut struct {
 	ProvidingKeyChanFunc provider.KeyChanFunc
 }
 
+// createKeyProvider creates the appropriate KeyChanFunc based on strategy.
+// Each strategy has different behavior:
+// - "roots": Only root CIDs of pinned content
+// - "pinned": All pinned content (roots + children)
+// - "mfs": Only MFS content
+// - "flat": All blocks, no prioritization
+// - "all": Prioritized: pins first, then MFS roots, then all blocks
+func createKeyProvider(strategyFlag config.ReproviderStrategy, in provStrategyIn) provider.KeyChanFunc {
+	switch strategyFlag {
+	case config.ReproviderStrategyRoots:
+		return provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher))
+	case config.ReproviderStrategyPinned:
+		return provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher))
+	case config.ReproviderStrategyPinned | config.ReproviderStrategyMFS:
+		return provider.NewPrioritizedProvider(
+			provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher)),
+			mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher),
+		)
+	case config.ReproviderStrategyMFS:
+		return mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher)
+	case config.ReproviderStrategyFlat:
+		return in.Blockstore.AllKeysChan
+	default: // "all", ""
+		return createAllStrategyProvider(in)
+	}
+}
+
+// createAllStrategyProvider creates the complex "all" strategy provider.
+// This implements a three-tier priority system:
+// 1. Root blocks of direct and recursive pins (highest priority)
+// 2. MFS root (medium priority)
+// 3. All other blocks in blockstore (lowest priority)
+func createAllStrategyProvider(in provStrategyIn) provider.KeyChanFunc {
+	return provider.NewPrioritizedProvider(
+		provider.NewPrioritizedProvider(
+			provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher)),
+			mfsRootProvider(in.MFSRoot),
+		),
+		in.Blockstore.AllKeysChan,
+	)
+}
+
+// detectStrategyChange checks if the reproviding strategy has changed from what's persisted.
+// Returns: (previousStrategy, hasChanged, error)
+func detectStrategyChange(ctx context.Context, strategy string, ds datastore.Datastore) (string, bool, error) {
+	strategyKey := datastore.NewKey(reprovideStrategyKey)
+
+	prev, err := ds.Get(ctx, strategyKey)
+	if err != nil {
+		if errors.Is(err, datastore.ErrNotFound) {
+			return "", strategy != "", nil
+		}
+		return "", false, err
+	}
+
+	previousStrategy := string(prev)
+	return previousStrategy, previousStrategy != strategy, nil
+}
+
+// persistStrategy saves the current reproviding strategy to the datastore.
+// Empty string strategies are deleted rather than stored.
+func persistStrategy(ctx context.Context, strategy string, ds datastore.Datastore) error {
+	strategyKey := datastore.NewKey(reprovideStrategyKey)
+
+	if strategy == "" {
+		return ds.Delete(ctx, strategyKey)
+	}
+	return ds.Put(ctx, strategyKey, []byte(strategy))
+}
+
+// handleStrategyChange manages strategy change detection and queue clearing.
+// Strategy change detection: when the reproviding strategy changes,
+// we clear the provide queue to avoid unexpected behavior from mixing
+// strategies. This ensures a clean transition between different providing modes.
+func handleStrategyChange(strategy string, provider provider.System, ds datastore.Datastore) {
+	ctx := context.Background()
+
+	previous, changed, err := detectStrategyChange(ctx, strategy, ds)
+	if err != nil {
+		logger.Error("cannot read previous reprovide strategy", "err", err)
+		return
+	}
+
+	if !changed {
+		return
+	}
+
+	logger.Infow("Reprovider.Strategy changed, clearing provide queue", "previous", previous, "current", strategy)
+	provider.Clear()
+
+	if err := persistStrategy(ctx, strategy, ds); err != nil {
+		logger.Error("cannot update reprovide strategy", "err", err)
+	}
+}
+
 func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrategyOut {
 	strategyFlag := config.ParseReproviderStrategy(strategy)
 
 	return func(in provStrategyIn) provStrategyOut {
-		var kcf provider.KeyChanFunc
-
-		switch strategyFlag {
-		case config.ReproviderStrategyRoots:
-			kcf = provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher))
-		case config.ReproviderStrategyPinned:
-			kcf = provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher))
-		case config.ReproviderStrategyPinned | config.ReproviderStrategyMFS:
-			kcf = provider.NewPrioritizedProvider(
-				provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher)),
-				mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher),
-			)
-		case config.ReproviderStrategyMFS:
-			kcf = mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher)
-		case config.ReproviderStrategyFlat:
-			kcf = in.Blockstore.AllKeysChan
-		default: // "all", ""
-			kcf = provider.NewPrioritizedProvider(
-				provider.NewPrioritizedProvider(
-					provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher)),
-					mfsRootProvider(in.MFSRoot),
-				),
-				in.Blockstore.AllKeysChan,
-			)
-		}
+		// Create the appropriate key provider based on strategy
+		kcf := createKeyProvider(strategyFlag, in)
 
 		// SetKeyProvider breaks the circular dependency between provider, blockstore, and pinner.
 		// We cannot create the blockstore without the provider (it needs to provide blocks),
@@ -251,34 +323,8 @@ func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrat
 		// then set the actual key provider function after all dependencies are ready.
 		in.Provider.SetKeyProvider(kcf)
 
-		// Strategy change detection: when the reproviding strategy changes,
-		// we clear the provide queue to avoid unexpected behavior from mixing
-		// strategies. This ensures a clean transition between different providing modes.
-		var strategyChanged bool
-		ctx := context.Background()
-		ds := in.Repo.Datastore()
-		strategyKey := datastore.NewKey(reprovideStrategyKey)
-
-		prev, err := ds.Get(ctx, strategyKey)
-		if err != nil && !errors.Is(err, datastore.ErrNotFound) {
-			logger.Error("cannot read previous reprovide strategy", "err", err)
-		} else if string(prev) != strategy {
-			strategyChanged = true
-		}
-
-		if strategyChanged {
-			logger.Infow("Reprovider.Strategy changed, clearing provide queue", "previous", string(prev), "current", strategy)
-			in.Provider.Clear()
-			// Persist the new strategy for future comparisons
-			if strategy == "" {
-				err = ds.Delete(ctx, strategyKey)
-			} else {
-				err = ds.Put(ctx, strategyKey, []byte(strategy))
-			}
-			if err != nil {
-				logger.Error("cannot update reprovide strategy", "err", err)
-			}
-		}
+		// Handle strategy changes (detection, queue clearing, persistence)
+		handleStrategyChange(strategy, in.Provider, in.Repo.Datastore())
 
 		return provStrategyOut{
 			ProvidingStrategy:    strategyFlag,
