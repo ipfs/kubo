@@ -175,6 +175,26 @@ func TestProvider(t *testing.T) {
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
+	t.Run("Provide with 'pinned+mfs' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "pinned+mfs")
+		})
+		defer nodes.StopDaemons()
+
+		// Add a pinned CID (should be provided)
+		cidPinned := nodes[0].IPFSAddStr("pinned content")
+		cidUnpinned := nodes[0].IPFSAddStr("unpinned content", "--pin=false")
+		cidMFS := nodes[0].IPFSAddStr("mfs content", "--pin=false")
+		nodes[0].IPFS("files", "cp", "/ipfs/"+cidMFS, "/myfile")
+
+		n0pid := nodes[0].PeerID().String()
+		expectProviders(t, cidPinned, n0pid, nodes[1:]...)
+		expectNoProviders(t, cidUnpinned, nodes[1:]...)
+		expectProviders(t, cidMFS, n0pid, nodes[1:]...)
+	})
+
 	t.Run("Provide with 'roots' strategy", func(t *testing.T) {
 		t.Parallel()
 
@@ -208,6 +228,24 @@ func TestProvider(t *testing.T) {
 		expectNoProviders(t, cid, nodes[1:]...)
 
 		nodes[0].IPFS("files", "cp", "/ipfs/"+cid, "/myfile")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("Reprovides with 'all' strategy when strategy is '' (empty)", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "")
+		})
+
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+
+		nodes = nodes.StartDaemons().Connect()
+		defer nodes.StopDaemons()
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		nodes[0].IPFS("routing", "reprovide")
+
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
@@ -338,6 +376,36 @@ func TestProvider(t *testing.T) {
 
 		// And now is provided
 		expectProviders(t, cidBar, n0pid, nodes[1:]...)
+	})
+
+	t.Run("Reprovides with 'pinned+mfs' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Reprovider.Strategy", "pinned+mfs")
+		})
+		n0pid := nodes[0].PeerID().String()
+
+		// Add a pinned CID (should be provided)
+		cidPinned := nodes[0].IPFSAddStr("pinned content", "--pin=true")
+		// Add a CID to MFS (should be provided)
+		cidMFS := nodes[0].IPFSAddStr("mfs content")
+		nodes[0].IPFS("files", "cp", "/ipfs/"+cidMFS, "/myfile")
+		// Add a CID that is neither pinned nor in MFS (should not be provided)
+		cidNeither := nodes[0].IPFSAddStr("neither content", "--pin=false")
+
+		nodes = nodes.StartDaemons().Connect()
+		defer nodes.StopDaemons()
+
+		// Trigger reprovide
+		nodes[0].IPFS("routing", "reprovide")
+
+		// Check that pinned CID is provided
+		expectProviders(t, cidPinned, n0pid, nodes[1:]...)
+		// Check that MFS CID is provided
+		expectProviders(t, cidMFS, n0pid, nodes[1:]...)
+		// Check that neither CID is not provided
+		expectNoProviders(t, cidNeither, nodes[1:]...)
 	})
 
 	t.Run("provide clear command removes items from provide queue", func(t *testing.T) {

@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ipfs/boxo/blockservice"
@@ -48,7 +49,9 @@ func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blocks
 }
 
 // Pinning creates new pinner which tells GC which blocks should be kept
-func Pinning(reprovidingStrategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov provider.System) (pin.Pinner, error) {
+func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov provider.System) (pin.Pinner, error) {
+	strategyFlag := config.ParseReproviderStrategy(strategy)
+
 	return func(bstore blockstore.Blockstore,
 		ds format.DAGService,
 		repo repo.Repo,
@@ -66,11 +69,14 @@ func Pinning(reprovidingStrategy string) func(bstore blockstore.Blockstore, ds f
 		ctx := context.TODO()
 
 		var opts []dspinner.Option
-		switch reprovidingStrategy {
-		case "roots":
-			opts = append(opts, dspinner.WithRootsProvider(prov))
-		case "pinned", "pinned+mfs":
+		roots := (strategyFlag & config.ReproviderStrategyRoots) != 0
+		pinned := (strategyFlag & config.ReproviderStrategyPinned) != 0
+
+		// prioritized pinned. "pinned+roots" would have no sense.
+		if pinned {
 			opts = append(opts, dspinner.WithPinnedProvider(prov))
+		} else if roots {
+			opts = append(opts, dspinner.WithRootsProvider(prov))
 		}
 
 		pinning, err := dspinner.New(ctx, rootDS, syncDs, opts...)
@@ -166,7 +172,7 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 }
 
 // Files loads persisted MFS root
-func Files(reprovidingStrategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov provider.System) (*mfs.Root, error) {
+func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov provider.System) (*mfs.Root, error) {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov provider.System) (*mfs.Root, error) {
 		dsk := datastore.NewKey("/local/filesroot")
 		pf := func(ctx context.Context, c cid.Cid) error {
@@ -189,7 +195,7 @@ func Files(reprovidingStrategy string) func(mctx helpers.MetricsCtx, lc fx.Lifec
 		val, err := repo.Datastore().Get(ctx, dsk)
 
 		switch {
-		case err == datastore.ErrNotFound || val == nil:
+		case errors.Is(err, datastore.ErrNotFound):
 			nd = unixfs.EmptyDirNode()
 			err := dag.Add(ctx, nd)
 			if err != nil {
@@ -219,9 +225,8 @@ func Files(reprovidingStrategy string) func(mctx helpers.MetricsCtx, lc fx.Lifec
 
 		// disable providing from mfs when the strategy does not
 		// need that.
-		switch reprovidingStrategy {
-		case "mfs", "pinned+mfs":
-		default:
+		strategyFlag := config.ParseReproviderStrategy(strategy)
+		if strategyFlag&config.ReproviderStrategyMFS == 0 {
 			prov = nil
 		}
 

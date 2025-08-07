@@ -74,7 +74,7 @@ type CoreAPI struct {
 	unixFSPathResolver pathresolver.Resolver
 
 	provider          provider.System
-	providingStrategy string
+	providingStrategy config.ReproviderStrategy
 
 	pubSub *pubsub.PubSub
 

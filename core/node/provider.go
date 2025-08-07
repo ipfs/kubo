@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
 	"go.uber.org/fx"
@@ -53,7 +54,7 @@ func ProviderSys(reprovideInterval time.Duration, acceleratedDHTClient bool, pro
 						// FIXME: I want a running counter of blocks so size of blockstore can be an O(1) lookup.
 						// Note: talk to datastore directly, as to not depend on Blockstore here.
 						qr, err := repo.Datastore().Query(ctx, query.Query{
-							Prefix:   "/blocks",
+							Prefix:   blockstore.BlockPrefix.String(),
 							KeysOnly: true})
 						if err != nil {
 							logger.Errorf("fetching AllKeysChain in provider ThroughputReport: %v", err)
@@ -143,21 +144,18 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 // ONLINE/OFFLINE
 
 // OnlineProviders groups units managing provider routing records online
-func OnlineProviders(provide bool, reprovideStrategy string, reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
+func OnlineProviders(provide bool, providerStrategy string, reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
 	if !provide {
 		return OfflineProviders()
 	}
 
-	var keyProvider fx.Option
-	switch reprovideStrategy {
-	case "all", "", "roots", "pinned", "mfs", "pinned+mfs", "flat":
-		keyProvider = fx.Provide(newProvidingStrategy(reprovideStrategy))
-	default:
-		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", reprovideStrategy))
+	strategyFlag := config.ParseReproviderStrategy(providerStrategy)
+	if strategyFlag == 0 {
+		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", providerStrategy))
 	}
 
 	return fx.Options(
-		keyProvider,
+		fx.Provide(setReproviderKeyProvider(providerStrategy)),
 		ProviderSys(reprovideInterval, acceleratedDHTClient, provideWorkerCount),
 	)
 }
@@ -196,38 +194,42 @@ func mfsRootProvider(mfsRoot *mfs.Root) provider.KeyChanFunc {
 	}
 }
 
-func newProvidingStrategy(strategy string) interface{} {
-	type input struct {
-		fx.In
-		Pinner               pin.Pinner
-		Blockstore           blockstore.Blockstore
-		OfflineIPLDFetcher   fetcher.Factory `name:"offlineIpldFetcher"`
-		OfflineUnixFSFetcher fetcher.Factory `name:"offlineUnixfsFetcher"`
-		MFSRoot              *mfs.Root
-		Provider             provider.System
-		Repo                 repo.Repo
-	}
-	type output struct {
-		fx.Out
-		ProvidingStrategy    string `name:"providingStrategy"`
-		ProvidingKeyChanFunc provider.KeyChanFunc
-	}
-	return func(in input) output {
+type provStrategyIn struct {
+	fx.In
+	Pinner               pin.Pinner
+	Blockstore           blockstore.Blockstore
+	OfflineIPLDFetcher   fetcher.Factory `name:"offlineIpldFetcher"`
+	OfflineUnixFSFetcher fetcher.Factory `name:"offlineUnixfsFetcher"`
+	MFSRoot              *mfs.Root
+	Provider             provider.System
+	Repo                 repo.Repo
+}
+
+type provStrategyOut struct {
+	fx.Out
+	ProvidingStrategy    config.ReproviderStrategy
+	ProvidingKeyChanFunc provider.KeyChanFunc
+}
+
+func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrategyOut {
+	strategyFlag := config.ParseReproviderStrategy(strategy)
+
+	return func(in provStrategyIn) provStrategyOut {
 		var kcf provider.KeyChanFunc
 
-		switch strategy {
-		case "roots":
+		switch strategyFlag {
+		case config.ReproviderStrategyRoots:
 			kcf = provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher))
-		case "pinned":
+		case config.ReproviderStrategyPinned:
 			kcf = provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher))
-		case "pinned+mfs":
+		case config.ReproviderStrategyPinned | config.ReproviderStrategyMFS:
 			kcf = provider.NewPrioritizedProvider(
 				provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher)),
 				mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher),
 			)
-		case "mfs":
+		case config.ReproviderStrategyMFS:
 			kcf = mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher)
-		case "flat":
+		case config.ReproviderStrategyFlat:
 			kcf = in.Blockstore.AllKeysChan
 		default: // "all", ""
 			kcf = provider.NewPrioritizedProvider(
@@ -266,8 +268,8 @@ func newProvidingStrategy(strategy string) interface{} {
 			}
 		}
 
-		return output{
-			ProvidingStrategy:    strategy,
+		return provStrategyOut{
+			ProvidingStrategy:    strategyFlag,
 			ProvidingKeyChanFunc: kcf,
 		}
 	}

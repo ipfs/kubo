@@ -32,15 +32,16 @@ func BaseBlockstoreCtor(
 	cacheOpts blockstore.CacheOpts,
 	hashOnRead bool,
 	writeThrough bool,
-	reprovidingStrategy string,
+	providingStrategy string,
 
 ) func(mctx helpers.MetricsCtx, repo repo.Repo, prov provider.System, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 	return func(mctx helpers.MetricsCtx, repo repo.Repo, prov provider.System, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 		opts := []blockstore.Option{blockstore.WriteThrough(writeThrough)}
-		switch reprovidingStrategy {
-		case "all", "flat":
+
+		strategyFlag := config.ParseReproviderStrategy(providingStrategy)
+		shouldProvide := config.ReproviderStrategyAll | config.ReproviderStrategyFlat
+		if strategyFlag&shouldProvide != 0 {
 			opts = append(opts, blockstore.Provider(prov))
-		default:
 		}
 
 		// hash security

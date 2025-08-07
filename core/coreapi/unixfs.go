@@ -115,7 +115,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	// going to be provided by the blockstore (wrong strategy for that),
 	// nor by the pinner (it does not traverse the pinned DAG).
 	if settings.Pin && !settings.OnlyHash &&
-		(api.providingStrategy == "pinned" || api.providingStrategy == "pinned+mfs") {
+		(api.providingStrategy&config.ReproviderStrategyPinned) != 0 {
 		dserv = &providingDagService{dserv, api.provider}
 	}
 

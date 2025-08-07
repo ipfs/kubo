@@ -443,7 +443,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	uio.HAMTShardingSize = int(shardSingThresholdInt)
 	uio.DefaultShardWidth = int(shardMaxFanout)
 
-	reproviderStrategy := cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
+	providerStrategy := cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
 
 	return fx.Options(
 		bcfgOpts,
@@ -453,8 +453,8 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		IPNS,
 		Networked(bcfg, cfg, userResourceOverrides),
 		fx.Provide(BlockService(cfg)),
-		fx.Provide(Pinning(reproviderStrategy)),
-		fx.Provide(Files(reproviderStrategy)),
+		fx.Provide(Pinning(providerStrategy)),
+		fx.Provide(Files(providerStrategy)),
 		Core,
 	)
 }
