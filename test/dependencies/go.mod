@@ -31,6 +31,7 @@ require (
 	github.com/DataDog/zstd v1.5.6-0.20230824185856-869dae002e5e // indirect
 	github.com/Djarvur/go-err113 v0.0.0-20210108212216-aea10b59be24 // indirect
 	github.com/GaijinEntertainment/go-exhaustruct/v3 v3.3.0 // indirect
+	github.com/Jorropo/jsync v1.0.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/OpenPeeDeeP/depguard/v2 v2.2.0 // indirect
 	github.com/alecthomas/go-check-sumtype v0.1.4 // indirect
@@ -130,7 +131,7 @@ require (
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
-	github.com/ipfs/boxo v0.33.1 // indirect
+	github.com/ipfs/boxo v0.33.2-0.20250804224807-e5da058ebb08 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.2 // indirect
 	github.com/ipfs/go-cid v0.5.0 // indirect

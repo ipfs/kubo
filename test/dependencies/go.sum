@@ -33,6 +33,8 @@ github.com/Djarvur/go-err113 v0.0.0-20210108212216-aea10b59be24 h1:sHglBQTwgx+rW
 github.com/Djarvur/go-err113 v0.0.0-20210108212216-aea10b59be24/go.mod h1:4UJr5HIiMZrwgkSPdsjy2uOQExX/WEILpIrO9UPGuXs=
 github.com/GaijinEntertainment/go-exhaustruct/v3 v3.3.0 h1:/fTUt5vmbkAcMBt4YQiuC23cV0kEsN1MVMNqeOW43cU=
 github.com/GaijinEntertainment/go-exhaustruct/v3 v3.3.0/go.mod h1:ONJg5sxcbsdQQ4pOW8TGdTidT2TMAUy/2Xhr8mrYaao=
+github.com/Jorropo/jsync v1.0.1 h1:6HgRolFZnsdfzRUj+ImB9og1JYOxQoReSywkHOGSaUU=
+github.com/Jorropo/jsync v1.0.1/go.mod h1:jCOZj3vrBCri3bSU3ErUYvevKlnbssrXeCivybS5ABQ=
 github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd h1:HNhzThEtZW714v8Eda8sWWRcu9WSzJC+oCyjRjvZgRA=
 github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd/go.mod h1:bqoB8kInrTeEtYAwaIXoSRqdwnjQmFhsfusnzyui6yY=
 github.com/Masterminds/semver/v3 v3.2.1 h1:RN9w6+7QoMeJVGyfmbcgs28Br8cvmnucEXnY0rYXWg0=
@@ -319,8 +321,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.33.1 h1:89m+ksw+cYi0ecTNTJ71IRS5ZrLiovmO6XWHIOGhAEg=
-github.com/ipfs/boxo v0.33.1/go.mod h1:KwlJTzv5fb1GLlA9KyMqHQmvP+4mrFuiE3PnjdrPJHs=
+github.com/ipfs/boxo v0.33.2-0.20250804224807-e5da058ebb08 h1:PtntQQtYOh7YTCRnrU1idTuOwxEi0ZmYM4u7ZfSAExY=
+github.com/ipfs/boxo v0.33.2-0.20250804224807-e5da058ebb08/go.mod h1:KwlJTzv5fb1GLlA9KyMqHQmvP+4mrFuiE3PnjdrPJHs=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-block-format v0.2.2 h1:uecCTgRwDIXyZPgYspaLXoMiMmxQpSx2aq34eNc4YvQ=
