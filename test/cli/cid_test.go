@@ -229,7 +229,7 @@ func testCidBases(t *testing.T) {
 			"V  base32hexupper",
 			"z  base58btc",
 			"Z  base58flickr",
-			"base256emoji", // TODO: Bug - should show "🚀  base256emoji" but currently shows spaces
+			"🚀  base256emoji",
 		}
 
 		res := node.RunIPFS("cid", "bases", "--prefix")
@@ -295,7 +295,7 @@ func testCidBases(t *testing.T) {
 			"V      86  base32hexupper",
 			"z     122  base58btc",
 			"Z      90  base58flickr",
-			"128640  base256emoji",
+			"🚀  128640  base256emoji",
 		}
 
 		res := node.RunIPFS("cid", "bases", "--prefix", "--numeric")
