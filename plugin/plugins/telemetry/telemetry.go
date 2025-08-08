@@ -241,12 +241,12 @@ func (p *telemetryPlugin) hasDefaultBootstrapPeers() bool {
 	if len(defaultPeers) != len(currentPeers) {
 		return false
 	}
-	peerMap := make(map[string]bool)
+	peerMap := make(map[string]struct{}, len(defaultPeers))
 	for _, peer := range defaultPeers {
-		peerMap[peer] = true
+		peerMap[peer] = struct{}{}
 	}
 	for _, peer := range currentPeers {
-		if !peerMap[peer] {
+		if _, ok := peerMap[peer]; !ok {
 			return false
 		}
 	}
