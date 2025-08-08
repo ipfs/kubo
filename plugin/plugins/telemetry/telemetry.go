@@ -57,7 +57,7 @@ var repoSizeBuckets = []uint64{
 
 var uptimeBuckets = []time.Duration{
 	1 * 24 * time.Hour,
-	24 * time.Hour,
+	2 * 24 * time.Hour,
 	3 * 24 * time.Hour,
 	7 * 24 * time.Hour,
 	14 * 24 * time.Hour,
