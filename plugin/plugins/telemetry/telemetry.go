@@ -461,7 +461,6 @@ func (p *telemetryPlugin) collectPlatformInfo() {
 	p.event.PlatformVM = isRunningInVM()
 }
 
-// Note: this function has been written by an LLM.
 func isRunningInContainer() bool {
 	// Check for Docker container
 	if _, err := os.Stat("/.dockerenv"); err == nil {
