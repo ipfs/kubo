@@ -4,6 +4,11 @@ test_description="Test cid commands"
 
 . lib/test-lib.sh
 
+# NOTE: Primary tests for "ipfs cid" commands are in test/cli/cid_test.go
+# These sharness tests are kept for backward compatibility but new tests
+# should be added to test/cli/cid_test.go instead. If any of these tests
+# break, consider removing them and updating only the test/cli version.
+
 # note: all "ipfs cid" commands should work without requiring a repo
 
 CIDv0="QmS4ustL54uo8FzR9455qaxZwuMiUhyvMcX9Ba8nUH4uVv"
