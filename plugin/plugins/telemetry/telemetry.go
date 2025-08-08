@@ -201,18 +201,11 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 func (p *telemetryPlugin) loadUUID() error {
 	// Generate or read our UUID from disk
 	b, err := os.ReadFile(p.uuidFilename)
-	if err == nil {
-		v := string(b)
-		v = strings.TrimSpace(v)
-		uid, err := uuid.Parse(v)
-		if err != nil {
-			log.Errorf("cannot parse telemetry uuid: %s", err)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Errorf("error reading telemetry uuid from disk: %s", err)
 			return err
 		}
-		log.Debugf("uuid read from disk %s", uid)
-		p.event.UUID = uid.String()
-		return nil
-	} else if os.IsNotExist(err) {
 		uid, err := uuid.NewRandom()
 		if err != nil {
 			log.Errorf("cannot generate telemetry uuid: %s", err)
@@ -227,10 +220,18 @@ func (p *telemetryPlugin) loadUUID() error {
 			log.Errorf("cannot write telemetry uuid: %s", err)
 			return err
 		}
-	} else {
-		log.Errorf("error reading telemetry uuid from disk: %s", err)
+		return nil
+	}
+
+	v := string(b)
+	v = strings.TrimSpace(v)
+	uid, err := uuid.Parse(v)
+	if err != nil {
+		log.Errorf("cannot parse telemetry uuid: %s", err)
 		return err
 	}
+	log.Debugf("uuid read from disk %s", uid)
+	p.event.UUID = uid.String()
 	return nil
 }
 
