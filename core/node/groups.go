@@ -250,7 +250,12 @@ func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(RepoConfig),
 		fx.Provide(Datastore),
-		fx.Provide(BaseBlockstoreCtor(cacheOpts, cfg.Datastore.HashOnRead, cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough))),
+		fx.Provide(BaseBlockstoreCtor(
+			cacheOpts,
+			cfg.Datastore.HashOnRead,
+			cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough),
+			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
+		)),
 		finalBstore,
 	)
 }
@@ -350,8 +355,6 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(BitswapOptions(cfg)),
 		fx.Provide(Bitswap(isBitswapServerEnabled, isBitswapLibp2pEnabled, isHTTPRetrievalEnabled)),
 		fx.Provide(OnlineExchange(isBitswapLibp2pEnabled)),
-		// Replace our Exchange with a Providing exchange!
-		fx.Decorate(ProvidingExchange(isProviderEnabled && isBitswapServerEnabled)),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),
@@ -391,8 +394,6 @@ var Core = fx.Options(
 	fx.Provide(Dag),
 	fx.Provide(FetcherConfig),
 	fx.Provide(PathResolverConfig),
-	fx.Provide(Pinning),
-	fx.Provide(Files),
 )
 
 func Networked(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
@@ -442,6 +443,8 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	uio.HAMTShardingSize = int(shardSingThresholdInt)
 	uio.DefaultShardWidth = int(shardMaxFanout)
 
+	providerStrategy := cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
+
 	return fx.Options(
 		bcfgOpts,
 
@@ -450,6 +453,8 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		IPNS,
 		Networked(bcfg, cfg, userResourceOverrides),
 		fx.Provide(BlockService(cfg)),
+		fx.Provide(Pinning(providerStrategy)),
+		fx.Provide(Files(providerStrategy)),
 		Core,
 	)
 }
