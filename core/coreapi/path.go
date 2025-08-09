@@ -68,6 +68,9 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Immutabl
 	if err != nil {
 		return path.ImmutablePath{}, nil, err
 	}
+	if node == nil {
+		return path.ImmutablePath{}, nil, fmt.Errorf("failed to resolve path: no valid node found")
+	}
 
 	segments := []string{p.Namespace(), node.String()}
 	segments = append(segments, remainder...)
