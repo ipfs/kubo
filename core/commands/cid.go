@@ -293,7 +293,7 @@ var basesCmd = &cmds.Command{
 			multibaseSorter{val}.Sort()
 			for _, v := range val {
 				code := v.Code
-				if code < 32 || code >= 127 {
+				if !unicode.IsPrint(rune(code)) {
 					// don't display non-printable prefixes
 					code = ' '
 				}
