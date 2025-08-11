@@ -309,10 +309,37 @@ test_launch_ipfs_daemon_without_network() {
 }
 
 do_umount() {
+  local mount_point="$1"
+  local max_retries=3
+  local retry_delay=0.5
+  
+  # Try normal unmount first (without lazy flag)
+  for i in $(seq 1 $max_retries); do
+    if [ "$(uname -s)" = "Linux" ]; then
+      # First attempt: standard unmount
+      if fusermount -u "$mount_point" 2>/dev/null; then
+        return 0
+      fi
+    else
+      if umount "$mount_point" 2>/dev/null; then
+        return 0
+      fi
+    fi
+    
+    # If not last attempt, wait before retry
+    if [ $i -lt $max_retries ]; then
+      go-sleep "${retry_delay}s"
+    fi
+  done
+  
+  # If normal unmount failed, try lazy unmount as last resort (Linux only)
   if [ "$(uname -s)" = "Linux" ]; then
-  fusermount -z -u "$1"
+    # Log that we're falling back to lazy unmount
+    test "$TEST_VERBOSE" = 1 && echo "# Warning: falling back to lazy unmount for $mount_point"
+    fusermount -z -u "$mount_point" 2>/dev/null
   else
-  umount "$1"
+    # On non-Linux, try force unmount
+    umount -f "$mount_point" 2>/dev/null || true
   fi
 }
 
