@@ -60,6 +60,8 @@ config file at runtime.
     - [`Gateway.DeserializedResponses`](#gatewaydeserializedresponses)
     - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
     - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
+    - [`Gateway.RetrievalTimeout`](#gatewayretrievaltimeout)
+    - [`Gateway.MaxConcurrentRequests`](#gatewaymaxconcurrentrequests)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
     - [`Gateway.FastDirIndexThreshold`](#gatewayfastdirindexthreshold)
@@ -946,6 +948,40 @@ standalone router implementation named [someguy](https://github.com/ipfs/someguy
 Default: `false`
 
 Type: `flag`
+
+### `Gateway.RetrievalTimeout`
+
+Enforces a maximum duration for content retrieval:
+- **Time to first byte**: If the gateway cannot start writing the response within
+  this duration (e.g., stuck searching for providers), a 504 Gateway Timeout is returned.
+- **Time between writes**: After the first byte, the timeout resets each time new bytes
+  are written to the client. If the gateway cannot write additional data within this
+  duration after the last successful write, the response is terminated.
+
+This helps free resources when the gateway gets stuck looking for providers or cannot
+retrieve the requested content.
+
+A value of 0 disables this timeout.
+
+Default: `30s`
+
+Type: `optionalDuration`
+
+### `Gateway.MaxConcurrentRequests`
+
+Limits the number of concurrent HTTP requests handled by the gateway.
+Requests beyond this limit receive a 429 Too Many Requests response with
+a Retry-After header set to 60 seconds.
+
+This is useful for high-load deployments that need to tune resource usage
+based on their reverse proxy configuration (e.g., nginx's worker_connections).
+Set this slightly below your reverse proxy's limit for graceful degradation.
+
+A value of 0 disables the limit.
+
+Default: `1024`
+
+Type: `optionalInteger`
 
 ### `Gateway.HTTPHeaders`
 
