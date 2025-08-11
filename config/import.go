@@ -21,7 +21,6 @@ const (
 	// write-batch. The total size of the batch is limited by
 	// BatchMaxnodes and BatchMaxSize.
 	DefaultBatchMaxSize = 100 << 20 // 20MiB
-
 )
 
 var (

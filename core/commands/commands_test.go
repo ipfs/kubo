@@ -164,6 +164,7 @@ func TestCommands(t *testing.T) {
 		"/ping",
 		"/provide",
 		"/provide/clear",
+		"/provide/stat",
 		"/pubsub",
 		"/pubsub/ls",
 		"/pubsub/peers",
