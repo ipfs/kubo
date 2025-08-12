@@ -31,7 +31,8 @@ const (
 	modeEnvVar   = "IPFS_TELEMETRY_PLUGIN_MODE"
 	uuidFilename = "telemetry_uuid"
 	endpoint     = "https://telemetry.ipshipyard.dev"
-	sendDelay    = 15 * time.Minute
+	sendDelay    = 15 * time.Minute // delay before first telemetry collection after daemon start
+	sendInterval = 24 * time.Hour   // interval between telemetry collections after the first one
 )
 
 type pluginMode int
@@ -112,7 +113,7 @@ type telemetryPlugin struct {
 	uuidFilename string
 	mode         pluginMode
 	endpoint     string
-	runOnce      bool
+	runOnce      bool // test-only flag: when true, sends telemetry immediately without delay
 	sendDelay    time.Duration
 
 	node      *core.IpfsNode
@@ -163,7 +164,7 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 		log.Debug("mode set from config")
 	}
 
-	// read "Delay" from the config. Parse as duration. Set p.delay to it
+	// read "Delay" from the config. Parse as duration. Set p.sendDelay to it
 	// or set default.
 	if delayStr := readFromConfig(env.Config, "Delay"); delayStr != "" {
 		delay, err := time.ParseDuration(delayStr)
@@ -325,6 +326,8 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 		p.showInfo()
 	}
 
+	// runOnce is only used in tests to send telemetry immediately.
+	// In production, this is always false, ensuring users get the 15-minute delay.
 	if p.runOnce {
 		p.prepareEvent()
 		return p.sendTelemetry()
@@ -335,7 +338,7 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 		for range timer.C {
 			p.prepareEvent()
 			_ = p.sendTelemetry()
-			timer.Reset(24 * time.Hour)
+			timer.Reset(sendInterval)
 		}
 	}()
 
