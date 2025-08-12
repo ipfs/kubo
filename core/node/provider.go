@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -17,9 +18,6 @@ import (
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
-	"go.uber.org/fx"
-
-	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p-kad-dht/amino"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/dual/provider"
@@ -29,6 +27,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/routing"
 	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
+	"go.uber.org/fx"
 )
 
 // The size of a batch that will be used for calculating average announcement
@@ -45,6 +44,7 @@ func (r *NoopProvider) StartProviding(...mh.Multihash)                        {}
 func (r *NoopProvider) StopProviding(...mh.Multihash)                         {}
 func (r *NoopProvider) InstantProvide(context.Context, ...mh.Multihash) error { return nil }
 func (r *NoopProvider) ForceProvide(context.Context, ...mh.Multihash) error   { return nil }
+func (r *NoopProvider) Clear() int                                            { return 0 }
 
 type Provider interface {
 	// StartProviding provides the given keys to the DHT swarm unless they were
@@ -65,6 +65,11 @@ type Provider interface {
 	// ForceProvide is similar to StartProviding, but it sends provider records out
 	// to the DHT even if the keys were already provided in the past.
 	ForceProvide(context.Context, ...mh.Multihash) error
+
+	// TODO: Do we need this?
+	//
+	// Remove and keys that are being reprovided.
+	Clear() int
 }
 
 var (
@@ -324,17 +329,21 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 // ONLINE/OFFLINE
 
 // OnlineProviders groups units managing provider routing records online
-func OnlineProviders(provide bool, providerStrategy string, reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
+func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	if !provide {
 		return OfflineProviders()
 	}
+
+	providerStrategy := cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
 
 	strategyFlag := config.ParseReproviderStrategy(providerStrategy)
 	if strategyFlag == 0 {
 		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", providerStrategy))
 	}
 
-	opts := []fx.Option{keyProvider}
+	opts := []fx.Option{
+		fx.Provide(setReproviderKeyProvider(providerStrategy)),
+	}
 	if cfg.Reprovider.Sweep.Enabled.WithDefault(config.DefaultReproviderSweepEnabled) {
 		reprovideInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
 		acceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)

@@ -26,6 +26,7 @@ import (
 	"github.com/ipfs/boxo/fetcher"
 	mfs "github.com/ipfs/boxo/mfs"
 	pathresolver "github.com/ipfs/boxo/path/resolver"
+	provider "github.com/ipfs/boxo/provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
