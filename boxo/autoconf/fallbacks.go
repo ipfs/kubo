@@ -29,7 +29,7 @@ var (
 )
 
 // GetMainnetFallbackConfig returns a complete fallback config matching current mainnet values
-// This mirrors https://config.ipfs-mainnet.org/autoconf.json exactly
+// This mirrors https://conf.ipfs-mainnet.org/autoconf.json exactly
 func GetMainnetFallbackConfig() *Config {
 	return &Config{
 		AutoConfVersion: 2025072901, // Current mainnet version

@@ -662,7 +662,7 @@ The URL must serve a JSON document matching the AutoConf schema. Kubo validates 
 <a href="https://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
 
 > [!NOTE]
-> Public good autoconf manifest at `config.ipfs-mainnet.org` is provided by the team at [Shipyard](https://ipshipyard.com).
+> Public good autoconf manifest at `conf.ipfs-mainnet.org` is provided by the team at [Shipyard](https://ipshipyard.com).
 
 Default: `"https://example.com/autoconf.json"`
 

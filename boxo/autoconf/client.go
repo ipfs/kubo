@@ -46,7 +46,7 @@ const (
 
 	// MainnetAutoConfURL is the default URL for fetching autoconf for the IPFS Mainnet.
 	// See https://docs.ipfs.tech/concepts/glossary/#mainnet for more information about IPFS Mainnet.
-	MainnetAutoConfURL = "https://config.ipfs-mainnet.org/autoconf.json"
+	MainnetAutoConfURL = "https://conf.ipfs-mainnet.org/autoconf.json"
 )
 
 // Client fetches, caches, and manages AutoConf configurations from HTTP endpoints.

@@ -19,7 +19,7 @@ For most applications, use the "Must" methods that provide graceful fallbacks an
 ```go
 import "github.com/ipfs/kubo/boxo/autoconf"
 
-const autoconfURL = "https://config.ipfs-mainnet.org/autoconf.json"
+const autoconfURL = "https://conf.ipfs-mainnet.org/autoconf.json"
 
 // Create a client with default options
 client, err := autoconf.NewClient()
@@ -184,7 +184,7 @@ $CACHE_DIR/
       .etag                         # HTTP ETag for conditional requests
       .last-modified                # HTTP Last-Modified for cache validation
       .last-refresh                 # Timestamp of last refresh attempt
-    config.ipfs-mainnet.org/
+    conf.ipfs-mainnet.org/
       autoconf-2025072301.json
       .etag
       .last-modified
