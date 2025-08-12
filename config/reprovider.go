@@ -14,7 +14,7 @@ const (
 	DefaultReproviderSweepDedicatedPeriodicWorkers = 2
 	DefaultReproviderSweepDedicatedBurstWorkers    = 1
 	DefaultReproviderSweepMaxProvideConnsPerWorker = 16
-	DefaultReproviderSweepMHStoreBatchSize         = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
+	DefaultReproviderSweepKeyStoreBatchSize        = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
 )
 
 type ReproviderStrategy int
@@ -45,8 +45,8 @@ type Sweep struct {
 	DedicatedBurstWorkers    *OptionalInteger // Number of workers dedicated to initial provides or burst reproviding keyspace regions after a period of inactivity.
 	MaxProvideConnsPerWorker *OptionalInteger // Number of connections that a worker is able to open to send provider records during a (re)provide operation.
 
-	MHStoreGCInterval *OptionalDuration // Interval for garbage collection in MHStore.
-	MHStoreBatchSize  *OptionalInteger  // Number of multihashes to keep in memory when gc'ing the MHStore.
+	KeyStoreGCInterval *OptionalDuration // Interval for garbage collection in KeyStore.
+	KeyStoreBatchSize  *OptionalInteger  // Number of multihashes to keep in memory when gc'ing the KeyStore.
 }
 
 func ParseReproviderStrategy(s string) ReproviderStrategy {

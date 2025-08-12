@@ -114,7 +114,7 @@ type IpfsNode struct {
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
 
 	Routing   irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
-	Provider  node.Provider              // the value provider system
+	Provider  node.DHTProvider           // the value provider system
 	DHT       *ddht.DHT                  `optional:"true"`
 	DHTClient routing.Routing            `name:"dhtc" optional:"true"`
 

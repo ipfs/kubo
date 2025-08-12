@@ -1857,25 +1857,25 @@ Reprovider Sweep is a resource efficient technique for advertising content to
 the Amino DHT swarm.
 
 The Reprovider module tracks the keys that should be periodically reprovided in
-the `MHStore` (multihash datastore). It splits the keys into DHT keyspace
-regions by proximity (XOR distance), and schedules when reprovides should
-happen in order to spread the reprovide operation over time to avoid a spike in
-resource utilization. It basically sweeps the keyspace _from left to right_
-over the [`Reprovider.Interval`](#reproviderinterval) time period, and
-reprovides keys matching to the visited keyspace region.
+the `KeyStore`. It splits the keys into DHT keyspace regions by proximity (XOR
+distance), and schedules when reprovides should happen in order to spread the
+reprovide operation over time to avoid a spike in resource utilization. It
+basically sweeps the keyspace _from left to right_ over the
+[`Reprovider.Interval`](#reproviderinterval) time period, and reprovides keys
+matching to the visited keyspace region.
 
 Reprovider Sweep aims at replacing the inefficient legacy `boxo/provider`
 module, and is currently opt-in.
 
 Whenever new keys should be advertised to the Amino DHT, `kubo` calls
 `StartProviding()`, triggering an initial `provide` operation for the given
-keys. The keys will be added to the `MHStore` tracking which keys should be
+keys. The keys will be added to the `KeyStore` tracking which keys should be
 reprovided and when they should be reprovided. Calling `StopProviding()`
-removes the keys from the `MHStore`. However, it is currently tricky for `kubo`
-to detect when a key should stop being advertised. Hence, `kubo` will
-periodically `Reset()` the `MHStore` by providing it a channel of all the keys
-it is expected to contain. During this operation, all keys in the `MHstore` are
-purged, and only the given ones remain scheduled.
+removes the keys from the `KeyStore`. However, it is currently tricky for
+`kubo` to detect when a key should stop being advertised. Hence, `kubo` will
+periodically `Reset()` the `KeyStore` by providing it a channel of all the keys
+it is expected to contain. During this operation, all keys in the `Keystore`
+are purged, and only the given ones remain scheduled.
 
 #### Reprovider.Sweep.Enabled
 
@@ -1971,9 +1971,9 @@ Default: `16`
 
 Type: `optionalInteger` (non-negative)
 
-#### Reprovider.Sweep.MHStoreGCInterval
+#### Reprovider.Sweep.KeyStoreGCInterval
 
-Interval at which the reprovider's MHStore state is purged and replaced by keys
+Interval at which the reprovider's KeyStore state is purged and replaced by keys
 matching the [`Reprovider.Strategy`](#reproviderstrategy). This operation is
 necessary to garbage collect keys that shouldn't be advertised anymore to the
 DHT swarm.
@@ -1982,10 +1982,10 @@ Default: [`Reprovider.Interval`](#reproviderinterval)
 
 Type: `optionalDuration`
 
-#### Reprovider.Sweep.MHStoreBatchSize
+#### Reprovider.Sweep.KeyStoreBatchSize
 
-During the garbage collection, all keys stored in the MHStore are removed, and
-the keys are streamed from a channel to fill the MHStore again with up-to-date
+During the garbage collection, all keys stored in the KeyStore are removed, and
+the keys are streamed from a channel to fill the KeyStore again with up-to-date
 keys. Since a high number of CIDs to reprovide can easily fill up the memory,
 keys are read and written in batches to optimize for memory usage.
 

@@ -45,7 +45,7 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 	}
 
 	// TODO: only provide cids according to Provide.Strategy
-	api.provider.StartProviding(dagNode.Cid().Hash())
+	api.provider.StartProviding(false, dagNode.Cid().Hash())
 
 	return api.pinning.Flush(ctx)
 }

@@ -16,7 +16,6 @@ import (
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
-	provider "github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	ds "github.com/ipfs/go-datastore"
@@ -27,6 +26,7 @@ import (
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/core/coreunix"
 	"github.com/ipfs/kubo/tracing"
+	mh "github.com/multiformats/go-multihash"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -220,7 +220,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 
 	if !settings.OnlyHash {
 		// TODO: only provide cids according to Provide.Strategy
-		api.provider.StartProviding(nd.Cid().Hash())
+		api.provider.StartProviding(false, nd.Cid().Hash())
 	}
 
 	return path.FromCid(nd.Cid()), nil
@@ -389,22 +389,20 @@ func (s *syncDagService) Sync() error {
 	return s.syncFn()
 }
 
+type provider interface {
+	StartProviding(force bool, keys ...mh.Multihash)
+}
+
 type providingDagService struct {
 	ipld.DAGService
-	provider provider.System
+	provider
 }
 
 func (pds *providingDagService) Add(ctx context.Context, n ipld.Node) error {
 	if err := pds.DAGService.Add(ctx, n); err != nil {
 		return err
 	}
-	// Provider errors are logged but not propagated.
-	// We don't want DAG operations to fail due to providing issues.
-	// The user's data is still stored successfully even if the
-	// announcement to the routing system fails temporarily.
-	if err := pds.provider.Provide(ctx, n.Cid(), true); err != nil {
-		log.Error(err)
-	}
+	pds.StartProviding(false, n.Cid().Hash())
 	return nil
 }
 
@@ -412,15 +410,11 @@ func (pds *providingDagService) AddMany(ctx context.Context, nds []ipld.Node) er
 	if err := pds.DAGService.AddMany(ctx, nds); err != nil {
 		return err
 	}
-	// Same error handling philosophy as Add(): log but don't fail.
-	// Note: Provide calls are intentionally blocking here - the Provider
-	// implementation should handle concurrency/queuing internally.
-	for _, n := range nds {
-		if err := pds.provider.Provide(ctx, n.Cid(), true); err != nil {
-			log.Error(err)
-			break
-		}
+	keys := make([]mh.Multihash, len(nds))
+	for i, n := range nds {
+		keys[i] = n.Cid().Hash()
 	}
+	pds.StartProviding(false, keys...)
 	return nil
 }
 

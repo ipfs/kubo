@@ -201,8 +201,8 @@ github.com/gabriel-vasile/mimetype v1.4.9 h1:5k+WDwEsD9eTLL8Tz3L0VnmVh9QxGjRmjBv
 github.com/gabriel-vasile/mimetype v1.4.9/go.mod h1:WnSQhFKJuBlRyLiKohA/2DtIlPFAbguNaG7QCHcyGok=
 github.com/gammazero/chanqueue v1.1.1 h1:n9Y+zbBxw2f7uUE9wpgs0rOSkP/I/yhDLiNuhyVjojQ=
 github.com/gammazero/chanqueue v1.1.1/go.mod h1:fMwpwEiuUgpab0sH4VHiVcEoji1pSi+EIzeG4TPeKPc=
-github.com/gammazero/deque v1.0.0 h1:LTmimT8H7bXkkCy6gZX7zNLtkbz4NdS2z8LZuor3j34=
-github.com/gammazero/deque v1.0.0/go.mod h1:iflpYvtGfM3U8S8j+sZEKIak3SAKYpA5/SQewgfXDKo=
+github.com/gammazero/deque v1.1.0 h1:OyiyReBbnEG2PP0Bnv1AASLIYvyKqIFN5xfl1t8oGLo=
+github.com/gammazero/deque v1.1.0/go.mod h1:JVrR+Bj1NMQbPnYclvDlvSX0nVGReLrQZ0aUMuWLctg=
 github.com/getsentry/sentry-go v0.27.0 h1:Pv98CIbtB3LkMWmXi4Joa5OOcwbmnX88sF5qbK3r3Ps=
 github.com/getsentry/sentry-go v0.27.0/go.mod h1:lc76E2QywIyW8WuBnwl8Lc4bkmQH4+w1gwTf25trprY=
 github.com/ghemawat/stream v0.0.0-20171120220530-696b145b53b9 h1:r5GgOLGbza2wVHRzK7aAj6lWZjfbAwiu/RDCVOKjRyM=
@@ -514,8 +514,8 @@ github.com/libp2p/go-libp2p-gostream v0.6.0 h1:QfAiWeQRce6pqnYfmIVWJFXNdDyfiR/qk
 github.com/libp2p/go-libp2p-gostream v0.6.0/go.mod h1:Nywu0gYZwfj7Jc91PQvbGU8dIpqbQQkjWgDuOrFaRdA=
 github.com/libp2p/go-libp2p-http v0.5.0 h1:+x0AbLaUuLBArHubbbNRTsgWz0RjNTy6DJLOxQ3/QBc=
 github.com/libp2p/go-libp2p-http v0.5.0/go.mod h1:glh87nZ35XCQyFsdzZps6+F4HYI6DctVFY5u1fehwSg=
-github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250707091924-e2e28c747ebb h1:nwODa+HiE8U9VQqPHBTepiMLNpJzl9vMddFHRbwcGbc=
-github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250707091924-e2e28c747ebb/go.mod h1:fVspLz4QG2bj+4zMSn6Lfigbzwc2Ie7wpMp+IAvRyqQ=
+github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250812114135-16615b72585c h1:gYVvyRgGkStRo7NtJKoDE792ekVRLdUxNAePRZw4xB4=
+github.com/libp2p/go-libp2p-kad-dht v0.33.2-0.20250812114135-16615b72585c/go.mod h1:45dUrCSw+OM/Nqc/IlGa03TQUoCbl/Ewd9kV3f39PGA=
 github.com/libp2p/go-libp2p-kbucket v0.3.1/go.mod h1:oyjT5O7tS9CQurok++ERgc46YLwEpuGoFq9ubvoUOio=
 github.com/libp2p/go-libp2p-kbucket v0.7.1-0.20250514131430-6bb8b16e312b h1:qh7OgCwt5AjJohJH+oXKZw6iDeIWKJOZaLXwkxrW0WQ=
 github.com/libp2p/go-libp2p-kbucket v0.7.1-0.20250514131430-6bb8b16e312b/go.mod h1:3CofRbwJbTybT8WVM2z/h5dj2FPNar6YLyxUc4Tmv1E=
