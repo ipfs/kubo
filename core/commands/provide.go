@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"text/tabwriter"
@@ -66,7 +67,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy
 			return nil
 		}
 
-		cleared := n.Provider.Clear()
+		cleared := n.Provider.ClearProvideQueue()
 		if quiet {
 			return nil
 		}
@@ -118,7 +119,12 @@ This interface is not stable and may change from release to release.
 			return ErrNotOnline
 		}
 
-		stats, err := nd.Provider.Stat()
+		provideSys, ok := nd.Provider.(provider.System)
+		if !ok {
+			return errors.New("provide stats not supported with sweeping provider")
+		}
+
+		stats, err := provideSys.Stat()
 		if err != nil {
 			return err
 		}
