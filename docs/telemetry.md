@@ -15,7 +15,7 @@ The behavior of the Telemetry plugin is controlled via the environment variable 
 | Mode     | Description                                                                 |
 |----------|-----------------------------------------------------------------------------|
 | `optin`  | **Default**. Telemetry is enabled. Data is sent periodically.              |
-| `optout` | Telemetry is disabled. No data is sent.                                     |
+| `optout` | Telemetry is disabled. No data is sent. Any existing telemetry UUID file is removed. |
 | `info`   | Like `optin`, but logs an informative message about the telemetry. It is used on the first run. |
 
 You can set the mode in your environment:
@@ -75,7 +75,7 @@ All data collected is:
 - **Optional**: Users can choose to opt out at any time.
 - **Secure**: Data is sent over HTTPS to a trusted endpoint.
 
-The telemetry UUID is stored in the IPFS repo folder and is used to identify the node across runs, but it does not contain any personal information.
+The telemetry UUID is stored in the IPFS repo folder and is used to identify the node across runs, but it does not contain any personal information. When you opt-out, this UUID file is automatically removed to ensure complete privacy.
 
 ---
 
