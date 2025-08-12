@@ -33,6 +33,7 @@ const (
 	endpoint     = "https://telemetry.ipshipyard.dev"
 	sendDelay    = 15 * time.Minute // delay before first telemetry collection after daemon start
 	sendInterval = 24 * time.Hour   // interval between telemetry collections after the first one
+	httpTimeout  = 30 * time.Second // timeout for telemetry HTTP requests
 )
 
 type pluginMode int
@@ -337,7 +338,9 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 		timer := time.NewTimer(p.sendDelay)
 		for range timer.C {
 			p.prepareEvent()
-			_ = p.sendTelemetry()
+			if err := p.sendTelemetry(); err != nil {
+				log.Warnf("telemetry submission failed: %s (will retry in %s)", err, sendInterval)
+			}
 			timer.Reset(sendInterval)
 		}
 	}()
@@ -535,18 +538,22 @@ func (p *telemetryPlugin) sendTelemetry() error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Close = true
 
-	client := &http.Client{}
+	// Use client with timeout to prevent hanging
+	client := &http.Client{
+		Timeout: httpTimeout,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Debugf("error sending telemetry: %s", err)
+		log.Debugf("failed to send telemetry: %s", err)
 		return err
 	}
-	resp.Body.Close()
-	if resp.StatusCode > 400 {
-		err := fmt.Errorf("telemetry endpoint returned an error (%d)", resp.StatusCode)
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		err := fmt.Errorf("telemetry endpoint returned HTTP %d", resp.StatusCode)
 		log.Debug(err)
 		return err
 	}
-	log.Debugf("telemetry sent (%d)", resp.StatusCode)
+	log.Debugf("telemetry sent successfully (%d)", resp.StatusCode)
 	return nil
 }
