@@ -188,6 +188,15 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 	switch v {
 	case "optout":
 		p.mode = modeOptOut
+		log.Debug("telemetry disabled via opt-out")
+		// Remove UUID file if it exists when user opts out
+		if _, err := os.Stat(p.uuidFilename); err == nil {
+			if err := os.Remove(p.uuidFilename); err != nil {
+				log.Debugf("failed to remove telemetry UUID file: %s", err)
+			} else {
+				log.Debug("removed existing telemetry UUID file due to opt-out")
+			}
+		}
 		return nil
 	case "info":
 		p.mode = modeInfo
@@ -256,24 +265,25 @@ func (p *telemetryPlugin) hasDefaultBootstrapPeers() bool {
 func (p *telemetryPlugin) showInfo() {
 	fmt.Printf(`
 
-** Telemetry enabled **
+ℹ️  Anonymous telemetry will be enabled in %s
 
-Kubo will send anonymized information to the developers:
-  - Why?   The developers want to better understand the usage of different
-           features.
-  - What?  Anonymized information only. You can inspect it with
-           'GOLOG_LOG_LEVEL="telemetry=debug"'
-  - When?  %s after daemon's boot, or every 24h.
-  - How?   An HTTP request to %s.
+Kubo will collect anonymous usage data to help improve the software:
+• What:  Feature usage and configuration (no personal data)
+         Use GOLOG_LOG_LEVEL="telemetry=debug" to inspect collected data
+• When:  First collection in %s, then every 24h
+• How:   HTTP POST to %s
+         Anonymous ID: %s
 
-To opt-out, CTRL-C now and:
-    * Set %s to "optout", or
-    * Run 'ipfs config Plugins.Plugins.telemetry.Config.Mode optout'
-    * This message will be shown only once.
+No data sent yet. To opt-out before collection starts:
+• Set environment: %s=optout
+• Or run: ipfs config Plugins.Plugins.telemetry.Config.Mode optout
+• Then restart daemon
 
-Your telemetry UUID is: %s
+This message is shown only once.
+Learn more: https://github.com/ipfs/kubo/blob/master/docs/telemetry.md
 
-`, p.sendDelay, endpoint, modeEnvVar, p.event.UUID)
+
+`, p.sendDelay, p.sendDelay, endpoint, p.event.UUID, modeEnvVar)
 }
 
 // Start finishes telemetry initialization once the IpfsNode is ready,
@@ -296,6 +306,7 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 	}
 	p.config = cfg
 	if p.mode == modeOptOut {
+		log.Debug("telemetry collection skipped: opted out")
 		return nil
 	}
 
