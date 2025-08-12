@@ -112,7 +112,9 @@ func (r *BurstProvider) StopProviding(keys ...mh.Multihash) {
 
 func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) {
 	for _, k := range keys {
-		r.Provide(context.Background(), cid.NewCidV1(cid.Raw, k), true)
+		if err := r.Provide(context.Background(), cid.NewCidV1(cid.Raw, k), true); err != nil {
+			break
+		}
 	}
 }
 

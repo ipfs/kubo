@@ -25,7 +25,6 @@ import (
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/options"
@@ -43,8 +42,6 @@ import (
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/repo"
 )
-
-var log = logging.Logger("coreapi")
 
 type CoreAPI struct {
 	nctx context.Context
