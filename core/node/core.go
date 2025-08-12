@@ -18,7 +18,6 @@ import (
 	pathresolver "github.com/ipfs/boxo/path/resolver"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/boxo/pinning/pinner/dspinner"
-	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	format "github.com/ipfs/go-ipld-format"
@@ -49,7 +48,7 @@ func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blocks
 }
 
 // Pinning creates new pinner which tells GC which blocks should be kept
-func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov provider.System) (pin.Pinner, error) {
+func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov DHTProvider) (pin.Pinner, error) {
 	// Parse strategy at function creation time (not inside the returned function)
 	// This happens before the provider is created, which is why we pass the strategy
 	// string and parse it here, rather than using fx-provided ProvidingStrategy.
@@ -58,7 +57,8 @@ func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGSe
 	return func(bstore blockstore.Blockstore,
 		ds format.DAGService,
 		repo repo.Repo,
-		prov provider.System) (pin.Pinner, error) {
+		prov DHTProvider,
+	) (pin.Pinner, error) {
 		rootDS := repo.Datastore()
 
 		syncFn := func(ctx context.Context) error {
@@ -179,8 +179,8 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 }
 
 // Files loads persisted MFS root
-func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov provider.System) (*mfs.Root, error) {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov provider.System) (*mfs.Root, error) {
+func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov DHTProvider) (*mfs.Root, error) {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov DHTProvider) (*mfs.Root, error) {
 		dsk := datastore.NewKey("/local/filesroot")
 		pf := func(ctx context.Context, c cid.Cid) error {
 			rootDS := repo.Datastore()

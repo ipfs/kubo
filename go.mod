@@ -22,7 +22,7 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.33.2-0.20250804224807-e5da058ebb08
+	github.com/ipfs/boxo v0.33.2-0.20250812132143-3174e24d9c7b
 	github.com/ipfs/go-block-format v0.2.2
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-cidutil v0.1.0
@@ -89,7 +89,7 @@ require (
 	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792
 	golang.org/x/mod v0.26.0
 	golang.org/x/sync v0.16.0
-	golang.org/x/sys v0.34.0
+	golang.org/x/sys v0.35.0
 	google.golang.org/protobuf v1.36.6
 )
 
