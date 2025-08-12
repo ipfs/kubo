@@ -24,6 +24,7 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	dhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider"
 	rds "github.com/libp2p/go-libp2p-kad-dht/provider/datastore"
+	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"github.com/libp2p/go-libp2p/core/routing"
 	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
@@ -110,7 +111,14 @@ func (r *BurstProvider) StartProviding(force bool, keys ...mh.Multihash) {
 func (r *BurstProvider) StopProviding(keys ...mh.Multihash) {
 }
 
+// ProvideOnce sends out provider records for the supplied keys, but doesn't
+// mark the keys for reproviding.
 func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) {
+	if many, ok := r.System.(routinghelpers.ProvideManyRouter); ok {
+		_ = many.ProvideMany(context.Background(), keys)
+		return
+	}
+
 	for _, k := range keys {
 		if err := r.Provide(context.Background(), cid.NewCidV1(cid.Raw, k), true); err != nil {
 			break
@@ -118,6 +126,8 @@ func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) {
 	}
 }
 
+// ClearProvideQueue clears the all the keys from the provide queue and returns
+// the number of keys that were cleared.
 func (r *BurstProvider) ClearProvideQueue() int {
 	return r.Clear()
 }
