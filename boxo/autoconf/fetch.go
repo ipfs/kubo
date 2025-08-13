@@ -25,7 +25,7 @@ func (c *Client) getLatest(ctx context.Context) (*Response, error) {
 	}
 
 	// Ensure cache directory exists
-	if err := os.MkdirAll(cleanCachePath(cacheDir), dirPermOwnerGroupRead); err != nil {
+	if err := os.MkdirAll(filepath.Clean(cacheDir), dirPermOwnerGroupRead); err != nil {
 		return nil, fmt.Errorf("failed to create cache dir: %w", err)
 	}
 
@@ -245,7 +245,7 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 		// Record when we last checked for updates (with lock for thread safety)
 		timestampStr := httpRequestTime.Format(time.RFC3339)
 		c.cacheMu.Lock()
-		err = writeOwnerOnlyFile(cacheFilePath(cacheDir, lastRefreshFile), []byte(timestampStr))
+		err = writeOwnerOnlyFile(filepath.Join(cacheDir, lastRefreshFile), []byte(timestampStr))
 		c.cacheMu.Unlock()
 		if err != nil {
 			log.Warnf("failed to write last refresh time: %v", err)
@@ -377,7 +377,7 @@ func (c *Client) getCached(cacheDir string) (*Response, error) {
 
 // listCacheFiles returns all cached files sorted by timestamp (newest first)
 func (c *Client) listCacheFiles(cacheDir string) ([]string, error) {
-	cleanCacheDir := cleanCachePath(cacheDir)
+	cleanCacheDir := filepath.Clean(cacheDir)
 	entries, err := os.ReadDir(cleanCacheDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read cache dir: %w", err)
@@ -404,7 +404,7 @@ func (c *Client) saveToCache(cacheDir string, data []byte, etag, lastModified st
 	c.cacheMu.Lock()
 	defer c.cacheMu.Unlock()
 
-	cleanCacheDir := cleanCachePath(cacheDir)
+	cleanCacheDir := filepath.Clean(cacheDir)
 
 	// Use unix timestamp for filename to avoid trusting external values
 	timestamp := time.Now().Unix()
@@ -543,16 +543,6 @@ func (c *Client) validateHTTPURL(urlStr, fieldContext string) error {
 	}
 
 	return nil
-}
-
-// cleanCachePath returns a clean cache directory path
-func cleanCachePath(cacheDir string) string {
-	return filepath.Clean(cacheDir)
-}
-
-// cacheFilePath joins a clean cache directory with filename
-func cacheFilePath(cacheDir, filename string) string {
-	return filepath.Join(cleanCachePath(cacheDir), filename)
 }
 
 // validateConfig validates all multiaddr and URL values in the config
