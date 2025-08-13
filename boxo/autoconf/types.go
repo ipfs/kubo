@@ -107,6 +107,11 @@ type Response struct {
 	CacheAge  time.Duration // non-zero when response is from cache
 }
 
+// FromCache returns true if the response was served from cache
+func (r *Response) FromCache() bool {
+	return r.CacheAge > 0
+}
+
 // GetBootstrapPeers returns deduplicated bootstrap peers from the specified native systems
 func (c *Config) GetBootstrapPeers(nativeSystems ...string) []string {
 	bootstrapSet := make(map[string]struct{}) // For deduplication

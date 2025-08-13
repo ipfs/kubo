@@ -221,7 +221,6 @@ func (c *Config) DelegatedPublishersWithAutoConf() []string {
 	)
 }
 
-
 // expandConfigField expands a specific config field with autoconf values
 // Handles both top-level fields ("Bootstrap") and nested fields ("DNS.Resolvers")
 func (c *Config) expandConfigField(expandedCfg map[string]any, fieldPath string) {

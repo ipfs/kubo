@@ -180,7 +180,7 @@ func (u *BackgroundUpdater) performUpdate() error {
 	}
 
 	// Check if we got a new version and notify via callback
-	if !resp.FromCache && resp.Config.AutoConfVersion != oldVersion {
+	if !resp.FromCache() && resp.Config.AutoConfVersion != oldVersion {
 		if oldVersion == 0 {
 			log.Infof("fetched autoconf version %d", resp.Config.AutoConfVersion)
 		} else {

@@ -136,7 +136,7 @@ func (c *Client) GetCachedOrRefresh(ctx context.Context) *Config {
 		log.Errorf("AutoConf fetch returned nil response or config, falling back to fallback config")
 	} else {
 		// Return the fetched config as-is without any modification
-		if resp.FromCache {
+		if resp.FromCache() {
 			log.Debugf("GetCachedOrRefresh: returning cached config")
 		} else {
 			log.Debugf("GetCachedOrRefresh: returning fresh config from network")
@@ -197,7 +197,6 @@ func (c *Client) fetchFromRemote(ctx context.Context, configURL, cacheDir string
 		Config:    config,
 		FetchTime: fetchTime,
 		Version:   version,
-		FromCache: false,
 		CacheAge:  0,
 	}, nil
 }
@@ -370,7 +369,6 @@ func (c *Client) getCached(cacheDir string) (*Response, error) {
 		Config:    config,
 		FetchTime: fetchTime,
 		Version:   version,
-		FromCache: true,
 		CacheAge:  cacheAge,
 	}, nil
 }

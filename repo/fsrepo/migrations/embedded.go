@@ -126,7 +126,6 @@ func RunEmbeddedMigrations(ctx context.Context, targetVer int, ipfsDir string, a
 		return err
 	}
 
-
 	embeddedCount := 0
 	for _, migrationName := range migrations {
 		if HasEmbeddedMigration(migrationName) {
