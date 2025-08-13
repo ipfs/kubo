@@ -322,13 +322,7 @@ func bootstrapAdd(r repo.Repo, cfg *config.Config, peers []string) ([]string, er
 
 func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []string) ([]string, error) {
 	// Check if bootstrap contains "auto"
-	hasAuto := false
-	for _, peer := range cfg.Bootstrap {
-		if peer == config.AutoPlaceholder {
-			hasAuto = true
-			break
-		}
-	}
+	hasAuto := slices.Contains(cfg.Bootstrap, config.AutoPlaceholder)
 
 	if hasAuto && cfg.AutoConf.Enabled.WithDefault(config.DefaultAutoConfEnabled) {
 		// Cannot selectively remove peers when using "auto" bootstrap
@@ -397,13 +391,7 @@ func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []string) ([]stri
 
 func bootstrapRemoveAll(r repo.Repo, cfg *config.Config) ([]string, error) {
 	// Check if bootstrap contains "auto" - if so, we need special handling
-	hasAuto := false
-	for _, peer := range cfg.Bootstrap {
-		if peer == config.AutoPlaceholder {
-			hasAuto = true
-			break
-		}
-	}
+	hasAuto := slices.Contains(cfg.Bootstrap, config.AutoPlaceholder)
 
 	var removed []string
 	if hasAuto {

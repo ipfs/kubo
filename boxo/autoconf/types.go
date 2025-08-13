@@ -1,6 +1,9 @@
 package autoconf
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 // AutoPlaceholder is the string used as a placeholder for autoconf values
 const AutoPlaceholder = "auto"
@@ -136,13 +139,8 @@ func (c *Config) GetDelegatedEndpoints(ignoredNativeSystems ...string) map[strin
 	for url, conf := range c.DelegatedEndpoints {
 		hasIgnoredOverlap := false
 		for _, system := range conf.Systems {
-			for _, ignoredSystem := range ignoredNativeSystems {
-				if system == ignoredSystem {
-					hasIgnoredOverlap = true
-					break
-				}
-			}
-			if hasIgnoredOverlap {
+			if slices.Contains(ignoredNativeSystems, system) {
+				hasIgnoredOverlap = true
 				break
 			}
 		}
