@@ -27,7 +27,7 @@ RUN cd $SRC_DIR \
 # Using Debian Buster because the version of busybox we're using is based on it
 # and we want to make sure the libraries we're using are compatible. That's also
 # why we're running this for the target platform.
-FROM debian:bookworm-slim AS utilities
+FROM debian:stable-slim AS utilities
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y \
