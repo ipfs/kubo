@@ -168,8 +168,8 @@ func (c *Client) HasCachedConfig() bool {
 	}
 
 	// Lock to ensure thread-safe cache reads
-	c.cacheMu.Lock()
-	defer c.cacheMu.Unlock()
+	c.cacheMu.RLock()
+	defer c.cacheMu.RUnlock()
 
 	files, err := c.listCacheFiles(cacheDir)
 	return err == nil && len(files) > 0
@@ -243,12 +243,13 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 		log.Debugf("HTTP 304 Not Modified, updating last refresh time")
 
 		// Record when we last checked for updates (with lock for thread safety)
-		c.cacheMu.Lock()
 		timestampStr := httpRequestTime.Format(time.RFC3339)
-		if err := writeOwnerOnlyFile(cacheFilePath(cacheDir, lastRefreshFile), []byte(timestampStr)); err != nil {
+		c.cacheMu.Lock()
+		err = writeOwnerOnlyFile(cacheFilePath(cacheDir, lastRefreshFile), []byte(timestampStr))
+		c.cacheMu.Unlock()
+		if err != nil {
 			log.Warnf("failed to write last refresh time: %v", err)
 		}
-		c.cacheMu.Unlock()
 
 		config, err := c.getCachedConfig(cacheDir)
 		return resp, config, err
