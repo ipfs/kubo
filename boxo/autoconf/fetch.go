@@ -37,7 +37,9 @@ func (c *Client) getLatest(ctx context.Context) (*Response, error) {
 	}
 
 	// Cache is stale or doesn't exist, try to fetch from remote
-	if cacheErr == nil {
+	if cacheErr != nil {
+		log.Warnf("no valid cache available: %s", cacheErr)
+	} else {
 		log.Debugf("cache stale, checking for updates")
 	}
 
