@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/ipfs/kubo/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Helper function to run migration on JSON input and return result
@@ -17,15 +19,11 @@ func runMigrationOnJSON(t *testing.T, input string) map[string]interface{} {
 	// Use t.TempDir() for test isolation and parallel execution support
 	tempDir := t.TempDir()
 	err := convert(bytes.NewReader([]byte(input)), &output, tempDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	var result map[string]interface{}
 	err = json.Unmarshal(output.Bytes(), &result)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	return result
 }
@@ -36,15 +34,11 @@ func assertMapKeyEquals(t *testing.T, result map[string]interface{}, path []stri
 	current := result
 	for _, p := range path {
 		section, exists := current[p]
-		if !exists {
-			t.Fatalf("Section %s not found in path %v", p, path)
-		}
+		require.True(t, exists, "Section %s not found in path %v", p, path)
 		current = section.(map[string]interface{})
 	}
 
-	if current[key] != expected {
-		t.Errorf("Expected %s to be %v, got %v", key, expected, current[key])
-	}
+	assert.Equal(t, expected, current[key], "Expected %s to be %v", key, expected)
 }
 
 // Helper function to assert slice contains expected values
@@ -53,27 +47,19 @@ func assertSliceEquals(t *testing.T, result map[string]interface{}, path []strin
 	current := result
 	for i, p := range path[:len(path)-1] {
 		section, exists := current[p]
-		if !exists {
-			t.Fatalf("Section %s not found in path %v at index %d", p, path, i)
-		}
+		require.True(t, exists, "Section %s not found in path %v at index %d", p, path, i)
 		current = section.(map[string]interface{})
 	}
 
 	sliceKey := path[len(path)-1]
 	slice, exists := current[sliceKey]
-	if !exists {
-		t.Fatalf("Slice %s not found", sliceKey)
-	}
+	require.True(t, exists, "Slice %s not found", sliceKey)
 
 	actualSlice := slice.([]interface{})
-	if len(actualSlice) != len(expected) {
-		t.Fatalf("Expected slice length %d, got %d", len(expected), len(actualSlice))
-	}
+	require.Equal(t, len(expected), len(actualSlice), "Expected slice length %d, got %d", len(expected), len(actualSlice))
 
 	for i, exp := range expected {
-		if actualSlice[i] != exp {
-			t.Errorf("Expected slice[%d] to be %s, got %v", i, exp, actualSlice[i])
-		}
+		assert.Equal(t, exp, actualSlice[i], "Expected slice[%d] to be %s", i, exp)
 	}
 }
 
@@ -101,9 +87,7 @@ func runMigrationAndGetDNSResolvers(t *testing.T, input string) map[string]inter
 func assertResolvers(t *testing.T, resolvers map[string]interface{}, expected map[string]string) {
 	t.Helper()
 	for key, expectedValue := range expected {
-		if resolvers[key] != expectedValue {
-			t.Errorf("Expected %s resolver to be %v, got %v", key, expectedValue, resolvers[key])
-		}
+		assert.Equal(t, expectedValue, resolvers[key], "Expected %s resolver to be %v", key, expectedValue)
 	}
 }
 
@@ -114,9 +98,7 @@ func assertResolvers(t *testing.T, resolvers map[string]interface{}, expected ma
 func TestMigration(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "migration-test-16-to-17")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a test config with default bootstrap peers
@@ -146,20 +128,14 @@ func TestMigration(t *testing.T) {
 	// Write test config
 	configPath := filepath.Join(tempDir, "config")
 	configData, err := json.MarshalIndent(testConfig, "", "  ")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	err = os.WriteFile(configPath, configData, 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Create version file
 	versionPath := filepath.Join(tempDir, "version")
 	err = os.WriteFile(versionPath, []byte("16"), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Run migration
 	migration := &Migration{}
@@ -169,88 +145,58 @@ func TestMigration(t *testing.T) {
 	}
 
 	err = migration.Apply(opts)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Verify version was updated
 	versionData, err := os.ReadFile(versionPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(versionData) != "17" {
-		t.Errorf("Expected version 17, got %s", string(versionData))
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "17", string(versionData), "Expected version 17")
 
 	// Verify config was updated
 	configData, err = os.ReadFile(configPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	var updatedConfig map[string]interface{}
 	err = json.Unmarshal(configData, &updatedConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Check AutoConf was added
 	autoConf, exists := updatedConfig["AutoConf"]
-	if !exists {
-		t.Error("AutoConf section not added")
-	}
+	assert.True(t, exists, "AutoConf section not added")
 	autoConfMap := autoConf.(map[string]interface{})
-	if autoConfMap["URL"] != config.DefaultAutoConfURL {
-		t.Errorf("Expected AutoConf URL %s, got %s", config.DefaultAutoConfURL, autoConfMap["URL"])
-	}
+	assert.Equal(t, config.DefaultAutoConfURL, autoConfMap["URL"], "Expected AutoConf URL")
 
 	// Check Bootstrap was updated
 	bootstrap := updatedConfig["Bootstrap"].([]interface{})
-	if len(bootstrap) != 2 {
-		t.Errorf("Expected 2 bootstrap entries, got %d", len(bootstrap))
-	}
-	if bootstrap[0] != "auto" {
-		t.Errorf("Expected first bootstrap entry to be 'auto', got %s", bootstrap[0])
-	}
-	if bootstrap[1] != "/ip4/192.168.1.1/tcp/4001/p2p/QmCustomPeer" {
-		t.Errorf("Expected custom peer to be preserved, got %s", bootstrap[1])
-	}
+	assert.Equal(t, 2, len(bootstrap), "Expected 2 bootstrap entries")
+	assert.Equal(t, "auto", bootstrap[0], "Expected first bootstrap entry to be 'auto'")
+	assert.Equal(t, "/ip4/192.168.1.1/tcp/4001/p2p/QmCustomPeer", bootstrap[1], "Expected custom peer to be preserved")
 
 	// Check DNS.Resolvers was updated
 	dns := updatedConfig["DNS"].(map[string]interface{})
 	resolvers := dns["Resolvers"].(map[string]interface{})
-	if resolvers["."] != "auto" {
-		t.Errorf("Expected DNS resolver for '.' to be 'auto', got %s", resolvers["."])
-	}
+	assert.Equal(t, "auto", resolvers["."], "Expected DNS resolver for '.' to be 'auto'")
 
 	// Check Routing.DelegatedRouters was updated
 	routing := updatedConfig["Routing"].(map[string]interface{})
 	delegatedRouters := routing["DelegatedRouters"].([]interface{})
-	if len(delegatedRouters) != 1 || delegatedRouters[0] != "auto" {
-		t.Errorf("Expected DelegatedRouters to be ['auto'], got %v", delegatedRouters)
-	}
+	assert.Equal(t, 1, len(delegatedRouters))
+	assert.Equal(t, "auto", delegatedRouters[0], "Expected DelegatedRouters to be ['auto']")
 
 	// Check Ipns.DelegatedPublishers was updated
 	ipns := updatedConfig["Ipns"].(map[string]interface{})
 	delegatedPublishers := ipns["DelegatedPublishers"].([]interface{})
-	if len(delegatedPublishers) != 1 || delegatedPublishers[0] != "auto" {
-		t.Errorf("Expected DelegatedPublishers to be ['auto'], got %v", delegatedPublishers)
-	}
+	assert.Equal(t, 1, len(delegatedPublishers))
+	assert.Equal(t, "auto", delegatedPublishers[0], "Expected DelegatedPublishers to be ['auto']")
 
 	// Test revert
 	err = migration.Revert(opts)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Verify version was reverted
 	versionData, err = os.ReadFile(versionPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(versionData) != "16" {
-		t.Errorf("Expected version 16 after revert, got %s", string(versionData))
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "16", string(versionData), "Expected version 16 after revert")
 }
 
 func TestConvert(t *testing.T) {
@@ -323,14 +269,9 @@ func TestBootstrapMigration(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
 				result := processBootstrapPeers(tt.peers, "")
-				if len(result) != len(tt.expected) {
-					t.Errorf("Expected %d peers, got %d", len(tt.expected), len(result))
-					return
-				}
+				require.Equal(t, len(tt.expected), len(result), "Expected %d peers, got %d", len(tt.expected), len(result))
 				for i, expected := range tt.expected {
-					if result[i] != expected {
-						t.Errorf("Expected peer %d to be %s, got %s", i, expected, result[i])
-					}
+					assert.Equal(t, expected, result[i], "Expected peer %d to be %s", i, expected)
 				}
 			})
 		}

@@ -2,6 +2,9 @@ package config
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAutoConfDefaults(t *testing.T) {
@@ -13,21 +16,14 @@ func TestAutoConfDefaults(t *testing.T) {
 		},
 	}
 
-	if cfg.AutoConf.URL != DefaultAutoConfURL {
-		t.Errorf("expected AutoConf.URL to be %s, got %s", DefaultAutoConfURL, cfg.AutoConf.URL)
-	}
-
-	if !cfg.AutoConf.Enabled.WithDefault(DefaultAutoConfEnabled) {
-		t.Error("expected AutoConf.Enabled to be true by default")
-	}
+	assert.Equal(t, DefaultAutoConfURL, cfg.AutoConf.URL)
+	assert.True(t, cfg.AutoConf.Enabled.WithDefault(DefaultAutoConfEnabled))
 
 	// Test default refresh interval
 	if cfg.AutoConf.RefreshInterval == nil {
 		// This is expected - nil means use default
 		duration := (*OptionalDuration)(nil).WithDefault(DefaultAutoConfRefreshInterval)
-		if duration != DefaultAutoConfRefreshInterval {
-			t.Errorf("expected default refresh interval to be 24h, got %v", duration)
-		}
+		assert.Equal(t, DefaultAutoConfRefreshInterval, duration)
 	}
 }
 
@@ -52,41 +48,22 @@ func TestAutoConfProfile(t *testing.T) {
 
 	// Apply autoconf profile
 	profile, ok := Profiles["autoconf-on"]
-	if !ok {
-		t.Fatal("autoconf-on profile not found")
-	}
+	require.True(t, ok, "autoconf-on profile not found")
 
 	err := profile.Transform(cfg)
-	if err != nil {
-		t.Fatalf("failed to apply autoconf profile: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Check that values were set to "auto"
-	if len(cfg.Bootstrap) != 1 || cfg.Bootstrap[0] != AutoPlaceholder {
-		t.Errorf("expected Bootstrap to be [%s], got %v", AutoPlaceholder, cfg.Bootstrap)
-	}
-
-	if cfg.DNS.Resolvers["."] != AutoPlaceholder {
-		t.Errorf("expected DNS.Resolvers[\".\"] to be %s, got %s", AutoPlaceholder, cfg.DNS.Resolvers["."])
-	}
-
-	if len(cfg.Routing.DelegatedRouters) != 1 || cfg.Routing.DelegatedRouters[0] != AutoPlaceholder {
-		t.Errorf("expected DelegatedRouters to be [%s], got %v", AutoPlaceholder, cfg.Routing.DelegatedRouters)
-	}
-
-	if len(cfg.Ipns.DelegatedPublishers) != 1 || cfg.Ipns.DelegatedPublishers[0] != AutoPlaceholder {
-		t.Errorf("expected DelegatedPublishers to be [%s], got %v", AutoPlaceholder, cfg.Ipns.DelegatedPublishers)
-	}
+	assert.Equal(t, []string{AutoPlaceholder}, cfg.Bootstrap)
+	assert.Equal(t, AutoPlaceholder, cfg.DNS.Resolvers["."])
+	assert.Equal(t, []string{AutoPlaceholder}, cfg.Routing.DelegatedRouters)
+	assert.Equal(t, []string{AutoPlaceholder}, cfg.Ipns.DelegatedPublishers)
 
 	// Check that AutoConf was enabled
-	if !cfg.AutoConf.Enabled.WithDefault(DefaultAutoConfEnabled) {
-		t.Error("expected AutoConf.Enabled to be true after applying profile")
-	}
+	assert.True(t, cfg.AutoConf.Enabled.WithDefault(DefaultAutoConfEnabled))
 
 	// Check that URL was set
-	if cfg.AutoConf.URL != DefaultAutoConfURL {
-		t.Errorf("expected AutoConf.URL to be %s, got %s", DefaultAutoConfURL, cfg.AutoConf.URL)
-	}
+	assert.Equal(t, DefaultAutoConfURL, cfg.AutoConf.URL)
 }
 
 func TestInitWithAutoValues(t *testing.T) {
@@ -95,36 +72,21 @@ func TestInitWithAutoValues(t *testing.T) {
 	}
 
 	cfg, err := InitWithIdentity(identity)
-	if err != nil {
-		t.Fatalf("failed to init config: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Check that Bootstrap is set to "auto"
-	if len(cfg.Bootstrap) != 1 || cfg.Bootstrap[0] != AutoPlaceholder {
-		t.Errorf("expected Bootstrap to be [%s], got %v", AutoPlaceholder, cfg.Bootstrap)
-	}
+	assert.Equal(t, []string{AutoPlaceholder}, cfg.Bootstrap)
 
 	// Check that DNS resolver is set to "auto"
-	if cfg.DNS.Resolvers["."] != AutoPlaceholder {
-		t.Errorf("expected DNS.Resolvers[\".\"] to be %s, got %s", AutoPlaceholder, cfg.DNS.Resolvers["."])
-	}
+	assert.Equal(t, AutoPlaceholder, cfg.DNS.Resolvers["."])
 
 	// Check that DelegatedRouters is set to "auto"
-	if len(cfg.Routing.DelegatedRouters) != 1 || cfg.Routing.DelegatedRouters[0] != AutoPlaceholder {
-		t.Errorf("expected DelegatedRouters to be [%s], got %v", AutoPlaceholder, cfg.Routing.DelegatedRouters)
-	}
+	assert.Equal(t, []string{AutoPlaceholder}, cfg.Routing.DelegatedRouters)
 
 	// Check that DelegatedPublishers is set to "auto"
-	if len(cfg.Ipns.DelegatedPublishers) != 1 || cfg.Ipns.DelegatedPublishers[0] != AutoPlaceholder {
-		t.Errorf("expected DelegatedPublishers to be [%s], got %v", AutoPlaceholder, cfg.Ipns.DelegatedPublishers)
-	}
+	assert.Equal(t, []string{AutoPlaceholder}, cfg.Ipns.DelegatedPublishers)
 
 	// Check that AutoConf is enabled with correct URL
-	if !cfg.AutoConf.Enabled.WithDefault(DefaultAutoConfEnabled) {
-		t.Error("expected AutoConf.Enabled to be true")
-	}
-
-	if cfg.AutoConf.URL != DefaultAutoConfURL {
-		t.Errorf("expected AutoConf.URL to be %s, got %s", DefaultAutoConfURL, cfg.AutoConf.URL)
-	}
+	assert.True(t, cfg.AutoConf.Enabled.WithDefault(DefaultAutoConfEnabled))
+	assert.Equal(t, DefaultAutoConfURL, cfg.AutoConf.URL)
 }

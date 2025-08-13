@@ -10,23 +10,20 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewClient(t *testing.T) {
 	client, err := NewClient()
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if client == nil {
-		t.Fatal("expected client to be non-nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, client)
 }
 
 func TestWithOptions(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "autoconf-test-")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
+	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
 	client, err := NewClient(
@@ -35,19 +32,11 @@ func TestWithOptions(t *testing.T) {
 		WithUserAgent("kubo-autoconf-test/1.0"),
 		WithTimeout(10*time.Second),
 	)
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
+	require.NoError(t, err)
 
-	if client.cacheDir != tmpDir {
-		t.Errorf("expected cache dir %s, got %s", tmpDir, client.cacheDir)
-	}
-	if client.cacheSize != 5 {
-		t.Errorf("expected cache size 5, got %d", client.cacheSize)
-	}
-	if client.httpClient.Timeout != 10*time.Second {
-		t.Errorf("expected timeout 10s, got %v", client.httpClient.Timeout)
-	}
+	assert.Equal(t, tmpDir, client.cacheDir)
+	assert.Equal(t, 5, client.cacheSize)
+	assert.Equal(t, 10*time.Second, client.httpClient.Timeout)
 }
 
 func TestGetLatest(t *testing.T) {
@@ -86,37 +75,29 @@ func TestGetLatest(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Create client
+	// Create client with test server URL
 	tmpDir, err := os.MkdirTemp("", "autoconf-test-")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
+	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
 	client, err := NewClient(
 		WithCacheDir(tmpDir),
 		WithUserAgent("kubo-autoconf-test/1.0"),
+		WithURL(server.URL),
+		WithRefreshInterval(time.Hour),
 	)
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Test fetching
 	ctx := context.Background()
-	response, err := client.GetLatest(ctx, server.URL, time.Hour)
-	if err != nil {
-		t.Fatalf("failed to get latest config: %v", err)
-	}
+	response, err := client.GetLatest(ctx)
+	require.NoError(t, err)
 
-	if response.Config.AutoConfVersion != testConfig.AutoConfVersion {
-		t.Errorf("expected version %d, got %d", testConfig.AutoConfVersion, response.Config.AutoConfVersion)
-	}
+	assert.Equal(t, testConfig.AutoConfVersion, response.Config.AutoConfVersion)
 
 	// Verify cache was created
-	cacheDir, err := client.getCacheDir(server.URL)
-	if err != nil {
-		t.Fatalf("failed to get cache dir: %v", err)
-	}
+	cacheDir, err := client.getCacheDir()
+	require.NoError(t, err)
 
 	// List files in cache dir for debugging
 	files, err := os.ReadDir(cacheDir)
@@ -135,42 +116,29 @@ func TestGetLatest(t *testing.T) {
 			break
 		}
 	}
-	if !foundCacheFile {
-		t.Errorf("expected some autoconf cache file to exist in %s, but none found", cacheDir)
-	}
+	assert.True(t, foundCacheFile, "expected some autoconf cache file to exist in %s", cacheDir)
 }
 
 func TestCacheMetadata(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "autoconf-test-")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
+	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
 	client, err := NewClient(WithCacheDir(tmpDir))
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
+	require.NoError(t, err)
 
 	cacheDir := filepath.Join(tmpDir, "autoconf", "example.com")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		t.Fatalf("failed to create cache dir: %v", err)
-	}
+	err = os.MkdirAll(cacheDir, 0755)
+	require.NoError(t, err)
 
 	// Test writing metadata directly (since writeMetadata is now inlined in saveToCache)
-	if err := writeOwnerOnlyFile(filepath.Join(cacheDir, etagFile), []byte("test-etag")); err != nil {
-		t.Fatalf("failed to write etag: %v", err)
-	}
-	if err := writeOwnerOnlyFile(filepath.Join(cacheDir, lastModifiedFile), []byte("test-lastmod")); err != nil {
-		t.Fatalf("failed to write last-modified: %v", err)
-	}
+	err = writeOwnerOnlyFile(filepath.Join(cacheDir, etagFile), []byte("test-etag"))
+	require.NoError(t, err)
+	err = writeOwnerOnlyFile(filepath.Join(cacheDir, lastModifiedFile), []byte("test-lastmod"))
+	require.NoError(t, err)
 
 	// Test reading metadata
 	etag, lastMod := client.readMetadata(cacheDir)
-	if etag != "test-etag" {
-		t.Errorf("expected etag 'test-etag', got '%s'", etag)
-	}
-	if lastMod != "test-lastmod" {
-		t.Errorf("expected last modified 'test-lastmod', got '%s'", lastMod)
-	}
+	assert.Equal(t, "test-etag", etag)
+	assert.Equal(t, "test-lastmod", lastMod)
 }

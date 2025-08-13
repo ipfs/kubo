@@ -503,15 +503,6 @@ func TestHTTPCachingBehavior(t *testing.T) {
 	cacheDir := t.TempDir()
 
 	// Create autoconf client
-	client, err := NewClient(
-		WithCacheDir(cacheDir),
-		WithUserAgent("test-user-agent"),
-		WithCacheSize(3),
-		WithTimeout(5*time.Second),
-	)
-	require.NoError(t, err)
-
-	ctx := context.Background()
 	fallbackFunc := func() *Config {
 		return &Config{
 			AutoConfVersion: 1,
@@ -519,8 +510,21 @@ func TestHTTPCachingBehavior(t *testing.T) {
 		}
 	}
 
+	client, err := NewClient(
+		WithCacheDir(cacheDir),
+		WithUserAgent("test-user-agent"),
+		WithCacheSize(3),
+		WithTimeout(5*time.Second),
+		WithURL(server.URL),
+		WithRefreshInterval(100*time.Millisecond),
+		WithFallback(fallbackFunc),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
 	// First request - should fetch fresh data
-	config1 := client.MustGetConfigWithRefresh(ctx, server.URL, 100*time.Millisecond, fallbackFunc)
+	config1 := client.GetCachedOrRefresh(ctx)
 	require.NotNil(t, config1)
 	assert.Equal(t, int64(2025080101), config1.AutoConfVersion)
 
@@ -535,7 +539,7 @@ func TestHTTPCachingBehavior(t *testing.T) {
 	time.Sleep(150 * time.Millisecond)
 
 	// Second request - should make conditional request and get 304
-	config2 := client.MustGetConfigWithRefresh(ctx, server.URL, 100*time.Millisecond, fallbackFunc)
+	config2 := client.GetCachedOrRefresh(ctx)
 	require.NotNil(t, config2)
 	assert.Equal(t, int64(2025080101), config2.AutoConfVersion)
 
