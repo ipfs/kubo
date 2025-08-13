@@ -214,8 +214,8 @@ func insideGUI() bool {
 func checkDebug(req *cmds.Request) {
 	// check if user wants to debug. option OR env var.
 	debug, _ := req.Options["debug"].(bool)
-	ipfsLogLevel, _ := logging.LevelFromString(os.Getenv("IPFS_LOGGING")) // IPFS_LOGGING is deprecated
-	goLogLevel, _ := logging.LevelFromString(os.Getenv("GOLOG_LOG_LEVEL"))
+	ipfsLogLevel, _ := logging.Parse(os.Getenv("IPFS_LOGGING")) // IPFS_LOGGING is deprecated
+	goLogLevel, _ := logging.Parse(os.Getenv("GOLOG_LOG_LEVEL"))
 
 	if debug || goLogLevel == logging.LevelDebug || ipfsLogLevel == logging.LevelDebug {
 		u.Debug = true

@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/kubo/config"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/tests"
 	"github.com/ipfs/kubo/test/cli/harness"
@@ -45,6 +45,9 @@ func (np NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdent
 
 				c := n.ReadConfig()
 				c.Experimental.FilestoreEnabled = true
+				// only provide things we pin. Allows to test
+				// provide operations.
+				c.Reprovider.Strategy = config.NewOptionalString("roots")
 				n.WriteConfig(c)
 				n.StartDaemon("--enable-pubsub-experiment", "--offline="+strconv.FormatBool(!online))
 
@@ -93,10 +96,6 @@ func (np NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdent
 
 func TestHttpApi(t *testing.T) {
 	t.Parallel()
-
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping due to #9905")
-	}
 
 	tests.TestApi(NodeProvider{})(t)
 }

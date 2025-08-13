@@ -171,6 +171,13 @@ func (tp *TestSuite) TestRoutingFindProviders(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Pin so that it is provided, given that providing strategy is
+	// "roots" and addTestObject does not pin.
+	err = apis[0].Pin().Add(ctx, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	time.Sleep(3 * time.Second)
 
 	out, err := apis[2].Routing().FindProviders(ctx, p, options.Routing.NumProviders(1))
