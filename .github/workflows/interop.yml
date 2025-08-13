@@ -56,7 +56,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: kubo
           path: cmd/ipfs
@@ -91,8 +91,8 @@ jobs:
     steps:
       - uses: actions/setup-node@v4
         with:
-          node-version: 18.14.0
-      - uses: actions/download-artifact@v4
+          node-version: 20.x
+      - uses: actions/download-artifact@v5
         with:
           name: kubo
           path: cmd/ipfs
