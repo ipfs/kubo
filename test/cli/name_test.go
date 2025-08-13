@@ -264,7 +264,6 @@ func TestName(t *testing.T) {
 		require.False(t, val.Validation.Valid)
 	})
 
-	/* TODO: Enable these tests once Kubo is compatible with latest Boxo that includes PublishWithSequence from boxo#962
 	t.Run("Publishing with custom sequence number", func(t *testing.T) {
 		t.Parallel()
 
@@ -272,18 +271,26 @@ func TestName(t *testing.T) {
 		publishPath := "/ipfs/" + fixtureCid
 		name := ipns.NameFromPeer(node.PeerID())
 
-		t.Run("Publish with sequence=42", func(t *testing.T) {
-			res := node.IPFS("name", "publish", "--allow-offline", "--sequence=42", publishPath)
+		t.Run("Publish with sequence=0 is not allowed", func(t *testing.T) {
+			// Sequence=0 is never valid, even on a fresh node
+			res := node.RunIPFS("name", "publish", "--allow-offline", "--ttl=0", "--sequence=0", publishPath)
+			require.NotEqual(t, 0, res.ExitCode(), "Expected publish with sequence=0 to fail")
+			require.Contains(t, res.Stderr.String(), "sequence number must be greater than the current record sequence")
+		})
+
+		t.Run("Publish with sequence=1 on fresh node", func(t *testing.T) {
+			// Sequence=1 is the minimum valid sequence number for first publish
+			res := node.IPFS("name", "publish", "--allow-offline", "--ttl=0", "--sequence=1", publishPath)
 			require.Equal(t, fmt.Sprintf("Published to %s: %s\n", name.String(), publishPath), res.Stdout.String())
 		})
 
-		t.Run("Publish with sequence=0", func(t *testing.T) {
-			res := node.IPFS("name", "publish", "--allow-offline", "--sequence=0", publishPath)
+		t.Run("Publish with sequence=42", func(t *testing.T) {
+			res := node.IPFS("name", "publish", "--allow-offline", "--ttl=0", "--sequence=42", publishPath)
 			require.Equal(t, fmt.Sprintf("Published to %s: %s\n", name.String(), publishPath), res.Stdout.String())
 		})
 
 		t.Run("Publish with large sequence number", func(t *testing.T) {
-			res := node.IPFS("name", "publish", "--allow-offline", "--sequence=18446744073709551615", publishPath) // Max uint64
+			res := node.IPFS("name", "publish", "--allow-offline", "--ttl=0", "--sequence=18446744073709551615", publishPath) // Max uint64
 			require.Equal(t, fmt.Sprintf("Published to %s: %s\n", name.String(), publishPath), res.Stdout.String())
 		})
 	})
@@ -293,11 +300,11 @@ func TestName(t *testing.T) {
 
 		node := makeDaemon(t, nil).StartDaemon()
 		publishPath1 := "/ipfs/" + fixtureCid
-		publishPath2 := "/ipfs/" + dagCid  // Different content
+		publishPath2 := "/ipfs/" + dagCid // Different content
 		name := ipns.NameFromPeer(node.PeerID())
 
 		// First, publish with a high sequence number (1000)
-		res := node.IPFS("name", "publish", "--sequence=1000", publishPath1)
+		res := node.IPFS("name", "publish", "--ttl=0", "--sequence=1000", publishPath1)
 		require.Equal(t, fmt.Sprintf("Published to %s: %s\n", name.String(), publishPath1), res.Stdout.String())
 
 		// Verify the record was published successfully
@@ -306,7 +313,7 @@ func TestName(t *testing.T) {
 
 		// Now try to publish different content with a LOWER sequence number (500)
 		// This should fail due to monotonic sequence check
-		res = node.RunIPFS("name", "publish", "--sequence=500", publishPath2)
+		res = node.RunIPFS("name", "publish", "--ttl=0", "--sequence=500", publishPath2)
 		require.NotEqual(t, 0, res.ExitCode(), "Expected publish with lower sequence to fail")
 		require.Contains(t, res.Stderr.String(), "sequence number", "Expected error about sequence number")
 
@@ -316,12 +323,11 @@ func TestName(t *testing.T) {
 		require.NotContains(t, res.Stdout.String(), publishPath2, "New content should not have been published")
 
 		// Publishing with a HIGHER sequence number should succeed
-		res = node.IPFS("name", "publish", "--sequence=2000", publishPath2)
+		res = node.IPFS("name", "publish", "--ttl=0", "--sequence=2000", publishPath2)
 		require.Equal(t, fmt.Sprintf("Published to %s: %s\n", name.String(), publishPath2), res.Stdout.String())
 
 		// Verify the new content is now published
 		res = node.IPFS("name", "resolve", name.String())
 		require.Contains(t, res.Stdout.String(), publishPath2, "New content should now be published")
 	})
-	*/
 }
