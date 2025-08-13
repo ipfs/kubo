@@ -5,8 +5,8 @@ import (
 	"math/rand"
 	"strings"
 
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/boxo/autoconf"
+	logging "github.com/ipfs/go-log/v2"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 

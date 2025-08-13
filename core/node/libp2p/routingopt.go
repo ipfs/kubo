@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/boxo/autoconf"
+	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
