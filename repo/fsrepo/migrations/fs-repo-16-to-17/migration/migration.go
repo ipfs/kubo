@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	"github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/repo/fsrepo/migrations/fs-repo-16-to-17/atomicfile"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations/atomicfile"
 )
 
 // Options contains migration options for embedded migrations
