@@ -215,7 +215,7 @@ func buildEndpointURL(baseURL, path string) string {
 
 // buildEndpointURLs creates URLs from base URL and paths, ensuring no trailing slashes
 func buildEndpointURLs(baseURL string, paths []string) []string {
-	var urls []string
+	urls := make([]string, 0, len(paths))
 	for _, path := range paths {
 		url := buildEndpointURL(baseURL, path)
 		urls = append(urls, url)
