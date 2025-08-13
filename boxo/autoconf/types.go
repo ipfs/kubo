@@ -100,9 +100,8 @@ type EndpointConfig struct {
 type Response struct {
 	Config    *Config
 	FetchTime time.Time
-	Version   string // AutoConfVersion as string, or ETag, or Last-Modified
-	FromCache bool
-	CacheAge  time.Duration // only set when FromCache is true
+	Version   string        // AutoConfVersion as string, or ETag, or Last-Modified
+	CacheAge  time.Duration // non-zero when response is from cache
 }
 
 // GetBootstrapPeers returns deduplicated bootstrap peers from the specified native systems
