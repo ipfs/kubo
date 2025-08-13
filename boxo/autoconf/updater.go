@@ -35,7 +35,7 @@ type UpdaterOption func(*BackgroundUpdater) error
 // NewBackgroundUpdater creates a new background updater
 func NewBackgroundUpdater(client *Client, options ...UpdaterOption) (*BackgroundUpdater, error) {
 	if client == nil {
-		return nil, fmt.Errorf("client cannot be nil")
+		panic("autoconf: client cannot be nil")
 	}
 
 	updater := &BackgroundUpdater{
