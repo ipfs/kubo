@@ -5,9 +5,7 @@ ARG TARGETOS TARGETARCH
 ENV SRC_DIR /kubo
 
 # Download packages first so they can be cached.
-# TODO: Remove copying boxo/autoconf once it's extracted to separate library
 COPY go.mod go.sum $SRC_DIR/
-COPY boxo/autoconf $SRC_DIR/boxo/autoconf/
 RUN cd $SRC_DIR \
   && go mod download
 
