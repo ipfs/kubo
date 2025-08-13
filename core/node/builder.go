@@ -7,7 +7,7 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/ipfs/kubo/boxo/autoconf"
+	"github.com/ipfs/boxo/autoconf"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"

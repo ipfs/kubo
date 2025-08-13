@@ -3,7 +3,7 @@ package libp2p
 import (
 	"testing"
 
-	"github.com/ipfs/kubo/boxo/autoconf"
+	"github.com/ipfs/boxo/autoconf"
 	config "github.com/ipfs/kubo/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

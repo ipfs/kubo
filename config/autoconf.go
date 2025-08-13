@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ipfs/kubo/boxo/autoconf"
+	"github.com/ipfs/boxo/autoconf"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/kubo/boxo/autoconf"
+	"github.com/ipfs/boxo/autoconf"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

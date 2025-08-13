@@ -6,10 +6,8 @@ go 1.24
 // this if you copy this example.
 replace github.com/ipfs/kubo => ./../../..
 
-replace github.com/ipfs/kubo/boxo/autoconf => ./../../../boxo/autoconf
-
 require (
-	github.com/ipfs/boxo v0.33.2-0.20250813013451-825361b44b4e
+	github.com/ipfs/boxo v0.33.2-0.20250813101759-3f076190e184
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.43.0
 	github.com/multiformats/go-multiaddr v0.16.1
@@ -96,7 +94,6 @@ require (
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.2 // indirect
 	github.com/ipfs/go-unixfsnode v1.10.1 // indirect
-	github.com/ipfs/kubo/boxo/autoconf v0.0.0-00010101000000-000000000000 // indirect
 	github.com/ipld/go-car/v2 v2.14.3 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.21.0 // indirect

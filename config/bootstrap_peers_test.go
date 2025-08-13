@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ipfs/kubo/boxo/autoconf"
+	"github.com/ipfs/boxo/autoconf"
 )
 
 func TestBoostrapPeerStrings(t *testing.T) {

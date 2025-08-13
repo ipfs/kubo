@@ -22,7 +22,7 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.33.2-0.20250813013451-825361b44b4e
+	github.com/ipfs/boxo v0.33.2-0.20250813101759-3f076190e184
 	github.com/ipfs/go-block-format v0.2.2
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-cidutil v0.1.0
@@ -44,7 +44,6 @@ require (
 	github.com/ipfs/go-metrics-prometheus v0.1.0
 	github.com/ipfs/go-test v0.2.2
 	github.com/ipfs/go-unixfsnode v1.10.1
-	github.com/ipfs/kubo/boxo/autoconf v0.0.0-00010101000000-000000000000
 	github.com/ipld/go-car/v2 v2.14.3
 	github.com/ipld/go-codec-dagpb v1.7.0
 	github.com/ipld/go-ipld-prime v0.21.0
@@ -265,5 +264,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
-
-replace github.com/ipfs/kubo/boxo/autoconf => ./boxo/autoconf

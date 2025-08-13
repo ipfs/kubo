@@ -7,7 +7,7 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	version "github.com/ipfs/kubo"
-	"github.com/ipfs/kubo/boxo/autoconf"
+	"github.com/ipfs/boxo/autoconf"
 )
 
 var autoconfLog = logging.Logger("autoconf")
