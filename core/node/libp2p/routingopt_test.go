@@ -3,6 +3,7 @@ package libp2p
 import (
 	"testing"
 
+	"github.com/ipfs/kubo/boxo/autoconf"
 	config "github.com/ipfs/kubo/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,7 +40,7 @@ func TestDetermineCapabilities(t *testing.T) {
 		name                 string
 		endpoint             EndpointSource
 		expectedBaseURL      string
-		expectedCapabilities EndpointCapabilities
+		expectedCapabilities autoconf.EndpointCapabilities
 		expectError          bool
 	}{
 		{
@@ -50,7 +51,7 @@ func TestDetermineCapabilities(t *testing.T) {
 				SupportsWrite: false,
 			},
 			expectedBaseURL: "https://example.com",
-			expectedCapabilities: EndpointCapabilities{
+			expectedCapabilities: autoconf.EndpointCapabilities{
 				Providers: true,
 				Peers:     true,
 				IPNSGet:   true,
@@ -66,7 +67,7 @@ func TestDetermineCapabilities(t *testing.T) {
 				SupportsWrite: false,
 			},
 			expectedBaseURL: "https://example.com",
-			expectedCapabilities: EndpointCapabilities{
+			expectedCapabilities: autoconf.EndpointCapabilities{
 				Providers: true,
 				Peers:     true,
 				IPNSGet:   true,
@@ -82,7 +83,7 @@ func TestDetermineCapabilities(t *testing.T) {
 				SupportsWrite: true,
 			},
 			expectedBaseURL: "https://example.com",
-			expectedCapabilities: EndpointCapabilities{
+			expectedCapabilities: autoconf.EndpointCapabilities{
 				Providers: false,
 				Peers:     false,
 				IPNSGet:   true,
@@ -98,7 +99,7 @@ func TestDetermineCapabilities(t *testing.T) {
 				SupportsWrite: false,
 			},
 			expectedBaseURL: "https://example.com",
-			expectedCapabilities: EndpointCapabilities{
+			expectedCapabilities: autoconf.EndpointCapabilities{
 				Providers: true,
 				Peers:     false,
 				IPNSGet:   false,
@@ -114,7 +115,7 @@ func TestDetermineCapabilities(t *testing.T) {
 				SupportsWrite: false,
 			},
 			expectedBaseURL: "https://example.com",
-			expectedCapabilities: EndpointCapabilities{
+			expectedCapabilities: autoconf.EndpointCapabilities{
 				Providers: false,
 				Peers:     true,
 				IPNSGet:   false,
@@ -130,7 +131,7 @@ func TestDetermineCapabilities(t *testing.T) {
 				SupportsWrite: true,
 			},
 			expectedBaseURL: "https://example.com",
-			expectedCapabilities: EndpointCapabilities{
+			expectedCapabilities: autoconf.EndpointCapabilities{
 				Providers: false,
 				Peers:     false,
 				IPNSGet:   false,

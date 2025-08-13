@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"math/rand"
-	"net/url"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -57,85 +56,10 @@ const (
 	// AutoConf client configuration constants
 	DefaultAutoConfCacheSize = autoconf.DefaultCacheSize
 	DefaultAutoConfTimeout   = autoconf.DefaultTimeout
-
-	// Routing path constants
-	IPNSWritePath = "/routing/v1/ipns"
 )
 
-// ParseAndValidateRoutingURL extracts base URL and validates routing path in one step
-// Returns error if URL is invalid or has unsupported routing path
-func ParseAndValidateRoutingURL(endpoint string) (baseURL string, path string, err error) {
-	parsedURL, err := url.Parse(endpoint)
-	if err != nil {
-		return "", "", fmt.Errorf("invalid URL %q: %w", endpoint, err)
-	}
-
-	// Build base URL without path
-	baseURL = fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
-
-	// Extract and normalize path
-	path = strings.TrimPrefix(parsedURL.Path, "/")
-	path = strings.TrimSuffix(path, "/")
-
-	// Validate routing path
-	switch path {
-	case "": // No path - base URL
-	case "routing/v1/providers": // Provider lookups
-	case "routing/v1/peers": // Peer lookups
-	case "routing/v1/ipns": // IPNS resolution/publishing
-		// Valid paths - continue
-	default:
-		return "", "", fmt.Errorf("unsupported routing path %q", path)
-	}
-
-	return baseURL, path, nil
-}
-
-// filterValidRoutingURLs filters out URLs with unsupported routing paths
-func filterValidRoutingURLs(urls []string) []string {
-	var filtered []string
-	for _, urlStr := range urls {
-		if _, _, err := ParseAndValidateRoutingURL(urlStr); err == nil {
-			filtered = append(filtered, urlStr)
-		} else {
-			log.Debugf("Skipping invalid routing URL %q: %v", urlStr, err)
-		}
-	}
-	return filtered
-}
-
-// buildEndpointURL constructs a URL from baseURL and path, ensuring no trailing slash
-func buildEndpointURL(baseURL, path string) string {
-	// Always trim trailing slash from baseURL
-	cleanBase := strings.TrimRight(baseURL, "/")
-
-	// Ensure path starts with / if not empty
-	if path != "" && !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
-
-	// Construct and ensure no trailing slash
-	fullURL := cleanBase + path
-	return strings.TrimRight(fullURL, "/")
-}
-
-// getDelegatedEndpointsForConfig is a helper that gets autoconf and filtered endpoints
-// This eliminates duplication between DelegatedRoutersWithAutoConf and DelegatedPublishersWithAutoConf
-func (c *Config) getDelegatedEndpointsForConfig() (*autoconf.Config, map[string]autoconf.EndpointConfig) {
-	autoConf := c.getAutoConf()
-	if autoConf == nil {
-		return nil, nil
-	}
-
-	routingType := c.Routing.Type.WithDefault(DefaultRoutingType)
-	nativeSystems := GetNativeSystems(routingType)
-	endpoints := autoConf.GetDelegatedEndpoints(nativeSystems...)
-
-	return autoConf, endpoints
-}
-
-// GetNativeSystems returns the list of systems that should be used natively based on routing type
-func GetNativeSystems(routingType string) []string {
+// getNativeSystems returns the list of systems that should be used natively based on routing type
+func getNativeSystems(routingType string) []string {
 	switch routingType {
 	case "dht", "dhtclient", "dhtserver":
 		return []string{autoconf.SystemAminoDHT} // Only native DHT
@@ -204,7 +128,7 @@ func (c *Config) DNSResolversWithAutoConf() map[string]string {
 
 // expandAutoConfSlice is a generic helper for expanding "auto" placeholders in string slices
 // It handles the common pattern of: iterate through slice, expand "auto" once, keep custom values
-func expandAutoConfSlice(sourceSlice []string, autoConfData []string, fieldName string) []string {
+func expandAutoConfSlice(sourceSlice []string, autoConfData []string) []string {
 	var resolved []string
 	autoExpanded := false
 
@@ -212,7 +136,6 @@ func expandAutoConfSlice(sourceSlice []string, autoConfData []string, fieldName 
 		if item == AutoPlaceholder {
 			// Replace with autoconf data (only once)
 			if autoConfData != nil && !autoExpanded {
-				log.Debugf("expanding 'auto' %s placeholder to %d items from autoconf", fieldName, len(autoConfData))
 				resolved = append(resolved, autoConfData...)
 				autoExpanded = true
 			}
@@ -233,14 +156,14 @@ func (c *Config) BootstrapWithAutoConf() []string {
 
 	if autoConf != nil {
 		routingType := c.Routing.Type.WithDefault(DefaultRoutingType)
-		nativeSystems := GetNativeSystems(routingType)
+		nativeSystems := getNativeSystems(routingType)
 		autoConfData = autoConf.GetBootstrapPeers(nativeSystems...)
 		log.Debugf("BootstrapWithAutoConf: processing with routing type: %s", routingType)
 	} else {
 		log.Debugf("BootstrapWithAutoConf: autoConf disabled, using original config")
 	}
 
-	result := expandAutoConfSlice(c.Bootstrap, autoConfData, "Bootstrap")
+	result := expandAutoConfSlice(c.Bootstrap, autoConfData)
 	log.Debugf("BootstrapWithAutoConf: final result contains %d peers", len(result))
 	return result
 }
@@ -319,82 +242,37 @@ func (c *Config) BootstrapPeersWithAutoConf() ([]peer.AddrInfo, error) {
 	return ParseBootstrapPeers(bootstrapStrings)
 }
 
-// buildEndpointURLs creates URLs from base URL and paths, ensuring no trailing slashes
-func buildEndpointURLs(baseURL string, paths []string) []string {
-	var urls []string
-	for _, path := range paths {
-		url := buildEndpointURL(baseURL, path)
-		urls = append(urls, url)
-	}
-	return urls
-}
-
 // DelegatedRoutersWithAutoConf returns delegated router URLs without trailing slashes
 func (c *Config) DelegatedRoutersWithAutoConf() []string {
-	_, endpoints := c.getDelegatedEndpointsForConfig()
+	autoConf := c.getAutoConf()
 
-	if endpoints == nil {
-		return expandAutoConfSlice(c.Routing.DelegatedRouters, nil, "DelegatedRouters")
-	}
-
-	var routers []string
-	for baseURL, config := range endpoints {
-		// Build URLs for all supported Read paths
-		urls := buildEndpointURLs(baseURL, config.Read)
-		routers = append(routers, urls...)
-	}
-
-	resolved := expandAutoConfSlice(c.Routing.DelegatedRouters, routers, "DelegatedRouters")
-
-	// Filter out URLs with unsupported routing paths
-	resolved = filterValidRoutingURLs(resolved)
-
-	// Final safety check to guarantee no trailing slashes
-	for i, url := range resolved {
-		resolved[i] = strings.TrimRight(url, "/")
-	}
-
-	return resolved
-}
-
-// containsPath checks if the given paths contain the target path
-func containsPath(paths []string, targetPath string) bool {
-	for _, path := range paths {
-		if path == targetPath {
-			return true
-		}
-	}
-	return false
+	// Use autoconf to expand the endpoints with supported paths for read operations
+	routingType := c.Routing.Type.WithDefault(DefaultRoutingType)
+	nativeSystems := getNativeSystems(routingType)
+	return autoconf.ExpandDelegatedEndpoints(
+		c.Routing.DelegatedRouters,
+		autoConf,
+		nativeSystems,
+		// Kubo supports all read paths
+		autoconf.RoutingV1ProvidersPath,
+		autoconf.RoutingV1PeersPath,
+		autoconf.RoutingV1IPNSPath,
+	)
 }
 
 // DelegatedPublishersWithAutoConf returns delegated publisher URLs without trailing slashes
 func (c *Config) DelegatedPublishersWithAutoConf() []string {
-	_, endpoints := c.getDelegatedEndpointsForConfig()
+	autoConf := c.getAutoConf()
 
-	if endpoints == nil {
-		return expandAutoConfSlice(c.Ipns.DelegatedPublishers, nil, "DelegatedPublishers")
-	}
-
-	var publishers []string
-	for baseURL, config := range endpoints {
-		// Check if this endpoint supports IPNS write operations
-		if containsPath(config.Write, IPNSWritePath) {
-			fullURL := buildEndpointURL(baseURL, IPNSWritePath)
-			publishers = append(publishers, fullURL)
-		}
-	}
-
-	resolved := expandAutoConfSlice(c.Ipns.DelegatedPublishers, publishers, "DelegatedPublishers")
-
-	// Filter out URLs with unsupported routing paths
-	resolved = filterValidRoutingURLs(resolved)
-
-	// Final safety check to guarantee no trailing slashes
-	for i, url := range resolved {
-		resolved[i] = strings.TrimRight(url, "/")
-	}
-
-	return resolved
+	// Use autoconf to expand the endpoints with IPNS write path
+	routingType := c.Routing.Type.WithDefault(DefaultRoutingType)
+	nativeSystems := getNativeSystems(routingType)
+	return autoconf.ExpandDelegatedEndpoints(
+		c.Ipns.DelegatedPublishers,
+		autoConf,
+		nativeSystems,
+		autoconf.RoutingV1IPNSPath, // Only IPNS operations (for write)
+	)
 }
 
 // copyConfigMap creates a deep copy of a config map to avoid modifying the original

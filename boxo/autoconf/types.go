@@ -2,6 +2,9 @@ package autoconf
 
 import "time"
 
+// AutoPlaceholder is the string used as a placeholder for autoconf values
+const AutoPlaceholder = "auto"
+
 // System constants for routing behavior classification
 const (
 	SystemAminoDHT = "AminoDHT"
@@ -149,6 +152,7 @@ func (c *Config) GetDelegatedEndpoints(ignoredNativeSystems ...string) map[strin
 		}
 	}
 
+	log.Debugf("GetDelegatedEndpoints: returning %d endpoints from %d total", len(filtered), len(c.DelegatedEndpoints))
 	return filtered
 }
 

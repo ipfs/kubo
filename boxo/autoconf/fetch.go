@@ -237,9 +237,9 @@ func (c *Client) fetchFromRemoteRaw(ctx context.Context, configURL, cacheDir str
 		log.Debugf("conditional request to %q with ETag: %q", configURL, etag)
 	} else if lastModified != "" {
 		req.Header.Set("If-Modified-Since", lastModified)
-		log.Debugf("conditional request to %q with If-Modified-Since: %q", configURL, lastModified)
+		log.Infof("conditional request to %q with If-Modified-Since: %q", configURL, lastModified)
 	} else {
-		log.Debugf("fetching autoconf from %q", configURL)
+		log.Infof("fetching autoconf from %q", configURL)
 	}
 
 	resp, err := c.httpClient.Do(req)

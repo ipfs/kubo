@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/kubo/boxo/autoconf"
 	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -34,22 +35,6 @@ type RoutingOption func(args RoutingOptionArgs) (routing.Routing, error)
 
 var noopRouter = routinghelpers.Null{}
 
-// EndpointCapabilities represents which routing operations are supported
-type EndpointCapabilities struct {
-	Providers bool // GET /routing/v1/providers
-	Peers     bool // GET /routing/v1/peers
-	IPNSGet   bool // GET /routing/v1/ipns (IPNS resolution)
-	IPNSPut   bool // PUT /routing/v1/ipns (IPNS publishing)
-}
-
-// Merge combines capabilities from another EndpointCapabilities
-func (ec *EndpointCapabilities) Merge(other EndpointCapabilities) {
-	ec.Providers = ec.Providers || other.Providers
-	ec.Peers = ec.Peers || other.Peers
-	ec.IPNSGet = ec.IPNSGet || other.IPNSGet
-	ec.IPNSPut = ec.IPNSPut || other.IPNSPut
-}
-
 // EndpointSource tracks where a URL came from to determine appropriate capabilities
 type EndpointSource struct {
 	URL           string
@@ -58,43 +43,14 @@ type EndpointSource struct {
 }
 
 // determineCapabilities determines endpoint capabilities based on URL path and source
-func determineCapabilities(endpoint EndpointSource) (string, EndpointCapabilities, error) {
-	baseURL, path, err := config.ParseAndValidateRoutingURL(endpoint.URL)
+func determineCapabilities(endpoint EndpointSource) (string, autoconf.EndpointCapabilities, error) {
+	parsed, err := autoconf.DetermineKnownCapabilities(endpoint.URL, endpoint.SupportsRead, endpoint.SupportsWrite)
 	if err != nil {
 		log.Debugf("Skipping endpoint %q: %v", endpoint.URL, err)
-		return "", EndpointCapabilities{}, nil // Return empty caps, not error
+		return "", autoconf.EndpointCapabilities{}, nil // Return empty caps, not error
 	}
 
-	// Now we know the path is valid, just determine capabilities
-	var caps EndpointCapabilities
-	switch path {
-	case "": // Base URL - all operations
-		if endpoint.SupportsRead {
-			caps.Providers = true
-			caps.Peers = true
-			caps.IPNSGet = true
-		}
-		if endpoint.SupportsWrite {
-			caps.IPNSPut = true
-		}
-	case "routing/v1/providers":
-		if endpoint.SupportsRead {
-			caps.Providers = true
-		}
-	case "routing/v1/peers":
-		if endpoint.SupportsRead {
-			caps.Peers = true
-		}
-	case "routing/v1/ipns":
-		if endpoint.SupportsRead {
-			caps.IPNSGet = true
-		}
-		if endpoint.SupportsWrite {
-			caps.IPNSPut = true
-		}
-	}
-
-	return baseURL, caps, nil
+	return parsed.BaseURL, parsed.Capabilities, nil
 }
 
 // collectAllEndpoints gathers URLs from both router and publisher sources
@@ -157,7 +113,7 @@ func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.Parallel
 	endpoints := collectAllEndpoints(cfg)
 
 	// Group endpoints by origin (base URL) and aggregate capabilities
-	originCapabilities := make(map[string]EndpointCapabilities)
+	originCapabilities := make(map[string]autoconf.EndpointCapabilities)
 	for _, endpoint := range endpoints {
 		// Parse endpoint and determine capabilities based on source
 		baseURL, capabilities, err := determineCapabilities(endpoint)
