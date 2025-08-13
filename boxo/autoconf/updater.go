@@ -17,8 +17,6 @@ const (
 // BackgroundUpdater handles periodic autoconf updates
 type BackgroundUpdater struct {
 	client          *Client
-	configURL       string
-	updateInterval  time.Duration
 	onVersionChange func(oldVersion, newVersion int64, configURL string)
 	onUpdateSuccess func(*Response)
 	onUpdateError   func(error)
@@ -35,18 +33,13 @@ type BackgroundUpdater struct {
 type UpdaterOption func(*BackgroundUpdater) error
 
 // NewBackgroundUpdater creates a new background updater
-func NewBackgroundUpdater(client *Client, configURL string, options ...UpdaterOption) (*BackgroundUpdater, error) {
+func NewBackgroundUpdater(client *Client, options ...UpdaterOption) (*BackgroundUpdater, error) {
 	if client == nil {
 		return nil, fmt.Errorf("client cannot be nil")
 	}
-	if configURL == "" {
-		return nil, fmt.Errorf("configURL cannot be empty")
-	}
 
 	updater := &BackgroundUpdater{
-		client:         client,
-		configURL:      configURL,
-		updateInterval: DefaultRefreshInterval,
+		client: client,
 	}
 
 	for _, opt := range options {
@@ -56,17 +49,6 @@ func NewBackgroundUpdater(client *Client, configURL string, options ...UpdaterOp
 	}
 
 	return updater, nil
-}
-
-// WithUpdateInterval sets the interval between update checks
-func WithUpdateInterval(interval time.Duration) UpdaterOption {
-	return func(u *BackgroundUpdater) error {
-		if interval <= 0 {
-			return fmt.Errorf("update interval must be positive")
-		}
-		u.updateInterval = interval
-		return nil
-	}
 }
 
 // WithOnVersionChange sets a callback for when a new version is detected
@@ -134,7 +116,7 @@ func (u *BackgroundUpdater) Stop() {
 func (u *BackgroundUpdater) runUpdater() {
 	defer u.wg.Done()
 
-	ticker := time.NewTicker(u.updateInterval)
+	ticker := time.NewTicker(u.client.refreshInterval)
 	defer ticker.Stop()
 
 	failureCount := 0
@@ -162,7 +144,7 @@ func (u *BackgroundUpdater) runUpdater() {
 					return
 				case <-time.After(backoff):
 					// Reset ticker after backoff
-					ticker = time.NewTicker(u.updateInterval)
+					ticker = time.NewTicker(u.client.refreshInterval)
 				}
 			} else {
 				// Success - reset failure count
@@ -182,7 +164,7 @@ func (u *BackgroundUpdater) performUpdate() error {
 	log.Debug("background update check starting")
 
 	// Get the current cached version before fetching
-	cacheDir, cacheDirErr := u.client.getCacheDir(u.configURL)
+	cacheDir, cacheDirErr := u.client.getCacheDir()
 	var oldVersion int64 = 0
 	if cacheDirErr == nil {
 		oldConfig, err := u.client.getCachedConfig(cacheDir)
@@ -191,8 +173,8 @@ func (u *BackgroundUpdater) performUpdate() error {
 		}
 	}
 
-	// Get config with metadata, using the update interval as check interval
-	resp, err := u.client.getLatest(u.ctx, u.configURL, u.updateInterval)
+	// Get config with metadata, using the client's refresh interval
+	resp, err := u.client.getLatest(u.ctx)
 	if err != nil {
 		return fmt.Errorf("failed to fetch autoconf: %w", err)
 	}
@@ -205,7 +187,9 @@ func (u *BackgroundUpdater) performUpdate() error {
 			log.Infof("fetched autoconf version %d (updated from %d)", resp.Config.AutoConfVersion, oldVersion)
 		}
 		if u.onVersionChange != nil {
-			u.onVersionChange(oldVersion, resp.Config.AutoConfVersion, u.configURL)
+			// Pass the selected URL that was used for this fetch
+			configURL := u.client.selectURL()
+			u.onVersionChange(oldVersion, resp.Config.AutoConfVersion, configURL)
 		}
 	}
 

@@ -18,10 +18,8 @@ import (
 	"time"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	logging "github.com/ipfs/go-log/v2"
 	mprome "github.com/ipfs/go-metrics-prometheus"
 	version "github.com/ipfs/kubo"
-	"github.com/ipfs/kubo/boxo/autoconf"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
 	config "github.com/ipfs/kubo/config"
@@ -360,7 +358,16 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		if autoConfURL == "" {
 			return fmt.Errorf("AutoConf is enabled but AutoConf.URL is empty - please provide a URL")
 		}
-		startAutoConfUpdater(cctx.Context(), cfg, version.GetUserAgentVersion())
+		// Start autoconf client for background updates
+		client, err := config.GetAutoConfClient(cfg)
+		if err != nil {
+			log.Errorf("failed to create autoconf client: %v", err)
+		} else {
+			// Start primes cache and starts background updater
+			if _, err := client.Start(cctx.Context()); err != nil {
+				log.Errorf("failed to start autoconf updater: %v", err)
+			}
+		}
 	}
 
 	fmt.Printf("PeerID: %s\n", cfg.Identity.PeerID)
@@ -1271,67 +1278,4 @@ Visit https://github.com/ipfs/kubo/releases or https://dist.ipfs.tech/#kubo and 
 			}
 		}
 	}()
-}
-
-// startAutoConfUpdater starts a background service that periodically checks for AutoConf updates
-func startAutoConfUpdater(ctx context.Context, cfg *config.Config, userAgent string) {
-	autoconfLog := logging.Logger("autoconf")
-
-	// Don't start if AutoConf is disabled
-	if !cfg.AutoConf.Enabled.WithDefault(config.DefaultAutoConfEnabled) {
-		return
-	}
-
-	// Create autoconf client using same cache path as WithAutoConf methods
-	repoPath, err := config.PathRoot()
-	if err != nil {
-		autoconfLog.Errorf("failed to get repo path for autoconf client: %v", err)
-		return
-	}
-	client, err := config.NewAutoConfClient(repoPath, userAgent)
-	if err != nil {
-		autoconfLog.Errorf("failed to create autoconf client: %v", err)
-		return
-	}
-
-	// Prime cache if no cached config exists to ensure offline nodes work immediately
-	refreshInterval := cfg.AutoConf.RefreshInterval.WithDefault(config.DefaultAutoConfRefreshInterval)
-	autoConfURL := cfg.AutoConf.URL
-	if !client.HasCachedConfig(autoConfURL) {
-		autoconfLog.Debugf("no cached autoconf found, priming cache with initial fetch")
-		// Use same timeout for cache priming as internal HTTP operations
-		primeCtx, cancel := context.WithTimeout(ctx, config.DefaultAutoConfTimeout)
-		defer cancel()
-
-		result := client.MustGetConfigWithRefresh(primeCtx, autoConfURL, refreshInterval, autoconf.GetMainnetFallbackConfig)
-		if result != nil {
-			autoconfLog.Debugf("successfully primed autoconf cache with version %d", result.AutoConfVersion)
-		}
-	} else {
-		autoconfLog.Debugf("cached autoconf found, skipping cache priming")
-	}
-
-	// Create background updater with callbacks to maintain existing behavior
-	updater, err := autoconf.NewBackgroundUpdater(client, autoConfURL,
-		autoconf.WithUpdateInterval(refreshInterval),
-		autoconf.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {
-			autoconfLog.Errorf("new autoconf version %d published at %s - restart node to apply updates to \"auto\" entries in Kubo config", newVersion, configURL)
-		}),
-		autoconf.WithOnUpdateSuccess(func(resp *autoconf.Response) {
-			autoconfLog.Debugf("updated autoconf metadata: version %s, fetch time %s", resp.Version, resp.FetchTime.Format(time.RFC3339))
-		}),
-		autoconf.WithOnUpdateError(func(err error) {
-			autoconfLog.Error(err)
-		}),
-	)
-	if err != nil {
-		autoconfLog.Errorf("failed to create background updater: %v", err)
-		return
-	}
-
-	// Start the updater - it will automatically stop when context is cancelled
-	if err := updater.Start(ctx); err != nil {
-		autoconfLog.Errorf("failed to start background updater: %v", err)
-		return
-	}
 }

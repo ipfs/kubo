@@ -19,16 +19,14 @@ For most applications, use the "Must" methods that provide graceful fallbacks an
 ```go
 import "github.com/ipfs/kubo/boxo/autoconf"
 
-const autoconfURL = "https://conf.ipfs-mainnet.org/autoconf.json"
-
-// Create a client with default options
+// Create a client with default options (uses mainnet URL and fallback)
 client, err := autoconf.NewClient()
 if err != nil {
     // handle
 }
 
 // Cache-first approach: use cached config, no network requests
-config := client.MustGetConfigCached(autoconfURL, autoconf.GetMainnetFallbackConfig)
+config := client.GetCached()
 
 // Use the config data
 nativelySupported := []string{"AminoDHT"}  // Systems your node runs locally (natively)
@@ -43,8 +41,7 @@ fmt.Printf("DNS resolvers: %v\n", dnsResolvers)
 
 ```go
 // With refresh: attempt network update, fall back to cache or defaults
-config := client.MustGetConfigWithRefresh(ctx, autoconfURL,
-    autoconf.DefaultRefreshInterval, autoconf.GetMainnetFallbackConfig)
+config := client.GetCachedOrRefresh(ctx)
 
 // Access config the same way - guaranteed to never be nil
 nativelySupported := []string{"AminoDHT"}  // Systems your node runs locally (natively)
@@ -59,17 +56,20 @@ For applications that need explicit error handling and network control:
 ```go
 // Create client with custom options
 client, err := autoconf.NewClient(
+    autoconf.WithURL("https://conf.ipfs-mainnet.org/autoconf.json"),
+    autoconf.WithRefreshInterval(24*time.Hour),
     autoconf.WithCacheDir("/path/to/cache"),
     autoconf.WithUserAgent("my-app/1.0"),
     autoconf.WithCacheSize(autoconf.DefaultCacheSize),
     autoconf.WithTimeout(autoconf.DefaultTimeout),
+    autoconf.WithFallback(autoconf.GetMainnetFallbackConfig), // Explicit fallback
 )
 if err != nil {
     // handle
 }
 
 // GetLatest returns errors for explicit handling
-response, err := client.GetLatest(ctx, autoconfURL, autoconf.DefaultRefreshInterval)
+response, err := client.GetLatest(ctx)
 if err != nil {
     // handle
     return err
@@ -131,7 +131,38 @@ func main() {
 
 ### Background Updates
 
-For applications that need periodic config updates, use the background updater:
+For long-running applications that need periodic config updates:
+
+#### Pattern 1: Context-based lifecycle (recommended for service integration)
+
+```go
+func runService(ctx context.Context) error {
+    client, err := autoconf.NewClient(
+        autoconf.WithCacheDir("/app/data/autoconf"),
+        autoconf.WithUserAgent("myapp/1.2.3"),
+        autoconf.WithRefreshInterval(12*time.Hour),
+    )
+    if err != nil {
+        return err
+    }
+
+    // Start primes cache and starts background updater
+    // Updater will stop automatically when ctx is cancelled
+    config, err := client.Start(ctx)
+    if err != nil {
+        return err
+    }
+    
+    // Use the config immediately
+    bootstrapPeers := config.GetBootstrapPeers("AminoDHT")
+    
+    // Your service logic here...
+    // When ctx is cancelled, the updater stops automatically
+    return nil
+}
+```
+
+#### Pattern 2: Explicit Stop() method (recommended for manual control)
 
 ```go
 func main() {
@@ -140,36 +171,30 @@ func main() {
         autoconf.WithUserAgent("myapp/1.2.3"),
     )
     if err != nil {
-        // handle
+        log.Fatal(err)
     }
 
-    // Create background updater with custom callbacks
-    updater, err := autoconf.NewBackgroundUpdater(client, autoconfURL,
-        autoconf.WithUpdateInterval(autoconf.DefaultRefreshInterval), // Default: 24h
-        autoconf.WithOnVersionChange(func(oldVersion, newVersion int64, configURL string) {
-            fmt.Printf("New config version %d available (was %d) - consider restarting\n", newVersion, oldVersion)
-        }),
-        autoconf.WithOnUpdateSuccess(func(resp *autoconf.Response) {
-            fmt.Printf("Updated config cache at %s\n", resp.FetchTime.Format(time.RFC3339))
-        }),
-        autoconf.WithOnUpdateError(func(err error) {
-            fmt.Printf("Update failed: %v\n", err)
-        }),
-    )
+    // Start with background context since we'll use Stop()
+    config, err := client.Start(context.Background())
     if err != nil {
-        // handle
+        log.Fatal(err)
     }
-
-    ctx := context.Background()
-    if err := updater.Start(ctx); err != nil {
-        // handle
-    }
-    defer updater.Stop()
-
+    
+    // Ensure clean shutdown
+    defer client.Stop()
+    
+    // Set up signal handling
+    sigCh := make(chan os.Signal, 1)
+    signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+    
     // Your application logic here...
-    select {}
+    <-sigCh
+    
+    // Stop() will be called by defer, ensuring graceful shutdown
 }
 ```
+
+Both patterns are idiomatic in Go. Use context cancellation when integrating with existing service frameworks, and use Stop() when you need explicit control over the updater lifecycle.
 
 ## Cache Structure
 
@@ -217,24 +242,21 @@ $CACHE_DIR/
 The client implements graceful fallback:
 1. Try to fetch from remote URL
 2. If remote fails, fall back to latest cached version
-3. If no cache exists, fall back to provided defaults (when using `MustGetConfigCached` or `MustGetConfigWithRefresh`)
+3. If no cache exists, fall back to configured fallback function
 
-Note: `GetLatest()` returns errors, while `MustGetConfigCached()` and `MustGetConfigWithRefresh()` never fail and always return usable configuration.
+Note: `GetLatest()` returns errors for explicit handling, while `GetCached()` and `GetCachedOrRefresh()` never fail and always return usable configuration (using the fallback if necessary).
 
 ## API Overview
 
-### Turn-Key Methods (Recommended)
-- **`MustGetConfigCached(url, fallback)`**: Cache-first, never fails, no network requests
-- **`MustGetConfigWithRefresh(ctx, url, refreshInterval, fallback)`**: Attempts refresh, falls back gracefully, never fails
+### Client Methods
+- **`NewClient(options...)`**: Create configurable client with cache dir, timeouts, user-agent
+- **`GetCached()`**: Returns cached config or fallback, no network requests
+- **`GetCachedOrRefresh(ctx)`**: Returns latest config if stale, falls back to cache/default
+- **`GetLatest(ctx)`**: Explicitly fetches from network, returns error for handling
+- **`Start(ctx)`**: Primes cache and starts background updater, returns initial config
+- **`Stop()`**: Gracefully stops the background updater (alternative to context cancellation)
 
-### Fine-Grained Methods
-- **`GetLatest(ctx, url, refreshInterval)`**: Explicit error handling, returns Response with metadata
-- **`NewBackgroundUpdater(client, url, options...)`**: Periodic refresh daemon with customizable callbacks
-
-### Client Creation
-- **`NewClient(options...)`**: Create configurable HTTP client with custom cache dir, timeouts, user-agent
-
-### Config Data Access
+### Config Data Access Methods
 - **`GetBootstrapPeers(systems...)`**: Extract bootstrap peers for specified systems
 - **`GetDelegatedEndpoints(ignoredSystems...)`**: Get HTTP endpoints (optionally excluding native systems)
 - **`GetDNSResolvers()`**: Get all DNS-over-HTTPS resolver mappings

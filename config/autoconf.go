@@ -1,25 +1,15 @@
 package config
 
 import (
-	"fmt"
 	"math/rand"
-	"path/filepath"
 	"strings"
-	"sync"
 
 	logging "github.com/ipfs/go-log/v2"
-	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/boxo/autoconf"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 var log = logging.Logger("config")
-
-// clientCache provides a simple singleton pattern for autoconf clients
-var (
-	clientCache   = make(map[string]*autoconf.Client)
-	clientCacheMu sync.RWMutex
-)
 
 // AutoConf contains the configuration for the autoconf subsystem
 type AutoConf struct {
@@ -168,46 +158,6 @@ func (c *Config) BootstrapWithAutoConf() []string {
 	return result
 }
 
-// getOrCreateAutoConfClient returns a cached client or creates a new one with standard settings
-func getOrCreateAutoConfClient() (*autoconf.Client, error) {
-	// Use standard config path resolution
-	repoPath, err := PathRoot()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get repo path: %w", err)
-	}
-
-	clientCacheMu.RLock()
-	if client, exists := clientCache[repoPath]; exists {
-		clientCacheMu.RUnlock()
-		return client, nil
-	}
-	clientCacheMu.RUnlock()
-
-	clientCacheMu.Lock()
-	defer clientCacheMu.Unlock()
-
-	// Double-check after acquiring write lock
-	if client, exists := clientCache[repoPath]; exists {
-		return client, nil
-	}
-
-	cacheDir := filepath.Join(repoPath, "autoconf")
-	userAgent := version.GetUserAgentVersion()
-
-	client, err := autoconf.NewClient(
-		autoconf.WithCacheDir(cacheDir),
-		autoconf.WithUserAgent(userAgent),
-		autoconf.WithCacheSize(DefaultAutoConfCacheSize),
-		autoconf.WithTimeout(DefaultAutoConfTimeout),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	clientCache[repoPath] = client
-	return client, nil
-}
-
 // getAutoConf is a helper to get autoconf data with fallbacks
 func (c *Config) getAutoConf() *autoconf.Config {
 	if !c.AutoConf.Enabled.WithDefault(DefaultAutoConfEnabled) {
@@ -215,21 +165,16 @@ func (c *Config) getAutoConf() *autoconf.Config {
 		return nil
 	}
 
-	if c.AutoConf.URL == "" {
-		log.Debugf("getAutoConf: AutoConf.URL is empty, returning nil")
-		return nil
-	}
-
-	// Create or get cached client with standard settings
-	client, err := getOrCreateAutoConfClient()
+	// Create or get cached client with config
+	client, err := GetAutoConfClient(c)
 	if err != nil {
 		log.Debugf("getAutoConf: client creation failed - %v", err)
 		return nil
 	}
 
-	// Use MustGetConfigCached to avoid network I/O during config operations
+	// Use GetCached to avoid network I/O during config operations
 	// This ensures config retrieval doesn't block on network operations
-	result := client.MustGetConfigCached(c.AutoConf.URL, autoconf.GetMainnetFallbackConfig)
+	result := client.GetCached()
 
 	log.Debugf("getAutoConf: returning autoconf data")
 	return result

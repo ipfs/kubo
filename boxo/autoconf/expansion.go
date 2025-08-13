@@ -160,19 +160,29 @@ func ExpandDelegatedEndpoints(configEndpoints []string, autoConf *Config, native
 	}
 
 	var routers []string
+	seen := make(map[string]struct{}) // Track seen URLs to avoid duplicates
+
 	for baseURL, config := range endpoints {
 		// Combine both Read and Write paths (already filtered by WithSupportedPathsOnly)
 		allPaths := append(config.Read, config.Write...)
 
-		// Build URLs for all paths
-		urls := buildEndpointURLs(baseURL, allPaths)
-		routers = append(routers, urls...)
+		// Deduplicate paths (in case same path appears in both Read and Write)
+		uniquePaths := make(map[string]struct{})
+		for _, path := range allPaths {
+			uniquePaths[path] = struct{}{}
+		}
+
+		// Build URLs for unique paths
+		for path := range uniquePaths {
+			url := strings.TrimRight(baseURL, "/") + path
+			if _, exists := seen[url]; !exists {
+				routers = append(routers, url)
+				seen[url] = struct{}{}
+			}
+		}
 	}
 
 	resolved := expandAutoConfSlice(configEndpoints, routers)
-
-	// Filter out URLs with unsupported routing paths
-	resolved = filterValidRoutingURLs(resolved)
 
 	// Final safety check to guarantee no trailing slashes
 	for i, url := range resolved {

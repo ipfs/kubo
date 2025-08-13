@@ -107,15 +107,15 @@ type Response struct {
 
 // GetBootstrapPeers returns deduplicated bootstrap peers from the specified native systems
 func (c *Config) GetBootstrapPeers(nativeSystems ...string) []string {
-	bootstrapSet := make(map[string]bool) // For deduplication
+	bootstrapSet := make(map[string]struct{}) // For deduplication
 	var result []string
 
 	for _, system := range nativeSystems {
 		if systemConf, exists := c.SystemRegistry[system]; exists {
 			if systemConf.NativeConfig != nil {
 				for _, peer := range systemConf.NativeConfig.Bootstrap {
-					if !bootstrapSet[peer] {
-						bootstrapSet[peer] = true
+					if _, exists := bootstrapSet[peer]; !exists {
+						bootstrapSet[peer] = struct{}{}
 						result = append(result, peer)
 					}
 				}

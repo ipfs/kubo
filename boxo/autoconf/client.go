@@ -4,9 +4,11 @@ import (
 	"crypto/tls"
 	"fmt"
 	"hash/fnv"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -67,7 +69,12 @@ type Client struct {
 	cacheSize       int
 	userAgent       string
 	maxResponseSize int64
-	cacheMu         sync.RWMutex // Protects cache operations (allows concurrent reads)
+	cacheMu         sync.RWMutex   // Protects cache operations (allows concurrent reads)
+	urls            []string       // Required: autoconf URLs (can be multiple for load balancing)
+	refreshInterval time.Duration  // Required: refresh interval for autoconf data
+	fallbackFunc    func() *Config // Optional: fallback function if fetch fails
+	updater         *BackgroundUpdater
+	updaterMu       sync.Mutex // Protects updater field
 }
 
 // Option is a function that configures the client
@@ -79,12 +86,20 @@ func NewClient(options ...Option) (*Client, error) {
 		httpClient:      &http.Client{Timeout: DefaultTimeout},
 		cacheSize:       DefaultCacheSize,
 		maxResponseSize: defaultMaxResponseSize,
+		refreshInterval: DefaultRefreshInterval,   // Default if not specified
+		fallbackFunc:    GetMainnetFallbackConfig, // Default fallback
 	}
 
 	for _, opt := range options {
 		if err := opt(c); err != nil {
 			return nil, fmt.Errorf("failed to apply option: %w", err)
 		}
+	}
+
+	// Use mainnet URL as default if no URLs provided
+	if len(c.urls) == 0 {
+		c.urls = []string{MainnetAutoConfURL}
+		log.Debugf("no URLs provided, using default mainnet URL: %s", MainnetAutoConfURL)
 	}
 
 	// Use temp dir if no cache dir provided
@@ -165,9 +180,64 @@ func WithTLSInsecureSkipVerify(skip bool) Option {
 	}
 }
 
-// getCacheDir returns the cache directory for a given URL
-// Uses FNV-1a hash for fast, uniform directory naming in flat structure
-func (c *Client) getCacheDir(configURL string) (string, error) {
+// WithURL adds an autoconf URL to the client.
+// Can be called multiple times to add multiple URLs for load balancing.
+func WithURL(url string) Option {
+	return func(c *Client) error {
+		if url == "" {
+			return fmt.Errorf("URL cannot be empty")
+		}
+		// Basic URL validation will happen when used
+		c.urls = append(c.urls, url)
+		return nil
+	}
+}
+
+// WithRefreshInterval sets the refresh interval for autoconf data
+func WithRefreshInterval(interval time.Duration) Option {
+	return func(c *Client) error {
+		if interval <= 0 {
+			return fmt.Errorf("refresh interval must be positive")
+		}
+		c.refreshInterval = interval
+		return nil
+	}
+}
+
+// WithFallback sets a fallback function that returns config when fetch fails
+func WithFallback(fallbackFunc func() *Config) Option {
+	return func(c *Client) error {
+		c.fallbackFunc = fallbackFunc
+		return nil
+	}
+}
+
+// getCacheDir returns the cache directory based on the client's URLs
+// When multiple URLs are configured, they share the same cache directory
+func (c *Client) getCacheDir() (string, error) {
+	if len(c.urls) == 0 {
+		return "", fmt.Errorf("no URLs configured")
+	}
+
+	// Sort URLs for consistent hashing regardless of order
+	sortedURLs := make([]string, len(c.urls))
+	copy(sortedURLs, c.urls)
+	sort.Strings(sortedURLs)
+
+	// Hash all URLs together for a single cache directory
+	h := fnv.New64a()
+	for _, url := range sortedURLs {
+		h.Write([]byte(url))
+	}
+	hash := h.Sum64()
+
+	// Simple flat structure - just the hash as directory name
+	hashStr := fmt.Sprintf("%016x", hash)
+	return filepath.Join(c.cacheDir, hashStr), nil
+}
+
+// getCacheDirForURL returns the cache directory for a specific URL (for backward compatibility)
+func (c *Client) getCacheDirForURL(configURL string) (string, error) {
 	// Use FNV-1a for fast, uniform hashing (standard library)
 	h := fnv.New64a()
 	h.Write([]byte(configURL))
@@ -176,6 +246,17 @@ func (c *Client) getCacheDir(configURL string) (string, error) {
 	// Simple flat structure - just the hash as directory name
 	hashStr := fmt.Sprintf("%016x", hash)
 	return filepath.Join(c.cacheDir, hashStr), nil
+}
+
+// selectURL picks a random URL from the configured URLs for load balancing
+func (c *Client) selectURL() string {
+	if len(c.urls) == 0 {
+		return ""
+	}
+	if len(c.urls) == 1 {
+		return c.urls[0]
+	}
+	return c.urls[rand.Intn(len(c.urls))]
 }
 
 // readMetadata reads cached ETag and Last-Modified values

@@ -133,7 +133,7 @@ func GroupByKnownCapabilities(endpoints []string, supportsRead, supportsWrite bo
 // Base URL is the URL without any path (e.g., "https://example.com" from "https://example.com/routing/v1/providers").
 // This is useful when you need to create routing clients that expect base URLs.
 func extractUniqueBaseURLs(endpoints []string) []string {
-	baseURLSet := make(map[string]bool)
+	baseURLSet := make(map[string]struct{})
 	var result []string
 
 	for _, endpoint := range endpoints {
@@ -148,8 +148,8 @@ func extractUniqueBaseURLs(endpoints []string) []string {
 			continue
 		}
 
-		if !baseURLSet[baseURL] {
-			baseURLSet[baseURL] = true
+		if _, exists := baseURLSet[baseURL]; !exists {
+			baseURLSet[baseURL] = struct{}{}
 			result = append(result, baseURL)
 		}
 	}

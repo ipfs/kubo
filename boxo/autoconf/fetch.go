@@ -18,10 +18,8 @@ import (
 )
 
 // getLatest fetches the latest config with metadata, using cache when possible
-// The refreshInterval parameter determines how long cached configs are considered fresh.
-// The effective refresh interval will be the minimum of refreshInterval and the server's AutoConfTTL.
-func (c *Client) getLatest(ctx context.Context, configURL string, refreshInterval time.Duration) (*Response, error) {
-	cacheDir, err := c.getCacheDir(configURL)
+func (c *Client) getLatest(ctx context.Context) (*Response, error) {
+	cacheDir, err := c.getCacheDir()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cache dir: %w", err)
 	}
@@ -33,7 +31,7 @@ func (c *Client) getLatest(ctx context.Context, configURL string, refreshInterva
 
 	// Check if we have cached data that's still within refreshInterval
 	cachedResp, cacheErr := c.getCached(cacheDir)
-	if cacheErr == nil && cachedResp.CacheAge < refreshInterval {
+	if cacheErr == nil && cachedResp.CacheAge < c.refreshInterval {
 		log.Debugf("using cached autoconf within refresh interval")
 		return cachedResp, nil
 	}
@@ -42,6 +40,9 @@ func (c *Client) getLatest(ctx context.Context, configURL string, refreshInterva
 	if cacheErr == nil {
 		log.Debugf("cache stale, checking for updates")
 	}
+
+	// Select a random URL for load balancing
+	configURL := c.selectURL()
 	resp, err := c.fetchFromRemote(ctx, configURL, cacheDir)
 	if err != nil {
 		log.Warnf("failed to fetch from remote: %v", err)
@@ -56,8 +57,8 @@ func (c *Client) getLatest(ctx context.Context, configURL string, refreshInterva
 
 	// Successfully fetched new config, now check if server AutoConfTTL requires using cached version
 	if resp.Config != nil && cacheErr == nil {
-		effectiveInterval := calculateEffectiveRefreshInterval(refreshInterval, resp.Config.AutoConfTTL)
-		if effectiveInterval < refreshInterval {
+		effectiveInterval := calculateEffectiveRefreshInterval(c.refreshInterval, resp.Config.AutoConfTTL)
+		if effectiveInterval < c.refreshInterval {
 			log.Debugf("server AutoConfTTL is shorter than user refresh interval, using server AutoConfTTL")
 
 			// Re-check if cached version is still fresh under the effective (shorter) interval
@@ -82,89 +83,75 @@ func (c *Client) getLatest(ctx context.Context, configURL string, refreshInterva
 
 // GetLatest fetches the latest config with metadata, using cache when possible.
 // This is the public API method that returns errors for proper error handling.
-// The refreshInterval parameter determines how long cached configs are considered fresh.
-// The effective refresh interval will be the minimum of refreshInterval and the server's AutoConfTTL.
-func (c *Client) GetLatest(ctx context.Context, configURL string, refreshInterval time.Duration) (*Response, error) {
-	return c.getLatest(ctx, configURL, refreshInterval)
+func (c *Client) GetLatest(ctx context.Context) (*Response, error) {
+	return c.getLatest(ctx)
 }
 
-// MustGetConfigCached returns config from cache or fallback without any network I/O.
+// GetCached returns config from cache or fallback without any network I/O.
 //
 // This method guarantees no network operations will be performed, making it safe to
 // call from any context where network access should be avoided. It only uses locally
-// cached data or the provided fallback. It follows this priority order:
+// cached data or the configured fallback. It follows this priority order:
 //
 // 1. Return cached config if available (regardless of age)
-// 2. Call provided fallback function if cache miss occurs
-// 3. Use default mainnet fallback if no fallback function provided
+// 2. Use configured fallback function (defaults to mainnet fallback)
 //
 // This method is essential for preventing network blocking during config reads,
 // especially in scenarios where autoconf is enabled but network access should
 // be avoided (e.g., config validation, offline node construction).
-func (c *Client) MustGetConfigCached(configURL string, fallbackFunc func() *Config) *Config {
-	cacheDir, err := c.getCacheDir(configURL)
+func (c *Client) GetCached() *Config {
+	cacheDir, err := c.getCacheDir()
 	if err != nil {
-		log.Debugf("MustGetConfigCached: cache dir error: %v, using fallback", err)
-		if fallbackFunc != nil {
-			return fallbackFunc()
-		}
-		return GetMainnetFallbackConfig()
+		log.Debugf("GetCached: cache dir error: %v, using fallback", err)
+		return c.fallbackFunc()
 	}
 
 	// Try to get from cache only
 	config, err := c.getCachedConfig(cacheDir)
 	if err != nil {
-		log.Debugf("MustGetConfigCached: cache miss or error: %v, using fallback", err)
-		if fallbackFunc != nil {
-			return fallbackFunc()
-		}
-		return GetMainnetFallbackConfig()
+		log.Debugf("GetCached: cache miss or error: %v, using fallback", err)
+		return c.fallbackFunc()
 	}
 
-	log.Debugf("MustGetConfigCached: returning cached config")
+	log.Debugf("GetCached: returning cached config")
 	return config
 }
 
-// MustGetConfigWithRefresh fetches the latest config from network with fallback handling.
+// GetCachedOrRefresh fetches the latest config from network with fallback handling.
 //
 // This method will attempt to fetch fresh config from the network, respecting the
 // refreshInterval for cache freshness. If network fetch fails, it falls back to:
 // 1. Cached config (even if stale)
-// 2. Provided fallback function
-// 3. Default mainnet fallback
+// 2. Configured fallback function (defaults to mainnet fallback)
 //
 // This method may block on network I/O and should be used when network operations
-// are acceptable. For config reads that must avoid network I/O, use MustGetConfigCached.
-func (c *Client) MustGetConfigWithRefresh(ctx context.Context, configURL string, refreshInterval time.Duration, fallbackFunc func() *Config) *Config {
-	resp, err := c.getLatest(ctx, configURL, refreshInterval)
+// are acceptable. For config reads that must avoid network I/O, use GetCached.
+func (c *Client) GetCachedOrRefresh(ctx context.Context) *Config {
+	resp, err := c.getLatest(ctx)
 	if err != nil {
-		log.Errorf("AutoConf fetch failed: %v, falling back to provided fallback config", err)
+		log.Errorf("AutoConf fetch failed: %v, falling back to fallback config", err)
 	} else if resp == nil || resp.Config == nil {
-		log.Errorf("AutoConf fetch returned nil response or config, falling back to provided fallback config")
+		log.Errorf("AutoConf fetch returned nil response or config, falling back to fallback config")
 	} else {
 		// Return the fetched config as-is without any modification
 		if resp.FromCache {
-			log.Debugf("MustGetConfigWithRefresh: returning cached config")
+			log.Debugf("GetCachedOrRefresh: returning cached config")
 		} else {
-			log.Debugf("MustGetConfigWithRefresh: returning fresh config from network")
+			log.Debugf("GetCachedOrRefresh: returning fresh config from network")
 		}
 		return resp.Config
 	}
 
-	// Use the provided fallback function if available, otherwise use default mainnet fallback
-	if fallbackFunc != nil {
-		log.Debugf("MustGetConfigWithRefresh: returning provided fallback config")
-		return fallbackFunc()
-	}
-	log.Debugf("MustGetConfigWithRefresh: returning default mainnet fallback config")
-	return GetMainnetFallbackConfig()
+	// Use the configured fallback function
+	log.Debugf("GetCachedOrRefresh: returning fallback config")
+	return c.fallbackFunc()
 }
 
-// HasCachedConfig checks if there's a cached config available for the given URL.
+// HasCachedConfig checks if there's a cached config available.
 //
 // This method performs a quick filesystem check to determine if cached autoconf
-// data exists for the specified URL. It does not validate the cached data or
-// check if it's fresh - it only verifies that cache files are present and readable.
+// data exists. It does not validate the cached data or check if it's fresh -
+// it only verifies that cache files are present and readable.
 //
 // Returns:
 //   - true: if cached config files exist and are accessible
@@ -172,8 +159,8 @@ func (c *Client) MustGetConfigWithRefresh(ctx context.Context, configURL string,
 //
 // This method is useful for determining whether to perform cache priming or
 // for conditional logic that depends on cache availability.
-func (c *Client) HasCachedConfig(configURL string) bool {
-	cacheDir, err := c.getCacheDir(configURL)
+func (c *Client) HasCachedConfig() bool {
+	cacheDir, err := c.getCacheDir()
 	if err != nil {
 		return false
 	}

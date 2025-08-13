@@ -22,9 +22,6 @@ func testAutoConfWithFallback(t *testing.T, serverURL string, expectError bool, 
 
 // testAutoConfWithFallbackAndTimeout is a helper function that tests autoconf parsing with fallback detection and custom timeout
 func testAutoConfWithFallbackAndTimeout(t *testing.T, serverURL string, expectError bool, expectErrorMsg string, timeout time.Duration) (*autoconf.Config, bool) {
-	client, err := autoconf.NewClient(autoconf.WithUserAgent("test-agent"))
-	require.NoError(t, err)
-
 	// Use fallback detection to test error conditions with MustGetConfigWithRefresh
 	fallbackUsed := false
 	fallbackConfig := &autoconf.Config{
@@ -32,12 +29,20 @@ func testAutoConfWithFallbackAndTimeout(t *testing.T, serverURL string, expectEr
 		AutoConfSchema:  -999,
 	}
 
+	client, err := autoconf.NewClient(
+		autoconf.WithUserAgent("test-agent"),
+		autoconf.WithURL(serverURL),
+		autoconf.WithRefreshInterval(autoconf.DefaultRefreshInterval),
+		autoconf.WithFallback(func() *autoconf.Config {
+			fallbackUsed = true
+			return fallbackConfig
+		}),
+	)
+	require.NoError(t, err)
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	result := client.MustGetConfigWithRefresh(ctx, serverURL, autoconf.DefaultRefreshInterval, func() *autoconf.Config {
-		fallbackUsed = true
-		return fallbackConfig
-	})
+	result := client.GetCachedOrRefresh(ctx)
 
 	if expectError {
 		require.True(t, fallbackUsed, expectErrorMsg)

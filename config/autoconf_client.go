@@ -3,21 +3,63 @@ package config
 import (
 	"fmt"
 	"path/filepath"
-
-	"github.com/ipfs/kubo/boxo/autoconf"
+	"sync"
 
 	logging "github.com/ipfs/go-log/v2"
+	version "github.com/ipfs/kubo"
+	"github.com/ipfs/kubo/boxo/autoconf"
 )
 
-// NewAutoConfClient creates an autoconf client with standard defaults
-func NewAutoConfClient(repoPath, userAgent string) (*autoconf.Client, error) {
-	cacheDir := filepath.Join(repoPath, "autoconf")
-	return autoconf.NewClient(
-		autoconf.WithCacheDir(cacheDir),
-		autoconf.WithUserAgent(userAgent),
+var autoconfLog = logging.Logger("autoconf")
+
+// Singleton state for autoconf client
+var (
+	clientOnce  sync.Once
+	clientCache *autoconf.Client
+	clientErr   error
+)
+
+// GetAutoConfClient returns a cached autoconf client or creates a new one.
+// This is thread-safe and uses a singleton pattern.
+func GetAutoConfClient(cfg *Config) (*autoconf.Client, error) {
+	clientOnce.Do(func() {
+		clientCache, clientErr = newAutoConfClient(cfg)
+	})
+	return clientCache, clientErr
+}
+
+// newAutoConfClient creates a new autoconf client with the given config
+func newAutoConfClient(cfg *Config) (*autoconf.Client, error) {
+	// Get repo path for cache directory
+	repoPath, err := PathRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get repo path: %w", err)
+	}
+
+	// Prepare refresh interval with nil check
+	refreshInterval := cfg.AutoConf.RefreshInterval
+	if refreshInterval == nil {
+		refreshInterval = &OptionalDuration{}
+	}
+
+	// Use default URL if not specified
+	url := cfg.AutoConf.URL
+	if url == "" {
+		url = DefaultAutoConfURL
+	}
+
+	// Build client options
+	options := []autoconf.Option{
+		autoconf.WithCacheDir(filepath.Join(repoPath, "autoconf")),
+		autoconf.WithUserAgent(version.GetUserAgentVersion()),
 		autoconf.WithCacheSize(DefaultAutoConfCacheSize),
 		autoconf.WithTimeout(DefaultAutoConfTimeout),
-	)
+		autoconf.WithRefreshInterval(refreshInterval.WithDefault(DefaultAutoConfRefreshInterval)),
+		autoconf.WithFallback(autoconf.GetMainnetFallbackConfig),
+		autoconf.WithURL(url),
+	}
+
+	return autoconf.NewClient(options...)
 }
 
 // ValidateAutoConfWithRepo validates that autoconf setup is correct at daemon startup with repo access
@@ -40,8 +82,6 @@ func ValidateAutoConfWithRepo(cfg *Config, swarmKeyExists bool) error {
 	// Further validation will happen lazily when config is accessed
 	return nil
 }
-
-var autoconfLog = logging.Logger("autoconf")
 
 // validateAutoConfDisabled checks for "auto" values when AutoConf is disabled and logs errors
 func validateAutoConfDisabled(cfg *Config) error {
