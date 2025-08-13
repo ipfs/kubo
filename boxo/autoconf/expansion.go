@@ -5,6 +5,15 @@ import (
 	"strings"
 )
 
+// normalizeURLs ensures all URLs in the slice have no trailing slashes
+func normalizeURLs(urls []string) []string {
+	normalized := make([]string, len(urls))
+	for i, url := range urls {
+		normalized[i] = strings.TrimRight(url, "/")
+	}
+	return normalized
+}
+
 // expandAutoConfSlice is a generic helper for expanding "auto" placeholders in string slices
 // It handles the common pattern of: iterate through slice, expand "auto" once, keep custom values
 func expandAutoConfSlice(sourceSlice []string, autoConfData []string) []string {
@@ -174,7 +183,7 @@ func ExpandDelegatedEndpoints(configEndpoints []string, autoConf *Config, native
 
 		// Build URLs for unique paths
 		for path := range uniquePaths {
-			url := strings.TrimRight(baseURL, "/") + path
+			url := buildEndpointURL(baseURL, path)
 			if _, exists := seen[url]; !exists {
 				routers = append(routers, url)
 				seen[url] = struct{}{}
@@ -184,10 +193,9 @@ func ExpandDelegatedEndpoints(configEndpoints []string, autoConf *Config, native
 
 	resolved := expandAutoConfSlice(configEndpoints, routers)
 
-	// Final safety check to guarantee no trailing slashes
-	for i, url := range resolved {
-		resolved[i] = strings.TrimRight(url, "/")
-	}
+	// Normalize all URLs to ensure no trailing slashes
+	// (autoconf URLs are already normalized, but user-provided custom URLs might not be)
+	resolved = normalizeURLs(resolved)
 
 	log.Debugf("ExpandDelegatedEndpoints: final result contains %d endpoints", len(resolved))
 	return resolved
