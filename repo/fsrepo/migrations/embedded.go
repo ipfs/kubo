@@ -113,7 +113,8 @@ func RunEmbeddedMigrations(ctx context.Context, targetVer int, ipfsDir string, a
 		return nil
 	}
 
-	if fromVer > targetVer && !allowDowngrade {
+	revert := fromVer > targetVer
+	if revert && !allowDowngrade {
 		return fmt.Errorf("downgrade not allowed from %d to %d", fromVer, targetVer)
 	}
 
@@ -125,10 +126,6 @@ func RunEmbeddedMigrations(ctx context.Context, targetVer int, ipfsDir string, a
 		return err
 	}
 
-	var revert bool
-	if fromVer > targetVer {
-		revert = true
-	}
 
 	embeddedCount := 0
 	for _, migrationName := range migrations {

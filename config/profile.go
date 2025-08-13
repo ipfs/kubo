@@ -375,10 +375,10 @@ Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers
 Use this when you want normal networking but prefer manual control over all endpoints.`,
 
 		Transform: func(c *Config) error {
-			c.Bootstrap = []string{}
-			c.DNS.Resolvers = map[string]string{}
-			c.Routing.DelegatedRouters = []string{}
-			c.Ipns.DelegatedPublishers = []string{}
+			c.Bootstrap = nil
+			c.DNS.Resolvers = nil
+			c.Routing.DelegatedRouters = nil
+			c.Ipns.DelegatedPublishers = nil
 			c.AutoConf.Enabled = False
 			return nil
 		},

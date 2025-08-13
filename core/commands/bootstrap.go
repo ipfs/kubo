@@ -409,8 +409,7 @@ func bootstrapRemoveAll(r repo.Repo, cfg *config.Config) ([]string, error) {
 	if hasAuto {
 		// When "auto" is present, we can't parse it as peer.AddrInfo
 		// Just return the raw bootstrap list as strings for display
-		removed = make([]string, len(cfg.Bootstrap))
-		copy(removed, cfg.Bootstrap)
+		removed = slices.Clone(cfg.Bootstrap)
 	} else {
 		// Original logic for configs without "auto"
 		removedPeers, err := cfg.BootstrapPeers()

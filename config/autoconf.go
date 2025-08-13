@@ -1,6 +1,7 @@
 package config
 
 import (
+	"maps"
 	"math/rand"
 	"strings"
 
@@ -220,18 +221,10 @@ func (c *Config) DelegatedPublishersWithAutoConf() []string {
 	)
 }
 
-// copyConfigMap creates a deep copy of a config map to avoid modifying the original
-func copyConfigMap(cfg map[string]interface{}) map[string]interface{} {
-	copied := make(map[string]interface{})
-	for k, v := range cfg {
-		copied[k] = v
-	}
-	return copied
-}
 
 // expandConfigField expands a specific config field with autoconf values
 // Handles both top-level fields ("Bootstrap") and nested fields ("DNS.Resolvers")
-func (c *Config) expandConfigField(expandedCfg map[string]interface{}, fieldPath string) {
+func (c *Config) expandConfigField(expandedCfg map[string]any, fieldPath string) {
 	// Check if this field supports autoconf expansion
 	expandFunc, supported := supportedAutoConfFields[fieldPath]
 	if !supported {
@@ -254,7 +247,7 @@ func (c *Config) expandConfigField(expandedCfg map[string]interface{}, fieldPath
 
 	sectionName, fieldName := parts[0], parts[1]
 	if section, exists := expandedCfg[sectionName]; exists {
-		if sectionMap, ok := section.(map[string]interface{}); ok {
+		if sectionMap, ok := section.(map[string]any); ok {
 			if _, exists := sectionMap[fieldName]; exists {
 				sectionMap[fieldName] = expandFunc(c)
 				expandedCfg[sectionName] = sectionMap
@@ -264,9 +257,9 @@ func (c *Config) expandConfigField(expandedCfg map[string]interface{}, fieldPath
 }
 
 // ExpandAutoConfValues expands "auto" placeholders in config with their actual values using the same methods as the daemon
-func (c *Config) ExpandAutoConfValues(cfg map[string]interface{}) (map[string]interface{}, error) {
+func (c *Config) ExpandAutoConfValues(cfg map[string]any) (map[string]any, error) {
 	// Create a deep copy of the config map to avoid modifying the original
-	expandedCfg := copyConfigMap(cfg)
+	expandedCfg := maps.Clone(cfg)
 
 	// Use the same expansion methods that the daemon uses - ensures runtime consistency
 	// Unified expansion for all supported autoconf fields
@@ -279,27 +272,27 @@ func (c *Config) ExpandAutoConfValues(cfg map[string]interface{}) (map[string]in
 }
 
 // supportedAutoConfFields maps field keys to their expansion functions
-var supportedAutoConfFields = map[string]func(*Config) interface{}{
-	"Bootstrap": func(c *Config) interface{} {
+var supportedAutoConfFields = map[string]func(*Config) any{
+	"Bootstrap": func(c *Config) any {
 		expanded := c.BootstrapWithAutoConf()
 		return stringSliceToInterfaceSlice(expanded)
 	},
-	"DNS.Resolvers": func(c *Config) interface{} {
+	"DNS.Resolvers": func(c *Config) any {
 		expanded := c.DNSResolversWithAutoConf()
 		return stringMapToInterfaceMap(expanded)
 	},
-	"Routing.DelegatedRouters": func(c *Config) interface{} {
+	"Routing.DelegatedRouters": func(c *Config) any {
 		expanded := c.DelegatedRoutersWithAutoConf()
 		return stringSliceToInterfaceSlice(expanded)
 	},
-	"Ipns.DelegatedPublishers": func(c *Config) interface{} {
+	"Ipns.DelegatedPublishers": func(c *Config) any {
 		expanded := c.DelegatedPublishersWithAutoConf()
 		return stringSliceToInterfaceSlice(expanded)
 	},
 }
 
 // ExpandConfigField expands auto values for a specific config field using the same methods as the daemon
-func (c *Config) ExpandConfigField(key string, value interface{}) interface{} {
+func (c *Config) ExpandConfigField(key string, value any) any {
 	if expandFunc, supported := supportedAutoConfFields[key]; supported {
 		return expandFunc(c)
 	}
@@ -308,18 +301,18 @@ func (c *Config) ExpandConfigField(key string, value interface{}) interface{} {
 	return value
 }
 
-// Helper functions for type conversion between string types and interface{} types for JSON compatibility
+// Helper functions for type conversion between string types and any types for JSON compatibility
 
-func stringSliceToInterfaceSlice(slice []string) []interface{} {
-	result := make([]interface{}, len(slice))
+func stringSliceToInterfaceSlice(slice []string) []any {
+	result := make([]any, len(slice))
 	for i, v := range slice {
 		result[i] = v
 	}
 	return result
 }
 
-func stringMapToInterfaceMap(m map[string]string) map[string]interface{} {
-	result := make(map[string]interface{})
+func stringMapToInterfaceMap(m map[string]string) map[string]any {
+	result := make(map[string]any)
 	for k, v := range m {
 		result[k] = v
 	}

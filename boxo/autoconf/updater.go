@@ -210,10 +210,7 @@ func (u *BackgroundUpdater) calculateBackoffDelay(failureCount int) time.Duratio
 	}
 
 	// Calculate exponential backoff: 1 << failureCount minutes
-	backoffMinutes := 1 << failureCount
-	if backoffMinutes > backoffMaxMinutes {
-		backoffMinutes = backoffMaxMinutes
-	}
+	backoffMinutes := min(1<<failureCount, backoffMaxMinutes)
 
 	return time.Duration(backoffMinutes) * backoffBaseInterval
 }

@@ -295,9 +295,7 @@ func processBootstrapPeers(peers []string, repoPath string) []string {
 
 	// If we have default peers, replace them with "auto"
 	if hasDefaultPeers {
-		result := []string{"auto"}
-		result = append(result, customPeers...)
-		return result
+		return append([]string{"auto"}, customPeers...)
 	}
 
 	// No default peers found, keep as is

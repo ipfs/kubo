@@ -602,11 +602,5 @@ func calculateEffectiveRefreshInterval(userInterval time.Duration, cacheTTLSecon
 	}
 
 	serverTTL := time.Duration(cacheTTLSeconds) * time.Second
-	if serverTTL < userInterval {
-		// Server wants shorter cache period, respect it
-		return serverTTL
-	}
-
-	// User wants shorter cache period or same as server, respect user preference
-	return userInterval
+	return min(serverTTL, userInterval)
 }

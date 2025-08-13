@@ -189,11 +189,11 @@ func parseAndValidateRoutingURL(endpoint string) (baseURL string, path string, e
 func filterValidRoutingURLs(urls []string) []string {
 	var filtered []string
 	for _, urlStr := range urls {
-		if _, _, err := parseAndValidateRoutingURL(urlStr); err == nil {
-			filtered = append(filtered, urlStr)
-		} else {
+		if _, _, err := parseAndValidateRoutingURL(urlStr); err != nil {
 			log.Debugf("Skipping invalid routing URL %q: %v", urlStr, err)
+			continue
 		}
+		filtered = append(filtered, urlStr)
 	}
 	return filtered
 }
