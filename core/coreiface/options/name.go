@@ -17,6 +17,7 @@ type NamePublishSettings struct {
 	CompatibleWithV1 bool
 	AllowOffline     bool
 	DelegatedOnly    bool
+	Sequence         *uint64
 }
 
 type NameResolveSettings struct {
@@ -112,6 +113,15 @@ func (nameOpts) DelegatedOnly(delegatedOnly bool) NamePublishOption {
 func (nameOpts) TTL(ttl time.Duration) NamePublishOption {
 	return func(settings *NamePublishSettings) error {
 		settings.TTL = &ttl
+		return nil
+	}
+}
+
+// Sequence is an option for Name.Publish which specifies the sequence number of
+// a namesys record.
+func (nameOpts) Sequence(seq uint64) NamePublishOption {
+	return func(settings *NamePublishSettings) error {
+		settings.Sequence = &seq
 		return nil
 	}
 }

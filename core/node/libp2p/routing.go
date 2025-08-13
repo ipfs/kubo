@@ -298,24 +298,36 @@ func autoRelayFeeder(cfgPeering config.Peering, peerChan chan<- peer.AddrInfo) f
 				}
 
 				// Additionally, feed closest peers discovered via DHT
-				if dht == nil {
-					/* noop due to missing dht.WAN. happens in some unit tests,
-					   not worth fixing as we will refactor this after go-libp2p 0.20 */
-					continue
+				if dht != nil {
+					closestPeers, err := dht.WAN.GetClosestPeers(ctx, h.ID().String())
+					if err == nil {
+						for _, p := range closestPeers {
+							addrs := h.Peerstore().Addrs(p)
+							if len(addrs) == 0 {
+								continue
+							}
+							dhtPeer := peer.AddrInfo{ID: p, Addrs: addrs}
+							select {
+							case peerChan <- dhtPeer:
+							case <-ctx.Done():
+								return
+							}
+						}
+					}
 				}
-				closestPeers, err := dht.WAN.GetClosestPeers(ctx, h.ID().String())
-				if err != nil {
-					// no-op: usually 'failed to find any peer in table' during startup
-					continue
-				}
-				for _, p := range closestPeers {
+
+				// Additionally, feed all connected swarm peers as potential relay candidates.
+				// This includes peers from HTTP routing, manual swarm connect, mDNS discovery, etc.
+				// (fixes https://github.com/ipfs/kubo/issues/10899)
+				connectedPeers := h.Network().Peers()
+				for _, p := range connectedPeers {
 					addrs := h.Peerstore().Addrs(p)
 					if len(addrs) == 0 {
 						continue
 					}
-					dhtPeer := peer.AddrInfo{ID: p, Addrs: addrs}
+					swarmPeer := peer.AddrInfo{ID: p, Addrs: addrs}
 					select {
-					case peerChan <- dhtPeer:
+					case peerChan <- swarmPeer:
 					case <-ctx.Done():
 						return
 					}

@@ -28,6 +28,7 @@ const (
 	keyOptionName           = "key"
 	quieterOptionName       = "quieter"
 	v1compatOptionName      = "v1compat"
+	sequenceOptionName      = "sequence"
 )
 
 var PublishCmd = &cmds.Command{
@@ -73,6 +74,23 @@ Publish offline (local datastore only):
   > ipfs name publish --allow-offline /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
+Notes:
+
+The --ttl option specifies the time duration for caching IPNS records.
+Lower values like '1m' enable faster updates but increase network load,
+while the default of 1 hour reduces traffic but may delay propagation.
+Gateway operators may override this with Ipns.MaxCacheTTL configuration.
+
+The --sequence option sets a custom sequence number for the IPNS record.
+The sequence number must be monotonically increasing (greater than the
+current record's sequence). This is useful for manually coordinating
+updates across multiple writers. If not specified, the sequence number
+increments automatically.
+
+For faster IPNS updates, consider:
+- Using a lower --ttl value (e.g., '1m' for quick updates)
+- Enabling PubSub via Ipns.UsePubsub in the config
+
 `,
 	},
 
@@ -88,6 +106,7 @@ Publish offline (local datastore only):
 		cmds.BoolOption(v1compatOptionName, "Produce a backward-compatible IPNS Record by including fields for both V1 and V2 signatures.").WithDefault(true),
 		cmds.BoolOption(allowOfflineOptionName, "Save the IPNS record to the local datastore only, without broadcasting to the network."),
 		cmds.BoolOption(delegatedOnlyOptionName, "Use only HTTP delegated publishers, bypass DHT. Requires Ipns.DelegatedPublishers to be configured."),
+		cmds.Uint64Option(sequenceOptionName, "Set a custom sequence number for the IPNS record (must be higher than current)."),
 		ke.OptionIPNSBase,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -127,6 +146,10 @@ Publish offline (local datastore only):
 			}
 
 			opts = append(opts, options.Name.TTL(d))
+		}
+
+		if sequence, found := req.Options[sequenceOptionName].(uint64); found {
+			opts = append(opts, options.Name.Sequence(sequence))
 		}
 
 		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
