@@ -77,7 +77,7 @@ func (c *Client) getLatest(ctx context.Context) (*Response, error) {
 
 	// Clean up old versions
 	if err := c.cleanupOldVersions(cacheDir); err != nil {
-		log.Warnf("failed to cleanup old versions: %v", err)
+		log.Errorf("failed to cleanup old versions: %v", err)
 	}
 
 	return resp, nil

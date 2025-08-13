@@ -1,3 +1,5 @@
+// This module will be moved to github.com/ipfs/boxo/autoconf in the future.
+// It's kept as a separate module to simplify the eventual extraction to boxo.
 module github.com/ipfs/kubo/boxo/autoconf
 
 go 1.24
