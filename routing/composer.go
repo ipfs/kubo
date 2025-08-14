@@ -9,7 +9,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/multiformats/go-multihash"
-	"go.uber.org/multierr"
 )
 
 var (
@@ -124,7 +123,7 @@ func (c *Composer) Bootstrap(ctx context.Context) error {
 	errgv := c.GetValueRouter.Bootstrap(ctx)
 	errpv := c.PutValueRouter.Bootstrap(ctx)
 	errp := c.ProvideRouter.Bootstrap(ctx)
-	err := multierr.Combine(errfp, errfps, errgv, errpv, errp)
+	err := errors.Join(errfp, errfps, errgv, errpv, errp)
 	if err != nil {
 		log.Debug("composer: calling bootstrap error: ", err)
 	}

@@ -44,7 +44,6 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promauto "github.com/prometheus/client_golang/prometheus/promauto"
-	"go.uber.org/multierr"
 )
 
 const (
@@ -725,14 +724,17 @@ take effect.
 
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
-	var errs error
+	var errs []error
 	for err := range merge(apiErrc, gwErrc, gcErrc, p2pGwErrc, pluginErrc, unmountErrc) {
 		if err != nil {
-			errs = multierr.Append(errs, err)
+			errs = append(errs, err)
 		}
 	}
+	if len(errs) != 0 {
+		return errors.Join(errs...)
+	}
 
-	return errs
+	return nil
 }
 
 // serveHTTPApi collects options, creates listener, prints status message and starts serving requests.

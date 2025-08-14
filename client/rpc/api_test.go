@@ -2,9 +2,9 @@ package rpc
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,7 +17,6 @@ import (
 	"github.com/ipfs/kubo/core/coreiface/tests"
 	"github.com/ipfs/kubo/test/cli/harness"
 	ma "github.com/multiformats/go-multiaddr"
-	"go.uber.org/multierr"
 )
 
 type NodeProvider struct{}
@@ -92,15 +91,11 @@ func (np NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdent
 
 	wg.Wait()
 
-	return apis, multierr.Combine(errs...)
+	return apis, errors.Join(errs...)
 }
 
 func TestHttpApi(t *testing.T) {
 	t.Parallel()
-
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping due to #9905")
-	}
 
 	tests.TestApi(NodeProvider{})(t)
 }
