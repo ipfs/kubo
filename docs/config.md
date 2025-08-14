@@ -952,6 +952,7 @@ Type: `flag`
 ### `Gateway.RetrievalTimeout`
 
 Enforces a maximum duration for content retrieval:
+
 - **Time to first byte**: If the gateway cannot start writing the response within
   this duration (e.g., stuck searching for providers), a 504 Gateway Timeout is returned.
 - **Time between writes**: After the first byte, the timeout resets each time new bytes
@@ -959,7 +960,21 @@ Enforces a maximum duration for content retrieval:
   duration after the last successful write, the response is terminated.
 
 This helps free resources when the gateway gets stuck looking for providers or cannot
-retrieve the requested content.
+retrieve the requested content (e.g., when internal blocks are missing providers).
+
+The Prometheus metric `ipfs_http_gw_retrieval_timeouts_total` tracks retrieval
+timeouts by status code and truncation status.
+
+**Important truncation behavior**: When a timeout occurs after HTTP 200 headers have
+already been sent (e.g., during CAR stream or large file download), the response will
+be truncated. Since the 200 status was already sent, the gateway:
+
+- Appends an error message to indicate truncation occurred
+- Forces a TCP connection reset (RST) to prevent caching of incomplete responses
+- Records the event in metrics with the original status code and truncation flag
+
+This truncation signaling ensures that reverse proxies and clients do not cache
+incomplete responses as if they were complete.
 
 A value of 0 disables this timeout.
 
@@ -970,16 +985,25 @@ Type: `optionalDuration`
 ### `Gateway.MaxConcurrentRequests`
 
 Limits the number of concurrent HTTP requests handled by the gateway.
-Requests beyond this limit receive a 429 Too Many Requests response with
-a Retry-After header set to 60 seconds.
+Requests beyond this limit receive a 429 Too Many Requests response.
 
-This is useful for high-load deployments that need to tune resource usage
-based on their reverse proxy configuration (e.g., nginx's worker_connections).
-Set this slightly below your reverse proxy's limit for graceful degradation.
+This provides a tunable limiter to protect nodes from traffic spikes, high load
+and resource exhaustion when running behind a reverse proxy without proper
+rate-limiting. The default of 4096 aligns with common reverse proxy
+configurations (e.g., nginx with 8 workers × 1024 connections) and acts as a
+failsafe of last resort for most deployments.
+
+The Prometheus metric `ipfs_http_gw_concurrent_requests` tracks the current
+number of requests in flight.
+
+When to adjust this value:
+- Too many HTTP 429 responses with available resources: increase the value
+- High memory usage or resource exhaustion: decrease the value
+- Set this slightly below your reverse proxy's limit for graceful degradation
 
 A value of 0 disables the limit.
 
-Default: `1024`
+Default: `4096`
 
 Type: `optionalInteger`
 
