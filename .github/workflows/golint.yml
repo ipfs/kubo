@@ -32,5 +32,5 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: 1.25.x
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: make -O test_go_lint

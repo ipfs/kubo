@@ -39,7 +39,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: make build
       - uses: actions/upload-artifact@v4
         with:
@@ -97,7 +97,7 @@ jobs:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ipfs/ipfs-webui
           path: ipfs-webui
