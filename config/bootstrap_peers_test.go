@@ -7,7 +7,7 @@ import (
 	"github.com/ipfs/boxo/autoconf"
 )
 
-func TestBoostrapPeerStrings(t *testing.T) {
+func TestBootstrapPeerStrings(t *testing.T) {
 	parsed, err := ParseBootstrapPeers(autoconf.FallbackBootstrapPeers)
 	if err != nil {
 		t.Fatal(err)

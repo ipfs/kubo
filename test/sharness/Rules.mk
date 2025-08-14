@@ -14,10 +14,10 @@ DEPS_$(d) += $(SHARNESS_$(d))
 
 ifeq ($(OS),Linux)
 PLUGINS_DIR_$(d) := $(d)/plugins/
-ORGIN_PLUGINS_$(d) := $(plugin/plugins_plugins_so)
-PLUGINS_$(d) := $(addprefix $(PLUGINS_DIR_$(d)),$(notdir $(ORGIN_PLUGINS_$(d))))
+ORIGIN_PLUGINS_$(d) := $(plugin/plugins_plugins_so)
+PLUGINS_$(d) := $(addprefix $(PLUGINS_DIR_$(d)),$(notdir $(ORIGIN_PLUGINS_$(d))))
 
-$(PLUGINS_$(d)): $(ORGIN_PLUGINS_$(d))
+$(PLUGINS_$(d)): $(ORIGIN_PLUGINS_$(d))
 	@mkdir -p $(@D)
 	cp -f plugin/plugins/$(@F) $@
 

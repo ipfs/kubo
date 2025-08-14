@@ -1,6 +1,6 @@
 module github.com/ipfs/kubo/examples/kubo-as-a-library
 
-go 1.24
+go 1.25
 
 // Used to keep this in sync with the current version of kubo. You should remove
 // this if you copy this example.
