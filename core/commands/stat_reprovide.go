@@ -10,7 +10,7 @@ var statReprovideCmd = &cmds.Command{
 		Tagline: "Deprecated command, use 'ipfs provide stat' instead.",
 		ShortDescription: `
 'ipfs stats reprovide' is deprecated because provider stats are now
-available fomr 'ipfs provide stat'.
+available from 'ipfs provide stat'.
 `,
 	},
 	Arguments: provideStatCmd.Arguments,
