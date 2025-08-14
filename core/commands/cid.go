@@ -409,7 +409,7 @@ func (s multibaseSorter) Sort() {
 		if n := cmp.Compare(unicode.ToLower(rune(a.Code)), unicode.ToLower(rune(b.Code))); n != 0 {
 			return n
 		}
-		// lowecase letters should come before uppercase
+		// lowercase letters should come before uppercase
 		return cmp.Compare(b.Code, a.Code)
 	})
 }

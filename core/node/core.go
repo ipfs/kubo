@@ -214,8 +214,8 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 				return nil, err
 			}
 
-			offineDag := merkledag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
-			rnd, err := offineDag.Get(ctx, c)
+			offlineDag := merkledag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
+			rnd, err := offlineDag.Get(ctx, c)
 			if err != nil {
 				return nil, fmt.Errorf("error loading filesroot from dagservice: %s", err)
 			}
