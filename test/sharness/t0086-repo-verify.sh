@@ -24,7 +24,9 @@ sort_rand() {
 }
 
 check_random_corruption() {
-  to_break=$(find "$IPFS_PATH/blocks" -type f -name '*.data' | sort_rand | head -n 1)
+  # Exclude the empty file block (CIQL7TG2PB52XIZLLHDYIUFMHUQLMMZWBNBZSLDXFCPZ5VDNQQ2WDZQ.data) from corruption
+  # as it may not be reliably detected when corrupted
+  to_break=$(find "$IPFS_PATH/blocks" -type f -name '*.data' | grep -v "CIQL7TG2PB52XIZLLHDYIUFMHUQLMMZWBNBZSLDXFCPZ5VDNQQ2WDZQ.data" | sort_rand | head -n 1)
 
   test_expect_success "back up file and overwrite it" '
     cp "$to_break" backup_file &&
