@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestBoostrapPeerStrings(t *testing.T) {
+func TestBootstrapPeerStrings(t *testing.T) {
 	parsed, err := ParseBootstrapPeers(DefaultBootstrapAddresses)
 	if err != nil {
 		t.Fatal(err)

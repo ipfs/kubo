@@ -433,7 +433,7 @@ func getThreeChainedNodes(t *testing.T, ctx context.Context, api iface.CoreAPI, 
 	return immutablePathCidContainer{leaf}, parent, grandparent
 }
 
-func assertPinTypes(t *testing.T, ctx context.Context, api iface.CoreAPI, recusive, direct, indirect []cidContainer) {
+func assertPinTypes(t *testing.T, ctx context.Context, api iface.CoreAPI, recursive, direct, indirect []cidContainer) {
 	assertPinLsAllConsistency(t, ctx, api)
 
 	list, err := accPins(ctx, api, opt.Pin.Ls.Recursive())
@@ -441,7 +441,7 @@ func assertPinTypes(t *testing.T, ctx context.Context, api iface.CoreAPI, recusi
 		t.Fatal(err)
 	}
 
-	assertPinCids(t, list, recusive...)
+	assertPinCids(t, list, recursive...)
 
 	list, err = accPins(ctx, api, opt.Pin.Ls.Direct())
 	if err != nil {
