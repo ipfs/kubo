@@ -37,6 +37,7 @@ type AddEvent struct {
 }
 
 const (
+	pinNameOptionName           = "pin-name"
 	quietOptionName             = "quiet"
 	quieterOptionName           = "quieter"
 	silentOptionName            = "silent"
@@ -184,6 +185,7 @@ See 'dag export' and 'dag import' for more information.
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 		cmds.BoolOption(pinOptionName, "Pin locally to protect added files from garbage collection.").WithDefault(true),
+		cmds.StringOption(pinNameOptionName, "Name to use for the pin. Requires explicit value (e.g., --pin-name=myname)."),
 		cmds.StringOption(toFilesOptionName, "Add reference to Files API (MFS) at the provided path."),
 		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries. Disables raw-leaves. (experimental)"),
 		cmds.BoolOption(preserveMtimeOptionName, "Apply existing POSIX modification time to created UnixFS entries. Disables raw-leaves. (experimental)"),
@@ -230,6 +232,7 @@ See 'dag export' and 'dag import' for more information.
 		silent, _ := req.Options[silentOptionName].(bool)
 		chunker, _ := req.Options[chunkerOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
+		pinName, pinNameSet := req.Options[pinNameOptionName].(string)
 		rawblks, rbset := req.Options[rawLeavesOptionName].(bool)
 		maxFileLinks, maxFileLinksSet := req.Options[maxFileLinksOptionName].(int)
 		maxDirectoryLinks, maxDirectoryLinksSet := req.Options[maxDirectoryLinksOptionName].(int)
@@ -259,6 +262,8 @@ See 'dag export' and 'dag import' for more information.
 			cidVerSet = true
 			cidVer = int(cfg.Import.CidVersion.WithDefault(config.DefaultCidVersion))
 		}
+
+		// Pin names are only used when explicitly provided via --pin-name=value
 
 		if !rbset && cfg.Import.UnixFSRawLeaves != config.Default {
 			rbset = true
@@ -296,7 +301,9 @@ See 'dag export' and 'dag import' for more information.
 		if onlyHash && toFilesSet {
 			return fmt.Errorf("%s and %s options are not compatible", onlyHashOptionName, toFilesOptionName)
 		}
-
+		if !dopin && pinNameSet {
+			return fmt.Errorf("%s option requires %s to be set", pinNameOptionName, pinOptionName)
+		}
 		if wrap && toFilesSet {
 			return fmt.Errorf("%s and %s options are not compatible", wrapOptionName, toFilesOptionName)
 		}
@@ -326,7 +333,7 @@ See 'dag export' and 'dag import' for more information.
 
 			options.Unixfs.Chunker(chunker),
 
-			options.Unixfs.Pin(dopin),
+			options.Unixfs.Pin(dopin, pinName),
 			options.Unixfs.HashOnly(onlyHash),
 			options.Unixfs.FsCache(fscache),
 			options.Unixfs.Nocopy(nocopy),

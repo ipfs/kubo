@@ -2,7 +2,7 @@ FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.24 AS builder
 
 ARG TARGETOS TARGETARCH
 
-ENV SRC_DIR /kubo
+ENV SRC_DIR=/kubo
 
 # Download packages first so they can be cached.
 COPY go.mod go.sum $SRC_DIR/
@@ -27,7 +27,7 @@ RUN cd $SRC_DIR \
 # Using Debian Buster because the version of busybox we're using is based on it
 # and we want to make sure the libraries we're using are compatible. That's also
 # why we're running this for the target platform.
-FROM debian:stable-slim AS utilities
+FROM debian:bookworm-slim AS utilities
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y \
@@ -47,7 +47,7 @@ RUN set -eux; \
 FROM busybox:stable-glibc
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
-ENV SRC_DIR /kubo
+ENV SRC_DIR=/kubo
 COPY --from=utilities /usr/sbin/gosu /sbin/gosu
 COPY --from=utilities /usr/bin/tini /sbin/tini
 COPY --from=utilities /bin/fusermount /usr/local/bin/fusermount
@@ -74,7 +74,7 @@ EXPOSE 8080
 EXPOSE 8081
 
 # Create the fs-repo directory and switch to a non-privileged user.
-ENV IPFS_PATH /data/ipfs
+ENV IPFS_PATH=/data/ipfs
 RUN mkdir -p $IPFS_PATH \
   && adduser -D -h $IPFS_PATH -u 1000 -G users ipfs \
   && chown ipfs:users $IPFS_PATH
@@ -93,7 +93,7 @@ RUN mkdir /container-init.d \
 VOLUME $IPFS_PATH
 
 # The default logging level
-ENV GOLOG_LOG_LEVEL ""
+ENV GOLOG_LOG_LEVEL=""
 
 # This just makes sure that:
 # 1. There's an fs-repo, and initializes one if there isn't.
