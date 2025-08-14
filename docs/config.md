@@ -951,30 +951,24 @@ Type: `flag`
 
 ### `Gateway.RetrievalTimeout`
 
-Enforces a maximum duration for content retrieval:
+Maximum duration Kubo will wait for content retrieval (new bytes to arrive).
 
-- **Time to first byte**: If the gateway cannot start writing the response within
-  this duration (e.g., stuck searching for providers), a 504 Gateway Timeout is returned.
-- **Time between writes**: After the first byte, the timeout resets each time new bytes
-  are written to the client. If the gateway cannot write additional data within this
-  duration after the last successful write, the response is terminated.
+**Timeout behavior:**
+- **Time to first byte**: Returns 504 Gateway Timeout if the gateway cannot start writing within this duration (e.g., stuck searching for providers)
+- **Time between writes**: After first byte, timeout resets with each write. Response terminates if no new data can be written within this duration
 
-This helps free resources when the gateway gets stuck looking for providers or cannot
-retrieve the requested content (e.g., when internal blocks are missing providers).
+**Truncation handling:** When timeout occurs after HTTP 200 headers are sent (e.g., during CAR streams), the gateway:
+- Appends error message to indicate truncation
+- Forces TCP reset (RST) to prevent caching incomplete responses
+- Records in metrics with original status code and `truncated=true` flag
 
-The Prometheus metric `ipfs_http_gw_retrieval_timeouts_total` tracks retrieval
-timeouts by status code and truncation status.
+**Monitoring:** Track `ipfs_http_gw_retrieval_timeouts_total` by status code and truncation status.
 
-**Important truncation behavior**: When a timeout occurs after HTTP 200 headers have
-already been sent (e.g., during CAR stream or large file download), the response will
-be truncated. Since the 200 status was already sent, the gateway:
-
-- Appends an error message to indicate truncation occurred
-- Forces a TCP connection reset (RST) to prevent caching of incomplete responses
-- Records the event in metrics with the original status code and truncation flag
-
-This truncation signaling ensures that reverse proxies and clients do not cache
-incomplete responses as if they were complete.
+**Tuning guidance:**
+- Compare timeout rates (`ipfs_http_gw_retrieval_timeouts_total`) with success rates (`ipfs_http_gw_responses_total{status="200"}`)
+- High timeout rate: consider increasing timeout or scaling horizontally if hardware is constrained
+- Many 504s may indicate routing problems - check requested CIDs and provider availability using https://check.ipfs.network/
+- `truncated=true` timeouts indicate retrieval stalled mid-file with no new bytes for the timeout duration
 
 A value of 0 disables this timeout.
 
@@ -984,22 +978,19 @@ Type: `optionalDuration`
 
 ### `Gateway.MaxConcurrentRequests`
 
-Limits the number of concurrent HTTP requests handled by the gateway.
-Requests beyond this limit receive a 429 Too Many Requests response.
+Limits concurrent HTTP requests. Requests beyond limit receive 429 Too Many Requests.
 
-This provides a tunable limiter to protect nodes from traffic spikes, high load
-and resource exhaustion when running behind a reverse proxy without proper
-rate-limiting. The default of 4096 aligns with common reverse proxy
-configurations (e.g., nginx with 8 workers × 1024 connections) and acts as a
-failsafe of last resort for most deployments.
+Protects nodes from traffic spikes and resource exhaustion, especially behind reverse proxies without rate-limiting. Default (4096) aligns with common reverse proxy configurations (e.g., nginx: 8 workers × 1024 connections).
 
-The Prometheus metric `ipfs_http_gw_concurrent_requests` tracks the current
-number of requests in flight.
+**Monitoring:** `ipfs_http_gw_concurrent_requests` tracks current requests in flight.
 
-When to adjust this value:
-- Too many HTTP 429 responses with available resources: increase the value
-- High memory usage or resource exhaustion: decrease the value
-- Set this slightly below your reverse proxy's limit for graceful degradation
+**Tuning guidance:**
+- Monitor `ipfs_http_gw_concurrent_requests` gauge for usage patterns
+- Track 429s (`ipfs_http_gw_responses_total{status="429"}`) and success rate (`{status="200"}`)
+- Near limit with low resource usage → increase value
+- Memory pressure or OOMs → decrease value and consider scaling
+- Set slightly below reverse proxy limit for graceful degradation
+- Start with default, adjust based on observed performance for your hardware
 
 A value of 0 disables the limit.
 
