@@ -13,9 +13,9 @@ import (
 	"github.com/ipfs/boxo/routing/http/server"
 	"github.com/ipfs/boxo/routing/http/types"
 	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
-	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/ipfs/kubo/test/cli/testutils/httprouting"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
@@ -51,7 +51,7 @@ func TestHTTPRetrievalClient(t *testing.T) {
 		})
 
 		// compute a random CID
-		randStr := string(testutils.RandomBytes(100))
+		randStr := string(random.Bytes(100))
 		res := node.PipeStrToIPFS(randStr, "add", "-qn", "--cid-version", "1") // -n means dont add to local repo, just produce CID
 		wantCIDStr := res.Stdout.Trimmed()
 		testCid := cid.MustParse(wantCIDStr)
