@@ -26,14 +26,20 @@ sort_rand() {
 check_random_corruption() {
   to_break=$(find "$IPFS_PATH/blocks" -type f -name '*.data' | sort_rand | head -n 1)
 
-  test_expect_success "repo verify detects a failure" '
-    mv "$to_break" backup_file &&
-    echo -n "this block will not match expected hash" > "$to_break" &&
+  test_expect_success "back up file and overwrite it" '
+    cp "$to_break" backup_file &&
+    echo "this is super broken" > "$to_break"
+  '
+
+  test_expect_success "repo verify detects failure" '
     test_expect_code 1 ipfs repo verify
   '
 
-  test_expect_success "repo verify passes once a failure is fixed" '
-    mv backup_file "$to_break" &&
+  test_expect_success "replace the object" '
+    cp backup_file "$to_break"
+  '
+
+  test_expect_success "ipfs repo verify passes just fine now" '
     ipfs repo verify
   '
 }
