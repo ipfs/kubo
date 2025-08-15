@@ -65,6 +65,8 @@ config file at runtime.
     - [`Gateway.DeserializedResponses`](#gatewaydeserializedresponses)
     - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
     - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
+    - [`Gateway.RetrievalTimeout`](#gatewayretrievaltimeout)
+    - [`Gateway.MaxConcurrentRequests`](#gatewaymaxconcurrentrequests)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
     - [`Gateway.FastDirIndexThreshold`](#gatewayfastdirindexthreshold)
@@ -1104,6 +1106,55 @@ standalone router implementation named [someguy](https://github.com/ipfs/someguy
 Default: `false`
 
 Type: `flag`
+
+### `Gateway.RetrievalTimeout`
+
+Maximum duration Kubo will wait for content retrieval (new bytes to arrive).
+
+**Timeout behavior:**
+- **Time to first byte**: Returns 504 Gateway Timeout if the gateway cannot start writing within this duration (e.g., stuck searching for providers)
+- **Time between writes**: After first byte, timeout resets with each write. Response terminates if no new data can be written within this duration
+
+**Truncation handling:** When timeout occurs after HTTP 200 headers are sent (e.g., during CAR streams), the gateway:
+- Appends error message to indicate truncation
+- Forces TCP reset (RST) to prevent caching incomplete responses
+- Records in metrics with original status code and `truncated=true` flag
+
+**Monitoring:** Track `ipfs_http_gw_retrieval_timeouts_total` by status code and truncation status.
+
+**Tuning guidance:**
+- Compare timeout rates (`ipfs_http_gw_retrieval_timeouts_total`) with success rates (`ipfs_http_gw_responses_total{status="200"}`)
+- High timeout rate: consider increasing timeout or scaling horizontally if hardware is constrained
+- Many 504s may indicate routing problems - check requested CIDs and provider availability using https://check.ipfs.network/
+- `truncated=true` timeouts indicate retrieval stalled mid-file with no new bytes for the timeout duration
+
+A value of 0 disables this timeout.
+
+Default: `30s`
+
+Type: `optionalDuration`
+
+### `Gateway.MaxConcurrentRequests`
+
+Limits concurrent HTTP requests. Requests beyond limit receive 429 Too Many Requests.
+
+Protects nodes from traffic spikes and resource exhaustion, especially behind reverse proxies without rate-limiting. Default (4096) aligns with common reverse proxy configurations (e.g., nginx: 8 workers × 1024 connections).
+
+**Monitoring:** `ipfs_http_gw_concurrent_requests` tracks current requests in flight.
+
+**Tuning guidance:**
+- Monitor `ipfs_http_gw_concurrent_requests` gauge for usage patterns
+- Track 429s (`ipfs_http_gw_responses_total{status="429"}`) and success rate (`{status="200"}`)
+- Near limit with low resource usage → increase value
+- Memory pressure or OOMs → decrease value and consider scaling
+- Set slightly below reverse proxy limit for graceful degradation
+- Start with default, adjust based on observed performance for your hardware
+
+A value of 0 disables the limit.
+
+Default: `4096`
+
+Type: `optionalInteger`
 
 ### `Gateway.HTTPHeaders`
 

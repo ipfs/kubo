@@ -6,9 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ipfs/go-test/random"
+	"github.com/ipfs/go-test/random/files"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
-	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,7 @@ func TestTransports(t *testing.T) {
 		})
 	}
 	checkSingleFile := func(nodes harness.Nodes) {
-		s := testutils.RandomStr(100)
+		s := string(random.Bytes(100))
 		hash := nodes[0].IPFSAddStr(s)
 		nodes.ForEachPar(func(n *harness.Node) {
 			val := n.IPFS("cat", hash).Stdout.String()
@@ -33,10 +34,11 @@ func TestTransports(t *testing.T) {
 	checkRandomDir := func(nodes harness.Nodes) {
 		randDir := filepath.Join(nodes[0].Dir, "foobar")
 		require.NoError(t, os.Mkdir(randDir, 0o777))
-		rf := testutils.NewRandFiles()
-		rf.FanoutDirs = 3
-		rf.FanoutFiles = 6
-		require.NoError(t, rf.WriteRandomFiles(randDir, 4))
+		rfCfg := files.DefaultConfig()
+		rfCfg.Dirs = 3
+		rfCfg.Files = 6
+		rfCfg.Depth = 4
+		require.NoError(t, files.Create(rfCfg, randDir))
 
 		hash := nodes[1].IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 		nodes.ForEachPar(func(n *harness.Node) {
