@@ -63,7 +63,7 @@ func BaseBlockstoreCtor(
 		bs = blockstore.NewIdStore(bs)
 
 		if hashOnRead {
-			bs = &blockstore.ValidatingBlockstore{bs}
+			bs = &blockstore.ValidatingBlockstore{Blockstore: bs}
 		}
 
 		return
