@@ -13,3 +13,4 @@ pebbleds github.com/ipfs/kubo/plugin/plugins/pebbleds *
 peerlog github.com/ipfs/kubo/plugin/plugins/peerlog *
 fxtest github.com/ipfs/kubo/plugin/plugins/fxtest *
 nopfs github.com/ipfs/kubo/plugin/plugins/nopfs *
+telemetry github.com/ipfs/kubo/plugin/plugins/telemetry *
