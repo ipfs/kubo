@@ -2063,7 +2063,6 @@ Type: `optionalDuration` (unset for the default)
 Tells reprovider what should be announced. Valid strategies are:
 
 - `"all"` - announce all CIDs of stored blocks
-  - Order: root blocks of direct and recursive pins and MFS root are announced first, then the rest of blockstore
 - `"pinned"` - only announce recursively pinned CIDs (`ipfs pin add -r`, both roots and child blocks)
   - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
 - `"roots"` - only announce the root block of explicitly pinned CIDs (`ipfs pin add`)
@@ -2079,7 +2078,6 @@ Tells reprovider what should be announced. Valid strategies are:
 - `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
   - **ℹ️ NOTE:** This is the suggested strategy for users who run without GC and don't want to provide everything in cache.
   - Order: first `pinned` and then the locally available part of `mfs`.
-- `"flat"` - same as `all`, announce all CIDs of stored blocks, but without prioritizing anything.
 
 **Strategy changes automatically clear the provide queue.** When you change `Reprovider.Strategy` and restart Kubo, the provide queue is automatically cleared to ensure only content matching your new strategy is announced. You can also manually clear the queue using `ipfs provide clear`.
 
@@ -2087,7 +2085,6 @@ Tells reprovider what should be announced. Valid strategies are:
 
 - Reproviding larger pinsets using the `all`, `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
 - This is due to the use of a buffered provider, which avoids holding a lock on the entire pinset during the reprovide cycle.
-- The `flat` strategy can be used to lower memory requirements, but only recommended if memory utilization is too high, prioritization of pins is not necessary, and it is acceptable to announce every block cached in the local repository.
 
 Default: `"all"`
 
