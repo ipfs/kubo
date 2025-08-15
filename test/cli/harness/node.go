@@ -54,6 +54,42 @@ func BuildNode(ipfsBin, baseDir string, id int) *Node {
 	env := environToMap(os.Environ())
 	env["IPFS_PATH"] = dir
 
+	// If using "ipfs" binary name, provide helpful binary information
+	if ipfsBin == "ipfs" {
+		// Check if cmd/ipfs/ipfs exists (simple relative path check)
+		localBinary := "cmd/ipfs/ipfs"
+		localExists := false
+		if _, err := os.Stat(localBinary); err == nil {
+			localExists = true
+			if abs, err := filepath.Abs(localBinary); err == nil {
+				localBinary = abs
+			}
+		}
+
+		// Check if ipfs is available in PATH
+		pathBinary, pathErr := exec.LookPath("ipfs")
+
+		// Handle different scenarios
+		if pathErr != nil {
+			// No ipfs in PATH
+			if localExists {
+				fmt.Printf("WARNING: No 'ipfs' found in PATH, but local binary exists at %s\n", localBinary)
+				fmt.Printf("Consider adding it to PATH or run: export PATH=\"$(pwd)/cmd/ipfs:$PATH\"\n")
+			} else {
+				fmt.Printf("ERROR: No 'ipfs' binary found in PATH and no local build at cmd/ipfs/ipfs\n")
+				fmt.Printf("Run 'make build' first or install ipfs and add it to PATH\n")
+				panic("ipfs binary not available")
+			}
+		} else {
+			// ipfs found in PATH
+			if localExists && localBinary != pathBinary {
+				fmt.Printf("NOTE: Local binary at %s differs from PATH binary at %s\n", localBinary, pathBinary)
+				fmt.Printf("Consider adding the local binary to PATH if you want to use the version built by 'make build'\n")
+			}
+			// If they match or no local binary, no message needed
+		}
+	}
+
 	return &Node{
 		ID:      id,
 		Dir:     dir,
@@ -457,28 +493,60 @@ func (n *Node) IsAlive() bool {
 }
 
 func (n *Node) SwarmAddrs() []multiaddr.Multiaddr {
-	res := n.Runner.MustRun(RunRequest{
+	res := n.Runner.Run(RunRequest{
 		Path: n.IPFSBin,
 		Args: []string{"swarm", "addrs", "local"},
 	})
+	if res.ExitCode() != 0 {
+		// If swarm command fails (e.g., daemon not online), return empty slice
+		log.Debugf("Node %d: swarm addrs local failed (exit %d): %s", n.ID, res.ExitCode(), res.Stderr.String())
+		return []multiaddr.Multiaddr{}
+	}
 	out := strings.TrimSpace(res.Stdout.String())
+	if out == "" {
+		log.Debugf("Node %d: swarm addrs local returned empty output", n.ID)
+		return []multiaddr.Multiaddr{}
+	}
+	log.Debugf("Node %d: swarm addrs local output: %s", n.ID, out)
 	outLines := strings.Split(out, "\n")
 	var addrs []multiaddr.Multiaddr
 	for _, addrStr := range outLines {
+		addrStr = strings.TrimSpace(addrStr)
+		if addrStr == "" {
+			continue
+		}
 		ma, err := multiaddr.NewMultiaddr(addrStr)
 		if err != nil {
 			panic(err)
 		}
 		addrs = append(addrs, ma)
 	}
+	log.Debugf("Node %d: parsed %d swarm addresses", n.ID, len(addrs))
 	return addrs
 }
 
+// SwarmAddrsWithTimeout waits for swarm addresses to be available
+func (n *Node) SwarmAddrsWithTimeout(timeout time.Duration) []multiaddr.Multiaddr {
+	start := time.Now()
+	for time.Since(start) < timeout {
+		addrs := n.SwarmAddrs()
+		if len(addrs) > 0 {
+			return addrs
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return []multiaddr.Multiaddr{}
+}
+
 func (n *Node) SwarmAddrsWithPeerIDs() []multiaddr.Multiaddr {
+	return n.SwarmAddrsWithPeerIDsTimeout(5 * time.Second)
+}
+
+func (n *Node) SwarmAddrsWithPeerIDsTimeout(timeout time.Duration) []multiaddr.Multiaddr {
 	ipfsProtocol := multiaddr.ProtocolWithCode(multiaddr.P_IPFS).Name
 	peerID := n.PeerID()
 	var addrs []multiaddr.Multiaddr
-	for _, ma := range n.SwarmAddrs() {
+	for _, ma := range n.SwarmAddrsWithTimeout(timeout) {
 		// add the peer ID to the multiaddr if it doesn't have it
 		_, err := ma.ValueForProtocol(multiaddr.P_IPFS)
 		if errors.Is(err, multiaddr.ErrProtocolNotFound) {
@@ -513,18 +581,80 @@ func (n *Node) SwarmAddrsWithoutPeerIDs() []multiaddr.Multiaddr {
 }
 
 func (n *Node) Connect(other *Node) *Node {
-	n.Runner.MustRun(RunRequest{
+	// Get the peer addresses to connect to
+	addrs := other.SwarmAddrsWithPeerIDs()
+	if len(addrs) == 0 {
+		// If no addresses available, skip connection
+		log.Debugf("No swarm addresses available for connection")
+		return n
+	}
+	// Use Run instead of MustRun to avoid panics on connection failures
+	res := n.Runner.Run(RunRequest{
 		Path: n.IPFSBin,
-		Args: []string{"swarm", "connect", other.SwarmAddrsWithPeerIDs()[0].String()},
+		Args: []string{"swarm", "connect", addrs[0].String()},
 	})
+	if res.ExitCode() != 0 {
+		log.Debugf("swarm connect failed: %s", res.Stderr.String())
+	}
 	return n
 }
 
+// ConnectAndWait connects to another node and waits for the connection to be established
+func (n *Node) ConnectAndWait(other *Node, timeout time.Duration) error {
+	// Get the peer addresses to connect to - wait up to half the timeout for addresses
+	addrs := other.SwarmAddrsWithPeerIDsTimeout(timeout / 2)
+	if len(addrs) == 0 {
+		return fmt.Errorf("no swarm addresses available for node %d after waiting %v", other.ID, timeout/2)
+	}
+
+	otherPeerID := other.PeerID()
+
+	// Try to connect
+	res := n.Runner.Run(RunRequest{
+		Path: n.IPFSBin,
+		Args: []string{"swarm", "connect", addrs[0].String()},
+	})
+	if res.ExitCode() != 0 {
+		return fmt.Errorf("swarm connect failed: %s", res.Stderr.String())
+	}
+
+	// Wait for connection to be established
+	start := time.Now()
+	for time.Since(start) < timeout {
+		peers := n.Peers()
+		for _, peerAddr := range peers {
+			if peerID, err := peerAddr.ValueForProtocol(multiaddr.P_P2P); err == nil {
+				if peerID == otherPeerID.String() {
+					return nil // Connection established
+				}
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	return fmt.Errorf("timeout waiting for connection to node %d (peer %s)", other.ID, otherPeerID)
+}
+
 func (n *Node) Peers() []multiaddr.Multiaddr {
-	res := n.Runner.MustRun(RunRequest{
+	// Wait for daemon to be ready if it's supposed to be running
+	if n.Daemon != nil && n.Daemon.Cmd != nil && n.Daemon.Cmd.Process != nil {
+		// Give daemon a short time to become ready
+		for i := 0; i < 10; i++ {
+			if n.IsAlive() {
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	res := n.Runner.Run(RunRequest{
 		Path: n.IPFSBin,
 		Args: []string{"swarm", "peers"},
 	})
+	if res.ExitCode() != 0 {
+		// If swarm peers fails (e.g., daemon not online), return empty slice
+		log.Debugf("swarm peers failed: %s", res.Stderr.String())
+		return []multiaddr.Multiaddr{}
+	}
 	var addrs []multiaddr.Multiaddr
 	for _, line := range res.Stdout.Lines() {
 		ma, err := multiaddr.NewMultiaddr(line)

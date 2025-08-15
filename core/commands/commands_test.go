@@ -30,7 +30,6 @@ func TestCommands(t *testing.T) {
 		"/block/stat",
 		"/bootstrap",
 		"/bootstrap/add",
-		"/bootstrap/add/default",
 		"/bootstrap/list",
 		"/bootstrap/rm",
 		"/bootstrap/rm/all",
