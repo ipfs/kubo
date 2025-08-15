@@ -10,7 +10,7 @@ on:
       - 'master'
 
 env:
-  GO_VERSION: 1.24.x
+  GO_VERSION: 1.25.x
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: make build
       - uses: actions/upload-artifact@v4
         with:
@@ -56,7 +56,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: kubo
           path: cmd/ipfs
@@ -91,13 +91,13 @@ jobs:
     steps:
       - uses: actions/setup-node@v4
         with:
-          node-version: 18.14.0
-      - uses: actions/download-artifact@v4
+          node-version: 20.x
+      - uses: actions/download-artifact@v5
         with:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ipfs/ipfs-webui
           path: ipfs-webui

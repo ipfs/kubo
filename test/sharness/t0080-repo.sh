@@ -30,7 +30,7 @@ test_expect_success "'ipfs repo gc' succeeds" '
 '
 
 test_expect_success "'ipfs repo gc' looks good (patch root)" '
-  grep -v "removed $HASH" gc_out_actual
+  test_should_not_contain "removed $HASH" gc_out_actual
 '
 
 test_expect_success "'ipfs repo gc' doesn't remove file" '
@@ -284,11 +284,11 @@ test_expect_success "'ipfs repo stat --size-only' succeeds" '
 '
 
 test_expect_success "repo stats came out correct for --size-only" '
-  grep "RepoSize" repo-stats-size-only &&
-  grep "StorageMax" repo-stats-size-only &&
-  grep -v "RepoPath" repo-stats-size-only &&
-  grep -v "NumObjects" repo-stats-size-only &&
-  grep -v "Version" repo-stats-size-only
+  test_should_contain "RepoSize" repo-stats-size-only &&
+  test_should_contain "StorageMax" repo-stats-size-only &&
+  test_should_not_contain "RepoPath" repo-stats-size-only &&
+  test_should_not_contain "NumObjects" repo-stats-size-only &&
+  test_should_not_contain "Version" repo-stats-size-only
 '
 
 test_expect_success "'ipfs repo version' succeeds" '

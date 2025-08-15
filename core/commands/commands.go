@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -131,7 +131,7 @@ func cmdPathStrings(cmd *Command, showOptions bool) []string {
 	}
 
 	recurse("", cmd)
-	sort.Strings(cmds)
+	slices.Sort(cmds)
 	return cmds
 }
 
@@ -233,12 +233,11 @@ type nonFatalError string
 // contain non-fatal errors.  The helper function is allowed to panic
 // on internal errors.
 func streamResult(procVal func(interface{}, io.Writer) nonFatalError) func(cmds.Response, cmds.ResponseEmitter) error {
-	return func(res cmds.Response, re cmds.ResponseEmitter) (err error) {
+	return func(res cmds.Response, re cmds.ResponseEmitter) (rerr error) {
 		defer func() {
 			if r := recover(); r != nil {
-				err = fmt.Errorf("internal error: %v", r)
+				rerr = fmt.Errorf("internal error: %v", r)
 			}
-			re.Close()
 		}()
 
 		var errors bool
@@ -248,7 +247,8 @@ func streamResult(procVal func(interface{}, io.Writer) nonFatalError) func(cmds.
 				if err == io.EOF {
 					break
 				}
-				return err
+				rerr = err
+				return
 			}
 
 			errorMsg := procVal(v, os.Stdout)
@@ -260,8 +260,8 @@ func streamResult(procVal func(interface{}, io.Writer) nonFatalError) func(cmds.
 		}
 
 		if errors {
-			return fmt.Errorf("errors while displaying some entries")
+			rerr = fmt.Errorf("errors while displaying some entries")
 		}
-		return nil
+		return
 	}
 }

@@ -2,6 +2,7 @@ name: Enhancement
 description: Suggest an improvement to an existing kubo feature.
 labels:
   - kind/enhancement
+  - need/triage
 body:
   - type: markdown
     attributes:

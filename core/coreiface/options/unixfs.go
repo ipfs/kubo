@@ -39,6 +39,7 @@ type UnixfsAddSettings struct {
 	Layout  Layout
 
 	Pin      bool
+	PinName  string
 	OnlyHash bool
 	FsCache  bool
 	NoCopy   bool
@@ -83,6 +84,7 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		Layout:  BalancedLayout,
 
 		Pin:      false,
+		PinName:  "",
 		OnlyHash: false,
 		FsCache:  false,
 		NoCopy:   false,
@@ -280,9 +282,12 @@ func (unixfsOpts) Layout(layout Layout) UnixfsAddOption {
 }
 
 // Pin tells the adder to pin the file root recursively after adding
-func (unixfsOpts) Pin(pin bool) UnixfsAddOption {
+func (unixfsOpts) Pin(pin bool, pinName string) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Pin = pin
+		if pin {
+			settings.PinName = pinName
+		}
 		return nil
 	}
 }

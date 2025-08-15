@@ -1,10 +1,11 @@
 package commands
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
-	"sort"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -120,7 +121,8 @@ The optional format string is a printf style format string:
 			return ""
 		}),
 	},
-	Type: CidFormatRes{},
+	Type:  CidFormatRes{},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 type CidFormatRes struct {
@@ -150,6 +152,7 @@ Useful when processing third-party CIDs which could come with arbitrary formats.
 	},
 	PostRun: cidFmtCmd.PostRun,
 	Type:    cidFmtCmd.Type,
+	Extra:   CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 type cidFormatOpts struct {
@@ -287,10 +290,10 @@ var basesCmd = &cmds.Command{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, val []CodeAndName) error {
 			prefixes, _ := req.Options[prefixOptionName].(bool)
 			numeric, _ := req.Options[numericOptionName].(bool)
-			sort.Sort(multibaseSorter{val})
+			multibaseSorter{val}.Sort()
 			for _, v := range val {
 				code := v.Code
-				if code < 32 || code >= 127 {
+				if !unicode.IsPrint(rune(code)) {
 					// don't display non-printable prefixes
 					code = ' '
 				}
@@ -308,7 +311,8 @@ var basesCmd = &cmds.Command{
 			return nil
 		}),
 	},
-	Type: []CodeAndName{},
+	Type:  []CodeAndName{},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 const (
@@ -357,7 +361,7 @@ var codecsCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, val []CodeAndName) error {
 			numeric, _ := req.Options[codecsNumericOptionName].(bool)
-			sort.Sort(codeAndNameSorter{val})
+			codeAndNameSorter{val}.Sort()
 			for _, v := range val {
 				if numeric {
 					fmt.Fprintf(w, "%5d  %s\n", v.Code, v.Name)
@@ -368,7 +372,8 @@ var codecsCmd = &cmds.Command{
 			return nil
 		}),
 	},
-	Type: []CodeAndName{},
+	Type:  []CodeAndName{},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 var hashesCmd = &cmds.Command{
@@ -392,29 +397,29 @@ var hashesCmd = &cmds.Command{
 	},
 	Encoders: codecsCmd.Encoders,
 	Type:     codecsCmd.Type,
+	Extra:    CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 type multibaseSorter struct {
 	data []CodeAndName
 }
 
-func (s multibaseSorter) Len() int      { return len(s.data) }
-func (s multibaseSorter) Swap(i, j int) { s.data[i], s.data[j] = s.data[j], s.data[i] }
-
-func (s multibaseSorter) Less(i, j int) bool {
-	a := unicode.ToLower(rune(s.data[i].Code))
-	b := unicode.ToLower(rune(s.data[j].Code))
-	if a != b {
-		return a < b
-	}
-	// lowecase letters should come before uppercase
-	return s.data[i].Code > s.data[j].Code
+func (s multibaseSorter) Sort() {
+	slices.SortFunc(s.data, func(a, b CodeAndName) int {
+		if n := cmp.Compare(unicode.ToLower(rune(a.Code)), unicode.ToLower(rune(b.Code))); n != 0 {
+			return n
+		}
+		// lowercase letters should come before uppercase
+		return cmp.Compare(b.Code, a.Code)
+	})
 }
 
 type codeAndNameSorter struct {
 	data []CodeAndName
 }
 
-func (s codeAndNameSorter) Len() int           { return len(s.data) }
-func (s codeAndNameSorter) Swap(i, j int)      { s.data[i], s.data[j] = s.data[j], s.data[i] }
-func (s codeAndNameSorter) Less(i, j int) bool { return s.data[i].Code < s.data[j].Code }
+func (s codeAndNameSorter) Sort() {
+	slices.SortFunc(s.data, func(a, b CodeAndName) int {
+		return cmp.Compare(a.Code, b.Code)
+	})
+}

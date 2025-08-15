@@ -9,13 +9,13 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/ipfs/kubo/core/commands/cmdenv"
-	"github.com/ipfs/kubo/repo"
-	"github.com/ipfs/kubo/repo/fsrepo"
-
+	"github.com/anmitsu/go-shlex"
 	"github.com/elgris/jsondiff"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo/fsrepo"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -506,13 +506,25 @@ func setConfig(r repo.Repo, key string, value interface{}) (*ConfigField, error)
 	return getConfig(r, key)
 }
 
+// parseEditorCommand parses the EDITOR environment variable into command and arguments
+func parseEditorCommand(editor string) ([]string, error) {
+	return shlex.Split(editor, true)
+}
+
 func editConfig(filename string) error {
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		return errors.New("ENV variable $EDITOR not set")
 	}
 
-	cmd := exec.Command(editor, filename)
+	editorAndArgs, err := parseEditorCommand(editor)
+	if err != nil {
+		return fmt.Errorf("cannot parse $EDITOR value: %s", err)
+	}
+	editor = editorAndArgs[0]
+	args := append(editorAndArgs[1:], filename)
+
+	cmd := exec.Command(editor, args...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd.Run()
 }

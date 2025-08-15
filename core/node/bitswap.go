@@ -14,16 +14,14 @@ import (
 	"github.com/ipfs/boxo/bitswap/network/httpnet"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	exchange "github.com/ipfs/boxo/exchange"
-	"github.com/ipfs/boxo/exchange/providing"
-	provider "github.com/ipfs/boxo/provider"
 	rpqm "github.com/ipfs/boxo/routing/providerquerymanager"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
-	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/routing"
 	"go.uber.org/fx"
 
 	blocks "github.com/ipfs/go-block-format"
@@ -75,7 +73,7 @@ type bitswapIn struct {
 	Mctx        helpers.MetricsCtx
 	Cfg         *config.Config
 	Host        host.Host
-	Rt          irouting.ProvideManyRouter
+	Discovery   routing.ContentDiscovery
 	Bs          blockstore.GCBlockstore
 	BitswapOpts []bitswap.Option `group:"bitswap-options"`
 }
@@ -88,9 +86,14 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 		var bitswapNetworks, bitswapLibp2p network.BitSwapNetwork
 		var bitswapBlockstore blockstore.Blockstore = in.Bs
 
+		connEvtMgr := network.NewConnectEventManager()
+
 		libp2pEnabled := in.Cfg.Bitswap.Libp2pEnabled.WithDefault(config.DefaultBitswapLibp2pEnabled)
 		if libp2pEnabled {
-			bitswapLibp2p = bsnet.NewFromIpfsHost(in.Host)
+			bitswapLibp2p = bsnet.NewFromIpfsHost(
+				in.Host,
+				bsnet.WithConnectEventManager(connEvtMgr),
+			)
 		}
 
 		if httpEnabled {
@@ -99,6 +102,11 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 			if err != nil {
 				return nil, err
 			}
+			logger.Infof("HTTP Retrieval enabled: Allowlist: %t. Denylist: %t",
+				httpCfg.Allowlist != nil,
+				httpCfg.Denylist != nil,
+			)
+
 			bitswapHTTP := httpnet.New(in.Host,
 				httpnet.WithHTTPWorkers(int(httpCfg.NumWorkers.WithDefault(config.DefaultHTTPRetrievalNumWorkers))),
 				httpnet.WithAllowlist(httpCfg.Allowlist),
@@ -106,6 +114,8 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 				httpnet.WithInsecureSkipVerify(httpCfg.TLSInsecureSkipVerify.WithDefault(config.DefaultHTTPRetrievalTLSInsecureSkipVerify)),
 				httpnet.WithMaxBlockSize(int64(maxBlockSize)),
 				httpnet.WithUserAgent(version.GetUserAgentVersion()),
+				httpnet.WithMetricsLabelsForEndpoints(httpCfg.Allowlist),
+				httpnet.WithConnectEventManager(connEvtMgr),
 			)
 			bitswapNetworks = network.New(in.Host.Peerstore(), bitswapLibp2p, bitswapHTTP)
 		} else if libp2pEnabled {
@@ -117,9 +127,52 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 		// Kubo uses own, customized ProviderQueryManager
 		in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
 		var maxProviders int = DefaultMaxProviders
+
+		var bcDisposition string
 		if in.Cfg.Internal.Bitswap != nil {
 			maxProviders = int(in.Cfg.Internal.Bitswap.ProviderSearchMaxResults.WithDefault(DefaultMaxProviders))
+			if in.Cfg.Internal.Bitswap.BroadcastControl != nil {
+				bcCfg := in.Cfg.Internal.Bitswap.BroadcastControl
+				bcEnable := bcCfg.Enable.WithDefault(config.DefaultBroadcastControlEnable)
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlEnable(bcEnable)))
+				if bcEnable {
+					bcDisposition = "enabled"
+					bcMaxPeers := int(bcCfg.MaxPeers.WithDefault(config.DefaultBroadcastControlMaxPeers))
+					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlMaxPeers(bcMaxPeers)))
+
+					bcLocalPeers := bcCfg.LocalPeers.WithDefault(config.DefaultBroadcastControlLocalPeers)
+					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlLocalPeers(bcLocalPeers)))
+
+					bcPeeredPeers := bcCfg.PeeredPeers.WithDefault(config.DefaultBroadcastControlPeeredPeers)
+					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlPeeredPeers(bcPeeredPeers)))
+
+					bcMaxRandomPeers := int(bcCfg.MaxRandomPeers.WithDefault(config.DefaultBroadcastControlMaxRandomPeers))
+					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlMaxRandomPeers(bcMaxRandomPeers)))
+
+					bcSendToPendingPeers := bcCfg.SendToPendingPeers.WithDefault(config.DefaultBroadcastControlSendToPendingPeers)
+					in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlSendToPendingPeers(bcSendToPendingPeers)))
+				} else {
+					bcDisposition = "disabled"
+				}
+			}
 		}
+
+		// If broadcast control is not configured, then configure with defaults.
+		if bcDisposition == "" {
+			in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlEnable(config.DefaultBroadcastControlEnable)))
+			if config.DefaultBroadcastControlEnable {
+				bcDisposition = "enabled"
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlMaxPeers(config.DefaultBroadcastControlMaxPeers)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlLocalPeers(config.DefaultBroadcastControlLocalPeers)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlPeeredPeers(config.DefaultBroadcastControlPeeredPeers)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlMaxRandomPeers(config.DefaultBroadcastControlMaxRandomPeers)))
+				in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.BroadcastControlSendToPendingPeers(config.DefaultBroadcastControlSendToPendingPeers)))
+			} else {
+				bcDisposition = "enabled"
+			}
+		}
+		logger.Infof("bitswap client broadcast control %s", bcDisposition)
+
 		ignoredPeerIDs := make([]peer.ID, 0, len(in.Cfg.Routing.IgnoreProviders))
 		for _, str := range in.Cfg.Routing.IgnoreProviders {
 			pid, err := peer.Decode(str)
@@ -129,7 +182,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 			ignoredPeerIDs = append(ignoredPeerIDs, pid)
 		}
 		providerQueryMgr, err := rpqm.New(bitswapNetworks,
-			in.Rt,
+			in.Discovery,
 			rpqm.WithMaxProviders(maxProviders),
 			rpqm.WithIgnoreProviders(ignoredPeerIDs...),
 		)
@@ -164,32 +217,6 @@ func OnlineExchange(isBitswapActive bool) interface{} {
 			},
 		})
 		return in
-	}
-}
-
-type providingExchangeIn struct {
-	fx.In
-
-	BaseExch exchange.Interface
-	Provider provider.System
-}
-
-// ProvidingExchange creates a providing.Exchange with the existing exchange
-// and the provider.System.
-// We cannot do this in OnlineExchange because it causes cycles so this is for
-// a decorator.
-func ProvidingExchange(provide bool) interface{} {
-	return func(in providingExchangeIn, lc fx.Lifecycle) exchange.Interface {
-		exch := in.BaseExch
-		if provide {
-			exch = providing.New(in.BaseExch, in.Provider)
-			lc.Append(fx.Hook{
-				OnStop: func(ctx context.Context) error {
-					return exch.Close()
-				},
-			})
-		}
-		return exch
 	}
 }
 
