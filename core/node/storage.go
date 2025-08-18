@@ -62,8 +62,8 @@ func BaseBlockstoreCtor(
 
 		bs = blockstore.NewIdStore(bs)
 
-		if hashOnRead { // TODO: review: this is how it was done originally, is there a reason we can't just pass this directly?
-			bs.HashOnRead(true)
+		if hashOnRead {
+			bs = &blockstore.ValidatingBlockstore{Blockstore: bs}
 		}
 
 		return
