@@ -8,7 +8,7 @@ This data is not personally identifiable and is used solely for the purpose of i
 
 ## 🛡️ How to Control Telemetry
 
-The behavior of the Telemetry plugin is controlled via the environment variable `IPFS_TELEMETRY` and optionally via the `Plugins.Plugins.telemetry.Config.Mode` in the IPFS config file.
+The behavior of the Telemetry plugin is controlled via the environment variable [`IPFS_TELEMETRY`](environment-variables.md#ipfs_telemetry) and optionally via the `Plugins.Plugins.telemetry.Config.Mode` in the IPFS config file.
 
 ### Available Modes
 
