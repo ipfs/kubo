@@ -87,7 +87,7 @@ func testExpandAutoWithUnreachableServer(t *testing.T) {
 	fooResolver, fooExists := resolvers["foo."]
 
 	if !fooExists {
-		t.Log("✅ DNS resolver for 'foo.' has no fallback - correct behavior (only eth. has fallbacks)")
+		t.Log("DNS resolver for 'foo.' has no fallback - correct behavior (only eth. has fallbacks)")
 	} else {
 		assert.NotEqual(t, "auto", fooResolver, "DNS resolver should not be 'auto' after expansion")
 		t.Logf("Unexpected DNS resolver for foo.: %s", fooResolver)
@@ -112,7 +112,7 @@ func testExpandAutoWithDisabledAutoConf(t *testing.T) {
 	// With AutoConf disabled, "auto" values are not expanded so we get empty result
 	assert.NotContains(t, bootstrap, "auto", "Should not contain 'auto' after expansion")
 	assert.Equal(t, 0, len(bootstrap), "Should be empty when AutoConf disabled (auto values not expanded)")
-	t.Log("✅ Bootstrap is empty when AutoConf disabled - correct behavior")
+	t.Log("Bootstrap is empty when AutoConf disabled - correct behavior")
 }
 
 func testExpandAutoWithMalformedResponse(t *testing.T) {
@@ -272,7 +272,7 @@ func testDaemonWithMalformedAutoConf(t *testing.T) {
 	// Verify daemon is still healthy and responsive
 	versionResult := node.RunIPFS("version")
 	require.Equal(t, 0, versionResult.ExitCode(), "daemon should remain healthy after handling malformed autoconf")
-	t.Log("✅ Daemon remains healthy after gracefully handling malformed autoconf response")
+	t.Log("Daemon remains healthy after gracefully handling malformed autoconf response")
 }
 
 // Helper function to load test data files for fallback tests

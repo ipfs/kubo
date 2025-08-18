@@ -50,7 +50,7 @@ func newMockIPNSPublisher(t *testing.T) *mockIPNSPublisher {
 
 	// Default response function accepts all publishes
 	m.responseFunc = func(peerID string, record []byte) int {
-		m.t.Logf("🔍 Response function called with peerID=%s, record_len=%d", peerID, len(record))
+		m.t.Logf("Response function called with peerID=%s, record_len=%d", peerID, len(record))
 		return http.StatusOK
 	}
 
@@ -59,7 +59,7 @@ func newMockIPNSPublisher(t *testing.T) *mockIPNSPublisher {
 
 	// Add catch-all handler to see if requests go to other paths
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		m.t.Logf("🔍 Catch-all handler received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+		m.t.Logf("Catch-all handler received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
 		if r.URL.Path != "/routing/v1/ipns/" && !strings.HasPrefix(r.URL.Path, "/routing/v1/ipns/") {
 			m.t.Logf("⚠️ Request went to unexpected path: %s", r.URL.Path)
 			http.NotFound(w, r)
@@ -78,14 +78,14 @@ func (m *mockIPNSPublisher) handleIPNS(w http.ResponseWriter, r *http.Request) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.t.Logf("🔍 Mock IPNS publisher received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
-	m.t.Logf("🔍 Full URL: %s", r.URL.String())
-	m.t.Logf("🔍 Request headers: %+v", r.Header)
+	m.t.Logf("Mock IPNS publisher received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+	m.t.Logf("Full URL: %s", r.URL.String())
+	m.t.Logf("Request headers: %+v", r.Header)
 
 	// Extract peer ID from path
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 5 {
-		m.t.Logf("❌ Invalid path structure: %v", parts)
+		m.t.Logf("Invalid path structure: %v", parts)
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
 	}
@@ -95,39 +95,39 @@ func (m *mockIPNSPublisher) handleIPNS(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "PUT" {
 		// Handle IPNS record publication
-		m.t.Logf("🔍 Processing PUT request for peer %s", peerID)
-		m.t.Logf("🔍 Request headers: Content-Type=%s, Content-Length=%s",
+		m.t.Logf("Processing PUT request for peer %s", peerID)
+		m.t.Logf("Request headers: Content-Type=%s, Content-Length=%s",
 			r.Header.Get("Content-Type"), r.Header.Get("Content-Length"))
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			m.t.Logf("❌ Failed to read request body: %v", err)
+			m.t.Logf("Failed to read request body: %v", err)
 			http.Error(w, "failed to read body", http.StatusBadRequest)
 			return
 		}
 
-		m.t.Logf("🔍 Request body size: %d bytes", len(body))
+		m.t.Logf("Request body size: %d bytes", len(body))
 		if len(body) > 0 {
 			// Log first 100 bytes of payload for debugging (hex dump)
 			maxLog := 100
 			if len(body) < maxLog {
 				maxLog = len(body)
 			}
-			m.t.Logf("🔍 Request body (first %d bytes, hex): %x", maxLog, body[:maxLog])
+			m.t.Logf("Request body (first %d bytes, hex): %x", maxLog, body[:maxLog])
 		} else {
 			m.t.Logf("⚠️ Request body is EMPTY!")
 		}
 
 		// Get response status from response function
 		status := m.responseFunc(peerID, body)
-		m.t.Logf("🔍 Response function returned status: %d", status)
+		m.t.Logf("Response function returned status: %d", status)
 
 		if status == http.StatusOK {
 			if len(body) > 0 {
 				// Store the actual record payload for later comparison
 				m.recordPayloads[peerID] = make([]byte, len(body))
 				copy(m.recordPayloads[peerID], body)
-				m.t.Logf("✅ Stored %d bytes of payload for peer %s", len(body), peerID)
+				m.t.Logf("Stored %d bytes of payload for peer %s", len(body), peerID)
 			} else {
 				m.t.Logf("⚠️ Not storing payload - body is empty")
 			}
@@ -137,7 +137,7 @@ func (m *mockIPNSPublisher) handleIPNS(w http.ResponseWriter, r *http.Request) {
 			m.publishedKeys[peerID] = fmt.Sprintf("published-%d", time.Now().Unix())
 			m.t.Logf("IPNS publisher accepted record for peer: %s", peerID)
 		} else {
-			m.t.Logf("❌ Response function rejected request with status %d", status)
+			m.t.Logf("Response function rejected request with status %d", status)
 		}
 
 		w.WriteHeader(status)
@@ -221,10 +221,10 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 
 	// Create autoconf server
 	autoConfServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Logf("🔍 Mock autoconf server received request: %s %s", r.Method, r.URL.Path)
+		t.Logf("Mock autoconf server received request: %s %s", r.Method, r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(autoConfData))
-		t.Logf("📤 Sent autoconf response with IPNS publisher: %s", ipnsPublisher.server.URL)
+		t.Logf("Sent autoconf response with IPNS publisher: %s", ipnsPublisher.server.URL)
 	}))
 	defer autoConfServer.Close()
 
@@ -305,7 +305,7 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	// Attempt IPNS publishing using --delegated-only mode to test HTTP delegated publishing
 	// This ensures we're specifically testing the delegated publisher functionality
 	t.Log("Attempting IPNS publish using --delegated-only mode...")
-	t.Logf("🔍 Expected IPNS publisher URL: %s", ipnsPublisher.server.URL+"/routing/v1/ipns")
+	t.Logf("Expected IPNS publisher URL: %s", ipnsPublisher.server.URL+"/routing/v1/ipns")
 	publishResult := mainNode.RunIPFS("name", "publish", "--delegated-only", "/ipfs/"+testCID)
 
 	if publishResult.ExitCode() != 0 {
@@ -313,7 +313,7 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 		t.Logf("IPNS publish stdout: %s", publishResult.Stdout.String())
 		require.Equal(t, 0, publishResult.ExitCode(), "IPNS publish should succeed in --delegated-only mode")
 	} else {
-		t.Log("✅ IPNS publish succeeded in --delegated-only mode")
+		t.Log("IPNS publish succeeded in --delegated-only mode")
 	}
 
 	output := publishResult.Stdout.String()
@@ -343,7 +343,7 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	ipnsKeyResult := mainNode.RunIPFS("id", "--peerid-base", "base36", "-f", "<id>")
 	require.Equal(t, 0, ipnsKeyResult.ExitCode(), "Should be able to get peer ID in base36 format")
 	ipnsKeyBase36 := strings.TrimSpace(ipnsKeyResult.Stdout.String())
-	t.Logf("🔍 Peer ID in base36 (IPNS key format): %s", ipnsKeyBase36)
+	t.Logf("Peer ID in base36 (IPNS key format): %s", ipnsKeyBase36)
 
 	var publishedKeys map[string]string
 	var recordPayload []byte
@@ -371,7 +371,7 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 		}
 
 		if len(publishedKeys) > 0 && len(recordPayload) > 0 {
-			t.Logf("✅ HTTP PUT request received after %d polling attempts", i+1)
+			t.Logf("HTTP PUT request received after %d polling attempts", i+1)
 			break
 		}
 
@@ -390,13 +390,13 @@ func testIPNSPublishingWithAuto(t *testing.T) {
 	require.Greater(t, len(recordPayload), 50, "IPNS record should be substantial (>50 bytes)")
 	require.Less(t, len(recordPayload), 10000, "IPNS record should be reasonable size (<10KB)")
 
-	t.Logf("✅ IPNS autoconf test completed successfully:")
+	t.Logf("IPNS autoconf test completed successfully:")
 	t.Logf("  - --delegated-only flag used HTTP delegated IPNS publishing exclusively")
 	t.Logf("  - AutoConf resolved 'auto' to: %s", ipnsPublisher.server.URL)
 	t.Logf("  - IPNS publishing successful in --delegated-only mode")
 	t.Logf("  - Published IPNS name: %s", ipnsName)
-	t.Logf("  - ✅ HTTP PUT request made to delegated publisher with %d byte payload", len(recordPayload))
-	t.Logf("  - ✅ Key validation: HTTP PUT to /routing/v1/ipns with valid IPNS record payload")
+	t.Logf("  - HTTP PUT request made to delegated publisher with %d byte payload", len(recordPayload))
+	t.Logf("  - Key validation: HTTP PUT to /routing/v1/ipns with valid IPNS record payload")
 
 	// Test passes only when HTTP PUT occurred with valid payload
 }
@@ -487,7 +487,7 @@ func testIPNSPublishing404Error(t *testing.T) {
 	assert.Contains(t, resolvedPublishers, expectedPublisherURL,
 		"AutoConf should resolve 'auto' to mock IPNS publisher URL with path even when it returns 404")
 
-	t.Log("✅ AutoConf correctly resolved IPNS delegated publisher that would return 404 error")
+	t.Log("AutoConf correctly resolved IPNS delegated publisher that would return 404 error")
 }
 
 func testIPNSPublishing500Error(t *testing.T) {
@@ -566,5 +566,5 @@ func testIPNSPublishing500Error(t *testing.T) {
 	assert.Contains(t, resolvedPublishers, expectedPublisherURL,
 		"AutoConf should resolve 'auto' to mock IPNS publisher URL with path even when it returns 500")
 
-	t.Log("✅ AutoConf correctly resolved IPNS delegated publisher that would return 500 error")
+	t.Log("AutoConf correctly resolved IPNS delegated publisher that would return 500 error")
 }

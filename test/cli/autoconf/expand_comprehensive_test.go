@@ -192,7 +192,7 @@ func testAllAutoConfFieldsResolve(t *testing.T) {
 	assert.NotContains(t, expandedBootstrap, "auto", "Bootstrap should not contain 'auto'")
 	assert.Contains(t, expandedBootstrap, "/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN")
 	assert.Contains(t, expandedBootstrap, "/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa")
-	t.Logf("✅ Bootstrap expanded to: %v", expandedBootstrap)
+	t.Logf("Bootstrap expanded to: %v", expandedBootstrap)
 
 	// Test 2: DNS.Resolvers resolution
 	result = node.RunIPFS("config", "DNS.Resolvers", "--expand-auto")
@@ -205,7 +205,7 @@ func testAllAutoConfFieldsResolve(t *testing.T) {
 	assert.NotContains(t, expandedResolvers, "auto", "DNS.Resolvers should not contain 'auto'")
 	assert.Equal(t, "https://cloudflare-dns.com/dns-query", expandedResolvers["."])
 	assert.Equal(t, "https://dns.google/dns-query", expandedResolvers["eth."])
-	t.Logf("✅ DNS.Resolvers expanded to: %v", expandedResolvers)
+	t.Logf("DNS.Resolvers expanded to: %v", expandedResolvers)
 
 	// Test 3: Routing.DelegatedRouters resolution
 	result = node.RunIPFS("config", "Routing.DelegatedRouters", "--expand-auto")
@@ -264,7 +264,7 @@ func testAllAutoConfFieldsResolve(t *testing.T) {
 	require.Greater(t, finalRequestCount, int32(0),
 		"Mock autoconf server should have been called at least once. Got %d requests. "+
 			"This indicates the test is using cached or fallback config instead of mock data.", finalRequestCount)
-	t.Logf("✅ Mock server was called %d times - test is using mock data", finalRequestCount)
+	t.Logf("Mock server was called %d times - test is using mock data", finalRequestCount)
 }
 
 // testBootstrapCommandConsistency verifies that `ipfs bootstrap list --expand-auto` and
@@ -337,8 +337,8 @@ func testBootstrapCommandConsistency(t *testing.T) {
 		assert.True(t, found, "Peer %s should be in both results", peer)
 	}
 
-	t.Logf("✅ Config command result: %v", configBootstrap)
-	t.Logf("✅ Bootstrap command result: %v", bootstrapBootstrap)
+	t.Logf("Config command result: %v", configBootstrap)
+	t.Logf("Bootstrap command result: %v", bootstrapBootstrap)
 }
 
 // testWriteOperationsFailWithExpandAuto verifies that --expand-auto flag is properly
@@ -377,7 +377,7 @@ func testWriteOperationsFailWithExpandAuto(t *testing.T) {
 			stderr := result.Stderr.String()
 			assert.Contains(t, stderr, "--expand-auto", "Error should mention --expand-auto")
 			assert.Contains(t, stderr, "reading", "Error should mention reading limitation")
-			t.Logf("✅ Expected error: %s", stderr)
+			t.Logf("Expected error: %s", stderr)
 		})
 	}
 }
@@ -448,7 +448,7 @@ func testConfigShowExpandAutoComplete(t *testing.T) {
 		}
 	}
 
-	t.Logf("✅ Config show --expand-auto produced %d characters of expanded config", len(expandedConfig))
+	t.Logf("Config show --expand-auto produced %d characters of expanded config", len(expandedConfig))
 }
 
 // testMultipleExpandAutoUsesCache verifies that multiple consecutive --expand-auto calls
@@ -550,7 +550,7 @@ func testMultipleExpandAutoUsesCache(t *testing.T) {
 	assert.Equal(t, int32(0), finalRequestCount,
 		"Multiple --expand-auto calls should result in 0 HTTP requests (using cache). Got %d requests", finalRequestCount)
 
-	t.Logf("✅ Made 5 --expand-auto calls, resulted in %d HTTP request(s) - cache is being used!", finalRequestCount)
+	t.Logf("Made 5 --expand-auto calls, resulted in %d HTTP request(s) - cache is being used!", finalRequestCount)
 
 	// Now simulate a manual cache refresh (what the background updater would do)
 	t.Log("Simulating manual cache refresh...")
@@ -581,7 +581,7 @@ func testMultipleExpandAutoUsesCache(t *testing.T) {
 	assert.Equal(t, beforeRefresh, afterRefresh,
 		"--expand-auto should continue using cache even after server update")
 
-	t.Logf("✅ Cache continues to be used after server update - background updater pattern confirmed!")
+	t.Logf("Cache continues to be used after server update - background updater pattern confirmed!")
 }
 
 // testCLIUsesCacheOnlyDaemonUpdatesBackground verifies the correct autoconf behavior:
@@ -631,7 +631,7 @@ func testCLIUsesCacheOnlyDaemonUpdatesBackground(t *testing.T) {
 	// Confirm only one request was made during daemon startup
 	initialRequestCount := requestCount.Load()
 	assert.Equal(t, int32(1), initialRequestCount, "Expected exactly 1 HTTP request during daemon startup, got: %d", initialRequestCount)
-	t.Logf("✅ Daemon startup made exactly 1 HTTP request")
+	t.Logf("Daemon startup made exactly 1 HTTP request")
 
 	// Test: CLI commands use cache only (no additional HTTP requests)
 	t.Log("Testing that CLI --expand-auto commands use cache only...")
@@ -649,9 +649,9 @@ func testCLIUsesCacheOnlyDaemonUpdatesBackground(t *testing.T) {
 	// Verify the request count remains at 1 (no additional requests from CLI)
 	finalRequestCount := requestCount.Load()
 	assert.Equal(t, int32(1), finalRequestCount, "Request count should remain at 1 after CLI commands, got: %d", finalRequestCount)
-	t.Log("✅ CLI commands use cache only - request count remains at 1")
+	t.Log("CLI commands use cache only - request count remains at 1")
 
-	t.Log("✅ Test completed: Daemon makes 1 startup request, CLI commands use cache only")
+	t.Log("Test completed: Daemon makes 1 startup request, CLI commands use cache only")
 }
 
 // loadTestDataComprehensive is a helper function that loads test autoconf JSON data files.

@@ -251,5 +251,5 @@ func TestAutoConfExtensibility_NewSystem(t *testing.T) {
 	// 3. URL format is correct (base URLs with paths)
 	// 4. AutoConf extensibility works for unknown systems
 
-	t.Log("✅ NewSystem extensibility test passed - Kubo successfully discovered and used unknown routing system")
+	t.Log("NewSystem extensibility test passed - Kubo successfully discovered and used unknown routing system")
 }
