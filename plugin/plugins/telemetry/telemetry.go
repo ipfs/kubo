@@ -28,7 +28,7 @@ import (
 var log = logging.Logger("telemetry")
 
 const (
-	modeEnvVar   = "IPFS_TELEMETRY_PLUGIN_MODE"
+	modeEnvVar   = "IPFS_TELEMETRY_MODE"
 	uuidFilename = "telemetry_uuid"
 	endpoint     = "https://telemetry.ipshipyard.dev"
 	sendDelay    = 15 * time.Minute // delay before first telemetry collection after daemon start
