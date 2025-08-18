@@ -39,9 +39,9 @@ const (
 type pluginMode int
 
 const (
-	modeInfo pluginMode = iota
-	modeOptIn
-	modeOptOut
+	modeAuto pluginMode = iota
+	modeOn
+	modeOff
 )
 
 // repoSizeBuckets defines size thresholds for categorizing repository sizes.
@@ -188,8 +188,8 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 	}
 
 	switch v {
-	case "optout":
-		p.mode = modeOptOut
+	case "off":
+		p.mode = modeOff
 		log.Debug("telemetry disabled via opt-out")
 		// Remove UUID file if it exists when user opts out
 		if _, err := os.Stat(p.uuidFilename); err == nil {
@@ -200,10 +200,10 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 			}
 		}
 		return nil
-	case "info":
-		p.mode = modeInfo
+	case "auto":
+		p.mode = modeAuto
 	default:
-		p.mode = modeOptIn
+		p.mode = modeOn
 	}
 	log.Debug("telemetry mode: ", p.mode)
 	return nil
@@ -223,8 +223,8 @@ func (p *telemetryPlugin) loadUUID() error {
 			return err
 		}
 		p.event.UUID = uid.String()
-		p.mode = modeInfo
-		log.Debugf("new telemetry UUID %s. Mode set to Info", uid)
+		p.mode = modeAuto
+		log.Debugf("new telemetry UUID %s. Mode set to Auto", uid)
 
 		// Write the UUID to disk
 		if err := os.WriteFile(p.uuidFilename, []byte(p.event.UUID), 0600); err != nil {
@@ -277,8 +277,8 @@ Kubo will collect anonymous usage data to help improve the software:
          Anonymous ID: %s
 
 No data sent yet. To opt-out before collection starts:
-• Set environment: %s=optout
-• Or run: ipfs config Plugins.Plugins.telemetry.Config.Mode optout
+• Set environment: %s=off
+• Or run: ipfs config Plugins.Plugins.telemetry.Config.Mode off
 • Then restart daemon
 
 This message is shown only once.
@@ -307,7 +307,7 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 		return nil
 	}
 	p.config = cfg
-	if p.mode == modeOptOut {
+	if p.mode == modeOff {
 		log.Debug("telemetry collection skipped: opted out")
 		return nil
 	}
@@ -317,13 +317,13 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 		return nil
 	}
 
-	// loadUUID might switch to modeInfo when generating a new uuid
+	// loadUUID might switch to modeAuto when generating a new uuid
 	if err := p.loadUUID(); err != nil {
-		p.mode = modeOptOut
+		p.mode = modeOff
 		return nil
 	}
 
-	if p.mode == modeInfo {
+	if p.mode == modeAuto {
 		p.showInfo()
 	}
 

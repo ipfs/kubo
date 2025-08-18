@@ -14,14 +14,14 @@ The behavior of the Telemetry plugin is controlled via the environment variable 
 
 | Mode     | Description                                                                 |
 |----------|-----------------------------------------------------------------------------|
-| `optin`  | **Default**. Telemetry is enabled. Data is sent periodically.              |
-| `optout` | Telemetry is disabled. No data is sent. Any existing telemetry UUID file is removed. |
-| `info`   | Like `optin`, but logs an informative message about the telemetry. It is used on the first run. |
+| `on`     | **Default**. Telemetry is enabled. Data is sent periodically.              |
+| `off`    | Telemetry is disabled. No data is sent. Any existing telemetry UUID file is removed. |
+| `auto`   | Like `on`, but logs an informative message about the telemetry and gives user 15 minutes to opt-out before first collection. This mode is automatically used on the first run when `IPFS_TELEMETRY` is not set and telemetry UUID is not found (not generated yet). The informative message is only shown once. |
 
 You can set the mode in your environment:
 
 ```bash
-export IPFS_TELEMETRY="optout"
+export IPFS_TELEMETRY="off"
 ```
 
 Or in your IPFS config file:
@@ -32,7 +32,7 @@ Or in your IPFS config file:
     "Plugins": {
       "telemetry": {
         "Config": {
-          "Mode": "optout"
+          "Mode": "off"
         }
       }
     }
@@ -101,7 +101,7 @@ If you're testing telemetry locally, you can change the endpoint by setting the 
     "Plugins": {
       "telemetry": {
         "Config": {
-          "Mode": "optin",
+          "Mode": "on",
           "Endpoint": "http://localhost:8080"
         }
       }

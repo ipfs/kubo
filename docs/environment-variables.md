@@ -199,16 +199,16 @@ If the lock cannot be acquired because someone else has the lock, and `IPFS_WAIT
 
 Controls the behavior of the [telemetry plugin](telemetry.md). Valid values are:
 
-- `optin`: Enables telemetry (default if not set).
-- `optout`: Disables telemetry.
-- `info`: Like `optin`, but logs an informative message about telemetry (default in the first run).
+- `on`: Enables telemetry.
+- `off`: Disables telemetry.
+- `auto`: Like `on`, but logs an informative message about telemetry and gives user 15 minutes to opt-out before first collection. Used automatically on first run and when `IPFS_TELEMETRY` is not set.
 
 The mode can also be set in the config file under `Plugins.Plugins.telemetry.Config.Mode`.
 
 Example:
 
 ```bash
-export IPFS_TELEMETRY="optout"
+export IPFS_TELEMETRY="off"
 ```
 
 ## `LIBP2P_TCP_REUSEPORT`
