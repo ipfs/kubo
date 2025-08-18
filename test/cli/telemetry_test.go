@@ -1,8 +1,14 @@
 package cli
 
 import (
+	"encoding/json"
+	"io"
+	"maps"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -180,5 +186,124 @@ func TestTelemetry(t *testing.T) {
 		uuidPath := filepath.Join(node.Dir, "telemetry_uuid")
 		_, err := os.Stat(uuidPath)
 		assert.NoError(t, err, "UUID file should exist when daemon started without telemetry opt-out")
+	})
+
+	t.Run("telemetry schema regression guard", func(t *testing.T) {
+		t.Parallel()
+
+		// Define the exact set of expected telemetry fields
+		// This list must be updated whenever telemetry fields change
+		expectedFields := []string{
+			"uuid",
+			"agent_version",
+			"private_network",
+			"bootstrappers_custom",
+			"repo_size_bucket",
+			"uptime_bucket",
+			"reprovider_strategy",
+			"routing_type",
+			"routing_accelerated_dht_client",
+			"routing_delegated_count",
+			"autonat_service_mode",
+			"autonat_reachability",
+			"swarm_enable_hole_punching",
+			"swarm_circuit_addresses",
+			"swarm_ipv4_public_addresses",
+			"swarm_ipv6_public_addresses",
+			"auto_tls_auto_wss",
+			"auto_tls_domain_suffix_custom",
+			"autoconf",
+			"autoconf_custom",
+			"discovery_mdns_enabled",
+			"platform_os",
+			"platform_arch",
+			"platform_containerized",
+			"platform_vm",
+		}
+
+		// Channel to receive captured telemetry data
+		telemetryChan := make(chan map[string]interface{}, 1)
+
+		// Create a mock HTTP server to capture telemetry
+		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "POST" {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, "Failed to read body", http.StatusBadRequest)
+				return
+			}
+
+			var telemetryData map[string]interface{}
+			if err := json.Unmarshal(body, &telemetryData); err != nil {
+				http.Error(w, "Invalid JSON", http.StatusBadRequest)
+				return
+			}
+
+			// Send captured data through channel
+			select {
+			case telemetryChan <- telemetryData:
+			default:
+			}
+
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer mockServer.Close()
+
+		// Create a new node
+		node := harness.NewT(t).NewNode().Init()
+
+		// Configure telemetry with a very short delay for testing
+		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Delay", "100ms")
+		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Endpoint", mockServer.URL)
+
+		// Enable debug logging to see what's being sent
+		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
+
+		// Start daemon
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Wait for telemetry to be sent (configured delay + buffer)
+		select {
+		case telemetryData := <-telemetryChan:
+			receivedFields := slices.Collect(maps.Keys(telemetryData))
+			slices.Sort(expectedFields)
+			slices.Sort(receivedFields)
+
+			// Fast path: check if fields match exactly
+			if !slices.Equal(expectedFields, receivedFields) {
+				var missingFields, unexpectedFields []string
+				for _, field := range expectedFields {
+					if _, ok := telemetryData[field]; !ok {
+						missingFields = append(missingFields, field)
+					}
+				}
+
+				expectedSet := make(map[string]struct{}, len(expectedFields))
+				for _, f := range expectedFields {
+					expectedSet[f] = struct{}{}
+				}
+				for field := range telemetryData {
+					if _, ok := expectedSet[field]; !ok {
+						unexpectedFields = append(unexpectedFields, field)
+					}
+				}
+
+				t.Fatalf("Telemetry field mismatch:\n"+
+					"  Missing fields: %v\n"+
+					"  Unexpected fields: %v\n"+
+					"  Note: Update expectedFields list in this test when adding/removing telemetry fields",
+					missingFields, unexpectedFields)
+			}
+
+			t.Logf("Telemetry field validation passed: %d fields verified", len(expectedFields))
+
+		case <-time.After(5 * time.Second):
+			t.Fatal("Timeout waiting for telemetry data to be sent")
+		}
 	})
 }
