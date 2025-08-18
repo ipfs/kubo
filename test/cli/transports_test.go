@@ -62,6 +62,8 @@ func TestTransports(t *testing.T) {
 				cfg.Swarm.Transports.Network.WebTransport = config.False
 				cfg.Swarm.Transports.Network.WebRTCDirect = config.False
 				cfg.Swarm.Transports.Network.Websocket = config.False
+				// Disable AutoTLS since we're disabling WebSocket transport
+				cfg.AutoTLS.Enabled = config.False
 			})
 		})
 		disableRouting(nodes)
