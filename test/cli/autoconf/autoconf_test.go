@@ -142,11 +142,11 @@ func testAutoConfBackgroundService(t *testing.T) {
 
 	// Track which config is being served
 	currentData := initialData
-	var requestCount int32
+	var requestCount atomic.Int32
 
 	// Create server that switches payload after first request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		count := atomic.AddInt32(&requestCount, 1)
+		count := requestCount.Add(1)
 		t.Logf("Background service request #%d from %s", count, r.UserAgent())
 
 		w.Header().Set("Content-Type", "application/json")
@@ -177,22 +177,22 @@ func testAutoConfBackgroundService(t *testing.T) {
 
 	// Wait for initial request (daemon startup may trigger one)
 	time.Sleep(1 * time.Second)
-	initialCount := atomic.LoadInt32(&requestCount)
+	initialCount := requestCount.Load()
 	t.Logf("Initial request count after daemon start: %d", initialCount)
 
 	// Wait for background service to make additional requests
 	// The background service should make requests at the RefreshInterval (1s)
 	time.Sleep(3 * time.Second)
 
-	finalCount := atomic.LoadInt32(&requestCount)
+	finalCount := requestCount.Load()
 	t.Logf("Final request count after background updates: %d", finalCount)
 
 	// Background service should have made multiple requests due to 1s refresh interval
-	assert.Greater(t, int(finalCount), int(initialCount),
+	assert.Greater(t, finalCount, initialCount,
 		"Background service should have made additional requests beyond daemon startup")
 
 	// Verify that the service is actively making requests (not just relying on cache)
-	assert.GreaterOrEqual(t, int(finalCount), 2,
+	assert.GreaterOrEqual(t, finalCount, int32(2),
 		"Should have at least 2 requests total (startup + background refresh)")
 
 	t.Logf("Successfully verified startAutoConfUpdater() background service makes network requests")
@@ -625,11 +625,11 @@ func testAutoConfNetworkBehavior(t *testing.T) {
 	// This validates that our cache-first architecture works as expected
 
 	autoConfData := loadTestData(t, "valid_autoconf.json")
-	var requestCount int32
+	var requestCount atomic.Int32
 
 	// Create server that tracks all requests
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		count := atomic.AddInt32(&requestCount, 1)
+		count := requestCount.Add(1)
 		t.Logf("Network behavior test request #%d: %s %s", count, r.Method, r.URL.Path)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -647,7 +647,7 @@ func testAutoConfNetworkBehavior(t *testing.T) {
 
 	// Phase 1: Test cache-first behavior (no network requests expected)
 	t.Logf("=== Phase 1: Testing cache-first behavior ===")
-	initialCount := atomic.LoadInt32(&requestCount)
+	initialCount := requestCount.Load()
 
 	// Multiple config operations should NOT trigger network requests (cache-first)
 	result := node.RunIPFS("config", "Bootstrap")
@@ -660,13 +660,13 @@ func testAutoConfNetworkBehavior(t *testing.T) {
 	require.Equal(t, 0, result.ExitCode(), "Bootstrap list should succeed")
 
 	// Check that cache-first operations didn't trigger network requests
-	afterCacheOpsCount := atomic.LoadInt32(&requestCount)
+	afterCacheOpsCount := requestCount.Load()
 	cachedRequestDiff := afterCacheOpsCount - initialCount
 	t.Logf("Network requests during cache-first operations: %d", cachedRequestDiff)
 
 	// Phase 2: Test explicit expansion (may trigger cache population)
 	t.Logf("=== Phase 2: Testing expansion operations ===")
-	beforeExpansionCount := atomic.LoadInt32(&requestCount)
+	beforeExpansionCount := requestCount.Load()
 
 	// Expansion operations may need to populate cache if empty
 	result = node.RunIPFS("bootstrap", "list", "--expand-auto")
@@ -685,13 +685,13 @@ func testAutoConfNetworkBehavior(t *testing.T) {
 		t.Logf("Config Bootstrap expansion failed: %s", result.Stderr.String())
 	}
 
-	afterExpansionCount := atomic.LoadInt32(&requestCount)
+	afterExpansionCount := requestCount.Load()
 	expansionRequestDiff := afterExpansionCount - beforeExpansionCount
 	t.Logf("Network requests during expansion operations: %d", expansionRequestDiff)
 
 	// Phase 3: Test background service behavior (if daemon is started)
 	t.Logf("=== Phase 3: Testing background service behavior ===")
-	beforeDaemonCount := atomic.LoadInt32(&requestCount)
+	beforeDaemonCount := requestCount.Load()
 
 	// Set short refresh interval to test background service
 	node.SetIPFSConfig("AutoConf.RefreshInterval", "1s")
@@ -703,7 +703,7 @@ func testAutoConfNetworkBehavior(t *testing.T) {
 	// Wait for background service to potentially make requests
 	time.Sleep(2 * time.Second)
 
-	afterDaemonCount := atomic.LoadInt32(&requestCount)
+	afterDaemonCount := requestCount.Load()
 	daemonRequestDiff := afterDaemonCount - beforeDaemonCount
 	t.Logf("Network requests from background service: %d", daemonRequestDiff)
 
@@ -714,7 +714,7 @@ func testAutoConfNetworkBehavior(t *testing.T) {
 	t.Logf("Background service: %d requests", daemonRequestDiff)
 
 	// Cache-first operations should minimize network requests
-	assert.LessOrEqual(t, int(cachedRequestDiff), 1,
+	assert.LessOrEqual(t, cachedRequestDiff, int32(1),
 		"Cache-first config operations should make minimal network requests")
 
 	// Background service should make requests for refresh

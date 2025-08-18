@@ -75,11 +75,11 @@ func testAllAutoConfFieldsResolve(t *testing.T) {
 	// This validates core autoconf resolution functionality across all supported fields
 
 	// Track HTTP requests to verify mock server is being used
-	var requestCount int32
+	var requestCount atomic.Int32
 	var autoConfData []byte
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		count := atomic.AddInt32(&requestCount, 1)
+		count := requestCount.Add(1)
 		t.Logf("Mock autoconf server request #%d: %s %s", count, r.Method, r.URL.Path)
 
 		// Create comprehensive autoconf response matching Schema 4 format
@@ -260,7 +260,7 @@ func testAllAutoConfFieldsResolve(t *testing.T) {
 		expectedMockPublisherURL, expandedPublishers[0])
 
 	// CRITICAL: Verify that mock server was actually used
-	finalRequestCount := atomic.LoadInt32(&requestCount)
+	finalRequestCount := requestCount.Load()
 	require.Greater(t, finalRequestCount, int32(0),
 		"Mock autoconf server should have been called at least once. Got %d requests. "+
 			"This indicates the test is using cached or fallback config instead of mock data.", finalRequestCount)
@@ -284,9 +284,9 @@ func testBootstrapCommandConsistency(t *testing.T) {
 	autoConfData := loadTestDataComprehensive(t, "valid_autoconf.json")
 
 	// Track HTTP requests to verify daemon fetches autoconf
-	var requestCount int32
+	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&requestCount, 1)
+		requestCount.Add(1)
 		t.Logf("Bootstrap consistency test request: %s %s", r.Method, r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(autoConfData)
@@ -398,9 +398,9 @@ func testConfigShowExpandAutoComplete(t *testing.T) {
 	autoConfData := loadTestDataComprehensive(t, "valid_autoconf.json")
 
 	// Track HTTP requests to verify daemon fetches autoconf
-	var requestCount int32
+	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&requestCount, 1)
+		requestCount.Add(1)
 		t.Logf("Config show test request: %s %s", r.Method, r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(autoConfData)
@@ -468,9 +468,9 @@ func testMultipleExpandAutoUsesCache(t *testing.T) {
 	autoConfData := loadTestDataComprehensive(t, "valid_autoconf.json")
 
 	// Track HTTP requests to verify caching
-	var requestCount int32
+	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		count := atomic.AddInt32(&requestCount, 1)
+		count := requestCount.Add(1)
 		t.Logf("AutoConf cache test request #%d: %s %s", count, r.Method, r.URL.Path)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -497,7 +497,7 @@ func testMultipleExpandAutoUsesCache(t *testing.T) {
 	defer daemon.StopDaemon()
 
 	// Reset counter to only track our expand-auto calls
-	atomic.StoreInt32(&requestCount, 0)
+	requestCount.Store(0)
 
 	// Make multiple --expand-auto calls on different fields
 	t.Log("Testing multiple --expand-auto calls should use cache...")
@@ -546,7 +546,7 @@ func testMultipleExpandAutoUsesCache(t *testing.T) {
 	assert.NotContains(t, expandedConfig, `"auto"`, "Full config should not contain 'auto' values")
 
 	// CRITICAL TEST: Verify NO HTTP requests were made for --expand-auto calls (using cache)
-	finalRequestCount := atomic.LoadInt32(&requestCount)
+	finalRequestCount := requestCount.Load()
 	assert.Equal(t, int32(0), finalRequestCount,
 		"Multiple --expand-auto calls should result in 0 HTTP requests (using cache). Got %d requests", finalRequestCount)
 
@@ -558,7 +558,7 @@ func testMultipleExpandAutoUsesCache(t *testing.T) {
 	// Update the mock server to return different data
 	autoConfData2 := loadTestDataComprehensive(t, "updated_autoconf.json")
 	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		count := atomic.AddInt32(&requestCount, 1)
+		count := requestCount.Add(1)
 		t.Logf("Manual refresh request #%d: %s %s", count, r.Method, r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("ETag", `"cache-test-456"`)
@@ -571,13 +571,13 @@ func testMultipleExpandAutoUsesCache(t *testing.T) {
 	// and don't trigger additional requests
 
 	// Reset counter before manual refresh simulation
-	beforeRefresh := atomic.LoadInt32(&requestCount)
+	beforeRefresh := requestCount.Load()
 
 	// Make another --expand-auto call - should still use cache
 	result6 := node.RunIPFS("config", "Bootstrap", "--expand-auto")
 	require.Equal(t, 0, result6.ExitCode(), "Bootstrap --expand-auto after refresh should succeed")
 
-	afterRefresh := atomic.LoadInt32(&requestCount)
+	afterRefresh := requestCount.Load()
 	assert.Equal(t, beforeRefresh, afterRefresh,
 		"--expand-auto should continue using cache even after server update")
 
@@ -601,9 +601,9 @@ func testCLIUsesCacheOnlyDaemonUpdatesBackground(t *testing.T) {
 	autoConfData := loadTestDataComprehensive(t, "valid_autoconf.json")
 
 	// Track HTTP requests with timestamps
-	var requestCount int32
+	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		count := atomic.AddInt32(&requestCount, 1)
+		count := requestCount.Add(1)
 		t.Logf("Cache expiry test request #%d at %s: %s %s", count, time.Now().Format("15:04:05.000"), r.Method, r.URL.Path)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -629,7 +629,7 @@ func testCLIUsesCacheOnlyDaemonUpdatesBackground(t *testing.T) {
 	defer daemon.StopDaemon()
 
 	// Confirm only one request was made during daemon startup
-	initialRequestCount := atomic.LoadInt32(&requestCount)
+	initialRequestCount := requestCount.Load()
 	assert.Equal(t, int32(1), initialRequestCount, "Expected exactly 1 HTTP request during daemon startup, got: %d", initialRequestCount)
 	t.Logf("✅ Daemon startup made exactly 1 HTTP request")
 
@@ -647,7 +647,7 @@ func testCLIUsesCacheOnlyDaemonUpdatesBackground(t *testing.T) {
 	require.Equal(t, 0, result3.ExitCode(), "Routing.DelegatedRouters --expand-auto should succeed")
 
 	// Verify the request count remains at 1 (no additional requests from CLI)
-	finalRequestCount := atomic.LoadInt32(&requestCount)
+	finalRequestCount := requestCount.Load()
 	assert.Equal(t, int32(1), finalRequestCount, "Request count should remain at 1 after CLI commands, got: %d", finalRequestCount)
 	t.Log("✅ CLI commands use cache only - request count remains at 1")
 
@@ -669,7 +669,7 @@ func loadTestDataComprehensive(t *testing.T, filename string) []byte {
 // startDaemonAndWaitForAutoConf starts a daemon and waits for it to fetch autoconf data.
 // It returns the node with daemon running and ensures autoconf has been cached before returning.
 // This is a DRY helper to avoid repeating daemon setup and request waiting logic in every test.
-func startDaemonAndWaitForAutoConf(t *testing.T, node *harness.Node, requestCount *int32) *harness.Node {
+func startDaemonAndWaitForAutoConf(t *testing.T, node *harness.Node, requestCount *atomic.Int32) *harness.Node {
 	t.Helper()
 
 	// Start daemon to fetch and cache autoconf data
@@ -688,8 +688,8 @@ func startDaemonAndWaitForAutoConf(t *testing.T, node *harness.Node, requestCoun
 		case <-timeout:
 			t.Fatal("Timeout waiting for autoconf fetch")
 		case <-ticker.C:
-			if atomic.LoadInt32(requestCount) > 0 {
-				t.Logf("✅ Daemon fetched autoconf (%d requests made)", atomic.LoadInt32(requestCount))
+			if requestCount.Load() > 0 {
+				t.Logf("Daemon fetched autoconf (%d requests made)", requestCount.Load())
 				t.Log("AutoConf should now be cached by daemon")
 				return daemon
 			}
