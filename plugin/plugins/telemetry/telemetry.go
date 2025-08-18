@@ -90,6 +90,9 @@ type LogEvent struct {
 	AutoNATServiceMode  string `json:"autonat_service_mode"`
 	AutoNATReachability string `json:"autonat_reachability"`
 
+	AutoConf       bool `json:"autoconf"`
+	AutoConfCustom bool `json:"autoconf_custom"`
+
 	SwarmEnableHolePunching  bool `json:"swarm_enable_hole_punching"`
 	SwarmCircuitAddresses    bool `json:"swarm_circuit_addresses"`
 	SwarmIPv4PublicAddresses bool `json:"swarm_ipv4_public_addresses"`
@@ -340,6 +343,7 @@ func (p *telemetryPlugin) prepareEvent() {
 	p.collectBasicInfo()
 	p.collectRoutingInfo()
 	p.collectAutoNATInfo()
+	p.collectAutoConfInfo()
 	p.collectSwarmInfo()
 	p.collectAutoTLSInfo()
 	p.collectDiscoveryInfo()
@@ -453,6 +457,11 @@ func (p *telemetryPlugin) collectAutoTLSInfo() {
 	p.event.AutoTLSAutoWSS = p.config.AutoTLS.AutoWSS.WithDefault(config.DefaultAutoWSS)
 	domainSuffix := p.config.AutoTLS.DomainSuffix.WithDefault(config.DefaultDomainSuffix)
 	p.event.AutoTLSDomainSuffixCustom = domainSuffix != config.DefaultDomainSuffix
+}
+
+func (p *telemetryPlugin) collectAutoConfInfo() {
+	p.event.AutoConf = p.config.AutoConf.Enabled.WithDefault(config.DefaultAutoConfEnabled)
+	p.event.AutoConfCustom = p.config.AutoConf.URL != config.DefaultAutoConfURL
 }
 
 func (p *telemetryPlugin) collectDiscoveryInfo() {
