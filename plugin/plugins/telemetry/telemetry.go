@@ -536,6 +536,7 @@ func (p *telemetryPlugin) sendTelemetry() error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", ipfs.GetUserAgentVersion())
 	req.Close = true
 
 	// Use client with timeout to prevent hanging
