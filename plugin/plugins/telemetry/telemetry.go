@@ -247,21 +247,9 @@ func (p *telemetryPlugin) loadUUID() error {
 }
 
 func (p *telemetryPlugin) hasDefaultBootstrapPeers() bool {
-	defaultPeers := config.DefaultBootstrapAddresses
+	// With autoconf, default bootstrap is represented as ["auto"]
 	currentPeers := p.config.Bootstrap
-	if len(defaultPeers) != len(currentPeers) {
-		return false
-	}
-	peerMap := make(map[string]struct{}, len(defaultPeers))
-	for _, peer := range defaultPeers {
-		peerMap[peer] = struct{}{}
-	}
-	for _, peer := range currentPeers {
-		if _, ok := peerMap[peer]; !ok {
-			return false
-		}
-	}
-	return true
+	return len(currentPeers) == 1 && currentPeers[0] == "auto"
 }
 
 func (p *telemetryPlugin) showInfo() {
