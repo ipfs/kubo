@@ -21,7 +21,7 @@ func TestTelemetry(t *testing.T) {
 		node := harness.NewT(t).NewNode().Init()
 
 		// Set the opt-out environment variable
-		node.Runner.Env["IPFS_TELEMETRY_MODE"] = "optout"
+		node.Runner.Env["IPFS_TELEMETRY"] = "optout"
 		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
 
 		// Capture daemon output
@@ -112,7 +112,7 @@ func TestTelemetry(t *testing.T) {
 		require.NoError(t, err, "UUID file should exist before opt-out")
 
 		// Set the opt-out environment variable
-		node.Runner.Env["IPFS_TELEMETRY_MODE"] = "optout"
+		node.Runner.Env["IPFS_TELEMETRY"] = "optout"
 		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
 
 		// Capture daemon output

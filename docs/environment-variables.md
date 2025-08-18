@@ -18,7 +18,7 @@
   - [`IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS`](#ipfs_http_routers_filter_protocols)
   - [`IPFS_CONTENT_BLOCKING_DISABLE`](#ipfs_content_blocking_disable)
   - [`IPFS_WAIT_REPO_LOCK`](#ipfs_wait_repo_lock)
-  - [`IPFS_TELEMETRY_MODE`](#ipfs_telemetry_plugin_mode)
+  - [`IPFS_TELEMETRY`](#ipfs_telemetry)
   - [`LIBP2P_TCP_REUSEPORT`](#libp2p_tcp_reuseport)
   - [`LIBP2P_TCP_MUX`](#libp2p_tcp_mux)
   - [`LIBP2P_MUX_PREFS`](#libp2p_mux_prefs)
@@ -195,7 +195,7 @@ IPFS_WAIT_REPO_LOCK="15s"
 
 If the lock cannot be acquired because someone else has the lock, and `IPFS_WAIT_REPO_LOCK` is set to a valid value, then acquiring the lock is retried every second until the lock is acquired or the specified wait time has elapsed.
 
-## `IPFS_TELEMETRY_MODE`
+## `IPFS_TELEMETRY`
 
 Controls the behavior of the [telemetry plugin](telemetry.md). Valid values are:
 
@@ -208,7 +208,7 @@ The mode can also be set in the config file under `Plugins.Plugins.telemetry.Con
 Example:
 
 ```bash
-export IPFS_TELEMETRY_MODE="optout"
+export IPFS_TELEMETRY="optout"
 ```
 
 ## `LIBP2P_TCP_REUSEPORT`
