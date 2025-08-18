@@ -197,11 +197,11 @@ If the lock cannot be acquired because someone else has the lock, and `IPFS_WAIT
 
 ## `IPFS_TELEMETRY_MODE`
 
-Controls the behavior of the telemetry plugin. Valid values are:
+Controls the behavior of the [telemetry plugin](telemetry.md). Valid values are:
 
 - `optin`: Enables telemetry (default if not set).
 - `optout`: Disables telemetry.
-- `info`: Like `optint`, but logs an informative message about telemetry (default in the first run).
+- `info`: Like `optin`, but logs an informative message about telemetry (default in the first run).
 
 The mode can also be set in the config file under `Plugins.Plugins.telemetry.Config.Mode`.
 
