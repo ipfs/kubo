@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"github.com/anmitsu/go-shlex"
@@ -447,7 +449,8 @@ var configProfileApplyCmd = &cmds.Command{
 func buildProfileHelp() string {
 	var out string
 
-	for name, profile := range config.Profiles {
+	for _, name := range slices.Sorted(maps.Keys(config.Profiles)) {
+		profile := config.Profiles[name]
 		dlines := strings.Split(profile.Description, "\n")
 		for i := range dlines {
 			dlines[i] = "    " + dlines[i]
