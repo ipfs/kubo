@@ -16,7 +16,7 @@ type NamePublishSettings struct {
 	TTL              *time.Duration
 	CompatibleWithV1 bool
 	AllowOffline     bool
-	DelegatedOnly    bool
+	AllowDelegated   bool
 	Sequence         *uint64
 }
 
@@ -36,8 +36,8 @@ func NamePublishOptions(opts ...NamePublishOption) (*NamePublishSettings, error)
 		ValidTime: DefaultNameValidTime,
 		Key:       "self",
 
-		AllowOffline:  false,
-		DelegatedOnly: false,
+		AllowOffline:   false,
+		AllowDelegated: false,
 	}
 
 	for _, opt := range opts {
@@ -99,11 +99,12 @@ func (nameOpts) AllowOffline(allow bool) NamePublishOption {
 	}
 }
 
-// DelegatedOnly is an option for Name.Publish which specifies whether to use
-// only HTTP delegated publishers, bypassing DHT. Default value is false
-func (nameOpts) DelegatedOnly(delegatedOnly bool) NamePublishOption {
+// AllowDelegated is an option for Name.Publish which allows publishing without
+// DHT connectivity, using local datastore and HTTP delegated publishers only.
+// Default value is false
+func (nameOpts) AllowDelegated(allowDelegated bool) NamePublishOption {
 	return func(settings *NamePublishSettings) error {
-		settings.DelegatedOnly = delegatedOnly
+		settings.AllowDelegated = allowDelegated
 		return nil
 	}
 }

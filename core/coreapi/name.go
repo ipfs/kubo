@@ -46,8 +46,8 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 	}
 
 	// Handle different publishing modes
-	if options.DelegatedOnly {
-		// DelegatedOnly mode: check if delegated publishers are configured
+	if options.AllowDelegated {
+		// AllowDelegated mode: check if delegated publishers are configured
 		cfg, err := api.repo.Config()
 		if err != nil {
 			return ipns.Name{}, fmt.Errorf("failed to read config: %w", err)
@@ -56,7 +56,7 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 		if len(delegatedPublishers) == 0 {
 			return ipns.Name{}, errors.New("no delegated publishers configured: add Ipns.DelegatedPublishers or use --allow-offline for local-only publishing")
 		}
-		// For delegated-only mode, we only require that we have delegated publishers configured
+		// For allow-delegated mode, we only require that we have delegated publishers configured
 		// The node doesn't need P2P connectivity since we're using HTTP publishing
 	} else {
 		// Normal mode: check online status with allow-offline flag

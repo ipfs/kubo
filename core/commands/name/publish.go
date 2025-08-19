@@ -16,19 +16,19 @@ import (
 	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
-var errAllowOffline = errors.New("can't publish while offline: pass `--allow-offline` to override or `--delegated-only` if Ipns.DelegatedPublishers are set up")
+var errAllowOffline = errors.New("can't publish while offline: pass `--allow-offline` to override or `--allow-delegated` if Ipns.DelegatedPublishers are set up")
 
 const (
-	ipfsPathOptionName      = "ipfs-path"
-	resolveOptionName       = "resolve"
-	allowOfflineOptionName  = "allow-offline"
-	delegatedOnlyOptionName = "delegated-only"
-	lifeTimeOptionName      = "lifetime"
-	ttlOptionName           = "ttl"
-	keyOptionName           = "key"
-	quieterOptionName       = "quieter"
-	v1compatOptionName      = "v1compat"
-	sequenceOptionName      = "sequence"
+	ipfsPathOptionName       = "ipfs-path"
+	resolveOptionName        = "resolve"
+	allowOfflineOptionName   = "allow-offline"
+	allowDelegatedOptionName = "allow-delegated"
+	lifeTimeOptionName       = "lifetime"
+	ttlOptionName            = "ttl"
+	keyOptionName            = "key"
+	quieterOptionName        = "quieter"
+	v1compatOptionName       = "v1compat"
+	sequenceOptionName       = "sequence"
 )
 
 var PublishCmd = &cmds.Command{
@@ -54,8 +54,8 @@ Publishing Modes:
 By default, IPNS records are published to both the DHT and any configured
 HTTP delegated publishers. You can control this behavior with the following flags:
 
-  --allow-offline    Publish only to the local datastore, no network requests
-  --delegated-only   Publish only to HTTP delegated publishers, bypass DHT
+  --allow-offline    Allow publishing when offline (publishes to local datastore, network operations are optional)
+  --allow-delegated  Allow publishing without DHT connectivity (local + HTTP delegated publishers only)
 
 Examples:
 
@@ -64,12 +64,12 @@ Publish an <ipfs-path> with your default name:
   > ipfs name publish /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
-Publish using only HTTP delegated publishers:
+Publish without DHT (HTTP delegated publishers only):
 
-  > ipfs name publish --delegated-only /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  > ipfs name publish --allow-delegated /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
-Publish offline (local datastore only):
+Publish when offline (local publish, network optional):
 
   > ipfs name publish --allow-offline /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
@@ -104,8 +104,8 @@ For faster IPNS updates, consider:
 		cmds.StringOption(ttlOptionName, "Time duration hint, akin to --lifetime, indicating how long to cache this record before checking for updates.").WithDefault(ipns.DefaultRecordTTL.String()),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final IPNS Name encoded as CIDv1 (for use in /ipns content paths)."),
 		cmds.BoolOption(v1compatOptionName, "Produce a backward-compatible IPNS Record by including fields for both V1 and V2 signatures.").WithDefault(true),
-		cmds.BoolOption(allowOfflineOptionName, "Save the IPNS record to the local datastore only, without broadcasting to the network."),
-		cmds.BoolOption(delegatedOnlyOptionName, "Use only HTTP delegated publishers, bypass DHT. Requires Ipns.DelegatedPublishers to be configured."),
+		cmds.BoolOption(allowOfflineOptionName, "Allow publishing when offline - publishes to local datastore without requiring network connectivity."),
+		cmds.BoolOption(allowDelegatedOptionName, "Allow publishing without DHT connectivity - uses local datastore and HTTP delegated publishers only."),
 		cmds.Uint64Option(sequenceOptionName, "Set a custom sequence number for the IPNS record (must be higher than current)."),
 		ke.OptionIPNSBase,
 	},
@@ -116,13 +116,13 @@ For faster IPNS updates, consider:
 		}
 
 		allowOffline, _ := req.Options[allowOfflineOptionName].(bool)
-		delegatedOnly, _ := req.Options[delegatedOnlyOptionName].(bool)
+		allowDelegated, _ := req.Options[allowDelegatedOptionName].(bool)
 		compatibleWithV1, _ := req.Options[v1compatOptionName].(bool)
 		kname, _ := req.Options[keyOptionName].(string)
 
 		// Validate flag combinations
-		if allowOffline && delegatedOnly {
-			return errors.New("cannot use both --allow-offline and --delegated-only flags")
+		if allowOffline && allowDelegated {
+			return errors.New("cannot use both --allow-offline and --allow-delegated flags")
 		}
 
 		validTimeOpt, _ := req.Options[lifeTimeOptionName].(string)
@@ -133,7 +133,7 @@ For faster IPNS updates, consider:
 
 		opts := []options.NamePublishOption{
 			options.Name.AllowOffline(allowOffline),
-			options.Name.DelegatedOnly(delegatedOnly),
+			options.Name.AllowDelegated(allowDelegated),
 			options.Name.Key(kname),
 			options.Name.ValidTime(validTime),
 			options.Name.CompatibleWithV1(compatibleWithV1),

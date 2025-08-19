@@ -17,19 +17,233 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestAutoConfIPNS tests IPNS publishing with autoconf-resolved delegated publishers
 func TestAutoConfIPNS(t *testing.T) {
 	t.Parallel()
 
-	t.Run("IPNS publishing with auto publisher", func(t *testing.T) {
+	t.Run("PublishingWithWorkingEndpoint", func(t *testing.T) {
 		t.Parallel()
-		testIPNSPublishingWithAuto(t)
+		testIPNSPublishingWithWorkingEndpoint(t)
 	})
 
-	t.Run("IPNS publishing errors are handled properly", func(t *testing.T) {
+	t.Run("PublishingResilience", func(t *testing.T) {
 		t.Parallel()
-		testIPNSPublishingErrorHandling(t)
+		testIPNSPublishingResilience(t)
 	})
 }
+
+// testIPNSPublishingWithWorkingEndpoint verifies that IPNS delegated publishing works
+// correctly when the HTTP endpoint is functioning normally and accepts requests.
+// It also verifies that the PUT payload matches what can be retrieved via routing get.
+func testIPNSPublishingWithWorkingEndpoint(t *testing.T) {
+	// Create mock IPNS publisher that accepts requests
+	publisher := newMockIPNSPublisher(t)
+	defer publisher.close()
+
+	// Create node with delegated publisher
+	node := setupNodeWithAutoconf(t, publisher.server.URL, "auto")
+	defer node.StopDaemon()
+
+	// Wait for daemon to be ready
+	time.Sleep(5 * time.Second)
+
+	// Get node's peer ID
+	idResult := node.RunIPFS("id", "-f", "<id>")
+	require.Equal(t, 0, idResult.ExitCode())
+	peerID := strings.TrimSpace(idResult.Stdout.String())
+
+	// Get peer ID in base36 format (used for IPNS keys)
+	idBase36Result := node.RunIPFS("id", "--peerid-base", "base36", "-f", "<id>")
+	require.Equal(t, 0, idBase36Result.ExitCode())
+	peerIDBase36 := strings.TrimSpace(idBase36Result.Stdout.String())
+
+	// Verify autoconf resolved "auto" correctly
+	result := node.RunIPFS("config", "Ipns.DelegatedPublishers", "--expand-auto")
+	var resolvedPublishers []string
+	err := json.Unmarshal([]byte(result.Stdout.String()), &resolvedPublishers)
+	require.NoError(t, err)
+	expectedURL := publisher.server.URL + "/routing/v1/ipns"
+	assert.Contains(t, resolvedPublishers, expectedURL, "AutoConf should resolve 'auto' to mock publisher")
+
+	// Test publishing with --allow-delegated
+	testCID := "bafkqablimvwgy3y"
+	result = node.RunIPFS("name", "publish", "--allow-delegated", "/ipfs/"+testCID)
+	require.Equal(t, 0, result.ExitCode(), "Publishing should succeed")
+	assert.Contains(t, result.Stdout.String(), "Published to")
+
+	// Wait for async HTTP request to delegated publisher
+	time.Sleep(2 * time.Second)
+
+	// Verify HTTP PUT was made to delegated publisher
+	publishedKeys := publisher.getPublishedKeys()
+	assert.NotEmpty(t, publishedKeys, "HTTP PUT request should have been made to delegated publisher")
+
+	// Get the PUT payload that was sent to the delegated publisher
+	putPayload := publisher.getRecordPayload(peerIDBase36)
+	require.NotNil(t, putPayload, "Should have captured PUT payload")
+	require.Greater(t, len(putPayload), 0, "PUT payload should not be empty")
+
+	// Retrieve the IPNS record using routing get
+	getResult := node.RunIPFS("routing", "get", "/ipns/"+peerID)
+	require.Equal(t, 0, getResult.ExitCode(), "Should be able to retrieve IPNS record")
+	getPayload := getResult.Stdout.Bytes()
+
+	// Compare the payloads
+	assert.Equal(t, putPayload, getPayload,
+		"PUT payload sent to delegated publisher should match what routing get returns")
+
+	// Also verify the record points to the expected content
+	assert.Contains(t, getResult.Stdout.String(), testCID,
+		"Retrieved IPNS record should reference the published CID")
+
+	// Use ipfs name inspect to verify the IPNS record's value matches the published CID
+	// First write the routing get result to a file for inspection
+	node.WriteBytes("ipns-record", getPayload)
+	inspectResult := node.RunIPFS("name", "inspect", "ipns-record")
+	require.Equal(t, 0, inspectResult.ExitCode(), "Should be able to inspect IPNS record")
+
+	// The inspect output should show the path we published
+	inspectOutput := inspectResult.Stdout.String()
+	assert.Contains(t, inspectOutput, "/ipfs/"+testCID,
+		"IPNS record value should match the published path")
+
+	// Also verify it's a valid record with proper fields
+	assert.Contains(t, inspectOutput, "Value:", "Should have Value field")
+	assert.Contains(t, inspectOutput, "Validity:", "Should have Validity field")
+	assert.Contains(t, inspectOutput, "Sequence:", "Should have Sequence field")
+
+	t.Log("Verified: PUT payload to delegated publisher matches routing get result and name inspect confirms correct path")
+}
+
+// testIPNSPublishingResilience verifies that IPNS publishing is resilient by design.
+// Publishing succeeds as long as local storage works, even when all delegated endpoints fail.
+// This test documents the intentional resilient behavior, not bugs.
+func testIPNSPublishingResilience(t *testing.T) {
+	testCases := []struct {
+		name        string
+		routingType string // "auto" or "delegated"
+		description string
+	}{
+		{
+			name:        "AutoRouting",
+			routingType: "auto",
+			description: "auto mode uses DHT + HTTP, tolerates HTTP failures",
+		},
+		{
+			name:        "DelegatedRouting",
+			routingType: "delegated",
+			description: "delegated mode uses HTTP only, tolerates HTTP failures",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create publisher that always fails
+			publisher := newMockIPNSPublisher(t)
+			defer publisher.close()
+			publisher.responseFunc = func(peerID string, record []byte) int {
+				return http.StatusInternalServerError
+			}
+
+			// Create node with failing endpoint
+			node := setupNodeWithAutoconf(t, publisher.server.URL, tc.routingType)
+			defer node.StopDaemon()
+
+			// Test different publishing modes - all should succeed due to resilient design
+			testCID := "/ipfs/bafkqablimvwgy3y"
+
+			// Normal publishing (should succeed despite endpoint failures)
+			result := node.RunIPFS("name", "publish", testCID)
+			assert.Equal(t, 0, result.ExitCode(),
+				"%s: Normal publishing should succeed (local storage works)", tc.description)
+
+			// Publishing with --allow-offline (local only, no network)
+			result = node.RunIPFS("name", "publish", "--allow-offline", testCID)
+			assert.Equal(t, 0, result.ExitCode(),
+				"--allow-offline should succeed (local only)")
+
+			// Publishing with --allow-delegated (if using auto routing)
+			if tc.routingType == "auto" {
+				result = node.RunIPFS("name", "publish", "--allow-delegated", testCID)
+				assert.Equal(t, 0, result.ExitCode(),
+					"--allow-delegated should succeed (no DHT required)")
+			}
+
+			t.Logf("%s: All publishing modes succeeded despite endpoint failures (resilient design)", tc.name)
+		})
+	}
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+// setupNodeWithAutoconf creates an IPFS node with autoconf-configured delegated publishers
+func setupNodeWithAutoconf(t *testing.T, publisherURL string, routingType string) *harness.Node {
+	// Create autoconf server with the publisher endpoint
+	autoconfData := createAutoconfJSON(publisherURL)
+	autoconfServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, autoconfData)
+	}))
+	t.Cleanup(func() { autoconfServer.Close() })
+
+	// Create and configure node
+	h := harness.NewT(t)
+	node := h.NewNode().Init("--profile=test")
+
+	// Configure autoconf
+	node.SetIPFSConfig("AutoConf.URL", autoconfServer.URL)
+	node.SetIPFSConfig("AutoConf.Enabled", true)
+	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
+	node.SetIPFSConfig("Routing.Type", routingType)
+
+	// Additional config for delegated routing mode
+	if routingType == "delegated" {
+		node.SetIPFSConfig("Provider.Enabled", false)
+		node.SetIPFSConfig("Reprovider.Interval", "0s")
+	}
+
+	// Add bootstrap peers for connectivity
+	node.SetIPFSConfig("Bootstrap", autoconf.FallbackBootstrapPeers)
+
+	// Start daemon
+	node.StartDaemon()
+
+	return node
+}
+
+// createAutoconfJSON generates autoconf configuration with a delegated IPNS publisher
+func createAutoconfJSON(publisherURL string) string {
+	// Use bootstrap peers from autoconf fallbacks for consistency
+	bootstrapPeers, _ := json.Marshal(autoconf.FallbackBootstrapPeers)
+
+	return fmt.Sprintf(`{
+		"AutoConfVersion": 2025072302,
+		"AutoConfSchema": 1,
+		"AutoConfTTL": 86400,
+		"SystemRegistry": {
+			"TestSystem": {
+				"Description": "Test system for IPNS publishing",
+				"NativeConfig": {
+					"Bootstrap": %s
+				}
+			}
+		},
+		"DNSResolvers": {},
+		"DelegatedEndpoints": {
+			"%s": {
+				"Systems": ["TestSystem"],
+				"Read": ["/routing/v1/ipns"],
+				"Write": ["/routing/v1/ipns"]
+			}
+		}
+	}`, string(bootstrapPeers), publisherURL)
+}
+
+// ============================================================================
+// Mock IPNS Publisher
+// ============================================================================
 
 // mockIPNSPublisher implements a simple IPNS publishing HTTP API server
 type mockIPNSPublisher struct {
@@ -50,25 +264,11 @@ func newMockIPNSPublisher(t *testing.T) *mockIPNSPublisher {
 
 	// Default response function accepts all publishes
 	m.responseFunc = func(peerID string, record []byte) int {
-		m.t.Logf("Response function called with peerID=%s, record_len=%d", peerID, len(record))
 		return http.StatusOK
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/routing/v1/ipns/", m.handleIPNS)
-
-	// Add catch-all handler to see if requests go to other paths
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		m.t.Logf("Catch-all handler received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
-		if r.URL.Path != "/routing/v1/ipns/" && !strings.HasPrefix(r.URL.Path, "/routing/v1/ipns/") {
-			m.t.Logf("Request went to unexpected path: %s", r.URL.Path)
-			http.NotFound(w, r)
-			return
-		}
-		// This shouldn't happen if routing is correct
-		m.t.Logf("Catch-all received IPNS request - routing issue")
-		m.handleIPNS(w, r)
-	})
 
 	m.server = httptest.NewServer(mux)
 	return m
@@ -78,77 +278,46 @@ func (m *mockIPNSPublisher) handleIPNS(w http.ResponseWriter, r *http.Request) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.t.Logf("Mock IPNS publisher received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
-	m.t.Logf("Full URL: %s", r.URL.String())
-	m.t.Logf("Request headers: %+v", r.Header)
-
 	// Extract peer ID from path
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 5 {
-		m.t.Logf("Invalid path structure: %v", parts)
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
 	}
 
 	peerID := parts[4]
-	m.t.Logf("IPNS publisher received %s request for peer: %s", r.Method, peerID)
 
 	if r.Method == "PUT" {
 		// Handle IPNS record publication
-		m.t.Logf("Processing PUT request for peer %s", peerID)
-		m.t.Logf("Request headers: Content-Type=%s, Content-Length=%s",
-			r.Header.Get("Content-Type"), r.Header.Get("Content-Length"))
-
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			m.t.Logf("Failed to read request body: %v", err)
 			http.Error(w, "failed to read body", http.StatusBadRequest)
 			return
 		}
 
-		m.t.Logf("Request body size: %d bytes", len(body))
-		if len(body) > 0 {
-			// Log first 100 bytes of payload for debugging (hex dump)
-			maxLog := 100
-			if len(body) < maxLog {
-				maxLog = len(body)
-			}
-			m.t.Logf("Request body (first %d bytes, hex): %x", maxLog, body[:maxLog])
-		} else {
-			m.t.Logf("Request body is EMPTY!")
-		}
-
 		// Get response status from response function
 		status := m.responseFunc(peerID, body)
-		m.t.Logf("Response function returned status: %d", status)
 
 		if status == http.StatusOK {
 			if len(body) > 0 {
-				// Store the actual record payload for later comparison
+				// Store the actual record payload
 				m.recordPayloads[peerID] = make([]byte, len(body))
 				copy(m.recordPayloads[peerID], body)
-				m.t.Logf("Stored %d bytes of payload for peer %s", len(body), peerID)
-			} else {
-				m.t.Logf("Not storing payload - body is empty")
 			}
 
-			// Mock successful publish - we don't actually parse the IPNS record
-			// but we can extract some info for testing
+			// Mark as published
 			m.publishedKeys[peerID] = fmt.Sprintf("published-%d", time.Now().Unix())
-			m.t.Logf("IPNS publisher accepted record for peer: %s", peerID)
-		} else {
-			m.t.Logf("Response function rejected request with status %d", status)
 		}
 
 		w.WriteHeader(status)
 		if status != http.StatusOK {
-			_, _ = w.Write([]byte(`{"error": "publish failed"}`))
+			fmt.Fprint(w, `{"error": "publish failed"}`)
 		}
 	} else if r.Method == "GET" {
-		// Handle IPNS record retrieval (not used in our test but good to have)
+		// Handle IPNS record retrieval
 		if record, exists := m.publishedKeys[peerID]; exists {
 			w.Header().Set("Content-Type", "application/vnd.ipfs.ipns-record")
-			_, _ = w.Write([]byte(record))
+			fmt.Fprint(w, record)
 		} else {
 			http.Error(w, "record not found", http.StatusNotFound)
 		}
@@ -180,344 +349,4 @@ func (m *mockIPNSPublisher) getRecordPayload(peerID string) []byte {
 
 func (m *mockIPNSPublisher) close() {
 	m.server.Close()
-}
-
-func testIPNSPublishingWithAuto(t *testing.T) {
-	// Test IPNS delegated publishing with autoconf resolution
-
-	// Create mock IPNS publisher that will capture the HTTP PUT request
-	ipnsPublisher := newMockIPNSPublisher(t)
-	defer ipnsPublisher.close()
-
-	// Create autoconf data with delegated publisher using IPNI system (not native)
-	autoConfData := fmt.Sprintf(`{
-		"AutoConfVersion": 2025072302,
-		"AutoConfSchema": 1,
-		"AutoConfTTL": 86400,
-		"SystemRegistry": {
-			"AminoDHT": {
-				"Description": "Test AminoDHT system",
-				"NativeConfig": {
-					"Bootstrap": []
-				}
-			},
-			"CustomIPNS": {
-				"Description": "Test custom IPNS system for delegated publishing",
-				"DelegatedConfig": {
-					"Read": ["/routing/v1/ipns"],
-					"Write": ["/routing/v1/ipns"]
-				}
-			}
-		},
-		"DNSResolvers": {},
-		"DelegatedEndpoints": {
-			"%s": {
-				"Systems": ["CustomIPNS"],
-				"Read": ["/routing/v1/ipns"],
-				"Write": ["/routing/v1/ipns"]
-			}
-		}
-	}`, ipnsPublisher.server.URL)
-
-	// Create autoconf server
-	autoConfServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Logf("Mock autoconf server received request: %s %s", r.Method, r.URL.Path)
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(autoConfData))
-		t.Logf("Sent autoconf response with IPNS publisher: %s", ipnsPublisher.server.URL)
-	}))
-	defer autoConfServer.Close()
-
-	// Create test harness and main node
-	h := harness.NewT(t)
-
-	// Create main IPFS node with auto delegated publisher using auto routing
-	mainNode := h.NewNode().Init("--profile=test")
-	mainNode.SetIPFSConfig("AutoConf.URL", autoConfServer.URL)
-	mainNode.SetIPFSConfig("AutoConf.Enabled", true)
-	mainNode.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
-	// Use auto routing to enable both DHT (for "online" status) and delegated routing
-	// This allows the node to be considered online while still using delegated IPNS publishers
-	mainNode.SetIPFSConfig("Routing.Type", "auto")
-
-	// Add fallback bootstrap peers so the daemon can be considered "online"
-	// Use the same bootstrap peers from boxo/autoconf fallbacks
-	mainNode.SetIPFSConfig("Bootstrap", autoconf.FallbackBootstrapPeers)
-
-	// Start main daemon (delegated routing set in config)
-	mainNode.StartDaemon()
-	defer mainNode.StopDaemon()
-
-	t.Log("Waiting for daemon to be ready and establish peer connections...")
-	time.Sleep(10 * time.Second)
-
-	// Debug: Check if node has peer connections
-	peersResult := mainNode.RunIPFS("swarm", "peers")
-	connectedPeers := strings.TrimSpace(peersResult.Stdout.String())
-	if connectedPeers == "" {
-		t.Logf("No peer connections established")
-	} else {
-		peerCount := len(strings.Split(connectedPeers, "\n"))
-		t.Logf("Connected peers: %d", peerCount)
-		t.Logf("Peer list: %s", connectedPeers)
-	}
-
-	// Debug: Check routing type and DHT status
-	routingResult := mainNode.RunIPFS("routing", "findpeer", "--help")
-	t.Logf("Routing findpeer help available: %d", routingResult.ExitCode())
-
-	// Verify config shows "auto" and resolves correctly
-	configResult := mainNode.RunIPFS("config", "Ipns.DelegatedPublishers")
-	require.Equal(t, 0, configResult.ExitCode())
-
-	var publishers []string
-	err := json.Unmarshal([]byte(configResult.Stdout.String()), &publishers)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"auto"}, publishers, "IPNS delegated publishers config should show 'auto'")
-
-	// Check that Routing.Type is actually set to "auto"
-	routingTypeResult := mainNode.RunIPFS("config", "Routing.Type")
-	require.Equal(t, 0, routingTypeResult.ExitCode())
-	routingType := strings.TrimSpace(routingTypeResult.Stdout.String())
-	t.Logf("Routing.Type config: %q", routingType)
-	assert.Equal(t, "auto", routingType, "Routing.Type should be set to 'auto'")
-
-	// Check that autoconf resolved the delegated publishers
-	resolvedResult := mainNode.RunIPFS("config", "Ipns.DelegatedPublishers", "--expand-auto")
-	t.Logf("Resolved IPNS delegated publishers: %s", resolvedResult.Stdout.String())
-
-	var resolvedPublishers []string
-	err = json.Unmarshal([]byte(resolvedResult.Stdout.String()), &resolvedPublishers)
-	require.NoError(t, err)
-	expectedPublisherURL := ipnsPublisher.server.URL + "/routing/v1/ipns"
-	assert.Contains(t, resolvedPublishers, expectedPublisherURL,
-		"AutoConf should resolve 'auto' to our mock IPNS publisher URL with path")
-
-	// Get the main node's peer ID to identify the record in the mock server
-	idResult := mainNode.RunIPFS("id", "-f", "<id>")
-	require.Equal(t, 0, idResult.ExitCode(), "Should be able to get peer ID")
-	peerID := strings.TrimSpace(idResult.Stdout.String())
-	t.Logf("Main node peer ID: %s", peerID)
-
-	// Test IPNS publishing with specific CID (bafkqablimvwgy3y is inlined "hello")
-	testCID := "bafkqablimvwgy3y"
-
-	// Attempt IPNS publishing using --delegated-only mode to test HTTP delegated publishing
-	// This ensures we're specifically testing the delegated publisher functionality
-	t.Log("Attempting IPNS publish using --delegated-only mode...")
-	t.Logf("Expected IPNS publisher URL: %s", ipnsPublisher.server.URL+"/routing/v1/ipns")
-	publishResult := mainNode.RunIPFS("name", "publish", "--delegated-only", "/ipfs/"+testCID)
-
-	if publishResult.ExitCode() != 0 {
-		t.Logf("IPNS publish failed: %s", publishResult.Stderr.String())
-		t.Logf("IPNS publish stdout: %s", publishResult.Stdout.String())
-		require.Equal(t, 0, publishResult.ExitCode(), "IPNS publish should succeed in --delegated-only mode")
-	} else {
-		t.Log("IPNS publish succeeded in --delegated-only mode")
-	}
-
-	output := publishResult.Stdout.String()
-	assert.Contains(t, output, "Published to", "Should indicate successful IPNS publish")
-
-	// Extract the IPNS name from the publish output
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-	var ipnsName string
-	for _, line := range lines {
-		if strings.Contains(line, "Published to") {
-			parts := strings.Split(line, " ")
-			if len(parts) >= 3 {
-				ipnsName = strings.TrimSuffix(parts[2], ":")
-				break
-			}
-		}
-	}
-	require.NotEmpty(t, ipnsName, "Should extract IPNS name from publish output")
-	t.Logf("Published IPNS name: %s", ipnsName)
-
-	// CRITICAL TEST: Verify HTTP PUT request was made to delegated publisher with valid payload
-	// IPNS publishing to delegated publishers is asynchronous, so we need to wait for the HTTP PUT
-	t.Log("Waiting for HTTP PUT request to reach delegated publisher...")
-
-	// Convert peer ID to IPNS name format (base36 CIDv1) for correct lookup
-	// IPNS uses peer ID represented as CIDv1 in base36 format
-	ipnsKeyResult := mainNode.RunIPFS("id", "--peerid-base", "base36", "-f", "<id>")
-	require.Equal(t, 0, ipnsKeyResult.ExitCode(), "Should be able to get peer ID in base36 format")
-	ipnsKeyBase36 := strings.TrimSpace(ipnsKeyResult.Stdout.String())
-	t.Logf("Peer ID in base36 (IPNS key format): %s", ipnsKeyBase36)
-
-	var publishedKeys map[string]string
-	var recordPayload []byte
-
-	// Poll for up to 10 seconds to see if mock server receives the request
-	for i := 0; i < 20; i++ {
-		publishedKeys = ipnsPublisher.getPublishedKeys()
-		recordPayload = ipnsPublisher.getRecordPayload(ipnsKeyBase36) // Use base36 format for lookup
-
-		t.Logf("Polling attempt %d/20: keys=%d, payload_len=%d, peerID=%s, ipnsKey=%s",
-			i+1, len(publishedKeys), len(recordPayload), peerID, ipnsKeyBase36)
-
-		// Debug: show what keys we have
-		if len(publishedKeys) > 0 {
-			for key, value := range publishedKeys {
-				t.Logf("  Published key: %s -> %s", key, value)
-			}
-		}
-
-		// Debug: show payload info
-		if len(recordPayload) > 0 {
-			t.Logf("  Payload: %d bytes received", len(recordPayload))
-		} else {
-			t.Logf("  Payload: EMPTY or NIL")
-		}
-
-		if len(publishedKeys) > 0 && len(recordPayload) > 0 {
-			t.Logf("HTTP PUT request received after %d polling attempts", i+1)
-			break
-		}
-
-		time.Sleep(500 * time.Millisecond)
-	}
-
-	// FAIL THE TEST if mock server didn't receive the HTTP PUT request
-	// This test should verify that IPNS delegated publishing actually works,
-	// not just that the configuration is correct.
-	require.NotEmpty(t, publishedKeys, "HTTP PUT request MUST be made to delegated publisher - test environment networking issues need to be fixed")
-	require.NotNil(t, recordPayload, "HTTP PUT request MUST contain IPNS record payload")
-	require.Greater(t, len(recordPayload), 0, "IPNS record payload must not be empty")
-
-	// Verify that the record payload contains expected data structure
-	// IPNS records are protobuf encoded, so we can at least verify it's not empty and has reasonable size
-	require.Greater(t, len(recordPayload), 50, "IPNS record should be substantial (>50 bytes)")
-	require.Less(t, len(recordPayload), 10000, "IPNS record should be reasonable size (<10KB)")
-
-	t.Logf("IPNS autoconf test completed successfully:")
-	t.Logf("  - --delegated-only flag used HTTP delegated IPNS publishing exclusively")
-	t.Logf("  - AutoConf resolved 'auto' to: %s", ipnsPublisher.server.URL)
-	t.Logf("  - IPNS publishing successful in --delegated-only mode")
-	t.Logf("  - Published IPNS name: %s", ipnsName)
-	t.Logf("  - HTTP PUT request made to delegated publisher with %d byte payload", len(recordPayload))
-	t.Logf("  - Key validation: HTTP PUT to /routing/v1/ipns with valid IPNS record payload")
-
-	// Test passes only when HTTP PUT occurred with valid payload
-}
-
-// testIPNSPublishingErrorHandling validates that autoconf correctly resolves and configures
-// IPNS delegated publishers even when those endpoints would return HTTP errors at runtime.
-//
-// This is an important distinction: autoconf is about CONFIGURATION, not VALIDATION.
-// The test verifies that:
-//  1. Autoconf successfully resolves "auto" to actual endpoint URLs during configuration
-//  2. The resolved endpoints are properly configured in the node's settings
-//  3. The node can start and operate even if those endpoints would fail at runtime
-//
-// Why this matters:
-//   - Endpoints may be temporarily down during node configuration but work later
-//   - Configuration should be separate from runtime validation
-//   - Nodes should be resilient and not fail to start due to individual endpoint issues
-//
-// The test uses --allow-offline mode for IPNS publishing, which bypasses actual HTTP
-// requests to delegated publishers, allowing us to verify configuration without
-// requiring working endpoints.
-func testIPNSPublishingErrorHandling(t *testing.T) {
-	// Table-driven tests for different HTTP error responses that endpoints might return
-	tests := []struct {
-		name       string
-		statusCode int // HTTP status code the mock publisher will return
-		logMessage string
-	}{
-		{
-			name:       "IPNS publishing 404 error",
-			statusCode: http.StatusNotFound,
-			logMessage: "AutoConf correctly resolved IPNS delegated publisher that would return 404 error",
-		},
-		{
-			name:       "IPNS publishing 500 error",
-			statusCode: http.StatusInternalServerError,
-			logMessage: "AutoConf correctly resolved IPNS delegated publisher that would return 500 error",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create IPNS publisher that returns specified status code
-			ipnsPublisher := newMockIPNSPublisher(t)
-			defer ipnsPublisher.close()
-
-			// Configure to return the test's status code
-			ipnsPublisher.responseFunc = func(peerID string, record []byte) int {
-				return tt.statusCode
-			}
-
-			// Create autoconf data
-			autoConfData := fmt.Sprintf(`{
-				"AutoConfVersion": 2025072302,
-				"AutoConfSchema": 1,
-				"AutoConfTTL": 86400,
-				"SystemRegistry": {
-					"AminoDHT": {
-						"Description": "Test AminoDHT system",
-						"NativeConfig": {
-							"Bootstrap": []
-						}
-					}
-				},
-				"DNSResolvers": {},
-				"DelegatedEndpoints": {
-					"%s": {
-						"Systems": ["AminoDHT"],
-						"Read": ["/routing/v1/ipns"],
-						"Write": ["/routing/v1/ipns"]
-					}
-				}
-			}`, ipnsPublisher.server.URL)
-
-			autoConfServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(autoConfData))
-			}))
-			defer autoConfServer.Close()
-
-			// Create IPFS node with auto delegated publisher
-			node := harness.NewT(t).NewNode().Init("--profile=test")
-			node.SetIPFSConfig("AutoConf.URL", autoConfServer.URL)
-			node.SetIPFSConfig("AutoConf.Enabled", true)
-			node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
-
-			// Set Routing.Type to delegated to ensure delegated routers and publishers are used
-			node.SetIPFSConfig("Routing.Type", "delegated")
-			node.SetIPFSConfig("Provider.Enabled", false)   // Required for delegated routing
-			node.SetIPFSConfig("Reprovider.Interval", "0s") // Required for delegated routing
-
-			// Add fallback bootstrap peers so the daemon can be considered "online"
-			// Use the same bootstrap peers from boxo/autoconf fallbacks
-			node.SetIPFSConfig("Bootstrap", autoconf.FallbackBootstrapPeers)
-
-			node.StartDaemon()
-			defer node.StopDaemon()
-
-			// Test IPNS publishing with error-returning delegated publisher
-			testCID := "bafkqablimvwgy3y"
-			result := node.RunIPFS("name", "publish", "--allow-offline", "/ipfs/"+testCID)
-
-			// IMPORTANT: --allow-offline mode publishes locally without contacting delegated publishers.
-			// This allows us to test that configuration succeeded even though the endpoint
-			// would return an error if actually contacted. The publish succeeds because it's
-			// offline - the mock publisher's error response is never triggered.
-			require.Equal(t, 0, result.ExitCode(), "IPNS publish should succeed in offline mode")
-
-			// Verify that autoconf correctly resolved and configured the endpoint,
-			// even though that endpoint would return an HTTP error if used
-			result = node.RunIPFS("config", "Ipns.DelegatedPublishers", "--expand-auto")
-			var resolvedPublishers []string
-			err := json.Unmarshal([]byte(result.Stdout.String()), &resolvedPublishers)
-			require.NoError(t, err)
-
-			// Confirm that our mock server URL was resolved from "auto"
-			expectedPublisherURL := ipnsPublisher.server.URL + "/routing/v1/ipns"
-			assert.Contains(t, resolvedPublishers, expectedPublisherURL,
-				"AutoConf should resolve 'auto' to mock IPNS publisher URL with path even when it returns %d", tt.statusCode)
-
-			t.Log(tt.logMessage)
-		})
-	}
 }
