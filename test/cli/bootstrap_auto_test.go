@@ -63,7 +63,8 @@ func TestBootstrapCommandsWithAutoPlaceholder(t *testing.T) {
 		t.Parallel()
 		// Test that 'ipfs bootstrap add default' adds "auto" to the bootstrap list
 		node := harness.NewT(t).NewNode().Init("--profile=test")
-		node.SetIPFSConfig("Bootstrap", []string{}) // Start with empty bootstrap
+		node.SetIPFSConfig("Bootstrap", []string{})  // Start with empty bootstrap
+		node.SetIPFSConfig("AutoConf.Enabled", true) // Enable AutoConf to allow adding "auto"
 
 		// Add default bootstrap peers
 		result := node.RunIPFS("bootstrap", "add", "default")
