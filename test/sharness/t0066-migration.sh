@@ -10,6 +10,10 @@ test_description="Test migrations auto update prompt"
 
 test_init_ipfs
 
+# Remove explicit AutoConf.Enabled=false from test profile to use implicit default
+# This allows daemon to work with 'auto' values added by v16-to-17 migration
+ipfs config --json AutoConf.Enabled null >/dev/null 2>&1
+
 MIGRATION_START=7
 IPFS_REPO_VER=$(<.ipfs/version)
 

@@ -397,6 +397,10 @@ migration. Versions below 16 require external migration tools.
 		cmds.BoolOption(repoAllowDowngradeOptionName, "Allow downgrading to a lower repo version"),
 	},
 	NoRemote: true,
+	// SetDoesNotUseRepo(true) might seem counter-intuitive since migrations
+	// do access the repo, but it's correct - we need direct filesystem access
+	// without going through the daemon. Migrations handle their own locking.
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
 		allowDowngrade, _ := req.Options[repoAllowDowngradeOptionName].(bool)
