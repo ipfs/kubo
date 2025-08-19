@@ -5,7 +5,7 @@ package tools
 
 import (
 	_ "github.com/Kubuxu/gocovmerge"
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
+	_ "github.com/golangci/golangci-lint/v2/cmd/golangci-lint"
 	_ "github.com/ipfs/go-cidutil/cid-fmt"
 	_ "github.com/ipfs/go-test/cli/random-data"
 	_ "github.com/ipfs/go-test/cli/random-files"

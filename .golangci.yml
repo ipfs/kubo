@@ -1,11 +1,12 @@
+version: "2"
 linters:
+  default: standard
   enable:
-    - stylecheck
-
-linters-settings:
-  stylecheck:
-    checks:
-    - all
-    - '-ST1003'
-    dot-import-whitelist:
-      - github.com/ipfs/kubo/test/cli/testutils
+    - staticcheck
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -ST1003
+      dot-import-whitelist:
+        - github.com/ipfs/kubo/test/cli/testutils
