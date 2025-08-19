@@ -1671,19 +1671,25 @@ Type: `array[string]` (URLs or `"auto"`)
 
 ## `Migration`
 
-**DEPRECATED:** This configuration only applies to legacy external migrations for repository versions below 16. Modern repositories (v16+) use embedded migrations.
+> [!WARNING]
+> **DEPRECATED:** Only applies to legacy migrations (repo versions <16). Modern repos (v16+) use embedded migrations.
+> This section is optional and will not appear in new configurations.
 
 ### `Migration.DownloadSources`
 
-**DEPRECATED:** Sources in order of preference for legacy migrations only (repo versions <16). Only "HTTPS" is supported - "IPFS" is no longer supported and will return an error. Any other values are interpreted as hostnames for custom HTTPS gateways. An empty list means "use default sources" (HTTPS only).
+**DEPRECATED:** Download sources for legacy migrations. Only `"HTTPS"` is supported.
+
+Type: `array[string]` (optional)
 
 Default: `["HTTPS"]`
 
 ### `Migration.Keep`
 
-**DEPRECATED:** Whether or not to keep the legacy migration after downloading it (repo versions <16). Options are "discard", "cache", "pin". Empty string for default. This setting is ignored for embedded migrations (repo versions ≥16).
+**DEPRECATED:** Controls retention of legacy migration binaries. Options: `"cache"` (default), `"discard"`, `"keep"`.
 
-Default: `cache`
+Type: `string` (optional)
+
+Default: `"cache"`
 
 ## `Mounts`
 

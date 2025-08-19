@@ -13,7 +13,7 @@ var DefaultMigrationDownloadSources = []string{"HTTPS"}
 // external downloads. These settings will be ignored for modern repository versions.
 type Migration struct {
 	// DEPRECATED: This field is deprecated and ignored for modern repositories (repo versions ≥16).
-	DownloadSources []string
+	DownloadSources []string `json:",omitempty"`
 	// DEPRECATED: This field is deprecated and ignored for modern repositories (repo versions ≥16).
-	Keep string
+	Keep string `json:",omitempty"`
 }

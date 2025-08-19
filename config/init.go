@@ -72,10 +72,6 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 				".": AutoPlaceholder,
 			},
 		},
-		Migration: Migration{
-			DownloadSources: []string{},
-			Keep:            "",
-		},
 		Routing: Routing{
 			DelegatedRouters: []string{AutoPlaceholder},
 		},
