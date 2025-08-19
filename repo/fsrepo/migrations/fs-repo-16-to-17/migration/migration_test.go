@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ipfs/kubo/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -164,7 +163,9 @@ func TestMigration(t *testing.T) {
 	autoConf, exists := updatedConfig["AutoConf"]
 	assert.True(t, exists, "AutoConf section not added")
 	autoConfMap := autoConf.(map[string]interface{})
-	assert.Equal(t, config.DefaultAutoConfURL, autoConfMap["URL"], "Expected AutoConf URL")
+	// URL is not set explicitly in migration (uses implicit default)
+	_, hasURL := autoConfMap["URL"]
+	assert.False(t, hasURL, "AutoConf URL should not be explicitly set in migration")
 
 	// Check Bootstrap was updated
 	bootstrap := updatedConfig["Bootstrap"].([]interface{})

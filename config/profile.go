@@ -87,6 +87,12 @@ is useful when using the daemon in test environments.`,
 			c.Bootstrap = []string{}
 			c.Discovery.MDNS.Enabled = false
 			c.AutoTLS.Enabled = False
+			c.AutoConf.Enabled = False
+
+			// Explicitly set autoconf-controlled fields to empty when autoconf is disabled
+			c.DNS.Resolvers = map[string]string{}
+			c.Routing.DelegatedRouters = []string{}
+			c.Ipns.DelegatedPublishers = []string{}
 			return nil
 		},
 	},
@@ -99,10 +105,8 @@ Inverse profile of the test profile.`,
 
 			// Use AutoConf system for bootstrap peers
 			c.Bootstrap = []string{AutoPlaceholder}
-			c.AutoConf.Enabled = True
-			if c.AutoConf.URL == "" {
-				c.AutoConf.URL = DefaultAutoConfURL
-			}
+			c.AutoConf.Enabled = Default
+			c.AutoConf.URL = nil // Clear URL to use implicit default
 
 			c.Swarm.DisableNatPortMap = false
 			c.Discovery.MDNS.Enabled = true
@@ -363,8 +367,8 @@ This profile requires AutoConf to be enabled and configured.`,
 			c.Routing.DelegatedRouters = []string{AutoPlaceholder}
 			c.Ipns.DelegatedPublishers = []string{AutoPlaceholder}
 			c.AutoConf.Enabled = True
-			if c.AutoConf.URL == "" {
-				c.AutoConf.URL = DefaultAutoConfURL
+			if c.AutoConf.URL == nil {
+				c.AutoConf.URL = NewOptionalString(DefaultAutoConfURL)
 			}
 			return nil
 		},

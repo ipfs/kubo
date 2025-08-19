@@ -232,9 +232,8 @@ func enableAutoConf(confMap map[string]any) error {
 		return nil
 	}
 
-	// Add AutoConf section
+	// Add AutoConf section (URL omitted to use implicit default)
 	confMap["AutoConf"] = map[string]any{
-		"URL":                   config.DefaultAutoConfURL,
 		"Enabled":               true,
 		"Interval":              "24h",
 		"TLSInsecureSkipVerify": false,

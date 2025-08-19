@@ -11,12 +11,12 @@ func TestAutoConfDefaults(t *testing.T) {
 	// Test that AutoConf has the correct default values
 	cfg := &Config{
 		AutoConf: AutoConf{
-			URL:     DefaultAutoConfURL,
+			URL:     NewOptionalString(DefaultAutoConfURL),
 			Enabled: True,
 		},
 	}
 
-	assert.Equal(t, DefaultAutoConfURL, cfg.AutoConf.URL)
+	assert.Equal(t, DefaultAutoConfURL, cfg.AutoConf.URL.WithDefault(DefaultAutoConfURL))
 	assert.True(t, cfg.AutoConf.Enabled.WithDefault(DefaultAutoConfEnabled))
 
 	// Test default refresh interval
@@ -63,7 +63,7 @@ func TestAutoConfProfile(t *testing.T) {
 	assert.True(t, cfg.AutoConf.Enabled.WithDefault(DefaultAutoConfEnabled))
 
 	// Check that URL was set
-	assert.Equal(t, DefaultAutoConfURL, cfg.AutoConf.URL)
+	assert.Equal(t, DefaultAutoConfURL, cfg.AutoConf.URL.WithDefault(DefaultAutoConfURL))
 }
 
 func TestInitWithAutoValues(t *testing.T) {
@@ -88,5 +88,5 @@ func TestInitWithAutoValues(t *testing.T) {
 
 	// Check that AutoConf is enabled with correct URL
 	assert.True(t, cfg.AutoConf.Enabled.WithDefault(DefaultAutoConfEnabled))
-	assert.Equal(t, DefaultAutoConfURL, cfg.AutoConf.URL)
+	assert.Equal(t, DefaultAutoConfURL, cfg.AutoConf.URL.WithDefault(DefaultAutoConfURL))
 }

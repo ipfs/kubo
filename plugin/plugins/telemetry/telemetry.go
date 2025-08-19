@@ -461,7 +461,7 @@ func (p *telemetryPlugin) collectAutoTLSInfo() {
 
 func (p *telemetryPlugin) collectAutoConfInfo() {
 	p.event.AutoConf = p.config.AutoConf.Enabled.WithDefault(config.DefaultAutoConfEnabled)
-	p.event.AutoConfCustom = p.config.AutoConf.URL != config.DefaultAutoConfURL
+	p.event.AutoConfCustom = p.config.AutoConf.URL.WithDefault(config.DefaultAutoConfURL) != config.DefaultAutoConfURL
 }
 
 func (p *telemetryPlugin) collectDiscoveryInfo() {

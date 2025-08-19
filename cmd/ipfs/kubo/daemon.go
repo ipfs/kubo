@@ -353,10 +353,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// Start background AutoConf updater if enabled
 	if cfg.AutoConf.Enabled.WithDefault(config.DefaultAutoConfEnabled) {
-		autoConfURL := cfg.AutoConf.URL
-		if autoConfURL == "" {
-			return fmt.Errorf("AutoConf is enabled but AutoConf.URL is empty - please provide a URL")
-		}
 		// Start autoconf client for background updates
 		client, err := config.GetAutoConfClient(cfg)
 		if err != nil {

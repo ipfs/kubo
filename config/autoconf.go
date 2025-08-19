@@ -16,7 +16,7 @@ var log = logging.Logger("config")
 type AutoConf struct {
 	// URL is the HTTP(S) URL to fetch the autoconf.json from
 	// Default: see boxo/autoconf.MainnetAutoConfURL
-	URL string
+	URL *OptionalString `json:",omitempty"`
 
 	// Enabled determines whether to use autoconf
 	// Default: true

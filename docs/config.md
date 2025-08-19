@@ -661,12 +661,14 @@ Specifies the HTTP(S) URL from which to fetch the autoconf JSON. The endpoint sh
 
 The URL must serve a JSON document matching the AutoConf schema. Kubo validates all multiaddr and URL values before caching to ensure they are properly formatted.
 
+When not specified in the configuration, the default mainnet URL is used automatically.
+
 <a href="https://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
 
 > [!NOTE]
 > Public good autoconf manifest at `conf.ipfs-mainnet.org` is provided by the team at [Shipyard](https://ipshipyard.com).
 
-Default: `"https://example.com/autoconf.json"`
+Default: `"https://conf.ipfs-mainnet.org/autoconf.json"` (when not specified)
 
 Type: `optionalString`
 

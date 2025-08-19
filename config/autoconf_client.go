@@ -43,10 +43,7 @@ func newAutoConfClient(cfg *Config) (*autoconf.Client, error) {
 	}
 
 	// Use default URL if not specified
-	url := cfg.AutoConf.URL
-	if url == "" {
-		url = DefaultAutoConfURL
-	}
+	url := cfg.AutoConf.URL.WithDefault(DefaultAutoConfURL)
 
 	// Build client options
 	options := []autoconf.Option{
@@ -69,13 +66,9 @@ func ValidateAutoConfWithRepo(cfg *Config, swarmKeyExists bool) error {
 		return validateAutoConfDisabled(cfg)
 	}
 
-	// AutoConf is enabled - validate URL is provided
-	if cfg.AutoConf.URL == "" {
-		return fmt.Errorf("AutoConf is enabled but AutoConf.URL is empty - please provide a URL")
-	}
-
 	// Check for private network with default mainnet URL
-	if swarmKeyExists && cfg.AutoConf.URL == DefaultAutoConfURL {
+	url := cfg.AutoConf.URL.WithDefault(DefaultAutoConfURL)
+	if swarmKeyExists && url == DefaultAutoConfURL {
 		return fmt.Errorf("AutoConf cannot use the default mainnet URL (%s) on a private network (swarm.key or LIBP2P_FORCE_PNET detected). Either disable AutoConf by setting AutoConf.Enabled=false, or configure AutoConf.URL to point to a configuration service specific to your private swarm", DefaultAutoConfURL)
 	}
 

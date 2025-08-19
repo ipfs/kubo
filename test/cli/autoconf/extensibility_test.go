@@ -179,7 +179,7 @@ func TestAutoConfExtensibility_NewSystem(t *testing.T) {
 
 	// Update config to use mock autoconf server
 	node.UpdateConfig(func(cfg *config.Config) {
-		cfg.AutoConf.URL = mockServer.URL
+		cfg.AutoConf.URL = config.NewOptionalString(mockServer.URL)
 		cfg.AutoConf.Enabled = config.True
 		cfg.AutoConf.RefreshInterval = config.NewOptionalDuration(1 * time.Second)
 		cfg.Routing.Type = config.NewOptionalString("auto") // Should enable native AminoDHT + delegated others

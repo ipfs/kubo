@@ -215,7 +215,6 @@ func (h *MigrationTestHelper) RequireFieldAbsent(path string) *MigrationTestHelp
 func (h *MigrationTestHelper) RequireAutoConfDefaults() *MigrationTestHelper {
 	return h.RequireFieldExists("AutoConf").
 		RequireFieldEquals("AutoConf.Enabled", true).
-		RequireFieldExists("AutoConf.URL").
 		RequireFieldEquals("AutoConf.Interval", "24h").
 		RequireFieldEquals("AutoConf.TLSInsecureSkipVerify", false)
 }

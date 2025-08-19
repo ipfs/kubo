@@ -22,5 +22,5 @@ type Ipns struct {
 	UsePubsub Flag `json:",omitempty"`
 
 	// Simplified configuration for delegated IPNS publishers
-	DelegatedPublishers []string `json:",omitempty"`
+	DelegatedPublishers []string
 }

@@ -76,10 +76,6 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			DownloadSources: []string{},
 			Keep:            "",
 		},
-		AutoConf: AutoConf{
-			URL:     DefaultAutoConfURL,
-			Enabled: True,
-		},
 		Routing: Routing{
 			DelegatedRouters: []string{AutoPlaceholder},
 		},
