@@ -16,7 +16,6 @@ import (
 	corerepo "github.com/ipfs/kubo/core/corerepo"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
-	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
 
 	humanize "github.com/dustin/go-humanize"
 	bstore "github.com/ipfs/boxo/blockstore"
@@ -57,6 +56,7 @@ const (
 	repoQuietOptionName          = "quiet"
 	repoSilentOptionName         = "silent"
 	repoAllowDowngradeOptionName = "allow-downgrade"
+	repoToVersionOptionName      = "to"
 )
 
 var repoGcCmd = &cmds.Command{
@@ -373,63 +373,81 @@ var repoVersionCmd = &cmds.Command{
 
 var repoMigrateCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Apply any outstanding migrations to the repo.",
+		Tagline: "Apply repository migrations to a specific version.",
+		ShortDescription: `
+'ipfs repo migrate' applies repository migrations to bring the repository
+to a specific version. By default, migrates to the latest version supported
+by this IPFS binary.
+
+Examples:
+  ipfs repo migrate                # Migrate to latest version
+  ipfs repo migrate --to=17       # Migrate to version 17
+  ipfs repo migrate --to=16 --allow-downgrade  # Downgrade to version 16
+
+WARNING: Downgrading a repository may cause data loss and requires using
+an older IPFS binary that supports the target version. After downgrading,
+you must use an IPFS implementation compatible with that repository version.
+
+Repository versions 16+ use embedded migrations for faster, more reliable
+migration. Versions below 16 require external migration tools.
+`,
 	},
 	Options: []cmds.Option{
+		cmds.IntOption(repoToVersionOptionName, "Target repository version").WithDefault(fsrepo.RepoVersion),
 		cmds.BoolOption(repoAllowDowngradeOptionName, "Allow downgrading to a lower repo version"),
 	},
 	NoRemote: true,
+	// SetDoesNotUseRepo(true) might seem counter-intuitive since migrations
+	// do access the repo, but it's correct - we need direct filesystem access
+	// without going through the daemon. Migrations handle their own locking.
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
 		allowDowngrade, _ := req.Options[repoAllowDowngradeOptionName].(bool)
+		targetVersion, _ := req.Options[repoToVersionOptionName].(int)
 
-		_, err := fsrepo.Open(cctx.ConfigRoot)
+		// Get current repo version
+		currentVersion, err := migrations.RepoVersion(cctx.ConfigRoot)
+		if err != nil {
+			return fmt.Errorf("could not get current repo version: %w", err)
+		}
 
-		if err == nil {
-			fmt.Println("Repo does not require migration.")
+		// Check if migration is needed
+		if currentVersion == targetVersion {
+			fmt.Printf("Repository is already at version %d.\n", targetVersion)
 			return nil
-		} else if err != fsrepo.ErrNeedMigration {
-			return err
 		}
 
-		fmt.Println("Found outdated fs-repo, starting migration.")
+		// Validate downgrade request
+		if targetVersion < currentVersion && !allowDowngrade {
+			return fmt.Errorf("downgrade from version %d to %d requires --allow-downgrade flag", currentVersion, targetVersion)
+		}
 
-		// Read Migration section of IPFS config
-		configFileOpt, _ := req.Options[ConfigFileOption].(string)
-		migrationCfg, err := migrations.ReadMigrationConfig(cctx.ConfigRoot, configFileOpt)
+		// Check if repo is locked by daemon before running migration
+		locked, err := fsrepo.LockedByOtherProcess(cctx.ConfigRoot)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not check repo lock: %w", err)
+		}
+		if locked {
+			return fmt.Errorf("cannot run migration while daemon is running (repo.lock exists)")
 		}
 
-		// Define function to create IPFS fetcher.  Do not supply an
-		// already-constructed IPFS fetcher, because this may be expensive and
-		// not needed according to migration config. Instead, supply a function
-		// to construct the particular IPFS fetcher implementation used here,
-		// which is called only if an IPFS fetcher is needed.
-		newIpfsFetcher := func(distPath string) migrations.Fetcher {
-			return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot, configFileOpt)
-		}
+		fmt.Printf("Migrating repository from version %d to %d...\n", currentVersion, targetVersion)
 
-		// Fetch migrations from current distribution, or location from environ
-		fetchDistPath := migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
-
-		// Create fetchers according to migrationCfg.DownloadSources
-		fetcher, err := migrations.GetMigrationFetcher(migrationCfg.DownloadSources, fetchDistPath, newIpfsFetcher)
+		// Use hybrid migration strategy that intelligently combines external and embedded migrations
+		err = migrations.RunHybridMigrations(cctx.Context(), targetVersion, cctx.ConfigRoot, allowDowngrade)
 		if err != nil {
-			return err
-		}
-		defer fetcher.Close()
-
-		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", allowDowngrade)
-		if err != nil {
-			fmt.Println("The migrations of fs-repo failed:")
+			fmt.Println("Repository migration failed:")
 			fmt.Printf("  %s\n", err)
 			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
-			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
+			fmt.Println("  https://github.com/ipfs/kubo")
 			return err
 		}
 
-		fmt.Printf("Success: fs-repo has been migrated to version %d.\n", fsrepo.RepoVersion)
+		fmt.Printf("Repository successfully migrated to version %d.\n", targetVersion)
+		if targetVersion < fsrepo.RepoVersion {
+			fmt.Println("WARNING: After downgrading, you must use an IPFS binary compatible with this repository version.")
+		}
 		return nil
 	},
 }

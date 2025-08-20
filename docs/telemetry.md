@@ -57,6 +57,7 @@ The telemetry plugin collects the following anonymized data:
 - **Bootstrap peers**: Whether custom bootstrap peers are used.
 - **Routing type**: Whether the node uses DHT, IPFS, or a custom routing setup.
 - **AutoNAT settings**: Whether AutoNAT is enabled and its reachability status.
+- **AutoConf settings**: Whether AutoConf is enabled and whether a custom URL is used.
 - **Swarm settings**: Whether hole punching is enabled, and whether public IP addresses are used.
 
 ### TLS and Discovery

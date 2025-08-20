@@ -150,7 +150,7 @@ func TestName(t *testing.T) {
 		res := node.RunIPFS("name", "publish", "/ipfs/"+fixtureCid)
 		require.Error(t, res.Err)
 		require.Equal(t, 1, res.ExitCode())
-		require.Contains(t, res.Stderr.String(), `can't publish while offline`)
+		require.Contains(t, res.Stderr.String(), "can't publish while offline: pass `--allow-offline` to override or `--allow-delegated` if Ipns.DelegatedPublishers are set up")
 	})
 
 	t.Run("Publish V2-only record", func(t *testing.T) {

@@ -70,6 +70,10 @@ func TestIPFSVersionDeps(t *testing.T) {
 			splitModVers := strings.Split(moduleVersion, "@")
 			modPath := splitModVers[0]
 			modVers := splitModVers[1]
+			// Skip local replace paths (starting with "./")
+			if strings.HasPrefix(modPath, "./") {
+				continue
+			}
 			assert.NoError(t, gomod.Check(modPath, modVers), "path: %s, version: %s", modPath, modVers)
 		}
 	}

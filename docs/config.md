@@ -36,6 +36,11 @@ config file at runtime.
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
     - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
+  - [`AutoConf`](#autoconf)
+    - [`AutoConf.URL`](#autoconfurl)
+    - [`AutoConf.Enabled`](#autoconfenabled)
+    - [`AutoConf.RefreshInterval`](#autoconfrefreshinterval)
+    - [`AutoConf.TLSInsecureSkipVerify`](#autoconftlsinsecureskipverify)
   - [`Bitswap`](#bitswap)
     - [`Bitswap.Libp2pEnabled`](#bitswaplibp2penabled)
     - [`Bitswap.ServerEnabled`](#bitswapserverenabled)
@@ -100,6 +105,7 @@ config file at runtime.
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
     - [`Ipns.MaxCacheTTL`](#ipnsmaxcachettl)
     - [`Ipns.UsePubsub`](#ipnsusepubsub)
+    - [`Ipns.DelegatedPublishers`](#ipnsdelegatedpublishers)
   - [`Migration`](#migration)
     - [`Migration.DownloadSources`](#migrationdownloadsources)
     - [`Migration.Keep`](#migrationkeep)
@@ -225,6 +231,8 @@ config file at runtime.
     - [`default-datastore` profile](#default-datastore-profile)
     - [`local-discovery` profile](#local-discovery-profile)
     - [`default-networking` profile](#default-networking-profile)
+    - [`autoconf-on` profile](#autoconf-on-profile)
+    - [`autoconf-off` profile](#autoconf-off-profile)
     - [`flatfs` profile](#flatfs-profile)
     - [`flatfs-measure` profile](#flatfs-measure-profile)
     - [`pebbleds` profile](#pebbleds-profile)
@@ -538,6 +546,150 @@ Default: 1 Minute
 
 Type: `duration` (when `0`/unset, the default value is used)
 
+## `AutoConf`
+
+The AutoConf feature enables Kubo nodes to automatically fetch and apply network configuration from a remote JSON endpoint. This system allows dynamic configuration updates for bootstrap peers, DNS resolvers, delegated routing, and IPNS publishing endpoints without requiring manual updates to each node's local config.
+
+AutoConf works by using special `"auto"` placeholder values in configuration fields. When Kubo encounters these placeholders, it fetches the latest configuration from the specified URL and resolves the placeholders with the appropriate values at runtime. The original configuration file remains unchanged - `"auto"` values are preserved in the JSON and only resolved in memory during node operation.
+
+### Key Features
+
+- **Remote Configuration**: Fetch network defaults from a trusted URL
+- **Automatic Updates**: Periodic background checks for configuration updates
+- **Graceful Fallback**: Uses hardcoded IPFS Mainnet bootstrappers when remote config is unavailable
+- **Validation**: Ensures all fetched configuration values are valid multiaddrs and URLs
+- **Caching**: Stores multiple versions locally with ETags for efficient updates
+- **User Notification**: Logs ERROR when new configuration is available requiring node restart
+- **Debug Logging**: AutoConf operations can be inspected by setting `GOLOG_LOG_LEVEL="error,autoconf=debug"`
+
+### Supported Fields
+
+AutoConf can resolve `"auto"` placeholders in the following configuration fields:
+
+- `Bootstrap` - Bootstrap peer addresses
+- `DNS.Resolvers` - DNS-over-HTTPS resolver endpoints
+- `Routing.DelegatedRouters` - Delegated routing HTTP API endpoints
+- `Ipns.DelegatedPublishers` - IPNS delegated publishing HTTP API endpoints
+
+### Usage Example
+
+```json
+{
+  "AutoConf": {
+    "URL": "https://example.com/autoconf.json",
+    "Enabled": true,
+    "RefreshInterval": "24h"
+  },
+  "Bootstrap": ["auto"],
+  "DNS": {
+    "Resolvers": {
+      ".": ["auto"],
+      "eth.": ["auto"],
+      "custom.": ["https://dns.example.com/dns-query"]
+    }
+  },
+  "Routing": {
+    "DelegatedRouters": ["auto", "https://router.example.org/routing/v1"]
+  }
+}
+```
+
+**Notes:**
+
+- Configuration fetching happens at daemon startup and periodically in the background
+- When new configuration is detected, users must restart their node to apply changes
+- Mixed configurations are supported: you can use both `"auto"` and static values
+- If AutoConf is disabled but `"auto"` values exist, daemon startup will fail with validation errors
+- Cache is stored in `$IPFS_PATH/autoconf/` with up to 3 versions retained
+
+### Path-Based Routing Configuration
+
+AutoConf supports path-based routing URLs that automatically enable specific routing operations based on the URL path. This allows precise control over which HTTP Routing V1 endpoints are used for different operations:
+
+**Supported paths:**
+- `/routing/v1/providers` - Enables provider record lookups only
+- `/routing/v1/peers` - Enables peer routing lookups only  
+- `/routing/v1/ipns` - Enables IPNS record operations only
+- No path - Enables all routing operations (backward compatibility)
+
+**AutoConf JSON structure with path-based routing:**
+
+```json
+{
+  "DelegatedRouters": {
+    "mainnet-for-nodes-with-dht": [
+      "https://cid.contact/routing/v1/providers"
+    ],
+    "mainnet-for-nodes-without-dht": [
+      "https://delegated-ipfs.dev/routing/v1/providers",
+      "https://delegated-ipfs.dev/routing/v1/peers", 
+      "https://delegated-ipfs.dev/routing/v1/ipns"
+    ]
+  },
+  "DelegatedPublishers": {
+    "mainnet-for-ipns-publishers-with-http": [
+      "https://delegated-ipfs.dev/routing/v1/ipns"
+    ]
+  }
+}
+```
+
+**Node type categories:**
+- `mainnet-for-nodes-with-dht`: Mainnet nodes with DHT enabled (typically only need additional provider lookups)
+- `mainnet-for-nodes-without-dht`: Mainnet nodes without DHT (need comprehensive routing services)
+- `mainnet-for-ipns-publishers-with-http`: Mainnet nodes that publish IPNS records via HTTP
+
+This design enables efficient, selective routing where each endpoint URL automatically determines its capabilities based on the path, while maintaining semantic grouping by node configuration type.
+
+Default: `{}`
+
+Type: `object`
+
+### `AutoConf.Enabled`
+
+Controls whether the AutoConf system is active. When enabled, Kubo will fetch configuration from the specified URL and resolve `"auto"` placeholders at runtime. When disabled, any `"auto"` values in the configuration will cause daemon startup to fail with validation errors.
+
+This provides a safety mechanism to ensure nodes don't start with unresolved placeholders when AutoConf is intentionally disabled.
+
+Default: `true`
+
+Type: `flag`
+
+### `AutoConf.URL`
+
+Specifies the HTTP(S) URL from which to fetch the autoconf JSON. The endpoint should return a JSON document containing Bootstrap peers, DNS resolvers, delegated routing endpoints, and IPNS publishing endpoints that will replace `"auto"` placeholders in the local configuration.
+
+The URL must serve a JSON document matching the AutoConf schema. Kubo validates all multiaddr and URL values before caching to ensure they are properly formatted.
+
+When not specified in the configuration, the default mainnet URL is used automatically.
+
+<a href="https://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
+
+> [!NOTE]
+> Public good autoconf manifest at `conf.ipfs-mainnet.org` is provided by the team at [Shipyard](https://ipshipyard.com).
+
+Default: `"https://conf.ipfs-mainnet.org/autoconf.json"` (when not specified)
+
+Type: `optionalString`
+
+### `AutoConf.RefreshInterval`
+
+Specifies how frequently Kubo should refresh autoconf data. This controls both how often cached autoconf data is considered fresh and how frequently the background service checks for new configuration updates.
+
+When a new configuration version is detected during background updates, Kubo logs an ERROR message informing the user that a node restart is required to apply the changes to any `"auto"` entries in their configuration.
+
+Default: `24h`
+
+Type: `optionalDuration`
+
+### `AutoConf.TLSInsecureSkipVerify`
+
+**FOR TESTING ONLY** - Allows skipping TLS certificate verification when fetching autoconf from HTTPS URLs. This should never be enabled in production as it makes the configuration fetching vulnerable to man-in-the-middle attacks.
+
+Default: `false`
+
+Type: `flag`
+
 ## `AutoTLS`
 
 The [AutoTLS](https://blog.libp2p.io/autotls/) feature enables publicly reachable Kubo nodes (those dialable from the public
@@ -657,6 +809,7 @@ Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddy
 
 Type: `optionalString`
 
+
 ## `Bitswap`
 
 High level client and server configuration of the [Bitswap Protocol](https://specs.ipfs.tech/bitswap-protocol/) over libp2p.
@@ -690,11 +843,18 @@ Type: `flag`
 
 ## `Bootstrap`
 
-Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
+Bootstrap peers help your node discover and connect to the IPFS network when starting up. This array contains [multiaddrs][multiaddr] of trusted nodes that your node contacts first to find other peers and content.
 
-Default: [`config.DefaultBootstrapAddresses`](https://github.com/ipfs/kubo/blob/master/config/bootstrap_peers.go)
+The special value `"auto"` automatically uses curated, up-to-date bootstrap peers from [AutoConf](#autoconf), ensuring your node can always connect to the healthy network without manual maintenance.
 
-Type: `array[string]` ([multiaddrs][multiaddr])
+**What this gives you:**
+- **Reliable startup**: Your node can always find the network, even if some bootstrap peers go offline
+- **Automatic updates**: New bootstrap peers are added as the network evolves
+- **Custom control**: Add your own trusted peers alongside or instead of the defaults
+
+Default: `["auto"]`
+
+Type: `array[string]` ([multiaddrs][multiaddr] or `"auto"`)
 
 ## `Datastore`
 
@@ -1484,21 +1644,52 @@ Default: `disabled`
 
 Type: `flag`
 
+### `Ipns.DelegatedPublishers`
+
+A list of IPNS publishers to delegate publishing operations to. When configured, IPNS publish operations are sent to these remote HTTP services in addition to or instead of local DHT publishing, depending on [`Routing.Type`](#routingtype) configuration.
+
+These endpoints must support the [IPNS API](https://specs.ipfs.tech/routing/http-routing-v1/#ipns-api) from the Delegated Routing V1 HTTP specification.
+
+The special value `"auto"` uses delegated publishers from [AutoConf](#autoconf) when enabled.
+
+**Publishing behavior depends on routing configuration:**
+
+- `Routing.Type=auto` (default): Uses both DHT and HTTP delegated publishers
+- `Routing.Type=delegated`: Uses only HTTP delegated publishers (DHT disabled)
+
+**Command flags control publishing method:**
+
+- `ipfs name publish /ipfs/QmHash` - Uses configured routing (default behavior)
+- `ipfs name publish --allow-offline /ipfs/QmHash` - Local datastore only, no network requests
+- `ipfs name publish --delegated-only /ipfs/QmHash` - HTTP delegated publishers only, requires configuration
+
+For self-hosting, you can run your own `/routing/v1/ipns` endpoint using [someguy](https://github.com/ipfs/someguy/).
+
+Default: `["auto"]`
+
+Type: `array[string]` (URLs or `"auto"`)
+
 ## `Migration`
 
-Migration configures how migrations are downloaded and if the downloads are added to IPFS locally.
+> [!WARNING]
+> **DEPRECATED:** Only applies to legacy migrations (repo versions <16). Modern repos (v16+) use embedded migrations.
+> This section is optional and will not appear in new configurations.
 
 ### `Migration.DownloadSources`
 
-Sources in order of preference, where "IPFS" means use IPFS and "HTTPS" means use default gateways. Any other values are interpreted as hostnames for custom gateways. An empty list means "use default sources".
+**DEPRECATED:** Download sources for legacy migrations. Only `"HTTPS"` is supported.
 
-Default: `["HTTPS", "IPFS"]`
+Type: `array[string]` (optional)
+
+Default: `["HTTPS"]`
 
 ### `Migration.Keep`
 
-Specifies whether or not to keep the migration after downloading it. Options are "discard", "cache", "pin". Empty string for default.
+**DEPRECATED:** Controls retention of legacy migration binaries. Options: `"cache"` (default), `"discard"`, `"keep"`.
 
-Default: `cache`
+Type: `string` (optional)
+
+Default: `"cache"`
 
 ## `Mounts`
 
@@ -1908,7 +2099,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 ### `Routing.Type`
 
-There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
+There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", "delegated", and "custom".
 
 * **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
   and parallel [`Routing.DelegatedRouters`](#routingdelegatedrouters) for additional speed.
@@ -1944,6 +2135,15 @@ When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate s
 by leveraging [`Routing.DelegatedRouters`](#routingdelegatedrouters) HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
 introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
 in addition to the Amino DHT.
+
+When `Routing.Type` is set to `delegated`, your node will use **only** HTTP delegated routers and IPNS publishers,
+without initializing the Amino DHT at all. This mode is useful for environments where peer-to-peer DHT connectivity
+is not available or desired, while still enabling content routing and IPNS publishing via HTTP APIs.
+This mode requires configuring [`Routing.DelegatedRouters`](#routingdelegatedrouters) for content routing and 
+[`Ipns.DelegatedPublishers`](#ipnsdelegatedpublishers) for IPNS publishing.
+
+**Note:** `delegated` mode operates as read-only for content providing - your node cannot announce content to the network
+since there is no DHT connectivity. Content providing is automatically disabled when using this routing type.
 
 [Advanced routing rules](https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md) can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
 
@@ -2031,14 +2231,16 @@ Type: `array[string]`
 An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
 These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
 
+The special value `"auto"` uses delegated routers from [AutoConf](#autoconf) when enabled.
+
 > [!TIP]
 > Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
 >
 > One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
 
-Default: `["https://cid.contact"]` (empty or `nil` will also use this default; to disable delegated routing, set `Routing.Type` to `dht` or `dhtclient`)
+Default: `["auto"]`
 
-Type: `array[string]`
+Type: `array[string]` (URLs or `"auto"`)
 
 ### `Routing.Routers`
 
@@ -2795,16 +2997,10 @@ Example:
 Be mindful that:
 - Currently only `https://` URLs for [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported as values.
 - The default catch-all resolver is the cleartext one provided by your operating system. It can be overridden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
-- Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis. The implicit DoH resolvers are:
-  ```json
-  {
-    "eth.": "https://dns.eth.limo/dns-query",
-    "crypto.": "https://resolver.unstoppable.io/dns-query"
-  }
-  ```
-  To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
+- Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis. 
+- The special value `"auto"` uses DNS resolvers from [AutoConf](#autoconf) when enabled. For example: `{".": "auto"}` uses any custom DoH resolver (global or per TLD) provided by AutoConf system.
 
-Default: `{}`
+Default: `{".": "auto"}`
 
 Type: `object[string -> string]`
 
@@ -3136,6 +3332,16 @@ is useful when using the daemon in test environments.
 
 Restores default network settings.
 Inverse profile of the test profile.
+
+### `autoconf-on` profile
+
+Safe default for joining the public IPFS Mainnet swarm with automatic configuration.
+Can also be used with custom AutoConf.URL for other networks.
+
+### `autoconf-off` profile
+
+Disables AutoConf and clears all networking fields for manual configuration.
+Use this for private networks or when you want explicit control over all endpoints.
 
 ### `flatfs` profile
 
