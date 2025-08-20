@@ -67,7 +67,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy
 			return nil
 		}
 
-		cleared := n.Provider.ClearProvideQueue()
+		cleared := n.Provider.Clear()
 		if quiet {
 			return nil
 		}

@@ -44,7 +44,7 @@ type NoopProvider struct{}
 func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) {}
 func (r *NoopProvider) StopProviding(...mh.Multihash)        {}
 func (r *NoopProvider) ProvideOnce(...mh.Multihash)          {}
-func (r *NoopProvider) ClearProvideQueue() int               { return 0 }
+func (r *NoopProvider) Clear() int                           { return 0 }
 
 // DHTProvider is an interface for providing keys to a DHT swarm. It holds a
 // state of keys to be advertised, and is responsible for periodically
@@ -80,9 +80,9 @@ type DHTProvider interface {
 	// The provide operation happens asynchronously.
 	ProvideOnce(keys ...mh.Multihash)
 
-	// ClearProvideQueue clears the all the keys from the provide queue and returns
+	// Clear clears the all the keys from the provide queue and returns
 	// the number of keys that were cleared.
-	ClearProvideQueue() int
+	Clear() int
 }
 
 var (
@@ -128,8 +128,8 @@ func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) {
 
 // ClearProvideQueue clears the all the keys from the provide queue and returns
 // the number of keys that were cleared.
-func (r *BurstProvider) ClearProvideQueue() int {
-	return r.Clear()
+func (r *BurstProvider) Clear() int {
+	return r.System.Clear()
 }
 
 // BurstProviderOpt creates a BurstProvider to be used as provider in the
@@ -255,7 +255,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 func SweepingProvider(cfg *config.Config) fx.Option {
 	mhStore := fx.Provide(func(keyProvider provider.KeyChanFunc, repo repo.Repo) (*rds.KeyStore, error) {
 		mhStore, err := rds.NewKeyStore(repo.Datastore(),
-			rds.WithPrefixLen(10),
+			rds.WithPrefixBits(10),
 			rds.WithDatastorePrefix("/reprovider/mhs"),
 			rds.WithGCInterval(cfg.Reprovider.Sweep.KeyStoreGCInterval.WithDefault(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval))),
 			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
@@ -284,7 +284,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 		switch dht := in.DHT.(type) {
 		case *dual.DHT:
 			if dht != nil {
-				return ddhtprovider.NewSweepingProvider(dht,
+				return ddhtprovider.New(dht,
 					ddhtprovider.WithKeyStore(in.KeyStore),
 
 					ddhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
