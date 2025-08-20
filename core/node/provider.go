@@ -134,8 +134,8 @@ func (r *BurstProvider) Clear() int {
 
 // BurstProviderOpt creates a BurstProvider to be used as provider in the
 // IpfsNode
-func BurstProviderOpt(reprovideInterval time.Duration, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
-	return fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, repo repo.Repo) (provider.System, error) {
+func BurstProviderOpt(reprovideInterval time.Duration, strategy string, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
+	system := fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, repo repo.Repo) (provider.System, DHTProvider, error) {
 		// Initialize provider.System first, before pinner/blockstore/etc.
 		// The KeyChanFunc will be set later via SetKeyProvider() once we have
 		// created the pinner, blockstore and other dependencies.
@@ -237,8 +237,10 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 
 		sys, err := provider.New(repo.Datastore(), opts...)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+
+		handleStrategyChange(strategy, sys, repo.Datastore())
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
@@ -248,31 +250,35 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 
 		prov := &BurstProvider{sys}
 
-		return prov, nil
+		return prov, prov, nil
 	})
+	setKeyProvider := fx.Invoke(func(lc fx.Lifecycle, system provider.System, keyProvider provider.KeyChanFunc) {
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				// SetKeyProvider breaks the circular dependency between provider, blockstore, and pinner.
+				// We cannot create the blockstore without the provider (it needs to provide blocks),
+				// and we cannot determine the reproviding strategy without the pinner/blockstore.
+				// This deferred initialization allows us to create provider.System first,
+				// then set the actual key provider function after all dependencies are ready.
+				system.SetKeyProvider(keyProvider)
+				return nil
+			},
+		})
+	})
+	return fx.Options(
+		system,
+		setKeyProvider,
+	)
 }
 
 func SweepingProvider(cfg *config.Config) fx.Option {
-	mhStore := fx.Provide(func(keyProvider provider.KeyChanFunc, repo repo.Repo) (*rds.KeyStore, error) {
-		mhStore, err := rds.NewKeyStore(repo.Datastore(),
+	keyStore := fx.Provide(func(repo repo.Repo) (*rds.KeyStore, error) {
+		return rds.NewKeyStore(repo.Datastore(),
 			rds.WithPrefixBits(10),
 			rds.WithDatastorePrefix("/reprovider/mhs"),
 			rds.WithGCInterval(cfg.Reprovider.Sweep.KeyStoreGCInterval.WithDefault(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval))),
 			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
-			rds.WithGCFunc(keyProvider),
 		)
-		if err != nil {
-			return nil, err
-		}
-		keysChan, err := keyProvider(context.Background())
-		if err != nil {
-			return nil, err
-		}
-		err = mhStore.ResetCids(context.Background(), keysChan)
-		if err != nil {
-			return nil, err
-		}
-		return mhStore, nil
 	})
 
 	type input struct {
@@ -292,7 +298,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 
 					ddhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
 					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
-					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
+					ddhtprovider.WithDedicatedBurstWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
 					ddhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
 				)
 				if err != nil {
@@ -337,17 +343,31 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 		return &NoopProvider{}, nil
 	})
 
-	closeKeyStore := fx.Invoke(func(lc fx.Lifecycle, mhStore *rds.KeyStore) {
+	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, keyStore *rds.KeyStore, keyProvider provider.KeyChanFunc) {
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				// TODO: Set GCFunc to keystore
+				ch, err := keyProvider(ctx)
+				if err != nil {
+					return err
+				}
+				return keyStore.ResetCids(ctx, ch)
+			},
+		})
+	})
+
+	closeKeyStore := fx.Invoke(func(lc fx.Lifecycle, keyStore *rds.KeyStore) {
 		lc.Append(fx.Hook{
 			OnStop: func(_ context.Context) error {
-				return mhStore.Close()
+				return keyStore.Close()
 			},
 		})
 	})
 
 	return fx.Options(
-		mhStore,
+		keyStore,
 		sweepingReprovider,
+		initKeyStore,
 		closeKeyStore,
 	)
 }
@@ -371,13 +391,13 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 		fx.Provide(setReproviderKeyProvider(providerStrategy)),
 	}
 	if cfg.Reprovider.Sweep.Enabled.WithDefault(config.DefaultReproviderSweepEnabled) {
+		opts = append(opts, SweepingProvider(cfg))
+	} else {
 		reprovideInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
 		acceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
 		provideWorkerCount := int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount))
 
-		opts = append(opts, BurstProviderOpt(reprovideInterval, acceleratedDHTClient, provideWorkerCount))
-	} else {
-		opts = append(opts, SweepingProvider(cfg))
+		opts = append(opts, BurstProviderOpt(reprovideInterval, providerStrategy, acceleratedDHTClient, provideWorkerCount))
 	}
 
 	return fx.Options(opts...)
@@ -426,7 +446,6 @@ type provStrategyIn struct {
 	OfflineIPLDFetcher   fetcher.Factory `name:"offlineIpldFetcher"`
 	OfflineUnixFSFetcher fetcher.Factory `name:"offlineUnixfsFetcher"`
 	MFSRoot              *mfs.Root
-	Provider             provider.System
 	Repo                 repo.Repo
 }
 
@@ -537,17 +556,6 @@ func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrat
 	return func(in provStrategyIn) provStrategyOut {
 		// Create the appropriate key provider based on strategy
 		kcf := createKeyProvider(strategyFlag, in)
-
-		// SetKeyProvider breaks the circular dependency between provider, blockstore, and pinner.
-		// We cannot create the blockstore without the provider (it needs to provide blocks),
-		// and we cannot determine the reproviding strategy without the pinner/blockstore.
-		// This deferred initialization allows us to create provider.System first,
-		// then set the actual key provider function after all dependencies are ready.
-		in.Provider.SetKeyProvider(kcf)
-
-		// Handle strategy changes (detection, queue clearing, persistence)
-		handleStrategyChange(strategy, in.Provider, in.Repo.Datastore())
-
 		return provStrategyOut{
 			ProvidingStrategy:    strategyFlag,
 			ProvidingKeyChanFunc: kcf,
