@@ -3194,7 +3194,7 @@ have when building the DAG while importing.
 This setting controls both the fanout for basic, non-HAMT folder nodes. It
 sets a limit after which directories are converted to a HAMT-based structure.
 
-When unset (0), no limit exists for chilcren. Directories will be converted to
+When unset (0), no limit exists for children. Directories will be converted to
 HAMTs based on their estimated size only.
 
 This setting will cause basic directories to be converted to HAMTs when they
@@ -3212,8 +3212,8 @@ Type: `optionalInteger`
 The maximum number of children that a node part of a Unixfs HAMT directory
 (aka sharded directory) can have.
 
-HAMT directory have unlimited children and are used when basic directories
-become too big or reach `MaxLinks`. A HAMT is an structure made of unixfs
+HAMT directories have unlimited children and are used when basic directories
+become too big or reach `MaxLinks`. A HAMT is a structure made of unixfs
 nodes that store the list of elements in the folder. This option controls the
 maximum number of children that the HAMT nodes can have.
 
