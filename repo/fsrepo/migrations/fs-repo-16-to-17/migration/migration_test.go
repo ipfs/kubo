@@ -211,8 +211,12 @@ func TestConvert(t *testing.T) {
 
 	result := runMigrationOnJSON(t, input)
 
-	// Check that AutoConf was added and enabled
-	assertMapKeyEquals(t, result, []string{"AutoConf"}, "Enabled", true)
+	// Check that AutoConf section was added but is empty (using implicit defaults)
+	autoConf, exists := result["AutoConf"]
+	require.True(t, exists, "AutoConf section should exist")
+	autoConfMap, ok := autoConf.(map[string]interface{})
+	require.True(t, ok, "AutoConf should be a map")
+	require.Empty(t, autoConfMap, "AutoConf should be empty (using implicit defaults)")
 
 	// Check that Bootstrap was updated to "auto"
 	assertSliceEquals(t, result, []string{"Bootstrap"}, []string{"auto"})

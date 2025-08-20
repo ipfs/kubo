@@ -213,10 +213,12 @@ func (h *MigrationTestHelper) RequireFieldAbsent(path string) *MigrationTestHelp
 }
 
 func (h *MigrationTestHelper) RequireAutoConfDefaults() *MigrationTestHelper {
+	// AutoConf section should exist but be empty (using implicit defaults)
 	return h.RequireFieldExists("AutoConf").
-		RequireFieldEquals("AutoConf.Enabled", true).
-		RequireFieldEquals("AutoConf.Interval", "24h").
-		RequireFieldEquals("AutoConf.TLSInsecureSkipVerify", false)
+		RequireFieldAbsent("AutoConf.Enabled").              // Should use implicit default (true)
+		RequireFieldAbsent("AutoConf.URL").                  // Should use implicit default (mainnet URL)
+		RequireFieldAbsent("AutoConf.RefreshInterval").      // Should use implicit default (24h)
+		RequireFieldAbsent("AutoConf.TLSInsecureSkipVerify") // Should use implicit default (false)
 }
 
 func (h *MigrationTestHelper) RequireAutoFieldsSetToAuto() *MigrationTestHelper {
