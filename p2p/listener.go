@@ -1,3 +1,4 @@
+// Package p2p implements libp2p connectivity utilities.
 package p2p
 
 import (

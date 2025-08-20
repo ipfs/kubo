@@ -323,9 +323,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 		defer fetcher.Close()
 
-		if migrationCfg.Keep == "cache" {
+		switch migrationCfg.Keep {
+		case "cache":
 			cacheMigrations = true
-		} else if migrationCfg.Keep == "pin" {
+		case "pin":
 			pinMigrations = true
 		}
 

@@ -126,7 +126,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 
 		// Kubo uses own, customized ProviderQueryManager
 		in.BitswapOpts = append(in.BitswapOpts, bitswap.WithClientOption(client.WithDefaultProviderQueryManager(false)))
-		var maxProviders int = DefaultMaxProviders
+		maxProviders := DefaultMaxProviders
 
 		var bcDisposition string
 		if in.Cfg.Internal.Bitswap != nil {

@@ -1,3 +1,4 @@
+// Package cmdenv provides the environment for executing IPFS commands.
 package cmdenv
 
 import (

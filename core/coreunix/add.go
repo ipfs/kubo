@@ -1,3 +1,4 @@
+// Package coreunix provides Unix-like file addition utilities for IPFS.
 package coreunix
 
 import (
@@ -496,7 +497,7 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 		adder.SetMfsRoot(mr)
 	}
 
-	if !(toplevel && path == "") {
+	if !toplevel || path != "" {
 		mr, err := adder.mfsRoot()
 		if err != nil {
 			return err

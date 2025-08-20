@@ -1,3 +1,4 @@
+// Package harness provides a test harness for IPFS CLI integration testing.
 package harness
 
 import (
@@ -24,6 +25,7 @@ type Harness struct {
 	Nodes     Nodes
 }
 
+// EnableDebugLogging enables debug logging for the test harness.
 // TODO: use zaptest.NewLogger(t) instead
 func EnableDebugLogging() {
 	err := logging.SetLogLevel("testharness", "DEBUG")

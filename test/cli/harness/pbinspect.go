@@ -31,7 +31,7 @@ func (n *Node) InspectPBNode(cid string) (PBNode, error) {
 
 }
 
-// Define structs to match the JSON for
+// PBHash defines structs to match the JSON for protobuf inspection.
 type PBHash struct {
 	Slash string `json:"/"`
 }

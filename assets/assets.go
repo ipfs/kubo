@@ -1,3 +1,4 @@
+// Package assets provides embedded asset files for kubo.
 package assets
 
 import (

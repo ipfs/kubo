@@ -1,3 +1,4 @@
+// Package levelds provides a LevelDB datastore plugin.
 package levelds
 
 import (

@@ -800,6 +800,7 @@ func (tp *TestSuite) TestLsEmptyDir(t *testing.T) {
 	}
 }
 
+// TestLsNonUnixfs tests listing non-UnixFS content.
 // TODO(lgierth) this should test properly, with len(links) > 0
 func (tp *TestSuite) TestLsNonUnixfs(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())

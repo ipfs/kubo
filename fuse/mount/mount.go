@@ -1,4 +1,4 @@
-// package mount provides a simple abstraction around a mount point
+// Package mount provides a simple abstraction around a mount point
 package mount
 
 import (

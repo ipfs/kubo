@@ -1,3 +1,4 @@
+// Package name provides IPNS name commands.
 package name
 
 import (
@@ -149,7 +150,7 @@ Resolve the value of a dnslink:
 			if v.Err != nil && (recursive || v.Err != namesys.ErrResolveRecursion) {
 				return v.Err
 			}
-			if err := res.Emit(&ResolvedPath{v.Path.String()}); err != nil {
+			if err := res.Emit(&ResolvedPath{v.String()}); err != nil {
 				return err
 			}
 

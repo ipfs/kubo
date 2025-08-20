@@ -1,3 +1,4 @@
+// Package keyencode provides key encoding utilities for kubo commands.
 package keyencode
 
 import (

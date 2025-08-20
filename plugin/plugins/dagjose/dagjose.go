@@ -1,3 +1,4 @@
+// Package dagjose provides the DAG-JOSE codec plugin.
 package dagjose
 
 import (

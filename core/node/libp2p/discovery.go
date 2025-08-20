@@ -1,3 +1,4 @@
+// Package libp2p provides libp2p configuration and setup for IPFS nodes.
 package libp2p
 
 import (

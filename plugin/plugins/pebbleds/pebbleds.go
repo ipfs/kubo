@@ -1,3 +1,4 @@
+// Package pebbleds provides a PebbleDB datastore plugin.
 package pebbleds
 
 import (

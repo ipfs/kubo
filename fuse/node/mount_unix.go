@@ -1,6 +1,7 @@
 //go:build !windows && !openbsd && !netbsd && !plan9 && !nofuse
 // +build !windows,!openbsd,!netbsd,!plan9,!nofuse
 
+// Package node provides FUSE mount functionality for IPFS nodes.
 package node
 
 import (
@@ -70,8 +71,8 @@ func doMount(node *core.IpfsNode, fsdir, nsdir, mfsdir string) error {
 	fmtFuseErr := func(err error, mountpoint string) error {
 		s := err.Error()
 		if strings.Contains(s, fuseNoDirectory) {
-			s = strings.Replace(s, `fusermount: "fusermount:`, "", -1)
-			s = strings.Replace(s, `\n", exit status 1`, "", -1)
+			s = strings.ReplaceAll(s, `fusermount: "fusermount:`, "")
+			s = strings.ReplaceAll(s, `\n", exit status 1`, "")
 			return errors.New(s)
 		}
 		if s == fuseExitStatus1 {

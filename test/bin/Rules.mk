@@ -73,8 +73,8 @@ $(d)/gocovmerge: github.com/Kubuxu/gocovmerge
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/gocovmerge
 
-.PHONY: github.com/golangci/golangci-lint/cmd/golangci-lint
-$(d)/golangci-lint: github.com/golangci/golangci-lint/cmd/golangci-lint
+.PHONY: github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+$(d)/golangci-lint: github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/golangci-lint
 

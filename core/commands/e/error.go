@@ -1,3 +1,4 @@
+// Package e provides error utilities for IPFS commands.
 package e
 
 import (

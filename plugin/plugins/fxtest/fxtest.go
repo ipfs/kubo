@@ -1,3 +1,4 @@
+// Package fxtest provides a test plugin for the fx dependency injection framework.
 package fxtest
 
 import (

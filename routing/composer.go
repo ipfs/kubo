@@ -1,3 +1,4 @@
+// Package routing provides routing utilities for IPFS.
 package routing
 
 import (

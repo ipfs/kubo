@@ -59,38 +59,38 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
 	p, err := path.NewPath("/ipfs/" + name)
 	if err != nil {
 		log.Debugf("fuse failed to parse path: %q: %s", name, err)
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
 	imPath, err := path.NewImmutablePath(p)
 	if err != nil {
 		log.Debugf("fuse failed to convert path: %q: %s", name, err)
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
 	nd, ndLnk, err := s.Ipfs.UnixFSPathResolver.ResolvePath(ctx, imPath)
 	if err != nil {
 		// todo: make this error more versatile.
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
 	cidLnk, ok := ndLnk.(cidlink.Link)
 	if !ok {
 		log.Debugf("non-cidlink returned from ResolvePath: %v", ndLnk)
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
 	// convert ipld-prime node to universal node
 	blk, err := s.Ipfs.Blockstore.Get(ctx, cidLnk.Cid)
 	if err != nil {
 		log.Debugf("fuse failed to retrieve block: %v: %s", cidLnk, err)
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
 	var fnd ipld.Node
@@ -107,11 +107,11 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		fnd, err = mdag.RawNodeConverter(blk, nd)
 	default:
 		log.Error("fuse node was not a supported type")
-		return nil, syscall.Errno(syscall.ENOTSUP)
+		return nil, syscall.ENOTSUP
 	}
 	if err != nil {
 		log.Errorf("could not convert protobuf or raw node: %s", err)
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
 	return &Node{Ipfs: s.Ipfs, Nd: fnd}, nil
@@ -120,7 +120,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 // ReadDirAll reads a particular directory. Disallowed for root.
 func (*Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("read Root")
-	return nil, syscall.Errno(syscall.EPERM)
+	return nil, syscall.EPERM
 }
 
 // Node is the core object representing a filesystem tree node.
@@ -162,7 +162,7 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	case ft.TFile:
 		size := s.cached.FileSize()
 		a.Mode = 0o444
-		a.Size = uint64(size)
+		a.Size = size
 		a.Blocks = uint64(len(s.Nd.Links()))
 	case ft.TRaw:
 		a.Mode = 0o444
@@ -184,12 +184,12 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	switch err {
 	case os.ErrNotExist, mdag.ErrLinkNotFound:
 		// todo: make this error more versatile.
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	case nil:
 		// noop
 	default:
 		log.Errorf("fuse lookup %q: %s", name, err)
-		return nil, syscall.Errno(syscall.EIO)
+		return nil, syscall.EIO
 	}
 
 	nd, err := s.Ipfs.DAG.Get(ctx, link.Cid)
@@ -252,7 +252,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	if len(entries) > 0 {
 		return entries, nil
 	}
-	return nil, syscall.Errno(syscall.ENOENT)
+	return nil, syscall.ENOENT
 }
 
 func (s *Node) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
@@ -278,7 +278,7 @@ func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 		return err
 	}
 	// Data has a capacity of Size
-	buf := resp.Data[:int(req.Size)]
+	buf := resp.Data[:req.Size]
 	n, err := io.ReadFull(r, buf)
 	resp.Data = buf[:n]
 	switch err {

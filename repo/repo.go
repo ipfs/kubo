@@ -1,3 +1,4 @@
+// Package repo provides interfaces for IPFS repository management.
 package repo
 
 import (

@@ -1,3 +1,4 @@
+// Package verifbs provides a verified blockstore wrapper.
 package verifbs
 
 import (

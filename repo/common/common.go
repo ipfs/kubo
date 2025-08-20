@@ -1,3 +1,4 @@
+// Package common provides shared utilities for repository implementations.
 package common
 
 import (

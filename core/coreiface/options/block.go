@@ -1,3 +1,4 @@
+// Package options defines configuration options for IPFS core interface methods.
 package options
 
 import (

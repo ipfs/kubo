@@ -123,13 +123,13 @@ EXAMPLE:
 			format, found := req.Options[formatOptionName].(string)
 			if found {
 				output := format
-				output = strings.Replace(output, "<id>", out.ID, -1)
-				output = strings.Replace(output, "<aver>", out.AgentVersion, -1)
-				output = strings.Replace(output, "<pubkey>", out.PublicKey, -1)
-				output = strings.Replace(output, "<addrs>", strings.Join(out.Addresses, "\n"), -1)
-				output = strings.Replace(output, "<protocols>", strings.Join(protocol.ConvertToStrings(out.Protocols), "\n"), -1)
-				output = strings.Replace(output, "\\n", "\n", -1)
-				output = strings.Replace(output, "\\t", "\t", -1)
+				output = strings.ReplaceAll(output, "<id>", out.ID)
+				output = strings.ReplaceAll(output, "<aver>", out.AgentVersion)
+				output = strings.ReplaceAll(output, "<pubkey>", out.PublicKey)
+				output = strings.ReplaceAll(output, "<addrs>", strings.Join(out.Addresses, "\n"))
+				output = strings.ReplaceAll(output, "<protocols>", strings.Join(protocol.ConvertToStrings(out.Protocols), "\n"))
+				output = strings.ReplaceAll(output, "\\n", "\n")
+				output = strings.ReplaceAll(output, "\\t", "\t")
 				fmt.Fprint(w, output)
 			} else {
 				marshaled, err := json.MarshalIndent(out, "", "\t")

@@ -107,7 +107,7 @@ func NewMockHTTPProviderServer(c cid.Cid, body string, debug bool) *httptest.Ser
 		if strings.HasPrefix(req.URL.Path, expectedPathPrefix) {
 			w.Header().Set("Content-Type", "application/vnd.ipld.raw")
 			w.WriteHeader(http.StatusOK)
-			if req.Method == "GET" {
+			if req.Method == http.MethodGet {
 				_, err := w.Write([]byte(body))
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "NewMockHTTPProviderServer GET %s error: %v\n", req.URL.Path, err)

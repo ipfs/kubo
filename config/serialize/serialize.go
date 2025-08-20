@@ -1,3 +1,4 @@
+// Package fsrepo provides configuration serialization utilities.
 package fsrepo
 
 import (

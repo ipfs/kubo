@@ -1,3 +1,4 @@
+// Package testutils provides utilities for testing CLI commands.
 package testutils
 
 import (

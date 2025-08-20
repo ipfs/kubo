@@ -1,3 +1,4 @@
+// Package rpc provides an RPC client implementation for the kubo HTTP API.
 package rpc
 
 import (

@@ -696,7 +696,7 @@ type PinCount struct {
 	Failed  int
 }
 
-// Struct returned by ipfs pin remote service ls --enc=json | jq
+// PinServicesList is the struct returned by ipfs pin remote service ls --enc=json | jq
 type PinServicesList struct {
 	RemoteServices []ServiceDetails
 }
@@ -772,7 +772,7 @@ func getRemotePinServiceInfo(env cmds.Environment, name string) (endpoint, key s
 
 func normalizeEndpoint(endpoint string) (string, error) {
 	uri, err := neturl.ParseRequestURI(endpoint)
-	if err != nil || !(uri.Scheme == "http" || uri.Scheme == "https") {
+	if err != nil || (uri.Scheme != "http" && uri.Scheme != "https") {
 		return "", fmt.Errorf("service endpoint must be a valid HTTP URL")
 	}
 

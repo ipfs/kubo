@@ -1,3 +1,4 @@
+// Package ipfsfetcher provides utilities for fetching migrations via IPFS.
 package ipfsfetcher
 
 import (

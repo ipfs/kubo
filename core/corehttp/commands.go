@@ -114,7 +114,7 @@ func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
 	for i, o := range oldOrigins {
 		// TODO: allow replacing <host>. tricky, ip4 and ip6 and hostnames...
 		if port != "" {
-			o = strings.Replace(o, "<port>", port, -1)
+			o = strings.ReplaceAll(o, "<port>", port)
 		}
 		newOrigins[i] = o
 	}

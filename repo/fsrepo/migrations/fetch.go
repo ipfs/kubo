@@ -1,3 +1,4 @@
+// Package migrations provides utilities for fetching and running IPFS repository migrations.
 package migrations
 
 import (

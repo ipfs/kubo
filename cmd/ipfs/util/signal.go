@@ -1,6 +1,7 @@
 //go:build !wasm
 // +build !wasm
 
+// Package util provides utility functions for the IPFS CLI.
 package util
 
 import (

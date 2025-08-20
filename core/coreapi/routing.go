@@ -60,7 +60,7 @@ func normalizeKey(s string) (string, error) {
 	parts := strings.Split(s, "/")
 	if len(parts) != 3 ||
 		parts[0] != "" ||
-		!(parts[1] == "ipns" || parts[1] == "pk") {
+		(parts[1] != "ipns" && parts[1] != "pk") {
 		return "", errors.New("invalid key")
 	}
 
@@ -79,7 +79,7 @@ func (api *RoutingAPI) FindPeer(ctx context.Context, p peer.ID) (peer.AddrInfo, 
 		return peer.AddrInfo{}, err
 	}
 
-	pi, err := api.routing.FindPeer(ctx, peer.ID(p))
+	pi, err := api.routing.FindPeer(ctx, p)
 	if err != nil {
 		return peer.AddrInfo{}, err
 	}

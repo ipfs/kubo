@@ -53,7 +53,7 @@ func (tp *TestSuite) TestBlock(t *testing.T) {
 	t.Run("TestBlockPin", tp.TestBlockPin)
 }
 
-// when no opts are passed, produced CID has 'raw' codec
+// TestBlockPut tests that when no opts are passed, produced CID has 'raw' codec
 func (tp *TestSuite) TestBlockPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -72,7 +72,7 @@ func (tp *TestSuite) TestBlockPut(t *testing.T) {
 	}
 }
 
-// Format is deprecated, it used invalid codec names.
+// TestBlockPutFormatDagCbor tests that Format is deprecated, it used invalid codec names.
 // Confirm 'cbor' gets fixed to 'dag-cbor'
 func (tp *TestSuite) TestBlockPutFormatDagCbor(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -92,7 +92,7 @@ func (tp *TestSuite) TestBlockPutFormatDagCbor(t *testing.T) {
 	}
 }
 
-// Format is deprecated, it used invalid codec names.
+// TestBlockPutFormatDagPb tests that Format is deprecated, it used invalid codec names.
 // Confirm 'protobuf' got fixed to 'dag-pb'
 func (tp *TestSuite) TestBlockPutFormatDagPb(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -112,7 +112,7 @@ func (tp *TestSuite) TestBlockPutFormatDagPb(t *testing.T) {
 	}
 }
 
-// Format is deprecated, it used invalid codec names.
+// TestBlockPutFormatV0 tests that Format is deprecated, it used invalid codec names.
 // Confirm fake codec 'v0' got fixed to CIDv0 (with implicit dag-pb codec)
 func (tp *TestSuite) TestBlockPutFormatV0(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())

@@ -55,7 +55,7 @@ func TestParser(t *testing.T) {
 			RouterName: "r2",
 		},
 	}, &ExtraDHTParams{}, &ExtraHTTPParams{
-		PeerID:     string(pid),
+		PeerID:     pid,
 		PrivKeyB64: sk,
 	})
 
@@ -146,7 +146,7 @@ func TestParserRecursive(t *testing.T) {
 			RouterName: "composable2",
 		},
 	}, &ExtraDHTParams{}, &ExtraHTTPParams{
-		PeerID:     string(pid),
+		PeerID:     pid,
 		PrivKeyB64: sk,
 	})
 

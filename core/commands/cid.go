@@ -353,7 +353,7 @@ var codecsCmd = &cmds.Command{
 						continue
 					}
 				}
-				res = append(res, CodeAndName{int(code), mc.Code(code).String()})
+				res = append(res, CodeAndName{int(code), code.String()})
 			}
 		}
 		return cmds.EmitOnce(resp, res)

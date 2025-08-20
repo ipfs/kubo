@@ -1,3 +1,4 @@
+// Package node implements IPFS nodes.
 package node
 
 import (

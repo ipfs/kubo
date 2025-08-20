@@ -1,3 +1,4 @@
+// Package auth provides HTTP authentication utilities for the RPC client.
 package auth
 
 import "net/http"

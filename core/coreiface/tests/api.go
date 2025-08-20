@@ -1,3 +1,4 @@
+// Package tests provides test suites for CoreAPI implementations.
 package tests
 
 import (

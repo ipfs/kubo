@@ -1,3 +1,4 @@
+// Package corerepo provides repository management utilities for the IPFS core.
 package corerepo
 
 import (
