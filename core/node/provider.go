@@ -284,7 +284,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 		switch dht := in.DHT.(type) {
 		case *dual.DHT:
 			if dht != nil {
-				return ddhtprovider.New(dht,
+				prov, err := ddhtprovider.New(dht,
 					ddhtprovider.WithKeyStore(in.KeyStore),
 
 					ddhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
@@ -295,10 +295,16 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
 					ddhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
 				)
+				if err != nil {
+					return nil, err
+				}
+				// Add keys from the KeyStore to the schedule
+				prov.RefreshSchedule()
+				return prov, nil
 			}
 		case *fullrt.FullRT:
 			if dht != nil {
-				return dhtprovider.New(
+				prov, err := dhtprovider.New(
 					dhtprovider.WithKeyStore(in.KeyStore),
 
 					dhtprovider.WithRouter(dht),
@@ -320,6 +326,12 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 					dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
 					dhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
 				)
+				if err != nil {
+					return nil, err
+				}
+				// Add keys from the KeyStore to the schedule
+				prov.RefreshSchedule()
+				return prov, nil
 			}
 		}
 		return &NoopProvider{}, nil
@@ -373,7 +385,9 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 
 // OfflineProviders groups units managing provider routing records offline
 func OfflineProviders() fx.Option {
-	return fx.Provide(&NoopProvider{})
+	return fx.Provide(func() DHTProvider {
+		return &NoopProvider{}
+	})
 }
 
 func mfsProvider(mfsRoot *mfs.Root, fetcher fetcher.Factory) provider.KeyChanFunc {
