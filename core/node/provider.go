@@ -42,7 +42,6 @@ const reprovideStrategyKey = "/reprovideStrategy"
 type NoopProvider struct{}
 
 func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) {}
-func (r *NoopProvider) StopProviding(...mh.Multihash)        {}
 func (r *NoopProvider) ProvideOnce(...mh.Multihash)          {}
 func (r *NoopProvider) Clear() int                           { return 0 }
 
@@ -63,23 +62,12 @@ type DHTProvider interface {
 	// This operation is asynchronous, it returns as soon as the `keys` are added
 	// to the provide queue, and provides happens asynchronously.
 	StartProviding(force bool, keys ...mh.Multihash)
-
-	// StopProviding stops reproviding the given keys to the DHT swarm. The node
-	// stops being referred as a provider when the provider records in the DHT
-	// swarm expire.
-	//
-	// Remove the `keys` from the schedule and return immediately. Valid records
-	// can remain in the DHT swarm up to the provider record TTL after calling
-	// `StopProviding`.
-	StopProviding(keys ...mh.Multihash)
-
 	// ProvideOnce sends provider records for the specified keys to the DHT swarm
 	// only once. It does not automatically reprovide those keys afterward.
 	//
 	// Add the supplied multihashes to the provide queue, and return immediately.
 	// The provide operation happens asynchronously.
 	ProvideOnce(keys ...mh.Multihash)
-
 	// Clear clears the all the keys from the provide queue and returns
 	// the number of keys that were cleared.
 	Clear() int
@@ -106,21 +94,20 @@ func (r *BurstProvider) StartProviding(force bool, keys ...mh.Multihash) {
 	go r.ProvideOnce(keys...)
 }
 
-// StopProviding is a no op, since reprovider isn't tracking the keys to be
-// reprovided over time.
-func (r *BurstProvider) StopProviding(keys ...mh.Multihash) {
-}
-
 // ProvideOnce sends out provider records for the supplied keys, but doesn't
 // mark the keys for reproviding.
 func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) {
 	if many, ok := r.System.(routinghelpers.ProvideManyRouter); ok {
-		_ = many.ProvideMany(context.Background(), keys)
+		err := many.ProvideMany(context.Background(), keys)
+		if err != nil {
+			logger.Warnf("error providing many: %v", err)
+		}
 		return
 	}
 
 	for _, k := range keys {
 		if err := r.Provide(context.Background(), cid.NewCidV1(cid.Raw, k), true); err != nil {
+			logger.Warnf("error providing %s: %v", k, err)
 			break
 		}
 	}

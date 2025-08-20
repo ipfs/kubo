@@ -218,11 +218,6 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		return path.ImmutablePath{}, err
 	}
 
-	if !settings.OnlyHash {
-		// TODO: only provide cids according to Provide.Strategy
-		api.provider.StartProviding(false, nd.Cid().Hash())
-	}
-
 	return path.FromCid(nd.Cid()), nil
 }
 

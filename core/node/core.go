@@ -230,12 +230,12 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 			return nil, err
 		}
 
-		// MFS (Mutable File System) provider integration:
-		// Only pass the provider to MFS when the strategy includes "mfs".
-		// MFS will call Provide() on every DAGService.Add() operation,
-		// which is sufficient for the "mfs" strategy - it ensures all
-		// MFS content gets announced as it's added or modified.
-		// For non-mfs strategies, we set provider to nil to avoid unnecessary providing.
+		// MFS (Mutable File System) provider integration: Only pass the provider
+		// to MFS when the strategy includes "mfs". MFS will call StartProviding()
+		// on every DAGService.Add() operation, which is sufficient for the "mfs"
+		// strategy - it ensures all MFS content gets announced as it's added or
+		// modified. For non-mfs strategies, we set provider to nil to avoid
+		// unnecessary providing.
 		strategyFlag := config.ParseReproviderStrategy(strategy)
 		if strategyFlag&config.ReproviderStrategyMFS == 0 {
 			prov = nil

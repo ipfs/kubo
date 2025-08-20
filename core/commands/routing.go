@@ -11,10 +11,11 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/node"
+	mh "github.com/multiformats/go-multihash"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipns"
-	"github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -208,15 +209,15 @@ var provideRefRoutingCmd = &cmds.Command{
 		go func() {
 			defer cancel()
 			if rec {
-				provideErr = provideKeysRec(ctx, nd.Routing, nd.DAG, cids)
+				provideErr := provideCidsRec(ctx, nd.Provider, nd.DAG, cids)
+				if provideErr != nil {
+					routing.PublishQueryEvent(ctx, &routing.QueryEvent{
+						Type:  routing.QueryError,
+						Extra: provideErr.Error(),
+					})
+				}
 			} else {
-				provideErr = provideKeys(ctx, nd.Routing, cids)
-			}
-			if provideErr != nil {
-				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
-					Type:  routing.QueryError,
-					Extra: provideErr.Error(),
-				})
+				provideCids(nd.Provider, cids)
 			}
 		}()
 
@@ -264,11 +265,6 @@ Trigger reprovider to announce our data to network.
 			return ErrNotOnline
 		}
 
-		provideSys, ok := nd.Provider.(provider.System)
-		if !ok {
-			return errors.New("manual reprovide not supported with sweeping provider")
-		}
-
 		// respect global config
 		cfg, err := nd.Repo.Config()
 		if err != nil {
@@ -280,6 +276,10 @@ Trigger reprovider to announce our data to network.
 		if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) == 0 {
 			return errors.New("invalid configuration: Reprovider.Interval is set to '0'")
 		}
+		provideSys, ok := nd.Provider.(*node.BurstProvider)
+		if !ok {
+			return fmt.Errorf("manual reprovide not supported with sweeping provider, %T", nd.Provider)
+		}
 
 		err = provideSys.Reprovide(req.Context)
 		if err != nil {
@@ -290,41 +290,23 @@ Trigger reprovider to announce our data to network.
 	},
 }
 
-func provideKeys(ctx context.Context, r routing.Routing, cids []cid.Cid) error {
-	for _, c := range cids {
-		// TODO: only provide cids according to Provide.Strategy
-		err := r.Provide(ctx, c, true)
-		if err != nil {
-			return err
-		}
+func provideCids(prov node.DHTProvider, cids []cid.Cid) {
+	mhs := make([]mh.Multihash, len(cids))
+	for i, c := range cids {
+		mhs[i] = c.Hash()
 	}
-	return nil
+	prov.StartProviding(true, mhs...)
 }
 
-func provideKeysRec(ctx context.Context, r routing.Routing, dserv ipld.DAGService, cids []cid.Cid) error {
-	provided := cid.NewSet()
+func provideCidsRec(ctx context.Context, prov node.DHTProvider, dserv ipld.DAGService, cids []cid.Cid) error {
 	for _, c := range cids {
 		kset := cid.NewSet()
-
 		err := dag.Walk(ctx, dag.GetLinksDirect(dserv), c, kset.Visit)
 		if err != nil {
 			return err
 		}
-
-		for _, k := range kset.Keys() {
-			if provided.Has(k) {
-				continue
-			}
-
-			// TODO: only provide cids according to Provide.Strategy
-			err = r.Provide(ctx, k, true)
-			if err != nil {
-				return err
-			}
-			provided.Add(k)
-		}
+		provideCids(prov, kset.Keys())
 	}
-
 	return nil
 }
 
