@@ -1,3 +1,4 @@
+// Package flatfs provides a flatfs datastore plugin.
 package flatfs
 
 import (

@@ -1,4 +1,4 @@
-// package fsrepo
+// Package fsrepo implements filesystem-backed repository storage.
 //
 // TODO explain the package roadmap...
 //

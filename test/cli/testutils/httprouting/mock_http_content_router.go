@@ -1,3 +1,4 @@
+// Package httprouting provides test utilities for HTTP routing functionality.
 package httprouting
 
 import (

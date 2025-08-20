@@ -1,3 +1,4 @@
+// Package coremock provides mock implementations for testing IPFS core functionality.
 package coremock
 
 import (

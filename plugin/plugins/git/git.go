@@ -1,3 +1,4 @@
+// Package git provides a git IPLD codec plugin.
 package git
 
 import (

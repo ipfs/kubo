@@ -19,7 +19,7 @@ var infiniteResourceLimits = rcmgr.InfiniteLimits.ToPartialLimitConfig().System
 // The defaults follow the documentation in docs/libp2p-resource-management.md.
 // Any changes in the logic here should be reflected there.
 func createDefaultLimitConfig(cfg config.SwarmConfig) (limitConfig rcmgr.ConcreteLimitConfig, logMessageForStartup string, err error) {
-	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 2)
+	maxMemoryDefaultString := humanize.Bytes(memory.TotalMemory() / 2)
 	maxMemoryString := cfg.ResourceMgr.MaxMemory.WithDefault(maxMemoryDefaultString)
 	maxMemory, err := humanize.ParseBytes(maxMemoryString)
 	if err != nil {

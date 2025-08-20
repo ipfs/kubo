@@ -127,13 +127,13 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	r.Router.Type = out.Type
-	r.Router.Parameters = p
+	r.Type = out.Type
+	r.Parameters = p
 
 	return nil
 }
 
-// Type is the routing type.
+// RouterType is the routing type.
 // Depending of the type we need to instantiate different Routing implementations.
 type RouterType string
 

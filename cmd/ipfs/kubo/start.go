@@ -1,4 +1,4 @@
-// cmd/ipfs/kubo implements the primary CLI binary for kubo
+// Package kubo implements the primary CLI binary for kubo
 package kubo
 
 import (

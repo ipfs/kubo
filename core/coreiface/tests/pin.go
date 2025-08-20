@@ -536,7 +536,7 @@ func assertPinLsAllConsistency(t *testing.T, ctx context.Context, api iface.Core
 			t.Fatal(err)
 		}
 
-		if expected, actual := len(pins), pinProps.Set.Len(); expected != actual {
+		if expected, actual := len(pins), pinProps.Len(); expected != actual {
 			t.Fatalf("pin ls all has %d pins of type %s, but pin ls for the type has %d", expected, typeStr, actual)
 		}
 

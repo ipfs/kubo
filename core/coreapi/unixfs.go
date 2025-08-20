@@ -80,12 +80,12 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	//	return
 	//}
 
-	if settings.NoCopy && !(cfg.Experimental.FilestoreEnabled || cfg.Experimental.UrlstoreEnabled) {
+	if settings.NoCopy && (!cfg.Experimental.FilestoreEnabled && !cfg.Experimental.UrlstoreEnabled) {
 		return path.ImmutablePath{}, errors.New("either the filestore or the urlstore must be enabled to use nocopy, see: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#ipfs-filestore")
 	}
 
 	addblockstore := api.blockstore
-	if !(settings.FsCache || settings.NoCopy) {
+	if !settings.FsCache && !settings.NoCopy {
 		addblockstore = bstore.NewGCBlockstore(api.baseBlocks, api.blockstore)
 	}
 	exch := api.exchange

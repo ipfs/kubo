@@ -1,3 +1,4 @@
+// Package telemetry provides a plugin for sending telemetry data.
 package telemetry
 
 import (
@@ -531,7 +532,7 @@ func (p *telemetryPlugin) sendTelemetry() error {
 
 	log.Debugf("sending telemetry:\n %s", data)
 
-	req, err := http.NewRequest("POST", p.endpoint, bytes.NewBuffer(data))
+	req, err := http.NewRequest(http.MethodPost, p.endpoint, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}

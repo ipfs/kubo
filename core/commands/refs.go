@@ -320,7 +320,7 @@ func (rw *RefWriter) visit(c cid.Cid, depth int) (bool, bool) {
 	return !atMaxDepth, !ok
 }
 
-// Write one edge
+// WriteEdge writes one edge
 func (rw *RefWriter) WriteEdge(from, to cid.Cid, linkname string, enc cidenc.Encoder) error {
 	if rw.Ctx != nil {
 		select {
@@ -334,9 +334,9 @@ func (rw *RefWriter) WriteEdge(from, to cid.Cid, linkname string, enc cidenc.Enc
 	switch {
 	case rw.PrintFmt != "":
 		s = rw.PrintFmt
-		s = strings.Replace(s, "<src>", enc.Encode(from), -1)
-		s = strings.Replace(s, "<dst>", enc.Encode(to), -1)
-		s = strings.Replace(s, "<linkname>", linkname, -1)
+		s = strings.ReplaceAll(s, "<src>", enc.Encode(from))
+		s = strings.ReplaceAll(s, "<dst>", enc.Encode(to))
+		s = strings.ReplaceAll(s, "<linkname>", linkname)
 	default:
 		s += enc.Encode(to)
 	}

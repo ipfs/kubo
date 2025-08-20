@@ -76,7 +76,7 @@ func (r *StreamRegistry) Register(streamInfo *Stream) {
 	r.Lock()
 	defer r.Unlock()
 
-	r.ConnManager.TagPeer(streamInfo.peer, cmgrTag, 20)
+	r.TagPeer(streamInfo.peer, cmgrTag, 20)
 	r.conns[streamInfo.peer]++
 
 	streamInfo.id = r.nextID
@@ -99,7 +99,7 @@ func (r *StreamRegistry) Deregister(streamID uint64) {
 	r.conns[p]--
 	if r.conns[p] < 1 {
 		delete(r.conns, p)
-		r.ConnManager.UntagPeer(p, cmgrTag)
+		r.UntagPeer(p, cmgrTag)
 	}
 
 	delete(r.Streams, streamID)

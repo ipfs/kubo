@@ -180,7 +180,7 @@ func (ci *connInfo) Direction() inet.Direction {
 }
 
 func (ci *connInfo) Latency() (time.Duration, error) {
-	return ci.peerstore.LatencyEWMA(peer.ID(ci.ID())), nil
+	return ci.peerstore.LatencyEWMA(ci.ID()), nil
 }
 
 func (ci *connInfo) Streams() ([]protocol.ID, error) {

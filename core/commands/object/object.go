@@ -1,3 +1,4 @@
+// Package objectcmd implements IPFS object manipulation commands.
 package objectcmd
 
 import (

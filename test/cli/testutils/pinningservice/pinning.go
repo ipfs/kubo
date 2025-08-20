@@ -1,3 +1,4 @@
+// Package pinningservice provides test utilities for pinning service functionality.
 package pinningservice
 
 import (

@@ -1,3 +1,4 @@
+// Package unit provides data size unit formatting utilities.
 package unit
 
 import "fmt"

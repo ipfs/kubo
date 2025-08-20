@@ -22,7 +22,7 @@ func MetricsScrapingOption(path string) ServeOption {
 	}
 }
 
-// This adds collection of OpenCensus metrics
+// MetricsOpenCensusCollectionOption adds collection of OpenCensus metrics
 func MetricsOpenCensusCollectionOption() ServeOption {
 	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		log.Info("Init OpenCensus")

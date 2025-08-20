@@ -1,3 +1,4 @@
+// Package peerlog provides a plugin for logging peer connection events.
 package peerlog
 
 import (

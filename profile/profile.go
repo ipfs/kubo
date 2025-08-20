@@ -1,3 +1,4 @@
+// Package profile provides performance profiling utilities for kubo.
 package profile
 
 import (

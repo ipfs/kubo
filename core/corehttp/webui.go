@@ -1,6 +1,6 @@
 package corehttp
 
-// WebUI version confirmed to work with this Kubo version
+// WebUIPath is the WebUI version confirmed to work with this Kubo version
 const WebUIPath = "/ipfs/bafybeifplj2s3yegn7ko7tdnwpoxa4c5uaqnk2ajnw5geqm34slcj6b6mu" // v4.8.0
 
 // WebUIPaths is a list of all past webUI paths.

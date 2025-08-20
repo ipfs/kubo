@@ -2,6 +2,7 @@
 // +build linux darwin freebsd netbsd openbsd
 // +build !nofuse
 
+// Package mfs provides a FUSE interface for IPFS mutable file system.
 package mfs
 
 import (
@@ -29,22 +30,22 @@ const (
 	dirSize      = 8
 )
 
-// FUSE filesystem mounted at /mfs.
+// FileSystem is a FUSE filesystem mounted at /mfs.
 type FileSystem struct {
 	root Dir
 }
 
-// Get filesystem root.
+// Root gets filesystem root.
 func (fs *FileSystem) Root() (fs.Node, error) {
 	return &fs.root, nil
 }
 
-// FUSE Adapter for MFS directories.
+// Dir is a FUSE Adapter for MFS directories.
 type Dir struct {
 	mfsDir *mfs.Directory
 }
 
-// Directory attributes (stat).
+// Attr returns directory attributes (stat).
 func (dir *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
 	attr.Mode = mfsDirMode
 	attr.Size = dirSize * blockSize
@@ -52,12 +53,12 @@ func (dir *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
 	return nil
 }
 
-// Access files in a directory.
+// Lookup accesses files in a directory.
 func (dir *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.LookupResponse) (fs.Node, error) {
 	mfsNode, err := dir.mfsDir.Child(req.Name)
 	switch err {
 	case os.ErrNotExist:
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	case nil:
 	default:
 		return nil, err
@@ -76,10 +77,10 @@ func (dir *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.
 		return &result, nil
 	}
 
-	return nil, syscall.Errno(syscall.ENOENT)
+	return nil, syscall.ENOENT
 }
 
-// List (ls) MFS directory.
+// ReadDirAll lists (ls) MFS directory.
 func (dir *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	var res []fuse.Dirent
 	nodes, err := dir.mfsDir.List(ctx)
@@ -136,7 +137,7 @@ func (dir *Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	return dir.mfsDir.Flush()
 }
 
-// Move (mv) an MFS file.
+// Rename moves (mv) an MFS file.
 func (dir *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
 	file, err := dir.mfsDir.Child(req.OldName)
 	if err != nil {
@@ -215,13 +216,13 @@ func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.
 	return &file, &handler, nil
 }
 
-// List dir xattr.
+// Listxattr lists dir xattr.
 func (dir *Dir) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
 	resp.Append(ipfsCIDXattr)
 	return nil
 }
 
-// Get dir xattr.
+// Getxattr gets dir xattr.
 func (dir *Dir) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
 	switch req.Name {
 	case ipfsCIDXattr:
@@ -236,12 +237,12 @@ func (dir *Dir) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *f
 	}
 }
 
-// FUSE adapter for MFS files.
+// File is a FUSE adapter for MFS files.
 type File struct {
 	mfsFile *mfs.File
 }
 
-// File attributes.
+// Attr returns file attributes.
 func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	size, _ := file.mfsFile.Size()
 
@@ -283,18 +284,18 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 	}, nil
 }
 
-// Sync the file's contents to MFS.
+// Fsync syncs the file's contents to MFS.
 func (file *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	return file.mfsFile.Sync()
 }
 
-// List file xattr.
+// Listxattr lists file xattr.
 func (file *File) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
 	resp.Append(ipfsCIDXattr)
 	return nil
 }
 
-// Get file xattr.
+// Getxattr gets file xattr.
 func (file *File) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
 	switch req.Name {
 	case ipfsCIDXattr:
@@ -309,7 +310,7 @@ func (file *File) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp 
 	}
 }
 
-// Wrapper for MFS's file descriptor that conforms to the FUSE fs.Handler
+// FileHandler is a wrapper for MFS's file descriptor that conforms to the FUSE fs.Handler
 // interface.
 type FileHandler struct {
 	mfsFD mfs.FileDescriptor
@@ -353,7 +354,7 @@ func (fh *FileHandler) Write(ctx context.Context, req *fuse.WriteRequest, resp *
 	return nil
 }
 
-// Flushes the file's buffer.
+// Flush flushes the file's buffer.
 func (fh *FileHandler) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
@@ -361,7 +362,7 @@ func (fh *FileHandler) Flush(ctx context.Context, req *fuse.FlushRequest) error 
 	return fh.mfsFD.Flush()
 }
 
-// Closes the file.
+// Release closes the file.
 func (fh *FileHandler) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
@@ -369,7 +370,7 @@ func (fh *FileHandler) Release(ctx context.Context, req *fuse.ReleaseRequest) er
 	return fh.mfsFD.Close()
 }
 
-// Create new filesystem.
+// NewFileSystem creates new filesystem.
 func NewFileSystem(ipfs *core.IpfsNode) fs.FS {
 	return &FileSystem{
 		root: Dir{

@@ -1,3 +1,4 @@
+// Package cmdutils provides utilities for kubo commands.
 package cmdutils
 
 import (

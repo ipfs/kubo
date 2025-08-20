@@ -27,7 +27,7 @@ func mockServer(t *testing.T) (*httptest.Server, func() LogEvent) {
 	// Create a mock HTTP test server
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check if the request is POST to the correct endpoint
-		if r.Method != "POST" || r.URL.Path != "/" {
+		if r.Method != http.MethodPost || r.URL.Path != "/" {
 			t.Log("invalid request")
 			http.Error(w, "invalid request", http.StatusBadRequest)
 			return

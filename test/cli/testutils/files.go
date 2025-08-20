@@ -14,7 +14,7 @@ func MustOpen(name string) *os.File {
 	return f
 }
 
-// Searches for a file in a dir, then the parent dir, etc.
+// FindUp searches for a file in a dir, then the parent dir, etc.
 // If the file is not found, an empty string is returned.
 func FindUp(name, dir string) string {
 	curDir := dir

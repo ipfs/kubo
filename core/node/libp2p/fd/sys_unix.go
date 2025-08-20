@@ -1,6 +1,7 @@
 //go:build linux || darwin
 // +build linux darwin
 
+// Package fd provides file descriptor management utilities.
 package fd
 
 import (

@@ -1,3 +1,4 @@
+// Package test provides test utilities for core API.
 package test
 
 import (

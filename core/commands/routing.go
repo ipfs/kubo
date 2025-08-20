@@ -601,7 +601,7 @@ func escapeDhtKey(s string) (string, error) {
 	parts := strings.Split(s, "/")
 	if len(parts) != 3 ||
 		parts[0] != "" ||
-		!(parts[1] == "ipns" || parts[1] == "pk") {
+		(parts[1] != "ipns" && parts[1] != "pk") {
 		return "", errors.New("invalid key")
 	}
 

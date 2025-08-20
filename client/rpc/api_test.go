@@ -111,7 +111,7 @@ func Test_NewURLApiWithClient_With_Headers(t *testing.T) {
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			val := r.Header.Get(headerToTest)
 			if val != expectedHeaderValue {
-				w.WriteHeader(400)
+				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 			http.ServeContent(w, r, "", time.Now(), strings.NewReader("test"))

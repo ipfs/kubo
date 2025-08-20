@@ -1,13 +1,11 @@
-/*
-**NOTE: this package is experimental.**
-
-Package coreapi provides direct access to the core commands in IPFS. If you are
-embedding IPFS directly in your Go program, this package is the public
-interface you should use to read and write files or otherwise control IPFS.
-
-If you are running IPFS as a separate process, you should use `client/rpc` to
-work with it via HTTP.
-*/
+// Package coreapi provides direct access to the core commands in IPFS. If you are
+// embedding IPFS directly in your Go program, this package is the public
+// interface you should use to read and write files or otherwise control IPFS.
+//
+// **NOTE: this package is experimental.**
+//
+// If you are running IPFS as a separate process, you should use `client/rpc` to
+// work with it via HTTP.
 package coreapi
 
 import (

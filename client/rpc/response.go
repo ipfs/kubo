@@ -80,7 +80,7 @@ func (r *Response) decode(dec interface{}) error {
 
 func (r *Request) Send(c *http.Client) (*Response, error) {
 	url := r.getURL()
-	req, err := http.NewRequest("POST", url, r.Body)
+	req, err := http.NewRequest(http.MethodPost, url, r.Body)
 	if err != nil {
 		return nil, err
 	}

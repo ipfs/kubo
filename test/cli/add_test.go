@@ -1,3 +1,4 @@
+// Package cli contains integration tests for IPFS CLI commands.
 package cli
 
 import (

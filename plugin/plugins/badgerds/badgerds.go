@@ -1,3 +1,4 @@
+// Package badgerds provides a BadgerDB datastore plugin.
 package badgerds
 
 import (

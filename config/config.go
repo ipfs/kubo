@@ -1,4 +1,4 @@
-// package config implements the ipfs config file datastructures and utilities.
+// Package config implements the ipfs config file datastructures and utilities.
 package config
 
 import (
@@ -141,7 +141,7 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 	return m, nil
 }
 
-// Convert config to a map, without using encoding/json, since
+// ReflectToMap converts config to a map, without using encoding/json, since
 // zero/empty/'omitempty' fields are excluded by encoding/json during
 // marshaling.
 func ReflectToMap(conf interface{}) interface{} {
@@ -222,7 +222,7 @@ func (c *Config) Clone() (*Config, error) {
 	return &newConfig, nil
 }
 
-// Check if the provided key is present in the structure.
+// CheckKey checks if the provided key is present in the structure.
 func CheckKey(key string) error {
 	conf := Config{}
 

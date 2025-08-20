@@ -1,3 +1,4 @@
+// Package plugin provides interfaces for extending kubo functionality.
 package plugin
 
 import (

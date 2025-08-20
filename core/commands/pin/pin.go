@@ -1,3 +1,4 @@
+// Package pin implements IPFS pinning commands.
 package pin
 
 import (
@@ -387,7 +388,7 @@ Example:
 		lgcList := map[string]PinLsType{}
 		if !stream {
 			emit = func(v PinLsOutputWrapper) error {
-				lgcList[v.PinLsObject.Cid] = PinLsType{Type: v.PinLsObject.Type, Name: v.PinLsObject.Name}
+				lgcList[v.Cid] = PinLsType{Type: v.Type, Name: v.Name}
 				return nil
 			}
 		} else {
@@ -432,16 +433,16 @@ Example:
 
 			if stream {
 				if quiet {
-					fmt.Fprintf(w, "%s\n", out.PinLsObject.Cid)
-				} else if out.PinLsObject.Name == "" {
-					fmt.Fprintf(w, "%s %s\n", out.PinLsObject.Cid, out.PinLsObject.Type)
+					fmt.Fprintf(w, "%s\n", out.Cid)
+				} else if out.Name == "" {
+					fmt.Fprintf(w, "%s %s\n", out.Cid, out.Type)
 				} else {
-					fmt.Fprintf(w, "%s %s %s\n", out.PinLsObject.Cid, out.PinLsObject.Type, out.PinLsObject.Name)
+					fmt.Fprintf(w, "%s %s %s\n", out.Cid, out.Type, out.Name)
 				}
 				return nil
 			}
 
-			for k, v := range out.PinLsList.Keys {
+			for k, v := range out.Keys {
 				if quiet {
 					fmt.Fprintf(w, "%s\n", k)
 				} else if v.Name == "" {

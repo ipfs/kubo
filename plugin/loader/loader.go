@@ -1,3 +1,4 @@
+// Package loader provides plugin loading functionality for kubo.
 package loader
 
 import (

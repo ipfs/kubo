@@ -3,6 +3,10 @@ linters:
   default: standard
   enable:
     - staticcheck
+    - unconvert
+    - usestdlibvars
+  disable:
+    - errcheck
   settings:
     staticcheck:
       checks:

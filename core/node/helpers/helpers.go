@@ -1,3 +1,4 @@
+// Package helpers provides utility functions for IPFS nodes.
 package helpers
 
 import (

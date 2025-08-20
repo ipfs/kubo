@@ -60,7 +60,7 @@ var CatCmd = &cmds.Command{
 			return err
 		}
 
-		readers, length, err := cat(req.Context, api, req.Arguments, int64(offset), int64(max))
+		readers, length, err := cat(req.Context, api, req.Arguments, offset, max)
 		if err != nil {
 			return err
 		}

@@ -12,7 +12,7 @@ import (
 func TestDHTAutoclient(t *testing.T) {
 	t.Parallel()
 	nodes := harness.NewT(t).NewNodes(10).Init()
-	harness.Nodes(nodes[8:]).ForEachPar(func(node *harness.Node) {
+	nodes[8:].ForEachPar(func(node *harness.Node) {
 		node.IPFS("config", "Routing.Type", "autoclient")
 	})
 	nodes.StartDaemons().Connect()

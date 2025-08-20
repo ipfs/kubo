@@ -1,3 +1,4 @@
+// Package nopfs provides a content blocking plugin using the nopfs library.
 package nopfs
 
 import (

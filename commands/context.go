@@ -1,3 +1,4 @@
+// Package commands implements IPFS commands.
 package commands
 
 import (

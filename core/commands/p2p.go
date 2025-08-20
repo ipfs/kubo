@@ -386,7 +386,7 @@ var p2pCloseCmd = &cmds.Command{
 			}
 		}
 
-		if !(closeAll || p || l || t) {
+		if !closeAll && !p && !l && !t {
 			return errors.New("no matching options given")
 		}
 

@@ -27,7 +27,7 @@ func (r *randomReader) Read(p []byte) (int, error) {
 	return int(n), nil
 }
 
-// createRandomReader produces specified number of pseudo-random bytes
+// DeterministicRandomReader produces specified number of pseudo-random bytes
 // from a seed.
 func DeterministicRandomReader(sizeStr string, seed string) (io.Reader, error) {
 	size, err := humanize.ParseBytes(sizeStr)

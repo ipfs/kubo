@@ -260,16 +260,16 @@ var filesStatCmd = &cmds.Command{
 			}
 
 			s, _ := statGetFormatOptions(req)
-			s = strings.Replace(s, "<hash>", out.Hash, -1)
-			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
-			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
-			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
-			s = strings.Replace(s, "<type>", out.Type, -1)
-			s = strings.Replace(s, "<mode>", mode, -1)
-			s = strings.Replace(s, "<mode-octal>", modeo, -1)
-			s = strings.Replace(s, "<mtime>", mtime, -1)
-			s = strings.Replace(s, "<mtime-secs>", mtimes, -1)
-			s = strings.Replace(s, "<mtime-nsecs>", mtimens, -1)
+			s = strings.ReplaceAll(s, "<hash>", out.Hash)
+			s = strings.ReplaceAll(s, "<size>", fmt.Sprintf("%d", out.Size))
+			s = strings.ReplaceAll(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize))
+			s = strings.ReplaceAll(s, "<childs>", fmt.Sprintf("%d", out.Blocks))
+			s = strings.ReplaceAll(s, "<type>", out.Type)
+			s = strings.ReplaceAll(s, "<mode>", mode)
+			s = strings.ReplaceAll(s, "<mode-octal>", modeo)
+			s = strings.ReplaceAll(s, "<mtime>", mtime)
+			s = strings.ReplaceAll(s, "<mtime-secs>", mtimes)
+			s = strings.ReplaceAll(s, "<mtime-nsecs>", mtimens)
 
 			fmt.Fprintln(w, s)
 
@@ -785,11 +785,11 @@ Examples:
 			return err
 		}
 
-		if int64(offset) > filen {
+		if offset > filen {
 			return fmt.Errorf("offset was past end of file (%d > %d)", offset, filen)
 		}
 
-		_, err = rfd.Seek(int64(offset), io.SeekStart)
+		_, err = rfd.Seek(offset, io.SeekStart)
 		if err != nil {
 			return err
 		}
@@ -800,7 +800,7 @@ Examples:
 			if count < 0 {
 				return fmt.Errorf("cannot specify negative 'count'")
 			}
-			r = io.LimitReader(r, int64(count))
+			r = io.LimitReader(r, count)
 		}
 		return res.Emit(r)
 	},
@@ -1049,7 +1049,7 @@ See '--to-files' in 'ipfs add --help' for more information.
 			return fmt.Errorf("cannot have negative byte count")
 		}
 
-		_, err = wfd.Seek(int64(offset), io.SeekStart)
+		_, err = wfd.Seek(offset, io.SeekStart)
 		if err != nil {
 			flog.Error("seekfail: ", err)
 			return err
@@ -1061,7 +1061,7 @@ See '--to-files' in 'ipfs add --help' for more information.
 			return err
 		}
 		if countfound {
-			r = io.LimitReader(r, int64(count))
+			r = io.LimitReader(r, count)
 		}
 
 		_, err = io.Copy(wfd, r)

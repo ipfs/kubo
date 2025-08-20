@@ -27,7 +27,7 @@ type mount struct {
 	unmountOnce sync.Once
 }
 
-// Mount mounts a fuse fs.FS at a given location, and returns a Mount instance.
+// NewMount mounts a fuse fs.FS at a given location, and returns a Mount instance.
 // ctx is parent is a ContextGroup to bind the mount's ContextGroup to.
 func NewMount(fsys fs.FS, mountpoint string, allowOther bool) (Mount, error) {
 	var conn *fuse.Conn

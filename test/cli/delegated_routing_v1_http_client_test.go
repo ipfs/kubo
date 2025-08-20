@@ -57,7 +57,7 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 			}
 		})
 		res := node.RunIPFS("daemon")
-		assert.Equal(t, 1, res.ExitErr.ProcessState.ExitCode())
+		assert.Equal(t, 1, res.ExitErr.ExitCode())
 		assert.Contains(
 			t,
 			res.Stderr.String(),
@@ -78,7 +78,7 @@ func TestHTTPDelegatedRouting(t *testing.T) {
 			}
 		})
 		res := node.RunIPFS("daemon")
-		assert.Equal(t, 1, res.ExitErr.ProcessState.ExitCode())
+		assert.Equal(t, 1, res.ExitErr.ExitCode())
 		assert.Contains(
 			t,
 			res.Stderr.String(),

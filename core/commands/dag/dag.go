@@ -1,3 +1,4 @@
+// Package dagcmd provides IPFS DAG manipulation commands.
 package dagcmd
 
 import (
