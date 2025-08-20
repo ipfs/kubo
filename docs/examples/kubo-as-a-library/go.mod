@@ -1,13 +1,13 @@
 module github.com/ipfs/kubo/examples/kubo-as-a-library
 
-go 1.24
+go 1.25
 
 // Used to keep this in sync with the current version of kubo. You should remove
 // this if you copy this example.
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.33.2-0.20250812135134-7f108e8235e1
+	github.com/ipfs/boxo v0.34.1-0.20250820080917-da4339538cf9
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.43.0
 	github.com/multiformats/go-multiaddr v0.16.1
@@ -76,7 +76,7 @@ require (
 	github.com/ipfs/go-block-format v0.2.2 // indirect
 	github.com/ipfs/go-cid v0.5.0 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
-	github.com/ipfs/go-datastore v0.8.2 // indirect
+	github.com/ipfs/go-datastore v0.8.3 // indirect
 	github.com/ipfs/go-ds-badger v0.3.4 // indirect
 	github.com/ipfs/go-ds-flatfs v0.5.5 // indirect
 	github.com/ipfs/go-ds-leveldb v0.5.2 // indirect
@@ -91,10 +91,10 @@ require (
 	github.com/ipfs/go-ipld-format v0.6.2 // indirect
 	github.com/ipfs/go-ipld-git v0.1.1 // indirect
 	github.com/ipfs/go-ipld-legacy v0.2.2 // indirect
-	github.com/ipfs/go-log/v2 v2.8.0 // indirect
+	github.com/ipfs/go-log/v2 v2.8.1 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.2 // indirect
-	github.com/ipfs/go-test v0.2.2 // indirect
+	github.com/ipfs/go-test v0.2.3 // indirect
 	github.com/ipfs/go-unixfsnode v1.10.1 // indirect
 	github.com/ipld/go-car/v2 v2.14.3 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
@@ -209,7 +209,7 @@ require (
 	go.uber.org/zap/exp v0.3.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/exp v0.0.0-20250811191247-51f88131bc50 // indirect
+	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6 // indirect
 	golang.org/x/mod v0.27.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect

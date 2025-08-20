@@ -18,6 +18,7 @@
   - [`IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS`](#ipfs_http_routers_filter_protocols)
   - [`IPFS_CONTENT_BLOCKING_DISABLE`](#ipfs_content_blocking_disable)
   - [`IPFS_WAIT_REPO_LOCK`](#ipfs_wait_repo_lock)
+  - [`IPFS_TELEMETRY`](#ipfs_telemetry)
   - [`LIBP2P_TCP_REUSEPORT`](#libp2p_tcp_reuseport)
   - [`LIBP2P_TCP_MUX`](#libp2p_tcp_mux)
   - [`LIBP2P_MUX_PREFS`](#libp2p_mux_prefs)
@@ -152,9 +153,15 @@ $ ipfs resolve -r /ipns/dnslink-test2.example.com
 
 ## `IPFS_HTTP_ROUTERS`
 
-Overrides all implicit HTTP routers enabled when `Routing.Type=auto` with
-the space-separated list of URLs provided in this variable.
-Useful for testing and debugging in offline contexts.
+Overrides AutoConf and all other HTTP routers when set.
+When `Routing.Type=auto`, this environment variable takes precedence over
+both AutoConf-provided endpoints and any manually configured delegated routers.
+The value should be a space or comma-separated list of HTTP routing endpoint URLs.
+
+This is useful for:
+- Testing and debugging in offline contexts
+- Overriding AutoConf endpoints temporarily
+- Using custom or private HTTP routing services
 
 Example:
 
@@ -163,11 +170,11 @@ $ ipfs config Routing.Type auto
 $ IPFS_HTTP_ROUTERS="http://127.0.0.1:7423" ipfs daemon
 ```
 
-The above will replace implicit HTTP routers with single one, allowing for
+The above will replace all AutoConf endpoints with a single local one, allowing for
 inspection/debug of HTTP requests sent by Kubo via `while true ; do nc -l 7423; done`
 or more advanced tools like [mitmproxy](https://docs.mitmproxy.org/stable/#mitmproxy).
 
-Default: `config.DefaultHTTPRouters`
+When not set, Kubo uses endpoints from AutoConf (when enabled) or manually configured `Routing.DelegatedRouters`.
 
 ## `IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS`
 
@@ -193,6 +200,22 @@ IPFS_WAIT_REPO_LOCK="15s"
 ```
 
 If the lock cannot be acquired because someone else has the lock, and `IPFS_WAIT_REPO_LOCK` is set to a valid value, then acquiring the lock is retried every second until the lock is acquired or the specified wait time has elapsed.
+
+## `IPFS_TELEMETRY`
+
+Controls the behavior of the [telemetry plugin](telemetry.md). Valid values are:
+
+- `on`: Enables telemetry.
+- `off`: Disables telemetry.
+- `auto`: Like `on`, but logs an informative message about telemetry and gives user 15 minutes to opt-out before first collection. Used automatically on first run and when `IPFS_TELEMETRY` is not set.
+
+The mode can also be set in the config file under `Plugins.Plugins.telemetry.Config.Mode`.
+
+Example:
+
+```bash
+export IPFS_TELEMETRY="off"
+```
 
 ## `LIBP2P_TCP_REUSEPORT`
 

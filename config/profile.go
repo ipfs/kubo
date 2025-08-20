@@ -87,6 +87,12 @@ is useful when using the daemon in test environments.`,
 			c.Bootstrap = []string{}
 			c.Discovery.MDNS.Enabled = false
 			c.AutoTLS.Enabled = False
+			c.AutoConf.Enabled = False
+
+			// Explicitly set autoconf-controlled fields to empty when autoconf is disabled
+			c.DNS.Resolvers = map[string]string{}
+			c.Routing.DelegatedRouters = []string{}
+			c.Ipns.DelegatedPublishers = []string{}
 			return nil
 		},
 	},
@@ -97,11 +103,10 @@ Inverse profile of the test profile.`,
 		Transform: func(c *Config) error {
 			c.Addresses = addressesConfig()
 
-			bootstrapPeers, err := DefaultBootstrapPeers()
-			if err != nil {
-				return err
-			}
-			c.Bootstrap = appendSingle(c.Bootstrap, BootstrapPeerStrings(bootstrapPeers))
+			// Use AutoConf system for bootstrap peers
+			c.Bootstrap = []string{AutoPlaceholder}
+			c.AutoConf.Enabled = Default
+			c.AutoConf.URL = nil // Clear URL to use implicit default
 
 			c.Swarm.DisableNatPortMap = false
 			c.Discovery.MDNS.Enabled = true
@@ -346,6 +351,39 @@ fetching may be degraded.
 			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0) // no limit here, use size-based Import.UnixFSHAMTDirectorySizeThreshold instead
 			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(1024)
 			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("1MiB") // 1MiB
+			return nil
+		},
+	},
+	"autoconf-on": {
+		Description: `Sets configuration to use implicit defaults from remote autoconf service.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to "auto".
+This profile requires AutoConf to be enabled and configured.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = []string{AutoPlaceholder}
+			c.DNS.Resolvers = map[string]string{
+				".": AutoPlaceholder,
+			}
+			c.Routing.DelegatedRouters = []string{AutoPlaceholder}
+			c.Ipns.DelegatedPublishers = []string{AutoPlaceholder}
+			c.AutoConf.Enabled = True
+			if c.AutoConf.URL == nil {
+				c.AutoConf.URL = NewOptionalString(DefaultAutoConfURL)
+			}
+			return nil
+		},
+	},
+	"autoconf-off": {
+		Description: `Disables AutoConf and sets networking fields to empty for manual configuration.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to empty.
+Use this when you want normal networking but prefer manual control over all endpoints.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = nil
+			c.DNS.Resolvers = nil
+			c.Routing.DelegatedRouters = nil
+			c.Ipns.DelegatedPublishers = nil
+			c.AutoConf.Enabled = False
 			return nil
 		},
 	},

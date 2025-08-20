@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/test/cli/harness"
-	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -75,7 +75,7 @@ func TestProvider(t *testing.T) {
 		})
 		defer nodes.StopDaemons()
 
-		data := testutils.RandomBytes(256)
+		data := random.Bytes(256)
 		cid := nodes[0].IPFSBlockPut(bytes.NewReader(data), "--pin=false")
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
@@ -262,7 +262,7 @@ func TestProvider(t *testing.T) {
 		defer nodes.StopDaemons()
 
 		// Add a file to MFS (should be provided)
-		data := testutils.RandomBytes(1000)
+		data := random.Bytes(1000)
 		cid := nodes[0].IPFSAdd(bytes.NewReader(data), "-Q")
 
 		// not yet in MFS
@@ -329,8 +329,8 @@ func TestProvider(t *testing.T) {
 	t.Run("Reprovides with 'pinned' strategy", func(t *testing.T) {
 		t.Parallel()
 
-		foo := testutils.RandomBytes(1000)
-		bar := testutils.RandomBytes(1000)
+		foo := random.Bytes(1000)
+		bar := random.Bytes(1000)
 
 		nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
 			n.SetIPFSConfig("Reprovider.Strategy", "pinned")
@@ -364,8 +364,8 @@ func TestProvider(t *testing.T) {
 	t.Run("Reprovides with 'roots' strategy", func(t *testing.T) {
 		t.Parallel()
 
-		foo := testutils.RandomBytes(1000)
-		bar := testutils.RandomBytes(1000)
+		foo := random.Bytes(1000)
+		bar := random.Bytes(1000)
 
 		nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
 			n.SetIPFSConfig("Reprovider.Strategy", "roots")
@@ -396,7 +396,7 @@ func TestProvider(t *testing.T) {
 	t.Run("Reprovides with 'mfs' strategy", func(t *testing.T) {
 		t.Parallel()
 
-		bar := testutils.RandomBytes(1000)
+		bar := random.Bytes(1000)
 
 		nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
 			n.SetIPFSConfig("Reprovider.Strategy", "mfs")

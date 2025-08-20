@@ -53,6 +53,23 @@ func (c *Context) GetNode() (*core.IpfsNode, error) {
 	return c.node, err
 }
 
+// ClearCachedNode clears any cached node, forcing GetNode to construct a new one.
+//
+// This method is critical for mitigating racy FX dependency injection behavior
+// that can occur during daemon startup. The daemon may create multiple IpfsNode
+// instances during initialization - first an offline node during early init, then
+// the proper online daemon node. Without clearing the cache, HTTP RPC handlers may
+// end up using the first (offline) cached node instead of the intended online daemon node.
+//
+// This behavior was likely present forever in go-ipfs, but recent changes made it more
+// prominent and forced us to proactively mitigate FX shortcomings. The daemon calls
+// this method immediately before setting its ConstructNode function to ensure that
+// subsequent GetNode() calls use the correct online daemon node rather than any
+// stale cached offline node from initialization.
+func (c *Context) ClearCachedNode() {
+	c.node = nil
+}
+
 // GetAPI returns CoreAPI instance backed by ipfs node.
 // It may construct the node with the provided function.
 func (c *Context) GetAPI() (coreiface.CoreAPI, error) {

@@ -1,6 +1,6 @@
 module github.com/ipfs/kubo
 
-go 1.24.0
+go 1.25
 
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
@@ -61,6 +61,7 @@ require (
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.5
 	github.com/libp2p/go-libp2p-testing v0.12.0
 	github.com/libp2p/go-socket-activation v0.1.1
+	github.com/miekg/dns v1.1.68
 	github.com/multiformats/go-multiaddr v0.16.1
 	github.com/multiformats/go-multiaddr-dns v0.4.1
 	github.com/multiformats/go-multibase v0.2.0
@@ -83,7 +84,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.37.0
 	go.uber.org/dig v1.19.0
 	go.uber.org/fx v1.24.0
-	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.41.0
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6
@@ -176,7 +176,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mholt/acmez/v3 v3.1.2 // indirect
-	github.com/miekg/dns v1.1.68 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
@@ -249,6 +248,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.37.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.7.0 // indirect
 	go.uber.org/mock v0.5.2 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/net v0.43.0 // indirect
