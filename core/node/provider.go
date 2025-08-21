@@ -44,6 +44,7 @@ type NoopProvider struct{}
 func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) {}
 func (r *NoopProvider) ProvideOnce(...mh.Multihash)          {}
 func (r *NoopProvider) Clear() int                           { return 0 }
+func (r *NoopProvider) RefreshSchedule()                     {}
 
 // DHTProvider is an interface for providing keys to a DHT swarm. It holds a
 // state of keys to be advertised, and is responsible for periodically
@@ -71,6 +72,7 @@ type DHTProvider interface {
 	// Clear clears the all the keys from the provide queue and returns
 	// the number of keys that were cleared.
 	Clear() int
+	RefreshSchedule()
 }
 
 var (
@@ -119,62 +121,65 @@ func (r *BurstProvider) Clear() int {
 	return r.System.Clear()
 }
 
+func (r *BurstProvider) RefreshSchedule() {}
+
 // BurstProviderOpt creates a BurstProvider to be used as provider in the
 // IpfsNode
 func BurstProviderOpt(reprovideInterval time.Duration, strategy string, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
-	system := fx.Provide(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, repo repo.Repo) (provider.System, DHTProvider, error) {
-		// Initialize provider.System first, before pinner/blockstore/etc.
-		// The KeyChanFunc will be set later via SetKeyProvider() once we have
-		// created the pinner, blockstore and other dependencies.
-		opts := []provider.Option{
-			provider.Online(cr),
-			provider.ReproviderInterval(reprovideInterval),
-			provider.ProvideWorkerCount(provideWorkerCount),
-		}
-		if !acceleratedDHTClient && reprovideInterval > 0 {
-			// The estimation kinda suck if you are running with accelerated DHT client,
-			// given this message is just trying to push people to use the acceleratedDHTClient
-			// let's not report on through if it's in use
-			opts = append(opts,
-				provider.ThroughputReport(func(reprovide bool, complete bool, keysProvided uint, duration time.Duration) bool {
-					avgProvideSpeed := duration / time.Duration(keysProvided)
-					count := uint64(keysProvided)
+	system := fx.Provide(
+		fx.Annotate(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, repo repo.Repo) (*BurstProvider, error) {
+			// Initialize provider.System first, before pinner/blockstore/etc.
+			// The KeyChanFunc will be set later via SetKeyProvider() once we have
+			// created the pinner, blockstore and other dependencies.
+			opts := []provider.Option{
+				provider.Online(cr),
+				provider.ReproviderInterval(reprovideInterval),
+				provider.ProvideWorkerCount(provideWorkerCount),
+			}
+			if !acceleratedDHTClient && reprovideInterval > 0 {
+				// The estimation kinda suck if you are running with accelerated DHT client,
+				// given this message is just trying to push people to use the acceleratedDHTClient
+				// let's not report on through if it's in use
+				opts = append(opts,
+					provider.ThroughputReport(func(reprovide bool, complete bool, keysProvided uint, duration time.Duration) bool {
+						avgProvideSpeed := duration / time.Duration(keysProvided)
+						count := uint64(keysProvided)
 
-					if !reprovide || !complete {
-						// We don't know how many CIDs we have to provide, try to fetch it from the blockstore.
-						// But don't try for too long as this might be very expensive if you have a huge datastore.
-						ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
-						defer cancel()
+						if !reprovide || !complete {
+							// We don't know how many CIDs we have to provide, try to fetch it from the blockstore.
+							// But don't try for too long as this might be very expensive if you have a huge datastore.
+							ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+							defer cancel()
 
-						// FIXME: I want a running counter of blocks so size of blockstore can be an O(1) lookup.
-						// Note: talk to datastore directly, as to not depend on Blockstore here.
-						qr, err := repo.Datastore().Query(ctx, query.Query{
-							Prefix:   blockstore.BlockPrefix.String(),
-							KeysOnly: true,
-						})
-						if err != nil {
-							logger.Errorf("fetching AllKeysChain in provider ThroughputReport: %v", err)
-							return false
-						}
-						defer qr.Close()
-						count = 0
-					countLoop:
-						for {
-							select {
-							case _, ok := <-qr.Next():
-								if !ok {
-									break countLoop
-								}
-								count++
-							case <-ctx.Done():
-								// really big blockstore mode
+							// FIXME: I want a running counter of blocks so size of blockstore can be an O(1) lookup.
+							// Note: talk to datastore directly, as to not depend on Blockstore here.
+							qr, err := repo.Datastore().Query(ctx, query.Query{
+								Prefix:   blockstore.BlockPrefix.String(),
+								KeysOnly: true,
+							})
+							if err != nil {
+								logger.Errorf("fetching AllKeysChain in provider ThroughputReport: %v", err)
+								return false
+							}
+							defer qr.Close()
+							count = 0
+						countLoop:
+							for {
+								select {
+								case _, ok := <-qr.Next():
+									if !ok {
+										break countLoop
+									}
+									count++
+								case <-ctx.Done():
+									// really big blockstore mode
 
-								// how many blocks would be in a 10TiB blockstore with 128KiB blocks.
-								const probableBigBlockstore = (10 * 1024 * 1024 * 1024 * 1024) / (128 * 1024)
-								// How long per block that lasts us.
-								expectedProvideSpeed := reprovideInterval / probableBigBlockstore
-								if avgProvideSpeed > expectedProvideSpeed {
-									logger.Errorf(`
+									// how many blocks would be in a 10TiB blockstore with 128KiB blocks.
+									const probableBigBlockstore = (10 * 1024 * 1024 * 1024 * 1024) / (128 * 1024)
+									// How long per block that lasts us.
+									expectedProvideSpeed := reprovideInterval / probableBigBlockstore
+									if avgProvideSpeed > expectedProvideSpeed {
+										logger.Errorf(`
 🔔🔔🔔 YOU MAY BE FALLING BEHIND DHT REPROVIDES! 🔔🔔🔔
 
 ⚠️ Your system might be struggling to keep up with DHT reprovides!
@@ -189,21 +194,21 @@ size of 10TiB, it would take %v to provide the complete set.
 
 💡 Consider enabling the Accelerated DHT to enhance your system performance. See:
 https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtclient`,
-										keysProvided, avgProvideSpeed, avgProvideSpeed*probableBigBlockstore, reprovideInterval)
-									return false
+											keysProvided, avgProvideSpeed, avgProvideSpeed*probableBigBlockstore, reprovideInterval)
+										return false
+									}
 								}
 							}
 						}
-					}
 
-					// How long per block that lasts us.
-					expectedProvideSpeed := reprovideInterval
-					if count > 0 {
-						expectedProvideSpeed = reprovideInterval / time.Duration(count)
-					}
+						// How long per block that lasts us.
+						expectedProvideSpeed := reprovideInterval
+						if count > 0 {
+							expectedProvideSpeed = reprovideInterval / time.Duration(count)
+						}
 
-					if avgProvideSpeed > expectedProvideSpeed {
-						logger.Errorf(`
+						if avgProvideSpeed > expectedProvideSpeed {
+							logger.Errorf(`
 🔔🔔🔔 YOU ARE FALLING BEHIND DHT REPROVIDES! 🔔🔔🔔
 
 ⚠️ Your system is struggling to keep up with DHT reprovides!
@@ -216,29 +221,31 @@ We observed that you recently provided %d keys at an average rate of %v per key.
 
 💡 Consider enabling the Accelerated DHT to enhance your reprovide throughput. See:
 https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtclient`,
-							keysProvided, avgProvideSpeed, count, avgProvideSpeed*time.Duration(count), reprovideInterval)
-					}
-					return false
-				}, sampledBatchSize))
-		}
+								keysProvided, avgProvideSpeed, count, avgProvideSpeed*time.Duration(count), reprovideInterval)
+						}
+						return false
+					}, sampledBatchSize))
+			}
 
-		sys, err := provider.New(repo.Datastore(), opts...)
-		if err != nil {
-			return nil, nil, err
-		}
+			sys, err := provider.New(repo.Datastore(), opts...)
+			if err != nil {
+				return nil, err
+			}
+			lc.Append(fx.Hook{
+				OnStop: func(ctx context.Context) error {
+					return sys.Close()
+				},
+			})
 
-		handleStrategyChange(strategy, sys, repo.Datastore())
+			prov := &BurstProvider{sys}
+			handleStrategyChange(strategy, prov, repo.Datastore())
 
-		lc.Append(fx.Hook{
-			OnStop: func(ctx context.Context) error {
-				return sys.Close()
-			},
-		})
-
-		prov := &BurstProvider{sys}
-
-		return prov, prov, nil
-	})
+			return prov, nil
+		},
+			fx.As(new(provider.System)),
+			fx.As(new(DHTProvider)),
+		),
+	)
 	setKeyProvider := fx.Invoke(func(lc fx.Lifecycle, system provider.System, keyProvider provider.KeyChanFunc) {
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
@@ -259,26 +266,28 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 }
 
 func SweepingProvider(cfg *config.Config) fx.Option {
-	keyStore := fx.Provide(func(repo repo.Repo) (*rds.KeyStore, error) {
-		return rds.NewKeyStore(repo.Datastore(),
+	type providerInput struct {
+		fx.In
+		DHT  routing.Routing `name:"dhtc"`
+		Repo repo.Repo
+	}
+	fmt.Println("SweepingProvider")
+	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.KeyStore, error) {
+		keyStore, err := rds.NewKeyStore(in.Repo.Datastore(),
 			rds.WithPrefixBits(10),
 			rds.WithDatastorePrefix("/reprovider/mhs"),
 			rds.WithGCInterval(cfg.Reprovider.Sweep.KeyStoreGCInterval.WithDefault(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval))),
 			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
 		)
-	})
+		if err != nil {
+			return nil, nil, err
+		}
 
-	type input struct {
-		fx.In
-		DHT      routing.Routing `name:"dhtc"`
-		KeyStore *rds.KeyStore
-	}
-	sweepingReprovider := fx.Provide(func(in input) (DHTProvider, error) {
 		switch dht := in.DHT.(type) {
 		case *dual.DHT:
 			if dht != nil {
 				prov, err := ddhtprovider.New(dht,
-					ddhtprovider.WithKeyStore(in.KeyStore),
+					ddhtprovider.WithKeyStore(keyStore),
 
 					ddhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
@@ -289,16 +298,18 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 					ddhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
 				)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				// Add keys from the KeyStore to the schedule
-				prov.RefreshSchedule()
-				return prov, nil
+				// prov.RefreshSchedule()
+				return prov, keyStore, nil
+				// _ = prov
+				// return &NoopProvider{}, nil
 			}
 		case *fullrt.FullRT:
 			if dht != nil {
 				prov, err := dhtprovider.New(
-					dhtprovider.WithKeyStore(in.KeyStore),
+					dhtprovider.WithKeyStore(keyStore),
 
 					dhtprovider.WithRouter(dht),
 					dhtprovider.WithMessageSender(dht.MessageSender()),
@@ -320,42 +331,47 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 					dhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
 				)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				// Add keys from the KeyStore to the schedule
-				prov.RefreshSchedule()
-				return prov, nil
+				// prov.RefreshSchedule()
+				return prov, keyStore, nil
 			}
 		}
-		return &NoopProvider{}, nil
+		return &NoopProvider{}, keyStore, nil
 	})
 
-	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, keyStore *rds.KeyStore, keyProvider provider.KeyChanFunc) {
+	type keystoreInput struct {
+		fx.In
+		Provider    DHTProvider
+		KeyStore    *rds.KeyStore
+		KeyProvider provider.KeyChanFunc
+	}
+	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
 				// TODO: Set GCFunc to keystore
-				ch, err := keyProvider(ctx)
+				ch, err := in.KeyProvider(ctx)
 				if err != nil {
 					return err
 				}
-				return keyStore.ResetCids(ctx, ch)
+				err = in.KeyStore.ResetCids(ctx, ch)
+				if err != nil {
+					return err
+				}
+				in.Provider.RefreshSchedule()
+				return nil
 			},
-		})
-	})
-
-	closeKeyStore := fx.Invoke(func(lc fx.Lifecycle, keyStore *rds.KeyStore) {
-		lc.Append(fx.Hook{
 			OnStop: func(_ context.Context) error {
-				return keyStore.Close()
+				return in.KeyStore.Close()
 			},
 		})
 	})
 
 	return fx.Options(
-		keyStore,
+		// keyStore,
 		sweepingReprovider,
 		initKeyStore,
-		closeKeyStore,
 	)
 }
 
@@ -516,7 +532,7 @@ func persistStrategy(ctx context.Context, strategy string, ds datastore.Datastor
 // Strategy change detection: when the reproviding strategy changes,
 // we clear the provide queue to avoid unexpected behavior from mixing
 // strategies. This ensures a clean transition between different providing modes.
-func handleStrategyChange(strategy string, provider provider.System, ds datastore.Datastore) {
+func handleStrategyChange(strategy string, provider DHTProvider, ds datastore.Datastore) {
 	ctx := context.Background()
 
 	previous, changed, err := detectStrategyChange(ctx, strategy, ds)
