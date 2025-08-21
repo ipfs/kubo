@@ -30,7 +30,7 @@ func ParseReproviderStrategy(s string) ReproviderStrategy {
 	var strategy ReproviderStrategy
 	for _, part := range strings.Split(s, "+") {
 		switch part {
-		case "all", "flat", "": // special case, does not mix with others
+		case "all", "flat", "": // special case, does not mix with others ("flat" is deprecated, maps to "all")
 			return ReproviderStrategyAll
 		case "pinned":
 			strategy |= ReproviderStrategyPinned

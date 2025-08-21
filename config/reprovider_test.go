@@ -14,6 +14,7 @@ func TestParseReproviderStrategy(t *testing.T) {
 		{"invalid", 0},
 		{"all+invalid", ReproviderStrategyAll},
 		{"", ReproviderStrategyAll},
+		{"flat", ReproviderStrategyAll}, // deprecated, maps to "all"
 		{"flat+all", ReproviderStrategyAll},
 	}
 
