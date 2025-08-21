@@ -76,12 +76,14 @@ Adds the content of <path> to IPFS. Use -r to add directories (recursively).
 `,
 		LongDescription: `
 Adds the content of <path> to IPFS. Use -r to add directories.
-Note that directories are added recursively, to form the IPFS
-MerkleDAG.
+Note that directories are added recursively, and big files are chunked,
+to form the IPFS MerkleDAG. Learn more: https://docs.ipfs.tech/concepts/merkle-dag/
 
-If the daemon is not running, it will just add locally.
+If the daemon is not running, it will just add locally to the repo at $IPFS_PATH.
 If the daemon is started later, it will be advertised after a few
 seconds when the reprovider runs.
+
+BASIC EXAMPLES:
 
 The wrap option, '-w', wraps the file (or files, if using the
 recursive option) in a directory. This directory contains only
@@ -101,6 +103,12 @@ You can now refer to the added file in a gateway, like so:
 Files imported with 'ipfs add' are protected from GC (implicit '--pin=true'),
 but it is up to you to remember the returned CID to get the data back later.
 
+If you need to back up or transport content-addressed data using a non-IPFS
+medium, CID can be preserved with CAR files.
+See 'dag export' and 'dag import' for more information.
+
+MFS INTEGRATION:
+
 Passing '--to-files' creates a reference in Files API (MFS), making it easier
 to find it in the future:
 
@@ -111,6 +119,8 @@ to find it in the future:
 
 See 'ipfs files --help' to learn more about using MFS
 for keeping track of added files and directories.
+
+CHUNKING EXAMPLES:
 
 The chunker option, '-s', specifies the chunking strategy that dictates
 how to break files into blocks. Blocks with same content can
@@ -132,13 +142,15 @@ want to use a 1024 times larger chunk sizes for most files.
 
 You can now check what blocks have been created by:
 
-  > ipfs object links QmafrLBfzRLV4XSH1XcaMMeaXEUhDJjmtDfsYU95TrWG87
+  > ipfs ls QmafrLBfzRLV4XSH1XcaMMeaXEUhDJjmtDfsYU95TrWG87
   QmY6yj1GsermExDXoosVE3aSPxdMNYr6aKuw3nA8LoWPRS 2059
   Qmf7ZQeSxq2fJVJbCmgTrLLVN9tDR9Wy5k75DxQKuz5Gyt 1195
-  > ipfs object links Qmf1hDN65tR55Ubh2RN1FPxr69xq3giVBz1KApsresY8Gn
+  > ipfs ls Qmf1hDN65tR55Ubh2RN1FPxr69xq3giVBz1KApsresY8Gn
   QmY6yj1GsermExDXoosVE3aSPxdMNYr6aKuw3nA8LoWPRS 2059
   QmerURi9k4XzKCaaPbsK6BL5pMEjF7PGphjDvkkjDtsVf3 868
   QmQB28iwSriSUSMqG2nXDTLtdPHgWb4rebBrU7Q1j4vxPv 338
+
+ADVANCED CONFIGURATION:
 
 Finally, a note on hash (CID) determinism and 'ipfs add' command.
 
@@ -147,12 +159,11 @@ new flags may be added in the future. It is not guaranteed for the implicit
 defaults of 'ipfs add' to remain the same in future Kubo releases, or for other
 IPFS software to use the same import parameters as Kubo.
 
+Note: CIDv1 is automatically used when using non-default options like custom
+hash functions or when raw-leaves is explicitly enabled.
+
 Use Import.* configuration options to override global implicit defaults:
 https://github.com/ipfs/kubo/blob/master/docs/config.md#import
-
-If you need to back up or transport content-addressed data using a non-IPFS
-medium, CID can be preserved with CAR files.
-See 'dag export' and 'dag import' for more information.
 `,
 	},
 
@@ -160,37 +171,45 @@ See 'dag export' and 'dag import' for more information.
 		cmds.FileArg("path", true, true, "The path to a file to be added to IPFS.").EnableRecursive().EnableStdin(),
 	},
 	Options: []cmds.Option{
+		// Input Processing
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.OptionDerefArgs,     // a builtin option that resolves passed in filesystem links (--dereference-args)
 		cmds.OptionStdinName,     // a builtin option that optionally allows wrapping stdin into a named file
 		cmds.OptionHidden,
 		cmds.OptionIgnore,
 		cmds.OptionIgnoreRules,
+		// Output Control
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 		cmds.BoolOption(silentOptionName, "Write no output."),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
-		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		// Basic Add Behavior
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash. Default: Import.UnixFSChunker"),
-		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. Default: Import.UnixFSRawLeaves"),
-		cmds.IntOption(maxFileLinksOptionName, "Limit the maximum number of links in UnixFS file nodes to this value. (experimental) Default: Import.UnixFSFileMaxLinks"),
-		cmds.IntOption(maxDirectoryLinksOptionName, "Limit the maximum number of links in UnixFS basic directory nodes to this value. Default: Import.UnixFSDirectoryMaxLinks. WARNING: experimental, Import.UnixFSHAMTThreshold is a safer alternative."),
-		cmds.IntOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8). Default: Import.UnixFSHAMTDirectoryMaxFanout WARNING: experimental, see Import.UnixFSHAMTDirectorySizeThreshold as well."),
-		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
-		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
-		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true. Default: Import.CidVersion"),
-		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. Default: Import.HashFunction"),
-		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
-		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 		cmds.BoolOption(pinOptionName, "Pin locally to protect added files from garbage collection.").WithDefault(true),
 		cmds.StringOption(pinNameOptionName, "Name to use for the pin. Requires explicit value (e.g., --pin-name=myname)."),
+		// MFS Integration
 		cmds.StringOption(toFilesOptionName, "Add reference to Files API (MFS) at the provided path."),
-		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries. Disables raw-leaves. (experimental)"),
-		cmds.BoolOption(preserveMtimeOptionName, "Apply existing POSIX modification time to created UnixFS entries. Disables raw-leaves. (experimental)"),
-		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. Disables raw-leaves. (experimental)"),
-		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). Disables raw-leaves. (experimental)"),
+		// CID & Hashing
+		cmds.IntOption(cidVersionOptionName, "CID version (0 or 1). CIDv1 automatically enables raw-leaves and is required for non-sha2-256 hashes. Default: Import.CidVersion"),
+		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. Default: Import.HashFunction"),
+		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. Note: CIDv1 automatically enables raw-leaves. Default: false for CIDv0, true for CIDv1 (Import.UnixFSRawLeaves)"),
+		// Chunking & DAG Structure
+		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash. Files larger than chunk size are split into multiple blocks. Default: Import.UnixFSChunker"),
+		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		// Advanced UnixFS Limits
+		cmds.IntOption(maxFileLinksOptionName, "Limit the maximum number of links in UnixFS file nodes to this value. WARNING: experimental. Default: Import.UnixFSFileMaxLinks"),
+		cmds.IntOption(maxDirectoryLinksOptionName, "Limit the maximum number of links in UnixFS basic directory nodes to this value. WARNING: experimental, Import.UnixFSHAMTDirectorySizeThreshold is safer. Default: Import.UnixFSDirectoryMaxLinks"),
+		cmds.IntOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8). WARNING: experimental, Import.UnixFSHAMTDirectorySizeThreshold is safer. Default: Import.UnixFSHAMTDirectoryMaxFanout"),
+		// Experimental Features
+		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. WARNING: experimental"),
+		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. WARNING: experimental").WithDefault(32),
+		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. WARNING: experimental"),
+		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. WARNING: experimental"),
+		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
+		cmds.BoolOption(preserveMtimeOptionName, "Apply existing POSIX modification time to created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
+		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
+		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
