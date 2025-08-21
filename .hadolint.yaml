@@ -11,12 +11,3 @@ ignored:
 trustedRegistries:
   - docker.io
   - gcr.io
-
-# Set error level for specific rules
-override:
-  error:
-    # Ensure we use COPY instead of ADD for files
-    - DL3020
-  warning:
-    # Warn about multiple consecutive RUN instructions
-    - DL3059
