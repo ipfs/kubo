@@ -108,7 +108,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 
 	// wrap the DAGService in a providingDAG service which provides every block written.
 	// note about strategies:
-	//   - "all"/"flat" gets handled directly at the blockstore so no need to provide
+	//   - "all" gets handled directly at the blockstore so no need to provide
 	//   - "roots" gets handled in the pinner
 	//   - "mfs" gets handled in mfs
 	// We need to provide the "pinned" cases only. Added blocks are not

@@ -184,19 +184,6 @@ func mfsProvider(mfsRoot *mfs.Root, fetcher fetcher.Factory) provider.KeyChanFun
 	}
 }
 
-func mfsRootProvider(mfsRoot *mfs.Root) provider.KeyChanFunc {
-	return func(ctx context.Context) (<-chan cid.Cid, error) {
-		rootNode, err := mfsRoot.GetDirectory().GetNode()
-		if err != nil {
-			return nil, fmt.Errorf("error loading mfs root, cannot provide MFS: %w", err)
-		}
-		ch := make(chan cid.Cid, 1)
-		ch <- rootNode.Cid()
-		close(ch)
-		return ch, nil
-	}
-}
-
 type provStrategyIn struct {
 	fx.In
 	Pinner               pin.Pinner
@@ -219,8 +206,7 @@ type provStrategyOut struct {
 // - "roots": Only root CIDs of pinned content
 // - "pinned": All pinned content (roots + children)
 // - "mfs": Only MFS content
-// - "flat": All blocks, no prioritization
-// - "all": Prioritized: pins first, then MFS roots, then all blocks
+// - "all": all blocks
 func createKeyProvider(strategyFlag config.ReproviderStrategy, in provStrategyIn) provider.KeyChanFunc {
 	switch strategyFlag {
 	case config.ReproviderStrategyRoots:
@@ -234,26 +220,9 @@ func createKeyProvider(strategyFlag config.ReproviderStrategy, in provStrategyIn
 		)
 	case config.ReproviderStrategyMFS:
 		return mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher)
-	case config.ReproviderStrategyFlat:
+	default: // "all", "", "flat" (compat)
 		return in.Blockstore.AllKeysChan
-	default: // "all", ""
-		return createAllStrategyProvider(in)
 	}
-}
-
-// createAllStrategyProvider creates the complex "all" strategy provider.
-// This implements a three-tier priority system:
-// 1. Root blocks of direct and recursive pins (highest priority)
-// 2. MFS root (medium priority)
-// 3. All other blocks in blockstore (lowest priority)
-func createAllStrategyProvider(in provStrategyIn) provider.KeyChanFunc {
-	return provider.NewPrioritizedProvider(
-		provider.NewPrioritizedProvider(
-			provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher)),
-			mfsRootProvider(in.MFSRoot),
-		),
-		in.Blockstore.AllKeysChan,
-	)
 }
 
 // detectStrategyChange checks if the reproviding strategy has changed from what's persisted.

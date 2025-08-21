@@ -39,13 +39,12 @@ func BaseBlockstoreCtor(
 		opts := []blockstore.Option{blockstore.WriteThrough(writeThrough)}
 
 		// Blockstore providing integration:
-		// When strategy includes "all" or "flat", the blockstore directly provides blocks as they're Put.
+		// When strategy includes "all" the blockstore directly provides blocks as they're Put.
 		// Important: Provide calls from blockstore are intentionally BLOCKING.
 		// The Provider implementation (not the blockstore) should handle concurrency/queuing.
 		// This avoids spawning unbounded goroutines for concurrent block additions.
 		strategyFlag := config.ParseReproviderStrategy(providingStrategy)
-		shouldProvide := config.ReproviderStrategyAll | config.ReproviderStrategyFlat
-		if strategyFlag&shouldProvide != 0 {
+		if strategyFlag&config.ReproviderStrategyAll != 0 {
 			opts = append(opts, blockstore.Provider(prov))
 		}
 
