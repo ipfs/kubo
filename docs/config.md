@@ -2083,7 +2083,7 @@ Tells reprovider what should be announced. Valid strategies are:
 
 **Memory requirements:**
 
-- Reproviding larger pinsets using the `all`, `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
+- Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
 - This is due to the use of a buffered provider, which avoids holding a lock on the entire pinset during the reprovide cycle.
 
 Default: `"all"`
@@ -3443,7 +3443,7 @@ Disables [Reprovider](#reprovider) system (and announcing to Amino DHT).
 
 ### `announce-on` profile
 
-(Re-)enables [Reprovider](#reprovider) system (reverts [`announce-off` profile](#annouce-off-profile).
+(Re-)enables [Reprovider](#reprovider) system (reverts [`announce-off` profile](#announce-off-profile)).
 
 ### `legacy-cid-v0` profile
 
