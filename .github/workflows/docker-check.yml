@@ -27,6 +27,8 @@ jobs:
         with:
           dockerfile: Dockerfile
           failure-threshold: error
+          verbose: true
+          format: tty
 
   build:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
