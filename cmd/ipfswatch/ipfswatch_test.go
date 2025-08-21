@@ -6,11 +6,11 @@ package main
 import (
 	"testing"
 
-	"github.com/ipfs/kubo/thirdparty/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsHidden(t *testing.T) {
-	assert.True(IsHidden("bar/.git"), t, "dirs beginning with . should be recognized as hidden")
-	assert.False(IsHidden("."), t, ". for current dir should not be considered hidden")
-	assert.False(IsHidden("bar/baz"), t, "normal dirs should not be hidden")
+	require.True(t, IsHidden("bar/.git"), "dirs beginning with . should be recognized as hidden")
+	require.False(t, IsHidden("."), ". for current dir should not be considered hidden")
+	require.False(t, IsHidden("bar/baz"), "normal dirs should not be hidden")
 }

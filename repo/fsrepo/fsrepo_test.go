@@ -7,17 +7,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ipfs/kubo/thirdparty/assert"
-
 	datastore "github.com/ipfs/go-datastore"
 	config "github.com/ipfs/kubo/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInitIdempotence(t *testing.T) {
 	t.Parallel()
 	path := t.TempDir()
 	for i := 0; i < 10; i++ {
-		assert.Nil(Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t, "multiple calls to init should succeed")
+		require.NoError(t, Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), "multiple calls to init should succeed")
 	}
 }
 
@@ -32,78 +31,78 @@ func TestCanManageReposIndependently(t *testing.T) {
 	pathB := t.TempDir()
 
 	t.Log("initialize two repos")
-	assert.Nil(Init(pathA, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t, "a", "should initialize successfully")
-	assert.Nil(Init(pathB, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t, "b", "should initialize successfully")
+	require.NoError(t, Init(pathA, &config.Config{Datastore: config.DefaultDatastoreConfig()}), "a", "should initialize successfully")
+	require.NoError(t, Init(pathB, &config.Config{Datastore: config.DefaultDatastoreConfig()}), "b", "should initialize successfully")
 
 	t.Log("ensure repos initialized")
-	assert.True(IsInitialized(pathA), t, "a should be initialized")
-	assert.True(IsInitialized(pathB), t, "b should be initialized")
+	require.True(t, IsInitialized(pathA), "a should be initialized")
+	require.True(t, IsInitialized(pathB), "b should be initialized")
 
 	t.Log("open the two repos")
 	repoA, err := Open(pathA)
-	assert.Nil(err, t, "a")
+	require.NoError(t, err, "a")
 	repoB, err := Open(pathB)
-	assert.Nil(err, t, "b")
+	require.NoError(t, err, "b")
 
 	t.Log("close and remove b while a is open")
-	assert.Nil(repoB.Close(), t, "close b")
-	assert.Nil(Remove(pathB), t, "remove b")
+	require.NoError(t, repoB.Close(), "close b")
+	require.NoError(t, Remove(pathB), "remove b")
 
 	t.Log("close and remove a")
-	assert.Nil(repoA.Close(), t)
-	assert.Nil(Remove(pathA), t)
+	require.NoError(t, repoA.Close())
+	require.NoError(t, Remove(pathA))
 }
 
 func TestDatastoreGetNotAllowedAfterClose(t *testing.T) {
 	t.Parallel()
 	path := t.TempDir()
 
-	assert.True(!IsInitialized(path), t, "should NOT be initialized")
-	assert.Nil(Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t, "should initialize successfully")
+	require.False(t, IsInitialized(path), "should NOT be initialized")
+	require.NoError(t, Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), "should initialize successfully")
 	r, err := Open(path)
-	assert.Nil(err, t, "should open successfully")
+	require.NoError(t, err, "should open successfully")
 
 	k := "key"
 	data := []byte(k)
-	assert.Nil(r.Datastore().Put(context.Background(), datastore.NewKey(k), data), t, "Put should be successful")
+	require.NoError(t, r.Datastore().Put(context.Background(), datastore.NewKey(k), data), "Put should be successful")
 
-	assert.Nil(r.Close(), t)
+	require.NoError(t, r.Close())
 	_, err = r.Datastore().Get(context.Background(), datastore.NewKey(k))
-	assert.Err(err, t, "after closer, Get should be fail")
+	require.Error(t, err, "after closer, Get should be fail")
 }
 
 func TestDatastorePersistsFromRepoToRepo(t *testing.T) {
 	t.Parallel()
 	path := t.TempDir()
 
-	assert.Nil(Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t)
+	require.NoError(t, Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}))
 	r1, err := Open(path)
-	assert.Nil(err, t)
+	require.NoError(t, err)
 
 	k := "key"
 	expected := []byte(k)
-	assert.Nil(r1.Datastore().Put(context.Background(), datastore.NewKey(k), expected), t, "using first repo, Put should be successful")
-	assert.Nil(r1.Close(), t)
+	require.NoError(t, r1.Datastore().Put(context.Background(), datastore.NewKey(k), expected), "using first repo, Put should be successful")
+	require.NoError(t, r1.Close())
 
 	r2, err := Open(path)
-	assert.Nil(err, t)
+	require.NoError(t, err)
 	actual, err := r2.Datastore().Get(context.Background(), datastore.NewKey(k))
-	assert.Nil(err, t, "using second repo, Get should be successful")
-	assert.Nil(r2.Close(), t)
-	assert.True(bytes.Equal(expected, actual), t, "data should match")
+	require.NoError(t, err, "using second repo, Get should be successful")
+	require.NoError(t, r2.Close())
+	require.True(t, bytes.Equal(expected, actual), "data should match")
 }
 
 func TestOpenMoreThanOnceInSameProcess(t *testing.T) {
 	t.Parallel()
 	path := t.TempDir()
-	assert.Nil(Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t)
+	require.NoError(t, Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}))
 
 	r1, err := Open(path)
-	assert.Nil(err, t, "first repo should open successfully")
+	require.NoError(t, err, "first repo should open successfully")
 	r2, err := Open(path)
-	assert.Nil(err, t, "second repo should open successfully")
-	assert.True(r1 == r2, t, "second open returns same value")
+	require.NoError(t, err, "second repo should open successfully")
+	require.Equal(t, r1, r2, "second open returns same value")
 
-	assert.Nil(r1.Close(), t)
-	assert.Nil(r2.Close(), t)
+	require.NoError(t, r1.Close())
+	require.NoError(t, r2.Close())
 }

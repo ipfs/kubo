@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/ipfs/boxo/ipns"
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
-	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -70,7 +70,7 @@ func TestRoutingV1Proxy(t *testing.T) {
 		t.Parallel()
 		nodes := setupNodes(t)
 
-		cidStr := nodes[0].IPFSAddStr(testutils.RandomStr(1000))
+		cidStr := nodes[0].IPFSAddStr(string(random.Bytes(1000)))
 		// Reprovide as initialProviderDelay still ongoing
 		res := nodes[0].IPFS("routing", "reprovide")
 		require.NoError(t, res.Err)
@@ -109,7 +109,7 @@ func TestRoutingV1Proxy(t *testing.T) {
 		require.Error(t, res.ExitErr)
 
 		// Publish record on Node 0.
-		path := "/ipfs/" + nodes[0].IPFSAddStr(testutils.RandomStr(1000))
+		path := "/ipfs/" + nodes[0].IPFSAddStr(string(random.Bytes(1000)))
 		nodes[0].IPFS("name", "publish", "--allow-offline", path)
 
 		// Get record on Node 1 (no DHT).
@@ -132,7 +132,7 @@ func TestRoutingV1Proxy(t *testing.T) {
 		require.Error(t, res.ExitErr)
 
 		// Publish name.
-		path := "/ipfs/" + nodes[0].IPFSAddStr(testutils.RandomStr(1000))
+		path := "/ipfs/" + nodes[0].IPFSAddStr(string(random.Bytes(1000)))
 		nodes[0].IPFS("name", "publish", "--allow-offline", path)
 
 		// Resolve IPNS name
@@ -146,7 +146,7 @@ func TestRoutingV1Proxy(t *testing.T) {
 
 		// Publish something on Node 1 (no DHT).
 		nodeName := "/ipns/" + ipns.NameFromPeer(nodes[1].PeerID()).String()
-		path := "/ipfs/" + nodes[1].IPFSAddStr(testutils.RandomStr(1000))
+		path := "/ipfs/" + nodes[1].IPFSAddStr(string(random.Bytes(1000)))
 		nodes[1].IPFS("name", "publish", "--allow-offline", path)
 
 		// Retrieve through Node 0.

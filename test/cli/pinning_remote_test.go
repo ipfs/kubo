@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/test/cli/harness"
-	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/ipfs/kubo/test/cli/testutils/pinningservice"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -350,7 +350,7 @@ func TestRemotePinning(t *testing.T) {
 				pin.Status = "pinned"
 				transitionedCh <- struct{}{}
 			}
-			hash := node.IPFSAddStr(string(testutils.RandomBytes(1000)))
+			hash := node.IPFSAddStr(string(random.Bytes(1000)))
 			node.IPFS("pin", "remote", "add", "--background=false", "--service=svc", hash)
 			<-transitionedCh
 			res := node.IPFS("pin", "remote", "ls", "--service=svc", "--cid="+hash, "--enc=json").Stdout.String()
@@ -368,7 +368,7 @@ func TestRemotePinning(t *testing.T) {
 				defer pin.M.Unlock()
 				pin.Status = "pinned"
 			}
-			hash := node.IPFSAddStr(string(testutils.RandomBytes(1000)))
+			hash := node.IPFSAddStr(string(random.Bytes(1000)))
 			node.IPFS("pin", "remote", "add", "--service=svc", "--name=force-test-name", hash)
 			node.IPFS("pin", "remote", "add", "--service=svc", "--name=force-test-name", hash)
 
@@ -396,7 +396,7 @@ func TestRemotePinning(t *testing.T) {
 				defer pin.M.Unlock()
 				pin.Status = "pinned"
 			}
-			hash := node.IPFSAddStr(string(testutils.RandomBytes(1000)))
+			hash := node.IPFSAddStr(string(random.Bytes(1000)))
 			node.IPFS("pin", "remote", "add", "--service=svc", "--name=force-test-name", hash)
 			node.IPFS("pin", "remote", "add", "--service=svc", "--name=force-test-name", hash)
 
@@ -417,7 +417,7 @@ func TestRemotePinning(t *testing.T) {
 				pin.Status = "pinned"
 			}
 			for i := 0; i < 4; i++ {
-				hash := node.IPFSAddStr(string(testutils.RandomBytes(1000)))
+				hash := node.IPFSAddStr(string(random.Bytes(1000)))
 				name := fmt.Sprintf("--name=%d", i)
 				node.IPFS("pin", "remote", "add", "--service=svc", "--name="+name, hash)
 			}
@@ -438,7 +438,7 @@ func TestRemotePinning(t *testing.T) {
 		_, svcURL := runPinningService(t, authToken)
 		node.IPFS("pin", "remote", "service", "add", "svc", svcURL, authToken)
 
-		hash := node.IPFSAddStr(string(testutils.RandomBytes(1000)))
+		hash := node.IPFSAddStr(string(random.Bytes(1000)))
 		res := node.IPFS("pin", "remote", "add", "--service=svc", "--background", hash)
 		warningMsg := "WARNING: the local node is offline and remote pinning may fail if there is no other provider for this CID"
 		assert.Contains(t, res.Stdout.String(), warningMsg)

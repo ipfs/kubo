@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"github.com/anmitsu/go-shlex"
@@ -33,6 +35,7 @@ const (
 	configBoolOptionName   = "bool"
 	configJSONOptionName   = "json"
 	configDryRunOptionName = "dry-run"
+	configExpandAutoName   = "expand-auto"
 )
 
 var ConfigCmd = &cmds.Command{
@@ -75,6 +78,7 @@ Set multiple values in the 'Addresses.AppendAnnounce' array:
 	Options: []cmds.Option{
 		cmds.BoolOption(configBoolOptionName, "Set a boolean value."),
 		cmds.BoolOption(configJSONOptionName, "Parse stringified JSON."),
+		cmds.BoolOption(configExpandAutoName, "Expand 'auto' placeholders to their expanded values from AutoConf service."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		args := req.Arguments
@@ -105,6 +109,11 @@ Set multiple values in the 'Addresses.AppendAnnounce' array:
 		}
 		defer r.Close()
 		if len(args) == 2 {
+			// Check if user is trying to write config with expand flag
+			if expandAuto, _ := req.Options[configExpandAutoName].(bool); expandAuto {
+				return fmt.Errorf("--expand-auto can only be used for reading config values, not for setting them")
+			}
+
 			value := args[1]
 
 			if parseJSON, _ := req.Options[configJSONOptionName].(bool); parseJSON {
@@ -121,7 +130,13 @@ Set multiple values in the 'Addresses.AppendAnnounce' array:
 				output, err = setConfig(r, key, value)
 			}
 		} else {
-			output, err = getConfig(r, key)
+			// Check if user wants to expand auto values for getter
+			expandAuto, _ := req.Options[configExpandAutoName].(bool)
+			if expandAuto {
+				output, err = getConfigWithAutoExpand(r, key)
+			} else {
+				output, err = getConfig(r, key)
+			}
 		}
 
 		if err != nil {
@@ -206,6 +221,23 @@ NOTE: For security reasons, this command will omit your private key and remote s
 		err = json.Unmarshal(data, &cfg)
 		if err != nil {
 			return err
+		}
+
+		// Check if user wants to expand auto values
+		expandAuto, _ := req.Options[configExpandAutoName].(bool)
+		if expandAuto {
+			// Load full config to use resolution methods
+			var fullCfg config.Config
+			err = json.Unmarshal(data, &fullCfg)
+			if err != nil {
+				return err
+			}
+
+			// Expand auto values and update the map
+			cfg, err = fullCfg.ExpandAutoConfValues(cfg)
+			if err != nil {
+				return err
+			}
 		}
 
 		cfg, err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
@@ -417,7 +449,8 @@ var configProfileApplyCmd = &cmds.Command{
 func buildProfileHelp() string {
 	var out string
 
-	for name, profile := range config.Profiles {
+	for _, name := range slices.Sorted(maps.Keys(config.Profiles)) {
+		profile := config.Profiles[name]
 		dlines := strings.Split(profile.Description, "\n")
 		for i := range dlines {
 			dlines[i] = "    " + dlines[i]
@@ -495,6 +528,28 @@ func getConfig(r repo.Repo, key string) (*ConfigField, error) {
 	return &ConfigField{
 		Key:   key,
 		Value: value,
+	}, nil
+}
+
+func getConfigWithAutoExpand(r repo.Repo, key string) (*ConfigField, error) {
+	// First get the current value
+	value, err := r.GetConfigKey(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config value: %q", err)
+	}
+
+	// Load full config for resolution
+	fullCfg, err := r.Config()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config: %q", err)
+	}
+
+	// Expand auto values based on the key
+	expandedValue := fullCfg.ExpandConfigField(key, value)
+
+	return &ConfigField{
+		Key:   key,
+		Value: expandedValue,
 	}, nil
 }
 

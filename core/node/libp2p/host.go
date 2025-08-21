@@ -49,7 +49,8 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 	if err != nil {
 		return out, err
 	}
-	bootstrappers, err := cfg.BootstrapPeers()
+	// Use auto-config resolution for actual connectivity
+	bootstrappers, err := cfg.BootstrapPeersWithAutoConf()
 	if err != nil {
 		return out, err
 	}

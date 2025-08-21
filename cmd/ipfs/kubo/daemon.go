@@ -34,8 +34,6 @@ import (
 	nodeMount "github.com/ipfs/kubo/fuse/node"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
-	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
-	goprocess "github.com/jbenet/goprocess"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	pnet "github.com/libp2p/go-libp2p/core/pnet"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -45,7 +43,6 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promauto "github.com/prometheus/client_golang/prometheus/promauto"
-	"go.uber.org/multierr"
 )
 
 const (
@@ -67,6 +64,7 @@ const (
 	routingOptionDHTServerKwd  = "dhtserver"
 	routingOptionNoneKwd       = "none"
 	routingOptionCustomKwd     = "custom"
+	routingOptionDelegatedKwd  = "delegated"
 	routingOptionDefaultKwd    = "default"
 	routingOptionAutoKwd       = "auto"
 	routingOptionAutoClientKwd = "autoclient"
@@ -277,7 +275,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	var cacheMigrations, pinMigrations bool
-	var fetcher migrations.Fetcher
+	var externalMigrationFetcher migrations.Fetcher
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
@@ -287,73 +285,38 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	case fsrepo.ErrNeedMigration:
 		domigrate, found := req.Options[migrateKwd].(bool)
-		fmt.Println("Found outdated fs-repo, migrations need to be run.")
+
+		// Get current repo version for more informative message
+		currentVersion, verErr := migrations.RepoVersion(cctx.ConfigRoot)
+		if verErr != nil {
+			// Fallback to generic message if we can't read version
+			fmt.Printf("Kubo repository at %s requires migration.\n", cctx.ConfigRoot)
+		} else {
+			fmt.Printf("Kubo repository at %s has version %d and needs to be migrated to version %d.\n",
+				cctx.ConfigRoot, currentVersion, version.RepoVersion)
+		}
 
 		if !found {
 			domigrate = YesNoPrompt("Run migrations now? [y/N]")
 		}
 
 		if !domigrate {
-			fmt.Println("Not running migrations of fs-repo now.")
-			fmt.Println("Please get fs-repo-migrations from https://dist.ipfs.tech")
+			fmt.Printf("Not running migrations on repository at %s. Re-run daemon with --migrate or see 'ipfs repo migrate --help'\n", cctx.ConfigRoot)
 			return errors.New("fs-repo requires migration")
 		}
 
-		// Read Migration section of IPFS config
-		configFileOpt, _ := req.Options[commands.ConfigFileOption].(string)
-		migrationCfg, err := migrations.ReadMigrationConfig(cctx.ConfigRoot, configFileOpt)
+		// Use hybrid migration strategy that intelligently combines external and embedded migrations
+		err = migrations.RunHybridMigrations(cctx.Context(), version.RepoVersion, cctx.ConfigRoot, false)
 		if err != nil {
-			return err
-		}
-
-		// Define function to create IPFS fetcher.  Do not supply an
-		// already-constructed IPFS fetcher, because this may be expensive and
-		// not needed according to migration config. Instead, supply a function
-		// to construct the particular IPFS fetcher implementation used here,
-		// which is called only if an IPFS fetcher is needed.
-		newIpfsFetcher := func(distPath string) migrations.Fetcher {
-			return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot, configFileOpt)
-		}
-
-		// Fetch migrations from current distribution, or location from environ
-		fetchDistPath := migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
-
-		// Create fetchers according to migrationCfg.DownloadSources
-		fetcher, err = migrations.GetMigrationFetcher(migrationCfg.DownloadSources, fetchDistPath, newIpfsFetcher)
-		if err != nil {
-			return err
-		}
-		defer fetcher.Close()
-
-		if migrationCfg.Keep == "cache" {
-			cacheMigrations = true
-		} else if migrationCfg.Keep == "pin" {
-			pinMigrations = true
-		}
-
-		if cacheMigrations || pinMigrations {
-			// Create temp directory to store downloaded migration archives
-			migrations.DownloadDirectory, err = os.MkdirTemp("", "migrations")
-			if err != nil {
-				return err
-			}
-			// Defer cleanup of download directory so that it gets cleaned up
-			// if daemon returns early due to error
-			defer func() {
-				if migrations.DownloadDirectory != "" {
-					os.RemoveAll(migrations.DownloadDirectory)
-				}
-			}()
-		}
-
-		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
-		if err != nil {
-			fmt.Println("The migrations of fs-repo failed:")
+			fmt.Println("Repository migration failed:")
 			fmt.Printf("  %s\n", err)
 			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
-			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
+			fmt.Println("  https://github.com/ipfs/kubo")
 			return err
 		}
+
+		// Note: Migration caching/pinning functionality has been deprecated
+		// The hybrid migration system handles legacy migrations more efficiently
 
 		repo, err = fsrepo.Open(cctx.ConfigRoot)
 		if err != nil {
@@ -381,6 +344,27 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
+	// Validate autoconf setup - check for private network conflict
+	swarmKey, _ := repo.SwarmKey()
+	isPrivateNetwork := swarmKey != nil || pnet.ForcePrivateNetwork
+	if err := config.ValidateAutoConfWithRepo(cfg, isPrivateNetwork); err != nil {
+		return err
+	}
+
+	// Start background AutoConf updater if enabled
+	if cfg.AutoConf.Enabled.WithDefault(config.DefaultAutoConfEnabled) {
+		// Start autoconf client for background updates
+		client, err := config.GetAutoConfClient(cfg)
+		if err != nil {
+			log.Errorf("failed to create autoconf client: %v", err)
+		} else {
+			// Start primes cache and starts background updater
+			if _, err := client.Start(cctx.Context()); err != nil {
+				log.Errorf("failed to start autoconf updater: %v", err)
+			}
+		}
+	}
+
 	fmt.Printf("PeerID: %s\n", cfg.Identity.PeerID)
 
 	if !psSet {
@@ -404,8 +388,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
-	if routingOption == routingOptionDefaultKwd {
-		routingOption = cfg.Routing.Type.WithDefault(routingOptionAutoKwd)
+	if routingOption == routingOptionDefaultKwd || routingOption == "" {
+		routingOption = cfg.Routing.Type.WithDefault(config.DefaultRoutingType)
 		if routingOption == "" {
 			routingOption = routingOptionAutoKwd
 		}
@@ -435,6 +419,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
+	// Use config for routing construction
+
 	switch routingOption {
 	case routingOptionSupernodeKwd:
 		return errors.New("supernode routing was never fully implemented and has been removed")
@@ -450,6 +436,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		ncfg.Routing = libp2p.DHTServerOption
 	case routingOptionNoneKwd:
 		ncfg.Routing = libp2p.NilRouterOption
+	case routingOptionDelegatedKwd:
+		ncfg.Routing = libp2p.ConstructDelegatedOnlyRouting(cfg)
 	case routingOptionCustomKwd:
 		if cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient) {
 			return errors.New("Routing.AcceleratedDHTClient option is set even tho Routing.Type is custom, using custom .AcceleratedDHTClient needs to be set on DHT routers individually")
@@ -491,10 +479,23 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if cfg.Provider.Strategy.WithDefault("") != "" && cfg.Reprovider.Strategy.IsDefault() {
 		log.Fatal("Invalid config. Remove unused Provider.Strategy and set Reprovider.Strategy instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy")
 	}
+	// Check for deprecated "flat" strategy
+	if cfg.Reprovider.Strategy.WithDefault("") == "flat" {
+		log.Error("Reprovider.Strategy='flat' is deprecated and will be removed in the next release. Please update your config to use 'all' instead.")
+	}
 	if cfg.Experimental.StrategicProviding {
 		log.Error("Experimental.StrategicProviding was removed. Remove it from your config and set Provider.Enabled=false to remove this message. Documentation: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#strategic-providing")
 		cfg.Experimental.StrategicProviding = false
 		cfg.Provider.Enabled = config.False
+	}
+	if routingOption == routingOptionDelegatedKwd {
+		// Delegated routing is read-only mode - content providing must be disabled
+		if cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) {
+			log.Fatal("Routing.Type=delegated does not support content providing. Set Provider.Enabled=false in your config.")
+		}
+		if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) != 0 {
+			log.Fatal("Routing.Type=delegated does not support content providing. Set Reprovider.Interval='0' in your config.")
+		}
 	}
 
 	printLibp2pPorts(node)
@@ -527,6 +528,9 @@ take effect.
 		}
 	}()
 
+	// Clear any cached offline node and set the online daemon node
+	// This ensures HTTP RPC server uses the online node, not any cached offline node
+	cctx.ClearCachedNode()
 	cctx.ConstructNode = func() (*core.IpfsNode, error) {
 		return node, nil
 	}
@@ -537,10 +541,19 @@ take effect.
 	if err != nil {
 		return err
 	}
+
+	pluginErrc := make(chan error, 1)
 	select {
-	case <-node.Process.Closing():
+	case <-node.Context().Done():
+		close(pluginErrc)
 	default:
-		node.Process.AddChild(goprocess.WithTeardown(cctx.Plugins.Close))
+		context.AfterFunc(node.Context(), func() {
+			err := cctx.Plugins.Close()
+			if err != nil {
+				pluginErrc <- fmt.Errorf("closing plugins: %w", err)
+			}
+			close(pluginErrc)
+		})
 	}
 
 	// construct api endpoint - every time
@@ -558,6 +571,11 @@ take effect.
 		if err := mountFuse(req, cctx); err != nil {
 			return err
 		}
+		defer func() {
+			if _err != nil {
+				nodeMount.Unmount(node)
+			}
+		}()
 	}
 
 	// repo blockstore GC - if --enable-gc flag is present
@@ -566,9 +584,9 @@ take effect.
 		return err
 	}
 
-	// Add any files downloaded by migration.
-	if cacheMigrations || pinMigrations {
-		err = addMigrations(cctx.Context(), node, fetcher, pinMigrations)
+	// Add any files downloaded by external migrations (embedded migrations don't download files)
+	if externalMigrationFetcher != nil && (cacheMigrations || pinMigrations) {
+		err = addMigrations(cctx.Context(), node, externalMigrationFetcher, pinMigrations)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Could not add migration to IPFS:", err)
 		}
@@ -577,10 +595,10 @@ take effect.
 		os.RemoveAll(migrations.DownloadDirectory)
 		migrations.DownloadDirectory = ""
 	}
-	if fetcher != nil {
+	if externalMigrationFetcher != nil {
 		// If there is an error closing the IpfsFetcher, then print error, but
 		// do not fail because of it.
-		err = fetcher.Close()
+		err = externalMigrationFetcher.Close()
 		if err != nil {
 			log.Errorf("error closing IPFS fetcher: %s", err)
 		}
@@ -649,6 +667,17 @@ take effect.
 `)
 		}
 
+		// Inform user about Routing.AcceleratedDHTClient when enabled
+		if cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient) {
+			fmt.Print(`
+
+ℹ️ Routing.AcceleratedDHTClient is enabled for faster content discovery
+ℹ️ and DHT provides. Routing table is initializing. IPFS is ready to use,
+ℹ️ but performance will improve over time as more peers are discovered
+
+`)
+		}
+
 		// Give the user heads up if daemon running in online mode has no peers after 1 minute
 		time.AfterFunc(1*time.Minute, func() {
 			cfg, err := cctx.GetConfig()
@@ -692,16 +721,26 @@ take effect.
 		log.Fatal("Support for IPFS_REUSEPORT was removed. Use LIBP2P_TCP_REUSEPORT instead.")
 	}
 
+	unmountErrc := make(chan error)
+	context.AfterFunc(node.Context(), func() {
+		<-node.Context().Done()
+		nodeMount.Unmount(node)
+		close(unmountErrc)
+	})
+
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
-	var errs error
-	for err := range merge(apiErrc, gwErrc, gcErrc, p2pGwErrc) {
+	var errs []error
+	for err := range merge(apiErrc, gwErrc, gcErrc, p2pGwErrc, pluginErrc, unmountErrc) {
 		if err != nil {
-			errs = multierr.Append(errs, err)
+			errs = append(errs, err)
 		}
 	}
+	if len(errs) != 0 {
+		return errors.Join(errs...)
+	}
 
-	return errs
+	return nil
 }
 
 // serveHTTPApi collects options, creates listener, prints status message and starts serving requests.
@@ -848,6 +887,12 @@ func rewriteMaddrToUseLocalhostIfItsAny(maddr ma.Multiaddr) ma.Multiaddr {
 func printLibp2pPorts(node *core.IpfsNode) {
 	if !node.IsOnline {
 		fmt.Println("Swarm not listening, running in offline mode.")
+		return
+	}
+
+	if node.PeerHost == nil {
+		log.Error("PeerHost is nil - this should not happen and likely indicates an FX dependency injection issue or race condition")
+		fmt.Println("Swarm not properly initialized - node PeerHost is nil.")
 		return
 	}
 
@@ -1032,6 +1077,10 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 		return nil, err
 	}
 
+	if node.PeerHost == nil {
+		return nil, fmt.Errorf("cannot create libp2p gateway: node PeerHost is nil (this should not happen and likely indicates an FX dependency injection issue or race condition)")
+	}
+
 	h := p2phttp.Host{
 		StreamHost: node.PeerHost,
 	}
@@ -1042,14 +1091,13 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 
 	errc := make(chan error, 1)
 	go func() {
-		defer close(errc)
 		errc <- h.Serve()
+		close(errc)
 	}()
 
-	go func() {
-		<-node.Process.Closing()
+	context.AfterFunc(node.Context(), func() {
 		h.Close()
-	}()
+	})
 
 	return errc, nil
 }
@@ -1134,14 +1182,14 @@ func maybeRunGC(req *cmds.Request, node *core.IpfsNode) (<-chan error, error) {
 	return errc, nil
 }
 
-// merge does fan-in of multiple read-only error channels
-// taken from http://blog.golang.org/pipelines
+// merge does fan-in of multiple read-only error channels.
 func merge(cs ...<-chan error) <-chan error {
 	var wg sync.WaitGroup
 	out := make(chan error)
 
-	// Start an output goroutine for each input channel in cs.  output
-	// copies values from c to out until c is closed, then calls wg.Done.
+	// Start a goroutine for each input channel in cs, that copies values from
+	// the input channel to the output channel until the input channel is
+	// closed.
 	output := func(c <-chan error) {
 		for n := range c {
 			out <- n
@@ -1155,8 +1203,8 @@ func merge(cs ...<-chan error) <-chan error {
 		}
 	}
 
-	// Start a goroutine to close out once all the output goroutines are
-	// done.  This must start after the wg.Add call.
+	// Start a goroutine to close out once all the output goroutines, and other
+	// things to wait on, are done.
 	go func() {
 		wg.Wait()
 		close(out)
@@ -1226,8 +1274,6 @@ Visit https://github.com/ipfs/kubo/releases or https://dist.ipfs.tech/#kubo and 
 			}
 			select {
 			case <-ctx.Done():
-				return
-			case <-nd.Process.Closing():
 				return
 			case <-ticker.C:
 				continue

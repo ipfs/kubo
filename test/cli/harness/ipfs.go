@@ -101,6 +101,34 @@ func (n *Node) IPFSAdd(content io.Reader, args ...string) string {
 	return out
 }
 
+func (n *Node) IPFSBlockPut(content io.Reader, args ...string) string {
+	log.Debugf("node %d block put with args: %v", n.ID, args)
+	fullArgs := []string{"block", "put"}
+	fullArgs = append(fullArgs, args...)
+	res := n.Runner.MustRun(RunRequest{
+		Path:    n.IPFSBin,
+		Args:    fullArgs,
+		CmdOpts: []CmdOpt{RunWithStdin(content)},
+	})
+	out := strings.TrimSpace(res.Stdout.String())
+	log.Debugf("block put result: %q", out)
+	return out
+}
+
+func (n *Node) IPFSDAGPut(content io.Reader, args ...string) string {
+	log.Debugf("node %d dag put with args: %v", n.ID, args)
+	fullArgs := []string{"dag", "put"}
+	fullArgs = append(fullArgs, args...)
+	res := n.Runner.MustRun(RunRequest{
+		Path:    n.IPFSBin,
+		Args:    fullArgs,
+		CmdOpts: []CmdOpt{RunWithStdin(content)},
+	})
+	out := strings.TrimSpace(res.Stdout.String())
+	log.Debugf("dag put result: %q", out)
+	return out
+}
+
 func (n *Node) IPFSDagImport(content io.Reader, cid string, args ...string) error {
 	log.Debugf("node %d dag import with args: %v", n.ID, args)
 	fullArgs := []string{"dag", "import", "--pin-roots=false"}

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/test/cli/harness"
-	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +19,7 @@ func TestDHTAutoclient(t *testing.T) {
 
 	t.Run("file added on node in client mode is retrievable from node in client mode", func(t *testing.T) {
 		t.Parallel()
-		randomBytes := testutils.RandomBytes(1000)
+		randomBytes := random.Bytes(1000)
 		randomBytes = append(randomBytes, '\r')
 		hash := nodes[8].IPFSAdd(bytes.NewReader(randomBytes))
 
@@ -29,7 +29,7 @@ func TestDHTAutoclient(t *testing.T) {
 
 	t.Run("file added on node in server mode is retrievable from all nodes", func(t *testing.T) {
 		t.Parallel()
-		randomBytes := testutils.RandomBytes(1000)
+		randomBytes := random.Bytes(1000)
 		hash := nodes[0].IPFSAdd(bytes.NewReader(randomBytes))
 
 		for i := 0; i < 10; i++ {

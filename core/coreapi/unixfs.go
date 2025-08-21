@@ -16,6 +16,7 @@ import (
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
+	provider "github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	ds "github.com/ipfs/go-datastore"
@@ -58,6 +59,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		attribute.Bool("maxhamtfanoutset", settings.MaxHAMTFanoutSet),
 		attribute.Int("layout", int(settings.Layout)),
 		attribute.Bool("pin", settings.Pin),
+		attribute.String("pin-name", settings.PinName),
 		attribute.Bool("onlyhash", settings.OnlyHash),
 		attribute.Bool("fscache", settings.FsCache),
 		attribute.Bool("nocopy", settings.NoCopy),
@@ -101,7 +103,22 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	bserv := blockservice.New(addblockstore, exch,
 		blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough)),
 	) // hash security 001
-	dserv := merkledag.NewDAGService(bserv)
+
+	var dserv ipld.DAGService = merkledag.NewDAGService(bserv)
+
+	// wrap the DAGService in a providingDAG service which provides every block written.
+	// note about strategies:
+	//   - "all" gets handled directly at the blockstore so no need to provide
+	//   - "roots" gets handled in the pinner
+	//   - "mfs" gets handled in mfs
+	// We need to provide the "pinned" cases only. Added blocks are not
+	// going to be provided by the blockstore (wrong strategy for that),
+	// nor by the pinner (the pinner doesn't traverse the pinned DAG itself, it only
+	// handles roots). This wrapping ensures all blocks of pinned content get provided.
+	if settings.Pin && !settings.OnlyHash &&
+		(api.providingStrategy&config.ReproviderStrategyPinned) != 0 {
+		dserv = &providingDagService{dserv, api.provider}
+	}
 
 	// add a sync call to the DagService
 	// this ensures that data written to the DagService is persisted to the underlying datastore
@@ -125,6 +142,11 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		}
 	}
 
+	// Note: the dag service gets wrapped multiple times:
+	// 1. providingDagService (if pinned strategy) - provides blocks as they're added
+	// 2. syncDagService - ensures data persistence
+	// 3. batchingDagService (in coreunix.Adder) - batches operations for efficiency
+
 	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, syncDserv)
 	if err != nil {
 		return path.ImmutablePath{}, err
@@ -136,6 +158,9 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		fileAdder.Progress = settings.Progress
 	}
 	fileAdder.Pin = settings.Pin && !settings.OnlyHash
+	if settings.Pin {
+		fileAdder.PinName = settings.PinName
+	}
 	fileAdder.Silent = settings.Silent
 	fileAdder.RawLeaves = settings.RawLeaves
 	if settings.MaxFileLinksSet {
@@ -179,7 +204,8 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		if err != nil {
 			return path.ImmutablePath{}, err
 		}
-		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil)
+		// MFS root for OnlyHash mode: provider is nil since we're not storing/providing anything
+		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil, nil)
 		if err != nil {
 			return path.ImmutablePath{}, err
 		}
@@ -190,12 +216,6 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	nd, err := fileAdder.AddAllAndPin(ctx, files)
 	if err != nil {
 		return path.ImmutablePath{}, err
-	}
-
-	if !settings.OnlyHash {
-		if err := api.provider.Provide(ctx, nd.Cid(), true); err != nil {
-			return path.ImmutablePath{}, err
-		}
 	}
 
 	return path.FromCid(nd.Cid()), nil
@@ -363,3 +383,40 @@ type syncDagService struct {
 func (s *syncDagService) Sync() error {
 	return s.syncFn()
 }
+
+type providingDagService struct {
+	ipld.DAGService
+	provider provider.System
+}
+
+func (pds *providingDagService) Add(ctx context.Context, n ipld.Node) error {
+	if err := pds.DAGService.Add(ctx, n); err != nil {
+		return err
+	}
+	// Provider errors are logged but not propagated.
+	// We don't want DAG operations to fail due to providing issues.
+	// The user's data is still stored successfully even if the
+	// announcement to the routing system fails temporarily.
+	if err := pds.provider.Provide(ctx, n.Cid(), true); err != nil {
+		log.Error(err)
+	}
+	return nil
+}
+
+func (pds *providingDagService) AddMany(ctx context.Context, nds []ipld.Node) error {
+	if err := pds.DAGService.AddMany(ctx, nds); err != nil {
+		return err
+	}
+	// Same error handling philosophy as Add(): log but don't fail.
+	// Note: Provide calls are intentionally blocking here - the Provider
+	// implementation should handle concurrency/queuing internally.
+	for _, n := range nds {
+		if err := pds.provider.Provide(ctx, n.Cid(), true); err != nil {
+			log.Error(err)
+			break
+		}
+	}
+	return nil
+}
+
+var _ ipld.DAGService = (*providingDagService)(nil)

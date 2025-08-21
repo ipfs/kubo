@@ -1,10 +1,18 @@
 package config
 
+import (
+	"github.com/ipfs/boxo/gateway"
+)
+
 const (
 	DefaultInlineDNSLink         = false
 	DefaultDeserializedResponses = true
 	DefaultDisableHTMLErrors     = false
 	DefaultExposeRoutingAPI      = false
+
+	// Gateway limit defaults from boxo
+	DefaultRetrievalTimeout      = gateway.DefaultRetrievalTimeout
+	DefaultMaxConcurrentRequests = gateway.DefaultMaxConcurrentRequests
 )
 
 type GatewaySpec struct {
@@ -73,4 +81,21 @@ type Gateway struct {
 	// ExposeRoutingAPI configures the gateway port to expose
 	// routing system as HTTP API at /routing/v1 (https://specs.ipfs.tech/routing/http-routing-v1/).
 	ExposeRoutingAPI Flag
+
+	// RetrievalTimeout enforces a maximum duration for content retrieval:
+	// - Time to first byte: If the gateway cannot start writing the response within
+	//   this duration (e.g., stuck searching for providers), a 504 Gateway Timeout
+	//   is returned.
+	// - Time between writes: After the first byte, the timeout resets each time new
+	//   bytes are written to the client. If the gateway cannot write additional data
+	//   within this duration after the last successful write, the response is terminated.
+	// This helps free resources when the gateway gets stuck looking for providers
+	// or cannot retrieve the requested content.
+	// A value of 0 disables this timeout.
+	RetrievalTimeout *OptionalDuration `json:",omitempty"`
+
+	// MaxConcurrentRequests limits concurrent HTTP requests handled by the gateway.
+	// Requests beyond this limit receive 429 Too Many Requests with Retry-After header.
+	// A value of 0 disables the limit.
+	MaxConcurrentRequests *OptionalInteger `json:",omitempty"`
 }

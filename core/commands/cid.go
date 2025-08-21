@@ -121,7 +121,8 @@ The optional format string is a printf style format string:
 			return ""
 		}),
 	},
-	Type: CidFormatRes{},
+	Type:  CidFormatRes{},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 type CidFormatRes struct {
@@ -151,6 +152,7 @@ Useful when processing third-party CIDs which could come with arbitrary formats.
 	},
 	PostRun: cidFmtCmd.PostRun,
 	Type:    cidFmtCmd.Type,
+	Extra:   CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 type cidFormatOpts struct {
@@ -291,7 +293,7 @@ var basesCmd = &cmds.Command{
 			multibaseSorter{val}.Sort()
 			for _, v := range val {
 				code := v.Code
-				if code < 32 || code >= 127 {
+				if !unicode.IsPrint(rune(code)) {
 					// don't display non-printable prefixes
 					code = ' '
 				}
@@ -309,7 +311,8 @@ var basesCmd = &cmds.Command{
 			return nil
 		}),
 	},
-	Type: []CodeAndName{},
+	Type:  []CodeAndName{},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 const (
@@ -369,7 +372,8 @@ var codecsCmd = &cmds.Command{
 			return nil
 		}),
 	},
-	Type: []CodeAndName{},
+	Type:  []CodeAndName{},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 var hashesCmd = &cmds.Command{
@@ -393,6 +397,7 @@ var hashesCmd = &cmds.Command{
 	},
 	Encoders: codecsCmd.Encoders,
 	Type:     codecsCmd.Type,
+	Extra:    CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 type multibaseSorter struct {
@@ -404,7 +409,7 @@ func (s multibaseSorter) Sort() {
 		if n := cmp.Compare(unicode.ToLower(rune(a.Code)), unicode.ToLower(rune(b.Code))); n != 0 {
 			return n
 		}
-		// lowecase letters should come before uppercase
+		// lowercase letters should come before uppercase
 		return cmp.Compare(b.Code, a.Code)
 	})
 }

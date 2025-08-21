@@ -36,7 +36,7 @@ func AddrFilters(filters []string) func() (*ma.Filters, Libp2pOpts, error) {
 	}
 }
 
-func makeAddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string) (p2pbhost.AddrsFactory, error) {
+func makeAddrsFactory(announce []string, appendAnnounce []string, noAnnounce []string) (p2pbhost.AddrsFactory, error) {
 	var err error                     // To assign to the slice in the for loop
 	existing := make(map[string]bool) // To avoid duplicates
 
@@ -50,7 +50,7 @@ func makeAddrsFactory(announce []string, appendAnnouce []string, noAnnounce []st
 	}
 
 	var appendAnnAddrs []ma.Multiaddr
-	for _, addr := range appendAnnouce {
+	for _, addr := range appendAnnounce {
 		if existing[addr] {
 			// skip AppendAnnounce that is on the Announce list already
 			continue
@@ -99,14 +99,14 @@ func makeAddrsFactory(announce []string, appendAnnouce []string, noAnnounce []st
 	}, nil
 }
 
-func AddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string) interface{} {
+func AddrsFactory(announce []string, appendAnnounce []string, noAnnounce []string) interface{} {
 	return func(params struct {
 		fx.In
 		ForgeMgr *p2pforge.P2PForgeCertMgr `optional:"true"`
 	},
 	) (opts Libp2pOpts, err error) {
 		var addrsFactory p2pbhost.AddrsFactory
-		announceAddrsFactory, err := makeAddrsFactory(announce, appendAnnouce, noAnnounce)
+		announceAddrsFactory, err := makeAddrsFactory(announce, appendAnnounce, noAnnounce)
 		if err != nil {
 			return opts, err
 		}
@@ -115,8 +115,8 @@ func AddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string
 		} else {
 			addrsFactory = func(multiaddrs []ma.Multiaddr) []ma.Multiaddr {
 				forgeProcessing := params.ForgeMgr.AddressFactory()(multiaddrs)
-				annouceProcessing := announceAddrsFactory(forgeProcessing)
-				return annouceProcessing
+				announceProcessing := announceAddrsFactory(forgeProcessing)
+				return announceProcessing
 			}
 		}
 		opts.Opts = append(opts.Opts, libp2p.AddrsFactory(addrsFactory))

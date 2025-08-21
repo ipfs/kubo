@@ -3,7 +3,7 @@ package common
 import (
 	"testing"
 
-	"github.com/ipfs/kubo/thirdparty/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMapMergeDeepReturnsNew(t *testing.T) {
@@ -15,7 +15,7 @@ func TestMapMergeDeepReturnsNew(t *testing.T) {
 
 	MapMergeDeep(leftMap, rightMap)
 
-	assert.True(leftMap["A"] == "Hello World", t, "MapMergeDeep should return a new map instance")
+	require.Equal(t, "Hello World", leftMap["A"], "MapMergeDeep should return a new map instance")
 }
 
 func TestMapMergeDeepNewKey(t *testing.T) {
@@ -46,7 +46,7 @@ func TestMapMergeDeepNewKey(t *testing.T) {
 		}
 	*/
 
-	assert.True(result["B"] == "Bar", t, "New keys in right map should exist in resulting map")
+	require.Equal(t, "Bar", result["B"], "New keys in right map should exist in resulting map")
 }
 
 func TestMapMergeDeepRecursesOnMaps(t *testing.T) {
@@ -92,8 +92,8 @@ func TestMapMergeDeepRecursesOnMaps(t *testing.T) {
 	*/
 
 	resultA := result["A"].(map[string]interface{})
-	assert.True(resultA["B"] == "A value!", t, "Unaltered values should not change")
-	assert.True(resultA["C"] == "A different value!", t, "Nested values should be altered")
+	require.Equal(t, "A value!", resultA["B"], "Unaltered values should not change")
+	require.Equal(t, "A different value!", resultA["C"], "Nested values should be altered")
 }
 
 func TestMapMergeDeepRightNotAMap(t *testing.T) {
@@ -128,5 +128,5 @@ func TestMapMergeDeepRightNotAMap(t *testing.T) {
 		}
 	*/
 
-	assert.True(result["A"] == "Not a map!", t, "Right values that are not a map should be set on the result")
+	require.Equal(t, "Not a map!", result["A"], "Right values that are not a map should be set on the result")
 }

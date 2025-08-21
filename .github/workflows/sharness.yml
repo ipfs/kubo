@@ -25,9 +25,9 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.x
+          go-version: 1.25.x
       - name: Checkout Kubo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: kubo
       - name: Install missing tools

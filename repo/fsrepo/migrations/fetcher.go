@@ -2,11 +2,10 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
-
-	"go.uber.org/multierr"
 )
 
 const (
@@ -49,23 +48,23 @@ func NewMultiFetcher(f ...Fetcher) *MultiFetcher {
 
 // Fetch attempts to fetch the file at each of its fetchers until one succeeds.
 func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) ([]byte, error) {
-	var errs error
+	var errs []error
 	for _, fetcher := range f.fetchers {
 		out, err := fetcher.Fetch(ctx, ipfsPath)
 		if err == nil {
 			return out, nil
 		}
 		fmt.Printf("Error fetching: %s\n", err.Error())
-		errs = multierr.Append(errs, err)
+		errs = append(errs, err)
 	}
-	return nil, errs
+	return nil, errors.Join(errs...)
 }
 
 func (f *MultiFetcher) Close() error {
 	var errs error
 	for _, fetcher := range f.fetchers {
 		if err := fetcher.Close(); err != nil {
-			errs = multierr.Append(errs, err)
+			errs = errors.Join(errs, err)
 		}
 	}
 	return errs

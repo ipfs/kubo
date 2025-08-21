@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/ipfs/boxo/bitswap/network/bsnet"
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
-	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +16,7 @@ func TestBitswapConfig(t *testing.T) {
 	t.Parallel()
 
 	// Create test data that will be shared between nodes
-	testData := testutils.RandomBytes(100)
+	testData := random.Bytes(100)
 
 	t.Run("server enabled (default)", func(t *testing.T) {
 		t.Parallel()

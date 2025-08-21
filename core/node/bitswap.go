@@ -14,16 +14,14 @@ import (
 	"github.com/ipfs/boxo/bitswap/network/httpnet"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	exchange "github.com/ipfs/boxo/exchange"
-	"github.com/ipfs/boxo/exchange/providing"
-	provider "github.com/ipfs/boxo/provider"
 	rpqm "github.com/ipfs/boxo/routing/providerquerymanager"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
-	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/routing"
 	"go.uber.org/fx"
 
 	blocks "github.com/ipfs/go-block-format"
@@ -75,7 +73,7 @@ type bitswapIn struct {
 	Mctx        helpers.MetricsCtx
 	Cfg         *config.Config
 	Host        host.Host
-	Rt          irouting.ProvideManyRouter
+	Discovery   routing.ContentDiscovery
 	Bs          blockstore.GCBlockstore
 	BitswapOpts []bitswap.Option `group:"bitswap-options"`
 }
@@ -88,9 +86,14 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 		var bitswapNetworks, bitswapLibp2p network.BitSwapNetwork
 		var bitswapBlockstore blockstore.Blockstore = in.Bs
 
+		connEvtMgr := network.NewConnectEventManager()
+
 		libp2pEnabled := in.Cfg.Bitswap.Libp2pEnabled.WithDefault(config.DefaultBitswapLibp2pEnabled)
 		if libp2pEnabled {
-			bitswapLibp2p = bsnet.NewFromIpfsHost(in.Host)
+			bitswapLibp2p = bsnet.NewFromIpfsHost(
+				in.Host,
+				bsnet.WithConnectEventManager(connEvtMgr),
+			)
 		}
 
 		if httpEnabled {
@@ -112,6 +115,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 				httpnet.WithMaxBlockSize(int64(maxBlockSize)),
 				httpnet.WithUserAgent(version.GetUserAgentVersion()),
 				httpnet.WithMetricsLabelsForEndpoints(httpCfg.Allowlist),
+				httpnet.WithConnectEventManager(connEvtMgr),
 			)
 			bitswapNetworks = network.New(in.Host.Peerstore(), bitswapLibp2p, bitswapHTTP)
 		} else if libp2pEnabled {
@@ -178,7 +182,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 			ignoredPeerIDs = append(ignoredPeerIDs, pid)
 		}
 		providerQueryMgr, err := rpqm.New(bitswapNetworks,
-			in.Rt,
+			in.Discovery,
 			rpqm.WithMaxProviders(maxProviders),
 			rpqm.WithIgnoreProviders(ignoredPeerIDs...),
 		)
@@ -213,32 +217,6 @@ func OnlineExchange(isBitswapActive bool) interface{} {
 			},
 		})
 		return in
-	}
-}
-
-type providingExchangeIn struct {
-	fx.In
-
-	BaseExch exchange.Interface
-	Provider provider.System
-}
-
-// ProvidingExchange creates a providing.Exchange with the existing exchange
-// and the provider.System.
-// We cannot do this in OnlineExchange because it causes cycles so this is for
-// a decorator.
-func ProvidingExchange(provide bool) interface{} {
-	return func(in providingExchangeIn, lc fx.Lifecycle) exchange.Interface {
-		exch := in.BaseExch
-		if provide {
-			exch = providing.New(in.BaseExch, in.Provider)
-			lc.Append(fx.Hook{
-				OnStop: func(ctx context.Context) error {
-					return exch.Close()
-				},
-			})
-		}
-		return exch
 	}
 }
 
