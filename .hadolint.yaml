@@ -6,14 +6,6 @@ ignored:
   # DL3008: Pin versions in apt-get install
   # We use stable base images and prefer smaller layers over version pinning
   - DL3008
-  
-  # DL3009: Delete apt-get lists after install
-  # We explicitly handle this in our Dockerfile
-  - DL3009
-  
-  # DL3003: Use WORKDIR to switch to a directory
-  # We use cd in RUN commands for build context clarity
-  - DL3003
 
 # Trust base images from these registries
 trustedRegistries:

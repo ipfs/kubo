@@ -8,9 +8,9 @@ ENV SRC_DIR=/kubo
 
 # Cache go module downloads between builds for faster rebuilds
 COPY go.mod go.sum $SRC_DIR/
+WORKDIR $SRC_DIR
 RUN --mount=type=cache,target=/go/pkg/mod \
-  cd $SRC_DIR \
-  && go mod download
+  go mod download
 
 COPY . $SRC_DIR
 
@@ -25,8 +25,7 @@ ARG MAKE_TARGET=build
 # mkdir .git/objects allows git rev-parse to read commit hash for version info
 RUN --mount=type=cache,target=/go/pkg/mod \
   --mount=type=cache,target=/root/.cache/go-build \
-  cd $SRC_DIR \
-  && mkdir -p .git/objects \
+  mkdir -p .git/objects \
   && GOOS=$TARGETOS GOARCH=$TARGETARCH GOFLAGS=-buildvcs=false make ${MAKE_TARGET} IPFS_PLUGINS=$IPFS_PLUGINS
 
 # Extract required runtime tools from Debian.
