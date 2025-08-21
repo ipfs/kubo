@@ -184,19 +184,6 @@ func mfsProvider(mfsRoot *mfs.Root, fetcher fetcher.Factory) provider.KeyChanFun
 	}
 }
 
-func mfsRootProvider(mfsRoot *mfs.Root) provider.KeyChanFunc {
-	return func(ctx context.Context) (<-chan cid.Cid, error) {
-		rootNode, err := mfsRoot.GetDirectory().GetNode()
-		if err != nil {
-			return nil, fmt.Errorf("error loading mfs root, cannot provide MFS: %w", err)
-		}
-		ch := make(chan cid.Cid, 1)
-		ch <- rootNode.Cid()
-		close(ch)
-		return ch, nil
-	}
-}
-
 type provStrategyIn struct {
 	fx.In
 	Pinner               pin.Pinner
