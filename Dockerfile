@@ -1,12 +1,15 @@
+# syntax=docker/dockerfile:1
+# Enables BuildKit with cache mounts for faster builds
 FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.25 AS builder
 
 ARG TARGETOS TARGETARCH
 
 ENV SRC_DIR=/kubo
 
-# Download packages first so they can be cached.
+# Cache go module downloads between builds for faster rebuilds
 COPY go.mod go.sum $SRC_DIR/
-RUN cd $SRC_DIR \
+RUN --mount=type=cache,target=/go/pkg/mod \
+  cd $SRC_DIR \
   && go mod download
 
 COPY . $SRC_DIR
@@ -18,92 +21,79 @@ ARG IPFS_PLUGINS
 # Allow for other targets to be built, e.g.: docker build --build-arg MAKE_TARGET="nofuse"
 ARG MAKE_TARGET=build
 
-# Build the thing.
-# Also: fix getting HEAD commit hash via git rev-parse.
-RUN cd $SRC_DIR \
+# Build ipfs binary with cached go modules and build cache.
+# mkdir .git/objects allows git rev-parse to read commit hash for version info
+RUN --mount=type=cache,target=/go/pkg/mod \
+  --mount=type=cache,target=/root/.cache/go-build \
+  cd $SRC_DIR \
   && mkdir -p .git/objects \
   && GOOS=$TARGETOS GOARCH=$TARGETARCH GOFLAGS=-buildvcs=false make ${MAKE_TARGET} IPFS_PLUGINS=$IPFS_PLUGINS
 
-# Using Debian Buster because the version of busybox we're using is based on it
-# and we want to make sure the libraries we're using are compatible. That's also
-# why we're running this for the target platform.
+# Extract required runtime tools from Debian.
+# We use Debian instead of Alpine because we need glibc compatibility
+# for the busybox base image we're using.
 FROM debian:bookworm-slim AS utilities
 RUN set -eux; \
 	apt-get update; \
-	apt-get install -y \
+	apt-get install -y --no-install-recommends \
 		tini \
     # Using gosu (~2MB) instead of su-exec (~20KB) because it's easier to
     # install on Debian. Useful links:
     # - https://github.com/ncopa/su-exec#why-reinvent-gosu
     # - https://github.com/tianon/gosu/issues/52#issuecomment-441946745
 		gosu \
-    # This installs fusermount which we later copy over to the target image.
+    # fusermount enables IPFS mount commands
     fuse \
     ca-certificates \
 	; \
-	rm -rf /var/lib/apt/lists/*
+	apt-get clean; \
+	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Now comes the actual target image, which aims to be as small as possible.
+# Final minimal image with shell for debugging (busybox provides sh)
 FROM busybox:stable-glibc
 
-# Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
+# Copy ipfs binary, startup scripts, and runtime dependencies
 ENV SRC_DIR=/kubo
 COPY --from=utilities /usr/sbin/gosu /sbin/gosu
 COPY --from=utilities /usr/bin/tini /sbin/tini
 COPY --from=utilities /bin/fusermount /usr/local/bin/fusermount
 COPY --from=utilities /etc/ssl/certs /etc/ssl/certs
 COPY --from=builder $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
-COPY --from=builder $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
+COPY --from=builder --chmod=755 $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
 COPY --from=builder $SRC_DIR/bin/container_init_run /usr/local/bin/container_init_run
 
-# Add suid bit on fusermount so it will run properly
+# Set SUID for fusermount to enable FUSE mounting by non-root user
 RUN chmod 4755 /usr/local/bin/fusermount
 
-# Fix permissions on start_ipfs (ignore the build machine's permissions)
-RUN chmod 0755 /usr/local/bin/start_ipfs
-
-# Swarm TCP; should be exposed to the public
-EXPOSE 4001
-# Swarm UDP; should be exposed to the public
-EXPOSE 4001/udp
-# Daemon API; must not be exposed publicly but to client services under you control
+# Swarm P2P port (TCP/UDP) - expose publicly for peer connections
+EXPOSE 4001 4001/udp
+# API port - keep private, only for trusted clients
 EXPOSE 5001
-# Web Gateway; can be exposed publicly with a proxy, e.g. as https://ipfs.example.org
+# Gateway port - can be exposed publicly via reverse proxy
 EXPOSE 8080
-# Swarm Websockets; must be exposed publicly when the node is listening using the websocket transport (/ipX/.../tcp/8081/ws).
+# Swarm WebSockets - expose publicly for browser-based peers
 EXPOSE 8081
 
-# Create the fs-repo directory and switch to a non-privileged user.
+# Create ipfs user (uid 1000) and required directories with proper ownership
 ENV IPFS_PATH=/data/ipfs
-RUN mkdir -p $IPFS_PATH \
+RUN mkdir -p $IPFS_PATH /ipfs /ipns /mfs /container-init.d \
   && adduser -D -h $IPFS_PATH -u 1000 -G users ipfs \
-  && chown ipfs:users $IPFS_PATH
+  && chown ipfs:users $IPFS_PATH /ipfs /ipns /mfs /container-init.d
 
-# Create mount points for `ipfs mount` command
-RUN mkdir /ipfs /ipns /mfs \
-  && chown ipfs:users /ipfs /ipns /mfs
-
-# Create the init scripts directory
-RUN mkdir /container-init.d \
-  && chown ipfs:users /container-init.d
-
-# Expose the fs-repo as a volume.
-# start_ipfs initializes an fs-repo if none is mounted.
-# Important this happens after the USER directive so permissions are correct.
+# Volume for IPFS repository data persistence
 VOLUME $IPFS_PATH
 
 # The default logging level
 ENV GOLOG_LOG_LEVEL=""
 
-# This just makes sure that:
-# 1. There's an fs-repo, and initializes one if there isn't.
-# 2. The API and Gateway are accessible from outside the container.
+# Entrypoint initializes IPFS repo if needed and configures networking.
+# tini ensures proper signal handling and zombie process cleanup
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/start_ipfs"]
 
-# Healthcheck for the container
-# QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn is the CID of empty folder
+# Health check verifies IPFS daemon is responsive.
+# Uses empty directory CID (QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn) as test
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD ipfs --api=/ip4/127.0.0.1/tcp/5001 dag stat /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn || exit 1
 
-# Execute the daemon subcommand by default
+# Default: run IPFS daemon with auto-migration enabled
 CMD ["daemon", "--migrate=true", "--agent-version-suffix=docker"]
