@@ -79,7 +79,7 @@ Adds the content of <path> to IPFS. Use -r to add directories.
 Note that directories are added recursively, and big files are chunked,
 to form the IPFS MerkleDAG. Learn more: https://docs.ipfs.tech/concepts/merkle-dag/
 
-If the daemon is not running, it will just add locally to the repo at IPFS_PATH.
+If the daemon is not running, it will just add locally to the repo at $IPFS_PATH.
 If the daemon is started later, it will be advertised after a few
 seconds when the reprovider runs.
 
