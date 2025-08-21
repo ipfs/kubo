@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 FROM debian:bookworm-slim AS utilities
 RUN set -eux; \
 	apt-get update; \
-	apt-get install -y --no-install-recommends \
+	apt-get install -y \
 		tini \
     # Using gosu (~2MB) instead of su-exec (~20KB) because it's easier to
     # install on Debian. Useful links:
