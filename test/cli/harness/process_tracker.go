@@ -47,7 +47,7 @@ func (pt *processTracker) KillAll() {
 		
 		// Try SIGTERM first
 		if err := proc.Signal(syscall.SIGTERM); err != nil {
-			if !os.IsProcessDone(err) {
+			if !IsProcessDone(err) {
 				log.Debugf("error sending SIGTERM to PID %d: %v", pid, err)
 			}
 		}
@@ -57,7 +57,7 @@ func (pt *processTracker) KillAll() {
 		
 		// Force kill if still running
 		if err := proc.Kill(); err != nil {
-			if !os.IsProcessDone(err) {
+			if !IsProcessDone(err) {
 				log.Debugf("error killing PID %d: %v", pid, err)
 			}
 		}
