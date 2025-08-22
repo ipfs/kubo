@@ -1,6 +1,7 @@
 package harness
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -32,46 +33,91 @@ func (n Nodes) ForEachPar(f func(*Node)) {
 	}
 }
 
+// Connect establishes connections between all nodes in the collection
 func (n Nodes) Connect() Nodes {
-	wg := sync.WaitGroup{}
+	// Use a 10 second timeout - more generous than the original 1 second,
+	// but reasonable for test environments
+	const timeout = 10 * time.Second
+	if len(n) < 2 {
+		return n // Nothing to connect
+	}
+
+	// Use errgroup for better concurrent error handling
+	group := &errgroup.Group{}
+
+	// Track connection errors
+	type connError struct {
+		from, to int
+		err      error
+	}
+	var mu sync.Mutex
+	var errors []connError
+
+	// Establish all connections concurrently
 	for i, node := range n {
 		for j, otherNode := range n {
 			if i == j {
 				continue
 			}
-			node := node
-			otherNode := otherNode
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				node.Connect(otherNode)
-			}()
+			// Capture loop variables
+			fromNode, toNode := node, otherNode
+			fromIdx, toIdx := i, j
+
+			group.Go(func() error {
+				// Use ConnectAndWait for robust connection with timeout
+				if err := fromNode.ConnectAndWait(toNode, timeout); err != nil {
+					mu.Lock()
+					errors = append(errors, connError{from: fromIdx, to: toIdx, err: err})
+					mu.Unlock()
+					// Don't return error - collect all failures first
+				}
+				return nil
+			})
 		}
 	}
-	wg.Wait()
-	// Verify connections were established
+
+	// Wait for all connection attempts
+	_ = group.Wait() // We handle errors separately
+
+	// Report any connection failures
+	if len(errors) > 0 {
+		errMsg := fmt.Sprintf("failed to establish %d connections:\n", len(errors))
+		for _, e := range errors {
+			errMsg += fmt.Sprintf("  - node %d -> node %d: %v\n", e.from, e.to, e.err)
+		}
+		log.Panicf(errMsg)
+	}
+
+	// Verify all nodes have expected connections
+	if err := n.verifyAllConnected(); err != nil {
+		log.Panicf("connection verification failed: %v", err)
+	}
+
+	return n
+}
+
+// verifyAllConnected checks that all nodes are properly connected
+func (n Nodes) verifyAllConnected() error {
+	expectedPeers := len(n) - 1
+
 	for _, node := range n {
 		peers := node.Peers()
-		if len(peers) == 0 {
-			// Connection may still be establishing, retry a few times
-			for retry := 0; retry < 10; retry++ {
-				time.Sleep(100 * time.Millisecond)
-				peers = node.Peers()
-				if len(peers) > 0 {
-					break
-				}
-			}
-			if len(peers) == 0 {
-				log.Panicf("node %d with peer ID %s has no peers after connection attempts", node.ID, node.PeerID())
-			}
+
+		if len(peers) < expectedPeers {
+			return fmt.Errorf("node %d (peer %s) has only %d peers, expected at least %d",
+				node.ID, node.PeerID(), len(peers), expectedPeers)
 		}
-		// Validate first peer has proper protocol
-		firstPeer := peers[0]
-		if _, err := firstPeer.ValueForProtocol(multiaddr.P_P2P); err != nil {
-			log.Panicf("unexpected state for node %d with peer ID %s: %s", node.ID, node.PeerID(), err)
+
+		// Verify each peer has valid P2P protocol
+		for i, peer := range peers {
+			if _, err := peer.ValueForProtocol(multiaddr.P_P2P); err != nil {
+				return fmt.Errorf("node %d peer %d has invalid protocol: %v",
+					node.ID, i, err)
+			}
 		}
 	}
-	return n
+
+	return nil
 }
 
 func (n Nodes) StartDaemons(args ...string) Nodes {
