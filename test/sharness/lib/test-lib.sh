@@ -206,7 +206,7 @@ test_init_ipfs() {
   '
 
   test_expect_success "disable telemetry" '
-    test_config_set Plugins.Plugins.telemetry.Disabled "true"
+    test_config_set --bool Plugins.Plugins.telemetry.Disabled "true"
   '
 
   test_expect_success "prepare config -- mounting" '
@@ -232,7 +232,7 @@ test_init_ipfs_measure() {
   '
 
   test_expect_success "disable telemetry" '
-    test_config_set Plugins.Plugins.telemetry.Disabled "true"
+    test_config_set --bool Plugins.Plugins.telemetry.Disabled "true"
   '
 
   test_expect_success "prepare config -- mounting" '
