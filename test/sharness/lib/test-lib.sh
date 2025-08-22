@@ -205,9 +205,12 @@ test_init_ipfs() {
     ipfs init "${args[@]}" --profile=test > /dev/null
   '
 
+  test_expect_success "disable telemetry" '
+    test_config_set Plugins.Plugins.telemetry.Disabled "true"
+  '
+
   test_expect_success "prepare config -- mounting" '
     mkdir mountdir ipfs ipns mfs &&
-    test_config_set Plugins.Plugins.telemetry.Disabled true &&
     test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
     test_config_set Mounts.IPNS "$(pwd)/ipns" &&
     test_config_set Mounts.MFS "$(pwd)/mfs" ||
@@ -226,6 +229,10 @@ test_init_ipfs_measure() {
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
     ipfs init "${args[@]}" --profile=test,flatfs-measure > /dev/null
+  '
+
+  test_expect_success "disable telemetry" '
+    test_config_set Plugins.Plugins.telemetry.Disabled "true"
   '
 
   test_expect_success "prepare config -- mounting" '
