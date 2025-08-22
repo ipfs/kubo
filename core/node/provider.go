@@ -43,13 +43,6 @@ const sampledBatchSize = 1000
 // Datastore key used to store previous reprovide strategy.
 const reprovideStrategyKey = "/reprovideStrategy"
 
-type NoopProvider struct{}
-
-func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) {}
-func (r *NoopProvider) ProvideOnce(...mh.Multihash)          {}
-func (r *NoopProvider) Clear() int                           { return 0 }
-func (r *NoopProvider) RefreshSchedule()                     {}
-
 // DHTProvider is an interface for providing keys to a DHT swarm. It holds a
 // state of keys to be advertised, and is responsible for periodically
 // publishing provider records for these keys to the DHT swarm before the
@@ -73,9 +66,19 @@ type DHTProvider interface {
 	// Add the supplied multihashes to the provide queue, and return immediately.
 	// The provide operation happens asynchronously.
 	ProvideOnce(keys ...mh.Multihash)
-	// Clear clears the all the keys from the provide queue and returns
-	// the number of keys that were cleared.
+	// Clear clears the all the keys from the provide queue and returns the number
+	// of keys that were cleared.
+	//
+	// The keys are not deleted from the keystore, so they will continue to be
+	// reprovided as scheduled.
 	Clear() int
+	// RefreshSchedule scans the KeyStore for any keys that are not currently
+	// scheduled for reproviding. If such keys are found, it schedules their
+	// associated keyspace region to be reprovided.
+	//
+	// This function doesn't remove prefixes that have no keys from the schedule.
+	// This is done automatically during the reprovide operation if a region has no
+	// keys.
 	RefreshSchedule()
 }
 
@@ -86,6 +89,13 @@ var (
 	_ DHTProvider = &BurstProvider{}
 )
 
+type NoopProvider struct{}
+
+func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) {}
+func (r *NoopProvider) ProvideOnce(...mh.Multihash)          {}
+func (r *NoopProvider) Clear() int                           { return 0 }
+func (r *NoopProvider) RefreshSchedule()                     {}
+
 // BurstProvider is a wrapper around the boxo/provider.System. This DHT provide
 // system manages reprovides by bursts where it sequentially reprovides all
 // keys.
@@ -93,15 +103,10 @@ type BurstProvider struct {
 	provider.System
 }
 
-// StartProviding doesn't keep track of which keys have been provided so far.
-// It simply calls ProvideOnce to provide the given keys to the network, and
-// returns instantly.
 func (r *BurstProvider) StartProviding(force bool, keys ...mh.Multihash) {
 	go r.ProvideOnce(keys...)
 }
 
-// ProvideOnce sends out provider records for the supplied keys, but doesn't
-// mark the keys for reproviding.
 func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) {
 	if many, ok := r.System.(routinghelpers.ProvideManyRouter); ok {
 		err := many.ProvideMany(context.Background(), keys)
@@ -119,8 +124,6 @@ func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) {
 	}
 }
 
-// ClearProvideQueue clears the all the keys from the provide queue and returns
-// the number of keys that were cleared.
 func (r *BurstProvider) Clear() int {
 	return r.System.Clear()
 }
@@ -302,17 +305,17 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 			}
 		}
 		if impl == nil {
-			return nil, nil, errors.New("no valid DHT available for providing")
+			return &NoopProvider{}, nil, errors.New("no valid DHT available for providing")
 		}
 
 		keyStore, err := rds.NewKeyStore(in.Repo.Datastore(),
 			rds.WithPrefixBits(10),
 			rds.WithDatastorePrefix("/reprovider/keystore"),
 			rds.WithGCInterval(cfg.Reprovider.Sweep.KeyStoreGCInterval.WithDefault(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval))),
-			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
+			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize)))),
 		)
 		if err != nil {
-			return nil, nil, err
+			return &NoopProvider{}, nil, err
 		}
 		var selfAddrsFunc func() []ma.Multiaddr
 		if imlpFilter, ok := impl.(addrsFilter); ok {
@@ -340,11 +343,6 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
 			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
 			dhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
-		}
-		if implFilter, ok := impl.(addrsFilter); ok {
-			opts = append(opts, dhtprovider.WithSelfAddrs(implFilter.FilteredAddrs))
-		} else {
-			opts = append(opts, dhtprovider.WithSelfAddrs(func() []ma.Multiaddr { return impl.Host().Addrs() }))
 		}
 
 		prov, err := dhtprovider.New(opts...)
