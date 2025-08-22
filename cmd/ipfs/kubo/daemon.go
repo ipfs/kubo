@@ -479,6 +479,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if cfg.Provider.Strategy.WithDefault("") != "" && cfg.Reprovider.Strategy.IsDefault() {
 		log.Fatal("Invalid config. Remove unused Provider.Strategy and set Reprovider.Strategy instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy")
 	}
+	// Check for deprecated "flat" strategy
+	if cfg.Reprovider.Strategy.WithDefault("") == "flat" {
+		log.Error("Reprovider.Strategy='flat' is deprecated and will be removed in the next release. Please update your config to use 'all' instead.")
+	}
 	if cfg.Experimental.StrategicProviding {
 		log.Error("Experimental.StrategicProviding was removed. Remove it from your config and set Provider.Enabled=false to remove this message. Documentation: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#strategic-providing")
 		cfg.Experimental.StrategicProviding = false
