@@ -274,7 +274,7 @@ func (n *Node) StartDaemonWithReq(req RunRequest, authorization string) *Node {
 	res := n.Runner.MustRun(newReq)
 
 	n.Daemon = res
-	
+
 	// Register the daemon process for cleanup tracking
 	if res.Cmd != nil && res.Cmd.Process != nil {
 		globalProcessTracker.RegisterProcess(res.Cmd.Process)
@@ -322,10 +322,10 @@ func (n *Node) StopDaemon() *Node {
 		log.Debugf("didn't stop node %d since no daemon present", n.ID)
 		return n
 	}
-	
+
 	// Store PID for cleanup tracking
 	pid := n.Daemon.Cmd.Process.Pid
-	
+
 	watch := make(chan struct{}, 1)
 	go func() {
 		_, _ = n.Daemon.Cmd.Process.Wait()

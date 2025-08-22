@@ -35,7 +35,7 @@ func EnableDebugLogging() {
 // NewT constructs a harness that cleans up after the given test is done.
 func NewT(t *testing.T, options ...func(h *Harness)) *Harness {
 	h := New(options...)
-	
+
 	// Register cleanup with panic recovery to ensure daemons are killed
 	t.Cleanup(func() {
 		defer func() {
@@ -48,11 +48,11 @@ func NewT(t *testing.T, options ...func(h *Harness)) *Harness {
 		}()
 		h.Cleanup()
 	})
-	
+
 	// Also register a separate cleanup for daemon processes
 	// This ensures they're killed even if h.Cleanup() fails
 	t.Cleanup(CleanupDaemonProcesses)
-	
+
 	return h
 }
 
@@ -207,9 +207,9 @@ func (h *Harness) Cleanup() {
 			panic(r)
 		}
 	}()
-	
+
 	log.Debugf("cleaning up cluster")
-	
+
 	// Try to stop daemons gracefully first
 	func() {
 		defer func() {
@@ -219,10 +219,10 @@ func (h *Harness) Cleanup() {
 		}()
 		h.Nodes.StopDaemons()
 	}()
-	
+
 	// Force cleanup any remaining daemon processes
 	CleanupDaemonProcesses()
-	
+
 	// TODO: don't do this if test fails, not sure how?
 	log.Debugf("removing harness dir")
 	err := os.RemoveAll(h.Dir)

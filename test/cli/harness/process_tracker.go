@@ -41,31 +41,31 @@ func (pt *processTracker) UnregisterProcess(pid int) {
 func (pt *processTracker) KillAll() {
 	pt.mu.Lock()
 	defer pt.mu.Unlock()
-	
+
 	for pid, proc := range pt.processes {
 		log.Debugf("force killing daemon process PID %d", pid)
-		
+
 		// Try SIGTERM first
 		if err := proc.Signal(syscall.SIGTERM); err != nil {
 			if !IsProcessDone(err) {
 				log.Debugf("error sending SIGTERM to PID %d: %v", pid, err)
 			}
 		}
-		
+
 		// Give it a moment to terminate
 		time.Sleep(100 * time.Millisecond)
-		
+
 		// Force kill if still running
 		if err := proc.Kill(); err != nil {
 			if !IsProcessDone(err) {
 				log.Debugf("error killing PID %d: %v", pid, err)
 			}
 		}
-		
+
 		// Clean up entry
 		delete(pt.processes, pid)
 	}
-	
+
 	if len(pt.processes) > 0 {
 		log.Debugf("cleaned up %d daemon processes", len(pt.processes))
 	}
@@ -81,3 +81,4 @@ func IsProcessDone(err error) bool {
 func CleanupDaemonProcesses() {
 	globalProcessTracker.KillAll()
 }
+
