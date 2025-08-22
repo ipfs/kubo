@@ -34,7 +34,7 @@ func (n Nodes) Connect() Nodes {
 			if i == j {
 				continue
 			}
-			// Do not connect in paralled, because that can cause TLS handshake problems on some platforms.
+			// Do not connect in parallel, because that can cause TLS handshake problems on some platforms.
 			node.Connect(otherNode)
 		}
 	}
