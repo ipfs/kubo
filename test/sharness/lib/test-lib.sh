@@ -207,6 +207,7 @@ test_init_ipfs() {
 
   test_expect_success "prepare config -- mounting" '
     mkdir mountdir ipfs ipns mfs &&
+    test_config_set Plugins.Plugins.telemetry.Disabled true &&
     test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
     test_config_set Mounts.IPNS "$(pwd)/ipns" &&
     test_config_set Mounts.MFS "$(pwd)/mfs" ||

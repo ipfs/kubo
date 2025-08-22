@@ -25,6 +25,7 @@ func TestTelemetry(t *testing.T) {
 
 		// Create a new node
 		node := harness.NewT(t).NewNode().Init()
+		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
 
 		// Set the opt-out environment variable
 		node.Runner.Env["IPFS_TELEMETRY"] = "off"
@@ -64,6 +65,7 @@ func TestTelemetry(t *testing.T) {
 
 		// Create a new node
 		node := harness.NewT(t).NewNode().Init()
+		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
 
 		// Set opt-out via config
 		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Mode", "off")
@@ -106,6 +108,7 @@ func TestTelemetry(t *testing.T) {
 
 		// Create a new node
 		node := harness.NewT(t).NewNode().Init()
+		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
 
 		// Create a UUID file manually to simulate previous telemetry run
 		uuidPath := filepath.Join(node.Dir, "telemetry_uuid")
@@ -154,6 +157,7 @@ func TestTelemetry(t *testing.T) {
 
 		// Create a new node
 		node := harness.NewT(t).NewNode().Init()
+		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
 
 		// Capture daemon output
 		stdout := &harness.Buffer{}
@@ -255,6 +259,7 @@ func TestTelemetry(t *testing.T) {
 
 		// Create a new node
 		node := harness.NewT(t).NewNode().Init()
+		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
 
 		// Configure telemetry with a very short delay for testing
 		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Delay", "100ms")
