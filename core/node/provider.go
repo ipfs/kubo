@@ -18,13 +18,17 @@ import (
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/amino"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/dual/provider"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
+	dht_pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	dhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider"
 	rds "github.com/libp2p/go-libp2p-kad-dht/provider/datastore"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
+	"github.com/libp2p/go-libp2p/core/host"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
@@ -265,80 +269,86 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 	)
 }
 
+type dhtImpl interface {
+	routing.Routing
+	GetClosestPeers(context.Context, string) ([]peer.ID, error)
+	Host() host.Host
+	MessageSender() dht_pb.MessageSender
+}
+type addrsFilter interface {
+	FilteredAddrs() []ma.Multiaddr
+}
+
 func SweepingProvider(cfg *config.Config) fx.Option {
 	type providerInput struct {
 		fx.In
 		DHT  routing.Routing `name:"dhtc"`
 		Repo repo.Repo
 	}
-	fmt.Println("SweepingProvider")
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.KeyStore, error) {
+		var impl dhtImpl
+		switch inDht := in.DHT.(type) {
+		case *dht.IpfsDHT:
+			if inDht != nil {
+				impl = inDht
+			}
+		case *dual.DHT:
+			if inDht != nil && inDht.WAN != nil {
+				impl = inDht.WAN
+			}
+		case *fullrt.FullRT:
+			if inDht != nil {
+				impl = inDht
+			}
+		}
+		if impl == nil {
+			return nil, nil, errors.New("no valid DHT available for providing")
+		}
+
 		keyStore, err := rds.NewKeyStore(in.Repo.Datastore(),
 			rds.WithPrefixBits(10),
-			rds.WithDatastorePrefix("/reprovider/mhs"),
+			rds.WithDatastorePrefix("/reprovider/keystore"),
 			rds.WithGCInterval(cfg.Reprovider.Sweep.KeyStoreGCInterval.WithDefault(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval))),
 			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
 		)
 		if err != nil {
 			return nil, nil, err
 		}
-
-		switch dht := in.DHT.(type) {
-		case *dual.DHT:
-			if dht != nil {
-				prov, err := ddhtprovider.New(dht,
-					ddhtprovider.WithKeyStore(keyStore),
-
-					ddhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
-					ddhtprovider.WithMaxReprovideDelay(time.Hour),
-
-					ddhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
-					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
-					ddhtprovider.WithDedicatedBurstWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
-					ddhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
-				)
-				if err != nil {
-					return nil, nil, err
-				}
-				// Add keys from the KeyStore to the schedule
-				// prov.RefreshSchedule()
-				return prov, keyStore, nil
-				// _ = prov
-				// return &NoopProvider{}, nil
-			}
-		case *fullrt.FullRT:
-			if dht != nil {
-				prov, err := dhtprovider.New(
-					dhtprovider.WithKeyStore(keyStore),
-
-					dhtprovider.WithRouter(dht),
-					dhtprovider.WithMessageSender(dht.MessageSender()),
-					dhtprovider.WithPeerID(dht.Host().ID()),
-					dhtprovider.WithSelfAddrs(func() []ma.Multiaddr { return dht.Host().Addrs() }),
-					dhtprovider.WithAddLocalRecord(func(h mh.Multihash) error {
-						return dht.Provide(context.Background(), cid.NewCidV1(cid.Raw, h), false)
-					}),
-
-					dhtprovider.WithReplicationFactor(amino.DefaultBucketSize),
-					dhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
-					dhtprovider.WithMaxReprovideDelay(time.Hour),
-					dhtprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
-					dhtprovider.WithConnectivityCheckOfflineInterval(5*time.Minute),
-
-					dhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
-					dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
-					dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
-					dhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
-				)
-				if err != nil {
-					return nil, nil, err
-				}
-				// Add keys from the KeyStore to the schedule
-				// prov.RefreshSchedule()
-				return prov, keyStore, nil
-			}
+		var selfAddrsFunc func() []ma.Multiaddr
+		if imlpFilter, ok := impl.(addrsFilter); ok {
+			selfAddrsFunc = imlpFilter.FilteredAddrs
+		} else {
+			selfAddrsFunc = func() []ma.Multiaddr { return impl.Host().Addrs() }
 		}
-		return &NoopProvider{}, keyStore, nil
+		opts := []dhtprovider.Option{
+			dhtprovider.WithKeyStore(keyStore),
+			dhtprovider.WithPeerID(impl.Host().ID()),
+			dhtprovider.WithRouter(impl),
+			dhtprovider.WithMessageSender(impl.MessageSender()),
+			dhtprovider.WithSelfAddrs(selfAddrsFunc),
+			dhtprovider.WithAddLocalRecord(func(h mh.Multihash) error {
+				return impl.Provide(context.Background(), cid.NewCidV1(cid.Raw, h), false)
+			}),
+
+			dhtprovider.WithReplicationFactor(amino.DefaultBucketSize),
+			dhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
+			dhtprovider.WithMaxReprovideDelay(time.Hour),
+			dhtprovider.WithConnectivityCheckOnlineInterval(1 * time.Minute),
+			dhtprovider.WithConnectivityCheckOfflineInterval(5 * time.Minute),
+
+			dhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
+			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
+			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
+			dhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
+		}
+		if implFilter, ok := impl.(addrsFilter); ok {
+			opts = append(opts, dhtprovider.WithSelfAddrs(implFilter.FilteredAddrs))
+		} else {
+			opts = append(opts, dhtprovider.WithSelfAddrs(func() []ma.Multiaddr { return impl.Host().Addrs() }))
+		}
+
+		prov, err := dhtprovider.New(opts...)
+		return prov, keyStore, err
 	})
 
 	type keystoreInput struct {
@@ -350,16 +360,24 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
-				// TODO: Set GCFunc to keystore
+				// Set the KeyProvider as a garbage collection function for the
+				// keystore. The KeyStore will periodically purge its keys and replace
+				// them with the ones coming from the KeyChanFunc, to remove CIDs that
+				// should stop being reprovided from its state.
+				in.KeyStore.SetGCFunc(in.KeyProvider)
+
 				ch, err := in.KeyProvider(ctx)
 				if err != nil {
 					return err
 				}
+				// Initialize the KeyStore with the current keys from the KeyProvider.
 				err = in.KeyStore.ResetCids(ctx, ch)
 				if err != nil {
 					return err
 				}
-				in.Provider.RefreshSchedule()
+				// Add keys from the KeyStore to the schedule. This call blocks until
+				// the node is bootstrapped, hence running it in a goroutine.
+				go in.Provider.RefreshSchedule()
 				return nil
 			},
 			OnStop: func(_ context.Context) error {
@@ -369,7 +387,6 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 	})
 
 	return fx.Options(
-		// keyStore,
 		sweepingReprovider,
 		initKeyStore,
 	)
