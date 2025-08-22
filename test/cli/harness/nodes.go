@@ -2,6 +2,7 @@ package harness
 
 import (
 	"sync"
+	"time"
 
 	. "github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/multiformats/go-multiaddr"
@@ -48,8 +49,24 @@ func (n Nodes) Connect() Nodes {
 		}
 	}
 	wg.Wait()
+	// Verify connections were established
 	for _, node := range n {
-		firstPeer := node.Peers()[0]
+		peers := node.Peers()
+		if len(peers) == 0 {
+			// Connection may still be establishing, retry a few times
+			for retry := 0; retry < 10; retry++ {
+				time.Sleep(100 * time.Millisecond)
+				peers = node.Peers()
+				if len(peers) > 0 {
+					break
+				}
+			}
+			if len(peers) == 0 {
+				log.Panicf("node %d with peer ID %s has no peers after connection attempts", node.ID, node.PeerID())
+			}
+		}
+		// Validate first peer has proper protocol
+		firstPeer := peers[0]
 		if _, err := firstPeer.ValueForProtocol(multiaddr.P_P2P); err != nil {
 			log.Panicf("unexpected state for node %d with peer ID %s: %s", node.ID, node.PeerID(), err)
 		}
