@@ -296,7 +296,7 @@ func (n *Node) StartDaemonWithReq(req RunRequest, authorization string) *Node {
 
 			// Register the daemon process for cleanup tracking
 			if res.Cmd != nil && res.Cmd.Process != nil {
-				globalProcessTracker.RegisterProcess(res.Cmd.Process)
+				globalProcessTracker.registerProcess(res.Cmd.Process)
 			}
 
 			log.Debugf("node %d started, checking API", n.ID)
@@ -386,7 +386,7 @@ func (n *Node) StopDaemon() *Node {
 	// os.Interrupt does not support interrupts on Windows https://github.com/golang/go/issues/46345
 	if runtime.GOOS == "windows" {
 		if n.signalAndWait(watch, syscall.SIGKILL, 5*time.Second) {
-			globalProcessTracker.UnregisterProcess(pid)
+			globalProcessTracker.unregisterProcess(pid)
 			return n
 		}
 		log.Panicf("timed out stopping node %d with peer ID %s", n.ID, n.PeerID())
@@ -394,22 +394,22 @@ func (n *Node) StopDaemon() *Node {
 
 	log.Debugf("signaling node %d with SIGTERM", n.ID)
 	if n.signalAndWait(watch, syscall.SIGTERM, 1*time.Second) {
-		globalProcessTracker.UnregisterProcess(pid)
+		globalProcessTracker.unregisterProcess(pid)
 		return n
 	}
 	log.Debugf("signaling node %d with SIGTERM", n.ID)
 	if n.signalAndWait(watch, syscall.SIGTERM, 2*time.Second) {
-		globalProcessTracker.UnregisterProcess(pid)
+		globalProcessTracker.unregisterProcess(pid)
 		return n
 	}
 	log.Debugf("signaling node %d with SIGQUIT", n.ID)
 	if n.signalAndWait(watch, syscall.SIGQUIT, 5*time.Second) {
-		globalProcessTracker.UnregisterProcess(pid)
+		globalProcessTracker.unregisterProcess(pid)
 		return n
 	}
 	log.Debugf("signaling node %d with SIGKILL", n.ID)
 	if n.signalAndWait(watch, syscall.SIGKILL, 5*time.Second) {
-		globalProcessTracker.UnregisterProcess(pid)
+		globalProcessTracker.unregisterProcess(pid)
 		return n
 	}
 	log.Panicf("timed out stopping node %d with peer ID %s", n.ID, n.PeerID())

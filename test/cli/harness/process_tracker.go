@@ -18,8 +18,8 @@ var globalProcessTracker = &processTracker{
 	processes: make(map[int]*os.Process),
 }
 
-// RegisterProcess adds a process to the tracker
-func (pt *processTracker) RegisterProcess(proc *os.Process) {
+// registerProcess adds a process to the tracker
+func (pt *processTracker) registerProcess(proc *os.Process) {
 	if proc == nil {
 		return
 	}
@@ -29,16 +29,16 @@ func (pt *processTracker) RegisterProcess(proc *os.Process) {
 	log.Debugf("registered daemon process PID %d", proc.Pid)
 }
 
-// UnregisterProcess removes a process from the tracker
-func (pt *processTracker) UnregisterProcess(pid int) {
+// unregisterProcess removes a process from the tracker
+func (pt *processTracker) unregisterProcess(pid int) {
 	pt.mu.Lock()
 	defer pt.mu.Unlock()
 	delete(pt.processes, pid)
 	log.Debugf("unregistered daemon process PID %d", pid)
 }
 
-// KillAll forcefully terminates all tracked processes
-func (pt *processTracker) KillAll() {
+// killAll forcefully terminates all tracked processes
+func (pt *processTracker) killAll() {
 	pt.mu.Lock()
 	defer pt.mu.Unlock()
 
@@ -47,7 +47,7 @@ func (pt *processTracker) KillAll() {
 
 		// Try SIGTERM first
 		if err := proc.Signal(syscall.SIGTERM); err != nil {
-			if !IsProcessDone(err) {
+			if !isProcessDone(err) {
 				log.Debugf("error sending SIGTERM to PID %d: %v", pid, err)
 			}
 		}
@@ -57,7 +57,7 @@ func (pt *processTracker) KillAll() {
 
 		// Force kill if still running
 		if err := proc.Kill(); err != nil {
-			if !IsProcessDone(err) {
+			if !isProcessDone(err) {
 				log.Debugf("error killing PID %d: %v", pid, err)
 			}
 		}
@@ -71,14 +71,13 @@ func (pt *processTracker) KillAll() {
 	}
 }
 
-// IsProcessDone checks if an error indicates the process has already exited
-func IsProcessDone(err error) bool {
+// isProcessDone checks if an error indicates the process has already exited
+func isProcessDone(err error) bool {
 	return err == os.ErrProcessDone
 }
 
 // CleanupDaemonProcesses kills all tracked daemon processes
 // This should be called in test cleanup or panic recovery
 func CleanupDaemonProcesses() {
-	globalProcessTracker.KillAll()
+	globalProcessTracker.killAll()
 }
-
