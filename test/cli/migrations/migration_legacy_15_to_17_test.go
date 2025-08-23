@@ -215,6 +215,9 @@ func runDaemonWithMigrationMonitoringCustomEnv(t *testing.T, node *harness.Node,
 	// Start the daemon
 	require.NoError(t, cmd.Start())
 
+	// Register for cleanup in case of test failure
+	harness.RegisterBackgroundProcess(cmd.Process)
+
 	// Monitor output from both streams
 	var outputBuffer strings.Builder
 	done := make(chan bool)

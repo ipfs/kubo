@@ -81,3 +81,11 @@ func isProcessDone(err error) bool {
 func CleanupDaemonProcesses() {
 	globalProcessTracker.killAll()
 }
+
+// RegisterBackgroundProcess registers an external process for cleanup tracking
+// This is useful for tests that start processes outside of the harness Runner
+func RegisterBackgroundProcess(proc *os.Process) {
+	if proc != nil {
+		globalProcessTracker.registerProcess(proc)
+	}
+}
