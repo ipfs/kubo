@@ -266,74 +266,75 @@ func (n *Node) StartDaemonWithReq(req RunRequest, authorization string) *Node {
 		log.Panicf("node %d is already running", n.ID)
 	}
 
-	// Start the daemon with a simple retry mechanism
-	// Sometimes when tests run in parallel, daemon startup can fail transiently
-	var daemonStarted bool
+	// Retry daemon start up to 3 times for transient failures
+	const maxAttempts = 3
 	var lastErr error
-	for attempt := 0; attempt < 3; attempt++ {
-		if attempt > 0 {
-			time.Sleep(time.Second) // Brief pause before retry
-			log.Debugf("retrying daemon start for node %d (attempt %d/3)", n.ID, attempt+1)
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if attempt > 1 {
+			log.Debugf("retrying daemon start for node %d (attempt %d/%d)", n.ID, attempt, maxAttempts)
+			time.Sleep(time.Second)
 		}
 
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					lastErr = fmt.Errorf("panic during daemon start: %v", r)
-					log.Debugf("node %d daemon start attempt %d failed: %v", n.ID, attempt+1, r)
-				}
-			}()
-
-			newReq := req
-			newReq.Path = n.IPFSBin
-			newReq.Args = append([]string{"daemon"}, req.Args...)
-			newReq.RunFunc = (*exec.Cmd).Start
-
-			log.Debugf("starting node %d", n.ID)
-			res := n.Runner.MustRun(newReq)
-
-			n.Daemon = res
-
-			// Register the daemon process for cleanup tracking
-			if res.Cmd != nil && res.Cmd.Process != nil {
-				globalProcessTracker.registerProcess(res.Cmd.Process)
-			}
-
-			log.Debugf("node %d started, checking API", n.ID)
-			n.WaitOnAPI(authorization)
-			daemonStarted = true
-		}()
-
-		if daemonStarted {
-			break
-		}
-	}
-
-	if !daemonStarted {
-		if lastErr != nil {
-			log.Panicf("node %d failed to start daemon after 3 attempts: %v", n.ID, lastErr)
+		if err := n.tryStartDaemon(req, authorization); err == nil {
+			// Success - verify daemon is responsive
+			n.waitForDaemonReady()
+			return n
 		} else {
-			log.Panicf("node %d failed to start daemon after 3 attempts", n.ID)
+			lastErr = err
+			log.Debugf("node %d daemon start attempt %d failed: %v", n.ID, attempt, err)
 		}
 	}
 
-	// Wait for daemon to be fully ready by checking it can respond to commands
-	// This is more reliable than just checking the API endpoint
-	maxRetries := 30
+	// All attempts failed
+	log.Panicf("node %d failed to start daemon after %d attempts: %v", n.ID, maxAttempts, lastErr)
+	return n
+}
+
+// tryStartDaemon attempts to start the daemon once
+func (n *Node) tryStartDaemon(req RunRequest, authorization string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic during daemon start: %v", r)
+		}
+	}()
+
+	newReq := req
+	newReq.Path = n.IPFSBin
+	newReq.Args = append([]string{"daemon"}, req.Args...)
+	newReq.RunFunc = (*exec.Cmd).Start
+
+	log.Debugf("starting node %d", n.ID)
+	res := n.Runner.MustRun(newReq)
+	n.Daemon = res
+
+	// Register the daemon process for cleanup tracking
+	if res.Cmd != nil && res.Cmd.Process != nil {
+		globalProcessTracker.registerProcess(res.Cmd.Process)
+	}
+
+	log.Debugf("node %d started, checking API", n.ID)
+	n.WaitOnAPI(authorization)
+	return nil
+}
+
+// waitForDaemonReady waits for the daemon to be fully responsive
+func (n *Node) waitForDaemonReady() {
+	const maxRetries = 30
+	const retryDelay = 200 * time.Millisecond
+
 	for i := 0; i < maxRetries; i++ {
 		result := n.RunIPFS("id")
 		if result.ExitCode() == 0 {
 			log.Debugf("node %d daemon is fully responsive", n.ID)
-			break
+			return
 		}
 		if i == maxRetries-1 {
 			log.Panicf("node %d daemon not responsive after %d retries. stderr: %s",
 				n.ID, maxRetries, result.Stderr.String())
 		}
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(retryDelay)
 	}
-
-	return n
 }
 
 func (n *Node) StartDaemon(ipfsArgs ...string) *Node {

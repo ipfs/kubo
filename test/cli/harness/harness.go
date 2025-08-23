@@ -36,22 +36,23 @@ func EnableDebugLogging() {
 func NewT(t *testing.T, options ...func(h *Harness)) *Harness {
 	h := New(options...)
 
-	// Register cleanup with panic recovery to ensure daemons are killed
+	// Single consolidated cleanup with proper panic recovery
 	t.Cleanup(func() {
 		defer func() {
-			// Always kill any remaining daemon processes, even if cleanup panics
+			// Always force-kill daemon processes on panic
 			if r := recover(); r != nil {
 				log.Debugf("panic during cleanup: %v, forcing daemon cleanup", r)
 				CleanupDaemonProcesses()
 				panic(r) // re-panic after cleanup
 			}
 		}()
-		h.Cleanup()
-	})
 
-	// Also register a separate cleanup for daemon processes
-	// This ensures they're killed even if h.Cleanup() fails
-	t.Cleanup(CleanupDaemonProcesses)
+		// Run full cleanup which includes daemon cleanup
+		h.Cleanup()
+
+		// Final safety check for any remaining processes
+		CleanupDaemonProcesses()
+	})
 
 	return h
 }
@@ -198,11 +199,9 @@ func (h *Harness) Sh(expr string) *RunResult {
 }
 
 func (h *Harness) Cleanup() {
-	// Use defer to ensure we always try to clean up, even if something fails
 	defer func() {
 		if r := recover(); r != nil {
-			log.Debugf("panic during harness cleanup: %v", r)
-			// Force cleanup of daemons before re-panicking
+			log.Debugf("panic during harness cleanup: %v, forcing daemon cleanup", r)
 			CleanupDaemonProcesses()
 			panic(r)
 		}
@@ -210,7 +209,7 @@ func (h *Harness) Cleanup() {
 
 	log.Debugf("cleaning up cluster")
 
-	// Try to stop daemons gracefully first
+	// Try graceful daemon shutdown with panic protection
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -223,10 +222,9 @@ func (h *Harness) Cleanup() {
 	// Force cleanup any remaining daemon processes
 	CleanupDaemonProcesses()
 
-	// TODO: don't do this if test fails, not sure how?
+	// Clean up temp directory
 	log.Debugf("removing harness dir")
-	err := os.RemoveAll(h.Dir)
-	if err != nil {
+	if err := os.RemoveAll(h.Dir); err != nil {
 		log.Panicf("removing temp dir %s: %s", h.Dir, err)
 	}
 }

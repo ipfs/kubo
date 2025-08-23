@@ -1,6 +1,7 @@
 package harness
 
 import (
+	"errors"
 	"os"
 	"sync"
 	"syscall"
@@ -42,6 +43,13 @@ func (pt *processTracker) killAll() {
 	pt.mu.Lock()
 	defer pt.mu.Unlock()
 
+	count := len(pt.processes)
+	if count == 0 {
+		return
+	}
+
+	log.Debugf("cleaning up %d daemon processes", count)
+
 	for pid, proc := range pt.processes {
 		log.Debugf("force killing daemon process PID %d", pid)
 
@@ -65,15 +73,11 @@ func (pt *processTracker) killAll() {
 		// Clean up entry
 		delete(pt.processes, pid)
 	}
-
-	if len(pt.processes) > 0 {
-		log.Debugf("cleaned up %d daemon processes", len(pt.processes))
-	}
 }
 
 // isProcessDone checks if an error indicates the process has already exited
 func isProcessDone(err error) bool {
-	return err == os.ErrProcessDone
+	return errors.Is(err, os.ErrProcessDone)
 }
 
 // CleanupDaemonProcesses kills all tracked daemon processes
