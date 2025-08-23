@@ -227,8 +227,7 @@ func (h *Harness) Cleanup() {
 	log.Debugf("removing harness dir")
 	err := os.RemoveAll(h.Dir)
 	if err != nil {
-		// Don't panic here, just log the error
-		log.Debugf("error removing temp dir %s: %s", h.Dir, err)
+		log.Panicf("removing temp dir %s: %s", h.Dir, err)
 	}
 }
 
