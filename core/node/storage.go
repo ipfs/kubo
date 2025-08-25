@@ -2,7 +2,6 @@ package node
 
 import (
 	blockstore "github.com/ipfs/boxo/blockstore"
-	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-datastore"
 	config "github.com/ipfs/kubo/config"
 	"go.uber.org/fx"
@@ -33,9 +32,8 @@ func BaseBlockstoreCtor(
 	hashOnRead bool,
 	writeThrough bool,
 	providingStrategy string,
-
-) func(mctx helpers.MetricsCtx, repo repo.Repo, prov provider.System, lc fx.Lifecycle) (bs BaseBlocks, err error) {
-	return func(mctx helpers.MetricsCtx, repo repo.Repo, prov provider.System, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+) func(mctx helpers.MetricsCtx, repo repo.Repo, prov DHTProvider, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+	return func(mctx helpers.MetricsCtx, repo repo.Repo, prov DHTProvider, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 		opts := []blockstore.Option{blockstore.WriteThrough(writeThrough)}
 
 		// Blockstore providing integration:
