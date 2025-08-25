@@ -1,5 +1,7 @@
-# If we decide to run build-image.yml on every PR, we could deprecate this workflow.
-name: Docker Build
+# This workflow performs a quick Docker build check on PRs and pushes to master.
+# It builds the Docker image and runs a basic smoke test to ensure the image works.
+# This is a lightweight check - for full multi-platform builds and publishing, see docker-image.yml
+name: Docker Check
 
 on:
   workflow_dispatch:
@@ -15,7 +17,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  docker-build:
+  lint:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+          verbose: true
+          format: tty
+
+  build:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
