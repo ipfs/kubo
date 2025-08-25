@@ -245,6 +245,14 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 		cfg.Swarm.DisableNatPortMap = true
 		cfg.Discovery.MDNS.Enabled = n.EnableMDNS
 		cfg.Routing.LoopbackAddressesOnLanDHT = config.True
+		// Telemetry disabled by default in tests.
+		cfg.Plugins = config.Plugins{
+			Plugins: map[string]config.Plugin{
+				"telemetry": config.Plugin{
+					Disabled: true,
+				},
+			},
+		}
 	})
 	return n
 }
