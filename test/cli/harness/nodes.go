@@ -28,6 +28,7 @@ func (n Nodes) ForEachPar(f func(*Node)) {
 	wg.Wait()
 }
 
+// Connect establishes connections between all nodes in the collection
 func (n Nodes) Connect() Nodes {
 	for i, node := range n {
 		for j, otherNode := range n {
