@@ -15,6 +15,7 @@ const (
 	DefaultReproviderSweepDedicatedBurstWorkers    = 1
 	DefaultReproviderSweepMaxProvideConnsPerWorker = 16
 	DefaultReproviderSweepKeyStoreBatchSize        = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
+	DefaultReproviderSweepOfflineDelay             = 2 * time.Hour
 )
 
 type ReproviderStrategy int
@@ -46,6 +47,8 @@ type Sweep struct {
 
 	KeyStoreGCInterval *OptionalDuration // Interval for garbage collection in KeyStore.
 	KeyStoreBatchSize  *OptionalInteger  // Number of multihashes to keep in memory when gc'ing the KeyStore.
+
+	OfflineDelay *OptionalDuration // Delay after which the provides changes state from Disconnected to Offline.
 }
 
 func ParseReproviderStrategy(s string) ReproviderStrategy {

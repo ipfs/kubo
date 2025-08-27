@@ -324,7 +324,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 
 					ddhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
-					ddhtprovider.WithOfflineDelay(2*time.Hour), // TODO: move to config
+					ddhtprovider.WithOfflineDelay(cfg.Reprovider.Sweep.OfflineDelay.WithDefault(config.DefaultReproviderSweepOfflineDelay)),
 					ddhtprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
 
 					ddhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
@@ -366,7 +366,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 			dhtprovider.WithReplicationFactor(amino.DefaultBucketSize),
 			dhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
 			dhtprovider.WithMaxReprovideDelay(time.Hour),
-			dhtprovider.WithOfflineDelay(2 * time.Hour), // TODO: move to config
+			dhtprovider.WithOfflineDelay(cfg.Reprovider.Sweep.OfflineDelay.WithDefault(config.DefaultReproviderSweepOfflineDelay)),
 			dhtprovider.WithConnectivityCheckOnlineInterval(1 * time.Minute),
 
 			dhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),

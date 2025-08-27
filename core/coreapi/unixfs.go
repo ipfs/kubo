@@ -395,6 +395,10 @@ func (pds *providingDagService) Add(ctx context.Context, n ipld.Node) error {
 	if err := pds.DAGService.Add(ctx, n); err != nil {
 		return err
 	}
+	// Provider errors are logged but not propagated.
+	// We don't want DAG operations to fail due to providing issues.
+	// The user's data is still stored successfully even if the
+	// announcement to the routing system fails temporarily.
 	if err := pds.StartProviding(false, n.Cid().Hash()); err != nil {
 		log.Errorf("failed to provide new block: %s", err)
 	}
@@ -409,6 +413,7 @@ func (pds *providingDagService) AddMany(ctx context.Context, nds []ipld.Node) er
 	for i, n := range nds {
 		keys[i] = n.Cid().Hash()
 	}
+	// Same error handling philosophy as Add(): log but don't fail.
 	if err := pds.StartProviding(false, keys...); err != nil {
 		log.Errorf("failed to provide new blocks: %s", err)
 	}

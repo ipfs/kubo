@@ -15,9 +15,10 @@ import (
 	cidutil "github.com/ipfs/go-cidutil"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	caopts "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/tracing"
 	peer "github.com/libp2p/go-libp2p/core/peer"
-	routing "github.com/libp2p/go-libp2p/core/routing"
+	mh "github.com/multiformats/go-multihash"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -148,9 +149,9 @@ func (api *RoutingAPI) Provide(ctx context.Context, path path.Path, opts ...caop
 	}
 
 	if settings.Recursive {
-		err = provideKeysRec(ctx, api.routing, api.blockstore, []cid.Cid{c})
+		err = provideKeysRec(ctx, api.provider, api.blockstore, []cid.Cid{c})
 	} else {
-		err = provideKeys(ctx, api.routing, []cid.Cid{c})
+		err = api.provider.StartProviding(false, c.Hash())
 	}
 	if err != nil {
 		return err
@@ -159,18 +160,7 @@ func (api *RoutingAPI) Provide(ctx context.Context, path path.Path, opts ...caop
 	return nil
 }
 
-func provideKeys(ctx context.Context, r routing.Routing, cids []cid.Cid) error {
-	for _, c := range cids {
-		// TODO: only provide cids according to Provide.Strategy
-		err := r.Provide(ctx, c, true)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func provideKeysRec(ctx context.Context, r routing.Routing, bs blockstore.Blockstore, cids []cid.Cid) error {
+func provideKeysRec(ctx context.Context, prov node.DHTProvider, bs blockstore.Blockstore, cids []cid.Cid) error {
 	provided := cidutil.NewStreamingSet()
 
 	errCh := make(chan error)
@@ -183,21 +173,11 @@ func provideKeysRec(ctx context.Context, r routing.Routing, bs blockstore.Blocks
 			}
 		}
 	}()
-
-	for {
-		select {
-		case k := <-provided.New:
-			// TODO: only provide cids according to Provide.Strategy
-			err := r.Provide(ctx, k, true)
-			if err != nil {
-				return err
-			}
-		case err := <-errCh:
-			return err
-		case <-ctx.Done():
-			return ctx.Err()
-		}
+	keys := make([]mh.Multihash, provided.Set.Len())
+	for i, c := range provided.Set.Keys() {
+		keys[i] = c.Hash()
 	}
+	return prov.StartProviding(true, keys...)
 }
 
 func (api *RoutingAPI) core() coreiface.CoreAPI {

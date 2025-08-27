@@ -139,6 +139,7 @@ config file at runtime.
   - [`Reprovider`](#reprovider)
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
+    - [`Reprovider.Sweep`](#reprovidersweep)
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
@@ -2234,6 +2235,26 @@ multihash is usually represented by 34 bytes.
 Default: `16384` (~544 KiB per batch)
 
 Type: `optionalInteger` (non-negative)
+
+#### Reprovider.Sweep.OfflineDelay
+
+The `SweepingProvider` has 3 states: `ONLINE`, `DISCONNECTED` and `OFFLINE`. It
+starts `OFFLINE`, and as the node bootstraps, it changes its state to `ONLINE`.
+
+When the provider loses connection to all DHT peers, it switches to the
+`DISCONNECTED` state. In this state, new provides will be added to the provide
+queue, and provided as soon as the node comes back online.
+
+After a node has been `DISCONNECTED` for `OfflineDelay`, it goes to `OFFLINE`
+state. When `OFFLINE`, the provider drops the provide queue, and returns errors
+to new provide requests. However, when `OFFLINE` the provide still adds the
+keys to its state, so keys will eventually be provided in the
+[`Reprovider.Interval`](#reproviderinterval) after the provider comes back
+`ONLINE`.
+
+Default: `2h`
+
+Type: `optionalDuration`
 
 ## `Routing`
 
