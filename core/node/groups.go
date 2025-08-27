@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -349,7 +350,17 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 	// Right now Provider and Reprovider systems are tied together - disabling Reprovider by setting interval to 0 disables Provider
 	// and vice versa: Provider.Enabled=false will disable both Provider of new CIDs and the Reprovider of old ones.
-	isProviderEnabled := cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) && cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) != 0
+	providerEnabled := cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled)
+	reproviderInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
+	isProviderEnabled := providerEnabled && reproviderInterval != 0
+	
+	// Debug logging for provider enablement
+	debugFile := "/tmp/provider_debug.log"
+	if f, err := os.OpenFile(debugFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+		defer f.Close()
+		f.WriteString(fmt.Sprintf("DEBUG: Provider config - Enabled=%v, Interval=%v, isProviderEnabled=%v\n", 
+			providerEnabled, reproviderInterval, isProviderEnabled))
+	}
 
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),
