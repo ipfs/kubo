@@ -36,24 +36,34 @@ func Mount(node *core.IpfsNode, fsdir, nsdir, mfsdir string) error {
 	// check if we already have live mounts.
 	// if the user said "Mount", then there must be something wrong.
 	// so, close them and try again.
-	if node.Mounts.Ipfs != nil && node.Mounts.Ipfs.IsActive() {
-		// best effort
-		_ = node.Mounts.Ipfs.Unmount()
-	}
-	if node.Mounts.Ipns != nil && node.Mounts.Ipns.IsActive() {
-		// best effort
-		_ = node.Mounts.Ipns.Unmount()
-	}
-	if node.Mounts.Mfs != nil && node.Mounts.Mfs.IsActive() {
-		// best effort
-		_ = node.Mounts.Mfs.Unmount()
-	}
+	Unmount(node)
 
 	if err := platformFuseChecks(node); err != nil {
 		return err
 	}
 
 	return doMount(node, fsdir, nsdir, mfsdir)
+}
+
+func Unmount(node *core.IpfsNode) {
+	if node.Mounts.Ipfs != nil && node.Mounts.Ipfs.IsActive() {
+		// best effort
+		if err := node.Mounts.Ipfs.Unmount(); err != nil {
+			log.Errorf("error unmounting IPFS: %s", err)
+		}
+	}
+	if node.Mounts.Ipns != nil && node.Mounts.Ipns.IsActive() {
+		// best effort
+		if err := node.Mounts.Ipns.Unmount(); err != nil {
+			log.Errorf("error unmounting IPNS: %s", err)
+		}
+	}
+	if node.Mounts.Mfs != nil && node.Mounts.Mfs.IsActive() {
+		// best effort
+		if err := node.Mounts.Mfs.Unmount(); err != nil {
+			log.Errorf("error unmounting MFS: %s", err)
+		}
+	}
 }
 
 func doMount(node *core.IpfsNode, fsdir, nsdir, mfsdir string) error {

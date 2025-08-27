@@ -29,7 +29,6 @@ import (
 	provider "github.com/ipfs/boxo/provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
-	goprocess "github.com/jbenet/goprocess"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
@@ -98,6 +97,7 @@ type IpfsNode struct {
 	Filters                   *ma.Filters                `optional:"true"`
 	Bootstrapper              io.Closer                  `optional:"true"` // the periodic bootstrapper
 	Routing                   irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
+	ContentDiscovery          routing.ContentDiscovery   `optional:"true"` // the discovery part of the routing system
 	DNSResolver               *madns.Resolver            // the DNS resolver
 	IPLDPathResolver          pathresolver.Resolver      `name:"ipldPathResolver"`          // The IPLD path resolver
 	UnixFSPathResolver        pathresolver.Resolver      `name:"unixFSPathResolver"`        // The UnixFS path resolver
@@ -107,6 +107,8 @@ type IpfsNode struct {
 	Bitswap                   *bitswap.Bitswap           `optional:"true"` // The Bitswap instance
 	Namesys                   namesys.NameSystem         // the name system, resolves paths to hashes
 	Provider                  provider.System            // the value provider system
+	ProvidingStrategy         config.ReproviderStrategy  `optional:"true"`
+	ProvidingKeyChanFunc      provider.KeyChanFunc       `optional:"true"`
 	IpnsRepub                 *ipnsrp.Republisher        `optional:"true"`
 	ResourceManager           network.ResourceManager    `optional:"true"`
 
@@ -118,8 +120,7 @@ type IpfsNode struct {
 
 	P2P *p2p.P2P `optional:"true"`
 
-	Process goprocess.Process
-	ctx     context.Context
+	ctx context.Context
 
 	stop func() error
 
@@ -212,7 +213,8 @@ func (n *IpfsNode) loadBootstrapPeers() ([]peer.AddrInfo, error) {
 		return nil, err
 	}
 
-	return cfg.BootstrapPeers()
+	// Use auto-config resolution for actual bootstrap connectivity
+	return cfg.BootstrapPeersWithAutoConf()
 }
 
 func (n *IpfsNode) saveTempBootstrapPeers(ctx context.Context, peerList []peer.AddrInfo) error {

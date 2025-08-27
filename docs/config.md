@@ -36,6 +36,11 @@ config file at runtime.
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
     - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
+  - [`AutoConf`](#autoconf)
+    - [`AutoConf.URL`](#autoconfurl)
+    - [`AutoConf.Enabled`](#autoconfenabled)
+    - [`AutoConf.RefreshInterval`](#autoconfrefreshinterval)
+    - [`AutoConf.TLSInsecureSkipVerify`](#autoconftlsinsecureskipverify)
   - [`Bitswap`](#bitswap)
     - [`Bitswap.Libp2pEnabled`](#bitswaplibp2penabled)
     - [`Bitswap.ServerEnabled`](#bitswapserverenabled)
@@ -60,6 +65,8 @@ config file at runtime.
     - [`Gateway.DeserializedResponses`](#gatewaydeserializedresponses)
     - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
     - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
+    - [`Gateway.RetrievalTimeout`](#gatewayretrievaltimeout)
+    - [`Gateway.MaxConcurrentRequests`](#gatewaymaxconcurrentrequests)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
     - [`Gateway.FastDirIndexThreshold`](#gatewayfastdirindexthreshold)
@@ -98,6 +105,7 @@ config file at runtime.
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
     - [`Ipns.MaxCacheTTL`](#ipnsmaxcachettl)
     - [`Ipns.UsePubsub`](#ipnsusepubsub)
+    - [`Ipns.DelegatedPublishers`](#ipnsdelegatedpublishers)
   - [`Migration`](#migration)
     - [`Migration.DownloadSources`](#migrationdownloadsources)
     - [`Migration.Keep`](#migrationkeep)
@@ -223,6 +231,8 @@ config file at runtime.
     - [`default-datastore` profile](#default-datastore-profile)
     - [`local-discovery` profile](#local-discovery-profile)
     - [`default-networking` profile](#default-networking-profile)
+    - [`autoconf-on` profile](#autoconf-on-profile)
+    - [`autoconf-off` profile](#autoconf-off-profile)
     - [`flatfs` profile](#flatfs-profile)
     - [`flatfs-measure` profile](#flatfs-measure-profile)
     - [`pebbleds` profile](#pebbleds-profile)
@@ -235,6 +245,9 @@ config file at runtime.
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
     - [`test-cid-v1` profile](#test-cid-v1-profile)
     - [`test-cid-v1-wide` profile](#test-cid-v1-wide-profile)
+  - [Security](#security)
+    - [Port and Network Exposure](#port-and-network-exposure)
+    - [Security Best Practices](#security-best-practices)
   - [Types](#types)
     - [`flag`](#flag)
     - [`priority`](#priority)
@@ -271,6 +284,7 @@ Supported Transports:
 >
 > - If you need secure access to a subset of RPC, secure it with [`API.Authorizations`](#apiauthorizations) or custom auth middleware running in front of the localhost-only RPC port defined here.
 > - If you are looking for an interface designed for browsers and public internet, use [`Addresses.Gateway`](#addressesgateway) port instead.
+> - See [Security section](#security) for network exposure considerations.
 
 Default: `/ip4/127.0.0.1/tcp/5001`
 
@@ -285,6 +299,16 @@ Supported Transports:
 
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
 * unix - `/unix/path/to/socket`
+
+> [!CAUTION]
+> **SECURITY CONSIDERATIONS FOR GATEWAY EXPOSURE**
+>
+> By default, the gateway is bound to localhost for security. If you bind to `0.0.0.0`
+> or a public IP, anyone with access can trigger retrieval of arbitrary CIDs, causing
+> bandwidth usage and potential exposure to malicious content. Limit with
+> [`Gateway.NoFetch`](#gatewaynofetch). Consider firewall rules, authentication,
+> and [`Gateway.PublicGateways`](#gatewaypublicgateways) for public exposure.
+> See [Security section](#security) for network exposure considerations.
 
 Default: `/ip4/127.0.0.1/tcp/8080`
 
@@ -304,6 +328,7 @@ Supported Transports:
 
 > [!IMPORTANT]
 > Make sure your firewall rules allow incoming connections on both TCP and UDP ports defined here.
+> See [Security section](#security) for network exposure considerations.
 
 Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
@@ -521,6 +546,150 @@ Default: 1 Minute
 
 Type: `duration` (when `0`/unset, the default value is used)
 
+## `AutoConf`
+
+The AutoConf feature enables Kubo nodes to automatically fetch and apply network configuration from a remote JSON endpoint. This system allows dynamic configuration updates for bootstrap peers, DNS resolvers, delegated routing, and IPNS publishing endpoints without requiring manual updates to each node's local config.
+
+AutoConf works by using special `"auto"` placeholder values in configuration fields. When Kubo encounters these placeholders, it fetches the latest configuration from the specified URL and resolves the placeholders with the appropriate values at runtime. The original configuration file remains unchanged - `"auto"` values are preserved in the JSON and only resolved in memory during node operation.
+
+### Key Features
+
+- **Remote Configuration**: Fetch network defaults from a trusted URL
+- **Automatic Updates**: Periodic background checks for configuration updates
+- **Graceful Fallback**: Uses hardcoded IPFS Mainnet bootstrappers when remote config is unavailable
+- **Validation**: Ensures all fetched configuration values are valid multiaddrs and URLs
+- **Caching**: Stores multiple versions locally with ETags for efficient updates
+- **User Notification**: Logs ERROR when new configuration is available requiring node restart
+- **Debug Logging**: AutoConf operations can be inspected by setting `GOLOG_LOG_LEVEL="error,autoconf=debug"`
+
+### Supported Fields
+
+AutoConf can resolve `"auto"` placeholders in the following configuration fields:
+
+- `Bootstrap` - Bootstrap peer addresses
+- `DNS.Resolvers` - DNS-over-HTTPS resolver endpoints
+- `Routing.DelegatedRouters` - Delegated routing HTTP API endpoints
+- `Ipns.DelegatedPublishers` - IPNS delegated publishing HTTP API endpoints
+
+### Usage Example
+
+```json
+{
+  "AutoConf": {
+    "URL": "https://example.com/autoconf.json",
+    "Enabled": true,
+    "RefreshInterval": "24h"
+  },
+  "Bootstrap": ["auto"],
+  "DNS": {
+    "Resolvers": {
+      ".": ["auto"],
+      "eth.": ["auto"],
+      "custom.": ["https://dns.example.com/dns-query"]
+    }
+  },
+  "Routing": {
+    "DelegatedRouters": ["auto", "https://router.example.org/routing/v1"]
+  }
+}
+```
+
+**Notes:**
+
+- Configuration fetching happens at daemon startup and periodically in the background
+- When new configuration is detected, users must restart their node to apply changes
+- Mixed configurations are supported: you can use both `"auto"` and static values
+- If AutoConf is disabled but `"auto"` values exist, daemon startup will fail with validation errors
+- Cache is stored in `$IPFS_PATH/autoconf/` with up to 3 versions retained
+
+### Path-Based Routing Configuration
+
+AutoConf supports path-based routing URLs that automatically enable specific routing operations based on the URL path. This allows precise control over which HTTP Routing V1 endpoints are used for different operations:
+
+**Supported paths:**
+- `/routing/v1/providers` - Enables provider record lookups only
+- `/routing/v1/peers` - Enables peer routing lookups only  
+- `/routing/v1/ipns` - Enables IPNS record operations only
+- No path - Enables all routing operations (backward compatibility)
+
+**AutoConf JSON structure with path-based routing:**
+
+```json
+{
+  "DelegatedRouters": {
+    "mainnet-for-nodes-with-dht": [
+      "https://cid.contact/routing/v1/providers"
+    ],
+    "mainnet-for-nodes-without-dht": [
+      "https://delegated-ipfs.dev/routing/v1/providers",
+      "https://delegated-ipfs.dev/routing/v1/peers", 
+      "https://delegated-ipfs.dev/routing/v1/ipns"
+    ]
+  },
+  "DelegatedPublishers": {
+    "mainnet-for-ipns-publishers-with-http": [
+      "https://delegated-ipfs.dev/routing/v1/ipns"
+    ]
+  }
+}
+```
+
+**Node type categories:**
+- `mainnet-for-nodes-with-dht`: Mainnet nodes with DHT enabled (typically only need additional provider lookups)
+- `mainnet-for-nodes-without-dht`: Mainnet nodes without DHT (need comprehensive routing services)
+- `mainnet-for-ipns-publishers-with-http`: Mainnet nodes that publish IPNS records via HTTP
+
+This design enables efficient, selective routing where each endpoint URL automatically determines its capabilities based on the path, while maintaining semantic grouping by node configuration type.
+
+Default: `{}`
+
+Type: `object`
+
+### `AutoConf.Enabled`
+
+Controls whether the AutoConf system is active. When enabled, Kubo will fetch configuration from the specified URL and resolve `"auto"` placeholders at runtime. When disabled, any `"auto"` values in the configuration will cause daemon startup to fail with validation errors.
+
+This provides a safety mechanism to ensure nodes don't start with unresolved placeholders when AutoConf is intentionally disabled.
+
+Default: `true`
+
+Type: `flag`
+
+### `AutoConf.URL`
+
+Specifies the HTTP(S) URL from which to fetch the autoconf JSON. The endpoint should return a JSON document containing Bootstrap peers, DNS resolvers, delegated routing endpoints, and IPNS publishing endpoints that will replace `"auto"` placeholders in the local configuration.
+
+The URL must serve a JSON document matching the AutoConf schema. Kubo validates all multiaddr and URL values before caching to ensure they are properly formatted.
+
+When not specified in the configuration, the default mainnet URL is used automatically.
+
+<a href="https://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
+
+> [!NOTE]
+> Public good autoconf manifest at `conf.ipfs-mainnet.org` is provided by the team at [Shipyard](https://ipshipyard.com).
+
+Default: `"https://conf.ipfs-mainnet.org/autoconf.json"` (when not specified)
+
+Type: `optionalString`
+
+### `AutoConf.RefreshInterval`
+
+Specifies how frequently Kubo should refresh autoconf data. This controls both how often cached autoconf data is considered fresh and how frequently the background service checks for new configuration updates.
+
+When a new configuration version is detected during background updates, Kubo logs an ERROR message informing the user that a node restart is required to apply the changes to any `"auto"` entries in their configuration.
+
+Default: `24h`
+
+Type: `optionalDuration`
+
+### `AutoConf.TLSInsecureSkipVerify`
+
+**FOR TESTING ONLY** - Allows skipping TLS certificate verification when fetching autoconf from HTTPS URLs. This should never be enabled in production as it makes the configuration fetching vulnerable to man-in-the-middle attacks.
+
+Default: `false`
+
+Type: `flag`
+
 ## `AutoTLS`
 
 The [AutoTLS](https://blog.libp2p.io/autotls/) feature enables publicly reachable Kubo nodes (those dialable from the public
@@ -640,6 +809,7 @@ Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddy
 
 Type: `optionalString`
 
+
 ## `Bitswap`
 
 High level client and server configuration of the [Bitswap Protocol](https://specs.ipfs.tech/bitswap-protocol/) over libp2p.
@@ -673,11 +843,18 @@ Type: `flag`
 
 ## `Bootstrap`
 
-Bootstrap is an array of [multiaddrs][multiaddr] of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
+Bootstrap peers help your node discover and connect to the IPFS network when starting up. This array contains [multiaddrs][multiaddr] of trusted nodes that your node contacts first to find other peers and content.
 
-Default: [`config.DefaultBootstrapAddresses`](https://github.com/ipfs/kubo/blob/master/config/bootstrap_peers.go)
+The special value `"auto"` automatically uses curated, up-to-date bootstrap peers from [AutoConf](#autoconf), ensuring your node can always connect to the healthy network without manual maintenance.
 
-Type: `array[string]` ([multiaddrs][multiaddr])
+**What this gives you:**
+- **Reliable startup**: Your node can always find the network, even if some bootstrap peers go offline
+- **Automatic updates**: New bootstrap peers are added as the network evolves
+- **Custom control**: Add your own trusted peers alongside or instead of the defaults
+
+Default: `["auto"]`
+
+Type: `array[string]` ([multiaddrs][multiaddr] or `"auto"`)
 
 ## `Datastore`
 
@@ -931,6 +1108,55 @@ standalone router implementation named [someguy](https://github.com/ipfs/someguy
 Default: `false`
 
 Type: `flag`
+
+### `Gateway.RetrievalTimeout`
+
+Maximum duration Kubo will wait for content retrieval (new bytes to arrive).
+
+**Timeout behavior:**
+- **Time to first byte**: Returns 504 Gateway Timeout if the gateway cannot start writing within this duration (e.g., stuck searching for providers)
+- **Time between writes**: After first byte, timeout resets with each write. Response terminates if no new data can be written within this duration
+
+**Truncation handling:** When timeout occurs after HTTP 200 headers are sent (e.g., during CAR streams), the gateway:
+- Appends error message to indicate truncation
+- Forces TCP reset (RST) to prevent caching incomplete responses
+- Records in metrics with original status code and `truncated=true` flag
+
+**Monitoring:** Track `ipfs_http_gw_retrieval_timeouts_total` by status code and truncation status.
+
+**Tuning guidance:**
+- Compare timeout rates (`ipfs_http_gw_retrieval_timeouts_total`) with success rates (`ipfs_http_gw_responses_total{status="200"}`)
+- High timeout rate: consider increasing timeout or scaling horizontally if hardware is constrained
+- Many 504s may indicate routing problems - check requested CIDs and provider availability using https://check.ipfs.network/
+- `truncated=true` timeouts indicate retrieval stalled mid-file with no new bytes for the timeout duration
+
+A value of 0 disables this timeout.
+
+Default: `30s`
+
+Type: `optionalDuration`
+
+### `Gateway.MaxConcurrentRequests`
+
+Limits concurrent HTTP requests. Requests beyond limit receive 429 Too Many Requests.
+
+Protects nodes from traffic spikes and resource exhaustion, especially behind reverse proxies without rate-limiting. Default (4096) aligns with common reverse proxy configurations (e.g., nginx: 8 workers × 1024 connections).
+
+**Monitoring:** `ipfs_http_gw_concurrent_requests` tracks current requests in flight.
+
+**Tuning guidance:**
+- Monitor `ipfs_http_gw_concurrent_requests` gauge for usage patterns
+- Track 429s (`ipfs_http_gw_responses_total{status="429"}`) and success rate (`{status="200"}`)
+- Near limit with low resource usage → increase value
+- Memory pressure or OOMs → decrease value and consider scaling
+- Set slightly below reverse proxy limit for graceful degradation
+- Start with default, adjust based on observed performance for your hardware
+
+A value of 0 disables the limit.
+
+Default: `4096`
+
+Type: `optionalInteger`
 
 ### `Gateway.HTTPHeaders`
 
@@ -1418,21 +1644,51 @@ Default: `disabled`
 
 Type: `flag`
 
+### `Ipns.DelegatedPublishers`
+
+HTTP endpoints for delegated IPNS publishing operations. These endpoints must support the [IPNS API](https://specs.ipfs.tech/routing/http-routing-v1/#ipns-api) from the Delegated Routing V1 HTTP specification.
+
+The special value `"auto"` loads delegated publishers from [AutoConf](#autoconf) when enabled.
+
+**Publishing behavior depends on routing configuration:**
+
+- `Routing.Type=auto` (default): Uses DHT for publishing, `"auto"` resolves to empty list
+- `Routing.Type=delegated`: Uses HTTP delegated publishers only, `"auto"` resolves to configured endpoints
+
+When using `"auto"`, inspect the effective publishers with: `ipfs config Ipns.DelegatedPublishers --expand-auto`
+
+**Command flags override publishing behavior:**
+
+- `--allow-offline` - Publishes to local datastore without requiring network connectivity
+- `--allow-delegated` - Uses local datastore and HTTP delegated publishers only (no DHT connectivity required)
+
+For self-hosting, you can run your own `/routing/v1/ipns` endpoint using [someguy](https://github.com/ipfs/someguy/).
+
+Default: `["auto"]`
+
+Type: `array[string]` (URLs or `"auto"`)
+
 ## `Migration`
 
-Migration configures how migrations are downloaded and if the downloads are added to IPFS locally.
+> [!WARNING]
+> **DEPRECATED:** Only applies to legacy migrations (repo versions <16). Modern repos (v16+) use embedded migrations.
+> This section is optional and will not appear in new configurations.
 
 ### `Migration.DownloadSources`
 
-Sources in order of preference, where "IPFS" means use IPFS and "HTTPS" means use default gateways. Any other values are interpreted as hostnames for custom gateways. An empty list means "use default sources".
+**DEPRECATED:** Download sources for legacy migrations. Only `"HTTPS"` is supported.
 
-Default: `["HTTPS", "IPFS"]`
+Type: `array[string]` (optional)
+
+Default: `["HTTPS"]`
 
 ### `Migration.Keep`
 
-Specifies whether or not to keep the migration after downloading it. Options are "discard", "cache", "pin". Empty string for default.
+**DEPRECATED:** Controls retention of legacy migration binaries. Options: `"cache"` (default), `"discard"`, `"keep"`.
 
-Default: `cache`
+Type: `string` (optional)
+
+Default: `"cache"`
 
 ## `Mounts`
 
@@ -1806,7 +2062,6 @@ Type: `optionalDuration` (unset for the default)
 Tells reprovider what should be announced. Valid strategies are:
 
 - `"all"` - announce all CIDs of stored blocks
-  - Order: root blocks of direct and recursive pins and MFS root are announced first, then the rest of blockstore
 - `"pinned"` - only announce recursively pinned CIDs (`ipfs pin add -r`, both roots and child blocks)
   - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
 - `"roots"` - only announce the root block of explicitly pinned CIDs (`ipfs pin add`)
@@ -1822,12 +2077,13 @@ Tells reprovider what should be announced. Valid strategies are:
 - `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
   - **ℹ️ NOTE:** This is the suggested strategy for users who run without GC and don't want to provide everything in cache.
   - Order: first `pinned` and then the locally available part of `mfs`.
-- `"flat"` - same as `all`, announce all CIDs of stored blocks, but without prioritizing anything.
 
-> [!IMPORTANT]
-> Reproviding larger pinsets using the `all`, `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
-> This is due to the use of a buffered provider, which avoids holding a lock on the entire pinset during the reprovide cycle.
-> The `flat` strategy can be used to lower memory requirements, but only recommended if memory utilization is too high, prioritization of pins is not necessary, and it is acceptable to announce every block cached in the local repository.
+**Strategy changes automatically clear the provide queue.** When you change `Reprovider.Strategy` and restart Kubo, the provide queue is automatically cleared to ensure only content matching your new strategy is announced. You can also manually clear the queue using `ipfs provide clear`.
+
+**Memory requirements:**
+
+- Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
+- This is due to the use of a buffered provider, which avoids holding a lock on the entire pinset during the reprovide cycle.
 
 Default: `"all"`
 
@@ -1839,7 +2095,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 ### `Routing.Type`
 
-There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
+There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", "delegated", and "custom".
 
 * **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
   and parallel [`Routing.DelegatedRouters`](#routingdelegatedrouters) for additional speed.
@@ -1875,6 +2131,15 @@ When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate s
 by leveraging [`Routing.DelegatedRouters`](#routingdelegatedrouters) HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
 introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
 in addition to the Amino DHT.
+
+When `Routing.Type` is set to `delegated`, your node will use **only** HTTP delegated routers and IPNS publishers,
+without initializing the Amino DHT at all. This mode is useful for environments where peer-to-peer DHT connectivity
+is not available or desired, while still enabling content routing and IPNS publishing via HTTP APIs.
+This mode requires configuring [`Routing.DelegatedRouters`](#routingdelegatedrouters) for content routing and 
+[`Ipns.DelegatedPublishers`](#ipnsdelegatedpublishers) for IPNS publishing.
+
+**Note:** `delegated` mode operates as read-only for content providing - your node cannot announce content to the network
+since there is no DHT connectivity. Content providing is automatically disabled when using this routing type.
 
 [Advanced routing rules](https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md) can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
 
@@ -1962,14 +2227,16 @@ Type: `array[string]`
 An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
 These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
 
+The special value `"auto"` uses delegated routers from [AutoConf](#autoconf) when enabled.
+
 > [!TIP]
 > Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
 >
 > One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
 
-Default: `["https://cid.contact"]` (empty or `nil` will also use this default; to disable delegated routing, set `Routing.Type` to `dht` or `dhtclient`)
+Default: `["auto"]`
 
-Type: `array[string]`
+Type: `array[string]` (URLs or `"auto"`)
 
 ### `Routing.Routers`
 
@@ -2485,6 +2752,14 @@ transports, multiaddrs for these transports must be added to `Addresses.Swarm`.
 
 Supported transports are: QUIC, TCP, WS, Relay, WebTransport and WebRTCDirect.
 
+> [!CAUTION]
+> **SECURITY CONSIDERATIONS FOR NETWORK TRANSPORTS**
+>
+> Enabling network transports allows your node to accept connections from the internet.
+> Ensure your firewall rules and [`Addresses.Swarm`](#addressesswarm) configuration
+> align with your security requirements.
+> See [Security section](#security) for network exposure considerations.
+
 Each field in this section is a `flag`.
 
 #### `Swarm.Transports.Network.TCP`
@@ -2718,16 +2993,10 @@ Example:
 Be mindful that:
 - Currently only `https://` URLs for [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported as values.
 - The default catch-all resolver is the cleartext one provided by your operating system. It can be overridden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
-- Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis. The implicit DoH resolvers are:
-  ```json
-  {
-    "eth.": "https://dns.eth.limo/dns-query",
-    "crypto.": "https://resolver.unstoppable.io/dns-query"
-  }
-  ```
-  To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
+- Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis. 
+- The special value `"auto"` uses DNS resolvers from [AutoConf](#autoconf) when enabled. For example: `{".": "auto"}` uses any custom DoH resolver (global or per TLD) provided by AutoConf system.
 
-Default: `{}`
+Default: `{".": "auto"}`
 
 Type: `object[string -> string]`
 
@@ -2921,7 +3190,7 @@ have when building the DAG while importing.
 This setting controls both the fanout for basic, non-HAMT folder nodes. It
 sets a limit after which directories are converted to a HAMT-based structure.
 
-When unset (0), no limit exists for chilcren. Directories will be converted to
+When unset (0), no limit exists for children. Directories will be converted to
 HAMTs based on their estimated size only.
 
 This setting will cause basic directories to be converted to HAMTs when they
@@ -2939,8 +3208,8 @@ Type: `optionalInteger`
 The maximum number of children that a node part of a Unixfs HAMT directory
 (aka sharded directory) can have.
 
-HAMT directory have unlimited children and are used when basic directories
-become too big or reach `MaxLinks`. A HAMT is an structure made of unixfs
+HAMT directories have unlimited children and are used when basic directories
+become too big or reach `MaxLinks`. A HAMT is a structure made of unixfs
 nodes that store the list of elements in the folder. This option controls the
 maximum number of children that the HAMT nodes can have.
 
@@ -3060,6 +3329,16 @@ is useful when using the daemon in test environments.
 Restores default network settings.
 Inverse profile of the test profile.
 
+### `autoconf-on` profile
+
+Safe default for joining the public IPFS Mainnet swarm with automatic configuration.
+Can also be used with custom AutoConf.URL for other networks.
+
+### `autoconf-off` profile
+
+Disables AutoConf and clears all networking fields for manual configuration.
+Use this for private networks or when you want explicit control over all endpoints.
+
 ### `flatfs` profile
 
 Configures the node to use the flatfs datastore.
@@ -3163,7 +3442,7 @@ Disables [Reprovider](#reprovider) system (and announcing to Amino DHT).
 
 ### `announce-on` profile
 
-(Re-)enables [Reprovider](#reprovider) system (reverts [`announce-off` profile](#annouce-off-profile).
+(Re-)enables [Reprovider](#reprovider) system (reverts [`announce-off` profile](#announce-off-profile)).
 
 ### `legacy-cid-v0` profile
 
@@ -3201,6 +3480,27 @@ See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Imp
 >
 > Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
 > and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
+
+## Security
+
+This section provides an overview of security considerations for configurations that expose network services.
+
+### Port and Network Exposure
+
+Several configuration options expose TCP or UDP ports that can make your Kubo node accessible from the network:
+
+- **[`Addresses.API`](#addressesapi)** - Exposes the admin RPC API (default: localhost:5001)
+- **[`Addresses.Gateway`](#addressesgateway)** - Exposes the HTTP gateway (default: localhost:8080)
+- **[`Addresses.Swarm`](#addressesswarm)** - Exposes P2P connectivity (default: 0.0.0.0:4001, both UDP and TCP)
+- **[`Swarm.Transports.Network`](#swarmtransportsnetwork)** - Controls which P2P transport protocols are enabled over TCP and UDP
+
+### Security Best Practices
+
+- Keep admin services ([`Addresses.API`](#addressesapi)) bound to localhost unless authentication ([`API.Authorizations`](#apiauthorizations)) is configured
+- Use [`Gateway.NoFetch`](#gatewaynofetch) to prevent arbitrary CID retrieval if Kubo is acting as a public gateway available to anyone
+- Configure firewall rules to restrict access to exposed ports. Note that [`Addresses.Swarm`](#addressesswarm) is special - all incoming traffic to swarm ports should be allowed to ensure proper P2P connectivity
+- Control which public-facing addresses are announced to other peers using [`Addresses.NoAnnounce`](#addressesnoannounce), [`Addresses.Announce`](#addressesannounce), and [`Addresses.AppendAnnounce`](#addressesappendannounce)
+- Consider using the [`server` profile](#server-profile) for production deployments
 
 ## Types
 

@@ -3,17 +3,18 @@ package ipfs
 import (
 	"fmt"
 	"runtime"
-
-	"github.com/ipfs/kubo/repo/fsrepo"
 )
 
 // CurrentCommit is the current git commit, this is set as a ldflag in the Makefile.
 var CurrentCommit string
 
 // CurrentVersionNumber is the current application's version literal.
-const CurrentVersionNumber = "0.36.0"
+const CurrentVersionNumber = "0.37.0"
 
 const ApiVersion = "/kubo/" + CurrentVersionNumber + "/" //nolint
+
+// RepoVersion is the version number that we are currently expecting to see.
+const RepoVersion = 17
 
 // GetUserAgentVersion is the libp2p user agent used by go-ipfs.
 //
@@ -47,7 +48,7 @@ func GetVersionInfo() *VersionInfo {
 	return &VersionInfo{
 		Version: CurrentVersionNumber,
 		Commit:  CurrentCommit,
-		Repo:    fmt.Sprint(fsrepo.RepoVersion),
+		Repo:    fmt.Sprint(RepoVersion),
 		System:  runtime.GOARCH + "/" + runtime.GOOS, // TODO: Precise version here
 		Golang:  runtime.Version(),
 	}

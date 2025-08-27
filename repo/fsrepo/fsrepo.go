@@ -14,9 +14,9 @@ import (
 
 	filestore "github.com/ipfs/boxo/filestore"
 	keystore "github.com/ipfs/boxo/keystore"
+	version "github.com/ipfs/kubo"
 	repo "github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/common"
-	dir "github.com/ipfs/kubo/thirdparty/dir"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 
 	ds "github.com/ipfs/go-datastore"
@@ -37,7 +37,7 @@ const LockFile = "repo.lock"
 var log = logging.Logger("fsrepo")
 
 // RepoVersion is the version number that we are currently expecting to see.
-var RepoVersion = 16
+var RepoVersion = version.RepoVersion
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`
@@ -192,7 +192,7 @@ func open(repoPath string, userConfigFilePath string) (repo.Repo, error) {
 	}
 
 	// check repo path, then check all constituent parts.
-	if err := dir.Writable(r.path); err != nil {
+	if err := fsutil.DirWritable(r.path); err != nil {
 		return nil, err
 	}
 

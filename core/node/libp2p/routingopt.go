@@ -2,9 +2,12 @@ package libp2p
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/ipfs/boxo/autoconf"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
@@ -32,46 +35,144 @@ type RoutingOption func(args RoutingOptionArgs) (routing.Routing, error)
 
 var noopRouter = routinghelpers.Null{}
 
+// EndpointSource tracks where a URL came from to determine appropriate capabilities
+type EndpointSource struct {
+	URL           string
+	SupportsRead  bool // came from DelegatedRoutersWithAutoConf (Read operations)
+	SupportsWrite bool // came from DelegatedPublishersWithAutoConf (Write operations)
+}
+
+// determineCapabilities determines endpoint capabilities based on URL path and source
+func determineCapabilities(endpoint EndpointSource) (string, autoconf.EndpointCapabilities, error) {
+	parsed, err := autoconf.DetermineKnownCapabilities(endpoint.URL, endpoint.SupportsRead, endpoint.SupportsWrite)
+	if err != nil {
+		log.Debugf("Skipping endpoint %q: %v", endpoint.URL, err)
+		return "", autoconf.EndpointCapabilities{}, nil // Return empty caps, not error
+	}
+
+	return parsed.BaseURL, parsed.Capabilities, nil
+}
+
+// collectAllEndpoints gathers URLs from both router and publisher sources
+func collectAllEndpoints(cfg *config.Config) []EndpointSource {
+	var endpoints []EndpointSource
+
+	// Get router URLs (Read operations)
+	var routerURLs []string
+	if envRouters := os.Getenv(config.EnvHTTPRouters); envRouters != "" {
+		// Use environment variable override if set (space or comma separated)
+		splitFunc := func(r rune) bool { return r == ',' || r == ' ' }
+		routerURLs = strings.FieldsFunc(envRouters, splitFunc)
+		log.Warnf("Using HTTP routers from %s environment variable instead of config/autoconf: %v", config.EnvHTTPRouters, routerURLs)
+	} else {
+		// Use delegated routers from autoconf
+		routerURLs = cfg.DelegatedRoutersWithAutoConf()
+		// No fallback - if autoconf doesn't provide endpoints, use empty list
+		// This exposes any autoconf issues rather than masking them with hardcoded defaults
+	}
+
+	// Add router URLs to collection
+	for _, url := range routerURLs {
+		endpoints = append(endpoints, EndpointSource{
+			URL:           url,
+			SupportsRead:  true,
+			SupportsWrite: false,
+		})
+	}
+
+	// Get publisher URLs (Write operations)
+	publisherURLs := cfg.DelegatedPublishersWithAutoConf()
+
+	// Add publisher URLs, merging with existing router URLs if they match
+	for _, url := range publisherURLs {
+		found := false
+		for i, existing := range endpoints {
+			if existing.URL == url {
+				endpoints[i].SupportsWrite = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			endpoints = append(endpoints, EndpointSource{
+				URL:           url,
+				SupportsRead:  false,
+				SupportsWrite: true,
+			})
+		}
+	}
+
+	return endpoints
+}
+
 func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.ParallelRouter, error) {
 	var routers []*routinghelpers.ParallelRouter
 	httpRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
 
-	// Use config.DefaultHTTPRouters if custom override was sent via config.EnvHTTPRouters
-	// or if user did not set any preference in cfg.Routing.DelegatedRouters
-	var httpRouterEndpoints []string
-	if os.Getenv(config.EnvHTTPRouters) != "" || len(cfg.Routing.DelegatedRouters) == 0 {
-		httpRouterEndpoints = config.DefaultHTTPRouters
-	} else {
-		httpRouterEndpoints = cfg.Routing.DelegatedRouters
+	// Collect URLs from both router and publisher sources
+	endpoints := collectAllEndpoints(cfg)
+
+	// Group endpoints by origin (base URL) and aggregate capabilities
+	originCapabilities := make(map[string]autoconf.EndpointCapabilities)
+	for _, endpoint := range endpoints {
+		// Parse endpoint and determine capabilities based on source
+		baseURL, capabilities, err := determineCapabilities(endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse endpoint %q: %w", endpoint.URL, err)
+		}
+
+		// Aggregate capabilities for this origin
+		existing := originCapabilities[baseURL]
+		existing.Merge(capabilities)
+		originCapabilities[baseURL] = existing
 	}
 
-	// Append HTTP routers for additional speed
-	for _, endpoint := range httpRouterEndpoints {
-		httpRouter, err := irouting.ConstructHTTPRouter(endpoint, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, httpRetrievalEnabled)
+	// Create single HTTP router and composer per origin
+	for baseURL, capabilities := range originCapabilities {
+		// Construct HTTP router using base URL (without path)
+		httpRouter, err := irouting.ConstructHTTPRouter(baseURL, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, httpRetrievalEnabled)
 		if err != nil {
 			return nil, err
 		}
-		// Mapping router to /routing/v1/* endpoints
+
+		// Configure router operations based on aggregated capabilities
 		// https://specs.ipfs.tech/routing/http-routing-v1/
-		r := &irouting.Composer{
-			GetValueRouter:      httpRouter, // GET /routing/v1/ipns
-			PutValueRouter:      httpRouter, // PUT /routing/v1/ipns
+		composer := &irouting.Composer{
+			GetValueRouter:      noopRouter, // Default disabled, enabled below based on capabilities
+			PutValueRouter:      noopRouter, // Default disabled, enabled below based on capabilities
 			ProvideRouter:       noopRouter, // we don't have spec for sending provides to /routing/v1 (revisit once https://github.com/ipfs/specs/pull/378 or similar is ratified)
-			FindPeersRouter:     httpRouter, // /routing/v1/peers
-			FindProvidersRouter: httpRouter, // /routing/v1/providers
+			FindPeersRouter:     noopRouter, // Default disabled, enabled below based on capabilities
+			FindProvidersRouter: noopRouter, // Default disabled, enabled below based on capabilities
 		}
 
-		if endpoint == config.CidContactRoutingURL {
-			// Special-case: cid.contact only supports /routing/v1/providers/cid
-			// we disable other endpoints to avoid sending requests that always fail
-			r.GetValueRouter = noopRouter
-			r.PutValueRouter = noopRouter
-			r.ProvideRouter = noopRouter
-			r.FindPeersRouter = noopRouter
+		// Enable specific capabilities
+		if capabilities.IPNSGet {
+			composer.GetValueRouter = httpRouter // GET /routing/v1/ipns for IPNS resolution
+		}
+		if capabilities.IPNSPut {
+			composer.PutValueRouter = httpRouter // PUT /routing/v1/ipns for IPNS publishing
+		}
+		if capabilities.Peers {
+			composer.FindPeersRouter = httpRouter // GET /routing/v1/peers
+		}
+		if capabilities.Providers {
+			composer.FindProvidersRouter = httpRouter // GET /routing/v1/providers
+		}
+
+		// Handle special cases and backward compatibility
+		if baseURL == config.CidContactRoutingURL {
+			// Special-case: cid.contact only supports /routing/v1/providers/cid endpoint
+			// Override any capabilities detected from URL path to ensure only providers is enabled
+			// TODO: Consider moving this to configuration or removing once cid.contact adds more capabilities
+			composer.GetValueRouter = noopRouter
+			composer.PutValueRouter = noopRouter
+			composer.ProvideRouter = noopRouter
+			composer.FindPeersRouter = noopRouter
+			composer.FindProvidersRouter = httpRouter // Only providers supported
 		}
 
 		routers = append(routers, &routinghelpers.ParallelRouter{
-			Router:                  r,
+			Router:                  composer,
 			IgnoreError:             true,             // https://github.com/ipfs/kubo/pull/9475#discussion_r1042507387
 			Timeout:                 15 * time.Second, // 5x server value from https://github.com/ipfs/kubo/pull/9475#discussion_r1042428529
 			DoNotWaitForSearchValue: true,
@@ -79,6 +180,31 @@ func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.Parallel
 		})
 	}
 	return routers, nil
+}
+
+// ConstructDelegatedOnlyRouting returns routers used when Routing.Type is set to "delegated"
+// This provides HTTP-only routing without DHT, using only delegated routers and IPNS publishers.
+// Useful for environments where DHT connectivity is not available or desired
+func ConstructDelegatedOnlyRouting(cfg *config.Config) RoutingOption {
+	return func(args RoutingOptionArgs) (routing.Routing, error) {
+		// Use only HTTP routers (includes both read and write capabilities) - no DHT
+		var routers []*routinghelpers.ParallelRouter
+
+		// Add HTTP delegated routers (includes both router and publisher capabilities)
+		httpRouters, err := constructDefaultHTTPRouters(cfg)
+		if err != nil {
+			return nil, err
+		}
+		routers = append(routers, httpRouters...)
+
+		// Validate that we have at least one router configured
+		if len(routers) == 0 {
+			return nil, fmt.Errorf("no delegated routers or publishers configured for 'delegated' routing mode")
+		}
+
+		routing := routinghelpers.NewComposableParallel(routers)
+		return routing, nil
+	}
 }
 
 // ConstructDefaultRouting returns routers used when Routing.Type is unset or set to "auto"

@@ -32,9 +32,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.x
+          go-version: 1.25.x
       - name: Check out Kubo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y zsh
       - name: 👉️ If this step failed, go to «Summary» (top left) → inspect the «Failures/Errors» table

@@ -54,7 +54,7 @@ cur_test_pwd="$(pwd)"
 while true ; do
   echo -n > stuck_cwd_list
 
-  lsof -c ipfs -Ffn 2>/dev/null | grep -A1 '^fcwd$' | grep '^n' | cut -b 2- | while read -r pwd_of_stuck ; do
+  timeout 5 lsof -c ipfs -Ffn 2>/dev/null | grep -A1 '^fcwd$' | grep '^n' | cut -b 2- | while read -r pwd_of_stuck ; do
     case "$pwd_of_stuck" in
       "$cur_test_pwd"*)
         echo "$pwd_of_stuck" >> stuck_cwd_list
@@ -205,6 +205,10 @@ test_init_ipfs() {
     ipfs init "${args[@]}" --profile=test > /dev/null
   '
 
+  test_expect_success "disable telemetry" '
+    test_config_set --bool Plugins.Plugins.telemetry.Disabled "true"
+  '
+
   test_expect_success "prepare config -- mounting" '
     mkdir mountdir ipfs ipns mfs &&
     test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
@@ -225,6 +229,10 @@ test_init_ipfs_measure() {
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
     ipfs init "${args[@]}" --profile=test,flatfs-measure > /dev/null
+  '
+
+  test_expect_success "disable telemetry" '
+    test_config_set --bool Plugins.Plugins.telemetry.Disabled "true"
   '
 
   test_expect_success "prepare config -- mounting" '
@@ -309,10 +317,37 @@ test_launch_ipfs_daemon_without_network() {
 }
 
 do_umount() {
+  local mount_point="$1"
+  local max_retries=3
+  local retry_delay=0.5
+  
+  # Try normal unmount first (without lazy flag)
+  for i in $(seq 1 $max_retries); do
+    if [ "$(uname -s)" = "Linux" ]; then
+      # First attempt: standard unmount
+      if fusermount -u "$mount_point" 2>/dev/null; then
+        return 0
+      fi
+    else
+      if umount "$mount_point" 2>/dev/null; then
+        return 0
+      fi
+    fi
+    
+    # If not last attempt, wait before retry
+    if [ $i -lt $max_retries ]; then
+      go-sleep "${retry_delay}s"
+    fi
+  done
+  
+  # If normal unmount failed, try lazy unmount as last resort (Linux only)
   if [ "$(uname -s)" = "Linux" ]; then
-  fusermount -z -u "$1"
+    # Log that we're falling back to lazy unmount
+    test "$TEST_VERBOSE" = 1 && echo "# Warning: falling back to lazy unmount for $mount_point"
+    fusermount -z -u "$mount_point" 2>/dev/null
   else
-  umount "$1"
+    # On non-Linux, try force unmount
+    umount -f "$mount_point" 2>/dev/null || true
   fi
 }
 

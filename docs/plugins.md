@@ -117,6 +117,7 @@ Example:
 | [flatfs](https://github.com/ipfs/kubo/tree/master/plugin/plugins/flatfs)     | Datastore | x         | A stable filesystem-based datastore.           |
 | [levelds](https://github.com/ipfs/kubo/tree/master/plugin/plugins/levelds)   | Datastore | x         | A stable, flexible datastore backend.          |
 | [jaeger](https://github.com/ipfs/go-jaeger-plugin)                              | Tracing   |           | An opentracing backend.                        |
+| [telemetry](https://github.com/ipfs/kubo/tree/master/plugin/plugins/telemetry) | Telemetry | x         | Collects anonymized usage data for Kubo development. |
 
 * **Preloaded** plugins are built into the Kubo binary and do not need to be
   installed separately. At the moment, all in-tree plugins are preloaded.

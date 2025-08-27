@@ -76,6 +76,7 @@ type Adder struct {
 	Out               chan<- interface{}
 	Progress          bool
 	Pin               bool
+	PinName           string
 	Trickle           bool
 	RawLeaves         bool
 	MaxLinks          int
@@ -102,7 +103,7 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 	}
 
 	// Note, this adds it to DAGService already.
-	mr, err := mfs.NewEmptyRoot(adder.ctx, adder.dagService, nil, mfs.MkdirOpts{
+	mr, err := mfs.NewEmptyRoot(adder.ctx, adder.dagService, nil, nil, mfs.MkdirOpts{
 		CidBuilder:    adder.CidBuilder,
 		MaxLinks:      adder.MaxDirectoryLinks,
 		MaxHAMTFanout: adder.MaxHAMTFanout,
@@ -182,9 +183,10 @@ func (adder *Adder) curRootNode() (ipld.Node, error) {
 	return root, err
 }
 
-// Recursively pins the root node of Adder and
-// writes the pin state to the backing datastore.
-func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node) error {
+// PinRoot recursively pins the root node of Adder with an optional name and
+// writes the pin state to the backing datastore. If name is empty, the pin
+// will be created without a name.
+func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node, name string) error {
 	ctx, span := tracing.Span(ctx, "CoreUnix.Adder", "PinRoot")
 	defer span.End()
 
@@ -207,7 +209,7 @@ func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node) error {
 		adder.tempRoot = rnk
 	}
 
-	err = adder.pinning.PinWithMode(ctx, rnk, pin.Recursive, "")
+	err = adder.pinning.PinWithMode(ctx, rnk, pin.Recursive, name)
 	if err != nil {
 		return err
 	}
@@ -369,7 +371,12 @@ func (adder *Adder) AddAllAndPin(ctx context.Context, file files.Node) (ipld.Nod
 	if !adder.Pin {
 		return nd, nil
 	}
-	return nd, adder.PinRoot(ctx, nd)
+
+	if err := adder.PinRoot(ctx, nd, adder.PinName); err != nil {
+		return nil, err
+	}
+
+	return nd, nil
 }
 
 func (adder *Adder) addFileNode(ctx context.Context, path string, file files.Node, toplevel bool) error {
@@ -409,7 +416,7 @@ func (adder *Adder) addFileNode(ctx context.Context, path string, file files.Nod
 	case files.Directory:
 		return adder.addDir(ctx, path, f, toplevel)
 	case *files.Symlink:
-		return adder.addSymlink(path, f)
+		return adder.addSymlink(ctx, path, f)
 	case files.File:
 		return adder.addFile(path, f)
 	default:
@@ -417,7 +424,7 @@ func (adder *Adder) addFileNode(ctx context.Context, path string, file files.Nod
 	}
 }
 
-func (adder *Adder) addSymlink(path string, l *files.Symlink) error {
+func (adder *Adder) addSymlink(ctx context.Context, path string, l *files.Symlink) error {
 	sdata, err := unixfs.SymlinkData(l.Target)
 	if err != nil {
 		return err
@@ -475,7 +482,7 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 
 	// if we need to store mode or modification time then create a new root which includes that data
 	if toplevel && (adder.FileMode != 0 || !adder.FileMtime.IsZero()) {
-		mr, err := mfs.NewEmptyRoot(ctx, adder.dagService, nil,
+		mr, err := mfs.NewEmptyRoot(ctx, adder.dagService, nil, nil,
 			mfs.MkdirOpts{
 				CidBuilder:    adder.CidBuilder,
 				MaxLinks:      adder.MaxDirectoryLinks,
@@ -530,7 +537,7 @@ func (adder *Adder) maybePauseForGC(ctx context.Context) error {
 			return err
 		}
 
-		err = adder.PinRoot(ctx, rn)
+		err = adder.PinRoot(ctx, rn, "")
 		if err != nil {
 			return err
 		}
