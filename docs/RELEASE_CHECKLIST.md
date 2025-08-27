@@ -9,8 +9,7 @@
 - [ ] [GPG signature](https://docs.github.com/en/authentication/managing-commit-signature-verification) configured in local git and GitHub
 - [ ] [Docker](https://docs.docker.com/get-docker/) installed on your system
 - [ ] [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) installed on your system
-- [ ] kubo checked out at `$(go env GOPATH)/src/github.com/ipfs/kubo` (required for `mkreleaselog` tool)
-  - If you prefer to use already existing clone from different pwd: `mkdir -p $(go env GOPATH)/src/github.com/ipfs && ln -s $(pwd) $(go env GOPATH)/src/github.com/ipfs/kubo`
+- [ ] kubo repository cloned locally
 - [ ] **non-PATCH:** Upgrade Go in CI to latest patch from <https://go.dev/dl/>
 
 ## 1. Prepare Release Branch
@@ -26,7 +25,6 @@
   - ⚠️ **NOTE:** `-x` flag records original commit SHA for traceability and ensures cleaner merges with deduplicated commits in history
 - [ ] Verify all CI checks on the PR are passing
 - [ ] **FINAL only:** In `release-vX.Y.Z` branch, replace `Changelog` and `Contributors` sections with `./bin/mkreleaselog` stdout (do **NOT** copy stderr)
-  - **NOTE:** Run from `$GOPATH/src/github.com/ipfs/kubo` with latest commits from `release-vX.Y.Z`
 - [ ] **FINAL only:** Merge PR (`release-vX.Y.Z` → `release`) using `Create a merge commit`
   - ⚠️ do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit
   - ⚠️ do **NOT** delete the `release-vX.Y.Z` branch (needed for future patch releases and git history)
