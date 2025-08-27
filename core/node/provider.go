@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/ipfs/boxo/blockstore"
@@ -312,7 +311,6 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 		if err != nil {
 			return &NoopProvider{}, nil, err
 		}
-
 		var impl dhtImpl
 		switch inDht := in.DHT.(type) {
 		case *dht.IpfsDHT:
@@ -425,16 +423,6 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 
 // OnlineProviders groups units managing provider routing records online
 func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
-	f, err := os.OpenFile("file.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
-	if _, err := f.WriteString(time.Now().String() + " Building Provider\n"); err != nil {
-		panic(err)
-	}
-
 	if !provide {
 		return OfflineProviders()
 	}
