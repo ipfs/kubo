@@ -73,9 +73,10 @@ If you're making a release for the first time, do pair programming and have the 
 
 - [ ] **FINAL only:** Merge `release` → `master`
   - [ ] Create branch `merge-release-vX.Y.Z` from `release`
-  - [ ] Create and merge PR from `merge-release-vX.Y.Z` to `master`
-    - ⚠️ do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit
+  - [ ] Merge `master` to `merge-release-vX.Y.Z` first, and resolve conflict in `version.go`
     - ⚠️ **NOTE:** make sure to ignore the changes to [version.go](https://github.com/ipfs/kubo/blob/master/version.go) (keep the `-dev` in `master`)
+  - [ ] Create and merge PR from `merge-release-vX.Y.Z` to `master` using `Create a merge commit`
+    - ⚠️ do **NOT** use `Squash and merge` nor `Rebase and merge` because we want to preserve original commit history
 - [ ] Update [ipshipyard/waterworks-infra](https://github.com/ipshipyard/waterworks-infra)
   - [ ] Update Kubo staging environment ([Running Kubo tests on staging](https://www.notion.so/Running-Kubo-tests-on-staging-488578bb46154f9bad982e4205621af8))
     - [ ] **RC:** Test last release against current RC
