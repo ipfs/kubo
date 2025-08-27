@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/ipfs/boxo/blockstore"
@@ -122,16 +121,25 @@ type BurstProvider struct {
 }
 
 func (r *BurstProvider) StartProviding(force bool, keys ...mh.Multihash) error {
-	return r.ProvideOnce(keys...)
+	logger.Debugw("BurstProvider.StartProviding called", "force", force, "num_keys", len(keys))
+	err := r.ProvideOnce(keys...)
+	if err != nil {
+		logger.Debugw("BurstProvider.StartProviding failed", "error", err)
+	}
+	return err
 }
 
 func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) error {
+	logger.Debugw("BurstProvider.ProvideOnce called", "num_keys", len(keys))
 	if many, ok := r.System.(routinghelpers.ProvideManyRouter); ok {
+		logger.Debug("BurstProvider using ProvideManyRouter")
 		return many.ProvideMany(context.Background(), keys)
 	}
 
+	logger.Debug("BurstProvider using individual Provide calls")
 	for _, k := range keys {
 		if err := r.Provide(context.Background(), cid.NewCidV1(cid.Raw, k), true); err != nil {
+			logger.Debugw("BurstProvider.Provide failed", "key", k, "error", err)
 			return err
 		}
 	}
@@ -303,6 +311,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 		Repo repo.Repo
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.KeyStore, error) {
+		logger.Debug("Creating SweepingProvider")
 		keyStore, err := rds.NewKeyStore(in.Repo.Datastore(),
 			rds.WithPrefixBits(10),
 			rds.WithDatastorePrefix("/reprovider/keystore"),
@@ -310,6 +319,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize)))),
 		)
 		if err != nil {
+			logger.Debugw("Failed to create KeyStore for SweepingProvider", "error", err)
 			return &NoopProvider{}, nil, err
 		}
 
@@ -317,10 +327,12 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 		switch inDht := in.DHT.(type) {
 		case *dht.IpfsDHT:
 			if inDht != nil {
+				logger.Debug("Using IpfsDHT for SweepingProvider")
 				impl = inDht
 			}
 		case *dual.DHT:
 			if inDht != nil {
+				logger.Debug("Using dual.DHT for SweepingProvider")
 				prov, err := ddhtprovider.New(inDht,
 					ddhtprovider.WithKeyStore(keyStore),
 
@@ -335,20 +347,25 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 					ddhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
 				)
 				if err != nil {
+					logger.Debugw("Failed to create dual.DHT SweepingProvider", "error", err)
 					return nil, nil, err
 				}
+				logger.Debug("Successfully created dual.DHT SweepingProvider")
 				_ = prov
 				return prov, keyStore, nil
 			}
 		case *fullrt.FullRT:
 			if inDht != nil {
+				logger.Debug("Using FullRT for SweepingProvider")
 				impl = inDht
 			}
 		}
 		if impl == nil {
+			logger.Debug("No valid DHT available for providing, returning NoopProvider")
 			return &NoopProvider{}, nil, errors.New("no valid DHT available for providing")
 		}
 
+		logger.Debug("Creating basic SweepingProvider with dhtprovider.New")
 		var selfAddrsFunc func() []ma.Multiaddr
 		if imlpFilter, ok := impl.(addrsFilter); ok {
 			selfAddrsFunc = imlpFilter.FilteredAddrs
@@ -378,6 +395,11 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 		}
 
 		prov, err := dhtprovider.New(opts...)
+		if err != nil {
+			logger.Debugw("Failed to create basic SweepingProvider", "error", err)
+		} else {
+			logger.Debug("Successfully created basic SweepingProvider")
+		}
 		return prov, keyStore, err
 	})
 
@@ -390,6 +412,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
+				logger.Debug("Starting SweepingProvider keystore initialization")
 				// Set the KeyProvider as a garbage collection function for the
 				// keystore. The KeyStore will periodically purge its keys and replace
 				// them with the ones coming from the KeyChanFunc, to remove CIDs that
@@ -398,15 +421,19 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 
 				ch, err := in.KeyProvider(ctx)
 				if err != nil {
+					logger.Debugw("Failed to get keys from KeyProvider", "error", err)
 					return err
 				}
 				// Initialize the KeyStore with the current keys from the KeyProvider.
 				err = in.KeyStore.ResetCids(ctx, ch)
 				if err != nil {
+					logger.Debugw("Failed to reset KeyStore CIDs", "error", err)
 					return err
 				}
 				// Add keys from the KeyStore to the schedule.
+				logger.Debug("Refreshing SweepingProvider schedule")
 				_ = in.Provider.RefreshSchedule()
+				logger.Debug("SweepingProvider keystore initialization completed")
 				return nil
 			},
 			OnStop: func(_ context.Context) error {
@@ -425,33 +452,31 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 
 // OnlineProviders groups units managing provider routing records online
 func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
-	f, err := os.OpenFile("file.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
-	if _, err := f.WriteString(time.Now().String() + " Building Provider\n"); err != nil {
-		panic(err)
-	}
+	logger.Debugw("OnlineProviders called", "provide", provide)
 
 	if !provide {
+		logger.Debug("Provider disabled, using OfflineProviders")
 		return OfflineProviders()
 	}
 
 	providerStrategy := cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
+	logger.Debugw("Provider strategy determined", "strategy", providerStrategy)
 
 	strategyFlag := config.ParseReproviderStrategy(providerStrategy)
 	if strategyFlag == 0 {
+		logger.Debugw("Unknown reprovider strategy", "strategy", providerStrategy)
 		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", providerStrategy))
 	}
 
 	opts := []fx.Option{
 		fx.Provide(setReproviderKeyProvider(providerStrategy)),
 	}
-	if cfg.Reprovider.Sweep.Enabled.WithDefault(config.DefaultReproviderSweepEnabled) {
+	sweepEnabled := cfg.Reprovider.Sweep.Enabled.WithDefault(config.DefaultReproviderSweepEnabled)
+	if sweepEnabled {
+		logger.Debug("Using SweepingProvider")
 		opts = append(opts, SweepingProvider(cfg))
 	} else {
+		logger.Debug("Using BurstProvider")
 		reprovideInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
 		acceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
 		provideWorkerCount := int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount))
