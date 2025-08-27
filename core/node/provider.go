@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/ipfs/boxo/blockstore"
@@ -121,24 +122,30 @@ type BurstProvider struct {
 }
 
 func (r *BurstProvider) StartProviding(force bool, keys ...mh.Multihash) error {
+	fmt.Printf("DEBUG: BurstProvider.StartProviding called with force=%v, num_keys=%d\n", force, len(keys))
 	logger.Debugw("BurstProvider.StartProviding called", "force", force, "num_keys", len(keys))
 	err := r.ProvideOnce(keys...)
 	if err != nil {
+		fmt.Printf("DEBUG: BurstProvider.StartProviding failed: %v\n", err)
 		logger.Debugw("BurstProvider.StartProviding failed", "error", err)
 	}
 	return err
 }
 
 func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) error {
+	fmt.Printf("DEBUG: BurstProvider.ProvideOnce called with num_keys=%d\n", len(keys))
 	logger.Debugw("BurstProvider.ProvideOnce called", "num_keys", len(keys))
 	if many, ok := r.System.(routinghelpers.ProvideManyRouter); ok {
+		fmt.Println("DEBUG: BurstProvider using ProvideManyRouter")
 		logger.Debug("BurstProvider using ProvideManyRouter")
 		return many.ProvideMany(context.Background(), keys)
 	}
 
+	fmt.Println("DEBUG: BurstProvider using individual Provide calls")
 	logger.Debug("BurstProvider using individual Provide calls")
 	for _, k := range keys {
 		if err := r.Provide(context.Background(), cid.NewCidV1(cid.Raw, k), true); err != nil {
+			fmt.Printf("DEBUG: BurstProvider.Provide failed for key %v: %v\n", k, err)
 			logger.Debugw("BurstProvider.Provide failed", "key", k, "error", err)
 			return err
 		}
@@ -311,6 +318,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 		Repo repo.Repo
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.KeyStore, error) {
+		fmt.Println("DEBUG: Creating SweepingProvider")
 		logger.Debug("Creating SweepingProvider")
 		keyStore, err := rds.NewKeyStore(in.Repo.Datastore(),
 			rds.WithPrefixBits(10),
@@ -319,6 +327,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize)))),
 		)
 		if err != nil {
+			fmt.Printf("DEBUG: Failed to create KeyStore for SweepingProvider: %v\n", err)
 			logger.Debugw("Failed to create KeyStore for SweepingProvider", "error", err)
 			return &NoopProvider{}, nil, err
 		}
@@ -327,11 +336,13 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 		switch inDht := in.DHT.(type) {
 		case *dht.IpfsDHT:
 			if inDht != nil {
+				fmt.Println("DEBUG: Using IpfsDHT for SweepingProvider")
 				logger.Debug("Using IpfsDHT for SweepingProvider")
 				impl = inDht
 			}
 		case *dual.DHT:
 			if inDht != nil {
+				fmt.Println("DEBUG: Using dual.DHT for SweepingProvider")
 				logger.Debug("Using dual.DHT for SweepingProvider")
 				prov, err := ddhtprovider.New(inDht,
 					ddhtprovider.WithKeyStore(keyStore),
@@ -347,24 +358,29 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 					ddhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
 				)
 				if err != nil {
+					fmt.Printf("DEBUG: Failed to create dual.DHT SweepingProvider: %v\n", err)
 					logger.Debugw("Failed to create dual.DHT SweepingProvider", "error", err)
 					return nil, nil, err
 				}
+				fmt.Println("DEBUG: Successfully created dual.DHT SweepingProvider")
 				logger.Debug("Successfully created dual.DHT SweepingProvider")
 				_ = prov
 				return prov, keyStore, nil
 			}
 		case *fullrt.FullRT:
 			if inDht != nil {
+				fmt.Println("DEBUG: Using FullRT for SweepingProvider")
 				logger.Debug("Using FullRT for SweepingProvider")
 				impl = inDht
 			}
 		}
 		if impl == nil {
+			fmt.Println("DEBUG: No valid DHT available for providing, returning NoopProvider")
 			logger.Debug("No valid DHT available for providing, returning NoopProvider")
 			return &NoopProvider{}, nil, errors.New("no valid DHT available for providing")
 		}
 
+		fmt.Println("DEBUG: Creating basic SweepingProvider with dhtprovider.New")
 		logger.Debug("Creating basic SweepingProvider with dhtprovider.New")
 		var selfAddrsFunc func() []ma.Multiaddr
 		if imlpFilter, ok := impl.(addrsFilter); ok {
@@ -396,8 +412,10 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 
 		prov, err := dhtprovider.New(opts...)
 		if err != nil {
+			fmt.Printf("DEBUG: Failed to create basic SweepingProvider: %v\n", err)
 			logger.Debugw("Failed to create basic SweepingProvider", "error", err)
 		} else {
+			fmt.Println("DEBUG: Successfully created basic SweepingProvider")
 			logger.Debug("Successfully created basic SweepingProvider")
 		}
 		return prov, keyStore, err
@@ -452,18 +470,41 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 
 // OnlineProviders groups units managing provider routing records online
 func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
+	// Write debug output to a file that we can check
+	debugFile := "/tmp/provider_debug.log"
+	if f, err := os.OpenFile(debugFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+		defer f.Close()
+		f.WriteString(fmt.Sprintf("DEBUG: OnlineProviders called with provide=%v\n", provide))
+	}
+	
+	fmt.Printf("DEBUG: OnlineProviders called with provide=%v\n", provide)
 	logger.Debugw("OnlineProviders called", "provide", provide)
 
 	if !provide {
+		if f, err := os.OpenFile(debugFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+			defer f.Close()
+			f.WriteString("DEBUG: Provider disabled, using OfflineProviders\n")
+		}
+		fmt.Println("DEBUG: Provider disabled, using OfflineProviders")
 		logger.Debug("Provider disabled, using OfflineProviders")
 		return OfflineProviders()
 	}
 
 	providerStrategy := cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
+	if f, err := os.OpenFile(debugFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+		defer f.Close()
+		f.WriteString(fmt.Sprintf("DEBUG: Provider strategy determined: %s\n", providerStrategy))
+	}
+	fmt.Printf("DEBUG: Provider strategy determined: %s\n", providerStrategy)
 	logger.Debugw("Provider strategy determined", "strategy", providerStrategy)
 
 	strategyFlag := config.ParseReproviderStrategy(providerStrategy)
 	if strategyFlag == 0 {
+		if f, err := os.OpenFile(debugFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+			defer f.Close()
+			f.WriteString(fmt.Sprintf("DEBUG: Unknown reprovider strategy: %s\n", providerStrategy))
+		}
+		fmt.Printf("DEBUG: Unknown reprovider strategy: %s\n", providerStrategy)
 		logger.Debugw("Unknown reprovider strategy", "strategy", providerStrategy)
 		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", providerStrategy))
 	}
@@ -473,9 +514,19 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	}
 	sweepEnabled := cfg.Reprovider.Sweep.Enabled.WithDefault(config.DefaultReproviderSweepEnabled)
 	if sweepEnabled {
+		if f, err := os.OpenFile(debugFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+			defer f.Close()
+			f.WriteString("DEBUG: Using SweepingProvider\n")
+		}
+		fmt.Println("DEBUG: Using SweepingProvider")
 		logger.Debug("Using SweepingProvider")
 		opts = append(opts, SweepingProvider(cfg))
 	} else {
+		if f, err := os.OpenFile(debugFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+			defer f.Close()
+			f.WriteString("DEBUG: Using BurstProvider\n")
+		}
+		fmt.Println("DEBUG: Using BurstProvider")
 		logger.Debug("Using BurstProvider")
 		reprovideInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
 		acceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
