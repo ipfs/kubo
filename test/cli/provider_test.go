@@ -26,7 +26,9 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		nodes := harness.NewT(t).NewNodes(n).Init()
 		nodes.ForEachPar(apply)
 		nodes.ForEachPar(fn)
-		return nodes.StartDaemons().Connect()
+		nodes = nodes.StartDaemons().Connect()
+		time.Sleep(500 * time.Millisecond) // wait for DHT clients to be bootstrapped
+		return nodes
 	}
 
 	initNodesWithoutStart := func(t *testing.T, n int, fn func(n *harness.Node)) harness.Nodes {
