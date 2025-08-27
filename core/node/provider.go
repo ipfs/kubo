@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/ipfs/boxo/blockstore"
@@ -404,9 +405,8 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 				if err != nil {
 					return err
 				}
-				// Add keys from the KeyStore to the schedule. This call blocks until
-				// the node is bootstrapped, hence running it in a goroutine.
-				go in.Provider.RefreshSchedule()
+				// Add keys from the KeyStore to the schedule.
+				_ = in.Provider.RefreshSchedule()
 				return nil
 			},
 			OnStop: func(_ context.Context) error {
@@ -425,6 +425,16 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 
 // OnlineProviders groups units managing provider routing records online
 func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
+	f, err := os.OpenFile("file.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString(time.Now().String() + " Building Provider\n"); err != nil {
+		panic(err)
+	}
+
 	if !provide {
 		return OfflineProviders()
 	}

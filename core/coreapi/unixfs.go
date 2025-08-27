@@ -27,6 +27,7 @@ import (
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/core/coreunix"
 	"github.com/ipfs/kubo/tracing"
+	"github.com/labstack/gommon/log"
 	mh "github.com/multiformats/go-multihash"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -394,7 +395,9 @@ func (pds *providingDagService) Add(ctx context.Context, n ipld.Node) error {
 	if err := pds.DAGService.Add(ctx, n); err != nil {
 		return err
 	}
-	pds.StartProviding(false, n.Cid().Hash())
+	if err := pds.StartProviding(false, n.Cid().Hash()); err != nil {
+		log.Errorf("failed to provide new block: %s", err)
+	}
 	return nil
 }
 
@@ -406,7 +409,9 @@ func (pds *providingDagService) AddMany(ctx context.Context, nds []ipld.Node) er
 	for i, n := range nds {
 		keys[i] = n.Cid().Hash()
 	}
-	pds.StartProviding(false, keys...)
+	if err := pds.StartProviding(false, keys...); err != nil {
+		log.Errorf("failed to provide new blocks: %s", err)
+	}
 	return nil
 }
 

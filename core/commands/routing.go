@@ -209,15 +209,15 @@ var provideRefRoutingCmd = &cmds.Command{
 		go func() {
 			defer cancel()
 			if rec {
-				provideErr := provideCidsRec(ctx, nd.Provider, nd.DAG, cids)
-				if provideErr != nil {
-					routing.PublishQueryEvent(ctx, &routing.QueryEvent{
-						Type:  routing.QueryError,
-						Extra: provideErr.Error(),
-					})
-				}
+				provideErr = provideCidsRec(ctx, nd.Provider, nd.DAG, cids)
 			} else {
-				provideCids(nd.Provider, cids)
+				provideErr = provideCids(nd.Provider, cids)
+			}
+			if provideErr != nil {
+				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
+					Type:  routing.QueryError,
+					Extra: provideErr.Error(),
+				})
 			}
 		}()
 
@@ -290,12 +290,12 @@ Trigger reprovider to announce our data to network.
 	},
 }
 
-func provideCids(prov node.DHTProvider, cids []cid.Cid) {
+func provideCids(prov node.DHTProvider, cids []cid.Cid) error {
 	mhs := make([]mh.Multihash, len(cids))
 	for i, c := range cids {
 		mhs[i] = c.Hash()
 	}
-	prov.StartProviding(true, mhs...)
+	return prov.StartProviding(true, mhs...)
 }
 
 func provideCidsRec(ctx context.Context, prov node.DHTProvider, dserv ipld.DAGService, cids []cid.Cid) error {
@@ -305,7 +305,9 @@ func provideCidsRec(ctx context.Context, prov node.DHTProvider, dserv ipld.DAGSe
 		if err != nil {
 			return err
 		}
-		provideCids(prov, kset.Keys())
+		if err = provideCids(prov, kset.Keys()); err != nil {
+			return err
+		}
 	}
 	return nil
 }
