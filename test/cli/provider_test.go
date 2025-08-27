@@ -553,6 +553,7 @@ func TestProvider(t *testing.T) {
 			apply: func(n *harness.Node) {
 				n.SetIPFSConfig("Reprovider.Sweep.Enabled", true)
 				n.SetIPFSConfig("Reprovider.Sweep.MaxWorkers", 6) // TODO: necessary otherswise Provide pinned+mfs fails. not sure why
+				n.SetIPFSConfig("Reprovider.Interval", "22h") // Required to enable provider system
 			},
 		},
 	}
