@@ -16,6 +16,7 @@ import (
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	ds "github.com/ipfs/go-datastore"
@@ -384,13 +385,9 @@ func (s *syncDagService) Sync() error {
 	return s.syncFn()
 }
 
-type provider interface {
-	StartProviding(force bool, keys ...mh.Multihash)
-}
-
 type providingDagService struct {
 	ipld.DAGService
-	provider
+	provider.MultihashProvider
 }
 
 func (pds *providingDagService) Add(ctx context.Context, n ipld.Node) error {

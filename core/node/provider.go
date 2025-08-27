@@ -59,13 +59,25 @@ type DHTProvider interface {
 	//
 	// This operation is asynchronous, it returns as soon as the `keys` are added
 	// to the provide queue, and provides happens asynchronously.
-	StartProviding(force bool, keys ...mh.Multihash)
+	//
+	// Returns an error if the keys couldn't be added to the provide queue. This
+	// can happen if the provider is closed or if the node is currently Offline
+	// (either never bootstrapped, or disconnected since more than `OfflineDelay`).
+	// The schedule and provide queue depend on the network size, hence recent
+	// network connectivity is essential.
+	StartProviding(force bool, keys ...mh.Multihash) error
 	// ProvideOnce sends provider records for the specified keys to the DHT swarm
 	// only once. It does not automatically reprovide those keys afterward.
 	//
 	// Add the supplied multihashes to the provide queue, and return immediately.
 	// The provide operation happens asynchronously.
-	ProvideOnce(keys ...mh.Multihash)
+	//
+	// Returns an error if the keys couldn't be added to the provide queue. This
+	// can happen if the provider is closed or if the node is currently Offline
+	// (either never bootstrapped, or disconnected since more than `OfflineDelay`).
+	// The schedule and provide queue depend on the network size, hence recent
+	// network connectivity is essential.
+	ProvideOnce(keys ...mh.Multihash) error
 	// Clear clears the all the keys from the provide queue and returns the number
 	// of keys that were cleared.
 	//
@@ -79,7 +91,12 @@ type DHTProvider interface {
 	// This function doesn't remove prefixes that have no keys from the schedule.
 	// This is done automatically during the reprovide operation if a region has no
 	// keys.
-	RefreshSchedule()
+	//
+	// Returns an error if the provider is closed or if the node is currently
+	// Offline (either never bootstrapped, or disconnected since more than
+	// `OfflineDelay`). The schedule depends on the network size, hence recent
+	// network connectivity is essential.
+	RefreshSchedule() error
 }
 
 var (
@@ -91,10 +108,10 @@ var (
 
 type NoopProvider struct{}
 
-func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) {}
-func (r *NoopProvider) ProvideOnce(...mh.Multihash)          {}
-func (r *NoopProvider) Clear() int                           { return 0 }
-func (r *NoopProvider) RefreshSchedule()                     {}
+func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) error { return nil }
+func (r *NoopProvider) ProvideOnce(...mh.Multihash) error          { return nil }
+func (r *NoopProvider) Clear() int                                 { return 0 }
+func (r *NoopProvider) RefreshSchedule() error                     { return nil }
 
 // BurstProvider is a wrapper around the boxo/provider.System. This DHT provide
 // system manages reprovides by bursts where it sequentially reprovides all
@@ -103,32 +120,28 @@ type BurstProvider struct {
 	provider.System
 }
 
-func (r *BurstProvider) StartProviding(force bool, keys ...mh.Multihash) {
-	go r.ProvideOnce(keys...)
+func (r *BurstProvider) StartProviding(force bool, keys ...mh.Multihash) error {
+	return r.ProvideOnce(keys...)
 }
 
-func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) {
+func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) error {
 	if many, ok := r.System.(routinghelpers.ProvideManyRouter); ok {
-		err := many.ProvideMany(context.Background(), keys)
-		if err != nil {
-			logger.Warnf("error providing many: %v", err)
-		}
-		return
+		return many.ProvideMany(context.Background(), keys)
 	}
 
 	for _, k := range keys {
 		if err := r.Provide(context.Background(), cid.NewCidV1(cid.Raw, k), true); err != nil {
-			logger.Warnf("error providing %s: %v", k, err)
-			break
+			return err
 		}
 	}
+	return nil
 }
 
 func (r *BurstProvider) Clear() int {
 	return r.System.Clear()
 }
 
-func (r *BurstProvider) RefreshSchedule() {}
+func (r *BurstProvider) RefreshSchedule() error { return nil }
 
 // BurstProviderOpt creates a BurstProvider to be used as provider in the
 // IpfsNode
@@ -312,6 +325,8 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 
 					ddhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
+					ddhtprovider.WithOfflineDelay(2*time.Hour), // TODO: move to config
+					ddhtprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
 
 					ddhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
 					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
@@ -352,8 +367,8 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 			dhtprovider.WithReplicationFactor(amino.DefaultBucketSize),
 			dhtprovider.WithReprovideInterval(cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)),
 			dhtprovider.WithMaxReprovideDelay(time.Hour),
+			dhtprovider.WithOfflineDelay(2 * time.Hour), // TODO: move to config
 			dhtprovider.WithConnectivityCheckOnlineInterval(1 * time.Minute),
-			dhtprovider.WithConnectivityCheckOfflineInterval(5 * time.Minute),
 
 			dhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
 			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
