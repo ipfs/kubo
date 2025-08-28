@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"runtime"
 	"strings"
@@ -503,7 +504,8 @@ func isRunningInContainer() bool {
 		return true
 	}
 
-	return false
+	cmd := exec.Command("systemd-detect-virt", "--container")
+	return cmd.Run() == nil
 }
 
 func isRunningInVM() bool {
@@ -517,7 +519,8 @@ func isRunningInVM() bool {
 		return true
 	}
 
-	return false
+	cmd := exec.Command("systemd-detect-virt", "--vm")
+	return cmd.Run() == nil
 }
 
 func (p *telemetryPlugin) sendTelemetry() error {
