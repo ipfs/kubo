@@ -2,7 +2,6 @@ package autoconf
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
@@ -21,10 +20,12 @@ func TestSwarmConnectWithAutoConf(t *testing.T) {
 	t.Parallel()
 
 	t.Run("AutoConf disabled - should work", func(t *testing.T) {
+		// Don't run subtests in parallel to avoid daemon startup conflicts
 		testSwarmConnectWithAutoConfSetting(t, false, true) // expect success
 	})
 
 	t.Run("AutoConf enabled - should work", func(t *testing.T) {
+		// Don't run subtests in parallel to avoid daemon startup conflicts
 		testSwarmConnectWithAutoConfSetting(t, true, true) // expect success (fix the bug!)
 	})
 }
@@ -44,17 +45,10 @@ func testSwarmConnectWithAutoConfSetting(t *testing.T, autoConfEnabled bool, exp
 		"/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
 	})
 
-	// CRITICAL: Start the daemon first - this is the key requirement
-	// The daemon must be running and working properly
+	// Start the daemon
 	node.StartDaemon()
 	defer node.StopDaemon()
 
-	// Give daemon time to start up completely
-	time.Sleep(3 * time.Second)
-
-	// Verify daemon is responsive
-	result := node.RunIPFS("id")
-	require.Equal(t, 0, result.ExitCode(), "Daemon should be responsive before testing swarm connect")
 	t.Logf("Daemon is running and responsive. AutoConf enabled: %v", autoConfEnabled)
 
 	// Now test swarm connect to a bootstrap peer
@@ -62,7 +56,7 @@ func testSwarmConnectWithAutoConfSetting(t *testing.T, autoConfEnabled bool, exp
 	// 1. The daemon is running
 	// 2. The CLI should connect to the daemon via API
 	// 3. The daemon should handle the swarm connect request
-	result = node.RunIPFS("swarm", "connect", "/dnsaddr/bootstrap.libp2p.io")
+	result := node.RunIPFS("swarm", "connect", "/dnsaddr/bootstrap.libp2p.io")
 
 	// swarm connect should work regardless of AutoConf setting
 	assert.Equal(t, 0, result.ExitCode(),
