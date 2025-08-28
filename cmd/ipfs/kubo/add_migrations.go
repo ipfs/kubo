@@ -83,10 +83,12 @@ func addMigrationFiles(ctx context.Context, node *core.IpfsNode, paths []string,
 
 		fi, err := f.Stat()
 		if err != nil {
+			f.Close()
 			return err
 		}
 
-		ipfsPath, err := ufs.Add(ctx, files.NewReaderStatFile(f, fi), options.Unixfs.Pin(pin, ""))
+		ipfsPath, err := ufs.Add(ctx, files.NewReaderStatFile(f, fi), options.Unixfs.Pin(pin))
+		f.Close()
 		if err != nil {
 			return err
 		}
@@ -149,14 +151,18 @@ func ipfsGet(ctx context.Context, ufs coreiface.UnixfsAPI, ipfsPath path.Path) e
 	}
 	defer nd.Close()
 
-	fnd, ok := nd.(files.File)
-	if !ok {
+	switch fnd := nd.(type) {
+	case files.File:
+		_, err := io.Copy(io.Discard, fnd)
+		if err != nil {
+			return fmt.Errorf("cannot read migration: %w", err)
+		}
+	case files.Directory:
 		return fmt.Errorf("not a file node: %q", ipfsPath)
+	default:
+		return fmt.Errorf("unknown node type: %q", ipfsPath)
 	}
-	_, err = io.Copy(io.Discard, fnd)
-	if err != nil {
-		return fmt.Errorf("cannot read migration: %w", err)
-	}
+
 	fmt.Printf("Added migration file: %q\n", ipfsPath)
 	return nil
 }
