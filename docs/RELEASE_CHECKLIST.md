@@ -91,7 +91,7 @@ If you're making a release for the first time, do pair programming and have the 
 
 ### Promotion
 
-- [ ] Create [IPFS Discourse](https://discuss.ipfs.tech) topic ([RC example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248), [FINAL example](https://discuss.ipfs.tech/t/kubo-v0-16-0-release-is-out/15249))
+- [ ] Create [IPFS Discourse](https://discuss.ipfs.tech) topic ([RC example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248), [FINAL example](https://discuss.ipfs.tech/t/kubo-v0-37-0-is-out/19673))
   - [ ] Title: `Kubo vX.Y.Z(-rcN) is out!`, tag: `kubo`
   - [ ] Use title as heading (`##`) in description
   - [ ] Include: GitHub release link, IPNS binaries, docker pull command, release notes
@@ -100,7 +100,7 @@ If you're making a release for the first time, do pair programming and have the 
 - [ ] **RC only:** Comment on release issue mentioning early testers ([example](https://github.com/ipfs/kubo/issues/9319#issuecomment-1311002478))
 - [ ] **FINAL only:** Comment on release issue with link ([example](https://github.com/ipfs/kubo/issues/9417#issuecomment-1400740975))
 - [ ] **FINAL only:** Create [blog.ipfs.tech](https://blog.ipfs.tech) entry ([example PR](https://github.com/ipfs/ipfs-blog/pull/529))
-- [ ] **FINAL non-PATCH:** (optional) Post on social media ([bsky](https://bsky.app/profile/ipshipyard.com), [x.com](https://x.com/ipshipyard), [Reddit](https://reddit.com/r/ipfs))
+- [ ] **FINAL non-PATCH:** (optional) Post on social media ([bsky](https://bsky.app/profile/ipshipyard.com/post/3ltxcsrbn5s2k), [x.com](https://x.com/ipshipyard/status/1944867893226635603), [Reddit](https://www.reddit.com/r/ipfs/comments/1lzy6ze/release_v0360_ipfskubo/))
 
 ### Final Steps
 
@@ -109,5 +109,5 @@ If you're making a release for the first time, do pair programming and have the 
   - [ ] Run `make mod_tidy`
   - [ ] Create PR with `go.mod` and `go.sum` updates
   - [ ] Add PR to next release milestone
-- [ ] **FINAL non-PATCH:** Create next release issue
+- [ ] **FINAL non-PATCH:** Create next release issue ([example](https://github.com/ipfs/kubo/issues/10816))
 - [ ] **FINAL only:** Close release issue
