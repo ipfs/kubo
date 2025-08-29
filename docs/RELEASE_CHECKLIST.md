@@ -99,7 +99,7 @@ If you're making a release for the first time, do pair programming and have the 
 - [ ] Verify bot posted to [#ipfs-chatter](https://discord.com/channels/669268347736686612/669268347736686615) (Discord) or [#ipfs-chatter:ipfs.io](https://matrix.to/#/#ipfs-chatter:ipfs.io) (Matrix)
 - [ ] **RC only:** Comment on release issue mentioning early testers ([example](https://github.com/ipfs/kubo/issues/9319#issuecomment-1311002478))
 - [ ] **FINAL only:** Comment on release issue with link ([example](https://github.com/ipfs/kubo/issues/9417#issuecomment-1400740975))
-- [ ] **FINAL only:** Create [blog.ipfs.tech](https://blog.ipfs.tech) entry ([example PR](https://github.com/ipfs/ipfs-blog/pull/529))
+- [ ] **FINAL only:** Create [blog.ipfs.tech](https://blog.ipfs.tech) entry ([example](https://github.com/ipfs/ipfs-blog/commit/32040d1e90279f21bad56b924fe4710bba5ba043))
 - [ ] **FINAL non-PATCH:** (optional) Post on social media ([bsky](https://bsky.app/profile/ipshipyard.com/post/3ltxcsrbn5s2k), [x.com](https://x.com/ipshipyard/status/1944867893226635603), [Reddit](https://www.reddit.com/r/ipfs/comments/1lzy6ze/release_v0360_ipfskubo/))
 
 ### Final Steps
