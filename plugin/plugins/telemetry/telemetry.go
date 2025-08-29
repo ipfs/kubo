@@ -504,8 +504,7 @@ func isRunningInContainer() bool {
 		return true
 	}
 
-	cmd := exec.Command("systemd-detect-virt", "--container")
-	return cmd.Run() == nil
+	return exec.Command("systemd-detect-virt", "--quiet", "--container").Run() == nil
 }
 
 func isRunningInVM() bool {
