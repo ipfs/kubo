@@ -518,8 +518,7 @@ func isRunningInVM() bool {
 		return true
 	}
 
-	cmd := exec.Command("systemd-detect-virt", "--vm")
-	return cmd.Run() == nil
+	return exec.Command("systemd-detect-virt", "--quiet", "--vm").Run() == nil
 }
 
 func (p *telemetryPlugin) sendTelemetry() error {
