@@ -115,9 +115,15 @@ func TestContentBlocking(t *testing.T) {
 		assert.False(t, has)
 	})
 
-	/* TODO: this was already broken in 0.26, but we should fix it
+	// TODO: this was already broken in 0.26, but we should fix it
 	t.Run("Gateway returns CAR without directly blocked CID", func(t *testing.T) {
+		// First verify that the blocked CID is actually blocked when accessed directly
+		directResp := client.Get("/ipfs/" + blockedCID)
+		assert.Equal(t, http.StatusGone, directResp.StatusCode, "Direct access to blocked CID should return 410")
+		
 		allowedDirWithDirectlyBlockedCID := node.IPFS("add", "--raw-leaves", "-Q", "-rw", filepath.Join(h.Dir, "directly-blocked-file.txt")).Stdout.Trimmed()
+		t.Logf("Directory CID containing blocked file: %s", allowedDirWithDirectlyBlockedCID)
+		t.Logf("Blocked CID that should not appear in CAR: %s", blockedCID)
 		resp := client.Get("/ipfs/" + allowedDirWithDirectlyBlockedCID + "?format=car")
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -128,7 +134,20 @@ func TestContentBlocking(t *testing.T) {
 		assert.NoError(t, err)
 		assert.False(t, has, "Returned CAR should not include blockedCID")
 	})
-	*/
+
+	// Test that requesting a CAR with a blocked root CID returns 410
+	t.Run("Gateway returns 410 for CAR request with blocked root CID", func(t *testing.T) {
+		resp := client.Get("/ipfs/" + blockedCID + "?format=car")
+		assert.Equal(t, http.StatusGone, resp.StatusCode, "CAR request for blocked root CID should return 410 Gone")
+		assert.Contains(t, resp.Body, blockedMsg, "Error message should indicate content is blocked")
+	})
+
+	// Test that requesting raw format with a blocked root CID returns 410
+	t.Run("Gateway returns 410 for raw request with blocked root CID", func(t *testing.T) {
+		resp := client.Get("/ipfs/" + blockedCID + "?format=raw")
+		assert.Equal(t, http.StatusGone, resp.StatusCode, "Raw request for blocked root CID should return 410 Gone")
+		assert.Contains(t, resp.Body, blockedMsg, "Error message should indicate content is blocked")
+	})
 
 	// Confirm CAR responses skip blocked subpaths
 	t.Run("Gateway returns CAR without blocked subpath", func(t *testing.T) {
