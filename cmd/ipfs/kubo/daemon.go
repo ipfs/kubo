@@ -274,6 +274,23 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
+	returned := make(chan struct{})
+	defer close(returned)
+
+	// Give the user some immediate feedback when they hit C-c
+	go func() {
+		<-req.Context.Done()
+		// Do not show message if daemonFunc has already returned.
+		select {
+		case <-returned:
+			return
+		default:
+		}
+		notifyStopping()
+		fmt.Println("Received interrupt signal, shutting down...")
+		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
+	}()
+
 	var cacheMigrations, pinMigrations bool
 	var externalMigrationFetcher migrations.Fetcher
 
@@ -638,14 +655,6 @@ take effect.
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
 	notifyReady()
-
-	// Give the user some immediate feedback when they hit C-c
-	go func() {
-		<-req.Context.Done()
-		notifyStopping()
-		fmt.Println("Received interrupt signal, shutting down...")
-		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
-	}()
 
 	if !offline {
 		// Warn users when provide systems are disabled
