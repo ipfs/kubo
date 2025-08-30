@@ -43,8 +43,8 @@ func TestIdentityCIDOverflowProtection(t *testing.T) {
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
-		// data larger than verifcid.MaxIdentityDigestSize
-		largeData := strings.Repeat("x", verifcid.MaxIdentityDigestSize+50)
+		// data larger than verifcid.DefaultMaxIdentityDigestSize
+		largeData := strings.Repeat("x", verifcid.DefaultMaxIdentityDigestSize+50)
 		tempFile := filepath.Join(node.Dir, "large.txt")
 		err := os.WriteFile(tempFile, []byte(largeData), 0644)
 		require.NoError(t, err)
@@ -66,7 +66,7 @@ func TestIdentityCIDOverflowProtection(t *testing.T) {
 		require.NoError(t, err)
 
 		// use limit just under the maximum
-		limit := verifcid.MaxIdentityDigestSize - 10
+		limit := verifcid.DefaultMaxIdentityDigestSize - 10
 		res := node.IPFS("add", "--inline", fmt.Sprintf("--inline-limit=%d", limit), tempFile)
 		assert.NoError(t, res.Err)
 		cid := strings.Fields(res.Stdout.String())[1]
@@ -94,10 +94,10 @@ func TestIdentityCIDOverflowProtection(t *testing.T) {
 		err := os.WriteFile(tempFile, []byte(smallData), 0644)
 		require.NoError(t, err)
 
-		excessiveLimit := verifcid.MaxIdentityDigestSize + 50
+		excessiveLimit := verifcid.DefaultMaxIdentityDigestSize + 50
 		res := node.RunIPFS("add", "--inline", fmt.Sprintf("--inline-limit=%d", excessiveLimit), tempFile)
 		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
-		assert.Contains(t, res.Stderr.String(), fmt.Sprintf("inline-limit %d exceeds maximum allowed size of %d bytes", excessiveLimit, verifcid.MaxIdentityDigestSize))
+		assert.Contains(t, res.Stderr.String(), fmt.Sprintf("inline-limit %d exceeds maximum allowed size of %d bytes", excessiveLimit, verifcid.DefaultMaxIdentityDigestSize))
 	})
 
 	t.Run("ipfs files write --hash=identity appending to identity CID switches to configured hash", func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestIdentityCIDOverflowProtection(t *testing.T) {
 		assert.NoError(t, res.Err)
 
 		// append data that would exceed identity CID limit
-		appendData := strings.Repeat("a", verifcid.MaxIdentityDigestSize)
+		appendData := strings.Repeat("a", verifcid.DefaultMaxIdentityDigestSize)
 		appendFile := filepath.Join(node.Dir, "append.txt")
 		err = os.WriteFile(appendFile, []byte(appendData), 0644)
 		require.NoError(t, err)
@@ -256,7 +256,7 @@ func TestIdentityCIDOverflowProtection(t *testing.T) {
 		require.NoError(t, err)
 
 		// exactly at the limit should succeed
-		res := node.IPFS("add", "--inline", fmt.Sprintf("--inline-limit=%d", verifcid.MaxIdentityDigestSize), tempFile)
+		res := node.IPFS("add", "--inline", fmt.Sprintf("--inline-limit=%d", verifcid.DefaultMaxIdentityDigestSize), tempFile)
 		assert.NoError(t, res.Err)
 		cid := strings.Fields(res.Stdout.String())[1]
 
@@ -277,10 +277,10 @@ func TestIdentityCIDOverflowProtection(t *testing.T) {
 		require.NoError(t, err)
 
 		// one byte over should fail
-		overLimit := verifcid.MaxIdentityDigestSize + 1
+		overLimit := verifcid.DefaultMaxIdentityDigestSize + 1
 		res := node.RunIPFS("add", "--inline", fmt.Sprintf("--inline-limit=%d", overLimit), tempFile)
 		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
-		assert.Contains(t, res.Stderr.String(), fmt.Sprintf("inline-limit %d exceeds maximum allowed size of %d bytes", overLimit, verifcid.MaxIdentityDigestSize))
+		assert.Contains(t, res.Stderr.String(), fmt.Sprintf("inline-limit %d exceeds maximum allowed size of %d bytes", overLimit, verifcid.DefaultMaxIdentityDigestSize))
 	})
 
 	t.Run("ipfs add --inline with data larger than limit uses configured hash", func(t *testing.T) {

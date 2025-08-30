@@ -204,7 +204,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		cmds.IntOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8). WARNING: experimental, Import.UnixFSHAMTDirectorySizeThreshold is safer. Default: Import.UnixFSHAMTDirectoryMaxFanout"),
 		// Experimental Features
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. WARNING: experimental"),
-		cmds.IntOption(inlineLimitOptionName, fmt.Sprintf("Maximum block size to inline. Maximum: %d bytes. WARNING: experimental", verifcid.MaxIdentityDigestSize)).WithDefault(32),
+		cmds.IntOption(inlineLimitOptionName, fmt.Sprintf("Maximum block size to inline. Maximum: %d bytes. WARNING: experimental", verifcid.DefaultMaxIdentityDigestSize)).WithDefault(32),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. WARNING: experimental"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. WARNING: experimental"),
 		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
@@ -264,9 +264,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
 
-		// Validate inline-limit doesn't exceed verifcid.MaxIdentityDigestSize
-		if inline && inlineLimit > verifcid.MaxIdentityDigestSize {
-			return fmt.Errorf("inline-limit %d exceeds maximum allowed size of %d bytes", inlineLimit, verifcid.MaxIdentityDigestSize)
+		// Validate inline-limit doesn't exceed the maximum identity digest size
+		if inline && inlineLimit > verifcid.DefaultMaxIdentityDigestSize {
+			return fmt.Errorf("inline-limit %d exceeds maximum allowed size of %d bytes", inlineLimit, verifcid.DefaultMaxIdentityDigestSize)
 		}
 
 		toFilesStr, toFilesSet := req.Options[toFilesOptionName].(string)
