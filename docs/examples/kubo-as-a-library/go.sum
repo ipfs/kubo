@@ -283,12 +283,12 @@ github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/ipfs-shipyard/nopfs v0.0.14 h1:HFepJt/MxhZ3/GsLZkkAPzIPdNYKaLO1Qb7YmPbWIKk=
 github.com/ipfs-shipyard/nopfs v0.0.14/go.mod h1:mQyd0BElYI2gB/kq/Oue97obP4B3os4eBmgfPZ+hnrE=
-github.com/ipfs-shipyard/nopfs/ipfs v0.25.1-0.20250831031256-494fbce2f7da h1:yMHCP0n4EXbmWJ3mmQyJ1mUkkjaTDXVvf7iaitrux0I=
-github.com/ipfs-shipyard/nopfs/ipfs v0.25.1-0.20250831031256-494fbce2f7da/go.mod h1:BxhUdtBgOXg1B+gAPEplkg/GpyTZY+kCMSfsJvvydqU=
+github.com/ipfs-shipyard/nopfs/ipfs v0.25.1-0.20250901002929-8d2b62fbab75 h1:FKrvBGGZKdn/zP0Uw6RHOYBu21qu9hXbXu9uMAp8EtM=
+github.com/ipfs-shipyard/nopfs/ipfs v0.25.1-0.20250901002929-8d2b62fbab75/go.mod h1:BxhUdtBgOXg1B+gAPEplkg/GpyTZY+kCMSfsJvvydqU=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.34.1-0.20250831032157-737311ea47c4 h1:5Ooboukl9G8bXkCC2oVZ2YOQKKBSIngIzk0S+i53z70=
-github.com/ipfs/boxo v0.34.1-0.20250831032157-737311ea47c4/go.mod h1:rXql6ncaLZZfLqDG3Cuw9ZYQKd3rMU5bk1TGXF0+ZL0=
+github.com/ipfs/boxo v0.34.1-0.20250901000720-b14fd60c243d h1:mAFUAauRQAxaj9QRk/SL13fpUA45oyjsmxfG1MOSvgY=
+github.com/ipfs/boxo v0.34.1-0.20250901000720-b14fd60c243d/go.mod h1:rXql6ncaLZZfLqDG3Cuw9ZYQKd3rMU5bk1TGXF0+ZL0=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-block-format v0.0.3/go.mod h1:4LmD4ZUw0mhO+JSKdpWwrzATiEfM7WWgQ8H5l6P8MVk=

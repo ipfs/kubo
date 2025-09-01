@@ -21,8 +21,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
-	github.com/ipfs-shipyard/nopfs/ipfs v0.25.1-0.20250831031256-494fbce2f7da
-	github.com/ipfs/boxo v0.34.1-0.20250831032157-737311ea47c4
+	github.com/ipfs-shipyard/nopfs/ipfs v0.25.1-0.20250901002929-8d2b62fbab75
+	github.com/ipfs/boxo v0.34.1-0.20250901000720-b14fd60c243d
 	github.com/ipfs/go-block-format v0.2.2
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-cidutil v0.1.0
