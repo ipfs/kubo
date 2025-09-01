@@ -121,7 +121,7 @@ This interface is not stable and may change from release to release.
 
 		provideSys, ok := nd.Provider.(provider.System)
 		if !ok {
-			return errors.New("provide stats not supported with sweeping provider")
+			return errors.New("stats not available with experimental sweeping provider (Reprovider.Sweep.Enabled=true)")
 		}
 
 		stats, err := provideSys.Stat()

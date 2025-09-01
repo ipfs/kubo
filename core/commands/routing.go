@@ -278,7 +278,7 @@ Trigger reprovider to announce our data to network.
 		}
 		provideSys, ok := nd.Provider.(*node.BurstProvider)
 		if !ok {
-			return fmt.Errorf("manual reprovide not supported with sweeping provider, %T", nd.Provider)
+			return errors.New("manual reprovide not available with experimental sweeping provider (Reprovider.Sweep.Enabled=true)")
 		}
 
 		err = provideSys.Reprovide(req.Context)
