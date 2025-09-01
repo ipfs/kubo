@@ -2113,9 +2113,10 @@ keys. The keys will be added to the `KeyStore` tracking which keys should be
 reprovided and when they should be reprovided. Calling `StopProviding()`
 removes the keys from the `KeyStore`. However, it is currently tricky for
 `kubo` to detect when a key should stop being advertised. Hence, `kubo` will
-periodically `Reset()` the `KeyStore` by providing it a channel of all the keys
-it is expected to contain. During this operation, all keys in the `Keystore`
-are purged, and only the given ones remain scheduled.
+periodically refresh the `KeyStore` at each [`Reprovider.Interval`](#reproviderinterval)
+by providing it a channel of all the keys it is expected to contain according
+to the [`Reprovider.Strategy`](#reproviderstrategy). During this operation,
+all keys in the `Keystore` are purged, and only the given ones remain scheduled.
 
 #### Reprovider.Sweep.Enabled
 
@@ -2210,17 +2211,6 @@ single worker.
 Default: `16`
 
 Type: `optionalInteger` (non-negative)
-
-#### Reprovider.Sweep.KeyStoreGCInterval
-
-Interval at which the reprovider's KeyStore state is purged and replaced by keys
-matching the [`Reprovider.Strategy`](#reproviderstrategy). This operation is
-necessary to garbage collect keys that shouldn't be advertised anymore to the
-DHT swarm.
-
-Default: [`Reprovider.Interval`](#reproviderinterval)
-
-Type: `optionalDuration`
 
 #### Reprovider.Sweep.KeyStoreBatchSize
 
