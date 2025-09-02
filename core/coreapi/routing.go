@@ -163,32 +163,60 @@ func (api *RoutingAPI) Provide(ctx context.Context, path path.Path, opts ...caop
 func provideKeysRec(ctx context.Context, prov node.DHTProvider, bs blockstore.Blockstore, cids []cid.Cid) error {
 	provided := cidutil.NewStreamingSet()
 
+	// Error channel with buffer size 1 to avoid blocking the goroutine
 	errCh := make(chan error, 1)
 	go func() {
+		// Always close provided.New to signal completion
 		defer close(provided.New)
+		// Also close error channel to distinguish between "no error" and "pending error"
+		defer close(errCh)
+
 		dserv := dag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
 		for _, c := range cids {
 			if err := dag.Walk(ctx, dag.GetLinksDirect(dserv), c, provided.Visitor(ctx)); err != nil {
+				// Send error to channel. If context is cancelled while trying to send,
+				// exit immediately as the main loop will return ctx.Err()
 				select {
 				case errCh <- err:
-				default:
+					// Error sent successfully, exit goroutine
+				case <-ctx.Done():
+					// Context cancelled, exit without sending error
+					return
 				}
 				return
 			}
 		}
+		// All CIDs walked successfully, goroutine will exit and channels will close
 	}()
+
 	keys := make([]mh.Multihash, 0)
 	for {
 		select {
 		case <-ctx.Done():
+			// Context cancelled, return immediately
 			return ctx.Err()
 		case err := <-errCh:
+			// Received error from DAG walk, return it
 			return err
 		case c, ok := <-provided.New:
 			if !ok {
-				// provided.New was closed, we are done reading the cids.
+				// Channel closed means goroutine finished.
+				// CRITICAL: Check for any error that was sent just before channel closure.
+				// This handles the race where error is sent to errCh but main loop
+				// sees provided.New close first.
+				select {
+				case err := <-errCh:
+					if err != nil {
+						return err
+					}
+					// errCh closed with nil, meaning success
+				default:
+					// No pending error in errCh
+				}
+				// All CIDs successfully processed, start providing
 				return prov.StartProviding(true, keys...)
 			}
+			// Accumulate the CID for providing
 			keys = append(keys, c.Hash())
 		}
 	}
