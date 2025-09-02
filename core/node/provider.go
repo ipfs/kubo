@@ -305,7 +305,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.KeyStore, error) {
 		keyStore, err := rds.NewKeyStore(in.Repo.Datastore(),
 			rds.WithPrefixBits(10),
-			rds.WithDatastorePrefix("/reprovider/keystore"),
+			rds.WithDatastorePrefix("/provider/keystore"),
 			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
 		)
 		if err != nil {
