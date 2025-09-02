@@ -1366,7 +1366,6 @@ func getPrefixNew(req *cmds.Request) (cid.Builder, error) {
 		if !ok {
 			return nil, fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
 		}
-
 		prefix.MhType = hashFunCode
 		prefix.MhLength = -1
 	}

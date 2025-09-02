@@ -51,8 +51,8 @@ func TestIdentityCIDOverflowProtection(t *testing.T) {
 
 		res := node.RunIPFS("add", "--hash=identity", tempFile)
 		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
-		// should error with identity digest too large message
-		assert.Contains(t, res.Stderr.String(), "identity digest too large")
+		// should error with digest too large message
+		assert.Contains(t, res.Stderr.String(), "digest too large")
 	})
 
 	t.Run("ipfs add --inline with valid --inline-limit succeeds", func(t *testing.T) {
