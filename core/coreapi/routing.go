@@ -163,21 +163,35 @@ func (api *RoutingAPI) Provide(ctx context.Context, path path.Path, opts ...caop
 func provideKeysRec(ctx context.Context, prov node.DHTProvider, bs blockstore.Blockstore, cids []cid.Cid) error {
 	provided := cidutil.NewStreamingSet()
 
-	errCh := make(chan error)
+	errCh := make(chan error, 1)
 	go func() {
+		defer close(provided.New)
 		dserv := dag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
 		for _, c := range cids {
-			err := dag.Walk(ctx, dag.GetLinksDirect(dserv), c, provided.Visitor(ctx))
-			if err != nil {
-				errCh <- err
+			if err := dag.Walk(ctx, dag.GetLinksDirect(dserv), c, provided.Visitor(ctx)); err != nil {
+				select {
+				case errCh <- err:
+				default:
+				}
+				return
 			}
 		}
 	}()
-	keys := make([]mh.Multihash, provided.Set.Len())
-	for i, c := range provided.Set.Keys() {
-		keys[i] = c.Hash()
+	keys := make([]mh.Multihash, 0)
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-errCh:
+			return err
+		case c, ok := <-provided.New:
+			if !ok {
+				// provided.New was closed, we are done reading the cids.
+				return prov.StartProviding(true, keys...)
+			}
+			keys = append(keys, c.Hash())
+		}
 	}
-	return prov.StartProviding(true, keys...)
 }
 
 func (api *RoutingAPI) core() coreiface.CoreAPI {
