@@ -486,25 +486,24 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		// This should never happen, but better safe than sorry
 		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
 	}
-	if cfg.Provider.Strategy.WithDefault("") != "" && cfg.Reprovider.Strategy.IsDefault() {
-		log.Fatal("Invalid config. Remove unused Provider.Strategy and set Reprovider.Strategy instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy")
+	// Check for deprecated Provider/Reprovider configuration after migration
+	if cfg.Provider.Enabled != config.Default || !cfg.Provider.Strategy.IsDefault() || !cfg.Provider.WorkerCount.IsDefault() {
+		log.Fatal("Deprecated configuration detected. Remove 'Provider' from your config and use 'Provide' instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
 	}
-	// Check for deprecated "flat" strategy
-	if cfg.Reprovider.Strategy.WithDefault("") == "flat" {
-		log.Error("Reprovider.Strategy='flat' is deprecated and will be removed in the next release. Please update your config to use 'all' instead.")
+	if !cfg.Reprovider.Interval.IsDefault() || !cfg.Reprovider.Strategy.IsDefault() {
+		log.Fatal("Deprecated configuration detected. Remove 'Reprovider' from your config and use 'Provide' instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
+	}
+	// Check for deprecated "flat" strategy (should have been migrated to "all")
+	if cfg.Provide.Strategy.WithDefault("") == "flat" {
+		log.Fatal("Provide.Strategy='flat' is no longer supported. Use 'all' instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy")
 	}
 	if cfg.Experimental.StrategicProviding {
-		log.Error("Experimental.StrategicProviding was removed. Remove it from your config and set Provider.Enabled=false to remove this message. Documentation: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#strategic-providing")
-		cfg.Experimental.StrategicProviding = false
-		cfg.Provider.Enabled = config.False
+		log.Fatal("Experimental.StrategicProviding was removed. Remove it from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#strategic-providing")
 	}
 	if routingOption == routingOptionDelegatedKwd {
 		// Delegated routing is read-only mode - content providing must be disabled
-		if cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) {
-			log.Fatal("Routing.Type=delegated does not support content providing. Set Provider.Enabled=false in your config.")
-		}
-		if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) != 0 {
-			log.Fatal("Routing.Type=delegated does not support content providing. Set Reprovider.Interval='0' in your config.")
+		if cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
+			log.Fatal("Routing.Type=delegated does not support content providing. Set Provide.Enabled=false in your config.")
 		}
 	}
 
