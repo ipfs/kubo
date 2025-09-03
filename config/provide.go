@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"time"
 )
 
@@ -17,6 +18,15 @@ const (
 	DefaultProvideSweepMaxProvideConnsPerWorker = 16
 	DefaultProvideSweepKeyStoreBatchSize        = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
 	DefaultProvideSweepOfflineDelay             = 2 * time.Hour
+)
+
+type ProvideStrategy int
+
+const (
+	ProvideStrategyAll ProvideStrategy = 1 << iota
+	ProvideStrategyPinned
+	ProvideStrategyRoots
+	ProvideStrategyMFS
 )
 
 // Provide configures both immediate CID announcements (provide operations) for new content
@@ -77,4 +87,21 @@ type ProvideSweep struct {
 	// OfflineDelay sets the delay after which the provider switches from Disconnected to Offline state.
 	// Default: DefaultProvideSweepOfflineDelay
 	OfflineDelay *OptionalDuration `json:",omitempty"`
+}
+
+func ParseProvideStrategy(s string) ProvideStrategy {
+	var strategy ProvideStrategy
+	for _, part := range strings.Split(s, "+") {
+		switch part {
+		case "all", "flat", "": // special case, does not mix with others ("flat" is deprecated, maps to "all")
+			return ProvideStrategyAll
+		case "pinned":
+			strategy |= ProvideStrategyPinned
+		case "roots":
+			strategy |= ProvideStrategyRoots
+		case "mfs":
+			strategy |= ProvideStrategyMFS
+		}
+	}
+	return strategy
 }
