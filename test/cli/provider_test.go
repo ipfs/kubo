@@ -58,11 +58,11 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		}
 	}
 
-	t.Run("Provider.Enabled=true announces new CIDs created by ipfs add", func(t *testing.T) {
+	t.Run("Provide.Enabled=true announces new CIDs created by ipfs add", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", true)
+			n.SetIPFSConfig("Provide.Enabled", true)
 		})
 		defer nodes.StopDaemons()
 
@@ -70,11 +70,11 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
-	t.Run("Provider.Enabled=true announces new CIDs created by ipfs add --pin=false with default strategy", func(t *testing.T) {
+	t.Run("Provide.Enabled=true announces new CIDs created by ipfs add --pin=false with default strategy", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", true)
+			n.SetIPFSConfig("Provide.Enabled", true)
 			// Default strategy is "all" which should provide even unpinned content
 		})
 		defer nodes.StopDaemons()
@@ -83,11 +83,11 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
-	t.Run("Provider.Enabled=true announces new CIDs created by ipfs block put --pin=false with default strategy", func(t *testing.T) {
+	t.Run("Provide.Enabled=true announces new CIDs created by ipfs block put --pin=false with default strategy", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", true)
+			n.SetIPFSConfig("Provide.Enabled", true)
 			// Default strategy is "all" which should provide unpinned content from block put
 		})
 		defer nodes.StopDaemons()
@@ -97,11 +97,11 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
-	t.Run("Provider.Enabled=true announces new CIDs created by ipfs dag put --pin=false with default strategy", func(t *testing.T) {
+	t.Run("Provide.Enabled=true announces new CIDs created by ipfs dag put --pin=false with default strategy", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", true)
+			n.SetIPFSConfig("Provide.Enabled", true)
 			// Default strategy is "all" which should provide unpinned content from dag put
 		})
 		defer nodes.StopDaemons()
@@ -111,11 +111,11 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
-	t.Run("Provider.Enabled=false disables announcement of new CID from ipfs add", func(t *testing.T) {
+	t.Run("Provide.Enabled=false disables announcement of new CID from ipfs add", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", false)
+			n.SetIPFSConfig("Provide.Enabled", false)
 		})
 		defer nodes.StopDaemons()
 
@@ -123,17 +123,17 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectNoProviders(t, cid, nodes[1:]...)
 	})
 
-	t.Run("Provider.Enabled=false disables manual announcement via RPC command", func(t *testing.T) {
+	t.Run("Provide.Enabled=false disables manual announcement via RPC command", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", false)
+			n.SetIPFSConfig("Provide.Enabled", false)
 		})
 		defer nodes.StopDaemons()
 
 		cid := nodes[0].IPFSAddStr(time.Now().String())
 		res := nodes[0].RunIPFS("routing", "provide", cid)
-		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provider.Enabled is set to 'false'")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.Enabled is set to 'false'")
 		assert.Equal(t, 1, res.ExitCode())
 
 		expectNoProviders(t, cid, nodes[1:]...)
@@ -144,7 +144,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Interval", "0")
+			n.SetIPFSConfig("Provide.ReprovideInterval", "0")
 		})
 		defer nodes.StopDaemons()
 
@@ -153,11 +153,11 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 	})
 
 	// It is a lesser evil - forces users to fix their config and have some sort of interval
-	t.Run("Manual Reprovider trigger does not work when periodic Reprovider is disabled", func(t *testing.T) {
+	t.Run("Manual Reprovide trigger does not work when periodic reprovide is disabled", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Interval", "0")
+			n.SetIPFSConfig("Provide.ReprovideInterval", "0")
 		})
 		defer nodes.StopDaemons()
 
@@ -166,18 +166,18 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectNoProviders(t, cid, nodes[1:]...)
 
 		res := nodes[0].RunIPFS("routing", "reprovide")
-		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Reprovider.Interval is set to '0'")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.ReprovideInterval is set to '0'")
 		assert.Equal(t, 1, res.ExitCode())
 
 		expectNoProviders(t, cid, nodes[1:]...)
 	})
 
 	// It is a lesser evil - forces users to fix their config and have some sort of interval
-	t.Run("Manual Reprovider trigger does not work when Provider system is disabled", func(t *testing.T) {
+	t.Run("Manual Reprovide trigger does not work when Provide system is disabled", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", false)
+			n.SetIPFSConfig("Provide.Enabled", false)
 		})
 		defer nodes.StopDaemons()
 
@@ -186,7 +186,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectNoProviders(t, cid, nodes[1:]...)
 
 		res := nodes[0].RunIPFS("routing", "reprovide")
-		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provider.Enabled is set to 'false'")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.Enabled is set to 'false'")
 		assert.Equal(t, 1, res.ExitCode())
 
 		expectNoProviders(t, cid, nodes[1:]...)
@@ -196,7 +196,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Strategy", "all")
+			n.SetIPFSConfig("Provide.Strategy", "all")
 		})
 		defer nodes.StopDaemons()
 
@@ -208,7 +208,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Strategy", "pinned")
+			n.SetIPFSConfig("Provide.Strategy", "pinned")
 		})
 		defer nodes.StopDaemons()
 
@@ -225,7 +225,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Strategy", "pinned+mfs")
+			n.SetIPFSConfig("Provide.Strategy", "pinned+mfs")
 		})
 		defer nodes.StopDaemons()
 
@@ -245,7 +245,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Strategy", "roots")
+			n.SetIPFSConfig("Provide.Strategy", "roots")
 		})
 		defer nodes.StopDaemons()
 
@@ -262,7 +262,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Strategy", "mfs")
+			n.SetIPFSConfig("Provide.Strategy", "mfs")
 		})
 		defer nodes.StopDaemons()
 
@@ -283,7 +283,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			t.Parallel()
 
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
-				n.SetIPFSConfig("Reprovider.Strategy", "")
+				n.SetIPFSConfig("Provide.Strategy", "")
 			})
 
 			cid := nodes[0].IPFSAddStr(time.Now().String())
@@ -301,7 +301,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			t.Parallel()
 
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
-				n.SetIPFSConfig("Reprovider.Strategy", "all")
+				n.SetIPFSConfig("Provide.Strategy", "all")
 			})
 
 			cid := nodes[0].IPFSAddStr(time.Now().String())
@@ -322,7 +322,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			bar := random.Bytes(1000)
 
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
-				n.SetIPFSConfig("Reprovider.Strategy", "pinned")
+				n.SetIPFSConfig("Provide.Strategy", "pinned")
 			})
 
 			// Add a pin while offline so it cannot be provided
@@ -357,7 +357,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			bar := random.Bytes(1000)
 
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
-				n.SetIPFSConfig("Reprovider.Strategy", "roots")
+				n.SetIPFSConfig("Provide.Strategy", "roots")
 			})
 			n0pid := nodes[0].PeerID().String()
 
@@ -388,7 +388,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			bar := random.Bytes(1000)
 
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
-				n.SetIPFSConfig("Reprovider.Strategy", "mfs")
+				n.SetIPFSConfig("Provide.Strategy", "mfs")
 			})
 			n0pid := nodes[0].PeerID().String()
 
@@ -412,7 +412,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			t.Parallel()
 
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
-				n.SetIPFSConfig("Reprovider.Strategy", "pinned+mfs")
+				n.SetIPFSConfig("Provide.Strategy", "pinned+mfs")
 			})
 			n0pid := nodes[0].PeerID().String()
 
@@ -444,9 +444,9 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 
 		nodes := harness.NewT(t).NewNodes(1).Init()
 		nodes.ForEachPar(func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", true)
-			n.SetIPFSConfig("Reprovider.Interval", "22h")
-			n.SetIPFSConfig("Reprovider.Strategy", "all")
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.ReprovideInterval", "22h")
+			n.SetIPFSConfig("Provide.Strategy", "all")
 		})
 		nodes.StartDaemons()
 		defer nodes.StopDaemons()
@@ -472,9 +472,9 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 
 		nodes := harness.NewT(t).NewNodes(1).Init()
 		nodes.ForEachPar(func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", true)
-			n.SetIPFSConfig("Reprovider.Interval", "22h")
-			n.SetIPFSConfig("Reprovider.Strategy", "all")
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.ReprovideInterval", "22h")
+			n.SetIPFSConfig("Provide.Strategy", "all")
 		})
 		nodes.StartDaemons()
 		defer nodes.StopDaemons()
@@ -492,9 +492,9 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 
 		nodes := harness.NewT(t).NewNodes(1).Init()
 		nodes.ForEachPar(func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", false)
-			n.SetIPFSConfig("Reprovider.Interval", "22h")
-			n.SetIPFSConfig("Reprovider.Strategy", "all")
+			n.SetIPFSConfig("Provide.Enabled", false)
+			n.SetIPFSConfig("Provide.ReprovideInterval", "22h")
+			n.SetIPFSConfig("Provide.Strategy", "all")
 		})
 		nodes.StartDaemons()
 		defer nodes.StopDaemons()
@@ -509,9 +509,9 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 
 		nodes := harness.NewT(t).NewNodes(1).Init()
 		nodes.ForEachPar(func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", true)
-			n.SetIPFSConfig("Reprovider.Interval", "22h")
-			n.SetIPFSConfig("Reprovider.Strategy", "all")
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.ReprovideInterval", "22h")
+			n.SetIPFSConfig("Provide.Strategy", "all")
 		})
 		nodes.StartDaemons()
 		defer nodes.StopDaemons()
@@ -546,14 +546,14 @@ func TestProvider(t *testing.T) {
 			name:      "LegacyProvider",
 			reprovide: true,
 			apply: func(n *harness.Node) {
-				n.SetIPFSConfig("Reprovider.Sweep.Enabled", false)
+				n.SetIPFSConfig("Provide.Sweep.Enabled", false)
 			},
 		},
 		{
 			name:      "SweepingProvider",
 			reprovide: false,
 			apply: func(n *harness.Node) {
-				n.SetIPFSConfig("Reprovider.Sweep.Enabled", true)
+				n.SetIPFSConfig("Provide.Sweep.Enabled", true)
 			},
 		},
 	}
