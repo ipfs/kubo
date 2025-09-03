@@ -1380,7 +1380,7 @@ Below is a list of the most common gateway setups.
        }
      }'
    ```
-   - **Performance:** consider running with `Routing.AcceleratedDHTClient=true` and either `Provider.Enabled=false` (avoid providing newly retrieved blocks) or `Provider.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
+   - **Performance:** consider running with `Routing.AcceleratedDHTClient=true` and either `Provide.Enabled=false` (avoid providing newly retrieved blocks) or `Provide.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
    - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
 
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
@@ -1405,7 +1405,7 @@ Below is a list of the most common gateway setups.
        }
      }'
    ```
-   - **Performance:** when running an open, recursive gateway consider running with `Routing.AcceleratedDHTClient=true` and either `Provider.Enabled=false` (avoid providing newly retrieved blocks) or `Provider.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
+   - **Performance:** when running an open, recursive gateway consider running with `Routing.AcceleratedDHTClient=true` and either `Provide.Enabled=false` (avoid providing newly retrieved blocks) or `Provide.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
 
 * Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
   ```console
@@ -1913,8 +1913,9 @@ connections this setting can generate.
 
 > [!CAUTION]
 > For nodes without strict connection limits that need to provide large volumes
-> of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
-> setting `Provide.WorkerCount` to `0` (unlimited).
+> of content, we recommend first trying `Provide.Sweep.Enabled=true` for efficient
+> announcements. If announcements are still not fast enough, enable
+> `Routing.AcceleratedDHTClient=true` and set `Provide.WorkerCount` to `0` (unlimited).
 >
 > At the same time, mind that raising this value too high may lead to increased load.
 > Proceed with caution, ensure proper hardware and networking are in place.
@@ -1974,6 +1975,10 @@ all keys in the `Keystore` are purged, and only the given ones remain scheduled.
 Whether Provide Sweep is enabled. If not enabled, the
 [`boxo/provider`](https://github.com/ipfs/boxo/tree/main/provider) is used for
 both provides and reprovides.
+
+> [!NOTE]
+> This feature is opt-in for now, but will become the default in a future release.
+> Eventually, this configuration flag will be removed once the feature is stable.
 
 Default: `false`
 
@@ -2370,6 +2375,9 @@ When it is enabled:
 - Client DHT operations (reads and writes) should complete much faster
 - The provider will now use a keyspace sweeping mode allowing to keep alive
   CID sets that are multiple orders of magnitude larger.
+  - **Note:** For improved provide/reprovide operations specifically, consider using
+    [`Provide.Sweep.Enabled`](#providesweepenabled) instead, which offers similar
+    benefits with lower resource consumption.
   - The standard Bucket-Routing-Table DHT will still run for the DHT server (if
     the DHT server is enabled). This means the classical routing table will
     still be used to answer other nodes.
