@@ -5,10 +5,10 @@ import (
 )
 
 const (
-	DefaultProvideEnabled     = true
-	DefaultProvideWorkerCount = 16
-	DefaultProvideInterval    = time.Hour * 22 // https://github.com/ipfs/kubo/pull/9326
-	DefaultProvideStrategy    = "all"
+	DefaultProvideEnabled           = true
+	DefaultProvideWorkerCount       = 16
+	DefaultProvideReprovideInterval = time.Hour * 22 // https://github.com/ipfs/kubo/pull/9326
+	DefaultProvideStrategy          = "all"
 
 	DefaultProvideSweepEnabled                  = false
 	DefaultProvideSweepMaxWorkers               = 4
@@ -38,7 +38,7 @@ type Provide struct {
 
 	// ReprovideInterval sets the time between rounds of reproviding local content
 	// to the routing system. Set to "0" to disable content reproviding.
-	// Default: DefaultProvideInterval
+	// Default: DefaultProvideReprovideInterval
 	ReprovideInterval *OptionalDuration `json:",omitempty"`
 
 	// Sweep configures the sweeping reprovider for efficient DHT announcements.

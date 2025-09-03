@@ -36,8 +36,8 @@ type Config struct {
 	AutoConf  AutoConf
 
 	Provide       Provide    // Merged Provider and Reprovider configuration
-	Provider      Provider   // Deprecated: use Provide
-	Reprovider    Reprovider // Deprecated: use Provide
+	Provider      Provider   // Deprecated: use Provide. Will be removed in a future release.
+	Reprovider    Reprovider // Deprecated: use Provide. Will be removed in a future release.
 	HTTPRetrieval HTTPRetrieval
 	Experimental  Experiments
 	Plugins       Plugins

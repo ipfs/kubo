@@ -152,7 +152,7 @@ config file at runtime.
     - [`Peering.Peers`](#peeringpeers)
   - [`Reprovider`](#reprovider)
     - [`Reprovider.Interval`](#reproviderinterval)
-    - [`Reprovider.Strategy`](#reproviderstrategy)
+    - [`Reprovider.Strategy`](#providestrategy)
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
@@ -2390,7 +2390,7 @@ When it is enabled:
    - The resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly done in rounds
    - Users who previously had a lot of content but were unable to advertise it on the network will see an increase in
      egress bandwidth as their nodes start to advertise all of their CIDs into the network. If you have lots of data
-     entering your node that you don't want to advertise, then consider using [Reprovider Strategies](#reproviderstrategy)
+     entering your node that you don't want to advertise, then consider using [Provide Strategies](#providestrategy)
      to reduce the number of CIDs that you are reproviding. Similarly, if you are running a node that deals mostly with
      short-lived temporary data (e.g. you use a separate node for ingesting data then for storing and serving it) then
      you may benefit from using [Strategic Providing](experimental-features.md#strategic-providing) to prevent advertising
@@ -3662,7 +3662,7 @@ Reduces daemon overhead on the system by disabling optional swarm services.
 
 ### `announce-off` profile
 
-Disables [Reprovider](#reprovider) system (and announcing to Amino DHT).
+Disables [Provide](#provide) system (and announcing to Amino DHT).
 
 > [!CAUTION]
 > The main use case for this is setups with manual Peering.Peers config.
@@ -3672,7 +3672,7 @@ Disables [Reprovider](#reprovider) system (and announcing to Amino DHT).
 
 ### `announce-on` profile
 
-(Re-)enables [Reprovider](#reprovider) system (reverts [`announce-off` profile](#announce-off-profile)).
+(Re-)enables [Provide](#provide) system (reverts [`announce-off` profile](#announce-off-profile)).
 
 ### `legacy-cid-v0` profile
 
