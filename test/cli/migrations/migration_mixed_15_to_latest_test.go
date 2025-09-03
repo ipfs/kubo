@@ -425,7 +425,7 @@ func testRepoReverseHybridMigrationLatestTo15(t *testing.T) {
 	versionPath := filepath.Join(node.Dir, "version")
 
 	// Step 1: Forward migration from v15 to latest to create backup files
-	t.Log(fmt.Sprintf("Step 1: Forward migration v15 → v%d", ipfs.RepoVersion))
+	t.Logf("Step 1: Forward migration v15 → v%d", ipfs.RepoVersion)
 	result := node.Runner.Run(harness.RunRequest{
 		Path: node.IPFSBin,
 		Args: []string{"repo", "migrate"},
@@ -458,7 +458,7 @@ func testRepoReverseHybridMigrationLatestTo15(t *testing.T) {
 	originalPeerID := getNestedValue(latestConfig, "Identity.PeerID")
 
 	// Step 2: Reverse hybrid migration from latest to v15
-	t.Log(fmt.Sprintf("Step 2: Reverse hybrid migration v%d → v15", ipfs.RepoVersion))
+	t.Logf("Step 2: Reverse hybrid migration v%d → v15", ipfs.RepoVersion)
 	result = node.Runner.Run(harness.RunRequest{
 		Path: node.IPFSBin,
 		Args: []string{"repo", "migrate", "--to=15", "--allow-downgrade"},
