@@ -487,9 +487,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
 	}
 	// Check for deprecated Provider/Reprovider configuration after migration
+	//nolint:staticcheck // intentionally checking deprecated fields
 	if cfg.Provider.Enabled != config.Default || !cfg.Provider.Strategy.IsDefault() || !cfg.Provider.WorkerCount.IsDefault() {
 		log.Fatal("Deprecated configuration detected. Remove 'Provider' from your config and use 'Provide' instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
 	}
+	//nolint:staticcheck // intentionally checking deprecated fields
 	if !cfg.Reprovider.Interval.IsDefault() || !cfg.Reprovider.Strategy.IsDefault() {
 		log.Fatal("Deprecated configuration detected. Remove 'Reprovider' from your config and use 'Provide' instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
 	}
@@ -658,7 +660,8 @@ take effect.
 
 	if !offline {
 		// Warn users when provide systems are disabled
-		if !cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) {
+		//nolint:staticcheck // intentionally checking deprecated fields
+		if !cfg.Provider.Enabled.WithDefault(config.DefaultProvideEnabled) {
 			fmt.Print(`
 
 ⚠️ Provide and Reprovide systems are disabled due to 'Provide.Enabled=false'
@@ -666,7 +669,8 @@ take effect.
 ⚠️ If this is not intentional, call 'ipfs config profile apply announce-on' or set Provide.Enabled=true'
 
 `)
-		} else if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) == 0 {
+		//nolint:staticcheck // intentionally checking deprecated fields
+		} else if cfg.Reprovider.Interval.WithDefault(config.DefaultProvideReprovideInterval) == 0 {
 			fmt.Print(`
 
 ⚠️ Provide and Reprovide systems are disabled due to 'Reprovider.Interval=0'

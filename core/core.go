@@ -92,23 +92,23 @@ type IpfsNode struct {
 	RecordValidator             record.Validator
 
 	// Online
-	PeerHost                  p2phost.Host              `optional:"true"` // the network host (server+client)
-	Peering                   *peering.PeeringService   `optional:"true"`
-	Filters                   *ma.Filters               `optional:"true"`
-	Bootstrapper              io.Closer                 `optional:"true"` // the periodic bootstrapper
-	ContentDiscovery          routing.ContentDiscovery  `optional:"true"` // the discovery part of the routing system
-	DNSResolver               *madns.Resolver           // the DNS resolver
-	IPLDPathResolver          pathresolver.Resolver     `name:"ipldPathResolver"`          // The IPLD path resolver
-	UnixFSPathResolver        pathresolver.Resolver     `name:"unixFSPathResolver"`        // The UnixFS path resolver
-	OfflineIPLDPathResolver   pathresolver.Resolver     `name:"offlineIpldPathResolver"`   // The IPLD path resolver that uses only locally available blocks
-	OfflineUnixFSPathResolver pathresolver.Resolver     `name:"offlineUnixFSPathResolver"` // The UnixFS path resolver that uses only locally available blocks
-	Exchange                  exchange.Interface        // the block exchange + strategy
-	Bitswap                   *bitswap.Bitswap          `optional:"true"` // The Bitswap instance
-	Namesys                   namesys.NameSystem        // the name system, resolves paths to hashes
-	ProvidingStrategy         config.ReproviderStrategy `optional:"true"`
-	ProvidingKeyChanFunc      provider.KeyChanFunc      `optional:"true"`
-	IpnsRepub                 *ipnsrp.Republisher       `optional:"true"`
-	ResourceManager           network.ResourceManager   `optional:"true"`
+	PeerHost                  p2phost.Host             `optional:"true"` // the network host (server+client)
+	Peering                   *peering.PeeringService  `optional:"true"`
+	Filters                   *ma.Filters              `optional:"true"`
+	Bootstrapper              io.Closer                `optional:"true"` // the periodic bootstrapper
+	ContentDiscovery          routing.ContentDiscovery `optional:"true"` // the discovery part of the routing system
+	DNSResolver               *madns.Resolver          // the DNS resolver
+	IPLDPathResolver          pathresolver.Resolver    `name:"ipldPathResolver"`          // The IPLD path resolver
+	UnixFSPathResolver        pathresolver.Resolver    `name:"unixFSPathResolver"`        // The UnixFS path resolver
+	OfflineIPLDPathResolver   pathresolver.Resolver    `name:"offlineIpldPathResolver"`   // The IPLD path resolver that uses only locally available blocks
+	OfflineUnixFSPathResolver pathresolver.Resolver    `name:"offlineUnixFSPathResolver"` // The UnixFS path resolver that uses only locally available blocks
+	Exchange                  exchange.Interface       // the block exchange + strategy
+	Bitswap                   *bitswap.Bitswap         `optional:"true"` // The Bitswap instance
+	Namesys                   namesys.NameSystem       // the name system, resolves paths to hashes
+	ProvidingStrategy         config.ProvideStrategy   `optional:"true"`
+	ProvidingKeyChanFunc      provider.KeyChanFunc     `optional:"true"`
+	IpnsRepub                 *ipnsrp.Republisher      `optional:"true"`
+	ResourceManager           network.ResourceManager  `optional:"true"`
 
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`

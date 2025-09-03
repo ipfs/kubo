@@ -474,9 +474,9 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 
 	providerStrategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 
-	strategyFlag := config.ParseReproviderStrategy(providerStrategy)
+	strategyFlag := config.ParseProvideStrategy(providerStrategy)
 	if strategyFlag == 0 {
-		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", providerStrategy))
+		return fx.Error(fmt.Errorf("unknown provide strategy %q", providerStrategy))
 	}
 
 	opts := []fx.Option{
@@ -530,7 +530,7 @@ type provStrategyIn struct {
 
 type provStrategyOut struct {
 	fx.Out
-	ProvidingStrategy    config.ReproviderStrategy
+	ProvidingStrategy    config.ProvideStrategy
 	ProvidingKeyChanFunc provider.KeyChanFunc
 }
 
@@ -540,18 +540,18 @@ type provStrategyOut struct {
 // - "pinned": All pinned content (roots + children)
 // - "mfs": Only MFS content
 // - "all": all blocks
-func createKeyProvider(strategyFlag config.ReproviderStrategy, in provStrategyIn) provider.KeyChanFunc {
+func createKeyProvider(strategyFlag config.ProvideStrategy, in provStrategyIn) provider.KeyChanFunc {
 	switch strategyFlag {
-	case config.ReproviderStrategyRoots:
+	case config.ProvideStrategyRoots:
 		return provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher))
-	case config.ReproviderStrategyPinned:
+	case config.ProvideStrategyPinned:
 		return provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher))
-	case config.ReproviderStrategyPinned | config.ReproviderStrategyMFS:
+	case config.ProvideStrategyPinned | config.ProvideStrategyMFS:
 		return provider.NewPrioritizedProvider(
 			provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher)),
 			mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher),
 		)
-	case config.ReproviderStrategyMFS:
+	case config.ProvideStrategyMFS:
 		return mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher)
 	default: // "all", "", "flat" (compat)
 		return in.Blockstore.AllKeysChan
@@ -612,7 +612,7 @@ func handleStrategyChange(strategy string, provider DHTProvider, ds datastore.Da
 }
 
 func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrategyOut {
-	strategyFlag := config.ParseReproviderStrategy(strategy)
+	strategyFlag := config.ParseProvideStrategy(strategy)
 
 	return func(in provStrategyIn) provStrategyOut {
 		// Create the appropriate key provider based on strategy

@@ -120,7 +120,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	// nor by the pinner (the pinner doesn't traverse the pinned DAG itself, it only
 	// handles roots). This wrapping ensures all blocks of pinned content get provided.
 	if settings.Pin && !settings.OnlyHash &&
-		(api.providingStrategy&config.ReproviderStrategyPinned) != 0 {
+		(api.providingStrategy&config.ProvideStrategyPinned) != 0 {
 		dserv = &providingDagService{dserv, api.provider}
 	}
 

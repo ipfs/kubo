@@ -70,7 +70,7 @@ type CoreAPI struct {
 	unixFSPathResolver pathresolver.Resolver
 
 	provider          node.DHTProvider
-	providingStrategy config.ReproviderStrategy
+	providingStrategy config.ProvideStrategy
 
 	pubSub *pubsub.PubSub
 
