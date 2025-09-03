@@ -746,14 +746,3 @@ func runDaemonWithMultipleMigrationMonitoring(t *testing.T, node *harness.Node, 
 		}
 	}
 }
-
-// runDaemonWithMigrationMonitoring is kept for backward compatibility with single migration monitoring
-func runDaemonWithMigrationMonitoring(t *testing.T, node *harness.Node, migrationPattern, successPattern string) (string, bool) {
-	expectedMigrations := []struct {
-		pattern string
-		success string
-	}{
-		{migrationPattern, successPattern},
-	}
-	return runDaemonWithMultipleMigrationMonitoring(t, node, expectedMigrations)
-}
