@@ -143,8 +143,8 @@ func (r *BurstProvider) Clear() int {
 
 func (r *BurstProvider) RefreshSchedule() error { return nil }
 
-// BurstProviderOpt creates a BurstProvider to be used as provider in the
-// IpfsNode
+// BurstProviderOpt creates a BurstProvider for announcing CIDs to the DHT
+// using burst-mode reproviding
 func BurstProviderOpt(reprovideInterval time.Duration, strategy string, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
 	system := fx.Provide(
 		fx.Annotate(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, repo repo.Repo) (*BurstProvider, error) {
@@ -296,7 +296,7 @@ type addrsFilter interface {
 }
 
 func SweepingProvider(cfg *config.Config) fx.Option {
-	reprovideInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
+	reprovideInterval := cfg.Provide.ReprovideInterval.WithDefault(config.DefaultProvideInterval)
 	type providerInput struct {
 		fx.In
 		DHT  routing.Routing `name:"dhtc"`
@@ -306,7 +306,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 		keyStore, err := rds.NewKeyStore(in.Repo.Datastore(),
 			rds.WithPrefixBits(10),
 			rds.WithDatastorePrefix("/provider/keystore"),
-			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
+			rds.WithGCBatchSize(int(cfg.Provide.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultProvideSweepKeyStoreBatchSize))),
 		)
 		if err != nil {
 			return &NoopProvider{}, nil, err
@@ -324,13 +324,13 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 
 					ddhtprovider.WithReprovideInterval(reprovideInterval),
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
-					ddhtprovider.WithOfflineDelay(cfg.Reprovider.Sweep.OfflineDelay.WithDefault(config.DefaultReproviderSweepOfflineDelay)),
+					ddhtprovider.WithOfflineDelay(cfg.Provide.Sweep.OfflineDelay.WithDefault(config.DefaultProvideSweepOfflineDelay)),
 					ddhtprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
 
-					ddhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
-					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
-					ddhtprovider.WithDedicatedBurstWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
-					ddhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
+					ddhtprovider.WithMaxWorkers(int(cfg.Provide.Sweep.MaxWorkers.WithDefault(config.DefaultProvideSweepMaxWorkers))),
+					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Provide.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultProvideSweepDedicatedPeriodicWorkers))),
+					ddhtprovider.WithDedicatedBurstWorkers(int(cfg.Provide.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultProvideSweepDedicatedBurstWorkers))),
+					ddhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Provide.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultProvideSweepMaxProvideConnsPerWorker))),
 				)
 				if err != nil {
 					return nil, nil, err
@@ -366,13 +366,13 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 			dhtprovider.WithReplicationFactor(amino.DefaultBucketSize),
 			dhtprovider.WithReprovideInterval(reprovideInterval),
 			dhtprovider.WithMaxReprovideDelay(time.Hour),
-			dhtprovider.WithOfflineDelay(cfg.Reprovider.Sweep.OfflineDelay.WithDefault(config.DefaultReproviderSweepOfflineDelay)),
+			dhtprovider.WithOfflineDelay(cfg.Provide.Sweep.OfflineDelay.WithDefault(config.DefaultProvideSweepOfflineDelay)),
 			dhtprovider.WithConnectivityCheckOnlineInterval(1 * time.Minute),
 
-			dhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
-			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
-			dhtprovider.WithDedicatedBurstWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
-			dhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
+			dhtprovider.WithMaxWorkers(int(cfg.Provide.Sweep.MaxWorkers.WithDefault(config.DefaultProvideSweepMaxWorkers))),
+			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Provide.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultProvideSweepDedicatedPeriodicWorkers))),
+			dhtprovider.WithDedicatedBurstWorkers(int(cfg.Provide.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultProvideSweepDedicatedBurstWorkers))),
+			dhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Provide.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultProvideSweepMaxProvideConnsPerWorker))),
 		}
 
 		prov, err := dhtprovider.New(opts...)
@@ -463,13 +463,13 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 
 // ONLINE/OFFLINE
 
-// OnlineProviders groups units managing provider routing records online
+// OnlineProviders groups units managing provide routing records online
 func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	if !provide {
 		return OfflineProviders()
 	}
 
-	providerStrategy := cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
+	providerStrategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 
 	strategyFlag := config.ParseReproviderStrategy(providerStrategy)
 	if strategyFlag == 0 {
@@ -479,12 +479,12 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	opts := []fx.Option{
 		fx.Provide(setReproviderKeyProvider(providerStrategy)),
 	}
-	if cfg.Reprovider.Sweep.Enabled.WithDefault(config.DefaultReproviderSweepEnabled) {
+	if cfg.Provide.Sweep.Enabled.WithDefault(config.DefaultProvideSweepEnabled) {
 		opts = append(opts, SweepingProvider(cfg))
 	} else {
-		reprovideInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
+		reprovideInterval := cfg.Provide.ReprovideInterval.WithDefault(config.DefaultProvideInterval)
 		acceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
-		provideWorkerCount := int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount))
+		provideWorkerCount := int(cfg.Provide.WorkerCount.WithDefault(config.DefaultProvideWorkerCount))
 
 		opts = append(opts, BurstProviderOpt(reprovideInterval, providerStrategy, acceleratedDHTClient, provideWorkerCount))
 	}
@@ -492,7 +492,7 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	return fx.Options(opts...)
 }
 
-// OfflineProviders groups units managing provider routing records offline
+// OfflineProviders groups units managing provide routing records offline
 func OfflineProviders() fx.Option {
 	return fx.Provide(func() DHTProvider {
 		return &NoopProvider{}
@@ -600,7 +600,7 @@ func handleStrategyChange(strategy string, provider DHTProvider, ds datastore.Da
 		return
 	}
 
-	logger.Infow("Reprovider.Strategy changed, clearing provide queue", "previous", previous, "current", strategy)
+	logger.Infow("Provide.Strategy changed, clearing provide queue", "previous", previous, "current", strategy)
 	provider.Clear()
 
 	if err := persistStrategy(ctx, strategy, ds); err != nil {

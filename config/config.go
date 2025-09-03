@@ -35,8 +35,9 @@ type Config struct {
 	Migration Migration
 	AutoConf  AutoConf
 
-	Provider      Provider
-	Reprovider    Reprovider
+	Provide       Provide    // Merged Provider and Reprovider configuration
+	Provider      Provider   // Deprecated: use Provide
+	Reprovider    Reprovider // Deprecated: use Provide
 	HTTPRetrieval HTTPRetrieval
 	Experimental  Experiments
 	Plugins       Plugins
