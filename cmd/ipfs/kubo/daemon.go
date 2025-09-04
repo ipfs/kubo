@@ -487,13 +487,15 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
 	}
 	// Check for deprecated Provider/Reprovider configuration after migration
+	// This should never happen for regular users, but is useful error for people who have Docker orchestration
+	// that blindly sets config keys (overriding automatic Kubo migration).
 	//nolint:staticcheck // intentionally checking deprecated fields
 	if cfg.Provider.Enabled != config.Default || !cfg.Provider.Strategy.IsDefault() || !cfg.Provider.WorkerCount.IsDefault() {
-		log.Fatal("Deprecated configuration detected. Remove 'Provider' from your config and use 'Provide' instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
+		log.Fatal("Deprecated configuration detected. Manually migrate 'Provider' fields to 'Provide' and remove 'Provider' from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
 	}
 	//nolint:staticcheck // intentionally checking deprecated fields
 	if !cfg.Reprovider.Interval.IsDefault() || !cfg.Reprovider.Strategy.IsDefault() {
-		log.Fatal("Deprecated configuration detected. Remove 'Reprovider' from your config and use 'Provide' instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
+		log.Fatal("Deprecated configuration detected. Manually migrate 'Reprovider' fields to 'Provide': Reprovider.Strategy -> Provide.Strategy, Reprovider.Interval -> Provide.Interval. Remove 'Reprovider' from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
 	}
 	// Check for deprecated "flat" strategy (should have been migrated to "all")
 	if cfg.Provide.Strategy.WithDefault("") == "flat" {
@@ -660,8 +662,7 @@ take effect.
 
 	if !offline {
 		// Warn users when provide systems are disabled
-		//nolint:staticcheck // intentionally checking deprecated fields
-		if !cfg.Provider.Enabled.WithDefault(config.DefaultProvideEnabled) {
+		if !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
 			fmt.Print(`
 
 ⚠️ Provide and Reprovide systems are disabled due to 'Provide.Enabled=false'
@@ -669,13 +670,12 @@ take effect.
 ⚠️ If this is not intentional, call 'ipfs config profile apply announce-on' or set Provide.Enabled=true'
 
 `)
-			//nolint:staticcheck // intentionally checking deprecated fields
-		} else if cfg.Reprovider.Interval.WithDefault(config.DefaultProvideInterval) == 0 {
+		} else if cfg.Provide.Interval.WithDefault(config.DefaultProvideInterval) == 0 {
 			fmt.Print(`
 
-⚠️ Provide and Reprovide systems are disabled due to 'Reprovider.Interval=0'
-⚠️ Local CIDs will not be announced to Amino DHT, making them impossible to retrieve without manual peering
-⚠️ If this is not intentional, call 'ipfs config profile apply announce-on', or set 'Reprovider.Interval=22h'
+⚠️ Provide system is disabled due to 'Provide.Interval=0'
+⚠️ Local CIDs will not be reprovided to Amino DHT, making them impossible to retrieve without manual peering
+⚠️ If this is not intentional, call 'ipfs config profile apply announce-on', or set 'Provide.Interval=22h'
 
 `)
 		}
