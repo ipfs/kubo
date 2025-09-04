@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"testing"
@@ -118,9 +119,7 @@ func GenerateTestConfig(fields map[string]any) map[string]any {
 	}
 
 	// Merge in the provided fields
-	for k, v := range fields {
-		config[k] = v
-	}
+	maps.Copy(config, fields)
 
 	return config
 }
