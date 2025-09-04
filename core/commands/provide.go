@@ -45,7 +45,7 @@ var provideClearCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Clear all CIDs from the provide queue.",
 		ShortDescription: `
-Clear all CIDs from the provide system queue.
+Clear all CIDs pending to be provided for the first time.
 
 Note: Kubo will automatically clear the queue when it detects a change of
 Provide.Strategy upon a restart. For more information about provide
