@@ -69,6 +69,7 @@ config file at runtime.
     - [`Gateway.MaxConcurrentRequests`](#gatewaymaxconcurrentrequests)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
+    - [`Gateway.DiagnosticServiceURL`](#gatewaydiagnosticserviceurl)
     - [`Gateway.FastDirIndexThreshold`](#gatewayfastdirindexthreshold)
     - [`Gateway.Writable`](#gatewaywritable)
     - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
@@ -1173,6 +1174,16 @@ A URL to redirect requests for `/` to.
 Default: `""`
 
 Type: `string` (url)
+
+### `Gateway.DiagnosticServiceURL`
+
+URL for a service to diagnose CID retrievability issues. When the gateway returns a 504 Gateway Timeout error, an "Inspect retrievability of CID" button will be shown that links to this service with the CID appended as `?cid=<CID-to-diagnose>`.
+
+Set to empty string to disable the button.
+
+Default: `"https://check.ipfs.network"`
+
+Type: `optionalstring` (url)
 
 ### `Gateway.FastDirIndexThreshold`
 
