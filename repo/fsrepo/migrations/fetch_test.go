@@ -20,10 +20,7 @@ func TestGetDistPath(t *testing.T) {
 	}
 
 	testDist := "/unit/test/dist"
-	err := os.Setenv(envIpfsDistPath, testDist)
-	if err != nil {
-		panic(err)
-	}
+	t.Setenv(envIpfsDistPath, testDist)
 	defer func() {
 		os.Unsetenv(envIpfsDistPath)
 	}()
@@ -139,18 +136,12 @@ func TestFetchBinary(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		err = os.Setenv("TMPDIR", tmpDir)
-		if err != nil {
-			panic(err)
-		}
+		t.Setenv("TMPDIR", tmpDir)
 		_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v1.0.0", "ipfs", tmpDir)
 		if !os.IsPermission(err) {
 			t.Error("expected 'permission' error, got:", err)
 		}
-		err = os.Setenv("TMPDIR", "/tmp")
-		if err != nil {
-			panic(err)
-		}
+		t.Setenv("TMPDIR", "/tmp")
 		err = os.Chmod(tmpDir, 0o755)
 		if err != nil {
 			panic(err)

@@ -4,24 +4,28 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-)
 
-var (
-	fakeHome string
-	fakeIpfs string
+	"github.com/ipfs/kubo/config"
 )
 
 func TestRepoDir(t *testing.T) {
-	fakeHome = t.TempDir()
-	os.Setenv("HOME", fakeHome)
-	fakeIpfs = filepath.Join(fakeHome, ".ipfs")
+	fakeHome := t.TempDir()
+	t.Setenv("HOME", fakeHome)
+	fakeIpfs := filepath.Join(fakeHome, ".ipfs")
+	t.Setenv(config.EnvDir, fakeIpfs)
 
-	t.Run("testIpfsDir", testIpfsDir)
-	t.Run("testCheckIpfsDir", testCheckIpfsDir)
-	t.Run("testRepoVersion", testRepoVersion)
+	t.Run("testIpfsDir", func(t *testing.T) {
+		testIpfsDir(t, fakeIpfs)
+	})
+	t.Run("testCheckIpfsDir", func(t *testing.T) {
+		testCheckIpfsDir(t, fakeIpfs)
+	})
+	t.Run("testRepoVersion", func(t *testing.T) {
+		testRepoVersion(t, fakeIpfs)
+	})
 }
 
-func testIpfsDir(t *testing.T) {
+func testIpfsDir(t *testing.T, fakeIpfs string) {
 	_, err := CheckIpfsDir("")
 	if err == nil {
 		t.Fatal("expected error when no .ipfs directory to find")
@@ -37,16 +41,16 @@ func testIpfsDir(t *testing.T) {
 		t.Fatal(err)
 	}
 	if dir != fakeIpfs {
-		t.Fatal("wrong ipfs directory:", dir)
+		t.Fatalf("wrong ipfs directory: got %s, expected %s", dir, fakeIpfs)
 	}
 
-	os.Setenv(envIpfsPath, "~/.ipfs")
+	t.Setenv(config.EnvDir, "~/.ipfs")
 	dir, err = IpfsDir("")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if dir != fakeIpfs {
-		t.Fatal("wrong ipfs directory:", dir)
+		t.Fatalf("wrong ipfs directory: got %s, expected %s", dir, fakeIpfs)
 	}
 
 	_, err = IpfsDir("~somesuer/foo")
@@ -54,15 +58,12 @@ func testIpfsDir(t *testing.T) {
 		t.Fatal("expected error with user-specific home dir")
 	}
 
-	err = os.Setenv(envIpfsPath, "~somesuer/foo")
-	if err != nil {
-		panic(err)
-	}
+	t.Setenv(config.EnvDir, "~somesuer/foo")
 	_, err = IpfsDir("~somesuer/foo")
 	if err == nil {
 		t.Fatal("expected error with user-specific home dir")
 	}
-	err = os.Unsetenv(envIpfsPath)
+	err = os.Unsetenv(config.EnvDir)
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +73,7 @@ func testIpfsDir(t *testing.T) {
 		t.Fatal(err)
 	}
 	if dir != fakeIpfs {
-		t.Fatal("wrong ipfs directory:", dir)
+		t.Fatalf("wrong ipfs directory: got %s, expected %s", dir, fakeIpfs)
 	}
 
 	_, err = IpfsDir("")
@@ -81,7 +82,7 @@ func testIpfsDir(t *testing.T) {
 	}
 }
 
-func testCheckIpfsDir(t *testing.T) {
+func testCheckIpfsDir(t *testing.T, fakeIpfs string) {
 	_, err := CheckIpfsDir("~somesuer/foo")
 	if err == nil {
 		t.Fatal("expected error with user-specific home dir")
@@ -101,7 +102,7 @@ func testCheckIpfsDir(t *testing.T) {
 	}
 }
 
-func testRepoVersion(t *testing.T) {
+func testRepoVersion(t *testing.T, fakeIpfs string) {
 	badDir := "~somesuer/foo"
 	_, err := RepoVersion(badDir)
 	if err == nil {

@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	commands "github.com/ipfs/kubo/commands"
+	"github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	corehttp "github.com/ipfs/kubo/core/corehttp"
@@ -25,9 +26,17 @@ import (
 
 var (
 	http      = flag.Bool("http", false, "expose IPFS HTTP API")
-	repoPath  = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
+	repoPath  *string
 	watchPath = flag.String("path", ".", "the path to watch")
 )
+
+func init() {
+	ipfsPath, err := config.PathRoot()
+	if err != nil {
+		ipfsPath = os.Getenv(config.EnvDir)
+	}
+	repoPath = flag.String("repo", ipfsPath, "repo path to use")
+}
 
 func main() {
 	flag.Parse()
