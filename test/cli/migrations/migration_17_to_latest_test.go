@@ -7,12 +7,15 @@ package migrations
 //   go test ./test/cli/migrations/
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	ipfs "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/test/cli/harness"
@@ -31,6 +34,10 @@ func TestMigration17ToLatest(t *testing.T) {
 	// Tests for Provider/Reprovider to Provide migration (17-to-18)
 	t.Run("daemon migrate: Provider/Reprovider to Provide consolidation", testProviderReproviderMigration)
 	t.Run("daemon migrate: flat strategy conversion", testFlatStrategyConversion)
+	t.Run("daemon migrate: empty Provider/Reprovider sections", testEmptyProviderReproviderMigration)
+	t.Run("daemon migrate: partial configuration (Provider only)", testProviderOnlyMigration)
+	t.Run("daemon migrate: partial configuration (Reprovider only)", testReproviderOnlyMigration)
+	t.Run("repo migrate: invalid strategy values preserved", testInvalidStrategyMigration)
 	t.Run("repo migrate: Provider/Reprovider to Provide consolidation", testRepoProviderReproviderMigration)
 }
 
@@ -104,6 +111,112 @@ func testFlatStrategyConversion(t *testing.T) {
 		RequireFieldEquals("Provide.Interval", "12h")
 }
 
+func testEmptyProviderReproviderMigration(t *testing.T) {
+	// TEST: 17-to-18 migration with empty Provider and Reprovider sections
+	node := setupV17RepoWithEmptySections(t)
+
+	configPath := filepath.Join(node.Dir, "config")
+
+	// Run migration
+	stdoutOutput, migrationSuccess := runDaemonMigrationFromV17(t, node)
+
+	// Verify migration was successful
+	require.True(t, migrationSuccess, "Migration should have been successful")
+	require.Contains(t, stdoutOutput, "Migration 17-to-18 succeeded")
+
+	// Verify empty sections are removed and no Provide section is created
+	helper := NewMigrationTestHelper(t, configPath)
+	helper.RequireFieldAbsent("Provider").
+		RequireFieldAbsent("Reprovider").
+		RequireFieldAbsent("Provide") // No Provide section should be created for empty configs
+}
+
+func testProviderOnlyMigration(t *testing.T) {
+	// TEST: 17-to-18 migration with only Provider configuration
+	node := setupV17RepoWithProviderOnly(t)
+
+	configPath := filepath.Join(node.Dir, "config")
+
+	// Run migration
+	stdoutOutput, migrationSuccess := runDaemonMigrationFromV17(t, node)
+
+	// Verify migration was successful
+	require.True(t, migrationSuccess, "Migration should have been successful")
+	require.Contains(t, stdoutOutput, "Migration 17-to-18 succeeded")
+
+	// Verify only Provider fields are migrated
+	helper := NewMigrationTestHelper(t, configPath)
+	helper.RequireProviderMigration().
+		RequireFieldEquals("Provide.Enabled", false).
+		RequireFieldEquals("Provide.WorkerCount", float64(32)).
+		RequireFieldAbsent("Provide.Strategy"). // No Reprovider.Strategy to migrate
+		RequireFieldAbsent("Provide.Interval")  // No Reprovider.Interval to migrate
+}
+
+func testReproviderOnlyMigration(t *testing.T) {
+	// TEST: 17-to-18 migration with only Reprovider configuration
+	node := setupV17RepoWithReproviderOnly(t)
+
+	configPath := filepath.Join(node.Dir, "config")
+
+	// Run migration
+	stdoutOutput, migrationSuccess := runDaemonMigrationFromV17(t, node)
+
+	// Verify migration was successful
+	require.True(t, migrationSuccess, "Migration should have been successful")
+	require.Contains(t, stdoutOutput, "Migration 17-to-18 succeeded")
+
+	// Verify only Reprovider fields are migrated
+	helper := NewMigrationTestHelper(t, configPath)
+	helper.RequireProviderMigration().
+		RequireFieldEquals("Provide.Strategy", "pinned").
+		RequireFieldEquals("Provide.Interval", "48h").
+		RequireFieldAbsent("Provide.Enabled").    // No Provider.Enabled to migrate
+		RequireFieldAbsent("Provide.WorkerCount") // No Provider.WorkerCount to migrate
+}
+
+func testInvalidStrategyMigration(t *testing.T) {
+	// TEST: 17-to-18 migration with invalid strategy values (should be preserved as-is)
+	// The migration itself should succeed, but daemon start will fail due to invalid strategy
+	node := setupV17RepoWithInvalidStrategy(t)
+
+	configPath := filepath.Join(node.Dir, "config")
+
+	// Run the migration using 'ipfs repo migrate' (not daemon --migrate)
+	// because daemon would fail to start with invalid strategy after migration
+	result := node.RunIPFS("repo", "migrate")
+	require.Empty(t, result.Stderr.String(), "Migration should succeed without errors")
+
+	// Verify invalid strategy is preserved as-is (not validated during migration)
+	helper := NewMigrationTestHelper(t, configPath)
+	helper.RequireProviderMigration().
+		RequireFieldEquals("Provide.Strategy", "invalid-strategy") // Should be preserved
+
+	// Now verify that daemon fails to start with invalid strategy
+	// Note: We cannot use --offline as it skips provider validation
+	// Use a context with timeout to avoid hanging
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, node.IPFSBin, "daemon")
+	cmd.Dir = node.Dir
+	for k, v := range node.Runner.Env {
+		cmd.Env = append(cmd.Env, k+"="+v)
+	}
+
+	output, err := cmd.CombinedOutput()
+
+	// The daemon should fail (either with error or timeout if it's hanging)
+	require.Error(t, err, "Daemon should fail to start with invalid strategy")
+
+	// Check if we got the expected error message
+	outputStr := string(output)
+	t.Logf("Daemon output with invalid strategy: %s", outputStr)
+
+	// The error should mention unknown strategy
+	require.Contains(t, outputStr, "unknown strategy", "Should report unknown strategy error")
+}
+
 func testRepoProviderReproviderMigration(t *testing.T) {
 	// TEST: 17-to-18 migration using 'ipfs repo migrate' command
 	node := setupV17RepoWithProviderConfig(t)
@@ -129,27 +242,54 @@ func testRepoProviderReproviderMigration(t *testing.T) {
 
 // setupV17RepoWithProviderConfig creates a v17 repo with Provider/Reprovider configuration
 func setupV17RepoWithProviderConfig(t *testing.T) *harness.Node {
-	// Start with v16 repo and migrate to v17 first
+	return setupV17RepoWithConfig(t,
+		map[string]interface{}{
+			"Enabled":     true,
+			"WorkerCount": 8,
+		},
+		map[string]interface{}{
+			"Strategy": "roots",
+			"Interval": "24h",
+		})
+}
+
+// setupV17RepoWithFlatStrategy creates a v17 repo with "flat" strategy for testing conversion
+func setupV17RepoWithFlatStrategy(t *testing.T) *harness.Node {
+	return setupV17RepoWithConfig(t,
+		map[string]interface{}{
+			"Enabled": false,
+		},
+		map[string]interface{}{
+			"Strategy": "flat", // This should be converted to "all"
+			"Interval": "12h",
+		})
+}
+
+// setupV17RepoWithConfig is a helper that creates a v17 repo with specified Provider/Reprovider config
+func setupV17RepoWithConfig(t *testing.T, providerConfig, reproviderConfig map[string]interface{}) *harness.Node {
 	node := setupStaticV16Repo(t)
 
 	// First migrate to v17
 	result := node.RunIPFS("repo", "migrate", "--to=17")
 	require.Empty(t, result.Stderr.String(), "Migration to v17 should succeed")
 
-	// Add Provider and Reprovider configuration
+	// Update config with specified Provider and Reprovider settings
 	configPath := filepath.Join(node.Dir, "config")
 	var config map[string]interface{}
 	configData, err := os.ReadFile(configPath)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(configData, &config))
 
-	config["Provider"] = map[string]interface{}{
-		"Enabled":     true,
-		"WorkerCount": 8,
+	if providerConfig != nil {
+		config["Provider"] = providerConfig
+	} else {
+		config["Provider"] = map[string]interface{}{}
 	}
-	config["Reprovider"] = map[string]interface{}{
-		"Strategy": "roots",
-		"Interval": "24h",
+
+	if reproviderConfig != nil {
+		config["Reprovider"] = reproviderConfig
+	} else {
+		config["Reprovider"] = map[string]interface{}{}
 	}
 
 	modifiedConfigData, err := json.MarshalIndent(config, "", "  ")
@@ -159,35 +299,41 @@ func setupV17RepoWithProviderConfig(t *testing.T) *harness.Node {
 	return node
 }
 
-// setupV17RepoWithFlatStrategy creates a v17 repo with "flat" strategy for testing conversion
-func setupV17RepoWithFlatStrategy(t *testing.T) *harness.Node {
-	// Start with v16 repo and migrate to v17 first
-	node := setupStaticV16Repo(t)
+// setupV17RepoWithEmptySections creates a v17 repo with empty Provider/Reprovider sections
+func setupV17RepoWithEmptySections(t *testing.T) *harness.Node {
+	return setupV17RepoWithConfig(t,
+		map[string]interface{}{},
+		map[string]interface{}{})
+}
 
-	// First migrate to v17
-	result := node.RunIPFS("repo", "migrate", "--to=17")
-	require.Empty(t, result.Stderr.String(), "Migration to v17 should succeed")
+// setupV17RepoWithProviderOnly creates a v17 repo with only Provider configuration
+func setupV17RepoWithProviderOnly(t *testing.T) *harness.Node {
+	return setupV17RepoWithConfig(t,
+		map[string]interface{}{
+			"Enabled":     false,
+			"WorkerCount": 32,
+		},
+		map[string]interface{}{})
+}
 
-	// Add Provider and Reprovider configuration with "flat" strategy
-	configPath := filepath.Join(node.Dir, "config")
-	var config map[string]interface{}
-	configData, err := os.ReadFile(configPath)
-	require.NoError(t, err)
-	require.NoError(t, json.Unmarshal(configData, &config))
+// setupV17RepoWithReproviderOnly creates a v17 repo with only Reprovider configuration
+func setupV17RepoWithReproviderOnly(t *testing.T) *harness.Node {
+	return setupV17RepoWithConfig(t,
+		map[string]interface{}{},
+		map[string]interface{}{
+			"Strategy": "pinned",
+			"Interval": "48h",
+		})
+}
 
-	config["Provider"] = map[string]interface{}{
-		"Enabled": false,
-	}
-	config["Reprovider"] = map[string]interface{}{
-		"Strategy": "flat", // This should be converted to "all"
-		"Interval": "12h",
-	}
-
-	modifiedConfigData, err := json.MarshalIndent(config, "", "  ")
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(configPath, modifiedConfigData, 0644))
-
-	return node
+// setupV17RepoWithInvalidStrategy creates a v17 repo with an invalid strategy value
+func setupV17RepoWithInvalidStrategy(t *testing.T) *harness.Node {
+	return setupV17RepoWithConfig(t,
+		map[string]interface{}{},
+		map[string]interface{}{
+			"Strategy": "invalid-strategy", // This is not a valid strategy
+			"Interval": "24h",
+		})
 }
 
 // runDaemonMigrationFromV17 monitors daemon startup for 17-to-18 migration only

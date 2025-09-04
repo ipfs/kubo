@@ -106,6 +106,9 @@ var (
 	_ DHTProvider = &LegacyProvider{}
 )
 
+// NoopProvider is a no-operation provider implementation that does nothing.
+// It is used when providing is disabled or when no DHT is available.
+// All methods return successfully without performing any actual operations.
 type NoopProvider struct{}
 
 func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) error { return nil }
@@ -113,12 +116,14 @@ func (r *NoopProvider) ProvideOnce(...mh.Multihash) error          { return nil 
 func (r *NoopProvider) Clear() int                                 { return 0 }
 func (r *NoopProvider) RefreshSchedule() error                     { return nil }
 
-// LegacyProvider is a wrapper around the boxo/provider.System. This DHT provide
-// system manages reprovides by bursts where it sequentially reprovides all
-// keys.
+// LegacyProvider is a wrapper around the boxo/provider.System that implements
+// the DHTProvider interface. This provider manages reprovides using a burst
+// strategy where it sequentially reprovides all keys at once during each
+// reprovide interval, rather than spreading the load over time.
+//
 // This is the legacy provider implementation that can cause resource spikes
 // during reprovide operations. For more efficient providing, consider using
-// the sweeping provider which spreads the load over the reprovide interval.
+// the SweepingProvider which spreads the load over the reprovide interval.
 type LegacyProvider struct {
 	provider.System
 }
@@ -347,7 +352,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			}
 		}
 		if impl == nil {
-			return &NoopProvider{}, nil, errors.New("no valid DHT available for providing")
+			return &NoopProvider{}, nil, errors.New("provider: no valid DHT available for providing")
 		}
 
 		var selfAddrsFunc func() []ma.Multiaddr
@@ -476,7 +481,7 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 
 	strategyFlag := config.ParseProvideStrategy(providerStrategy)
 	if strategyFlag == 0 {
-		return fx.Error(fmt.Errorf("unknown provide strategy %q", providerStrategy))
+		return fx.Error(fmt.Errorf("provider: unknown strategy %q", providerStrategy))
 	}
 
 	opts := []fx.Option{
@@ -506,11 +511,11 @@ func mfsProvider(mfsRoot *mfs.Root, fetcher fetcher.Factory) provider.KeyChanFun
 	return func(ctx context.Context) (<-chan cid.Cid, error) {
 		err := mfsRoot.FlushMemFree(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("error flushing mfs, cannot provide MFS: %w", err)
+			return nil, fmt.Errorf("provider: error flushing MFS, cannot provide MFS: %w", err)
 		}
 		rootNode, err := mfsRoot.GetDirectory().GetNode()
 		if err != nil {
-			return nil, fmt.Errorf("error loading mfs root, cannot provide MFS: %w", err)
+			return nil, fmt.Errorf("provider: error loading MFS root, cannot provide MFS: %w", err)
 		}
 
 		kcf := provider.NewDAGProvider(rootNode.Cid(), fetcher)

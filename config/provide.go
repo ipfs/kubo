@@ -38,7 +38,7 @@ type Provide struct {
 	Enabled Flag `json:",omitempty"`
 
 	// Strategy determines which CIDs are announced to the routing system.
-	// Default: DefaultProvideStrategy ("all")
+	// Default: DefaultProvideStrategy
 	Strategy *OptionalString `json:",omitempty"`
 
 	// WorkerCount sets the maximum number of concurrent DHT provide operations
