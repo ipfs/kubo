@@ -448,7 +448,7 @@ func SweepingProvider(cfg *config.Config) fx.Option {
 				}
 				// KeyStore state isn't be persisted across restarts.
 				if err := in.KeyStore.Empty(ctx); err != nil {
-					return err
+					logger.Errorw("couldn't empty keystore", "err", err)
 				}
 				return in.KeyStore.Close()
 			},
