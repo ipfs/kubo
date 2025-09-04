@@ -1379,7 +1379,7 @@ Below is a list of the most common gateway setups.
        }
      }'
    ```
-   - **Performance:** consider running with `Routing.AcceleratedDHTClient=true` and either `Provide.Enabled=false` (avoid providing newly retrieved blocks) or `Provide.DHT.MaxWorkers=0` (provide as fast as possible, at the cost of increased load)
+   - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. Separately, gateway operators should decide if the gateway node should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
    - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
 
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
@@ -1404,7 +1404,7 @@ Below is a list of the most common gateway setups.
        }
      }'
    ```
-   - **Performance:** when running an open, recursive gateway consider running with `Routing.AcceleratedDHTClient=true` and either `Provide.Enabled=false` (avoid providing newly retrieved blocks) or `Provide.DHT.MaxWorkers=0` (provide as fast as possible, at the cost of increased load)
+   - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. When running an open, recursive gateway, decide if the gateway should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
 
 * Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
   ```console
@@ -1948,8 +1948,8 @@ connections this setting can generate.
 > [!CAUTION]
 > For nodes without strict connection limits that need to provide large volumes
 > of content, we recommend first trying `Provide.DHT.SweepEnabled=true` for efficient
-> announcements. If announcements are still not fast enough, enable
-> `Routing.AcceleratedDHTClient=true` and set `Provide.DHT.MaxWorkers` to `0` (unlimited).
+> announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. 
+> Consider enabling expensive `Routing.AcceleratedDHTClient=true` as a last resort.
 >
 > At the same time, mind that raising this value too high may lead to increased load.
 > Proceed with caution, ensure proper hardware and networking are in place.
