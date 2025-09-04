@@ -5,7 +5,7 @@ package config
 //
 // Deprecated: use Provide instead. This will be removed in a future release.
 type Reprovider struct {
-	// Deprecated: use Provide.ReprovideInterval instead. This will be removed in a future release.
+	// Deprecated: use Provide.Interval instead. This will be removed in a future release.
 	Interval *OptionalDuration `json:",omitempty"`
 
 	// Deprecated: use Provide.Strategy instead. This will be removed in a future release.

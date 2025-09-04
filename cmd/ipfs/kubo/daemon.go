@@ -669,8 +669,8 @@ take effect.
 ⚠️ If this is not intentional, call 'ipfs config profile apply announce-on' or set Provide.Enabled=true'
 
 `)
-		//nolint:staticcheck // intentionally checking deprecated fields
-		} else if cfg.Reprovider.Interval.WithDefault(config.DefaultProvideReprovideInterval) == 0 {
+			//nolint:staticcheck // intentionally checking deprecated fields
+		} else if cfg.Reprovider.Interval.WithDefault(config.DefaultProvideInterval) == 0 {
 			fmt.Print(`
 
 ⚠️ Provide and Reprovide systems are disabled due to 'Reprovider.Interval=0'

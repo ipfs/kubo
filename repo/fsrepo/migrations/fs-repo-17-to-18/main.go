@@ -7,7 +7,7 @@
 //   - Migrates Provider.Enabled to Provide.Enabled
 //   - Migrates Provider.WorkerCount to Provide.WorkerCount
 //   - Migrates Reprovider.Strategy to Provide.Strategy (converts "flat" to "all")
-//   - Migrates Reprovider.Interval to Provide.ReprovideInterval
+//   - Migrates Reprovider.Interval to Provide.Interval
 //   - Removes deprecated Provider and Reprovider sections
 //
 // The migration is reversible and creates config.17-to-18.bak for rollback.

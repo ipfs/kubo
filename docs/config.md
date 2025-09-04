@@ -129,7 +129,7 @@ config file at runtime.
     - [`Provide.Enabled`](#provideenabled)
     - [`Provide.Strategy`](#providestrategy)
     - [`Provide.WorkerCount`](#provideworkercount)
-    - [`Provide.ReprovideInterval`](#providereprovideinterval)
+    - [`Provide.Interval`](#provideinterval)
     - [`Provide.Sweep`](#providesweep)
       - [`Provide.Sweep.Enabled`](#providesweepenabled)
       - [`Provide.Sweep.MaxWorkers`](#providesweepmaxworkers)
@@ -1924,7 +1924,7 @@ Default: `16`
 
 Type: `optionalInteger` (non-negative; `0` means unlimited number of workers)
 
-### `Provide.ReprovideInterval`
+### `Provide.Interval`
 
 Sets the time between rounds of reproviding local content to the routing
 system.
@@ -1953,7 +1953,7 @@ the `KeyStore`. It splits the keys into DHT keyspace regions by proximity (XOR
 distance), and schedules when reprovides should happen in order to spread the
 reprovide operation over time to avoid a spike in resource utilization. It
 basically sweeps the keyspace _from left to right_ over the
-[`Provide.ReprovideInterval`](#providereprovideinterval) time period, and reprovides keys
+[`Provide.Interval`](#provideinterval) time period, and reprovides keys
 matching to the visited keyspace region.
 
 Provide Sweep aims at replacing the inefficient legacy `boxo/provider`
@@ -1965,7 +1965,7 @@ keys. The keys will be added to the `KeyStore` tracking which keys should be
 reprovided and when they should be reprovided. Calling `StopProviding()`
 removes the keys from the `KeyStore`. However, it is currently tricky for
 `kubo` to detect when a key should stop being advertised. Hence, `kubo` will
-periodically refresh the `KeyStore` at each [`Provide.ReprovideInterval`](#providereprovideinterval)
+periodically refresh the `KeyStore` at each [`Provide.Interval`](#provideinterval)
 by providing it a channel of all the keys it is expected to contain according
 to the [`Provide.Strategy`](#providestrategy). During this operation,
 all keys in the `Keystore` are purged, and only the given ones remain scheduled.
@@ -2095,7 +2095,7 @@ After a node has been `DISCONNECTED` for `OfflineDelay`, it goes to `OFFLINE`
 state. When `OFFLINE`, the provider drops the provide queue, and returns errors
 to new provide requests. However, when `OFFLINE` the provider still adds the
 keys to its state, so keys will eventually be provided in the
-[`Provide.ReprovideInterval`](#providereprovideinterval) after the provider comes back
+[`Provide.Interval`](#provideinterval) after the provider comes back
 `ONLINE`.
 
 Default: `2h`
@@ -2290,7 +2290,7 @@ Type: `array[peering]`
 
 **REMOVED**
 
-Replaced with [`Provide.ReprovideInterval`](#providereprovideinterval).
+Replaced with [`Provide.Interval`](#provideinterval).
 
 ### `Reprovider.Strategy`
 

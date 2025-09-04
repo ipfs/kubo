@@ -273,8 +273,8 @@ Trigger reprovider to announce our data to network.
 		if !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
 			return errors.New("invalid configuration: Provide.Enabled is set to 'false'")
 		}
-		if cfg.Provide.ReprovideInterval.WithDefault(config.DefaultProvideReprovideInterval) == 0 {
-			return errors.New("invalid configuration: Provide.ReprovideInterval is set to '0'")
+		if cfg.Provide.Interval.WithDefault(config.DefaultProvideInterval) == 0 {
+			return errors.New("invalid configuration: Provide.Interval is set to '0'")
 		}
 		provideSys, ok := nd.Provider.(*node.LegacyProvider)
 		if !ok {

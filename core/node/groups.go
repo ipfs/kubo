@@ -348,8 +348,8 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	isHTTPRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
 
 	// The Provide system handles both new CID announcements and periodic re-announcements.
-	// Disabling is controlled by Provide.Enabled=false or setting ReprovideInterval to 0.
-	isProviderEnabled := cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) && cfg.Provide.ReprovideInterval.WithDefault(config.DefaultProvideReprovideInterval) != 0
+	// Disabling is controlled by Provide.Enabled=false or setting Interval to 0.
+	isProviderEnabled := cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) && cfg.Provide.Interval.WithDefault(config.DefaultProvideInterval) != 0
 
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),

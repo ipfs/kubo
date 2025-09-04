@@ -27,7 +27,7 @@ func TestMigration17to18(t *testing.T) {
 				{Path: "Provide.Enabled", Expected: true},
 				{Path: "Provide.WorkerCount", Expected: float64(8)}, // JSON unmarshals to float64
 				{Path: "Provide.Strategy", Expected: "pinned"},
-				{Path: "Provide.ReprovideInterval", Expected: "12h"},
+				{Path: "Provide.Interval", Expected: "12h"},
 				{Path: "Provider", Expected: nil},   // Should be deleted
 				{Path: "Reprovider", Expected: nil}, // Should be deleted
 			},
@@ -46,7 +46,7 @@ func TestMigration17to18(t *testing.T) {
 			Assertions: []common.ConfigAssertion{
 				{Path: "Provide.Enabled", Expected: false},
 				{Path: "Provide.Strategy", Expected: "all"}, // "flat" converted to "all"
-				{Path: "Provide.ReprovideInterval", Expected: "24h"},
+				{Path: "Provide.Interval", Expected: "24h"},
 				{Path: "Provider", Expected: nil},
 				{Path: "Reprovider", Expected: nil},
 			},
@@ -61,7 +61,7 @@ func TestMigration17to18(t *testing.T) {
 			}),
 			Assertions: []common.ConfigAssertion{
 				{Path: "Provide.Strategy", Expected: "roots"},
-				{Path: "Provide.ReprovideInterval", Expected: "6h"},
+				{Path: "Provide.Interval", Expected: "6h"},
 				{Path: "Provider", Expected: nil},
 				{Path: "Reprovider", Expected: nil},
 			},
@@ -145,10 +145,10 @@ func TestMigration17to18Reversible(t *testing.T) {
 	// Test that migration is reversible
 	inputConfig := common.GenerateTestConfig(map[string]any{
 		"Provide": map[string]any{
-			"Enabled":           true,
-			"WorkerCount":       8,
-			"Strategy":          "pinned",
-			"ReprovideInterval": "12h",
+			"Enabled":     true,
+			"WorkerCount": 8,
+			"Strategy":    "pinned",
+			"Interval":    "12h",
 		},
 	})
 
