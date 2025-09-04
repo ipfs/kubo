@@ -60,10 +60,6 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			NoFetch:      false,
 			HTTPHeaders:  map[string][]string{},
 		},
-		Reprovider: Reprovider{
-			Interval: nil,
-			Strategy: nil,
-		},
 		Pinning: Pinning{
 			RemoteServices: map[string]RemotePinningService{},
 		},
