@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 )
@@ -168,7 +169,7 @@ func EnsureFieldIs(config map[string]any, path string, expected any) {
 
 // MergeInto merges multiple source fields into a destination map
 func MergeInto(config map[string]any, destination string, sources ...string) {
-	destMap := make(map[string]any)
+	var destMap map[string]any
 
 	// Get existing destination if it exists
 	if existing, exists := GetField(config, destination); exists {
@@ -177,13 +178,15 @@ func MergeInto(config map[string]any, destination string, sources ...string) {
 		}
 	}
 
+	if destMap == nil {
+		destMap = make(map[string]any)
+	}
+
 	// Merge each source
 	for _, source := range sources {
 		if value, exists := GetField(config, source); exists {
 			if sourceMap, ok := value.(map[string]any); ok {
-				for k, v := range sourceMap {
-					destMap[k] = v
-				}
+				maps.Copy(destMap, sourceMap)
 			}
 		}
 	}

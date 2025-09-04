@@ -1972,7 +1972,7 @@ all keys in the `Keystore` are purged, and only the given ones remain scheduled.
 
 #### `Provide.Sweep.Enabled`
 
-Whether Provide Sweep is enabled. If not enabled, the
+Whether Provide Sweep is enabled. If not enabled, the legacy
 [`boxo/provider`](https://github.com/ipfs/boxo/tree/main/provider) is used for
 both provides and reprovides.
 

@@ -8,7 +8,7 @@ import (
 const (
 	DefaultProvideEnabled     = true
 	DefaultProvideWorkerCount = 16
-	DefaultProvideInterval    = time.Hour * 22 // https://github.com/ipfs/kubo/pull/9326
+	DefaultProvideInterval    = 22 * time.Hour // https://github.com/ipfs/kubo/pull/9326
 	DefaultProvideStrategy    = "all"
 
 	DefaultProvideSweepEnabled                  = false
