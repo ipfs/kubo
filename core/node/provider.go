@@ -296,7 +296,7 @@ type addrsFilter interface {
 }
 
 func SweepingProvider(cfg *config.Config) fx.Option {
-	reprovideInterval := cfg.Provide.ReprovideInterval.WithDefault(config.DefaultProvideReprovideInterval)
+	reprovideInterval := cfg.Provide.Interval.WithDefault(config.DefaultProvideInterval)
 	type providerInput struct {
 		fx.In
 		DHT  routing.Routing `name:"dhtc"`
@@ -482,7 +482,7 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	if cfg.Provide.Sweep.Enabled.WithDefault(config.DefaultProvideSweepEnabled) {
 		opts = append(opts, SweepingProvider(cfg))
 	} else {
-		reprovideInterval := cfg.Provide.ReprovideInterval.WithDefault(config.DefaultProvideReprovideInterval)
+		reprovideInterval := cfg.Provide.Interval.WithDefault(config.DefaultProvideInterval)
 		acceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
 		provideWorkerCount := int(cfg.Provide.WorkerCount.WithDefault(config.DefaultProvideWorkerCount))
 

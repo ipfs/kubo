@@ -285,7 +285,7 @@ fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
 			c.Provide.Enabled = False
-			c.Provide.ReprovideInterval = NewOptionalDuration(0) // 0 disables periodic reprovide
+			c.Provide.Interval = NewOptionalDuration(0) // 0 disables periodic reprovide
 			return nil
 		},
 	},
@@ -293,7 +293,7 @@ fetching may be degraded.
 		Description: `Re-enables Provide system (reverts announce-off profile).`,
 		Transform: func(c *Config) error {
 			c.Provide.Enabled = True
-			c.Provide.ReprovideInterval = NewOptionalDuration(DefaultProvideReprovideInterval) // have to apply explicit default because nil would be ignored
+			c.Provide.Interval = NewOptionalDuration(DefaultProvideInterval) // have to apply explicit default because nil would be ignored
 			return nil
 		},
 	},

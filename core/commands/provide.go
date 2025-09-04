@@ -100,7 +100,7 @@ var provideStatCmd = &cmds.Command{
 		Tagline: "Returns statistics about the node's provider system.",
 		ShortDescription: `
 Returns statistics about the content the node is reproviding every
-Provide.ReprovideInterval according to Provide.Strategy:
+Provide.Interval according to Provide.Strategy:
 https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
 
 This interface is not stable and may change from release to release.

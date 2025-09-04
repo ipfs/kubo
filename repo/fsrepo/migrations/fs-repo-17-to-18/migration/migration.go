@@ -56,7 +56,7 @@ func convert(in io.ReadSeeker, out io.Writer) error {
 		}
 	}
 	if interval, exists := reprovider["Interval"]; exists {
-		provide["ReprovideInterval"] = interval
+		provide["Interval"] = interval
 	}
 	// Note: Sweep doesn't exist in master, it's new in this branch
 	// So we don't need to migrate it from Reprovider
