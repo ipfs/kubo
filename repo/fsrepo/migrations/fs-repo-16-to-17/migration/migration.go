@@ -93,7 +93,7 @@ func migrateBootstrap(confMap map[string]any) error {
 	bootstrap, exists := confMap["Bootstrap"]
 	if !exists {
 		// No bootstrap section, add "auto"
-		confMap["Bootstrap"] = []string{"auto"}
+		confMap["Bootstrap"] = []string{config.AutoPlaceholder}
 		return nil
 	}
 
@@ -101,7 +101,7 @@ func migrateBootstrap(confMap map[string]any) error {
 	bootstrapPeers := common.ConvertInterfaceSlice(common.SafeCastSlice(bootstrap))
 	if len(bootstrapPeers) == 0 && bootstrap != nil {
 		// Invalid bootstrap format, replace with "auto"
-		confMap["Bootstrap"] = []string{"auto"}
+		confMap["Bootstrap"] = []string{config.AutoPlaceholder}
 		return nil
 	}
 
@@ -116,7 +116,7 @@ func migrateBootstrap(confMap map[string]any) error {
 func processBootstrapPeers(peers []string) []string {
 	// If empty, use "auto"
 	if len(peers) == 0 {
-		return []string{"auto"}
+		return []string{config.AutoPlaceholder}
 	}
 
 	// Filter out default peers to get only custom ones
@@ -129,7 +129,7 @@ func processBootstrapPeers(peers []string) []string {
 
 	// If we have default peers, replace them with "auto"
 	if hasDefaultPeers {
-		return append([]string{"auto"}, customPeers...)
+		return append([]string{config.AutoPlaceholder}, customPeers...)
 	}
 
 	// No default peers found, keep as is
@@ -173,7 +173,7 @@ func migrateDelegatedRouters(confMap map[string]any) error {
 
 	// Check if it's empty or nil
 	if !exists || common.IsEmptySlice(delegatedRouters) {
-		routing["DelegatedRouters"] = []string{"auto"}
+		routing["DelegatedRouters"] = []string{config.AutoPlaceholder}
 		return nil
 	}
 
@@ -185,7 +185,7 @@ func migrateDelegatedRouters(confMap map[string]any) error {
 	for _, router := range routers {
 		if router == "https://cid.contact" {
 			if !hasAuto {
-				newRouters = append(newRouters, "auto")
+				newRouters = append(newRouters, config.AutoPlaceholder)
 				hasAuto = true
 			}
 		} else {
@@ -195,7 +195,7 @@ func migrateDelegatedRouters(confMap map[string]any) error {
 
 	// If empty after processing, add "auto"
 	if len(newRouters) == 0 {
-		newRouters = []string{"auto"}
+		newRouters = []string{config.AutoPlaceholder}
 	}
 
 	routing["DelegatedRouters"] = newRouters
@@ -213,7 +213,7 @@ func migrateDelegatedPublishers(confMap map[string]any) error {
 	// Check if it's empty or nil - only then replace with "auto"
 	// Otherwise preserve custom publishers
 	if !exists || common.IsEmptySlice(delegatedPublishers) {
-		ipns["DelegatedPublishers"] = []string{"auto"}
+		ipns["DelegatedPublishers"] = []string{config.AutoPlaceholder}
 	}
 	// If there are custom publishers, leave them as is
 
