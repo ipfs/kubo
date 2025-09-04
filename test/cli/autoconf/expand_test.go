@@ -338,7 +338,7 @@ func testExpandAutoFiltersUnsupportedPathsDelegated(t *testing.T) {
 	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
 	// Disable content providing when using delegated routing
 	node.SetIPFSConfig("Provide.Enabled", false)
-	node.SetIPFSConfig("Provide.Interval", "0")
+	node.SetIPFSConfig("Provide.DHT.Interval", "0")
 
 	// Load test autoconf data with unsupported paths
 	autoConfData := loadTestDataExpand(t, "autoconf_with_unsupported_paths.json")
@@ -422,7 +422,7 @@ func testExpandAutoWithoutCacheDelegated(t *testing.T) {
 	node.SetIPFSConfig("Ipns.DelegatedPublishers", []string{"auto"})
 	// Disable content providing when using delegated routing
 	node.SetIPFSConfig("Provide.Enabled", false)
-	node.SetIPFSConfig("Provide.Interval", "0")
+	node.SetIPFSConfig("Provide.DHT.Interval", "0")
 
 	// Load test autoconf data with unsupported paths (this won't be used since no daemon)
 	autoConfData := loadTestDataExpand(t, "autoconf_with_unsupported_paths.json")

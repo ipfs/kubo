@@ -6,6 +6,7 @@
 package mg17
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/common"
@@ -32,16 +33,35 @@ func convert(in io.ReadSeeker, out io.Writer) error {
 		return err
 	}
 
-	// Create new Provide section from Provider and Reprovider
+	// Create new Provide section with DHT subsection from Provider and Reprovider
 	provide := make(map[string]any)
+	dht := make(map[string]any)
+	hasNonDefaultValues := false
 
 	// Migrate Provider fields if they exist
 	provider := common.SafeCastMap(confMap["Provider"])
 	if enabled, exists := provider["Enabled"]; exists {
 		provide["Enabled"] = enabled
+		// Log migration for non-default values
+		if enabledBool, ok := enabled.(bool); ok && !enabledBool {
+			fmt.Printf("  Migrated Provider.Enabled=%v to Provide.Enabled=%v\n", enabledBool, enabledBool)
+			hasNonDefaultValues = true
+		}
 	}
 	if workerCount, exists := provider["WorkerCount"]; exists {
-		provide["WorkerCount"] = workerCount
+		dht["MaxWorkers"] = workerCount
+		// Log migration for all worker count values
+		if count, ok := workerCount.(float64); ok {
+			fmt.Printf("  Migrated Provider.WorkerCount=%v to Provide.DHT.MaxWorkers=%v\n", int(count), int(count))
+			hasNonDefaultValues = true
+
+			// Additional guidance for high WorkerCount
+			if count > 5 {
+				fmt.Printf("  ⚠️  For better resource utilization, consider enabling Provide.DHT.SweepEnabled=true\n")
+				fmt.Printf("     and adjusting Provide.DHT.DedicatedBurstWorkers if announcement of new CIDs\n")
+				fmt.Printf("     should take priority over periodic reprovide interval.\n")
+			}
+		}
 	}
 	// Note: Skip Provider.Strategy as it was unused
 
@@ -51,15 +71,31 @@ func convert(in io.ReadSeeker, out io.Writer) error {
 		// Convert deprecated "flat" strategy to "all"
 		if strategyStr, ok := strategy.(string); ok && strategyStr == "flat" {
 			provide["Strategy"] = "all"
+			fmt.Printf("  Migrated deprecated Reprovider.Strategy=\"flat\" to Provide.Strategy=\"all\"\n")
+			hasNonDefaultValues = true
+		} else if strategyStr, ok := strategy.(string); ok && strategyStr != "all" {
+			provide["Strategy"] = strategy
+			fmt.Printf("  Migrated Reprovider.Strategy=\"%s\" to Provide.Strategy=\"%s\"\n", strategyStr, strategyStr)
+			hasNonDefaultValues = true
 		} else {
 			provide["Strategy"] = strategy
 		}
 	}
 	if interval, exists := reprovider["Interval"]; exists {
-		provide["Interval"] = interval
+		dht["Interval"] = interval
+		// Log migration for non-default intervals
+		if intervalStr, ok := interval.(string); ok && intervalStr != "22h" && intervalStr != "" {
+			fmt.Printf("  Migrated Reprovider.Interval=\"%s\" to Provide.DHT.Interval=\"%s\"\n", intervalStr, intervalStr)
+			hasNonDefaultValues = true
+		}
 	}
 	// Note: Sweep is a new field introduced in v0.38, not present in v0.37
 	// So we don't need to migrate it from Reprovider
+
+	// Set the DHT section if we have any DHT fields to migrate
+	if len(dht) > 0 {
+		provide["DHT"] = dht
+	}
 
 	// Set the new Provide section if we have any fields to migrate
 	if len(provide) > 0 {
@@ -69,6 +105,11 @@ func convert(in io.ReadSeeker, out io.Writer) error {
 	// Clear old Provider and Reprovider sections
 	delete(confMap, "Provider")
 	delete(confMap, "Reprovider")
+
+	// Print documentation link if we migrated any non-default values
+	if hasNonDefaultValues {
+		fmt.Printf("  See: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide\n")
+	}
 
 	// Write the updated config
 	return common.WriteConfig(out, confMap)

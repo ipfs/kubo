@@ -670,12 +670,12 @@ take effect.
 ⚠️ If this is not intentional, call 'ipfs config profile apply announce-on' or set Provide.Enabled=true'
 
 `)
-		} else if cfg.Provide.Interval.WithDefault(config.DefaultProvideInterval) == 0 {
+		} else if cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0 {
 			fmt.Print(`
 
-⚠️ Provide system is disabled due to 'Provide.Interval=0'
+⚠️ Provide system is disabled due to 'Provide.DHT.Interval=0'
 ⚠️ Local CIDs will not be provided to Amino DHT, making them impossible to retrieve without manual peering
-⚠️ If this is not intentional, call 'ipfs config profile apply announce-on', or set 'Provide.Interval=22h'
+⚠️ If this is not intentional, call 'ipfs config profile apply announce-on', or set 'Provide.DHT.Interval=22h'
 
 `)
 		}

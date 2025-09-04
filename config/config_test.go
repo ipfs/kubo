@@ -139,6 +139,16 @@ func TestCheckKey(t *testing.T) {
 		t.Fatalf("%s: %s", err, "Provide.Strategy is a valid key in the config")
 	}
 
+	err = CheckKey("Provide.DHT.MaxWorkers")
+	if err != nil {
+		t.Fatalf("%s: %s", err, "Provide.DHT.MaxWorkers is a valid key in the config")
+	}
+
+	err = CheckKey("Provide.DHT.Interval")
+	if err != nil {
+		t.Fatalf("%s: %s", err, "Provide.DHT.Interval is a valid key in the config")
+	}
+
 	err = CheckKey("Provide.Foo")
 	if err == nil {
 		t.Fatal("Provide.Foo isn't a valid key in the config")

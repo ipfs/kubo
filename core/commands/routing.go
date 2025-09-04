@@ -273,12 +273,12 @@ Trigger reprovider to announce our data to network.
 		if !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
 			return errors.New("invalid configuration: Provide.Enabled is set to 'false'")
 		}
-		if cfg.Provide.Interval.WithDefault(config.DefaultProvideInterval) == 0 {
-			return errors.New("invalid configuration: Provide.Interval is set to '0'")
+		if cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0 {
+			return errors.New("invalid configuration: Provide.DHT.Interval is set to '0'")
 		}
 		provideSys, ok := nd.Provider.(*node.LegacyProvider)
 		if !ok {
-			return errors.New("manual reprovide not available with experimental sweeping provider (Provide.Sweep.Enabled=true)")
+			return errors.New("manual reprovide not available with experimental sweeping provider (Provide.DHT.SweepEnabled=true)")
 		}
 
 		err = provideSys.Reprovide(req.Context)

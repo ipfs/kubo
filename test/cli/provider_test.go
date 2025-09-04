@@ -144,7 +144,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Provide.Interval", "0")
+			n.SetIPFSConfig("Provide.DHT.Interval", "0")
 		})
 		defer nodes.StopDaemons()
 
@@ -157,7 +157,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Provide.Interval", "0")
+			n.SetIPFSConfig("Provide.DHT.Interval", "0")
 		})
 		defer nodes.StopDaemons()
 
@@ -166,7 +166,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectNoProviders(t, cid, nodes[1:]...)
 
 		res := nodes[0].RunIPFS("routing", "reprovide")
-		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.Interval is set to '0'")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.DHT.Interval is set to '0'")
 		assert.Equal(t, 1, res.ExitCode())
 
 		expectNoProviders(t, cid, nodes[1:]...)
@@ -445,7 +445,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		nodes := harness.NewT(t).NewNodes(1).Init()
 		nodes.ForEachPar(func(n *harness.Node) {
 			n.SetIPFSConfig("Provide.Enabled", true)
-			n.SetIPFSConfig("Provide.Interval", "22h")
+			n.SetIPFSConfig("Provide.DHT.Interval", "22h")
 			n.SetIPFSConfig("Provide.Strategy", "all")
 		})
 		nodes.StartDaemons()
@@ -473,7 +473,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		nodes := harness.NewT(t).NewNodes(1).Init()
 		nodes.ForEachPar(func(n *harness.Node) {
 			n.SetIPFSConfig("Provide.Enabled", true)
-			n.SetIPFSConfig("Provide.Interval", "22h")
+			n.SetIPFSConfig("Provide.DHT.Interval", "22h")
 			n.SetIPFSConfig("Provide.Strategy", "all")
 		})
 		nodes.StartDaemons()
@@ -493,7 +493,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		nodes := harness.NewT(t).NewNodes(1).Init()
 		nodes.ForEachPar(func(n *harness.Node) {
 			n.SetIPFSConfig("Provide.Enabled", false)
-			n.SetIPFSConfig("Provide.Interval", "22h")
+			n.SetIPFSConfig("Provide.DHT.Interval", "22h")
 			n.SetIPFSConfig("Provide.Strategy", "all")
 		})
 		nodes.StartDaemons()
@@ -510,7 +510,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		nodes := harness.NewT(t).NewNodes(1).Init()
 		nodes.ForEachPar(func(n *harness.Node) {
 			n.SetIPFSConfig("Provide.Enabled", true)
-			n.SetIPFSConfig("Provide.Interval", "22h")
+			n.SetIPFSConfig("Provide.DHT.Interval", "22h")
 			n.SetIPFSConfig("Provide.Strategy", "all")
 		})
 		nodes.StartDaemons()
@@ -546,14 +546,14 @@ func TestProvider(t *testing.T) {
 			name:      "LegacyProvider",
 			reprovide: true,
 			apply: func(n *harness.Node) {
-				n.SetIPFSConfig("Provide.Sweep.Enabled", false)
+				n.SetIPFSConfig("Provide.DHT.SweepEnabled", false)
 			},
 		},
 		{
 			name:      "SweepingProvider",
 			reprovide: false,
 			apply: func(n *harness.Node) {
-				n.SetIPFSConfig("Provide.Sweep.Enabled", true)
+				n.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
 			},
 		},
 	}

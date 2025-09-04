@@ -128,16 +128,15 @@ config file at runtime.
   - [`Provide`](#provide)
     - [`Provide.Enabled`](#provideenabled)
     - [`Provide.Strategy`](#providestrategy)
-    - [`Provide.WorkerCount`](#provideworkercount)
-    - [`Provide.Interval`](#provideinterval)
-    - [`Provide.Sweep`](#providesweep)
-      - [`Provide.Sweep.Enabled`](#providesweepenabled)
-      - [`Provide.Sweep.MaxWorkers`](#providesweepmaxworkers)
-      - [`Provide.Sweep.DedicatedPeriodicWorkers`](#providesweepdedicatedperiodicworkers)
-      - [`Provide.Sweep.DedicatedBurstWorkers`](#providesweepdedicatedburstworkers)
-      - [`Provide.Sweep.MaxProvideConnsPerWorker`](#providesweepmaxprovideconnsperworker)
-      - [`Provide.Sweep.KeyStoreBatchSize`](#providesweepkeystorebatchsize)
-      - [`Provide.Sweep.OfflineDelay`](#providesweepofflinedelay)
+    - [`Provide.DHT`](#providedht)
+      - [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers)
+      - [`Provide.DHT.Interval`](#providedhtinterval)
+      - [`Provide.DHT.SweepEnabled`](#providedhtssweepenabled)
+      - [`Provide.DHT.DedicatedPeriodicWorkers`](#providedhtdedicatedperiodicworkers)
+      - [`Provide.DHT.DedicatedBurstWorkers`](#providedhtdedicatedburstworkers)
+      - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
+      - [`Provide.DHT.KeyStoreBatchSize`](#providedhtkeystorebatchsize)
+      - [`Provide.DHT.OfflineDelay`](#providedhtofflinedelay)
   - [`Provider`](#provider)
     - [`Provider.Enabled`](#providerenabled)
     - [`Provider.Strategy`](#providerstrategy)
@@ -1380,7 +1379,7 @@ Below is a list of the most common gateway setups.
        }
      }'
    ```
-   - **Performance:** consider running with `Routing.AcceleratedDHTClient=true` and either `Provide.Enabled=false` (avoid providing newly retrieved blocks) or `Provide.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
+   - **Performance:** consider running with `Routing.AcceleratedDHTClient=true` and either `Provide.Enabled=false` (avoid providing newly retrieved blocks) or `Provide.DHT.MaxWorkers=0` (provide as fast as possible, at the cost of increased load)
    - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
 
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
@@ -1405,7 +1404,7 @@ Below is a list of the most common gateway setups.
        }
      }'
    ```
-   - **Performance:** when running an open, recursive gateway consider running with `Routing.AcceleratedDHTClient=true` and either `Provide.Enabled=false` (avoid providing newly retrieved blocks) or `Provide.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
+   - **Performance:** when running an open, recursive gateway consider running with `Routing.AcceleratedDHTClient=true` and either `Provide.Enabled=false` (avoid providing newly retrieved blocks) or `Provide.DHT.MaxWorkers=0` (provide as fast as possible, at the cost of increased load)
 
 * Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
   ```console
@@ -1897,12 +1896,47 @@ Default: `"all"`
 
 Type: `optionalString` (unset for the default)
 
-### `Provide.WorkerCount`
+### `Provide.DHT`
 
-Sets the maximum number of _concurrent_ DHT provide operations (announcement of new CIDs).
+Configuration for providing data to Amino DHT peers.
 
-Reprovide operations do **not** count against this limit.
-A value of `0` allows an unlimited number of provide workers.
+#### `Provide.DHT.Interval`
+
+Sets how often to re-announce content to the DHT. Provider records on Amino DHT
+expire after [`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43),
+also known as Provider Record Expiration Interval.
+
+An interval of about half the expiration window ensures provider records
+are refreshed well before they expire. This keeps your content continuously
+discoverable without overwhelming the network with too frequent announcements.
+
+- If unset, it uses the implicit safe default.
+- If set to the value `"0"` it will disable content reproviding to DHT.
+
+> [!CAUTION]
+> Disabling this will prevent other nodes from discovering your content via the DHT.
+> Your node will stop announcing data to the DHT, making it
+> inaccessible unless peers connect to you directly. Since provider
+> records expire after `amino.DefaultProvideValidity`, your content will become undiscoverable
+> after this period.
+
+Default: `22h`
+
+Type: `optionalDuration` (unset for the default)
+
+#### `Provide.DHT.MaxWorkers`
+
+Sets the maximum number of _concurrent_ DHT provide operations.
+
+**When SweepEnabled is false (legacy mode):**
+- Controls NEW CID announcements only
+- Reprovide operations do **not** count against this limit
+- A value of `0` allows unlimited provide workers
+
+**When SweepEnabled is true:**
+- Controls the total worker pool for both provide and reprovide operations
+- Workers are split between periodic reprovides and burst provides
+- See [`DedicatedPeriodicWorkers`](#providedhtdedicatedperiodicworkers) and [`DedicatedBurstWorkers`](#providedhtdedicatedburstworkers) for task allocation
 
 If the [accelerated DHT client](#routingaccelerateddhtclient) is enabled, each
 provide operation opens ~20 connections in parallel. With the standard DHT
@@ -1913,47 +1947,30 @@ connections this setting can generate.
 
 > [!CAUTION]
 > For nodes without strict connection limits that need to provide large volumes
-> of content, we recommend first trying `Provide.Sweep.Enabled=true` for efficient
+> of content, we recommend first trying `Provide.DHT.SweepEnabled=true` for efficient
 > announcements. If announcements are still not fast enough, enable
-> `Routing.AcceleratedDHTClient=true` and set `Provide.WorkerCount` to `0` (unlimited).
+> `Routing.AcceleratedDHTClient=true` and set `Provide.DHT.MaxWorkers` to `0` (unlimited).
 >
 > At the same time, mind that raising this value too high may lead to increased load.
 > Proceed with caution, ensure proper hardware and networking are in place.
 
-Default: `16`
+Default: `16` (legacy mode) or `4` (when `Provide.DHT.SweepEnabled=true`)
 
 Type: `optionalInteger` (non-negative; `0` means unlimited number of workers)
 
-### `Provide.Interval`
+#### `Provide.DHT.SweepEnabled`
 
-Sets the time between rounds of reproviding local content to the routing
-system.
-
-- If unset, it uses the implicit safe default.
-- If set to the value `"0"` it will disable content reproviding.
-
-> [!CAUTION]
-> Disabling this will prevent other nodes from discovering your content.
-> Your node will stop announcing data to the routing system, making it
-> inaccessible unless peers connect to you directly. On Amino DHT, existing
-> provider records expire after 24-48h ([`ProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43)),
-> meaning your content will become undiscoverable after this period.
-
-Default: `22h`
-
-Type: `optionalDuration` (unset for the default)
-
-### `Provide.Sweep`
+Whether Provide Sweep is enabled. If not enabled, the legacy
+[`boxo/provider`](https://github.com/ipfs/boxo/tree/main/provider) is used for
+both provides and reprovides.
 
 Provide Sweep is a resource efficient technique for advertising content to
-the Amino DHT swarm.
-
-The Provide Sweep module tracks the keys that should be periodically reprovided in
+the Amino DHT swarm. The Provide Sweep module tracks the keys that should be periodically reprovided in
 the `KeyStore`. It splits the keys into DHT keyspace regions by proximity (XOR
 distance), and schedules when reprovides should happen in order to spread the
 reprovide operation over time to avoid a spike in resource utilization. It
 basically sweeps the keyspace _from left to right_ over the
-[`Provide.Interval`](#provideinterval) time period, and reprovides keys
+[`Provide.DHT.Interval`](#providedhtinterval) time period, and reprovides keys
 matching to the visited keyspace region.
 
 Provide Sweep aims at replacing the inefficient legacy `boxo/provider`
@@ -1965,16 +1982,10 @@ keys. The keys will be added to the `KeyStore` tracking which keys should be
 reprovided and when they should be reprovided. Calling `StopProviding()`
 removes the keys from the `KeyStore`. However, it is currently tricky for
 `kubo` to detect when a key should stop being advertised. Hence, `kubo` will
-periodically refresh the `KeyStore` at each [`Provide.Interval`](#provideinterval)
+periodically refresh the `KeyStore` at each [`Provide.DHT.Interval`](#providedhtinterval)
 by providing it a channel of all the keys it is expected to contain according
 to the [`Provide.Strategy`](#providestrategy). During this operation,
 all keys in the `Keystore` are purged, and only the given ones remain scheduled.
-
-#### `Provide.Sweep.Enabled`
-
-Whether Provide Sweep is enabled. If not enabled, the legacy
-[`boxo/provider`](https://github.com/ipfs/boxo/tree/main/provider) is used for
-both provides and reprovides.
 
 > [!NOTE]
 > This feature is opt-in for now, but will become the default in a future release.
@@ -1984,43 +1995,12 @@ Default: `false`
 
 Type: `flag`
 
-#### `Provide.Sweep.MaxWorkers`
 
-The maximum number of workers used by the `SweepingReprovider` to provide and
-reprovide CIDs to the DHT swarm.
-
-A worker performs Kademlia `GetClosestPeers` operations (max 1 at a time) to
-explore a region of the DHT keyspace, and then sends provider records to the
-nodes from that keyspace region. `GetClosestPeers` is capped to `10` concurrent
-connections [`amino` DHT
-defaults](https://github.com/libp2p/go-libp2p-kad-dht/blob/master/amino/defaults.go).
-The number of simultaneous connections used to send provider records is defined
-by
-[`Provide.Sweep.MaxProvideConnsPerWorker`](#providesweepMaxProvideConnsPerWorker).
-
-The workers are split between two tasks categories:
-
-1. Periodic reprovides (see
-   [`Provide.Sweep.DedicatedPeriodicWorkers`](#providesweepdedicatedperiodicworkers))
-2. Burst provides (see
-   [`Provide.Sweep.DedicatedBurstWorkers`](#providesweepdedicatedburstworkers))
-
-[`Provide.Sweep.DedicatedPeriodicWorkers`](#providesweepdedicatedperiodicworkers)
-workers are allocated to the periodic reprovides only,
-[`Provide.Sweep.DedicatedBurstWorkers`](#providesweepdedicatedburstworkers)
-workers are allocated to burst provides only, and the rest of
-[`Provide.Sweep.MaxWorkers`](#providesweepmaxworkers) can be used for
-either task (first come, first served).
-
-Default: `4`
-
-Type: `optionalInteger` (non-negative)
-
-#### `Provide.Sweep.DedicatedPeriodicWorkers`
+#### `Provide.DHT.DedicatedPeriodicWorkers`
 
 Number of workers dedicated to periodic keyspace region reprovides.
 
-Among the [`Provide.Sweep.MaxWorkers`](#providesweepmaxworkers), this
+Among the [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers), this
 number of workers will be dedicated to the periodic region reprovide only. In
 addition to these, if there are available workers in the pool, they can also be
 used for periodic reprovides.
@@ -2030,7 +2010,7 @@ Default: `2`
 Type: `optionalInteger` (`0` means there are no dedicated workers, but the
 operation can be performed by free non-dedicated workers)
 
-#### `Provide.Sweep.DedicatedBurstWorkers`
+#### `Provide.DHT.DedicatedBurstWorkers`
 
 Number of workers dedicated to burst provides.
 
@@ -2038,7 +2018,7 @@ Burst provides are triggered when new keys must be advertised to the DHT
 immediately, or when a node comes back online and must catch up the reprovides
 that should have happened while it was offline.
 
-Among the [`Provide.Sweep.MaxWorkers`](#providesweepmaxworkers), this
+Among the [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers), this
 number of workers will be dedicated to burst provides only. In addition to
 these, if there are available workers in the pool, they can also be used for
 burst provides.
@@ -2048,7 +2028,7 @@ Default: `1`
 Type: `optionalInteger` (`0` means there are no dedicated workers, but the
 operation can be performed by free non-dedicated workers)
 
-#### `Provide.Sweep.MaxProvideConnsPerWorker`
+#### `Provide.DHT.MaxProvideConnsPerWorker`
 
 Maximum number of connections that a single worker can use to send provider
 records over the network.
@@ -2068,7 +2048,7 @@ Default: `16`
 
 Type: `optionalInteger` (non-negative)
 
-#### `Provide.Sweep.KeyStoreBatchSize`
+#### `Provide.DHT.KeyStoreBatchSize`
 
 During the garbage collection, all keys stored in the KeyStore are removed, and
 the keys are streamed from a channel to fill the KeyStore again with up-to-date
@@ -2082,7 +2062,7 @@ Default: `16384` (~544 KiB per batch)
 
 Type: `optionalInteger` (non-negative)
 
-#### `Provide.Sweep.OfflineDelay`
+#### `Provide.DHT.OfflineDelay`
 
 The `SweepingProvider` has 3 states: `ONLINE`, `DISCONNECTED` and `OFFLINE`. It
 starts `OFFLINE`, and as the node bootstraps, it changes its state to `ONLINE`.
@@ -2095,7 +2075,7 @@ After a node has been `DISCONNECTED` for `OfflineDelay`, it goes to `OFFLINE`
 state. When `OFFLINE`, the provider drops the provide queue, and returns errors
 to new provide requests. However, when `OFFLINE` the provider still adds the
 keys to its state, so keys will eventually be provided in the
-[`Provide.Interval`](#provideinterval) after the provider comes back
+[`Provide.DHT.Interval`](#providedhtinterval) after the provider comes back
 `ONLINE`.
 
 Default: `2h`
@@ -2120,7 +2100,7 @@ This field was unused. Use [`Provide.Strategy`](#providestrategy) instead.
 
 **REMOVED**
 
-Replaced with [`Provide.WorkerCount`](#provideworkercount).
+Replaced with [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers).
 ## `Pubsub`
 
 **DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
@@ -2290,7 +2270,7 @@ Type: `array[peering]`
 
 **REMOVED**
 
-Replaced with [`Provide.Interval`](#provideinterval).
+Replaced with [`Provide.DHT.Interval`](#providedhtinterval).
 
 ### `Reprovider.Strategy`
 
@@ -2376,7 +2356,7 @@ When it is enabled:
 - The provider will now use a keyspace sweeping mode allowing to keep alive
   CID sets that are multiple orders of magnitude larger.
   - **Note:** For improved provide/reprovide operations specifically, consider using
-    [`Provide.Sweep.Enabled`](#providesweepenabled) instead, which offers similar
+    [`Provide.DHT.SweepEnabled`](#providedhtssweepenabled) instead, which offers similar
     benefits with lower resource consumption.
   - The standard Bucket-Routing-Table DHT will still run for the DHT server (if
     the DHT server is enabled). This means the classical routing table will
