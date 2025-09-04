@@ -2014,9 +2014,13 @@ operation can be performed by free non-dedicated workers)
 
 Number of workers dedicated to burst provides.
 
-Burst provides are triggered when new keys must be advertised to the DHT
-immediately, or when a node comes back online and must catch up the reprovides
-that should have happened while it was offline.
+Burst provides are triggered by:
+- Manual provide commands (`ipfs routing provide`)
+- New content that matches your `Provide.Strategy` (e.g., blocks fetched via bitswap/http)
+- Catch-up reprovides after being disconnected/offline for a while
+
+Having dedicated burst workers ensures that bulk operations (like adding many CIDs
+or reconnecting to the network) don't delay regular periodic reprovides, and vice versa.
 
 Among the [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers), this
 number of workers will be dedicated to burst provides only. In addition to
