@@ -1646,22 +1646,21 @@ Type: `flag`
 
 ### `Ipns.DelegatedPublishers`
 
-A list of IPNS publishers to delegate publishing operations to. When configured, IPNS publish operations are sent to these remote HTTP services in addition to or instead of local DHT publishing, depending on [`Routing.Type`](#routingtype) configuration.
+HTTP endpoints for delegated IPNS publishing operations. These endpoints must support the [IPNS API](https://specs.ipfs.tech/routing/http-routing-v1/#ipns-api) from the Delegated Routing V1 HTTP specification.
 
-These endpoints must support the [IPNS API](https://specs.ipfs.tech/routing/http-routing-v1/#ipns-api) from the Delegated Routing V1 HTTP specification.
-
-The special value `"auto"` uses delegated publishers from [AutoConf](#autoconf) when enabled.
+The special value `"auto"` loads delegated publishers from [AutoConf](#autoconf) when enabled.
 
 **Publishing behavior depends on routing configuration:**
 
-- `Routing.Type=auto` (default): Uses both DHT and HTTP delegated publishers
-- `Routing.Type=delegated`: Uses only HTTP delegated publishers (DHT disabled)
+- `Routing.Type=auto` (default): Uses DHT for publishing, `"auto"` resolves to empty list
+- `Routing.Type=delegated`: Uses HTTP delegated publishers only, `"auto"` resolves to configured endpoints
 
-**Command flags control publishing method:**
+When using `"auto"`, inspect the effective publishers with: `ipfs config Ipns.DelegatedPublishers --expand-auto`
 
-- `ipfs name publish /ipfs/QmHash` - Uses configured routing (default behavior)
-- `ipfs name publish --allow-offline /ipfs/QmHash` - Local datastore only, no network requests
-- `ipfs name publish --delegated-only /ipfs/QmHash` - HTTP delegated publishers only, requires configuration
+**Command flags override publishing behavior:**
+
+- `--allow-offline` - Publishes to local datastore without requiring network connectivity
+- `--allow-delegated` - Uses local datastore and HTTP delegated publishers only (no DHT connectivity required)
 
 For self-hosting, you can run your own `/routing/v1/ipns` endpoint using [someguy](https://github.com/ipfs/someguy/).
 

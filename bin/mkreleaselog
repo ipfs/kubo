@@ -79,7 +79,12 @@ msg() {
 
 statlog() {
     local module="$1"
-    local rpath="$GOPATH/src/$(strip_version "$module")"
+    local rpath
+    if [[ "$module" == "github.com/ipfs/kubo" ]]; then
+        rpath="$ROOT_DIR"
+    else
+        rpath="$GOPATH/src/$(strip_version "$module")"
+    fi
     local start="${2:-}"
     local end="${3:-HEAD}"
     local mailmap_file="$rpath/.mailmap"
@@ -166,7 +171,12 @@ release_log() {
     local start="$2"
     local end="${3:-HEAD}"
     local repo="$(strip_version "$1")"
-    local dir="$GOPATH/src/$repo"
+    local dir
+    if [[ "$module" == "github.com/ipfs/kubo" ]]; then
+        dir="$ROOT_DIR"
+    else
+        dir="$GOPATH/src/$repo"
+    fi
 
     local commit pr
     git -C "$dir" log \
@@ -203,8 +213,13 @@ mod_deps() {
 ensure() {
     local repo="$(strip_version "$1")"
     local commit="$2"
-    local rpath="$GOPATH/src/$repo"
-    if [[ ! -d "$rpath" ]]; then
+    local rpath
+    if [[ "$1" == "github.com/ipfs/kubo" ]]; then
+        rpath="$ROOT_DIR"
+    else
+        rpath="$GOPATH/src/$repo"
+    fi
+    if [[ "$1" != "github.com/ipfs/kubo" ]] && [[ ! -d "$rpath" ]]; then
         msg "Cloning $repo..."
         git clone "http://$repo" "$rpath" >&2
     fi
@@ -237,10 +252,7 @@ recursive_release_log() {
     local module="$(go list -m)"
     local dir="$(go list -m -f '{{.Dir}}')"
 
-    if [[ "${GOPATH}/${module}" -ef "${dir}" ]]; then
-        echo "This script requires the target module and all dependencies to live in a GOPATH."
-        return 1
-    fi
+    # Kubo can be run from any directory, dependencies still use GOPATH
 
     (
         local result=0
