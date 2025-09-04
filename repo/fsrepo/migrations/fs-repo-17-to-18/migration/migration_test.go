@@ -25,9 +25,9 @@ func TestMigration17to18(t *testing.T) {
 			}),
 			Assertions: []common.ConfigAssertion{
 				{Path: "Provide.Enabled", Expected: true},
-				{Path: "Provide.WorkerCount", Expected: float64(8)}, // JSON unmarshals to float64
+				{Path: "Provide.DHT.MaxWorkers", Expected: float64(8)}, // JSON unmarshals to float64
 				{Path: "Provide.Strategy", Expected: "pinned"},
-				{Path: "Provide.Interval", Expected: "12h"},
+				{Path: "Provide.DHT.Interval", Expected: "12h"},
 				{Path: "Provider", Expected: nil},   // Should be deleted
 				{Path: "Reprovider", Expected: nil}, // Should be deleted
 			},
@@ -46,7 +46,7 @@ func TestMigration17to18(t *testing.T) {
 			Assertions: []common.ConfigAssertion{
 				{Path: "Provide.Enabled", Expected: false},
 				{Path: "Provide.Strategy", Expected: "all"}, // "flat" converted to "all"
-				{Path: "Provide.Interval", Expected: "24h"},
+				{Path: "Provide.DHT.Interval", Expected: "24h"},
 				{Path: "Provider", Expected: nil},
 				{Path: "Reprovider", Expected: nil},
 			},
@@ -61,7 +61,7 @@ func TestMigration17to18(t *testing.T) {
 			}),
 			Assertions: []common.ConfigAssertion{
 				{Path: "Provide.Strategy", Expected: "roots"},
-				{Path: "Provide.Interval", Expected: "6h"},
+				{Path: "Provide.DHT.Interval", Expected: "6h"},
 				{Path: "Provider", Expected: nil},
 				{Path: "Reprovider", Expected: nil},
 			},
@@ -76,7 +76,7 @@ func TestMigration17to18(t *testing.T) {
 			}),
 			Assertions: []common.ConfigAssertion{
 				{Path: "Provide.Enabled", Expected: true},
-				{Path: "Provide.WorkerCount", Expected: float64(16)},
+				{Path: "Provide.DHT.MaxWorkers", Expected: float64(16)},
 				{Path: "Provider", Expected: nil},
 				{Path: "Reprovider", Expected: nil},
 			},

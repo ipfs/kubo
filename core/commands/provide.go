@@ -100,7 +100,7 @@ var provideStatCmd = &cmds.Command{
 		Tagline: "Returns statistics about the node's provider system.",
 		ShortDescription: `
 Returns statistics about the content the node is reproviding every
-Provide.Interval according to Provide.Strategy:
+Provide.DHT.Interval according to Provide.Strategy:
 https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
 
 This interface is not stable and may change from release to release.
@@ -121,7 +121,7 @@ This interface is not stable and may change from release to release.
 
 		provideSys, ok := nd.Provider.(provider.System)
 		if !ok {
-			return errors.New("stats not available with experimental sweeping provider (Provide.Sweep.Enabled=true)")
+			return errors.New("stats not available with experimental sweeping provider (Provide.DHT.SweepEnabled=true)")
 		}
 
 		stats, err := provideSys.Stat()

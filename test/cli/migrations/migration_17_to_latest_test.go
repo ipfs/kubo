@@ -76,10 +76,10 @@ func testProviderReproviderMigration(t *testing.T) {
 
 	// Verify Provider/Reprovider migration to Provide
 	helper.RequireProviderMigration().
-		RequireFieldEquals("Provide.Enabled", true).           // Migrated from Provider.Enabled
-		RequireFieldEquals("Provide.WorkerCount", float64(8)). // Migrated from Provider.WorkerCount
-		RequireFieldEquals("Provide.Strategy", "roots").       // Migrated from Reprovider.Strategy
-		RequireFieldEquals("Provide.Interval", "24h")          // Migrated from Reprovider.Interval
+		RequireFieldEquals("Provide.Enabled", true).              // Migrated from Provider.Enabled
+		RequireFieldEquals("Provide.DHT.MaxWorkers", float64(8)). // Migrated from Provider.WorkerCount
+		RequireFieldEquals("Provide.Strategy", "roots").          // Migrated from Reprovider.Strategy
+		RequireFieldEquals("Provide.DHT.Interval", "24h")         // Migrated from Reprovider.Interval
 
 	// Verify old sections are removed
 	helper.RequireFieldAbsent("Provider").
@@ -108,7 +108,7 @@ func testFlatStrategyConversion(t *testing.T) {
 	// Verify "flat" was converted to "all"
 	helper.RequireProviderMigration().
 		RequireFieldEquals("Provide.Strategy", "all"). // "flat" converted to "all"
-		RequireFieldEquals("Provide.Interval", "12h")
+		RequireFieldEquals("Provide.DHT.Interval", "12h")
 }
 
 func testEmptyProviderReproviderMigration(t *testing.T) {
@@ -148,9 +148,9 @@ func testProviderOnlyMigration(t *testing.T) {
 	helper := NewMigrationTestHelper(t, configPath)
 	helper.RequireProviderMigration().
 		RequireFieldEquals("Provide.Enabled", false).
-		RequireFieldEquals("Provide.WorkerCount", float64(32)).
-		RequireFieldAbsent("Provide.Strategy"). // No Reprovider.Strategy to migrate
-		RequireFieldAbsent("Provide.Interval")  // No Reprovider.Interval to migrate
+		RequireFieldEquals("Provide.DHT.MaxWorkers", float64(32)).
+		RequireFieldAbsent("Provide.Strategy").    // No Reprovider.Strategy to migrate
+		RequireFieldAbsent("Provide.DHT.Interval") // No Reprovider.Interval to migrate
 }
 
 func testReproviderOnlyMigration(t *testing.T) {
@@ -170,9 +170,9 @@ func testReproviderOnlyMigration(t *testing.T) {
 	helper := NewMigrationTestHelper(t, configPath)
 	helper.RequireProviderMigration().
 		RequireFieldEquals("Provide.Strategy", "pinned").
-		RequireFieldEquals("Provide.Interval", "48h").
-		RequireFieldAbsent("Provide.Enabled").    // No Provider.Enabled to migrate
-		RequireFieldAbsent("Provide.WorkerCount") // No Provider.WorkerCount to migrate
+		RequireFieldEquals("Provide.DHT.Interval", "48h").
+		RequireFieldAbsent("Provide.Enabled").       // No Provider.Enabled to migrate
+		RequireFieldAbsent("Provide.DHT.MaxWorkers") // No Provider.WorkerCount to migrate
 }
 
 func testInvalidStrategyMigration(t *testing.T) {
@@ -231,9 +231,9 @@ func testRepoProviderReproviderMigration(t *testing.T) {
 	helper := NewMigrationTestHelper(t, configPath)
 	helper.RequireProviderMigration().
 		RequireFieldEquals("Provide.Enabled", true).
-		RequireFieldEquals("Provide.WorkerCount", float64(8)).
+		RequireFieldEquals("Provide.DHT.MaxWorkers", float64(8)).
 		RequireFieldEquals("Provide.Strategy", "roots").
-		RequireFieldEquals("Provide.Interval", "24h")
+		RequireFieldEquals("Provide.DHT.Interval", "24h")
 }
 
 // =============================================================================

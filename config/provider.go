@@ -11,6 +11,6 @@ type Provider struct {
 	// Deprecated: unused, you are likely looking for Provide.Strategy instead. This will be removed in a future release.
 	Strategy *OptionalString `json:",omitempty"`
 
-	// Deprecated: use Provide.WorkerCount instead. This will be removed in a future release.
+	// Deprecated: use Provide.DHT.MaxWorkers instead. This will be removed in a future release.
 	WorkerCount *OptionalInteger `json:",omitempty"`
 }
