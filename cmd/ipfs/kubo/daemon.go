@@ -674,7 +674,7 @@ take effect.
 			fmt.Print(`
 
 ⚠️ Provide system is disabled due to 'Provide.Interval=0'
-⚠️ Local CIDs will not be reprovided to Amino DHT, making them impossible to retrieve without manual peering
+⚠️ Local CIDs will not be provided to Amino DHT, making them impossible to retrieve without manual peering
 ⚠️ If this is not intentional, call 'ipfs config profile apply announce-on', or set 'Provide.Interval=22h'
 
 `)
