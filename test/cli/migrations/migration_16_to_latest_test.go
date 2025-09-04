@@ -30,6 +30,13 @@ import (
 // The intention is to confirm that users can upgrade from Kubo v0.36.0 to the latest version by applying
 // all intermediate migrations successfully.
 //
+// NOTE: This test comprehensively tests all migration methods (daemon --migrate, repo migrate,
+// and reverse migration) because 16-to-17 was the first embedded migration that did not fetch
+// external files. It serves as a reference implementation for migration testing.
+//
+// Future migrations can have simplified tests (like 17-to-18 in migration_17_to_latest_test.go)
+// that focus on specific migration logic rather than testing all migration methods.
+//
 // If you need to test migration of configuration keys that appeared in later repo versions,
 // create a new test file migration_N_to_latest_test.go with a separate IPFS repository test vector
 // from the appropriate Kubo version.
