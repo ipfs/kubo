@@ -7,6 +7,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -203,30 +204,87 @@ func AssertMigrationReversible(t *testing.T, migration Migration, fromVersion, t
 
 	// Create backup file (simulating a previous migration)
 	backupPath := filepath.Join(repoPath, fmt.Sprintf("config.%d-to-%d.bak", fromVersion, toVersion))
-	originalConfig, _ := json.MarshalIndent(inputConfig, "", "  ")
-	err := os.WriteFile(backupPath, originalConfig, 0644)
+	originalConfig, err := json.MarshalIndent(inputConfig, "", "  ")
 	if err != nil {
+		t.Fatalf("failed to marshal original config: %v", err)
+	}
+
+	if err := os.WriteFile(backupPath, originalConfig, 0644); err != nil {
 		t.Fatalf("failed to write backup file: %v", err)
 	}
 
 	// Run revert
-	opts := Options{
-		Path:    repoPath,
-		Verbose: false,
-	}
-
-	err = migration.Revert(opts)
-	if err != nil {
+	if err := migration.Revert(Options{Path: repoPath}); err != nil {
 		t.Fatalf("revert failed: %v", err)
 	}
 
-	// Check version was reverted
+	// Verify version was reverted
 	versionBytes, err := os.ReadFile(filepath.Join(repoPath, "version"))
 	if err != nil {
 		t.Fatalf("failed to read version file: %v", err)
 	}
-	actualVersion := string(versionBytes)
-	if actualVersion != fmt.Sprintf("%d", fromVersion) {
+
+	if actualVersion := string(versionBytes); actualVersion != fmt.Sprintf("%d", fromVersion) {
 		t.Errorf("expected version %d after revert, got %s", fromVersion, actualVersion)
+	}
+
+	// Verify config was reverted
+	configBytes, err := os.ReadFile(filepath.Join(repoPath, "config"))
+	if err != nil {
+		t.Fatalf("failed to read reverted config file: %v", err)
+	}
+
+	var revertedConfig map[string]any
+	if err := json.Unmarshal(configBytes, &revertedConfig); err != nil {
+		t.Fatalf("failed to unmarshal reverted config: %v", err)
+	}
+
+	// Compare reverted config with original
+	compareConfigs(t, inputConfig, revertedConfig, "")
+}
+
+// compareConfigs recursively compares two config maps and reports differences
+func compareConfigs(t *testing.T, expected, actual map[string]any, path string) {
+	t.Helper()
+
+	// Build current path helper
+	buildPath := func(key string) string {
+		if path == "" {
+			return key
+		}
+		return path + "." + key
+	}
+
+	// Check all expected fields exist and match
+	for key, expectedValue := range expected {
+		currentPath := buildPath(key)
+
+		actualValue, exists := actual[key]
+		if !exists {
+			t.Errorf("reverted config missing field %s", currentPath)
+			continue
+		}
+
+		switch exp := expectedValue.(type) {
+		case map[string]any:
+			act, ok := actualValue.(map[string]any)
+			if !ok {
+				t.Errorf("field %s: expected map, got %T", currentPath, actualValue)
+				continue
+			}
+			compareConfigs(t, exp, act, currentPath)
+		default:
+			if !reflect.DeepEqual(expectedValue, actualValue) {
+				t.Errorf("field %s: expected %v, got %v after revert",
+					currentPath, expectedValue, actualValue)
+			}
+		}
+	}
+
+	// Check for unexpected fields using maps.Keys (Go 1.23+)
+	for key := range actual {
+		if _, exists := expected[key]; !exists {
+			t.Errorf("reverted config has unexpected field %s", buildPath(key))
+		}
 	}
 }
