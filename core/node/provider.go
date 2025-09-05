@@ -304,9 +304,9 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.KeyStore, error) {
 		keyStore, err := rds.NewKeyStore(in.Repo.Datastore(),
-			rds.WithPrefixBits(10),
+			rds.WithPrefixBits(16),
 			rds.WithDatastorePrefix("/provider/keystore"),
-			rds.WithGCBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
+			rds.WithBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
 		)
 		if err != nil {
 			return &NoopProvider{}, nil, err
@@ -439,6 +439,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			},
 			OnStop: func(ctx context.Context) error {
 				if cancel != nil {
+					// Cancel KeyStore garbage collection loop
 					cancel()
 				}
 				select {
@@ -446,11 +447,9 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				case <-ctx.Done():
 					return ctx.Err()
 				}
+
 				// KeyStore state isn't be persisted across restarts.
-				if err := in.KeyStore.Empty(ctx); err != nil {
-					logger.Errorw("couldn't empty keystore", "err", err)
-				}
-				return in.KeyStore.Close()
+				return in.KeyStore.Empty(ctx)
 			},
 		})
 	})
