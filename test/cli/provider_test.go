@@ -543,7 +543,7 @@ func TestProvider(t *testing.T) {
 		apply     cfgApplier
 	}{
 		{
-			name:      "BurstProvider",
+			name:      "LegacyProvider",
 			reprovide: true,
 			apply: func(n *harness.Node) {
 				n.SetIPFSConfig("Reprovider.Sweep.Enabled", false)

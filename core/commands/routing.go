@@ -276,7 +276,7 @@ Trigger reprovider to announce our data to network.
 		if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) == 0 {
 			return errors.New("invalid configuration: Reprovider.Interval is set to '0'")
 		}
-		provideSys, ok := nd.Provider.(*node.BurstProvider)
+		provideSys, ok := nd.Provider.(*node.LegacyProvider)
 		if !ok {
 			return errors.New("manual reprovide not available with experimental sweeping provider (Reprovider.Sweep.Enabled=true)")
 		}

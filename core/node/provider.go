@@ -103,7 +103,7 @@ var (
 	_ DHTProvider = &ddhtprovider.SweepingProvider{}
 	_ DHTProvider = &dhtprovider.SweepingProvider{}
 	_ DHTProvider = &NoopProvider{}
-	_ DHTProvider = &BurstProvider{}
+	_ DHTProvider = &LegacyProvider{}
 )
 
 type NoopProvider struct{}
@@ -113,18 +113,18 @@ func (r *NoopProvider) ProvideOnce(...mh.Multihash) error          { return nil 
 func (r *NoopProvider) Clear() int                                 { return 0 }
 func (r *NoopProvider) RefreshSchedule() error                     { return nil }
 
-// BurstProvider is a wrapper around the boxo/provider.System. This DHT provide
-// system manages reprovides by bursts where it sequentially reprovides all
-// keys.
-type BurstProvider struct {
+// LegacyProvider is a wrapper around the boxo/provider.System. This DHT
+// provide system manages reprovides by bursts where it sequentially reprovides
+// all keys.
+type LegacyProvider struct {
 	provider.System
 }
 
-func (r *BurstProvider) StartProviding(force bool, keys ...mh.Multihash) error {
+func (r *LegacyProvider) StartProviding(force bool, keys ...mh.Multihash) error {
 	return r.ProvideOnce(keys...)
 }
 
-func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) error {
+func (r *LegacyProvider) ProvideOnce(keys ...mh.Multihash) error {
 	if many, ok := r.System.(routinghelpers.ProvideManyRouter); ok {
 		return many.ProvideMany(context.Background(), keys)
 	}
@@ -137,17 +137,17 @@ func (r *BurstProvider) ProvideOnce(keys ...mh.Multihash) error {
 	return nil
 }
 
-func (r *BurstProvider) Clear() int {
+func (r *LegacyProvider) Clear() int {
 	return r.System.Clear()
 }
 
-func (r *BurstProvider) RefreshSchedule() error { return nil }
+func (r *LegacyProvider) RefreshSchedule() error { return nil }
 
-// BurstProviderOpt creates a BurstProvider to be used as provider in the
+// LegacyProviderOpt creates a LegacyProvider to be used as provider in the
 // IpfsNode
-func BurstProviderOpt(reprovideInterval time.Duration, strategy string, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
+func LegacyProviderOpt(reprovideInterval time.Duration, strategy string, acceleratedDHTClient bool, provideWorkerCount int) fx.Option {
 	system := fx.Provide(
-		fx.Annotate(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, repo repo.Repo) (*BurstProvider, error) {
+		fx.Annotate(func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, repo repo.Repo) (*LegacyProvider, error) {
 			// Initialize provider.System first, before pinner/blockstore/etc.
 			// The KeyChanFunc will be set later via SetKeyProvider() once we have
 			// created the pinner, blockstore and other dependencies.
@@ -257,7 +257,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 				},
 			})
 
-			prov := &BurstProvider{sys}
+			prov := &LegacyProvider{sys}
 			handleStrategyChange(strategy, prov, repo.Datastore())
 
 			return prov, nil
@@ -295,7 +295,7 @@ type addrsFilter interface {
 	FilteredAddrs() []ma.Multiaddr
 }
 
-func SweepingProvider(cfg *config.Config) fx.Option {
+func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	reprovideInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
 	type providerInput struct {
 		fx.In
@@ -480,13 +480,13 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 		fx.Provide(setReproviderKeyProvider(providerStrategy)),
 	}
 	if cfg.Reprovider.Sweep.Enabled.WithDefault(config.DefaultReproviderSweepEnabled) {
-		opts = append(opts, SweepingProvider(cfg))
+		opts = append(opts, SweepingProviderOpt(cfg))
 	} else {
 		reprovideInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
 		acceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
 		provideWorkerCount := int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount))
 
-		opts = append(opts, BurstProviderOpt(reprovideInterval, providerStrategy, acceleratedDHTClient, provideWorkerCount))
+		opts = append(opts, LegacyProviderOpt(reprovideInterval, providerStrategy, acceleratedDHTClient, provideWorkerCount))
 	}
 
 	return fx.Options(opts...)
