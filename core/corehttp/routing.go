@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"context"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/ipfs/boxo/routing/http/types/iter"
 	cid "github.com/ipfs/go-cid"
 	core "github.com/ipfs/kubo/core"
+	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 )
@@ -94,6 +96,74 @@ func (r *contentRouter) PutIPNS(ctx context.Context, name ipns.Name, record *ipn
 	// The caller guarantees that name matches the record. This is double checked
 	// by the internals of PutValue.
 	return r.n.Routing.PutValue(ctx, string(name.RoutingKey()), raw)
+}
+
+func (r *contentRouter) GetClosestPeers(ctx context.Context, pid, closerThan peer.ID, count int) (iter.ResultIter[*types.PeerRecord], error) {
+	// Per the spec, if the peer ID is empty, we should use self.
+	if pid == "" {
+		pid = r.n.Identity
+	}
+
+	peers, err := r.n.DHT.WAN.GetClosestPeers(ctx, string(pid))
+	if err != nil {
+		return nil, err
+	}
+
+	lanPeers, err := r.n.DHT.LAN.GetClosestPeers(ctx, string(pid))
+	if err != nil {
+		return nil, err
+	}
+	peers = append(peers, lanPeers...)
+
+	if closerThan != "" {
+		// filter the peers slice to keep only those closer to pid than to closerThan
+		filteredPeers := make([]peer.ID, 0)
+		for _, p := range peers {
+			if kbucket.Closer(p, closerThan, string(pid)) {
+				filteredPeers = append(filteredPeers, p)
+			}
+		}
+		peers = filteredPeers
+	}
+
+	if count > 0 && len(peers) > count {
+		// shuffle the peers slice before truncating it.
+		rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
+		peers = peers[0:count]
+	}
+
+	// We have some DHT-closest peers. Find addresses for them.  We can
+	// use any routers for that, we can find records for DHT peers on
+	// non-DHT routers with whatever protocols. FIXME: right? right??
+	var records []*types.PeerRecord
+	for _, p := range peers {
+		record := types.PeerRecord{
+			ID:     &p,
+			Schema: types.SchemaPeer,
+			// we dont seem to care about protocol/extra infos
+			// FIXME: should FindPeers care? That info seems to
+			// not cross the FindPeer API.
+		}
+		// FindPeers will an iterator with a single item because
+		// that's how it's implemented above. Treat it as if it
+		// returned several records for a peer anyways. And merge them into the one above.
+		peerIter, err := r.FindPeers(ctx, p, -1)
+		if err != nil {
+			continue
+		}
+		defer peerIter.Close()
+
+		for peerIter.Next() {
+			val := peerIter.Val()
+			if val.Err != nil {
+				continue
+			}
+			record.Addrs = append(record.Addrs, val.Val.Addrs...)
+		}
+		records = append(records, &record)
+	}
+
+	return iter.ToResultIter(iter.FromSlice(records)), nil
 }
 
 type peerChanIter struct {
