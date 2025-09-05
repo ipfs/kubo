@@ -600,6 +600,9 @@ func runDaemonWithMigrationMonitoring(t *testing.T, node *harness.Node, migratio
 	err = cmd.Start()
 	require.NoError(t, err)
 
+	// Register for cleanup in case of test failure
+	harness.RegisterBackgroundProcess(cmd.Process)
+
 	var allOutput strings.Builder
 	var migrationDetected, migrationSucceeded, daemonReady bool
 

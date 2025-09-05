@@ -273,6 +273,40 @@ func (n *Node) StartDaemonWithReq(req RunRequest, authorization string) *Node {
 	if alive {
 		log.Panicf("node %d is already running", n.ID)
 	}
+
+	// Retry daemon start up to 3 times for transient failures
+	const maxAttempts = 3
+	var lastErr error
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if attempt > 1 {
+			log.Debugf("retrying daemon start for node %d (attempt %d/%d)", n.ID, attempt, maxAttempts)
+			time.Sleep(time.Second)
+		}
+
+		if err := n.tryStartDaemon(req, authorization); err == nil {
+			// Success - verify daemon is responsive
+			n.waitForDaemonReady()
+			return n
+		} else {
+			lastErr = err
+			log.Debugf("node %d daemon start attempt %d failed: %v", n.ID, attempt, err)
+		}
+	}
+
+	// All attempts failed
+	log.Panicf("node %d failed to start daemon after %d attempts: %v", n.ID, maxAttempts, lastErr)
+	return n
+}
+
+// tryStartDaemon attempts to start the daemon once
+func (n *Node) tryStartDaemon(req RunRequest, authorization string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic during daemon start: %v", r)
+		}
+	}()
+
 	newReq := req
 	newReq.Path = n.IPFSBin
 	newReq.Args = append([]string{"daemon"}, req.Args...)
@@ -280,12 +314,35 @@ func (n *Node) StartDaemonWithReq(req RunRequest, authorization string) *Node {
 
 	log.Debugf("starting node %d", n.ID)
 	res := n.Runner.MustRun(newReq)
-
 	n.Daemon = res
+
+	// Register the daemon process for cleanup tracking
+	if res.Cmd != nil && res.Cmd.Process != nil {
+		globalProcessTracker.registerProcess(res.Cmd.Process)
+	}
 
 	log.Debugf("node %d started, checking API", n.ID)
 	n.WaitOnAPI(authorization)
-	return n
+	return nil
+}
+
+// waitForDaemonReady waits for the daemon to be fully responsive
+func (n *Node) waitForDaemonReady() {
+	const maxRetries = 30
+	const retryDelay = 200 * time.Millisecond
+
+	for i := 0; i < maxRetries; i++ {
+		result := n.RunIPFS("id")
+		if result.ExitCode() == 0 {
+			log.Debugf("node %d daemon is fully responsive", n.ID)
+			return
+		}
+		if i == maxRetries-1 {
+			log.Panicf("node %d daemon not responsive after %d retries. stderr: %s",
+				n.ID, maxRetries, result.Stderr.String())
+		}
+		time.Sleep(retryDelay)
+	}
 }
 
 func (n *Node) StartDaemon(ipfsArgs ...string) *Node {
@@ -325,6 +382,10 @@ func (n *Node) StopDaemon() *Node {
 		log.Debugf("didn't stop node %d since no daemon present", n.ID)
 		return n
 	}
+
+	// Store PID for cleanup tracking
+	pid := n.Daemon.Cmd.Process.Pid
+
 	watch := make(chan struct{}, 1)
 	go func() {
 		_, _ = n.Daemon.Cmd.Process.Wait()
@@ -334,6 +395,7 @@ func (n *Node) StopDaemon() *Node {
 	// os.Interrupt does not support interrupts on Windows https://github.com/golang/go/issues/46345
 	if runtime.GOOS == "windows" {
 		if n.signalAndWait(watch, syscall.SIGKILL, 5*time.Second) {
+			globalProcessTracker.unregisterProcess(pid)
 			return n
 		}
 		log.Panicf("timed out stopping node %d with peer ID %s", n.ID, n.PeerID())
@@ -341,18 +403,22 @@ func (n *Node) StopDaemon() *Node {
 
 	log.Debugf("signaling node %d with SIGTERM", n.ID)
 	if n.signalAndWait(watch, syscall.SIGTERM, 1*time.Second) {
+		globalProcessTracker.unregisterProcess(pid)
 		return n
 	}
 	log.Debugf("signaling node %d with SIGTERM", n.ID)
 	if n.signalAndWait(watch, syscall.SIGTERM, 2*time.Second) {
+		globalProcessTracker.unregisterProcess(pid)
 		return n
 	}
 	log.Debugf("signaling node %d with SIGQUIT", n.ID)
 	if n.signalAndWait(watch, syscall.SIGQUIT, 5*time.Second) {
+		globalProcessTracker.unregisterProcess(pid)
 		return n
 	}
 	log.Debugf("signaling node %d with SIGKILL", n.ID)
 	if n.signalAndWait(watch, syscall.SIGKILL, 5*time.Second) {
+		globalProcessTracker.unregisterProcess(pid)
 		return n
 	}
 	log.Panicf("timed out stopping node %d with peer ID %s", n.ID, n.PeerID())
