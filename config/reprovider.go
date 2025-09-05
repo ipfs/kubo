@@ -9,7 +9,7 @@ const (
 	DefaultReproviderInterval = time.Hour * 22 // https://github.com/ipfs/kubo/pull/9326
 	DefaultReproviderStrategy = "all"
 
-	DefaultReproviderSweepEnabled                  = false
+	DefaultReproviderSweepEnabled                  = true
 	DefaultReproviderSweepMaxWorkers               = 4
 	DefaultReproviderSweepDedicatedPeriodicWorkers = 2
 	DefaultReproviderSweepDedicatedBurstWorkers    = 1
