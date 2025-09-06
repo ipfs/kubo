@@ -96,12 +96,17 @@ type PluginLoader struct {
 
 // NewPluginLoader creates new plugin loader.
 func NewPluginLoader(repo string) (*PluginLoader, error) {
-	loader := &PluginLoader{plugins: make([]plugin.Plugin, 0, len(preloadPlugins)), repo: repo}
+	loader := &PluginLoader{
+		plugins: make([]plugin.Plugin, 0, len(preloadPlugins)), 
+		repo:    repo,
+		config:  config.Plugins{Plugins: make(map[string]config.Plugin)}, // Initialize with empty map
+	}
 	if repo != "" {
 		switch plugins, err := readPluginsConfig(repo, config.DefaultConfigFile); {
 		case err == nil:
 			loader.config = plugins
 		case os.IsNotExist(err):
+			// Keep the default empty configuration
 		default:
 			return nil, err
 		}
@@ -161,6 +166,15 @@ func (loader *PluginLoader) transition(from, to loaderState) error {
 	return nil
 }
 
+// getPluginConfig safely retrieves plugin configuration, returning default values if not configured
+func (loader *PluginLoader) getPluginConfig(name string) (config.Plugin, bool) {
+	if loader.config.Plugins == nil {
+		return config.Plugin{}, false
+	}
+	plugin, exists := loader.config.Plugins[name]
+	return plugin, exists
+}
+
 // Load loads a plugin into the plugin loader.
 func (loader *PluginLoader) Load(pl plugin.Plugin) error {
 	if err := loader.assertState(loaderLoading); err != nil {
@@ -179,7 +193,8 @@ func (loader *PluginLoader) Load(pl plugin.Plugin) error {
 		}
 	}
 
-	if loader.config.Plugins[name].Disabled {
+	// Safely check if plugin is disabled
+	if plugin, exists := loader.getPluginConfig(name); exists && plugin.Disabled {
 		log.Infof("not loading disabled plugin %s", name)
 		return nil
 	}
@@ -252,9 +267,11 @@ func (loader *PluginLoader) Initialize() error {
 		return err
 	}
 	for _, p := range loader.plugins {
+		// Safely get plugin configuration
+		plugin, _ := loader.getPluginConfig(p.Name())
 		err := p.Init(&plugin.Environment{
 			Repo:   loader.repo,
-			Config: loader.config.Plugins[p.Name()].Config,
+			Config: plugin.Config,
 		})
 		if err != nil {
 			loader.state = loaderFailed
