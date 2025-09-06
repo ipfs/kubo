@@ -83,10 +83,12 @@ func addMigrationFiles(ctx context.Context, node *core.IpfsNode, paths []string,
 
 		fi, err := f.Stat()
 		if err != nil {
+			f.Close()
 			return err
 		}
 
 		ipfsPath, err := ufs.Add(ctx, files.NewReaderStatFile(f, fi), options.Unixfs.Pin(pin, ""))
+		f.Close()
 		if err != nil {
 			return err
 		}
