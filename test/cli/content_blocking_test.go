@@ -37,8 +37,21 @@ func TestContentBlocking(t *testing.T) {
 
 	// Create CIDs we use in test
 	h.WriteFile("parent-dir/blocked-subdir/indirectly-blocked-file.txt", "indirectly blocked file content")
+	h.WriteFile("parent-dir/safe-subdir/safe-file.txt", "safe file content")
 	allowedParentDirCID := node.IPFS("add", "--raw-leaves", "-Q", "-r", "--pin=false", filepath.Join(h.Dir, "parent-dir")).Stdout.Trimmed()
-	blockedSubDirCID := node.IPFS("add", "--raw-leaves", "-Q", "-r", "--pin=false", filepath.Join(h.Dir, "parent-dir", "blocked-subdir")).Stdout.Trimmed()
+
+	// Get the CID of subdirectories as they exist within the parent DAG
+	// Note: These CIDs are different from adding the directories standalone
+	safeSubDirCID := node.IPFS("resolve", "-r", "/ipfs/"+allowedParentDirCID+"/safe-subdir").Stdout.Trimmed()
+	safeSubDirCID = strings.TrimPrefix(safeSubDirCID, "/ipfs/")
+	blockedSubDirCID := node.IPFS("resolve", "-r", "/ipfs/"+allowedParentDirCID+"/blocked-subdir").Stdout.Trimmed()
+	blockedSubDirCID = strings.TrimPrefix(blockedSubDirCID, "/ipfs/")
+
+	// Get the CID of the safe file within the safe subdirectory
+	safeFileCID := node.IPFS("resolve", "-r", "/ipfs/"+allowedParentDirCID+"/safe-subdir/safe-file.txt").Stdout.Trimmed()
+	safeFileCID = strings.TrimPrefix(safeFileCID, "/ipfs/")
+
+	// Remove the blocked subdirectory from blockstore
 	node.IPFS("block", "rm", blockedSubDirCID)
 
 	h.WriteFile("directly-blocked-file.txt", "directly blocked file content")
@@ -102,45 +115,88 @@ func TestContentBlocking(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	})
 
-	// Confirm CAR responses skip blocked subpaths
-	t.Run("Gateway returns CAR without blocked subpath", func(t *testing.T) {
-		resp := client.Get("/ipfs/" + allowedParentDirCID + "/subdir?format=car")
+	// Verify that when requesting a subdirectory as CAR, the response includes
+	// the safe content even when a sibling directory is blocked
+	t.Run("Gateway returns 200 with CAR for safe subdir when sibling is blocked", func(t *testing.T) {
+		// Request the SAFE subdirectory, verifying it's accessible even though a sibling is blocked
+		resp := client.Get("/ipfs/" + allowedParentDirCID + "/safe-subdir?format=car")
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		bs, err := carstore.NewReadOnly(strings.NewReader(resp.Body), nil)
 		assert.NoError(t, err)
 
-		has, err := bs.Has(context.Background(), cid.MustParse(blockedSubDirCID))
+		roots, err := bs.Roots()
 		assert.NoError(t, err)
-		assert.False(t, has)
+		assert.Equal(t, 1, len(roots))
+		assert.Equal(t, safeSubDirCID, roots[0].String())
+
+		// Verify the safe content IS in the CAR
+		ctx := context.TODO()
+		has, err := bs.Has(ctx, cid.MustParse(safeSubDirCID))
+		assert.NoError(t, err)
+		assert.True(t, has, "CAR should include the safe subdirectory")
+
+		// Verify the safe file within the subdirectory IS in the CAR
+		has, err = bs.Has(ctx, cid.MustParse(safeFileCID))
+		assert.NoError(t, err)
+		assert.True(t, has, "CAR should include the safe file within the subdirectory")
+
+		// Verify the blocked content is NOT in the CAR (it shouldn't be traversed)
+		has, err = bs.Has(ctx, cid.MustParse(blockedSubDirCID))
+		assert.NoError(t, err)
+		assert.False(t, has, "CAR should not include the blocked subdirectory")
 	})
 
-	/* TODO: this was already broken in 0.26, but we should fix it
-	t.Run("Gateway returns CAR without directly blocked CID", func(t *testing.T) {
+	// Test that requesting non-existent path with CAR format returns 404 (not 410)
+	// This ensures we distinguish between blocked content and missing content
+	t.Run("Gateway returns 404 for non-existent path with CAR format", func(t *testing.T) {
+		// Request a non-existent subdirectory as CAR
+		resp := client.Get("/ipfs/" + allowedParentDirCID + "/safe-404?format=car")
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode, "Non-existent path should return 404 Not Found")
+
+		// Verify response body is not a CAR file but an error message
+		// CAR files start with specific magic bytes
+		assert.NotContains(t, resp.Body, "CAR", "404 response should not contain CAR data")
+		// Verify it contains an appropriate error message
+		assert.Contains(t, resp.Body, "no link named", "404 response should contain IPFS path resolution error")
+	})
+
+	// Test that confirms blocking of children skips them from produced CAR.
+	t.Run("Gateway returns 200 with CAR without directly blocked CID", func(t *testing.T) {
+		// First verify that the blocked CID is actually blocked when accessed directly
+		directResp := client.Get("/ipfs/" + blockedCID)
+		assert.Equal(t, http.StatusGone, directResp.StatusCode, "Direct access to blocked CID should return 410")
+
 		allowedDirWithDirectlyBlockedCID := node.IPFS("add", "--raw-leaves", "-Q", "-rw", filepath.Join(h.Dir, "directly-blocked-file.txt")).Stdout.Trimmed()
+		t.Logf("Directory CID containing blocked file: %s", allowedDirWithDirectlyBlockedCID)
+		t.Logf("Blocked CID that should not appear in CAR: %s", blockedCID)
 		resp := client.Get("/ipfs/" + allowedDirWithDirectlyBlockedCID + "?format=car")
+
+		// We expect HTTP 200 because root cid is not blocked, so we start
+		// streaming directory recursively
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		bs, err := carstore.NewReadOnly(strings.NewReader(resp.Body), nil)
 		assert.NoError(t, err)
 
+		// The blocked CID MUST be omitted from HTTP response
 		has, err := bs.Has(context.Background(), cid.MustParse(blockedCID))
 		assert.NoError(t, err)
 		assert.False(t, has, "Returned CAR should not include blockedCID")
 	})
-	*/
 
-	// Confirm CAR responses skip blocked subpaths
-	t.Run("Gateway returns CAR without blocked subpath", func(t *testing.T) {
-		resp := client.Get("/ipfs/" + allowedParentDirCID + "/subdir?format=car")
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	// Test that requesting a CAR with a blocked root CID returns 410
+	t.Run("Gateway returns 410 for CAR request with blocked root CID", func(t *testing.T) {
+		resp := client.Get("/ipfs/" + blockedCID + "?format=car")
+		assert.Equal(t, http.StatusGone, resp.StatusCode, "CAR request for blocked root CID should return 410 Gone")
+		assert.Contains(t, resp.Body, blockedMsg, "Error message should indicate content is blocked")
+	})
 
-		bs, err := carstore.NewReadOnly(strings.NewReader(resp.Body), nil)
-		assert.NoError(t, err)
-
-		has, err := bs.Has(context.Background(), cid.MustParse(blockedSubDirCID))
-		assert.NoError(t, err)
-		assert.False(t, has, "Returned CAR should not include blockedSubDirCID")
+	// Test that requesting raw format with a blocked root CID returns 410
+	t.Run("Gateway returns 410 for raw request with blocked root CID", func(t *testing.T) {
+		resp := client.Get("/ipfs/" + blockedCID + "?format=raw")
+		assert.Equal(t, http.StatusGone, resp.StatusCode, "Raw request for blocked root CID should return 410 Gone")
+		assert.Contains(t, resp.Body, blockedMsg, "Error message should indicate content is blocked")
 	})
 
 	// Ok, now the full list of test cases we want to cover in both CLI and Gateway
