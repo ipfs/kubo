@@ -64,13 +64,7 @@ func SetupInterruptHandler(ctx context.Context) (io.Closer, context.Context) {
 		switch count {
 		case 1:
 			fmt.Println() // Prevent un-terminated ^C character in terminal
-
-			ih.wg.Add(1)
-			go func() {
-				defer ih.wg.Done()
-				cancelFunc()
-			}()
-
+			cancelFunc()
 		default:
 			fmt.Println("Received another interrupt before graceful shutdown, terminating...")
 			os.Exit(-1)
