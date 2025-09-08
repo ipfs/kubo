@@ -344,7 +344,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			}
 		}
 		if impl == nil {
-			return &NoopProvider{}, nil, errors.New("no valid DHT available for providing")
+			return &NoopProvider{}, nil, nil
 		}
 
 		var selfAddrsFunc func() []ma.Multiaddr
@@ -407,6 +407,9 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
+				if in.Provider == nil || in.KeyStore == nil {
+					return nil
+				}
 				// Set the KeyProvider as a garbage collection function for the
 				// keystore. Periodically purge the KeyStore from all its keys and
 				// replace them with the keys that needs to be reprovided, coming from
@@ -438,6 +441,10 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				return nil
 			},
 			OnStop: func(ctx context.Context) error {
+				if in.Provider == nil || in.KeyStore == nil {
+					return nil
+				}
+
 				if cancel != nil {
 					// Cancel KeyStore garbage collection loop
 					cancel()
