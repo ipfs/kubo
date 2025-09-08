@@ -511,7 +511,7 @@ func detectContainer() bool {
 	// Check if our process is running inside a container cgroup
 	// Look for container-specific patterns in the cgroup path after "::/"
 	if content, err := os.ReadFile("/proc/self/cgroup"); err == nil {
-		for _, line := range strings.Split(string(content), "\n") {
+		for line := range strings.Lines(string(content)) {
 			// cgroup lines format: "ID:subsystem:/path"
 			// We want to check the path part after the last ":"
 			parts := strings.SplitN(line, ":", 3)
