@@ -3133,6 +3133,8 @@ Note that using flags will override the options defined here.
 
 The default CID version. Commands affected: `ipfs add`.
 
+Must be either 0 or 1. CIDv0 uses SHA2-256 only, while CIDv1 supports multiple hash functions.
+
 Default: `0`
 
 Type: `optionalInteger`
@@ -3149,6 +3151,11 @@ Type: `flag`
 
 The default UnixFS chunker. Commands affected: `ipfs add`.
 
+Valid formats:
+- `size-<bytes>` - fixed size chunker
+- `rabin-<min>-<avg>-<max>` - rabin fingerprint chunker  
+- `buzhash` - buzhash chunker
+
 Default: `size-262144`
 
 Type: `optionalString`
@@ -3156,6 +3163,10 @@ Type: `optionalString`
 ### `Import.HashFunction`
 
 The default hash function. Commands affected: `ipfs add`, `ipfs block put`, `ipfs dag put`.
+
+Must be a valid multihash name (e.g., `sha2-256`, `blake3`) and must be allowed for use in IPFS according to security constraints.
+
+Run `ipfs cid hashes --supported` to see the full list of allowed hash functions.
 
 Default: `sha2-256`
 
@@ -3167,6 +3178,8 @@ The maximum number of nodes in a write-batch. The total size of the batch is lim
 
 Increasing this will batch more items together when importing data with `ipfs dag import`, which can speed things up.
 
+Must be positive (> 0). Setting to 0 would cause immediate batching after each node, which is inefficient.
+
 Default: `128`
 
 Type: `optionalInteger`
@@ -3176,6 +3189,8 @@ Type: `optionalInteger`
 The maximum size of a single write-batch (computed as the sum of the sizes of the blocks). The total size of the batch is limited by `BatchMaxnodes` and `BatchMaxSize`.
 
 Increasing this will batch more items together when importing data with `ipfs dag import`, which can speed things up.
+
+Must be positive (> 0). Setting to 0 would cause immediate batching after any data, which is inefficient.
 
 Default: `20971520` (20MiB)
 
@@ -3188,6 +3203,8 @@ when building the DAG while importing.
 
 This setting controls both the fanout in files that are chunked into several
 blocks and grouped as a Unixfs (dag-pb) DAG.
+
+Must be positive (> 0). Zero or negative values would break file DAG construction.
 
 Default: `174`
 
@@ -3208,6 +3225,8 @@ This setting will cause basic directories to be converted to HAMTs when they
 exceed the maximum number of children. This happens transparently during the
 add process. The fanout of HAMT nodes is controlled by `MaxHAMTFanout`.
 
+Must be non-negative (>= 0). Zero means no limit, negative values are invalid.
+
 Commands affected: `ipfs add`
 
 Default: `0` (no limit, because [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold) triggers controls when to switch to HAMT sharding when a directory grows too big)
@@ -3216,15 +3235,15 @@ Type: `optionalInteger`
 
 ### `Import.UnixFSHAMTDirectoryMaxFanout`
 
-The maximum number of children that a node part of a Unixfs HAMT directory
+The maximum number of children that a node part of a UnixFS HAMT directory
 (aka sharded directory) can have.
 
 HAMT directories have unlimited children and are used when basic directories
-become too big or reach `MaxLinks`. A HAMT is a structure made of unixfs
+become too big or reach `MaxLinks`. A HAMT is a structure made of UnixFS
 nodes that store the list of elements in the folder. This option controls the
 maximum number of children that the HAMT nodes can have.
 
-Needs to be a power of two (shard entry size) and multiple of 8 (bitfield size).
+According to the [UnixFS specification](https://specs.ipfs.tech/unixfs/#hamt-structure-and-parameters), this value must be a power of 2, a multiple of 8 (for byte-aligned bitfields), and not exceed 1024 (to prevent denial-of-service attacks).
 
 Commands affected: `ipfs add`, `ipfs daemon` (globally overrides [`boxo/ipld/unixfs/io.DefaultShardWidth`](https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L30C5-L30C22))
 
