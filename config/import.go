@@ -81,24 +81,10 @@ func ValidateImportConfig(cfg *Import) error {
 	if !cfg.UnixFSHAMTDirectoryMaxFanout.IsDefault() {
 		fanout := cfg.UnixFSHAMTDirectoryMaxFanout.WithDefault(DefaultUnixFSHAMTDirectoryMaxFanout)
 
-		// Check if fanout is positive
-		if fanout <= 0 {
-			return fmt.Errorf("Import.UnixFSHAMTDirectoryMaxFanout must be positive, got %d", fanout)
-		}
-
-		// Check if fanout is a power of 2
-		if !isPowerOfTwo(fanout) {
-			return fmt.Errorf("Import.UnixFSHAMTDirectoryMaxFanout must be a power of 2, got %d", fanout)
-		}
-
-		// Check if fanout is a multiple of 8 (for byte-aligned bitfields)
-		if fanout%8 != 0 {
-			return fmt.Errorf("Import.UnixFSHAMTDirectoryMaxFanout must be a multiple of 8 (for byte-aligned bitfields), got %d", fanout)
-		}
-
-		// Check if fanout does not exceed 1024
-		if fanout > 1024 {
-			return fmt.Errorf("Import.UnixFSHAMTDirectoryMaxFanout must not exceed 1024 (UnixFS spec limit), got %d", fanout)
+		// Check all requirements: fanout < 8 covers both non-positive and non-multiple of 8
+		// Combined with power of 2 check and max limit, this ensures valid values: 8, 16, 32, 64, 128, 256, 512, 1024
+		if fanout < 8 || !isPowerOfTwo(fanout) || fanout > 1024 {
+			return fmt.Errorf("Import.UnixFSHAMTDirectoryMaxFanout must be a positive power of 2, multiple of 8, and not exceed 1024 (got %d)", fanout)
 		}
 	}
 
@@ -163,8 +149,9 @@ func isValidChunker(chunker string) bool {
 		if sizeStr[0] == '-' {
 			return false
 		}
-		_, err := strconv.Atoi(sizeStr)
-		return err == nil
+		size, err := strconv.Atoi(sizeStr)
+		// Size must be positive (not zero)
+		return err == nil && size > 0
 	}
 
 	// Check for rabin-<min>-<avg>-<max> format
@@ -173,12 +160,20 @@ func isValidChunker(chunker string) bool {
 		if len(parts) != 4 {
 			return false
 		}
-		for i := 1; i < 4; i++ {
-			if _, err := strconv.Atoi(parts[i]); err != nil {
+
+		// Parse and validate min, avg, max values
+		values := make([]int, 3)
+		for i := 0; i < 3; i++ {
+			val, err := strconv.Atoi(parts[i+1])
+			if err != nil {
 				return false
 			}
+			values[i] = val
 		}
-		return true
+
+		// Validate ordering: min <= avg <= max
+		min, avg, max := values[0], values[1], values[2]
+		return min <= avg && avg <= max
 	}
 
 	return false
