@@ -72,6 +72,7 @@ func (api *PinAPI) Ls(ctx context.Context, pins chan<- iface.Pin, opts ...caopts
 
 	res, err := api.core().Request("pin/ls").
 		Option("type", options.Type).
+		Option("names", options.Detailed).
 		Option("stream", true).
 		Send(ctx)
 	if err != nil {
