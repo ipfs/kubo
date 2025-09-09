@@ -284,6 +284,15 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	default:
 		return err
 	case fsrepo.ErrNeedMigration:
+		migrationDone := make(chan struct{})
+		go func() {
+			select {
+			case <-req.Context.Done():
+				os.Exit(1)
+			case <-migrationDone:
+			}
+		}()
+
 		domigrate, found := req.Options[migrateKwd].(bool)
 
 		// Get current repo version for more informative message
@@ -299,6 +308,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		if !found {
 			domigrate = YesNoPrompt("Run migrations now? [y/N]")
 		}
+		close(migrationDone)
 
 		if !domigrate {
 			fmt.Printf("Not running migrations on repository at %s. Re-run daemon with --migrate or see 'ipfs repo migrate --help'\n", cctx.ConfigRoot)
