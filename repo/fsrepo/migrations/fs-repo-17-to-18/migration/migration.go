@@ -68,17 +68,22 @@ func convert(in io.ReadSeeker, out io.Writer) error {
 	// Migrate Reprovider fields if they exist
 	reprovider := common.SafeCastMap(confMap["Reprovider"])
 	if strategy, exists := reprovider["Strategy"]; exists {
-		// Convert deprecated "flat" strategy to "all"
-		if strategyStr, ok := strategy.(string); ok && strategyStr == "flat" {
-			provide["Strategy"] = "all"
-			fmt.Printf("  Migrated deprecated Reprovider.Strategy=\"flat\" to Provide.Strategy=\"all\"\n")
-			hasNonDefaultValues = true
-		} else if strategyStr, ok := strategy.(string); ok && strategyStr != "all" {
-			provide["Strategy"] = strategy
-			fmt.Printf("  Migrated Reprovider.Strategy=\"%s\" to Provide.Strategy=\"%s\"\n", strategyStr, strategyStr)
+		if strategyStr, ok := strategy.(string); ok {
+			// Convert deprecated "flat" strategy to "all"
+			if strategyStr == "flat" {
+				provide["Strategy"] = "all"
+				fmt.Printf("  Migrated deprecated Reprovider.Strategy=\"flat\" to Provide.Strategy=\"all\"\n")
+			} else {
+				// Migrate any other strategy value as-is
+				provide["Strategy"] = strategyStr
+				fmt.Printf("  Migrated Reprovider.Strategy=\"%s\" to Provide.Strategy=\"%s\"\n", strategyStr, strategyStr)
+			}
 			hasNonDefaultValues = true
 		} else {
-			provide["Strategy"] = strategy
+			// Not a string, set to default "all" to ensure valid config
+			provide["Strategy"] = "all"
+			fmt.Printf("  Warning: Reprovider.Strategy was not a string, setting Provide.Strategy=\"all\"\n")
+			hasNonDefaultValues = true
 		}
 	}
 	if interval, exists := reprovider["Interval"]; exists {

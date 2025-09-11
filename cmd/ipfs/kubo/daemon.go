@@ -673,7 +673,7 @@ take effect.
 		} else if cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0 {
 			fmt.Print(`
 
-⚠️ Provide system is disabled due to 'Provide.DHT.Interval=0'
+⚠️ Providing to the DHT is disabled due to 'Provide.DHT.Interval=0'
 ⚠️ Local CIDs will not be provided to Amino DHT, making them impossible to retrieve without manual peering
 ⚠️ If this is not intentional, call 'ipfs config profile apply announce-on', or set 'Provide.DHT.Interval=22h'
 
