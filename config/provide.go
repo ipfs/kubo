@@ -11,8 +11,7 @@ const (
 
 	// DHT provider defaults
 	DefaultProvideDHTInterval                 = 22 * time.Hour // https://github.com/ipfs/kubo/pull/9326
-	DefaultProvideDHTMaxWorkers               = 4              // Sweep provider default (more efficient)
-	DefaultProvideDHTLegacyMaxWorkers         = 16             // Legacy burst provider default (backward compat)
+	DefaultProvideDHTMaxWorkers               = 16             // Unified default for both sweep and legacy providers
 	DefaultProvideDHTSweepEnabled             = false
 	DefaultProvideDHTDedicatedPeriodicWorkers = 2
 	DefaultProvideDHTDedicatedBurstWorkers    = 1
@@ -57,8 +56,7 @@ type ProvideDHT struct {
 	// MaxWorkers sets the maximum number of concurrent workers for provide operations.
 	// When SweepEnabled is false: controls NEW CID announcements only.
 	// When SweepEnabled is true: controls total worker pool for all operations.
-	// Default: DefaultProvideDHTLegacyMaxWorkers when SweepEnabled=false
-	// Default: DefaultProvideDHTMaxWorkers when SweepEnabled=true
+	// Default: DefaultProvideDHTMaxWorkers
 	MaxWorkers *OptionalInteger `json:",omitempty"`
 
 	// SweepEnabled activates the sweeping reprovider system which spreads
