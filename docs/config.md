@@ -1955,7 +1955,7 @@ connections this setting can generate.
 > At the same time, mind that raising this value too high may lead to increased load.
 > Proceed with caution, ensure proper hardware and networking are in place.
 
-Default: `16` (legacy mode) or `4` (when `Provide.DHT.SweepEnabled=true`)
+Default: `16`
 
 Type: `optionalInteger` (non-negative; `0` means unlimited number of workers)
 
