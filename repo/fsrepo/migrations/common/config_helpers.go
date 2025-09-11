@@ -178,20 +178,21 @@ func MergeInto(config map[string]any, destination string, sources ...string) {
 		}
 	}
 
-	if destMap == nil {
-		destMap = make(map[string]any)
-	}
-
 	// Merge each source
 	for _, source := range sources {
 		if value, exists := GetField(config, source); exists {
 			if sourceMap, ok := value.(map[string]any); ok {
+				if destMap == nil {
+					destMap = make(map[string]any)
+				}
 				maps.Copy(destMap, sourceMap)
 			}
 		}
 	}
 
-	SetField(config, destination, destMap)
+	if destMap != nil {
+		SetField(config, destination, destMap)
+	}
 }
 
 // CopyField copies a field value to a new location (keeps original)
