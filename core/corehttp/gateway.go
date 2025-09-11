@@ -107,11 +107,13 @@ func Libp2pGatewayOption() ServeOption {
 			// Keep these constraints for security
 			DeserializedResponses: false, // Trustless-only
 			NoDNSLink:             true,  // No DNS resolution
+			DisableHTMLErrors:     true,  // Plain text errors only
 			PublicGateways:        nil,
 			Menu:                  nil,
 			// Apply timeout and concurrency limits from user config
 			RetrievalTimeout:      cfg.Gateway.RetrievalTimeout.WithDefault(config.DefaultRetrievalTimeout),
 			MaxConcurrentRequests: int(cfg.Gateway.MaxConcurrentRequests.WithDefault(int64(config.DefaultMaxConcurrentRequests))),
+			DiagnosticServiceURL:  "", // Not used since DisableHTMLErrors=true
 		}
 
 		handler := gateway.NewHandler(gwConfig, &offlineGatewayErrWrapper{gwimpl: backend})
@@ -270,6 +272,7 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, er
 		PublicGateways:        map[string]*gateway.PublicGateway{},
 		RetrievalTimeout:      cfg.Gateway.RetrievalTimeout.WithDefault(config.DefaultRetrievalTimeout),
 		MaxConcurrentRequests: int(cfg.Gateway.MaxConcurrentRequests.WithDefault(int64(config.DefaultMaxConcurrentRequests))),
+		DiagnosticServiceURL:  cfg.Gateway.DiagnosticServiceURL.WithDefault(config.DefaultDiagnosticServiceURL),
 	}
 
 	// Add default implicit known gateways, such as subdomain gateway on localhost.

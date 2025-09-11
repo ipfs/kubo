@@ -276,7 +276,7 @@ Trigger reprovider to announce our data to network.
 		if cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0 {
 			return errors.New("invalid configuration: Provide.DHT.Interval is set to '0'")
 		}
-		provideSys, ok := nd.Provider.(*node.BurstProvider)
+		provideSys, ok := nd.Provider.(*node.LegacyProvider)
 		if !ok {
 			return errors.New("manual reprovide not available with experimental sweeping provider (Provide.DHT.SweepEnabled=true)")
 		}
