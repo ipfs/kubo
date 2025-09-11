@@ -1936,6 +1936,7 @@ Sets the maximum number of _concurrent_ DHT provide operations.
 **When `Provide.DHT.SweepEnabled` is true:**
 - Controls the total worker pool for both provide and reprovide operations
 - Workers are split between periodic reprovides and burst provides
+- Use a positive value to control resource usage
 - See [`DedicatedPeriodicWorkers`](#providedhtdedicatedperiodicworkers) and [`DedicatedBurstWorkers`](#providedhtdedicatedburstworkers) for task allocation
 
 If the [accelerated DHT client](#routingaccelerateddhtclient) is enabled, each

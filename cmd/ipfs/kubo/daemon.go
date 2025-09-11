@@ -504,6 +504,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if cfg.Experimental.StrategicProviding {
 		log.Fatal("Experimental.StrategicProviding was removed. Remove it from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#strategic-providing")
 	}
+	// Check for invalid MaxWorkers=0 with SweepEnabled
+	if cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled) &&
+		cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers) == 0 {
+		log.Fatal("Invalid configuration: Provide.DHT.MaxWorkers cannot be 0 when Provide.DHT.SweepEnabled=true. Set Provide.DHT.MaxWorkers to a positive value (e.g., 16) to control resource usage. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtmaxworkers")
+	}
 	if routingOption == routingOptionDelegatedKwd {
 		// Delegated routing is read-only mode - content providing must be disabled
 		if cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
