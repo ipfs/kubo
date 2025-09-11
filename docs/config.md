@@ -1848,8 +1848,8 @@ Type: `duration`
 
 Configures CID announcements to the routing system, including both immediate 
 announcements for new content (provide) and periodic re-announcements 
-(reprovide) on systems that require it, like Amino DHT. Designed to support 
-additional routing systems in the future.
+(reprovide) on systems that require it, like Amino DHT. While designed to support 
+multiple routing systems in the future, the current default configuration only supports providing to the Amino DHT.
 
 ### `Provide.Enabled`
 
@@ -1877,7 +1877,7 @@ Tells the provide system what should be announced. Valid strategies are:
     and a graceful resume does not have to be guaranteed: the lack of child
     announcements means an interrupted retrieval won't be able to find
     providers for the missing block in the middle of a file, unless the peer
-    happens to already be connected to a provider and ask for child CID over
+    happens to already be connected to a provider and asks for child CID over
     bitswap.
 - `"mfs"` - announce only the local CIDs that are part of the MFS (`ipfs files`)
    - Note: MFS is lazy-loaded. Only the MFS blocks present in local datastore are announced.
@@ -1889,8 +1889,8 @@ Tells the provide system what should be announced. Valid strategies are:
 
 **Memory requirements:**
 
-- Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
-- This is due to the use of a buffered provider, which avoids holding a lock on the entire pinset during the reprovide cycle.
+- Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million CIDs for reproviding to the Amino DHT.
+- This is due to the use of a buffered provider, which loads all CIDs into memory to avoid holding a lock on the entire pinset during the reprovide cycle.
 
 Default: `"all"`
 
@@ -1908,7 +1908,7 @@ also known as Provider Record Expiration Interval.
 
 An interval of about half the expiration window ensures provider records
 are refreshed well before they expire. This keeps your content continuously
-discoverable without overwhelming the network with too frequent announcements.
+discoverable accounting for network churn without overwhelming the network with too frequent announcements.
 
 - If unset, it uses the implicit safe default.
 - If set to the value `"0"` it will disable content reproviding to DHT.
@@ -1928,12 +1928,12 @@ Type: `optionalDuration` (unset for the default)
 
 Sets the maximum number of _concurrent_ DHT provide operations.
 
-**When SweepEnabled is false (legacy mode):**
+**When `Provide.DHT.SweepEnabled` is false (legacy mode):**
 - Controls NEW CID announcements only
 - Reprovide operations do **not** count against this limit
 - A value of `0` allows unlimited provide workers
 
-**When SweepEnabled is true:**
+**When `Provide.DHT.SweepEnabled` is true:**
 - Controls the total worker pool for both provide and reprovide operations
 - Workers are split between periodic reprovides and burst provides
 - See [`DedicatedPeriodicWorkers`](#providedhtdedicatedperiodicworkers) and [`DedicatedBurstWorkers`](#providedhtdedicatedburstworkers) for task allocation
@@ -1949,7 +1949,7 @@ connections this setting can generate.
 > For nodes without strict connection limits that need to provide large volumes
 > of content, we recommend first trying `Provide.DHT.SweepEnabled=true` for efficient
 > announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. 
-> Consider enabling expensive `Routing.AcceleratedDHTClient=true` as a last resort.
+> As a last resort, consider enabling `Routing.AcceleratedDHTClient=true` but be aware that it is very resource hungry.
 >
 > At the same time, mind that raising this value too high may lead to increased load.
 > Proceed with caution, ensure proper hardware and networking are in place.
@@ -1998,12 +1998,13 @@ Type: `flag`
 
 #### `Provide.DHT.DedicatedPeriodicWorkers`
 
-Number of workers dedicated to periodic keyspace region reprovides.
+Number of workers dedicated to periodic keyspace region reprovides. Only applies when `Provide.DHT.SweepEnabled` is true.
 
 Among the [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers), this
-number of workers will be dedicated to the periodic region reprovide only. In
-addition to these, if there are available workers in the pool, they can also be
-used for periodic reprovides.
+number of workers will be dedicated to the periodic region reprovide only. The sum of 
+`DedicatedPeriodicWorkers` and `DedicatedBurstWorkers` should not exceed `MaxWorkers`. 
+Any remaining workers (MaxWorkers - DedicatedPeriodicWorkers - DedicatedBurstWorkers) 
+form a shared pool that can be used for either type of work as needed.
 
 Default: `2`
 
@@ -2012,7 +2013,7 @@ operation can be performed by free non-dedicated workers)
 
 #### `Provide.DHT.DedicatedBurstWorkers`
 
-Number of workers dedicated to burst provides.
+Number of workers dedicated to burst provides. Only applies when `Provide.DHT.SweepEnabled` is true.
 
 Burst provides are triggered by:
 - Manual provide commands (`ipfs routing provide`)
