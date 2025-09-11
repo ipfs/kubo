@@ -72,7 +72,7 @@ func (NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdentity
 		c.AutoTLS.Enabled = config.False // disable so no /ws listener is added
 		// For provider tests, avoid that content gets
 		// auto-provided without calling "provide" (unless pinned).
-		c.Reprovider.Strategy = config.NewOptionalString("roots")
+		c.Provide.Strategy = config.NewOptionalString("roots")
 
 		ds := syncds.MutexWrap(datastore.NewMapDatastore())
 		r := &repo.Mock{

@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ipfs/kubo/repo/fsrepo/migrations/common"
 	mg16 "github.com/ipfs/kubo/repo/fsrepo/migrations/fs-repo-16-to-17/migration"
 )
 
@@ -43,17 +44,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	m := mg16.Migration{}
-	opts := mg16.Options{
+	opts := common.Options{
 		Path:    *path,
 		Verbose: *verbose,
 	}
 
 	var err error
 	if *revert {
-		err = m.Revert(opts)
+		err = mg16.Migration.Revert(opts)
 	} else {
-		err = m.Apply(opts)
+		err = mg16.Migration.Apply(opts)
 	}
 
 	if err != nil {

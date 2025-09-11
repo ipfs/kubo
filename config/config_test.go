@@ -134,14 +134,24 @@ func TestCheckKey(t *testing.T) {
 		t.Fatal("Foo.Bar isn't a valid key in the config")
 	}
 
-	err = CheckKey("Reprovider.Strategy")
+	err = CheckKey("Provide.Strategy")
 	if err != nil {
-		t.Fatalf("%s: %s", err, "Reprovider.Strategy is a valid key in the config")
+		t.Fatalf("%s: %s", err, "Provide.Strategy is a valid key in the config")
 	}
 
-	err = CheckKey("Provider.Foo")
+	err = CheckKey("Provide.DHT.MaxWorkers")
+	if err != nil {
+		t.Fatalf("%s: %s", err, "Provide.DHT.MaxWorkers is a valid key in the config")
+	}
+
+	err = CheckKey("Provide.DHT.Interval")
+	if err != nil {
+		t.Fatalf("%s: %s", err, "Provide.DHT.Interval is a valid key in the config")
+	}
+
+	err = CheckKey("Provide.Foo")
 	if err == nil {
-		t.Fatal("Provider.Foo isn't a valid key in the config")
+		t.Fatal("Provide.Foo isn't a valid key in the config")
 	}
 
 	err = CheckKey("Gateway.PublicGateways.Foo.Paths")

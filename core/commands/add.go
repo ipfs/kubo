@@ -82,7 +82,7 @@ to form the IPFS MerkleDAG. Learn more: https://docs.ipfs.tech/concepts/merkle-d
 
 If the daemon is not running, it will just add locally to the repo at $IPFS_PATH.
 If the daemon is started later, it will be advertised after a few
-seconds when the reprovider runs.
+seconds when the provide system runs.
 
 BASIC EXAMPLES:
 

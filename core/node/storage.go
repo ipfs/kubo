@@ -41,8 +41,8 @@ func BaseBlockstoreCtor(
 		// Important: Provide calls from blockstore are intentionally BLOCKING.
 		// The Provider implementation (not the blockstore) should handle concurrency/queuing.
 		// This avoids spawning unbounded goroutines for concurrent block additions.
-		strategyFlag := config.ParseReproviderStrategy(providingStrategy)
-		if strategyFlag&config.ReproviderStrategyAll != 0 {
+		strategyFlag := config.ParseProvideStrategy(providingStrategy)
+		if strategyFlag&config.ProvideStrategyAll != 0 {
 			opts = append(opts, blockstore.Provider(prov))
 		}
 

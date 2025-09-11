@@ -407,7 +407,7 @@ func (p *telemetryPlugin) collectBasicInfo() {
 	}
 	p.event.UptimeBucket = uptimeBucket
 
-	p.event.ReproviderStrategy = p.config.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
+	p.event.ReproviderStrategy = p.config.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 }
 
 func (p *telemetryPlugin) collectRoutingInfo() {
