@@ -2018,7 +2018,7 @@ Number of workers dedicated to burst provides. Only applies when `Provide.DHT.Sw
 
 Burst provides are triggered by:
 - Manual provide commands (`ipfs routing provide`)
-- New content that matches your `Provide.Strategy` (e.g., blocks fetched via bitswap/http)
+- New content matching your `Provide.Strategy` (blocks from `ipfs add`, bitswap, or trustless gateway requests)
 - Catch-up reprovides after being disconnected/offline for a while
 
 Having dedicated burst workers ensures that bulk operations (like adding many CIDs
