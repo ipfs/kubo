@@ -5,8 +5,9 @@ import (
 	"errors"
 	"net"
 
-	filestore "github.com/ipfs/go-filestore"
-	keystore "github.com/ipfs/go-ipfs-keystore"
+	filestore "github.com/ipfs/boxo/filestore"
+	keystore "github.com/ipfs/boxo/keystore"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 
 	config "github.com/ipfs/kubo/config"
 	ma "github.com/multiformats/go-multiaddr"
@@ -14,7 +15,7 @@ import (
 
 var errTODO = errors.New("TODO: mock repo")
 
-// Mock is not thread-safe
+// Mock is not thread-safe.
 type Mock struct {
 	C config.Config
 	D Datastore
@@ -24,6 +25,14 @@ type Mock struct {
 
 func (m *Mock) Config() (*config.Config, error) {
 	return &m.C, nil // FIXME threadsafety
+}
+
+func (m *Mock) Path() string {
+	return ""
+}
+
+func (m *Mock) UserResourceOverrides() (rcmgr.PartialLimitConfig, error) {
+	return rcmgr.PartialLimitConfig{}, nil
 }
 
 func (m *Mock) SetConfig(updated *config.Config) error {

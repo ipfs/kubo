@@ -1,6 +1,6 @@
 # IPFS : The `Add` command demystified
 
-The goal of this document is to capture the code flow for adding a file (see the `coreapi` package) using the IPFS CLI, in the process exploring some datastructures and packages like `ipld.Node` (aka `dagnode`), `FSNode`, `MFS`, etc.
+The goal of this document is to capture the code flow for adding a file (see the `coreapi` package) using the IPFS CLI, in the process exploring some data structures and packages like `ipld.Node` (aka `dagnode`), `FSNode`, `MFS`, etc.
 
 ## Concepts
 - [Files](https://github.com/ipfs/docs/issues/133)
@@ -55,7 +55,7 @@ Within the function, a new `Adder` is created with the configured `Blockstore` a
 
       1. **[`adder.add(io.Reader)`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L115)** - *Create and return the **root** __DAG__ node*
 
-          This method converts the input data (`io.Reader`) to a __DAG__ tree, by splitting the data into _chunks_ using the `Chunker` and organizing them in to a __DAG__ (with a *trickle* or *balanced* layout. See [balanced](https://github.com/ipfs/go-unixfs/blob/6b769632e7eb8fe8f302e3f96bf5569232e7a3ee/importer/balanced/builder.go) for more info). 
+          This method converts the input data (`io.Reader`) to a __DAG__ tree, by splitting the data into _chunks_ using the `Chunker` and organizing them into a __DAG__ (with a *trickle* or *balanced* layout. See [balanced](https://github.com/ipfs/go-unixfs/blob/6b769632e7eb8fe8f302e3f96bf5569232e7a3ee/importer/balanced/builder.go) for more info). 
 
           The method returns the **root** `ipld.Node` of the __DAG__.
 
@@ -70,7 +70,7 @@ Within the function, a new `Adder` is created with the configured `Blockstore` a
 
           - **[MFS] [`PutNode(mfs.Root, path, ipld.Node)`](https://github.com/ipfs/go-mfs/blob/v0.1.18/ops.go#L86)** - *Insert node at path into given `MFS`*
 
-              The `path` param is used to determine the `MFS Directory`, which is first looked up in the `MFS` using `lookupDir()` function. This is followed by adding the **root** __DAG__ node (`ipld.Node`) in to this `Directory` using `directory.AddChild()` method.
+              The `path` param is used to determine the `MFS Directory`, which is first looked up in the `MFS` using `lookupDir()` function. This is followed by adding the **root** __DAG__ node (`ipld.Node`) into this `Directory` using `directory.AddChild()` method.
 
           - **[MFS] Add Child To `UnixFS`**
             - **[`directory.AddChild(filename, ipld.Node)`](https://github.com/ipfs/go-mfs/blob/v0.1.18/dir.go#L350)** - *Add **root** __DAG__ node under this directory*

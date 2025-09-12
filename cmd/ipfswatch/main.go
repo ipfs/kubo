@@ -13,20 +13,30 @@ import (
 	"syscall"
 
 	commands "github.com/ipfs/kubo/commands"
+	"github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	corehttp "github.com/ipfs/kubo/core/corehttp"
+	"github.com/ipfs/kubo/misc/fsutil"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
 	fsnotify "github.com/fsnotify/fsnotify"
-	files "github.com/ipfs/go-ipfs-files"
-	process "github.com/jbenet/goprocess"
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/ipfs/boxo/files"
 )
 
-var http = flag.Bool("http", false, "expose IPFS HTTP API")
-var repoPath = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
-var watchPath = flag.String("path", ".", "the path to watch")
+var (
+	http      = flag.Bool("http", false, "expose IPFS HTTP API")
+	repoPath  *string
+	watchPath = flag.String("path", ".", "the path to watch")
+)
+
+func init() {
+	ipfsPath, err := config.PathRoot()
+	if err != nil {
+		ipfsPath = os.Getenv(config.EnvDir)
+	}
+	repoPath = flag.String("repo", ipfsPath, "repo path to use")
+}
 
 func main() {
 	flag.Parse()
@@ -52,11 +62,9 @@ func main() {
 }
 
 func run(ipfsPath, watchPath string) error {
-
-	proc := process.WithParent(process.Background())
 	log.Printf("running IPFSWatch on '%s' using repo at '%s'...", watchPath, ipfsPath)
 
-	ipfsPath, err := homedir.Expand(ipfsPath)
+	ipfsPath, err := fsutil.ExpandHome(ipfsPath)
 	if err != nil {
 		return err
 	}
@@ -93,16 +101,16 @@ func run(ipfsPath, watchPath string) error {
 
 	if *http {
 		addr := "/ip4/127.0.0.1/tcp/5001"
-		var opts = []corehttp.ServeOption{
-			corehttp.GatewayOption(true, "/ipfs", "/ipns"),
+		opts := []corehttp.ServeOption{
+			corehttp.GatewayOption("/ipfs", "/ipns"),
 			corehttp.WebUIOption,
 			corehttp.CommandsOption(cmdCtx(node, ipfsPath)),
 		}
-		proc.Go(func(p process.Process) {
+		go func() {
 			if err := corehttp.ListenAndServe(node, addr, opts...); err != nil {
 				return
 			}
-		})
+		}()
 	}
 
 	interrupts := make(chan os.Signal, 1)
@@ -136,7 +144,7 @@ func run(ipfsPath, watchPath string) error {
 						}
 					}
 				}
-				proc.Go(func(p process.Process) {
+				go func() {
 					file, err := os.Open(e.Name)
 					if err != nil {
 						log.Println(err)
@@ -161,7 +169,7 @@ func run(ipfsPath, watchPath string) error {
 						log.Println(err)
 					}
 					log.Printf("added %s... key: %s", e.Name, k)
-				})
+				}()
 			}
 		case err := <-watcher.Errors:
 			log.Println(err)

@@ -3,39 +3,71 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"runtime"
+	"strings"
 )
 
-// Routing defines configuration options for libp2p routing
+const (
+	DefaultAcceleratedDHTClient      = false
+	DefaultLoopbackAddressesOnLanDHT = false
+	DefaultRoutingType               = "auto"
+	CidContactRoutingURL             = "https://cid.contact"
+	PublicGoodDelegatedRoutingURL    = "https://delegated-ipfs.dev" // cid.contact + amino dht (incl. IPNS PUTs)
+	EnvHTTPRouters                   = "IPFS_HTTP_ROUTERS"
+	EnvHTTPRoutersFilterProtocols    = "IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS"
+)
+
+var (
+	// Default filter-protocols to pass along with delegated routing requests (as defined in IPIP-484)
+	// and also filter out locally
+	DefaultHTTPRoutersFilterProtocols = getEnvOrDefault(EnvHTTPRoutersFilterProtocols, []string{
+		"unknown", // allow results without protocol list, we can do libp2p identify to test them
+		"transport-bitswap",
+		// http is added dynamically in routing/delegated.go.
+		// 'transport-ipfs-gateway-http'
+	})
+)
+
+// Routing defines configuration options for libp2p routing.
 type Routing struct {
 	// Type sets default daemon routing mode.
 	//
-	// Can be one of "dht", "dhtclient", "dhtserver", "none", or "custom".
-	// When "custom" is set, you can specify a list of Routers.
-	Type string
+	// Can be one of "auto", "autoclient", "dht", "dhtclient", "dhtserver", "none", "delegated", or "custom".
+	// When unset or set to "auto", DHT and implicit routers are used.
+	// When "delegated" is set, only HTTP delegated routers and IPNS publishers are used (no DHT).
+	// When "custom" is set, user-provided Routing.Routers is used.
+	Type *OptionalString `json:",omitempty"`
 
-	Routers Routers
+	AcceleratedDHTClient Flag `json:",omitempty"`
 
-	Methods Methods
+	LoopbackAddressesOnLanDHT Flag `json:",omitempty"`
+
+	IgnoreProviders []string `json:",omitempty"`
+
+	// Simplified configuration used by default when Routing.Type=auto|autoclient
+	DelegatedRouters []string
+
+	// Advanced configuration used when Routing.Type=custom
+	Routers Routers `json:",omitempty"`
+	Methods Methods `json:",omitempty"`
 }
 
 type Router struct {
-
-	// Currenly supported Types are "reframe", "dht", "parallel", "sequential".
-	// Reframe type allows to add other resolvers using the Reframe spec:
-	// https://github.com/ipfs/specs/tree/main/reframe
-	// In the future we will support "dht" and other Types here.
+	// Router type ID. See RouterType for more info.
 	Type RouterType
 
 	// Parameters are extra configuration that this router might need.
-	// A common one for reframe router is "Endpoint".
+	// A common one for HTTP router is "Endpoint".
 	Parameters interface{}
 }
 
-type Routers map[string]RouterParser
-type Methods map[MethodName]Method
+type (
+	Routers map[string]RouterParser
+	Methods map[MethodName]Method
+)
 
 func (m Methods) Check() error {
-
 	// Check supported methods
 	for _, mn := range MethodNameList {
 		_, ok := m[mn]
@@ -78,8 +110,8 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 
 	var p interface{}
 	switch out.Type {
-	case RouterTypeReframe:
-		p = &ReframeRouterParams{}
+	case RouterTypeHTTP:
+		p = &HTTPRouterParams{}
 	case RouterTypeDHT:
 		p = &DHTRouterParams{}
 	case RouterTypeSequential:
@@ -103,10 +135,10 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 type RouterType string
 
 const (
-	RouterTypeReframe    RouterType = "reframe"
-	RouterTypeDHT        RouterType = "dht"
-	RouterTypeSequential RouterType = "sequential"
-	RouterTypeParallel   RouterType = "parallel"
+	RouterTypeHTTP       RouterType = "http"       // HTTP JSON API for delegated routing systems (IPIP-337).
+	RouterTypeDHT        RouterType = "dht"        // DHT router.
+	RouterTypeSequential RouterType = "sequential" // Router helper to execute several routers sequentially.
+	RouterTypeParallel   RouterType = "parallel"   // Router helper to execute several routers in parallel.
 )
 
 type DHTMode string
@@ -129,10 +161,26 @@ const (
 
 var MethodNameList = []MethodName{MethodNameProvide, MethodNameFindPeers, MethodNameFindProviders, MethodNameGetIPNS, MethodNamePutIPNS}
 
-type ReframeRouterParams struct {
+type HTTPRouterParams struct {
 	// Endpoint is the URL where the routing implementation will point to get the information.
-	// Usually used for reframe Routers.
 	Endpoint string
+
+	// MaxProvideBatchSize determines the maximum amount of CIDs sent per batch.
+	// Servers might not accept more than 100 elements per batch. 100 elements by default.
+	MaxProvideBatchSize int
+
+	// MaxProvideConcurrency determines the number of threads used when providing content. GOMAXPROCS by default.
+	MaxProvideConcurrency int
+}
+
+func (hrp *HTTPRouterParams) FillDefaults() {
+	if hrp.MaxProvideBatchSize == 0 {
+		hrp.MaxProvideBatchSize = 100
+	}
+
+	if hrp.MaxProvideConcurrency == 0 {
+		hrp.MaxProvideConcurrency = runtime.GOMAXPROCS(0)
+	}
 }
 
 type DHTRouterParams struct {
@@ -155,4 +203,14 @@ type ConfigRouter struct {
 
 type Method struct {
 	RouterName string
+}
+
+// getEnvOrDefault reads space or comma separated strings from env if present,
+// and uses provided defaultValue as a fallback
+func getEnvOrDefault(key string, defaultValue []string) []string {
+	if value, exists := os.LookupEnv(key); exists {
+		splitFunc := func(r rune) bool { return r == ',' || r == ' ' }
+		return strings.FieldsFunc(value, splitFunc)
+	}
+	return defaultValue
 }

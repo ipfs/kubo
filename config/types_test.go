@@ -129,7 +129,6 @@ func TestOneStrings(t *testing.T) {
 	out, err := json.Marshal(Strings{"one"})
 	if err != nil {
 		t.Fatal(err)
-
 	}
 	expected := "\"one\""
 	if string(out) != expected {
@@ -141,7 +140,6 @@ func TestNoStrings(t *testing.T) {
 	out, err := json.Marshal(Strings{})
 	if err != nil {
 		t.Fatal(err)
-
 	}
 	expected := "null"
 	if string(out) != expected {
@@ -153,7 +151,6 @@ func TestManyStrings(t *testing.T) {
 	out, err := json.Marshal(Strings{"one", "two"})
 	if err != nil {
 		t.Fatal(err)
-
 	}
 	expected := "[\"one\",\"two\"]"
 	if string(out) != expected {

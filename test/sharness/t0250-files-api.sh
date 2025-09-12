@@ -230,6 +230,8 @@ test_files_api() {
     echo "Size: 4" >> file1stat_expect &&
     echo "ChildBlocks: 0" >> file1stat_expect &&
     echo "Type: file" >> file1stat_expect &&
+    echo "Mode: not set (not set)" >> file1stat_expect &&
+    echo "Mtime: not set" >> file1stat_expect &&
     test_cmp file1stat_expect file1stat_actual
   '
 
@@ -243,6 +245,8 @@ test_files_api() {
     echo "Size: 4" >> file1stat_expect &&
     echo "ChildBlocks: 0" >> file1stat_expect &&
     echo "Type: file" >> file1stat_expect &&
+    echo "Mode: not set (not set)" >> file1stat_expect &&
+    echo "Mtime: not set" >> file1stat_expect &&
     test_cmp file1stat_expect file1stat_actual
   '
 
@@ -670,6 +674,18 @@ test_files_api() {
     ipfs files ls /adir | grep foobar
   '
 
+  test_expect_success "test copy --force overwrites files" '
+    ipfs files cp /ipfs/$FILE1 /file1 &&
+    ipfs files cp /ipfs/$FILE2 /file2 &&
+    ipfs files cp --force /file1 /file2 &&
+    test "`ipfs files read /file1`" = "`ipfs files read /file2`"
+  '
+
+  test_expect_success "clean up" '
+    ipfs files rm /file1 &&
+    ipfs files rm /file2
+  '
+
   test_expect_success "should fail to write file and create intermediate directories with no --parents flag set $EXTRA" '
     echo "ipfs rocks" | test_must_fail ipfs files write --create /parents/foo/ipfs.txt
   '
@@ -845,7 +861,7 @@ tests_for_files_api "with-daemon"
 test_kill_ipfs_daemon
 
 test_expect_success "enable sharding in config" '
-  ipfs config --json Internal.UnixFSShardingSizeThreshold "\"1B\""
+  ipfs config --json Import.UnixFSHAMTDirectorySizeThreshold "\"1B\""
 '
 
 test_launch_ipfs_daemon_without_network
@@ -876,7 +892,7 @@ test_expect_success "set up automatic sharding/unsharding data" '
 '
 
 test_expect_success "reset automatic sharding" '
-  ipfs config --json Internal.UnixFSShardingSizeThreshold null
+  ipfs config --json Import.UnixFSHAMTDirectorySizeThreshold null
 '
 
 test_launch_ipfs_daemon_without_network

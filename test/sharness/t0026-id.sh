@@ -33,12 +33,6 @@ test_expect_success "checking AgentVersion" '
   test_cmp expected-agent-version actual-agent-version
 '
 
-test_expect_success "checking ProtocolVersion" '
-  echo "ipfs/0.1.0" > expected-protocol-version &&
-  ipfs id -f "<pver>\n" > actual-protocol-version &&
-  test_cmp expected-protocol-version actual-protocol-version
-'
-
 test_expect_success "checking ID of self" '
   ipfs config Identity.PeerID > expected-id &&
   ipfs id -f "<id>\n" > actual-id &&
@@ -55,7 +49,7 @@ test_expect_success "checking and converting ID of a random peer while offline" 
 # agent-version-suffix (local, offline)
 test_launch_ipfs_daemon --agent-version-suffix=test-suffix-ąę-123456789012345678901234567890
 test_expect_success "checking AgentVersion with suffix (local, only ascii chars)" '
-  test_id_compute_agent "test-suffix--123456789012345678901234567890" > expected &&
+  test_id_compute_agent "test-suffix-_-123456789012345678901234567890" > expected &&
   ipfs id -f "<aver>" > actual &&
   test_should_not_contain "ą" actual &&
   test_cmp expected actual
@@ -65,12 +59,25 @@ test_expect_success "checking AgentVersion with suffix (local, only ascii chars)
 iptb testbed create -type localipfs -count 2 -init
 startup_cluster 2 --agent-version-suffix=test-suffix-identify-óź-123456789012345678901234567890
 test_expect_success "checking AgentVersion with suffix (fetched via libp2p identify protocol)" '
-  test_id_compute_agent "test-suffix-identify--123456789012345678901234567890" > expected &&
+  test_id_compute_agent "test-suffix-identify-_-123456789012345678901234567890" > expected &&
   ipfsi 1 id "$(ipfsi 0 config Identity.PeerID)" -f "<aver>" > actual &&
   test_should_not_contain "ó" actual &&
   test_cmp expected actual
 '
+iptb stop
+
 test_kill_ipfs_daemon
 
+# Version.AgentSuffix overrides --agent-version-suffix (local, offline)
+test_expect_success "setting Version.AgentSuffix in config" '
+  ipfs config Version.AgentSuffix json-config-suffix
+'
+test_launch_ipfs_daemon --agent-version-suffix=ignored-cli-suffix
+test_expect_success "checking AgentVersion with suffix set via JSON config" '
+  test_id_compute_agent json-config-suffix > expected-agent-version &&
+  ipfs id -f "<aver>" > actual-agent-version &&
+  test_cmp expected-agent-version actual-agent-version
+'
+test_kill_ipfs_daemon
 
 test_done

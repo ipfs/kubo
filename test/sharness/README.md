@@ -1,4 +1,4 @@
-# ipfs whole tests using the [sharness framework](https://github.com/mlafeldt/sharness/)
+# ipfs whole tests using the [sharness framework](https://github.com/pl-strflt/sharness/tree/feat/junit)
 
 ## Running all the tests
 
@@ -13,7 +13,7 @@ The usual ipfs env flags also apply:
 
 ```sh
 # the output will make your eyes bleed
-IPFS_LOGGING=debug TEST_VERBOSE=1 make
+GOLOG_LOG_LEVEL=debug TEST_VERBOSE=1 make
 ```
 
 To make the tests abort as soon as an error occurs, use the TEST_IMMEDIATE env variable:
@@ -46,7 +46,7 @@ $ ./t0010-basic-commands.sh -v -i
 
 When running sharness tests from main Makefile or when `test_sharness_deps`
 target is run dependencies for sharness
-will be downloaded from its github repo and installed in a "lib/sharness"
+will be downloaded from its GitHub repo and installed in a "lib/sharness"
 directory.
 
 Please do not change anything in the "lib/sharness" directory.

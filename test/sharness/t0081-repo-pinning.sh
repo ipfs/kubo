@@ -114,8 +114,8 @@ test_expect_success "objects are there" '
 '
 
 # saving this output for later
-test_expect_success "ipfs object links $HASH_DIR1 works" '
-  ipfs object links $HASH_DIR1 > DIR1_objlink
+test_expect_success "ipfs dag get $HASH_DIR1 works" '
+  ipfs dag get $HASH_DIR1 | jq -r ".Links[] | .Hash | .[\"/\"]" > DIR1_objlink
 '
 
 
@@ -224,7 +224,7 @@ test_expect_success "some objects are still there" '
   ipfs cat "$HASH_FILE1" >>actual8 &&
   ipfs ls "$HASH_DIR4"   >>actual8 &&
   ipfs ls "$HASH_DIR2"   >>actual8 &&
-  ipfs object links "$HASH_DIR1" >>actual8 &&
+  ipfs dag get "$HASH_DIR1" | jq -r ".Links[] | .Hash | .[\"/\"]" >>actual8 &&
   test_cmp expected8 actual8
 '
 

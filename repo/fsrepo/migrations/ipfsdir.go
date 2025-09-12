@@ -8,18 +8,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mitchellh/go-homedir"
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/misc/fsutil"
 )
 
 const (
-	envIpfsPath = "IPFS_PATH"
-	defIpfsDir  = ".ipfs"
 	versionFile = "version"
 )
-
-func init() {
-	homedir.DisableCache = true
-}
 
 // IpfsDir returns the path of the ipfs directory.  If dir specified, then
 // returns the expanded version dir.  If dir is "", then return the directory
@@ -28,25 +23,16 @@ func init() {
 func IpfsDir(dir string) (string, error) {
 	var err error
 	if dir == "" {
-		dir = os.Getenv(envIpfsPath)
-	}
-	if dir != "" {
-		dir, err = homedir.Expand(dir)
+		dir, err = config.PathRoot()
 		if err != nil {
 			return "", err
 		}
-		return dir, nil
 	}
-
-	home, err := homedir.Dir()
+	dir, err = fsutil.ExpandHome(dir)
 	if err != nil {
 		return "", err
 	}
-	if home == "" {
-		return "", errors.New("could not determine IPFS_PATH, home dir not set")
-	}
-
-	return filepath.Join(home, defIpfsDir), nil
+	return dir, nil
 }
 
 // CheckIpfsDir gets the ipfs directory and checks that the directory exists.
@@ -84,7 +70,7 @@ func WriteRepoVersion(ipfsDir string, version int) error {
 	}
 
 	vFilePath := filepath.Join(ipfsDir, versionFile)
-	return os.WriteFile(vFilePath, []byte(fmt.Sprintf("%d\n", version)), 0644)
+	return os.WriteFile(vFilePath, []byte(fmt.Sprintf("%d\n", version)), 0o644)
 }
 
 func repoVersion(ipfsDir string) (int, error) {

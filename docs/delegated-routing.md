@@ -4,16 +4,33 @@
 - Related Issues:
   - https://github.com/ipfs/kubo/issues/9188
   - https://github.com/ipfs/kubo/issues/9079
+  - https://github.com/ipfs/kubo/pull/9877
 
 ## Summary
 
-Previously we only used DHT for content routing and content providing. After kubo-0.14.0 release we added support for [delegated routing using Reframe protocol](https://github.com/ipfs/kubo/pull/8997).
+Previously we only used the Amino DHT for content routing and content
+providing.
 
-Now we need a better way to add different routers using different protocols like Reframe or DHT, and be able to configure them to cover different use cases.
+Kubo 0.14 introduced experimental support for [delegated routing](https://github.com/ipfs/kubo/pull/8997),
+which then got changed and standardized as [Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
+
+Kubo 0.23.0 release added support for [self-hosting Routing V1 HTTP API server](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.23.md#self-hosting-routingv1-endpoint-for-delegated-routing-needs).
+
+
+> [!TIP]
+> Kubo 0.35 added support for [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+>
+> Most of users are best served by setting delegated HTTP router URLs there and `Routing.Type` to `auto` or `autoclient`, rather than custom routing with complex `Routing.Routers` and `Routing.Methods` directly.
+>
+> The rest of this documentation should be considered only by advanced users and researchers.
+
+Now we need a better way to add different routers using different protocols
+like [Routing V1](https://specs.ipfs.tech/routing/http-routing-v1/) or Amino
+DHT, and be able to configure them (future routing systems to come) to cover different use cases.
 
 ## Motivation
 
-The actual routing implementation is not enough. Some users needs to have more options when configuring the routing system. The new implementations should be able to:
+The actual routing implementation is not enough. Some users need to have more options when configuring the routing system. The new implementations should be able to:
 
 - [x] Be user-friendly and easy enough to configure, but also versatile
 - [x] Configurable Router execution order
@@ -33,22 +50,22 @@ The `Routing` configuration section will contain the following keys:
 
 #### Routers
 
-`Routers` will be a key-value list of routers that will be available to use. The key is the router name and the value is all the needed configurations for that router. the `Type` will define the routing kind. The main router types will be `reframe` and `dht`, but we will implement two special routers used to execute a set of routers in parallel or sequentially: `parallel` router and `sequential` router.
+`Routers` will be a key-value list of routers that will be available to use. The key is the router name and the value is all the needed configurations for that router. the `Type` will define the routing kind. The main router types will be `http` and `dht`, but we will implement two special routers used to execute a set of routers in parallel or sequentially: `parallel` router and `sequential` router.
 
 Depending on the routing type, it will use different parameters:
 
-##### Reframe
+##### HTTP
 
 Params:
 
-- `"Endpoint"`: URL endpoint implementing Reframe protocol.
+- `"Endpoint"`: URL of HTTP server with endpoints that implement [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) protocol.
 
-##### DHT
+##### Amino DHT
 
 Params:
-- `"Mode"`: Mode used by the DHT. Possible values: "server", "client", "auto"
+- `"Mode"`: Mode used by the Amino DHT. Possible values: "server", "client", "auto"
 - `"AcceleratedDHTClient"`: Set to `true` if you want to use the experimentalDHT.
-- `"PublicIPNetwork"`: Set to `true` to create a `WAN` DHT. Set to `false` to create a `LAN` DHT.
+- `"PublicIPNetwork"`: Set to `true` to create a `WAN` Amino DHT. Set to `false` to create a `LAN` DHT.
 
 ##### Parallel
 
@@ -80,10 +97,10 @@ The value will contain:
 "Routing": {
   "Type": "custom",
   "Routers": {
-    "storetheindex": {
-      "Type": "reframe",
+    "http-delegated": {
+      "Type": "http",
       "Parameters": {
-        "Endpoint": "https://cid.contact/reframe"
+        "Endpoint": "https://delegated-ipfs.dev" // /routing/v1 (https://specs.ipfs.tech/routing/http-routing-v1/)
       }
     },
     "dht-lan": {
@@ -114,7 +131,7 @@ The value will contain:
             "RouterName": "dht-wan"
           },
           {
-            "RouterName": "storetheindex"
+            "RouterName": "http-delegated"
           }
         ]
       }
@@ -133,7 +150,7 @@ The value will contain:
             "Timeout": "100ms"
           },
           {
-            "RouterName": "storetheindex",
+            "RouterName": "http-delegated",
             "ExecuteAfter": "100ms"
           }
         ]
@@ -152,7 +169,7 @@ The value will contain:
             "Timeout": "300ms"
           },
           {
-            "RouterName": "storetheindex",
+            "RouterName": "http-delegated",
             "Timeout": "300ms"
           }
         ]
@@ -169,7 +186,7 @@ The value will contain:
             "RouterName": "dht-wan"
           },
           {
-            "RouterName": "storetheindex"
+            "RouterName": "http-delegated"
           }
         ]
       }
@@ -190,75 +207,6 @@ The value will contain:
     }
   }
 }
-```
-
-Added YAML for clarity:
-
-```yaml
----
-Type: custom
-Routers:
-  storetheindex:
-    Type: reframe
-    Parameters:
-      Endpoint: https://cid.contact/reframe
-  dht-lan:
-    Type: dht
-    Parameters:
-      Mode: server
-      PublicIPNetwork: false
-      AcceleratedDHTClient: false
-  dht-wan:
-    Type: dht
-    Parameters:
-      Mode: auto
-      PublicIPNetwork: true
-      AcceleratedDHTClient: false
-  find-providers-router:
-    Type: parallel
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-        IgnoreErrors: true
-      - RouterName: dht-wan
-      - RouterName: storetheindex
-  provide-router:
-    Type: parallel
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-        IgnoreErrors: true
-      - RouterName: dht-wan
-        ExecuteAfter: 100ms
-        Timeout: 100ms
-      - RouterName: storetheindex
-        ExecuteAfter: 100ms
-  get-ipns-router:
-    Type: sequential
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-        IgnoreErrors: true
-      - RouterName: dht-wan
-        Timeout: 300ms
-      - RouterName: storetheindex
-        Timeout: 300ms
-  put-ipns-router:
-    Type: parallel
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-      - RouterName: dht-wan
-      - RouterName: storetheindex
-Methods:
-  find-providers:
-    RouterName: find-providers-router
-  provide:
-    RouterName: provide-router
-  get-ipns:
-    RouterName: get-ipns-router
-  put-ipns:
-    RouterName: put-ipns-router
 ```
 
 ### Error cases
@@ -394,54 +342,11 @@ As test fixtures we can add different use cases here and see how the configurati
 }
 ```
 
-Yaml representation for clarity:
-
-```yaml
----
-Type: custom
-Routers:
-  dht-lan:
-    Type: dht
-    Parameters:
-      Mode: server
-      PublicIPNetwork: false
-  dht-wan:
-    Type: dht
-    Parameters:
-      Mode: auto
-      PublicIPNetwork: true
-  parallel-dht-strict:
-    Type: parallel
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-      - RouterName: dht-wan
-  parallel-dht:
-    Type: parallel
-    Parameters:
-      Routers:
-      - RouterName: dht-lan
-        IgnoreError: true
-      - RouterName: dht-wan
-Methods:
-  provide:
-    RouterName: dht-wan
-  find-providers:
-    RouterName: parallel-dht-strict
-  find-peers:
-    RouterName: parallel-dht-strict
-  get-ipns:
-    RouterName: parallel-dht
-  put-ipns:
-    RouterName: parallel-dht
-
-```
-
 ### Compatibility
 
 ~~We need to create a config migration using [fs-repo-migrations](https://github.com/ipfs/fs-repo-migrations). We should remove the `Routing.Type` param and add the configuration specified [previously](#Mimic-previous-dual-DHT-config).~~
 
-We don't need to create any config migration! To avoid to the users the hassle of understanding how the new routing system works, we are gonna keep the old behavior. We will add the Type `custom` to make available the new Routing system.
+We don't need to create any config migration! To avoid to the users the hassle of understanding how the new routing system works, we are going to keep the old behavior. We will add the Type `custom` to make available the new Routing system.
 
 ### Security
 

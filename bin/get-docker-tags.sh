@@ -6,22 +6,19 @@
 #   ./get-docker-tags.sh <build number> <git commit sha1> <git branch name> [git tag name]
 #
 # Example:
-#    
+#
 #   # get tag for the master branch
 #   ./get-docker-tags.sh $(date -u +%F) testingsha master
 #
 #   # get tag for a release tag
 #   ./get-docker-tags.sh $(date -u +%F) testingsha release v0.5.0
 #
-#   # Serving suggestion in circle ci - https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
-#   ./get-docker-tags.sh $(date -u +%F) "$CIRCLE_SHA1" "$CIRCLE_BRANCH" "$CIRCLE_TAG"
-#
 set -euo pipefail
 
 if [[ $# -lt 1 ]] ; then
   echo 'At least 1 arg required.'
   echo 'Usage:'
-  echo './push-docker-tags.sh <build number> [git commit sha1] [git branch name] [git tag name]'
+  echo './get-docker-tags.sh <build number> [git commit sha1] [git branch name] [git tag name]'
   exit 1
 fi
 
@@ -53,9 +50,9 @@ elif [[ $GIT_BRANCH =~ ^bifrost-.* ]]; then
   branch=$(echo "$GIT_BRANCH" | tr '/' '-' | tr --delete --complement '[:alnum:]-')
   echoImageName "${branch}-${BUILD_NUM}-${GIT_SHA1_SHORT}"
 
-elif [ "$GIT_BRANCH" = "master" ]; then
-  echoImageName "master-${BUILD_NUM}-${GIT_SHA1_SHORT}"
-  echoImageName "master-latest"
+elif [ "$GIT_BRANCH" = "master" ] || [ "$GIT_BRANCH" = "staging" ]; then
+  echoImageName "${GIT_BRANCH}-${BUILD_NUM}-${GIT_SHA1_SHORT}"
+  echoImageName "${GIT_BRANCH}-latest"
 
 else
   echo "Nothing to do. No docker tag defined for branch: $GIT_BRANCH, tag: $GIT_TAG"

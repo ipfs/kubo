@@ -8,15 +8,14 @@ import (
 	"runtime"
 	"time"
 
-	logging "github.com/ipfs/go-log"
-	goprocess "github.com/jbenet/goprocess"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("mount")
 
 var MountTimeout = time.Second * 5
 
-// Mount represents a filesystem mount
+// Mount represents a filesystem mount.
 type Mount interface {
 	// MountPoint is the path at which this mount is mounted
 	MountPoint() string
@@ -26,10 +25,6 @@ type Mount interface {
 
 	// Checks if the mount is still active.
 	IsActive() bool
-
-	// Process returns the mount's Process to be able to link it
-	// to other processes. Unmount upon closing.
-	Process() goprocess.Process
 }
 
 // ForceUnmount attempts to forcibly unmount a given mount.
@@ -65,7 +60,7 @@ func ForceUnmount(m Mount) error {
 }
 
 // UnmountCmd creates an exec.Cmd that is GOOS-specific
-// for unmount a FUSE mount
+// for unmount a FUSE mount.
 func UnmountCmd(point string) (*exec.Cmd, error) {
 	switch runtime.GOOS {
 	case "darwin":

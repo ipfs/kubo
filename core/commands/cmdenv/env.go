@@ -9,9 +9,9 @@ import (
 	"github.com/ipfs/kubo/core"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	logging "github.com/ipfs/go-log"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
+	logging "github.com/ipfs/go-log/v2"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 var log = logging.Logger("core/commands/cmdenv")

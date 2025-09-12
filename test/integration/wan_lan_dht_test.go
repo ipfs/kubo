@@ -17,7 +17,6 @@ import (
 
 	testutil "github.com/libp2p/go-libp2p-testing/net"
 	corenet "github.com/libp2p/go-libp2p/core/network"
-	"github.com/libp2p/go-libp2p/core/peerstore"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 
 	ma "github.com/multiformats/go-multiaddr"
@@ -51,8 +50,10 @@ func TestDHTConnectivitySlowRouting(t *testing.T) {
 }
 
 // wan prefix must have a real corresponding ASN for the peer diversity filter to work.
-var wanPrefix = net.ParseIP("2001:218:3004::")
-var lanPrefix = net.ParseIP("fe80::")
+var (
+	wanPrefix = net.ParseIP("2001:218:3004::")
+	lanPrefix = net.ParseIP("fe80::")
+)
 
 func makeAddr(n uint32, wan bool) ma.Multiaddr {
 	var ip net.IP
@@ -103,7 +104,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		}
 		defer wanPeer.Close()
 		wanAddr := makeAddr(uint32(i), true)
-		wanPeer.Peerstore.AddAddr(wanPeer.Identity, wanAddr, peerstore.PermanentAddrTTL)
+		_ = wanPeer.PeerHost.Network().Listen(wanAddr)
 		for _, p := range wanPeers {
 			_, _ = mn.LinkPeers(p.Identity, wanPeer.Identity)
 			_ = wanPeer.PeerHost.Connect(connectionContext, p.Peerstore.PeerInfo(p.Identity))
@@ -119,7 +120,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		}
 		defer lanPeer.Close()
 		lanAddr := makeAddr(uint32(i), false)
-		lanPeer.Peerstore.AddAddr(lanPeer.Identity, lanAddr, peerstore.PermanentAddrTTL)
+		_ = lanPeer.PeerHost.Network().Listen(lanAddr)
 		for _, p := range lanPeers {
 			_, _ = mn.LinkPeers(p.Identity, lanPeer.Identity)
 			_ = lanPeer.PeerHost.Connect(connectionContext, p.Peerstore.PeerInfo(p.Identity))
@@ -130,10 +131,9 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 
 	// Add interfaces / addresses to test peer.
 	wanAddr := makeAddr(0, true)
-	testPeer.Peerstore.AddAddr(testPeer.Identity, wanAddr, peerstore.PermanentAddrTTL)
+	_ = testPeer.PeerHost.Network().Listen(wanAddr)
 	lanAddr := makeAddr(0, false)
-	testPeer.Peerstore.AddAddr(testPeer.Identity, lanAddr, peerstore.PermanentAddrTTL)
-
+	_ = testPeer.PeerHost.Network().Listen(lanAddr)
 	// The test peer is connected to one lan peer.
 	for _, p := range lanPeers {
 		if _, err := mn.LinkPeers(testPeer.Identity, p.Identity); err != nil {

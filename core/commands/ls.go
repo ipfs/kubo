@@ -1,20 +1,23 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
-	"sort"
+	"slices"
+	"strings"
 	"text/tabwriter"
+	"time"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
+	unixfs "github.com/ipfs/boxo/ipld/unixfs"
+	unixfs_pb "github.com/ipfs/boxo/ipld/unixfs/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	unixfs "github.com/ipfs/go-unixfs"
-	unixfs_pb "github.com/ipfs/go-unixfs/pb"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 )
 
 // LsLink contains printable data for a single ipld link in ls output
@@ -23,6 +26,8 @@ type LsLink struct {
 	Size       uint64
 	Type       unixfs_pb.Data_DataType
 	Target     string
+	Mode       os.FileMode
+	ModTime    time.Time
 }
 
 // LsObject is an element of LsOutput
@@ -114,8 +119,8 @@ The JSON output contains type information.
 						return nil
 					}, func(i int) {
 						// after each dir
-						sort.Slice(outputLinks, func(i, j int) bool {
-							return outputLinks[i].Name < outputLinks[j].Name
+						slices.SortFunc(outputLinks, func(a, b LsLink) int {
+							return strings.Compare(a.Name, b.Name)
 						})
 
 						output[i] = LsObject{
@@ -130,18 +135,24 @@ The JSON output contains type information.
 			}
 		}
 
+		lsCtx, cancel := context.WithCancel(req.Context)
+		defer cancel()
+
 		for i, fpath := range paths {
-			results, err := api.Unixfs().Ls(req.Context, path.New(fpath),
-				options.Unixfs.ResolveChildren(resolveSize || resolveType))
+			pth, err := cmdutils.PathOrCidPath(fpath)
 			if err != nil {
 				return err
 			}
 
+			results := make(chan iface.DirEntry)
+			lsErr := make(chan error, 1)
+			go func() {
+				lsErr <- api.Unixfs().Ls(lsCtx, pth, results,
+					options.Unixfs.ResolveChildren(resolveSize || resolveType))
+			}()
+
 			processLink, dirDone = processDir()
 			for link := range results {
-				if link.Err != nil {
-					return link.Err
-				}
 				var ftype unixfs_pb.Data_DataType
 				switch link.Type {
 				case iface.TFile:
@@ -158,10 +169,16 @@ The JSON output contains type information.
 					Size:   link.Size,
 					Type:   ftype,
 					Target: link.Target,
+
+					Mode:    link.Mode,
+					ModTime: link.ModTime,
 				}
-				if err := processLink(paths[i], lsLink); err != nil {
+				if err = processLink(paths[i], lsLink); err != nil {
 					return err
 				}
+			}
+			if err = <-lsErr; err != nil {
+				return err
 			}
 			dirDone(i)
 		}
@@ -251,6 +268,7 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 				}
 			}
 
+			// TODO: Print link.Mode and link.ModTime?
 			fmt.Fprintf(tw, s, link.Hash, link.Size, cmdenv.EscNonPrint(link.Name))
 		}
 	}

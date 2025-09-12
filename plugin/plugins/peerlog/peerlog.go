@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	core "github.com/ipfs/kubo/core"
 	plugin "github.com/ipfs/kubo/plugin"
 	event "github.com/libp2p/go-libp2p/core/event"
@@ -20,7 +20,7 @@ var log = logging.Logger("plugin/peerlog")
 type eventType int
 
 var (
-	// size of the event queue buffer
+	// size of the event queue buffer.
 	eventQueueSize = 64 * 1024
 	// number of events to drop when busy.
 	busyDropAmount = eventQueueSize / 8
@@ -40,7 +40,7 @@ type plEvent struct {
 //
 // Usage:
 //
-//	GOLOG_FILE=~/peer.log IPFS_LOGGING_FMT=json ipfs daemon
+//	GOLOG_FILE=~/peer.log GOLOG_LOG_FMT=json ipfs daemon
 //
 // Output:
 //
@@ -54,7 +54,7 @@ type peerLogPlugin struct {
 
 var _ plugin.PluginDaemonInternal = (*peerLogPlugin)(nil)
 
-// Plugins is exported list of plugins that will be loaded
+// Plugins is exported list of plugins that will be loaded.
 var Plugins = []plugin.Plugin{
 	&peerLogPlugin{},
 }
@@ -94,7 +94,7 @@ func extractEnabled(config interface{}) bool {
 	return enabled
 }
 
-// Init initializes plugin
+// Init initializes plugin.
 func (pl *peerLogPlugin) Init(env *plugin.Environment) error {
 	pl.events = make(chan plEvent, eventQueueSize)
 	pl.enabled = extractEnabled(env.Config)
@@ -148,7 +148,7 @@ func (pl *peerLogPlugin) collectEvents(node *core.IpfsNode) {
 		case e = <-pl.events:
 		}
 
-		peerID := zap.String("peer", e.peer.Pretty())
+		peerID := zap.String("peer", e.peer.String())
 
 		switch e.kind {
 		case eventConnect:
@@ -186,7 +186,7 @@ func (pl *peerLogPlugin) Start(node *core.IpfsNode) error {
 		return nil
 	}
 
-	// Ensure logs from this plugin get printed regardless of global IPFS_LOGGING value
+	// Ensure logs from this plugin get printed regardless of global GOLOG_LOG_LEVEL value
 	if err := logging.SetLogLevel("plugin/peerlog", "info"); err != nil {
 		return fmt.Errorf("failed to set log level: %w", err)
 	}

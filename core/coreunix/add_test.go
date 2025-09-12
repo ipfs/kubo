@@ -14,17 +14,17 @@ import (
 	"github.com/ipfs/kubo/gc"
 	"github.com/ipfs/kubo/repo"
 
+	"github.com/ipfs/boxo/blockservice"
+	blockstore "github.com/ipfs/boxo/blockstore"
+	"github.com/ipfs/boxo/files"
+	pi "github.com/ipfs/boxo/filestore/posinfo"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
 	blocks "github.com/ipfs/go-block-format"
-	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	files "github.com/ipfs/go-ipfs-files"
-	pi "github.com/ipfs/go-ipfs-posinfo"
-	dag "github.com/ipfs/go-merkledag"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	config "github.com/ipfs/kubo/config"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
 )
 
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
@@ -93,8 +93,15 @@ func TestAddMultipleGCLive(t *testing.T) {
 	// finish write and unblock gc
 	pipew1.Close()
 
-	// Should have gotten the lock at this point
-	<-gc1started
+	// Wait for GC to acquire the lock
+	// The adder needs to finish processing file 'a' and call maybePauseForGC
+	// when starting file 'b' before GC can proceed
+	select {
+	case <-gc1started:
+		// GC got the lock as expected
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for GC to start - possible deadlock")
+	}
 
 	removedHashes := make(map[string]struct{})
 	for r := range gc1out {
@@ -123,7 +130,15 @@ func TestAddMultipleGCLive(t *testing.T) {
 
 	pipew2.Close()
 
-	<-gc2started
+	// Wait for second GC to acquire the lock
+	// The adder needs to finish processing file 'b' and call maybePauseForGC
+	// when starting file 'c' before GC can proceed
+	select {
+	case <-gc2started:
+		// GC got the lock as expected
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for second GC to start - possible deadlock")
+	}
 
 	for r := range gc2out {
 		if r.Error != nil {
@@ -133,7 +148,7 @@ func TestAddMultipleGCLive(t *testing.T) {
 	}
 
 	for o := range out {
-		if _, ok := removedHashes[o.(*coreiface.AddEvent).Path.Cid().String()]; ok {
+		if _, ok := removedHashes[o.(*coreiface.AddEvent).Path.RootCid().String()]; ok {
 			t.Fatal("gc'ed a hash we just added")
 		}
 	}
@@ -179,17 +194,15 @@ func TestAddGCLive(t *testing.T) {
 		defer close(addDone)
 		defer close(out)
 		_, err := adder.AddAllAndPin(context.Background(), slf)
-
 		if err != nil {
 			t.Error(err)
 		}
-
 	}()
 
 	addedHashes := make(map[string]struct{})
 	select {
 	case o := <-out:
-		addedHashes[o.(*coreiface.AddEvent).Path.Cid().String()] = struct{}{}
+		addedHashes[o.(*coreiface.AddEvent).Path.RootCid().String()] = struct{}{}
 	case <-addDone:
 		t.Fatal("add shouldn't complete yet")
 	}
@@ -219,7 +232,7 @@ func TestAddGCLive(t *testing.T) {
 
 	// receive next object from adder
 	o := <-out
-	addedHashes[o.(*coreiface.AddEvent).Path.Cid().String()] = struct{}{}
+	addedHashes[o.(*coreiface.AddEvent).Path.RootCid().String()] = struct{}{}
 
 	<-gcstarted
 
@@ -235,7 +248,7 @@ func TestAddGCLive(t *testing.T) {
 	var last cid.Cid
 	for a := range out {
 		// wait for it to finish
-		c, err := cid.Decode(a.(*coreiface.AddEvent).Path.Cid().String())
+		c, err := cid.Decode(a.(*coreiface.AddEvent).Path.RootCid().String())
 		if err != nil {
 			t.Fatal(err)
 		}

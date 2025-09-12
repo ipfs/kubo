@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 
-	"github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
 type commandEncoder struct {
@@ -131,7 +131,7 @@ func cmdPathStrings(cmd *Command, showOptions bool) []string {
 	}
 
 	recurse("", cmd)
-	sort.Strings(cmds)
+	slices.Sort(cmds)
 	return cmds
 }
 
@@ -163,6 +163,33 @@ To install the completions permanently, they can be moved to
 				Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 					var buf bytes.Buffer
 					if err := writeBashCompletions(root, &buf); err != nil {
+						return err
+					}
+					res.SetLength(uint64(buf.Len()))
+					return res.Emit(&buf)
+				},
+			},
+			"zsh": {
+				Helptext: cmds.HelpText{
+					Tagline:          "Generate zsh shell completions.",
+					ShortDescription: "Generates command completions for the zsh shell.",
+					LongDescription: `
+Generates command completions for the zsh shell.
+
+The simplest way to see it working is write the completions
+to a file and then source it:
+
+  > ipfs commands completion zsh > ipfs-completion.zsh
+  > source ./ipfs-completion.zsh
+
+To install the completions permanently, they can be moved to
+/etc/zsh/completions or sourced from your ~/.zshrc file.
+`,
+				},
+				NoRemote: true,
+				Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+					var buf bytes.Buffer
+					if err := writeZshCompletions(root, &buf); err != nil {
 						return err
 					}
 					res.SetLength(uint64(buf.Len()))
@@ -206,12 +233,11 @@ type nonFatalError string
 // contain non-fatal errors.  The helper function is allowed to panic
 // on internal errors.
 func streamResult(procVal func(interface{}, io.Writer) nonFatalError) func(cmds.Response, cmds.ResponseEmitter) error {
-	return func(res cmds.Response, re cmds.ResponseEmitter) (err error) {
+	return func(res cmds.Response, re cmds.ResponseEmitter) (rerr error) {
 		defer func() {
 			if r := recover(); r != nil {
-				err = fmt.Errorf("internal error: %v", r)
+				rerr = fmt.Errorf("internal error: %v", r)
 			}
-			re.Close()
 		}()
 
 		var errors bool
@@ -221,7 +247,8 @@ func streamResult(procVal func(interface{}, io.Writer) nonFatalError) func(cmds.
 				if err == io.EOF {
 					break
 				}
-				return err
+				rerr = err
+				return
 			}
 
 			errorMsg := procVal(v, os.Stdout)
@@ -233,8 +260,8 @@ func streamResult(procVal func(interface{}, io.Writer) nonFatalError) func(cmds.
 		}
 
 		if errors {
-			return fmt.Errorf("errors while displaying some entries")
+			rerr = fmt.Errorf("errors while displaying some entries")
 		}
-		return nil
+		return
 	}
 }

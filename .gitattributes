@@ -15,3 +15,23 @@ LICENSE text eol=auto
 # Binary assets
 assets/init-doc/*          binary
 core/coreunix/test_data/** binary
+test/cli/migrations/testdata/** binary
+
+# Generated test data
+test/cli/migrations/testdata/** linguist-generated=true
+test/cli/autoconf/testdata/** linguist-generated=true
+test/cli/fixtures/** linguist-generated=true
+test/sharness/t0054-dag-car-import-export-data/** linguist-generated=true
+test/sharness/t0109-gateway-web-_redirects-data/** linguist-generated=true
+test/sharness/t0114-gateway-subdomains/** linguist-generated=true
+test/sharness/t0115-gateway-dir-listing/** linguist-generated=true
+test/sharness/t0116-gateway-cache/** linguist-generated=true
+test/sharness/t0119-prometheus-data/** linguist-generated=true
+test/sharness/t0165-keystore-data/** linguist-generated=true
+test/sharness/t0275-cid-security-data/** linguist-generated=true
+test/sharness/t0280-plugin-dag-jose-data/** linguist-generated=true
+test/sharness/t0280-plugin-data/** linguist-generated=true
+test/sharness/t0280-plugin-git-data/** linguist-generated=true
+test/sharness/t0400-api-no-gateway/** linguist-generated=true
+test/sharness/t0701-delegated-routing-reframe/** linguist-generated=true
+test/sharness/t0702-delegated-routing-http/** linguist-generated=true

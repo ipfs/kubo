@@ -9,6 +9,10 @@ import (
 	core "github.com/ipfs/kubo/core"
 )
 
-func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
+func Mount(node *core.IpfsNode, fsdir, nsdir, mfsdir string) error {
 	return errors.New("not compiled in")
+}
+
+func Unmount(node *core.IpfsNode) {
+	return
 }

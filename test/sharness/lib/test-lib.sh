@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
 #
-# We are using sharness (https://github.com/mlafeldt/sharness)
+# We are using sharness (https://github.com/pl-strflt/sharness/tree/feat/junit)
 # which was extracted from the Git test framework.
 
 # use the ipfs tool to test against
@@ -27,14 +27,17 @@ fi
 # to pass through in some cases.
 test "$TEST_VERBOSE" = 1 && verbose=t
 test "$TEST_IMMEDIATE" = 1 && immediate=t
+test "$TEST_JUNIT" = 1 && junit=t
+test "$TEST_NO_COLOR" = 1 && no_color=t
 # source the common hashes first.
 . lib/test-lib-hashes.sh
 
 
-SHARNESS_LIB="lib/sharness/sharness.sh"
+ln -sf lib/sharness/sharness.sh .
+ln -sf lib/sharness/lib-sharness .
 
-. "$SHARNESS_LIB" || {
-  echo >&2 "Cannot source: $SHARNESS_LIB"
+. "sharness.sh" || {
+  echo >&2 "Cannot source: sharness.sh"
   echo >&2 "Please check Sharness installation."
   exit 1
 }
@@ -51,7 +54,7 @@ cur_test_pwd="$(pwd)"
 while true ; do
   echo -n > stuck_cwd_list
 
-  lsof -c ipfs -Ffn 2>/dev/null | grep -A1 '^fcwd$' | grep '^n' | cut -b 2- | while read -r pwd_of_stuck ; do
+  timeout 5 lsof -c ipfs -Ffn 2>/dev/null | grep -A1 '^fcwd$' | grep '^n' | cut -b 2- | while read -r pwd_of_stuck ; do
     case "$pwd_of_stuck" in
       "$cur_test_pwd"*)
         echo "$pwd_of_stuck" >> stuck_cwd_list
@@ -91,10 +94,10 @@ export TERM=dumb
 TEST_OS="$(uname -s | tr '[a-z]' '[A-Z]')"
 
 # grab + output options
-test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
+test "$TEST_FUSE" = 1 && test_set_prereq FUSE
 test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
-test "$TEST_NO_DOCKER" != 1 && type docker >/dev/null 2>&1 && groups | egrep "\bdocker\b" && test_set_prereq DOCKER
-test "$TEST_NO_PLUGIN" != 1 && test "$TEST_OS" = "LINUX" && test_set_prereq PLUGIN
+test "$TEST_DOCKER" = 1 && type docker >/dev/null 2>&1 && groups | egrep "\bdocker\b" && test_set_prereq DOCKER
+test "$TEST_PLUGIN" = 1 && test "$TEST_OS" = "LINUX" && test_set_prereq PLUGIN
 
 # this may not be available, skip a few dependent tests
 type socat >/dev/null 2>&1 && test_set_prereq SOCAT
@@ -106,10 +109,15 @@ expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
 
 if test "$TEST_VERBOSE" = 1; then
   echo '# TEST_VERBOSE='"$TEST_VERBOSE"
-  echo '# TEST_NO_FUSE='"$TEST_NO_FUSE"
-  echo '# TEST_NO_PLUGIN='"$TEST_NO_PLUGIN"
+  echo '# TEST_IMMEDIATE='"$TEST_IMMEDIATE"
+  echo '# TEST_FUSE='"$TEST_FUSE"
+  echo '# TEST_DOCKER='"$TEST_DOCKER"
+  echo '# TEST_PLUGIN='"$TEST_PLUGIN"
   echo '# TEST_EXPENSIVE='"$TEST_EXPENSIVE"
   echo '# TEST_OS='"$TEST_OS"
+  echo '# TEST_JUNIT='"$TEST_JUNIT"
+  echo '# TEST_NO_COLOR='"$TEST_NO_COLOR"
+  echo '# TEST_ULIMIT_PRESET='"$TEST_ULIMIT_PRESET"
 fi
 
 # source our generic test lib
@@ -136,8 +144,8 @@ test_run_repeat_60_sec() {
   return 1 # failed
 }
 
-test_wait_output_n_lines_60_sec() {
-  for i in $(test_seq 1 600)
+test_wait_output_n_lines() {
+  for i in $(test_seq 1 3600)
   do
     test $(cat "$1" | wc -l | tr -d " ") -ge $2 && return
     go-sleep 100ms
@@ -150,8 +158,8 @@ test_wait_open_tcp_port_10_sec() {
   for i in $(test_seq 1 100)
   do
     # this is not a perfect check, but it's portable.
-    # cant count on ss. not installed everywhere.
-    # cant count on netstat using : or . as port delim. differ across platforms.
+    # can't count on ss. not installed everywhere.
+    # can't count on netstat using : or . as port delim. differ across platforms.
     echo $(netstat -aln | egrep "^tcp.*LISTEN" | egrep "[.:]$1" | wc -l) -gt 0
     if [ $(netstat -aln | egrep "^tcp.*LISTEN" | egrep "[.:]$1" | wc -l) -gt 0 ]; then
       return 0
@@ -186,7 +194,7 @@ test_config_set() {
 }
 
 test_init_ipfs() {
-
+  args=("$@")
 
   # we set the Addresses.API config variable.
   # the cli client knows to use it, so only need to set.
@@ -194,7 +202,37 @@ test_init_ipfs() {
 
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
-    ipfs init --profile=test > /dev/null
+    ipfs init "${args[@]}" --profile=test > /dev/null
+  '
+
+  test_expect_success "disable telemetry" '
+    test_config_set --bool Plugins.Plugins.telemetry.Disabled "true"
+  '
+
+  test_expect_success "prepare config -- mounting" '
+    mkdir mountdir ipfs ipns mfs &&
+    test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
+    test_config_set Mounts.IPNS "$(pwd)/ipns" &&
+    test_config_set Mounts.MFS "$(pwd)/mfs" ||
+    test_fsh cat "\"$IPFS_PATH/config\""
+  '
+
+}
+
+test_init_ipfs_measure() {
+  args=("$@")
+
+  # we set the Addresses.API config variable.
+  # the cli client knows to use it, so only need to set.
+  # todo: in the future, use env?
+
+  test_expect_success "ipfs init succeeds" '
+    export IPFS_PATH="$(pwd)/.ipfs" &&
+    ipfs init "${args[@]}" --profile=test,flatfs-measure > /dev/null
+  '
+
+  test_expect_success "disable telemetry" '
+    test_config_set --bool Plugins.Plugins.telemetry.Disabled "true"
   '
 
   test_expect_success "prepare config -- mounting" '
@@ -204,13 +242,6 @@ test_init_ipfs() {
     test_fsh cat "\"$IPFS_PATH/config\""
   '
 
-}
-
-test_config_ipfs_gateway_writable() {
-  test_expect_success "prepare config -- gateway writable" '
-    test_config_set --bool Gateway.Writable true ||
-    test_fsh cat "\"$IPFS_PATH/config\""
-  '
 }
 
 test_wait_for_file() {
@@ -239,7 +270,7 @@ test_set_address_vars() {
     API_ADDR=$(convert_tcp_maddr $API_MADDR) &&
     API_PORT=$(port_from_maddr $API_MADDR) &&
 
-    GWAY_MADDR=$(sed -n "s/^Gateway (.*) server listening on //p" "$daemon_output") &&
+    GWAY_MADDR=$(sed -n "s/^Gateway server listening on //p" "$daemon_output") &&
     GWAY_ADDR=$(convert_tcp_maddr $GWAY_MADDR) &&
     GWAY_PORT=$(port_from_maddr $GWAY_MADDR)
   '
@@ -286,10 +317,37 @@ test_launch_ipfs_daemon_without_network() {
 }
 
 do_umount() {
+  local mount_point="$1"
+  local max_retries=3
+  local retry_delay=0.5
+  
+  # Try normal unmount first (without lazy flag)
+  for i in $(seq 1 $max_retries); do
+    if [ "$(uname -s)" = "Linux" ]; then
+      # First attempt: standard unmount
+      if fusermount -u "$mount_point" 2>/dev/null; then
+        return 0
+      fi
+    else
+      if umount "$mount_point" 2>/dev/null; then
+        return 0
+      fi
+    fi
+    
+    # If not last attempt, wait before retry
+    if [ $i -lt $max_retries ]; then
+      go-sleep "${retry_delay}s"
+    fi
+  done
+  
+  # If normal unmount failed, try lazy unmount as last resort (Linux only)
   if [ "$(uname -s)" = "Linux" ]; then
-  fusermount -z -u "$1"
+    # Log that we're falling back to lazy unmount
+    test "$TEST_VERBOSE" = 1 && echo "# Warning: falling back to lazy unmount for $mount_point"
+    fusermount -z -u "$mount_point" 2>/dev/null
   else
-  umount "$1"
+    # On non-Linux, try force unmount
+    umount -f "$mount_point" 2>/dev/null || true
   fi
 }
 
@@ -299,12 +357,14 @@ test_mount_ipfs() {
   test_expect_success FUSE "'ipfs mount' succeeds" '
     do_umount "$(pwd)/ipfs" || true &&
     do_umount "$(pwd)/ipns" || true &&
+    do_umount "$(pwd)/mfs" || true &&
     ipfs mount >actual
   '
 
   test_expect_success FUSE "'ipfs mount' output looks good" '
     echo "IPFS mounted at: $(pwd)/ipfs" >expected &&
     echo "IPNS mounted at: $(pwd)/ipns" >>expected &&
+    echo "MFS mounted at: $(pwd)/mfs" >>expected &&
     test_cmp expected actual
   '
 
@@ -511,7 +571,7 @@ port_from_maddr() {
 
 findprovs_empty() {
   test_expect_success 'findprovs '$1' succeeds' '
-    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut
+    ipfsi 1 routing findprovs -n 1 '$1' > findprovsOut
   '
 
   test_expect_success "findprovs $1 output is empty" '
@@ -521,7 +581,7 @@ findprovs_empty() {
 
 findprovs_expect() {
   test_expect_success 'findprovs '$1' succeeds' '
-    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut &&
+    ipfsi 1 routing findprovs -n 1 '$1' > findprovsOut &&
     echo '$2' > expected
   '
 
@@ -541,4 +601,3 @@ purge_blockstore() {
     [[ -z "$( ipfs repo gc )" ]]
   '
 }
-

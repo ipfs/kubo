@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
 
 	"go.uber.org/fx"
 
+	"github.com/ipfs/boxo/autoconf"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"
@@ -34,9 +34,6 @@ type BuildCfg struct {
 	// DO NOT SET THIS UNLESS YOU'RE TESTING.
 	DisableEncryptedConnections bool
 
-	// If NilRepo is set, a Repo backed by a nil datastore will be constructed
-	NilRepo bool
-
 	Routing libp2p.RoutingOption
 	Host    libp2p.HostOption
 	Repo    repo.Repo
@@ -51,18 +48,8 @@ func (cfg *BuildCfg) getOpt(key string) bool {
 }
 
 func (cfg *BuildCfg) fillDefaults() error {
-	if cfg.Repo != nil && cfg.NilRepo {
-		return errors.New("cannot set a Repo and specify nilrepo at the same time")
-	}
-
 	if cfg.Repo == nil {
-		var d ds.Datastore
-		if cfg.NilRepo {
-			d = ds.NewNullDatastore()
-		} else {
-			d = ds.NewMapDatastore()
-		}
-		r, err := defaultRepo(dsync.MutexWrap(d))
+		r, err := defaultRepo(dsync.MutexWrap(ds.NewMapDatastore()))
 		if err != nil {
 			return err
 		}
@@ -139,9 +126,9 @@ func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 		return nil, err
 	}
 
-	c.Bootstrap = cfg.DefaultBootstrapAddresses
-	c.Addresses.Swarm = []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic"}
-	c.Identity.PeerID = pid.Pretty()
+	c.Bootstrap = autoconf.FallbackBootstrapPeers
+	c.Addresses.Swarm = []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"}
+	c.Identity.PeerID = pid.String()
 	c.Identity.PrivKey = base64.StdEncoding.EncodeToString(privkeyb)
 
 	return &repo.Mock{

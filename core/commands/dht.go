@@ -15,6 +15,7 @@ import (
 var ErrNotDHT = errors.New("routing service is not a DHT")
 
 var DhtCmd = &cmds.Command{
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
 		Tagline:          "Issue commands directly through the DHT.",
 		ShortDescription: ``,
@@ -22,62 +23,12 @@ var DhtCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"query":     queryDhtCmd,
-		"findprovs": findProvidersDhtCmd,
-		"findpeer":  findPeerDhtCmd,
-		"get":       getValueDhtCmd,
-		"put":       putValueDhtCmd,
-		"provide":   provideRefDhtCmd,
+		"findprovs": RemovedDHTCmd,
+		"findpeer":  RemovedDHTCmd,
+		"get":       RemovedDHTCmd,
+		"put":       RemovedDHTCmd,
+		"provide":   RemovedDHTCmd,
 	},
-}
-
-var findProvidersDhtCmd = &cmds.Command{
-	Helptext:  findProvidersRoutingCmd.Helptext,
-	Arguments: findProvidersRoutingCmd.Arguments,
-	Options:   findProvidersRoutingCmd.Options,
-	Run:       findProvidersRoutingCmd.Run,
-	Encoders:  findProvidersRoutingCmd.Encoders,
-	Type:      findProvidersRoutingCmd.Type,
-	Status:    cmds.Deprecated,
-}
-
-var findPeerDhtCmd = &cmds.Command{
-	Helptext:  findPeerRoutingCmd.Helptext,
-	Arguments: findPeerRoutingCmd.Arguments,
-	Options:   findPeerRoutingCmd.Options,
-	Run:       findPeerRoutingCmd.Run,
-	Encoders:  findPeerRoutingCmd.Encoders,
-	Type:      findPeerRoutingCmd.Type,
-	Status:    cmds.Deprecated,
-}
-
-var getValueDhtCmd = &cmds.Command{
-	Helptext:  getValueRoutingCmd.Helptext,
-	Arguments: getValueRoutingCmd.Arguments,
-	Options:   getValueRoutingCmd.Options,
-	Run:       getValueRoutingCmd.Run,
-	Encoders:  getValueRoutingCmd.Encoders,
-	Type:      getValueRoutingCmd.Type,
-	Status:    cmds.Deprecated,
-}
-
-var putValueDhtCmd = &cmds.Command{
-	Helptext:  putValueRoutingCmd.Helptext,
-	Arguments: putValueRoutingCmd.Arguments,
-	Options:   putValueRoutingCmd.Options,
-	Run:       putValueRoutingCmd.Run,
-	Encoders:  putValueRoutingCmd.Encoders,
-	Type:      putValueRoutingCmd.Type,
-	Status:    cmds.Deprecated,
-}
-
-var provideRefDhtCmd = &cmds.Command{
-	Helptext:  provideRefRoutingCmd.Helptext,
-	Arguments: provideRefRoutingCmd.Arguments,
-	Options:   provideRefRoutingCmd.Options,
-	Run:       provideRefRoutingCmd.Run,
-	Encoders:  provideRefRoutingCmd.Encoders,
-	Type:      provideRefRoutingCmd.Type,
-	Status:    cmds.Deprecated,
 }
 
 // kademlia extends the routing interface with a command to get the peers closest to the target
@@ -87,6 +38,7 @@ type kademlia interface {
 }
 
 var queryDhtCmd = &cmds.Command{
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
 		Tagline:          "Find the closest Peer IDs to a given Peer ID by querying the DHT.",
 		ShortDescription: "Outputs a list of newline-delimited Peer IDs.",
@@ -126,7 +78,7 @@ var queryDhtCmd = &cmds.Command{
 		}
 
 		if d, ok := client.(kademlia); !ok {
-			return fmt.Errorf("dht client does not support GetClosestPeers")
+			return errors.New("dht client does not support GetClosestPeers")
 		} else {
 			errCh := make(chan error, 1)
 			go func() {
@@ -168,4 +120,13 @@ var queryDhtCmd = &cmds.Command{
 		}),
 	},
 	Type: routing.QueryEvent{},
+}
+var RemovedDHTCmd = &cmds.Command{
+	Status: cmds.Removed,
+	Helptext: cmds.HelpText{
+		Tagline: "Removed, use 'ipfs routing' instead.",
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		return errors.New("removed, use 'ipfs routing' instead")
+	},
 }

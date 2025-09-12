@@ -25,11 +25,11 @@ func init() {
 // skip fuse checks.
 const dontCheckOSXFUSEConfigKey = "DontCheckOSXFUSE"
 
-// fuseVersionPkg is the go pkg url for fuse-version
+// fuseVersionPkg is the go pkg url for fuse-version.
 const fuseVersionPkg = "github.com/jbenet/go-fuse-version/fuse-version"
 
 // errStrFuseRequired is returned when we're sure the user does not have fuse.
-var errStrFuseRequired = `OSXFUSE not found.
+const errStrFuseRequired = `OSXFUSE not found.
 
 OSXFUSE is required to mount, please install it.
 NOTE: Version 2.7.2 or higher required; prior versions are known to kernel panic!
@@ -141,9 +141,8 @@ func darwinFuseCheckVersion(node *core.IpfsNode) error {
 			return err
 		} else if skip {
 			return nil // user told us not to check version... ok....
-		} else {
-			return errGFV
 		}
+		return errGFV
 	}
 
 	log.Debug("mount: osxfuse version:", ov)

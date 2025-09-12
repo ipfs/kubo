@@ -51,14 +51,15 @@ plugin type is likely the best interim solution.
 ### fx (experimental)
 
 Fx plugins let you customize the [fx](https://pkg.go.dev/go.uber.org/fx) dependency graph and configuration,
-by customizing the`fx.Option`s that are passed to `fx` when the IPFS node is initialized.
+by customizing the`fx.Option`s that are passed to `fx` when the Kubo node is initialized.
 
-For example, you can inject custom implementations of interfaces such as [exchange.Interface](https://github.com/ipfs/go-ipfs-exchange-interface)
-or [pin.Pinner](https://github.com/ipfs/go-ipfs-pinner) by adding an option like `fx.Replace(fx.Annotate(customExchange, fx.As(new(exchange.Interface))))`.
+For example, you can override an interface such as [exchange.Interface](https://github.com/ipfs/go-ipfs-exchange-interface)
+or [pin.Pinner](https://github.com/ipfs/go-ipfs-pinner) with a custom implementation by appending an option like
+`fx.Decorate(func() exchange.Interface { return customExchange })`.
 
 Fx supports some advanced customization. Simple interface replacements like above are unlikely to break in the future, 
 but the more invasive your changes, the more likely they are to break between releases. Kubo cannot guarantee backwards
-compatibility for invasive `fx` customizations.
+compatibility for `fx` customizations.
 
 Fx options are applied across every execution of the `ipfs` binary, including:
 
@@ -68,7 +69,7 @@ Fx options are applied across every execution of the `ipfs` binary, including:
 - etc.
 
 So if you plug in a blockservice that disallows non-allowlisted CIDs, then this may break migrations
-that fetch migration code over IPFS.
+that fetch migration code over the IPFS network.
 
 ### Internal
 
@@ -116,6 +117,7 @@ Example:
 | [flatfs](https://github.com/ipfs/kubo/tree/master/plugin/plugins/flatfs)     | Datastore | x         | A stable filesystem-based datastore.           |
 | [levelds](https://github.com/ipfs/kubo/tree/master/plugin/plugins/levelds)   | Datastore | x         | A stable, flexible datastore backend.          |
 | [jaeger](https://github.com/ipfs/go-jaeger-plugin)                              | Tracing   |           | An opentracing backend.                        |
+| [telemetry](https://github.com/ipfs/kubo/tree/master/plugin/plugins/telemetry) | Telemetry | x         | Collects anonymized usage data for Kubo development. |
 
 * **Preloaded** plugins are built into the Kubo binary and do not need to be
   installed separately. At the moment, all in-tree plugins are preloaded.

@@ -23,17 +23,17 @@ test_expect_success "collect metrics" '
 test_kill_ipfs_daemon
 
 test_expect_success "filter metrics" '
-  sed -ne "s/^\([a-z0-9_]\+\).*/\1/p" raw_metrics | LC_ALL=C sort > filtered_metrics
+  sed -ne "s/^\([a-z0-9_]\+\).*/\1/p" raw_metrics | LC_ALL=C sort | uniq > filtered_metrics
 '
 
 test_expect_success "make sure metrics haven't changed" '
-  diff -u ../t0116-prometheus-data/prometheus_metrics filtered_metrics
+  diff -u ../t0119-prometheus-data/prometheus_metrics filtered_metrics
 '
 
 # Check what was added by enabling ResourceMgr.Enabled
 #
 # NOTE: we won't see all the dynamic ones, but that is  ok: the point of the
-# test here is to detect regression when rcmgr metrics dissapear due to
+# test here is to detect regression when rcmgr metrics disappear due to
 # refactor/human error.
 
 test_expect_success "enable ResourceMgr in the config" '
@@ -50,11 +50,35 @@ test_kill_ipfs_daemon
 
 test_expect_success "filter metrics and find ones added by enabling ResourceMgr" '
   sed -ne "s/^\([a-z0-9_]\+\).*/\1/p" raw_metrics | LC_ALL=C sort > filtered_metrics &&
-  grep -v -x -f ../t0116-prometheus-data/prometheus_metrics filtered_metrics > rcmgr_metrics
+  grep -v -x -f ../t0119-prometheus-data/prometheus_metrics filtered_metrics | LC_ALL=C sort | uniq > rcmgr_metrics
 '
 
 test_expect_success "make sure initial metrics added by setting ResourceMgr.Enabled haven't changed" '
-  diff -u ../t0116-prometheus-data/prometheus_metrics_added_by_enabling_rcmgr rcmgr_metrics
+  diff -u ../t0119-prometheus-data/prometheus_metrics_added_by_enabling_rcmgr rcmgr_metrics
+'
+
+# Reinitialize ipfs with --profile=flatfs-measure and check metrics.
+
+test_expect_success "remove ipfs directory" '
+  rm -rf .ipfs mountdir ipfs ipns
+'
+
+test_init_ipfs_measure
+
+test_launch_ipfs_daemon
+
+test_expect_success "collect metrics" '
+  curl "$API_ADDR/debug/metrics/prometheus" > raw_metrics
+'
+test_kill_ipfs_daemon
+
+test_expect_success "filter metrics and find ones added by enabling flatfs-measure profile" '
+  sed -ne "s/^\([a-z0-9_]\+\).*/\1/p" raw_metrics | LC_ALL=C sort > filtered_metrics &&
+  grep -v -x -f ../t0119-prometheus-data/prometheus_metrics filtered_metrics | LC_ALL=C sort | uniq > measure_metrics
+'
+
+test_expect_success "make sure initial metrics added by initializing with flatfs-measure profile haven't changed" '
+  diff -u ../t0119-prometheus-data/prometheus_metrics_added_by_measure_profile measure_metrics
 '
 
 test_done

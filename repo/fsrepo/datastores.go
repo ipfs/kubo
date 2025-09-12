@@ -14,19 +14,18 @@ import (
 	"github.com/ipfs/go-ds-measure"
 )
 
-// ConfigFromMap creates a new datastore config from a map
+// ConfigFromMap creates a new datastore config from a map.
 type ConfigFromMap func(map[string]interface{}) (DatastoreConfig, error)
 
-// DatastoreConfig is an abstraction of a datastore config.  A "spec"
-// is first converted to a DatastoreConfig and then Create() is called
-// to instantiate a new datastore
+// DatastoreConfig is an abstraction of a datastore config. A "spec" is first
+// converted to a DatastoreConfig and then Create() is called to instantiate a
+// new datastore.
 type DatastoreConfig interface {
-	// DiskSpec returns a minimal configuration of the datastore
-	// represting what is stored on disk.  Run time values are
-	// excluded.
+	// DiskSpec returns a minimal configuration of the datastore representing
+	// what is stored on disk. Run time values are excluded.
 	DiskSpec() DiskSpec
 
-	// Create instantiate a new datastore from this config
+	// Create instantiates a new datastore from this config.
 	Create(path string) (repo.Datastore, error)
 }
 
@@ -38,7 +37,7 @@ type DatastoreConfig interface {
 // here.
 type DiskSpec map[string]interface{}
 
-// Bytes returns a minimal JSON encoding of the DiskSpec
+// Bytes returns a minimal JSON encoding of the DiskSpec.
 func (spec DiskSpec) Bytes() []byte {
 	b, err := json.Marshal(spec)
 	if err != nil {
@@ -48,7 +47,7 @@ func (spec DiskSpec) Bytes() []byte {
 	return bytes.TrimSpace(b)
 }
 
-// String returns a minimal JSON encoding of the DiskSpec
+// String returns a minimal JSON encoding of the DiskSpec.
 func (spec DiskSpec) String() string {
 	return string(spec.Bytes())
 }
@@ -75,7 +74,7 @@ func AddDatastoreConfigHandler(name string, dsc ConfigFromMap) error {
 }
 
 // AnyDatastoreConfig returns a DatastoreConfig from a spec based on
-// the "type" parameter
+// the "type" parameter.
 func AnyDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	which, ok := params["type"].(string)
 	if !ok {
@@ -97,7 +96,7 @@ type premount struct {
 	prefix ds.Key
 }
 
-// MountDatastoreConfig returns a mount DatastoreConfig from a spec
+// MountDatastoreConfig returns a mount DatastoreConfig from a spec.
 func MountDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	var res mountDatastoreConfig
 	mounts, ok := params["mounts"].([]interface{})
@@ -165,7 +164,7 @@ type memDatastoreConfig struct {
 	cfg map[string]interface{}
 }
 
-// MemDatastoreConfig returns a memory DatastoreConfig from a spec
+// MemDatastoreConfig returns a memory DatastoreConfig from a spec.
 func MemDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	return &memDatastoreConfig{params}, nil
 }
@@ -183,7 +182,7 @@ type logDatastoreConfig struct {
 	name  string
 }
 
-// LogDatastoreConfig returns a log DatastoreConfig from a spec
+// LogDatastoreConfig returns a log DatastoreConfig from a spec.
 func LogDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	childField, ok := params["child"].(map[string]interface{})
 	if !ok {
@@ -198,7 +197,6 @@ func LogDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) 
 		return nil, fmt.Errorf("'name' field was missing or not a string")
 	}
 	return &logDatastoreConfig{child, name}, nil
-
 }
 
 func (c *logDatastoreConfig) Create(path string) (repo.Datastore, error) {
@@ -218,7 +216,7 @@ type measureDatastoreConfig struct {
 	prefix string
 }
 
-// MeasureDatastoreConfig returns a measure DatastoreConfig from a spec
+// MeasureDatastoreConfig returns a measure DatastoreConfig from a spec.
 func MeasureDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	childField, ok := params["child"].(map[string]interface{})
 	if !ok {

@@ -11,21 +11,24 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"io"
+	"time"
 
-	"github.com/ipfs/go-filestore"
-	pin "github.com/ipfs/go-ipfs-pinner"
+	"github.com/ipfs/boxo/filestore"
+	pin "github.com/ipfs/boxo/pinning/pinner"
+	"github.com/ipfs/go-datastore"
 
-	bserv "github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-fetcher"
-	"github.com/ipfs/go-graphsync"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	provider "github.com/ipfs/go-ipfs-provider"
+	bitswap "github.com/ipfs/boxo/bitswap"
+	bserv "github.com/ipfs/boxo/blockservice"
+	bstore "github.com/ipfs/boxo/blockstore"
+	exchange "github.com/ipfs/boxo/exchange"
+	"github.com/ipfs/boxo/fetcher"
+	mfs "github.com/ipfs/boxo/mfs"
+	pathresolver "github.com/ipfs/boxo/path/resolver"
+	provider "github.com/ipfs/boxo/provider"
 	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
-	mfs "github.com/ipfs/go-mfs"
-	goprocess "github.com/jbenet/goprocess"
+	logging "github.com/ipfs/go-log/v2"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
@@ -43,14 +46,15 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
-	"github.com/ipfs/go-namesys"
-	ipnsrp "github.com/ipfs/go-namesys/republisher"
-	"github.com/ipfs/kubo/core/bootstrap"
+	"github.com/ipfs/boxo/bootstrap"
+	"github.com/ipfs/boxo/namesys"
+	ipnsrp "github.com/ipfs/boxo/namesys/republisher"
+	"github.com/ipfs/boxo/peering"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/fuse/mount"
 	"github.com/ipfs/kubo/p2p"
-	"github.com/ipfs/kubo/peering"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
 )
@@ -59,7 +63,6 @@ var log = logging.Logger("core")
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {
-
 	// Self
 	Identity peer.ID // the local node's identity
 
@@ -72,33 +75,42 @@ type IpfsNode struct {
 	PNetFingerprint libp2p.PNetFingerprint `optional:"true"` // fingerprint of private network
 
 	// Services
-	Peerstore            pstore.Peerstore          `optional:"true"` // storage for other Peer instances
-	Blockstore           bstore.GCBlockstore       // the block store (lower level)
-	Filestore            *filestore.Filestore      `optional:"true"` // the filestore blockstore
-	BaseBlocks           node.BaseBlocks           // the raw blockstore, no filestore wrapping
-	GCLocker             bstore.GCLocker           // the locker used to protect the blockstore during gc
-	Blocks               bserv.BlockService        // the block service, get/add blocks.
-	DAG                  ipld.DAGService           // the merkle dag service, get/add objects.
-	IPLDFetcherFactory   fetcher.Factory           `name:"ipldFetcher"`   // fetcher that paths over the IPLD data model
-	UnixFSFetcherFactory fetcher.Factory           `name:"unixfsFetcher"` // fetcher that interprets UnixFS data
-	Reporter             *metrics.BandwidthCounter `optional:"true"`
-	Discovery            mdns.Service              `optional:"true"`
-	FilesRoot            *mfs.Root
-	RecordValidator      record.Validator
+	Peerstore                   pstore.Peerstore          `optional:"true"` // storage for other Peer instances
+	Blockstore                  bstore.GCBlockstore       // the block store (lower level)
+	Filestore                   *filestore.Filestore      `optional:"true"` // the filestore blockstore
+	BaseBlocks                  node.BaseBlocks           // the raw blockstore, no filestore wrapping
+	GCLocker                    bstore.GCLocker           // the locker used to protect the blockstore during gc
+	Blocks                      bserv.BlockService        // the block service, get/add blocks.
+	DAG                         ipld.DAGService           // the merkle dag service, get/add objects.
+	IPLDFetcherFactory          fetcher.Factory           `name:"ipldFetcher"`          // fetcher that paths over the IPLD data model
+	UnixFSFetcherFactory        fetcher.Factory           `name:"unixfsFetcher"`        // fetcher that interprets UnixFS data
+	OfflineIPLDFetcherFactory   fetcher.Factory           `name:"offlineIpldFetcher"`   // fetcher that paths over the IPLD data model without fetching new blocks
+	OfflineUnixFSFetcherFactory fetcher.Factory           `name:"offlineUnixfsFetcher"` // fetcher that interprets UnixFS data without fetching new blocks
+	Reporter                    *metrics.BandwidthCounter `optional:"true"`
+	Discovery                   mdns.Service              `optional:"true"`
+	FilesRoot                   *mfs.Root
+	RecordValidator             record.Validator
 
 	// Online
-	PeerHost        p2phost.Host               `optional:"true"` // the network host (server+client)
-	Peering         *peering.PeeringService    `optional:"true"`
-	Filters         *ma.Filters                `optional:"true"`
-	Bootstrapper    io.Closer                  `optional:"true"` // the periodic bootstrapper
-	Routing         irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
-	DNSResolver     *madns.Resolver            // the DNS resolver
-	Exchange        exchange.Interface         // the block exchange + strategy (bitswap)
-	Namesys         namesys.NameSystem         // the name system, resolves paths to hashes
-	Provider        provider.System            // the value provider system
-	IpnsRepub       *ipnsrp.Republisher        `optional:"true"`
-	GraphExchange   graphsync.GraphExchange    `optional:"true"`
-	ResourceManager network.ResourceManager    `optional:"true"`
+	PeerHost                  p2phost.Host               `optional:"true"` // the network host (server+client)
+	Peering                   *peering.PeeringService    `optional:"true"`
+	Filters                   *ma.Filters                `optional:"true"`
+	Bootstrapper              io.Closer                  `optional:"true"` // the periodic bootstrapper
+	Routing                   irouting.ProvideManyRouter `optional:"true"` // the routing system. recommend ipfs-dht
+	ContentDiscovery          routing.ContentDiscovery   `optional:"true"` // the discovery part of the routing system
+	DNSResolver               *madns.Resolver            // the DNS resolver
+	IPLDPathResolver          pathresolver.Resolver      `name:"ipldPathResolver"`          // The IPLD path resolver
+	UnixFSPathResolver        pathresolver.Resolver      `name:"unixFSPathResolver"`        // The UnixFS path resolver
+	OfflineIPLDPathResolver   pathresolver.Resolver      `name:"offlineIpldPathResolver"`   // The IPLD path resolver that uses only locally available blocks
+	OfflineUnixFSPathResolver pathresolver.Resolver      `name:"offlineUnixFSPathResolver"` // The UnixFS path resolver that uses only locally available blocks
+	Exchange                  exchange.Interface         // the block exchange + strategy
+	Bitswap                   *bitswap.Bitswap           `optional:"true"` // The Bitswap instance
+	Namesys                   namesys.NameSystem         // the name system, resolves paths to hashes
+	Provider                  provider.System            // the value provider system
+	ProvidingStrategy         config.ReproviderStrategy  `optional:"true"`
+	ProvidingKeyChanFunc      provider.KeyChanFunc       `optional:"true"`
+	IpnsRepub                 *ipnsrp.Republisher        `optional:"true"`
+	ResourceManager           network.ResourceManager    `optional:"true"`
 
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
@@ -108,8 +120,7 @@ type IpfsNode struct {
 
 	P2P *p2p.P2P `optional:"true"`
 
-	Process goprocess.Process
-	ctx     context.Context
+	ctx context.Context
 
 	stop func() error
 
@@ -124,6 +135,7 @@ type IpfsNode struct {
 type Mounts struct {
 	Ipfs mount.Mount
 	Ipns mount.Mount
+	Mfs  mount.Mount
 }
 
 // Close calls Close() on the App object
@@ -162,11 +174,38 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 			return ps
 		}
 	}
+	if load, _ := cfg.BackupPeers(); load == nil {
+		save := func(ctx context.Context, peerList []peer.AddrInfo) {
+			err := n.saveTempBootstrapPeers(ctx, peerList)
+			if err != nil {
+				log.Warnf("saveTempBootstrapPeers failed: %s", err)
+				return
+			}
+		}
+		load = func(ctx context.Context) []peer.AddrInfo {
+			peerList, err := n.loadTempBootstrapPeers(ctx)
+			if err != nil {
+				log.Warnf("loadTempBootstrapPeers failed: %s", err)
+				return nil
+			}
+			return peerList
+		}
+		cfg.SetBackupPeers(load, save)
+	}
 
-	var err error
+	repoConf, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+	if repoConf.Internal.BackupBootstrapInterval != nil {
+		cfg.BackupBootstrapInterval = repoConf.Internal.BackupBootstrapInterval.WithDefault(time.Hour)
+	}
+
 	n.Bootstrapper, err = bootstrap.Bootstrap(n.Identity, n.PeerHost, n.Routing, cfg)
 	return err
 }
+
+var TempBootstrapPeersKey = datastore.NewKey("/local/temp_bootstrap_peers")
 
 func (n *IpfsNode) loadBootstrapPeers() ([]peer.AddrInfo, error) {
 	cfg, err := n.Repo.Config()
@@ -174,7 +213,35 @@ func (n *IpfsNode) loadBootstrapPeers() ([]peer.AddrInfo, error) {
 		return nil, err
 	}
 
-	return cfg.BootstrapPeers()
+	// Use auto-config resolution for actual bootstrap connectivity
+	return cfg.BootstrapPeersWithAutoConf()
+}
+
+func (n *IpfsNode) saveTempBootstrapPeers(ctx context.Context, peerList []peer.AddrInfo) error {
+	ds := n.Repo.Datastore()
+	bytes, err := json.Marshal(config.BootstrapPeerStrings(peerList))
+	if err != nil {
+		return err
+	}
+
+	if err := ds.Put(ctx, TempBootstrapPeersKey, bytes); err != nil {
+		return err
+	}
+	return ds.Sync(ctx, TempBootstrapPeersKey)
+}
+
+func (n *IpfsNode) loadTempBootstrapPeers(ctx context.Context) ([]peer.AddrInfo, error) {
+	ds := n.Repo.Datastore()
+	bytes, err := ds.Get(ctx, TempBootstrapPeersKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var addrs []string
+	if err := json.Unmarshal(bytes, &addrs); err != nil {
+		return nil, err
+	}
+	return config.ParseBootstrapPeers(addrs)
 }
 
 type ConstructPeerHostOpts struct {

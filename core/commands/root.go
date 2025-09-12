@@ -8,15 +8,17 @@ import (
 	name "github.com/ipfs/kubo/core/commands/name"
 	ocmd "github.com/ipfs/kubo/core/commands/object"
 	"github.com/ipfs/kubo/core/commands/pin"
-	unixfs "github.com/ipfs/kubo/core/commands/unixfs"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("core/commands")
 
-var ErrNotOnline = errors.New("this command must be run in online mode. Try running 'ipfs daemon' first")
+var (
+	ErrNotOnline       = errors.New("this command must be run in online mode. Try running 'ipfs daemon' first")
+	ErrSelfUnsupported = errors.New("finding your own node in the DHT is currently not supported")
+)
 
 const (
 	RepoDirOption    = "repo-dir"
@@ -25,7 +27,8 @@ const (
 	DebugOption      = "debug"
 	LocalOption      = "local" // DEPRECATED: use OfflineOption
 	OfflineOption    = "offline"
-	ApiOption        = "api" //nolint
+	ApiOption        = "api"      //nolint
+	ApiAuthOption    = "api-auth" //nolint
 )
 
 var Root = &cmds.Command{
@@ -62,6 +65,7 @@ ADVANCED COMMANDS
   p2p           Libp2p stream mounting (experimental)
   filestore     Manage the filestore (experimental)
   mount         Mount an IPFS read-only mount point (experimental)
+  provide       Control providing operations
 
 NETWORK COMMANDS
   id            Show info about IPFS peers
@@ -107,6 +111,7 @@ The CLI will exit with one of the following values:
 		cmds.BoolOption(LocalOption, "L", "Run the command locally, instead of using the daemon. DEPRECATED: use --offline."),
 		cmds.BoolOption(OfflineOption, "Run the command offline."),
 		cmds.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
+		cmds.StringOption(ApiAuthOption, "Optional RPC API authorization secret (defined as AuthSecret in API.Authorizations config)"),
 
 		// global options, added to every command
 		cmdenv.OptionCidBase,
@@ -129,6 +134,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"files":     FilesCmd,
 	"filestore": FileStoreCmd,
 	"get":       GetCmd,
+	"provide":   ProvideCmd,
 	"pubsub":    PubsubCmd,
 	"repo":      RepoCmd,
 	"stats":     StatsCmd,
@@ -138,7 +144,6 @@ var rootSubcommands = map[string]*cmds.Command{
 	"dht":       DhtCmd,
 	"routing":   RoutingCmd,
 	"diag":      DiagCmd,
-	"dns":       DNSCmd,
 	"id":        IDCmd,
 	"key":       KeyCmd,
 	"log":       LogCmd,
@@ -152,83 +157,16 @@ var rootSubcommands = map[string]*cmds.Command{
 	"refs":      RefsCmd,
 	"resolve":   ResolveCmd,
 	"swarm":     SwarmCmd,
-	"tar":       TarCmd,
-	"file":      unixfs.UnixFSCmd,
 	"update":    ExternalBinary("Please see https://github.com/ipfs/ipfs-update/blob/master/README.md#install for installation instructions."),
-	"urlstore":  urlStoreCmd,
 	"version":   VersionCmd,
 	"shutdown":  daemonShutdownCmd,
 	"cid":       CidCmd,
 	"multibase": MbaseCmd,
 }
 
-// RootRO is the readonly version of Root
-var RootRO = &cmds.Command{}
-
-var CommandsDaemonROCmd = CommandsCmd(RootRO)
-
-// RefsROCmd is `ipfs refs` command
-var RefsROCmd = &cmds.Command{}
-
-// VersionROCmd is `ipfs version` command (without deps).
-var VersionROCmd = &cmds.Command{}
-
-var rootROSubcommands = map[string]*cmds.Command{
-	"commands": CommandsDaemonROCmd,
-	"cat":      CatCmd,
-	"block": {
-		Subcommands: map[string]*cmds.Command{
-			"stat": blockStatCmd,
-			"get":  blockGetCmd,
-		},
-	},
-	"get": GetCmd,
-	"dns": DNSCmd,
-	"ls":  LsCmd,
-	"name": {
-		Subcommands: map[string]*cmds.Command{
-			"resolve": name.IpnsCmd,
-		},
-	},
-	"object": {
-		Subcommands: map[string]*cmds.Command{
-			"data":  ocmd.ObjectDataCmd,
-			"links": ocmd.ObjectLinksCmd,
-			"get":   ocmd.ObjectGetCmd,
-			"stat":  ocmd.ObjectStatCmd,
-		},
-	},
-	"dag": {
-		Subcommands: map[string]*cmds.Command{
-			"get":     dag.DagGetCmd,
-			"resolve": dag.DagResolveCmd,
-			"stat":    dag.DagStatCmd,
-			"export":  dag.DagExportCmd,
-		},
-	},
-	"resolve": ResolveCmd,
-}
-
 func init() {
 	Root.ProcessHelp()
-	*RootRO = *Root
-
-	// this was in the big map definition above before,
-	// but if we leave it there lgc.NewCommand will be executed
-	// before the value is updated (:/sanitize readonly refs command/)
-
-	// sanitize readonly refs command
-	*RefsROCmd = *RefsCmd
-	RefsROCmd.Subcommands = map[string]*cmds.Command{}
-	rootROSubcommands["refs"] = RefsROCmd
-
-	// sanitize readonly version command (no need to expose precise deps)
-	*VersionROCmd = *VersionCmd
-	VersionROCmd.Subcommands = map[string]*cmds.Command{}
-	rootROSubcommands["version"] = VersionROCmd
-
 	Root.Subcommands = rootSubcommands
-	RootRO.Subcommands = rootROSubcommands
 }
 
 type MessageOutput struct {

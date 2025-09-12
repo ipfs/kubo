@@ -7,13 +7,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ipfs/kubo/core/node/helpers"
-	irouting "github.com/ipfs/kubo/routing"
-
+	"github.com/cenkalti/backoff/v4"
+	offroute "github.com/ipfs/boxo/routing/offline"
 	ds "github.com/ipfs/go-datastore"
-	offroute "github.com/ipfs/go-ipfs-routing/offline"
-	config "github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/repo"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
@@ -24,9 +20,12 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
-
-	"github.com/cenkalti/backoff/v4"
 	"go.uber.org/fx"
+
+	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/repo"
+	irouting "github.com/ipfs/kubo/routing"
 )
 
 type Router struct {
@@ -64,30 +63,45 @@ type processInitialRoutingOut struct {
 
 type AddrInfoChan chan peer.AddrInfo
 
-func BaseRouting(experimentalDHTClient bool) interface{} {
+func BaseRouting(cfg *config.Config) interface{} {
 	return func(lc fx.Lifecycle, in processInitialRoutingIn) (out processInitialRoutingOut, err error) {
-		var dr *ddht.DHT
+		var dualDHT *ddht.DHT
 		if dht, ok := in.Router.(*ddht.DHT); ok {
-			dr = dht
+			dualDHT = dht
 
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
-					return dr.Close()
+					return dualDHT.Close()
 				},
 			})
 		}
 
-		if dr != nil && experimentalDHTClient {
+		if cr, ok := in.Router.(routinghelpers.ComposableRouter); ok {
+			for _, r := range cr.Routers() {
+				if dht, ok := r.(*ddht.DHT); ok {
+					dualDHT = dht
+					lc.Append(fx.Hook{
+						OnStop: func(ctx context.Context) error {
+							return dualDHT.Close()
+						},
+					})
+					break
+				}
+			}
+		}
+
+		if dualDHT != nil && cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient) {
 			cfg, err := in.Repo.Config()
 			if err != nil {
 				return out, err
 			}
-			bspeers, err := cfg.BootstrapPeers()
+			// Use auto-config resolution for actual connectivity
+			bspeers, err := cfg.BootstrapPeersWithAutoConf()
 			if err != nil {
 				return out, err
 			}
 
-			expClient, err := fullrt.NewFullRT(in.Host,
+			fullRTClient, err := fullrt.NewFullRT(in.Host,
 				dht.DefaultPrefix,
 				fullrt.DHTOption(
 					dht.Validator(in.Validator),
@@ -102,18 +116,30 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
-					return expClient.Close()
+					return fullRTClient.Close()
 				},
 			})
 
+			// we want to also use the default HTTP routers, so wrap the FullRT client
+			// in a parallel router that calls them in parallel
+			httpRouters, err := constructDefaultHTTPRouters(cfg)
+			if err != nil {
+				return out, err
+			}
+			routers := []*routinghelpers.ParallelRouter{
+				{Router: fullRTClient, DoNotWaitForSearchValue: true},
+			}
+			routers = append(routers, httpRouters...)
+			router := routinghelpers.NewComposableParallel(routers)
+
 			return processInitialRoutingOut{
 				Router: Router{
-					Routing:  expClient,
 					Priority: 1000,
+					Routing:  router,
 				},
-				DHT:           dr,
-				DHTClient:     expClient,
-				ContentRouter: expClient,
+				DHT:           dualDHT,
+				DHTClient:     fullRTClient,
+				ContentRouter: fullRTClient,
 			}, nil
 		}
 
@@ -122,8 +148,8 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 				Priority: 1000,
 				Routing:  in.Router,
 			},
-			DHT:           dr,
-			DHTClient:     dr,
+			DHT:           dualDHT,
+			DHTClient:     dualDHT,
 			ContentRouter: in.Router,
 		}, nil
 	}
@@ -152,6 +178,12 @@ func ContentRouting(in p2pOnlineContentRoutingIn) routing.ContentRouting {
 	}
 }
 
+// ContentDiscovery narrows down the given content routing facility so that it
+// only does discovery.
+func ContentDiscovery(in irouting.ProvideManyRouter) routing.ContentDiscovery {
+	return in
+}
+
 type p2pOnlineRoutingIn struct {
 	fx.In
 
@@ -159,9 +191,8 @@ type p2pOnlineRoutingIn struct {
 	Validator record.Validator
 }
 
-// Routing will get all routers obtained from different methods
-// (delegated routers, pub-sub, and so on) and add them all together
-// using a TieredRouter.
+// Routing will get all routers obtained from different methods (delegated
+// routers, pub-sub, and so on) and add them all together using a ParallelRouter.
 func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	routers := in.Routers
 
@@ -172,16 +203,17 @@ func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	var cRouters []*routinghelpers.ParallelRouter
 	for _, v := range routers {
 		cRouters = append(cRouters, &routinghelpers.ParallelRouter{
-			Timeout:     5 * time.Minute,
-			IgnoreError: true,
-			Router:      v.Routing,
+			IgnoreError:             true,
+			DoNotWaitForSearchValue: true,
+			Router:                  v.Routing,
 		})
 	}
 
 	return routinghelpers.NewComposableParallel(cRouters)
 }
 
-// OfflineRouting provides a special Router to the routers list when we are creating a offline node.
+// OfflineRouting provides a special Router to the routers list when we are
+// creating an offline node.
 func OfflineRouting(dstore ds.Datastore, validator record.Validator) p2pRouterOut {
 	return p2pRouterOut{
 		Router: Router{
@@ -207,7 +239,6 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 		in.Validator,
 		namesys.WithRebroadcastInterval(time.Minute),
 	)
-
 	if err != nil {
 		return p2pRouterOut{}, nil, err
 	}
@@ -267,24 +298,36 @@ func autoRelayFeeder(cfgPeering config.Peering, peerChan chan<- peer.AddrInfo) f
 				}
 
 				// Additionally, feed closest peers discovered via DHT
-				if dht == nil {
-					/* noop due to missing dht.WAN. happens in some unit tests,
-					   not worth fixing as we will refactor this after go-libp2p 0.20 */
-					continue
+				if dht != nil {
+					closestPeers, err := dht.WAN.GetClosestPeers(ctx, h.ID().String())
+					if err == nil {
+						for _, p := range closestPeers {
+							addrs := h.Peerstore().Addrs(p)
+							if len(addrs) == 0 {
+								continue
+							}
+							dhtPeer := peer.AddrInfo{ID: p, Addrs: addrs}
+							select {
+							case peerChan <- dhtPeer:
+							case <-ctx.Done():
+								return
+							}
+						}
+					}
 				}
-				closestPeers, err := dht.WAN.GetClosestPeers(ctx, h.ID().String())
-				if err != nil {
-					// no-op: usually 'failed to find any peer in table' during startup
-					continue
-				}
-				for _, p := range closestPeers {
+
+				// Additionally, feed all connected swarm peers as potential relay candidates.
+				// This includes peers from HTTP routing, manual swarm connect, mDNS discovery, etc.
+				// (fixes https://github.com/ipfs/kubo/issues/10899)
+				connectedPeers := h.Network().Peers()
+				for _, p := range connectedPeers {
 					addrs := h.Peerstore().Addrs(p)
 					if len(addrs) == 0 {
 						continue
 					}
-					dhtPeer := peer.AddrInfo{ID: p, Addrs: addrs}
+					swarmPeer := peer.AddrInfo{ID: p, Addrs: addrs}
 					select {
-					case peerChan <- dhtPeer:
+					case peerChan <- swarmPeer:
 					case <-ctx.Done():
 						return
 					}
