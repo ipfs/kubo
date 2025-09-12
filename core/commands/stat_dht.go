@@ -6,8 +6,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	version "github.com/ipfs/kubo"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -94,7 +94,7 @@ This interface is not stable and may change from release to release.
 
 						if ver, err := nd.Peerstore.Get(p, "AgentVersion"); err == nil {
 							if vs, ok := ver.(string); ok {
-								info.AgentVersion = version.TrimVersion(vs)
+								info.AgentVersion = cmdutils.CleanAndTrim(vs)
 							}
 						} else if err == pstore.ErrNotFound {
 							// ignore
@@ -147,7 +147,7 @@ This interface is not stable and may change from release to release.
 
 				if ver, err := nd.Peerstore.Get(pi.Id, "AgentVersion"); err == nil {
 					if vs, ok := ver.(string); ok {
-						info.AgentVersion = version.TrimVersion(vs)
+						info.AgentVersion = cmdutils.CleanAndTrim(vs)
 					}
 				} else if err == pstore.ErrNotFound {
 					// ignore

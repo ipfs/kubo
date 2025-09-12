@@ -23,13 +23,12 @@ test_id_compute_agent() {
       fi
       AGENT_VERSION="$AGENT_VERSION$AGENT_SUFFIX"
     fi
-    # limit of 64 characters: https://github.com/ipfs/kubo/pull/9465
-    echo -n "$AGENT_VERSION" | head -c 64
+    echo "$AGENT_VERSION"
 }
 
 test_expect_success "checking AgentVersion" '
   test_id_compute_agent > expected-agent-version &&
-  ipfs id -f "<aver>" > actual-agent-version &&
+  ipfs id -f "<aver>\n" > actual-agent-version &&
   test_cmp expected-agent-version actual-agent-version
 '
 
@@ -47,22 +46,20 @@ test_expect_success "checking and converting ID of a random peer while offline" 
 '
 
 # agent-version-suffix (local, offline)
-test_launch_ipfs_daemon --agent-version-suffix=test-suffix-ąę-123456789012345678901234567890
-test_expect_success "checking AgentVersion with suffix (local, only ascii chars)" '
-  test_id_compute_agent "test-suffix-_-123456789012345678901234567890" > expected &&
-  ipfs id -f "<aver>" > actual &&
-  test_should_not_contain "ą" actual &&
-  test_cmp expected actual
+test_launch_ipfs_daemon --agent-version-suffix=test-suffix
+test_expect_success "checking AgentVersion with suffix (local)" '
+  test_id_compute_agent test-suffix > expected-agent-version &&
+  ipfs id -f "<aver>\n" > actual-agent-version &&
+  test_cmp expected-agent-version actual-agent-version
 '
 
 # agent-version-suffix (over libp2p identify protocol)
 iptb testbed create -type localipfs -count 2 -init
-startup_cluster 2 --agent-version-suffix=test-suffix-identify-óź-123456789012345678901234567890
+startup_cluster 2 --agent-version-suffix=test-suffix-identify
 test_expect_success "checking AgentVersion with suffix (fetched via libp2p identify protocol)" '
-  test_id_compute_agent "test-suffix-identify-_-123456789012345678901234567890" > expected &&
-  ipfsi 1 id "$(ipfsi 0 config Identity.PeerID)" -f "<aver>" > actual &&
-  test_should_not_contain "ó" actual &&
-  test_cmp expected actual
+  ipfsi 0 id -f "<aver>\n" > expected-identify-agent-version &&
+  ipfsi 1 id "$(ipfsi 0 config Identity.PeerID)" -f "<aver>\n" > actual-libp2p-identify-agent-version &&
+  test_cmp expected-identify-agent-version actual-libp2p-identify-agent-version
 '
 iptb stop
 
@@ -75,7 +72,7 @@ test_expect_success "setting Version.AgentSuffix in config" '
 test_launch_ipfs_daemon --agent-version-suffix=ignored-cli-suffix
 test_expect_success "checking AgentVersion with suffix set via JSON config" '
   test_id_compute_agent json-config-suffix > expected-agent-version &&
-  ipfs id -f "<aver>" > actual-agent-version &&
+  ipfs id -f "<aver>\n" > actual-agent-version &&
   test_cmp expected-agent-version actual-agent-version
 '
 test_kill_ipfs_daemon

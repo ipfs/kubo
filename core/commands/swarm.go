@@ -15,10 +15,10 @@ import (
 	"text/tabwriter"
 	"time"
 
-	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/commands"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
@@ -292,7 +292,7 @@ var swarmPeersCmd = &cmds.Command{
 				}
 
 				for _, s := range strs {
-					ci.Streams = append(ci.Streams, streamInfo{Protocol: version.TrimVersion(string(s))})
+					ci.Streams = append(ci.Streams, streamInfo{Protocol: cmdutils.CleanAndTrim(string(s))})
 				}
 			}
 
@@ -479,14 +479,14 @@ func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, erro
 
 	if protocols, err := ps.GetProtocols(p); err == nil {
 		for _, proto := range protocols {
-			info.Protocols = append(info.Protocols, protocol.ID(version.TrimVersion(string(proto))))
+			info.Protocols = append(info.Protocols, protocol.ID(cmdutils.CleanAndTrim(string(proto))))
 		}
 		slices.Sort(info.Protocols)
 	}
 
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
-			info.AgentVersion = version.TrimVersion(vs)
+			info.AgentVersion = cmdutils.CleanAndTrim(vs)
 		}
 	}
 
