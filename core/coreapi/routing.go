@@ -15,9 +15,10 @@ import (
 	cidutil "github.com/ipfs/go-cidutil"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	caopts "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/tracing"
 	peer "github.com/libp2p/go-libp2p/core/peer"
-	routing "github.com/libp2p/go-libp2p/core/routing"
+	mh "github.com/multiformats/go-multihash"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -148,9 +149,9 @@ func (api *RoutingAPI) Provide(ctx context.Context, path path.Path, opts ...caop
 	}
 
 	if settings.Recursive {
-		err = provideKeysRec(ctx, api.routing, api.blockstore, []cid.Cid{c})
+		err = provideKeysRec(ctx, api.provider, api.blockstore, []cid.Cid{c})
 	} else {
-		err = provideKeys(ctx, api.routing, []cid.Cid{c})
+		err = api.provider.StartProviding(false, c.Hash())
 	}
 	if err != nil {
 		return err
@@ -159,41 +160,64 @@ func (api *RoutingAPI) Provide(ctx context.Context, path path.Path, opts ...caop
 	return nil
 }
 
-func provideKeys(ctx context.Context, r routing.Routing, cids []cid.Cid) error {
-	for _, c := range cids {
-		err := r.Provide(ctx, c, true)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func provideKeysRec(ctx context.Context, r routing.Routing, bs blockstore.Blockstore, cids []cid.Cid) error {
+func provideKeysRec(ctx context.Context, prov node.DHTProvider, bs blockstore.Blockstore, cids []cid.Cid) error {
 	provided := cidutil.NewStreamingSet()
 
-	errCh := make(chan error)
+	// Error channel with buffer size 1 to avoid blocking the goroutine
+	errCh := make(chan error, 1)
 	go func() {
+		// Always close provided.New to signal completion
+		defer close(provided.New)
+		// Also close error channel to distinguish between "no error" and "pending error"
+		defer close(errCh)
+
 		dserv := dag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
 		for _, c := range cids {
-			err := dag.Walk(ctx, dag.GetLinksDirect(dserv), c, provided.Visitor(ctx))
-			if err != nil {
-				errCh <- err
+			if err := dag.Walk(ctx, dag.GetLinksDirect(dserv), c, provided.Visitor(ctx)); err != nil {
+				// Send error to channel. If context is cancelled while trying to send,
+				// exit immediately as the main loop will return ctx.Err()
+				select {
+				case errCh <- err:
+					// Error sent successfully, exit goroutine
+				case <-ctx.Done():
+					// Context cancelled, exit without sending error
+					return
+				}
+				return
 			}
 		}
+		// All CIDs walked successfully, goroutine will exit and channels will close
 	}()
 
+	keys := make([]mh.Multihash, 0)
 	for {
 		select {
-		case k := <-provided.New:
-			err := r.Provide(ctx, k, true)
-			if err != nil {
-				return err
-			}
-		case err := <-errCh:
-			return err
 		case <-ctx.Done():
+			// Context cancelled, return immediately
 			return ctx.Err()
+		case err := <-errCh:
+			// Received error from DAG walk, return it
+			return err
+		case c, ok := <-provided.New:
+			if !ok {
+				// Channel closed means goroutine finished.
+				// CRITICAL: Check for any error that was sent just before channel closure.
+				// This handles the race where error is sent to errCh but main loop
+				// sees provided.New close first.
+				select {
+				case err := <-errCh:
+					if err != nil {
+						return err
+					}
+					// errCh closed with nil, meaning success
+				default:
+					// No pending error in errCh
+				}
+				// All CIDs successfully processed, start providing
+				return prov.StartProviding(true, keys...)
+			}
+			// Accumulate the CID for providing
+			keys = append(keys, c.Hash())
 		}
 	}
 }

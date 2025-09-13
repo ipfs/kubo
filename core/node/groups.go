@@ -365,13 +365,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(p2p.New),
 
 		LibP2P(bcfg, cfg, userResourceOverrides),
-		OnlineProviders(
-			isProviderEnabled,
-			cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy),
-			cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval),
-			cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient),
-			int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount)),
-		),
+		OnlineProviders(isProviderEnabled, cfg),
 	)
 }
 
