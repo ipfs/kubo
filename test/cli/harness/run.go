@@ -109,6 +109,14 @@ func (r *Runner) Run(req RunRequest) *RunResult {
 		Err:    err,
 	}
 
+	// Track background processes automatically
+	// If the process is still running after RunFunc returns, it's a background process
+	if err == nil && cmd.Process != nil && cmd.ProcessState == nil {
+		// Process was started but not waited for (background process)
+		globalProcessTracker.registerProcess(cmd.Process)
+		log.Debugf("auto-tracked background process PID %d: %v", cmd.Process.Pid, cmd.Args)
+	}
+
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		result.ExitErr = exitErr
 	}

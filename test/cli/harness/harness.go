@@ -35,7 +35,25 @@ func EnableDebugLogging() {
 // NewT constructs a harness that cleans up after the given test is done.
 func NewT(t *testing.T, options ...func(h *Harness)) *Harness {
 	h := New(options...)
-	t.Cleanup(h.Cleanup)
+
+	// Single consolidated cleanup with proper panic recovery
+	t.Cleanup(func() {
+		defer func() {
+			// Always force-kill daemon processes on panic
+			if r := recover(); r != nil {
+				log.Debugf("panic during cleanup: %v, forcing daemon cleanup", r)
+				CleanupDaemonProcesses()
+				panic(r) // re-panic after cleanup
+			}
+		}()
+
+		// Run full cleanup which includes daemon cleanup
+		h.Cleanup()
+
+		// Final safety check for any remaining processes
+		CleanupDaemonProcesses()
+	})
+
 	return h
 }
 
@@ -181,12 +199,32 @@ func (h *Harness) Sh(expr string) *RunResult {
 }
 
 func (h *Harness) Cleanup() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Debugf("panic during harness cleanup: %v, forcing daemon cleanup", r)
+			CleanupDaemonProcesses()
+			panic(r)
+		}
+	}()
+
 	log.Debugf("cleaning up cluster")
-	h.Nodes.StopDaemons()
-	// TODO: don't do this if test fails, not sure how?
+
+	// Try graceful daemon shutdown with panic protection
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Debugf("panic stopping daemons gracefully: %v", r)
+			}
+		}()
+		h.Nodes.StopDaemons()
+	}()
+
+	// Force cleanup any remaining daemon processes
+	CleanupDaemonProcesses()
+
+	// Clean up temp directory
 	log.Debugf("removing harness dir")
-	err := os.RemoveAll(h.Dir)
-	if err != nil {
+	if err := os.RemoveAll(h.Dir); err != nil {
 		log.Panicf("removing temp dir %s: %s", h.Dir, err)
 	}
 }
