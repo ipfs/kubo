@@ -21,11 +21,11 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/amino"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
-	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/dual/provider"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	dht_pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	dhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider"
 	rds "github.com/libp2p/go-libp2p-kad-dht/provider/datastore"
+	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider/dual"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -302,8 +302,8 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		DHT  routing.Routing `name:"dhtc"`
 		Repo repo.Repo
 	}
-	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.KeyStore, error) {
-		keyStore, err := rds.NewKeyStore(in.Repo.Datastore(),
+	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.ResettableKeyStore, error) {
+		keyStore, err := rds.NewResettableKeyStore(in.Repo.Datastore(),
 			rds.WithPrefixBits(16),
 			rds.WithDatastorePrefix("/provider/keystore"),
 			rds.WithBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
@@ -382,7 +382,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	type keystoreInput struct {
 		fx.In
 		Provider    DHTProvider
-		KeyStore    *rds.KeyStore
+		KeyStore    *rds.ResettableKeyStore
 		KeyProvider provider.KeyChanFunc
 	}
 	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {

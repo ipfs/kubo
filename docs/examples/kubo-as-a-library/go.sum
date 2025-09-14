@@ -289,8 +289,8 @@ github.com/ipfs-shipyard/nopfs/ipfs v0.25.0 h1:OqNqsGZPX8zh3eFMO8Lf8EHRRnSGBMqcd
 github.com/ipfs-shipyard/nopfs/ipfs v0.25.0/go.mod h1:BxhUdtBgOXg1B+gAPEplkg/GpyTZY+kCMSfsJvvydqU=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.34.1-0.20250909183628-f2b4e12fb9a8 h1:3HeKB5gvwRNhgKaRtaoMBDoY+tRcOqWXgpanRnLZ87k=
-github.com/ipfs/boxo v0.34.1-0.20250909183628-f2b4e12fb9a8/go.mod h1:rXql6ncaLZZfLqDG3Cuw9ZYQKd3rMU5bk1TGXF0+ZL0=
+github.com/ipfs/boxo v0.34.1-0.20250909191357-4684512c9f3b h1:zrFMMS3mBR7zzdWtNoZZTDHRbWdD21ht5W+L4VDOcug=
+github.com/ipfs/boxo v0.34.1-0.20250909191357-4684512c9f3b/go.mod h1:rXql6ncaLZZfLqDG3Cuw9ZYQKd3rMU5bk1TGXF0+ZL0=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-block-format v0.0.3/go.mod h1:4LmD4ZUw0mhO+JSKdpWwrzATiEfM7WWgQ8H5l6P8MVk=
@@ -428,8 +428,8 @@ github.com/libp2p/go-libp2p-asn-util v0.4.1 h1:xqL7++IKD9TBFMgnLPZR6/6iYhawHKHl9
 github.com/libp2p/go-libp2p-asn-util v0.4.1/go.mod h1:d/NI6XZ9qxw67b4e+NgpQexCIiFYJjErASrYW4PFDN8=
 github.com/libp2p/go-libp2p-core v0.2.4/go.mod h1:STh4fdfa5vDYr0/SzYYeqnt+E6KfEV5VxfIrm0bcI0g=
 github.com/libp2p/go-libp2p-core v0.3.0/go.mod h1:ACp3DmS3/N64c2jDzcV429ukDpicbL6+TrrxANBjPGw=
-github.com/libp2p/go-libp2p-kad-dht v0.34.1-0.20250905192859-48cb56a62251 h1:zNCHMhMNsZ5/Luwt2vXsxvVG3vgacCj0DD+sw49QNmY=
-github.com/libp2p/go-libp2p-kad-dht v0.34.1-0.20250905192859-48cb56a62251/go.mod h1:8j3UOqdafX9akHNatia6nIi19c07SzLe+/LCiMOKF/s=
+github.com/libp2p/go-libp2p-kad-dht v0.34.1-0.20250914155548-e10840aa8003 h1:1zcose1NwRJrdT3DLUglCPtD2XKzr2J2JXg02hu4AmU=
+github.com/libp2p/go-libp2p-kad-dht v0.34.1-0.20250914155548-e10840aa8003/go.mod h1:FWuPln3Q0yQBkDbdHULiaMwTcaS8CoikO4Wbt84pPXk=
 github.com/libp2p/go-libp2p-kbucket v0.3.1/go.mod h1:oyjT5O7tS9CQurok++ERgc46YLwEpuGoFq9ubvoUOio=
 github.com/libp2p/go-libp2p-kbucket v0.8.0 h1:QAK7RzKJpYe+EuSEATAaaHYMYLkPDGC18m9jxPLnU8s=
 github.com/libp2p/go-libp2p-kbucket v0.8.0/go.mod h1:JMlxqcEyKwO6ox716eyC0hmiduSWZZl6JY93mGaaqc4=
