@@ -9,6 +9,7 @@ const (
 	DefaultDeserializedResponses = true
 	DefaultDisableHTMLErrors     = false
 	DefaultExposeRoutingAPI      = false
+	DefaultDiagnosticServiceURL  = "https://check.ipfs.network"
 
 	// Gateway limit defaults from boxo
 	DefaultRetrievalTimeout      = gateway.DefaultRetrievalTimeout
@@ -98,4 +99,10 @@ type Gateway struct {
 	// Requests beyond this limit receive 429 Too Many Requests with Retry-After header.
 	// A value of 0 disables the limit.
 	MaxConcurrentRequests *OptionalInteger `json:",omitempty"`
+
+	// DiagnosticServiceURL is the URL for a service to diagnose CID retrievability issues.
+	// When the gateway returns a 504 Gateway Timeout error, an "Inspect retrievability of CID"
+	// button will be shown that links to this service with the CID appended as ?cid=<CID-to-diagnose>.
+	// Set to empty string to disable the button.
+	DiagnosticServiceURL *OptionalString `json:",omitempty"`
 }

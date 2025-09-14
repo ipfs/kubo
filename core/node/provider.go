@@ -21,11 +21,12 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/amino"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
-	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/dual/provider"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	dht_pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	dhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider"
+	"github.com/libp2p/go-libp2p-kad-dht/provider/buffered"
 	rds "github.com/libp2p/go-libp2p-kad-dht/provider/datastore"
+	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider/dual"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -302,8 +303,9 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		DHT  routing.Routing `name:"dhtc"`
 		Repo repo.Repo
 	}
-	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.KeyStore, error) {
-		keyStore, err := rds.NewKeyStore(in.Repo.Datastore(),
+	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.ResettableKeyStore, error) {
+		ds := in.Repo.Datastore()
+		keyStore, err := rds.NewResettableKeyStore(ds,
 			rds.WithPrefixBits(16),
 			rds.WithDatastorePrefix("/provider/keystore"),
 			rds.WithBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
@@ -311,6 +313,13 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		if err != nil {
 			return &NoopProvider{}, nil, err
 		}
+
+		bufferedProviderOpts := []buffered.Option{
+			buffered.WithBatchSize(1 << 10),
+			buffered.WithDsName("bprov"),
+			buffered.WithIdleWriteTime(time.Minute),
+		}
+
 		var impl dhtImpl
 		switch inDht := in.DHT.(type) {
 		case *dht.IpfsDHT:
@@ -335,8 +344,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				if err != nil {
 					return nil, nil, err
 				}
-				_ = prov
-				return prov, keyStore, nil
+				return buffered.New(prov, ds, bufferedProviderOpts...), keyStore, nil
 			}
 		case *fullrt.FullRT:
 			if inDht != nil {
@@ -376,13 +384,16 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		}
 
 		prov, err := dhtprovider.New(opts...)
-		return prov, keyStore, err
+		if err != nil {
+			return &NoopProvider{}, nil, err
+		}
+		return buffered.New(prov, ds, bufferedProviderOpts...), keyStore, nil
 	})
 
 	type keystoreInput struct {
 		fx.In
 		Provider    DHTProvider
-		KeyStore    *rds.KeyStore
+		KeyStore    *rds.ResettableKeyStore
 		KeyProvider provider.KeyChanFunc
 	}
 	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
