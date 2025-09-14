@@ -24,6 +24,7 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	dht_pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	dhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider"
+	"github.com/libp2p/go-libp2p-kad-dht/provider/buffered"
 	rds "github.com/libp2p/go-libp2p-kad-dht/provider/datastore"
 	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider/dual"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
@@ -303,7 +304,8 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		Repo repo.Repo
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.ResettableKeyStore, error) {
-		keyStore, err := rds.NewResettableKeyStore(in.Repo.Datastore(),
+		ds := in.Repo.Datastore()
+		keyStore, err := rds.NewResettableKeyStore(ds,
 			rds.WithPrefixBits(16),
 			rds.WithDatastorePrefix("/provider/keystore"),
 			rds.WithBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
@@ -311,6 +313,13 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		if err != nil {
 			return &NoopProvider{}, nil, err
 		}
+
+		bufferedProviderOpts := []buffered.Option{
+			buffered.WithBatchSize(1 << 10),
+			buffered.WithDsName("bprov"),
+			buffered.WithIdleWriteTime(time.Minute),
+		}
+
 		var impl dhtImpl
 		switch inDht := in.DHT.(type) {
 		case *dht.IpfsDHT:
@@ -335,8 +344,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				if err != nil {
 					return nil, nil, err
 				}
-				_ = prov
-				return prov, keyStore, nil
+				return buffered.New(prov, ds, bufferedProviderOpts...), keyStore, nil
 			}
 		case *fullrt.FullRT:
 			if inDht != nil {
@@ -376,7 +384,10 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		}
 
 		prov, err := dhtprovider.New(opts...)
-		return prov, keyStore, err
+		if err != nil {
+			return &NoopProvider{}, nil, err
+		}
+		return buffered.New(prov, ds, bufferedProviderOpts...), keyStore, nil
 	})
 
 	type keystoreInput struct {
