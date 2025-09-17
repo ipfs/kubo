@@ -72,6 +72,7 @@ func (api *PinAPI) Ls(ctx context.Context, pins chan<- iface.Pin, opts ...caopts
 
 	res, err := api.core().Request("pin/ls").
 		Option("type", options.Type).
+		Option("names", options.Detailed).
 		Option("stream", true).
 		Send(ctx)
 	if err != nil {
@@ -80,8 +81,8 @@ func (api *PinAPI) Ls(ctx context.Context, pins chan<- iface.Pin, opts ...caopts
 	defer res.Output.Close()
 
 	dec := json.NewDecoder(res.Output)
-	var out pinLsObject
 	for {
+		var out pinLsObject
 		err := dec.Decode(&out)
 		if err != nil {
 			if err != io.EOF {
