@@ -25,8 +25,8 @@ import (
 	dht_pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	dhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider"
 	"github.com/libp2p/go-libp2p-kad-dht/provider/buffered"
-	rds "github.com/libp2p/go-libp2p-kad-dht/provider/datastore"
 	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider/dual"
+	"github.com/libp2p/go-libp2p-kad-dht/provider/keystore"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -85,7 +85,7 @@ type DHTProvider interface {
 	// The keys are not deleted from the keystore, so they will continue to be
 	// reprovided as scheduled.
 	Clear() int
-	// RefreshSchedule scans the KeyStore for any keys that are not currently
+	// RefreshSchedule scans the Keystore for any keys that are not currently
 	// scheduled for reproviding. If such keys are found, it schedules their
 	// associated keyspace region to be reprovided.
 	//
@@ -303,12 +303,12 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		DHT  routing.Routing `name:"dhtc"`
 		Repo repo.Repo
 	}
-	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.ResettableKeyStore, error) {
+	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *keystore.ResettableKeystore, error) {
 		ds := in.Repo.Datastore()
-		keyStore, err := rds.NewResettableKeyStore(ds,
-			rds.WithPrefixBits(16),
-			rds.WithDatastorePrefix("/provider/keystore"),
-			rds.WithBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
+		ks, err := keystore.NewResettableKeystore(ds,
+			keystore.WithPrefixBits(16),
+			keystore.WithDatastorePath("/provider/keystore"),
+			keystore.WithBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
 		)
 		if err != nil {
 			return &NoopProvider{}, nil, err
@@ -329,7 +329,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		case *dual.DHT:
 			if inDht != nil {
 				prov, err := ddhtprovider.New(inDht,
-					ddhtprovider.WithKeyStore(keyStore),
+					ddhtprovider.WithKeystore(ks),
 
 					ddhtprovider.WithReprovideInterval(reprovideInterval),
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
@@ -344,7 +344,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				if err != nil {
 					return nil, nil, err
 				}
-				return buffered.New(prov, ds, bufferedProviderOpts...), keyStore, nil
+				return buffered.New(prov, ds, bufferedProviderOpts...), ks, nil
 			}
 		case *fullrt.FullRT:
 			if inDht != nil {
@@ -362,7 +362,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			selfAddrsFunc = func() []ma.Multiaddr { return impl.Host().Addrs() }
 		}
 		opts := []dhtprovider.Option{
-			dhtprovider.WithKeyStore(keyStore),
+			dhtprovider.WithKeystore(ks),
 			dhtprovider.WithPeerID(impl.Host().ID()),
 			dhtprovider.WithRouter(impl),
 			dhtprovider.WithMessageSender(impl.MessageSender()),
@@ -387,27 +387,27 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		if err != nil {
 			return &NoopProvider{}, nil, err
 		}
-		return buffered.New(prov, ds, bufferedProviderOpts...), keyStore, nil
+		return buffered.New(prov, ds, bufferedProviderOpts...), ks, nil
 	})
 
 	type keystoreInput struct {
 		fx.In
 		Provider    DHTProvider
-		KeyStore    *rds.ResettableKeyStore
+		Keystore    *keystore.ResettableKeystore
 		KeyProvider provider.KeyChanFunc
 	}
-	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
+	initKeystore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
 		var (
 			cancel context.CancelFunc
 			done   = make(chan struct{})
 		)
 
-		syncKeyStore := func(ctx context.Context) error {
+		syncKeystore := func(ctx context.Context) error {
 			kcf, err := in.KeyProvider(ctx)
 			if err != nil {
 				return err
 			}
-			if err := in.KeyStore.ResetCids(ctx, kcf); err != nil {
+			if err := in.Keystore.ResetCids(ctx, kcf); err != nil {
 				return err
 			}
 			if err := in.Provider.RefreshSchedule(); err != nil {
@@ -419,11 +419,11 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
 				// Set the KeyProvider as a garbage collection function for the
-				// keystore. Periodically purge the KeyStore from all its keys and
+				// keystore. Periodically purge the Keystore from all its keys and
 				// replace them with the keys that needs to be reprovided, coming from
 				// the KeyChanFunc. So far, this is the less worse way to remove CIDs
 				// that shouldn't be reprovided from the provider's state.
-				if err := syncKeyStore(ctx); err != nil {
+				if err := syncKeystore(ctx); err != nil {
 					return err
 				}
 
@@ -440,7 +440,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 						case <-gcCtx.Done():
 							return
 						case <-ticker.C:
-							if err := syncKeyStore(gcCtx); err != nil {
+							if err := syncKeystore(gcCtx); err != nil {
 								logger.Errorw("provider keystore sync", "err", err)
 							}
 						}
@@ -450,7 +450,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			},
 			OnStop: func(ctx context.Context) error {
 				if cancel != nil {
-					// Cancel KeyStore garbage collection loop
+					// Cancel Keystore garbage collection loop
 					cancel()
 				}
 				select {
@@ -459,15 +459,15 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					return ctx.Err()
 				}
 
-				// KeyStore state isn't be persisted across restarts.
-				return in.KeyStore.Empty(ctx)
+				// Keystore state isn't be persisted across restarts.
+				return in.Keystore.Empty(ctx)
 			},
 		})
 	})
 
 	return fx.Options(
 		sweepingReprovider,
-		initKeyStore,
+		initKeystore,
 	)
 }
 
