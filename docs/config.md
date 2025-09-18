@@ -1902,11 +1902,9 @@ Configuration for providing data to Amino DHT peers.
 
 #### Monitoring Provide Operations
 
-You can monitor the effectiveness of your provide configuration through OpenTelemetry metrics exposed at the Prometheus endpoint: `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`).
+You can monitor the effectiveness of your provide configuration through metrics exposed at the Prometheus endpoint: `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`).
 
-Key metrics (varies by provider mode):
-- **Legacy mode** (`SweepEnabled=false`): `provider_reprovider_provide_count` - Counter tracking successful provide operations since node startup
-- **Sweep mode** (`SweepEnabled=true`): `total_provide_count_total` - Counter tracking successful batched provide operations from go-libp2p-kad-dht
+Different metrics are available depending on whether you use legacy mode (`SweepEnabled=false`) or sweep mode (`SweepEnabled=true`). See [Provide metrics documentation](https://github.com/ipfs/kubo/blob/master/docs/metrics.md#provide) for details.
 
 To enable detailed debug logging for both providers, set:
 ```sh
