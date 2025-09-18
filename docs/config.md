@@ -1906,7 +1906,7 @@ You can monitor the effectiveness of your provide configuration through OpenTele
 
 Key metrics (varies by provider mode):
 - **Legacy mode** (`SweepEnabled=false`): `provider_reprovider_provide_count` - Counter tracking successful provide operations since node startup
-- **Sweep mode** (`SweepEnabled=true`): `total_provide_count` - Counter from go-libp2p-kad-dht for batched provide operations (TODO - not yet implemented)
+- **Sweep mode** (`SweepEnabled=true`): `total_provide_count_total` - Counter tracking successful batched provide operations from go-libp2p-kad-dht
 
 To enable detailed debug logging for both providers, set:
 ```sh

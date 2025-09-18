@@ -43,6 +43,9 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promauto "github.com/prometheus/client_golang/prometheus/promauto"
+	"go.opentelemetry.io/otel"
+	promexporter "go.opentelemetry.io/otel/exporters/prometheus"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
 
 const (
@@ -209,6 +212,21 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	err := mprome.Inject()
 	if err != nil {
 		log.Errorf("Injecting prometheus handler for metrics failed with message: %s\n", err.Error())
+	}
+
+	// Set up OpenTelemetry meter provider to enable metrics from external libraries
+	// like go-libp2p-kad-dht. Without this, metrics registered via otel.Meter()
+	// (such as total_provide_count from sweep provider) won't be exposed at the
+	// /debug/metrics/prometheus endpoint.
+	if exporter, err := promexporter.New(
+		promexporter.WithRegisterer(prometheus.DefaultRegisterer),
+	); err != nil {
+		log.Errorf("Creating prometheus exporter for OpenTelemetry failed: %s (some metrics will be missing from /debug/metrics/prometheus)\n", err.Error())
+	} else {
+		meterProvider := sdkmetric.NewMeterProvider(
+			sdkmetric.WithReader(exporter),
+		)
+		otel.SetMeterProvider(meterProvider)
 	}
 
 	// let the user know we're going.
