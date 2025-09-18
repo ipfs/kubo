@@ -16,6 +16,10 @@ It includes default [Prometheus Go client metrics](https://prometheus.io/docs/gu
   - [HTTP metrics](#http-metrics)
   - [Blockstore cache metrics](#blockstore-cache-metrics)
   - [Backend metrics](#backend-metrics)
+- [Generic HTTP Servers](#generic-http-servers)
+  - [Core HTTP metrics](#core-http-metrics-ipfs_http_)
+  - [HTTP Server metrics](#http-server-metrics-http_server_)
+- [OpenTelemetry Metadata](#opentelemetry-metadata)
 
 > [!WARNING]
 > This documentation is incomplete. For an up-to-date list of metrics available at daemon startup, see [test/sharness/t0119-prometheus-data/prometheus_metrics_added_by_measure_profile](https://github.com/ipfs/kubo/blob/master/test/sharness/t0119-prometheus-data/prometheus_metrics_added_by_measure_profile).
@@ -55,9 +59,15 @@ Metrics for the legacy provider system when `Provide.DHT.SweepEnabled=false`:
 
 Metrics for the DHT provider system when `Provide.DHT.SweepEnabled=true`:
 
-- `total_provide_count_total` - Counter: total successful provide operations since node startup
+- `total_provide_count_total` - Counter: total successful provide operations since node startup (includes both one-time provides and periodic provides done on `Provide.DHT.Interval`)
+
+> [!NOTE]
+> These metrics are exposed by [go-libp2p-kad-dht](https://github.com/libp2p/go-libp2p-kad-dht/). You can enable debug logging for DHT provider activity with `GOLOG_LOG_LEVEL=dht/provider=debug`.
 
 ## Gateway (`boxo/gateway`)
+
+> [!TIP]
+> These metrics are limited to [IPFS Gateway](https://specs.ipfs.tech/http-gateways/) endpoints. For general HTTP metrics across all endpoints, consider using a reverse proxy.
 
 Gateway metrics appear after the first HTTP request is processed:
 
@@ -75,3 +85,34 @@ Gateway metrics appear after the first HTTP request is processed:
 ### Backend metrics
 
 - `ipfs_gw_backend_api_call_duration_seconds_[bucket|sum|count]{backend_method}` - Histogram: time spent in IPFSBackend API calls
+
+## Generic HTTP Servers
+
+> [!TIP]
+> The metrics below are not very useful and exist mostly for historical reasons. If you need non-gateway HTTP metrics, it's better to put a reverse proxy in front of Kubo and use its metrics.
+
+### Core HTTP metrics (`ipfs_http_*`)
+
+Prometheus metrics for the HTTP API exposed at port 5001:
+
+- `ipfs_http_requests_total{method,code,handler}` - Counter: total HTTP requests (Legacy - new metrics are provided by boxo/gateway for gateway traffic)
+- `ipfs_http_request_duration_seconds[_sum|_count]{handler}` - Summary: request processing duration
+- `ipfs_http_request_size_bytes[_sum|_count]{handler}` - Summary: request body sizes
+- `ipfs_http_response_size_bytes[_sum|_count]{handler}` - Summary: response body sizes
+
+### HTTP Server metrics (`http_server_*`)
+
+Additional HTTP instrumentation for all handlers (Gateway, API commands, etc.):
+
+- `http_server_request_body_size_bytes_[bucket|count|sum]` - Histogram: distribution of request body sizes
+- `http_server_request_duration_seconds_[bucket|count|sum]` - Histogram: distribution of request processing times
+- `http_server_response_body_size_bytes_[bucket|count|sum]` - Histogram: distribution of response body sizes
+
+These metrics are automatically added to Gateway handlers, Hostname Gateway, Libp2p Gateway, and API command handlers.
+
+## OpenTelemetry Metadata
+
+Kubo uses Prometheus for metrics collection for historical reasons, but OpenTelemetry metrics are automatically exposed through the same Prometheus endpoint. These metadata metrics provide context about the instrumentation:
+
+- `otel_scope_info` - Information about instrumentation libraries producing metrics
+- `target_info` - Service metadata including version and instance information
