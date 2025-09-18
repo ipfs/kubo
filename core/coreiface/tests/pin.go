@@ -12,6 +12,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	opt "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/stretchr/testify/require"
 )
 
 func (tp *TestSuite) TestPin(t *testing.T) {
@@ -28,6 +29,7 @@ func (tp *TestSuite) TestPin(t *testing.T) {
 	t.Run("TestPinLsIndirect", tp.TestPinLsIndirect)
 	t.Run("TestPinLsPrecedence", tp.TestPinLsPrecedence)
 	t.Run("TestPinIsPinned", tp.TestPinIsPinned)
+	t.Run("TestPinNames", tp.TestPinNames)
 }
 
 func (tp *TestSuite) TestPinAdd(t *testing.T) {
@@ -578,6 +580,49 @@ func assertIsPinned(t *testing.T, ctx context.Context, api iface.CoreAPI, p path
 			t.Fatalf("expected to have a pin reason for %s", p)
 		}
 	}
+}
+
+func (tp *TestSuite) TestPinNames(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(t, ctx)
+	require.NoError(t, err)
+
+	// Create test content
+	p1, err := api.Unixfs().Add(ctx, strFile("content1")())
+	require.NoError(t, err)
+
+	p2, err := api.Unixfs().Add(ctx, strFile("content2")())
+	require.NoError(t, err)
+
+	// Test 1: Pin with name
+	err = api.Pin().Add(ctx, p1, opt.Pin.Name("test-pin-1"))
+	require.NoError(t, err, "failed to add pin with name")
+
+	// Test 2: Pin without name
+	err = api.Pin().Add(ctx, p2)
+	require.NoError(t, err, "failed to add pin without name")
+
+	// Test 3: List pins with detailed option to get names
+	pins := make(chan iface.Pin)
+	go func() {
+		err = api.Pin().Ls(ctx, pins, opt.Pin.Ls.Detailed(true))
+	}()
+
+	pinMap := make(map[string]string)
+	for pin := range pins {
+		pinMap[pin.Path().String()] = pin.Name()
+	}
+	require.NoError(t, err, "failed to list pins with names")
+
+	// Verify pin names
+	name1, ok := pinMap[p1.String()]
+	require.True(t, ok, "pin for %s not found", p1)
+	require.Equal(t, "test-pin-1", name1, "unexpected pin name for %s", p1)
+
+	name2, ok := pinMap[p2.String()]
+	require.True(t, ok, "pin for %s not found", p2)
+	require.Empty(t, name2, "expected empty pin name for %s, got '%s'", p2, name2)
 }
 
 func assertNotPinned(t *testing.T, ctx context.Context, api iface.CoreAPI, p path.Path) {
