@@ -181,8 +181,8 @@ func TestPinLsWithNamesForSpecificCIDs(t *testing.T) {
 		dirAddRes := node.IPFS("add", "-r", "-q", dirPath)
 		dirCidStr := strings.TrimSpace(dirAddRes.Stdout.Lines()[len(dirAddRes.Stdout.Lines())-1])
 
-		// Add file separately to get its CID
-		fileAddRes := node.IPFS("add", "-q", filepath.Join(dirPath, "file.txt"))
+		// Add file separately without pinning to get its CID
+		fileAddRes := node.IPFS("add", "-q", "--pin=false", filepath.Join(dirPath, "file.txt"))
 		fileCidStr := strings.TrimSpace(fileAddRes.Stdout.String())
 
 		// Check if file shows as indirect
@@ -318,5 +318,175 @@ func TestPinLsWithNamesForSpecificCIDs(t *testing.T) {
 		res := node.RunIPFS("pin", "ls", cid)
 		require.Equal(t, 1, res.ExitCode(), "expected exit code 1 for unpinned CID, got %d", res.ExitCode())
 		require.Contains(t, res.Stderr.String(), "is not pinned", "expected 'is not pinned' error for CID %s, got: %s", cid, res.Stderr.String())
+	})
+
+	t.Run("pin with special characters in name", func(t *testing.T) {
+		t.Parallel()
+		node := setupTestNode(t)
+
+		testCases := []struct {
+			name    string
+			pinName string
+		}{
+			{"unicode", "test-📌-pin"},
+			{"spaces", "test pin name"},
+			{"special chars", "test!@#$%"},
+			{"path-like", "test/pin/name"},
+			{"dots", "test.pin.name"},
+			{"long name", strings.Repeat("a", 255)},
+			{"empty name", ""},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				cid := node.IPFSAddStr("content for "+tc.name, "--pin=false")
+				node.IPFS("pin", "add", "--name="+tc.pinName, cid)
+
+				res := node.IPFS("pin", "ls", cid, "--names")
+				if tc.pinName != "" {
+					require.Contains(t, res.Stdout.String(), tc.pinName,
+						"pin name '%s' not found in output for test case '%s'", tc.pinName, tc.name)
+				}
+			})
+		}
+	})
+
+	t.Run("concurrent pin operations with names", func(t *testing.T) {
+		t.Parallel()
+		node := setupTestNode(t)
+
+		// Create multiple goroutines adding pins with names
+		numPins := 10
+		done := make(chan struct{}, numPins)
+
+		for i := 0; i < numPins; i++ {
+			go func(idx int) {
+				defer func() { done <- struct{}{} }()
+
+				content := fmt.Sprintf("concurrent content %d", idx)
+				cid := node.IPFSAddStr(content, "--pin=false")
+				pinName := fmt.Sprintf("concurrent-pin-%d", idx)
+				node.IPFS("pin", "add", "--name="+pinName, cid)
+			}(i)
+		}
+
+		// Wait for all goroutines
+		for i := 0; i < numPins; i++ {
+			<-done
+		}
+
+		// Verify all pins have correct names
+		res := node.IPFS("pin", "ls", "--names")
+		output := res.Stdout.String()
+		for i := 0; i < numPins; i++ {
+			pinName := fmt.Sprintf("concurrent-pin-%d", i)
+			require.Contains(t, output, pinName,
+				"concurrent pin name '%s' not found in output", pinName)
+		}
+	})
+
+	t.Run("pin rm removes name association", func(t *testing.T) {
+		t.Parallel()
+		node := setupTestNode(t)
+
+		// Add and pin with name
+		cid := node.IPFSAddStr("content to remove", "--pin=false")
+		node.IPFS("pin", "add", "--name=to-be-removed", cid)
+
+		// Verify pin exists with name
+		res := node.IPFS("pin", "ls", cid, "--names")
+		require.Contains(t, res.Stdout.String(), "to-be-removed")
+
+		// Remove pin
+		node.IPFS("pin", "rm", cid)
+
+		// Verify pin and name are gone
+		res = node.RunIPFS("pin", "ls", cid)
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.String(), "is not pinned")
+	})
+
+	t.Run("garbage collection preserves named pins", func(t *testing.T) {
+		t.Parallel()
+		node := setupTestNode(t)
+
+		// Add content with and without pin names
+		cidNamed := node.IPFSAddStr("named content", "--pin=false")
+		cidUnnamed := node.IPFSAddStr("unnamed content", "--pin=false")
+		cidUnpinned := node.IPFSAddStr("unpinned content", "--pin=false")
+
+		node.IPFS("pin", "add", "--name=important-data", cidNamed)
+		node.IPFS("pin", "add", cidUnnamed)
+
+		// Run garbage collection
+		node.IPFS("repo", "gc")
+
+		// Named and unnamed pins should still exist
+		res := node.IPFS("pin", "ls", cidNamed, "--names")
+		require.Contains(t, res.Stdout.String(), "important-data")
+
+		res = node.IPFS("pin", "ls", cidUnnamed)
+		require.Contains(t, res.Stdout.String(), cidUnnamed)
+
+		// Unpinned content should be gone (cat should fail)
+		res = node.RunIPFS("cat", cidUnpinned)
+		require.NotEqual(t, 0, res.ExitCode(), "unpinned content should be garbage collected")
+	})
+
+	t.Run("pin add with same name can be used for multiple pins", func(t *testing.T) {
+		t.Parallel()
+		node := setupTestNode(t)
+
+		// Add two different pieces of content
+		cid1 := node.IPFSAddStr("first content", "--pin=false")
+		cid2 := node.IPFSAddStr("second content", "--pin=false")
+
+		// Pin both with the same name - this is allowed
+		node.IPFS("pin", "add", "--name=shared-name", cid1)
+		node.IPFS("pin", "add", "--name=shared-name", cid2)
+
+		// List all pins with names
+		res := node.IPFS("pin", "ls", "--names")
+		output := res.Stdout.String()
+
+		// Both CIDs should be pinned
+		require.Contains(t, output, cid1)
+		require.Contains(t, output, cid2)
+
+		// Both pins can have the same name
+		lines := strings.Split(output, "\n")
+		foundCid1WithName := false
+		foundCid2WithName := false
+		for _, line := range lines {
+			if strings.Contains(line, cid1) && strings.Contains(line, "shared-name") {
+				foundCid1WithName = true
+			}
+			if strings.Contains(line, cid2) && strings.Contains(line, "shared-name") {
+				foundCid2WithName = true
+			}
+		}
+		require.True(t, foundCid1WithName, "first pin should have the name")
+		require.True(t, foundCid2WithName, "second pin should have the name")
+	})
+
+	t.Run("pin names persist across daemon restarts", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.StartDaemon("--offline")
+
+		// Add content with pin name
+		cid := node.IPFSAddStr("persistent content")
+		node.IPFS("pin", "add", "--name=persistent-pin", cid)
+
+		// Restart daemon
+		node.StopDaemon()
+		node.StartDaemon("--offline")
+
+		// Check pin name persisted
+		res := node.IPFS("pin", "ls", cid, "--names")
+		require.Contains(t, res.Stdout.String(), "persistent-pin",
+			"pin name should persist across daemon restarts")
+
+		node.StopDaemon()
 	})
 }

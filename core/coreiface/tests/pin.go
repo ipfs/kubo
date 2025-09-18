@@ -595,6 +595,12 @@ func (tp *TestSuite) TestPinNames(t *testing.T) {
 	p2, err := api.Unixfs().Add(ctx, strFile("content2")())
 	require.NoError(t, err)
 
+	p3, err := api.Unixfs().Add(ctx, strFile("content3")())
+	require.NoError(t, err)
+
+	p4, err := api.Unixfs().Add(ctx, strFile("content4")())
+	require.NoError(t, err)
+
 	// Test 1: Pin with name
 	err = api.Pin().Add(ctx, p1, opt.Pin.Name("test-pin-1"))
 	require.NoError(t, err, "failed to add pin with name")
@@ -623,6 +629,96 @@ func (tp *TestSuite) TestPinNames(t *testing.T) {
 	name2, ok := pinMap[p2.String()]
 	require.True(t, ok, "pin for %s not found", p2)
 	require.Empty(t, name2, "expected empty pin name for %s, got '%s'", p2, name2)
+
+	// Test 4: Pin update preserves name
+	err = api.Pin().Add(ctx, p3, opt.Pin.Name("updatable-pin"))
+	require.NoError(t, err, "failed to add pin with name for update test")
+
+	err = api.Pin().Update(ctx, p3, p4)
+	require.NoError(t, err, "failed to update pin")
+
+	// Verify name was preserved after update
+	pins2 := make(chan iface.Pin)
+	go func() {
+		err = api.Pin().Ls(ctx, pins2, opt.Pin.Ls.Detailed(true))
+	}()
+
+	updatedPinMap := make(map[string]string)
+	for pin := range pins2 {
+		updatedPinMap[pin.Path().String()] = pin.Name()
+	}
+	require.NoError(t, err, "failed to list pins after update")
+
+	// Old pin should not exist
+	_, oldExists := updatedPinMap[p3.String()]
+	require.False(t, oldExists, "old pin %s should not exist after update", p3)
+
+	// New pin should have the preserved name
+	name4, ok := updatedPinMap[p4.String()]
+	require.True(t, ok, "updated pin for %s not found", p4)
+	require.Equal(t, "updatable-pin", name4, "pin name not preserved after update from %s to %s", p3, p4)
+
+	// Test 5: Re-pinning with different name updates the name
+	err = api.Pin().Add(ctx, p1, opt.Pin.Name("new-name-for-p1"))
+	require.NoError(t, err, "failed to re-pin with new name")
+
+	// Verify name was updated
+	pins3 := make(chan iface.Pin)
+	go func() {
+		err = api.Pin().Ls(ctx, pins3, opt.Pin.Ls.Detailed(true))
+	}()
+
+	repinMap := make(map[string]string)
+	for pin := range pins3 {
+		repinMap[pin.Path().String()] = pin.Name()
+	}
+	require.NoError(t, err, "failed to list pins after re-pin")
+
+	rePinnedName, ok := repinMap[p1.String()]
+	require.True(t, ok, "re-pinned content %s not found", p1)
+	require.Equal(t, "new-name-for-p1", rePinnedName, "pin name not updated after re-pinning %s", p1)
+
+	// Test 6: Direct pin with name
+	p5, err := api.Unixfs().Add(ctx, strFile("direct-content")())
+	require.NoError(t, err)
+
+	err = api.Pin().Add(ctx, p5, opt.Pin.Recursive(false), opt.Pin.Name("direct-pin-name"))
+	require.NoError(t, err, "failed to add direct pin with name")
+
+	// Verify direct pin has name
+	directPins := make(chan iface.Pin)
+	typeOpt, err := opt.Pin.Ls.Type("direct")
+	require.NoError(t, err, "failed to create type option")
+	go func() {
+		err = api.Pin().Ls(ctx, directPins, typeOpt, opt.Pin.Ls.Detailed(true))
+	}()
+
+	directPinMap := make(map[string]string)
+	for pin := range directPins {
+		directPinMap[pin.Path().String()] = pin.Name()
+	}
+	require.NoError(t, err, "failed to list direct pins")
+
+	directName, ok := directPinMap[p5.String()]
+	require.True(t, ok, "direct pin %s not found", p5)
+	require.Equal(t, "direct-pin-name", directName, "unexpected name for direct pin %s", p5)
+
+	// Test 7: List without detailed option doesn't return names
+	pinsNoDetails := make(chan iface.Pin)
+	go func() {
+		err = api.Pin().Ls(ctx, pinsNoDetails)
+	}()
+
+	noDetailsMap := make(map[string]string)
+	for pin := range pinsNoDetails {
+		noDetailsMap[pin.Path().String()] = pin.Name()
+	}
+	require.NoError(t, err, "failed to list pins without detailed option")
+
+	// All names should be empty without detailed option
+	for path, name := range noDetailsMap {
+		require.Empty(t, name, "expected empty name for %s without detailed option, got '%s'", path, name)
+	}
 }
 
 func assertNotPinned(t *testing.T, ctx context.Context, api iface.CoreAPI, p path.Path) {
