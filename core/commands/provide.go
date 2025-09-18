@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"text/tabwriter"
@@ -44,12 +45,12 @@ var provideClearCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Clear all CIDs from the provide queue.",
 		ShortDescription: `
-Clear all CIDs from the reprovide queue.
+Clear all CIDs pending to be provided for the first time.
 
 Note: Kubo will automatically clear the queue when it detects a change of
-Reprovider.Strategy upon a restart. For more information about reprovider
+Provide.Strategy upon a restart. For more information about provide
 strategies, see:
-https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy
+https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
 `,
 	},
 	Options: []cmds.Option{
@@ -99,8 +100,8 @@ var provideStatCmd = &cmds.Command{
 		Tagline: "Returns statistics about the node's provider system.",
 		ShortDescription: `
 Returns statistics about the content the node is reproviding every
-Reprovider.Interval according to Reprovider.Strategy:
-https://github.com/ipfs/kubo/blob/master/docs/config.md#reprovider
+Provide.DHT.Interval according to Provide.Strategy:
+https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
 
 This interface is not stable and may change from release to release.
 
@@ -118,7 +119,12 @@ This interface is not stable and may change from release to release.
 			return ErrNotOnline
 		}
 
-		stats, err := nd.Provider.Stat()
+		provideSys, ok := nd.Provider.(provider.System)
+		if !ok {
+			return errors.New("stats not available with experimental sweeping provider (Provide.DHT.SweepEnabled=true)")
+		}
+
+		stats, err := provideSys.Stat()
 		if err != nil {
 			return err
 		}

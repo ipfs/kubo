@@ -275,7 +275,7 @@ fetching may be degraded.
 		},
 	},
 	"announce-off": {
-		Description: `Disables Provide and Reprovide systems (announcing to Amino DHT).
+		Description: `Disables Provide system (announcing to Amino DHT).
 
 		USE WITH CAUTION:
 		The main use case for this is setups with manual Peering.Peers config.
@@ -284,16 +284,16 @@ fetching may be degraded.
 		one hosting it, and other peers are not already connected to it.
 `,
 		Transform: func(c *Config) error {
-			c.Provider.Enabled = False
-			c.Reprovider.Interval = NewOptionalDuration(0) // 0 disables periodic reprovide
+			c.Provide.Enabled = False
+			c.Provide.DHT.Interval = NewOptionalDuration(0) // 0 disables periodic reprovide
 			return nil
 		},
 	},
 	"announce-on": {
-		Description: `Re-enables Provide and Reprovide systems (reverts announce-off profile).`,
+		Description: `Re-enables Provide system (reverts announce-off profile).`,
 		Transform: func(c *Config) error {
-			c.Provider.Enabled = True
-			c.Reprovider.Interval = NewOptionalDuration(DefaultReproviderInterval) // have to apply explicit default because nil would be ignored
+			c.Provide.Enabled = True
+			c.Provide.DHT.Interval = NewOptionalDuration(DefaultProvideDHTInterval) // have to apply explicit default because nil would be ignored
 			return nil
 		},
 	},

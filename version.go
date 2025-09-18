@@ -14,7 +14,7 @@ const CurrentVersionNumber = "0.38.0-dev"
 const ApiVersion = "/kubo/" + CurrentVersionNumber + "/" //nolint
 
 // RepoVersion is the version number that we are currently expecting to see.
-const RepoVersion = 17
+const RepoVersion = 18
 
 // GetUserAgentVersion is the libp2p user agent used by go-ipfs.
 //
