@@ -140,6 +140,7 @@ config file at runtime.
   - [`Reprovider`](#reprovider)
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
+    - [`Reprovider.Sweep`](#reprovidersweep)
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
@@ -2099,6 +2100,161 @@ Tells reprovider what should be announced. Valid strategies are:
 Default: `"all"`
 
 Type: `optionalString` (unset for the default)
+
+### Reprovider.Sweep
+
+Reprovider Sweep is a resource efficient technique for advertising content to
+the Amino DHT swarm.
+
+The Reprovider module tracks the keys that should be periodically reprovided in
+the `KeyStore`. It splits the keys into DHT keyspace regions by proximity (XOR
+distance), and schedules when reprovides should happen in order to spread the
+reprovide operation over time to avoid a spike in resource utilization. It
+basically sweeps the keyspace _from left to right_ over the
+[`Reprovider.Interval`](#reproviderinterval) time period, and reprovides keys
+matching to the visited keyspace region.
+
+Reprovider Sweep aims at replacing the inefficient legacy `boxo/provider`
+module, and is currently opt-in.
+
+Whenever new keys should be advertised to the Amino DHT, `kubo` calls
+`StartProviding()`, triggering an initial `provide` operation for the given
+keys. The keys will be added to the `KeyStore` tracking which keys should be
+reprovided and when they should be reprovided. Calling `StopProviding()`
+removes the keys from the `KeyStore`. However, it is currently tricky for
+`kubo` to detect when a key should stop being advertised. Hence, `kubo` will
+periodically refresh the `KeyStore` at each [`Reprovider.Interval`](#reproviderinterval)
+by providing it a channel of all the keys it is expected to contain according
+to the [`Reprovider.Strategy`](#reproviderstrategy). During this operation,
+all keys in the `Keystore` are purged, and only the given ones remain scheduled.
+
+#### Reprovider.Sweep.Enabled
+
+Whether Reprovider Sweep is enabled. If not enabled, the
+[`boxo/provider`](https://github.com/ipfs/boxo/tree/main/provider) is used for
+both provides and reprovides.
+
+Default: `false`
+
+Type: `flag`
+
+#### Reprovider.Sweep.MaxWorkers
+
+The maximum number of workers used by the `SweepingReprovider` to provide and
+reprovide CIDs to the DHT swarm.
+
+A worker performs Kademlia `GetClosestPeers` operations (max 1 at a time) to
+explore a region of the DHT keyspace, and then sends provider records to the
+nodes from that keyspace region. `GetClosestPeers` is capped to `10` concurrent
+connections [`amino` DHT
+defaults](https://github.com/libp2p/go-libp2p-kad-dht/blob/master/amino/defaults.go).
+The number of simultaneous connections used to send provider records is defined
+by
+[`Reprovider.Sweep.MaxProvideConnsPerWorker`](#reprovidersweepmaxprovideconnsperworker).
+
+The workers are split between two tasks categories:
+
+1. Periodic reprovides (see
+   [`Reprovider.Sweep.DedicatedPeriodicWorkers`](#reprovidersweepdedicatedperiodicworkers))
+2. Burst provides (see
+   [`Reprovider.Sweep.DedicatedBurstWorkers`](#reprovidersweepdedicatedburstworkers))
+
+[`Reprovider.Sweep.DedicatedPeriodicWorkers`](#reprovidersweepdedicatedperiodicworkers)
+workers are allocated to the periodic reprovides only,
+[`Reprovider.Sweep.DedicatedBurstWorkers`](#reprovidersweepdedicatedburstworkers)
+workers are allocated to burst provides only, and the rest of
+[`Reprovider.Sweep.MaxWorkers`](#reprovidersweepmaxworkers) can be used for
+either task (first come, first served).
+
+Default: `4`
+
+Type: `optionalInteger` (non-negative)
+
+#### Reprovider.Sweep.DedicatedPeriodicWorkers
+
+Number of workers dedicated to periodic keyspace region reprovides.
+
+Among the [`Reprovider.Sweep.MaxWorkers`](#reprovidersweepmaxworkers), this
+number of workers will be dedicated to the periodic region reprovide only. In
+addition to these, if there are available workers in the pool, they can also be
+used for periodic reprovides.
+
+Default: `2`
+
+Type: `optionalInteger` (`0` means there are no dedicated workers, but the
+operation can be performed by free non-dedicated workers)
+
+#### Reprovider.Sweep.DedicatedBurstWorkers
+
+Number of workers dedicated to burst provides.
+
+Burst provides are triggered when a new keys must be advertised to the DHT
+immediately, or when a node comes back online and must catch up the reprovides
+that should have happened while it was offline.
+
+Among the [`Reprovider.Sweep.MaxWorkers`](#reprovidersweepmaxworkers), this
+number of workers will be dedicated to burst provides only. In addition to
+these, if there are available workers in the pool, they can also be used for
+burst provides.
+
+Default: `1`
+
+Type: `optionalInteger` (`0` means there are no dedicated workers, but the
+operation can be performed by free non-dedicated workers)
+
+#### Reprovider.Sweep.MaxProvideConnsPerWorker
+
+Maximum number of connections that a single worker can use to send provider
+records over the network.
+
+When reproviding CIDs corresponding to a keyspace region, the reprovider must
+send a provider record to the 20 closest peers to the CID (in XOR distance) for
+each CID belonging to this keyspace region.
+
+The reprovider opens a connection to a peer from that region, send it all its
+allocated provider records. Once done, it opens a connection to the next peer
+from that keyspace region until all provider records are assigned.
+
+This option defines how many such connections can be open concurrently by a
+single worker.
+
+Default: `16`
+
+Type: `optionalInteger` (non-negative)
+
+#### Reprovider.Sweep.KeyStoreBatchSize
+
+During the garbage collection, all keys stored in the KeyStore are removed, and
+the keys are streamed from a channel to fill the KeyStore again with up-to-date
+keys. Since a high number of CIDs to reprovide can easily fill up the memory,
+keys are read and written in batches to optimize for memory usage.
+
+This option defines how many multihashes should be contained within a batch. A
+multihash is usually represented by 34 bytes.
+
+Default: `16384` (~544 KiB per batch)
+
+Type: `optionalInteger` (non-negative)
+
+#### Reprovider.Sweep.OfflineDelay
+
+The `SweepingProvider` has 3 states: `ONLINE`, `DISCONNECTED` and `OFFLINE`. It
+starts `OFFLINE`, and as the node bootstraps, it changes its state to `ONLINE`.
+
+When the provider loses connection to all DHT peers, it switches to the
+`DISCONNECTED` state. In this state, new provides will be added to the provide
+queue, and provided as soon as the node comes back online.
+
+After a node has been `DISCONNECTED` for `OfflineDelay`, it goes to `OFFLINE`
+state. When `OFFLINE`, the provider drops the provide queue, and returns errors
+to new provide requests. However, when `OFFLINE` the provide still adds the
+keys to its state, so keys will eventually be provided in the
+[`Reprovider.Interval`](#reproviderinterval) after the provider comes back
+`ONLINE`.
+
+Default: `2h`
+
+Type: `optionalDuration`
 
 ## `Routing`
 

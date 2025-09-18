@@ -23,10 +23,8 @@ import (
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	pathresolver "github.com/ipfs/boxo/path/resolver"
 	pin "github.com/ipfs/boxo/pinning/pinner"
-	provider "github.com/ipfs/boxo/provider"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/options"
@@ -44,8 +42,6 @@ import (
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/repo"
 )
-
-var log = logging.Logger("coreapi")
 
 type CoreAPI struct {
 	nctx context.Context
@@ -73,7 +69,7 @@ type CoreAPI struct {
 	ipldPathResolver   pathresolver.Resolver
 	unixFSPathResolver pathresolver.Resolver
 
-	provider          provider.System
+	provider          node.DHTProvider
 	providingStrategy config.ReproviderStrategy
 
 	pubSub *pubsub.PubSub
