@@ -1587,6 +1587,31 @@ Type: `flag`
 
 **MOVED:** see [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
 
+### `Internal.MFSAutoflushThreshold`
+
+Controls the number of entries cached in memory for each MFS directory before
+auto-flush is triggered to prevent unbounded memory growth when using `--flush=false`
+with `ipfs files` commands.
+
+When a directory's cache reaches this threshold, it will automatically flush to
+the blockstore even when `--flush=false` is specified. This prevents excessive
+memory usage while still allowing performance benefits of deferred flushing for
+smaller operations.
+
+**Examples:**
+* `256` - Default value. Provides a good balance between performance and memory usage.
+* `0` - Disables cache limiting (behavior before Kubo 0.38). May cause high memory
+  usage with `--flush=false` on large directories.
+* `1024` - Higher limit for systems with more available memory that need to perform
+  many operations before flushing.
+
+Default: `256`
+
+Type: `optionalInteger` (0 disables the limit, risky, may lead to errors)
+
+**Note:** This is an EXPERIMENTAL feature and may change or be removed in future releases.
+See [#10842](https://github.com/ipfs/kubo/issues/10842) for more information.
+
 ## `Ipns`
 
 ### `Ipns.RepublishPeriod`

@@ -64,13 +64,16 @@ defaults to true and ensures two things: 1) that the changes are reflected in
 the full MFS structure (updated CIDs) 2) that the parent-folder's cache is
 cleared. Use caution when setting this flag to false. It will improve
 performance for large numbers of file operations, but it does so at the cost
-of consistency guarantees and unbound growth of the directories' in-memory
-caches.  If the daemon is unexpectedly killed before running 'ipfs files
-flush' on the files in question, then data may be lost. This also applies to
-run 'ipfs repo gc' concurrently with '--flush=false' operations. We recommend
-flushing paths regularly with 'ipfs files flush', specially the folders on
-which many write operations are happening, as a way to clear the directory
-cache, free memory and speed up read operations.`,
+of consistency guarantees. If the daemon is unexpectedly killed before running
+'ipfs files flush' on the files in question, then data may be lost. This also
+applies to run 'ipfs repo gc' concurrently with '--flush=false' operations.
+
+When using '--flush=false', directories will automatically flush when the
+number of cached entries exceeds the Internal.MFSAutoflushThreshold config.
+This prevents unbounded memory growth. We recommend flushing
+paths regularly with 'ipfs files flush', specially the folders on which many
+write operations are happening, as a way to clear the directory cache, free
+memory and speed up read operations.`,
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(filesFlushOptionName, "f", "Flush target and ancestors after write.").WithDefault(true),
