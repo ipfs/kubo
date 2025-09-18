@@ -1900,6 +1900,13 @@ Type: `optionalString` (unset for the default)
 
 Configuration for providing data to Amino DHT peers.
 
+#### Monitoring Provide Operations
+
+You can monitor the effectiveness of your provide configuration through OpenTelemetry metrics exposed at the Prometheus endpoint: `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`).
+
+Key metric:
+- **`total_provide_count`**: Counter tracking successful provide operations since node startup. This metric from go-libp2p-kad-dht helps evaluate provide performance and compare the effectiveness of `SweepEnabled=true` (efficient batched operations) vs `SweepEnabled=false` (legacy one-by-one operations).
+
 #### `Provide.DHT.Interval`
 
 Sets how often to re-announce content to the DHT. Provider records on Amino DHT
@@ -1975,7 +1982,7 @@ basically sweeps the keyspace _from left to right_ over the
 matching to the visited keyspace region.
 
 Provide Sweep aims at replacing the inefficient legacy `boxo/provider`
-module, and is currently opt-in.
+module, and is currently opt-in. You can compare the effectiveness of sweep mode vs legacy mode by monitoring the `total_provide_count` metric (see [Monitoring Provide Operations](#monitoring-provide-operations) above).
 
 Whenever new keys should be advertised to the Amino DHT, `kubo` calls
 `StartProviding()`, triggering an initial `provide` operation for the given
