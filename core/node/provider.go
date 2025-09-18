@@ -21,11 +21,11 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/amino"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
-	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/dual/provider"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	dht_pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	dhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider"
-	rds "github.com/libp2p/go-libp2p-kad-dht/provider/datastore"
+	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider/dual"
+	"github.com/libp2p/go-libp2p-kad-dht/provider/keystore"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"github.com/libp2p/go-libp2p/core/host"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -310,11 +310,12 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		DHT  routing.Routing `name:"dhtc"`
 		Repo repo.Repo
 	}
-	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *rds.KeyStore, error) {
-		keyStore, err := rds.NewKeyStore(in.Repo.Datastore(),
-			rds.WithPrefixBits(10),
-			rds.WithDatastorePrefix("/provider/keystore"),
-			rds.WithGCBatchSize(int(cfg.Provide.DHT.KeyStoreBatchSize.WithDefault(config.DefaultProvideDHTKeyStoreBatchSize))),
+	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *keystore.ResettableKeystore, error) {
+		ds := in.Repo.Datastore()
+		keyStore, err := keystore.NewResettableKeystore(ds,
+			keystore.WithPrefixBits(16),
+			keystore.WithDatastorePath("/provider/keystore"),
+			keystore.WithBatchSize(int(cfg.Provide.DHT.KeyStoreBatchSize.WithDefault(config.DefaultProvideDHTKeyStoreBatchSize))),
 		)
 		if err != nil {
 			return &NoopProvider{}, nil, err
@@ -328,7 +329,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		case *dual.DHT:
 			if inDht != nil {
 				prov, err := ddhtprovider.New(inDht,
-					ddhtprovider.WithKeyStore(keyStore),
+					ddhtprovider.WithKeystore(keyStore),
 
 					ddhtprovider.WithReprovideInterval(reprovideInterval),
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
@@ -362,7 +363,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			selfAddrsFunc = func() []ma.Multiaddr { return impl.Host().Addrs() }
 		}
 		opts := []dhtprovider.Option{
-			dhtprovider.WithKeyStore(keyStore),
+			dhtprovider.WithKeystore(keyStore),
 			dhtprovider.WithPeerID(impl.Host().ID()),
 			dhtprovider.WithRouter(impl),
 			dhtprovider.WithMessageSender(impl.MessageSender()),
@@ -390,7 +391,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	type keystoreInput struct {
 		fx.In
 		Provider    DHTProvider
-		KeyStore    *rds.KeyStore
+		KeyStore    *keystore.ResettableKeystore
 		KeyProvider provider.KeyChanFunc
 	}
 	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
