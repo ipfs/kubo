@@ -1258,6 +1258,13 @@ Remove files or directories.
 		cmds.BoolOption(forceOptionName, "Forcibly remove target at path; implies -r for directories"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		// Check if user explicitly set --flush=false
+		if flushOpt, ok := req.Options[filesFlushOptionName]; ok {
+			if flush, ok := flushOpt.(bool); ok && !flush {
+				return fmt.Errorf("files rm always flushes for safety. The --flush flag cannot be set to false for this command")
+			}
+		}
+
 		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
