@@ -47,7 +47,7 @@ func (np NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdent
 				c.Experimental.FilestoreEnabled = true
 				// only provide things we pin. Allows to test
 				// provide operations.
-				c.Reprovider.Strategy = config.NewOptionalString("roots")
+				c.Provide.Strategy = config.NewOptionalString("roots")
 				n.WriteConfig(c)
 				n.StartDaemon("--enable-pubsub-experiment", "--offline="+strconv.FormatBool(!online))
 
