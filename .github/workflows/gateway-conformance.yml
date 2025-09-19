@@ -46,6 +46,8 @@ jobs:
           output: fixtures
 
       # 2. Build the kubo-gateway
+      - name: Checkout kubo-gateway
+        uses: actions/checkout@v5
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
@@ -53,8 +55,6 @@ jobs:
       - uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
-      - name: Checkout kubo-gateway
-        uses: actions/checkout@v5
         with:
           path: kubo-gateway
       - name: Build kubo-gateway
@@ -133,6 +133,8 @@ jobs:
           output: fixtures
 
       # 2. Build the kubo-gateway
+      - name: Checkout kubo-gateway
+        uses: actions/checkout@v5
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
@@ -140,8 +142,6 @@ jobs:
       - uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
-      - name: Checkout kubo-gateway
-        uses: actions/checkout@v5
         with:
           path: kubo-gateway
       - name: Build kubo-gateway

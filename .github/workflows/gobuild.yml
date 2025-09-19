@@ -86,12 +86,12 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup-matrix.outputs.matrix) }}
     steps:
+      - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
           cache: true
           cache-dependency-path: go.sum
-      - uses: actions/checkout@v5
 
       - name: Build platforms
         run: |

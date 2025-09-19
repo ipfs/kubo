@@ -29,12 +29,12 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v5
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
-      - name: Check out Kubo
-        uses: actions/checkout@v5
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y zsh
       - name: 👉️ If this step failed, go to «Summary» (top left) → inspect the «Failures/Errors» table
