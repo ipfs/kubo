@@ -214,7 +214,7 @@ Your node may be falling behind on DHT reprovides, which could affect content av
 
 Observed: %d keys at %v per key
 Estimated: Assuming 10TiB blockstore, would take %v to complete
-⏰ Must finish within %v interval
+⏰ Must finish within %v (Provide.DHT.Interval)
 
 Solutions (try in order):
 1. Enable Provide.DHT.SweepEnabled=true (recommended)
@@ -243,7 +243,7 @@ Your node is falling behind on DHT reprovides, which will affect content availab
 
 Observed: %d keys at %v per key
 Confirmed: ~%d total CIDs requiring %v to complete
-⏰ Must finish within %v interval
+⏰ Must finish within %v (Provide.DHT.Interval)
 
 Solutions (try in order):
 1. Enable Provide.DHT.SweepEnabled=true (recommended)
