@@ -1,5 +1,4 @@
 //go:build noplugin
-// +build noplugin
 
 package loader
 

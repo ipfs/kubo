@@ -1,0 +1,17 @@
+# Build platforms configuration for Kubo
+# Matches https://github.com/ipfs/distributions/blob/master/dists/kubo/build_matrix
+# plus linux-riscv64 for emerging architecture support
+#
+# The Go compiler handles FUSE support automatically via build tags.
+# Platforms are simply listed - no need to specify FUSE capability.
+
+platforms:
+  - darwin-amd64
+  - darwin-arm64
+  - freebsd-amd64
+  - linux-amd64
+  - linux-arm64
+  - linux-riscv64
+  - openbsd-amd64
+  - windows-amd64
+  - windows-arm64

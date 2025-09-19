@@ -2,7 +2,6 @@ include mk/header.mk
 IPFS_BIN_$(d) := $(call go-curr-pkg-tgt)
 
 TGT_BIN += $(IPFS_BIN_$(d))
-TEST_GO_BUILD += $(d)-try-build
 CLEAN += $(IPFS_BIN_$(d))
 
 PATH := $(realpath $(d)):$(PATH)
@@ -15,22 +14,11 @@ PATH := $(realpath $(d)):$(PATH)
 
 $(d)_flags =-ldflags="-X "github.com/ipfs/kubo".CurrentCommit=$(git-hash)"
 
-$(d)-try-build $(IPFS_BIN_$(d)): GOFLAGS += $(cmd/ipfs_flags)
+$(IPFS_BIN_$(d)): GOFLAGS += $(cmd/ipfs_flags)
 
 # uses second expansion to collect all $(DEPS_GO)
 $(IPFS_BIN_$(d)): $(d) $$(DEPS_GO) ALWAYS #| $(DEPS_OO_$(d))
 	$(go-build-relative)
-
-TRY_BUILD_$(d)=$(addprefix $(d)-try-build-,$(SUPPORTED_PLATFORMS))
-$(d)-try-build: $(TRY_BUILD_$(d))
-.PHONY: $(d)-try-build
-
-$(TRY_BUILD_$(d)): PLATFORM = $(subst -, ,$(patsubst $<-try-build-%,%,$@))
-$(TRY_BUILD_$(d)): GOOS = $(word 1,$(PLATFORM))
-$(TRY_BUILD_$(d)): GOARCH = $(word 2,$(PLATFORM))
-$(TRY_BUILD_$(d)): $(d) $$(DEPS_GO) ALWAYS
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(go-try-build)
-.PHONY: $(TRY_BUILD_$(d))
 
 $(d)-install: GOFLAGS += $(cmd/ipfs_flags)
 $(d)-install: $(d) $$(DEPS_GO) ALWAYS 
