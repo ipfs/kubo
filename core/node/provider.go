@@ -355,13 +355,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			}
 		}
 		if impl == nil {
-			// No DHT available, check if HTTP provider is configured
-			cfg, err := in.Repo.Config()
-			if err == nil && cfg.HasHTTPProviderConfigured() {
-				// HTTP provider is configured, return NoopProvider to allow HTTP-based providing
-				return &NoopProvider{}, keyStore, nil
-			}
-			return &NoopProvider{}, nil, errors.New("provider: no valid DHT available for providing")
+			return &NoopProvider{}, nil, nil
 		}
 
 		var selfAddrsFunc func() []ma.Multiaddr
@@ -403,6 +397,11 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		KeyProvider provider.KeyChanFunc
 	}
 	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
+		// Skip keystore initialization for NoopProvider
+		if _, ok := in.Provider.(*NoopProvider); ok {
+			return
+		}
+
 		var (
 			cancel context.CancelFunc
 			done   = make(chan struct{})
