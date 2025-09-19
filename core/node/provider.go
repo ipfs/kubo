@@ -208,20 +208,20 @@ func LegacyProviderOpt(reprovideInterval time.Duration, strategy string, acceler
 									expectedProvideSpeed := reprovideInterval / probableBigBlockstore
 									if avgProvideSpeed > expectedProvideSpeed {
 										logger.Errorf(`
-🔔🔔🔔 YOU MAY BE FALLING BEHIND DHT REPROVIDES! 🔔🔔🔔
+🔔🔔🔔 Reprovide Operations Too Slow 🔔🔔🔔
 
-⚠️ Your system might be struggling to keep up with DHT reprovides!
-This means your content could be partially or completely inaccessible on the network.
-We observed that you recently provided %d keys at an average rate of %v per key.
+Your node may be falling behind on DHT reprovides, which could affect content availability.
 
-🕑 An attempt to estimate your blockstore size timed out after 5 minutes,
-implying your blockstore might be exceedingly large. Assuming a considerable
-size of 10TiB, it would take %v to provide the complete set.
+Observed: %d keys at %v per key
+Estimated: Assuming 10TiB blockstore, would take %v to complete
+⏰ Must finish within %v interval
 
-⏰ The total provide time needs to stay under your reprovide interval (%v) to prevent falling behind!
+Solutions (try in order):
+1. Enable Provide.DHT.SweepEnabled=true (recommended)
+2. Increase Provide.DHT.MaxWorkers if needed
+3. Enable Routing.AcceleratedDHTClient=true (last resort, resource intensive)
 
-💡 Consider enabling the Accelerated DHT to enhance your system performance. See:
-https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtclient`,
+Learn more: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide`,
 											keysProvided, avgProvideSpeed, avgProvideSpeed*probableBigBlockstore, reprovideInterval)
 										return false
 									}
@@ -237,18 +237,20 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtcli
 
 						if avgProvideSpeed > expectedProvideSpeed {
 							logger.Errorf(`
-🔔🔔🔔 YOU ARE FALLING BEHIND DHT REPROVIDES! 🔔🔔🔔
+🔔🔔🔔 Reprovide Operations Too Slow 🔔🔔🔔
 
-⚠️ Your system is struggling to keep up with DHT reprovides!
-This means your content could be partially or completely inaccessible on the network.
-We observed that you recently provided %d keys at an average rate of %v per key.
+Your node is falling behind on DHT reprovides, which will affect content availability.
 
-💾 Your total CID count is ~%d which would total at %v reprovide process.
+Observed: %d keys at %v per key
+Confirmed: ~%d total CIDs requiring %v to complete
+⏰ Must finish within %v interval
 
-⏰ The total provide time needs to stay under your reprovide interval (%v) to prevent falling behind!
+Solutions (try in order):
+1. Enable Provide.DHT.SweepEnabled=true (recommended)
+2. Increase Provide.DHT.MaxWorkers if needed
+3. Enable Routing.AcceleratedDHTClient=true (last resort, resource intensive)
 
-💡 Consider enabling the Accelerated DHT to enhance your reprovide throughput. See:
-https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtclient`,
+Learn more: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide`,
 								keysProvided, avgProvideSpeed, count, avgProvideSpeed*time.Duration(count), reprovideInterval)
 						}
 						return false
