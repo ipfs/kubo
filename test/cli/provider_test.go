@@ -3,6 +3,9 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -139,7 +142,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectNoProviders(t, cid, nodes[1:]...)
 	})
 
-	t.Run("manual provide fails when disconnected", func(t *testing.T) {
+	t.Run("manual provide fails when no libp2p peers and no custom HTTP router", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 1, func(n *harness.Node) {
@@ -155,13 +158,31 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectNoProviders(t, cid, nodes[1:]...)
 	})
 
-	t.Run("manual http provide succeed when disconnected", func(t *testing.T) {
+	t.Run("manual provide succeeds via custom HTTP router when no libp2p peers", func(t *testing.T) {
 		t.Parallel()
+
+		// Create a mock HTTP server that accepts provide requests.
+		// This simulates the undocumented API behavior described in
+		// https://discuss.ipfs.tech/t/only-peers-found-from-dht-seem-to-be-getting-used-as-relays-so-cant-use-http-routers/19545/9
+		// Note: This is NOT IPIP-378, which was not implemented.
+		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Accept both PUT and POST requests to /routing/v1/providers and /routing/v1/ipns
+			if (r.Method == http.MethodPut || r.Method == http.MethodPost) &&
+				(strings.HasPrefix(r.URL.Path, "/routing/v1/providers") || strings.HasPrefix(r.URL.Path, "/routing/v1/ipns")) {
+				// Return HTTP 200 to indicate successful publishing
+				w.WriteHeader(http.StatusOK)
+			} else {
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+		defer mockServer.Close()
 
 		nodes := initNodes(t, 1, func(n *harness.Node) {
 			n.SetIPFSConfig("Provide.Enabled", true)
+			// Configure a custom HTTP router for providing.
+			// Using our mock server that will accept the provide requests.
 			routingConf := map[string]any{
-				"Type": "custom",
+				"Type": "custom", // https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md#configuration-file-example
 				"Methods": map[string]any{
 					"provide":        map[string]any{"RouterName": "MyCustomRouter"},
 					"get-ipns":       map[string]any{"RouterName": "MyCustomRouter"},
@@ -173,7 +194,8 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 					"MyCustomRouter": map[string]any{
 						"Type": "http",
 						"Parameters": map[string]any{
-							"Endpoint": "http://custom-router",
+							// Use the mock server URL
+							"Endpoint": mockServer.URL,
 						},
 					},
 				},
@@ -183,9 +205,10 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		defer nodes.StopDaemons()
 
 		cid := nodes[0].IPFSAddStr(time.Now().String())
+		// The command should successfully provide via HTTP even without libp2p peers
 		res := nodes[0].RunIPFS("routing", "provide", cid)
-		assert.Empty(t, res.Stderr.String())
-		assert.Equal(t, 0, res.ExitCode())
+		assert.Empty(t, res.Stderr.String(), "Should have no errors when providing via HTTP router")
+		assert.Equal(t, 0, res.ExitCode(), "Should succeed with exit code 0")
 	})
 
 	// Right now Provide and Reprovide are tied together

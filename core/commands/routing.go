@@ -176,6 +176,9 @@ var provideRefRoutingCmd = &cmds.Command{
 			return errors.New("cannot provide, no connected peers")
 		}
 
+		// If we reach here with no connections but HTTP provider configured,
+		// we proceed with the provide operation via HTTP
+
 		// Needed to parse stdin args.
 		// TODO: Lazy Load
 		err = req.ParseBodyArgs()
@@ -249,7 +252,7 @@ var provideRefRoutingCmd = &cmds.Command{
 	Type: routing.QueryEvent{},
 }
 
-// hasHTTPProvider checks whether the provide process includes any custom
+// httpProviderConfigured checks whether the provide process includes any custom
 // HTTP-based providers.
 func httpProviderConfigured(cfg *config.Config) bool {
 	if len(cfg.Routing.Routers) == 0 {
@@ -275,18 +278,22 @@ func routerSupportsHTTPProviding(cfg *config.Config, routerName string) bool {
 	router := rp.Router
 	switch router.Type {
 	case config.RouterTypeHTTP:
+		// Found HTTP router
 		return true
 	case config.RouterTypeParallel, config.RouterTypeSequential:
 		params, ok := router.Parameters.(config.ComposableRouterParams)
 		if !ok {
+			// Unexpected parameter type for composed router
 			return false
 		}
+		// Check if any of the composed routers is HTTP
 		for _, r := range params.Routers {
 			if routerSupportsHTTPProviding(cfg, r.RouterName) {
 				return true
 			}
 		}
 	default:
+		// Unsupported router type
 	}
 	return false
 }
