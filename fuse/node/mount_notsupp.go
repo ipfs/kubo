@@ -1,5 +1,4 @@
 //go:build (!nofuse && openbsd) || (!nofuse && netbsd) || (!nofuse && plan9)
-// +build !nofuse,openbsd !nofuse,netbsd !nofuse,plan9
 
 package node
 
