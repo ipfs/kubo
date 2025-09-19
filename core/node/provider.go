@@ -353,7 +353,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			}
 		}
 		if impl == nil {
-			return &NoopProvider{}, nil, errors.New("provider: no valid DHT available for providing")
+			return &NoopProvider{}, nil, nil
 		}
 
 		var selfAddrsFunc func() []ma.Multiaddr
