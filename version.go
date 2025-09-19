@@ -3,6 +3,8 @@ package ipfs
 import (
 	"fmt"
 	"runtime"
+
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 )
 
 // CurrentCommit is the current git commit, this is set as a ldflag in the Makefile.
@@ -27,13 +29,13 @@ func GetUserAgentVersion() string {
 		}
 		userAgent += userAgentSuffix
 	}
-	return userAgent
+	return cmdutils.CleanAndTrim(userAgent)
 }
 
 var userAgentSuffix string
 
 func SetUserAgentSuffix(suffix string) {
-	userAgentSuffix = suffix
+	userAgentSuffix = cmdutils.CleanAndTrim(suffix)
 }
 
 type VersionInfo struct {

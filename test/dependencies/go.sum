@@ -350,6 +350,8 @@ github.com/ipfs/go-dsqueue v0.0.5 h1:TUOk15TlCJ/NKV8Yk2W5wgkEjDa44Nem7a7FGIjsMNU
 github.com/ipfs/go-dsqueue v0.0.5/go.mod h1:i/jAlpZjBbQJLioN+XKbFgnd+u9eAhGZs9IrqIzTd9g=
 github.com/ipfs/go-ipfs-blockstore v1.3.1 h1:cEI9ci7V0sRNivqaOr0elDsamxXFxJMMMy7PTTDQNsQ=
 github.com/ipfs/go-ipfs-blockstore v1.3.1/go.mod h1:KgtZyc9fq+P2xJUiCAzbRdhhqJHvsw8u2Dlqy2MyRTE=
+github.com/ipfs/go-ipfs-cmds v0.15.0 h1:nQDgKadrzyiFyYoZMARMIoVoSwe3gGTAfGvrWLeAQbQ=
+github.com/ipfs/go-ipfs-cmds v0.15.0/go.mod h1:VABf/mv/wqvYX6hLG6Z+40eNAEw3FQO0bSm370Or3Wk=
 github.com/ipfs/go-ipfs-delay v0.0.1 h1:r/UXYyRcddO6thwOnhiznIAiSvxMECGgtv35Xs1IeRQ=
 github.com/ipfs/go-ipfs-delay v0.0.1/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
 github.com/ipfs/go-ipfs-ds-help v1.1.1 h1:B5UJOH52IbcfS56+Ul+sv8jnIV10lbjLF5eOO0C66Nw=

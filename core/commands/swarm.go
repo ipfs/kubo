@@ -18,6 +18,7 @@ import (
 	"github.com/ipfs/kubo/commands"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
@@ -27,6 +28,7 @@ import (
 	inet "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	pstore "github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
@@ -290,7 +292,7 @@ var swarmPeersCmd = &cmds.Command{
 				}
 
 				for _, s := range strs {
-					ci.Streams = append(ci.Streams, streamInfo{Protocol: string(s)})
+					ci.Streams = append(ci.Streams, streamInfo{Protocol: cmdutils.CleanAndTrim(string(s))})
 				}
 			}
 
@@ -476,13 +478,15 @@ func (ci *connInfo) identifyPeer(ps pstore.Peerstore, p peer.ID) (IdOutput, erro
 	slices.Sort(info.Addresses)
 
 	if protocols, err := ps.GetProtocols(p); err == nil {
-		info.Protocols = append(info.Protocols, protocols...)
+		for _, proto := range protocols {
+			info.Protocols = append(info.Protocols, protocol.ID(cmdutils.CleanAndTrim(string(proto))))
+		}
 		slices.Sort(info.Protocols)
 	}
 
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
-			info.AgentVersion = vs
+			info.AgentVersion = cmdutils.CleanAndTrim(vs)
 		}
 	}
 
