@@ -397,6 +397,11 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		KeyProvider provider.KeyChanFunc
 	}
 	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
+		// Skip keystore initialization for NoopProvider
+		if _, ok := in.Provider.(*NoopProvider); ok {
+			return
+		}
+
 		var (
 			cancel context.CancelFunc
 			done   = make(chan struct{})
