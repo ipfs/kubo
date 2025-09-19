@@ -6,6 +6,14 @@ type Internal struct {
 	UnixFSShardingSizeThreshold *OptionalString   `json:",omitempty"` // moved to Import.UnixFSHAMTDirectorySizeThreshold
 	Libp2pForceReachability     *OptionalString   `json:",omitempty"`
 	BackupBootstrapInterval     *OptionalDuration `json:",omitempty"`
+	// MFSAutoflushThreshold controls the number of entries cached in memory
+	// for each MFS directory before auto-flush is triggered to prevent
+	// unbounded memory growth when using --flush=false.
+	// Default: 256 (matches HAMT shard size)
+	// Set to 0 to disable cache limiting (old behavior, may cause high memory usage)
+	// This is an EXPERIMENTAL feature and may change or be removed in future releases.
+	// See https://github.com/ipfs/kubo/issues/10842
+	MFSAutoflushThreshold OptionalInteger `json:",omitempty"`
 }
 
 type InternalBitswap struct {
