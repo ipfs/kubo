@@ -9,26 +9,9 @@ else
 	PATH_SEP :=:
 endif
 
-SUPPORTED_PLATFORMS += windows-386
-SUPPORTED_PLATFORMS += windows-amd64
-
-SUPPORTED_PLATFORMS += linux-arm
-SUPPORTED_PLATFORMS += linux-arm64
-SUPPORTED_PLATFORMS += linux-386
-SUPPORTED_PLATFORMS += linux-amd64
-
-SUPPORTED_PLATFORMS += darwin-amd64
-ifeq ($(shell bin/check_go_version "1.16.0" 2>/dev/null; echo $$?),0)
-SUPPORTED_PLATFORMS += darwin-arm64
-endif
-SUPPORTED_PLATFORMS += freebsd-386
-SUPPORTED_PLATFORMS += freebsd-amd64
-
-SUPPORTED_PLATFORMS += openbsd-386
-SUPPORTED_PLATFORMS += openbsd-amd64
-
-SUPPORTED_PLATFORMS += netbsd-386
-SUPPORTED_PLATFORMS += netbsd-amd64
+# Platforms are now defined in .github/build-platforms.yml
+# The cmd/ipfs-try-build target is deprecated in favor of GitHub Actions
+# Use 'make supported' to see the list of platforms
 
 space:=$() $()
 comma:=,

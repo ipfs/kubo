@@ -1,8 +1,14 @@
 package migrations
 
-// NOTE: These legacy migration tests require the local Kubo binary (built with 'make build') to be in PATH.
-// The tests migrate from repo version 15 to 17, which requires both external (15→16) and embedded (16→17) migrations.
-// This validates the transition from legacy external binaries to modern embedded migrations.
+// NOTE: These mixed migration tests validate the transition from old Kubo versions that used external
+// migration binaries to the latest version with embedded migrations. This ensures users can upgrade
+// from very old installations (v15) to the latest version seamlessly.
+//
+// The tests verify hybrid migration paths:
+// - Forward: external binary (15→16) + embedded migrations (16→latest)
+// - Backward: embedded migrations (latest→16) + external binary (16→15)
+//
+// This confirms compatibility between the old external migration system and the new embedded system.
 //
 // To run these tests successfully:
 //   export PATH="$(pwd)/cmd/ipfs:$PATH"
@@ -22,30 +28,36 @@ import (
 	"testing"
 	"time"
 
+	ipfs "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/require"
 )
 
-func TestMigration15To17(t *testing.T) {
+// TestMixedMigration15ToLatest tests migration from old Kubo (v15 with external migrations)
+// to the latest version using a hybrid approach: external binary for 15→16, then embedded
+// migrations for 16→latest. This ensures backward compatibility for users upgrading from
+// very old Kubo installations.
+func TestMixedMigration15ToLatest(t *testing.T) {
 	t.Parallel()
 
-	// Test legacy migration from v15 to v17 (combines external 15→16 + embedded 16→17)
-	t.Run("daemon migrate: legacy 15 to 17", testDaemonMigration15To17)
-	t.Run("repo migrate: legacy 15 to 17", testRepoMigration15To17)
+	// Test mixed migration from v15 to latest (combines external 15→16 + embedded 16→latest)
+	t.Run("daemon migrate: mixed 15 to latest", testDaemonMigration15ToLatest)
+	t.Run("repo migrate: mixed 15 to latest", testRepoMigration15ToLatest)
 }
 
-func TestMigration17To15Downgrade(t *testing.T) {
+// TestMixedMigrationLatestTo15Downgrade tests downgrading from the latest version back to v15
+// using a hybrid approach: embedded migrations for latest→16, then external binary for 16→15.
+// This ensures the migration system works bidirectionally for recovery scenarios.
+func TestMixedMigrationLatestTo15Downgrade(t *testing.T) {
 	t.Parallel()
 
-	// Test reverse hybrid migration from v17 to v15 (embedded 17→16 + external 16→15)
-	t.Run("repo migrate: reverse hybrid 17 to 15", testRepoReverseHybridMigration17To15)
+	// Test reverse hybrid migration from latest to v15 (embedded latest→16 + external 16→15)
+	t.Run("repo migrate: reverse hybrid latest to 15", testRepoReverseHybridMigrationLatestTo15)
 }
 
-func testDaemonMigration15To17(t *testing.T) {
-	// TEST: Migration from v15 to v17 using 'ipfs daemon --migrate'
-	// This tests the dual migration path: external binary (15→16) + embedded (16→17)
-	// NOTE: This test may need to be revised/updated once repo version 18 is released,
-	// at that point only keep tests that use 'ipfs repo migrate'
+func testDaemonMigration15ToLatest(t *testing.T) {
+	// TEST: Migration from v15 to latest using 'ipfs daemon --migrate'
+	// This tests the mixed migration path: external binary (15→16) + embedded (16→latest)
 	node := setupStaticV15Repo(t)
 
 	// Create mock migration binary for 15→16 (16→17 will use embedded migration)
@@ -76,13 +88,16 @@ func testDaemonMigration15To17(t *testing.T) {
 	// Verify hybrid migration was successful
 	require.True(t, migrationSuccess, "Hybrid migration should have been successful")
 	require.Contains(t, stdoutOutput, "Phase 1: External migration from v15 to v16", "Should detect external migration phase")
-	require.Contains(t, stdoutOutput, "Phase 2: Embedded migration from v16 to v17", "Should detect embedded migration phase")
+	// Verify each embedded migration step from 16 to latest
+	verifyMigrationSteps(t, stdoutOutput, 16, ipfs.RepoVersion, true)
+	require.Contains(t, stdoutOutput, fmt.Sprintf("Phase 2: Embedded migration from v16 to v%d", ipfs.RepoVersion), "Should detect embedded migration phase")
 	require.Contains(t, stdoutOutput, "Hybrid migration completed successfully", "Should confirm hybrid migration completion")
 
-	// Verify final version is 17
+	// Verify final version is latest
 	versionData, err = os.ReadFile(versionPath)
 	require.NoError(t, err)
-	require.Equal(t, "17", strings.TrimSpace(string(versionData)), "Version should be updated to 17")
+	latestVersion := fmt.Sprintf("%d", ipfs.RepoVersion)
+	require.Equal(t, latestVersion, strings.TrimSpace(string(versionData)), "Version should be updated to latest")
 
 	// Verify config is still valid JSON and key fields preserved
 	var finalConfig map[string]interface{}
@@ -103,8 +118,8 @@ func testDaemonMigration15To17(t *testing.T) {
 	require.NotNil(t, autoConf, "AutoConf should be added by 16→17 migration")
 }
 
-func testRepoMigration15To17(t *testing.T) {
-	// TEST: Migration from v15 to v17 using 'ipfs repo migrate'
+func testRepoMigration15ToLatest(t *testing.T) {
+	// TEST: Migration from v15 to latest using 'ipfs repo migrate'
 	// Comparison test to verify repo migrate produces same results as daemon migrate
 	node := setupStaticV15Repo(t)
 
@@ -132,10 +147,11 @@ func testRepoMigration15To17(t *testing.T) {
 	})
 	require.Empty(t, result.Stderr.String(), "Migration should succeed without errors")
 
-	// Verify final version is 17
+	// Verify final version is latest
 	versionData, err = os.ReadFile(versionPath)
 	require.NoError(t, err)
-	require.Equal(t, "17", strings.TrimSpace(string(versionData)), "Version should be updated to 17")
+	latestVersion := fmt.Sprintf("%d", ipfs.RepoVersion)
+	require.Equal(t, latestVersion, strings.TrimSpace(string(versionData)), "Version should be updated to latest")
 
 	// Verify config is valid JSON
 	var finalConfig map[string]interface{}
@@ -177,7 +193,7 @@ func runDaemonWithLegacyMigrationMonitoring(t *testing.T, node *harness.Node) (s
 	// Check for hybrid migration patterns in output
 	hasHybridStart := strings.Contains(stdoutOutput, "Using hybrid migration strategy")
 	hasPhase1 := strings.Contains(stdoutOutput, "Phase 1: External migration from v15 to v16")
-	hasPhase2 := strings.Contains(stdoutOutput, "Phase 2: Embedded migration from v16 to v17")
+	hasPhase2 := strings.Contains(stdoutOutput, fmt.Sprintf("Phase 2: Embedded migration from v16 to v%d", ipfs.RepoVersion))
 	hasHybridSuccess := strings.Contains(stdoutOutput, "Hybrid migration completed successfully")
 
 	// Success requires daemon to start and hybrid migration patterns to be detected
@@ -342,6 +358,37 @@ func main() {
 	require.NoError(t, err, "Mock binary should exist")
 }
 
+// expectedMigrationSteps generates the expected migration step strings for a version range.
+// For forward migrations (from < to), it returns strings like "Running embedded migration fs-repo-16-to-17"
+// For reverse migrations (from > to), it returns strings for the reverse path.
+func expectedMigrationSteps(from, to int, forward bool) []string {
+	var steps []string
+
+	if forward {
+		// Forward migration: increment by 1 each step
+		for v := from; v < to; v++ {
+			migrationName := fmt.Sprintf("fs-repo-%d-to-%d", v, v+1)
+			steps = append(steps, fmt.Sprintf("Running embedded migration %s", migrationName))
+		}
+	} else {
+		// Reverse migration: decrement by 1 each step
+		for v := from; v > to; v-- {
+			migrationName := fmt.Sprintf("fs-repo-%d-to-%d", v, v-1)
+			steps = append(steps, fmt.Sprintf("Running reverse migration %s", migrationName))
+		}
+	}
+
+	return steps
+}
+
+// verifyMigrationSteps checks that all expected migration steps appear in the output
+func verifyMigrationSteps(t *testing.T, output string, from, to int, forward bool) {
+	steps := expectedMigrationSteps(from, to, forward)
+	for _, step := range steps {
+		require.Contains(t, output, step, "Migration output should contain: %s", step)
+	}
+}
+
 // getNestedValue retrieves a nested value from a config map using dot notation
 func getNestedValue(config map[string]interface{}, path string) interface{} {
 	parts := strings.Split(path, ".")
@@ -362,11 +409,11 @@ func getNestedValue(config map[string]interface{}, path string) interface{} {
 	return current
 }
 
-func testRepoReverseHybridMigration17To15(t *testing.T) {
-	// TEST: Reverse hybrid migration from v17 to v15 using 'ipfs repo migrate --to=15 --allow-downgrade'
+func testRepoReverseHybridMigrationLatestTo15(t *testing.T) {
+	// TEST: Reverse hybrid migration from latest to v15 using 'ipfs repo migrate --to=15 --allow-downgrade'
 	// This tests reverse hybrid migration: embedded (17→16) + external (16→15)
 
-	// Start with v15 fixture and migrate forward to v17 to create proper backup files
+	// Start with v15 fixture and migrate forward to latest to create proper backup files
 	node := setupStaticV15Repo(t)
 
 	// Create mock migration binary for 15→16 (needed for forward migration)
@@ -377,8 +424,8 @@ func testRepoReverseHybridMigration17To15(t *testing.T) {
 	configPath := filepath.Join(node.Dir, "config")
 	versionPath := filepath.Join(node.Dir, "version")
 
-	// Step 1: Forward migration from v15 to v17 to create backup files
-	t.Log("Step 1: Forward migration v15 → v17")
+	// Step 1: Forward migration from v15 to latest to create backup files
+	t.Logf("Step 1: Forward migration v15 → v%d", ipfs.RepoVersion)
 	result := node.Runner.Run(harness.RunRequest{
 		Path: node.IPFSBin,
 		Args: []string{"repo", "migrate"},
@@ -396,21 +443,22 @@ func testRepoReverseHybridMigration17To15(t *testing.T) {
 
 	require.Empty(t, result.Stderr.String(), "Forward migration should succeed without errors")
 
-	// Verify we're at v17 after forward migration
+	// Verify we're at latest version after forward migration
 	versionData, err := os.ReadFile(versionPath)
 	require.NoError(t, err)
-	require.Equal(t, "17", strings.TrimSpace(string(versionData)), "Should be at version 17 after forward migration")
+	latestVersion := fmt.Sprintf("%d", ipfs.RepoVersion)
+	require.Equal(t, latestVersion, strings.TrimSpace(string(versionData)), "Should be at latest version after forward migration")
 
 	// Read config after forward migration to use as baseline for downgrade
-	var v17Config map[string]interface{}
+	var latestConfig map[string]interface{}
 	configData, err := os.ReadFile(configPath)
 	require.NoError(t, err)
-	require.NoError(t, json.Unmarshal(configData, &v17Config))
+	require.NoError(t, json.Unmarshal(configData, &latestConfig))
 
-	originalPeerID := getNestedValue(v17Config, "Identity.PeerID")
+	originalPeerID := getNestedValue(latestConfig, "Identity.PeerID")
 
-	// Step 2: Reverse hybrid migration from v17 to v15
-	t.Log("Step 2: Reverse hybrid migration v17 → v15")
+	// Step 2: Reverse hybrid migration from latest to v15
+	t.Logf("Step 2: Reverse hybrid migration v%d → v15", ipfs.RepoVersion)
 	result = node.Runner.Run(harness.RunRequest{
 		Path: node.IPFSBin,
 		Args: []string{"repo", "migrate", "--to=15", "--allow-downgrade"},

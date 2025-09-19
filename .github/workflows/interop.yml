@@ -9,9 +9,6 @@ on:
     branches:
       - 'master'
 
-env:
-  GO_VERSION: 1.25.x
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
   cancel-in-progress: true
@@ -29,17 +26,16 @@ jobs:
       TEST_DOCKER: 0
       TEST_FUSE: 0
       TEST_VERBOSE: 1
-      TRAVIS: 1
       GIT_PAGER: cat
       IPFS_CHECK_RCMGR_DEFAULTS: 1
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
       - run: make build
       - uses: actions/upload-artifact@v4
         with:
@@ -53,7 +49,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: lts/*
       - uses: actions/download-artifact@v5
@@ -82,14 +78,13 @@ jobs:
       LIBP2P_TCP_REUSEPORT: false
       LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
       E2E_IPFSD_TYPE: go
-      TRAVIS: 1
       GIT_PAGER: cat
       IPFS_CHECK_RCMGR_DEFAULTS: 1
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20.x
       - uses: actions/download-artifact@v5

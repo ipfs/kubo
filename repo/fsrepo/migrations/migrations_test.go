@@ -33,9 +33,7 @@ func TestFindMigrations(t *testing.T) {
 		createFakeBin(i-1, i, tmpDir)
 	}
 
-	origPath := os.Getenv("PATH")
-	os.Setenv("PATH", tmpDir)
-	defer os.Setenv("PATH", origPath)
+	t.Setenv("PATH", tmpDir)
 
 	migs, bins, err = findMigrations(ctx, 0, 5)
 	if err != nil {
@@ -80,9 +78,7 @@ func TestFindMigrationsReverse(t *testing.T) {
 		createFakeBin(i-1, i, tmpDir)
 	}
 
-	origPath := os.Getenv("PATH")
-	os.Setenv("PATH", tmpDir)
-	defer os.Setenv("PATH", origPath)
+	t.Setenv("PATH", tmpDir)
 
 	migs, bins, err = findMigrations(ctx, 5, 0)
 	if err != nil {
@@ -144,10 +140,8 @@ func TestFetchMigrations(t *testing.T) {
 }
 
 func TestRunMigrations(t *testing.T) {
-	fakeHome := t.TempDir()
-
-	os.Setenv("HOME", fakeHome)
-	fakeIpfs := filepath.Join(fakeHome, ".ipfs")
+	fakeIpfs := filepath.Join(t.TempDir(), ".ipfs")
+	t.Setenv(config.EnvDir, fakeIpfs)
 
 	err := os.Mkdir(fakeIpfs, os.ModePerm)
 	if err != nil {

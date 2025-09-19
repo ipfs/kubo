@@ -539,7 +539,7 @@ ipfs config --json Swarm.RelayClient.Enabled true
 
 `Experimental.StrategicProviding` was removed in Kubo v0.35.
 
-Replaced by [`Provide.Enabled`](https://github.com/ipfs/kubo/blob/master/docs/config.md#providerenabled) and [`Reprovider.Strategy`](https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy).
+Replaced by [`Provide.Enabled`](https://github.com/ipfs/kubo/blob/master/docs/config.md#provideenabled) and [`Provide.Strategy`](https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy).
 
 ## GraphSync
 

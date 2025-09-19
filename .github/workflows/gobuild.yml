@@ -21,20 +21,38 @@ jobs:
     env:
       TEST_DOCKER: 0
       TEST_VERBOSE: 1
-      TRAVIS: 1
       GIT_PAGER: cat
       IPFS_CHECK_RCMGR_DEFAULTS: 1
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-go@v5
-        with:
-          go-version: 1.25.x
       - uses: actions/checkout@v5
-      - run: make cmd/ipfs-try-build
-        env:
-          TEST_FUSE: 1
-      - run: make cmd/ipfs-try-build
-        env:
-          TEST_FUSE: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Build all platforms
+        run: |
+          # Read platforms from build-platforms.yml and build each one
+          echo "Building kubo for all platforms..."
+
+          # Read and build each platform
+          grep '^  - ' .github/build-platforms.yml | sed 's/^  - //' | while read -r platform; do
+            if [ -z "$platform" ]; then
+              continue
+            fi
+
+            echo "::group::Building $platform"
+            GOOS=$(echo "$platform" | cut -d- -f1)
+            GOARCH=$(echo "$platform" | cut -d- -f2)
+
+            echo "Building $platform"
+            echo "  GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs"
+            GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs
+            echo "::endgroup::"
+          done
+
+          echo "All platforms built successfully"

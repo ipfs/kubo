@@ -9,7 +9,9 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,6 +28,14 @@ import (
 )
 
 var log = logging.Logger("telemetry")
+
+// Caching for virtualization detection - these values never change during process lifetime
+var (
+	containerDetectionOnce sync.Once
+	vmDetectionOnce        sync.Once
+	isContainerCached      bool
+	isVMCached             bool
+)
 
 const (
 	modeEnvVar   = "IPFS_TELEMETRY"
@@ -397,7 +407,7 @@ func (p *telemetryPlugin) collectBasicInfo() {
 	}
 	p.event.UptimeBucket = uptimeBucket
 
-	p.event.ReproviderStrategy = p.config.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
+	p.event.ReproviderStrategy = p.config.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 }
 
 func (p *telemetryPlugin) collectRoutingInfo() {
@@ -476,45 +486,135 @@ func (p *telemetryPlugin) collectPlatformInfo() {
 }
 
 func isRunningInContainer() bool {
-	// Check for Docker container
+	containerDetectionOnce.Do(func() {
+		isContainerCached = detectContainer()
+	})
+	return isContainerCached
+}
+
+func detectContainer() bool {
+	// Docker creates /.dockerenv inside containers
 	if _, err := os.Stat("/.dockerenv"); err == nil {
 		return true
 	}
 
-	// Check cgroup for container
-	content, err := os.ReadFile("/proc/self/cgroup")
-	if err == nil {
-		if strings.Contains(string(content), "docker") || strings.Contains(string(content), "lxc") || strings.Contains(string(content), "/kubepods") {
-			return true
+	// Kubernetes mounts service account tokens inside pods
+	if _, err := os.Stat("/var/run/secrets/kubernetes.io"); err == nil {
+		return true
+	}
+
+	// systemd-nspawn creates this file inside containers
+	if _, err := os.Stat("/run/systemd/container"); err == nil {
+		return true
+	}
+
+	// Check if our process is running inside a container cgroup
+	// Look for container-specific patterns in the cgroup path after "::/"
+	if content, err := os.ReadFile("/proc/self/cgroup"); err == nil {
+		for line := range strings.Lines(string(content)) {
+			// cgroup lines format: "ID:subsystem:/path"
+			// We want to check the path part after the last ":"
+			parts := strings.SplitN(line, ":", 3)
+			if len(parts) == 3 {
+				cgroupPath := parts[2]
+				// Check for container-specific paths
+				containerIndicators := []string{
+					"/docker/",     // Docker containers
+					"/containerd/", // containerd runtime
+					"/cri-o/",      // CRI-O runtime
+					"/lxc/",        // LXC containers
+					"/podman/",     // Podman containers
+					"/kubepods/",   // Kubernetes pods
+				}
+				for _, indicator := range containerIndicators {
+					if strings.Contains(cgroupPath, indicator) {
+						return true
+					}
+				}
+			}
 		}
 	}
 
-	content, err = os.ReadFile("/proc/self/mountinfo")
-	if err == nil {
-		for line := range strings.Lines(string(content)) {
-			if strings.Contains(line, "overlay") && strings.Contains(line, "/var/lib/containers/storage/overlay") {
+	// WSL is technically a container-like environment
+	if runtime.GOOS == "linux" {
+		if content, err := os.ReadFile("/proc/sys/kernel/osrelease"); err == nil {
+			osrelease := strings.ToLower(string(content))
+			if strings.Contains(osrelease, "microsoft") || strings.Contains(osrelease, "wsl") {
 				return true
 			}
 		}
 	}
 
-	// Also check for systemd-nspawn
-	if _, err := os.Stat("/run/systemd/container"); err == nil {
-		return true
+	// LXC sets container environment variable
+	if content, err := os.ReadFile("/proc/1/environ"); err == nil {
+		if strings.Contains(string(content), "container=lxc") {
+			return true
+		}
+	}
+
+	// Additional check: In containers, PID 1 is often not systemd/init
+	if content, err := os.ReadFile("/proc/1/comm"); err == nil {
+		pid1 := strings.TrimSpace(string(content))
+		// Common container init processes
+		containerInits := []string{"tini", "dumb-init", "s6-svscan", "runit"}
+		if slices.Contains(containerInits, pid1) {
+			return true
+		}
 	}
 
 	return false
 }
 
 func isRunningInVM() bool {
-	// Check for VM
-	if _, err := os.Stat("/sys/hypervisor/uuid"); err == nil {
-		return true
+	vmDetectionOnce.Do(func() {
+		isVMCached = detectVM()
+	})
+	return isVMCached
+}
+
+func detectVM() bool {
+	// Check for VM-specific files and drivers that only exist inside VMs
+	vmIndicators := []string{
+		"/proc/xen",               // Xen hypervisor guest
+		"/sys/hypervisor/uuid",    // KVM/Xen hypervisor guest
+		"/dev/vboxguest",          // VirtualBox guest additions
+		"/sys/module/vmw_balloon", // VMware balloon driver (guest only)
+		"/sys/module/hv_vmbus",    // Hyper-V VM bus driver (guest only)
 	}
 
-	// Check for other VM indicators
-	if _, err := os.Stat("/dev/virt-0"); err == nil {
-		return true
+	for _, path := range vmIndicators {
+		if _, err := os.Stat(path); err == nil {
+			return true
+		}
+	}
+
+	// Check DMI for VM vendors - these strings only appear inside VMs
+	// DMI (Desktop Management Interface) is populated by the hypervisor
+	dmiFiles := map[string][]string{
+		"/sys/class/dmi/id/sys_vendor": {
+			"qemu", "kvm", "vmware", "virtualbox", "xen",
+			"parallels", // Parallels Desktop
+			// Note: Removed "microsoft corporation" as it can match Surface devices
+		},
+		"/sys/class/dmi/id/product_name": {
+			"virtualbox", "vmware", "kvm", "qemu",
+			"hvm domu", // Xen HVM guest
+			// Note: Removed generic "virtual machine" to avoid false positives
+		},
+		"/sys/class/dmi/id/chassis_vendor": {
+			"qemu", "oracle", // Oracle for VirtualBox
+		},
+	}
+
+	for path, signatures := range dmiFiles {
+		if content, err := os.ReadFile(path); err == nil {
+			contentStr := strings.ToLower(strings.TrimSpace(string(content)))
+			for _, sig := range signatures {
+				if strings.Contains(contentStr, sig) {
+					return true
+				}
+			}
+		}
 	}
 
 	return false
