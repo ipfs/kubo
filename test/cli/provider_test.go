@@ -143,7 +143,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		t.Parallel()
 
 		nodes := initNodes(t, 1, func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", true)
+			n.SetIPFSConfig("Provide.Enabled", true)
 		})
 		defer nodes.StopDaemons()
 
@@ -159,7 +159,7 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		t.Parallel()
 
 		nodes := initNodes(t, 1, func(n *harness.Node) {
-			n.SetIPFSConfig("Provider.Enabled", true)
+			n.SetIPFSConfig("Provide.Enabled", true)
 			routingConf := map[string]any{
 				"Type": "custom",
 				"Methods": map[string]any{
