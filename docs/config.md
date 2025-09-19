@@ -125,6 +125,18 @@ config file at runtime.
           - [`Pinning.RemoteServices: Policies.MFS.Enabled`](#pinningremoteservices-policiesmfsenabled)
           - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
           - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
+  - [`Provide`](#provide)
+    - [`Provide.Enabled`](#provideenabled)
+    - [`Provide.Strategy`](#providestrategy)
+    - [`Provide.DHT`](#providedht)
+      - [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers)
+      - [`Provide.DHT.Interval`](#providedhtinterval)
+      - [`Provide.DHT.SweepEnabled`](#providedhtssweepenabled)
+      - [`Provide.DHT.DedicatedPeriodicWorkers`](#providedhtdedicatedperiodicworkers)
+      - [`Provide.DHT.DedicatedBurstWorkers`](#providedhtdedicatedburstworkers)
+      - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
+      - [`Provide.DHT.KeyStoreBatchSize`](#providedhtkeystorebatchsize)
+      - [`Provide.DHT.OfflineDelay`](#providedhtofflinedelay)
   - [`Provider`](#provider)
     - [`Provider.Enabled`](#providerenabled)
     - [`Provider.Strategy`](#providerstrategy)
@@ -139,7 +151,7 @@ config file at runtime.
     - [`Peering.Peers`](#peeringpeers)
   - [`Reprovider`](#reprovider)
     - [`Reprovider.Interval`](#reproviderinterval)
-    - [`Reprovider.Strategy`](#reproviderstrategy)
+    - [`Reprovider.Strategy`](#providestrategy)
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
@@ -1367,7 +1379,7 @@ Below is a list of the most common gateway setups.
        }
      }'
    ```
-   - **Performance:** consider running with `Routing.AcceleratedDHTClient=true` and either `Provider.Enabled=false` (avoid providing newly retrieved blocks) or `Provider.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
+   - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. Separately, gateway operators should decide if the gateway node should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
    - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
 
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
@@ -1392,7 +1404,7 @@ Below is a list of the most common gateway setups.
        }
      }'
    ```
-   - **Performance:** when running an open, recursive gateway consider running with `Routing.AcceleratedDHTClient=true` and either `Provider.Enabled=false` (avoid providing newly retrieved blocks) or `Provider.WorkerCount=0` (provide as fast as possible, at the cost of increased load)
+   - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. When running an open, recursive gateway, decide if the gateway should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
 
 * Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
   ```console
@@ -1857,36 +1869,113 @@ Default: `"5m"`
 
 Type: `duration`
 
-## `Provider`
+## `Provide`
 
-Configuration applied to the initial one-time announcement of fresh CIDs
-created with `ipfs add`, `ipfs files`, `ipfs dag import`, `ipfs block|dag put`
-commands.
+Configures CID announcements to the routing system, including both immediate 
+announcements for new content (provide) and periodic re-announcements 
+(reprovide) on systems that require it, like Amino DHT. While designed to support 
+multiple routing systems in the future, the current default configuration only supports providing to the Amino DHT.
 
-For periodical DHT reprovide settings, see [`Reprovide.*`](#reprovider).
+### `Provide.Enabled`
 
-### `Provider.Enabled`
-
-Controls whether Kubo provider and reprovide systems are enabled.
+Controls whether Kubo provide and reprovide systems are enabled.
 
 > [!CAUTION]
-> Disabling this, will disable BOTH `Provider` system for new CIDs
-> and the periodical reprovide ([`Reprovider.Interval`](#reprovider)) of old CIDs.
+> Disabling this will prevent other nodes from discovering your content.
+> Your node will stop announcing data to the routing system, making it
+> inaccessible unless peers connect to you directly.
 
 Default: `true`
 
 Type: `flag`
 
-### `Provider.Strategy`
+### `Provide.Strategy`
 
-Legacy, not used at the moment, see [`Reprovider.Strategy`](#reproviderstrategy) instead.
+Tells the provide system what should be announced. Valid strategies are:
 
-### `Provider.WorkerCount`
+- `"all"` - announce all CIDs of stored blocks
+- `"pinned"` - only announce recursively pinned CIDs (`ipfs pin add -r`, both roots and child blocks)
+  - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
+- `"roots"` - only announce the root block of explicitly pinned CIDs (`ipfs pin add`)
+  - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
+    It makes sense only for use cases where the entire DAG is fetched in full,
+    and a graceful resume does not have to be guaranteed: the lack of child
+    announcements means an interrupted retrieval won't be able to find
+    providers for the missing block in the middle of a file, unless the peer
+    happens to already be connected to a provider and asks for child CID over
+    bitswap.
+- `"mfs"` - announce only the local CIDs that are part of the MFS (`ipfs files`)
+   - Note: MFS is lazy-loaded. Only the MFS blocks present in local datastore are announced.
+- `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
+  - **ℹ️ NOTE:** This is the suggested strategy for users who run without GC and don't want to provide everything in cache.
+  - Order: first `pinned` and then the locally available part of `mfs`.
 
-Sets the maximum number of _concurrent_ DHT provide operations (announcement of new CIDs).
+**Strategy changes automatically clear the provide queue.** When you change `Provide.Strategy` and restart Kubo, the provide queue is automatically cleared to ensure only content matching your new strategy is announced. You can also manually clear the queue using `ipfs provide clear`.
 
-[`Reprovider`](#reprovider) operations do **not** count against this limit.
-A value of `0` allows an unlimited number of provide workers.
+**Memory requirements:**
+
+- Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million CIDs for reproviding to the Amino DHT.
+- This is due to the use of a buffered provider, which loads all CIDs into memory to avoid holding a lock on the entire pinset during the reprovide cycle.
+
+Default: `"all"`
+
+Type: `optionalString` (unset for the default)
+
+### `Provide.DHT`
+
+Configuration for providing data to Amino DHT peers.
+
+#### Monitoring Provide Operations
+
+You can monitor the effectiveness of your provide configuration through metrics exposed at the Prometheus endpoint: `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`).
+
+Different metrics are available depending on whether you use legacy mode (`SweepEnabled=false`) or sweep mode (`SweepEnabled=true`). See [Provide metrics documentation](https://github.com/ipfs/kubo/blob/master/docs/metrics.md#provide) for details.
+
+To enable detailed debug logging for both providers, set:
+```sh
+GOLOG_LOG_LEVEL=error,provider=debug,dht/provider=debug
+```
+- `provider=debug` enables generic logging (legacy provider and any non-dht operations)
+- `dht/provider=debug` enables logging for the sweep provider
+
+#### `Provide.DHT.Interval`
+
+Sets how often to re-announce content to the DHT. Provider records on Amino DHT
+expire after [`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43),
+also known as Provider Record Expiration Interval.
+
+An interval of about half the expiration window ensures provider records
+are refreshed well before they expire. This keeps your content continuously
+discoverable accounting for network churn without overwhelming the network with too frequent announcements.
+
+- If unset, it uses the implicit safe default.
+- If set to the value `"0"` it will disable content reproviding to DHT.
+
+> [!CAUTION]
+> Disabling this will prevent other nodes from discovering your content via the DHT.
+> Your node will stop announcing data to the DHT, making it
+> inaccessible unless peers connect to you directly. Since provider
+> records expire after `amino.DefaultProvideValidity`, your content will become undiscoverable
+> after this period.
+
+Default: `22h`
+
+Type: `optionalDuration` (unset for the default)
+
+#### `Provide.DHT.MaxWorkers`
+
+Sets the maximum number of _concurrent_ DHT provide operations.
+
+**When `Provide.DHT.SweepEnabled` is false (legacy mode):**
+- Controls NEW CID announcements only
+- Reprovide operations do **not** count against this limit
+- A value of `0` allows unlimited provide workers
+
+**When `Provide.DHT.SweepEnabled` is true:**
+- Controls the total worker pool for both provide and reprovide operations
+- Workers are split between periodic reprovides and burst provides
+- Use a positive value to control resource usage
+- See [`DedicatedPeriodicWorkers`](#providedhtdedicatedperiodicworkers) and [`DedicatedBurstWorkers`](#providedhtdedicatedburstworkers) for task allocation
 
 If the [accelerated DHT client](#routingaccelerateddhtclient) is enabled, each
 provide operation opens ~20 connections in parallel. With the standard DHT
@@ -1897,8 +1986,9 @@ connections this setting can generate.
 
 > [!CAUTION]
 > For nodes without strict connection limits that need to provide large volumes
-> of content immediately, we recommend enabling the `Routing.AcceleratedDHTClient` and
-> setting `Provider.WorkerCount` to `0` (unlimited).
+> of content, we recommend first trying `Provide.DHT.SweepEnabled=true` for efficient
+> announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. 
+> As a last resort, consider enabling `Routing.AcceleratedDHTClient=true` but be aware that it is very resource hungry.
 >
 > At the same time, mind that raising this value too high may lead to increased load.
 > Proceed with caution, ensure proper hardware and networking are in place.
@@ -1907,6 +1997,154 @@ Default: `16`
 
 Type: `optionalInteger` (non-negative; `0` means unlimited number of workers)
 
+#### `Provide.DHT.SweepEnabled`
+
+Whether Provide Sweep is enabled. If not enabled, the legacy
+[`boxo/provider`](https://github.com/ipfs/boxo/tree/main/provider) is used for
+both provides and reprovides.
+
+Provide Sweep is a resource efficient technique for advertising content to
+the Amino DHT swarm. The Provide Sweep module tracks the keys that should be periodically reprovided in
+the `KeyStore`. It splits the keys into DHT keyspace regions by proximity (XOR
+distance), and schedules when reprovides should happen in order to spread the
+reprovide operation over time to avoid a spike in resource utilization. It
+basically sweeps the keyspace _from left to right_ over the
+[`Provide.DHT.Interval`](#providedhtinterval) time period, and reprovides keys
+matching to the visited keyspace region.
+
+Provide Sweep aims at replacing the inefficient legacy `boxo/provider`
+module, and is currently opt-in. You can compare the effectiveness of sweep mode vs legacy mode by monitoring the appropriate metrics (see [Monitoring Provide Operations](#monitoring-provide-operations) above).
+
+Whenever new keys should be advertised to the Amino DHT, `kubo` calls
+`StartProviding()`, triggering an initial `provide` operation for the given
+keys. The keys will be added to the `KeyStore` tracking which keys should be
+reprovided and when they should be reprovided. Calling `StopProviding()`
+removes the keys from the `KeyStore`. However, it is currently tricky for
+`kubo` to detect when a key should stop being advertised. Hence, `kubo` will
+periodically refresh the `KeyStore` at each [`Provide.DHT.Interval`](#providedhtinterval)
+by providing it a channel of all the keys it is expected to contain according
+to the [`Provide.Strategy`](#providestrategy). During this operation,
+all keys in the `Keystore` are purged, and only the given ones remain scheduled.
+
+> [!NOTE]
+> This feature is opt-in for now, but will become the default in a future release.
+> Eventually, this configuration flag will be removed once the feature is stable.
+
+Default: `false`
+
+Type: `flag`
+
+
+#### `Provide.DHT.DedicatedPeriodicWorkers`
+
+Number of workers dedicated to periodic keyspace region reprovides. Only applies when `Provide.DHT.SweepEnabled` is true.
+
+Among the [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers), this
+number of workers will be dedicated to the periodic region reprovide only. The sum of 
+`DedicatedPeriodicWorkers` and `DedicatedBurstWorkers` should not exceed `MaxWorkers`. 
+Any remaining workers (MaxWorkers - DedicatedPeriodicWorkers - DedicatedBurstWorkers) 
+form a shared pool that can be used for either type of work as needed.
+
+Default: `2`
+
+Type: `optionalInteger` (`0` means there are no dedicated workers, but the
+operation can be performed by free non-dedicated workers)
+
+#### `Provide.DHT.DedicatedBurstWorkers`
+
+Number of workers dedicated to burst provides. Only applies when `Provide.DHT.SweepEnabled` is true.
+
+Burst provides are triggered by:
+- Manual provide commands (`ipfs routing provide`)
+- New content matching your `Provide.Strategy` (blocks from `ipfs add`, bitswap, or trustless gateway requests)
+- Catch-up reprovides after being disconnected/offline for a while
+
+Having dedicated burst workers ensures that bulk operations (like adding many CIDs
+or reconnecting to the network) don't delay regular periodic reprovides, and vice versa.
+
+Among the [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers), this
+number of workers will be dedicated to burst provides only. In addition to
+these, if there are available workers in the pool, they can also be used for
+burst provides.
+
+Default: `1`
+
+Type: `optionalInteger` (`0` means there are no dedicated workers, but the
+operation can be performed by free non-dedicated workers)
+
+#### `Provide.DHT.MaxProvideConnsPerWorker`
+
+Maximum number of connections that a single worker can use to send provider
+records over the network.
+
+When reproviding CIDs corresponding to a keyspace region, the reprovider must
+send a provider record to the 20 closest peers to the CID (in XOR distance) for
+each CID belonging to this keyspace region.
+
+The reprovider opens a connection to a peer from that region, sends it all its
+allocated provider records. Once done, it opens a connection to the next peer
+from that keyspace region until all provider records are assigned.
+
+This option defines how many such connections can be open concurrently by a
+single worker.
+
+Default: `16`
+
+Type: `optionalInteger` (non-negative)
+
+#### `Provide.DHT.KeyStoreBatchSize`
+
+During the garbage collection, all keys stored in the KeyStore are removed, and
+the keys are streamed from a channel to fill the KeyStore again with up-to-date
+keys. Since a high number of CIDs to reprovide can easily fill up the memory,
+keys are read and written in batches to optimize for memory usage.
+
+This option defines how many multihashes should be contained within a batch. A
+multihash is usually represented by 34 bytes.
+
+Default: `16384` (~544 KiB per batch)
+
+Type: `optionalInteger` (non-negative)
+
+#### `Provide.DHT.OfflineDelay`
+
+The `SweepingProvider` has 3 states: `ONLINE`, `DISCONNECTED` and `OFFLINE`. It
+starts `OFFLINE`, and as the node bootstraps, it changes its state to `ONLINE`.
+
+When the provider loses connection to all DHT peers, it switches to the
+`DISCONNECTED` state. In this state, new provides will be added to the provide
+queue, and provided as soon as the node comes back online.
+
+After a node has been `DISCONNECTED` for `OfflineDelay`, it goes to `OFFLINE`
+state. When `OFFLINE`, the provider drops the provide queue, and returns errors
+to new provide requests. However, when `OFFLINE` the provider still adds the
+keys to its state, so keys will eventually be provided in the
+[`Provide.DHT.Interval`](#providedhtinterval) after the provider comes back
+`ONLINE`.
+
+Default: `2h`
+
+Type: `optionalDuration`
+
+## `Provider`
+
+### `Provider.Enabled`
+
+**REMOVED**
+
+Replaced with [`Provide.Enabled`](#provideenabled).
+
+### `Provider.Strategy`
+
+**REMOVED**
+
+This field was unused. Use [`Provide.Strategy`](#providestrategy) instead.
+
+### `Provider.WorkerCount`
+
+**REMOVED**
+
+Replaced with [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers).
 ## `Pubsub`
 
 **DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
@@ -2074,57 +2312,15 @@ Type: `array[peering]`
 
 ### `Reprovider.Interval`
 
-Sets the time between rounds of reproviding local content to the routing
-system.
+**REMOVED**
 
-- If unset, it uses the implicit safe default.
-- If set to the value `"0"` it will disable content reproviding.
-
-Note: disabling content reproviding will result in other nodes on the network
-not being able to discover that you have the objects that you have. If you want
-to have this disabled and keep the network aware of what you have, you must
-manually announce your content periodically or run your own routing system
-and convince users to add it to [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
-
-> [!CAUTION]
-> To maintain backward-compatibility, setting `Reprovider.Interval=0` will also disable Provider system (equivalent of `Provider.Enabled=false`)
-
-Default: `22h` (`DefaultReproviderInterval`)
-
-Type: `optionalDuration` (unset for the default)
+Replaced with [`Provide.DHT.Interval`](#providedhtinterval).
 
 ### `Reprovider.Strategy`
 
-Tells reprovider what should be announced. Valid strategies are:
+**REMOVED**
 
-- `"all"` - announce all CIDs of stored blocks
-- `"pinned"` - only announce recursively pinned CIDs (`ipfs pin add -r`, both roots and child blocks)
-  - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
-- `"roots"` - only announce the root block of explicitly pinned CIDs (`ipfs pin add`)
-  - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
-    It makes sense only for use cases where the entire DAG is fetched in full,
-    and a graceful resume does not have to be guaranteed: the lack of child
-    announcements means an interrupted retrieval won't be able to find
-    providers for the missing block in the middle of a file, unless the peer
-    happens to already be connected to a provider and ask for child CID over
-    bitswap.
-- `"mfs"` - announce only the local CIDs that are part of the MFS (`ipfs files`)
-   - Note: MFS is lazy-loaded. Only the MFS blocks present in local datastore are announced.
-- `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
-  - **ℹ️ NOTE:** This is the suggested strategy for users who run without GC and don't want to provide everything in cache.
-  - Order: first `pinned` and then the locally available part of `mfs`.
-
-**Strategy changes automatically clear the provide queue.** When you change `Reprovider.Strategy` and restart Kubo, the provide queue is automatically cleared to ensure only content matching your new strategy is announced. You can also manually clear the queue using `ipfs provide clear`.
-
-**Memory requirements:**
-
-- Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million items for reproviding to the Amino DHT.
-- This is due to the use of a buffered provider, which avoids holding a lock on the entire pinset during the reprovide cycle.
-
-Default: `"all"`
-
-Type: `optionalString` (unset for the default)
-
+Replaced with [`Provide.Strategy`](#providestrategy).
 ## `Routing`
 
 Contains options for content, peer, and IPNS routing mechanisms.
@@ -2203,6 +2399,9 @@ When it is enabled:
 - Client DHT operations (reads and writes) should complete much faster
 - The provider will now use a keyspace sweeping mode allowing to keep alive
   CID sets that are multiple orders of magnitude larger.
+  - **Note:** For improved provide/reprovide operations specifically, consider using
+    [`Provide.DHT.SweepEnabled`](#providedhtssweepenabled) instead, which offers similar
+    benefits with lower resource consumption.
   - The standard Bucket-Routing-Table DHT will still run for the DHT server (if
     the DHT server is enabled). This means the classical routing table will
     still be used to answer other nodes.
@@ -2215,7 +2414,7 @@ When it is enabled:
    - The resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly done in rounds
    - Users who previously had a lot of content but were unable to advertise it on the network will see an increase in
      egress bandwidth as their nodes start to advertise all of their CIDs into the network. If you have lots of data
-     entering your node that you don't want to advertise, then consider using [Reprovider Strategies](#reproviderstrategy)
+     entering your node that you don't want to advertise, then consider using [Provide Strategies](#providestrategy)
      to reduce the number of CIDs that you are reproviding. Similarly, if you are running a node that deals mostly with
      short-lived temporary data (e.g. you use a separate node for ingesting data then for storing and serving it) then
      you may benefit from using [Strategic Providing](experimental-features.md#strategic-providing) to prevent advertising
@@ -3487,7 +3686,7 @@ Reduces daemon overhead on the system by disabling optional swarm services.
 
 ### `announce-off` profile
 
-Disables [Reprovider](#reprovider) system (and announcing to Amino DHT).
+Disables [Provide](#provide) system (and announcing to Amino DHT).
 
 > [!CAUTION]
 > The main use case for this is setups with manual Peering.Peers config.
@@ -3497,7 +3696,7 @@ Disables [Reprovider](#reprovider) system (and announcing to Amino DHT).
 
 ### `announce-on` profile
 
-(Re-)enables [Reprovider](#reprovider) system (reverts [`announce-off` profile](#announce-off-profile)).
+(Re-)enables [Provide](#provide) system (reverts [`announce-off` profile](#announce-off-profile)).
 
 ### `legacy-cid-v0` profile
 

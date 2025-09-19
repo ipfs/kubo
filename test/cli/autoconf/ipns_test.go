@@ -200,8 +200,8 @@ func setupNodeWithAutoconf(t *testing.T, publisherURL string, routingType string
 
 	// Additional config for delegated routing mode
 	if routingType == "delegated" {
-		node.SetIPFSConfig("Provider.Enabled", false)
-		node.SetIPFSConfig("Reprovider.Interval", "0s")
+		node.SetIPFSConfig("Provide.Enabled", false)
+		node.SetIPFSConfig("Provide.DHT.Interval", "0s")
 	}
 
 	// Add bootstrap peers for connectivity

@@ -43,6 +43,9 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promauto "github.com/prometheus/client_golang/prometheus/promauto"
+	"go.opentelemetry.io/otel"
+	promexporter "go.opentelemetry.io/otel/exporters/prometheus"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
 
 const (
@@ -209,6 +212,21 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	err := mprome.Inject()
 	if err != nil {
 		log.Errorf("Injecting prometheus handler for metrics failed with message: %s\n", err.Error())
+	}
+
+	// Set up OpenTelemetry meter provider to enable metrics from external libraries
+	// like go-libp2p-kad-dht. Without this, metrics registered via otel.Meter()
+	// (such as total_provide_count from sweep provider) won't be exposed at the
+	// /debug/metrics/prometheus endpoint.
+	if exporter, err := promexporter.New(
+		promexporter.WithRegisterer(prometheus.DefaultRegisterer),
+	); err != nil {
+		log.Errorf("Creating prometheus exporter for OpenTelemetry failed: %s (some metrics will be missing from /debug/metrics/prometheus)\n", err.Error())
+	} else {
+		meterProvider := sdkmetric.NewMeterProvider(
+			sdkmetric.WithReader(exporter),
+		)
+		otel.SetMeterProvider(meterProvider)
 	}
 
 	// let the user know we're going.
@@ -486,25 +504,33 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		// This should never happen, but better safe than sorry
 		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
 	}
-	if cfg.Provider.Strategy.WithDefault("") != "" && cfg.Reprovider.Strategy.IsDefault() {
-		log.Fatal("Invalid config. Remove unused Provider.Strategy and set Reprovider.Strategy instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#reproviderstrategy")
+	// Check for deprecated Provider/Reprovider configuration after migration
+	// This should never happen for regular users, but is useful error for people who have Docker orchestration
+	// that blindly sets config keys (overriding automatic Kubo migration).
+	//nolint:staticcheck // intentionally checking deprecated fields
+	if cfg.Provider.Enabled != config.Default || !cfg.Provider.Strategy.IsDefault() || !cfg.Provider.WorkerCount.IsDefault() {
+		log.Fatal("Deprecated configuration detected. Manually migrate 'Provider' fields to 'Provide' and remove 'Provider' from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
 	}
-	// Check for deprecated "flat" strategy
-	if cfg.Reprovider.Strategy.WithDefault("") == "flat" {
-		log.Error("Reprovider.Strategy='flat' is deprecated and will be removed in the next release. Please update your config to use 'all' instead.")
+	//nolint:staticcheck // intentionally checking deprecated fields
+	if !cfg.Reprovider.Interval.IsDefault() || !cfg.Reprovider.Strategy.IsDefault() {
+		log.Fatal("Deprecated configuration detected. Manually migrate 'Reprovider' fields to 'Provide': Reprovider.Strategy -> Provide.Strategy, Reprovider.Interval -> Provide.Interval. Remove 'Reprovider' from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
+	}
+	// Check for deprecated "flat" strategy (should have been migrated to "all")
+	if cfg.Provide.Strategy.WithDefault("") == "flat" {
+		log.Fatal("Provide.Strategy='flat' is no longer supported. Use 'all' instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy")
 	}
 	if cfg.Experimental.StrategicProviding {
-		log.Error("Experimental.StrategicProviding was removed. Remove it from your config and set Provider.Enabled=false to remove this message. Documentation: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#strategic-providing")
-		cfg.Experimental.StrategicProviding = false
-		cfg.Provider.Enabled = config.False
+		log.Fatal("Experimental.StrategicProviding was removed. Remove it from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#strategic-providing")
+	}
+	// Check for invalid MaxWorkers=0 with SweepEnabled
+	if cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled) &&
+		cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers) == 0 {
+		log.Fatal("Invalid configuration: Provide.DHT.MaxWorkers cannot be 0 when Provide.DHT.SweepEnabled=true. Set Provide.DHT.MaxWorkers to a positive value (e.g., 16) to control resource usage. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtmaxworkers")
 	}
 	if routingOption == routingOptionDelegatedKwd {
 		// Delegated routing is read-only mode - content providing must be disabled
-		if cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) {
-			log.Fatal("Routing.Type=delegated does not support content providing. Set Provider.Enabled=false in your config.")
-		}
-		if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) != 0 {
-			log.Fatal("Routing.Type=delegated does not support content providing. Set Reprovider.Interval='0' in your config.")
+		if cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
+			log.Fatal("Routing.Type=delegated does not support content providing. Set Provide.Enabled=false in your config.")
 		}
 	}
 
@@ -659,7 +685,7 @@ take effect.
 
 	if !offline {
 		// Warn users when provide systems are disabled
-		if !cfg.Provider.Enabled.WithDefault(config.DefaultProviderEnabled) {
+		if !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
 			fmt.Print(`
 
 ⚠️ Provide and Reprovide systems are disabled due to 'Provide.Enabled=false'
@@ -667,12 +693,12 @@ take effect.
 ⚠️ If this is not intentional, call 'ipfs config profile apply announce-on' or set Provide.Enabled=true'
 
 `)
-		} else if cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval) == 0 {
+		} else if cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0 {
 			fmt.Print(`
 
-⚠️ Provide and Reprovide systems are disabled due to 'Reprovider.Interval=0'
-⚠️ Local CIDs will not be announced to Amino DHT, making them impossible to retrieve without manual peering
-⚠️ If this is not intentional, call 'ipfs config profile apply announce-on', or set 'Reprovider.Interval=22h'
+⚠️ Providing to the DHT is disabled due to 'Provide.DHT.Interval=0'
+⚠️ Local CIDs will not be provided to Amino DHT, making them impossible to retrieve without manual peering
+⚠️ If this is not intentional, call 'ipfs config profile apply announce-on', or set 'Provide.DHT.Interval=22h'
 
 `)
 		}
