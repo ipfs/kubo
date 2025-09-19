@@ -6,25 +6,30 @@ import (
 	"log"
 	"os"
 
+	"github.com/ipfs/kubo/repo/fsrepo/migrations/common"
 	mg16 "github.com/ipfs/kubo/repo/fsrepo/migrations/fs-repo-16-to-17/migration"
+	mg17 "github.com/ipfs/kubo/repo/fsrepo/migrations/fs-repo-17-to-18/migration"
 )
 
-// EmbeddedMigration represents an embedded migration that can be run directly
-type EmbeddedMigration interface {
-	Versions() string
-	Apply(opts mg16.Options) error
-	Revert(opts mg16.Options) error
-	Reversible() bool
+// embeddedMigrations contains all embedded migrations
+// Using a slice to maintain order and allow for future range-based operations
+var embeddedMigrations = []common.Migration{
+	mg16.Migration,
+	mg17.Migration,
 }
 
-// embeddedMigrations contains all embedded migrations
-var embeddedMigrations = map[string]EmbeddedMigration{
-	"fs-repo-16-to-17": &mg16.Migration{},
+// migrationsByName provides quick lookup by name
+var migrationsByName = make(map[string]common.Migration)
+
+func init() {
+	for _, m := range embeddedMigrations {
+		migrationsByName["fs-repo-"+m.Versions()] = m
+	}
 }
 
 // RunEmbeddedMigration runs an embedded migration if available
 func RunEmbeddedMigration(ctx context.Context, migrationName string, ipfsDir string, revert bool) error {
-	migration, exists := embeddedMigrations[migrationName]
+	migration, exists := migrationsByName[migrationName]
 	if !exists {
 		return fmt.Errorf("embedded migration %s not found", migrationName)
 	}
@@ -36,7 +41,7 @@ func RunEmbeddedMigration(ctx context.Context, migrationName string, ipfsDir str
 	logger := log.New(os.Stdout, "", 0)
 	logger.Printf("Running embedded migration %s...", migrationName)
 
-	opts := mg16.Options{
+	opts := common.Options{
 		Path:    ipfsDir,
 		Verbose: true,
 	}
@@ -58,7 +63,7 @@ func RunEmbeddedMigration(ctx context.Context, migrationName string, ipfsDir str
 
 // HasEmbeddedMigration checks if a migration is available as embedded
 func HasEmbeddedMigration(migrationName string) bool {
-	_, exists := embeddedMigrations[migrationName]
+	_, exists := migrationsByName[migrationName]
 	return exists
 }
 

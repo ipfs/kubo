@@ -52,8 +52,12 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 		return err
 	}
 
-	return api.core().Request("pin/add", p.String()).
-		Option("recursive", options.Recursive).Exec(ctx, nil)
+	req := api.core().Request("pin/add", p.String()).
+		Option("recursive", options.Recursive)
+	if options.Name != "" {
+		req = req.Option("name", options.Name)
+	}
+	return req.Exec(ctx, nil)
 }
 
 type pinLsObject struct {
@@ -72,6 +76,7 @@ func (api *PinAPI) Ls(ctx context.Context, pins chan<- iface.Pin, opts ...caopts
 
 	res, err := api.core().Request("pin/ls").
 		Option("type", options.Type).
+		Option("names", options.Detailed).
 		Option("stream", true).
 		Send(ctx)
 	if err != nil {
@@ -80,8 +85,8 @@ func (api *PinAPI) Ls(ctx context.Context, pins chan<- iface.Pin, opts ...caopts
 	defer res.Output.Close()
 
 	dec := json.NewDecoder(res.Output)
-	var out pinLsObject
 	for {
+		var out pinLsObject
 		err := dec.Decode(&out)
 		if err != nil {
 			if err != io.EOF {
