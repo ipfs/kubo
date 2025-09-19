@@ -431,6 +431,11 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		return fx.Error(err)
 	}
 
+	// Validate Provide configuration
+	if err := config.ValidateProvideConfig(&cfg.Provide); err != nil {
+		return fx.Error(err)
+	}
+
 	// Auto-sharding settings
 	shardingThresholdString := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
 	shardSingThresholdInt, err := humanize.ParseBytes(shardingThresholdString)

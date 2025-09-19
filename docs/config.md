@@ -131,7 +131,7 @@ config file at runtime.
     - [`Provide.DHT`](#providedht)
       - [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers)
       - [`Provide.DHT.Interval`](#providedhtinterval)
-      - [`Provide.DHT.SweepEnabled`](#providedhtssweepenabled)
+      - [`Provide.DHT.SweepEnabled`](#providedhtsweepenabled)
       - [`Provide.DHT.DedicatedPeriodicWorkers`](#providedhtdedicatedperiodicworkers)
       - [`Provide.DHT.DedicatedBurstWorkers`](#providedhtdedicatedburstworkers)
       - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
@@ -2026,6 +2026,21 @@ by providing it a channel of all the keys it is expected to contain according
 to the [`Provide.Strategy`](#providestrategy). During this operation,
 all keys in the `Keystore` are purged, and only the given ones remain scheduled.
 
+> <picture>
+>   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/f6e06b08-7fee-490c-a681-1bf440e16e27">
+>   <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/e1662d7c-f1be-4275-a9ed-f2752fcdcabe">
+>   <img alt="Reprovide Cycle Comparison" src="https://github.com/user-attachments/assets/e1662d7c-f1be-4275-a9ed-f2752fcdcabe">
+> </picture>
+>
+> The diagram above visualizes the performance patterns:
+>
+> - **Legacy mode**: Individual (slow) provides per CID, can struggle with large datasets
+> - **Sweep mode**: Even distribution matching the keyspace sweep described with low resource usage
+> - **Accelerated DHT**: Hourly traffic spikes with high resource usage
+>
+> Sweep mode provides similar effectiveness to Accelerated DHT but with steady resource usage - better for machines with limited CPU, memory, or network bandwidth.
+
+
 > [!NOTE]
 > This feature is opt-in for now, but will become the default in a future release.
 > Eventually, this configuration flag will be removed once the feature is stable.
@@ -2400,8 +2415,8 @@ When it is enabled:
 - The provider will now use a keyspace sweeping mode allowing to keep alive
   CID sets that are multiple orders of magnitude larger.
   - **Note:** For improved provide/reprovide operations specifically, consider using
-    [`Provide.DHT.SweepEnabled`](#providedhtssweepenabled) instead, which offers similar
-    benefits with lower resource consumption.
+    [`Provide.DHT.SweepEnabled`](#providedhtsweepenabled) instead, which offers similar
+    benefits without the hourly traffic spikes.
   - The standard Bucket-Routing-Table DHT will still run for the DHT server (if
     the DHT server is enabled). This means the classical routing table will
     still be used to answer other nodes.

@@ -1,8 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 	"time"
+
+	"github.com/libp2p/go-libp2p-kad-dht/amino"
 )
 
 const (
@@ -100,4 +103,68 @@ func ParseProvideStrategy(s string) ProvideStrategy {
 		}
 	}
 	return strategy
+}
+
+// ValidateProvideConfig validates the Provide configuration according to DHT requirements.
+func ValidateProvideConfig(cfg *Provide) error {
+	// Validate Provide.DHT.Interval
+	if !cfg.DHT.Interval.IsDefault() {
+		interval := cfg.DHT.Interval.WithDefault(DefaultProvideDHTInterval)
+		if interval > amino.DefaultProvideValidity {
+			return fmt.Errorf("Provide.DHT.Interval (%v) must be less than or equal to DHT provider record validity (%v)", interval, amino.DefaultProvideValidity)
+		}
+		if interval < 0 {
+			return fmt.Errorf("Provide.DHT.Interval must be non-negative, got %v", interval)
+		}
+	}
+
+	// Validate MaxWorkers
+	if !cfg.DHT.MaxWorkers.IsDefault() {
+		maxWorkers := cfg.DHT.MaxWorkers.WithDefault(DefaultProvideDHTMaxWorkers)
+		if maxWorkers <= 0 {
+			return fmt.Errorf("Provide.DHT.MaxWorkers must be positive, got %d", maxWorkers)
+		}
+	}
+
+	// Validate DedicatedPeriodicWorkers
+	if !cfg.DHT.DedicatedPeriodicWorkers.IsDefault() {
+		workers := cfg.DHT.DedicatedPeriodicWorkers.WithDefault(DefaultProvideDHTDedicatedPeriodicWorkers)
+		if workers < 0 {
+			return fmt.Errorf("Provide.DHT.DedicatedPeriodicWorkers must be non-negative, got %d", workers)
+		}
+	}
+
+	// Validate DedicatedBurstWorkers
+	if !cfg.DHT.DedicatedBurstWorkers.IsDefault() {
+		workers := cfg.DHT.DedicatedBurstWorkers.WithDefault(DefaultProvideDHTDedicatedBurstWorkers)
+		if workers < 0 {
+			return fmt.Errorf("Provide.DHT.DedicatedBurstWorkers must be non-negative, got %d", workers)
+		}
+	}
+
+	// Validate MaxProvideConnsPerWorker
+	if !cfg.DHT.MaxProvideConnsPerWorker.IsDefault() {
+		conns := cfg.DHT.MaxProvideConnsPerWorker.WithDefault(DefaultProvideDHTMaxProvideConnsPerWorker)
+		if conns <= 0 {
+			return fmt.Errorf("Provide.DHT.MaxProvideConnsPerWorker must be positive, got %d", conns)
+		}
+	}
+
+	// Validate KeyStoreBatchSize
+	if !cfg.DHT.KeyStoreBatchSize.IsDefault() {
+		batchSize := cfg.DHT.KeyStoreBatchSize.WithDefault(DefaultProvideDHTKeyStoreBatchSize)
+		if batchSize <= 0 {
+			return fmt.Errorf("Provide.DHT.KeyStoreBatchSize must be positive, got %d", batchSize)
+		}
+	}
+
+	// Validate OfflineDelay
+	if !cfg.DHT.OfflineDelay.IsDefault() {
+		delay := cfg.DHT.OfflineDelay.WithDefault(DefaultProvideDHTOfflineDelay)
+		if delay < 0 {
+			return fmt.Errorf("Provide.DHT.OfflineDelay must be non-negative, got %v", delay)
+		}
+	}
+
+	return nil
 }

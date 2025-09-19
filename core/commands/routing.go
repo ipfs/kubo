@@ -170,9 +170,14 @@ var provideRefRoutingCmd = &cmds.Command{
 			return errors.New("invalid configuration: Provide.Enabled is set to 'false'")
 		}
 
-		if len(nd.PeerHost.Network().Conns()) == 0 {
+		if len(nd.PeerHost.Network().Conns()) == 0 && !cfg.HasHTTPProviderConfigured() {
+			// Node is depending on DHT for providing (no custom HTTP provider
+			// configured) and currently has no connected peers.
 			return errors.New("cannot provide, no connected peers")
 		}
+
+		// If we reach here with no connections but HTTP provider configured,
+		// we proceed with the provide operation via HTTP
 
 		// Needed to parse stdin args.
 		// TODO: Lazy Load
