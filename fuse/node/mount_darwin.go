@@ -1,4 +1,4 @@
-//go:build !nofuse
+//go:build !nofuse && darwin
 
 package node
 

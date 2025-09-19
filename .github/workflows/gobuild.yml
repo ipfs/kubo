@@ -40,9 +40,6 @@ jobs:
           # Read platforms from build-platforms.yml and build each one
           echo "Building kubo for all platforms..."
 
-          # Define which platforms need nofuse tag
-          NOFUSE_OS="windows openbsd freebsd"
-
           # Read and build each platform
           grep '^  - ' .github/build-platforms.yml | sed 's/^  - //' | while read -r platform; do
             if [ -z "$platform" ]; then
@@ -53,16 +50,9 @@ jobs:
             GOOS=$(echo "$platform" | cut -d- -f1)
             GOARCH=$(echo "$platform" | cut -d- -f2)
 
-            # Check if this OS needs nofuse tag
-            if echo "$NOFUSE_OS" | grep -qw "$GOOS"; then
-              echo "Building $platform with nofuse tag"
-              echo "  GOOS=$GOOS GOARCH=$GOARCH go build -tags nofuse -o /dev/null ./cmd/ipfs"
-              GOOS=$GOOS GOARCH=$GOARCH go build -tags nofuse -o /dev/null ./cmd/ipfs
-            else
-              echo "Building $platform with FUSE support"
-              echo "  GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs"
-              GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs
-            fi
+            echo "Building $platform"
+            echo "  GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs"
+            GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs
             echo "::endgroup::"
           done
 
