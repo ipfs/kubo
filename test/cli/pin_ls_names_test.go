@@ -490,3 +490,45 @@ func TestPinLsWithNamesForSpecificCIDs(t *testing.T) {
 		node.StopDaemon()
 	})
 }
+
+// TestPinLsEdgeCases tests edge cases for pin ls command
+func TestPinLsEdgeCases(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid pin type returns error", func(t *testing.T) {
+		t.Parallel()
+		node := setupTestNode(t)
+		defer node.StopDaemon()
+
+		// Try to list pins with invalid type
+		res := node.RunIPFS("pin", "ls", "--type=invalid")
+		require.NotEqual(t, 0, res.ExitCode())
+		require.Contains(t, res.Stderr.String(), "invalid type 'invalid'")
+		require.Contains(t, res.Stderr.String(), "must be one of {direct, indirect, recursive, all}")
+	})
+
+	t.Run("non-existent path returns proper error", func(t *testing.T) {
+		t.Parallel()
+		node := setupTestNode(t)
+		defer node.StopDaemon()
+
+		// Try to list a non-existent CID
+		fakeCID := "QmNonExistent123456789"
+		res := node.RunIPFS("pin", "ls", fakeCID)
+		require.NotEqual(t, 0, res.ExitCode())
+	})
+
+	t.Run("unpinned CID returns not pinned error", func(t *testing.T) {
+		t.Parallel()
+		node := setupTestNode(t)
+		defer node.StopDaemon()
+
+		// Add content but don't pin it explicitly (it's just in blockstore)
+		unpinnedCID := node.IPFSAddStr("unpinned content", "--pin=false")
+
+		// Try to list specific unpinned CID
+		res := node.RunIPFS("pin", "ls", unpinnedCID)
+		require.NotEqual(t, 0, res.ExitCode())
+		require.Contains(t, res.Stderr.String(), "is not pinned")
+	})
+}

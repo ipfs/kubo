@@ -376,6 +376,10 @@ Example:
 			return err
 		}
 
+		if n.Pinning == nil {
+			return fmt.Errorf("pinning service not available")
+		}
+
 		typeStr, _ := req.Options[pinTypeOptionName].(string)
 		stream, _ := req.Options[pinStreamOptionName].(bool)
 		displayNames, _ := req.Options[pinNamesOptionName].(bool)
@@ -401,7 +405,7 @@ Example:
 		}
 
 		if len(req.Arguments) > 0 {
-			err = pinLsKeys(req, mode, displayNames || name != "", n, api, emit)
+			err = pinLsKeys(req, mode, displayNames || name != "", n.Pinning, api, emit)
 		} else {
 			err = pinLsAll(req, typeStr, displayNames || name != "", name, api, emit)
 		}
@@ -486,7 +490,7 @@ type PinLsObject struct {
 	Type string `json:",omitempty"`
 }
 
-func pinLsKeys(req *cmds.Request, mode pin.Mode, displayNames bool, n *core.IpfsNode, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
+func pinLsKeys(req *cmds.Request, mode pin.Mode, displayNames bool, pinner pin.Pinner, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
@@ -509,7 +513,7 @@ func pinLsKeys(req *cmds.Request, mode pin.Mode, displayNames bool, n *core.Ipfs
 	}
 
 	// Check pins using the new type-specific method
-	pinned, err := n.Pinning.CheckIfPinnedWithType(req.Context, mode, displayNames, cids...)
+	pinned, err := pinner.CheckIfPinnedWithType(req.Context, mode, displayNames, cids...)
 	if err != nil {
 		return err
 	}
@@ -546,11 +550,9 @@ func pinLsAll(req *cmds.Request, typeStr string, detailed bool, name string, api
 		return err
 	}
 
-	switch typeStr {
-	case "all", "direct", "indirect", "recursive":
-	default:
-		err = fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
-		return err
+	_, ok := pin.StringToMode(typeStr)
+	if !ok {
+		return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
 	}
 
 	opt, err := options.Pin.Ls.Type(typeStr)
