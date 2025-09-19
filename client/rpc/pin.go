@@ -52,8 +52,12 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 		return err
 	}
 
-	return api.core().Request("pin/add", p.String()).
-		Option("recursive", options.Recursive).Exec(ctx, nil)
+	req := api.core().Request("pin/add", p.String()).
+		Option("recursive", options.Recursive)
+	if options.Name != "" {
+		req = req.Option("name", options.Name)
+	}
+	return req.Exec(ctx, nil)
 }
 
 type pinLsObject struct {

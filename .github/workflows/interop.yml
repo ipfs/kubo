@@ -36,7 +36,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v5
@@ -53,7 +53,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: lts/*
       - uses: actions/download-artifact@v5
@@ -89,7 +89,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20.x
       - uses: actions/download-artifact@v5

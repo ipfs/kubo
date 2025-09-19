@@ -52,7 +52,7 @@ func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGSe
 	// Parse strategy at function creation time (not inside the returned function)
 	// This happens before the provider is created, which is why we pass the strategy
 	// string and parse it here, rather than using fx-provided ProvidingStrategy.
-	strategyFlag := config.ParseReproviderStrategy(strategy)
+	strategyFlag := config.ParseProvideStrategy(strategy)
 
 	return func(bstore blockstore.Blockstore,
 		ds format.DAGService,
@@ -72,8 +72,8 @@ func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGSe
 		ctx := context.TODO()
 
 		var opts []dspinner.Option
-		roots := (strategyFlag & config.ReproviderStrategyRoots) != 0
-		pinned := (strategyFlag & config.ReproviderStrategyPinned) != 0
+		roots := (strategyFlag & config.ProvideStrategyRoots) != 0
+		pinned := (strategyFlag & config.ProvideStrategyPinned) != 0
 
 		// Important: Only one of WithPinnedProvider or WithRootsProvider should be active.
 		// Having both would cause duplicate root advertisements since "pinned" includes all
@@ -236,12 +236,22 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 		// strategy - it ensures all MFS content gets announced as it's added or
 		// modified. For non-mfs strategies, we set provider to nil to avoid
 		// unnecessary providing.
-		strategyFlag := config.ParseReproviderStrategy(strategy)
-		if strategyFlag&config.ReproviderStrategyMFS == 0 {
+		strategyFlag := config.ParseProvideStrategy(strategy)
+		if strategyFlag&config.ProvideStrategyMFS == 0 {
 			prov = nil
 		}
 
 		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov)
+		if err != nil {
+			return nil, err
+		}
+
+		// Configure MFS directory cache auto-flush threshold if specified (experimental)
+		cfg, err := repo.Config()
+		if err == nil && !cfg.Internal.MFSAutoflushThreshold.IsDefault() {
+			threshold := int(cfg.Internal.MFSAutoflushThreshold.WithDefault(int64(mfs.DefaultMaxCacheSize)))
+			root.SetMaxCacheSize(threshold)
+		}
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {

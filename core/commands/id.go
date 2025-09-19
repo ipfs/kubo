@@ -12,6 +12,7 @@ import (
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
@@ -173,12 +174,14 @@ func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (interface{
 	slices.Sort(info.Addresses)
 
 	protocols, _ := ps.GetProtocols(p) // don't care about errors here.
-	info.Protocols = append(info.Protocols, protocols...)
+	for _, proto := range protocols {
+		info.Protocols = append(info.Protocols, protocol.ID(cmdutils.CleanAndTrim(string(proto))))
+	}
 	slices.Sort(info.Protocols)
 
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
-			info.AgentVersion = vs
+			info.AgentVersion = cmdutils.CleanAndTrim(vs)
 		}
 	}
 

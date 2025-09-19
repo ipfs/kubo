@@ -118,3 +118,63 @@ func TestFilesCp(t *testing.T) {
 		assert.Equal(t, data, catRes.Stdout.Trimmed())
 	})
 }
+
+func TestFilesRm(t *testing.T) {
+	t.Parallel()
+
+	t.Run("files rm with --flush=false returns error", func(t *testing.T) {
+		// Test that files rm rejects --flush=false so user does not assume disabling flush works
+		// (rm ignored it before, better to explicitly error)
+		// See https://github.com/ipfs/kubo/issues/10842
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+
+		// Create a file to remove
+		node.IPFS("files", "mkdir", "/test-dir")
+
+		// Try to remove with --flush=false, should error
+		res := node.RunIPFS("files", "rm", "-r", "--flush=false", "/test-dir")
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "files rm always flushes for safety")
+		assert.Contains(t, res.Stderr.String(), "cannot be set to false")
+
+		// Verify the directory still exists (wasn't removed due to error)
+		lsRes := node.IPFS("files", "ls", "/")
+		assert.Contains(t, lsRes.Stdout.String(), "test-dir")
+	})
+
+	t.Run("files rm with --flush=true works", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+
+		// Create a file to remove
+		node.IPFS("files", "mkdir", "/test-dir")
+
+		// Remove with explicit --flush=true, should work
+		res := node.IPFS("files", "rm", "-r", "--flush=true", "/test-dir")
+		assert.NoError(t, res.Err)
+
+		// Verify the directory was removed
+		lsRes := node.IPFS("files", "ls", "/")
+		assert.NotContains(t, lsRes.Stdout.String(), "test-dir")
+	})
+
+	t.Run("files rm without flush flag works (default behavior)", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+
+		// Create a file to remove
+		node.IPFS("files", "mkdir", "/test-dir")
+
+		// Remove without flush flag (should use default which is true)
+		res := node.IPFS("files", "rm", "-r", "/test-dir")
+		assert.NoError(t, res.Err)
+
+		// Verify the directory was removed
+		lsRes := node.IPFS("files", "ls", "/")
+		assert.NotContains(t, lsRes.Stdout.String(), "test-dir")
+	})
+}

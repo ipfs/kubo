@@ -3,6 +3,8 @@ package ipfs
 import (
 	"fmt"
 	"runtime"
+
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 )
 
 // CurrentCommit is the current git commit, this is set as a ldflag in the Makefile.
@@ -14,7 +16,7 @@ const CurrentVersionNumber = "0.38.0-dev"
 const ApiVersion = "/kubo/" + CurrentVersionNumber + "/" //nolint
 
 // RepoVersion is the version number that we are currently expecting to see.
-const RepoVersion = 17
+const RepoVersion = 18
 
 // GetUserAgentVersion is the libp2p user agent used by go-ipfs.
 //
@@ -27,13 +29,13 @@ func GetUserAgentVersion() string {
 		}
 		userAgent += userAgentSuffix
 	}
-	return userAgent
+	return cmdutils.CleanAndTrim(userAgent)
 }
 
 var userAgentSuffix string
 
 func SetUserAgentSuffix(suffix string) {
-	userAgentSuffix = suffix
+	userAgentSuffix = cmdutils.CleanAndTrim(suffix)
 }
 
 type VersionInfo struct {

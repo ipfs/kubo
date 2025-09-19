@@ -24,7 +24,6 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	dht_pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	dhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider"
-	"github.com/libp2p/go-libp2p-kad-dht/provider/buffered"
 	ddhtprovider "github.com/libp2p/go-libp2p-kad-dht/provider/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/provider/keystore"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
@@ -85,7 +84,7 @@ type DHTProvider interface {
 	// The keys are not deleted from the keystore, so they will continue to be
 	// reprovided as scheduled.
 	Clear() int
-	// RefreshSchedule scans the Keystore for any keys that are not currently
+	// RefreshSchedule scans the KeyStore for any keys that are not currently
 	// scheduled for reproviding. If such keys are found, it schedules their
 	// associated keyspace region to be reprovided.
 	//
@@ -107,6 +106,9 @@ var (
 	_ DHTProvider = &LegacyProvider{}
 )
 
+// NoopProvider is a no-operation provider implementation that does nothing.
+// It is used when providing is disabled or when no DHT is available.
+// All methods return successfully without performing any actual operations.
 type NoopProvider struct{}
 
 func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) error { return nil }
@@ -114,9 +116,14 @@ func (r *NoopProvider) ProvideOnce(...mh.Multihash) error          { return nil 
 func (r *NoopProvider) Clear() int                                 { return 0 }
 func (r *NoopProvider) RefreshSchedule() error                     { return nil }
 
-// LegacyProvider is a wrapper around the boxo/provider.System. This DHT
-// provide system manages reprovides by bursts where it sequentially reprovides
-// all keys.
+// LegacyProvider is a wrapper around the boxo/provider.System that implements
+// the DHTProvider interface. This provider manages reprovides using a burst
+// strategy where it sequentially reprovides all keys at once during each
+// reprovide interval, rather than spreading the load over time.
+//
+// This is the legacy provider implementation that can cause resource spikes
+// during reprovide operations. For more efficient providing, consider using
+// the SweepingProvider which spreads the load over the reprovide interval.
 type LegacyProvider struct {
 	provider.System
 }
@@ -297,7 +304,7 @@ type addrsFilter interface {
 }
 
 func SweepingProviderOpt(cfg *config.Config) fx.Option {
-	reprovideInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
+	reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
 	type providerInput struct {
 		fx.In
 		DHT  routing.Routing `name:"dhtc"`
@@ -305,21 +312,14 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *keystore.ResettableKeystore, error) {
 		ds := in.Repo.Datastore()
-		ks, err := keystore.NewResettableKeystore(ds,
+		keyStore, err := keystore.NewResettableKeystore(ds,
 			keystore.WithPrefixBits(16),
 			keystore.WithDatastorePath("/provider/keystore"),
-			keystore.WithBatchSize(int(cfg.Reprovider.Sweep.KeyStoreBatchSize.WithDefault(config.DefaultReproviderSweepKeyStoreBatchSize))),
+			keystore.WithBatchSize(int(cfg.Provide.DHT.KeyStoreBatchSize.WithDefault(config.DefaultProvideDHTKeyStoreBatchSize))),
 		)
 		if err != nil {
 			return &NoopProvider{}, nil, err
 		}
-
-		bufferedProviderOpts := []buffered.Option{
-			buffered.WithBatchSize(1 << 10),
-			buffered.WithDsName("bprov"),
-			buffered.WithIdleWriteTime(time.Minute),
-		}
-
 		var impl dhtImpl
 		switch inDht := in.DHT.(type) {
 		case *dht.IpfsDHT:
@@ -329,22 +329,23 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		case *dual.DHT:
 			if inDht != nil {
 				prov, err := ddhtprovider.New(inDht,
-					ddhtprovider.WithKeystore(ks),
+					ddhtprovider.WithKeystore(keyStore),
 
 					ddhtprovider.WithReprovideInterval(reprovideInterval),
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
-					ddhtprovider.WithOfflineDelay(cfg.Reprovider.Sweep.OfflineDelay.WithDefault(config.DefaultReproviderSweepOfflineDelay)),
+					ddhtprovider.WithOfflineDelay(cfg.Provide.DHT.OfflineDelay.WithDefault(config.DefaultProvideDHTOfflineDelay)),
 					ddhtprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
 
-					ddhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
-					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
-					ddhtprovider.WithDedicatedBurstWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
-					ddhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
+					ddhtprovider.WithMaxWorkers(int(cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers))),
+					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Provide.DHT.DedicatedPeriodicWorkers.WithDefault(config.DefaultProvideDHTDedicatedPeriodicWorkers))),
+					ddhtprovider.WithDedicatedBurstWorkers(int(cfg.Provide.DHT.DedicatedBurstWorkers.WithDefault(config.DefaultProvideDHTDedicatedBurstWorkers))),
+					ddhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Provide.DHT.MaxProvideConnsPerWorker.WithDefault(config.DefaultProvideDHTMaxProvideConnsPerWorker))),
 				)
 				if err != nil {
 					return nil, nil, err
 				}
-				return buffered.New(prov, ds, bufferedProviderOpts...), ks, nil
+				_ = prov
+				return prov, keyStore, nil
 			}
 		case *fullrt.FullRT:
 			if inDht != nil {
@@ -352,7 +353,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			}
 		}
 		if impl == nil {
-			return &NoopProvider{}, nil, nil
+			return &NoopProvider{}, nil, errors.New("provider: no valid DHT available for providing")
 		}
 
 		var selfAddrsFunc func() []ma.Multiaddr
@@ -362,7 +363,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			selfAddrsFunc = func() []ma.Multiaddr { return impl.Host().Addrs() }
 		}
 		opts := []dhtprovider.Option{
-			dhtprovider.WithKeystore(ks),
+			dhtprovider.WithKeystore(keyStore),
 			dhtprovider.WithPeerID(impl.Host().ID()),
 			dhtprovider.WithRouter(impl),
 			dhtprovider.WithMessageSender(impl.MessageSender()),
@@ -374,40 +375,37 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			dhtprovider.WithReplicationFactor(amino.DefaultBucketSize),
 			dhtprovider.WithReprovideInterval(reprovideInterval),
 			dhtprovider.WithMaxReprovideDelay(time.Hour),
-			dhtprovider.WithOfflineDelay(cfg.Reprovider.Sweep.OfflineDelay.WithDefault(config.DefaultReproviderSweepOfflineDelay)),
+			dhtprovider.WithOfflineDelay(cfg.Provide.DHT.OfflineDelay.WithDefault(config.DefaultProvideDHTOfflineDelay)),
 			dhtprovider.WithConnectivityCheckOnlineInterval(1 * time.Minute),
 
-			dhtprovider.WithMaxWorkers(int(cfg.Reprovider.Sweep.MaxWorkers.WithDefault(config.DefaultReproviderSweepMaxWorkers))),
-			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Reprovider.Sweep.DedicatedPeriodicWorkers.WithDefault(config.DefaultReproviderSweepDedicatedPeriodicWorkers))),
-			dhtprovider.WithDedicatedBurstWorkers(int(cfg.Reprovider.Sweep.DedicatedBurstWorkers.WithDefault(config.DefaultReproviderSweepDedicatedBurstWorkers))),
-			dhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Reprovider.Sweep.MaxProvideConnsPerWorker.WithDefault(config.DefaultReproviderSweepMaxProvideConnsPerWorker))),
+			dhtprovider.WithMaxWorkers(int(cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers))),
+			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Provide.DHT.DedicatedPeriodicWorkers.WithDefault(config.DefaultProvideDHTDedicatedPeriodicWorkers))),
+			dhtprovider.WithDedicatedBurstWorkers(int(cfg.Provide.DHT.DedicatedBurstWorkers.WithDefault(config.DefaultProvideDHTDedicatedBurstWorkers))),
+			dhtprovider.WithMaxProvideConnsPerWorker(int(cfg.Provide.DHT.MaxProvideConnsPerWorker.WithDefault(config.DefaultProvideDHTMaxProvideConnsPerWorker))),
 		}
 
 		prov, err := dhtprovider.New(opts...)
-		if err != nil {
-			return &NoopProvider{}, nil, err
-		}
-		return buffered.New(prov, ds, bufferedProviderOpts...), ks, nil
+		return prov, keyStore, err
 	})
 
 	type keystoreInput struct {
 		fx.In
 		Provider    DHTProvider
-		Keystore    *keystore.ResettableKeystore
+		KeyStore    *keystore.ResettableKeystore
 		KeyProvider provider.KeyChanFunc
 	}
-	initKeystore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
+	initKeyStore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
 		var (
 			cancel context.CancelFunc
 			done   = make(chan struct{})
 		)
 
-		syncKeystore := func(ctx context.Context) error {
+		syncKeyStore := func(ctx context.Context) error {
 			kcf, err := in.KeyProvider(ctx)
 			if err != nil {
 				return err
 			}
-			if err := in.Keystore.ResetCids(ctx, kcf); err != nil {
+			if err := in.KeyStore.ResetCids(ctx, kcf); err != nil {
 				return err
 			}
 			if err := in.Provider.RefreshSchedule(); err != nil {
@@ -418,15 +416,12 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
-				if in.Provider == nil || in.Keystore == nil {
-					return nil
-				}
 				// Set the KeyProvider as a garbage collection function for the
-				// keystore. Periodically purge the Keystore from all its keys and
+				// keystore. Periodically purge the KeyStore from all its keys and
 				// replace them with the keys that needs to be reprovided, coming from
 				// the KeyChanFunc. So far, this is the less worse way to remove CIDs
 				// that shouldn't be reprovided from the provider's state.
-				if err := syncKeystore(ctx); err != nil {
+				if err := syncKeyStore(ctx); err != nil {
 					return err
 				}
 
@@ -443,7 +438,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 						case <-gcCtx.Done():
 							return
 						case <-ticker.C:
-							if err := syncKeystore(gcCtx); err != nil {
+							if err := syncKeyStore(gcCtx); err != nil {
 								logger.Errorw("provider keystore sync", "err", err)
 							}
 						}
@@ -452,11 +447,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				return nil
 			},
 			OnStop: func(ctx context.Context) error {
-				if in.Provider == nil || in.Keystore == nil {
-					return nil
-				}
 				if cancel != nil {
-					// Cancel Keystore garbage collection loop
 					cancel()
 				}
 				select {
@@ -464,43 +455,45 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				case <-ctx.Done():
 					return ctx.Err()
 				}
-
-				// Keystore state isn't be persisted across restarts.
-				return in.Keystore.Empty(ctx)
+				// KeyStore state isn't be persisted across restarts.
+				if err := in.KeyStore.Empty(ctx); err != nil {
+					return err
+				}
+				return in.KeyStore.Close()
 			},
 		})
 	})
 
 	return fx.Options(
 		sweepingReprovider,
-		initKeystore,
+		initKeyStore,
 	)
 }
 
 // ONLINE/OFFLINE
 
-// OnlineProviders groups units managing provider routing records online
+// OnlineProviders groups units managing provide routing records online
 func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	if !provide {
 		return OfflineProviders()
 	}
 
-	providerStrategy := cfg.Reprovider.Strategy.WithDefault(config.DefaultReproviderStrategy)
+	providerStrategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 
-	strategyFlag := config.ParseReproviderStrategy(providerStrategy)
+	strategyFlag := config.ParseProvideStrategy(providerStrategy)
 	if strategyFlag == 0 {
-		return fx.Error(fmt.Errorf("unknown reprovider strategy %q", providerStrategy))
+		return fx.Error(fmt.Errorf("provider: unknown strategy %q", providerStrategy))
 	}
 
 	opts := []fx.Option{
 		fx.Provide(setReproviderKeyProvider(providerStrategy)),
 	}
-	if cfg.Reprovider.Sweep.Enabled.WithDefault(config.DefaultReproviderSweepEnabled) {
+	if cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled) {
 		opts = append(opts, SweepingProviderOpt(cfg))
 	} else {
-		reprovideInterval := cfg.Reprovider.Interval.WithDefault(config.DefaultReproviderInterval)
+		reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
 		acceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
-		provideWorkerCount := int(cfg.Provider.WorkerCount.WithDefault(config.DefaultProviderWorkerCount))
+		provideWorkerCount := int(cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers))
 
 		opts = append(opts, LegacyProviderOpt(reprovideInterval, providerStrategy, acceleratedDHTClient, provideWorkerCount))
 	}
@@ -508,7 +501,7 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	return fx.Options(opts...)
 }
 
-// OfflineProviders groups units managing provider routing records offline
+// OfflineProviders groups units managing provide routing records offline
 func OfflineProviders() fx.Option {
 	return fx.Provide(func() DHTProvider {
 		return &NoopProvider{}
@@ -519,11 +512,11 @@ func mfsProvider(mfsRoot *mfs.Root, fetcher fetcher.Factory) provider.KeyChanFun
 	return func(ctx context.Context) (<-chan cid.Cid, error) {
 		err := mfsRoot.FlushMemFree(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("error flushing mfs, cannot provide MFS: %w", err)
+			return nil, fmt.Errorf("provider: error flushing MFS, cannot provide MFS: %w", err)
 		}
 		rootNode, err := mfsRoot.GetDirectory().GetNode()
 		if err != nil {
-			return nil, fmt.Errorf("error loading mfs root, cannot provide MFS: %w", err)
+			return nil, fmt.Errorf("provider: error loading MFS root, cannot provide MFS: %w", err)
 		}
 
 		kcf := provider.NewDAGProvider(rootNode.Cid(), fetcher)
@@ -543,7 +536,7 @@ type provStrategyIn struct {
 
 type provStrategyOut struct {
 	fx.Out
-	ProvidingStrategy    config.ReproviderStrategy
+	ProvidingStrategy    config.ProvideStrategy
 	ProvidingKeyChanFunc provider.KeyChanFunc
 }
 
@@ -553,18 +546,18 @@ type provStrategyOut struct {
 // - "pinned": All pinned content (roots + children)
 // - "mfs": Only MFS content
 // - "all": all blocks
-func createKeyProvider(strategyFlag config.ReproviderStrategy, in provStrategyIn) provider.KeyChanFunc {
+func createKeyProvider(strategyFlag config.ProvideStrategy, in provStrategyIn) provider.KeyChanFunc {
 	switch strategyFlag {
-	case config.ReproviderStrategyRoots:
+	case config.ProvideStrategyRoots:
 		return provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher))
-	case config.ReproviderStrategyPinned:
+	case config.ProvideStrategyPinned:
 		return provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher))
-	case config.ReproviderStrategyPinned | config.ReproviderStrategyMFS:
+	case config.ProvideStrategyPinned | config.ProvideStrategyMFS:
 		return provider.NewPrioritizedProvider(
 			provider.NewBufferedProvider(dspinner.NewPinnedProvider(false, in.Pinner, in.OfflineIPLDFetcher)),
 			mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher),
 		)
-	case config.ReproviderStrategyMFS:
+	case config.ProvideStrategyMFS:
 		return mfsProvider(in.MFSRoot, in.OfflineUnixFSFetcher)
 	default: // "all", "", "flat" (compat)
 		return in.Blockstore.AllKeysChan
@@ -616,7 +609,7 @@ func handleStrategyChange(strategy string, provider DHTProvider, ds datastore.Da
 		return
 	}
 
-	logger.Infow("Reprovider.Strategy changed, clearing provide queue", "previous", previous, "current", strategy)
+	logger.Infow("Provide.Strategy changed, clearing provide queue", "previous", previous, "current", strategy)
 	provider.Clear()
 
 	if err := persistStrategy(ctx, strategy, ds); err != nil {
@@ -625,7 +618,7 @@ func handleStrategyChange(strategy string, provider DHTProvider, ds datastore.Da
 }
 
 func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrategyOut {
-	strategyFlag := config.ParseReproviderStrategy(strategy)
+	strategyFlag := config.ParseProvideStrategy(strategy)
 
 	return func(in provStrategyIn) provStrategyOut {
 		// Create the appropriate key provider based on strategy
