@@ -39,6 +39,9 @@ func (n Nodes) Connect() Nodes {
 		}
 	}
 	for _, node := range n {
+		if len(node.Peers()) == 0 {
+			continue
+		}
 		firstPeer := node.Peers()[0]
 		if _, err := firstPeer.ValueForProtocol(multiaddr.P_P2P); err != nil {
 			log.Panicf("unexpected state for node %d with peer ID %s: %s", node.ID, node.PeerID(), err)

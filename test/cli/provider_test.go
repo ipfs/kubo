@@ -139,6 +139,55 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectNoProviders(t, cid, nodes[1:]...)
 	})
 
+	t.Run("manual provide fails when disconnected", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 1, func(n *harness.Node) {
+			n.SetIPFSConfig("Provider.Enabled", true)
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+		res := nodes[0].RunIPFS("routing", "provide", cid)
+		assert.Contains(t, res.Stderr.Trimmed(), "cannot provide, no connected peers")
+		assert.Equal(t, 1, res.ExitCode())
+
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
+
+	t.Run("manual http provide succeed when disconnected", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 1, func(n *harness.Node) {
+			n.SetIPFSConfig("Provider.Enabled", true)
+			routingConf := map[string]any{
+				"Type": "custom",
+				"Methods": map[string]any{
+					"provide":        map[string]any{"RouterName": "MyCustomRouter"},
+					"get-ipns":       map[string]any{"RouterName": "MyCustomRouter"},
+					"put-ipns":       map[string]any{"RouterName": "MyCustomRouter"},
+					"find-peers":     map[string]any{"RouterName": "MyCustomRouter"},
+					"find-providers": map[string]any{"RouterName": "MyCustomRouter"},
+				},
+				"Routers": map[string]any{
+					"MyCustomRouter": map[string]any{
+						"Type": "http",
+						"Parameters": map[string]any{
+							"Endpoint": "http://custom-router",
+						},
+					},
+				},
+			}
+			n.SetIPFSConfig("Routing", routingConf)
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+		res := nodes[0].RunIPFS("routing", "provide", cid)
+		assert.Empty(t, res.Stderr.String())
+		assert.Equal(t, 0, res.ExitCode())
+	})
+
 	// Right now Provide and Reprovide are tied together
 	t.Run("Reprovide.Interval=0 disables announcement of new CID too", func(t *testing.T) {
 		t.Parallel()
