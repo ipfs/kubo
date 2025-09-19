@@ -14,7 +14,62 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  setup-matrix:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generate.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Generate build matrix
+        id: generate
+        run: |
+          # Read platforms from build-platforms.yml and group by OS
+          # This creates matrix groups for parallel execution
+
+          # Initialize associative array for grouping
+          declare -A os_groups
+
+          # Read platforms and group by OS
+          while read -r platform; do
+            if [ -z "$platform" ]; then
+              continue
+            fi
+            OS=$(echo "$platform" | cut -d- -f1)
+            if [ -z "${os_groups[$OS]}" ]; then
+              os_groups[$OS]="$platform"
+            else
+              os_groups[$OS]="${os_groups[$OS]} $platform"
+            fi
+          done < <(grep '^  - ' .github/build-platforms.yml | sed 's/^  - //')
+
+          # Generate matrix JSON
+          matrix_json='{"include":['
+          first=true
+
+          for os in "${!os_groups[@]}"; do
+            if [ "$first" = false ]; then
+              matrix_json+=','
+            fi
+            first=false
+
+            # Determine if this OS needs nofuse tag
+            needs_nofuse=false
+            if [[ "$os" == "windows" ]] || [[ "$os" == "openbsd" ]] || [[ "$os" == "freebsd" ]]; then
+              needs_nofuse=true
+            fi
+
+            matrix_json+="{\"os\":\"$os\",\"platforms\":\"${os_groups[$os]}\",\"needs_nofuse\":$needs_nofuse}"
+          done
+
+          matrix_json+=']}'
+
+          echo "Generated matrix: $matrix_json"
+          echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
+
   go-build:
+    needs: setup-matrix
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "4xlarge"]' || '"ubuntu-latest"') }}
     timeout-minutes: 20
@@ -27,14 +82,34 @@ jobs:
     defaults:
       run:
         shell: bash
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup-matrix.outputs.matrix) }}
     steps:
       - uses: actions/setup-go@v6
         with:
-          go-version: 1.25.x
+          go-version-file: 'go.mod'
+          cache: true
+          cache-dependency-path: go.sum
       - uses: actions/checkout@v5
-      - run: make cmd/ipfs-try-build
-        env:
-          TEST_FUSE: 1
-      - run: make cmd/ipfs-try-build
-        env:
-          TEST_FUSE: 0
+
+      - name: Build platforms
+        run: |
+          # Build all platforms in this group
+          for platform in ${{ matrix.platforms }}; do
+            echo "::group::Building $platform"
+            GOOS=$(echo "$platform" | cut -d- -f1)
+            GOARCH=$(echo "$platform" | cut -d- -f2)
+
+            # Check if this OS needs nofuse tag
+            if [ "${{ matrix.needs_nofuse }}" = "true" ]; then
+              echo "Building $platform with nofuse tag"
+              echo "  GOOS=$GOOS GOARCH=$GOARCH go build -tags nofuse -o /dev/null ./cmd/ipfs"
+              GOOS=$GOOS GOARCH=$GOARCH go build -tags nofuse -o /dev/null ./cmd/ipfs
+            else
+              echo "Building $platform with FUSE support"
+              echo "  GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs"
+              GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs
+            fi
+            echo "::endgroup::"
+          done

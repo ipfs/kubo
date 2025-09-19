@@ -9,9 +9,6 @@ on:
     branches:
       - 'master'
 
-env:
-  GO_VERSION: 1.25.x
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
   cancel-in-progress: true
@@ -38,7 +35,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: 'go.mod'
       - uses: actions/checkout@v5
       - run: make build
       - uses: actions/upload-artifact@v4
