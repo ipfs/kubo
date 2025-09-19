@@ -145,17 +145,17 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 	t.Run("manual provide fails when no libp2p peers and no custom HTTP router", func(t *testing.T) {
 		t.Parallel()
 
-		nodes := initNodes(t, 1, func(n *harness.Node) {
-			n.SetIPFSConfig("Provide.Enabled", true)
-		})
-		defer nodes.StopDaemons()
+		h := harness.NewT(t)
+		node := h.NewNode().Init()
+		apply(node)
+		node.SetIPFSConfig("Provide.Enabled", true)
+		node.StartDaemon()
+		defer node.StopDaemon()
 
-		cid := nodes[0].IPFSAddStr(time.Now().String())
-		res := nodes[0].RunIPFS("routing", "provide", cid)
+		cid := node.IPFSAddStr(time.Now().String())
+		res := node.RunIPFS("routing", "provide", cid)
 		assert.Contains(t, res.Stderr.Trimmed(), "cannot provide, no connected peers")
 		assert.Equal(t, 1, res.ExitCode())
-
-		expectNoProviders(t, cid, nodes[1:]...)
 	})
 
 	t.Run("manual provide succeeds via custom HTTP router when no libp2p peers", func(t *testing.T) {
@@ -177,36 +177,38 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		}))
 		defer mockServer.Close()
 
-		nodes := initNodes(t, 1, func(n *harness.Node) {
-			n.SetIPFSConfig("Provide.Enabled", true)
-			// Configure a custom HTTP router for providing.
-			// Using our mock server that will accept the provide requests.
-			routingConf := map[string]any{
-				"Type": "custom", // https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md#configuration-file-example
-				"Methods": map[string]any{
-					"provide":        map[string]any{"RouterName": "MyCustomRouter"},
-					"get-ipns":       map[string]any{"RouterName": "MyCustomRouter"},
-					"put-ipns":       map[string]any{"RouterName": "MyCustomRouter"},
-					"find-peers":     map[string]any{"RouterName": "MyCustomRouter"},
-					"find-providers": map[string]any{"RouterName": "MyCustomRouter"},
-				},
-				"Routers": map[string]any{
-					"MyCustomRouter": map[string]any{
-						"Type": "http",
-						"Parameters": map[string]any{
-							// Use the mock server URL
-							"Endpoint": mockServer.URL,
-						},
+		h := harness.NewT(t)
+		node := h.NewNode().Init()
+		apply(node)
+		node.SetIPFSConfig("Provide.Enabled", true)
+		// Configure a custom HTTP router for providing.
+		// Using our mock server that will accept the provide requests.
+		routingConf := map[string]any{
+			"Type": "custom", // https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md#configuration-file-example
+			"Methods": map[string]any{
+				"provide":        map[string]any{"RouterName": "MyCustomRouter"},
+				"get-ipns":       map[string]any{"RouterName": "MyCustomRouter"},
+				"put-ipns":       map[string]any{"RouterName": "MyCustomRouter"},
+				"find-peers":     map[string]any{"RouterName": "MyCustomRouter"},
+				"find-providers": map[string]any{"RouterName": "MyCustomRouter"},
+			},
+			"Routers": map[string]any{
+				"MyCustomRouter": map[string]any{
+					"Type": "http",
+					"Parameters": map[string]any{
+						// Use the mock server URL
+						"Endpoint": mockServer.URL,
 					},
 				},
-			}
-			n.SetIPFSConfig("Routing", routingConf)
-		})
-		defer nodes.StopDaemons()
+			},
+		}
+		node.SetIPFSConfig("Routing", routingConf)
+		node.StartDaemon()
+		defer node.StopDaemon()
 
-		cid := nodes[0].IPFSAddStr(time.Now().String())
+		cid := node.IPFSAddStr(time.Now().String())
 		// The command should successfully provide via HTTP even without libp2p peers
-		res := nodes[0].RunIPFS("routing", "provide", cid)
+		res := node.RunIPFS("routing", "provide", cid)
 		assert.Empty(t, res.Stderr.String(), "Should have no errors when providing via HTTP router")
 		assert.Equal(t, 0, res.ExitCode(), "Should succeed with exit code 0")
 	})
