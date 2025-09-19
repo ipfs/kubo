@@ -48,15 +48,14 @@ jobs:
       # 2. Build the kubo-gateway
       - name: Checkout kubo-gateway
         uses: actions/checkout@v5
+        with:
+          path: kubo-gateway
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: 'go.mod'
-      - uses: protocol/cache-go-action@v1
-        with:
-          name: ${{ github.job }}
-        with:
-          path: kubo-gateway
+          go-version-file: 'kubo-gateway/go.mod'
+          cache: true
+          cache-dependency-path: kubo-gateway/go.sum
       - name: Build kubo-gateway
         run: make build
         working-directory: kubo-gateway
@@ -135,15 +134,14 @@ jobs:
       # 2. Build the kubo-gateway
       - name: Checkout kubo-gateway
         uses: actions/checkout@v5
+        with:
+          path: kubo-gateway
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: 'go.mod'
-      - uses: protocol/cache-go-action@v1
-        with:
-          name: ${{ github.job }}
-        with:
-          path: kubo-gateway
+          go-version-file: 'kubo-gateway/go.mod'
+          cache: true
+          cache-dependency-path: kubo-gateway/go.sum
       - name: Build kubo-gateway
         run: make build
         working-directory: kubo-gateway

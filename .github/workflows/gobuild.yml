@@ -21,7 +21,6 @@ jobs:
     env:
       TEST_DOCKER: 0
       TEST_VERBOSE: 1
-      TRAVIS: 1
       GIT_PAGER: cat
       IPFS_CHECK_RCMGR_DEFAULTS: 1
     defaults:
