@@ -170,7 +170,7 @@ var provideRefRoutingCmd = &cmds.Command{
 			return errors.New("invalid configuration: Provide.Enabled is set to 'false'")
 		}
 
-		if len(nd.PeerHost.Network().Conns()) == 0 && !httpProviderConfigured(cfg) {
+		if len(nd.PeerHost.Network().Conns()) == 0 && !cfg.HasHTTPProviderConfigured() {
 			// Node is depending on DHT for providing (no custom HTTP provider
 			// configured) and currently has no connected peers.
 			return errors.New("cannot provide, no connected peers")
@@ -250,52 +250,6 @@ var provideRefRoutingCmd = &cmds.Command{
 		}),
 	},
 	Type: routing.QueryEvent{},
-}
-
-// httpProviderConfigured checks whether the provide process includes any custom
-// HTTP-based providers.
-func httpProviderConfigured(cfg *config.Config) bool {
-	if len(cfg.Routing.Routers) == 0 {
-		// No "custom" routers
-		return false
-	}
-	method, ok := cfg.Routing.Methods[config.MethodNameProvide]
-	if !ok {
-		// No provide method configured
-		return false
-	}
-	return routerSupportsHTTPProviding(cfg, method.RouterName)
-}
-
-// routerSupportsHTTPProviding checks if the supplied custom router is or
-// includes an HTTP-based router.
-func routerSupportsHTTPProviding(cfg *config.Config, routerName string) bool {
-	rp, ok := cfg.Routing.Routers[routerName]
-	if !ok {
-		// Router configured for providing doesn't exist
-		return false
-	}
-	router := rp.Router
-	switch router.Type {
-	case config.RouterTypeHTTP:
-		// Found HTTP router
-		return true
-	case config.RouterTypeParallel, config.RouterTypeSequential:
-		params, ok := router.Parameters.(config.ComposableRouterParams)
-		if !ok {
-			// Unexpected parameter type for composed router
-			return false
-		}
-		// Check if any of the composed routers is HTTP
-		for _, r := range params.Routers {
-			if routerSupportsHTTPProviding(cfg, r.RouterName) {
-				return true
-			}
-		}
-	default:
-		// Unsupported router type
-	}
-	return false
 }
 
 var reprovideRoutingCmd = &cmds.Command{
