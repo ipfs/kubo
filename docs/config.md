@@ -283,7 +283,7 @@ the local [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`)
 Supported Transports:
 
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
-* unix - `/unix/path/to/socket`
+* unix - `/unix/path/to/socket` or `/unix/path%2Fto%2Fsocket`
 
 > [!CAUTION]
 > **NEVER EXPOSE UNPROTECTED ADMIN RPC TO LAN OR THE PUBLIC INTERNET**
@@ -311,7 +311,7 @@ the local [HTTP gateway](https://specs.ipfs.tech/http-gateways/) (`/ipfs`, `/ipn
 Supported Transports:
 
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
-* unix - `/unix/path/to/socket`
+* unix - `/unix/path/to/socket` or `/unix/path%2Fto%2Fsocket`
 
 > [!CAUTION]
 > **SECURITY CONSIDERATIONS FOR GATEWAY EXPOSURE**
