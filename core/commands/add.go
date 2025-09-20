@@ -11,6 +11,7 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	"github.com/cheggaaa/pb"
 	"github.com/ipfs/boxo/files"
@@ -267,6 +268,13 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		// Validate inline-limit doesn't exceed the maximum identity digest size
 		if inline && inlineLimit > verifcid.DefaultMaxIdentityDigestSize {
 			return fmt.Errorf("inline-limit %d exceeds maximum allowed size of %d bytes", inlineLimit, verifcid.DefaultMaxIdentityDigestSize)
+		}
+
+		// Validate pin name
+		if pinNameSet {
+			if err := cmdutils.ValidatePinName(pinName); err != nil {
+				return err
+			}
 		}
 
 		toFilesStr, toFilesSet := req.Options[toFilesOptionName].(string)

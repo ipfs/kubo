@@ -100,6 +100,11 @@ It may take some time. Pass '--progress' to track the progress.
 		name, _ := req.Options[pinNameOptionName].(string)
 		showProgress, _ := req.Options[pinProgressOptionName].(bool)
 
+		// Validate pin name
+		if err := cmdutils.ValidatePinName(name); err != nil {
+			return err
+		}
+
 		if err := req.ParseBodyArgs(); err != nil {
 			return err
 		}
@@ -384,6 +389,11 @@ Example:
 		stream, _ := req.Options[pinStreamOptionName].(bool)
 		displayNames, _ := req.Options[pinNamesOptionName].(bool)
 		name, _ := req.Options[pinNameOptionName].(string)
+
+		// Validate name filter
+		if err := cmdutils.ValidatePinName(name); err != nil {
+			return err
+		}
 
 		mode, ok := pin.StringToMode(typeStr)
 		if !ok {
