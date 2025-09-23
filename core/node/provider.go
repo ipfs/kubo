@@ -467,10 +467,10 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				case <-ctx.Done():
 					return ctx.Err()
 				}
-				// KeyStore state isn't be persisted across restarts.
-				if err := in.KeyStore.Empty(ctx); err != nil {
-					return err
-				}
+
+				// Keystore data isn't purged, on close, but it will be overwritten
+				// when the node starts again.
+
 				return in.KeyStore.Close()
 			},
 		})
