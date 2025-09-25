@@ -77,11 +77,11 @@ func GcBlockstoreCtor(bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockst
 }
 
 // FilestoreBlockstoreCtor wraps GcBlockstore and adds Filestore support
-func FilestoreBlockstoreCtor(repo repo.Repo, bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
+func FilestoreBlockstoreCtor(repo repo.Repo, bb BaseBlocks, prov DHTProvider) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
 	gclocker = blockstore.NewGCLocker()
 
 	// hash security
-	fstore = filestore.NewFilestore(bb, repo.FileManager())
+	fstore = filestore.NewFilestore(bb, repo.FileManager(), prov)
 	gcbs = blockstore.NewGCBlockstore(fstore, gclocker)
 	gcbs = &verifbs.VerifBSGC{GCBlockstore: gcbs}
 
