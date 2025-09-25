@@ -428,9 +428,18 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				// replace them with the keys that needs to be reprovided, coming from
 				// the KeyChanFunc. So far, this is the less worse way to remove CIDs
 				// that shouldn't be reprovided from the provider's state.
-				if err := syncKeyStore(ctx); err != nil {
-					return err
-				}
+				go func() {
+					// Sync the keystore once at startup. This operation is async since
+					// we need to walk the DAG of objects matching the provide strategy,
+					// which can take a while.
+					strategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
+					logger.Infow("provider keystore sync started", "strategy", strategy)
+					if err := syncKeyStore(ctx); err != nil {
+						logger.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
+					} else {
+						logger.Infow("provider keystore sync completed", "strategy", strategy)
+					}
+				}()
 
 				gcCtx, c := context.WithCancel(context.Background())
 				cancel = c
@@ -462,10 +471,10 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				case <-ctx.Done():
 					return ctx.Err()
 				}
-				// KeyStore state isn't be persisted across restarts.
-				if err := in.KeyStore.Empty(ctx); err != nil {
-					return err
-				}
+
+				// Keystore data isn't purged, on close, but it will be overwritten
+				// when the node starts again.
+
 				return in.KeyStore.Close()
 			},
 		})
