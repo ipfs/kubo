@@ -107,11 +107,14 @@ of consistency guarantees. If the daemon is unexpectedly killed before running
 'ipfs files flush' on the files in question, then data may be lost. This also
 applies to run 'ipfs repo gc' concurrently with '--flush=false' operations.
 
-When using '--flush=false', operations are limited to prevent unbounded memory
-growth. After reaching Internal.MFSNoFlushLimit operations,
-further operations will fail until you run 'ipfs files flush'. We recommend
-flushing paths regularly, especially folders with many write operations, to
-clear caches, free memory, and maintain good performance.`,
+When using '--flush=false', operations are limited to prevent unbounded
+memory growth. After reaching Internal.MFSNoFlushLimit operations, further
+operations will fail until you run 'ipfs files flush'. This explicit failure
+(instead of auto-flushing) ensures you maintain control over when data is
+persisted, preventing unexpected partial states and making batch operations
+predictable. We recommend flushing paths regularly, especially folders with
+many write operations, to clear caches, free memory, and maintain good
+performance.`,
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(filesFlushOptionName, "f", "Flush target and ancestors after write.").WithDefault(true),

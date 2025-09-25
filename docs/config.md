@@ -1609,6 +1609,22 @@ When the limit is reached, further operations will fail with an error message
 instructing the user to run `ipfs files flush`, use `--flush=true`, or increase
 this limit in the configuration.
 
+**Why operations fail instead of auto-flushing:** Automatic flushing once the limit
+is reached was considered but rejected because it can lead to data corruption issues
+that are difficult to debug. When the system decides to flush without user knowledge, it can:
+- Create partial states that violate user expectations about atomicity
+- Interfere with concurrent operations in unexpected ways
+- Make debugging and recovery much harder when issues occur
+
+By failing explicitly, users maintain control over when their data is persisted,
+allowing them to:
+- Batch related operations together before flushing
+- Handle errors predictably at natural transaction boundaries
+- Understand exactly when and why their data is written to disk
+
+If you expect automatic flushing behavior, simply use the default `--flush=true`
+(or omit the flag entirely) instead of `--flush=false`.
+
 **⚠️ WARNING:** Increasing this limit or disabling it (setting to 0) can lead to:
 - **Out-of-memory errors (OOM)** - Each unflushed operation consumes memory
 - **Data loss** - If the daemon crashes before flushing, all unflushed changes are lost
