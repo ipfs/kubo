@@ -246,13 +246,6 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 			return nil, err
 		}
 
-		// Configure MFS directory cache auto-flush threshold if specified (experimental)
-		cfg, err := repo.Config()
-		if err == nil && !cfg.Internal.MFSAutoflushThreshold.IsDefault() {
-			threshold := int(cfg.Internal.MFSAutoflushThreshold.WithDefault(int64(mfs.DefaultMaxCacheSize)))
-			root.SetMaxCacheSize(threshold)
-		}
-
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
 				return root.Close()
