@@ -324,9 +324,9 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			return nil, nil, err
 		}
 		bufferedProviderOpts := []buffered.Option{
-			buffered.WithBatchSize(1 << 10), // 1024
+			buffered.WithBatchSize(int(cfg.Provide.DHT.BufferedBatchSize.WithDefault(config.DefaultProvideDHTBufferedBatchSize))),
 			buffered.WithDsName("bprov"),
-			buffered.WithIdleWriteTime(time.Minute),
+			buffered.WithIdleWriteTime(cfg.Provide.DHT.BufferedIdleWriteTime.WithDefault(config.DefaultProvideDHTBufferedIdleWriteTime)),
 		}
 		var impl dhtImpl
 		switch inDht := in.DHT.(type) {

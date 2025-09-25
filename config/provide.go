@@ -21,6 +21,8 @@ const (
 	DefaultProvideDHTMaxProvideConnsPerWorker = 16
 	DefaultProvideDHTKeystoreBatchSize        = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
 	DefaultProvideDHTOfflineDelay             = 2 * time.Hour
+	DefaultProvideDHTBufferedBatchSize        = 1 << 10 // 1024 items
+	DefaultProvideDHTBufferedIdleWriteTime    = 5 * time.Second
 )
 
 type ProvideStrategy int
@@ -86,6 +88,16 @@ type ProvideDHT struct {
 	// OfflineDelay sets the delay after which the provider switches from Disconnected to Offline state (sweep mode only).
 	// Default: DefaultProvideDHTOfflineDelay
 	OfflineDelay *OptionalDuration `json:",omitempty"`
+
+	// BufferedBatchSize sets the batch size for buffered provider operations (sweep mode only).
+	// This controls how many provide operations are batched together before being sent to the provider.
+	// Default: DefaultProvideDHTBufferedBatchSize
+	BufferedBatchSize *OptionalInteger `json:",omitempty"`
+
+	// BufferedIdleWriteTime sets the maximum time to wait before flushing buffered provider operations (sweep mode only).
+	// When no new operations are added within this time, pending operations are flushed to the provider.
+	// Default: DefaultProvideDHTBufferedIdleWriteTime
+	BufferedIdleWriteTime *OptionalDuration `json:",omitempty"`
 }
 
 func ParseProvideStrategy(s string) ProvideStrategy {
@@ -163,6 +175,28 @@ func ValidateProvideConfig(cfg *Provide) error {
 		delay := cfg.DHT.OfflineDelay.WithDefault(DefaultProvideDHTOfflineDelay)
 		if delay < 0 {
 			return fmt.Errorf("Provide.DHT.OfflineDelay must be non-negative, got %v", delay)
+		}
+	}
+
+	// Validate BufferedBatchSize
+	if !cfg.DHT.BufferedBatchSize.IsDefault() {
+		batchSize := cfg.DHT.BufferedBatchSize.WithDefault(DefaultProvideDHTBufferedBatchSize)
+		if batchSize <= 0 {
+			return fmt.Errorf("Provide.DHT.BufferedBatchSize must be positive, got %d", batchSize)
+		}
+		if batchSize > 10000 {
+			return fmt.Errorf("Provide.DHT.BufferedBatchSize must be <= 10000, got %d", batchSize)
+		}
+	}
+
+	// Validate BufferedIdleWriteTime
+	if !cfg.DHT.BufferedIdleWriteTime.IsDefault() {
+		idleTime := cfg.DHT.BufferedIdleWriteTime.WithDefault(DefaultProvideDHTBufferedIdleWriteTime)
+		if idleTime < time.Second {
+			return fmt.Errorf("Provide.DHT.BufferedIdleWriteTime must be >= 1s, got %v", idleTime)
+		}
+		if idleTime > 5*time.Minute {
+			return fmt.Errorf("Provide.DHT.BufferedIdleWriteTime must be <= 5m, got %v", idleTime)
 		}
 	}
 

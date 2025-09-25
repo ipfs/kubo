@@ -105,3 +105,54 @@ func TestValidateProvideConfig_MaxWorkers(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateProvideConfig_BufferedOptions(t *testing.T) {
+	tests := []struct {
+		name          string
+		batchSize     *int64
+		idleWriteTime *time.Duration
+		wantError     string
+	}{
+		// Valid cases
+		{"defaults", nil, nil, ""},
+		{"valid batch 512", ptr(int64(512)), nil, ""},
+		{"valid batch max", ptr(int64(10000)), nil, ""},
+		{"valid idle 5s", nil, ptr(5 * time.Second), ""},
+		{"valid idle min", nil, ptr(1 * time.Second), ""},
+		{"valid idle max", nil, ptr(5 * time.Minute), ""},
+		{"valid both custom", ptr(int64(2048)), ptr(10 * time.Second), ""},
+
+		// Invalid batch sizes
+		{"invalid batch zero", ptr(int64(0)), nil, "Provide.DHT.BufferedBatchSize must be positive, got 0"},
+		{"invalid batch negative", ptr(int64(-100)), nil, "Provide.DHT.BufferedBatchSize must be positive, got -100"},
+		{"invalid batch too large", ptr(int64(10001)), nil, "Provide.DHT.BufferedBatchSize must be <= 10000, got 10001"},
+
+		// Invalid idle times
+		{"invalid idle too short", nil, ptr(500 * time.Millisecond), "Provide.DHT.BufferedIdleWriteTime must be >= 1s, got 500ms"},
+		{"invalid idle too long", nil, ptr(6 * time.Minute), "Provide.DHT.BufferedIdleWriteTime must be <= 5m, got 6m0s"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Provide{DHT: ProvideDHT{}}
+			if tt.batchSize != nil {
+				cfg.DHT.BufferedBatchSize = NewOptionalInteger(*tt.batchSize)
+			}
+			if tt.idleWriteTime != nil {
+				cfg.DHT.BufferedIdleWriteTime = NewOptionalDuration(*tt.idleWriteTime)
+			}
+
+			err := ValidateProvideConfig(cfg)
+			if tt.wantError != "" {
+				require.Error(t, err, "expected error")
+				assert.Equal(t, tt.wantError, err.Error())
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func ptr[T any](v T) *T {
+	return &v
+}
