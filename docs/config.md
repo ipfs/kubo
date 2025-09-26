@@ -135,7 +135,7 @@ config file at runtime.
       - [`Provide.DHT.DedicatedPeriodicWorkers`](#providedhtdedicatedperiodicworkers)
       - [`Provide.DHT.DedicatedBurstWorkers`](#providedhtdedicatedburstworkers)
       - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
-      - [`Provide.DHT.KeyStoreBatchSize`](#providedhtkeystorebatchsize)
+      - [`Provide.DHT.KeystoreBatchSize`](#providedhtkeystorebatchsize)
       - [`Provide.DHT.OfflineDelay`](#providedhtofflinedelay)
   - [`Provider`](#provider)
     - [`Provider.Enabled`](#providerenabled)
@@ -282,8 +282,8 @@ the local [Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`)
 
 Supported Transports:
 
-* tcp/ip{4,6} - `/ipN/.../tcp/...`
-* unix - `/unix/path/to/socket`
+- tcp/ip{4,6} - `/ipN/.../tcp/...`
+- unix - `/unix/path/to/socket`
 
 > [!CAUTION]
 > **NEVER EXPOSE UNPROTECTED ADMIN RPC TO LAN OR THE PUBLIC INTERNET**
@@ -310,8 +310,8 @@ the local [HTTP gateway](https://specs.ipfs.tech/http-gateways/) (`/ipfs`, `/ipn
 
 Supported Transports:
 
-* tcp/ip{4,6} - `/ipN/.../tcp/...`
-* unix - `/unix/path/to/socket`
+- tcp/ip{4,6} - `/ipN/.../tcp/...`
+- unix - `/unix/path/to/socket`
 
 > [!CAUTION]
 > **SECURITY CONSIDERATIONS FOR GATEWAY EXPOSURE**
@@ -334,10 +334,10 @@ connections.
 
 Supported Transports:
 
-* tcp/ip{4,6} - `/ipN/.../tcp/...`
-* websocket - `/ipN/.../tcp/.../ws`
-* quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic-v1/webtransport`
-* webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic-v1`
+- tcp/ip{4,6} - `/ipN/.../tcp/...`
+- websocket - `/ipN/.../tcp/.../ws`
+- quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic-v1/webtransport`
+- webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic-v1`
 
 > [!IMPORTANT]
 > Make sure your firewall rules allow incoming connections on both TCP and UDP ports defined here.
@@ -346,6 +346,7 @@ Supported Transports:
 Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
 Default:
+
 ```json
 [
   "/ip4/0.0.0.0/tcp/4001",
@@ -401,6 +402,7 @@ Contains information used by the [Kubo RPC API](https://docs.ipfs.tech/reference
 Map of HTTP headers to set on responses from the RPC (`/api/v0`) HTTP server.
 
 Example:
+
 ```json
 {
   "Foo": ["bar"]
@@ -512,11 +514,11 @@ the rest of the internet.
 When unset (default), the AutoNAT service defaults to _enabled_. Otherwise, this
 field can take one of two values:
 
-* `enabled` - Enable the V1+V2 service (unless the node determines that it,
+- `enabled` - Enable the V1+V2 service (unless the node determines that it,
   itself, isn't reachable by the public internet).
-* `legacy-v1` - **DEPRECATED** Same as `enabled` but only V1 service is enabled. Used for testing
+- `legacy-v1` - **DEPRECATED** Same as `enabled` but only V1 service is enabled. Used for testing
   during as few releases as we [transition to V2](https://github.com/ipfs/kubo/issues/10091), will be removed in the future.
-* `disabled` - Disable the service.
+- `disabled` - Disable the service.
 
 Additional modes may be added in the future.
 
@@ -620,6 +622,7 @@ AutoConf can resolve `"auto"` placeholders in the following configuration fields
 AutoConf supports path-based routing URLs that automatically enable specific routing operations based on the URL path. This allows precise control over which HTTP Routing V1 endpoints are used for different operations:
 
 **Supported paths:**
+
 - `/routing/v1/providers` - Enables provider record lookups only
 - `/routing/v1/peers` - Enables peer routing lookups only  
 - `/routing/v1/ipns` - Enables IPNS record operations only
@@ -648,6 +651,7 @@ AutoConf supports path-based routing URLs that automatically enable specific rou
 ```
 
 **Node type categories:**
+
 - `mainnet-for-nodes-with-dht`: Mainnet nodes with DHT enabled (typically only need additional provider lookups)
 - `mainnet-for-nodes-without-dht`: Mainnet nodes without DHT (need comprehensive routing services)
 - `mainnet-for-ipns-publishers-with-http`: Mainnet nodes that publish IPNS records via HTTP
@@ -822,7 +826,6 @@ Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddy
 
 Type: `optionalString`
 
-
 ## `Bitswap`
 
 High level client and server configuration of the [Bitswap Protocol](https://specs.ipfs.tech/bitswap-protocol/) over libp2p.
@@ -861,6 +864,7 @@ Bootstrap peers help your node discover and connect to the IPFS network when sta
 The special value `"auto"` automatically uses curated, up-to-date bootstrap peers from [AutoConf](#autoconf), ensuring your node can always connect to the healthy network without manual maintenance.
 
 **What this gives you:**
+
 - **Reliable startup**: Your node can always find the network, even if some bootstrap peers go offline
 - **Automatic updates**: New bootstrap peers are added as the network evolves
 - **Custom control**: Add your own trusted peers alongside or instead of the defaults
@@ -963,7 +967,7 @@ cache, which caches block-cids and their block-sizes. Use `0` to disable.
 
 This cache, once primed, can greatly speed up operations like `ipfs repo stat`
 as there is no need to read full blocks to know their sizes. Size should be
-adjusted depending on the number of CIDs on disk (`NumObjects in `ipfs repo stat`).
+adjusted depending on the number of CIDs on disk (`NumObjects in`ipfs repo stat`).
 
 Default: `65536` (64KiB)
 
@@ -979,6 +983,7 @@ datastores to provide extra functionality (eg metrics, logging, or caching).
 > For more information on possible values for this configuration option, see [`kubo/docs/datastores.md`](datastores.md)
 
 Default:
+
 ```
 {
   "mounts": [
@@ -1003,6 +1008,7 @@ Default:
 ```
 
 With `flatfs-measure` profile:
+
 ```
 {
   "mounts": [
@@ -1063,7 +1069,7 @@ Toggle and configure experimental features of Kubo. Experimental features are li
 
 Options for the HTTP gateway.
 
-**NOTE:** support for `/api/v0` under the gateway path is now deprecated. It will be removed in future versions: https://github.com/ipfs/kubo/issues/10312.
+**NOTE:** support for `/api/v0` under the gateway path is now deprecated. It will be removed in future versions: <https://github.com/ipfs/kubo/issues/10312>.
 
 ### `Gateway.NoFetch`
 
@@ -1088,7 +1094,7 @@ Type: `bool`
 
 An optional flag to explicitly configure whether this gateway responds to deserialized
 requests, or not. By default, it is enabled. When disabling this option, the gateway
-operates as a Trustless Gateway only: https://specs.ipfs.tech/http-gateways/trustless-gateway/.
+operates as a Trustless Gateway only: <https://specs.ipfs.tech/http-gateways/trustless-gateway/>.
 
 Default: `true`
 
@@ -1127,10 +1133,12 @@ Type: `flag`
 Maximum duration Kubo will wait for content retrieval (new bytes to arrive).
 
 **Timeout behavior:**
+
 - **Time to first byte**: Returns 504 Gateway Timeout if the gateway cannot start writing within this duration (e.g., stuck searching for providers)
 - **Time between writes**: After first byte, timeout resets with each write. Response terminates if no new data can be written within this duration
 
 **Truncation handling:** When timeout occurs after HTTP 200 headers are sent (e.g., during CAR streams), the gateway:
+
 - Appends error message to indicate truncation
 - Forces TCP reset (RST) to prevent caching incomplete responses
 - Records in metrics with original status code and `truncated=true` flag
@@ -1138,9 +1146,10 @@ Maximum duration Kubo will wait for content retrieval (new bytes to arrive).
 **Monitoring:** Track `ipfs_http_gw_retrieval_timeouts_total` by status code and truncation status.
 
 **Tuning guidance:**
+
 - Compare timeout rates (`ipfs_http_gw_retrieval_timeouts_total`) with success rates (`ipfs_http_gw_responses_total{status="200"}`)
 - High timeout rate: consider increasing timeout or scaling horizontally if hardware is constrained
-- Many 504s may indicate routing problems - check requested CIDs and provider availability using https://check.ipfs.network/
+- Many 504s may indicate routing problems - check requested CIDs and provider availability using <https://check.ipfs.network/>
 - `truncated=true` timeouts indicate retrieval stalled mid-file with no new bytes for the timeout duration
 
 A value of 0 disables this timeout.
@@ -1158,6 +1167,7 @@ Protects nodes from traffic spikes and resource exhaustion, especially behind re
 **Monitoring:** `ipfs_http_gw_concurrent_requests` tracks current requests in flight.
 
 **Tuning guidance:**
+
 - Monitor `ipfs_http_gw_concurrent_requests` gauge for usage patterns
 - Track 429s (`ipfs_http_gw_responses_total{status="429"}`) and success rate (`{status="200"}`)
 - Near limit with low resource usage → increase value
@@ -1229,6 +1239,7 @@ or limit `verifiable.example.net` to response types defined in [Trustless Gatewa
 Hostnames can optionally be defined with one or more wildcards.
 
 Examples:
+
 - `*.example.com` will match requests to `http://foo.example.com/ipfs/*` or `http://{cid}.ipfs.bar.example.com/*`.
 - `foo-*.example.com` will match requests to `http://foo-bar.example.com/ipfs/*` or `http://{cid}.ipfs.foo-xyz.example.com/*`.
 
@@ -1237,6 +1248,7 @@ Examples:
 An array of paths that should be exposed on the hostname.
 
 Example:
+
 ```json
 {
   "Gateway": {
@@ -1263,8 +1275,9 @@ and provide [Origin isolation](https://developer.mozilla.org/en-US/docs/Web/Secu
 between content roots.
 
 - `true` - enables [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}/`
-    - **Requires whitelist:** make sure respective `Paths` are set.
+  - **Requires whitelist:** make sure respective `Paths` are set.
       For example, `Paths: ["/ipfs", "/ipns"]` are required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work:
+
         ```json
         "Gateway": {
             "PublicGateways": {
@@ -1275,10 +1288,12 @@ between content roots.
             }
         }
         ```
-    - **Backward-compatible:** requests for content paths such as `http://{hostname}/ipfs/{cid}` produce redirect to `http://{cid}.ipfs.{hostname}`
+
+  - **Backward-compatible:** requests for content paths such as `http://{hostname}/ipfs/{cid}` produce redirect to `http://{cid}.ipfs.{hostname}`
 
 - `false` - enables [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
   - Example:
+
     ```json
     "Gateway": {
         "PublicGateways": {
@@ -1317,7 +1332,7 @@ into a single DNS label ([specification](https://specs.ipfs.tech/http-gateways/s
 DNSLink name inlining allows for HTTPS on public subdomain gateways with single
 label wildcard TLS certs (also enabled when passing `X-Forwarded-Proto: https`),
 and provides disjoint Origin per root CID when special rules like
-https://publicsuffix.org, or a custom localhost logic in browsers like Brave
+<https://publicsuffix.org>, or a custom localhost logic in browsers like Brave
 has to be applied.
 
 Default: `false`
@@ -1344,6 +1359,7 @@ Type: `flag`
 
 Default entries for `localhost` hostname and loopback IPs are always present.
 If additional config is provided for those hostnames, it will be merged on top of implicit values:
+
 ```json
 {
   "Gateway": {
@@ -1363,14 +1379,15 @@ For example, to disable subdomain gateway on `localhost`
 and make that hostname act the same as `127.0.0.1`:
 
 ```console
-$ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
+ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 ```
 
 ### `Gateway` recipes
 
 Below is a list of the most common gateway setups.
 
-* Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
+- Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
+
    ```console
    $ ipfs config --json Gateway.PublicGateways '{
        "dweb.link": {
@@ -1379,23 +1396,24 @@ Below is a list of the most common gateway setups.
        }
      }'
    ```
-   - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. Separately, gateway operators should decide if the gateway node should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
-   - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
+
+  - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. Separately, gateway operators should decide if the gateway node should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
+  - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
 
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
 
-   - **X-Forwarded-Proto:** if you run Kubo behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcard TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
+  - **X-Forwarded-Proto:** if you run Kubo behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcard TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
 
      `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
 
      `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`
 
-   - **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
+  - **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
 
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
 
+- Public [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
 
-* Public [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
    ```console
    $ ipfs config --json Gateway.PublicGateways '{
        "ipfs.io": {
@@ -1404,15 +1422,18 @@ Below is a list of the most common gateway setups.
        }
      }'
    ```
-   - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. When running an open, recursive gateway, decide if the gateway should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
 
-* Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
+  - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. When running an open, recursive gateway, decide if the gateway should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
+
+- Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
+
   ```console
-  $ ipfs config --json Gateway.NoDNSLink false
+  ipfs config --json Gateway.NoDNSLink false
   ```
-  * Note that `NoDNSLink: false` is the default (it works out of the box unless set to `true` manually)
 
-* Hardened, site-specific [DNSLink gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#dnslink-gateway).
+  - Note that `NoDNSLink: false` is the default (it works out of the box unless set to `true` manually)
+
+- Hardened, site-specific [DNSLink gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#dnslink-gateway).
 
   Disable fetching of remote data (`NoFetch: true`) and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
   Then, enable DNSLink gateway only for the specific hostname (for which data
@@ -1680,9 +1701,10 @@ When `Ipns.MaxCacheTTL` is set, it defines the upper bound limit of how long a
 will be cached and read from cache before checking for updates.
 
 **Examples:**
-* `"1m"` IPNS results are cached 1m or less (good compromise for system where
+
+- `"1m"` IPNS results are cached 1m or less (good compromise for system where
   faster updates are desired).
-* `"0s"` IPNS caching is effectively turned off (useful for testing, bad for production use)
+- `"0s"` IPNS caching is effectively turned off (useful for testing, bad for production use)
   - **Note:** setting this to `0` will turn off TTL-based caching entirely.
     This is discouraged in production environments. It will make IPNS websites
     artificially slow because IPNS resolution results will expire as soon as
@@ -1691,7 +1713,6 @@ will be cached and read from cache before checking for updates.
     sensible value, such as `1m`.
 
 Default: No upper bound, [TTL from IPNS Record](https://specs.ipfs.tech/ipns/ipns-record/#ttl-uint64)  (see `ipns name publish --help`) is always respected.
-
 
 Type: `optionalDuration`
 
@@ -1782,6 +1803,7 @@ Type: `string` (filesystem path)
 Mountpoint for Mutable File System (MFS) behind the `ipfs files` API.
 
 > [!CAUTION]
+>
 > - Write support is highly experimental and not recommended for mission-critical deployments.
 > - Avoid storing lazy-loaded datasets in MFS. Exposing a partially local, lazy-loaded DAG risks operating system search indexers crawling it, which may trigger unintended network prefetching of non-local DAG components.
 
@@ -1806,13 +1828,14 @@ A remote pinning service is a remote service that exposes an API for managing
 that service's interest in long-term data storage.
 
 The exposed API conforms to the specification defined at
-https://ipfs.github.io/pinning-services-api-spec/
+<https://ipfs.github.io/pinning-services-api-spec/>
 
 #### `Pinning.RemoteServices: API`
 
 Contains information relevant to utilizing the remote pinning service
 
 Example:
+
 ```json
 {
   "Pinning": {
@@ -1832,7 +1855,7 @@ Example:
 
 The HTTP(S) endpoint through which to access the pinning service
 
-Example: "https://pinningservice.tld:1234/my/api/path"
+Example: "<https://pinningservice.tld:1234/my/api/path>"
 
 Type: `string`
 
@@ -1884,9 +1907,9 @@ Type: `duration`
 
 ## `Provide`
 
-Configures CID announcements to the routing system, including both immediate 
-announcements for new content (provide) and periodic re-announcements 
-(reprovide) on systems that require it, like Amino DHT. While designed to support 
+Configures CID announcements to the routing system, including both immediate
+announcements for new content (provide) and periodic re-announcements
+(reprovide) on systems that require it, like Amino DHT. While designed to support
 multiple routing systems in the future, the current default configuration only supports providing to the Amino DHT.
 
 ### `Provide.Enabled`
@@ -1918,7 +1941,7 @@ Tells the provide system what should be announced. Valid strategies are:
     happens to already be connected to a provider and asks for child CID over
     bitswap.
 - `"mfs"` - announce only the local CIDs that are part of the MFS (`ipfs files`)
-   - Note: MFS is lazy-loaded. Only the MFS blocks present in local datastore are announced.
+  - Note: MFS is lazy-loaded. Only the MFS blocks present in local datastore are announced.
 - `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
   - **ℹ️ NOTE:** This is the suggested strategy for users who run without GC and don't want to provide everything in cache.
   - Order: first `pinned` and then the locally available part of `mfs`.
@@ -1945,9 +1968,11 @@ You can monitor the effectiveness of your provide configuration through metrics 
 Different metrics are available depending on whether you use legacy mode (`SweepEnabled=false`) or sweep mode (`SweepEnabled=true`). See [Provide metrics documentation](https://github.com/ipfs/kubo/blob/master/docs/metrics.md#provide) for details.
 
 To enable detailed debug logging for both providers, set:
+
 ```sh
 GOLOG_LOG_LEVEL=error,provider=debug,dht/provider=debug
 ```
+
 - `provider=debug` enables generic logging (legacy provider and any non-dht operations)
 - `dht/provider=debug` enables logging for the sweep provider
 
@@ -1980,11 +2005,13 @@ Type: `optionalDuration` (unset for the default)
 Sets the maximum number of _concurrent_ DHT provide operations.
 
 **When `Provide.DHT.SweepEnabled` is false (legacy mode):**
+
 - Controls NEW CID announcements only
 - Reprovide operations do **not** count against this limit
 - A value of `0` allows unlimited provide workers
 
 **When `Provide.DHT.SweepEnabled` is true:**
+
 - Controls the total worker pool for both provide and reprovide operations
 - Workers are split between periodic reprovides and burst provides
 - Use a positive value to control resource usage
@@ -2000,7 +2027,7 @@ connections this setting can generate.
 > [!CAUTION]
 > For nodes without strict connection limits that need to provide large volumes
 > of content, we recommend first trying `Provide.DHT.SweepEnabled=true` for efficient
-> announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. 
+> announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`.
 > As a last resort, consider enabling `Routing.AcceleratedDHTClient=true` but be aware that it is very resource hungry.
 >
 > At the same time, mind that raising this value too high may lead to increased load.
@@ -2018,7 +2045,7 @@ both provides and reprovides.
 
 Provide Sweep is a resource efficient technique for advertising content to
 the Amino DHT swarm. The Provide Sweep module tracks the keys that should be periodically reprovided in
-the `KeyStore`. It splits the keys into DHT keyspace regions by proximity (XOR
+the `Keystore`. It splits the keys into DHT keyspace regions by proximity (XOR
 distance), and schedules when reprovides should happen in order to spread the
 reprovide operation over time to avoid a spike in resource utilization. It
 basically sweeps the keyspace _from left to right_ over the
@@ -2030,11 +2057,11 @@ module, and is currently opt-in. You can compare the effectiveness of sweep mode
 
 Whenever new keys should be advertised to the Amino DHT, `kubo` calls
 `StartProviding()`, triggering an initial `provide` operation for the given
-keys. The keys will be added to the `KeyStore` tracking which keys should be
+keys. The keys will be added to the `Keystore` tracking which keys should be
 reprovided and when they should be reprovided. Calling `StopProviding()`
-removes the keys from the `KeyStore`. However, it is currently tricky for
+removes the keys from the `Keystore`. However, it is currently tricky for
 `kubo` to detect when a key should stop being advertised. Hence, `kubo` will
-periodically refresh the `KeyStore` at each [`Provide.DHT.Interval`](#providedhtinterval)
+periodically refresh the `Keystore` at each [`Provide.DHT.Interval`](#providedhtinterval)
 by providing it a channel of all the keys it is expected to contain according
 to the [`Provide.Strategy`](#providestrategy). During this operation,
 all keys in the `Keystore` are purged, and only the given ones remain scheduled.
@@ -2053,7 +2080,6 @@ all keys in the `Keystore` are purged, and only the given ones remain scheduled.
 >
 > Sweep mode provides similar effectiveness to Accelerated DHT but with steady resource usage - better for machines with limited CPU, memory, or network bandwidth.
 
-
 > [!NOTE]
 > This feature is opt-in for now, but will become the default in a future release.
 > Eventually, this configuration flag will be removed once the feature is stable.
@@ -2062,15 +2088,14 @@ Default: `false`
 
 Type: `flag`
 
-
 #### `Provide.DHT.DedicatedPeriodicWorkers`
 
 Number of workers dedicated to periodic keyspace region reprovides. Only applies when `Provide.DHT.SweepEnabled` is true.
 
 Among the [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers), this
-number of workers will be dedicated to the periodic region reprovide only. The sum of 
-`DedicatedPeriodicWorkers` and `DedicatedBurstWorkers` should not exceed `MaxWorkers`. 
-Any remaining workers (MaxWorkers - DedicatedPeriodicWorkers - DedicatedBurstWorkers) 
+number of workers will be dedicated to the periodic region reprovide only. The sum of
+`DedicatedPeriodicWorkers` and `DedicatedBurstWorkers` should not exceed `MaxWorkers`.
+Any remaining workers (MaxWorkers - DedicatedPeriodicWorkers - DedicatedBurstWorkers)
 form a shared pool that can be used for either type of work as needed.
 
 Default: `2`
@@ -2083,6 +2108,7 @@ operation can be performed by free non-dedicated workers)
 Number of workers dedicated to burst provides. Only applies when `Provide.DHT.SweepEnabled` is true.
 
 Burst provides are triggered by:
+
 - Manual provide commands (`ipfs routing provide`)
 - New content matching your `Provide.Strategy` (blocks from `ipfs add`, bitswap, or trustless gateway requests)
 - Catch-up reprovides after being disconnected/offline for a while
@@ -2120,10 +2146,10 @@ Default: `16`
 
 Type: `optionalInteger` (non-negative)
 
-#### `Provide.DHT.KeyStoreBatchSize`
+#### `Provide.DHT.KeystoreBatchSize`
 
-During the garbage collection, all keys stored in the KeyStore are removed, and
-the keys are streamed from a channel to fill the KeyStore again with up-to-date
+During the garbage collection, all keys stored in the Keystore are removed, and
+the keys are streamed from a channel to fill the Keystore again with up-to-date
 keys. Since a high number of CIDs to reprovide can easily fill up the memory,
 keys are read and written in batches to optimize for memory usage.
 
@@ -2173,6 +2199,7 @@ This field was unused. Use [`Provide.Strategy`](#providestrategy) instead.
 **REMOVED**
 
 Replaced with [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers).
+
 ## `Pubsub`
 
 **DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
@@ -2197,9 +2224,9 @@ Type: `flag`
 
 Sets the default router used by pubsub to route messages to peers. This can be one of:
 
-* `"floodsub"` - floodsub is a basic router that simply _floods_ messages to all
+- `"floodsub"` - floodsub is a basic router that simply _floods_ messages to all
   connected peers. This router is extremely inefficient but _very_ reliable.
-* `"gossipsub"` - [gossipsub][] is a more advanced routing algorithm that will
+- `"gossipsub"` - [gossipsub][] is a more advanced routing algorithm that will
   build an overlay mesh from a subset of the links in the network.
 
 Default: `"gossipsub"`
@@ -2278,11 +2305,11 @@ improve reliability.
 
 Use-cases:
 
-* An IPFS gateway connected to an IPFS cluster should peer to ensure that the
+- An IPFS gateway connected to an IPFS cluster should peer to ensure that the
   gateway can always fetch content from the cluster.
-* A dapp may peer embedded Kubo nodes with a set of pinning services or
+- A dapp may peer embedded Kubo nodes with a set of pinning services or
   textile cafes/hubs.
-* A set of friends may peer to ensure that they can always fetch each other's
+- A set of friends may peer to ensure that they can always fetch each other's
   content.
 
 When a node is added to the set of peered nodes, Kubo will:
@@ -2298,9 +2325,9 @@ When a node is added to the set of peered nodes, Kubo will:
 
 Peering can be asymmetric or symmetric:
 
-* When symmetric, the connection will be protected by both nodes and will likely
+- When symmetric, the connection will be protected by both nodes and will likely
   be very stable.
-* When asymmetric, only one node (the node that configured peering) will protect
+- When asymmetric, only one node (the node that configured peering) will protect
   the connection and attempt to re-connect to the peered node on disconnect. If
   the peered node is under heavy load and/or has a low connection limit, the
   connection may flap repeatedly. Be careful when asymmetrically peering to not
@@ -2349,6 +2376,7 @@ Replaced with [`Provide.DHT.Interval`](#providedhtinterval).
 **REMOVED**
 
 Replaced with [`Provide.Strategy`](#providestrategy).
+
 ## `Routing`
 
 Contains options for content, peer, and IPNS routing mechanisms.
@@ -2357,25 +2385,25 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", "delegated", and "custom".
 
-* **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
+- **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
   and parallel [`Routing.DelegatedRouters`](#routingdelegatedrouters) for additional speed.
 
-* If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
+- If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
 
-* If set to "none", your node will use _no_ routing system. You'll have to
+- If set to "none", your node will use _no_ routing system. You'll have to
   explicitly connect to peers that have the content you're looking for.
 
-* If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the Amino DHT (no HTTP routers).
+- If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the Amino DHT (no HTTP routers).
 
-* If set to "custom", all default routers are disabled, and only ones defined in `Routing.Routers` will be used.
+- If set to "custom", all default routers are disabled, and only ones defined in `Routing.Routers` will be used.
 
 When the DHT is enabled, it can operate in two modes: client and server.
 
-* In server mode, your node will query other peers for DHT records, and will
+- In server mode, your node will query other peers for DHT records, and will
   respond to requests from other peers (both requests to store records and
   requests to retrieve records).
 
-* In client mode, your node will query the DHT as a client but will not respond
+- In client mode, your node will query the DHT as a client but will not respond
   to requests from other peers. This mode is less resource-intensive than server
   mode.
 
@@ -2395,7 +2423,7 @@ in addition to the Amino DHT.
 When `Routing.Type` is set to `delegated`, your node will use **only** HTTP delegated routers and IPNS publishers,
 without initializing the Amino DHT at all. This mode is useful for environments where peer-to-peer DHT connectivity
 is not available or desired, while still enabling content routing and IPNS publishing via HTTP APIs.
-This mode requires configuring [`Routing.DelegatedRouters`](#routingdelegatedrouters) for content routing and 
+This mode requires configuring [`Routing.DelegatedRouters`](#routingdelegatedrouters) for content routing and
 [`Ipns.DelegatedPublishers`](#ipnsdelegatedpublishers) for IPNS publishing.
 
 **Note:** `delegated` mode operates as read-only for content providing - your node cannot announce content to the network
@@ -2406,7 +2434,6 @@ since there is no DHT connectivity. Content providing is automatically disabled 
 Default: `auto` (DHT + [`Routing.DelegatedRouters`](#routingdelegatedrouters))
 
 Type: `optionalString` (`null`/missing means the default)
-
 
 ### `Routing.AcceleratedDHTClient`
 
@@ -2424,6 +2451,7 @@ This is not compatible with `Routing.Type` `custom`. If you are using composable
 you can configure this individually on each router.
 
 When it is enabled:
+
 - Client DHT operations (reads and writes) should complete much faster
 - The provider will now use a keyspace sweeping mode allowing to keep alive
   CID sets that are multiple orders of magnitude larger.
@@ -2437,6 +2465,7 @@ When it is enabled:
 - The operations `ipfs stats dht` will default to showing information about the accelerated DHT client
 
 **Caveats:**
+
 1. Running the accelerated client likely will result in more resource consumption (connections, RAM, CPU, bandwidth)
    - Users that are limited in the number of parallel connections their machines/networks can perform will likely suffer
    - The resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly done in rounds
@@ -2540,29 +2569,33 @@ Type: `string`
 Parameters needed to create the specified router. Supported params per router type:
 
 HTTP:
-  - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
-  - `MaxProvideBatchSize`: This number determines the maximum amount of CIDs sent per batch. Servers might not accept more than 100 elements per batch. 100 elements by default.
-  - `MaxProvideConcurrency`: It determines the number of threads used when providing content. GOMAXPROCS by default.
+
+- `Endpoint` (mandatory): URL that will be used to connect to a specified router.
+- `MaxProvideBatchSize`: This number determines the maximum amount of CIDs sent per batch. Servers might not accept more than 100 elements per batch. 100 elements by default.
+- `MaxProvideConcurrency`: It determines the number of threads used when providing content. GOMAXPROCS by default.
 
 DHT:
-  - `"Mode"`: Mode used by the Amino DHT. Possible values: "server", "client", "auto"
-  - `"AcceleratedDHTClient"`: Set to `true` if you want to use the acceleratedDHT.
-  - `"PublicIPNetwork"`: Set to `true` to create a `WAN` DHT. Set to `false` to create a `LAN` DHT.
+
+- `"Mode"`: Mode used by the Amino DHT. Possible values: "server", "client", "auto"
+- `"AcceleratedDHTClient"`: Set to `true` if you want to use the acceleratedDHT.
+- `"PublicIPNetwork"`: Set to `true` to create a `WAN` DHT. Set to `false` to create a `LAN` DHT.
 
 Parallel:
-  - `Routers`: A list of routers that will be executed in parallel:
-    - `Name:string`: Name of the router. It should be one of the previously added to `Routers` list.
-    - `Timeout:duration`: Local timeout. It accepts strings compatible with Go `time.ParseDuration(string)` (`10s`, `1m`, `2h`). Time will start counting when this specific router is called, and it will stop when the router returns, or we reach the specified timeout.
-    - `ExecuteAfter:duration`: Providing this param will delay the execution of that router at the specified time. It accepts strings compatible with Go `time.ParseDuration(string)` (`10s`, `1m`, `2h`).
-    - `IgnoreErrors:bool`: It will specify if that router should be ignored if an error occurred.
-  - `Timeout:duration`: Global timeout.  It accepts strings compatible with Go `time.ParseDuration(string)` (`10s`, `1m`, `2h`).
+
+- `Routers`: A list of routers that will be executed in parallel:
+  - `Name:string`: Name of the router. It should be one of the previously added to `Routers` list.
+  - `Timeout:duration`: Local timeout. It accepts strings compatible with Go `time.ParseDuration(string)` (`10s`, `1m`, `2h`). Time will start counting when this specific router is called, and it will stop when the router returns, or we reach the specified timeout.
+  - `ExecuteAfter:duration`: Providing this param will delay the execution of that router at the specified time. It accepts strings compatible with Go `time.ParseDuration(string)` (`10s`, `1m`, `2h`).
+  - `IgnoreErrors:bool`: It will specify if that router should be ignored if an error occurred.
+- `Timeout:duration`: Global timeout.  It accepts strings compatible with Go `time.ParseDuration(string)` (`10s`, `1m`, `2h`).
 
 Sequential:
-  - `Routers`: A list of routers that will be executed in order:
-    - `Name:string`: Name of the router. It should be one of the previously added to `Routers` list.
-    - `Timeout:duration`: Local timeout. It accepts strings compatible with Go `time.ParseDuration(string)`. Time will start counting when this specific router is called, and it will stop when the router returns, or we reach the specified timeout.
-    - `IgnoreErrors:bool`: It will specify if that router should be ignored if an error occurred.
-  - `Timeout:duration`: Global timeout.  It accepts strings compatible with Go `time.ParseDuration(string)`.
+
+- `Routers`: A list of routers that will be executed in order:
+  - `Name:string`: Name of the router. It should be one of the previously added to `Routers` list.
+  - `Timeout:duration`: Local timeout. It accepts strings compatible with Go `time.ParseDuration(string)`. Time will start counting when this specific router is called, and it will stop when the router returns, or we reach the specified timeout.
+  - `IgnoreErrors:bool`: It will specify if that router should be ignored if an error occurred.
+- `Timeout:duration`: Global timeout.  It accepts strings compatible with Go `time.ParseDuration(string)`.
 
 Default: `{}` (use the safe implicit defaults)
 
@@ -2580,6 +2613,7 @@ Type: `object[string->string]`
 The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list.
 
 The value will contain:
+
 - `RouterName:string`: Name of the router. It should be one of the previously added to `Routing.Routers` list.
 
 Type: `object[string->object]`
@@ -2789,7 +2823,6 @@ Default: `131072` (128 kb)
 
 Type: `optionalInteger`
 
-
 #### `Swarm.RelayService.ReservationTTL`
 
 Duration of a new or refreshed reservation.
@@ -2797,7 +2830,6 @@ Duration of a new or refreshed reservation.
 Default: `"1h"`
 
 Type: `duration`
-
 
 #### `Swarm.RelayService.MaxReservations`
 
@@ -2807,7 +2839,6 @@ Default: `128`
 
 Type: `optionalInteger`
 
-
 #### `Swarm.RelayService.MaxCircuits`
 
 Maximum number of open relay connections for each peer.
@@ -2816,7 +2847,6 @@ Default: `16`
 
 Type: `optionalInteger`
 
-
 #### `Swarm.RelayService.BufferSize`
 
 Size of the relayed connection buffers.
@@ -2824,7 +2854,6 @@ Size of the relayed connection buffers.
 Default: `2048`
 
 Type: `optionalInteger`
-
 
 #### `Swarm.RelayService.MaxReservationsPerPeer`
 
@@ -2869,8 +2898,8 @@ Please use [`AutoNAT.ServiceMode`](#autonatservicemode).
 The connection manager determines which and how many connections to keep and can
 be configured to keep. Kubo currently supports two connection managers:
 
-* none: never close idle connections.
-* basic: the default connection manager.
+- none: never close idle connections.
+- basic: the default connection manager.
 
 By default, this section is empty and the implicit defaults defined below
 are used.
@@ -2894,11 +2923,11 @@ connections. The process of closing connections happens every `SilencePeriod`.
 
 The connection manager considers a connection idle if:
 
-* It has not been explicitly _protected_ by some subsystem. For example, Bitswap
+- It has not been explicitly _protected_ by some subsystem. For example, Bitswap
   will protect connections to peers from which it is actively downloading data,
   the DHT will protect some peers for routing, and the peering subsystem will
   protect all "peered" nodes.
-* It has existed for longer than the `GracePeriod`.
+- It has existed for longer than the `GracePeriod`.
 
 **Example:**
 
@@ -3037,8 +3066,9 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
-* /ip4/0.0.0.0/tcp/4001 (default)
-* /ip6/::/tcp/4001 (default)
+
+- /ip4/0.0.0.0/tcp/4001 (default)
+- /ip6/::/tcp/4001 (default)
 
 #### `Swarm.Transports.Network.Websocket`
 
@@ -3053,8 +3083,9 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
-* /ip4/0.0.0.0/tcp/4001/ws
-* /ip6/::/tcp/4001/ws
+
+- /ip4/0.0.0.0/tcp/4001/ws
+- /ip6/::/tcp/4001/ws
 
 #### `Swarm.Transports.Network.QUIC`
 
@@ -3072,6 +3103,7 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
+
 - `/ip4/0.0.0.0/udp/4001/quic-v1` (default)
 - `/ip6/::/udp/4001/quic-v1` (default)
 
@@ -3084,10 +3116,11 @@ Allows IPFS node to connect to other peers using their `/p2p-circuit`
 NATs.
 
 See also:
+
 - Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
 - [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled) for getting a public
--  `/p2p-circuit` address when behind a firewall.
-  - [`Swarm.EnableHolePunching`](#swarmenableholepunching) for direct connection upgrade through relay
+- `/p2p-circuit` address when behind a firewall.
+- [`Swarm.EnableHolePunching`](#swarmenableholepunching) for direct connection upgrade through relay
 - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) for becoming a
   limited relay for other peers
 
@@ -3096,9 +3129,9 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
-* This transport is special. Any node that enables this transport can receive
-  inbound connections on this transport, without specifying a listen address.
 
+- This transport is special. Any node that enables this transport can receive
+  inbound connections on this transport, without specifying a listen address.
 
 #### `Swarm.Transports.Network.WebTransport`
 
@@ -3121,6 +3154,7 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
+
 - `/ip4/0.0.0.0/udp/4001/quic-v1/webtransport` (default)
 - `/ip6/::/udp/4001/quic-v1/webtransport` (default)
 
@@ -3151,6 +3185,7 @@ Default: Enabled
 Type: `flag`
 
 Listen Addresses:
+
 - `/ip4/0.0.0.0/udp/4001/webrtc-direct` (default)
 - `/ip6/::/udp/4001/webrtc-direct` (default)
 
@@ -3223,7 +3258,7 @@ Type: `priority`
 
 ### `Swarm.Transports.Multiplexers.Mplex`
 
-**REMOVED**: See https://github.com/ipfs/kubo/issues/9958
+**REMOVED**: See <https://github.com/ipfs/kubo/issues/9958>
 
 Support for Mplex has been [removed from Kubo and go-libp2p](https://github.com/libp2p/specs/issues/553).
 Please remove this option from your config.
@@ -3240,6 +3275,7 @@ This allows for overriding the default DNS resolver provided by the operating sy
 and using different resolvers per domain or TLD (including ones from alternative, non-ICANN naming systems).
 
 Example:
+
 ```json
 {
   "DNS": {
@@ -3254,9 +3290,10 @@ Example:
 ```
 
 Be mindful that:
+
 - Currently only `https://` URLs for [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported as values.
 - The default catch-all resolver is the cleartext one provided by your operating system. It can be overridden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
-- Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis. 
+- Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis.
 - The special value `"auto"` uses DNS resolvers from [AutoConf](#autoconf) when enabled. For example: `{".": "auto"}` uses any custom DoH resolver (global or per TLD) provided by AutoConf system.
 
 Default: `{".": "auto"}`
@@ -3273,8 +3310,9 @@ If present, the upper bound is applied to DoH resolvers in [`DNS.Resolvers`](#dn
 Note: this does NOT work with Go's default DNS resolver. To make this a global setting, add a `.` entry to `DNS.Resolvers` first.
 
 **Examples:**
-* `"1m"` DNS entries are kept for 1 minute or less.
-* `"0s"` DNS entries expire as soon as they are retrieved.
+
+- `"1m"` DNS entries are kept for 1 minute or less.
+- `"0s"` DNS entries expire as soon as they are retrieved.
 
 Default: Respect DNS Response TTL
 
@@ -3306,6 +3344,7 @@ and the HTTPS server returns HTTP 200 for the [probe path](https://specs.ipfs.te
 > This feature is relatively new. Please report any issues via [Github](https://github.com/ipfs/kubo/issues/new).
 >
 > Important notes:
+>
 > - TLS and HTTP/2 are required. For privacy reasons, and to maintain feature-parity with browsers, unencrypted `http://` providers are ignored and not used.
 > - This feature works in the same way as Bitswap: connected HTTP-peers receive optimistic block requests even for content that they are not announcing.
 > - For performance reasons, and to avoid loops, the HTTP client does not follow redirects. Providers should keep announcements up to date.
@@ -3331,7 +3370,6 @@ Type: `array[string]`
 
 Optional list of hostnames for which HTTP retrieval is not allowed.
 Denylist entries take precedence over Allowlist entries.
-
 
 > [!TIP]
 > This denylist operates on HTTP endpoint hostnames.
@@ -3404,6 +3442,7 @@ Type: `flag`
 The default UnixFS chunker. Commands affected: `ipfs add`.
 
 Valid formats:
+
 - `size-<bytes>` - fixed size chunker
 - `rabin-<min>-<avg>-<max>` - rabin fingerprint chunker  
 - `buzhash` - buzhash chunker
@@ -3515,7 +3554,7 @@ networking stack. At the time of writing this, IPFS peers on the public swarm
 tend to ignore requests for blocks bigger than 2MiB.
 
 Uses implementation from `boxo/ipld/unixfs/io/directory`, where the size is not
-the *exact* block size of the encoded directory but just the estimated size
+the _exact_ block size of the encoded directory but just the estimated size
 based byte length of DAG-PB Links names and CIDs.
 
 Setting to `1B` is functionally equivalent to always using HAMT (useful in testing).
@@ -3538,7 +3577,7 @@ Optional suffix to the AgentVersion presented by `ipfs id` and exposed via [libp
 The value from config takes precedence over value passed via `ipfs daemon --agent-version-suffix`.
 
 > [!NOTE]
-> Setting a custom version suffix helps with ecosystem analysis, such as Amino DHT reports published at https://stats.ipfs.network
+> Setting a custom version suffix helps with ecosystem analysis, such as Amino DHT reports published at <https://stats.ipfs.network>
 
 Default: `""` (no suffix, or value from `ipfs daemon --agent-version-suffix=`)
 

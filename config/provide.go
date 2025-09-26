@@ -19,7 +19,7 @@ const (
 	DefaultProvideDHTDedicatedPeriodicWorkers = 2
 	DefaultProvideDHTDedicatedBurstWorkers    = 1
 	DefaultProvideDHTMaxProvideConnsPerWorker = 16
-	DefaultProvideDHTKeyStoreBatchSize        = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
+	DefaultProvideDHTKeystoreBatchSize        = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
 	DefaultProvideDHTOfflineDelay             = 2 * time.Hour
 )
 
@@ -79,9 +79,9 @@ type ProvideDHT struct {
 	// Default: DefaultProvideDHTMaxProvideConnsPerWorker
 	MaxProvideConnsPerWorker *OptionalInteger `json:",omitempty"`
 
-	// KeyStoreBatchSize sets the batch size for keystore operations during reprovide refresh (sweep mode only).
-	// Default: DefaultProvideDHTKeyStoreBatchSize
-	KeyStoreBatchSize *OptionalInteger `json:",omitempty"`
+	// KeystoreBatchSize sets the batch size for keystore operations during reprovide refresh (sweep mode only).
+	// Default: DefaultProvideDHTKeystoreBatchSize
+	KeystoreBatchSize *OptionalInteger `json:",omitempty"`
 
 	// OfflineDelay sets the delay after which the provider switches from Disconnected to Offline state (sweep mode only).
 	// Default: DefaultProvideDHTOfflineDelay
@@ -150,11 +150,11 @@ func ValidateProvideConfig(cfg *Provide) error {
 		}
 	}
 
-	// Validate KeyStoreBatchSize
-	if !cfg.DHT.KeyStoreBatchSize.IsDefault() {
-		batchSize := cfg.DHT.KeyStoreBatchSize.WithDefault(DefaultProvideDHTKeyStoreBatchSize)
+	// Validate KeystoreBatchSize
+	if !cfg.DHT.KeystoreBatchSize.IsDefault() {
+		batchSize := cfg.DHT.KeystoreBatchSize.WithDefault(DefaultProvideDHTKeystoreBatchSize)
 		if batchSize <= 0 {
-			return fmt.Errorf("Provide.DHT.KeyStoreBatchSize must be positive, got %d", batchSize)
+			return fmt.Errorf("Provide.DHT.KeystoreBatchSize must be positive, got %d", batchSize)
 		}
 	}
 
