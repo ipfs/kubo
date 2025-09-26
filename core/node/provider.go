@@ -323,10 +323,32 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		if err != nil {
 			return nil, nil, err
 		}
+		// Constants for buffered provider configuration
+		// These values match the upstream defaults from go-libp2p-kad-dht and have been battle-tested
+		const (
+			// bufferedDsName is the datastore namespace used by the buffered provider.
+			// The dsqueue persists operations here to handle large data additions without
+			// being memory-bound, allowing operations on hardware with limited RAM and
+			// enabling core operations to return instantly while processing happens async.
+			bufferedDsName = "bprov"
+
+			// bufferedBatchSize controls how many operations are dequeued and processed
+			// together from the datastore queue. The worker processes up to this many
+			// operations at once, grouping them by type for efficiency.
+			bufferedBatchSize = 1 << 10 // 1024 items
+
+			// bufferedIdleWriteTime is an implementation detail of go-dsqueue that controls
+			// how long the datastore buffer waits for new multihashes to arrive before
+			// flushing in-memory items to the datastore. This does NOT affect providing speed -
+			// provides happen as fast as possible via a dedicated worker that continuously
+			// processes the queue regardless of this timing.
+			bufferedIdleWriteTime = time.Minute
+		)
+
 		bufferedProviderOpts := []buffered.Option{
-			buffered.WithBatchSize(int(cfg.Provide.DHT.BufferedBatchSize.WithDefault(config.DefaultProvideDHTBufferedBatchSize))),
-			buffered.WithDsName("bprov"),
-			buffered.WithIdleWriteTime(cfg.Provide.DHT.BufferedIdleWriteTime.WithDefault(config.DefaultProvideDHTBufferedIdleWriteTime)),
+			buffered.WithBatchSize(bufferedBatchSize),
+			buffered.WithDsName(bufferedDsName),
+			buffered.WithIdleWriteTime(bufferedIdleWriteTime),
 		}
 		var impl dhtImpl
 		switch inDht := in.DHT.(type) {

@@ -137,8 +137,6 @@ config file at runtime.
       - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
       - [`Provide.DHT.KeystoreBatchSize`](#providedhtkeystorebatchsize)
       - [`Provide.DHT.OfflineDelay`](#providedhtofflinedelay)
-      - [`Provide.DHT.BufferedBatchSize`](#providedhtbufferedbatchsize)
-      - [`Provide.DHT.BufferedIdleWriteTime`](#providedhtbufferedidlewritetime)
   - [`Provider`](#provider)
     - [`Provider.Enabled`](#providerenabled)
     - [`Provider.Strategy`](#providerstrategy)
@@ -2181,39 +2179,6 @@ keys to its state, so keys will eventually be provided in the
 Default: `2h`
 
 Type: `optionalDuration`
-
-#### `Provide.DHT.BufferedBatchSize`
-
-Sets the batch size for buffered provider operations. Only applies when `Provide.DHT.SweepEnabled` is true.
-
-The buffered provider batches individual provide operations together before sending them to the underlying provider.
-When this batch size is reached, or when [`BufferedIdleWriteTime`](#providedhtbufferedidlewritetime) expires,
-the batched operations are flushed to the provider for processing.
-
-Larger values improve efficiency by reducing provider operations but may delay individual announcements.
-Smaller values provide faster announcements at the cost of more frequent provider operations.
-
-Default: `1024`
-
-Type: `optionalInteger` (must be between 1 and 10000)
-
-#### `Provide.DHT.BufferedIdleWriteTime`
-
-Sets the maximum time to wait before flushing buffered provider operations. Only applies when `Provide.DHT.SweepEnabled` is true.
-
-When no new provide operations are added within this duration, any pending operations in the buffer
-are flushed to the provider, even if the batch size hasn't been reached. This ensures that individual
-content additions are announced within a reasonable time frame.
-
-**Trade-offs:**
-- Shorter times (e.g., 5s): Faster content discoverability, slightly more provider operations
-- Longer times (e.g., 1m): Better batching efficiency, but delays for small additions
-
-The default of 5 seconds provides a good balance between responsiveness and efficiency for most use cases.
-
-Default: `5s`
-
-Type: `optionalDuration` (must be between 1s and 5m)
 
 ## `Provider`
 
