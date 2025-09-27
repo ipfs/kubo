@@ -42,15 +42,14 @@ define go-build
 $(GOCC) build $(go-flags-with-tags) -o "$@" "$(1)"
 endef
 
-define go-try-build
-$(GOCC) build $(go-flags-with-tags) -o /dev/null "$(call go-pkg-name,$<)"
-endef
-
 test_go_test: $$(DEPS_GO)
 	$(GOCC) test $(go-flags-with-tags) $(GOTFLAGS) ./...
 .PHONY: test_go_test
 
-test_go_build: $$(TEST_GO_BUILD)
+# Build all platforms from .github/build-platforms.yml
+test_go_build:
+	bin/test-go-build-platforms
+.PHONY: test_go_build
 
 test_go_short: GOTFLAGS += -test.short
 test_go_short: test_go_test

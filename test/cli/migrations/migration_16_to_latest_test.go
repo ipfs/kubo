@@ -1,8 +1,6 @@
 package migrations
 
 // NOTE: These migration tests require the local Kubo binary (built with 'make build') to be in PATH.
-// The tests migrate from repo version 16 to 17, which requires Kubo version 0.37.0+ (expects repo v17).
-// If using system ipfs binary v0.36.0 or older (expects repo v16), no migration will be triggered.
 //
 // To run these tests successfully:
 //   export PATH="$(pwd)/cmd/ipfs:$PATH"
@@ -12,6 +10,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -20,11 +19,28 @@ import (
 	"testing"
 	"time"
 
+	ipfs "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/require"
 )
 
-func TestMigration16To17(t *testing.T) {
+// TestMigration16ToLatest tests migration from repo version 16 to the latest version.
+//
+// This test uses a real IPFS repository snapshot from Kubo v0.36.0 (the last version that used repo v16).
+// The intention is to confirm that users can upgrade from Kubo v0.36.0 to the latest version by applying
+// all intermediate migrations successfully.
+//
+// NOTE: This test comprehensively tests all migration methods (daemon --migrate, repo migrate,
+// and reverse migration) because 16-to-17 was the first embedded migration that did not fetch
+// external files. It serves as a reference implementation for migration testing.
+//
+// Future migrations can have simplified tests (like 17-to-18 in migration_17_to_latest_test.go)
+// that focus on specific migration logic rather than testing all migration methods.
+//
+// If you need to test migration of configuration keys that appeared in later repo versions,
+// create a new test file migration_N_to_latest_test.go with a separate IPFS repository test vector
+// from the appropriate Kubo version.
+func TestMigration16ToLatest(t *testing.T) {
 	t.Parallel()
 
 	// Primary tests using 'ipfs daemon --migrate' command (default in Docker)
@@ -71,12 +87,13 @@ func testDaemonMigrationWithAuto(t *testing.T) {
 	// Verify migration was successful based on monitoring
 	require.True(t, migrationSuccess, "Migration should have been successful")
 	require.Contains(t, stdoutOutput, "applying 16-to-17 repo migration", "Migration should have been triggered")
-	require.Contains(t, stdoutOutput, "Migration 16 to 17 succeeded", "Migration should have completed successfully")
+	require.Contains(t, stdoutOutput, "Migration 16-to-17 succeeded", "Migration should have completed successfully")
 
-	// Verify version was updated to 17
+	// Verify version was updated to latest
 	versionData, err := os.ReadFile(versionPath)
 	require.NoError(t, err)
-	require.Equal(t, "17", strings.TrimSpace(string(versionData)), "Version should be updated to 17")
+	expectedVersion := fmt.Sprint(ipfs.RepoVersion)
+	require.Equal(t, expectedVersion, strings.TrimSpace(string(versionData)), "Version should be updated to %s (latest)", expectedVersion)
 
 	// Verify migration results using DRY helper
 	helper := NewMigrationTestHelper(t, configPath)
@@ -131,7 +148,7 @@ func testDaemonMigrationWithoutAuto(t *testing.T) {
 	// Verify migration was successful based on monitoring
 	require.True(t, migrationSuccess, "Migration should have been successful")
 	require.Contains(t, stdoutOutput, "applying 16-to-17 repo migration", "Migration should have been triggered")
-	require.Contains(t, stdoutOutput, "Migration 16 to 17 succeeded", "Migration should have completed successfully")
+	require.Contains(t, stdoutOutput, "Migration 16-to-17 succeeded", "Migration should have completed successfully")
 
 	// Verify migration results: custom values preserved alongside "auto"
 	helper := NewMigrationTestHelper(t, configPath)
@@ -487,12 +504,13 @@ func testDaemonMissingFieldsHandling(t *testing.T) {
 	// Verify migration was successful
 	require.True(t, migrationSuccess, "Migration should have been successful")
 	require.Contains(t, stdoutOutput, "applying 16-to-17 repo migration", "Migration should have been triggered")
-	require.Contains(t, stdoutOutput, "Migration 16 to 17 succeeded", "Migration should have completed successfully")
+	require.Contains(t, stdoutOutput, "Migration 16-to-17 succeeded", "Migration should have completed successfully")
 
-	// Verify version was updated
+	// Verify version was updated to latest
 	versionData, err := os.ReadFile(versionPath)
 	require.NoError(t, err)
-	require.Equal(t, "17", strings.TrimSpace(string(versionData)), "Version should be updated to 17")
+	expectedVersion := fmt.Sprint(ipfs.RepoVersion)
+	require.Equal(t, expectedVersion, strings.TrimSpace(string(versionData)), "Version should be updated to %s (latest)", expectedVersion)
 
 	// Verify migration adds all required fields to minimal config
 	NewMigrationTestHelper(t, configPath).
@@ -543,10 +561,11 @@ func testRepoBackwardMigration(t *testing.T) {
 	result := node.RunIPFS("repo", "migrate")
 	require.Empty(t, result.Stderr.String(), "Forward migration should succeed")
 
-	// Verify we're at v17
+	// Verify we're at the latest version
 	versionData, err := os.ReadFile(versionPath)
 	require.NoError(t, err)
-	require.Equal(t, "17", strings.TrimSpace(string(versionData)), "Should be at version 17 after forward migration")
+	expectedVersion := fmt.Sprint(ipfs.RepoVersion)
+	require.Equal(t, expectedVersion, strings.TrimSpace(string(versionData)), "Should be at version %s (latest) after forward migration", expectedVersion)
 
 	// Now run reverse migration back to v16
 	result = node.RunIPFS("repo", "migrate", "--to=16", "--allow-downgrade")
@@ -565,18 +584,40 @@ func testRepoBackwardMigration(t *testing.T) {
 
 // runDaemonMigrationWithMonitoring starts daemon --migrate, monitors output until "Daemon is ready",
 // then gracefully shuts down the daemon and returns the captured output and success status.
-// This is a generic helper that can monitor for any migration patterns.
+// This monitors for all expected migrations from version 16 to latest.
 func runDaemonMigrationWithMonitoring(t *testing.T, node *harness.Node) (string, bool) {
-	// Use specific patterns for 16-to-17 migration
-	return runDaemonWithMigrationMonitoring(t, node, "applying 16-to-17 repo migration", "Migration 16 to 17 succeeded")
+	// Monitor migrations from repo v16 to latest
+	return runDaemonWithExpectedMigrations(t, node, 16, ipfs.RepoVersion)
 }
 
-// runDaemonWithMigrationMonitoring is a generic helper for running daemon --migrate and monitoring output.
-// It waits for the daemon to be ready, then shuts it down gracefully.
-// migrationPattern: pattern to detect migration started (e.g., "applying X-to-Y repo migration")
-// successPattern: pattern to detect migration succeeded (e.g., "Migration X to Y succeeded")
-// Returns the stdout output and whether both patterns were detected.
-func runDaemonWithMigrationMonitoring(t *testing.T, node *harness.Node, migrationPattern, successPattern string) (string, bool) {
+// runDaemonWithExpectedMigrations monitors daemon startup for a sequence of migrations from startVersion to endVersion
+func runDaemonWithExpectedMigrations(t *testing.T, node *harness.Node, startVersion, endVersion int) (string, bool) {
+	// Build list of expected migrations
+	var expectedMigrations []struct {
+		pattern string
+		success string
+	}
+
+	for v := startVersion; v < endVersion; v++ {
+		from := v
+		to := v + 1
+		expectedMigrations = append(expectedMigrations, struct {
+			pattern string
+			success string
+		}{
+			pattern: fmt.Sprintf("applying %d-to-%d repo migration", from, to),
+			success: fmt.Sprintf("Migration %d-to-%d succeeded", from, to),
+		})
+	}
+
+	return runDaemonWithMultipleMigrationMonitoring(t, node, expectedMigrations)
+}
+
+// runDaemonWithMultipleMigrationMonitoring monitors daemon startup for multiple sequential migrations
+func runDaemonWithMultipleMigrationMonitoring(t *testing.T, node *harness.Node, expectedMigrations []struct {
+	pattern string
+	success string
+}) (string, bool) {
 	// Create context with timeout as safety net
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -601,7 +642,11 @@ func runDaemonWithMigrationMonitoring(t *testing.T, node *harness.Node, migratio
 	require.NoError(t, err)
 
 	var allOutput strings.Builder
-	var migrationDetected, migrationSucceeded, daemonReady bool
+	var daemonReady bool
+
+	// Track which migrations have been detected
+	migrationsDetected := make([]bool, len(expectedMigrations))
+	migrationsSucceeded := make([]bool, len(expectedMigrations))
 
 	// Monitor stdout for completion signals
 	scanner := bufio.NewScanner(stdout)
@@ -611,11 +656,13 @@ func runDaemonWithMigrationMonitoring(t *testing.T, node *harness.Node, migratio
 			allOutput.WriteString(line + "\n")
 
 			// Check for migration messages
-			if migrationPattern != "" && strings.Contains(line, migrationPattern) {
-				migrationDetected = true
-			}
-			if successPattern != "" && strings.Contains(line, successPattern) {
-				migrationSucceeded = true
+			for i, migration := range expectedMigrations {
+				if strings.Contains(line, migration.pattern) {
+					migrationsDetected[i] = true
+				}
+				if strings.Contains(line, migration.success) {
+					migrationsSucceeded[i] = true
+				}
 			}
 			if strings.Contains(line, "Daemon is ready") {
 				daemonReady = true
@@ -667,17 +714,41 @@ func runDaemonWithMigrationMonitoring(t *testing.T, node *harness.Node, migratio
 				// Wait for process to exit
 				_ = cmd.Wait()
 
-				// Return success if we detected migration
-				success := migrationDetected && migrationSucceeded
-				return allOutput.String(), success
+				// Check all migrations were detected and succeeded
+				allDetected := true
+				allSucceeded := true
+				for i := range expectedMigrations {
+					if !migrationsDetected[i] {
+						allDetected = false
+						t.Logf("Migration %s was not detected", expectedMigrations[i].pattern)
+					}
+					if !migrationsSucceeded[i] {
+						allSucceeded = false
+						t.Logf("Migration %s did not succeed", expectedMigrations[i].success)
+					}
+				}
+
+				return allOutput.String(), allDetected && allSucceeded
 			}
 
 			// Check if process has exited (e.g., due to startup failure after migration)
 			if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
 				// Process exited - migration may have completed but daemon failed to start
 				// This is expected for corrupted config tests
-				success := migrationDetected && migrationSucceeded
-				return allOutput.String(), success
+
+				// Check all migrations status
+				allDetected := true
+				allSucceeded := true
+				for i := range expectedMigrations {
+					if !migrationsDetected[i] {
+						allDetected = false
+					}
+					if !migrationsSucceeded[i] {
+						allSucceeded = false
+					}
+				}
+
+				return allOutput.String(), allDetected && allSucceeded
 			}
 		}
 	}

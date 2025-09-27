@@ -16,20 +16,24 @@ import (
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
-	provider "github.com/ipfs/boxo/provider"
+	"github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
 	ipld "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/core/coreunix"
 	"github.com/ipfs/kubo/tracing"
+	mh "github.com/multiformats/go-multihash"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
+
+var log = logging.Logger("coreapi")
 
 type UnixfsAPI CoreAPI
 
@@ -116,7 +120,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	// nor by the pinner (the pinner doesn't traverse the pinned DAG itself, it only
 	// handles roots). This wrapping ensures all blocks of pinned content get provided.
 	if settings.Pin && !settings.OnlyHash &&
-		(api.providingStrategy&config.ReproviderStrategyPinned) != 0 {
+		(api.providingStrategy&config.ProvideStrategyPinned) != 0 {
 		dserv = &providingDagService{dserv, api.provider}
 	}
 
@@ -386,7 +390,7 @@ func (s *syncDagService) Sync() error {
 
 type providingDagService struct {
 	ipld.DAGService
-	provider provider.System
+	provider.MultihashProvider
 }
 
 func (pds *providingDagService) Add(ctx context.Context, n ipld.Node) error {
@@ -397,8 +401,8 @@ func (pds *providingDagService) Add(ctx context.Context, n ipld.Node) error {
 	// We don't want DAG operations to fail due to providing issues.
 	// The user's data is still stored successfully even if the
 	// announcement to the routing system fails temporarily.
-	if err := pds.provider.Provide(ctx, n.Cid(), true); err != nil {
-		log.Error(err)
+	if err := pds.StartProviding(false, n.Cid().Hash()); err != nil {
+		log.Errorf("failed to provide new block: %s", err)
 	}
 	return nil
 }
@@ -407,14 +411,13 @@ func (pds *providingDagService) AddMany(ctx context.Context, nds []ipld.Node) er
 	if err := pds.DAGService.AddMany(ctx, nds); err != nil {
 		return err
 	}
+	keys := make([]mh.Multihash, len(nds))
+	for i, n := range nds {
+		keys[i] = n.Cid().Hash()
+	}
 	// Same error handling philosophy as Add(): log but don't fail.
-	// Note: Provide calls are intentionally blocking here - the Provider
-	// implementation should handle concurrency/queuing internally.
-	for _, n := range nds {
-		if err := pds.provider.Provide(ctx, n.Cid(), true); err != nil {
-			log.Error(err)
-			break
-		}
+	if err := pds.StartProviding(false, keys...); err != nil {
+		log.Errorf("failed to provide new blocks: %s", err)
 	}
 	return nil
 }

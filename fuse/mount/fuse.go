@@ -1,5 +1,4 @@
 //go:build !nofuse && !windows && !openbsd && !netbsd && !plan9
-// +build !nofuse,!windows,!openbsd,!netbsd,!plan9
 
 package mount
 

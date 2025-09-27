@@ -1,11 +1,23 @@
 package config
 
+const (
+	// DefaultMFSNoFlushLimit is the default limit for consecutive unflushed MFS operations
+	DefaultMFSNoFlushLimit = 256
+)
+
 type Internal struct {
 	// All marked as omitempty since we are expecting to make changes to all subcomponents of Internal
 	Bitswap                     *InternalBitswap  `json:",omitempty"`
 	UnixFSShardingSizeThreshold *OptionalString   `json:",omitempty"` // moved to Import.UnixFSHAMTDirectorySizeThreshold
 	Libp2pForceReachability     *OptionalString   `json:",omitempty"`
 	BackupBootstrapInterval     *OptionalDuration `json:",omitempty"`
+	// MFSNoFlushLimit controls the maximum number of consecutive
+	// MFS operations allowed with --flush=false before requiring a manual flush.
+	// This prevents unbounded memory growth and ensures data consistency.
+	// Set to 0 to disable limiting (old behavior, may cause high memory usage)
+	// This is an EXPERIMENTAL feature and may change or be removed in future releases.
+	// See https://github.com/ipfs/kubo/issues/10842
+	MFSNoFlushLimit *OptionalInteger `json:",omitempty"`
 }
 
 type InternalBitswap struct {

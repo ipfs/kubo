@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <a href="https://docs.ipfs.tech/how-to/command-line-quick-start/"><img src="https://user-images.githubusercontent.com/157609/250148884-d6d12db8-fdcf-4be3-8546-2550b69845d8.png" alt="Kubo logo" title="Kubo logo" width="200"></a>
+  <a href="https://github.com/ipfs/kubo/blob/master/docs/logo/"><img src="https://user-images.githubusercontent.com/157609/250148884-d6d12db8-fdcf-4be3-8546-2550b69845d8.png" alt="Kubo logo" title="Kubo logo" width="200"></a>
   <br>
   Kubo: IPFS Implementation in GO
   <br>

@@ -214,3 +214,57 @@ func getEnvOrDefault(key string, defaultValue []string) []string {
 	}
 	return defaultValue
 }
+
+// HasHTTPProviderConfigured checks if the node is configured to use HTTP routers
+// for providing content announcements. This is used when determining if the node
+// can provide content even when not connected to libp2p peers.
+//
+// Note: Right now we only support delegated HTTP content providing if Routing.Type=custom
+// and Routing.Routers are configured according to:
+// https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md#configuration-file-example
+//
+// This uses the `ProvideBitswap` request type that is not documented anywhere,
+// because we hoped something like IPIP-378 (https://github.com/ipfs/specs/pull/378)
+// would get finalized and we'd switch to that. It never happened due to politics,
+// and now we are stuck with ProvideBitswap being the only API that works.
+// Some people have reverse engineered it (example:
+// https://discuss.ipfs.tech/t/only-peers-found-from-dht-seem-to-be-getting-used-as-relays-so-cant-use-http-routers/19545/9)
+// and use it, so what we do here is the bare minimum to ensure their use case works
+// using this old API until something better is available.
+func (c *Config) HasHTTPProviderConfigured() bool {
+	if len(c.Routing.Routers) == 0 {
+		// No "custom" routers
+		return false
+	}
+	method, ok := c.Routing.Methods[MethodNameProvide]
+	if !ok {
+		// No provide method configured
+		return false
+	}
+	return c.routerSupportsHTTPProviding(method.RouterName)
+}
+
+// routerSupportsHTTPProviding checks if the supplied custom router is or
+// includes an HTTP-based router.
+func (c *Config) routerSupportsHTTPProviding(routerName string) bool {
+	rp, ok := c.Routing.Routers[routerName]
+	if !ok {
+		// Router configured for providing doesn't exist
+		return false
+	}
+
+	switch rp.Type {
+	case RouterTypeHTTP:
+		return true
+	case RouterTypeParallel, RouterTypeSequential:
+		// Check if any child router supports HTTP
+		if children, ok := rp.Parameters.(*ComposableRouterParams); ok {
+			for _, childRouter := range children.Routers {
+				if c.routerSupportsHTTPProviding(childRouter.RouterName) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}

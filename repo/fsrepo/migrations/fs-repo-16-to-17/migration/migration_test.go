@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ipfs/kubo/repo/fsrepo/migrations/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,9 +16,7 @@ import (
 func runMigrationOnJSON(t *testing.T, input string) map[string]interface{} {
 	t.Helper()
 	var output bytes.Buffer
-	// Use t.TempDir() for test isolation and parallel execution support
-	tempDir := t.TempDir()
-	err := convert(bytes.NewReader([]byte(input)), &output, tempDir)
+	err := convert(bytes.NewReader([]byte(input)), &output)
 	require.NoError(t, err)
 
 	var result map[string]interface{}
@@ -137,13 +136,12 @@ func TestMigration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Run migration
-	migration := &Migration{}
-	opts := Options{
+	opts := common.Options{
 		Path:    tempDir,
 		Verbose: true,
 	}
 
-	err = migration.Apply(opts)
+	err = Migration.Apply(opts)
 	require.NoError(t, err)
 
 	// Verify version was updated
@@ -191,7 +189,7 @@ func TestMigration(t *testing.T) {
 	assert.Equal(t, "auto", delegatedPublishers[0], "Expected DelegatedPublishers to be ['auto']")
 
 	// Test revert
-	err = migration.Revert(opts)
+	err = Migration.Revert(opts)
 	require.NoError(t, err)
 
 	// Verify version was reverted
@@ -273,7 +271,7 @@ func TestBootstrapMigration(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
-				result := processBootstrapPeers(tt.peers, "")
+				result := processBootstrapPeers(tt.peers)
 				require.Equal(t, len(tt.expected), len(result), "Expected %d peers, got %d", len(tt.expected), len(result))
 				for i, expected := range tt.expected {
 					assert.Equal(t, expected, result[i], "Expected peer %d to be %s", i, expected)

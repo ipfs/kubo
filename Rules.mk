@@ -107,8 +107,8 @@ uninstall:
 .PHONY: uninstall
 
 supported:
-	@echo "Currently supported platforms:"
-	@for p in ${SUPPORTED_PLATFORMS}; do echo $$p; done
+	@echo "Currently supported platforms (from .github/build-platforms.yml):"
+	@grep '^  - ' .github/build-platforms.yml | sed 's/^  - //' || (echo "Error: .github/build-platforms.yml not found"; exit 1)
 .PHONY: supported
 
 help:
@@ -138,7 +138,8 @@ help:
 	@echo '  test_short              - Run short go tests and short sharness tests'
 	@echo '  test_go_short           - Run short go tests'
 	@echo '  test_go_test            - Run all go tests'
-	@echo '  test_go_expensive       - Run all go tests and compile on all platforms'
+	@echo '  test_go_build           - Build kubo for all platforms from .github/build-platforms.yml'
+	@echo '  test_go_expensive       - Run all go tests and build all platforms'
 	@echo '  test_go_race            - Run go tests with the race detector enabled'
 	@echo '  test_go_lint            - Run the `golangci-lint` vetting tool'
 	@echo '  test_sharness           - Run sharness tests'
