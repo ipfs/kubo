@@ -7,6 +7,8 @@ import (
 	"io"
 	"strings"
 	"time"
+
+	humanize "github.com/dustin/go-humanize"
 )
 
 // Strings is a helper type that (un)marshals a single string to/from a single
@@ -425,8 +427,79 @@ func (p OptionalString) String() string {
 }
 
 var (
-	_ json.Unmarshaler = (*OptionalInteger)(nil)
-	_ json.Marshaler   = (*OptionalInteger)(nil)
+	_ json.Unmarshaler = (*OptionalString)(nil)
+	_ json.Marshaler   = (*OptionalString)(nil)
+)
+
+// OptionalBytes represents a byte size that has a default value
+//
+// When encoded in json, Default is encoded as "null".
+// Stores the original string representation and parses on access.
+// Embeds OptionalString to share common functionality.
+type OptionalBytes struct {
+	OptionalString
+}
+
+// NewOptionalBytes returns an OptionalBytes from a string.
+func NewOptionalBytes(s string) *OptionalBytes {
+	return &OptionalBytes{OptionalString{value: &s}}
+}
+
+// IsDefault returns if this is a default optional byte value.
+func (p *OptionalBytes) IsDefault() bool {
+	if p == nil {
+		return true
+	}
+	return p.OptionalString.IsDefault()
+}
+
+// WithDefault resolves the byte size with the given default.
+// Parses the stored string value using humanize.ParseBytes.
+func (p *OptionalBytes) WithDefault(defaultValue uint64) (value uint64) {
+	if p.IsDefault() {
+		return defaultValue
+	}
+	strValue := p.OptionalString.WithDefault("")
+	bytes, err := humanize.ParseBytes(strValue)
+	if err != nil {
+		// This should never happen as values are validated during UnmarshalJSON.
+		// If it does, it indicates either config corruption or a programming error.
+		panic(fmt.Sprintf("invalid byte size in OptionalBytes: %q - %v", strValue, err))
+	}
+	return bytes
+}
+
+// UnmarshalJSON validates the input is a parseable byte size.
+func (p *OptionalBytes) UnmarshalJSON(input []byte) error {
+	switch string(input) {
+	case "null", "undefined":
+		*p = OptionalBytes{}
+	default:
+		var value interface{}
+		err := json.Unmarshal(input, &value)
+		if err != nil {
+			return err
+		}
+		switch v := value.(type) {
+		case float64:
+			str := fmt.Sprintf("%.0f", v)
+			p.value = &str
+		case string:
+			_, err := humanize.ParseBytes(v)
+			if err != nil {
+				return err
+			}
+			p.value = &v
+		default:
+			return fmt.Errorf("unable to parse byte size, expected a size string (e.g., \"5GiB\") or a number, but got %T", v)
+		}
+	}
+	return nil
+}
+
+var (
+	_ json.Unmarshaler = (*OptionalBytes)(nil)
+	_ json.Marshaler   = (*OptionalBytes)(nil)
 )
 
 type swarmLimits doNotUse

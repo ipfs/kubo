@@ -19,12 +19,8 @@ var infiniteResourceLimits = rcmgr.InfiniteLimits.ToPartialLimitConfig().System
 // The defaults follow the documentation in docs/libp2p-resource-management.md.
 // Any changes in the logic here should be reflected there.
 func createDefaultLimitConfig(cfg config.SwarmConfig) (limitConfig rcmgr.ConcreteLimitConfig, logMessageForStartup string, err error) {
-	maxMemoryDefaultString := humanize.Bytes(uint64(memory.TotalMemory()) / 2)
-	maxMemoryString := cfg.ResourceMgr.MaxMemory.WithDefault(maxMemoryDefaultString)
-	maxMemory, err := humanize.ParseBytes(maxMemoryString)
-	if err != nil {
-		return rcmgr.ConcreteLimitConfig{}, "", err
-	}
+	maxMemoryDefault := uint64(memory.TotalMemory()) / 2
+	maxMemory := cfg.ResourceMgr.MaxMemory.WithDefault(maxMemoryDefault)
 
 	maxMemoryMB := maxMemory / (1024 * 1024)
 	maxFD := int(cfg.ResourceMgr.MaxFileDescriptors.WithDefault(int64(fd.GetNumFDs()) / 2))
@@ -142,7 +138,7 @@ Computed default go-libp2p Resource Manager limits based on:
 
 These can be inspected with 'ipfs swarm resources'.
 
-`, maxMemoryString, maxFD)
+`, humanize.Bytes(maxMemory), maxFD)
 
 	// We already have a complete value thus pass in an empty ConcreteLimitConfig.
 	return partialLimits.Build(rcmgr.ConcreteLimitConfig{}), msg, nil

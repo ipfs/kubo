@@ -17,7 +17,7 @@ const (
 	DefaultUnixFSChunker   = "size-262144"
 	DefaultHashFunction    = "sha2-256"
 
-	DefaultUnixFSHAMTDirectorySizeThreshold = "256KiB" // https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L26
+	DefaultUnixFSHAMTDirectorySizeThreshold = 262144 // 256KiB - https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L26
 
 	// DefaultBatchMaxNodes controls the maximum number of nodes in a
 	// write-batch. The total size of the batch is limited by
@@ -45,7 +45,7 @@ type Import struct {
 	UnixFSFileMaxLinks               OptionalInteger
 	UnixFSDirectoryMaxLinks          OptionalInteger
 	UnixFSHAMTDirectoryMaxFanout     OptionalInteger
-	UnixFSHAMTDirectorySizeThreshold OptionalString
+	UnixFSHAMTDirectorySizeThreshold OptionalBytes
 	BatchMaxNodes                    OptionalInteger
 	BatchMaxSize                     OptionalInteger
 }
