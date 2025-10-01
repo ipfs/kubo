@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -116,5 +117,225 @@ func TestFilesCp(t *testing.T) {
 
 		catRes := node.IPFS("files", "read", "/parent/dir/file")
 		assert.Equal(t, data, catRes.Stdout.Trimmed())
+	})
+}
+
+func TestFilesRm(t *testing.T) {
+	t.Parallel()
+
+	t.Run("files rm with --flush=false returns error", func(t *testing.T) {
+		// Test that files rm rejects --flush=false so user does not assume disabling flush works
+		// (rm ignored it before, better to explicitly error)
+		// See https://github.com/ipfs/kubo/issues/10842
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+
+		// Create a file to remove
+		node.IPFS("files", "mkdir", "/test-dir")
+
+		// Try to remove with --flush=false, should error
+		res := node.RunIPFS("files", "rm", "-r", "--flush=false", "/test-dir")
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "files rm always flushes for safety")
+		assert.Contains(t, res.Stderr.String(), "cannot be set to false")
+
+		// Verify the directory still exists (wasn't removed due to error)
+		lsRes := node.IPFS("files", "ls", "/")
+		assert.Contains(t, lsRes.Stdout.String(), "test-dir")
+	})
+
+	t.Run("files rm with --flush=true works", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+
+		// Create a file to remove
+		node.IPFS("files", "mkdir", "/test-dir")
+
+		// Remove with explicit --flush=true, should work
+		res := node.IPFS("files", "rm", "-r", "--flush=true", "/test-dir")
+		assert.NoError(t, res.Err)
+
+		// Verify the directory was removed
+		lsRes := node.IPFS("files", "ls", "/")
+		assert.NotContains(t, lsRes.Stdout.String(), "test-dir")
+	})
+
+	t.Run("files rm without flush flag works (default behavior)", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+
+		// Create a file to remove
+		node.IPFS("files", "mkdir", "/test-dir")
+
+		// Remove without flush flag (should use default which is true)
+		res := node.IPFS("files", "rm", "-r", "/test-dir")
+		assert.NoError(t, res.Err)
+
+		// Verify the directory was removed
+		lsRes := node.IPFS("files", "ls", "/")
+		assert.NotContains(t, lsRes.Stdout.String(), "test-dir")
+	})
+}
+
+func TestFilesNoFlushLimit(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reaches default limit of 256 operations", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+
+		// Perform 256 operations with --flush=false (should succeed)
+		for i := 0; i < 256; i++ {
+			res := node.IPFS("files", "mkdir", "--flush=false", fmt.Sprintf("/dir%d", i))
+			assert.NoError(t, res.Err, "operation %d should succeed", i+1)
+		}
+
+		// 257th operation should fail
+		res := node.RunIPFS("files", "mkdir", "--flush=false", "/dir256")
+		require.NotNil(t, res.ExitErr, "command should have failed")
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "reached limit of 256 unflushed MFS operations")
+		assert.Contains(t, res.Stderr.String(), "run 'ipfs files flush'")
+		assert.Contains(t, res.Stderr.String(), "use --flush=true")
+		assert.Contains(t, res.Stderr.String(), "increase Internal.MFSNoFlushLimit")
+	})
+
+	t.Run("custom limit via config", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Set custom limit to 5
+		node.UpdateConfig(func(cfg *config.Config) {
+			limit := config.NewOptionalInteger(5)
+			cfg.Internal.MFSNoFlushLimit = limit
+		})
+
+		node.StartDaemon()
+
+		// Perform 5 operations (should succeed)
+		for i := 0; i < 5; i++ {
+			res := node.IPFS("files", "mkdir", "--flush=false", fmt.Sprintf("/dir%d", i))
+			assert.NoError(t, res.Err, "operation %d should succeed", i+1)
+		}
+
+		// 6th operation should fail
+		res := node.RunIPFS("files", "mkdir", "--flush=false", "/dir5")
+		require.NotNil(t, res.ExitErr, "command should have failed")
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "reached limit of 5 unflushed MFS operations")
+	})
+
+	t.Run("flush=true resets counter", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Set limit to 3 for faster testing
+		node.UpdateConfig(func(cfg *config.Config) {
+			limit := config.NewOptionalInteger(3)
+			cfg.Internal.MFSNoFlushLimit = limit
+		})
+
+		node.StartDaemon()
+
+		// Do 2 operations with --flush=false
+		node.IPFS("files", "mkdir", "--flush=false", "/dir1")
+		node.IPFS("files", "mkdir", "--flush=false", "/dir2")
+
+		// Operation with --flush=true should reset counter
+		node.IPFS("files", "mkdir", "--flush=true", "/dir3")
+
+		// Now we should be able to do 3 more operations with --flush=false
+		for i := 4; i <= 6; i++ {
+			res := node.IPFS("files", "mkdir", "--flush=false", fmt.Sprintf("/dir%d", i))
+			assert.NoError(t, res.Err, "operation after flush should succeed")
+		}
+
+		// 4th operation after reset should fail
+		res := node.RunIPFS("files", "mkdir", "--flush=false", "/dir7")
+		require.NotNil(t, res.ExitErr, "command should have failed")
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "reached limit of 3 unflushed MFS operations")
+	})
+
+	t.Run("explicit flush command resets counter", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Set limit to 3 for faster testing
+		node.UpdateConfig(func(cfg *config.Config) {
+			limit := config.NewOptionalInteger(3)
+			cfg.Internal.MFSNoFlushLimit = limit
+		})
+
+		node.StartDaemon()
+
+		// Do 2 operations with --flush=false
+		node.IPFS("files", "mkdir", "--flush=false", "/dir1")
+		node.IPFS("files", "mkdir", "--flush=false", "/dir2")
+
+		// Explicit flush should reset counter
+		node.IPFS("files", "flush")
+
+		// Now we should be able to do 3 more operations
+		for i := 3; i <= 5; i++ {
+			res := node.IPFS("files", "mkdir", "--flush=false", fmt.Sprintf("/dir%d", i))
+			assert.NoError(t, res.Err, "operation after flush should succeed")
+		}
+
+		// 4th operation should fail
+		res := node.RunIPFS("files", "mkdir", "--flush=false", "/dir6")
+		require.NotNil(t, res.ExitErr, "command should have failed")
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "reached limit of 3 unflushed MFS operations")
+	})
+
+	t.Run("limit=0 disables the feature", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Set limit to 0 (disabled)
+		node.UpdateConfig(func(cfg *config.Config) {
+			limit := config.NewOptionalInteger(0)
+			cfg.Internal.MFSNoFlushLimit = limit
+		})
+
+		node.StartDaemon()
+
+		// Should be able to do many operations without error
+		for i := 0; i < 300; i++ {
+			res := node.IPFS("files", "mkdir", "--flush=false", fmt.Sprintf("/dir%d", i))
+			assert.NoError(t, res.Err, "operation %d should succeed with limit disabled", i+1)
+		}
+	})
+
+	t.Run("different MFS commands count towards limit", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Set limit to 5 for testing
+		node.UpdateConfig(func(cfg *config.Config) {
+			limit := config.NewOptionalInteger(5)
+			cfg.Internal.MFSNoFlushLimit = limit
+		})
+
+		node.StartDaemon()
+
+		// Mix of different MFS operations (5 operations to hit the limit)
+		node.IPFS("files", "mkdir", "--flush=false", "/testdir")
+		// Create a file first, then copy it
+		testCid := node.IPFSAddStr("test content")
+		node.IPFS("files", "cp", "--flush=false", fmt.Sprintf("/ipfs/%s", testCid), "/testfile")
+		node.IPFS("files", "cp", "--flush=false", "/testfile", "/testfile2")
+		node.IPFS("files", "mv", "--flush=false", "/testfile2", "/testfile3")
+		node.IPFS("files", "mkdir", "--flush=false", "/anotherdir")
+
+		// 6th operation should fail
+		res := node.RunIPFS("files", "mkdir", "--flush=false", "/another")
+		require.NotNil(t, res.ExitErr, "command should have failed")
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "reached limit of 5 unflushed MFS operations")
 	})
 }

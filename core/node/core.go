@@ -18,7 +18,6 @@ import (
 	pathresolver "github.com/ipfs/boxo/path/resolver"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/boxo/pinning/pinner/dspinner"
-	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	format "github.com/ipfs/go-ipld-format"
@@ -49,16 +48,17 @@ func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blocks
 }
 
 // Pinning creates new pinner which tells GC which blocks should be kept
-func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov provider.System) (pin.Pinner, error) {
+func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov DHTProvider) (pin.Pinner, error) {
 	// Parse strategy at function creation time (not inside the returned function)
 	// This happens before the provider is created, which is why we pass the strategy
 	// string and parse it here, rather than using fx-provided ProvidingStrategy.
-	strategyFlag := config.ParseReproviderStrategy(strategy)
+	strategyFlag := config.ParseProvideStrategy(strategy)
 
 	return func(bstore blockstore.Blockstore,
 		ds format.DAGService,
 		repo repo.Repo,
-		prov provider.System) (pin.Pinner, error) {
+		prov DHTProvider,
+	) (pin.Pinner, error) {
 		rootDS := repo.Datastore()
 
 		syncFn := func(ctx context.Context) error {
@@ -72,8 +72,8 @@ func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGSe
 		ctx := context.TODO()
 
 		var opts []dspinner.Option
-		roots := (strategyFlag & config.ReproviderStrategyRoots) != 0
-		pinned := (strategyFlag & config.ReproviderStrategyPinned) != 0
+		roots := (strategyFlag & config.ProvideStrategyRoots) != 0
+		pinned := (strategyFlag & config.ProvideStrategyPinned) != 0
 
 		// Important: Only one of WithPinnedProvider or WithRootsProvider should be active.
 		// Having both would cause duplicate root advertisements since "pinned" includes all
@@ -179,8 +179,8 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 }
 
 // Files loads persisted MFS root
-func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov provider.System) (*mfs.Root, error) {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov provider.System) (*mfs.Root, error) {
+func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov DHTProvider) (*mfs.Root, error) {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov DHTProvider) (*mfs.Root, error) {
 		dsk := datastore.NewKey("/local/filesroot")
 		pf := func(ctx context.Context, c cid.Cid) error {
 			rootDS := repo.Datastore()
@@ -230,18 +230,21 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 			return nil, err
 		}
 
-		// MFS (Mutable File System) provider integration:
-		// Only pass the provider to MFS when the strategy includes "mfs".
-		// MFS will call Provide() on every DAGService.Add() operation,
-		// which is sufficient for the "mfs" strategy - it ensures all
-		// MFS content gets announced as it's added or modified.
-		// For non-mfs strategies, we set provider to nil to avoid unnecessary providing.
-		strategyFlag := config.ParseReproviderStrategy(strategy)
-		if strategyFlag&config.ReproviderStrategyMFS == 0 {
+		// MFS (Mutable File System) provider integration: Only pass the provider
+		// to MFS when the strategy includes "mfs". MFS will call StartProviding()
+		// on every DAGService.Add() operation, which is sufficient for the "mfs"
+		// strategy - it ensures all MFS content gets announced as it's added or
+		// modified. For non-mfs strategies, we set provider to nil to avoid
+		// unnecessary providing.
+		strategyFlag := config.ParseProvideStrategy(strategy)
+		if strategyFlag&config.ProvideStrategyMFS == 0 {
 			prov = nil
 		}
 
 		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov)
+		if err != nil {
+			return nil, err
+		}
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {

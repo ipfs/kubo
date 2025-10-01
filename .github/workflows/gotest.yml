@@ -22,19 +22,18 @@ jobs:
       TEST_DOCKER: 0
       TEST_FUSE: 0
       TEST_VERBOSE: 1
-      TRAVIS: 1
       GIT_PAGER: cat
       IPFS_CHECK_RCMGR_DEFAULTS: 1
     defaults:
       run:
         shell: bash
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.25.x
       - name: Check out Kubo
         uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y zsh
       - name: 👉️ If this step failed, go to «Summary» (top left) → inspect the «Failures/Errors» table
@@ -45,7 +44,7 @@ jobs:
           make -j "$PARALLEL" test/unit/gotest.junit.xml &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
+        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         if: failure() || success()
         with:
           name: unittests

@@ -13,6 +13,7 @@ import (
 const (
 	AllowBigBlockOptionName = "allow-big-block"
 	SoftBlockLimit          = 1024 * 1024 // https://github.com/ipfs/kubo/issues/7421#issuecomment-910833499
+	MaxPinNameBytes         = 255         // Maximum number of bytes allowed for a pin name
 )
 
 var AllowBigBlockOption cmds.Option
@@ -46,6 +47,21 @@ func CheckBlockSize(req *cmds.Request, size uint64) error {
 	// unenforced and undeclared rule of thumb hard-coded here.
 	if size > SoftBlockLimit {
 		return fmt.Errorf("produced block is over 1MiB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
+	}
+	return nil
+}
+
+// ValidatePinName validates that a pin name does not exceed the maximum allowed byte length.
+// Returns an error if the name exceeds MaxPinNameBytes (255 bytes).
+func ValidatePinName(name string) error {
+	if name == "" {
+		// Empty names are allowed
+		return nil
+	}
+
+	nameBytes := len([]byte(name))
+	if nameBytes > MaxPinNameBytes {
+		return fmt.Errorf("pin name is %d bytes (max %d bytes)", nameBytes, MaxPinNameBytes)
 	}
 	return nil
 }

@@ -11,11 +11,13 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	"github.com/cheggaaa/pb"
 	"github.com/ipfs/boxo/files"
 	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/verifcid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
@@ -81,7 +83,7 @@ to form the IPFS MerkleDAG. Learn more: https://docs.ipfs.tech/concepts/merkle-d
 
 If the daemon is not running, it will just add locally to the repo at $IPFS_PATH.
 If the daemon is started later, it will be advertised after a few
-seconds when the reprovider runs.
+seconds when the provide system runs.
 
 BASIC EXAMPLES:
 
@@ -203,7 +205,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		cmds.IntOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8). WARNING: experimental, Import.UnixFSHAMTDirectorySizeThreshold is safer. Default: Import.UnixFSHAMTDirectoryMaxFanout"),
 		// Experimental Features
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. WARNING: experimental"),
-		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. WARNING: experimental").WithDefault(32),
+		cmds.IntOption(inlineLimitOptionName, fmt.Sprintf("Maximum block size to inline. Maximum: %d bytes. WARNING: experimental", verifcid.DefaultMaxIdentityDigestSize)).WithDefault(32),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. WARNING: experimental"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. WARNING: experimental"),
 		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
@@ -262,6 +264,19 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
+
+		// Validate inline-limit doesn't exceed the maximum identity digest size
+		if inline && inlineLimit > verifcid.DefaultMaxIdentityDigestSize {
+			return fmt.Errorf("inline-limit %d exceeds maximum allowed size of %d bytes", inlineLimit, verifcid.DefaultMaxIdentityDigestSize)
+		}
+
+		// Validate pin name
+		if pinNameSet {
+			if err := cmdutils.ValidatePinName(pinName); err != nil {
+				return err
+			}
+		}
+
 		toFilesStr, toFilesSet := req.Options[toFilesOptionName].(string)
 		preserveMode, _ := req.Options[preserveModeOptionName].(bool)
 		preserveMtime, _ := req.Options[preserveMtimeOptionName].(bool)

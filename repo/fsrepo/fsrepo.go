@@ -393,6 +393,7 @@ func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	}
 
 	if _, err = f.WriteString(addr.String()); err != nil {
+		f.Close()
 		return err
 	}
 	if err = f.Close(); err != nil {
