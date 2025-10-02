@@ -29,12 +29,10 @@ GIT_BRANCH=${3:-$(git symbolic-ref -q --short HEAD || echo "unknown")}
 GIT_TAG=${4:-$(git describe --tags --exact-match 2> /dev/null || echo "")}
 
 IMAGE_NAME=${IMAGE_NAME:-ipfs/kubo}
-LEGACY_IMAGE_NAME=${LEGACY_IMAGE_NAME:-ipfs/go-ipfs}
 
 echoImageName () {
   local IMAGE_TAG=$1
   echo "$IMAGE_NAME:$IMAGE_TAG"
-  echo "$LEGACY_IMAGE_NAME:$IMAGE_TAG"
 }
 
 if [[ $GIT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc ]]; then
