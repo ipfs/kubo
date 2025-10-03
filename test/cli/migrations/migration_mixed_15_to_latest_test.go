@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -319,10 +320,13 @@ func createMockMigrationBinary(t *testing.T, fromVer, toVer string) string {
 	scriptName := fmt.Sprintf("fs-repo-%s-to-%s", fromVer, toVer)
 	sourceFile := filepath.Join(binDir, scriptName+".go")
 	binaryPath := filepath.Join(binDir, scriptName)
+	if runtime.GOOS == "windows" {
+		binaryPath += ".exe"
+	}
 
 	// Generate minimal mock migration binary code
 	goSource := fmt.Sprintf(`package main
-import ("fmt"; "os"; "path/filepath"; "strings")
+import ("fmt"; "os"; "path/filepath"; "strings"; "time")
 func main() {
 	var path string
 	var revert bool
@@ -335,6 +339,21 @@ func main() {
 	from, to := "%s", "%s"
 	if revert { from, to = to, from }
 	fmt.Printf("fake applying %%s-to-%%s repo migration\n", from, to)
+
+	// Create and immediately remove lock file to simulate proper locking behavior
+	lockPath := filepath.Join(path, "repo.lock")
+	lockFile, err := os.Create(lockPath)
+	if err != nil && !os.IsExist(err) {
+		fmt.Fprintf(os.Stderr, "Error creating lock: %%v\n", err)
+		os.Exit(1)
+	}
+	if lockFile != nil {
+		lockFile.Close()
+		defer os.Remove(lockPath)
+	}
+
+	// Small delay to simulate migration work
+	time.Sleep(10 * time.Millisecond)
 
 	if err := os.WriteFile(filepath.Join(path, "version"), []byte(to), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %%v\n", err)
