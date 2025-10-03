@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -469,6 +470,23 @@ func RunHybridMigrations(ctx context.Context, targetVer int, ipfsDir string, all
 		err = RunEmbeddedMigrations(ctx, embeddedMigrationsMinVersion, ipfsDir, allowDowngrade)
 		if err != nil {
 			return fmt.Errorf("embedded downgrade phase failed: %w", err)
+		}
+
+		// Clean up any stale lock file before running external migrations.
+		// The LockedByOtherProcess() check at the start of `ipfs repo migrate`
+		// creates a lock file to test if the daemon is running, then removes it.
+		// However, there can be a race condition where the removal hasn't completed
+		// yet when the external migration tries to create its own lock with O_EXCL.
+		// This is especially problematic on Windows where FILE_FLAG_DELETE_ON_CLOSE
+		// triggers asynchronous deletion, but can also occur on Unix systems.
+		lockPath := filepath.Join(ipfsDir, "repo.lock")
+		if _, err := os.Stat(lockPath); err == nil {
+			// Lock file exists - try to remove it since we know the daemon isn't running
+			// (LockedByOtherProcess() already confirmed this)
+			if err := os.Remove(lockPath); err != nil && !os.IsNotExist(err) {
+				// Log but don't fail - external migration will provide better error
+				logger.Printf("Warning: failed to remove stale lock file: %v", err)
+			}
 		}
 	}
 

@@ -17,6 +17,7 @@ package migrations
 import (
 	"bufio"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,6 +33,9 @@ import (
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/require"
 )
+
+//go:embed mock_external_migration.go
+var mockMigrationSource string
 
 // TestMixedMigration15ToLatest tests migration from old Kubo (v15 with external migrations)
 // to the latest version using a hybrid approach: external binary for 15→16, then embedded
@@ -214,6 +218,9 @@ func runDaemonWithMigrationMonitoringCustomEnv(t *testing.T, node *harness.Node,
 	for k, v := range extraEnv {
 		cmd.Env = append(cmd.Env, k+"="+v)
 	}
+	// Always add mock version env vars for the mock migration binaries
+	cmd.Env = append(cmd.Env, "MOCK_FROM_VERSION=15")
+	cmd.Env = append(cmd.Env, "MOCK_TO_VERSION=16")
 
 	// Set up pipes for output monitoring
 	stdout, err := cmd.StdoutPipe()
@@ -305,6 +312,10 @@ func runMigrationWithCustomPath(node *harness.Node, customPath string, args ...s
 			func(cmd *exec.Cmd) {
 				// Use custom PATH with our mock binaries
 				cmd.Env = append(cmd.Env, "PATH="+customPath)
+				// Pass version env vars for mock binaries to read at runtime
+				// The mock migration binaries need these to know which versions to migrate
+				cmd.Env = append(cmd.Env, "MOCK_FROM_VERSION=15")
+				cmd.Env = append(cmd.Env, "MOCK_TO_VERSION=16")
 			},
 		},
 	})
@@ -312,63 +323,35 @@ func runMigrationWithCustomPath(node *harness.Node, customPath string, args ...s
 
 // createMockMigrationBinary creates a platform-agnostic Go binary for migration testing.
 // Returns the directory containing the binary to be added to PATH.
+// The mock binary uses the exact same lock handling logic as real fs-repo-migrations.
 func createMockMigrationBinary(t *testing.T, fromVer, toVer string) string {
 	// Create bin directory for migration binaries
 	binDir := t.TempDir()
 
 	// Create Go source for mock migration binary
 	scriptName := fmt.Sprintf("fs-repo-%s-to-%s", fromVer, toVer)
-	sourceFile := filepath.Join(binDir, scriptName+".go")
+	sourceFile := filepath.Join(binDir, "mock.go")
 	binaryPath := filepath.Join(binDir, scriptName)
 	if runtime.GOOS == "windows" {
 		binaryPath += ".exe"
 	}
 
-	// Generate minimal mock migration binary code
-	goSource := fmt.Sprintf(`package main
-import ("fmt"; "os"; "path/filepath"; "strings"; "time")
-func main() {
-	var path string
-	var revert bool
-	for _, a := range os.Args[1:] {
-		if strings.HasPrefix(a, "-path=") { path = a[6:] }
-		if a == "-revert" { revert = true }
-	}
-	if path == "" { fmt.Fprintln(os.Stderr, "missing -path="); os.Exit(1) }
-
-	from, to := "%s", "%s"
-	if revert { from, to = to, from }
-	fmt.Printf("fake applying %%s-to-%%s repo migration\n", from, to)
-
-	// Create and immediately remove lock file to simulate proper locking behavior
-	lockPath := filepath.Join(path, "repo.lock")
-	lockFile, err := os.Create(lockPath)
-	if err != nil && !os.IsExist(err) {
-		fmt.Fprintf(os.Stderr, "Error creating lock: %%v\n", err)
-		os.Exit(1)
-	}
-	if lockFile != nil {
-		lockFile.Close()
-		defer os.Remove(lockPath)
-	}
-
-	// Small delay to simulate migration work
-	time.Sleep(10 * time.Millisecond)
-
-	if err := os.WriteFile(filepath.Join(path, "version"), []byte(to), 0644); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %%v\n", err)
-		os.Exit(1)
-	}
-}`, fromVer, toVer)
-
-	require.NoError(t, os.WriteFile(sourceFile, []byte(goSource), 0644))
+	// Write the embedded mock migration source to temp file
+	require.NoError(t, os.WriteFile(sourceFile, []byte(mockMigrationSource), 0644))
 
 	// Compile the Go binary
 	cmd := exec.Command("go", "build", "-o", binaryPath, sourceFile)
-	cmd.Env = append(os.Environ(), "CGO_ENABLED=0") // Ensure static binary
-	require.NoError(t, cmd.Run())
+	cmd.Env = append(os.Environ(),
+		"CGO_ENABLED=0", // Ensure static binary
+		fmt.Sprintf("MOCK_FROM_VERSION=%s", fromVer),
+		fmt.Sprintf("MOCK_TO_VERSION=%s", toVer),
+	)
 
-	// Verify the binary exists and is executable
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("Failed to compile mock binary: %v\nOutput: %s", err, output)
+	}
+
+	// Verify the binary exists
 	_, err := os.Stat(binaryPath)
 	require.NoError(t, err, "Mock binary should exist")
 
@@ -434,12 +417,10 @@ func testRepoReverseHybridMigrationLatestTo15(t *testing.T) {
 	// Start with v15 fixture and migrate forward to latest to create proper backup files
 	node := setupStaticV15Repo(t)
 
-	// Create mock migration binaries for both forward and reverse migrations
-	mockBinDirs := []string{
-		createMockMigrationBinary(t, "15", "16"), // for forward migration
-		createMockMigrationBinary(t, "16", "15"), // for downgrade
-	}
-	customPath := buildCustomPath(mockBinDirs...)
+	// Create mock migration binary (handles both forward and reverse with -revert flag)
+	// Note: Real migrations use the same binary for both directions (e.g., fs-repo-15-to-16)
+	mockBinDir := createMockMigrationBinary(t, "15", "16")
+	customPath := buildCustomPath(mockBinDir)
 
 	configPath := filepath.Join(node.Dir, "config")
 	versionPath := filepath.Join(node.Dir, "version")
@@ -471,10 +452,12 @@ func testRepoReverseHybridMigrationLatestTo15(t *testing.T) {
 	// Step 2: Reverse hybrid migration from latest to v15
 	t.Logf("Step 2: Reverse hybrid migration v%d → v15", ipfs.RepoVersion)
 	result = runMigrationWithCustomPath(node, customPath, "repo", "migrate", "--to=15", "--allow-downgrade")
-	require.Empty(t, result.Stderr.String(), "Reverse hybrid migration should succeed without errors")
 
-	// Debug output
-	t.Logf("Downgrade migration output:\n%s", result.Stdout.String())
+	// Debug output (log before assertions so we see it even on failure)
+	t.Logf("Downgrade migration stdout:\n%s", result.Stdout.String())
+	t.Logf("Downgrade migration stderr:\n%s", result.Stderr.String())
+
+	require.Empty(t, result.Stderr.String(), "Reverse hybrid migration should succeed without errors")
 
 	// Verify final version is 15
 	versionData, err = os.ReadFile(versionPath)
