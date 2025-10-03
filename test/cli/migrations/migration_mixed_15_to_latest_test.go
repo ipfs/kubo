@@ -24,7 +24,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 
@@ -271,9 +270,20 @@ func runDaemonWithMigrationMonitoringCustomEnv(t *testing.T, node *harness.Node,
 		t.Log("Daemon startup timed out")
 	}
 
-	// Stop the daemon
+	// Stop the daemon using ipfs shutdown command for graceful shutdown
 	if cmd.Process != nil {
-		_ = cmd.Process.Signal(syscall.SIGTERM)
+		shutdownCmd := exec.Command(node.IPFSBin, "shutdown")
+		shutdownCmd.Dir = node.Dir
+		for k, v := range node.Runner.Env {
+			shutdownCmd.Env = append(shutdownCmd.Env, k+"="+v)
+		}
+
+		if err := shutdownCmd.Run(); err != nil {
+			// If graceful shutdown fails, force kill
+			_ = cmd.Process.Kill()
+		}
+
+		// Wait for process to exit
 		_ = cmd.Wait()
 	}
 
