@@ -70,6 +70,9 @@ jobs:
         env:
           IPFS_PATH: ${{ runner.temp }}/ipfs-test
         run: |
+          export PATH="${{ github.workspace }}/cmd/ipfs:$PATH"
+          which ipfs || echo "ipfs not found in PATH"
+          ipfs version || echo "Failed to run ipfs version"
           go test -v -timeout 15m ./test/cli/migrations/...
 
       - name: Upload test results
