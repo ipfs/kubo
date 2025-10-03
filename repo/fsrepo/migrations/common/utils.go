@@ -46,7 +46,7 @@ func WithBackup(configPath string, backupSuffix string, fn func(in io.ReadSeeker
 	// which is necessary on Windows where open files can't be renamed
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read config file %s: %w", configPath, err)
 	}
 
 	// Create an in-memory reader for the data
@@ -55,7 +55,7 @@ func WithBackup(configPath string, backupSuffix string, fn func(in io.ReadSeeker
 	// Create backup using direct write (not atomic, since backup doesn't need to be atomic)
 	backupPath := configPath + backupSuffix
 	if err := os.WriteFile(backupPath, data, 0600); err != nil {
-		return err
+		return fmt.Errorf("failed to create backup at %s: %w", backupPath, err)
 	}
 
 	// Create output file atomically
@@ -63,7 +63,7 @@ func WithBackup(configPath string, backupSuffix string, fn func(in io.ReadSeeker
 	if err != nil {
 		// Clean up backup on error
 		os.Remove(backupPath)
-		return err
+		return fmt.Errorf("failed to create atomic file for %s: %w", configPath, err)
 	}
 
 	// Run the conversion function
@@ -71,7 +71,7 @@ func WithBackup(configPath string, backupSuffix string, fn func(in io.ReadSeeker
 		Must(out.Abort())
 		// Clean up backup on error
 		os.Remove(backupPath)
-		return err
+		return fmt.Errorf("config conversion failed: %w", err)
 	}
 
 	// Close the output file atomically
