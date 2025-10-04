@@ -393,7 +393,10 @@ func setupStaticV16Repo(t *testing.T) *harness.Node {
 
 	// Create a temporary test directory - each test gets its own copy
 	// Use ./tmp.DELETEME/ as requested by user instead of /tmp/
-	tmpDir := filepath.Join("tmp.DELETEME", "migration-test-"+t.Name())
+	// Sanitize test name for Windows - replace invalid characters
+	sanitizedName := strings.ReplaceAll(t.Name(), ":", "_")
+	sanitizedName = strings.ReplaceAll(sanitizedName, "/", "_")
+	tmpDir := filepath.Join("tmp.DELETEME", "migration-test-"+sanitizedName)
 	require.NoError(t, os.MkdirAll(tmpDir, 0755))
 	t.Cleanup(func() { os.RemoveAll(tmpDir) })
 

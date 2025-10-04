@@ -10,9 +10,11 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	config "github.com/ipfs/kubo/config"
 )
@@ -22,6 +24,69 @@ const (
 	distMigsRoot = ""
 	distFSRM     = "fs-repo-migrations"
 )
+
+// CleanupLockFile attempts to remove a stale lock file, with special handling for Windows.
+// On Windows, files marked with FILE_FLAG_DELETE_ON_CLOSE may persist after handle closure
+// while the kernel completes asynchronous deletion. This function will retry removal
+// for up to maxWaitTime.
+//
+// This is needed because:
+//  1. LockedByOtherProcess() creates a temporary lock file to check if daemon is running
+//  2. On Windows, the file deletion is async and may take time
+//  3. If the lock was created by the same process, it won't auto-delete until process exits
+func CleanupLockFile(lockPath string, maxWaitTime time.Duration, logger *log.Logger) error {
+	const checkInterval = 500 * time.Millisecond
+
+	deadline := time.Now().Add(maxWaitTime)
+	ticker := time.NewTicker(checkInterval)
+	defer ticker.Stop()
+
+	var (
+		lastErr    error
+		loggedOnce bool
+	)
+
+	// Check and attempt removal immediately, then periodically
+	for attempts := 0; ; attempts++ {
+		// Check if file exists
+		if _, err := os.Stat(lockPath); os.IsNotExist(err) {
+			// File doesn't exist - success
+			if loggedOnce && logger != nil {
+				logger.Printf("Lock file no longer exists")
+			}
+			return nil
+		}
+
+		// Try to remove the file
+		if err := os.Remove(lockPath); err == nil {
+			// Successfully removed
+			if logger != nil {
+				logger.Printf("Successfully removed stale lock file")
+			}
+			return nil
+		} else {
+			lastErr = err
+			// Log on first failure
+			if !loggedOnce && logger != nil {
+				logger.Printf("Lock file exists, attempting removal (may take up to %v on Windows)", maxWaitTime)
+				loggedOnce = true
+			}
+		}
+
+		// Check timeout
+		if time.Now().After(deadline) {
+			if logger != nil {
+				logger.Printf("Warning: lock file still exists after %v (last error: %v), external migration may fail", maxWaitTime, lastErr)
+			}
+			return fmt.Errorf("lock file persists after %v: %w", maxWaitTime, lastErr)
+		}
+
+		// Wait for next attempt (except on first iteration)
+		if attempts > 0 {
+			<-ticker.C
+		}
+	}
+}
 
 // RunMigration finds, downloads, and runs the individual migrations needed to
 // migrate the repo from its current version to the target version.
@@ -470,6 +535,10 @@ func RunHybridMigrations(ctx context.Context, targetVer int, ipfsDir string, all
 		if err != nil {
 			return fmt.Errorf("embedded downgrade phase failed: %w", err)
 		}
+
+		// Clean up any stale lock file before running external migrations
+		lockPath := filepath.Join(ipfsDir, "repo.lock")
+		_ = CleanupLockFile(lockPath, 30*time.Second, logger)
 	}
 
 	// Phase 2: Use external migrations from v16 to target (if needed)
