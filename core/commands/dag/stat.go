@@ -52,6 +52,11 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 			Order: traverse.DFSPre,
 			Func: func(current traverse.State) error {
 				currentNodeSize := uint64(len(current.Node.RawData()))
+				curDagstats := &DagStat{
+					Cid:       current.Node.Cid(),
+					Size:      currentNodeSize,
+					NumBlocks: -1,
+				}
 				dagstats.Size += currentNodeSize
 				dagstats.NumBlocks++
 				if !cidSet.Has(current.Node.Cid()) {
@@ -60,7 +65,8 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 				dagStatSummary.incrementRedundantSize(currentNodeSize)
 				cidSet.Add(current.Node.Cid())
 				if progressive {
-					if err := res.Emit(dagStatSummary); err != nil {
+					curSummary := &DagStatSummary{DagStatsArray: []*DagStat{curDagstats}}
+					if err := res.Emit(curSummary); err != nil {
 						return err
 					}
 				}
