@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,6 +31,7 @@ import (
 	"time"
 
 	ipfs "github.com/ipfs/kubo"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/require"
 )
@@ -291,6 +293,40 @@ func runDaemonWithMigrationMonitoringCustomEnv(t *testing.T, node *harness.Node,
 	return outputBuffer.String(), daemonReady && migrationStarted && migrationCompleted
 }
 
+// waitForLockFileDeletion waits for a lock file to be deleted, using the shared cleanup logic
+func waitForLockFileDeletion(t *testing.T, lockPath string) {
+	t.Helper()
+
+	const maxWaitTime = 30 * time.Second
+
+	// Create a logger adapter for test output
+	logger := log.New(&testLogWriter{t: t}, "", 0)
+
+	t.Logf("Waiting for lock file deletion: %s", lockPath)
+	start := time.Now()
+
+	if err := migrations.CleanupLockFile(lockPath, maxWaitTime, logger); err != nil {
+		// Don't fail the test, just log a warning
+		// The migration might still work if the lock is stale
+		t.Logf("Warning: %v", err)
+	} else {
+		t.Logf("Lock file cleaned up successfully (took %v)", time.Since(start))
+	}
+}
+
+// testLogWriter adapts testing.T to io.Writer for log.Logger
+type testLogWriter struct {
+	t *testing.T
+}
+
+func (w *testLogWriter) Write(p []byte) (int, error) {
+	w.t.Helper()
+	// Remove trailing newline if present to avoid double newlines in test output
+	msg := strings.TrimSuffix(string(p), "\n")
+	w.t.Log(msg)
+	return len(p), nil
+}
+
 // buildCustomPath creates a custom PATH with mock migration binaries prepended.
 // This is necessary for test isolation when running tests in parallel with t.Parallel().
 // Without isolated PATH handling, parallel tests can interfere with each other through
@@ -448,6 +484,15 @@ func testRepoReverseHybridMigrationLatestTo15(t *testing.T) {
 	require.NoError(t, json.Unmarshal(configData, &latestConfig))
 
 	originalPeerID := getNestedValue(latestConfig, "Identity.PeerID")
+
+	// Wait for lock file to be fully deleted before running reverse migration
+	// On Windows, FILE_FLAG_DELETE_ON_CLOSE triggers async deletion that may take time
+	waitForLockFileDeletion(t, filepath.Join(node.Dir, "repo.lock"))
+
+	// Add a small additional delay on Windows to ensure all file handles are released
+	if runtime.GOOS == "windows" {
+		time.Sleep(2 * time.Second)
+	}
 
 	// Step 2: Reverse hybrid migration from latest to v15
 	t.Logf("Step 2: Reverse hybrid migration v%d → v15", ipfs.RepoVersion)
