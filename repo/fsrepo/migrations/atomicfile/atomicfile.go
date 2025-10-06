@@ -40,7 +40,6 @@ func (f *File) Close() error {
 	}
 
 	if err := os.Rename(f.File.Name(), f.path); err != nil {
-		os.Remove(f.File.Name())
 		return err
 	}
 
@@ -49,8 +48,14 @@ func (f *File) Close() error {
 
 // Abort removes the temporary file without replacing the target
 func (f *File) Abort() error {
-	f.File.Close()
-	return os.Remove(f.File.Name())
+	if err := f.File.Close(); err != nil {
+		os.Remove(f.File.Name())
+		return err
+	}
+	if err := os.Remove(f.File.Name()); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ReadFrom reads from the given reader into the atomic file
