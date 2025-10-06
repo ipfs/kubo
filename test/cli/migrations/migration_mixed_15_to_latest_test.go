@@ -303,7 +303,14 @@ func runMigrationWithCustomPath(node *harness.Node, customPath string, args ...s
 		Args: args,
 		CmdOpts: []harness.CmdOpt{
 			func(cmd *exec.Cmd) {
-				// Use custom PATH with our mock binaries
+				// Replace PATH in environment with our custom PATH that has mock binaries prepended
+				for i, env := range cmd.Env {
+					if strings.HasPrefix(env, "PATH=") {
+						cmd.Env[i] = "PATH=" + customPath
+						return
+					}
+				}
+				// If PATH not found, append it
 				cmd.Env = append(cmd.Env, "PATH="+customPath)
 			},
 		},
