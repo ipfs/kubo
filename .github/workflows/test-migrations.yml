@@ -7,8 +7,8 @@ on:
       # Migration implementation files
       - 'repo/fsrepo/migrations/**'
       - 'test/cli/migrations/**'
-      # Config handling
-      - 'repo/fsrepo/fsrepo.go'
+      # Config and repo handling
+      - 'repo/fsrepo/**'
       # This workflow file itself
       - '.github/workflows/test-migrations.yml'
   push:
@@ -18,7 +18,7 @@ on:
     paths:
       - 'repo/fsrepo/migrations/**'
       - 'test/cli/migrations/**'
-      - 'repo/fsrepo/fsrepo.go'
+      - 'repo/fsrepo/**'
       - '.github/workflows/test-migrations.yml'
 
 concurrency:
@@ -64,7 +64,7 @@ jobs:
 
       - name: Run migration unit tests
         run: |
-          go test -v -timeout 10m ./repo/fsrepo/migrations/...
+          go test ./repo/fsrepo/migrations/...
 
       - name: Run CLI migration tests
         env:
@@ -73,7 +73,7 @@ jobs:
           export PATH="${{ github.workspace }}/cmd/ipfs:$PATH"
           which ipfs || echo "ipfs not found in PATH"
           ipfs version || echo "Failed to run ipfs version"
-          go test -v -timeout 15m ./test/cli/migrations/...
+          go test ./test/cli/migrations/...
 
       - name: Upload test results
         if: always()
