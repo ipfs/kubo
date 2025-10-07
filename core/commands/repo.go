@@ -423,19 +423,12 @@ migration. Versions below 16 require external migration tools.
 			return fmt.Errorf("downgrade from version %d to %d requires --allow-downgrade flag", currentVersion, targetVersion)
 		}
 
-		// Check if repo is locked by daemon before running migration
-		locked, err := fsrepo.LockedByOtherProcess(cctx.ConfigRoot)
-		if err != nil {
-			return fmt.Errorf("could not check repo lock: %w", err)
-		}
-		if locked {
-			return fmt.Errorf("cannot run migration while daemon is running (repo.lock exists)")
-		}
-
 		fmt.Printf("Migrating repository from version %d to %d...\n", currentVersion, targetVersion)
 
 		// Use hybrid migration strategy that intelligently combines external and embedded migrations
-		err = migrations.RunHybridMigrations(cctx.Context(), targetVersion, cctx.ConfigRoot, allowDowngrade)
+		// Use req.Context instead of cctx.Context() to avoid opening the repo before migrations run,
+		// which would acquire the lock that migrations need
+		err = migrations.RunHybridMigrations(req.Context, targetVersion, cctx.ConfigRoot, allowDowngrade)
 		if err != nil {
 			fmt.Println("Repository migration failed:")
 			fmt.Printf("  %s\n", err)

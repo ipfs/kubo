@@ -562,6 +562,8 @@ func testRepoBackwardMigration(t *testing.T) {
 
 	// First run forward migration to get to v17
 	result := node.RunIPFS("repo", "migrate")
+	t.Logf("Forward migration stdout:\n%s", result.Stdout.String())
+	t.Logf("Forward migration stderr:\n%s", result.Stderr.String())
 	require.Empty(t, result.Stderr.String(), "Forward migration should succeed")
 
 	// Verify we're at the latest version
@@ -572,6 +574,8 @@ func testRepoBackwardMigration(t *testing.T) {
 
 	// Now run reverse migration back to v16
 	result = node.RunIPFS("repo", "migrate", "--to=16", "--allow-downgrade")
+	t.Logf("Backward migration stdout:\n%s", result.Stdout.String())
+	t.Logf("Backward migration stderr:\n%s", result.Stderr.String())
 	require.Empty(t, result.Stderr.String(), "Reverse migration should succeed")
 
 	// Verify version was downgraded to 16
