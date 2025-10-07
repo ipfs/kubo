@@ -392,7 +392,6 @@ func setupStaticV16Repo(t *testing.T) *harness.Node {
 	v16FixturePath := "testdata/v16-repo"
 
 	// Create a temporary test directory - each test gets its own copy
-	// Use ./tmp.DELETEME/ as requested by user instead of /tmp/
 	// Sanitize test name for Windows - replace invalid characters
 	sanitizedName := strings.Map(func(r rune) rune {
 		if strings.ContainsRune(`<>:"/\|?*`, r) {
@@ -400,9 +399,8 @@ func setupStaticV16Repo(t *testing.T) *harness.Node {
 		}
 		return r
 	}, t.Name())
-	tmpDir := filepath.Join("tmp.DELETEME", "migration-test-"+sanitizedName)
+	tmpDir := filepath.Join(t.TempDir(), "migration-test-"+sanitizedName)
 	require.NoError(t, os.MkdirAll(tmpDir, 0755))
-	t.Cleanup(func() { os.RemoveAll(tmpDir) })
 
 	// Convert to absolute path for harness
 	absTmpDir, err := filepath.Abs(tmpDir)
