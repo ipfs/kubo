@@ -52,10 +52,19 @@ func WithBackup(configPath string, backupSuffix string, fn func(in io.ReadSeeker
 	// Create an in-memory reader for the data
 	in := bytes.NewReader(data)
 
-	// Create backup using direct write (not atomic, since backup doesn't need to be atomic)
+	// Create backup atomically to prevent partial backup on interruption
 	backupPath := configPath + backupSuffix
-	if err := os.WriteFile(backupPath, data, 0600); err != nil {
-		return fmt.Errorf("failed to create backup at %s: %w", backupPath, err)
+	backup, err := atomicfile.New(backupPath, 0600)
+	if err != nil {
+		return fmt.Errorf("failed to create backup file for %s: %w", backupPath, err)
+	}
+	if _, err := backup.Write(data); err != nil {
+		Must(backup.Abort())
+		return fmt.Errorf("failed to write backup data: %w", err)
+	}
+	if err := backup.Close(); err != nil {
+		Must(backup.Abort())
+		return fmt.Errorf("failed to finalize backup: %w", err)
 	}
 
 	// Create output file atomically
