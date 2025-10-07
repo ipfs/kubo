@@ -2,11 +2,15 @@ package atomicfile
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestNew_Success verifies atomic file creation
@@ -197,5 +201,62 @@ func TestFilePermissions(t *testing.T) {
 		if mode != 0600 {
 			t.Errorf("wrong permissions: got %o, want 0600", mode)
 		}
+	}
+}
+
+// TestMultipleAbortsSafe verifies calling Abort multiple times is safe
+func TestMultipleAbortsSafe(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+
+	af, err := New(path, 0644)
+	require.NoError(t, err)
+
+	tempName := af.File.Name()
+
+	// First abort should succeed
+	require.NoError(t, af.Abort())
+	assert.NoFileExists(t, tempName, "temp file should be removed after first abort")
+
+	// Second abort should handle gracefully (file already gone)
+	err = af.Abort()
+	// Error is acceptable since file is already removed, but it should not panic
+	t.Logf("Second Abort() returned: %v", err)
+}
+
+// TestNoTempFilesAfterOperations verifies no .tmp-* files remain after operations
+func TestNoTempFilesAfterOperations(t *testing.T) {
+	const testIterations = 5
+
+	tests := []struct {
+		name      string
+		operation func(*File) error
+	}{
+		{"close", (*File).Close},
+		{"abort", (*File).Abort},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+
+			// Perform multiple operations
+			for i := 0; i < testIterations; i++ {
+				path := filepath.Join(dir, fmt.Sprintf("test%d.txt", i))
+
+				af, err := New(path, 0644)
+				require.NoError(t, err)
+
+				_, err = af.Write([]byte("test data"))
+				require.NoError(t, err)
+
+				require.NoError(t, tt.operation(af))
+			}
+
+			// Check for any .tmp-* files
+			tmpFiles, err := filepath.Glob(filepath.Join(dir, ".tmp-*"))
+			require.NoError(t, err)
+			assert.Empty(t, tmpFiles, "should be no temp files after %s", tt.name)
+		})
 	}
 }
