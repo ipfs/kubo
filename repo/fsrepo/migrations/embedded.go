@@ -110,6 +110,13 @@ func RunEmbeddedMigrations(ctx context.Context, targetVer int, ipfsDir string, a
 		return err
 	}
 
+	// Acquire lock once for all embedded migrations to prevent concurrent access
+	lk, err := lockfile.Lock(ipfsDir, "repo.lock")
+	if err != nil {
+		return fmt.Errorf("failed to acquire repo lock: %w", err)
+	}
+	defer lk.Close()
+
 	fromVer, err := RepoVersion(ipfsDir)
 	if err != nil {
 		return fmt.Errorf("could not get repo version: %w", err)
@@ -131,13 +138,6 @@ func RunEmbeddedMigrations(ctx context.Context, targetVer int, ipfsDir string, a
 	if err != nil {
 		return err
 	}
-
-	// Acquire lock once for all embedded migrations to prevent concurrent access
-	lk, err := lockfile.Lock(ipfsDir, "repo.lock")
-	if err != nil {
-		return fmt.Errorf("failed to acquire repo lock: %w", err)
-	}
-	defer lk.Close()
 
 	embeddedCount := 0
 	for _, migrationName := range migrations {
