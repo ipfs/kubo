@@ -35,16 +35,13 @@ func New(path string, mode os.FileMode) (*File, error) {
 
 // Close atomically replaces the target file with the temporary file
 func (f *File) Close() error {
-	if err := f.File.Close(); err != nil {
-		os.Remove(f.File.Name())
-		return err
+	closeErr := f.File.Close()
+	if closeErr != nil {
+		// Try to cleanup temp file, but prioritize close error
+		_ = os.Remove(f.File.Name())
+		return closeErr
 	}
-
-	if err := os.Rename(f.File.Name(), f.path); err != nil {
-		return err
-	}
-
-	return nil
+	return os.Rename(f.File.Name(), f.path)
 }
 
 // Abort removes the temporary file without replacing the target

@@ -24,6 +24,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -303,14 +304,11 @@ func runMigrationWithCustomPath(node *harness.Node, customPath string, args ...s
 		Args: args,
 		CmdOpts: []harness.CmdOpt{
 			func(cmd *exec.Cmd) {
-				// Replace PATH in environment with our custom PATH that has mock binaries prepended
-				for i, env := range cmd.Env {
-					if strings.HasPrefix(env, "PATH=") {
-						cmd.Env[i] = "PATH=" + customPath
-						return
-					}
-				}
-				// If PATH not found, append it
+				// Remove existing PATH entries using slices.DeleteFunc
+				cmd.Env = slices.DeleteFunc(cmd.Env, func(s string) bool {
+					return strings.HasPrefix(s, "PATH=")
+				})
+				// Add custom PATH
 				cmd.Env = append(cmd.Env, "PATH="+customPath)
 			},
 		},
