@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,21 +18,14 @@ func TestNew_Success(t *testing.T) {
 	path := filepath.Join(dir, "test.txt")
 
 	af, err := New(path, 0644)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	require.NoError(t, err)
 	defer func() { _ = af.Abort() }()
 
 	// Verify temp file exists
-	if _, err := os.Stat(af.File.Name()); err != nil {
-		t.Errorf("temp file not created: %v", err)
-	}
+	assert.FileExists(t, af.File.Name())
 
 	// Verify temp file is in same directory
-	if filepath.Dir(af.File.Name()) != dir {
-		t.Errorf("temp file in wrong dir: got %s, want %s",
-			filepath.Dir(af.File.Name()), dir)
-	}
+	assert.Equal(t, dir, filepath.Dir(af.File.Name()))
 }
 
 // TestClose_Success verifies atomic replacement
@@ -42,34 +34,23 @@ func TestClose_Success(t *testing.T) {
 	path := filepath.Join(dir, "test.txt")
 
 	af, err := New(path, 0644)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	content := []byte("test content")
-	if _, err := af.Write(content); err != nil {
-		t.Fatalf("Write() failed: %v", err)
-	}
+	_, err = af.Write(content)
+	require.NoError(t, err)
 
 	tempName := af.File.Name()
 
-	if err := af.Close(); err != nil {
-		t.Fatalf("Close() failed: %v", err)
-	}
+	require.NoError(t, af.Close())
 
-	// Verify target file exists
+	// Verify target file exists with correct content
 	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("target file not created: %v", err)
-	}
-	if string(data) != string(content) {
-		t.Errorf("wrong content: got %q, want %q", data, content)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, content, data)
 
 	// Verify temp file removed
-	if _, err := os.Stat(tempName); !os.IsNotExist(err) {
-		t.Errorf("temp file not removed")
-	}
+	assert.NoFileExists(t, tempName)
 }
 
 // TestAbort_Success verifies cleanup
@@ -78,25 +59,17 @@ func TestAbort_Success(t *testing.T) {
 	path := filepath.Join(dir, "test.txt")
 
 	af, err := New(path, 0644)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	tempName := af.File.Name()
 
-	if err := af.Abort(); err != nil {
-		t.Fatalf("Abort() failed: %v", err)
-	}
+	require.NoError(t, af.Abort())
 
 	// Verify temp file removed
-	if _, err := os.Stat(tempName); !os.IsNotExist(err) {
-		t.Errorf("temp file not removed after abort")
-	}
+	assert.NoFileExists(t, tempName)
 
 	// Verify target not created
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		t.Errorf("target file should not exist after abort")
-	}
+	assert.NoFileExists(t, path)
 }
 
 // TestAbort_ErrorHandling tests error capture
@@ -105,9 +78,7 @@ func TestAbort_ErrorHandling(t *testing.T) {
 	path := filepath.Join(dir, "test.txt")
 
 	af, err := New(path, 0644)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Close file to force close error
 	af.File.Close()
@@ -117,12 +88,8 @@ func TestAbort_ErrorHandling(t *testing.T) {
 
 	err = af.Abort()
 	// Should get both errors
-	if err == nil {
-		t.Error("Abort() should return error when both close and remove fail")
-	}
-	if !strings.Contains(err.Error(), "abort failed") {
-		t.Errorf("expected 'abort failed' in error, got: %v", err)
-	}
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "abort failed")
 }
 
 // TestClose_CloseError verifies cleanup on close failure
@@ -131,9 +98,7 @@ func TestClose_CloseError(t *testing.T) {
 	path := filepath.Join(dir, "test.txt")
 
 	af, err := New(path, 0644)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	tempName := af.File.Name()
 
@@ -141,14 +106,10 @@ func TestClose_CloseError(t *testing.T) {
 	af.File.Close()
 
 	err = af.Close()
-	if err == nil {
-		t.Error("Close() should return error on close failure")
-	}
+	require.Error(t, err)
 
 	// Verify temp file cleaned up even on error
-	if _, statErr := os.Stat(tempName); !os.IsNotExist(statErr) {
-		t.Errorf("temp file should be removed on close error")
-	}
+	assert.NoFileExists(t, tempName)
 }
 
 // TestReadFrom verifies io.Copy integration
@@ -157,19 +118,13 @@ func TestReadFrom(t *testing.T) {
 	path := filepath.Join(dir, "test.txt")
 
 	af, err := New(path, 0644)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	require.NoError(t, err)
 	defer func() { _ = af.Abort() }()
 
 	content := []byte("test content from reader")
 	n, err := af.ReadFrom(bytes.NewReader(content))
-	if err != nil {
-		t.Fatalf("ReadFrom() failed: %v", err)
-	}
-	if n != int64(len(content)) {
-		t.Errorf("ReadFrom() wrote %d bytes, want %d", n, len(content))
-	}
+	require.NoError(t, err)
+	assert.Equal(t, int64(len(content)), n)
 }
 
 // TestFilePermissions verifies mode is set correctly
@@ -178,29 +133,20 @@ func TestFilePermissions(t *testing.T) {
 	path := filepath.Join(dir, "test.txt")
 
 	af, err := New(path, 0600)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	require.NoError(t, err)
 
-	if _, err := af.Write([]byte("test")); err != nil {
-		t.Fatalf("Write() failed: %v", err)
-	}
+	_, err = af.Write([]byte("test"))
+	require.NoError(t, err)
 
-	if err := af.Close(); err != nil {
-		t.Fatalf("Close() failed: %v", err)
-	}
+	require.NoError(t, af.Close())
 
 	info, err := os.Stat(path)
-	if err != nil {
-		t.Fatalf("Stat() failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	// On Unix, check exact permissions
 	if runtime.GOOS != "windows" {
 		mode := info.Mode().Perm()
-		if mode != 0600 {
-			t.Errorf("wrong permissions: got %o, want 0600", mode)
-		}
+		assert.Equal(t, os.FileMode(0600), mode)
 	}
 }
 
