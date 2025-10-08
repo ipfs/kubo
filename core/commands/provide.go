@@ -358,11 +358,11 @@ This interface is not stable and may change from release to release.
 					fmt.Fprintf(wtr, "%sActive workers:\t%s / %s (max)\n", indent, humanNumber(s.Sweep.Workers.Active), humanNumber(s.Sweep.Workers.Max))
 					fmt.Fprintf(wtr, "%sFree workers:\t%s\n", indent, humanNumber(availableFreeWorkers))
 					if !brief && displayWorkers {
-						fmt.Fprintf(wtr, "%sWorker stats:     %-15s %s\n", indent, "Periodic", "Burst")
-						fmt.Fprintf(wtr, "%s  %-11s     %-15s %s\n", indent, "Active:", humanNumber(s.Sweep.Workers.ActivePeriodic), humanNumber(s.Sweep.Workers.ActiveBurst))
-						fmt.Fprintf(wtr, "%s  %-11s     %-15s %s\n", indent, "Dedicated:", humanNumber(s.Sweep.Workers.DedicatedPeriodic), humanNumber(s.Sweep.Workers.DedicatedBurst))
-						fmt.Fprintf(wtr, "%s  %-11s     %-15s %s\n", indent, "Available:", humanNumber(availablePeriodic), humanNumber(availableBurst))
-						fmt.Fprintf(wtr, "%s  %-11s     %-15s %s\n", indent, "Queued:", humanNumber(s.Sweep.Workers.QueuedPeriodic), humanNumber(s.Sweep.Workers.QueuedBurst))
+						fmt.Fprintf(wtr, "%sWorker stats:    %-11s %s\n", indent, "Periodic", "Burst")
+						fmt.Fprintf(wtr, "%s  %-15s %-11s %s\n", indent, "Active:", humanNumber(s.Sweep.Workers.ActivePeriodic), humanNumber(s.Sweep.Workers.ActiveBurst))
+						fmt.Fprintf(wtr, "%s  %-15s %-11s %s\n", indent, "Dedicated:", humanNumber(s.Sweep.Workers.DedicatedPeriodic), humanNumber(s.Sweep.Workers.DedicatedBurst))
+						fmt.Fprintf(wtr, "%s  %-15s %-11s %s\n", indent, "Available:", humanNumber(availablePeriodic), humanNumber(availableBurst))
+						fmt.Fprintf(wtr, "%s  %-15s %-11s %s\n", indent, "Queued:", humanNumber(s.Sweep.Workers.QueuedPeriodic), humanNumber(s.Sweep.Workers.QueuedBurst))
 					} else {
 						// Brief mode - show condensed worker info
 						fmt.Fprintf(wtr, "%sPeriodic:\t%s active, %s available, %s queued\n", indent,
@@ -389,7 +389,7 @@ This interface is not stable and may change from release to release.
 }
 
 func humanDuration(val time.Duration) string {
-	if val > 10*time.Second {
+	if val > time.Second {
 		return val.Truncate(100 * time.Millisecond).String()
 	}
 	return val.Truncate(time.Microsecond).String()
