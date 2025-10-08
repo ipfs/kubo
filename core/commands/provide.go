@@ -182,10 +182,8 @@ This interface is not stable and may change from release to release.
 			return fmt.Errorf("stats not available with current routing system %T", nd.Provider)
 		}
 
-		fmt.Printf("sweepging provider %v\n", sweepingProvider)
 		s := sweepingProvider.Stats()
-		fmt.Printf("stats %v\n", s)
-		return res.Emit(provideStats{Sweep: &s, Legacy: nil, FullRT: false})
+		return res.Emit(provideStats{Sweep: &s})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, s provideStats) error {
@@ -226,53 +224,66 @@ This interface is not stable and may change from release to release.
 
 			// Connectivity
 			if all || connectivity || brief && s.Sweep.Connectivity.Status != "online" {
-				fmt.Fprintf(wtr, "Connectivity:\t%s, since:\t%s\n", s.Sweep.Connectivity.Status, humanTime(s.Sweep.Connectivity.Since))
+				since := s.Sweep.Connectivity.Since
+				if since.IsZero() {
+					fmt.Fprintf(wtr, "Connectivity:\t%s\n", s.Sweep.Connectivity.Status)
+				} else {
+					fmt.Fprintf(wtr, "Connectivity:\t%s, since:\t%s\n", s.Sweep.Connectivity.Status, humanTime(s.Sweep.Connectivity.Since))
+				}
 			}
 			// Queues
 			if all || queues || brief {
-				fmt.Fprintf(wtr, "Provide Queue Size:\t%s CIDs, from:\t%s keyspace regions\n", humanNumber(s.Sweep.Queues.PendingKeyProvides), humanNumber(s.Sweep.Queues.PendingRegionProvides))
-				fmt.Fprintf(wtr, "Reprovide Queue Size:\t%s regions\n", humanNumber(s.Sweep.Queues.PendingRegionReprovides))
+				fmt.Fprintf(wtr, "Provide queue size:\t%s CIDs, from:\t%s keyspace regions\n", humanNumber(s.Sweep.Queues.PendingKeyProvides), humanNumber(s.Sweep.Queues.PendingRegionProvides))
+				fmt.Fprintf(wtr, "Reprovide queue size:\t%s regions\n", humanNumber(s.Sweep.Queues.PendingRegionReprovides))
 			}
 			// Schedule
 			if all || schedule || brief {
 				fmt.Fprintf(wtr, "CIDs scheduled for reprovide:\t%s\n", humanNumber(s.Sweep.Schedule.Keys))
 				fmt.Fprintf(wtr, "Regions scheduled for reprovide:\t%s\n", humanNumber(s.Sweep.Schedule.Regions))
 				if !brief {
-					fmt.Fprintf(wtr, "Avg Prefix Length:\t%s\n", humanNumber(s.Sweep.Schedule.AvgPrefixLength))
-					fmt.Fprintf(wtr, "Next Reprovide at:\t%s\n", humanTime(s.Sweep.Schedule.NextReprovideAt))
-					fmt.Fprintf(wtr, "Next Reprovide Prefix:\t%s\n", key.BitString(s.Sweep.Schedule.NextReprovidePrefix))
+					fmt.Fprintf(wtr, "Avg prefix length:\t%s\n", humanNumberOrNA(s.Sweep.Schedule.AvgPrefixLength))
+					fmt.Fprintf(wtr, "Next reprovide at:\t%s\n", humanTime(s.Sweep.Schedule.NextReprovideAt))
+					nextPrefix := key.BitString(s.Sweep.Schedule.NextReprovidePrefix)
+					if nextPrefix == "" {
+						nextPrefix = "N/A"
+					}
+					fmt.Fprintf(wtr, "Next prefix to be reprovided:\t%s\n", nextPrefix)
 				}
 			}
 			// Timings
 			if all || timings {
-				fmt.Fprintf(wtr, "Uptime:\t%s, Since:\t%s\n", humanDuration(s.Sweep.Timing.Uptime), humanTime(time.Now().Add(-s.Sweep.Timing.Uptime)))
-				fmt.Fprintf(wtr, "Current Time Offset:\t%s\n", humanDuration(s.Sweep.Timing.CurrentTimeOffset))
-				fmt.Fprintf(wtr, "Cycle Started:\t%s\n", humanTime(s.Sweep.Timing.CycleStart))
-				fmt.Fprintf(wtr, "Reprovides Interval:\t%s\n", humanDuration(s.Sweep.Timing.ReprovidesInterval))
+				fmt.Fprintf(wtr, "Uptime:\t%s, since:\t%s\n", humanDuration(s.Sweep.Timing.Uptime), humanTime(time.Now().Add(-s.Sweep.Timing.Uptime)))
+				fmt.Fprintf(wtr, "Current time offset:\t%s\n", humanDuration(s.Sweep.Timing.CurrentTimeOffset))
+				fmt.Fprintf(wtr, "Cycle started:\t%s\n", humanTime(s.Sweep.Timing.CycleStart))
+				fmt.Fprintf(wtr, "Reprovide interval:\t%s\n", humanDuration(s.Sweep.Timing.ReprovidesInterval))
 			}
 			// Network
 			if all || network || brief {
-				fmt.Fprintf(wtr, "Avg Record Holders:\t%.1f\n", s.Sweep.Network.AvgHolders)
+				fmt.Fprintf(wtr, "Avg record holders:\t%s\n", humanFloatOrNA(s.Sweep.Network.AvgHolders))
 				if !brief {
-					fmt.Fprintf(wtr, "Peers Contacted:\t%s\n", humanNumber(s.Sweep.Network.Peers))
-					fmt.Fprintf(wtr, "Reachable Peers:\t%s\t(%d%%)\n", humanNumber(s.Sweep.Network.Reachable), 100*s.Sweep.Network.Reachable/s.Sweep.Network.Peers)
-					fmt.Fprintf(wtr, "Avg Region Size:\t%.f1\n", 0.) // TODO: add region size to stats
-					fmt.Fprintf(wtr, "Full Keyspace Coverage:\t%t\n", s.Sweep.Network.CompleteKeyspaceCoverage)
-					fmt.Fprintf(wtr, "Replication Factor:\t%s\n", humanNumber(s.Sweep.Network.ReplicationFactor))
+					fmt.Fprintf(wtr, "Peers swept:\t%s\n", humanNumber(s.Sweep.Network.Peers))
+					if s.Sweep.Network.Peers > 0 {
+						fmt.Fprintf(wtr, "Reachable peers:\t%s\t(%s%%)\n", humanNumber(s.Sweep.Network.Reachable), humanNumber(100*s.Sweep.Network.Reachable/s.Sweep.Network.Peers))
+					} else {
+						fmt.Fprintf(wtr, "Reachable peers:\t%s\n", humanNumber(s.Sweep.Network.Reachable))
+					}
+					fmt.Fprintf(wtr, "Avg region size:\t%s\n", humanFloatOrNA(s.Sweep.Network.AvgRegionSize))
+					fmt.Fprintf(wtr, "Full keyspace coverage:\t%t\n", s.Sweep.Network.CompleteKeyspaceCoverage)
+					fmt.Fprintf(wtr, "Replication factor:\t%s\n", humanNumber(s.Sweep.Network.ReplicationFactor))
 				}
 			}
 			// Operations
 			if all || operations || brief {
-				fmt.Fprintf(wtr, "Currently Providing:\t%s CIDs, In:\t%s Regions\n", humanNumber(s.Sweep.Operations.Ongoing.KeyProvides), humanNumber(s.Sweep.Operations.Ongoing.RegionProvides))
-				fmt.Fprintf(wtr, "Currently Repoviding:\t%s CIDs, In:\t%s Regions\n", humanNumber(s.Sweep.Operations.Ongoing.KeyReprovides), humanNumber(s.Sweep.Operations.Ongoing.RegionReprovides))
-				fmt.Fprintf(wtr, "Total Provides:\t%s\n", humanNumber(s.Sweep.Operations.Past.KeysProvided))
+				fmt.Fprintf(wtr, "Currently providing:\t%s CIDs, In:\t%s Regions\n", humanNumber(s.Sweep.Operations.Ongoing.KeyProvides), humanNumber(s.Sweep.Operations.Ongoing.RegionProvides))
+				fmt.Fprintf(wtr, "Currently repoviding:\t%s CIDs, In:\t%s Regions\n", humanNumber(s.Sweep.Operations.Ongoing.KeyReprovides), humanNumber(s.Sweep.Operations.Ongoing.RegionReprovides))
+				fmt.Fprintf(wtr, "Total CIDs provided:\t%s\n", humanNumber(s.Sweep.Operations.Past.KeysProvided))
 				if !brief {
-					fmt.Fprintf(wtr, "Total Records Provided:\t%s\n", humanNumber(s.Sweep.Operations.Past.RecordsProvided))
-					fmt.Fprintf(wtr, "Total Provide Errors:\t%s\n", humanNumber(s.Sweep.Operations.Past.KeysFailed))
-					fmt.Fprintf(wtr, "CIDs Provided per Minute:\t%s\n", humanNumber(s.Sweep.Operations.Past.KeysProvidedPerMinute))
-					fmt.Fprintf(wtr, "CIDs Reprovided per Minute:\t%s\n", humanNumber(s.Sweep.Operations.Past.KeysReprovidedPerMinute))
-					fmt.Fprintf(wtr, "Region Reprovide Duration:\t%s\n", humanDuration(s.Sweep.Operations.Past.RegionReprovideDuration))
-					fmt.Fprintf(wtr, "Avg CIDs per Reprovide:\t%s\n", humanNumber(s.Sweep.Operations.Past.AvgKeysPerReprovide))
+					fmt.Fprintf(wtr, "Total records provided:\t%s\n", humanNumber(s.Sweep.Operations.Past.RecordsProvided))
+					fmt.Fprintf(wtr, "Total provide errors:\t%s\n", humanNumber(s.Sweep.Operations.Past.KeysFailed))
+					fmt.Fprintf(wtr, "CIDs provided per minute:\t%s\n", humanFloatOrNA(s.Sweep.Operations.Past.KeysProvidedPerMinute))
+					fmt.Fprintf(wtr, "CIDs reprovided per minute:\t%s\n", humanFloatOrNA(s.Sweep.Operations.Past.KeysReprovidedPerMinute))
+					fmt.Fprintf(wtr, "Region reprovide duration:\t%s\n", humanDurationOrNA(s.Sweep.Operations.Past.RegionReprovideDuration))
+					fmt.Fprintf(wtr, "Avg CIDs per reprovide:\t%s\n", humanFloatOrNA(s.Sweep.Operations.Past.AvgKeysPerReprovide))
 					fmt.Fprintf(wtr, "Regions reprovided last cycle:\t%s\n", humanNumber(s.Sweep.Operations.Past.RegionReprovidedLastCycle))
 				}
 			}
@@ -287,17 +298,17 @@ This interface is not stable and may change from release to release.
 				if displayWorkers || availableBurst <= 2 || availablePeriodic <= 2 {
 					// Either we want to display workers information, or we are low on
 					// available workers and want to warn the user.
-					fmt.Fprintf(wtr, "Active Workers:\t%s, Max:\t%s\n", humanNumber(s.Sweep.Workers.Active), humanNumber(s.Sweep.Workers.Max))
-					fmt.Fprintf(wtr, "Available Free Worker:\t%s\n", humanNumber(availableFreeWorkers))
-					fmt.Fprintf(wtr, "Active Periodic Workers:\t%s, Dedicated:\t%s, Available:\t%s, Queued:\t%s\n",
+					fmt.Fprintf(wtr, "Active workers:\t%s, Max:\t%s\n", humanNumber(s.Sweep.Workers.Active), humanNumber(s.Sweep.Workers.Max))
+					fmt.Fprintf(wtr, "Available free worker:\t%s\n", humanNumber(availableFreeWorkers))
+					fmt.Fprintf(wtr, "Active periodic workers:\t%s, Dedicated:\t%s, Available:\t%s, Queued:\t%s\n",
 						humanNumber(s.Sweep.Workers.ActivePeriodic), humanNumber(s.Sweep.Workers.DedicatedPeriodic),
 						humanNumber(availablePeriodic), humanNumber(s.Sweep.Workers.QueuedPeriodic))
-					fmt.Fprintf(wtr, "Active Burst Workers:\t%s, Dedicated:\t%s, Available:\t%s, Queued:\t%s\n",
+					fmt.Fprintf(wtr, "Active burst workers:\t%s, Dedicated:\t%s, Available:\t%s, Queued:\t%s\n",
 						humanNumber(s.Sweep.Workers.ActiveBurst), humanNumber(s.Sweep.Workers.DedicatedBurst),
 						humanNumber(availableBurst), humanNumber(s.Sweep.Workers.QueuedBurst))
 				}
 				if displayWorkers {
-					fmt.Fprintf(wtr, "Max Connections per Worker:\t%s\n", humanNumber(s.Sweep.Workers.MaxProvideConnsPerWorker))
+					fmt.Fprintf(wtr, "Max connections per worker:\t%s\n", humanNumber(s.Sweep.Workers.MaxProvideConnsPerWorker))
 				}
 			}
 			return nil
@@ -307,10 +318,23 @@ This interface is not stable and may change from release to release.
 }
 
 func humanDuration(val time.Duration) string {
+	if val > 10*time.Second {
+		return val.Truncate(100 * time.Millisecond).String()
+	}
 	return val.Truncate(time.Microsecond).String()
 }
 
+func humanDurationOrNA(val time.Duration) string {
+	if val <= 0 {
+		return "N/A"
+	}
+	return humanDuration(val)
+}
+
 func humanTime(val time.Time) string {
+	if val.IsZero() {
+		return "N/A"
+	}
 	return val.Format("2006-01-02 15:04:05")
 }
 
@@ -322,6 +346,21 @@ func humanNumber[T constraints.Float | constraints.Integer](n T) string {
 		return fmt.Sprintf("%s\t(%s)", str, fullStr)
 	}
 	return str
+}
+
+// humanNumberOrNA is like humanNumber but returns "N/A" for non-positive values.
+func humanNumberOrNA[T constraints.Float | constraints.Integer](n T) string {
+	if n <= 0 {
+		return "N/A"
+	}
+	return humanNumber(n)
+}
+
+func humanFloatOrNA(val float64) string {
+	if val <= 0 {
+		return "N/A"
+	}
+	return fmt.Sprintf("%.1f", val)
 }
 
 func humanSI(val float64, decimals int) string {
