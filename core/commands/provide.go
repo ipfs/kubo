@@ -240,9 +240,12 @@ This interface is not stable and may change from release to release.
 
 			compactMode := all && compact
 			var cols [2][]string
+			col0MaxWidth := 0
 			formatLine := func(col int, format string, a ...any) {
 				if compactMode {
-					cols[col] = append(cols[col], fmt.Sprintf(format, a...))
+					s := fmt.Sprintf(format, a...)
+					cols[col] = append(cols[col], s)
+					col0MaxWidth = max(col0MaxWidth, len(s))
 					return
 				}
 				format = strings.Replace(format, ": ", ":\t", 1)
@@ -387,7 +390,7 @@ This interface is not stable and may change from release to release.
 				}
 			}
 			if compactMode {
-				col1Width := 34 // Fixed width for column 1
+				col0Width := col0MaxWidth + 2
 				// Print both columns side by side
 				maxRows := max(len(cols[0]), len(cols[1]))
 				for i := range maxRows - 1 { // last line is empty
@@ -398,7 +401,7 @@ This interface is not stable and may change from release to release.
 					if i < len(cols[1]) {
 						right = cols[1][i]
 					}
-					fmt.Fprintf(wtr, "%-*s %s\n", col1Width, left, right)
+					fmt.Fprintf(wtr, "%-*s %s\n", col0Width, left, right)
 				}
 			} else {
 				if !brief {
