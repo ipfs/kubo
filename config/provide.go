@@ -18,7 +18,7 @@ const (
 	DefaultProvideDHTSweepEnabled             = false
 	DefaultProvideDHTDedicatedPeriodicWorkers = 2
 	DefaultProvideDHTDedicatedBurstWorkers    = 1
-	DefaultProvideDHTMaxProvideConnsPerWorker = 16
+	DefaultProvideDHTMaxProvideConnsPerWorker = 20
 	DefaultProvideDHTKeystoreBatchSize        = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
 	DefaultProvideDHTOfflineDelay             = 2 * time.Hour
 )
