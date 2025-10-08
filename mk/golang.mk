@@ -1,5 +1,4 @@
 # golang utilities
-GO_MIN_VERSION = 1.25
 export GO111MODULE=on
 
 
@@ -74,11 +73,8 @@ test_go_lint: test/bin/golangci-lint
 
 test_go: $(TEST_GO)
 
-check_go_version:
-	@$(GOCC) version
-	bin/check_go_version $(GO_MIN_VERSION)
+# Version check is no longer needed - go.mod enforces minimum version
 .PHONY: check_go_version
-DEPS_GO += check_go_version
 
 TEST += $(TEST_GO)
 TEST_SHORT += test_go_fmt test_go_short

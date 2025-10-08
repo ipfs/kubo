@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -40,47 +41,51 @@ func Must(err error) {
 
 // WithBackup performs a config file operation with automatic backup and rollback on error
 func WithBackup(configPath string, backupSuffix string, fn func(in io.ReadSeeker, out io.Writer) error) error {
-	in, err := os.Open(configPath)
+	// Read the entire file into memory first
+	// This allows us to close the file before doing atomic operations,
+	// which is necessary on Windows where open files can't be renamed
+	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read config file %s: %w", configPath, err)
 	}
-	defer in.Close()
 
-	// Create backup
-	backup, err := atomicfile.New(configPath+backupSuffix, 0600)
+	// Create an in-memory reader for the data
+	in := bytes.NewReader(data)
+
+	// Create backup atomically to prevent partial backup on interruption
+	backupPath := configPath + backupSuffix
+	backup, err := atomicfile.New(backupPath, 0600)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create backup file for %s: %w", backupPath, err)
 	}
-
-	// Copy to backup
-	if _, err := backup.ReadFrom(in); err != nil {
+	if _, err := backup.Write(data); err != nil {
 		Must(backup.Abort())
-		return err
+		return fmt.Errorf("failed to write backup data: %w", err)
 	}
-
-	// Reset input for reading
-	if _, err := in.Seek(0, io.SeekStart); err != nil {
+	if err := backup.Close(); err != nil {
 		Must(backup.Abort())
-		return err
+		return fmt.Errorf("failed to finalize backup: %w", err)
 	}
 
-	// Create output file
+	// Create output file atomically
 	out, err := atomicfile.New(configPath, 0600)
 	if err != nil {
-		Must(backup.Abort())
-		return err
+		// Clean up backup on error
+		os.Remove(backupPath)
+		return fmt.Errorf("failed to create atomic file for %s: %w", configPath, err)
 	}
 
 	// Run the conversion function
 	if err := fn(in, out); err != nil {
 		Must(out.Abort())
-		Must(backup.Abort())
-		return err
+		// Clean up backup on error
+		os.Remove(backupPath)
+		return fmt.Errorf("config conversion failed: %w", err)
 	}
 
-	// Close everything on success
+	// Close the output file atomically
 	Must(out.Close())
-	Must(backup.Close())
+	// Backup remains for potential revert
 
 	return nil
 }

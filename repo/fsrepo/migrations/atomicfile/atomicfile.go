@@ -1,6 +1,7 @@
 package atomicfile
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -34,23 +35,27 @@ func New(path string, mode os.FileMode) (*File, error) {
 
 // Close atomically replaces the target file with the temporary file
 func (f *File) Close() error {
-	if err := f.File.Close(); err != nil {
-		os.Remove(f.File.Name())
-		return err
+	closeErr := f.File.Close()
+	if closeErr != nil {
+		// Try to cleanup temp file, but prioritize close error
+		_ = os.Remove(f.File.Name())
+		return closeErr
 	}
-
-	if err := os.Rename(f.File.Name(), f.path); err != nil {
-		os.Remove(f.File.Name())
-		return err
-	}
-
-	return nil
+	return os.Rename(f.File.Name(), f.path)
 }
 
 // Abort removes the temporary file without replacing the target
 func (f *File) Abort() error {
-	f.File.Close()
-	return os.Remove(f.File.Name())
+	closeErr := f.File.Close()
+	removeErr := os.Remove(f.File.Name())
+
+	if closeErr != nil && removeErr != nil {
+		return fmt.Errorf("abort failed: close: %w, remove: %v", closeErr, removeErr)
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	return removeErr
 }
 
 // ReadFrom reads from the given reader into the atomic file

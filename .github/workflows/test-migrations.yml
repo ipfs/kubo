@@ -1,0 +1,85 @@
+name: Migrations
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      # Migration implementation files
+      - 'repo/fsrepo/migrations/**'
+      - 'test/cli/migrations/**'
+      # Config and repo handling
+      - 'repo/fsrepo/**'
+      # This workflow file itself
+      - '.github/workflows/test-migrations.yml'
+  push:
+    branches:
+      - 'master'
+      - 'release-*'
+    paths:
+      - 'repo/fsrepo/migrations/**'
+      - 'test/cli/migrations/**'
+      - 'repo/fsrepo/**'
+      - '.github/workflows/test-migrations.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      TEST_VERBOSE: 1
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build kubo binary
+        run: |
+          make build
+          echo "Built ipfs binary at $(pwd)/cmd/ipfs/"
+
+      - name: Add kubo to PATH
+        run: |
+          echo "$(pwd)/cmd/ipfs" >> $GITHUB_PATH
+
+      - name: Verify ipfs in PATH
+        run: |
+          which ipfs || echo "ipfs not in PATH"
+          ipfs version || echo "Failed to run ipfs version"
+
+      - name: Run migration unit tests
+        run: |
+          go test ./repo/fsrepo/migrations/...
+
+      - name: Run CLI migration tests
+        env:
+          IPFS_PATH: ${{ runner.temp }}/ipfs-test
+        run: |
+          export PATH="${{ github.workspace }}/cmd/ipfs:$PATH"
+          which ipfs || echo "ipfs not found in PATH"
+          ipfs version || echo "Failed to run ipfs version"
+          go test ./test/cli/migrations/...
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-test-results
+          path: |
+            test/**/*.log
+            ${{ runner.temp }}/ipfs-test/

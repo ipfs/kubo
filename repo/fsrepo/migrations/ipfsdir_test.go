@@ -11,6 +11,8 @@ import (
 func TestRepoDir(t *testing.T) {
 	fakeHome := t.TempDir()
 	t.Setenv("HOME", fakeHome)
+	// On Windows, os.UserHomeDir() uses USERPROFILE, not HOME
+	t.Setenv("USERPROFILE", fakeHome)
 	fakeIpfs := filepath.Join(fakeHome, ".ipfs")
 	t.Setenv(config.EnvDir, fakeIpfs)
 
