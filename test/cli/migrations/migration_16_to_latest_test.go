@@ -21,6 +21,7 @@ import (
 
 	ipfs "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/test/cli/harness"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -52,6 +53,13 @@ func TestMigration16ToLatest(t *testing.T) {
 	// Comparison tests using 'ipfs repo migrate' command
 	t.Run("repo migrate: forward migration with auto values", testRepoMigrationWithAuto)
 	t.Run("repo migrate: backward migration", testRepoBackwardMigration)
+
+	// Temp file and backup cleanup tests
+	t.Run("daemon migrate: no temp files after successful migration", testNoTempFilesAfterSuccessfulMigration)
+	t.Run("daemon migrate: no temp files after failed migration", testNoTempFilesAfterFailedMigration)
+	t.Run("daemon migrate: backup files persist after successful migration", testBackupFilesPersistAfterSuccessfulMigration)
+	t.Run("repo migrate: backup files can revert migration", testBackupFilesCanRevertMigration)
+	t.Run("repo migrate: conversion failure cleans up temp files", testConversionFailureCleanup)
 }
 
 // =============================================================================
@@ -392,10 +400,15 @@ func setupStaticV16Repo(t *testing.T) *harness.Node {
 	v16FixturePath := "testdata/v16-repo"
 
 	// Create a temporary test directory - each test gets its own copy
-	// Use ./tmp.DELETEME/ as requested by user instead of /tmp/
-	tmpDir := filepath.Join("tmp.DELETEME", "migration-test-"+t.Name())
+	// Sanitize test name for Windows - replace invalid characters
+	sanitizedName := strings.Map(func(r rune) rune {
+		if strings.ContainsRune(`<>:"/\|?*`, r) {
+			return '_'
+		}
+		return r
+	}, t.Name())
+	tmpDir := filepath.Join(t.TempDir(), "migration-test-"+sanitizedName)
 	require.NoError(t, os.MkdirAll(tmpDir, 0755))
-	t.Cleanup(func() { os.RemoveAll(tmpDir) })
 
 	// Convert to absolute path for harness
 	absTmpDir, err := filepath.Abs(tmpDir)
@@ -559,6 +572,8 @@ func testRepoBackwardMigration(t *testing.T) {
 
 	// First run forward migration to get to v17
 	result := node.RunIPFS("repo", "migrate")
+	t.Logf("Forward migration stdout:\n%s", result.Stdout.String())
+	t.Logf("Forward migration stderr:\n%s", result.Stderr.String())
 	require.Empty(t, result.Stderr.String(), "Forward migration should succeed")
 
 	// Verify we're at the latest version
@@ -569,6 +584,8 @@ func testRepoBackwardMigration(t *testing.T) {
 
 	// Now run reverse migration back to v16
 	result = node.RunIPFS("repo", "migrate", "--to=16", "--allow-downgrade")
+	t.Logf("Backward migration stdout:\n%s", result.Stdout.String())
+	t.Logf("Backward migration stderr:\n%s", result.Stderr.String())
 	require.Empty(t, result.Stderr.String(), "Reverse migration should succeed")
 
 	// Verify version was downgraded to 16
@@ -752,4 +769,150 @@ func runDaemonWithMultipleMigrationMonitoring(t *testing.T, node *harness.Node, 
 			}
 		}
 	}
+}
+
+// =============================================================================
+// TEMP FILE AND BACKUP CLEANUP TESTS
+// =============================================================================
+
+// Helper functions for test cleanup assertions
+func assertNoTempFiles(t *testing.T, dir string, msgAndArgs ...interface{}) {
+	t.Helper()
+	tmpFiles, err := filepath.Glob(filepath.Join(dir, ".tmp-*"))
+	require.NoError(t, err)
+	assert.Empty(t, tmpFiles, msgAndArgs...)
+}
+
+func backupPath(configPath string, fromVer, toVer int) string {
+	return fmt.Sprintf("%s.%d-to-%d.bak", configPath, fromVer, toVer)
+}
+
+func setupDaemonCmd(ctx context.Context, node *harness.Node, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, node.IPFSBin, args...)
+	cmd.Dir = node.Dir
+	for k, v := range node.Runner.Env {
+		cmd.Env = append(cmd.Env, k+"="+v)
+	}
+	return cmd
+}
+
+func testNoTempFilesAfterSuccessfulMigration(t *testing.T) {
+	node := setupStaticV16Repo(t)
+
+	// Run successful migration
+	_, migrationSuccess := runDaemonMigrationWithMonitoring(t, node)
+	require.True(t, migrationSuccess, "migration should succeed")
+
+	assertNoTempFiles(t, node.Dir, "no temp files should remain after successful migration")
+}
+
+func testNoTempFilesAfterFailedMigration(t *testing.T) {
+	node := setupStaticV16Repo(t)
+
+	// Corrupt config to force migration failure
+	configPath := filepath.Join(node.Dir, "config")
+	corruptedJson := `{"Bootstrap": ["auto",` // Invalid JSON
+	require.NoError(t, os.WriteFile(configPath, []byte(corruptedJson), 0644))
+
+	// Attempt migration (should fail)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cmd := setupDaemonCmd(ctx, node, "daemon", "--migrate")
+	output, _ := cmd.CombinedOutput()
+	t.Logf("Failed migration output: %s", output)
+
+	assertNoTempFiles(t, node.Dir, "no temp files should remain after failed migration")
+}
+
+func testBackupFilesPersistAfterSuccessfulMigration(t *testing.T) {
+	node := setupStaticV16Repo(t)
+
+	// Run migration from v16 to latest (v18)
+	_, migrationSuccess := runDaemonMigrationWithMonitoring(t, node)
+	require.True(t, migrationSuccess, "migration should succeed")
+
+	// Check for backup files from each migration step
+	configPath := filepath.Join(node.Dir, "config")
+	backup16to17 := backupPath(configPath, 16, 17)
+	backup17to18 := backupPath(configPath, 17, 18)
+
+	// Both backup files should exist
+	assert.FileExists(t, backup16to17, "16-to-17 backup should exist")
+	assert.FileExists(t, backup17to18, "17-to-18 backup should exist")
+
+	// Verify backup files contain valid JSON
+	data16to17, err := os.ReadFile(backup16to17)
+	require.NoError(t, err)
+	var config16to17 map[string]interface{}
+	require.NoError(t, json.Unmarshal(data16to17, &config16to17), "16-to-17 backup should be valid JSON")
+
+	data17to18, err := os.ReadFile(backup17to18)
+	require.NoError(t, err)
+	var config17to18 map[string]interface{}
+	require.NoError(t, json.Unmarshal(data17to18, &config17to18), "17-to-18 backup should be valid JSON")
+}
+
+func testBackupFilesCanRevertMigration(t *testing.T) {
+	node := setupStaticV16Repo(t)
+
+	configPath := filepath.Join(node.Dir, "config")
+	versionPath := filepath.Join(node.Dir, "version")
+
+	// Read original v16 config
+	originalConfig, err := os.ReadFile(configPath)
+	require.NoError(t, err)
+
+	// Migrate to v17 only
+	result := node.RunIPFS("repo", "migrate", "--to=17")
+	require.Empty(t, result.Stderr.String(), "migration to v17 should succeed")
+
+	// Verify backup exists
+	backup16to17 := backupPath(configPath, 16, 17)
+	assert.FileExists(t, backup16to17, "16-to-17 backup should exist")
+
+	// Manually revert using backup
+	backupData, err := os.ReadFile(backup16to17)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(configPath, backupData, 0600))
+	require.NoError(t, os.WriteFile(versionPath, []byte("16"), 0644))
+
+	// Verify config matches original
+	revertedConfig, err := os.ReadFile(configPath)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(originalConfig), string(revertedConfig), "reverted config should match original")
+
+	// Verify version is back to 16
+	versionData, err := os.ReadFile(versionPath)
+	require.NoError(t, err)
+	assert.Equal(t, "16", strings.TrimSpace(string(versionData)), "version should be reverted to 16")
+}
+
+func testConversionFailureCleanup(t *testing.T) {
+	// This test verifies that when a migration's conversion function fails,
+	// all temporary files are cleaned up properly
+	node := setupStaticV16Repo(t)
+
+	configPath := filepath.Join(node.Dir, "config")
+
+	// Create a corrupted config that will cause conversion to fail during JSON parsing
+	// The migration will read this, attempt to parse as JSON, and fail
+	corruptedJson := `{"Bootstrap": ["auto",` // Invalid JSON - missing closing bracket
+	require.NoError(t, os.WriteFile(configPath, []byte(corruptedJson), 0644))
+
+	// Attempt migration (should fail during conversion)
+	result := node.RunIPFS("repo", "migrate")
+	require.NotEmpty(t, result.Stderr.String(), "migration should fail with error")
+
+	assertNoTempFiles(t, node.Dir, "no temp files should remain after conversion failure")
+
+	// Verify no backup files were created (failure happened before backup)
+	backupFiles, err := filepath.Glob(filepath.Join(node.Dir, "config.*.bak"))
+	require.NoError(t, err)
+	assert.Empty(t, backupFiles, "no backup files should be created on conversion failure")
+
+	// Verify corrupted config is unchanged (atomic operations prevented overwrite)
+	currentConfig, err := os.ReadFile(configPath)
+	require.NoError(t, err)
+	assert.Equal(t, corruptedJson, string(currentConfig), "corrupted config should remain unchanged")
 }
