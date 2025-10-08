@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	lockfile "github.com/ipfs/go-fs-lock"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/common"
 	mg16 "github.com/ipfs/kubo/repo/fsrepo/migrations/fs-repo-16-to-17/migration"
 	mg17 "github.com/ipfs/kubo/repo/fsrepo/migrations/fs-repo-17-to-18/migration"
@@ -108,6 +109,13 @@ func RunEmbeddedMigrations(ctx context.Context, targetVer int, ipfsDir string, a
 	if err != nil {
 		return err
 	}
+
+	// Acquire lock once for all embedded migrations to prevent concurrent access
+	lk, err := lockfile.Lock(ipfsDir, "repo.lock")
+	if err != nil {
+		return fmt.Errorf("failed to acquire repo lock: %w", err)
+	}
+	defer lk.Close()
 
 	fromVer, err := RepoVersion(ipfsDir)
 	if err != nil {
