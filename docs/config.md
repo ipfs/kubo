@@ -2167,7 +2167,13 @@ from that keyspace region until all provider records are assigned.
 This option defines how many such connections can be open concurrently by a
 single worker.
 
-Default: `16`
+> [!NOTE]
+> Increasing this value can speed up the provide operation, at the cost of
+> opening more simultaneous connections to DHT servers. A keyspace typically
+> has less than 60 peers, so you may hit a performance ceiling beyond which
+> increasing this value has no effect.
+
+Default: `20`
 
 Type: `optionalInteger` (non-negative)
 
