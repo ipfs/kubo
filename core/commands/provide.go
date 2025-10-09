@@ -149,11 +149,11 @@ This interface is not stable and may change from release to release.
 		}
 
 		lanStats, _ := req.Options[provideLanOptionName].(bool)
-		compact, _ := req.Options[provideStatCompactOptionName].(bool)
-		all, _ := req.Options[provideStatAllOptionName].(bool)
 
-		if compact && !all {
-			return fmt.Errorf("--compact flag requires --all flag")
+		if lanStats {
+			if _, ok := nd.Provider.(*dual.SweepingProvider); !ok {
+				return errors.New("LAN DHT stats only available for Sweep+Dual DHT")
+			}
 		}
 
 		var sweepingProvider *provider.SweepingProvider
@@ -199,26 +199,6 @@ This interface is not stable and may change from release to release.
 			wtr := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
 			defer wtr.Flush()
 
-			if s.Legacy != nil {
-				fmt.Fprintf(wtr, "TotalReprovides:\t%s\n", humanNumber(s.Legacy.TotalReprovides))
-				fmt.Fprintf(wtr, "AvgReprovideDuration:\t%s\n", humanDuration(s.Legacy.AvgReprovideDuration))
-				fmt.Fprintf(wtr, "LastReprovideDuration:\t%s\n", humanDuration(s.Legacy.LastReprovideDuration))
-				if !s.Legacy.LastRun.IsZero() {
-					fmt.Fprintf(wtr, "LastReprovide:\t%s\n", humanTime(s.Legacy.LastRun))
-					if s.FullRT {
-						fmt.Fprintf(wtr, "NextReprovide:\t%s\n", humanTime(s.Legacy.LastRun.Add(s.Legacy.ReprovideInterval)))
-					}
-				}
-				return nil
-			}
-			if s.Sweep == nil {
-				return errors.New("no provide stats available")
-			}
-
-			if s.Sweep.Closed {
-				fmt.Fprintf(wtr, "Provider is closed\n")
-				return nil
-			}
 			all, _ := req.Options[provideStatAllOptionName].(bool)
 			compact, _ := req.Options[provideStatCompactOptionName].(bool)
 			connectivity, _ := req.Options[provideStatConnectivityOptionName].(bool)
@@ -235,6 +215,37 @@ This interface is not stable and may change from release to release.
 					flagCount++
 				}
 			}
+
+			if s.Legacy != nil {
+				if flagCount > 0 {
+					return errors.New("cannot use flags with legacy provide stats")
+				}
+				fmt.Fprintf(wtr, "TotalReprovides:\t%s\n", humanNumber(s.Legacy.TotalReprovides))
+				fmt.Fprintf(wtr, "AvgReprovideDuration:\t%s\n", humanDuration(s.Legacy.AvgReprovideDuration))
+				fmt.Fprintf(wtr, "LastReprovideDuration:\t%s\n", humanDuration(s.Legacy.LastReprovideDuration))
+				if !s.Legacy.LastRun.IsZero() {
+					fmt.Fprintf(wtr, "LastReprovide:\t%s\n", humanTime(s.Legacy.LastRun))
+					if s.FullRT {
+						fmt.Fprintf(wtr, "NextReprovide:\t%s\n", humanTime(s.Legacy.LastRun.Add(s.Legacy.ReprovideInterval)))
+					}
+				}
+				return nil
+			}
+
+			if s.Sweep == nil {
+				return errors.New("no provide stats available")
+			}
+
+			// Sweep provider stats
+			if s.Sweep.Closed {
+				fmt.Fprintf(wtr, "Provider is closed\n")
+				return nil
+			}
+
+			if compact && !all {
+				return errors.New("--compact flag requires --all flag")
+			}
+
 			brief := flagCount == 0
 			showHeadings := flagCount > 1 || all
 
