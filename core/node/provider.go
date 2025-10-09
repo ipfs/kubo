@@ -507,10 +507,118 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			},
 		})
 	})
+	type alertInput struct {
+		fx.In
+		Provider DHTProvider
+	}
+	reprovideAlert := fx.Invoke(func(lc fx.Lifecycle, in alertInput) {
+		var (
+			cancel context.CancelFunc
+			done   = make(chan struct{})
+		)
+
+		// Select Sweeping Provider to get the stats from.
+		var prov *dhtprovider.SweepingProvider
+		switch p := in.Provider.(type) {
+		case *ddhtprovider.SweepingProvider:
+			prov = p.WAN
+		case *dhtprovider.SweepingProvider:
+			prov = p
+		case *buffered.SweepingProvider:
+			switch inner := p.Provider.(type) {
+			case *ddhtprovider.SweepingProvider:
+				prov = inner.WAN
+			case *dhtprovider.SweepingProvider:
+				prov = inner
+			}
+		}
+
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				if prov == nil {
+					return nil
+				}
+				gcCtx, c := context.WithCancel(context.Background())
+				cancel = c
+				go func() {
+					defer close(done)
+
+					// Poll stats every 15 minutes
+					pollInterval := 15 * time.Minute
+					ticker := time.NewTicker(pollInterval)
+					var queueSize, prevQueueSize, count int
+					var queuedWorkers, prevQueuedWorkers bool
+					for {
+						select {
+						case <-gcCtx.Done():
+							return
+						case <-ticker.C:
+						}
+
+						stats := prov.Stats()
+						queuedWorkers = stats.Workers.QueuedPeriodic > 0
+						queueSize = stats.Queues.PendingRegionReprovides
+						// If reprovide queue size keeps growing and workers are not
+						// keeping up, print warning message
+						if prevQueuedWorkers && queuedWorkers && queueSize > prevQueueSize {
+							count++
+							if count > 2 {
+								logger.Errorf(`
+🔔🔔🔔 Reprovide Operations Too Slow 🔔🔔🔔
+
+Your node is falling behind on DHT reprovides, which will affect content availability.
+
+Keyspace regions enqueued for reprovide:
+  %s ago:\t%d
+	Now:\t%d
+
+All periodic workers are busy!
+	Active workers:\t%d / %d (max)
+	Active workers types:\t%d periodic, %d burst
+	Dedicated workers:\t%d periodic, %d burst
+
+Solutions (try in order):
+1. Increase Provide.DHT.MaxWorkers (current %d)
+2. Increase Provide.DHT.DedicatedPeriodicWorkers (current %d)
+3. Set Provide.DHT.SweepEnabled=false and Routing.AcceleratedDHTClient=true (last resort, not recommended)
+
+See how the reprovide queue is processed in real-time with 'watch ipfs provide stat --all --compact'
+
+See docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtmaxworkers`,
+									pollInterval.Truncate(time.Minute).String(), prevQueueSize, queueSize,
+									stats.Workers.Active, stats.Workers.Max,
+									stats.Workers.ActivePeriodic, stats.Workers.ActiveBurst,
+									stats.Workers.DedicatedPeriodic, stats.Workers.DedicatedBurst,
+									stats.Workers.Max, stats.Workers.DedicatedPeriodic)
+							}
+						} else if !queuedWorkers {
+							count = 0
+						}
+
+						prevQueueSize, prevQueuedWorkers = queueSize, queuedWorkers
+					}
+				}()
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				// Cancel the alert loop
+				if cancel != nil {
+					cancel()
+				}
+				select {
+				case <-done:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				return nil
+			},
+		})
+	})
 
 	return fx.Options(
 		sweepingReprovider,
 		initKeystore,
+		reprovideAlert,
 	)
 }
 
