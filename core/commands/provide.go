@@ -121,6 +121,30 @@ Returns statistics about the content the node is reproviding every
 Provide.DHT.Interval according to Provide.Strategy:
 https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
 
+This command displays statistics for the provide system currently in use
+(Sweep or Legacy). If using the Legacy provider, basic statistics are shown
+and no flags are supported. The following behavior applies to the Sweep
+provider only:
+
+By default, displays a brief summary of key metrics including queue sizes,
+scheduled CIDs/regions, average record holders, ongoing/total provides, and
+worker status (if low on workers).
+
+Use --all to display comprehensive statistics organized into sections:
+connectivity (DHT status), queues (pending provides/reprovides), schedule
+(CIDs/regions to reprovide), timings (uptime, cycle info), network (peers,
+reachability, region size), operations (provide rates, errors), and workers
+(pool utilization).
+
+Individual sections can be displayed using their respective flags (e.g.,
+--network, --operations, --workers). Multiple section flags can be combined.
+
+The --compact flag provides a 2-column layout suitable for monitoring with
+'watch' (requires --all). Example: watch ipfs provide stat --all --compact
+
+For Dual DHT setups, use --lan to show statistics for the LAN DHT provider
+instead of the default WAN DHT provider.
+
 This interface is not stable and may change from release to release.
 
 `,
