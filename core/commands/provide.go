@@ -329,7 +329,7 @@ This interface is not stable and may change from release to release.
 				formatLine(0, "%sCIDs scheduled: %s", indent, humanNumber(s.Sweep.Schedule.Keys))
 				formatLine(0, "%sRegions scheduled: %s", indent, humanNumberOrNA(s.Sweep.Schedule.Regions))
 				if !brief {
-					formatLine(0, "%sAvg prefix length: %s", indent, humanNumberOrNA(s.Sweep.Schedule.AvgPrefixLength))
+					formatLine(0, "%sAvg prefix length: %s", indent, humanFloatOrNA(s.Sweep.Schedule.AvgPrefixLength))
 					formatLine(0, "%sNext reprovide at: %s", indent, s.Sweep.Schedule.NextReprovideAt.Format("15:04:05"))
 					nextPrefix := key.BitString(s.Sweep.Schedule.NextReprovidePrefix)
 					if nextPrefix == "" {
