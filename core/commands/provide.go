@@ -330,7 +330,11 @@ This interface is not stable and may change from release to release.
 				formatLine(0, "%sRegions scheduled: %s", indent, humanNumberOrNA(s.Sweep.Schedule.Regions))
 				if !brief {
 					formatLine(0, "%sAvg prefix length: %s", indent, humanFloatOrNA(s.Sweep.Schedule.AvgPrefixLength))
-					formatLine(0, "%sNext reprovide at: %s", indent, s.Sweep.Schedule.NextReprovideAt.Format("15:04:05"))
+					nextReprovideAt := s.Sweep.Schedule.NextReprovideAt.Format("15:04:05")
+					if s.Sweep.Schedule.NextReprovideAt.IsZero() {
+						nextReprovideAt = "N/A"
+					}
+					formatLine(0, "%sNext reprovide at: %s", indent, nextReprovideAt)
 					nextPrefix := key.BitString(s.Sweep.Schedule.NextReprovidePrefix)
 					if nextPrefix == "" {
 						nextPrefix = "N/A"
@@ -414,7 +418,7 @@ This interface is not stable and may change from release to release.
 							humanNumber(s.Sweep.Workers.ActiveBurst), humanNumber(availableBurst), humanNumber(s.Sweep.Workers.QueuedBurst))
 					} else {
 						formatLine(0, "%sFree%s: %s", indent, specifyWorkers, humanNumber(availableFreeWorkers))
-						formatLine(0, "%sWorker stats:    %-9s %s", indent, "Periodic", "Burst")
+						formatLine(0, "%sWorker stats:%s  %-9s %s", indent, "  ", "Periodic", "Burst")
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Active:", humanNumber(s.Sweep.Workers.ActivePeriodic), humanNumber(s.Sweep.Workers.ActiveBurst))
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Dedicated:", humanNumber(s.Sweep.Workers.DedicatedPeriodic), humanNumber(s.Sweep.Workers.DedicatedBurst))
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Available:", humanNumber(availablePeriodic), humanNumber(availableBurst))
