@@ -34,6 +34,9 @@ const (
 	provideStatScheduleOptionName     = "schedule"
 	provideStatQueuesOptionName       = "queues"
 	provideStatWorkersOptionName      = "workers"
+
+	// lowWorkerThreshold is the threshold below which worker availability warnings are shown
+	lowWorkerThreshold = 2
 )
 
 var ProvideCmd = &cmds.Command{
@@ -112,6 +115,26 @@ type provideStats struct {
 	FullRT bool // only used for legacy stats
 }
 
+// extractSweepingProvider extracts a SweepingProvider from the given provider interface.
+// It handles unwrapping buffered and dual providers, selecting LAN or WAN as specified.
+// Returns nil if the provider is not a sweeping provider type.
+func extractSweepingProvider(prov any, useLAN bool) *provider.SweepingProvider {
+	switch p := prov.(type) {
+	case *provider.SweepingProvider:
+		return p
+	case *dual.SweepingProvider:
+		if useLAN {
+			return p.LAN
+		}
+		return p.WAN
+	case *buffered.SweepingProvider:
+		// Recursively extract from the inner provider
+		return extractSweepingProvider(p.Provider, useLAN)
+	default:
+		return nil
+	}
+}
+
 var provideStatCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
@@ -130,7 +153,7 @@ By default, displays a brief summary of key metrics including queue sizes,
 scheduled CIDs/regions, average record holders, ongoing/total provides, and
 worker status (if low on workers).
 
-Use --all to display comprehensive statistics organized into sections:
+Use --all to display detailed statistics organized into sections:
 connectivity (DHT status), queues (pending provides/reprovides), schedule
 (CIDs/regions to reprovide), timings (uptime, cycle info), network (peers,
 reachability, region size), operations (provide rates, errors), and workers
@@ -176,44 +199,25 @@ This interface is not stable and may change from release to release.
 
 		lanStats, _ := req.Options[provideLanOptionName].(bool)
 
-		if lanStats {
-			if _, ok := nd.Provider.(*dual.SweepingProvider); !ok {
+		// Handle legacy provider
+		if legacySys, ok := nd.Provider.(boxoprovider.System); ok {
+			if lanStats {
 				return errors.New("LAN DHT stats only available for Sweep+Dual DHT")
 			}
-		}
-
-		var sweepingProvider *provider.SweepingProvider
-		switch prov := nd.Provider.(type) {
-		case boxoprovider.System:
-			stats, err := prov.Stat()
+			stats, err := legacySys.Stat()
 			if err != nil {
 				return err
 			}
 			_, fullRT := nd.DHTClient.(*fullrt.FullRT)
 			return res.Emit(provideStats{Legacy: &stats, FullRT: fullRT})
-		case *provider.SweepingProvider:
-			sweepingProvider = prov
-		case *dual.SweepingProvider:
-			if lanStats {
-				sweepingProvider = prov.LAN
-			} else {
-				sweepingProvider = prov.WAN
-			}
-		case *buffered.SweepingProvider:
-			switch inner := prov.Provider.(type) {
-			case *provider.SweepingProvider:
-				sweepingProvider = inner
-			case *dual.SweepingProvider:
-				if lanStats {
-					sweepingProvider = inner.LAN
-				} else {
-					sweepingProvider = inner.WAN
-				}
-			default:
-			}
-		default:
 		}
+
+		// Extract sweeping provider (handles buffered and dual unwrapping)
+		sweepingProvider := extractSweepingProvider(nd.Provider, lanStats)
 		if sweepingProvider == nil {
+			if lanStats {
+				return errors.New("LAN DHT stats only available for Sweep+Dual DHT")
+			}
 			return fmt.Errorf("stats not available with current routing system %T", nd.Provider)
 		}
 
@@ -403,7 +407,7 @@ This interface is not stable and may change from release to release.
 				availableBurst := availableFreeWorkers + availableReservedBurst
 				availablePeriodic := availableFreeWorkers + availableReservedPeriodic
 
-				if displayWorkers || availableBurst <= 2 || availablePeriodic <= 2 {
+				if displayWorkers || availableBurst <= lowWorkerThreshold || availablePeriodic <= lowWorkerThreshold {
 					// Either we want to display workers information, or we are low on
 					// available workers and want to warn the user.
 					sectionTitle(0, "Workers")
