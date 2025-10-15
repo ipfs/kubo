@@ -145,8 +145,10 @@ The --compact flag provides a 2-column layout suitable for monitoring with
 For Dual DHT setups, use --lan to show statistics for the LAN DHT provider
 instead of the default WAN DHT provider.
 
-This interface is not stable and may change from release to release.
+A detailed description of each metric is available at:
+https://github.com/ipfs/kubo/blob/master/docs/provide-stats.md
 
+This interface is not stable and may change from release to release.
 `,
 	},
 	Arguments: []cmds.Argument{},
@@ -360,13 +362,13 @@ This interface is not stable and may change from release to release.
 				formatLine(0, "%sAvg record holders: %s", indent, humanFloatOrNA(s.Sweep.Network.AvgHolders))
 				if !brief {
 					formatLine(0, "%sPeers swept: %s", indent, humanNumber(s.Sweep.Network.Peers))
+					formatLine(0, "%sFull keyspace coverage: %t", indent, s.Sweep.Network.CompleteKeyspaceCoverage)
 					if s.Sweep.Network.Peers > 0 {
 						formatLine(0, "%sReachable peers: %s (%s%%)", indent, humanNumber(s.Sweep.Network.Reachable), humanNumber(100*s.Sweep.Network.Reachable/s.Sweep.Network.Peers))
 					} else {
 						formatLine(0, "%sReachable peers: %s", indent, humanNumber(s.Sweep.Network.Reachable))
 					}
 					formatLine(0, "%sAvg region size: %s", indent, humanFloatOrNA(s.Sweep.Network.AvgRegionSize))
-					formatLine(0, "%sFull keyspace coverage: %t", indent, s.Sweep.Network.CompleteKeyspaceCoverage)
 					formatLine(0, "%sReplication factor: %s", indent, humanNumber(s.Sweep.Network.ReplicationFactor))
 					addBlankLine(0)
 				}
@@ -418,7 +420,7 @@ This interface is not stable and may change from release to release.
 							humanNumber(s.Sweep.Workers.ActiveBurst), humanNumber(availableBurst), humanNumber(s.Sweep.Workers.QueuedBurst))
 					} else {
 						formatLine(0, "%sFree%s: %s", indent, specifyWorkers, humanNumber(availableFreeWorkers))
-						formatLine(0, "%sWorker stats:%s  %-9s %s", indent, "  ", "Periodic", "Burst")
+						formatLine(0, "%sWorkers stats:%s  %-9s %s", indent, "  ", "Periodic", "Burst")
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Active:", humanNumber(s.Sweep.Workers.ActivePeriodic), humanNumber(s.Sweep.Workers.ActiveBurst))
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Dedicated:", humanNumber(s.Sweep.Workers.DedicatedPeriodic), humanNumber(s.Sweep.Workers.DedicatedBurst))
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Available:", humanNumber(availablePeriodic), humanNumber(availableBurst))
