@@ -145,8 +145,10 @@ The --compact flag provides a 2-column layout suitable for monitoring with
 For Dual DHT setups, use --lan to show statistics for the LAN DHT provider
 instead of the default WAN DHT provider.
 
-This interface is not stable and may change from release to release.
+A detailed description of each metric is available at:
+https://github.com/ipfs/kubo/blob/master/docs/provide-stats.md
 
+This interface is not stable and may change from release to release.
 `,
 	},
 	Arguments: []cmds.Argument{},
