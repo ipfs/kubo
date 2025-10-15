@@ -282,6 +282,10 @@ This interface is not stable and may change from release to release.
 			compactMode := all && compact
 			var cols [2][]string
 			col0MaxWidth := 0
+			// formatLine adds a formatted line to the output.
+			// In compact mode, the col parameter determines which column (0 or 1) for side-by-side display.
+			// In normal mode, all output goes to cols[0] regardless of col parameter, allowing
+			// the same formatLine calls to work for both single-column and two-column layouts.
 			formatLine := func(col int, format string, a ...any) {
 				if compactMode {
 					s := fmt.Sprintf(format, a...)
@@ -501,6 +505,9 @@ func humanNumberOrNA[T constraints.Float | constraints.Integer](n T) string {
 	return humanNumber(n)
 }
 
+// humanFloatOrNA formats a float with 1 decimal place, returning "N/A" for non-positive values.
+// This is separate from humanNumberOrNA because it provides simple decimal formatting for
+// continuous metrics (averages, rates) rather than SI unit formatting used for discrete counts.
 func humanFloatOrNA(val float64) string {
 	if val <= 0 {
 		return "N/A"
