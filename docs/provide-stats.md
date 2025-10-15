@@ -8,224 +8,181 @@ this command.
 
 ### Status
 
-Provides the node's current connectivity status: `online`, `disconnected`, or
-`offline`. A node is considered `disconnected`, if it has been recently online
-in the last
-[`Provide.DHT.OfflineDelay`](https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtofflinedelay).
-
-It also contains the timestamp of the last status change.
+Current connectivity status (`online`, `disconnected`, or `offline`) and when
+it last changed (see [provide connectivity
+status](./config.md#providedhtofflinedelay)).
 
 ## Queues
 
 ### Provide queue
 
-Display the number of CIDs in the provide queue. In the queue, CIDs are grouped
-by keyspace region. Also displays the number of keyspace regions in the queue.
+Number of CIDs waiting for initial provide, and the number of keyspace regions
+they're grouped into.
 
 ### Reprovide queue
 
-Shows the number of regions that are waiting to be reprovided. The regions
-sitting in the reprovide queue are late to reprovide, and will be reprovided as
-soon as possible.
-
-A high number of regions in the reprovide queue may indicate a few things:
-
-1. The node is currently `disconnected` or `offline`, and the reprovides that
-   should have executed are queued for when the node goes back `online`.
-2. The node is currently processing the backlog of late reprovides after a
-   restart or a period of being `disconnected` or `offline`.
-3. The provide system cannot keep up with the rate of late reprovides, if the
-   queue size keeps inscresing or doesn't decrease over time. This is usually
-   due to a high number of CIDs to be reprovided and a too low number of
-   (periodic) workers. Consider increasing the [`Provide.DHT.MaxWorkers`]() and
-   [`Provide.DHT.DedicatedPeriodicWorkers`]().
+Number of regions with overdue reprovides. These regions missed their scheduled
+reprovide time and will be processed as soon as possible. If decreasing, the
+node is recovering from downtime. If increasing, either the node is offline or
+the provide system needs more workers (see
+[`Provide.DHT.MaxWorkers`](./config.md#providedhtmaxworkers)
+and
+[`Provide.DHT.DedicatedPeriodicWorkers`](./config.md#providedhtdedicatedperiodicworkers)).
 
 ## Schedule
 
 ### CIDs scheduled
 
-Number of CIDs scheduled to be reprovided.
+Total CIDs scheduled for reprovide.
 
 ### Regions scheduled
 
-Number of keyspace regions scheduled to be reprovided. Each CID is mapped to a
-region, and reprovided as a batch with the other CIDs in the same region.
+Number of keyspace regions scheduled for reprovide. Each CID is mapped to a
+specific region, and all CIDs within the same region are reprovided together as
+a batch for efficient processing.
 
 ### Avg prefix length
 
-Average prefix length of the scheduled regions. This is an indicator of the
-number of DHT servers in the swarm.
+Average length of binary prefixes identifying the scheduled regions. Each
+keyspace region is identified by a binary prefix, and this shows the average
+prefix length across all regions in the schedule. Longer prefixes indicate more
+DHT servers in the swarm.
 
 ### Next reprovide at
 
-Timestamp of the next scheduled region reprovide.
+When the next region is scheduled to be reprovided.
 
 ### Next prefix
 
-Next region prefix to be reprovided.
+Keyspace prefix of the next region to be reprovided.
 
 ## Timings
 
 ### Uptime
 
-Uptime of the provide system, since Kubo was started. Also includes the
-timestamp at which the provide system was started.
+How long the provide system has been running since Kubo started, along with the
+start timestamp.
 
 ### Current time offset
 
-Time offset in the current reprovide cycle. This metrics shows the progression
-of the provide cycle.
+Elapsed time in the current reprovide cycle, showing cycle progress.
 
 ### Cycle started
 
-Timestamp of when the current reprovide cycle started.
+When the current reprovide cycle began.
 
 ### Reprovide interval
 
-Duration of the reprovide cycle. This is the interval at which all CIDs are
-reprovided.
+How often each CID is reprovided (the complete cycle duration).
 
 ## Network
 
 ### Avg record holders
 
-Each CID is sent to multiple DHT servers in the swarm. This metric shows the
-average number of DHT servers that have been sent each CID. If this number
-matches the [Replication factor](#replication-factor), it means that all CIDs
-have been sent to the desired number of DHT servers.
+Average number of provider records successfully sent for each CID to distinct
+DHT servers. In practice, this is often lower than the [replication
+factor](#replication-factor) due to unreachable peers or timeouts. Matching the
+replication factor would indicate all DHT servers are reachable.
 
-A lower number indicates that a proportion of the DHT network either isn't
-reachable, timed out during the `ADD_PROVIDER` RPC, or doesn't support storing
-provider records.
-
-Note that this metric only displays the number of replicas that were sent
-successfully. It is possible that some of the records holders have gone
-offline, and the actual number of nodes storing the provider records may be
-lower.
+Note: some holders may have gone offline since receiving the record.
 
 ### Peers swept
 
-Number of DHT servers that were contacted during the last reprovide sweep
-cycle. This doesn't include peers that were contacted during the initial
-provide of a CID, not during a DHT lookup. It only includes peers that we tried
-to send a provider record to.
-
-If providing CIDs to all keyspace regions (very likely beyond a certain number
-of CIDs), this number is expected to grow during the initial reprovide cycle
-(up to [`reprovide interval`](#reprovide-interval) after the node started).
-After that, the number is expected to stabilize and show the actual size of the
-DHT swarm.
-
-If providing a small number of CIDs, this number will be lower than the network
-size, since it only considers the peers to which we sent provider records.
+Number of DHT servers to which we tried to send provider records in the last
+reprovide cycle (sweep). Excludes peers contacted during initial provides or
+DHT lookups.
 
 ### Full keyspace coverage
 
-Boolean value indicating whether the reprovide sweep has covered all the DHT
-servers in the swarm or not. It `true` it means that the node has sent provider
-records to all DHT servers in the swarm during the last reprovide cycle.
-
-It means that [`Peers swept`](#peers-swept) is an approximation of the DHT
-swarm size over the last [`Reprovide Interval`](#reprovide-interval).
+Whether provider records were sent to all DHT servers in the swarm during the
+last reprovide cycle. If true, [peers swept](#peers-swept) approximates the
+total DHT swarm size over the last [reprovide interval](#reprovide-interval).
 
 ### Reachable peers
 
-Number of reachable peers among the [`Peers swept`](#peers-swept). A reachable
-peer is a peer that successfully responded to all the `ADD_PROVIDER` RPC that
-we sent during the last reprovide cycle.
-
-Also includes the percentage of reachable peers among the [`Peers swept`](#peers-swept).
+Number and percentage of peers to which we successfully sent all provider
+records assigned to them during the last reprovide cycle.
 
 ### Avg region size
 
-Average number of DHT servers in each keyspace region.
+Average number of DHT servers per keyspace region.
 
 ### Replication factor
 
-Number of DHT servers to which we send a provider record for each CID.
+Target number of DHT servers to receive each provider record.
 
 ## Operations
 
 ### Ongoing provides
 
-Number of CIDs that are currently being provided for the first time. Also shows
-the number of keyspace regions to which these CIDs belong.
-
-Having a higher number of CIDs than number of regions indicates that regions
-contain multiple CIDs, which is a sign of efficient batching.
-
-Each keyspace region corresponds to a [burst worker]().
+Number of CIDs and regions currently being provided for the first time. More
+CIDs than regions indicates efficient batching. Each region provide uses a
+[burst
+worker](./config.md#providedhtdedicatedburstworkers).
 
 ### Ongoing reprovides
 
-Number of CIDs and keyspace regions that are currently being reprovided.
-
-Each region corresponds to a [periodic worker]().
+Number of CIDs and regions currently being reprovided. Each region reprovide
+uses a [periodic
+worker](./config.md#providedhtdedicatedperiodicworkers).
 
 ### Total CIDs provided
 
-Number of (non-distinct) CIDs that have been provided since the node started.
-Also includes reprovides.
+Total number of provide operations since node startup (includes both provides
+and reprovides).
 
 ### Total records provided
 
-Number of provider records that have successfully been sent to DHT servers
-since the node started. Also includes reprovides.
+Total provider records successfully sent to DHT servers since startup (includes
+reprovides).
 
 ### Total provide errors
 
-Number of regions that have failed to be provided since the node started. Also
-includes reprovides. Upon failure, the provide system will retry providing the
-failed region, unless it is `disconnected` or `offline`, in which case the
-retry happens when the node goes back `online`.
+Number of failed region provide/reprovide operations since startup. Failed
+regions are automatically retried unless the node is offline.
 
 ### CIDs provided/min
 
-Average number of CIDs provided (excluding reprovides) per minute of provide
-operation running in the last reprovide cycle.
+Average rate of initial provides per minute during the last reprovide cycle
+(excludes reprovides).
 
 ### CIDs reprovided/min
 
-Average number of CIDs reprovided (excluding initial provide) per minute of
-reprovide operation running in the last reprovide cycle.
+Average rate of reprovides per minute during the last reprovide cycle (excludes
+initial provides).
 
 ### Region reprovide duration
 
-Average duration it took to reprovide all the CIDs in a keyspace region during
-the last reprovide cycle.
+Average time to reprovide all CIDs in a region during the last cycle.
 
 ### Avg CIDs/reprovide
 
-Average number of CIDs that were reprovided in each keyspace region during the
-last reprovide cycle.
+Average number of CIDs per region during the last reprovide cycle.
 
 ### Regions reprovided (last cycle)
 
-Number of keyspace regions that were reprovided during the last reprovide cycle.
+Number of regions reprovided in the last cycle.
 
 ## Workers
 
 ### Active workers
 
-Number of workers that are currently active, either processing a provide or a
-reprovide operation.
+Number of workers currently processing provide or reprovide operations.
 
 ### Free workers
 
-Number of workers that are currently idle, and not reserved for a specific task
-(periodic or burst).
+Number of idle workers not reserved for periodic or burst tasks.
 
 ### Workers stats
 
-For each kind of worker (periodic and burst), shows the number of active,
-dedicated, available and queued workers. The number of available workers is the
-sum of idle dedicated workers and [`free workers`](#free-workers). The number
-of queued workers can be either `0` or `1` since we don't try to take a new
-worker until we successfully can take one. You can look at the [`Provide
-queue`](#provide-queue) and [`Reprovide queue`](#reprovide-queue) to see how
-many regions are waiting to be processed, which corresponds to queued workers.
+Breakdown of worker status by type (periodic for scheduled reprovides, burst
+for initial provides). For each: active (currently processing), dedicated
+(reserved for this type), available (idle dedicated + [free
+workers](#free-workers)), and queued (0 or 1, since we only acquire when
+needed). See [provide queue](#provide-queue) and [reprovide
+queue](#reprovide-queue) for regions waiting to be processed.
 
 ### Max connections/worker
 
-Maximum number of connections to DHT servers per worker when sending out
-proivder records for a region.
+Maximum concurrent DHT server connections per worker when sending provider
+records for a region.
