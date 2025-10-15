@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
+	"unicode/utf8"
 
 	humanize "github.com/dustin/go-humanize"
 	boxoprovider "github.com/ipfs/boxo/provider"
@@ -240,8 +241,8 @@ This interface is not stable and may change from release to release.
 			workers, _ := req.Options[provideStatWorkersOptionName].(bool)
 
 			flagCount := 0
-			for _, b := range []bool{all, connectivity, queues, schedule, network, timings, operations, workers} {
-				if b {
+			for _, enabled := range []bool{all, connectivity, queues, schedule, network, timings, operations, workers} {
+				if enabled {
 					flagCount++
 				}
 			}
@@ -290,7 +291,9 @@ This interface is not stable and may change from release to release.
 				if compactMode {
 					s := fmt.Sprintf(format, a...)
 					cols[col] = append(cols[col], s)
-					col0MaxWidth = max(col0MaxWidth, len(s))
+					if col == 0 {
+						col0MaxWidth = max(col0MaxWidth, utf8.RuneCountInString(s))
+					}
 					return
 				}
 				format = strings.Replace(format, ": ", ":\t", 1)
@@ -442,6 +445,9 @@ This interface is not stable and may change from release to release.
 				col0Width := col0MaxWidth + 2
 				// Print both columns side by side
 				maxRows := max(len(cols[0]), len(cols[1]))
+				if maxRows == 0 {
+					return nil
+				}
 				for i := range maxRows - 1 { // last line is empty
 					var left, right string
 					if i < len(cols[0]) {
