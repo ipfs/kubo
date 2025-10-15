@@ -420,7 +420,7 @@ This interface is not stable and may change from release to release.
 							humanNumber(s.Sweep.Workers.ActiveBurst), humanNumber(availableBurst), humanNumber(s.Sweep.Workers.QueuedBurst))
 					} else {
 						formatLine(0, "%sFree%s: %s", indent, specifyWorkers, humanNumber(availableFreeWorkers))
-						formatLine(0, "%sWorker stats:%s  %-9s %s", indent, "  ", "Periodic", "Burst")
+						formatLine(0, "%sWorkers stats:%s  %-9s %s", indent, "  ", "Periodic", "Burst")
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Active:", humanNumber(s.Sweep.Workers.ActivePeriodic), humanNumber(s.Sweep.Workers.ActiveBurst))
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Dedicated:", humanNumber(s.Sweep.Workers.DedicatedPeriodic), humanNumber(s.Sweep.Workers.DedicatedBurst))
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Available:", humanNumber(availablePeriodic), humanNumber(availableBurst))
