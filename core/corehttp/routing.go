@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"time"
@@ -13,6 +14,8 @@ import (
 	"github.com/ipfs/boxo/routing/http/types/iter"
 	cid "github.com/ipfs/go-cid"
 	core "github.com/ipfs/kubo/core"
+	"github.com/libp2p/go-libp2p-kad-dht/dual"
+	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 )
@@ -96,50 +99,52 @@ func (r *contentRouter) PutIPNS(ctx context.Context, name ipns.Name, record *ipn
 	return r.n.Routing.PutValue(ctx, string(name.RoutingKey()), raw)
 }
 
-func (r *contentRouter) GetClosestPeers(ctx context.Context, pid peer.ID) (iter.ResultIter[*types.PeerRecord], error) {
+func (r *contentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.ResultIter[*types.PeerRecord], error) {
 	// Per the spec, if the peer ID is empty, we should use self.
-	if pid == "" {
-		pid = r.n.Identity
+	if key == cid.Undef {
+		key = peer.ToCid(r.n.Identity)
 	}
 
-	peers, err := r.n.DHT.WAN.GetClosestPeers(ctx, string(pid))
-	if err != nil {
-		return nil, err
+	keyStr := string(key.Hash())
+	var peers []peer.ID
+	var err error
+
+	switch r.n.DHTClient.(type) {
+	case *dual.DHT:
+		peers, err = r.n.DHT.WAN.GetClosestPeers(ctx, keyStr)
+		if err != nil {
+			return nil, err
+		}
+
+		lanPeers, err := r.n.DHT.LAN.GetClosestPeers(ctx, keyStr)
+		if err != nil {
+			return nil, err
+		}
+		peers = append(peers, lanPeers...)
+	case *fullrt.FullRT:
+		frt := r.n.DHTClient.(*fullrt.FullRT)
+		peers, err = frt.GetClosestPeers(ctx, keyStr)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, errors.New("cannot call GetClosestPeers on DHT implementation")
 	}
 
-	lanPeers, err := r.n.DHT.LAN.GetClosestPeers(ctx, string(pid))
-	if err != nil {
-		return nil, err
-	}
-	peers = append(peers, lanPeers...)
-
-	// We have some DHT-closest peers. Find addresses for them.  We can
-	// use any routers for that, we can find records for DHT peers on
-	// non-DHT routers with whatever protocols. FIXME: right? right??
+	// We have some DHT-closest peers. Find addresses for them.
+	// The addresses should be in the peerstore.
 	var records []*types.PeerRecord
 	for _, p := range peers {
+		addrs := r.n.Peerstore.Addrs(p)
+		rAddrs := make([]types.Multiaddr, len(addrs))
+		for i, addr := range addrs {
+			rAddrs[i] = types.Multiaddr{addr}
+		}
 		record := types.PeerRecord{
 			ID:     &p,
 			Schema: types.SchemaPeer,
+			Addrs:  rAddrs,
 			// we dont seem to care about protocol/extra infos
-			// FIXME: should FindPeers care? That info seems to
-			// not cross the FindPeer API.
-		}
-		// FindPeers will an iterator with a single item because
-		// that's how it's implemented above. Treat it as if it
-		// returned several records for a peer anyways. And merge them into the one above.
-		peerIter, err := r.FindPeers(ctx, p, -1)
-		if err != nil {
-			continue
-		}
-		defer peerIter.Close()
-
-		for peerIter.Next() {
-			val := peerIter.Val()
-			if val.Err != nil {
-				continue
-			}
-			record.Addrs = append(record.Addrs, val.Val.Addrs...)
 		}
 		records = append(records, &record)
 	}

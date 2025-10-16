@@ -117,13 +117,17 @@ func (r *MockHTTPContentRouter) AddProvider(key cid.Cid, record types.Record) {
 	}
 }
 
-func (r *MockHTTPContentRouter) GetClosestPeers(ctx context.Context, pid peer.ID) (iter.ResultIter[*types.PeerRecord], error) {
+func (r *MockHTTPContentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.ResultIter[*types.PeerRecord], error) {
 	r.m.Lock()
 	defer r.m.Unlock()
 	r.getClosestPeersCalls++
 
 	if r.peers == nil {
 		r.peers = make(map[peer.ID][]*types.PeerRecord)
+	}
+	pid, err := peer.FromCid(key)
+	if err != nil {
+		return iter.FromSlice([]iter.Result[*types.PeerRecord]{}), nil
 	}
 	records, found := r.peers[pid]
 	if !found {
