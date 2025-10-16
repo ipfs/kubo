@@ -370,16 +370,16 @@ NOTES:
 				formatLine(0, "%sRegions scheduled: %s", indent, humanNumberOrNA(s.Sweep.Schedule.Regions))
 				if !brief {
 					formatLine(0, "%sAvg prefix length: %s", indent, humanFloatOrNA(s.Sweep.Schedule.AvgPrefixLength))
-					nextReprovideAt := s.Sweep.Schedule.NextReprovideAt.Format("15:04:05")
-					if s.Sweep.Schedule.NextReprovideAt.IsZero() {
-						nextReprovideAt = "N/A"
-					}
-					formatLine(0, "%sNext reprovide at: %s", indent, nextReprovideAt)
 					nextPrefix := key.BitString(s.Sweep.Schedule.NextReprovidePrefix)
 					if nextPrefix == "" {
 						nextPrefix = "N/A"
 					}
-					formatLine(0, "%sNext prefix: %s", indent, nextPrefix)
+					formatLine(0, "%sNext region prefix: %s", indent, nextPrefix)
+					nextReprovideAt := s.Sweep.Schedule.NextReprovideAt.Format("15:04:05")
+					if s.Sweep.Schedule.NextReprovideAt.IsZero() {
+						nextReprovideAt = "N/A"
+					}
+					formatLine(0, "%sNext region reprovide: %s", indent, nextReprovideAt)
 				}
 				addBlankLine(0)
 			}

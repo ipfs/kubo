@@ -287,7 +287,7 @@ func TestProvideStatFlags(t *testing.T) {
 			},
 			{
 				flag:     "--schedule",
-				contains: []string{"CIDs scheduled:", "Regions scheduled:", "Avg prefix length:", "Next reprovide at:", "Next prefix:"},
+				contains: []string{"CIDs scheduled:", "Regions scheduled:", "Avg prefix length:", "Next region prefix:", "Next region reprovide:"},
 			},
 			{
 				flag:     "--timings",
