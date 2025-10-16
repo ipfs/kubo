@@ -138,7 +138,7 @@ func (r *contentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.
 		addrs := r.n.Peerstore.Addrs(p)
 		rAddrs := make([]types.Multiaddr, len(addrs))
 		for i, addr := range addrs {
-			rAddrs[i] = types.Multiaddr{addr}
+			rAddrs[i] = types.Multiaddr{Multiaddr: addr}
 		}
 		record := types.PeerRecord{
 			ID:     &p,
