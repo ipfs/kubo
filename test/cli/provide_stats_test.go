@@ -231,7 +231,7 @@ func TestProvideStatFlags(t *testing.T) {
 
 		res := node.RunIPFS("provide", "stat", "--compact")
 		assert.Error(t, res.Err)
-		assert.Contains(t, res.Stderr.String(), "--compact flag requires --all flag")
+		assert.Contains(t, res.Stderr.String(), "--compact requires --all flag")
 	})
 
 	t.Run("--compact with --all shows 2-column layout", func(t *testing.T) {
@@ -373,7 +373,7 @@ func TestProvideStatLegacyProvider(t *testing.T) {
 	t.Run("rejects --lan flag with legacy provider", func(t *testing.T) {
 		res := node.RunIPFS("provide", "stat", "--lan")
 		assert.Error(t, res.Err)
-		assert.Contains(t, res.Stderr.String(), "LAN DHT stats only available")
+		assert.Contains(t, res.Stderr.String(), "LAN stats only available for Sweep provider with Dual DHT")
 	})
 }
 

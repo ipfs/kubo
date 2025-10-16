@@ -43,15 +43,24 @@ const (
 var ProvideCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Control providing operations",
+		Tagline: "Control and monitor content providing",
 		ShortDescription: `
 Control providing operations.
 
-NOTE: This command is experimental and not all provide-related commands have
-been migrated to this namespace yet. For example, 'ipfs routing
-provide|reprovide' are still under the routing namespace, 'ipfs stats
-reprovide' provides statistics. Additionally, 'ipfs bitswap reprovide' and
-'ipfs stats provide' are deprecated.
+OVERVIEW:
+
+The provider system advertises content by publishing provider records,
+allowing other nodes to discover which peers have specific content.
+Content is reprovided periodically (every Provide.DHT.Interval)
+according to Provide.Strategy.
+
+CONFIGURATION:
+
+Learn more: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
+
+SEE ALSO:
+
+For ad-hoc one-time provide, see 'ipfs routing provide'
 `,
 	},
 
@@ -68,10 +77,18 @@ var provideClearCmd = &cmds.Command{
 		ShortDescription: `
 Clear all CIDs pending to be provided for the first time.
 
-Note: Kubo will automatically clear the queue when it detects a change of
-Provide.Strategy upon a restart. For more information about provide
-strategies, see:
-https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
+BEHAVIOR:
+
+This command removes CIDs from the provide queue that are waiting to be
+advertised to the DHT for the first time. It does not affect content that
+is already being reprovided on schedule.
+
+AUTOMATIC CLEARING:
+
+Kubo will automatically clear the queue when it detects a change of
+Provide.Strategy upon a restart.
+
+Learn: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
 `,
 	},
 	Options: []cmds.Option{
@@ -139,40 +156,51 @@ func extractSweepingProvider(prov any, useLAN bool) *provider.SweepingProvider {
 var provideStatCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Returns statistics about the node's provider system.",
+		Tagline: "Show statistics about the provider system",
 		ShortDescription: `
-Returns statistics about the content the node is reproviding every
-Provide.DHT.Interval according to Provide.Strategy:
-https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
+Returns statistics about the node's provider system.
 
-This command displays statistics for the provide system currently in use
-(Sweep or Legacy). If using the Legacy provider, basic statistics are shown
-and no flags are supported. The following behavior applies to the Sweep
-provider only:
+OVERVIEW:
 
-By default, displays a brief summary of key metrics including queue sizes,
-scheduled CIDs/regions, average record holders, ongoing/total provides, and
-worker status (if low on workers).
+The provide system advertises content to the DHT. Two provider types exist:
+- Sweep provider (default): Spreads reproviding load over time by dividing
+  the keyspace into regions
+- Legacy provider: Reprovides all content at once in bursts
 
-Use --all to display detailed statistics organized into sections:
-connectivity (DHT status), queues (pending provides/reprovides), schedule
-(CIDs/regions to reprovide), timings (uptime, cycle info), network (peers,
-reachability, region size), operations (provide rates, errors), and workers
-(pool utilization).
+Learn more:
+- Config: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
+- Metrics: https://github.com/ipfs/kubo/blob/master/docs/provide-stats.md
 
-Individual sections can be displayed using their respective flags (e.g.,
---network, --operations, --workers). Multiple section flags can be combined.
+DEFAULT OUTPUT:
 
-The --compact flag provides a 2-column layout suitable for monitoring with
-'watch' (requires --all). Example: watch ipfs provide stat --all --compact
+Shows a brief summary including queue sizes, scheduled items, average record
+holders, ongoing/total provides, and worker warnings.
 
-For Dual DHT setups, use --lan to show statistics for the LAN DHT provider
-instead of the default WAN DHT provider.
+DETAILED OUTPUT:
 
-A detailed description of each metric is available at:
-https://github.com/ipfs/kubo/blob/master/docs/provide-stats.md
+Use --all for detailed statistics with these sections: connectivity, queues,
+schedule, timings, network, operations, and workers. Individual sections can
+be displayed with their flags (e.g., --network, --operations). Multiple flags
+can be combined.
 
-This interface is not stable and may change from release to release.
+Use --compact for monitoring-friendly 2-column output (requires --all).
+
+EXAMPLES:
+
+Monitor provider statistics in real-time with 2-column layout:
+
+  watch ipfs provide stat --all --compact
+
+Get statistics in JSON format for programmatic processing:
+
+  ipfs provide stat --enc=json | jq
+
+NOTES:
+
+- This interface is experimental and may change between releases
+- Legacy provider shows basic stats only (no flags supported)
+- "Regions" are keyspace divisions for spreading reprovide work
+- For Dual DHT: use --lan for LAN provider stats (default is WAN)
 `,
 	},
 	Arguments: []cmds.Argument{},
@@ -203,7 +231,7 @@ This interface is not stable and may change from release to release.
 		// Handle legacy provider
 		if legacySys, ok := nd.Provider.(boxoprovider.System); ok {
 			if lanStats {
-				return errors.New("LAN DHT stats only available for Sweep+Dual DHT")
+				return errors.New("LAN stats only available for Sweep provider with Dual DHT")
 			}
 			stats, err := legacySys.Stat()
 			if err != nil {
@@ -217,7 +245,7 @@ This interface is not stable and may change from release to release.
 		sweepingProvider := extractSweepingProvider(nd.Provider, lanStats)
 		if sweepingProvider == nil {
 			if lanStats {
-				return errors.New("LAN DHT stats only available for Sweep+Dual DHT")
+				return errors.New("LAN stats only available for Sweep provider with Dual DHT")
 			}
 			return fmt.Errorf("stats not available with current routing system %T", nd.Provider)
 		}
@@ -274,7 +302,7 @@ This interface is not stable and may change from release to release.
 			}
 
 			if compact && !all {
-				return errors.New("--compact flag requires --all flag")
+				return errors.New("--compact requires --all flag")
 			}
 
 			brief := flagCount == 0
@@ -283,10 +311,9 @@ This interface is not stable and may change from release to release.
 			compactMode := all && compact
 			var cols [2][]string
 			col0MaxWidth := 0
-			// formatLine adds a formatted line to the output.
-			// In compact mode, the col parameter determines which column (0 or 1) for side-by-side display.
-			// In normal mode, all output goes to cols[0] regardless of col parameter, allowing
-			// the same formatLine calls to work for both single-column and two-column layouts.
+			// formatLine handles both normal and compact output modes:
+			// - Normal mode: all lines go to cols[0], col parameter is ignored
+			// - Compact mode: col 0 for left column, col 1 for right column
 			formatLine := func(col int, format string, a ...any) {
 				if compactMode {
 					s := fmt.Sprintf(format, a...)
