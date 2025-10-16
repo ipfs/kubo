@@ -162,10 +162,24 @@ Returns statistics about the node's provider system.
 
 OVERVIEW:
 
-The provide system advertises content to the DHT. Two provider types exist:
-- Sweep provider (default): Spreads reproviding load over time by dividing
-  the keyspace into regions
-- Legacy provider: Reprovides all content at once in bursts
+The provide system advertises content to the DHT by publishing provider
+records that map CIDs to your peer ID. These records expire after a fixed
+TTL to account for node churn, so content must be reprovided periodically
+to stay discoverable.
+
+Two provider types exist:
+
+- Sweep provider: Divides the DHT keyspace into regions and systematically
+  sweeps through them over the reprovide interval. Batches CIDs allocated
+  to the same DHT servers, reducing lookups from N (one per CID) to a
+  small static number based on DHT size (~3k for 10k DHT servers). Spreads
+  work evenly over time to prevent resource spikes and ensure announcements
+  happen just before records expire.
+
+- Legacy provider: Processes each CID individually with separate DHT
+  lookups. Attempts to reprovide all content as quickly as possible at the
+  start of each cycle. Works well for small datasets but struggles with
+  large collections.
 
 Learn more:
 - Config: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
