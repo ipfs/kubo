@@ -1914,7 +1914,7 @@ Configures how your node advertises content to make it discoverable by other
 peers.
 
 **What is providing?** When your node stores content, it publishes provider
-records to the routing system announcing "I have this content." These records
+records to the routing system announcing "I have this content". These records
 map CIDs to your peer ID, enabling content discovery across the network.
 
 While designed to support multiple routing systems in the future, the current
@@ -1972,11 +1972,11 @@ Type: `optionalString` (unset for the default)
 Configuration for providing data to Amino DHT peers.
 
 **Provider record lifecycle:** On the Amino DHT, provider records expire after
-[`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43)
-to account for node churn. Your node must re-announce (reprovide) content
-periodically to keep it discoverable. The [`Provide.DHT.Interval`](#providedhtinterval)
-setting controls this timing, with the default ensuring records refresh well
-before expiration or negative churn effects kick in.
+[`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43).
+Your node must re-announce (reprovide) content periodically to keep it
+discoverable. The [`Provide.DHT.Interval`](#providedhtinterval) setting
+controls this timing, with the default ensuring records refresh well before
+expiration or negative churn effects kick in.
 
 **Two provider systems:**
 
@@ -2023,11 +2023,11 @@ approximately half of [`amino.DefaultProvideValidity`](https://github.com/libp2p
 which accounts for network churn and ensures records stay alive without
 overwhelming the network with unnecessary announcements.
 
-**With sweep mode enabled ([`Provide.DHT.SweepEnabled`](#providedhtsweepenabled)):**
-The system spreads reprovide operations smoothly across this entire interval.
-Each keyspace region is reprovided at scheduled times throughout the period,
-ensuring announcements happen just before provider records would expire in their
-respective DHT regions.
+**With sweep mode enabled
+([`Provide.DHT.SweepEnabled`](#providedhtsweepenabled)):** The system spreads
+reprovide operations smoothly across this entire interval. Each keyspace region
+is reprovided at scheduled times throughout the period, ensuring announcements
+periodically happen every interval.
 
 **With legacy mode:** The system attempts to reprovide all CIDs as quickly as
 possible at the start of each interval. If reproviding takes longer than this
@@ -2104,24 +2104,26 @@ Enables the sweep provider for efficient content announcements. When disabled,
 the legacy [`boxo/provider`](https://github.com/ipfs/boxo/tree/main/provider) is
 used instead.
 
-**The legacy provider problem:** The legacy system processes CIDs one at a time,
-requiring a separate DHT lookup (10-20 seconds each) to find the 20 closest
-peers for each CID. This sequential approach only handles about 5,280 CIDs per
-reprovide cycle. If your node has more CIDs than can be reprovided within
+**The legacy provider problem:** The legacy system processes CIDs one at a
+time, requiring a separate DHT lookup (10-20 seconds each) to find the 20
+closest peers for each CID. This sequential approach typically handles less
+than 10,000 CID over 22h ([`Provide.DHT.Interval`](#providedhtinterval)). If
+your node has more CIDs than can be reprovided within
 [`Provide.DHT.Interval`](#providedhtinterval), provider records start expiring
-after [`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43),
+after
+[`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43),
 making content undiscoverable.
 
 **How sweep mode works:** The sweep provider divides the DHT keyspace into
-regions based on key prefixes. It estimates the Amino DHT size, calculates how
-many regions are needed (sized to contain at least 20 peers each), then
-schedules region processing evenly across [`Provide.DHT.Interval`](#providedhtinterval).
-When processing a region, it discovers the peers in that region once, then sends
-all provider records for CIDs allocated to those peers in a batch. This batching
-is the key efficiency: instead of N lookups for N CIDs, the number of lookups is
-bounded by a small static number based on Amino DHT size (e.g., ~3,000 lookups
-when there are ~10,000 DHT servers), regardless of how many CIDs you're
-providing.
+regions based on keyspace prefixes. It estimates the Amino DHT size, calculates
+how many regions are needed (sized to contain at least 20 peers each), then
+schedules region processing evenly across
+[`Provide.DHT.Interval`](#providedhtinterval). When processing a region, it
+discovers the peers in that region once, then sends all provider records for
+CIDs allocated to those peers in a batch. This batching is the key efficiency:
+instead of N lookups for N CIDs, the number of lookups is bounded by a constant
+fraction of the Amino DHT size (e.g., ~3,000 lookups when there are ~10,000 DHT
+servers), regardless of how many CIDs you're providing.
 
 **Efficiency gains:** For a node providing 100,000 CIDs, sweep mode reduces
 lookups by 97% compared to legacy. The work spreads smoothly over time rather
