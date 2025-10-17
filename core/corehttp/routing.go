@@ -111,16 +111,12 @@ func (r *contentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.
 
 	switch r.n.DHTClient.(type) {
 	case *dual.DHT:
+		// Only use WAN DHT for public HTTP Routing API.
+		// LAN DHT contains private network peers that should not be exposed publicly.
 		peers, err = r.n.DHT.WAN.GetClosestPeers(ctx, keyStr)
 		if err != nil {
 			return nil, err
 		}
-
-		lanPeers, err := r.n.DHT.LAN.GetClosestPeers(ctx, keyStr)
-		if err != nil {
-			return nil, err
-		}
-		peers = append(peers, lanPeers...)
 	case *fullrt.FullRT:
 		frt := r.n.DHTClient.(*fullrt.FullRT)
 		peers, err = frt.GetClosestPeers(ctx, keyStr)
@@ -133,7 +129,7 @@ func (r *contentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.
 
 	// We have some DHT-closest peers. Find addresses for them.
 	// The addresses should be in the peerstore.
-	var records []*types.PeerRecord
+	records := make([]*types.PeerRecord, 0, len(peers))
 	for _, p := range peers {
 		addrs := r.n.Peerstore.Addrs(p)
 		rAddrs := make([]types.Multiaddr, len(addrs))
@@ -144,7 +140,6 @@ func (r *contentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.
 			ID:     &p,
 			Schema: types.SchemaPeer,
 			Addrs:  rAddrs,
-			// we dont seem to care about protocol/extra infos
 		}
 		records = append(records, &record)
 	}
