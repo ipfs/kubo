@@ -570,12 +570,12 @@ Your node is falling behind on DHT reprovides, which will affect content availab
 
 Keyspace regions enqueued for reprovide:
   %s ago:\t%d
-	Now:\t%d
+  Now:\t%d
 
 All periodic workers are busy!
-	Active workers:\t%d / %d (max)
-	Active workers types:\t%d periodic, %d burst
-	Dedicated workers:\t%d periodic, %d burst
+  Active workers:\t%d / %d (max)
+  Active workers types:\t%d periodic, %d burst
+  Dedicated workers:\t%d periodic, %d burst
 
 Solutions (try in order):
 1. Increase Provide.DHT.MaxWorkers (current %d)
