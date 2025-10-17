@@ -8,7 +8,7 @@ require (
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/ipfs/go-cidutil v0.1.0
-	github.com/ipfs/go-log/v2 v2.8.1
+	github.com/ipfs/go-log/v2 v2.8.2
 	github.com/ipfs/go-test v0.2.3
 	github.com/ipfs/hang-fds v0.1.0
 	github.com/ipfs/iptb v1.4.1
@@ -141,7 +141,7 @@ require (
 	github.com/ipfs/go-block-format v0.2.3 // indirect
 	github.com/ipfs/go-cid v0.5.0 // indirect
 	github.com/ipfs/go-datastore v0.9.0 // indirect
-	github.com/ipfs/go-dsqueue v0.0.5 // indirect
+	github.com/ipfs/go-dsqueue v0.1.0 // indirect
 	github.com/ipfs/go-ipfs-cmds v0.15.0 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
@@ -184,7 +184,7 @@ require (
 	github.com/libp2p/go-flow-metrics v0.3.0 // indirect
 	github.com/libp2p/go-libp2p v0.43.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251009080632-2c5b3769ca70 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251017193437-abd04263daac // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.8.0 // indirect
 	github.com/libp2p/go-libp2p-record v0.3.1 // indirect
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.5 // indirect
@@ -259,7 +259,7 @@ require (
 	github.com/quasilyte/regex/syntax v0.0.0-20210819130434-b3f0c404a727 // indirect
 	github.com/quasilyte/stdinfo v0.0.0-20220114132959-f7386bf02567 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/quic-go/quic-go v0.54.0 // indirect
+	github.com/quic-go/quic-go v0.54.1 // indirect
 	github.com/quic-go/webtransport-go v0.9.0 // indirect
 	github.com/raeperd/recvcheck v0.2.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
