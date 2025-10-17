@@ -109,17 +109,23 @@ func (r *contentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.
 	var peers []peer.ID
 	var err error
 
-	switch r.n.DHTClient.(type) {
+	if r.n.DHTClient == nil {
+		return nil, fmt.Errorf("GetClosestPeers not supported: DHT is not available")
+	}
+
+	switch dhtClient := r.n.DHTClient.(type) {
 	case *dual.DHT:
 		// Only use WAN DHT for public HTTP Routing API.
 		// LAN DHT contains private network peers that should not be exposed publicly.
-		peers, err = r.n.DHT.WAN.GetClosestPeers(ctx, keyStr)
+		if dhtClient.WAN == nil {
+			return nil, fmt.Errorf("GetClosestPeers not supported: WAN DHT is not available")
+		}
+		peers, err = dhtClient.WAN.GetClosestPeers(ctx, keyStr)
 		if err != nil {
 			return nil, err
 		}
 	case *fullrt.FullRT:
-		frt := r.n.DHTClient.(*fullrt.FullRT)
-		peers, err = frt.GetClosestPeers(ctx, keyStr)
+		peers, err = dhtClient.GetClosestPeers(ctx, keyStr)
 		if err != nil {
 			return nil, err
 		}
