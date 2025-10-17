@@ -48,13 +48,13 @@ keyspace region is identified by a binary prefix, and this shows the average
 prefix length across all regions in the schedule. Longer prefixes indicate more
 DHT servers in the swarm.
 
-### Next reprovide at
-
-When the next region is scheduled to be reprovided.
-
-### Next prefix
+### Next region prefix
 
 Keyspace prefix of the next region to be reprovided.
+
+### Next region reprovide
+
+When the next region is scheduled to be reprovided.
 
 ## Timings
 

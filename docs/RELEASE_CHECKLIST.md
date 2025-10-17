@@ -1,4 +1,4 @@
-<!-- Last updated during [v0.37.0 release](https://github.com/ipfs/kubo/issues/10867) -->
+<!-- Last updated during [v0.38.0 release](https://github.com/ipfs/kubo/issues/10884) -->
 
 # ✅ Release Checklist (vX.Y.Z[-rcN])
 
@@ -80,18 +80,18 @@ If you're making a release for the first time, do pair programming and have the 
 - [ ] Update [ipshipyard/waterworks-infra](https://github.com/ipshipyard/waterworks-infra)
   - [ ] Update Kubo staging environment ([Running Kubo tests on staging](https://www.notion.so/Running-Kubo-tests-on-staging-488578bb46154f9bad982e4205621af8))
     - [ ] **RC:** Test last release against current RC
-    - [ ] **FINAL:** Test last release against current one
-  - [ ] Update collab cluster boxes to the tagged release
-  - [ ] Update libp2p bootstrappers to the tagged release
+    - [ ] **FINAL:** Latest release on both boxes
+  - [ ] **FINAL:** Update collab cluster boxes to the tagged release
+  - [ ] **FINAL:** Update libp2p bootstrappers to the tagged release
 - [ ] Smoke test with [IPFS Companion Browser Extension](https://docs.ipfs.tech/install/ipfs-companion/)
 - [ ] Update [ipfs-desktop](https://github.com/ipfs/ipfs-desktop)
   - [ ] Create PR updating kubo version in `package.json` and `package-lock.json`
-  - [ ] **FINAL only:** Merge and create/request new release
+  - [ ] **FINAL:** Merge PR and ship new ipfs-desktop release
 - [ ] **FINAL only:** Update [docs.ipfs.tech](https://docs.ipfs.tech/): run [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow and merge the PR
 
 ### Promotion
 
-- [ ] Create [IPFS Discourse](https://discuss.ipfs.tech) topic ([RC example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248), [FINAL example](https://discuss.ipfs.tech/t/kubo-v0-37-0-is-out/19673))
+- [ ] Create [IPFS Discourse](https://discuss.ipfs.tech) topic ([RC example](https://discuss.ipfs.tech/t/kubo-v0-38-0-rc2-is-out/19772), [FINAL example](https://discuss.ipfs.tech/t/kubo-v0-38-0-is-out/19795))
   - [ ] Title: `Kubo vX.Y.Z(-rcN) is out!`, tag: `kubo`
   - [ ] Use title as heading (`##`) in description
   - [ ] Include: GitHub release link, IPNS binaries, docker pull command, release notes

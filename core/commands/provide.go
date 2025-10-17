@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
+	"unicode/utf8"
 
 	humanize "github.com/dustin/go-humanize"
 	boxoprovider "github.com/ipfs/boxo/provider"
@@ -34,20 +35,32 @@ const (
 	provideStatScheduleOptionName     = "schedule"
 	provideStatQueuesOptionName       = "queues"
 	provideStatWorkersOptionName      = "workers"
+
+	// lowWorkerThreshold is the threshold below which worker availability warnings are shown
+	lowWorkerThreshold = 2
 )
 
 var ProvideCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Control providing operations",
+		Tagline: "Control and monitor content providing",
 		ShortDescription: `
 Control providing operations.
 
-NOTE: This command is experimental and not all provide-related commands have
-been migrated to this namespace yet. For example, 'ipfs routing
-provide|reprovide' are still under the routing namespace, 'ipfs stats
-reprovide' provides statistics. Additionally, 'ipfs bitswap reprovide' and
-'ipfs stats provide' are deprecated.
+OVERVIEW:
+
+The provider system advertises content by publishing provider records,
+allowing other nodes to discover which peers have specific content.
+Content is reprovided periodically (every Provide.DHT.Interval)
+according to Provide.Strategy.
+
+CONFIGURATION:
+
+Learn more: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
+
+SEE ALSO:
+
+For ad-hoc one-time provide, see 'ipfs routing provide'
 `,
 	},
 
@@ -64,10 +77,18 @@ var provideClearCmd = &cmds.Command{
 		ShortDescription: `
 Clear all CIDs pending to be provided for the first time.
 
-Note: Kubo will automatically clear the queue when it detects a change of
-Provide.Strategy upon a restart. For more information about provide
-strategies, see:
-https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
+BEHAVIOR:
+
+This command removes CIDs from the provide queue that are waiting to be
+advertised to the DHT for the first time. It does not affect content that
+is already being reprovided on schedule.
+
+AUTOMATIC CLEARING:
+
+Kubo will automatically clear the queue when it detects a change of
+Provide.Strategy upon a restart.
+
+Learn: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
 `,
 	},
 	Options: []cmds.Option{
@@ -112,43 +133,88 @@ type provideStats struct {
 	FullRT bool // only used for legacy stats
 }
 
+// extractSweepingProvider extracts a SweepingProvider from the given provider interface.
+// It handles unwrapping buffered and dual providers, selecting LAN or WAN as specified.
+// Returns nil if the provider is not a sweeping provider type.
+func extractSweepingProvider(prov any, useLAN bool) *provider.SweepingProvider {
+	switch p := prov.(type) {
+	case *provider.SweepingProvider:
+		return p
+	case *dual.SweepingProvider:
+		if useLAN {
+			return p.LAN
+		}
+		return p.WAN
+	case *buffered.SweepingProvider:
+		// Recursively extract from the inner provider
+		return extractSweepingProvider(p.Provider, useLAN)
+	default:
+		return nil
+	}
+}
+
 var provideStatCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Returns statistics about the node's provider system.",
+		Tagline: "Show statistics about the provider system",
 		ShortDescription: `
-Returns statistics about the content the node is reproviding every
-Provide.DHT.Interval according to Provide.Strategy:
-https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
+Returns statistics about the node's provider system.
 
-This command displays statistics for the provide system currently in use
-(Sweep or Legacy). If using the Legacy provider, basic statistics are shown
-and no flags are supported. The following behavior applies to the Sweep
-provider only:
+OVERVIEW:
 
-By default, displays a brief summary of key metrics including queue sizes,
-scheduled CIDs/regions, average record holders, ongoing/total provides, and
-worker status (if low on workers).
+The provide system advertises content to the DHT by publishing provider
+records that map CIDs to your peer ID. These records expire after a fixed
+TTL to account for node churn, so content must be reprovided periodically
+to stay discoverable.
 
-Use --all to display comprehensive statistics organized into sections:
-connectivity (DHT status), queues (pending provides/reprovides), schedule
-(CIDs/regions to reprovide), timings (uptime, cycle info), network (peers,
-reachability, region size), operations (provide rates, errors), and workers
-(pool utilization).
+Two provider types exist:
 
-Individual sections can be displayed using their respective flags (e.g.,
---network, --operations, --workers). Multiple section flags can be combined.
+- Sweep provider: Divides the DHT keyspace into regions and systematically
+  sweeps through them over the reprovide interval. Batches CIDs allocated
+  to the same DHT servers, reducing lookups from N (one per CID) to a
+  small static number based on DHT size (~3k for 10k DHT servers). Spreads
+  work evenly over time to prevent resource spikes and ensure announcements
+  happen just before records expire.
 
-The --compact flag provides a 2-column layout suitable for monitoring with
-'watch' (requires --all). Example: watch ipfs provide stat --all --compact
+- Legacy provider: Processes each CID individually with separate DHT
+  lookups. Attempts to reprovide all content as quickly as possible at the
+  start of each cycle. Works well for small datasets but struggles with
+  large collections.
 
-For Dual DHT setups, use --lan to show statistics for the LAN DHT provider
-instead of the default WAN DHT provider.
+Learn more:
+- Config: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
+- Metrics: https://github.com/ipfs/kubo/blob/master/docs/provide-stats.md
 
-A detailed description of each metric is available at:
-https://github.com/ipfs/kubo/blob/master/docs/provide-stats.md
+DEFAULT OUTPUT:
 
-This interface is not stable and may change from release to release.
+Shows a brief summary including queue sizes, scheduled items, average record
+holders, ongoing/total provides, and worker warnings.
+
+DETAILED OUTPUT:
+
+Use --all for detailed statistics with these sections: connectivity, queues,
+schedule, timings, network, operations, and workers. Individual sections can
+be displayed with their flags (e.g., --network, --operations). Multiple flags
+can be combined.
+
+Use --compact for monitoring-friendly 2-column output (requires --all).
+
+EXAMPLES:
+
+Monitor provider statistics in real-time with 2-column layout:
+
+  watch ipfs provide stat --all --compact
+
+Get statistics in JSON format for programmatic processing:
+
+  ipfs provide stat --enc=json | jq
+
+NOTES:
+
+- This interface is experimental and may change between releases
+- Legacy provider shows basic stats only (no flags supported)
+- "Regions" are keyspace divisions for spreading reprovide work
+- For Dual DHT: use --lan for LAN provider stats (default is WAN)
 `,
 	},
 	Arguments: []cmds.Argument{},
@@ -176,44 +242,25 @@ This interface is not stable and may change from release to release.
 
 		lanStats, _ := req.Options[provideLanOptionName].(bool)
 
-		if lanStats {
-			if _, ok := nd.Provider.(*dual.SweepingProvider); !ok {
-				return errors.New("LAN DHT stats only available for Sweep+Dual DHT")
+		// Handle legacy provider
+		if legacySys, ok := nd.Provider.(boxoprovider.System); ok {
+			if lanStats {
+				return errors.New("LAN stats only available for Sweep provider with Dual DHT")
 			}
-		}
-
-		var sweepingProvider *provider.SweepingProvider
-		switch prov := nd.Provider.(type) {
-		case boxoprovider.System:
-			stats, err := prov.Stat()
+			stats, err := legacySys.Stat()
 			if err != nil {
 				return err
 			}
 			_, fullRT := nd.DHTClient.(*fullrt.FullRT)
 			return res.Emit(provideStats{Legacy: &stats, FullRT: fullRT})
-		case *provider.SweepingProvider:
-			sweepingProvider = prov
-		case *dual.SweepingProvider:
-			if lanStats {
-				sweepingProvider = prov.LAN
-			} else {
-				sweepingProvider = prov.WAN
-			}
-		case *buffered.SweepingProvider:
-			switch inner := prov.Provider.(type) {
-			case *provider.SweepingProvider:
-				sweepingProvider = inner
-			case *dual.SweepingProvider:
-				if lanStats {
-					sweepingProvider = inner.LAN
-				} else {
-					sweepingProvider = inner.WAN
-				}
-			default:
-			}
-		default:
 		}
+
+		// Extract sweeping provider (handles buffered and dual unwrapping)
+		sweepingProvider := extractSweepingProvider(nd.Provider, lanStats)
 		if sweepingProvider == nil {
+			if lanStats {
+				return errors.New("LAN stats only available for Sweep provider with Dual DHT")
+			}
 			return fmt.Errorf("stats not available with current routing system %T", nd.Provider)
 		}
 
@@ -236,8 +283,8 @@ This interface is not stable and may change from release to release.
 			workers, _ := req.Options[provideStatWorkersOptionName].(bool)
 
 			flagCount := 0
-			for _, b := range []bool{all, connectivity, queues, schedule, network, timings, operations, workers} {
-				if b {
+			for _, enabled := range []bool{all, connectivity, queues, schedule, network, timings, operations, workers} {
+				if enabled {
 					flagCount++
 				}
 			}
@@ -269,7 +316,7 @@ This interface is not stable and may change from release to release.
 			}
 
 			if compact && !all {
-				return errors.New("--compact flag requires --all flag")
+				return errors.New("--compact requires --all flag")
 			}
 
 			brief := flagCount == 0
@@ -278,11 +325,16 @@ This interface is not stable and may change from release to release.
 			compactMode := all && compact
 			var cols [2][]string
 			col0MaxWidth := 0
+			// formatLine handles both normal and compact output modes:
+			// - Normal mode: all lines go to cols[0], col parameter is ignored
+			// - Compact mode: col 0 for left column, col 1 for right column
 			formatLine := func(col int, format string, a ...any) {
 				if compactMode {
 					s := fmt.Sprintf(format, a...)
 					cols[col] = append(cols[col], s)
-					col0MaxWidth = max(col0MaxWidth, len(s))
+					if col == 0 {
+						col0MaxWidth = max(col0MaxWidth, utf8.RuneCountInString(s))
+					}
 					return
 				}
 				format = strings.Replace(format, ": ", ":\t", 1)
@@ -332,16 +384,16 @@ This interface is not stable and may change from release to release.
 				formatLine(0, "%sRegions scheduled: %s", indent, humanNumberOrNA(s.Sweep.Schedule.Regions))
 				if !brief {
 					formatLine(0, "%sAvg prefix length: %s", indent, humanFloatOrNA(s.Sweep.Schedule.AvgPrefixLength))
-					nextReprovideAt := s.Sweep.Schedule.NextReprovideAt.Format("15:04:05")
-					if s.Sweep.Schedule.NextReprovideAt.IsZero() {
-						nextReprovideAt = "N/A"
-					}
-					formatLine(0, "%sNext reprovide at: %s", indent, nextReprovideAt)
 					nextPrefix := key.BitString(s.Sweep.Schedule.NextReprovidePrefix)
 					if nextPrefix == "" {
 						nextPrefix = "N/A"
 					}
-					formatLine(0, "%sNext prefix: %s", indent, nextPrefix)
+					formatLine(0, "%sNext region prefix: %s", indent, nextPrefix)
+					nextReprovideAt := s.Sweep.Schedule.NextReprovideAt.Format("15:04:05")
+					if s.Sweep.Schedule.NextReprovideAt.IsZero() {
+						nextReprovideAt = "N/A"
+					}
+					formatLine(0, "%sNext region reprovide: %s", indent, nextReprovideAt)
 				}
 				addBlankLine(0)
 			}
@@ -403,7 +455,7 @@ This interface is not stable and may change from release to release.
 				availableBurst := availableFreeWorkers + availableReservedBurst
 				availablePeriodic := availableFreeWorkers + availableReservedPeriodic
 
-				if displayWorkers || availableBurst <= 2 || availablePeriodic <= 2 {
+				if displayWorkers || availableBurst <= lowWorkerThreshold || availablePeriodic <= lowWorkerThreshold {
 					// Either we want to display workers information, or we are low on
 					// available workers and want to warn the user.
 					sectionTitle(0, "Workers")
@@ -434,6 +486,9 @@ This interface is not stable and may change from release to release.
 				col0Width := col0MaxWidth + 2
 				// Print both columns side by side
 				maxRows := max(len(cols[0]), len(cols[1]))
+				if maxRows == 0 {
+					return nil
+				}
 				for i := range maxRows - 1 { // last line is empty
 					var left, right string
 					if i < len(cols[0]) {
@@ -497,6 +552,9 @@ func humanNumberOrNA[T constraints.Float | constraints.Integer](n T) string {
 	return humanNumber(n)
 }
 
+// humanFloatOrNA formats a float with 1 decimal place, returning "N/A" for non-positive values.
+// This is separate from humanNumberOrNA because it provides simple decimal formatting for
+// continuous metrics (averages, rates) rather than SI unit formatting used for discrete counts.
 func humanFloatOrNA(val float64) string {
 	if val <= 0 {
 		return "N/A"
