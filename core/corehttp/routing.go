@@ -2,7 +2,7 @@ package corehttp
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -124,7 +124,7 @@ func (r *contentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.
 			return nil, err
 		}
 	default:
-		return nil, errors.New("cannot call GetClosestPeers on DHT implementation")
+		return nil, fmt.Errorf("GetClosestPeers not supported for DHT type %T", r.n.DHTClient)
 	}
 
 	// We have some DHT-closest peers. Find addresses for them.
