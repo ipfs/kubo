@@ -393,7 +393,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		}
 		opts := []dhtprovider.Option{
 			dhtprovider.WithKeystore(ks),
-			dhtprovider.WithPeerID(impl.Host().ID()),
+			dhtprovider.WithHost(impl.Host()),
 			dhtprovider.WithRouter(impl),
 			dhtprovider.WithMessageSender(impl.MessageSender()),
 			dhtprovider.WithSelfAddrs(selfAddrsFunc),
