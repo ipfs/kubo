@@ -22,7 +22,7 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.35.1-0.20251016232905-37006871a40e
+	github.com/ipfs/boxo v0.35.1-0.20251017171347-325640119338
 	github.com/ipfs/go-block-format v0.2.3
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-cidutil v0.1.0
@@ -58,7 +58,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.14.2
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
 	github.com/libp2p/go-libp2p-record v0.3.1
-	github.com/libp2p/go-libp2p-routing-helpers v0.7.5
+	github.com/libp2p/go-libp2p-routing-helpers v0.7.6-0.20251016083611-f098f492895e
 	github.com/libp2p/go-libp2p-testing v0.12.0
 	github.com/libp2p/go-socket-activation v0.1.1
 	github.com/miekg/dns v1.1.68
