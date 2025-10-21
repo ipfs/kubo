@@ -365,7 +365,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(p2p.New),
 
 		LibP2P(bcfg, cfg, userResourceOverrides),
-		OnlineProviders(isProviderEnabled, cfg),
+		OnlineProviders(isProviderEnabled, bcfg, cfg),
 	)
 }
 

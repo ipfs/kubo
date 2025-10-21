@@ -306,8 +306,11 @@ type addrsFilter interface {
 	FilteredAddrs() []ma.Multiaddr
 }
 
-func SweepingProviderOpt(cfg *config.Config) fx.Option {
+func SweepingProviderOpt(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
+	// Resume cycle is enabled by default, unless fresh start is requested via flag
+	enableResumeCycle := !bcfg.getOpt("providerFreshStart")
+
 	type providerInput struct {
 		fx.In
 		DHT  routing.Routing `name:"dhtc"`
@@ -360,6 +363,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if inDht != nil {
 				prov, err := ddhtprovider.New(inDht,
 					ddhtprovider.WithKeystore(ks),
+					ddhtprovider.WithResumeCycle(enableResumeCycle),
 
 					ddhtprovider.WithReprovideInterval(reprovideInterval),
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
@@ -393,6 +397,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		}
 		opts := []dhtprovider.Option{
 			dhtprovider.WithKeystore(ks),
+			dhtprovider.WithResumeCycle(enableResumeCycle),
 			dhtprovider.WithPeerID(impl.Host().ID()),
 			dhtprovider.WithRouter(impl),
 			dhtprovider.WithMessageSender(impl.MessageSender()),
@@ -517,7 +522,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 // ONLINE/OFFLINE
 
 // OnlineProviders groups units managing provide routing records online
-func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
+func OnlineProviders(provide bool, bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	if !provide {
 		return OfflineProviders()
 	}
@@ -533,7 +538,7 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 		fx.Provide(setReproviderKeyProvider(providerStrategy)),
 	}
 	if cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled) {
-		opts = append(opts, SweepingProviderOpt(cfg))
+		opts = append(opts, SweepingProviderOpt(bcfg, cfg))
 	} else {
 		reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
 		acceleratedDHTClient := cfg.Routing.AcceleratedDHTClient.WithDefault(config.DefaultAcceleratedDHTClient)
