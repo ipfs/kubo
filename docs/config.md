@@ -2082,6 +2082,16 @@ by providing it a channel of all the keys it is expected to contain according
 to the [`Provide.Strategy`](#providestrategy). During this operation,
 all keys in the `Keystore` are purged, and only the given ones remain scheduled.
 
+**Persistent reprovide cycle state:** When Provide Sweep is enabled, the
+reprovide cycle state is persisted to the datastore. On restart, Kubo
+automatically resumes from where it left off. If the node was offline for an
+extended period, all CIDs that haven't been reprovided within the configured
+[`Provide.DHT.Interval`](#providedhtinterval) are immediately queued for
+reproviding. Additionally, the provide queue is persisted on shutdown and
+restored on startup, ensuring no pending provide operations are lost. If you
+don't want to keep the persisted provider state from a previous run, you can
+start the daemon with the `--provider-fresh-start` flag.
+
 > <picture>
 >   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/f6e06b08-7fee-490c-a681-1bf440e16e27">
 >   <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/e1662d7c-f1be-4275-a9ed-f2752fcdcabe">
