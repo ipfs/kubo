@@ -53,7 +53,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0
 	github.com/libp2p/go-libp2p v0.44.0
 	github.com/libp2p/go-libp2p-http v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251021191302-1cae30dea60c
+	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251021214506-ab370e78d6d8
 	github.com/libp2p/go-libp2p-kbucket v0.8.0
 	github.com/libp2p/go-libp2p-pubsub v0.14.2
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
