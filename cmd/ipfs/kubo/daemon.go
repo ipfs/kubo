@@ -74,10 +74,10 @@ const (
 	unencryptTransportKwd      = "disable-transport-encryption"
 	unrestrictedAPIAccessKwd   = "unrestricted-api"
 	enablePubSubKwd            = "enable-pubsub-experiment"
-	enableIPNSPubSubKwd = "enable-namesys-pubsub"
-	enableMultiplexKwd  = "enable-mplex-experiment"
-	agentVersionSuffix  = "agent-version-suffix"
-	providerFreshStart  = "provider-fresh-start"
+	enableIPNSPubSubKwd        = "enable-namesys-pubsub"
+	enableMultiplexKwd         = "enable-mplex-experiment"
+	agentVersionSuffix         = "agent-version-suffix"
+	providerFreshStart         = "provider-fresh-start"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm".
 )
@@ -414,8 +414,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		Online:                      !offline,
 		DisableEncryptedConnections: unencrypted,
 		ExtraOpts: map[string]bool{
-			"pubsub":            pubsub,
-			"ipnsps":            ipnsps,
+			"pubsub":             pubsub,
+			"ipnsps":             ipnsps,
 			"providerFreshStart": freshStart,
 		},
 		// TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
