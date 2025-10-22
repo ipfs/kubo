@@ -77,7 +77,6 @@ const (
 	enableIPNSPubSubKwd        = "enable-namesys-pubsub"
 	enableMultiplexKwd         = "enable-mplex-experiment"
 	agentVersionSuffix         = "agent-version-suffix"
-	providerFreshStart         = "provider-fresh-start"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm".
 )
@@ -186,7 +185,6 @@ Headers.
 		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS over pubsub. Implicitly enables pubsub, overrides Ipns.UsePubsub config."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
 		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and exposed via libp2p identify protocol."),
-		cmds.BoolOption(providerFreshStart, "Start provider from scratch on daemon restart instead of resuming from last checkpoint").WithDefault(false),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -364,7 +362,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	offline, _ := req.Options[offlineKwd].(bool)
 	ipnsps, ipnsPsSet := req.Options[enableIPNSPubSubKwd].(bool)
 	pubsub, psSet := req.Options[enablePubSubKwd].(bool)
-	freshStart, _ := req.Options[providerFreshStart].(bool)
 
 	if _, hasMplex := req.Options[enableMultiplexKwd]; hasMplex {
 		log.Errorf("The mplex multiplexer has been enabled by default and the experimental %s flag has been removed.")
@@ -414,9 +411,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		Online:                      !offline,
 		DisableEncryptedConnections: unencrypted,
 		ExtraOpts: map[string]bool{
-			"pubsub":             pubsub,
-			"ipnsps":             ipnsps,
-			"providerFreshStart": freshStart,
+			"pubsub": pubsub,
+			"ipnsps": ipnsps,
 		},
 		// TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
