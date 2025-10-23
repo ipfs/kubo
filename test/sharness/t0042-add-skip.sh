@@ -10,7 +10,7 @@ test_description="Test add and cat commands"
 
 test_add_skip() {
 
-	test_expect_success "'ipfs add -r' with hidden file succeeds" '
+  test_expect_success "'ipfs add -r' with hidden file succeeds" '
     mkdir -p mountdir/planets/.asteroids &&
     echo "mars.txt" >mountdir/planets/.gitignore &&
     echo "Hello Mars" >mountdir/planets/mars.txt &&
@@ -22,7 +22,7 @@ test_add_skip() {
     ipfs add -r mountdir/planets >actual
   '
 
-	test_expect_success "'ipfs add -r' did not include . files" '
+  test_expect_success "'ipfs add -r' did not include . files" '
     cat >expected <<-\EOF &&
 added QmZy3khu7qf696i5HtkgL2NotsCZ8wzvNZJ1eUdA5n8KaV planets/mars.txt
 added QmQnv4m3Q5512zgVtpbJ9z85osQrzZzGRn934AGh6iVEXz planets/venus.txt
@@ -31,11 +31,11 @@ EOF
     test_cmp expected actual
   '
 
-	test_expect_success "'ipfs add -r --hidden' succeeds" '
+  test_expect_success "'ipfs add -r --hidden' succeeds" '
     ipfs add -r --hidden mountdir/planets >actual
   '
 
-	test_expect_success "'ipfs add -r --hidden' did include . files" '
+  test_expect_success "'ipfs add -r --hidden' did include . files" '
     cat >expected <<-\EOF &&
 added QmcAREBcjgnUpKfyFmUGnfajA1NQS5ydqRp7WfqZ6JF8Dx planets/.asteroids/ceres.txt
 added QmZ5eaLybJ5GUZBNwy24AA9EEDTDpA4B8qXnuN3cGxu2uF planets/.asteroids/pallas.txt
@@ -50,11 +50,11 @@ EOF
     test_cmp expected actual
   '
 
-	test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --hidden' succeeds" '
+  test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --hidden' succeeds" '
     (cd mountdir/planets && ipfs add -r --ignore-rules-path=.gitignore --hidden .) > actual
   '
 
-	test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --hidden' did not include mars.txt file" '
+  test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --hidden' did not include mars.txt file" '
     cat >expected <<-\EOF &&
 added QmcAREBcjgnUpKfyFmUGnfajA1NQS5ydqRp7WfqZ6JF8Dx planets/.asteroids/ceres.txt
 added QmZ5eaLybJ5GUZBNwy24AA9EEDTDpA4B8qXnuN3cGxu2uF planets/.asteroids/pallas.txt
@@ -68,11 +68,11 @@ EOF
     test_cmp expected actual
   '
 
-	test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --ignore .asteroids --ignore venus.txt --hidden' succeeds" '
+  test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --ignore .asteroids --ignore venus.txt --hidden' succeeds" '
     (cd mountdir/planets && ipfs add -r --ignore-rules-path=.gitignore --ignore .asteroids --ignore venus.txt --hidden .) > actual
   '
 
-	test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --ignore .asteroids --ignore venus.txt --hidden' did not include ignored files" '
+  test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --ignore .asteroids --ignore venus.txt --hidden' did not include ignored files" '
     cat >expected <<-\EOF &&
 added QmaowqjedBkUrMUXgzt9c2ZnAJncM9jpJtkFfgdFstGr5a planets/.charon.txt
 added QmPHrRjTH8FskN3C2iv6BLekDT94o23KSL2u5qLqQqGhVH planets/.gitignore
@@ -82,7 +82,7 @@ EOF
     test_cmp expected actual
   '
 
-	test_expect_success "'ipfs add' includes hidden files given explicitly even without --hidden" '
+  test_expect_success "'ipfs add' includes hidden files given explicitly even without --hidden" '
     mkdir -p mountdir/dotfiles &&
     echo "set nocompatible" > mountdir/dotfiles/.vimrc
     cat >expected <<-\EOF &&
@@ -93,7 +93,7 @@ EOF
     test_cmp expected actual
   '
 
-	test_expect_success "'ipfs add' with an unregistered hash and wrapped leaves fails without crashing" '
+  test_expect_success "'ipfs add' with an unregistered hash and wrapped leaves fails without crashing" '
     test_expect_code 1 ipfs add --hash poseidon-bls12_381-a2-fc1 --raw-leaves=false -r mountdir/planets
   '
 
