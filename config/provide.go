@@ -15,7 +15,7 @@ const (
 	// DHT provider defaults
 	DefaultProvideDHTInterval                 = 22 * time.Hour // https://github.com/ipfs/kubo/pull/9326
 	DefaultProvideDHTMaxWorkers               = 16             // Unified default for both sweep and legacy providers
-	DefaultProvideDHTSweepEnabled             = false
+	DefaultProvideDHTSweepEnabled             = true
 	DefaultProvideDHTResumeEnabled            = true
 	DefaultProvideDHTDedicatedPeriodicWorkers = 2
 	DefaultProvideDHTDedicatedBurstWorkers    = 1
