@@ -14,6 +14,7 @@ import (
 	"github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/namespace"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
@@ -314,10 +315,10 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		Repo repo.Repo
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *keystore.ResettableKeystore, error) {
-		ds := in.Repo.Datastore()
+		ds := namespace.Wrap(in.Repo.Datastore(), datastore.NewKey("provider"))
 		ks, err := keystore.NewResettableKeystore(ds,
 			keystore.WithPrefixBits(16),
-			keystore.WithDatastorePath("/provider/keystore"),
+			keystore.WithDatastorePath("/keystore"),
 			keystore.WithBatchSize(int(cfg.Provide.DHT.KeystoreBatchSize.WithDefault(config.DefaultProvideDHTKeystoreBatchSize))),
 		)
 		if err != nil {
@@ -360,6 +361,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if inDht != nil {
 				prov, err := ddhtprovider.New(inDht,
 					ddhtprovider.WithKeystore(ks),
+					ddhtprovider.WithDatastore(ds),
 					ddhtprovider.WithResumeCycle(cfg.Provide.DHT.ResumeEnabled.WithDefault(config.DefaultProvideDHTResumeEnabled)),
 
 					ddhtprovider.WithReprovideInterval(reprovideInterval),
@@ -394,6 +396,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		}
 		opts := []dhtprovider.Option{
 			dhtprovider.WithKeystore(ks),
+			dhtprovider.WithDatastore(ds),
 			dhtprovider.WithResumeCycle(cfg.Provide.DHT.ResumeEnabled.WithDefault(config.DefaultProvideDHTResumeEnabled)),
 			dhtprovider.WithPeerID(impl.Host().ID()),
 			dhtprovider.WithRouter(impl),
