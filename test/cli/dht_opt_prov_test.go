@@ -13,7 +13,7 @@ func TestDHTOptimisticProvide(t *testing.T) {
 	t.Parallel()
 
 	t.Run("optimistic provide smoke test", func(t *testing.T) {
-		nodes := harness.NewT(t).NewNodes(2).Init()
+		nodes := harness.NewT(t).NewNodes(5).Init()
 
 		nodes[0].UpdateConfig(func(cfg *config.Config) {
 			cfg.Experimental.OptimisticProvide = true
