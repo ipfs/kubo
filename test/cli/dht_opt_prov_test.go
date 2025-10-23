@@ -23,6 +23,7 @@ func TestDHTOptimisticProvide(t *testing.T) {
 
 		hash := nodes[0].IPFSAddStr(string(random.Bytes(100)))
 		nodes[0].IPFS("routing", "provide", hash)
+		waitUntilProvidesComplete(t, nodes[0])
 
 		res := nodes[1].IPFS("routing", "findprovs", "--num-providers=1", hash)
 		assert.Equal(t, nodes[0].PeerID().String(), res.Stdout.Trimmed())
