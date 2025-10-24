@@ -39,10 +39,20 @@ import (
 // The size of a batch that will be used for calculating average announcement
 // time per CID, inside of boxo/provider.ThroughputReport
 // and in 'ipfs stats provide' report.
+// Used when Provide.DHT.SweepEnabled=false
 const sampledBatchSize = 1000
 
 // Datastore key used to store previous reprovide strategy.
 const reprovideStrategyKey = "/reprovideStrategy"
+
+// Interval between reprovide queue monitoring checks for slow reprovide alerts.
+// Used when Provide.DHT.SweepEnabled=true
+const reprovideAlertPollInterval = 15 * time.Minute
+
+// Number of consecutive polling intervals with sustained queue growth before
+// triggering a slow reprovide alert (3 intervals = 45 minutes).
+// Used when Provide.DHT.SweepEnabled=true
+const consecutiveAlertsThreshold = 3
 
 // DHTProvider is an interface for providing keys to a DHT swarm. It holds a
 // state of keys to be advertised, and is responsible for periodically
@@ -507,31 +517,36 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			},
 		})
 	})
+
+	// extractSweepingProvider extracts a SweepingProvider from the given provider interface.
+	// It handles unwrapping buffered and dual providers, always selecting WAN for dual DHT.
+	// Returns nil if the provider is not a sweeping provider type.
+	var extractSweepingProvider func(prov any) *dhtprovider.SweepingProvider
+	extractSweepingProvider = func(prov any) *dhtprovider.SweepingProvider {
+		switch p := prov.(type) {
+		case *dhtprovider.SweepingProvider:
+			return p
+		case *ddhtprovider.SweepingProvider:
+			return p.WAN
+		case *buffered.SweepingProvider:
+			// Recursively extract from the inner provider
+			return extractSweepingProvider(p.Provider)
+		default:
+			return nil
+		}
+	}
+
 	type alertInput struct {
 		fx.In
 		Provider DHTProvider
 	}
 	reprovideAlert := fx.Invoke(func(lc fx.Lifecycle, in alertInput) {
+		prov := extractSweepingProvider(in.Provider)
+
 		var (
 			cancel context.CancelFunc
 			done   = make(chan struct{})
 		)
-
-		// Select Sweeping Provider to get the stats from.
-		var prov *dhtprovider.SweepingProvider
-		switch p := in.Provider.(type) {
-		case *ddhtprovider.SweepingProvider:
-			prov = p.WAN
-		case *dhtprovider.SweepingProvider:
-			prov = p
-		case *buffered.SweepingProvider:
-			switch inner := p.Provider.(type) {
-			case *ddhtprovider.SweepingProvider:
-				prov = inner.WAN
-			case *dhtprovider.SweepingProvider:
-				prov = inner
-			}
-		}
 
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
@@ -543,11 +558,15 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				go func() {
 					defer close(done)
 
-					// Poll stats every 15 minutes
-					pollInterval := 15 * time.Minute
-					ticker := time.NewTicker(pollInterval)
-					var queueSize, prevQueueSize, count int
-					var queuedWorkers, prevQueuedWorkers bool
+					ticker := time.NewTicker(reprovideAlertPollInterval)
+					defer ticker.Stop()
+
+					var (
+						queueSize, prevQueueSize         int
+						queuedWorkers, prevQueuedWorkers bool
+						count                            int
+					)
+
 					for {
 						select {
 						case <-gcCtx.Done():
@@ -558,11 +577,12 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 						stats := prov.Stats()
 						queuedWorkers = stats.Workers.QueuedPeriodic > 0
 						queueSize = stats.Queues.PendingRegionReprovides
-						// If reprovide queue size keeps growing and workers are not
-						// keeping up, print warning message
+
+						// Alert if reprovide queue keeps growing and all periodic workers are busy.
+						// Requires consecutiveAlertsThreshold intervals of sustained growth.
 						if prevQueuedWorkers && queuedWorkers && queueSize > prevQueueSize {
 							count++
-							if count > 2 {
+							if count >= consecutiveAlertsThreshold {
 								logger.Errorf(`
 🔔🔔🔔 Reprovide Operations Too Slow 🔔🔔🔔
 
@@ -585,7 +605,7 @@ Solutions (try in order):
 See how the reprovide queue is processed in real-time with 'watch ipfs provide stat --all --compact'
 
 See docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtmaxworkers`,
-									pollInterval.Truncate(time.Minute).String(), prevQueueSize, queueSize,
+									reprovideAlertPollInterval.Truncate(time.Minute).String(), prevQueueSize, queueSize,
 									stats.Workers.Active, stats.Workers.Max,
 									stats.Workers.ActivePeriodic, stats.Workers.ActiveBurst,
 									stats.Workers.DedicatedPeriodic, stats.Workers.DedicatedBurst,
