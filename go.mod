@@ -39,7 +39,7 @@ require (
 	github.com/ipfs/go-ipld-format v0.6.3
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.2.2
-	github.com/ipfs/go-log/v2 v2.8.1
+	github.com/ipfs/go-log/v2 v2.8.2
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
 	github.com/ipfs/go-test v0.2.3
@@ -53,7 +53,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0
 	github.com/libp2p/go-libp2p v0.43.0
 	github.com/libp2p/go-libp2p-http v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251009080632-2c5b3769ca70
+	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251017193437-abd04263daac
 	github.com/libp2p/go-libp2p-kbucket v0.8.0
 	github.com/libp2p/go-libp2p-pubsub v0.14.2
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
@@ -151,7 +151,7 @@ require (
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
-	github.com/ipfs/go-dsqueue v0.0.5 // indirect
+	github.com/ipfs/go-dsqueue v0.1.0 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.1 // indirect
 	github.com/ipfs/go-ipfs-pq v0.0.3 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
@@ -221,7 +221,7 @@ require (
 	github.com/prometheus/procfs v0.17.0 // indirect
 	github.com/prometheus/statsd_exporter v0.27.1 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/quic-go/quic-go v0.54.0 // indirect
+	github.com/quic-go/quic-go v0.54.1 // indirect
 	github.com/quic-go/webtransport-go v0.9.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
