@@ -2,8 +2,6 @@ module github.com/ipfs/kubo
 
 go 1.25
 
-replace github.com/libp2p/go-libp2p-kad-dht => ../go-libp2p-kad-dht
-
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
