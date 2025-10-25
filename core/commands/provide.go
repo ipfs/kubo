@@ -559,7 +559,7 @@ func humanFloatOrNA(val float64) string {
 	if val <= 0 {
 		return "N/A"
 	}
-	return fmt.Sprintf("%.1f", val)
+	return humanFull(val, 1)
 }
 
 func humanSI(val float64, decimals int) string {
