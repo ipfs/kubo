@@ -41,7 +41,7 @@ const (
 	// The size of a batch that will be used for calculating average announcement
 	// time per CID, inside of boxo/provider.ThroughputReport
 	// and in 'ipfs stats provide' report.
-  // Used when Provide.DHT.SweepEnabled=false
+	// Used when Provide.DHT.SweepEnabled=false
 	sampledBatchSize = 1000
 
 	// Datastore key used to store previous reprovide strategy.
