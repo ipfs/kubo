@@ -132,6 +132,7 @@ config file at runtime.
       - [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers)
       - [`Provide.DHT.Interval`](#providedhtinterval)
       - [`Provide.DHT.SweepEnabled`](#providedhtsweepenabled)
+      - [`Provide.DHT.ResumeEnabled`](#providedhtresumeenabled)
       - [`Provide.DHT.DedicatedPeriodicWorkers`](#providedhtdedicatedperiodicworkers)
       - [`Provide.DHT.DedicatedBurstWorkers`](#providedhtdedicatedburstworkers)
       - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
@@ -2139,6 +2140,17 @@ gets batched by keyspace region. The keystore is periodically refreshed at each
 [`Provide.Strategy`](#providestrategy) to ensure only current content remains
 scheduled. This handles cases where content is unpinned or removed.
 
+**Persistent reprovide cycle state:** When Provide Sweep is enabled, the
+reprovide cycle state is persisted to the datastore by default. On restart, Kubo
+automatically resumes from where it left off. If the node was offline for an
+extended period, all CIDs that haven't been reprovided within the configured
+[`Provide.DHT.Interval`](#providedhtinterval) are immediately queued for
+reproviding. Additionally, the provide queue is persisted on shutdown and
+restored on startup, ensuring no pending provide operations are lost. If you
+don't want to keep the persisted provider state from a previous run, you can
+disable this behavior by setting [`Provide.DHT.ResumeEnabled`](#providedhtresumeenabled)
+to `false`.
+
 > <picture>
 >   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/f6e06b08-7fee-490c-a681-1bf440e16e27">
 >   <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/e1662d7c-f1be-4275-a9ed-f2752fcdcabe">
@@ -2163,9 +2175,42 @@ Default: `false`
 
 Type: `flag`
 
+#### `Provide.DHT.ResumeEnabled`
+
+Controls whether the provider resumes from its previous state on restart. Only
+applies when `Provide.DHT.SweepEnabled` is true.
+
+When enabled (the default), the provider persists its reprovide cycle state and
+provide queue to the datastore, and restores them on restart. This ensures:
+
+- The reprovide cycle continues from where it left off instead of starting over
+- Any CIDs in the provide queue during shutdown are restored and provided after
+restart
+- CIDs that missed their reprovide window while the node was offline are queued
+for immediate reproviding
+
+When disabled, the provider starts fresh on each restart, discarding any
+previous reprovide cycle state and provide queue. On a fresh start, all CIDs
+matching the [`Provide.Strategy`](#providestrategy) will be provided ASAP (as
+burst provides), and then keyspace regions are reprovided according to the
+regular schedule starting from the beginning of the reprovide cycle.
+
+> [!NOTE]
+> Disabling this option means the provider will provide all content matching
+> your strategy on every restart (which can be resource-intensive for large
+> datasets), then start from the beginning of the reprovide cycle. For nodes
+> with large datasets or frequent restarts, keeping this enabled (the default)
+> is recommended for better resource efficiency and more consistent reproviding
+> behavior.
+
+Default: `true`
+
+Type: `flag`
+
 #### `Provide.DHT.DedicatedPeriodicWorkers`
 
-Number of workers dedicated to periodic keyspace region reprovides. Only applies when `Provide.DHT.SweepEnabled` is true.
+Number of workers dedicated to periodic keyspace region reprovides. Only
+applies when `Provide.DHT.SweepEnabled` is true.
 
 Among the [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers), this
 number of workers will be dedicated to the periodic region reprovide only. The sum of

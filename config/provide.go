@@ -16,6 +16,7 @@ const (
 	DefaultProvideDHTInterval                 = 22 * time.Hour // https://github.com/ipfs/kubo/pull/9326
 	DefaultProvideDHTMaxWorkers               = 16             // Unified default for both sweep and legacy providers
 	DefaultProvideDHTSweepEnabled             = false
+	DefaultProvideDHTResumeEnabled            = true
 	DefaultProvideDHTDedicatedPeriodicWorkers = 2
 	DefaultProvideDHTDedicatedBurstWorkers    = 1
 	DefaultProvideDHTMaxProvideConnsPerWorker = 20
@@ -86,6 +87,12 @@ type ProvideDHT struct {
 	// OfflineDelay sets the delay after which the provider switches from Disconnected to Offline state (sweep mode only).
 	// Default: DefaultProvideDHTOfflineDelay
 	OfflineDelay *OptionalDuration `json:",omitempty"`
+
+	// ResumeEnabled controls whether the provider resumes from its previous state on restart.
+	// When enabled, the provider persists its reprovide cycle state and provide queue to the datastore,
+	// and restores them on restart. When disabled, the provider starts fresh on each restart.
+	// Default: true
+	ResumeEnabled Flag `json:",omitempty"`
 }
 
 func ParseProvideStrategy(s string) ProvideStrategy {
