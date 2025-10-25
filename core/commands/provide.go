@@ -463,7 +463,7 @@ NOTES:
 					if compactMode {
 						specifyWorkers = ""
 					}
-					formatLine(0, "%sActive%s: %s / %s (max)", indent, specifyWorkers, humanNumber(s.Sweep.Workers.Active), humanNumber(s.Sweep.Workers.Max))
+					formatLine(0, "%sActive%s: %s / %s (max)", indent, specifyWorkers, humanNumber(s.Sweep.Workers.Active), humanFull(float64(s.Sweep.Workers.Max), 0))
 					if brief {
 						// Brief mode - show condensed worker info
 						formatLine(0, "%sPeriodic%s: %s active, %s available, %s queued", indent, specifyWorkers,
@@ -559,7 +559,7 @@ func humanFloatOrNA(val float64) string {
 	if val <= 0 {
 		return "N/A"
 	}
-	return fmt.Sprintf("%.1f", val)
+	return humanFull(val, 1)
 }
 
 func humanSI(val float64, decimals int) string {
