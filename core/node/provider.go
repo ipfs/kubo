@@ -415,7 +415,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			dhtprovider.WithKeystore(ks),
 			dhtprovider.WithDatastore(ds),
 			dhtprovider.WithResumeCycle(cfg.Provide.DHT.ResumeEnabled.WithDefault(config.DefaultProvideDHTResumeEnabled)),
-			dhtprovider.WithPeerID(impl.Host().ID()),
+			dhtprovider.WithHost(impl.Host()),
 			dhtprovider.WithRouter(impl),
 			dhtprovider.WithMessageSender(impl.MessageSender()),
 			dhtprovider.WithSelfAddrs(selfAddrsFunc),
