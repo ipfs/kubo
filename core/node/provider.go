@@ -37,13 +37,20 @@ import (
 	"go.uber.org/fx"
 )
 
-// The size of a batch that will be used for calculating average announcement
-// time per CID, inside of boxo/provider.ThroughputReport
-// and in 'ipfs stats provide' report.
-const sampledBatchSize = 1000
+const (
+	// The size of a batch that will be used for calculating average announcement
+	// time per CID, inside of boxo/provider.ThroughputReport
+	// and in 'ipfs stats provide' report.
+	sampledBatchSize = 1000
 
-// Datastore key used to store previous reprovide strategy.
-const reprovideStrategyKey = "/reprovideStrategy"
+	// Datastore key used to store previous reprovide strategy.
+	reprovideStrategyKey = "/reprovideStrategy"
+
+	// Datastore namespace prefix for provider data.
+	providerDatastorePrefix = "provider"
+	// Datastore path for the provider keystore.
+	keystoreDatastorePath = "keystore"
+)
 
 // DHTProvider is an interface for providing keys to a DHT swarm. It holds a
 // state of keys to be advertised, and is responsible for periodically
@@ -315,10 +322,10 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		Repo repo.Repo
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *keystore.ResettableKeystore, error) {
-		ds := namespace.Wrap(in.Repo.Datastore(), datastore.NewKey("provider"))
+		ds := namespace.Wrap(in.Repo.Datastore(), datastore.NewKey(providerDatastorePrefix))
 		ks, err := keystore.NewResettableKeystore(ds,
 			keystore.WithPrefixBits(16),
-			keystore.WithDatastorePath("/keystore"),
+			keystore.WithDatastorePath(keystoreDatastorePath),
 			keystore.WithBatchSize(int(cfg.Provide.DHT.KeystoreBatchSize.WithDefault(config.DefaultProvideDHTKeystoreBatchSize))),
 		)
 		if err != nil {
