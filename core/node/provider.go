@@ -562,7 +562,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					defer ticker.Stop()
 
 					var (
-						queueSize, prevQueueSize         int
+						queueSize, prevQueueSize         int64
 						queuedWorkers, prevQueuedWorkers bool
 						count                            int
 					)
