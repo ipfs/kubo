@@ -451,7 +451,7 @@ NOTES:
 			if displayWorkers || brief {
 				availableReservedBurst := max(0, s.Sweep.Workers.DedicatedBurst-s.Sweep.Workers.ActiveBurst)
 				availableReservedPeriodic := max(0, s.Sweep.Workers.DedicatedPeriodic-s.Sweep.Workers.ActivePeriodic)
-				availableFreeWorkers := s.Sweep.Workers.Max - max(s.Sweep.Workers.DedicatedBurst, s.Sweep.Workers.ActiveBurst) - max(s.Sweep.Workers.DedicatedPeriodic, s.Sweep.Workers.ActivePeriodic)
+				availableFreeWorkers := max(0, s.Sweep.Workers.Max-max(s.Sweep.Workers.DedicatedBurst, s.Sweep.Workers.ActiveBurst)-max(s.Sweep.Workers.DedicatedPeriodic, s.Sweep.Workers.ActivePeriodic))
 				availableBurst := availableFreeWorkers + availableReservedBurst
 				availablePeriodic := availableFreeWorkers + availableReservedPeriodic
 
