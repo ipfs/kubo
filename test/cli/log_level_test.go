@@ -606,10 +606,10 @@ func TestLogLevel(t *testing.T) {
 
 	// Constants for slog interop tests
 	const (
-		slogTestLogTailTimeout      = 10 * time.Second
-		slogTestLogWaitTimeout      = 5 * time.Second
-		slogTestLogStartupDelay     = 1 * time.Second // Wait for log tail to start
-		slogTestSubsystemCmdsHTTP   = "cmds/http"     // Native go-log subsystem
+		slogTestLogTailTimeout       = 10 * time.Second
+		slogTestLogWaitTimeout       = 5 * time.Second
+		slogTestLogStartupDelay      = 1 * time.Second // Wait for log tail to start
+		slogTestSubsystemCmdsHTTP    = "cmds/http"     // Native go-log subsystem
 		slogTestSubsystemNetIdentify = "net/identify"  // go-libp2p slog subsystem
 	)
 
@@ -703,7 +703,9 @@ func TestLogLevel(t *testing.T) {
 		t.Helper()
 
 		cmd, matches := startLogMonitoring(t, node1)
-		defer cmd.Process.Kill()
+		defer func() {
+			_ = cmd.Process.Kill()
+		}()
 
 		time.Sleep(slogTestLogStartupDelay)
 
