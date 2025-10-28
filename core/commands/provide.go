@@ -437,8 +437,8 @@ NOTES:
 				if !brief {
 					formatLine(1, "%sTotal records provided: %s", indent, humanNumber(s.Sweep.Operations.Past.RecordsProvided))
 					formatLine(1, "%sTotal provide errors: %s", indent, humanNumber(s.Sweep.Operations.Past.KeysFailed))
-					formatLine(1, "%sCIDs provided/min: %s", indent, humanFloatOrNA(s.Sweep.Operations.Past.KeysProvidedPerMinute))
-					formatLine(1, "%sCIDs reprovided/min: %s", indent, humanFloatOrNA(s.Sweep.Operations.Past.KeysReprovidedPerMinute))
+					formatLine(1, "%sCIDs provided/min/worker: %s", indent, humanFloatOrNA(s.Sweep.Operations.Past.KeysProvidedPerMinute))
+					formatLine(1, "%sCIDs reprovided/min/worker: %s", indent, humanFloatOrNA(s.Sweep.Operations.Past.KeysReprovidedPerMinute))
 					formatLine(1, "%sRegion reprovide duration: %s", indent, humanDurationOrNA(s.Sweep.Operations.Past.RegionReprovideDuration))
 					formatLine(1, "%sAvg CIDs/reprovide: %s", indent, humanFloatOrNA(s.Sweep.Operations.Past.AvgKeysPerReprovide))
 					formatLine(1, "%sRegions reprovided (last cycle): %s", indent, humanNumber(s.Sweep.Operations.Past.RegionReprovidedLastCycle))
@@ -451,7 +451,7 @@ NOTES:
 			if displayWorkers || brief {
 				availableReservedBurst := max(0, s.Sweep.Workers.DedicatedBurst-s.Sweep.Workers.ActiveBurst)
 				availableReservedPeriodic := max(0, s.Sweep.Workers.DedicatedPeriodic-s.Sweep.Workers.ActivePeriodic)
-				availableFreeWorkers := s.Sweep.Workers.Max - max(s.Sweep.Workers.DedicatedBurst, s.Sweep.Workers.ActiveBurst) - max(s.Sweep.Workers.DedicatedPeriodic, s.Sweep.Workers.ActivePeriodic)
+				availableFreeWorkers := max(0, s.Sweep.Workers.Max-max(s.Sweep.Workers.DedicatedBurst, s.Sweep.Workers.ActiveBurst)-max(s.Sweep.Workers.DedicatedPeriodic, s.Sweep.Workers.ActivePeriodic))
 				availableBurst := availableFreeWorkers + availableReservedBurst
 				availablePeriodic := availableFreeWorkers + availableReservedPeriodic
 
@@ -463,7 +463,7 @@ NOTES:
 					if compactMode {
 						specifyWorkers = ""
 					}
-					formatLine(0, "%sActive%s: %s / %s (max)", indent, specifyWorkers, humanNumber(s.Sweep.Workers.Active), humanNumber(s.Sweep.Workers.Max))
+					formatLine(0, "%sActive%s: %s / %s (max)", indent, specifyWorkers, humanNumber(s.Sweep.Workers.Active), humanFull(float64(s.Sweep.Workers.Max), 0))
 					if brief {
 						// Brief mode - show condensed worker info
 						formatLine(0, "%sPeriodic%s: %s active, %s available, %s queued", indent, specifyWorkers,
@@ -472,7 +472,7 @@ NOTES:
 							humanNumber(s.Sweep.Workers.ActiveBurst), humanNumber(availableBurst), humanNumber(s.Sweep.Workers.QueuedBurst))
 					} else {
 						formatLine(0, "%sFree%s: %s", indent, specifyWorkers, humanNumber(availableFreeWorkers))
-						formatLine(0, "%sWorkers stats:%s  %-9s %s", indent, "  ", "Periodic", "Burst")
+						formatLine(0, "%s  %-14s %-9s %s", indent, "Workers stats:", "Periodic", "Burst")
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Active:", humanNumber(s.Sweep.Workers.ActivePeriodic), humanNumber(s.Sweep.Workers.ActiveBurst))
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Dedicated:", humanNumber(s.Sweep.Workers.DedicatedPeriodic), humanNumber(s.Sweep.Workers.DedicatedBurst))
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Available:", humanNumber(availablePeriodic), humanNumber(availableBurst))
@@ -559,7 +559,7 @@ func humanFloatOrNA(val float64) string {
 	if val <= 0 {
 		return "N/A"
 	}
-	return fmt.Sprintf("%.1f", val)
+	return humanFull(val, 1)
 }
 
 func humanSI(val float64, decimals int) string {
