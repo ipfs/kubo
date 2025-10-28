@@ -144,15 +144,23 @@ reprovides).
 Number of failed region provide/reprovide operations since startup. Failed
 regions are automatically retried unless the node is offline.
 
-### CIDs provided/min
+### CIDs provided/min/worker
 
-Average rate of initial provides per minute during the last reprovide cycle
-(excludes reprovides).
+Average rate of initial provides per minute per worker during the last
+reprovide cycle (excludes reprovides). Each worker handles one keyspace region
+at a time, providing all CIDs in that region. This rate only counts active time
+(timer doesn't run when no initial provides are being processed). The overall
+provide rate can be higher when multiple workers are providing different
+regions concurrently.
 
-### CIDs reprovided/min
+### CIDs reprovided/min/worker
 
-Average rate of reprovides per minute during the last reprovide cycle (excludes
-initial provides).
+Average rate of reprovides per minute per worker during the last reprovide
+cycle (excludes initial provides). Each worker handles one keyspace region at a
+time, reproviding all CIDs in that region. The overall reprovide rate can be
+higher when multiple workers are reproviding different regions concurrently. To
+estimate total reprovide rate, multiply by the number of [periodic
+workers](./config.md#providedhtdedicatedperiodicworkers) in use.
 
 ### Region reprovide duration
 
