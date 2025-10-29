@@ -14,6 +14,7 @@ import (
 	"github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/namespace"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
@@ -36,14 +37,21 @@ import (
 	"go.uber.org/fx"
 )
 
-// The size of a batch that will be used for calculating average announcement
-// time per CID, inside of boxo/provider.ThroughputReport
-// and in 'ipfs stats provide' report.
-// Used when Provide.DHT.SweepEnabled=false
-const sampledBatchSize = 1000
+const (
+	// The size of a batch that will be used for calculating average announcement
+	// time per CID, inside of boxo/provider.ThroughputReport
+	// and in 'ipfs stats provide' report.
+	// Used when Provide.DHT.SweepEnabled=false
+	sampledBatchSize = 1000
 
-// Datastore key used to store previous reprovide strategy.
-const reprovideStrategyKey = "/reprovideStrategy"
+	// Datastore key used to store previous reprovide strategy.
+	reprovideStrategyKey = "/reprovideStrategy"
+
+	// Datastore namespace prefix for provider data.
+	providerDatastorePrefix = "provider"
+	// Datastore path for the provider keystore.
+	keystoreDatastorePath = "keystore"
+)
 
 // Interval between reprovide queue monitoring checks for slow reprovide alerts.
 // Used when Provide.DHT.SweepEnabled=true
@@ -324,10 +332,10 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		Repo repo.Repo
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *keystore.ResettableKeystore, error) {
-		ds := in.Repo.Datastore()
+		ds := namespace.Wrap(in.Repo.Datastore(), datastore.NewKey(providerDatastorePrefix))
 		ks, err := keystore.NewResettableKeystore(ds,
 			keystore.WithPrefixBits(16),
-			keystore.WithDatastorePath("/provider/keystore"),
+			keystore.WithDatastorePath(keystoreDatastorePath),
 			keystore.WithBatchSize(int(cfg.Provide.DHT.KeystoreBatchSize.WithDefault(config.DefaultProvideDHTKeystoreBatchSize))),
 		)
 		if err != nil {
@@ -370,6 +378,8 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if inDht != nil {
 				prov, err := ddhtprovider.New(inDht,
 					ddhtprovider.WithKeystore(ks),
+					ddhtprovider.WithDatastore(ds),
+					ddhtprovider.WithResumeCycle(cfg.Provide.DHT.ResumeEnabled.WithDefault(config.DefaultProvideDHTResumeEnabled)),
 
 					ddhtprovider.WithReprovideInterval(reprovideInterval),
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
@@ -403,6 +413,8 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		}
 		opts := []dhtprovider.Option{
 			dhtprovider.WithKeystore(ks),
+			dhtprovider.WithDatastore(ds),
+			dhtprovider.WithResumeCycle(cfg.Provide.DHT.ResumeEnabled.WithDefault(config.DefaultProvideDHTResumeEnabled)),
 			dhtprovider.WithPeerID(impl.Host().ID()),
 			dhtprovider.WithRouter(impl),
 			dhtprovider.WithMessageSender(impl.MessageSender()),
@@ -576,7 +588,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 
 						stats := prov.Stats()
 						queuedWorkers = stats.Workers.QueuedPeriodic > 0
-						queueSize = stats.Queues.PendingRegionReprovides
+						queueSize = int64(stats.Queues.PendingRegionReprovides)
 
 						// Alert if reprovide queue keeps growing and all periodic workers are busy.
 						// Requires consecutiveAlertsThreshold intervals of sustained growth.
