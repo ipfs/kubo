@@ -348,8 +348,7 @@ NOTES:
 			}
 			sectionTitle := func(col int, title string) {
 				if !brief && showHeadings {
-					titleStr := title + ":"
-					formatLine(col, titleStr)
+					formatLine(col, title, ":")
 				}
 			}
 
