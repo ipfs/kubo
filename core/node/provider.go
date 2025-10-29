@@ -574,7 +574,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					defer ticker.Stop()
 
 					var (
-						queueSize, prevQueueSize         int
+						queueSize, prevQueueSize         int64
 						queuedWorkers, prevQueuedWorkers bool
 						count                            int
 					)
@@ -588,7 +588,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 
 						stats := prov.Stats()
 						queuedWorkers = stats.Workers.QueuedPeriodic > 0
-						queueSize = stats.Queues.PendingRegionReprovides
+						queueSize = int64(stats.Queues.PendingRegionReprovides)
 
 						// Alert if reprovide queue keeps growing and all periodic workers are busy.
 						// Requires consecutiveAlertsThreshold intervals of sustained growth.
