@@ -528,13 +528,6 @@ func (d *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDir 
 	return nil
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // to check that out Node implements all the interfaces we want.
 type ipnsRoot interface {
 	fs.Node

@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1
+# Stub Dockerfile for the deprecated 'ipfs/go-ipfs' image name.
+# This image redirects users to the new 'ipfs/kubo' name.
+FROM busybox:stable-glibc
+
+# Copy stub entrypoint that displays deprecation message
+COPY .github/legacy/goipfs_stub.sh /usr/local/bin/ipfs
+
+# Make it executable
+RUN chmod +x /usr/local/bin/ipfs
+
+# Use the same ports as the real image for compatibility
+EXPOSE 4001 4001/udp 5001 8080 8081
+
+# Create ipfs user for consistency
+ENV IPFS_PATH=/data/ipfs
+RUN mkdir -p $IPFS_PATH \
+  && adduser -D -h $IPFS_PATH -u 1000 -G users ipfs \
+  && chown ipfs:users $IPFS_PATH
+
+# Run as ipfs user
+USER ipfs
+
+# The stub script will run and exit with an error message
+ENTRYPOINT ["/usr/local/bin/ipfs"]
+CMD ["daemon"]

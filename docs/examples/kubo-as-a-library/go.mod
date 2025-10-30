@@ -9,7 +9,7 @@ replace github.com/ipfs/kubo => ./../../..
 require (
 	github.com/ipfs/boxo v0.35.1
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
-	github.com/libp2p/go-libp2p v0.43.0
+	github.com/libp2p/go-libp2p v0.44.0
 	github.com/multiformats/go-multiaddr v0.16.1
 )
 
@@ -34,7 +34,7 @@ require (
 	github.com/cockroachdb/crlib v0.0.0-20241112164430-1264a2edc35b // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
-	github.com/cockroachdb/pebble/v2 v2.1.0 // indirect
+	github.com/cockroachdb/pebble/v2 v2.1.1 // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/cockroachdb/swiss v0.0.0-20250624142022-d6e517c1d961 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
@@ -82,7 +82,7 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.5.5 // indirect
 	github.com/ipfs/go-ds-leveldb v0.5.2 // indirect
 	github.com/ipfs/go-ds-measure v0.2.2 // indirect
-	github.com/ipfs/go-ds-pebble v0.5.3 // indirect
+	github.com/ipfs/go-ds-pebble v0.5.6 // indirect
 	github.com/ipfs/go-dsqueue v0.1.0 // indirect
 	github.com/ipfs/go-fs-lock v0.1.1 // indirect
 	github.com/ipfs/go-ipfs-cmds v0.15.0 // indirect
@@ -115,7 +115,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.3.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.35.1 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251025120456-f33906fd2f32 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.8.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.14.2 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect

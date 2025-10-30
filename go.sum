@@ -126,8 +126,8 @@ github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b h1:r6VH0faHjZe
 github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b/go.mod h1:Vz9DsVWQQhf3vs21MhPMZpMGSht7O/2vFW2xusFUVOs=
 github.com/cockroachdb/metamorphic v0.0.0-20231108215700-4ba948b56895 h1:XANOgPYtvELQ/h4IrmPAohXqe2pWA8Bwhejr3VQoZsA=
 github.com/cockroachdb/metamorphic v0.0.0-20231108215700-4ba948b56895/go.mod h1:aPd7gM9ov9M8v32Yy5NJrDyOcD8z642dqs+F0CeNXfA=
-github.com/cockroachdb/pebble/v2 v2.1.0 h1:6KZvjSpWcEXZUvlLzTRC7T1A2G7r+bFskIzggklxixo=
-github.com/cockroachdb/pebble/v2 v2.1.0/go.mod h1:Aza05DCCc05ghIJZkB4Q/axv/JK9wx5cFwWcnhG0eGw=
+github.com/cockroachdb/pebble/v2 v2.1.1 h1:sUpUJjorLDSL4zIRFqoduCBaf2LewaMUXOoOpK+MrXQ=
+github.com/cockroachdb/pebble/v2 v2.1.1/go.mod h1:Aza05DCCc05ghIJZkB4Q/axv/JK9wx5cFwWcnhG0eGw=
 github.com/cockroachdb/redact v1.1.5 h1:u1PMllDkdFfPWaNGMyLD1+so+aq3uUItthCFqzwPJ30=
 github.com/cockroachdb/redact v1.1.5/go.mod h1:BVNblN9mBWFyMyqK1k3AAiSxhvhfK2oOZZ2lK+dpvRg=
 github.com/cockroachdb/swiss v0.0.0-20250624142022-d6e517c1d961 h1:Nua446ru3juLHLZd4AwKNzClZgL1co3pUPGv3o8FlcA=
@@ -388,8 +388,8 @@ github.com/ipfs/go-ds-leveldb v0.5.2 h1:6nmxlQ2zbp4LCNdJVsmHfs9GP0eylfBNxpmY1csp
 github.com/ipfs/go-ds-leveldb v0.5.2/go.mod h1:2fAwmcvD3WoRT72PzEekHBkQmBDhc39DJGoREiuGmYo=
 github.com/ipfs/go-ds-measure v0.2.2 h1:4kwvBGbbSXNYe4ANlg7qTIYoZU6mNlqzQHdVqICkqGI=
 github.com/ipfs/go-ds-measure v0.2.2/go.mod h1:b/87ak0jMgH9Ylt7oH0+XGy4P8jHx9KG09Qz+pOeTIs=
-github.com/ipfs/go-ds-pebble v0.5.3 h1:4esRt82+LkenUnIWyUCghR1gzRfqeCYGGKX/hRmabro=
-github.com/ipfs/go-ds-pebble v0.5.3/go.mod h1:pn2bxYkAE7JRkbAF7D8xuEEFD3oOQ7QqQZPWkAVBs58=
+github.com/ipfs/go-ds-pebble v0.5.6 h1:mxTlfqILdcVue/hbuYpF89ihrRz8qcv0YWk2UsdGC3c=
+github.com/ipfs/go-ds-pebble v0.5.6/go.mod h1:q5C8c138Y/jWIJ6sfOnpKHkhJ4vVVI+e5J8OafhEr3U=
 github.com/ipfs/go-dsqueue v0.1.0 h1:OrahKDtT/Q+iMgKaM9XWdxrYPVASFpTuLah8QpKjboc=
 github.com/ipfs/go-dsqueue v0.1.0/go.mod h1:iLNkodSOSKTLn0gCvL9ikArz5rZfNh8F9/BRvHe7RbY=
 github.com/ipfs/go-fs-lock v0.1.1 h1:TecsP/Uc7WqYYatasreZQiP9EGRy4ZnKoG4yXxR33nw=
@@ -504,8 +504,8 @@ github.com/libp2p/go-flow-metrics v0.0.1/go.mod h1:Iv1GH0sG8DtYN3SVJ2eG221wMiNpZ
 github.com/libp2p/go-flow-metrics v0.0.3/go.mod h1:HeoSNUrOJVK1jEpDqVEiUOIXqhbnS27omG0uWU5slZs=
 github.com/libp2p/go-flow-metrics v0.3.0 h1:q31zcHUvHnwDO0SHaukewPYgwOBSxtt830uJtUx6784=
 github.com/libp2p/go-flow-metrics v0.3.0/go.mod h1:nuhlreIwEguM1IvHAew3ij7A8BMlyHQJ279ao24eZZo=
-github.com/libp2p/go-libp2p v0.43.0 h1:b2bg2cRNmY4HpLK8VHYQXLX2d3iND95OjodLFymvqXU=
-github.com/libp2p/go-libp2p v0.43.0/go.mod h1:IiSqAXDyP2sWH+J2gs43pNmB/y4FOi2XQPbsb+8qvzc=
+github.com/libp2p/go-libp2p v0.44.0 h1:5Gtt8OrF8yiXmH+Mx4+/iBeFRMK1TY3a8OrEBDEqAvs=
+github.com/libp2p/go-libp2p v0.44.0/go.mod h1:NovCojezAt4dnDd4fH048K7PKEqH0UFYYqJRjIIu8zc=
 github.com/libp2p/go-libp2p-asn-util v0.4.1 h1:xqL7++IKD9TBFMgnLPZR6/6iYhawHKHl950SO9L6n94=
 github.com/libp2p/go-libp2p-asn-util v0.4.1/go.mod h1:d/NI6XZ9qxw67b4e+NgpQexCIiFYJjErASrYW4PFDN8=
 github.com/libp2p/go-libp2p-core v0.2.4/go.mod h1:STh4fdfa5vDYr0/SzYYeqnt+E6KfEV5VxfIrm0bcI0g=
@@ -514,8 +514,8 @@ github.com/libp2p/go-libp2p-gostream v0.6.0 h1:QfAiWeQRce6pqnYfmIVWJFXNdDyfiR/qk
 github.com/libp2p/go-libp2p-gostream v0.6.0/go.mod h1:Nywu0gYZwfj7Jc91PQvbGU8dIpqbQQkjWgDuOrFaRdA=
 github.com/libp2p/go-libp2p-http v0.5.0 h1:+x0AbLaUuLBArHubbbNRTsgWz0RjNTy6DJLOxQ3/QBc=
 github.com/libp2p/go-libp2p-http v0.5.0/go.mod h1:glh87nZ35XCQyFsdzZps6+F4HYI6DctVFY5u1fehwSg=
-github.com/libp2p/go-libp2p-kad-dht v0.35.1 h1:RQglhc9OxqDwlFFdhQMwKxIPBIBfGsleROnK5hqVsoE=
-github.com/libp2p/go-libp2p-kad-dht v0.35.1/go.mod h1:1oCXzkkBiYh3d5cMWLpInSOZ6am2AlpC4G+GDcZFcE0=
+github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251025120456-f33906fd2f32 h1:xZj18PsLD157snR/BFo547jwOkGDH7jZjMEkBDOoD4Q=
+github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251025120456-f33906fd2f32/go.mod h1:aHMTg23iseX9grGSfA5gFUzLrqzmYbA8PqgGPqM8VkI=
 github.com/libp2p/go-libp2p-kbucket v0.3.1/go.mod h1:oyjT5O7tS9CQurok++ERgc46YLwEpuGoFq9ubvoUOio=
 github.com/libp2p/go-libp2p-kbucket v0.8.0 h1:QAK7RzKJpYe+EuSEATAaaHYMYLkPDGC18m9jxPLnU8s=
 github.com/libp2p/go-libp2p-kbucket v0.8.0/go.mod h1:JMlxqcEyKwO6ox716eyC0hmiduSWZZl6JY93mGaaqc4=
@@ -551,6 +551,8 @@ github.com/lunixbochs/vtclean v1.0.0/go.mod h1:pHhQNgMf3btfWnGBVipUOjRYhoOsdGqdm
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/mailru/easyjson v0.0.0-20190312143242-1de009706dbe/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
+github.com/marcopolo/simnet v0.0.1 h1:rSMslhPz6q9IvJeFWDoMGxMIrlsbXau3NkuIXHGJxfg=
+github.com/marcopolo/simnet v0.0.1/go.mod h1:WDaQkgLAjqDUEBAOXz22+1j6wXKfGlC5sD5XWt3ddOs=
 github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd h1:br0buuQ854V8u83wA0rVZ8ttrq5CpaPZdvrK0LP2lOk=
 github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd/go.mod h1:QuCEs1Nt24+FYQEqAAncTDPJIuGs+LxK1MCiFL25pMU=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
