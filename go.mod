@@ -53,7 +53,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0
 	github.com/libp2p/go-libp2p v0.44.0
 	github.com/libp2p/go-libp2p-http v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251025120456-f33906fd2f32
+	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251030222247-22a768506634
 	github.com/libp2p/go-libp2p-kbucket v0.8.0
 	github.com/libp2p/go-libp2p-pubsub v0.14.2
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
@@ -69,7 +69,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
-	github.com/probe-lab/go-libdht v0.3.0
+	github.com/probe-lab/go-libdht v0.4.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d
