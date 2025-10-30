@@ -254,7 +254,8 @@ func (tp *TestSuite) TestRoutingProvide(t *testing.T) {
 		if provider.ID.String() == self0.ID().String() {
 			success = true
 			break
-		} else if len(provider.ID.String()) > 0 {
+		}
+		if len(provider.ID.String()) > 0 {
 			t.Errorf("got wrong provider: %s != %s", provider.ID.String(), self0.ID().String())
 		}
 		time.Sleep(time.Second)
