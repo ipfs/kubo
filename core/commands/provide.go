@@ -348,6 +348,7 @@ NOTES:
 			}
 			sectionTitle := func(col int, title string) {
 				if !brief && showHeadings {
+					//nolint:govet // dynamic format string is intentional
 					formatLine(col, title+":")
 				}
 			}
