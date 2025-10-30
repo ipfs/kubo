@@ -22,7 +22,7 @@ jobs:
       - uses: ipfs/start-ipfs-daemon-action@v1
         with:
           args: --init --init-profile=flatfs,server --enable-gc=false
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 14
       - name: Sync the latest 5 github releases

@@ -37,13 +37,30 @@ import (
 	"go.uber.org/fx"
 )
 
-// The size of a batch that will be used for calculating average announcement
-// time per CID, inside of boxo/provider.ThroughputReport
-// and in 'ipfs stats provide' report.
-const sampledBatchSize = 1000
+const (
+	// The size of a batch that will be used for calculating average announcement
+	// time per CID, inside of boxo/provider.ThroughputReport
+	// and in 'ipfs stats provide' report.
+	// Used when Provide.DHT.SweepEnabled=false
+	sampledBatchSize = 1000
 
-// Datastore key used to store previous reprovide strategy.
-const reprovideStrategyKey = "/reprovideStrategy"
+	// Datastore key used to store previous reprovide strategy.
+	reprovideStrategyKey = "/reprovideStrategy"
+
+	// Datastore namespace prefix for provider data.
+	providerDatastorePrefix = "provider"
+	// Datastore path for the provider keystore.
+	keystoreDatastorePath = "keystore"
+)
+
+// Interval between reprovide queue monitoring checks for slow reprovide alerts.
+// Used when Provide.DHT.SweepEnabled=true
+const reprovideAlertPollInterval = 15 * time.Minute
+
+// Number of consecutive polling intervals with sustained queue growth before
+// triggering a slow reprovide alert (3 intervals = 45 minutes).
+// Used when Provide.DHT.SweepEnabled=true
+const consecutiveAlertsThreshold = 3
 
 // DHTProvider is an interface for providing keys to a DHT swarm. It holds a
 // state of keys to be advertised, and is responsible for periodically
@@ -315,10 +332,10 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		Repo repo.Repo
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *keystore.ResettableKeystore, error) {
-		ds := namespace.Wrap(in.Repo.Datastore(), datastore.NewKey("provider"))
+		ds := namespace.Wrap(in.Repo.Datastore(), datastore.NewKey(providerDatastorePrefix))
 		ks, err := keystore.NewResettableKeystore(ds,
 			keystore.WithPrefixBits(16),
-			keystore.WithDatastorePath("/keystore"),
+			keystore.WithDatastorePath(keystoreDatastorePath),
 			keystore.WithBatchSize(int(cfg.Provide.DHT.KeystoreBatchSize.WithDefault(config.DefaultProvideDHTKeystoreBatchSize))),
 		)
 		if err != nil {
@@ -513,9 +530,127 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		})
 	})
 
+	// extractSweepingProvider extracts a SweepingProvider from the given provider interface.
+	// It handles unwrapping buffered and dual providers, always selecting WAN for dual DHT.
+	// Returns nil if the provider is not a sweeping provider type.
+	var extractSweepingProvider func(prov any) *dhtprovider.SweepingProvider
+	extractSweepingProvider = func(prov any) *dhtprovider.SweepingProvider {
+		switch p := prov.(type) {
+		case *dhtprovider.SweepingProvider:
+			return p
+		case *ddhtprovider.SweepingProvider:
+			return p.WAN
+		case *buffered.SweepingProvider:
+			// Recursively extract from the inner provider
+			return extractSweepingProvider(p.Provider)
+		default:
+			return nil
+		}
+	}
+
+	type alertInput struct {
+		fx.In
+		Provider DHTProvider
+	}
+	reprovideAlert := fx.Invoke(func(lc fx.Lifecycle, in alertInput) {
+		prov := extractSweepingProvider(in.Provider)
+
+		var (
+			cancel context.CancelFunc
+			done   = make(chan struct{})
+		)
+
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				if prov == nil {
+					return nil
+				}
+				gcCtx, c := context.WithCancel(context.Background())
+				cancel = c
+				go func() {
+					defer close(done)
+
+					ticker := time.NewTicker(reprovideAlertPollInterval)
+					defer ticker.Stop()
+
+					var (
+						queueSize, prevQueueSize         int64
+						queuedWorkers, prevQueuedWorkers bool
+						count                            int
+					)
+
+					for {
+						select {
+						case <-gcCtx.Done():
+							return
+						case <-ticker.C:
+						}
+
+						stats := prov.Stats()
+						queuedWorkers = stats.Workers.QueuedPeriodic > 0
+						queueSize = int64(stats.Queues.PendingRegionReprovides)
+
+						// Alert if reprovide queue keeps growing and all periodic workers are busy.
+						// Requires consecutiveAlertsThreshold intervals of sustained growth.
+						if prevQueuedWorkers && queuedWorkers && queueSize > prevQueueSize {
+							count++
+							if count >= consecutiveAlertsThreshold {
+								logger.Errorf(`
+🔔🔔🔔 Reprovide Operations Too Slow 🔔🔔🔔
+
+Your node is falling behind on DHT reprovides, which will affect content availability.
+
+Keyspace regions enqueued for reprovide:
+  %s ago:\t%d
+  Now:\t%d
+
+All periodic workers are busy!
+  Active workers:\t%d / %d (max)
+  Active workers types:\t%d periodic, %d burst
+  Dedicated workers:\t%d periodic, %d burst
+
+Solutions (try in order):
+1. Increase Provide.DHT.MaxWorkers (current %d)
+2. Increase Provide.DHT.DedicatedPeriodicWorkers (current %d)
+3. Set Provide.DHT.SweepEnabled=false and Routing.AcceleratedDHTClient=true (last resort, not recommended)
+
+See how the reprovide queue is processed in real-time with 'watch ipfs provide stat --all --compact'
+
+See docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtmaxworkers`,
+									reprovideAlertPollInterval.Truncate(time.Minute).String(), prevQueueSize, queueSize,
+									stats.Workers.Active, stats.Workers.Max,
+									stats.Workers.ActivePeriodic, stats.Workers.ActiveBurst,
+									stats.Workers.DedicatedPeriodic, stats.Workers.DedicatedBurst,
+									stats.Workers.Max, stats.Workers.DedicatedPeriodic)
+							}
+						} else if !queuedWorkers {
+							count = 0
+						}
+
+						prevQueueSize, prevQueuedWorkers = queueSize, queuedWorkers
+					}
+				}()
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				// Cancel the alert loop
+				if cancel != nil {
+					cancel()
+				}
+				select {
+				case <-done:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				return nil
+			},
+		})
+	})
+
 	return fx.Options(
 		sweepingReprovider,
 		initKeystore,
+		reprovideAlert,
 	)
 }
 

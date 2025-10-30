@@ -1921,7 +1921,7 @@ map CIDs to your peer ID, enabling content discovery across the network.
 While designed to support multiple routing systems in the future, the current
 default configuration only supports [providing to the Amino DHT](#providedht).
 
-<!-- TODO: See the [Reprovide Sweep blog post](https://blog.ipfs.tech/2025-reprovide-sweep/) for detailed performance comparisons. -->
+<!-- TODO: See the [Reprovide Sweep blog post](https://github.com/ipshipyard/ipshipyard.com/pull/8) for detailed performance comparisons. -->
 
 ### `Provide.Enabled`
 
@@ -2027,8 +2027,8 @@ overwhelming the network with unnecessary announcements.
 **With sweep mode enabled
 ([`Provide.DHT.SweepEnabled`](#providedhtsweepenabled)):** The system spreads
 reprovide operations smoothly across this entire interval. Each keyspace region
-is reprovided at scheduled times throughout the period, ensuring announcements
-periodically happen every interval.
+is reprovided at scheduled times throughout the period, ensuring each region's
+announcements complete before records expire.
 
 **With legacy mode:** The system attempts to reprovide all CIDs as quickly as
 possible at the start of each interval. If reproviding takes longer than this

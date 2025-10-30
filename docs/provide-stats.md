@@ -45,8 +45,9 @@ a batch for efficient processing.
 
 Average length of binary prefixes identifying the scheduled regions. Each
 keyspace region is identified by a binary prefix, and this shows the average
-prefix length across all regions in the schedule. Longer prefixes indicate more
-DHT servers in the swarm.
+prefix length across all regions in the schedule. Longer prefixes indicate the
+keyspace is divided into more regions (because there are more DHT servers in the
+swarm to distribute records across).
 
 ### Next region prefix
 
@@ -65,7 +66,8 @@ start timestamp.
 
 ### Current time offset
 
-Elapsed time in the current reprovide cycle, showing cycle progress.
+Elapsed time in the current reprovide cycle, showing cycle progress (e.g., '11h'
+means 11 hours into a 22-hour cycle, roughly halfway through).
 
 ### Cycle started
 
@@ -84,7 +86,8 @@ DHT servers. In practice, this is often lower than the [replication
 factor](#replication-factor) due to unreachable peers or timeouts. Matching the
 replication factor would indicate all DHT servers are reachable.
 
-Note: some holders may have gone offline since receiving the record.
+Note: this counts successful sends; some DHT servers may have gone offline
+afterward, so actual availability may be lower.
 
 ### Peers swept
 
@@ -141,15 +144,23 @@ reprovides).
 Number of failed region provide/reprovide operations since startup. Failed
 regions are automatically retried unless the node is offline.
 
-### CIDs provided/min
+### CIDs provided/min/worker
 
-Average rate of initial provides per minute during the last reprovide cycle
-(excludes reprovides).
+Average rate of initial provides per minute per worker during the last
+reprovide cycle (excludes reprovides). Each worker handles one keyspace region
+at a time, providing all CIDs in that region. This rate only counts active time
+(timer doesn't run when no initial provides are being processed). The overall
+provide rate can be higher when multiple workers are providing different
+regions concurrently.
 
-### CIDs reprovided/min
+### CIDs reprovided/min/worker
 
-Average rate of reprovides per minute during the last reprovide cycle (excludes
-initial provides).
+Average rate of reprovides per minute per worker during the last reprovide
+cycle (excludes initial provides). Each worker handles one keyspace region at a
+time, reproviding all CIDs in that region. The overall reprovide rate can be
+higher when multiple workers are reproviding different regions concurrently. To
+estimate total reprovide rate, multiply by the number of [periodic
+workers](./config.md#providedhtdedicatedperiodicworkers) in use.
 
 ### Region reprovide duration
 
@@ -175,14 +186,23 @@ Number of idle workers not reserved for periodic or burst tasks.
 
 ### Workers stats
 
-Breakdown of worker status by type (periodic for scheduled reprovides, burst
-for initial provides). For each: active (currently processing), dedicated
-(reserved for this type), available (idle dedicated + [free
-workers](#free-workers)), and queued (0 or 1, since we only acquire when
-needed). See [provide queue](#provide-queue) and [reprovide
-queue](#reprovide-queue) for regions waiting to be processed.
+Breakdown of worker status by type (periodic for scheduled reprovides, burst for
+initial provides). For each type:
+
+- **Active**: Currently processing operations
+- **Dedicated**: Reserved for this type
+- **Available**: Idle dedicated workers + [free workers](#free-workers)
+- **Queued**: 0 or 1 (workers acquired only when needed)
+
+See [provide queue](#provide-queue) and [reprovide queue](#reprovide-queue) for
+regions waiting to be processed.
 
 ### Max connections/worker
 
 Maximum concurrent DHT server connections per worker when sending provider
 records for a region.
+
+## See Also
+
+- [Provide configuration reference](./config.md#provide)
+- [Provide metrics for Prometheus](./metrics.md#provide)
