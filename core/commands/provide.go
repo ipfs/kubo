@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 
 	humanize "github.com/dustin/go-humanize"
 	boxoprovider "github.com/ipfs/boxo/provider"
+	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
@@ -18,6 +20,7 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/provider/buffered"
 	"github.com/libp2p/go-libp2p-kad-dht/provider/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/provider/stats"
+	routing "github.com/libp2p/go-libp2p/core/routing"
 	"github.com/probe-lab/go-libdht/kad/key"
 	"golang.org/x/exp/constraints"
 )
@@ -570,4 +573,16 @@ func humanSI(val float64, decimals int) string {
 
 func humanFull(val float64, decimals int) string {
 	return humanize.CommafWithDigits(val, decimals)
+}
+
+// provideRoot performs a provide operation on the supplied DHT client for the
+// given CID.
+//
+//   - If the accelerated DHT client is used, a DHT lookup isn't needed, we
+//     directly allocate provider records to closest peers.
+//   - If Provide.DHT.SweepEnabled=true or OptimisticProvide=true, we make an
+//     optimistic provide call.
+//   - Else we make a standard provide call (much slower).
+func provideRoot(ctx context.Context, router routing.Routing, c cid.Cid) error {
+	return router.Provide(ctx, c, true)
 }
