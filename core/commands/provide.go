@@ -373,8 +373,8 @@ NOTES:
 			// Queues
 			if all || queues || brief {
 				sectionTitle(1, "Queues")
-				formatLine(1, "%sProvide queue: %s CIDs, %s regions", indent, humanNumber(s.Sweep.Queues.PendingKeyProvides), humanNumber(s.Sweep.Queues.PendingRegionProvides))
-				formatLine(1, "%sReprovide queue: %s regions", indent, humanNumber(s.Sweep.Queues.PendingRegionReprovides))
+				formatLine(1, "%sProvide queue: %s CIDs, %s regions", indent, humanSI(s.Sweep.Queues.PendingKeyProvides, 1), humanSI(s.Sweep.Queues.PendingRegionProvides, 1))
+				formatLine(1, "%sReprovide queue: %s regions", indent, humanSI(s.Sweep.Queues.PendingRegionReprovides, 1))
 				addBlankLine(1)
 			}
 
@@ -431,8 +431,8 @@ NOTES:
 			if all || operations || brief {
 				sectionTitle(1, "Operations")
 				// Ongoing operations
-				formatLine(1, "%sOngoing provides: %s CIDs, %s regions", indent, humanNumber(s.Sweep.Operations.Ongoing.KeyProvides), humanNumber(s.Sweep.Operations.Ongoing.RegionProvides))
-				formatLine(1, "%sOngoing reprovides: %s CIDs, %s regions", indent, humanNumber(s.Sweep.Operations.Ongoing.KeyReprovides), humanNumber(s.Sweep.Operations.Ongoing.RegionReprovides))
+				formatLine(1, "%sOngoing provides: %s CIDs, %s regions", indent, humanSI(s.Sweep.Operations.Ongoing.KeyProvides, 1), humanSI(s.Sweep.Operations.Ongoing.RegionProvides, 1))
+				formatLine(1, "%sOngoing reprovides: %s CIDs, %s regions", indent, humanSI(s.Sweep.Operations.Ongoing.KeyReprovides, 1), humanSI(s.Sweep.Operations.Ongoing.RegionReprovides, 1))
 				// Past operations summary
 				formatLine(1, "%sTotal CIDs provided: %s", indent, humanNumber(s.Sweep.Operations.Past.KeysProvided))
 				if !brief {
@@ -464,21 +464,21 @@ NOTES:
 					if compactMode {
 						specifyWorkers = ""
 					}
-					formatLine(0, "%sActive%s: %s / %s (max)", indent, specifyWorkers, humanNumber(s.Sweep.Workers.Active), humanFull(float64(s.Sweep.Workers.Max), 0))
+					formatLine(0, "%sActive%s: %s / %s (max)", indent, specifyWorkers, humanInt(s.Sweep.Workers.Active), humanInt(s.Sweep.Workers.Max))
 					if brief {
 						// Brief mode - show condensed worker info
 						formatLine(0, "%sPeriodic%s: %s active, %s available, %s queued", indent, specifyWorkers,
-							humanNumber(s.Sweep.Workers.ActivePeriodic), humanNumber(availablePeriodic), humanNumber(s.Sweep.Workers.QueuedPeriodic))
+							humanInt(s.Sweep.Workers.ActivePeriodic), humanInt(availablePeriodic), humanInt(s.Sweep.Workers.QueuedPeriodic))
 						formatLine(0, "%sBurst%s: %s active, %s available, %s queued\n", indent, specifyWorkers,
-							humanNumber(s.Sweep.Workers.ActiveBurst), humanNumber(availableBurst), humanNumber(s.Sweep.Workers.QueuedBurst))
+							humanInt(s.Sweep.Workers.ActiveBurst), humanInt(availableBurst), humanInt(s.Sweep.Workers.QueuedBurst))
 					} else {
-						formatLine(0, "%sFree%s: %s", indent, specifyWorkers, humanNumber(availableFreeWorkers))
+						formatLine(0, "%sFree%s: %s", indent, specifyWorkers, humanInt(availableFreeWorkers))
 						formatLine(0, "%s  %-14s %-9s %s", indent, "Workers stats:", "Periodic", "Burst")
-						formatLine(0, "%s  %-14s %-9s %s", indent, "Active:", humanNumber(s.Sweep.Workers.ActivePeriodic), humanNumber(s.Sweep.Workers.ActiveBurst))
-						formatLine(0, "%s  %-14s %-9s %s", indent, "Dedicated:", humanNumber(s.Sweep.Workers.DedicatedPeriodic), humanNumber(s.Sweep.Workers.DedicatedBurst))
-						formatLine(0, "%s  %-14s %-9s %s", indent, "Available:", humanNumber(availablePeriodic), humanNumber(availableBurst))
-						formatLine(0, "%s  %-14s %-9s %s", indent, "Queued:", humanNumber(s.Sweep.Workers.QueuedPeriodic), humanNumber(s.Sweep.Workers.QueuedBurst))
-						formatLine(0, "%sMax connections/worker: %s", indent, humanNumber(s.Sweep.Workers.MaxProvideConnsPerWorker))
+						formatLine(0, "%s  %-14s %-9s %s", indent, "Active:", humanInt(s.Sweep.Workers.ActivePeriodic), humanInt(s.Sweep.Workers.ActiveBurst))
+						formatLine(0, "%s  %-14s %-9s %s", indent, "Dedicated:", humanInt(s.Sweep.Workers.DedicatedPeriodic), humanInt(s.Sweep.Workers.DedicatedBurst))
+						formatLine(0, "%s  %-14s %-9s %s", indent, "Available:", humanInt(availablePeriodic), humanInt(availableBurst))
+						formatLine(0, "%s  %-14s %-9s %s", indent, "Queued:", humanInt(s.Sweep.Workers.QueuedPeriodic), humanInt(s.Sweep.Workers.QueuedBurst))
+						formatLine(0, "%sMax connections/worker: %s", indent, humanInt(s.Sweep.Workers.MaxProvideConnsPerWorker))
 						addBlankLine(0)
 					}
 				}
@@ -563,9 +563,13 @@ func humanFloatOrNA(val float64) string {
 	return humanFull(val, 1)
 }
 
-func humanSI(val float64, decimals int) string {
-	v, unit := humanize.ComputeSI(val)
+func humanSI[T constraints.Float | constraints.Integer](val T, decimals int) string {
+	v, unit := humanize.ComputeSI(float64(val))
 	return fmt.Sprintf("%s%s", humanFull(v, decimals), unit)
+}
+
+func humanInt[T constraints.Integer](val T) string {
+	return humanFull(float64(val), 0)
 }
 
 func humanFull(val float64, decimals int) string {
