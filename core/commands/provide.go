@@ -414,12 +414,12 @@ NOTES:
 				sectionTitle(0, "Network")
 				formatLine(0, "%sAvg record holders: %s", indent, humanFloatOrNA(s.Sweep.Network.AvgHolders))
 				if !brief {
-					formatLine(0, "%sPeers swept: %s", indent, humanNumber(s.Sweep.Network.Peers))
+					formatLine(0, "%sPeers swept: %s", indent, humanInt(s.Sweep.Network.Peers))
 					formatLine(0, "%sFull keyspace coverage: %t", indent, s.Sweep.Network.CompleteKeyspaceCoverage)
 					if s.Sweep.Network.Peers > 0 {
-						formatLine(0, "%sReachable peers: %s (%s%%)", indent, humanNumber(s.Sweep.Network.Reachable), humanNumber(100*s.Sweep.Network.Reachable/s.Sweep.Network.Peers))
+						formatLine(0, "%sReachable peers: %s (%s%%)", indent, humanInt(s.Sweep.Network.Reachable), humanNumber(100*s.Sweep.Network.Reachable/s.Sweep.Network.Peers))
 					} else {
-						formatLine(0, "%sReachable peers: %s", indent, humanNumber(s.Sweep.Network.Reachable))
+						formatLine(0, "%sReachable peers: %s", indent, humanInt(s.Sweep.Network.Reachable))
 					}
 					formatLine(0, "%sAvg region size: %s", indent, humanFloatOrNA(s.Sweep.Network.AvgRegionSize))
 					formatLine(0, "%sReplication factor: %s", indent, humanNumber(s.Sweep.Network.ReplicationFactor))
