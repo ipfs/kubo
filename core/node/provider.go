@@ -116,6 +116,7 @@ type DHTProvider interface {
 	// `OfflineDelay`). The schedule depends on the network size, hence recent
 	// network connectivity is essential.
 	RefreshSchedule() error
+	Close() error
 }
 
 var (
@@ -134,6 +135,7 @@ func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) error { return nil 
 func (r *NoopProvider) ProvideOnce(...mh.Multihash) error          { return nil }
 func (r *NoopProvider) Clear() int                                 { return 0 }
 func (r *NoopProvider) RefreshSchedule() error                     { return nil }
+func (r *NoopProvider) Close() error                               { return nil }
 
 // LegacyProvider is a wrapper around the boxo/provider.System that implements
 // the DHTProvider interface. This provider manages reprovides using a burst
@@ -548,6 +550,25 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		}
 	}
 
+	type providerCloseInput struct {
+		fx.In
+		Provider DHTProvider
+	}
+	closeProvider := fx.Invoke(func(lc fx.Lifecycle, in providerCloseInput) {
+		// Skip for NoopProvider
+		if _, ok := in.Provider.(*NoopProvider); ok {
+			return
+		}
+
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				// Close the provider. This must happen before keystore is closed to
+				// prevent provider from writing to keystore after close.
+				return in.Provider.Close()
+			},
+		})
+	})
+
 	type alertInput struct {
 		fx.In
 		Provider DHTProvider
@@ -650,6 +671,7 @@ See docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtmaxw
 	return fx.Options(
 		sweepingReprovider,
 		initKeystore,
+		closeProvider, // Must be after initKeystore to ensure provider closes before keystore
 		reprovideAlert,
 	)
 }

@@ -17,6 +17,8 @@ func TestDHTOptimisticProvide(t *testing.T) {
 
 		nodes[0].UpdateConfig(func(cfg *config.Config) {
 			cfg.Experimental.OptimisticProvide = true
+			// Optimistic provide only works with the legacy provider.
+			cfg.Provide.DHT.SweepEnabled = config.False
 		})
 
 		nodes.StartDaemons().Connect()
