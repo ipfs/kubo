@@ -66,6 +66,7 @@ const (
 	modeOptionName          = "mode"
 	mtimeOptionName         = "mtime"
 	mtimeNsecsOptionName    = "mtime-nsecs"
+	fastProvideOptionName   = "fast-provide"
 )
 
 const adderOutChanSize = 8
@@ -213,6 +214,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
+		cmds.BoolOption(fastProvideOptionName, "Apply fast-provide function to the root CID after add completes").WithDefault(true), // TODO: default could be Provide.DHT.SweepEnabled
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -283,6 +285,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		mode, _ := req.Options[modeOptionName].(uint)
 		mtime, _ := req.Options[mtimeOptionName].(int64)
 		mtimeNsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
+		fastProvide, _ := req.Options[fastProvideOptionName].(bool)
 
 		if chunker == "" {
 			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
@@ -421,11 +424,12 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		}
 		var added int
 		var fileAddedToMFS bool
+		var lastRootCid path.ImmutablePath // Track the root CID for fast-provide
 		addit := toadd.Entries()
 		for addit.Next() {
 			_, dir := addit.Node().(files.Directory)
 			errCh := make(chan error, 1)
-			events := make(chan interface{}, adderOutChanSize)
+			events := make(chan any, adderOutChanSize)
 			opts[len(opts)-1] = options.Unixfs.Events(events)
 
 			go func() {
@@ -436,6 +440,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 					errCh <- err
 					return
 				}
+
+				// Store the root CID for potential fast-provide operation
+				lastRootCid = pathAdded
 
 				// creating MFS pointers when optional --to-files is set
 				if toFilesSet {
@@ -560,12 +567,21 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			return fmt.Errorf("expected a file argument")
 		}
 
+		// Apply fast-provide if the flag is enabled
+		if fastProvide && (lastRootCid != path.ImmutablePath{}) {
+			// Blocks until root CID is provided to the DHT.
+			// TODO: consider logging that fast-provide is in progress for user
+			if err := provideRoot(req.Context, ipfsNode.DHTClient, lastRootCid.RootCid()); err != nil {
+				log.Warnf("fast-provide failed for root CID %s: %s", lastRootCid.String(), err)
+			}
+		}
+
 		return nil
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
 			sizeChan := make(chan int64, 1)
-			outChan := make(chan interface{})
+			outChan := make(chan any)
 			req := res.Request()
 
 			// Could be slow.
