@@ -59,7 +59,18 @@ func init() {
 	//
 	// go-log's init() installs its slog bridge via slog.SetDefault().
 	// We pass that handler to gologshim so go-libp2p loggers use it.
-	gologshim.SetDefaultHandler(slog.Default().Handler())
+	handler := slog.Default().Handler()
+
+	// Verify that slog.Default() is go-log's bridge via duck typing.
+	// This catches misconfigurations where go-log's init() didn't run.
+	type goLogBridge interface {
+		GoLogBridge()
+	}
+	if _, ok := handler.(goLogBridge); !ok {
+		panic("slog.Default() is not go-log's bridge - go-log may not be properly initialized")
+	}
+
+	gologshim.SetDefaultHandler(handler)
 }
 
 // declared as a var for testing purposes.
