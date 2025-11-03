@@ -67,7 +67,7 @@ func init() {
 		GoLogBridge()
 	}
 	if _, ok := handler.(goLogBridge); !ok {
-		panic("slog.Default() is not go-log's bridge - go-log may not be properly initialized")
+		panic("aborting startup: slog.Default() is not go-log's bridge, go-libp2p logs would be missing due to incorrect wiring")
 	}
 
 	gologshim.SetDefaultHandler(handler)
