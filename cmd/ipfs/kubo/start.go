@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -33,6 +34,7 @@ import (
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/tracing"
+	"github.com/libp2p/go-libp2p/gologshim"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -49,6 +51,16 @@ var (
 	log    = logging.Logger("cmd/ipfs")
 	tracer trace.Tracer
 )
+
+func init() {
+	// Wire go-log's slog bridge to go-libp2p's gologshim.
+	// This ensures go-libp2p logs integrate with go-log's formatting
+	// and dynamic level control (e.g., `ipfs log level libp2p-swarm debug`).
+	//
+	// go-log's init() installs its slog bridge via slog.SetDefault().
+	// We pass that handler to gologshim so go-libp2p loggers use it.
+	gologshim.SetDefaultHandler(slog.Default().Handler())
+}
 
 // declared as a var for testing purposes.
 var dnsResolver = madns.DefaultResolver

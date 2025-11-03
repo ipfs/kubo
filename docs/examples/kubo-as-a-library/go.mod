@@ -9,7 +9,7 @@ replace github.com/ipfs/kubo => ./../../..
 require (
 	github.com/ipfs/boxo v0.35.1
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
-	github.com/libp2p/go-libp2p v0.44.1-0.20251027235033-ea2c010ece2d
+	github.com/libp2p/go-libp2p v0.44.1-0.20251029234611-789d14c6effe
 	github.com/multiformats/go-multiaddr v0.16.1
 )
 
