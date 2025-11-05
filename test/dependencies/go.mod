@@ -8,7 +8,7 @@ require (
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/ipfs/go-cidutil v0.1.0
-	github.com/ipfs/go-log/v2 v2.8.3-0.20251028000959-dc9bb9f04e8b
+	github.com/ipfs/go-log/v2 v2.8.3-0.20251104190326-eea1e4119c49
 	github.com/ipfs/go-test v0.2.3
 	github.com/ipfs/hang-fds v0.1.0
 	github.com/ipfs/iptb v1.4.1
@@ -182,7 +182,7 @@ require (
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.3.0 // indirect
-	github.com/libp2p/go-libp2p v0.44.1-0.20251029234611-789d14c6effe // indirect
+	github.com/libp2p/go-libp2p v0.44.1-0.20251104204556-3b3b1fd6e00e // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
 	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251025120456-f33906fd2f32 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.8.0 // indirect

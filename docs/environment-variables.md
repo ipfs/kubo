@@ -8,6 +8,8 @@
   - [`GOLOG_LOG_FMT`](#golog_log_fmt)
   - [`GOLOG_FILE`](#golog_file)
   - [`GOLOG_OUTPUT`](#golog_output)
+  - [`GOLOG_LOG_LABELS`](#golog_log_labels)
+  - [`GOLOG_CAPTURE_DEFAULT_SLOG`](#golog_capture_default_slog)
   - [`GOLOG_TRACING_FILE`](#golog_tracing_file)
   - [`IPFS_FUSE_DEBUG`](#ipfs_fuse_debug)
   - [`YAMUX_DEBUG`](#yamux_debug)
@@ -99,6 +101,60 @@ When stderr and/or stdout options are configured or specified by the `GOLOG_OUTP
 - `GOLOG_OUTPUT="stderr"` logs only to stderr
 - `GOLOG_OUTPUT="stdout"` logs only to stdout
 - `GOLOG_OUTPUT="stderr+stdout"` logs to both stderr and stdout
+
+## `GOLOG_LOG_LABELS`
+
+Adds static key-value labels to all log entries. Labels are specified as comma-separated `key=value` pairs.
+
+This is useful for:
+- Identifying logs from different instances in aggregated logging systems
+- Adding deployment context (datacenter, environment, version)
+- Correlating logs across distributed systems
+
+Example:
+
+```console
+export GOLOG_LOG_LABELS="app=kubo,dc=us-west-1,instance=node-42"
+ipfs daemon
+```
+
+Each log entry will include these labels in JSON format:
+
+```json
+{
+  "level": "info",
+  "ts": "2025-01-05T10:30:00.000Z",
+  "logger": "core",
+  "msg": "daemon started",
+  "app": "kubo",
+  "dc": "us-west-1",
+  "instance": "node-42"
+}
+```
+
+## `GOLOG_CAPTURE_DEFAULT_SLOG`
+
+Controls whether go-log installs its bridge as Go's default slog handler via `slog.SetDefault()`.
+
+When enabled (default), go-log captures logs from:
+- Go standard library packages using `log/slog`
+- Third-party libraries using `log/slog`
+- go-libp2p (which uses slog internally via gologshim)
+
+This allows unified log management where `ipfs log level` commands control both Kubo subsystems and go-libp2p loggers.
+
+To disable the slog bridge:
+
+```console
+export GOLOG_CAPTURE_DEFAULT_SLOG="false"
+ipfs daemon
+```
+
+When disabled, only native go-log loggers will be captured. Libraries using `log/slog` directly will use Go's default handler and won't appear in `ipfs log tail` or respond to `ipfs log level` commands.
+
+Default: `true` (enabled)
+
+For more details, see [go-log's slog integration documentation](https://github.com/ipfs/go-log/blob/master/README.md#slog-integration).
 
 ## `GOLOG_TRACING_FILE`
 

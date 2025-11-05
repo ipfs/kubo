@@ -39,7 +39,7 @@ require (
 	github.com/ipfs/go-ipld-format v0.6.3
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.2.2
-	github.com/ipfs/go-log/v2 v2.8.3-0.20251028000959-dc9bb9f04e8b
+	github.com/ipfs/go-log/v2 v2.8.3-0.20251104190326-eea1e4119c49
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
 	github.com/ipfs/go-test v0.2.3
@@ -51,7 +51,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/libp2p/go-doh-resolver v0.5.0
-	github.com/libp2p/go-libp2p v0.44.1-0.20251029234611-789d14c6effe
+	github.com/libp2p/go-libp2p v0.44.1-0.20251104204556-3b3b1fd6e00e
 	github.com/libp2p/go-libp2p-http v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251025120456-f33906fd2f32
 	github.com/libp2p/go-libp2p-kbucket v0.8.0

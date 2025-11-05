@@ -416,8 +416,8 @@ github.com/ipfs/go-ipld-git v0.1.1/go.mod h1:+VyMqF5lMcJh4rwEppV0e6g4nCCHXThLYYD
 github.com/ipfs/go-ipld-legacy v0.2.2 h1:DThbqCPVLpWBcGtU23KDLiY2YRZZnTkXQyfz8aOfBkQ=
 github.com/ipfs/go-ipld-legacy v0.2.2/go.mod h1:hhkj+b3kG9b2BcUNw8IFYAsfeNo8E3U7eYlWeAOPyDU=
 github.com/ipfs/go-log v0.0.1/go.mod h1:kL1d2/hzSpI0thNYjiKfjanbVNU+IIGA/WnNESY9leM=
-github.com/ipfs/go-log/v2 v2.8.3-0.20251028000959-dc9bb9f04e8b h1:PtG74rADTbq3f5xA62rjmHd4rRq+rV5uM4E+g3y4ZGM=
-github.com/ipfs/go-log/v2 v2.8.3-0.20251028000959-dc9bb9f04e8b/go.mod h1:UhIYAwMV7Nb4ZmihUxfIRM2Istw/y9cAk3xaK+4Zs2c=
+github.com/ipfs/go-log/v2 v2.8.3-0.20251104190326-eea1e4119c49 h1:IeFkT7voVHOd7KsTTfXlIh4WIV9m7+UYLFuxLp6a5PM=
+github.com/ipfs/go-log/v2 v2.8.3-0.20251104190326-eea1e4119c49/go.mod h1:UhIYAwMV7Nb4ZmihUxfIRM2Istw/y9cAk3xaK+4Zs2c=
 github.com/ipfs/go-metrics-interface v0.3.0 h1:YwG7/Cy4R94mYDUuwsBfeziJCVm9pBMJ6q/JR9V40TU=
 github.com/ipfs/go-metrics-interface v0.3.0/go.mod h1:OxxQjZDGocXVdyTPocns6cOLwHieqej/jos7H4POwoY=
 github.com/ipfs/go-metrics-prometheus v0.1.0 h1:bApWOHkrH3VTBHzTHrZSfq4n4weOZDzZFxUXv+HyKcA=
@@ -504,8 +504,8 @@ github.com/libp2p/go-flow-metrics v0.0.1/go.mod h1:Iv1GH0sG8DtYN3SVJ2eG221wMiNpZ
 github.com/libp2p/go-flow-metrics v0.0.3/go.mod h1:HeoSNUrOJVK1jEpDqVEiUOIXqhbnS27omG0uWU5slZs=
 github.com/libp2p/go-flow-metrics v0.3.0 h1:q31zcHUvHnwDO0SHaukewPYgwOBSxtt830uJtUx6784=
 github.com/libp2p/go-flow-metrics v0.3.0/go.mod h1:nuhlreIwEguM1IvHAew3ij7A8BMlyHQJ279ao24eZZo=
-github.com/libp2p/go-libp2p v0.44.1-0.20251029234611-789d14c6effe h1:KMnEq4uAmK2RDLpblZ+lS8pd0rwjZjjscwmeeRx0V+M=
-github.com/libp2p/go-libp2p v0.44.1-0.20251029234611-789d14c6effe/go.mod h1:NovCojezAt4dnDd4fH048K7PKEqH0UFYYqJRjIIu8zc=
+github.com/libp2p/go-libp2p v0.44.1-0.20251104204556-3b3b1fd6e00e h1:e2l686j0igVArkat68VgRS+cNkZ9oQNddkK1PfUGTuY=
+github.com/libp2p/go-libp2p v0.44.1-0.20251104204556-3b3b1fd6e00e/go.mod h1:NovCojezAt4dnDd4fH048K7PKEqH0UFYYqJRjIIu8zc=
 github.com/libp2p/go-libp2p-asn-util v0.4.1 h1:xqL7++IKD9TBFMgnLPZR6/6iYhawHKHl950SO9L6n94=
 github.com/libp2p/go-libp2p-asn-util v0.4.1/go.mod h1:d/NI6XZ9qxw67b4e+NgpQexCIiFYJjErASrYW4PFDN8=
 github.com/libp2p/go-libp2p-core v0.2.4/go.mod h1:STh4fdfa5vDYr0/SzYYeqnt+E6KfEV5VxfIrm0bcI0g=

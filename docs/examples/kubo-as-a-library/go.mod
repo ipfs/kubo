@@ -9,7 +9,7 @@ replace github.com/ipfs/kubo => ./../../..
 require (
 	github.com/ipfs/boxo v0.35.1
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
-	github.com/libp2p/go-libp2p v0.44.1-0.20251029234611-789d14c6effe
+	github.com/libp2p/go-libp2p v0.44.1-0.20251104204556-3b3b1fd6e00e
 	github.com/multiformats/go-multiaddr v0.16.1
 )
 
@@ -93,7 +93,7 @@ require (
 	github.com/ipfs/go-ipld-format v0.6.3 // indirect
 	github.com/ipfs/go-ipld-git v0.1.1 // indirect
 	github.com/ipfs/go-ipld-legacy v0.2.2 // indirect
-	github.com/ipfs/go-log/v2 v2.8.3-0.20251028000959-dc9bb9f04e8b // indirect
+	github.com/ipfs/go-log/v2 v2.8.3-0.20251104190326-eea1e4119c49 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.2 // indirect
 	github.com/ipfs/go-test v0.2.3 // indirect
