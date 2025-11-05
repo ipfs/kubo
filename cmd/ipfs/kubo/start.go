@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -57,20 +56,9 @@ func init() {
 	// This ensures go-libp2p logs integrate with go-log's formatting
 	// and dynamic level control (e.g., `ipfs log level libp2p-swarm debug`).
 	//
-	// go-log's init() installs its slog bridge via slog.SetDefault().
-	// We pass that handler to gologshim so go-libp2p loggers use it.
-	handler := slog.Default().Handler()
-
-	// Verify that slog.Default() is go-log's bridge via duck typing.
-	// This catches misconfigurations where go-log's init() didn't run.
-	type goLogBridge interface {
-		GoLogBridge()
-	}
-	if _, ok := handler.(goLogBridge); !ok {
-		panic("aborting startup: slog.Default() is not go-log's bridge, go-libp2p logs would be missing due to incorrect wiring")
-	}
-
-	gologshim.SetDefaultHandler(handler)
+	// Use SlogHandler() to get go-log's bridge directly.
+	// This works even when GOLOG_CAPTURE_DEFAULT_SLOG=false.
+	gologshim.SetDefaultHandler(logging.SlogHandler())
 }
 
 // declared as a var for testing purposes.

@@ -364,8 +364,8 @@ github.com/ipfs/go-ipld-format v0.6.3 h1:9/lurLDTotJpZSuL++gh3sTdmcFhVkCwsgx2+rA
 github.com/ipfs/go-ipld-format v0.6.3/go.mod h1:74ilVN12NXVMIV+SrBAyC05UJRk0jVvGqdmrcYZvCBk=
 github.com/ipfs/go-ipld-legacy v0.2.2 h1:DThbqCPVLpWBcGtU23KDLiY2YRZZnTkXQyfz8aOfBkQ=
 github.com/ipfs/go-ipld-legacy v0.2.2/go.mod h1:hhkj+b3kG9b2BcUNw8IFYAsfeNo8E3U7eYlWeAOPyDU=
-github.com/ipfs/go-log/v2 v2.8.3-0.20251104190326-eea1e4119c49 h1:IeFkT7voVHOd7KsTTfXlIh4WIV9m7+UYLFuxLp6a5PM=
-github.com/ipfs/go-log/v2 v2.8.3-0.20251104190326-eea1e4119c49/go.mod h1:UhIYAwMV7Nb4ZmihUxfIRM2Istw/y9cAk3xaK+4Zs2c=
+github.com/ipfs/go-log/v2 v2.8.3-0.20251105191458-101e2c1ac85a h1:ZtrWQty1MnTu5sJFWpX01KIAEgqmyVphKTmdIbuspm0=
+github.com/ipfs/go-log/v2 v2.8.3-0.20251105191458-101e2c1ac85a/go.mod h1:UhIYAwMV7Nb4ZmihUxfIRM2Istw/y9cAk3xaK+4Zs2c=
 github.com/ipfs/go-metrics-interface v0.3.0 h1:YwG7/Cy4R94mYDUuwsBfeziJCVm9pBMJ6q/JR9V40TU=
 github.com/ipfs/go-metrics-interface v0.3.0/go.mod h1:OxxQjZDGocXVdyTPocns6cOLwHieqej/jos7H4POwoY=
 github.com/ipfs/go-peertaskqueue v0.8.2 h1:PaHFRaVFdxQk1Qo3OKiHPYjmmusQy7gKQUaL8JDszAU=
