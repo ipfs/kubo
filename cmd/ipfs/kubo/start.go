@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -52,12 +53,13 @@ var (
 )
 
 func init() {
+	// Set go-log's slog handler as the application-wide default.
+	// This ensures all slog-based logging uses go-log's formatting.
+	slog.SetDefault(slog.New(logging.SlogHandler()))
+
 	// Wire go-log's slog bridge to go-libp2p's gologshim.
-	// This ensures go-libp2p logs integrate with go-log's formatting
-	// and dynamic level control (e.g., `ipfs log level libp2p-swarm debug`).
-	//
-	// Use SlogHandler() to get go-log's bridge directly.
-	// This works even when GOLOG_CAPTURE_DEFAULT_SLOG=false.
+	// This provides go-libp2p loggers with the "logger" attribute
+	// for per-subsystem level control (e.g., `ipfs log level libp2p-swarm debug`).
 	gologshim.SetDefaultHandler(logging.SlogHandler())
 }
 
