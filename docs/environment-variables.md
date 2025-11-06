@@ -8,8 +8,6 @@
   - [`GOLOG_LOG_FMT`](#golog_log_fmt)
   - [`GOLOG_FILE`](#golog_file)
   - [`GOLOG_OUTPUT`](#golog_output)
-  - [`GOLOG_LOG_LABELS`](#golog_log_labels)
-  - [`GOLOG_CAPTURE_DEFAULT_SLOG`](#golog_capture_default_slog)
   - [`GOLOG_TRACING_FILE`](#golog_tracing_file)
   - [`IPFS_FUSE_DEBUG`](#ipfs_fuse_debug)
   - [`YAMUX_DEBUG`](#yamux_debug)
