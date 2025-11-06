@@ -51,7 +51,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/libp2p/go-doh-resolver v0.5.0
-	github.com/libp2p/go-libp2p v0.44.1-0.20251104204556-3b3b1fd6e00e
+	github.com/libp2p/go-libp2p v0.45.0
 	github.com/libp2p/go-libp2p-http v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.35.2-0.20251025120456-f33906fd2f32
 	github.com/libp2p/go-libp2p-kbucket v0.8.0
