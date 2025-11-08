@@ -554,6 +554,9 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	}
 	reprovideAlert := fx.Invoke(func(lc fx.Lifecycle, in alertInput) {
 		prov := extractSweepingProvider(in.Provider)
+		if prov == nil {
+			return
+		}
 
 		var (
 			cancel context.CancelFunc
@@ -562,9 +565,6 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
-				if prov == nil {
-					return nil
-				}
 				gcCtx, c := context.WithCancel(context.Background())
 				cancel = c
 				go func() {
