@@ -64,8 +64,11 @@ The telemetry plugin collects the following anonymized data:
 - **AutoTLS settings**: Whether WSS is enabled and whether a custom domain suffix is used.
 - **Discovery settings**: Whether mDNS is enabled.
 
-### Reprovider Strategy
-- The strategy used for reprovider (e.g., "all", "pinned"...).
+### Provider Configuration
+- **Reprovider strategy**: The strategy used for reprovider (e.g., "all", "pinned"...).
+- **Sweep provider enabled**: Whether the new sweep-based provider system is enabled.
+- **Custom Interval**: Whether a custom `Provide.DHT.Interval` value is configured (vs using the default).
+- **Custom MaxWorkers**: Whether a custom `Provide.DHT.MaxWorkers` value is configured (vs using the default).
 
 ---
 

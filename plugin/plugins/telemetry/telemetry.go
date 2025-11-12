@@ -91,8 +91,10 @@ type LogEvent struct {
 
 	UptimeBucket time.Duration `json:"uptime_bucket"`
 
-	ReproviderStrategy     string `json:"reprovider_strategy"`
-	ProvideDHTSweepEnabled bool   `json:"provide_dht_sweep_enabled"`
+	ReproviderStrategy         string `json:"reprovider_strategy"`
+	ProvideDHTSweepEnabled     bool   `json:"provide_dht_sweep_enabled"`
+	ProvideDHTIntervalCustom   bool   `json:"provide_dht_interval_custom"`
+	ProvideDHTMaxWorkersCustom bool   `json:"provide_dht_max_workers_custom"`
 
 	RoutingType                 string `json:"routing_type"`
 	RoutingAcceleratedDHTClient bool   `json:"routing_accelerated_dht_client"`
@@ -362,13 +364,6 @@ func (p *telemetryPlugin) prepareEvent() {
 	p.collectPlatformInfo()
 }
 
-// Collects:
-// * AgentVersion
-// * PrivateNetwork
-// * RepoSizeBucket
-// * BootstrappersCustom
-// * UptimeBucket
-// * ReproviderStrategy
 func (p *telemetryPlugin) collectBasicInfo() {
 	p.event.AgentVersion = ipfs.GetUserAgentVersion()
 
@@ -419,6 +414,8 @@ func (p *telemetryPlugin) collectRoutingInfo() {
 func (p *telemetryPlugin) collectProvideInfo() {
 	p.event.ReproviderStrategy = p.config.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 	p.event.ProvideDHTSweepEnabled = p.config.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled)
+	p.event.ProvideDHTIntervalCustom = !p.config.Provide.DHT.Interval.IsDefault()
+	p.event.ProvideDHTMaxWorkersCustom = !p.config.Provide.DHT.MaxWorkers.IsDefault()
 }
 
 type reachabilityHost interface {
