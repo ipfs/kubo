@@ -588,5 +588,8 @@ func humanFull(val float64, decimals int) string {
 //     optimistic provide call.
 //   - Else we make a standard provide call (much slower).
 func provideRoot(ctx context.Context, router routing.Routing, c cid.Cid) error {
+	if router == nil {
+		return nil
+	}
 	return router.Provide(ctx, c, true)
 }
