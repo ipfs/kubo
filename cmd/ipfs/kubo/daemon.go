@@ -334,7 +334,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 
 		// Use hybrid migration strategy that intelligently combines external and embedded migrations
-		err = migrations.RunHybridMigrations(cctx.Context(), version.RepoVersion, cctx.ConfigRoot, false)
+		// Use req.Context instead of cctx.Context() to avoid attempting repo open before migrations complete
+		err = migrations.RunHybridMigrations(req.Context, version.RepoVersion, cctx.ConfigRoot, false)
 		if err != nil {
 			fmt.Println("Repository migration failed:")
 			fmt.Printf("  %s\n", err)
@@ -387,7 +388,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			log.Errorf("failed to create autoconf client: %v", err)
 		} else {
 			// Start primes cache and starts background updater
-			if _, err := client.Start(cctx.Context()); err != nil {
+			// Use req.Context for background updater lifecycle (node doesn't exist yet)
+			if _, err := client.Start(req.Context); err != nil {
 				log.Errorf("failed to start autoconf updater: %v", err)
 			}
 		}

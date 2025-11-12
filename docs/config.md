@@ -133,6 +133,7 @@ config file at runtime.
       - [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers)
       - [`Provide.DHT.Interval`](#providedhtinterval)
       - [`Provide.DHT.SweepEnabled`](#providedhtsweepenabled)
+      - [`Provide.DHT.ResumeEnabled`](#providedhtresumeenabled)
       - [`Provide.DHT.DedicatedPeriodicWorkers`](#providedhtdedicatedperiodicworkers)
       - [`Provide.DHT.DedicatedBurstWorkers`](#providedhtdedicatedburstworkers)
       - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
@@ -1646,12 +1647,14 @@ this limit in the configuration.
 **Why operations fail instead of auto-flushing:** Automatic flushing once the limit
 is reached was considered but rejected because it can lead to data corruption issues
 that are difficult to debug. When the system decides to flush without user knowledge, it can:
+
 - Create partial states that violate user expectations about atomicity
 - Interfere with concurrent operations in unexpected ways
 - Make debugging and recovery much harder when issues occur
 
 By failing explicitly, users maintain control over when their data is persisted,
 allowing them to:
+
 - Batch related operations together before flushing
 - Handle errors predictably at natural transaction boundaries
 - Understand exactly when and why their data is written to disk
@@ -1660,6 +1663,7 @@ If you expect automatic flushing behavior, simply use the default `--flush=true`
 (or omit the flag entirely) instead of `--flush=false`.
 
 **⚠️ WARNING:** Increasing this limit or disabling it (setting to 0) can lead to:
+
 - **Out-of-memory errors (OOM)** - Each unflushed operation consumes memory
 - **Data loss** - If the daemon crashes before flushing, all unflushed changes are lost
 - **Degraded performance** - Large unflushed caches slow down MFS operations
@@ -1920,10 +1924,17 @@ Type: `duration`
 
 ## `Provide`
 
-Configures CID announcements to the routing system, including both immediate
-announcements for new content (provide) and periodic re-announcements
-(reprovide) on systems that require it, like Amino DHT. While designed to support
-multiple routing systems in the future, the current default configuration only supports providing to the Amino DHT.
+Configures how your node advertises content to make it discoverable by other
+peers.
+
+**What is providing?** When your node stores content, it publishes provider
+records to the routing system announcing "I have this content". These records
+map CIDs to your peer ID, enabling content discovery across the network.
+
+While designed to support multiple routing systems in the future, the current
+default configuration only supports [providing to the Amino DHT](#providedht).
+
+<!-- TODO: See the [Reprovide Sweep blog post](https://github.com/ipshipyard/ipshipyard.com/pull/8) for detailed performance comparisons. -->
 
 ### `Provide.Enabled`
 
@@ -1974,13 +1985,39 @@ Type: `optionalString` (unset for the default)
 
 Configuration for providing data to Amino DHT peers.
 
+**Provider record lifecycle:** On the Amino DHT, provider records expire after
+[`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43).
+Your node must re-announce (reprovide) content periodically to keep it
+discoverable. The [`Provide.DHT.Interval`](#providedhtinterval) setting
+controls this timing, with the default ensuring records refresh well before
+expiration or negative churn effects kick in.
+
+**Two provider systems:**
+
+- **Sweep provider**: Divides the DHT keyspace into regions and systematically
+  sweeps through them over the reprovide interval. This batches CIDs allocated
+  to the same DHT servers, dramatically reducing the number of DHT lookups and
+  PUTs needed. Spreads work evenly over time with predictable resource usage.
+
+- **Legacy provider**: Processes each CID individually with separate DHT
+  lookups. Works well for small content collections but struggles to complete
+  reprovide cycles when managing thousands of CIDs.
+
 #### Monitoring Provide Operations
 
-You can monitor the effectiveness of your provide configuration through metrics exposed at the Prometheus endpoint: `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`).
+**Quick command-line monitoring:** Use `ipfs provide stat` to view the current
+state of the provider system. For real-time monitoring, run
+`watch ipfs provide stat --all --compact` to see detailed statistics refreshed
+continuously in a 2-column layout.
 
-Different metrics are available depending on whether you use legacy mode (`SweepEnabled=false`) or sweep mode (`SweepEnabled=true`). See [Provide metrics documentation](https://github.com/ipfs/kubo/blob/master/docs/metrics.md#provide) for details.
+**Long-term monitoring:** For in-depth or long-term monitoring, metrics are
+exposed at the Prometheus endpoint: `{Addresses.API}/debug/metrics/prometheus`
+(default: `http://127.0.0.1:5001/debug/metrics/prometheus`). Different metrics
+are available depending on whether you use legacy mode (`SweepEnabled=false`) or
+sweep mode (`SweepEnabled=true`). See [Provide metrics documentation](https://github.com/ipfs/kubo/blob/master/docs/metrics.md#provide)
+for details.
 
-To enable detailed debug logging for both providers, set:
+**Debug logging:** For troubleshooting, enable detailed logging by setting:
 
 ```sh
 GOLOG_LOG_LEVEL=error,provider=debug,dht/provider=debug
@@ -1992,12 +2029,24 @@ GOLOG_LOG_LEVEL=error,provider=debug,dht/provider=debug
 #### `Provide.DHT.Interval`
 
 Sets how often to re-announce content to the DHT. Provider records on Amino DHT
-expire after [`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43),
-also known as Provider Record Expiration Interval.
+expire after [`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43).
 
-An interval of about half the expiration window ensures provider records
-are refreshed well before they expire. This keeps your content continuously
-discoverable accounting for network churn without overwhelming the network with too frequent announcements.
+**Why this matters:** The interval must be shorter than the expiration window to
+ensure provider records refresh before they expire. The default value is
+approximately half of [`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43),
+which accounts for network churn and ensures records stay alive without
+overwhelming the network with unnecessary announcements.
+
+**With sweep mode enabled
+([`Provide.DHT.SweepEnabled`](#providedhtsweepenabled)):** The system spreads
+reprovide operations smoothly across this entire interval. Each keyspace region
+is reprovided at scheduled times throughout the period, ensuring each region's
+announcements complete before records expire.
+
+**With legacy mode:** The system attempts to reprovide all CIDs as quickly as
+possible at the start of each interval. If reproviding takes longer than this
+interval (common with large datasets), the next cycle is skipped and provider
+records may expire.
 
 - If unset, it uses the implicit safe default.
 - If set to the value `"0"` it will disable content reproviding to DHT.
@@ -2046,38 +2095,74 @@ connections this setting can generate.
 > At the same time, mind that raising this value too high may lead to increased load.
 > Proceed with caution, ensure proper hardware and networking are in place.
 
+> [!TIP]
+> **When `SweepEnabled` is true:** Users providing millions of CIDs or more
+> should increase the worker count accordingly. Underprovisioning can lead to
+> slow provides (burst workers) and inability to keep up with content
+> reproviding (periodic workers). For nodes with sufficient resources (CPU,
+> bandwidth, number of connections), dedicating `1024` for [periodic
+> workers](#providedhtdedicatedperiodicworkers) and `512` for [burst
+> workers](#providedhtdedicatedburstworkers), and `2048` [max
+> workers](#providedhtmaxworkers) should be adequate even for the largest
+> users. The system will only use workers as needed - unused resources won't be
+> consumed. Ensure you adjust the swarm [connection manager](#swarmconnmgr) and
+> [resource manager](#swarmresourcemgr) configuration accordingly.
+
 Default: `16`
 
 Type: `optionalInteger` (non-negative; `0` means unlimited number of workers)
 
 #### `Provide.DHT.SweepEnabled`
 
-Whether Provide Sweep is enabled. If not enabled, the legacy
-[`boxo/provider`](https://github.com/ipfs/boxo/tree/main/provider) is used for
-both provides and reprovides.
+Enables the sweep provider for efficient content announcements. When disabled,
+the legacy [`boxo/provider`](https://github.com/ipfs/boxo/tree/main/provider) is
+used instead.
 
-Provide Sweep is a resource efficient technique for advertising content to
-the Amino DHT swarm. The Provide Sweep module tracks the keys that should be periodically reprovided in
-the `Keystore`. It splits the keys into DHT keyspace regions by proximity (XOR
-distance), and schedules when reprovides should happen in order to spread the
-reprovide operation over time to avoid a spike in resource utilization. It
-basically sweeps the keyspace _from left to right_ over the
-[`Provide.DHT.Interval`](#providedhtinterval) time period, and reprovides keys
-matching to the visited keyspace region.
+**The legacy provider problem:** The legacy system processes CIDs one at a
+time, requiring a separate DHT lookup (10-20 seconds each) to find the 20
+closest peers for each CID. This sequential approach typically handles less
+than 10,000 CID over 22h ([`Provide.DHT.Interval`](#providedhtinterval)). If
+your node has more CIDs than can be reprovided within
+[`Provide.DHT.Interval`](#providedhtinterval), provider records start expiring
+after
+[`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43),
+making content undiscoverable.
 
-Provide Sweep aims at replacing the inefficient legacy `boxo/provider`
-module, and is currently opt-in. You can compare the effectiveness of sweep mode vs legacy mode by monitoring the appropriate metrics (see [Monitoring Provide Operations](#monitoring-provide-operations) above).
+**How sweep mode works:** The sweep provider divides the DHT keyspace into
+regions based on keyspace prefixes. It estimates the Amino DHT size, calculates
+how many regions are needed (sized to contain at least 20 peers each), then
+schedules region processing evenly across
+[`Provide.DHT.Interval`](#providedhtinterval). When processing a region, it
+discovers the peers in that region once, then sends all provider records for
+CIDs allocated to those peers in a batch. This batching is the key efficiency:
+instead of N lookups for N CIDs, the number of lookups is bounded by a constant
+fraction of the Amino DHT size (e.g., ~3,000 lookups when there are ~10,000 DHT
+servers), regardless of how many CIDs you're providing.
 
-Whenever new keys should be advertised to the Amino DHT, `kubo` calls
-`StartProviding()`, triggering an initial `provide` operation for the given
-keys. The keys will be added to the `Keystore` tracking which keys should be
-reprovided and when they should be reprovided. Calling `StopProviding()`
-removes the keys from the `Keystore`. However, it is currently tricky for
-`kubo` to detect when a key should stop being advertised. Hence, `kubo` will
-periodically refresh the `Keystore` at each [`Provide.DHT.Interval`](#providedhtinterval)
-by providing it a channel of all the keys it is expected to contain according
-to the [`Provide.Strategy`](#providestrategy). During this operation,
-all keys in the `Keystore` are purged, and only the given ones remain scheduled.
+**Efficiency gains:** For a node providing 100,000 CIDs, sweep mode reduces
+lookups by 97% compared to legacy. The work spreads smoothly over time rather
+than completing in bursts, preventing resource spikes and duplicate
+announcements. Long-running nodes reprovide systematically just before records
+would expire, keeping content continuously discoverable without wasting
+bandwidth.
+
+**Implementation details:** The sweep provider tracks CIDs in a persistent
+keystore. New content added via `StartProviding()` enters the provide queue and
+gets batched by keyspace region. The keystore is periodically refreshed at each
+[`Provide.DHT.Interval`](#providedhtinterval) with CIDs matching
+[`Provide.Strategy`](#providestrategy) to ensure only current content remains
+scheduled. This handles cases where content is unpinned or removed.
+
+**Persistent reprovide cycle state:** When Provide Sweep is enabled, the
+reprovide cycle state is persisted to the datastore by default. On restart, Kubo
+automatically resumes from where it left off. If the node was offline for an
+extended period, all CIDs that haven't been reprovided within the configured
+[`Provide.DHT.Interval`](#providedhtinterval) are immediately queued for
+reproviding. Additionally, the provide queue is persisted on shutdown and
+restored on startup, ensuring no pending provide operations are lost. If you
+don't want to keep the persisted provider state from a previous run, you can
+disable this behavior by setting [`Provide.DHT.ResumeEnabled`](#providedhtresumeenabled)
+to `false`.
 
 > <picture>
 >   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/f6e06b08-7fee-490c-a681-1bf440e16e27">
@@ -2085,13 +2170,15 @@ all keys in the `Keystore` are purged, and only the given ones remain scheduled.
 >   <img alt="Reprovide Cycle Comparison" src="https://github.com/user-attachments/assets/e1662d7c-f1be-4275-a9ed-f2752fcdcabe">
 > </picture>
 >
-> The diagram above visualizes the performance patterns:
+> The diagram compares performance patterns:
 >
-> - **Legacy mode**: Individual (slow) provides per CID, can struggle with large datasets
-> - **Sweep mode**: Even distribution matching the keyspace sweep described with low resource usage
-> - **Accelerated DHT**: Hourly traffic spikes with high resource usage
+> - **Legacy mode**: Sequential processing, one lookup per CID, struggles with large datasets
+> - **Sweep mode**: Smooth distribution over time, batched lookups by keyspace region, predictable resource usage
+> - **Accelerated DHT**: Hourly network crawls creating traffic spikes, high resource usage
 >
-> Sweep mode provides similar effectiveness to Accelerated DHT but with steady resource usage - better for machines with limited CPU, memory, or network bandwidth.
+> Sweep mode achieves similar effectiveness to the Accelerated DHT client but with steady resource consumption.
+
+You can compare the effectiveness of sweep mode vs legacy mode by monitoring the appropriate metrics (see [Monitoring Provide Operations](#monitoring-provide-operations) above).
 
 > [!NOTE]
 > This feature is opt-in for now, but will become the default in a future release.
@@ -2101,15 +2188,53 @@ Default: `false`
 
 Type: `flag`
 
+#### `Provide.DHT.ResumeEnabled`
+
+Controls whether the provider resumes from its previous state on restart. Only
+applies when `Provide.DHT.SweepEnabled` is true.
+
+When enabled (the default), the provider persists its reprovide cycle state and
+provide queue to the datastore, and restores them on restart. This ensures:
+
+- The reprovide cycle continues from where it left off instead of starting over
+- Any CIDs in the provide queue during shutdown are restored and provided after
+restart
+- CIDs that missed their reprovide window while the node was offline are queued
+for immediate reproviding
+
+When disabled, the provider starts fresh on each restart, discarding any
+previous reprovide cycle state and provide queue. On a fresh start, all CIDs
+matching the [`Provide.Strategy`](#providestrategy) will be provided ASAP (as
+burst provides), and then keyspace regions are reprovided according to the
+regular schedule starting from the beginning of the reprovide cycle.
+
+> [!NOTE]
+> Disabling this option means the provider will provide all content matching
+> your strategy on every restart (which can be resource-intensive for large
+> datasets), then start from the beginning of the reprovide cycle. For nodes
+> with large datasets or frequent restarts, keeping this enabled (the default)
+> is recommended for better resource efficiency and more consistent reproviding
+> behavior.
+
+Default: `true`
+
+Type: `flag`
+
 #### `Provide.DHT.DedicatedPeriodicWorkers`
 
-Number of workers dedicated to periodic keyspace region reprovides. Only applies when `Provide.DHT.SweepEnabled` is true.
+Number of workers dedicated to periodic keyspace region reprovides. Only
+applies when `Provide.DHT.SweepEnabled` is true.
 
 Among the [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers), this
 number of workers will be dedicated to the periodic region reprovide only. The sum of
 `DedicatedPeriodicWorkers` and `DedicatedBurstWorkers` should not exceed `MaxWorkers`.
 Any remaining workers (MaxWorkers - DedicatedPeriodicWorkers - DedicatedBurstWorkers)
 form a shared pool that can be used for either type of work as needed.
+
+> [!NOTE]
+> If the provider system isn't able to keep up with reproviding all your
+> content within the [Provide.DHT.Interval](#providedhtinterval), consider
+> increasing this value.
 
 Default: `2`
 
@@ -2134,6 +2259,10 @@ number of workers will be dedicated to burst provides only. In addition to
 these, if there are available workers in the pool, they can also be used for
 burst provides.
 
+> [!NOTE]
+> If CIDs aren't provided quickly enough to your taste, and you can afford more
+> CPU and bandwidth, consider increasing this value.
+
 Default: `1`
 
 Type: `optionalInteger` (`0` means there are no dedicated workers, but the
@@ -2155,7 +2284,13 @@ from that keyspace region until all provider records are assigned.
 This option defines how many such connections can be open concurrently by a
 single worker.
 
-Default: `16`
+> [!NOTE]
+> Increasing this value can speed up the provide operation, at the cost of
+> opening more simultaneous connections to DHT servers. A keyspace typically
+> has less than 60 peers, so you may hit a performance ceiling beyond which
+> increasing this value has no effect.
+
+Default: `20`
 
 Type: `optionalInteger` (non-negative)
 

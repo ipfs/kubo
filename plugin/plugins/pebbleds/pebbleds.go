@@ -134,7 +134,7 @@ func (*pebbledsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 				WALBytesPerSync:             walBytesPerSync,
 			}
 			if maxConcurrentCompactions != 0 {
-				c.pebbleOpts.MaxConcurrentCompactions = func() int { return maxConcurrentCompactions }
+				c.pebbleOpts.CompactionConcurrencyRange = func() (int, int) { return 1, maxConcurrentCompactions }
 			}
 			if walMinSyncSec != 0 {
 				c.pebbleOpts.WALMinSyncInterval = func() time.Duration { return time.Duration(walMinSyncSec) * time.Second }

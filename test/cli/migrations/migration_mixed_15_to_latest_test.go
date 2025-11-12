@@ -23,8 +23,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"slices"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 
@@ -61,7 +62,8 @@ func testDaemonMigration15ToLatest(t *testing.T) {
 	node := setupStaticV15Repo(t)
 
 	// Create mock migration binary for 15→16 (16→17 will use embedded migration)
-	createMockMigrationBinary(t, "15", "16")
+	mockBinDir := createMockMigrationBinary(t, "15", "16")
+	customPath := buildCustomPath(mockBinDir)
 
 	configPath := filepath.Join(node.Dir, "config")
 	versionPath := filepath.Join(node.Dir, "version")
@@ -80,7 +82,7 @@ func testDaemonMigration15ToLatest(t *testing.T) {
 	originalPeerID := getNestedValue(originalConfig, "Identity.PeerID")
 
 	// Run dual migration using daemon --migrate
-	stdoutOutput, migrationSuccess := runDaemonWithLegacyMigrationMonitoring(t, node)
+	stdoutOutput, migrationSuccess := runDaemonWithLegacyMigrationMonitoring(t, node, customPath)
 
 	// Debug output
 	t.Logf("Daemon output:\n%s", stdoutOutput)
@@ -124,7 +126,8 @@ func testRepoMigration15ToLatest(t *testing.T) {
 	node := setupStaticV15Repo(t)
 
 	// Create mock migration binary for 15→16 (16→17 will use embedded migration)
-	createMockMigrationBinary(t, "15", "16")
+	mockBinDir := createMockMigrationBinary(t, "15", "16")
+	customPath := buildCustomPath(mockBinDir)
 
 	configPath := filepath.Join(node.Dir, "config")
 	versionPath := filepath.Join(node.Dir, "version")
@@ -135,16 +138,7 @@ func testRepoMigration15ToLatest(t *testing.T) {
 	require.Equal(t, "15", strings.TrimSpace(string(versionData)), "Should start at version 15")
 
 	// Run migration using 'ipfs repo migrate' with custom PATH
-	result := node.Runner.Run(harness.RunRequest{
-		Path: node.IPFSBin,
-		Args: []string{"repo", "migrate"},
-		CmdOpts: []harness.CmdOpt{
-			func(cmd *exec.Cmd) {
-				// Ensure the command inherits our modified PATH with mock binaries
-				cmd.Env = append(cmd.Env, "PATH="+os.Getenv("PATH"))
-			},
-		},
-	})
+	result := runMigrationWithCustomPath(node, customPath, "repo", "migrate")
 	require.Empty(t, result.Stderr.String(), "Migration should succeed without errors")
 
 	// Verify final version is latest
@@ -184,10 +178,10 @@ func setupStaticV15Repo(t *testing.T) *harness.Node {
 }
 
 // runDaemonWithLegacyMigrationMonitoring monitors for hybrid migration patterns
-func runDaemonWithLegacyMigrationMonitoring(t *testing.T, node *harness.Node) (string, bool) {
+func runDaemonWithLegacyMigrationMonitoring(t *testing.T, node *harness.Node, customPath string) (string, bool) {
 	// Monitor for hybrid migration completion - use "Hybrid migration completed successfully" as success pattern
 	stdoutOutput, daemonStarted := runDaemonWithMigrationMonitoringCustomEnv(t, node, "Using hybrid migration strategy", "Hybrid migration completed successfully", map[string]string{
-		"PATH": os.Getenv("PATH"), // Pass current PATH which includes our mock binaries
+		"PATH": customPath, // Pass custom PATH with our mock binaries
 	})
 
 	// Check for hybrid migration patterns in output
@@ -271,17 +265,59 @@ func runDaemonWithMigrationMonitoringCustomEnv(t *testing.T, node *harness.Node,
 		t.Log("Daemon startup timed out")
 	}
 
-	// Stop the daemon
+	// Stop the daemon using ipfs shutdown command for graceful shutdown
 	if cmd.Process != nil {
-		_ = cmd.Process.Signal(syscall.SIGTERM)
+		shutdownCmd := exec.Command(node.IPFSBin, "shutdown")
+		shutdownCmd.Dir = node.Dir
+		for k, v := range node.Runner.Env {
+			shutdownCmd.Env = append(shutdownCmd.Env, k+"="+v)
+		}
+
+		if err := shutdownCmd.Run(); err != nil {
+			// If graceful shutdown fails, force kill
+			_ = cmd.Process.Kill()
+		}
+
+		// Wait for process to exit
 		_ = cmd.Wait()
 	}
 
 	return outputBuffer.String(), daemonReady && migrationStarted && migrationCompleted
 }
 
-// createMockMigrationBinary creates a platform-agnostic Go binary for migration on PATH
-func createMockMigrationBinary(t *testing.T, fromVer, toVer string) {
+// buildCustomPath creates a custom PATH with mock migration binaries prepended.
+// This is necessary for test isolation when running tests in parallel with t.Parallel().
+// Without isolated PATH handling, parallel tests can interfere with each other through
+// global PATH modifications, causing tests to download real migration binaries instead
+// of using the test mocks.
+func buildCustomPath(mockBinDirs ...string) string {
+	// Prepend mock directories to ensure they're found first
+	pathElements := append(mockBinDirs, os.Getenv("PATH"))
+	return strings.Join(pathElements, string(filepath.ListSeparator))
+}
+
+// runMigrationWithCustomPath runs a migration command with a custom PATH environment.
+// This ensures the migration uses our mock binaries instead of downloading real ones.
+func runMigrationWithCustomPath(node *harness.Node, customPath string, args ...string) *harness.RunResult {
+	return node.Runner.Run(harness.RunRequest{
+		Path: node.IPFSBin,
+		Args: args,
+		CmdOpts: []harness.CmdOpt{
+			func(cmd *exec.Cmd) {
+				// Remove existing PATH entries using slices.DeleteFunc
+				cmd.Env = slices.DeleteFunc(cmd.Env, func(s string) bool {
+					return strings.HasPrefix(s, "PATH=")
+				})
+				// Add custom PATH
+				cmd.Env = append(cmd.Env, "PATH="+customPath)
+			},
+		},
+	})
+}
+
+// createMockMigrationBinary creates a platform-agnostic Go binary for migration testing.
+// Returns the directory containing the binary to be added to PATH.
+func createMockMigrationBinary(t *testing.T, fromVer, toVer string) string {
 	// Create bin directory for migration binaries
 	binDir := t.TempDir()
 
@@ -289,73 +325,60 @@ func createMockMigrationBinary(t *testing.T, fromVer, toVer string) {
 	scriptName := fmt.Sprintf("fs-repo-%s-to-%s", fromVer, toVer)
 	sourceFile := filepath.Join(binDir, scriptName+".go")
 	binaryPath := filepath.Join(binDir, scriptName)
+	if runtime.GOOS == "windows" {
+		binaryPath += ".exe"
+	}
 
+	// Generate minimal mock migration binary code
 	goSource := fmt.Sprintf(`package main
-
-import (
-	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-)
-
+import ("fmt"; "os"; "path/filepath"; "strings"; "time")
 func main() {
-	// Parse command line arguments - real migration binaries expect -path=<repo-path>
-	var repoPath string
+	var path string
 	var revert bool
-	for _, arg := range os.Args[1:] {
-		if strings.HasPrefix(arg, "-path=") {
-			repoPath = strings.TrimPrefix(arg, "-path=")
-		} else if arg == "-revert" {
-			revert = true
-		}
+	for _, a := range os.Args[1:] {
+		if strings.HasPrefix(a, "-path=") { path = a[6:] }
+		if a == "-revert" { revert = true }
 	}
-	
-	if repoPath == "" {
-		fmt.Fprintf(os.Stderr, "Usage: %%s -path=<repo-path> [-verbose=true] [-revert]\n", os.Args[0])
+	if path == "" { fmt.Fprintln(os.Stderr, "missing -path="); os.Exit(1) }
+
+	from, to := "%s", "%s"
+	if revert { from, to = to, from }
+	fmt.Printf("fake applying %%s-to-%%s repo migration\n", from, to)
+
+	// Create and immediately remove lock file to simulate proper locking behavior
+	lockPath := filepath.Join(path, "repo.lock")
+	lockFile, err := os.Create(lockPath)
+	if err != nil && !os.IsExist(err) {
+		fmt.Fprintf(os.Stderr, "Error creating lock: %%v\n", err)
 		os.Exit(1)
 	}
-	
-	// Determine source and target versions based on revert flag
-	var sourceVer, targetVer string
-	if revert {
-		// When reverting, we go backwards: fs-repo-15-to-16 with -revert goes 16→15
-		sourceVer = "%s"
-		targetVer = "%s"
-	} else {
-		// Normal forward migration: fs-repo-15-to-16 goes 15→16
-		sourceVer = "%s"
-		targetVer = "%s"
+	if lockFile != nil {
+		lockFile.Close()
+		defer os.Remove(lockPath)
 	}
-	
-	// Print migration message (same format as real migrations)
-	fmt.Printf("fake applying %%s-to-%%s repo migration\n", sourceVer, targetVer)
-	
-	// Update version file
-	versionFile := filepath.Join(repoPath, "version")
-	err := os.WriteFile(versionFile, []byte(targetVer), 0644)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error updating version: %%v\n", err)
+
+	// Small delay to simulate migration work
+	time.Sleep(10 * time.Millisecond)
+
+	if err := os.WriteFile(filepath.Join(path, "version"), []byte(to), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %%v\n", err)
 		os.Exit(1)
 	}
-}
-`, toVer, fromVer, fromVer, toVer)
+}`, fromVer, toVer)
 
 	require.NoError(t, os.WriteFile(sourceFile, []byte(goSource), 0644))
 
 	// Compile the Go binary
-	require.NoError(t, os.Setenv("CGO_ENABLED", "0")) // Ensure static binary
-	require.NoError(t, exec.Command("go", "build", "-o", binaryPath, sourceFile).Run())
-
-	// Add bin directory to PATH for this test
-	currentPath := os.Getenv("PATH")
-	newPath := binDir + string(filepath.ListSeparator) + currentPath
-	require.NoError(t, os.Setenv("PATH", newPath))
-	t.Cleanup(func() { os.Setenv("PATH", currentPath) })
+	cmd := exec.Command("go", "build", "-o", binaryPath, sourceFile)
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0") // Ensure static binary
+	require.NoError(t, cmd.Run())
 
 	// Verify the binary exists and is executable
 	_, err := os.Stat(binaryPath)
 	require.NoError(t, err, "Mock binary should exist")
+
+	// Return the bin directory to be added to PATH
+	return binDir
 }
 
 // expectedMigrationSteps generates the expected migration step strings for a version range.
@@ -416,26 +439,19 @@ func testRepoReverseHybridMigrationLatestTo15(t *testing.T) {
 	// Start with v15 fixture and migrate forward to latest to create proper backup files
 	node := setupStaticV15Repo(t)
 
-	// Create mock migration binary for 15→16 (needed for forward migration)
-	createMockMigrationBinary(t, "15", "16")
-	// Create mock migration binary for 16→15 (needed for downgrade)
-	createMockMigrationBinary(t, "16", "15")
+	// Create mock migration binaries for both forward and reverse migrations
+	mockBinDirs := []string{
+		createMockMigrationBinary(t, "15", "16"), // for forward migration
+		createMockMigrationBinary(t, "16", "15"), // for downgrade
+	}
+	customPath := buildCustomPath(mockBinDirs...)
 
 	configPath := filepath.Join(node.Dir, "config")
 	versionPath := filepath.Join(node.Dir, "version")
 
 	// Step 1: Forward migration from v15 to latest to create backup files
 	t.Logf("Step 1: Forward migration v15 → v%d", ipfs.RepoVersion)
-	result := node.Runner.Run(harness.RunRequest{
-		Path: node.IPFSBin,
-		Args: []string{"repo", "migrate"},
-		CmdOpts: []harness.CmdOpt{
-			func(cmd *exec.Cmd) {
-				// Ensure the command inherits our modified PATH with mock binaries
-				cmd.Env = append(cmd.Env, "PATH="+os.Getenv("PATH"))
-			},
-		},
-	})
+	result := runMigrationWithCustomPath(node, customPath, "repo", "migrate")
 
 	// Debug: print the output to see what happened
 	t.Logf("Forward migration stdout:\n%s", result.Stdout.String())
@@ -459,16 +475,7 @@ func testRepoReverseHybridMigrationLatestTo15(t *testing.T) {
 
 	// Step 2: Reverse hybrid migration from latest to v15
 	t.Logf("Step 2: Reverse hybrid migration v%d → v15", ipfs.RepoVersion)
-	result = node.Runner.Run(harness.RunRequest{
-		Path: node.IPFSBin,
-		Args: []string{"repo", "migrate", "--to=15", "--allow-downgrade"},
-		CmdOpts: []harness.CmdOpt{
-			func(cmd *exec.Cmd) {
-				// Ensure the command inherits our modified PATH with mock binaries
-				cmd.Env = append(cmd.Env, "PATH="+os.Getenv("PATH"))
-			},
-		},
-	})
+	result = runMigrationWithCustomPath(node, customPath, "repo", "migrate", "--to=15", "--allow-downgrade")
 	require.Empty(t, result.Stderr.String(), "Reverse hybrid migration should succeed without errors")
 
 	// Debug output
