@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -102,7 +103,7 @@ func (r *contentRouter) PutIPNS(ctx context.Context, name ipns.Name, record *ipn
 func (r *contentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.ResultIter[*types.PeerRecord], error) {
 	// Per the spec, if the peer ID is empty, we should use self.
 	if key == cid.Undef {
-		key = peer.ToCid(r.n.Identity)
+		return nil, errors.New("GetClosestPeers key is undefined")
 	}
 
 	keyStr := string(key.Hash())
