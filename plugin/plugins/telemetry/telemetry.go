@@ -91,7 +91,8 @@ type LogEvent struct {
 
 	UptimeBucket time.Duration `json:"uptime_bucket"`
 
-	ReproviderStrategy string `json:"reprovider_strategy"`
+	ReproviderStrategy     string `json:"reprovider_strategy"`
+	ProvideDHTSweepEnabled bool   `json:"provide_dht_sweep_enabled"`
 
 	RoutingType                 string `json:"routing_type"`
 	RoutingAcceleratedDHTClient bool   `json:"routing_accelerated_dht_client"`
@@ -352,6 +353,7 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 func (p *telemetryPlugin) prepareEvent() {
 	p.collectBasicInfo()
 	p.collectRoutingInfo()
+	p.collectProvideInfo()
 	p.collectAutoNATInfo()
 	p.collectAutoConfInfo()
 	p.collectSwarmInfo()
@@ -406,14 +408,17 @@ func (p *telemetryPlugin) collectBasicInfo() {
 		break
 	}
 	p.event.UptimeBucket = uptimeBucket
-
-	p.event.ReproviderStrategy = p.config.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 }
 
 func (p *telemetryPlugin) collectRoutingInfo() {
 	p.event.RoutingType = p.config.Routing.Type.WithDefault("auto")
 	p.event.RoutingAcceleratedDHTClient = p.config.Routing.AcceleratedDHTClient.WithDefault(false)
 	p.event.RoutingDelegatedCount = len(p.config.Routing.DelegatedRouters)
+}
+
+func (p *telemetryPlugin) collectProvideInfo() {
+	p.event.ReproviderStrategy = p.config.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
+	p.event.ProvideDHTSweepEnabled = p.config.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled)
 }
 
 type reachabilityHost interface {

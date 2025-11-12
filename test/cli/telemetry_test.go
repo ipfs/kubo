@@ -205,6 +205,7 @@ func TestTelemetry(t *testing.T) {
 			"repo_size_bucket",
 			"uptime_bucket",
 			"reprovider_strategy",
+			"provide_dht_sweep_enabled",
 			"routing_type",
 			"routing_accelerated_dht_client",
 			"routing_delegated_count",
