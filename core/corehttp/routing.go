@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs/boxo/routing/http/types/iter"
 	cid "github.com/ipfs/go-cid"
 	core "github.com/ipfs/kubo/core"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -123,6 +124,8 @@ func (r *contentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.
 		}
 		peers, err = dhtClient.WAN.GetClosestPeers(ctx, keyStr)
 	case *fullrt.FullRT:
+		peers, err = dhtClient.GetClosestPeers(ctx, keyStr)
+	case *dht.IpfsDHT:
 		peers, err = dhtClient.GetClosestPeers(ctx, keyStr)
 	default:
 		return nil, fmt.Errorf("GetClosestPeers not supported for DHT type %T", r.n.DHTClient)
