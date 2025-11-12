@@ -118,7 +118,7 @@ type ResourceMgr struct {
 	Enabled Flag        `json:",omitempty"`
 	Limits  swarmLimits `json:",omitempty"`
 
-	MaxMemory          *OptionalString  `json:",omitempty"`
+	MaxMemory          *OptionalBytes   `json:",omitempty"`
 	MaxFileDescriptors *OptionalInteger `json:",omitempty"`
 
 	// A list of multiaddrs that can bypass normal system limits (but are still

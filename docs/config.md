@@ -66,6 +66,7 @@ config file at runtime.
     - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
     - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
     - [`Gateway.RetrievalTimeout`](#gatewayretrievaltimeout)
+    - [`Gateway.MaxRangeRequestFileSize`](#gatewaymaxrangerequestfilesize)
     - [`Gateway.MaxConcurrentRequests`](#gatewaymaxconcurrentrequests)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
@@ -1158,6 +1159,18 @@ A value of 0 disables this timeout.
 Default: `30s`
 
 Type: `optionalDuration`
+
+### `Gateway.MaxRangeRequestFileSize`
+
+Maximum file size for HTTP range requests. Range requests for files larger than this limit return 501 Not Implemented.
+
+Protects against CDN bugs where range requests are silently ignored and the entire file is returned instead. For example, Cloudflare's default plan returns the full file for range requests over 5GiB, causing unexpected bandwidth costs for both gateway operators and clients who only wanted a small byte range.
+
+Set this to your CDN's range request limit (e.g., `"5GiB"` for Cloudflare's default plan). The error response suggests using verifiable block requests (application/vnd.ipld.raw) as an alternative.
+
+Default: `0` (no limit)
+
+Type: [`optionalBytes`](#optionalbytes)
 
 ### `Gateway.MaxConcurrentRequests`
 
@@ -3145,7 +3158,7 @@ It is possible to inspect the runtime limits via `ipfs swarm resources --help`.
 > To set memory limit for the entire Kubo process, use [`GOMEMLIMIT` environment variable](http://web.archive.org/web/20240222201412/https://kupczynski.info/posts/go-container-aware/) which all Go programs recognize, and then set `Swarm.ResourceMgr.MaxMemory` to less than your custom `GOMEMLIMIT`.
 
 Default: `[TOTAL_SYSTEM_MEMORY]/2`
-Type: `optionalBytes`
+Type: [`optionalBytes`](#optionalbytes)
 
 #### `Swarm.ResourceMgr.MaxFileDescriptors`
 
@@ -3698,7 +3711,7 @@ Commands affected: `ipfs add`, `ipfs daemon` (globally overrides [`boxo/ipld/uni
 
 Default: `256KiB` (may change, inspect `DefaultUnixFSHAMTDirectorySizeThreshold` to confirm)
 
-Type: `optionalBytes`
+Type: [`optionalBytes`](#optionalbytes)
 
 ## `Version`
 
@@ -4015,6 +4028,7 @@ an implicit default when missing from the config file:
 - a string value indicating the number of bytes, including human readable representations:
   - [SI sizes](https://en.wikipedia.org/wiki/Metric_prefix#List_of_SI_prefixes) (metric units, powers of 1000), e.g. `1B`, `2kB`, `3MB`, `4GB`, `5TB`, …)
   - [IEC sizes](https://en.wikipedia.org/wiki/Binary_prefix#IEC_prefixes) (binary units, powers of 1024), e.g. `1B`, `2KiB`, `3MiB`, `4GiB`, `5TiB`, …)
+- a raw number (will be interpreted as bytes, e.g. `1048576` for 1MiB)
 
 ### `optionalString`
 
