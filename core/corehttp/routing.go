@@ -122,16 +122,14 @@ func (r *contentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.
 			return nil, fmt.Errorf("GetClosestPeers not supported: WAN DHT is not available")
 		}
 		peers, err = dhtClient.WAN.GetClosestPeers(ctx, keyStr)
-		if err != nil {
-			return nil, err
-		}
 	case *fullrt.FullRT:
 		peers, err = dhtClient.GetClosestPeers(ctx, keyStr)
-		if err != nil {
-			return nil, err
-		}
 	default:
 		return nil, fmt.Errorf("GetClosestPeers not supported for DHT type %T", r.n.DHTClient)
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	// We have some DHT-closest peers. Find addresses for them.
