@@ -322,7 +322,7 @@ fetching may be degraded.
 			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
 			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
 			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
-			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("256KiB")
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
 			return nil
 		},
 	},
@@ -336,7 +336,7 @@ fetching may be degraded.
 			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
 			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
 			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
-			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("256KiB")
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
 			return nil
 		},
 	},
@@ -350,7 +350,7 @@ fetching may be degraded.
 			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
 			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0) // no limit here, use size-based Import.UnixFSHAMTDirectorySizeThreshold instead
 			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(1024)
-			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalString("1MiB") // 1MiB
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("1MiB") // 1MiB
 			return nil
 		},
 	},
