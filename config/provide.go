@@ -64,7 +64,7 @@ type ProvideDHT struct {
 	MaxWorkers *OptionalInteger `json:",omitempty"`
 
 	// SweepEnabled activates the sweeping reprovider system which spreads
-	// reprovide operations over time. This will become the default in a future release.
+	// reprovide operations over time.
 	// Default: DefaultProvideDHTSweepEnabled
 	SweepEnabled Flag `json:",omitempty"`
 

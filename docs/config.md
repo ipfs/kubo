@@ -2190,10 +2190,9 @@ to `false`.
 You can compare the effectiveness of sweep mode vs legacy mode by monitoring the appropriate metrics (see [Monitoring Provide Operations](#monitoring-provide-operations) above).
 
 > [!NOTE]
-> This feature is opt-in for now, but will become the default in a future release.
-> Eventually, this configuration flag will be removed once the feature is stable.
+> This is the default provider system as of Kubo v0.39. To use the legacy provider instead, set `Provide.DHT.SweepEnabled=false`.
 
-Default: `false`
+Default: `true`
 
 Type: `flag`
 
