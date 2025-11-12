@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dustin/go-humanize"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
@@ -423,7 +422,10 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 			logger.Fatal(msg) // conflicting values, hard fail
 		}
 		logger.Error(msg)
-		cfg.Import.UnixFSHAMTDirectorySizeThreshold = *cfg.Internal.UnixFSShardingSizeThreshold
+		// Migrate the old OptionalString value to the new OptionalBytes field.
+		// Since OptionalBytes embeds OptionalString, we can construct it directly
+		// with the old value, preserving the user's original string (e.g., "256KiB").
+		cfg.Import.UnixFSHAMTDirectorySizeThreshold = config.OptionalBytes{OptionalString: *cfg.Internal.UnixFSShardingSizeThreshold}
 	}
 
 	// Validate Import configuration
@@ -437,11 +439,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	}
 
 	// Auto-sharding settings
-	shardingThresholdString := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
-	shardSingThresholdInt, err := humanize.ParseBytes(shardingThresholdString)
-	if err != nil {
-		return fx.Error(err)
-	}
+	shardSingThresholdInt := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
 	shardMaxFanout := cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout)
 	// TODO: avoid overriding this globally, see if we can extend Directory interface like Get/SetMaxLinks from https://github.com/ipfs/boxo/pull/906
 	uio.HAMTShardingSize = int(shardSingThresholdInt)
