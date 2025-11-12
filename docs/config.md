@@ -1162,14 +1162,20 @@ Type: `optionalDuration`
 
 ### `Gateway.MaxRangeRequestFileSize`
 
-Maximum file size for HTTP range requests. Range requests for files larger than this limit return 501 Not Implemented.
+Maximum file size for HTTP range requests on deserialized responses. Range requests for files larger than this limit return 501 Not Implemented.
 
-Protects against CDN bugs where range requests are silently ignored and the entire file is returned instead. For example, Cloudflare's default plan returns the full file for range requests over 5GiB, causing unexpected bandwidth costs for both gateway operators and clients who only wanted a small byte range.
+**Why this exists:**
 
-Set this to your CDN's range request limit (e.g., `"5GiB"` for Cloudflare's default plan). The error response suggests using verifiable block requests (application/vnd.ipld.raw) as an alternative.
+Some CDNs like Cloudflare intercept HTTP range requests and convert them to full file downloads when files exceed their cache bucket limits. Cloudflare's default plan only caches range requests for files up to 5GiB. Files larger than this receive HTTP 200 with the entire file instead of HTTP 206 with the requested byte range. A client requesting 1MB from a 40GiB file would unknowingly download all 40GiB, causing bandwidth overcharges for the gateway operator, unexpected data costs for the client, and potential browser crashes.
+
+This only affects deserialized responses. Clients fetching verifiable blocks as `application/vnd.ipld.raw` are not impacted because they work with small chunks that stay well below CDN cache limits.
+
+**How to use:**
+
+Set this to your CDN's range request cache limit (e.g., `"5GiB"` for Cloudflare's default plan). The gateway returns 501 Not Implemented for range requests over files larger than this limit, with an error message suggesting verifiable block requests as an alternative.
 
 > [!NOTE]
-> Some CDNs like Cloudflare may require advanced features (such as Snippets) to properly abort HTTP 200 responses when HTTP 206 (partial content) is expected based on range request handling.
+> Cloudflare users running open gateway hosting deserialized responses should deploy additional protection via Cloudflare Snippets (requires Enterprise plan). The Kubo configuration alone is not sufficient because Cloudflare has already intercepted and cached the response by the time it reaches your origin. See [boxo#856](https://github.com/ipfs/boxo/issues/856#issuecomment-3523944976) for a snippet that aborts HTTP 200 responses when Content-Length exceeds the limit.
 
 Default: `0` (no limit)
 
