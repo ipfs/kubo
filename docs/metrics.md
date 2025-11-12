@@ -59,7 +59,7 @@ Metrics for the legacy provider system when `Provide.DHT.SweepEnabled=false`:
 
 Metrics for the DHT provider system when `Provide.DHT.SweepEnabled=true`:
 
-- `total_provide_count_total` - Counter: total successful provide operations since node startup (includes both one-time provides and periodic provides done on `Provide.DHT.Interval`)
+- `provider_provides_total` - Counter: total successful provide operations since node startup (includes both one-time provides and periodic provides done on `Provide.DHT.Interval`)
 
 > [!NOTE]
 > These metrics are exposed by [go-libp2p-kad-dht](https://github.com/libp2p/go-libp2p-kad-dht/). You can enable debug logging for DHT provider activity with `GOLOG_LOG_LEVEL=dht/provider=debug`.
