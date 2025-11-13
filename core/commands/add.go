@@ -602,7 +602,43 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 		// Apply fast-provide-root if the flag is enabled
 		if fastProvideRoot && (lastRootCid != path.ImmutablePath{}) {
-			if ipfsNode.HasActiveDHTClient() {
+			cfg, err := ipfsNode.Repo.Config()
+			if err != nil {
+				return err
+			}
+
+			// Parse the provide strategy to check if we should provide based on pin/MFS status
+			strategyStr := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
+			strategy := config.ParseProvideStrategy(strategyStr)
+
+			// Determine if we should provide based on strategy
+			shouldProvide := false
+			if strategy == config.ProvideStrategyAll {
+				// 'all' strategy: always provide
+				shouldProvide = true
+			} else {
+				// For combined strategies (pinned+mfs), check each component
+				if strategy&config.ProvideStrategyPinned != 0 && dopin {
+					shouldProvide = true
+				}
+				if strategy&config.ProvideStrategyRoots != 0 && dopin {
+					shouldProvide = true
+				}
+				if strategy&config.ProvideStrategyMFS != 0 && toFilesSet {
+					shouldProvide = true
+				}
+			}
+
+			switch {
+			case !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled):
+				log.Debugw("fast-provide-root: skipped", "reason", "Provide.Enabled is false")
+			case cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0:
+				log.Debugw("fast-provide-root: skipped", "reason", "Provide.DHT.Interval is 0")
+			case !shouldProvide:
+				log.Debugw("fast-provide-root: skipped", "reason", "strategy does not match content", "strategy", strategyStr, "pinned", dopin, "to-files", toFilesSet)
+			case !ipfsNode.HasActiveDHTClient():
+				log.Debugw("fast-provide-root: skipped", "reason", "DHT not available")
+			default:
 				rootCid := lastRootCid.RootCid()
 
 				if fastProvideWait {
@@ -627,8 +663,6 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 						}
 					}()
 				}
-			} else {
-				log.Debugw("fast-provide-root: skipped", "reason", "DHT not available")
 			}
 		} else if fastProvideWait && !fastProvideRoot {
 			// Log that wait flag is ignored when provide-root is disabled
