@@ -47,25 +47,51 @@ Or in your IPFS config file:
 The telemetry plugin collects the following anonymized data:
 
 ### General Information
-- **Agent version**: The version of Kubo being used.
-- **Platform details**: Operating system, architecture, and container status.
-- **Uptime**: How long the node has been running, categorized into buckets.
-- **Repo size**: Categorized into buckets (e.g., 1GB, 5GB, 10GB, etc.).
+
+- **UUID**: Anonymous identifier for this node
+- **Agent version**: Kubo version string
+- **Private network**: Whether running in a private IPFS network
+- **Repository size**: Categorized into privacy-preserving buckets (1GB, 5GB, 10GB, 100GB, 500GB, 1TB, 10TB, >10TB)
+- **Uptime**: Categorized into privacy-preserving buckets (1d, 2d, 3d, 7d, 14d, 30d, >30d)
+
+### Routing & Discovery
+
+- **Custom bootstrap peers**: Whether custom `Bootstrap` peers are configured
+- **Routing type**: The `Routing.Type` configured for the node
+- **Accelerated DHT client**: Whether `Routing.AcceleratedDHTClient` is enabled
+- **Delegated routing count**: Number of `Routing.DelegatedRouters` configured
+- **AutoConf enabled**: Whether `AutoConf.Enabled` is set
+- **Custom AutoConf URL**: Whether custom `AutoConf.URL` is configured
+- **mDNS**: Whether `Discovery.MDNS.Enabled` is set
+
+### Content Providing
+
+- **Provide and Reprovide strategy**: The `Provide.Strategy` configured
+- **Sweep-based provider**: Whether `Provide.DHT.SweepEnabled` is set
+- **Custom Interval**: Whether custom `Provide.DHT.Interval` is configured
+- **Custom MaxWorkers**: Whether custom `Provide.DHT.MaxWorkers` is configured
 
 ### Network Configuration
-- **Private network**: Whether the node is running in a private network.
-- **Bootstrap peers**: Whether custom bootstrap peers are used.
-- **Routing type**: Whether the node uses DHT, IPFS, or a custom routing setup.
-- **AutoNAT settings**: Whether AutoNAT is enabled and its reachability status.
-- **AutoConf settings**: Whether AutoConf is enabled and whether a custom URL is used.
-- **Swarm settings**: Whether hole punching is enabled, and whether public IP addresses are used.
 
-### TLS and Discovery
-- **AutoTLS settings**: Whether WSS is enabled and whether a custom domain suffix is used.
-- **Discovery settings**: Whether mDNS is enabled.
+- **AutoNAT service mode**: The `AutoNAT.ServiceMode` configured
+- **AutoNAT reachability**: Current reachability status determined by AutoNAT
+- **Hole punching**: Whether `Swarm.EnableHolePunching` is enabled
+- **Circuit relay addresses**: Whether the node advertises circuit relay addresses
+- **Public IPv4 addresses**: Whether the node has public IPv4 addresses
+- **Public IPv6 addresses**: Whether the node has public IPv6 addresses
+- **AutoWSS**: Whether `AutoTLS.AutoWSS` is enabled
+- **Custom domain suffix**: Whether custom `AutoTLS.DomainSuffix` is configured
 
-### Reprovider Strategy
-- The strategy used for reprovider (e.g., "all", "pinned"...).
+### Platform Information
+
+- **Operating system**: The OS the node is running on
+- **CPU architecture**: The architecture the node is running on
+- **Container detection**: Whether the node is running inside a container
+- **VM detection**: Whether the node is running inside a virtual machine
+
+### Code Reference
+
+Data is organized in the `LogEvent` struct at [`plugin/plugins/telemetry/telemetry.go`](https://github.com/ipfs/kubo/blob/master/plugin/plugins/telemetry/telemetry.go). This struct is the authoritative source of truth for all telemetry data, including privacy-preserving buckets for repository size and uptime. Note that this documentation may not always be up-to-date - refer to the code for the current implementation.
 
 ---
 
