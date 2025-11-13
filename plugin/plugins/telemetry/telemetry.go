@@ -78,6 +78,7 @@ var uptimeBuckets = []time.Duration{
 }
 
 // A LogEvent is the object sent to the telemetry endpoint.
+// See https://github.com/ipfs/kubo/blob/master/docs/telemetry.md for details.
 type LogEvent struct {
 	UUID string `json:"uuid"`
 
