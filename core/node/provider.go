@@ -116,6 +116,7 @@ type DHTProvider interface {
 	// `OfflineDelay`). The schedule depends on the network size, hence recent
 	// network connectivity is essential.
 	RefreshSchedule() error
+	Close() error
 }
 
 var (
@@ -134,6 +135,7 @@ func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) error { return nil 
 func (r *NoopProvider) ProvideOnce(...mh.Multihash) error          { return nil }
 func (r *NoopProvider) Clear() int                                 { return 0 }
 func (r *NoopProvider) RefreshSchedule() error                     { return nil }
+func (r *NoopProvider) Close() error                               { return nil }
 
 // LegacyProvider is a wrapper around the boxo/provider.System that implements
 // the DHTProvider interface. This provider manages reprovides using a burst
@@ -523,8 +525,41 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				case <-ctx.Done():
 					return ctx.Err()
 				}
-				// Keystore data isn't purged, on close, but it will be overwritten
-				// when the node starts again.
+				// Keystore will be closed by ensureProviderClosesBeforeKeystore hook
+				// to guarantee provider closes before keystore.
+				return nil
+			},
+		})
+	})
+
+	// ensureProviderClosesBeforeKeystore manages the shutdown order between
+	// provider and keystore to prevent race conditions.
+	//
+	// The provider's worker goroutines may call keystore methods during their
+	// operation. If keystore closes while these operations are in-flight, we get
+	// "keystore is closed" errors. By closing the provider first, we ensure all
+	// worker goroutines exit and complete any pending keystore operations before
+	// the keystore itself closes.
+	type providerKeystoreShutdownInput struct {
+		fx.In
+		Provider DHTProvider
+		Keystore *keystore.ResettableKeystore
+	}
+	ensureProviderClosesBeforeKeystore := fx.Invoke(func(lc fx.Lifecycle, in providerKeystoreShutdownInput) {
+		// Skip for NoopProvider
+		if _, ok := in.Provider.(*NoopProvider); ok {
+			return
+		}
+
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				// Close provider first - waits for all worker goroutines to exit.
+				// This ensures no code can access keystore after this returns.
+				if err := in.Provider.Close(); err != nil {
+					logger.Errorw("error closing provider during shutdown", "error", err)
+				}
+
+				// Close keystore - safe now, provider is fully shut down
 				return in.Keystore.Close()
 			},
 		})
@@ -650,6 +685,7 @@ See docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtmaxw
 	return fx.Options(
 		sweepingReprovider,
 		initKeystore,
+		ensureProviderClosesBeforeKeystore,
 		reprovideAlert,
 	)
 }
