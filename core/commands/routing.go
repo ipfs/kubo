@@ -230,12 +230,12 @@ var provideRefRoutingCmd = &cmds.Command{
 			}
 		}()
 
-		if dhtClient := nd.DHTClient; dhtClient != nil {
+		if nd.HasActiveDHTClient() {
 			// If node has a DHT client, provide immediately the supplied cids before
 			// returning.
 			for _, c := range cids {
-				if err = provideRoot(req.Context, dhtClient, c); err != nil {
-					return fmt.Errorf("error providing root cid: %w", err)
+				if err = provideCIDSync(req.Context, nd.DHTClient, c); err != nil {
+					return fmt.Errorf("error providing cid: %w", err)
 				}
 			}
 		}

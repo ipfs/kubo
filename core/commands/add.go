@@ -214,7 +214,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
-		cmds.BoolOption(fastProvideOptionName, "Apply fast-provide function to the root CID after add completes").WithDefault(true), // TODO: default could be Provide.DHT.SweepEnabled
+		cmds.BoolOption(fastProvideOptionName, "Immediately announce root CID to DHT for fast content discovery. Optimized for accelerated/sweep/optimistic DHT. Skipped if DHT unavailable.").WithDefault(true),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -569,10 +569,18 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 		// Apply fast-provide if the flag is enabled
 		if fastProvide && (lastRootCid != path.ImmutablePath{}) {
-			// Blocks until root CID is provided to the DHT.
-			// TODO: consider logging that fast-provide is in progress for user
-			if err := provideRoot(req.Context, ipfsNode.DHTClient, lastRootCid.RootCid()); err != nil {
-				log.Warnf("fast-provide failed for root CID %s: %s", lastRootCid.String(), err)
+			// Check if DHT is available before attempting to provide
+			if ipfsNode.HasActiveDHTClient() {
+				// Blocks until root CID is provided to the DHT
+				rootCid := lastRootCid.RootCid()
+				log.Debugw("fast-provide: announcing root CID", "cid", rootCid)
+				if err := provideCIDSync(req.Context, ipfsNode.DHTClient, rootCid); err != nil {
+					log.Warnw("fast-provide: failed", "cid", rootCid, "error", err)
+				} else {
+					log.Debugw("fast-provide: completed", "cid", rootCid)
+				}
+			} else {
+				log.Debugw("fast-provide: skipped", "reason", "DHT not available")
 			}
 		}
 

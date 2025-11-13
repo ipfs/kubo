@@ -579,17 +579,18 @@ func humanFull(val float64, decimals int) string {
 	return humanize.CommafWithDigits(val, decimals)
 }
 
-// provideRoot performs a provide operation on the supplied DHT client for the
-// given CID.
+// provideCIDSync performs a synchronous/blocking provide operation to announce
+// the given CID to the DHT.
 //
 //   - If the accelerated DHT client is used, a DHT lookup isn't needed, we
 //     directly allocate provider records to closest peers.
 //   - If Provide.DHT.SweepEnabled=true or OptimisticProvide=true, we make an
 //     optimistic provide call.
 //   - Else we make a standard provide call (much slower).
-func provideRoot(ctx context.Context, router routing.Routing, c cid.Cid) error {
-	if router == nil {
-		return nil
-	}
+//
+// IMPORTANT: The caller MUST verify DHT availability using HasActiveDHTClient()
+// before calling this function. Calling with a nil or invalid router will cause
+// a panic - this is the caller's responsibility to prevent.
+func provideCIDSync(ctx context.Context, router routing.Routing, c cid.Cid) error {
 	return router.Provide(ctx, c, true)
 }
