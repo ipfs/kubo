@@ -82,21 +82,21 @@ Adds the content of <path> to IPFS. Use -r to add directories (recursively).
 
 FAST PROVIDE OPTIMIZATION:
 
-When you add content to IPFS, it gets queued for announcement on the DHT.
-The background queue can take some time to process, meaning other peers
-won't find your content immediately after 'ipfs add' completes.
+When you add content to IPFS, the sweep provider queues it for efficient
+DHT provides over time. While this is resource-efficient, other peers won't
+find your content immediately after 'ipfs add' completes.
 
-To make sharing faster, 'ipfs add' does an extra immediate announcement
-of just the root CID to the DHT. This lets other peers start discovering
-your content right away, while the regular background queue still handles
-announcing all the blocks later.
+To make sharing faster, 'ipfs add' does an immediate provide of the root CID
+to the DHT in addition to the regular queue. This complements the sweep provider:
+fast-provide handles the urgent case (root CIDs that users share and reference),
+while the sweep provider efficiently provides all blocks according to
+Provide.Strategy over time.
 
-By default, this extra announcement runs in the background without slowing
-down the command. If you need to be certain the root CID is discoverable
-before the command returns (for example, sharing a link immediately),
-use --fast-provide-wait to wait for the announcement to complete.
-Use --fast-provide-root=false to skip this optimization and rely only on
-the background queue (controlled by Provide.Strategy and Provide.DHT.Interval).
+By default, this immediate provide runs in the background without blocking
+the command. If you need certainty that the root CID is discoverable before
+the command returns (e.g., sharing a link immediately), use --fast-provide-wait
+to wait for the provide to complete. Use --fast-provide-root=false to skip
+this optimization.
 
 This works best with the sweep provider and accelerated DHT client.
 Automatically skipped when DHT is not available.

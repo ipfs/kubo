@@ -191,6 +191,18 @@ Note:
   currently present in the blockstore does not represent a complete DAG,
   pinning of that individual root will fail.
 
+FAST PROVIDE OPTIMIZATION:
+
+Root CIDs from CAR headers are immediately provided to the DHT in addition
+to the regular provide queue, allowing other peers to discover your content
+right away. This complements the sweep provider, which efficiently provides
+all blocks according to Provide.Strategy over time.
+
+By default, the provide happens in the background without blocking the
+command. Use --fast-provide-wait to wait for the provide to complete, or
+--fast-provide-root=false to skip it. Works even with --pin-roots=false.
+Automatically skipped when DHT is not available.
+
 Maximum supported CAR version: 2
 Specification of CAR formats: https://ipld.io/specs/transport/car/
 `,
