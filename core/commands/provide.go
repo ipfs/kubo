@@ -14,8 +14,6 @@ import (
 	boxoprovider "github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	"github.com/libp2p/go-libp2p-kad-dht/provider"
@@ -595,81 +593,4 @@ func humanFull(val float64, decimals int) string {
 // a panic - this is the caller's responsibility to prevent.
 func provideCIDSync(ctx context.Context, router routing.Routing, c cid.Cid) error {
 	return router.Provide(ctx, c, true)
-}
-
-// ExecuteFastProvide immediately provides a root CID to the DHT, bypassing the regular
-// provide queue for faster content discovery. This function is reusable across commands
-// that add or import content, such as ipfs add and (in the future) ipfs dag import.
-//
-// Parameters:
-//   - ctx: context for synchronous provides
-//   - ipfsNode: the IPFS node instance
-//   - cfg: node configuration
-//   - rootCid: the CID to provide
-//   - wait: whether to block until provide completes (sync mode)
-//   - isPinned: whether content is pinned
-//   - isPinnedRoot: whether this is a pinned root CID
-//   - isMFS: whether content is in MFS
-//
-// The function handles all precondition checks (Provide.Enabled, DHT availability,
-// strategy matching) and logs appropriately. In async mode, it launches a goroutine
-// with a detached context and timeout.
-func ExecuteFastProvide(
-	ctx context.Context,
-	ipfsNode *core.IpfsNode,
-	cfg *config.Config,
-	rootCid cid.Cid,
-	wait bool,
-	isPinned bool,
-	isPinnedRoot bool,
-	isMFS bool,
-) {
-	log.Debugw("fast-provide-root: enabled", "wait", wait)
-
-	// Check preconditions for providing
-	switch {
-	case !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled):
-		log.Debugw("fast-provide-root: skipped", "reason", "Provide.Enabled is false")
-		return
-	case cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0:
-		log.Debugw("fast-provide-root: skipped", "reason", "Provide.DHT.Interval is 0")
-		return
-	case !ipfsNode.HasActiveDHTClient():
-		log.Debugw("fast-provide-root: skipped", "reason", "DHT not available")
-		return
-	}
-
-	// Check if strategy allows providing this content
-	strategyStr := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
-	strategy := config.ParseProvideStrategy(strategyStr)
-	shouldProvide := config.ShouldProvideForStrategy(strategy, isPinned, isPinnedRoot, isMFS)
-
-	if !shouldProvide {
-		log.Debugw("fast-provide-root: skipped", "reason", "strategy does not match content", "strategy", strategyStr, "pinned", isPinned, "pinnedRoot", isPinnedRoot, "mfs", isMFS)
-		return
-	}
-
-	// Execute provide operation
-	if wait {
-		// Synchronous mode: block until provide completes
-		log.Debugw("fast-provide-root: providing synchronously", "cid", rootCid)
-		if err := provideCIDSync(ctx, ipfsNode.DHTClient, rootCid); err != nil {
-			log.Warnw("fast-provide-root: sync provide failed", "cid", rootCid, "error", err)
-		} else {
-			log.Debugw("fast-provide-root: sync provide completed", "cid", rootCid)
-		}
-	} else {
-		// Asynchronous mode (default): fire-and-forget, don't block
-		log.Debugw("fast-provide-root: providing asynchronously", "cid", rootCid)
-		go func() {
-			// Use detached context with timeout to prevent hanging on network issues
-			ctx, cancel := context.WithTimeout(context.Background(), config.DefaultFastProvideTimeout)
-			defer cancel()
-			if err := provideCIDSync(ctx, ipfsNode.DHTClient, rootCid); err != nil {
-				log.Warnw("fast-provide-root: async provide failed", "cid", rootCid, "error", err)
-			} else {
-				log.Debugw("fast-provide-root: async provide completed", "cid", rootCid)
-			}
-		}()
-	}
 }

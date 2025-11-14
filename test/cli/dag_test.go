@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -190,22 +189,30 @@ func TestDagImportFastProvide(t *testing.T) {
 		}, "")
 		defer node.StopDaemon()
 
-		// Import CAR file
+		// Import CAR file - use Run instead of IPFSDagImport to handle expected error
 		r, err := os.Open(fixtureFile)
 		require.NoError(t, err)
 		defer r.Close()
-		err = node.IPFSDagImport(r, fixtureCid)
-		require.NoError(t, err)
+		res := node.Runner.Run(harness.RunRequest{
+			Path: node.IPFSBin,
+			Args: []string{"dag", "import", "--pin-roots=false"},
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithStdin(r),
+			},
+		})
+		// In sync mode (wait=true), provide errors propagate and fail the command.
+		// Test environment uses 'test' profile with no bootstrappers, and CI has
+		// insufficient peers for proper DHT puts, so we expect this to fail with
+		// "failed to find any peer in table" error from the DHT.
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.String(), "Error: fast-provide: failed to find any peer in table")
 
 		daemonLog := node.Daemon.Stderr.String()
 		// Should see sync mode started
 		require.Contains(t, daemonLog, "fast-provide-root: enabled")
 		require.Contains(t, daemonLog, "fast-provide-root: providing synchronously")
-		require.Contains(t, daemonLog, fixtureCid) // Should log the specific CID being provided
-		// In test environment with no DHT peers, this will fail, but the provide attempt was made
-		require.True(t,
-			strings.Contains(daemonLog, "sync provide completed") || strings.Contains(daemonLog, "sync provide failed"),
-			"sync provide should complete or fail")
+		require.Contains(t, daemonLog, fixtureCid)            // Should log the specific CID being provided
+		require.Contains(t, daemonLog, "sync provide failed") // Verify the failure was logged
 	})
 
 	t.Run("fast-provide-wait ignored when root disabled", func(t *testing.T) {

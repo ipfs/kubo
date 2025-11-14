@@ -203,14 +203,10 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	// Fast-provide roots for faster discovery
 	if fastProvideRoot {
 		err = roots.ForEach(func(c cid.Cid) error {
-			cmdenv.ExecuteFastProvide(req.Context, node, cfg, c, fastProvideWait, doPinRoots, doPinRoots, false)
-			return nil
+			return cmdenv.ExecuteFastProvide(req.Context, node, cfg, c, fastProvideWait, doPinRoots, doPinRoots, false)
 		})
 		if err != nil {
-			if fastProvideWait {
-				return err
-			}
-			log.Warnw("fast-provide-root: ForEach error", "error", err)
+			return err
 		}
 	} else {
 		if fastProvideWait {

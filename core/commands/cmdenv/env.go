@@ -121,6 +121,11 @@ func provideCIDSync(ctx context.Context, router routing.Routing, c cid.Cid) erro
 //   - isPinnedRoot: whether this is a pinned root CID
 //   - isMFS: whether content is in MFS
 //
+// Return value:
+//   - Returns nil if operation succeeded or was skipped (preconditions not met)
+//   - Returns error only in sync mode (wait=true) when provide operation fails
+//   - In async mode (wait=false), always returns nil (errors logged in goroutine)
+//
 // The function handles all precondition checks (Provide.Enabled, DHT availability,
 // strategy matching) and logs appropriately. In async mode, it launches a goroutine
 // with a detached context and timeout.
@@ -133,20 +138,20 @@ func ExecuteFastProvide(
 	isPinned bool,
 	isPinnedRoot bool,
 	isMFS bool,
-) {
+) error {
 	log.Debugw("fast-provide-root: enabled", "wait", wait)
 
 	// Check preconditions for providing
 	switch {
 	case !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled):
 		log.Debugw("fast-provide-root: skipped", "reason", "Provide.Enabled is false")
-		return
+		return nil
 	case cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0:
 		log.Debugw("fast-provide-root: skipped", "reason", "Provide.DHT.Interval is 0")
-		return
+		return nil
 	case !ipfsNode.HasActiveDHTClient():
 		log.Debugw("fast-provide-root: skipped", "reason", "DHT not available")
-		return
+		return nil
 	}
 
 	// Check if strategy allows providing this content
@@ -156,30 +161,32 @@ func ExecuteFastProvide(
 
 	if !shouldProvide {
 		log.Debugw("fast-provide-root: skipped", "reason", "strategy does not match content", "strategy", strategyStr, "pinned", isPinned, "pinnedRoot", isPinnedRoot, "mfs", isMFS)
-		return
+		return nil
 	}
 
 	// Execute provide operation
 	if wait {
-		// Synchronous mode: block until provide completes
+		// Synchronous mode: block until provide completes, return error on failure
 		log.Debugw("fast-provide-root: providing synchronously", "cid", rootCid)
 		if err := provideCIDSync(ctx, ipfsNode.DHTClient, rootCid); err != nil {
 			log.Warnw("fast-provide-root: sync provide failed", "cid", rootCid, "error", err)
-		} else {
-			log.Debugw("fast-provide-root: sync provide completed", "cid", rootCid)
+			return fmt.Errorf("fast-provide: %w", err)
 		}
-	} else {
-		// Asynchronous mode (default): fire-and-forget, don't block
-		log.Debugw("fast-provide-root: providing asynchronously", "cid", rootCid)
-		go func() {
-			// Use detached context with timeout to prevent hanging on network issues
-			ctx, cancel := context.WithTimeout(context.Background(), config.DefaultFastProvideTimeout)
-			defer cancel()
-			if err := provideCIDSync(ctx, ipfsNode.DHTClient, rootCid); err != nil {
-				log.Warnw("fast-provide-root: async provide failed", "cid", rootCid, "error", err)
-			} else {
-				log.Debugw("fast-provide-root: async provide completed", "cid", rootCid)
-			}
-		}()
+		log.Debugw("fast-provide-root: sync provide completed", "cid", rootCid)
+		return nil
 	}
+
+	// Asynchronous mode (default): fire-and-forget, don't block, always return nil
+	log.Debugw("fast-provide-root: providing asynchronously", "cid", rootCid)
+	go func() {
+		// Use detached context with timeout to prevent hanging on network issues
+		ctx, cancel := context.WithTimeout(context.Background(), config.DefaultFastProvideTimeout)
+		defer cancel()
+		if err := provideCIDSync(ctx, ipfsNode.DHTClient, rootCid); err != nil {
+			log.Warnw("fast-provide-root: async provide failed", "cid", rootCid, "error", err)
+		} else {
+			log.Debugw("fast-provide-root: async provide completed", "cid", rootCid)
+		}
+	}()
+	return nil
 }
