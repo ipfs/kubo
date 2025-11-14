@@ -245,8 +245,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
-		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CID to DHT for fast content discovery. When disabled, root CID is queued for background providing instead.").WithDefault(true),
-		cmds.BoolOption(fastProvideWaitOptionName, "Wait for fast-provide-root to complete before returning. Ensures root CID is discoverable when command finishes.").WithDefault(false),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CID to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes before returning. Default: Import.FastProvideWait"),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -317,8 +317,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		mode, _ := req.Options[modeOptionName].(uint)
 		mtime, _ := req.Options[mtimeOptionName].(int64)
 		mtimeNsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
-		fastProvideRoot, _ := req.Options[fastProvideRootOptionName].(bool)
-		fastProvideWait, _ := req.Options[fastProvideWaitOptionName].(bool)
+		fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
+		fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
 
 		if chunker == "" {
 			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
@@ -354,6 +354,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			maxHAMTFanoutSet = true
 			maxHAMTFanout = int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
 		}
+
+		fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
+		fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
 
 		// Storing optional mode or mtime (UnixFS 1.5) requires root block
 		// to always be 'dag-pb' and not 'raw'. Below adjusts raw-leaves setting, if possible.
@@ -602,6 +605,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 		// Apply fast-provide-root if the flag is enabled
 		if fastProvideRoot && (lastRootCid != path.ImmutablePath{}) {
+			log.Debugw("fast-provide-root: enabled", "wait", fastProvideWait)
 			cfg, err := ipfsNode.Repo.Config()
 			if err != nil {
 				return err
@@ -664,9 +668,13 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 					}()
 				}
 			}
-		} else if fastProvideWait && !fastProvideRoot {
-			// Log that wait flag is ignored when provide-root is disabled
-			log.Debugw("fast-provide-root: wait flag ignored", "reason", "fast-provide-root disabled")
+		} else if !fastProvideRoot {
+			if fastProvideWait {
+				// Log that wait flag is ignored when provide-root is disabled
+				log.Debugw("fast-provide-root: disabled", "wait-flag-ignored", true)
+			} else {
+				log.Debugw("fast-provide-root: disabled")
+			}
 		}
 
 		return nil

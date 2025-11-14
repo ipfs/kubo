@@ -16,6 +16,8 @@ const (
 	DefaultUnixFSRawLeaves = false
 	DefaultUnixFSChunker   = "size-262144"
 	DefaultHashFunction    = "sha2-256"
+	DefaultFastProvideRoot = true
+	DefaultFastProvideWait = false
 
 	DefaultUnixFSHAMTDirectorySizeThreshold = 262144 // 256KiB - https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L26
 
@@ -48,6 +50,8 @@ type Import struct {
 	UnixFSHAMTDirectorySizeThreshold OptionalBytes
 	BatchMaxNodes                    OptionalInteger
 	BatchMaxSize                     OptionalInteger
+	FastProvideRoot                  Flag
+	FastProvideWait                  Flag
 }
 
 // ValidateImportConfig validates the Import configuration according to UnixFS spec requirements.
