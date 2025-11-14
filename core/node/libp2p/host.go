@@ -55,12 +55,24 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 		return out, err
 	}
 
+	// Optimistic provide is enabled either via dedicated expierimental flag, or when DHT Provide Sweep is enabled.
+	// When DHT Provide Sweep is enabled, all provide operations go through the
+	// `SweepingProvider`, hence the provides don't use the optimistic provide
+	// logic. Provides use `SweepingProvider.StartProviding()` and not
+	// `IpfsDHT.Provide()`, which is where the optimistic provide logic is
+	// implemented. However, `IpfsDHT.Provide()` is used to quickly provide roots
+	// when user manually adds content with the `--fast-provide` flag enabled. In
+	// this case we want to use optimistic provide logic to quickly announce the
+	// content to the network. This should be the only use case of
+	// `IpfsDHT.Provide()` when DHT Provide Sweep is enabled.
+	optimisticProvide := cfg.Experimental.OptimisticProvide || cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled)
+
 	routingOptArgs := RoutingOptionArgs{
 		Ctx:                           ctx,
 		Datastore:                     params.Repo.Datastore(),
 		Validator:                     params.Validator,
 		BootstrapPeers:                bootstrappers,
-		OptimisticProvide:             cfg.Experimental.OptimisticProvide,
+		OptimisticProvide:             optimisticProvide,
 		OptimisticProvideJobsPoolSize: cfg.Experimental.OptimisticProvideJobsPoolSize,
 		LoopbackAddressesOnLanDHT:     cfg.Routing.LoopbackAddressesOnLanDHT.WithDefault(config.DefaultLoopbackAddressesOnLanDHT),
 	}

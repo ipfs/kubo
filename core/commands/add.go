@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -8,6 +9,7 @@ import (
 	gopath "path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -61,20 +63,50 @@ const (
 	inlineLimitOptionName       = "inline-limit"
 	toFilesOptionName           = "to-files"
 
-	preserveModeOptionName  = "preserve-mode"
-	preserveMtimeOptionName = "preserve-mtime"
-	modeOptionName          = "mode"
-	mtimeOptionName         = "mtime"
-	mtimeNsecsOptionName    = "mtime-nsecs"
+	preserveModeOptionName    = "preserve-mode"
+	preserveMtimeOptionName   = "preserve-mtime"
+	modeOptionName            = "mode"
+	mtimeOptionName           = "mtime"
+	mtimeNsecsOptionName      = "mtime-nsecs"
+	fastProvideRootOptionName = "fast-provide-root"
+	fastProvideWaitOptionName = "fast-provide-wait"
 )
 
-const adderOutChanSize = 8
+const (
+	adderOutChanSize = 8
+
+	// fastProvideTimeout is the maximum time allowed for async fast-provide operations.
+	// Prevents hanging on network issues when providing root CID in background.
+	// 10 seconds is sufficient for DHT operations with sweep provider or accelerated client.
+	fastProvideTimeout = 10 * time.Second
+)
 
 var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add a file or directory to IPFS.",
 		ShortDescription: `
 Adds the content of <path> to IPFS. Use -r to add directories (recursively).
+
+FAST PROVIDE OPTIMIZATION:
+
+When you add content to IPFS, it gets queued for announcement on the DHT.
+The background queue can take some time to process, meaning other peers
+won't find your content immediately after 'ipfs add' completes.
+
+To make sharing faster, 'ipfs add' does an extra immediate announcement
+of just the root CID to the DHT. This lets other peers start discovering
+your content right away, while the regular background queue still handles
+announcing all the blocks later.
+
+By default, this extra announcement runs in the background without slowing
+down the command. If you need to be certain the root CID is discoverable
+before the command returns (for example, sharing a link immediately),
+use --fast-provide-wait to wait for the announcement to complete.
+Use --fast-provide-root=false to skip this optimization and rely only on
+the background queue (controlled by Provide.Strategy and Provide.DHT.Interval).
+
+This works best with the sweep provider and accelerated DHT client.
+Automatically skipped when DHT is not available.
 `,
 		LongDescription: `
 Adds the content of <path> to IPFS. Use -r to add directories.
@@ -213,6 +245,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CID to DHT for fast content discovery. When disabled, root CID is queued for background providing instead.").WithDefault(true),
+		cmds.BoolOption(fastProvideWaitOptionName, "Wait for fast-provide-root to complete before returning. Ensures root CID is discoverable when command finishes.").WithDefault(false),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -283,6 +317,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		mode, _ := req.Options[modeOptionName].(uint)
 		mtime, _ := req.Options[mtimeOptionName].(int64)
 		mtimeNsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
+		fastProvideRoot, _ := req.Options[fastProvideRootOptionName].(bool)
+		fastProvideWait, _ := req.Options[fastProvideWaitOptionName].(bool)
 
 		if chunker == "" {
 			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
@@ -421,11 +457,12 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		}
 		var added int
 		var fileAddedToMFS bool
+		var lastRootCid path.ImmutablePath // Track the root CID for fast-provide
 		addit := toadd.Entries()
 		for addit.Next() {
 			_, dir := addit.Node().(files.Directory)
 			errCh := make(chan error, 1)
-			events := make(chan interface{}, adderOutChanSize)
+			events := make(chan any, adderOutChanSize)
 			opts[len(opts)-1] = options.Unixfs.Events(events)
 
 			go func() {
@@ -436,6 +473,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 					errCh <- err
 					return
 				}
+
+				// Store the root CID for potential fast-provide operation
+				lastRootCid = pathAdded
 
 				// creating MFS pointers when optional --to-files is set
 				if toFilesSet {
@@ -560,12 +600,79 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			return fmt.Errorf("expected a file argument")
 		}
 
+		// Apply fast-provide-root if the flag is enabled
+		if fastProvideRoot && (lastRootCid != path.ImmutablePath{}) {
+			cfg, err := ipfsNode.Repo.Config()
+			if err != nil {
+				return err
+			}
+
+			// Parse the provide strategy to check if we should provide based on pin/MFS status
+			strategyStr := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
+			strategy := config.ParseProvideStrategy(strategyStr)
+
+			// Determine if we should provide based on strategy
+			shouldProvide := false
+			if strategy == config.ProvideStrategyAll {
+				// 'all' strategy: always provide
+				shouldProvide = true
+			} else {
+				// For combined strategies (pinned+mfs), check each component
+				if strategy&config.ProvideStrategyPinned != 0 && dopin {
+					shouldProvide = true
+				} else if strategy&config.ProvideStrategyRoots != 0 && dopin {
+					shouldProvide = true
+				} else if strategy&config.ProvideStrategyMFS != 0 && toFilesSet {
+					shouldProvide = true
+				}
+			}
+
+			switch {
+			case !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled):
+				log.Debugw("fast-provide-root: skipped", "reason", "Provide.Enabled is false")
+			case cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0:
+				log.Debugw("fast-provide-root: skipped", "reason", "Provide.DHT.Interval is 0")
+			case !shouldProvide:
+				log.Debugw("fast-provide-root: skipped", "reason", "strategy does not match content", "strategy", strategyStr, "pinned", dopin, "to-files", toFilesSet)
+			case !ipfsNode.HasActiveDHTClient():
+				log.Debugw("fast-provide-root: skipped", "reason", "DHT not available")
+			default:
+				rootCid := lastRootCid.RootCid()
+
+				if fastProvideWait {
+					// Synchronous mode: block until provide completes
+					log.Debugw("fast-provide-root: providing synchronously", "cid", rootCid)
+					if err := provideCIDSync(req.Context, ipfsNode.DHTClient, rootCid); err != nil {
+						log.Warnw("fast-provide-root: sync provide failed", "cid", rootCid, "error", err)
+					} else {
+						log.Debugw("fast-provide-root: sync provide completed", "cid", rootCid)
+					}
+				} else {
+					// Asynchronous mode (default): fire-and-forget, don't block
+					log.Debugw("fast-provide-root: providing asynchronously", "cid", rootCid)
+					go func() {
+						// Use detached context with timeout to prevent hanging on network issues
+						ctx, cancel := context.WithTimeout(context.Background(), fastProvideTimeout)
+						defer cancel()
+						if err := provideCIDSync(ctx, ipfsNode.DHTClient, rootCid); err != nil {
+							log.Warnw("fast-provide-root: async provide failed", "cid", rootCid, "error", err)
+						} else {
+							log.Debugw("fast-provide-root: async provide completed", "cid", rootCid)
+						}
+					}()
+				}
+			}
+		} else if fastProvideWait && !fastProvideRoot {
+			// Log that wait flag is ignored when provide-root is disabled
+			log.Debugw("fast-provide-root: wait flag ignored", "reason", "fast-provide-root disabled")
+		}
+
 		return nil
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
 			sizeChan := make(chan int64, 1)
-			outChan := make(chan interface{})
+			outChan := make(chan any)
 			req := res.Request()
 
 			// Could be slow.

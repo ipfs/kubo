@@ -75,7 +75,8 @@ This interface is not stable and may change from release to release.
 			var dht *dht.IpfsDHT
 
 			var separateClient bool
-			if nd.DHTClient != nd.DHT {
+			// Check if using separate DHT client (e.g., accelerated DHT)
+			if nd.HasActiveDHTClient() && nd.DHTClient != nd.DHT {
 				separateClient = true
 			}
 
