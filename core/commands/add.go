@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -9,7 +8,6 @@ import (
 	gopath "path"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -74,11 +72,6 @@ const (
 
 const (
 	adderOutChanSize = 8
-
-	// fastProvideTimeout is the maximum time allowed for async fast-provide operations.
-	// Prevents hanging on network issues when providing root CID in background.
-	// 10 seconds is sufficient for DHT operations with sweep provider or accelerated client.
-	fastProvideTimeout = 10 * time.Second
 )
 
 var AddCmd = &cmds.Command{
@@ -605,72 +598,13 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 		// Apply fast-provide-root if the flag is enabled
 		if fastProvideRoot && (lastRootCid != path.ImmutablePath{}) {
-			log.Debugw("fast-provide-root: enabled", "wait", fastProvideWait)
 			cfg, err := ipfsNode.Repo.Config()
 			if err != nil {
 				return err
 			}
-
-			// Parse the provide strategy to check if we should provide based on pin/MFS status
-			strategyStr := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
-			strategy := config.ParseProvideStrategy(strategyStr)
-
-			// Determine if we should provide based on strategy
-			shouldProvide := false
-			if strategy == config.ProvideStrategyAll {
-				// 'all' strategy: always provide
-				shouldProvide = true
-			} else {
-				// For combined strategies (pinned+mfs), check each component
-				if strategy&config.ProvideStrategyPinned != 0 && dopin {
-					shouldProvide = true
-				}
-				if strategy&config.ProvideStrategyRoots != 0 && dopin {
-					shouldProvide = true
-				}
-				if strategy&config.ProvideStrategyMFS != 0 && toFilesSet {
-					shouldProvide = true
-				}
-			}
-
-			switch {
-			case !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled):
-				log.Debugw("fast-provide-root: skipped", "reason", "Provide.Enabled is false")
-			case cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0:
-				log.Debugw("fast-provide-root: skipped", "reason", "Provide.DHT.Interval is 0")
-			case !shouldProvide:
-				log.Debugw("fast-provide-root: skipped", "reason", "strategy does not match content", "strategy", strategyStr, "pinned", dopin, "to-files", toFilesSet)
-			case !ipfsNode.HasActiveDHTClient():
-				log.Debugw("fast-provide-root: skipped", "reason", "DHT not available")
-			default:
-				rootCid := lastRootCid.RootCid()
-
-				if fastProvideWait {
-					// Synchronous mode: block until provide completes
-					log.Debugw("fast-provide-root: providing synchronously", "cid", rootCid)
-					if err := provideCIDSync(req.Context, ipfsNode.DHTClient, rootCid); err != nil {
-						log.Warnw("fast-provide-root: sync provide failed", "cid", rootCid, "error", err)
-					} else {
-						log.Debugw("fast-provide-root: sync provide completed", "cid", rootCid)
-					}
-				} else {
-					// Asynchronous mode (default): fire-and-forget, don't block
-					log.Debugw("fast-provide-root: providing asynchronously", "cid", rootCid)
-					go func() {
-						// Use detached context with timeout to prevent hanging on network issues
-						ctx, cancel := context.WithTimeout(context.Background(), fastProvideTimeout)
-						defer cancel()
-						if err := provideCIDSync(ctx, ipfsNode.DHTClient, rootCid); err != nil {
-							log.Warnw("fast-provide-root: async provide failed", "cid", rootCid, "error", err)
-						} else {
-							log.Debugw("fast-provide-root: async provide completed", "cid", rootCid)
-						}
-					}()
-				}
-			}
+			ExecuteFastProvide(req.Context, ipfsNode, cfg, lastRootCid.RootCid(), fastProvideWait, dopin, dopin, toFilesSet)
 		} else if !fastProvideRoot {
 			if fastProvideWait {
-				// Log that wait flag is ignored when provide-root is disabled
 				log.Debugw("fast-provide-root: disabled", "wait-flag-ignored", true)
 			} else {
 				log.Debugw("fast-provide-root: disabled")

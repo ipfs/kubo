@@ -449,6 +449,15 @@ func TestAdd(t *testing.T) {
 			require.Equal(t, 992, len(root.Links))
 		})
 	})
+}
+
+func TestAddFastProvide(t *testing.T) {
+	t.Parallel()
+
+	const (
+		shortString      = "hello world"
+		shortStringCidV0 = "Qmf412jQZiuVUtdgnB36FXFX7xg5V6KEbSJ4dpQuhkLyfD" // cidv0 - dag-pb - sha2-256
+	)
 
 	t.Run("fast-provide-root disabled via config: verify skipped in logs", func(t *testing.T) {
 		t.Parallel()
@@ -606,7 +615,6 @@ func TestAdd(t *testing.T) {
 		// Flag should disable it despite config saying true
 		require.Contains(t, daemonLog, "fast-provide-root: disabled")
 	})
-
 }
 
 // createDirectoryForHAMT aims to create enough files with long names for the directory block to be close to the UnixFSHAMTDirectorySizeThreshold.
