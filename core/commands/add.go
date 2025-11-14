@@ -620,11 +620,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 				// For combined strategies (pinned+mfs), check each component
 				if strategy&config.ProvideStrategyPinned != 0 && dopin {
 					shouldProvide = true
-				}
-				if strategy&config.ProvideStrategyRoots != 0 && dopin {
+				} else if strategy&config.ProvideStrategyRoots != 0 && dopin {
 					shouldProvide = true
-				}
-				if strategy&config.ProvideStrategyMFS != 0 && toFilesSet {
+				} else if strategy&config.ProvideStrategyMFS != 0 && toFilesSet {
 					shouldProvide = true
 				}
 			}
