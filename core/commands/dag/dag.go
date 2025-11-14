@@ -16,10 +16,12 @@ import (
 )
 
 const (
-	pinRootsOptionName = "pin-roots"
-	progressOptionName = "progress"
-	silentOptionName   = "silent"
-	statsOptionName    = "stats"
+	pinRootsOptionName        = "pin-roots"
+	progressOptionName        = "progress"
+	silentOptionName          = "silent"
+	statsOptionName           = "stats"
+	fastProvideRootOptionName = "fast-provide-root"
+	fastProvideWaitOptionName = "fast-provide-wait"
 )
 
 // DagCmd provides a subset of commands for interacting with ipld dag objects
@@ -200,6 +202,8 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CIDs to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes before returning. Default: Import.FastProvideWait"),
 		cmdutils.AllowBigBlockOption,
 	},
 	Type: CarImportOutput{},

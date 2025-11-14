@@ -3623,11 +3623,11 @@ Type: `optionalString`
 
 ### `Import.FastProvideRoot`
 
-Controls the default behavior for whether `ipfs add` immediately provides the root CID to the DHT in addition to the regular provide queue.
+Controls the default behavior for whether `ipfs add` and `ipfs dag import` immediately provide root CIDs to the DHT in addition to the regular provide queue.
 
-When enabled (default), the root CID is immediately provided to the DHT, bypassing the regular provide and reprovide queues, allowing other peers to discover your content right away. When disabled, only the regular provide queue is used.
+When enabled (default), root CIDs are immediately provided to the DHT, bypassing the regular provide and reprovide queues, allowing other peers to discover your content right away. When disabled, only the regular provide queue is used.
 
-This setting provides the default for the `--fast-provide-root` flag in `ipfs add`. Users can override this default globally by setting a value in the config, or per import operation by passing `ipfs add --fast-provide-root=true` or `ipfs add --fast-provide-root=false`.
+This setting provides the default for the `--fast-provide-root` flag in `ipfs add` and the `--fast-provide-roots` flag in `ipfs dag import`. Users can override this default globally by setting a value in the config, or per import operation by passing `--fast-provide-root=true`/`false` or `--fast-provide-roots=true`/`false`.
 
 Note: This flag is ignored if DHT is not available for routing (e.g., `Routing.Type=none` or delegated-only configurations).
 
@@ -3637,11 +3637,11 @@ Type: `flag`
 
 ### `Import.FastProvideWait`
 
-Controls the default behavior for whether `ipfs add` blocks and waits for the immediate root CID provide to complete before returning success.
+Controls the default behavior for whether `ipfs add` and `ipfs dag import` block and wait for the immediate root CID provide to complete before returning success.
 
-When enabled, the command blocks until the immediate provide completes, ensuring guaranteed discoverability. When disabled (default), the immediate provide happens asynchronously in the background, still making the root CID resolvable via DHT routing faster than the regular provide queue would.
+When enabled, the command blocks until the immediate provide completes, ensuring guaranteed discoverability. When disabled (default), the immediate provide happens asynchronously in the background, still making root CIDs resolvable via DHT routing faster than the regular provide queue would.
 
-This setting provides the default for the `--fast-provide-wait` flag in `ipfs add`. Users can override this default globally by setting a value in the config, or per import operation by passing `ipfs add --fast-provide-wait=true` or `ipfs add --fast-provide-wait=false`.
+This setting provides the default for the `--fast-provide-wait` flag in both `ipfs add` and `ipfs dag import`. Users can override this default globally by setting a value in the config, or per import operation by passing `--fast-provide-wait=true` or `--fast-provide-wait=false`.
 
 Note: This flag is ignored if DHT is not available for routing (e.g., `Routing.Type=none` or delegated-only configurations).
 

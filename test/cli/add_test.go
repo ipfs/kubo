@@ -470,7 +470,7 @@ func TestAddFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug",
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
 				}),
 			},
 		}, "")
@@ -481,7 +481,7 @@ func TestAddFastProvide(t *testing.T) {
 
 		// Verify fast-provide-root was disabled
 		daemonLog := node.Daemon.Stderr.String()
-		require.Contains(t, daemonLog, "fast-provide-root: disabled")
+		require.Contains(t, daemonLog, "fast-provide-root: skipped")
 	})
 
 	t.Run("fast-provide-root enabled with wait=false: verify async provide", func(t *testing.T) {
@@ -492,7 +492,7 @@ func TestAddFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug",
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
 				}),
 			},
 		}, "")
@@ -523,7 +523,7 @@ func TestAddFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug",
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
 				}),
 			},
 		}, "")
@@ -553,7 +553,7 @@ func TestAddFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug",
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
 				}),
 			},
 		}, "")
@@ -563,7 +563,7 @@ func TestAddFastProvide(t *testing.T) {
 		require.Equal(t, shortStringCidV0, cidStr)
 
 		daemonLog := node.Daemon.Stderr.String()
-		require.Contains(t, daemonLog, "fast-provide-root: disabled")
+		require.Contains(t, daemonLog, "fast-provide-root: skipped")
 		require.Contains(t, daemonLog, "wait-flag-ignored")
 	})
 
@@ -577,7 +577,7 @@ func TestAddFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug",
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
 				}),
 			},
 		}, "")
@@ -602,7 +602,7 @@ func TestAddFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug",
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
 				}),
 			},
 		}, "")
@@ -613,7 +613,7 @@ func TestAddFastProvide(t *testing.T) {
 
 		daemonLog := node.Daemon.Stderr.String()
 		// Flag should disable it despite config saying true
-		require.Contains(t, daemonLog, "fast-provide-root: disabled")
+		require.Contains(t, daemonLog, "fast-provide-root: skipped")
 	})
 }
 

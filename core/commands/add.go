@@ -602,12 +602,12 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			if err != nil {
 				return err
 			}
-			ExecuteFastProvide(req.Context, ipfsNode, cfg, lastRootCid.RootCid(), fastProvideWait, dopin, dopin, toFilesSet)
+			cmdenv.ExecuteFastProvide(req.Context, ipfsNode, cfg, lastRootCid.RootCid(), fastProvideWait, dopin, dopin, toFilesSet)
 		} else if !fastProvideRoot {
 			if fastProvideWait {
-				log.Debugw("fast-provide-root: disabled", "wait-flag-ignored", true)
+				log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config", "wait-flag-ignored", true)
 			} else {
-				log.Debugw("fast-provide-root: disabled")
+				log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
 			}
 		}
 
