@@ -230,6 +230,8 @@ config file at runtime.
     - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
     - [`Import.UnixFSChunker`](#importunixfschunker)
     - [`Import.HashFunction`](#importhashfunction)
+    - [`Import.FastProvideRoot`](#importfastprovideroot)
+    - [`Import.FastProvideWait`](#importfastprovidewait)
     - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
     - [`Import.BatchMaxSize`](#importbatchmaxsize)
     - [`Import.UnixFSFileMaxLinks`](#importunixfsfilemaxlinks)
@@ -3618,6 +3620,38 @@ Run `ipfs cid hashes --supported` to see the full list of allowed hash functions
 Default: `sha2-256`
 
 Type: `optionalString`
+
+### `Import.FastProvideRoot`
+
+Immediately provide root CIDs to the DHT in addition to the regular provide queue.
+
+This complements the sweep provider system: fast-provide handles the urgent case (root CIDs that users share and reference), while the sweep provider efficiently provides all blocks according to the `Provide.Strategy` over time. Together, they optimize for both immediate discoverability of newly imported content and efficient resource usage for complete DAG provides.
+
+When disabled, only the sweep provider's queue is used.
+
+This setting applies to both `ipfs add` and `ipfs dag import` commands and can be overridden per-command with the `--fast-provide-root` flag.
+
+Ignored when DHT is not available for routing (e.g., `Routing.Type=none` or delegated-only configurations).
+
+Default: `true`
+
+Type: `flag`
+
+### `Import.FastProvideWait`
+
+Wait for the immediate root CID provide to complete before returning.
+
+When enabled, the command blocks until the provide completes, ensuring guaranteed discoverability before returning. When disabled (default), the provide happens asynchronously in the background without blocking the command.
+
+Use this when you need certainty that content is discoverable before the command returns (e.g., sharing a link immediately after adding).
+
+This setting applies to both `ipfs add` and `ipfs dag import` commands and can be overridden per-command with the `--fast-provide-wait` flag.
+
+Ignored when DHT is not available for routing (e.g., `Routing.Type=none` or delegated-only configurations).
+
+Default: `false`
+
+Type: `flag`
 
 ### `Import.BatchMaxNodes`
 

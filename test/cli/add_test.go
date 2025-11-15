@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/kubo/config"
@@ -14,6 +15,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// waitForLogMessage polls a buffer for a log message, waiting up to timeout duration.
+// Returns true if message found, false if timeout reached.
+func waitForLogMessage(buffer *harness.Buffer, message string, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if strings.Contains(buffer.String(), message) {
+			return true
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return false
+}
 
 func TestAdd(t *testing.T) {
 	t.Parallel()
@@ -435,7 +449,182 @@ func TestAdd(t *testing.T) {
 			require.Equal(t, 992, len(root.Links))
 		})
 	})
+}
 
+func TestAddFastProvide(t *testing.T) {
+	t.Parallel()
+
+	const (
+		shortString      = "hello world"
+		shortStringCidV0 = "Qmf412jQZiuVUtdgnB36FXFX7xg5V6KEbSJ4dpQuhkLyfD" // cidv0 - dag-pb - sha2-256
+	)
+
+	t.Run("fast-provide-root disabled via config: verify skipped in logs", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.FastProvideRoot = config.False
+		})
+
+		// Start daemon with debug logging
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		cidStr := node.IPFSAddStr(shortString)
+		require.Equal(t, shortStringCidV0, cidStr)
+
+		// Verify fast-provide-root was disabled
+		daemonLog := node.Daemon.Stderr.String()
+		require.Contains(t, daemonLog, "fast-provide-root: skipped")
+	})
+
+	t.Run("fast-provide-root enabled with wait=false: verify async provide", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		// Use default config (FastProvideRoot=true, FastProvideWait=false)
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		cidStr := node.IPFSAddStr(shortString)
+		require.Equal(t, shortStringCidV0, cidStr)
+
+		daemonLog := node.Daemon.Stderr
+		// Should see async mode started
+		require.Contains(t, daemonLog.String(), "fast-provide-root: enabled")
+		require.Contains(t, daemonLog.String(), "fast-provide-root: providing asynchronously")
+
+		// Wait for async completion or failure (up to 11 seconds - slightly more than fastProvideTimeout)
+		// In test environment with no DHT peers, this will fail with "failed to find any peer in table"
+		completedOrFailed := waitForLogMessage(daemonLog, "async provide completed", 11*time.Second) ||
+			waitForLogMessage(daemonLog, "async provide failed", 11*time.Second)
+		require.True(t, completedOrFailed, "async provide should complete or fail within timeout")
+	})
+
+	t.Run("fast-provide-root enabled with wait=true: verify sync provide", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.FastProvideWait = config.True
+		})
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		// Use Runner.Run with stdin to allow for expected errors
+		res := node.Runner.Run(harness.RunRequest{
+			Path: node.IPFSBin,
+			Args: []string{"add", "-q"},
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithStdin(strings.NewReader(shortString)),
+			},
+		})
+
+		// In sync mode (wait=true), provide errors propagate and fail the command.
+		// Test environment uses 'test' profile with no bootstrappers, and CI has
+		// insufficient peers for proper DHT puts, so we expect this to fail with
+		// "failed to find any peer in table" error from the DHT.
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.String(), "Error: fast-provide: failed to find any peer in table")
+
+		daemonLog := node.Daemon.Stderr.String()
+		// Should see sync mode started
+		require.Contains(t, daemonLog, "fast-provide-root: enabled")
+		require.Contains(t, daemonLog, "fast-provide-root: providing synchronously")
+		require.Contains(t, daemonLog, "sync provide failed") // Verify the failure was logged
+	})
+
+	t.Run("fast-provide-wait ignored when root disabled", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.FastProvideRoot = config.False
+			cfg.Import.FastProvideWait = config.True
+		})
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		cidStr := node.IPFSAddStr(shortString)
+		require.Equal(t, shortStringCidV0, cidStr)
+
+		daemonLog := node.Daemon.Stderr.String()
+		require.Contains(t, daemonLog, "fast-provide-root: skipped")
+		require.Contains(t, daemonLog, "wait-flag-ignored")
+	})
+
+	t.Run("CLI flag overrides config: flag=true overrides config=false", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.FastProvideRoot = config.False
+		})
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		cidStr := node.IPFSAddStr(shortString, "--fast-provide-root=true")
+		require.Equal(t, shortStringCidV0, cidStr)
+
+		daemonLog := node.Daemon.Stderr
+		// Flag should enable it despite config saying false
+		require.Contains(t, daemonLog.String(), "fast-provide-root: enabled")
+		require.Contains(t, daemonLog.String(), "fast-provide-root: providing asynchronously")
+	})
+
+	t.Run("CLI flag overrides config: flag=false overrides config=true", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.FastProvideRoot = config.True
+		})
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		cidStr := node.IPFSAddStr(shortString, "--fast-provide-root=false")
+		require.Equal(t, shortStringCidV0, cidStr)
+
+		daemonLog := node.Daemon.Stderr.String()
+		// Flag should disable it despite config saying true
+		require.Contains(t, daemonLog, "fast-provide-root: skipped")
+	})
 }
 
 // createDirectoryForHAMT aims to create enough files with long names for the directory block to be close to the UnixFSHAMTDirectorySizeThreshold.

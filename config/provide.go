@@ -22,6 +22,11 @@ const (
 	DefaultProvideDHTMaxProvideConnsPerWorker = 20
 	DefaultProvideDHTKeystoreBatchSize        = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
 	DefaultProvideDHTOfflineDelay             = 2 * time.Hour
+
+	// DefaultFastProvideTimeout is the maximum time allowed for fast-provide operations.
+	// Prevents hanging on network issues when providing root CID.
+	// 10 seconds is sufficient for DHT operations with sweep provider or accelerated client.
+	DefaultFastProvideTimeout = 10 * time.Second
 )
 
 type ProvideStrategy int
@@ -174,4 +179,26 @@ func ValidateProvideConfig(cfg *Provide) error {
 	}
 
 	return nil
+}
+
+// ShouldProvideForStrategy determines if content should be provided based on the provide strategy
+// and content characteristics (pinned status, root status, MFS status).
+func ShouldProvideForStrategy(strategy ProvideStrategy, isPinned bool, isPinnedRoot bool, isMFS bool) bool {
+	if strategy == ProvideStrategyAll {
+		// 'all' strategy: always provide
+		return true
+	}
+
+	// For combined strategies, check each component
+	if strategy&ProvideStrategyPinned != 0 && isPinned {
+		return true
+	}
+	if strategy&ProvideStrategyRoots != 0 && isPinnedRoot {
+		return true
+	}
+	if strategy&ProvideStrategyMFS != 0 && isMFS {
+		return true
+	}
+
+	return false
 }

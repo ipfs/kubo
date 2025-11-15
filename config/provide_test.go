@@ -105,3 +105,87 @@ func TestValidateProvideConfig_MaxWorkers(t *testing.T) {
 		})
 	}
 }
+
+func TestShouldProvideForStrategy(t *testing.T) {
+	t.Run("all strategy always provides", func(t *testing.T) {
+		// ProvideStrategyAll should return true regardless of flags
+		testCases := []struct{ pinned, pinnedRoot, mfs bool }{
+			{false, false, false},
+			{true, true, true},
+			{true, false, false},
+		}
+
+		for _, tc := range testCases {
+			assert.True(t, ShouldProvideForStrategy(
+				ProvideStrategyAll, tc.pinned, tc.pinnedRoot, tc.mfs))
+		}
+	})
+
+	t.Run("single strategies match only their flag", func(t *testing.T) {
+		tests := []struct {
+			name                    string
+			strategy                ProvideStrategy
+			pinned, pinnedRoot, mfs bool
+			want                    bool
+		}{
+			{"pinned: matches when pinned=true", ProvideStrategyPinned, true, false, false, true},
+			{"pinned: ignores other flags", ProvideStrategyPinned, false, true, true, false},
+
+			{"roots: matches when pinnedRoot=true", ProvideStrategyRoots, false, true, false, true},
+			{"roots: ignores other flags", ProvideStrategyRoots, true, false, true, false},
+
+			{"mfs: matches when mfs=true", ProvideStrategyMFS, false, false, true, true},
+			{"mfs: ignores other flags", ProvideStrategyMFS, true, true, false, false},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				got := ShouldProvideForStrategy(tt.strategy, tt.pinned, tt.pinnedRoot, tt.mfs)
+				assert.Equal(t, tt.want, got)
+			})
+		}
+	})
+
+	t.Run("combined strategies use OR logic (else-if bug fix)", func(t *testing.T) {
+		// CRITICAL: Tests the fix where bitflag combinations (pinned+mfs) didn't work
+		// because of else-if instead of separate if statements
+		tests := []struct {
+			name                    string
+			strategy                ProvideStrategy
+			pinned, pinnedRoot, mfs bool
+			want                    bool
+		}{
+			// pinned|mfs: provide if EITHER matches
+			{"pinned|mfs when pinned", ProvideStrategyPinned | ProvideStrategyMFS, true, false, false, true},
+			{"pinned|mfs when mfs", ProvideStrategyPinned | ProvideStrategyMFS, false, false, true, true},
+			{"pinned|mfs when both", ProvideStrategyPinned | ProvideStrategyMFS, true, false, true, true},
+			{"pinned|mfs when neither", ProvideStrategyPinned | ProvideStrategyMFS, false, false, false, false},
+
+			// roots|mfs
+			{"roots|mfs when root", ProvideStrategyRoots | ProvideStrategyMFS, false, true, false, true},
+			{"roots|mfs when mfs", ProvideStrategyRoots | ProvideStrategyMFS, false, false, true, true},
+			{"roots|mfs when neither", ProvideStrategyRoots | ProvideStrategyMFS, false, false, false, false},
+
+			// pinned|roots
+			{"pinned|roots when pinned", ProvideStrategyPinned | ProvideStrategyRoots, true, false, false, true},
+			{"pinned|roots when root", ProvideStrategyPinned | ProvideStrategyRoots, false, true, false, true},
+			{"pinned|roots when neither", ProvideStrategyPinned | ProvideStrategyRoots, false, false, false, false},
+
+			// triple combination
+			{"all-three when any matches", ProvideStrategyPinned | ProvideStrategyRoots | ProvideStrategyMFS, false, false, true, true},
+			{"all-three when none match", ProvideStrategyPinned | ProvideStrategyRoots | ProvideStrategyMFS, false, false, false, false},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				got := ShouldProvideForStrategy(tt.strategy, tt.pinned, tt.pinnedRoot, tt.mfs)
+				assert.Equal(t, tt.want, got)
+			})
+		}
+	})
+
+	t.Run("zero strategy never provides", func(t *testing.T) {
+		assert.False(t, ShouldProvideForStrategy(ProvideStrategy(0), false, false, false))
+		assert.False(t, ShouldProvideForStrategy(ProvideStrategy(0), true, true, true))
+	})
+}

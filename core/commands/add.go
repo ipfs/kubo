@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -9,7 +8,6 @@ import (
 	gopath "path"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -74,11 +72,6 @@ const (
 
 const (
 	adderOutChanSize = 8
-
-	// fastProvideTimeout is the maximum time allowed for async fast-provide operations.
-	// Prevents hanging on network issues when providing root CID in background.
-	// 10 seconds is sufficient for DHT operations with sweep provider or accelerated client.
-	fastProvideTimeout = 10 * time.Second
 )
 
 var AddCmd = &cmds.Command{
@@ -89,21 +82,21 @@ Adds the content of <path> to IPFS. Use -r to add directories (recursively).
 
 FAST PROVIDE OPTIMIZATION:
 
-When you add content to IPFS, it gets queued for announcement on the DHT.
-The background queue can take some time to process, meaning other peers
-won't find your content immediately after 'ipfs add' completes.
+When you add content to IPFS, the sweep provider queues it for efficient
+DHT provides over time. While this is resource-efficient, other peers won't
+find your content immediately after 'ipfs add' completes.
 
-To make sharing faster, 'ipfs add' does an extra immediate announcement
-of just the root CID to the DHT. This lets other peers start discovering
-your content right away, while the regular background queue still handles
-announcing all the blocks later.
+To make sharing faster, 'ipfs add' does an immediate provide of the root CID
+to the DHT in addition to the regular queue. This complements the sweep provider:
+fast-provide handles the urgent case (root CIDs that users share and reference),
+while the sweep provider efficiently provides all blocks according to
+Provide.Strategy over time.
 
-By default, this extra announcement runs in the background without slowing
-down the command. If you need to be certain the root CID is discoverable
-before the command returns (for example, sharing a link immediately),
-use --fast-provide-wait to wait for the announcement to complete.
-Use --fast-provide-root=false to skip this optimization and rely only on
-the background queue (controlled by Provide.Strategy and Provide.DHT.Interval).
+By default, this immediate provide runs in the background without blocking
+the command. If you need certainty that the root CID is discoverable before
+the command returns (e.g., sharing a link immediately), use --fast-provide-wait
+to wait for the provide to complete. Use --fast-provide-root=false to skip
+this optimization.
 
 This works best with the sweep provider and accelerated DHT client.
 Automatically skipped when DHT is not available.
@@ -245,8 +238,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
-		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CID to DHT for fast content discovery. When disabled, root CID is queued for background providing instead.").WithDefault(true),
-		cmds.BoolOption(fastProvideWaitOptionName, "Wait for fast-provide-root to complete before returning. Ensures root CID is discoverable when command finishes.").WithDefault(false),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CID to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes before returning. Default: Import.FastProvideWait"),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -317,8 +310,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		mode, _ := req.Options[modeOptionName].(uint)
 		mtime, _ := req.Options[mtimeOptionName].(int64)
 		mtimeNsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
-		fastProvideRoot, _ := req.Options[fastProvideRootOptionName].(bool)
-		fastProvideWait, _ := req.Options[fastProvideWaitOptionName].(bool)
+		fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
+		fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
 
 		if chunker == "" {
 			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
@@ -354,6 +347,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			maxHAMTFanoutSet = true
 			maxHAMTFanout = int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
 		}
+
+		fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
+		fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
 
 		// Storing optional mode or mtime (UnixFS 1.5) requires root block
 		// to always be 'dag-pb' and not 'raw'. Below adjusts raw-leaves setting, if possible.
@@ -606,65 +602,15 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			if err != nil {
 				return err
 			}
-
-			// Parse the provide strategy to check if we should provide based on pin/MFS status
-			strategyStr := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
-			strategy := config.ParseProvideStrategy(strategyStr)
-
-			// Determine if we should provide based on strategy
-			shouldProvide := false
-			if strategy == config.ProvideStrategyAll {
-				// 'all' strategy: always provide
-				shouldProvide = true
+			if err := cmdenv.ExecuteFastProvide(req.Context, ipfsNode, cfg, lastRootCid.RootCid(), fastProvideWait, dopin, dopin, toFilesSet); err != nil {
+				return err
+			}
+		} else if !fastProvideRoot {
+			if fastProvideWait {
+				log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config", "wait-flag-ignored", true)
 			} else {
-				// For combined strategies (pinned+mfs), check each component
-				if strategy&config.ProvideStrategyPinned != 0 && dopin {
-					shouldProvide = true
-				} else if strategy&config.ProvideStrategyRoots != 0 && dopin {
-					shouldProvide = true
-				} else if strategy&config.ProvideStrategyMFS != 0 && toFilesSet {
-					shouldProvide = true
-				}
+				log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
 			}
-
-			switch {
-			case !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled):
-				log.Debugw("fast-provide-root: skipped", "reason", "Provide.Enabled is false")
-			case cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0:
-				log.Debugw("fast-provide-root: skipped", "reason", "Provide.DHT.Interval is 0")
-			case !shouldProvide:
-				log.Debugw("fast-provide-root: skipped", "reason", "strategy does not match content", "strategy", strategyStr, "pinned", dopin, "to-files", toFilesSet)
-			case !ipfsNode.HasActiveDHTClient():
-				log.Debugw("fast-provide-root: skipped", "reason", "DHT not available")
-			default:
-				rootCid := lastRootCid.RootCid()
-
-				if fastProvideWait {
-					// Synchronous mode: block until provide completes
-					log.Debugw("fast-provide-root: providing synchronously", "cid", rootCid)
-					if err := provideCIDSync(req.Context, ipfsNode.DHTClient, rootCid); err != nil {
-						log.Warnw("fast-provide-root: sync provide failed", "cid", rootCid, "error", err)
-					} else {
-						log.Debugw("fast-provide-root: sync provide completed", "cid", rootCid)
-					}
-				} else {
-					// Asynchronous mode (default): fire-and-forget, don't block
-					log.Debugw("fast-provide-root: providing asynchronously", "cid", rootCid)
-					go func() {
-						// Use detached context with timeout to prevent hanging on network issues
-						ctx, cancel := context.WithTimeout(context.Background(), fastProvideTimeout)
-						defer cancel()
-						if err := provideCIDSync(ctx, ipfsNode.DHTClient, rootCid); err != nil {
-							log.Warnw("fast-provide-root: async provide failed", "cid", rootCid, "error", err)
-						} else {
-							log.Debugw("fast-provide-root: async provide completed", "cid", rootCid)
-						}
-					}()
-				}
-			}
-		} else if fastProvideWait && !fastProvideRoot {
-			// Log that wait flag is ignored when provide-root is disabled
-			log.Debugw("fast-provide-root: wait flag ignored", "reason", "fast-provide-root disabled")
 		}
 
 		return nil
