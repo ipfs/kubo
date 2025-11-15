@@ -1128,7 +1128,7 @@ Kubo will filter out routing results which are not actionable, for example, all
 graphsync providers will be skipped. If you need a generic pass-through, see
 standalone router implementation named [someguy](https://github.com/ipfs/someguy).
 
-Default: `false`
+Default: `true`
 
 Type: `flag`
 
