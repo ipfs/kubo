@@ -92,6 +92,7 @@ func TestRepoVerify(t *testing.T) {
 		res := node.RunIPFS("repo", "verify")
 		assert.Equal(t, 1, res.ExitCode())
 		assert.Contains(t, res.Stdout.String(), "was corrupt")
+		assert.Contains(t, res.Stderr.String(), "1 blocks corrupt")
 	})
 
 	t.Run("drop removes corrupt blocks", func(t *testing.T) {
@@ -103,7 +104,9 @@ func TestRepoVerify(t *testing.T) {
 
 		res := node.RunIPFS("repo", "verify", "--drop")
 		assert.Equal(t, 0, res.ExitCode(), "should exit 0 when all corrupt blocks removed successfully")
-		assert.Contains(t, res.Stdout.String(), "removed")
+		output := res.Stdout.String()
+		assert.Contains(t, output, "1 blocks corrupt")
+		assert.Contains(t, output, "1 removed")
 
 		// Verify block is gone
 		res = node.RunIPFS("block", "stat", cid)
@@ -142,9 +145,10 @@ func TestRepoVerify(t *testing.T) {
 		assert.Equal(t, 0, res.ExitCode(), "should exit 0 when all corrupt blocks healed successfully")
 		output := res.Stdout.String()
 
-		// Should report corruption and healing
-		assert.Contains(t, output, "removed")
-		assert.Contains(t, output, "healed")
+		// Should report corruption and healing with specific counts
+		assert.Contains(t, output, "1 blocks corrupt")
+		assert.Contains(t, output, "1 removed")
+		assert.Contains(t, output, "1 healed")
 
 		// Verify block is restored
 		nodes[1].IPFS("block", "stat", cid)
@@ -172,7 +176,9 @@ func TestRepoVerify(t *testing.T) {
 		res = nodes[1].RunIPFS("repo", "verify", "--heal")
 		assert.Equal(t, 0, res.ExitCode(), "should exit 0 when all corrupt blocks healed successfully")
 		output := res.Stdout.String()
-		assert.Contains(t, output, "healed")
+		assert.Contains(t, output, "1 blocks corrupt")
+		assert.Contains(t, output, "1 removed")
+		assert.Contains(t, output, "1 healed")
 
 		// Verify the healed content matches the original exactly
 		res = nodes[1].IPFS("cat", cid)
@@ -270,13 +276,13 @@ func TestRepoVerify(t *testing.T) {
 		res := nodes[1].RunIPFS("repo", "verify", "--heal")
 		assert.Equal(t, 1, res.ExitCode())
 
-		// Should show mixed results in stderr
+		// Should show mixed results with specific counts in stderr
 		errOutput := res.Stderr.String()
 		assert.Contains(t, errOutput, "5 blocks corrupt")
-		assert.Contains(t, errOutput, "removed")
-		// Some should heal, some should fail
-		assert.Contains(t, errOutput, "healed")
-		assert.Contains(t, errOutput, "failed to heal")
+		assert.Contains(t, errOutput, "5 removed")
+		// Only cid1 and cid2 are available for healing, cid3-5 were GC'd
+		assert.Contains(t, errOutput, "2 healed")
+		assert.Contains(t, errOutput, "3 failed to heal")
 	})
 
 	t.Run("heal with block not available on network", func(t *testing.T) {
@@ -301,11 +307,11 @@ func TestRepoVerify(t *testing.T) {
 		res := nodes[1].RunIPFS("repo", "verify", "--heal")
 		assert.Equal(t, 1, res.ExitCode())
 
-		// Should report heal failure in stderr
+		// Should report heal failure with specific counts in stderr
 		errOutput := res.Stderr.String()
-		assert.Contains(t, errOutput, "failed to heal")
-		assert.Contains(t, errOutput, "removed")
 		assert.Contains(t, errOutput, "1 blocks corrupt")
+		assert.Contains(t, errOutput, "1 removed")
+		assert.Contains(t, errOutput, "1 failed to heal")
 	})
 
 	t.Run("large repository scale test", func(t *testing.T) {
@@ -369,9 +375,10 @@ func TestRepoVerify(t *testing.T) {
 		_ = os.Chmod(blockDir, originalPerm.Mode())
 		_ = os.Chmod(corruptedFiles[0], 0644)
 
-		// Should report both successes and failures
+		// Should report both successes and failures with specific counts
 		errOutput := res.Stderr.String()
-		assert.Contains(t, errOutput, "blocks corrupt")
-		assert.Contains(t, errOutput, "failed to remove")
+		assert.Contains(t, errOutput, "3 blocks corrupt")
+		assert.Contains(t, errOutput, "2 removed")
+		assert.Contains(t, errOutput, "1 failed to remove")
 	})
 }
