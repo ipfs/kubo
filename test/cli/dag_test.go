@@ -5,10 +5,13 @@ import (
 	"io"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -100,5 +103,202 @@ func TestDag(t *testing.T) {
 		assert.NoError(t, err)
 		stat := node.RunIPFS("dag", "stat", "--progress=false", node1Cid, node2Cid)
 		assert.Equal(t, content, stat.Stdout.Bytes())
+	})
+}
+
+func TestDagImportFastProvide(t *testing.T) {
+	t.Parallel()
+
+	t.Run("fast-provide-root disabled via config: verify skipped in logs", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.FastProvideRoot = config.False
+		})
+
+		// Start daemon with debug logging
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		// Import CAR file
+		r, err := os.Open(fixtureFile)
+		require.NoError(t, err)
+		defer r.Close()
+		err = node.IPFSDagImport(r, fixtureCid)
+		require.NoError(t, err)
+
+		// Verify fast-provide-root was disabled
+		daemonLog := node.Daemon.Stderr.String()
+		require.Contains(t, daemonLog, "fast-provide-root: skipped")
+	})
+
+	t.Run("fast-provide-root enabled with wait=false: verify async provide", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		// Use default config (FastProvideRoot=true, FastProvideWait=false)
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		// Import CAR file
+		r, err := os.Open(fixtureFile)
+		require.NoError(t, err)
+		defer r.Close()
+		err = node.IPFSDagImport(r, fixtureCid)
+		require.NoError(t, err)
+
+		daemonLog := node.Daemon.Stderr
+		// Should see async mode started
+		require.Contains(t, daemonLog.String(), "fast-provide-root: enabled")
+		require.Contains(t, daemonLog.String(), "fast-provide-root: providing asynchronously")
+		require.Contains(t, daemonLog.String(), fixtureCid) // Should log the specific CID being provided
+
+		// Wait for async completion or failure (slightly more than DefaultFastProvideTimeout)
+		// In test environment with no DHT peers, this will fail with "failed to find any peer in table"
+		timeout := config.DefaultFastProvideTimeout + time.Second
+		completedOrFailed := waitForLogMessage(daemonLog, "async provide completed", timeout) ||
+			waitForLogMessage(daemonLog, "async provide failed", timeout)
+		require.True(t, completedOrFailed, "async provide should complete or fail within timeout")
+	})
+
+	t.Run("fast-provide-root enabled with wait=true: verify sync provide", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.FastProvideWait = config.True
+		})
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		// Import CAR file - use Run instead of IPFSDagImport to handle expected error
+		r, err := os.Open(fixtureFile)
+		require.NoError(t, err)
+		defer r.Close()
+		res := node.Runner.Run(harness.RunRequest{
+			Path: node.IPFSBin,
+			Args: []string{"dag", "import", "--pin-roots=false"},
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithStdin(r),
+			},
+		})
+		// In sync mode (wait=true), provide errors propagate and fail the command.
+		// Test environment uses 'test' profile with no bootstrappers, and CI has
+		// insufficient peers for proper DHT puts, so we expect this to fail with
+		// "failed to find any peer in table" error from the DHT.
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.String(), "Error: fast-provide: failed to find any peer in table")
+
+		daemonLog := node.Daemon.Stderr.String()
+		// Should see sync mode started
+		require.Contains(t, daemonLog, "fast-provide-root: enabled")
+		require.Contains(t, daemonLog, "fast-provide-root: providing synchronously")
+		require.Contains(t, daemonLog, fixtureCid)            // Should log the specific CID being provided
+		require.Contains(t, daemonLog, "sync provide failed") // Verify the failure was logged
+	})
+
+	t.Run("fast-provide-wait ignored when root disabled", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.FastProvideRoot = config.False
+			cfg.Import.FastProvideWait = config.True
+		})
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		// Import CAR file
+		r, err := os.Open(fixtureFile)
+		require.NoError(t, err)
+		defer r.Close()
+		err = node.IPFSDagImport(r, fixtureCid)
+		require.NoError(t, err)
+
+		daemonLog := node.Daemon.Stderr.String()
+		require.Contains(t, daemonLog, "fast-provide-root: skipped")
+		// Note: dag import doesn't log wait-flag-ignored like add does
+	})
+
+	t.Run("CLI flag overrides config: flag=true overrides config=false", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.FastProvideRoot = config.False
+		})
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		// Import CAR file with flag override
+		r, err := os.Open(fixtureFile)
+		require.NoError(t, err)
+		defer r.Close()
+		err = node.IPFSDagImport(r, fixtureCid, "--fast-provide-root=true")
+		require.NoError(t, err)
+
+		daemonLog := node.Daemon.Stderr
+		// Flag should enable it despite config saying false
+		require.Contains(t, daemonLog.String(), "fast-provide-root: enabled")
+		require.Contains(t, daemonLog.String(), "fast-provide-root: providing asynchronously")
+		require.Contains(t, daemonLog.String(), fixtureCid) // Should log the specific CID being provided
+	})
+
+	t.Run("CLI flag overrides config: flag=false overrides config=true", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.FastProvideRoot = config.True
+		})
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		// Import CAR file with flag override
+		r, err := os.Open(fixtureFile)
+		require.NoError(t, err)
+		defer r.Close()
+		err = node.IPFSDagImport(r, fixtureCid, "--fast-provide-root=false")
+		require.NoError(t, err)
+
+		daemonLog := node.Daemon.Stderr.String()
+		// Flag should disable it despite config saying true
+		require.Contains(t, daemonLog, "fast-provide-root: skipped")
 	})
 }

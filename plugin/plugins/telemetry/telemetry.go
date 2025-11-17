@@ -78,6 +78,7 @@ var uptimeBuckets = []time.Duration{
 }
 
 // A LogEvent is the object sent to the telemetry endpoint.
+// See https://github.com/ipfs/kubo/blob/master/docs/telemetry.md for details.
 type LogEvent struct {
 	UUID string `json:"uuid"`
 
@@ -91,7 +92,10 @@ type LogEvent struct {
 
 	UptimeBucket time.Duration `json:"uptime_bucket"`
 
-	ReproviderStrategy string `json:"reprovider_strategy"`
+	ReproviderStrategy         string `json:"reprovider_strategy"`
+	ProvideDHTSweepEnabled     bool   `json:"provide_dht_sweep_enabled"`
+	ProvideDHTIntervalCustom   bool   `json:"provide_dht_interval_custom"`
+	ProvideDHTMaxWorkersCustom bool   `json:"provide_dht_max_workers_custom"`
 
 	RoutingType                 string `json:"routing_type"`
 	RoutingAcceleratedDHTClient bool   `json:"routing_accelerated_dht_client"`
@@ -352,6 +356,7 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 func (p *telemetryPlugin) prepareEvent() {
 	p.collectBasicInfo()
 	p.collectRoutingInfo()
+	p.collectProvideInfo()
 	p.collectAutoNATInfo()
 	p.collectAutoConfInfo()
 	p.collectSwarmInfo()
@@ -360,13 +365,6 @@ func (p *telemetryPlugin) prepareEvent() {
 	p.collectPlatformInfo()
 }
 
-// Collects:
-// * AgentVersion
-// * PrivateNetwork
-// * RepoSizeBucket
-// * BootstrappersCustom
-// * UptimeBucket
-// * ReproviderStrategy
 func (p *telemetryPlugin) collectBasicInfo() {
 	p.event.AgentVersion = ipfs.GetUserAgentVersion()
 
@@ -406,14 +404,19 @@ func (p *telemetryPlugin) collectBasicInfo() {
 		break
 	}
 	p.event.UptimeBucket = uptimeBucket
-
-	p.event.ReproviderStrategy = p.config.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 }
 
 func (p *telemetryPlugin) collectRoutingInfo() {
 	p.event.RoutingType = p.config.Routing.Type.WithDefault("auto")
 	p.event.RoutingAcceleratedDHTClient = p.config.Routing.AcceleratedDHTClient.WithDefault(false)
 	p.event.RoutingDelegatedCount = len(p.config.Routing.DelegatedRouters)
+}
+
+func (p *telemetryPlugin) collectProvideInfo() {
+	p.event.ReproviderStrategy = p.config.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
+	p.event.ProvideDHTSweepEnabled = p.config.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled)
+	p.event.ProvideDHTIntervalCustom = !p.config.Provide.DHT.Interval.IsDefault()
+	p.event.ProvideDHTMaxWorkersCustom = !p.config.Provide.DHT.MaxWorkers.IsDefault()
 }
 
 type reachabilityHost interface {

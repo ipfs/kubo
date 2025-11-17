@@ -16,10 +16,12 @@ import (
 )
 
 const (
-	pinRootsOptionName = "pin-roots"
-	progressOptionName = "progress"
-	silentOptionName   = "silent"
-	statsOptionName    = "stats"
+	pinRootsOptionName        = "pin-roots"
+	progressOptionName        = "progress"
+	silentOptionName          = "silent"
+	statsOptionName           = "stats"
+	fastProvideRootOptionName = "fast-provide-root"
+	fastProvideWaitOptionName = "fast-provide-wait"
 )
 
 // DagCmd provides a subset of commands for interacting with ipld dag objects
@@ -189,6 +191,18 @@ Note:
   currently present in the blockstore does not represent a complete DAG,
   pinning of that individual root will fail.
 
+FAST PROVIDE OPTIMIZATION:
+
+Root CIDs from CAR headers are immediately provided to the DHT in addition
+to the regular provide queue, allowing other peers to discover your content
+right away. This complements the sweep provider, which efficiently provides
+all blocks according to Provide.Strategy over time.
+
+By default, the provide happens in the background without blocking the
+command. Use --fast-provide-wait to wait for the provide to complete, or
+--fast-provide-root=false to skip it. Works even with --pin-roots=false.
+Automatically skipped when DHT is not available.
+
 Maximum supported CAR version: 2
 Specification of CAR formats: https://ipld.io/specs/transport/car/
 `,
@@ -200,6 +214,8 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CIDs to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes before returning. Default: Import.FastProvideWait"),
 		cmdutils.AllowBigBlockOption,
 	},
 	Type: CarImportOutput{},

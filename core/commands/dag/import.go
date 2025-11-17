@@ -11,6 +11,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/coreiface/options"
 	gocarv2 "github.com/ipld/go-car/v2"
@@ -18,6 +19,8 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 )
+
+var log = logging.Logger("core/commands")
 
 func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 	node, err := cmdenv.GetNode(env)
@@ -46,6 +49,12 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	doPinRoots, _ := req.Options[pinRootsOptionName].(bool)
+
+	fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
+	fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
+
+	fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
+	fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
 
 	// grab a pinlock ( which doubles as a GC lock ) so that regardless of the
 	// size of the streamed-in cars nothing will disappear on us before we had
@@ -188,6 +197,22 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		})
 		if err != nil {
 			return err
+		}
+	}
+
+	// Fast-provide roots for faster discovery
+	if fastProvideRoot {
+		err = roots.ForEach(func(c cid.Cid) error {
+			return cmdenv.ExecuteFastProvide(req.Context, node, cfg, c, fastProvideWait, doPinRoots, doPinRoots, false)
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		if fastProvideWait {
+			log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config", "wait-flag-ignored", true)
+		} else {
+			log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
 		}
 	}
 

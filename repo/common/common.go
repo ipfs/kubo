@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"maps"
 	"strings"
 )
 
@@ -65,9 +66,9 @@ func MapSetKV(v map[string]interface{}, key string, value interface{}) error {
 // child maps until a non-map value is found.
 func MapMergeDeep(left, right map[string]interface{}) map[string]interface{} {
 	// We want to alter a copy of the map, not the original
-	result := make(map[string]interface{})
-	for k, v := range left {
-		result[k] = v
+	result := maps.Clone(left)
+	if result == nil {
+		result = make(map[string]interface{})
 	}
 
 	for key, rightVal := range right {

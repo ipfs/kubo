@@ -74,10 +74,13 @@ func PathOrCidPath(str string) (path.Path, error) {
 		return p, nil
 	}
 
+	// Save the original error before attempting fallback
+	originalErr := err
+
 	if p, err := path.NewPath("/ipfs/" + str); err == nil {
 		return p, nil
 	}
 
 	// Send back original err.
-	return nil, err
+	return nil, originalErr
 }

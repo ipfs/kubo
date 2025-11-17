@@ -15,12 +15,18 @@ const (
 	// DHT provider defaults
 	DefaultProvideDHTInterval                 = 22 * time.Hour // https://github.com/ipfs/kubo/pull/9326
 	DefaultProvideDHTMaxWorkers               = 16             // Unified default for both sweep and legacy providers
-	DefaultProvideDHTSweepEnabled             = false
+	DefaultProvideDHTSweepEnabled             = true
+	DefaultProvideDHTResumeEnabled            = true
 	DefaultProvideDHTDedicatedPeriodicWorkers = 2
 	DefaultProvideDHTDedicatedBurstWorkers    = 1
-	DefaultProvideDHTMaxProvideConnsPerWorker = 16
+	DefaultProvideDHTMaxProvideConnsPerWorker = 20
 	DefaultProvideDHTKeystoreBatchSize        = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
 	DefaultProvideDHTOfflineDelay             = 2 * time.Hour
+
+	// DefaultFastProvideTimeout is the maximum time allowed for fast-provide operations.
+	// Prevents hanging on network issues when providing root CID.
+	// 10 seconds is sufficient for DHT operations with sweep provider or accelerated client.
+	DefaultFastProvideTimeout = 10 * time.Second
 )
 
 type ProvideStrategy int
@@ -63,7 +69,7 @@ type ProvideDHT struct {
 	MaxWorkers *OptionalInteger `json:",omitempty"`
 
 	// SweepEnabled activates the sweeping reprovider system which spreads
-	// reprovide operations over time. This will become the default in a future release.
+	// reprovide operations over time.
 	// Default: DefaultProvideDHTSweepEnabled
 	SweepEnabled Flag `json:",omitempty"`
 
@@ -86,6 +92,12 @@ type ProvideDHT struct {
 	// OfflineDelay sets the delay after which the provider switches from Disconnected to Offline state (sweep mode only).
 	// Default: DefaultProvideDHTOfflineDelay
 	OfflineDelay *OptionalDuration `json:",omitempty"`
+
+	// ResumeEnabled controls whether the provider resumes from its previous state on restart.
+	// When enabled, the provider persists its reprovide cycle state and provide queue to the datastore,
+	// and restores them on restart. When disabled, the provider starts fresh on each restart.
+	// Default: true
+	ResumeEnabled Flag `json:",omitempty"`
 }
 
 func ParseProvideStrategy(s string) ProvideStrategy {
@@ -167,4 +179,26 @@ func ValidateProvideConfig(cfg *Provide) error {
 	}
 
 	return nil
+}
+
+// ShouldProvideForStrategy determines if content should be provided based on the provide strategy
+// and content characteristics (pinned status, root status, MFS status).
+func ShouldProvideForStrategy(strategy ProvideStrategy, isPinned bool, isPinnedRoot bool, isMFS bool) bool {
+	if strategy == ProvideStrategyAll {
+		// 'all' strategy: always provide
+		return true
+	}
+
+	// For combined strategies, check each component
+	if strategy&ProvideStrategyPinned != 0 && isPinned {
+		return true
+	}
+	if strategy&ProvideStrategyRoots != 0 && isPinnedRoot {
+		return true
+	}
+	if strategy&ProvideStrategyMFS != 0 && isMFS {
+		return true
+	}
+
+	return false
 }

@@ -240,14 +240,27 @@ func (tp *TestSuite) TestRoutingProvide(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out, err = apis[2].Routing().FindProviders(ctx, p, options.Routing.NumProviders(1))
-	if err != nil {
-		t.Fatal(err)
+	maxAttempts := 5
+	success := false
+	for range maxAttempts {
+		// We may need to try again as Provide() doesn't block until the CID is
+		// actually provided.
+		out, err = apis[2].Routing().FindProviders(ctx, p, options.Routing.NumProviders(1))
+		if err != nil {
+			t.Fatal(err)
+		}
+		provider := <-out
+
+		if provider.ID.String() == self0.ID().String() {
+			success = true
+			break
+		}
+		if len(provider.ID.String()) > 0 {
+			t.Errorf("got wrong provider: %s != %s", provider.ID.String(), self0.ID().String())
+		}
+		time.Sleep(time.Second)
 	}
-
-	provider := <-out
-
-	if provider.ID.String() != self0.ID().String() {
-		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), self0.ID().String())
+	if !success {
+		t.Errorf("missing provider after %d attempts", maxAttempts)
 	}
 }
