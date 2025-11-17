@@ -374,13 +374,23 @@ var repoVerifyCmd = &cmds.Command{
 'ipfs repo verify' checks integrity of all blocks in the local datastore.
 Each block is read and validated against its CID to ensure data integrity.
 
-By default, corrupt blocks are only reported. Use --drop to remove them, or
---heal to remove and re-fetch from the network.
+Without any flags, this is a SAFE, read-only check that only reports corrupt
+blocks without modifying the repository. This can be used as a "dry run" to
+preview what --drop or --heal would do.
+
+Use --drop to remove corrupt blocks, or --heal to remove and re-fetch from
+the network.
 
 Examples:
-  ipfs repo verify          # report corrupt blocks
+  ipfs repo verify          # safe read-only check, reports corrupt blocks
   ipfs repo verify --drop   # remove corrupt blocks
   ipfs repo verify --heal   # remove and re-fetch corrupt blocks
+
+Exit Codes:
+  0: All blocks are valid, OR all corrupt blocks were successfully remediated
+     (with --drop or --heal)
+  1: Corrupt blocks detected (without flags), OR remediation failed (block
+     removal or healing failed with --drop or --heal)
 
 Note: --heal requires the daemon to be running in online mode with network
 connectivity to nodes that have the missing blocks. Make sure the daemon is
@@ -512,8 +522,27 @@ repository before using these options.
 			if healFailed > 0 {
 				summary += fmt.Sprintf(", %d failed to heal", healFailed)
 			}
-			// Return error to indicate corruption was found
-			return errors.New(summary)
+
+			// Determine success/failure based on operation mode
+			shouldFail := false
+
+			if !drop {
+				// Detection-only mode: always fail if corruption found
+				shouldFail = true
+			} else if heal {
+				// Heal mode: fail if any removal or heal failed
+				shouldFail = (removeFailed > 0 || healFailed > 0)
+			} else {
+				// Drop mode: fail if any removal failed
+				shouldFail = (removeFailed > 0)
+			}
+
+			if shouldFail {
+				return errors.New(summary)
+			}
+
+			// Success: emit summary as a message instead of error
+			return res.Emit(&VerifyProgress{Msg: summary})
 		}
 
 		return res.Emit(&VerifyProgress{Msg: "verify complete, all blocks validated."})

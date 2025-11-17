@@ -102,7 +102,7 @@ func TestRepoVerify(t *testing.T) {
 		corruptRandomBlock(t, node)
 
 		res := node.RunIPFS("repo", "verify", "--drop")
-		assert.Equal(t, 1, res.ExitCode())
+		assert.Equal(t, 0, res.ExitCode(), "should exit 0 when all corrupt blocks removed successfully")
 		assert.Contains(t, res.Stdout.String(), "removed")
 
 		// Verify block is gone
@@ -139,6 +139,7 @@ func TestRepoVerify(t *testing.T) {
 
 		// Heal should restore from node 0
 		res := nodes[1].RunIPFS("repo", "verify", "--heal")
+		assert.Equal(t, 0, res.ExitCode(), "should exit 0 when all corrupt blocks healed successfully")
 		output := res.Stdout.String()
 
 		// Should report corruption and healing
@@ -169,6 +170,7 @@ func TestRepoVerify(t *testing.T) {
 
 		// Heal the corruption
 		res = nodes[1].RunIPFS("repo", "verify", "--heal")
+		assert.Equal(t, 0, res.ExitCode(), "should exit 0 when all corrupt blocks healed successfully")
 		output := res.Stdout.String()
 		assert.Contains(t, output, "healed")
 
@@ -202,9 +204,9 @@ func TestRepoVerify(t *testing.T) {
 
 		// Test with --drop
 		res = node.RunIPFS("repo", "verify", "--drop")
-		assert.Equal(t, 1, res.ExitCode())
-		assert.Contains(t, res.Stderr.String(), "5 blocks corrupt")
-		assert.Contains(t, res.Stderr.String(), "5 removed")
+		assert.Equal(t, 0, res.ExitCode(), "should exit 0 when all corrupt blocks removed successfully")
+		assert.Contains(t, res.Stdout.String(), "5 blocks corrupt")
+		assert.Contains(t, res.Stdout.String(), "5 removed")
 	})
 
 	t.Run("empty repository", func(t *testing.T) {
@@ -327,9 +329,49 @@ func TestRepoVerify(t *testing.T) {
 
 		// Test --drop at scale
 		res = node.RunIPFS("repo", "verify", "--drop")
-		assert.Equal(t, 1, res.ExitCode())
+		assert.Equal(t, 0, res.ExitCode(), "should exit 0 when all corrupt blocks removed successfully")
+		output := res.Stdout.String()
+		assert.Contains(t, output, "10 blocks corrupt")
+		assert.Contains(t, output, "10 removed")
+	})
+
+	t.Run("drop with partial removal failures", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Create several blocks
+		for i := 0; i < 5; i++ {
+			node.IPFSAddStr(fmt.Sprintf("content for removal test %d", i))
+		}
+
+		// Corrupt 3 blocks
+		corruptedFiles := corruptMultipleBlocks(t, node, 3)
+		require.Len(t, corruptedFiles, 3)
+
+		// Make one of the corrupted files read-only to simulate removal failure
+		err := os.Chmod(corruptedFiles[0], 0400) // read-only
+		require.NoError(t, err)
+		defer func() { _ = os.Chmod(corruptedFiles[0], 0644) }() // cleanup
+
+		// Also make the directory read-only to prevent deletion
+		blockDir := filepath.Dir(corruptedFiles[0])
+		originalPerm, err := os.Stat(blockDir)
+		require.NoError(t, err)
+		err = os.Chmod(blockDir, 0500) // read+execute only, no write
+		require.NoError(t, err)
+		defer func() { _ = os.Chmod(blockDir, originalPerm.Mode()) }() // cleanup
+
+		// Try to drop - should fail because at least one block can't be removed
+		res := node.RunIPFS("repo", "verify", "--drop")
+		assert.Equal(t, 1, res.ExitCode(), "should exit 1 when some blocks fail to remove")
+
+		// Restore permissions for verification
+		_ = os.Chmod(blockDir, originalPerm.Mode())
+		_ = os.Chmod(corruptedFiles[0], 0644)
+
+		// Should report both successes and failures
 		errOutput := res.Stderr.String()
-		assert.Contains(t, errOutput, "10 blocks corrupt")
-		assert.Contains(t, errOutput, "10 removed")
+		assert.Contains(t, errOutput, "blocks corrupt")
+		assert.Contains(t, errOutput, "failed to remove")
 	})
 }
