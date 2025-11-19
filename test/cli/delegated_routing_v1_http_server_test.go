@@ -18,6 +18,7 @@ import (
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // swarmPeersOutput is used to parse the JSON output of 'ipfs swarm peers --enc=json'
