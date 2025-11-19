@@ -8,7 +8,7 @@ const (
 	DefaultInlineDNSLink         = false
 	DefaultDeserializedResponses = true
 	DefaultDisableHTMLErrors     = false
-	DefaultExposeRoutingAPI      = false
+	DefaultExposeRoutingAPI      = true
 	DefaultDiagnosticServiceURL  = "https://check.ipfs.network"
 
 	// Gateway limit defaults from boxo
