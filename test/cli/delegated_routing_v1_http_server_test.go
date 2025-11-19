@@ -18,7 +18,6 @@ import (
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // swarmPeersOutput is used to parse the JSON output of 'ipfs swarm peers --enc=json'
@@ -48,9 +47,7 @@ func TestRoutingV1Server(t *testing.T) {
 		text := "hello world " + uuid.New().String()
 		cidStr := nodes[2].IPFSAddStr(text)
 		_ = nodes[3].IPFSAddStr(text)
-		// Reprovide as initialProviderDelay still ongoing
-		res := nodes[3].IPFS("routing", "reprovide")
-		require.NoError(t, res.Err)
+		waitUntilProvidesComplete(t, nodes[3])
 
 		cid, err := cid.Decode(cidStr)
 		assert.NoError(t, err)

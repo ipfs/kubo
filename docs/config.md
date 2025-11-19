@@ -230,6 +230,8 @@ config file at runtime.
     - [`Import.UnixFSRawLeaves`](#importunixfsrawleaves)
     - [`Import.UnixFSChunker`](#importunixfschunker)
     - [`Import.HashFunction`](#importhashfunction)
+    - [`Import.FastProvideRoot`](#importfastprovideroot)
+    - [`Import.FastProvideWait`](#importfastprovidewait)
     - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
     - [`Import.BatchMaxSize`](#importbatchmaxsize)
     - [`Import.UnixFSFileMaxLinks`](#importunixfsfilemaxlinks)
@@ -1162,11 +1164,20 @@ Type: `optionalDuration`
 
 ### `Gateway.MaxRangeRequestFileSize`
 
-Maximum file size for HTTP range requests. Range requests for files larger than this limit return 501 Not Implemented.
+Maximum file size for HTTP range requests on deserialized responses. Range requests for files larger than this limit return 501 Not Implemented.
 
-Protects against CDN bugs where range requests are silently ignored and the entire file is returned instead. For example, Cloudflare's default plan returns the full file for range requests over 5GiB, causing unexpected bandwidth costs for both gateway operators and clients who only wanted a small byte range.
+**Why this exists:**
 
-Set this to your CDN's range request limit (e.g., `"5GiB"` for Cloudflare's default plan). The error response suggests using verifiable block requests (application/vnd.ipld.raw) as an alternative.
+Some CDNs like Cloudflare intercept HTTP range requests and convert them to full file downloads when files exceed their cache bucket limits. Cloudflare's default plan only caches range requests for files up to 5GiB. Files larger than this receive HTTP 200 with the entire file instead of HTTP 206 with the requested byte range. A client requesting 1MB from a 40GiB file would unknowingly download all 40GiB, causing bandwidth overcharges for the gateway operator, unexpected data costs for the client, and potential browser crashes.
+
+This only affects deserialized responses. Clients fetching verifiable blocks as `application/vnd.ipld.raw` are not impacted because they work with small chunks that stay well below CDN cache limits.
+
+**How to use:**
+
+Set this to your CDN's range request cache limit (e.g., `"5GiB"` for Cloudflare's default plan). The gateway returns 501 Not Implemented for range requests over files larger than this limit, with an error message suggesting verifiable block requests as an alternative.
+
+> [!NOTE]
+> Cloudflare users running open gateway hosting deserialized responses should deploy additional protection via Cloudflare Snippets (requires Enterprise plan). The Kubo configuration alone is not sufficient because Cloudflare has already intercepted and cached the response by the time it reaches your origin. See [boxo#856](https://github.com/ipfs/boxo/issues/856#issuecomment-3523944976) for a snippet that aborts HTTP 200 responses when Content-Length exceeds the limit.
 
 Default: `0` (no limit)
 
@@ -2181,10 +2192,9 @@ to `false`.
 You can compare the effectiveness of sweep mode vs legacy mode by monitoring the appropriate metrics (see [Monitoring Provide Operations](#monitoring-provide-operations) above).
 
 > [!NOTE]
-> This feature is opt-in for now, but will become the default in a future release.
-> Eventually, this configuration flag will be removed once the feature is stable.
+> This is the default provider system as of Kubo v0.39. To use the legacy provider instead, set `Provide.DHT.SweepEnabled=false`.
 
-Default: `false`
+Default: `true`
 
 Type: `flag`
 
@@ -3610,6 +3620,38 @@ Run `ipfs cid hashes --supported` to see the full list of allowed hash functions
 Default: `sha2-256`
 
 Type: `optionalString`
+
+### `Import.FastProvideRoot`
+
+Immediately provide root CIDs to the DHT in addition to the regular provide queue.
+
+This complements the sweep provider system: fast-provide handles the urgent case (root CIDs that users share and reference), while the sweep provider efficiently provides all blocks according to the `Provide.Strategy` over time. Together, they optimize for both immediate discoverability of newly imported content and efficient resource usage for complete DAG provides.
+
+When disabled, only the sweep provider's queue is used.
+
+This setting applies to both `ipfs add` and `ipfs dag import` commands and can be overridden per-command with the `--fast-provide-root` flag.
+
+Ignored when DHT is not available for routing (e.g., `Routing.Type=none` or delegated-only configurations).
+
+Default: `true`
+
+Type: `flag`
+
+### `Import.FastProvideWait`
+
+Wait for the immediate root CID provide to complete before returning.
+
+When enabled, the command blocks until the provide completes, ensuring guaranteed discoverability before returning. When disabled (default), the provide happens asynchronously in the background without blocking the command.
+
+Use this when you need certainty that content is discoverable before the command returns (e.g., sharing a link immediately after adding).
+
+This setting applies to both `ipfs add` and `ipfs dag import` commands and can be overridden per-command with the `--fast-provide-wait` flag.
+
+Ignored when DHT is not available for routing (e.g., `Routing.Type=none` or delegated-only configurations).
+
+Default: `false`
+
+Type: `flag`
 
 ### `Import.BatchMaxNodes`
 

@@ -117,6 +117,16 @@ func (f Flag) String() string {
 	}
 }
 
+// ResolveBoolFromConfig returns the resolved boolean value based on:
+// - If userSet is true, returns userValue (user explicitly set the flag)
+// - Otherwise, uses configFlag.WithDefault(defaultValue) (respects config or falls back to default)
+func ResolveBoolFromConfig(userValue bool, userSet bool, configFlag Flag, defaultValue bool) bool {
+	if userSet {
+		return userValue
+	}
+	return configFlag.WithDefault(defaultValue)
+}
+
 var (
 	_ json.Unmarshaler = (*Flag)(nil)
 	_ json.Marshaler   = (*Flag)(nil)

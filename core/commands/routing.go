@@ -211,6 +211,10 @@ var provideRefRoutingCmd = &cmds.Command{
 		ctx, events := routing.RegisterForQueryEvents(ctx)
 
 		var provideErr error
+		// TODO: not sure if necessary to call StartProviding for `ipfs routing
+		// provide <cid>`, since either cid is already being provided, or it will
+		// be garbage collected and not reprovided anyway. So we may simply stick
+		// with a single (optimistic) provide, and skip StartProviding call.
 		go func() {
 			defer cancel()
 			if rec {
@@ -225,6 +229,16 @@ var provideRefRoutingCmd = &cmds.Command{
 				})
 			}
 		}()
+
+		if nd.HasActiveDHTClient() {
+			// If node has a DHT client, provide immediately the supplied cids before
+			// returning.
+			for _, c := range cids {
+				if err = provideCIDSync(req.Context, nd.DHTClient, c); err != nil {
+					return fmt.Errorf("error providing cid: %w", err)
+				}
+			}
+		}
 
 		for e := range events {
 			if err := res.Emit(e); err != nil {
@@ -300,6 +314,7 @@ func provideCids(prov node.DHTProvider, cids []cid.Cid) error {
 	for i, c := range cids {
 		mhs[i] = c.Hash()
 	}
+	// providing happens asynchronously
 	return prov.StartProviding(true, mhs...)
 }
 

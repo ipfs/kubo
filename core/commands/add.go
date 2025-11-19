@@ -61,20 +61,45 @@ const (
 	inlineLimitOptionName       = "inline-limit"
 	toFilesOptionName           = "to-files"
 
-	preserveModeOptionName  = "preserve-mode"
-	preserveMtimeOptionName = "preserve-mtime"
-	modeOptionName          = "mode"
-	mtimeOptionName         = "mtime"
-	mtimeNsecsOptionName    = "mtime-nsecs"
+	preserveModeOptionName    = "preserve-mode"
+	preserveMtimeOptionName   = "preserve-mtime"
+	modeOptionName            = "mode"
+	mtimeOptionName           = "mtime"
+	mtimeNsecsOptionName      = "mtime-nsecs"
+	fastProvideRootOptionName = "fast-provide-root"
+	fastProvideWaitOptionName = "fast-provide-wait"
 )
 
-const adderOutChanSize = 8
+const (
+	adderOutChanSize = 8
+)
 
 var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add a file or directory to IPFS.",
 		ShortDescription: `
 Adds the content of <path> to IPFS. Use -r to add directories (recursively).
+
+FAST PROVIDE OPTIMIZATION:
+
+When you add content to IPFS, the sweep provider queues it for efficient
+DHT provides over time. While this is resource-efficient, other peers won't
+find your content immediately after 'ipfs add' completes.
+
+To make sharing faster, 'ipfs add' does an immediate provide of the root CID
+to the DHT in addition to the regular queue. This complements the sweep provider:
+fast-provide handles the urgent case (root CIDs that users share and reference),
+while the sweep provider efficiently provides all blocks according to
+Provide.Strategy over time.
+
+By default, this immediate provide runs in the background without blocking
+the command. If you need certainty that the root CID is discoverable before
+the command returns (e.g., sharing a link immediately), use --fast-provide-wait
+to wait for the provide to complete. Use --fast-provide-root=false to skip
+this optimization.
+
+This works best with the sweep provider and accelerated DHT client.
+Automatically skipped when DHT is not available.
 `,
 		LongDescription: `
 Adds the content of <path> to IPFS. Use -r to add directories.
@@ -213,6 +238,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CID to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes before returning. Default: Import.FastProvideWait"),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -283,6 +310,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		mode, _ := req.Options[modeOptionName].(uint)
 		mtime, _ := req.Options[mtimeOptionName].(int64)
 		mtimeNsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
+		fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
+		fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
 
 		if chunker == "" {
 			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
@@ -318,6 +347,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			maxHAMTFanoutSet = true
 			maxHAMTFanout = int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
 		}
+
+		fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
+		fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
 
 		// Storing optional mode or mtime (UnixFS 1.5) requires root block
 		// to always be 'dag-pb' and not 'raw'. Below adjusts raw-leaves setting, if possible.
@@ -421,11 +453,12 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		}
 		var added int
 		var fileAddedToMFS bool
+		var lastRootCid path.ImmutablePath // Track the root CID for fast-provide
 		addit := toadd.Entries()
 		for addit.Next() {
 			_, dir := addit.Node().(files.Directory)
 			errCh := make(chan error, 1)
-			events := make(chan interface{}, adderOutChanSize)
+			events := make(chan any, adderOutChanSize)
 			opts[len(opts)-1] = options.Unixfs.Events(events)
 
 			go func() {
@@ -436,6 +469,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 					errCh <- err
 					return
 				}
+
+				// Store the root CID for potential fast-provide operation
+				lastRootCid = pathAdded
 
 				// creating MFS pointers when optional --to-files is set
 				if toFilesSet {
@@ -560,12 +596,29 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			return fmt.Errorf("expected a file argument")
 		}
 
+		// Apply fast-provide-root if the flag is enabled
+		if fastProvideRoot && (lastRootCid != path.ImmutablePath{}) {
+			cfg, err := ipfsNode.Repo.Config()
+			if err != nil {
+				return err
+			}
+			if err := cmdenv.ExecuteFastProvide(req.Context, ipfsNode, cfg, lastRootCid.RootCid(), fastProvideWait, dopin, dopin, toFilesSet); err != nil {
+				return err
+			}
+		} else if !fastProvideRoot {
+			if fastProvideWait {
+				log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config", "wait-flag-ignored", true)
+			} else {
+				log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
+			}
+		}
+
 		return nil
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
 			sizeChan := make(chan int64, 1)
-			outChan := make(chan interface{})
+			outChan := make(chan any)
 			req := res.Request()
 
 			// Could be slow.
