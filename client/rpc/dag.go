@@ -3,13 +3,16 @@ package rpc
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 
+	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/options"
 	multicodec "github.com/multiformats/go-multicodec"
 )
@@ -127,6 +130,72 @@ func (api *HttpDagServ) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 		}
 	}
 	return nil
+}
+
+func (api *HttpDagServ) Import(ctx context.Context, file files.File, opts ...options.DagImportOption) (<-chan iface.DagImportResult, error) {
+	options, err := options.DagImportOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	req := api.core().Request("dag/import")
+
+	if options.PinRootsSet {
+		req.Option("pin-roots", options.PinRoots)
+	}
+
+	if options.StatsSet {
+		req.Option("stats", options.Stats)
+	}
+
+	if options.FastProvideRootSet {
+		req.Option("fast-provide-root", options.FastProvideRoot)
+	}
+
+	if options.FastProvideWaitSet {
+		req.Option("fast-provide-wait", options.FastProvideWait)
+	}
+
+	req.Body(files.NewMultiFileReader(files.NewMapDirectory(map[string]files.Node{"": file}), false, false))
+
+	resp, err := req.Send(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	out := make(chan iface.DagImportResult)
+
+	go func() {
+		defer resp.Close()
+		defer close(out)
+
+		dec := json.NewDecoder(resp.Output)
+
+		for {
+			var event iface.DagImportResult
+
+			if err := dec.Decode(&event); err != nil {
+				if err != io.EOF {
+					select {
+					case out <- iface.DagImportResult{}:
+					case <-ctx.Done():
+					}
+				}
+				return
+			}
+
+			select {
+			case out <- event:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return out, nil
 }
 
 func (api *httpNodeAdder) core() *HttpApi {
