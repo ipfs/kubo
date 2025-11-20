@@ -14,6 +14,7 @@ import (
 type DagImportResult struct {
 	Root  *DagImportRoot
 	Stats *DagImportStats
+	Err   error
 }
 
 // DagImportRoot represents a root CID from a CAR file header

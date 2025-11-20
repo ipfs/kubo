@@ -15,10 +15,8 @@ import (
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
-	"github.com/libp2p/go-libp2p-kad-dht/provider"
-	"github.com/libp2p/go-libp2p-kad-dht/provider/buffered"
-	"github.com/libp2p/go-libp2p-kad-dht/provider/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/provider/stats"
 	routing "github.com/libp2p/go-libp2p/core/routing"
 	"github.com/probe-lab/go-libdht/kad/key"
@@ -136,26 +134,6 @@ type provideStats struct {
 	FullRT bool // only used for legacy stats
 }
 
-// extractSweepingProvider extracts a SweepingProvider from the given provider interface.
-// It handles unwrapping buffered and dual providers, selecting LAN or WAN as specified.
-// Returns nil if the provider is not a sweeping provider type.
-func extractSweepingProvider(prov any, useLAN bool) *provider.SweepingProvider {
-	switch p := prov.(type) {
-	case *provider.SweepingProvider:
-		return p
-	case *dual.SweepingProvider:
-		if useLAN {
-			return p.LAN
-		}
-		return p.WAN
-	case *buffered.SweepingProvider:
-		// Recursively extract from the inner provider
-		return extractSweepingProvider(p.Provider, useLAN)
-	default:
-		return nil
-	}
-}
-
 var provideStatCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
@@ -234,41 +212,36 @@ NOTES:
 		cmds.BoolOption(provideStatQueuesOptionName, "Display provide and reprovide queue sizes"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
-		if !nd.IsOnline {
-			return ErrNotOnline
-		}
-
 		lanStats, _ := req.Options[provideLanOptionName].(bool)
 
-		// Handle legacy provider
-		if legacySys, ok := nd.Provider.(boxoprovider.System); ok {
-			if lanStats {
-				return errors.New("LAN stats only available for Sweep provider with Dual DHT")
-			}
-			stats, err := legacySys.Stat()
-			if err != nil {
-				return err
-			}
-			_, fullRT := nd.DHTClient.(*fullrt.FullRT)
-			return res.Emit(provideStats{Legacy: &stats, FullRT: fullRT})
+		// Get stats from CoreAPI
+		opts := []options.RoutingProvideStatOption{}
+		if lanStats {
+			opts = append(opts, options.Routing.UseLAN(true))
 		}
 
-		// Extract sweeping provider (handles buffered and dual unwrapping)
-		sweepingProvider := extractSweepingProvider(nd.Provider, lanStats)
-		if sweepingProvider == nil {
-			if lanStats {
-				return errors.New("LAN stats only available for Sweep provider with Dual DHT")
-			}
-			return fmt.Errorf("stats not available with current routing system %T", nd.Provider)
+		result, err := api.Routing().ProvideStats(req.Context, opts...)
+		if err != nil {
+			return err
 		}
 
-		s := sweepingProvider.Stats()
-		return res.Emit(provideStats{Sweep: &s})
+		// Set FullRT field for display (command-layer presentation concern)
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+		_, fullRT := nd.DHTClient.(*fullrt.FullRT)
+
+		return res.Emit(provideStats{
+			Sweep:  result.Sweep,
+			Legacy: result.Legacy,
+			FullRT: fullRT,
+		})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, s provideStats) error {
