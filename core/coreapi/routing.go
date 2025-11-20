@@ -11,12 +11,16 @@ import (
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/path"
+	boxoprovider "github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/tracing"
+	"github.com/libp2p/go-libp2p-kad-dht/provider"
+	"github.com/libp2p/go-libp2p-kad-dht/provider/buffered"
+	"github.com/libp2p/go-libp2p-kad-dht/provider/dual"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	mh "github.com/multiformats/go-multihash"
 	"go.opentelemetry.io/otel/attribute"
@@ -220,6 +224,63 @@ func provideKeysRec(ctx context.Context, prov node.DHTProvider, bs blockstore.Bl
 			keys = append(keys, c.Hash())
 		}
 	}
+}
+
+// extractSweepingProvider extracts a SweepingProvider from the given provider interface.
+// It handles unwrapping buffered and dual providers, selecting LAN or WAN as specified.
+// Returns nil if the provider is not a sweeping provider type.
+func extractSweepingProvider(prov any, useLAN bool) *provider.SweepingProvider {
+	switch p := prov.(type) {
+	case *provider.SweepingProvider:
+		return p
+	case *dual.SweepingProvider:
+		if useLAN {
+			return p.LAN
+		}
+		return p.WAN
+	case *buffered.SweepingProvider:
+		// Recursively extract from the inner provider
+		return extractSweepingProvider(p.Provider, useLAN)
+	default:
+		return nil
+	}
+}
+
+func (api *RoutingAPI) ProvideStats(ctx context.Context, opts ...caopts.RoutingProvideStatOption) (*coreiface.ProvideStatsResponse, error) {
+	options, err := caopts.RoutingProvideStatOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	if !api.nd.IsOnline {
+		return nil, coreiface.ErrOffline
+	}
+
+	// Handle legacy provider
+	if legacySys, ok := api.provider.(boxoprovider.System); ok {
+		if options.UseLAN {
+			return nil, errors.New("LAN stats only available for Sweep provider with Dual DHT")
+		}
+		stats, err := legacySys.Stat()
+		if err != nil {
+			return nil, err
+		}
+		// Note: FullRT field is not set here as we don't have access to nd.DHTClient
+		// This field is primarily for display purposes in the command
+		return &coreiface.ProvideStatsResponse{Legacy: &stats, FullRT: false}, nil
+	}
+
+	// Extract sweeping provider (handles buffered and dual unwrapping)
+	sweepingProvider := extractSweepingProvider(api.provider, options.UseLAN)
+	if sweepingProvider == nil {
+		if options.UseLAN {
+			return nil, errors.New("LAN stats only available for Sweep provider with Dual DHT")
+		}
+		return nil, fmt.Errorf("stats not available with current routing system %T", api.provider)
+	}
+
+	s := sweepingProvider.Stats()
+	return &coreiface.ProvideStatsResponse{Sweep: &s}, nil
 }
 
 func (api *RoutingAPI) core() coreiface.CoreAPI {

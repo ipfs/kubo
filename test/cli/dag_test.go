@@ -120,7 +120,7 @@ func TestDagImportFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+					"GOLOG_LOG_LEVEL": "error,coreapi=debug",
 				}),
 			},
 		}, "")
@@ -146,7 +146,7 @@ func TestDagImportFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+					"GOLOG_LOG_LEVEL": "error,coreapi=debug",
 				}),
 			},
 		}, "")
@@ -183,7 +183,7 @@ func TestDagImportFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+					"GOLOG_LOG_LEVEL": "error,coreapi=debug",
 				}),
 			},
 		}, "")
@@ -226,7 +226,7 @@ func TestDagImportFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+					"GOLOG_LOG_LEVEL": "error,coreapi=debug",
 				}),
 			},
 		}, "")
@@ -254,7 +254,7 @@ func TestDagImportFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+					"GOLOG_LOG_LEVEL": "error,coreapi=debug",
 				}),
 			},
 		}, "")
@@ -284,7 +284,7 @@ func TestDagImportFastProvide(t *testing.T) {
 		node.StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,core/commands=debug,core/commands/cmdenv=debug",
+					"GOLOG_LOG_LEVEL": "error,coreapi=debug",
 				}),
 			},
 		}, "")
