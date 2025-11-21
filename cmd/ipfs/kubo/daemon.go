@@ -515,7 +515,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 	//nolint:staticcheck // intentionally checking deprecated fields
 	if !cfg.Reprovider.Interval.IsDefault() || !cfg.Reprovider.Strategy.IsDefault() {
-		log.Fatal("Deprecated configuration detected. Manually migrate 'Reprovider' fields to 'Provide': Reprovider.Strategy -> Provide.Strategy, Reprovider.Interval -> Provide.Interval. Remove 'Reprovider' from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
+		log.Fatal("Deprecated configuration detected. Manually migrate 'Reprovider' fields to 'Provide': Reprovider.Strategy -> Provide.Strategy, Reprovider.Interval -> Provide.DHT.Interval. Remove 'Reprovider' from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
 	}
 	// Check for deprecated "flat" strategy (should have been migrated to "all")
 	if cfg.Provide.Strategy.WithDefault("") == "flat" {
