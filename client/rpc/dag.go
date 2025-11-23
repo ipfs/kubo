@@ -180,7 +180,7 @@ func (api *HttpDagServ) Import(ctx context.Context, file files.File, opts ...opt
 			if err := dec.Decode(&event); err != nil {
 				if err != io.EOF {
 					select {
-					case out <- iface.DagImportResult{}:
+					case out <- iface.DagImportResult{Err: err}:
 					case <-ctx.Done():
 					}
 				}

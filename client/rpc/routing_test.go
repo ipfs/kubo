@@ -13,20 +13,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Compile-time check: ensure our response type is compatible with kubo's provideStats
-// This verifies that JSON marshaling/unmarshaling will work correctly
-var _ = func() {
+func TestProvideStats_JSONCompatibility(t *testing.T) {
+	// Verify that command's provideStats structure is compatible with
+	// iface.ProvideStatsResponse for JSON marshaling/unmarshaling.
+	// This ensures RPC client can correctly decode responses from the command.
+
 	// Create instance of command's provideStats structure
 	cmdStats := struct {
 		Sweep  *stats.Stats                  `json:"Sweep,omitempty"`
 		Legacy *boxoprovider.ReproviderStats `json:"Legacy,omitempty"`
 		FullRT bool                          `json:"FullRT,omitempty"`
-	}{}
+	}{
+		Sweep:  &stats.Stats{},
+		FullRT: true,
+	}
 
-	// Marshal and unmarshal to verify compatibility
-	data, _ := json.Marshal(cmdStats)
+	// Marshal command structure to JSON
+	data, err := json.Marshal(cmdStats)
+	require.NoError(t, err, "should marshal command stats")
+
+	// Unmarshal into interface type
 	var ifaceStats iface.ProvideStatsResponse
-	_ = json.Unmarshal(data, &ifaceStats)
+	err = json.Unmarshal(data, &ifaceStats)
+	require.NoError(t, err, "should unmarshal into interface stats")
+
+	// Verify fields transferred correctly
+	require.NotNil(t, ifaceStats.Sweep, "Sweep field should be present")
+	require.Nil(t, ifaceStats.Legacy, "Legacy field should be nil")
+	require.True(t, ifaceStats.FullRT, "FullRT field should be true")
 }
 
 // testProvideStats mirrors the subset of fields we verify in tests.

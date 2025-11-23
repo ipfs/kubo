@@ -147,31 +147,30 @@ func TestDagImport_OnlineWithFastProvideWait(t *testing.T) {
 	require.NoError(t, err)
 	defer carFile.Close()
 
-	// Import with fast-provide wait enabled in online mode
+	// Import with fast-provide wait enabled in online mode.
 	// This tests that FastProvideWait actually blocks (not fire-and-forget).
-	// In isolated test environment (no DHT peers), the provide operation may:
-	// 1. Succeed trivially (announced to randomly discovered peers), or
-	// 2. Return an error (timeout/no peers)
-	// Both outcomes prove blocking behavior works correctly.
+	// In isolated test environment with no DHT peers, the blocking provide
+	// operation should fail and propagate an error.
 	results, err := api.Dag().Import(ctx, files.NewReaderFile(carFile),
 		options.Dag.FastProvideRoot(true),
 		options.Dag.FastProvideWait(true))
 
-	if err != nil {
-		// Blocking wait detected provide failure (no DHT peers in isolated test)
-		// This proves FastProvideWait actually blocked and error propagated
+	// Initial call may succeed, but we should get error from results channel
+	if err == nil {
+		// Consume results until we hit the expected error
+		var gotError bool
+		for result := range results {
+			if result.Err != nil {
+				gotError = true
+				require.Contains(t, result.Err.Error(), "fast-provide",
+					"error should be from fast-provide operation")
+				break
+			}
+		}
+		require.True(t, gotError, "should receive fast-provide error in isolated test environment")
+	} else {
+		// Error returned directly (also acceptable)
 		require.Contains(t, err.Error(), "fast-provide",
 			"error should be from fast-provide operation")
-		return // Test passed - blocking wait worked and returned error
 	}
-
-	// No error - provide succeeded, verify we got results
-	var roots []cid.Cid
-	for result := range results {
-		if result.Root != nil {
-			roots = append(roots, result.Root.Cid)
-		}
-	}
-
-	require.Len(t, roots, 1, "should receive one root when provide succeeds")
 }

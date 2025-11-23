@@ -93,8 +93,10 @@ func (api *dagAPI) Import(ctx context.Context, file files.File, opts ...options.
 	// Create block decoder for IPLD nodes
 	blockDecoder := ipldlegacy.NewDecoder()
 
-	// Create batch for efficient block addition
-	// Uses config values for batch size tuning
+	// Create batch for efficient block addition.
+	// Uses config values for batch size tuning:
+	// - MaxNodes: Default 128 nodes per batch (128 file descriptors in flatfs)
+	// - MaxSize: Default 100MiB per batch (with 256KiB blocks, hits node limit at ~32MiB)
 	batch := ipld.NewBatch(ctx, api.DAGService,
 		ipld.MaxNodesBatchOption(int(cfg.Import.BatchMaxNodes.WithDefault(config.DefaultBatchMaxNodes))),
 		ipld.MaxSizeBatchOption(int(cfg.Import.BatchMaxSize.WithDefault(config.DefaultBatchMaxSize))),
@@ -103,15 +105,19 @@ func (api *dagAPI) Import(ctx context.Context, file files.File, opts ...options.
 	// Create output channel
 	out := make(chan iface.DagImportResult)
 
+	// Acquire pinlock BEFORE spawning goroutine if pinning roots
+	// This prevents race condition with GC (lock serves as both pin and GC lock)
+	var pinUnlocker func(context.Context)
+	if settings.PinRoots {
+		pinUnlocker = api.core.blockstore.PinLock(ctx).Unlock
+	}
+
 	// Process import in background
 	go func() {
 		defer close(out)
 		defer file.Close()
-
-		// Acquire pinlock if pinning roots (also serves as GC lock)
-		if settings.PinRoots {
-			unlocker := api.core.blockstore.PinLock(ctx)
-			defer unlocker.Unlock(ctx)
+		if pinUnlocker != nil {
+			defer pinUnlocker(ctx)
 		}
 
 		// Track roots from CAR headers and stats
@@ -137,9 +143,9 @@ func (api *dagAPI) Import(ctx context.Context, file files.File, opts ...options.
 			if err != nil {
 				if err != io.EOF {
 					if previous != nil {
-						out <- iface.DagImportResult{Err: fmt.Errorf("error reading block after %s: %w", previous.Cid(), err)}
+						out <- iface.DagImportResult{Err: fmt.Errorf("failed to read block after %s: %w", previous.Cid(), err)}
 					} else {
-						out <- iface.DagImportResult{Err: fmt.Errorf("error reading CAR blocks: %w", err)}
+						out <- iface.DagImportResult{Err: fmt.Errorf("failed to read CAR blocks: %w", err)}
 					}
 				}
 				break
@@ -223,7 +229,7 @@ func (api *dagAPI) Import(ctx context.Context, file files.File, opts ...options.
 			return nil
 		})
 		if err != nil {
-			out <- iface.DagImportResult{Err: fmt.Errorf("error emitting roots: %w", err)}
+			out <- iface.DagImportResult{Err: fmt.Errorf("failed to emit roots: %w", err)}
 			return
 		}
 
