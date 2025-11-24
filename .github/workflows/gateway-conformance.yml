@@ -47,7 +47,7 @@ jobs:
 
       # 2. Build the kubo-gateway
       - name: Checkout kubo-gateway
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: kubo-gateway
       - name: Setup Go
@@ -133,7 +133,7 @@ jobs:
 
       # 2. Build the kubo-gateway
       - name: Checkout kubo-gateway
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: kubo-gateway
       - name: Setup Go

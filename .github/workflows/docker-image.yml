@@ -43,7 +43,7 @@ jobs:
       tags: ${{ steps.tags.outputs.value }}
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -154,7 +154,7 @@ jobs:
       LEGACY_IMAGE_NAME: ipfs/go-ipfs
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
