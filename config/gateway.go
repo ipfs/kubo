@@ -8,12 +8,13 @@ const (
 	DefaultInlineDNSLink         = false
 	DefaultDeserializedResponses = true
 	DefaultDisableHTMLErrors     = false
-	DefaultExposeRoutingAPI      = false
+	DefaultExposeRoutingAPI      = true
 	DefaultDiagnosticServiceURL  = "https://check.ipfs.network"
 
 	// Gateway limit defaults from boxo
-	DefaultRetrievalTimeout      = gateway.DefaultRetrievalTimeout
-	DefaultMaxConcurrentRequests = gateway.DefaultMaxConcurrentRequests
+	DefaultRetrievalTimeout        = gateway.DefaultRetrievalTimeout
+	DefaultMaxConcurrentRequests   = gateway.DefaultMaxConcurrentRequests
+	DefaultMaxRangeRequestFileSize = 0 // 0 means no limit
 )
 
 type GatewaySpec struct {
@@ -99,6 +100,12 @@ type Gateway struct {
 	// Requests beyond this limit receive 429 Too Many Requests with Retry-After header.
 	// A value of 0 disables the limit.
 	MaxConcurrentRequests *OptionalInteger `json:",omitempty"`
+
+	// MaxRangeRequestFileSize limits the maximum file size for HTTP range requests.
+	// Range requests for files larger than this limit return 501 Not Implemented.
+	// This protects against CDN issues with large file range requests and prevents
+	// excessive bandwidth consumption. A value of 0 disables the limit.
+	MaxRangeRequestFileSize *OptionalBytes `json:",omitempty"`
 
 	// DiagnosticServiceURL is the URL for a service to diagnose CID retrievability issues.
 	// When the gateway returns a 504 Gateway Timeout error, an "Inspect retrievability of CID"

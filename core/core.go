@@ -30,9 +30,11 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
+	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
+	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	connmgr "github.com/libp2p/go-libp2p/core/connmgr"
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 	p2phost "github.com/libp2p/go-libp2p/core/host"
@@ -141,6 +143,42 @@ type Mounts struct {
 // Close calls Close() on the App object
 func (n *IpfsNode) Close() error {
 	return n.stop()
+}
+
+// HasActiveDHTClient checks if the node's DHT client is active and usable for DHT operations.
+//
+// Returns false for:
+//   - nil DHTClient
+//   - typed nil pointers (e.g., (*ddht.DHT)(nil))
+//   - no-op routers (routinghelpers.Null)
+//
+// Note: This method only checks for known DHT client types (ddht.DHT, fullrt.FullRT).
+// Custom routing.Routing implementations are not explicitly validated.
+//
+// This method prevents the "typed nil interface" bug where an interface contains
+// a nil pointer of a concrete type, which passes nil checks but panics when methods
+// are called.
+func (n *IpfsNode) HasActiveDHTClient() bool {
+	if n.DHTClient == nil {
+		return false
+	}
+
+	// Check for no-op router (Routing.Type=none)
+	if _, ok := n.DHTClient.(routinghelpers.Null); ok {
+		return false
+	}
+
+	// Check for typed nil *ddht.DHT (common when Routing.Type=delegated or HTTP-only)
+	if d, ok := n.DHTClient.(*ddht.DHT); ok && d == nil {
+		return false
+	}
+
+	// Check for typed nil *fullrt.FullRT (accelerated DHT client)
+	if f, ok := n.DHTClient.(*fullrt.FullRT); ok && f == nil {
+		return false
+	}
+
+	return true
 }
 
 // Context returns the IpfsNode context

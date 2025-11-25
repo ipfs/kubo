@@ -29,7 +29,7 @@ jobs:
         shell: bash
     steps:
       - name: Check out Kubo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -78,7 +78,7 @@ jobs:
           output: test/unit/gotest.junit.xml
         if: failure() || success()
       - name: Archive the JUnit XML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: unit
           path: test/unit/gotest.junit.xml
@@ -91,7 +91,7 @@ jobs:
           output: test/unit/gotest.html
         if: failure() || success()
       - name: Archive the HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: html
           path: test/unit/gotest.html

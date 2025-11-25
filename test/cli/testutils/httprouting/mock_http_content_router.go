@@ -19,13 +19,14 @@ import (
 // (https://specs.ipfs.tech/routing/http-routing-v1/) server implementation
 // based on github.com/ipfs/boxo/routing/http/server
 type MockHTTPContentRouter struct {
-	m                   sync.Mutex
-	provideBitswapCalls int
-	findProvidersCalls  int
-	findPeersCalls      int
-	providers           map[cid.Cid][]types.Record
-	peers               map[peer.ID][]*types.PeerRecord
-	Debug               bool
+	m                    sync.Mutex
+	provideBitswapCalls  int
+	findProvidersCalls   int
+	findPeersCalls       int
+	getClosestPeersCalls int
+	providers            map[cid.Cid][]types.Record
+	peers                map[peer.ID][]*types.PeerRecord
+	Debug                bool
 }
 
 func (r *MockHTTPContentRouter) FindProviders(ctx context.Context, key cid.Cid, limit int) (iter.ResultIter[types.Record], error) {
@@ -114,4 +115,31 @@ func (r *MockHTTPContentRouter) AddProvider(key cid.Cid, record types.Record) {
 		pid := peerRecord.ID
 		r.peers[*pid] = append(r.peers[*pid], peerRecord)
 	}
+}
+
+func (r *MockHTTPContentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.ResultIter[*types.PeerRecord], error) {
+	r.m.Lock()
+	defer r.m.Unlock()
+	r.getClosestPeersCalls++
+
+	if r.peers == nil {
+		r.peers = make(map[peer.ID][]*types.PeerRecord)
+	}
+	pid, err := peer.FromCid(key)
+	if err != nil {
+		return iter.FromSlice([]iter.Result[*types.PeerRecord]{}), nil
+	}
+	records, found := r.peers[pid]
+	if !found {
+		return iter.FromSlice([]iter.Result[*types.PeerRecord]{}), nil
+	}
+
+	results := make([]iter.Result[*types.PeerRecord], len(records))
+	for i, rec := range records {
+		results[i] = iter.Result[*types.PeerRecord]{Val: rec}
+		if r.Debug {
+			fmt.Printf("MockHTTPContentRouter.GetPeers(%s) result: %+v\n", pid.String(), rec)
+		}
+	}
+	return iter.FromSlice(results), nil
 }

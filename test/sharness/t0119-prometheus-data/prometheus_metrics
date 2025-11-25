@@ -250,6 +250,5 @@ process_resident_memory_bytes
 process_start_time_seconds
 process_virtual_memory_bytes
 process_virtual_memory_max_bytes
-provider_reprovider_provide_count
-provider_reprovider_reprovide_count
+provider_provides_total
 target_info

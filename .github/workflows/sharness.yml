@@ -23,7 +23,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout Kubo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: kubo
       - name: Setup Go
@@ -88,7 +88,7 @@ jobs:
           destination: sharness.html
       - name: Upload one-page HTML report
         if: github.repository != 'ipfs/kubo' && (failure() || success())
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: sharness.html
           path: kubo/test/sharness/test-results/sharness.html
@@ -108,7 +108,7 @@ jobs:
           destination: sharness-html/
       - name: Upload full HTML report
         if: github.repository != 'ipfs/kubo' && (failure() || success())
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: sharness-html
           path: kubo/test/sharness/test-results/sharness-html

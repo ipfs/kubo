@@ -47,7 +47,7 @@ jobs:
 
       # 2. Build the kubo-gateway
       - name: Checkout kubo-gateway
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: kubo-gateway
       - name: Setup Go
@@ -109,13 +109,13 @@ jobs:
         run: cat output.md >> $GITHUB_STEP_SUMMARY
       - name: Upload HTML report
         if: failure() || success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: gateway-conformance.html
           path: output.html
       - name: Upload JSON report
         if: failure() || success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: gateway-conformance.json
           path: output.json
@@ -133,7 +133,7 @@ jobs:
 
       # 2. Build the kubo-gateway
       - name: Checkout kubo-gateway
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: kubo-gateway
       - name: Setup Go
@@ -214,13 +214,13 @@ jobs:
         run: cat output.md >> $GITHUB_STEP_SUMMARY
       - name: Upload HTML report
         if: failure() || success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: gateway-conformance-libp2p.html
           path: output.html
       - name: Upload JSON report
         if: failure() || success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: gateway-conformance-libp2p.json
           path: output.json

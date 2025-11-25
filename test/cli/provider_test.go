@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -608,6 +609,124 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 	})
 }
 
+// runResumeTests validates Provide.DHT.ResumeEnabled behavior for SweepingProvider.
+//
+// Background: The provider tracks current_time_offset = (now - cycleStart) % interval
+// where cycleStart is the timestamp marking the beginning of the reprovide cycle.
+// With ResumeEnabled=true, cycleStart persists in the datastore across restarts.
+// With ResumeEnabled=false, cycleStart resets to 'now' on each startup.
+func runResumeTests(t *testing.T, apply cfgApplier) {
+	t.Helper()
+
+	const (
+		reprovideInterval = 30 * time.Second
+		initialRuntime    = 10 * time.Second // Let cycle progress
+		downtime          = 5 * time.Second  // Simulated offline period
+		restartTime       = 2 * time.Second  // Daemon restart stabilization
+
+		// Thresholds account for timing jitter (~2-3s margin)
+		minOffsetBeforeRestart = 8 * time.Second  // Expect ~10s
+		minOffsetAfterResume   = 12 * time.Second // Expect ~17s (10s + 5s + 2s)
+		maxOffsetAfterReset    = 5 * time.Second  // Expect ~2s (fresh start)
+	)
+
+	setupNode := func(t *testing.T, resumeEnabled bool) *harness.Node {
+		node := harness.NewT(t).NewNode().Init()
+		apply(node) // Sets Provide.DHT.SweepEnabled=true
+		node.SetIPFSConfig("Provide.DHT.ResumeEnabled", resumeEnabled)
+		node.SetIPFSConfig("Provide.DHT.Interval", reprovideInterval.String())
+		node.SetIPFSConfig("Bootstrap", []string{})
+		node.StartDaemon()
+		return node
+	}
+
+	t.Run("preserves cycle state across restart", func(t *testing.T) {
+		t.Parallel()
+
+		node := setupNode(t, true)
+		defer node.StopDaemon()
+
+		for i := 0; i < 10; i++ {
+			node.IPFSAddStr(fmt.Sprintf("resume-test-%d-%d", i, time.Now().UnixNano()))
+		}
+
+		time.Sleep(initialRuntime)
+
+		beforeRestart := node.IPFS("provide", "stat", "--enc=json")
+		offsetBeforeRestart, _, err := parseProvideStatJSON(beforeRestart.Stdout.String())
+		require.NoError(t, err)
+		require.Greater(t, offsetBeforeRestart, minOffsetBeforeRestart,
+			"cycle should have progressed")
+
+		node.StopDaemon()
+		time.Sleep(downtime)
+		node.StartDaemon()
+		time.Sleep(restartTime)
+
+		afterRestart := node.IPFS("provide", "stat", "--enc=json")
+		offsetAfterRestart, _, err := parseProvideStatJSON(afterRestart.Stdout.String())
+		require.NoError(t, err)
+
+		assert.GreaterOrEqual(t, offsetAfterRestart, minOffsetAfterResume,
+			"offset should account for downtime")
+	})
+
+	t.Run("resets cycle when disabled", func(t *testing.T) {
+		t.Parallel()
+
+		node := setupNode(t, false)
+		defer node.StopDaemon()
+
+		for i := 0; i < 10; i++ {
+			node.IPFSAddStr(fmt.Sprintf("no-resume-%d-%d", i, time.Now().UnixNano()))
+		}
+
+		time.Sleep(initialRuntime)
+
+		beforeRestart := node.IPFS("provide", "stat", "--enc=json")
+		offsetBeforeRestart, _, err := parseProvideStatJSON(beforeRestart.Stdout.String())
+		require.NoError(t, err)
+		require.Greater(t, offsetBeforeRestart, minOffsetBeforeRestart,
+			"cycle should have progressed")
+
+		node.StopDaemon()
+		time.Sleep(downtime)
+		node.StartDaemon()
+		time.Sleep(restartTime)
+
+		afterRestart := node.IPFS("provide", "stat", "--enc=json")
+		offsetAfterRestart, _, err := parseProvideStatJSON(afterRestart.Stdout.String())
+		require.NoError(t, err)
+
+		assert.Less(t, offsetAfterRestart, maxOffsetAfterReset,
+			"offset should reset to near zero")
+	})
+}
+
+type provideStatJSON struct {
+	Sweep struct {
+		Timing struct {
+			CurrentTimeOffset int64 `json:"current_time_offset"` // nanoseconds
+		} `json:"timing"`
+		Schedule struct {
+			NextReprovidePrefix string `json:"next_reprovide_prefix"`
+		} `json:"schedule"`
+	} `json:"Sweep"`
+}
+
+// parseProvideStatJSON extracts timing and schedule information from
+// the JSON output of 'ipfs provide stat --enc=json'.
+// Note: prefix is unused in current tests but kept for potential future use.
+func parseProvideStatJSON(output string) (offset time.Duration, prefix string, err error) {
+	var stat provideStatJSON
+	if err := json.Unmarshal([]byte(output), &stat); err != nil {
+		return 0, "", err
+	}
+	offset = time.Duration(stat.Sweep.Timing.CurrentTimeOffset)
+	prefix = stat.Sweep.Schedule.NextReprovidePrefix
+	return offset, prefix, nil
+}
+
 func TestProvider(t *testing.T) {
 	t.Parallel()
 
@@ -637,6 +756,11 @@ func TestProvider(t *testing.T) {
 		t.Run(v.name, func(t *testing.T) {
 			// t.Parallel()
 			runProviderSuite(t, v.reprovide, v.apply)
+
+			// Resume tests only apply to SweepingProvider
+			if v.name == "SweepingProvider" {
+				runResumeTests(t, v.apply)
+			}
 		})
 	}
 }
