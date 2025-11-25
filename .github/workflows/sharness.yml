@@ -23,7 +23,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout Kubo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: kubo
       - name: Setup Go
