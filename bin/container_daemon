@@ -50,6 +50,6 @@ else
   unset IPFS_SWARM_KEY_FILE
 fi
 
-find /container-init.d -maxdepth 1 -type f -iname '*.sh' -print0 | sort -z | xargs -n 1 -0 -r container_init_run
+find /container-init.d -maxdepth 1 \( -type f -o -type l \) -iname '*.sh' -print0 | sort -z | xargs -n 1 -0 -r container_init_run
 
 exec ipfs "$@"
