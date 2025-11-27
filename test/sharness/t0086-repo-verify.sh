@@ -3,6 +3,9 @@
 # Copyright (c) 2016 Jeromy Johnson
 # MIT Licensed; see the LICENSE file in this repository.
 #
+# NOTE: This is a legacy sharness test kept for compatibility.
+# New tests for 'ipfs repo verify' should be added to test/cli/repo_verify_test.go
+#
 
 test_description="Test ipfs repo fsck"
 

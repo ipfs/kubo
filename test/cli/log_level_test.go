@@ -1,11 +1,16 @@
 package cli
 
 import (
+	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ipfs/kubo/test/cli/harness"
 	. "github.com/ipfs/kubo/test/cli/testutils"
@@ -597,6 +602,164 @@ func TestLogLevel(t *testing.T) {
 			coreLevel, _ := levels["core"].(string)
 			assert.Equal(t, "error", coreLevel, "Core level should be back to 'error' (default)")
 		})
+	})
+
+	// Constants for slog interop tests
+	const (
+		slogTestLogTailTimeout       = 10 * time.Second
+		slogTestLogWaitTimeout       = 5 * time.Second
+		slogTestLogStartupDelay      = 1 * time.Second // Wait for log tail to start
+		slogTestSubsystemCmdsHTTP    = "cmds/http"     // Native go-log subsystem
+		slogTestSubsystemNetIdentify = "net/identify"  // go-libp2p slog subsystem
+	)
+
+	// logMatch represents a matched log entry for slog interop tests
+	type logMatch struct {
+		subsystem string
+		line      string
+	}
+
+	// startLogMonitoring starts ipfs log tail and returns command and channel for matched logs.
+	startLogMonitoring := func(t *testing.T, node *harness.Node) (*exec.Cmd, chan logMatch) {
+		t.Helper()
+
+		ctx, cancel := context.WithTimeout(context.Background(), slogTestLogTailTimeout)
+		t.Cleanup(cancel)
+
+		cmd := exec.CommandContext(ctx, node.IPFSBin, "log", "tail")
+		cmd.Env = append([]string(nil), os.Environ()...)
+		for k, v := range node.Runner.Env {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+		}
+		cmd.Dir = node.Runner.Dir
+
+		stdout, err := cmd.StdoutPipe()
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start())
+
+		matches := make(chan logMatch, 10)
+
+		go func() {
+			scanner := bufio.NewScanner(stdout)
+			for scanner.Scan() {
+				line := scanner.Text()
+				// Check for actual logger field in JSON, not just substring match
+				if strings.Contains(line, `"logger":"cmds/http"`) {
+					matches <- logMatch{slogTestSubsystemCmdsHTTP, line}
+				}
+				if strings.Contains(line, `"logger":"net/identify"`) {
+					matches <- logMatch{slogTestSubsystemNetIdentify, line}
+				}
+			}
+		}()
+
+		return cmd, matches
+	}
+
+	// waitForBothSubsystems waits for both native go-log and slog subsystems to appear in logs.
+	waitForBothSubsystems := func(t *testing.T, matches chan logMatch, timeout time.Duration) {
+		t.Helper()
+
+		seen := make(map[string]struct{})
+		deadline := time.After(timeout)
+
+		for len(seen) < 2 {
+			select {
+			case match := <-matches:
+				if _, exists := seen[match.subsystem]; !exists {
+					t.Logf("Found %s log", match.subsystem)
+					seen[match.subsystem] = struct{}{}
+				}
+			case <-deadline:
+				t.Fatalf("Timeout waiting for logs. Seen: %v", seen)
+			}
+		}
+
+		assert.Contains(t, seen, slogTestSubsystemCmdsHTTP, "should see cmds/http (native go-log)")
+		assert.Contains(t, seen, slogTestSubsystemNetIdentify, "should see net/identify (slog from go-libp2p)")
+	}
+
+	// triggerIdentifyProtocol connects node1 to node2, triggering net/identify logs.
+	triggerIdentifyProtocol := func(t *testing.T, node1, node2 *harness.Node) {
+		t.Helper()
+
+		// Get node2's peer ID and address
+		node2ID := node2.PeerID().String()
+		addrsRes := node2.IPFS("id", "-f", "<addrs>")
+		require.NoError(t, addrsRes.Err)
+
+		addrs := strings.Split(strings.TrimSpace(addrsRes.Stdout.String()), "\n")
+		require.NotEmpty(t, addrs, "node2 should have at least one address")
+
+		// Connect node1 to node2
+		multiaddr := fmt.Sprintf("%s/p2p/%s", addrs[0], node2ID)
+		res := node1.IPFS("swarm", "connect", multiaddr)
+		require.NoError(t, res.Err)
+	}
+
+	// verifySlogInterop verifies that both native go-log and slog from go-libp2p
+	// appear in ipfs log tail with correct formatting and level control.
+	verifySlogInterop := func(t *testing.T, node1, node2 *harness.Node) {
+		t.Helper()
+
+		cmd, matches := startLogMonitoring(t, node1)
+		defer func() {
+			_ = cmd.Process.Kill()
+		}()
+
+		time.Sleep(slogTestLogStartupDelay)
+
+		// Trigger cmds/http (native go-log)
+		node1.IPFS("version")
+
+		// Trigger net/identify (slog from go-libp2p)
+		triggerIdentifyProtocol(t, node1, node2)
+
+		waitForBothSubsystems(t, matches, slogTestLogWaitTimeout)
+	}
+
+	// This test verifies that go-log's slog bridge works with go-libp2p's gologshim
+	// when log levels are set via GOLOG_LOG_LEVEL environment variable.
+	// It tests both native go-log loggers (cmds/http) and slog-based loggers from
+	// go-libp2p (net/identify), ensuring both types appear in `ipfs log tail`.
+	t.Run("slog interop via env var", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+
+		node1 := h.NewNode().Init()
+		node1.Runner.Env["GOLOG_LOG_LEVEL"] = "error,cmds/http=debug,net/identify=debug"
+		node1.StartDaemon()
+		defer node1.StopDaemon()
+
+		node2 := h.NewNode().Init().StartDaemon()
+		defer node2.StopDaemon()
+
+		verifySlogInterop(t, node1, node2)
+	})
+
+	// This test verifies that go-log's slog bridge works with go-libp2p's gologshim
+	// when log levels are set dynamically via `ipfs log level` CLI commands.
+	// It tests the key feature that SetLogLevel auto-creates level entries for subsystems
+	// that don't exist yet, enabling `ipfs log level net/identify debug` to work even
+	// before the net/identify logger is created. This is critical for slog interop.
+	t.Run("slog interop via CLI", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+
+		node1 := h.NewNode().Init().StartDaemon()
+		defer node1.StopDaemon()
+
+		node2 := h.NewNode().Init().StartDaemon()
+		defer node2.StopDaemon()
+
+		// Set levels via CLI for both subsystems BEFORE triggering events
+		res := node1.IPFS("log", "level", slogTestSubsystemCmdsHTTP, "debug")
+		require.NoError(t, res.Err)
+
+		res = node1.IPFS("log", "level", slogTestSubsystemNetIdentify, "debug")
+		require.NoError(t, res.Err) // Auto-creates level entry for slog subsystem
+
+		verifySlogInterop(t, node1, node2)
 	})
 
 }
