@@ -2118,6 +2118,7 @@ connections this setting can generate.
 > users. The system will only use workers as needed - unused resources won't be
 > consumed. Ensure you adjust the swarm [connection manager](#swarmconnmgr) and
 > [resource manager](#swarmresourcemgr) configuration accordingly.
+> See [Capacity Planning](https://github.com/ipfs/kubo/blob/master/docs/provide-stats.md#capacity-planning) for more details.
 
 Default: `16`
 

@@ -1,10 +1,19 @@
-#!/bin/zsh
+#!/bin/bash
 #
 # Invocation: mkreleaselog [FIRST_REF [LAST_REF]]
+#
+# Generates release notes with contributor statistics, deduplicating by GitHub handle.
+# GitHub handles are resolved from:
+#   1. GitHub noreply emails (user@users.noreply.github.com)
+#   2. Merge commit messages (Merge pull request #N from user/branch)
+#   3. GitHub API via gh CLI (for squash merges)
+#
+# Results are cached in ~/.cache/mkreleaselog/github-handles.json
 
 set -euo pipefail
 export GO111MODULE=on
-export GOPATH="$(go env GOPATH)"
+GOPATH="$(go env GOPATH)"
+export GOPATH
 
 # List of PCRE regular expressions to match "included" modules.
 INCLUDE_MODULES=(
@@ -15,10 +24,15 @@ INCLUDE_MODULES=(
     "^github.com/multiformats/"
     "^github.com/filecoin-project/"
     "^github.com/ipfs-shipyard/"
+    "^github.com/ipshipyard/"
+    "^github.com/probe-lab/"
 
     # Authors of personal modules used by go-ipfs that should be mentioned in the
     # release notes.
     "^github.com/whyrusleeping/"
+    "^github.com/gammazero/"
+    "^github.com/Jorropo/"
+    "^github.com/guillaumemichel/"
     "^github.com/Kubuxu/"
     "^github.com/jbenet/"
     "^github.com/Stebalien/"
@@ -48,15 +62,348 @@ IGNORE_FILES=(
 )
 
 ##########################################################################################
+# GitHub Handle Resolution Infrastructure
+##########################################################################################
+
+# Cache location following XDG spec
+GITHUB_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/mkreleaselog"
+GITHUB_CACHE_FILE="$GITHUB_CACHE_DIR/github-handles.json"
+
+# Timeout for gh CLI commands (seconds)
+GH_TIMEOUT=10
+
+# Associative array for email -> github handle mapping (runtime cache)
+declare -A EMAIL_TO_GITHUB
+
+# Check if gh CLI is available and authenticated
+gh_available() {
+    command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1
+}
+
+# Load cached email -> github handle mappings from disk
+load_github_cache() {
+    EMAIL_TO_GITHUB=()
+
+    if [[ ! -f "$GITHUB_CACHE_FILE" ]]; then
+        return 0
+    fi
+
+    # Validate JSON before loading
+    if ! jq -e '.' "$GITHUB_CACHE_FILE" >/dev/null 2>&1; then
+        msg "Warning: corrupted cache file, ignoring"
+        return 0
+    fi
+
+    local email handle
+    while IFS=$'\t' read -r email handle; do
+        # Validate handle format (alphanumeric, hyphens, max 39 chars)
+        if [[ -n "$email" && -n "$handle" && "$handle" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$ ]]; then
+            EMAIL_TO_GITHUB["$email"]="$handle"
+        fi
+    done < <(jq -r 'to_entries[] | "\(.key)\t\(.value)"' "$GITHUB_CACHE_FILE" 2>/dev/null)
+
+    msg "Loaded ${#EMAIL_TO_GITHUB[@]} cached GitHub handle mappings"
+}
+
+# Save email -> github handle mappings to disk (atomic write)
+save_github_cache() {
+    if [[ ${#EMAIL_TO_GITHUB[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    mkdir -p "$GITHUB_CACHE_DIR"
+
+    local tmp_file
+    tmp_file="$(mktemp "$GITHUB_CACHE_DIR/cache.XXXXXX")" || return 1
+
+    # Build JSON from associative array
+    {
+        echo "{"
+        local first=true
+        local key
+        for key in "${!EMAIL_TO_GITHUB[@]}"; do
+            if [[ "$first" == "true" ]]; then
+                first=false
+            else
+                echo ","
+            fi
+            # Escape special characters in email for JSON
+            printf '  %s: %s' "$(jq -n --arg e "$key" '$e')" "$(jq -n --arg h "${EMAIL_TO_GITHUB[$key]}" '$h')"
+        done
+        echo
+        echo "}"
+    } > "$tmp_file"
+
+    # Validate before replacing
+    if jq -e '.' "$tmp_file" >/dev/null 2>&1; then
+        mv "$tmp_file" "$GITHUB_CACHE_FILE"
+        msg "Saved ${#EMAIL_TO_GITHUB[@]} GitHub handle mappings to cache"
+    else
+        rm -f "$tmp_file"
+        msg "Warning: failed to save cache (invalid JSON)"
+    fi
+}
+
+# Extract GitHub handle from email if it's a GitHub noreply address
+# Handles: user@users.noreply.github.com and 12345678+user@users.noreply.github.com
+extract_handle_from_noreply() {
+    local email="$1"
+
+    if [[ "$email" =~ ^([0-9]+\+)?([a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?)@users\.noreply\.github\.com$ ]]; then
+        echo "${BASH_REMATCH[2]}"
+        return 0
+    fi
+    return 1
+}
+
+# Extract GitHub handle from merge commit subject
+# Handles: "Merge pull request #123 from username/branch"
+extract_handle_from_merge_commit() {
+    local subject="$1"
+
+    if [[ "$subject" =~ ^Merge\ pull\ request\ \#[0-9]+\ from\ ([a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?)/.*$ ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    fi
+    return 1
+}
+
+# Extract PR number from commit subject
+# Handles: "Subject (#123)" and "Merge pull request #123 from"
+extract_pr_number() {
+    local subject="$1"
+
+    if [[ "$subject" =~ \(#([0-9]+)\)$ ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    elif [[ "$subject" =~ ^Merge\ pull\ request\ \#([0-9]+)\ from ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    fi
+    return 1
+}
+
+# Query GitHub API for PR author (with timeout and error handling)
+query_pr_author() {
+    local gh_repo="$1"  # e.g., "ipfs/kubo"
+    local pr_num="$2"
+
+    if ! gh_available; then
+        return 1
+    fi
+
+    local handle
+    handle="$(timeout "$GH_TIMEOUT" gh pr view "$pr_num" --repo "$gh_repo" --json author -q '.author.login' 2>/dev/null)" || return 1
+
+    # Validate handle format
+    if [[ -n "$handle" && "$handle" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$ ]]; then
+        echo "$handle"
+        return 0
+    fi
+    return 1
+}
+
+# Query GitHub API for commit author (fallback when no PR available)
+query_commit_author() {
+    local gh_repo="$1"  # e.g., "ipfs/kubo"
+    local commit_sha="$2"
+
+    if ! gh_available; then
+        return 1
+    fi
+
+    local handle
+    handle="$(timeout "$GH_TIMEOUT" gh api "/repos/$gh_repo/commits/$commit_sha" --jq '.author.login // empty' 2>/dev/null)" || return 1
+
+    # Validate handle format
+    if [[ -n "$handle" && "$handle" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$ ]]; then
+        echo "$handle"
+        return 0
+    fi
+    return 1
+}
+
+# Resolve email to GitHub handle using all available methods
+# Args: email, commit_hash (optional), repo_dir (optional), gh_repo (optional)
+resolve_github_handle() {
+    local email="$1"
+    local commit="${2:-}"
+    local repo_dir="${3:-}"
+    local gh_repo="${4:-}"
+
+    # Skip empty emails
+    [[ -z "$email" ]] && return 1
+
+    # Check runtime cache first
+    if [[ -n "${EMAIL_TO_GITHUB[$email]:-}" ]]; then
+        echo "${EMAIL_TO_GITHUB[$email]}"
+        return 0
+    fi
+
+    local handle=""
+
+    # Method 1: Extract from noreply email
+    if handle="$(extract_handle_from_noreply "$email")"; then
+        EMAIL_TO_GITHUB["$email"]="$handle"
+        echo "$handle"
+        return 0
+    fi
+
+    # Method 2: Look at commit message for merge commit pattern
+    if [[ -n "$commit" && -n "$repo_dir" ]]; then
+        local subject
+        subject="$(git -C "$repo_dir" log -1 --format='%s' "$commit" 2>/dev/null)" || true
+
+        if [[ -n "$subject" ]]; then
+            if handle="$(extract_handle_from_merge_commit "$subject")"; then
+                EMAIL_TO_GITHUB["$email"]="$handle"
+                echo "$handle"
+                return 0
+            fi
+
+            # Method 3: Query GitHub API for PR author
+            if [[ -n "$gh_repo" ]]; then
+                local pr_num
+                if pr_num="$(extract_pr_number "$subject")"; then
+                    if handle="$(query_pr_author "$gh_repo" "$pr_num")"; then
+                        EMAIL_TO_GITHUB["$email"]="$handle"
+                        echo "$handle"
+                        return 0
+                    fi
+                fi
+            fi
+        fi
+    fi
+
+    return 1
+}
+
+# Build GitHub handle mappings for all commits in a range
+# This does a single pass to collect PR numbers, then batch queries them
+build_github_mappings() {
+    local module="$1"
+    local start="$2"
+    local end="${3:-HEAD}"
+    local repo
+    repo="$(strip_version "$module")"
+    local dir
+    local gh_repo=""
+
+    if [[ "$module" == "github.com/ipfs/kubo" ]]; then
+        dir="$ROOT_DIR"
+    else
+        dir="$GOPATH/src/$repo"
+    fi
+
+    # Extract gh_repo for API calls (e.g., "ipfs/kubo" from "github.com/ipfs/kubo")
+    if [[ "$repo" =~ ^github\.com/(.+)$ ]]; then
+        gh_repo="${BASH_REMATCH[1]}"
+    fi
+
+    msg "Building GitHub handle mappings for $module..."
+
+    # Collect all unique emails and their commit context
+    declare -A email_commits=()
+    local hash email subject
+
+    while IFS=$'\t' read -r hash email subject; do
+        [[ -z "$email" ]] && continue
+
+        # Skip if already resolved
+        [[ -n "${EMAIL_TO_GITHUB[$email]:-}" ]] && continue
+
+        # Try to resolve without API first
+        local handle=""
+
+        # Method 1: noreply email
+        if handle="$(extract_handle_from_noreply "$email")"; then
+            EMAIL_TO_GITHUB["$email"]="$handle"
+            continue
+        fi
+
+        # Method 2: merge commit message
+        if handle="$(extract_handle_from_merge_commit "$subject")"; then
+            EMAIL_TO_GITHUB["$email"]="$handle"
+            continue
+        fi
+
+        # Store for potential API lookup
+        if [[ -z "${email_commits[$email]:-}" ]]; then
+            email_commits["$email"]="$hash"
+        fi
+    done < <(git -C "$dir" log --format='tformat:%H%x09%aE%x09%s' --no-merges "$start..$end" 2>/dev/null)
+
+    # API batch lookup for remaining emails (if gh is available)
+    if gh_available && [[ -n "$gh_repo" && ${#email_commits[@]} -gt 0 ]]; then
+        msg "Querying GitHub API for ${#email_commits[@]} unknown contributors..."
+        local key
+        for key in "${!email_commits[@]}"; do
+            # Skip if already resolved
+            [[ -n "${EMAIL_TO_GITHUB[$key]:-}" ]] && continue
+
+            local commit_hash="${email_commits[$key]}"
+            local subj handle
+            subj="$(git -C "$dir" log -1 --format='%s' "$commit_hash" 2>/dev/null)" || true
+
+            # Try PR author lookup first (cheaper API call)
+            local pr_num
+            if pr_num="$(extract_pr_number "$subj")"; then
+                if handle="$(query_pr_author "$gh_repo" "$pr_num")"; then
+                    EMAIL_TO_GITHUB["$key"]="$handle"
+                    continue
+                fi
+            fi
+
+            # Fallback: commit author API (works for any commit)
+            if handle="$(query_commit_author "$gh_repo" "$commit_hash")"; then
+                EMAIL_TO_GITHUB["$key"]="$handle"
+            fi
+        done
+    fi
+}
+
+##########################################################################################
+# Original infrastructure with modifications
+##########################################################################################
+
+build_include_regex() {
+    local result=""
+    local mod
+    for mod in "${INCLUDE_MODULES[@]}"; do
+        if [[ -n "$result" ]]; then
+            result="$result|$mod"
+        else
+            result="$mod"
+        fi
+    done
+    echo "($result)"
+}
+
+build_exclude_regex() {
+    local result=""
+    local mod
+    for mod in "${EXCLUDE_MODULES[@]}"; do
+        if [[ -n "$result" ]]; then
+            result="$result|$mod"
+        else
+            result="$mod"
+        fi
+    done
+    if [[ -n "$result" ]]; then
+        echo "($result)"
+    else
+        echo '$^'  # match nothing
+    fi
+}
 
 if [[ ${#INCLUDE_MODULES[@]} -gt 0 ]]; then
-    INCLUDE_REGEX="(${$(printf "|%s" "${INCLUDE_MODULES[@]}"):1})"
+    INCLUDE_REGEX="$(build_include_regex)"
 else
     INCLUDE_REGEX="" # "match anything"
 fi
 
 if [[ ${#EXCLUDE_MODULES[@]} -gt 0 ]]; then
-    EXCLUDE_REGEX="(${$(printf "|%s" "${EXCLUDE_MODULES[@]}"):1})"
+    EXCLUDE_REGEX="$(build_exclude_regex)"
 else
     EXCLUDE_REGEX='$^' # "match nothing"
 fi
@@ -71,8 +418,6 @@ NL=$'\n'
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 
-alias jq="jq --unbuffered"
-
 msg() {
     echo "$*" >&2
 }
@@ -80,11 +425,21 @@ msg() {
 statlog() {
     local module="$1"
     local rpath
+    local gh_repo=""
+
     if [[ "$module" == "github.com/ipfs/kubo" ]]; then
         rpath="$ROOT_DIR"
     else
         rpath="$GOPATH/src/$(strip_version "$module")"
     fi
+
+    # Extract gh_repo for API calls
+    local repo
+    repo="$(strip_version "$module")"
+    if [[ "$repo" =~ ^github\.com/(.+)$ ]]; then
+        gh_repo="${BASH_REMATCH[1]}"
+    fi
+
     local start="${2:-}"
     local end="${3:-HEAD}"
     local mailmap_file="$rpath/.mailmap"
@@ -93,18 +448,21 @@ statlog() {
     fi
 
     local stack=()
-    git -C "$rpath" -c mailmap.file="$mailmap_file" log --use-mailmap --shortstat --no-merges --pretty="tformat:%H%x09%aN%x09%aE" "$start..$end" -- . "${IGNORE_FILES_PATHSPEC[@]}" | while read -r line; do
+    local line
+    while read -r line; do
         if [[ -n "$line" ]]; then
             stack+=("$line")
             continue
         fi
 
+        local changes
         read -r changes
 
-        changed=0
-        insertions=0
-        deletions=0
-        while read count event; do
+        local changed=0
+        local insertions=0
+        local deletions=0
+        local count event
+        while read -r count event; do
             if [[ "$event" =~ ^file ]]; then
                 changed=$count
             elif [[ "$event" =~ ^insertion ]]; then
@@ -117,27 +475,32 @@ statlog() {
             fi
         done<<<"${changes//,/$NL}"
 
+        local author
         for author in "${stack[@]}"; do
+            local hash name email
             IFS=$'\t' read -r hash name email <<<"$author"
+
+            # Resolve GitHub handle
+            local github_handle=""
+            github_handle="$(resolve_github_handle "$email" "$hash" "$rpath" "$gh_repo")" || true
+
             jq -n \
                --arg "hash" "$hash" \
                --arg "name" "$name" \
                --arg "email" "$email" \
+               --arg "github" "$github_handle" \
                --argjson "changed" "$changed" \
                --argjson "insertions" "$insertions" \
                --argjson "deletions" "$deletions" \
-               '{Commit: $hash, Author: $name, Email: $email, Files: $changed, Insertions: $insertions, Deletions: $deletions}'
+               '{Commit: $hash, Author: $name, Email: $email, GitHub: $github, Files: $changed, Insertions: $insertions, Deletions: $deletions}'
         done
         stack=()
-    done
+    done < <(git -C "$rpath" -c mailmap.file="$mailmap_file" log --use-mailmap --shortstat --no-merges --pretty="tformat:%H%x09%aN%x09%aE" "$start..$end" -- . "${IGNORE_FILES_PATHSPEC[@]}")
 }
 
 # Returns a stream of deps changed between $1 and $2.
 dep_changes() {
-    {
-        <"$1"
-        <"$2"
-    } | jq -s 'JOIN(INDEX(.[0][]; .Path); .[1][]; .Path; {Path: .[0].Path, Old: (.[1] | del(.Path)), New: (.[0] | del(.Path))}) | select(.New.Version != .Old.Version)'
+    cat "$1" "$2" | jq -s 'JOIN(INDEX(.[0][]; .Path); .[1][]; .Path; {Path: .[0].Path, Old: (.[1] | del(.Path)), New: (.[0] | del(.Path))}) | select(.New.Version != .Old.Version)'
 }
 
 # resolve_commits resolves a git ref for each version.
@@ -165,12 +528,11 @@ ignored_commit() {
 
 # Generate a release log for a range of commits in a single repo.
 release_log() {
-    setopt local_options BASH_REMATCH
-
     local module="$1"
     local start="$2"
     local end="${3:-HEAD}"
-    local repo="$(strip_version "$1")"
+    local repo
+    repo="$(strip_version "$1")"
     local dir
     if [[ "$module" == "github.com/ipfs/kubo" ]]; then
         dir="$ROOT_DIR"
@@ -178,28 +540,25 @@ release_log() {
         dir="$GOPATH/src/$repo"
     fi
 
-    local commit pr
-    git -C "$dir" log \
-        --format='tformat:%H %s' \
-        --first-parent \
-        "$start..$end" |
-        while read commit subject; do
-            # Skip commits that only touch ignored files.
-            if ignored_commit "$dir" "$commit"; then
-                continue
-            fi
+    local commit subject
+    while read -r commit subject; do
+        # Skip commits that only touch ignored files.
+        if ignored_commit "$dir" "$commit"; then
+            continue
+        fi
 
-            if [[ "$subject" =~ '^Merge pull request #([0-9]+) from' ]]; then
-                local prnum="${BASH_REMATCH[2]}"
-                local desc="$(git -C "$dir" show --summary --format='tformat:%b' "$commit" | head -1)"
-                printf -- "- %s (%s)\n" "$desc" "$(pr_link "$repo" "$prnum")"
-            elif [[ "$subject" =~ '\(#([0-9]+)\)$' ]]; then
-                local prnum="${BASH_REMATCH[2]}"
-                printf -- "- %s (%s)\n" "$subject" "$(pr_link "$repo" "$prnum")"
-            else
-                printf -- "- %s\n" "$subject"
-            fi
-        done
+        if [[ "$subject" =~ ^Merge\ pull\ request\ \#([0-9]+)\ from ]]; then
+            local prnum="${BASH_REMATCH[1]}"
+            local desc
+            desc="$(git -C "$dir" show --summary --format='tformat:%b' "$commit" | head -1)"
+            printf -- "- %s (%s)\n" "$desc" "$(pr_link "$repo" "$prnum")"
+        elif [[ "$subject" =~ \(#([0-9]+)\)$ ]]; then
+            local prnum="${BASH_REMATCH[1]}"
+            printf -- "- %s (%s)\n" "$subject" "$(pr_link "$repo" "$prnum")"
+        else
+            printf -- "- %s\n" "$subject"
+        fi
+    done < <(git -C "$dir" log --format='tformat:%H %s' --first-parent "$start..$end")
 }
 
 indent() {
@@ -211,7 +570,8 @@ mod_deps() {
 }
 
 ensure() {
-    local repo="$(strip_version "$1")"
+    local repo
+    repo="$(strip_version "$1")"
     local commit="$2"
     local rpath
     if [[ "$1" == "github.com/ipfs/kubo" ]]; then
@@ -232,14 +592,27 @@ ensure() {
     git -C "$rpath" rev-parse --verify "$commit" >/dev/null || return 1
 }
 
+# Summarize stats, grouping by GitHub handle (with fallback to email for dedup)
 statsummary() {
-    jq -s 'group_by(.Author)[] | {Author: .[0].Author, Commits: (. | length), Insertions: (map(.Insertions) | add), Deletions: (map(.Deletions) | add), Files: (map(.Files) | add)}' |
-        jq '. + {Lines: (.Deletions + .Insertions)}'
+    jq -s '
+        # Group by GitHub handle if available, otherwise by email
+        group_by(if .GitHub != "" then .GitHub else .Email end)[] |
+        {
+            # Use first non-empty GitHub handle, or fall back to Author name
+            Author: .[0].Author,
+            GitHub: (map(select(.GitHub != "")) | .[0].GitHub // ""),
+            Email: .[0].Email,
+            Commits: (. | length),
+            Insertions: (map(.Insertions) | add),
+            Deletions: (map(.Deletions) | add),
+            Files: (map(.Files) | add)
+        }
+    ' | jq '. + {Lines: (.Deletions + .Insertions)}'
 }
 
 strip_version() {
     local repo="$1"
-    if [[ "$repo" =~ '.*/v[0-9]+$' ]]; then
+    if [[ "$repo" =~ .*/v[0-9]+$ ]]; then
         repo="$(dirname "$repo")"
     fi
     echo "$repo"
@@ -248,16 +621,24 @@ strip_version() {
 recursive_release_log() {
     local start="${1:-$(git tag -l | sort -V | grep -v -- '-rc' | grep 'v'| tail -n1)}"
     local end="${2:-$(git rev-parse HEAD)}"
-    local repo_root="$(git rev-parse --show-toplevel)"
-    local module="$(go list -m)"
-    local dir="$(go list -m -f '{{.Dir}}')"
+    local repo_root
+    repo_root="$(git rev-parse --show-toplevel)"
+    local module
+    module="$(go list -m)"
+    local dir
+    dir="$(go list -m -f '{{.Dir}}')"
+
+    # Load cached GitHub handle mappings
+    load_github_cache
 
     # Kubo can be run from any directory, dependencies still use GOPATH
 
     (
         local result=0
-        local workspace="$(mktemp -d)"
-        trap "$(printf 'rm -rf "%q"' "$workspace")" INT TERM EXIT
+        local workspace
+        workspace="$(mktemp -d)"
+        # shellcheck disable=SC2064
+        trap "rm -rf '$workspace'" INT TERM EXIT
         cd "$workspace"
 
         echo "Computing old deps..." >&2
@@ -272,6 +653,9 @@ recursive_release_log() {
 
         printf -- "Generating Changelog for %s %s..%s\n" "$module" "$start" "$end" >&2
 
+        # Pre-build GitHub mappings for main module
+        build_github_mappings "$module" "$start" "$end"
+
         echo "### 📝 Changelog"
         echo
         echo "<details><summary>Full Changelog</summary>"
@@ -282,24 +666,26 @@ recursive_release_log() {
 
         statlog "$module" "$start" "$end" > statlog.json
 
-        dep_changes old_deps.json new_deps.json |
+        local dep_module new new_ref old old_ref
+        while read -r dep_module new new_ref old old_ref; do
+            if ! ensure "$dep_module" "$new_ref"; then
+                result=1
+                local changelog="failed to fetch repo"
+            else
+                # Pre-build GitHub mappings for dependency
+                build_github_mappings "$dep_module" "$old_ref" "$new_ref"
+                statlog "$dep_module" "$old_ref" "$new_ref" >> statlog.json
+                local changelog
+                changelog="$(release_log "$dep_module" "$old_ref" "$new_ref")"
+            fi
+            if [[ -n "$changelog" ]]; then
+                printf -- "- %s (%s -> %s):\n" "$dep_module" "$old" "$new"
+                echo "$changelog" | indent
+            fi
+        done < <(dep_changes old_deps.json new_deps.json |
             jq --arg inc "$INCLUDE_REGEX" --arg exc "$EXCLUDE_REGEX" \
                'select(.Path | test($inc)) | select(.Path | test($exc) | not)' |
-            # Compute changelogs
-            jq -r '"\(.Path) \(.New.Version) \(.New.Ref) \(.Old.Version) \(.Old.Ref // "")"' |
-            while read module new new_ref old old_ref; do
-                if ! ensure "$module" "$new_ref"; then
-                    result=1
-                    local changelog="failed to fetch repo"
-                else
-                    statlog "$module" "$old_ref" "$new_ref" >> statlog.json
-                    local changelog="$(release_log "$module" "$old_ref" "$new_ref")"
-                fi
-                if [[ -n "$changelog" ]]; then
-                    printf -- "- %s (%s -> %s):\n" "$module" "$old" "$new"
-                    echo "$changelog" | indent
-                fi
-            done
+            jq -r '"\(.Path) \(.New.Version) \(.New.Ref) \(.Old.Version) \(.Old.Ref // "")"')
 
         echo
         echo "</details>"
@@ -311,8 +697,18 @@ recursive_release_log() {
         echo "|-------------|---------|---------|---------------|"
         statsummary <statlog.json |
             jq -s 'sort_by(.Lines) | reverse | .[]' |
-            jq -r '"| \(.Author) | \(.Commits) | +\(.Insertions)/-\(.Deletions) | \(.Files) |"'
-        return "$status"
+            jq -r '
+                if .GitHub != "" then
+                    "| [@\(.GitHub)](https://github.com/\(.GitHub)) | \(.Commits) | +\(.Insertions)/-\(.Deletions) | \(.Files) |"
+                else
+                    "| \(.Author) | \(.Commits) | +\(.Insertions)/-\(.Deletions) | \(.Files) |"
+                end
+            '
+
+        # Save cache before exiting
+        save_github_cache
+
+        return "$result"
     )
 }
 
