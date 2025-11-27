@@ -24,10 +24,15 @@ INCLUDE_MODULES=(
     "^github.com/multiformats/"
     "^github.com/filecoin-project/"
     "^github.com/ipfs-shipyard/"
+    "^github.com/ipshipyard/"
+    "^github.com/probe-lab/"
 
     # Authors of personal modules used by go-ipfs that should be mentioned in the
     # release notes.
     "^github.com/whyrusleeping/"
+    "^github.com/gammazero/"
+    "^github.com/Jorropo/"
+    "^github.com/guillaumemichel/"
     "^github.com/Kubuxu/"
     "^github.com/jbenet/"
     "^github.com/Stebalien/"
