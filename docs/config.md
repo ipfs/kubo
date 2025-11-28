@@ -1945,8 +1945,6 @@ map CIDs to your peer ID, enabling content discovery across the network.
 While designed to support multiple routing systems in the future, the current
 default configuration only supports [providing to the Amino DHT](#providedht).
 
-<!-- TODO: See the [Reprovide Sweep blog post](https://github.com/ipshipyard/ipshipyard.com/pull/8) for detailed performance comparisons. -->
-
 ### `Provide.Enabled`
 
 Controls whether Kubo provide and reprovide systems are enabled.
@@ -2189,6 +2187,8 @@ to `false`.
 > - **Accelerated DHT**: Hourly network crawls creating traffic spikes, high resource usage
 >
 > Sweep mode achieves similar effectiveness to the Accelerated DHT client but with steady resource consumption.
+
+For background on the sweep provider design and motivations, see Shipyard's blogpost [Provide Sweep: Solving the DHT Provide Bottleneck](https://ipshipyard.com/blog/2025-dht-provide-sweep/).
 
 You can compare the effectiveness of sweep mode vs legacy mode by monitoring the appropriate metrics (see [Monitoring Provide Operations](#monitoring-provide-operations) above).
 
