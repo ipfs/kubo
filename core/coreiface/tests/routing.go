@@ -41,8 +41,7 @@ func (tp *TestSuite) testRoutingPublishKey(t *testing.T, ctx context.Context, ap
 }
 
 func (tp *TestSuite) TestRoutingGet(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	apis, err := tp.MakeAPISwarm(t, ctx, 2)
 	require.NoError(t, err)
@@ -63,8 +62,7 @@ func (tp *TestSuite) TestRoutingGet(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRoutingPut(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 2)
 	require.NoError(t, err)
 
@@ -81,8 +79,7 @@ func (tp *TestSuite) TestRoutingPut(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRoutingPutOffline(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// init a swarm & publish an IPNS entry to get a valid payload
 	apis, err := tp.MakeAPISwarm(t, ctx, 2)
@@ -104,8 +101,7 @@ func (tp *TestSuite) TestRoutingPutOffline(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRoutingFindPeer(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	if err != nil {
 		t.Fatal(err)
@@ -159,8 +155,7 @@ func (tp *TestSuite) TestRoutingFindPeer(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRoutingFindProviders(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	if err != nil {
 		t.Fatal(err)
@@ -198,8 +193,7 @@ func (tp *TestSuite) TestRoutingFindProviders(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRoutingProvide(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	if err != nil {
 		t.Fatal(err)
