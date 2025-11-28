@@ -2640,6 +2640,10 @@ prepared. This means operations like searching the DHT for particular peers or c
    - You can see if the DHT has been initially populated by running `ipfs stats dht`
 3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
 them
+4. (⚠️ 0.39 limitation) When used with [`Provide.DHT.SweepEnabled`](#providedhtsweepenabled), the sweep provider may
+fail to estimate DHT size during the accelerated client's network crawl, resulting in all CIDs grouped into a
+single region. Content still gets reprovided, but without sweep efficiency gains. Consider disabling the
+accelerated client when using sweep mode.
 
 Default: `false`
 
