@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"io"
 	"testing"
 
@@ -12,8 +11,7 @@ import (
 )
 
 func TestFilesCp_DagCborNodeFails(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	cmdCtx, err := coremock.MockCmdsCtx()
 	require.NoError(t, err)

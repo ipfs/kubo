@@ -1,7 +1,6 @@
 package libp2p
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -42,8 +41,7 @@ func TestLoggingResourceManager(t *testing.T) {
 	}
 
 	// run the logger which will write an entry for those errors
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	lrm.start(ctx)
 	clock.Add(3 * time.Second)
 
