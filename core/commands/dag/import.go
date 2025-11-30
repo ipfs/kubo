@@ -2,25 +2,13 @@ package dagcmd
 
 import (
 	"errors"
-	"fmt"
-	"io"
 
 	"github.com/ipfs/boxo/files"
-	blocks "github.com/ipfs/go-block-format"
-	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	ipld "github.com/ipfs/go-ipld-format"
-	ipldlegacy "github.com/ipfs/go-ipld-legacy"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/core/coreiface/options"
-	gocarv2 "github.com/ipld/go-car/v2"
-
 	"github.com/ipfs/kubo/core/commands/cmdenv"
-	"github.com/ipfs/kubo/core/commands/cmdutils"
+	"github.com/ipfs/kubo/core/coreiface/options"
 )
-
-var log = logging.Logger("core/commands")
 
 func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 	node, err := cmdenv.GetNode(env)
@@ -38,62 +26,31 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	blockDecoder := ipldlegacy.NewDecoder()
-
-	// on import ensure we do not reach out to the network for any reason
-	// if a pin based on what is imported + what is in the blockstore
-	// isn't possible: tough luck
+	// Ensure offline mode - import should not reach out to network
 	api, err = api.WithOptions(options.Api.Offline(true))
 	if err != nil {
 		return err
 	}
 
+	// Parse options
 	doPinRoots, _ := req.Options[pinRootsOptionName].(bool)
-
+	doStats, _ := req.Options[statsOptionName].(bool)
 	fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
 	fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
 
+	// Resolve fast-provide options from config if not explicitly set
 	fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
 	fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
 
-	// grab a pinlock ( which doubles as a GC lock ) so that regardless of the
-	// size of the streamed-in cars nothing will disappear on us before we had
-	// a chance to roots that may show up at the very end
-	// This is especially important for use cases like dagger:
-	//    ipfs dag import $( ... | ipfs-dagger --stdout=carfifos )
-	//
-	if doPinRoots {
-		unlocker := node.Blockstore.PinLock(req.Context)
-		defer unlocker.Unlock(req.Context)
+	// Build CoreAPI options
+	dagOpts := []options.DagImportOption{
+		options.Dag.PinRoots(doPinRoots),
+		options.Dag.Stats(doStats),
+		options.Dag.FastProvideRoot(fastProvideRoot),
+		options.Dag.FastProvideWait(fastProvideWait),
 	}
 
-	// this is *not* a transaction
-	// it is simply a way to relieve pressure on the blockstore
-	// similar to pinner.Pin/pinner.Flush
-	batch := ipld.NewBatch(req.Context, api.Dag(),
-		// Default: 128. Means 128 file descriptors needed in flatfs
-		ipld.MaxNodesBatchOption(int(cfg.Import.BatchMaxNodes.WithDefault(config.DefaultBatchMaxNodes))),
-		// Default 100MiB. When setting block size to 1MiB, we can add
-		// ~100 nodes maximum. With default 256KiB block-size, we will
-		// hit the max nodes limit at 32MiB.p
-		ipld.MaxSizeBatchOption(int(cfg.Import.BatchMaxSize.WithDefault(config.DefaultBatchMaxSize))),
-	)
-
-	roots := cid.NewSet()
-	var blockCount, blockBytesCount uint64
-
-	// remember last valid block and provide a meaningful error message
-	// when a truncated/mangled CAR is being imported
-	importError := func(previous blocks.Block, current blocks.Block, err error) error {
-		if current != nil {
-			return fmt.Errorf("import failed at block %q: %w", current.Cid(), err)
-		}
-		if previous != nil {
-			return fmt.Errorf("import failed after block %q: %w", previous.Cid(), err)
-		}
-		return fmt.Errorf("import failed: %w", err)
-	}
-
+	// Process each file
 	it := req.Files.Entries()
 	for it.Next() {
 		file := files.FileFromEntry(it)
@@ -101,118 +58,44 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			return errors.New("expected a file handle")
 		}
 
-		// import blocks
-		err = func() error {
-			// wrap a defer-closer-scope
-			//
-			// every single file in it() is already open before we start
-			// just close here sooner rather than later for neatness
-			// and to surface potential errors writing on closed fifos
-			// this won't/can't help with not running out of handles
-			defer file.Close()
+		// Call CoreAPI to import the file
+		resultChan, err := api.Dag().Import(req.Context, file, dagOpts...)
+		if err != nil {
+			return err
+		}
 
-			var previous blocks.Block
-
-			car, err := gocarv2.NewBlockReader(file)
-			if err != nil {
-				return err
+		// Stream results back to user
+		for result := range resultChan {
+			// Check for errors from CoreAPI
+			if result.Err != nil {
+				return result.Err
 			}
 
-			for _, c := range car.Roots {
-				roots.Add(c)
-			}
-
-			for {
-				block, err := car.Next()
-				if err != nil && err != io.EOF {
-					return importError(previous, block, err)
-				} else if block == nil {
-					break
-				}
-				if err := cmdutils.CheckBlockSize(req, uint64(len(block.RawData()))); err != nil {
-					return importError(previous, block, err)
-				}
-
-				// the double-decode is suboptimal, but we need it for batching
-				nd, err := blockDecoder.DecodeNode(req.Context, block)
+			// Emit root results
+			if result.Root != nil {
+				err := res.Emit(&CarImportOutput{
+					Root: &RootMeta{
+						Cid:         result.Root.Cid,
+						PinErrorMsg: result.Root.PinErrorMsg,
+					},
+				})
 				if err != nil {
-					return importError(previous, block, err)
+					return err
 				}
-
-				if err := batch.Add(req.Context, nd); err != nil {
-					return importError(previous, block, err)
-				}
-				blockCount++
-				blockBytesCount += uint64(len(block.RawData()))
-				previous = block
-			}
-			return nil
-		}()
-		if err != nil {
-			return err
-		}
-	}
-
-	if err := batch.Commit(); err != nil {
-		return err
-	}
-
-	// It is not guaranteed that a root in a header is actually present in the same ( or any )
-	// .car file. This is the case in version 1, and ideally in further versions too.
-	// Accumulate any root CID seen in a header, and supplement its actual node if/when encountered
-	// We will attempt a pin *only* at the end in case all car files were well-formed.
-
-	// opportunistic pinning: try whatever sticks
-	if doPinRoots {
-		err = roots.ForEach(func(c cid.Cid) error {
-			ret := RootMeta{Cid: c}
-
-			// This will trigger a full read of the DAG in the pinner, to make sure we have all blocks.
-			// Ideally we would do colloring of the pinning state while importing the blocks
-			// and ensure the gray bucket is empty at the end (or use the network to download missing blocks).
-			if block, err := node.Blockstore.Get(req.Context, c); err != nil {
-				ret.PinErrorMsg = err.Error()
-			} else if nd, err := blockDecoder.DecodeNode(req.Context, block); err != nil {
-				ret.PinErrorMsg = err.Error()
-			} else if err := node.Pinning.Pin(req.Context, nd, true, ""); err != nil {
-				ret.PinErrorMsg = err.Error()
-			} else if err := node.Pinning.Flush(req.Context); err != nil {
-				ret.PinErrorMsg = err.Error()
 			}
 
-			return res.Emit(&CarImportOutput{Root: &ret})
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	stats, _ := req.Options[statsOptionName].(bool)
-	if stats {
-		err = res.Emit(&CarImportOutput{
-			Stats: &CarImportStats{
-				BlockCount:      blockCount,
-				BlockBytesCount: blockBytesCount,
-			},
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	// Fast-provide roots for faster discovery
-	if fastProvideRoot {
-		err = roots.ForEach(func(c cid.Cid) error {
-			return cmdenv.ExecuteFastProvide(req.Context, node, cfg, c, fastProvideWait, doPinRoots, doPinRoots, false)
-		})
-		if err != nil {
-			return err
-		}
-	} else {
-		if fastProvideWait {
-			log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config", "wait-flag-ignored", true)
-		} else {
-			log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
+			// Emit stats results
+			if result.Stats != nil {
+				err := res.Emit(&CarImportOutput{
+					Stats: &CarImportStats{
+						BlockCount:      result.Stats.BlockCount,
+						BlockBytesCount: result.Stats.BlockBytesCount,
+					},
+				})
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 

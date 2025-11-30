@@ -52,6 +52,11 @@ type UnixfsAddSettings struct {
 	PreserveMtime bool
 	Mode          os.FileMode
 	Mtime         time.Time
+
+	FastProvideRoot    bool
+	FastProvideRootSet bool
+	FastProvideWait    bool
+	FastProvideWaitSet bool
 }
 
 type UnixfsLsSettings struct {
@@ -97,6 +102,11 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		PreserveMtime: false,
 		Mode:          0,
 		Mtime:         time.Time{},
+
+		FastProvideRoot:    false,
+		FastProvideRootSet: false,
+		FastProvideWait:    false,
+		FastProvideWaitSet: false,
 	}
 
 	for _, opt := range opts {
@@ -393,6 +403,26 @@ func (unixfsOpts) Mtime(seconds int64, nsecs uint32) UnixfsAddOption {
 			return errors.New("mtime nanoseconds must be in range [1, 999999999]")
 		}
 		settings.Mtime = time.Unix(seconds, int64(nsecs))
+		return nil
+	}
+}
+
+// FastProvideRoot sets whether to immediately provide root CID to DHT for faster discovery.
+// If not set, server uses Import.FastProvideRoot config value (default: true).
+func (unixfsOpts) FastProvideRoot(enable bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.FastProvideRoot = enable
+		settings.FastProvideRootSet = true
+		return nil
+	}
+}
+
+// FastProvideWait sets whether to block until fast provide completes.
+// If not set, server uses Import.FastProvideWait config value (default: false).
+func (unixfsOpts) FastProvideWait(enable bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.FastProvideWait = enable
+		settings.FastProvideWaitSet = true
 		return nil
 	}
 }

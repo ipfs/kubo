@@ -180,7 +180,7 @@ func TestProvideStatBasic(t *testing.T) {
 
 		res := node.RunIPFS("provide", "stat")
 		assert.Error(t, res.Err)
-		assert.Contains(t, res.Stderr.String(), "this command must be run in online mode")
+		assert.Contains(t, res.Stderr.String(), "this action must be run in online mode")
 	})
 }
 
