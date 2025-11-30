@@ -177,7 +177,7 @@ func testPinProgress(t *testing.T, args testPinsArgs) {
 		res := node.RunIPFS("pin", "add", "--progress", cid)
 		node.Runner.AssertNoError(res)
 
-		assert.Contains(t, res.Stderr.String(), " 5 nodes")
+		assert.Contains(t, res.Stderr.String(), " 5 nodes (1.0 MB)")
 	})
 }
 

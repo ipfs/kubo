@@ -2,6 +2,8 @@ module github.com/ipfs/kubo
 
 go 1.25
 
+replace github.com/ipfs/boxo => github.com/vlerdman/boxo v0.0.0-20251124080808-467065c7af0b
+
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
