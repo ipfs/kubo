@@ -136,7 +136,7 @@ require (
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
-	github.com/ipfs/boxo v0.35.3-0.20251202220026-0842ad274a0c // indirect
+	github.com/ipfs/boxo v0.35.3-0.20251203042105-52a05615b40f // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.3 // indirect
 	github.com/ipfs/go-cid v0.6.0 // indirect
