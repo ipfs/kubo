@@ -63,6 +63,7 @@ config file at runtime.
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
     - [`Gateway.DeserializedResponses`](#gatewaydeserializedresponses)
+    - [`Gateway.AllowCodecConversion`](#gatewayallowcodecconversion)
     - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
     - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
     - [`Gateway.RetrievalTimeout`](#gatewayretrievaltimeout)
@@ -1101,6 +1102,28 @@ requests, or not. By default, it is enabled. When disabling this option, the gat
 operates as a Trustless Gateway only: <https://specs.ipfs.tech/http-gateways/trustless-gateway/>.
 
 Default: `true`
+
+Type: `flag`
+
+### `Gateway.AllowCodecConversion`
+
+An optional flag to enable automatic conversion between codecs when the
+requested format differs from the block's native codec (e.g., converting
+dag-pb or dag-cbor to dag-json).
+
+When disabled (the default), the gateway returns `406 Not Acceptable` for
+codec mismatches, following behavior specified in
+[IPIP-0524](https://github.com/ipfs/specs/pull/524).
+
+**Recommended approach**: Instead of relying on gateway-side conversion,
+fetch the raw block using `?format=raw` (`application/vnd.ipld.raw`) and
+perform conversion client-side. This approach:
+
+- Allows clients to use any codec without waiting for gateway support
+- Enables ecosystem innovation without gateway operator coordination
+- Works with libraries like [@helia/verified-fetch](https://www.npmjs.com/package/@helia/verified-fetch) in JavaScript
+
+Default: `false`
 
 Type: `flag`
 
