@@ -876,6 +876,8 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
 		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
+	} else {
+		opts = append(opts, corehttp.LandingPageOption())
 	}
 
 	node, err := cctx.ConstructNode()

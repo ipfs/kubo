@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <meta name="description" content="Default landing page for Kubo, an IPFS node implementation.">
+    <meta property="og:title" content="Welcome to Kubo IPFS Node!">
+    <meta property="og:description" content="Default landing page for Kubo, an IPFS node implementation.">
+    <meta property="og:type" content="website">
+    <title>Welcome to Kubo IPFS Node!</title>
+    <style>
+        html { color-scheme: light dark; }
+        body {
+            max-width: 40em;
+            margin: 2em auto;
+            padding: 0 1em;
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+        }
+        h1 {
+            border-bottom: 2px solid;
+            padding-bottom: 0.3em;
+        }
+        .note {
+            background: rgba(128, 128, 128, 0.1);
+            border-left: 4px solid rgba(128, 128, 128, 0.5);
+            padding: 0.5em 1em;
+            margin: 1.5em 0;
+        }
+        a { color: #0969da; }
+        @media (prefers-color-scheme: dark) {
+            a { color: #58a6ff; }
+        }
+        ul { padding-left: 1.5em; }
+        li { margin: 0.3em 0; }
+        code {
+            background: rgba(128, 128, 128, 0.15);
+            padding: 0.1em 0.3em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to Kubo!</h1>
+
+    <p>If you see this page, the <a href="https://github.com/ipfs/kubo" target="_blank" rel="noopener noreferrer">Kubo IPFS node</a> has been successfully installed and is working.</p>
+
+    <p>For configuration options, please refer to the <a href="https://github.com/ipfs/kubo/blob/master/docs/config.md" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+
+    <div class="note">
+        <strong>Note to operators:</strong> This is the default landing page.
+        Set <code>Gateway.RootRedirect</code> in the <a href="https://github.com/ipfs/kubo/blob/master/docs/config.md#gatewayrootredirect" target="_blank" rel="noopener noreferrer">configuration</a> to redirect to your own content.
+    </div>
+
+    <h2>Resources</h2>
+    <ul>
+        <li><a href="https://github.com/ipfs/kubo" target="_blank" rel="noopener noreferrer">Kubo on GitHub</a></li>
+        <li><a href="https://github.com/ipfs/kubo/blob/master/docs/config.md" target="_blank" rel="noopener noreferrer">Kubo Configuration Reference</a></li>
+        <li><a href="https://docs.ipfs.tech" target="_blank" rel="noopener noreferrer">IPFS Documentation</a></li>
+        <li><a href="https://docs.ipfs.tech/concepts/glossary/#gateway" target="_blank" rel="noopener noreferrer">IPFS Gateway Documentation</a></li>
+        <li><a href="https://specs.ipfs.tech/http-gateways/" target="_blank" rel="noopener noreferrer">IPFS HTTP Gateway Specifications</a></li>
+    </ul>
+
+    <div id="abuse-section">
+        <h2>Abuse Reports</h2>
+        <p>
+            This gateway is operated by a third party. To report abuse, contact the operator or owner of
+            <span id="gateway-host"></span>.
+        </p>
+    </div>
+    <script>
+        (function() {
+            var hostname = window.location.hostname;
+            var section = document.getElementById('abuse-section');
+            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+                section.style.display = 'none';
+                return;
+            }
+            var host = document.getElementById('gateway-host');
+            var link = document.createElement('a');
+            link.href = 'https://whois.domaintools.com/' + hostname;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = hostname;
+            host.appendChild(link);
+        })();
+    </script>
+    <noscript>
+        <p>To report abuse, look up the domain owner using a WHOIS service.</p>
+    </noscript>
+</body>
+</html>
