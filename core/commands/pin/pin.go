@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	bserv "github.com/ipfs/boxo/blockservice"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
@@ -47,6 +48,7 @@ type PinOutput struct {
 type AddPinOutput struct {
 	Pins     []string `json:",omitempty"`
 	Progress int      `json:",omitempty"`
+	Bytes    uint64   `json:",omitempty"`
 }
 
 const (
@@ -147,14 +149,15 @@ It may take some time. Pass '--progress' to track the progress.
 					return val.err
 				}
 
-				if pv := v.Value(); pv != 0 {
-					if err := res.Emit(&AddPinOutput{Progress: v.Value()}); err != nil {
+				if ps := v.ProgressStat(); ps.Nodes != 0 {
+					if err := res.Emit(&AddPinOutput{Progress: ps.Nodes, Bytes: ps.Bytes}); err != nil {
 						return err
 					}
 				}
 				return res.Emit(&AddPinOutput{Pins: val.pins})
 			case <-ticker.C:
-				if err := res.Emit(&AddPinOutput{Progress: v.Value()}); err != nil {
+				ps := v.ProgressStat()
+				if err := res.Emit(&AddPinOutput{Progress: ps.Nodes, Bytes: ps.Bytes}); err != nil {
 					return err
 				}
 			case <-ctx.Done():
@@ -197,7 +200,7 @@ It may take some time. Pass '--progress' to track the progress.
 				}
 				if out.Pins == nil {
 					// this can only happen if the progress option is set
-					fmt.Fprintf(os.Stderr, "Fetched/Processed %d nodes\r", out.Progress)
+					fmt.Fprintf(os.Stderr, "Fetched/Processed %d nodes (%s)\r", out.Progress, humanize.Bytes(out.Bytes))
 				} else {
 					err = re.Emit(out)
 					if err != nil {

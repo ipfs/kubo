@@ -1945,8 +1945,6 @@ map CIDs to your peer ID, enabling content discovery across the network.
 While designed to support multiple routing systems in the future, the current
 default configuration only supports [providing to the Amino DHT](#providedht).
 
-<!-- TODO: See the [Reprovide Sweep blog post](https://github.com/ipshipyard/ipshipyard.com/pull/8) for detailed performance comparisons. -->
-
 ### `Provide.Enabled`
 
 Controls whether Kubo provide and reprovide systems are enabled.
@@ -2118,6 +2116,7 @@ connections this setting can generate.
 > users. The system will only use workers as needed - unused resources won't be
 > consumed. Ensure you adjust the swarm [connection manager](#swarmconnmgr) and
 > [resource manager](#swarmresourcemgr) configuration accordingly.
+> See [Capacity Planning](https://github.com/ipfs/kubo/blob/master/docs/provide-stats.md#capacity-planning) for more details.
 
 Default: `16`
 
@@ -2188,6 +2187,8 @@ to `false`.
 > - **Accelerated DHT**: Hourly network crawls creating traffic spikes, high resource usage
 >
 > Sweep mode achieves similar effectiveness to the Accelerated DHT client but with steady resource consumption.
+
+For background on the sweep provider design and motivations, see Shipyard's blogpost [Provide Sweep: Solving the DHT Provide Bottleneck](https://ipshipyard.com/blog/2025-dht-provide-sweep/).
 
 You can compare the effectiveness of sweep mode vs legacy mode by monitoring the appropriate metrics (see [Monitoring Provide Operations](#monitoring-provide-operations) above).
 
@@ -2639,6 +2640,10 @@ prepared. This means operations like searching the DHT for particular peers or c
    - You can see if the DHT has been initially populated by running `ipfs stats dht`
 3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
 them
+4. (⚠️ 0.39 limitation) When used with [`Provide.DHT.SweepEnabled`](#providedhtsweepenabled), the sweep provider may
+fail to estimate DHT size during the accelerated client's network crawl, resulting in all CIDs grouped into a
+single region. Content still gets reprovided, but without sweep efficiency gains. Consider disabling the
+accelerated client when using sweep mode.
 
 Default: `false`
 
