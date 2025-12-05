@@ -21,6 +21,12 @@ import (
 
 	fsnotify "github.com/fsnotify/fsnotify"
 	"github.com/ipfs/boxo/files"
+
+	"github.com/ipfs/kubo/plugin"
+	pluginbadgerds "github.com/ipfs/kubo/plugin/plugins/badgerds"
+	pluginflatfs "github.com/ipfs/kubo/plugin/plugins/flatfs"
+	pluginlevelds "github.com/ipfs/kubo/plugin/plugins/levelds"
+	pluginpebbleds "github.com/ipfs/kubo/plugin/plugins/pebbleds"
 )
 
 var (
@@ -60,6 +66,18 @@ func main() {
 	}
 }
 
+func loadDatastorePlugins(plugins []plugin.Plugin) error {
+	for _, pl := range plugins {
+		if pl, ok := pl.(plugin.PluginDatastore); ok {
+			err := fsrepo.AddDatastoreConfigHandler(pl.DatastoreTypeName(), pl.DatastoreConfigParser())
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func run(ipfsPath, watchPath string) error {
 	log.Printf("running IPFSWatch on '%s' using repo at '%s'...", watchPath, ipfsPath)
 
@@ -75,6 +93,19 @@ func run(ipfsPath, watchPath string) error {
 
 	if err := addTree(watcher, watchPath); err != nil {
 		return err
+	}
+
+	if err = loadDatastorePlugins(pluginbadgerds.Plugins); err != nil {
+		return nil
+	}
+	if err = loadDatastorePlugins(pluginflatfs.Plugins); err != nil {
+		return nil
+	}
+	if err = loadDatastorePlugins(pluginlevelds.Plugins); err != nil {
+		return nil
+	}
+	if err = loadDatastorePlugins(pluginpebbleds.Plugins); err != nil {
+		return nil
 	}
 
 	r, err := fsrepo.Open(ipfsPath)
