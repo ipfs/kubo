@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/ipfs/boxo/path"
+	boxoprovider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/libp2p/go-libp2p-kad-dht/provider/stats"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -26,4 +28,15 @@ type RoutingAPI interface {
 
 	// Provide announces to the network that you are providing given values
 	Provide(context.Context, path.Path, ...options.RoutingProvideOption) error
+
+	// ProvideStats returns statistics about the provide system.
+	// Returns stats for either sweep provider (new default) or legacy provider.
+	ProvideStats(context.Context, ...options.RoutingProvideStatOption) (*ProvideStatsResponse, error)
+}
+
+// ProvideStatsResponse contains statistics about the provide system
+type ProvideStatsResponse struct {
+	Sweep  *stats.Stats                  `json:"Sweep,omitempty"`
+	Legacy *boxoprovider.ReproviderStats `json:"Legacy,omitempty"`
+	FullRT bool                          `json:"FullRT,omitempty"`
 }

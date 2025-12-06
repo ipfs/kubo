@@ -96,3 +96,34 @@ func (routingOpts) AllowOffline(allow bool) RoutingPutOption {
 		return nil
 	}
 }
+
+type RoutingProvideStatSettings struct {
+	UseLAN bool
+}
+
+type RoutingProvideStatOption func(*RoutingProvideStatSettings) error
+
+func RoutingProvideStatOptions(opts ...RoutingProvideStatOption) (*RoutingProvideStatSettings, error) {
+	options := &RoutingProvideStatSettings{
+		UseLAN: false,
+	}
+
+	for _, opt := range opts {
+		err := opt(options)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return options, nil
+}
+
+// UseLAN is an option for [Routing.ProvideStats] which specifies whether to
+// return stats for LAN DHT only (only valid for Sweep provider with Dual DHT).
+// Default value is false (WAN DHT stats).
+func (routingOpts) UseLAN(useLAN bool) RoutingProvideStatOption {
+	return func(settings *RoutingProvideStatSettings) error {
+		settings.UseLAN = useLAN
+		return nil
+	}
+}
