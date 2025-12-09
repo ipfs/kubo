@@ -377,7 +377,10 @@ var DagStatCmd = &cmds.Command{
 'ipfs dag stat' fetches a DAG and returns various statistics about it.
 Statistics include size and number of blocks.
 
-Note: This command skips duplicate blocks in reporting both size and the number of blocks
+Note: Duplicate blocks are identified by content hash (multihash) to reflect
+actual disk usage. Identical data referenced via different CIDs is counted
+once. 'dag export' uses CID-based keying and may include the same data
+multiple times if referenced by different CIDs.
 `,
 	},
 	Arguments: []cmds.Argument{
