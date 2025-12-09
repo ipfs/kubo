@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"syscall"
 
 	commands "github.com/ipfs/kubo/commands"
@@ -17,16 +18,15 @@ import (
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	corehttp "github.com/ipfs/kubo/core/corehttp"
 	"github.com/ipfs/kubo/misc/fsutil"
-	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
-
-	fsnotify "github.com/fsnotify/fsnotify"
-	"github.com/ipfs/boxo/files"
-
 	"github.com/ipfs/kubo/plugin"
 	pluginbadgerds "github.com/ipfs/kubo/plugin/plugins/badgerds"
 	pluginflatfs "github.com/ipfs/kubo/plugin/plugins/flatfs"
 	pluginlevelds "github.com/ipfs/kubo/plugin/plugins/levelds"
 	pluginpebbleds "github.com/ipfs/kubo/plugin/plugins/pebbleds"
+	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
+
+	fsnotify "github.com/fsnotify/fsnotify"
+	"github.com/ipfs/boxo/files"
 )
 
 var (
@@ -95,17 +95,13 @@ func run(ipfsPath, watchPath string) error {
 		return err
 	}
 
-	if err = loadDatastorePlugins(pluginbadgerds.Plugins); err != nil {
-		return nil
-	}
-	if err = loadDatastorePlugins(pluginflatfs.Plugins); err != nil {
-		return nil
-	}
-	if err = loadDatastorePlugins(pluginlevelds.Plugins); err != nil {
-		return nil
-	}
-	if err = loadDatastorePlugins(pluginpebbleds.Plugins); err != nil {
-		return nil
+	if err = loadDatastorePlugins(slices.Concat(
+		pluginbadgerds.Plugins,
+		pluginflatfs.Plugins,
+		pluginlevelds.Plugins,
+		pluginpebbleds.Plugins,
+	)); err != nil {
+		return err
 	}
 
 	r, err := fsrepo.Open(ipfsPath)
