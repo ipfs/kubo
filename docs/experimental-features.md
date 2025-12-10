@@ -308,6 +308,8 @@ ipfs p2p forward /x/ssh /ip4/127.0.0.1/tcp/2222 /p2p/$SERVER_ID
 You should now be able to connect to your ssh server through a libp2p connection
 with `ssh [user]@127.0.0.1 -p 2222`.
 
+> **Tip:** Both commands support `--foreground` (`-f`) flag for blocking behavior.
+> Run `ipfs p2p listen --help` or `ipfs p2p forward --help` for details.
 
 ### Road to being a real feature
 
