@@ -104,6 +104,27 @@ func TestDag(t *testing.T) {
 		stat := node.RunIPFS("dag", "stat", "--progress=false", node1Cid, node2Cid)
 		assert.Equal(t, content, stat.Stdout.Bytes())
 	})
+
+	t.Run("dag stat deduplicates by multihash", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+
+		// Add content and get CIDv0 with dag-pb (not raw leaves)
+		cidV0 := node.IPFSAddStr("hello world", "--cid-version=0", "--raw-leaves=false")
+
+		// Convert to CIDv1 (same multihash, different CID)
+		cidV1 := node.IPFS("cid", "format", "-v", "1", "-b", "base32", cidV0).Stdout.Trimmed()
+
+		// Run dag stat with both CIDs - should deduplicate by multihash
+		stat := node.RunIPFS("dag", "stat", "--progress=false", "--enc=json", cidV0, cidV1)
+		var data Data
+		err := json.Unmarshal(stat.Stdout.Bytes(), &data)
+		require.NoError(t, err)
+
+		// Same block referenced via CIDv0 and CIDv1 should be counted once
+		assert.Equal(t, 1, data.UniqueBlocks, "same data via different CIDs should be 1 unique block")
+		assert.Equal(t, 2.0, data.Ratio, "ratio should be 2.0 (2 refs to 1 block)")
+	})
 }
 
 func TestDagImportFastProvide(t *testing.T) {

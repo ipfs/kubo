@@ -7,8 +7,9 @@ import (
 
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/merkledag/traverse"
-	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	mh "github.com/multiformats/go-multihash"
+
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipfs/kubo/core/commands/e"
@@ -26,7 +27,10 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 	}
 	nodeGetter := mdag.NewSession(req.Context, api.Dag())
 
-	cidSet := cid.NewSet()
+	// Use multihash set for deduplication to reflect actual storage.
+	// Since Kubo v0.12.0, blocks are stored by multihash, so identical
+	// data with different CIDs (e.g., CIDv0 vs CIDv1) is stored once.
+	mhSet := mh.NewSet()
 	dagStatSummary := &DagStatSummary{DagStatsArray: []*DagStat{}}
 	for _, a := range req.Arguments {
 		p, err := cmdutils.PathOrCidPath(a)
@@ -54,11 +58,11 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 				currentNodeSize := uint64(len(current.Node.RawData()))
 				dagstats.Size += currentNodeSize
 				dagstats.NumBlocks++
-				if !cidSet.Has(current.Node.Cid()) {
+				// Visit returns true if this multihash was not seen before
+				if mhSet.Visit(current.Node.Cid().Hash()) {
 					dagStatSummary.incrementTotalSize(currentNodeSize)
 				}
 				dagStatSummary.incrementRedundantSize(currentNodeSize)
-				cidSet.Add(current.Node.Cid())
 				if progressive {
 					if err := res.Emit(dagStatSummary); err != nil {
 						return err
@@ -74,7 +78,7 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 		}
 	}
 
-	dagStatSummary.UniqueBlocks = cidSet.Len()
+	dagStatSummary.UniqueBlocks = mhSet.Len()
 	dagStatSummary.calculateSummary()
 
 	if err := res.Emit(dagStatSummary); err != nil {
