@@ -30,7 +30,7 @@ Featureset
 - [HTTP Kubo RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`) to access and control the daemon
 - [Command Line Interface](https://docs.ipfs.tech/reference/kubo/cli/) based on (`/api/v0`) RPC API
 - [WebUI](https://github.com/ipfs/ipfs-webui/#readme) to manage the Kubo node
-- [Content blocking](/docs/content-blocking.md) support for operators of public nodes
+- [Content blocking](./docs/content-blocking.md) support for operators of public nodes
 
 ### Other implementations
 
@@ -73,7 +73,6 @@ Before opening an issue, consider using one of the following locations to ensure
   - [Unofficial Linux packages](#unofficial-linux-packages)
     - [ArchLinux](#arch-linux)
     - [Gentoo Linux](#gentoo-linux)
-    - [Nix](#nix)
     - [Solus](#solus)
     - [openSUSE](#opensuse)
     - [Guix](#guix)
@@ -363,7 +362,7 @@ To build without GCC, build with `CGO_ENABLED=0` (e.g., `make build CGO_ENABLED=
 
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/ipfs/kubo?label=Requires%20Go&logo=go&style=flat-square&cacheSeconds=3600)
 
-If you need to update: [Download latest version of Go](https://golang.org/dl/).
+If you need to update: [Download latest version of Go](https://go.dev/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
@@ -372,7 +371,7 @@ export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:$GOPATH/bin
 ```
 
-(If you run into trouble, see the [Go install instructions](https://golang.org/doc/install)).
+(If you run into trouble, see the [Go install instructions](https://go.dev/doc/install)).
 
 #### Download and Compile IPFS
 
@@ -498,7 +497,7 @@ Kubo is maintained by [Shipyard](https://ipshipyard.com/).
 
 [![](https://cdn.rawgit.com/jbenet/contribute-ipfs-gif/master/img/contribute.gif)](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md)
 
-We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what it is without you! If you want to help out, please see [CONTRIBUTING.md](CONTRIBUTING.md).
+We ❤️ all [our contributors](https://github.com/ipfs/kubo/graphs/contributors); this project wouldn't be what it is without you! If you want to help out, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
 

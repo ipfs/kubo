@@ -6,7 +6,7 @@ they were stored in a traditional web server.
 
 [More about Gateways](https://docs.ipfs.tech/concepts/ipfs-gateway/) and [addressing IPFS on the web](https://docs.ipfs.tech/how-to/address-ipfs-on-web/).
 
-Kubo's Gateway implementation follows [ipfs/specs: Specification for HTTP Gateways](https://github.com/ipfs/specs/tree/main/http-gateways#readme).
+Kubo's Gateway implementation follows the [HTTP Gateways specification](https://specs.ipfs.tech/http-gateways/).
 
 ### Local gateway
 
