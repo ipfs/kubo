@@ -28,7 +28,7 @@ import (
 
 func GatewayOption(paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		config, headers, err := getGatewayConfig(n)
+		config, headers, _, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}
@@ -50,9 +50,13 @@ func GatewayOption(paths ...string) ServeOption {
 	}
 }
 
+// HostnameOption returns a ServeOption that wraps the gateway with hostname-based
+// routing (subdomain gateways, DNSLink). When Gateway.RootRedirect is not configured,
+// requests to "/" that would return 404 (e.g., on known gateways like localhost)
+// will show a landing page instead.
 func HostnameOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		config, headers, err := getGatewayConfig(n)
+		cfg, headers, rootRedirect, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}
@@ -65,8 +69,16 @@ func HostnameOption() ServeOption {
 		childMux := http.NewServeMux()
 
 		var handler http.Handler
-		handler = gateway.NewHostnameHandler(config, backend, childMux)
+		handler = gateway.NewHostnameHandler(cfg, backend, childMux)
 		handler = gateway.NewHeaders(headers).ApplyCors().Wrap(handler)
+
+		// When RootRedirect is not configured, wrap with landing page fallback.
+		// This intercepts 404 responses for "/" on loopback addresses (like localhost)
+		// and serves a kubo-specific landing page instead.
+		if rootRedirect == "" {
+			handler = withLandingPageFallback(handler, headers)
+		}
+
 		handler = otelhttp.NewHandler(handler, "HostnameGateway")
 
 		mux.Handle("/", handler)
@@ -259,10 +271,11 @@ var defaultKnownGateways = map[string]*gateway.PublicGateway{
 	"localhost": subdomainGatewaySpec,
 }
 
-func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, error) {
+// getGatewayConfig returns gateway configuration, HTTP headers, and root redirect URL.
+func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, string, error) {
 	cfg, err := n.Repo.Config()
 	if err != nil {
-		return gateway.Config{}, nil, err
+		return gateway.Config{}, nil, "", err
 	}
 
 	// Initialize gateway configuration, with empty PublicGateways, handled after.
@@ -300,5 +313,5 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, er
 		}
 	}
 
-	return gwCfg, cfg.Gateway.HTTPHeaders, nil
+	return gwCfg, cfg.Gateway.HTTPHeaders, cfg.Gateway.RootRedirect, nil
 }

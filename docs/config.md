@@ -1218,7 +1218,11 @@ Type: `object[string -> array[string]]`
 
 A URL to redirect requests for `/` to.
 
-Default: `""`
+When not set, a default landing page is displayed instead. The landing page
+indicates that the gateway software is working and provides links to
+documentation and resources.
+
+Default: `""` (landing page)
 
 Type: `string` (url)
 
