@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 
 	"github.com/ipfs/boxo/path"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
@@ -154,6 +155,31 @@ func (api *RoutingAPI) Provide(ctx context.Context, p path.Path, opts ...options
 	return api.core().Request("routing/provide", rp.RootCid().String()).
 		Option("recursive", options.Recursive).
 		Exec(ctx, nil)
+}
+
+func (api *RoutingAPI) ProvideStats(ctx context.Context, opts ...options.RoutingProvideStatOption) (*iface.ProvideStatsResponse, error) {
+	options, err := options.RoutingProvideStatOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := api.core().Request("provide/stat").
+		Option("lan", options.UseLAN).
+		Send(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	defer resp.Close()
+
+	var out iface.ProvideStatsResponse
+	if err := json.NewDecoder(resp.Output).Decode(&out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
 }
 
 func (api *RoutingAPI) core() *HttpApi {

@@ -56,6 +56,14 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 		req.Option("raw-leaves", options.RawLeaves)
 	}
 
+	if options.FastProvideRootSet {
+		req.Option("fast-provide-root", options.FastProvideRoot)
+	}
+
+	if options.FastProvideWaitSet {
+		req.Option("fast-provide-wait", options.FastProvideWait)
+	}
+
 	switch options.Layout {
 	case caopts.BalancedLayout:
 		// noop, default
