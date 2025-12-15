@@ -181,8 +181,8 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
-		cmds.BoolOption(enablePubSubKwd, "DEPRECATED"),
-		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS over pubsub. Implicitly enables pubsub, overrides Ipns.UsePubsub config."),
+		cmds.BoolOption(enablePubSubKwd, "DEPRECATED CLI flag. Use Pubsub.Enabled config instead."),
+		cmds.BoolOption(enableIPNSPubSubKwd, "DEPRECATED CLI flag. Use Ipns.UsePubsub config instead."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
 		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and exposed via libp2p identify protocol."),
 
