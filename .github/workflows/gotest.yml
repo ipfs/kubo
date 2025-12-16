@@ -19,6 +19,7 @@ jobs:
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
     timeout-minutes: 15
     env:
+      GOTRACEBACK: single  # reduce noise on test timeout panics
       TEST_DOCKER: 0
       TEST_FUSE: 0
       TEST_VERBOSE: 1
@@ -112,6 +113,7 @@ jobs:
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
     timeout-minutes: 15
     env:
+      GOTRACEBACK: single  # reduce noise on test timeout panics
       TEST_VERBOSE: 1
       GIT_PAGER: cat
       IPFS_CHECK_RCMGR_DEFAULTS: 1
