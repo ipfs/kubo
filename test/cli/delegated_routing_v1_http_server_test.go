@@ -242,6 +242,13 @@ func TestRoutingV1Server(t *testing.T) {
 				})
 				node.StartDaemon()
 
+				// Create client before waiting so we can probe DHT readiness
+				c, err := client.New(node.GatewayURL())
+				require.NoError(t, err)
+
+				// Query for closest peers to our own peer ID
+				key := peer.ToCid(node.PeerID())
+
 				// Wait for node to connect to bootstrap peers and populate WAN DHT routing table
 				minPeers := len(autoconf.FallbackBootstrapPeers)
 				require.EventuallyWithT(t, func(t *assert.CollectT) {
@@ -253,13 +260,18 @@ func TestRoutingV1Server(t *testing.T) {
 					// Wait until we have at least minPeers connected
 					assert.GreaterOrEqual(t, peerCount, minPeers,
 						"waiting for at least %d bootstrap peers, currently have %d", minPeers, peerCount)
-				}, 30*time.Second, time.Second)
+				}, 60*time.Second, time.Second)
 
-				c, err := client.New(node.GatewayURL())
-				require.NoError(t, err)
-
-				// Query for closest peers to our own peer ID
-				key := peer.ToCid(node.PeerID())
+				// Wait for DHT to be ready by probing GetClosestPeers until it succeeds
+				require.EventuallyWithT(t, func(t *assert.CollectT) {
+					probeCtx, probeCancel := context.WithTimeout(context.Background(), 30*time.Second)
+					defer probeCancel()
+					probeIter, probeErr := c.GetClosestPeers(probeCtx, key)
+					if probeErr == nil {
+						probeIter.Close()
+					}
+					assert.NoError(t, probeErr, "DHT should be ready to handle GetClosestPeers")
+				}, 2*time.Minute, 5*time.Second)
 
 				ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 				defer cancel()
