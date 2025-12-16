@@ -434,12 +434,18 @@ fully cleared by restarting the daemon.
 				return fmt.Errorf("invalid peer ID: %w", err)
 			}
 			key := datastore.NewKey(libp2p.SeqnoStorePrefix + pid.String())
-			if err := ds.Delete(ctx, key); err != nil && !errors.Is(err, datastore.ErrNotFound) {
-				return fmt.Errorf("failed to delete seqno state: %w", err)
+			exists, err := ds.Has(ctx, key)
+			if err != nil {
+				return fmt.Errorf("failed to check seqno state: %w", err)
 			}
-			deleted = 1
+			if exists {
+				if err := ds.Delete(ctx, key); err != nil {
+					return fmt.Errorf("failed to delete seqno state: %w", err)
+				}
+				deleted = 1
+			}
 		} else {
-			// Reset all peers
+			// Reset all peers using batched delete for efficiency
 			q := query.Query{
 				Prefix:   libp2p.SeqnoStorePrefix,
 				KeysOnly: true,
@@ -450,15 +456,29 @@ fully cleared by restarting the daemon.
 			}
 			defer results.Close()
 
+			batch, err := ds.Batch(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to create batch: %w", err)
+			}
+
 			for result := range results.Next() {
 				if result.Error != nil {
 					return fmt.Errorf("query error: %w", result.Error)
 				}
-				if err := ds.Delete(ctx, datastore.NewKey(result.Key)); err != nil {
-					return fmt.Errorf("failed to delete key %s: %w", result.Key, err)
+				if err := batch.Delete(ctx, datastore.NewKey(result.Key)); err != nil {
+					return fmt.Errorf("failed to batch delete key %s: %w", result.Key, err)
 				}
 				deleted++
 			}
+
+			if err := batch.Commit(ctx); err != nil {
+				return fmt.Errorf("failed to commit batch delete: %w", err)
+			}
+		}
+
+		// Sync to ensure deletions are persisted
+		if err := ds.Sync(ctx, datastore.NewKey(libp2p.SeqnoStorePrefix)); err != nil {
+			return fmt.Errorf("failed to sync datastore: %w", err)
 		}
 
 		return cmds.EmitOnce(res, &pubsubResetResult{Deleted: deleted})
@@ -468,6 +488,10 @@ fully cleared by restarting the daemon.
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, result *pubsubResetResult) error {
 			peerOpt, _ := req.Options[peerOptionName].(string)
 			if peerOpt != "" {
+				if result.Deleted == 0 {
+					_, err := fmt.Fprintf(w, "No validator state found for peer %s\n", peerOpt)
+					return err
+				}
 				_, err := fmt.Fprintf(w, "Reset validator state for peer %s\n", peerOpt)
 				return err
 			}

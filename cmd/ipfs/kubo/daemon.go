@@ -397,10 +397,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	fmt.Printf("PeerID: %s\n", cfg.Identity.PeerID)
 
-	if !psSet {
+	if psSet {
+		log.Error("The --enable-pubsub-experiment flag is deprecated. Use Pubsub.Enabled config option instead.")
+	} else {
 		pubsub = cfg.Pubsub.Enabled.WithDefault(false)
 	}
-	if !ipnsPsSet {
+	if ipnsPsSet {
+		log.Error("The --enable-namesys-pubsub flag is deprecated. Use Ipns.UsePubsub config option instead.")
+	} else {
 		ipnsps = cfg.Ipns.UsePubsub.WithDefault(false)
 	}
 
