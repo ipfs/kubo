@@ -833,4 +833,13 @@ func TestHTTPOnlyProviderWithSweepEnabled(t *testing.T) {
 	// Verify HTTP router received at least one provide request
 	assert.Greater(t, provideRequests.Load(), int32(0),
 		"HTTP router should have received provide requests")
+
+	// Verify 'provide stat' works with HTTP-only routing (regression test for stats)
+	statRes := node.RunIPFS("provide", "stat")
+	assert.Equal(t, 0, statRes.ExitCode(), "provide stat should succeed with HTTP-only routing")
+	assert.NotContains(t, statRes.Stderr.String(), "stats not available",
+		"should not report stats unavailable")
+	// LegacyProvider outputs "TotalReprovides:" in its stats
+	assert.Contains(t, statRes.Stdout.String(), "TotalReprovides:",
+		"should show legacy provider stats")
 }
