@@ -13,7 +13,8 @@ endif
 .PHONY: $(d)/coverage_deps
 
 # unit tests coverage
-UTESTS_$(d) := $(shell $(GOCC) list -f '{{if (or (len .TestGoFiles) (len .XTestGoFiles))}}{{.ImportPath}}{{end}}' $(go-flags-with-tags) ./... | grep -v go-ipfs/vendor | grep -v go-ipfs/Godeps)
+# Note: test/cli is excluded here as it runs in a separate cli-tests job
+UTESTS_$(d) := $(shell $(GOCC) list -f '{{if (or (len .TestGoFiles) (len .XTestGoFiles))}}{{.ImportPath}}{{end}}' $(go-flags-with-tags) ./... | grep -v go-ipfs/vendor | grep -v go-ipfs/Godeps | grep -v '/test/cli')
 
 UCOVER_$(d) := $(addsuffix .coverprofile,$(addprefix $(d)/unitcover/, $(subst /,_,$(UTESTS_$(d)))))
 

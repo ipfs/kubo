@@ -14,10 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  go-test:
+  unit-tests:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
-    timeout-minutes: 20
+    timeout-minutes: 15
     env:
       TEST_DOCKER: 0
       TEST_FUSE: 0
@@ -105,4 +105,75 @@ jobs:
         if: failure() || success()
       - name: Set the summary
         run: cat test/unit/gotest.md >> $GITHUB_STEP_SUMMARY
+        if: failure() || success()
+
+  cli-tests:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 15
+    env:
+      TEST_VERBOSE: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Install missing tools
+        run: sudo apt update && sudo apt install -y zsh
+      - name: Build kubo
+        run: make build
+      - name: Run CLI tests
+        env:
+          IPFS_PATH: ${{ runner.temp }}/ipfs-test
+        run: |
+          export PATH="${{ github.workspace }}/cmd/ipfs:$PATH"
+          go test -v -json ./test/cli/... 2>&1 | tee test/cli/cli-tests.json
+      - name: Check for failures
+        run: |
+          if jq -s -e 'map(select(.Action == "fail")) | length > 0' test/cli/cli-tests.json > /dev/null; then
+            echo "CLI tests failed"
+            exit 1
+          fi
+        if: success()
+      - name: Create JUnit XML report
+        uses: ipdxco/gotest-json-to-junit-xml@v1
+        with:
+          input: test/cli/cli-tests.json
+          output: test/cli/cli-tests.junit.xml
+        if: failure() || success()
+      - name: Archive JUnit XML report
+        uses: actions/upload-artifact@v5
+        with:
+          name: cli-tests
+          path: test/cli/cli-tests.junit.xml
+        if: failure() || success()
+      - name: Create HTML report
+        uses: ipdxco/junit-xml-to-html@v1
+        with:
+          mode: no-frames
+          input: test/cli/cli-tests.junit.xml
+          output: test/cli/cli-tests.html
+        if: failure() || success()
+      - name: Archive HTML report
+        uses: actions/upload-artifact@v5
+        with:
+          name: cli-html
+          path: test/cli/cli-tests.html
+        if: failure() || success()
+      - name: Create Markdown report
+        uses: ipdxco/junit-xml-to-html@v1
+        with:
+          mode: summary
+          input: test/cli/cli-tests.junit.xml
+          output: test/cli/cli-tests.md
+        if: failure() || success()
+      - name: Set summary
+        run: cat test/cli/cli-tests.md >> $GITHUB_STEP_SUMMARY
         if: failure() || success()
