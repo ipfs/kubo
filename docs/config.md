@@ -156,10 +156,10 @@ config file at runtime.
     - [`Reprovider.Strategy`](#providestrategy)
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
+    - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
     - [`Routing.IgnoreProviders`](#routingignoreproviders)
-    - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -2589,6 +2589,22 @@ Default: `auto`
 
 Type: `optionalString` (`null`/missing means the default)
 
+### `Routing.DelegatedRouters`
+
+An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
+These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
+
+The special value `"auto"` uses delegated routers from [AutoConf](#autoconf) when enabled.
+
+> [!TIP]
+> Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
+>
+> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
+
+Default: `["auto"]`
+
+Type: `array[string]` (URLs or `"auto"`)
+
 ### `Routing.AcceleratedDHTClient`
 
 This alternative Amino DHT client with a Full-Routing-Table strategy will
@@ -2672,22 +2688,6 @@ is found under different peerIDs (i.e. one for HTTP and one for Bitswap retrieva
 Default: `[]`
 
 Type: `array[string]`
-
-### `Routing.DelegatedRouters`
-
-An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
-These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
-
-The special value `"auto"` uses delegated routers from [AutoConf](#autoconf) when enabled.
-
-> [!TIP]
-> Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
->
-> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
-
-Default: `["auto"]`
-
-Type: `array[string]` (URLs or `"auto"`)
 
 ### `Routing.Routers`
 
