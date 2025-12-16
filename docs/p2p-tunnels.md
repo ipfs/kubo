@@ -217,4 +217,4 @@ Verify:
 
 There is currently no way to define tunnels in the Kubo JSON config file. Use
 `--foreground` mode with a systemd service for persistent tunnels. Support for
-configuring tunnels via JSON config may be added in the future (PRs welcome!).
+configuring tunnels via JSON config may be added in the future (see [kubo#5460](https://github.com/ipfs/kubo/issues/5460) - PRs welcome!).

@@ -232,7 +232,7 @@ and systemd integration.
 
 - [x] More documentation
 - [x] `ipfs p2p forward` mode
-- [ ] Ability to define tunnels via JSON config, similar to [`Peering.Peers`](https://github.com/ipfs/kubo/blob/master/docs/config.md#peeringpeers)
+- [ ] Ability to define tunnels via JSON config, similar to [`Peering.Peers`](https://github.com/ipfs/kubo/blob/master/docs/config.md#peeringpeers), see [kubo#5460](https://github.com/ipfs/kubo/issues/5460)
 
 ## p2p http proxy
 
