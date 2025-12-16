@@ -120,6 +120,8 @@ EXAMPLES:
 
   # Temporary forwarder (removed when command exits)
   ipfs p2p forward -f /x/myapp /ip4/127.0.0.1/tcp/3000 /p2p/PeerID
+
+Learn more: https://github.com/ipfs/kubo/blob/master/docs/p2p-tunnels.md
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -290,6 +292,8 @@ EXAMPLES:
 
   # Report connecting peer ID to the target application
   ipfs p2p listen -r /x/myapp /ip4/127.0.0.1/tcp/3000
+
+Learn more: https://github.com/ipfs/kubo/blob/master/docs/p2p-tunnels.md
 `,
 	},
 	Arguments: []cmds.Argument{
