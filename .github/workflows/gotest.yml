@@ -136,14 +136,19 @@ jobs:
           IPFS_PATH: ${{ runner.temp }}/ipfs-test
         run: |
           export PATH="${{ github.workspace }}/cmd/ipfs:$PATH"
-          go test -v -json ./test/cli/... 2>&1 | tee test/cli/cli-tests.json
+          go test -v -json ./test/cli/... | tee test/cli/cli-tests.json || true
       - name: Check for failures
         run: |
-          if jq -s -e 'map(select(.Action == "fail")) | length > 0' test/cli/cli-tests.json > /dev/null; then
-            echo "CLI tests failed"
+          # Check JSON is valid and look for test failures
+          if ! jq -e . test/cli/cli-tests.json > /dev/null 2>&1; then
+            echo "::error::JSON output is malformed"
             exit 1
           fi
-        if: success()
+          if jq -s -e 'map(select(.Action == "fail")) | length > 0' test/cli/cli-tests.json > /dev/null; then
+            echo "CLI tests failed"
+            jq -s -r 'map(select(.Action == "fail")) | .[] | "FAIL: \(.Package) \(.Test // "")"' test/cli/cli-tests.json
+            exit 1
+          fi
       - name: Create JUnit XML report
         uses: ipdxco/gotest-json-to-junit-xml@v1
         with:
