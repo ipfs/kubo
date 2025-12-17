@@ -7,11 +7,12 @@ import (
 )
 
 func TestExample(t *testing.T) {
-	out, err := exec.Command("go", "run", "main.go").Output()
+	cmd := exec.CommandContext(t.Context(), "go", "run", "main.go")
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("running example (%v)", err)
+		t.Fatalf("running example: %v\nOutput:\n%s", err, out)
 	}
 	if !strings.Contains(string(out), "All done!") {
-		t.Errorf("example did not run successfully")
+		t.Errorf("example did not complete successfully\nOutput:\n%s", out)
 	}
 }
