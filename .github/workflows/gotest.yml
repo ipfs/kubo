@@ -40,7 +40,7 @@ jobs:
         run: sudo apt update && sudo apt install -y zsh
       - name: Run unit tests 👉️ Summary (top left) → «Failures/Errors» table
         run: |
-          make test/unit/gotest.junit.xml &&
+          make test_unit &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
@@ -131,16 +131,10 @@ jobs:
           go-version-file: 'go.mod'
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y zsh
-      - name: Build kubo
-        run: make build
-      - name: Install gotestsum
-        run: make test/bin/gotestsum
       - name: Run CLI tests 👉️ Summary (top left) → «Failures/Errors» table
         env:
           IPFS_PATH: ${{ runner.temp }}/ipfs-test
-        run: |
-          export PATH="${{ github.workspace }}/cmd/ipfs:${{ github.workspace }}/test/bin:$PATH"
-          gotestsum --jsonfile test/cli/cli-tests.json -- -v ./test/cli/...
+        run: make test_cli
       - name: Create JUnit XML report
         uses: ipdxco/gotest-json-to-junit-xml@v1
         with:

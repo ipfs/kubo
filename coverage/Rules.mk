@@ -7,18 +7,10 @@ $(d)/coverage_deps: $$(DEPS_GO) cmd/ipfs/ipfs
 
 .PHONY: $(d)/coverage_deps
 
-# unit tests coverage (excludes test/cli which runs in separate cli-tests job)
-# Uses gotestsum for human-readable output while collecting coverage
-UTESTS_$(d) := $(shell $(GOCC) list $(go-flags-with-tags) ./... | grep -v '/vendor' | grep -v '/Godeps' | grep -v '/test/cli')
+# unit tests coverage is now produced by test_unit target in mk/golang.mk
+# (outputs coverage/unit_tests.coverprofile and test/unit/gotest.json)
 
-$(d)/unit_tests.coverprofile: test/bin/gotestsum $$(DEPS_GO)
-	rm -f test/unit/gotest.json
-	gotestsum --no-color --jsonfile test/unit/gotest.json \
-		-- $(go-flags-with-tags) $(GOTFLAGS) -covermode=atomic -coverprofile=$@ -coverpkg=./... $(UTESTS_$(d))
-
-TGTS_$(d) := $(d)/unit_tests.coverprofile
-
-.PHONY: $(d)/unit_tests.coverprofile
+TGTS_$(d) :=
 
 # sharness tests coverage
 $(d)/ipfs: GOTAGS += testrunmain
