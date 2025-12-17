@@ -38,7 +38,7 @@ jobs:
           go-version-file: 'go.mod'
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y zsh
-      - name: Run unit tests 👉️ Summary (top left) → «Failures/Errors» table
+      - name: Run unit tests
         run: |
           make test_unit &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
@@ -131,7 +131,7 @@ jobs:
           go-version-file: 'go.mod'
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y zsh
-      - name: Run CLI tests 👉️ Summary (top left) → «Failures/Errors» table
+      - name: Run CLI tests
         env:
           IPFS_PATH: ${{ runner.temp }}/ipfs-test
         run: make test_cli
