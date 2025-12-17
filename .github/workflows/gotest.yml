@@ -48,6 +48,8 @@ jobs:
         with:
           name: unittests
           files: coverage/unit_tests.coverprofile
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
       - name: Test kubo-as-a-library example
         run: |
           # we want to first test with the kubo version in the go.mod file
