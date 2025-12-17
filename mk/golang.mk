@@ -44,19 +44,19 @@ endef
 # Only disable colors when running in CI (non-interactive terminal)
 GOTESTSUM_NOCOLOR := $(if $(CI),--no-color,)
 
-# Unit tests with coverage (excludes packages that need ipfs binary)
+# Unit tests with coverage (excludes integration test packages)
 # Produces JSON for CI reporting and coverage profile for Codecov
 test_unit: test/bin/gotestsum $$(DEPS_GO)
 	rm -f test/unit/gotest.json coverage/unit_tests.coverprofile
-	gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/unit/gotest.json -- $(go-flags-with-tags) $(GOTFLAGS) -covermode=atomic -coverprofile=coverage/unit_tests.coverprofile -coverpkg=./... $$($(GOCC) list $(go-tags) ./... | grep -v '/test/cli' | grep -v '/client/rpc')
+	gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/unit/gotest.json -- $(go-flags-with-tags) $(GOTFLAGS) -covermode=atomic -coverprofile=coverage/unit_tests.coverprofile -coverpkg=./... $$($(GOCC) list $(go-tags) ./... | grep -v '/test/cli' | grep -v '/test/integration' | grep -v '/client/rpc')
 .PHONY: test_unit
 
 # CLI/integration tests (requires built binary in PATH)
-# Includes test/cli and client/rpc (which uses test/cli/harness)
+# Includes test/cli, test/integration, and client/rpc
 # Produces JSON for CI reporting
 test_cli: cmd/ipfs/ipfs test/bin/gotestsum
 	rm -f test/cli/cli-tests.json
-	PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/cli/cli-tests.json -- -v ./test/cli/... ./client/rpc/...
+	PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/cli/cli-tests.json -- -v -timeout=20m ./test/cli/... ./test/integration/... ./client/rpc/...
 .PHONY: test_cli
 
 # Build kubo for all platforms from .github/build-platforms.yml
