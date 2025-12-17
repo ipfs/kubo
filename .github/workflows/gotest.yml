@@ -14,6 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Unit tests with coverage collection (uploaded to Codecov)
   unit-tests:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
@@ -37,12 +38,9 @@ jobs:
           go-version-file: 'go.mod'
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y zsh
-      - name: 👉️ If this step failed, go to «Summary» (top left) → inspect the «Failures/Errors» table
-        env:
-          # increasing parallelism beyond 2 doesn't speed up the tests much
-          PARALLEL: 2
+      - name: Run unit tests 👉️ Summary (top left) → «Failures/Errors» table
         run: |
-          make -j "$PARALLEL" test/unit/gotest.junit.xml &&
+          make test/unit/gotest.junit.xml &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
@@ -108,6 +106,8 @@ jobs:
         run: cat test/unit/gotest.md >> $GITHUB_STEP_SUMMARY
         if: failure() || success()
 
+  # End-to-end integration/regression tests from test/cli
+  # (Go-based replacement for legacy test/sharness shell scripts)
   cli-tests:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
@@ -131,24 +131,14 @@ jobs:
         run: sudo apt update && sudo apt install -y zsh
       - name: Build kubo
         run: make build
-      - name: Run CLI tests
+      - name: Install gotestsum
+        run: make test/bin/gotestsum
+      - name: Run CLI tests 👉️ Summary (top left) → «Failures/Errors» table
         env:
           IPFS_PATH: ${{ runner.temp }}/ipfs-test
         run: |
-          export PATH="${{ github.workspace }}/cmd/ipfs:$PATH"
-          go test -v -json ./test/cli/... | tee test/cli/cli-tests.json || true
-      - name: Check for failures
-        run: |
-          # Check JSON is valid and look for test failures
-          if ! jq -e . test/cli/cli-tests.json > /dev/null 2>&1; then
-            echo "::error::JSON output is malformed"
-            exit 1
-          fi
-          if jq -s -e 'map(select(.Action == "fail")) | length > 0' test/cli/cli-tests.json > /dev/null; then
-            echo "CLI tests failed"
-            jq -s -r 'map(select(.Action == "fail")) | .[] | "FAIL: \(.Package) \(.Test // "")"' test/cli/cli-tests.json
-            exit 1
-          fi
+          export PATH="${{ github.workspace }}/cmd/ipfs:${{ github.workspace }}/test/bin:$PATH"
+          gotestsum --jsonfile test/cli/cli-tests.json -- -v ./test/cli/...
       - name: Create JUnit XML report
         uses: ipdxco/gotest-json-to-junit-xml@v1
         with:
