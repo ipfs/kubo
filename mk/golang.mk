@@ -48,7 +48,7 @@ GOTESTSUM_NOCOLOR := $(if $(CI),--no-color,)
 # Produces JSON for CI reporting and coverage profile for Codecov
 test_unit: test/bin/gotestsum $$(DEPS_GO)
 	rm -f test/unit/gotest.json coverage/unit_tests.coverprofile
-	gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/unit/gotest.json -- $(go-flags-with-tags) $(GOTFLAGS) -covermode=atomic -coverprofile=coverage/unit_tests.coverprofile -coverpkg=./... $$($(GOCC) list ./... | grep -v '/test/cli' | grep -v '/client/rpc')
+	gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/unit/gotest.json -- $(go-flags-with-tags) $(GOTFLAGS) -covermode=atomic -coverprofile=coverage/unit_tests.coverprofile -coverpkg=./... $$($(GOCC) list $(go-tags) ./... | grep -v '/test/cli' | grep -v '/client/rpc')
 .PHONY: test_unit
 
 # CLI/integration tests (requires built binary in PATH)
