@@ -59,7 +59,7 @@ jobs:
       - run: chmod +x cmd/ipfs/ipfs
       - run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
         id: npm-cache-dir
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-${{ github.job }}-helia-${{ hashFiles('**/package-lock.json') }}
@@ -99,7 +99,7 @@ jobs:
       - run: |
           echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
         id: npm-cache-dir
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/package-lock.json') }}
