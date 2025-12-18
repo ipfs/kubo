@@ -883,34 +883,35 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		return nil, fmt.Errorf("serveHTTPApi: ConstructNode() failed: %s", err)
 	}
 
-	errc := make(chan error)
+	// Buffer channel to prevent deadlock when multiple servers write errors simultaneously
+	errc := make(chan error, len(listeners))
 	var wg sync.WaitGroup
 
-	// Start first server and wait for it to be ready before writing api file.
+	// Start all servers and wait for them to be ready before writing api file.
 	// This prevents race conditions where external tools (like systemd path units)
-	// see the file and try to connect before the server can accept connections.
+	// see the file and try to connect before servers can accept connections.
 	if len(listeners) > 0 {
-		ready := make(chan struct{})
-		wg.Go(func() {
-			errc <- corehttp.ServeWithReady(node, manet.NetListener(listeners[0]), ready, opts...)
-		})
+		readyChannels := make([]chan struct{}, len(listeners))
+		for i, lis := range listeners {
+			readyChannels[i] = make(chan struct{})
+			ready := readyChannels[i]
+			wg.Go(func() {
+				errc <- corehttp.ServeWithReady(node, manet.NetListener(lis), ready, opts...)
+			})
+		}
 
-		select {
-		case <-ready:
-			// Server announced in $IPFS_PATH/api is ready to accept connections
-		case err := <-errc:
-			return nil, fmt.Errorf("serveHTTPApi: %w", err)
+		// Wait for all listeners to be ready or any to fail
+		for _, ready := range readyChannels {
+			select {
+			case <-ready:
+				// This listener is ready
+			case err := <-errc:
+				return nil, fmt.Errorf("serveHTTPApi: %w", err)
+			}
 		}
 
 		if err := node.Repo.SetAPIAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr())); err != nil {
 			return nil, fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %w", err)
-		}
-
-		// Start remaining servers
-		for _, lis := range listeners[1:] {
-			wg.Go(func() {
-				errc <- corehttp.Serve(node, manet.NetListener(lis), opts...)
-			})
 		}
 	}
 
@@ -1072,23 +1073,31 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		return nil, fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err)
 	}
 
-	errc := make(chan error)
+	// Buffer channel to prevent deadlock when multiple servers write errors simultaneously
+	errc := make(chan error, len(listeners))
 	var wg sync.WaitGroup
 
-	// Start first server and wait for it to be ready before writing gateway file.
+	// Start all servers and wait for them to be ready before writing gateway file.
 	// This prevents race conditions where external tools (like systemd path units)
-	// see the file and try to connect before the server can accept connections.
+	// see the file and try to connect before servers can accept connections.
 	if len(listeners) > 0 {
-		ready := make(chan struct{})
-		wg.Go(func() {
-			errc <- corehttp.ServeWithReady(node, manet.NetListener(listeners[0]), ready, opts...)
-		})
+		readyChannels := make([]chan struct{}, len(listeners))
+		for i, lis := range listeners {
+			readyChannels[i] = make(chan struct{})
+			ready := readyChannels[i]
+			wg.Go(func() {
+				errc <- corehttp.ServeWithReady(node, manet.NetListener(lis), ready, opts...)
+			})
+		}
 
-		select {
-		case <-ready:
-			// Server announced in $IPFS_PATH/gateway is ready to accept connections
-		case err := <-errc:
-			return nil, fmt.Errorf("serveHTTPGateway: %w", err)
+		// Wait for all listeners to be ready or any to fail
+		for _, ready := range readyChannels {
+			select {
+			case <-ready:
+				// This listener is ready
+			case err := <-errc:
+				return nil, fmt.Errorf("serveHTTPGateway: %w", err)
+			}
 		}
 
 		addr, err := manet.ToNetAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr()))
@@ -1097,13 +1106,6 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		}
 		if err := node.Repo.SetGatewayAddr(addr); err != nil {
 			return nil, fmt.Errorf("serveHTTPGateway: SetGatewayAddr() failed: %w", err)
-		}
-
-		// Start remaining servers
-		for _, lis := range listeners[1:] {
-			wg.Go(func() {
-				errc <- corehttp.Serve(node, manet.NetListener(lis), opts...)
-			})
 		}
 	}
 
