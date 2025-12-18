@@ -9,7 +9,7 @@ import (
 func TestExample(t *testing.T) {
 	out, err := exec.Command("go", "run", "main.go").Output()
 	if err != nil {
-		t.Fatalf("running example (%v)", err)
+		t.Fatalf("running example (%v): %s", err, string(out))
 	}
 	if !strings.Contains(string(out), "All done!") {
 		t.Errorf("example did not run successfully")
