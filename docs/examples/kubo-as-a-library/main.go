@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
 	icore "github.com/ipfs/kubo/core/coreiface"
@@ -46,7 +45,7 @@ func setupPlugins(externalPluginsPath string) error {
 	return nil
 }
 
-func createTempRepo(swarmPort int) (string, error) {
+func createTempRepo() (string, error) {
 	repoPath, err := os.MkdirTemp("", "ipfs-shell")
 	if err != nil {
 		return "", fmt.Errorf("failed to get temp dir: %s", err)
@@ -58,14 +57,15 @@ func createTempRepo(swarmPort int) (string, error) {
 		return "", err
 	}
 
-	// Configure custom ports to avoid conflicts with other IPFS instances.
-	// This demonstrates how to customize the node's network addresses.
+	// Use port 0 to let the OS assign random available ports.
+	// This avoids conflicts with other services or parallel test runs.
 	cfg.Addresses.Swarm = []string{
-		fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
-		fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1", swarmPort),
-		fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1/webtransport", swarmPort),
-		fmt.Sprintf("/ip4/0.0.0.0/udp/%d/webrtc-direct", swarmPort),
+		"/ip4/127.0.0.1/tcp/0",
+		"/ip4/127.0.0.1/udp/0/quic-v1",
 	}
+
+	// Enable loopback addresses on LAN DHT for local testing.
+	cfg.Routing.LoopbackAddressesOnLanDHT = config.True
 
 	// Disable auto-bootstrap. For this example, we manually connect only the peers we need.
 	// In production, you'd typically keep the default bootstrap peers to join the network.
@@ -121,8 +121,7 @@ func createNode(ctx context.Context, repoPath string) (*core.IpfsNode, error) {
 var loadPluginsOnce sync.Once
 
 // Spawns a node to be used just for this run (i.e. creates a tmp repo).
-// The swarmPort parameter specifies the port for libp2p swarm listeners.
-func spawnEphemeral(ctx context.Context, swarmPort int) (icore.CoreAPI, *core.IpfsNode, error) {
+func spawnEphemeral(ctx context.Context) (icore.CoreAPI, *core.IpfsNode, error) {
 	var onceErr error
 	loadPluginsOnce.Do(func() {
 		onceErr = setupPlugins("")
@@ -132,7 +131,7 @@ func spawnEphemeral(ctx context.Context, swarmPort int) (icore.CoreAPI, *core.Ip
 	}
 
 	// Create a Temporary Repo
-	repoPath, err := createTempRepo(swarmPort)
+	repoPath, err := createTempRepo()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create temp repo: %s", err)
 	}
@@ -176,8 +175,7 @@ func main() {
 	defer cancel()
 
 	// Spawn a local peer using a temporary path, for testing purposes
-	// Using port 4010 to avoid conflict with default IPFS port 4001
-	ipfsA, nodeA, err := spawnEphemeral(ctx, 4010)
+	ipfsA, nodeA, err := spawnEphemeral(ctx)
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn peer node: %s", err))
 	}
@@ -190,10 +188,9 @@ func main() {
 
 	fmt.Printf("Added file to peer with CID %s\n", peerCidFile.String())
 
-	// Spawn a node using a temporary path, creating a temporary repo for the run
-	// Using port 4011 (different from nodeA's port 4010)
+	// Spawn a second node using a temporary path
 	fmt.Println("Spawning Kubo node on a temporary repo")
-	ipfsB, nodeB, err := spawnEphemeral(ctx, 4011)
+	ipfsB, nodeB, err := spawnEphemeral(ctx)
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn ephemeral node: %s", err))
 	}
@@ -270,29 +267,27 @@ func main() {
 
 	fmt.Println("\n-- Connecting to nodeA and fetching content via bitswap --")
 
+	// Connect nodes bidirectionally for bitswap transfer.
+	// Mutual peering protects the connection from being culled by the resource manager on either side.
 	// In production, you'd typically connect to bootstrap peers to join the IPFS network.
-	// autoconf.FallbackBootstrapPeers from boxo/autoconf provides well-known bootstrap peers:
-	// "/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-	// "/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
-	// "/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-	//
-	// For this example, we only connect nodeB to nodeA to demonstrate direct bitswap.
-	// We use Bootstrap() instead of raw Swarm().Connect() because Bootstrap() properly
-	// integrates peers into the routing system and ensures bitswap learns about them.
-	fmt.Println("Bootstrapping nodeB to nodeA...")
-	nodeAPeerInfo := nodeA.Peerstore.PeerInfo(nodeA.Identity)
-	if err := nodeB.Bootstrap(bootstrap.BootstrapConfigWithPeers([]peer.AddrInfo{nodeAPeerInfo})); err != nil {
-		panic(fmt.Errorf("failed to bootstrap nodeB to nodeA: %s", err))
+	nodeAPeerInfo := peer.AddrInfo{
+		ID:    nodeA.Identity,
+		Addrs: nodeA.Peerstore.Addrs(nodeA.Identity),
 	}
-	fmt.Println("nodeB is now connected to nodeA")
-
-	// Since nodeB is directly connected to nodeA, bitswap can fetch the content
-	// without needing DHT-based provider discovery. In a production scenario where
-	// nodes aren't directly connected, you'd use Routing().Provide() to announce
-	// content to the DHT (see docs/config.md#providedhtsweepenabled for background providing).
+	nodeBPeerInfo := peer.AddrInfo{
+		ID:    nodeB.Identity,
+		Addrs: nodeB.Peerstore.Addrs(nodeB.Identity),
+	}
+	fmt.Println("Connecting nodes bidirectionally...")
+	if err := ipfsB.Swarm().Connect(ctx, nodeAPeerInfo); err != nil {
+		panic(fmt.Errorf("failed to connect nodeB to nodeA: %s", err))
+	}
+	if err := ipfsA.Swarm().Connect(ctx, nodeBPeerInfo); err != nil {
+		panic(fmt.Errorf("failed to connect nodeA to nodeB: %s", err))
+	}
+	fmt.Println("Nodes connected")
 
 	exampleCIDStr := peerCidFile.RootCid().String()
-
 	fmt.Printf("Fetching a file from the network with CID %s\n", exampleCIDStr)
 	outputPath := outputBasePath + exampleCIDStr
 	testCID := path.FromCid(peerCidFile.RootCid())
