@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -20,11 +19,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// swarmPeersOutput is used to parse the JSON output of 'ipfs swarm peers --enc=json'
-type swarmPeersOutput struct {
-	Peers []struct{} `json:"Peers"`
-}
 
 func TestRoutingV1Server(t *testing.T) {
 	t.Parallel()
@@ -224,67 +218,43 @@ func TestRoutingV1Server(t *testing.T) {
 		}
 	})
 
-	t.Run("GetClosestPeers returns peers for self", func(t *testing.T) {
+	t.Run("GetClosestPeers returns peers", func(t *testing.T) {
 		t.Parallel()
 
+		// Test all DHT-enabled routing types
 		routingTypes := []string{"auto", "autoclient", "dht", "dhtclient"}
 		for _, routingType := range routingTypes {
 			t.Run("routing_type="+routingType, func(t *testing.T) {
 				t.Parallel()
 
-				// Single node with DHT and real bootstrap peers
 				node := harness.NewT(t).NewNode().Init()
 				node.UpdateConfig(func(cfg *config.Config) {
 					cfg.Gateway.ExposeRoutingAPI = config.True
 					cfg.Routing.Type = config.NewOptionalString(routingType)
-					// Set real bootstrap peers from boxo/autoconf
 					cfg.Bootstrap = autoconf.FallbackBootstrapPeers
 				})
 				node.StartDaemon()
 
-				// Create client before waiting so we can probe DHT readiness
 				c, err := client.New(node.GatewayURL())
 				require.NoError(t, err)
 
-				// Query for closest peers to our own peer ID
 				key := peer.ToCid(node.PeerID())
 
-				// Wait for node to connect to bootstrap peers and populate WAN DHT routing table
-				minPeers := len(autoconf.FallbackBootstrapPeers)
-				require.EventuallyWithT(t, func(t *assert.CollectT) {
-					res := node.RunIPFS("swarm", "peers", "--enc=json")
-					var output swarmPeersOutput
-					err := json.Unmarshal(res.Stdout.Bytes(), &output)
-					assert.NoError(t, err)
-					peerCount := len(output.Peers)
-					// Wait until we have at least minPeers connected
-					assert.GreaterOrEqual(t, peerCount, minPeers,
-						"waiting for at least %d bootstrap peers, currently have %d", minPeers, peerCount)
-				}, 60*time.Second, time.Second)
-
-				// Wait for DHT to be ready by probing GetClosestPeers until it succeeds
-				require.EventuallyWithT(t, func(t *assert.CollectT) {
-					probeCtx, probeCancel := context.WithTimeout(context.Background(), 30*time.Second)
-					defer probeCancel()
-					probeIter, probeErr := c.GetClosestPeers(probeCtx, key)
-					if probeErr == nil {
-						probeIter.Close()
+				// Wait for WAN DHT routing table to be populated
+				var records []*types.PeerRecord
+				require.EventuallyWithT(t, func(ct *assert.CollectT) {
+					resultsIter, err := c.GetClosestPeers(t.Context(), key)
+					if !assert.NoError(ct, err) {
+						return
 					}
-					assert.NoError(t, probeErr, "DHT should be ready to handle GetClosestPeers")
-				}, 2*time.Minute, 5*time.Second)
+					records, err = iter.ReadAllResults(resultsIter)
+					assert.NoError(ct, err)
+				}, 10*time.Minute, 5*time.Second)
+				require.NotEmpty(t, records, "should return peers close to own peerid")
 
-				ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-				defer cancel()
-				resultsIter, err := c.GetClosestPeers(ctx, key)
-				require.NoError(t, err)
+				// Per IPIP-0476, GetClosestPeers returns at most 20 peers
+				assert.LessOrEqual(t, len(records), 20, "IPIP-0476 limits GetClosestPeers to 20 peers")
 
-				records, err := iter.ReadAllResults(resultsIter)
-				require.NoError(t, err)
-
-				// Verify we got some peers back from WAN DHT
-				assert.NotEmpty(t, records, "should return some peers close to own peerid")
-
-				// Verify structure of returned records
 				for _, record := range records {
 					assert.Equal(t, types.SchemaPeer, record.Schema)
 					assert.NotNil(t, record.ID)
