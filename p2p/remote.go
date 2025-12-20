@@ -25,6 +25,8 @@ type remoteListener struct {
 	// reportRemote if set to true makes the handler send '<base58 remote peerid>\n'
 	// to target before any data is forwarded
 	reportRemote bool
+
+	done chan struct{}
 }
 
 // ForwardRemote creates new p2p listener.
@@ -36,6 +38,7 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto protocol.ID, addr ma.Mu
 		addr:  addr,
 
 		reportRemote: reportRemote,
+		done:         make(chan struct{}),
 	}
 
 	if err := p2p.ListenersP2P.Register(listener); err != nil {
@@ -99,7 +102,13 @@ func (l *remoteListener) TargetAddress() ma.Multiaddr {
 	return l.addr
 }
 
-func (l *remoteListener) close() {}
+func (l *remoteListener) close() {
+	close(l.done)
+}
+
+func (l *remoteListener) Done() <-chan struct{} {
+	return l.done
+}
 
 func (l *remoteListener) key() protocol.ID {
 	return l.proto
