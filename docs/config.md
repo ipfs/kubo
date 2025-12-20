@@ -2195,6 +2195,9 @@ You can compare the effectiveness of sweep mode vs legacy mode by monitoring the
 > [!NOTE]
 > This is the default provider system as of Kubo v0.39. To use the legacy provider instead, set `Provide.DHT.SweepEnabled=false`.
 
+> [!NOTE]
+> When DHT routing is unavailable (e.g., `Routing.Type=custom` with only HTTP routers), the provider automatically falls back to the legacy provider regardless of this setting.
+
 Default: `true`
 
 Type: `flag`

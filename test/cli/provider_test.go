@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -763,4 +764,82 @@ func TestProvider(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestHTTPOnlyProviderWithSweepEnabled tests that provider records are correctly
+// sent to HTTP routers when Routing.Type="custom" with only HTTP routers configured,
+// even when Provide.DHT.SweepEnabled=true (the default since v0.39).
+//
+// This is a regression test for https://github.com/ipfs/kubo/issues/11089
+func TestHTTPOnlyProviderWithSweepEnabled(t *testing.T) {
+	t.Parallel()
+
+	// Track provide requests received by the mock HTTP router
+	var provideRequests atomic.Int32
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if (r.Method == http.MethodPut || r.Method == http.MethodPost) &&
+			strings.HasPrefix(r.URL.Path, "/routing/v1/providers") {
+			provideRequests.Add(1)
+			w.WriteHeader(http.StatusOK)
+		} else if strings.HasPrefix(r.URL.Path, "/routing/v1/providers") && r.Method == http.MethodGet {
+			// Return empty providers for findprovs
+			w.Header().Set("Content-Type", "application/x-ndjson")
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer mockServer.Close()
+
+	h := harness.NewT(t)
+	node := h.NewNode().Init()
+
+	// Explicitly set SweepEnabled=true (the default since v0.39, but be explicit for test clarity)
+	node.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+	node.SetIPFSConfig("Provide.Enabled", true)
+
+	// Configure HTTP-only custom routing (no DHT) with explicit Routing.Type=custom
+	routingConf := map[string]any{
+		"Type": "custom", // Explicitly set Routing.Type=custom
+		"Methods": map[string]any{
+			"provide":        map[string]any{"RouterName": "HTTPRouter"},
+			"get-ipns":       map[string]any{"RouterName": "HTTPRouter"},
+			"put-ipns":       map[string]any{"RouterName": "HTTPRouter"},
+			"find-peers":     map[string]any{"RouterName": "HTTPRouter"},
+			"find-providers": map[string]any{"RouterName": "HTTPRouter"},
+		},
+		"Routers": map[string]any{
+			"HTTPRouter": map[string]any{
+				"Type": "http",
+				"Parameters": map[string]any{
+					"Endpoint": mockServer.URL,
+				},
+			},
+		},
+	}
+	node.SetIPFSConfig("Routing", routingConf)
+	node.StartDaemon()
+	defer node.StopDaemon()
+
+	// Add content and manually provide it
+	cid := node.IPFSAddStr(time.Now().String())
+
+	// Manual provide should succeed even without libp2p peers
+	res := node.RunIPFS("routing", "provide", cid)
+	// Check that the command succeeded (exit code 0) and no provide-related errors
+	assert.Equal(t, 0, res.ExitCode(), "routing provide should succeed with HTTP-only routing and SweepEnabled=true")
+	assert.NotContains(t, res.Stderr.String(), "cannot provide", "should not have provide errors")
+
+	// Verify HTTP router received at least one provide request
+	assert.Greater(t, provideRequests.Load(), int32(0),
+		"HTTP router should have received provide requests")
+
+	// Verify 'provide stat' works with HTTP-only routing (regression test for stats)
+	statRes := node.RunIPFS("provide", "stat")
+	assert.Equal(t, 0, statRes.ExitCode(), "provide stat should succeed with HTTP-only routing")
+	assert.NotContains(t, statRes.Stderr.String(), "stats not available",
+		"should not report stats unavailable")
+	// LegacyProvider outputs "TotalReprovides:" in its stats
+	assert.Contains(t, statRes.Stdout.String(), "TotalReprovides:",
+		"should show legacy provider stats")
 }
