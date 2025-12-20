@@ -1,102 +1,209 @@
-# IPFS : The `Add` command demystified
+# How `ipfs add` Works
 
-The goal of this document is to capture the code flow for adding a file (see the `coreapi` package) using the IPFS CLI, in the process exploring some data structures and packages like `ipld.Node` (aka `dagnode`), `FSNode`, `MFS`, etc.
+This document explains what happens when you run `ipfs add` to import files into IPFS. Understanding this flow helps when debugging, optimizing imports, or building applications on top of IPFS.
 
-## Concepts
-- [Files](https://github.com/ipfs/docs/issues/133)
+- [The Big Picture](#the-big-picture)
+- [Try It Yourself](#try-it-yourself)
+- [Step by Step](#step-by-step)
+  - [Step 1: Chunking](#step-1-chunking)
+  - [Step 2: Building the DAG](#step-2-building-the-dag)
+  - [Step 3: Storing Blocks](#step-3-storing-blocks)
+  - [Step 4: Pinning](#step-4-pinning)
+  - [Alternative: Organizing with MFS](#alternative-organizing-with-mfs)
+- [Options](#options)
+- [UnixFS Format](#unixfs-format)
+- [Code Architecture](#code-architecture)
+  - [Key Files](#key-files)
+  - [The Adder](#the-adder)
+- [Further Reading](#further-reading)
 
---- 
+## The Big Picture
 
-**Try this yourself**
-> 
-> ```
-> # Convert a file to the IPFS format.
-> echo "Hello World" > new-file
-> ipfs add new-file
-> added QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u new-file
-> 12 B / 12 B [=========================================================] 100.00%
->
-> # Add a file to the MFS.
-> NEW_FILE_HASH=$(ipfs add new-file -Q)
-> ipfs files cp /ipfs/$NEW_FILE_HASH /new-file
-> 
-> # Get information from the file in MFS.
-> ipfs files stat /new-file
-> # QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u
-> # Size: 12
-> # CumulativeSize: 20
-> # ChildBlocks: 0
-> # Type: file
-> 
-> # Retrieve the contents.
-> ipfs files read /new-file
-> # Hello World
-> ```
+When you add a file to IPFS, three main things happen:
 
-## Code Flow
+1. **Chunking** - The file is split into smaller pieces
+2. **DAG Building** - Those pieces are organized into a tree structure (a [Merkle DAG](https://docs.ipfs.tech/concepts/merkle-dag/))
+3. **Pinning** - The root of the tree is pinned so it persists in your local node
 
-**[`UnixfsAPI.Add()`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreapi/unixfs.go#L31)** - *Entrypoint into the `Unixfs` package*
+The result is a Content Identifier (CID) - a hash that uniquely identifies your content and can be used to retrieve it from anywhere in the IPFS network.
 
-The `UnixfsAPI.Add()` acts on the input data or files, to build a _merkledag_ node (in essence it is the entire tree represented by the root node) and adds it to the _blockstore_.
-Within the function, a new `Adder` is created with the configured `Blockstore` and __DAG service__`. 
+```mermaid
+flowchart LR
+    A["Your File<br/>(bytes)"] --> B["Chunker<br/>(split data)"]
+    B --> C["DAG Builder<br/>(tree)"]
+    C --> D["CID<br/>(hash)"]
+```
 
-- **[`adder.AddAllAndPin(files)`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L403)** - *Entrypoint to the `Add` logic*
-    encapsulates a lot of the underlying functionality that will be investigated in the following sections. 
+## Try It Yourself
 
-    Our focus will be on the simplest case, a single file, handled by `Adder.addFile(file files.File)`. 
+```bash
+# Add a simple file
+echo "Hello World" > hello.txt
+ipfs add hello.txt
+# added QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u hello.txt
 
-  - **[`adder.addFile(file files.File)`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L450)** - *Create the _DAG_ and add to `MFS`*
+# See what's inside
+ipfs cat QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u
+# Hello World
 
-      The `addFile(file)` method takes the data and converts it into a __DAG__ tree and adds the root of the tree into the `MFS`.
+# View the DAG structure
+ipfs dag get QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u
+```
 
-      https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L508-L521
+## Step by Step
 
-      There are two main methods to focus on -
+### Step 1: Chunking
 
-      1. **[`adder.add(io.Reader)`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L115)** - *Create and return the **root** __DAG__ node*
+Big files are split into chunks because:
 
-          This method converts the input data (`io.Reader`) to a __DAG__ tree, by splitting the data into _chunks_ using the `Chunker` and organizing them into a __DAG__ (with a *trickle* or *balanced* layout. See [balanced](https://github.com/ipfs/go-unixfs/blob/6b769632e7eb8fe8f302e3f96bf5569232e7a3ee/importer/balanced/builder.go) for more info). 
+- Large files need to be broken down for efficient transfer
+- Identical chunks across files are stored only once (deduplication)
+- You can fetch parts of a file without downloading the whole thing
 
-          The method returns the **root** `ipld.Node` of the __DAG__.
+**Chunking strategies** (set with `--chunker`):
 
-      2. **[`adder.addNode(ipld.Node, path)`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L366)** - *Add **root** __DAG__ node to the `MFS`*
+| Strategy | Description | Best For |
+|----------|-------------|----------|
+| `size-N` | Fixed size chunks | General use |
+| `rabin` | Content-defined chunks using rolling hash | Deduplication across similar files |
+| `buzhash` | Alternative content-defined chunking | Similar to rabin |
 
-          Now that we have the **root** node of the `DAG`, this needs to be added to the `MFS` file system. 
-          Fetch (or create, if doesn't already exist) the `MFS` **root** using `mfsRoot()`. 
+See `ipfs add --help` for current defaults, or [Import](config.md#import) for making them permanent.
 
-          > NOTE: The `MFS` **root** is an ephemeral root, created and destroyed solely for the `add` functionality.
+Content-defined chunking (rabin/buzhash) finds natural boundaries in the data. This means if you edit the middle of a file, only the changed chunks need to be re-stored - the rest can be deduplicated.
 
-          Assuming the directory already exists in the MFS file system, (if it doesn't exist it will be created using `mfs.Mkdir()`), the **root** __DAG__ node is added to the `MFS` File system using the `mfs.PutNode()` function.
+### Step 2: Building the DAG
 
-          - **[MFS] [`PutNode(mfs.Root, path, ipld.Node)`](https://github.com/ipfs/go-mfs/blob/v0.1.18/ops.go#L86)** - *Insert node at path into given `MFS`*
+Each chunk becomes a leaf node in a tree. If a file has many chunks, intermediate nodes group them together. This creates a Merkle DAG (Directed Acyclic Graph) where:
 
-              The `path` param is used to determine the `MFS Directory`, which is first looked up in the `MFS` using `lookupDir()` function. This is followed by adding the **root** __DAG__ node (`ipld.Node`) into this `Directory` using `directory.AddChild()` method.
+- Each node is identified by a hash of its contents
+- Parent nodes contain links (hashes) to their children
+- The root node's hash becomes the file's CID
 
-          - **[MFS] Add Child To `UnixFS`**
-            - **[`directory.AddChild(filename, ipld.Node)`](https://github.com/ipfs/go-mfs/blob/v0.1.18/dir.go#L350)** - *Add **root** __DAG__ node under this directory*
+**Layout strategies**:
 
-                Within this method the node is added to the `Directory`'s __DAG service__ using the `dserv.Add()` method, followed by adding the **root** __DAG__ node with the given name, in the `directory.addUnixFSChild(directory.child{name, ipld.Node})` method.
+**Balanced layout** (default):
 
-            - **[MFS] [`directory.addUnixFSChild(child)`](https://github.com/ipfs/go-mfs/blob/v0.1.18/dir.go#L375)** - *Add child to inner UnixFS Directory*
+```mermaid
+graph TD
+    Root --> Node1[Node]
+    Root --> Node2[Node]
+    Node1 --> Leaf1[Leaf]
+    Node1 --> Leaf2[Leaf]
+    Node2 --> Leaf3[Leaf]
+```
 
-                The node is then added as a child to the inner `UnixFS` directory using the `(BasicDirectory).AddChild()` method.
+All leaves at similar depth. Good for random access - you can jump to any part of the file efficiently.
 
-                > NOTE: This is not to be confused with the `directory.AddChild(filename, ipld.Node)`, as this operates on the `UnixFS` `BasicDirectory` object.
+**Trickle layout** (`--trickle`):
 
-            - **[UnixFS] [`(BasicDirectory).AddChild(ctx, name, ipld.Node)`](https://github.com/ipfs/go-unixfs/blob/v1.1.16/io/directory.go#L137)** - *Add child to `BasicDirectory`*
+```mermaid
+graph TD
+    Root --> Leaf1[Leaf]
+    Root --> Node1[Node]
+    Root --> Node2[Node]
+    Node1 --> Leaf2[Leaf]
+    Node2 --> Leaf3[Leaf]
+```
 
-                > IMPORTANT: It should be noted that the `BasicDirectory` object uses the `ProtoNode` type object which is an implementation of the `ipld.Node` interface, seen and used throughout this document. Ideally the `ipld.Node` should always be used, unless we need access to specific functions from `ProtoNode` (like `Copy()`) that are not available in the interface.
+Leaves added progressively. Good for streaming - you can start reading before the whole file is added.
 
-                This method first attempts to remove any old links (`ProtoNode.RemoveNodeLink(name)`) to the `ProtoNode` prior to adding a link to the newly added `ipld.Node`, using `ProtoNode.AddNodeLink(name, ipld.Node)`.
+### Step 3: Storing Blocks
 
-                - **[Merkledag] [`AddNodeLink()`](https://github.com/ipfs/go-merkledag/blob/v1.1.15/node.go#L99)**
+As the DAG is built, each node is stored in the blockstore:
 
-                  The `AddNodeLink()` method is where an `ipld.Link` is created with the `ipld.Node`'s `CID` and size in the `ipld.MakeLink(ipld.Node)` method, and is then appended to the `ProtoNode`'s links in the `ProtoNode.AddRawLink(name)` method.
+- **Normal mode**: Data is copied into IPFS's internal storage (`~/.ipfs/blocks/`)
+- **Filestore mode** (`--nocopy`): Only references to the original file are stored (saves disk space but the original file must remain in place)
 
-  - **[`adder.Finalize()`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L200)** - *Fetch and return the __DAG__ **root** from the `MFS` and `UnixFS` directory*
+### Step 4: Pinning
 
-      The `Finalize` method returns the `ipld.Node` from the `UnixFS` `Directory`.
+By default, added content is pinned (`ipfs add --pin=true`). This tells your IPFS node to keep this data - without pinning, content may eventually be removed to free up space.
 
-  - **[`adder.PinRoot()`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L171)** - *Pin all files under the `MFS` **root***
+### Alternative: Organizing with MFS
 
-    The whole process ends with `PinRoot` recursively pinning all the files under the `MFS` **root**
+Instead of pinning, you can use the [Mutable File System (MFS)](https://docs.ipfs.tech/concepts/file-systems/#mutable-file-system-mfs) to organize content using familiar paths like `/photos/vacation.jpg` instead of raw CIDs:
+
+```bash
+# Add directly to MFS path
+ipfs add --to-files=/backups/ myfile.txt
+
+# Or copy an existing CID into MFS
+ipfs files cp /ipfs/QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u /docs/hello.txt
+```
+
+Content in MFS is implicitly pinned and stays organized across node restarts.
+
+## Options
+
+Run `ipfs add --help` to see all available options for controlling chunking, DAG layout, CID format, pinning behavior, and more.
+
+## UnixFS Format
+
+IPFS uses [UnixFS](https://specs.ipfs.tech/unixfs/) to represent files and directories. UnixFS is an abstraction layer that:
+
+- Gives names to raw data blobs (so you can have `/foo/bar.txt` instead of just hashes)
+- Represents directories as lists of named links to other nodes
+- Organizes large files as trees of smaller chunks
+- Makes these structures cryptographically verifiable - any tampering is detectable because it would change the hashes
+
+With `--raw-leaves`, leaf nodes store raw data without the UnixFS wrapper. This is more efficient and is the default when using CIDv1.
+
+## Code Architecture
+
+The add flow spans several layers:
+
+```mermaid
+flowchart TD
+    subgraph CLI ["CLI Layer (kubo)"]
+        A["core/commands/add.go<br/>parses flags, shows progress"]
+    end
+    subgraph API ["CoreAPI Layer (kubo)"]
+        B["core/coreapi/unixfs.go<br/>UnixfsAPI.Add() entry point"]
+    end
+    subgraph Adder ["Adder (kubo)"]
+        C["core/coreunix/add.go<br/>orchestrates chunking, DAG building, MFS, pinning"]
+    end
+    subgraph Boxo ["boxo libraries"]
+        D["chunker/ - splits data into chunks"]
+        E["ipld/unixfs/ - DAG layout and UnixFS format"]
+        F["mfs/ - mutable filesystem abstraction"]
+        G["pinning/ - pin management"]
+        H["blockstore/ - block storage"]
+    end
+    A --> B --> C --> Boxo
+```
+
+### Key Files
+
+| Component | Location |
+|-----------|----------|
+| CLI command | `core/commands/add.go` |
+| API implementation | `core/coreapi/unixfs.go` |
+| Adder logic | `core/coreunix/add.go` |
+| Chunking | [boxo/chunker](https://github.com/ipfs/boxo/tree/main/chunker) |
+| DAG layouts | [boxo/ipld/unixfs/importer](https://github.com/ipfs/boxo/tree/main/ipld/unixfs/importer) |
+| MFS | [boxo/mfs](https://github.com/ipfs/boxo/tree/main/mfs) |
+| Pinning | [boxo/pinning/pinner](https://github.com/ipfs/boxo/tree/main/pinning/pinner) |
+
+### The Adder
+
+The `Adder` type in `core/coreunix/add.go` is the workhorse. It:
+
+1. **Creates an MFS root** - temporary in-memory filesystem for building the DAG
+2. **Processes files recursively** - chunks each file and builds DAG nodes
+3. **Commits to blockstore** - persists all blocks
+4. **Pins the result** - keeps content from being removed
+5. **Returns the root CID**
+
+Key methods:
+
+- `AddAllAndPin()` - main entry point
+- `addFileNode()` - handles a single file or directory
+- `add()` - chunks data and builds the DAG using boxo's layout builders
+
+## Further Reading
+
+- [UnixFS specification](https://specs.ipfs.tech/unixfs/)
+- [IPLD and Merkle DAGs](https://docs.ipfs.tech/concepts/merkle-dag/)
+- [Pinning](https://docs.ipfs.tech/concepts/persistence/)
+- [MFS (Mutable File System)](https://docs.ipfs.tech/concepts/file-systems/#mutable-file-system-mfs)
