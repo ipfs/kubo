@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,7 +14,6 @@ import (
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
 	icore "github.com/ipfs/kubo/core/coreiface"
-	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
@@ -47,7 +45,7 @@ func setupPlugins(externalPluginsPath string) error {
 	return nil
 }
 
-func createTempRepo(swarmPort int) (string, error) {
+func createTempRepo() (string, error) {
 	repoPath, err := os.MkdirTemp("", "ipfs-shell")
 	if err != nil {
 		return "", fmt.Errorf("failed to get temp dir: %s", err)
@@ -59,14 +57,19 @@ func createTempRepo(swarmPort int) (string, error) {
 		return "", err
 	}
 
-	// Configure custom ports to avoid conflicts with other IPFS instances.
-	// This demonstrates how to customize the node's network addresses.
+	// Use port 0 to let the OS assign random available ports.
+	// This avoids conflicts with other services or parallel test runs.
 	cfg.Addresses.Swarm = []string{
-		fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
-		fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1", swarmPort),
-		fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1/webtransport", swarmPort),
-		fmt.Sprintf("/ip4/0.0.0.0/udp/%d/webrtc-direct", swarmPort),
+		"/ip4/127.0.0.1/tcp/0",
+		"/ip4/127.0.0.1/udp/0/quic-v1",
 	}
+
+	// Enable loopback addresses on LAN DHT for local testing.
+	cfg.Routing.LoopbackAddressesOnLanDHT = config.True
+
+	// Disable auto-bootstrap. For this example, we manually connect only the peers we need.
+	// In production, you'd typically keep the default bootstrap peers to join the network.
+	cfg.Bootstrap = []string{}
 
 	// When creating the repository, you can define custom settings on the repository, such as enabling experimental
 	// features (See experimental-features.md) or customizing the gateway endpoint.
@@ -118,8 +121,7 @@ func createNode(ctx context.Context, repoPath string) (*core.IpfsNode, error) {
 var loadPluginsOnce sync.Once
 
 // Spawns a node to be used just for this run (i.e. creates a tmp repo).
-// The swarmPort parameter specifies the port for libp2p swarm listeners.
-func spawnEphemeral(ctx context.Context, swarmPort int) (icore.CoreAPI, *core.IpfsNode, error) {
+func spawnEphemeral(ctx context.Context) (icore.CoreAPI, *core.IpfsNode, error) {
 	var onceErr error
 	loadPluginsOnce.Do(func() {
 		onceErr = setupPlugins("")
@@ -129,7 +131,7 @@ func spawnEphemeral(ctx context.Context, swarmPort int) (icore.CoreAPI, *core.Ip
 	}
 
 	// Create a Temporary Repo
-	repoPath, err := createTempRepo(swarmPort)
+	repoPath, err := createTempRepo()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create temp repo: %s", err)
 	}
@@ -142,40 +144,6 @@ func spawnEphemeral(ctx context.Context, swarmPort int) (icore.CoreAPI, *core.Ip
 	api, err := coreapi.NewCoreAPI(node)
 
 	return api, node, err
-}
-
-func connectToPeers(ctx context.Context, ipfs icore.CoreAPI, peers []string) error {
-	var wg sync.WaitGroup
-	peerInfos := make(map[peer.ID]*peer.AddrInfo, len(peers))
-	for _, addrStr := range peers {
-		addr, err := ma.NewMultiaddr(addrStr)
-		if err != nil {
-			return err
-		}
-		pii, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			return err
-		}
-		pi, ok := peerInfos[pii.ID]
-		if !ok {
-			pi = &peer.AddrInfo{ID: pii.ID}
-			peerInfos[pi.ID] = pi
-		}
-		pi.Addrs = append(pi.Addrs, pii.Addrs...)
-	}
-
-	wg.Add(len(peerInfos))
-	for _, peerInfo := range peerInfos {
-		go func(peerInfo *peer.AddrInfo) {
-			defer wg.Done()
-			err := ipfs.Swarm().Connect(ctx, *peerInfo)
-			if err != nil {
-				log.Printf("failed to connect to %s: %s", peerInfo.ID, err)
-			}
-		}(peerInfo)
-	}
-	wg.Wait()
-	return nil
 }
 
 func getUnixfsNode(path string) (files.Node, error) {
@@ -207,8 +175,7 @@ func main() {
 	defer cancel()
 
 	// Spawn a local peer using a temporary path, for testing purposes
-	// Using port 4010 to avoid conflict with default IPFS port 4001
-	ipfsA, nodeA, err := spawnEphemeral(ctx, 4010)
+	ipfsA, nodeA, err := spawnEphemeral(ctx)
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn peer node: %s", err))
 	}
@@ -221,10 +188,9 @@ func main() {
 
 	fmt.Printf("Added file to peer with CID %s\n", peerCidFile.String())
 
-	// Spawn a node using a temporary path, creating a temporary repo for the run
-	// Using port 4011 (different from nodeA's port 4010)
+	// Spawn a second node using a temporary path
 	fmt.Println("Spawning Kubo node on a temporary repo")
-	ipfsB, _, err := spawnEphemeral(ctx, 4011)
+	ipfsB, nodeB, err := spawnEphemeral(ctx)
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn ephemeral node: %s", err))
 	}
@@ -297,41 +263,31 @@ func main() {
 
 	fmt.Printf("Got directory back from IPFS (IPFS path: %s) and wrote it to %s\n", cidDirectory.String(), outputPathDirectory)
 
-	/// --- Part IV: Getting a file from the IPFS Network
+	/// --- Part IV: Getting a file from another IPFS node
 
-	fmt.Println("\n-- Going to connect to a few nodes in the Network as bootstrappers --")
+	fmt.Println("\n-- Connecting to nodeA and fetching content via bitswap --")
 
-	// Get nodeA's address so we can fetch the file we added to it
-	peerAddrs, err := ipfsA.Swarm().LocalAddrs(ctx)
-	if err != nil {
-		panic(fmt.Errorf("could not get peer addresses: %s", err))
+	// Connect nodes bidirectionally for bitswap transfer.
+	// Mutual peering protects the connection from being culled by the resource manager on either side.
+	// In production, you'd typically connect to bootstrap peers to join the IPFS network.
+	nodeAPeerInfo := peer.AddrInfo{
+		ID:    nodeA.Identity,
+		Addrs: nodeA.Peerstore.Addrs(nodeA.Identity),
 	}
-	peerMa := peerAddrs[0].String() + "/p2p/" + nodeA.Identity.String()
-
-	bootstrapNodes := []string{
-		// In production, use autoconf.FallbackBootstrapPeers from boxo/autoconf
-		// which includes well-known IPFS bootstrap peers like:
-		// "/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-		// "/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
-		// "/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-
-		// You can add custom peers here. For example, another IPFS node:
-		// "/ip4/192.0.2.1/tcp/4001/p2p/QmYourPeerID...",
-		// "/ip4/192.0.2.1/udp/4001/quic-v1/p2p/QmYourPeerID...",
-
-		// nodeA's address (the peer we created above that has our test file)
-		peerMa,
+	nodeBPeerInfo := peer.AddrInfo{
+		ID:    nodeB.Identity,
+		Addrs: nodeB.Peerstore.Addrs(nodeB.Identity),
 	}
-
-	fmt.Println("Connecting to peers...")
-	err = connectToPeers(ctx, ipfsB, bootstrapNodes)
-	if err != nil {
-		panic(fmt.Errorf("failed to connect to peers: %s", err))
+	fmt.Println("Connecting nodes bidirectionally...")
+	if err := ipfsB.Swarm().Connect(ctx, nodeAPeerInfo); err != nil {
+		panic(fmt.Errorf("failed to connect nodeB to nodeA: %s", err))
 	}
-	fmt.Println("Connected to peers")
+	if err := ipfsA.Swarm().Connect(ctx, nodeBPeerInfo); err != nil {
+		panic(fmt.Errorf("failed to connect nodeA to nodeB: %s", err))
+	}
+	fmt.Println("Nodes connected")
 
 	exampleCIDStr := peerCidFile.RootCid().String()
-
 	fmt.Printf("Fetching a file from the network with CID %s\n", exampleCIDStr)
 	outputPath := outputBasePath + exampleCIDStr
 	testCID := path.FromCid(peerCidFile.RootCid())
