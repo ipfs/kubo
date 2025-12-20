@@ -48,6 +48,7 @@ const (
 	lsResolveTypeOptionName = "resolve-type"
 	lsSizeOptionName        = "size"
 	lsStreamOptionName      = "stream"
+	lsLongOptionName        = "long"
 )
 
 var LsCmd = &cmds.Command{
@@ -58,6 +59,12 @@ Displays the contents of an IPFS or IPNS object(s) at the given path, with
 the following format:
 
   <link base58 hash> <link size in bytes> <link name>
+
+With the --long (-l) option, also display file mode (permissions) and
+modification time for files that were added with --preserve-mode and
+--preserve-mtime flags. Format similar to Unix 'ls -l':
+
+  <mode> <link base58 hash> <size> <mtime> <name>
 
 The JSON output contains type information.
 `,
@@ -71,6 +78,7 @@ The JSON output contains type information.
 		cmds.BoolOption(lsResolveTypeOptionName, "Resolve linked objects to find out their types.").WithDefault(true),
 		cmds.BoolOption(lsSizeOptionName, "Resolve linked objects to find out their file size.").WithDefault(true),
 		cmds.BoolOption(lsStreamOptionName, "s", "Enable experimental streaming of directory entries as they are traversed."),
+		cmds.BoolOption(lsLongOptionName, "l", "Use a long listing format, showing file mode and modification time."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -215,10 +223,107 @@ The JSON output contains type information.
 	Type: LsOutput{},
 }
 
+// formatMode formats os.FileMode to Unix-style permission string (e.g., "-rw-r--r--").
+func formatMode(mode os.FileMode) string {
+	var buf [10]byte
+
+	// File type - handle all special file types like ls does
+	switch {
+	case mode&os.ModeDir != 0:
+		buf[0] = 'd'
+	case mode&os.ModeSymlink != 0:
+		buf[0] = 'l'
+	case mode&os.ModeNamedPipe != 0:
+		buf[0] = 'p'
+	case mode&os.ModeSocket != 0:
+		buf[0] = 's'
+	case mode&os.ModeDevice != 0:
+		if mode&os.ModeCharDevice != 0 {
+			buf[0] = 'c'
+		} else {
+			buf[0] = 'b'
+		}
+	default:
+		buf[0] = '-'
+	}
+
+	// Owner permissions (bits 8,7,6)
+	buf[1] = permBit(mode, 0400, 'r') // read
+	buf[2] = permBit(mode, 0200, 'w') // write
+	// Handle setuid bit for owner execute
+	if mode&os.ModeSetuid != 0 {
+		if mode&0100 != 0 {
+			buf[3] = 's'
+		} else {
+			buf[3] = 'S'
+		}
+	} else {
+		buf[3] = permBit(mode, 0100, 'x') // execute
+	}
+
+	// Group permissions (bits 5,4,3)
+	buf[4] = permBit(mode, 0040, 'r') // read
+	buf[5] = permBit(mode, 0020, 'w') // write
+	// Handle setgid bit for group execute
+	if mode&os.ModeSetgid != 0 {
+		if mode&0010 != 0 {
+			buf[6] = 's'
+		} else {
+			buf[6] = 'S'
+		}
+	} else {
+		buf[6] = permBit(mode, 0010, 'x') // execute
+	}
+
+	// Other permissions (bits 2,1,0)
+	buf[7] = permBit(mode, 0004, 'r') // read
+	buf[8] = permBit(mode, 0002, 'w') // write
+	// Handle sticky bit for other execute
+	if mode&os.ModeSticky != 0 {
+		if mode&0001 != 0 {
+			buf[9] = 't'
+		} else {
+			buf[9] = 'T'
+		}
+	} else {
+		buf[9] = permBit(mode, 0001, 'x') // execute
+	}
+
+	return string(buf[:])
+}
+
+// permBit returns the permission character if the bit is set.
+func permBit(mode os.FileMode, bit os.FileMode, char rune) byte {
+	if mode&bit != 0 {
+		return byte(char)
+	}
+	return '-'
+}
+
+// formatModTime formats time.Time for display.
+// Returns empty string if time is zero.
+func formatModTime(t time.Time) string {
+	if t.IsZero() {
+		return "-"
+	}
+
+	// Format: "Jan 02 15:04" for times within the last 6 months
+	// Format: "Jan 02  2006" for older times (similar to ls)
+	now := time.Now()
+	sixMonthsAgo := now.AddDate(0, -6, 0)
+
+	if t.After(sixMonthsAgo) && t.Before(now.Add(24*time.Hour)) {
+		return t.Format("Jan 02 15:04")
+	}
+	return t.Format("Jan 02  2006")
+}
+
 func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash string, ignoreBreaks bool) string {
 	headers, _ := req.Options[lsHeadersOptionNameTime].(bool)
 	stream, _ := req.Options[lsStreamOptionName].(bool)
 	size, _ := req.Options[lsSizeOptionName].(bool)
+	long, _ := req.Options[lsLongOptionName].(bool)
+
 	// in streaming mode we can't automatically align the tabs
 	// so we take a best guess
 	var minTabWidth int
@@ -246,6 +351,9 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 				if size {
 					s = "Hash\tSize\tName"
 				}
+				if long {
+					s = "Mode\t" + s + "\tModTime"
+				}
 				fmt.Fprintln(tw, s)
 			}
 			lastObjectHash = object.Hash
@@ -253,23 +361,51 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 
 		for _, link := range object.Links {
 			var s string
-			switch link.Type {
-			case unixfs.TDirectory, unixfs.THAMTShard, unixfs.TMetadata:
-				if size {
-					s = "%[1]s\t-\t%[3]s/\n"
-				} else {
-					s = "%[1]s\t%[3]s/\n"
-				}
-			default:
-				if size {
-					s = "%s\t%v\t%s\n"
-				} else {
-					s = "%[1]s\t%[3]s\n"
-				}
-			}
+			isDir := link.Type == unixfs.TDirectory || link.Type == unixfs.THAMTShard || link.Type == unixfs.TMetadata
 
-			// TODO: Print link.Mode and link.ModTime?
-			fmt.Fprintf(tw, s, link.Hash, link.Size, cmdenv.EscNonPrint(link.Name))
+			if long {
+				// Long format: Mode Hash Size ModTime Name
+				mode := formatMode(link.Mode)
+				modTime := formatModTime(link.ModTime)
+
+				if isDir {
+					if size {
+						s = "%s\t%s\t-\t%s\t%s/\n"
+					} else {
+						s = "%s\t%s\t%s\t%s/\n"
+					}
+					if size {
+						fmt.Fprintf(tw, s, mode, link.Hash, modTime, cmdenv.EscNonPrint(link.Name))
+					} else {
+						fmt.Fprintf(tw, s, mode, link.Hash, modTime, cmdenv.EscNonPrint(link.Name))
+					}
+				} else {
+					if size {
+						s = "%s\t%s\t%v\t%s\t%s\n"
+						fmt.Fprintf(tw, s, mode, link.Hash, link.Size, modTime, cmdenv.EscNonPrint(link.Name))
+					} else {
+						s = "%s\t%s\t%s\t%s\n"
+						fmt.Fprintf(tw, s, mode, link.Hash, modTime, cmdenv.EscNonPrint(link.Name))
+					}
+				}
+			} else {
+				// Standard format: Hash [Size] Name
+				switch {
+				case isDir:
+					if size {
+						s = "%[1]s\t-\t%[3]s/\n"
+					} else {
+						s = "%[1]s\t%[3]s/\n"
+					}
+				default:
+					if size {
+						s = "%s\t%v\t%s\n"
+					} else {
+						s = "%[1]s\t%[3]s\n"
+					}
+				}
+				fmt.Fprintf(tw, s, link.Hash, link.Size, cmdenv.EscNonPrint(link.Name))
+			}
 		}
 	}
 	tw.Flush()
