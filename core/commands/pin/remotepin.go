@@ -473,7 +473,8 @@ TIP:
 		if err != nil {
 			return err
 		}
-		repo, err := fsrepo.Open(cfgRoot)
+		configFileOpt, _ := req.Options[cmdutils.ConfigFileOption].(string)
+		repo, err := fsrepo.OpenWithUserConfig(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -529,7 +530,8 @@ var rmRemotePinServiceCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
-		repo, err := fsrepo.Open(cfgRoot)
+		configFileOpt, _ := req.Options[cmdutils.ConfigFileOption].(string)
+		repo, err := fsrepo.OpenWithUserConfig(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -580,7 +582,8 @@ TIP: pass '--enc=json' for more useful JSON output.
 		if err != nil {
 			return err
 		}
-		repo, err := fsrepo.Open(cfgRoot)
+		configFileOpt, _ := req.Options[cmdutils.ConfigFileOption].(string)
+		repo, err := fsrepo.OpenWithUserConfig(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -600,8 +603,8 @@ TIP: pass '--enc=json' for more useful JSON output.
 
 			// if --pin-count is passed, we try to fetch pin numbers from remote service
 			if req.Options[pinServiceStatOptionName].(bool) {
-				lsRemotePinCount := func(ctx context.Context, env cmds.Environment, svcName string) (*PinCount, error) {
-					c, err := getRemotePinService(env, svcName)
+				lsRemotePinCount := func(ctx context.Context, env cmds.Environment, configFileOpt string, svcName string) (*PinCount, error) {
+					c, err := getRemotePinService(env, configFileOpt, svcName)
 					if err != nil {
 						return nil, err
 					}
@@ -646,7 +649,7 @@ TIP: pass '--enc=json' for more useful JSON output.
 					return pc, nil
 				}
 
-				pinCount, err := lsRemotePinCount(ctx, env, svcName)
+				pinCount, err := lsRemotePinCount(ctx, env, configFileOpt, svcName)
 
 				// PinCount is present only if we were able to fetch counts.
 				// We don't want to break listing of services so this is best-effort.
@@ -731,8 +734,8 @@ func getRemotePinServiceFromRequest(req *cmds.Request, env cmds.Environment) (*p
 	}
 
 	serviceStr := service.(string)
-	var err error
-	c, err := getRemotePinService(env, serviceStr)
+	configFileOpt, _ := req.Options[cmdutils.ConfigFileOption].(string)
+	c, err := getRemotePinService(env, configFileOpt, serviceStr)
 	if err != nil {
 		return nil, err
 	}
@@ -740,23 +743,23 @@ func getRemotePinServiceFromRequest(req *cmds.Request, env cmds.Environment) (*p
 	return c, nil
 }
 
-func getRemotePinService(env cmds.Environment, name string) (*pinclient.Client, error) {
+func getRemotePinService(env cmds.Environment, configFilePath string, name string) (*pinclient.Client, error) {
 	if name == "" {
 		return nil, fmt.Errorf("remote pinning service name not specified")
 	}
-	endpoint, key, err := getRemotePinServiceInfo(env, name)
+	endpoint, key, err := getRemotePinServiceInfo(env, configFilePath, name)
 	if err != nil {
 		return nil, err
 	}
 	return pinclient.NewClient(endpoint, key), nil
 }
 
-func getRemotePinServiceInfo(env cmds.Environment, name string) (endpoint, key string, err error) {
+func getRemotePinServiceInfo(env cmds.Environment, configFilePath string, name string) (endpoint, key string, err error) {
 	cfgRoot, err := cmdenv.GetConfigRoot(env)
 	if err != nil {
 		return "", "", err
 	}
-	repo, err := fsrepo.Open(cfgRoot)
+	repo, err := fsrepo.OpenWithUserConfig(cfgRoot, configFilePath)
 	if err != nil {
 		return "", "", err
 	}

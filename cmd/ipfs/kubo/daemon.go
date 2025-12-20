@@ -155,6 +155,26 @@ environment variable:
 
   export IPFS_PATH=/path/to/ipfsrepo
 
+CONFIGURATION FILE MANAGEMENT
+
+The --init-config and --config-file flags serve different purposes:
+
+  --init-config <path>
+    Copies a configuration template to $IPFS_PATH/config during --init.
+    This is a one-time operation; subsequent changes to the template
+    have no effect.
+
+  --config-file <path>
+    Uses an external configuration file directly for all commands.
+    Takes precedence over $IPFS_PATH/config. The config is never copied;
+    Kubo always reads from this path. Useful for Kubernetes ConfigMaps
+    or container deployments where config should be managed separately
+    from the repo data.
+
+Example using --config-file for Kubernetes:
+
+  ipfs daemon --init --repo-dir /data/ipfs --config-file /etc/ipfs/config
+
 DEPRECATION NOTICE
 
 Previously, Kubo used an environment variable as seen below:
@@ -169,7 +189,7 @@ Headers.
 
 	Options: []cmds.Option{
 		cmds.BoolOption(initOptionKwd, "Initialize Kubo with default settings if not already initialized"),
-		cmds.StringOption(initConfigOptionKwd, "Path to existing configuration file to be loaded during --init"),
+		cmds.StringOption(initConfigOptionKwd, "Path to configuration template to copy during --init (one-time). For persistent external config, use --config-file instead"),
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
@@ -266,6 +286,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if initialize && !fsrepo.IsInitialized(cctx.ConfigRoot) {
 		cfgLocation, _ := req.Options[initConfigOptionKwd].(string)
 		profiles, _ := req.Options[initProfileOptionKwd].(string)
+		configFileOpt, _ := req.Options[commands.ConfigFileOption].(string)
 		var conf *config.Config
 
 		if cfgLocation != "" {
@@ -287,7 +308,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			}
 		}
 
-		if err = doInit(os.Stdout, cctx.ConfigRoot, false, profiles, conf); err != nil {
+		if err = doInit(os.Stdout, cctx.ConfigRoot, configFileOpt, false, profiles, conf); err != nil {
 			return err
 		}
 	}
@@ -297,7 +318,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(cctx.ConfigRoot)
+	configFileOpt, _ := req.Options[commands.ConfigFileOption].(string)
+	repo, err := fsrepo.OpenWithUserConfig(cctx.ConfigRoot, configFileOpt)
 	switch err {
 	default:
 		return err
@@ -347,7 +369,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		// Note: Migration caching/pinning functionality has been deprecated
 		// The hybrid migration system handles legacy migrations more efficiently
 
-		repo, err = fsrepo.Open(cctx.ConfigRoot)
+		repo, err = fsrepo.OpenWithUserConfig(cctx.ConfigRoot, configFileOpt)
 		if err != nil {
 			return err
 		}

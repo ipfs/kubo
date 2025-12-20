@@ -901,7 +901,8 @@ var swarmFiltersAddCmd = &cmds.Command{
 			return errors.New("no filters to add")
 		}
 
-		r, err := fsrepo.Open(env.(*commands.Context).ConfigRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		r, err := fsrepo.OpenWithUserConfig(env.(*commands.Context).ConfigRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -953,7 +954,8 @@ var swarmFiltersRmCmd = &cmds.Command{
 			return ErrNotOnline
 		}
 
-		r, err := fsrepo.Open(env.(*commands.Context).ConfigRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		r, err := fsrepo.OpenWithUserConfig(env.(*commands.Context).ConfigRoot, configFileOpt)
 		if err != nil {
 			return err
 		}

@@ -79,7 +79,8 @@ the bootstrap list, which gets resolved using the AutoConf system.
 			return err
 		}
 
-		r, err := fsrepo.Open(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		r, err := fsrepo.OpenWithUserConfig(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -139,7 +140,8 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return err
 		}
 
-		r, err := fsrepo.Open(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		r, err := fsrepo.OpenWithUserConfig(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -184,7 +186,8 @@ var bootstrapRemoveAllCmd = &cmds.Command{
 			return err
 		}
 
-		r, err := fsrepo.Open(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		r, err := fsrepo.OpenWithUserConfig(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -224,7 +227,8 @@ var bootstrapListCmd = &cmds.Command{
 			return err
 		}
 
-		r, err := fsrepo.Open(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		r, err := fsrepo.OpenWithUserConfig(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}

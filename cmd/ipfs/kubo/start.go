@@ -74,8 +74,8 @@ const (
 
 type PluginPreloader func(*loader.PluginLoader) error
 
-func loadPlugins(repoPath string, preload PluginPreloader) (*loader.PluginLoader, error) {
-	plugins, err := loader.NewPluginLoader(repoPath)
+func loadPlugins(repoPath string, configFilePath string, preload PluginPreloader) (*loader.PluginLoader, error) {
+	plugins, err := loader.NewPluginLoader(repoPath, configFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("error loading plugins: %s", err)
 	}
@@ -116,7 +116,8 @@ func BuildEnv(pl PluginPreloader) func(ctx context.Context, req *cmds.Request) (
 		}
 		log.Debugf("config path is %s", repoPath)
 
-		plugins, err := loadPlugins(repoPath, pl)
+		configFileOpt, _ := req.Options[corecmds.ConfigFileOption].(string)
+		plugins, err := loadPlugins(repoPath, configFileOpt, pl)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +133,8 @@ func BuildEnv(pl PluginPreloader) func(ctx context.Context, req *cmds.Request) (
 					return nil, errors.New("constructing node without a request")
 				}
 
-				r, err := fsrepo.Open(repoPath)
+				configFileOpt, _ := req.Options[corecmds.ConfigFileOption].(string)
+				r, err := fsrepo.OpenWithUserConfig(repoPath, configFileOpt)
 				if err != nil { // repo is owned by the node
 					return nil, err
 				}
