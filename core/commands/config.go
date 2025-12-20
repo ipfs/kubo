@@ -103,7 +103,8 @@ Set multiple values in the 'Addresses.AppendAnnounce' array:
 		if err != nil {
 			return err
 		}
-		r, err := fsrepo.Open(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		r, err := fsrepo.OpenWithUserConfig(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -362,7 +363,8 @@ can't be undone.
 			return err
 		}
 
-		r, err := fsrepo.Open(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		r, err := fsrepo.OpenWithUserConfig(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -414,7 +416,8 @@ var configProfileApplyCmd = &cmds.Command{
 			return err
 		}
 
-		oldCfg, newCfg, err := transformConfig(cfgRoot, req.Arguments[0], profile.Transform, dryRun)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		oldCfg, newCfg, err := transformConfig(cfgRoot, configFileOpt, req.Arguments[0], profile.Transform, dryRun)
 		if err != nil {
 			return err
 		}
@@ -482,8 +485,8 @@ func scrubPrivKey(cfg *config.Config) (map[string]interface{}, error) {
 // If dryRun is true, repo's config should not be updated and persisted
 // to storage. Otherwise, repo's config should be updated and persisted
 // to storage.
-func transformConfig(configRoot string, configName string, transformer config.Transformer, dryRun bool) (*config.Config, *config.Config, error) {
-	r, err := fsrepo.Open(configRoot)
+func transformConfig(configRoot string, configFilePath string, configName string, transformer config.Transformer, dryRun bool) (*config.Config, *config.Config, error) {
+	r, err := fsrepo.OpenWithUserConfig(configRoot, configFilePath)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -57,7 +57,7 @@ environment variable:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
+		cmds.FileArg("default-config", false, false, "Initialize using this configuration file as a template. Identity and all other values are preserved. The file is copied to --config-file location (or $IPFS_PATH/config if not set).").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(algorithmOptionName, "a", "Cryptographic algorithm to use for key generation.").WithDefault(algorithmDefault),
@@ -124,7 +124,8 @@ environment variable:
 		}
 
 		profiles, _ := req.Options[profileOptionName].(string)
-		return doInit(os.Stdout, cctx.ConfigRoot, empty, profiles, conf)
+		configFileOpt, _ := req.Options[commands.ConfigFileOption].(string)
+		return doInit(os.Stdout, cctx.ConfigRoot, configFileOpt, empty, profiles, conf)
 	},
 }
 
@@ -146,7 +147,7 @@ func applyProfiles(conf *config.Config, profiles string) error {
 	return nil
 }
 
-func doInit(out io.Writer, repoRoot string, empty bool, confProfiles string, conf *config.Config) error {
+func doInit(out io.Writer, repoRoot string, configFilePath string, empty bool, confProfiles string, conf *config.Config) error {
 	if _, err := fmt.Fprintf(out, "initializing IPFS node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -163,17 +164,17 @@ func doInit(out io.Writer, repoRoot string, empty bool, confProfiles string, con
 		return err
 	}
 
-	if err := fsrepo.Init(repoRoot, conf); err != nil {
+	if err := fsrepo.InitWithUserConfig(repoRoot, configFilePath, conf); err != nil {
 		return err
 	}
 
 	if !empty {
-		if err := addDefaultAssets(out, repoRoot); err != nil {
+		if err := addDefaultAssets(out, repoRoot, configFilePath); err != nil {
 			return err
 		}
 	}
 
-	return initializeIpnsKeyspace(repoRoot)
+	return initializeIpnsKeyspace(repoRoot, configFilePath)
 }
 
 func checkWritable(dir string) error {
@@ -204,11 +205,11 @@ func checkWritable(dir string) error {
 	return err
 }
 
-func addDefaultAssets(out io.Writer, repoRoot string) error {
+func addDefaultAssets(out io.Writer, repoRoot string, configFilePath string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	r, err := fsrepo.Open(repoRoot)
+	r, err := fsrepo.OpenWithUserConfig(repoRoot, configFilePath)
 	if err != nil { // NB: repo is owned by the node
 		return err
 	}
@@ -233,11 +234,11 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 	return err
 }
 
-func initializeIpnsKeyspace(repoRoot string) error {
+func initializeIpnsKeyspace(repoRoot string, configFilePath string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	r, err := fsrepo.Open(repoRoot)
+	r, err := fsrepo.OpenWithUserConfig(repoRoot, configFilePath)
 	if err != nil { // NB: repo is owned by the node
 		return err
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	dag "github.com/ipfs/kubo/core/commands/dag"
 	name "github.com/ipfs/kubo/core/commands/name"
 	ocmd "github.com/ipfs/kubo/core/commands/object"
@@ -22,7 +23,7 @@ var (
 
 const (
 	RepoDirOption    = "repo-dir"
-	ConfigFileOption = "config-file"
+	ConfigFileOption = cmdutils.ConfigFileOption
 	ConfigOption     = "config"
 	DebugOption      = "debug"
 	LocalOption      = "local" // DEPRECATED: use OfflineOption

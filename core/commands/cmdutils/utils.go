@@ -14,6 +14,9 @@ const (
 	AllowBigBlockOptionName = "allow-big-block"
 	SoftBlockLimit          = 1024 * 1024 // https://github.com/ipfs/kubo/issues/7421#issuecomment-910833499
 	MaxPinNameBytes         = 255         // Maximum number of bytes allowed for a pin name
+
+	// ConfigFileOption is the name of the global --config-file option
+	ConfigFileOption = "config-file"
 )
 
 var AllowBigBlockOption cmds.Option
