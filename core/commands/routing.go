@@ -11,6 +11,7 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipfs/kubo/core/node"
 	mh "github.com/multiformats/go-multihash"
 
@@ -89,7 +90,7 @@ var findProvidersRoutingCmd = &cmds.Command{
 			defer cancel()
 			pchan := n.Routing.FindProvidersAsync(ctx, c, numProviders)
 			for p := range pchan {
-				np := p
+				np := cmdutils.CloneAddrInfo(p)
 				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
 					Type:      routing.Provider,
 					Responses: []*peer.AddrInfo{&np},
