@@ -1,12 +1,14 @@
-package fsrepo
+package serialize
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ipfs/kubo/config"
 
@@ -16,6 +18,25 @@ import (
 // ErrNotInitialized is returned when we fail to read the config because the
 // repo doesn't exist.
 var ErrNotInitialized = errors.New("ipfs not initialized, please run 'ipfs init'")
+
+// removeCommentLines reads from the provided io.Reader, removes lines that
+// start with "//", and writes the result to the provided io.Writer.
+func removeCommentLines(r io.Reader, w io.Writer) error {
+	scanner := bufio.NewScanner(r)
+	writer := bufio.NewWriter(w)
+	defer writer.Flush()
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmed := strings.TrimLeft(line, " ")
+		if !strings.HasPrefix(trimmed, "//") {
+			if _, err := writer.WriteString(line + "\n"); err != nil {
+				return err
+			}
+		}
+	}
+	return scanner.Err()
+}
 
 // ReadConfigFile reads the config from `filename` into `cfg`.
 func ReadConfigFile(filename string, cfg interface{}) error {
@@ -27,7 +48,17 @@ func ReadConfigFile(filename string, cfg interface{}) error {
 		return err
 	}
 	defer f.Close()
-	if err := json.NewDecoder(f).Decode(cfg); err != nil {
+
+	// Remove line comments (any line that has `\s*//`)
+	r, w := io.Pipe()
+	go func() {
+		if err := removeCommentLines(f, w); err != nil {
+			w.CloseWithError(err)
+			return
+		}
+		w.Close()
+	}()
+	if err := json.NewDecoder(r).Decode(cfg); err != nil {
 		return fmt.Errorf("failure to decode config: %w", err)
 	}
 	return nil
