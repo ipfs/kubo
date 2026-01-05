@@ -489,10 +489,12 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					strategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 					logger.Infow("provider keystore sync started", "strategy", strategy)
 					if err := syncKeystore(ctx); err != nil {
-						logger.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
-					} else {
-						logger.Infow("provider keystore sync completed", "strategy", strategy)
+						if ctx.Err() == nil {
+							logger.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
+						}
+						return
 					}
+					logger.Infow("provider keystore sync completed", "strategy", strategy)
 				}()
 
 				gcCtx, c := context.WithCancel(context.Background())
