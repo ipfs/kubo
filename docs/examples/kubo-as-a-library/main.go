@@ -270,11 +270,13 @@ func main() {
 
 	bootstrapPeers := []peer.AddrInfo{nodeA.Peerstore.PeerInfo(nodeA.Identity)}
 
+	time.Sleep(5 * time.Second)
 	fmt.Println("Bootstrapping nodeB to nodeA")
 	if err := nodeB.Bootstrap(bootstrap.BootstrapConfigWithPeers(bootstrapPeers)); err != nil {
 		panic(fmt.Errorf("failed to bootstrap nodeB: %s", err))
 	}
 	fmt.Println("Done bootstrapping nodeB")
+	time.Sleep(5 * time.Second)
 
 	exampleCIDStr := peerCidFile.RootCid().String()
 
