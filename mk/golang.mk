@@ -59,6 +59,12 @@ test_cli: cmd/ipfs/ipfs test/bin/gotestsum
 	PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/cli/cli-tests.json -- -v -timeout=20m ./test/cli/... ./test/integration/... ./client/rpc/...
 .PHONY: test_cli
 
+# Example tests (docs/examples/kubo-as-a-library)
+# Tests against both published and current kubo versions
+test_examples:
+	cd docs/examples/kubo-as-a-library && go test -v ./... && cp go.mod go.mod.bak && cp go.sum go.sum.bak && go mod edit -replace github.com/ipfs/kubo=./../../.. && go mod tidy && go test -v ./... && mv go.mod.bak go.mod && mv go.sum.bak go.sum
+.PHONY: test_examples
+
 # Build kubo for all platforms from .github/build-platforms.yml
 test_go_build:
 	bin/test-go-build-platforms
@@ -74,6 +80,6 @@ test_go_lint: test/bin/golangci-lint
 	golangci-lint run --timeout=3m ./...
 .PHONY: test_go_lint
 
-TEST_GO := test_go_fmt test_unit test_cli
+TEST_GO := test_go_fmt test_unit test_cli test_examples
 TEST += $(TEST_GO)
 TEST_SHORT += test_go_fmt test_unit

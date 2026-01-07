@@ -50,28 +50,6 @@ jobs:
           files: coverage/unit_tests.coverprofile
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
-      - name: Test kubo-as-a-library example
-        run: |
-          # we want to first test with the kubo version in the go.mod file
-          go test -v ./...
-
-          # we also want to test the examples against the current version of kubo
-          # however, that version might be in a fork so we need to replace the dependency
-
-          # backup the go.mod and go.sum files to restore them after we run the tests
-          cp go.mod go.mod.bak
-          cp go.sum go.sum.bak
-
-          # make sure the examples run against the current version of kubo
-          go mod edit -replace github.com/ipfs/kubo=./../../..
-          go mod tidy
-
-          go test -v ./...
-
-          # restore the go.mod and go.sum files to their original state
-          mv go.mod.bak go.mod
-          mv go.sum.bak go.sum
-        working-directory: docs/examples/kubo-as-a-library
       - name: Create a proper JUnit XML report
         uses: ipdxco/gotest-json-to-junit-xml@v1
         with:
@@ -170,3 +148,23 @@ jobs:
       - name: Set summary
         run: cat test/cli/cli-tests.md >> $GITHUB_STEP_SUMMARY
         if: failure() || success()
+
+  # Example tests (kubo-as-a-library)
+  example-tests:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 5
+    env:
+      GOTRACEBACK: single
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Run example tests
+        run: make test_examples

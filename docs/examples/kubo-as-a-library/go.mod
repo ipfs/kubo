@@ -10,7 +10,6 @@ require (
 	github.com/ipfs/boxo v0.35.3-0.20251202220026-0842ad274a0c
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.46.0
-	github.com/stretchr/testify v1.11.1
 )
 
 require (
@@ -40,7 +39,6 @@ require (
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/crackcomm/go-gitignore v0.0.0-20241020182519-7843d2ba8fdf // indirect
 	github.com/cskr/pubsub v1.0.2 // indirect
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
@@ -171,7 +169,6 @@ require (
 	github.com/pion/turn/v4 v4.0.2 // indirect
 	github.com/pion/webrtc/v4 v4.1.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/probe-lab/go-libdht v0.4.0 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
