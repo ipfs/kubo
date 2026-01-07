@@ -46,7 +46,7 @@ func setupPlugins(externalPluginsPath string) error {
 	return nil
 }
 
-func createTempRepo(swarmPort int) (string, error) {
+func createTempRepo() (string, error) {
 	repoPath, err := os.MkdirTemp("", "ipfs-shell")
 	if err != nil {
 		return "", fmt.Errorf("failed to get temp dir: %s", err)
@@ -65,10 +65,10 @@ func createTempRepo(swarmPort int) (string, error) {
 	// Configure custom ports to avoid conflicts with other IPFS instances.
 	// This demonstrates how to customize the node's network addresses.
 	cfg.Addresses.Swarm = []string{
-		fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
-		fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1", swarmPort),
-		fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1/webtransport", swarmPort),
-		fmt.Sprintf("/ip4/0.0.0.0/udp/%d/webrtc-direct", swarmPort),
+		"/ip4/0.0.0.0/tcp/0",
+		"/ip4/0.0.0.0/udp/0/quic-v1",
+		"/ip4/0.0.0.0/udp/0/quic-v1/webtransport",
+		"/ip4/0.0.0.0/udp/0/webrtc-direct",
 	}
 
 	// When creating the repository, you can define custom settings on the repository, such as enabling experimental
@@ -122,7 +122,7 @@ var loadPluginsOnce sync.Once
 
 // Spawns a node to be used just for this run (i.e. creates a tmp repo).
 // The swarmPort parameter specifies the port for libp2p swarm listeners.
-func spawnEphemeral(ctx context.Context, swarmPort int) (icore.CoreAPI, *core.IpfsNode, error) {
+func spawnEphemeral(ctx context.Context) (icore.CoreAPI, *core.IpfsNode, error) {
 	var onceErr error
 	loadPluginsOnce.Do(func() {
 		onceErr = setupPlugins("")
@@ -132,7 +132,7 @@ func spawnEphemeral(ctx context.Context, swarmPort int) (icore.CoreAPI, *core.Ip
 	}
 
 	// Create a Temporary Repo
-	repoPath, err := createTempRepo(swarmPort)
+	repoPath, err := createTempRepo()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create temp repo: %s", err)
 	}
@@ -176,8 +176,7 @@ func main() {
 	defer cancel()
 
 	// Spawn a local peer using a temporary path, for testing purposes
-	// Using port 4010 to avoid conflict with default IPFS port 4001
-	ipfsA, nodeA, err := spawnEphemeral(ctx, 4010)
+	ipfsA, nodeA, err := spawnEphemeral(ctx)
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn peer node: %s", err))
 	}
@@ -192,9 +191,8 @@ func main() {
 	fmt.Printf("Added file to peer with CID %s\n", peerCidFile.String())
 
 	// Spawn a node using a temporary path, creating a temporary repo for the run
-	// Using port 4011 (different from nodeA's port 4010)
 	fmt.Println("Spawning Kubo node on a temporary repo")
-	ipfsB, nodeB, err := spawnEphemeral(ctx, 4011)
+	ipfsB, nodeB, err := spawnEphemeral(ctx)
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn ephemeral node: %s", err))
 	}
