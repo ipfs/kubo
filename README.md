@@ -28,7 +28,7 @@ Kubo was the first [IPFS](https://docs.ipfs.tech/concepts/what-is-ipfs/) impleme
 
 **Features:**
 
-- Runs an IPFS node as a network service (LAN and WAN DHT)
+- Runs an IPFS node as a network service (LAN [mDNS](https://github.com/libp2p/specs/blob/master/discovery/mdns.md) and WAN [Amino DHT](https://docs.ipfs.tech/concepts/glossary/#dht))
 - [Command-line interface](https://docs.ipfs.tech/reference/kubo/cli/) (`ipfs --help`)
 - [WebUI](https://github.com/ipfs/ipfs-webui/#readme) for node management
 - [HTTP Gateway](https://specs.ipfs.tech/http-gateways/) for trusted and [trustless](https://docs.ipfs.tech/reference/http/gateway/#trustless-verifiable-retrieval) content retrieval
@@ -120,7 +120,8 @@ For testing arbitrary commits and experimental patches (force push to `staging` 
 ```bash
 git clone https://github.com/ipfs/kubo.git
 cd kubo
-make install
+make build    # creates cmd/ipfs/ipfs
+make install  # installs to $GOPATH/bin/ipfs
 ```
 
 See the [Developer Guide](docs/developer-guide.md) for details, Windows instructions, and troubleshooting.
