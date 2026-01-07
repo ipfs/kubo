@@ -412,7 +412,8 @@ The PEM format allows for key generation outside of the IPFS node:
 			return err
 		}
 
-		r, err := fsrepo.Open(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		r, err := fsrepo.OpenWithUserConfig(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -621,13 +622,14 @@ environment variable:
 		if oldKey == "self" {
 			return fmt.Errorf("keystore name for back up cannot be named 'self'")
 		}
-		return doRotate(os.Stdout, cctx.ConfigRoot, oldKey, algorithm, nBitsForKeypair, nBitsGiven)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		return doRotate(os.Stdout, cctx.ConfigRoot, configFileOpt, oldKey, algorithm, nBitsForKeypair, nBitsGiven)
 	},
 }
 
-func doRotate(out io.Writer, repoRoot string, oldKey string, algorithm string, nBitsForKeypair int, nBitsGiven bool) error {
+func doRotate(out io.Writer, repoRoot string, configFilePath string, oldKey string, algorithm string, nBitsForKeypair int, nBitsGiven bool) error {
 	// Open repo
-	repo, err := fsrepo.Open(repoRoot)
+	repo, err := fsrepo.OpenWithUserConfig(repoRoot, configFilePath)
 	if err != nil {
 		return fmt.Errorf("opening repo (%v)", err)
 	}

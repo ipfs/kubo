@@ -143,7 +143,7 @@ func open(repoPath string, userConfigFilePath string) (repo.Repo, error) {
 	}
 
 	// Check if its initialized
-	if err := checkInitialized(r.path); err != nil {
+	if err := checkInitialized(r.path, userConfigFilePath); err != nil {
 		return nil, err
 	}
 
@@ -237,10 +237,10 @@ func newFSRepo(rpath string, userConfigFilePath string) (*FSRepo, error) {
 	return &FSRepo{path: expPath, configFilePath: configFilePath}, nil
 }
 
-func checkInitialized(path string) error {
-	if !isInitializedUnsynced(path) {
+func checkInitialized(path string, userConfigFilePath string) error {
+	if !configIsInitialized(path, userConfigFilePath) {
 		alt := strings.Replace(path, ".ipfs", ".go-ipfs", 1)
-		if isInitializedUnsynced(alt) {
+		if configIsInitialized(alt, "") {
 			return ErrOldRepo
 		}
 		return NoRepoError{Path: path}
@@ -250,8 +250,8 @@ func checkInitialized(path string) error {
 
 // configIsInitialized returns true if the repo is initialized at
 // provided |path|.
-func configIsInitialized(path string) bool {
-	configFilename, err := config.Filename(path, "")
+func configIsInitialized(path string, userConfigFilePath string) bool {
+	configFilename, err := config.Filename(path, userConfigFilePath)
 	if err != nil {
 		return false
 	}
@@ -261,13 +261,13 @@ func configIsInitialized(path string) bool {
 	return true
 }
 
-func initConfig(path string, conf *config.Config) error {
-	if configIsInitialized(path) {
-		return nil
-	}
-	configFilename, err := config.Filename(path, "")
+func initConfigWithPath(repoPath string, userConfigFile string, conf *config.Config) error {
+	configFilename, err := config.Filename(repoPath, userConfigFile)
 	if err != nil {
 		return err
+	}
+	if fsutil.FileExists(configFilename) {
+		return nil
 	}
 	// initialization is the one time when it's okay to write to the config
 	// without reading the config from disk and merging any user-provided keys
@@ -301,16 +301,27 @@ func initSpec(path string, conf map[string]interface{}) error {
 // Init initializes a new FSRepo at the given path with the provided config.
 // TODO add support for custom datastores.
 func Init(repoPath string, conf *config.Config) error {
+	return InitWithUserConfig(repoPath, "", conf)
+}
+
+// InitWithUserConfig initializes a new FSRepo at the given path with the provided config.
+// If userConfigFile is non-empty, the config will be written to that location instead of
+// the default location inside repoPath. The datastore_spec and version files are always
+// written to repoPath.
+//
+// This function is idempotent: it can be called multiple times and will only
+// create files that don't already exist. This supports scenarios where the config
+// file is provided externally (e.g., via Kubernetes ConfigMap) but the repo
+// infrastructure (datastore, version) needs to be initialized.
+func InitWithUserConfig(repoPath string, userConfigFile string, conf *config.Config) error {
 	// packageLock must be held to ensure that the repo is not initialized more
 	// than once.
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if isInitializedUnsynced(repoPath) {
-		return nil
-	}
-
-	if err := initConfig(repoPath, conf); err != nil {
+	// initConfigWithPath is idempotent - it skips if config already exists.
+	// This allows using a pre-existing config file (e.g., from a ConfigMap).
+	if err := initConfigWithPath(repoPath, userConfigFile, conf); err != nil {
 		return err
 	}
 
@@ -775,19 +786,14 @@ var (
 )
 
 // IsInitialized returns true if the repo is initialized at provided |path|.
+// It checks for the config file in the default location (path/config).
 func IsInitialized(path string) bool {
 	// packageLock is held to ensure that another caller doesn't attempt to
 	// Init or Remove the repo while this call is in progress.
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	return isInitializedUnsynced(path)
+	return configIsInitialized(path, "")
 }
 
 // private methods below this point. NB: packageLock must held by caller.
-
-// isInitializedUnsynced reports whether the repo is initialized. Caller must
-// hold the packageLock.
-func isInitializedUnsynced(repoPath string) bool {
-	return configIsInitialized(repoPath)
-}

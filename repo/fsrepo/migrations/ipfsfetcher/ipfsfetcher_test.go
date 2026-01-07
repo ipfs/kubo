@@ -256,7 +256,7 @@ func setupPlugins() error {
 	}
 
 	// Load plugins. This will skip the repo if not available.
-	plugins, err := loader.NewPluginLoader(filepath.Join(defaultPath, "plugins"))
+	plugins, err := loader.NewPluginLoader(filepath.Join(defaultPath, "plugins"), "")
 	if err != nil {
 		return fmt.Errorf("error loading plugins: %w", err)
 	}
