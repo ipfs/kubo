@@ -44,25 +44,35 @@ endef
 # Only disable colors when running in CI (non-interactive terminal)
 GOTESTSUM_NOCOLOR := $(if $(CI),--no-color,)
 
-# Unit tests with coverage (excludes integration test packages)
+# Packages excluded from coverage (test code and examples are not production code)
+COVERPKG_EXCLUDE := /(test|docs/examples)/
+
+# Packages excluded from unit tests: coverage exclusions + client/rpc (tested by test_cli)
+UNIT_EXCLUDE := /(test|docs/examples|client/rpc)/
+
+# Unit tests with coverage
 # Produces JSON for CI reporting and coverage profile for Codecov
 test_unit: test/bin/gotestsum $$(DEPS_GO)
+	mkdir -p test/unit coverage
 	rm -f test/unit/gotest.json coverage/unit_tests.coverprofile
-	gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/unit/gotest.json -- $(go-flags-with-tags) $(GOTFLAGS) -covermode=atomic -coverprofile=coverage/unit_tests.coverprofile -coverpkg=./... $$($(GOCC) list $(go-tags) ./... | grep -v '/test/cli' | grep -v '/test/integration' | grep -v '/client/rpc')
+	gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/unit/gotest.json -- $(go-flags-with-tags) $(GOTFLAGS) -covermode=atomic -coverprofile=coverage/unit_tests.coverprofile -coverpkg=$$($(GOCC) list $(go-tags) ./... | grep -vE '$(COVERPKG_EXCLUDE)' | tr '\n' ',' | sed 's/,$$//') $$($(GOCC) list $(go-tags) ./... | grep -vE '$(UNIT_EXCLUDE)')
 .PHONY: test_unit
 
 # CLI/integration tests (requires built binary in PATH)
 # Includes test/cli, test/integration, and client/rpc
 # Produces JSON for CI reporting
-test_cli: cmd/ipfs/ipfs test/bin/gotestsum
+# Override TEST_CLI_TIMEOUT for local development: make test_cli TEST_CLI_TIMEOUT=5m
+TEST_CLI_TIMEOUT ?= 10m
+test_cli: cmd/ipfs/ipfs test/bin/gotestsum $$(DEPS_GO)
+	mkdir -p test/cli
 	rm -f test/cli/cli-tests.json
-	PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/cli/cli-tests.json -- -v -timeout=20m ./test/cli/... ./test/integration/... ./client/rpc/...
+	PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/cli/cli-tests.json -- -v -timeout=$(TEST_CLI_TIMEOUT) ./test/cli/... ./test/integration/... ./client/rpc/...
 .PHONY: test_cli
 
 # Example tests (docs/examples/kubo-as-a-library)
 # Tests against both published and current kubo versions
 test_examples:
-	cd docs/examples/kubo-as-a-library && go test -v ./... && cp go.mod go.mod.bak && cp go.sum go.sum.bak && go mod edit -replace github.com/ipfs/kubo=./../../.. && go mod tidy && go test -v ./... && mv go.mod.bak go.mod && mv go.sum.bak go.sum
+	cd docs/examples/kubo-as-a-library && go test -v ./... && cp go.mod go.mod.bak && cp go.sum go.sum.bak && (go mod edit -replace github.com/ipfs/kubo=./../../.. && go mod tidy && go test -v ./...; ret=$$?; mv go.mod.bak go.mod; mv go.sum.bak go.sum; exit $$ret)
 .PHONY: test_examples
 
 # Build kubo for all platforms from .github/build-platforms.yml

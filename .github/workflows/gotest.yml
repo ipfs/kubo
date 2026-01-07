@@ -59,7 +59,7 @@ jobs:
       - name: Archive the JUnit XML report
         uses: actions/upload-artifact@v6
         with:
-          name: unit
+          name: unit-tests-junit
           path: test/unit/gotest.junit.xml
         if: failure() || success()
       - name: Create a HTML report
@@ -72,7 +72,7 @@ jobs:
       - name: Archive the HTML report
         uses: actions/upload-artifact@v6
         with:
-          name: html
+          name: unit-tests-html
           path: test/unit/gotest.html
         if: failure() || success()
       - name: Create a Markdown report
@@ -120,9 +120,9 @@ jobs:
           output: test/cli/cli-tests.junit.xml
         if: failure() || success()
       - name: Archive JUnit XML report
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
-          name: cli-tests
+          name: cli-tests-junit
           path: test/cli/cli-tests.junit.xml
         if: failure() || success()
       - name: Create HTML report
@@ -133,9 +133,9 @@ jobs:
           output: test/cli/cli-tests.html
         if: failure() || success()
       - name: Archive HTML report
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
-          name: cli-html
+          name: cli-tests-html
           path: test/cli/cli-tests.html
         if: failure() || success()
       - name: Create Markdown report
