@@ -98,11 +98,6 @@ Before opening an issue, consider using one of the following locations to ensure
   - [Troubleshooting](#troubleshooting-1)
 - [Packages](#packages)
 - [Development](#development)
-  - [Map of Implemented Subsystems](#map-of-implemented-subsystems)
-  - [CLI, HTTP-API, Architecture Diagram](#cli-http-api-architecture-diagram)
-  - [Testing](#testing)
-  - [Development Dependencies](#development-dependencies)
-  - [Developer Notes](#developer-notes)
 - [Maintainer Info](#maintainer-info)
 - [Contributing](#contributing)
 - [License](#license)
@@ -450,41 +445,7 @@ See [IPFS in GO](https://docs.ipfs.tech/reference/go/api/) documentation.
 
 ## Development
 
-Some places to get you started on the codebase:
-
-- Main file: [./cmd/ipfs/main.go](https://github.com/ipfs/kubo/blob/master/cmd/ipfs/main.go)
-- CLI Commands: [./core/commands/](https://github.com/ipfs/kubo/tree/master/core/commands)
-- Bitswap (the data trading engine): [go-bitswap](https://github.com/ipfs/go-bitswap)
-- libp2p
-  - libp2p: https://github.com/libp2p/go-libp2p
-  - DHT: https://github.com/libp2p/go-libp2p-kad-dht
-- [IPFS : The `Add` command demystified](https://github.com/ipfs/kubo/tree/master/docs/add-code-flow.md)
-
-### Map of Implemented Subsystems
-**WIP**: This is a high-level architecture diagram of the various sub-systems of this specific implementation. To be updated with how they interact. Anyone who has suggestions is welcome to comment [here](https://docs.google.com/drawings/d/1OVpBT2q-NtSJqlPX3buvjYhOnWfdzb85YEsM_njesME/edit) on how we can improve this!
-<img src="https://docs.google.com/drawings/d/e/2PACX-1vS_n1FvSu6mdmSirkBrIIEib2gqhgtatD9awaP2_WdrGN4zTNeg620XQd9P95WT-IvognSxIIdCM5uE/pub?w=1446&amp;h=1036">
-
-### CLI, HTTP-API, Architecture Diagram
-
-![](./docs/cli-http-api-core-diagram.png)
-
-> [Origin](https://github.com/ipfs/pm/pull/678#discussion_r210410924)
-
-Description: Dotted means "likely going away". The "Legacy" parts are thin wrappers around some commands to translate between the new system and the old system. The grayed-out parts on the "daemon" diagram are there to show that the code is all the same, it's just that we turn some pieces on and some pieces off depending on whether we're running on the client or the server.
-
-### Testing
-
-```
-make test
-```
-
-### Development Dependencies
-
-If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://github.com/google/protobuf).
-
-### Developer Notes
-
-Find more documentation for developers on [docs](./docs)
+See the [Developer Guide](docs/developer-guide.md) for build instructions, testing, architecture, and contribution workflow.
 
 ## Maintainer Info
 
