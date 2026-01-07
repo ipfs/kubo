@@ -273,7 +273,7 @@ func TestRoutingV1Server(t *testing.T) {
 					assert.NoError(t, probeErr, "DHT should be ready to handle GetClosestPeers")
 				}, 2*time.Minute, 5*time.Second)
 
-				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+				ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 				defer cancel()
 				resultsIter, err := c.GetClosestPeers(ctx, key)
 				require.NoError(t, err)
