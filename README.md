@@ -180,7 +180,8 @@ Kubo is available in community-maintained packages across many operating systems
 | [Content blocking](docs/content-blocking.md) | Denylist for public nodes |
 | [Customizing](docs/customizing.md) | Unsure if use Plugins, Boxo, or fork? |
 | [Debug guide](docs/debug-guide.md) | CPU profiles, memory analysis, tracing |
-| [All documentation](docs/README.md) | Full list of docs |
+| [Changelogs](docs/changelogs/) | Release notes for each version |
+| [All documentation](https://github.com/ipfs/kubo/tree/master/docs) | Full list of docs |
 
 ## Development
 
