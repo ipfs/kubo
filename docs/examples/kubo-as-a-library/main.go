@@ -172,7 +172,7 @@ func main() {
 
 	fmt.Println("-- Getting an IPFS node running -- ")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	// Spawn a local peer using a temporary path, for testing purposes
@@ -181,6 +181,7 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn peer node: %s", err))
 	}
+	defer nodeA.Close()
 
 	peerCidFile, err := ipfsA.Unixfs().Add(ctx,
 		files.NewBytesFile([]byte("hello from ipfs 101 in Kubo")))
@@ -197,6 +198,7 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn ephemeral node: %s", err))
 	}
+	defer nodeB.Close()
 
 	fmt.Println("IPFS node is running")
 
@@ -270,10 +272,11 @@ func main() {
 
 	bootstrapPeers := []peer.AddrInfo{nodeA.Peerstore.PeerInfo(nodeA.Identity)}
 
-	fmt.Println("Bootstrapping to peers")
+	fmt.Println("Bootstrapping nodeB to nodeA")
 	if err := nodeB.Bootstrap(bootstrap.BootstrapConfigWithPeers(bootstrapPeers)); err != nil {
 		panic(fmt.Errorf("failed to bootstrap nodeB: %s", err))
 	}
+	fmt.Println("Done bootstrapping nodeB")
 
 	exampleCIDStr := peerCidFile.RootCid().String()
 
