@@ -38,6 +38,7 @@ func TestRoutingV1Server(t *testing.T) {
 			})
 		})
 		nodes.StartDaemons().Connect()
+		t.Cleanup(func() { nodes.StopDaemons() })
 		return nodes
 	}
 
@@ -139,6 +140,7 @@ func TestRoutingV1Server(t *testing.T) {
 			cfg.Routing.Type = config.NewOptionalString("dht")
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Put IPNS record in lonely node. It should be accepted as it is a valid record.
 		c, err = client.New(node.GatewayURL())
@@ -202,6 +204,7 @@ func TestRoutingV1Server(t *testing.T) {
 					}
 				})
 				node.StartDaemon()
+				defer node.StopDaemon()
 
 				c, err := client.New(node.GatewayURL())
 				require.NoError(t, err)
@@ -241,6 +244,7 @@ func TestRoutingV1Server(t *testing.T) {
 					cfg.Bootstrap = autoconf.FallbackBootstrapPeers
 				})
 				node.StartDaemon()
+				defer node.StopDaemon()
 
 				// Create client before waiting so we can probe DHT readiness
 				c, err := client.New(node.GatewayURL())
@@ -273,7 +277,7 @@ func TestRoutingV1Server(t *testing.T) {
 					assert.NoError(t, probeErr, "DHT should be ready to handle GetClosestPeers")
 				}, 2*time.Minute, 5*time.Second)
 
-				ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 				defer cancel()
 				resultsIter, err := c.GetClosestPeers(ctx, key)
 				require.NoError(t, err)

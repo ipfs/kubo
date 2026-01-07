@@ -26,6 +26,7 @@ func TestRcmgr(t *testing.T) {
 		})
 
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		t.Run("swarm resources should fail", func(t *testing.T) {
 			res := node.RunIPFS("swarm", "resources")
@@ -41,6 +42,7 @@ func TestRcmgr(t *testing.T) {
 			cfg.Swarm.ResourceMgr.Enabled = config.False
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		t.Run("swarm resources should fail", func(t *testing.T) {
 			res := node.RunIPFS("swarm", "resources")
@@ -56,6 +58,7 @@ func TestRcmgr(t *testing.T) {
 			cfg.Swarm.ConnMgr.HighWater = config.NewOptionalInteger(1000)
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		res := node.RunIPFS("swarm", "resources", "--enc=json")
 		require.Equal(t, 0, res.ExitCode())
@@ -73,7 +76,9 @@ func TestRcmgr(t *testing.T) {
 		node.UpdateConfig(func(cfg *config.Config) {
 			cfg.Swarm.ConnMgr.HighWater = config.NewOptionalInteger(1000)
 		})
+
 		node.StartDaemon()
+		t.Cleanup(func() { node.StopDaemon() })
 
 		t.Run("conns and streams are above 800 for default connmgr settings", func(t *testing.T) {
 			t.Parallel()
@@ -135,6 +140,7 @@ func TestRcmgr(t *testing.T) {
 			overrides.System.ConnsInbound = rcmgr.Unlimited
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		res := node.RunIPFS("swarm", "resources", "--enc=json")
 		limits := unmarshalLimits(t, res.Stdout.Bytes())
@@ -150,6 +156,7 @@ func TestRcmgr(t *testing.T) {
 			overrides.Transient.Memory = 88888
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		res := node.RunIPFS("swarm", "resources", "--enc=json")
 		limits := unmarshalLimits(t, res.Stdout.Bytes())
@@ -163,6 +170,7 @@ func TestRcmgr(t *testing.T) {
 			overrides.Service = map[string]rcmgr.ResourceLimits{"foo": {Memory: 77777}}
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		res := node.RunIPFS("swarm", "resources", "--enc=json")
 		limits := unmarshalLimits(t, res.Stdout.Bytes())
@@ -176,6 +184,7 @@ func TestRcmgr(t *testing.T) {
 			overrides.Protocol = map[protocol.ID]rcmgr.ResourceLimits{"foo": {Memory: 66666}}
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		res := node.RunIPFS("swarm", "resources", "--enc=json")
 		limits := unmarshalLimits(t, res.Stdout.Bytes())
@@ -191,6 +200,7 @@ func TestRcmgr(t *testing.T) {
 			overrides.Peer = map[peer.ID]rcmgr.ResourceLimits{validPeerID: {Memory: 55555}}
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		res := node.RunIPFS("swarm", "resources", "--enc=json")
 		limits := unmarshalLimits(t, res.Stdout.Bytes())
@@ -218,6 +228,7 @@ func TestRcmgr(t *testing.T) {
 		})
 
 		nodes.StartDaemons()
+		t.Cleanup(func() { nodes.StopDaemons() })
 
 		t.Run("node 0 should fail to connect to and ping node 1", func(t *testing.T) {
 			t.Parallel()

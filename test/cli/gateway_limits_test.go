@@ -28,6 +28,7 @@ func TestGatewayLimits(t *testing.T) {
 			cfg.Gateway.RetrievalTimeout = config.NewOptionalDuration(1 * time.Second)
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Add content that can be retrieved quickly
 		cid := node.IPFSAddStr("test content")
@@ -69,6 +70,7 @@ func TestGatewayLimits(t *testing.T) {
 			cfg.Gateway.RetrievalTimeout = config.NewOptionalDuration(2 * time.Second)
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Add some content - use a non-existent CID that will block during retrieval
 		// to ensure we can control timing
