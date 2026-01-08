@@ -48,7 +48,7 @@ GOTESTSUM_NOCOLOR := $(if $(CI),--no-color,)
 COVERPKG_EXCLUDE := /(test|docs/examples)/
 
 # Packages excluded from unit tests: coverage exclusions + client/rpc (tested by test_cli)
-UNIT_EXCLUDE := /(test|docs/examples|client/rpc)/
+UNIT_EXCLUDE := /(test|docs/examples)/|/client/rpc$$
 
 # Unit tests with coverage
 # Produces JSON for CI reporting and coverage profile for Codecov

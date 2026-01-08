@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ipfs/boxo/autoconf"
 	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
@@ -270,20 +269,13 @@ func main() {
 
 	fmt.Println("\n-- Connecting to nodeA and fetching content via bitswap --")
 
-	// Bootstrap nodeB to nodeA and public IPFS network.
-	// We use Bootstrap() instead of raw Swarm().Connect() because Bootstrap() properly
-	// integrates peers into the routing system and ensures bitswap learns about them.
-	fmt.Println("Bootstrapping nodeB to nodeA and public network...")
+	// Bootstrap nodeB to nodeA only. We use Bootstrap() instead of raw Swarm().Connect()
+	// because it properly integrates peers into the routing system and ensures bitswap
+	// learns about them. For production use, you'd add autoconf.FallbackBootstrapPeers
+	// to join the public IPFS network.
+	fmt.Println("Bootstrapping nodeB to nodeA...")
 	nodeAPeerInfo := nodeA.Peerstore.PeerInfo(nodeA.Identity)
-	bootstrapPeers := []peer.AddrInfo{nodeAPeerInfo}
-	for _, s := range autoconf.FallbackBootstrapPeers {
-		ai, err := peer.AddrInfoFromString(s)
-		if err != nil {
-			continue
-		}
-		bootstrapPeers = append(bootstrapPeers, *ai)
-	}
-	if err := nodeB.Bootstrap(bootstrap.BootstrapConfigWithPeers(bootstrapPeers)); err != nil {
+	if err := nodeB.Bootstrap(bootstrap.BootstrapConfigWithPeers([]peer.AddrInfo{nodeAPeerInfo})); err != nil {
 		panic(fmt.Errorf("failed to bootstrap nodeB: %s", err))
 	}
 	fmt.Println("nodeB bootstrap complete")
