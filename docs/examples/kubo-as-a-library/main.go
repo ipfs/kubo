@@ -172,7 +172,7 @@ func main() {
 
 	fmt.Println("-- Getting an IPFS node running -- ")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	// Spawn a local peer using a temporary path, for testing purposes
