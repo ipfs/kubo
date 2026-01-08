@@ -37,7 +37,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - run: make build
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: kubo
           path: cmd/ipfs/ipfs
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: lts/*
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: kubo
           path: cmd/ipfs
@@ -87,7 +87,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 20.x
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: kubo
           path: cmd/ipfs
