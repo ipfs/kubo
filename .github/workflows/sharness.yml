@@ -60,6 +60,8 @@ jobs:
         with:
           name: sharness
           files: kubo/coverage/sharness_tests.coverprofile
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
       - name: Aggregate results
         run: find kubo/test/sharness/test-results -name 't*-*.sh.*.counts' | kubo/test/sharness/lib/sharness/aggregate-results.sh > kubo/test/sharness/test-results/summary.txt
       - name: 👉️ If this step failed, go to «Summary» (top left) → «HTML Report» → inspect the «Failures» column
