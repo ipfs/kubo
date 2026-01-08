@@ -15,7 +15,7 @@ require (
 	github.com/ipfs/iptb-plugins v0.5.1
 	github.com/multiformats/go-multiaddr v0.16.1
 	github.com/multiformats/go-multihash v0.2.3
-	gotest.tools/gotestsum v1.12.3
+	gotest.tools/gotestsum v1.13.0
 )
 
 require (

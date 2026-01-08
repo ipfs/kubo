@@ -30,6 +30,7 @@ import (
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
 func TestAddMultipleGCLive(t *testing.T) {
+	ctx := t.Context()
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
@@ -38,13 +39,13 @@ func TestAddMultipleGCLive(t *testing.T) {
 		},
 		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
-	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
+	node, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	out := make(chan interface{}, 10)
-	adder, err := NewAdder(context.Background(), node.Pinning, node.Blockstore, node.DAG)
+	adder, err := NewAdder(ctx, node.Pinning, node.Blockstore, node.DAG)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +68,7 @@ func TestAddMultipleGCLive(t *testing.T) {
 
 	go func() {
 		defer close(out)
-		_, _ = adder.AddAllAndPin(context.Background(), slf)
+		_, _ = adder.AddAllAndPin(ctx, slf)
 		// Ignore errors for clarity - the real bug would be gc'ing files while adding them, not this resultant error
 	}()
 
@@ -80,8 +81,11 @@ func TestAddMultipleGCLive(t *testing.T) {
 	gc1started := make(chan struct{})
 	go func() {
 		defer close(gc1started)
-		gc1out = gc.GC(context.Background(), node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
+		gc1out = gc.GC(ctx, node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
 	}()
+
+	// Give GC goroutine time to reach GCLock (will block there waiting for adder)
+	time.Sleep(time.Millisecond * 100)
 
 	// GC shouldn't get the lock until after the file is completely added
 	select {
@@ -119,8 +123,11 @@ func TestAddMultipleGCLive(t *testing.T) {
 	gc2started := make(chan struct{})
 	go func() {
 		defer close(gc2started)
-		gc2out = gc.GC(context.Background(), node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
+		gc2out = gc.GC(ctx, node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
 	}()
+
+	// Give GC goroutine time to reach GCLock
+	time.Sleep(time.Millisecond * 100)
 
 	select {
 	case <-gc2started:
@@ -155,6 +162,7 @@ func TestAddMultipleGCLive(t *testing.T) {
 }
 
 func TestAddGCLive(t *testing.T) {
+	ctx := t.Context()
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
@@ -163,13 +171,13 @@ func TestAddGCLive(t *testing.T) {
 		},
 		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
-	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
+	node, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	out := make(chan interface{})
-	adder, err := NewAdder(context.Background(), node.Pinning, node.Blockstore, node.DAG)
+	adder, err := NewAdder(ctx, node.Pinning, node.Blockstore, node.DAG)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +201,7 @@ func TestAddGCLive(t *testing.T) {
 	go func() {
 		defer close(addDone)
 		defer close(out)
-		_, err := adder.AddAllAndPin(context.Background(), slf)
+		_, err := adder.AddAllAndPin(ctx, slf)
 		if err != nil {
 			t.Error(err)
 		}
@@ -211,7 +219,7 @@ func TestAddGCLive(t *testing.T) {
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcout = gc.GC(context.Background(), node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
+		gcout = gc.GC(ctx, node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
 	}()
 
 	// gc shouldn't start until we let the add finish its current file.
@@ -254,9 +262,6 @@ func TestAddGCLive(t *testing.T) {
 		}
 		last = c
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
 
 	set := cid.NewSet()
 	err = dag.Walk(ctx, dag.GetLinksWithDAG(node.DAG), last, set.Visit)
