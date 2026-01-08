@@ -12,7 +12,6 @@ import (
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 
-	"github.com/filecoin-project/go-clock"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -112,7 +111,6 @@ filled in with autocomputed defaults.`)
 				return nil, opts, fmt.Errorf("creating libp2p resource manager: %w", err)
 			}
 			lrm := &loggingResourceManager{
-				clock:    clock.New(),
 				logger:   &logging.Logger("resourcemanager").SugaredLogger,
 				delegate: manager,
 			}

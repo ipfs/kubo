@@ -55,11 +55,13 @@ jobs:
           # increasing parallelism beyond 10 doesn't speed up the tests much
           PARALLEL: ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
       - name: Upload coverage report
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         if: failure() || success()
         with:
           name: sharness
           files: kubo/coverage/sharness_tests.coverprofile
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
       - name: Aggregate results
         run: find kubo/test/sharness/test-results -name 't*-*.sh.*.counts' | kubo/test/sharness/lib/sharness/aggregate-results.sh > kubo/test/sharness/test-results/summary.txt
       - name: 👉️ If this step failed, go to «Summary» (top left) → «HTML Report» → inspect the «Failures» column
@@ -88,7 +90,7 @@ jobs:
           destination: sharness.html
       - name: Upload one-page HTML report
         if: github.repository != 'ipfs/kubo' && (failure() || success())
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: sharness.html
           path: kubo/test/sharness/test-results/sharness.html
@@ -108,7 +110,7 @@ jobs:
           destination: sharness-html/
       - name: Upload full HTML report
         if: github.repository != 'ipfs/kubo' && (failure() || success())
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: sharness-html
           path: kubo/test/sharness/test-results/sharness-html

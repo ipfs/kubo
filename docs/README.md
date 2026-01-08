@@ -14,9 +14,9 @@ Otherwise, check out the following guides to using and developing IPFS:
 
 ## Developing `kubo`
 
-- First, please read the Contributing Guidelines [for IPFS projects](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md) and then the Contributing Guidelines for [Go code specifically](https://github.com/ipfs/community/blob/master/CONTRIBUTING_GO.md)
-- Building on…
-    - [Windows](windows.md)
+- **[Developer Guide](developer-guide.md)** - prerequisites, build, test, and contribute
+- Contributing Guidelines [for IPFS projects](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md) and for [Go code specifically](https://github.com/ipfs/community/blob/master/CONTRIBUTING_GO.md)
+- Building on [Windows](windows.md)
 - [Performance Debugging Guidelines](debug-guide.md)
 - [Release Checklist](releases.md)
 
