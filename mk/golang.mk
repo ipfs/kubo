@@ -71,8 +71,10 @@ test_cli: cmd/ipfs/ipfs test/bin/gotestsum $$(DEPS_GO)
 
 # Example tests (docs/examples/kubo-as-a-library)
 # Tests against both published and current kubo versions
+# Uses timeout to ensure CI gets output before job-level timeout kills everything
+TEST_EXAMPLES_TIMEOUT ?= 2m
 test_examples:
-	cd docs/examples/kubo-as-a-library && go test -v ./... && cp go.mod go.mod.bak && cp go.sum go.sum.bak && (go mod edit -replace github.com/ipfs/kubo=./../../.. && go mod tidy && go test -v ./...; ret=$$?; mv go.mod.bak go.mod; mv go.sum.bak go.sum; exit $$ret)
+	cd docs/examples/kubo-as-a-library && go test -v -timeout=$(TEST_EXAMPLES_TIMEOUT) ./... && cp go.mod go.mod.bak && cp go.sum go.sum.bak && (go mod edit -replace github.com/ipfs/kubo=./../../.. && go mod tidy && go test -v -timeout=$(TEST_EXAMPLES_TIMEOUT) ./...; ret=$$?; mv go.mod.bak go.mod; mv go.sum.bak go.sum; exit $$ret)
 .PHONY: test_examples
 
 # Build kubo for all platforms from .github/build-platforms.yml
