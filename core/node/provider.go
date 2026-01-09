@@ -322,6 +322,25 @@ type dhtImpl interface {
 	Host() host.Host
 	MessageSender() dht_pb.MessageSender
 }
+
+type fullrtRouter struct {
+	*fullrt.FullRT
+}
+
+// GetClosestPeers overrides fullrt.FullRT's GetClosestPeers and returns an
+// error if the fullrt's initial network crawl isn't complete yet.
+func (fr *fullrtRouter) GetClosestPeers(ctx context.Context, key string) ([]peer.ID, error) {
+	if !fr.Ready() {
+		return nil, errors.New("fullrt: initial network crawl still running")
+	}
+	return fr.FullRT.GetClosestPeers(ctx, key)
+}
+
+var (
+	_ dhtImpl = &dht.IpfsDHT{}
+	_ dhtImpl = &fullrtRouter{}
+)
+
 type addrsFilter interface {
 	FilteredAddrs() []ma.Multiaddr
 }
@@ -400,7 +419,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			}
 		case *fullrt.FullRT:
 			if inDht != nil {
-				impl = inDht
+				impl = &fullrtRouter{inDht}
 			}
 		}
 		if impl == nil {
