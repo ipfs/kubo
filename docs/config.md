@@ -1085,7 +1085,11 @@ Type: `bool`
 
 Options for the HTTP gateway.
 
-**NOTE:** support for `/api/v0` under the gateway path is now deprecated. It will be removed in future versions: <https://github.com/ipfs/kubo/issues/10312>.
+> [!IMPORTANT]
+> By default, Kubo's gateway is configured for local use at `127.0.0.1` and `localhost`.
+> To run a public gateway, configure your domain names in [`Gateway.PublicGateways`](#gatewaypublicgateways).
+> For production deployment considerations (reverse proxy, timeouts, rate limiting, CDN),
+> see [Running in Production](gateway.md#running-in-production).
 
 ### `Gateway.NoFetch`
 
@@ -1280,6 +1284,11 @@ Examples:
 - `*.example.com` will match requests to `http://foo.example.com/ipfs/*` or `http://{cid}.ipfs.bar.example.com/*`.
 - `foo-*.example.com` will match requests to `http://foo-bar.example.com/ipfs/*` or `http://{cid}.ipfs.foo-xyz.example.com/*`.
 
+> [!IMPORTANT]
+> **Reverse Proxy:** If running behind nginx or another reverse proxy, ensure
+> `Host` and `X-Forwarded-*` headers are forwarded correctly.
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) in gateway documentation.
+
 #### `Gateway.PublicGateways: Paths`
 
 An array of paths that should be exposed on the hostname.
@@ -1346,6 +1355,9 @@ Default: `false`
 
 Type: `bool`
 
+> [!IMPORTANT]
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) if running behind nginx or another reverse proxy.
+
 #### `Gateway.PublicGateways: NoDNSLink`
 
 A boolean to configure whether DNSLink for hostname present in `Host`
@@ -1355,6 +1367,9 @@ If `Paths` are defined, they take priority over DNSLink.
 Default: `false` (DNSLink lookup enabled by default for every defined hostname)
 
 Type: `bool`
+
+> [!IMPORTANT]
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) if running behind nginx or another reverse proxy.
 
 #### `Gateway.PublicGateways: InlineDNSLink`
 
@@ -1422,6 +1437,9 @@ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 ### `Gateway` recipes
 
 Below is a list of the most common gateway setups.
+
+> [!IMPORTANT]
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) if running behind nginx or another reverse proxy.
 
 - Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
 
@@ -2206,6 +2224,9 @@ You can compare the effectiveness of sweep mode vs legacy mode by monitoring the
 
 > [!NOTE]
 > This is the default provider system as of Kubo v0.39. To use the legacy provider instead, set `Provide.DHT.SweepEnabled=false`.
+
+> [!NOTE]
+> When DHT routing is unavailable (e.g., `Routing.Type=custom` with only HTTP routers), the provider automatically falls back to the legacy provider regardless of this setting.
 
 Default: `true`
 

@@ -11,12 +11,11 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/ceramicnetwork/go-dag-jose v0.1.1
 	github.com/cheggaaa/pb v1.0.29
-	github.com/cockroachdb/pebble/v2 v2.1.2
+	github.com/cockroachdb/pebble/v2 v2.1.3
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5
-	github.com/filecoin-project/go-clock v0.1.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-version v1.7.0
@@ -32,7 +31,7 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.5.5
 	github.com/ipfs/go-ds-leveldb v0.5.2
 	github.com/ipfs/go-ds-measure v0.2.2
-	github.com/ipfs/go-ds-pebble v0.5.7
+	github.com/ipfs/go-ds-pebble v0.5.8
 	github.com/ipfs/go-fs-lock v0.1.1
 	github.com/ipfs/go-ipfs-cmds v0.15.0
 	github.com/ipfs/go-ipld-cbor v0.2.1
@@ -114,7 +113,7 @@ require (
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
-	github.com/cockroachdb/swiss v0.0.0-20250624142022-d6e517c1d961 // indirect
+	github.com/cockroachdb/swiss v0.0.0-20251224182025-b0f6560f979b // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/crackcomm/go-gitignore v0.0.0-20241020182519-7843d2ba8fdf // indirect
 	github.com/cskr/pubsub v1.0.2 // indirect
@@ -126,6 +125,7 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/filecoin-project/go-clock v0.1.0 // indirect
 	github.com/flynn/noise v1.1.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
 	github.com/gammazero/chanqueue v1.1.1 // indirect
