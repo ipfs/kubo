@@ -59,6 +59,7 @@ config file at runtime.
       - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
       - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
   - [`Experimental`](#experimental)
+    - [`Experimental.Libp2pStreamMounting`](#experimentallibp2pstreammounting)
   - [`Gateway`](#gateway)
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
@@ -1068,6 +1069,17 @@ in the [new mDNS implementation](https://github.com/libp2p/zeroconf#readme).
 ## `Experimental`
 
 Toggle and configure experimental features of Kubo. Experimental features are listed [here](./experimental-features.md).
+
+### `Experimental.Libp2pStreamMounting`
+
+Enables the `ipfs p2p` commands for tunneling TCP connections through libp2p
+streams, similar to SSH port forwarding.
+
+See [docs/p2p-tunnels.md](p2p-tunnels.md) for usage examples.
+
+Default: `false`
+
+Type: `bool`
 
 ## `Gateway`
 
