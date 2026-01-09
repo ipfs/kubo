@@ -419,8 +419,8 @@ github.com/libp2p/go-libp2p v0.46.0 h1:0T2yvIKpZ3DVYCuPOFxPD1layhRU486pj9rSlGWYn
 github.com/libp2p/go-libp2p v0.46.0/go.mod h1:TbIDnpDjBLa7isdgYpbxozIVPBTmM/7qKOJP4SFySrQ=
 github.com/libp2p/go-libp2p-asn-util v0.4.1 h1:xqL7++IKD9TBFMgnLPZR6/6iYhawHKHl950SO9L6n94=
 github.com/libp2p/go-libp2p-asn-util v0.4.1/go.mod h1:d/NI6XZ9qxw67b4e+NgpQexCIiFYJjErASrYW4PFDN8=
-github.com/libp2p/go-libp2p-kad-dht v0.36.0 h1:7QuXhV36+Vyj+L6A7mrYkn2sYLrbRcbjvsYDu/gXhn8=
-github.com/libp2p/go-libp2p-kad-dht v0.36.0/go.mod h1:O24LxTH9Rt3I5XU8nmiA9VynS4TrTwAyj+zBJKB05vQ=
+github.com/libp2p/go-libp2p-kad-dht v0.36.1-0.20260109222155-bb64bfa6e2bb h1:trMEnT46CmpvmbHulWiUkUwjmVpbudIlhCMDO35P6LI=
+github.com/libp2p/go-libp2p-kad-dht v0.36.1-0.20260109222155-bb64bfa6e2bb/go.mod h1:o4FPa1ea++UVAMJ1c+kyjUmj3CKm9+ZCyzQb4uutCFM=
 github.com/libp2p/go-libp2p-kbucket v0.8.0 h1:QAK7RzKJpYe+EuSEATAaaHYMYLkPDGC18m9jxPLnU8s=
 github.com/libp2p/go-libp2p-kbucket v0.8.0/go.mod h1:JMlxqcEyKwO6ox716eyC0hmiduSWZZl6JY93mGaaqc4=
 github.com/libp2p/go-libp2p-record v0.3.1 h1:cly48Xi5GjNw5Wq+7gmjfBiG9HCzQVkiZOUZ8kUl+Fg=
