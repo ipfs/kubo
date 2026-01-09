@@ -192,12 +192,6 @@ once the file exists.
 
 ## Troubleshooting
 
-### First launch fails but restarts work
-
-The `api` file may be created before the daemon is fully ready to handle p2p
-commands. The service examples above use `Restart=on-failure` with
-`RestartSec=10` to handle this transient condition.
-
 ### Foreground listener stops when terminal closes
 
 When using `--foreground`, the listener stops if the terminal closes. For
