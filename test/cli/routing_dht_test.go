@@ -57,6 +57,7 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 		}
 
 		nodes.StartDaemons(daemonArgs...).Connect()
+		t.Cleanup(func() { nodes.StopDaemons() })
 
 		t.Run("ipfs routing findpeer", func(t *testing.T) {
 			t.Parallel()
@@ -157,6 +158,7 @@ func testSelfFindDHT(t *testing.T) {
 		})
 
 		nodes.StartDaemons()
+		defer nodes.StopDaemons()
 
 		res := nodes[0].RunIPFS("dht", "findpeer", nodes[0].PeerID().String())
 		assert.Equal(t, 1, res.ExitCode())

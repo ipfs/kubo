@@ -60,6 +60,10 @@ func TestRoutingV1Proxy(t *testing.T) {
 		})
 		nodes[2].StartDaemon()
 
+		t.Cleanup(func() {
+			nodes.StopDaemons()
+		})
+
 		// Connect them.
 		nodes.Connect()
 
