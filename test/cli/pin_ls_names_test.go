@@ -28,6 +28,9 @@ func setupTestNode(t *testing.T) *harness.Node {
 	t.Helper()
 	node := harness.NewT(t).NewNode().Init()
 	node.StartDaemon("--offline")
+	t.Cleanup(func() {
+		node.StopDaemon()
+	})
 	return node
 }
 
@@ -498,7 +501,6 @@ func TestPinLsEdgeCases(t *testing.T) {
 	t.Run("invalid pin type returns error", func(t *testing.T) {
 		t.Parallel()
 		node := setupTestNode(t)
-		defer node.StopDaemon()
 
 		// Try to list pins with invalid type
 		res := node.RunIPFS("pin", "ls", "--type=invalid")
@@ -510,7 +512,6 @@ func TestPinLsEdgeCases(t *testing.T) {
 	t.Run("non-existent path returns proper error", func(t *testing.T) {
 		t.Parallel()
 		node := setupTestNode(t)
-		defer node.StopDaemon()
 
 		// Try to list a non-existent CID
 		fakeCID := "QmNonExistent123456789"
@@ -521,7 +522,6 @@ func TestPinLsEdgeCases(t *testing.T) {
 	t.Run("unpinned CID returns not pinned error", func(t *testing.T) {
 		t.Parallel()
 		node := setupTestNode(t)
-		defer node.StopDaemon()
 
 		// Add content but don't pin it explicitly (it's just in blockstore)
 		unpinnedCID := node.IPFSAddStr("unpinned content", "--pin=false")

@@ -51,6 +51,7 @@ func TestRemotePinning(t *testing.T) {
 		node.IPFS("config", "--json", "Pinning.RemoteServices.svc.Policies.MFS.Enable", "true")
 
 		node.StartDaemon()
+		t.Cleanup(func() { node.StopDaemon() })
 
 		node.IPFS("files", "cp", "/ipfs/bafkqaaa", "/mfs-pinning-test-"+uuid.NewString())
 		node.IPFS("files", "flush")
@@ -133,6 +134,8 @@ func TestRemotePinning(t *testing.T) {
 	t.Run("pin remote service ls --stat", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
+
 		_, svcURL := runPinningService(t, authToken)
 
 		node.IPFS("pin", "remote", "service", "add", "svc", svcURL, authToken)
@@ -155,6 +158,7 @@ func TestRemotePinning(t *testing.T) {
 	t.Run("adding service with invalid URL fails", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		res := node.RunIPFS("pin", "remote", "service", "add", "svc", "invalid-service.example.com", "key")
 		assert.Equal(t, 1, res.ExitCode())
@@ -168,6 +172,7 @@ func TestRemotePinning(t *testing.T) {
 	t.Run("unauthorized pinning service calls fail", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 		_, svcURL := runPinningService(t, authToken)
 
 		node.IPFS("pin", "remote", "service", "add", "svc", svcURL, "othertoken")
@@ -180,6 +185,7 @@ func TestRemotePinning(t *testing.T) {
 	t.Run("pinning service calls fail when there is a wrong path", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 		_, svcURL := runPinningService(t, authToken)
 		node.IPFS("pin", "remote", "service", "add", "svc", svcURL+"/invalid-path", authToken)
 
@@ -191,6 +197,7 @@ func TestRemotePinning(t *testing.T) {
 	t.Run("pinning service calls fail when DNS resolution fails", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 		node.IPFS("pin", "remote", "service", "add", "svc", "https://invalid-service.example.com", authToken)
 
 		res := node.RunIPFS("pin", "remote", "ls", "--service=svc")
@@ -201,6 +208,7 @@ func TestRemotePinning(t *testing.T) {
 	t.Run("pin remote service rm", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 		node.IPFS("pin", "remote", "service", "add", "svc", "https://example.com", authToken)
 		node.IPFS("pin", "remote", "service", "rm", "svc")
 		res := node.IPFS("pin", "remote", "service", "ls")
@@ -225,6 +233,7 @@ func TestRemotePinning(t *testing.T) {
 
 		t.Run("'ipfs pin remote add --background=true'", func(t *testing.T) {
 			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
 			svc, svcURL := runPinningService(t, authToken)
 			node.IPFS("pin", "remote", "service", "add", "svc", svcURL, authToken)
 
@@ -266,6 +275,7 @@ func TestRemotePinning(t *testing.T) {
 		t.Run("'ipfs pin remote add --background=false'", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
 			svc, svcURL := runPinningService(t, authToken)
 			node.IPFS("pin", "remote", "service", "add", "svc", svcURL, authToken)
 
@@ -287,6 +297,7 @@ func TestRemotePinning(t *testing.T) {
 		t.Run("'ipfs pin remote ls' with multiple statuses", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
 			svc, svcURL := runPinningService(t, authToken)
 			node.IPFS("pin", "remote", "service", "add", "svc", svcURL, authToken)
 
@@ -340,6 +351,7 @@ func TestRemotePinning(t *testing.T) {
 		t.Run("'ipfs pin remote ls' by CID", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
 			svc, svcURL := runPinningService(t, authToken)
 			node.IPFS("pin", "remote", "service", "add", "svc", svcURL, authToken)
 
@@ -360,6 +372,7 @@ func TestRemotePinning(t *testing.T) {
 		t.Run("'ipfs pin remote rm --name' without --force when multiple pins match", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
 			svc, svcURL := runPinningService(t, authToken)
 			node.IPFS("pin", "remote", "service", "add", "svc", svcURL, authToken)
 
@@ -388,6 +401,7 @@ func TestRemotePinning(t *testing.T) {
 		t.Run("'ipfs pin remote rm --name --force' remove multiple pins", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
 			svc, svcURL := runPinningService(t, authToken)
 			node.IPFS("pin", "remote", "service", "add", "svc", svcURL, authToken)
 
@@ -408,6 +422,7 @@ func TestRemotePinning(t *testing.T) {
 		t.Run("'ipfs pin remote rm --force' removes all pins", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
 			svc, svcURL := runPinningService(t, authToken)
 			node.IPFS("pin", "remote", "service", "add", "svc", svcURL, authToken)
 

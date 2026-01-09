@@ -76,6 +76,7 @@ func TestContentBlocking(t *testing.T) {
 
 	// Start daemon, it should pick up denylist from $IPFS_PATH/denylists/test.deny
 	node.StartDaemon() // we need online mode for GatewayOverLibp2p tests
+	t.Cleanup(func() { node.StopDaemon() })
 	client := node.GatewayClient()
 
 	// First, confirm gateway works

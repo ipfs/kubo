@@ -26,6 +26,7 @@ func testPins(t *testing.T, args testPinsArgs) {
 		node := harness.NewT(t).NewNode().Init()
 		if args.runDaemon {
 			node.StartDaemon("--offline")
+			defer node.StopDaemon()
 		}
 
 		strs := []string{"a", "b", "c", "d", "e", "f", "g"}
@@ -127,6 +128,7 @@ func testPinsErrorReporting(t *testing.T, args testPinsArgs) {
 		node := harness.NewT(t).NewNode().Init()
 		if args.runDaemon {
 			node.StartDaemon("--offline")
+			defer node.StopDaemon()
 		}
 		randomCID := "Qme8uX5n9hn15pw9p6WcVKoziyyC9LXv4LEgvsmKMULjnV"
 		res := node.RunIPFS(StrCat("pin", "add", args.pinArg, randomCID)...)
@@ -142,6 +144,7 @@ func testPinDAG(t *testing.T, args testPinsArgs) {
 		node := h.NewNode().Init()
 		if args.runDaemon {
 			node.StartDaemon("--offline")
+			defer node.StopDaemon()
 		}
 		bytes := random.Bytes(1 << 20) // 1 MiB
 		tmpFile := h.WriteToTemp(string(bytes))
@@ -168,6 +171,7 @@ func testPinProgress(t *testing.T, args testPinsArgs) {
 
 		if args.runDaemon {
 			node.StartDaemon("--offline")
+			defer node.StopDaemon()
 		}
 
 		bytes := random.Bytes(1 << 20) // 1 MiB

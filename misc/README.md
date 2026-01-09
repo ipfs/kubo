@@ -39,6 +39,12 @@ To run this in your user session, save it as `~/.config/systemd/user/ipfs.servic
 ```
 Read more about `--user` services here: [wiki.archlinux.org:Systemd ](https://wiki.archlinux.org/index.php/Systemd/User#Automatic_start-up_of_systemd_user_instances)
 
+#### P2P tunnel services
+
+For running `ipfs p2p listen` or `ipfs p2p forward` as systemd services,
+see [docs/p2p-tunnels.md](../docs/p2p-tunnels.md) for examples using the
+`--foreground` flag and path-based activation.
+
 ### initd
 
 - Here is a full-featured sample service file: https://github.com/dylanPowers/ipfs-linux-service/blob/master/init.d/ipfs
