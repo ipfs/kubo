@@ -491,6 +491,8 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					if err := syncKeystore(ctx); err != nil {
 						if ctx.Err() == nil {
 							logger.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
+						} else {
+							logger.Debugw("provider keystore sync interrupted by shutdown", "err", err, "strategy", strategy)
 						}
 						return
 					}
