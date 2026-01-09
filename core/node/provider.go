@@ -692,6 +692,48 @@ See docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtmaxw
 
 // ONLINE/OFFLINE
 
+// hasDHTRouting checks if the routing configuration includes a DHT component.
+// Returns false for HTTP-only custom routing configurations (e.g., Routing.Type="custom"
+// with only HTTP routers). This is used to determine whether SweepingProviderOpt
+// can be used, since it requires a DHT client.
+func hasDHTRouting(cfg *config.Config) bool {
+	routingType := cfg.Routing.Type.WithDefault(config.DefaultRoutingType)
+	switch routingType {
+	case "auto", "autoclient", "dht", "dhtclient", "dhtserver":
+		return true
+	case "custom":
+		// Check if any router in custom config is DHT-based
+		for _, router := range cfg.Routing.Routers {
+			if routerIncludesDHT(router, cfg) {
+				return true
+			}
+		}
+		return false
+	default: // "none", "delegated"
+		return false
+	}
+}
+
+// routerIncludesDHT recursively checks if a router configuration includes DHT.
+// Handles parallel and sequential composite routers by checking their children.
+func routerIncludesDHT(rp config.RouterParser, cfg *config.Config) bool {
+	switch rp.Type {
+	case config.RouterTypeDHT:
+		return true
+	case config.RouterTypeParallel, config.RouterTypeSequential:
+		if children, ok := rp.Parameters.(*config.ComposableRouterParams); ok {
+			for _, child := range children.Routers {
+				if childRouter, exists := cfg.Routing.Routers[child.RouterName]; exists {
+					if routerIncludesDHT(childRouter, cfg) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 // OnlineProviders groups units managing provide routing records online
 func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	if !provide {
@@ -708,7 +750,15 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	opts := []fx.Option{
 		fx.Provide(setReproviderKeyProvider(providerStrategy)),
 	}
-	if cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled) {
+
+	sweepEnabled := cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled)
+	dhtAvailable := hasDHTRouting(cfg)
+
+	// Use SweepingProvider only when both sweep is enabled AND DHT is available.
+	// For HTTP-only routing (e.g., Routing.Type="custom" with only HTTP routers),
+	// fall back to LegacyProvider which works with ProvideManyRouter.
+	// See https://github.com/ipfs/kubo/issues/11089
+	if sweepEnabled && dhtAvailable {
 		opts = append(opts, SweepingProviderOpt(cfg))
 	} else {
 		reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
