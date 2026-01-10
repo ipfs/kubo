@@ -28,20 +28,6 @@
 >
 > **For production deployments**, use `Routing.Type=auto` (default) or `Routing.Type=autoclient` with [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
 
-## Summary
-
-Previously we only used the Amino DHT for content routing and content
-providing.
-
-Kubo 0.14 introduced experimental support for [delegated routing](https://github.com/ipfs/kubo/pull/8997),
-which then got changed and standardized as [Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
-
-Kubo 0.23.0 release added support for [self-hosting Routing V1 HTTP API server](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.23.md#self-hosting-routingv1-endpoint-for-delegated-routing-needs).
-
-Now we need a better way to add different routers using different protocols
-like [Routing V1](https://specs.ipfs.tech/routing/http-routing-v1/) or Amino
-DHT, and be able to configure them (future routing systems to come) to cover different use cases.
-
 ## Motivation
 
 The actual routing implementation is not enough. Some users need to have more options when configuring the routing system. The new implementations should be able to:
