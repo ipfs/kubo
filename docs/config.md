@@ -161,9 +161,9 @@ config file at runtime.
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
     - [`Routing.IgnoreProviders`](#routingignoreproviders)
     - [`Routing.Routers`](#routingrouters)
-      - [`Routing.Routers: Type`](#routingrouters-type)
-      - [`Routing.Routers: Parameters`](#routingrouters-parameters)
-    - [`Routing: Methods`](#routing-methods)
+      - [`Routing.Routers.[name].Type`](#routingroutersnametype)
+      - [`Routing.Routers.[name].Parameters`](#routingroutersnameparameters)
+    - [`Routing.Methods`](#routingmethods)
   - [`Swarm`](#swarm)
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
@@ -2595,6 +2595,7 @@ An array of URL hostnames for delegated routers to be queried in addition to the
 These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
 
 The special value `"auto"` uses delegated routers from [AutoConf](#autoconf) when enabled.
+You can combine `"auto"` with custom URLs (e.g., `["auto", "https://custom.example.com"]`) to query both the default delegated routers and your own endpoints. The first `"auto"` entry gets substituted with autoconf values, and other URLs are preserved.
 
 > [!TIP]
 > Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
@@ -2638,24 +2639,17 @@ When it is enabled:
 > **`Routing.AcceleratedDHTClient` Caveats:**
 >
 > 1. Running the accelerated client likely will result in more resource consumption (connections, RAM, CPU, bandwidth)
->    - Users that are limited in the number of parallel connections their machines/networks can perform will likely suffer
+>    - Users that are limited in the number of parallel connections their machines/networks can perform will be most affected
 >    - The resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly done in rounds
 >    - Users who previously had a lot of content but were unable to advertise it on the network will see an increase in
 >      egress bandwidth as their nodes start to advertise all of their CIDs into the network. If you have lots of data
->      entering your node that you don't want to advertise, then consider using [Provide Strategies](#providestrategy)
->      to reduce the number of CIDs that you are reproviding. Similarly, if you are running a node that deals mostly with
->      short-lived temporary data (e.g. you use a separate node for ingesting data then for storing and serving it) then
->      you may benefit from using [Strategic Providing](experimental-features.md#strategic-providing) to prevent advertising
->      of data that you ultimately will not have.
+>      entering your node that you don't want to advertise, consider using [`Provide.*`](#provide) configuration
+>      to control which CIDs are reprovided.
 > 2. Currently, the DHT is not usable for queries for the first 5-10 minutes of operation as the routing table is being
 >    prepared. This means operations like searching the DHT for particular peers or content will not work initially.
 >    - You can see if the DHT has been initially populated by running `ipfs stats dht`
 > 3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
 >    them.
-> 4. (⚠️ 0.39 limitation) When used with [`Provide.DHT.SweepEnabled`](#providedhtsweepenabled), the sweep provider may
->    fail to estimate DHT size during the accelerated client's network crawl, resulting in all CIDs grouped into a
->    single region. Content still gets reprovided, but without sweep efficiency gains. Consider disabling the
->    accelerated client when using sweep mode.
 
 Default: `false`
 
@@ -2711,7 +2705,7 @@ Default: `{}`
 
 Type: `object[string->object]`
 
-#### `Routing.Routers: Type`
+#### `Routing.Routers.[name].Type`
 
 **⚠️ EXPERIMENTAL: For research and testing only. May change without notice.**
 
@@ -2725,7 +2719,7 @@ Currently supported types:
 
 Type: `string`
 
-#### `Routing.Routers: Parameters`
+#### `Routing.Routers.[name].Parameters`
 
 **⚠️ EXPERIMENTAL: For research and testing only. May change without notice.**
 
@@ -2764,7 +2758,7 @@ Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->string]`
 
-### `Routing: Methods`
+### `Routing.Methods`
 
 `Methods:map` will define which routers will be executed per method used when `Routing.Type=custom`.
 
