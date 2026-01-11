@@ -375,6 +375,8 @@ kubo now automatically shards when directory block is bigger than 256KB, ensurin
 
 ## IPNS pubsub
 
+Specification: [IPNS PubSub Router](https://specs.ipfs.tech/ipns/ipns-pubsub-router/)
+
 ### In Version
 
 0.4.14 :
@@ -389,13 +391,18 @@ kubo now automatically shards when directory block is bigger than 256KB, ensurin
 0.11.0 :
   - Can be enabled via `Ipns.UsePubsub` flag in config
 
+0.40.0 :
+  - Persistent message sequence number validation to prevent message cycles
+    in large networks
+
 ### State
 
 Experimental, default-disabled.
 
-Utilizes pubsub for publishing ipns records in real time.
+Utilizes pubsub for publishing IPNS records in real time.
 
 When it is enabled:
+
 - IPNS publishers push records to a name-specific pubsub topic,
   in addition to publishing to the DHT.
 - IPNS resolvers subscribe to the name-specific topic on first
@@ -403,9 +410,6 @@ When it is enabled:
   This makes subsequent resolutions instant, as they are resolved through the local cache.
 
 Both the publisher and the resolver nodes need to have the feature enabled for it to work effectively.
-
-Note: While IPNS pubsub has been available since 0.4.14, it received major changes in 0.5.0.
-Users interested in this feature should upgrade to at least 0.5.0
 
 ### How to enable
 
@@ -416,13 +420,12 @@ ipfs config --json Ipns.UsePubsub true
 ```
 
 NOTE:
-- This feature implicitly enables [ipfs pubsub](#ipfs-pubsub).
+- This feature implicitly enables pubsub.
 - Passing `--enable-namesys-pubsub` CLI flag overrides `Ipns.UsePubsub` config.
 
 ### Road to being a real feature
 
 - [ ] Needs more people to use and report on how well it works
-- [ ] Pubsub enabled as a real feature
 
 ## AutoRelay
 
