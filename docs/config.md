@@ -67,6 +67,7 @@ config file at runtime.
     - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
     - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
     - [`Gateway.RetrievalTimeout`](#gatewayretrievaltimeout)
+    - [`Gateway.MaxRequestDuration`](#gatewaymaxrequestduration)
     - [`Gateway.MaxRangeRequestFileSize`](#gatewaymaxrangerequestfilesize)
     - [`Gateway.MaxConcurrentRequests`](#gatewaymaxconcurrentrequests)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
@@ -1175,6 +1176,16 @@ Maximum duration Kubo will wait for content retrieval (new bytes to arrive).
 A value of 0 disables this timeout.
 
 Default: `30s`
+
+Type: `optionalDuration`
+
+### `Gateway.MaxRequestDuration`
+
+An absolute deadline for the entire gateway request. Unlike [`RetrievalTimeout`](#gatewayretrievaltimeout) (which resets on each data write and catches stalled transfers), this is a hard limit on the total time a request can take.
+
+Returns 504 Gateway Timeout when exceeded. This protects the gateway from edge cases and slow client attacks.
+
+Default: `1h`
 
 Type: `optionalDuration`
 
