@@ -103,6 +103,10 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			reader.Close()
 		}()
 
+		if cmplvl != gzip.NoCompression {
+			res.SetEncodingType(cmds.Gzip)
+		}
+
 		return res.Emit(reader)
 	},
 	PostRun: cmds.PostRunMap{
