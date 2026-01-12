@@ -27,6 +27,7 @@ func TestGatewayHAMTDirectory(t *testing.T) {
 	// Start node
 	h := harness.NewT(t)
 	node := h.NewNode().Init("--empty-repo", "--profile=test").StartDaemon("--offline")
+	defer node.StopDaemon()
 	client := node.GatewayClient()
 
 	// Import fixtures
@@ -56,6 +57,7 @@ func TestGatewayHAMTRanges(t *testing.T) {
 	// Start node
 	h := harness.NewT(t)
 	node := h.NewNode().Init("--empty-repo", "--profile=test").StartDaemon("--offline")
+	t.Cleanup(func() { node.StopDaemon() })
 	client := node.GatewayClient()
 
 	// Import fixtures

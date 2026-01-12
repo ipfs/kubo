@@ -28,6 +28,7 @@ func TestGateway(t *testing.T) {
 	t.Parallel()
 	h := harness.NewT(t)
 	node := h.NewNode().Init().StartDaemon("--offline")
+	t.Cleanup(func() { node.StopDaemon() })
 	cid := node.IPFSAddStr("Hello Worlds!")
 
 	peerID, err := peer.ToCid(node.PeerID()).StringOfBase(multibase.Base36)
@@ -234,6 +235,7 @@ func TestGateway(t *testing.T) {
 			cfg.API.HTTPHeaders = map[string][]string{header: values}
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		resp := node.APIClient().DisableRedirects().Get("/webui/")
 		assert.Equal(t, resp.Headers.Values(header), values)
@@ -257,6 +259,7 @@ func TestGateway(t *testing.T) {
 	t.Run("pprof", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		t.Cleanup(func() { node.StopDaemon() })
 		apiClient := node.APIClient()
 		t.Run("mutex", func(t *testing.T) {
 			t.Parallel()
@@ -300,6 +303,7 @@ func TestGateway(t *testing.T) {
 		t.Parallel()
 		h := harness.NewT(t)
 		node := h.NewNode().Init().StartDaemon()
+		t.Cleanup(func() { node.StopDaemon() })
 
 		h.WriteFile("index/index.html", "<p></p>")
 		cid := node.IPFS("add", "-Q", "-r", filepath.Join(h.Dir, "index")).Stderr.Trimmed()
@@ -367,6 +371,7 @@ func TestGateway(t *testing.T) {
 			cfg.Addresses.Gateway = config.Strings{"/ip4/127.0.0.1/tcp/32563"}
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		b, err := os.ReadFile(filepath.Join(node.Dir, "gateway"))
 		require.NoError(t, err)
@@ -388,6 +393,7 @@ func TestGateway(t *testing.T) {
 		assert.NoError(t, err)
 
 		nodes.StartDaemons().Connect()
+		t.Cleanup(func() { nodes.StopDaemons() })
 
 		t.Run("not present", func(t *testing.T) {
 			cidFoo := node2.IPFSAddStr("foo")
@@ -460,6 +466,7 @@ func TestGateway(t *testing.T) {
 					}
 				})
 				node.StartDaemon()
+				defer node.StopDaemon()
 
 				cidFoo := node.IPFSAddStr("foo")
 				client := node.GatewayClient()
@@ -509,6 +516,7 @@ func TestGateway(t *testing.T) {
 
 			node := harness.NewT(t).NewNode().Init()
 			node.StartDaemon()
+			defer node.StopDaemon()
 			client := node.GatewayClient()
 
 			res := client.Get("/ipfs/invalid-thing", func(r *http.Request) {
@@ -526,6 +534,7 @@ func TestGateway(t *testing.T) {
 				cfg.Gateway.DisableHTMLErrors = config.True
 			})
 			node.StartDaemon()
+			defer node.StopDaemon()
 			client := node.GatewayClient()
 
 			res := client.Get("/ipfs/invalid-thing", func(r *http.Request) {
@@ -546,6 +555,7 @@ func TestLogs(t *testing.T) {
 	t.Setenv("GOLOG_LOG_LEVEL", "info")
 
 	node := h.NewNode().Init().StartDaemon("--offline")
+	defer node.StopDaemon()
 	cid := node.IPFSAddStr("Hello Worlds!")
 
 	peerID, err := peer.ToCid(node.PeerID()).StringOfBase(multibase.Base36)

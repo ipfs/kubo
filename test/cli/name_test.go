@@ -103,6 +103,7 @@ func TestName(t *testing.T) {
 			})
 
 			node.StartDaemon()
+			defer node.StopDaemon()
 
 			t.Run("Resolving self offline succeeds (daemon on)", func(t *testing.T) {
 				res = node.IPFS("name", "resolve", "--offline", "/ipns/"+name.String())
@@ -147,6 +148,7 @@ func TestName(t *testing.T) {
 	t.Run("Fails to publish in offline mode", func(t *testing.T) {
 		t.Parallel()
 		node := makeDaemon(t, nil).StartDaemon("--offline")
+		defer node.StopDaemon()
 		res := node.RunIPFS("name", "publish", "/ipfs/"+fixtureCid)
 		require.Error(t, res.Err)
 		require.Equal(t, 1, res.ExitCode())
@@ -157,6 +159,7 @@ func TestName(t *testing.T) {
 		t.Parallel()
 
 		node := makeDaemon(t, nil).StartDaemon()
+		defer node.StopDaemon()
 		ipnsName := ipns.NameFromPeer(node.PeerID()).String()
 		ipnsPath := ipns.NamespacePrefix + ipnsName
 		publishPath := "/ipfs/" + fixtureCid
@@ -187,6 +190,7 @@ func TestName(t *testing.T) {
 		t.Parallel()
 
 		node := makeDaemon(t, nil).StartDaemon()
+		t.Cleanup(func() { node.StopDaemon() })
 		ipnsPath := ipns.NamespacePrefix + ipns.NameFromPeer(node.PeerID()).String()
 		publishPath := "/ipfs/" + fixtureCid
 
@@ -227,6 +231,7 @@ func TestName(t *testing.T) {
 	t.Run("Inspect with verification using wrong RSA key errors", func(t *testing.T) {
 		t.Parallel()
 		node := makeDaemon(t, nil).StartDaemon()
+		defer node.StopDaemon()
 
 		// Prepare RSA Key 1
 		res := node.IPFS("key", "gen", "--type=rsa", "--size=4096", "key1")
@@ -299,6 +304,7 @@ func TestName(t *testing.T) {
 		t.Parallel()
 
 		node := makeDaemon(t, nil).StartDaemon()
+		defer node.StopDaemon()
 		publishPath1 := "/ipfs/" + fixtureCid
 		publishPath2 := "/ipfs/" + dagCid // Different content
 		name := ipns.NameFromPeer(node.PeerID())

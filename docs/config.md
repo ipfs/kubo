@@ -59,6 +59,7 @@ config file at runtime.
       - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
       - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
   - [`Experimental`](#experimental)
+    - [`Experimental.Libp2pStreamMounting`](#experimentallibp2pstreammounting)
   - [`Gateway`](#gateway)
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
@@ -156,14 +157,14 @@ config file at runtime.
     - [`Reprovider.Strategy`](#providestrategy)
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
+    - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
     - [`Routing.IgnoreProviders`](#routingignoreproviders)
-    - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
     - [`Routing.Routers`](#routingrouters)
-      - [`Routing.Routers: Type`](#routingrouters-type)
-      - [`Routing.Routers: Parameters`](#routingrouters-parameters)
-    - [`Routing: Methods`](#routing-methods)
+      - [`Routing.Routers.[name].Type`](#routingroutersnametype)
+      - [`Routing.Routers.[name].Parameters`](#routingroutersnameparameters)
+    - [`Routing.Methods`](#routingmethods)
   - [`Swarm`](#swarm)
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
@@ -1069,11 +1070,26 @@ in the [new mDNS implementation](https://github.com/libp2p/zeroconf#readme).
 
 Toggle and configure experimental features of Kubo. Experimental features are listed [here](./experimental-features.md).
 
+### `Experimental.Libp2pStreamMounting`
+
+Enables the `ipfs p2p` commands for tunneling TCP connections through libp2p
+streams, similar to SSH port forwarding.
+
+See [docs/p2p-tunnels.md](p2p-tunnels.md) for usage examples.
+
+Default: `false`
+
+Type: `bool`
+
 ## `Gateway`
 
 Options for the HTTP gateway.
 
-**NOTE:** support for `/api/v0` under the gateway path is now deprecated. It will be removed in future versions: <https://github.com/ipfs/kubo/issues/10312>.
+> [!IMPORTANT]
+> By default, Kubo's gateway is configured for local use at `127.0.0.1` and `localhost`.
+> To run a public gateway, configure your domain names in [`Gateway.PublicGateways`](#gatewaypublicgateways).
+> For production deployment considerations (reverse proxy, timeouts, rate limiting, CDN),
+> see [Running in Production](gateway.md#running-in-production).
 
 ### `Gateway.NoFetch`
 
@@ -1268,6 +1284,11 @@ Examples:
 - `*.example.com` will match requests to `http://foo.example.com/ipfs/*` or `http://{cid}.ipfs.bar.example.com/*`.
 - `foo-*.example.com` will match requests to `http://foo-bar.example.com/ipfs/*` or `http://{cid}.ipfs.foo-xyz.example.com/*`.
 
+> [!IMPORTANT]
+> **Reverse Proxy:** If running behind nginx or another reverse proxy, ensure
+> `Host` and `X-Forwarded-*` headers are forwarded correctly.
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) in gateway documentation.
+
 #### `Gateway.PublicGateways: Paths`
 
 An array of paths that should be exposed on the hostname.
@@ -1334,6 +1355,9 @@ Default: `false`
 
 Type: `bool`
 
+> [!IMPORTANT]
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) if running behind nginx or another reverse proxy.
+
 #### `Gateway.PublicGateways: NoDNSLink`
 
 A boolean to configure whether DNSLink for hostname present in `Host`
@@ -1343,6 +1367,9 @@ If `Paths` are defined, they take priority over DNSLink.
 Default: `false` (DNSLink lookup enabled by default for every defined hostname)
 
 Type: `bool`
+
+> [!IMPORTANT]
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) if running behind nginx or another reverse proxy.
 
 #### `Gateway.PublicGateways: InlineDNSLink`
 
@@ -1410,6 +1437,9 @@ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 ### `Gateway` recipes
 
 Below is a list of the most common gateway setups.
+
+> [!IMPORTANT]
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) if running behind nginx or another reverse proxy.
 
 - Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
 
@@ -2195,6 +2225,9 @@ You can compare the effectiveness of sweep mode vs legacy mode by monitoring the
 > [!NOTE]
 > This is the default provider system as of Kubo v0.39. To use the legacy provider instead, set `Provide.DHT.SweepEnabled=false`.
 
+> [!NOTE]
+> When DHT routing is unavailable (e.g., `Routing.Type=custom` with only HTTP routers), the provider automatically falls back to the legacy provider regardless of this setting.
+
 Default: `true`
 
 Type: `flag`
@@ -2542,57 +2575,69 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 ### `Routing.Type`
 
-There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", "delegated", and "custom".
+Controls how your node discovers content and peers on the network.
 
-- **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
-  and parallel [`Routing.DelegatedRouters`](#routingdelegatedrouters) for additional speed.
+**Production options:**
 
-- If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
+- **`auto`** (default): Uses both the public IPFS DHT (Amino) and HTTP routers
+  from [`Routing.DelegatedRouters`](#routingdelegatedrouters) for faster lookups.
+  Your node starts as a DHT client and automatically switches to server mode
+  when reachable from the public internet.
 
-- If set to "none", your node will use _no_ routing system. You'll have to
-  explicitly connect to peers that have the content you're looking for.
+- **`autoclient`**: Same as `auto`, but never runs a DHT server.
+  Use this if your node is behind a firewall or NAT.
 
-- If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the Amino DHT (no HTTP routers).
+- **`dht`**: Uses only the Amino DHT (no HTTP routers). Automatically switches
+  between client and server mode based on reachability.
 
-- If set to "custom", all default routers are disabled, and only ones defined in `Routing.Routers` will be used.
+- **`dhtclient`**: DHT-only, always running as a client. Lower resource usage.
 
-When the DHT is enabled, it can operate in two modes: client and server.
+- **`dhtserver`**: DHT-only, always running as a server.
+  Only use this if your node is reachable from the public internet.
 
-- In server mode, your node will query other peers for DHT records, and will
-  respond to requests from other peers (both requests to store records and
-  requests to retrieve records).
+- **`none`**: Disables all routing. You must manually connect to peers.
 
-- In client mode, your node will query the DHT as a client but will not respond
-  to requests from other peers. This mode is less resource-intensive than server
-  mode.
+**About DHT client vs server mode:**
+When the DHT is enabled, your node can operate as either a client or server.
+In server mode, it queries other peers and responds to their queries - this helps
+the network but uses more resources. In client mode, it only queries others without
+responding, which is less resource-intensive. With `auto` or `dht`, your node starts
+as a client and switches to server when it detects public reachability.
 
-When `Routing.Type` is set to `auto` or `dht`, your node will start as a DHT client, and
-switch to a DHT server when and if it determines that it's reachable from the
-public internet (e.g., it's not behind a firewall).
+> [!CAUTION]
+> **`Routing.Type` Experimental options:**
+>
+> These modes are for research and testing only, not production use.
+> They may change without notice between releases.
+>
+> - **`delegated`**: Uses only HTTP routers from [`Routing.DelegatedRouters`](#routingdelegatedrouters)
+>   and IPNS publishers from [`Ipns.DelegatedPublishers`](#ipnsdelegatedpublishers),
+>   without initializing the DHT. Useful when peer-to-peer connectivity is unavailable.
+>   Note: cannot provide content to the network (no DHT means no provider records).
+>
+> - **`custom`**: Disables all default routers. You define your own routing in
+>   [`Routing.Routers`](#routingrouters). See [delegated-routing.md](delegated-routing.md).
 
-To force a specific Amino DHT-only mode, client or server, set `Routing.Type` to
-`dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
-unless you're sure your node is reachable from the public network.
-
-When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate some types of routing
-by leveraging [`Routing.DelegatedRouters`](#routingdelegatedrouters) HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
-introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
-in addition to the Amino DHT.
-
-When `Routing.Type` is set to `delegated`, your node will use **only** HTTP delegated routers and IPNS publishers,
-without initializing the Amino DHT at all. This mode is useful for environments where peer-to-peer DHT connectivity
-is not available or desired, while still enabling content routing and IPNS publishing via HTTP APIs.
-This mode requires configuring [`Routing.DelegatedRouters`](#routingdelegatedrouters) for content routing and
-[`Ipns.DelegatedPublishers`](#ipnsdelegatedpublishers) for IPNS publishing.
-
-**Note:** `delegated` mode operates as read-only for content providing - your node cannot announce content to the network
-since there is no DHT connectivity. Content providing is automatically disabled when using this routing type.
-
-[Advanced routing rules](https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md) can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
-
-Default: `auto` (DHT + [`Routing.DelegatedRouters`](#routingdelegatedrouters))
+Default: `auto`
 
 Type: `optionalString` (`null`/missing means the default)
+
+### `Routing.DelegatedRouters`
+
+An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
+These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
+
+The special value `"auto"` uses delegated routers from [AutoConf](#autoconf) when enabled.
+You can combine `"auto"` with custom URLs (e.g., `["auto", "https://custom.example.com"]`) to query both the default delegated routers and your own endpoints. The first `"auto"` entry gets substituted with autoconf values, and other URLs are preserved.
+
+> [!TIP]
+> Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
+>
+> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
+
+Default: `["auto"]`
+
+Type: `array[string]` (URLs or `"auto"`)
 
 ### `Routing.AcceleratedDHTClient`
 
@@ -2623,27 +2668,21 @@ When it is enabled:
     This is critical to maintain to not harm the network.
 - The operations `ipfs stats dht` will default to showing information about the accelerated DHT client
 
-**Caveats:**
-
-1. Running the accelerated client likely will result in more resource consumption (connections, RAM, CPU, bandwidth)
-   - Users that are limited in the number of parallel connections their machines/networks can perform will likely suffer
-   - The resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly done in rounds
-   - Users who previously had a lot of content but were unable to advertise it on the network will see an increase in
-     egress bandwidth as their nodes start to advertise all of their CIDs into the network. If you have lots of data
-     entering your node that you don't want to advertise, then consider using [Provide Strategies](#providestrategy)
-     to reduce the number of CIDs that you are reproviding. Similarly, if you are running a node that deals mostly with
-     short-lived temporary data (e.g. you use a separate node for ingesting data then for storing and serving it) then
-     you may benefit from using [Strategic Providing](experimental-features.md#strategic-providing) to prevent advertising
-     of data that you ultimately will not have.
-2. Currently, the DHT is not usable for queries for the first 5-10 minutes of operation as the routing table is being
-prepared. This means operations like searching the DHT for particular peers or content will not work initially.
-   - You can see if the DHT has been initially populated by running `ipfs stats dht`
-3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
-them
-4. (⚠️ 0.39 limitation) When used with [`Provide.DHT.SweepEnabled`](#providedhtsweepenabled), the sweep provider may
-fail to estimate DHT size during the accelerated client's network crawl, resulting in all CIDs grouped into a
-single region. Content still gets reprovided, but without sweep efficiency gains. Consider disabling the
-accelerated client when using sweep mode.
+> [!CAUTION]
+> **`Routing.AcceleratedDHTClient` Caveats:**
+>
+> 1. Running the accelerated client likely will result in more resource consumption (connections, RAM, CPU, bandwidth)
+>    - Users that are limited in the number of parallel connections their machines/networks can perform will be most affected
+>    - The resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly done in rounds
+>    - Users who previously had a lot of content but were unable to advertise it on the network will see an increase in
+>      egress bandwidth as their nodes start to advertise all of their CIDs into the network. If you have lots of data
+>      entering your node that you don't want to advertise, consider using [`Provide.*`](#provide) configuration
+>      to control which CIDs are reprovided.
+> 2. Currently, the DHT is not usable for queries for the first 5-10 minutes of operation as the routing table is being
+>    prepared. This means operations like searching the DHT for particular peers or content will not work initially.
+>    - You can see if the DHT has been initially populated by running `ipfs stats dht`
+> 3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
+>    them.
 
 Default: `false`
 
@@ -2677,30 +2716,18 @@ Default: `[]`
 
 Type: `array[string]`
 
-### `Routing.DelegatedRouters`
-
-An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
-These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
-
-The special value `"auto"` uses delegated routers from [AutoConf](#autoconf) when enabled.
-
-> [!TIP]
-> Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
->
-> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
-
-Default: `["auto"]`
-
-Type: `array[string]` (URLs or `"auto"`)
-
 ### `Routing.Routers`
 
 Alternative configuration used when `Routing.Type=custom`.
 
-> [!WARNING]
-> **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+> [!CAUTION]
+> **EXPERIMENTAL: `Routing.Routers` is for research and testing only, not production use.**
 >
-> Consider this advanced low-level config: Most users can simply use `Routing.Type=auto` or `autoclient` and set up basic config in user-friendly [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+> - The configuration format and behavior may change without notice between releases.
+> - Bugs and regressions may not be prioritized.
+> - HTTP-only configurations cannot reliably provide content. See [delegated-routing.md](delegated-routing.md#limitations).
+>
+> Most users should use `Routing.Type=auto` or `autoclient` with [`Routing.DelegatedRouters`](#routingdelegatedrouters).
 
 Allows for replacing the default routing (Amino DHT) with alternative Router
 implementations.
@@ -2711,9 +2738,9 @@ Default: `{}`
 
 Type: `object[string->object]`
 
-#### `Routing.Routers: Type`
+#### `Routing.Routers.[name].Type`
 
-**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+**⚠️ EXPERIMENTAL: For research and testing only. May change without notice.**
 
 It specifies the routing type that will be created.
 
@@ -2725,9 +2752,9 @@ Currently supported types:
 
 Type: `string`
 
-#### `Routing.Routers: Parameters`
+#### `Routing.Routers.[name].Parameters`
 
-**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+**⚠️ EXPERIMENTAL: For research and testing only. May change without notice.**
 
 Parameters needed to create the specified router. Supported params per router type:
 
@@ -2764,14 +2791,18 @@ Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->string]`
 
-### `Routing: Methods`
+### `Routing.Methods`
 
 `Methods:map` will define which routers will be executed per method used when `Routing.Type=custom`.
 
-> [!WARNING]
-> **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+> [!CAUTION]
+> **EXPERIMENTAL: `Routing.Methods` is for research and testing only, not production use.**
 >
-> Consider this advanced low-level config: Most users can simply use `Routing.Type=auto` or `autoclient` and set up basic config in user-friendly [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+> - The configuration format and behavior may change without notice between releases.
+> - Bugs and regressions may not be prioritized.
+> - HTTP-only configurations cannot reliably provide content. See [delegated-routing.md](delegated-routing.md#limitations).
+>
+> Most users should use `Routing.Type=auto` or `autoclient` with [`Routing.DelegatedRouters`](#routingdelegatedrouters).
 
 The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list.
 

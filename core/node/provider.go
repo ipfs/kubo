@@ -322,6 +322,25 @@ type dhtImpl interface {
 	Host() host.Host
 	MessageSender() dht_pb.MessageSender
 }
+
+type fullrtRouter struct {
+	*fullrt.FullRT
+}
+
+// GetClosestPeers overrides fullrt.FullRT's GetClosestPeers and returns an
+// error if the fullrt's initial network crawl isn't complete yet.
+func (fr *fullrtRouter) GetClosestPeers(ctx context.Context, key string) ([]peer.ID, error) {
+	if !fr.Ready() {
+		return nil, errors.New("fullrt: initial network crawl still running")
+	}
+	return fr.FullRT.GetClosestPeers(ctx, key)
+}
+
+var (
+	_ dhtImpl = &dht.IpfsDHT{}
+	_ dhtImpl = &fullrtRouter{}
+)
+
 type addrsFilter interface {
 	FilteredAddrs() []ma.Multiaddr
 }
@@ -400,7 +419,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			}
 		case *fullrt.FullRT:
 			if inDht != nil {
-				impl = inDht
+				impl = &fullrtRouter{inDht}
 			}
 		}
 		if impl == nil {
@@ -489,10 +508,14 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					strategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 					logger.Infow("provider keystore sync started", "strategy", strategy)
 					if err := syncKeystore(ctx); err != nil {
-						logger.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
-					} else {
-						logger.Infow("provider keystore sync completed", "strategy", strategy)
+						if ctx.Err() == nil {
+							logger.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
+						} else {
+							logger.Debugw("provider keystore sync interrupted by shutdown", "err", err, "strategy", strategy)
+						}
+						return
 					}
+					logger.Infow("provider keystore sync completed", "strategy", strategy)
 				}()
 
 				gcCtx, c := context.WithCancel(context.Background())
@@ -692,6 +715,48 @@ See docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtmaxw
 
 // ONLINE/OFFLINE
 
+// hasDHTRouting checks if the routing configuration includes a DHT component.
+// Returns false for HTTP-only custom routing configurations (e.g., Routing.Type="custom"
+// with only HTTP routers). This is used to determine whether SweepingProviderOpt
+// can be used, since it requires a DHT client.
+func hasDHTRouting(cfg *config.Config) bool {
+	routingType := cfg.Routing.Type.WithDefault(config.DefaultRoutingType)
+	switch routingType {
+	case "auto", "autoclient", "dht", "dhtclient", "dhtserver":
+		return true
+	case "custom":
+		// Check if any router in custom config is DHT-based
+		for _, router := range cfg.Routing.Routers {
+			if routerIncludesDHT(router, cfg) {
+				return true
+			}
+		}
+		return false
+	default: // "none", "delegated"
+		return false
+	}
+}
+
+// routerIncludesDHT recursively checks if a router configuration includes DHT.
+// Handles parallel and sequential composite routers by checking their children.
+func routerIncludesDHT(rp config.RouterParser, cfg *config.Config) bool {
+	switch rp.Type {
+	case config.RouterTypeDHT:
+		return true
+	case config.RouterTypeParallel, config.RouterTypeSequential:
+		if children, ok := rp.Parameters.(*config.ComposableRouterParams); ok {
+			for _, child := range children.Routers {
+				if childRouter, exists := cfg.Routing.Routers[child.RouterName]; exists {
+					if routerIncludesDHT(childRouter, cfg) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 // OnlineProviders groups units managing provide routing records online
 func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	if !provide {
@@ -708,7 +773,15 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 	opts := []fx.Option{
 		fx.Provide(setReproviderKeyProvider(providerStrategy)),
 	}
-	if cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled) {
+
+	sweepEnabled := cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled)
+	dhtAvailable := hasDHTRouting(cfg)
+
+	// Use SweepingProvider only when both sweep is enabled AND DHT is available.
+	// For HTTP-only routing (e.g., Routing.Type="custom" with only HTTP routers),
+	// fall back to LegacyProvider which works with ProvideManyRouter.
+	// See https://github.com/ipfs/kubo/issues/11089
+	if sweepEnabled && dhtAvailable {
 		opts = append(opts, SweepingProviderOpt(cfg))
 	} else {
 		reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
