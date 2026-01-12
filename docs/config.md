@@ -3459,7 +3459,7 @@ Please remove this option from your config.
 
 ## `DNS`
 
-Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.tech/concepts/dnslink/) and `/dns*` [Multiaddrs][libp2p-multiaddrs].
+Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.tech/concepts/dnslink/) and `/dns*` [Multiaddrs][libp2p-multiaddrs] (including peer addresses discovered via DHT or delegated routing).
 
 ### `DNS.Resolvers`
 
@@ -3489,6 +3489,7 @@ Be mindful that:
 - The default catch-all resolver is the cleartext one provided by your operating system. It can be overridden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
 - Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis.
 - The special value `"auto"` uses DNS resolvers from [AutoConf](#autoconf) when enabled. For example: `{".": "auto"}` uses any custom DoH resolver (global or per TLD) provided by AutoConf system.
+- Domains matching [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix) (default: `libp2p.direct`) are always resolved locally without network I/O by parsing the IP directly from the hostname. Since the IP is already encoded in these hostnames, DNS lookups would be wasteful.
 
 Default: `{".": "auto"}`
 
