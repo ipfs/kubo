@@ -355,6 +355,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(Bitswap(isBitswapServerEnabled, isBitswapLibp2pEnabled, isHTTPRetrievalEnabled)),
 		fx.Provide(OnlineExchange(isBitswapLibp2pEnabled)),
 		fx.Provide(DNSResolver),
+		maybeOverrideDefaultResolver(cfg.DNS.OverrideSystem.WithDefault(true)),
 		fx.Provide(Namesys(ipnsCacheSize, cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL))),
 		fx.Provide(Peering),
 		PeerWith(cfg.Peering.Peers...),
@@ -373,6 +374,7 @@ func Offline(cfg *config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(offline.Exchange),
 		fx.Provide(DNSResolver),
+		maybeOverrideDefaultResolver(cfg.DNS.OverrideSystem.WithDefault(true)),
 		fx.Provide(Namesys(0, 0)),
 		fx.Provide(libp2p.Routing),
 		fx.Provide(libp2p.ContentRouting),

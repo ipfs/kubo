@@ -14,4 +14,11 @@ type DNS struct {
 	Resolvers map[string]string
 	// MaxCacheTTL is the maximum duration DNS entries are valid in the cache.
 	MaxCacheTTL *OptionalDuration `json:",omitempty"`
+	// OverrideSystem controls whether DNS.Resolvers config is applied globally
+	// to all DNS lookups performed by the daemon, including third-party libraries.
+	// When enabled (default), net.DefaultResolver is replaced with one that uses
+	// the configured resolvers, ensuring consistent DNS behavior across the daemon.
+	// Set to false to use the OS resolver for code that doesn't explicitly use
+	// the Kubo DNS resolver (useful for testing or debugging).
+	OverrideSystem Flag `json:",omitempty"`
 }

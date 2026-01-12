@@ -219,6 +219,7 @@ config file at runtime.
   - [`DNS`](#dns)
     - [`DNS.Resolvers`](#dnsresolvers)
     - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
+    - [`DNS.OverrideSystem`](#dnsoverridesystem)
   - [`HTTPRetrieval`](#httpretrieval)
     - [`HTTPRetrieval.Enabled`](#httpretrievalenabled)
     - [`HTTPRetrieval.Allowlist`](#httpretrievalallowlist)
@@ -3511,6 +3512,26 @@ Note: this does NOT work with Go's default DNS resolver. To make this a global s
 Default: Respect DNS Response TTL
 
 Type: `optionalDuration`
+
+### `DNS.OverrideSystem`
+
+Controls whether [`DNS.Resolvers`](#dnsresolvers) configuration is applied globally
+to all DNS lookups performed by the daemon process, beyond just DNSLink and Multiaddr resolution.
+
+When enabled, Go's `net.DefaultResolver` is replaced with one that routes all DNS queries
+through the configured resolvers. This affects:
+
+- AutoTLS (p2p-forge) ACME DNS-01 challenge verification
+- HTTP client requests (including [`HTTPRetrieval`](#httpretrieval) block fetching)
+- Any third-party library code that performs DNS lookups
+
+Set to `false` to limit [`DNS.Resolvers`](#dnsresolvers) to only DNSLink and Multiaddr resolution,
+letting other code use the operating system's DNS resolver.
+This can be useful for testing or debugging DNS-related issues.
+
+Default: `true`
+
+Type: `flag`
 
 ## `HTTPRetrieval`
 
