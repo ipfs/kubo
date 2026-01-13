@@ -1672,18 +1672,6 @@ WARNING: The old MFS root and its unpinned children will be removed during
 the next garbage collection. Pin the old root first if you want to preserve.
 
 This command can only run when the daemon is not running.
-`,
-		LongDescription: `
-'ipfs files chroot' changes the root CID used by MFS (Mutable File System).
-This is a recovery command for when MFS becomes corrupted and prevents the
-daemon from starting.
-
-When run without a CID argument, resets MFS to an empty directory.
-
-WARNING: The old MFS root and its unpinned children will be removed during
-the next garbage collection. Pin the old root first if you want to preserve.
-
-This command can only run when the daemon is not running.
 
 Examples:
 
