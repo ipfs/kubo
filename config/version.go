@@ -2,7 +2,7 @@ package config
 
 const DefaultSwarmCheckPercentThreshold = 5
 
-// Version allows controling things like custom user agent and update checks.
+// Version allows controlling things like custom user agent and update checks.
 type Version struct {
 	// Optional suffix to the AgentVersion presented by `ipfs id` and exposed
 	// via libp2p identify protocol.

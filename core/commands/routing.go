@@ -9,7 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ipfs/kubo/config"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
+	"github.com/ipfs/kubo/core/node"
+	mh "github.com/multiformats/go-multihash"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipns"
@@ -42,6 +46,7 @@ var RoutingCmd = &cmds.Command{
 		"get":       getValueRoutingCmd,
 		"put":       putValueRoutingCmd,
 		"provide":   provideRefRoutingCmd,
+		"reprovide": reprovideRoutingCmd,
 	},
 }
 
@@ -70,7 +75,7 @@ var findProvidersRoutingCmd = &cmds.Command{
 
 		numProviders, _ := req.Options[numProvidersOptionName].(int)
 		if numProviders < 1 {
-			return fmt.Errorf("number of providers must be greater than 0")
+			return errors.New("number of providers must be greater than 0")
 		}
 
 		c, err := cid.Parse(req.Arguments[0])
@@ -85,7 +90,7 @@ var findProvidersRoutingCmd = &cmds.Command{
 			defer cancel()
 			pchan := n.Routing.FindProvidersAsync(ctx, c, numProviders)
 			for p := range pchan {
-				np := p
+				np := cmdutils.CloneAddrInfo(p)
 				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
 					Type:      routing.Provider,
 					Responses: []*peer.AddrInfo{&np},
@@ -157,10 +162,23 @@ var provideRefRoutingCmd = &cmds.Command{
 		if !nd.IsOnline {
 			return ErrNotOnline
 		}
+		// respect global config
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+		if !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
+			return errors.New("invalid configuration: Provide.Enabled is set to 'false'")
+		}
 
-		if len(nd.PeerHost.Network().Conns()) == 0 {
+		if len(nd.PeerHost.Network().Conns()) == 0 && !cfg.HasHTTPProviderConfigured() {
+			// Node is depending on DHT for providing (no custom HTTP provider
+			// configured) and currently has no connected peers.
 			return errors.New("cannot provide, no connected peers")
 		}
+
+		// If we reach here with no connections but HTTP provider configured,
+		// we proceed with the provide operation via HTTP
 
 		// Needed to parse stdin args.
 		// TODO: Lazy Load
@@ -194,12 +212,16 @@ var provideRefRoutingCmd = &cmds.Command{
 		ctx, events := routing.RegisterForQueryEvents(ctx)
 
 		var provideErr error
+		// TODO: not sure if necessary to call StartProviding for `ipfs routing
+		// provide <cid>`, since either cid is already being provided, or it will
+		// be garbage collected and not reprovided anyway. So we may simply stick
+		// with a single (optimistic) provide, and skip StartProviding call.
 		go func() {
 			defer cancel()
 			if rec {
-				provideErr = provideKeysRec(ctx, nd.Routing, nd.DAG, cids)
+				provideErr = provideCidsRec(ctx, nd.Provider, nd.DAG, cids)
 			} else {
-				provideErr = provideKeys(ctx, nd.Routing, cids)
+				provideErr = provideCids(nd.Provider, cids)
 			}
 			if provideErr != nil {
 				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
@@ -208,6 +230,16 @@ var provideRefRoutingCmd = &cmds.Command{
 				})
 			}
 		}()
+
+		if nd.HasActiveDHTClient() {
+			// If node has a DHT client, provide immediately the supplied cids before
+			// returning.
+			for _, c := range cids {
+				if err = provideCIDSync(req.Context, nd.DHTClient, c); err != nil {
+					return fmt.Errorf("error providing cid: %w", err)
+				}
+			}
+		}
 
 		for e := range events {
 			if err := res.Emit(e); err != nil {
@@ -235,39 +267,69 @@ var provideRefRoutingCmd = &cmds.Command{
 	Type: routing.QueryEvent{},
 }
 
-func provideKeys(ctx context.Context, r routing.Routing, cids []cid.Cid) error {
-	for _, c := range cids {
-		err := r.Provide(ctx, c, true)
+var reprovideRoutingCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Trigger reprovider.",
+		ShortDescription: `
+Trigger reprovider to announce our data to network.
+`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
 		}
-	}
-	return nil
+
+		if !nd.IsOnline {
+			return ErrNotOnline
+		}
+
+		// respect global config
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+		if !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
+			return errors.New("invalid configuration: Provide.Enabled is set to 'false'")
+		}
+		if cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0 {
+			return errors.New("invalid configuration: Provide.DHT.Interval is set to '0'")
+		}
+		provideSys, ok := nd.Provider.(*node.LegacyProvider)
+		if !ok {
+			return errors.New("manual reprovide not available with experimental sweeping provider (Provide.DHT.SweepEnabled=true)")
+		}
+
+		err = provideSys.Reprovide(req.Context)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
 }
 
-func provideKeysRec(ctx context.Context, r routing.Routing, dserv ipld.DAGService, cids []cid.Cid) error {
-	provided := cid.NewSet()
+func provideCids(prov node.DHTProvider, cids []cid.Cid) error {
+	mhs := make([]mh.Multihash, len(cids))
+	for i, c := range cids {
+		mhs[i] = c.Hash()
+	}
+	// providing happens asynchronously
+	return prov.StartProviding(true, mhs...)
+}
+
+func provideCidsRec(ctx context.Context, prov node.DHTProvider, dserv ipld.DAGService, cids []cid.Cid) error {
 	for _, c := range cids {
 		kset := cid.NewSet()
-
 		err := dag.Walk(ctx, dag.GetLinksDirect(dserv), c, kset.Visit)
 		if err != nil {
 			return err
 		}
-
-		for _, k := range kset.Keys() {
-			if provided.Has(k) {
-				continue
-			}
-
-			err = r.Provide(ctx, k, true)
-			if err != nil {
-				return err
-			}
-			provided.Add(k)
+		if err = provideCids(prov, kset.Keys()); err != nil {
+			return err
 		}
 	}
-
 	return nil
 }
 

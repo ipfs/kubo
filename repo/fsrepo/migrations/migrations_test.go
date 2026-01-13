@@ -15,8 +15,7 @@ import (
 func TestFindMigrations(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	migs, bins, err := findMigrations(ctx, 0, 5)
 	if err != nil {
@@ -33,9 +32,7 @@ func TestFindMigrations(t *testing.T) {
 		createFakeBin(i-1, i, tmpDir)
 	}
 
-	origPath := os.Getenv("PATH")
-	os.Setenv("PATH", tmpDir)
-	defer os.Setenv("PATH", origPath)
+	t.Setenv("PATH", tmpDir)
 
 	migs, bins, err = findMigrations(ctx, 0, 5)
 	if err != nil {
@@ -62,8 +59,7 @@ func TestFindMigrations(t *testing.T) {
 func TestFindMigrationsReverse(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	migs, bins, err := findMigrations(ctx, 5, 0)
 	if err != nil {
@@ -80,9 +76,7 @@ func TestFindMigrationsReverse(t *testing.T) {
 		createFakeBin(i-1, i, tmpDir)
 	}
 
-	origPath := os.Getenv("PATH")
-	os.Setenv("PATH", tmpDir)
-	defer os.Setenv("PATH", origPath)
+	t.Setenv("PATH", tmpDir)
 
 	migs, bins, err = findMigrations(ctx, 5, 0)
 	if err != nil {
@@ -107,8 +101,7 @@ func TestFindMigrationsReverse(t *testing.T) {
 }
 
 func TestFetchMigrations(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
@@ -144,10 +137,8 @@ func TestFetchMigrations(t *testing.T) {
 }
 
 func TestRunMigrations(t *testing.T) {
-	fakeHome := t.TempDir()
-
-	os.Setenv("HOME", fakeHome)
-	fakeIpfs := filepath.Join(fakeHome, ".ipfs")
+	fakeIpfs := filepath.Join(t.TempDir(), ".ipfs")
+	t.Setenv(config.EnvDir, fakeIpfs)
 
 	err := os.Mkdir(fakeIpfs, os.ModePerm)
 	if err != nil {
@@ -162,14 +153,13 @@ func TestRunMigrations(t *testing.T) {
 
 	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	targetVer := 9
 
 	err = RunMigration(ctx, fetcher, targetVer, fakeIpfs, false)
 	if err == nil || !strings.HasPrefix(err.Error(), "downgrade not allowed") {
-		t.Fatal("expected 'downgrade not alloed' error")
+		t.Fatal("expected 'downgrade not allowed' error")
 	}
 
 	err = RunMigration(ctx, fetcher, targetVer, fakeIpfs, true)
@@ -327,12 +317,9 @@ func TestGetMigrationFetcher(t *testing.T) {
 	}
 
 	downloadSources = []string{"ipfs"}
-	f, err = GetMigrationFetcher(downloadSources, "", newIpfsFetcher)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := f.(*mockIpfsFetcher); !ok {
-		t.Fatal("expected IpfsFetcher")
+	_, err = GetMigrationFetcher(downloadSources, "", newIpfsFetcher)
+	if err == nil || !strings.Contains(err.Error(), "IPFS downloads are not supported for legacy migrations") {
+		t.Fatal("Expected IPFS downloads error, got:", err)
 	}
 
 	downloadSources = []string{"http"}
@@ -347,6 +334,12 @@ func TestGetMigrationFetcher(t *testing.T) {
 	}
 
 	downloadSources = []string{"IPFS", "HTTPS"}
+	_, err = GetMigrationFetcher(downloadSources, "", newIpfsFetcher)
+	if err == nil || !strings.Contains(err.Error(), "IPFS downloads are not supported for legacy migrations") {
+		t.Fatal("Expected IPFS downloads error, got:", err)
+	}
+
+	downloadSources = []string{"https", "some.domain.io"}
 	f, err = GetMigrationFetcher(downloadSources, "", newIpfsFetcher)
 	if err != nil {
 		t.Fatal(err)
@@ -357,19 +350,6 @@ func TestGetMigrationFetcher(t *testing.T) {
 	}
 	if mf.Len() != 2 {
 		t.Fatal("expected 2 fetchers in MultiFetcher")
-	}
-
-	downloadSources = []string{"ipfs", "https", "some.domain.io"}
-	f, err = GetMigrationFetcher(downloadSources, "", newIpfsFetcher)
-	if err != nil {
-		t.Fatal(err)
-	}
-	mf, ok = f.(*MultiFetcher)
-	if !ok {
-		t.Fatal("expected MultiFetcher")
-	}
-	if mf.Len() != 3 {
-		t.Fatal("expected 3 fetchers in MultiFetcher")
 	}
 
 	downloadSources = nil

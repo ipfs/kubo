@@ -12,6 +12,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	opt "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/stretchr/testify/require"
 )
 
 func (tp *TestSuite) TestPin(t *testing.T) {
@@ -28,11 +29,11 @@ func (tp *TestSuite) TestPin(t *testing.T) {
 	t.Run("TestPinLsIndirect", tp.TestPinLsIndirect)
 	t.Run("TestPinLsPrecedence", tp.TestPinLsPrecedence)
 	t.Run("TestPinIsPinned", tp.TestPinIsPinned)
+	t.Run("TestPinNames", tp.TestPinNames)
 }
 
 func (tp *TestSuite) TestPinAdd(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -50,8 +51,7 @@ func (tp *TestSuite) TestPinAdd(t *testing.T) {
 }
 
 func (tp *TestSuite) TestPinSimple(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +67,7 @@ func (tp *TestSuite) TestPinSimple(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	list, err := accPins(api.Pin().Ls(ctx))
+	list, err := accPins(ctx, api)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func (tp *TestSuite) TestPinSimple(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	list, err = accPins(api.Pin().Ls(ctx))
+	list, err = accPins(ctx, api)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,8 +102,7 @@ func (tp *TestSuite) TestPinSimple(t *testing.T) {
 }
 
 func (tp *TestSuite) TestPinRecursive(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -143,7 +142,7 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	list, err := accPins(api.Pin().Ls(ctx))
+	list, err := accPins(ctx, api)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +151,7 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	list, err = accPins(api.Pin().Ls(ctx, opt.Pin.Ls.Direct()))
+	list, err = accPins(ctx, api, opt.Pin.Ls.Direct())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +164,7 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.FromCid(nd3.Cid()).String())
 	}
 
-	list, err = accPins(api.Pin().Ls(ctx, opt.Pin.Ls.Recursive()))
+	list, err = accPins(ctx, api, opt.Pin.Ls.Recursive())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +177,7 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.FromCid(nd2.Cid()).String())
 	}
 
-	list, err = accPins(api.Pin().Ls(ctx, opt.Pin.Ls.Indirect()))
+	list, err = accPins(ctx, api, opt.Pin.Ls.Indirect())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,8 +248,7 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 
 // TestPinLsIndirect verifies that indirect nodes are listed by pin ls even if a parent node is directly pinned
 func (tp *TestSuite) TestPinLsIndirect(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -282,8 +280,7 @@ func (tp *TestSuite) TestPinLsPrecedence(t *testing.T) {
 }
 
 func (tp *TestSuite) TestPinLsPredenceRecursiveIndirect(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -306,8 +303,7 @@ func (tp *TestSuite) TestPinLsPredenceRecursiveIndirect(t *testing.T) {
 }
 
 func (tp *TestSuite) TestPinLsPrecedenceDirectIndirect(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -330,8 +326,7 @@ func (tp *TestSuite) TestPinLsPrecedenceDirectIndirect(t *testing.T) {
 }
 
 func (tp *TestSuite) TestPinLsPrecedenceRecursiveDirect(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -366,8 +361,7 @@ func (tp *TestSuite) TestPinLsPrecedenceRecursiveDirect(t *testing.T) {
 }
 
 func (tp *TestSuite) TestPinIsPinned(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -433,24 +427,24 @@ func getThreeChainedNodes(t *testing.T, ctx context.Context, api iface.CoreAPI, 
 	return immutablePathCidContainer{leaf}, parent, grandparent
 }
 
-func assertPinTypes(t *testing.T, ctx context.Context, api iface.CoreAPI, recusive, direct, indirect []cidContainer) {
+func assertPinTypes(t *testing.T, ctx context.Context, api iface.CoreAPI, recursive, direct, indirect []cidContainer) {
 	assertPinLsAllConsistency(t, ctx, api)
 
-	list, err := accPins(api.Pin().Ls(ctx, opt.Pin.Ls.Recursive()))
+	list, err := accPins(ctx, api, opt.Pin.Ls.Recursive())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assertPinCids(t, list, recusive...)
+	assertPinCids(t, list, recursive...)
 
-	list, err = accPins(api.Pin().Ls(ctx, opt.Pin.Ls.Direct()))
+	list, err = accPins(ctx, api, opt.Pin.Ls.Direct())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	assertPinCids(t, list, direct...)
 
-	list, err = accPins(api.Pin().Ls(ctx, opt.Pin.Ls.Indirect()))
+	list, err = accPins(ctx, api, opt.Pin.Ls.Indirect())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -500,7 +494,7 @@ func assertPinCids(t *testing.T, pins []iface.Pin, cids ...cidContainer) {
 // assertPinLsAllConsistency verifies that listing all pins gives the same result as listing the pin types individually
 func assertPinLsAllConsistency(t *testing.T, ctx context.Context, api iface.CoreAPI) {
 	t.Helper()
-	allPins, err := accPins(api.Pin().Ls(ctx))
+	allPins, err := accPins(ctx, api)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -531,7 +525,7 @@ func assertPinLsAllConsistency(t *testing.T, ctx context.Context, api iface.Core
 	}
 
 	for typeStr, pinProps := range typeMap {
-		pins, err := accPins(api.Pin().Ls(ctx, pinProps.PinLsOption))
+		pins, err := accPins(ctx, api, pinProps.PinLsOption)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -580,6 +574,144 @@ func assertIsPinned(t *testing.T, ctx context.Context, api iface.CoreAPI, p path
 	}
 }
 
+func (tp *TestSuite) TestPinNames(t *testing.T) {
+	ctx := t.Context()
+	api, err := tp.makeAPI(t, ctx)
+	require.NoError(t, err)
+
+	// Create test content
+	p1, err := api.Unixfs().Add(ctx, strFile("content1")())
+	require.NoError(t, err)
+
+	p2, err := api.Unixfs().Add(ctx, strFile("content2")())
+	require.NoError(t, err)
+
+	p3, err := api.Unixfs().Add(ctx, strFile("content3")())
+	require.NoError(t, err)
+
+	p4, err := api.Unixfs().Add(ctx, strFile("content4")())
+	require.NoError(t, err)
+
+	// Test 1: Pin with name
+	err = api.Pin().Add(ctx, p1, opt.Pin.Name("test-pin-1"))
+	require.NoError(t, err, "failed to add pin with name")
+
+	// Test 2: Pin without name
+	err = api.Pin().Add(ctx, p2)
+	require.NoError(t, err, "failed to add pin without name")
+
+	// Test 3: List pins with detailed option to get names
+	pins := make(chan iface.Pin)
+	go func() {
+		err = api.Pin().Ls(ctx, pins, opt.Pin.Ls.Detailed(true))
+	}()
+
+	pinMap := make(map[string]string)
+	for pin := range pins {
+		pinMap[pin.Path().String()] = pin.Name()
+	}
+	require.NoError(t, err, "failed to list pins with names")
+
+	// Verify pin names
+	name1, ok := pinMap[p1.String()]
+	require.True(t, ok, "pin for %s not found", p1)
+	require.Equal(t, "test-pin-1", name1, "unexpected pin name for %s", p1)
+
+	name2, ok := pinMap[p2.String()]
+	require.True(t, ok, "pin for %s not found", p2)
+	require.Empty(t, name2, "expected empty pin name for %s, got '%s'", p2, name2)
+
+	// Test 4: Pin update preserves name
+	err = api.Pin().Add(ctx, p3, opt.Pin.Name("updatable-pin"))
+	require.NoError(t, err, "failed to add pin with name for update test")
+
+	err = api.Pin().Update(ctx, p3, p4)
+	require.NoError(t, err, "failed to update pin")
+
+	// Verify name was preserved after update
+	pins2 := make(chan iface.Pin)
+	go func() {
+		err = api.Pin().Ls(ctx, pins2, opt.Pin.Ls.Detailed(true))
+	}()
+
+	updatedPinMap := make(map[string]string)
+	for pin := range pins2 {
+		updatedPinMap[pin.Path().String()] = pin.Name()
+	}
+	require.NoError(t, err, "failed to list pins after update")
+
+	// Old pin should not exist
+	_, oldExists := updatedPinMap[p3.String()]
+	require.False(t, oldExists, "old pin %s should not exist after update", p3)
+
+	// New pin should have the preserved name
+	name4, ok := updatedPinMap[p4.String()]
+	require.True(t, ok, "updated pin for %s not found", p4)
+	require.Equal(t, "updatable-pin", name4, "pin name not preserved after update from %s to %s", p3, p4)
+
+	// Test 5: Re-pinning with different name updates the name
+	err = api.Pin().Add(ctx, p1, opt.Pin.Name("new-name-for-p1"))
+	require.NoError(t, err, "failed to re-pin with new name")
+
+	// Verify name was updated
+	pins3 := make(chan iface.Pin)
+	go func() {
+		err = api.Pin().Ls(ctx, pins3, opt.Pin.Ls.Detailed(true))
+	}()
+
+	repinMap := make(map[string]string)
+	for pin := range pins3 {
+		repinMap[pin.Path().String()] = pin.Name()
+	}
+	require.NoError(t, err, "failed to list pins after re-pin")
+
+	rePinnedName, ok := repinMap[p1.String()]
+	require.True(t, ok, "re-pinned content %s not found", p1)
+	require.Equal(t, "new-name-for-p1", rePinnedName, "pin name not updated after re-pinning %s", p1)
+
+	// Test 6: Direct pin with name
+	p5, err := api.Unixfs().Add(ctx, strFile("direct-content")())
+	require.NoError(t, err)
+
+	err = api.Pin().Add(ctx, p5, opt.Pin.Recursive(false), opt.Pin.Name("direct-pin-name"))
+	require.NoError(t, err, "failed to add direct pin with name")
+
+	// Verify direct pin has name
+	directPins := make(chan iface.Pin)
+	typeOpt, err := opt.Pin.Ls.Type("direct")
+	require.NoError(t, err, "failed to create type option")
+	go func() {
+		err = api.Pin().Ls(ctx, directPins, typeOpt, opt.Pin.Ls.Detailed(true))
+	}()
+
+	directPinMap := make(map[string]string)
+	for pin := range directPins {
+		directPinMap[pin.Path().String()] = pin.Name()
+	}
+	require.NoError(t, err, "failed to list direct pins")
+
+	directName, ok := directPinMap[p5.String()]
+	require.True(t, ok, "direct pin %s not found", p5)
+	require.Equal(t, "direct-pin-name", directName, "unexpected name for direct pin %s", p5)
+
+	// Test 7: List without detailed option doesn't return names
+	pinsNoDetails := make(chan iface.Pin)
+	go func() {
+		err = api.Pin().Ls(ctx, pinsNoDetails)
+	}()
+
+	noDetailsMap := make(map[string]string)
+	for pin := range pinsNoDetails {
+		noDetailsMap[pin.Path().String()] = pin.Name()
+	}
+	require.NoError(t, err, "failed to list pins without detailed option")
+
+	// All names should be empty without detailed option
+	for path, name := range noDetailsMap {
+		require.Empty(t, name, "expected empty name for %s without detailed option, got '%s'", path, name)
+	}
+}
+
 func assertNotPinned(t *testing.T, ctx context.Context, api iface.CoreAPI, p path.Path) {
 	t.Helper()
 
@@ -593,19 +725,19 @@ func assertNotPinned(t *testing.T, ctx context.Context, api iface.CoreAPI, p pat
 	}
 }
 
-func accPins(pins <-chan iface.Pin, err error) ([]iface.Pin, error) {
+func accPins(ctx context.Context, api iface.CoreAPI, opts ...opt.PinLsOption) ([]iface.Pin, error) {
+	var err error
+	pins := make(chan iface.Pin)
+	go func() {
+		err = api.Pin().Ls(ctx, pins, opts...)
+	}()
+
+	var results []iface.Pin
+	for pin := range pins {
+		results = append(results, pin)
+	}
 	if err != nil {
 		return nil, err
 	}
-
-	var result []iface.Pin
-
-	for pin := range pins {
-		if pin.Err() != nil {
-			return nil, pin.Err()
-		}
-		result = append(result, pin)
-	}
-
-	return result, nil
+	return results, nil
 }

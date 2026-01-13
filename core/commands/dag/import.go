@@ -11,6 +11,8 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/coreiface/options"
 	gocarv2 "github.com/ipld/go-car/v2"
 
@@ -18,8 +20,15 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 )
 
+var log = logging.Logger("core/commands")
+
 func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 	node, err := cmdenv.GetNode(env)
+	if err != nil {
+		return err
+	}
+
+	cfg, err := node.Repo.Config()
 	if err != nil {
 		return err
 	}
@@ -41,6 +50,12 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 
 	doPinRoots, _ := req.Options[pinRootsOptionName].(bool)
 
+	fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
+	fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
+
+	fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
+	fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
+
 	// grab a pinlock ( which doubles as a GC lock ) so that regardless of the
 	// size of the streamed-in cars nothing will disappear on us before we had
 	// a chance to roots that may show up at the very end
@@ -55,7 +70,14 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	// this is *not* a transaction
 	// it is simply a way to relieve pressure on the blockstore
 	// similar to pinner.Pin/pinner.Flush
-	batch := ipld.NewBatch(req.Context, api.Dag())
+	batch := ipld.NewBatch(req.Context, api.Dag(),
+		// Default: 128. Means 128 file descriptors needed in flatfs
+		ipld.MaxNodesBatchOption(int(cfg.Import.BatchMaxNodes.WithDefault(config.DefaultBatchMaxNodes))),
+		// Default 100MiB. When setting block size to 1MiB, we can add
+		// ~100 nodes maximum. With default 256KiB block-size, we will
+		// hit the max nodes limit at 32MiB.p
+		ipld.MaxSizeBatchOption(int(cfg.Import.BatchMaxSize.WithDefault(config.DefaultBatchMaxSize))),
+	)
 
 	roots := cid.NewSet()
 	var blockCount, blockBytesCount uint64
@@ -175,6 +197,22 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		})
 		if err != nil {
 			return err
+		}
+	}
+
+	// Fast-provide roots for faster discovery
+	if fastProvideRoot {
+		err = roots.ForEach(func(c cid.Cid) error {
+			return cmdenv.ExecuteFastProvide(req.Context, node, cfg, c, fastProvideWait, doPinRoots, doPinRoots, false)
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		if fastProvideWait {
+			log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config", "wait-flag-ignored", true)
+		} else {
+			log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
 		}
 	}
 

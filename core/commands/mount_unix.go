@@ -1,5 +1,4 @@
 //go:build !windows && !nofuse
-// +build !windows,!nofuse
 
 package commands
 
@@ -18,6 +17,7 @@ import (
 const (
 	mountIPFSPathOptionName = "ipfs-path"
 	mountIPNSPathOptionName = "ipns-path"
+	mountMFSPathOptionName  = "mfs-path"
 )
 
 var MountCmd = &cmds.Command{
@@ -25,14 +25,14 @@ var MountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Mounts IPFS to the filesystem (read-only).",
 		ShortDescription: `
-Mount IPFS at a read-only mountpoint on the OS (default: /ipfs and /ipns).
+Mount IPFS at a read-only mountpoint on the OS (default: /ipfs, /ipns, /mfs).
 All IPFS objects will be accessible under that directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
 You may have to create /ipfs and /ipns before using 'ipfs mount':
 
-> sudo mkdir /ipfs /ipns
-> sudo chown $(whoami) /ipfs /ipns
+> sudo mkdir /ipfs /ipns /mfs
+> sudo chown $(whoami) /ipfs /ipns /mfs
 > ipfs daemon &
 > ipfs mount
 `,
@@ -44,8 +44,8 @@ root will not be listable, as it is virtual. Access known paths directly.
 
 You may have to create /ipfs and /ipns before using 'ipfs mount':
 
-> sudo mkdir /ipfs /ipns
-> sudo chown $(whoami) /ipfs /ipns
+> sudo mkdir /ipfs /ipns /mfs
+> sudo chown $(whoami) /ipfs /ipns /mfs
 > ipfs daemon &
 > ipfs mount
 
@@ -67,6 +67,7 @@ baz
 > ipfs mount
 IPFS mounted at: /ipfs
 IPNS mounted at: /ipns
+MFS  mounted at: /mfs
 > cd /ipfs/QmSh5e7S6fdcu75LAbXNZAFY2nGyZUJXyLCJDvn2zRkWyC
 > ls
 bar
@@ -81,6 +82,7 @@ baz
 	Options: []cmds.Option{
 		cmds.StringOption(mountIPFSPathOptionName, "f", "The path where IPFS should be mounted."),
 		cmds.StringOption(mountIPNSPathOptionName, "n", "The path where IPNS should be mounted."),
+		cmds.StringOption(mountMFSPathOptionName, "m", "The path where MFS should be mounted."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfg, err := env.(*oldcmds.Context).GetConfig()
@@ -109,7 +111,12 @@ baz
 			nsdir = cfg.Mounts.IPNS // NB: be sure to not redeclare!
 		}
 
-		err = nodeMount.Mount(nd, fsdir, nsdir)
+		mfsdir, found := req.Options[mountMFSPathOptionName].(string)
+		if !found {
+			mfsdir = cfg.Mounts.MFS
+		}
+
+		err = nodeMount.Mount(nd, fsdir, nsdir, mfsdir)
 		if err != nil {
 			return err
 		}
@@ -117,6 +124,7 @@ baz
 		var output config.Mounts
 		output.IPFS = fsdir
 		output.IPNS = nsdir
+		output.MFS = mfsdir
 		return cmds.EmitOnce(res, &output)
 	},
 	Type: config.Mounts{},
@@ -124,6 +132,7 @@ baz
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, mounts *config.Mounts) error {
 			fmt.Fprintf(w, "IPFS mounted at: %s\n", cmdenv.EscNonPrint(mounts.IPFS))
 			fmt.Fprintf(w, "IPNS mounted at: %s\n", cmdenv.EscNonPrint(mounts.IPNS))
+			fmt.Fprintf(w, "MFS mounted at: %s\n", cmdenv.EscNonPrint(mounts.MFS))
 
 			return nil
 		}),

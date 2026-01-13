@@ -3,7 +3,6 @@ package migrations
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,10 +19,7 @@ func TestGetDistPath(t *testing.T) {
 	}
 
 	testDist := "/unit/test/dist"
-	err := os.Setenv(envIpfsDistPath, testDist)
-	if err != nil {
-		panic(err)
-	}
+	t.Setenv(envIpfsDistPath, testDist)
 	defer func() {
 		os.Unsetenv(envIpfsDistPath)
 	}()
@@ -45,8 +41,7 @@ func TestGetDistPath(t *testing.T) {
 }
 
 func TestHttpFetch(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
@@ -82,8 +77,7 @@ func TestHttpFetch(t *testing.T) {
 func TestFetchBinary(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
@@ -139,18 +133,12 @@ func TestFetchBinary(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		err = os.Setenv("TMPDIR", tmpDir)
-		if err != nil {
-			panic(err)
-		}
+		t.Setenv("TMPDIR", tmpDir)
 		_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v1.0.0", "ipfs", tmpDir)
 		if !os.IsPermission(err) {
 			t.Error("expected 'permission' error, got:", err)
 		}
-		err = os.Setenv("TMPDIR", "/tmp")
-		if err != nil {
-			panic(err)
-		}
+		t.Setenv("TMPDIR", "/tmp")
 		err = os.Chmod(tmpDir, 0o755)
 		if err != nil {
 			panic(err)
@@ -171,8 +159,7 @@ func TestFetchBinary(t *testing.T) {
 }
 
 func TestMultiFetcher(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	badFetcher := NewHttpFetcher("", "bad-url", "", 0)
 	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)

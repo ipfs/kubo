@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/test/cli/harness"
 	. "github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,7 @@ func testPins(t *testing.T, args testPinsArgs) {
 		node := harness.NewT(t).NewNode().Init()
 		if args.runDaemon {
 			node.StartDaemon("--offline")
+			defer node.StopDaemon()
 		}
 
 		strs := []string{"a", "b", "c", "d", "e", "f", "g"}
@@ -126,6 +128,7 @@ func testPinsErrorReporting(t *testing.T, args testPinsArgs) {
 		node := harness.NewT(t).NewNode().Init()
 		if args.runDaemon {
 			node.StartDaemon("--offline")
+			defer node.StopDaemon()
 		}
 		randomCID := "Qme8uX5n9hn15pw9p6WcVKoziyyC9LXv4LEgvsmKMULjnV"
 		res := node.RunIPFS(StrCat("pin", "add", args.pinArg, randomCID)...)
@@ -141,8 +144,9 @@ func testPinDAG(t *testing.T, args testPinsArgs) {
 		node := h.NewNode().Init()
 		if args.runDaemon {
 			node.StartDaemon("--offline")
+			defer node.StopDaemon()
 		}
-		bytes := RandomBytes(1 << 20) // 1 MiB
+		bytes := random.Bytes(1 << 20) // 1 MiB
 		tmpFile := h.WriteToTemp(string(bytes))
 		cid := node.IPFS(StrCat("add", args.pinArg, "--pin=false", "-q", tmpFile)...).Stdout.Trimmed()
 
@@ -167,16 +171,17 @@ func testPinProgress(t *testing.T, args testPinsArgs) {
 
 		if args.runDaemon {
 			node.StartDaemon("--offline")
+			defer node.StopDaemon()
 		}
 
-		bytes := RandomBytes(1 << 20) // 1 MiB
+		bytes := random.Bytes(1 << 20) // 1 MiB
 		tmpFile := h.WriteToTemp(string(bytes))
 		cid := node.IPFS(StrCat("add", args.pinArg, "--pin=false", "-q", tmpFile)...).Stdout.Trimmed()
 
 		res := node.RunIPFS("pin", "add", "--progress", cid)
 		node.Runner.AssertNoError(res)
 
-		assert.Contains(t, res.Stderr.String(), " 5 nodes")
+		assert.Contains(t, res.Stderr.String(), " 5 nodes (1.0 MB)")
 	})
 }
 
@@ -218,8 +223,8 @@ func TestPins(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init()
-		cidAStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
-		cidBStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
+		cidAStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
+		cidBStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
 
 		_ = node.IPFS("pin", "add", "--name", "testPin", cidAStr)
 
@@ -246,9 +251,9 @@ func TestPins(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init()
-		cidAStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
-		cidBStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
-		cidCStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
+		cidAStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
+		cidBStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
+		cidCStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
 
 		outA := cidAStr + " recursive testPin"
 		outB := cidBStr + " recursive testPin"
@@ -284,7 +289,7 @@ func TestPins(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init()
-		cidStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
+		cidStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
 
 		outBefore := cidStr + " recursive A"
 		outAfter := cidStr + " recursive B"
@@ -305,8 +310,8 @@ func TestPins(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init()
-		cidAStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
-		cidBStr := node.IPFSAddStr(RandomStr(1000), "--pin=false")
+		cidAStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
+		cidBStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
 
 		_ = node.IPFS("pin", "add", "--name", "testPinJson", cidAStr)
 

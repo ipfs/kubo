@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 	"io"
-	"sort"
+	"slices"
 	"text/tabwriter"
 	"time"
 
@@ -60,7 +60,7 @@ Lists running and recently run commands.
 					for k := range req.Options {
 						keys = append(keys, k)
 					}
-					sort.Strings(keys)
+					slices.Sort(keys)
 
 					for _, k := range keys {
 						fmt.Fprintf(tw, "%s=%v,", k, req.Options[k])

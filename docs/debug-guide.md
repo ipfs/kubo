@@ -15,6 +15,8 @@ This is a document for helping debug Kubo. Please add to it if you can!
 
 ### Beginning
 
+> **Note:**  Enable more logs by setting `GOLOG_LOG_LEVEL` env variable when troubleshooting. See [go-log documentation](https://github.com/ipfs/go-log#golog_log_level) for configuration options and available log levels.
+
 When you see ipfs doing something (using lots of CPU, memory, or otherwise
 being weird), the first thing you want to do is gather all the relevant
 profiling information.
@@ -106,6 +108,6 @@ See `tracing/doc.go` for more details.
 
 ### Other
 
-If you have any questions, or want us to analyze some weird kubo behaviour,
+If you have any questions, or want us to analyze some weird kubo behavior,
 just let us know, and be sure to include all the profiling information
 mentioned at the top.

@@ -41,22 +41,21 @@ jobs:
     steps:
       # 1. Download the gateway-conformance fixtures
       - name: Download gateway-conformance fixtures
-        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.6
+        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.8
         with:
           output: fixtures
 
       # 2. Build the kubo-gateway
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.22.x
-      - uses: protocol/cache-go-action@v1
-        with:
-          name: ${{ github.job }}
       - name: Checkout kubo-gateway
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: kubo-gateway
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'kubo-gateway/go.mod'
+          cache: true
+          cache-dependency-path: kubo-gateway/go.sum
       - name: Build kubo-gateway
         run: make build
         working-directory: kubo-gateway
@@ -94,7 +93,7 @@ jobs:
 
       # 6. Run the gateway-conformance tests
       - name: Run gateway-conformance tests
-        uses: ipfs/gateway-conformance/.github/actions/test@v0.6
+        uses: ipfs/gateway-conformance/.github/actions/test@v0.8
         with:
           gateway-url: http://127.0.0.1:8080
           subdomain-url: http://localhost:8080
@@ -110,13 +109,13 @@ jobs:
         run: cat output.md >> $GITHUB_STEP_SUMMARY
       - name: Upload HTML report
         if: failure() || success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gateway-conformance.html
           path: output.html
       - name: Upload JSON report
         if: failure() || success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gateway-conformance.json
           path: output.json
@@ -128,22 +127,21 @@ jobs:
     steps:
       # 1. Download the gateway-conformance fixtures
       - name: Download gateway-conformance fixtures
-        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.6
+        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.8
         with:
           output: fixtures
 
       # 2. Build the kubo-gateway
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.22.x
-      - uses: protocol/cache-go-action@v1
-        with:
-          name: ${{ github.job }}
       - name: Checkout kubo-gateway
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: kubo-gateway
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'kubo-gateway/go.mod'
+          cache: true
+          cache-dependency-path: kubo-gateway/go.sum
       - name: Build kubo-gateway
         run: make build
         working-directory: kubo-gateway
@@ -201,7 +199,7 @@ jobs:
 
       # 9. Run the gateway-conformance tests over libp2p
       - name: Run gateway-conformance tests over libp2p
-        uses: ipfs/gateway-conformance/.github/actions/test@v0.6
+        uses: ipfs/gateway-conformance/.github/actions/test@v0.8
         with:
           gateway-url: http://127.0.0.1:8092
           args: --specs "trustless-gateway,-trustless-ipns-gateway" -skip 'TestGatewayCar/GET_response_for_application/vnd.ipld.car/Header_Content-Length'
@@ -216,13 +214,13 @@ jobs:
         run: cat output.md >> $GITHUB_STEP_SUMMARY
       - name: Upload HTML report
         if: failure() || success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gateway-conformance-libp2p.html
           path: output.html
       - name: Upload JSON report
         if: failure() || success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gateway-conformance-libp2p.json
           path: output.json

@@ -1,0 +1,18 @@
+name: Spell Check
+
+on:
+  pull_request:
+  push:
+    branches: ["master"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  spellcheck:
+    uses: ipdxco/unified-github-workflows/.github/workflows/reusable-spellcheck.yml@v1

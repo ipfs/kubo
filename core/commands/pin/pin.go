@@ -8,9 +8,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	bserv "github.com/ipfs/boxo/blockservice"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	pin "github.com/ipfs/boxo/pinning/pinner"
 	verifcid "github.com/ipfs/boxo/verifcid"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
@@ -46,6 +48,7 @@ type PinOutput struct {
 type AddPinOutput struct {
 	Pins     []string `json:",omitempty"`
 	Progress int      `json:",omitempty"`
+	Bytes    uint64   `json:",omitempty"`
 }
 
 const (
@@ -99,6 +102,11 @@ It may take some time. Pass '--progress' to track the progress.
 		name, _ := req.Options[pinNameOptionName].(string)
 		showProgress, _ := req.Options[pinProgressOptionName].(bool)
 
+		// Validate pin name
+		if err := cmdutils.ValidatePinName(name); err != nil {
+			return err
+		}
+
 		if err := req.ParseBodyArgs(); err != nil {
 			return err
 		}
@@ -141,14 +149,15 @@ It may take some time. Pass '--progress' to track the progress.
 					return val.err
 				}
 
-				if pv := v.Value(); pv != 0 {
-					if err := res.Emit(&AddPinOutput{Progress: v.Value()}); err != nil {
+				if ps := v.ProgressStat(); ps.Nodes != 0 {
+					if err := res.Emit(&AddPinOutput{Progress: ps.Nodes, Bytes: ps.Bytes}); err != nil {
 						return err
 					}
 				}
 				return res.Emit(&AddPinOutput{Pins: val.pins})
 			case <-ticker.C:
-				if err := res.Emit(&AddPinOutput{Progress: v.Value()}); err != nil {
+				ps := v.ProgressStat()
+				if err := res.Emit(&AddPinOutput{Progress: ps.Nodes, Bytes: ps.Bytes}); err != nil {
 					return err
 				}
 			case <-ctx.Done():
@@ -191,7 +200,7 @@ It may take some time. Pass '--progress' to track the progress.
 				}
 				if out.Pins == nil {
 					// this can only happen if the progress option is set
-					fmt.Fprintf(os.Stderr, "Fetched/Processed %d nodes\r", out.Progress)
+					fmt.Fprintf(os.Stderr, "Fetched/Processed %d nodes (%s)\r", out.Progress, humanize.Bytes(out.Bytes))
 				} else {
 					err = re.Emit(out)
 					if err != nil {
@@ -370,16 +379,28 @@ Example:
 			return err
 		}
 
+		n, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		if n.Pinning == nil {
+			return fmt.Errorf("pinning service not available")
+		}
+
 		typeStr, _ := req.Options[pinTypeOptionName].(string)
 		stream, _ := req.Options[pinStreamOptionName].(bool)
 		displayNames, _ := req.Options[pinNamesOptionName].(bool)
 		name, _ := req.Options[pinNameOptionName].(string)
 
-		switch typeStr {
-		case "all", "direct", "indirect", "recursive":
-		default:
-			err = fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
+		// Validate name filter
+		if err := cmdutils.ValidatePinName(name); err != nil {
 			return err
+		}
+
+		mode, ok := pin.StringToMode(typeStr)
+		if !ok {
+			return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
 		}
 
 		// For backward compatibility, we accumulate the pins in the same output type as before.
@@ -397,7 +418,7 @@ Example:
 		}
 
 		if len(req.Arguments) > 0 {
-			err = pinLsKeys(req, typeStr, api, emit)
+			err = pinLsKeys(req, mode, displayNames || name != "", n.Pinning, api, emit)
 		} else {
 			err = pinLsAll(req, typeStr, displayNames || name != "", name, api, emit)
 		}
@@ -482,23 +503,14 @@ type PinLsObject struct {
 	Type string `json:",omitempty"`
 }
 
-func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
+func pinLsKeys(req *cmds.Request, mode pin.Mode, displayNames bool, pinner pin.Pinner, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
 	}
 
-	switch typeStr {
-	case "all", "direct", "indirect", "recursive":
-	default:
-		return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
-	}
-
-	opt, err := options.Pin.IsPinned.Type(typeStr)
-	if err != nil {
-		panic("unhandled pin type")
-	}
-
+	// Collect CIDs to check
+	cids := make([]cid.Cid, 0, len(req.Arguments))
 	for _, p := range req.Arguments {
 		p, err := cmdutils.PathOrCidPath(p)
 		if err != nil {
@@ -510,25 +522,31 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 			return err
 		}
 
-		pinType, pinned, err := api.Pin().IsPinned(req.Context, rp, opt)
-		if err != nil {
-			return err
+		cids = append(cids, rp.RootCid())
+	}
+
+	// Check pins using the new type-specific method
+	pinned, err := pinner.CheckIfPinnedWithType(req.Context, mode, displayNames, cids...)
+	if err != nil {
+		return err
+	}
+
+	// Process results
+	for i, p := range pinned {
+		if !p.Pinned() {
+			return fmt.Errorf("path '%s' is not pinned", req.Arguments[i])
 		}
 
-		if !pinned {
-			return fmt.Errorf("path '%s' is not pinned", p)
-		}
-
-		switch pinType {
-		case "direct", "indirect", "recursive", "internal":
-		default:
-			pinType = "indirect through " + pinType
+		pinType, _ := pin.ModeToString(p.Mode)
+		if p.Mode == pin.Indirect && p.Via.Defined() {
+			pinType = "indirect through " + enc.Encode(p.Via)
 		}
 
 		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: pinType,
-				Cid:  enc.Encode(rp.RootCid()),
+				Cid:  enc.Encode(cids[i]),
+				Name: p.Name,
 			},
 		})
 		if err != nil {
@@ -545,11 +563,9 @@ func pinLsAll(req *cmds.Request, typeStr string, detailed bool, name string, api
 		return err
 	}
 
-	switch typeStr {
-	case "all", "direct", "indirect", "recursive":
-	default:
-		err = fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
-		return err
+	_, ok := pin.StringToMode(typeStr)
+	if !ok {
+		return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
 	}
 
 	opt, err := options.Pin.Ls.Type(typeStr)
@@ -557,15 +573,16 @@ func pinLsAll(req *cmds.Request, typeStr string, detailed bool, name string, api
 		panic("unhandled pin type")
 	}
 
-	pins, err := api.Pin().Ls(req.Context, opt, options.Pin.Ls.Detailed(detailed), options.Pin.Ls.Name(name))
-	if err != nil {
-		return err
-	}
+	pins := make(chan coreiface.Pin)
+	lsErr := make(chan error, 1)
+	lsCtx, cancel := context.WithCancel(req.Context)
+	defer cancel()
+
+	go func() {
+		lsErr <- api.Pin().Ls(lsCtx, pins, opt, options.Pin.Ls.Detailed(detailed), options.Pin.Ls.Name(name))
+	}()
 
 	for p := range pins {
-		if err := p.Err(); err != nil {
-			return err
-		}
 		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: p.Type(),
@@ -577,8 +594,7 @@ func pinLsAll(req *cmds.Request, typeStr string, detailed bool, name string, api
 			return err
 		}
 	}
-
-	return nil
+	return <-lsErr
 }
 
 const (

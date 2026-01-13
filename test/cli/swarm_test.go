@@ -31,6 +31,7 @@ func TestSwarm(t *testing.T) {
 	t.Run("ipfs swarm peers returns empty peers when a node is not connected to any peers", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 		res := node.RunIPFS("swarm", "peers", "--enc=json", "--identify")
 		var output expectedOutputType
 		err := json.Unmarshal(res.Stdout.Bytes(), &output)
@@ -40,7 +41,9 @@ func TestSwarm(t *testing.T) {
 	t.Run("ipfs swarm peers with flag identify outputs expected identify information about connected peers", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 		otherNode := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer otherNode.StopDaemon()
 		node.Connect(otherNode)
 
 		res := node.RunIPFS("swarm", "peers", "--enc=json", "--identify")
@@ -50,7 +53,7 @@ func TestSwarm(t *testing.T) {
 		actualID := output.Peers[0].Identify.ID
 		actualPublicKey := output.Peers[0].Identify.PublicKey
 		actualAgentVersion := output.Peers[0].Identify.AgentVersion
-		actualAdresses := output.Peers[0].Identify.Addresses
+		actualAddresses := output.Peers[0].Identify.Addresses
 		actualProtocols := output.Peers[0].Identify.Protocols
 
 		expectedID := otherNode.PeerID().String()
@@ -59,15 +62,17 @@ func TestSwarm(t *testing.T) {
 		assert.Equal(t, actualID, expectedID)
 		assert.NotNil(t, actualPublicKey)
 		assert.NotNil(t, actualAgentVersion)
-		assert.Len(t, actualAdresses, 1)
-		assert.Equal(t, expectedAddresses[0], actualAdresses[0])
+		assert.Len(t, actualAddresses, 1)
+		assert.Equal(t, expectedAddresses[0], actualAddresses[0])
 		assert.Greater(t, len(actualProtocols), 0)
 	})
 
 	t.Run("ipfs swarm peers with flag identify outputs Identify field with data that matches calling ipfs id on a peer", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 		otherNode := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer otherNode.StopDaemon()
 		node.Connect(otherNode)
 
 		otherNodeIDResponse := otherNode.RunIPFS("id", "--enc=json")

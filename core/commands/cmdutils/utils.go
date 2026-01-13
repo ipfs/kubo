@@ -2,17 +2,20 @@ package cmdutils
 
 import (
 	"fmt"
+	"slices"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 
 	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 const (
 	AllowBigBlockOptionName = "allow-big-block"
 	SoftBlockLimit          = 1024 * 1024 // https://github.com/ipfs/kubo/issues/7421#issuecomment-910833499
+	MaxPinNameBytes         = 255         // Maximum number of bytes allowed for a pin name
 )
 
 var AllowBigBlockOption cmds.Option
@@ -50,6 +53,21 @@ func CheckBlockSize(req *cmds.Request, size uint64) error {
 	return nil
 }
 
+// ValidatePinName validates that a pin name does not exceed the maximum allowed byte length.
+// Returns an error if the name exceeds MaxPinNameBytes (255 bytes).
+func ValidatePinName(name string) error {
+	if name == "" {
+		// Empty names are allowed
+		return nil
+	}
+
+	nameBytes := len([]byte(name))
+	if nameBytes > MaxPinNameBytes {
+		return fmt.Errorf("pin name is %d bytes (max %d bytes)", nameBytes, MaxPinNameBytes)
+	}
+	return nil
+}
+
 // PathOrCidPath returns a path.Path built from the argument. It keeps the old
 // behaviour by building a path from a CID string.
 func PathOrCidPath(str string) (path.Path, error) {
@@ -58,10 +76,23 @@ func PathOrCidPath(str string) (path.Path, error) {
 		return p, nil
 	}
 
+	// Save the original error before attempting fallback
+	originalErr := err
+
 	if p, err := path.NewPath("/ipfs/" + str); err == nil {
 		return p, nil
 	}
 
 	// Send back original err.
-	return nil, err
+	return nil, originalErr
+}
+
+// CloneAddrInfo returns a copy of the AddrInfo with a cloned Addrs slice.
+// This prevents data races if the sender reuses the backing array.
+// See: https://github.com/ipfs/kubo/issues/11116
+func CloneAddrInfo(ai peer.AddrInfo) peer.AddrInfo {
+	return peer.AddrInfo{
+		ID:    ai.ID,
+		Addrs: slices.Clone(ai.Addrs),
+	}
 }

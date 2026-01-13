@@ -76,6 +76,7 @@ func TestContentBlocking(t *testing.T) {
 
 	// Start daemon, it should pick up denylist from $IPFS_PATH/denylists/test.deny
 	node.StartDaemon() // we need online mode for GatewayOverLibp2p tests
+	t.Cleanup(func() { node.StopDaemon() })
 	client := node.GatewayClient()
 
 	// First, confirm gateway works
@@ -308,7 +309,7 @@ func TestContentBlocking(t *testing.T) {
 	// trustless gateway exposed over libp2p
 	// when Experimental.GatewayOverLibp2p=true
 	// (https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#http-gateway-over-libp2p)
-	// NOTE: this type fo gateway is hardcoded to be NoFetch: it does not fetch
+	// NOTE: this type of gateway is hardcoded to be NoFetch: it does not fetch
 	// data that is not in local store, so we only need to run it once: a
 	// simple smoke-test for allowed CID and blockedCID.
 	t.Run("GatewayOverLibp2p", func(t *testing.T) {

@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	blockservice "github.com/ipfs/boxo/blockservice"
@@ -15,18 +16,24 @@ import (
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
 	ipld "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/core/coreunix"
 	"github.com/ipfs/kubo/tracing"
+	mh "github.com/multiformats/go-multihash"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
+
+var log = logging.Logger("coreapi")
 
 type UnixfsAPI CoreAPI
 
@@ -48,8 +55,15 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		attribute.Int("inlinelimit", settings.InlineLimit),
 		attribute.Bool("rawleaves", settings.RawLeaves),
 		attribute.Bool("rawleavesset", settings.RawLeavesSet),
+		attribute.Int("maxfilelinks", settings.MaxFileLinks),
+		attribute.Bool("maxfilelinksset", settings.MaxFileLinksSet),
+		attribute.Int("maxdirectorylinks", settings.MaxDirectoryLinks),
+		attribute.Bool("maxdirectorylinksset", settings.MaxDirectoryLinksSet),
+		attribute.Int("maxhamtfanout", settings.MaxHAMTFanout),
+		attribute.Bool("maxhamtfanoutset", settings.MaxHAMTFanoutSet),
 		attribute.Int("layout", int(settings.Layout)),
 		attribute.Bool("pin", settings.Pin),
+		attribute.String("pin-name", settings.PinName),
 		attribute.Bool("onlyhash", settings.OnlyHash),
 		attribute.Bool("fscache", settings.FsCache),
 		attribute.Bool("nocopy", settings.NoCopy),
@@ -71,7 +85,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	//}
 
 	if settings.NoCopy && !(cfg.Experimental.FilestoreEnabled || cfg.Experimental.UrlstoreEnabled) {
-		return path.ImmutablePath{}, fmt.Errorf("either the filestore or the urlstore must be enabled to use nocopy, see: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#ipfs-filestore")
+		return path.ImmutablePath{}, errors.New("either the filestore or the urlstore must be enabled to use nocopy, see: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#ipfs-filestore")
 	}
 
 	addblockstore := api.blockstore
@@ -84,14 +98,31 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	if settings.OnlyHash {
 		// setup a /dev/null pipeline to simulate adding the data
 		dstore := dssync.MutexWrap(ds.NewNullDatastore())
-		bs := bstore.NewBlockstore(dstore, bstore.WriteThrough())
-		addblockstore = bstore.NewGCBlockstore(bs, nil) // gclocker will never be used
-		exch = nil                                      // exchange will never be used
-		pinning = nil                                   // pinner will never be used
+		bs := bstore.NewBlockstore(dstore, bstore.WriteThrough(true)) // we use NewNullDatastore, so ok to always WriteThrough when OnlyHash
+		addblockstore = bstore.NewGCBlockstore(bs, nil)               // gclocker will never be used
+		exch = nil                                                    // exchange will never be used
+		pinning = nil                                                 // pinner will never be used
 	}
 
-	bserv := blockservice.New(addblockstore, exch) // hash security 001
-	dserv := merkledag.NewDAGService(bserv)
+	bserv := blockservice.New(addblockstore, exch,
+		blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough)),
+	) // hash security 001
+
+	var dserv ipld.DAGService = merkledag.NewDAGService(bserv)
+
+	// wrap the DAGService in a providingDAG service which provides every block written.
+	// note about strategies:
+	//   - "all" gets handled directly at the blockstore so no need to provide
+	//   - "roots" gets handled in the pinner
+	//   - "mfs" gets handled in mfs
+	// We need to provide the "pinned" cases only. Added blocks are not
+	// going to be provided by the blockstore (wrong strategy for that),
+	// nor by the pinner (the pinner doesn't traverse the pinned DAG itself, it only
+	// handles roots). This wrapping ensures all blocks of pinned content get provided.
+	if settings.Pin && !settings.OnlyHash &&
+		(api.providingStrategy&config.ProvideStrategyPinned) != 0 {
+		dserv = &providingDagService{dserv, api.provider}
+	}
 
 	// add a sync call to the DagService
 	// this ensures that data written to the DagService is persisted to the underlying datastore
@@ -115,6 +146,11 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		}
 	}
 
+	// Note: the dag service gets wrapped multiple times:
+	// 1. providingDagService (if pinned strategy) - provides blocks as they're added
+	// 2. syncDagService - ensures data persistence
+	// 3. batchingDagService (in coreunix.Adder) - batches operations for efficiency
+
 	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, syncDserv)
 	if err != nil {
 		return path.ImmutablePath{}, err
@@ -126,8 +162,21 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		fileAdder.Progress = settings.Progress
 	}
 	fileAdder.Pin = settings.Pin && !settings.OnlyHash
+	if settings.Pin {
+		fileAdder.PinName = settings.PinName
+	}
 	fileAdder.Silent = settings.Silent
 	fileAdder.RawLeaves = settings.RawLeaves
+	if settings.MaxFileLinksSet {
+		fileAdder.MaxLinks = settings.MaxFileLinks
+	}
+	if settings.MaxDirectoryLinksSet {
+		fileAdder.MaxDirectoryLinks = settings.MaxDirectoryLinks
+	}
+
+	if settings.MaxHAMTFanoutSet {
+		fileAdder.MaxHAMTFanout = settings.MaxHAMTFanout
+	}
 	fileAdder.NoCopy = settings.NoCopy
 	fileAdder.CidBuilder = prefix
 	fileAdder.PreserveMode = settings.PreserveMode
@@ -159,7 +208,8 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		if err != nil {
 			return path.ImmutablePath{}, err
 		}
-		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil)
+		// MFS root for OnlyHash mode: provider is nil since we're not storing/providing anything
+		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil, nil)
 		if err != nil {
 			return path.ImmutablePath{}, err
 		}
@@ -170,12 +220,6 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	nd, err := fileAdder.AddAllAndPin(ctx, files)
 	if err != nil {
 		return path.ImmutablePath{}, err
-	}
-
-	if !settings.OnlyHash {
-		if err := api.provider.Provide(nd.Cid()); err != nil {
-			return path.ImmutablePath{}, err
-		}
 	}
 
 	return path.FromCid(nd.Cid()), nil
@@ -197,13 +241,15 @@ func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) 
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
 // `<link base58 hash> <link size in bytes> <link name>`
-func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...options.UnixfsLsOption) (<-chan coreiface.DirEntry, error) {
+func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, out chan<- coreiface.DirEntry, opts ...options.UnixfsLsOption) error {
 	ctx, span := tracing.Span(ctx, "CoreAPI.UnixfsAPI", "Ls", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
 
+	defer close(out)
+
 	settings, err := options.UnixfsLsOptions(opts...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	span.SetAttributes(attribute.Bool("resolvechildren", settings.ResolveChildren))
@@ -213,21 +259,21 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...options.Unixf
 
 	dagnode, err := ses.ResolveNode(ctx, p)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	dir, err := uio.NewDirectoryFromNode(ses.dag, dagnode)
-	if err == uio.ErrNotADir {
-		return uses.lsFromLinks(ctx, dagnode.Links(), settings)
-	}
 	if err != nil {
-		return nil, err
+		if errors.Is(err, uio.ErrNotADir) {
+			return uses.lsFromLinks(ctx, dagnode.Links(), settings, out)
+		}
+		return err
 	}
 
-	return uses.lsFromLinksAsync(ctx, dir, settings)
+	return uses.lsFromDirLinks(ctx, dir, settings, out)
 }
 
-func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, settings *options.UnixfsLsSettings) coreiface.DirEntry {
+func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, settings *options.UnixfsLsSettings) (coreiface.DirEntry, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.UnixfsAPI", "ProcessLink")
 	defer span.End()
 	if linkres.Link != nil {
@@ -235,7 +281,7 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 	}
 
 	if linkres.Err != nil {
-		return coreiface.DirEntry{Err: linkres.Err}
+		return coreiface.DirEntry{}, linkres.Err
 	}
 
 	lnk := coreiface.DirEntry{
@@ -252,15 +298,13 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 		if settings.ResolveChildren {
 			linkNode, err := linkres.Link.GetNode(ctx, api.dag)
 			if err != nil {
-				lnk.Err = err
-				break
+				return coreiface.DirEntry{}, err
 			}
 
 			if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
 				d, err := ft.FSNodeFromBytes(pn.Data())
 				if err != nil {
-					lnk.Err = err
-					break
+					return coreiface.DirEntry{}, err
 				}
 				switch d.Type() {
 				case ft.TFile, ft.TRaw:
@@ -284,35 +328,50 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 		}
 	}
 
-	return lnk
+	return lnk, nil
 }
 
-func (api *UnixfsAPI) lsFromLinksAsync(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, error) {
-	out := make(chan coreiface.DirEntry, uio.DefaultShardWidth)
+func (api *UnixfsAPI) lsFromDirLinks(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings, out chan<- coreiface.DirEntry) error {
+	for l := range dir.EnumLinksAsync(ctx) {
+		dirEnt, err := api.processLink(ctx, l, settings) // TODO: perf: processing can be done in background and in parallel
+		if err != nil {
+			return err
+		}
+		select {
+		case out <- dirEnt:
+		case <-ctx.Done():
+			return nil
+		}
+	}
+	return nil
+}
 
+func (api *UnixfsAPI) lsFromLinks(ctx context.Context, ndlinks []*ipld.Link, settings *options.UnixfsLsSettings, out chan<- coreiface.DirEntry) error {
+	// Create links channel large enough to not block when writing to out is slower.
+	links := make(chan coreiface.DirEntry, len(ndlinks))
+	errs := make(chan error, 1)
 	go func() {
-		defer close(out)
-		for l := range dir.EnumLinksAsync(ctx) {
+		defer close(links)
+		defer close(errs)
+		for _, l := range ndlinks {
+			lr := ft.LinkResult{Link: &ipld.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}}
+			lnk, err := api.processLink(ctx, lr, settings) // TODO: can be parallel if settings.Async
+			if err != nil {
+				errs <- err
+				return
+			}
 			select {
-			case out <- api.processLink(ctx, l, settings): // TODO: perf: processing can be done in background and in parallel
+			case links <- lnk:
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
 
-	return out, nil
-}
-
-func (api *UnixfsAPI) lsFromLinks(ctx context.Context, ndlinks []*ipld.Link, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, error) {
-	links := make(chan coreiface.DirEntry, len(ndlinks))
-	for _, l := range ndlinks {
-		lr := ft.LinkResult{Link: &ipld.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}}
-
-		links <- api.processLink(ctx, lr, settings) // TODO: can be parallel if settings.Async
+	for lnk := range links {
+		out <- lnk
 	}
-	close(links)
-	return links, nil
+	return <-errs
 }
 
 func (api *UnixfsAPI) core() *CoreAPI {
@@ -328,3 +387,39 @@ type syncDagService struct {
 func (s *syncDagService) Sync() error {
 	return s.syncFn()
 }
+
+type providingDagService struct {
+	ipld.DAGService
+	provider.MultihashProvider
+}
+
+func (pds *providingDagService) Add(ctx context.Context, n ipld.Node) error {
+	if err := pds.DAGService.Add(ctx, n); err != nil {
+		return err
+	}
+	// Provider errors are logged but not propagated.
+	// We don't want DAG operations to fail due to providing issues.
+	// The user's data is still stored successfully even if the
+	// announcement to the routing system fails temporarily.
+	if err := pds.StartProviding(false, n.Cid().Hash()); err != nil {
+		log.Errorf("failed to provide new block: %s", err)
+	}
+	return nil
+}
+
+func (pds *providingDagService) AddMany(ctx context.Context, nds []ipld.Node) error {
+	if err := pds.DAGService.AddMany(ctx, nds); err != nil {
+		return err
+	}
+	keys := make([]mh.Multihash, len(nds))
+	for i, n := range nds {
+		keys[i] = n.Cid().Hash()
+	}
+	// Same error handling philosophy as Add(): log but don't fail.
+	if err := pds.StartProviding(false, keys...); err != nil {
+		log.Errorf("failed to provide new blocks: %s", err)
+	}
+	return nil
+}
+
+var _ ipld.DAGService = (*providingDagService)(nil)

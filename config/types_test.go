@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOptionalDuration(t *testing.T) {
@@ -508,4 +511,126 @@ func TestOptionalString(t *testing.T) {
 			t.Errorf("expected to fail to decode %s as an optional string", invalid)
 		}
 	}
+}
+
+func TestOptionalBytes(t *testing.T) {
+	makeStringPointer := func(v string) *string { return &v }
+
+	t.Run("default value", func(t *testing.T) {
+		var b OptionalBytes
+		assert.True(t, b.IsDefault())
+		assert.Equal(t, uint64(0), b.WithDefault(0))
+		assert.Equal(t, uint64(1024), b.WithDefault(1024))
+		assert.Equal(t, "default", b.String())
+	})
+
+	t.Run("non-default value", func(t *testing.T) {
+		b := OptionalBytes{OptionalString{value: makeStringPointer("1MiB")}}
+		assert.False(t, b.IsDefault())
+		assert.Equal(t, uint64(1048576), b.WithDefault(512))
+		assert.Equal(t, "1MiB", b.String())
+	})
+
+	t.Run("JSON roundtrip", func(t *testing.T) {
+		testCases := []struct {
+			jsonInput     string
+			jsonOutput    string
+			expectedValue string
+		}{
+			{"null", "null", ""},
+			{"\"256KiB\"", "\"256KiB\"", "256KiB"},
+			{"\"1MiB\"", "\"1MiB\"", "1MiB"},
+			{"\"5GiB\"", "\"5GiB\"", "5GiB"},
+			{"\"256KB\"", "\"256KB\"", "256KB"},
+			{"1048576", "\"1048576\"", "1048576"},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.jsonInput, func(t *testing.T) {
+				var b OptionalBytes
+				err := json.Unmarshal([]byte(tc.jsonInput), &b)
+				require.NoError(t, err)
+
+				if tc.expectedValue == "" {
+					assert.Nil(t, b.value)
+				} else {
+					require.NotNil(t, b.value)
+					assert.Equal(t, tc.expectedValue, *b.value)
+				}
+
+				out, err := json.Marshal(b)
+				require.NoError(t, err)
+				assert.Equal(t, tc.jsonOutput, string(out))
+			})
+		}
+	})
+
+	t.Run("parsing byte sizes", func(t *testing.T) {
+		testCases := []struct {
+			input    string
+			expected uint64
+		}{
+			{"256KiB", 262144},
+			{"1MiB", 1048576},
+			{"5GiB", 5368709120},
+			{"256KB", 256000},
+			{"1048576", 1048576},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.input, func(t *testing.T) {
+				var b OptionalBytes
+				err := json.Unmarshal([]byte("\""+tc.input+"\""), &b)
+				require.NoError(t, err)
+				assert.Equal(t, tc.expected, b.WithDefault(0))
+			})
+		}
+	})
+
+	t.Run("omitempty", func(t *testing.T) {
+		type Foo struct {
+			B *OptionalBytes `json:",omitempty"`
+		}
+
+		out, err := json.Marshal(new(Foo))
+		require.NoError(t, err)
+		assert.Equal(t, "{}", string(out))
+
+		var foo2 Foo
+		err = json.Unmarshal(out, &foo2)
+		require.NoError(t, err)
+
+		if foo2.B != nil {
+			assert.Equal(t, uint64(1024), foo2.B.WithDefault(1024))
+			assert.True(t, foo2.B.IsDefault())
+		} else {
+			// When field is omitted, pointer is nil which is also considered default
+			t.Log("B is nil, which is acceptable for omitempty")
+		}
+	})
+
+	t.Run("invalid values", func(t *testing.T) {
+		invalidInputs := []string{
+			"\"5XiB\"", "\"invalid\"", "\"\"", "[]", "{}",
+		}
+
+		for _, invalid := range invalidInputs {
+			t.Run(invalid, func(t *testing.T) {
+				var b OptionalBytes
+				err := json.Unmarshal([]byte(invalid), &b)
+				assert.Error(t, err)
+			})
+		}
+	})
+
+	t.Run("panic on invalid stored value", func(t *testing.T) {
+		// This tests that if somehow an invalid value gets stored
+		// (bypassing UnmarshalJSON validation), WithDefault will panic
+		invalidValue := "invalid-size"
+		b := OptionalBytes{OptionalString{value: &invalidValue}}
+
+		assert.Panics(t, func() {
+			b.WithDefault(1024)
+		}, "should panic on invalid stored value")
+	})
 }

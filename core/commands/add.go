@@ -8,15 +8,16 @@ import (
 	gopath "path"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	"github.com/cheggaaa/pb"
 	"github.com/ipfs/boxo/files"
 	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/verifcid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
@@ -25,24 +26,7 @@ import (
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
-var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
-
-type TimeParts struct {
-	t *time.Time
-}
-
-func (t TimeParts) MarshalJSON() ([]byte, error) {
-	return t.t.MarshalJSON()
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-// The time is expected to be a quoted string in RFC 3339 format.
-func (t *TimeParts) UnmarshalJSON(data []byte) (err error) {
-	// Fractional seconds are handled implicitly by Parse.
-	tt, err := time.Parse("\"2006-01-02T15:04:05Z\"", string(data))
-	*t = TimeParts{&tt}
-	return
-}
+var ErrDepthLimitExceeded = errors.New("depth limit exceeded")
 
 type AddEvent struct {
 	Name       string
@@ -55,47 +39,78 @@ type AddEvent struct {
 }
 
 const (
-	quietOptionName       = "quiet"
-	quieterOptionName     = "quieter"
-	silentOptionName      = "silent"
-	progressOptionName    = "progress"
-	trickleOptionName     = "trickle"
-	wrapOptionName        = "wrap-with-directory"
-	onlyHashOptionName    = "only-hash"
-	chunkerOptionName     = "chunker"
-	pinOptionName         = "pin"
-	rawLeavesOptionName   = "raw-leaves"
-	noCopyOptionName      = "nocopy"
-	fstoreCacheOptionName = "fscache"
-	cidVersionOptionName  = "cid-version"
-	hashOptionName        = "hash"
-	inlineOptionName      = "inline"
-	inlineLimitOptionName = "inline-limit"
-	toFilesOptionName     = "to-files"
+	pinNameOptionName           = "pin-name"
+	quietOptionName             = "quiet"
+	quieterOptionName           = "quieter"
+	silentOptionName            = "silent"
+	progressOptionName          = "progress"
+	trickleOptionName           = "trickle"
+	wrapOptionName              = "wrap-with-directory"
+	onlyHashOptionName          = "only-hash"
+	chunkerOptionName           = "chunker"
+	pinOptionName               = "pin"
+	rawLeavesOptionName         = "raw-leaves"
+	maxFileLinksOptionName      = "max-file-links"
+	maxDirectoryLinksOptionName = "max-directory-links"
+	maxHAMTFanoutOptionName     = "max-hamt-fanout"
+	noCopyOptionName            = "nocopy"
+	fstoreCacheOptionName       = "fscache"
+	cidVersionOptionName        = "cid-version"
+	hashOptionName              = "hash"
+	inlineOptionName            = "inline"
+	inlineLimitOptionName       = "inline-limit"
+	toFilesOptionName           = "to-files"
 
-	preserveModeOptionName  = "preserve-mode"
-	preserveMtimeOptionName = "preserve-mtime"
-	modeOptionName          = "mode"
-	mtimeOptionName         = "mtime"
-	mtimeNsecsOptionName    = "mtime-nsecs"
+	preserveModeOptionName    = "preserve-mode"
+	preserveMtimeOptionName   = "preserve-mtime"
+	modeOptionName            = "mode"
+	mtimeOptionName           = "mtime"
+	mtimeNsecsOptionName      = "mtime-nsecs"
+	fastProvideRootOptionName = "fast-provide-root"
+	fastProvideWaitOptionName = "fast-provide-wait"
 )
 
-const adderOutChanSize = 8
+const (
+	adderOutChanSize = 8
+)
 
 var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add a file or directory to IPFS.",
 		ShortDescription: `
 Adds the content of <path> to IPFS. Use -r to add directories (recursively).
+
+FAST PROVIDE OPTIMIZATION:
+
+When you add content to IPFS, the sweep provider queues it for efficient
+DHT provides over time. While this is resource-efficient, other peers won't
+find your content immediately after 'ipfs add' completes.
+
+To make sharing faster, 'ipfs add' does an immediate provide of the root CID
+to the DHT in addition to the regular queue. This complements the sweep provider:
+fast-provide handles the urgent case (root CIDs that users share and reference),
+while the sweep provider efficiently provides all blocks according to
+Provide.Strategy over time.
+
+By default, this immediate provide runs in the background without blocking
+the command. If you need certainty that the root CID is discoverable before
+the command returns (e.g., sharing a link immediately), use --fast-provide-wait
+to wait for the provide to complete. Use --fast-provide-root=false to skip
+this optimization.
+
+This works best with the sweep provider and accelerated DHT client.
+Automatically skipped when DHT is not available.
 `,
 		LongDescription: `
 Adds the content of <path> to IPFS. Use -r to add directories.
-Note that directories are added recursively, to form the IPFS
-MerkleDAG.
+Note that directories are added recursively, and big files are chunked,
+to form the IPFS MerkleDAG. Learn more: https://docs.ipfs.tech/concepts/merkle-dag/
 
-If the daemon is not running, it will just add locally.
+If the daemon is not running, it will just add locally to the repo at $IPFS_PATH.
 If the daemon is started later, it will be advertised after a few
-seconds when the reprovider runs.
+seconds when the provide system runs.
+
+BASIC EXAMPLES:
 
 The wrap option, '-w', wraps the file (or files, if using the
 recursive option) in a directory. This directory contains only
@@ -115,6 +130,12 @@ You can now refer to the added file in a gateway, like so:
 Files imported with 'ipfs add' are protected from GC (implicit '--pin=true'),
 but it is up to you to remember the returned CID to get the data back later.
 
+If you need to back up or transport content-addressed data using a non-IPFS
+medium, CID can be preserved with CAR files.
+See 'dag export' and 'dag import' for more information.
+
+MFS INTEGRATION:
+
 Passing '--to-files' creates a reference in Files API (MFS), making it easier
 to find it in the future:
 
@@ -125,6 +146,8 @@ to find it in the future:
 
 See 'ipfs files --help' to learn more about using MFS
 for keeping track of added files and directories.
+
+CHUNKING EXAMPLES:
 
 The chunker option, '-s', specifies the chunking strategy that dictates
 how to break files into blocks. Blocks with same content can
@@ -146,13 +169,15 @@ want to use a 1024 times larger chunk sizes for most files.
 
 You can now check what blocks have been created by:
 
-  > ipfs object links QmafrLBfzRLV4XSH1XcaMMeaXEUhDJjmtDfsYU95TrWG87
+  > ipfs ls QmafrLBfzRLV4XSH1XcaMMeaXEUhDJjmtDfsYU95TrWG87
   QmY6yj1GsermExDXoosVE3aSPxdMNYr6aKuw3nA8LoWPRS 2059
   Qmf7ZQeSxq2fJVJbCmgTrLLVN9tDR9Wy5k75DxQKuz5Gyt 1195
-  > ipfs object links Qmf1hDN65tR55Ubh2RN1FPxr69xq3giVBz1KApsresY8Gn
+  > ipfs ls Qmf1hDN65tR55Ubh2RN1FPxr69xq3giVBz1KApsresY8Gn
   QmY6yj1GsermExDXoosVE3aSPxdMNYr6aKuw3nA8LoWPRS 2059
   QmerURi9k4XzKCaaPbsK6BL5pMEjF7PGphjDvkkjDtsVf3 868
   QmQB28iwSriSUSMqG2nXDTLtdPHgWb4rebBrU7Q1j4vxPv 338
+
+ADVANCED CONFIGURATION:
 
 Finally, a note on hash (CID) determinism and 'ipfs add' command.
 
@@ -161,9 +186,11 @@ new flags may be added in the future. It is not guaranteed for the implicit
 defaults of 'ipfs add' to remain the same in future Kubo releases, or for other
 IPFS software to use the same import parameters as Kubo.
 
-If you need to back up or transport content-addressed data using a non-IPFS
-medium, CID can be preserved with CAR files.
-See 'dag export' and 'dag import' for more information.
+Note: CIDv1 is automatically used when using non-default options like custom
+hash functions or when raw-leaves is explicitly enabled.
+
+Use Import.* configuration options to override global implicit defaults:
+https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 `,
 	},
 
@@ -171,34 +198,48 @@ See 'dag export' and 'dag import' for more information.
 		cmds.FileArg("path", true, true, "The path to a file to be added to IPFS.").EnableRecursive().EnableStdin(),
 	},
 	Options: []cmds.Option{
+		// Input Processing
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.OptionDerefArgs,     // a builtin option that resolves passed in filesystem links (--dereference-args)
 		cmds.OptionStdinName,     // a builtin option that optionally allows wrapping stdin into a named file
 		cmds.OptionHidden,
 		cmds.OptionIgnore,
 		cmds.OptionIgnoreRules,
+		// Output Control
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 		cmds.BoolOption(silentOptionName, "Write no output."),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
-		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		// Basic Add Behavior
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash"),
-		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
-		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
-		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
-		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true."),
-		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)"),
-		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
-		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 		cmds.BoolOption(pinOptionName, "Pin locally to protect added files from garbage collection.").WithDefault(true),
+		cmds.StringOption(pinNameOptionName, "Name to use for the pin. Requires explicit value (e.g., --pin-name=myname)."),
+		// MFS Integration
 		cmds.StringOption(toFilesOptionName, "Add reference to Files API (MFS) at the provided path."),
-		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries. Disables raw-leaves. (experimental)"),
-		cmds.BoolOption(preserveMtimeOptionName, "Apply existing POSIX modification time to created UnixFS entries. Disables raw-leaves. (experimental)"),
-		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. Disables raw-leaves. (experimental)"),
-		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). Disables raw-leaves. (experimental)"),
+		// CID & Hashing
+		cmds.IntOption(cidVersionOptionName, "CID version (0 or 1). CIDv1 automatically enables raw-leaves and is required for non-sha2-256 hashes. Default: Import.CidVersion"),
+		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. Default: Import.HashFunction"),
+		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. Note: CIDv1 automatically enables raw-leaves. Default: false for CIDv0, true for CIDv1 (Import.UnixFSRawLeaves)"),
+		// Chunking & DAG Structure
+		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash. Files larger than chunk size are split into multiple blocks. Default: Import.UnixFSChunker"),
+		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		// Advanced UnixFS Limits
+		cmds.IntOption(maxFileLinksOptionName, "Limit the maximum number of links in UnixFS file nodes to this value. WARNING: experimental. Default: Import.UnixFSFileMaxLinks"),
+		cmds.IntOption(maxDirectoryLinksOptionName, "Limit the maximum number of links in UnixFS basic directory nodes to this value. WARNING: experimental, Import.UnixFSHAMTDirectorySizeThreshold is safer. Default: Import.UnixFSDirectoryMaxLinks"),
+		cmds.IntOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8). WARNING: experimental, Import.UnixFSHAMTDirectorySizeThreshold is safer. Default: Import.UnixFSHAMTDirectoryMaxFanout"),
+		// Experimental Features
+		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. WARNING: experimental"),
+		cmds.IntOption(inlineLimitOptionName, fmt.Sprintf("Maximum block size to inline. Maximum: %d bytes. WARNING: experimental", verifcid.DefaultMaxIdentityDigestSize)).WithDefault(32),
+		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. WARNING: experimental"),
+		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. WARNING: experimental"),
+		cmds.BoolOption(preserveModeOptionName, "Apply existing POSIX permissions to created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
+		cmds.BoolOption(preserveMtimeOptionName, "Apply existing POSIX modification time to created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
+		cmds.UintOption(modeOptionName, "Custom POSIX file mode to store in created UnixFS entries. WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
+		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CID to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes before returning. Default: Import.FastProvideWait"),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -239,19 +280,38 @@ See 'dag export' and 'dag import' for more information.
 		silent, _ := req.Options[silentOptionName].(bool)
 		chunker, _ := req.Options[chunkerOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
+		pinName, pinNameSet := req.Options[pinNameOptionName].(string)
 		rawblks, rbset := req.Options[rawLeavesOptionName].(bool)
+		maxFileLinks, maxFileLinksSet := req.Options[maxFileLinksOptionName].(int)
+		maxDirectoryLinks, maxDirectoryLinksSet := req.Options[maxDirectoryLinksOptionName].(int)
+		maxHAMTFanout, maxHAMTFanoutSet := req.Options[maxHAMTFanoutOptionName].(int)
 		nocopy, _ := req.Options[noCopyOptionName].(bool)
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
+
+		// Validate inline-limit doesn't exceed the maximum identity digest size
+		if inline && inlineLimit > verifcid.DefaultMaxIdentityDigestSize {
+			return fmt.Errorf("inline-limit %d exceeds maximum allowed size of %d bytes", inlineLimit, verifcid.DefaultMaxIdentityDigestSize)
+		}
+
+		// Validate pin name
+		if pinNameSet {
+			if err := cmdutils.ValidatePinName(pinName); err != nil {
+				return err
+			}
+		}
+
 		toFilesStr, toFilesSet := req.Options[toFilesOptionName].(string)
 		preserveMode, _ := req.Options[preserveModeOptionName].(bool)
 		preserveMtime, _ := req.Options[preserveMtimeOptionName].(bool)
 		mode, _ := req.Options[modeOptionName].(uint)
 		mtime, _ := req.Options[mtimeOptionName].(int64)
 		mtimeNsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
+		fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
+		fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
 
 		if chunker == "" {
 			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
@@ -266,10 +326,30 @@ See 'dag export' and 'dag import' for more information.
 			cidVer = int(cfg.Import.CidVersion.WithDefault(config.DefaultCidVersion))
 		}
 
+		// Pin names are only used when explicitly provided via --pin-name=value
+
 		if !rbset && cfg.Import.UnixFSRawLeaves != config.Default {
 			rbset = true
 			rawblks = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
 		}
+
+		if !maxFileLinksSet && !cfg.Import.UnixFSFileMaxLinks.IsDefault() {
+			maxFileLinksSet = true
+			maxFileLinks = int(cfg.Import.UnixFSFileMaxLinks.WithDefault(config.DefaultUnixFSFileMaxLinks))
+		}
+
+		if !maxDirectoryLinksSet && !cfg.Import.UnixFSDirectoryMaxLinks.IsDefault() {
+			maxDirectoryLinksSet = true
+			maxDirectoryLinks = int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+		}
+
+		if !maxHAMTFanoutSet && !cfg.Import.UnixFSHAMTDirectoryMaxFanout.IsDefault() {
+			maxHAMTFanoutSet = true
+			maxHAMTFanout = int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
+		}
+
+		fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
+		fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
 
 		// Storing optional mode or mtime (UnixFS 1.5) requires root block
 		// to always be 'dag-pb' and not 'raw'. Below adjusts raw-leaves setting, if possible.
@@ -286,6 +366,12 @@ See 'dag export' and 'dag import' for more information.
 
 		if onlyHash && toFilesSet {
 			return fmt.Errorf("%s and %s options are not compatible", onlyHashOptionName, toFilesOptionName)
+		}
+		if !dopin && pinNameSet {
+			return fmt.Errorf("%s option requires %s to be set", pinNameOptionName, pinOptionName)
+		}
+		if wrap && toFilesSet {
+			return fmt.Errorf("%s and %s options are not compatible", wrapOptionName, toFilesOptionName)
 		}
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
@@ -313,7 +399,7 @@ See 'dag export' and 'dag import' for more information.
 
 			options.Unixfs.Chunker(chunker),
 
-			options.Unixfs.Pin(dopin),
+			options.Unixfs.Pin(dopin, pinName),
 			options.Unixfs.HashOnly(onlyHash),
 			options.Unixfs.FsCache(fscache),
 			options.Unixfs.Nocopy(nocopy),
@@ -343,6 +429,18 @@ See 'dag export' and 'dag import' for more information.
 			opts = append(opts, options.Unixfs.RawLeaves(rawblks))
 		}
 
+		if maxFileLinksSet {
+			opts = append(opts, options.Unixfs.MaxFileLinks(maxFileLinks))
+		}
+
+		if maxDirectoryLinksSet {
+			opts = append(opts, options.Unixfs.MaxDirectoryLinks(maxDirectoryLinks))
+		}
+
+		if maxHAMTFanoutSet {
+			opts = append(opts, options.Unixfs.MaxHAMTFanout(maxHAMTFanout))
+		}
+
 		if trickle {
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
 		}
@@ -355,11 +453,12 @@ See 'dag export' and 'dag import' for more information.
 		}
 		var added int
 		var fileAddedToMFS bool
+		var lastRootCid path.ImmutablePath // Track the root CID for fast-provide
 		addit := toadd.Entries()
 		for addit.Next() {
 			_, dir := addit.Node().(files.Directory)
 			errCh := make(chan error, 1)
-			events := make(chan interface{}, adderOutChanSize)
+			events := make(chan any, adderOutChanSize)
 			opts[len(opts)-1] = options.Unixfs.Events(events)
 
 			go func() {
@@ -371,8 +470,16 @@ See 'dag export' and 'dag import' for more information.
 					return
 				}
 
+				// Store the root CID for potential fast-provide operation
+				lastRootCid = pathAdded
+
 				// creating MFS pointers when optional --to-files is set
 				if toFilesSet {
+					if addit.Name() == "" {
+						errCh <- fmt.Errorf("%s: cannot add unnamed files to MFS", toFilesOptionName)
+						return
+					}
+
 					if toFilesStr == "" {
 						toFilesStr = "/"
 					}
@@ -489,12 +596,29 @@ See 'dag export' and 'dag import' for more information.
 			return fmt.Errorf("expected a file argument")
 		}
 
+		// Apply fast-provide-root if the flag is enabled
+		if fastProvideRoot && (lastRootCid != path.ImmutablePath{}) {
+			cfg, err := ipfsNode.Repo.Config()
+			if err != nil {
+				return err
+			}
+			if err := cmdenv.ExecuteFastProvide(req.Context, ipfsNode, cfg, lastRootCid.RootCid(), fastProvideWait, dopin, dopin, toFilesSet); err != nil {
+				return err
+			}
+		} else if !fastProvideRoot {
+			if fastProvideWait {
+				log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config", "wait-flag-ignored", true)
+			} else {
+				log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
+			}
+		}
+
 		return nil
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
 			sizeChan := make(chan int64, 1)
-			outChan := make(chan interface{})
+			outChan := make(chan any)
 			req := res.Request()
 
 			// Could be slow.

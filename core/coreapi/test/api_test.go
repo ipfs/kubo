@@ -69,6 +69,10 @@ func (NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdentity
 		c.Addresses.Swarm = []string{fmt.Sprintf("/ip4/18.0.%d.1/tcp/4001", i)}
 		c.Identity = ident
 		c.Experimental.FilestoreEnabled = true
+		c.AutoTLS.Enabled = config.False // disable so no /ws listener is added
+		// For provider tests, avoid that content gets
+		// auto-provided without calling "provide" (unless pinned).
+		c.Provide.Strategy = config.NewOptionalString("roots")
 
 		ds := syncds.MutexWrap(datastore.NewMapDatastore())
 		r := &repo.Mock{

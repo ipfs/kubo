@@ -8,8 +8,7 @@ import (
 	"runtime"
 	"time"
 
-	logging "github.com/ipfs/go-log"
-	goprocess "github.com/jbenet/goprocess"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("mount")
@@ -26,10 +25,6 @@ type Mount interface {
 
 	// Checks if the mount is still active.
 	IsActive() bool
-
-	// Process returns the mount's Process to be able to link it
-	// to other processes. Unmount upon closing.
-	Process() goprocess.Process
 }
 
 // ForceUnmount attempts to forcibly unmount a given mount.

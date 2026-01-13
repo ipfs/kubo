@@ -98,8 +98,7 @@ func wrapped(names ...string) func(f files.Node) files.Node {
 }
 
 func (tp *TestSuite) TestAdd(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -532,19 +531,18 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 }
 
 func (tp *TestSuite) TestAddPinned(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = api.Unixfs().Add(ctx, strFile(helloStr)(), options.Unixfs.Pin(true))
+	_, err = api.Unixfs().Add(ctx, strFile(helloStr)(), options.Unixfs.Pin(true, ""))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pins, err := accPins(api.Pin().Ls(ctx))
+	pins, err := accPins(ctx, api)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -558,8 +556,7 @@ func (tp *TestSuite) TestAddPinned(t *testing.T) {
 }
 
 func (tp *TestSuite) TestAddHashOnly(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -584,8 +581,7 @@ func (tp *TestSuite) TestAddHashOnly(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGetEmptyFile(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -617,8 +613,7 @@ func (tp *TestSuite) TestGetEmptyFile(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGetDir(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -645,8 +640,7 @@ func (tp *TestSuite) TestGetDir(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGetNonUnixfs(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -659,14 +653,13 @@ func (tp *TestSuite) TestGetNonUnixfs(t *testing.T) {
 	}
 
 	_, err = api.Unixfs().Get(ctx, path.FromCid(nd.Cid()))
-	if !strings.Contains(err.Error(), "proto: required field") {
-		t.Fatalf("expected protobuf error, got: %s", err)
+	if !strings.Contains(err.Error(), "proto:") || !strings.Contains(err.Error(), "required field") {
+		t.Fatalf("expected \"proto: required field\", got: %q", err)
 	}
 }
 
 func (tp *TestSuite) TestLs(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -681,14 +674,15 @@ func (tp *TestSuite) TestLs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries, err := api.Unixfs().Ls(ctx, p)
-	if err != nil {
-		t.Fatal(err)
-	}
+	errCh := make(chan error, 1)
+	entries := make(chan coreiface.DirEntry)
+	go func() {
+		errCh <- api.Unixfs().Ls(ctx, p, entries)
+	}()
 
-	entry := <-entries
-	if entry.Err != nil {
-		t.Fatal(entry.Err)
+	entry, ok := <-entries
+	if !ok {
+		t.Fatal("expected another entry")
 	}
 	if entry.Size != 15 {
 		t.Errorf("expected size = 15, got %d", entry.Size)
@@ -702,9 +696,9 @@ func (tp *TestSuite) TestLs(t *testing.T) {
 	if entry.Cid.String() != "QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr" {
 		t.Errorf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", entry.Cid)
 	}
-	entry = <-entries
-	if entry.Err != nil {
-		t.Fatal(entry.Err)
+	entry, ok = <-entries
+	if !ok {
+		t.Fatal("expected another entry")
 	}
 	if entry.Type != coreiface.TSymlink {
 		t.Errorf("wrong type %s", entry.Type)
@@ -716,11 +710,12 @@ func (tp *TestSuite) TestLs(t *testing.T) {
 		t.Errorf("expected symlink target to be /foo/bar, got %s", entry.Target)
 	}
 
-	if l, ok := <-entries; ok {
-		t.Errorf("didn't expect a second link")
-		if l.Err != nil {
-			t.Error(l.Err)
-		}
+	_, ok = <-entries
+	if ok {
+		t.Errorf("didn't expect a another link")
+	}
+	if err = <-errCh; err != nil {
+		t.Error(err)
 	}
 }
 
@@ -767,8 +762,7 @@ func (tp *TestSuite) TestEntriesExpired(t *testing.T) {
 }
 
 func (tp *TestSuite) TestLsEmptyDir(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -779,20 +773,28 @@ func (tp *TestSuite) TestLsEmptyDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	links, err := api.Unixfs().Ls(ctx, p)
-	if err != nil {
+	errCh := make(chan error, 1)
+	links := make(chan coreiface.DirEntry)
+	go func() {
+		errCh <- api.Unixfs().Ls(ctx, p, links)
+	}()
+
+	var count int
+	for range links {
+		count++
+	}
+	if err = <-errCh; err != nil {
 		t.Fatal(err)
 	}
 
-	if len(links) != 0 {
-		t.Fatalf("expected 0 links, got %d", len(links))
+	if count != 0 {
+		t.Fatalf("expected 0 links, got %d", count)
 	}
 }
 
 // TODO(lgierth) this should test properly, with len(links) > 0
 func (tp *TestSuite) TestLsNonUnixfs(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -808,13 +810,22 @@ func (tp *TestSuite) TestLsNonUnixfs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	links, err := api.Unixfs().Ls(ctx, path.FromCid(nd.Cid()))
-	if err != nil {
+	errCh := make(chan error, 1)
+	links := make(chan coreiface.DirEntry)
+	go func() {
+		errCh <- api.Unixfs().Ls(ctx, path.FromCid(nd.Cid()), links)
+	}()
+
+	var count int
+	for range links {
+		count++
+	}
+	if err = <-errCh; err != nil {
 		t.Fatal(err)
 	}
 
-	if len(links) != 0 {
-		t.Fatalf("expected 0 links, got %d", len(links))
+	if count != 0 {
+		t.Fatalf("expected 0 links, got %d", count)
 	}
 }
 
@@ -850,8 +861,7 @@ func (f *closeTestF) Close() error {
 }
 
 func (tp *TestSuite) TestAddCloses(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -888,8 +898,7 @@ func (tp *TestSuite) TestAddCloses(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGetSeek(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -994,8 +1003,7 @@ func (tp *TestSuite) TestGetSeek(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGetReadAt(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)

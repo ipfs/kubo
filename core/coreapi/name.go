@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -44,9 +45,25 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 		span.SetAttributes(attribute.Float64("ttl", options.TTL.Seconds()))
 	}
 
-	err = api.checkOnline(options.AllowOffline)
-	if err != nil {
-		return ipns.Name{}, err
+	// Handle different publishing modes
+	if options.AllowDelegated {
+		// AllowDelegated mode: check if delegated publishers are configured
+		cfg, err := api.repo.Config()
+		if err != nil {
+			return ipns.Name{}, fmt.Errorf("failed to read config: %w", err)
+		}
+		delegatedPublishers := cfg.DelegatedPublishersWithAutoConf()
+		if len(delegatedPublishers) == 0 {
+			return ipns.Name{}, errors.New("no delegated publishers configured: add Ipns.DelegatedPublishers or use --allow-offline for local-only publishing")
+		}
+		// For allow-delegated mode, we only require that we have delegated publishers configured
+		// The node doesn't need P2P connectivity since we're using HTTP publishing
+	} else {
+		// Normal mode: check online status with allow-offline flag
+		err = api.checkOnline(options.AllowOffline)
+		if err != nil {
+			return ipns.Name{}, err
+		}
 	}
 
 	k, err := keylookup(api.privateKey, api.repo.Keystore(), options.Key)
@@ -63,6 +80,10 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 
 	if options.TTL != nil {
 		publishOptions = append(publishOptions, namesys.PublishWithTTL(*options.TTL))
+	}
+
+	if options.Sequence != nil {
+		publishOptions = append(publishOptions, namesys.PublishWithSequence(*options.Sequence))
 	}
 
 	err = api.namesys.Publish(ctx, k, p, publishOptions...)
@@ -214,5 +235,5 @@ func keylookup(self ci.PrivKey, kstore keystore.Keystore, k string) (ci.PrivKey,
 		}
 	}
 
-	return nil, fmt.Errorf("no key by the given name or PeerID was found")
+	return nil, errors.New("no key by the given name or PeerID was found")
 }

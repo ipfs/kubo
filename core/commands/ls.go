@@ -1,10 +1,12 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
-	"sort"
+	"slices"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -117,8 +119,8 @@ The JSON output contains type information.
 						return nil
 					}, func(i int) {
 						// after each dir
-						sort.Slice(outputLinks, func(i, j int) bool {
-							return outputLinks[i].Name < outputLinks[j].Name
+						slices.SortFunc(outputLinks, func(a, b LsLink) int {
+							return strings.Compare(a.Name, b.Name)
 						})
 
 						output[i] = LsObject{
@@ -133,23 +135,24 @@ The JSON output contains type information.
 			}
 		}
 
+		lsCtx, cancel := context.WithCancel(req.Context)
+		defer cancel()
+
 		for i, fpath := range paths {
 			pth, err := cmdutils.PathOrCidPath(fpath)
 			if err != nil {
 				return err
 			}
 
-			results, err := api.Unixfs().Ls(req.Context, pth,
-				options.Unixfs.ResolveChildren(resolveSize || resolveType))
-			if err != nil {
-				return err
-			}
+			results := make(chan iface.DirEntry)
+			lsErr := make(chan error, 1)
+			go func() {
+				lsErr <- api.Unixfs().Ls(lsCtx, pth, results,
+					options.Unixfs.ResolveChildren(resolveSize || resolveType))
+			}()
 
 			processLink, dirDone = processDir()
 			for link := range results {
-				if link.Err != nil {
-					return link.Err
-				}
 				var ftype unixfs_pb.Data_DataType
 				switch link.Type {
 				case iface.TFile:
@@ -170,9 +173,12 @@ The JSON output contains type information.
 					Mode:    link.Mode,
 					ModTime: link.ModTime,
 				}
-				if err := processLink(paths[i], lsLink); err != nil {
+				if err = processLink(paths[i], lsLink); err != nil {
 					return err
 				}
+			}
+			if err = <-lsErr; err != nil {
+				return err
 			}
 			dirDone(i)
 		}

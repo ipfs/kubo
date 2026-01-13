@@ -227,7 +227,7 @@ func DetectNewKuboVersion(nd *core.IpfsNode, minPercent int64) (VersionCheckOutp
 			return
 		}
 
-		// Ignore prerelases and development releases (-dev, -rcX)
+		// Ignore prereleases and development releases (-dev, -rcX)
 		if peerVersion.Metadata() != "" || peerVersion.Prerelease() != "" {
 			return
 		}
@@ -255,7 +255,7 @@ func DetectNewKuboVersion(nd *core.IpfsNode, minPercent int64) (VersionCheckOutp
 	}
 
 	// Amino DHT client keeps information about previously seen peers
-	if nd.DHTClient != nd.DHT && nd.DHTClient != nil {
+	if nd.HasActiveDHTClient() && nd.DHTClient != nd.DHT {
 		client, ok := nd.DHTClient.(*fullrt.FullRT)
 		if !ok {
 			return VersionCheckOutput{}, errors.New("could not perform version check due to missing or incompatible DHT configuration")

@@ -97,11 +97,24 @@ func Libp2pGatewayOption() ServeOption {
 			return nil, err
 		}
 
+		// Get gateway configuration from the node's config
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			return nil, err
+		}
+
 		gwConfig := gateway.Config{
-			DeserializedResponses: false,
-			NoDNSLink:             true,
+			// Keep these constraints for security
+			DeserializedResponses: false, // Trustless-only
+			NoDNSLink:             true,  // No DNS resolution
+			DisableHTMLErrors:     true,  // Plain text errors only
 			PublicGateways:        nil,
 			Menu:                  nil,
+			// Apply timeout and concurrency limits from user config
+			RetrievalTimeout:        cfg.Gateway.RetrievalTimeout.WithDefault(config.DefaultRetrievalTimeout),
+			MaxConcurrentRequests:   int(cfg.Gateway.MaxConcurrentRequests.WithDefault(int64(config.DefaultMaxConcurrentRequests))),
+			MaxRangeRequestFileSize: int64(cfg.Gateway.MaxRangeRequestFileSize.WithDefault(uint64(config.DefaultMaxRangeRequestFileSize))),
+			DiagnosticServiceURL:    "", // Not used since DisableHTMLErrors=true
 		}
 
 		handler := gateway.NewHandler(gwConfig, &offlineGatewayErrWrapper{gwimpl: backend})
@@ -254,10 +267,14 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, er
 
 	// Initialize gateway configuration, with empty PublicGateways, handled after.
 	gwCfg := gateway.Config{
-		DeserializedResponses: cfg.Gateway.DeserializedResponses.WithDefault(config.DefaultDeserializedResponses),
-		DisableHTMLErrors:     cfg.Gateway.DisableHTMLErrors.WithDefault(config.DefaultDisableHTMLErrors),
-		NoDNSLink:             cfg.Gateway.NoDNSLink,
-		PublicGateways:        map[string]*gateway.PublicGateway{},
+		DeserializedResponses:   cfg.Gateway.DeserializedResponses.WithDefault(config.DefaultDeserializedResponses),
+		DisableHTMLErrors:       cfg.Gateway.DisableHTMLErrors.WithDefault(config.DefaultDisableHTMLErrors),
+		NoDNSLink:               cfg.Gateway.NoDNSLink,
+		PublicGateways:          map[string]*gateway.PublicGateway{},
+		RetrievalTimeout:        cfg.Gateway.RetrievalTimeout.WithDefault(config.DefaultRetrievalTimeout),
+		MaxConcurrentRequests:   int(cfg.Gateway.MaxConcurrentRequests.WithDefault(int64(config.DefaultMaxConcurrentRequests))),
+		MaxRangeRequestFileSize: int64(cfg.Gateway.MaxRangeRequestFileSize.WithDefault(uint64(config.DefaultMaxRangeRequestFileSize))),
+		DiagnosticServiceURL:    cfg.Gateway.DiagnosticServiceURL.WithDefault(config.DefaultDiagnosticServiceURL),
 	}
 
 	// Add default implicit known gateways, such as subdomain gateway on localhost.

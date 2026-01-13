@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -101,12 +102,12 @@ var keyGenCmd = &cmds.Command{
 
 		typ, f := req.Options[keyStoreTypeOptionName].(string)
 		if !f {
-			return fmt.Errorf("please specify a key type with --type")
+			return errors.New("please specify a key type with --type")
 		}
 
 		name := req.Arguments[0]
 		if name == "self" {
-			return fmt.Errorf("cannot create key with name 'self'")
+			return errors.New("cannot create key with name 'self'")
 		}
 
 		opts := []options.KeyGenerateOption{options.Key.Type(typ)}
@@ -457,7 +458,7 @@ var keyListCmd = &cmds.Command{
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.OptionIPNSBase.Name()].(string))
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot get key encoder: %w", err)
 		}
 
 		api, err := cmdenv.GetApi(env, req)
@@ -467,7 +468,7 @@ var keyListCmd = &cmds.Command{
 
 		keys, err := api.Key().List(req.Context)
 		if err != nil {
-			return err
+			return fmt.Errorf("listing keys failed: %w", err)
 		}
 
 		list := make([]KeyOutput, 0, len(keys))

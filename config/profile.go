@@ -86,6 +86,13 @@ is useful when using the daemon in test environments.`,
 
 			c.Bootstrap = []string{}
 			c.Discovery.MDNS.Enabled = false
+			c.AutoTLS.Enabled = False
+			c.AutoConf.Enabled = False
+
+			// Explicitly set autoconf-controlled fields to empty when autoconf is disabled
+			c.DNS.Resolvers = map[string]string{}
+			c.Routing.DelegatedRouters = []string{}
+			c.Ipns.DelegatedPublishers = []string{}
 			return nil
 		},
 	},
@@ -96,14 +103,14 @@ Inverse profile of the test profile.`,
 		Transform: func(c *Config) error {
 			c.Addresses = addressesConfig()
 
-			bootstrapPeers, err := DefaultBootstrapPeers()
-			if err != nil {
-				return err
-			}
-			c.Bootstrap = appendSingle(c.Bootstrap, BootstrapPeerStrings(bootstrapPeers))
+			// Use AutoConf system for bootstrap peers
+			c.Bootstrap = []string{AutoPlaceholder}
+			c.AutoConf.Enabled = Default
+			c.AutoConf.URL = nil // Clear URL to use implicit default
 
 			c.Swarm.DisableNatPortMap = false
 			c.Discovery.MDNS.Enabled = true
+			c.AutoTLS.Enabled = Default
 			return nil
 		},
 	},
@@ -135,12 +142,70 @@ You should use this datastore if:
 * You want to minimize memory usage.
 * You are ok with the default speed of data import, or prefer to use --nocopy.
 
-This profile may only be applied when first initializing the node.
+See configuration documentation at:
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#flatfs
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs'
 `,
 
 		InitOnly: true,
 		Transform: func(c *Config) error {
 			c.Datastore.Spec = flatfsSpec()
+			return nil
+		},
+	},
+	"flatfs-measure": {
+		Description: `Configures the node to use the flatfs datastore with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = flatfsSpecMeasure()
+			return nil
+		},
+	},
+	"pebbleds": {
+		Description: `Configures the node to use the pebble high-performance datastore.
+
+Pebble is a LevelDB/RocksDB inspired key-value store focused on performance
+and internal usage by CockroachDB.
+You should use this datastore if:
+
+- You need a datastore that is focused on performance.
+- You need reliability by default, but may choose to disable WAL for maximum performance when reliability is not critical.
+- This datastore is good for multi-terabyte data sets.
+- May benefit from tuning depending on read/write patterns and throughput.
+- Performance is helped significantly by running on a system with plenty of memory.
+
+See configuration documentation at:
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#pebbleds
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile pebbleds'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = pebbleSpec()
+			return nil
+		},
+	},
+	"pebbleds-measure": {
+		Description: `Configures the node to use the pebble datastore with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile pebbleds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = pebbleSpecMeasure()
 			return nil
 		},
 	},
@@ -160,11 +225,30 @@ Other caveats:
 * Good for medium-size datastores, but may run into performance issues
   if your dataset is bigger than a terabyte.
 
-This profile may only be applied when first initializing the node.`,
+See configuration documentation at:
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#badgerds
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile badgerds'
+`,
 
 		InitOnly: true,
 		Transform: func(c *Config) error {
 			c.Datastore.Spec = badgerSpec()
+			return nil
+		},
+	},
+	"badgerds-measure": {
+		Description: `Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile badgerds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = badgerSpecMeasure()
 			return nil
 		},
 	},
@@ -191,25 +275,25 @@ fetching may be degraded.
 		},
 	},
 	"announce-off": {
-		Description: `Disables Reprovide system (and announcing to Amino DHT).
+		Description: `Disables Provide system (announcing to Amino DHT).
 
 		USE WITH CAUTION:
 		The main use case for this is setups with manual Peering.Peers config.
 		Data from this node will not be announced on the DHT. This will make
-		DHT-based routing an data retrieval impossible if this node is the only
+		DHT-based routing and data retrieval impossible if this node is the only
 		one hosting it, and other peers are not already connected to it.
 `,
 		Transform: func(c *Config) error {
-			c.Reprovider.Interval = NewOptionalDuration(0) // 0 disables periodic reprovide
-			c.Experimental.StrategicProviding = true       // this is not a typo (the name is counter-intuitive)
+			c.Provide.Enabled = False
+			c.Provide.DHT.Interval = NewOptionalDuration(0) // 0 disables periodic reprovide
 			return nil
 		},
 	},
 	"announce-on": {
-		Description: `Re-enables Reprovide system (reverts announce-off profile).`,
+		Description: `Re-enables Provide system (reverts announce-off profile).`,
 		Transform: func(c *Config) error {
-			c.Reprovider.Interval = NewOptionalDuration(DefaultReproviderInterval) // have to apply explicit default because nil would be ignored
-			c.Experimental.StrategicProviding = false                              // this is not a typo (the name is counter-intuitive)
+			c.Provide.Enabled = True
+			c.Provide.DHT.Interval = NewOptionalDuration(DefaultProvideDHTInterval) // have to apply explicit default because nil would be ignored
 			return nil
 		},
 	},
@@ -229,24 +313,77 @@ fetching may be degraded.
 		},
 	},
 	"legacy-cid-v0": {
-		Description: `Makes UnixFS import produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.`,
-
+		Description: `Makes UnixFS import produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks. This is likely the least optimal preset, use only if legacy behavior is required.`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(0)
 			c.Import.UnixFSRawLeaves = False
 			c.Import.UnixFSChunker = *NewOptionalString("size-262144")
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
 			return nil
 		},
 	},
 	"test-cid-v1": {
-		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.`,
-
+		Description: `Makes UnixFS import produce CIDv1 with raw leaves, sha2-256 and 1 MiB chunks (max 174 links per file, 256 per HAMT node, switch dir to HAMT above 256KiB).`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
 			c.Import.UnixFSRawLeaves = True
 			c.Import.UnixFSChunker = *NewOptionalString("size-1048576")
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
+			return nil
+		},
+	},
+	"test-cid-v1-wide": {
+		Description: `Makes UnixFS import produce CIDv1 with raw leaves, sha2-256 and 1MiB chunks and wider file DAGs (max 1024 links per every node type, switch dir to HAMT above 1MiB).`,
+		Transform: func(c *Config) error {
+			c.Import.CidVersion = *NewOptionalInteger(1)
+			c.Import.UnixFSRawLeaves = True
+			c.Import.UnixFSChunker = *NewOptionalString("size-1048576") // 1MiB
+			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0) // no limit here, use size-based Import.UnixFSHAMTDirectorySizeThreshold instead
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(1024)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("1MiB") // 1MiB
+			return nil
+		},
+	},
+	"autoconf-on": {
+		Description: `Sets configuration to use implicit defaults from remote autoconf service.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to "auto".
+This profile requires AutoConf to be enabled and configured.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = []string{AutoPlaceholder}
+			c.DNS.Resolvers = map[string]string{
+				".": AutoPlaceholder,
+			}
+			c.Routing.DelegatedRouters = []string{AutoPlaceholder}
+			c.Ipns.DelegatedPublishers = []string{AutoPlaceholder}
+			c.AutoConf.Enabled = True
+			if c.AutoConf.URL == nil {
+				c.AutoConf.URL = NewOptionalString(DefaultAutoConfURL)
+			}
+			return nil
+		},
+	},
+	"autoconf-off": {
+		Description: `Disables AutoConf and sets networking fields to empty for manual configuration.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to empty.
+Use this when you want normal networking but prefer manual control over all endpoints.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = nil
+			c.DNS.Resolvers = nil
+			c.Routing.DelegatedRouters = nil
+			c.Ipns.DelegatedPublishers = nil
+			c.AutoConf.Enabled = False
 			return nil
 		},
 	},

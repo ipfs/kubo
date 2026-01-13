@@ -27,10 +27,30 @@ func Datastore(repo repo.Repo) datastore.Datastore {
 type BaseBlocks blockstore.Blockstore
 
 // BaseBlockstoreCtor creates cached blockstore backed by the provided datastore
-func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, hashOnRead bool) func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
-	return func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+func BaseBlockstoreCtor(
+	cacheOpts blockstore.CacheOpts,
+	hashOnRead bool,
+	writeThrough bool,
+	providingStrategy string,
+) func(mctx helpers.MetricsCtx, repo repo.Repo, prov DHTProvider, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+	return func(mctx helpers.MetricsCtx, repo repo.Repo, prov DHTProvider, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+		opts := []blockstore.Option{blockstore.WriteThrough(writeThrough)}
+
+		// Blockstore providing integration:
+		// When strategy includes "all" the blockstore directly provides blocks as they're Put.
+		// Important: Provide calls from blockstore are intentionally BLOCKING.
+		// The Provider implementation (not the blockstore) should handle concurrency/queuing.
+		// This avoids spawning unbounded goroutines for concurrent block additions.
+		strategyFlag := config.ParseProvideStrategy(providingStrategy)
+		if strategyFlag&config.ProvideStrategyAll != 0 {
+			opts = append(opts, blockstore.Provider(prov))
+		}
+
 		// hash security
-		bs = blockstore.NewBlockstore(repo.Datastore())
+		bs = blockstore.NewBlockstore(
+			repo.Datastore(),
+			opts...,
+		)
 		bs = &verifbs.VerifBS{Blockstore: bs}
 		bs, err = blockstore.CachedBlockstore(helpers.LifecycleCtx(mctx, lc), bs, cacheOpts)
 		if err != nil {
@@ -39,8 +59,8 @@ func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, hashOnRead bool) func(mc
 
 		bs = blockstore.NewIdStore(bs)
 
-		if hashOnRead { // TODO: review: this is how it was done originally, is there a reason we can't just pass this directly?
-			bs.HashOnRead(true)
+		if hashOnRead {
+			bs = &blockstore.ValidatingBlockstore{Blockstore: bs}
 		}
 
 		return
@@ -57,11 +77,11 @@ func GcBlockstoreCtor(bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockst
 }
 
 // FilestoreBlockstoreCtor wraps GcBlockstore and adds Filestore support
-func FilestoreBlockstoreCtor(repo repo.Repo, bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
+func FilestoreBlockstoreCtor(repo repo.Repo, bb BaseBlocks, prov DHTProvider) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
 	gclocker = blockstore.NewGCLocker()
 
 	// hash security
-	fstore = filestore.NewFilestore(bb, repo.FileManager())
+	fstore = filestore.NewFilestore(bb, repo.FileManager(), prov)
 	gcbs = blockstore.NewGCBlockstore(fstore, gclocker)
 	gcbs = &verifbs.VerifBSGC{GCBlockstore: gcbs}
 

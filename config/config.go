@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
-	"github.com/mitchellh/go-homedir"
+	"github.com/ipfs/kubo/misc/fsutil"
 )
 
 // Config is used to load ipfs config files.
@@ -26,20 +27,27 @@ type Config struct {
 	API       API       // local node's API settings
 	Swarm     SwarmConfig
 	AutoNAT   AutoNATConfig
+	AutoTLS   AutoTLS
 	Pubsub    PubsubConfig
 	Peering   Peering
 	DNS       DNS
-	Migration Migration
 
-	Provider     Provider
-	Reprovider   Reprovider
-	Experimental Experiments
-	Plugins      Plugins
-	Pinning      Pinning
-	Import       Import
-	Version      Version
+	Migration Migration
+	AutoConf  AutoConf
+
+	Provide       Provide    // Merged Provider and Reprovider configuration
+	Provider      Provider   // Deprecated: use Provide. Will be removed in a future release.
+	Reprovider    Reprovider // Deprecated: use Provide. Will be removed in a future release.
+	HTTPRetrieval HTTPRetrieval
+	Experimental  Experiments
+	Plugins       Plugins
+	Pinning       Pinning
+	Import        Import
+	Version       Version
 
 	Internal Internal // experimental/unstable options
+
+	Bitswap Bitswap `json:",omitempty"`
 }
 
 const (
@@ -58,7 +66,7 @@ func PathRoot() (string, error) {
 	dir := os.Getenv(EnvDir)
 	var err error
 	if len(dir) == 0 {
-		dir, err = homedir.Expand(DefaultPathRoot)
+		dir, err = fsutil.ExpandHome(DefaultPathRoot)
 	}
 	return dir, err
 }
@@ -136,6 +144,71 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 	return m, nil
 }
 
+// Convert config to a map, without using encoding/json, since
+// zero/empty/'omitempty' fields are excluded by encoding/json during
+// marshaling.
+func ReflectToMap(conf interface{}) interface{} {
+	v := reflect.ValueOf(conf)
+	if !v.IsValid() {
+		return nil
+	}
+
+	// Handle pointer type
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			// Create a zero value of the pointer's element type
+			elemType := v.Type().Elem()
+			zero := reflect.Zero(elemType)
+			return ReflectToMap(zero.Interface())
+		}
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Struct:
+		result := make(map[string]interface{})
+		t := v.Type()
+		for i := 0; i < v.NumField(); i++ {
+			field := v.Field(i)
+			// Only include exported fields
+			if field.CanInterface() {
+				result[t.Field(i).Name] = ReflectToMap(field.Interface())
+			}
+		}
+		return result
+
+	case reflect.Map:
+		result := make(map[string]interface{})
+		iter := v.MapRange()
+		for iter.Next() {
+			key := iter.Key()
+			// Convert map keys to strings for consistency
+			keyStr := fmt.Sprint(ReflectToMap(key.Interface()))
+			result[keyStr] = ReflectToMap(iter.Value().Interface())
+		}
+		// Add a sample to differentiate between a map and a struct on validation.
+		sample := reflect.Zero(v.Type().Elem())
+		if sample.CanInterface() {
+			result["*"] = ReflectToMap(sample.Interface())
+		}
+		return result
+
+	case reflect.Slice, reflect.Array:
+		result := make([]interface{}, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			result[i] = ReflectToMap(v.Index(i).Interface())
+		}
+		return result
+
+	default:
+		// For basic types (int, string, etc.), just return the value
+		if v.CanInterface() {
+			return v.Interface()
+		}
+		return nil
+	}
+}
+
 // Clone copies the config. Use when updating.
 func (c *Config) Clone() (*Config, error) {
 	var newConfig Config
@@ -150,4 +223,39 @@ func (c *Config) Clone() (*Config, error) {
 	}
 
 	return &newConfig, nil
+}
+
+// Check if the provided key is present in the structure.
+func CheckKey(key string) error {
+	conf := Config{}
+
+	// Convert an empty config to a map without JSON.
+	cursor := ReflectToMap(&conf)
+
+	// Parse the key and verify it's presence in the map.
+	var ok bool
+	var mapCursor map[string]interface{}
+
+	parts := strings.Split(key, ".")
+	for i, part := range parts {
+		mapCursor, ok = cursor.(map[string]interface{})
+		if !ok {
+			if cursor == nil {
+				return nil
+			}
+			path := strings.Join(parts[:i], ".")
+			return fmt.Errorf("%s key is not a map", path)
+		}
+
+		cursor, ok = mapCursor[part]
+		if !ok {
+			// If the config sections is a map, validate against the default entry.
+			if cursor, ok = mapCursor["*"]; ok {
+				continue
+			}
+			path := strings.Join(parts[:i+1], ".")
+			return fmt.Errorf("%s not found", path)
+		}
+	}
+	return nil
 }

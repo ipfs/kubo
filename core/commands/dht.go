@@ -56,7 +56,7 @@ var queryDhtCmd = &cmds.Command{
 			return err
 		}
 
-		if nd.DHTClient == nil {
+		if !nd.HasActiveDHTClient() {
 			return ErrNotDHT
 		}
 
@@ -70,7 +70,7 @@ var queryDhtCmd = &cmds.Command{
 		ctx, events := routing.RegisterForQueryEvents(ctx)
 
 		client := nd.DHTClient
-		if client == nd.DHT {
+		if nd.DHT != nil && client == nd.DHT {
 			client = nd.DHT.WAN
 			if !nd.DHT.WANActive() {
 				client = nd.DHT.LAN
@@ -78,7 +78,7 @@ var queryDhtCmd = &cmds.Command{
 		}
 
 		if d, ok := client.(kademlia); !ok {
-			return fmt.Errorf("dht client does not support GetClosestPeers")
+			return errors.New("dht client does not support GetClosestPeers")
 		} else {
 			errCh := make(chan error, 1)
 			go func() {

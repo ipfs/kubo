@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ipfs/boxo/blockservice"
@@ -24,49 +25,74 @@ import (
 	dagpb "github.com/ipld/go-codec-dagpb"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 )
 
-var FilesRootDatastoreKey datastore.Key
-
-func init() {
-	FilesRootDatastoreKey = datastore.NewKey("/local/filesroot")
-}
-
 // BlockService creates new blockservice which provides an interface to fetch content-addressable blocks
-func BlockService(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
-	bsvc := blockservice.New(bs, rem)
+func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
+	return func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
+		bsvc := blockservice.New(bs, rem,
+			blockservice.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough)),
+		)
 
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			return bsvc.Close()
-		},
-	})
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return bsvc.Close()
+			},
+		})
 
-	return bsvc
+		return bsvc
+	}
 }
 
 // Pinning creates new pinner which tells GC which blocks should be kept
-func Pinning(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo) (pin.Pinner, error) {
-	rootDS := repo.Datastore()
+func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov DHTProvider) (pin.Pinner, error) {
+	// Parse strategy at function creation time (not inside the returned function)
+	// This happens before the provider is created, which is why we pass the strategy
+	// string and parse it here, rather than using fx-provided ProvidingStrategy.
+	strategyFlag := config.ParseProvideStrategy(strategy)
 
-	syncFn := func(ctx context.Context) error {
-		if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
-			return err
+	return func(bstore blockstore.Blockstore,
+		ds format.DAGService,
+		repo repo.Repo,
+		prov DHTProvider,
+	) (pin.Pinner, error) {
+		rootDS := repo.Datastore()
+
+		syncFn := func(ctx context.Context) error {
+			if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
+				return err
+			}
+			return rootDS.Sync(ctx, filestore.FilestorePrefix)
 		}
-		return rootDS.Sync(ctx, filestore.FilestorePrefix)
+		syncDs := &syncDagService{ds, syncFn}
+
+		ctx := context.TODO()
+
+		var opts []dspinner.Option
+		roots := (strategyFlag & config.ProvideStrategyRoots) != 0
+		pinned := (strategyFlag & config.ProvideStrategyPinned) != 0
+
+		// Important: Only one of WithPinnedProvider or WithRootsProvider should be active.
+		// Having both would cause duplicate root advertisements since "pinned" includes all
+		// pinned content (roots + children), while "roots" is just the root CIDs.
+		// We prioritize "pinned" if both are somehow set (though this shouldn't happen
+		// with proper strategy parsing).
+		if pinned {
+			opts = append(opts, dspinner.WithPinnedProvider(prov))
+		} else if roots {
+			opts = append(opts, dspinner.WithRootsProvider(prov))
+		}
+
+		pinning, err := dspinner.New(ctx, rootDS, syncDs, opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		return pinning, nil
 	}
-	syncDs := &syncDagService{ds, syncFn}
-
-	ctx := context.TODO()
-
-	pinning, err := dspinner.New(ctx, rootDS, syncDs)
-	if err != nil {
-		return nil, err
-	}
-
-	return pinning, nil
 }
 
 var (
@@ -116,6 +142,7 @@ func FetcherConfig(bs blockservice.BlockService) FetchersOut {
 	// path resolution should not fetch new blocks via exchange.
 	offlineBs := blockservice.New(bs.Blockstore(), offline.Exchange(bs.Blockstore()))
 	offlineIpldFetcher := bsfetcher.NewFetcherConfig(offlineBs)
+	offlineIpldFetcher.SkipNotFound = true // carries onto the UnixFSFetcher below
 	offlineIpldFetcher.PrototypeChooser = dagpb.AddSupportToChooser(bsfetcher.DefaultPrototypeChooser)
 	offlineUnixFSFetcher := offlineIpldFetcher.WithReifier(unixfsnode.Reify)
 
@@ -152,62 +179,79 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 }
 
 // Files loads persisted MFS root
-func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore) (*mfs.Root, error) {
-	pf := func(ctx context.Context, c cid.Cid) error {
-		rootDS := repo.Datastore()
-		if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
-			return err
-		}
-		if err := rootDS.Sync(ctx, filestore.FilestorePrefix); err != nil {
-			return err
+func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov DHTProvider) (*mfs.Root, error) {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov DHTProvider) (*mfs.Root, error) {
+		dsk := datastore.NewKey("/local/filesroot")
+		pf := func(ctx context.Context, c cid.Cid) error {
+			rootDS := repo.Datastore()
+			if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
+				return err
+			}
+			if err := rootDS.Sync(ctx, filestore.FilestorePrefix); err != nil {
+				return err
+			}
+
+			if err := rootDS.Put(ctx, dsk, c.Bytes()); err != nil {
+				return err
+			}
+			return rootDS.Sync(ctx, dsk)
 		}
 
-		if err := rootDS.Put(ctx, FilesRootDatastoreKey, c.Bytes()); err != nil {
-			return err
-		}
-		return rootDS.Sync(ctx, FilesRootDatastoreKey)
-	}
+		var nd *merkledag.ProtoNode
+		ctx := helpers.LifecycleCtx(mctx, lc)
+		val, err := repo.Datastore().Get(ctx, dsk)
 
-	var nd *merkledag.ProtoNode
-	ctx := helpers.LifecycleCtx(mctx, lc)
-	val, err := repo.Datastore().Get(ctx, FilesRootDatastoreKey)
+		switch {
+		case errors.Is(err, datastore.ErrNotFound):
+			nd = unixfs.EmptyDirNode()
+			err := dag.Add(ctx, nd)
+			if err != nil {
+				return nil, fmt.Errorf("failure writing filesroot to dagstore: %s", err)
+			}
+		case err == nil:
+			c, err := cid.Cast(val)
+			if err != nil {
+				return nil, err
+			}
 
-	switch {
-	case err == datastore.ErrNotFound || val == nil:
-		nd = unixfs.EmptyDirNode()
-		err := dag.Add(ctx, nd)
-		if err != nil {
-			return nil, fmt.Errorf("failure writing filesroot to dagstore: %s", err)
+			offlineDag := merkledag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
+			rnd, err := offlineDag.Get(ctx, c)
+			if err != nil {
+				return nil, fmt.Errorf("error loading filesroot from dagservice: %s", err)
+			}
+
+			pbnd, ok := rnd.(*merkledag.ProtoNode)
+			if !ok {
+				return nil, merkledag.ErrNotProtobuf
+			}
+
+			nd = pbnd
+		default:
+			return nil, err
 		}
-	case err == nil:
-		c, err := cid.Cast(val)
+
+		// MFS (Mutable File System) provider integration: Only pass the provider
+		// to MFS when the strategy includes "mfs". MFS will call StartProviding()
+		// on every DAGService.Add() operation, which is sufficient for the "mfs"
+		// strategy - it ensures all MFS content gets announced as it's added or
+		// modified. For non-mfs strategies, we set provider to nil to avoid
+		// unnecessary providing.
+		strategyFlag := config.ParseProvideStrategy(strategy)
+		if strategyFlag&config.ProvideStrategyMFS == 0 {
+			prov = nil
+		}
+
+		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov)
 		if err != nil {
 			return nil, err
 		}
 
-		offineDag := merkledag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
-		rnd, err := offineDag.Get(ctx, c)
-		if err != nil {
-			return nil, fmt.Errorf("error loading filesroot from dagservice: %s", err)
-		}
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return root.Close()
+			},
+		})
 
-		pbnd, ok := rnd.(*merkledag.ProtoNode)
-		if !ok {
-			return nil, merkledag.ErrNotProtobuf
-		}
-
-		nd = pbnd
-	default:
-		return nil, err
+		return root, err
 	}
-
-	root, err := mfs.NewRoot(ctx, dag, nd, pf)
-
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			return root.Close()
-		},
-	})
-
-	return root, err
 }

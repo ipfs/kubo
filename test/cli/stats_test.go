@@ -14,6 +14,7 @@ func TestStats(t *testing.T) {
 	t.Run("stats dht", func(t *testing.T) {
 		t.Parallel()
 		nodes := harness.NewT(t).NewNodes(2).Init().StartDaemons().Connect()
+		defer nodes.StopDaemons()
 		node1 := nodes[0]
 
 		res := node1.IPFS("stats", "dht")

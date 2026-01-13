@@ -5,7 +5,7 @@ TGTS_$(d) :=
 define go-build-testdep
 	OUT="$(CURDIR)/$@" ; \
 	cd "test/dependencies" ; \
-	$(GOCC) build $(go-flags-with-tags) -o "$${OUT}" "$<"
+	$(GOCC) build $(go-flags-with-tags) -o "$${OUT}" "$<" 2>&1
 endef
 
 .PHONY: github.com/ipfs/kubo/test/dependencies/pollEndpoint
@@ -58,13 +58,13 @@ $(d)/cid-fmt: github.com/ipfs/go-cidutil/cid-fmt
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/cid-fmt
 
-.PHONY: github.com/jbenet/go-random/random
-$(d)/random: github.com/jbenet/go-random/random
+.PHONY: github.com/ipfs/go-test/cli/random-data
+$(d)/random-data: github.com/ipfs/go-test/cli/random-data
 	$(go-build-testdep)
-TGTS_$(d) += $(d)/random
+TGTS_$(d) += $(d)/random-data
 
-.PHONY: github.com/jbenet/go-random-files/random-files
-$(d)/random-files: github.com/jbenet/go-random-files/random-files
+.PHONY: github.com/ipfs/go-test/cli/random-files
+$(d)/random-files: github.com/ipfs/go-test/cli/random-files
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/random-files
 

@@ -28,6 +28,11 @@ go-ipfs-source.tar.gz
 docs/examples/go-ipfs-as-a-library/example-folder/Qm*
 /test/sharness/t0054-dag-car-import-export-data/*.car
 
+# test artifacts from make test_unit / test_cli
+/test/unit/gotest.json
+/test/unit/gotest.junit.xml
+/test/cli/cli-tests.json
+
 # ignore build output from snapcraft
 /ipfs_*.snap
 /parts

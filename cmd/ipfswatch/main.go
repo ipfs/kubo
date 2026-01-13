@@ -1,5 +1,4 @@
 //go:build !plan9
-// +build !plan9
 
 package main
 
@@ -10,25 +9,39 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"syscall"
 
 	commands "github.com/ipfs/kubo/commands"
+	"github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	corehttp "github.com/ipfs/kubo/core/corehttp"
+	"github.com/ipfs/kubo/misc/fsutil"
+	"github.com/ipfs/kubo/plugin"
+	pluginbadgerds "github.com/ipfs/kubo/plugin/plugins/badgerds"
+	pluginflatfs "github.com/ipfs/kubo/plugin/plugins/flatfs"
+	pluginlevelds "github.com/ipfs/kubo/plugin/plugins/levelds"
+	pluginpebbleds "github.com/ipfs/kubo/plugin/plugins/pebbleds"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
 	fsnotify "github.com/fsnotify/fsnotify"
 	"github.com/ipfs/boxo/files"
-	process "github.com/jbenet/goprocess"
-	homedir "github.com/mitchellh/go-homedir"
 )
 
 var (
 	http      = flag.Bool("http", false, "expose IPFS HTTP API")
-	repoPath  = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
+	repoPath  *string
 	watchPath = flag.String("path", ".", "the path to watch")
 )
+
+func init() {
+	ipfsPath, err := config.PathRoot()
+	if err != nil {
+		ipfsPath = os.Getenv(config.EnvDir)
+	}
+	repoPath = flag.String("repo", ipfsPath, "repo path to use")
+}
 
 func main() {
 	flag.Parse()
@@ -53,11 +66,22 @@ func main() {
 	}
 }
 
+func loadDatastorePlugins(plugins []plugin.Plugin) error {
+	for _, pl := range plugins {
+		if pl, ok := pl.(plugin.PluginDatastore); ok {
+			err := fsrepo.AddDatastoreConfigHandler(pl.DatastoreTypeName(), pl.DatastoreConfigParser())
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func run(ipfsPath, watchPath string) error {
-	proc := process.WithParent(process.Background())
 	log.Printf("running IPFSWatch on '%s' using repo at '%s'...", watchPath, ipfsPath)
 
-	ipfsPath, err := homedir.Expand(ipfsPath)
+	ipfsPath, err := fsutil.ExpandHome(ipfsPath)
 	if err != nil {
 		return err
 	}
@@ -68,6 +92,15 @@ func run(ipfsPath, watchPath string) error {
 	defer watcher.Close()
 
 	if err := addTree(watcher, watchPath); err != nil {
+		return err
+	}
+
+	if err = loadDatastorePlugins(slices.Concat(
+		pluginbadgerds.Plugins,
+		pluginflatfs.Plugins,
+		pluginlevelds.Plugins,
+		pluginpebbleds.Plugins,
+	)); err != nil {
 		return err
 	}
 
@@ -99,11 +132,11 @@ func run(ipfsPath, watchPath string) error {
 			corehttp.WebUIOption,
 			corehttp.CommandsOption(cmdCtx(node, ipfsPath)),
 		}
-		proc.Go(func(p process.Process) {
+		go func() {
 			if err := corehttp.ListenAndServe(node, addr, opts...); err != nil {
 				return
 			}
-		})
+		}()
 	}
 
 	interrupts := make(chan os.Signal, 1)
@@ -137,7 +170,7 @@ func run(ipfsPath, watchPath string) error {
 						}
 					}
 				}
-				proc.Go(func(p process.Process) {
+				go func() {
 					file, err := os.Open(e.Name)
 					if err != nil {
 						log.Println(err)
@@ -162,7 +195,7 @@ func run(ipfsPath, watchPath string) error {
 						log.Println(err)
 					}
 					log.Printf("added %s... key: %s", e.Name, k)
-				})
+				}()
 			}
 		case err := <-watcher.Errors:
 			log.Println(err)

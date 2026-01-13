@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/dustin/go-humanize"
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/merkledag/traverse"
 	cid "github.com/ipfs/go-cid"
@@ -19,7 +20,11 @@ import (
 // to compute the new state
 
 func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-	progressive := req.Options[progressOptionName].(bool)
+	// Default to true (emit intermediate states) for HTTP/RPC clients that want progress
+	progressive := true
+	if val, specified := req.Options[progressOptionName].(bool); specified {
+		progressive = val
+	}
 	api, err := cmdenv.GetApi(env, req)
 	if err != nil {
 		return err
@@ -84,6 +89,18 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 }
 
 func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
+	// Determine whether to show progress based on TTY detection or explicit flag
+	var showProgress bool
+	val, specified := res.Request().Options[progressOptionName]
+	if !specified {
+		// Auto-detect: show progress only if stderr is a TTY
+		if errStat, err := os.Stderr.Stat(); err == nil {
+			showProgress = (errStat.Mode() & os.ModeCharDevice) != 0
+		}
+	} else {
+		showProgress = val.(bool)
+	}
+
 	var dagStats *DagStatSummary
 	for {
 		v, err := res.Next()
@@ -96,17 +113,26 @@ func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
 		switch out := v.(type) {
 		case *DagStatSummary:
 			dagStats = out
-			if dagStats.Ratio == 0 {
-				length := len(dagStats.DagStatsArray)
-				if length > 0 {
-					currentStat := dagStats.DagStatsArray[length-1]
-					fmt.Fprintf(os.Stderr, "CID: %s, Size: %d, NumBlocks: %d\n", currentStat.Cid, currentStat.Size, currentStat.NumBlocks)
+			// Ratio == 0 means this is a progress update (not final result)
+			if showProgress && dagStats.Ratio == 0 {
+				// Sum up total progress across all DAGs being scanned
+				var totalBlocks int64
+				var totalSize uint64
+				for _, stat := range dagStats.DagStatsArray {
+					totalBlocks += stat.NumBlocks
+					totalSize += stat.Size
 				}
+				fmt.Fprintf(os.Stderr, "Fetched/Processed %d blocks, %d bytes (%s)\r", totalBlocks, totalSize, humanize.Bytes(totalSize))
 			}
 		default:
 			return e.TypeErr(out, v)
-
 		}
 	}
+
+	// Clear the progress line before final output
+	if showProgress {
+		fmt.Fprint(os.Stderr, "\033[2K\r")
+	}
+
 	return re.Emit(dagStats)
 }

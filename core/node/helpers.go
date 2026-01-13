@@ -4,34 +4,38 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jbenet/goprocess"
 	"go.uber.org/fx"
 )
 
-type lcProcess struct {
+type lcStartStop struct {
 	fx.In
 
-	LC   fx.Lifecycle
-	Proc goprocess.Process
+	LC fx.Lifecycle
 }
 
-// Append wraps ProcessFunc into a goprocess, and appends it to the lifecycle
-func (lp *lcProcess) Append(f goprocess.ProcessFunc) {
+// Append wraps a function into a fx.Hook and appends it to the fx.Lifecycle.
+func (lcss *lcStartStop) Append(f func() func()) {
 	// Hooks are guaranteed to run in sequence. If a hook fails to start, its
 	// OnStop won't be executed.
-	var proc goprocess.Process
+	var stopFunc func()
 
-	lp.LC.Append(fx.Hook{
+	lcss.LC.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			proc = lp.Proc.Go(f)
+			if ctx.Err() != nil {
+				return nil
+			}
+			stopFunc = f()
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			if proc == nil { // Theoretically this shouldn't ever happen
-				return errors.New("lcProcess: proc was nil")
+			if ctx.Err() != nil {
+				return nil
 			}
-
-			return proc.Close() // todo: respect ctx, somehow
+			if stopFunc == nil { // Theoretically this shouldn't ever happen
+				return errors.New("lcStatStop: stopFunc was nil")
+			}
+			stopFunc()
+			return nil
 		},
 	})
 }
@@ -49,15 +53,4 @@ func maybeInvoke(opt interface{}, enable bool) fx.Option {
 		return fx.Invoke(opt)
 	}
 	return fx.Options()
-}
-
-// baseProcess creates a goprocess which is closed when the lifecycle signals it to stop
-func baseProcess(lc fx.Lifecycle) goprocess.Process {
-	p := goprocess.WithParent(goprocess.Background())
-	lc.Append(fx.Hook{
-		OnStop: func(_ context.Context) error {
-			return p.Close()
-		},
-	})
-	return p
 }

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
@@ -26,6 +28,7 @@ func TestGateway(t *testing.T) {
 	t.Parallel()
 	h := harness.NewT(t)
 	node := h.NewNode().Init().StartDaemon("--offline")
+	t.Cleanup(func() { node.StopDaemon() })
 	cid := node.IPFSAddStr("Hello Worlds!")
 
 	peerID, err := peer.ToCid(node.PeerID()).StringOfBase(multibase.Base36)
@@ -232,34 +235,11 @@ func TestGateway(t *testing.T) {
 			cfg.API.HTTPHeaders = map[string][]string{header: values}
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		resp := node.APIClient().DisableRedirects().Get("/webui/")
 		assert.Equal(t, resp.Headers.Values(header), values)
 		assert.Contains(t, []int{302, 301}, resp.StatusCode)
-	})
-
-	t.Run("GET /logs returns logs", func(t *testing.T) {
-		t.Parallel()
-		apiClient := node.APIClient()
-		reqURL := apiClient.BuildURL("/logs")
-
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-		require.NoError(t, err)
-
-		resp, err := apiClient.Client.Do(req)
-		require.NoError(t, err)
-		defer resp.Body.Close()
-
-		// read the first line of the output and parse its JSON
-		dec := json.NewDecoder(resp.Body)
-		event := struct{ Event string }{}
-		err = dec.Decode(&event)
-		require.NoError(t, err)
-
-		assert.Equal(t, "log API client connected", event.Event)
 	})
 
 	t.Run("POST /api/v0/version succeeds", func(t *testing.T) {
@@ -279,6 +259,7 @@ func TestGateway(t *testing.T) {
 	t.Run("pprof", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		t.Cleanup(func() { node.StopDaemon() })
 		apiClient := node.APIClient()
 		t.Run("mutex", func(t *testing.T) {
 			t.Parallel()
@@ -322,6 +303,7 @@ func TestGateway(t *testing.T) {
 		t.Parallel()
 		h := harness.NewT(t)
 		node := h.NewNode().Init().StartDaemon()
+		t.Cleanup(func() { node.StopDaemon() })
 
 		h.WriteFile("index/index.html", "<p></p>")
 		cid := node.IPFS("add", "-Q", "-r", filepath.Join(h.Dir, "index")).Stderr.Trimmed()
@@ -389,6 +371,7 @@ func TestGateway(t *testing.T) {
 			cfg.Addresses.Gateway = config.Strings{"/ip4/127.0.0.1/tcp/32563"}
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		b, err := os.ReadFile(filepath.Join(node.Dir, "gateway"))
 		require.NoError(t, err)
@@ -410,6 +393,7 @@ func TestGateway(t *testing.T) {
 		assert.NoError(t, err)
 
 		nodes.StartDaemons().Connect()
+		t.Cleanup(func() { nodes.StopDaemons() })
 
 		t.Run("not present", func(t *testing.T) {
 			cidFoo := node2.IPFSAddStr("foo")
@@ -482,6 +466,7 @@ func TestGateway(t *testing.T) {
 					}
 				})
 				node.StartDaemon()
+				defer node.StopDaemon()
 
 				cidFoo := node.IPFSAddStr("foo")
 				client := node.GatewayClient()
@@ -531,6 +516,7 @@ func TestGateway(t *testing.T) {
 
 			node := harness.NewT(t).NewNode().Init()
 			node.StartDaemon()
+			defer node.StopDaemon()
 			client := node.GatewayClient()
 
 			res := client.Get("/ipfs/invalid-thing", func(r *http.Request) {
@@ -548,6 +534,7 @@ func TestGateway(t *testing.T) {
 				cfg.Gateway.DisableHTMLErrors = config.True
 			})
 			node.StartDaemon()
+			defer node.StopDaemon()
 			client := node.GatewayClient()
 
 			res := client.Get("/ipfs/invalid-thing", func(r *http.Request) {
@@ -557,4 +544,49 @@ func TestGateway(t *testing.T) {
 			assert.NotContains(t, res.Resp.Header.Get("Content-Type"), "text/html")
 		})
 	})
+}
+
+// TestLogs tests that GET /logs returns log messages. This test is separate
+// because it requires setting the server's log level to "info" which may
+// change the output expected by other tests.
+func TestLogs(t *testing.T) {
+	h := harness.NewT(t)
+
+	t.Setenv("GOLOG_LOG_LEVEL", "info")
+
+	node := h.NewNode().Init().StartDaemon("--offline")
+	defer node.StopDaemon()
+	cid := node.IPFSAddStr("Hello Worlds!")
+
+	peerID, err := peer.ToCid(node.PeerID()).StringOfBase(multibase.Base36)
+	assert.NoError(t, err)
+
+	client := node.GatewayClient()
+	client.TemplateData = map[string]string{
+		"CID":    cid,
+		"PeerID": peerID,
+	}
+
+	apiClient := node.APIClient()
+	reqURL := apiClient.BuildURL("/logs")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	require.NoError(t, err)
+
+	resp, err := apiClient.Client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	var found bool
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), "log API client connected") {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found)
 }

@@ -1,5 +1,4 @@
 //go:build !nofuse && !openbsd && !netbsd && !plan9
-// +build !nofuse,!openbsd,!netbsd,!plan9
 
 // package fuse/ipns implements a fuse filesystem that interfaces
 // with ipns, the naming system for ipfs.
@@ -16,13 +15,14 @@ import (
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
+	"github.com/ipfs/boxo/namesys"
 	"github.com/ipfs/boxo/path"
 
 	fuse "bazil.org/fuse"
 	fs "bazil.org/fuse/fs"
 	mfs "github.com/ipfs/boxo/mfs"
 	cid "github.com/ipfs/go-cid"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	options "github.com/ipfs/kubo/core/coreiface/options"
 )
@@ -95,7 +95,7 @@ func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key) (*mfs.Root
 	node, err := ipfs.ResolveNode(ctx, key.Path())
 	switch err {
 	case nil:
-	case iface.ErrResolveFailed:
+	case namesys.ErrResolveFailed:
 		node = ft.EmptyDirNode()
 	default:
 		log.Errorf("looking up %s: %s", key.Path(), err)
@@ -107,7 +107,10 @@ func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key) (*mfs.Root
 		return nil, nil, dag.ErrNotProtobuf
 	}
 
-	root, err := mfs.NewRoot(ctx, ipfs.Dag(), pbnode, ipnsPubFunc(ipfs, key))
+	// We have no access to provider.System from the CoreAPI. The Routing
+	// part offers Provide through the router so it may be slow/risky
+	// to give that here to MFS. Therefore we leave as nil.
+	root, err := mfs.NewRoot(ctx, ipfs.Dag(), pbnode, ipnsPubFunc(ipfs, key), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -523,13 +526,6 @@ func (d *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDir 
 		return errors.New("unknown fs node type")
 	}
 	return nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // to check that out Node implements all the interfaces we want.

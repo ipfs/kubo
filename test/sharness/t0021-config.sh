@@ -13,40 +13,22 @@ test_config_cmd_set() {
 
   cfg_key=$1
   cfg_val=$2
-  test_expect_success "ipfs config succeeds" '
-    ipfs config $cfg_flags "$cfg_key" "$cfg_val"
-  '
+  test_expect_success "ipfs config succeeds" "
+    ipfs config $cfg_flags \"$cfg_key\" \"$cfg_val\"
+  "
 
-  test_expect_success "ipfs config output looks good" '
-    echo "$cfg_val" >expected &&
-    ipfs config "$cfg_key" >actual &&
-    test_cmp expected actual
-  '
-
-  # also test our lib function. it should work too.
-  cfg_key="Lib.$cfg_key"
-  test_expect_success "test_config_set succeeds" '
-    test_config_set $cfg_flags "$cfg_key" "$cfg_val"
-  '
-
-  test_expect_success "test_config_set value looks good" '
-    echo "$cfg_val" >expected &&
-    ipfs config "$cfg_key" >actual &&
-    test_cmp expected actual
-  '
+  test_expect_success "ipfs config output looks good" "
+    echo \"$cfg_val\" >expected &&
+    if [$cfg_flags != \"--json\"]; then
+      ipfs config \"$cfg_key\" >actual &&
+      test_cmp expected actual
+    else 
+      ipfs config \"$cfg_key\" | tr -d \"\\n\\t \" >actual &&
+      echo >>actual &&
+      test_cmp expected actual
+    fi
+  "
 }
-
-# this is a bit brittle. the problem is we need to test
-# with something that will be forced to unmarshal as a struct.
-# (i.e. just setting 'ipfs config --json foo "[1, 2, 3]"') may
-# set it as astring instead of proper json. We leverage the
-# unmarshalling that has to happen.
-CONFIG_SET_JSON_TEST='{
-  "MDNS": {
-    "Enabled": true,
-    "Interval": 10
-  }
-}'
 
 test_profile_apply_revert() {
   profile=$1
@@ -87,27 +69,32 @@ test_profile_apply_dry_run_not_alter() {
 }
 
 test_config_cmd() {
-  test_config_cmd_set "beep" "boop"
-  test_config_cmd_set "beep1" "boop2"
-  test_config_cmd_set "beep1" "boop2"
-  test_config_cmd_set "--bool" "beep2" "true"
-  test_config_cmd_set "--bool" "beep2" "false"
-  test_config_cmd_set "--json" "beep3" "true"
-  test_config_cmd_set "--json" "beep3" "false"
-  test_config_cmd_set "--json" "Discovery" "$CONFIG_SET_JSON_TEST"
-  test_config_cmd_set "--json" "deep-not-defined.prop" "true"
-  test_config_cmd_set "--json" "deep-null" "null"
-  test_config_cmd_set "--json" "deep-null.prop" "true"
+  test_config_cmd_set "Addresses.API" "foo"
+  test_config_cmd_set "Addresses.Gateway" "bar"
+  test_config_cmd_set "Datastore.GCPeriod" "baz"
+  test_config_cmd_set "AutoNAT.ServiceMode" "enabled"
+  test_config_cmd_set "--bool" "Discovery.MDNS.Enabled" "true"
+  test_config_cmd_set "--bool" "Discovery.MDNS.Enabled" "false"
+  test_config_cmd_set "--json" "Datastore.HashOnRead" "true"
+  test_config_cmd_set "--json" "Datastore.HashOnRead" "false"
+  test_config_cmd_set "--json" "Experimental.FilestoreEnabled" "true"
+  test_config_cmd_set "--json" "Import.BatchMaxSize" "null"
+  test_config_cmd_set "--json" "Import.UnixFSRawLeaves" "true"
+  test_config_cmd_set "--json" "Routing.Routers.Test" "{\\\"Parameters\\\":\\\"Test\\\",\\\"Type\\\":\\\"Test\\\"}"
+  test_config_cmd_set "--json" "Experimental.OptimisticProvideJobsPoolSize" "1337"
+  test_config_cmd_set "--json" "Addresses.Swarm" "[\\\"test\\\",\\\"test\\\",\\\"test\\\"]"
+  test_config_cmd_set "--json" "Gateway.PublicGateways.Foo" "{\\\"DeserializedResponses\\\":true,\\\"InlineDNSLink\\\":false,\\\"NoDNSLink\\\":false,\\\"Paths\\\":[\\\"Bar\\\",\\\"Baz\\\"],\\\"UseSubdomains\\\":true}"
+  test_config_cmd_set "--bool" "Gateway.PublicGateways.Foo.UseSubdomains" "false"
 
   test_expect_success "'ipfs config show' works" '
     ipfs config show >actual
   '
 
   test_expect_success "'ipfs config show' output looks good" '
-    grep "\"beep\": \"boop\"," actual &&
-    grep "\"beep1\": \"boop2\"," actual &&
-    grep "\"beep2\": false," actual &&
-    grep "\"beep3\": false," actual
+    grep "\"API\": \"foo\"," actual &&
+    grep "\"Gateway\": \"bar\"" actual &&
+    grep "\"Enabled\": false" actual &&
+    grep "\"HashOnRead\": false" actual
   '
 
   test_expect_success "'ipfs config show --config-file' works" '
@@ -281,7 +268,7 @@ test_config_cmd() {
 
   # won't work as it changes datastore definition, which makes ipfs not launch
   # without converting first
-  # test_profile_apply_revert badgerds
+  # test_profile_apply_revert pebbleds
 
   test_expect_success "cleanup config backups" '
     find "$IPFS_PATH" -name "config-*" -exec rm {} \;

@@ -41,8 +41,7 @@ func (tp *TestSuite) testRoutingPublishKey(t *testing.T, ctx context.Context, ap
 }
 
 func (tp *TestSuite) TestRoutingGet(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	apis, err := tp.MakeAPISwarm(t, ctx, 2)
 	require.NoError(t, err)
@@ -63,8 +62,7 @@ func (tp *TestSuite) TestRoutingGet(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRoutingPut(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 2)
 	require.NoError(t, err)
 
@@ -81,8 +79,7 @@ func (tp *TestSuite) TestRoutingPut(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRoutingPutOffline(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// init a swarm & publish an IPNS entry to get a valid payload
 	apis, err := tp.MakeAPISwarm(t, ctx, 2)
@@ -104,8 +101,7 @@ func (tp *TestSuite) TestRoutingPutOffline(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRoutingFindPeer(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	if err != nil {
 		t.Fatal(err)
@@ -159,14 +155,20 @@ func (tp *TestSuite) TestRoutingFindPeer(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRoutingFindProviders(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	p, err := addTestObject(ctx, apis[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Pin so that it is provided, given that providing strategy is
+	// "roots" and addTestObject does not pin.
+	err = apis[0].Pin().Add(ctx, p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,8 +193,7 @@ func (tp *TestSuite) TestRoutingFindProviders(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRoutingProvide(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	if err != nil {
 		t.Fatal(err)
@@ -233,14 +234,27 @@ func (tp *TestSuite) TestRoutingProvide(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out, err = apis[2].Routing().FindProviders(ctx, p, options.Routing.NumProviders(1))
-	if err != nil {
-		t.Fatal(err)
+	maxAttempts := 5
+	success := false
+	for range maxAttempts {
+		// We may need to try again as Provide() doesn't block until the CID is
+		// actually provided.
+		out, err = apis[2].Routing().FindProviders(ctx, p, options.Routing.NumProviders(1))
+		if err != nil {
+			t.Fatal(err)
+		}
+		provider := <-out
+
+		if provider.ID.String() == self0.ID().String() {
+			success = true
+			break
+		}
+		if len(provider.ID.String()) > 0 {
+			t.Errorf("got wrong provider: %s != %s", provider.ID.String(), self0.ID().String())
+		}
+		time.Sleep(time.Second)
 	}
-
-	provider := <-out
-
-	if provider.ID.String() != self0.ID().String() {
-		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), self0.ID().String())
+	if !success {
+		t.Errorf("missing provider after %d attempts", maxAttempts)
 	}
 }

@@ -6,12 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sort"
+	"slices"
 	"strings"
 
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
@@ -81,7 +82,7 @@ EXAMPLE:
 			var err error
 			id, err = peer.Decode(req.Arguments[0])
 			if err != nil {
-				return fmt.Errorf("invalid peer id")
+				return errors.New("invalid peer id")
 			}
 		} else {
 			id = n.Identity
@@ -170,15 +171,17 @@ func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (interface{
 	for _, a := range addrs {
 		info.Addresses = append(info.Addresses, a.String())
 	}
-	sort.Strings(info.Addresses)
+	slices.Sort(info.Addresses)
 
 	protocols, _ := ps.GetProtocols(p) // don't care about errors here.
-	info.Protocols = append(info.Protocols, protocols...)
-	sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
+	for _, proto := range protocols {
+		info.Protocols = append(info.Protocols, protocol.ID(cmdutils.CleanAndTrim(string(proto))))
+	}
+	slices.Sort(info.Protocols)
 
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
-			info.AgentVersion = vs
+			info.AgentVersion = cmdutils.CleanAndTrim(vs)
 		}
 	}
 
@@ -205,9 +208,9 @@ func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (interface{}, error) {
 		for _, a := range addrs {
 			info.Addresses = append(info.Addresses, a.String())
 		}
-		sort.Strings(info.Addresses)
+		slices.Sort(info.Addresses)
 		info.Protocols = node.PeerHost.Mux().Protocols()
-		sort.Slice(info.Protocols, func(i, j int) bool { return info.Protocols[i] < info.Protocols[j] })
+		slices.Sort(info.Protocols)
 	}
 	info.AgentVersion = version.GetUserAgentVersion()
 	return info, nil

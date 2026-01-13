@@ -7,6 +7,8 @@ import (
 	"time"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
+	"github.com/ipfs/boxo/ipld/unixfs/io"
 	cid "github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -22,15 +24,22 @@ type UnixfsAddSettings struct {
 	CidVersion int
 	MhType     uint64
 
-	Inline       bool
-	InlineLimit  int
-	RawLeaves    bool
-	RawLeavesSet bool
+	Inline               bool
+	InlineLimit          int
+	RawLeaves            bool
+	RawLeavesSet         bool
+	MaxFileLinks         int
+	MaxFileLinksSet      bool
+	MaxDirectoryLinks    int
+	MaxDirectoryLinksSet bool
+	MaxHAMTFanout        int
+	MaxHAMTFanoutSet     bool
 
 	Chunker string
 	Layout  Layout
 
 	Pin      bool
+	PinName  string
 	OnlyHash bool
 	FsCache  bool
 	NoCopy   bool
@@ -60,15 +69,22 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		CidVersion: -1,
 		MhType:     mh.SHA2_256,
 
-		Inline:       false,
-		InlineLimit:  32,
-		RawLeaves:    false,
-		RawLeavesSet: false,
+		Inline:               false,
+		InlineLimit:          32,
+		RawLeaves:            false,
+		RawLeavesSet:         false,
+		MaxFileLinks:         helpers.DefaultLinksPerBlock,
+		MaxFileLinksSet:      false,
+		MaxDirectoryLinks:    0,
+		MaxDirectoryLinksSet: false,
+		MaxHAMTFanout:        io.DefaultShardWidth,
+		MaxHAMTFanoutSet:     false,
 
 		Chunker: "size-262144",
 		Layout:  BalancedLayout,
 
 		Pin:      false,
+		PinName:  "",
 		OnlyHash: false,
 		FsCache:  false,
 		NoCopy:   false,
@@ -190,6 +206,35 @@ func (unixfsOpts) RawLeaves(enable bool) UnixfsAddOption {
 	}
 }
 
+// MaxFileLinks specifies the maximum number of children for UnixFS file
+// nodes.
+func (unixfsOpts) MaxFileLinks(n int) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.MaxFileLinks = n
+		settings.MaxFileLinksSet = true
+		return nil
+	}
+}
+
+// MaxDirectoryLinks specifies the maximum number of children for UnixFS basic
+// directory nodes.
+func (unixfsOpts) MaxDirectoryLinks(n int) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.MaxDirectoryLinks = n
+		settings.MaxDirectoryLinksSet = true
+		return nil
+	}
+}
+
+// MaxHAMTFanout specifies the maximum width of the HAMT directory shards.
+func (unixfsOpts) MaxHAMTFanout(n int) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.MaxHAMTFanout = n
+		settings.MaxHAMTFanoutSet = true
+		return nil
+	}
+}
+
 // Inline tells the adder to inline small blocks into CIDs
 func (unixfsOpts) Inline(enable bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
@@ -237,9 +282,12 @@ func (unixfsOpts) Layout(layout Layout) UnixfsAddOption {
 }
 
 // Pin tells the adder to pin the file root recursively after adding
-func (unixfsOpts) Pin(pin bool) UnixfsAddOption {
+func (unixfsOpts) Pin(pin bool, pinName string) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Pin = pin
+		if pin {
+			settings.PinName = pinName
+		}
 		return nil
 	}
 }

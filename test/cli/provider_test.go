@@ -2,21 +2,45 @@ package cli
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/test/cli/harness"
-	"github.com/ipfs/kubo/test/cli/testutils"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestProvider(t *testing.T) {
-	t.Parallel()
+const (
+	timeStep = 20 * time.Millisecond
+	timeout  = time.Second
+)
+
+type cfgApplier func(*harness.Node)
+
+func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
+	t.Helper()
 
 	initNodes := func(t *testing.T, n int, fn func(n *harness.Node)) harness.Nodes {
 		nodes := harness.NewT(t).NewNodes(n).Init()
+		nodes.ForEachPar(apply)
 		nodes.ForEachPar(fn)
-		return nodes.StartDaemons().Connect()
+		nodes = nodes.StartDaemons().Connect()
+		time.Sleep(500 * time.Millisecond) // wait for DHT clients to be bootstrapped
+		return nodes
+	}
+
+	initNodesWithoutStart := func(t *testing.T, n int, fn func(n *harness.Node)) harness.Nodes {
+		nodes := harness.NewT(t).NewNodes(n).Init()
+		nodes.ForEachPar(apply)
+		nodes.ForEachPar(fn)
+		return nodes
 	}
 
 	expectNoProviders := func(t *testing.T, cid string, nodes ...*harness.Node) {
@@ -27,17 +51,23 @@ func TestProvider(t *testing.T) {
 	}
 
 	expectProviders := func(t *testing.T, cid, expectedProvider string, nodes ...*harness.Node) {
+	outerLoop:
 		for _, node := range nodes {
-			res := node.IPFS("routing", "findprovs", "-n=1", cid)
-			require.Equal(t, expectedProvider, res.Stdout.Trimmed())
+			for i := time.Duration(0); i*timeStep < timeout; i++ {
+				res := node.IPFS("routing", "findprovs", "-n=1", cid)
+				if res.Stdout.Trimmed() == expectedProvider {
+					continue outerLoop
+				}
+			}
+			require.FailNowf(t, "found no providers", "expected a provider for %s", cid)
 		}
 	}
 
-	t.Run("Basic Providing", func(t *testing.T) {
+	t.Run("Provide.Enabled=true announces new CIDs created by ipfs add", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Experimental.StrategicProviding", false)
+			n.SetIPFSConfig("Provide.Enabled", true)
 		})
 		defer nodes.StopDaemons()
 
@@ -45,11 +75,52 @@ func TestProvider(t *testing.T) {
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
-	t.Run("Basic Strategic Providing", func(t *testing.T) {
+	t.Run("Provide.Enabled=true announces new CIDs created by ipfs add --pin=false with default strategy", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Experimental.StrategicProviding", true)
+			n.SetIPFSConfig("Provide.Enabled", true)
+			// Default strategy is "all" which should provide even unpinned content
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String(), "--pin=false")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("Provide.Enabled=true announces new CIDs created by ipfs block put --pin=false with default strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			// Default strategy is "all" which should provide unpinned content from block put
+		})
+		defer nodes.StopDaemons()
+
+		data := random.Bytes(256)
+		cid := nodes[0].IPFSBlockPut(bytes.NewReader(data), "--pin=false")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("Provide.Enabled=true announces new CIDs created by ipfs dag put --pin=false with default strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			// Default strategy is "all" which should provide unpinned content from dag put
+		})
+		defer nodes.StopDaemons()
+
+		dagData := `{"hello": "world", "timestamp": "` + time.Now().String() + `"}`
+		cid := nodes[0].IPFSDAGPut(bytes.NewReader([]byte(dagData)), "--pin=false")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("Provide.Enabled=false disables announcement of new CID from ipfs add", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", false)
 		})
 		defer nodes.StopDaemons()
 
@@ -57,109 +128,718 @@ func TestProvider(t *testing.T) {
 		expectNoProviders(t, cid, nodes[1:]...)
 	})
 
-	t.Run("Reprovides with 'all' strategy", func(t *testing.T) {
+	t.Run("Provide.Enabled=false disables manual announcement via RPC command", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Strategy", "all")
+			n.SetIPFSConfig("Provide.Enabled", false)
 		})
 		defer nodes.StopDaemons()
 
-		cid := nodes[0].IPFSAddStr(time.Now().String(), "--local")
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+		res := nodes[0].RunIPFS("routing", "provide", cid)
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.Enabled is set to 'false'")
+		assert.Equal(t, 1, res.ExitCode())
+
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
+
+	t.Run("manual provide fails when no libp2p peers and no custom HTTP router", func(t *testing.T) {
+		t.Parallel()
+
+		h := harness.NewT(t)
+		node := h.NewNode().Init()
+		apply(node)
+		node.SetIPFSConfig("Provide.Enabled", true)
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		cid := node.IPFSAddStr(time.Now().String())
+		res := node.RunIPFS("routing", "provide", cid)
+		assert.Contains(t, res.Stderr.Trimmed(), "cannot provide, no connected peers")
+		assert.Equal(t, 1, res.ExitCode())
+	})
+
+	t.Run("manual provide succeeds via custom HTTP router when no libp2p peers", func(t *testing.T) {
+		t.Parallel()
+
+		// Create a mock HTTP server that accepts provide requests.
+		// This simulates the undocumented API behavior described in
+		// https://discuss.ipfs.tech/t/only-peers-found-from-dht-seem-to-be-getting-used-as-relays-so-cant-use-http-routers/19545/9
+		// Note: This is NOT IPIP-378, which was not implemented.
+		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Accept both PUT and POST requests to /routing/v1/providers and /routing/v1/ipns
+			if (r.Method == http.MethodPut || r.Method == http.MethodPost) &&
+				(strings.HasPrefix(r.URL.Path, "/routing/v1/providers") || strings.HasPrefix(r.URL.Path, "/routing/v1/ipns")) {
+				// Return HTTP 200 to indicate successful publishing
+				w.WriteHeader(http.StatusOK)
+			} else {
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+		defer mockServer.Close()
+
+		h := harness.NewT(t)
+		node := h.NewNode().Init()
+		apply(node)
+		node.SetIPFSConfig("Provide.Enabled", true)
+		// Configure a custom HTTP router for providing.
+		// Using our mock server that will accept the provide requests.
+		routingConf := map[string]any{
+			"Type": "custom", // https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md#configuration-file-example
+			"Methods": map[string]any{
+				"provide":        map[string]any{"RouterName": "MyCustomRouter"},
+				"get-ipns":       map[string]any{"RouterName": "MyCustomRouter"},
+				"put-ipns":       map[string]any{"RouterName": "MyCustomRouter"},
+				"find-peers":     map[string]any{"RouterName": "MyCustomRouter"},
+				"find-providers": map[string]any{"RouterName": "MyCustomRouter"},
+			},
+			"Routers": map[string]any{
+				"MyCustomRouter": map[string]any{
+					"Type": "http",
+					"Parameters": map[string]any{
+						// Use the mock server URL
+						"Endpoint": mockServer.URL,
+					},
+				},
+			},
+		}
+		node.SetIPFSConfig("Routing", routingConf)
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		cid := node.IPFSAddStr(time.Now().String())
+		// The command should successfully provide via HTTP even without libp2p peers
+		res := node.RunIPFS("routing", "provide", cid)
+		assert.Empty(t, res.Stderr.String(), "Should have no errors when providing via HTTP router")
+		assert.Equal(t, 0, res.ExitCode(), "Should succeed with exit code 0")
+	})
+
+	// Right now Provide and Reprovide are tied together
+	t.Run("Reprovide.Interval=0 disables announcement of new CID too", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.DHT.Interval", "0")
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
+
+	// It is a lesser evil - forces users to fix their config and have some sort of interval
+	t.Run("Manual Reprovide trigger does not work when periodic reprovide is disabled", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.DHT.Interval", "0")
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String())
 
 		expectNoProviders(t, cid, nodes[1:]...)
 
-		nodes[0].IPFS("bitswap", "reprovide")
+		res := nodes[0].RunIPFS("routing", "reprovide")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.DHT.Interval is set to '0'")
+		assert.Equal(t, 1, res.ExitCode())
 
-		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+		expectNoProviders(t, cid, nodes[1:]...)
 	})
 
-	t.Run("Reprovides with 'flat' strategy", func(t *testing.T) {
+	// It is a lesser evil - forces users to fix their config and have some sort of interval
+	t.Run("Manual Reprovide trigger does not work when Provide system is disabled", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Strategy", "flat")
+			n.SetIPFSConfig("Provide.Enabled", false)
 		})
 		defer nodes.StopDaemons()
 
-		cid := nodes[0].IPFSAddStr(time.Now().String(), "--local")
+		cid := nodes[0].IPFSAddStr(time.Now().String())
 
 		expectNoProviders(t, cid, nodes[1:]...)
 
-		nodes[0].IPFS("bitswap", "reprovide")
-
-		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
-	})
-
-	t.Run("Reprovides with 'pinned' strategy", func(t *testing.T) {
-		t.Parallel()
-
-		foo := testutils.RandomBytes(1000)
-		bar := testutils.RandomBytes(1000)
-
-		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Strategy", "pinned")
-		})
-		defer nodes.StopDaemons()
-
-		cidFoo := nodes[0].IPFSAdd(bytes.NewReader(foo), "--offline", "--pin=false")
-		cidBar := nodes[0].IPFSAdd(bytes.NewReader(bar), "--offline", "--pin=false")
-		cidBarDir := nodes[0].IPFSAdd(bytes.NewReader(bar), "-Q", "--offline", "-w")
-
-		expectNoProviders(t, cidFoo, nodes[1:]...)
-		expectNoProviders(t, cidBar, nodes[1:]...)
-		expectNoProviders(t, cidBarDir, nodes[1:]...)
-
-		nodes[0].IPFS("bitswap", "reprovide")
-
-		expectNoProviders(t, cidFoo, nodes[1:]...)
-		expectProviders(t, cidBar, nodes[0].PeerID().String(), nodes[1:]...)
-		expectProviders(t, cidBarDir, nodes[0].PeerID().String(), nodes[1:]...)
-	})
-
-	t.Run("Reprovides with 'roots' strategy", func(t *testing.T) {
-		t.Parallel()
-
-		foo := testutils.RandomBytes(1000)
-		bar := testutils.RandomBytes(1000)
-		baz := testutils.RandomBytes(1000)
-
-		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Strategy", "roots")
-		})
-		defer nodes.StopDaemons()
-
-		cidFoo := nodes[0].IPFSAdd(bytes.NewReader(foo), "--offline", "--pin=false")
-		cidBar := nodes[0].IPFSAdd(bytes.NewReader(bar), "--offline", "--pin=false")
-		cidBaz := nodes[0].IPFSAdd(bytes.NewReader(baz), "--offline")
-		cidBarDir := nodes[0].IPFSAdd(bytes.NewReader(bar), "-Q", "--offline", "-w")
-
-		expectNoProviders(t, cidFoo, nodes[1:]...)
-		expectNoProviders(t, cidBar, nodes[1:]...)
-		expectNoProviders(t, cidBarDir, nodes[1:]...)
-
-		nodes[0].IPFS("bitswap", "reprovide")
-
-		expectNoProviders(t, cidFoo, nodes[1:]...)
-		expectNoProviders(t, cidBar, nodes[1:]...)
-		expectProviders(t, cidBaz, nodes[0].PeerID().String(), nodes[1:]...)
-		expectProviders(t, cidBarDir, nodes[0].PeerID().String(), nodes[1:]...)
-	})
-
-	t.Run("Providing works without ticking", func(t *testing.T) {
-		t.Parallel()
-
-		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Reprovider.Interval", "0")
-		})
-		defer nodes.StopDaemons()
-
-		cid := nodes[0].IPFSAddStr(time.Now().String(), "--offline")
+		res := nodes[0].RunIPFS("routing", "reprovide")
+		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.Enabled is set to 'false'")
+		assert.Equal(t, 1, res.ExitCode())
 
 		expectNoProviders(t, cid, nodes[1:]...)
+	})
 
-		nodes[0].IPFS("bitswap", "reprovide")
+	t.Run("Provide with 'all' strategy", func(t *testing.T) {
+		t.Parallel()
 
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Strategy", "all")
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr("all strategy")
 		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
+
+	t.Run("Provide with 'pinned' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Strategy", "pinned")
+		})
+		defer nodes.StopDaemons()
+
+		// Add a non-pinned CID (should not be provided)
+		cid := nodes[0].IPFSAddStr("pinned strategy", "--pin=false")
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		// Pin the CID (should now be provided)
+		nodes[0].IPFS("pin", "add", cid)
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("Provide with 'pinned+mfs' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Strategy", "pinned+mfs")
+		})
+		defer nodes.StopDaemons()
+
+		// Add a pinned CID (should be provided)
+		cidPinned := nodes[0].IPFSAddStr("pinned content")
+		cidUnpinned := nodes[0].IPFSAddStr("unpinned content", "--pin=false")
+		cidMFS := nodes[0].IPFSAddStr("mfs content", "--pin=false")
+		nodes[0].IPFS("files", "cp", "/ipfs/"+cidMFS, "/myfile")
+
+		n0pid := nodes[0].PeerID().String()
+		expectProviders(t, cidPinned, n0pid, nodes[1:]...)
+		expectNoProviders(t, cidUnpinned, nodes[1:]...)
+		expectProviders(t, cidMFS, n0pid, nodes[1:]...)
+	})
+
+	t.Run("Provide with 'roots' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		// Add a root CID (should be provided)
+		cidRoot := nodes[0].IPFSAddStr("roots strategy", "-w", "-Q")
+		// the same without wrapping should give us a child node.
+		cidChild := nodes[0].IPFSAddStr("root strategy", "--pin=false")
+
+		expectProviders(t, cidRoot, nodes[0].PeerID().String(), nodes[1:]...)
+		expectNoProviders(t, cidChild, nodes[1:]...)
+	})
+
+	t.Run("Provide with 'mfs' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Strategy", "mfs")
+		})
+		defer nodes.StopDaemons()
+
+		// Add a file to MFS (should be provided)
+		data := random.Bytes(1000)
+		cid := nodes[0].IPFSAdd(bytes.NewReader(data), "-Q")
+
+		// not yet in MFS
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		nodes[0].IPFS("files", "cp", "/ipfs/"+cid, "/myfile")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	if reprovide {
+
+		t.Run("Reprovides with 'all' strategy when strategy is '' (empty)", func(t *testing.T) {
+			t.Parallel()
+
+			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.Strategy", "")
+			})
+
+			cid := nodes[0].IPFSAddStr(time.Now().String())
+
+			nodes = nodes.StartDaemons().Connect()
+			defer nodes.StopDaemons()
+			expectNoProviders(t, cid, nodes[1:]...)
+
+			nodes[0].IPFS("routing", "reprovide")
+
+			expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+		})
+
+		t.Run("Reprovides with 'all' strategy", func(t *testing.T) {
+			t.Parallel()
+
+			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.Strategy", "all")
+			})
+
+			cid := nodes[0].IPFSAddStr(time.Now().String())
+
+			nodes = nodes.StartDaemons().Connect()
+			defer nodes.StopDaemons()
+			expectNoProviders(t, cid, nodes[1:]...)
+
+			nodes[0].IPFS("routing", "reprovide")
+
+			expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+		})
+
+		t.Run("Reprovides with 'pinned' strategy", func(t *testing.T) {
+			t.Parallel()
+
+			foo := random.Bytes(1000)
+			bar := random.Bytes(1000)
+
+			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.Strategy", "pinned")
+			})
+
+			// Add a pin while offline so it cannot be provided
+			cidBarDir := nodes[0].IPFSAdd(bytes.NewReader(bar), "-Q", "-w")
+
+			nodes = nodes.StartDaemons().Connect()
+			defer nodes.StopDaemons()
+
+			// Add content without pinning while daemon line
+			cidFoo := nodes[0].IPFSAdd(bytes.NewReader(foo), "--pin=false")
+			cidBar := nodes[0].IPFSAdd(bytes.NewReader(bar), "--pin=false")
+
+			// Nothing should have been provided. The pin was offline, and
+			// the others should not be provided per the strategy.
+			expectNoProviders(t, cidFoo, nodes[1:]...)
+			expectNoProviders(t, cidBar, nodes[1:]...)
+			expectNoProviders(t, cidBarDir, nodes[1:]...)
+
+			nodes[0].IPFS("routing", "reprovide")
+
+			// cidFoo is not pinned so should not be provided.
+			expectNoProviders(t, cidFoo, nodes[1:]...)
+			// cidBar gets provided by being a child from cidBarDir even though we added with pin=false.
+			expectProviders(t, cidBar, nodes[0].PeerID().String(), nodes[1:]...)
+			expectProviders(t, cidBarDir, nodes[0].PeerID().String(), nodes[1:]...)
+		})
+
+		t.Run("Reprovides with 'roots' strategy", func(t *testing.T) {
+			t.Parallel()
+
+			foo := random.Bytes(1000)
+			bar := random.Bytes(1000)
+
+			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.Strategy", "roots")
+			})
+			n0pid := nodes[0].PeerID().String()
+
+			// Add a pin. Only root should get pinned but not provided
+			// because node not started
+			cidBarDir := nodes[0].IPFSAdd(bytes.NewReader(bar), "-Q", "-w")
+
+			nodes = nodes.StartDaemons().Connect()
+			defer nodes.StopDaemons()
+
+			cidFoo := nodes[0].IPFSAdd(bytes.NewReader(foo))
+			cidBar := nodes[0].IPFSAdd(bytes.NewReader(bar), "--pin=false")
+
+			// cidFoo will get provided per the strategy but cidBar will not.
+			expectProviders(t, cidFoo, n0pid, nodes[1:]...)
+			expectNoProviders(t, cidBar, nodes[1:]...)
+
+			nodes[0].IPFS("routing", "reprovide")
+
+			expectProviders(t, cidFoo, n0pid, nodes[1:]...)
+			expectNoProviders(t, cidBar, nodes[1:]...)
+			expectProviders(t, cidBarDir, n0pid, nodes[1:]...)
+		})
+
+		t.Run("Reprovides with 'mfs' strategy", func(t *testing.T) {
+			t.Parallel()
+
+			bar := random.Bytes(1000)
+
+			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.Strategy", "mfs")
+			})
+			n0pid := nodes[0].PeerID().String()
+
+			// add something and lets put it in MFS
+			cidBar := nodes[0].IPFSAdd(bytes.NewReader(bar), "--pin=false", "-Q")
+			nodes[0].IPFS("files", "cp", "/ipfs/"+cidBar, "/myfile")
+
+			nodes = nodes.StartDaemons().Connect()
+			defer nodes.StopDaemons()
+
+			// cidBar is in MFS but not provided
+			expectNoProviders(t, cidBar, nodes[1:]...)
+
+			nodes[0].IPFS("routing", "reprovide")
+
+			// And now is provided
+			expectProviders(t, cidBar, n0pid, nodes[1:]...)
+		})
+
+		t.Run("Reprovides with 'pinned+mfs' strategy", func(t *testing.T) {
+			t.Parallel()
+
+			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.Strategy", "pinned+mfs")
+			})
+			n0pid := nodes[0].PeerID().String()
+
+			// Add a pinned CID (should be provided)
+			cidPinned := nodes[0].IPFSAddStr("pinned content", "--pin=true")
+			// Add a CID to MFS (should be provided)
+			cidMFS := nodes[0].IPFSAddStr("mfs content")
+			nodes[0].IPFS("files", "cp", "/ipfs/"+cidMFS, "/myfile")
+			// Add a CID that is neither pinned nor in MFS (should not be provided)
+			cidNeither := nodes[0].IPFSAddStr("neither content", "--pin=false")
+
+			nodes = nodes.StartDaemons().Connect()
+			defer nodes.StopDaemons()
+
+			// Trigger reprovide
+			nodes[0].IPFS("routing", "reprovide")
+
+			// Check that pinned CID is provided
+			expectProviders(t, cidPinned, n0pid, nodes[1:]...)
+			// Check that MFS CID is provided
+			expectProviders(t, cidMFS, n0pid, nodes[1:]...)
+			// Check that neither CID is not provided
+			expectNoProviders(t, cidNeither, nodes[1:]...)
+		})
+	}
+
+	t.Run("provide clear command removes items from provide queue", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := harness.NewT(t).NewNodes(1).Init()
+		nodes.ForEachPar(func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.DHT.Interval", "22h")
+			n.SetIPFSConfig("Provide.Strategy", "all")
+		})
+		nodes.StartDaemons()
+		defer nodes.StopDaemons()
+
+		// Clear the provide queue first time - works regardless of queue state
+		res1 := nodes[0].IPFS("provide", "clear")
+		require.NoError(t, res1.Err)
+
+		// Should report cleared items and proper message format
+		assert.Contains(t, res1.Stdout.String(), "removed")
+		assert.Contains(t, res1.Stdout.String(), "items from provide queue")
+
+		// Clear the provide queue second time - should definitely report 0 items
+		res2 := nodes[0].IPFS("provide", "clear")
+		require.NoError(t, res2.Err)
+
+		// Should report 0 items cleared since queue was already cleared
+		assert.Contains(t, res2.Stdout.String(), "removed 0 items from provide queue")
+	})
+
+	t.Run("provide clear command with quiet option", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := harness.NewT(t).NewNodes(1).Init()
+		nodes.ForEachPar(func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.DHT.Interval", "22h")
+			n.SetIPFSConfig("Provide.Strategy", "all")
+		})
+		nodes.StartDaemons()
+		defer nodes.StopDaemons()
+
+		// Clear the provide queue with quiet option
+		res := nodes[0].IPFS("provide", "clear", "-q")
+		require.NoError(t, res.Err)
+
+		// Should have no output when quiet
+		assert.Empty(t, res.Stdout.String())
+	})
+
+	t.Run("provide clear command works when provider is disabled", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := harness.NewT(t).NewNodes(1).Init()
+		nodes.ForEachPar(func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", false)
+			n.SetIPFSConfig("Provide.DHT.Interval", "22h")
+			n.SetIPFSConfig("Provide.Strategy", "all")
+		})
+		nodes.StartDaemons()
+		defer nodes.StopDaemons()
+
+		// Clear should succeed even when provider is disabled
+		res := nodes[0].IPFS("provide", "clear")
+		require.NoError(t, res.Err)
+	})
+
+	t.Run("provide clear command returns JSON with removed item count", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := harness.NewT(t).NewNodes(1).Init()
+		nodes.ForEachPar(func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.DHT.Interval", "22h")
+			n.SetIPFSConfig("Provide.Strategy", "all")
+		})
+		nodes.StartDaemons()
+		defer nodes.StopDaemons()
+
+		// Clear the provide queue with JSON encoding
+		res := nodes[0].IPFS("provide", "clear", "--enc=json")
+		require.NoError(t, res.Err)
+
+		// Should return valid JSON with the number of removed items
+		output := res.Stdout.String()
+		assert.NotEmpty(t, output)
+
+		// Parse JSON to verify structure
+		var result int
+		err := json.Unmarshal([]byte(output), &result)
+		require.NoError(t, err, "Output should be valid JSON")
+
+		// Should be a non-negative integer (0 or positive)
+		assert.GreaterOrEqual(t, result, 0)
+	})
+}
+
+// runResumeTests validates Provide.DHT.ResumeEnabled behavior for SweepingProvider.
+//
+// Background: The provider tracks current_time_offset = (now - cycleStart) % interval
+// where cycleStart is the timestamp marking the beginning of the reprovide cycle.
+// With ResumeEnabled=true, cycleStart persists in the datastore across restarts.
+// With ResumeEnabled=false, cycleStart resets to 'now' on each startup.
+func runResumeTests(t *testing.T, apply cfgApplier) {
+	t.Helper()
+
+	const (
+		reprovideInterval = 30 * time.Second
+		initialRuntime    = 10 * time.Second // Let cycle progress
+		downtime          = 5 * time.Second  // Simulated offline period
+		restartTime       = 2 * time.Second  // Daemon restart stabilization
+
+		// Thresholds account for timing jitter (~2-3s margin)
+		minOffsetBeforeRestart = 8 * time.Second  // Expect ~10s
+		minOffsetAfterResume   = 12 * time.Second // Expect ~17s (10s + 5s + 2s)
+		maxOffsetAfterReset    = 5 * time.Second  // Expect ~2s (fresh start)
+	)
+
+	setupNode := func(t *testing.T, resumeEnabled bool) *harness.Node {
+		node := harness.NewT(t).NewNode().Init()
+		apply(node) // Sets Provide.DHT.SweepEnabled=true
+		node.SetIPFSConfig("Provide.DHT.ResumeEnabled", resumeEnabled)
+		node.SetIPFSConfig("Provide.DHT.Interval", reprovideInterval.String())
+		node.SetIPFSConfig("Bootstrap", []string{})
+		node.StartDaemon()
+		return node
+	}
+
+	t.Run("preserves cycle state across restart", func(t *testing.T) {
+		t.Parallel()
+
+		node := setupNode(t, true)
+		defer node.StopDaemon()
+
+		for i := 0; i < 10; i++ {
+			node.IPFSAddStr(fmt.Sprintf("resume-test-%d-%d", i, time.Now().UnixNano()))
+		}
+
+		time.Sleep(initialRuntime)
+
+		beforeRestart := node.IPFS("provide", "stat", "--enc=json")
+		offsetBeforeRestart, _, err := parseProvideStatJSON(beforeRestart.Stdout.String())
+		require.NoError(t, err)
+		require.Greater(t, offsetBeforeRestart, minOffsetBeforeRestart,
+			"cycle should have progressed")
+
+		node.StopDaemon()
+		time.Sleep(downtime)
+		node.StartDaemon()
+		time.Sleep(restartTime)
+
+		afterRestart := node.IPFS("provide", "stat", "--enc=json")
+		offsetAfterRestart, _, err := parseProvideStatJSON(afterRestart.Stdout.String())
+		require.NoError(t, err)
+
+		assert.GreaterOrEqual(t, offsetAfterRestart, minOffsetAfterResume,
+			"offset should account for downtime")
+	})
+
+	t.Run("resets cycle when disabled", func(t *testing.T) {
+		t.Parallel()
+
+		node := setupNode(t, false)
+		defer node.StopDaemon()
+
+		for i := 0; i < 10; i++ {
+			node.IPFSAddStr(fmt.Sprintf("no-resume-%d-%d", i, time.Now().UnixNano()))
+		}
+
+		time.Sleep(initialRuntime)
+
+		beforeRestart := node.IPFS("provide", "stat", "--enc=json")
+		offsetBeforeRestart, _, err := parseProvideStatJSON(beforeRestart.Stdout.String())
+		require.NoError(t, err)
+		require.Greater(t, offsetBeforeRestart, minOffsetBeforeRestart,
+			"cycle should have progressed")
+
+		node.StopDaemon()
+		time.Sleep(downtime)
+		node.StartDaemon()
+		time.Sleep(restartTime)
+
+		afterRestart := node.IPFS("provide", "stat", "--enc=json")
+		offsetAfterRestart, _, err := parseProvideStatJSON(afterRestart.Stdout.String())
+		require.NoError(t, err)
+
+		assert.Less(t, offsetAfterRestart, maxOffsetAfterReset,
+			"offset should reset to near zero")
+	})
+}
+
+type provideStatJSON struct {
+	Sweep struct {
+		Timing struct {
+			CurrentTimeOffset int64 `json:"current_time_offset"` // nanoseconds
+		} `json:"timing"`
+		Schedule struct {
+			NextReprovidePrefix string `json:"next_reprovide_prefix"`
+		} `json:"schedule"`
+	} `json:"Sweep"`
+}
+
+// parseProvideStatJSON extracts timing and schedule information from
+// the JSON output of 'ipfs provide stat --enc=json'.
+// Note: prefix is unused in current tests but kept for potential future use.
+func parseProvideStatJSON(output string) (offset time.Duration, prefix string, err error) {
+	var stat provideStatJSON
+	if err := json.Unmarshal([]byte(output), &stat); err != nil {
+		return 0, "", err
+	}
+	offset = time.Duration(stat.Sweep.Timing.CurrentTimeOffset)
+	prefix = stat.Sweep.Schedule.NextReprovidePrefix
+	return offset, prefix, nil
+}
+
+func TestProvider(t *testing.T) {
+	t.Parallel()
+
+	variants := []struct {
+		name      string
+		reprovide bool
+		apply     cfgApplier
+	}{
+		{
+			name:      "LegacyProvider",
+			reprovide: true,
+			apply: func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.DHT.SweepEnabled", false)
+			},
+		},
+		{
+			name:      "SweepingProvider",
+			reprovide: false,
+			apply: func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+			},
+		},
+	}
+
+	for _, v := range variants {
+		v := v // capture
+		t.Run(v.name, func(t *testing.T) {
+			// t.Parallel()
+			runProviderSuite(t, v.reprovide, v.apply)
+
+			// Resume tests only apply to SweepingProvider
+			if v.name == "SweepingProvider" {
+				runResumeTests(t, v.apply)
+			}
+		})
+	}
+}
+
+// TestHTTPOnlyProviderWithSweepEnabled tests that provider records are correctly
+// sent to HTTP routers when Routing.Type="custom" with only HTTP routers configured,
+// even when Provide.DHT.SweepEnabled=true (the default since v0.39).
+//
+// This is a regression test for https://github.com/ipfs/kubo/issues/11089
+func TestHTTPOnlyProviderWithSweepEnabled(t *testing.T) {
+	t.Parallel()
+
+	// Track provide requests received by the mock HTTP router
+	var provideRequests atomic.Int32
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if (r.Method == http.MethodPut || r.Method == http.MethodPost) &&
+			strings.HasPrefix(r.URL.Path, "/routing/v1/providers") {
+			provideRequests.Add(1)
+			w.WriteHeader(http.StatusOK)
+		} else if strings.HasPrefix(r.URL.Path, "/routing/v1/providers") && r.Method == http.MethodGet {
+			// Return empty providers for findprovs
+			w.Header().Set("Content-Type", "application/x-ndjson")
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer mockServer.Close()
+
+	h := harness.NewT(t)
+	node := h.NewNode().Init()
+
+	// Explicitly set SweepEnabled=true (the default since v0.39, but be explicit for test clarity)
+	node.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+	node.SetIPFSConfig("Provide.Enabled", true)
+
+	// Configure HTTP-only custom routing (no DHT) with explicit Routing.Type=custom
+	routingConf := map[string]any{
+		"Type": "custom", // Explicitly set Routing.Type=custom
+		"Methods": map[string]any{
+			"provide":        map[string]any{"RouterName": "HTTPRouter"},
+			"get-ipns":       map[string]any{"RouterName": "HTTPRouter"},
+			"put-ipns":       map[string]any{"RouterName": "HTTPRouter"},
+			"find-peers":     map[string]any{"RouterName": "HTTPRouter"},
+			"find-providers": map[string]any{"RouterName": "HTTPRouter"},
+		},
+		"Routers": map[string]any{
+			"HTTPRouter": map[string]any{
+				"Type": "http",
+				"Parameters": map[string]any{
+					"Endpoint": mockServer.URL,
+				},
+			},
+		},
+	}
+	node.SetIPFSConfig("Routing", routingConf)
+	node.StartDaemon()
+	defer node.StopDaemon()
+
+	// Add content and manually provide it
+	cid := node.IPFSAddStr(time.Now().String())
+
+	// Manual provide should succeed even without libp2p peers
+	res := node.RunIPFS("routing", "provide", cid)
+	// Check that the command succeeded (exit code 0) and no provide-related errors
+	assert.Equal(t, 0, res.ExitCode(), "routing provide should succeed with HTTP-only routing and SweepEnabled=true")
+	assert.NotContains(t, res.Stderr.String(), "cannot provide", "should not have provide errors")
+
+	// Verify HTTP router received at least one provide request
+	assert.Greater(t, provideRequests.Load(), int32(0),
+		"HTTP router should have received provide requests")
+
+	// Verify 'provide stat' works with HTTP-only routing (regression test for stats)
+	statRes := node.RunIPFS("provide", "stat")
+	assert.Equal(t, 0, statRes.ExitCode(), "provide stat should succeed with HTTP-only routing")
+	assert.NotContains(t, statRes.Stderr.String(), "stats not available",
+		"should not report stats unavailable")
+	// LegacyProvider outputs "TotalReprovides:" in its stats
+	assert.Contains(t, statRes.Stdout.String(), "TotalReprovides:",
+		"should show legacy provider stats")
 }

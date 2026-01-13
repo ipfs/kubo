@@ -65,6 +65,14 @@ Experimental.
 
 ### How to enable
 
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides the IPFS [`add` command](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-add) with access to
+> the local filesystem. Consequently, any user with access to CLI or the HTTP [`/v0/add` RPC API](https://docs.ipfs.tech/reference/kubo/rpc/#api-v0-add) can read
+> files from the local filesystem with the same permissions as the Kubo daemon.
+> If you enable this, secure your RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
+
 Modify your ipfs config:
 ```
 ipfs config --json Experimental.FilestoreEnabled true
@@ -79,6 +87,10 @@ filestore instead of copying the files into your local IPFS repo.
 
 - [ ] Needs more people to use and report on how well it works.
 - [ ] Need to address error states and failure conditions
+  - [ ] cleanup of broken filesystem references (if file is deleted)
+  - [ ] tests that confirm ability to override preexisting filesystem links (allowing user to fix broken link)
+  - [ ] support for a single block having more than one sources in filesystem  (blocks can be shared by unrelated files, and not be broken when some files are unpinned / gc'd)
+  - [ ] [other known issues](https://github.com/ipfs/kubo/issues/7161)
 - [ ] Need to write docs on usage, advantages, disadvantages
 - [ ] Need to merge utility commands to aid in maintenance and repair of filestore
 
@@ -96,6 +108,14 @@ v0.4.17
 
 ### How to enable
 
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides the IPFS [`add` CLI command](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-add) with access to
+> the local filesystem. Consequently, any user with access to the CLI or HTTP [`/v0/add` RPC API](https://docs.ipfs.tech/reference/kubo/rpc/#api-v0-add) can read
+> files from the local filesystem with the same permissions as the Kubo daemon.
+> If you enable this, secure your RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
+
 Modify your ipfs config:
 ```
 ipfs config --json Experimental.UrlstoreEnabled true
@@ -106,6 +126,9 @@ And then add a file at a specific URL using `ipfs urlstore add <url>`
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works.
 - [ ] Need to address error states and failure conditions
+  - [ ] cleanup of broken URL+range references (if URL starts returning 404 or error)
+  - [ ] tests that confirm ability to override preexisting URL+range links (allowing user to fix broken link)
+  - [ ] support for a single block having more than one URL+range  (blocks can be shared by unrelated URLs)
 - [ ] Need to write docs on usage, advantages, disadvantages
 - [ ] Need to implement caching
 - [ ] Need to add metrics to monitor performance
@@ -176,9 +199,8 @@ configured, the daemon will fail to start.
 
 ## ipfs p2p
 
-Allows tunneling of TCP connections through Libp2p streams. If you've ever used
-port forwarding with SSH (the `-L` option in OpenSSH), this feature is quite
-similar.
+Allows tunneling of TCP connections through libp2p streams, similar to SSH port
+forwarding (`ssh -L`).
 
 ### State
 
@@ -190,7 +212,12 @@ Experimental, will be stabilized in 0.6.0
 
 ### How to enable
 
-The `p2p` command needs to be enabled in the config:
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides CLI and HTTP RPC user with ability to set up port forwarding for all localhost and LAN ports.
+> If you enable this and plan to expose CLI or HTTP RPC to other users or machines,
+> secure RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
 
 ```sh
 > ipfs config --json Experimental.Libp2pStreamMounting true
@@ -198,90 +225,14 @@ The `p2p` command needs to be enabled in the config:
 
 ### How to use
 
-**Netcat example:**
-
-First, pick a protocol name for your application. Think of the protocol name as
-a port number, just significantly more user-friendly. In this example, we're
-going to use `/x/kickass/1.0`.
-
-***Setup:***
-
-1. A "server" node with peer ID `$SERVER_ID`
-2. A "client" node.
-
-***On the "server" node:***
-
-First, start your application and have it listen for TCP connections on
-port `$APP_PORT`.
-
-Then, configure the p2p listener by running:
-
-```sh
-> ipfs p2p listen /x/kickass/1.0 /ip4/127.0.0.1/tcp/$APP_PORT
-```
-
-This will configure IPFS to forward all incoming `/x/kickass/1.0` streams to
-`127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per
-incoming stream.
-
-***On the "client" node:***
-
-First, configure the client p2p dialer, so that it forwards all inbound
-connections on `127.0.0.1:SOME_PORT` to the server node listening
-on `/x/kickass/1.0`.
-
-```sh
-> ipfs p2p forward /x/kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT /p2p/$SERVER_ID
-```
-
-Next, have your application open a connection to `127.0.0.1:$SOME_PORT`. This
-connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on
-the remote machine. You can test it with netcat:
-
-***On "server" node:***
-```sh
-> nc -v -l -p $APP_PORT
-```
-
-***On "client" node:***
-```sh
-> nc -v 127.0.0.1 $SOME_PORT
-```
-
-You should now see that a connection has been established and be able to
-exchange messages between netcat instances.
-
-(note that depending on your netcat version you may need to drop the `-v` flag)
-
-**SSH example**
-
-**Setup:**
-
-1. A "server" node with peer ID `$SERVER_ID` and running ssh server on the
-   default port.
-2. A "client" node.
-
-_you can get `$SERVER_ID` by running `ipfs id -f "<id>\n"`_
-
-***First, on the "server" node:***
-
-```sh
-ipfs p2p listen /x/ssh /ip4/127.0.0.1/tcp/22
-```
-
-***Then, on "client" node:***
-
-```sh
-ipfs p2p forward /x/ssh /ip4/127.0.0.1/tcp/2222 /p2p/$SERVER_ID
-```
-
-You should now be able to connect to your ssh server through a libp2p connection
-with `ssh [user]@127.0.0.1 -p 2222`.
-
+See [docs/p2p-tunnels.md](p2p-tunnels.md) for usage examples, foreground mode,
+and systemd integration.
 
 ### Road to being a real feature
 
-- [ ] More documentation
+- [x] More documentation
+- [x] `ipfs p2p forward` mode
+- [ ] Ability to define tunnels via JSON config, similar to [`Peering.Peers`](https://github.com/ipfs/kubo/blob/master/docs/config.md#peeringpeers), see [kubo#5460](https://github.com/ipfs/kubo/issues/5460)
 
 ## p2p http proxy
 
@@ -296,6 +247,13 @@ Experimental
 0.4.19
 
 ### How to enable
+
+> [!WARNING]
+> **SECURITY CONSIDERATION**
+>
+> This feature provides CLI and HTTP RPC user with ability to set up HTTP forwarding for all localhost and LAN ports.
+> If you enable this and plan to expose CLI or HTTP RPC to other users or machines,
+> secure RPC API using [`API.Authorizations`](https://github.com/ipfs/kubo/blob/master/docs/config.md#apiauthorizations) or custom auth middleware.
 
 The `p2p` command needs to be enabled in the config:
 
@@ -361,13 +319,13 @@ We also support the use of protocol names of the form /x/$NAME/http where $NAME 
 ### Road to being a real feature
 
 - [ ] Needs p2p streams to graduate from experiments
-- [ ] Needs more people to use and report on how well it works / fits use cases
+- [ ] Needs more people to use and report on how well it works and fits use cases
 - [ ] More documentation
 - [ ] Need better integration with the subdomain gateway feature.
 
 ## FUSE
 
-FUSE makes it possible to mount `/ipfs` and `/ipns` namespaces in your OS,
+FUSE makes it possible to mount `/ipfs`, `/ipns` and `/mfs` namespaces in your OS,
 allowing arbitrary apps access to IPFS using a subset of filesystem abstractions.
 
 It is considered  EXPERIMENTAL due to limited (and buggy) support on some platforms.
@@ -500,27 +458,9 @@ ipfs config --json Swarm.RelayClient.Enabled true
 
 ### State
 
-Experimental, disabled by default.
+`Experimental.StrategicProviding` was removed in Kubo v0.35.
 
-Replaces the existing provide mechanism with a robust, strategic provider system. Currently enabling this option will provide nothing.
-
-### How to enable
-
-Modify your ipfs config:
-
-```
-ipfs config --json Experimental.StrategicProviding true
-```
-
-### Road to being a real feature
-
-- [ ] needs real-world testing
-- [ ] needs adoption
-- [ ] needs to support all provider subsystem features
-    - [X] provide nothing
-    - [ ] provide roots
-    - [ ] provide all
-    - [ ] provide strategic
+Replaced by [`Provide.Enabled`](https://github.com/ipfs/kubo/blob/master/docs/config.md#provideenabled) and [`Provide.Strategy`](https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy).
 
 ## GraphSync
 
@@ -661,3 +601,4 @@ ipfs config --json Experimental.GatewayOverLibp2p true
 ## Accelerated DHT Client
 
 This feature now lives at [`Routing.AcceleratedDHTClient`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingaccelerateddhtclient).
+

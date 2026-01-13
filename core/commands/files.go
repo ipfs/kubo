@@ -8,9 +8,11 @@ import (
 	"io"
 	"os"
 	gopath "path"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	humanize "github.com/dustin/go-humanize"
@@ -32,12 +34,49 @@ import (
 	fslock "github.com/ipfs/go-fs-lock"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	mh "github.com/multiformats/go-multihash"
 )
 
 var flog = logging.Logger("cmds/files")
+
+// Global counter for unflushed MFS operations
+var noFlushOperationCounter atomic.Int64
+
+// Cached limit value (read once on first use)
+var (
+	noFlushLimit     int64
+	noFlushLimitInit sync.Once
+)
+
+// updateNoFlushCounter manages the counter for unflushed operations
+func updateNoFlushCounter(nd *core.IpfsNode, flush bool) error {
+	if flush {
+		// Reset counter when flushing
+		noFlushOperationCounter.Store(0)
+		return nil
+	}
+
+	// Cache the limit on first use (config doesn't change at runtime)
+	noFlushLimitInit.Do(func() {
+		noFlushLimit = int64(config.DefaultMFSNoFlushLimit)
+		if cfg, err := nd.Repo.Config(); err == nil && cfg.Internal.MFSNoFlushLimit != nil {
+			noFlushLimit = cfg.Internal.MFSNoFlushLimit.WithDefault(int64(config.DefaultMFSNoFlushLimit))
+		}
+	})
+
+	// Check if limit reached
+	if noFlushLimit > 0 && noFlushOperationCounter.Load() >= noFlushLimit {
+		return fmt.Errorf("reached limit of %d unflushed MFS operations. "+
+			"To resolve: 1) run 'ipfs files flush' to persist changes, "+
+			"2) use --flush=true (default), or "+
+			"3) increase Internal.MFSNoFlushLimit in config", noFlushLimit)
+	}
+
+	noFlushOperationCounter.Add(1)
+	return nil
+}
 
 // FilesCmd is the 'ipfs files' command
 var FilesCmd = &cmds.Command{
@@ -63,16 +102,23 @@ Content added with "ipfs add" (which by default also becomes pinned), is not
 added to MFS. Any content can be lazily referenced from MFS with the command
 "ipfs files cp /ipfs/<cid> /some/path/" (see ipfs files cp --help).
 
-
-NOTE:
-Most of the subcommands of 'ipfs files' accept the '--flush' flag. It defaults
-to true. Use caution when setting this flag to false. It will improve
+NOTE: Most of the subcommands of 'ipfs files' accept the '--flush' flag. It
+defaults to true and ensures two things: 1) that the changes are reflected in
+the full MFS structure (updated CIDs) 2) that the parent-folder's cache is
+cleared. Use caution when setting this flag to false. It will improve
 performance for large numbers of file operations, but it does so at the cost
 of consistency guarantees. If the daemon is unexpectedly killed before running
 'ipfs files flush' on the files in question, then data may be lost. This also
-applies to run 'ipfs repo gc' concurrently with '--flush=false'
-operations.
-`,
+applies to run 'ipfs repo gc' concurrently with '--flush=false' operations.
+
+When using '--flush=false', operations are limited to prevent unbounded
+memory growth. After reaching Internal.MFSNoFlushLimit operations, further
+operations will fail until you run 'ipfs files flush'. This explicit failure
+(instead of auto-flushing) ensures you maintain control over when data is
+persisted, preventing unexpected partial states and making batch operations
+predictable. We recommend flushing paths regularly, especially folders with
+many write operations, to clear caches, free memory, and maintain good
+performance.`,
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(filesFlushOptionName, "f", "Flush target and ancestors after write.").WithDefault(true),
@@ -332,7 +378,7 @@ func statNode(nd ipld.Node, enc cidenc.Encoder) (*statOutput, error) {
 			Type:           "file",
 		}, nil
 	default:
-		return nil, fmt.Errorf("not unixfs node (proto or raw)")
+		return nil, errors.New("not unixfs node (proto or raw)")
 	}
 }
 
@@ -405,6 +451,7 @@ func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool
 	return local, sizeLocal, nil
 }
 
+var errFilesCpInvalidUnixFS = errors.New("cp: source must be a valid UnixFS (dag-pb or raw codec)")
 var filesCpCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add references to IPFS files and directories in MFS (or copy within MFS).",
@@ -442,10 +489,10 @@ being GC'ed.
 		cmds.StringArg("dest", true, false, "Destination within MFS."),
 	},
 	Options: []cmds.Option{
+		cmds.BoolOption(forceOptionName, "Force overwrite of existing files."),
 		cmds.BoolOption(filesParentsOptionName, "p", "Make parent directories as needed."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -460,8 +507,6 @@ being GC'ed.
 		if err != nil {
 			return err
 		}
-
-		flush, _ := req.Options[filesFlushOptionName].(bool)
 
 		src, err := checkPath(req.Arguments[0])
 		if err != nil {
@@ -483,6 +528,26 @@ being GC'ed.
 			return fmt.Errorf("cp: cannot get node from path %s: %s", src, err)
 		}
 
+		// Sanity-check: ensure root CID is a valid UnixFS (dag-pb or raw block)
+		// Context: https://github.com/ipfs/kubo/issues/10331
+		srcCidType := node.Cid().Type()
+		switch srcCidType {
+		case cid.Raw:
+			if _, ok := node.(*dag.RawNode); !ok {
+				return errFilesCpInvalidUnixFS
+			}
+		case cid.DagProtobuf:
+			if _, ok := node.(*dag.ProtoNode); !ok {
+				return errFilesCpInvalidUnixFS
+			}
+			if _, err = ft.FSNodeFromBytes(node.(*dag.ProtoNode).Data()); err != nil {
+				return fmt.Errorf("%w: %v", errFilesCpInvalidUnixFS, err)
+			}
+		default:
+			return errFilesCpInvalidUnixFS
+		}
+
+		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		if mkParents {
 			err := ensureContainingDirectoryExists(nd.FilesRoot, dst, prefix)
 			if err != nil {
@@ -490,15 +555,31 @@ being GC'ed.
 			}
 		}
 
+		force, _ := req.Options[forceOptionName].(bool)
+		if force {
+			if err = unlinkNodeIfExists(nd, dst); err != nil {
+				return fmt.Errorf("cp: cannot unlink existing file: %s", err)
+			}
+		}
+
+		flush, _ := req.Options[filesFlushOptionName].(bool)
+
+		if err := updateNoFlushCounter(nd, flush); err != nil {
+			return err
+		}
+
 		err = mfs.PutNode(nd.FilesRoot, dst, node)
 		if err != nil {
 			return fmt.Errorf("cp: cannot put node in path %s: %s", dst, err)
 		}
-
 		if flush {
-			_, err := mfs.FlushPath(req.Context, nd.FilesRoot, dst)
-			if err != nil {
+			if _, err := mfs.FlushPath(req.Context, nd.FilesRoot, dst); err != nil {
 				return fmt.Errorf("cp: cannot flush the created file %s: %s", dst, err)
+			}
+			// Flush parent to clear directory cache and free memory.
+			parent := gopath.Dir(dst)
+			if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, parent); err != nil {
+				return fmt.Errorf("cp: cannot flush the created file's parent folder %s: %s", dst, err)
 			}
 		}
 
@@ -523,6 +604,35 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI
 
 		return fsn.GetNode()
 	}
+}
+
+func unlinkNodeIfExists(node *core.IpfsNode, path string) error {
+	dir, name := gopath.Split(path)
+	parent, err := mfs.Lookup(node.FilesRoot, dir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+
+	pdir, ok := parent.(*mfs.Directory)
+	if !ok {
+		return fmt.Errorf("not a directory: %s", dir)
+	}
+
+	// Attempt to unlink if child is a file, ignore error since
+	// we are only concerned with unlinking an existing file.
+	child, err := pdir.Child(name)
+	if err != nil {
+		return nil // no child file, nothing to unlink
+	}
+
+	if child.Type() != mfs.TFile {
+		return fmt.Errorf("not a file: %s", path)
+	}
+
+	return pdir.Unlink(name)
 }
 
 type filesLsOutput struct {
@@ -641,8 +751,8 @@ Examples:
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *filesLsOutput) error {
 			noSort, _ := req.Options[dontSortOptionName].(bool)
 			if !noSort {
-				sort.Slice(out.Entries, func(i, j int) bool {
-					return strings.Compare(out.Entries[i].Name, out.Entries[j].Name) < 0
+				slices.SortFunc(out.Entries, func(a, b mfs.NodeListing) int {
+					return strings.Compare(a.Name, b.Name)
 				})
 			}
 
@@ -703,7 +813,7 @@ Examples:
 
 		fsn, err := mfs.Lookup(nd.FilesRoot, path)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", path, err)
 		}
 
 		fi, ok := fsn.(*mfs.File)
@@ -787,6 +897,10 @@ Example:
 
 		flush, _ := req.Options[filesFlushOptionName].(bool)
 
+		if err := updateNoFlushCounter(nd, flush); err != nil {
+			return err
+		}
+
 		src, err := checkPath(req.Arguments[0])
 		if err != nil {
 			return err
@@ -797,10 +911,30 @@ Example:
 		}
 
 		err = mfs.Mv(nd.FilesRoot, src, dst)
-		if err == nil && flush {
-			_, err = mfs.FlushPath(req.Context, nd.FilesRoot, "/")
+		if err != nil {
+			return err
 		}
-		return err
+		if flush {
+			parentSrc := gopath.Dir(src)
+			parentDst := gopath.Dir(dst)
+			// Flush parent to clear directory cache and free memory.
+			if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, parentDst); err != nil {
+				return fmt.Errorf("cp: cannot flush the destination file's parent folder %s: %s", dst, err)
+			}
+
+			// Avoid re-flushing when moving within the same folder.
+			if parentSrc != parentDst {
+				if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, parentSrc); err != nil {
+					return fmt.Errorf("cp: cannot flush the source's file's parent folder %s: %s", dst, err)
+				}
+			}
+
+			if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, "/"); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	},
 }
 
@@ -904,6 +1038,10 @@ See '--to-files' in 'ipfs add --help' for more information.
 		flush, _ := req.Options[filesFlushOptionName].(bool)
 		rawLeaves, rawLeavesDef := req.Options[filesRawLeavesOptionName].(bool)
 
+		if err := updateNoFlushCounter(nd, flush); err != nil {
+			return err
+		}
+
 		if !rawLeavesDef && cfg.Import.UnixFSRawLeaves != config.Default {
 			rawLeavesDef = true
 			rawLeaves = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
@@ -946,6 +1084,17 @@ See '--to-files' in 'ipfs add --help' for more information.
 					retErr = err
 				} else {
 					flog.Error("files: error closing file mfs file descriptor", err)
+				}
+			}
+			if flush {
+				// Flush parent to clear directory cache and free memory.
+				parent := gopath.Dir(path)
+				if _, err := mfs.FlushPath(req.Context, nd.FilesRoot, parent); err != nil {
+					if retErr == nil {
+						retErr = err
+					} else {
+						flog.Error("files: flushing the parent folder", err)
+					}
 				}
 			}
 		}()
@@ -1021,6 +1170,10 @@ Examples:
 
 		flush, _ := req.Options[filesFlushOptionName].(bool)
 
+		if err := updateNoFlushCounter(n, flush); err != nil {
+			return err
+		}
+
 		prefix, err := getPrefix(req)
 		if err != nil {
 			return err
@@ -1073,6 +1226,9 @@ are run with the '--flush=false'.
 			return err
 		}
 
+		// Reset the counter (flush always resets)
+		noFlushOperationCounter.Store(0)
+
 		return cmds.EmitOnce(res, &flushRes{enc.Encode(n.Cid())})
 	},
 	Type: flushRes{},
@@ -1110,11 +1266,20 @@ Change the CID version or hash function of the root node of a given path.
 			return err
 		}
 
-		err = updatePath(nd.FilesRoot, path, prefix)
-		if err == nil && flush {
-			_, err = mfs.FlushPath(req.Context, nd.FilesRoot, path)
+		if err := updatePath(nd.FilesRoot, path, prefix); err != nil {
+			return err
 		}
-		return err
+		if flush {
+			if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, path); err != nil {
+				return err
+			}
+			// Flush parent to clear directory cache and free memory.
+			parent := gopath.Dir(path)
+			if _, err = mfs.FlushPath(req.Context, nd.FilesRoot, parent); err != nil {
+				return err
+			}
+		}
+		return nil
 	},
 }
 
@@ -1161,6 +1326,13 @@ Remove files or directories.
 		cmds.BoolOption(forceOptionName, "Forcibly remove target at path; implies -r for directories"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		// Check if user explicitly set --flush=false
+		if flushOpt, ok := req.Options[filesFlushOptionName]; ok {
+			if flush, ok := flushOpt.(bool); ok && !flush {
+				return fmt.Errorf("files rm always flushes for safety. The --flush flag cannot be set to false for this command")
+			}
+		}
+
 		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err

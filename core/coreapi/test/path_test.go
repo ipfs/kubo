@@ -15,8 +15,7 @@ import (
 )
 
 func TestPathUnixFSHAMTPartial(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Create a node
 	apis, err := NodeProvider{}.MakeAPISwarm(t, ctx, true, true, 1)
@@ -39,7 +38,7 @@ func TestPathUnixFSHAMTPartial(t *testing.T) {
 		dir[strconv.Itoa(i)] = files.NewBytesFile([]byte(strconv.Itoa(i)))
 	}
 
-	r, err := a.Unixfs().Add(ctx, files.NewMapDirectory(dir), options.Unixfs.Pin(false))
+	r, err := a.Unixfs().Add(ctx, files.NewMapDirectory(dir), options.Unixfs.Pin(false, ""))
 	if err != nil {
 		t.Fatal(err)
 	}
