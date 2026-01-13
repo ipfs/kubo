@@ -90,6 +90,7 @@ func TestCommands(t *testing.T) {
 		"/files/stat",
 		"/files/write",
 		"/files/chmod",
+		"/files/chroot",
 		"/files/touch",
 		"/filestore",
 		"/filestore/dups",
