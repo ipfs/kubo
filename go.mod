@@ -28,7 +28,7 @@ require (
 	github.com/ipfs/go-datastore v0.9.0
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.3.4
-	github.com/ipfs/go-ds-flatfs v0.5.6-0.20260112192853-bd1c3b5bea8a
+	github.com/ipfs/go-ds-flatfs v0.5.6-0.20260113044005-5929cc55c408
 	github.com/ipfs/go-ds-leveldb v0.5.2
 	github.com/ipfs/go-ds-measure v0.2.2
 	github.com/ipfs/go-ds-pebble v0.5.8
