@@ -16,6 +16,7 @@ func TestDHTAutoclient(t *testing.T) {
 		node.IPFS("config", "Routing.Type", "autoclient")
 	})
 	nodes.StartDaemons().Connect()
+	t.Cleanup(func() { nodes.StopDaemons() })
 
 	t.Run("file added on node in client mode is retrievable from node in client mode", func(t *testing.T) {
 		t.Parallel()

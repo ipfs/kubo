@@ -19,6 +19,7 @@ func TestFilesCp(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create simple text file
 		data := "testing files cp command"
@@ -36,6 +37,7 @@ func TestFilesCp(t *testing.T) {
 	t.Run("files cp with unsupported DAG node type fails", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// MFS UnixFS is limited to dag-pb or raw, so we create a dag-cbor node to test this
 		jsonData := `{"data": "not a UnixFS node"}`
@@ -53,6 +55,7 @@ func TestFilesCp(t *testing.T) {
 	t.Run("files cp with invalid UnixFS data structure fails", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create an invalid proto file
 		data := []byte{0xDE, 0xAD, 0xBE, 0xEF} // Invalid protobuf data
@@ -75,6 +78,7 @@ func TestFilesCp(t *testing.T) {
 	t.Run("files cp with raw node succeeds", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create a raw node
 		data := "raw data"
@@ -98,6 +102,7 @@ func TestFilesCp(t *testing.T) {
 	t.Run("files cp creates intermediate directories with -p", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create a simple text file and add it to IPFS
 		data := "hello parent directories"
@@ -130,6 +135,7 @@ func TestFilesRm(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create a file to remove
 		node.IPFS("files", "mkdir", "/test-dir")
@@ -149,6 +155,7 @@ func TestFilesRm(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create a file to remove
 		node.IPFS("files", "mkdir", "/test-dir")
@@ -166,6 +173,7 @@ func TestFilesRm(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create a file to remove
 		node.IPFS("files", "mkdir", "/test-dir")
@@ -186,6 +194,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 	t.Run("reaches default limit of 256 operations", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Perform 256 operations with --flush=false (should succeed)
 		for i := 0; i < 256; i++ {
@@ -214,6 +223,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		})
 
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Perform 5 operations (should succeed)
 		for i := 0; i < 5; i++ {
@@ -239,6 +249,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		})
 
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Do 2 operations with --flush=false
 		node.IPFS("files", "mkdir", "--flush=false", "/dir1")
@@ -271,6 +282,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		})
 
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Do 2 operations with --flush=false
 		node.IPFS("files", "mkdir", "--flush=false", "/dir1")
@@ -303,6 +315,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		})
 
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Should be able to do many operations without error
 		for i := 0; i < 300; i++ {
@@ -322,6 +335,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		})
 
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Mix of different MFS operations (5 operations to hit the limit)
 		node.IPFS("files", "mkdir", "--flush=false", "/testdir")

@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 
+	"github.com/dustin/go-humanize"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
@@ -349,7 +350,11 @@ type DagStatSummary struct {
 }
 
 func (s *DagStatSummary) String() string {
-	return fmt.Sprintf("Total Size: %d\nUnique Blocks: %d\nShared Size: %d\nRatio: %f", s.TotalSize, s.UniqueBlocks, s.SharedSize, s.Ratio)
+	return fmt.Sprintf("Total Size: %d (%s)\nUnique Blocks: %d\nShared Size: %d (%s)\nRatio: %f",
+		s.TotalSize, humanize.Bytes(s.TotalSize),
+		s.UniqueBlocks,
+		s.SharedSize, humanize.Bytes(s.SharedSize),
+		s.Ratio)
 }
 
 func (s *DagStatSummary) incrementTotalSize(size uint64) {
@@ -384,7 +389,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 		cmds.StringArg("root", true, true, "CID of a DAG root to get statistics for").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(progressOptionName, "p", "Return progressive data while reading through the DAG").WithDefault(true),
+		cmds.BoolOption(progressOptionName, "p", "Show progress on stderr. Auto-detected if stderr is a terminal."),
 	},
 	Run:  dagStat,
 	Type: DagStatSummary{},

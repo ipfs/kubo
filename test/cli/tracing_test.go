@@ -76,6 +76,7 @@ func TestTracing(t *testing.T) {
 	node.Runner.Env["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc"
 	node.Runner.Env["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4317"
 	node.StartDaemon()
+	defer node.StopDaemon()
 
 	assert.Eventually(t,
 		func() bool {

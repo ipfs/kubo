@@ -31,6 +31,7 @@ func TestSwarm(t *testing.T) {
 	t.Run("ipfs swarm peers returns empty peers when a node is not connected to any peers", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 		res := node.RunIPFS("swarm", "peers", "--enc=json", "--identify")
 		var output expectedOutputType
 		err := json.Unmarshal(res.Stdout.Bytes(), &output)
@@ -40,7 +41,9 @@ func TestSwarm(t *testing.T) {
 	t.Run("ipfs swarm peers with flag identify outputs expected identify information about connected peers", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 		otherNode := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer otherNode.StopDaemon()
 		node.Connect(otherNode)
 
 		res := node.RunIPFS("swarm", "peers", "--enc=json", "--identify")
@@ -67,7 +70,9 @@ func TestSwarm(t *testing.T) {
 	t.Run("ipfs swarm peers with flag identify outputs Identify field with data that matches calling ipfs id on a peer", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 		otherNode := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer otherNode.StopDaemon()
 		node.Connect(otherNode)
 
 		otherNodeIDResponse := otherNode.RunIPFS("id", "--enc=json")
