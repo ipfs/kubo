@@ -86,7 +86,9 @@ func TestIPFSWatch(t *testing.T) {
 
 		// Kill ipfswatch to release the repo lock
 		if result.Cmd.Process != nil {
-			_ = result.Cmd.Process.Kill()
+			if err = result.Cmd.Process.Signal(os.Interrupt); err != nil {
+				_ = result.Cmd.Process.Kill()
+			}
 			_, _ = result.Cmd.Process.Wait()
 		}
 
