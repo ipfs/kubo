@@ -38,3 +38,6 @@ docs/examples/go-ipfs-as-a-library/example-folder/Qm*
 /parts
 /stage
 /prime
+
+# local AI coding agent rules and context
+CLAUDE.md
