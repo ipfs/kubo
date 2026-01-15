@@ -50,6 +50,7 @@ publish'.
 		"export": keyExportCmd,
 		"import": keyImportCmd,
 		"list":   keyListCmd,
+		"ls":     keyListCmd,
 		"rename": keyRenameCmd,
 		"rm":     keyRmCmd,
 		"rotate": keyRotateCmd,
