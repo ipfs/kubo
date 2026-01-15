@@ -54,7 +54,7 @@ const (
 	keystoreDatastorePath = "keystore"
 )
 
-var errFullRTNotReady = errors.New("fullrt: router not ready")
+var errAcceleratedDHTNotReady = errors.New("AcceleratedDHTClient: routing table not ready")
 
 // Interval between reprovide queue monitoring checks for slow reprovide alerts.
 // Used when Provide.DHT.SweepEnabled=true
@@ -346,15 +346,15 @@ func (fr *fullrtRouter) GetClosestPeers(ctx context.Context, key string) ([]peer
 	if fr.ready {
 		if !fr.Ready() {
 			fr.ready = false
-			fr.logger.Info("fullrt: waiting for network crawl to complete before providing")
-			return nil, errFullRTNotReady
+			fr.logger.Info("AcceleratedDHTClient: waiting for routing table initialization (5-10 min, depends on DHT size and network) to complete before providing")
+			return nil, errAcceleratedDHTNotReady
 		}
 	} else {
 		if fr.Ready() {
 			fr.ready = true
-			fr.logger.Info("fullrt: network crawl complete")
+			fr.logger.Info("AcceleratedDHTClient: routing table ready, providing can begin")
 		} else {
-			return nil, errFullRTNotReady
+			return nil, errAcceleratedDHTNotReady
 		}
 	}
 	return fr.FullRT.GetClosestPeers(ctx, key)
