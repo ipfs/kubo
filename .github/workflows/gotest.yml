@@ -14,11 +14,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  go-test:
+  # Unit tests with coverage collection (uploaded to Codecov)
+  unit-tests:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
-    timeout-minutes: 20
+    timeout-minutes: 15
     env:
+      GOTRACEBACK: single  # reduce noise on test timeout panics
       TEST_DOCKER: 0
       TEST_FUSE: 0
       TEST_VERBOSE: 1
@@ -36,41 +38,18 @@ jobs:
           go-version-file: 'go.mod'
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y zsh
-      - name: 👉️ If this step failed, go to «Summary» (top left) → inspect the «Failures/Errors» table
-        env:
-          # increasing parallelism beyond 2 doesn't speed up the tests much
-          PARALLEL: 2
+      - name: Run unit tests
         run: |
-          make -j "$PARALLEL" test/unit/gotest.junit.xml &&
+          make test_unit &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         if: failure() || success()
         with:
           name: unittests
           files: coverage/unit_tests.coverprofile
-      - name: Test kubo-as-a-library example
-        run: |
-          # we want to first test with the kubo version in the go.mod file
-          go test -v ./...
-
-          # we also want to test the examples against the current version of kubo
-          # however, that version might be in a fork so we need to replace the dependency
-
-          # backup the go.mod and go.sum files to restore them after we run the tests
-          cp go.mod go.mod.bak
-          cp go.sum go.sum.bak
-
-          # make sure the examples run against the current version of kubo
-          go mod edit -replace github.com/ipfs/kubo=./../../..
-          go mod tidy
-
-          go test -v ./...
-
-          # restore the go.mod and go.sum files to their original state
-          mv go.mod.bak go.mod
-          mv go.sum.bak go.sum
-        working-directory: docs/examples/kubo-as-a-library
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
       - name: Create a proper JUnit XML report
         uses: ipdxco/gotest-json-to-junit-xml@v1
         with:
@@ -78,9 +57,9 @@ jobs:
           output: test/unit/gotest.junit.xml
         if: failure() || success()
       - name: Archive the JUnit XML report
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
-          name: unit
+          name: unit-tests-junit
           path: test/unit/gotest.junit.xml
         if: failure() || success()
       - name: Create a HTML report
@@ -91,9 +70,9 @@ jobs:
           output: test/unit/gotest.html
         if: failure() || success()
       - name: Archive the HTML report
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
-          name: html
+          name: unit-tests-html
           path: test/unit/gotest.html
         if: failure() || success()
       - name: Create a Markdown report
@@ -106,3 +85,86 @@ jobs:
       - name: Set the summary
         run: cat test/unit/gotest.md >> $GITHUB_STEP_SUMMARY
         if: failure() || success()
+
+  # End-to-end integration/regression tests from test/cli
+  # (Go-based replacement for legacy test/sharness shell scripts)
+  cli-tests:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 15
+    env:
+      GOTRACEBACK: single  # reduce noise on test timeout panics
+      TEST_VERBOSE: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Install missing tools
+        run: sudo apt update && sudo apt install -y zsh
+      - name: Run CLI tests
+        env:
+          IPFS_PATH: ${{ runner.temp }}/ipfs-test
+        run: make test_cli
+      - name: Create JUnit XML report
+        uses: ipdxco/gotest-json-to-junit-xml@v1
+        with:
+          input: test/cli/cli-tests.json
+          output: test/cli/cli-tests.junit.xml
+        if: failure() || success()
+      - name: Archive JUnit XML report
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-tests-junit
+          path: test/cli/cli-tests.junit.xml
+        if: failure() || success()
+      - name: Create HTML report
+        uses: ipdxco/junit-xml-to-html@v1
+        with:
+          mode: no-frames
+          input: test/cli/cli-tests.junit.xml
+          output: test/cli/cli-tests.html
+        if: failure() || success()
+      - name: Archive HTML report
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-tests-html
+          path: test/cli/cli-tests.html
+        if: failure() || success()
+      - name: Create Markdown report
+        uses: ipdxco/junit-xml-to-html@v1
+        with:
+          mode: summary
+          input: test/cli/cli-tests.junit.xml
+          output: test/cli/cli-tests.md
+        if: failure() || success()
+      - name: Set summary
+        run: cat test/cli/cli-tests.md >> $GITHUB_STEP_SUMMARY
+        if: failure() || success()
+
+  # Example tests (kubo-as-a-library)
+  example-tests:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 5
+    env:
+      GOTRACEBACK: single
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Run example tests
+        run: make test_examples

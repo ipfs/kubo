@@ -39,7 +39,9 @@ func TestBackupBootstrapPeers(t *testing.T) {
 
 	// Start 1 and 2. 2 does not know anyone yet.
 	nodes[1].StartDaemon()
+	defer nodes[1].StopDaemon()
 	nodes[2].StartDaemon()
+	defer nodes[2].StopDaemon()
 	assert.Len(t, nodes[1].Peers(), 0)
 	assert.Len(t, nodes[2].Peers(), 0)
 
@@ -51,6 +53,7 @@ func TestBackupBootstrapPeers(t *testing.T) {
 	// Start 0, wait a bit. Should connect to 1, and then discover 2 via the
 	// backup bootstrap peers.
 	nodes[0].StartDaemon()
+	defer nodes[0].StopDaemon()
 	time.Sleep(time.Millisecond * 500)
 
 	// Check if they're all connected.

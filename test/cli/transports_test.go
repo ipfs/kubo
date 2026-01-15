@@ -74,6 +74,7 @@ func TestTransports(t *testing.T) {
 		t.Parallel()
 		nodes := tcpNodes(t).StartDaemons().Connect()
 		runTests(nodes)
+		nodes.StopDaemons()
 	})
 
 	t.Run("tcp with NOISE", func(t *testing.T) {
@@ -86,6 +87,7 @@ func TestTransports(t *testing.T) {
 		})
 		nodes.StartDaemons().Connect()
 		runTests(nodes)
+		nodes.StopDaemons()
 	})
 
 	t.Run("QUIC", func(t *testing.T) {
@@ -104,6 +106,7 @@ func TestTransports(t *testing.T) {
 		disableRouting(nodes)
 		nodes.StartDaemons().Connect()
 		runTests(nodes)
+		nodes.StopDaemons()
 	})
 
 	t.Run("QUIC+Webtransport", func(t *testing.T) {
@@ -122,6 +125,7 @@ func TestTransports(t *testing.T) {
 		disableRouting(nodes)
 		nodes.StartDaemons().Connect()
 		runTests(nodes)
+		nodes.StopDaemons()
 	})
 
 	t.Run("QUIC connects with non-dialable transports", func(t *testing.T) {
@@ -144,6 +148,7 @@ func TestTransports(t *testing.T) {
 		disableRouting(nodes)
 		nodes.StartDaemons().Connect()
 		runTests(nodes)
+		nodes.StopDaemons()
 	})
 
 	t.Run("WebRTC Direct", func(t *testing.T) {
@@ -162,5 +167,6 @@ func TestTransports(t *testing.T) {
 		disableRouting(nodes)
 		nodes.StartDaemons().Connect()
 		runTests(nodes)
+		nodes.StopDaemons()
 	})
 }
