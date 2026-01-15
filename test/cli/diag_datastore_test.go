@@ -2,7 +2,6 @@ package cli
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/ipfs/kubo/test/cli/harness"
@@ -16,7 +15,7 @@ func TestDiagDatastore(t *testing.T) {
 	t.Run("diag datastore get returns error for non-existent key", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()
-		// No daemon - these commands work offline and require daemon to be stopped
+		// Don't start daemon - these commands require daemon to be stopped
 
 		res := node.RunIPFS("diag", "datastore", "get", "/nonexistent/key")
 		assert.Error(t, res.Err)
@@ -35,10 +34,9 @@ func TestDiagDatastore(t *testing.T) {
 		node.StopDaemon()
 
 		// Test count to verify we have entries
-		res := node.IPFS("diag", "datastore", "count", "/")
-		count := strings.TrimSpace(res.Stdout.String())
-		t.Logf("total datastore entries: %s", count)
-		assert.NotEqual(t, "0", count, "should have datastore entries after pinning")
+		count := node.DatastoreCount("/")
+		t.Logf("total datastore entries: %d", count)
+		assert.NotEqual(t, int64(0), count, "should have datastore entries after pinning")
 	})
 
 	t.Run("diag datastore get --hex returns hex dump", func(t *testing.T) {
@@ -52,11 +50,10 @@ func TestDiagDatastore(t *testing.T) {
 		node.StopDaemon()
 
 		// Test with existing keys in pins namespace
-		res := node.IPFS("diag", "datastore", "count", "/pins/")
-		count := strings.TrimSpace(res.Stdout.String())
-		t.Logf("pins datastore entries: %s", count)
+		count := node.DatastoreCount("/pins/")
+		t.Logf("pins datastore entries: %d", count)
 
-		if count != "0" {
+		if count != 0 {
 			t.Log("pins datastore has entries, hex dump format tested implicitly")
 		}
 	})
@@ -65,9 +62,8 @@ func TestDiagDatastore(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()
 
-		res := node.IPFS("diag", "datastore", "count", "/definitely/nonexistent/prefix/")
-		assert.NoError(t, res.Err)
-		assert.Equal(t, "0", strings.TrimSpace(res.Stdout.String()))
+		count := node.DatastoreCount("/definitely/nonexistent/prefix/")
+		assert.Equal(t, int64(0), count)
 	})
 
 	t.Run("diag datastore count returns JSON with --enc=json", func(t *testing.T) {
@@ -112,43 +108,40 @@ func TestDiagDatastore(t *testing.T) {
 		node.StopDaemon()
 
 		// Count should reflect the pins (plus any system entries)
-		res := node.IPFS("diag", "datastore", "count", "/")
-		count := strings.TrimSpace(res.Stdout.String())
-		t.Logf("total entries after adding 3 pins: %s", count)
+		count := node.DatastoreCount("/")
+		t.Logf("total entries after adding 3 pins: %d", count)
 
 		// Should have more than 0 entries
-		assert.NotEqual(t, "0", count)
+		assert.NotEqual(t, int64(0), count)
 	})
 
 	t.Run("diag datastore commands work offline", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()
-		// Don't start daemon - these commands require offline mode
+		// Don't start daemon - these commands require daemon to be stopped
 
 		// Count should work offline
-		res := node.IPFS("diag", "datastore", "count", "/pubsub/seqno/")
-		assert.NoError(t, res.Err)
-		assert.Equal(t, "0", strings.TrimSpace(res.Stdout.String()))
+		count := node.DatastoreCount("/pubsub/seqno/")
+		assert.Equal(t, int64(0), count)
 
 		// Get should return error for missing key (but command should work)
-		res = node.RunIPFS("diag", "datastore", "get", "/test")
+		res := node.RunIPFS("diag", "datastore", "get", "/nonexistent/key")
 		assert.Error(t, res.Err)
 		assert.Contains(t, res.Stderr.String(), "key not found")
 	})
 
-	t.Run("diag datastore commands fail when daemon is running", func(t *testing.T) {
+	t.Run("diag datastore commands require daemon to be stopped", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
-		// diag datastore get should fail when daemon is running
+		// Both get and count require repo lock, which is held by the running daemon
 		res := node.RunIPFS("diag", "datastore", "get", "/test")
-		assert.Error(t, res.Err)
-		assert.Contains(t, res.Stderr.String(), "daemon is running")
+		assert.Error(t, res.Err, "get should fail when daemon is running")
+		assert.Contains(t, res.Stderr.String(), "ipfs daemon is running")
 
-		// diag datastore count should fail when daemon is running
 		res = node.RunIPFS("diag", "datastore", "count", "/pubsub/seqno/")
-		assert.Error(t, res.Err)
-		assert.Contains(t, res.Stderr.String(), "daemon is running")
+		assert.Error(t, res.Err, "count should fail when daemon is running")
+		assert.Contains(t, res.Stderr.String(), "ipfs daemon is running")
 	})
 }

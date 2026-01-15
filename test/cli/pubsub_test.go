@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 
@@ -23,6 +22,23 @@ func waitForSubscription(t *testing.T, node *harness.Node, topic string) {
 		}
 		return slices.Contains(res.Stdout.Lines(), topic)
 	}, 5*time.Second, 100*time.Millisecond, "expected subscription to topic %s", topic)
+}
+
+// waitForMessagePropagation waits for pubsub messages to propagate through the network
+// and for seqno state to be persisted to the datastore.
+func waitForMessagePropagation(t *testing.T) {
+	t.Helper()
+	time.Sleep(1 * time.Second)
+}
+
+// publishMessages publishes n messages from publisher to the given topic with
+// a small delay between each to allow for ordered delivery.
+func publishMessages(t *testing.T, publisher *harness.Node, topic string, n int) {
+	t.Helper()
+	for i := 0; i < n; i++ {
+		publisher.PipeStrToIPFS("msg", "pubsub", "pub", topic)
+		time.Sleep(50 * time.Millisecond)
+	}
 }
 
 // TestPubsub tests pubsub functionality and the persistent seqno validator.
@@ -125,28 +141,24 @@ func TestPubsub(t *testing.T) {
 		waitForSubscription(t, node1, topic)
 
 		// Publish multiple messages from node2 to trigger seqno validation
-		for i := 0; i < 3; i++ {
-			node2.PipeStrToIPFS("msg", "pubsub", "pub", topic)
-			time.Sleep(100 * time.Millisecond)
-		}
+		publishMessages(t, node2, topic, 3)
 
-		// Give time for messages to propagate and seqno to be stored
-		time.Sleep(1 * time.Second)
+		// Wait for messages to propagate and seqno to be stored
+		waitForMessagePropagation(t)
 
 		// Stop daemons to check datastore (diag datastore requires daemon to be stopped)
 		nodes.StopDaemons()
 
-		// Check that seqno state exists using diag datastore count
-		res := node1.IPFS("diag", "datastore", "count", "/pubsub/seqno/")
-		count := strings.TrimSpace(res.Stdout.String())
-		t.Logf("seqno entries count: %s", count)
+		// Check that seqno state exists
+		count := node1.DatastoreCount("/pubsub/seqno/")
+		t.Logf("seqno entries count: %d", count)
 
 		// There should be at least one seqno entry (from node2)
-		assert.NotEqual(t, "0", count, "expected seqno state to be persisted")
+		assert.NotEqual(t, int64(0), count, "expected seqno state to be persisted")
 
-		// Verify the specific peer's key exists
+		// Verify the specific peer's key exists and test --hex output format
 		key := "/pubsub/seqno/" + node2PeerID
-		res = node1.RunIPFS("diag", "datastore", "get", "--hex", key)
+		res := node1.RunIPFS("diag", "datastore", "get", "--hex", key)
 		if res.Err == nil {
 			t.Logf("seqno for peer %s:\n%s", node2PeerID, res.Stdout.String())
 			assert.Contains(t, res.Stdout.String(), "Hex Dump:")
@@ -255,25 +267,21 @@ func TestPubsub(t *testing.T) {
 		}()
 		waitForSubscription(t, node1, topic)
 
-		for i := 0; i < 3; i++ {
-			node2.PipeStrToIPFS("msg", "pubsub", "pub", topic)
-			time.Sleep(100 * time.Millisecond)
-		}
-		time.Sleep(1 * time.Second)
+		publishMessages(t, node2, topic, 3)
+		waitForMessagePropagation(t)
 
 		// Stop daemons to check initial count
 		nodes.StopDaemons()
 
-		// Get initial count
-		res := node1.IPFS("diag", "datastore", "count", "/pubsub/seqno/")
-		initialCount := strings.TrimSpace(res.Stdout.String())
-		t.Logf("initial seqno count: %s", initialCount)
+		// Verify there is state before resetting
+		initialCount := node1.DatastoreCount("/pubsub/seqno/")
+		t.Logf("initial seqno count: %d", initialCount)
 
-		// Restart daemon to run pubsub reset
+		// Restart node1 to run pubsub reset
 		node1.StartDaemon()
 
-		// Reset all seqno state
-		res = node1.IPFS("pubsub", "reset")
+		// Reset all seqno state (while daemon is running)
+		res := node1.IPFS("pubsub", "reset")
 		assert.NoError(t, res.Err)
 		t.Logf("reset output: %s", res.Stdout.String())
 
@@ -281,10 +289,9 @@ func TestPubsub(t *testing.T) {
 		node1.StopDaemon()
 
 		// Verify state was cleared
-		res = node1.IPFS("diag", "datastore", "count", "/pubsub/seqno/")
-		finalCount := strings.TrimSpace(res.Stdout.String())
-		t.Logf("final seqno count: %s", finalCount)
-		assert.Equal(t, "0", finalCount, "seqno state should be cleared after reset")
+		finalCount := node1.DatastoreCount("/pubsub/seqno/")
+		t.Logf("final seqno count: %d", finalCount)
+		assert.Equal(t, int64(0), finalCount, "seqno state should be cleared after reset")
 	})
 
 	t.Run("pubsub reset with peer flag", func(t *testing.T) {
@@ -311,14 +318,14 @@ func TestPubsub(t *testing.T) {
 		waitForSubscription(t, node1, topic)
 
 		// Publish from both node2 and node3
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			node2.PipeStrToIPFS("msg2", "pubsub", "pub", topic)
 			node3.PipeStrToIPFS("msg3", "pubsub", "pub", topic)
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(50 * time.Millisecond)
 		}
-		time.Sleep(1 * time.Second)
+		waitForMessagePropagation(t)
 
-		// Stop other daemons (keep node1 running to do the reset)
+		// Stop node2 and node3
 		node2.StopDaemon()
 		node3.StopDaemon()
 
@@ -368,23 +375,18 @@ func TestPubsub(t *testing.T) {
 		}()
 		waitForSubscription(t, node, topic)
 
-		for i := 0; i < 3; i++ {
-			node2.PipeStrToIPFS("msg", "pubsub", "pub", topic)
-			time.Sleep(100 * time.Millisecond)
-		}
-		time.Sleep(1 * time.Second)
+		publishMessages(t, node2, topic, 3)
+		waitForMessagePropagation(t)
 
 		// Stop daemons to check datastore
 		node.StopDaemon()
 		node2.StopDaemon()
 
 		// Get count before restart
-		res := node.IPFS("diag", "datastore", "count", "/pubsub/seqno/")
-		beforeCount := strings.TrimSpace(res.Stdout.String())
-		t.Logf("seqno count before restart: %s", beforeCount)
+		beforeCount := node.DatastoreCount("/pubsub/seqno/")
+		t.Logf("seqno count before restart: %d", beforeCount)
 
-		// Restart daemon (simulate restart scenario)
-		time.Sleep(500 * time.Millisecond)
+		// Restart node (simulate restart scenario)
 		node.StartDaemon()
 		time.Sleep(500 * time.Millisecond)
 
@@ -392,9 +394,8 @@ func TestPubsub(t *testing.T) {
 		node.StopDaemon()
 
 		// Get count after restart
-		res = node.IPFS("diag", "datastore", "count", "/pubsub/seqno/")
-		afterCount := strings.TrimSpace(res.Stdout.String())
-		t.Logf("seqno count after restart: %s", afterCount)
+		afterCount := node.DatastoreCount("/pubsub/seqno/")
+		t.Logf("seqno count after restart: %d", afterCount)
 
 		// Count should be the same (state persisted)
 		assert.Equal(t, beforeCount, afterCount, "seqno state should survive daemon restart")

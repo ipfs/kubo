@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"io"
 
-	oldcmds "github.com/ipfs/kubo/commands"
-	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
-
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	oldcmds "github.com/ipfs/kubo/commands"
+	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 )
 
 var DiagCmd = &cmds.Command{
@@ -41,6 +40,17 @@ These commands expose internal datastore details and should not be used
 in production workflows. The datastore format may change between versions.
 
 The daemon must not be running when calling these commands.
+
+EXAMPLE
+
+Inspecting pubsub seqno validator state:
+
+  $ ipfs diag datastore count /pubsub/seqno/
+  2
+  $ ipfs diag datastore get --hex /pubsub/seqno/12D3KooW...
+  Key: /pubsub/seqno/12D3KooW...
+  Hex Dump:
+  00000000  18 81 81 c8 91 c0 ea f6  |........|
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -88,8 +98,8 @@ WARNING: FOR DEBUGGING/TESTING ONLY
 
 		keyStr := req.Arguments[0]
 		key := datastore.NewKey(keyStr)
-
 		ds := repo.Datastore()
+
 		val, err := ds.Get(req.Context, key)
 		if err != nil {
 			if errors.Is(err, datastore.ErrNotFound) {
