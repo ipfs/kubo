@@ -109,7 +109,9 @@ When deploying Kubo's gateway in production, be aware of these important conside
 
 > [!IMPORTANT]
 > **Timeouts:** Configure [`Gateway.RetrievalTimeout`](config.md#gatewayretrievaltimeout)
-> based on your expected content retrieval times.
+> to terminate stalled transfers (resets on each data write, catches unresponsive operations),
+> and [`Gateway.MaxRequestDuration`](config.md#gatewaymaxrequestduration) as a fallback
+> deadline (default: 1 hour, catches cases when other timeouts are misconfigured or fail to fire).
 
 > [!IMPORTANT]
 > **Rate Limiting:** Use [`Gateway.MaxConcurrentRequests`](config.md#gatewaymaxconcurrentrequests)
