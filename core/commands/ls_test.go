@@ -181,9 +181,8 @@ func TestFormatModTime(t *testing.T) {
 		oldResult := formatModTime(oldTime)
 		assert.Len(t, oldResult, 12, "old time format should be 12 chars")
 
-		// Recent time (use a fixed time to avoid flakiness)
-		// We test the format length by checking a definitely-recent time
-		recentTime := time.Now().Add(-1 * time.Hour)
+		// Recent time: use 1 month ago to ensure it's always within the 6-month window
+		recentTime := time.Now().AddDate(0, -1, 0)
 		recentResult := formatModTime(recentTime)
 		assert.Len(t, recentResult, 12, "recent time format should be 12 chars")
 	})

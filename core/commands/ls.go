@@ -58,21 +58,23 @@ var LsCmd = &cmds.Command{
 Displays the contents of an IPFS or IPNS object(s) at the given path, with
 the following format:
 
-  <link base58 hash> <link size in bytes> <link name>
+  <cid> <size> <name>
 
-With the --long (-l) option, also display file mode (permissions) and
-modification time for files that were added with --preserve-mode and
---preserve-mtime flags. Format similar to Unix 'ls -l':
+With the --long (-l) option, display optional file mode (permissions) and
+modification time in a format similar to Unix 'ls -l':
 
-  <mode> <link base58 hash> <size> <mtime> <name>
+  <mode> <cid> <size> <mtime> <name>
 
-Example output with --long:
+Mode and mtime are optional UnixFS metadata. They are only present if the
+content was imported with 'ipfs add --preserve-mode' and '--preserve-mtime'.
+Without preserved metadata, mode shows '----------' and mtime shows '-'.
+Times are displayed in UTC.
+
+Example output with --long (content imported with preserved metadata):
 
   -rw-r--r-- QmZULkCELmmk5XNf... 1234 Jan 15 10:30 document.txt
   -rwxr-xr-x QmaRGe7bVmVaLmxb... 5678 Dec 01  2023 script.sh
   drwxr-xr-x QmWWEQhcLufF3qPm... -    Nov 20  2023 subdir/
-
-Files without preserved metadata show '----------' for mode and '-' for mtime.
 The JSON output contains type information.
 `,
 	},
@@ -230,7 +232,16 @@ The JSON output contains type information.
 	Type: LsOutput{},
 }
 
-// formatMode formats os.FileMode to Unix-style permission string (e.g., "-rw-r--r--").
+// formatMode converts os.FileMode to a 10-character Unix ls-style string.
+//
+// Format: [type][owner rwx][group rwx][other rwx]
+//
+// Type indicators: - (regular), d (directory), l (symlink), p (named pipe),
+// s (socket), c (char device), b (block device).
+//
+// Special bits replace the execute position: setuid on owner (s/S),
+// setgid on group (s/S), sticky on other (t/T). Lowercase when the
+// underlying execute bit is also set, uppercase when not.
 func formatMode(mode os.FileMode) string {
 	var buf [10]byte
 
@@ -300,15 +311,20 @@ func formatMode(mode os.FileMode) string {
 }
 
 // permBit returns the permission character if the bit is set.
-func permBit(mode os.FileMode, bit os.FileMode, char rune) byte {
+func permBit(mode os.FileMode, bit os.FileMode, char byte) byte {
 	if mode&bit != 0 {
-		return byte(char)
+		return char
 	}
 	return '-'
 }
 
-// formatModTime formats time.Time for display.
-// Returns empty string if time is zero.
+// formatModTime formats time.Time for display, following Unix ls conventions.
+//
+// Returns "-" for zero time. Otherwise returns a 12-character string:
+// recent files (within 6 months) show "Jan 02 15:04",
+// older or future files show "Jan 02  2006".
+//
+// The output uses the timezone embedded in t (UTC for IPFS metadata).
 func formatModTime(t time.Time) string {
 	if t.IsZero() {
 		return "-"
