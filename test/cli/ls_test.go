@@ -15,7 +15,7 @@ import (
 func TestLsLongFormat(t *testing.T) {
 	t.Parallel()
 
-	t.Run("long format shows mode and mtime for preserved metadata", func(t *testing.T) {
+	t.Run("long format shows mode and mtime when preserved", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
@@ -59,12 +59,12 @@ func TestLsLongFormat(t *testing.T) {
 		assert.Contains(t, lines[1], "readable.txt", "should show filename")
 	})
 
-	t.Run("long format shows dash for files without preserved metadata", func(t *testing.T) {
+	t.Run("long format shows dash for files without preserved mode or mtime", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
-		// Create and add a file without preserving metadata
+		// Create and add a file without --preserve-mode or --preserve-mtime
 		testFile := filepath.Join(node.Dir, "nopreserve.txt")
 		require.NoError(t, os.WriteFile(testFile, []byte("test content"), 0644))
 
@@ -81,10 +81,9 @@ func TestLsLongFormat(t *testing.T) {
 		lsRes := node.IPFS("ls", "--long", dirCid)
 		output := lsRes.Stdout.String()
 
-		// Files without preserved metadata should show default mode and dash for mtime
-		assert.Contains(t, output, "----------", "file without preserved mode should show no permissions")
-		// The tabwriter converts tabs to spaces, so check for space-dash-space pattern
-		assert.Regexp(t, `----------\s+\S+\s+\d+\s+-\s+`, output, "file without preserved mtime should show dash")
+		// Files without preserved mode or mtime should show "-" for both columns
+		// Format: "-" (mode) <CID> <size> "-" (mtime) <name>
+		assert.Regexp(t, `^-\s+\S+\s+\d+\s+-\s+`, output, "missing mode and mtime should both show dash")
 	})
 
 	t.Run("long format with headers shows correct column order", func(t *testing.T) {

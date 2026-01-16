@@ -67,14 +67,18 @@ modification time in a format similar to Unix 'ls -l':
 
 Mode and mtime are optional UnixFS metadata. They are only present if the
 content was imported with 'ipfs add --preserve-mode' and '--preserve-mtime'.
-Without preserved metadata, mode shows '----------' and mtime shows '-'.
-Times are displayed in UTC.
+Without preserved metadata, both mode and mtime display '-'. Times are in UTC.
 
-Example output with --long (content imported with preserved metadata):
+Example with --long and preserved metadata:
 
   -rw-r--r-- QmZULkCELmmk5XNf... 1234 Jan 15 10:30 document.txt
   -rwxr-xr-x QmaRGe7bVmVaLmxb... 5678 Dec 01  2023 script.sh
   drwxr-xr-x QmWWEQhcLufF3qPm... -    Nov 20  2023 subdir/
+
+Example with --long without preserved metadata:
+
+  -          QmZULkCELmmk5XNf... 1234 -            document.txt
+
 The JSON output contains type information.
 `,
 	},
@@ -397,7 +401,14 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 
 			if long {
 				// Long format: Mode Hash Size ModTime Name
-				mode := formatMode(link.Mode)
+				var mode string
+				if link.Mode == 0 {
+					// No mode metadata preserved. Show "-" to indicate
+					// "not available" rather than "----------" (mode 0000).
+					mode = "-"
+				} else {
+					mode = formatMode(link.Mode)
+				}
 				modTime := formatModTime(link.ModTime)
 
 				if isDir {
