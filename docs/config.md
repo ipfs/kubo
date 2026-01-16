@@ -67,6 +67,7 @@ config file at runtime.
     - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
     - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
     - [`Gateway.RetrievalTimeout`](#gatewayretrievaltimeout)
+    - [`Gateway.MaxRequestDuration`](#gatewaymaxrequestduration)
     - [`Gateway.MaxRangeRequestFileSize`](#gatewaymaxrangerequestfilesize)
     - [`Gateway.MaxConcurrentRequests`](#gatewaymaxconcurrentrequests)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
@@ -145,6 +146,8 @@ config file at runtime.
     - [`Provider.Strategy`](#providerstrategy)
     - [`Provider.WorkerCount`](#providerworkercount)
   - [`Pubsub`](#pubsub)
+    - [When to use a dedicated pubsub node](#when-to-use-a-dedicated-pubsub-node)
+    - [Message deduplication](#message-deduplication)
     - [`Pubsub.Enabled`](#pubsubenabled)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
@@ -1178,6 +1181,16 @@ Default: `30s`
 
 Type: `optionalDuration`
 
+### `Gateway.MaxRequestDuration`
+
+An absolute deadline for the entire gateway request. Unlike [`RetrievalTimeout`](#gatewayretrievaltimeout) (which resets on each data write and catches stalled transfers), this is a hard limit on the total time a request can take.
+
+Returns 504 Gateway Timeout when exceeded. This protects the gateway from edge cases and slow client attacks.
+
+Default: `1h`
+
+Type: `optionalDuration`
+
 ### `Gateway.MaxRangeRequestFileSize`
 
 Maximum file size for HTTP range requests on deserialized responses. Range requests for files larger than this limit return 501 Not Implemented.
@@ -1776,7 +1789,7 @@ Type: `optionalDuration`
 
 ### `Ipns.UsePubsub`
 
-Enables IPFS over pubsub experiment for publishing IPNS records in real time.
+Enables [IPNS over PubSub](https://specs.ipfs.tech/ipns/ipns-pubsub-router/) for publishing and resolving IPNS records in real time.
 
 **EXPERIMENTAL:**  read about current limitations at [experimental-features.md#ipns-pubsub](./experimental-features.md#ipns-pubsub).
 
@@ -2394,15 +2407,55 @@ Replaced with [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers).
 
 ## `Pubsub`
 
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+Pubsub configures Kubo's opt-in, opinionated [libp2p pubsub](https://docs.libp2p.io/concepts/pubsub/overview/) instance.
+To enable, set `Pubsub.Enabled` to `true`.
 
-Pubsub configures the `ipfs pubsub` subsystem. To use, it must be enabled by
-passing the `--enable-pubsub-experiment` flag to the daemon
-or via the `Pubsub.Enabled` flag below.
+**EXPERIMENTAL:** This is an opt-in feature. Its primary use case is
+[IPNS over PubSub](https://specs.ipfs.tech/ipns/ipns-pubsub-router/), which
+enables real-time IPNS record propagation. See [`Ipns.UsePubsub`](#ipnsusepubsub)
+for details.
+
+The `ipfs pubsub` commands can also be used for basic publish/subscribe
+operations, but only if Kubo's built-in message validation (described below) is
+acceptable for your use case.
+
+### When to use a dedicated pubsub node
+
+Kubo's pubsub is optimized for IPNS. It uses opinionated message validation
+that may not fit all applications. If you need custom Message ID computation,
+different deduplication logic, or validation rules beyond what Kubo provides,
+consider building a dedicated pubsub node using
+[go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub) directly.
+
+### Message deduplication
+
+Kubo uses two layers of message deduplication to handle duplicate messages that
+may arrive via different network paths:
+
+**Layer 1: In-memory TimeCache (Message ID)**
+
+When a message arrives, Kubo computes its Message ID (hash of the message
+content) and checks an in-memory cache. If the ID was seen recently, the
+message is dropped. This cache is controlled by:
+
+- [`Pubsub.SeenMessagesTTL`](#pubsubseenmessagesttl) - how long Message IDs are remembered (default: 120s)
+- [`Pubsub.SeenMessagesStrategy`](#pubsubseenmessagesstrategy) - whether TTL resets on each sighting
+
+This cache is fast but limited: it only works within the TTL window and is
+cleared on node restart.
+
+**Layer 2: Persistent Seqno Validator (per-peer)**
+
+For stronger deduplication, Kubo tracks the maximum sequence number seen from
+each peer and persists it to the datastore. Messages with sequence numbers
+lower than the recorded maximum are rejected. This prevents replay attacks and
+handles message cycles in large networks where messages may take longer than
+the TimeCache TTL to propagate.
+
+This layer survives node restarts. The state can be inspected or cleared using
+`ipfs pubsub reset` (for testing/recovery only).
 
 ### `Pubsub.Enabled`
-
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Enables the pubsub system.
 
@@ -2411,8 +2464,6 @@ Default: `false`
 Type: `flag`
 
 ### `Pubsub.Router`
-
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Sets the default router used by pubsub to route messages to peers. This can be one of:
 
@@ -2429,10 +2480,9 @@ Type: `string` (one of `"floodsub"`, `"gossipsub"`, or `""` (apply default))
 
 ### `Pubsub.DisableSigning`
 
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+Disables message signing and signature verification.
 
-Disables message signing and signature verification. Enable this option if
-you're operating in a completely trusted network.
+**FOR TESTING ONLY - DO NOT USE IN PRODUCTION**
 
 It is _not_ safe to disable signing even if you don't care _who_ sent the
 message because spoofed messages can be used to silence real messages by
@@ -2444,20 +2494,12 @@ Type: `bool`
 
 ### `Pubsub.SeenMessagesTTL`
 
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+Controls the time window for the in-memory Message ID cache (Layer 1
+deduplication). Messages with the same ID seen within this window are dropped.
 
-Controls the time window within which duplicate messages, identified by Message
-ID, will be identified and won't be emitted again.
-
-A smaller value for this parameter means that Pubsub messages in the cache will
-be garbage collected sooner, which can result in a smaller cache. At the same
-time, if there are slower nodes in the network that forward older messages,
-this can cause more duplicates to be propagated through the network.
-
-Conversely, a larger value for this parameter means that Pubsub messages in the
-cache will be garbage collected later, which can result in a larger cache for
-the same traffic pattern. However, it is less likely that duplicates will be
-propagated through the network.
+A smaller value reduces memory usage but may cause more duplicates in networks
+with slow nodes. A larger value uses more memory but provides better duplicate
+detection within the time window.
 
 Default: see `TimeCacheDuration` from [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub)
 
@@ -2465,24 +2507,12 @@ Type: `optionalDuration`
 
 ### `Pubsub.SeenMessagesStrategy`
 
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+Determines how the TTL countdown for the Message ID cache works.
 
-Determines how the time-to-live (TTL) countdown for deduplicating Pubsub
-messages is calculated.
-
-The Pubsub seen messages cache is a LRU cache that keeps messages for up to a
-specified time duration. After this duration has elapsed, expired messages will
-be purged from the cache.
-
-The `last-seen` cache is a sliding-window cache. Every time a message is seen
-again with the SeenMessagesTTL duration, its timestamp slides forward. This
-keeps frequently occurring messages cached and prevents them from being
-continually propagated, especially because of issues that might increase the
-number of duplicate messages in the network.
-
-The `first-seen` cache will store new messages and purge them after the
-SeenMessagesTTL duration, even if they are seen multiple times within this
-duration.
+- `last-seen` - Sliding window: TTL resets each time the message is seen again.
+  Keeps frequently-seen messages in cache longer, preventing continued propagation.
+- `first-seen` - Fixed window: TTL counts from first sighting only. Messages are
+  purged after the TTL regardless of how many times they're seen.
 
 Default: `last-seen` (see [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub))
 

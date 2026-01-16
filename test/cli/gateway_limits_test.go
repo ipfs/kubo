@@ -58,6 +58,47 @@ func TestGatewayLimits(t *testing.T) {
 		assert.Contains(t, resp.Body, "Unable to retrieve content within timeout period")
 	})
 
+	t.Run("MaxRequestDuration", func(t *testing.T) {
+		t.Parallel()
+
+		// Create a node with a short max request duration
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			// Set a short absolute deadline (500ms) for the entire request
+			cfg.Gateway.MaxRequestDuration = config.NewOptionalDuration(500 * time.Millisecond)
+			// Set retrieval timeout much longer so MaxRequestDuration fires first
+			cfg.Gateway.RetrievalTimeout = config.NewOptionalDuration(30 * time.Second)
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Add content that can be retrieved quickly
+		cid := node.IPFSAddStr("test content for max request duration")
+
+		client := node.GatewayClient()
+
+		// Fast request for local content should succeed (well within 500ms)
+		resp := client.Get("/ipfs/" + cid)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "test content for max request duration", resp.Body)
+
+		// Request for non-existent content should timeout due to MaxRequestDuration
+		// This CID has no providers and will block during content routing
+		nonExistentCID := "bafkreif6lrhgz3fpiwypdk65qrqiey7svgpggruhbylrgv32l3izkqpsc4"
+
+		// Create a client with a longer timeout than MaxRequestDuration
+		// to ensure we receive the gateway's 504 response
+		clientWithTimeout := &harness.HTTPClient{
+			Client: &http.Client{
+				Timeout: 5 * time.Second,
+			},
+			BaseURL: client.BaseURL,
+		}
+
+		resp = clientWithTimeout.Get("/ipfs/" + nonExistentCID)
+		assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode, "Expected 504 when request exceeds MaxRequestDuration")
+	})
+
 	t.Run("MaxConcurrentRequests", func(t *testing.T) {
 		t.Parallel()
 
