@@ -66,6 +66,13 @@ modification time for files that were added with --preserve-mode and
 
   <mode> <link base58 hash> <size> <mtime> <name>
 
+Example output with --long:
+
+  -rw-r--r-- QmZULkCELmmk5XNf... 1234 Jan 15 10:30 document.txt
+  -rwxr-xr-x QmaRGe7bVmVaLmxb... 5678 Dec 01  2023 script.sh
+  drwxr-xr-x QmWWEQhcLufF3qPm... -    Nov 20  2023 subdir/
+
+Files without preserved metadata show '----------' for mode and '-' for mtime.
 The JSON output contains type information.
 `,
 	},
@@ -347,12 +354,21 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 				fmt.Fprintf(tw, "%s:\n", object.Hash)
 			}
 			if headers {
-				s := "Hash\tName"
-				if size {
-					s = "Hash\tSize\tName"
-				}
+				var s string
 				if long {
-					s = "Mode\t" + s + "\tModTime"
+					// Long format: Mode Hash [Size] ModTime Name
+					if size {
+						s = "Mode\tHash\tSize\tModTime\tName"
+					} else {
+						s = "Mode\tHash\tModTime\tName"
+					}
+				} else {
+					// Standard format: Hash [Size] Name
+					if size {
+						s = "Hash\tSize\tName"
+					} else {
+						s = "Hash\tName"
+					}
 				}
 				fmt.Fprintln(tw, s)
 			}
@@ -374,11 +390,7 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 					} else {
 						s = "%s\t%s\t%s\t%s/\n"
 					}
-					if size {
-						fmt.Fprintf(tw, s, mode, link.Hash, modTime, cmdenv.EscNonPrint(link.Name))
-					} else {
-						fmt.Fprintf(tw, s, mode, link.Hash, modTime, cmdenv.EscNonPrint(link.Name))
-					}
+					fmt.Fprintf(tw, s, mode, link.Hash, modTime, cmdenv.EscNonPrint(link.Name))
 				} else {
 					if size {
 						s = "%s\t%s\t%v\t%s\t%s\n"
