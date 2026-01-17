@@ -29,6 +29,23 @@ const (
 	// write-batch. The total size of the batch is limited by
 	// BatchMaxnodes and BatchMaxSize.
 	DefaultBatchMaxSize = 100 << 20 // 20MiB
+
+	// HAMTSizeEstimation values for Import.UnixFSHAMTDirectorySizeEstimation
+	HAMTSizeEstimationLinks    = "links"    // legacy: estimate using link names + CID byte lengths
+	HAMTSizeEstimationBlock    = "block"    // full serialized dag-pb block size
+	HAMTSizeEstimationDisabled = "disabled" // disable HAMT sharding entirely
+
+	// SymlinkMode values for Import.UnixFSSymlinkMode
+	SymlinkModePreserve    = "preserve"    // preserve symlinks as UnixFS symlink nodes
+	SymlinkModeDereference = "dereference" // dereference symlinks, import target content
+
+	// DAGLayout values for Import.UnixFSDAGLayout
+	DAGLayoutBalanced = "balanced" // balanced DAG layout (default)
+	DAGLayoutTrickle  = "trickle"  // trickle DAG layout
+
+	DefaultUnixFSHAMTDirectorySizeEstimation = HAMTSizeEstimationLinks // legacy behavior
+	DefaultUnixFSSymlinkMode                 = SymlinkModePreserve     // preserve symlinks as UnixFS symlink nodes
+	DefaultUnixFSDAGLayout                   = DAGLayoutBalanced       // balanced DAG layout
 )
 
 var (
@@ -40,18 +57,21 @@ var (
 // Import configures the default options for ingesting data. This affects commands
 // that ingest data, such as 'ipfs add', 'ipfs dag put, 'ipfs block put', 'ipfs files write'.
 type Import struct {
-	CidVersion                       OptionalInteger
-	UnixFSRawLeaves                  Flag
-	UnixFSChunker                    OptionalString
-	HashFunction                     OptionalString
-	UnixFSFileMaxLinks               OptionalInteger
-	UnixFSDirectoryMaxLinks          OptionalInteger
-	UnixFSHAMTDirectoryMaxFanout     OptionalInteger
-	UnixFSHAMTDirectorySizeThreshold OptionalBytes
-	BatchMaxNodes                    OptionalInteger
-	BatchMaxSize                     OptionalInteger
-	FastProvideRoot                  Flag
-	FastProvideWait                  Flag
+	CidVersion                        OptionalInteger
+	UnixFSRawLeaves                   Flag
+	UnixFSChunker                     OptionalString
+	HashFunction                      OptionalString
+	UnixFSFileMaxLinks                OptionalInteger
+	UnixFSDirectoryMaxLinks           OptionalInteger
+	UnixFSHAMTDirectoryMaxFanout      OptionalInteger
+	UnixFSHAMTDirectorySizeThreshold  OptionalBytes
+	UnixFSHAMTDirectorySizeEstimation OptionalString // "links", "block", or "disabled"
+	UnixFSSymlinkMode                 OptionalString // "preserve" or "dereference"
+	UnixFSDAGLayout                   OptionalString // "balanced" or "trickle"
+	BatchMaxNodes                     OptionalInteger
+	BatchMaxSize                      OptionalInteger
+	FastProvideRoot                   Flag
+	FastProvideWait                   Flag
 }
 
 // ValidateImportConfig validates the Import configuration according to UnixFS spec requirements.
@@ -129,6 +149,42 @@ func ValidateImportConfig(cfg *Import) error {
 		}
 	}
 
+	// Validate UnixFSHAMTDirectorySizeEstimation
+	if !cfg.UnixFSHAMTDirectorySizeEstimation.IsDefault() {
+		est := cfg.UnixFSHAMTDirectorySizeEstimation.WithDefault(DefaultUnixFSHAMTDirectorySizeEstimation)
+		switch est {
+		case HAMTSizeEstimationLinks, HAMTSizeEstimationBlock, HAMTSizeEstimationDisabled:
+			// valid
+		default:
+			return fmt.Errorf("Import.UnixFSHAMTDirectorySizeEstimation must be %q, %q, or %q, got %q",
+				HAMTSizeEstimationLinks, HAMTSizeEstimationBlock, HAMTSizeEstimationDisabled, est)
+		}
+	}
+
+	// Validate UnixFSSymlinkMode
+	if !cfg.UnixFSSymlinkMode.IsDefault() {
+		mode := cfg.UnixFSSymlinkMode.WithDefault(DefaultUnixFSSymlinkMode)
+		switch mode {
+		case SymlinkModePreserve, SymlinkModeDereference:
+			// valid
+		default:
+			return fmt.Errorf("Import.UnixFSSymlinkMode must be %q or %q, got %q",
+				SymlinkModePreserve, SymlinkModeDereference, mode)
+		}
+	}
+
+	// Validate UnixFSDAGLayout
+	if !cfg.UnixFSDAGLayout.IsDefault() {
+		layout := cfg.UnixFSDAGLayout.WithDefault(DefaultUnixFSDAGLayout)
+		switch layout {
+		case DAGLayoutBalanced, DAGLayoutTrickle:
+			// valid
+		default:
+			return fmt.Errorf("Import.UnixFSDAGLayout must be %q or %q, got %q",
+				DAGLayoutBalanced, DAGLayoutTrickle, layout)
+		}
+	}
+
 	return nil
 }
 
@@ -144,8 +200,7 @@ func isValidChunker(chunker string) bool {
 	}
 
 	// Check for size-<bytes> format
-	if strings.HasPrefix(chunker, "size-") {
-		sizeStr := strings.TrimPrefix(chunker, "size-")
+	if sizeStr, ok := strings.CutPrefix(chunker, "size-"); ok {
 		if sizeStr == "" {
 			return false
 		}
@@ -167,7 +222,7 @@ func isValidChunker(chunker string) bool {
 
 		// Parse and validate min, avg, max values
 		values := make([]int, 3)
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			val, err := strconv.Atoi(parts[i+1])
 			if err != nil {
 				return false
@@ -181,4 +236,18 @@ func isValidChunker(chunker string) bool {
 	}
 
 	return false
+}
+
+// HAMTSizeEstimationMode returns the boxo SizeEstimationMode based on the config value.
+func (i *Import) HAMTSizeEstimationMode() io.SizeEstimationMode {
+	switch i.UnixFSHAMTDirectorySizeEstimation.WithDefault(DefaultUnixFSHAMTDirectorySizeEstimation) {
+	case HAMTSizeEstimationLinks:
+		return io.SizeEstimationLinks
+	case HAMTSizeEstimationBlock:
+		return io.SizeEstimationBlock
+	case HAMTSizeEstimationDisabled:
+		return io.SizeEstimationDisabled
+	default:
+		return io.SizeEstimationLinks
+	}
 }

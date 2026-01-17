@@ -439,11 +439,12 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	}
 
 	// Auto-sharding settings
-	shardSingThresholdInt := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
+	shardSizeThreshold := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
 	shardMaxFanout := cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout)
 	// TODO: avoid overriding this globally, see if we can extend Directory interface like Get/SetMaxLinks from https://github.com/ipfs/boxo/pull/906
-	uio.HAMTShardingSize = int(shardSingThresholdInt)
+	uio.HAMTShardingSize = int(shardSizeThreshold)
 	uio.DefaultShardWidth = int(shardMaxFanout)
+	uio.HAMTSizeEstimation = cfg.Import.HAMTSizeEstimationMode()
 
 	providerStrategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 

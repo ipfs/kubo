@@ -242,6 +242,9 @@ config file at runtime.
     - [`Import.UnixFSDirectoryMaxLinks`](#importunixfsdirectorymaxlinks)
     - [`Import.UnixFSHAMTDirectoryMaxFanout`](#importunixfshamtdirectorymaxfanout)
     - [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
+    - [`Import.UnixFSHAMTDirectorySizeEstimation`](#importunixfshamtdirectorysizeestimation)
+    - [`Import.UnixFSSymlinkMode`](#importunixfssymlinkmode)
+    - [`Import.UnixFSDAGLayout`](#importunixfsdaglayout)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -263,9 +266,9 @@ config file at runtime.
     - [`lowpower` profile](#lowpower-profile)
     - [`announce-off` profile](#announce-off-profile)
     - [`announce-on` profile](#announce-on-profile)
+    - [`unixfs-v0-2015` profile](#unixfs-v0-2015-profile)
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
-    - [`test-cid-v1` profile](#test-cid-v1-profile)
-    - [`test-cid-v1-wide` profile](#test-cid-v1-wide-profile)
+    - [`unixfs-v1-2025` profile](#unixfs-v1-2025-profile)
   - [Security](#security)
     - [Port and Network Exposure](#port-and-network-exposure)
     - [Security Best Practices](#security-best-practices)
@@ -3821,6 +3824,57 @@ Default: `256KiB` (may change, inspect `DefaultUnixFSHAMTDirectorySizeThreshold`
 
 Type: [`optionalBytes`](#optionalbytes)
 
+### `Import.UnixFSHAMTDirectorySizeEstimation`
+
+Controls how directory size is estimated when deciding whether to switch
+from a basic UnixFS directory to HAMT sharding.
+
+Accepted values:
+
+- `links` (default): Legacy estimation using sum of link names and CID byte lengths.
+- `block`: Full serialized dag-pb block size for accurate threshold decisions.
+- `disabled`: Disable HAMT sharding entirely (directories always remain basic).
+
+The `block` estimation is recommended for new profiles as it provides more
+accurate threshold decisions and better cross-implementation consistency.
+See [IPIP-499](https://github.com/ipfs/specs/pull/499) for more details.
+
+Commands affected: `ipfs add`
+
+Default: `links`
+
+Type: `optionalString`
+
+### `Import.UnixFSSymlinkMode`
+
+Controls how symbolic links are handled during import.
+
+Accepted values:
+
+- `preserve` (default): Store symlinks as UnixFS symlink nodes containing the target path.
+- `dereference`: Follow symlinks and import the target content instead.
+
+Commands affected: `ipfs add`
+
+Default: `preserve`
+
+Type: `optionalString`
+
+### `Import.UnixFSDAGLayout`
+
+Controls the DAG layout used when chunking files.
+
+Accepted values:
+
+- `balanced` (default): Balanced DAG layout with uniform leaf depth.
+- `trickle`: Trickle DAG layout optimized for streaming.
+
+Commands affected: `ipfs add`
+
+Default: `balanced`
+
+Type: `optionalString`
+
 ## `Version`
 
 Options to configure agent version announced to the swarm, and leveraging
@@ -4021,42 +4075,35 @@ Disables [Provide](#provide) system (and announcing to Amino DHT).
 
 (Re-)enables [Provide](#provide) system (reverts [`announce-off` profile](#announce-off-profile)).
 
+### `unixfs-v0-2015` profile
+
+Legacy UnixFS import profile for backward-compatible CID generation.
+Produces CIDv0 with no raw leaves, sha2-256, 256 KiB chunks, and
+link-based HAMT size estimation.
+
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
+
+> [!NOTE]
+> Use only when legacy CIDs are required. For new projects, use [`unixfs-v1-2025`](#unixfs-v1-2025-profile).
+>
+> See [IPIP-499](https://github.com/ipfs/specs/pull/499) for more details.
+
 ### `legacy-cid-v0` profile
 
-Makes UnixFS import (`ipfs add`) produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.
+Alias for [`unixfs-v0-2015`](#unixfs-v0-2015-profile) profile.
+
+### `unixfs-v1-2025` profile
+
+Recommended UnixFS import profile for cross-implementation CID determinism.
+Uses CIDv1, raw leaves, sha2-256, 1 MiB chunks, 1024 links per file node,
+256 HAMT fanout, and block-based size estimation for HAMT threshold.
 
 See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
 
 > [!NOTE]
-> This profile is provided for legacy users and should not be used for new projects.
-
-### `test-cid-v1` profile
-
-Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256
-and 1 MiB chunks (max 174 links per file, 256 per HAMT node, switch dir to HAMT
-above 256KiB).
-
-See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
-
-> [!NOTE]
-> [`Import.*`](#import) settings applied by this profile MAY change in future release. Provided for testing purposes.
+> This profile ensures CID consistency across different IPFS implementations.
 >
-> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
-> and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
-
-### `test-cid-v1-wide` profile
-
-Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256
-and 1 MiB chunks and wider file DAGs (max 1024 links per every node type,
-switch dir to HAMT above 1MiB).
-
-See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
-
-> [!NOTE]
-> [`Import.*`](#import) settings applied by this profile MAY change in future release. Provided for testing purposes.
->
-> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
-> and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
+> See [IPIP-499](https://github.com/ipfs/specs/pull/499) for more details.
 
 ## Security
 
