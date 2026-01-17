@@ -338,7 +338,6 @@ See https://github.com/ipfs/specs/pull/499`,
 			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
 			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
 			c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationBlock)
-			c.Import.UnixFSSymlinkMode = *NewOptionalString(SymlinkModePreserve)
 			c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
 			return nil
 		},
@@ -436,7 +435,6 @@ func applyUnixFSv02015(c *Config) error {
 	c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
 	c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
 	c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationLinks)
-	c.Import.UnixFSSymlinkMode = *NewOptionalString(SymlinkModePreserve)
 	c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
 	return nil
 }

@@ -183,6 +183,9 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	fileAdder.PreserveMtime = settings.PreserveMtime
 	fileAdder.FileMode = settings.Mode
 	fileAdder.FileMtime = settings.Mtime
+	if settings.IncludeEmptyDirsSet {
+		fileAdder.IncludeEmptyDirs = settings.IncludeEmptyDirs
+	}
 
 	switch settings.Layout {
 	case options.BalancedLayout:

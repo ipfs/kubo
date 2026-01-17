@@ -68,6 +68,7 @@ const (
 	mtimeNsecsOptionName      = "mtime-nsecs"
 	fastProvideRootOptionName = "fast-provide-root"
 	fastProvideWaitOptionName = "fast-provide-wait"
+	emptyDirsOptionName       = "empty-dirs"
 )
 
 const (
@@ -147,6 +148,18 @@ to find it in the future:
 See 'ipfs files --help' to learn more about using MFS
 for keeping track of added files and directories.
 
+SYMLINK HANDLING:
+
+By default, symbolic links are preserved as UnixFS symlink nodes that store
+the target path. Use --dereference-symlinks to resolve symlinks to their
+target content instead:
+
+  > ipfs add -r --dereference-symlinks ./mydir
+
+This recursively resolves all symlinks encountered during directory traversal.
+Symlinks to files become regular file content, symlinks to directories are
+traversed and their contents are added.
+
 CHUNKING EXAMPLES:
 
 The chunker option, '-s', specifies the chunking strategy that dictates
@@ -200,11 +213,13 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 	Options: []cmds.Option{
 		// Input Processing
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
-		cmds.OptionDerefArgs,     // a builtin option that resolves passed in filesystem links (--dereference-args)
+		cmds.OptionDerefArgs,     // DEPRECATED: use --dereference-symlinks instead
 		cmds.OptionStdinName,     // a builtin option that optionally allows wrapping stdin into a named file
 		cmds.OptionHidden,
 		cmds.OptionIgnore,
 		cmds.OptionIgnoreRules,
+		cmds.BoolOption(emptyDirsOptionName, "E", "Include empty directories in the import.").WithDefault(config.DefaultUnixFSIncludeEmptyDirs),
+		cmds.OptionDerefSymlinks, // resolve symlinks to their target content
 		// Output Control
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
@@ -274,7 +289,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		}
 
 		progress, _ := req.Options[progressOptionName].(bool)
-		trickle, _ := req.Options[trickleOptionName].(bool)
+		trickle, trickleSet := req.Options[trickleOptionName].(bool)
 		wrap, _ := req.Options[wrapOptionName].(bool)
 		onlyHash, _ := req.Options[onlyHashOptionName].(bool)
 		silent, _ := req.Options[silentOptionName].(bool)
@@ -312,6 +327,19 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		mtimeNsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
 		fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
 		fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
+		emptyDirs, _ := req.Options[emptyDirsOptionName].(bool)
+
+		// Handle --dereference-args deprecation
+		derefArgs, derefArgsSet := req.Options[cmds.DerefLong].(bool)
+		if derefArgsSet && derefArgs {
+			return fmt.Errorf("--dereference-args is deprecated: use --dereference-symlinks instead")
+		}
+
+		// Wire --trickle from config
+		if !trickleSet && !cfg.Import.UnixFSDAGLayout.IsDefault() {
+			layout := cfg.Import.UnixFSDAGLayout.WithDefault(config.DefaultUnixFSDAGLayout)
+			trickle = layout == config.DAGLayoutTrickle
+		}
 
 		if chunker == "" {
 			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
@@ -409,6 +437,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 			options.Unixfs.PreserveMode(preserveMode),
 			options.Unixfs.PreserveMtime(preserveMtime),
+
+			options.Unixfs.IncludeEmptyDirs(emptyDirs),
 		}
 
 		if mode != 0 {

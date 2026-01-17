@@ -243,7 +243,6 @@ config file at runtime.
     - [`Import.UnixFSHAMTDirectoryMaxFanout`](#importunixfshamtdirectorymaxfanout)
     - [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
     - [`Import.UnixFSHAMTDirectorySizeEstimation`](#importunixfshamtdirectorysizeestimation)
-    - [`Import.UnixFSSymlinkMode`](#importunixfssymlinkmode)
     - [`Import.UnixFSDAGLayout`](#importunixfsdaglayout)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
@@ -3642,9 +3641,11 @@ Type: `flag`
 
 ## `Import`
 
-Options to configure the default options used for ingesting data, in commands such as `ipfs add` or `ipfs block put`. All affected commands are detailed per option.
+Options to configure the default parameters used for ingesting data, in commands such as `ipfs add` or `ipfs block put`. All affected commands are detailed per option.
 
-Note that using flags will override the options defined here.
+These options implement [IPIP-499: UnixFS CID Profiles](https://github.com/ipfs/specs/pull/499) for reproducible CID generation across IPFS implementations. Instead of configuring individual options, you can apply a predefined profile with `ipfs config profile apply <profile-name>`. See [Profiles](#profiles) for available options like `unixfs-v1-2025`.
+
+Note that using CLI flags will override the options defined here.
 
 ### `Import.CidVersion`
 
@@ -3845,21 +3846,6 @@ Default: `links`
 
 Type: `optionalString`
 
-### `Import.UnixFSSymlinkMode`
-
-Controls how symbolic links are handled during import.
-
-Accepted values:
-
-- `preserve` (default): Store symlinks as UnixFS symlink nodes containing the target path.
-- `dereference`: Follow symlinks and import the target content instead.
-
-Commands affected: `ipfs add`
-
-Default: `preserve`
-
-Type: `optionalString`
-
 ### `Import.UnixFSDAGLayout`
 
 Controls the DAG layout used when chunking files.
@@ -3918,7 +3904,7 @@ applied with the `--profile` flag to `ipfs init` or with the `ipfs config profil
 apply` command. When a profile is applied a backup of the configuration file
 will be created in `$IPFS_PATH`.
 
-Configuration profiles can be applied additively. For example, both the `test-cid-v1` and `lowpower` profiles can be applied one after the other.
+Configuration profiles can be applied additively. For example, both the `unixfs-v1-2025` and `lowpower` profiles can be applied one after the other.
 The available configuration profiles are listed below. You can also find them
 documented in `ipfs config profile --help`.
 

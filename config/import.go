@@ -35,17 +35,13 @@ const (
 	HAMTSizeEstimationBlock    = "block"    // full serialized dag-pb block size
 	HAMTSizeEstimationDisabled = "disabled" // disable HAMT sharding entirely
 
-	// SymlinkMode values for Import.UnixFSSymlinkMode
-	SymlinkModePreserve    = "preserve"    // preserve symlinks as UnixFS symlink nodes
-	SymlinkModeDereference = "dereference" // dereference symlinks, import target content
-
 	// DAGLayout values for Import.UnixFSDAGLayout
 	DAGLayoutBalanced = "balanced" // balanced DAG layout (default)
 	DAGLayoutTrickle  = "trickle"  // trickle DAG layout
 
 	DefaultUnixFSHAMTDirectorySizeEstimation = HAMTSizeEstimationLinks // legacy behavior
-	DefaultUnixFSSymlinkMode                 = SymlinkModePreserve     // preserve symlinks as UnixFS symlink nodes
 	DefaultUnixFSDAGLayout                   = DAGLayoutBalanced       // balanced DAG layout
+	DefaultUnixFSIncludeEmptyDirs            = true                    // include empty directories
 )
 
 var (
@@ -66,7 +62,6 @@ type Import struct {
 	UnixFSHAMTDirectoryMaxFanout      OptionalInteger
 	UnixFSHAMTDirectorySizeThreshold  OptionalBytes
 	UnixFSHAMTDirectorySizeEstimation OptionalString // "links", "block", or "disabled"
-	UnixFSSymlinkMode                 OptionalString // "preserve" or "dereference"
 	UnixFSDAGLayout                   OptionalString // "balanced" or "trickle"
 	BatchMaxNodes                     OptionalInteger
 	BatchMaxSize                      OptionalInteger
@@ -158,18 +153,6 @@ func ValidateImportConfig(cfg *Import) error {
 		default:
 			return fmt.Errorf("Import.UnixFSHAMTDirectorySizeEstimation must be %q, %q, or %q, got %q",
 				HAMTSizeEstimationLinks, HAMTSizeEstimationBlock, HAMTSizeEstimationDisabled, est)
-		}
-	}
-
-	// Validate UnixFSSymlinkMode
-	if !cfg.UnixFSSymlinkMode.IsDefault() {
-		mode := cfg.UnixFSSymlinkMode.WithDefault(DefaultUnixFSSymlinkMode)
-		switch mode {
-		case SymlinkModePreserve, SymlinkModeDereference:
-			// valid
-		default:
-			return fmt.Errorf("Import.UnixFSSymlinkMode must be %q or %q, got %q",
-				SymlinkModePreserve, SymlinkModeDereference, mode)
 		}
 	}
 

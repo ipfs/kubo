@@ -449,6 +449,186 @@ func TestAdd(t *testing.T) {
 			require.Equal(t, 992, len(root.Links))
 		})
 	})
+
+	t.Run("ipfs add --hidden", func(t *testing.T) {
+		t.Parallel()
+
+		// Helper to create test directory with hidden file
+		setupTestDir := func(t *testing.T, node *harness.Node) string {
+			testDir, err := os.MkdirTemp(node.Dir, "hidden-test")
+			require.NoError(t, err)
+			require.NoError(t, os.WriteFile(filepath.Join(testDir, "visible.txt"), []byte("visible"), 0644))
+			require.NoError(t, os.WriteFile(filepath.Join(testDir, ".hidden"), []byte("hidden"), 0644))
+			return testDir
+		}
+
+		t.Run("default excludes hidden files", func(t *testing.T) {
+			t.Parallel()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
+
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", testDir).Stdout.Trimmed()
+			lsOutput := node.IPFS("ls", cidStr).Stdout.Trimmed()
+			require.Contains(t, lsOutput, "visible.txt")
+			require.NotContains(t, lsOutput, ".hidden")
+		})
+
+		t.Run("--hidden includes hidden files", func(t *testing.T) {
+			t.Parallel()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
+
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", "--hidden", testDir).Stdout.Trimmed()
+			lsOutput := node.IPFS("ls", cidStr).Stdout.Trimmed()
+			require.Contains(t, lsOutput, "visible.txt")
+			require.Contains(t, lsOutput, ".hidden")
+		})
+
+		t.Run("-H includes hidden files", func(t *testing.T) {
+			t.Parallel()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
+
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", "-H", testDir).Stdout.Trimmed()
+			lsOutput := node.IPFS("ls", cidStr).Stdout.Trimmed()
+			require.Contains(t, lsOutput, "visible.txt")
+			require.Contains(t, lsOutput, ".hidden")
+		})
+	})
+
+	t.Run("ipfs add --empty-dirs", func(t *testing.T) {
+		t.Parallel()
+
+		// Helper to create test directory with empty subdirectory
+		setupTestDir := func(t *testing.T, node *harness.Node) string {
+			testDir, err := os.MkdirTemp(node.Dir, "empty-dirs-test")
+			require.NoError(t, err)
+			require.NoError(t, os.Mkdir(filepath.Join(testDir, "empty-subdir"), 0755))
+			require.NoError(t, os.WriteFile(filepath.Join(testDir, "file.txt"), []byte("content"), 0644))
+			return testDir
+		}
+
+		t.Run("default includes empty directories", func(t *testing.T) {
+			t.Parallel()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
+
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", testDir).Stdout.Trimmed()
+			require.Contains(t, node.IPFS("ls", cidStr).Stdout.Trimmed(), "empty-subdir")
+		})
+
+		t.Run("--empty-dirs=true includes empty directories", func(t *testing.T) {
+			t.Parallel()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
+
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", "--empty-dirs=true", testDir).Stdout.Trimmed()
+			require.Contains(t, node.IPFS("ls", cidStr).Stdout.Trimmed(), "empty-subdir")
+		})
+
+		t.Run("--empty-dirs=false excludes empty directories", func(t *testing.T) {
+			t.Parallel()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
+
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", "--empty-dirs=false", testDir).Stdout.Trimmed()
+			lsOutput := node.IPFS("ls", cidStr).Stdout.Trimmed()
+			require.NotContains(t, lsOutput, "empty-subdir")
+			require.Contains(t, lsOutput, "file.txt")
+		})
+	})
+
+	t.Run("ipfs add --dereference-symlinks", func(t *testing.T) {
+		t.Parallel()
+
+		// Helper to create test directory with a file and symlink to it
+		setupTestDir := func(t *testing.T, node *harness.Node) string {
+			testDir, err := os.MkdirTemp(node.Dir, "deref-symlinks-test")
+			require.NoError(t, err)
+
+			targetFile := filepath.Join(testDir, "target.txt")
+			require.NoError(t, os.WriteFile(targetFile, []byte("target content"), 0644))
+
+			// Create symlink pointing to target
+			require.NoError(t, os.Symlink("target.txt", filepath.Join(testDir, "link.txt")))
+
+			return testDir
+		}
+
+		t.Run("default preserves symlinks", func(t *testing.T) {
+			t.Parallel()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
+
+			testDir := setupTestDir(t, node)
+
+			// Add directory with symlink (default: preserve)
+			dirCID := node.IPFS("add", "-r", "-Q", testDir).Stdout.Trimmed()
+
+			// Get to a new directory and verify symlink is preserved
+			outDir, err := os.MkdirTemp(node.Dir, "symlink-get-out")
+			require.NoError(t, err)
+			node.IPFS("get", "-o", outDir, dirCID)
+
+			// Check that link.txt is a symlink (ipfs get -o puts files directly in outDir)
+			linkPath := filepath.Join(outDir, "link.txt")
+			fi, err := os.Lstat(linkPath)
+			require.NoError(t, err)
+			require.True(t, fi.Mode()&os.ModeSymlink != 0, "link.txt should be a symlink")
+
+			// Verify symlink target
+			target, err := os.Readlink(linkPath)
+			require.NoError(t, err)
+			require.Equal(t, "target.txt", target)
+		})
+
+		t.Run("--dereference-symlinks resolves nested symlinks", func(t *testing.T) {
+			t.Parallel()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
+
+			testDir := setupTestDir(t, node)
+
+			// Add directory with dereference flag - nested symlinks should be resolved
+			dirCID := node.IPFS("add", "-r", "-Q", "--dereference-symlinks", testDir).Stdout.Trimmed()
+
+			// Get and verify symlink was dereferenced to regular file
+			outDir, err := os.MkdirTemp(node.Dir, "symlink-get-out")
+			require.NoError(t, err)
+			node.IPFS("get", "-o", outDir, dirCID)
+
+			linkPath := filepath.Join(outDir, "link.txt")
+			fi, err := os.Lstat(linkPath)
+			require.NoError(t, err)
+
+			// Should be a regular file, not a symlink
+			require.False(t, fi.Mode()&os.ModeSymlink != 0,
+				"link.txt should be dereferenced to regular file, not preserved as symlink")
+
+			// Content should match the target file
+			content, err := os.ReadFile(linkPath)
+			require.NoError(t, err)
+			require.Equal(t, "target content", string(content))
+		})
+
+		t.Run("--dereference-args is deprecated", func(t *testing.T) {
+			t.Parallel()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
+			defer node.StopDaemon()
+
+			testDir := setupTestDir(t, node)
+
+			res := node.RunIPFS("add", "-Q", "--dereference-args", filepath.Join(testDir, "link.txt"))
+			require.Error(t, res.Err)
+			require.Contains(t, res.Stderr.String(), "--dereference-args is deprecated")
+		})
+	})
 }
 
 func TestAddFastProvide(t *testing.T) {

@@ -446,43 +446,6 @@ func TestValidateImportConfig_HAMTSizeEstimation(t *testing.T) {
 	}
 }
 
-func TestValidateImportConfig_SymlinkMode(t *testing.T) {
-	tests := []struct {
-		name    string
-		value   string
-		wantErr bool
-		errMsg  string
-	}{
-		{name: "valid preserve", value: SymlinkModePreserve, wantErr: false},
-		{name: "valid dereference", value: SymlinkModeDereference, wantErr: false},
-		{name: "invalid unknown", value: "unknown", wantErr: true, errMsg: "must be"},
-		{name: "invalid empty", value: "", wantErr: true, errMsg: "must be"},
-		{name: "invalid follow", value: "follow", wantErr: true, errMsg: "must be"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cfg := &Import{
-				UnixFSSymlinkMode: *NewOptionalString(tt.value),
-			}
-
-			err := ValidateImportConfig(cfg)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("expected error for value=%q, got nil", tt.value)
-				} else if tt.errMsg != "" && !strings.Contains(err.Error(), tt.errMsg) {
-					t.Errorf("error = %v, want error containing %q", err, tt.errMsg)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error for value=%q: %v", tt.value, err)
-				}
-			}
-		})
-	}
-}
-
 func TestValidateImportConfig_DAGLayout(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -528,7 +491,7 @@ func TestImport_HAMTSizeEstimationMode(t *testing.T) {
 		{HAMTSizeEstimationLinks, io.SizeEstimationLinks},
 		{HAMTSizeEstimationBlock, io.SizeEstimationBlock},
 		{HAMTSizeEstimationDisabled, io.SizeEstimationDisabled},
-		{"", io.SizeEstimationLinks},       // default (unset returns default)
+		{"", io.SizeEstimationLinks},        // default (unset returns default)
 		{"unknown", io.SizeEstimationLinks}, // fallback to default
 	}
 

@@ -26,6 +26,7 @@ import (
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 
 	"github.com/ipfs/kubo/tracing"
@@ -52,17 +53,18 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 	bufferedDS := ipld.NewBufferedDAG(ctx, ds)
 
 	return &Adder{
-		ctx:           ctx,
-		pinning:       p,
-		gcLocker:      bs,
-		dagService:    ds,
-		bufferedDS:    bufferedDS,
-		Progress:      false,
-		Pin:           true,
-		Trickle:       false,
-		MaxLinks:      ihelper.DefaultLinksPerBlock,
-		MaxHAMTFanout: uio.DefaultShardWidth,
-		Chunker:       "",
+		ctx:              ctx,
+		pinning:          p,
+		gcLocker:         bs,
+		dagService:       ds,
+		bufferedDS:       bufferedDS,
+		Progress:         false,
+		Pin:              true,
+		Trickle:          false,
+		MaxLinks:         ihelper.DefaultLinksPerBlock,
+		MaxHAMTFanout:    uio.DefaultShardWidth,
+		Chunker:          "",
+		IncludeEmptyDirs: config.DefaultUnixFSIncludeEmptyDirs,
 	}, nil
 }
 
@@ -91,10 +93,11 @@ type Adder struct {
 	CidBuilder        cid.Builder
 	liveNodes         uint64
 
-	PreserveMode  bool
-	PreserveMtime bool
-	FileMode      os.FileMode
-	FileMtime     time.Time
+	PreserveMode     bool
+	PreserveMtime    bool
+	FileMode         os.FileMode
+	FileMtime        time.Time
+	IncludeEmptyDirs bool
 }
 
 func (adder *Adder) mfsRoot() (*mfs.Root, error) {
@@ -480,6 +483,24 @@ func (adder *Adder) addFile(path string, file files.File) error {
 func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory, toplevel bool) error {
 	log.Infof("adding directory: %s", path)
 
+	// Peek at first entry to check if directory is empty.
+	// We advance the iterator once here and continue from this position
+	// in the processing loop below. This avoids allocating a slice to
+	// collect all entries just to check for emptiness.
+	it := dir.Entries()
+	hasEntry := it.Next()
+	if !hasEntry {
+		if err := it.Err(); err != nil {
+			return err
+		}
+		// Directory is empty. Skip it unless IncludeEmptyDirs is set or
+		// this is the toplevel directory (we always include the root).
+		if !adder.IncludeEmptyDirs && !toplevel {
+			log.Debugf("skipping empty directory: %s", path)
+			return nil
+		}
+	}
+
 	// if we need to store mode or modification time then create a new root which includes that data
 	if toplevel && (adder.FileMode != 0 || !adder.FileMtime.IsZero()) {
 		mr, err := mfs.NewEmptyRoot(ctx, adder.dagService, nil, nil,
@@ -515,13 +536,14 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 		}
 	}
 
-	it := dir.Entries()
-	for it.Next() {
+	// Process directory entries. The iterator was already advanced once above
+	// to peek for emptiness, so we start from that position.
+	for hasEntry {
 		fpath := gopath.Join(path, it.Name())
-		err := adder.addFileNode(ctx, fpath, it.Node(), false)
-		if err != nil {
+		if err := adder.addFileNode(ctx, fpath, it.Node(), false); err != nil {
 			return err
 		}
+		hasEntry = it.Next()
 	}
 
 	return it.Err()
