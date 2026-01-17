@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ipfs/boxo/files"
@@ -61,6 +62,10 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 		// noop, default
 	case caopts.TrickleLayout:
 		req.Option("trickle", true)
+	}
+
+	if d, ok := f.(files.Directory); ok {
+		f = &skippingDirectory{Directory: d}
 	}
 
 	d := files.NewMapDirectory(map[string]files.Node{"": f}) // unwrapped on the other side
@@ -221,3 +226,51 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, out chan<- iface.DirE
 func (api *UnixfsAPI) core() *HttpApi {
 	return (*HttpApi)(api)
 }
+
+type skippingDirectory struct {
+	files.Directory
+}
+
+func (d *skippingDirectory) Entries() files.DirIterator {
+	return &skippingIterator{DirIterator: d.Directory.Entries()}
+}
+
+type skippingIterator struct {
+	files.DirIterator
+	lastErrString string
+}
+
+func (it *skippingIterator) Next() bool {
+	for {
+		if it.DirIterator.Next() {
+			it.lastErrString = ""
+			return true
+		}
+
+		// We only get here if Next() returned false.
+		// Check if it was because of an error we want to skip.
+		if err := it.DirIterator.Err(); err != nil {
+			if strings.Contains(err.Error(), "unrecognized file type") {
+				// Check for stagnation (EOF with sticky error)
+				if err.Error() == it.lastErrString {
+					return false
+				}
+				it.lastErrString = err.Error()
+				continue
+			}
+		}
+		return false
+	}
+}
+
+func (it *skippingIterator) Err() error {
+	err := it.DirIterator.Err()
+	if err != nil && strings.Contains(err.Error(), "unrecognized file type") {
+		return nil
+	}
+	return err
+}
+
+// Ensure api.go imports strings if not already.
+// Checking imports... unixfs.go imports: context, encoding/json, errors, fmt, io, os, time, github..., multiformats...
+// Need to add "strings".
