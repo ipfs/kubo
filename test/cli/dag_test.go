@@ -305,3 +305,64 @@ func TestDagImportFastProvide(t *testing.T) {
 		require.Contains(t, daemonLog, "fast-provide-root: skipped")
 	})
 }
+
+func TestDagStatCaching(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cache reuses stats for duplicate CIDs", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+
+		// Import the fixture with shared subgraph
+		r, err := os.Open(fixtureFile)
+		require.NoError(t, err)
+		defer r.Close()
+		err = node.IPFSDagImport(r, fixtureCid)
+		require.NoError(t, err)
+
+		// Run dag stat on the same CID multiple times - cache should make it consistent
+		stat1 := node.RunIPFS("dag", "stat", "--progress=false", "--enc=json", node1Cid)
+		stat2 := node.RunIPFS("dag", "stat", "--progress=false", "--enc=json", node1Cid)
+
+		// Both should return identical results
+		assert.Equal(t, stat1.Stdout.Bytes(), stat2.Stdout.Bytes())
+
+		// Parse and verify the stats are correct
+		var data1, data2 Data
+		err = json.Unmarshal(stat1.Stdout.Bytes(), &data1)
+		require.NoError(t, err)
+		err = json.Unmarshal(stat2.Stdout.Bytes(), &data2)
+		require.NoError(t, err)
+
+		assert.Equal(t, data1, data2)
+		assert.Equal(t, 53, data1.TotalSize) // node1 size (46) + child (7)
+		assert.Equal(t, 2, data1.DagStats[0].NumBlocks)
+	})
+
+	t.Run("cache works across multiple CIDs with shared subgraph", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+
+		r, err := os.Open(fixtureFile)
+		require.NoError(t, err)
+		defer r.Close()
+		err = node.IPFSDagImport(r, fixtureCid)
+		require.NoError(t, err)
+
+		// When querying both nodes that share a child, the shared child should
+		// only be counted once in TotalSize but twice in redundant size
+		stat := node.RunIPFS("dag", "stat", "--progress=false", "--enc=json", node1Cid, node2Cid)
+		var data Data
+		err = json.Unmarshal(stat.Stdout.Bytes(), &data)
+		require.NoError(t, err)
+
+		// TotalSize should be: node1(46) + node2(46) + shared_child(7) = 99
+		assert.Equal(t, 99, data.TotalSize)
+		// SharedSize should be: shared_child(7) counted again = 7
+		assert.Equal(t, 7, data.SharedSize)
+		// Ratio should be (99+7)/99 ≈ 1.0707
+		expectedRatio := float64(99+7) / float64(99)
+		assert.Equal(t, testutils.FloatTruncate(expectedRatio, 4), testutils.FloatTruncate(data.Ratio, 4))
+		assert.Equal(t, 3, data.UniqueBlocks)
+	})
+}
