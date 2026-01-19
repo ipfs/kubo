@@ -24,16 +24,18 @@ type UnixfsAddSettings struct {
 	CidVersion int
 	MhType     uint64
 
-	Inline               bool
-	InlineLimit          int
-	RawLeaves            bool
-	RawLeavesSet         bool
-	MaxFileLinks         int
-	MaxFileLinksSet      bool
-	MaxDirectoryLinks    int
-	MaxDirectoryLinksSet bool
-	MaxHAMTFanout        int
-	MaxHAMTFanoutSet     bool
+	Inline                bool
+	InlineLimit           int
+	RawLeaves             bool
+	RawLeavesSet          bool
+	MaxFileLinks          int
+	MaxFileLinksSet       bool
+	MaxDirectoryLinks     int
+	MaxDirectoryLinksSet  bool
+	MaxHAMTFanout         int
+	MaxHAMTFanoutSet      bool
+	SizeEstimationMode    *io.SizeEstimationMode
+	SizeEstimationModeSet bool
 
 	Chunker string
 	Layout  Layout
@@ -235,6 +237,15 @@ func (unixfsOpts) MaxHAMTFanout(n int) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.MaxHAMTFanout = n
 		settings.MaxHAMTFanoutSet = true
+		return nil
+	}
+}
+
+// SizeEstimationMode specifies how directory size is estimated for HAMT sharding decisions.
+func (unixfsOpts) SizeEstimationMode(mode io.SizeEstimationMode) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.SizeEstimationMode = &mode
+		settings.SizeEstimationModeSet = true
 		return nil
 	}
 }

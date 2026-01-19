@@ -70,28 +70,29 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 
 // Adder holds the switches passed to the `add` command.
 type Adder struct {
-	ctx               context.Context
-	pinning           pin.Pinner
-	gcLocker          bstore.GCLocker
-	dagService        ipld.DAGService
-	bufferedDS        *ipld.BufferedDAG
-	Out               chan<- interface{}
-	Progress          bool
-	Pin               bool
-	PinName           string
-	Trickle           bool
-	RawLeaves         bool
-	MaxLinks          int
-	MaxDirectoryLinks int
-	MaxHAMTFanout     int
-	Silent            bool
-	NoCopy            bool
-	Chunker           string
-	mroot             *mfs.Root
-	unlocker          bstore.Unlocker
-	tempRoot          cid.Cid
-	CidBuilder        cid.Builder
-	liveNodes         uint64
+	ctx                context.Context
+	pinning            pin.Pinner
+	gcLocker           bstore.GCLocker
+	dagService         ipld.DAGService
+	bufferedDS         *ipld.BufferedDAG
+	Out                chan<- interface{}
+	Progress           bool
+	Pin                bool
+	PinName            string
+	Trickle            bool
+	RawLeaves          bool
+	MaxLinks           int
+	MaxDirectoryLinks  int
+	MaxHAMTFanout      int
+	SizeEstimationMode *uio.SizeEstimationMode
+	Silent             bool
+	NoCopy             bool
+	Chunker            string
+	mroot              *mfs.Root
+	unlocker           bstore.Unlocker
+	tempRoot           cid.Cid
+	CidBuilder         cid.Builder
+	liveNodes          uint64
 
 	PreserveMode     bool
 	PreserveMtime    bool
@@ -107,9 +108,10 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 
 	// Note, this adds it to DAGService already.
 	mr, err := mfs.NewEmptyRoot(adder.ctx, adder.dagService, nil, nil, mfs.MkdirOpts{
-		CidBuilder:    adder.CidBuilder,
-		MaxLinks:      adder.MaxDirectoryLinks,
-		MaxHAMTFanout: adder.MaxHAMTFanout,
+		CidBuilder:         adder.CidBuilder,
+		MaxLinks:           adder.MaxDirectoryLinks,
+		MaxHAMTFanout:      adder.MaxHAMTFanout,
+		SizeEstimationMode: adder.SizeEstimationMode,
 	})
 	if err != nil {
 		return nil, err
@@ -273,11 +275,12 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 	dir := gopath.Dir(path)
 	if dir != "." {
 		opts := mfs.MkdirOpts{
-			Mkparents:     true,
-			Flush:         false,
-			CidBuilder:    adder.CidBuilder,
-			MaxLinks:      adder.MaxDirectoryLinks,
-			MaxHAMTFanout: adder.MaxHAMTFanout,
+			Mkparents:          true,
+			Flush:              false,
+			CidBuilder:         adder.CidBuilder,
+			MaxLinks:           adder.MaxDirectoryLinks,
+			MaxHAMTFanout:      adder.MaxHAMTFanout,
+			SizeEstimationMode: adder.SizeEstimationMode,
 		}
 		if err := mfs.Mkdir(mr, dir, opts); err != nil {
 			return err
@@ -505,11 +508,12 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 	if toplevel && (adder.FileMode != 0 || !adder.FileMtime.IsZero()) {
 		mr, err := mfs.NewEmptyRoot(ctx, adder.dagService, nil, nil,
 			mfs.MkdirOpts{
-				CidBuilder:    adder.CidBuilder,
-				MaxLinks:      adder.MaxDirectoryLinks,
-				MaxHAMTFanout: adder.MaxHAMTFanout,
-				ModTime:       adder.FileMtime,
-				Mode:          adder.FileMode,
+				CidBuilder:         adder.CidBuilder,
+				MaxLinks:           adder.MaxDirectoryLinks,
+				MaxHAMTFanout:      adder.MaxHAMTFanout,
+				ModTime:            adder.FileMtime,
+				Mode:               adder.FileMode,
+				SizeEstimationMode: adder.SizeEstimationMode,
 			})
 		if err != nil {
 			return err
@@ -523,13 +527,14 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 			return err
 		}
 		err = mfs.Mkdir(mr, path, mfs.MkdirOpts{
-			Mkparents:     true,
-			Flush:         false,
-			CidBuilder:    adder.CidBuilder,
-			Mode:          adder.FileMode,
-			ModTime:       adder.FileMtime,
-			MaxLinks:      adder.MaxDirectoryLinks,
-			MaxHAMTFanout: adder.MaxHAMTFanout,
+			Mkparents:          true,
+			Flush:              false,
+			CidBuilder:         adder.CidBuilder,
+			Mode:               adder.FileMode,
+			ModTime:            adder.FileMtime,
+			MaxLinks:           adder.MaxDirectoryLinks,
+			MaxHAMTFanout:      adder.MaxHAMTFanout,
+			SizeEstimationMode: adder.SizeEstimationMode,
 		})
 		if err != nil {
 			return err

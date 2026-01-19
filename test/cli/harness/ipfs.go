@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
 	"strings"
 
@@ -148,9 +149,15 @@ func (n *Node) IPFSDagImport(content io.Reader, cid string, args ...string) erro
 	return res.Err
 }
 
-/*
-func (n *Node) IPFSDagExport(cid string, car *os.File) error {
-	log.Debugf("node %d dag export of %s to %q with args: %v", n.ID, cid, car.Name())
+// IPFSDagExport exports a DAG rooted at cid to a CAR file at carPath.
+func (n *Node) IPFSDagExport(cid string, carPath string) error {
+	log.Debugf("node %d dag export of %s to %q", n.ID, cid, carPath)
+	car, err := os.Create(carPath)
+	if err != nil {
+		return err
+	}
+	defer car.Close()
+
 	res := n.Runner.MustRun(RunRequest{
 		Path:    n.IPFSBin,
 		Args:    []string{"dag", "export", cid},
@@ -158,4 +165,3 @@ func (n *Node) IPFSDagExport(cid string, car *os.File) error {
 	})
 	return res.Err
 }
-*/

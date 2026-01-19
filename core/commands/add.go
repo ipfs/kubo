@@ -15,6 +15,7 @@ import (
 
 	"github.com/cheggaaa/pb"
 	"github.com/ipfs/boxo/files"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/boxo/verifcid"
@@ -300,6 +301,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		maxFileLinks, maxFileLinksSet := req.Options[maxFileLinksOptionName].(int)
 		maxDirectoryLinks, maxDirectoryLinksSet := req.Options[maxDirectoryLinksOptionName].(int)
 		maxHAMTFanout, maxHAMTFanoutSet := req.Options[maxHAMTFanoutOptionName].(int)
+		var sizeEstimationMode uio.SizeEstimationMode
 		nocopy, _ := req.Options[noCopyOptionName].(bool)
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
@@ -375,6 +377,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			maxHAMTFanoutSet = true
 			maxHAMTFanout = int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
 		}
+
+		// SizeEstimationMode is always set from config (no CLI flag)
+		sizeEstimationMode = cfg.Import.HAMTSizeEstimationMode()
 
 		fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
 		fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
@@ -470,6 +475,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		if maxHAMTFanoutSet {
 			opts = append(opts, options.Unixfs.MaxHAMTFanout(maxHAMTFanout))
 		}
+
+		// SizeEstimationMode is always set from config
+		opts = append(opts, options.Unixfs.SizeEstimationMode(sizeEstimationMode))
 
 		if trickle {
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
