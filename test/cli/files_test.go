@@ -353,3 +353,109 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		assert.Contains(t, res.Stderr.String(), "reached limit of 5 unflushed MFS operations")
 	})
 }
+
+func TestFilesChroot(t *testing.T) {
+	t.Parallel()
+
+	// Known CIDs for testing
+	emptyDirCid := "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn"
+
+	t.Run("requires --confirm flag", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		// Don't start daemon - chroot runs offline
+
+		res := node.RunIPFS("files", "chroot")
+		require.NotNil(t, res.ExitErr)
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "pass --confirm to proceed")
+	})
+
+	t.Run("resets to empty directory", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Start daemon to create MFS state
+		node.StartDaemon()
+		node.IPFS("files", "mkdir", "/testdir")
+		node.StopDaemon()
+
+		// Reset MFS to empty - should exit 0
+		res := node.RunIPFS("files", "chroot", "--confirm")
+		assert.Nil(t, res.ExitErr, "expected exit code 0")
+		assert.Contains(t, res.Stdout.String(), emptyDirCid)
+
+		// Verify daemon starts and MFS is empty
+		node.StartDaemon()
+		defer node.StopDaemon()
+		lsRes := node.IPFS("files", "ls", "/")
+		assert.Empty(t, lsRes.Stdout.Trimmed())
+	})
+
+	t.Run("replaces with valid directory CID", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Start daemon to add content
+		node.StartDaemon()
+		node.IPFS("files", "mkdir", "/mydir")
+		// Create a temp file for content
+		tempFile := filepath.Join(node.Dir, "testfile.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte("hello"), 0644))
+		node.IPFS("files", "write", "--create", "/mydir/file.txt", tempFile)
+		statRes := node.IPFS("files", "stat", "--hash", "/mydir")
+		dirCid := statRes.Stdout.Trimmed()
+		node.StopDaemon()
+
+		// Reset to empty first
+		node.IPFS("files", "chroot", "--confirm")
+
+		// Set root to the saved directory - should exit 0
+		res := node.RunIPFS("files", "chroot", "--confirm", dirCid)
+		assert.Nil(t, res.ExitErr, "expected exit code 0")
+		assert.Contains(t, res.Stdout.String(), dirCid)
+
+		// Verify content
+		node.StartDaemon()
+		defer node.StopDaemon()
+		readRes := node.IPFS("files", "read", "/file.txt")
+		assert.Equal(t, "hello", readRes.Stdout.Trimmed())
+	})
+
+	t.Run("fails with non-existent CID", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		res := node.RunIPFS("files", "chroot", "--confirm", "bafybeibdxtd5thfoitjmnfhxhywokebwdmwnuqgkzjjdjhwjz7qh77777a")
+		require.NotNil(t, res.ExitErr)
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "does not exist locally")
+	})
+
+	t.Run("fails with file CID", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Add a file to get a file CID
+		node.StartDaemon()
+		fileCid := node.IPFSAddStr("hello world")
+		node.StopDaemon()
+
+		// Try to set file as root - should fail with non-zero exit
+		res := node.RunIPFS("files", "chroot", "--confirm", fileCid)
+		require.NotNil(t, res.ExitErr)
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "must be a directory")
+	})
+
+	t.Run("fails while daemon is running", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
+
+		res := node.RunIPFS("files", "chroot", "--confirm")
+		require.NotNil(t, res.ExitErr)
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "opening repo")
+	})
+}
