@@ -157,9 +157,9 @@ target content instead:
 
   > ipfs add -r --dereference-symlinks ./mydir
 
-This recursively resolves all symlinks encountered during directory traversal.
-Symlinks to files become regular file content, symlinks to directories are
-traversed and their contents are added.
+This resolves all symlinks, including CLI arguments and those found inside
+directories. Symlinks to files become regular file content, symlinks to
+directories are traversed and their contents are added.
 
 CHUNKING EXAMPLES:
 
@@ -331,11 +331,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
 		emptyDirs, _ := req.Options[emptyDirsOptionName].(bool)
 
-		// Handle --dereference-args deprecation
-		derefArgs, derefArgsSet := req.Options[cmds.DerefLong].(bool)
-		if derefArgsSet && derefArgs {
-			return fmt.Errorf("--dereference-args is deprecated: use --dereference-symlinks instead")
-		}
+		// Note: --dereference-args is deprecated but still works for backwards compatibility.
+		// The help text marks it as DEPRECATED. Users should use --dereference-symlinks instead,
+		// which is a superset (resolves both CLI arg symlinks AND nested symlinks in directories).
 
 		// Wire --trickle from config
 		if !trickleSet && !cfg.Import.UnixFSDAGLayout.IsDefault() {

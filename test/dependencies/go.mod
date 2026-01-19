@@ -135,13 +135,13 @@ require (
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
-	github.com/ipfs/boxo v0.35.3-0.20260119043727-6707376002a3 // indirect
+	github.com/ipfs/boxo v0.35.3-0.20260119230329-ffe1a9cc4a94 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.3 // indirect
 	github.com/ipfs/go-cid v0.6.0 // indirect
 	github.com/ipfs/go-datastore v0.9.0 // indirect
 	github.com/ipfs/go-dsqueue v0.1.1 // indirect
-	github.com/ipfs/go-ipfs-cmds v0.15.1-0.20260117043932-17687e216294 // indirect
+	github.com/ipfs/go-ipfs-cmds v0.15.1-0.20260119234300-242f1a10dc40 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
 	github.com/ipfs/go-ipld-format v0.6.3 // indirect

@@ -485,19 +485,32 @@ func TestAdd(t *testing.T) {
 		})
 	})
 
-	t.Run("ipfs add --dereference-symlinks", func(t *testing.T) {
+	t.Run("ipfs add symlink handling", func(t *testing.T) {
 		t.Parallel()
 
-		// Helper to create test directory with a file and symlink to it
+		// Helper to create test directory structure:
+		// testDir/
+		//   target.txt           (file with "target content")
+		//   link.txt -> target.txt (symlink at top level)
+		//   subdir/
+		//     subsubdir/
+		//       nested-target.txt (file with "nested content")
+		//       nested-link.txt -> nested-target.txt (symlink in sub-sub directory)
 		setupTestDir := func(t *testing.T, node *harness.Node) string {
 			testDir, err := os.MkdirTemp(node.Dir, "deref-symlinks-test")
 			require.NoError(t, err)
 
+			// Top-level file and symlink
 			targetFile := filepath.Join(testDir, "target.txt")
 			require.NoError(t, os.WriteFile(targetFile, []byte("target content"), 0644))
-
-			// Create symlink pointing to target
 			require.NoError(t, os.Symlink("target.txt", filepath.Join(testDir, "link.txt")))
+
+			// Nested file and symlink in sub-sub directory
+			subsubdir := filepath.Join(testDir, "subdir", "subsubdir")
+			require.NoError(t, os.MkdirAll(subsubdir, 0755))
+			nestedTarget := filepath.Join(subsubdir, "nested-target.txt")
+			require.NoError(t, os.WriteFile(nestedTarget, []byte("nested content"), 0644))
+			require.NoError(t, os.Symlink("nested-target.txt", filepath.Join(subsubdir, "nested-link.txt")))
 
 			return testDir
 		}
@@ -512,62 +525,105 @@ func TestAdd(t *testing.T) {
 			// Add directory with symlink (default: preserve)
 			dirCID := node.IPFS("add", "-r", "-Q", testDir).Stdout.Trimmed()
 
-			// Get to a new directory and verify symlink is preserved
+			// Get and verify symlinks are preserved
 			outDir, err := os.MkdirTemp(node.Dir, "symlink-get-out")
 			require.NoError(t, err)
 			node.IPFS("get", "-o", outDir, dirCID)
 
-			// Check that link.txt is a symlink (ipfs get -o puts files directly in outDir)
+			// Check top-level symlink is preserved
 			linkPath := filepath.Join(outDir, "link.txt")
 			fi, err := os.Lstat(linkPath)
 			require.NoError(t, err)
 			require.True(t, fi.Mode()&os.ModeSymlink != 0, "link.txt should be a symlink")
-
-			// Verify symlink target
 			target, err := os.Readlink(linkPath)
 			require.NoError(t, err)
 			require.Equal(t, "target.txt", target)
+
+			// Check nested symlink is preserved
+			nestedLinkPath := filepath.Join(outDir, "subdir", "subsubdir", "nested-link.txt")
+			fi, err = os.Lstat(nestedLinkPath)
+			require.NoError(t, err)
+			require.True(t, fi.Mode()&os.ModeSymlink != 0, "nested-link.txt should be a symlink")
 		})
 
-		t.Run("--dereference-symlinks resolves nested symlinks", func(t *testing.T) {
+		t.Run("--dereference-args only resolves CLI argument symlinks (deprecated)", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
 
 			testDir := setupTestDir(t, node)
 
-			// Add directory with dereference flag - nested symlinks should be resolved
-			dirCID := node.IPFS("add", "-r", "-Q", "--dereference-symlinks", testDir).Stdout.Trimmed()
+			// Add a symlink directly as CLI argument with --dereference-args
+			// This should resolve the CLI arg symlink to the target file content
+			symlinkPath := filepath.Join(testDir, "link.txt")
+			targetPath := filepath.Join(testDir, "target.txt")
 
-			// Get and verify symlink was dereferenced to regular file
-			outDir, err := os.MkdirTemp(node.Dir, "symlink-get-out")
+			symlinkCID := node.IPFS("add", "-Q", "--dereference-args", symlinkPath).Stdout.Trimmed()
+			targetCID := node.IPFS("add", "-Q", targetPath).Stdout.Trimmed()
+
+			// CIDs should match because --dereference-args resolves the symlink
+			require.Equal(t, targetCID, symlinkCID,
+				"--dereference-args should resolve CLI arg symlink to target content")
+
+			// Now add the directory recursively with --dereference-args
+			// Nested symlinks should NOT be resolved (only CLI args are resolved)
+			dirCID := node.IPFS("add", "-r", "-Q", "--dereference-args", testDir).Stdout.Trimmed()
+
+			outDir, err := os.MkdirTemp(node.Dir, "deref-args-out")
 			require.NoError(t, err)
 			node.IPFS("get", "-o", outDir, dirCID)
 
-			linkPath := filepath.Join(outDir, "link.txt")
-			fi, err := os.Lstat(linkPath)
+			// Nested symlink should still be a symlink (not dereferenced)
+			nestedLinkPath := filepath.Join(outDir, "subdir", "subsubdir", "nested-link.txt")
+			fi, err := os.Lstat(nestedLinkPath)
 			require.NoError(t, err)
-
-			// Should be a regular file, not a symlink
-			require.False(t, fi.Mode()&os.ModeSymlink != 0,
-				"link.txt should be dereferenced to regular file, not preserved as symlink")
-
-			// Content should match the target file
-			content, err := os.ReadFile(linkPath)
-			require.NoError(t, err)
-			require.Equal(t, "target content", string(content))
+			require.True(t, fi.Mode()&os.ModeSymlink != 0,
+				"--dereference-args should NOT resolve nested symlinks, only CLI args")
 		})
 
-		t.Run("--dereference-args is deprecated", func(t *testing.T) {
+		t.Run("--dereference-symlinks resolves ALL symlinks (superset of --dereference-args)", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
 
 			testDir := setupTestDir(t, node)
 
-			res := node.RunIPFS("add", "-Q", "--dereference-args", filepath.Join(testDir, "link.txt"))
-			require.Error(t, res.Err)
-			require.Contains(t, res.Stderr.String(), "--dereference-args is deprecated")
+			// Test 1: CLI argument symlink is resolved (like --dereference-args)
+			symlinkPath := filepath.Join(testDir, "link.txt")
+			targetPath := filepath.Join(testDir, "target.txt")
+
+			symlinkCID := node.IPFS("add", "-Q", "--dereference-symlinks", symlinkPath).Stdout.Trimmed()
+			targetCID := node.IPFS("add", "-Q", targetPath).Stdout.Trimmed()
+
+			require.Equal(t, targetCID, symlinkCID,
+				"--dereference-symlinks should resolve CLI arg symlink (like --dereference-args)")
+
+			// Test 2: Nested symlinks in sub-sub directory are ALSO resolved
+			dirCID := node.IPFS("add", "-r", "-Q", "--dereference-symlinks", testDir).Stdout.Trimmed()
+
+			outDir, err := os.MkdirTemp(node.Dir, "deref-symlinks-out")
+			require.NoError(t, err)
+			node.IPFS("get", "-o", outDir, dirCID)
+
+			// Top-level symlink should be dereferenced to regular file
+			linkPath := filepath.Join(outDir, "link.txt")
+			fi, err := os.Lstat(linkPath)
+			require.NoError(t, err)
+			require.False(t, fi.Mode()&os.ModeSymlink != 0,
+				"link.txt should be dereferenced to regular file")
+			content, err := os.ReadFile(linkPath)
+			require.NoError(t, err)
+			require.Equal(t, "target content", string(content))
+
+			// Nested symlink in sub-sub directory should ALSO be dereferenced
+			nestedLinkPath := filepath.Join(outDir, "subdir", "subsubdir", "nested-link.txt")
+			fi, err = os.Lstat(nestedLinkPath)
+			require.NoError(t, err)
+			require.False(t, fi.Mode()&os.ModeSymlink != 0,
+				"nested-link.txt should be dereferenced (--dereference-symlinks resolves ALL symlinks)")
+			nestedContent, err := os.ReadFile(nestedLinkPath)
+			require.NoError(t, err)
+			require.Equal(t, "nested content", string(nestedContent))
 		})
 	})
 }
