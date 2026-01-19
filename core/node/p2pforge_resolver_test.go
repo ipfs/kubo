@@ -2,146 +2,171 @@ package node
 
 import (
 	"context"
+	"errors"
+	"net"
 	"testing"
 
+	"github.com/ipfs/kubo/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// mockTXTResolver is a mock fallback resolver for testing
-type mockTXTResolver struct {
-	records map[string][]string
+// Test constants matching p2p-forge production format
+const (
+	// testPeerID is a valid peerID in CIDv1 base36 format as used by p2p-forge.
+	// Base36 is lowercase-only, making it safe for case-insensitive DNS.
+	// Corresponds to 12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN in base58btc.
+	testPeerID = "k51qzi5uqu5dhnwe629wdlncpql6frppdpwnz4wtlcw816aysd5wwlk63g4wmh"
+
+	// domainSuffix is the default p2p-forge domain used in tests.
+	domainSuffix = config.DefaultDomainSuffix
+)
+
+// mockResolver implements madns.BasicResolver for testing
+type mockResolver struct {
+	txtRecords map[string][]string
+	ipRecords  map[string][]net.IPAddr
+	ipErr      error
 }
 
-func (m *mockTXTResolver) LookupTXT(ctx context.Context, name string) ([]string, error) {
-	if m.records != nil {
-		return m.records[name], nil
+func (m *mockResolver) LookupIPAddr(_ context.Context, hostname string) ([]net.IPAddr, error) {
+	if m.ipErr != nil {
+		return nil, m.ipErr
+	}
+	if m.ipRecords != nil {
+		return m.ipRecords[hostname], nil
 	}
 	return nil, nil
 }
 
-func TestP2PForgeResolver_LookupIPAddr_IPv4(t *testing.T) {
-	r := NewP2PForgeResolver([]string{"libp2p.direct"}, &mockTXTResolver{})
-
-	tests := []struct {
-		name     string
-		hostname string
-		wantIP   string
-	}{
-		{"basic", "192-168-1-1.12D3KooWPeerID.libp2p.direct", "192.168.1.1"},
-		{"zeros", "0-0-0-0.peerID.libp2p.direct", "0.0.0.0"},
-		{"max", "255-255-255-255.peerID.libp2p.direct", "255.255.255.255"},
-		{"with trailing dot", "10-0-0-1.peerID.libp2p.direct.", "10.0.0.1"},
-		{"uppercase", "192-168-1-1.PeerID.LIBP2P.DIRECT", "192.168.1.1"},
+func (m *mockResolver) LookupTXT(_ context.Context, name string) ([]string, error) {
+	if m.txtRecords != nil {
+		return m.txtRecords[name], nil
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			addrs, err := r.LookupIPAddr(t.Context(), tt.hostname)
-			require.NoError(t, err)
-			require.Len(t, addrs, 1)
-			assert.Equal(t, tt.wantIP, addrs[0].IP.String())
-		})
-	}
+	return nil, nil
 }
 
-func TestP2PForgeResolver_LookupIPAddr_IPv6(t *testing.T) {
-	r := NewP2PForgeResolver([]string{"libp2p.direct"}, &mockTXTResolver{})
+// newTestResolver creates a p2pForgeResolver with default suffix.
+func newTestResolver(t *testing.T) *p2pForgeResolver {
+	t.Helper()
+	return NewP2PForgeResolver([]string{domainSuffix}, &mockResolver{})
+}
+
+// assertLookupIP verifies that hostname resolves to wantIP.
+func assertLookupIP(t *testing.T, r *p2pForgeResolver, hostname, wantIP string) {
+	t.Helper()
+	addrs, err := r.LookupIPAddr(t.Context(), hostname)
+	require.NoError(t, err)
+	require.Len(t, addrs, 1)
+	assert.Equal(t, wantIP, addrs[0].IP.String())
+}
+
+func TestP2PForgeResolver_LookupIPAddr(t *testing.T) {
+	r := newTestResolver(t)
 
 	tests := []struct {
 		name     string
 		hostname string
 		wantIP   string
 	}{
-		{"full", "2001-db8-0-0-0-0-0-1.peerID.libp2p.direct", "2001:db8::1"},
-		{"compressed", "2001-db8--1.peerID.libp2p.direct", "2001:db8::1"},
-		{"loopback", "0--1.peerID.libp2p.direct", "::1"},
-		{"all zeros", "0--0.peerID.libp2p.direct", "::"},
+		// IPv4
+		{"ipv4/basic", "192-168-1-1." + testPeerID + "." + domainSuffix, "192.168.1.1"},
+		{"ipv4/zeros", "0-0-0-0." + testPeerID + "." + domainSuffix, "0.0.0.0"},
+		{"ipv4/max", "255-255-255-255." + testPeerID + "." + domainSuffix, "255.255.255.255"},
+		{"ipv4/trailing dot", "10-0-0-1." + testPeerID + "." + domainSuffix + ".", "10.0.0.1"},
+		{"ipv4/uppercase suffix", "192-168-1-1." + testPeerID + ".LIBP2P.DIRECT", "192.168.1.1"},
+		// IPv6
+		{"ipv6/full", "2001-db8-0-0-0-0-0-1." + testPeerID + "." + domainSuffix, "2001:db8::1"},
+		{"ipv6/compressed", "2001-db8--1." + testPeerID + "." + domainSuffix, "2001:db8::1"},
+		{"ipv6/loopback", "0--1." + testPeerID + "." + domainSuffix, "::1"},
+		{"ipv6/all zeros", "0--0." + testPeerID + "." + domainSuffix, "::"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			addrs, err := r.LookupIPAddr(t.Context(), tt.hostname)
-			require.NoError(t, err)
-			require.Len(t, addrs, 1)
-			assert.Equal(t, tt.wantIP, addrs[0].IP.String())
+			assertLookupIP(t, r, tt.hostname, tt.wantIP)
 		})
 	}
 }
 
 func TestP2PForgeResolver_LookupIPAddr_MultipleSuffixes(t *testing.T) {
-	r := NewP2PForgeResolver([]string{"libp2p.direct", "custom.example.com"}, &mockTXTResolver{})
+	r := NewP2PForgeResolver([]string{domainSuffix, "custom.example.com"}, &mockResolver{})
 
 	tests := []struct {
 		hostname string
 		wantIP   string
 	}{
-		{"192-168-1-1.peerID.libp2p.direct", "192.168.1.1"},
-		{"10-0-0-1.peerID.custom.example.com", "10.0.0.1"},
+		{"192-168-1-1." + testPeerID + "." + domainSuffix, "192.168.1.1"},
+		{"10-0-0-1." + testPeerID + ".custom.example.com", "10.0.0.1"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.hostname, func(t *testing.T) {
-			addrs, err := r.LookupIPAddr(t.Context(), tt.hostname)
-			require.NoError(t, err)
-			require.Len(t, addrs, 1)
-			assert.Equal(t, tt.wantIP, addrs[0].IP.String())
+			assertLookupIP(t, r, tt.hostname, tt.wantIP)
 		})
 	}
 }
 
-func TestP2PForgeResolver_LookupIPAddr_PeerIDOnly(t *testing.T) {
-	r := NewP2PForgeResolver([]string{"libp2p.direct"}, &mockTXTResolver{})
-
-	// peerID-only should return empty (NODATA equivalent)
-	addrs, err := r.LookupIPAddr(t.Context(), "12D3KooWPeerID.libp2p.direct")
-	require.NoError(t, err)
-	assert.Empty(t, addrs)
-}
-
-func TestP2PForgeResolver_LookupIPAddr_Errors(t *testing.T) {
-	r := NewP2PForgeResolver([]string{"libp2p.direct"}, &mockTXTResolver{})
+func TestP2PForgeResolver_LookupIPAddr_FallbackToNetwork(t *testing.T) {
+	fallbackIP := []net.IPAddr{{IP: net.ParseIP("93.184.216.34")}}
 
 	tests := []struct {
 		name     string
 		hostname string
-		wantErr  string
 	}{
-		{"wrong suffix", "192-168-1-1.peerID.example.com", "does not match any p2p-forge suffix"},
-		{"invalid IP", "not-an-ip.peerID.libp2p.direct", "invalid IP encoding"},
-		{"leading hyphen", "-192-168-1-1.peerID.libp2p.direct", "RFC 1123 violation"},
-		{"trailing hyphen", "192-168-1-1-.peerID.libp2p.direct", "RFC 1123 violation"},
-		{"too many parts", "extra.192-168-1-1.peerID.libp2p.direct", "invalid p2p-forge hostname format"},
+		{"peerID only", testPeerID + "." + domainSuffix},
+		{"invalid peerID", "192-168-1-1.invalid-peer-id." + domainSuffix},
+		{"invalid IP encoding", "not-an-ip." + testPeerID + "." + domainSuffix},
+		{"leading hyphen", "-192-168-1-1." + testPeerID + "." + domainSuffix},
+		{"too many parts", "extra.192-168-1-1." + testPeerID + "." + domainSuffix},
+		{"wrong suffix", "192-168-1-1." + testPeerID + ".example.com"},
 	}
+
+	// Build fallback records from test cases
+	ipRecords := make(map[string][]net.IPAddr, len(tests))
+	for _, tt := range tests {
+		ipRecords[tt.hostname] = fallbackIP
+	}
+	fallback := &mockResolver{ipRecords: ipRecords}
+	r := NewP2PForgeResolver([]string{domainSuffix}, fallback)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := r.LookupIPAddr(t.Context(), tt.hostname)
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), tt.wantErr)
+			addrs, err := r.LookupIPAddr(t.Context(), tt.hostname)
+			require.NoError(t, err)
+			require.Len(t, addrs, 1, "should fallback to network")
+			assert.Equal(t, "93.184.216.34", addrs[0].IP.String())
 		})
 	}
 }
 
-func TestP2PForgeResolver_LookupTXT_Delegates(t *testing.T) {
-	// TXT lookups should delegate to fallback resolver (for ACME DNS-01 challenges)
-	fallback := &mockTXTResolver{
-		records: map[string][]string{
-			"_acme-challenge.peerID.libp2p.direct": {"acme-token-value"},
-		},
-	}
-	r := NewP2PForgeResolver([]string{"libp2p.direct"}, fallback)
+func TestP2PForgeResolver_LookupIPAddr_FallbackError(t *testing.T) {
+	expectedErr := errors.New("network error")
+	r := NewP2PForgeResolver([]string{domainSuffix}, &mockResolver{ipErr: expectedErr})
 
-	records, err := r.LookupTXT(t.Context(), "_acme-challenge.peerID.libp2p.direct")
-	require.NoError(t, err)
-	assert.Equal(t, []string{"acme-token-value"}, records)
+	// peerID-only triggers fallback, which returns error
+	_, err := r.LookupIPAddr(t.Context(), testPeerID+"."+domainSuffix)
+	require.ErrorIs(t, err, expectedErr)
 }
 
-func TestP2PForgeResolver_LookupTXT_EmptyFallback(t *testing.T) {
-	r := NewP2PForgeResolver([]string{"libp2p.direct"}, &mockTXTResolver{})
+func TestP2PForgeResolver_LookupTXT(t *testing.T) {
+	t.Run("delegates to fallback for ACME DNS-01", func(t *testing.T) {
+		acmeHost := "_acme-challenge." + testPeerID + "." + domainSuffix
+		fallback := &mockResolver{
+			txtRecords: map[string][]string{acmeHost: {"acme-token-value"}},
+		}
+		r := NewP2PForgeResolver([]string{domainSuffix}, fallback)
 
-	// When fallback returns nothing, we return nothing
-	records, err := r.LookupTXT(t.Context(), "anything.libp2p.direct")
-	require.NoError(t, err)
-	assert.Empty(t, records)
+		records, err := r.LookupTXT(t.Context(), acmeHost)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"acme-token-value"}, records)
+	})
+
+	t.Run("returns empty when fallback has no records", func(t *testing.T) {
+		r := NewP2PForgeResolver([]string{domainSuffix}, &mockResolver{})
+
+		records, err := r.LookupTXT(t.Context(), "anything."+domainSuffix)
+		require.NoError(t, err)
+		assert.Empty(t, records)
+	})
 }

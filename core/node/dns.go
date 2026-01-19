@@ -10,6 +10,10 @@ import (
 	madns "github.com/multiformats/go-multiaddr-dns"
 )
 
+// Compile-time interface check: *madns.Resolver (returned by gateway.NewDNSResolver
+// and madns.NewResolver) must implement madns.BasicResolver for p2pForgeResolver fallback.
+var _ madns.BasicResolver = (*madns.Resolver)(nil)
+
 func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {
 	var dohOpts []doh.Option
 	if !cfg.DNS.MaxCacheTTL.IsDefault() {
@@ -25,9 +29,16 @@ func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {
 		return nil, err
 	}
 
+	// Check if we should skip network DNS lookups for p2p-forge domains
+	skipAutoTLSDNS := cfg.AutoTLS.SkipDNSLookup.WithDefault(config.DefaultAutoTLSSkipDNSLookup)
+	if !skipAutoTLSDNS {
+		// Local resolution disabled, use network DNS for everything
+		return baseResolver, nil
+	}
+
 	// Build list of p2p-forge domains to resolve locally without network I/O.
 	// AutoTLS hostnames encode IP addresses directly (e.g., 1-2-3-4.peerID.libp2p.direct),
-	// so DNS lookups are wasteful. We always resolve these in-memory.
+	// so DNS lookups are wasteful. We resolve these in-memory when possible.
 	forgeDomains := []string{config.DefaultDomainSuffix}
 	customDomain := cfg.AutoTLS.DomainSuffix.WithDefault(config.DefaultDomainSuffix)
 	if customDomain != config.DefaultDomainSuffix {
