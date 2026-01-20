@@ -546,15 +546,15 @@ func TestAdd(t *testing.T) {
 			require.True(t, fi.Mode()&os.ModeSymlink != 0, "nested-link.txt should be a symlink")
 		})
 
-		t.Run("--dereference-args only resolves CLI argument symlinks (deprecated)", func(t *testing.T) {
+		// --dereference-args is deprecated but still works for backwards compatibility.
+		// It only resolves symlinks passed as CLI arguments, NOT symlinks found
+		// during directory traversal. Use --dereference-symlinks instead.
+		t.Run("--dereference-args resolves CLI args only", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
 
 			testDir := setupTestDir(t, node)
-
-			// Add a symlink directly as CLI argument with --dereference-args
-			// This should resolve the CLI arg symlink to the target file content
 			symlinkPath := filepath.Join(testDir, "link.txt")
 			targetPath := filepath.Join(testDir, "target.txt")
 
@@ -581,14 +581,15 @@ func TestAdd(t *testing.T) {
 				"--dereference-args should NOT resolve nested symlinks, only CLI args")
 		})
 
-		t.Run("--dereference-symlinks resolves ALL symlinks (superset of --dereference-args)", func(t *testing.T) {
+		// --dereference-symlinks resolves ALL symlinks: both CLI arguments AND
+		// symlinks found during directory traversal. This is a superset of
+		// the deprecated --dereference-args behavior.
+		t.Run("--dereference-symlinks resolves all symlinks", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
 
 			testDir := setupTestDir(t, node)
-
-			// Test 1: CLI argument symlink is resolved (like --dereference-args)
 			symlinkPath := filepath.Join(testDir, "link.txt")
 			targetPath := filepath.Join(testDir, "target.txt")
 
