@@ -7,7 +7,7 @@ go 1.25
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.35.3-0.20260120012647-ebdaf07cffbd
+	github.com/ipfs/boxo v0.35.3-0.20260121071626-5cf22196ad0b
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.46.0
 	github.com/multiformats/go-multiaddr v0.16.1
@@ -86,7 +86,7 @@ require (
 	github.com/ipfs/go-fs-lock v0.1.1 // indirect
 	github.com/ipfs/go-ipfs-cmds v0.15.1-0.20260119234300-242f1a10dc40 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.1 // indirect
-	github.com/ipfs/go-ipfs-pq v0.0.3 // indirect
+	github.com/ipfs/go-ipfs-pq v0.0.4 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
 	github.com/ipfs/go-ipld-format v0.6.3 // indirect
@@ -94,7 +94,7 @@ require (
 	github.com/ipfs/go-ipld-legacy v0.2.2 // indirect
 	github.com/ipfs/go-log/v2 v2.9.0 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
-	github.com/ipfs/go-peertaskqueue v0.8.2 // indirect
+	github.com/ipfs/go-peertaskqueue v0.8.3 // indirect
 	github.com/ipfs/go-test v0.2.3 // indirect
 	github.com/ipfs/go-unixfsnode v1.10.2 // indirect
 	github.com/ipld/go-car/v2 v2.16.0 // indirect
@@ -114,7 +114,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.3.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.36.0 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.37.0 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.8.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.15.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
