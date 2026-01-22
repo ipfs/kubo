@@ -350,7 +350,7 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 		root, err := node.InspectPBNode(cidStr)
 		assert.NoError(t, err)
 		require.LessOrEqual(t, len(root.Links), exp.HAMTFanout,
-			"expected HAMT directory with <=%d links", exp.HAMTFanout)
+			"expected HAMT directory with <= %d links", exp.HAMTFanout)
 
 		// Verify hash function
 		verifyHashFunction(t, node, cidStr, exp.HashFunc)

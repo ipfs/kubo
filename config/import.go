@@ -31,7 +31,7 @@ const (
 	DefaultBatchMaxSize = 100 << 20 // 20MiB
 
 	// HAMTSizeEstimation values for Import.UnixFSHAMTDirectorySizeEstimation
-	HAMTSizeEstimationLinks    = "links"    // legacy: estimate using link names + CID byte lengths
+	HAMTSizeEstimationLinks    = "links"    // legacy: estimate using link names + CID byte lengths (default)
 	HAMTSizeEstimationBlock    = "block"    // full serialized dag-pb block size
 	HAMTSizeEstimationDisabled = "disabled" // disable HAMT sharding entirely
 
