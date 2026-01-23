@@ -271,3 +271,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
+
+// Exclude ancient +incompatible versions that confuse Dependabot.
+// These pre-Go-modules versions reference packages that no longer exist.
+exclude (
+	github.com/ipfs/go-ipfs-cmds v2.0.1+incompatible
+	github.com/libp2p/go-libp2p v6.0.23+incompatible
+)

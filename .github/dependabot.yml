@@ -1,3 +1,4 @@
+# Dependabot PRs are auto-tidied by .github/workflows/dependabot-tidy.yml
 version: 2
 updates:
   - package-ecosystem: "github-actions"
@@ -26,3 +27,14 @@ updates:
       golang-x:
         patterns:
           - "golang.org/x/*"
+      opentelemetry:
+        patterns:
+          - "go.opentelemetry.io/*"
+      prometheus:
+        patterns:
+          - "github.com/prometheus/*"
+          - "contrib.go.opencensus.io/*"
+          - "go.opencensus.io"
+      uber:
+        patterns:
+          - "go.uber.org/*"
