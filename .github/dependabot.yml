@@ -4,3 +4,25 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    groups:
+      ipfs-ecosystem:
+        patterns:
+          - "github.com/ipfs/*"
+          - "github.com/ipfs-shipyard/*"
+          - "github.com/ipshipyard/*"
+          - "github.com/multiformats/*"
+          - "github.com/ipld/*"
+      libp2p-ecosystem:
+        patterns:
+          - "github.com/libp2p/*"
+      golang-x:
+        patterns:
+          - "golang.org/x/*"
