@@ -26,3 +26,14 @@ updates:
       golang-x:
         patterns:
           - "golang.org/x/*"
+      opentelemetry:
+        patterns:
+          - "go.opentelemetry.io/*"
+      prometheus:
+        patterns:
+          - "github.com/prometheus/*"
+          - "contrib.go.opencensus.io/*"
+          - "go.opencensus.io"
+      uber:
+        patterns:
+          - "go.uber.org/*"
