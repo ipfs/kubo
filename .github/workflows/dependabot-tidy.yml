@@ -1,3 +1,7 @@
+# Dependabot only updates go.mod/go.sum in the root module, but this repo has
+# multiple Go modules (see docs/examples/). This workflow runs `make mod_tidy`
+# on Dependabot PRs to keep all go.sum files in sync, preventing go-check CI
+# failures.
 name: Dependabot Tidy
 
 on:
