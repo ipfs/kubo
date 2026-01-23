@@ -13,6 +13,11 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
+    ignore:
+      # Updated via go-ds-* wrappers in ipfs-ecosystem group
+      - dependency-name: "github.com/cockroachdb/pebble*"
+      - dependency-name: "github.com/syndtr/goleveldb"
+      - dependency-name: "github.com/dgraph-io/badger*"
     groups:
       ipfs-ecosystem:
         patterns:
