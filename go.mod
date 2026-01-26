@@ -11,7 +11,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/ceramicnetwork/go-dag-jose v0.1.1
 	github.com/cheggaaa/pb v1.0.29
-	github.com/cockroachdb/pebble/v2 v2.1.3
+	github.com/cockroachdb/pebble/v2 v2.1.4
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
@@ -21,7 +21,7 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.35.3-0.20251202220026-0842ad274a0c
+	github.com/ipfs/boxo v0.35.3-0.20260109213916-89dc184784f2
 	github.com/ipfs/go-block-format v0.2.3
 	github.com/ipfs/go-cid v0.6.0
 	github.com/ipfs/go-cidutil v0.1.0
@@ -31,7 +31,7 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.6.0
 	github.com/ipfs/go-ds-leveldb v0.5.2
 	github.com/ipfs/go-ds-measure v0.2.2
-	github.com/ipfs/go-ds-pebble v0.5.8
+	github.com/ipfs/go-ds-pebble v0.5.9
 	github.com/ipfs/go-fs-lock v0.1.1
 	github.com/ipfs/go-ipfs-cmds v0.15.0
 	github.com/ipfs/go-ipld-cbor v0.2.1
@@ -52,7 +52,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0
 	github.com/libp2p/go-libp2p v0.46.0
 	github.com/libp2p/go-libp2p-http v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.36.0
+	github.com/libp2p/go-libp2p-kad-dht v0.37.0
 	github.com/libp2p/go-libp2p-kbucket v0.8.0
 	github.com/libp2p/go-libp2p-pubsub v0.15.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
@@ -99,7 +99,7 @@ require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/Jorropo/jsync v1.0.1 // indirect
-	github.com/RaduBerinde/axisds v0.0.0-20250419182453-5135a0650657 // indirect
+	github.com/RaduBerinde/axisds v0.1.0 // indirect
 	github.com/RaduBerinde/btreemap v0.0.0-20250419174037-3d62b7205d54 // indirect
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b // indirect
 	github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5 // indirect
@@ -270,4 +270,11 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
+)
+
+// Exclude ancient +incompatible versions that confuse Dependabot.
+// These pre-Go-modules versions reference packages that no longer exist.
+exclude (
+	github.com/ipfs/go-ipfs-cmds v2.0.1+incompatible
+	github.com/libp2p/go-libp2p v6.0.23+incompatible
 )

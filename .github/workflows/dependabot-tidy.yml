@@ -1,0 +1,61 @@
+# Dependabot only updates go.mod/go.sum in the root module, but this repo has
+# multiple Go modules (see docs/examples/). This workflow runs `make mod_tidy`
+# on Dependabot PRs to keep all go.sum files in sync, preventing go-check CI
+# failures.
+name: Dependabot Tidy
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to run mod_tidy on'
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  tidy:
+    if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR info
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            pr_number="${{ inputs.pr_number }}"
+          else
+            pr_number="${{ github.event.pull_request.number }}"
+          fi
+          echo "number=$pr_number" >> $GITHUB_OUTPUT
+          branch=$(gh pr view "$pr_number" --repo "${{ github.repository }}" --json headRefName -q '.headRefName')
+          echo "branch=$branch" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Run make mod_tidy
+        run: make mod_tidy
+      - name: Check for changes
+        id: git-check
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "modified=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Commit changes
+        if: steps.git-check.outputs.modified == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: run make mod_tidy"
+          git push
