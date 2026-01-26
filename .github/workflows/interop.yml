@@ -1,3 +1,17 @@
+# Interoperability Tests
+#
+# This workflow ensures Kubo remains compatible with the broader IPFS ecosystem.
+# It builds Kubo from source, then runs:
+#
+# 1. helia-interop: Tests compatibility with Helia (JavaScript IPFS implementation)
+#    using Playwright-based tests from @helia/interop package.
+#
+# 2. ipfs-webui: Runs E2E tests from ipfs/ipfs-webui repository to verify
+#    the web interface works correctly with the locally built Kubo binary.
+#
+# Both jobs use caching to speed up repeated runs (npm dependencies, Playwright
+# browsers, and webui build artifacts).
+
 name: Interop
 
 on:
