@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	ft "github.com/ipfs/boxo/ipld/unixfs"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
@@ -251,21 +252,20 @@ func TestAdd(t *testing.T) {
 			// Create directory exactly at the 256KiB threshold using links estimation.
 			// Links estimation: size = numFiles * (nameLen + cidLen)
 			// 4096 * (30 + 34) = 4096 * 64 = 262144 = threshold exactly
-			// With > comparison: stays as basic directory
-			// With >= comparison: converts to HAMT
+			// Threshold uses > not >=, so directory at exact threshold stays basic.
 			const numFiles, nameLen = 4096, 30
-			err = createDirectoryForHAMTLinksEstimation(randDir, cidV0Length, numFiles, nameLen, nameLen, seed)
+			err = createDirectoryForHAMTLinksEstimation(randDir, numFiles, nameLen, nameLen, seed)
 			require.NoError(t, err)
 
 			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-			// Should remain a basic directory (threshold uses > not >=)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, numFiles, len(root.Links), "expected basic directory at exact threshold")
+			// Verify it's a basic directory by checking UnixFS type
+			fsType, err := node.UnixFSDataType(cidStr)
+			require.NoError(t, err)
+			require.Equal(t, ft.TDirectory, fsType, "expected basic directory (type=1) at exact threshold")
 		})
 
-		t.Run("over UnixFSHAMTDirectorySizeThreshold=256KiB (links estimation)", func(t *testing.T) {
+		t.Run("1 byte over UnixFSHAMTDirectorySizeThreshold=256KiB (links estimation)", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init(profile)
 			node.StartDaemon()
@@ -274,19 +274,19 @@ func TestAdd(t *testing.T) {
 			randDir, err := os.MkdirTemp(node.Dir, seed)
 			require.NoError(t, err)
 
-			// Create directory just over the 256KiB threshold using links estimation.
-			// Links estimation: size = numFiles * (nameLen + cidLen)
-			// 4097 * (30 + 34) = 4097 * 64 = 262208 > 262144, exceeds threshold
-			const numFiles, nameLen = 4097, 30
-			err = createDirectoryForHAMTLinksEstimation(randDir, cidV0Length, numFiles, nameLen, nameLen, seed)
+			// Create directory exactly 1 byte over the 256KiB threshold using links estimation.
+			// Links estimation: size = sum(nameLen + cidLen) for each file
+			// 4095 * (30 + 34) + 1 * (31 + 34) = 262080 + 65 = 262145 = threshold + 1
+			const numFiles, nameLen, lastNameLen = 4096, 30, 31
+			err = createDirectoryForHAMTLinksEstimation(randDir, numFiles, nameLen, lastNameLen, seed)
 			require.NoError(t, err)
 
 			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-			// Should be HAMT sharded (root links <= fanout of 256)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.LessOrEqual(t, len(root.Links), 256, "expected HAMT directory when over threshold")
+			// Verify it's a HAMT directory by checking UnixFS type
+			fsType, err := node.UnixFSDataType(cidStr)
+			require.NoError(t, err)
+			require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory (type=5) when 1 byte over threshold")
 		})
 	})
 
@@ -349,24 +349,23 @@ func TestAdd(t *testing.T) {
 			require.NoError(t, err)
 
 			// Create directory exactly at the 256KiB threshold using block estimation.
-			// Block estimation: size = baseOverhead + numFiles * LinkSerializedSize
-			// LinkSerializedSize(11, 36, 0) = 55 bytes per link
-			// 4766 * 55 + 14 = 262130 + 14 = 262144 = threshold exactly
-			// With > comparison: stays as basic directory
-			// With >= comparison: converts to HAMT
-			const numFiles, nameLen = 4766, 11
-			err = createDirectoryForHAMTBlockEstimation(randDir, cidV1Length, numFiles, nameLen, nameLen, seed)
+			// Block estimation: size = dataFieldSize + sum(LinkSerializedSize)
+			// - dataFieldSerializedSize() = 4 bytes (empty dir, no mode/mtime)
+			// - LinkSerializedSize(nameLen=11) = 55 bytes, LinkSerializedSize(nameLen=21) = 65 bytes
+			// Total: 4765 * 55 + 65 + 4 = 262144 = threshold exactly
+			const numFiles, nameLen, lastNameLen = 4766, 11, 21
+			err = createDirectoryForHAMTBlockEstimation(randDir, numFiles, nameLen, lastNameLen, seed)
 			require.NoError(t, err)
 
 			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-			// Should remain a basic directory (threshold uses > not >=)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, numFiles, len(root.Links), "expected basic directory at exact threshold")
+			// Verify it's a basic directory by checking UnixFS type
+			fsType, err := node.UnixFSDataType(cidStr)
+			require.NoError(t, err)
+			require.Equal(t, ft.TDirectory, fsType, "expected basic directory (type=1) at exact threshold")
 		})
 
-		t.Run("over UnixFSHAMTDirectorySizeThreshold=256KiB (block estimation)", func(t *testing.T) {
+		t.Run("1 byte over UnixFSHAMTDirectorySizeThreshold=256KiB (block estimation)", func(t *testing.T) {
 			t.Parallel()
 			node := harness.NewT(t).NewNode().Init(profile)
 			node.StartDaemon()
@@ -375,19 +374,18 @@ func TestAdd(t *testing.T) {
 			randDir, err := os.MkdirTemp(node.Dir, seed)
 			require.NoError(t, err)
 
-			// Create directory just over the 256KiB threshold using block estimation.
-			// Block estimation: size = baseOverhead + numFiles * LinkSerializedSize
-			// 4767 * 55 + 14 = 262185 + 14 = 262199 > 262144, exceeds threshold
-			const numFiles, nameLen = 4767, 11
-			err = createDirectoryForHAMTBlockEstimation(randDir, cidV1Length, numFiles, nameLen, nameLen, seed)
+			// Create directory exactly 1 byte over the 256KiB threshold.
+			// Same as above but lastNameLen=22 adds 1 byte: 4765 * 55 + 66 + 4 = 262145
+			const numFiles, nameLen, lastNameLen = 4766, 11, 22
+			err = createDirectoryForHAMTBlockEstimation(randDir, numFiles, nameLen, lastNameLen, seed)
 			require.NoError(t, err)
 
 			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-			// Should be HAMT sharded (root links <= fanout of 256)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.LessOrEqual(t, len(root.Links), 256, "expected HAMT directory when over threshold")
+			// Verify it's a HAMT directory by checking UnixFS type
+			fsType, err := node.UnixFSDataType(cidStr)
+			require.NoError(t, err)
+			require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory (type=5) when 1 byte over threshold")
 		})
 	})
 
@@ -398,8 +396,8 @@ func TestAdd(t *testing.T) {
 		setupTestDir := func(t *testing.T, node *harness.Node) string {
 			testDir, err := os.MkdirTemp(node.Dir, "hidden-test")
 			require.NoError(t, err)
-			require.NoError(t, os.WriteFile(filepath.Join(testDir, "visible.txt"), []byte("visible"), 0644))
-			require.NoError(t, os.WriteFile(filepath.Join(testDir, ".hidden"), []byte("hidden"), 0644))
+			require.NoError(t, os.WriteFile(filepath.Join(testDir, "visible.txt"), []byte("visible"), 0o644))
+			require.NoError(t, os.WriteFile(filepath.Join(testDir, ".hidden"), []byte("hidden"), 0o644))
 			return testDir
 		}
 
@@ -447,8 +445,8 @@ func TestAdd(t *testing.T) {
 		setupTestDir := func(t *testing.T, node *harness.Node) string {
 			testDir, err := os.MkdirTemp(node.Dir, "empty-dirs-test")
 			require.NoError(t, err)
-			require.NoError(t, os.Mkdir(filepath.Join(testDir, "empty-subdir"), 0755))
-			require.NoError(t, os.WriteFile(filepath.Join(testDir, "file.txt"), []byte("content"), 0644))
+			require.NoError(t, os.Mkdir(filepath.Join(testDir, "empty-subdir"), 0o755))
+			require.NoError(t, os.WriteFile(filepath.Join(testDir, "file.txt"), []byte("content"), 0o644))
 			return testDir
 		}
 
@@ -502,14 +500,14 @@ func TestAdd(t *testing.T) {
 
 			// Top-level file and symlink
 			targetFile := filepath.Join(testDir, "target.txt")
-			require.NoError(t, os.WriteFile(targetFile, []byte("target content"), 0644))
+			require.NoError(t, os.WriteFile(targetFile, []byte("target content"), 0o644))
 			require.NoError(t, os.Symlink("target.txt", filepath.Join(testDir, "link.txt")))
 
 			// Nested file and symlink in sub-sub directory
 			subsubdir := filepath.Join(testDir, "subdir", "subsubdir")
-			require.NoError(t, os.MkdirAll(subsubdir, 0755))
+			require.NoError(t, os.MkdirAll(subsubdir, 0o755))
 			nestedTarget := filepath.Join(subsubdir, "nested-target.txt")
-			require.NoError(t, os.WriteFile(nestedTarget, []byte("nested content"), 0644))
+			require.NoError(t, os.WriteFile(nestedTarget, []byte("nested content"), 0o644))
 			require.NoError(t, os.Symlink("nested-target.txt", filepath.Join(subsubdir, "nested-link.txt")))
 
 			return testDir
@@ -806,32 +804,22 @@ func TestAddFastProvide(t *testing.T) {
 }
 
 // createDirectoryForHAMTLinksEstimation creates a directory with the specified number
-// of files using the links-based size estimation formula (size = numFiles * (nameLen + cidLen)).
+// of files for testing links-based size estimation (size = sum of nameLen + cidLen).
 // Used by legacy profiles (unixfs-v0-2015).
-//
-// Threshold behavior: boxo uses > comparison, so directory at exact threshold stays basic.
-// Use DirBasicFiles for basic directory test, DirHAMTFiles for HAMT directory test.
 //
 // The lastNameLen parameter allows the last file to have a different name length,
 // enabling exact +1 byte threshold tests.
-//
-// See boxo/ipld/unixfs/io/directory.go sizeBelowThreshold() for the links estimation.
-func createDirectoryForHAMTLinksEstimation(dirPath string, cidLength, numFiles, nameLen, lastNameLen int, seed string) error {
+func createDirectoryForHAMTLinksEstimation(dirPath string, numFiles, nameLen, lastNameLen int, seed string) error {
 	return createDeterministicFiles(dirPath, numFiles, nameLen, lastNameLen, seed)
 }
 
 // createDirectoryForHAMTBlockEstimation creates a directory with the specified number
-// of files using the block-based size estimation formula (LinkSerializedSize with protobuf overhead).
+// of files for testing block-based size estimation (LinkSerializedSize with protobuf overhead).
 // Used by modern profiles (unixfs-v1-2025).
-//
-// Threshold behavior: boxo uses > comparison, so directory at exact threshold stays basic.
-// Use DirBasicFiles for basic directory test, DirHAMTFiles for HAMT directory test.
 //
 // The lastNameLen parameter allows the last file to have a different name length,
 // enabling exact +1 byte threshold tests.
-//
-// See boxo/ipld/unixfs/io/directory.go estimatedBlockSize() for the block estimation.
-func createDirectoryForHAMTBlockEstimation(dirPath string, cidLength, numFiles, nameLen, lastNameLen int, seed string) error {
+func createDirectoryForHAMTBlockEstimation(dirPath string, numFiles, nameLen, lastNameLen int, seed string) error {
 	return createDeterministicFiles(dirPath, numFiles, nameLen, lastNameLen, seed)
 }
 
@@ -870,7 +858,7 @@ func createDeterministicFiles(dirPath string, numFiles, nameLen, lastNameLen int
 		filePath := filepath.Join(dirPath, filename)
 
 		// Create file with 1-byte content for non-zero tsize
-		if err := os.WriteFile(filePath, []byte("x"), 0644); err != nil {
+		if err := os.WriteFile(filePath, []byte("x"), 0o644); err != nil {
 			return err
 		}
 	}

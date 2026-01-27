@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	ft "github.com/ipfs/boxo/ipld/unixfs"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
@@ -133,7 +134,7 @@ func TestCIDProfiles(t *testing.T) {
 	carOutputDir := os.Getenv("CID_PROFILES_CAR_OUTPUT")
 	exportCARs := carOutputDir != ""
 	if exportCARs {
-		if err := os.MkdirAll(carOutputDir, 0755); err != nil {
+		if err := os.MkdirAll(carOutputDir, 0o755); err != nil {
 			t.Fatalf("failed to create CAR output directory: %v", err)
 		}
 		t.Logf("CAR export enabled, writing to: %s", carOutputDir)
@@ -276,13 +277,18 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 			basicLastNameLen = exp.DirBasicNameLen
 		}
 		if exp.HAMTSizeEstimation == "block" {
-			err = createDirectoryForHAMTBlockEstimation(randDir, cidLen, exp.DirBasicFiles, exp.DirBasicNameLen, basicLastNameLen, seed)
+			err = createDirectoryForHAMTBlockEstimation(randDir, exp.DirBasicFiles, exp.DirBasicNameLen, basicLastNameLen, seed)
 		} else {
-			err = createDirectoryForHAMTLinksEstimation(randDir, cidLen, exp.DirBasicFiles, exp.DirBasicNameLen, basicLastNameLen, seed)
+			err = createDirectoryForHAMTLinksEstimation(randDir, exp.DirBasicFiles, exp.DirBasicNameLen, basicLastNameLen, seed)
 		}
 		require.NoError(t, err)
 
 		cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
+
+		// Verify it's a basic directory by checking UnixFS type
+		fsType, err := node.UnixFSDataType(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, ft.TDirectory, fsType, "expected basic directory (type=1) at exact threshold")
 
 		root, err := node.InspectPBNode(cidStr)
 		assert.NoError(t, err)
@@ -339,18 +345,24 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 			lastNameLen = exp.DirHAMTNameLen
 		}
 		if exp.HAMTSizeEstimation == "block" {
-			err = createDirectoryForHAMTBlockEstimation(randDir, cidLen, exp.DirHAMTFiles, exp.DirHAMTNameLen, lastNameLen, seed)
+			err = createDirectoryForHAMTBlockEstimation(randDir, exp.DirHAMTFiles, exp.DirHAMTNameLen, lastNameLen, seed)
 		} else {
-			err = createDirectoryForHAMTLinksEstimation(randDir, cidLen, exp.DirHAMTFiles, exp.DirHAMTNameLen, lastNameLen, seed)
+			err = createDirectoryForHAMTLinksEstimation(randDir, exp.DirHAMTFiles, exp.DirHAMTNameLen, lastNameLen, seed)
 		}
 		require.NoError(t, err)
 
 		cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
+		// Verify it's a HAMT directory by checking UnixFS type
+		fsType, err := node.UnixFSDataType(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory (type=5) when over threshold")
+
+		// HAMT root has at most fanout links (actual count depends on hash distribution)
 		root, err := node.InspectPBNode(cidStr)
 		assert.NoError(t, err)
 		require.LessOrEqual(t, len(root.Links), exp.HAMTFanout,
-			"expected HAMT directory with <= %d links", exp.HAMTFanout)
+			"expected HAMT directory root to have <= %d links", exp.HAMTFanout)
 
 		// Verify hash function
 		verifyHashFunction(t, node, cidStr, exp.HashFunc)
