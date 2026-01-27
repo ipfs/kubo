@@ -438,10 +438,10 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		return fx.Error(err)
 	}
 
-	// Auto-sharding settings
+	// Directory sharding settings from Import config.
+	// These globals affect both `ipfs add` and MFS (`ipfs files` API).
 	shardSizeThreshold := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
 	shardMaxFanout := cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout)
-	// TODO: avoid overriding this globally, see if we can extend Directory interface like Get/SetMaxLinks from https://github.com/ipfs/boxo/pull/906
 	uio.HAMTShardingSize = int(shardSizeThreshold)
 	uio.DefaultShardWidth = int(shardMaxFanout)
 	uio.HAMTSizeEstimation = cfg.Import.HAMTSizeEstimationMode()
