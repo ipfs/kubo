@@ -16,6 +16,12 @@ import (
 
 // cidProfileExpectations defines expected behaviors for a UnixFS import profile.
 // This allows DRY testing of multiple profiles with the same test logic.
+//
+// Each profile is tested against threshold boundaries to verify:
+// - CID format (version, hash function, raw leaves vs dag-pb wrapped)
+// - File chunking (UnixFSChunker size threshold)
+// - DAG structure (UnixFSFileMaxLinks rebalancing threshold)
+// - Directory sharding (HAMTThreshold for flat vs HAMT directories)
 type cidProfileExpectations struct {
 	// Profile identification
 	Name        string   // canonical profile name from IPIP-499
@@ -26,11 +32,12 @@ type cidProfileExpectations struct {
 	HashFunc   string // e.g., "sha2-256"
 	RawLeaves  bool   // true = raw codec for small files, false = dag-pb wrapped
 
-	// File chunking expectations
-	ChunkSize    string // e.g., "1MiB" or "256KiB"
-	FileMaxLinks int    // max links before DAG rebalancing
+	// File chunking expectations (UnixFSChunker config)
+	ChunkSize      int    // chunk size in bytes (e.g., 262144 for 256KiB, 1048576 for 1MiB)
+	ChunkSizeHuman string // human-readable chunk size (e.g., "256KiB", "1MiB")
+	FileMaxLinks   int    // max links before DAG rebalancing (UnixFSFileMaxLinks config)
 
-	// HAMT directory sharding expectations.
+	// HAMT directory sharding expectations (UnixFSHAMTDirectory* config).
 	// Threshold behavior: boxo converts to HAMT when size > HAMTThreshold (not >=).
 	// This means a directory exactly at the threshold stays as a basic (flat) directory.
 	HAMTFanout         int    // max links per HAMT shard bucket (256)
@@ -48,12 +55,40 @@ type cidProfileExpectations struct {
 	DirHAMTLastNameLen  int // filename length for last file (0 = same as DirHAMTNameLen)
 	DirHAMTFiles        int // total file count for HAMT directory (over threshold)
 
-	// Expected deterministic CIDs for test vectors
-	SmallFileCID        string // CID for single byte "x"
-	FileAtMaxLinksCID   string // CID for file at max links
-	FileOverMaxLinksCID string // CID for file triggering rebalance
-	DirBasicCID         string // CID for basic directory (at exact threshold, stays flat)
-	DirHAMTCID          string // CID for HAMT directory (over threshold, sharded)
+	// Expected deterministic CIDs for test vectors.
+	// These serve as regression tests to detect unintended changes in CID generation.
+
+	// SmallFileCID is the deterministic CID for "hello world" string.
+	// Tests basic CID format (version, codec, hash).
+	SmallFileCID string
+
+	// FileAtChunkSizeCID is the deterministic CID for a file exactly at chunk size.
+	// This file fits in a single block with no links:
+	// - v0-2015: dag-pb wrapped TFile node (CIDv0)
+	// - v1-2025: raw leaf block (CIDv1)
+	FileAtChunkSizeCID string
+
+	// FileOverChunkSizeCID is the deterministic CID for a file 1 byte over chunk size.
+	// This file requires 2 chunks, producing a root dag-pb node with 2 links:
+	// - v0-2015: links point to dag-pb wrapped TFile leaf nodes
+	// - v1-2025: links point to raw leaf blocks
+	FileOverChunkSizeCID string
+
+	// FileAtMaxLinksCID is the deterministic CID for a file at UnixFSFileMaxLinks threshold.
+	// File size = maxLinks * chunkSize, producing a single-layer DAG with exactly maxLinks children.
+	FileAtMaxLinksCID string
+
+	// FileOverMaxLinksCID is the deterministic CID for a file 1 byte over max links threshold.
+	// The +1 byte requires an additional chunk, forcing DAG rebalancing to 2 layers.
+	FileOverMaxLinksCID string
+
+	// DirBasicCID is the deterministic CID for a directory exactly at HAMTThreshold.
+	// With > comparison (not >=), directory at exact threshold stays as basic (flat) directory.
+	DirBasicCID string
+
+	// DirHAMTCID is the deterministic CID for a directory 1 byte over HAMTThreshold.
+	// Crossing the threshold converts the directory to a HAMT sharded structure.
+	DirHAMTCID string
 }
 
 // unixfsV02015 is the legacy profile for backward-compatible CID generation.
@@ -66,8 +101,9 @@ var unixfsV02015 = cidProfileExpectations{
 	HashFunc:   "sha2-256",
 	RawLeaves:  false,
 
-	ChunkSize:    "256KiB",
-	FileMaxLinks: 174,
+	ChunkSize:      262144, // 256 KiB
+	ChunkSizeHuman: "256KiB",
+	FileMaxLinks:   174,
 
 	HAMTFanout:         256,
 	HAMTThreshold:      262144, // 256 KiB
@@ -78,11 +114,13 @@ var unixfsV02015 = cidProfileExpectations{
 	DirHAMTLastNameLen: 0,    // 0 = same as DirHAMTNameLen (uniform filenames)
 	DirHAMTFiles:       4033, // 4033 * 65 = 262145 (becomes HAMT)
 
-	SmallFileCID:        "Qmf412jQZiuVUtdgnB36FXFX7xg5V6KEbSJ4dpQuhkLyfD", // "hello world" dag-pb wrapped
-	FileAtMaxLinksCID:   "QmUbBALi174SnogsUzLpYbD4xPiBSFANF4iztWCsHbMKh2", // 44544KiB with seed "v0-seed"
-	FileOverMaxLinksCID: "QmepeWtdmS1hHXx1oZXsPUv6bMrfRRKfZcoPPU4eEfjnbf", // 44800KiB with seed "v0-seed"
-	DirBasicCID:         "QmX5GtRk3TSSEHtdrykgqm4eqMEn3n2XhfkFAis5fjyZmN", // 4096 files at threshold
-	DirHAMTCID:          "QmeMiJzmhpJAUgynAcxTQYek5PPKgdv3qEvFsdV3XpVnvP", // 4033 files +1 over threshold
+	SmallFileCID:         "Qmf412jQZiuVUtdgnB36FXFX7xg5V6KEbSJ4dpQuhkLyfD", // "hello world" dag-pb wrapped
+	FileAtChunkSizeCID:   "QmWmRj3dFDZdb6ABvbmKhEL6TmPbAfBZ1t5BxsEyJrcZhE", // 262144 bytes with seed "chunk-v0-seed"
+	FileOverChunkSizeCID: "QmYyLxtzZyW22zpoVAtKANLRHpDjZtNeDjQdJrcQNWoRkJ", // 262145 bytes with seed "chunk-v0-seed"
+	FileAtMaxLinksCID:    "QmUbBALi174SnogsUzLpYbD4xPiBSFANF4iztWCsHbMKh2", // 174*256KiB bytes with seed "v0-seed"
+	FileOverMaxLinksCID:  "QmV81WL765sC8DXsRhE5fJv2rwhS4icHRaf3J9Zk5FdRnW", // 174*256KiB+1 bytes with seed "v0-seed"
+	DirBasicCID:          "QmX5GtRk3TSSEHtdrykgqm4eqMEn3n2XhfkFAis5fjyZmN", // 4096 files at threshold
+	DirHAMTCID:           "QmeMiJzmhpJAUgynAcxTQYek5PPKgdv3qEvFsdV3XpVnvP", // 4033 files +1 over threshold
 }
 
 // unixfsV12025 is the recommended profile for cross-implementation CID determinism.
@@ -94,8 +132,9 @@ var unixfsV12025 = cidProfileExpectations{
 	HashFunc:   "sha2-256",
 	RawLeaves:  true,
 
-	ChunkSize:    "1MiB",
-	FileMaxLinks: 1024,
+	ChunkSize:      1048576, // 1 MiB
+	ChunkSizeHuman: "1MiB",
+	FileMaxLinks:   1024,
 
 	HAMTFanout:         256,
 	HAMTThreshold:      262144, // 256 KiB
@@ -109,11 +148,13 @@ var unixfsV12025 = cidProfileExpectations{
 	DirHAMTLastNameLen:  22,   // last file: 66 bytes; total: 4765*55 + 66 + 4 = 262145 (+1 over threshold)
 	DirHAMTFiles:        4766, // becomes HAMT
 
-	SmallFileCID:        "bafkreifzjut3te2nhyekklss27nh3k72ysco7y32koao5eei66wof36n5e", // "hello world" raw leaf
-	FileAtMaxLinksCID:   "bafybeihmf37wcuvtx4hpu7he5zl5qaf2ineo2lqlfrapokkm5zzw7zyhvm", // 1024MiB with seed "v1-2025-seed"
-	FileOverMaxLinksCID: "bafybeihmzokxxjqwxjcryerhp5ezpcog2wcawfryb2xm64xiakgm4a5jue", // 1025MiB with seed "v1-2025-seed"
-	DirBasicCID:         "bafybeic3h7rwruealwxkacabdy45jivq2crwz6bufb5ljwupn36gicplx4", // 4766 files at 262144 bytes (threshold)
-	DirHAMTCID:          "bafybeiegvuterwurhdtkikfhbxcldohmxp566vpjdofhzmnhv6o4freidu", // 4766 files at 262145 bytes (+1 over)
+	SmallFileCID:         "bafkreifzjut3te2nhyekklss27nh3k72ysco7y32koao5eei66wof36n5e", // "hello world" raw leaf
+	FileAtChunkSizeCID:   "bafkreiacndfy443ter6qr2tmbbdhadvxxheowwf75s6zehscklu6ezxmta", // 1048576 bytes with seed "chunk-v1-seed"
+	FileOverChunkSizeCID: "bafybeigmix7t42i6jacydtquhet7srwvgpizfg7gjbq7627d35mjomtu64", // 1048577 bytes with seed "chunk-v1-seed"
+	FileAtMaxLinksCID:    "bafybeihmf37wcuvtx4hpu7he5zl5qaf2ineo2lqlfrapokkm5zzw7zyhvm", // 1024*1MiB bytes with seed "v1-2025-seed"
+	FileOverMaxLinksCID:  "bafybeibdsi225ugbkmpbdohnxioyab6jsqrmkts3twhpvfnzp77xtzpyhe", // 1024*1MiB+1 bytes with seed "v1-2025-seed"
+	DirBasicCID:          "bafybeic3h7rwruealwxkacabdy45jivq2crwz6bufb5ljwupn36gicplx4", // 4766 files at 262144 bytes (threshold)
+	DirHAMTCID:           "bafybeiegvuterwurhdtkikfhbxcldohmxp566vpjdofhzmnhv6o4freidu", // 4766 files at 262145 bytes (+1 over)
 }
 
 // defaultProfile points to the profile that matches Kubo's implicit default behavior.
@@ -160,31 +201,40 @@ func TestCIDProfiles(t *testing.T) {
 }
 
 // runProfileTests runs all test vectors for a given profile.
+// Tests verify threshold behaviors for:
+// - Small files (CID format verification)
+// - UnixFSChunker threshold (single block vs multi-block)
+// - UnixFSFileMaxLinks threshold (single-layer vs rebalanced DAG)
+// - HAMTThreshold (basic flat directory vs HAMT sharded)
 func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir string, exportCARs bool) {
 	cidLen := cidV0Length
 	if exp.CIDVersion == 1 {
 		cidLen = cidV1Length
 	}
 
-	t.Run("small-file", func(t *testing.T) {
+	// Test: small file produces correct CID format
+	// Verifies the profile sets the expected CID version, hash function, and leaf encoding.
+	t.Run("small file produces correct CID format", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init(exp.ProfileArgs...)
 		node.StartDaemon()
 		defer node.StopDaemon()
 
-		// Use "hello world" for determinism - matches CIDs in add_test.go
+		// Use "hello world" for determinism
 		cidStr := node.IPFSAddStr("hello world")
 
-		// Verify CID version
+		// Verify CID version (v0 starts with "Qm", v1 with "b")
 		verifyCIDVersion(t, node, cidStr, exp.CIDVersion)
 
-		// Verify hash function
+		// Verify hash function (sha2-256 for both profiles)
 		verifyHashFunction(t, node, cidStr, exp.HashFunc)
 
-		// Verify raw leaves vs wrapped
+		// Verify raw leaves vs dag-pb wrapped
+		// - v0-2015: dag-pb codec (wrapped)
+		// - v1-2025: raw codec (raw leaves)
 		verifyRawLeaves(t, node, cidStr, exp.RawLeaves)
 
-		// Verify deterministic CID if expected
+		// Verify deterministic CID matches expected value
 		if exp.SmallFileCID != "" {
 			require.Equal(t, exp.SmallFileCID, cidStr, "expected deterministic CID for small file")
 		}
@@ -196,27 +246,116 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 		}
 	})
 
-	t.Run("file-at-max-links", func(t *testing.T) {
+	// Test: file at UnixFSChunker threshold (single block)
+	// A file exactly at chunk size fits in one block with no links.
+	// - v0-2015 (256KiB): produces dag-pb wrapped TFile node
+	// - v1-2025 (1MiB): produces raw leaf block
+	t.Run("file at UnixFSChunker threshold (single block)", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init(exp.ProfileArgs...)
 		node.StartDaemon()
 		defer node.StopDaemon()
 
-		// Calculate file size: maxLinks * chunkSize
-		fileSize := fileAtMaxLinksSize(exp)
-		// Seed matches add_test.go for deterministic CIDs
+		// File exactly at chunk size = single block (no links)
+		seed := chunkSeedForProfile(exp)
+		cidStr := node.IPFSAddDeterministicBytes(int64(exp.ChunkSize), seed)
+
+		// Verify block structure based on raw leaves setting
+		if exp.RawLeaves {
+			// v1-2025: single block is a raw leaf (no dag-pb structure)
+			codec := node.IPFS("cid", "format", "-f", "%c", cidStr).Stdout.Trimmed()
+			require.Equal(t, "raw", codec, "single block file is raw leaf")
+		} else {
+			// v0-2015: single block is a dag-pb node with no links (TFile type)
+			root, err := node.InspectPBNode(cidStr)
+			assert.NoError(t, err)
+			require.Equal(t, 0, len(root.Links), "single block file has no links")
+			fsType, err := node.UnixFSDataType(cidStr)
+			require.NoError(t, err)
+			require.Equal(t, ft.TFile, fsType, "single block file is dag-pb wrapped (TFile)")
+		}
+
+		verifyHashFunction(t, node, cidStr, exp.HashFunc)
+
+		if exp.FileAtChunkSizeCID != "" {
+			require.Equal(t, exp.FileAtChunkSizeCID, cidStr, "expected deterministic CID for file at chunk size")
+		}
+
+		if exportCARs {
+			carPath := filepath.Join(carOutputDir, exp.Name+"_file-at-chunk-size.car")
+			require.NoError(t, node.IPFSDagExport(cidStr, carPath))
+			t.Logf("exported: %s -> %s", cidStr, carPath)
+		}
+	})
+
+	// Test: file 1 byte over UnixFSChunker threshold (2 blocks)
+	// A file 1 byte over chunk size requires 2 chunks.
+	// Root is a dag-pb node with 2 links. Leaf encoding depends on profile:
+	// - v0-2015: leaf blocks are dag-pb wrapped TFile nodes
+	// - v1-2025: leaf blocks are raw codec blocks
+	t.Run("file 1 byte over UnixFSChunker threshold (2 blocks)", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init(exp.ProfileArgs...)
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// File +1 byte over chunk size = 2 blocks
+		seed := chunkSeedForProfile(exp)
+		cidStr := node.IPFSAddDeterministicBytes(int64(exp.ChunkSize)+1, seed)
+
+		root, err := node.InspectPBNode(cidStr)
+		assert.NoError(t, err)
+		require.Equal(t, 2, len(root.Links), "file over chunk size has 2 links")
+
+		// Verify leaf block encoding
+		for _, link := range root.Links {
+			if exp.RawLeaves {
+				// v1-2025: leaves are raw blocks
+				leafCodec := node.IPFS("cid", "format", "-f", "%c", link.Hash.Slash).Stdout.Trimmed()
+				require.Equal(t, "raw", leafCodec, "leaf blocks are raw, not dag-pb")
+			} else {
+				// v0-2015: leaves are dag-pb wrapped (TFile type)
+				leafType, err := node.UnixFSDataType(link.Hash.Slash)
+				require.NoError(t, err)
+				require.Equal(t, ft.TFile, leafType, "leaf blocks are dag-pb wrapped (TFile)")
+			}
+		}
+
+		verifyHashFunction(t, node, cidStr, exp.HashFunc)
+
+		if exp.FileOverChunkSizeCID != "" {
+			require.Equal(t, exp.FileOverChunkSizeCID, cidStr, "expected deterministic CID for file over chunk size")
+		}
+
+		if exportCARs {
+			carPath := filepath.Join(carOutputDir, exp.Name+"_file-over-chunk-size.car")
+			require.NoError(t, node.IPFSDagExport(cidStr, carPath))
+			t.Logf("exported: %s -> %s", cidStr, carPath)
+		}
+	})
+
+	// Test: file at UnixFSFileMaxLinks threshold (single layer)
+	// A file of exactly maxLinks * chunkSize bytes fits in a single DAG layer.
+	// - v0-2015: 174 links (174 * 256KiB = ~44.6MiB)
+	// - v1-2025: 1024 links (1024 * 1MiB = 1GiB)
+	t.Run("file at UnixFSFileMaxLinks threshold (single layer)", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init(exp.ProfileArgs...)
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// File size = maxLinks * chunkSize (exactly at threshold)
+		fileSize := fileAtMaxLinksBytes(exp)
 		seed := seedForProfile(exp)
-		cidStr := node.IPFSAddDeterministic(fileSize, seed)
+		cidStr := node.IPFSAddDeterministicBytes(fileSize, seed)
 
 		root, err := node.InspectPBNode(cidStr)
 		assert.NoError(t, err)
 		require.Equal(t, exp.FileMaxLinks, len(root.Links),
 			"expected exactly %d links at max", exp.FileMaxLinks)
 
-		// Verify hash function on root
 		verifyHashFunction(t, node, cidStr, exp.HashFunc)
 
-		// Verify deterministic CID if expected
 		if exp.FileAtMaxLinksCID != "" {
 			require.Equal(t, exp.FileAtMaxLinksCID, cidStr, "expected deterministic CID for file at max links")
 		}
@@ -228,26 +367,27 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 		}
 	})
 
-	t.Run("file-over-max-links-rebalanced", func(t *testing.T) {
+	// Test: file 1 byte over UnixFSFileMaxLinks threshold (rebalanced DAG)
+	// Adding 1 byte requires an additional chunk, exceeding maxLinks.
+	// This triggers DAG rebalancing: chunks are grouped into intermediate nodes,
+	// producing a 2-layer DAG with 2 links at the root.
+	t.Run("file 1 byte over UnixFSFileMaxLinks threshold (rebalanced DAG)", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init(exp.ProfileArgs...)
 		node.StartDaemon()
 		defer node.StopDaemon()
 
-		// One more chunk triggers rebalancing
-		fileSize := fileOverMaxLinksSize(exp)
-		// Seed matches add_test.go for deterministic CIDs
+		// +1 byte over max links threshold triggers DAG rebalancing
+		fileSize := fileOverMaxLinksBytes(exp)
 		seed := seedForProfile(exp)
-		cidStr := node.IPFSAddDeterministic(fileSize, seed)
+		cidStr := node.IPFSAddDeterministicBytes(fileSize, seed)
 
 		root, err := node.InspectPBNode(cidStr)
 		assert.NoError(t, err)
 		require.Equal(t, 2, len(root.Links), "expected 2 links after DAG rebalancing")
 
-		// Verify hash function on root
 		verifyHashFunction(t, node, cidStr, exp.HashFunc)
 
-		// Verify deterministic CID if expected
 		if exp.FileOverMaxLinksCID != "" {
 			require.Equal(t, exp.FileOverMaxLinksCID, cidStr, "expected deterministic CID for rebalanced file")
 		}
@@ -259,7 +399,13 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 		}
 	})
 
-	t.Run("dir-basic", func(t *testing.T) {
+	// Test: directory at HAMTThreshold (basic flat dir)
+	// A directory exactly at HAMTThreshold stays as a basic (flat) UnixFS directory.
+	// Threshold uses > comparison (not >=), so size == threshold stays basic.
+	// Size estimation method depends on profile:
+	// - v0-2015 "links": size = sum(nameLen + cidLen)
+	// - v1-2025 "block": size = serialized protobuf block size
+	t.Run("directory at HAMTThreshold (basic flat dir)", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init(exp.ProfileArgs...)
 		node.StartDaemon()
@@ -270,8 +416,7 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 		randDir, err := os.MkdirTemp(node.Dir, seed)
 		require.NoError(t, err)
 
-		// Create basic (flat) directory exactly at threshold.
-		// With > comparison, directory at exact threshold stays basic.
+		// Create basic (flat) directory exactly at threshold
 		basicLastNameLen := exp.DirBasicLastNameLen
 		if basicLastNameLen == 0 {
 			basicLastNameLen = exp.DirBasicNameLen
@@ -285,7 +430,7 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 
 		cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-		// Verify it's a basic directory by checking UnixFS type
+		// Verify UnixFS type is TDirectory (1), not THAMTShard (5)
 		fsType, err := node.UnixFSDataType(cidStr)
 		require.NoError(t, err)
 		require.Equal(t, ft.TDirectory, fsType, "expected basic directory (type=1) at exact threshold")
@@ -295,18 +440,15 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 		require.Equal(t, exp.DirBasicFiles, len(root.Links),
 			"expected basic directory with %d links", exp.DirBasicFiles)
 
-		// Verify hash function
 		verifyHashFunction(t, node, cidStr, exp.HashFunc)
 
 		// Verify size is exactly at threshold
 		if exp.HAMTSizeEstimation == "block" {
-			// Block estimation: verify actual serialized block size
 			blockSize := getBlockSize(t, node, cidStr)
 			require.Equal(t, exp.HAMTThreshold, blockSize,
 				"expected basic directory block size to be exactly at threshold (%d), got %d", exp.HAMTThreshold, blockSize)
 		}
 		if exp.HAMTSizeEstimation == "links" {
-			// Links estimation: verify sum of (name_len + cid_len) for all links
 			linksSize := 0
 			for _, link := range root.Links {
 				linksSize += len(link.Name) + cidLen
@@ -315,7 +457,6 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 				"expected basic directory links size to be exactly at threshold (%d), got %d", exp.HAMTThreshold, linksSize)
 		}
 
-		// Verify deterministic CID
 		if exp.DirBasicCID != "" {
 			require.Equal(t, exp.DirBasicCID, cidStr, "expected deterministic CID for basic directory")
 		}
@@ -327,7 +468,11 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 		}
 	})
 
-	t.Run("dir-hamt", func(t *testing.T) {
+	// Test: directory 1 byte over HAMTThreshold (HAMT sharded)
+	// A directory 1 byte over HAMTThreshold is converted to a HAMT sharded structure.
+	// HAMT distributes entries across buckets using consistent hashing.
+	// Root has at most HAMTFanout links (256), with entries distributed across buckets.
+	t.Run("directory 1 byte over HAMTThreshold (HAMT sharded)", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init(exp.ProfileArgs...)
 		node.StartDaemon()
@@ -338,8 +483,7 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 		randDir, err := os.MkdirTemp(node.Dir, seed)
 		require.NoError(t, err)
 
-		// Create HAMT (sharded) directory exactly +1 byte over threshold.
-		// With > comparison, directory over threshold becomes HAMT.
+		// Create HAMT (sharded) directory exactly +1 byte over threshold
 		lastNameLen := exp.DirHAMTLastNameLen
 		if lastNameLen == 0 {
 			lastNameLen = exp.DirHAMTNameLen
@@ -353,7 +497,7 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 
 		cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
 
-		// Verify it's a HAMT directory by checking UnixFS type
+		// Verify UnixFS type is THAMTShard (5), not TDirectory (1)
 		fsType, err := node.UnixFSDataType(cidStr)
 		require.NoError(t, err)
 		require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory (type=5) when over threshold")
@@ -364,10 +508,8 @@ func runProfileTests(t *testing.T, exp cidProfileExpectations, carOutputDir stri
 		require.LessOrEqual(t, len(root.Links), exp.HAMTFanout,
 			"expected HAMT directory root to have <= %d links", exp.HAMTFanout)
 
-		// Verify hash function
 		verifyHashFunction(t, node, cidStr, exp.HashFunc)
 
-		// Verify deterministic CID
 		if exp.DirHAMTCID != "" {
 			require.Equal(t, exp.DirHAMTCID, cidStr, "expected deterministic CID for HAMT directory")
 		}
@@ -434,51 +576,17 @@ func getBlockSize(t *testing.T, node *harness.Node, cidStr string) int {
 	return stat.Size
 }
 
-// fileAtMaxLinksSize returns the file size that produces exactly FileMaxLinks chunks.
-func fileAtMaxLinksSize(exp cidProfileExpectations) string {
-	switch exp.ChunkSize {
-	case "1MiB":
-		return strings.Replace(exp.ChunkSize, "1MiB", "", 1) +
-			string(rune('0'+exp.FileMaxLinks/1000)) +
-			string(rune('0'+(exp.FileMaxLinks%1000)/100)) +
-			string(rune('0'+(exp.FileMaxLinks%100)/10)) +
-			string(rune('0'+exp.FileMaxLinks%10)) + "MiB"
-	case "256KiB":
-		// 174 * 256 KiB = 44544 KiB
-		totalKiB := exp.FileMaxLinks * 256
-		return intToStr(totalKiB) + "KiB"
-	default:
-		panic("unknown chunk size: " + exp.ChunkSize)
-	}
+// fileAtMaxLinksBytes returns the file size in bytes that produces exactly FileMaxLinks chunks.
+func fileAtMaxLinksBytes(exp cidProfileExpectations) int64 {
+	return int64(exp.FileMaxLinks) * int64(exp.ChunkSize)
 }
 
-// fileOverMaxLinksSize returns the file size that triggers DAG rebalancing.
-func fileOverMaxLinksSize(exp cidProfileExpectations) string {
-	switch exp.ChunkSize {
-	case "1MiB":
-		return intToStr(exp.FileMaxLinks+1) + "MiB"
-	case "256KiB":
-		// (174 + 1) * 256 KiB = 44800 KiB
-		totalKiB := (exp.FileMaxLinks + 1) * 256
-		return intToStr(totalKiB) + "KiB"
-	default:
-		panic("unknown chunk size: " + exp.ChunkSize)
-	}
+// fileOverMaxLinksBytes returns the file size in bytes that triggers DAG rebalancing (+1 byte over max links threshold).
+func fileOverMaxLinksBytes(exp cidProfileExpectations) int64 {
+	return int64(exp.FileMaxLinks)*int64(exp.ChunkSize) + 1
 }
 
-func intToStr(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	var digits []byte
-	for n > 0 {
-		digits = append([]byte{byte('0' + n%10)}, digits...)
-		n /= 10
-	}
-	return string(digits)
-}
-
-// seedForProfile returns the deterministic seed used in add_test.go for file tests.
+// seedForProfile returns the deterministic seed used in add_test.go for file max links tests.
 func seedForProfile(exp cidProfileExpectations) string {
 	switch exp.Name {
 	case "unixfs-v0-2015", "default":
@@ -487,6 +595,18 @@ func seedForProfile(exp cidProfileExpectations) string {
 		return "v1-2025-seed"
 	default:
 		return exp.Name + "-seed"
+	}
+}
+
+// chunkSeedForProfile returns the deterministic seed for chunk threshold tests.
+func chunkSeedForProfile(exp cidProfileExpectations) string {
+	switch exp.Name {
+	case "unixfs-v0-2015", "default":
+		return "chunk-v0-seed"
+	case "unixfs-v1-2025":
+		return "chunk-v1-seed"
+	default:
+		return "chunk-" + exp.Name + "-seed"
 	}
 }
 

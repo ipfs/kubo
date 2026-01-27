@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	ft "github.com/ipfs/boxo/ipld/unixfs"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
@@ -38,11 +37,6 @@ func TestAdd(t *testing.T) {
 		shortStringCidV1            = "bafkreifzjut3te2nhyekklss27nh3k72ysco7y32koao5eei66wof36n5e" // cidv1 - raw - sha2-256
 		shortStringCidV1NoRawLeaves = "bafybeihykld7uyxzogax6vgyvag42y7464eywpf55gxi5qpoisibh3c5wa" // cidv1 - dag-pb - sha2-256
 		shortStringCidV1Sha512      = "bafkrgqbqt3gerhas23vuzrapkdeqf4vu2dwxp3srdj6hvg6nhsug2tgyn6mj3u23yx7utftq3i2ckw2fwdh5qmhid5qf3t35yvkc5e5ottlw6"
-	)
-
-	const (
-		cidV0Length = 34 // cidv0 sha2-256
-		cidV1Length = 36 // cidv1 sha2-256
 	)
 
 	t.Run("produced cid version: implicit default (CIDv0)", func(t *testing.T) {
@@ -187,207 +181,8 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, "QmbBftNHWmjSWKLC49dMVrfnY8pjrJYntiAXirFJ7oJrNk", cidStr)
 	})
 
-	t.Run("ipfs init --profile=unixfs-v0-2015 sets config that produces legacy CIDv0", func(t *testing.T) {
-		t.Parallel()
-		node := harness.NewT(t).NewNode().Init("--profile=unixfs-v0-2015")
-		node.StartDaemon()
-		defer node.StopDaemon()
-
-		cidStr := node.IPFSAddStr(shortString)
-		require.Equal(t, shortStringCidV0, cidStr)
-	})
-
-	t.Run("ipfs init --profile=unixfs-v0-2015 applies UnixFSChunker=size-262144 and UnixFSFileMaxLinks", func(t *testing.T) {
-		t.Parallel()
-		seed := "v0-seed"
-		profile := "--profile=unixfs-v0-2015"
-
-		t.Run("under UnixFSFileMaxLinks=174", func(t *testing.T) {
-			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
-			defer node.StopDaemon()
-			// Add 44544KiB file:
-			// 174 * 256KiB should fit in single DAG layer
-			cidStr := node.IPFSAddDeterministic("44544KiB", seed)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 174, len(root.Links))
-			// expect same CID every time
-			require.Equal(t, "QmUbBALi174SnogsUzLpYbD4xPiBSFANF4iztWCsHbMKh2", cidStr)
-		})
-
-		t.Run("above UnixFSFileMaxLinks=174", func(t *testing.T) {
-			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
-			defer node.StopDaemon()
-			// add 256KiB (one more block), it should force rebalancing DAG and moving most to second layer
-			cidStr := node.IPFSAddDeterministic("44800KiB", seed)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 2, len(root.Links))
-			// expect same CID every time
-			require.Equal(t, "QmepeWtdmS1hHXx1oZXsPUv6bMrfRRKfZcoPPU4eEfjnbf", cidStr)
-		})
-	})
-
-	t.Run("ipfs init --profile=unixfs-v0-2015 applies UnixFSHAMTDirectoryMaxFanout=256 and UnixFSHAMTDirectorySizeThreshold=256KiB", func(t *testing.T) {
-		t.Parallel()
-		seed := "hamt-unixfs-v0-2015"
-		profile := "--profile=unixfs-v0-2015"
-
-		// unixfs-v0-2015 uses links-based estimation: size = sum(nameLen + cidLen)
-		// Threshold is 256KiB = 262144 bytes
-
-		t.Run("at UnixFSHAMTDirectorySizeThreshold=256KiB (links estimation)", func(t *testing.T) {
-			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
-			defer node.StopDaemon()
-
-			randDir, err := os.MkdirTemp(node.Dir, seed)
-			require.NoError(t, err)
-
-			// Create directory exactly at the 256KiB threshold using links estimation.
-			// Links estimation: size = numFiles * (nameLen + cidLen)
-			// 4096 * (30 + 34) = 4096 * 64 = 262144 = threshold exactly
-			// Threshold uses > not >=, so directory at exact threshold stays basic.
-			const numFiles, nameLen = 4096, 30
-			err = createDirectoryForHAMTLinksEstimation(randDir, numFiles, nameLen, nameLen, seed)
-			require.NoError(t, err)
-
-			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
-
-			// Verify it's a basic directory by checking UnixFS type
-			fsType, err := node.UnixFSDataType(cidStr)
-			require.NoError(t, err)
-			require.Equal(t, ft.TDirectory, fsType, "expected basic directory (type=1) at exact threshold")
-		})
-
-		t.Run("1 byte over UnixFSHAMTDirectorySizeThreshold=256KiB (links estimation)", func(t *testing.T) {
-			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
-			defer node.StopDaemon()
-
-			randDir, err := os.MkdirTemp(node.Dir, seed)
-			require.NoError(t, err)
-
-			// Create directory exactly 1 byte over the 256KiB threshold using links estimation.
-			// Links estimation: size = sum(nameLen + cidLen) for each file
-			// 4095 * (30 + 34) + 1 * (31 + 34) = 262080 + 65 = 262145 = threshold + 1
-			const numFiles, nameLen, lastNameLen = 4096, 30, 31
-			err = createDirectoryForHAMTLinksEstimation(randDir, numFiles, nameLen, lastNameLen, seed)
-			require.NoError(t, err)
-
-			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
-
-			// Verify it's a HAMT directory by checking UnixFS type
-			fsType, err := node.UnixFSDataType(cidStr)
-			require.NoError(t, err)
-			require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory (type=5) when 1 byte over threshold")
-		})
-	})
-
-	t.Run("ipfs init --profile=unixfs-v1-2025 produces CIDv1 with raw leaves", func(t *testing.T) {
-		t.Parallel()
-		node := harness.NewT(t).NewNode().Init("--profile=unixfs-v1-2025")
-		node.StartDaemon()
-		defer node.StopDaemon()
-
-		cidStr := node.IPFSAddStr(shortString)
-		require.Equal(t, shortStringCidV1, cidStr) // raw leaf
-	})
-
-	t.Run("ipfs init --profile=unixfs-v1-2025 applies UnixFSChunker=size-1048576 and UnixFSFileMaxLinks=1024", func(t *testing.T) {
-		t.Parallel()
-		seed := "v1-2025-seed"
-		profile := "--profile=unixfs-v1-2025"
-
-		t.Run("under UnixFSFileMaxLinks=1024", func(t *testing.T) {
-			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
-			defer node.StopDaemon()
-			// 1024 * 1MiB should fit in single layer
-			cidStr := node.IPFSAddDeterministic("1024MiB", seed)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 1024, len(root.Links))
-		})
-
-		t.Run("above UnixFSFileMaxLinks=1024", func(t *testing.T) {
-			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
-			defer node.StopDaemon()
-			// add +1MiB (one more block), it should force rebalancing DAG and moving most to second layer
-			cidStr := node.IPFSAddDeterministic("1025MiB", seed)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 2, len(root.Links))
-		})
-	})
-
-	t.Run("ipfs init --profile=unixfs-v1-2025 applies UnixFSHAMTDirectoryMaxFanout=256 and UnixFSHAMTDirectorySizeThreshold=256KiB", func(t *testing.T) {
-		t.Parallel()
-		seed := "hamt-unixfs-v1-2025"
-		profile := "--profile=unixfs-v1-2025"
-
-		// unixfs-v1-2025 uses block-based size estimation: size = sum(LinkSerializedSize)
-		// where LinkSerializedSize includes protobuf overhead (tags, varints, wrappers).
-		// Threshold is 256KiB = 262144 bytes
-
-		t.Run("at UnixFSHAMTDirectorySizeThreshold=256KiB (block estimation)", func(t *testing.T) {
-			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
-			defer node.StopDaemon()
-
-			randDir, err := os.MkdirTemp(node.Dir, seed)
-			require.NoError(t, err)
-
-			// Create directory exactly at the 256KiB threshold using block estimation.
-			// Block estimation: size = dataFieldSize + sum(LinkSerializedSize)
-			// - dataFieldSerializedSize() = 4 bytes (empty dir, no mode/mtime)
-			// - LinkSerializedSize(nameLen=11) = 55 bytes, LinkSerializedSize(nameLen=21) = 65 bytes
-			// Total: 4765 * 55 + 65 + 4 = 262144 = threshold exactly
-			const numFiles, nameLen, lastNameLen = 4766, 11, 21
-			err = createDirectoryForHAMTBlockEstimation(randDir, numFiles, nameLen, lastNameLen, seed)
-			require.NoError(t, err)
-
-			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
-
-			// Verify it's a basic directory by checking UnixFS type
-			fsType, err := node.UnixFSDataType(cidStr)
-			require.NoError(t, err)
-			require.Equal(t, ft.TDirectory, fsType, "expected basic directory (type=1) at exact threshold")
-		})
-
-		t.Run("1 byte over UnixFSHAMTDirectorySizeThreshold=256KiB (block estimation)", func(t *testing.T) {
-			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
-			defer node.StopDaemon()
-
-			randDir, err := os.MkdirTemp(node.Dir, seed)
-			require.NoError(t, err)
-
-			// Create directory exactly 1 byte over the 256KiB threshold.
-			// Same as above but lastNameLen=22 adds 1 byte: 4765 * 55 + 66 + 4 = 262145
-			const numFiles, nameLen, lastNameLen = 4766, 11, 22
-			err = createDirectoryForHAMTBlockEstimation(randDir, numFiles, nameLen, lastNameLen, seed)
-			require.NoError(t, err)
-
-			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
-
-			// Verify it's a HAMT directory by checking UnixFS type
-			fsType, err := node.UnixFSDataType(cidStr)
-			require.NoError(t, err)
-			require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory (type=5) when 1 byte over threshold")
-		})
-	})
+	// Profile-specific threshold tests are in cid_profiles_test.go (TestCIDProfiles).
+	// Tests here cover general ipfs add behavior not tied to specific profiles.
 
 	t.Run("ipfs add --hidden", func(t *testing.T) {
 		t.Parallel()
