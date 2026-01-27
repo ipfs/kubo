@@ -38,7 +38,7 @@ require (
 	github.com/ipfs/go-ipld-format v0.6.3
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.2.2
-	github.com/ipfs/go-log/v2 v2.9.0
+	github.com/ipfs/go-log/v2 v2.9.1
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
 	github.com/ipfs/go-test v0.2.3
@@ -86,7 +86,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0
 	go.uber.org/dig v1.19.0
 	go.uber.org/fx v1.24.0
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.47.0
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96
 	golang.org/x/mod v0.32.0
