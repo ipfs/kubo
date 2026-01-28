@@ -17,6 +17,7 @@ import (
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipns"
+	"github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -296,9 +297,9 @@ Trigger reprovider to announce our data to network.
 		if cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0 {
 			return errors.New("invalid configuration: Provide.DHT.Interval is set to '0'")
 		}
-		provideSys, ok := nd.Provider.(*node.LegacyProvider)
+		provideSys, ok := nd.Provider.(provider.Reprovider)
 		if !ok {
-			return errors.New("manual reprovide not available with experimental sweeping provider (Provide.DHT.SweepEnabled=true)")
+			return errors.New("manual reprovide only available with legacy provider (Provide.DHT.SweepEnabled=false)")
 		}
 
 		err = provideSys.Reprovide(req.Context)
