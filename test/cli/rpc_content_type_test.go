@@ -1,3 +1,7 @@
+// Tests HTTP RPC Content-Type headers.
+// These tests verify that RPC endpoints return correct Content-Type headers
+// for binary responses (CAR, tar, gzip, raw blocks, IPNS records).
+
 package cli
 
 import (
