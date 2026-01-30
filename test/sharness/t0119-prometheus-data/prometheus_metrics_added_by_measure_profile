@@ -156,3 +156,4 @@ leveldb_datastore_sync_latency_seconds_bucket
 leveldb_datastore_sync_latency_seconds_count
 leveldb_datastore_sync_latency_seconds_sum
 leveldb_datastore_sync_total
+libp2p_rcmgr_limit

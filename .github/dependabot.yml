@@ -1,6 +1,45 @@
+# Dependabot PRs are auto-tidied by .github/workflows/dependabot-tidy.yml
 version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    ignore:
+      # Updated via go-ds-* wrappers in ipfs-ecosystem group
+      - dependency-name: "github.com/cockroachdb/pebble*"
+      - dependency-name: "github.com/syndtr/goleveldb"
+      - dependency-name: "github.com/dgraph-io/badger*"
+    groups:
+      ipfs-ecosystem:
+        patterns:
+          - "github.com/ipfs/*"
+          - "github.com/ipfs-shipyard/*"
+          - "github.com/ipshipyard/*"
+          - "github.com/multiformats/*"
+          - "github.com/ipld/*"
+      libp2p-ecosystem:
+        patterns:
+          - "github.com/libp2p/*"
+      golang-x:
+        patterns:
+          - "golang.org/x/*"
+      opentelemetry:
+        patterns:
+          - "go.opentelemetry.io/*"
+      prometheus:
+        patterns:
+          - "github.com/prometheus/*"
+          - "contrib.go.opencensus.io/*"
+          - "go.opencensus.io"
+      uber:
+        patterns:
+          - "go.uber.org/*"

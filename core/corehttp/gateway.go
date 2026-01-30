@@ -112,6 +112,7 @@ func Libp2pGatewayOption() ServeOption {
 			Menu:                  nil,
 			// Apply timeout and concurrency limits from user config
 			RetrievalTimeout:        cfg.Gateway.RetrievalTimeout.WithDefault(config.DefaultRetrievalTimeout),
+			MaxRequestDuration:      cfg.Gateway.MaxRequestDuration.WithDefault(config.DefaultMaxRequestDuration),
 			MaxConcurrentRequests:   int(cfg.Gateway.MaxConcurrentRequests.WithDefault(int64(config.DefaultMaxConcurrentRequests))),
 			MaxRangeRequestFileSize: int64(cfg.Gateway.MaxRangeRequestFileSize.WithDefault(uint64(config.DefaultMaxRangeRequestFileSize))),
 			DiagnosticServiceURL:    "", // Not used since DisableHTMLErrors=true
@@ -272,6 +273,7 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, er
 		NoDNSLink:               cfg.Gateway.NoDNSLink,
 		PublicGateways:          map[string]*gateway.PublicGateway{},
 		RetrievalTimeout:        cfg.Gateway.RetrievalTimeout.WithDefault(config.DefaultRetrievalTimeout),
+		MaxRequestDuration:      cfg.Gateway.MaxRequestDuration.WithDefault(config.DefaultMaxRequestDuration),
 		MaxConcurrentRequests:   int(cfg.Gateway.MaxConcurrentRequests.WithDefault(int64(config.DefaultMaxConcurrentRequests))),
 		MaxRangeRequestFileSize: int64(cfg.Gateway.MaxRangeRequestFileSize.WithDefault(uint64(config.DefaultMaxRangeRequestFileSize))),
 		DiagnosticServiceURL:    cfg.Gateway.DiagnosticServiceURL.WithDefault(config.DefaultDiagnosticServiceURL),

@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"math"
 	"strings"
 	"testing"
@@ -38,8 +37,7 @@ var treeExpected = map[string]struct{}{
 }
 
 func (tp *TestSuite) TestPut(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -61,8 +59,7 @@ func (tp *TestSuite) TestPut(t *testing.T) {
 }
 
 func (tp *TestSuite) TestPutWithHash(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -84,8 +81,7 @@ func (tp *TestSuite) TestPutWithHash(t *testing.T) {
 }
 
 func (tp *TestSuite) TestDagPath(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -132,8 +128,7 @@ func (tp *TestSuite) TestDagPath(t *testing.T) {
 }
 
 func (tp *TestSuite) TestTree(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -167,8 +162,7 @@ func (tp *TestSuite) TestTree(t *testing.T) {
 }
 
 func (tp *TestSuite) TestBatch(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)

@@ -15,8 +15,7 @@ import (
 func TestFindMigrations(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	migs, bins, err := findMigrations(ctx, 0, 5)
 	if err != nil {
@@ -60,8 +59,7 @@ func TestFindMigrations(t *testing.T) {
 func TestFindMigrationsReverse(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	migs, bins, err := findMigrations(ctx, 5, 0)
 	if err != nil {
@@ -103,8 +101,7 @@ func TestFindMigrationsReverse(t *testing.T) {
 }
 
 func TestFetchMigrations(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
@@ -156,8 +153,7 @@ func TestRunMigrations(t *testing.T) {
 
 	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	targetVer := 9
 
