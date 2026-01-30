@@ -38,9 +38,9 @@ publish'.
   > ipfs key gen --type=rsa --size=2048 mykey
   > ipfs name publish --key=mykey QmSomeHash
 
-'ipfs key list' lists the available keys.
+'ipfs key ls' lists the available keys.
 
-  > ipfs key list
+  > ipfs key ls
   self
   mykey
 		`,
@@ -49,7 +49,8 @@ publish'.
 		"gen":    keyGenCmd,
 		"export": keyExportCmd,
 		"import": keyImportCmd,
-		"list":   keyListCmd,
+		"list":   keyListDeprecatedCmd,
+		"ls":     keyListCmd,
 		"rename": keyRenameCmd,
 		"rm":     keyRmCmd,
 		"rotate": keyRotateCmd,
@@ -488,6 +489,17 @@ var keyListCmd = &cmds.Command{
 	Type: KeyOutputList{},
 }
 
+var keyListDeprecatedCmd = &cmds.Command{
+	Status: cmds.Deprecated,
+	Helptext: cmds.HelpText{
+		Tagline: "Deprecated: use 'ipfs key ls' instead.",
+	},
+	Options:  keyListCmd.Options,
+	Run:      keyListCmd.Run,
+	Encoders: keyListCmd.Encoders,
+	Type:     keyListCmd.Type,
+}
+
 const (
 	keyStoreForceOptionName = "force"
 )
@@ -773,7 +785,7 @@ the signed payload is always prefixed with "libp2p-key signed message:".
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("key", "k", "The name of the key to use for signing."),
+		cmds.StringOption("key", "k", "The name of the key to use for verifying."),
 		cmds.StringOption("signature", "s", "Multibase-encoded signature to verify."),
 		ke.OptionIPNSBase,
 	},

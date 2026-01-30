@@ -276,6 +276,9 @@ Note that at present only single root selections / .car files are supported.
 The output of blocks happens in strict DAG-traversal, first-seen, order.
 CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 `,
+		HTTP: &cmds.HTTPHelpText{
+			ResponseContentType: "application/vnd.ipld.car",
+		},
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "CID of a root to recursively export").EnableStdin(),
