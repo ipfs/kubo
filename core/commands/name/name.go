@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -74,6 +75,7 @@ Resolve the value of a dnslink:
 		"resolve": IpnsCmd,
 		"pubsub":  IpnsPubsubCmd,
 		"inspect": IpnsInspectCmd,
+		"get":     IpnsGetCmd,
 	},
 }
 
@@ -265,5 +267,49 @@ Passing --verify will verify signature against provided public key.
 
 			return nil
 		}),
+	},
+}
+
+var IpnsGetCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Retrieve a signed IPNS record.",
+		ShortDescription: `
+Retrieves the signed IPNS record for a given name from the routing system.
+
+The output is the raw IPNS record (protobuf) as defined in the IPNS spec:
+https://specs.ipfs.tech/ipns/ipns-record/
+
+The record can be inspected with 'ipfs name inspect':
+
+    ipfs name get <name> | ipfs name inspect
+
+This is equivalent to 'ipfs routing get /ipns/<name>' but only accepts
+IPNS names (not arbitrary routing keys).
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("name", true, false, "The IPNS name to look up (peer ID or /ipns/peer-id)."),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+
+		// Normalize the argument: accept both "k51..." and "/ipns/k51..."
+		name := req.Arguments[0]
+		if !strings.HasPrefix(name, "/ipns/") {
+			name = "/ipns/" + name
+		}
+
+		data, err := api.Routing().Get(req.Context, name)
+		if err != nil {
+			return err
+		}
+
+		res.SetEncodingType(cmds.OctetStream)
+		res.SetContentType("application/vnd.ipfs.ipns-record")
+		return res.Emit(bytes.NewReader(data))
 	},
 }
