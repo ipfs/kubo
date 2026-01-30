@@ -98,6 +98,9 @@ var blockGetCmd = &cmds.Command{
 'ipfs block get' is a plumbing command for retrieving raw IPFS blocks.
 It takes a <cid>, and outputs the block to stdout.
 `,
+		HTTP: &cmds.HTTPHelpText{
+			ResponseContentType: "application/vnd.ipld.raw",
+		},
 	},
 
 	Arguments: []cmds.Argument{

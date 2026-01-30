@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/boxo/ipns"
 	ipns_pb "github.com/ipfs/boxo/ipns/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -287,9 +287,12 @@ The record can be inspected with 'ipfs name inspect':
 This is equivalent to 'ipfs routing get /ipns/<name>' but only accepts
 IPNS names (not arbitrary routing keys).
 `,
+		HTTP: &cmds.HTTPHelpText{
+			ResponseContentType: "application/vnd.ipfs.ipns-record",
+		},
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("name", true, false, "The IPNS name to look up (peer ID or /ipns/peer-id)."),
+		cmds.StringArg("name", true, false, "The IPNS name to look up."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)

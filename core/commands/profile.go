@@ -70,6 +70,9 @@ However, it could reveal:
 - Memory offsets of various data structures.
 - Any modifications you've made to go-ipfs.
 `,
+		HTTP: &cmds.HTTPHelpText{
+			ResponseContentType: "application/zip",
+		},
 	},
 	NoLocal: true,
 	Options: []cmds.Option{
