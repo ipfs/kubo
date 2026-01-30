@@ -121,6 +121,8 @@ However, it could reveal:
 			archive.Close()
 			_ = w.CloseWithError(err)
 		}()
+		res.SetEncodingType(cmds.OctetStream)
+		res.SetContentType("application/zip")
 		return res.Emit(r)
 	},
 	PostRun: cmds.PostRunMap{

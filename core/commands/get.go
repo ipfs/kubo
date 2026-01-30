@@ -106,10 +106,11 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		// Set Content-Type based on output format.
 		// When compression is enabled, output is gzip (or tar.gz for directories).
 		// Otherwise, tar is used as the transport format.
+		res.SetEncodingType(cmds.OctetStream)
 		if cmplvl != gzip.NoCompression {
-			res.SetEncodingType(cmds.Gzip)
+			res.SetContentType("application/gzip")
 		} else {
-			res.SetEncodingType(cmds.Tar)
+			res.SetContentType("application/x-tar")
 		}
 
 		return res.Emit(reader)

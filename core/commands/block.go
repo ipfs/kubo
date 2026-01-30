@@ -119,6 +119,8 @@ It takes a <cid>, and outputs the block to stdout.
 			return err
 		}
 
+		res.SetEncodingType(cmds.OctetStream)
+		res.SetContentType("application/vnd.ipld.raw")
 		return res.Emit(r)
 	},
 }
