@@ -142,7 +142,7 @@ require (
 	github.com/ipfs/go-cid v0.5.0 // indirect
 	github.com/ipfs/go-datastore v0.9.0 // indirect
 	github.com/ipfs/go-dsqueue v0.1.1 // indirect
-	github.com/ipfs/go-ipfs-cmds v0.15.1-0.20251120024344-3bf315310c03 // indirect
+	github.com/ipfs/go-ipfs-cmds v0.15.1-0.20260130170102-99c850ef2337 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
 	github.com/ipfs/go-ipld-format v0.6.3 // indirect

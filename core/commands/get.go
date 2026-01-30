@@ -103,8 +103,13 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			reader.Close()
 		}()
 
+		// Set Content-Type based on output format.
+		// When compression is enabled, output is gzip (or tar.gz for directories).
+		// Otherwise, tar is used as the transport format.
 		if cmplvl != gzip.NoCompression {
 			res.SetEncodingType(cmds.Gzip)
+		} else {
+			res.SetEncodingType(cmds.Tar)
 		}
 
 		return res.Emit(reader)
