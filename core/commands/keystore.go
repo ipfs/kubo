@@ -785,7 +785,7 @@ the signed payload is always prefixed with "libp2p-key signed message:".
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("key", "k", "The name of the key to use for signing."),
+		cmds.StringOption("key", "k", "The name of the key to use for verifying."),
 		cmds.StringOption("signature", "s", "Multibase-encoded signature to verify."),
 		ke.OptionIPNSBase,
 	},
