@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	ft "github.com/ipfs/boxo/ipld/unixfs"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
@@ -457,5 +459,233 @@ func TestFilesChroot(t *testing.T) {
 		require.NotNil(t, res.ExitErr)
 		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
 		assert.Contains(t, res.Stderr.String(), "opening repo")
+	})
+}
+
+// TestFilesMFSImportConfig tests that MFS operations respect Import.* configuration settings.
+// These tests verify that `ipfs files` commands use the same import settings as `ipfs add`.
+func TestFilesMFSImportConfig(t *testing.T) {
+	t.Parallel()
+
+	t.Run("files write respects Import.CidVersion=1", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Write file via MFS
+		tempFile := filepath.Join(node.Dir, "test.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte("hello"), 0644))
+		node.IPFS("files", "write", "--create", "/test.txt", tempFile)
+
+		// Get CID of written file
+		cidStr := node.IPFS("files", "stat", "--hash", "/test.txt").Stdout.Trimmed()
+
+		// Verify CIDv1 format (base32, starts with "b")
+		require.True(t, strings.HasPrefix(cidStr, "b"), "expected CIDv1 (starts with b), got: %s", cidStr)
+	})
+
+	t.Run("files write respects Import.UnixFSRawLeaves=true", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+			cfg.Import.UnixFSRawLeaves = config.True
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		tempFile := filepath.Join(node.Dir, "test.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte("hello world"), 0644))
+		node.IPFS("files", "write", "--create", "/test.txt", tempFile)
+
+		cidStr := node.IPFS("files", "stat", "--hash", "/test.txt").Stdout.Trimmed()
+		codec := node.IPFS("cid", "format", "-f", "%c", cidStr).Stdout.Trimmed()
+		require.Equal(t, "raw", codec, "expected raw codec for small file with raw leaves")
+	})
+
+	// This test verifies CID parity for single-block files only.
+	// Multi-block files will have different CIDs because MFS uses trickle DAG layout
+	// while 'ipfs add' uses balanced DAG layout. See "files write vs add for multi-block" test.
+	t.Run("single-block file: files write produces same CID as ipfs add", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+			cfg.Import.UnixFSRawLeaves = config.True
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		tempFile := filepath.Join(node.Dir, "test.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte("hello world"), 0644))
+		node.IPFS("files", "write", "--create", "/test.txt", tempFile)
+
+		mfsCid := node.IPFS("files", "stat", "--hash", "/test.txt").Stdout.Trimmed()
+		addCid := node.IPFSAddStr("hello world")
+		require.Equal(t, addCid, mfsCid, "MFS write should produce same CID as ipfs add for single-block files")
+	})
+
+	t.Run("files mkdir respects Import.CidVersion=1", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		node.IPFS("files", "mkdir", "/testdir")
+		cidStr := node.IPFS("files", "stat", "--hash", "/testdir").Stdout.Trimmed()
+
+		// Verify CIDv1 format
+		require.True(t, strings.HasPrefix(cidStr, "b"), "expected CIDv1 (starts with b), got: %s", cidStr)
+	})
+
+	t.Run("MFS subdirectory becomes HAMT when exceeding threshold", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			// Use small threshold for faster testing
+			cfg.Import.UnixFSHAMTDirectorySizeThreshold = *config.NewOptionalBytes("1KiB")
+			cfg.Import.UnixFSHAMTDirectorySizeEstimation = *config.NewOptionalString("block")
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		node.IPFS("files", "mkdir", "/bigdir")
+
+		content := "x"
+		tempFile := filepath.Join(node.Dir, "content.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
+
+		// Add enough files to exceed 1KiB threshold
+		for i := 0; i < 25; i++ {
+			node.IPFS("files", "write", "--create", fmt.Sprintf("/bigdir/file%02d", i), tempFile)
+		}
+
+		cidStr := node.IPFS("files", "stat", "--hash", "/bigdir").Stdout.Trimmed()
+		fsType, err := node.UnixFSDataType(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory")
+	})
+
+	t.Run("MFS root directory becomes HAMT when exceeding threshold", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.UnixFSHAMTDirectorySizeThreshold = *config.NewOptionalBytes("1KiB")
+			cfg.Import.UnixFSHAMTDirectorySizeEstimation = *config.NewOptionalString("block")
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		content := "x"
+		tempFile := filepath.Join(node.Dir, "content.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
+
+		// Add files directly to root /
+		for i := 0; i < 25; i++ {
+			node.IPFS("files", "write", "--create", fmt.Sprintf("/file%02d", i), tempFile)
+		}
+
+		cidStr := node.IPFS("files", "stat", "--hash", "/").Stdout.Trimmed()
+		fsType, err := node.UnixFSDataType(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, ft.THAMTShard, fsType, "expected MFS root to become HAMT")
+	})
+
+	t.Run("MFS directory reverts from HAMT to basic when items removed", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.UnixFSHAMTDirectorySizeThreshold = *config.NewOptionalBytes("1KiB")
+			cfg.Import.UnixFSHAMTDirectorySizeEstimation = *config.NewOptionalString("block")
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		node.IPFS("files", "mkdir", "/testdir")
+
+		content := "x"
+		tempFile := filepath.Join(node.Dir, "content.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
+
+		// Add files to exceed threshold
+		for i := 0; i < 25; i++ {
+			node.IPFS("files", "write", "--create", fmt.Sprintf("/testdir/file%02d", i), tempFile)
+		}
+
+		// Verify it became HAMT
+		cidStr := node.IPFS("files", "stat", "--hash", "/testdir").Stdout.Trimmed()
+		fsType, err := node.UnixFSDataType(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, ft.THAMTShard, fsType, "should be HAMT after adding many files")
+
+		// Remove files to get back below threshold
+		for i := 0; i < 20; i++ {
+			node.IPFS("files", "rm", fmt.Sprintf("/testdir/file%02d", i))
+		}
+
+		// Verify it reverted to basic directory
+		cidStr = node.IPFS("files", "stat", "--hash", "/testdir").Stdout.Trimmed()
+		fsType, err = node.UnixFSDataType(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, ft.TDirectory, fsType, "should revert to basic directory after removing files")
+	})
+
+	// Note: 'files write' produces DIFFERENT CIDs than 'ipfs add' for multi-block files because
+	// MFS uses trickle DAG layout while 'ipfs add' uses balanced DAG layout.
+	// Single-block files produce the same CID (tested above in "single-block file: files write...").
+	// For multi-block CID compatibility with 'ipfs add', use 'ipfs add --to-files' instead.
+
+	t.Run("files cp preserves original CID", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+			cfg.Import.UnixFSRawLeaves = config.True
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Add file via ipfs add
+		originalCid := node.IPFSAddStr("hello world")
+
+		// Copy to MFS
+		node.IPFS("files", "cp", fmt.Sprintf("/ipfs/%s", originalCid), "/copied.txt")
+
+		// Verify CID is preserved
+		mfsCid := node.IPFS("files", "stat", "--hash", "/copied.txt").Stdout.Trimmed()
+		require.Equal(t, originalCid, mfsCid, "files cp should preserve original CID")
+	})
+
+	t.Run("add --to-files respects Import config", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+			cfg.Import.UnixFSRawLeaves = config.True
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Create temp file
+		tempFile := filepath.Join(node.Dir, "test.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte("hello world"), 0644))
+
+		// Add with --to-files
+		addCid := node.IPFS("add", "-Q", "--to-files=/added.txt", tempFile).Stdout.Trimmed()
+
+		// Verify MFS file has same CID
+		mfsCid := node.IPFS("files", "stat", "--hash", "/added.txt").Stdout.Trimmed()
+		require.Equal(t, addCid, mfsCid)
+
+		// Should be CIDv1 raw leaf
+		codec := node.IPFS("cid", "format", "-f", "%c", mfsCid).Stdout.Trimmed()
+		require.Equal(t, "raw", codec)
 	})
 }
