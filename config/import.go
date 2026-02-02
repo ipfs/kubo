@@ -2,11 +2,13 @@ package config
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 
+	chunk "github.com/ipfs/boxo/chunker"
 	"github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
-	"github.com/ipfs/boxo/ipld/unixfs/io"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/verifcid"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -47,7 +49,7 @@ const (
 var (
 	DefaultUnixFSFileMaxLinks           = int64(helpers.DefaultLinksPerBlock)
 	DefaultUnixFSDirectoryMaxLinks      = int64(0)
-	DefaultUnixFSHAMTDirectoryMaxFanout = int64(io.DefaultShardWidth)
+	DefaultUnixFSHAMTDirectoryMaxFanout = int64(uio.DefaultShardWidth)
 )
 
 // Import configures the default options for ingesting data. This affects commands
@@ -222,15 +224,39 @@ func isValidChunker(chunker string) bool {
 }
 
 // HAMTSizeEstimationMode returns the boxo SizeEstimationMode based on the config value.
-func (i *Import) HAMTSizeEstimationMode() io.SizeEstimationMode {
+func (i *Import) HAMTSizeEstimationMode() uio.SizeEstimationMode {
 	switch i.UnixFSHAMTDirectorySizeEstimation.WithDefault(DefaultUnixFSHAMTDirectorySizeEstimation) {
 	case HAMTSizeEstimationLinks:
-		return io.SizeEstimationLinks
+		return uio.SizeEstimationLinks
 	case HAMTSizeEstimationBlock:
-		return io.SizeEstimationBlock
+		return uio.SizeEstimationBlock
 	case HAMTSizeEstimationDisabled:
-		return io.SizeEstimationDisabled
+		return uio.SizeEstimationDisabled
 	default:
-		return io.SizeEstimationLinks
+		return uio.SizeEstimationLinks
+	}
+}
+
+// UnixFSSplitterFunc returns a SplitterGen function based on Import.UnixFSChunker.
+// The returned function creates a Splitter for the configured chunking strategy.
+// The chunker string is parsed once when this method is called, not on each use.
+func (i *Import) UnixFSSplitterFunc() chunk.SplitterGen {
+	chunkerStr := i.UnixFSChunker.WithDefault(DefaultUnixFSChunker)
+
+	// Parse size-based chunker (most common case) and return optimized generator
+	if sizeStr, ok := strings.CutPrefix(chunkerStr, "size-"); ok {
+		if size, err := strconv.ParseInt(sizeStr, 10, 64); err == nil && size > 0 {
+			return chunk.SizeSplitterGen(size)
+		}
+	}
+
+	// For other chunker types (rabin, buzhash) or invalid config,
+	// fall back to parsing per-use (these are rare cases)
+	return func(r io.Reader) chunk.Splitter {
+		s, err := chunk.FromString(r, chunkerStr)
+		if err != nil {
+			return chunk.DefaultSplitter(r)
+		}
+		return s
 	}
 }

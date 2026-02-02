@@ -28,6 +28,7 @@ import (
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
@@ -555,7 +556,9 @@ being GC'ed.
 
 		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		if mkParents {
-			err := ensureContainingDirectoryExists(nd.FilesRoot, dst, prefix)
+			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+			sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
+			err := ensureContainingDirectoryExists(nd.FilesRoot, dst, prefix, maxDirLinks, &sizeEstimationMode)
 			if err != nil {
 				return err
 			}
@@ -994,8 +997,12 @@ stat' on the file or any of its ancestors.
 WARNING:
 
 The CID produced by 'files write' will be different from 'ipfs add' because
-'ipfs file write' creates a trickle-dag optimized for append-only operations
+'ipfs file write' creates a trickle-dag optimized for append-only operations.
 See '--trickle' in 'ipfs add --help' for more information.
+
+NOTE: The 'Import.UnixFSFileMaxLinks' config option does not apply to this command.
+Trickle DAG has a fixed internal structure optimized for append operations.
+To use configurable max-links, use 'ipfs add' with balanced DAG layout.
 
 If you want to add a file without modifying an existing one,
 use 'ipfs add' with '--to-files':
@@ -1064,7 +1071,9 @@ See '--to-files' in 'ipfs add --help' for more information.
 		}
 
 		if mkParents {
-			err := ensureContainingDirectoryExists(nd.FilesRoot, path, prefix)
+			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+			sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
+			err := ensureContainingDirectoryExists(nd.FilesRoot, path, prefix, maxDirLinks, &sizeEstimationMode)
 			if err != nil {
 				return err
 			}
@@ -1191,10 +1200,15 @@ Examples:
 		}
 		root := n.FilesRoot
 
+		maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+		sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
+
 		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{
-			Mkparents:  dashp,
-			Flush:      flush,
-			CidBuilder: prefix,
+			Mkparents:          dashp,
+			Flush:              flush,
+			CidBuilder:         prefix,
+			MaxLinks:           maxDirLinks,
+			SizeEstimationMode: &sizeEstimationMode,
 		})
 
 		return err
@@ -1510,7 +1524,7 @@ func getPrefix(req *cmds.Request, importCfg *config.Import) (cid.Builder, error)
 	return &prefix, nil
 }
 
-func ensureContainingDirectoryExists(r *mfs.Root, path string, builder cid.Builder) error {
+func ensureContainingDirectoryExists(r *mfs.Root, path string, builder cid.Builder, maxLinks int, sizeEstimationMode *uio.SizeEstimationMode) error {
 	dirtomake := gopath.Dir(path)
 
 	if dirtomake == "/" {
@@ -1518,8 +1532,10 @@ func ensureContainingDirectoryExists(r *mfs.Root, path string, builder cid.Build
 	}
 
 	return mfs.Mkdir(r, dirtomake, mfs.MkdirOpts{
-		Mkparents:  true,
-		CidBuilder: builder,
+		Mkparents:          true,
+		CidBuilder:         builder,
+		MaxLinks:           maxLinks,
+		SizeEstimationMode: sizeEstimationMode,
 	})
 }
 

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -687,5 +688,98 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		// Should be CIDv1 raw leaf
 		codec := node.IPFS("cid", "format", "-f", "%c", mfsCid).Stdout.Trimmed()
 		require.Equal(t, "raw", codec)
+	})
+
+	t.Run("files mkdir respects Import.UnixFSDirectoryMaxLinks", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+			// Set low link threshold to trigger HAMT sharding at 5 links
+			cfg.Import.UnixFSDirectoryMaxLinks = *config.NewOptionalInteger(5)
+			// Also need size estimation enabled for switching to work
+			cfg.Import.UnixFSHAMTDirectorySizeEstimation = *config.NewOptionalString("block")
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Create directory with 6 files (exceeds max 5 links)
+		node.IPFS("files", "mkdir", "/testdir")
+
+		content := "x"
+		tempFile := filepath.Join(node.Dir, "content.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
+
+		for i := 0; i < 6; i++ {
+			node.IPFS("files", "write", "--create", fmt.Sprintf("/testdir/file%d.txt", i), tempFile)
+		}
+
+		// Verify directory became HAMT sharded
+		cidStr := node.IPFS("files", "stat", "--hash", "/testdir").Stdout.Trimmed()
+		fsType, err := node.UnixFSDataType(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory after exceeding UnixFSDirectoryMaxLinks")
+	})
+
+	t.Run("files write respects Import.UnixFSChunker", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+			cfg.Import.UnixFSRawLeaves = config.True
+			cfg.Import.UnixFSChunker = *config.NewOptionalString("size-1024") // 1KB chunks
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Create file larger than chunk size (3KB)
+		data := make([]byte, 3*1024)
+		for i := range data {
+			data[i] = byte(i % 256)
+		}
+		tempFile := filepath.Join(node.Dir, "large.bin")
+		require.NoError(t, os.WriteFile(tempFile, data, 0644))
+
+		node.IPFS("files", "write", "--create", "/large.bin", tempFile)
+
+		// Verify chunking: 3KB file with 1KB chunks should have multiple child blocks
+		cidStr := node.IPFS("files", "stat", "--hash", "/large.bin").Stdout.Trimmed()
+		dagStatJSON := node.IPFS("dag", "stat", "--enc=json", cidStr).Stdout.Trimmed()
+		var dagStat struct {
+			UniqueBlocks int `json:"UniqueBlocks"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(dagStatJSON), &dagStat))
+		// With 1KB chunks on a 3KB file, we expect 4 blocks (3 leaf + 1 root)
+		assert.Greater(t, dagStat.UniqueBlocks, 1, "expected more than 1 block with 1KB chunker on 3KB file")
+	})
+
+	t.Run("files write with custom chunker produces same CID as ipfs add --trickle", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+			cfg.Import.UnixFSRawLeaves = config.True
+			cfg.Import.UnixFSChunker = *config.NewOptionalString("size-512")
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Create test data (2KB to get multiple chunks)
+		data := make([]byte, 2048)
+		for i := range data {
+			data[i] = byte(i % 256)
+		}
+		tempFile := filepath.Join(node.Dir, "test.bin")
+		require.NoError(t, os.WriteFile(tempFile, data, 0644))
+
+		// Add via MFS
+		node.IPFS("files", "write", "--create", "/test.bin", tempFile)
+		mfsCid := node.IPFS("files", "stat", "--hash", "/test.bin").Stdout.Trimmed()
+
+		// Add via ipfs add with same chunker and trickle (MFS always uses trickle)
+		addCid := node.IPFS("add", "-Q", "--chunker=size-512", "--trickle", tempFile).Stdout.Trimmed()
+
+		// CIDs should match when using same chunker + trickle layout
+		require.Equal(t, addCid, mfsCid, "MFS and add --trickle should produce same CID with matching chunker")
 	})
 }
