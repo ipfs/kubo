@@ -44,6 +44,36 @@ func (n *Node) UnixFSDataType(cid string) (pb.Data_DataType, error) {
 	return fsNode.Type(), nil
 }
 
+// UnixFSHAMTFanout returns the fanout value for a HAMT shard directory.
+// This is only valid for HAMT shards (THAMTShard type).
+func (n *Node) UnixFSHAMTFanout(cid string) (uint64, error) {
+	log.Debugf("node %d block get %s for fanout", n.ID, cid)
+
+	var blockData bytes.Buffer
+	res := n.Runner.MustRun(RunRequest{
+		Path:    n.IPFSBin,
+		Args:    []string{"block", "get", cid},
+		CmdOpts: []CmdOpt{RunWithStdout(&blockData)},
+	})
+	if res.Err != nil {
+		return 0, res.Err
+	}
+
+	// Parse dag-pb block
+	protoNode, err := mdag.DecodeProtobuf(blockData.Bytes())
+	if err != nil {
+		return 0, err
+	}
+
+	// Parse UnixFS data
+	fsNode, err := ft.FSNodeFromBytes(protoNode.Data())
+	if err != nil {
+		return 0, err
+	}
+
+	return fsNode.Fanout(), nil
+}
+
 // InspectPBNode uses dag-json output of 'ipfs dag get' to inspect
 // "Logical Format" of DAG-PB as defined in
 // https://web.archive.org/web/20250403194752/https://ipld.io/specs/codecs/dag-pb/spec/#logical-format

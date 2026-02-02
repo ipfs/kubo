@@ -782,4 +782,117 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		// CIDs should match when using same chunker + trickle layout
 		require.Equal(t, addCid, mfsCid, "MFS and add --trickle should produce same CID with matching chunker")
 	})
+
+	t.Run("files mkdir respects Import.UnixFSHAMTDirectoryMaxFanout", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			// Use non-default fanout of 64 (default is 256)
+			cfg.Import.UnixFSHAMTDirectoryMaxFanout = *config.NewOptionalInteger(64)
+			// Set low link threshold to trigger HAMT at 5 links
+			cfg.Import.UnixFSDirectoryMaxLinks = *config.NewOptionalInteger(5)
+			cfg.Import.UnixFSHAMTDirectorySizeEstimation = *config.NewOptionalString("disabled")
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		node.IPFS("files", "mkdir", "/testdir")
+
+		content := "x"
+		tempFile := filepath.Join(node.Dir, "content.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
+
+		// Add 6 files (exceeds MaxLinks=5) to trigger HAMT
+		for i := 0; i < 6; i++ {
+			node.IPFS("files", "write", "--create", fmt.Sprintf("/testdir/file%d.txt", i), tempFile)
+		}
+
+		// Verify directory became HAMT
+		cidStr := node.IPFS("files", "stat", "--hash", "/testdir").Stdout.Trimmed()
+		fsType, err := node.UnixFSDataType(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory")
+
+		// Verify the HAMT uses the custom fanout (64) by inspecting the UnixFS Data field.
+		fanout, err := node.UnixFSHAMTFanout(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, uint64(64), fanout, "expected HAMT fanout 64")
+	})
+
+	t.Run("files mkdir respects Import.UnixFSHAMTDirectorySizeThreshold", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			// Use very small threshold (100 bytes) to trigger HAMT quickly
+			cfg.Import.UnixFSHAMTDirectorySizeThreshold = *config.NewOptionalBytes("100B")
+			cfg.Import.UnixFSHAMTDirectorySizeEstimation = *config.NewOptionalString("block")
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		node.IPFS("files", "mkdir", "/testdir")
+
+		content := "test content"
+		tempFile := filepath.Join(node.Dir, "content.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
+
+		// Add 3 files - each link adds ~40-50 bytes, so 3 should exceed 100B threshold
+		for i := 0; i < 3; i++ {
+			node.IPFS("files", "write", "--create", fmt.Sprintf("/testdir/file%d.txt", i), tempFile)
+		}
+
+		// Verify directory became HAMT due to size threshold
+		cidStr := node.IPFS("files", "stat", "--hash", "/testdir").Stdout.Trimmed()
+		fsType, err := node.UnixFSDataType(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory after exceeding size threshold")
+	})
+
+	t.Run("config change takes effect after daemon restart", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Start with high threshold (won't trigger HAMT)
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.UnixFSHAMTDirectorySizeThreshold = *config.NewOptionalBytes("256KiB")
+			cfg.Import.UnixFSHAMTDirectorySizeEstimation = *config.NewOptionalString("block")
+		})
+		node.StartDaemon()
+
+		// Create directory with some files
+		node.IPFS("files", "mkdir", "/testdir")
+		content := "test"
+		tempFile := filepath.Join(node.Dir, "content.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
+		for i := 0; i < 3; i++ {
+			node.IPFS("files", "write", "--create", fmt.Sprintf("/testdir/file%d.txt", i), tempFile)
+		}
+
+		// Verify it's still a basic directory (threshold not exceeded)
+		cidStr := node.IPFS("files", "stat", "--hash", "/testdir").Stdout.Trimmed()
+		fsType, err := node.UnixFSDataType(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, ft.TDirectory, fsType, "should be basic directory with high threshold")
+
+		// Stop daemon
+		node.StopDaemon()
+
+		// Change config to use very low threshold
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.UnixFSHAMTDirectorySizeThreshold = *config.NewOptionalBytes("100B")
+		})
+
+		// Restart daemon
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Add one more file - this should trigger HAMT conversion with new threshold
+		node.IPFS("files", "write", "--create", "/testdir/file3.txt", tempFile)
+
+		// Verify it became HAMT (new threshold applied)
+		cidStr = node.IPFS("files", "stat", "--hash", "/testdir").Stdout.Trimmed()
+		fsType, err = node.UnixFSDataType(cidStr)
+		require.NoError(t, err)
+		require.Equal(t, ft.THAMTShard, fsType, "should be HAMT after daemon restart with lower threshold")
+	})
 }
