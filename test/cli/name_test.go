@@ -1,3 +1,7 @@
+// Tests for `ipfs name` CLI commands.
+// - TestName: tests name publish, resolve, and inspect
+// - TestNameGetPut: tests name get and put for raw IPNS record handling
+
 package cli
 
 import (
@@ -5,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -335,5 +340,550 @@ func TestName(t *testing.T) {
 		// Verify the new content is now published
 		res = node.IPFS("name", "resolve", name.String())
 		require.Contains(t, res.Stdout.String(), publishPath2, "New content should now be published")
+	})
+}
+
+func TestNameGetPut(t *testing.T) {
+	t.Parallel()
+
+	const (
+		fixturePath = "fixtures/TestName.car"
+		fixtureCid  = "bafybeidg3uxibfrt7uqh7zd5yaodetik7wjwi4u7rwv2ndbgj6ec7lsv2a"
+	)
+
+	makeDaemon := func(t *testing.T, daemonArgs ...string) *harness.Node {
+		node := harness.NewT(t).NewNode().Init("--profile=test")
+		r, err := os.Open(fixturePath)
+		require.NoError(t, err)
+		defer r.Close()
+		err = node.IPFSDagImport(r, fixtureCid)
+		require.NoError(t, err)
+		return node.StartDaemon(daemonArgs...)
+	}
+
+	// makeKey creates a unique IPNS key for a test and returns the IPNS name
+	makeKey := func(t *testing.T, node *harness.Node, keyName string) ipns.Name {
+		res := node.IPFS("key", "gen", "--type=ed25519", keyName)
+		keyID := strings.TrimSpace(res.Stdout.String())
+		name, err := ipns.NameFromString(keyID)
+		require.NoError(t, err)
+		return name
+	}
+
+	// makeExternalRecord creates an IPNS record on an ephemeral node that is
+	// shut down before returning. This ensures the test node has no local
+	// knowledge of the record, properly testing put/get functionality.
+	// We use short --lifetime so if IPNS records from tests get published on
+	// the public DHT, they won't waste storage for long.
+	makeExternalRecord := func(t *testing.T, h *harness.Harness, publishPath string, publishArgs ...string) (ipns.Name, []byte) {
+		node := h.NewNode().Init("--profile=test")
+
+		r, err := os.Open(fixturePath)
+		require.NoError(t, err)
+		defer r.Close()
+		err = node.IPFSDagImport(r, fixtureCid)
+		require.NoError(t, err)
+
+		node.StartDaemon()
+
+		res := node.IPFS("key", "gen", "--type=ed25519", "ephemeral-key")
+		keyID := strings.TrimSpace(res.Stdout.String())
+		ipnsName, err := ipns.NameFromString(keyID)
+		require.NoError(t, err)
+
+		args := []string{"name", "publish", "--key=ephemeral-key", "--lifetime=5m"}
+		args = append(args, publishArgs...)
+		args = append(args, publishPath)
+		node.IPFS(args...)
+
+		res = node.IPFS("name", "get", ipnsName.String())
+		record := res.Stdout.Bytes()
+		require.NotEmpty(t, record)
+
+		node.StopDaemon()
+
+		return ipnsName, record
+	}
+
+	t.Run("name get retrieves IPNS record", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		publishPath := "/ipfs/" + fixtureCid
+		ipnsName := makeKey(t, node, "testkey")
+
+		// publish a record first
+		node.IPFS("name", "publish", "--key=testkey", "--lifetime=5m", publishPath)
+
+		// retrieve the record using name get
+		res := node.IPFS("name", "get", ipnsName.String())
+		record := res.Stdout.Bytes()
+		require.NotEmpty(t, record, "expected non-empty IPNS record")
+
+		// verify the record is valid by inspecting it
+		res = node.PipeToIPFS(bytes.NewReader(record), "name", "inspect", "--verify="+ipnsName.String())
+		require.Contains(t, res.Stdout.String(), "Valid: true")
+		require.Contains(t, res.Stdout.String(), publishPath)
+	})
+
+	t.Run("name get accepts /ipns/ prefix", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		publishPath := "/ipfs/" + fixtureCid
+		ipnsName := makeKey(t, node, "testkey")
+
+		node.IPFS("name", "publish", "--key=testkey", "--lifetime=5m", publishPath)
+
+		// retrieve with /ipns/ prefix
+		res := node.IPFS("name", "get", "/ipns/"+ipnsName.String())
+		record := res.Stdout.Bytes()
+		require.NotEmpty(t, record)
+
+		// verify the record
+		res = node.PipeToIPFS(bytes.NewReader(record), "name", "inspect", "--verify="+ipnsName.String())
+		require.Contains(t, res.Stdout.String(), "Valid: true")
+	})
+
+	t.Run("name get fails for non-existent name", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// try to get a record for a random peer ID that doesn't exist
+		res := node.RunIPFS("name", "get", "12D3KooWRirYjmmQATx2kgHBfky6DADsLP7ex1t7BRxJ6nqLs9WH")
+		require.Error(t, res.Err)
+		require.NotEqual(t, 0, res.ExitCode())
+	})
+
+	t.Run("name get fails for invalid name format", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		res := node.RunIPFS("name", "get", "not-a-valid-ipns-name")
+		require.Error(t, res.Err)
+		require.NotEqual(t, 0, res.ExitCode())
+	})
+
+	t.Run("name put accepts /ipns/ prefix", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		publishPath := "/ipfs/" + fixtureCid
+		ipnsName := makeKey(t, node, "testkey")
+
+		node.IPFS("name", "publish", "--key=testkey", "--lifetime=5m", publishPath)
+
+		res := node.IPFS("name", "get", ipnsName.String())
+		record := res.Stdout.Bytes()
+
+		// put with /ipns/ prefix
+		res = node.PipeToIPFS(bytes.NewReader(record), "name", "put", "--force", "/ipns/"+ipnsName.String())
+		require.NoError(t, res.Err)
+	})
+
+	t.Run("name put fails for invalid name format", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// create a dummy file
+		recordFile := filepath.Join(node.Dir, "dummy.bin")
+		err := os.WriteFile(recordFile, []byte("dummy"), 0644)
+		require.NoError(t, err)
+
+		res := node.RunIPFS("name", "put", "not-a-valid-ipns-name", recordFile)
+		require.Error(t, res.Err)
+		require.Contains(t, res.Stderr.String(), "invalid IPNS name")
+	})
+
+	t.Run("name put rejects oversized record", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		ipnsName := makeKey(t, node, "testkey")
+
+		// create a file larger than 10 KiB
+		oversizedRecord := make([]byte, 11*1024)
+		recordFile := filepath.Join(node.Dir, "oversized.bin")
+		err := os.WriteFile(recordFile, oversizedRecord, 0644)
+		require.NoError(t, err)
+
+		res := node.RunIPFS("name", "put", ipnsName.String(), recordFile)
+		require.Error(t, res.Err)
+		require.Contains(t, res.Stderr.String(), "exceeds maximum size")
+	})
+
+	t.Run("name put --force skips size check", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		ipnsName := makeKey(t, node, "testkey")
+
+		// create a file larger than 10 KiB
+		oversizedRecord := make([]byte, 11*1024)
+		recordFile := filepath.Join(node.Dir, "oversized.bin")
+		err := os.WriteFile(recordFile, oversizedRecord, 0644)
+		require.NoError(t, err)
+
+		// with --force, size check is skipped (but routing will likely reject it)
+		res := node.RunIPFS("name", "put", "--force", ipnsName.String(), recordFile)
+		// the command itself should not fail on size, but routing may reject
+		// we just verify it doesn't fail with "exceeds maximum size"
+		if res.Err != nil {
+			require.NotContains(t, res.Stderr.String(), "exceeds maximum size")
+		}
+	})
+
+	t.Run("name put stores IPNS record", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+		publishPath := "/ipfs/" + fixtureCid
+
+		// create a record on an ephemeral node (shut down before test node starts)
+		ipnsName, record := makeExternalRecord(t, h, publishPath)
+
+		// start test node (has no local knowledge of the record)
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// put the record (should succeed since no existing record)
+		recordFile := filepath.Join(node.Dir, "record.bin")
+		err := os.WriteFile(recordFile, record, 0644)
+		require.NoError(t, err)
+
+		res := node.RunIPFS("name", "put", ipnsName.String(), recordFile)
+		require.NoError(t, res.Err)
+
+		// verify the record was stored by getting it back
+		res = node.IPFS("name", "get", ipnsName.String())
+		retrievedRecord := res.Stdout.Bytes()
+		require.Equal(t, record, retrievedRecord, "stored record should match original")
+	})
+
+	t.Run("name put with --force overwrites existing record", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+		publishPath := "/ipfs/" + fixtureCid
+
+		// create a record on an ephemeral node
+		ipnsName, record := makeExternalRecord(t, h, publishPath)
+
+		// start test node
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// first put the record normally
+		recordFile := filepath.Join(node.Dir, "record.bin")
+		err := os.WriteFile(recordFile, record, 0644)
+		require.NoError(t, err)
+
+		res := node.RunIPFS("name", "put", ipnsName.String(), recordFile)
+		require.NoError(t, res.Err)
+
+		// now try to put the same record again (should fail - same sequence)
+		res = node.RunIPFS("name", "put", ipnsName.String(), recordFile)
+		require.Error(t, res.Err)
+		require.Contains(t, res.Stderr.String(), "existing record has sequence")
+
+		// put the record with --force (should succeed)
+		res = node.RunIPFS("name", "put", "--force", ipnsName.String(), recordFile)
+		require.NoError(t, res.Err)
+	})
+
+	t.Run("name put validates signature against name", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+		publishPath := "/ipfs/" + fixtureCid
+
+		// create a record on an ephemeral node
+		_, record := makeExternalRecord(t, h, publishPath)
+
+		// start test node
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// write the record to a file
+		recordFile := filepath.Join(node.Dir, "record.bin")
+		err := os.WriteFile(recordFile, record, 0644)
+		require.NoError(t, err)
+
+		// try to put with a wrong name (should fail validation)
+		wrongName := "12D3KooWRirYjmmQATx2kgHBfky6DADsLP7ex1t7BRxJ6nqLs9WH"
+		res := node.RunIPFS("name", "put", wrongName, recordFile)
+		require.Error(t, res.Err)
+		require.Contains(t, res.Stderr.String(), "record validation failed")
+	})
+
+	t.Run("name put with --force skips command validation", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+		publishPath := "/ipfs/" + fixtureCid
+
+		// create a record on an ephemeral node
+		ipnsName, record := makeExternalRecord(t, h, publishPath)
+
+		// start test node
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// with --force the command skips its own validation (signature, sequence check)
+		// and passes the record directly to the routing layer
+		res := node.PipeToIPFS(bytes.NewReader(record), "name", "put", "--force", ipnsName.String())
+		require.NoError(t, res.Err)
+	})
+
+	t.Run("name put rejects empty record", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		ipnsName := makeKey(t, node, "testkey")
+
+		// create an empty file
+		recordFile := filepath.Join(node.Dir, "empty.bin")
+		err := os.WriteFile(recordFile, []byte{}, 0644)
+		require.NoError(t, err)
+
+		res := node.RunIPFS("name", "put", ipnsName.String(), recordFile)
+		require.Error(t, res.Err)
+		require.Contains(t, res.Stderr.String(), "record is empty")
+	})
+
+	t.Run("name put rejects invalid record", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		ipnsName := makeKey(t, node, "testkey")
+
+		// create a file with garbage data
+		recordFile := filepath.Join(node.Dir, "garbage.bin")
+		err := os.WriteFile(recordFile, []byte("not a valid ipns record"), 0644)
+		require.NoError(t, err)
+
+		res := node.RunIPFS("name", "put", ipnsName.String(), recordFile)
+		require.Error(t, res.Err)
+		require.Contains(t, res.Stderr.String(), "invalid IPNS record")
+	})
+
+	t.Run("name put accepts stdin", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+		publishPath := "/ipfs/" + fixtureCid
+
+		// create a record on an ephemeral node
+		ipnsName, record := makeExternalRecord(t, h, publishPath)
+
+		// start test node (has no local knowledge of the record)
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// put via stdin (no --force needed since no existing record)
+		res := node.PipeToIPFS(bytes.NewReader(record), "name", "put", ipnsName.String())
+		require.NoError(t, res.Err)
+	})
+
+	t.Run("name put fails when offline without --allow-offline", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+		publishPath := "/ipfs/" + fixtureCid
+
+		// create a record on an ephemeral node
+		ipnsName, record := makeExternalRecord(t, h, publishPath)
+
+		// write the record to a file
+		recordFile := filepath.Join(h.Dir, "record.bin")
+		err := os.WriteFile(recordFile, record, 0644)
+		require.NoError(t, err)
+
+		// start test node in offline mode
+		node := h.NewNode().Init("--profile=test")
+		node.StartDaemon("--offline")
+		defer node.StopDaemon()
+
+		// try to put without --allow-offline (should fail)
+		res := node.RunIPFS("name", "put", ipnsName.String(), recordFile)
+		require.Error(t, res.Err)
+		// error can come from our command or from the routing layer
+		stderr := res.Stderr.String()
+		require.True(t, strings.Contains(stderr, "offline") || strings.Contains(stderr, "online mode"),
+			"expected offline-related error, got: %s", stderr)
+	})
+
+	t.Run("name put succeeds with --allow-offline", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+		publishPath := "/ipfs/" + fixtureCid
+
+		// create a record on an ephemeral node
+		ipnsName, record := makeExternalRecord(t, h, publishPath)
+
+		// write the record to a file
+		recordFile := filepath.Join(h.Dir, "record.bin")
+		err := os.WriteFile(recordFile, record, 0644)
+		require.NoError(t, err)
+
+		// start test node in offline mode
+		node := h.NewNode().Init("--profile=test")
+		node.StartDaemon("--offline")
+		defer node.StopDaemon()
+
+		// put with --allow-offline (should succeed, no --force needed since no existing record)
+		res := node.RunIPFS("name", "put", "--allow-offline", ipnsName.String(), recordFile)
+		require.NoError(t, res.Err)
+	})
+
+	t.Run("name get/put round trip preserves record bytes", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+		publishPath := "/ipfs/" + fixtureCid
+
+		// create a record on an ephemeral node
+		ipnsName, originalRecord := makeExternalRecord(t, h, publishPath)
+
+		// start test node (has no local knowledge of the record)
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// put the record
+		res := node.PipeToIPFS(bytes.NewReader(originalRecord), "name", "put", ipnsName.String())
+		require.NoError(t, res.Err)
+
+		// get the record back
+		res = node.IPFS("name", "get", ipnsName.String())
+		retrievedRecord := res.Stdout.Bytes()
+
+		// the records should be byte-for-byte identical
+		require.Equal(t, originalRecord, retrievedRecord, "record bytes should be preserved after get/put round trip")
+	})
+
+	t.Run("name put --force allows storing lower sequence record", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+		publishPath := "/ipfs/" + fixtureCid
+
+		// create an ephemeral node to generate two records with different sequences
+		ephNode := h.NewNode().Init("--profile=test")
+
+		r, err := os.Open(fixturePath)
+		require.NoError(t, err)
+		err = ephNode.IPFSDagImport(r, fixtureCid)
+		r.Close()
+		require.NoError(t, err)
+
+		ephNode.StartDaemon()
+
+		res := ephNode.IPFS("key", "gen", "--type=ed25519", "ephemeral-key")
+		keyID := strings.TrimSpace(res.Stdout.String())
+		ipnsName, err := ipns.NameFromString(keyID)
+		require.NoError(t, err)
+
+		// publish record with sequence 100
+		ephNode.IPFS("name", "publish", "--key=ephemeral-key", "--lifetime=5m", "--sequence=100", publishPath)
+		res = ephNode.IPFS("name", "get", ipnsName.String())
+		record100 := res.Stdout.Bytes()
+
+		// publish record with sequence 200
+		ephNode.IPFS("name", "publish", "--key=ephemeral-key", "--lifetime=5m", "--sequence=200", publishPath)
+		res = ephNode.IPFS("name", "get", ipnsName.String())
+		record200 := res.Stdout.Bytes()
+
+		ephNode.StopDaemon()
+
+		// start test node (has no local knowledge of the records)
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// helper to get sequence from record
+		getSequence := func(record []byte) uint64 {
+			res := node.PipeToIPFS(bytes.NewReader(record), "name", "inspect", "--enc=json")
+			var result name.IpnsInspectResult
+			err := json.Unmarshal(res.Stdout.Bytes(), &result)
+			require.NoError(t, err)
+			require.NotNil(t, result.Entry.Sequence)
+			return *result.Entry.Sequence
+		}
+
+		// verify we have the right records
+		require.Equal(t, uint64(100), getSequence(record100))
+		require.Equal(t, uint64(200), getSequence(record200))
+
+		// put record with sequence 200 first
+		res = node.PipeToIPFS(bytes.NewReader(record200), "name", "put", ipnsName.String())
+		require.NoError(t, res.Err)
+
+		// verify current record has sequence 200
+		res = node.IPFS("name", "get", ipnsName.String())
+		require.Equal(t, uint64(200), getSequence(res.Stdout.Bytes()))
+
+		// now put the lower sequence record (100) with --force
+		// this should succeed (--force bypasses our sequence check)
+		res = node.PipeToIPFS(bytes.NewReader(record100), "name", "put", "--force", ipnsName.String())
+		require.NoError(t, res.Err, "putting lower sequence record with --force should succeed")
+
+		// note: when we get the record, IPNS resolution returns the "best" record
+		// (highest sequence), so we'll get the sequence 200 record back
+		// this is expected IPNS behavior - the put succeeded, but get returns the best record
+		res = node.IPFS("name", "get", ipnsName.String())
+		retrievedSeq := getSequence(res.Stdout.Bytes())
+		require.Equal(t, uint64(200), retrievedSeq, "IPNS get returns the best (highest sequence) record")
+	})
+
+	t.Run("name put sequence conflict detection", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+		publishPath := "/ipfs/" + fixtureCid
+
+		// create an ephemeral node to generate two records with different sequences
+		ephNode := h.NewNode().Init("--profile=test")
+
+		r, err := os.Open(fixturePath)
+		require.NoError(t, err)
+		err = ephNode.IPFSDagImport(r, fixtureCid)
+		r.Close()
+		require.NoError(t, err)
+
+		ephNode.StartDaemon()
+
+		res := ephNode.IPFS("key", "gen", "--type=ed25519", "ephemeral-key")
+		keyID := strings.TrimSpace(res.Stdout.String())
+		ipnsName, err := ipns.NameFromString(keyID)
+		require.NoError(t, err)
+
+		// publish record with sequence 100
+		ephNode.IPFS("name", "publish", "--key=ephemeral-key", "--lifetime=5m", "--sequence=100", publishPath)
+		res = ephNode.IPFS("name", "get", ipnsName.String())
+		record100 := res.Stdout.Bytes()
+
+		// publish record with sequence 200
+		ephNode.IPFS("name", "publish", "--key=ephemeral-key", "--lifetime=5m", "--sequence=200", publishPath)
+		res = ephNode.IPFS("name", "get", ipnsName.String())
+		record200 := res.Stdout.Bytes()
+
+		ephNode.StopDaemon()
+
+		// start test node (has no local knowledge of the records)
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// put record with sequence 200 first
+		res = node.PipeToIPFS(bytes.NewReader(record200), "name", "put", ipnsName.String())
+		require.NoError(t, res.Err)
+
+		// try to put record with sequence 100 (lower than current 200)
+		recordFile := filepath.Join(node.Dir, "record100.bin")
+		err = os.WriteFile(recordFile, record100, 0644)
+		require.NoError(t, err)
+
+		res = node.RunIPFS("name", "put", ipnsName.String(), recordFile)
+		require.Error(t, res.Err)
+		require.Contains(t, res.Stderr.String(), "existing record has sequence 200 >= new record sequence 100")
 	})
 }
