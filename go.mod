@@ -12,13 +12,13 @@ require (
 	github.com/ceramicnetwork/go-dag-jose v0.1.1
 	github.com/cheggaaa/pb v1.0.29
 	github.com/cockroachdb/pebble/v2 v2.1.4
-	github.com/coreos/go-systemd/v22 v22.5.0
+	github.com/coreos/go-systemd/v22 v22.7.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/uuid v1.6.0
-	github.com/hashicorp/go-version v1.7.0
+	github.com/hashicorp/go-version v1.8.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
 	github.com/ipfs/boxo v0.36.0
@@ -62,7 +62,7 @@ require (
 	github.com/libp2p/go-socket-activation v0.1.1
 	github.com/miekg/dns v1.1.72
 	github.com/multiformats/go-multiaddr v0.16.1
-	github.com/multiformats/go-multiaddr-dns v0.4.1
+	github.com/multiformats/go-multiaddr-dns v0.5.0
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multicodec v0.10.0
 	github.com/multiformats/go-multihash v0.2.3
