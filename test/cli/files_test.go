@@ -564,7 +564,7 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
 
 		// Add enough files to exceed 1KiB threshold
-		for i := 0; i < 25; i++ {
+		for i := range 25 {
 			node.IPFS("files", "write", "--create", fmt.Sprintf("/bigdir/file%02d", i), tempFile)
 		}
 
@@ -589,7 +589,7 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
 
 		// Add files directly to root /
-		for i := 0; i < 25; i++ {
+		for i := range 25 {
 			node.IPFS("files", "write", "--create", fmt.Sprintf("/file%02d", i), tempFile)
 		}
 
@@ -616,7 +616,7 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
 
 		// Add files to exceed threshold
-		for i := 0; i < 25; i++ {
+		for i := range 25 {
 			node.IPFS("files", "write", "--create", fmt.Sprintf("/testdir/file%02d", i), tempFile)
 		}
 
@@ -627,7 +627,7 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		require.Equal(t, ft.THAMTShard, fsType, "should be HAMT after adding many files")
 
 		// Remove files to get back below threshold
-		for i := 0; i < 20; i++ {
+		for i := range 20 {
 			node.IPFS("files", "rm", fmt.Sprintf("/testdir/file%02d", i))
 		}
 
@@ -710,7 +710,7 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		tempFile := filepath.Join(node.Dir, "content.txt")
 		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
 
-		for i := 0; i < 6; i++ {
+		for i := range 6 {
 			node.IPFS("files", "write", "--create", fmt.Sprintf("/testdir/file%d.txt", i), tempFile)
 		}
 
@@ -803,7 +803,7 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
 
 		// Add 6 files (exceeds MaxLinks=5) to trigger HAMT
-		for i := 0; i < 6; i++ {
+		for i := range 6 {
 			node.IPFS("files", "write", "--create", fmt.Sprintf("/testdir/file%d.txt", i), tempFile)
 		}
 
@@ -837,7 +837,7 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
 
 		// Add 3 files - each link adds ~40-50 bytes, so 3 should exceed 100B threshold
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			node.IPFS("files", "write", "--create", fmt.Sprintf("/testdir/file%d.txt", i), tempFile)
 		}
 
@@ -864,7 +864,7 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		content := "test"
 		tempFile := filepath.Join(node.Dir, "content.txt")
 		require.NoError(t, os.WriteFile(tempFile, []byte(content), 0644))
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			node.IPFS("files", "write", "--create", fmt.Sprintf("/testdir/file%d.txt", i), tempFile)
 		}
 
