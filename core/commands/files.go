@@ -997,7 +997,7 @@ stat' on the file or any of its ancestors.
 WARNING:
 
 The CID produced by 'files write' will be different from 'ipfs add' because
-'ipfs file write' creates a trickle-dag optimized for append-only operations.
+'ipfs files write' creates a trickle-dag optimized for append-only operations.
 See '--trickle' in 'ipfs add --help' for more information.
 
 NOTE: The 'Import.UnixFSFileMaxLinks' config option does not apply to this command.
