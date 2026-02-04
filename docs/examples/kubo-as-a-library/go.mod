@@ -85,7 +85,7 @@ require (
 	github.com/ipfs/go-ds-pebble v0.5.9 // indirect
 	github.com/ipfs/go-dsqueue v0.1.2 // indirect
 	github.com/ipfs/go-fs-lock v0.1.1 // indirect
-	github.com/ipfs/go-ipfs-cmds v0.15.1-0.20260203151407-4b3827ebb483 // indirect
+	github.com/ipfs/go-ipfs-cmds v0.15.1-0.20260204054241-1b2a641ed6f6 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.1 // indirect
 	github.com/ipfs/go-ipfs-pq v0.0.4 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
