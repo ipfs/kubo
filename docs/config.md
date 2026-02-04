@@ -717,7 +717,7 @@ Type: `flag`
 
 ## `AutoTLS`
 
-The [AutoTLS](https://blog.libp2p.io/autotls/) feature enables publicly reachable Kubo nodes (those dialable from the public
+The [AutoTLS](https://web.archive.org/web/20260112031855/https://blog.libp2p.io/autotls/) feature enables publicly reachable Kubo nodes (those dialable from the public
 internet) to automatically obtain a wildcard TLS certificate for a DNS name
 unique to their PeerID at `*.[PeerID].libp2p.direct`. This enables direct
 libp2p connections and retrieval of IPFS content from browsers [Secure Context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
@@ -725,7 +725,7 @@ using transports such as [Secure WebSockets](https://github.com/libp2p/specs/blo
 without requiring user to do any manual domain registration and certificate configuration.
 
 Under the hood, [p2p-forge] client uses public utility service at `libp2p.direct` as an [ACME DNS-01 Challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
-broker enabling peer to obtain a wildcard TLS certificate tied to public key of their [PeerID](https://docs.libp2p.io/concepts/fundamentals/peers/#peer-id).
+broker enabling peer to obtain a wildcard TLS certificate tied to public key of their [PeerID](https://web.archive.org/web/20251112181025/https://docs.libp2p.io/concepts/fundamentals/peers/#peer-id).
 
 By default, the certificates are requested from Let's Encrypt. Origin and rationale for this project can be found in [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003).
 
@@ -2423,7 +2423,7 @@ Replaced with [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers).
 
 ## `Pubsub`
 
-Pubsub configures Kubo's opt-in, opinionated [libp2p pubsub](https://docs.libp2p.io/concepts/pubsub/overview/) instance.
+Pubsub configures Kubo's opt-in, opinionated [libp2p pubsub](https://web.archive.org/web/20260116065034/https://docs.libp2p.io/concepts/pubsub/overview/) instance.
 To enable, set `Pubsub.Enabled` to `true`.
 
 **EXPERIMENTAL:** This is an opt-in feature. Its primary use case is
@@ -3357,7 +3357,7 @@ NATs.
 
 See also:
 
-- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
+- Docs: [Libp2p Circuit Relay](https://web.archive.org/web/20260128152445/https://docs.libp2p.io/concepts/nat/circuit-relay/)
 - [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled) for getting a public
 - `/p2p-circuit` address when behind a firewall.
 - [`Swarm.EnableHolePunching`](#swarmenableholepunching) for direct connection upgrade through relay
@@ -3405,7 +3405,7 @@ is a transport protocol that provides another way for browsers to
 connect to the rest of the libp2p network. WebRTC Direct allows for browser
 nodes to connect to other nodes without special configuration, such as TLS
 certificates. This can be useful for browser nodes that do not yet support
-[WebTransport](https://blog.libp2p.io/2022-12-19-libp2p-webtransport/),
+[WebTransport](https://web.archive.org/web/20260107053250/https://blog.libp2p.io/2022-12-19-libp2p-webtransport/),
 which is still relatively new and has [known issues](https://github.com/libp2p/js-libp2p/issues/2572).
 
 Enabling this transport allows Kubo node to act on `/udp/4001/webrtc-direct`
