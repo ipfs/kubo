@@ -181,8 +181,8 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
-		cmds.BoolOption(enablePubSubKwd, "DEPRECATED"),
-		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS over pubsub. Implicitly enables pubsub, overrides Ipns.UsePubsub config."),
+		cmds.BoolOption(enablePubSubKwd, "DEPRECATED CLI flag. Use Pubsub.Enabled config instead."),
+		cmds.BoolOption(enableIPNSPubSubKwd, "DEPRECATED CLI flag. Use Ipns.UsePubsub config instead."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
 		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and exposed via libp2p identify protocol."),
 
@@ -397,10 +397,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	fmt.Printf("PeerID: %s\n", cfg.Identity.PeerID)
 
-	if !psSet {
+	if psSet {
+		log.Error("The --enable-pubsub-experiment flag is deprecated. Use Pubsub.Enabled config option instead.")
+	} else {
 		pubsub = cfg.Pubsub.Enabled.WithDefault(false)
 	}
-	if !ipnsPsSet {
+	if ipnsPsSet {
+		log.Error("The --enable-namesys-pubsub flag is deprecated. Use Ipns.UsePubsub config option instead.")
+	} else {
 		ipnsps = cfg.Ipns.UsePubsub.WithDefault(false)
 	}
 
@@ -883,21 +887,36 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		return nil, fmt.Errorf("serveHTTPApi: ConstructNode() failed: %s", err)
 	}
 
+	// Buffer channel to prevent deadlock when multiple servers write errors simultaneously
+	errc := make(chan error, len(listeners))
+	var wg sync.WaitGroup
+
+	// Start all servers and wait for them to be ready before writing api file.
+	// This prevents race conditions where external tools (like systemd path units)
+	// see the file and try to connect before servers can accept connections.
 	if len(listeners) > 0 {
-		// Only add an api file if the API is running.
+		readyChannels := make([]chan struct{}, len(listeners))
+		for i, lis := range listeners {
+			readyChannels[i] = make(chan struct{})
+			ready := readyChannels[i]
+			wg.Go(func() {
+				errc <- corehttp.ServeWithReady(node, manet.NetListener(lis), ready, opts...)
+			})
+		}
+
+		// Wait for all listeners to be ready or any to fail
+		for _, ready := range readyChannels {
+			select {
+			case <-ready:
+				// This listener is ready
+			case err := <-errc:
+				return nil, fmt.Errorf("serveHTTPApi: %w", err)
+			}
+		}
+
 		if err := node.Repo.SetAPIAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr())); err != nil {
 			return nil, fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %w", err)
 		}
-	}
-
-	errc := make(chan error)
-	var wg sync.WaitGroup
-	for _, apiLis := range listeners {
-		wg.Add(1)
-		go func(lis manet.Listener) {
-			defer wg.Done()
-			errc <- corehttp.Serve(node, manet.NetListener(lis), opts...)
-		}(apiLis)
 	}
 
 	go func() {
@@ -1058,24 +1077,40 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		return nil, fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err)
 	}
 
+	// Buffer channel to prevent deadlock when multiple servers write errors simultaneously
+	errc := make(chan error, len(listeners))
+	var wg sync.WaitGroup
+
+	// Start all servers and wait for them to be ready before writing gateway file.
+	// This prevents race conditions where external tools (like systemd path units)
+	// see the file and try to connect before servers can accept connections.
 	if len(listeners) > 0 {
+		readyChannels := make([]chan struct{}, len(listeners))
+		for i, lis := range listeners {
+			readyChannels[i] = make(chan struct{})
+			ready := readyChannels[i]
+			wg.Go(func() {
+				errc <- corehttp.ServeWithReady(node, manet.NetListener(lis), ready, opts...)
+			})
+		}
+
+		// Wait for all listeners to be ready or any to fail
+		for _, ready := range readyChannels {
+			select {
+			case <-ready:
+				// This listener is ready
+			case err := <-errc:
+				return nil, fmt.Errorf("serveHTTPGateway: %w", err)
+			}
+		}
+
 		addr, err := manet.ToNetAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr()))
 		if err != nil {
-			return nil, fmt.Errorf("serveHTTPGateway: manet.ToIP() failed: %w", err)
+			return nil, fmt.Errorf("serveHTTPGateway: manet.ToNetAddr() failed: %w", err)
 		}
 		if err := node.Repo.SetGatewayAddr(addr); err != nil {
 			return nil, fmt.Errorf("serveHTTPGateway: SetGatewayAddr() failed: %w", err)
 		}
-	}
-
-	errc := make(chan error)
-	var wg sync.WaitGroup
-	for _, lis := range listeners {
-		wg.Add(1)
-		go func(lis manet.Listener) {
-			defer wg.Done()
-			errc <- corehttp.Serve(node, manet.NetListener(lis), opts...)
-		}(lis)
 	}
 
 	go func() {

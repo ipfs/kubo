@@ -101,7 +101,7 @@ func (api *KeyAPI) List(ctx context.Context) ([]iface.Key, error) {
 	var out struct {
 		Keys []keyOutput
 	}
-	if err := api.core().Request("key/list").Exec(ctx, &out); err != nil {
+	if err := api.core().Request("key/ls").Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 

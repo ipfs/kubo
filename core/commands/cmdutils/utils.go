@@ -2,12 +2,14 @@ package cmdutils
 
 import (
 	"fmt"
+	"slices"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 
 	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 const (
@@ -83,4 +85,14 @@ func PathOrCidPath(str string) (path.Path, error) {
 
 	// Send back original err.
 	return nil, originalErr
+}
+
+// CloneAddrInfo returns a copy of the AddrInfo with a cloned Addrs slice.
+// This prevents data races if the sender reuses the backing array.
+// See: https://github.com/ipfs/kubo/issues/11116
+func CloneAddrInfo(ai peer.AddrInfo) peer.AddrInfo {
+	return peer.AddrInfo{
+		ID:    ai.ID,
+		Addrs: slices.Clone(ai.Addrs),
+	}
 }

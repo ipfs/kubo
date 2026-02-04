@@ -19,6 +19,7 @@ func TestFilesCp(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create simple text file
 		data := "testing files cp command"
@@ -36,6 +37,7 @@ func TestFilesCp(t *testing.T) {
 	t.Run("files cp with unsupported DAG node type fails", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// MFS UnixFS is limited to dag-pb or raw, so we create a dag-cbor node to test this
 		jsonData := `{"data": "not a UnixFS node"}`
@@ -53,6 +55,7 @@ func TestFilesCp(t *testing.T) {
 	t.Run("files cp with invalid UnixFS data structure fails", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create an invalid proto file
 		data := []byte{0xDE, 0xAD, 0xBE, 0xEF} // Invalid protobuf data
@@ -75,6 +78,7 @@ func TestFilesCp(t *testing.T) {
 	t.Run("files cp with raw node succeeds", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create a raw node
 		data := "raw data"
@@ -98,6 +102,7 @@ func TestFilesCp(t *testing.T) {
 	t.Run("files cp creates intermediate directories with -p", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create a simple text file and add it to IPFS
 		data := "hello parent directories"
@@ -130,6 +135,7 @@ func TestFilesRm(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create a file to remove
 		node.IPFS("files", "mkdir", "/test-dir")
@@ -149,6 +155,7 @@ func TestFilesRm(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create a file to remove
 		node.IPFS("files", "mkdir", "/test-dir")
@@ -166,6 +173,7 @@ func TestFilesRm(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Create a file to remove
 		node.IPFS("files", "mkdir", "/test-dir")
@@ -186,6 +194,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 	t.Run("reaches default limit of 256 operations", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 
 		// Perform 256 operations with --flush=false (should succeed)
 		for i := 0; i < 256; i++ {
@@ -214,6 +223,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		})
 
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Perform 5 operations (should succeed)
 		for i := 0; i < 5; i++ {
@@ -239,6 +249,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		})
 
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Do 2 operations with --flush=false
 		node.IPFS("files", "mkdir", "--flush=false", "/dir1")
@@ -271,6 +282,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		})
 
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Do 2 operations with --flush=false
 		node.IPFS("files", "mkdir", "--flush=false", "/dir1")
@@ -303,6 +315,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		})
 
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Should be able to do many operations without error
 		for i := 0; i < 300; i++ {
@@ -322,6 +335,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		})
 
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Mix of different MFS operations (5 operations to hit the limit)
 		node.IPFS("files", "mkdir", "--flush=false", "/testdir")
@@ -337,5 +351,111 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		require.NotNil(t, res.ExitErr, "command should have failed")
 		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
 		assert.Contains(t, res.Stderr.String(), "reached limit of 5 unflushed MFS operations")
+	})
+}
+
+func TestFilesChroot(t *testing.T) {
+	t.Parallel()
+
+	// Known CIDs for testing
+	emptyDirCid := "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn"
+
+	t.Run("requires --confirm flag", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		// Don't start daemon - chroot runs offline
+
+		res := node.RunIPFS("files", "chroot")
+		require.NotNil(t, res.ExitErr)
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "pass --confirm to proceed")
+	})
+
+	t.Run("resets to empty directory", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Start daemon to create MFS state
+		node.StartDaemon()
+		node.IPFS("files", "mkdir", "/testdir")
+		node.StopDaemon()
+
+		// Reset MFS to empty - should exit 0
+		res := node.RunIPFS("files", "chroot", "--confirm")
+		assert.Nil(t, res.ExitErr, "expected exit code 0")
+		assert.Contains(t, res.Stdout.String(), emptyDirCid)
+
+		// Verify daemon starts and MFS is empty
+		node.StartDaemon()
+		defer node.StopDaemon()
+		lsRes := node.IPFS("files", "ls", "/")
+		assert.Empty(t, lsRes.Stdout.Trimmed())
+	})
+
+	t.Run("replaces with valid directory CID", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Start daemon to add content
+		node.StartDaemon()
+		node.IPFS("files", "mkdir", "/mydir")
+		// Create a temp file for content
+		tempFile := filepath.Join(node.Dir, "testfile.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte("hello"), 0644))
+		node.IPFS("files", "write", "--create", "/mydir/file.txt", tempFile)
+		statRes := node.IPFS("files", "stat", "--hash", "/mydir")
+		dirCid := statRes.Stdout.Trimmed()
+		node.StopDaemon()
+
+		// Reset to empty first
+		node.IPFS("files", "chroot", "--confirm")
+
+		// Set root to the saved directory - should exit 0
+		res := node.RunIPFS("files", "chroot", "--confirm", dirCid)
+		assert.Nil(t, res.ExitErr, "expected exit code 0")
+		assert.Contains(t, res.Stdout.String(), dirCid)
+
+		// Verify content
+		node.StartDaemon()
+		defer node.StopDaemon()
+		readRes := node.IPFS("files", "read", "/file.txt")
+		assert.Equal(t, "hello", readRes.Stdout.Trimmed())
+	})
+
+	t.Run("fails with non-existent CID", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		res := node.RunIPFS("files", "chroot", "--confirm", "bafybeibdxtd5thfoitjmnfhxhywokebwdmwnuqgkzjjdjhwjz7qh77777a")
+		require.NotNil(t, res.ExitErr)
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "does not exist locally")
+	})
+
+	t.Run("fails with file CID", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		// Add a file to get a file CID
+		node.StartDaemon()
+		fileCid := node.IPFSAddStr("hello world")
+		node.StopDaemon()
+
+		// Try to set file as root - should fail with non-zero exit
+		res := node.RunIPFS("files", "chroot", "--confirm", fileCid)
+		require.NotNil(t, res.ExitErr)
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "must be a directory")
+	})
+
+	t.Run("fails while daemon is running", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
+
+		res := node.RunIPFS("files", "chroot", "--confirm")
+		require.NotNil(t, res.ExitErr)
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "opening repo")
 	})
 }

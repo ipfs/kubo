@@ -1,4 +1,15 @@
-# New multi-router configuration system
+# Delegated Routing Notes
+
+- Status Date: 2025-12
+
+> [!IMPORTANT]
+> Most users are best served by setting delegated HTTP router URLs in [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters) and `Routing.Type` to `auto` or `autoclient`, rather than using custom routing with `Routing.Routers` and `Routing.Methods` directly.
+>
+> The rest of this documentation describes experimental features intended only for researchers and advanced users.
+
+----
+
+# Custom Multi-Router Configuration (Experimental)
 
 - Start Date: 2022-08-15
 - Related Issues:
@@ -6,27 +17,16 @@
   - https://github.com/ipfs/kubo/issues/9079
   - https://github.com/ipfs/kubo/pull/9877
 
-## Summary
-
-Previously we only used the Amino DHT for content routing and content
-providing.
-
-Kubo 0.14 introduced experimental support for [delegated routing](https://github.com/ipfs/kubo/pull/8997),
-which then got changed and standardized as [Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
-
-Kubo 0.23.0 release added support for [self-hosting Routing V1 HTTP API server](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.23.md#self-hosting-routingv1-endpoint-for-delegated-routing-needs).
-
-
-> [!TIP]
-> Kubo 0.35 added support for [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+> [!CAUTION]
+> **`Routing.Type=custom` with `Routing.Routers` and `Routing.Methods` is EXPERIMENTAL.**
 >
-> Most of users are best served by setting delegated HTTP router URLs there and `Routing.Type` to `auto` or `autoclient`, rather than custom routing with complex `Routing.Routers` and `Routing.Methods` directly.
+> This feature is provided for **research and testing purposes only**. It is **not suitable for production use**.
 >
-> The rest of this documentation should be considered only by advanced users and researchers.
-
-Now we need a better way to add different routers using different protocols
-like [Routing V1](https://specs.ipfs.tech/routing/http-routing-v1/) or Amino
-DHT, and be able to configure them (future routing systems to come) to cover different use cases.
+> - The configuration format and behavior may change without notice between Kubo releases.
+> - Bugs and regressions affecting custom routing may not be prioritized or fixed promptly.
+> - HTTP-only routing configurations (without DHT) cannot reliably provide content to the network (👉️ see [Limitations](#limitations) below).
+>
+> **For production deployments**, use `Routing.Type=auto` (default) or `Routing.Type=autoclient` with [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
 
 ## Motivation
 
@@ -361,6 +361,29 @@ I got ideas from all of the following links to create this design document:
 - https://github.com/ipfs/kubo/issues/9079#issuecomment-1205000253
 - https://www.notion.so/pl-strflt/Delegated-Routing-Thoughts-very-very-WIP-0543bc51b1bd4d63a061b0f28e195d38
 - https://gist.github.com/guseggert/effa027ff4cbadd7f67598efb6704d12
+
+### Limitations
+
+#### HTTP-only routing cannot reliably provide content
+
+Configurations that use only HTTP routers (without any DHT router) are unable to reliably announce content (provider records) to the network.
+
+This limitation exists because:
+
+1. **No standardized HTTP API for providing**: The [Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) spec only defines read operations (`GET /routing/v1/providers/{cid}`). The write operation (`PUT /routing/v1/providers`) was never standardized.
+
+2. **Legacy experimental API**: The only available HTTP providing mechanism is an undocumented `PUT /routing/v1/providers` request format called `ProvideBitswap`, which is a historical experiment. See [IPIP-526](https://github.com/ipfs/specs/pull/526) for ongoing discussion about formalizing HTTP-based provider announcements.
+
+3. **Provider system integration**: Kubo's default provider system (`Provide.DHT.SweepEnabled=true` since v0.38) is designed for DHT-based providing. When no DHT is configured, the provider system may silently skip HTTP routers or behave unexpectedly.
+
+**Workarounds for testing:**
+
+If you need to test HTTP providing, you can try:
+
+- Setting `Provide.DHT.SweepEnabled=false` to use the legacy provider system
+- Including at least one DHT router in your custom configuration alongside HTTP routers
+
+These workarounds are not guaranteed to work across Kubo versions and should not be relied upon for production use.
 
 ### Copyright
 
