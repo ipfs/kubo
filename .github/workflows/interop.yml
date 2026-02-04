@@ -71,18 +71,42 @@ jobs:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
-      - run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-        id: npm-cache-dir
-      - uses: actions/cache@v5
-        with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-${{ github.job }}-helia-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-${{ github.job }}-helia-
       - run: sudo apt update
       - run: sudo apt install -y libxkbcommon0 libxdamage1 libgbm1 libpango-1.0-0 libcairo2 # dependencies for playwright
-      - run: npx --package @helia/interop helia-interop
+      # Cache node_modules based on latest @helia/interop version from npm registry.
+      # This ensures we always test against the latest release while still benefiting
+      # from caching when the version hasn't changed.
+      - name: Get latest @helia/interop version
+        id: helia-version
+        run: echo "version=$(npm view @helia/interop version)" >> $GITHUB_OUTPUT
+      - name: Cache helia-interop node_modules
+        uses: actions/cache@v5
+        id: helia-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-helia-interop-${{ steps.helia-version.outputs.version }}
+      - name: Install @helia/interop
+        if: steps.helia-cache.outputs.cache-hit != 'true'
+        run: npm install @helia/interop
+      # TODO(IPIP-499): Remove --grep --invert workaround once helia implements IPIP-499
+      # Tracking issue: https://github.com/ipfs/helia/issues/941
+      #
+      # PROVISIONAL HACK: Skip '@helia/mfs - should have the same CID after
+      # creating a file' test due to IPIP-499 changes in kubo.
+      #
+      # WHY IT FAILS: The test creates a 5-byte file in MFS on both kubo and helia,
+      # then compares the root directory CID. With kubo PR #11148, `ipfs files write`
+      # now produces raw CIDs for single-block files (matching `ipfs add --raw-leaves`),
+      # while helia uses `reduceSingleLeafToSelf: false` which keeps the dag-pb wrapper.
+      # Different file CIDs lead to different directory CIDs.
+      #
+      # We run aegir directly (instead of helia-interop binary) because only aegir
+      # supports the --grep/--invert flags needed to exclude specific tests.
+      - name: Run helia-interop tests (excluding IPIP-499 incompatible test)
+        run: npx aegir test -t node --bail -- --grep 'should have the same CID after creating a file' --invert
         env:
           KUBO_BINARY: ${{ github.workspace }}/cmd/ipfs/ipfs
+        working-directory: node_modules/@helia/interop
   ipfs-webui:
     needs: [interop-prep]
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}

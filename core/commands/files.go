@@ -28,6 +28,7 @@ import (
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
@@ -499,7 +500,12 @@ being GC'ed.
 			return err
 		}
 
-		prefix, err := getPrefixNew(req)
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+
+		prefix, err := getPrefixNew(req, &cfg.Import)
 		if err != nil {
 			return err
 		}
@@ -550,7 +556,9 @@ being GC'ed.
 
 		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		if mkParents {
-			err := ensureContainingDirectoryExists(nd.FilesRoot, dst, prefix)
+			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+			sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
+			err := ensureContainingDirectoryExists(nd.FilesRoot, dst, prefix, maxDirLinks, &sizeEstimationMode)
 			if err != nil {
 				return err
 			}
@@ -989,8 +997,12 @@ stat' on the file or any of its ancestors.
 WARNING:
 
 The CID produced by 'files write' will be different from 'ipfs add' because
-'ipfs file write' creates a trickle-dag optimized for append-only operations
+'ipfs files write' creates a trickle-dag optimized for append-only operations.
 See '--trickle' in 'ipfs add --help' for more information.
+
+NOTE: The 'Import.UnixFSFileMaxLinks' config option does not apply to this command.
+Trickle DAG has a fixed internal structure optimized for append operations.
+To use configurable max-links, use 'ipfs add' with balanced DAG layout.
 
 If you want to add a file without modifying an existing one,
 use 'ipfs add' with '--to-files':
@@ -1048,7 +1060,7 @@ See '--to-files' in 'ipfs add --help' for more information.
 			rawLeaves = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
 		}
 
-		prefix, err := getPrefixNew(req)
+		prefix, err := getPrefixNew(req, &cfg.Import)
 		if err != nil {
 			return err
 		}
@@ -1059,7 +1071,9 @@ See '--to-files' in 'ipfs add --help' for more information.
 		}
 
 		if mkParents {
-			err := ensureContainingDirectoryExists(nd.FilesRoot, path, prefix)
+			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+			sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
+			err := ensureContainingDirectoryExists(nd.FilesRoot, path, prefix, maxDirLinks, &sizeEstimationMode)
 			if err != nil {
 				return err
 			}
@@ -1163,6 +1177,11 @@ Examples:
 			return err
 		}
 
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			return err
+		}
+
 		dashp, _ := req.Options[filesParentsOptionName].(bool)
 		dirtomake, err := checkPath(req.Arguments[0])
 		if err != nil {
@@ -1175,16 +1194,21 @@ Examples:
 			return err
 		}
 
-		prefix, err := getPrefix(req)
+		prefix, err := getPrefix(req, &cfg.Import)
 		if err != nil {
 			return err
 		}
 		root := n.FilesRoot
 
+		maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+		sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
+
 		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{
-			Mkparents:  dashp,
-			Flush:      flush,
-			CidBuilder: prefix,
+			Mkparents:          dashp,
+			Flush:              flush,
+			CidBuilder:         prefix,
+			MaxLinks:           maxDirLinks,
+			SizeEstimationMode: &sizeEstimationMode,
 		})
 
 		return err
@@ -1262,7 +1286,9 @@ Change the CID version or hash function of the root node of a given path.
 
 		flush, _ := req.Options[filesFlushOptionName].(bool)
 
-		prefix, err := getPrefix(req)
+		// Note: files chcid is for explicitly changing CID format, so we don't
+		// fall back to Import config here. If no options are provided, it does nothing.
+		prefix, err := getPrefix(req, nil)
 		if err != nil {
 			return err
 		}
@@ -1420,9 +1446,19 @@ func removePath(filesRoot *mfs.Root, path string, force bool, dashr bool) error 
 	return pdir.Flush()
 }
 
-func getPrefixNew(req *cmds.Request) (cid.Builder, error) {
+func getPrefixNew(req *cmds.Request, importCfg *config.Import) (cid.Builder, error) {
 	cidVer, cidVerSet := req.Options[filesCidVersionOptionName].(int)
 	hashFunStr, hashFunSet := req.Options[filesHashOptionName].(string)
+
+	// Fall back to Import config if CLI options not set
+	if !cidVerSet && importCfg != nil && !importCfg.CidVersion.IsDefault() {
+		cidVer = int(importCfg.CidVersion.WithDefault(config.DefaultCidVersion))
+		cidVerSet = true
+	}
+	if !hashFunSet && importCfg != nil && !importCfg.HashFunction.IsDefault() {
+		hashFunStr = importCfg.HashFunction.WithDefault(config.DefaultHashFunction)
+		hashFunSet = true
+	}
 
 	if !cidVerSet && !hashFunSet {
 		return nil, nil
@@ -1449,9 +1485,19 @@ func getPrefixNew(req *cmds.Request) (cid.Builder, error) {
 	return &prefix, nil
 }
 
-func getPrefix(req *cmds.Request) (cid.Builder, error) {
+func getPrefix(req *cmds.Request, importCfg *config.Import) (cid.Builder, error) {
 	cidVer, cidVerSet := req.Options[filesCidVersionOptionName].(int)
 	hashFunStr, hashFunSet := req.Options[filesHashOptionName].(string)
+
+	// Fall back to Import config if CLI options not set
+	if !cidVerSet && importCfg != nil && !importCfg.CidVersion.IsDefault() {
+		cidVer = int(importCfg.CidVersion.WithDefault(config.DefaultCidVersion))
+		cidVerSet = true
+	}
+	if !hashFunSet && importCfg != nil && !importCfg.HashFunction.IsDefault() {
+		hashFunStr = importCfg.HashFunction.WithDefault(config.DefaultHashFunction)
+		hashFunSet = true
+	}
 
 	if !cidVerSet && !hashFunSet {
 		return nil, nil
@@ -1478,7 +1524,7 @@ func getPrefix(req *cmds.Request) (cid.Builder, error) {
 	return &prefix, nil
 }
 
-func ensureContainingDirectoryExists(r *mfs.Root, path string, builder cid.Builder) error {
+func ensureContainingDirectoryExists(r *mfs.Root, path string, builder cid.Builder, maxLinks int, sizeEstimationMode *uio.SizeEstimationMode) error {
 	dirtomake := gopath.Dir(path)
 
 	if dirtomake == "/" {
@@ -1486,8 +1532,10 @@ func ensureContainingDirectoryExists(r *mfs.Root, path string, builder cid.Build
 	}
 
 	return mfs.Mkdir(r, dirtomake, mfs.MkdirOpts{
-		Mkparents:  true,
-		CidBuilder: builder,
+		Mkparents:          true,
+		CidBuilder:         builder,
+		MaxLinks:           maxLinks,
+		SizeEstimationMode: sizeEstimationMode,
 	})
 }
 
