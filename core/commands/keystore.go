@@ -38,9 +38,9 @@ publish'.
   > ipfs key gen --type=rsa --size=2048 mykey
   > ipfs name publish --key=mykey QmSomeHash
 
-'ipfs key list' lists the available keys.
+'ipfs key ls' lists the available keys.
 
-  > ipfs key list
+  > ipfs key ls
   self
   mykey
 		`,
@@ -49,7 +49,8 @@ publish'.
 		"gen":    keyGenCmd,
 		"export": keyExportCmd,
 		"import": keyImportCmd,
-		"list":   keyListCmd,
+		"list":   keyListDeprecatedCmd,
+		"ls":     keyListCmd,
 		"rename": keyRenameCmd,
 		"rm":     keyRmCmd,
 		"rotate": keyRotateCmd,
@@ -458,7 +459,7 @@ var keyListCmd = &cmds.Command{
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.OptionIPNSBase.Name()].(string))
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot get key encoder: %w", err)
 		}
 
 		api, err := cmdenv.GetApi(env, req)
@@ -468,7 +469,7 @@ var keyListCmd = &cmds.Command{
 
 		keys, err := api.Key().List(req.Context)
 		if err != nil {
-			return err
+			return fmt.Errorf("listing keys failed: %w", err)
 		}
 
 		list := make([]KeyOutput, 0, len(keys))
@@ -486,6 +487,17 @@ var keyListCmd = &cmds.Command{
 		cmds.Text: keyOutputListEncoders(),
 	},
 	Type: KeyOutputList{},
+}
+
+var keyListDeprecatedCmd = &cmds.Command{
+	Status: cmds.Deprecated,
+	Helptext: cmds.HelpText{
+		Tagline: "Deprecated: use 'ipfs key ls' instead.",
+	},
+	Options:  keyListCmd.Options,
+	Run:      keyListCmd.Run,
+	Encoders: keyListCmd.Encoders,
+	Type:     keyListCmd.Type,
 }
 
 const (
@@ -773,7 +785,7 @@ the signed payload is always prefixed with "libp2p-key signed message:".
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("key", "k", "The name of the key to use for signing."),
+		cmds.StringOption("key", "k", "The name of the key to use for verifying."),
 		cmds.StringOption("signature", "s", "Multibase-encoded signature to verify."),
 		ke.OptionIPNSBase,
 	},

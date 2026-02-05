@@ -41,7 +41,7 @@ jobs:
     steps:
       # 1. Download the gateway-conformance fixtures
       - name: Download gateway-conformance fixtures
-        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@376504c31aae5e2d47c23cb1e131a7573a7e3a7f # TODO: switch to release tag once https://github.com/ipfs/gateway-conformance/pull/254 ships
+        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@e17586f4cccdd0f93f19a68b66a25e07e03731f6 # TODO: switch to release tag once https://github.com/ipfs/gateway-conformance/pull/254 ships
         with:
           output: fixtures
 
@@ -93,7 +93,7 @@ jobs:
 
       # 6. Run the gateway-conformance tests
       - name: Run gateway-conformance tests
-        uses: ipfs/gateway-conformance/.github/actions/test@376504c31aae5e2d47c23cb1e131a7573a7e3a7f # TODO: switch to release tag once https://github.com/ipfs/gateway-conformance/pull/254 ships
+        uses: ipfs/gateway-conformance/.github/actions/test@e17586f4cccdd0f93f19a68b66a25e07e03731f6 # TODO: switch to release tag once https://github.com/ipfs/gateway-conformance/pull/254 ships
         with:
           gateway-url: http://127.0.0.1:8080
           subdomain-url: http://localhost:8080
@@ -109,13 +109,13 @@ jobs:
         run: cat output.md >> $GITHUB_STEP_SUMMARY
       - name: Upload HTML report
         if: failure() || success()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: gateway-conformance.html
           path: output.html
       - name: Upload JSON report
         if: failure() || success()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: gateway-conformance.json
           path: output.json
@@ -127,7 +127,7 @@ jobs:
     steps:
       # 1. Download the gateway-conformance fixtures
       - name: Download gateway-conformance fixtures
-        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@376504c31aae5e2d47c23cb1e131a7573a7e3a7f # TODO: switch to release tag once https://github.com/ipfs/gateway-conformance/pull/254 ships
+        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@e17586f4cccdd0f93f19a68b66a25e07e03731f6 # TODO: switch to release tag once https://github.com/ipfs/gateway-conformance/pull/254 ships
         with:
           output: fixtures
 
@@ -199,7 +199,7 @@ jobs:
 
       # 9. Run the gateway-conformance tests over libp2p
       - name: Run gateway-conformance tests over libp2p
-        uses: ipfs/gateway-conformance/.github/actions/test@376504c31aae5e2d47c23cb1e131a7573a7e3a7f # TODO: switch to release tag once https://github.com/ipfs/gateway-conformance/pull/254 ships
+        uses: ipfs/gateway-conformance/.github/actions/test@e17586f4cccdd0f93f19a68b66a25e07e03731f6 # TODO: switch to release tag once https://github.com/ipfs/gateway-conformance/pull/254 ships
         with:
           gateway-url: http://127.0.0.1:8092
           args: --specs "trustless-gateway,-trustless-ipns-gateway" -skip 'TestGatewayCar/GET_response_for_application/vnd.ipld.car/Header_Content-Length'
@@ -214,13 +214,13 @@ jobs:
         run: cat output.md >> $GITHUB_STEP_SUMMARY
       - name: Upload HTML report
         if: failure() || success()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: gateway-conformance-libp2p.html
           path: output.html
       - name: Upload JSON report
         if: failure() || success()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: gateway-conformance-libp2p.json
           path: output.json
