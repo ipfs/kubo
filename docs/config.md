@@ -3716,8 +3716,20 @@ The default UnixFS chunker. Commands affected: `ipfs add`.
 Valid formats:
 
 - `size-<bytes>` - fixed size chunker
-- `rabin-<min>-<avg>-<max>` - rabin fingerprint chunker  
+- `rabin-<min>-<avg>-<max>` - rabin fingerprint chunker
 - `buzhash` - buzhash chunker
+
+The maximum accepted value for `size-<bytes>` and rabin `max` parameter is
+`2MiB - 256 bytes` (2096896 bytes). The 256-byte overhead budget is reserved
+for protobuf/UnixFS framing so that serialized blocks stay within the 2MiB
+block size limit defined by the
+[bitswap spec](https://specs.ipfs.tech/bitswap-protocol/#block-sizes).
+The `buzhash` chunker uses a fixed internal maximum of 512KiB and is not
+affected by this limit.
+
+Only the fixed-size chunker (`size-<bytes>`) guarantees that the same data
+will always produce the same CID. The `rabin` and `buzhash` chunkers may
+change their internal parameters in a future release.
 
 Default: `size-262144`
 

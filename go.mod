@@ -21,7 +21,7 @@ require (
 	github.com/hashicorp/go-version v1.8.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.36.1-0.20260205235512-2a942e3e1a75
+	github.com/ipfs/boxo v0.36.1-0.20260206224221-77bd614971f0
 	github.com/ipfs/go-block-format v0.2.3
 	github.com/ipfs/go-cid v0.6.0
 	github.com/ipfs/go-cidutil v0.1.0
@@ -274,6 +274,7 @@ require (
 )
 
 // Exclude ancient +incompatible versions that confuse Dependabot.
+
 // These pre-Go-modules versions reference packages that no longer exist.
 exclude (
 	github.com/ipfs/go-ipfs-cmds v2.0.1+incompatible
