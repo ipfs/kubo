@@ -15,6 +15,7 @@ func TestPing(t *testing.T) {
 	t.Run("other", func(t *testing.T) {
 		t.Parallel()
 		nodes := harness.NewT(t).NewNodes(2).Init().StartDaemons().Connect()
+		defer nodes.StopDaemons()
 		node1 := nodes[0]
 		node2 := nodes[1]
 
@@ -25,6 +26,7 @@ func TestPing(t *testing.T) {
 	t.Run("ping unreachable peer", func(t *testing.T) {
 		t.Parallel()
 		nodes := harness.NewT(t).NewNodes(2).Init().StartDaemons().Connect()
+		defer nodes.StopDaemons()
 		node1 := nodes[0]
 
 		badPeer := "QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJx"
@@ -37,6 +39,7 @@ func TestPing(t *testing.T) {
 	t.Run("self", func(t *testing.T) {
 		t.Parallel()
 		nodes := harness.NewT(t).NewNodes(2).Init().StartDaemons()
+		defer nodes.StopDaemons()
 		node1 := nodes[0]
 		node2 := nodes[1]
 
@@ -52,6 +55,7 @@ func TestPing(t *testing.T) {
 	t.Run("0", func(t *testing.T) {
 		t.Parallel()
 		nodes := harness.NewT(t).NewNodes(2).Init().StartDaemons().Connect()
+		defer nodes.StopDaemons()
 		node1 := nodes[0]
 		node2 := nodes[1]
 
@@ -63,6 +67,7 @@ func TestPing(t *testing.T) {
 	t.Run("offline", func(t *testing.T) {
 		t.Parallel()
 		nodes := harness.NewT(t).NewNodes(2).Init().StartDaemons().Connect()
+		defer nodes.StopDaemons()
 		node1 := nodes[0]
 		node2 := nodes[1]
 

@@ -730,3 +730,28 @@ func (n *Node) APIClient() *HTTPClient {
 		BaseURL: n.APIURL(),
 	}
 }
+
+// DatastoreCount returns the count of entries matching the given prefix.
+// Requires the daemon to be stopped.
+func (n *Node) DatastoreCount(prefix string) int64 {
+	res := n.IPFS("diag", "datastore", "count", prefix)
+	count, _ := strconv.ParseInt(strings.TrimSpace(res.Stdout.String()), 10, 64)
+	return count
+}
+
+// DatastoreGet retrieves the value at the given key.
+// Requires the daemon to be stopped. Returns nil if key not found.
+func (n *Node) DatastoreGet(key string) []byte {
+	res := n.RunIPFS("diag", "datastore", "get", key)
+	if res.Err != nil {
+		return nil
+	}
+	return res.Stdout.Bytes()
+}
+
+// DatastoreHasKey checks if a key exists in the datastore.
+// Requires the daemon to be stopped.
+func (n *Node) DatastoreHasKey(key string) bool {
+	res := n.RunIPFS("diag", "datastore", "get", key)
+	return res.Err == nil
+}

@@ -10,9 +10,11 @@ const (
 	DefaultDisableHTMLErrors     = false
 	DefaultExposeRoutingAPI      = true
 	DefaultDiagnosticServiceURL  = "https://check.ipfs.network"
+	DefaultAllowCodecConversion  = false
 
 	// Gateway limit defaults from boxo
 	DefaultRetrievalTimeout        = gateway.DefaultRetrievalTimeout
+	DefaultMaxRequestDuration      = gateway.DefaultMaxRequestDuration
 	DefaultMaxConcurrentRequests   = gateway.DefaultMaxConcurrentRequests
 	DefaultMaxRangeRequestFileSize = 0 // 0 means no limit
 )
@@ -72,6 +74,12 @@ type Gateway struct {
 	// be overridden per FQDN in PublicGateways.
 	DeserializedResponses Flag
 
+	// AllowCodecConversion enables automatic conversion between codecs when
+	// the requested format differs from the block's native codec (e.g.,
+	// converting dag-pb or dag-cbor to dag-json). When disabled, the gateway
+	// returns 406 Not Acceptable for codec mismatches per IPIP-524.
+	AllowCodecConversion Flag
+
 	// DisableHTMLErrors disables pretty HTML pages when an error occurs. Instead, a `text/plain`
 	// page will be sent with the raw error message.
 	DisableHTMLErrors Flag
@@ -95,6 +103,14 @@ type Gateway struct {
 	// or cannot retrieve the requested content.
 	// A value of 0 disables this timeout.
 	RetrievalTimeout *OptionalDuration `json:",omitempty"`
+
+	// MaxRequestDuration is an absolute deadline for the entire request.
+	// Unlike RetrievalTimeout (which resets on each data write and catches
+	// stalled transfers), this is a hard limit on the total time a request
+	// can take. Returns 504 Gateway Timeout when exceeded.
+	// This protects the gateway from edge cases and slow client attacks.
+	// A value of 0 uses the default (1 hour).
+	MaxRequestDuration *OptionalDuration `json:",omitempty"`
 
 	// MaxConcurrentRequests limits concurrent HTTP requests handled by the gateway.
 	// Requests beyond this limit receive 429 Too Many Requests with Retry-After header.

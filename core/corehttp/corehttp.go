@@ -78,9 +78,23 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 	return Serve(n, manet.NetListener(list), options...)
 }
 
-// Serve accepts incoming HTTP connections on the listener and pass them
+// Serve accepts incoming HTTP connections on the listener and passes them
 // to ServeOption handlers.
 func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error {
+	return ServeWithReady(node, lis, nil, options...)
+}
+
+// ServeWithReady is like Serve but signals on the ready channel when the
+// server is about to accept connections. The channel is closed right before
+// server.Serve() is called.
+//
+// This is useful for callers that need to perform actions (like writing
+// address files) only after the server is guaranteed to be accepting
+// connections, avoiding race conditions where clients see the file before
+// the server is ready.
+//
+// Passing nil for ready is equivalent to calling Serve().
+func ServeWithReady(node *core.IpfsNode, lis net.Listener, ready chan<- struct{}, options ...ServeOption) error {
 	// make sure we close this no matter what.
 	defer lis.Close()
 
@@ -107,6 +121,9 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 	var serverError error
 	serverClosed := make(chan struct{})
 	go func() {
+		if ready != nil {
+			close(ready)
+		}
 		serverError = server.Serve(lis)
 		close(serverClosed)
 	}()
