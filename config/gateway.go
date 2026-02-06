@@ -10,6 +10,7 @@ const (
 	DefaultDisableHTMLErrors     = false
 	DefaultExposeRoutingAPI      = true
 	DefaultDiagnosticServiceURL  = "https://check.ipfs.network"
+	DefaultAllowCodecConversion  = false
 
 	// Gateway limit defaults from boxo
 	DefaultRetrievalTimeout        = gateway.DefaultRetrievalTimeout
@@ -72,6 +73,12 @@ type Gateway struct {
 	// https://specs.ipfs.tech/http-gateways/trustless-gateway/. This can
 	// be overridden per FQDN in PublicGateways.
 	DeserializedResponses Flag
+
+	// AllowCodecConversion enables automatic conversion between codecs when
+	// the requested format differs from the block's native codec (e.g.,
+	// converting dag-pb or dag-cbor to dag-json). When disabled, the gateway
+	// returns 406 Not Acceptable for codec mismatches per IPIP-524.
+	AllowCodecConversion Flag
 
 	// DisableHTMLErrors disables pretty HTML pages when an error occurs. Instead, a `text/plain`
 	// page will be sent with the raw error message.

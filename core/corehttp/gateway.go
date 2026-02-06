@@ -269,6 +269,7 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, er
 	// Initialize gateway configuration, with empty PublicGateways, handled after.
 	gwCfg := gateway.Config{
 		DeserializedResponses:   cfg.Gateway.DeserializedResponses.WithDefault(config.DefaultDeserializedResponses),
+		AllowCodecConversion:    cfg.Gateway.AllowCodecConversion.WithDefault(config.DefaultAllowCodecConversion),
 		DisableHTMLErrors:       cfg.Gateway.DisableHTMLErrors.WithDefault(config.DefaultDisableHTMLErrors),
 		NoDNSLink:               cfg.Gateway.NoDNSLink,
 		PublicGateways:          map[string]*gateway.PublicGateway{},
