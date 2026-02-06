@@ -14,14 +14,16 @@ import (
 
 const (
 	AllowBigBlockOptionName = "allow-big-block"
-	SoftBlockLimit          = 1024 * 1024 // https://github.com/ipfs/kubo/issues/7421#issuecomment-910833499
-	MaxPinNameBytes         = 255         // Maximum number of bytes allowed for a pin name
+	// SoftBlockLimit is the maximum block size for bitswap transfer.
+	// If this value changes, update the "2MiB" strings in error messages below.
+	SoftBlockLimit  = 2 * 1024 * 1024 // https://specs.ipfs.tech/bitswap-protocol/#block-sizes
+	MaxPinNameBytes = 255             // Maximum number of bytes allowed for a pin name
 )
 
 var AllowBigBlockOption cmds.Option
 
 func init() {
-	AllowBigBlockOption = cmds.BoolOption(AllowBigBlockOptionName, "Disable block size check and allow creation of blocks bigger than 1MiB. WARNING: such blocks won't be transferable over the standard bitswap.").WithDefault(false)
+	AllowBigBlockOption = cmds.BoolOption(AllowBigBlockOptionName, "Disable block size check and allow creation of blocks bigger than 2MiB. WARNING: such blocks won't be transferable over the standard bitswap.").WithDefault(false)
 }
 
 func CheckCIDSize(req *cmds.Request, c cid.Cid, dagAPI coreiface.APIDagService) error {
@@ -44,11 +46,10 @@ func CheckBlockSize(req *cmds.Request, size uint64) error {
 		return nil
 	}
 
-	// We do not allow producing blocks bigger than 1 MiB to avoid errors
-	// when transmitting them over BitSwap. The 1 MiB constant is an
-	// unenforced and undeclared rule of thumb hard-coded here.
+	// Block size is limited to SoftBlockLimit (2MiB) as defined in the bitswap spec.
+	// https://specs.ipfs.tech/bitswap-protocol/#block-sizes
 	if size > SoftBlockLimit {
-		return fmt.Errorf("produced block is over 1MiB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
+		return fmt.Errorf("produced block is over 2MiB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
 	}
 	return nil
 }

@@ -172,6 +172,16 @@ Buzhash or Rabin fingerprint chunker for content defined chunking by
 specifying buzhash or rabin-[min]-[avg]-[max] (where min/avg/max refer
 to the desired chunk sizes in bytes), e.g. 'rabin-262144-524288-1048576'.
 
+The maximum accepted value for 'size-N' and rabin 'max' parameter is
+2MiB minus 256 bytes (2096896 bytes). The 256-byte overhead budget is
+reserved for protobuf/UnixFS framing so that serialized blocks stay
+within the 2MiB block size limit from the bitswap spec. The buzhash
+chunker uses a fixed internal maximum of 512KiB and is not affected.
+
+Only the fixed-size chunker ('size-N') guarantees that the same data
+will always produce the same CID. The rabin and buzhash chunkers may
+change their internal parameters in a future release.
+
 The following examples use very small byte sizes to demonstrate the
 properties of the different chunkers on a small file. You'll likely
 want to use a 1024 times larger chunk sizes for most files.
