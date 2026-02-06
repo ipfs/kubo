@@ -198,6 +198,7 @@ func TestCommands(t *testing.T) {
 		"/stats/repo",
 		"/swarm",
 		"/swarm/addrs",
+		"/swarm/addrs/autonat",
 		"/swarm/addrs/listen",
 		"/swarm/addrs/local",
 		"/swarm/connect",
