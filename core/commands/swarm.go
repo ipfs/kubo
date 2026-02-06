@@ -513,8 +513,9 @@ var swarmAddrsCmd = &cmds.Command{
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"local":  swarmAddrsLocalCmd,
-		"listen": swarmAddrsListenCmd,
+		"autonat": swarmAddrsAutoNATCmd,
+		"local":   swarmAddrsLocalCmd,
+		"listen":  swarmAddrsListenCmd,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
