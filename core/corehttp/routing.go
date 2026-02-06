@@ -24,7 +24,7 @@ import (
 
 func RoutingOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		_, headers, _, err := getGatewayConfig(n)
+		_, headers, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}

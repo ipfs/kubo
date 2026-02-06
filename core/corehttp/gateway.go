@@ -28,7 +28,7 @@ import (
 
 func GatewayOption(paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		config, headers, _, err := getGatewayConfig(n)
+		config, headers, err := getGatewayConfig(n)
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +56,12 @@ func GatewayOption(paths ...string) ServeOption {
 // will show a landing page instead.
 func HostnameOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		cfg, headers, rootRedirect, err := getGatewayConfig(n)
+		gwCfg, headers, err := getGatewayConfig(n)
+		if err != nil {
+			return nil, err
+		}
+
+		nodeCfg, err := n.Repo.Config()
 		if err != nil {
 			return nil, err
 		}
@@ -69,13 +74,13 @@ func HostnameOption() ServeOption {
 		childMux := http.NewServeMux()
 
 		var handler http.Handler
-		handler = gateway.NewHostnameHandler(cfg, backend, childMux)
+		handler = gateway.NewHostnameHandler(gwCfg, backend, childMux)
 		handler = gateway.NewHeaders(headers).ApplyCors().Wrap(handler)
 
 		// When RootRedirect is not configured, wrap with landing page fallback.
 		// This intercepts 404 responses for "/" on loopback addresses (like localhost)
 		// and serves a kubo-specific landing page instead.
-		if rootRedirect == "" {
+		if nodeCfg.Gateway.RootRedirect == "" {
 			handler = withLandingPageFallback(handler, headers)
 		}
 
@@ -272,11 +277,10 @@ var defaultKnownGateways = map[string]*gateway.PublicGateway{
 	"localhost": subdomainGatewaySpec,
 }
 
-// getGatewayConfig returns gateway configuration, HTTP headers, and root redirect URL.
-func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, string, error) {
+func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, error) {
 	cfg, err := n.Repo.Config()
 	if err != nil {
-		return gateway.Config{}, nil, "", err
+		return gateway.Config{}, nil, err
 	}
 
 	// Initialize gateway configuration, with empty PublicGateways, handled after.
@@ -316,5 +320,5 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, st
 		}
 	}
 
-	return gwCfg, cfg.Gateway.HTTPHeaders, cfg.Gateway.RootRedirect, nil
+	return gwCfg, cfg.Gateway.HTTPHeaders, nil
 }

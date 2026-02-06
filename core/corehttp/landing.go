@@ -1,12 +1,12 @@
 package corehttp
 
 import (
-	"bufio"
 	_ "embed"
 	"net"
 	"net/http"
+	"slices"
 
-	core "github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core"
 )
 
 //go:embed assets/landing.html
@@ -17,13 +17,8 @@ var landingPageHTML []byte
 // This helps third-party gateway operators by clearly indicating that the
 // gateway software is working but needs configuration, and provides guidance
 // for abuse reporting.
-func LandingPageOption() ServeOption {
-	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		cfg, err := n.Repo.Config()
-		if err != nil {
-			return nil, err
-		}
-		headers := cfg.Gateway.HTTPHeaders
+func LandingPageOption(headers map[string][]string) ServeOption {
+	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path != "/" {
 				http.NotFound(w, r)
@@ -38,7 +33,7 @@ func LandingPageOption() ServeOption {
 // serveLandingPage writes the landing page HTML with appropriate headers.
 func serveLandingPage(w http.ResponseWriter, headers map[string][]string) {
 	for k, v := range headers {
-		w.Header()[http.CanonicalHeaderKey(k)] = v
+		w.Header()[http.CanonicalHeaderKey(k)] = slices.Clone(v)
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write(landingPageHTML)
@@ -72,12 +67,11 @@ func withLandingPageFallback(next http.Handler, headers map[string][]string) htt
 		if h, _, err := net.SplitHostPort(r.Host); err == nil {
 			host = h
 		}
-		switch host {
-		case "localhost", "127.0.0.1", "::1", "[::1]":
-			// Continue to intercept
-		default:
-			next.ServeHTTP(w, r)
-			return
+		if host != "localhost" {
+			if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() {
+				next.ServeHTTP(w, r)
+				return
+			}
 		}
 
 		// Wrap ResponseWriter to intercept 404 responses
@@ -93,6 +87,7 @@ func withLandingPageFallback(next http.Handler, headers map[string][]string) htt
 
 // landingResponseWriter wraps http.ResponseWriter to intercept 404 responses.
 // It suppresses the 404 status and body so we can serve a landing page instead.
+// Unwrap allows http.ResponseController to reach the underlying writer.
 type landingResponseWriter struct {
 	http.ResponseWriter
 	wroteHeader   bool
@@ -119,21 +114,6 @@ func (w *landingResponseWriter) Write(b []byte) (int, error) {
 		return len(b), nil // Discard 404 body
 	}
 	return w.ResponseWriter.Write(b)
-}
-
-// Flush implements http.Flusher for streaming responses.
-func (w *landingResponseWriter) Flush() {
-	if f, ok := w.ResponseWriter.(http.Flusher); ok {
-		f.Flush()
-	}
-}
-
-// Hijack implements http.Hijacker for websocket support.
-func (w *landingResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	if h, ok := w.ResponseWriter.(http.Hijacker); ok {
-		return h.Hijack()
-	}
-	return nil, nil, http.ErrNotSupported
 }
 
 // Unwrap returns the underlying ResponseWriter for http.ResponseController.
