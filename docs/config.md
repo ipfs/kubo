@@ -1152,9 +1152,13 @@ When disabled (the default), the gateway returns `406 Not Acceptable` for
 codec mismatches, following behavior specified in
 [IPIP-524](https://github.com/ipfs/specs/pull/524).
 
-**Recommended approach**: Instead of relying on gateway-side conversion,
-fetch the raw block using `?format=raw` (`application/vnd.ipld.raw`) and
-perform conversion client-side. This approach:
+Most users should keep this disabled unless legacy
+[IPLD Logical Format](https://web.archive.org/web/20260204204727/https://ipld.io/specs/codecs/dag-pb/spec/#logical-format)
+support is needed as a stop-gap while switching clients to `?format=raw`
+and converting client-side.
+
+Instead of relying on gateway-side conversion, fetch the raw block using
+`?format=raw` (`application/vnd.ipld.raw`) and convert client-side. This:
 
 - Allows clients to use any codec without waiting for gateway support
 - Enables ecosystem innovation without gateway operator coordination
