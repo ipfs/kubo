@@ -92,4 +92,35 @@ func TestSwarm(t *testing.T) {
 		assert.ElementsMatch(t, outputIdentify.Addresses, otherNodeIDOutput.Addresses)
 		assert.ElementsMatch(t, outputIdentify.Protocols, otherNodeIDOutput.Protocols)
 	})
+
+	t.Run("ipfs swarm addrs autonat returns valid reachability status", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
+
+		res := node.RunIPFS("swarm", "addrs", "autonat", "--enc=json")
+		assert.NoError(t, res.Err)
+
+		var output struct {
+			Reachability string   `json:"reachability"`
+			Reachable    []string `json:"reachable"`
+			Unreachable  []string `json:"unreachable"`
+			Unknown      []string `json:"unknown"`
+		}
+		err := json.Unmarshal(res.Stdout.Bytes(), &output)
+		assert.NoError(t, err)
+
+		// Reachability must be one of the valid states
+		// Note: network.Reachability constants use capital first letter
+		validStates := []string{"Public", "Private", "Unknown"}
+		assert.Contains(t, validStates, output.Reachability,
+			"Reachability should be one of: Public, Private, Unknown")
+
+		// For a newly started node, reachability is typically Unknown initially
+		// as AutoNAT hasn't completed probing yet. This is expected behavior.
+		// The important thing is that the command runs and returns valid data.
+		totalAddrs := len(output.Reachable) + len(output.Unreachable) + len(output.Unknown)
+		t.Logf("Reachability: %s, Total addresses: %d (reachable: %d, unreachable: %d, unknown: %d)",
+			output.Reachability, totalAddrs, len(output.Reachable), len(output.Unreachable), len(output.Unknown))
+	})
 }
