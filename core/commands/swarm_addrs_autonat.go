@@ -28,6 +28,23 @@ type autoNATResult struct {
 	Unknown      []string `json:"unknown,omitempty"`
 }
 
+func multiaddrsToStrings(addrs []ma.Multiaddr) []string {
+	out := make([]string, len(addrs))
+	for i, a := range addrs {
+		out[i] = a.String()
+	}
+	return out
+}
+
+func writeAddrSection(w io.Writer, label string, addrs []string) {
+	if len(addrs) > 0 {
+		fmt.Fprintf(w, "  %s:\n", label)
+		for _, addr := range addrs {
+			fmt.Fprintf(w, "    %s\n", addr)
+		}
+	}
+}
+
 var swarmAddrsAutoNATCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show address reachability as determined by AutoNAT V2.",
@@ -44,7 +61,7 @@ from the public internet. This helps understand whether other peers can
 dial your node directly.
 
 The output shows:
-- Reachability: Overall status (public, private, or unknown)
+- Reachability: Overall status (Public, Private, or Unknown)
 - Reachable: Addresses confirmed to be publicly reachable
 - Unreachable: Addresses that failed reachability checks
 - Unknown: Addresses that haven't been tested yet
@@ -56,7 +73,7 @@ Example:
 
     > ipfs swarm addrs autonat
     AutoNAT V2 Status:
-      Reachability: public
+      Reachability: Public
 
     Per-Address Reachability:
       Reachable:
@@ -78,26 +95,23 @@ Example:
 			return ErrNotOnline
 		}
 
-		result := autoNATResult{}
-
-		// Try to get AutoNAT V2 per-address reachability
-		// The host might be a BasicHost directly, or embed one (closableBasicHost, closableRoutedHost)
-		if confirmedHost, ok := nd.PeerHost.(confirmedAddrsHost); ok {
-			reachable, unreachable, unknown := confirmedHost.ConfirmedAddrs()
-			for _, addr := range reachable {
-				result.Reachable = append(result.Reachable, addr.String())
-			}
-			for _, addr := range unreachable {
-				result.Unreachable = append(result.Unreachable, addr.String())
-			}
-			for _, addr := range unknown {
-				result.Unknown = append(result.Unknown, addr.String())
-			}
+		result := autoNATResult{
+			Reachability: network.ReachabilityUnknown.String(),
 		}
 
-		// Get overall reachability status
-		if reachHost, ok := nd.PeerHost.(reachabilityHost); ok {
-			result.Reachability = reachHost.Reachability().String()
+		// Get per-address reachability from AutoNAT V2.
+		// The host embeds *BasicHost (closableBasicHost, closableRoutedHost)
+		// which implements ConfirmedAddrs.
+		if h, ok := nd.PeerHost.(confirmedAddrsHost); ok {
+			reachable, unreachable, unknown := h.ConfirmedAddrs()
+			result.Reachable = multiaddrsToStrings(reachable)
+			result.Unreachable = multiaddrsToStrings(unreachable)
+			result.Unknown = multiaddrsToStrings(unknown)
+		}
+
+		// Get overall reachability status.
+		if h, ok := nd.PeerHost.(reachabilityHost); ok {
+			result.Reachability = h.Reachability().String()
 		}
 
 		return cmds.EmitOnce(res, result)
@@ -111,26 +125,9 @@ Example:
 			fmt.Fprintln(w)
 			fmt.Fprintln(w, "Per-Address Reachability:")
 
-			if len(result.Reachable) > 0 {
-				fmt.Fprintln(w, "  Reachable:")
-				for _, addr := range result.Reachable {
-					fmt.Fprintf(w, "    %s\n", addr)
-				}
-			}
-
-			if len(result.Unreachable) > 0 {
-				fmt.Fprintln(w, "  Unreachable:")
-				for _, addr := range result.Unreachable {
-					fmt.Fprintf(w, "    %s\n", addr)
-				}
-			}
-
-			if len(result.Unknown) > 0 {
-				fmt.Fprintln(w, "  Unknown:")
-				for _, addr := range result.Unknown {
-					fmt.Fprintf(w, "    %s\n", addr)
-				}
-			}
+			writeAddrSection(w, "Reachable", result.Reachable)
+			writeAddrSection(w, "Unreachable", result.Unreachable)
+			writeAddrSection(w, "Unknown", result.Unknown)
 
 			if len(result.Reachable) == 0 && len(result.Unreachable) == 0 && len(result.Unknown) == 0 {
 				fmt.Fprintln(w, "  (no address reachability data available)")
