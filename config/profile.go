@@ -210,7 +210,9 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 		},
 	},
 	"badgerds": {
-		Description: `Configures the node to use the legacy badgerv1 datastore.
+		Description: `DEPRECATED: Configures the node to use the legacy badgerv1 datastore.
+This profile will be removed in a future Kubo release.
+New deployments should use 'flatfs' or 'pebbleds' instead.
 
 NOTE: this is badger 1.x, which has known bugs and is no longer supported by the upstream team.
 It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
@@ -224,6 +226,14 @@ Other caveats:
 * This datastore uses up to several gigabytes of memory.
 * Good for medium-size datastores, but may run into performance issues
   if your dataset is bigger than a terabyte.
+
+To migrate: create a new IPFS_PATH with 'ipfs init --profile=flatfs',
+move pinned data via 'ipfs dag export/import' or 'ipfs pin ls -t recursive|add',
+and decommission the old badger-based node.
+When it comes to block storage, use experimental 'pebbleds' only if you are sure
+modern 'flatfs' does not serve your use case (most users will be perfectly fine
+with flatfs, it is also possible to keep flatfs for blocks and replace leveldb
+with pebble if preferred over leveldb).
 
 See configuration documentation at:
 https://github.com/ipfs/kubo/blob/master/docs/datastores.md#badgerds
@@ -239,8 +249,9 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 		},
 	},
 	"badgerds-measure": {
-		Description: `Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
-Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+		Description: `DEPRECATED: Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
+This profile will be removed in a future Kubo release.
+New deployments should use 'flatfs' or 'pebbleds' instead.
 
 NOTE: This profile may only be applied when first initializing node at IPFS_PATH
       via 'ipfs init --profile badgerds-measure'
