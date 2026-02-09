@@ -34,7 +34,9 @@ The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descri
 NOTE: flatfs must only be used as a block store (mounted at `/blocks`) as it only partially implements the datastore interface. You can mount flatfs for /blocks only using the mount datastore (described below).
 
 ## levelds
-Uses a leveldb database to store key-value pairs.
+
+Uses a [leveldb](https://github.com/syndtr/goleveldb) database to store key-value
+pairs via [go-ds-leveldb](https://github.com/ipfs/go-ds-leveldb).
 
 ```json
 {
@@ -43,6 +45,26 @@ Uses a leveldb database to store key-value pairs.
 	"compression": "none" | "snappy",
 }
 ```
+
+> [!NOTE]
+> LevelDB uses a log-structured merge-tree (LSM) storage engine. When keys are
+> deleted, the data is not removed immediately. Instead, a tombstone marker is
+> written, and the actual data is removed later by background compaction.
+>
+> LevelDB's compaction decides what to compact based on file counts (L0) and
+> total level size (L1+), without considering how many tombstones a file
+> contains. This means that after bulk deletions (such as pin removals or the
+> periodic provider keystore sync), disk space may not be reclaimed promptly.
+> The `datastore/` directory can grow significantly larger than the live data it
+> holds, especially on long-running nodes with many CIDs.
+>
+> Unlike flatfs (which deletes files immediately) or pebble (which has
+> tombstone-aware compaction), LevelDB has no way to prioritize reclaiming
+> space from deleted keys. Restarting the daemon may trigger some compaction,
+> but this is not guaranteed.
+>
+> If slow compaction is a problem, consider using the `pebbleds` datastore
+> instead (see below), which handles this workload more efficiently.
 
 ## pebbleds
 

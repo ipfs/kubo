@@ -910,6 +910,14 @@ storage system.
 A soft upper limit for the size of the ipfs repository's datastore. With `StorageGCWatermark`,
 is used to calculate whether to trigger a gc run (only if `--enable-gc` flag is set).
 
+> [!NOTE]
+> This only controls when automatic GC of raw blocks is triggered. It is not a
+> hard limit on total disk usage. The metadata stored alongside blocks (pins,
+> MFS, provider system state, pubsub message ID tracking, and other internal
+> data) is not counted against this limit. Always include extra headroom to
+> account for metadata overhead. See [datastores.md](datastores.md) for details
+> on how different datastore backends handle disk space reclamation.
+
 Default: `"10GB"`
 
 Type: `string` (size)
