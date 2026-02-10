@@ -1,6 +1,6 @@
 module github.com/ipfs/kubo/test/dependencies
 
-go 1.25
+go 1.26
 
 replace github.com/ipfs/kubo => ../../
 

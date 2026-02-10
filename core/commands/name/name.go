@@ -234,7 +234,7 @@ Passing --verify will verify signature against provided public key.
 			}
 
 			if out.Entry.ValidityType != nil {
-				fmt.Fprintf(tw, "Validity Type:\t%q\n", *out.Entry.ValidityType)
+				fmt.Fprintf(tw, "Validity Type:\t%d\n", *out.Entry.ValidityType)
 			}
 
 			if out.Entry.Validity != nil {
