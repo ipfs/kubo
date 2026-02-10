@@ -202,7 +202,6 @@ func TestContentBlocking(t *testing.T) {
 
 		// Confirm that denylist is active for every command in 'cliCmds' x 'testCases'
 		for _, cmd := range cliCmds {
-			cmd := cmd
 			cliTestName := fmt.Sprintf("CLI '%s' denies %s", strings.Join(cmd, " "), testCase.name)
 			t.Run(cliTestName, func(t *testing.T) {
 				t.Parallel()

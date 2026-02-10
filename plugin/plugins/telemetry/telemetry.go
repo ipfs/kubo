@@ -148,12 +148,12 @@ func (p *telemetryPlugin) Version() string {
 	return "0.0.1"
 }
 
-func readFromConfig(cfg interface{}, key string) string {
+func readFromConfig(cfg any, key string) string {
 	if cfg == nil {
 		return ""
 	}
 
-	pcfg, ok := cfg.(map[string]interface{})
+	pcfg, ok := cfg.(map[string]any)
 	if !ok {
 		return ""
 	}

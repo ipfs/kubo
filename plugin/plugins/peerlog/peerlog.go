@@ -74,12 +74,12 @@ func (*peerLogPlugin) Version() string {
 // since it is internal-only, unsupported functionality.
 // For supported functionality, we should rework the plugin API to support this use case
 // of including plugins that are disabled by default.
-func extractEnabled(config interface{}) bool {
+func extractEnabled(config any) bool {
 	// plugin is disabled by default, unless Enabled=true
 	if config == nil {
 		return false
 	}
-	mapIface, ok := config.(map[string]interface{})
+	mapIface, ok := config.(map[string]any)
 	if !ok {
 		return false
 	}
@@ -123,7 +123,7 @@ func (pl *peerLogPlugin) collectEvents(node *core.IpfsNode) {
 			// don't immediately run into this situation
 			// again.
 		loop:
-			for i := 0; i < busyDropAmount; i++ {
+			for range busyDropAmount {
 				select {
 				case <-pl.events:
 					dropped++

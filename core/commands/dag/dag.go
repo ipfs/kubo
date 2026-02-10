@@ -294,9 +294,9 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 
 // DagStat is a dag stat command response
 type DagStat struct {
-	Cid       cid.Cid `json:",omitempty"`
-	Size      uint64  `json:",omitempty"`
-	NumBlocks int64   `json:",omitempty"`
+	Cid       cid.Cid
+	Size      uint64 `json:",omitempty"`
+	NumBlocks int64  `json:",omitempty"`
 }
 
 func (s *DagStat) String() string {

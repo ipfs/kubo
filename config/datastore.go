@@ -32,12 +32,12 @@ type Datastore struct {
 	NoSync bool             `json:",omitempty"`
 	Params *json.RawMessage `json:",omitempty"`
 
-	Spec map[string]interface{}
+	Spec map[string]any
 
 	HashOnRead        bool
 	BloomFilterSize   int
-	BlockKeyCacheSize OptionalInteger `json:",omitempty"`
-	WriteThrough      Flag            `json:",omitempty"`
+	BlockKeyCacheSize OptionalInteger
+	WriteThrough      Flag `json:",omitempty"`
 }
 
 // DataStorePath returns the default data store path given a configuration root

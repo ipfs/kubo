@@ -134,8 +134,8 @@ func TestPinLsWithNamesForSpecificCIDs(t *testing.T) {
 		assertCIDOnly(t, output, cidC)
 
 		// Pin C should appear but without a name (just type)
-		lines := strings.Split(output, "\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(output, "\n")
+		for line := range lines {
 			if strings.Contains(line, cidC) {
 				// Should have CID and type but no name
 				require.Contains(t, line, "recursive", "pin type 'recursive' not found for unnamed pin %s in line: %s", cidC, line)
@@ -362,7 +362,7 @@ func TestPinLsWithNamesForSpecificCIDs(t *testing.T) {
 		numPins := 10
 		done := make(chan struct{}, numPins)
 
-		for i := 0; i < numPins; i++ {
+		for i := range numPins {
 			go func(idx int) {
 				defer func() { done <- struct{}{} }()
 
@@ -374,14 +374,14 @@ func TestPinLsWithNamesForSpecificCIDs(t *testing.T) {
 		}
 
 		// Wait for all goroutines
-		for i := 0; i < numPins; i++ {
+		for range numPins {
 			<-done
 		}
 
 		// Verify all pins have correct names
 		res := node.IPFS("pin", "ls", "--names")
 		output := res.Stdout.String()
-		for i := 0; i < numPins; i++ {
+		for i := range numPins {
 			pinName := fmt.Sprintf("concurrent-pin-%d", i)
 			require.Contains(t, output, pinName,
 				"concurrent pin name '%s' not found in output", pinName)

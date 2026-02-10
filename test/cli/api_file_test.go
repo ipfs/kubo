@@ -37,7 +37,7 @@ func TestAddressFileReady(t *testing.T) {
 		// Poll for api file to appear
 		apiFile := filepath.Join(node.Dir, "api")
 		var fileExists bool
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			if _, err := os.Stat(apiFile); err == nil {
 				fileExists = true
 				break
@@ -81,7 +81,7 @@ func TestAddressFileReady(t *testing.T) {
 		// Poll for gateway file to appear
 		gatewayFile := filepath.Join(node.Dir, "gateway")
 		var fileExists bool
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			if _, err := os.Stat(gatewayFile); err == nil {
 				fileExists = true
 				break

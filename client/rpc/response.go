@@ -64,7 +64,7 @@ func (r *Response) Cancel() error {
 }
 
 // Decode reads request body and decodes it as json.
-func (r *Response) decode(dec interface{}) error {
+func (r *Response) decode(dec any) error {
 	if r.Error != nil {
 		return r.Error
 	}

@@ -21,7 +21,7 @@ import (
 var log = logging.Logger("core/commands/cmdenv")
 
 // GetNode extracts the node from the environment.
-func GetNode(env interface{}) (*core.IpfsNode, error) {
+func GetNode(env any) (*core.IpfsNode, error) {
 	ctx, ok := env.(*commands.Context)
 	if !ok {
 		return nil, fmt.Errorf("expected env to be of type %T, got %T", ctx, env)

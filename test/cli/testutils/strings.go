@@ -22,7 +22,7 @@ var (
 // and concats them all together into one string slice.
 // If an arg is not one of those types, this panics.
 // If an arg is an empty string, it is dropped.
-func StrCat(args ...interface{}) []string {
+func StrCat(args ...any) []string {
 	res := make([]string, 0)
 	for _, a := range args {
 		if s, ok := a.(string); ok {

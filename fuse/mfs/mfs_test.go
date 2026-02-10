@@ -237,7 +237,7 @@ func TestConcurrentRW(t *testing.T) {
 
 	t.Run("write", func(t *testing.T) {
 		errs := make(chan (error), 1)
-		for i := 0; i < files; i++ {
+		for i := range files {
 			go func() {
 				var err error
 				defer func() { errs <- err }()
@@ -254,7 +254,7 @@ func TestConcurrentRW(t *testing.T) {
 				}
 			}()
 		}
-		for i := 0; i < files; i++ {
+		for range files {
 			err := <-errs
 			if err != nil {
 				t.Fatal(err)
@@ -285,7 +285,7 @@ func TestConcurrentRW(t *testing.T) {
 				}
 			}()
 		}
-		for i := 0; i < files; i++ {
+		for range files {
 			err := <-errs
 			if err != nil {
 				t.Fatal(err)

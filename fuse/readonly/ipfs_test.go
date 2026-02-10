@@ -141,14 +141,14 @@ func TestIpfsStressRead(t *testing.T) {
 	ndiriter := 50
 
 	// Make a bunch of objects
-	for i := 0; i < nobj; i++ {
+	for range nobj {
 		fi, _ := randObj(t, nd, rand.Int63n(50000))
 		nodes = append(nodes, fi)
 		paths = append(paths, fi.Cid().String())
 	}
 
 	// Now make a bunch of dirs
-	for i := 0; i < ndiriter; i++ {
+	for range ndiriter {
 		db, err := uio.NewDirectory(nd.DAG)
 		if err != nil {
 			t.Fatal(err)
@@ -180,12 +180,10 @@ func TestIpfsStressRead(t *testing.T) {
 	wg := sync.WaitGroup{}
 	errs := make(chan error)
 
-	for s := 0; s < 4; s++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 4 {
+		wg.Go(func() {
 
-			for i := 0; i < 2000; i++ {
+			for range 2000 {
 				item, err := path.NewPath("/ipfs/" + paths[rand.Intn(len(paths))])
 				if err != nil {
 					errs <- err
@@ -220,7 +218,7 @@ func TestIpfsStressRead(t *testing.T) {
 					errs <- errors.New("incorrect read")
 				}
 			}
-		}()
+		})
 	}
 
 	go func() {

@@ -19,7 +19,7 @@ func TestPeersTotal(t *testing.T) {
 	ctx := context.Background()
 
 	hosts := make([]*bhost.BasicHost, 4)
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		var err error
 		hosts[i], err = bhost.NewHost(swarmt.GenSwarm(t), nil)
 		if err != nil {

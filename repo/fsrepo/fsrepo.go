@@ -279,7 +279,7 @@ func initConfig(path string, conf *config.Config) error {
 	return nil
 }
 
-func initSpec(path string, conf map[string]interface{}) error {
+func initSpec(path string, conf map[string]any) error {
 	fn, err := config.Path(path, specFn)
 	if err != nil {
 		return err
@@ -651,7 +651,7 @@ func (r *FSRepo) SetConfig(updated *config.Config) error {
 	// to avoid clobbering user-provided keys, must read the config from disk
 	// as a map, write the updated struct values to the map and write the map
 	// to disk.
-	var mapconf map[string]interface{}
+	var mapconf map[string]any
 	if err := serialize.ReadConfigFile(r.configFilePath, &mapconf); err != nil {
 		return err
 	}
@@ -670,7 +670,7 @@ func (r *FSRepo) SetConfig(updated *config.Config) error {
 }
 
 // GetConfigKey retrieves only the value of a particular key.
-func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
+func (r *FSRepo) GetConfigKey(key string) (any, error) {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
@@ -678,7 +678,7 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 		return nil, errors.New("repo is closed")
 	}
 
-	var cfg map[string]interface{}
+	var cfg map[string]any
 	if err := serialize.ReadConfigFile(r.configFilePath, &cfg); err != nil {
 		return nil, err
 	}
@@ -686,7 +686,7 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 }
 
 // SetConfigKey writes the value of a particular key.
-func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
+func (r *FSRepo) SetConfigKey(key string, value any) error {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
@@ -701,7 +701,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	}
 
 	// Load into a map so we don't end up writing any additional defaults to the config file.
-	var mapconf map[string]interface{}
+	var mapconf map[string]any
 	if err := serialize.ReadConfigFile(r.configFilePath, &mapconf); err != nil {
 		return err
 	}

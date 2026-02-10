@@ -30,7 +30,7 @@ func TestFilesCp_DagCborNodeFails(t *testing.T) {
 			"/ipfs/" + protoNode.Cid().String(),
 			"/test-destination",
 		},
-		Options: map[string]interface{}{
+		Options: map[string]any{
 			"force": false,
 		},
 	}

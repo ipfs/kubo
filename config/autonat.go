@@ -84,5 +84,5 @@ type AutoNATThrottleConfig struct {
 	// global/peer dialback limits.
 	//
 	// When unset, this defaults to 1 minute.
-	Interval OptionalDuration `json:",omitempty"`
+	Interval OptionalDuration
 }

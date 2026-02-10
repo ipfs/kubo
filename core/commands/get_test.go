@@ -15,7 +15,7 @@ func TestGetOutputPath(t *testing.T) {
 	}{
 		{
 			args: []string{"/ipns/multiformats.io/"},
-			opts: map[string]interface{}{
+			opts: map[string]any{
 				"output": "takes-precedence",
 			},
 			outPath: "takes-precedence",

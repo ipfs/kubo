@@ -85,37 +85,37 @@ func testAllAutoConfFieldsResolve(t *testing.T) {
 		// Create comprehensive autoconf response matching Schema 4 format
 		// Use server URLs to ensure they're reachable and valid
 		serverURL := fmt.Sprintf("http://%s", r.Host) // Get the server URL from the request
-		autoConf := map[string]interface{}{
+		autoConf := map[string]any{
 			"AutoConfVersion": 2025072301,
 			"AutoConfSchema":  1,
 			"AutoConfTTL":     86400,
-			"SystemRegistry": map[string]interface{}{
-				"AminoDHT": map[string]interface{}{
+			"SystemRegistry": map[string]any{
+				"AminoDHT": map[string]any{
 					"URL":         "https://github.com/ipfs/specs/pull/497",
 					"Description": "Test AminoDHT system",
-					"NativeConfig": map[string]interface{}{
+					"NativeConfig": map[string]any{
 						"Bootstrap": []string{
 							"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
 							"/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
 						},
 					},
-					"DelegatedConfig": map[string]interface{}{
+					"DelegatedConfig": map[string]any{
 						"Read":  []string{"/routing/v1/providers", "/routing/v1/peers", "/routing/v1/ipns"},
 						"Write": []string{"/routing/v1/ipns"},
 					},
 				},
-				"IPNI": map[string]interface{}{
+				"IPNI": map[string]any{
 					"URL":         serverURL + "/ipni-system",
 					"Description": "Test IPNI system",
-					"DelegatedConfig": map[string]interface{}{
+					"DelegatedConfig": map[string]any{
 						"Read":  []string{"/routing/v1/providers"},
 						"Write": []string{},
 					},
 				},
-				"CustomIPNS": map[string]interface{}{
+				"CustomIPNS": map[string]any{
 					"URL":         serverURL + "/ipns-system",
 					"Description": "Test IPNS system",
-					"DelegatedConfig": map[string]interface{}{
+					"DelegatedConfig": map[string]any{
 						"Read":  []string{"/routing/v1/ipns"},
 						"Write": []string{"/routing/v1/ipns"},
 					},
@@ -125,8 +125,8 @@ func testAllAutoConfFieldsResolve(t *testing.T) {
 				".":    {"https://cloudflare-dns.com/dns-query"},
 				"eth.": {"https://dns.google/dns-query"},
 			},
-			"DelegatedEndpoints": map[string]interface{}{
-				serverURL: map[string]interface{}{
+			"DelegatedEndpoints": map[string]any{
+				serverURL: map[string]any{
 					"Systems": []string{"IPNI", "CustomIPNS"}, // Use non-AminoDHT systems to avoid filtering
 					"Read":    []string{"/routing/v1/providers", "/routing/v1/ipns"},
 					"Write":   []string{"/routing/v1/ipns"},
@@ -155,7 +155,7 @@ func testAllAutoConfFieldsResolve(t *testing.T) {
 	// Clear any existing autoconf cache to prevent interference
 	result := node.RunIPFS("config", "show")
 	if result.ExitCode() == 0 {
-		var cfg map[string]interface{}
+		var cfg map[string]any
 		if json.Unmarshal([]byte(result.Stdout.String()), &cfg) == nil {
 			if repoPath, exists := cfg["path"]; exists {
 				if pathStr, ok := repoPath.(string); ok {
@@ -436,12 +436,12 @@ func testConfigShowExpandAutoComplete(t *testing.T) {
 	assert.Contains(t, expandedConfig, "bootstrap.libp2p.io", "Should contain expanded bootstrap peers")
 
 	// Should be valid JSON
-	var configMap map[string]interface{}
+	var configMap map[string]any
 	err := json.Unmarshal([]byte(expandedConfig), &configMap)
 	require.NoError(t, err, "Expanded config should be valid JSON")
 
 	// Verify specific fields were expanded
-	if bootstrap, ok := configMap["Bootstrap"].([]interface{}); ok {
+	if bootstrap, ok := configMap["Bootstrap"].([]any); ok {
 		assert.Greater(t, len(bootstrap), 0, "Bootstrap should have expanded entries")
 		for _, peer := range bootstrap {
 			assert.NotEqual(t, "auto", peer, "Bootstrap entries should not be 'auto'")

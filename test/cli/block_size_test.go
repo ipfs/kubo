@@ -60,7 +60,7 @@ func allBlockCIDs(t *testing.T, node *harness.Node, root string) []string {
 	t.Helper()
 	cids := []string{root}
 	res := node.IPFS("refs", "-r", "--unique", root)
-	for _, line := range strings.Split(strings.TrimSpace(res.Stdout.String()), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(res.Stdout.String()), "\n") {
 		if line != "" {
 			cids = append(cids, line)
 		}

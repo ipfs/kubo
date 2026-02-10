@@ -95,7 +95,7 @@ func makeNode(t *testing.T) (node *core.IpfsNode, repopath string) {
 		t.Fatal(err)
 	}
 
-	cfg.Datastore.Spec = map[string]interface{}{
+	cfg.Datastore.Spec = map[string]any{
 		"type":               "pebbleds",
 		"prefix":             "pebble.datastore",
 		"path":               "pebbleds",

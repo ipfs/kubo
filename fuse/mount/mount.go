@@ -77,7 +77,7 @@ func UnmountCmd(point string) (*exec.Cmd, error) {
 // Attempts a given number of times.
 func ForceUnmountManyTimes(m Mount, attempts int) error {
 	var err error
-	for i := 0; i < attempts; i++ {
+	for range attempts {
 		err = ForceUnmount(m)
 		if err == nil {
 			return err

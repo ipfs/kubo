@@ -435,7 +435,7 @@ type connInfo struct {
 	Muxer     string         `json:",omitempty"`
 	Direction inet.Direction `json:",omitempty"`
 	Streams   []streamInfo   `json:",omitempty"`
-	Identify  IdOutput       `json:",omitempty"`
+	Identify  IdOutput
 }
 
 func (ci *connInfo) Sort() {

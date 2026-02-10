@@ -396,8 +396,8 @@ func TestProvideStatOutputFormats(t *testing.T) {
 
 		// Parse JSON to verify structure
 		var result struct {
-			Sweep  map[string]interface{} `json:"Sweep"`
-			Legacy map[string]interface{} `json:"Legacy"`
+			Sweep  map[string]any `json:"Sweep"`
+			Legacy map[string]any `json:"Legacy"`
 		}
 		err := json.Unmarshal([]byte(res.Stdout.String()), &result)
 		require.NoError(t, err, "Output should be valid JSON")
@@ -420,8 +420,8 @@ func TestProvideStatOutputFormats(t *testing.T) {
 
 		// Parse JSON to verify structure
 		var result struct {
-			Sweep  map[string]interface{} `json:"Sweep"`
-			Legacy map[string]interface{} `json:"Legacy"`
+			Sweep  map[string]any `json:"Sweep"`
+			Legacy map[string]any `json:"Legacy"`
 		}
 		err := json.Unmarshal([]byte(res.Stdout.String()), &result)
 		require.NoError(t, err, "Output should be valid JSON")

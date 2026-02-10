@@ -85,7 +85,7 @@ The output is:
 			if err != nil {
 				return err
 			}
-			return streamResult(func(v interface{}, out io.Writer) nonFatalError {
+			return streamResult(func(v any, out io.Writer) nonFatalError {
 				r := v.(*filestore.ListRes)
 				if r.ErrorMsg != "" {
 					return nonFatalError(r.ErrorMsg)

@@ -37,9 +37,7 @@ func (ih *IntrHandler) Close() error {
 func (ih *IntrHandler) Handle(handler func(count int, ih *IntrHandler), sigs ...os.Signal) {
 	notify := make(chan os.Signal, 1)
 	signal.Notify(notify, sigs...)
-	ih.wg.Add(1)
-	go func() {
-		defer ih.wg.Done()
+	ih.wg.Go(func() {
 		defer signal.Stop(notify)
 
 		count := 0
@@ -52,7 +50,7 @@ func (ih *IntrHandler) Handle(handler func(count int, ih *IntrHandler), sigs ...
 				handler(count, ih)
 			}
 		}
-	}()
+	})
 }
 
 func SetupInterruptHandler(ctx context.Context) (io.Closer, context.Context) {

@@ -76,7 +76,7 @@ func TestConfigSecrets(t *testing.T) {
 			var origPrivKey string
 			assert.Contains(t, originalConfig, "PrivKey")
 			// Simple extraction - find the PrivKey line
-			for _, line := range strings.Split(originalConfig, "\n") {
+			for line := range strings.SplitSeq(originalConfig, "\n") {
 				if strings.Contains(line, "\"PrivKey\":") {
 					origPrivKey = line
 					break
@@ -98,7 +98,7 @@ func TestConfigSecrets(t *testing.T) {
 
 			// Verify the PrivKey line is the same
 			var newPrivKey string
-			for _, line := range strings.Split(newConfig, "\n") {
+			for line := range strings.SplitSeq(newConfig, "\n") {
 				if strings.Contains(line, "\"PrivKey\":") {
 					newPrivKey = line
 					break

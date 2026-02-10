@@ -22,13 +22,13 @@ import (
 
 // ConfigUpdateOutput is config profile apply command's output
 type ConfigUpdateOutput struct {
-	OldCfg map[string]interface{}
-	NewCfg map[string]interface{}
+	OldCfg map[string]any
+	NewCfg map[string]any
 }
 
 type ConfigField struct {
 	Key   string
-	Value interface{}
+	Value any
 }
 
 const (
@@ -117,7 +117,7 @@ Set multiple values in the 'Addresses.AppendAnnounce' array:
 			value := args[1]
 
 			if parseJSON, _ := req.Options[configJSONOptionName].(bool); parseJSON {
-				var jsonVal interface{}
+				var jsonVal any
 				if err := json.Unmarshal([]byte(value), &jsonVal); err != nil {
 					err = fmt.Errorf("failed to unmarshal json. %s", err)
 					return err
@@ -199,7 +199,7 @@ var configShowCmd = &cmds.Command{
 NOTE: For security reasons, this command will omit your private key and remote services. If you would like to make a full backup of your config (private key included), you must copy the config file from your repo.
 `,
 	},
-	Type: make(map[string]interface{}),
+	Type: make(map[string]any),
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
@@ -217,7 +217,7 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			return err
 		}
 
-		var cfg map[string]interface{}
+		var cfg map[string]any
 		err = json.Unmarshal(data, &cfg)
 		if err != nil {
 			return err
@@ -262,7 +262,7 @@ NOTE: For security reasons, this command will omit your private key and remote s
 	},
 }
 
-var HumanJSONEncoder = cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *map[string]interface{}) error {
+var HumanJSONEncoder = cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *map[string]any) error {
 	buf, err := config.HumanOutput(out)
 	if err != nil {
 		return err
@@ -273,35 +273,35 @@ var HumanJSONEncoder = cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer
 })
 
 // Scrubs value and returns error if missing
-func scrubValue(m map[string]interface{}, key []string) (map[string]interface{}, error) {
+func scrubValue(m map[string]any, key []string) (map[string]any, error) {
 	return scrubMapInternal(m, key, false)
 }
 
 // Scrubs value and returns no error if missing
-func scrubOptionalValue(m map[string]interface{}, key []string) (map[string]interface{}, error) {
+func scrubOptionalValue(m map[string]any, key []string) (map[string]any, error) {
 	return scrubMapInternal(m, key, true)
 }
 
-func scrubEither(u interface{}, key []string, okIfMissing bool) (interface{}, error) {
-	m, ok := u.(map[string]interface{})
+func scrubEither(u any, key []string, okIfMissing bool) (any, error) {
+	m, ok := u.(map[string]any)
 	if ok {
 		return scrubMapInternal(m, key, okIfMissing)
 	}
 	return scrubValueInternal(m, key, okIfMissing)
 }
 
-func scrubValueInternal(v interface{}, key []string, okIfMissing bool) (interface{}, error) {
+func scrubValueInternal(v any, key []string, okIfMissing bool) (any, error) {
 	if v == nil && !okIfMissing {
 		return nil, errors.New("failed to find specified key")
 	}
 	return nil, nil
 }
 
-func scrubMapInternal(m map[string]interface{}, key []string, okIfMissing bool) (map[string]interface{}, error) {
+func scrubMapInternal(m map[string]any, key []string, okIfMissing bool) (map[string]any, error) {
 	if len(key) == 0 {
-		return make(map[string]interface{}), nil // delete value
+		return make(map[string]any), nil // delete value
 	}
-	n := map[string]interface{}{}
+	n := map[string]any{}
 	for k, v := range m {
 		if key[0] == "*" || strings.EqualFold(key[0], k) {
 			u, err := scrubEither(v, key[1:], okIfMissing)
@@ -463,7 +463,7 @@ func buildProfileHelp() string {
 }
 
 // scrubPrivKey scrubs private key for security reasons.
-func scrubPrivKey(cfg *config.Config) (map[string]interface{}, error) {
+func scrubPrivKey(cfg *config.Config) (map[string]any, error) {
 	cfgMap, err := config.ToMap(cfg)
 	if err != nil {
 		return nil, err
@@ -553,7 +553,7 @@ func getConfigWithAutoExpand(r repo.Repo, key string) (*ConfigField, error) {
 	}, nil
 }
 
-func setConfig(r repo.Repo, key string, value interface{}) (*ConfigField, error) {
+func setConfig(r repo.Repo, key string, value any) (*ConfigField, error) {
 	err := r.SetConfigKey(key, value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set config value: %s (maybe use --json?)", err)
@@ -646,7 +646,7 @@ func getRemotePinningServices(r repo.Repo) (map[string]config.RemotePinningServi
 	if remoteServicesTag, err := getConfig(r, config.RemoteServicesPath); err == nil {
 		// seems that golang cannot type assert map[string]interface{} to map[string]config.RemotePinningService
 		// so we have to manually copy the data :-|
-		if val, ok := remoteServicesTag.Value.(map[string]interface{}); ok {
+		if val, ok := remoteServicesTag.Value.(map[string]any); ok {
 			jsonString, err := json.Marshal(val)
 			if err != nil {
 				return nil, err

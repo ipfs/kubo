@@ -35,7 +35,7 @@ func waitForMessagePropagation(t *testing.T) {
 // a small delay between each to allow for ordered delivery.
 func publishMessages(t *testing.T, publisher *harness.Node, topic string, n int) {
 	t.Helper()
-	for i := 0; i < n; i++ {
+	for range n {
 		publisher.PipeStrToIPFS("msg", "pubsub", "pub", topic)
 		time.Sleep(50 * time.Millisecond)
 	}

@@ -33,7 +33,7 @@ func TestDHTAutoclient(t *testing.T) {
 		randomBytes := random.Bytes(1000)
 		hash := nodes[0].IPFSAdd(bytes.NewReader(randomBytes))
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			res := nodes[i].IPFS("cat", hash)
 			assert.Equal(t, randomBytes, []byte(res.Stdout.Trimmed()))
 		}

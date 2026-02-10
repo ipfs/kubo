@@ -146,7 +146,7 @@ EXAMPLE:
 	Type: IdOutput{},
 }
 
-func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (interface{}, error) {
+func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (any, error) {
 	if p == "" {
 		return nil, errors.New("attempted to print nil peer")
 	}
@@ -189,7 +189,7 @@ func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (interface{
 }
 
 // printing self is special cased as we get values differently.
-func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (interface{}, error) {
+func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (any, error) {
 	info := new(IdOutput)
 	info.ID = keyEnc.FormatID(node.Identity)
 

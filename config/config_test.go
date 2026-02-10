@@ -32,7 +32,7 @@ func TestReflectToMap(t *testing.T) {
 	// Helper function to create a test config with various field types
 	reflectedConfig := ReflectToMap(new(Config))
 
-	mapConfig, ok := reflectedConfig.(map[string]interface{})
+	mapConfig, ok := reflectedConfig.(map[string]any)
 	if !ok {
 		t.Fatal("Config didn't convert to map")
 	}
@@ -42,7 +42,7 @@ func TestReflectToMap(t *testing.T) {
 		t.Fatal("Identity field not found")
 	}
 
-	mapIdentity, ok := reflectedIdentity.(map[string]interface{})
+	mapIdentity, ok := reflectedIdentity.(map[string]any)
 	if !ok {
 		t.Fatal("Identity field didn't convert to map")
 	}
@@ -70,7 +70,7 @@ func TestReflectToMap(t *testing.T) {
 	if !ok {
 		t.Fatal("Bootstrap field not found in config")
 	}
-	bootstrap, ok := reflectedBootstrap.([]interface{})
+	bootstrap, ok := reflectedBootstrap.([]any)
 	if !ok {
 		t.Fatal("Bootstrap field didn't convert to []string")
 	}
@@ -82,7 +82,7 @@ func TestReflectToMap(t *testing.T) {
 	if !ok {
 		t.Fatal("Datastore field not found in config")
 	}
-	datastore, ok := reflectedDatastore.(map[string]interface{})
+	datastore, ok := reflectedDatastore.(map[string]any)
 	if !ok {
 		t.Fatal("Datastore field didn't convert to map")
 	}
@@ -107,7 +107,7 @@ func TestReflectToMap(t *testing.T) {
 	if !ok {
 		t.Fatal("DNS field not found in config")
 	}
-	DNS, ok := reflectedDNS.(map[string]interface{})
+	DNS, ok := reflectedDNS.(map[string]any)
 	if !ok {
 		t.Fatal("DNS field didn't convert to map")
 	}
@@ -116,12 +116,12 @@ func TestReflectToMap(t *testing.T) {
 		t.Fatal("Resolvers field not found in DNS")
 	}
 	// Test map field
-	if _, ok := reflectedResolvers.(map[string]interface{}); !ok {
+	if _, ok := reflectedResolvers.(map[string]any); !ok {
 		t.Fatal("Resolvers field didn't convert to map")
 	}
 
 	// Test pointer field
-	if _, ok := DNS["MaxCacheTTL"].(map[string]interface{}); !ok {
+	if _, ok := DNS["MaxCacheTTL"].(map[string]any); !ok {
 		// Since OptionalDuration only field is private, we cannot test it
 		t.Fatal("MaxCacheTTL field didn't convert to map")
 	}
