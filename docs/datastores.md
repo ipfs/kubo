@@ -115,13 +115,24 @@ When installing a new version of kubo when `"formatMajorVersion"` is configured,
 Uses [badger](https://github.com/dgraph-io/badger) as a key-value store.
 
 > [!CAUTION]
-> This is based on very old badger 1.x, which has known bugs and is no longer supported by the upstream team.
-> It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
-> Do not use it for new deployments, unless you really, really know what you are doing.
+> **Badger v1 datastore is deprecated and will be removed in a future Kubo release.**
+>
+> This is based on very old badger 1.x, which has not been maintained by its
+> upstream maintainers for years and has known bugs (startup timeouts, shutdown
+> hangs, file descriptor
+> exhaustion, and more). Do not use it for new deployments.
+>
+> **To migrate:** create a new `IPFS_PATH` with `flatfs`
+> (`ipfs init --profile=flatfs`), move pinned data via
+> `ipfs dag export/import` or `ipfs pin ls -t recursive|add`, and decommission the
+> old badger-based node. When it comes to block storage, use experimental
+> `pebbleds` only if you are sure modern `flatfs` does not serve your use case
+> (most users will be perfectly fine with `flatfs`, it is also possible to keep
+> `flatfs` for blocks and replace `leveldb` with `pebble` if preferred over
+> `leveldb`).
 
-
-* `syncWrites`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a 2-3x slowdown when adding files).
-* `truncate`: Truncate the DB if a partially written sector is found (defaults to true). There is no good reason to set this to false unless you want to manually recover partially written (and unpinned) blocks if kubo crashes half-way through a write operation.
+- `syncWrites`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a 2-3x slowdown when adding files).
+- `truncate`: Truncate the DB if a partially written sector is found (defaults to true). There is no good reason to set this to false unless you want to manually recover partially written (and unpinned) blocks if kubo crashes half-way through a write operation.
 
 ```json
 {
