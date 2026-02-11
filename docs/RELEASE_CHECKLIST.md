@@ -44,9 +44,10 @@ If you're making a release for the first time, do pair programming and have the 
 
 ### Publish Artifacts
 
-- [ ] **Docker:** Publish to [DockerHub](https://hub.docker.com/r/ipfs/kubo/tags)
-  - [ ] Wait for [Publish docker image](https://github.com/ipfs/kubo/actions/workflows/docker-image.yml) workflow triggered by tag push
-  - [ ] Verify image is available on [Docker Hub → tags](https://hub.docker.com/r/ipfs/kubo/tags)
+> **Parallelism:** Docker and dist.ipfs.tech only depend on the pushed tag and can be started in parallel.
+> NPM and GitHub Release both depend on dist.ipfs.tech completing first.
+
+- [ ] **Docker:** Verify [docker-image CI](https://github.com/ipfs/kubo/actions/workflows/docker-image.yml) passed and image is available on [Docker Hub → tags](https://hub.docker.com/r/ipfs/kubo/tags)
 - [ ] **dist.ipfs.tech:** Publish to [dist.ipfs.tech](https://dist.ipfs.tech)
   - [ ] Check out [ipfs/distributions](https://github.com/ipfs/distributions)
   - [ ] Create branch: `git checkout -b release-kubo-X.Y.Z(-rcN)`
@@ -64,7 +65,7 @@ If you're making a release for the first time, do pair programming and have the 
   - [ ] Link to release issue
   - [ ] **RC:** Link to changelog, check `This is a pre-release`
   - [ ] **FINAL:** Copy changelog content (without header), do **NOT** check pre-release
-  - [ ] Run [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow
+  - [ ] Run [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow (requires dist.ipfs.tech to be done)
   - [ ] Verify assets are attached to the GitHub release
 
 ## 3. Post-Release
@@ -83,9 +84,9 @@ If you're making a release for the first time, do pair programming and have the 
     - [ ] **FINAL:** Latest release on both boxes
   - [ ] **FINAL:** Update collab cluster boxes to the tagged release
   - [ ] **FINAL:** Update libp2p bootstrappers to the tagged release
-- [ ] Smoke test with [IPFS Companion Browser Extension](https://docs.ipfs.tech/install/ipfs-companion/)
 - [ ] Update [ipfs-desktop](https://github.com/ipfs/ipfs-desktop)
   - [ ] Create PR updating kubo version in `package.json` and `package-lock.json`
+  - [ ] Smoke test with [IPFS Companion Browser Extension](https://docs.ipfs.tech/install/ipfs-companion/) against the PR build
   - [ ] **FINAL:** Merge PR and ship new ipfs-desktop release
 - [ ] **FINAL only:** Update [docs.ipfs.tech](https://docs.ipfs.tech/): run [update-on-new-ipfs-tag.yml](https://github.com/ipfs/ipfs-docs/actions/workflows/update-on-new-ipfs-tag.yml) workflow and merge the PR
 
