@@ -18,7 +18,7 @@ import (
 var ErrNotInitialized = errors.New("ipfs not initialized, please run 'ipfs init'")
 
 // ReadConfigFile reads the config from `filename` into `cfg`.
-func ReadConfigFile(filename string, cfg interface{}) error {
+func ReadConfigFile(filename string, cfg any) error {
 	f, err := os.Open(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -34,7 +34,7 @@ func ReadConfigFile(filename string, cfg interface{}) error {
 }
 
 // WriteConfigFile writes the config from `cfg` into `filename`.
-func WriteConfigFile(filename string, cfg interface{}) error {
+func WriteConfigFile(filename string, cfg any) error {
 	err := os.MkdirAll(filepath.Dir(filename), 0o755)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func WriteConfigFile(filename string, cfg interface{}) error {
 }
 
 // encode configuration with JSON.
-func encode(w io.Writer, value interface{}) error {
+func encode(w io.Writer, value any) error {
 	// need to prettyprint, hence MarshalIndent, instead of Encoder
 	buf, err := config.Marshal(value)
 	if err != nil {

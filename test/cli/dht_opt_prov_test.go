@@ -22,6 +22,7 @@ func TestDHTOptimisticProvide(t *testing.T) {
 		})
 
 		nodes.StartDaemons().Connect()
+		defer nodes.StopDaemons()
 
 		hash := nodes[0].IPFSAddStr(string(random.Bytes(100)))
 		nodes[0].IPFS("routing", "provide", hash)

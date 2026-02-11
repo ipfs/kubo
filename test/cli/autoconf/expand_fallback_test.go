@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
@@ -240,11 +241,8 @@ func testDaemonWithMalformedAutoConf(t *testing.T) {
 
 	foundFallbackPeers := 0
 	for _, expectedPeer := range expectedBootstrapPeers {
-		for _, actualPeer := range bootstrap {
-			if actualPeer == expectedPeer {
-				foundFallbackPeers++
-				break
-			}
+		if slices.Contains(bootstrap, expectedPeer) {
+			foundFallbackPeers++
 		}
 	}
 	assert.Greater(t, foundFallbackPeers, 0, "Should contain bootstrap peers from GetMainnetFallbackConfig() AminoDHT NativeConfig")

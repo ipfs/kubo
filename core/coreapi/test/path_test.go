@@ -15,8 +15,7 @@ import (
 )
 
 func TestPathUnixFSHAMTPartial(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Create a node
 	apis, err := NodeProvider{}.MakeAPISwarm(t, ctx, true, true, 1)

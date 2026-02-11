@@ -64,7 +64,7 @@ func corruptMultipleBlocks(t *testing.T, node *harness.Node, count int) []string
 
 	var corrupted []string
 	for i := 0; i < count && i < len(eligible); i++ {
-		err := os.WriteFile(eligible[i], []byte(fmt.Sprintf("corrupted data %d", i)), 0644)
+		err := os.WriteFile(eligible[i], fmt.Appendf(nil, "corrupted data %d", i), 0644)
 		require.NoError(t, err)
 		corrupted = append(corrupted, eligible[i])
 	}
@@ -195,7 +195,7 @@ func TestRepoVerify(t *testing.T) {
 		node := harness.NewT(t).NewNode().Init()
 
 		// Create 20 blocks
-		for i := 0; i < 20; i++ {
+		for i := range 20 {
 			node.IPFSAddStr(strings.Repeat("test content ", i+1))
 		}
 
@@ -319,7 +319,7 @@ func TestRepoVerify(t *testing.T) {
 		node := harness.NewT(t).NewNode().Init()
 
 		// Create 1000 small blocks
-		for i := 0; i < 1000; i++ {
+		for i := range 1000 {
 			node.IPFSAddStr(fmt.Sprintf("content-%d", i))
 		}
 
@@ -346,7 +346,7 @@ func TestRepoVerify(t *testing.T) {
 		node := harness.NewT(t).NewNode().Init()
 
 		// Create several blocks
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			node.IPFSAddStr(fmt.Sprintf("content for removal test %d", i))
 		}
 

@@ -63,7 +63,7 @@ type processInitialRoutingOut struct {
 
 type AddrInfoChan chan peer.AddrInfo
 
-func BaseRouting(cfg *config.Config) interface{} {
+func BaseRouting(cfg *config.Config) any {
 	return func(lc fx.Lifecycle, in processInitialRoutingIn) (out processInitialRoutingOut, err error) {
 		var dualDHT *ddht.DHT
 		if dht, ok := in.Router.(*ddht.DHT); ok {

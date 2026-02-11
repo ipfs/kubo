@@ -7,10 +7,10 @@ import (
 )
 
 func TestMapMergeDeepReturnsNew(t *testing.T) {
-	leftMap := make(map[string]interface{})
+	leftMap := make(map[string]any)
 	leftMap["A"] = "Hello World"
 
-	rightMap := make(map[string]interface{})
+	rightMap := make(map[string]any)
 	rightMap["A"] = "Foo"
 
 	MapMergeDeep(leftMap, rightMap)
@@ -19,7 +19,7 @@ func TestMapMergeDeepReturnsNew(t *testing.T) {
 }
 
 func TestMapMergeDeepNewKey(t *testing.T) {
-	leftMap := make(map[string]interface{})
+	leftMap := make(map[string]any)
 	leftMap["A"] = "Hello World"
 	/*
 		leftMap
@@ -28,7 +28,7 @@ func TestMapMergeDeepNewKey(t *testing.T) {
 		}
 	*/
 
-	rightMap := make(map[string]interface{})
+	rightMap := make(map[string]any)
 	rightMap["B"] = "Bar"
 	/*
 		rightMap
@@ -50,11 +50,11 @@ func TestMapMergeDeepNewKey(t *testing.T) {
 }
 
 func TestMapMergeDeepRecursesOnMaps(t *testing.T) {
-	leftMapA := make(map[string]interface{})
+	leftMapA := make(map[string]any)
 	leftMapA["B"] = "A value!"
 	leftMapA["C"] = "Another value!"
 
-	leftMap := make(map[string]interface{})
+	leftMap := make(map[string]any)
 	leftMap["A"] = leftMapA
 	/*
 		leftMap
@@ -66,10 +66,10 @@ func TestMapMergeDeepRecursesOnMaps(t *testing.T) {
 		}
 	*/
 
-	rightMapA := make(map[string]interface{})
+	rightMapA := make(map[string]any)
 	rightMapA["C"] = "A different value!"
 
-	rightMap := make(map[string]interface{})
+	rightMap := make(map[string]any)
 	rightMap["A"] = rightMapA
 	/*
 		rightMap
@@ -91,16 +91,16 @@ func TestMapMergeDeepRecursesOnMaps(t *testing.T) {
 		}
 	*/
 
-	resultA := result["A"].(map[string]interface{})
+	resultA := result["A"].(map[string]any)
 	require.Equal(t, "A value!", resultA["B"], "Unaltered values should not change")
 	require.Equal(t, "A different value!", resultA["C"], "Nested values should be altered")
 }
 
 func TestMapMergeDeepRightNotAMap(t *testing.T) {
-	leftMapA := make(map[string]interface{})
+	leftMapA := make(map[string]any)
 	leftMapA["B"] = "A value!"
 
-	leftMap := make(map[string]interface{})
+	leftMap := make(map[string]any)
 	leftMap["A"] = leftMapA
 	/*
 		origMap
@@ -111,7 +111,7 @@ func TestMapMergeDeepRightNotAMap(t *testing.T) {
 		}
 	*/
 
-	rightMap := make(map[string]interface{})
+	rightMap := make(map[string]any)
 	rightMap["A"] = "Not a map!"
 	/*
 		newMap

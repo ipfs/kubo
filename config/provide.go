@@ -102,7 +102,7 @@ type ProvideDHT struct {
 
 func ParseProvideStrategy(s string) ProvideStrategy {
 	var strategy ProvideStrategy
-	for _, part := range strings.Split(s, "+") {
+	for part := range strings.SplitSeq(s, "+") {
 		switch part {
 		case "all", "flat", "": // special case, does not mix with others ("flat" is deprecated, maps to "all")
 			return ProvideStrategyAll

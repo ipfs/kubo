@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/filecoin-project/go-clock"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -17,7 +16,6 @@ import (
 )
 
 type loggingResourceManager struct {
-	clock       clock.Clock
 	logger      *zap.SugaredLogger
 	delegate    network.ResourceManager
 	logInterval time.Duration
@@ -42,7 +40,7 @@ func (n *loggingResourceManager) start(ctx context.Context) {
 	if logInterval == 0 {
 		logInterval = 10 * time.Second
 	}
-	ticker := n.clock.Ticker(logInterval)
+	ticker := time.NewTicker(logInterval)
 	go func() {
 		defer ticker.Stop()
 		for {

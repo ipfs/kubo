@@ -70,7 +70,7 @@ func TestAutoConfFuzz(t *testing.T) {
 func testFuzzAutoConfVersion(t *testing.T) {
 	testCases := []struct {
 		name        string
-		version     interface{}
+		version     any
 		expectError bool
 	}{
 		{"valid version", 2025071801, false},
@@ -84,22 +84,22 @@ func testFuzzAutoConfVersion(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			config := map[string]interface{}{
+			config := map[string]any{
 				"AutoConfVersion": tc.version,
 				"AutoConfSchema":  1,
 				"AutoConfTTL":     86400,
-				"SystemRegistry": map[string]interface{}{
-					"AminoDHT": map[string]interface{}{
+				"SystemRegistry": map[string]any{
+					"AminoDHT": map[string]any{
 						"Description": "Test AminoDHT system",
-						"NativeConfig": map[string]interface{}{
+						"NativeConfig": map[string]any{
 							"Bootstrap": []string{
 								"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
 							},
 						},
 					},
 				},
-				"DNSResolvers":       map[string]interface{}{},
-				"DelegatedEndpoints": map[string]interface{}{},
+				"DNSResolvers":       map[string]any{},
+				"DelegatedEndpoints": map[string]any{},
 			}
 
 			jsonData, err := json.Marshal(config)
@@ -120,7 +120,7 @@ func testFuzzAutoConfVersion(t *testing.T) {
 func testFuzzBootstrapArrays(t *testing.T) {
 	type testCase struct {
 		name        string
-		bootstrap   interface{}
+		bootstrap   any
 		expectError bool
 		validate    func(*testing.T, *autoconf.Response)
 	}
@@ -177,7 +177,7 @@ func testFuzzBootstrapArrays(t *testing.T) {
 		},
 		{
 			name:        "mixed types in array",
-			bootstrap:   []interface{}{"/dnsaddr/test", 123, nil},
+			bootstrap:   []any{"/dnsaddr/test", 123, nil},
 			expectError: true,
 		},
 		{
@@ -199,20 +199,20 @@ func testFuzzBootstrapArrays(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			config := map[string]interface{}{
+			config := map[string]any{
 				"AutoConfVersion": 2025072301,
 				"AutoConfSchema":  1,
 				"AutoConfTTL":     86400,
-				"SystemRegistry": map[string]interface{}{
-					"AminoDHT": map[string]interface{}{
+				"SystemRegistry": map[string]any{
+					"AminoDHT": map[string]any{
 						"Description": "Test AminoDHT system",
-						"NativeConfig": map[string]interface{}{
+						"NativeConfig": map[string]any{
 							"Bootstrap": tc.bootstrap,
 						},
 					},
 				},
-				"DNSResolvers":       map[string]interface{}{},
-				"DelegatedEndpoints": map[string]interface{}{},
+				"DNSResolvers":       map[string]any{},
+				"DelegatedEndpoints": map[string]any{},
 			}
 
 			jsonData, err := json.Marshal(config)
@@ -247,7 +247,7 @@ func testFuzzBootstrapArrays(t *testing.T) {
 func testFuzzDNSResolvers(t *testing.T) {
 	type testCase struct {
 		name        string
-		resolvers   interface{}
+		resolvers   any
 		expectError bool
 		validate    func(*testing.T, *autoconf.Response)
 	}
@@ -314,27 +314,27 @@ func testFuzzDNSResolvers(t *testing.T) {
 		},
 		{
 			name:        "nested invalid structure",
-			resolvers:   map[string]interface{}{".": map[string]string{"invalid": "structure"}},
+			resolvers:   map[string]any{".": map[string]string{"invalid": "structure"}},
 			expectError: true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			config := map[string]interface{}{
+			config := map[string]any{
 				"AutoConfVersion": 2025072301,
 				"AutoConfSchema":  1,
 				"AutoConfTTL":     86400,
-				"SystemRegistry": map[string]interface{}{
-					"AminoDHT": map[string]interface{}{
+				"SystemRegistry": map[string]any{
+					"AminoDHT": map[string]any{
 						"Description": "Test AminoDHT system",
-						"NativeConfig": map[string]interface{}{
+						"NativeConfig": map[string]any{
 							"Bootstrap": []string{"/dnsaddr/test"},
 						},
 					},
 				},
 				"DNSResolvers":       tc.resolvers,
-				"DelegatedEndpoints": map[string]interface{}{},
+				"DelegatedEndpoints": map[string]any{},
 			}
 
 			jsonData, err := json.Marshal(config)
@@ -366,7 +366,7 @@ func testFuzzDelegatedRouters(t *testing.T) {
 	// Test various malformed delegated router configurations
 	type testCase struct {
 		name        string
-		routers     interface{}
+		routers     any
 		expectError bool
 		validate    func(*testing.T, *autoconf.Response)
 	}
@@ -374,8 +374,8 @@ func testFuzzDelegatedRouters(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "valid endpoints",
-			routers: map[string]interface{}{
-				"https://ipni.example.com": map[string]interface{}{
+			routers: map[string]any{
+				"https://ipni.example.com": map[string]any{
 					"Systems": []string{"IPNI"},
 					"Read":    []string{"/routing/v1/providers"},
 					"Write":   []string{},
@@ -392,7 +392,7 @@ func testFuzzDelegatedRouters(t *testing.T) {
 		},
 		{
 			name:    "empty routers",
-			routers: map[string]interface{}{},
+			routers: map[string]any{},
 			validate: func(t *testing.T, resp *autoconf.Response) {
 				assert.Empty(t, resp.Config.DelegatedEndpoints, "Empty routers should result in empty endpoints")
 			},
@@ -411,8 +411,8 @@ func testFuzzDelegatedRouters(t *testing.T) {
 		},
 		{
 			name: "invalid endpoint URLs",
-			routers: map[string]interface{}{
-				"not-a-url": map[string]interface{}{
+			routers: map[string]any{
+				"not-a-url": map[string]any{
 					"Systems": []string{"IPNI"},
 					"Read":    []string{"/routing/v1/providers"},
 					"Write":   []string{},
@@ -424,19 +424,19 @@ func testFuzzDelegatedRouters(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			config := map[string]interface{}{
+			config := map[string]any{
 				"AutoConfVersion": 2025072301,
 				"AutoConfSchema":  1,
 				"AutoConfTTL":     86400,
-				"SystemRegistry": map[string]interface{}{
-					"AminoDHT": map[string]interface{}{
+				"SystemRegistry": map[string]any{
+					"AminoDHT": map[string]any{
 						"Description": "Test AminoDHT system",
-						"NativeConfig": map[string]interface{}{
+						"NativeConfig": map[string]any{
 							"Bootstrap": []string{"/dnsaddr/test"},
 						},
 					},
 				},
-				"DNSResolvers":       map[string]interface{}{},
+				"DNSResolvers":       map[string]any{},
 				"DelegatedEndpoints": tc.routers,
 			}
 
@@ -510,26 +510,26 @@ func testFuzzDelegatedPublishers(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			autoConfData := map[string]interface{}{
+			autoConfData := map[string]any{
 				"AutoConfVersion": 2025072301,
 				"AutoConfSchema":  1,
 				"AutoConfTTL":     86400,
-				"SystemRegistry": map[string]interface{}{
-					"TestSystem": map[string]interface{}{
+				"SystemRegistry": map[string]any{
+					"TestSystem": map[string]any{
 						"Description": "Test system for fuzz testing",
-						"DelegatedConfig": map[string]interface{}{
+						"DelegatedConfig": map[string]any{
 							"Read":  []string{"/routing/v1/ipns"},
 							"Write": []string{"/routing/v1/ipns"},
 						},
 					},
 				},
-				"DNSResolvers":       map[string]interface{}{},
-				"DelegatedEndpoints": map[string]interface{}{},
+				"DNSResolvers":       map[string]any{},
+				"DelegatedEndpoints": map[string]any{},
 			}
 
 			// Add test URLs as delegated endpoints
 			for _, url := range tc.urls {
-				autoConfData["DelegatedEndpoints"].(map[string]interface{})[url] = map[string]interface{}{
+				autoConfData["DelegatedEndpoints"].(map[string]any)[url] = map[string]any{
 					"Systems": []string{"TestSystem"},
 					"Read":    []string{"/routing/v1/ipns"},
 					"Write":   []string{"/routing/v1/ipns"},
@@ -598,27 +598,27 @@ func testFuzzLargePayloads(t *testing.T) {
 	}
 
 	largeDNSResolvers := make(map[string][]string)
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		domain := fmt.Sprintf("domain%d.example.com", i)
 		largeDNSResolvers[domain] = []string{
 			fmt.Sprintf("https://resolver%d.example.com/dns-query", i),
 		}
 	}
 
-	config := map[string]interface{}{
+	config := map[string]any{
 		"AutoConfVersion": 2025072301,
 		"AutoConfSchema":  1,
 		"AutoConfTTL":     86400,
-		"SystemRegistry": map[string]interface{}{
-			"AminoDHT": map[string]interface{}{
+		"SystemRegistry": map[string]any{
+			"AminoDHT": map[string]any{
 				"Description": "Test AminoDHT system",
-				"NativeConfig": map[string]interface{}{
+				"NativeConfig": map[string]any{
 					"Bootstrap": largeBootstrap,
 				},
 			},
 		},
 		"DNSResolvers":       largeDNSResolvers,
-		"DelegatedEndpoints": map[string]interface{}{},
+		"DelegatedEndpoints": map[string]any{},
 	}
 
 	jsonData, err := json.Marshal(config)
@@ -644,7 +644,7 @@ func testFuzzLargePayloads(t *testing.T) {
 // Helper function to generate many DNS resolvers for testing
 func generateManyResolvers(count int) map[string][]string {
 	resolvers := make(map[string][]string)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		domain := fmt.Sprintf("domain%d.example.com", i)
 		resolvers[domain] = []string{
 			fmt.Sprintf("https://resolver%d.example.com/dns-query", i),

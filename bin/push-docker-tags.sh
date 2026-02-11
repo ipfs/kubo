@@ -7,7 +7,7 @@
 # Run from ci to tag images based on the current branch or tag name.
 # A bit like dockerhub autobuild config, but somewhere we can version control it.
 #
-# The `docker-build` job builds the current commit in docker and tags it as ipfs/go-ipfs:wip
+# The `docker-build` job builds the current commit in docker and tags it as ipfs/kubo:wip
 #
 # Then the `docker-publish` job runs this script to decide what tag, if any,
 # to publish to dockerhub.
@@ -42,7 +42,7 @@ GIT_TAG=${4:-$(git describe --tags --exact-match || echo "")}
 DRY_RUN=${5:-false}
 
 WIP_IMAGE_TAG=${WIP_IMAGE_TAG:-wip}
-IMAGE_NAME=${IMAGE_NAME:-ipfs/go-ipfs}
+IMAGE_NAME=${IMAGE_NAME:-ipfs/kubo}
 
 pushTag () {
   local IMAGE_TAG=$1
@@ -63,7 +63,7 @@ if [[ $GIT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc ]]; then
 elif [[ $GIT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   pushTag "$GIT_TAG"
   pushTag "latest"
-  pushTag "release" # see: https://github.com/ipfs/go-ipfs/issues/3999#issuecomment-742228981
+  pushTag "release" # see: https://github.com/ipfs/kubo/issues/3999#issuecomment-742228981
 
 elif [[ $GIT_BRANCH =~ ^bifrost-.* ]]; then
   # sanitize the branch name since docker tags have stricter char limits than git branch names

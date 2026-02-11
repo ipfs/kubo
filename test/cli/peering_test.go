@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -14,12 +15,7 @@ func TestPeering(t *testing.T) {
 	t.Parallel()
 
 	containsPeerID := func(p peer.ID, peers []peer.ID) bool {
-		for _, peerID := range peers {
-			if p == peerID {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(peers, p)
 	}
 
 	assertPeered := func(h *harness.Harness, from *harness.Node, to *harness.Node) {
@@ -62,6 +58,7 @@ func TestPeering(t *testing.T) {
 		h, nodes := harness.CreatePeerNodes(t, 3, peerings)
 
 		nodes.StartDaemons()
+		defer nodes.StopDaemons()
 		assertPeerings(h, nodes, peerings)
 
 		nodes[0].Disconnect(nodes[1])
@@ -74,6 +71,7 @@ func TestPeering(t *testing.T) {
 		h, nodes := harness.CreatePeerNodes(t, 3, peerings)
 
 		nodes.StartDaemons()
+		defer nodes.StopDaemons()
 		assertPeerings(h, nodes, peerings)
 
 		nodes[2].Disconnect(nodes[1])
@@ -85,6 +83,7 @@ func TestPeering(t *testing.T) {
 		peerings := []harness.Peering{{From: 0, To: 1}, {From: 1, To: 0}, {From: 1, To: 2}}
 		h, nodes := harness.CreatePeerNodes(t, 3, peerings)
 
+		defer nodes.StopDaemons()
 		nodes[0].StartDaemon()
 		nodes[1].StartDaemon()
 		assertPeerings(h, nodes, []harness.Peering{{From: 0, To: 1}, {From: 1, To: 0}})
@@ -99,6 +98,7 @@ func TestPeering(t *testing.T) {
 		h, nodes := harness.CreatePeerNodes(t, 3, peerings)
 
 		nodes.StartDaemons()
+		defer nodes.StopDaemons()
 		assertPeerings(h, nodes, peerings)
 
 		nodes[2].StopDaemon()

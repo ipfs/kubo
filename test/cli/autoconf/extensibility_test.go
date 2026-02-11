@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -35,56 +36,56 @@ func TestAutoConfExtensibility_NewSystem(t *testing.T) {
 	var mockServer *httptest.Server
 	mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Create autoconf.json with NewSystem
-		autoconfData := map[string]interface{}{
+		autoconfData := map[string]any{
 			"AutoConfVersion": 2025072901,
 			"AutoConfSchema":  1,
 			"AutoConfTTL":     86400,
-			"SystemRegistry": map[string]interface{}{
-				"AminoDHT": map[string]interface{}{
+			"SystemRegistry": map[string]any{
+				"AminoDHT": map[string]any{
 					"URL":         "https://github.com/ipfs/specs/pull/497",
 					"Description": "Public DHT swarm",
-					"NativeConfig": map[string]interface{}{
+					"NativeConfig": map[string]any{
 						"Bootstrap": []string{
 							"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
 						},
 					},
-					"DelegatedConfig": map[string]interface{}{
+					"DelegatedConfig": map[string]any{
 						"Read":  []string{"/routing/v1/providers", "/routing/v1/peers", "/routing/v1/ipns"},
 						"Write": []string{"/routing/v1/ipns"},
 					},
 				},
-				"IPNI": map[string]interface{}{
+				"IPNI": map[string]any{
 					"URL":         "https://ipni.example.com",
 					"Description": "Network Indexer",
-					"DelegatedConfig": map[string]interface{}{
+					"DelegatedConfig": map[string]any{
 						"Read":  []string{"/routing/v1/providers"},
 						"Write": []string{},
 					},
 				},
-				"NewSystem": map[string]interface{}{
+				"NewSystem": map[string]any{
 					"URL":         "https://example.com/newsystem",
 					"Description": "Test system for extensibility verification",
-					"NativeConfig": map[string]interface{}{
+					"NativeConfig": map[string]any{
 						"Bootstrap": []string{
 							"/ip4/127.0.0.1/tcp/9999/p2p/12D3KooWPeQ4r3v6CmVmKXoFGtqEqcr3L8P6La9yH5oEWKtoLVVa",
 						},
 					},
-					"DelegatedConfig": map[string]interface{}{
+					"DelegatedConfig": map[string]any{
 						"Read":  []string{"/routing/v1/providers"},
 						"Write": []string{},
 					},
 				},
 			},
-			"DNSResolvers": map[string]interface{}{
+			"DNSResolvers": map[string]any{
 				"eth.": []string{"https://dns.eth.limo/dns-query"},
 			},
-			"DelegatedEndpoints": map[string]interface{}{
-				"https://ipni.example.com": map[string]interface{}{
+			"DelegatedEndpoints": map[string]any{
+				"https://ipni.example.com": map[string]any{
 					"Systems": []string{"IPNI"},
 					"Read":    []string{"/routing/v1/providers"},
 					"Write":   []string{},
 				},
-				mockServer.URL + "/newsystem": map[string]interface{}{
+				mockServer.URL + "/newsystem": map[string]any{
 					"Systems": []string{"NewSystem"},
 					"Read":    []string{"/routing/v1/providers"},
 					"Write":   []string{},
@@ -101,7 +102,7 @@ func TestAutoConfExtensibility_NewSystem(t *testing.T) {
 	// NewSystem mock server URL will be dynamically assigned
 	newSystemServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Simple mock server for NewSystem endpoint
-		response := map[string]interface{}{"Providers": []interface{}{}}
+		response := map[string]any{"Providers": []any{}}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(response)
 	}))
@@ -110,56 +111,56 @@ func TestAutoConfExtensibility_NewSystem(t *testing.T) {
 	// Update the autoconf to point to the correct NewSystem endpoint
 	mockServer.Close()
 	mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		autoconfData := map[string]interface{}{
+		autoconfData := map[string]any{
 			"AutoConfVersion": 2025072901,
 			"AutoConfSchema":  1,
 			"AutoConfTTL":     86400,
-			"SystemRegistry": map[string]interface{}{
-				"AminoDHT": map[string]interface{}{
+			"SystemRegistry": map[string]any{
+				"AminoDHT": map[string]any{
 					"URL":         "https://github.com/ipfs/specs/pull/497",
 					"Description": "Public DHT swarm",
-					"NativeConfig": map[string]interface{}{
+					"NativeConfig": map[string]any{
 						"Bootstrap": []string{
 							"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
 						},
 					},
-					"DelegatedConfig": map[string]interface{}{
+					"DelegatedConfig": map[string]any{
 						"Read":  []string{"/routing/v1/providers", "/routing/v1/peers", "/routing/v1/ipns"},
 						"Write": []string{"/routing/v1/ipns"},
 					},
 				},
-				"IPNI": map[string]interface{}{
+				"IPNI": map[string]any{
 					"URL":         "https://ipni.example.com",
 					"Description": "Network Indexer",
-					"DelegatedConfig": map[string]interface{}{
+					"DelegatedConfig": map[string]any{
 						"Read":  []string{"/routing/v1/providers"},
 						"Write": []string{},
 					},
 				},
-				"NewSystem": map[string]interface{}{
+				"NewSystem": map[string]any{
 					"URL":         "https://example.com/newsystem",
 					"Description": "Test system for extensibility verification",
-					"NativeConfig": map[string]interface{}{
+					"NativeConfig": map[string]any{
 						"Bootstrap": []string{
 							"/ip4/127.0.0.1/tcp/9999/p2p/12D3KooWPeQ4r3v6CmVmKXoFGtqEqcr3L8P6La9yH5oEWKtoLVVa",
 						},
 					},
-					"DelegatedConfig": map[string]interface{}{
+					"DelegatedConfig": map[string]any{
 						"Read":  []string{"/routing/v1/providers"},
 						"Write": []string{},
 					},
 				},
 			},
-			"DNSResolvers": map[string]interface{}{
+			"DNSResolvers": map[string]any{
 				"eth.": []string{"https://dns.eth.limo/dns-query"},
 			},
-			"DelegatedEndpoints": map[string]interface{}{
-				"https://ipni.example.com": map[string]interface{}{
+			"DelegatedEndpoints": map[string]any{
+				"https://ipni.example.com": map[string]any{
 					"Systems": []string{"IPNI"},
 					"Read":    []string{"/routing/v1/providers"},
 					"Write":   []string{},
 				},
-				newSystemServer.URL: map[string]interface{}{
+				newSystemServer.URL: map[string]any{
 					"Systems": []string{"NewSystem"},
 					"Read":    []string{"/routing/v1/providers"},
 					"Write":   []string{},
@@ -227,11 +228,8 @@ func TestAutoConfExtensibility_NewSystem(t *testing.T) {
 	// Should contain NewSystem endpoint (not native) - now with routing path
 	foundNewSystem := false
 	expectedNewSystemURL := newSystemServer.URL + "/routing/v1/providers" // Full URL with path, as returned by DelegatedRoutersWithAutoConf
-	for _, url := range routerURLs {
-		if url == expectedNewSystemURL {
-			foundNewSystem = true
-			break
-		}
+	if slices.Contains(routerURLs, expectedNewSystemURL) {
+		foundNewSystem = true
 	}
 	require.True(t, foundNewSystem, "Should contain NewSystem endpoint (%s) for delegated routing, got: %v", expectedNewSystemURL, routerURLs)
 

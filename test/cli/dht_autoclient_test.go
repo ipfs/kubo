@@ -16,6 +16,7 @@ func TestDHTAutoclient(t *testing.T) {
 		node.IPFS("config", "Routing.Type", "autoclient")
 	})
 	nodes.StartDaemons().Connect()
+	t.Cleanup(func() { nodes.StopDaemons() })
 
 	t.Run("file added on node in client mode is retrievable from node in client mode", func(t *testing.T) {
 		t.Parallel()
@@ -32,7 +33,7 @@ func TestDHTAutoclient(t *testing.T) {
 		randomBytes := random.Bytes(1000)
 		hash := nodes[0].IPFSAdd(bytes.NewReader(randomBytes))
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			res := nodes[i].IPFS("cat", hash)
 			assert.Equal(t, randomBytes, []byte(res.Stdout.Trimmed()))
 		}

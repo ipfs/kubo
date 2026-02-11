@@ -24,7 +24,7 @@ func NewRandPort() int {
 	portMutex.Lock()
 	defer portMutex.Unlock()
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		l, err := net.Listen("tcp", "localhost:0")
 		if err != nil {
 			continue
@@ -39,7 +39,7 @@ func NewRandPort() int {
 	}
 
 	// Fallback to random port if we can't get a unique one from the OS
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		port := 30000 + rand.Intn(10000)
 		if _, used := allocatedPorts[port]; !used {
 			allocatedPorts[port] = struct{}{}

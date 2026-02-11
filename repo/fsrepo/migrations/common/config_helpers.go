@@ -207,7 +207,7 @@ func CopyField(config map[string]any, from, to string) error {
 }
 
 // ConvertInterfaceSlice converts []interface{} to []string
-func ConvertInterfaceSlice(slice []interface{}) []string {
+func ConvertInterfaceSlice(slice []any) []string {
 	result := make([]string, 0, len(slice))
 	for _, item := range slice {
 		if str, ok := item.(string); ok {
@@ -241,11 +241,11 @@ func SafeCastMap(value any) map[string]any {
 }
 
 // SafeCastSlice safely casts to []interface{} with fallback to empty slice
-func SafeCastSlice(value any) []interface{} {
-	if s, ok := value.([]interface{}); ok {
+func SafeCastSlice(value any) []any {
+	if s, ok := value.([]any); ok {
 		return s
 	}
-	return []interface{}{}
+	return []any{}
 }
 
 // ReplaceDefaultsWithAuto replaces default values with "auto" in a map
@@ -271,7 +271,7 @@ func EnsureSliceContains(config map[string]any, path string, value string) {
 		return
 	}
 
-	if slice, ok := existing.([]interface{}); ok {
+	if slice, ok := existing.([]any); ok {
 		// Check if value already exists
 		for _, item := range slice {
 			if str, ok := item.(string); ok && str == value {
@@ -297,7 +297,7 @@ func ReplaceInSlice(config map[string]any, path string, oldValue, newValue strin
 		return
 	}
 
-	if slice, ok := existing.([]interface{}); ok {
+	if slice, ok := existing.([]any); ok {
 		result := make([]string, 0, len(slice))
 		for _, item := range slice {
 			if str, ok := item.(string); ok {
@@ -343,7 +343,7 @@ func IsEmptySlice(value any) bool {
 	if value == nil {
 		return true
 	}
-	if slice, ok := value.([]interface{}); ok {
+	if slice, ok := value.([]any); ok {
 		return len(slice) == 0
 	}
 	if slice, ok := value.([]string); ok {

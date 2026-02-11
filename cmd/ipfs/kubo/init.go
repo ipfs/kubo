@@ -133,7 +133,7 @@ func applyProfiles(conf *config.Config, profiles string) error {
 		return nil
 	}
 
-	for _, profile := range strings.Split(profiles, ",") {
+	for profile := range strings.SplitSeq(profiles, ",") {
 		transformer, ok := config.Profiles[profile]
 		if !ok {
 			return fmt.Errorf("invalid configuration profile: %s", profile)

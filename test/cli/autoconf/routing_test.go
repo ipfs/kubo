@@ -34,7 +34,7 @@ type mockRoutingServer struct {
 	server       *httptest.Server
 	mu           sync.Mutex
 	requests     []string
-	providerFunc func(cid string) []map[string]interface{}
+	providerFunc func(cid string) []map[string]any
 }
 
 func newMockRoutingServer(t *testing.T) *mockRoutingServer {
@@ -44,8 +44,8 @@ func newMockRoutingServer(t *testing.T) *mockRoutingServer {
 	}
 
 	// Default provider function returns mock provider records
-	m.providerFunc = func(cid string) []map[string]interface{} {
-		return []map[string]interface{}{
+	m.providerFunc = func(cid string) []map[string]any {
+		return []map[string]any{
 			{
 				"Protocol": "transport-bitswap",
 				"Schema":   "bitswap",
@@ -175,8 +175,8 @@ func testRoutingErrorHandling(t *testing.T) {
 	defer routingServer.close()
 
 	// Configure to return no providers (empty response)
-	routingServer.providerFunc = func(cid string) []map[string]interface{} {
-		return []map[string]interface{}{}
+	routingServer.providerFunc = func(cid string) []map[string]any {
+		return []map[string]any{}
 	}
 
 	// Create autoconf data

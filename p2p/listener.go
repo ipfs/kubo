@@ -20,6 +20,10 @@ type Listener interface {
 
 	// close closes the listener. Does not affect child streams
 	close()
+
+	// Done returns a channel that is closed when the listener is closed.
+	// This allows callers to detect when a listener has been removed.
+	Done() <-chan struct{}
 }
 
 // Listeners manages a group of Listener implementations,
@@ -73,15 +77,13 @@ func (r *Listeners) Register(l Listener) error {
 	return nil
 }
 
+// Close removes and closes all listeners for which matchFunc returns true.
+// Returns the number of listeners closed.
 func (r *Listeners) Close(matchFunc func(listener Listener) bool) int {
-	todo := make([]Listener, 0)
+	var todo []Listener
 	r.Lock()
 	for _, l := range r.Listeners {
-		if !matchFunc(l) {
-			continue
-		}
-
-		if _, ok := r.Listeners[l.key()]; ok {
+		if matchFunc(l) {
 			delete(r.Listeners, l.key())
 			todo = append(todo, l)
 		}

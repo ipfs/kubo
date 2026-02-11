@@ -45,7 +45,7 @@ type datastoreConfig struct {
 // DatastoreConfigParser returns a configuration stub for a badger datastore
 // from the given parameters.
 func (*leveldsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
-	return func(params map[string]interface{}) (fsrepo.DatastoreConfig, error) {
+	return func(params map[string]any) (fsrepo.DatastoreConfig, error) {
 		var c datastoreConfig
 		var ok bool
 
@@ -70,7 +70,7 @@ func (*leveldsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 }
 
 func (c *datastoreConfig) DiskSpec() fsrepo.DiskSpec {
-	return map[string]interface{}{
+	return map[string]any{
 		"type": "levelds",
 		"path": c.path,
 	}

@@ -210,7 +210,9 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 		},
 	},
 	"badgerds": {
-		Description: `Configures the node to use the legacy badgerv1 datastore.
+		Description: `DEPRECATED: Configures the node to use the legacy badgerv1 datastore.
+This profile will be removed in a future Kubo release.
+New deployments should use 'flatfs' or 'pebbleds' instead.
 
 NOTE: this is badger 1.x, which has known bugs and is no longer supported by the upstream team.
 It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
@@ -224,6 +226,14 @@ Other caveats:
 * This datastore uses up to several gigabytes of memory.
 * Good for medium-size datastores, but may run into performance issues
   if your dataset is bigger than a terabyte.
+
+To migrate: create a new IPFS_PATH with 'ipfs init --profile=flatfs',
+move pinned data via 'ipfs dag export/import' or 'ipfs pin ls -t recursive|add',
+and decommission the old badger-based node.
+When it comes to block storage, use experimental 'pebbleds' only if you are sure
+modern 'flatfs' does not serve your use case (most users will be perfectly fine
+with flatfs, it is also possible to keep flatfs for blocks and replace leveldb
+with pebble if preferred over leveldb).
 
 See configuration documentation at:
 https://github.com/ipfs/kubo/blob/master/docs/datastores.md#badgerds
@@ -239,8 +249,9 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 		},
 	},
 	"badgerds-measure": {
-		Description: `Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
-Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+		Description: `DEPRECATED: Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
+This profile will be removed in a future Kubo release.
+New deployments should use 'flatfs' or 'pebbleds' instead.
 
 NOTE: This profile may only be applied when first initializing node at IPFS_PATH
       via 'ipfs init --profile badgerds-measure'
@@ -312,45 +323,33 @@ fetching may be degraded.
 			return nil
 		},
 	},
+	"unixfs-v0-2015": {
+		Description: `Legacy UnixFS import profile for backward-compatible CID generation.
+Produces CIDv0 with no raw leaves, sha2-256, 256 KiB chunks, and
+link-based HAMT size estimation. Use only when legacy CIDs are required.
+See https://github.com/ipfs/specs/pull/499. Alias: legacy-cid-v0`,
+		Transform: applyUnixFSv02015,
+	},
 	"legacy-cid-v0": {
-		Description: `Makes UnixFS import produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks. This is likely the least optimal preset, use only if legacy behavior is required.`,
-		Transform: func(c *Config) error {
-			c.Import.CidVersion = *NewOptionalInteger(0)
-			c.Import.UnixFSRawLeaves = False
-			c.Import.UnixFSChunker = *NewOptionalString("size-262144")
-			c.Import.HashFunction = *NewOptionalString("sha2-256")
-			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
-			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
-			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
-			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
-			return nil
-		},
+		Description: `Alias for unixfs-v0-2015 profile.`,
+		Transform:   applyUnixFSv02015,
 	},
-	"test-cid-v1": {
-		Description: `Makes UnixFS import produce CIDv1 with raw leaves, sha2-256 and 1 MiB chunks (max 174 links per file, 256 per HAMT node, switch dir to HAMT above 256KiB).`,
+	"unixfs-v1-2025": {
+		Description: `Recommended UnixFS import profile for cross-implementation CID determinism.
+Uses CIDv1, raw leaves, sha2-256, 1 MiB chunks, 1024 links per file node,
+256 HAMT fanout, and block-based size estimation for HAMT threshold.
+See https://github.com/ipfs/specs/pull/499`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
 			c.Import.UnixFSRawLeaves = True
-			c.Import.UnixFSChunker = *NewOptionalString("size-1048576")
-			c.Import.HashFunction = *NewOptionalString("sha2-256")
-			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
-			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
-			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
-			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
-			return nil
-		},
-	},
-	"test-cid-v1-wide": {
-		Description: `Makes UnixFS import produce CIDv1 with raw leaves, sha2-256 and 1MiB chunks and wider file DAGs (max 1024 links per every node type, switch dir to HAMT above 1MiB).`,
-		Transform: func(c *Config) error {
-			c.Import.CidVersion = *NewOptionalInteger(1)
-			c.Import.UnixFSRawLeaves = True
-			c.Import.UnixFSChunker = *NewOptionalString("size-1048576") // 1MiB
+			c.Import.UnixFSChunker = *NewOptionalString("size-1048576") // 1 MiB
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
 			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
-			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0) // no limit here, use size-based Import.UnixFSHAMTDirectorySizeThreshold instead
-			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(1024)
-			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("1MiB") // 1MiB
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
+			c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationBlock)
+			c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
 			return nil
 		},
 	},
@@ -434,4 +433,19 @@ func mapKeys(m map[string]struct{}) []string {
 		out = append(out, f)
 	}
 	return out
+}
+
+// applyUnixFSv02015 applies the legacy UnixFS v0 (2015) import settings.
+func applyUnixFSv02015(c *Config) error {
+	c.Import.CidVersion = *NewOptionalInteger(0)
+	c.Import.UnixFSRawLeaves = False
+	c.Import.UnixFSChunker = *NewOptionalString("size-262144") // 256 KiB
+	c.Import.HashFunction = *NewOptionalString("sha2-256")
+	c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
+	c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+	c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+	c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
+	c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationLinks)
+	c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
+	return nil
 }

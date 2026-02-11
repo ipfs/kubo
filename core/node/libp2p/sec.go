@@ -8,7 +8,7 @@ import (
 	tls "github.com/libp2p/go-libp2p/p2p/security/tls"
 )
 
-func Security(enabled bool, tptConfig config.Transports) interface{} {
+func Security(enabled bool, tptConfig config.Transports) any {
 	if !enabled {
 		return func() (opts Libp2pOpts) {
 			log.Errorf(`Your IPFS node has been configured to run WITHOUT ENCRYPTED CONNECTIONS.

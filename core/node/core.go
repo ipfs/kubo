@@ -30,6 +30,9 @@ import (
 	"github.com/ipfs/kubo/repo"
 )
 
+// FilesRootDatastoreKey is the datastore key for the MFS files root CID.
+var FilesRootDatastoreKey = datastore.NewKey("/local/filesroot")
+
 // BlockService creates new blockservice which provides an interface to fetch content-addressable blocks
 func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
 	return func(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
@@ -181,7 +184,6 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 // Files loads persisted MFS root
 func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov DHTProvider) (*mfs.Root, error) {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService, bs blockstore.Blockstore, prov DHTProvider) (*mfs.Root, error) {
-		dsk := datastore.NewKey("/local/filesroot")
 		pf := func(ctx context.Context, c cid.Cid) error {
 			rootDS := repo.Datastore()
 			if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
@@ -191,15 +193,15 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 				return err
 			}
 
-			if err := rootDS.Put(ctx, dsk, c.Bytes()); err != nil {
+			if err := rootDS.Put(ctx, FilesRootDatastoreKey, c.Bytes()); err != nil {
 				return err
 			}
-			return rootDS.Sync(ctx, dsk)
+			return rootDS.Sync(ctx, FilesRootDatastoreKey)
 		}
 
 		var nd *merkledag.ProtoNode
 		ctx := helpers.LifecycleCtx(mctx, lc)
-		val, err := repo.Datastore().Get(ctx, dsk)
+		val, err := repo.Datastore().Get(ctx, FilesRootDatastoreKey)
 
 		switch {
 		case errors.Is(err, datastore.ErrNotFound):
@@ -241,9 +243,27 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 			prov = nil
 		}
 
-		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov)
+		// Get configured settings from Import config
+		cfg, err := repo.Config()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get config: %w", err)
+		}
+		chunkerGen := cfg.Import.UnixFSSplitterFunc()
+		maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+		maxHAMTFanout := int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
+		hamtShardingSize := int(cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold))
+		sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
+
+		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov,
+			mfs.WithChunker(chunkerGen),
+			mfs.WithMaxLinks(maxDirLinks),
+			mfs.WithMaxHAMTFanout(maxHAMTFanout),
+			mfs.WithHAMTShardingSize(hamtShardingSize),
+			mfs.WithSizeEstimationMode(sizeEstimationMode),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize MFS root from %s stored at %s: %w. "+
+				"If corrupted, use 'ipfs files chroot' to reset (see --help)", nd.Cid(), FilesRootDatastoreKey, err)
 		}
 
 		lc.Append(fx.Hook{

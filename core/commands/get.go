@@ -45,6 +45,9 @@ To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
 To compress the output with GZIP compression, use '--compress' or '-C'. You
 may also specify the level of compression by specifying '-l=<1-9>'.
 `,
+		HTTP: &cmds.HTTPHelpText{
+			ResponseContentType: "application/x-tar, or application/gzip when compress=true",
+		},
 	},
 
 	Arguments: []cmds.Argument{
@@ -102,6 +105,16 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			<-ctx.Done()
 			reader.Close()
 		}()
+
+		// Set Content-Type based on output format.
+		// When compression is enabled, output is gzip (or tar.gz for directories).
+		// Otherwise, tar is used as the transport format.
+		res.SetEncodingType(cmds.OctetStream)
+		if cmplvl != gzip.NoCompression {
+			res.SetContentType("application/gzip")
+		} else {
+			res.SetContentType("application/x-tar")
+		}
 
 		return res.Emit(reader)
 	},

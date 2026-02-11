@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 
+	"github.com/dustin/go-humanize"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
@@ -275,6 +276,9 @@ Note that at present only single root selections / .car files are supported.
 The output of blocks happens in strict DAG-traversal, first-seen, order.
 CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 `,
+		HTTP: &cmds.HTTPHelpText{
+			ResponseContentType: "application/vnd.ipld.car",
+		},
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "CID of a root to recursively export").EnableStdin(),
@@ -290,9 +294,9 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 
 // DagStat is a dag stat command response
 type DagStat struct {
-	Cid       cid.Cid `json:",omitempty"`
-	Size      uint64  `json:",omitempty"`
-	NumBlocks int64   `json:",omitempty"`
+	Cid       cid.Cid
+	Size      uint64 `json:",omitempty"`
+	NumBlocks int64  `json:",omitempty"`
 }
 
 func (s *DagStat) String() string {
@@ -349,7 +353,11 @@ type DagStatSummary struct {
 }
 
 func (s *DagStatSummary) String() string {
-	return fmt.Sprintf("Total Size: %d\nUnique Blocks: %d\nShared Size: %d\nRatio: %f", s.TotalSize, s.UniqueBlocks, s.SharedSize, s.Ratio)
+	return fmt.Sprintf("Total Size: %d (%s)\nUnique Blocks: %d\nShared Size: %d (%s)\nRatio: %f",
+		s.TotalSize, humanize.Bytes(s.TotalSize),
+		s.UniqueBlocks,
+		s.SharedSize, humanize.Bytes(s.SharedSize),
+		s.Ratio)
 }
 
 func (s *DagStatSummary) incrementTotalSize(size uint64) {
@@ -384,7 +392,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 		cmds.StringArg("root", true, true, "CID of a DAG root to get statistics for").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(progressOptionName, "p", "Return progressive data while reading through the DAG").WithDefault(true),
+		cmds.BoolOption(progressOptionName, "p", "Show progress on stderr. Auto-detected if stderr is a terminal."),
 	},
 	Run:  dagStat,
 	Type: DagStatSummary{},

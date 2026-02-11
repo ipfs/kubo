@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -330,9 +331,7 @@ func (m *mockIPNSPublisher) getPublishedKeys() map[string]string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	result := make(map[string]string)
-	for k, v := range m.publishedKeys {
-		result[k] = v
-	}
+	maps.Copy(result, m.publishedKeys)
 	return result
 }
 

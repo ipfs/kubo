@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ipfs/boxo/ipld/unixfs/io"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -402,6 +403,107 @@ func TestIsPowerOfTwo(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			if got := isPowerOfTwo(tt.n); got != tt.want {
 				t.Errorf("isPowerOfTwo(%d) = %v, want %v", tt.n, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestValidateImportConfig_HAMTSizeEstimation(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+		errMsg  string
+	}{
+		{name: "valid links", value: HAMTSizeEstimationLinks, wantErr: false},
+		{name: "valid block", value: HAMTSizeEstimationBlock, wantErr: false},
+		{name: "valid disabled", value: HAMTSizeEstimationDisabled, wantErr: false},
+		{name: "invalid unknown", value: "unknown", wantErr: true, errMsg: "must be"},
+		{name: "invalid empty", value: "", wantErr: true, errMsg: "must be"},
+		{name: "invalid typo", value: "link", wantErr: true, errMsg: "must be"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Import{
+				UnixFSHAMTDirectorySizeEstimation: *NewOptionalString(tt.value),
+			}
+
+			err := ValidateImportConfig(cfg)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("expected error for value=%q, got nil", tt.value)
+				} else if tt.errMsg != "" && !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("error = %v, want error containing %q", err, tt.errMsg)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for value=%q: %v", tt.value, err)
+				}
+			}
+		})
+	}
+}
+
+func TestValidateImportConfig_DAGLayout(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+		errMsg  string
+	}{
+		{name: "valid balanced", value: DAGLayoutBalanced, wantErr: false},
+		{name: "valid trickle", value: DAGLayoutTrickle, wantErr: false},
+		{name: "invalid unknown", value: "unknown", wantErr: true, errMsg: "must be"},
+		{name: "invalid empty", value: "", wantErr: true, errMsg: "must be"},
+		{name: "invalid flat", value: "flat", wantErr: true, errMsg: "must be"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Import{
+				UnixFSDAGLayout: *NewOptionalString(tt.value),
+			}
+
+			err := ValidateImportConfig(cfg)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("expected error for value=%q, got nil", tt.value)
+				} else if tt.errMsg != "" && !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("error = %v, want error containing %q", err, tt.errMsg)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for value=%q: %v", tt.value, err)
+				}
+			}
+		})
+	}
+}
+
+func TestImport_HAMTSizeEstimationMode(t *testing.T) {
+	tests := []struct {
+		cfg  string
+		want io.SizeEstimationMode
+	}{
+		{HAMTSizeEstimationLinks, io.SizeEstimationLinks},
+		{HAMTSizeEstimationBlock, io.SizeEstimationBlock},
+		{HAMTSizeEstimationDisabled, io.SizeEstimationDisabled},
+		{"", io.SizeEstimationLinks},        // default (unset returns default)
+		{"unknown", io.SizeEstimationLinks}, // fallback to default
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.cfg, func(t *testing.T) {
+			var imp Import
+			if tt.cfg != "" {
+				imp.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(tt.cfg)
+			}
+			got := imp.HAMTSizeEstimationMode()
+			if got != tt.want {
+				t.Errorf("Import.HAMTSizeEstimationMode() with %q = %v, want %v", tt.cfg, got, tt.want)
 			}
 		})
 	}

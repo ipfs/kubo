@@ -35,8 +35,7 @@ func addTestObject(ctx context.Context, api coreiface.CoreAPI) (path.Path, error
 }
 
 func (tp *TestSuite) TestPublishResolve(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	init := func() (coreiface.CoreAPI, path.Path) {
 		apis, err := tp.MakeAPISwarm(t, ctx, 5)
 		require.NoError(t, err)
@@ -120,8 +119,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 }
 
 func (tp *TestSuite) TestBasicPublishResolveKey(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	require.NoError(t, err)
 	api := apis[0]
@@ -142,8 +140,7 @@ func (tp *TestSuite) TestBasicPublishResolveKey(t *testing.T) {
 }
 
 func (tp *TestSuite) TestBasicPublishResolveTimeout(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	require.NoError(t, err)
 	api := apis[0]

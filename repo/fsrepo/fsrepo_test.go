@@ -15,7 +15,7 @@ import (
 func TestInitIdempotence(t *testing.T) {
 	t.Parallel()
 	path := t.TempDir()
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		require.NoError(t, Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), "multiple calls to init should succeed")
 	}
 }

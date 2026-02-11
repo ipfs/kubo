@@ -2,9 +2,12 @@ package cli
 
 import (
 	"context"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/ipfs/boxo/autoconf"
 	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/boxo/routing/http/client"
 	"github.com/ipfs/boxo/routing/http/types"
@@ -14,6 +17,7 @@ import (
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRoutingV1Server(t *testing.T) {
@@ -28,6 +32,7 @@ func TestRoutingV1Server(t *testing.T) {
 			})
 		})
 		nodes.StartDaemons().Connect()
+		t.Cleanup(func() { nodes.StopDaemons() })
 		return nodes
 	}
 
@@ -129,6 +134,7 @@ func TestRoutingV1Server(t *testing.T) {
 			cfg.Routing.Type = config.NewOptionalString("dht")
 		})
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		// Put IPNS record in lonely node. It should be accepted as it is a valid record.
 		c, err = client.New(node.GatewayURL())
@@ -142,5 +148,136 @@ func TestRoutingV1Server(t *testing.T) {
 		value, err = record.Value()
 		assert.NoError(t, err)
 		assert.Equal(t, "/ipfs/"+cidStr, value.String())
+	})
+
+	t.Run("GetClosestPeers returns error when DHT is disabled", func(t *testing.T) {
+		t.Parallel()
+
+		// Test various routing types that don't support DHT
+		routingTypes := []string{"none", "delegated", "custom"}
+		for _, routingType := range routingTypes {
+			t.Run("routing_type="+routingType, func(t *testing.T) {
+				t.Parallel()
+
+				// Create node with specified routing type (DHT disabled)
+				node := harness.NewT(t).NewNode().Init()
+				node.UpdateConfig(func(cfg *config.Config) {
+					cfg.Gateway.ExposeRoutingAPI = config.True
+					cfg.Routing.Type = config.NewOptionalString(routingType)
+
+					// For custom routing type, we need to provide minimal valid config
+					// otherwise daemon startup will fail
+					if routingType == "custom" {
+						// Configure a minimal HTTP router (no DHT)
+						cfg.Routing.Routers = map[string]config.RouterParser{
+							"http-only": {
+								Router: config.Router{
+									Type: config.RouterTypeHTTP,
+									Parameters: config.HTTPRouterParams{
+										Endpoint: "https://delegated-ipfs.dev",
+									},
+								},
+							},
+						}
+						cfg.Routing.Methods = map[config.MethodName]config.Method{
+							config.MethodNameProvide:       {RouterName: "http-only"},
+							config.MethodNameFindProviders: {RouterName: "http-only"},
+							config.MethodNameFindPeers:     {RouterName: "http-only"},
+							config.MethodNameGetIPNS:       {RouterName: "http-only"},
+							config.MethodNamePutIPNS:       {RouterName: "http-only"},
+						}
+					}
+
+					// For delegated routing type, ensure we have at least one HTTP router
+					// to avoid daemon startup failure
+					if routingType == "delegated" {
+						// Use a minimal delegated router configuration
+						cfg.Routing.DelegatedRouters = []string{"https://delegated-ipfs.dev"}
+						// Delegated routing doesn't support providing, must be disabled
+						cfg.Provide.Enabled = config.False
+					}
+				})
+				node.StartDaemon()
+				defer node.StopDaemon()
+
+				c, err := client.New(node.GatewayURL())
+				require.NoError(t, err)
+
+				// Try to get closest peers - should fail gracefully with an error.
+				// Use 60-second timeout (server has 30s routing timeout).
+				testCid, err := cid.Decode("QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn")
+				require.NoError(t, err)
+
+				ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+				defer cancel()
+				_, err = c.GetClosestPeers(ctx, testCid)
+				require.Error(t, err)
+				// All these routing types should indicate DHT is not available
+				// The exact error message may vary based on implementation details
+				errStr := err.Error()
+				assert.True(t,
+					strings.Contains(errStr, "not supported") ||
+						strings.Contains(errStr, "not available") ||
+						strings.Contains(errStr, "500"),
+					"Expected error indicating DHT not available for routing type %s, got: %s", routingType, errStr)
+			})
+		}
+	})
+
+	t.Run("GetClosestPeers returns peers", func(t *testing.T) {
+		t.Parallel()
+
+		routingTypes := []string{"auto", "autoclient", "dht", "dhtclient"}
+		for _, routingType := range routingTypes {
+			t.Run("routing_type="+routingType, func(t *testing.T) {
+				t.Parallel()
+
+				// Single node with DHT and real bootstrap peers
+				node := harness.NewT(t).NewNode().Init()
+				node.UpdateConfig(func(cfg *config.Config) {
+					cfg.Gateway.ExposeRoutingAPI = config.True
+					cfg.Routing.Type = config.NewOptionalString(routingType)
+					// Set real bootstrap peers from boxo/autoconf
+					cfg.Bootstrap = autoconf.FallbackBootstrapPeers
+				})
+				node.StartDaemon()
+				defer node.StopDaemon()
+
+				c, err := client.New(node.GatewayURL())
+				require.NoError(t, err)
+
+				// Query for closest peers to our own peer ID
+				key := peer.ToCid(node.PeerID())
+
+				// Wait for WAN DHT routing table to be populated.
+				// The server has a 30-second routing timeout, so we use 60 seconds
+				// per request to allow for network latency while preventing hangs.
+				// Total wait time is 2 minutes (locally passes in under 1 minute).
+				var records []*types.PeerRecord
+				require.EventuallyWithT(t, func(ct *assert.CollectT) {
+					ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+					defer cancel()
+					resultsIter, err := c.GetClosestPeers(ctx, key)
+					if !assert.NoError(ct, err) {
+						return
+					}
+					records, err = iter.ReadAllResults(resultsIter)
+					assert.NoError(ct, err)
+				}, 2*time.Minute, 5*time.Second)
+
+				// Verify we got some peers back from WAN DHT
+				require.NotEmpty(t, records, "should return peers close to own peerid")
+
+				// Per IPIP-0476, GetClosestPeers returns at most 20 peers
+				assert.LessOrEqual(t, len(records), 20, "IPIP-0476 limits GetClosestPeers to 20 peers")
+
+				// Verify structure of returned records
+				for _, record := range records {
+					assert.Equal(t, types.SchemaPeer, record.Schema)
+					assert.NotNil(t, record.ID)
+					assert.NotEmpty(t, record.Addrs, "peer record should have addresses")
+				}
+			})
+		}
 	})
 }

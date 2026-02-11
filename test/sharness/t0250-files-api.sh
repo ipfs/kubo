@@ -786,6 +786,7 @@ tests_for_files_api() {
   test_expect_success "can create some files for testing ($EXTRA)" '
     create_files
   '
+  # default: CIDv0, dag-pb for all files (no raw-leaves)
   ROOT_HASH=QmcwKfTMCT7AaeiD92hWjnZn9b6eh9NxnhfSzN5x2vnDpt
   CATS_HASH=Qma88m8ErTGkZHbBWGqy1C7VmEmX8wwNDWNpGyCaNmEgwC
   FILE_HASH=QmQdQt9qooenjeaNhiKHF3hBvmNteB4MQBtgu3jxgf9c7i
@@ -796,20 +797,23 @@ tests_for_files_api() {
     create_files --raw-leaves
   '
 
+  # partial raw-leaves: initial files created with --raw-leaves, test ops without
   if [ "$EXTRA" = "with-daemon" ]; then
     ROOT_HASH=QmTpKiKcAj4sbeesN6vrs5w3QeVmd4QmGpxRL81hHut4dZ
     CATS_HASH=QmPhPkmtUGGi8ySPHoPu1qbfryLJKKq1GYxpgLyyCruvGe
     test_files_api "($EXTRA, partial raw-leaves)"
   fi
 
-  ROOT_HASH=QmW3dMSU6VNd1mEdpk9S3ZYRuR1YwwoXjGaZhkyK6ru9YU
-  CATS_HASH=QmPqWDEg7NoWRX8Y4vvYjZtmdg5umbfsTQ9zwNr12JoLmt
-  FILE_HASH=QmRCgHeoKxCqK2Es6M6nPUDVWz19yNQPnsXGsXeuTkSKpN
-  TRUNC_HASH=QmckstrVxJuecVD1FHUiURJiU9aPURZWJieeBVHJPACj8L
+  # raw-leaves: single-block files become RawNode (CIDv1), dirs stay CIDv0
+  ROOT_HASH=QmTHzLiSouBHVTssS8xRzmfWGAvTGhPEjtPdB6pWMQdxJX
+  CATS_HASH=QmPJkzbCoBuL379TbHgwF1YbVHnKgiDa5bjqYhe6Lovdms
+  FILE_HASH=bafybeibkrazpbejqh3qun7xfnsl7yofl74o4jwhxebpmtrcpavebokuqtm
+  TRUNC_HASH=bafybeigwhb3q36yrm37jv5fo2ap6r6eyohckqrxmlejrenex4xlnuxiy3e
   test_files_api "($EXTRA, raw-leaves)" '' --raw-leaves
 
-  ROOT_HASH=QmageRWxC7wWjPv5p36NeAgBAiFdBHaNfxAehBSwzNech2
-  CATS_HASH=bafybeig4cpvfu2qwwo3u4ffazhqdhyynfhnxqkzvbhrdbamauthf5mfpuq
+  # cidv1 for mkdir: different from raw-leaves since mkdir forces CIDv1 dirs
+  ROOT_HASH=QmTLdTaZNj8Mvq1cgYup59ZFJFv1KxptouFSZUZKeq7X3z
+  CATS_HASH=bafybeihsqinttigpskqqj63wgalrny3lifvqv5ml7igrirdhlcf73l3wvm
   FILE_HASH=bafybeibkrazpbejqh3qun7xfnsl7yofl74o4jwhxebpmtrcpavebokuqtm
   TRUNC_HASH=bafybeigwhb3q36yrm37jv5fo2ap6r6eyohckqrxmlejrenex4xlnuxiy3e
   if [ "$EXTRA" = "with-daemon" ]; then
@@ -823,8 +827,10 @@ tests_for_files_api() {
     test_cmp hash_expect hash_actual
   '
 
-  ROOT_HASH=bafybeifxnoetaa2jetwmxubv3gqiyaknnujwkkkhdeua63kulm63dcr5wu
-    test_files_api "($EXTRA, cidv1 root)"
+  # cidv1 root: root upgraded to CIDv1 via chcid, all new dirs/files also CIDv1
+  ROOT_HASH=bafybeickjecu37qv6ue54ofk3n4rpm4g4abuofz7yc4qn4skffy263kkou
+  CATS_HASH=bafybeihsqinttigpskqqj63wgalrny3lifvqv5ml7igrirdhlcf73l3wvm
+  test_files_api "($EXTRA, cidv1 root)"
 
   if [ "$EXTRA" = "with-daemon" ]; then
     test_expect_success "can update root hash to blake2b-256" '
@@ -833,8 +839,9 @@ tests_for_files_api() {
       ipfs files stat --hash / > hash_actual &&
       test_cmp hash_expect hash_actual
     '
-    ROOT_HASH=bafykbzaceb6jv27itwfun6wsrbaxahpqthh5be2bllsjtb3qpmly3vji4mlfk
-    CATS_HASH=bafykbzacebhpn7rtcjjc5oa4zgzivhs7a6e2tq4uk4px42bubnmhpndhqtjig
+    # blake2b-256 root: using blake2b-256 hash instead of sha2-256
+    ROOT_HASH=bafykbzaceaebvwrjdw5rfhqqh5miaq3g42yybnrw3kxxxx43ggyttm6xn2zek
+    CATS_HASH=bafykbzaceaqvpxs3dfl7su6744jgyvifbusow2tfixdy646chasdwyz2boagc
     FILE_HASH=bafykbzaceca45w2i3o3q3ctqsezdv5koakz7sxsw37ygqjg4w54m2bshzevxy
     TRUNC_HASH=bafykbzaceadeu7onzmlq7v33ytjpmo37rsqk2q6mzeqf5at55j32zxbcdbwig
     test_files_api "($EXTRA, blake2b-256 root)"
@@ -866,10 +873,12 @@ test_expect_success "enable sharding in config" '
 
 test_launch_ipfs_daemon_without_network
 
+# sharding cidv0: HAMT-sharded directory with 100 files, CIDv0
 SHARD_HASH=QmPkwLJTYZRGPJ8Lazr9qPdrLmswPtUjaDbEpmR9jEh1se
 test_sharding "(cidv0)"
 
-SHARD_HASH=bafybeib46tpawg2d2hhlmmn2jvgio33wqkhlehxrem7wbfvqqikure37rm
+# sharding cidv1: HAMT-sharded directory with 100 files, CIDv1
+SHARD_HASH=bafybeiaulcf7c46pqg3tkud6dsvbgvlnlhjuswcwtfhxts5c2kuvmh5keu
 test_sharding "(cidv1 root)" "--cid-version=1"
 
 test_kill_ipfs_daemon

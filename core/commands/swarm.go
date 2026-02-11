@@ -435,7 +435,7 @@ type connInfo struct {
 	Muxer     string         `json:",omitempty"`
 	Direction inet.Direction `json:",omitempty"`
 	Streams   []streamInfo   `json:",omitempty"`
-	Identify  IdOutput       `json:",omitempty"`
+	Identify  IdOutput
 }
 
 func (ci *connInfo) Sort() {
@@ -513,8 +513,9 @@ var swarmAddrsCmd = &cmds.Command{
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"local":  swarmAddrsLocalCmd,
-		"listen": swarmAddrsListenCmd,
+		"autonat": swarmAddrsAutoNATCmd,
+		"local":   swarmAddrsLocalCmd,
+		"listen":  swarmAddrsListenCmd,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)

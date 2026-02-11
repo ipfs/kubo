@@ -73,6 +73,8 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 
 	}()
 
+	res.SetEncodingType(cmds.OctetStream)
+	res.SetContentType("application/vnd.ipld.car")
 	if err := res.Emit(pipeR); err != nil {
 		pipeR.Close() // ignore the error if any
 		return err

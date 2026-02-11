@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"sync"
 
 	"github.com/ipfs/boxo/autoconf"
@@ -82,12 +83,9 @@ func validateAutoConfDisabled(cfg *Config) error {
 	var errors []string
 
 	// Check Bootstrap
-	for _, peer := range cfg.Bootstrap {
-		if peer == AutoPlaceholder {
-			hasAutoValues = true
-			errors = append(errors, "Bootstrap contains 'auto' but AutoConf.Enabled=false")
-			break
-		}
+	if slices.Contains(cfg.Bootstrap, AutoPlaceholder) {
+		hasAutoValues = true
+		errors = append(errors, "Bootstrap contains 'auto' but AutoConf.Enabled=false")
 	}
 
 	// Check DNS.Resolvers
@@ -102,21 +100,15 @@ func validateAutoConfDisabled(cfg *Config) error {
 	}
 
 	// Check Routing.DelegatedRouters
-	for _, router := range cfg.Routing.DelegatedRouters {
-		if router == AutoPlaceholder {
-			hasAutoValues = true
-			errors = append(errors, "Routing.DelegatedRouters contains 'auto' but AutoConf.Enabled=false")
-			break
-		}
+	if slices.Contains(cfg.Routing.DelegatedRouters, AutoPlaceholder) {
+		hasAutoValues = true
+		errors = append(errors, "Routing.DelegatedRouters contains 'auto' but AutoConf.Enabled=false")
 	}
 
 	// Check Ipns.DelegatedPublishers
-	for _, publisher := range cfg.Ipns.DelegatedPublishers {
-		if publisher == AutoPlaceholder {
-			hasAutoValues = true
-			errors = append(errors, "Ipns.DelegatedPublishers contains 'auto' but AutoConf.Enabled=false")
-			break
-		}
+	if slices.Contains(cfg.Ipns.DelegatedPublishers, AutoPlaceholder) {
+		hasAutoValues = true
+		errors = append(errors, "Ipns.DelegatedPublishers contains 'auto' but AutoConf.Enabled=false")
 	}
 
 	// Log all errors

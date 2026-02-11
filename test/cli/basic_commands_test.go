@@ -65,8 +65,8 @@ func TestIPFSVersionDeps(t *testing.T) {
 	assert.True(t, strings.HasPrefix(lines[0], "github.com/ipfs/kubo@v"))
 
 	for _, depLine := range lines[1:] {
-		split := strings.Split(depLine, " => ")
-		for _, moduleVersion := range split {
+		split := strings.SplitSeq(depLine, " => ")
+		for moduleVersion := range split {
 			splitModVers := strings.Split(moduleVersion, "@")
 			modPath := splitModVers[0]
 			modVers := splitModVers[1]
@@ -92,7 +92,6 @@ func TestAllSubcommandsAcceptHelp(t *testing.T) {
 	t.Parallel()
 	node := harness.NewT(t).NewNode()
 	for _, cmd := range node.IPFSCommands() {
-		cmd := cmd
 		t.Run(fmt.Sprintf("command %q accepts help", cmd), func(t *testing.T) {
 			t.Parallel()
 			splitCmd := strings.Split(cmd, " ")[1:]

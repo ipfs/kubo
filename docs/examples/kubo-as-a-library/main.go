@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
@@ -58,6 +59,28 @@ func createTempRepo() (string, error) {
 		return "", err
 	}
 
+	// Use TCP-only on loopback with random port for reliable local testing.
+	// This matches what kubo's test harness uses (test/cli/transports_test.go).
+	// QUIC/UDP transports are avoided because they may be throttled on CI.
+	cfg.Addresses.Swarm = []string{
+		"/ip4/127.0.0.1/tcp/0",
+	}
+
+	// Explicitly disable non-TCP transports for reliability.
+	cfg.Swarm.Transports.Network.QUIC = config.False
+	cfg.Swarm.Transports.Network.Relay = config.False
+	cfg.Swarm.Transports.Network.WebTransport = config.False
+	cfg.Swarm.Transports.Network.WebRTCDirect = config.False
+	cfg.Swarm.Transports.Network.Websocket = config.False
+	cfg.AutoTLS.Enabled = config.False
+
+	// Disable routing - we don't need DHT for direct peer connections.
+	// Bitswap works with directly connected peers without needing DHT lookups.
+	cfg.Routing.Type = config.NewOptionalString("none")
+
+	// Disable bootstrap for this example - we manually connect only the peers we need.
+	cfg.Bootstrap = []string{}
+
 	// When creating the repository, you can define custom settings on the repository, such as enabling experimental
 	// features (See experimental-features.md) or customizing the gateway endpoint.
 	// To do such things, you should modify the variable `cfg`. For example:
@@ -96,10 +119,14 @@ func createNode(ctx context.Context, repoPath string) (*core.IpfsNode, error) {
 	// Construct the node
 
 	nodeOptions := &core.BuildCfg{
-		Online:  true,
-		Routing: libp2p.DHTOption, // This option sets the node to be a full DHT node (both fetching and storing DHT Records)
-		// Routing: libp2p.DHTClientOption, // This option sets the node to be a client DHT node (only fetching records)
-		Repo: repo,
+		Online: true,
+		// For this example, we use NilRouterOption (no routing) since we connect peers directly.
+		// Bitswap works with directly connected peers without needing DHT lookups.
+		// In production, you would typically use:
+		//   Routing: libp2p.DHTOption,       // Full DHT node (stores and fetches records)
+		//   Routing: libp2p.DHTClientOption, // DHT client (only fetches records)
+		Routing: libp2p.NilRouterOption,
+		Repo:    repo,
 	}
 
 	return core.NewNode(ctx, nodeOptions)
@@ -192,7 +219,7 @@ func main() {
 
 	fmt.Println("-- Getting an IPFS node running -- ")
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	// Spawn a local peer using a temporary path, for testing purposes
@@ -284,41 +311,31 @@ func main() {
 
 	fmt.Printf("Got directory back from IPFS (IPFS path: %s) and wrote it to %s\n", cidDirectory.String(), outputPathDirectory)
 
-	/// --- Part IV: Getting a file from the IPFS Network
+	/// --- Part IV: Getting a file from another IPFS node
 
-	fmt.Println("\n-- Going to connect to a few nodes in the Network as bootstrappers --")
+	fmt.Println("\n-- Connecting to nodeA and fetching content via bitswap --")
 
-	peerMa := fmt.Sprintf("/ip4/127.0.0.1/udp/4010/p2p/%s", nodeA.Identity.String())
+	// Get nodeA's actual listening address dynamically.
+	// We configured TCP-only on 127.0.0.1 with random port, so this will be a TCP address.
+	peerAddrs, err := ipfsA.Swarm().LocalAddrs(ctx)
+	if err != nil {
+		panic(fmt.Errorf("could not get peer addresses: %s", err))
+	}
+	peerMa := peerAddrs[0].String() + "/p2p/" + nodeA.Identity.String()
 
 	bootstrapNodes := []string{
-		// IPFS Bootstrapper nodes.
+		// In production, use real bootstrap peers like:
 		// "/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-		// "/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
-		// "/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
-		// "/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
-
-		// IPFS Cluster Pinning nodes
-		// "/ip4/138.201.67.219/tcp/4001/p2p/QmUd6zHcbkbcs7SMxwLs48qZVX3vpcM8errYS7xEczwRMA",
-		// "/ip4/138.201.67.219/udp/4001/quic/p2p/QmUd6zHcbkbcs7SMxwLs48qZVX3vpcM8errYS7xEczwRMA",
-		// "/ip4/138.201.67.220/tcp/4001/p2p/QmNSYxZAiJHeLdkBg38roksAR9So7Y5eojks1yjEcUtZ7i",
-		// "/ip4/138.201.67.220/udp/4001/quic/p2p/QmNSYxZAiJHeLdkBg38roksAR9So7Y5eojks1yjEcUtZ7i",
-		// "/ip4/138.201.68.74/tcp/4001/p2p/QmdnXwLrC8p1ueiq2Qya8joNvk3TVVDAut7PrikmZwubtR",
-		// "/ip4/138.201.68.74/udp/4001/quic/p2p/QmdnXwLrC8p1ueiq2Qya8joNvk3TVVDAut7PrikmZwubtR",
-		// "/ip4/94.130.135.167/tcp/4001/p2p/QmUEMvxS2e7iDrereVYc5SWPauXPyNwxcy9BXZrC1QTcHE",
-		// "/ip4/94.130.135.167/udp/4001/quic/p2p/QmUEMvxS2e7iDrereVYc5SWPauXPyNwxcy9BXZrC1QTcHE",
-
-		// You can add more nodes here, for example, another IPFS node you might have running locally, mine was:
-		// "/ip4/127.0.0.1/tcp/4010/p2p/QmZp2fhDLxjYue2RiUvLwT9MWdnbDxam32qYFnGmxZDh5L",
-		// "/ip4/127.0.0.1/udp/4010/quic/p2p/QmZp2fhDLxjYue2RiUvLwT9MWdnbDxam32qYFnGmxZDh5L",
+		// For this example, we only connect to nodeA which has our test content.
 		peerMa,
 	}
 
-	go func() {
-		err := connectToPeers(ctx, ipfsB, bootstrapNodes)
-		if err != nil {
-			log.Printf("failed connect to peers: %s", err)
-		}
-	}()
+	fmt.Println("Connecting to peer...")
+	err = connectToPeers(ctx, ipfsB, bootstrapNodes)
+	if err != nil {
+		panic(fmt.Errorf("failed to connect to peers: %s", err))
+	}
+	fmt.Println("Connected to peer")
 
 	exampleCIDStr := peerCidFile.RootCid().String()
 

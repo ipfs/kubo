@@ -187,7 +187,7 @@ func TestNoTempFilesAfterOperations(t *testing.T) {
 			dir := t.TempDir()
 
 			// Perform multiple operations
-			for i := 0; i < testIterations; i++ {
+			for i := range testIterations {
 				path := filepath.Join(dir, fmt.Sprintf("test%d.txt", i))
 
 				af, err := New(path, 0644)

@@ -75,6 +75,7 @@ func TestHTTPRetrievalClient(t *testing.T) {
 
 		// Start Kubo
 		node.StartDaemon()
+		defer node.StopDaemon()
 
 		if debug {
 			fmt.Printf("delegatedRoutingServer.URL: %s\n", delegatedRoutingServer.URL)

@@ -127,16 +127,16 @@ func testDaemonMigrationWithoutAuto(t *testing.T) {
 	configPath := filepath.Join(node.Dir, "config")
 
 	// Read existing config from static fixture
-	var v16Config map[string]interface{}
+	var v16Config map[string]any
 	configData, err := os.ReadFile(configPath)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(configData, &v16Config))
 
 	// Add custom DNS resolver that should be preserved
 	if v16Config["DNS"] == nil {
-		v16Config["DNS"] = map[string]interface{}{}
+		v16Config["DNS"] = map[string]any{}
 	}
-	dnsSection := v16Config["DNS"].(map[string]interface{})
+	dnsSection := v16Config["DNS"].(map[string]any)
 	dnsSection["Resolvers"] = map[string]string{
 		".":    "https://custom-dns.example.com/dns-query",
 		"eth.": "https://dns.eth.limo/dns-query", // This is a default that will be replaced with "auto"
@@ -177,17 +177,17 @@ func testDaemonMigrationWithoutAuto(t *testing.T) {
 
 type ConfigField struct {
 	Path     string
-	Expected interface{}
+	Expected any
 	Message  string
 }
 
 type MigrationTestHelper struct {
 	t      *testing.T
-	config map[string]interface{}
+	config map[string]any
 }
 
 func NewMigrationTestHelper(t *testing.T, configPath string) *MigrationTestHelper {
-	var config map[string]interface{}
+	var config map[string]any
 	configData, err := os.ReadFile(configPath)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(configData, &config))
@@ -201,32 +201,32 @@ func (h *MigrationTestHelper) RequireFieldExists(path string) *MigrationTestHelp
 	return h
 }
 
-func (h *MigrationTestHelper) RequireFieldEquals(path string, expected interface{}) *MigrationTestHelper {
+func (h *MigrationTestHelper) RequireFieldEquals(path string, expected any) *MigrationTestHelper {
 	value := h.getNestedValue(path)
 	require.Equal(h.t, expected, value, "Field %s should equal %v", path, expected)
 	return h
 }
 
-func (h *MigrationTestHelper) RequireArrayContains(path string, expected interface{}) *MigrationTestHelper {
+func (h *MigrationTestHelper) RequireArrayContains(path string, expected any) *MigrationTestHelper {
 	value := h.getNestedValue(path)
-	require.IsType(h.t, []interface{}{}, value, "Field %s should be an array", path)
-	array := value.([]interface{})
+	require.IsType(h.t, []any{}, value, "Field %s should be an array", path)
+	array := value.([]any)
 	require.Contains(h.t, array, expected, "Array %s should contain %v", path, expected)
 	return h
 }
 
 func (h *MigrationTestHelper) RequireArrayLength(path string, expectedLen int) *MigrationTestHelper {
 	value := h.getNestedValue(path)
-	require.IsType(h.t, []interface{}{}, value, "Field %s should be an array", path)
-	array := value.([]interface{})
+	require.IsType(h.t, []any{}, value, "Field %s should be an array", path)
+	array := value.([]any)
 	require.Len(h.t, array, expectedLen, "Array %s should have length %d", path, expectedLen)
 	return h
 }
 
-func (h *MigrationTestHelper) RequireArrayDoesNotContain(path string, notExpected interface{}) *MigrationTestHelper {
+func (h *MigrationTestHelper) RequireArrayDoesNotContain(path string, notExpected any) *MigrationTestHelper {
 	value := h.getNestedValue(path)
-	require.IsType(h.t, []interface{}{}, value, "Field %s should be an array", path)
-	array := value.([]interface{})
+	require.IsType(h.t, []any{}, value, "Field %s should be an array", path)
+	array := value.([]any)
 	require.NotContains(h.t, array, notExpected, "Array %s should not contain %v", path, notExpected)
 	return h
 }
@@ -277,32 +277,32 @@ func (h *MigrationTestHelper) RequireNoAutoValues() *MigrationTestHelper {
 	return h
 }
 
-func (h *MigrationTestHelper) RequireMapDoesNotContainValue(path string, notExpected interface{}) *MigrationTestHelper {
+func (h *MigrationTestHelper) RequireMapDoesNotContainValue(path string, notExpected any) *MigrationTestHelper {
 	value := h.getNestedValue(path)
-	require.IsType(h.t, map[string]interface{}{}, value, "Field %s should be a map", path)
-	mapValue := value.(map[string]interface{})
+	require.IsType(h.t, map[string]any{}, value, "Field %s should be a map", path)
+	mapValue := value.(map[string]any)
 	for k, v := range mapValue {
 		require.NotEqual(h.t, notExpected, v, "Map %s[%s] should not equal %v", path, k, notExpected)
 	}
 	return h
 }
 
-func (h *MigrationTestHelper) getNestedValue(path string) interface{} {
+func (h *MigrationTestHelper) getNestedValue(path string) any {
 	segments := h.parseKuboConfigPath(path)
-	current := interface{}(h.config)
+	current := any(h.config)
 
 	for _, segment := range segments {
 		switch segment.Type {
 		case "field":
 			switch v := current.(type) {
-			case map[string]interface{}:
+			case map[string]any:
 				current = v[segment.Key]
 			default:
 				return nil
 			}
 		case "mapKey":
 			switch v := current.(type) {
-			case map[string]interface{}:
+			case map[string]any:
 				current = v[segment.Key]
 			default:
 				return nil
@@ -776,7 +776,7 @@ func runDaemonWithMultipleMigrationMonitoring(t *testing.T, node *harness.Node, 
 // =============================================================================
 
 // Helper functions for test cleanup assertions
-func assertNoTempFiles(t *testing.T, dir string, msgAndArgs ...interface{}) {
+func assertNoTempFiles(t *testing.T, dir string, msgAndArgs ...any) {
 	t.Helper()
 	tmpFiles, err := filepath.Glob(filepath.Join(dir, ".tmp-*"))
 	require.NoError(t, err)
@@ -844,12 +844,12 @@ func testBackupFilesPersistAfterSuccessfulMigration(t *testing.T) {
 	// Verify backup files contain valid JSON
 	data16to17, err := os.ReadFile(backup16to17)
 	require.NoError(t, err)
-	var config16to17 map[string]interface{}
+	var config16to17 map[string]any
 	require.NoError(t, json.Unmarshal(data16to17, &config16to17), "16-to-17 backup should be valid JSON")
 
 	data17to18, err := os.ReadFile(backup17to18)
 	require.NoError(t, err)
-	var config17to18 map[string]interface{}
+	var config17to18 map[string]any
 	require.NoError(t, json.Unmarshal(data17to18, &config17to18), "17-to-18 backup should be valid JSON")
 }
 

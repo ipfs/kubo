@@ -6,7 +6,7 @@ import (
 )
 
 // TypeErr returns an error with a string that explains what error was expected and what was received.
-func TypeErr(expected, actual interface{}) error {
+func TypeErr(expected, actual any) error {
 	return fmt.Errorf("expected type %T, got %T", expected, actual)
 }
 

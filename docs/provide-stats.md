@@ -221,6 +221,11 @@ reprovide duration gives CIDs/min/worker.
 
 Number of regions reprovided in the last cycle.
 
+> [!NOTE]
+> (⚠️ 0.39 limitation) If this shows 1 region while using
+> [`Routing.AcceleratedDHTClient`](./config.md#routingaccelerateddhtclient), sweep mode lost
+> efficiency gains. Consider disabling the accelerated client. See [caveat 4](./config.md#routingaccelerateddhtclient).
+
 ## Workers
 
 ### Active workers
@@ -278,6 +283,9 @@ To check if your provide system has sufficient capacity:
 - High active workers with growing reprovide queue: Need more workers or network connectivity is limiting throughput
 - Low active workers with non-empty reprovide queue: Workers may be waiting for network or DHT operations
 - Check [Reachable peers](#reachable-peers) to diagnose network connectivity issues
+- (⚠️ 0.39 limitation) If [Regions scheduled](#regions-scheduled) shows 1 while using
+  [`Routing.AcceleratedDHTClient`](./config.md#routingaccelerateddhtclient), consider disabling
+  the accelerated client to restore sweep efficiency. See [caveat 4](./config.md#routingaccelerateddhtclient).
 
 ## See Also
 

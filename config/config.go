@@ -47,7 +47,7 @@ type Config struct {
 
 	Internal Internal // experimental/unstable options
 
-	Bitswap Bitswap `json:",omitempty"`
+	Bitswap Bitswap
 }
 
 const (
@@ -106,7 +106,7 @@ func Filename(configroot, userConfigFile string) (string, error) {
 }
 
 // HumanOutput gets a config value ready for printing.
-func HumanOutput(value interface{}) ([]byte, error) {
+func HumanOutput(value any) ([]byte, error) {
 	s, ok := value.(string)
 	if ok {
 		return []byte(strings.Trim(s, "\n")), nil
@@ -115,12 +115,12 @@ func HumanOutput(value interface{}) ([]byte, error) {
 }
 
 // Marshal configuration with JSON.
-func Marshal(value interface{}) ([]byte, error) {
+func Marshal(value any) ([]byte, error) {
 	// need to prettyprint, hence MarshalIndent, instead of Encoder
 	return json.MarshalIndent(value, "", "  ")
 }
 
-func FromMap(v map[string]interface{}) (*Config, error) {
+func FromMap(v map[string]any) (*Config, error) {
 	buf := new(bytes.Buffer)
 	if err := json.NewEncoder(buf).Encode(v); err != nil {
 		return nil, err
@@ -132,12 +132,12 @@ func FromMap(v map[string]interface{}) (*Config, error) {
 	return &conf, nil
 }
 
-func ToMap(conf *Config) (map[string]interface{}, error) {
+func ToMap(conf *Config) (map[string]any, error) {
 	buf := new(bytes.Buffer)
 	if err := json.NewEncoder(buf).Encode(conf); err != nil {
 		return nil, err
 	}
-	var m map[string]interface{}
+	var m map[string]any
 	if err := json.NewDecoder(buf).Decode(&m); err != nil {
 		return nil, fmt.Errorf("failure to decode config: %w", err)
 	}
@@ -147,14 +147,14 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 // Convert config to a map, without using encoding/json, since
 // zero/empty/'omitempty' fields are excluded by encoding/json during
 // marshaling.
-func ReflectToMap(conf interface{}) interface{} {
+func ReflectToMap(conf any) any {
 	v := reflect.ValueOf(conf)
 	if !v.IsValid() {
 		return nil
 	}
 
 	// Handle pointer type
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			// Create a zero value of the pointer's element type
 			elemType := v.Type().Elem()
@@ -166,7 +166,7 @@ func ReflectToMap(conf interface{}) interface{} {
 
 	switch v.Kind() {
 	case reflect.Struct:
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 		t := v.Type()
 		for i := 0; i < v.NumField(); i++ {
 			field := v.Field(i)
@@ -178,7 +178,7 @@ func ReflectToMap(conf interface{}) interface{} {
 		return result
 
 	case reflect.Map:
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 		iter := v.MapRange()
 		for iter.Next() {
 			key := iter.Key()
@@ -194,7 +194,7 @@ func ReflectToMap(conf interface{}) interface{} {
 		return result
 
 	case reflect.Slice, reflect.Array:
-		result := make([]interface{}, v.Len())
+		result := make([]any, v.Len())
 		for i := 0; i < v.Len(); i++ {
 			result[i] = ReflectToMap(v.Index(i).Interface())
 		}
@@ -234,11 +234,11 @@ func CheckKey(key string) error {
 
 	// Parse the key and verify it's presence in the map.
 	var ok bool
-	var mapCursor map[string]interface{}
+	var mapCursor map[string]any
 
 	parts := strings.Split(key, ".")
 	for i, part := range parts {
-		mapCursor, ok = cursor.(map[string]interface{})
+		mapCursor, ok = cursor.(map[string]any)
 		if !ok {
 			if cursor == nil {
 				return nil

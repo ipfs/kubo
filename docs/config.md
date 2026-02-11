@@ -59,13 +59,16 @@ config file at runtime.
       - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
       - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
   - [`Experimental`](#experimental)
+    - [`Experimental.Libp2pStreamMounting`](#experimentallibp2pstreammounting)
   - [`Gateway`](#gateway)
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
     - [`Gateway.DeserializedResponses`](#gatewaydeserializedresponses)
+    - [`Gateway.AllowCodecConversion`](#gatewayallowcodecconversion)
     - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
     - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
     - [`Gateway.RetrievalTimeout`](#gatewayretrievaltimeout)
+    - [`Gateway.MaxRequestDuration`](#gatewaymaxrequestduration)
     - [`Gateway.MaxRangeRequestFileSize`](#gatewaymaxrangerequestfilesize)
     - [`Gateway.MaxConcurrentRequests`](#gatewaymaxconcurrentrequests)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
@@ -144,6 +147,8 @@ config file at runtime.
     - [`Provider.Strategy`](#providerstrategy)
     - [`Provider.WorkerCount`](#providerworkercount)
   - [`Pubsub`](#pubsub)
+    - [When to use a dedicated pubsub node](#when-to-use-a-dedicated-pubsub-node)
+    - [Message deduplication](#message-deduplication)
     - [`Pubsub.Enabled`](#pubsubenabled)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
@@ -156,14 +161,14 @@ config file at runtime.
     - [`Reprovider.Strategy`](#providestrategy)
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
+    - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
     - [`Routing.IgnoreProviders`](#routingignoreproviders)
-    - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
     - [`Routing.Routers`](#routingrouters)
-      - [`Routing.Routers: Type`](#routingrouters-type)
-      - [`Routing.Routers: Parameters`](#routingrouters-parameters)
-    - [`Routing: Methods`](#routing-methods)
+      - [`Routing.Routers.[name].Type`](#routingroutersnametype)
+      - [`Routing.Routers.[name].Parameters`](#routingroutersnameparameters)
+    - [`Routing.Methods`](#routingmethods)
   - [`Swarm`](#swarm)
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
@@ -238,6 +243,8 @@ config file at runtime.
     - [`Import.UnixFSDirectoryMaxLinks`](#importunixfsdirectorymaxlinks)
     - [`Import.UnixFSHAMTDirectoryMaxFanout`](#importunixfshamtdirectorymaxfanout)
     - [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
+    - [`Import.UnixFSHAMTDirectorySizeEstimation`](#importunixfshamtdirectorysizeestimation)
+    - [`Import.UnixFSDAGLayout`](#importunixfsdaglayout)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -259,9 +266,9 @@ config file at runtime.
     - [`lowpower` profile](#lowpower-profile)
     - [`announce-off` profile](#announce-off-profile)
     - [`announce-on` profile](#announce-on-profile)
+    - [`unixfs-v0-2015` profile](#unixfs-v0-2015-profile)
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
-    - [`test-cid-v1` profile](#test-cid-v1-profile)
-    - [`test-cid-v1-wide` profile](#test-cid-v1-wide-profile)
+    - [`unixfs-v1-2025` profile](#unixfs-v1-2025-profile)
   - [Security](#security)
     - [Port and Network Exposure](#port-and-network-exposure)
     - [Security Best Practices](#security-best-practices)
@@ -713,7 +720,7 @@ Type: `flag`
 
 ## `AutoTLS`
 
-The [AutoTLS](https://blog.libp2p.io/autotls/) feature enables publicly reachable Kubo nodes (those dialable from the public
+The [AutoTLS](https://web.archive.org/web/20260112031855/https://blog.libp2p.io/autotls/) feature enables publicly reachable Kubo nodes (those dialable from the public
 internet) to automatically obtain a wildcard TLS certificate for a DNS name
 unique to their PeerID at `*.[PeerID].libp2p.direct`. This enables direct
 libp2p connections and retrieval of IPFS content from browsers [Secure Context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
@@ -721,7 +728,7 @@ using transports such as [Secure WebSockets](https://github.com/libp2p/specs/blo
 without requiring user to do any manual domain registration and certificate configuration.
 
 Under the hood, [p2p-forge] client uses public utility service at `libp2p.direct` as an [ACME DNS-01 Challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
-broker enabling peer to obtain a wildcard TLS certificate tied to public key of their [PeerID](https://docs.libp2p.io/concepts/fundamentals/peers/#peer-id).
+broker enabling peer to obtain a wildcard TLS certificate tied to public key of their [PeerID](https://web.archive.org/web/20251112181025/https://docs.libp2p.io/concepts/fundamentals/peers/#peer-id).
 
 By default, the certificates are requested from Let's Encrypt. Origin and rationale for this project can be found in [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003).
 
@@ -770,6 +777,22 @@ Type: `flag`
 Optional. Controls if final AutoTLS listeners are announced under shorter `/dnsX/A.B.C.D.peerid.libp2p.direct/tcp/4001/tls/ws` addresses instead of fully resolved `/ip4/A.B.C.D/tcp/4001/tls/sni/A-B-C-D.peerid.libp2p.direct/tls/ws`.
 
 The main use for AutoTLS is allowing connectivity from Secure Context in a web browser, and DNS lookup needs to happen there anyway, making `/dnsX` a more compact, more interoperable option without obvious downside.
+
+Default: `true`
+
+Type: `flag`
+
+### `AutoTLS.SkipDNSLookup`
+
+Optional. Controls whether to skip network DNS lookups for [p2p-forge] domains like `*.libp2p.direct`.
+
+This applies to DNS resolution performed via [`DNS.Resolvers`](#dnsresolvers), including `/dns*` multiaddrs resolved by go-libp2p (e.g., peer addresses from DHT or delegated routing).
+
+When enabled (default), A/AAAA queries for hostnames matching [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix) are resolved locally by parsing the IP address directly from the hostname (e.g., `1-2-3-4.peerID.libp2p.direct` resolves to `1.2.3.4` without network I/O). This avoids unnecessary DNS queries since the IP is already encoded in the hostname.
+
+If the hostname format is invalid (wrong peerID, malformed IP encoding), the resolver falls back to network DNS, ensuring forward compatibility with potential future DNS record types.
+
+Set to `false` to always use network DNS for these domains. This is primarily useful for debugging or if you need to override resolution behavior via [`DNS.Resolvers`](#dnsresolvers).
 
 Default: `true`
 
@@ -886,6 +909,14 @@ storage system.
 
 A soft upper limit for the size of the ipfs repository's datastore. With `StorageGCWatermark`,
 is used to calculate whether to trigger a gc run (only if `--enable-gc` flag is set).
+
+> [!NOTE]
+> This only controls when automatic GC of raw blocks is triggered. It is not a
+> hard limit on total disk usage. The metadata stored alongside blocks (pins,
+> MFS, provider system state, pubsub message ID tracking, and other internal
+> data) is not counted against this limit. Always include extra headroom to
+> account for metadata overhead. See [datastores.md](datastores.md) for details
+> on how different datastore backends handle disk space reclamation.
 
 Default: `"10GB"`
 
@@ -1069,11 +1100,26 @@ in the [new mDNS implementation](https://github.com/libp2p/zeroconf#readme).
 
 Toggle and configure experimental features of Kubo. Experimental features are listed [here](./experimental-features.md).
 
+### `Experimental.Libp2pStreamMounting`
+
+Enables the `ipfs p2p` commands for tunneling TCP connections through libp2p
+streams, similar to SSH port forwarding.
+
+See [docs/p2p-tunnels.md](p2p-tunnels.md) for usage examples.
+
+Default: `false`
+
+Type: `bool`
+
 ## `Gateway`
 
 Options for the HTTP gateway.
 
-**NOTE:** support for `/api/v0` under the gateway path is now deprecated. It will be removed in future versions: <https://github.com/ipfs/kubo/issues/10312>.
+> [!IMPORTANT]
+> By default, Kubo's gateway is configured for local use at `127.0.0.1` and `localhost`.
+> To run a public gateway, configure your domain names in [`Gateway.PublicGateways`](#gatewaypublicgateways).
+> For production deployment considerations (reverse proxy, timeouts, rate limiting, CDN),
+> see [Running in Production](gateway.md#running-in-production).
 
 ### `Gateway.NoFetch`
 
@@ -1104,6 +1150,32 @@ Default: `true`
 
 Type: `flag`
 
+### `Gateway.AllowCodecConversion`
+
+An optional flag to enable automatic conversion between codecs when the
+requested format differs from the block's native codec (e.g., converting
+dag-pb or dag-cbor to dag-json).
+
+When disabled (the default), the gateway returns `406 Not Acceptable` for
+codec mismatches, following behavior specified in
+[IPIP-524](https://github.com/ipfs/specs/pull/524).
+
+Most users should keep this disabled unless legacy
+[IPLD Logical Format](https://web.archive.org/web/20260204204727/https://ipld.io/specs/codecs/dag-pb/spec/#logical-format)
+support is needed as a stop-gap while switching clients to `?format=raw`
+and converting client-side.
+
+Instead of relying on gateway-side conversion, fetch the raw block using
+`?format=raw` (`application/vnd.ipld.raw`) and convert client-side. This:
+
+- Allows clients to use any codec without waiting for gateway support
+- Enables ecosystem innovation without gateway operator coordination
+- Works with libraries like [@helia/verified-fetch](https://www.npmjs.com/package/@helia/verified-fetch) in JavaScript
+
+Default: `false`
+
+Type: `flag`
+
 ### `Gateway.DisableHTMLErrors`
 
 An optional flag to disable the pretty HTML error pages of the gateway. Instead,
@@ -1128,7 +1200,7 @@ Kubo will filter out routing results which are not actionable, for example, all
 graphsync providers will be skipped. If you need a generic pass-through, see
 standalone router implementation named [someguy](https://github.com/ipfs/someguy).
 
-Default: `false`
+Default: `true`
 
 Type: `flag`
 
@@ -1159,6 +1231,16 @@ Maximum duration Kubo will wait for content retrieval (new bytes to arrive).
 A value of 0 disables this timeout.
 
 Default: `30s`
+
+Type: `optionalDuration`
+
+### `Gateway.MaxRequestDuration`
+
+An absolute deadline for the entire gateway request. Unlike [`RetrievalTimeout`](#gatewayretrievaltimeout) (which resets on each data write and catches stalled transfers), this is a hard limit on the total time a request can take.
+
+Returns 504 Gateway Timeout when exceeded. This protects the gateway from edge cases and slow client attacks.
+
+Default: `1h`
 
 Type: `optionalDuration`
 
@@ -1268,6 +1350,11 @@ Examples:
 - `*.example.com` will match requests to `http://foo.example.com/ipfs/*` or `http://{cid}.ipfs.bar.example.com/*`.
 - `foo-*.example.com` will match requests to `http://foo-bar.example.com/ipfs/*` or `http://{cid}.ipfs.foo-xyz.example.com/*`.
 
+> [!IMPORTANT]
+> **Reverse Proxy:** If running behind nginx or another reverse proxy, ensure
+> `Host` and `X-Forwarded-*` headers are forwarded correctly.
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) in gateway documentation.
+
 #### `Gateway.PublicGateways: Paths`
 
 An array of paths that should be exposed on the hostname.
@@ -1334,6 +1421,9 @@ Default: `false`
 
 Type: `bool`
 
+> [!IMPORTANT]
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) if running behind nginx or another reverse proxy.
+
 #### `Gateway.PublicGateways: NoDNSLink`
 
 A boolean to configure whether DNSLink for hostname present in `Host`
@@ -1343,6 +1433,9 @@ If `Paths` are defined, they take priority over DNSLink.
 Default: `false` (DNSLink lookup enabled by default for every defined hostname)
 
 Type: `bool`
+
+> [!IMPORTANT]
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) if running behind nginx or another reverse proxy.
 
 #### `Gateway.PublicGateways: InlineDNSLink`
 
@@ -1410,6 +1503,9 @@ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 ### `Gateway` recipes
 
 Below is a list of the most common gateway setups.
+
+> [!IMPORTANT]
+> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) if running behind nginx or another reverse proxy.
 
 - Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
 
@@ -1746,7 +1842,7 @@ Type: `optionalDuration`
 
 ### `Ipns.UsePubsub`
 
-Enables IPFS over pubsub experiment for publishing IPNS records in real time.
+Enables [IPNS over PubSub](https://specs.ipfs.tech/ipns/ipns-pubsub-router/) for publishing and resolving IPNS records in real time.
 
 **EXPERIMENTAL:**  read about current limitations at [experimental-features.md#ipns-pubsub](./experimental-features.md#ipns-pubsub).
 
@@ -1944,8 +2040,6 @@ map CIDs to your peer ID, enabling content discovery across the network.
 
 While designed to support multiple routing systems in the future, the current
 default configuration only supports [providing to the Amino DHT](#providedht).
-
-<!-- TODO: See the [Reprovide Sweep blog post](https://github.com/ipshipyard/ipshipyard.com/pull/8) for detailed performance comparisons. -->
 
 ### `Provide.Enabled`
 
@@ -2190,10 +2284,15 @@ to `false`.
 >
 > Sweep mode achieves similar effectiveness to the Accelerated DHT client but with steady resource consumption.
 
+For background on the sweep provider design and motivations, see Shipyard's blogpost [Provide Sweep: Solving the DHT Provide Bottleneck](https://ipshipyard.com/blog/2025-dht-provide-sweep/).
+
 You can compare the effectiveness of sweep mode vs legacy mode by monitoring the appropriate metrics (see [Monitoring Provide Operations](#monitoring-provide-operations) above).
 
 > [!NOTE]
 > This is the default provider system as of Kubo v0.39. To use the legacy provider instead, set `Provide.DHT.SweepEnabled=false`.
+
+> [!NOTE]
+> When DHT routing is unavailable (e.g., `Routing.Type=custom` with only HTTP routers), the provider automatically falls back to the legacy provider regardless of this setting.
 
 Default: `true`
 
@@ -2361,15 +2460,55 @@ Replaced with [`Provide.DHT.MaxWorkers`](#providedhtmaxworkers).
 
 ## `Pubsub`
 
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+Pubsub configures Kubo's opt-in, opinionated [libp2p pubsub](https://web.archive.org/web/20260116065034/https://docs.libp2p.io/concepts/pubsub/overview/) instance.
+To enable, set `Pubsub.Enabled` to `true`.
 
-Pubsub configures the `ipfs pubsub` subsystem. To use, it must be enabled by
-passing the `--enable-pubsub-experiment` flag to the daemon
-or via the `Pubsub.Enabled` flag below.
+**EXPERIMENTAL:** This is an opt-in feature. Its primary use case is
+[IPNS over PubSub](https://specs.ipfs.tech/ipns/ipns-pubsub-router/), which
+enables real-time IPNS record propagation. See [`Ipns.UsePubsub`](#ipnsusepubsub)
+for details.
+
+The `ipfs pubsub` commands can also be used for basic publish/subscribe
+operations, but only if Kubo's built-in message validation (described below) is
+acceptable for your use case.
+
+### When to use a dedicated pubsub node
+
+Kubo's pubsub is optimized for IPNS. It uses opinionated message validation
+that may not fit all applications. If you need custom Message ID computation,
+different deduplication logic, or validation rules beyond what Kubo provides,
+consider building a dedicated pubsub node using
+[go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub) directly.
+
+### Message deduplication
+
+Kubo uses two layers of message deduplication to handle duplicate messages that
+may arrive via different network paths:
+
+**Layer 1: In-memory TimeCache (Message ID)**
+
+When a message arrives, Kubo computes its Message ID (hash of the message
+content) and checks an in-memory cache. If the ID was seen recently, the
+message is dropped. This cache is controlled by:
+
+- [`Pubsub.SeenMessagesTTL`](#pubsubseenmessagesttl) - how long Message IDs are remembered (default: 120s)
+- [`Pubsub.SeenMessagesStrategy`](#pubsubseenmessagesstrategy) - whether TTL resets on each sighting
+
+This cache is fast but limited: it only works within the TTL window and is
+cleared on node restart.
+
+**Layer 2: Persistent Seqno Validator (per-peer)**
+
+For stronger deduplication, Kubo tracks the maximum sequence number seen from
+each peer and persists it to the datastore. Messages with sequence numbers
+lower than the recorded maximum are rejected. This prevents replay attacks and
+handles message cycles in large networks where messages may take longer than
+the TimeCache TTL to propagate.
+
+This layer survives node restarts. The state can be inspected or cleared using
+`ipfs pubsub reset` (for testing/recovery only).
 
 ### `Pubsub.Enabled`
-
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Enables the pubsub system.
 
@@ -2378,8 +2517,6 @@ Default: `false`
 Type: `flag`
 
 ### `Pubsub.Router`
-
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Sets the default router used by pubsub to route messages to peers. This can be one of:
 
@@ -2396,10 +2533,9 @@ Type: `string` (one of `"floodsub"`, `"gossipsub"`, or `""` (apply default))
 
 ### `Pubsub.DisableSigning`
 
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+Disables message signing and signature verification.
 
-Disables message signing and signature verification. Enable this option if
-you're operating in a completely trusted network.
+**FOR TESTING ONLY - DO NOT USE IN PRODUCTION**
 
 It is _not_ safe to disable signing even if you don't care _who_ sent the
 message because spoofed messages can be used to silence real messages by
@@ -2411,20 +2547,12 @@ Type: `bool`
 
 ### `Pubsub.SeenMessagesTTL`
 
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+Controls the time window for the in-memory Message ID cache (Layer 1
+deduplication). Messages with the same ID seen within this window are dropped.
 
-Controls the time window within which duplicate messages, identified by Message
-ID, will be identified and won't be emitted again.
-
-A smaller value for this parameter means that Pubsub messages in the cache will
-be garbage collected sooner, which can result in a smaller cache. At the same
-time, if there are slower nodes in the network that forward older messages,
-this can cause more duplicates to be propagated through the network.
-
-Conversely, a larger value for this parameter means that Pubsub messages in the
-cache will be garbage collected later, which can result in a larger cache for
-the same traffic pattern. However, it is less likely that duplicates will be
-propagated through the network.
+A smaller value reduces memory usage but may cause more duplicates in networks
+with slow nodes. A larger value uses more memory but provides better duplicate
+detection within the time window.
 
 Default: see `TimeCacheDuration` from [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub)
 
@@ -2432,24 +2560,12 @@ Type: `optionalDuration`
 
 ### `Pubsub.SeenMessagesStrategy`
 
-**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+Determines how the TTL countdown for the Message ID cache works.
 
-Determines how the time-to-live (TTL) countdown for deduplicating Pubsub
-messages is calculated.
-
-The Pubsub seen messages cache is a LRU cache that keeps messages for up to a
-specified time duration. After this duration has elapsed, expired messages will
-be purged from the cache.
-
-The `last-seen` cache is a sliding-window cache. Every time a message is seen
-again with the SeenMessagesTTL duration, its timestamp slides forward. This
-keeps frequently occurring messages cached and prevents them from being
-continually propagated, especially because of issues that might increase the
-number of duplicate messages in the network.
-
-The `first-seen` cache will store new messages and purge them after the
-SeenMessagesTTL duration, even if they are seen multiple times within this
-duration.
+- `last-seen` - Sliding window: TTL resets each time the message is seen again.
+  Keeps frequently-seen messages in cache longer, preventing continued propagation.
+- `first-seen` - Fixed window: TTL counts from first sighting only. Messages are
+  purged after the TTL regardless of how many times they're seen.
 
 Default: `last-seen` (see [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub))
 
@@ -2542,57 +2658,69 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 ### `Routing.Type`
 
-There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", "delegated", and "custom".
+Controls how your node discovers content and peers on the network.
 
-- **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
-  and parallel [`Routing.DelegatedRouters`](#routingdelegatedrouters) for additional speed.
+**Production options:**
 
-- If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
+- **`auto`** (default): Uses both the public IPFS DHT (Amino) and HTTP routers
+  from [`Routing.DelegatedRouters`](#routingdelegatedrouters) for faster lookups.
+  Your node starts as a DHT client and automatically switches to server mode
+  when reachable from the public internet.
 
-- If set to "none", your node will use _no_ routing system. You'll have to
-  explicitly connect to peers that have the content you're looking for.
+- **`autoclient`**: Same as `auto`, but never runs a DHT server.
+  Use this if your node is behind a firewall or NAT.
 
-- If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the Amino DHT (no HTTP routers).
+- **`dht`**: Uses only the Amino DHT (no HTTP routers). Automatically switches
+  between client and server mode based on reachability.
 
-- If set to "custom", all default routers are disabled, and only ones defined in `Routing.Routers` will be used.
+- **`dhtclient`**: DHT-only, always running as a client. Lower resource usage.
 
-When the DHT is enabled, it can operate in two modes: client and server.
+- **`dhtserver`**: DHT-only, always running as a server.
+  Only use this if your node is reachable from the public internet.
 
-- In server mode, your node will query other peers for DHT records, and will
-  respond to requests from other peers (both requests to store records and
-  requests to retrieve records).
+- **`none`**: Disables all routing. You must manually connect to peers.
 
-- In client mode, your node will query the DHT as a client but will not respond
-  to requests from other peers. This mode is less resource-intensive than server
-  mode.
+**About DHT client vs server mode:**
+When the DHT is enabled, your node can operate as either a client or server.
+In server mode, it queries other peers and responds to their queries - this helps
+the network but uses more resources. In client mode, it only queries others without
+responding, which is less resource-intensive. With `auto` or `dht`, your node starts
+as a client and switches to server when it detects public reachability.
 
-When `Routing.Type` is set to `auto` or `dht`, your node will start as a DHT client, and
-switch to a DHT server when and if it determines that it's reachable from the
-public internet (e.g., it's not behind a firewall).
+> [!CAUTION]
+> **`Routing.Type` Experimental options:**
+>
+> These modes are for research and testing only, not production use.
+> They may change without notice between releases.
+>
+> - **`delegated`**: Uses only HTTP routers from [`Routing.DelegatedRouters`](#routingdelegatedrouters)
+>   and IPNS publishers from [`Ipns.DelegatedPublishers`](#ipnsdelegatedpublishers),
+>   without initializing the DHT. Useful when peer-to-peer connectivity is unavailable.
+>   Note: cannot provide content to the network (no DHT means no provider records).
+>
+> - **`custom`**: Disables all default routers. You define your own routing in
+>   [`Routing.Routers`](#routingrouters). See [delegated-routing.md](delegated-routing.md).
 
-To force a specific Amino DHT-only mode, client or server, set `Routing.Type` to
-`dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
-unless you're sure your node is reachable from the public network.
-
-When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate some types of routing
-by leveraging [`Routing.DelegatedRouters`](#routingdelegatedrouters) HTTP endpoints compatible with [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/)
-introduced in [IPIP-337](https://github.com/ipfs/specs/pull/337)
-in addition to the Amino DHT.
-
-When `Routing.Type` is set to `delegated`, your node will use **only** HTTP delegated routers and IPNS publishers,
-without initializing the Amino DHT at all. This mode is useful for environments where peer-to-peer DHT connectivity
-is not available or desired, while still enabling content routing and IPNS publishing via HTTP APIs.
-This mode requires configuring [`Routing.DelegatedRouters`](#routingdelegatedrouters) for content routing and
-[`Ipns.DelegatedPublishers`](#ipnsdelegatedpublishers) for IPNS publishing.
-
-**Note:** `delegated` mode operates as read-only for content providing - your node cannot announce content to the network
-since there is no DHT connectivity. Content providing is automatically disabled when using this routing type.
-
-[Advanced routing rules](https://github.com/ipfs/kubo/blob/master/docs/delegated-routing.md) can be configured in `Routing.Routers` after setting `Routing.Type` to `custom`.
-
-Default: `auto` (DHT + [`Routing.DelegatedRouters`](#routingdelegatedrouters))
+Default: `auto`
 
 Type: `optionalString` (`null`/missing means the default)
+
+### `Routing.DelegatedRouters`
+
+An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
+These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
+
+The special value `"auto"` uses delegated routers from [AutoConf](#autoconf) when enabled.
+You can combine `"auto"` with custom URLs (e.g., `["auto", "https://custom.example.com"]`) to query both the default delegated routers and your own endpoints. The first `"auto"` entry gets substituted with autoconf values, and other URLs are preserved.
+
+> [!TIP]
+> Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
+>
+> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
+
+Default: `["auto"]`
+
+Type: `array[string]` (URLs or `"auto"`)
 
 ### `Routing.AcceleratedDHTClient`
 
@@ -2623,23 +2751,21 @@ When it is enabled:
     This is critical to maintain to not harm the network.
 - The operations `ipfs stats dht` will default to showing information about the accelerated DHT client
 
-**Caveats:**
-
-1. Running the accelerated client likely will result in more resource consumption (connections, RAM, CPU, bandwidth)
-   - Users that are limited in the number of parallel connections their machines/networks can perform will likely suffer
-   - The resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly done in rounds
-   - Users who previously had a lot of content but were unable to advertise it on the network will see an increase in
-     egress bandwidth as their nodes start to advertise all of their CIDs into the network. If you have lots of data
-     entering your node that you don't want to advertise, then consider using [Provide Strategies](#providestrategy)
-     to reduce the number of CIDs that you are reproviding. Similarly, if you are running a node that deals mostly with
-     short-lived temporary data (e.g. you use a separate node for ingesting data then for storing and serving it) then
-     you may benefit from using [Strategic Providing](experimental-features.md#strategic-providing) to prevent advertising
-     of data that you ultimately will not have.
-2. Currently, the DHT is not usable for queries for the first 5-10 minutes of operation as the routing table is being
-prepared. This means operations like searching the DHT for particular peers or content will not work initially.
-   - You can see if the DHT has been initially populated by running `ipfs stats dht`
-3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
-them
+> [!CAUTION]
+> **`Routing.AcceleratedDHTClient` Caveats:**
+>
+> 1. Running the accelerated client likely will result in more resource consumption (connections, RAM, CPU, bandwidth)
+>    - Users that are limited in the number of parallel connections their machines/networks can perform will be most affected
+>    - The resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly done in rounds
+>    - Users who previously had a lot of content but were unable to advertise it on the network will see an increase in
+>      egress bandwidth as their nodes start to advertise all of their CIDs into the network. If you have lots of data
+>      entering your node that you don't want to advertise, consider using [`Provide.*`](#provide) configuration
+>      to control which CIDs are reprovided.
+> 2. Currently, the DHT is not usable for queries for the first 5-10 minutes of operation as the routing table is being
+>    prepared. This means operations like searching the DHT for particular peers or content will not work initially.
+>    - You can see if the DHT has been initially populated by running `ipfs stats dht`
+> 3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
+>    them.
 
 Default: `false`
 
@@ -2673,30 +2799,18 @@ Default: `[]`
 
 Type: `array[string]`
 
-### `Routing.DelegatedRouters`
-
-An array of URL hostnames for delegated routers to be queried in addition to the Amino DHT when `Routing.Type` is set to `auto` (default) or `autoclient`.
-These endpoints must support the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/).
-
-The special value `"auto"` uses delegated routers from [AutoConf](#autoconf) when enabled.
-
-> [!TIP]
-> Delegated routing allows IPFS implementations to offload tasks like content routing, peer routing, and naming to a separate process or server while also benefiting from HTTP caching.
->
-> One can run their own delegated router either by implementing the [Delegated Routing V1 HTTP API](https://specs.ipfs.tech/routing/http-routing-v1/) themselves, or by using [Someguy](https://github.com/ipfs/someguy), a turn-key implementation that proxies requests to other routing systems. A public utility instance of Someguy is hosted at [`https://delegated-ipfs.dev`](https://docs.ipfs.tech/concepts/public-utilities/#delegated-routing).
-
-Default: `["auto"]`
-
-Type: `array[string]` (URLs or `"auto"`)
-
 ### `Routing.Routers`
 
 Alternative configuration used when `Routing.Type=custom`.
 
-> [!WARNING]
-> **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+> [!CAUTION]
+> **EXPERIMENTAL: `Routing.Routers` is for research and testing only, not production use.**
 >
-> Consider this advanced low-level config: Most users can simply use `Routing.Type=auto` or `autoclient` and set up basic config in user-friendly [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+> - The configuration format and behavior may change without notice between releases.
+> - Bugs and regressions may not be prioritized.
+> - HTTP-only configurations cannot reliably provide content. See [delegated-routing.md](delegated-routing.md#limitations).
+>
+> Most users should use `Routing.Type=auto` or `autoclient` with [`Routing.DelegatedRouters`](#routingdelegatedrouters).
 
 Allows for replacing the default routing (Amino DHT) with alternative Router
 implementations.
@@ -2707,9 +2821,9 @@ Default: `{}`
 
 Type: `object[string->object]`
 
-#### `Routing.Routers: Type`
+#### `Routing.Routers.[name].Type`
 
-**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+**⚠️ EXPERIMENTAL: For research and testing only. May change without notice.**
 
 It specifies the routing type that will be created.
 
@@ -2721,9 +2835,9 @@ Currently supported types:
 
 Type: `string`
 
-#### `Routing.Routers: Parameters`
+#### `Routing.Routers.[name].Parameters`
 
-**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+**⚠️ EXPERIMENTAL: For research and testing only. May change without notice.**
 
 Parameters needed to create the specified router. Supported params per router type:
 
@@ -2760,14 +2874,18 @@ Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->string]`
 
-### `Routing: Methods`
+### `Routing.Methods`
 
 `Methods:map` will define which routers will be executed per method used when `Routing.Type=custom`.
 
-> [!WARNING]
-> **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+> [!CAUTION]
+> **EXPERIMENTAL: `Routing.Methods` is for research and testing only, not production use.**
 >
-> Consider this advanced low-level config: Most users can simply use `Routing.Type=auto` or `autoclient` and set up basic config in user-friendly [`Routing.DelegatedRouters`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingdelegatedrouters).
+> - The configuration format and behavior may change without notice between releases.
+> - Bugs and regressions may not be prioritized.
+> - HTTP-only configurations cannot reliably provide content. See [delegated-routing.md](delegated-routing.md#limitations).
+>
+> Most users should use `Routing.Type=auto` or `autoclient` with [`Routing.DelegatedRouters`](#routingdelegatedrouters).
 
 The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list.
 
@@ -3276,7 +3394,7 @@ NATs.
 
 See also:
 
-- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
+- Docs: [Libp2p Circuit Relay](https://web.archive.org/web/20260128152445/https://docs.libp2p.io/concepts/nat/circuit-relay/)
 - [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled) for getting a public
 - `/p2p-circuit` address when behind a firewall.
 - [`Swarm.EnableHolePunching`](#swarmenableholepunching) for direct connection upgrade through relay
@@ -3324,7 +3442,7 @@ is a transport protocol that provides another way for browsers to
 connect to the rest of the libp2p network. WebRTC Direct allows for browser
 nodes to connect to other nodes without special configuration, such as TLS
 certificates. This can be useful for browser nodes that do not yet support
-[WebTransport](https://blog.libp2p.io/2022-12-19-libp2p-webtransport/),
+[WebTransport](https://web.archive.org/web/20260107053250/https://blog.libp2p.io/2022-12-19-libp2p-webtransport/),
 which is still relatively new and has [known issues](https://github.com/libp2p/js-libp2p/issues/2572).
 
 Enabling this transport allows Kubo node to act on `/udp/4001/webrtc-direct`
@@ -3424,7 +3542,7 @@ Please remove this option from your config.
 
 ## `DNS`
 
-Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.tech/concepts/dnslink/) and `/dns*` [Multiaddrs][libp2p-multiaddrs].
+Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.tech/concepts/dnslink/) and `/dns*` [Multiaddrs][libp2p-multiaddrs] (including peer addresses discovered via DHT or delegated routing).
 
 ### `DNS.Resolvers`
 
@@ -3454,6 +3572,7 @@ Be mindful that:
 - The default catch-all resolver is the cleartext one provided by your operating system. It can be overridden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
 - Out-of-the-box support for selected non-ICANN TLDs relies on third-party centralized services provided by respective communities on best-effort basis.
 - The special value `"auto"` uses DNS resolvers from [AutoConf](#autoconf) when enabled. For example: `{".": "auto"}` uses any custom DoH resolver (global or per TLD) provided by AutoConf system.
+- When [`AutoTLS.SkipDNSLookup`](#autotlsskipdnslookup) is enabled (default), domains matching [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix) (default: `libp2p.direct`) are resolved locally by parsing the IP directly from the hostname. Set `AutoTLS.SkipDNSLookup=false` to force network DNS lookups for these domains.
 
 Default: `{".": "auto"}`
 
@@ -3574,9 +3693,11 @@ Type: `flag`
 
 ## `Import`
 
-Options to configure the default options used for ingesting data, in commands such as `ipfs add` or `ipfs block put`. All affected commands are detailed per option.
+Options to configure the default parameters used for ingesting data, in commands such as `ipfs add` or `ipfs block put`. All affected commands are detailed per option.
 
-Note that using flags will override the options defined here.
+These options implement [IPIP-499: UnixFS CID Profiles](https://github.com/ipfs/specs/pull/499) for reproducible CID generation across IPFS implementations. Instead of configuring individual options, you can apply a predefined profile with `ipfs config profile apply <profile-name>`. See [Profiles](#profiles) for available options like `unixfs-v1-2025`.
+
+Note that using CLI flags will override the options defined here.
 
 ### `Import.CidVersion`
 
@@ -3603,8 +3724,20 @@ The default UnixFS chunker. Commands affected: `ipfs add`.
 Valid formats:
 
 - `size-<bytes>` - fixed size chunker
-- `rabin-<min>-<avg>-<max>` - rabin fingerprint chunker  
+- `rabin-<min>-<avg>-<max>` - rabin fingerprint chunker
 - `buzhash` - buzhash chunker
+
+The maximum accepted value for `size-<bytes>` and rabin `max` parameter is
+`2MiB - 256 bytes` (2096896 bytes). The 256-byte overhead budget is reserved
+for protobuf/UnixFS framing so that serialized blocks stay within the 2MiB
+block size limit defined by the
+[bitswap spec](https://specs.ipfs.tech/bitswap-protocol/#block-sizes).
+The `buzhash` chunker uses a fixed internal maximum of 512KiB and is not
+affected by this limit.
+
+Only the fixed-size chunker (`size-<bytes>`) guarantees that the same data
+will always produce the same CID. The `rabin` and `buzhash` chunkers may
+change their internal parameters in a future release.
 
 Default: `size-262144`
 
@@ -3756,6 +3889,42 @@ Default: `256KiB` (may change, inspect `DefaultUnixFSHAMTDirectorySizeThreshold`
 
 Type: [`optionalBytes`](#optionalbytes)
 
+### `Import.UnixFSHAMTDirectorySizeEstimation`
+
+Controls how directory size is estimated when deciding whether to switch
+from a basic UnixFS directory to HAMT sharding.
+
+Accepted values:
+
+- `links` (default): Legacy estimation using sum of link names and CID byte lengths.
+- `block`: Full serialized dag-pb block size for accurate threshold decisions.
+- `disabled`: Disable HAMT sharding entirely (directories always remain basic).
+
+The `block` estimation is recommended for new profiles as it provides more
+accurate threshold decisions and better cross-implementation consistency.
+See [IPIP-499](https://github.com/ipfs/specs/pull/499) for more details.
+
+Commands affected: `ipfs add`
+
+Default: `links`
+
+Type: `optionalString`
+
+### `Import.UnixFSDAGLayout`
+
+Controls the DAG layout used when chunking files.
+
+Accepted values:
+
+- `balanced` (default): Balanced DAG layout with uniform leaf depth.
+- `trickle`: Trickle DAG layout optimized for streaming.
+
+Commands affected: `ipfs add`
+
+Default: `balanced`
+
+Type: `optionalString`
+
 ## `Version`
 
 Options to configure agent version announced to the swarm, and leveraging
@@ -3799,7 +3968,7 @@ applied with the `--profile` flag to `ipfs init` or with the `ipfs config profil
 apply` command. When a profile is applied a backup of the configuration file
 will be created in `$IPFS_PATH`.
 
-Configuration profiles can be applied additively. For example, both the `test-cid-v1` and `lowpower` profiles can be applied one after the other.
+Configuration profiles can be applied additively. For example, both the `unixfs-v1-2025` and `lowpower` profiles can be applied one after the other.
 The available configuration profiles are listed below. You can also find them
 documented in `ipfs config profile --help`.
 
@@ -3905,9 +4074,21 @@ Configures the node to use the pebble datastore with metrics. This is the same a
 Configures the node to use the **legacy** badgerv1 datastore.
 
 > [!CAUTION]
-> This is based on very old badger 1.x, which has known bugs and is no longer supported by the upstream team.
-> It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
-> Do not use it for new deployments, unless you really, really know what you are doing.
+> **Badger v1 datastore is deprecated and will be removed in a future Kubo release.**
+>
+> This is based on very old badger 1.x, which has not been maintained by its
+> upstream maintainers for years and has known bugs (startup timeouts, shutdown
+> hangs, file descriptor
+> exhaustion, and more). Do not use it for new deployments.
+>
+> **To migrate:** create a new `IPFS_PATH` with `flatfs`
+> (`ipfs init --profile=flatfs`), move pinned data via
+> `ipfs dag export/import` or `ipfs pin ls -t recursive|add`, and decommission the
+> old badger-based node. When it comes to block storage, use experimental
+> `pebbleds` only if you are sure modern `flatfs` does not serve your use case
+> (most users will be perfectly fine with `flatfs`, it is also possible to keep
+> `flatfs` for blocks and replace `leveldb` with `pebble` if preferred over
+> `leveldb`).
 
 Also, be aware that:
 
@@ -3917,17 +4098,16 @@ Also, be aware that:
   `flatfs`.
 - This datastore uses up to several gigabytes of memory.
 - Good for medium-size datastores, but may run into performance issues if your dataset is bigger than a terabyte.
-- The current implementation is based on old badger 1.x which is no longer supported by the upstream team.
 
 > [!WARNING]
 > This profile may only be applied when first initializing the node via `ipfs init --profile badgerds`
 
 > [!NOTE]
-> See other caveats and configuration options at [`datastores.md#pebbleds`](datastores.md#pebbleds)
+> See other caveats and configuration options at [`datastores.md#badgerds`](datastores.md#badgerds)
 
 ### `badgerds-measure` profile
 
-Configures the node to use the **legacy** badgerv1 datastore with metrics. This is the same as [`badgerds` profile](#badger-profile) with the addition of the `measure` datastore wrapper.
+Configures the node to use the **legacy** badgerv1 datastore with metrics. This is the same as [`badgerds` profile](#badger-profile) with the addition of the `measure` datastore wrapper. This profile will be removed in a future Kubo release.
 
 ### `lowpower` profile
 
@@ -3956,42 +4136,35 @@ Disables [Provide](#provide) system (and announcing to Amino DHT).
 
 (Re-)enables [Provide](#provide) system (reverts [`announce-off` profile](#announce-off-profile)).
 
+### `unixfs-v0-2015` profile
+
+Legacy UnixFS import profile for backward-compatible CID generation.
+Produces CIDv0 with no raw leaves, sha2-256, 256 KiB chunks, and
+link-based HAMT size estimation.
+
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
+
+> [!NOTE]
+> Use only when legacy CIDs are required. For new projects, use [`unixfs-v1-2025`](#unixfs-v1-2025-profile).
+>
+> See [IPIP-499](https://github.com/ipfs/specs/pull/499) for more details.
+
 ### `legacy-cid-v0` profile
 
-Makes UnixFS import (`ipfs add`) produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.
+Alias for [`unixfs-v0-2015`](#unixfs-v0-2015-profile) profile.
+
+### `unixfs-v1-2025` profile
+
+Recommended UnixFS import profile for cross-implementation CID determinism.
+Uses CIDv1, raw leaves, sha2-256, 1 MiB chunks, 1024 links per file node,
+256 HAMT fanout, and block-based size estimation for HAMT threshold.
 
 See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
 
 > [!NOTE]
-> This profile is provided for legacy users and should not be used for new projects.
-
-### `test-cid-v1` profile
-
-Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256
-and 1 MiB chunks (max 174 links per file, 256 per HAMT node, switch dir to HAMT
-above 256KiB).
-
-See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
-
-> [!NOTE]
-> [`Import.*`](#import) settings applied by this profile MAY change in future release. Provided for testing purposes.
+> This profile ensures CID consistency across different IPFS implementations.
 >
-> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
-> and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
-
-### `test-cid-v1-wide` profile
-
-Makes UnixFS import (`ipfs add`) produce modern CIDv1 with raw leaves, sha2-256
-and 1 MiB chunks and wider file DAGs (max 1024 links per every node type,
-switch dir to HAMT above 1MiB).
-
-See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
-
-> [!NOTE]
-> [`Import.*`](#import) settings applied by this profile MAY change in future release. Provided for testing purposes.
->
-> Follow [kubo#4143](https://github.com/ipfs/kubo/issues/4143) for more details,
-> and provide feedback in [discuss.ipfs.tech/t/should-we-profile-cids](https://discuss.ipfs.tech/t/should-we-profile-cids/18507) or [ipfs/specs#499](https://github.com/ipfs/specs/pull/499).
+> See [IPIP-499](https://github.com/ipfs/specs/pull/499) for more details.
 
 ## Security
 

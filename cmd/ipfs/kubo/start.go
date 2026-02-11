@@ -251,7 +251,7 @@ func apiAddrOption(req *cmds.Request) (ma.Multiaddr, error) {
 // multipart requests is %-encoded. Before this version, its sent raw.
 var encodedAbsolutePathVersion = semver.MustParse("0.23.0-dev")
 
-func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
+func makeExecutor(req *cmds.Request, env any) (cmds.Executor, error) {
 	exe := tracingWrappedExecutor{cmds.NewExecutor(req.Root)}
 	cctx := env.(*oldcmds.Context)
 

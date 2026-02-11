@@ -40,7 +40,7 @@ func (lcss *lcStartStop) Append(f func() func()) {
 	})
 }
 
-func maybeProvide(opt interface{}, enable bool) fx.Option {
+func maybeProvide(opt any, enable bool) fx.Option {
 	if enable {
 		return fx.Provide(opt)
 	}
@@ -48,7 +48,7 @@ func maybeProvide(opt interface{}, enable bool) fx.Option {
 }
 
 // nolint unused
-func maybeInvoke(opt interface{}, enable bool) fx.Option {
+func maybeInvoke(opt any, enable bool) fx.Option {
 	if enable {
 		return fx.Invoke(opt)
 	}

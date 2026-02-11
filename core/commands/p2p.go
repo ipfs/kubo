@@ -50,9 +50,17 @@ type P2PStreamsOutput struct {
 	Streams []P2PStreamInfoOutput
 }
 
+// P2PForegroundOutput is output type for foreground mode status messages
+type P2PForegroundOutput struct {
+	Status   string // "active" or "closing"
+	Protocol string
+	Address  string
+}
+
 const (
 	allowCustomProtocolOptionName = "allow-custom-protocol"
 	reportPeerIDOptionName        = "report-peer-id"
+	foregroundOptionName          = "foreground"
 )
 
 var resolveTimeout = 10 * time.Second
@@ -83,15 +91,37 @@ var p2pForwardCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Forward connections to libp2p service.",
 		ShortDescription: `
-Forward connections made to <listen-address> to <target-address>.
+Forward connections made to <listen-address> to <target-address> via libp2p.
 
-<protocol> specifies the libp2p protocol name to use for libp2p
-connections and/or handlers. It must be prefixed with '` + P2PProtoPrefix + `'.
+Creates a local TCP listener that tunnels connections through libp2p to a
+remote peer's p2p listener. Similar to SSH port forwarding (-L flag).
 
-Example:
-  ipfs p2p forward ` + P2PProtoPrefix + `myproto /ip4/127.0.0.1/tcp/4567 /p2p/QmPeer
-    - Forward connections to 127.0.0.1:4567 to '` + P2PProtoPrefix + `myproto' service on /p2p/QmPeer
+ARGUMENTS:
 
+  <protocol>        Protocol name (must start with '` + P2PProtoPrefix + `')
+  <listen-address>  Local multiaddr (e.g., /ip4/127.0.0.1/tcp/3000)
+  <target-address>  Remote peer multiaddr (e.g., /p2p/PeerID)
+
+FOREGROUND MODE (--foreground, -f):
+
+  By default, the forwarder runs in the daemon and the command returns
+  immediately. Use --foreground to block until interrupted:
+
+  - Ctrl+C or SIGTERM: Removes the forwarder and exits
+  - 'ipfs p2p close': Removes the forwarder and exits
+  - Daemon shutdown: Forwarder is automatically removed
+
+  Useful for systemd services or scripts that need cleanup on exit.
+
+EXAMPLES:
+
+  # Persistent forwarder (command returns immediately)
+  ipfs p2p forward /x/myapp /ip4/127.0.0.1/tcp/3000 /p2p/PeerID
+
+  # Temporary forwarder (removed when command exits)
+  ipfs p2p forward -f /x/myapp /ip4/127.0.0.1/tcp/3000 /p2p/PeerID
+
+Learn more: https://github.com/ipfs/kubo/blob/master/docs/p2p-tunnels.md
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -101,6 +131,7 @@ Example:
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(allowCustomProtocolOptionName, "Don't require /x/ prefix"),
+		cmds.BoolOption(foregroundOptionName, "f", "Run in foreground; forwarder is removed when command exits"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := p2pGetNode(env)
@@ -130,7 +161,51 @@ Example:
 			return errors.New("protocol name must be within '" + P2PProtoPrefix + "' namespace")
 		}
 
-		return forwardLocal(n.Context(), n.P2P, n.Peerstore, proto, listen, targets)
+		listener, err := forwardLocal(n.Context(), n.P2P, n.Peerstore, proto, listen, targets)
+		if err != nil {
+			return err
+		}
+
+		foreground, _ := req.Options[foregroundOptionName].(bool)
+		if foreground {
+			if err := res.Emit(&P2PForegroundOutput{
+				Status:   "active",
+				Protocol: protoOpt,
+				Address:  listenOpt,
+			}); err != nil {
+				return err
+			}
+			// Wait for either context cancellation (Ctrl+C/daemon shutdown)
+			// or listener removal (ipfs p2p close)
+			select {
+			case <-req.Context.Done():
+				// SIGTERM/Ctrl+C - cleanup silently (CLI stream already closing)
+				n.P2P.ListenersLocal.Close(func(l p2p.Listener) bool {
+					return l == listener
+				})
+				return nil
+			case <-listener.Done():
+				// Closed via "ipfs p2p close" - emit closing message
+				return res.Emit(&P2PForegroundOutput{
+					Status:   "closing",
+					Protocol: protoOpt,
+					Address:  listenOpt,
+				})
+			}
+		}
+
+		return nil
+	},
+	Type: P2PForegroundOutput{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *P2PForegroundOutput) error {
+			if out.Status == "active" {
+				fmt.Fprintf(w, "Forwarding %s to %s, waiting for interrupt...\n", out.Protocol, out.Address)
+			} else if out.Status == "closing" {
+				fmt.Fprintf(w, "Received interrupt, removing forwarder for %s\n", out.Protocol)
+			}
+			return nil
+		}),
 	},
 }
 
@@ -185,14 +260,40 @@ var p2pListenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create libp2p service.",
 		ShortDescription: `
-Create libp2p service and forward connections made to <target-address>.
+Create a libp2p protocol handler that forwards incoming connections to
+<target-address>.
 
-<protocol> specifies the libp2p handler name. It must be prefixed with '` + P2PProtoPrefix + `'.
+When a remote peer connects using 'ipfs p2p forward', the connection is
+forwarded to your local service. Similar to SSH port forwarding (server side).
 
-Example:
-  ipfs p2p listen ` + P2PProtoPrefix + `myproto /ip4/127.0.0.1/tcp/1234
-    - Forward connections to 'myproto' libp2p service to 127.0.0.1:1234
+ARGUMENTS:
 
+  <protocol>        Protocol name (must start with '` + P2PProtoPrefix + `')
+  <target-address>  Local multiaddr (e.g., /ip4/127.0.0.1/tcp/3000)
+
+FOREGROUND MODE (--foreground, -f):
+
+  By default, the listener runs in the daemon and the command returns
+  immediately. Use --foreground to block until interrupted:
+
+  - Ctrl+C or SIGTERM: Removes the listener and exits
+  - 'ipfs p2p close': Removes the listener and exits
+  - Daemon shutdown: Listener is automatically removed
+
+  Useful for systemd services or scripts that need cleanup on exit.
+
+EXAMPLES:
+
+  # Persistent listener (command returns immediately)
+  ipfs p2p listen /x/myapp /ip4/127.0.0.1/tcp/3000
+
+  # Temporary listener (removed when command exits)
+  ipfs p2p listen -f /x/myapp /ip4/127.0.0.1/tcp/3000
+
+  # Report connecting peer ID to the target application
+  ipfs p2p listen -r /x/myapp /ip4/127.0.0.1/tcp/3000
+
+Learn more: https://github.com/ipfs/kubo/blob/master/docs/p2p-tunnels.md
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -202,6 +303,7 @@ Example:
 	Options: []cmds.Option{
 		cmds.BoolOption(allowCustomProtocolOptionName, "Don't require /x/ prefix"),
 		cmds.BoolOption(reportPeerIDOptionName, "r", "Send remote base58 peerid to target when a new connection is established"),
+		cmds.BoolOption(foregroundOptionName, "f", "Run in foreground; listener is removed when command exits"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := p2pGetNode(env)
@@ -231,8 +333,51 @@ Example:
 			return errors.New("protocol name must be within '" + P2PProtoPrefix + "' namespace")
 		}
 
-		_, err = n.P2P.ForwardRemote(n.Context(), proto, target, reportPeerID)
-		return err
+		listener, err := n.P2P.ForwardRemote(n.Context(), proto, target, reportPeerID)
+		if err != nil {
+			return err
+		}
+
+		foreground, _ := req.Options[foregroundOptionName].(bool)
+		if foreground {
+			if err := res.Emit(&P2PForegroundOutput{
+				Status:   "active",
+				Protocol: protoOpt,
+				Address:  targetOpt,
+			}); err != nil {
+				return err
+			}
+			// Wait for either context cancellation (Ctrl+C/daemon shutdown)
+			// or listener removal (ipfs p2p close)
+			select {
+			case <-req.Context.Done():
+				// SIGTERM/Ctrl+C - cleanup silently (CLI stream already closing)
+				n.P2P.ListenersP2P.Close(func(l p2p.Listener) bool {
+					return l == listener
+				})
+				return nil
+			case <-listener.Done():
+				// Closed via "ipfs p2p close" - emit closing message
+				return res.Emit(&P2PForegroundOutput{
+					Status:   "closing",
+					Protocol: protoOpt,
+					Address:  targetOpt,
+				})
+			}
+		}
+
+		return nil
+	},
+	Type: P2PForegroundOutput{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *P2PForegroundOutput) error {
+			if out.Status == "active" {
+				fmt.Fprintf(w, "Listening on %s, forwarding to %s, waiting for interrupt...\n", out.Protocol, out.Address)
+			} else if out.Status == "closing" {
+				fmt.Fprintf(w, "Received interrupt, removing listener for %s\n", out.Protocol)
+			}
+			return nil
+		}),
 	},
 }
 
@@ -271,11 +416,9 @@ func checkPort(target ma.Multiaddr) error {
 }
 
 // forwardLocal forwards local connections to a libp2p service
-func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto protocol.ID, bindAddr ma.Multiaddr, addr *peer.AddrInfo) error {
+func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto protocol.ID, bindAddr ma.Multiaddr, addr *peer.AddrInfo) (p2p.Listener, error) {
 	ps.AddAddrs(addr.ID, addr.Addrs, pstore.TempAddrTTL)
-	// TODO: return some info
-	_, err := p.ForwardLocal(ctx, addr.ID, proto, bindAddr)
-	return err
+	return p.ForwardLocal(ctx, addr.ID, proto, bindAddr)
 }
 
 const (

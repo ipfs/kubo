@@ -3,6 +3,7 @@ package mg16
 import (
 	"bytes"
 	"encoding/json"
+	"maps"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,13 +14,13 @@ import (
 )
 
 // Helper function to run migration on JSON input and return result
-func runMigrationOnJSON(t *testing.T, input string) map[string]interface{} {
+func runMigrationOnJSON(t *testing.T, input string) map[string]any {
 	t.Helper()
 	var output bytes.Buffer
 	err := convert(bytes.NewReader([]byte(input)), &output)
 	require.NoError(t, err)
 
-	var result map[string]interface{}
+	var result map[string]any
 	err = json.Unmarshal(output.Bytes(), &result)
 	require.NoError(t, err)
 
@@ -27,33 +28,33 @@ func runMigrationOnJSON(t *testing.T, input string) map[string]interface{} {
 }
 
 // Helper function to assert nested map key has expected value
-func assertMapKeyEquals(t *testing.T, result map[string]interface{}, path []string, key string, expected interface{}) {
+func assertMapKeyEquals(t *testing.T, result map[string]any, path []string, key string, expected any) {
 	t.Helper()
 	current := result
 	for _, p := range path {
 		section, exists := current[p]
 		require.True(t, exists, "Section %s not found in path %v", p, path)
-		current = section.(map[string]interface{})
+		current = section.(map[string]any)
 	}
 
 	assert.Equal(t, expected, current[key], "Expected %s to be %v", key, expected)
 }
 
 // Helper function to assert slice contains expected values
-func assertSliceEquals(t *testing.T, result map[string]interface{}, path []string, expected []string) {
+func assertSliceEquals(t *testing.T, result map[string]any, path []string, expected []string) {
 	t.Helper()
 	current := result
 	for i, p := range path[:len(path)-1] {
 		section, exists := current[p]
 		require.True(t, exists, "Section %s not found in path %v at index %d", p, path, i)
-		current = section.(map[string]interface{})
+		current = section.(map[string]any)
 	}
 
 	sliceKey := path[len(path)-1]
 	slice, exists := current[sliceKey]
 	require.True(t, exists, "Slice %s not found", sliceKey)
 
-	actualSlice := slice.([]interface{})
+	actualSlice := slice.([]any)
 	require.Equal(t, len(expected), len(actualSlice), "Expected slice length %d, got %d", len(expected), len(actualSlice))
 
 	for i, exp := range expected {
@@ -62,27 +63,25 @@ func assertSliceEquals(t *testing.T, result map[string]interface{}, path []strin
 }
 
 // Helper to build test config JSON with specified fields
-func buildTestConfig(fields map[string]interface{}) string {
-	config := map[string]interface{}{
-		"Identity": map[string]interface{}{"PeerID": "QmTest"},
+func buildTestConfig(fields map[string]any) string {
+	config := map[string]any{
+		"Identity": map[string]any{"PeerID": "QmTest"},
 	}
-	for k, v := range fields {
-		config[k] = v
-	}
+	maps.Copy(config, fields)
 	data, _ := json.MarshalIndent(config, "", "  ")
 	return string(data)
 }
 
 // Helper to run migration and get DNS resolvers
-func runMigrationAndGetDNSResolvers(t *testing.T, input string) map[string]interface{} {
+func runMigrationAndGetDNSResolvers(t *testing.T, input string) map[string]any {
 	t.Helper()
 	result := runMigrationOnJSON(t, input)
-	dns := result["DNS"].(map[string]interface{})
-	return dns["Resolvers"].(map[string]interface{})
+	dns := result["DNS"].(map[string]any)
+	return dns["Resolvers"].(map[string]any)
 }
 
 // Helper to assert multiple resolver values
-func assertResolvers(t *testing.T, resolvers map[string]interface{}, expected map[string]string) {
+func assertResolvers(t *testing.T, resolvers map[string]any, expected map[string]string) {
 	t.Helper()
 	for key, expectedValue := range expected {
 		assert.Equal(t, expectedValue, resolvers[key], "Expected %s resolver to be %v", key, expectedValue)
@@ -100,25 +99,25 @@ func TestMigration(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a test config with default bootstrap peers
-	testConfig := map[string]interface{}{
+	testConfig := map[string]any{
 		"Bootstrap": []string{
 			"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
 			"/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
 			"/ip4/192.168.1.1/tcp/4001/p2p/QmCustomPeer", // Custom peer
 		},
-		"DNS": map[string]interface{}{
+		"DNS": map[string]any{
 			"Resolvers": map[string]string{},
 		},
-		"Routing": map[string]interface{}{
+		"Routing": map[string]any{
 			"DelegatedRouters": []string{},
 		},
-		"Ipns": map[string]interface{}{
+		"Ipns": map[string]any{
 			"ResolveCacheSize": 128,
 		},
-		"Identity": map[string]interface{}{
+		"Identity": map[string]any{
 			"PeerID": "QmTest",
 		},
-		"Version": map[string]interface{}{
+		"Version": map[string]any{
 			"Current": "0.36.0",
 		},
 	}
@@ -153,38 +152,38 @@ func TestMigration(t *testing.T) {
 	configData, err = os.ReadFile(configPath)
 	require.NoError(t, err)
 
-	var updatedConfig map[string]interface{}
+	var updatedConfig map[string]any
 	err = json.Unmarshal(configData, &updatedConfig)
 	require.NoError(t, err)
 
 	// Check AutoConf was added
 	autoConf, exists := updatedConfig["AutoConf"]
 	assert.True(t, exists, "AutoConf section not added")
-	autoConfMap := autoConf.(map[string]interface{})
+	autoConfMap := autoConf.(map[string]any)
 	// URL is not set explicitly in migration (uses implicit default)
 	_, hasURL := autoConfMap["URL"]
 	assert.False(t, hasURL, "AutoConf URL should not be explicitly set in migration")
 
 	// Check Bootstrap was updated
-	bootstrap := updatedConfig["Bootstrap"].([]interface{})
+	bootstrap := updatedConfig["Bootstrap"].([]any)
 	assert.Equal(t, 2, len(bootstrap), "Expected 2 bootstrap entries")
 	assert.Equal(t, "auto", bootstrap[0], "Expected first bootstrap entry to be 'auto'")
 	assert.Equal(t, "/ip4/192.168.1.1/tcp/4001/p2p/QmCustomPeer", bootstrap[1], "Expected custom peer to be preserved")
 
 	// Check DNS.Resolvers was updated
-	dns := updatedConfig["DNS"].(map[string]interface{})
-	resolvers := dns["Resolvers"].(map[string]interface{})
+	dns := updatedConfig["DNS"].(map[string]any)
+	resolvers := dns["Resolvers"].(map[string]any)
 	assert.Equal(t, "auto", resolvers["."], "Expected DNS resolver for '.' to be 'auto'")
 
 	// Check Routing.DelegatedRouters was updated
-	routing := updatedConfig["Routing"].(map[string]interface{})
-	delegatedRouters := routing["DelegatedRouters"].([]interface{})
+	routing := updatedConfig["Routing"].(map[string]any)
+	delegatedRouters := routing["DelegatedRouters"].([]any)
 	assert.Equal(t, 1, len(delegatedRouters))
 	assert.Equal(t, "auto", delegatedRouters[0], "Expected DelegatedRouters to be ['auto']")
 
 	// Check Ipns.DelegatedPublishers was updated
-	ipns := updatedConfig["Ipns"].(map[string]interface{})
-	delegatedPublishers := ipns["DelegatedPublishers"].([]interface{})
+	ipns := updatedConfig["Ipns"].(map[string]any)
+	delegatedPublishers := ipns["DelegatedPublishers"].([]any)
 	assert.Equal(t, 1, len(delegatedPublishers))
 	assert.Equal(t, "auto", delegatedPublishers[0], "Expected DelegatedPublishers to be ['auto']")
 
@@ -200,7 +199,7 @@ func TestMigration(t *testing.T) {
 
 func TestConvert(t *testing.T) {
 	t.Parallel()
-	input := buildTestConfig(map[string]interface{}{
+	input := buildTestConfig(map[string]any{
 		"Bootstrap": []string{
 			"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
 			"/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
@@ -212,7 +211,7 @@ func TestConvert(t *testing.T) {
 	// Check that AutoConf section was added but is empty (using implicit defaults)
 	autoConf, exists := result["AutoConf"]
 	require.True(t, exists, "AutoConf section should exist")
-	autoConfMap, ok := autoConf.(map[string]interface{})
+	autoConfMap, ok := autoConf.(map[string]any)
 	require.True(t, ok, "AutoConf should be a map")
 	require.Empty(t, autoConfMap, "AutoConf should be empty (using implicit defaults)")
 
@@ -282,7 +281,7 @@ func TestBootstrapMigration(t *testing.T) {
 
 	t.Run("replaces all old default bootstrapper peers with auto entry", func(t *testing.T) {
 		t.Parallel()
-		input := buildTestConfig(map[string]interface{}{
+		input := buildTestConfig(map[string]any{
 			"Bootstrap": []string{
 				"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
 				"/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
@@ -322,8 +321,8 @@ func TestDNSMigration(t *testing.T) {
 
 	t.Run("preserves all custom DNS resolvers unchanged", func(t *testing.T) {
 		t.Parallel()
-		input := buildTestConfig(map[string]interface{}{
-			"DNS": map[string]interface{}{
+		input := buildTestConfig(map[string]any{
+			"DNS": map[string]any{
 				"Resolvers": map[string]string{
 					".":    "https://my-custom-resolver.com",
 					".eth": "https://eth.resolver",
@@ -340,8 +339,8 @@ func TestDNSMigration(t *testing.T) {
 
 	t.Run("preserves custom dot and eth resolvers unchanged", func(t *testing.T) {
 		t.Parallel()
-		input := buildTestConfig(map[string]interface{}{
-			"DNS": map[string]interface{}{
+		input := buildTestConfig(map[string]any{
+			"DNS": map[string]any{
 				"Resolvers": map[string]string{
 					".":    "https://cloudflare-dns.com/dns-query",
 					".eth": "https://example.com/dns-query",
@@ -358,8 +357,8 @@ func TestDNSMigration(t *testing.T) {
 
 	t.Run("replaces old default eth resolver with auto", func(t *testing.T) {
 		t.Parallel()
-		input := buildTestConfig(map[string]interface{}{
-			"DNS": map[string]interface{}{
+		input := buildTestConfig(map[string]any{
+			"DNS": map[string]any{
 				"Resolvers": map[string]string{
 					".":       "https://cloudflare-dns.com/dns-query",
 					".eth":    "https://dns.eth.limo/dns-query",                // should be replaced
@@ -395,8 +394,8 @@ func TestRoutingMigration(t *testing.T) {
 
 	t.Run("replaces cid.contact with auto while preserving custom routers added by user", func(t *testing.T) {
 		t.Parallel()
-		input := buildTestConfig(map[string]interface{}{
-			"Routing": map[string]interface{}{
+		input := buildTestConfig(map[string]any{
+			"Routing": map[string]any{
 				"DelegatedRouters": []string{
 					"https://cid.contact",
 					"https://my-custom-router.com",
@@ -425,8 +424,8 @@ func TestIpnsMigration(t *testing.T) {
 
 	t.Run("preserves existing custom DelegatedPublishers unchanged", func(t *testing.T) {
 		t.Parallel()
-		input := buildTestConfig(map[string]interface{}{
-			"Ipns": map[string]interface{}{
+		input := buildTestConfig(map[string]any{
+			"Ipns": map[string]any{
 				"DelegatedPublishers": []string{
 					"https://my-publisher.com",
 					"https://another-publisher.com",
@@ -440,8 +439,8 @@ func TestIpnsMigration(t *testing.T) {
 
 	t.Run("adds auto DelegatedPublishers to existing Ipns section", func(t *testing.T) {
 		t.Parallel()
-		input := buildTestConfig(map[string]interface{}{
-			"Ipns": map[string]interface{}{
+		input := buildTestConfig(map[string]any{
+			"Ipns": map[string]any{
 				"ResolveCacheSize": 128,
 			},
 		})
@@ -461,8 +460,8 @@ func TestAutoConfMigration(t *testing.T) {
 
 	t.Run("preserves existing AutoConf fields unchanged", func(t *testing.T) {
 		t.Parallel()
-		input := buildTestConfig(map[string]interface{}{
-			"AutoConf": map[string]interface{}{
+		input := buildTestConfig(map[string]any{
+			"AutoConf": map[string]any{
 				"URL":         "https://custom.example.com/autoconf.json",
 				"Enabled":     false,
 				"CustomField": "preserved",
