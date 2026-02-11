@@ -1,4 +1,4 @@
-<!-- Last updated during [v0.38.0 release](https://github.com/ipfs/kubo/issues/10884) -->
+<!-- Last updated during [v0.40.0 release](https://github.com/ipfs/kubo/issues/11008) -->
 
 # ✅ Release Checklist (vX.Y.Z[-rcN])
 
@@ -21,25 +21,25 @@
   - [ ] Create `./docs/changelogs/vX.Y+1.md` and add link in [CHANGELOG.md](https://github.com/ipfs/kubo/blob/master/CHANGELOG.md)
 - [ ] Switch to `release-vX.Y.Z` branch and update [version.go](https://github.com/ipfs/kubo/blob/master/version.go) to `vX.Y.Z(-rcN)` (⚠️ double-check Y matches release) ([example](https://github.com/ipfs/kubo/pull/9394))
 - [ ] Create draft PR: `release-vX.Y.Z` → `release` ([example](https://github.com/ipfs/kubo/pull/9306))
-- [ ] In `release-vX.Y.Z` branch, cherry-pick commits from `master`: `git cherry-pick -x <commit>` ([example](https://github.com/ipfs/kubo/pull/10636/commits/033de22e3bc6191dbb024ad6472f5b96b34e3ccf))
-  - ⚠️ **NOTE:** `-x` flag records original commit SHA for traceability and ensures cleaner merges with deduplicated commits in history
+- [ ] Cherry-pick commits from `master` into `release-vX.Y.Z`: `git cherry-pick -x <commit>` ([example](https://github.com/ipfs/kubo/pull/10636/commits/033de22e3bc6191dbb024ad6472f5b96b34e3ccf))
+  - ⚠️ **NOTE:** `-x` flag records original commit SHA for traceability and cleaner merge history
 - [ ] Verify all CI checks on the PR are passing
-- [ ] **FINAL only:** In `release-vX.Y.Z` branch, replace `Changelog` and `Contributors` sections with `./bin/mkreleaselog` stdout (do **NOT** copy stderr)
+- [ ] **FINAL only:** Replace `Changelog` and `Contributors` sections in `release-vX.Y.Z` with `./bin/mkreleaselog` stdout (do **NOT** copy stderr)
 - [ ] **FINAL only:** Merge PR (`release-vX.Y.Z` → `release`) using `Create a merge commit`
-  - ⚠️ do **NOT** use `Squash and merge` nor `Rebase and merge` because we need to be able to sign the merge commit
+  - ⚠️ do **NOT** use `Squash and merge` nor `Rebase and merge` -- we want the releaser's GPG signature on the merge commit
   - ⚠️ do **NOT** delete the `release-vX.Y.Z` branch (needed for future patch releases and git history)
 
 ## 2. Tag & Publish
 
 ### Create Tag
-⚠️ **POINT OF NO RETURN:** Once pushed, tags trigger automatic Docker/NPM publishing that cannot be reversed!
+⚠️ **POINT OF NO RETURN:** Once pushed, tags trigger automatic Docker/NPM publishing and are irreversible!
 If you're making a release for the first time, do pair programming and have the release reviewer verify all commands.
 
 - [ ] **RC:** From `release-vX.Y.Z` branch: `git tag -s vX.Y.Z-rcN -m 'Prerelease X.Y.Z-rcN'`
 - [ ] **FINAL:** After PR merge, from `release` branch: `git tag -s vX.Y.Z -m 'Release X.Y.Z'`
 - [ ] ⚠️ Verify tag is signed and correct: `git show vX.Y.Z(-rcN)`
 - [ ] Push tag: `git push origin vX.Y.Z(-rcN)`
-  - ⚠️ do **NOT** use `git push --tags` because it pushes all your local tags
+  - ⚠️ do **NOT** use `git push --tags` (pushes all local tags, polluting the repo with noise)
 - [ ] **STOP:** Wait for [Docker build](https://github.com/ipfs/kubo/actions/workflows/docker-image.yml) to complete before proceeding
 
 ### Publish Artifacts
@@ -65,7 +65,7 @@ If you're making a release for the first time, do pair programming and have the 
   - [ ] Link to release issue
   - [ ] **RC:** Link to changelog, check `This is a pre-release`
   - [ ] **FINAL:** Copy changelog content (without header), do **NOT** check pre-release
-  - [ ] Run [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow (requires dist.ipfs.tech to be done)
+  - [ ] Run [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow (requires dist.ipfs.tech)
   - [ ] Verify assets are attached to the GitHub release
 
 ## 3. Post-Release
@@ -75,9 +75,9 @@ If you're making a release for the first time, do pair programming and have the 
 - [ ] **FINAL only:** Merge `release` → `master`
   - [ ] Create branch `merge-release-vX.Y.Z` from `release`
   - [ ] Merge `master` to `merge-release-vX.Y.Z` first, and resolve conflict in `version.go`
-    - ⚠️ **NOTE:** make sure to ignore the changes to [version.go](https://github.com/ipfs/kubo/blob/master/version.go) (keep the `-dev` in `master`)
+    - ⚠️ **NOTE:** keep the `-dev` version from `master` in [version.go](https://github.com/ipfs/kubo/blob/master/version.go), discard version from `release`
   - [ ] Create and merge PR from `merge-release-vX.Y.Z` to `master` using `Create a merge commit`
-    - ⚠️ do **NOT** use `Squash and merge` nor `Rebase and merge` because we want to preserve original commit history
+    - ⚠️ do **NOT** use `Squash and merge` nor `Rebase and merge` -- only `Create a merge commit` preserves commit history and audit trail of what was merged where
 - [ ] Update [ipshipyard/waterworks-infra](https://github.com/ipshipyard/waterworks-infra)
   - [ ] Update Kubo staging environment ([Running Kubo tests on staging](https://www.notion.so/Running-Kubo-tests-on-staging-488578bb46154f9bad982e4205621af8))
     - [ ] **RC:** Test last release against current RC
