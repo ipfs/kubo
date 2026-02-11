@@ -46,7 +46,7 @@ type UnixfsAddSettings struct {
 	FsCache  bool
 	NoCopy   bool
 
-	Events   chan<- interface{}
+	Events   chan<- any
 	Silent   bool
 	Progress bool
 
@@ -320,7 +320,7 @@ func (unixfsOpts) HashOnly(hashOnly bool) UnixfsAddOption {
 // Add operation.
 //
 // Note that if this channel blocks it may slowdown the adder
-func (unixfsOpts) Events(sink chan<- interface{}) UnixfsAddOption {
+func (unixfsOpts) Events(sink chan<- any) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Events = sink
 		return nil

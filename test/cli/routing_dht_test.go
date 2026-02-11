@@ -87,7 +87,6 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 				t.Parallel()
 				keys := []string{"foo", "/pk/foo", "/ipns/foo"}
 				for _, key := range keys {
-					key := key
 					t.Run(key, func(t *testing.T) {
 						t.Parallel()
 						res := nodes[0].RunIPFS("routing", "put", key)
@@ -100,7 +99,6 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 
 			t.Run("get with bad keys (issue #4611)", func(t *testing.T) {
 				for _, key := range []string{"foo", "/pk/foo"} {
-					key := key
 					t.Run(key, func(t *testing.T) {
 						t.Parallel()
 						res := nodes[0].RunIPFS("routing", "get", key)

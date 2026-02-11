@@ -25,7 +25,7 @@ type pubsubParams struct {
 	Discovery discovery.Discovery
 }
 
-func FloodSub(pubsubOptions ...pubsub.Option) interface{} {
+func FloodSub(pubsubOptions ...pubsub.Option) any {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, params pubsubParams) (service *pubsub.PubSub, err error) {
 		return pubsub.NewFloodSub(
 			helpers.LifecycleCtx(mctx, lc),
@@ -37,7 +37,7 @@ func FloodSub(pubsubOptions ...pubsub.Option) interface{} {
 	}
 }
 
-func GossipSub(pubsubOptions ...pubsub.Option) interface{} {
+func GossipSub(pubsubOptions ...pubsub.Option) any {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, params pubsubParams) (service *pubsub.PubSub, err error) {
 		return pubsub.NewGossipSub(
 			helpers.LifecycleCtx(mctx, lc),

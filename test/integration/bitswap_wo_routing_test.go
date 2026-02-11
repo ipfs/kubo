@@ -20,7 +20,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 	mn := mocknet.New()
 
 	var nodes []*core.IpfsNode
-	for i := 0; i < numPeers; i++ {
+	for range numPeers {
 		n, err := core.NewNode(ctx, &core.BuildCfg{
 			Online:  true,
 			Host:    coremock.MockHostOption(mn),

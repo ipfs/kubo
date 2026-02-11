@@ -56,8 +56,8 @@ func GetPreemptsAutoUpdate(e *cmds.Extra) (val bool, found bool) {
 	return getBoolFlag(e, preemptsAutoUpdate{})
 }
 
-func getBoolFlag(e *cmds.Extra, key interface{}) (val bool, found bool) {
-	var ival interface{}
+func getBoolFlag(e *cmds.Extra, key any) (val bool, found bool) {
+	var ival any
 	ival, found = e.GetValue(key)
 	if !found {
 		return false, false

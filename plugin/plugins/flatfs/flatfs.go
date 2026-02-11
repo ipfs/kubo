@@ -45,7 +45,7 @@ type datastoreConfig struct {
 // DatastoreConfigParser returns a configuration stub for a flatfs datastore
 // from the given parameters.
 func (*flatfsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
-	return func(params map[string]interface{}) (fsrepo.DatastoreConfig, error) {
+	return func(params map[string]any) (fsrepo.DatastoreConfig, error) {
 		var c datastoreConfig
 		var ok bool
 		var err error
@@ -73,7 +73,7 @@ func (*flatfsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 }
 
 func (c *datastoreConfig) DiskSpec() fsrepo.DiskSpec {
-	return map[string]interface{}{
+	return map[string]any{
 		"type":      "flatfs",
 		"path":      c.path,
 		"shardFunc": c.shardFun.String(),

@@ -630,7 +630,7 @@ func createDeterministicFiles(dirPath string, numFiles, nameLen, lastNameLen int
 		return err
 	}
 
-	for i := 0; i < numFiles; i++ {
+	for i := range numFiles {
 		// Use lastNameLen for the final file
 		currentNameLen := nameLen
 		if i == numFiles-1 {

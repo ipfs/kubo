@@ -423,12 +423,12 @@ func TestLogLevel(t *testing.T) {
 			defer resp.Body.Close()
 
 			// Parse JSON response
-			var result map[string]interface{}
+			var result map[string]any
 			err = json.NewDecoder(resp.Body).Decode(&result)
 			require.NoError(t, err)
 
 			// Check that we have the Levels field
-			levels, ok := result["Levels"].(map[string]interface{})
+			levels, ok := result["Levels"].(map[string]any)
 			require.True(t, ok, "Response should have 'Levels' field")
 
 			// Should have exactly one entry for the default level
@@ -498,12 +498,12 @@ func TestLogLevel(t *testing.T) {
 			defer resp.Body.Close()
 
 			// Parse JSON response
-			var result map[string]interface{}
+			var result map[string]any
 			err = json.NewDecoder(resp.Body).Decode(&result)
 			require.NoError(t, err)
 
 			// Check that we have the Levels field
-			levels, ok := result["Levels"].(map[string]interface{})
+			levels, ok := result["Levels"].(map[string]any)
 			require.True(t, ok, "Response should have 'Levels' field")
 
 			// Should have exactly one entry
@@ -526,7 +526,7 @@ func TestLogLevel(t *testing.T) {
 			defer resp.Body.Close()
 
 			// Parse JSON response
-			var result map[string]interface{}
+			var result map[string]any
 			err = json.NewDecoder(resp.Body).Decode(&result)
 			require.NoError(t, err)
 
@@ -549,7 +549,7 @@ func TestLogLevel(t *testing.T) {
 			defer resp.Body.Close()
 
 			// Parse JSON response
-			var result map[string]interface{}
+			var result map[string]any
 			err = json.NewDecoder(resp.Body).Decode(&result)
 			require.NoError(t, err)
 
@@ -577,7 +577,7 @@ func TestLogLevel(t *testing.T) {
 			defer resp.Body.Close()
 
 			// Parse JSON response
-			var result map[string]interface{}
+			var result map[string]any
 			err = json.NewDecoder(resp.Body).Decode(&result)
 			require.NoError(t, err)
 
@@ -594,11 +594,11 @@ func TestLogLevel(t *testing.T) {
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
-			var getResult map[string]interface{}
+			var getResult map[string]any
 			err = json.NewDecoder(resp.Body).Decode(&getResult)
 			require.NoError(t, err)
 
-			levels, _ := getResult["Levels"].(map[string]interface{})
+			levels, _ := getResult["Levels"].(map[string]any)
 			coreLevel, _ := levels["core"].(string)
 			assert.Equal(t, "error", coreLevel, "Core level should be back to 'error' (default)")
 		})
@@ -790,18 +790,18 @@ func parseCLIOutput(t *testing.T, output string) map[string]string {
 	return actualSubsystems
 }
 
-func parseHTTPResponse(t *testing.T, resp *http.Response) map[string]interface{} {
+func parseHTTPResponse(t *testing.T, resp *http.Response) map[string]any {
 	t.Helper()
-	var result map[string]interface{}
+	var result map[string]any
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err)
-	levels, ok := result["Levels"].(map[string]interface{})
+	levels, ok := result["Levels"].(map[string]any)
 	require.True(t, ok, "Response should have 'Levels' field")
 	assert.Greater(t, len(levels), 10, "Should have many subsystems")
 	return levels
 }
 
-func validateAllSubsystemsPresent(t *testing.T, expectedSubsystems []string, actualLevels map[string]interface{}, context string) {
+func validateAllSubsystemsPresent(t *testing.T, expectedSubsystems []string, actualLevels map[string]any, context string) {
 	t.Helper()
 	for _, expectedSub := range expectedSubsystems {
 		expectedSub = strings.TrimSpace(expectedSub)

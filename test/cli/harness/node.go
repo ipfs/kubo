@@ -475,7 +475,7 @@ func (n *Node) PeerID() peer.ID {
 
 func (n *Node) WaitOnAPI(authorization string) *Node {
 	log.Debugf("waiting on API for node %d", n.ID)
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		if n.checkAPI(authorization) {
 			log.Debugf("daemon API found, daemon stdout: %s", n.Daemon.Stdout.String())
 			return n
@@ -647,7 +647,7 @@ func (n *Node) Peers() []multiaddr.Multiaddr {
 	// Wait for daemon to be ready if it's supposed to be running
 	if n.Daemon != nil && n.Daemon.Cmd != nil && n.Daemon.Cmd.Process != nil {
 		// Give daemon a short time to become ready
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			if n.IsAlive() {
 				break
 			}

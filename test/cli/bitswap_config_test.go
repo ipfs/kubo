@@ -141,10 +141,10 @@ func TestBitswapConfig(t *testing.T) {
 
 		// read libp2p identify from remote peer, and print protocols
 		res := requester.IPFS("id", "-f", "<protocols>", provider.PeerID().String())
-		protocols := strings.Split(strings.TrimSpace(res.Stdout.String()), "\n")
+		protocols := strings.SplitSeq(strings.TrimSpace(res.Stdout.String()), "\n")
 
 		// No bitswap protocols should be present
-		for _, proto := range protocols {
+		for proto := range protocols {
 			assert.NotContains(t, proto, bsnet.ProtocolBitswap, "bitswap protocol %s should not be advertised when server is disabled", proto)
 			assert.NotContains(t, proto, bsnet.ProtocolBitswapNoVers, "bitswap protocol %s should not be advertised when server is disabled", proto)
 			assert.NotContains(t, proto, bsnet.ProtocolBitswapOneOne, "bitswap protocol %s should not be advertised when server is disabled", proto)

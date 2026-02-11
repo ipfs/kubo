@@ -26,7 +26,7 @@ func (n *Node) IPFSCommands() []string {
 	return cmds
 }
 
-func (n *Node) SetIPFSConfig(key string, val interface{}, flags ...string) {
+func (n *Node) SetIPFSConfig(key string, val any, flags ...string) {
 	valBytes, err := json.Marshal(val)
 	if err != nil {
 		log.Panicf("marshling config for key '%s': %s", key, err)
@@ -57,13 +57,13 @@ func (n *Node) SetIPFSConfig(key string, val interface{}, flags ...string) {
 	}
 }
 
-func (n *Node) GetIPFSConfig(key string, val interface{}) {
+func (n *Node) GetIPFSConfig(key string, val any) {
 	res := n.IPFS("config", key)
 	valStr := strings.TrimSpace(res.Stdout.String())
 	// only when the result is a string is the result not well-formed JSON,
 	// so check the value type and add quotes if it's expected to be a string
 	reflectVal := reflect.ValueOf(val)
-	if reflectVal.Kind() == reflect.Ptr && reflectVal.Elem().Kind() == reflect.String {
+	if reflectVal.Kind() == reflect.Pointer && reflectVal.Elem().Kind() == reflect.String {
 		valStr = fmt.Sprintf(`"%s"`, valStr)
 	}
 	err := json.Unmarshal([]byte(valStr), val)

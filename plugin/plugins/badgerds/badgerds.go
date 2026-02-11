@@ -52,7 +52,7 @@ type datastoreConfig struct {
 // BadgerdsDatastoreConfig returns a configuration stub for a badger datastore
 // from the given parameters.
 func (*badgerdsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
-	return func(params map[string]interface{}) (fsrepo.DatastoreConfig, error) {
+	return func(params map[string]any) (fsrepo.DatastoreConfig, error) {
 		var c datastoreConfig
 		var ok bool
 
@@ -104,7 +104,7 @@ func (*badgerdsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 }
 
 func (c *datastoreConfig) DiskSpec() fsrepo.DiskSpec {
-	return map[string]interface{}{
+	return map[string]any{
 		"type": "badgerds",
 		"path": c.path,
 	}

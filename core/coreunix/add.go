@@ -75,7 +75,7 @@ type Adder struct {
 	gcLocker           bstore.GCLocker
 	dagService         ipld.DAGService
 	bufferedDS         *ipld.BufferedDAG
-	Out                chan<- interface{}
+	Out                chan<- any
 	Progress           bool
 	Pin                bool
 	PinName            string
@@ -576,7 +576,7 @@ func (adder *Adder) maybePauseForGC(ctx context.Context) error {
 }
 
 // outputDagnode sends dagnode info over the output channel
-func outputDagnode(out chan<- interface{}, name string, dn ipld.Node) error {
+func outputDagnode(out chan<- any, name string, dn ipld.Node) error {
 	if out == nil {
 		return nil
 	}
@@ -614,7 +614,7 @@ func getOutput(dagnode ipld.Node) (*coreiface.AddEvent, error) {
 type progressReader struct {
 	file         io.Reader
 	path         string
-	out          chan<- interface{}
+	out          chan<- any
 	bytes        int64
 	lastProgress int64
 }

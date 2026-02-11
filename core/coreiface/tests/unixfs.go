@@ -377,14 +377,12 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 			// handle events if relevant to test case
 
 			opts := testCase.opts
-			eventOut := make(chan interface{})
+			eventOut := make(chan any)
 			var evtWg sync.WaitGroup
 			if len(testCase.events) > 0 {
 				opts = append(opts, options.Unixfs.Events(eventOut))
-				evtWg.Add(1)
 
-				go func() {
-					defer evtWg.Done()
+				evtWg.Go(func() {
 					expected := testCase.events
 
 					for evt := range eventOut {
@@ -424,7 +422,7 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 					if len(expected) > 0 {
 						t.Errorf("%d event(s) didn't arrive", len(expected))
 					}
-				}()
+				})
 			}
 
 			tapi, err := api.WithOptions(testCase.apiOpts...)
@@ -800,7 +798,7 @@ func (tp *TestSuite) TestLsNonUnixfs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nd, err := cbor.WrapObject(map[string]interface{}{"foo": "bar"}, math.MaxUint64, -1)
+	nd, err := cbor.WrapObject(map[string]any{"foo": "bar"}, math.MaxUint64, -1)
 	if err != nil {
 		t.Fatal(err)
 	}

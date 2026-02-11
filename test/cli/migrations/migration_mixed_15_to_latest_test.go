@@ -74,7 +74,7 @@ func testDaemonMigration15ToLatest(t *testing.T) {
 	require.Equal(t, "15", strings.TrimSpace(string(versionData)), "Should start at version 15")
 
 	// Read original config to verify preservation of key fields
-	var originalConfig map[string]interface{}
+	var originalConfig map[string]any
 	configData, err := os.ReadFile(configPath)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(configData, &originalConfig))
@@ -102,7 +102,7 @@ func testDaemonMigration15ToLatest(t *testing.T) {
 	require.Equal(t, latestVersion, strings.TrimSpace(string(versionData)), "Version should be updated to latest")
 
 	// Verify config is still valid JSON and key fields preserved
-	var finalConfig map[string]interface{}
+	var finalConfig map[string]any
 	configData, err = os.ReadFile(configPath)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(configData, &finalConfig), "Config should remain valid JSON")
@@ -148,7 +148,7 @@ func testRepoMigration15ToLatest(t *testing.T) {
 	require.Equal(t, latestVersion, strings.TrimSpace(string(versionData)), "Version should be updated to latest")
 
 	// Verify config is valid JSON
-	var finalConfig map[string]interface{}
+	var finalConfig map[string]any
 	configData, err := os.ReadFile(configPath)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(configData, &finalConfig), "Config should remain valid JSON")
@@ -413,13 +413,13 @@ func verifyMigrationSteps(t *testing.T, output string, from, to int, forward boo
 }
 
 // getNestedValue retrieves a nested value from a config map using dot notation
-func getNestedValue(config map[string]interface{}, path string) interface{} {
+func getNestedValue(config map[string]any, path string) any {
 	parts := strings.Split(path, ".")
-	current := interface{}(config)
+	current := any(config)
 
 	for _, part := range parts {
 		switch v := current.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			current = v[part]
 		default:
 			return nil
@@ -466,7 +466,7 @@ func testRepoReverseHybridMigrationLatestTo15(t *testing.T) {
 	require.Equal(t, latestVersion, strings.TrimSpace(string(versionData)), "Should be at latest version after forward migration")
 
 	// Read config after forward migration to use as baseline for downgrade
-	var latestConfig map[string]interface{}
+	var latestConfig map[string]any
 	configData, err := os.ReadFile(configPath)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(configData, &latestConfig))
@@ -487,7 +487,7 @@ func testRepoReverseHybridMigrationLatestTo15(t *testing.T) {
 	require.Equal(t, "15", strings.TrimSpace(string(versionData)), "Version should be updated to 15")
 
 	// Verify config is still valid JSON and key fields preserved
-	var finalConfig map[string]interface{}
+	var finalConfig map[string]any
 	configData, err = os.ReadFile(configPath)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(configData, &finalConfig), "Config should remain valid JSON")

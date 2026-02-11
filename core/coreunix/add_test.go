@@ -44,7 +44,7 @@ func TestAddMultipleGCLive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out := make(chan interface{}, 10)
+	out := make(chan any, 10)
 	adder, err := NewAdder(ctx, node.Pinning, node.Blockstore, node.DAG)
 	if err != nil {
 		t.Fatal(err)
@@ -176,7 +176,7 @@ func TestAddGCLive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out := make(chan interface{})
+	out := make(chan any)
 	adder, err := NewAdder(ctx, node.Pinning, node.Blockstore, node.DAG)
 	if err != nil {
 		t.Fatal(err)
@@ -291,7 +291,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := make(chan interface{})
+	out := make(chan any)
 	adder.Out = out
 	adder.Progress = true
 	adder.RawLeaves = rawLeaves
@@ -382,4 +382,4 @@ func (fi *dummyFileInfo) Size() int64        { return fi.size }
 func (fi *dummyFileInfo) Mode() os.FileMode  { return 0 }
 func (fi *dummyFileInfo) ModTime() time.Time { return fi.modTime }
 func (fi *dummyFileInfo) IsDir() bool        { return false }
-func (fi *dummyFileInfo) Sys() interface{}   { return nil }
+func (fi *dummyFileInfo) Sys() any           { return nil }

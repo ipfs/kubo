@@ -107,10 +107,10 @@ func TestIPFSWatch(t *testing.T) {
 
 		// Configure pebbleds as the datastore
 		node.UpdateConfig(func(cfg *config.Config) {
-			cfg.Datastore.Spec = map[string]interface{}{
+			cfg.Datastore.Spec = map[string]any{
 				"type": "mount",
-				"mounts": []interface{}{
-					map[string]interface{}{
+				"mounts": []any{
+					map[string]any{
 						"mountpoint": "/blocks",
 						"path":       "blocks",
 						"prefix":     "flatfs.datastore",
@@ -118,7 +118,7 @@ func TestIPFSWatch(t *testing.T) {
 						"sync":       true,
 						"type":       "flatfs",
 					},
-					map[string]interface{}{
+					map[string]any{
 						"mountpoint": "/",
 						"path":       "datastore",
 						"prefix":     "pebble.datastore",

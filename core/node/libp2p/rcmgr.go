@@ -28,7 +28,7 @@ const NetLimitTraceFilename = "rcmgr.json.gz"
 
 var ErrNoResourceMgr = errors.New("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
 
-func ResourceManager(repoPath string, cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimitConfig) interface{} {
+func ResourceManager(repoPath string, cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimitConfig) any {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 		var manager network.ResourceManager
 		var opts Libp2pOpts
@@ -231,8 +231,8 @@ func (u ResourceLimitsAndUsage) ToResourceLimits() rcmgr.ResourceLimits {
 type LimitsConfigAndUsage struct {
 	// This is duplicated from rcmgr.ResourceManagerStat but using ResourceLimitsAndUsage
 	// instead of network.ScopeStat.
-	System    ResourceLimitsAndUsage                 `json:",omitempty"`
-	Transient ResourceLimitsAndUsage                 `json:",omitempty"`
+	System    ResourceLimitsAndUsage
+	Transient ResourceLimitsAndUsage
 	Services  map[string]ResourceLimitsAndUsage      `json:",omitempty"`
 	Protocols map[protocol.ID]ResourceLimitsAndUsage `json:",omitempty"`
 	Peers     map[peer.ID]ResourceLimitsAndUsage     `json:",omitempty"`

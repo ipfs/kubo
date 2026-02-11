@@ -78,7 +78,7 @@ func AssertConfigField(t *testing.T, config map[string]any, path string, expecte
 	// Handle different types of comparisons
 	switch exp := expected.(type) {
 	case []string:
-		actualSlice, ok := actual.([]interface{})
+		actualSlice, ok := actual.([]any)
 		if !ok {
 			t.Errorf("field %s: expected []string, got %T", path, actual)
 			return
@@ -133,7 +133,7 @@ func CreateTestRepo(t *testing.T, version int, config map[string]any) string {
 
 	// Write version file
 	versionPath := filepath.Join(tempDir, "version")
-	err := os.WriteFile(versionPath, []byte(fmt.Sprintf("%d", version)), 0644)
+	err := os.WriteFile(versionPath, fmt.Appendf(nil, "%d", version), 0644)
 	if err != nil {
 		t.Fatalf("failed to write version file: %v", err)
 	}

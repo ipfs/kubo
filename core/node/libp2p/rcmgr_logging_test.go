@@ -36,7 +36,7 @@ func TestLoggingResourceManager(t *testing.T) {
 		}
 
 		// 2 of these should result in resource limit exceeded errors and subsequent log messages
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			_, _ = lrm.OpenConnection(network.DirInbound, false, ma.StringCast("/ip4/127.0.0.1/tcp/1234"))
 		}
 

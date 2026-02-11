@@ -17,10 +17,7 @@ func (r *randomReader) Read(p []byte) (int, error) {
 	if r.remaining <= 0 {
 		return 0, io.EOF
 	}
-	n := int64(len(p))
-	if n > r.remaining {
-		n = r.remaining
-	}
+	n := min(int64(len(p)), r.remaining)
 	// Generate random bytes directly into the provided buffer
 	r.cipher.XORKeyStream(p[:n], make([]byte, n))
 	r.remaining -= n

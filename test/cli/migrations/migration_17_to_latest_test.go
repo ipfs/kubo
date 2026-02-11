@@ -243,11 +243,11 @@ func testRepoProviderReproviderMigration(t *testing.T) {
 // setupV17RepoWithProviderConfig creates a v17 repo with Provider/Reprovider configuration
 func setupV17RepoWithProviderConfig(t *testing.T) *harness.Node {
 	return setupV17RepoWithConfig(t,
-		map[string]interface{}{
+		map[string]any{
 			"Enabled":     true,
 			"WorkerCount": 8,
 		},
-		map[string]interface{}{
+		map[string]any{
 			"Strategy": "roots",
 			"Interval": "24h",
 		})
@@ -256,17 +256,17 @@ func setupV17RepoWithProviderConfig(t *testing.T) *harness.Node {
 // setupV17RepoWithFlatStrategy creates a v17 repo with "flat" strategy for testing conversion
 func setupV17RepoWithFlatStrategy(t *testing.T) *harness.Node {
 	return setupV17RepoWithConfig(t,
-		map[string]interface{}{
+		map[string]any{
 			"Enabled": false,
 		},
-		map[string]interface{}{
+		map[string]any{
 			"Strategy": "flat", // This should be converted to "all"
 			"Interval": "12h",
 		})
 }
 
 // setupV17RepoWithConfig is a helper that creates a v17 repo with specified Provider/Reprovider config
-func setupV17RepoWithConfig(t *testing.T, providerConfig, reproviderConfig map[string]interface{}) *harness.Node {
+func setupV17RepoWithConfig(t *testing.T, providerConfig, reproviderConfig map[string]any) *harness.Node {
 	node := setupStaticV16Repo(t)
 
 	// First migrate to v17
@@ -275,7 +275,7 @@ func setupV17RepoWithConfig(t *testing.T, providerConfig, reproviderConfig map[s
 
 	// Update config with specified Provider and Reprovider settings
 	configPath := filepath.Join(node.Dir, "config")
-	var config map[string]interface{}
+	var config map[string]any
 	configData, err := os.ReadFile(configPath)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(configData, &config))
@@ -283,13 +283,13 @@ func setupV17RepoWithConfig(t *testing.T, providerConfig, reproviderConfig map[s
 	if providerConfig != nil {
 		config["Provider"] = providerConfig
 	} else {
-		config["Provider"] = map[string]interface{}{}
+		config["Provider"] = map[string]any{}
 	}
 
 	if reproviderConfig != nil {
 		config["Reprovider"] = reproviderConfig
 	} else {
-		config["Reprovider"] = map[string]interface{}{}
+		config["Reprovider"] = map[string]any{}
 	}
 
 	modifiedConfigData, err := json.MarshalIndent(config, "", "  ")
@@ -302,25 +302,25 @@ func setupV17RepoWithConfig(t *testing.T, providerConfig, reproviderConfig map[s
 // setupV17RepoWithEmptySections creates a v17 repo with empty Provider/Reprovider sections
 func setupV17RepoWithEmptySections(t *testing.T) *harness.Node {
 	return setupV17RepoWithConfig(t,
-		map[string]interface{}{},
-		map[string]interface{}{})
+		map[string]any{},
+		map[string]any{})
 }
 
 // setupV17RepoWithProviderOnly creates a v17 repo with only Provider configuration
 func setupV17RepoWithProviderOnly(t *testing.T) *harness.Node {
 	return setupV17RepoWithConfig(t,
-		map[string]interface{}{
+		map[string]any{
 			"Enabled":     false,
 			"WorkerCount": 32,
 		},
-		map[string]interface{}{})
+		map[string]any{})
 }
 
 // setupV17RepoWithReproviderOnly creates a v17 repo with only Reprovider configuration
 func setupV17RepoWithReproviderOnly(t *testing.T) *harness.Node {
 	return setupV17RepoWithConfig(t,
-		map[string]interface{}{},
-		map[string]interface{}{
+		map[string]any{},
+		map[string]any{
 			"Strategy": "pinned",
 			"Interval": "48h",
 		})
@@ -329,8 +329,8 @@ func setupV17RepoWithReproviderOnly(t *testing.T) *harness.Node {
 // setupV17RepoWithInvalidStrategy creates a v17 repo with an invalid strategy value
 func setupV17RepoWithInvalidStrategy(t *testing.T) *harness.Node {
 	return setupV17RepoWithConfig(t,
-		map[string]interface{}{},
-		map[string]interface{}{
+		map[string]any{},
+		map[string]any{
 			"Strategy": "invalid-strategy", // This is not a valid strategy
 			"Interval": "24h",
 		})

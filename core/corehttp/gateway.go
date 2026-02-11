@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"time"
@@ -281,9 +282,7 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, er
 	}
 
 	// Add default implicit known gateways, such as subdomain gateway on localhost.
-	for hostname, gw := range defaultKnownGateways {
-		gwCfg.PublicGateways[hostname] = gw
-	}
+	maps.Copy(gwCfg.PublicGateways, defaultKnownGateways)
 
 	// Apply values from cfg.Gateway.PublicGateways if they exist.
 	for hostname, gw := range cfg.Gateway.PublicGateways {

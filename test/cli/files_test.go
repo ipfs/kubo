@@ -200,7 +200,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		defer node.StopDaemon()
 
 		// Perform 256 operations with --flush=false (should succeed)
-		for i := 0; i < 256; i++ {
+		for i := range 256 {
 			res := node.IPFS("files", "mkdir", "--flush=false", fmt.Sprintf("/dir%d", i))
 			assert.NoError(t, res.Err, "operation %d should succeed", i+1)
 		}
@@ -229,7 +229,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		defer node.StopDaemon()
 
 		// Perform 5 operations (should succeed)
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			res := node.IPFS("files", "mkdir", "--flush=false", fmt.Sprintf("/dir%d", i))
 			assert.NoError(t, res.Err, "operation %d should succeed", i+1)
 		}
@@ -321,7 +321,7 @@ func TestFilesNoFlushLimit(t *testing.T) {
 		defer node.StopDaemon()
 
 		// Should be able to do many operations without error
-		for i := 0; i < 300; i++ {
+		for i := range 300 {
 			res := node.IPFS("files", "mkdir", "--flush=false", fmt.Sprintf("/dir%d", i))
 			assert.NoError(t, res.Err, "operation %d should succeed with limit disabled", i+1)
 		}

@@ -99,7 +99,7 @@ func makeAddrsFactory(announce []string, appendAnnounce []string, noAnnounce []s
 	}, nil
 }
 
-func AddrsFactory(announce []string, appendAnnounce []string, noAnnounce []string) interface{} {
+func AddrsFactory(announce []string, appendAnnounce []string, noAnnounce []string) any {
 	return func(params struct {
 		fx.In
 		ForgeMgr *p2pforge.P2PForgeCertMgr `optional:"true"`
@@ -124,7 +124,7 @@ func AddrsFactory(announce []string, appendAnnounce []string, noAnnounce []strin
 	}
 }
 
-func ListenOn(addresses []string) interface{} {
+func ListenOn(addresses []string) any {
 	return func() (opts Libp2pOpts) {
 		return Libp2pOpts{
 			Opts: []libp2p.Option{
@@ -134,7 +134,7 @@ func ListenOn(addresses []string) interface{} {
 	}
 }
 
-func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEventLogger) interface{} {
+func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEventLogger) any {
 	return func() (*p2pforge.P2PForgeCertMgr, error) {
 		storagePath := filepath.Join(repoPath, "p2p-forge-certs")
 		rawLogger := atlsLog.Desugar()

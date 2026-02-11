@@ -431,7 +431,7 @@ func TestRemotePinning(t *testing.T) {
 				defer pin.M.Unlock()
 				pin.Status = "pinned"
 			}
-			for i := 0; i < 4; i++ {
+			for i := range 4 {
 				hash := node.IPFSAddStr(string(random.Bytes(1000)))
 				name := fmt.Sprintf("--name=%d", i)
 				node.IPFS("pin", "remote", "add", "--service=svc", "--name="+name, hash)

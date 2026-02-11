@@ -47,6 +47,15 @@ jobs:
             echo "$out"
             exit 1
           fi
+      - name: go fix
+        if: always() # run this step even if the previous one failed
+        run: |
+          go fix ./...
+          if [[ -n $(git diff --name-only) ]]; then
+            echo "go fix produced changes. Run 'go fix ./...' locally and commit the result."
+            git diff
+            exit 1
+          fi
       - name: go vet
         if: always() # run this step even if the previous one failed
         uses: protocol/multiple-go-modules@v1.4

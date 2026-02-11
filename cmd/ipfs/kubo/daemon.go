@@ -1287,7 +1287,7 @@ func merge(cs ...<-chan error) <-chan error {
 
 func YesNoPrompt(prompt string) bool {
 	var s string
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		fmt.Printf("%s ", prompt)
 		_, err := fmt.Scanf("%s", &s)
 		if err != nil {

@@ -6,16 +6,16 @@ import (
 	"strings"
 )
 
-func MapGetKV(v map[string]interface{}, key string) (interface{}, error) {
+func MapGetKV(v map[string]any, key string) (any, error) {
 	var ok bool
-	var mcursor map[string]interface{}
-	var cursor interface{} = v
+	var mcursor map[string]any
+	var cursor any = v
 
 	parts := strings.Split(key, ".")
 	for i, part := range parts {
 		sofar := strings.Join(parts[:i], ".")
 
-		mcursor, ok = cursor.(map[string]interface{})
+		mcursor, ok = cursor.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("%s key is not a map", sofar)
 		}
@@ -34,14 +34,14 @@ func MapGetKV(v map[string]interface{}, key string) (interface{}, error) {
 	return cursor, nil
 }
 
-func MapSetKV(v map[string]interface{}, key string, value interface{}) error {
+func MapSetKV(v map[string]any, key string, value any) error {
 	var ok bool
-	var mcursor map[string]interface{}
-	var cursor interface{} = v
+	var mcursor map[string]any
+	var cursor any = v
 
 	parts := strings.Split(key, ".")
 	for i, part := range parts {
-		mcursor, ok = cursor.(map[string]interface{})
+		mcursor, ok = cursor.(map[string]any)
 		if !ok {
 			sofar := strings.Join(parts[:i], ".")
 			return fmt.Errorf("%s key is not a map", sofar)
@@ -55,7 +55,7 @@ func MapSetKV(v map[string]interface{}, key string, value interface{}) error {
 
 		cursor, ok = mcursor[part]
 		if !ok || cursor == nil { // create map if this is empty or is null
-			mcursor[part] = map[string]interface{}{}
+			mcursor[part] = map[string]any{}
 			cursor = mcursor[part]
 		}
 	}
@@ -64,20 +64,20 @@ func MapSetKV(v map[string]interface{}, key string, value interface{}) error {
 
 // MapMergeDeep merges the right map into the left map, recursively traversing
 // child maps until a non-map value is found.
-func MapMergeDeep(left, right map[string]interface{}) map[string]interface{} {
+func MapMergeDeep(left, right map[string]any) map[string]any {
 	// We want to alter a copy of the map, not the original
 	result := maps.Clone(left)
 	if result == nil {
-		result = make(map[string]interface{})
+		result = make(map[string]any)
 	}
 
 	for key, rightVal := range right {
 		// If right value is a map
-		if rightMap, ok := rightVal.(map[string]interface{}); ok {
+		if rightMap, ok := rightVal.(map[string]any); ok {
 			// If key is in left
 			if leftVal, found := result[key]; found {
 				// If left value is also a map
-				if leftMap, ok := leftVal.(map[string]interface{}); ok {
+				if leftMap, ok := leftVal.(map[string]any); ok {
 					// Merge nested map
 					result[key] = MapMergeDeep(leftMap, rightMap)
 					continue

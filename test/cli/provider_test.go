@@ -647,7 +647,7 @@ func runResumeTests(t *testing.T, apply cfgApplier) {
 		node := setupNode(t, true)
 		defer node.StopDaemon()
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			node.IPFSAddStr(fmt.Sprintf("resume-test-%d-%d", i, time.Now().UnixNano()))
 		}
 
@@ -678,7 +678,7 @@ func runResumeTests(t *testing.T, apply cfgApplier) {
 		node := setupNode(t, false)
 		defer node.StopDaemon()
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			node.IPFSAddStr(fmt.Sprintf("no-resume-%d-%d", i, time.Now().UnixNano()))
 		}
 
@@ -753,7 +753,6 @@ func TestProvider(t *testing.T) {
 	}
 
 	for _, v := range variants {
-		v := v // capture
 		t.Run(v.name, func(t *testing.T) {
 			// t.Parallel()
 			runProviderSuite(t, v.reprovide, v.apply)

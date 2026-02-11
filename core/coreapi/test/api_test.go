@@ -37,7 +37,7 @@ func (NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdentity
 	nodes := make([]*core.IpfsNode, n)
 	apis := make([]coreiface.CoreAPI, n)
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		var ident config.Identity
 		if fullIdentity {
 			sk, pk, err := crypto.GenerateKeyPair(crypto.RSA, 2048)

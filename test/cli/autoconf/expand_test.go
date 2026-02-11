@@ -286,7 +286,7 @@ func testConfigReplacePreservesAuto(t *testing.T) {
 	assert.Contains(t, originalConfig, `"foo.": "auto"`)
 
 	// Modify the config string to add a new field but preserve auto values
-	var configMap map[string]interface{}
+	var configMap map[string]any
 	err := json.Unmarshal([]byte(originalConfig), &configMap)
 	require.NoError(t, err)
 

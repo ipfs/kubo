@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -14,12 +15,7 @@ func TestPeering(t *testing.T) {
 	t.Parallel()
 
 	containsPeerID := func(p peer.ID, peers []peer.ID) bool {
-		for _, peerID := range peers {
-			if p == peerID {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(peers, p)
 	}
 
 	assertPeered := func(h *harness.Harness, from *harness.Node, to *harness.Node) {
