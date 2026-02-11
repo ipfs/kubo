@@ -191,10 +191,10 @@ github.com/fsnotify/fsnotify v1.9.0 h1:2Ml+OJNzbYCTzsxtv8vKSFD9PbJjmhYF14k/jKC7S
 github.com/fsnotify/fsnotify v1.9.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
 github.com/gabriel-vasile/mimetype v1.4.13 h1:46nXokslUBsAJE/wMsp5gtO500a4F3Nkz9Ufpk2AcUM=
 github.com/gabriel-vasile/mimetype v1.4.13/go.mod h1:d+9Oxyo1wTzWdyVUPMmXFvp4F9tea18J8ufA774AB3s=
-github.com/gammazero/chanqueue v1.1.1 h1:n9Y+zbBxw2f7uUE9wpgs0rOSkP/I/yhDLiNuhyVjojQ=
-github.com/gammazero/chanqueue v1.1.1/go.mod h1:fMwpwEiuUgpab0sH4VHiVcEoji1pSi+EIzeG4TPeKPc=
-github.com/gammazero/deque v1.2.0 h1:scEFO8Uidhw6KDU5qg1HA5fYwM0+us2qdeJqm43bitU=
-github.com/gammazero/deque v1.2.0/go.mod h1:JVrR+Bj1NMQbPnYclvDlvSX0nVGReLrQZ0aUMuWLctg=
+github.com/gammazero/chanqueue v1.1.2 h1:dZEsxlyANZMyeTRemABqZF8QM9BnE4NBI43Oh3y5fIU=
+github.com/gammazero/chanqueue v1.1.2/go.mod h1:XDN1X/jjAbmSceNFOQbtKToeSkxtdVdpKu90LiEdBEE=
+github.com/gammazero/deque v1.2.1 h1:9fnQVFCCZ9/NOc7ccTNqzoKd1tCWOqeI05/lPqFPMGQ=
+github.com/gammazero/deque v1.2.1/go.mod h1:5nSFkzVm+afG9+gy0VIowlqVAW4N8zNcMne+CMQVD2g=
 github.com/getsentry/sentry-go v0.27.0 h1:Pv98CIbtB3LkMWmXi4Joa5OOcwbmnX88sF5qbK3r3Ps=
 github.com/getsentry/sentry-go v0.27.0/go.mod h1:lc76E2QywIyW8WuBnwl8Lc4bkmQH4+w1gwTf25trprY=
 github.com/ghemawat/stream v0.0.0-20171120220530-696b145b53b9 h1:r5GgOLGbza2wVHRzK7aAj6lWZjfbAwiu/RDCVOKjRyM=
@@ -337,8 +337,8 @@ github.com/ipfs-shipyard/nopfs/ipfs v0.25.0 h1:OqNqsGZPX8zh3eFMO8Lf8EHRRnSGBMqcd
 github.com/ipfs-shipyard/nopfs/ipfs v0.25.0/go.mod h1:BxhUdtBgOXg1B+gAPEplkg/GpyTZY+kCMSfsJvvydqU=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.36.1-0.20260210230410-6aa643a56c32 h1:yYgdmwyjbq7qcjOtqiVOzkc8QBHXbjdguuJkfYo76kQ=
-github.com/ipfs/boxo v0.36.1-0.20260210230410-6aa643a56c32/go.mod h1:ip9d1xRCRtuv8w6JJzJixmdFFtUlRrwqeLrD0tjUQGU=
+github.com/ipfs/boxo v0.36.1-0.20260211074541-f0cdbf65a72b h1:dcjrfT0hY1Gol3ds3TrFIaRKvkOoGqOJQ9tbkXZuqOU=
+github.com/ipfs/boxo v0.36.1-0.20260211074541-f0cdbf65a72b/go.mod h1:TJ3hfnoZHuSMSXZn8K5rqOx1qW/0XoA6vubiQEumCLw=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-block-format v0.0.3/go.mod h1:4LmD4ZUw0mhO+JSKdpWwrzATiEfM7WWgQ8H5l6P8MVk=
@@ -369,8 +369,8 @@ github.com/ipfs/go-ds-measure v0.2.2 h1:4kwvBGbbSXNYe4ANlg7qTIYoZU6mNlqzQHdVqICk
 github.com/ipfs/go-ds-measure v0.2.2/go.mod h1:b/87ak0jMgH9Ylt7oH0+XGy4P8jHx9KG09Qz+pOeTIs=
 github.com/ipfs/go-ds-pebble v0.5.9 h1:D1FEuMxjbEmDADNqsyT74n9QHVAn12nv9i9Qa15AFYc=
 github.com/ipfs/go-ds-pebble v0.5.9/go.mod h1:XmUBN05l6B+tMg7mpMS75ZcKW/CX01uZMhhWw85imQA=
-github.com/ipfs/go-dsqueue v0.1.2 h1:jBMsgvT9Pj9l3cqI0m5jYpW/aWDYkW4Us6EuzrcSGbs=
-github.com/ipfs/go-dsqueue v0.1.2/go.mod h1:OU94YuMVUIF/ctR7Ysov9PI4gOa2XjPGN9nd8imSv78=
+github.com/ipfs/go-dsqueue v0.2.0 h1:MBi9w3oSiX98Xc+Y7NuJ9G8MI6mAT4IGdO9dHEMCZzU=
+github.com/ipfs/go-dsqueue v0.2.0/go.mod h1:8FfNQC4DMF/KkzBXRNB9Rb3MKDW0Sh98HMtXYl1mLQE=
 github.com/ipfs/go-fs-lock v0.1.1 h1:TecsP/Uc7WqYYatasreZQiP9EGRy4ZnKoG4yXxR33nw=
 github.com/ipfs/go-fs-lock v0.1.1/go.mod h1:2goSXMCw7QfscHmSe09oXiR34DQeUdm+ei+dhonqly0=
 github.com/ipfs/go-ipfs-cmds v0.15.1-0.20260204204540-af9bcbaf5709 h1:0JiurWPnR7ZtjYW8XdfThOcOU5WlVVGQ1JY4FHHgyu8=
