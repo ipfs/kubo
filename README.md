@@ -186,7 +186,7 @@ Kubo is available in community-maintained packages across many operating systems
 
 ## Development
 
-See the [Developer Guide](docs/developer-guide.md) for build instructions, testing, and contribution workflow.
+See the [Developer Guide](docs/developer-guide.md) for build instructions, testing, and contribution workflow. AI coding agents should follow [AGENTS.md](AGENTS.md).
 
 ## Getting Help
 
