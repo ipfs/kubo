@@ -29,6 +29,7 @@ If you're experiencing an issue with IPFS, please [file an issue](https://github
 ## Development
 
 - **[Developer Guide](developer-guide.md)** - prerequisites, build, test, and contribute
+- **[AGENTS.md](../AGENTS.md)** - instructions for AI coding agents
 - Contributing Guidelines [for IPFS projects](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md) and for [Go code specifically](https://github.com/ipfs/community/blob/master/CONTRIBUTING_GO.md)
 - [Building on Windows](windows.md)
 - [Customizing Kubo](customizing.md)
