@@ -448,6 +448,14 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		keystoreBasePath := filepath.Join(repoPath, keystoreDatastorePath)
 
 		createDs := func(suffix string) (datastore.Batching, error) {
+			// When no datastore spec is configured (e.g., test/mock repos),
+			// fall back to an in-memory datastore.
+			if rootSpec == nil {
+				return datastore.NewMapDatastore(), nil
+			}
+			if err := os.MkdirAll(keystoreBasePath, 0o755); err != nil {
+				return nil, fmt.Errorf("creating keystore base directory: %w", err)
+			}
 			spec := copySpec(rootSpec)
 			spec["path"] = filepath.Join(keystoreBasePath, suffix)
 			dsc, err := fsrepo.AnyDatastoreConfig(spec)
