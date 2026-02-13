@@ -333,6 +333,7 @@ const (
 	forceOptionName       = "force"
 	putAllowOfflineOption = "allow-offline"
 	allowDelegatedOption  = "allow-delegated"
+	putQuietOptionName    = "quiet"
 	maxIPNSRecordSize     = 10 << 10 // 10 KiB per IPNS spec
 )
 
@@ -374,6 +375,7 @@ By default, the command validates that:
   - The record size is within 10 KiB limit
   - The signature matches the provided IPNS name
   - The record's sequence number is higher than any existing record
+    (identical records are allowed for republishing)
 
 The --force flag skips this command's validation and passes the record
 directly to the routing system. Note that --force only affects this command;
@@ -421,6 +423,7 @@ Force store a record to test routing validation:
 		cmds.BoolOption(forceOptionName, "f", "Skip validation (signature, sequence, size)."),
 		cmds.BoolOption(putAllowOfflineOption, "Store locally without broadcasting to the network."),
 		cmds.BoolOption(allowDelegatedOption, "Publish via HTTP delegated publishers only (no DHT)."),
+		cmds.BoolOption(putQuietOptionName, "q", "Write no output."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
@@ -506,14 +509,15 @@ Force store a record to test routing validation:
 			// Check for sequence conflicts with existing record
 			existingData, err := api.Routing().Get(req.Context, nameArg)
 			if err == nil {
-				// We have an existing record, check sequence
-				existingRec, parseErr := ipns.UnmarshalRecord(existingData)
-				if parseErr == nil {
-					existingSeq, seqErr := existingRec.Sequence()
-					newSeq, newSeqErr := rec.Sequence()
-					if seqErr == nil && newSeqErr == nil {
-						if existingSeq >= newSeq {
-							return fmt.Errorf("existing record has sequence %d >= new record sequence %d, use --force to overwrite", existingSeq, newSeq)
+				// Allow republishing the exact same record (common use case:
+				// get a third-party record and put it back to refresh DHT)
+				if !bytes.Equal(existingData, data) {
+					existingRec, parseErr := ipns.UnmarshalRecord(existingData)
+					if parseErr == nil {
+						existingSeq, seqErr := existingRec.Sequence()
+						newSeq, newSeqErr := rec.Sequence()
+						if seqErr == nil && newSeqErr == nil && existingSeq >= newSeq {
+							return fmt.Errorf("existing IPNS record has sequence %d >= new record sequence %d, use 'ipfs name put --force' to skip this check", existingSeq, newSeq)
 						}
 					}
 				}
@@ -536,6 +540,28 @@ Force store a record to test routing validation:
 			return err
 		}
 
-		return nil
+		// Extract value from the record for the response
+		value := ""
+		if rec, err := ipns.UnmarshalRecord(data); err == nil {
+			if v, err := rec.Value(); err == nil {
+				value = v.String()
+			}
+		}
+
+		return cmds.EmitOnce(res, &IpnsEntry{
+			Name:  name.String(),
+			Value: value,
+		})
 	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ie *IpnsEntry) error {
+			quiet, _ := req.Options[putQuietOptionName].(bool)
+			if quiet {
+				return nil
+			}
+			_, err := fmt.Fprintln(w, cmdenv.EscNonPrint(ie.Name))
+			return err
+		}),
+	},
+	Type: IpnsEntry{},
 }
