@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/ipfs/boxo/blockstore"
@@ -19,6 +21,7 @@ import (
 	log "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo/fsrepo"
 	irouting "github.com/ipfs/kubo/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/amino"
@@ -50,8 +53,8 @@ const (
 
 	// Datastore namespace prefix for provider data.
 	providerDatastorePrefix = "provider"
-	// Datastore path for the provider keystore.
-	keystoreDatastorePath = "keystore"
+	// Base directory for the provider keystore datastores.
+	keystoreDatastorePath = "provider-keystore"
 )
 
 var errAcceleratedDHTNotReady = errors.New("AcceleratedDHTClient: routing table not ready")
@@ -369,6 +372,58 @@ type addrsFilter interface {
 	FilteredAddrs() []ma.Multiaddr
 }
 
+// findRootDatastoreSpec extracts the leaf datastore spec for the root ("/")
+// mount from the repo's Datastore.Spec config. It unwraps mount (picks the "/"
+// mountpoint), measure, and log wrappers to find the actual backend spec
+// (e.g., levelds, pebbleds).
+func findRootDatastoreSpec(spec map[string]any) map[string]any {
+	if spec == nil {
+		return nil
+	}
+	switch spec["type"] {
+	case "mount":
+		mounts, ok := spec["mounts"].([]any)
+		if !ok {
+			return spec
+		}
+		for _, m := range mounts {
+			mount, ok := m.(map[string]any)
+			if !ok {
+				continue
+			}
+			if mount["mountpoint"] == "/" {
+				return findRootDatastoreSpec(mount)
+			}
+		}
+		// No root mount found, return as-is
+		return spec
+	case "measure", "log":
+		if child, ok := spec["child"].(map[string]any); ok {
+			return findRootDatastoreSpec(child)
+		}
+		return spec
+	default:
+		return spec
+	}
+}
+
+// copySpec deep-copies a datastore spec map so modifications (e.g., changing
+// the path) don't affect the original.
+func copySpec(spec map[string]any) map[string]any {
+	if spec == nil {
+		return nil
+	}
+	cp := make(map[string]any, len(spec))
+	for k, v := range spec {
+		if m, ok := v.(map[string]any); ok {
+			cp[k] = copySpec(m)
+		} else {
+			cp[k] = v
+		}
+	}
+	return cp
+}
+
 func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
 	type providerInput struct {
@@ -378,10 +433,40 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *keystore.ResettableKeystore, error) {
 		ds := namespace.Wrap(in.Repo.Datastore(), datastore.NewKey(providerDatastorePrefix))
-		ks, err := keystore.NewResettableKeystore(ds,
-			keystore.WithPrefixBits(16),
-			keystore.WithDatastorePath(keystoreDatastorePath),
-			keystore.WithBatchSize(int(cfg.Provide.DHT.KeystoreBatchSize.WithDefault(config.DefaultProvideDHTKeystoreBatchSize))),
+
+		// Get repo path and config to determine datastore type
+		repoPath := in.Repo.Path()
+		repoCfg, err := in.Repo.Config()
+		if err != nil {
+			return nil, nil, fmt.Errorf("getting repo config: %w", err)
+		}
+
+		// Find the root datastore type (levelds, pebbleds, etc.)
+		rootSpec := findRootDatastoreSpec(repoCfg.Datastore.Spec)
+
+		// Keystore datastores live at <repo>/provider-keystore/<suffix>
+		keystoreBasePath := filepath.Join(repoPath, keystoreDatastorePath)
+
+		createDs := func(suffix string) (datastore.Batching, error) {
+			spec := copySpec(rootSpec)
+			spec["path"] = filepath.Join(keystoreBasePath, suffix)
+			dsc, err := fsrepo.AnyDatastoreConfig(spec)
+			if err != nil {
+				return nil, fmt.Errorf("creating keystore datastore config: %w", err)
+			}
+			return dsc.Create("")
+		}
+
+		destroyDs := func(suffix string) error {
+			return os.RemoveAll(filepath.Join(keystoreBasePath, suffix))
+		}
+
+		ks, err := keystore.NewResettableKeystore(
+			keystore.WithDatastoreFactory(createDs, destroyDs),
+			keystore.KeystoreOption(
+				keystore.WithPrefixBits(16),
+				keystore.WithBatchSize(int(cfg.Provide.DHT.KeystoreBatchSize.WithDefault(config.DefaultProvideDHTKeystoreBatchSize))),
+			),
 		)
 		if err != nil {
 			return nil, nil, err

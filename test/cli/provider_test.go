@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -841,4 +843,75 @@ func TestHTTPOnlyProviderWithSweepEnabled(t *testing.T) {
 	// LegacyProvider outputs "TotalReprovides:" in its stats
 	assert.Contains(t, statRes.Stdout.String(), "TotalReprovides:",
 		"should show legacy provider stats")
+}
+
+// TestProviderKeystoreDatastoreCompaction verifies that the SweepingProvider's
+// keystore uses a datastore factory that creates separate physical datastores
+// and reclaims disk space by deleting old datastores after each reset cycle.
+//
+// The keystore uses two alternating namespaces ("0" and "1") plus a "meta"
+// namespace. The lifecycle is:
+//  1. First start: namespace "0" is created as the initial active datastore
+//  2. First reset (keystore sync at startup): "1" is created, data is written,
+//     namespaces swap, "0" is destroyed from disk via os.RemoveAll
+//  3. Restart: "1" and "meta" survive on disk
+//  4. Second reset: "0" is recreated, namespaces swap, "1" is destroyed
+func TestProviderKeystoreDatastorePurge(t *testing.T) {
+	t.Parallel()
+
+	h := harness.NewT(t)
+	node := h.NewNode().Init()
+	node.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+	node.SetIPFSConfig("Provide.Enabled", true)
+	node.SetIPFSConfig("Bootstrap", []string{})
+
+	// Add content offline so the keystore has something to sync on startup.
+	for i := range 5 {
+		node.IPFSAddStr(fmt.Sprintf("keystore-compaction-test-%d", i))
+	}
+
+	keystoreBase := filepath.Join(node.Dir, "provider-keystore")
+	ns0 := filepath.Join(keystoreBase, "0")
+	ns1 := filepath.Join(keystoreBase, "1")
+	meta := filepath.Join(keystoreBase, "meta")
+
+	// Directory should not exist before starting the daemon.
+	_, err := os.Stat(keystoreBase)
+	require.True(t, os.IsNotExist(err), "provider-keystore should not exist before daemon start")
+
+	// --- First start: triggers keystore sync (ResetCids) ---
+	// Init creates "0", then reset swaps to "1" and destroys "0".
+	node.StartDaemon()
+
+	require.Eventually(t, func() bool {
+		return dirExists(ns1) && !dirExists(ns0)
+	}, 30*time.Second, 200*time.Millisecond,
+		"after first reset: ns1 should exist, ns0 should be destroyed")
+
+	assert.True(t, dirExists(meta), "meta should exist after first reset")
+
+	// --- Restart: triggers a second keystore sync (ResetCids) ---
+	// Reset swaps back to "0" and destroys "1".
+	node.StopDaemon()
+
+	// Between restarts: ns1 and meta survive on disk, ns0 does not.
+	assert.True(t, dirExists(ns1), "ns1 should survive shutdown")
+	assert.True(t, dirExists(meta), "meta should survive shutdown")
+	assert.False(t, dirExists(ns0), "ns0 should not reappear between restarts")
+
+	node.StartDaemon()
+
+	require.Eventually(t, func() bool {
+		return dirExists(ns0) && !dirExists(ns1)
+	}, 30*time.Second, 200*time.Millisecond,
+		"after second reset: ns0 should exist, ns1 should be destroyed")
+
+	assert.True(t, dirExists(meta), "meta should still exist after second reset")
+
+	node.StopDaemon()
+}
+
+func dirExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
 }
