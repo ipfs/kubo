@@ -1,4 +1,4 @@
-name: Migrations
+name: Migrations & Update
 
 on:
   workflow_dispatch:
@@ -9,6 +9,9 @@ on:
       - 'test/cli/migrations/**'
       # Config and repo handling
       - 'repo/fsrepo/**'
+      # Update command
+      - 'core/commands/update*.go'
+      - 'test/cli/update_test.go'
       # This workflow file itself
       - '.github/workflows/test-migrations.yml'
   push:
@@ -19,6 +22,8 @@ on:
       - 'repo/fsrepo/migrations/**'
       - 'test/cli/migrations/**'
       - 'repo/fsrepo/**'
+      - 'core/commands/update*.go'
+      - 'test/cli/update_test.go'
       - '.github/workflows/test-migrations.yml'
 
 concurrency:
@@ -75,6 +80,13 @@ jobs:
           ipfs version || echo "Failed to run ipfs version"
           go test ./test/cli/migrations/...
 
+      - name: Run CLI update tests
+        env:
+          IPFS_PATH: ${{ runner.temp }}/ipfs-update-test
+        run: |
+          export PATH="${{ github.workspace }}/cmd/ipfs:$PATH"
+          go test -run "TestUpdate" ./test/cli/...
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v6
@@ -83,3 +95,4 @@ jobs:
           path: |
             test/**/*.log
             ${{ runner.temp }}/ipfs-test/
+            ${{ runner.temp }}/ipfs-update-test/
