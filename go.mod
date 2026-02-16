@@ -33,7 +33,7 @@ require (
 	github.com/ipfs/go-ds-measure v0.2.2
 	github.com/ipfs/go-ds-pebble v0.5.9
 	github.com/ipfs/go-fs-lock v0.1.1
-	github.com/ipfs/go-ipfs-cmds v0.15.1-0.20260204204540-af9bcbaf5709
+	github.com/ipfs/go-ipfs-cmds v0.16.0
 	github.com/ipfs/go-ipld-cbor v0.2.1
 	github.com/ipfs/go-ipld-format v0.6.3
 	github.com/ipfs/go-ipld-git v0.1.1
