@@ -424,6 +424,49 @@ func copySpec(spec map[string]any) map[string]any {
 	return cp
 }
 
+// purgeOrphanedKeystoreData deletes all keys under /provider/keystore/ from the
+// shared repo datastore. These were written by older Kubo versions that stored
+// provider keystore data inline in the shared datastore. The new code uses
+// separate filesystem datastores under <repo>/{keystoreDatastorePath}/ instead.
+func purgeOrphanedKeystoreData(ctx context.Context, ds datastore.Batching) error {
+	orphanedPrefix := datastore.NewKey(providerDatastorePrefix).ChildString("keystore").String()
+
+	results, err := ds.Query(ctx, query.Query{
+		Prefix:   orphanedPrefix,
+		KeysOnly: true,
+	})
+	if err != nil {
+		return fmt.Errorf("querying orphaned keystore data: %w", err)
+	}
+	defer results.Close()
+
+	batch, err := ds.Batch(ctx)
+	if err != nil {
+		return fmt.Errorf("creating batch for orphaned keystore cleanup: %w", err)
+	}
+
+	count := 0
+	for result := range results.Next() {
+		if result.Error != nil {
+			return fmt.Errorf("iterating orphaned keystore data: %w", result.Error)
+		}
+		if err := batch.Delete(ctx, datastore.NewKey(result.Key)); err != nil {
+			return fmt.Errorf("batch deleting orphaned key %s: %w", result.Key, err)
+		}
+		count++
+	}
+	if count > 0 {
+		if err := batch.Commit(ctx); err != nil {
+			return fmt.Errorf("committing orphaned keystore cleanup batch: %w", err)
+		}
+		if err := ds.Sync(ctx, datastore.NewKey(orphanedPrefix)); err != nil {
+			return fmt.Errorf("syncing orphaned keystore cleanup: %w", err)
+		}
+		logger.Infow("purged orphaned provider keystore data from shared datastore", "keys", count)
+	}
+	return nil
+}
+
 func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
 	type providerInput struct {
@@ -444,7 +487,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		// Find the root datastore type (levelds, pebbleds, etc.)
 		rootSpec := findRootDatastoreSpec(repoCfg.Datastore.Spec)
 
-		// Keystore datastores live at <repo>/provider-keystore/<suffix>
+		// Keystore datastores live at <repo>/{keystoreDatastorePath}/<suffix>
 		keystoreBasePath := filepath.Join(repoPath, keystoreDatastorePath)
 
 		createDs := func(suffix string) (datastore.Batching, error) {
@@ -467,6 +510,18 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 
 		destroyDs := func(suffix string) error {
 			return os.RemoveAll(filepath.Join(keystoreBasePath, suffix))
+		}
+
+		// One-time migration: purge orphaned keystore data from the shared repo
+		// datastore. Old Kubo versions stored keystore data at /provider/keystore/
+		// inside the shared monolithic datastore. New code uses separate
+		// filesystem datastores under <repo>/{keystoreDatastorePath}/. On first
+		// start with the new code, detect the upgrade (dir doesn't exist yet) and
+		// delete the stale keys.
+		if _, statErr := os.Stat(keystoreBasePath); os.IsNotExist(statErr) {
+			if purgeErr := purgeOrphanedKeystoreData(context.Background(), in.Repo.Datastore()); purgeErr != nil {
+				logger.Warnw("failed to purge orphaned provider keystore data from shared datastore", "error", purgeErr)
+			}
 		}
 
 		ks, err := keystore.NewResettableKeystore(
