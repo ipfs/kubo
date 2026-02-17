@@ -135,23 +135,23 @@ require (
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
-	github.com/ipfs/boxo v0.36.1-0.20260211074541-f0cdbf65a72b // indirect
+	github.com/ipfs/boxo v0.37.0 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.3 // indirect
 	github.com/ipfs/go-cid v0.6.0 // indirect
 	github.com/ipfs/go-datastore v0.9.1 // indirect
 	github.com/ipfs/go-dsqueue v0.2.0 // indirect
-	github.com/ipfs/go-ipfs-cmds v0.15.1-0.20260204204540-af9bcbaf5709 // indirect
+	github.com/ipfs/go-ipfs-cmds v0.16.0 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
 	github.com/ipfs/go-ipld-format v0.6.3 // indirect
 	github.com/ipfs/go-ipld-legacy v0.2.2 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
-	github.com/ipfs/go-unixfsnode v1.10.2 // indirect
+	github.com/ipfs/go-unixfsnode v1.10.3 // indirect
 	github.com/ipfs/kubo v0.31.0 // indirect
 	github.com/ipld/go-car/v2 v2.16.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
-	github.com/ipld/go-ipld-prime v0.21.0 // indirect
+	github.com/ipld/go-ipld-prime v0.22.0 // indirect
 	github.com/ipshipyard/p2p-forge v0.7.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
@@ -247,7 +247,7 @@ require (
 	github.com/pion/webrtc/v4 v4.1.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/polydawn/refmt v0.89.0 // indirect
+	github.com/polydawn/refmt v0.89.1-0.20231129105047-37766d95467a // indirect
 	github.com/polyfloyd/go-errorlint v1.7.1 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
@@ -328,7 +328,7 @@ require (
 	go.uber.org/zap/exp v0.3.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/exp v0.0.0-20260209203927-2842357ff358 // indirect
+	golang.org/x/exp v0.0.0-20260212183809-81e46e3db34a // indirect
 	golang.org/x/exp/typeparams v0.0.0-20250210185358-939b2ce775ac // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
