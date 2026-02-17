@@ -873,7 +873,6 @@ func TestProviderKeystoreDatastorePurge(t *testing.T) {
 	keystoreBase := filepath.Join(node.Dir, "provider-keystore")
 	ns0 := filepath.Join(keystoreBase, "0")
 	ns1 := filepath.Join(keystoreBase, "1")
-	meta := filepath.Join(keystoreBase, "meta")
 
 	// Directory should not exist before starting the daemon.
 	_, err := os.Stat(keystoreBase)
@@ -888,15 +887,12 @@ func TestProviderKeystoreDatastorePurge(t *testing.T) {
 	}, 30*time.Second, 200*time.Millisecond,
 		"after first reset: ns1 should exist, ns0 should be destroyed")
 
-	assert.True(t, dirExists(meta), "meta should exist after first reset")
-
 	// --- Restart: triggers a second keystore sync (ResetCids) ---
 	// Reset swaps back to "0" and destroys "1".
 	node.StopDaemon()
 
-	// Between restarts: ns1 and meta survive on disk, ns0 does not.
+	// Between restarts: ns1 survives on disk, ns0 does not.
 	assert.True(t, dirExists(ns1), "ns1 should survive shutdown")
-	assert.True(t, dirExists(meta), "meta should survive shutdown")
 	assert.False(t, dirExists(ns0), "ns0 should not reappear between restarts")
 
 	node.StartDaemon()
@@ -905,8 +901,6 @@ func TestProviderKeystoreDatastorePurge(t *testing.T) {
 		return dirExists(ns0) && !dirExists(ns1)
 	}, 30*time.Second, 200*time.Millisecond,
 		"after second reset: ns0 should exist, ns1 should be destroyed")
-
-	assert.True(t, dirExists(meta), "meta should still exist after second reset")
 
 	node.StopDaemon()
 }

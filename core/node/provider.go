@@ -524,7 +524,8 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			}
 		}
 
-		ks, err := keystore.NewResettableKeystore(
+		keystoreDs := namespace.Wrap(ds, datastore.NewKey("keystore"))
+		ks, err := keystore.NewResettableKeystore(keystoreDs,
 			keystore.WithDatastoreFactory(createDs, destroyDs),
 			keystore.KeystoreOption(
 				keystore.WithPrefixBits(16),
