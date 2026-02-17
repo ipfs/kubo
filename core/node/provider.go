@@ -16,6 +16,7 @@ import (
 	"github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/mount"
 	"github.com/ipfs/go-datastore/namespace"
 	"github.com/ipfs/go-datastore/query"
 	log "github.com/ipfs/go-log/v2"
@@ -51,10 +52,15 @@ const (
 	// Datastore key used to store previous reprovide strategy.
 	reprovideStrategyKey = "/reprovideStrategy"
 
-	// Datastore namespace prefix for provider data.
-	providerDatastorePrefix = "provider"
-	// Base directory for the provider keystore datastores.
-	keystoreDatastorePath = "provider-keystore"
+	// KeystoreDatastorePath is the base directory for the provider keystore datastores.
+	KeystoreDatastorePath = "provider-keystore"
+)
+
+var (
+	// Datastore namespace key for provider data.
+	providerDatastoreKey = datastore.NewKey("provider")
+	// Datastore namespace key for provider keystore data.
+	keystoreDatastoreKey = datastore.NewKey("keystore")
 )
 
 var errAcceleratedDHTNotReady = errors.New("AcceleratedDHTClient: routing table not ready")
@@ -407,6 +413,59 @@ func findRootDatastoreSpec(spec map[string]any) map[string]any {
 	}
 }
 
+// MountKeystoreDatastores opens any provider keystore datastores that exist on
+// disk and returns them as mount.Mount entries ready to be combined with the
+// main repo datastore. The caller must call the returned cleanup function when
+// done. Returns nil mounts and a no-op closer if no keystores exist.
+func MountKeystoreDatastores(repo repo.Repo) ([]mount.Mount, func(), error) {
+	cfg, err := repo.Config()
+	if err != nil {
+		return nil, nil, fmt.Errorf("reading repo config: %w", err)
+	}
+
+	rootSpec := findRootDatastoreSpec(cfg.Datastore.Spec)
+	if rootSpec == nil {
+		return nil, func() {}, nil
+	}
+
+	keystoreBasePath := filepath.Join(repo.Path(), KeystoreDatastorePath)
+	var mounts []mount.Mount
+	var closers []func()
+
+	for _, suffix := range []string{"0", "1"} {
+		dir := filepath.Join(keystoreBasePath, suffix)
+		if _, err := os.Stat(dir); err != nil {
+			continue
+		}
+		ds, err := openDatastoreAt(rootSpec, dir)
+		if err != nil {
+			return nil, nil, err
+		}
+		prefix := providerDatastoreKey.Child(keystoreDatastoreKey).ChildString(suffix)
+		mounts = append(mounts, mount.Mount{Prefix: prefix, Datastore: ds})
+		closers = append(closers, func() { ds.Close() })
+	}
+
+	closer := func() {
+		for _, c := range closers {
+			c()
+		}
+	}
+	return mounts, closer, nil
+}
+
+// openDatastoreAt opens a datastore using the given spec at the specified path.
+// It deep-copies the spec to avoid mutating the original.
+func openDatastoreAt(rootSpec map[string]any, path string) (datastore.Batching, error) {
+	spec := copySpec(rootSpec)
+	spec["path"] = path
+	dsc, err := fsrepo.AnyDatastoreConfig(spec)
+	if err != nil {
+		return nil, fmt.Errorf("creating datastore config for %s: %w", path, err)
+	}
+	return dsc.Create("")
+}
+
 // copySpec deep-copies a datastore spec map so modifications (e.g., changing
 // the path) don't affect the original.
 func copySpec(spec map[string]any) map[string]any {
@@ -427,9 +486,9 @@ func copySpec(spec map[string]any) map[string]any {
 // purgeOrphanedKeystoreData deletes all keys under /provider/keystore/ from the
 // shared repo datastore. These were written by older Kubo versions that stored
 // provider keystore data inline in the shared datastore. The new code uses
-// separate filesystem datastores under <repo>/{keystoreDatastorePath}/ instead.
+// separate filesystem datastores under <repo>/{KeystoreDatastorePath}/ instead.
 func purgeOrphanedKeystoreData(ctx context.Context, ds datastore.Batching) error {
-	orphanedPrefix := datastore.NewKey(providerDatastorePrefix).ChildString("keystore").String()
+	orphanedPrefix := providerDatastoreKey.Child(keystoreDatastoreKey).String()
 
 	results, err := ds.Query(ctx, query.Query{
 		Prefix:   orphanedPrefix,
@@ -475,7 +534,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		Repo repo.Repo
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *keystore.ResettableKeystore, error) {
-		ds := namespace.Wrap(in.Repo.Datastore(), datastore.NewKey(providerDatastorePrefix))
+		ds := namespace.Wrap(in.Repo.Datastore(), providerDatastoreKey)
 
 		// Get repo path and config to determine datastore type
 		repoPath := in.Repo.Path()
@@ -487,8 +546,8 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		// Find the root datastore type (levelds, pebbleds, etc.)
 		rootSpec := findRootDatastoreSpec(repoCfg.Datastore.Spec)
 
-		// Keystore datastores live at <repo>/{keystoreDatastorePath}/<suffix>
-		keystoreBasePath := filepath.Join(repoPath, keystoreDatastorePath)
+		// Keystore datastores live at <repo>/{KeystoreDatastorePath}/<suffix>
+		keystoreBasePath := filepath.Join(repoPath, KeystoreDatastorePath)
 
 		createDs := func(suffix string) (datastore.Batching, error) {
 			// When no datastore spec is configured (e.g., test/mock repos),
@@ -499,13 +558,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if err := os.MkdirAll(keystoreBasePath, 0o755); err != nil {
 				return nil, fmt.Errorf("creating keystore base directory: %w", err)
 			}
-			spec := copySpec(rootSpec)
-			spec["path"] = filepath.Join(keystoreBasePath, suffix)
-			dsc, err := fsrepo.AnyDatastoreConfig(spec)
-			if err != nil {
-				return nil, fmt.Errorf("creating keystore datastore config: %w", err)
-			}
-			return dsc.Create("")
+			return openDatastoreAt(rootSpec, filepath.Join(keystoreBasePath, suffix))
 		}
 
 		destroyDs := func(suffix string) error {
@@ -515,7 +568,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		// One-time migration: purge orphaned keystore data from the shared repo
 		// datastore. Old Kubo versions stored keystore data at /provider/keystore/
 		// inside the shared monolithic datastore. New code uses separate
-		// filesystem datastores under <repo>/{keystoreDatastorePath}/. On first
+		// filesystem datastores under <repo>/{KeystoreDatastorePath}/. On first
 		// start with the new code, detect the upgrade (dir doesn't exist yet) and
 		// delete the stale keys.
 		if _, statErr := os.Stat(keystoreBasePath); os.IsNotExist(statErr) {
@@ -524,7 +577,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			}
 		}
 
-		keystoreDs := namespace.Wrap(ds, datastore.NewKey("keystore"))
+		keystoreDs := namespace.Wrap(ds, keystoreDatastoreKey)
 		ks, err := keystore.NewResettableKeystore(keystoreDs,
 			keystore.WithDatastoreFactory(createDs, destroyDs),
 			keystore.KeystoreOption(
