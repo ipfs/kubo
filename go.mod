@@ -25,7 +25,7 @@ require (
 	github.com/ipfs/go-block-format v0.2.3
 	github.com/ipfs/go-cid v0.6.0
 	github.com/ipfs/go-cidutil v0.1.1
-	github.com/ipfs/go-datastore v0.9.0
+	github.com/ipfs/go-datastore v0.9.1
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.3.4
 	github.com/ipfs/go-ds-flatfs v0.6.0
@@ -52,7 +52,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0
 	github.com/libp2p/go-libp2p v0.47.0
 	github.com/libp2p/go-libp2p-http v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.37.2-0.20260212142733-97ce04b37df4
+	github.com/libp2p/go-libp2p-kad-dht v0.38.1-0.20260217092601-81a726dc0c1c
 	github.com/libp2p/go-libp2p-kbucket v0.8.0
 	github.com/libp2p/go-libp2p-pubsub v0.15.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
@@ -196,7 +196,7 @@ require (
 	github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 // indirect
 	github.com/pion/datachannel v1.5.10 // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
-	github.com/pion/dtls/v3 v3.1.0 // indirect
+	github.com/pion/dtls/v3 v3.1.1 // indirect
 	github.com/pion/ice/v4 v4.0.10 // indirect
 	github.com/pion/interceptor v0.1.40 // indirect
 	github.com/pion/logging v0.2.4 // indirect

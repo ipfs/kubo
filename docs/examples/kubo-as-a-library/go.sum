@@ -283,8 +283,8 @@ github.com/ipfs/go-cidutil v0.1.1 h1:COuby6H8C2ml0alvHYX3WdbFM4F07YtbY0UlT5j+sgI
 github.com/ipfs/go-cidutil v0.1.1/go.mod h1:SCoUftGEUgoXe5Hjeyw5CiLZF8cwYn/TbtpFQXJCP6k=
 github.com/ipfs/go-datastore v0.1.0/go.mod h1:d4KVXhMt913cLBEI/PXAy6ko+W7e9AhyAKBGh803qeE=
 github.com/ipfs/go-datastore v0.1.1/go.mod h1:w38XXW9kVFNp57Zj5knbKWM2T+KOZCGDRVNdgPHtbHw=
-github.com/ipfs/go-datastore v0.9.0 h1:WocriPOayqalEsueHv6SdD4nPVl4rYMfYGLD4bqCZ+w=
-github.com/ipfs/go-datastore v0.9.0/go.mod h1:uT77w/XEGrvJWwHgdrMr8bqCN6ZTW9gzmi+3uK+ouHg=
+github.com/ipfs/go-datastore v0.9.1 h1:67Po2epre/o0UxrmkzdS9ZTe2GFGODgTd2odx8Wh6Yo=
+github.com/ipfs/go-datastore v0.9.1/go.mod h1:zi07Nvrpq1bQwSkEnx3bfjz+SQZbdbWyCNvyxMh9pN0=
 github.com/ipfs/go-detect-race v0.0.1 h1:qX/xay2W3E4Q1U7d9lNs1sU9nvguX0a7319XbyQ6cOk=
 github.com/ipfs/go-detect-race v0.0.1/go.mod h1:8BNT7shDZPo99Q74BpGMK+4D8Mn4j46UU0LZ723meps=
 github.com/ipfs/go-ds-badger v0.0.7/go.mod h1:qt0/fWzZDoPW6jpQeqUjR5kBfhDNB65jd9YlmAvpQBk=
@@ -405,8 +405,8 @@ github.com/libp2p/go-libp2p-asn-util v0.4.1 h1:xqL7++IKD9TBFMgnLPZR6/6iYhawHKHl9
 github.com/libp2p/go-libp2p-asn-util v0.4.1/go.mod h1:d/NI6XZ9qxw67b4e+NgpQexCIiFYJjErASrYW4PFDN8=
 github.com/libp2p/go-libp2p-core v0.2.4/go.mod h1:STh4fdfa5vDYr0/SzYYeqnt+E6KfEV5VxfIrm0bcI0g=
 github.com/libp2p/go-libp2p-core v0.3.0/go.mod h1:ACp3DmS3/N64c2jDzcV429ukDpicbL6+TrrxANBjPGw=
-github.com/libp2p/go-libp2p-kad-dht v0.37.2-0.20260212142733-97ce04b37df4 h1:CSdNKDR+OIl+vh1KMzNKcgKV/yxbElIcrbFAcnfDhG0=
-github.com/libp2p/go-libp2p-kad-dht v0.37.2-0.20260212142733-97ce04b37df4/go.mod h1:aZuF2qipKhprKkt8Xw3lGJlysEjpZXDIUyGdm1/KGA8=
+github.com/libp2p/go-libp2p-kad-dht v0.38.1-0.20260217092601-81a726dc0c1c h1:dC2Dt3wa9SB+kWKXNCy4Y06EJS3Dz7Cbq0b8nE7B8bk=
+github.com/libp2p/go-libp2p-kad-dht v0.38.1-0.20260217092601-81a726dc0c1c/go.mod h1:g/CefQilAnCMyUH52A6tUGbe17NgQ8q26MaZCA968iI=
 github.com/libp2p/go-libp2p-kbucket v0.3.1/go.mod h1:oyjT5O7tS9CQurok++ERgc46YLwEpuGoFq9ubvoUOio=
 github.com/libp2p/go-libp2p-kbucket v0.8.0 h1:QAK7RzKJpYe+EuSEATAaaHYMYLkPDGC18m9jxPLnU8s=
 github.com/libp2p/go-libp2p-kbucket v0.8.0/go.mod h1:JMlxqcEyKwO6ox716eyC0hmiduSWZZl6JY93mGaaqc4=
@@ -547,8 +547,8 @@ github.com/pion/datachannel v1.5.10/go.mod h1:p/jJfC9arb29W7WrxyKbepTU20CFgyx5oL
 github.com/pion/dtls/v2 v2.2.7/go.mod h1:8WiMkebSHFD0T+dIU+UeBaoV7kDhOW5oDCzZ7WZ/F9s=
 github.com/pion/dtls/v2 v2.2.12 h1:KP7H5/c1EiVAAKUmXyCzPiQe5+bCJrpOeKg/L05dunk=
 github.com/pion/dtls/v2 v2.2.12/go.mod h1:d9SYc9fch0CqK90mRk1dC7AkzzpwJj6u2GU3u+9pqFE=
-github.com/pion/dtls/v3 v3.1.0 h1:bz3alDjKL1DDGe8GETGcq5rDKjXFQX9mniuUo36Up0E=
-github.com/pion/dtls/v3 v3.1.0/go.mod h1:YEmmBYIoBsY3jmG56dsziTv/Lca9y4Om83370CXfqJ8=
+github.com/pion/dtls/v3 v3.1.1 h1:wSLMam9Kf7DL1A74hnqRvEb9OT+aXPAsQ5VS+BdXOJ0=
+github.com/pion/dtls/v3 v3.1.1/go.mod h1:7FGvVYpHsUV6+aywaFpG7aE4Vz8nBOx74odPRFue6cI=
 github.com/pion/ice/v4 v4.0.10 h1:P59w1iauC/wPk9PdY8Vjl4fOFL5B+USq1+xbDcN6gT4=
 github.com/pion/ice/v4 v4.0.10/go.mod h1:y3M18aPhIxLlcO/4dn9X8LzLLSma84cx6emMSu14FGw=
 github.com/pion/interceptor v0.1.40 h1:e0BjnPcGpr2CFQgKhrQisBU7V3GXK6wrfYrGYaU6Jq4=
