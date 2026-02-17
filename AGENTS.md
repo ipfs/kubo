@@ -144,7 +144,7 @@ pkill -f "ipfs daemon"
 - all new integration tests go in `test/cli/`, not `test/sharness/`
 - if a `test/sharness` test needs significant changes, remove it and add a replacement in `test/cli/`
 - use [testify](https://github.com/stretchr/testify) for assertions (already a dependency)
-- for Go 1.24+, use `testing/synctest` when testing concurrent code (goroutines, channels, timers)
+- for Go 1.25+, use `testing/synctest` when testing concurrent code (goroutines, channels, timers)
 - reuse existing `.car` fixtures in `test/cli/fixtures/` when possible; only add new fixtures when the test requires data not covered by existing ones
 - always re-run modified tests locally before submitting to confirm they pass
 - avoid emojis in test names and test log output
