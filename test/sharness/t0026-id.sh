@@ -16,12 +16,12 @@ test_id_compute_agent() {
     else
         AGENT_COMMIT="${AGENT_COMMIT##$AGENT_VERSION-}"
     fi
-    AGENT_VERSION="kubo/$AGENT_VERSION/$AGENT_COMMIT"
+    AGENT_VERSION="kubo/$AGENT_VERSION"
+    if test -n "$AGENT_COMMIT"; then
+        AGENT_VERSION="$AGENT_VERSION/$AGENT_COMMIT"
+    fi
     if test -n "$AGENT_SUFFIX"; then
-      if test -n "$AGENT_COMMIT"; then
-        AGENT_VERSION="$AGENT_VERSION/"
-      fi
-      AGENT_VERSION="$AGENT_VERSION$AGENT_SUFFIX"
+        AGENT_VERSION="$AGENT_VERSION/$AGENT_SUFFIX"
     fi
     echo "$AGENT_VERSION"
 }
