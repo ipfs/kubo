@@ -47,7 +47,7 @@ type bitswapOptionsOut struct {
 
 // BitswapOptions creates configuration options for Bitswap from the config file
 // and whether to provide data.
-func BitswapOptions(cfg *config.Config) interface{} {
+func BitswapOptions(cfg *config.Config) any {
 	return func() bitswapOptionsOut {
 		var internalBsCfg config.InternalBitswap
 		if cfg.Internal.Bitswap != nil {
@@ -81,7 +81,7 @@ type bitswapIn struct {
 // Bitswap creates the BitSwap server/client instance.
 // If Bitswap.ServerEnabled is false, the node will act only as a client
 // using an empty blockstore to prevent serving blocks to other peers.
-func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
+func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) any {
 	return func(in bitswapIn, lc fx.Lifecycle) (*bitswap.Bitswap, error) {
 		var bitswapNetworks, bitswapLibp2p network.BitSwapNetwork
 		var bitswapBlockstore blockstore.Blockstore = in.Bs
@@ -206,7 +206,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) interface{} {
 
 // OnlineExchange creates new LibP2P backed block exchange.
 // Returns a no-op exchange if Bitswap is disabled.
-func OnlineExchange(isBitswapActive bool) interface{} {
+func OnlineExchange(isBitswapActive bool) any {
 	return func(in *bitswap.Bitswap, lc fx.Lifecycle) exchange.Interface {
 		if !isBitswapActive {
 			return &noopExchange{closer: in}

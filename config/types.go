@@ -298,7 +298,7 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 }
 
 func (d *Duration) UnmarshalJSON(b []byte) error {
-	var v interface{}
+	var v any
 	if err := json.Unmarshal(b, &v); err != nil {
 		return err
 	}
@@ -485,7 +485,7 @@ func (p *OptionalBytes) UnmarshalJSON(input []byte) error {
 	case "null", "undefined":
 		*p = OptionalBytes{}
 	default:
-		var value interface{}
+		var value any
 		err := json.Unmarshal(input, &value)
 		if err != nil {
 			return err

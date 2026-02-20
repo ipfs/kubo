@@ -22,7 +22,9 @@ func TestBitswapConfig(t *testing.T) {
 		t.Parallel()
 		h := harness.NewT(t)
 		provider := h.NewNode().Init().StartDaemon()
+		defer provider.StopDaemon()
 		requester := h.NewNode().Init().StartDaemon()
+		defer requester.StopDaemon()
 
 		hash := provider.IPFSAddStr(string(testData))
 		requester.Connect(provider)
@@ -38,8 +40,10 @@ func TestBitswapConfig(t *testing.T) {
 		provider := h.NewNode().Init()
 		provider.SetIPFSConfig("Bitswap.ServerEnabled", false)
 		provider = provider.StartDaemon()
+		defer provider.StopDaemon()
 
 		requester := h.NewNode().Init().StartDaemon()
+		defer requester.StopDaemon()
 
 		hash := provider.IPFSAddStr(string(testData))
 		requester.Connect(provider)
@@ -70,8 +74,10 @@ func TestBitswapConfig(t *testing.T) {
 		requester := h.NewNode().Init()
 		requester.SetIPFSConfig("Bitswap.ServerEnabled", false)
 		requester.StartDaemon()
+		defer requester.StopDaemon()
 
 		provider := h.NewNode().Init().StartDaemon()
+		defer provider.StopDaemon()
 		hash := provider.IPFSAddStr(string(testData))
 		requester.Connect(provider)
 
@@ -91,8 +97,10 @@ func TestBitswapConfig(t *testing.T) {
 			cfg.HTTPRetrieval.Enabled = config.True
 		})
 		requester.StartDaemon()
+		defer requester.StopDaemon()
 
 		provider := h.NewNode().Init().StartDaemon()
+		defer provider.StopDaemon()
 		hash := provider.IPFSAddStr(string(testData))
 
 		requester.Connect(provider)
@@ -126,15 +134,17 @@ func TestBitswapConfig(t *testing.T) {
 			cfg.HTTPRetrieval.Enabled = config.True
 		})
 		provider = provider.StartDaemon()
+		defer provider.StopDaemon()
 		requester := h.NewNode().Init().StartDaemon()
+		defer requester.StopDaemon()
 		requester.Connect(provider)
 
 		// read libp2p identify from remote peer, and print protocols
 		res := requester.IPFS("id", "-f", "<protocols>", provider.PeerID().String())
-		protocols := strings.Split(strings.TrimSpace(res.Stdout.String()), "\n")
+		protocols := strings.SplitSeq(strings.TrimSpace(res.Stdout.String()), "\n")
 
 		// No bitswap protocols should be present
-		for _, proto := range protocols {
+		for proto := range protocols {
 			assert.NotContains(t, proto, bsnet.ProtocolBitswap, "bitswap protocol %s should not be advertised when server is disabled", proto)
 			assert.NotContains(t, proto, bsnet.ProtocolBitswapNoVers, "bitswap protocol %s should not be advertised when server is disabled", proto)
 			assert.NotContains(t, proto, bsnet.ProtocolBitswapOneOne, "bitswap protocol %s should not be advertised when server is disabled", proto)

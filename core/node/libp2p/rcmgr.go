@@ -12,7 +12,6 @@ import (
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 
-	"github.com/filecoin-project/go-clock"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -29,7 +28,7 @@ const NetLimitTraceFilename = "rcmgr.json.gz"
 
 var ErrNoResourceMgr = errors.New("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
 
-func ResourceManager(repoPath string, cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimitConfig) interface{} {
+func ResourceManager(repoPath string, cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimitConfig) any {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 		var manager network.ResourceManager
 		var opts Libp2pOpts
@@ -112,7 +111,6 @@ filled in with autocomputed defaults.`)
 				return nil, opts, fmt.Errorf("creating libp2p resource manager: %w", err)
 			}
 			lrm := &loggingResourceManager{
-				clock:    clock.New(),
 				logger:   &logging.Logger("resourcemanager").SugaredLogger,
 				delegate: manager,
 			}
@@ -233,8 +231,8 @@ func (u ResourceLimitsAndUsage) ToResourceLimits() rcmgr.ResourceLimits {
 type LimitsConfigAndUsage struct {
 	// This is duplicated from rcmgr.ResourceManagerStat but using ResourceLimitsAndUsage
 	// instead of network.ScopeStat.
-	System    ResourceLimitsAndUsage                 `json:",omitempty"`
-	Transient ResourceLimitsAndUsage                 `json:",omitempty"`
+	System    ResourceLimitsAndUsage
+	Transient ResourceLimitsAndUsage
 	Services  map[string]ResourceLimitsAndUsage      `json:",omitempty"`
 	Protocols map[protocol.ID]ResourceLimitsAndUsage `json:",omitempty"`
 	Peers     map[peer.ID]ResourceLimitsAndUsage     `json:",omitempty"`

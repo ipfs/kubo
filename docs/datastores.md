@@ -34,7 +34,9 @@ The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descri
 NOTE: flatfs must only be used as a block store (mounted at `/blocks`) as it only partially implements the datastore interface. You can mount flatfs for /blocks only using the mount datastore (described below).
 
 ## levelds
-Uses a leveldb database to store key-value pairs.
+
+Uses a [leveldb](https://github.com/syndtr/goleveldb) database to store key-value
+pairs via [go-ds-leveldb](https://github.com/ipfs/go-ds-leveldb).
 
 ```json
 {
@@ -43,6 +45,26 @@ Uses a leveldb database to store key-value pairs.
 	"compression": "none" | "snappy",
 }
 ```
+
+> [!NOTE]
+> LevelDB uses a log-structured merge-tree (LSM) storage engine. When keys are
+> deleted, the data is not removed immediately. Instead, a tombstone marker is
+> written, and the actual data is removed later by background compaction.
+>
+> LevelDB's compaction decides what to compact based on file counts (L0) and
+> total level size (L1+), without considering how many tombstones a file
+> contains. This means that after bulk deletions (such as pin removals or the
+> periodic provider keystore sync), disk space may not be reclaimed promptly.
+> The `datastore/` directory can grow significantly larger than the live data it
+> holds, especially on long-running nodes with many CIDs.
+>
+> Unlike flatfs (which deletes files immediately) or pebble (which has
+> tombstone-aware compaction), LevelDB has no way to prioritize reclaiming
+> space from deleted keys. Restarting the daemon may trigger some compaction,
+> but this is not guaranteed.
+>
+> If slow compaction is a problem, consider using the `pebbleds` datastore
+> instead (see below), which handles this workload more efficiently.
 
 ## pebbleds
 
@@ -93,13 +115,24 @@ When installing a new version of kubo when `"formatMajorVersion"` is configured,
 Uses [badger](https://github.com/dgraph-io/badger) as a key-value store.
 
 > [!CAUTION]
-> This is based on very old badger 1.x, which has known bugs and is no longer supported by the upstream team.
-> It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
-> Do not use it for new deployments, unless you really, really know what you are doing.
+> **Badger v1 datastore is deprecated and will be removed in a future Kubo release.**
+>
+> This is based on very old badger 1.x, which has not been maintained by its
+> upstream maintainers for years and has known bugs (startup timeouts, shutdown
+> hangs, file descriptor
+> exhaustion, and more). Do not use it for new deployments.
+>
+> **To migrate:** create a new `IPFS_PATH` with `flatfs`
+> (`ipfs init --profile=flatfs`), move pinned data via
+> `ipfs dag export/import` or `ipfs pin ls -t recursive|add`, and decommission the
+> old badger-based node. When it comes to block storage, use experimental
+> `pebbleds` only if you are sure modern `flatfs` does not serve your use case
+> (most users will be perfectly fine with `flatfs`, it is also possible to keep
+> `flatfs` for blocks and replace `leveldb` with `pebble` if preferred over
+> `leveldb`).
 
-
-* `syncWrites`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a 2-3x slowdown when adding files).
-* `truncate`: Truncate the DB if a partially written sector is found (defaults to true). There is no good reason to set this to false unless you want to manually recover partially written (and unpinned) blocks if kubo crashes half-way through a write operation.
+- `syncWrites`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a 2-3x slowdown when adding files).
+- `truncate`: Truncate the DB if a partially written sector is found (defaults to true). There is no good reason to set this to false unless you want to manually recover partially written (and unpinned) blocks if kubo crashes half-way through a write operation.
 
 ```json
 {

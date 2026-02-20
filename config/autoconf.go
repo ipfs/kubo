@@ -2,7 +2,7 @@ package config
 
 import (
 	"maps"
-	"math/rand"
+	"math/rand/v2"
 	"strings"
 
 	"github.com/ipfs/boxo/autoconf"
@@ -70,7 +70,7 @@ func selectRandomResolver(resolvers []string) string {
 	if len(resolvers) == 0 {
 		return ""
 	}
-	return resolvers[rand.Intn(len(resolvers))]
+	return resolvers[rand.IntN(len(resolvers))]
 }
 
 // DNSResolversWithAutoConf returns DNS resolvers with "auto" values replaced by autoconf values

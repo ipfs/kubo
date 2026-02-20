@@ -20,7 +20,7 @@ type commandEncoder struct {
 	w io.Writer
 }
 
-func (e *commandEncoder) Encode(v interface{}) error {
+func (e *commandEncoder) Encode(v any) error {
 	var (
 		cmd *Command
 		ok  bool
@@ -232,7 +232,7 @@ type nonFatalError string
 // streamResult is a helper function to stream results that possibly
 // contain non-fatal errors.  The helper function is allowed to panic
 // on internal errors.
-func streamResult(procVal func(interface{}, io.Writer) nonFatalError) func(cmds.Response, cmds.ResponseEmitter) error {
+func streamResult(procVal func(any, io.Writer) nonFatalError) func(cmds.Response, cmds.ResponseEmitter) error {
 	return func(res cmds.Response, re cmds.ResponseEmitter) (rerr error) {
 		defer func() {
 			if r := recover(); r != nil {

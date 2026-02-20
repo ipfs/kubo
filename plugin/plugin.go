@@ -11,7 +11,7 @@ type Environment struct {
 	//
 	// This is an arbitrary JSON-like object unmarshaled into an interface{}
 	// according to https://golang.org/pkg/encoding/json/#Unmarshal.
-	Config interface{}
+	Config any
 }
 
 // Plugin is the base interface for all kinds of go-ipfs plugins

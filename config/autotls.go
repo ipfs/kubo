@@ -16,6 +16,13 @@ type AutoTLS struct {
 	// Optional, controls if Kubo should add /tls/sni/.../ws listener to every /tcp port if no explicit /ws is defined in Addresses.Swarm
 	AutoWSS Flag `json:",omitempty"`
 
+	// Optional, controls whether to skip network DNS lookups for p2p-forge domains.
+	// Applies to resolution via DNS.Resolvers, including /dns* multiaddrs in go-libp2p.
+	// When enabled (default), A/AAAA queries for *.libp2p.direct are resolved
+	// locally by parsing the IP directly from the hostname, avoiding network I/O.
+	// Set to false to always use network DNS (useful for debugging).
+	SkipDNSLookup Flag `json:",omitempty"`
+
 	// Optional override of the parent domain that will be used
 	DomainSuffix *OptionalString `json:",omitempty"`
 
@@ -42,5 +49,6 @@ const (
 	DefaultCAEndpoint               = p2pforge.DefaultCAEndpoint
 	DefaultAutoWSS                  = true // requires AutoTLS.Enabled
 	DefaultAutoTLSShortAddrs        = true // requires AutoTLS.Enabled
+	DefaultAutoTLSSkipDNSLookup     = true // skip network DNS for p2p-forge domains
 	DefaultAutoTLSRegistrationDelay = 1 * time.Hour
 )

@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -43,8 +42,7 @@ func (tp *TestSuite) TestKey(t *testing.T) {
 }
 
 func (tp *TestSuite) TestListSelf(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -60,8 +58,7 @@ func (tp *TestSuite) TestListSelf(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRenameSelf(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -74,8 +71,7 @@ func (tp *TestSuite) TestRenameSelf(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRemoveSelf(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -85,8 +81,7 @@ func (tp *TestSuite) TestRemoveSelf(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGenerate(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -113,8 +108,7 @@ func verifyIPNSPath(t *testing.T, p string) {
 }
 
 func (tp *TestSuite) TestGenerateSize(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -129,8 +123,7 @@ func (tp *TestSuite) TestGenerateSize(t *testing.T) {
 func (tp *TestSuite) TestGenerateType(t *testing.T) {
 	t.Skip("disabled until libp2p/specs#111 is fixed")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -143,8 +136,7 @@ func (tp *TestSuite) TestGenerateType(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGenerateExisting(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -160,8 +152,7 @@ func (tp *TestSuite) TestGenerateExisting(t *testing.T) {
 }
 
 func (tp *TestSuite) TestList(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -180,8 +171,7 @@ func (tp *TestSuite) TestList(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRename(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -196,8 +186,7 @@ func (tp *TestSuite) TestRename(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRenameToSelf(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -210,8 +199,7 @@ func (tp *TestSuite) TestRenameToSelf(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRenameToSelfForce(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -224,8 +212,7 @@ func (tp *TestSuite) TestRenameToSelfForce(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRenameOverwriteNoForce(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -241,8 +228,7 @@ func (tp *TestSuite) TestRenameOverwriteNoForce(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRenameOverwrite(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -261,8 +247,7 @@ func (tp *TestSuite) TestRenameOverwrite(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRenameSameNameNoForce(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -277,8 +262,7 @@ func (tp *TestSuite) TestRenameSameNameNoForce(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRenameSameName(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -293,8 +277,7 @@ func (tp *TestSuite) TestRenameSameName(t *testing.T) {
 }
 
 func (tp *TestSuite) TestRemove(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -317,8 +300,7 @@ func (tp *TestSuite) TestRemove(t *testing.T) {
 }
 
 func (tp *TestSuite) TestSign(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
@@ -348,8 +330,7 @@ func (tp *TestSuite) TestVerify(t *testing.T) {
 	t.Run("Verify Own Key", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		ctx := t.Context()
 
 		api, err := tp.makeAPI(t, ctx)
 		require.NoError(t, err)
@@ -370,8 +351,7 @@ func (tp *TestSuite) TestVerify(t *testing.T) {
 	t.Run("Verify Self", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		ctx := t.Context()
 
 		api, err := tp.makeAPIWithIdentityAndOffline(t, ctx)
 		require.NoError(t, err)
@@ -390,8 +370,7 @@ func (tp *TestSuite) TestVerify(t *testing.T) {
 		t.Parallel()
 
 		// Spin some node and get signature out.
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		ctx := t.Context()
 
 		api, err := tp.makeAPI(t, ctx)
 		require.NoError(t, err)
@@ -411,8 +390,7 @@ func (tp *TestSuite) TestVerify(t *testing.T) {
 			{"Prefixed IPNS Path", ipns.NameFromPeer(key.ID()).AsPath().String()},
 		} {
 			t.Run(testCase[0], func(t *testing.T) {
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
+				ctx := t.Context()
 
 				// Spin new node.
 				api, err := tp.makeAPI(t, ctx)

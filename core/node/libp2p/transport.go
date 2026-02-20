@@ -17,7 +17,7 @@ import (
 	"go.uber.org/fx"
 )
 
-func Transports(tptConfig config.Transports) interface{} {
+func Transports(tptConfig config.Transports) any {
 	return func(params struct {
 		fx.In
 		Fprint   PNetFingerprint         `optional:"true"`

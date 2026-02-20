@@ -1,6 +1,8 @@
 package commands
 
-import cmds "github.com/ipfs/go-ipfs-cmds"
+import (
+	cmds "github.com/ipfs/go-ipfs-cmds"
+)
 
 func CreateCmdExtras(opts ...func(e *cmds.Extra)) *cmds.Extra {
 	e := new(cmds.Extra)
@@ -54,8 +56,8 @@ func GetPreemptsAutoUpdate(e *cmds.Extra) (val bool, found bool) {
 	return getBoolFlag(e, preemptsAutoUpdate{})
 }
 
-func getBoolFlag(e *cmds.Extra, key interface{}) (val bool, found bool) {
-	var ival interface{}
+func getBoolFlag(e *cmds.Extra, key any) (val bool, found bool) {
+	var ival any
 	ival, found = e.GetValue(key)
 	if !found {
 		return false, false

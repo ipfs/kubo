@@ -34,8 +34,8 @@ Prints out information about your computer to aid in easier debugging.
 	},
 }
 
-func getInfo(nd *core.IpfsNode) (map[string]interface{}, error) {
-	info := make(map[string]interface{})
+func getInfo(nd *core.IpfsNode) (map[string]any, error) {
+	info := make(map[string]any)
 	err := runtimeInfo(info)
 	if err != nil {
 		return nil, err
@@ -66,8 +66,8 @@ func getInfo(nd *core.IpfsNode) (map[string]interface{}, error) {
 	return info, nil
 }
 
-func runtimeInfo(out map[string]interface{}) error {
-	rt := make(map[string]interface{})
+func runtimeInfo(out map[string]any) error {
+	rt := make(map[string]any)
 	rt["os"] = runtime.GOOS
 	rt["arch"] = runtime.GOARCH
 	rt["compiler"] = runtime.Compiler
@@ -80,8 +80,8 @@ func runtimeInfo(out map[string]interface{}) error {
 	return nil
 }
 
-func envVarInfo(out map[string]interface{}) error {
-	ev := make(map[string]interface{})
+func envVarInfo(out map[string]any) error {
+	ev := make(map[string]any)
 	ev["GOPATH"] = os.Getenv("GOPATH")
 	ev[config.EnvDir] = os.Getenv(config.EnvDir)
 
@@ -89,7 +89,7 @@ func envVarInfo(out map[string]interface{}) error {
 	return nil
 }
 
-func diskSpaceInfo(out map[string]interface{}) error {
+func diskSpaceInfo(out map[string]any) error {
 	pathRoot, err := config.PathRoot()
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func diskSpaceInfo(out map[string]interface{}) error {
 		return err
 	}
 
-	out["diskinfo"] = map[string]interface{}{
+	out["diskinfo"] = map[string]any{
 		"fstype":      dinfo.FsType,
 		"total_space": dinfo.Total,
 		"free_space":  dinfo.Free,
@@ -108,8 +108,8 @@ func diskSpaceInfo(out map[string]interface{}) error {
 	return nil
 }
 
-func memInfo(out map[string]interface{}) error {
-	m := make(map[string]interface{})
+func memInfo(out map[string]any) error {
+	m := make(map[string]any)
 
 	meminf, err := sysi.MemoryInfo()
 	if err != nil {
@@ -122,8 +122,8 @@ func memInfo(out map[string]interface{}) error {
 	return nil
 }
 
-func netInfo(online bool, out map[string]interface{}) error {
-	n := make(map[string]interface{})
+func netInfo(online bool, out map[string]any) error {
+	n := make(map[string]any)
 	addrs, err := manet.InterfaceMultiaddrs()
 	if err != nil {
 		return err

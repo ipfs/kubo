@@ -3,7 +3,6 @@ package migrations
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -42,8 +41,7 @@ func TestGetDistPath(t *testing.T) {
 }
 
 func TestHttpFetch(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
@@ -79,8 +77,7 @@ func TestHttpFetch(t *testing.T) {
 func TestFetchBinary(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
@@ -162,8 +159,7 @@ func TestFetchBinary(t *testing.T) {
 }
 
 func TestMultiFetcher(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	badFetcher := NewHttpFetcher("", "bad-url", "", 0)
 	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)

@@ -175,7 +175,7 @@ func getConfigInt(name string, params map[string]any) (int, error) {
 }
 
 func (c *datastoreConfig) DiskSpec() fsrepo.DiskSpec {
-	return map[string]interface{}{
+	return map[string]any{
 		"type": "pebbleds",
 		"path": c.path,
 	}

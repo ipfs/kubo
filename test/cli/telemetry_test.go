@@ -229,7 +229,7 @@ func TestTelemetry(t *testing.T) {
 		}
 
 		// Channel to receive captured telemetry data
-		telemetryChan := make(chan map[string]interface{}, 1)
+		telemetryChan := make(chan map[string]any, 1)
 
 		// Create a mock HTTP server to capture telemetry
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -244,7 +244,7 @@ func TestTelemetry(t *testing.T) {
 				return
 			}
 
-			var telemetryData map[string]interface{}
+			var telemetryData map[string]any
 			if err := json.Unmarshal(body, &telemetryData); err != nil {
 				http.Error(w, "Invalid JSON", http.StatusBadRequest)
 				return

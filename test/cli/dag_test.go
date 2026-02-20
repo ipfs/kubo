@@ -47,6 +47,8 @@ func TestDag(t *testing.T) {
 	t.Run("ipfs dag stat --enc=json", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
+
 		// Import fixture
 		r, err := os.Open(fixtureFile)
 		assert.Nil(t, err)
@@ -91,6 +93,7 @@ func TestDag(t *testing.T) {
 	t.Run("ipfs dag stat", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
 		r, err := os.Open(fixtureFile)
 		assert.NoError(t, err)
 		defer r.Close()

@@ -112,7 +112,7 @@ trip latency information.
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
 
-		for i := 0; i < numPings; i++ {
+		for range numPings {
 			r, ok := <-pings
 			if !ok {
 				break

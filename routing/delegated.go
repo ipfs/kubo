@@ -31,6 +31,13 @@ import (
 
 var log = logging.Logger("routing/delegated")
 
+// Parse creates a composed router from the custom routing configuration.
+//
+// EXPERIMENTAL: Custom routing (Routing.Type=custom with Routing.Routers and
+// Routing.Methods) is for research and testing only, not production use.
+// The configuration format and behavior may change without notice between
+// releases. HTTP-only configurations cannot reliably provide content.
+// See docs/delegated-routing.md for limitations.
 func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTParams, extraHTTP *ExtraHTTPParams) (routing.Routing, error) {
 	if err := methods.Check(); err != nil {
 		return nil, err

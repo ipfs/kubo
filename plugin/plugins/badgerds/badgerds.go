@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/plugin"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
@@ -12,6 +13,8 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	badgerds "github.com/ipfs/go-ds-badger"
 )
+
+var log = logging.Logger("plugin/badgerds")
 
 // Plugins is exported list of plugins that will be loaded.
 var Plugins = []plugin.Plugin{
@@ -49,7 +52,7 @@ type datastoreConfig struct {
 // BadgerdsDatastoreConfig returns a configuration stub for a badger datastore
 // from the given parameters.
 func (*badgerdsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
-	return func(params map[string]interface{}) (fsrepo.DatastoreConfig, error) {
+	return func(params map[string]any) (fsrepo.DatastoreConfig, error) {
 		var c datastoreConfig
 		var ok bool
 
@@ -101,14 +104,39 @@ func (*badgerdsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 }
 
 func (c *datastoreConfig) DiskSpec() fsrepo.DiskSpec {
-	return map[string]interface{}{
+	return map[string]any{
 		"type": "badgerds",
 		"path": c.path,
 	}
 }
 
 func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
-	fmt.Fprintln(os.Stderr, "⚠️ badgerds is based on badger 1.x, which has known bugs and is no longer supported by the upstream team. Please switch to a newer datastore such as pebbleds or flatfs.")
+	log.Error("badger v1 datastore is deprecated and will be removed later in 2026, migrate to flatfs or experimental pebbleds: https://github.com/ipfs/kubo/issues/11186")
+	fmt.Fprintf(os.Stderr, `
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║  ERROR: BADGER v1 DATASTORE IS DEPRECATED                                  ║
+║                                                                            ║
+║  This datastore is based on badger 1.x which has not been maintained       ║
+║  by its upstream maintainers for years and has known bugs (startup         ║
+║  timeouts, shutdown hangs, file descriptor exhaustion, and more).          ║
+║                                                                            ║
+║  Badger v1 support will be REMOVED later in 2026.                          ║
+║                                                                            ║
+║  To migrate:                                                               ║
+║    1. Create a new IPFS_PATH with flatfs (or experimental pebbleds         ║
+║       if flatfs does not serve your use case):                             ║
+║         export IPFS_PATH=/path/to/new/repo                                 ║
+║         ipfs init --profile=flatfs                                         ║
+║    2. Move pinned data via ipfs dag export/import                          ║
+║       or ipfs pin ls -t recursive|add                                      ║
+║    3. Decommission the old badger-based node                               ║
+║                                                                            ║
+║  See https://github.com/ipfs/kubo/blob/master/docs/datastores.md           ║
+║      https://github.com/ipfs/kubo/issues/11186                             ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+`)
 	p := c.path
 	if !filepath.IsAbs(p) {
 		p = filepath.Join(path, p)

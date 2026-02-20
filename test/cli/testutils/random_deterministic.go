@@ -17,23 +17,26 @@ func (r *randomReader) Read(p []byte) (int, error) {
 	if r.remaining <= 0 {
 		return 0, io.EOF
 	}
-	n := int64(len(p))
-	if n > r.remaining {
-		n = r.remaining
-	}
+	n := min(int64(len(p)), r.remaining)
 	// Generate random bytes directly into the provided buffer
 	r.cipher.XORKeyStream(p[:n], make([]byte, n))
 	r.remaining -= n
 	return int(n), nil
 }
 
-// createRandomReader produces specified number of pseudo-random bytes
-// from a seed.
+// DeterministicRandomReader produces specified number of pseudo-random bytes
+// from a seed. Size can be specified as a humanize string (e.g., "256KiB", "1MiB").
 func DeterministicRandomReader(sizeStr string, seed string) (io.Reader, error) {
 	size, err := humanize.ParseBytes(sizeStr)
 	if err != nil {
 		return nil, err
 	}
+	return DeterministicRandomReaderBytes(int64(size), seed)
+}
+
+// DeterministicRandomReaderBytes produces exactly `size` pseudo-random bytes
+// from a seed. Use this when exact byte precision is needed.
+func DeterministicRandomReaderBytes(size int64, seed string) (io.Reader, error) {
 	// Hash the seed string to a 32-byte key for ChaCha20
 	key := sha256.Sum256([]byte(seed))
 	// Use ChaCha20 for deterministic random bytes
@@ -42,5 +45,5 @@ func DeterministicRandomReader(sizeStr string, seed string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &randomReader{cipher: cipher, remaining: int64(size)}, nil
+	return &randomReader{cipher: cipher, remaining: size}, nil
 }

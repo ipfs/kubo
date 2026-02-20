@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
@@ -38,11 +37,6 @@ func TestAdd(t *testing.T) {
 		shortStringCidV1            = "bafkreifzjut3te2nhyekklss27nh3k72ysco7y32koao5eei66wof36n5e" // cidv1 - raw - sha2-256
 		shortStringCidV1NoRawLeaves = "bafybeihykld7uyxzogax6vgyvag42y7464eywpf55gxi5qpoisibh3c5wa" // cidv1 - dag-pb - sha2-256
 		shortStringCidV1Sha512      = "bafkrgqbqt3gerhas23vuzrapkdeqf4vu2dwxp3srdj6hvg6nhsug2tgyn6mj3u23yx7utftq3i2ckw2fwdh5qmhid5qf3t35yvkc5e5ottlw6"
-	)
-
-	const (
-		cidV0Length = 34 // cidv0 sha2-256
-		cidV1Length = 36 // cidv1 sha2-256
 	)
 
 	t.Run("produced cid version: implicit default (CIDv0)", func(t *testing.T) {
@@ -166,7 +160,7 @@ func TestAdd(t *testing.T) {
 		//
 		// UnixFSChunker=size-262144 (256KiB)
 		// Import.UnixFSFileMaxLinks=174
-		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v0") // legacy-cid-v0 for determinism across all params
+		node := harness.NewT(t).NewNode().Init("--profile=unixfs-v0-2015") // unixfs-v0-2015 for determinism across all params
 		node.UpdateConfig(func(cfg *config.Config) {
 			cfg.Import.UnixFSChunker = *config.NewOptionalString("size-262144") // 256 KiB chunks
 			cfg.Import.UnixFSFileMaxLinks = *config.NewOptionalInteger(174)     // max 174 per level
@@ -187,266 +181,243 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, "QmbBftNHWmjSWKLC49dMVrfnY8pjrJYntiAXirFJ7oJrNk", cidStr)
 	})
 
-	t.Run("ipfs init --profile=legacy-cid-v0 sets config that produces legacy CIDv0", func(t *testing.T) {
+	// Profile-specific threshold tests are in cid_profiles_test.go (TestCIDProfiles).
+	// Tests here cover general ipfs add behavior not tied to specific profiles.
+
+	t.Run("ipfs add --hidden", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init("--profile=legacy-cid-v0")
-		node.StartDaemon()
-		defer node.StopDaemon()
 
-		cidStr := node.IPFSAddStr(shortString)
-		require.Equal(t, shortStringCidV0, cidStr)
-	})
+		// Helper to create test directory with hidden file
+		setupTestDir := func(t *testing.T, node *harness.Node) string {
+			testDir, err := os.MkdirTemp(node.Dir, "hidden-test")
+			require.NoError(t, err)
+			require.NoError(t, os.WriteFile(filepath.Join(testDir, "visible.txt"), []byte("visible"), 0o644))
+			require.NoError(t, os.WriteFile(filepath.Join(testDir, ".hidden"), []byte("hidden"), 0o644))
+			return testDir
+		}
 
-	t.Run("ipfs init --profile=legacy-cid-v0 applies UnixFSChunker=size-262144 and UnixFSFileMaxLinks", func(t *testing.T) {
-		t.Parallel()
-		seed := "v0-seed"
-		profile := "--profile=legacy-cid-v0"
-
-		t.Run("under UnixFSFileMaxLinks=174", func(t *testing.T) {
+		t.Run("default excludes hidden files", func(t *testing.T) {
 			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
-			// Add 44544KiB file:
-			// 174 * 256KiB should fit in single DAG layer
-			cidStr := node.IPFSAddDeterministic("44544KiB", seed)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 174, len(root.Links))
-			// expect same CID every time
-			require.Equal(t, "QmUbBALi174SnogsUzLpYbD4xPiBSFANF4iztWCsHbMKh2", cidStr)
+
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", testDir).Stdout.Trimmed()
+			lsOutput := node.IPFS("ls", cidStr).Stdout.Trimmed()
+			require.Contains(t, lsOutput, "visible.txt")
+			require.NotContains(t, lsOutput, ".hidden")
 		})
 
-		t.Run("above UnixFSFileMaxLinks=174", func(t *testing.T) {
+		t.Run("--hidden includes hidden files", func(t *testing.T) {
 			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
-			defer node.StopDaemon()
-			// add 256KiB (one more block), it should force rebalancing DAG and moving most to second layer
-			cidStr := node.IPFSAddDeterministic("44800KiB", seed)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 2, len(root.Links))
-			// expect same CID every time
-			require.Equal(t, "QmepeWtdmS1hHXx1oZXsPUv6bMrfRRKfZcoPPU4eEfjnbf", cidStr)
-		})
-	})
-
-	t.Run("ipfs init --profile=legacy-cid-v0 applies UnixFSHAMTDirectoryMaxFanout=256 and UnixFSHAMTDirectorySizeThreshold=256KiB", func(t *testing.T) {
-		t.Parallel()
-		seed := "hamt-legacy-cid-v0"
-		profile := "--profile=legacy-cid-v0"
-
-		t.Run("under UnixFSHAMTDirectorySizeThreshold=256KiB", func(t *testing.T) {
-			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
 
-			randDir, err := os.MkdirTemp(node.Dir, seed)
-			require.NoError(t, err)
-
-			// Create directory with a lot of files that have filenames which together take close to UnixFSHAMTDirectorySizeThreshold in total
-			err = createDirectoryForHAMT(randDir, cidV0Length, "255KiB", seed)
-			require.NoError(t, err)
-			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
-
-			// Confirm the number of links is more than UnixFSHAMTDirectorySizeThreshold (indicating regular "basic" directory"
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 903, len(root.Links))
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", "--hidden", testDir).Stdout.Trimmed()
+			lsOutput := node.IPFS("ls", cidStr).Stdout.Trimmed()
+			require.Contains(t, lsOutput, "visible.txt")
+			require.Contains(t, lsOutput, ".hidden")
 		})
 
-		t.Run("above UnixFSHAMTDirectorySizeThreshold=256KiB", func(t *testing.T) {
+		t.Run("-H includes hidden files", func(t *testing.T) {
 			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
 
-			randDir, err := os.MkdirTemp(node.Dir, seed)
-			require.NoError(t, err)
-
-			// Create directory with a lot of files that have filenames which together take close to UnixFSHAMTDirectorySizeThreshold in total
-			err = createDirectoryForHAMT(randDir, cidV0Length, "257KiB", seed)
-			require.NoError(t, err)
-			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
-
-			// Confirm this time, the number of links is less than UnixFSHAMTDirectorySizeThreshold
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 252, len(root.Links))
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", "-H", testDir).Stdout.Trimmed()
+			lsOutput := node.IPFS("ls", cidStr).Stdout.Trimmed()
+			require.Contains(t, lsOutput, "visible.txt")
+			require.Contains(t, lsOutput, ".hidden")
 		})
 	})
 
-	t.Run("ipfs init --profile=test-cid-v1 produces CIDv1 with raw leaves", func(t *testing.T) {
+	t.Run("ipfs add --empty-dirs", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init("--profile=test-cid-v1")
-		node.StartDaemon()
-		defer node.StopDaemon()
 
-		cidStr := node.IPFSAddStr(shortString)
-		require.Equal(t, shortStringCidV1, cidStr) // raw leaf
-	})
+		// Helper to create test directory with empty subdirectory
+		setupTestDir := func(t *testing.T, node *harness.Node) string {
+			testDir, err := os.MkdirTemp(node.Dir, "empty-dirs-test")
+			require.NoError(t, err)
+			require.NoError(t, os.Mkdir(filepath.Join(testDir, "empty-subdir"), 0o755))
+			require.NoError(t, os.WriteFile(filepath.Join(testDir, "file.txt"), []byte("content"), 0o644))
+			return testDir
+		}
 
-	t.Run("ipfs init --profile=test-cid-v1 applies UnixFSChunker=size-1048576", func(t *testing.T) {
-		t.Parallel()
-		seed := "v1-seed"
-		profile := "--profile=test-cid-v1"
-
-		t.Run("under UnixFSFileMaxLinks=174", func(t *testing.T) {
+		t.Run("default includes empty directories", func(t *testing.T) {
 			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
-			// Add 174MiB file:
-			// 174 * 1MiB should fit in single layer
-			cidStr := node.IPFSAddDeterministic("174MiB", seed)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 174, len(root.Links))
-			// expect same CID every time
-			require.Equal(t, "bafybeigwduxcf2aawppv3isnfeshnimkyplvw3hthxjhr2bdeje4tdaicu", cidStr)
+
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", testDir).Stdout.Trimmed()
+			require.Contains(t, node.IPFS("ls", cidStr).Stdout.Trimmed(), "empty-subdir")
 		})
 
-		t.Run("above UnixFSFileMaxLinks=174", func(t *testing.T) {
+		t.Run("--empty-dirs=true includes empty directories", func(t *testing.T) {
 			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
-			defer node.StopDaemon()
-			// add +1MiB (one more block), it should force rebalancing DAG and moving most to second layer
-			cidStr := node.IPFSAddDeterministic("175MiB", seed)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 2, len(root.Links))
-			// expect same CID every time
-			require.Equal(t, "bafybeidhd7lo2n2v7lta5yamob3xwhbxcczmmtmhquwhjesi35jntf7mpu", cidStr)
-		})
-	})
-
-	t.Run("ipfs init --profile=test-cid-v1 applies UnixFSHAMTDirectoryMaxFanout=256 and UnixFSHAMTDirectorySizeThreshold=256KiB", func(t *testing.T) {
-		t.Parallel()
-		seed := "hamt-cid-v1"
-		profile := "--profile=test-cid-v1"
-
-		t.Run("under UnixFSHAMTDirectorySizeThreshold=256KiB", func(t *testing.T) {
-			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
 
-			randDir, err := os.MkdirTemp(node.Dir, seed)
-			require.NoError(t, err)
-
-			// Create directory with a lot of files that have filenames which together take close to UnixFSHAMTDirectorySizeThreshold in total
-			err = createDirectoryForHAMT(randDir, cidV1Length, "255KiB", seed)
-			require.NoError(t, err)
-			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
-
-			// Confirm the number of links is more than UnixFSHAMTDirectoryMaxFanout (indicating regular "basic" directory"
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 897, len(root.Links))
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", "--empty-dirs=true", testDir).Stdout.Trimmed()
+			require.Contains(t, node.IPFS("ls", cidStr).Stdout.Trimmed(), "empty-subdir")
 		})
 
-		t.Run("above UnixFSHAMTDirectorySizeThreshold=256KiB", func(t *testing.T) {
+		t.Run("--empty-dirs=false excludes empty directories", func(t *testing.T) {
 			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
 
-			randDir, err := os.MkdirTemp(node.Dir, seed)
-			require.NoError(t, err)
-
-			// Create directory with a lot of files that have filenames which together take close to UnixFSHAMTDirectorySizeThreshold in total
-			err = createDirectoryForHAMT(randDir, cidV1Length, "257KiB", seed)
-			require.NoError(t, err)
-			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
-
-			// Confirm this time, the number of links is less than UnixFSHAMTDirectoryMaxFanout
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 252, len(root.Links))
+			testDir := setupTestDir(t, node)
+			cidStr := node.IPFS("add", "-r", "-Q", "--empty-dirs=false", testDir).Stdout.Trimmed()
+			lsOutput := node.IPFS("ls", cidStr).Stdout.Trimmed()
+			require.NotContains(t, lsOutput, "empty-subdir")
+			require.Contains(t, lsOutput, "file.txt")
 		})
 	})
 
-	t.Run("ipfs init --profile=test-cid-v1-wide applies UnixFSChunker=size-1048576 and UnixFSFileMaxLinks=1024", func(t *testing.T) {
+	t.Run("ipfs add symlink handling", func(t *testing.T) {
 		t.Parallel()
-		seed := "v1-seed-1024"
-		profile := "--profile=test-cid-v1-wide"
 
-		t.Run("under UnixFSFileMaxLinks=1024", func(t *testing.T) {
+		// Helper to create test directory structure:
+		// testDir/
+		//   target.txt           (file with "target content")
+		//   link.txt -> target.txt (symlink at top level)
+		//   subdir/
+		//     subsubdir/
+		//       nested-target.txt (file with "nested content")
+		//       nested-link.txt -> nested-target.txt (symlink in sub-sub directory)
+		setupTestDir := func(t *testing.T, node *harness.Node) string {
+			testDir, err := os.MkdirTemp(node.Dir, "deref-symlinks-test")
+			require.NoError(t, err)
+
+			// Top-level file and symlink
+			targetFile := filepath.Join(testDir, "target.txt")
+			require.NoError(t, os.WriteFile(targetFile, []byte("target content"), 0o644))
+			require.NoError(t, os.Symlink("target.txt", filepath.Join(testDir, "link.txt")))
+
+			// Nested file and symlink in sub-sub directory
+			subsubdir := filepath.Join(testDir, "subdir", "subsubdir")
+			require.NoError(t, os.MkdirAll(subsubdir, 0o755))
+			nestedTarget := filepath.Join(subsubdir, "nested-target.txt")
+			require.NoError(t, os.WriteFile(nestedTarget, []byte("nested content"), 0o644))
+			require.NoError(t, os.Symlink("nested-target.txt", filepath.Join(subsubdir, "nested-link.txt")))
+
+			return testDir
+		}
+
+		t.Run("default preserves symlinks", func(t *testing.T) {
 			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
-			// Add 174MiB file:
-			// 1024 * 1MiB should fit in single layer
-			cidStr := node.IPFSAddDeterministic("1024MiB", seed)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 1024, len(root.Links))
-			// expect same CID every time
-			require.Equal(t, "bafybeiej5w63ir64oxgkr5htqmlerh5k2rqflurn2howimexrlkae64xru", cidStr)
+
+			testDir := setupTestDir(t, node)
+
+			// Add directory with symlink (default: preserve)
+			dirCID := node.IPFS("add", "-r", "-Q", testDir).Stdout.Trimmed()
+
+			// Get and verify symlinks are preserved
+			outDir, err := os.MkdirTemp(node.Dir, "symlink-get-out")
+			require.NoError(t, err)
+			node.IPFS("get", "-o", outDir, dirCID)
+
+			// Check top-level symlink is preserved
+			linkPath := filepath.Join(outDir, "link.txt")
+			fi, err := os.Lstat(linkPath)
+			require.NoError(t, err)
+			require.True(t, fi.Mode()&os.ModeSymlink != 0, "link.txt should be a symlink")
+			target, err := os.Readlink(linkPath)
+			require.NoError(t, err)
+			require.Equal(t, "target.txt", target)
+
+			// Check nested symlink is preserved
+			nestedLinkPath := filepath.Join(outDir, "subdir", "subsubdir", "nested-link.txt")
+			fi, err = os.Lstat(nestedLinkPath)
+			require.NoError(t, err)
+			require.True(t, fi.Mode()&os.ModeSymlink != 0, "nested-link.txt should be a symlink")
 		})
 
-		t.Run("above UnixFSFileMaxLinks=1024", func(t *testing.T) {
+		// --dereference-args is deprecated but still works for backwards compatibility.
+		// It only resolves symlinks passed as CLI arguments, NOT symlinks found
+		// during directory traversal. Use --dereference-symlinks instead.
+		t.Run("--dereference-args resolves CLI args only", func(t *testing.T) {
 			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
-			defer node.StopDaemon()
-			// add +1MiB (one more block), it should force rebalancing DAG and moving most to second layer
-			cidStr := node.IPFSAddDeterministic("1025MiB", seed)
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 2, len(root.Links))
-			// expect same CID every time
-			require.Equal(t, "bafybeieilp2qx24pe76hxrxe6bpef5meuxto3kj5dd6mhb5kplfeglskdm", cidStr)
-		})
-	})
-
-	t.Run("ipfs init --profile=test-cid-v1-wide applies UnixFSHAMTDirectoryMaxFanout=256 and UnixFSHAMTDirectorySizeThreshold=1MiB", func(t *testing.T) {
-		t.Parallel()
-		seed := "hamt-cid-v1"
-		profile := "--profile=test-cid-v1-wide"
-
-		t.Run("under UnixFSHAMTDirectorySizeThreshold=1MiB", func(t *testing.T) {
-			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
 
-			randDir, err := os.MkdirTemp(node.Dir, seed)
-			require.NoError(t, err)
+			testDir := setupTestDir(t, node)
+			symlinkPath := filepath.Join(testDir, "link.txt")
+			targetPath := filepath.Join(testDir, "target.txt")
 
-			// Create directory with a lot of files that have filenames which together take close to UnixFSHAMTDirectorySizeThreshold in total
-			err = createDirectoryForHAMT(randDir, cidV1Length, "1023KiB", seed)
-			require.NoError(t, err)
-			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
+			symlinkCID := node.IPFS("add", "-Q", "--dereference-args", symlinkPath).Stdout.Trimmed()
+			targetCID := node.IPFS("add", "-Q", targetPath).Stdout.Trimmed()
 
-			// Confirm the number of links is more than UnixFSHAMTDirectoryMaxFanout (indicating regular "basic" directory"
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 3599, len(root.Links))
+			// CIDs should match because --dereference-args resolves the symlink
+			require.Equal(t, targetCID, symlinkCID,
+				"--dereference-args should resolve CLI arg symlink to target content")
+
+			// Now add the directory recursively with --dereference-args
+			// Nested symlinks should NOT be resolved (only CLI args are resolved)
+			dirCID := node.IPFS("add", "-r", "-Q", "--dereference-args", testDir).Stdout.Trimmed()
+
+			outDir, err := os.MkdirTemp(node.Dir, "deref-args-out")
+			require.NoError(t, err)
+			node.IPFS("get", "-o", outDir, dirCID)
+
+			// Nested symlink should still be a symlink (not dereferenced)
+			nestedLinkPath := filepath.Join(outDir, "subdir", "subsubdir", "nested-link.txt")
+			fi, err := os.Lstat(nestedLinkPath)
+			require.NoError(t, err)
+			require.True(t, fi.Mode()&os.ModeSymlink != 0,
+				"--dereference-args should NOT resolve nested symlinks, only CLI args")
 		})
 
-		t.Run("above UnixFSHAMTDirectorySizeThreshold=1MiB", func(t *testing.T) {
+		// --dereference-symlinks resolves ALL symlinks: both CLI arguments AND
+		// symlinks found during directory traversal. This is a superset of
+		// the deprecated --dereference-args behavior.
+		t.Run("--dereference-symlinks resolves all symlinks", func(t *testing.T) {
 			t.Parallel()
-			node := harness.NewT(t).NewNode().Init(profile)
-			node.StartDaemon()
+			node := harness.NewT(t).NewNode().Init().StartDaemon()
 			defer node.StopDaemon()
 
-			randDir, err := os.MkdirTemp(node.Dir, seed)
-			require.NoError(t, err)
+			testDir := setupTestDir(t, node)
+			symlinkPath := filepath.Join(testDir, "link.txt")
+			targetPath := filepath.Join(testDir, "target.txt")
 
-			// Create directory with a lot of files that have filenames which together take close to UnixFSHAMTDirectorySizeThreshold in total
-			err = createDirectoryForHAMT(randDir, cidV1Length, "1025KiB", seed)
-			require.NoError(t, err)
-			cidStr := node.IPFS("add", "-r", "-Q", randDir).Stdout.Trimmed()
+			symlinkCID := node.IPFS("add", "-Q", "--dereference-symlinks", symlinkPath).Stdout.Trimmed()
+			targetCID := node.IPFS("add", "-Q", targetPath).Stdout.Trimmed()
 
-			// Confirm this time, the number of links is less than UnixFSHAMTDirectoryMaxFanout
-			root, err := node.InspectPBNode(cidStr)
-			assert.NoError(t, err)
-			require.Equal(t, 992, len(root.Links))
+			require.Equal(t, targetCID, symlinkCID,
+				"--dereference-symlinks should resolve CLI arg symlink (like --dereference-args)")
+
+			// Test 2: Nested symlinks in sub-sub directory are ALSO resolved
+			dirCID := node.IPFS("add", "-r", "-Q", "--dereference-symlinks", testDir).Stdout.Trimmed()
+
+			outDir, err := os.MkdirTemp(node.Dir, "deref-symlinks-out")
+			require.NoError(t, err)
+			node.IPFS("get", "-o", outDir, dirCID)
+
+			// Top-level symlink should be dereferenced to regular file
+			linkPath := filepath.Join(outDir, "link.txt")
+			fi, err := os.Lstat(linkPath)
+			require.NoError(t, err)
+			require.False(t, fi.Mode()&os.ModeSymlink != 0,
+				"link.txt should be dereferenced to regular file")
+			content, err := os.ReadFile(linkPath)
+			require.NoError(t, err)
+			require.Equal(t, "target content", string(content))
+
+			// Nested symlink in sub-sub directory should ALSO be dereferenced
+			nestedLinkPath := filepath.Join(outDir, "subdir", "subsubdir", "nested-link.txt")
+			fi, err = os.Lstat(nestedLinkPath)
+			require.NoError(t, err)
+			require.False(t, fi.Mode()&os.ModeSymlink != 0,
+				"nested-link.txt should be dereferenced (--dereference-symlinks resolves ALL symlinks)")
+			nestedContent, err := os.ReadFile(nestedLinkPath)
+			require.NoError(t, err)
+			require.Equal(t, "nested content", string(nestedContent))
 		})
 	})
 }
@@ -627,30 +598,46 @@ func TestAddFastProvide(t *testing.T) {
 	})
 }
 
-// createDirectoryForHAMT aims to create enough files with long names for the directory block to be close to the UnixFSHAMTDirectorySizeThreshold.
-// The calculation is based on boxo's HAMTShardingSize and sizeBelowThreshold which calculates ballpark size of the block
-// by adding length of link names and the binary cid length.
-// See https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L491
-func createDirectoryForHAMT(dirPath string, cidLength int, unixfsNodeSizeTarget, seed string) error {
-	hamtThreshold, err := humanize.ParseBytes(unixfsNodeSizeTarget)
-	if err != nil {
-		return err
-	}
+// createDirectoryForHAMTLinksEstimation creates a directory with the specified number
+// of files for testing links-based size estimation (size = sum of nameLen + cidLen).
+// Used by legacy profiles (unixfs-v0-2015).
+//
+// The lastNameLen parameter allows the last file to have a different name length,
+// enabling exact +1 byte threshold tests.
+func createDirectoryForHAMTLinksEstimation(dirPath string, numFiles, nameLen, lastNameLen int, seed string) error {
+	return createDeterministicFiles(dirPath, numFiles, nameLen, lastNameLen, seed)
+}
 
-	// Calculate how many files with long filenames are needed to hit UnixFSHAMTDirectorySizeThreshold
-	nameLen := 255 // max that works across windows/macos/linux
+// createDirectoryForHAMTBlockEstimation creates a directory with the specified number
+// of files for testing block-based size estimation (LinkSerializedSize with protobuf overhead).
+// Used by modern profiles (unixfs-v1-2025).
+//
+// The lastNameLen parameter allows the last file to have a different name length,
+// enabling exact +1 byte threshold tests.
+func createDirectoryForHAMTBlockEstimation(dirPath string, numFiles, nameLen, lastNameLen int, seed string) error {
+	return createDeterministicFiles(dirPath, numFiles, nameLen, lastNameLen, seed)
+}
+
+// createDeterministicFiles creates numFiles files with deterministic names.
+// Files 0 to numFiles-2 have nameLen characters, and the last file has lastNameLen characters.
+// Each file contains "x" (1 byte) for non-zero tsize in directory links.
+func createDeterministicFiles(dirPath string, numFiles, nameLen, lastNameLen int, seed string) error {
 	alphabetLen := len(testutils.AlphabetEasy)
-	numFiles := int(hamtThreshold) / (nameLen + cidLength)
 
-	// Deterministic pseudo-random bytes for static CID
-	drand, err := testutils.DeterministicRandomReader(unixfsNodeSizeTarget, seed)
+	// Deterministic pseudo-random bytes for static filenames
+	drand, err := testutils.DeterministicRandomReader("1MiB", seed)
 	if err != nil {
 		return err
 	}
 
-	// Create necessary files in a single, flat directory
-	for i := 0; i < numFiles; i++ {
-		buf := make([]byte, nameLen)
+	for i := range numFiles {
+		// Use lastNameLen for the final file
+		currentNameLen := nameLen
+		if i == numFiles-1 {
+			currentNameLen = lastNameLen
+		}
+
+		buf := make([]byte, currentNameLen)
 		_, err := io.ReadFull(drand, buf)
 		if err != nil {
 			return err
@@ -658,21 +645,17 @@ func createDirectoryForHAMT(dirPath string, cidLength int, unixfsNodeSizeTarget,
 
 		// Convert deterministic pseudo-random bytes to ASCII
 		var sb strings.Builder
-
 		for _, b := range buf {
-			// Map byte to printable ASCII range (33-126)
 			char := testutils.AlphabetEasy[int(b)%alphabetLen]
 			sb.WriteRune(char)
 		}
-		filename := sb.String()[:nameLen]
+		filename := sb.String()[:currentNameLen]
 		filePath := filepath.Join(dirPath, filename)
 
-		// Create empty file
-		f, err := os.Create(filePath)
-		if err != nil {
+		// Create file with 1-byte content for non-zero tsize
+		if err := os.WriteFile(filePath, []byte("x"), 0o644); err != nil {
 			return err
 		}
-		f.Close()
 	}
 	return nil
 }

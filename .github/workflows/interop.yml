@@ -1,3 +1,17 @@
+# Interoperability Tests
+#
+# This workflow ensures Kubo remains compatible with the broader IPFS ecosystem.
+# It builds Kubo from source, then runs:
+#
+# 1. helia-interop: Tests compatibility with Helia (JavaScript IPFS implementation)
+#    using Playwright-based tests from @helia/interop package.
+#
+# 2. ipfs-webui: Runs E2E tests from ipfs/ipfs-webui repository to verify
+#    the web interface works correctly with the locally built Kubo binary.
+#
+# Both jobs use caching to speed up repeated runs (npm dependencies, Playwright
+# browsers, and webui build artifacts).
+
 name: Interop
 
 on:
@@ -32,12 +46,12 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
       - run: make build
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: kubo
           path: cmd/ipfs/ipfs
@@ -52,23 +66,47 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: lts/*
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
-      - run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-        id: npm-cache-dir
-      - uses: actions/cache@v4
-        with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-${{ github.job }}-helia-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-${{ github.job }}-helia-
       - run: sudo apt update
       - run: sudo apt install -y libxkbcommon0 libxdamage1 libgbm1 libpango-1.0-0 libcairo2 # dependencies for playwright
-      - run: npx --package @helia/interop helia-interop
+      # Cache node_modules based on latest @helia/interop version from npm registry.
+      # This ensures we always test against the latest release while still benefiting
+      # from caching when the version hasn't changed.
+      - name: Get latest @helia/interop version
+        id: helia-version
+        run: echo "version=$(npm view @helia/interop version)" >> $GITHUB_OUTPUT
+      - name: Cache helia-interop node_modules
+        uses: actions/cache@v5
+        id: helia-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-helia-interop-${{ steps.helia-version.outputs.version }}
+      - name: Install @helia/interop
+        if: steps.helia-cache.outputs.cache-hit != 'true'
+        run: npm install @helia/interop
+      # TODO(IPIP-499): Remove --grep --invert workaround once helia implements IPIP-499
+      # Tracking issue: https://github.com/ipfs/helia/issues/941
+      #
+      # PROVISIONAL HACK: Skip '@helia/mfs - should have the same CID after
+      # creating a file' test due to IPIP-499 changes in kubo.
+      #
+      # WHY IT FAILS: The test creates a 5-byte file in MFS on both kubo and helia,
+      # then compares the root directory CID. With kubo PR #11148, `ipfs files write`
+      # now produces raw CIDs for single-block files (matching `ipfs add --raw-leaves`),
+      # while helia uses `reduceSingleLeafToSelf: false` which keeps the dag-pb wrapper.
+      # Different file CIDs lead to different directory CIDs.
+      #
+      # We run aegir directly (instead of helia-interop binary) because only aegir
+      # supports the --grep/--invert flags needed to exclude specific tests.
+      - name: Run helia-interop tests (excluding IPIP-499 incompatible test)
+        run: npx aegir test -t node --bail -- --grep 'should have the same CID after creating a file' --invert
         env:
           KUBO_BINARY: ${{ github.workspace }}/cmd/ipfs/ipfs
+        working-directory: node_modules/@helia/interop
   ipfs-webui:
     needs: [interop-prep]
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
@@ -84,48 +122,82 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20.x
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: ipfs/ipfs-webui
           path: ipfs-webui
-      - run: |
-          echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-        id: npm-cache-dir
-      - uses: actions/cache@v4
+      - uses: actions/setup-node@v6
         with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ github.job }}-
-      - env:
-          NPM_CACHE_DIR: ${{ steps.npm-cache-dir.outputs.dir }}
-        run: |
-          npm ci --prefer-offline --no-audit --progress=false --cache "$NPM_CACHE_DIR"
-          npx playwright install --with-deps
-        working-directory: ipfs-webui
-      - id: ref
+          node-version-file: 'ipfs-webui/.tool-versions'
+      - id: webui-ref
         run: echo "ref=$(git rev-parse --short HEAD)" | tee -a $GITHUB_OUTPUT
         working-directory: ipfs-webui
-      - id: state
+      - id: webui-state
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          ENDPOINT: repos/ipfs/ipfs-webui/commits/${{ steps.ref.outputs.ref }}/status
+          ENDPOINT: repos/ipfs/ipfs-webui/commits/${{ steps.webui-ref.outputs.ref }}/status
           SELECTOR: .state
           KEY: state
         run: gh api "$ENDPOINT" --jq "$SELECTOR" | xargs -I{} echo "$KEY={}" | tee -a $GITHUB_OUTPUT
-      - name: Build ipfs-webui@main (state=${{ steps.state.outputs.state }})
+      # Cache node_modules based on package-lock.json
+      - name: Cache node_modules
+        uses: actions/cache@v5
+        id: node-modules-cache
+        with:
+          path: ipfs-webui/node_modules
+          key: ${{ runner.os }}-webui-node-modules-${{ hashFiles('ipfs-webui/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-webui-node-modules-
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit --progress=false
+        working-directory: ipfs-webui
+      # Cache Playwright browsers
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('ipfs-webui/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+      # On cache miss: download browsers and install OS dependencies
+      - name: Install Playwright with dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+        working-directory: ipfs-webui
+      # On cache hit: only ensure OS dependencies are present (fast, idempotent)
+      - name: Install Playwright OS dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
+        working-directory: ipfs-webui
+      # Cache test build output
+      - name: Cache test build
+        uses: actions/cache@v5
+        id: test-build-cache
+        with:
+          path: ipfs-webui/build
+          key: ${{ runner.os }}-webui-build-${{ hashFiles('ipfs-webui/package-lock.json', 'ipfs-webui/src/**', 'ipfs-webui/public/**') }}
+          restore-keys: |
+            ${{ runner.os }}-webui-build-
+      - name: Build ipfs-webui@${{ steps.webui-ref.outputs.ref }} (state=${{ steps.webui-state.outputs.state }})
+        if: steps.test-build-cache.outputs.cache-hit != 'true'
         run: npm run test:build
         working-directory: ipfs-webui
-      - name: Test ipfs-webui@main (state=${{ steps.state.outputs.state }}) E2E against the locally built Kubo binary
+      - name: Test ipfs-webui@${{ steps.webui-ref.outputs.ref }} (state=${{ steps.webui-state.outputs.state }}) E2E against the locally built Kubo binary
         run: npm run test:e2e
         env:
           IPFS_GO_EXEC: ${{ github.workspace }}/cmd/ipfs/ipfs
         working-directory: ipfs-webui
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: webui-test-results
+          path: ipfs-webui/test-results/
+          retention-days: 7

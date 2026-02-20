@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"slices"
 	"strings"
 )
 
@@ -59,7 +60,7 @@ type Router struct {
 
 	// Parameters are extra configuration that this router might need.
 	// A common one for HTTP router is "Endpoint".
-	Parameters interface{}
+	Parameters any
 }
 
 type (
@@ -78,13 +79,7 @@ func (m Methods) Check() error {
 
 	// Check unsupported methods
 	for k := range m {
-		seen := false
-		for _, mn := range MethodNameList {
-			if mn == k {
-				seen = true
-				break
-			}
-		}
+		seen := slices.Contains(MethodNameList, k)
 
 		if seen {
 			continue
@@ -108,7 +103,7 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 	}
 	raw := out.Parameters.(*json.RawMessage)
 
-	var p interface{}
+	var p any
 	switch out.Type {
 	case RouterTypeHTTP:
 		p = &HTTPRouterParams{}

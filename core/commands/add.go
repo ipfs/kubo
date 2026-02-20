@@ -15,6 +15,7 @@ import (
 
 	"github.com/cheggaaa/pb"
 	"github.com/ipfs/boxo/files"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/boxo/verifcid"
@@ -68,6 +69,7 @@ const (
 	mtimeNsecsOptionName      = "mtime-nsecs"
 	fastProvideRootOptionName = "fast-provide-root"
 	fastProvideWaitOptionName = "fast-provide-wait"
+	emptyDirsOptionName       = "empty-dirs"
 )
 
 const (
@@ -147,6 +149,18 @@ to find it in the future:
 See 'ipfs files --help' to learn more about using MFS
 for keeping track of added files and directories.
 
+SYMLINK HANDLING:
+
+By default, symbolic links are preserved as UnixFS symlink nodes that store
+the target path. Use --dereference-symlinks to resolve symlinks to their
+target content instead:
+
+  > ipfs add -r --dereference-symlinks ./mydir
+
+This resolves all symlinks, including CLI arguments and those found inside
+directories. Symlinks to files become regular file content, symlinks to
+directories are traversed and their contents are added.
+
 CHUNKING EXAMPLES:
 
 The chunker option, '-s', specifies the chunking strategy that dictates
@@ -157,6 +171,16 @@ hashes for the same file. The default is a fixed block size of
 Buzhash or Rabin fingerprint chunker for content defined chunking by
 specifying buzhash or rabin-[min]-[avg]-[max] (where min/avg/max refer
 to the desired chunk sizes in bytes), e.g. 'rabin-262144-524288-1048576'.
+
+The maximum accepted value for 'size-N' and rabin 'max' parameter is
+2MiB minus 256 bytes (2096896 bytes). The 256-byte overhead budget is
+reserved for protobuf/UnixFS framing so that serialized blocks stay
+within the 2MiB block size limit from the bitswap spec. The buzhash
+chunker uses a fixed internal maximum of 512KiB and is not affected.
+
+Only the fixed-size chunker ('size-N') guarantees that the same data
+will always produce the same CID. The rabin and buzhash chunkers may
+change their internal parameters in a future release.
 
 The following examples use very small byte sizes to demonstrate the
 properties of the different chunkers on a small file. You'll likely
@@ -200,11 +224,13 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 	Options: []cmds.Option{
 		// Input Processing
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
-		cmds.OptionDerefArgs,     // a builtin option that resolves passed in filesystem links (--dereference-args)
+		cmds.OptionDerefArgs,     // DEPRECATED: use --dereference-symlinks instead
 		cmds.OptionStdinName,     // a builtin option that optionally allows wrapping stdin into a named file
 		cmds.OptionHidden,
 		cmds.OptionIgnore,
 		cmds.OptionIgnoreRules,
+		cmds.BoolOption(emptyDirsOptionName, "E", "Include empty directories in the import.").WithDefault(config.DefaultUnixFSIncludeEmptyDirs),
+		cmds.OptionDerefSymlinks, // resolve symlinks to their target content
 		// Output Control
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
@@ -274,7 +300,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		}
 
 		progress, _ := req.Options[progressOptionName].(bool)
-		trickle, _ := req.Options[trickleOptionName].(bool)
+		trickle, trickleSet := req.Options[trickleOptionName].(bool)
 		wrap, _ := req.Options[wrapOptionName].(bool)
 		onlyHash, _ := req.Options[onlyHashOptionName].(bool)
 		silent, _ := req.Options[silentOptionName].(bool)
@@ -285,6 +311,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		maxFileLinks, maxFileLinksSet := req.Options[maxFileLinksOptionName].(int)
 		maxDirectoryLinks, maxDirectoryLinksSet := req.Options[maxDirectoryLinksOptionName].(int)
 		maxHAMTFanout, maxHAMTFanoutSet := req.Options[maxHAMTFanoutOptionName].(int)
+		var sizeEstimationMode uio.SizeEstimationMode
 		nocopy, _ := req.Options[noCopyOptionName].(bool)
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
@@ -312,6 +339,17 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		mtimeNsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
 		fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
 		fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
+		emptyDirs, _ := req.Options[emptyDirsOptionName].(bool)
+
+		// Note: --dereference-args is deprecated but still works for backwards compatibility.
+		// The help text marks it as DEPRECATED. Users should use --dereference-symlinks instead,
+		// which is a superset (resolves both CLI arg symlinks AND nested symlinks in directories).
+
+		// Wire --trickle from config
+		if !trickleSet && !cfg.Import.UnixFSDAGLayout.IsDefault() {
+			layout := cfg.Import.UnixFSDAGLayout.WithDefault(config.DefaultUnixFSDAGLayout)
+			trickle = layout == config.DAGLayoutTrickle
+		}
 
 		if chunker == "" {
 			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
@@ -347,6 +385,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			maxHAMTFanoutSet = true
 			maxHAMTFanout = int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
 		}
+
+		// SizeEstimationMode is always set from config (no CLI flag)
+		sizeEstimationMode = cfg.Import.HAMTSizeEstimationMode()
 
 		fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
 		fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
@@ -409,6 +450,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 			options.Unixfs.PreserveMode(preserveMode),
 			options.Unixfs.PreserveMtime(preserveMtime),
+
+			options.Unixfs.IncludeEmptyDirs(emptyDirs),
 		}
 
 		if mode != 0 {
@@ -440,6 +483,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		if maxHAMTFanoutSet {
 			opts = append(opts, options.Unixfs.MaxHAMTFanout(maxHAMTFanout))
 		}
+
+		// SizeEstimationMode is always set from config
+		opts = append(opts, options.Unixfs.SizeEstimationMode(sizeEstimationMode))
 
 		if trickle {
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))

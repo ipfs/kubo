@@ -98,8 +98,7 @@ func wrapped(names ...string) func(f files.Node) files.Node {
 }
 
 func (tp *TestSuite) TestAdd(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -378,14 +377,12 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 			// handle events if relevant to test case
 
 			opts := testCase.opts
-			eventOut := make(chan interface{})
+			eventOut := make(chan any)
 			var evtWg sync.WaitGroup
 			if len(testCase.events) > 0 {
 				opts = append(opts, options.Unixfs.Events(eventOut))
-				evtWg.Add(1)
 
-				go func() {
-					defer evtWg.Done()
+				evtWg.Go(func() {
 					expected := testCase.events
 
 					for evt := range eventOut {
@@ -425,7 +422,7 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 					if len(expected) > 0 {
 						t.Errorf("%d event(s) didn't arrive", len(expected))
 					}
-				}()
+				})
 			}
 
 			tapi, err := api.WithOptions(testCase.apiOpts...)
@@ -532,8 +529,7 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 }
 
 func (tp *TestSuite) TestAddPinned(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -558,8 +554,7 @@ func (tp *TestSuite) TestAddPinned(t *testing.T) {
 }
 
 func (tp *TestSuite) TestAddHashOnly(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -584,8 +579,7 @@ func (tp *TestSuite) TestAddHashOnly(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGetEmptyFile(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -617,8 +611,7 @@ func (tp *TestSuite) TestGetEmptyFile(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGetDir(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -645,8 +638,7 @@ func (tp *TestSuite) TestGetDir(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGetNonUnixfs(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -665,8 +657,7 @@ func (tp *TestSuite) TestGetNonUnixfs(t *testing.T) {
 }
 
 func (tp *TestSuite) TestLs(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -769,8 +760,7 @@ func (tp *TestSuite) TestEntriesExpired(t *testing.T) {
 }
 
 func (tp *TestSuite) TestLsEmptyDir(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -802,14 +792,13 @@ func (tp *TestSuite) TestLsEmptyDir(t *testing.T) {
 
 // TODO(lgierth) this should test properly, with len(links) > 0
 func (tp *TestSuite) TestLsNonUnixfs(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	nd, err := cbor.WrapObject(map[string]interface{}{"foo": "bar"}, math.MaxUint64, -1)
+	nd, err := cbor.WrapObject(map[string]any{"foo": "bar"}, math.MaxUint64, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -870,8 +859,7 @@ func (f *closeTestF) Close() error {
 }
 
 func (tp *TestSuite) TestAddCloses(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -908,8 +896,7 @@ func (tp *TestSuite) TestAddCloses(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGetSeek(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -1014,8 +1001,7 @@ func (tp *TestSuite) TestGetSeek(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGetReadAt(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	if err != nil {
 		t.Fatal(err)

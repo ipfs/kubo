@@ -29,7 +29,7 @@ import (
 
 func init() {
 	if os.Getenv("IPFS_FUSE_DEBUG") != "" {
-		fuse.Debug = func(msg interface{}) {
+		fuse.Debug = func(msg any) {
 			fmt.Println(msg)
 		}
 	}

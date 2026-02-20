@@ -93,7 +93,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 
 	connectionContext, connCtxCancel := context.WithTimeout(ctx, 15*time.Second)
 	defer connCtxCancel()
-	for i := 0; i < numPeers; i++ {
+	for i := range numPeers {
 		wanPeer, err := core.NewNode(ctx, &core.BuildCfg{
 			Online:  true,
 			Routing: libp2p2.DHTServerOption,

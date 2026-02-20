@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"time"
@@ -112,6 +113,7 @@ func Libp2pGatewayOption() ServeOption {
 			Menu:                  nil,
 			// Apply timeout and concurrency limits from user config
 			RetrievalTimeout:        cfg.Gateway.RetrievalTimeout.WithDefault(config.DefaultRetrievalTimeout),
+			MaxRequestDuration:      cfg.Gateway.MaxRequestDuration.WithDefault(config.DefaultMaxRequestDuration),
 			MaxConcurrentRequests:   int(cfg.Gateway.MaxConcurrentRequests.WithDefault(int64(config.DefaultMaxConcurrentRequests))),
 			MaxRangeRequestFileSize: int64(cfg.Gateway.MaxRangeRequestFileSize.WithDefault(uint64(config.DefaultMaxRangeRequestFileSize))),
 			DiagnosticServiceURL:    "", // Not used since DisableHTMLErrors=true
@@ -268,19 +270,19 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, er
 	// Initialize gateway configuration, with empty PublicGateways, handled after.
 	gwCfg := gateway.Config{
 		DeserializedResponses:   cfg.Gateway.DeserializedResponses.WithDefault(config.DefaultDeserializedResponses),
+		AllowCodecConversion:    cfg.Gateway.AllowCodecConversion.WithDefault(config.DefaultAllowCodecConversion),
 		DisableHTMLErrors:       cfg.Gateway.DisableHTMLErrors.WithDefault(config.DefaultDisableHTMLErrors),
 		NoDNSLink:               cfg.Gateway.NoDNSLink,
 		PublicGateways:          map[string]*gateway.PublicGateway{},
 		RetrievalTimeout:        cfg.Gateway.RetrievalTimeout.WithDefault(config.DefaultRetrievalTimeout),
+		MaxRequestDuration:      cfg.Gateway.MaxRequestDuration.WithDefault(config.DefaultMaxRequestDuration),
 		MaxConcurrentRequests:   int(cfg.Gateway.MaxConcurrentRequests.WithDefault(int64(config.DefaultMaxConcurrentRequests))),
 		MaxRangeRequestFileSize: int64(cfg.Gateway.MaxRangeRequestFileSize.WithDefault(uint64(config.DefaultMaxRangeRequestFileSize))),
 		DiagnosticServiceURL:    cfg.Gateway.DiagnosticServiceURL.WithDefault(config.DefaultDiagnosticServiceURL),
 	}
 
 	// Add default implicit known gateways, such as subdomain gateway on localhost.
-	for hostname, gw := range defaultKnownGateways {
-		gwCfg.PublicGateways[hostname] = gw
-	}
+	maps.Copy(gwCfg.PublicGateways, defaultKnownGateways)
 
 	// Apply values from cfg.Gateway.PublicGateways if they exist.
 	for hostname, gw := range cfg.Gateway.PublicGateways {
