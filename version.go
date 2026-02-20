@@ -17,7 +17,7 @@ var CurrentCommit string
 var taggedRelease string
 
 // CurrentVersionNumber is the current application's version literal.
-const CurrentVersionNumber = "0.40.0-rc1"
+const CurrentVersionNumber = "0.40.0-rc2"
 
 const ApiVersion = "/kubo/" + CurrentVersionNumber + "/" //nolint
 
