@@ -44,6 +44,7 @@ import (
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promauto "github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	promexporter "go.opentelemetry.io/otel/exporters/prometheus"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
@@ -224,6 +225,20 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		log.Errorf("Creating prometheus exporter for OpenTelemetry failed: %s (some metrics will be missing from /debug/metrics/prometheus)\n", err.Error())
 	} else {
 		meterProvider := sdkmetric.NewMeterProvider(
+			// Drop high-cardinality server.address attribute from http.server.*
+			// metrics. otelhttp derives it from the Host header, which causes
+			// cardinality explosion on subdomain gateways where each
+			// CID.ipfs.example.com hostname is a unique label value.
+			// Per-domain visibility is provided by the lower-cardinality
+			// server.domain attribute added in core/corehttp/gateway.go.
+			sdkmetric.WithView(sdkmetric.NewView(
+				sdkmetric.Instrument{Name: "http.server.*"},
+				sdkmetric.Stream{
+					AttributeFilter: attribute.NewDenyKeysFilter(
+						attribute.Key("server.address"),
+					),
+				},
+			)),
 			sdkmetric.WithReader(exporter),
 		)
 		otel.SetMeterProvider(meterProvider)
