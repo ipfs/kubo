@@ -14,6 +14,8 @@ import (
 	multicodec "github.com/multiformats/go-multicodec"
 )
 
+// Deprecated: use HttpApi.DagGet, HttpApi.DagPut, HttpApi.DagStat, HttpApi.DagExport, HttpApi.DagImport instead.
+// These types implement the legacy CoreAPI APIDagService interface and will be removed in a future release.
 type (
 	httpNodeAdder        HttpApi
 	HttpDagServ          httpNodeAdder

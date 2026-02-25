@@ -13,6 +13,8 @@ import (
 	"github.com/multiformats/go-multibase"
 )
 
+// Deprecated: use HttpApi.KeyGen, HttpApi.KeyLs, HttpApi.KeyRm, HttpApi.KeyRename, HttpApi.KeySign, HttpApi.KeyVerify instead.
+// This type implements the legacy CoreAPI KeyAPI interface and will be removed in a future release.
 type KeyAPI HttpApi
 
 type key struct {

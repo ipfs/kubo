@@ -801,5 +801,6 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			}
 		},
 	},
-	Type: AddEvent{},
+	Type:  AddEvent{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 }

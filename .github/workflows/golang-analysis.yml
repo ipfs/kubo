@@ -61,3 +61,6 @@ jobs:
         uses: protocol/multiple-go-modules@v1.4
         with:
           run: go vet ./...
+      - name: Check generated RPC client
+        if: always()
+        run: go run ./tools/gen-rpc-client -check ./client/rpc/

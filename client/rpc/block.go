@@ -14,6 +14,8 @@ import (
 	mh "github.com/multiformats/go-multihash"
 )
 
+// Deprecated: use HttpApi.BlockGet, HttpApi.BlockPut, HttpApi.BlockRm, HttpApi.BlockStat instead.
+// This type implements the legacy CoreAPI BlockAPI interface and will be removed in a future release.
 type BlockAPI HttpApi
 
 type blockStat struct {

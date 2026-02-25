@@ -12,6 +12,8 @@ import (
 	mbase "github.com/multiformats/go-multibase"
 )
 
+// Deprecated: use HttpApi.PubsubLs, HttpApi.PubsubPeers, HttpApi.PubsubPub, HttpApi.PubsubSub instead.
+// This type implements the legacy CoreAPI PubSubAPI interface and will be removed in a future release.
 type PubsubAPI HttpApi
 
 func (api *PubsubAPI) Ls(ctx context.Context) ([]string, error) {

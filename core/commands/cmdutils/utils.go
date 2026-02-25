@@ -97,3 +97,50 @@ func CloneAddrInfo(ai peer.AddrInfo) peer.AddrInfo {
 		Addrs: slices.Clone(ai.Addrs),
 	}
 }
+
+// ResponseKind describes how a command's HTTP response should be consumed
+// by the generated RPC client.
+type ResponseKind int
+
+const (
+	// ResponseSingle means the command returns a single JSON object.
+	ResponseSingle ResponseKind = iota
+	// ResponseStream means the command returns newline-delimited JSON objects.
+	ResponseStream
+	// ResponseBinary means the command returns raw bytes (e.g., file data, tar).
+	ResponseBinary
+)
+
+type responseKindKey struct{}
+
+// SetResponseKind annotates a command with its response kind for the RPC
+// client generator. Use with CreateCmdExtras.
+func SetResponseKind(kind ResponseKind) func(e *cmds.Extra) {
+	return func(e *cmds.Extra) {
+		e.SetValue(responseKindKey{}, kind)
+	}
+}
+
+// GetResponseKind returns the ResponseKind for a command. If not explicitly
+// set, it infers the kind: commands with a Type field default to
+// ResponseSingle, commands without default to ResponseBinary.
+func GetResponseKind(cmd *cmds.Command) ResponseKind {
+	if cmd.Extra != nil {
+		if val, found := cmd.Extra.GetValue(responseKindKey{}); found {
+			return val.(ResponseKind)
+		}
+	}
+	if cmd.Type != nil {
+		return ResponseSingle
+	}
+	return ResponseBinary
+}
+
+// CreateCmdExtras builds an *cmds.Extra from a set of option functions.
+func CreateCmdExtras(opts ...func(e *cmds.Extra)) *cmds.Extra {
+	e := new(cmds.Extra)
+	for _, o := range opts {
+		o(e)
+	}
+	return e
+}

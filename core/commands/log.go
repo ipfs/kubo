@@ -279,4 +279,5 @@ This will only return 'info' logs from bitswap and skip 'debug'.
 		}()
 		return res.Emit(pipeReader)
 	},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 }

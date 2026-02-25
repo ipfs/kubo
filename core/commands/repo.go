@@ -120,7 +120,8 @@ order to reclaim hard disk space.
 
 		return nil
 	},
-	Type: GcResult{},
+	Type:  GcResult{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, gcr *GcResult) error {
 			quiet, _ := req.Options[repoQuietOptionName].(bool)
@@ -547,7 +548,8 @@ repository before using these options.
 
 		return res.Emit(&VerifyProgress{Msg: "verify complete, all blocks validated."})
 	},
-	Type: &VerifyProgress{},
+	Type:  &VerifyProgress{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, obj *VerifyProgress) error {
 			if strings.Contains(obj.Msg, "was corrupt") {

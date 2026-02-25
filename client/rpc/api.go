@@ -218,42 +218,52 @@ func (api *HttpApi) Request(command string, args ...string) RequestBuilder {
 	}
 }
 
+// Deprecated: use HttpApi methods directly (e.g., api.Add, api.Ls).
 func (api *HttpApi) Unixfs() iface.UnixfsAPI {
 	return (*UnixfsAPI)(api)
 }
 
+// Deprecated: use HttpApi methods directly (e.g., api.BlockGet, api.BlockPut, api.BlockStat).
 func (api *HttpApi) Block() iface.BlockAPI {
 	return (*BlockAPI)(api)
 }
 
+// Deprecated: use HttpApi methods directly (e.g., api.DagGet, api.DagPut, api.DagStat).
 func (api *HttpApi) Dag() iface.APIDagService {
 	return (*HttpDagServ)(api)
 }
 
+// Deprecated: use HttpApi methods directly (e.g., api.NamePublish, api.NameResolve).
 func (api *HttpApi) Name() iface.NameAPI {
 	return (*NameAPI)(api)
 }
 
+// Deprecated: use HttpApi methods directly (e.g., api.KeyGen, api.KeyLs, api.KeyRm).
 func (api *HttpApi) Key() iface.KeyAPI {
 	return (*KeyAPI)(api)
 }
 
+// Deprecated: use HttpApi methods directly (e.g., api.PinAdd, api.PinLs, api.PinRm).
 func (api *HttpApi) Pin() iface.PinAPI {
 	return (*PinAPI)(api)
 }
 
+// Deprecated: use HttpApi methods directly (e.g., api.ObjectPatchAddLink, api.ObjectDiff).
 func (api *HttpApi) Object() iface.ObjectAPI {
 	return (*ObjectAPI)(api)
 }
 
+// Deprecated: use HttpApi methods directly (e.g., api.SwarmPeers, api.SwarmConnect).
 func (api *HttpApi) Swarm() iface.SwarmAPI {
 	return (*SwarmAPI)(api)
 }
 
+// Deprecated: use HttpApi methods directly (e.g., api.PubsubLs, api.PubsubPub, api.PubsubSub).
 func (api *HttpApi) PubSub() iface.PubSubAPI {
 	return (*PubsubAPI)(api)
 }
 
+// Deprecated: use HttpApi methods directly (e.g., api.RoutingFindpeer, api.RoutingFindprovs).
 func (api *HttpApi) Routing() iface.RoutingAPI {
 	return (*RoutingAPI)(api)
 }

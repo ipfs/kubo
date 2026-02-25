@@ -248,5 +248,6 @@ This interface is not stable and may change from release to release.
 			return nil
 		}),
 	},
-	Type: dhtStat{},
+	Type:  dhtStat{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 }

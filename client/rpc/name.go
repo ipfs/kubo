@@ -13,6 +13,8 @@ import (
 	caopts "github.com/ipfs/kubo/core/coreiface/options"
 )
 
+// Deprecated: use HttpApi.NamePublish, HttpApi.NameResolve instead.
+// This type implements the legacy CoreAPI NameAPI interface and will be removed in a future release.
 type NameAPI HttpApi
 
 type ipnsEntry struct {

@@ -11,6 +11,8 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+// Deprecated: use HttpApi.SwarmPeers, HttpApi.SwarmConnect, HttpApi.SwarmDisconnect, HttpApi.SwarmAddrs instead.
+// This type implements the legacy CoreAPI SwarmAPI interface and will be removed in a future release.
 type SwarmAPI HttpApi
 
 func (api *SwarmAPI) Connect(ctx context.Context, pi peer.AddrInfo) error {

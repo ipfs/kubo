@@ -90,7 +90,8 @@ It may take some time. Pass '--progress' to track the progress.
 		cmds.StringOption(pinNameOptionName, "n", "An optional name for created pin(s)."),
 		cmds.BoolOption(pinProgressOptionName, "Show progress"),
 	},
-	Type: AddPinOutput{},
+	Type:  AddPinOutput{},
+	Extra: cmdutils.CreateCmdExtras(cmdutils.SetResponseKind(cmdutils.ResponseStream)),
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
@@ -434,7 +435,8 @@ Example:
 
 		return nil
 	},
-	Type: PinLsOutputWrapper{},
+	Type:  PinLsOutputWrapper{},
+	Extra: cmdutils.CreateCmdExtras(cmdutils.SetResponseKind(cmdutils.ResponseStream)),
 	Encoders: cmds.EncoderMap{
 		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out PinLsOutputWrapper) error {
 			stream, _ := req.Options[pinStreamOptionName].(bool)
@@ -712,7 +714,8 @@ var verifyPinCmd = &cmds.Command{
 		}
 		return res.Emit(out)
 	},
-	Type: PinVerifyRes{},
+	Type:  PinVerifyRes{},
+	Extra: cmdutils.CreateCmdExtras(cmdutils.SetResponseKind(cmdutils.ResponseStream)),
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinVerifyRes) error {
 			quiet, _ := req.Options[pinQuietOptionName].(bool)

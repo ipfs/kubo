@@ -155,7 +155,8 @@ Example:
 			}
 		}
 	},
-	Type: metrics.Stats{},
+	Type:  metrics.Stats{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
 			polling, _ := res.Request().Options[statPollOptionName].(bool)

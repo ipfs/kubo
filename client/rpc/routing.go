@@ -12,6 +12,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/routing"
 )
 
+// Deprecated: use HttpApi.RoutingGet, HttpApi.RoutingPut, HttpApi.RoutingFindpeer, HttpApi.RoutingFindprovs, HttpApi.RoutingProvide instead.
+// This type implements the legacy CoreAPI RoutingAPI interface and will be removed in a future release.
 type RoutingAPI HttpApi
 
 func (api *RoutingAPI) Get(ctx context.Context, key string) ([]byte, error) {
