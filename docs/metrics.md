@@ -111,11 +111,7 @@ Additional HTTP instrumentation for all handlers (Gateway, API commands, etc.):
 These metrics are automatically added to Gateway handlers, Hostname Gateway, Libp2p Gateway, and API command handlers.
 
 > [!NOTE]
-> The `server_address` label from `otelhttp` is dropped via an OTel SDK View to prevent cardinality explosion on subdomain gateways (where each unique `Host` header creates a new time series). All handlers include a `server_domain` label instead:
->
-> - Gateway and Hostname Gateway handlers group requests by their matching [`Gateway.PublicGateways`](config.md#gatewaypublicgateways) domain suffix (e.g., `dweb.link`, `ipfs.io`). Unmatched hosts are labeled `localhost`, `loopback`, or `other`.
-> - The RPC API handler uses `api`.
-> - The Libp2p Gateway handler uses `libp2p`.
+> The `server_address` label is set to a fixed value per handler via `otelhttp.WithServerName` to prevent cardinality explosion on subdomain gateways (where each unique `Host` header would create a new time series). Values are `gateway` (Gateway and Hostname Gateway), `api` (RPC API), and `libp2p` (Libp2p Gateway).
 
 ## OpenTelemetry Metadata
 
