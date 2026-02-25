@@ -587,10 +587,9 @@ func TestNameGetPut(t *testing.T) {
 		res := node.RunIPFS("name", "put", ipnsName.String(), recordFile)
 		require.NoError(t, res.Err)
 
-		// now try to put the same record again (should fail - same sequence)
+		// put the same record again (identical record republishing is allowed)
 		res = node.RunIPFS("name", "put", ipnsName.String(), recordFile)
-		require.Error(t, res.Err)
-		require.Contains(t, res.Stderr.String(), "existing record has sequence")
+		require.NoError(t, res.Err)
 
 		// put the record with --force (should succeed)
 		res = node.RunIPFS("name", "put", "--force", ipnsName.String(), recordFile)
@@ -884,6 +883,87 @@ func TestNameGetPut(t *testing.T) {
 
 		res = node.RunIPFS("name", "put", ipnsName.String(), recordFile)
 		require.Error(t, res.Err)
-		require.Contains(t, res.Stderr.String(), "existing record has sequence 200 >= new record sequence 100")
+		require.Contains(t, res.Stderr.String(), "existing IPNS record has sequence 200 >= new record sequence 100")
+	})
+
+	t.Run("name put allows identical record republishing", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+		publishPath := "/ipfs/" + fixtureCid
+
+		ipnsName, record := makeExternalRecord(t, h, publishPath, "--sequence=100")
+
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// put the record
+		res := node.PipeToIPFS(bytes.NewReader(record), "name", "put", ipnsName.String())
+		require.NoError(t, res.Err)
+
+		// put the exact same record again (same bytes, same sequence)
+		// this should succeed: republishing an identical record is a valid use case
+		res = node.PipeToIPFS(bytes.NewReader(record), "name", "put", ipnsName.String())
+		require.NoError(t, res.Err)
+		require.Contains(t, res.Stdout.String(), ipnsName.String())
+	})
+
+	t.Run("name put rejects different record with same sequence", func(t *testing.T) {
+		t.Parallel()
+		h := harness.NewT(t)
+
+		// create two different records signed by the same key with the same
+		// sequence number by using two ephemeral nodes that share a key
+		ephNode1 := h.NewNode().Init("--profile=test")
+		r, err := os.Open(fixturePath)
+		require.NoError(t, err)
+		err = ephNode1.IPFSDagImport(r, fixtureCid)
+		r.Close()
+		require.NoError(t, err)
+		ephNode1.StartDaemon()
+
+		res := ephNode1.IPFS("key", "gen", "--type=ed25519", "shared-key")
+		keyID := strings.TrimSpace(res.Stdout.String())
+		ipnsName, err := ipns.NameFromString(keyID)
+		require.NoError(t, err)
+
+		// publish record A (sequence=100, value=fixtureCid)
+		ephNode1.IPFS("name", "publish", "--key=shared-key", "--lifetime=5m", "--sequence=100", "/ipfs/"+fixtureCid)
+		res = ephNode1.IPFS("name", "get", ipnsName.String())
+		recordA := res.Stdout.Bytes()
+
+		// export key and import into second ephemeral node
+		keyFile := filepath.Join(ephNode1.Dir, "shared-key.key")
+		ephNode1.IPFS("key", "export", "--output="+keyFile, "shared-key")
+		ephNode1.StopDaemon()
+
+		ephNode2 := h.NewNode().Init("--profile=test")
+		ephNode2.StartDaemon()
+		ephNode2.IPFS("key", "import", "shared-key", keyFile)
+
+		// publish record B (sequence=100, different value)
+		ephNode2.IPFS("name", "publish", "--key=shared-key", "--lifetime=5m", "--sequence=100", "/ipfs/bafkqaaa")
+		res = ephNode2.IPFS("name", "get", ipnsName.String())
+		recordB := res.Stdout.Bytes()
+		ephNode2.StopDaemon()
+
+		// verify records have same sequence but different bytes
+		require.NotEqual(t, recordA, recordB, "records should have different bytes")
+
+		// start test node and try the put scenario
+		node := makeDaemon(t)
+		defer node.StopDaemon()
+
+		// put record A
+		res = node.PipeToIPFS(bytes.NewReader(recordA), "name", "put", ipnsName.String())
+		require.NoError(t, res.Err)
+
+		// try to put record B (different bytes, same sequence=100)
+		recordFile := filepath.Join(node.Dir, "recordB.bin")
+		err = os.WriteFile(recordFile, recordB, 0644)
+		require.NoError(t, err)
+
+		res = node.RunIPFS("name", "put", ipnsName.String(), recordFile)
+		require.Error(t, res.Err)
+		require.Contains(t, res.Stderr.String(), "existing IPNS record has sequence 100 >= new record sequence 100")
 	})
 }
