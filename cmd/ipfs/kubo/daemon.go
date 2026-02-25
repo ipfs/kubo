@@ -47,6 +47,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	promexporter "go.opentelemetry.io/otel/exporters/prometheus"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/exemplar"
 )
 
 const (
@@ -239,6 +240,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 					),
 				},
 			)),
+			// Disable exemplars. The OTel spec requires exemplars to carry
+			// attributes filtered out by Views (as FilteredAttributes).
+			// The server.address value on subdomain gateways (e.g.
+			// "CID.ipfs.dweb.link") combined with trace_id and span_id
+			// exceeds the 128-rune Prometheus exemplar limit.
+			// Re-enabling exemplars requires removing all metrics that
+			// track server.address (the above View is not enough).
+			sdkmetric.WithExemplarFilter(exemplar.AlwaysOffFilter),
 			sdkmetric.WithReader(exporter),
 		)
 		otel.SetMeterProvider(meterProvider)
