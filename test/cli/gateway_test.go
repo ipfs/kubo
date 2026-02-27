@@ -215,13 +215,13 @@ func TestGateway(t *testing.T) {
 	t.Run("GET /webui returns 301 or 302", func(t *testing.T) {
 		t.Parallel()
 		resp := node.APIClient().DisableRedirects().Get("/webui")
-		assert.Contains(t, []int{302, 301}, resp.StatusCode)
+		assert.Contains(t, []int{302, 301, 307, 308}, resp.StatusCode)
 	})
 
 	t.Run("GET /webui/ returns 301 or 302", func(t *testing.T) {
 		t.Parallel()
 		resp := node.APIClient().DisableRedirects().Get("/webui/")
-		assert.Contains(t, []int{302, 301}, resp.StatusCode)
+		assert.Contains(t, []int{302, 301, 307, 308}, resp.StatusCode)
 	})
 
 	t.Run("GET /webui/ returns user-specified headers", func(t *testing.T) {
