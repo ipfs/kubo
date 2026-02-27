@@ -35,13 +35,8 @@ func P2PProxyOption() ServeOption {
 			}
 
 			rt := p2phttp.NewTransport(ipfsNode.PeerHost, p2phttp.ProtocolOption(parsedRequest.name))
-			proxy := &httputil.ReverseProxy{
-				Transport: rt,
-				Rewrite: func(r *httputil.ProxyRequest) {
-					r.SetURL(target)
-					r.SetXForwarded()
-				},
-			}
+			proxy := httputil.NewSingleHostReverseProxy(target)
+			proxy.Transport = rt
 			proxy.ServeHTTP(w, request)
 		})
 		return mux, nil
