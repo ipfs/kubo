@@ -2,14 +2,11 @@ package commands
 
 import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 )
 
 func CreateCmdExtras(opts ...func(e *cmds.Extra)) *cmds.Extra {
-	e := new(cmds.Extra)
-	for _, o := range opts {
-		o(e)
-	}
-	return e
+	return cmdutils.CreateCmdExtras(opts...)
 }
 
 type doesNotUseRepo struct{}
@@ -65,3 +62,22 @@ func getBoolFlag(e *cmds.Extra, key any) (val bool, found bool) {
 	val = ival.(bool)
 	return val, found
 }
+
+// ResponseKind describes how a command's HTTP response should be consumed
+// by the generated RPC client.
+type ResponseKind = cmdutils.ResponseKind
+
+const (
+	ResponseSingle = cmdutils.ResponseSingle
+	ResponseStream = cmdutils.ResponseStream
+	ResponseBinary = cmdutils.ResponseBinary
+)
+
+// SetResponseKind annotates a command with its response kind for the RPC
+// client generator. Use with CreateCmdExtras.
+var SetResponseKind = cmdutils.SetResponseKind
+
+// GetResponseKind returns the ResponseKind for a command. If not explicitly
+// set, it infers the kind: commands with a Type field default to
+// ResponseSingle, commands without default to ResponseBinary.
+var GetResponseKind = cmdutils.GetResponseKind

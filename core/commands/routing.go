@@ -134,7 +134,8 @@ var findProvidersRoutingCmd = &cmds.Command{
 			return printEvent(out, w, verbose, pfm)
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type:  routing.QueryEvent{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 }
 
 const (
@@ -265,7 +266,8 @@ var provideRefRoutingCmd = &cmds.Command{
 			return printEvent(out, w, verbose, pfm)
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type:  routing.QueryEvent{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 }
 
 var reprovideRoutingCmd = &cmds.Command{
@@ -411,7 +413,8 @@ var findPeerRoutingCmd = &cmds.Command{
 			return printEvent(out, w, verbose, pfm)
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type:  routing.QueryEvent{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 }
 
 var getValueRoutingCmd = &cmds.Command{

@@ -13,6 +13,8 @@ import (
 	caopts "github.com/ipfs/kubo/core/coreiface/options"
 )
 
+// Deprecated: use HttpApi.PinAdd, HttpApi.PinLs, HttpApi.PinRm, HttpApi.PinUpdate, HttpApi.PinVerify instead.
+// This type implements the legacy CoreAPI PinAPI interface and will be removed in a future release.
 type PinAPI HttpApi
 
 type pinRefKeyObject struct {

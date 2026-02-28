@@ -150,7 +150,8 @@ var swarmPeeringAddCmd = &cmds.Command{
 			return nil
 		}),
 	},
-	Type: peeringResult{},
+	Type:  peeringResult{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 }
 
 var swarmPeeringLsCmd = &cmds.Command{

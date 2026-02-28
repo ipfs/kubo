@@ -150,7 +150,8 @@ trip latency information.
 			Text:    fmt.Sprintf("Average latency: %.2fms", averagems),
 		})
 	},
-	Type: PingResult{},
+	Type:  PingResult{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
 			var (

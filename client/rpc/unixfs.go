@@ -26,6 +26,8 @@ type addEvent struct {
 	Size  string `json:",omitempty"`
 }
 
+// Deprecated: use HttpApi.Add, HttpApi.Cat, HttpApi.Get, HttpApi.Ls instead.
+// This type implements the legacy CoreAPI UnixfsAPI interface and will be removed in a future release.
 type UnixfsAPI HttpApi
 
 func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.UnixfsAddOption) (path.ImmutablePath, error) {

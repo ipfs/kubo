@@ -233,7 +233,8 @@ The JSON output contains type information.
 			return nil
 		}),
 	},
-	Type: LsOutput{},
+	Type:  LsOutput{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 }
 
 // formatMode converts os.FileMode to a 10-character Unix ls-style string.

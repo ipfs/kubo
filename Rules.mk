@@ -70,6 +70,14 @@ mod_tidy:
 	@find . -name go.mod -execdir $(GOCC) mod tidy \;
 .PHONY: mod_tidy
 
+rpc_client:
+	$(GOCC) run ./tools/gen-rpc-client -output ./client/rpc/
+.PHONY: rpc_client
+
+rpc_client_check:
+	$(GOCC) run ./tools/gen-rpc-client -check ./client/rpc/
+.PHONY: rpc_client_check
+
 coverage: $(COVERAGE)
 .PHONY: coverage
 
@@ -124,6 +132,7 @@ help:
 	@echo '  nofuse       - Build binary with no fuse support'
 	@echo '  install      - Build binary and install into $$GOBIN'
 	@echo '  mod_tidy     - Remove unused dependencies from go.mod files'
+	@echo '  rpc_client   - Regenerate client/rpc/gen_*.go from command definitions'
 #	@echo '  dist_install - TODO: c.f. ./cmd/ipfs/dist/README.md'
 	@echo ''
 	@echo 'CLEANING TARGETS:'
@@ -142,6 +151,7 @@ help:
 	@echo '  test_go_build           - Build kubo for all platforms from .github/build-platforms.yml'
 	@echo '  test_go_lint            - Run golangci-lint'
 	@echo '  test_sharness           - Run sharness tests'
+	@echo '  rpc_client_check        - Verify generated RPC client is up to date'
 	@echo '  coverage                - Collect coverage info from unit tests and sharness'
 	@echo
 .PHONY: help

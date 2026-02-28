@@ -119,7 +119,8 @@ var queryDhtCmd = &cmds.Command{
 			return printEvent(out, w, verbose, pfm)
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type:  routing.QueryEvent{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 }
 var RemovedDHTCmd = &cmds.Command{
 	Status: cmds.Removed,

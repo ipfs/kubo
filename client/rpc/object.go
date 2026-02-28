@@ -9,6 +9,8 @@ import (
 	caopts "github.com/ipfs/kubo/core/coreiface/options"
 )
 
+// Deprecated: use HttpApi.ObjectPatchAddLink, HttpApi.ObjectPatchRmLink, HttpApi.ObjectDiff instead.
+// This type implements the legacy CoreAPI ObjectAPI interface and will be removed in a future release.
 type ObjectAPI HttpApi
 
 type objectOut struct {

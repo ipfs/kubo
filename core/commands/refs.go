@@ -132,6 +132,7 @@ NOTE: Like most other commands, Kubo will try to fetch the blocks of the passed 
 	},
 	Encoders: refsEncoderMap,
 	Type:     RefWrapper{},
+	Extra:    CreateCmdExtras(SetResponseKind(ResponseStream)),
 }
 
 var RefsLocalCmd = &cmds.Command{
@@ -166,6 +167,7 @@ Displays the hashes of all local objects. NOTE: This treats all local objects as
 	},
 	Encoders: refsEncoderMap,
 	Type:     RefWrapper{},
+	Extra:    CreateCmdExtras(SetResponseKind(ResponseStream)),
 }
 
 func objectsForPaths(ctx context.Context, n iface.CoreAPI, paths []string) ([]cid.Cid, error) {

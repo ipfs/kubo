@@ -152,7 +152,8 @@ TOPIC AND DATA ENCODING
 			return errors.New("--enc=lenpayload was removed, use --enc=json instead")
 		}),
 	},
-	Type: pubsubMessage{},
+	Type:  pubsubMessage{},
+	Extra: CreateCmdExtras(SetResponseKind(ResponseStream)),
 }
 
 var PubsubPubCmd = &cmds.Command{

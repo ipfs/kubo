@@ -219,8 +219,9 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes before returning. Default: Import.FastProvideWait"),
 		cmdutils.AllowBigBlockOption,
 	},
-	Type: CarImportOutput{},
-	Run:  dagImport,
+	Type:  CarImportOutput{},
+	Run:   dagImport,
+	Extra: cmdutils.CreateCmdExtras(cmdutils.SetResponseKind(cmdutils.ResponseStream)),
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *CarImportOutput) error {
 			silent, _ := req.Options[silentOptionName].(bool)
