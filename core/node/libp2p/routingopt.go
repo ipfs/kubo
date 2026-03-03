@@ -288,9 +288,14 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 				Datastore:      args.Datastore,
 				Context:        args.Ctx,
 			},
+				var strAddrs []string
+				for _, addr := range httpAddrs {
+					strAddrs = append(strAddrs, addr.String())
+				}
+
 			&irouting.ExtraHTTPParams{
 				PeerID:        peerID,
-				Addrs:         httpAddrs,
+				Addrs:         strAddrs,
 				PrivKeyB64:    privKey,
 				HTTPRetrieval: httpRetrieval,
 			},
