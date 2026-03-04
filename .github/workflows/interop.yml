@@ -51,7 +51,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - run: make build
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: kubo
           path: cmd/ipfs/ipfs
@@ -196,7 +196,7 @@ jobs:
         working-directory: ipfs-webui
       - name: Upload test artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: webui-test-results
           path: ipfs-webui/test-results/
