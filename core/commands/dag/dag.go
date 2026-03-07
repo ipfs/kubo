@@ -23,6 +23,7 @@ const (
 	statsOptionName           = "stats"
 	fastProvideRootOptionName = "fast-provide-root"
 	fastProvideWaitOptionName = "fast-provide-wait"
+	localOnlyOptionName       = "local-only"
 )
 
 // DagCmd provides a subset of commands for interacting with ipld dag objects
@@ -192,6 +193,9 @@ Note:
   currently present in the blockstore does not represent a complete DAG,
   pinning of that individual root will fail.
 
+  Use --local-only with --pin-roots=false when importing a partial CAR (e.g. from
+  'dag export --local-only').
+
 FAST PROVIDE OPTIMIZATION:
 
 Root CIDs from CAR headers are immediately provided to the DHT in addition
@@ -213,6 +217,7 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
+		cmds.BoolOption(localOnlyOptionName, "Import a partial CAR without pinning roots (for CARs from dag export --local-only)."),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
 		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CIDs to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
@@ -285,6 +290,7 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(progressOptionName, "p", "Display progress on CLI. Defaults to true when STDERR is a TTY."),
+		cmds.BoolOption(localOnlyOptionName, "If set, only blocks present locally are exported; missing blocks are skipped (partial CAR). Use with --offline for a local-only DAG walk."),
 	},
 	Run: dagExport,
 	PostRun: cmds.PostRunMap{
