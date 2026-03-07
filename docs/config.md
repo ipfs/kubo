@@ -1158,7 +1158,7 @@ dag-pb or dag-cbor to dag-json).
 
 When disabled (the default), the gateway returns `406 Not Acceptable` for
 codec mismatches, following behavior specified in
-[IPIP-524](https://github.com/ipfs/specs/pull/524).
+[IPIP-524](https://specs.ipfs.tech/ipips/ipip-0524/).
 
 Most users should keep this disabled unless legacy
 [IPLD Logical Format](https://web.archive.org/web/20260204204727/https://ipld.io/specs/codecs/dag-pb/spec/#logical-format)
@@ -2829,7 +2829,7 @@ It specifies the routing type that will be created.
 
 Currently supported types:
 
-- `http` simple delegated routing based on HTTP protocol from [IPIP-337](https://github.com/ipfs/specs/pull/337)
+- `http` simple delegated routing based on HTTP protocol from [IPIP-337](https://specs.ipfs.tech/ipips/ipip-0337/)
 - `dht` provides decentralized routing based on [libp2p's kad-dht](https://github.com/libp2p/specs/tree/master/kad-dht)
 - `parallel` and `sequential`: Helpers that can be used to run several routers sequentially or in parallel.
 
@@ -3695,7 +3695,7 @@ Type: `flag`
 
 Options to configure the default parameters used for ingesting data, in commands such as `ipfs add` or `ipfs block put`. All affected commands are detailed per option.
 
-These options implement [IPIP-499: UnixFS CID Profiles](https://github.com/ipfs/specs/pull/499) for reproducible CID generation across IPFS implementations. Instead of configuring individual options, you can apply a predefined profile with `ipfs config profile apply <profile-name>`. See [Profiles](#profiles) for available options like `unixfs-v1-2025`.
+These options implement [IPIP-499: UnixFS CID Profiles](https://specs.ipfs.tech/ipips/ipip-0499/) for reproducible CID generation across IPFS implementations. Instead of configuring individual options, you can apply a predefined profile with `ipfs config profile apply <profile-name>`. See [Profiles](#profiles) for available options like `unixfs-v1-2025`.
 
 Note that using CLI flags will override the options defined here.
 
@@ -3902,7 +3902,7 @@ Accepted values:
 
 The `block` estimation is recommended for new profiles as it provides more
 accurate threshold decisions and better cross-implementation consistency.
-See [IPIP-499](https://github.com/ipfs/specs/pull/499) for more details.
+See [IPIP-499](https://specs.ipfs.tech/ipips/ipip-0499/) for more details.
 
 Commands affected: `ipfs add`
 
@@ -4147,7 +4147,7 @@ See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Imp
 > [!NOTE]
 > Use only when legacy CIDs are required. For new projects, use [`unixfs-v1-2025`](#unixfs-v1-2025-profile).
 >
-> See [IPIP-499](https://github.com/ipfs/specs/pull/499) for more details.
+> See [IPIP-499](https://specs.ipfs.tech/ipips/ipip-0499/) for more details.
 
 ### `legacy-cid-v0` profile
 
@@ -4164,7 +4164,7 @@ See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Imp
 > [!NOTE]
 > This profile ensures CID consistency across different IPFS implementations.
 >
-> See [IPIP-499](https://github.com/ipfs/specs/pull/499) for more details.
+> See [IPIP-499](https://specs.ipfs.tech/ipips/ipip-0499/) for more details.
 
 ## Security
 
