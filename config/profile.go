@@ -327,7 +327,7 @@ fetching may be degraded.
 		Description: `Legacy UnixFS import profile for backward-compatible CID generation.
 Produces CIDv0 with no raw leaves, sha2-256, 256 KiB chunks, and
 link-based HAMT size estimation. Use only when legacy CIDs are required.
-See https://github.com/ipfs/specs/pull/499. Alias: legacy-cid-v0`,
+See https://specs.ipfs.tech/ipips/ipip-0499/. Alias: legacy-cid-v0`,
 		Transform: applyUnixFSv02015,
 	},
 	"legacy-cid-v0": {
@@ -338,7 +338,7 @@ See https://github.com/ipfs/specs/pull/499. Alias: legacy-cid-v0`,
 		Description: `Recommended UnixFS import profile for cross-implementation CID determinism.
 Uses CIDv1, raw leaves, sha2-256, 1 MiB chunks, 1024 links per file node,
 256 HAMT fanout, and block-based size estimation for HAMT threshold.
-See https://github.com/ipfs/specs/pull/499`,
+See https://specs.ipfs.tech/ipips/ipip-0499/`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
 			c.Import.UnixFSRawLeaves = True
