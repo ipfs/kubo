@@ -271,6 +271,15 @@ func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
 // ConstructDelegatedRouting is used when Routing.Type = "custom"
 func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs config.Addresses, privKey string, httpRetrieval bool) RoutingOption {
 	return func(args RoutingOptionArgs) (routing.Routing, error) {
+		// Use resolved addresses from the host instead of raw config addresses.
+		// This ensures we send resolved interface addresses (e.g., /ip4/192.168.x.x/tcp/24199)
+		// instead of unresolved listen addresses (e.g., /ip4/0.0.0.0/tcp/24199)
+		// to HTTP delegated routers, matching the behavior of `ipfs id`.
+		httpAddrs, err := peer.AddrInfoToP2pAddrs(host.InfoFromHost(args.Host))
+		if err != nil {
+			return nil, fmt.Errorf("getting HTTP routing addresses from host: %w", err)
+		}
+
 		return irouting.Parse(routers, methods,
 			&irouting.ExtraDHTParams{
 				BootstrapPeers: args.BootstrapPeers,
@@ -279,9 +288,14 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 				Datastore:      args.Datastore,
 				Context:        args.Ctx,
 			},
+				var strAddrs []string
+				for _, addr := range httpAddrs {
+					strAddrs = append(strAddrs, addr.String())
+				}
+
 			&irouting.ExtraHTTPParams{
 				PeerID:        peerID,
-				Addrs:         httpAddrsFromConfig(addrs),
+				Addrs:         strAddrs,
 				PrivKeyB64:    privKey,
 				HTTPRetrieval: httpRetrieval,
 			},
