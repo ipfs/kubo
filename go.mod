@@ -43,7 +43,7 @@ require (
 	github.com/ipfs/go-metrics-prometheus v0.1.0
 	github.com/ipfs/go-test v0.2.3
 	github.com/ipfs/go-unixfsnode v1.10.3
-	github.com/ipld/go-car/v2 v2.16.0
+	github.com/ipld/go-car/v2 v2.16.1-0.20260306172652-7d2f4aceb070
 	github.com/ipld/go-codec-dagpb v1.7.0
 	github.com/ipld/go-ipld-prime v0.22.0
 	github.com/ipshipyard/p2p-forge v0.7.0
@@ -280,5 +280,3 @@ exclude (
 	github.com/ipfs/go-ipfs-cmds v2.0.1+incompatible
 	github.com/libp2p/go-libp2p v6.0.23+incompatible
 )
-
-replace github.com/ipld/go-car/v2 => ../go-car/v2
