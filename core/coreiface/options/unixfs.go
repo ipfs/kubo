@@ -233,8 +233,13 @@ func (unixfsOpts) MaxDirectoryLinks(n int) UnixfsAddOption {
 }
 
 // MaxHAMTFanout specifies the maximum width of the HAMT directory shards.
+// Per the UnixFS spec, the value must be a power of 2, a multiple of 8
+// (for byte-aligned bitfields), and at most 1024.
 func (unixfsOpts) MaxHAMTFanout(n int) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
+		if n < 8 || n&(n-1) != 0 || n > 1024 {
+			return fmt.Errorf("HAMT fanout must be a power of 2, a multiple of 8, and at most 1024 (got %d)", n)
+		}
 		settings.MaxHAMTFanout = n
 		settings.MaxHAMTFanoutSet = true
 		return nil

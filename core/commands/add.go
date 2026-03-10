@@ -253,7 +253,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		// Advanced UnixFS Limits
 		cmds.IntOption(maxFileLinksOptionName, "Limit the maximum number of links in UnixFS file nodes to this value. WARNING: experimental. Default: Import.UnixFSFileMaxLinks"),
 		cmds.IntOption(maxDirectoryLinksOptionName, "Limit the maximum number of links in UnixFS basic directory nodes to this value. WARNING: experimental, Import.UnixFSHAMTDirectorySizeThreshold is safer. Default: Import.UnixFSDirectoryMaxLinks"),
-		cmds.IntOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8). WARNING: experimental, Import.UnixFSHAMTDirectorySizeThreshold is safer. Default: Import.UnixFSHAMTDirectoryMaxFanout"),
+		cmds.IntOption(maxHAMTFanoutOptionName, "Limit the maximum number of links of a UnixFS HAMT directory node to this (power of 2, multiple of 8, at most 1024). WARNING: experimental, Import.UnixFSHAMTDirectorySizeThreshold is safer. Default: Import.UnixFSHAMTDirectoryMaxFanout"),
 		// Experimental Features
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. WARNING: experimental"),
 		cmds.IntOption(inlineLimitOptionName, fmt.Sprintf("Maximum block size to inline. Maximum: %d bytes. WARNING: experimental", verifcid.DefaultMaxIdentityDigestSize)).WithDefault(32),
