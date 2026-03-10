@@ -63,14 +63,14 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 				if !ok {
 					return nil, fmt.Errorf("unsupported link type: %T", lnk)
 				}
-				data, err := ds.Get(lctx.Ctx, cl.Cid.String())
+				block, err := ds.dag.Get(lctx.Ctx, cl.Cid)
 				if err != nil {
 					if ipld.IsNotFound(err) {
 						return nil, traversal.SkipMe{}
 					}
 					return nil, fmt.Errorf("local block read failed: %w", err)
 				}
-				return bytes.NewReader(data), nil
+				return bytes.NewReader(block.RawData()), nil
 			}
 		} else {
 			lsys.SetReadStorage(ds)
@@ -212,11 +212,12 @@ func (ds *dagStore) Has(ctx context.Context, key string) (bool, error) {
 }
 
 func cidFromBinString(key string) (cid.Cid, error) {
-	if l, k, err := cid.CidFromBytes([]byte(key)); err == nil && l == len(key) {
-		return k, nil
+	l, k, err := cid.CidFromBytes([]byte(key))
+	if err != nil {
+		return cid.Undef, fmt.Errorf("dagStore: key was not a cid: %w", err)
 	}
-	if c, decodeErr := cid.Decode(key); decodeErr == nil {
-		return c, nil
+	if l != len(key) {
+		return cid.Undef, fmt.Errorf("dagStore: key was not a cid: had %d bytes leftover", len(key)-l)
 	}
-	return cid.Undef, fmt.Errorf("dagStore: key was not a cid (binary or base58)")
+	return k, nil
 }

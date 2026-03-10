@@ -193,7 +193,7 @@ Note:
   currently present in the blockstore does not represent a complete DAG,
   pinning of that individual root will fail.
 
-  Use --local-only with --pin-roots=false when importing a partial CAR (e.g. from
+  Use --local-only and --pin-roots=false for partial CARs (e.g. from
   'dag export --local-only').
 
 FAST PROVIDE OPTIMIZATION:
@@ -217,7 +217,7 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
-		cmds.BoolOption(localOnlyOptionName, "Import a partial CAR without pinning roots (for CARs from dag export --local-only)."),
+		cmds.BoolOption(localOnlyOptionName, "Import partial CAR without pinning roots (e.g. from dag export --local-only)."),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
 		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CIDs to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
