@@ -275,9 +275,9 @@ func TestHttpRouterAddrFunc(t *testing.T) {
 			want: []string{"/ip4/0.0.0.0/udp/4001/quic-v1"},
 		},
 		{
-			name: "Announce is not combined with AppendAnnounce",
+			name: "AppendAnnounce added to Announce",
 			cfg:  config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, Announce: []string{"/ip4/5.6.7.8/tcp/4001"}, AppendAnnounce: []string{"/ip4/10.0.0.1/tcp/4001"}},
-			want: []string{"/ip4/5.6.7.8/tcp/4001"},
+			want: []string{"/ip4/5.6.7.8/tcp/4001", "/ip4/10.0.0.1/tcp/4001"},
 		},
 	}
 	for _, tt := range tests {

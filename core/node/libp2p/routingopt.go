@@ -314,14 +314,16 @@ type confirmedAddrsHost interface {
 // HTTP routers at provide-time.
 //
 // Resolution logic:
-//   - If Announce is set, use it as-is (explicit user override, no dynamic resolution).
+//   - If Announce is set, use it as a static override (no dynamic resolution).
 //   - Otherwise, prefer AutoNAT V2 confirmed reachable addresses when available,
 //     falling back to static Swarm addresses (filtered by NoAnnounce).
-//   - AppendAnnounce addresses are appended in the dynamic case (both autonat and fallback).
+//   - AppendAnnounce addresses are always appended.
 func httpRouterAddrFunc(h host.Host, cfgAddrs config.Addresses) func() []ma.Multiaddr {
+	appendAddrs := parseMultiaddrs(cfgAddrs.AppendAnnounce)
+
 	// If Announce is explicitly set, use it as a static override.
 	if len(cfgAddrs.Announce) > 0 {
-		staticAddrs := parseMultiaddrs(cfgAddrs.Announce)
+		staticAddrs := slices.Concat(parseMultiaddrs(cfgAddrs.Announce), appendAddrs)
 		return func() []ma.Multiaddr { return staticAddrs }
 	}
 
@@ -341,7 +343,6 @@ func httpRouterAddrFunc(h host.Host, cfgAddrs config.Addresses) func() []ma.Mult
 		fallbackStrs = filtered
 	}
 	fallbackAddrs := parseMultiaddrs(fallbackStrs)
-	appendAddrs := parseMultiaddrs(cfgAddrs.AppendAnnounce)
 
 	return func() []ma.Multiaddr {
 		if ch, ok := h.(confirmedAddrsHost); ok {
