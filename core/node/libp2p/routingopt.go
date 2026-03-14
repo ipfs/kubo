@@ -334,10 +334,10 @@ func httpRouterAddrFunc(h host.Host, cfgAddrs config.Addresses) func() []ma.Mult
 	// If Announce is explicitly set, use it as a static override.
 	if len(cfgAddrs.Announce) > 0 {
 		staticAddrs := slices.Concat(parseMultiaddrs(cfgAddrs.Announce), appendAddrs)
-		return func() []ma.Multiaddr { return slices.Clone(staticAddrs) }
+		return func() []ma.Multiaddr { return staticAddrs }
 	}
 
-	// Precompute fallback: Swarm minus NoAnnounce (AppendAnnounce added separately below).
+	// Precompute fallback: Swarm minus NoAnnounce plus AppendAnnounce.
 	fallbackStrs := cfgAddrs.Swarm
 	if len(cfgAddrs.NoAnnounce) > 0 {
 		noAnnounce := map[string]struct{}{}
@@ -352,16 +352,20 @@ func httpRouterAddrFunc(h host.Host, cfgAddrs config.Addresses) func() []ma.Mult
 		}
 		fallbackStrs = filtered
 	}
-	fallbackAddrs := parseMultiaddrs(fallbackStrs)
+	fallbackResult := slices.Concat(parseMultiaddrs(fallbackStrs), appendAddrs)
 
+	ch, hasConfirmed := h.(confirmedAddrsHost)
 	return func() []ma.Multiaddr {
-		if ch, ok := h.(confirmedAddrsHost); ok {
+		if hasConfirmed {
 			reachable, _, _ := ch.ConfirmedAddrs()
 			if len(reachable) > 0 {
+				if len(appendAddrs) == 0 {
+					return reachable
+				}
 				return slices.Concat(reachable, appendAddrs)
 			}
 		}
-		return slices.Concat(fallbackAddrs, appendAddrs)
+		return fallbackResult
 	}
 }
 
