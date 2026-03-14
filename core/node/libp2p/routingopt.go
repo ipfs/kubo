@@ -132,7 +132,7 @@ func constructDefaultHTTPRouters(cfg *config.Config, addrFunc func() []ma.Multia
 	// Create single HTTP router and composer per origin
 	for baseURL, capabilities := range originCapabilities {
 		// Construct HTTP router using base URL (without path)
-		httpRouter, err := irouting.ConstructHTTPRouter(baseURL, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), addrFunc, cfg.Identity.PrivKey, httpRetrievalEnabled)
+		httpRouter, err := irouting.ConstructHTTPRouter(baseURL, cfg.Identity.PeerID, addrFunc, cfg.Identity.PrivKey, httpRetrievalEnabled)
 		if err != nil {
 			return nil, err
 		}
@@ -286,7 +286,6 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 			},
 			&irouting.ExtraHTTPParams{
 				PeerID:        peerID,
-				Addrs:         httpAddrsFromConfig(addrs),
 				AddrFunc:      addrFunc,
 				PrivKeyB64:    privKey,
 				HTTPRetrieval: httpRetrieval,
@@ -305,34 +304,6 @@ var (
 	DHTServerOption               = constructDHTRouting(dht.ModeServer)
 	NilRouterOption               = constructNilRouting
 )
-
-// httpAddrsFromConfig creates a list of addresses from the provided configuration to be used by HTTP delegated routers.
-func httpAddrsFromConfig(cfgAddrs config.Addresses) []string {
-	// Swarm addrs are announced by default
-	addrs := cfgAddrs.Swarm
-	// if Announce addrs are specified - override Swarm
-	if len(cfgAddrs.Announce) > 0 {
-		addrs = cfgAddrs.Announce
-	} else if len(cfgAddrs.NoAnnounce) > 0 {
-		// if Announce adds are not specified - filter Swarm addrs with NoAnnounce list
-		maddrs := map[string]struct{}{}
-		for _, addr := range addrs {
-			maddrs[addr] = struct{}{}
-		}
-		for _, addr := range cfgAddrs.NoAnnounce {
-			delete(maddrs, addr)
-		}
-		addrs = make([]string, 0, len(maddrs))
-		for k := range maddrs {
-			addrs = append(addrs, k)
-		}
-	}
-	// append AppendAnnounce addrs to the result list
-	if len(cfgAddrs.AppendAnnounce) > 0 {
-		addrs = append(addrs, cfgAddrs.AppendAnnounce...)
-	}
-	return addrs
-}
 
 // confirmedAddrsHost matches libp2p hosts that support AutoNAT V2 address confirmation.
 type confirmedAddrsHost interface {
