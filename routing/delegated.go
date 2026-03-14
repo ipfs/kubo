@@ -161,11 +161,12 @@ func parse(visited map[string]bool,
 type ExtraHTTPParams struct {
 	PeerID        string
 	Addrs         []string
+	AddrFunc      func() []ma.Multiaddr // dynamic resolver, takes precedence over Addrs
 	PrivKeyB64    string
 	HTTPRetrieval bool
 }
 
-func ConstructHTTPRouter(endpoint string, peerID string, addrs []string, privKey string, httpRetrieval bool) (routing.Routing, error) {
+func ConstructHTTPRouter(endpoint string, peerID string, addrs []string, addrFunc func() []ma.Multiaddr, privKey string, httpRetrieval bool) (routing.Routing, error) {
 	return httpRoutingFromConfig(
 		config.Router{
 			Type: "http",
@@ -176,6 +177,7 @@ func ConstructHTTPRouter(endpoint string, peerID string, addrs []string, privKey
 		&ExtraHTTPParams{
 			PeerID:        peerID,
 			Addrs:         addrs,
+			AddrFunc:      addrFunc,
 			PrivKeyB64:    privKey,
 			HTTPRetrieval: httpRetrieval,
 		},
@@ -226,21 +228,32 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 		return nil, err
 	}
 
-	addrInfo, err := createAddrInfo(extraHTTP.PeerID, extraHTTP.Addrs)
-	if err != nil {
-		return nil, err
-	}
-
 	protocols := config.DefaultHTTPRoutersFilterProtocols
 	if extraHTTP.HTTPRetrieval {
 		protocols = append(protocols, "transport-ipfs-gateway-http")
+	}
+
+	// Build provider info option: dynamic resolver takes precedence over static addresses.
+	var providerInfoOpt drclient.Option
+	if extraHTTP.AddrFunc != nil {
+		peerID, err := peer.Decode(extraHTTP.PeerID)
+		if err != nil {
+			return nil, err
+		}
+		providerInfoOpt = drclient.WithProviderInfoFunc(peerID, extraHTTP.AddrFunc)
+	} else {
+		addrInfo, err := createAddrInfo(extraHTTP.PeerID, extraHTTP.Addrs)
+		if err != nil {
+			return nil, err
+		}
+		providerInfoOpt = drclient.WithProviderInfo(addrInfo.ID, addrInfo.Addrs)
 	}
 
 	cli, err := drclient.New(
 		params.Endpoint,
 		drclient.WithHTTPClient(delegateHTTPClient),
 		drclient.WithIdentity(key),
-		drclient.WithProviderInfo(addrInfo.ID, addrInfo.Addrs),
+		providerInfoOpt,
 		drclient.WithUserAgent(version.GetUserAgentVersion()),
 		drclient.WithProtocolFilter(protocols),
 		drclient.WithStreamResultsRequired(),       // https://specs.ipfs.tech/routing/http-routing-v1/#streaming

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	host "github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 type RoutingOptionArgs struct {
@@ -105,7 +107,7 @@ func collectAllEndpoints(cfg *config.Config) []EndpointSource {
 	return endpoints
 }
 
-func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.ParallelRouter, error) {
+func constructDefaultHTTPRouters(cfg *config.Config, addrFunc func() []ma.Multiaddr) ([]*routinghelpers.ParallelRouter, error) {
 	var routers []*routinghelpers.ParallelRouter
 	httpRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
 
@@ -130,7 +132,7 @@ func constructDefaultHTTPRouters(cfg *config.Config) ([]*routinghelpers.Parallel
 	// Create single HTTP router and composer per origin
 	for baseURL, capabilities := range originCapabilities {
 		// Construct HTTP router using base URL (without path)
-		httpRouter, err := irouting.ConstructHTTPRouter(baseURL, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), cfg.Identity.PrivKey, httpRetrievalEnabled)
+		httpRouter, err := irouting.ConstructHTTPRouter(baseURL, cfg.Identity.PeerID, httpAddrsFromConfig(cfg.Addresses), addrFunc, cfg.Identity.PrivKey, httpRetrievalEnabled)
 		if err != nil {
 			return nil, err
 		}
@@ -191,7 +193,8 @@ func ConstructDelegatedOnlyRouting(cfg *config.Config) RoutingOption {
 		var routers []*routinghelpers.ParallelRouter
 
 		// Add HTTP delegated routers (includes both router and publisher capabilities)
-		httpRouters, err := constructDefaultHTTPRouters(cfg)
+		addrFunc := httpRouterAddrFunc(args.Host, cfg.Addresses)
+		httpRouters, err := constructDefaultHTTPRouters(cfg, addrFunc)
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +228,8 @@ func ConstructDefaultRouting(cfg *config.Config, routingOpt RoutingOption) Routi
 			ExecuteAfter:            0,
 		})
 
-		httpRouters, err := constructDefaultHTTPRouters(cfg)
+		addrFunc := httpRouterAddrFunc(args.Host, cfg.Addresses)
+		httpRouters, err := constructDefaultHTTPRouters(cfg, addrFunc)
 		if err != nil {
 			return nil, err
 		}
@@ -271,6 +275,7 @@ func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
 // ConstructDelegatedRouting is used when Routing.Type = "custom"
 func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs config.Addresses, privKey string, httpRetrieval bool) RoutingOption {
 	return func(args RoutingOptionArgs) (routing.Routing, error) {
+		addrFunc := httpRouterAddrFunc(args.Host, addrs)
 		return irouting.Parse(routers, methods,
 			&irouting.ExtraDHTParams{
 				BootstrapPeers: args.BootstrapPeers,
@@ -282,6 +287,7 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 			&irouting.ExtraHTTPParams{
 				PeerID:        peerID,
 				Addrs:         httpAddrsFromConfig(addrs),
+				AddrFunc:      addrFunc,
 				PrivKeyB64:    privKey,
 				HTTPRetrieval: httpRetrieval,
 			},
@@ -324,6 +330,66 @@ func httpAddrsFromConfig(cfgAddrs config.Addresses) []string {
 	// append AppendAnnounce addrs to the result list
 	if len(cfgAddrs.AppendAnnounce) > 0 {
 		addrs = append(addrs, cfgAddrs.AppendAnnounce...)
+	}
+	return addrs
+}
+
+// confirmedAddrsHost matches libp2p hosts that support AutoNAT V2 address confirmation.
+type confirmedAddrsHost interface {
+	ConfirmedAddrs() (reachable, unreachable, unknown []ma.Multiaddr)
+}
+
+// httpRouterAddrFunc returns a function that resolves provider addresses for
+// HTTP routers at provide-time.
+//
+// Resolution logic:
+//   - If Announce is set, use it as-is (explicit user override, no dynamic resolution).
+//   - Otherwise, prefer AutoNAT V2 confirmed reachable addresses when available,
+//     falling back to static Swarm addresses (filtered by NoAnnounce).
+//   - AppendAnnounce addresses are appended in the dynamic case (both autonat and fallback).
+func httpRouterAddrFunc(h host.Host, cfgAddrs config.Addresses) func() []ma.Multiaddr {
+	// If Announce is explicitly set, use it as a static override.
+	if len(cfgAddrs.Announce) > 0 {
+		staticAddrs := parseMultiaddrs(cfgAddrs.Announce)
+		return func() []ma.Multiaddr { return staticAddrs }
+	}
+
+	// Precompute fallback: Swarm minus NoAnnounce (AppendAnnounce added separately below).
+	fallbackStrs := cfgAddrs.Swarm
+	if len(cfgAddrs.NoAnnounce) > 0 {
+		noAnnounce := map[string]struct{}{}
+		for _, a := range cfgAddrs.NoAnnounce {
+			noAnnounce[a] = struct{}{}
+		}
+		filtered := make([]string, 0, len(fallbackStrs))
+		for _, a := range fallbackStrs {
+			if _, skip := noAnnounce[a]; !skip {
+				filtered = append(filtered, a)
+			}
+		}
+		fallbackStrs = filtered
+	}
+	fallbackAddrs := parseMultiaddrs(fallbackStrs)
+	appendAddrs := parseMultiaddrs(cfgAddrs.AppendAnnounce)
+
+	return func() []ma.Multiaddr {
+		if ch, ok := h.(confirmedAddrsHost); ok {
+			reachable, _, _ := ch.ConfirmedAddrs()
+			if len(reachable) > 0 {
+				return slices.Concat(reachable, appendAddrs)
+			}
+		}
+		return slices.Concat(fallbackAddrs, appendAddrs)
+	}
+}
+
+func parseMultiaddrs(strs []string) []ma.Multiaddr {
+	addrs := make([]ma.Multiaddr, 0, len(strs))
+	for _, s := range strs {
+		a, err := ma.NewMultiaddr(s)
+		if err == nil {
+			addrs = append(addrs, a)
+		}
 	}
 	return addrs
 }

@@ -1,10 +1,18 @@
 package libp2p
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ipfs/boxo/autoconf"
 	config "github.com/ipfs/kubo/config"
+	"github.com/libp2p/go-libp2p/core/connmgr"
+	"github.com/libp2p/go-libp2p/core/event"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -220,5 +228,122 @@ func TestEndpointCapabilitiesReadWriteLogic(t *testing.T) {
 		assert.False(t, capabilities.Peers)
 		assert.False(t, capabilities.IPNSGet)
 		assert.False(t, capabilities.IPNSPut)
+	})
+}
+
+func mustMultiaddr(s string) ma.Multiaddr {
+	a, err := ma.NewMultiaddr(s)
+	if err != nil {
+		panic(err)
+	}
+	return a
+}
+
+// stubHost is a minimal host.Host stub for testing httpRouterAddrFunc.
+// Only the methods checked via type assertion (confirmedAddrsHost) matter;
+// all other methods panic if called.
+type stubHost struct {
+	reachable []ma.Multiaddr
+}
+
+func (h *stubHost) ConfirmedAddrs() (reachable, unreachable, unknown []ma.Multiaddr) {
+	return h.reachable, nil, nil
+}
+
+func (h *stubHost) ID() peer.ID                                         { panic("unused") }
+func (h *stubHost) Addrs() []ma.Multiaddr                               { panic("unused") }
+func (h *stubHost) Peerstore() peerstore.Peerstore                      { panic("unused") }
+func (h *stubHost) Network() network.Network                            { panic("unused") }
+func (h *stubHost) Mux() protocol.Switch                                { panic("unused") }
+func (h *stubHost) Connect(context.Context, peer.AddrInfo) error        { panic("unused") }
+func (h *stubHost) SetStreamHandler(protocol.ID, network.StreamHandler) { panic("unused") }
+func (h *stubHost) SetStreamHandlerMatch(protocol.ID, func(protocol.ID) bool, network.StreamHandler) {
+	panic("unused")
+}
+func (h *stubHost) RemoveStreamHandler(protocol.ID) { panic("unused") }
+func (h *stubHost) NewStream(context.Context, peer.ID, ...protocol.ID) (network.Stream, error) {
+	panic("unused")
+}
+func (h *stubHost) Close() error                     { panic("unused") }
+func (h *stubHost) ConnManager() connmgr.ConnManager { panic("unused") }
+func (h *stubHost) EventBus() event.Bus              { panic("unused") }
+
+func TestHttpRouterAddrFunc(t *testing.T) {
+	t.Run("prefers autonat confirmed reachable addrs over swarm fallback", func(t *testing.T) {
+		h := &stubHost{
+			reachable: []ma.Multiaddr{
+				mustMultiaddr("/ip4/1.2.3.4/tcp/4001"),
+				mustMultiaddr("/ip4/1.2.3.4/udp/4001/quic-v1"),
+			},
+		}
+		fn := httpRouterAddrFunc(h, config.Addresses{
+			Swarm: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"},
+		})
+		assert.Equal(t, h.reachable, fn())
+	})
+
+	t.Run("falls back to swarm when autonat has no confirmed addrs", func(t *testing.T) {
+		h := &stubHost{reachable: nil}
+		fn := httpRouterAddrFunc(h, config.Addresses{
+			Swarm: []string{"/ip4/0.0.0.0/tcp/4001"},
+		})
+		assert.Equal(t, []ma.Multiaddr{mustMultiaddr("/ip4/0.0.0.0/tcp/4001")}, fn())
+	})
+
+	t.Run("Announce overrides autonat and swarm", func(t *testing.T) {
+		h := &stubHost{
+			reachable: []ma.Multiaddr{mustMultiaddr("/ip4/1.2.3.4/tcp/4001")},
+		}
+		fn := httpRouterAddrFunc(h, config.Addresses{
+			Swarm:    []string{"/ip4/0.0.0.0/tcp/4001"},
+			Announce: []string{"/ip4/5.6.7.8/tcp/4001"},
+		})
+		assert.Equal(t, []ma.Multiaddr{mustMultiaddr("/ip4/5.6.7.8/tcp/4001")}, fn())
+	})
+
+	t.Run("AppendAnnounce added to autonat addrs", func(t *testing.T) {
+		h := &stubHost{
+			reachable: []ma.Multiaddr{mustMultiaddr("/ip4/1.2.3.4/tcp/4001")},
+		}
+		fn := httpRouterAddrFunc(h, config.Addresses{
+			Swarm:          []string{"/ip4/0.0.0.0/tcp/4001"},
+			AppendAnnounce: []string{"/ip4/10.0.0.1/tcp/4001"},
+		})
+		assert.Equal(t, []ma.Multiaddr{
+			mustMultiaddr("/ip4/1.2.3.4/tcp/4001"),
+			mustMultiaddr("/ip4/10.0.0.1/tcp/4001"),
+		}, fn())
+	})
+
+	t.Run("AppendAnnounce added to swarm fallback", func(t *testing.T) {
+		h := &stubHost{reachable: nil}
+		fn := httpRouterAddrFunc(h, config.Addresses{
+			Swarm:          []string{"/ip4/0.0.0.0/tcp/4001"},
+			AppendAnnounce: []string{"/ip4/10.0.0.1/tcp/4001"},
+		})
+		assert.Equal(t, []ma.Multiaddr{
+			mustMultiaddr("/ip4/0.0.0.0/tcp/4001"),
+			mustMultiaddr("/ip4/10.0.0.1/tcp/4001"),
+		}, fn())
+	})
+
+	t.Run("NoAnnounce filters swarm fallback", func(t *testing.T) {
+		h := &stubHost{reachable: nil}
+		fn := httpRouterAddrFunc(h, config.Addresses{
+			Swarm:      []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"},
+			NoAnnounce: []string{"/ip4/0.0.0.0/tcp/4001"},
+		})
+		assert.Equal(t, []ma.Multiaddr{mustMultiaddr("/ip4/0.0.0.0/udp/4001/quic-v1")}, fn())
+	})
+
+	t.Run("Announce is not combined with AppendAnnounce", func(t *testing.T) {
+		h := &stubHost{reachable: nil}
+		fn := httpRouterAddrFunc(h, config.Addresses{
+			Swarm:          []string{"/ip4/0.0.0.0/tcp/4001"},
+			Announce:       []string{"/ip4/5.6.7.8/tcp/4001"},
+			AppendAnnounce: []string{"/ip4/10.0.0.1/tcp/4001"},
+		})
+		// Announce is a full override; AppendAnnounce is ignored.
+		assert.Equal(t, []ma.Multiaddr{mustMultiaddr("/ip4/5.6.7.8/tcp/4001")}, fn())
 	})
 }
