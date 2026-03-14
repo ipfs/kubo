@@ -334,7 +334,7 @@ func httpRouterAddrFunc(h host.Host, cfgAddrs config.Addresses) func() []ma.Mult
 	// If Announce is explicitly set, use it as a static override.
 	if len(cfgAddrs.Announce) > 0 {
 		staticAddrs := slices.Concat(parseMultiaddrs(cfgAddrs.Announce), appendAddrs)
-		return func() []ma.Multiaddr { return staticAddrs }
+		return func() []ma.Multiaddr { return slices.Clone(staticAddrs) }
 	}
 
 	// Precompute fallback: Swarm minus NoAnnounce (AppendAnnounce added separately below).
@@ -369,9 +369,11 @@ func parseMultiaddrs(strs []string) []ma.Multiaddr {
 	addrs := make([]ma.Multiaddr, 0, len(strs))
 	for _, s := range strs {
 		a, err := ma.NewMultiaddr(s)
-		if err == nil {
-			addrs = append(addrs, a)
+		if err != nil {
+			log.Errorf("ignoring invalid multiaddr %q: %s", s, err)
+			continue
 		}
+		addrs = append(addrs, a)
 	}
 	return addrs
 }
