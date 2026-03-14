@@ -19,6 +19,7 @@ import (
 	host "github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
+	basichost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -309,6 +310,15 @@ var (
 type confirmedAddrsHost interface {
 	ConfirmedAddrs() (reachable, unreachable, unknown []ma.Multiaddr)
 }
+
+// Compile-time check: BasicHost must satisfy confirmedAddrsHost.
+// ConfirmedAddrs is not part of the core host.Host interface and is marked
+// experimental in go-libp2p. If BasicHost ever drops or changes this method,
+// this assertion will fail at build time. In that case, update
+// httpRouterAddrFunc (this file) and the swarm autonat command
+// (core/commands/swarm_addrs_autonat.go) which both type-assert to this
+// interface.
+var _ confirmedAddrsHost = (*basichost.BasicHost)(nil)
 
 // httpRouterAddrFunc returns a function that resolves provider addresses for
 // HTTP routers at provide-time.
