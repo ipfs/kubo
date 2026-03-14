@@ -1,9 +1,14 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -304,4 +309,154 @@ func TestDagImportFastProvide(t *testing.T) {
 		// Flag should disable it despite config saying true
 		require.Contains(t, daemonLog, "fast-provide-root: skipped")
 	})
+}
+
+// dagRefs returns root plus recursive ref CIDs from "ipfs refs -r --unique root".
+func dagRefs(node *harness.Node, root string) []string {
+	refsRes := node.IPFS("refs", "-r", "--unique", root)
+	refs := []string{root}
+	for _, line := range testutils.SplitLines(strings.TrimSpace(refsRes.Stdout.String())) {
+		if line != "" {
+			refs = append(refs, line)
+		}
+	}
+	return refs
+}
+
+func parseImportedBlockCount(stdout string) int {
+	var n int
+	for _, line := range testutils.SplitLines(stdout) {
+		if _, err := fmt.Sscanf(line, "Imported %d blocks", &n); err == nil {
+			return n
+		}
+	}
+	return 0
+}
+
+func TestDagExportLocalOnly(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	root := node.IPFSAddDeterministic("300KiB", "dag-export-local-only", "--raw-leaves")
+	refs := dagRefs(node, root)
+	require.GreaterOrEqual(t, len(refs), 2, "need at least root and one child block")
+
+	fullCarPath := filepath.Join(node.Dir, "full.car")
+	require.NoError(t, node.IPFSDagExport(root, fullCarPath))
+	require.Equal(t, 0, node.RunIPFS("pin", "rm", root).ExitCode())
+	require.Equal(t, 0, node.RunIPFS("block", "rm", refs[1]).ExitCode())
+
+	// Export --offline should fail; discard output (no file needed).
+	res := node.Runner.Run(harness.RunRequest{
+		Path:    node.IPFSBin,
+		Args:    []string{"dag", "export", "--offline", root},
+		CmdOpts: []harness.CmdOpt{harness.RunWithStdout(io.Discard)},
+	})
+	require.NotEqual(t, 0, res.ExitCode(), "export --offline without --local-only should fail when a block is missing")
+	require.Contains(t, res.Stderr.String(), "block was not found locally")
+
+	partialCarPath := filepath.Join(node.Dir, "partial.car")
+	require.NoError(t, node.IPFSDagExport(root, partialCarPath, "--local-only", "--offline"))
+
+	nodeFull := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer nodeFull.StopDaemon()
+	fullCAR, err := os.Open(fullCarPath)
+	require.NoError(t, err)
+	defer fullCAR.Close()
+	fullRes := nodeFull.Runner.Run(harness.RunRequest{
+		Path:    nodeFull.IPFSBin,
+		Args:    []string{"dag", "import", "--pin-roots=false", "--stats"},
+		CmdOpts: []harness.CmdOpt{harness.RunWithStdin(fullCAR)},
+	})
+	require.Equal(t, 0, fullRes.ExitCode())
+	fullCount := parseImportedBlockCount(fullRes.Stdout.String())
+	require.Greater(t, fullCount, 0, "expected 'Imported N blocks' in output: %s", fullRes.Stdout.String())
+
+	nodePartial := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer nodePartial.StopDaemon()
+	partialCAR, err := os.Open(partialCarPath)
+	require.NoError(t, err)
+	defer partialCAR.Close()
+	partialRes := nodePartial.Runner.Run(harness.RunRequest{
+		Path:    nodePartial.IPFSBin,
+		Args:    []string{"dag", "import", "--pin-roots=false", "--stats"},
+		CmdOpts: []harness.CmdOpt{harness.RunWithStdin(partialCAR)},
+	})
+	require.Equal(t, 0, partialRes.ExitCode())
+	partialCount := parseImportedBlockCount(partialRes.Stdout.String())
+	require.Greater(t, partialCount, 0, "expected 'Imported N blocks' in output: %s", partialRes.Stdout.String())
+
+	require.Less(t, partialCount, fullCount, "partial CAR should have fewer blocks than full DAG")
+}
+
+func TestDagExportLocalOnlyRequiresOffline(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	root := node.IPFSAddDeterministic("300KiB", "dag-local-only-requires-offline", "--raw-leaves")
+	refs := dagRefs(node, root)
+
+	require.GreaterOrEqual(t, len(refs), 2)
+	require.Equal(t, 0, node.RunIPFS("pin", "rm", root).ExitCode())
+	require.Equal(t, 0, node.RunIPFS("block", "rm", refs[1]).ExitCode())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, node.IPFSBin, "dag", "export", "--local-only", root)
+	cmd.Env = append(os.Environ(), "IPFS_PATH="+node.Dir)
+	cmd.Stdout = io.Discard
+
+	err := cmd.Run()
+
+	require.Error(t, err) // command should fail
+}
+
+func TestDagImportPartialCAR(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	root := node.IPFSAddDeterministic("300KiB", "dag-import-partial", "--raw-leaves")
+	refs := dagRefs(node, root)
+	require.GreaterOrEqual(t, len(refs), 2)
+
+	require.Equal(t, 0, node.RunIPFS("pin", "rm", root).ExitCode())
+	require.Equal(t, 0, node.RunIPFS("block", "rm", refs[1]).ExitCode())
+
+	partialCarPath := filepath.Join(node.Dir, "partial.car")
+	require.NoError(t, node.IPFSDagExport(root, partialCarPath, "--local-only", "--offline"))
+
+	imp := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer imp.StopDaemon()
+	partialCAR, err := os.Open(partialCarPath)
+	require.NoError(t, err)
+	defer partialCAR.Close()
+	require.NoError(t, imp.IPFSDagImport(partialCAR, root))
+}
+func TestDagImportLocalOnlyPinRootsConflict(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	r, err := os.Open(fixtureFile)
+	require.NoError(t, err)
+	defer r.Close()
+
+	res := node.Runner.Run(harness.RunRequest{
+		Path:    node.IPFSBin,
+		Args:    []string{"dag", "import", "--local-only", "--pin-roots"},
+		CmdOpts: []harness.CmdOpt{harness.RunWithStdin(r)},
+	})
+
+	require.Equal(t, 1, res.ExitCode())
+	require.Error(t, res.Err)
+
+	errOutput := res.Stderr.String()
+
+	require.Contains(t, errOutput, "cannot pass both")
+	require.Contains(t, errOutput, "pin-roots")
+	require.Contains(t, errOutput, "local-only")
 }
