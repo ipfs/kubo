@@ -3858,7 +3858,7 @@ become too big or reach `MaxLinks`. A HAMT is a structure made of UnixFS
 nodes that store the list of elements in the folder. This option controls the
 maximum number of children that the HAMT nodes can have.
 
-According to the [UnixFS specification](https://specs.ipfs.tech/unixfs/#hamt-structure-and-parameters), this value must be a power of 2, a multiple of 8 (for byte-aligned bitfields), and not exceed 1024 (to prevent denial-of-service attacks).
+According to the [UnixFS specification](https://specs.ipfs.tech/unixfs/#hamt-structure-and-parameters), this value must be a power of 2, between 8 (for byte-aligned bitfields) and 1024 (to prevent denial-of-service attacks).
 
 Commands affected: `ipfs add`, `ipfs daemon` (globally overrides [`boxo/ipld/unixfs/io.DefaultShardWidth`](https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L30C5-L30C22))
 
