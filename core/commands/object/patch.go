@@ -67,6 +67,11 @@ DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		root, err := cmdutils.PathOrCidPath(req.Arguments[0])
 		if err != nil {
 			return err
@@ -82,7 +87,7 @@ DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: p.RootCid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: enc.Encode(p.RootCid())})
 	},
 	Type: Object{},
 	Encoders: cmds.EncoderMap{
@@ -134,6 +139,11 @@ Use MFS and 'files' commands instead:
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		root, err := cmdutils.PathOrCidPath(req.Arguments[0])
 		if err != nil {
 			return err
@@ -161,7 +171,7 @@ Use MFS and 'files' commands instead:
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: p.RootCid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: enc.Encode(p.RootCid())})
 	},
 	Type: Object{},
 	Encoders: cmds.EncoderMap{

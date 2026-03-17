@@ -29,6 +29,12 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 	if err != nil {
 		return err
 	}
+
+	enc, err := cmdenv.GetCidEncoder(req)
+	if err != nil {
+		return err
+	}
+
 	nodeGetter := mdag.NewSession(req.Context, api.Dag())
 
 	cidSet := cid.NewSet()
@@ -50,7 +56,7 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 		if err != nil {
 			return err
 		}
-		dagstats := &DagStat{Cid: rp.RootCid()}
+		dagstats := &DagStat{Cid: enc.Encode(rp.RootCid())}
 		dagStatSummary.appendStats(dagstats)
 		err = traverse.Traverse(obj, traverse.Options{
 			DAG:   nodeGetter,

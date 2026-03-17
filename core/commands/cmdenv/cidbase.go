@@ -11,24 +11,20 @@ import (
 )
 
 var (
-	OptionCidBase              = cmds.StringOption("cid-base", "Multibase encoding used for version 1 CIDs in output.")
-	OptionUpgradeCidV0InOutput = cmds.BoolOption("upgrade-cidv0-in-output", "Upgrade version 0 to version 1 CIDs in output.")
+	OptionCidBase = cmds.StringOption("cid-base", "Multibase encoding for CIDs in output. CIDv0 is automatically converted to CIDv1 when a base other than base58btc is specified.")
+
+	// OptionUpgradeCidV0InOutput is deprecated. When --cid-base is set to
+	// anything other than base58btc, CIDv0 are now automatically upgraded
+	// to CIDv1. This flag is kept for backward compatibility and will be
+	// removed in a future release.
+	OptionUpgradeCidV0InOutput = cmds.BoolOption("upgrade-cidv0-in-output", "[DEPRECATED] Upgrade version 0 to version 1 CIDs in output.")
 )
 
-// GetCidEncoder processes the `cid-base` and `output-cidv1` options and
-// returns an encoder to use based on those parameters.
+// GetCidEncoder processes the --cid-base option and returns an encoder.
+// When --cid-base is set to a non-base58btc encoding, CIDv0 values are
+// automatically upgraded to CIDv1 because CIDv0 can only be represented
+// in base58btc.
 func GetCidEncoder(req *cmds.Request) (cidenc.Encoder, error) {
-	return getCidBase(req, true)
-}
-
-// GetLowLevelCidEncoder is like GetCidEncoder but meant to be used by lower
-// level commands. It differs from GetCidEncoder in that CIDv0 are not, by
-// default, auto-upgraded to CIDv1.
-func GetLowLevelCidEncoder(req *cmds.Request) (cidenc.Encoder, error) {
-	return getCidBase(req, false)
-}
-
-func getCidBase(req *cmds.Request, autoUpgrade bool) (cidenc.Encoder, error) {
 	base, _ := req.Options[OptionCidBase.Name()].(string)
 	upgrade, upgradeDefined := req.Options[OptionUpgradeCidV0InOutput.Name()].(bool)
 
@@ -40,11 +36,16 @@ func getCidBase(req *cmds.Request, autoUpgrade bool) (cidenc.Encoder, error) {
 		if err != nil {
 			return e, err
 		}
-		if autoUpgrade {
+		// CIDv0 can only be represented in base58btc. When any other
+		// base is requested, always upgrade CIDv0 to CIDv1 so the
+		// output actually uses the requested encoding.
+		if e.Base.Encoding() != mbase.Base58BTC {
 			e.Upgrade = true
 		}
 	}
 
+	// Deprecated: --upgrade-cidv0-in-output still works as an explicit
+	// override for backward compatibility.
 	if upgradeDefined {
 		e.Upgrade = upgrade
 	}
