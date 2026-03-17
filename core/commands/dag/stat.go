@@ -8,7 +8,6 @@ import (
 	"github.com/dustin/go-humanize"
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/merkledag/traverse"
-	"github.com/ipfs/boxo/ipld/unixfs"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -26,7 +25,6 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 	if val, specified := req.Options[progressOptionName].(bool); specified {
 		progressive = val
 	}
-
 	api, err := cmdenv.GetApi(env, req)
 	if err != nil {
 		return err
@@ -35,7 +33,6 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 
 	cidSet := cid.NewSet()
 	dagStatSummary := &DagStatSummary{DagStatsArray: []*DagStat{}}
-
 	for _, a := range req.Arguments {
 		p, err := cmdutils.PathOrCidPath(a)
 		if err != nil {
@@ -53,45 +50,24 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 		if err != nil {
 			return err
 		}
-
 		dagstats := &DagStat{Cid: rp.RootCid()}
 		dagStatSummary.appendStats(dagstats)
-
-		chunkCids := cid.NewSet()
 		err = traverse.Traverse(obj, traverse.Options{
 			DAG:   nodeGetter,
 			Order: traverse.DFSPre,
 			Func: func(current traverse.State) error {
-				nd := current.Node
-				currentNodeSize := uint64(len(nd.RawData()))
+				currentNodeSize := uint64(len(current.Node.RawData()))
 				dagstats.Size += currentNodeSize
 				dagstats.NumBlocks++
-
-				if pn, ok := nd.(*mdag.ProtoNode); ok {
-					if fsn, err := unixfs.FSNodeFromBytes(pn.Data()); err == nil {
-						if fsn.Type() == unixfs.TFile && len(pn.Links()) > 0 {
-							for _, l := range pn.Links() {
-								chunkCids.Add(l.Cid)
-							}
-						}
-						if !chunkCids.Has(nd.Cid()) {
-							// Count as a file only if not a chunk block
-							switch fsn.Type() {
-							case unixfs.TFile, unixfs.TRaw, unixfs.TSymlink, unixfs.TMetadata:
-								dagstats.NumFiles++
-							}
-						}
-					}
-				}
-
-				if !cidSet.Has(nd.Cid()) {
+				if !cidSet.Has(current.Node.Cid()) {
 					dagStatSummary.incrementTotalSize(currentNodeSize)
 				}
 				dagStatSummary.incrementRedundantSize(currentNodeSize)
-				cidSet.Add(nd.Cid())
-
+				cidSet.Add(current.Node.Cid())
 				if progressive {
-					return res.Emit(dagStatSummary)
+					if err := res.Emit(dagStatSummary); err != nil {
+						return err
+					}
 				}
 				return nil
 			},
@@ -106,13 +82,10 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 	dagStatSummary.UniqueBlocks = cidSet.Len()
 	dagStatSummary.calculateSummary()
 
-	var totalFiles int64
-	for _, s := range dagStatSummary.DagStatsArray {
-		totalFiles += s.NumFiles
+	if err := res.Emit(dagStatSummary); err != nil {
+		return err
 	}
-	dagStatSummary.NumFiles = totalFiles
-
-	return res.Emit(dagStatSummary)
+	return nil
 }
 
 func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
@@ -149,10 +122,7 @@ func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
 					totalBlocks += stat.NumBlocks
 					totalSize += stat.Size
 				}
-				fmt.Fprintf(os.Stderr,
-					"Fetched/Processed %d blocks, %d bytes (%s)\r",
-					totalBlocks, totalSize, humanize.Bytes(totalSize),
-				)
+				fmt.Fprintf(os.Stderr, "Fetched/Processed %d blocks, %d bytes (%s)\r", totalBlocks, totalSize, humanize.Bytes(totalSize))
 			}
 		default:
 			return e.TypeErr(out, v)

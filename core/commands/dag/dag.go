@@ -297,7 +297,6 @@ type DagStat struct {
 	Cid       cid.Cid
 	Size      uint64 `json:",omitempty"`
 	NumBlocks int64  `json:",omitempty"`
-	NumFiles  int64  `json:",omitempty"` // UnixFS file nodes (actual files, including nested)
 }
 
 func (s *DagStat) String() string {
@@ -350,15 +349,13 @@ type DagStatSummary struct {
 	TotalSize     uint64     `json:",omitempty"`
 	SharedSize    uint64     `json:",omitempty"`
 	Ratio         float32    `json:",omitempty"`
-	NumFiles      int64      `json:",omitempty"` // total UnixFS file count across all DAGs
 	DagStatsArray []*DagStat `json:"DagStats,omitempty"`
 }
 
 func (s *DagStatSummary) String() string {
-	return fmt.Sprintf("Total Size: %d (%s)\nUnique Blocks: %d\nTotal Files: %d\nShared Size: %d (%s)\nRatio: %f",
+	return fmt.Sprintf("Total Size: %d (%s)\nUnique Blocks: %d\nShared Size: %d (%s)\nRatio: %f",
 		s.TotalSize, humanize.Bytes(s.TotalSize),
 		s.UniqueBlocks,
-		s.NumFiles,
 		s.SharedSize, humanize.Bytes(s.SharedSize),
 		s.Ratio)
 }
@@ -408,17 +405,15 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 			csvWriter := csv.NewWriter(w)
 			csvWriter.Comma = '\t'
 			cidSpacing := len(event.DagStatsArray[0].Cid.String())
-			header := []string{fmt.Sprintf("%-*s", cidSpacing, "CID"), fmt.Sprintf("%-15s", "Blocks"), fmt.Sprintf("%-10s", "Files"), "Size"}
+			header := []string{fmt.Sprintf("%-*s", cidSpacing, "CID"), fmt.Sprintf("%-15s", "Blocks"), "Size"}
 			if err := csvWriter.Write(header); err != nil {
 				return err
 			}
 			for _, dagStat := range event.DagStatsArray {
 				numBlocksStr := fmt.Sprint(dagStat.NumBlocks)
-				numFilesStr := fmt.Sprint(dagStat.NumFiles)
 				err := csvWriter.Write([]string{
 					dagStat.Cid.String(),
 					fmt.Sprintf("%-15s", numBlocksStr),
-					fmt.Sprintf("%-10s", numFilesStr),
 					fmt.Sprint(dagStat.Size),
 				})
 				if err != nil {

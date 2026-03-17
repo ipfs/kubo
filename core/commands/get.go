@@ -4,27 +4,24 @@ import (
 	gotar "archive/tar"
 	"bufio"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
 	"os"
 	gopath "path"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipfs/kubo/core/commands/e"
-	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
 	"github.com/cheggaaa/pb"
+	"github.com/dustin/go-humanize"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/tar"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 var ErrInvalidCompressionLevel = errors.New("compression level must be between 1 and 9")
@@ -34,7 +31,6 @@ const (
 	archiveOptionName          = "archive"
 	compressOptionName         = "compress"
 	compressionLevelOptionName = "compression-level"
-	getTotalBlocksKey          = "_getTotalBlocks"
 )
 
 var GetCmd = &cmds.Command{
@@ -67,29 +63,8 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data.").WithDefault(true),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
-		if _, err := getCompressOptions(req); err != nil {
-			return err
-		}
-
-		progress, _ := req.Options[progressOptionName].(bool)
-		if !progress {
-			return nil
-		}
-
-		baseURL, err := getAPIBaseURL(env)
-		if err != nil {
-			return nil
-		}
-
-		rootCID, err := resolveRootCID(baseURL, req.Arguments[0])
-		if err != nil || rootCID == "" {
-			return nil
-		}
-
-		totalBlocks, files := fetchStatInfo(baseURL, rootCID)
-		req.Options[getTotalBlocksKey] = totalBlocks
-		printGetProgress(os.Stderr, rootCID, files, totalBlocks)
-		return nil
+		_, err := getCompressOptions(req)
+		return err
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx := req.Context
@@ -118,6 +93,11 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return err
 		}
 
+		var numBlocks int64
+		if st, err := api.Dag().Stat(ctx, p); err == nil {
+			numBlocks = st.NumBlocks
+		}
+
 		res.SetLength(uint64(size))
 
 		archive, _ := req.Options[archiveOptionName].(bool)
@@ -143,7 +123,11 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			res.SetContentType("application/x-tar")
 		}
 
-		return res.Emit(reader)
+		return res.Emit(&getResponse{
+			Reader:    reader,
+			RootCID:   p.String(),
+			NumBlocks: numBlocks,
+		})
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
@@ -154,8 +138,16 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 				return err
 			}
 
-			outReader, ok := v.(io.Reader)
-			if !ok {
+			var outReader io.Reader
+			var rootCID string
+			var numBlocks int64
+			if gr, ok := v.(*getResponse); ok {
+				outReader = gr.Reader
+				rootCID = gr.RootCID
+				numBlocks = gr.NumBlocks
+			} else if r, ok := v.(io.Reader); ok {
+				outReader = r
+			} else {
 				return e.New(e.TypeErr(outReader, v))
 			}
 
@@ -168,9 +160,20 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 
 			archive, _ := req.Options[archiveOptionName].(bool)
 			progress, _ := req.Options[progressOptionName].(bool)
-			totalBlocks, _ := req.Options[getTotalBlocksKey].(int)
-			if totalBlocks <= 0 {
-				totalBlocks = 1
+
+			if progress && rootCID != "" {
+				cidOnly := rootCID
+				if i := strings.LastIndex(rootCID, "/"); i >= 0 {
+					cidOnly = rootCID[i+1:]
+				}
+				fmt.Fprintf(os.Stderr, "Fetching %s\n", cidOnly)
+				payloadSize := int64(res.Length())
+				if numBlocks > 0 {
+					fmt.Fprintf(os.Stderr, "  Blocks: %d | Size: %s\n", numBlocks, humanize.IBytes(uint64(payloadSize)))
+				} else if payloadSize > 0 {
+					fmt.Fprintf(os.Stderr, "  Size: %s\n", humanize.IBytes(uint64(payloadSize)))
+				}
+				fmt.Fprint(os.Stderr, "\n")
 			}
 
 			gw := getWriter{
@@ -180,7 +183,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 				Compression: cmplvl,
 				Size:        int64(res.Length()),
 				Progress:    progress,
-				TotalBlocks: totalBlocks,
+				NumBlocks:   numBlocks,
 			}
 
 			return gw.Write(outReader, outPath)
@@ -188,83 +191,10 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 	},
 }
 
-func getAPIBaseURL(env cmds.Environment) (string, error) {
-	configRoot, err := cmdenv.GetConfigRoot(env)
-	if err != nil {
-		return "", err
-	}
-	apiAddr, err := fsrepo.APIAddr(configRoot)
-	if err != nil {
-		return "", err
-	}
-	network, host, err := manet.DialArgs(apiAddr)
-	if err != nil || (network != "tcp" && network != "tcp4" && network != "tcp6") {
-		return "", errors.New("unsupported network")
-	}
-	return "http://" + host, nil
-}
-
-func resolveRootCID(baseURL, pathStr string) (string, error) {
-	resp, err := http.Post(baseURL+"/api/v0/dag/resolve?arg="+url.QueryEscape(pathStr), "", nil)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	var out struct {
-		Cid interface{} `json:"Cid"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return "", err
-	}
-	switch v := out.Cid.(type) {
-	case string:
-		return v, nil
-	case map[string]interface{}:
-		cid, _ := v["/"].(string)
-		return cid, nil
-	}
-	return "", nil
-}
-
-// fetchStatInfo calls dag/stat and returns totalBlocks and file count directly from NumFiles.
-func fetchStatInfo(baseURL, rootCID string) (totalBlocks, numFiles int) {
-	resp, err := http.Post(
-		baseURL+"/api/v0/dag/stat?arg="+url.QueryEscape("/ipfs/"+rootCID)+"&progress=false",
-		"", nil,
-	)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		return 1, 1
-	}
-	defer resp.Body.Close()
-
-	var out struct {
-		UniqueBlocks int `json:"UniqueBlocks"`
-		DagStats     []struct {
-			NumBlocks int64 `json:"NumBlocks"`
-			NumFiles  int64 `json:"NumFiles"`
-		} `json:"DagStats"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err == nil && len(out.DagStats) > 0 {
-		ds := out.DagStats[0]
-		totalBlocks = int(ds.NumBlocks)
-		numFiles = int(ds.NumFiles)
-	}
-	if totalBlocks <= 0 {
-		totalBlocks = max(out.UniqueBlocks, 1)
-	}
-	if numFiles <= 0 {
-		numFiles = 1
-	}
-	return
-}
-
-func printGetProgress(w io.Writer, cidStr string, numFiles, totalBlocks int) {
-	fmt.Fprintf(w, "\nFetching CID: %s\n", cidStr)
-	if numFiles == 1 {
-		fmt.Fprintf(w, "Items: 1 file | Blocks: %d\n\n", totalBlocks)
-	} else {
-		fmt.Fprintf(w, "Items: %d files | Blocks: %d\n\n", numFiles, totalBlocks)
-	}
+type getResponse struct {
+	io.Reader
+	RootCID   string
+	NumBlocks int64
 }
 
 type clearlineReader struct {
@@ -275,7 +205,51 @@ type clearlineReader struct {
 func (r *clearlineReader) Read(p []byte) (n int, err error) {
 	n, err = r.Reader.Read(p)
 	if err == io.EOF {
-		fmt.Fprintf(r.out, "\033[2K\r")
+		fmt.Fprint(r.out, "\033[2K\r")
+	}
+	return
+}
+
+type blockTrackingReader struct {
+	io.Reader
+	bar         *pb.ProgressBar
+	totalBlocks int64
+	blocksRead  int64 // atomic
+	bytesRead   int64 // atomic
+	blockSize   int64 // = totalSize / totalBlocks
+}
+
+func newBlockTrackingReader(r io.Reader, totalSize, totalBlocks int64, bar *pb.ProgressBar) *blockTrackingReader {
+	blockSize := int64(1)
+	if totalBlocks > 0 && totalSize > 0 {
+		blockSize = totalSize / totalBlocks
+		if blockSize < 1 {
+			blockSize = 1
+		}
+	}
+	return &blockTrackingReader{
+		Reader:      r,
+		bar:         bar,
+		totalBlocks: totalBlocks,
+		blockSize:   blockSize,
+	}
+}
+
+func (r *blockTrackingReader) Read(p []byte) (n int, err error) {
+	n, err = r.Reader.Read(p)
+	if n > 0 && r.totalBlocks > 0 {
+		newBytes := atomic.AddInt64(&r.bytesRead, int64(n))
+		newBlocks := newBytes / r.blockSize
+		if newBlocks > r.totalBlocks {
+			newBlocks = r.totalBlocks
+		}
+		old := atomic.SwapInt64(&r.blocksRead, newBlocks)
+		if old != newBlocks {
+			r.bar.Prefix(fmt.Sprintf("  block %d / %d  ", newBlocks, r.totalBlocks))
+		}
+	}
+	if err == io.EOF && r.totalBlocks > 0 {
+		r.bar.Prefix(fmt.Sprintf("  block %d / %d  ", r.totalBlocks, r.totalBlocks))
 	}
 	return
 }
@@ -320,7 +294,7 @@ type getWriter struct {
 	Compression int
 	Size        int64
 	Progress    bool
-	TotalBlocks int
+	NumBlocks   int64
 }
 
 func (gw *getWriter) Write(r io.Reader, fpath string) error {
@@ -369,24 +343,14 @@ func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 	var progressCb func(int64) int64
 	if gw.Progress {
 		bar := makeProgressBar(gw.Err, gw.Size)
-		totalBlocks := gw.TotalBlocks
-		fmt.Fprintf(gw.Err, "Blocks: 0 / %d\n", totalBlocks)
+		if gw.NumBlocks > 0 {
+			bar.Prefix(fmt.Sprintf("  block 0 / %d  ", gw.NumBlocks))
+			r = newBlockTrackingReader(r, gw.Size, gw.NumBlocks, bar)
+		}
 		bar.Start()
 		defer bar.Finish()
-		defer func() {
-			bar.Set64(gw.Size)
-			fmt.Fprintf(gw.Err, "\033[A\033[2K\rBlocks: %d / %d\033[B", totalBlocks, totalBlocks)
-		}()
-		size := gw.Size
-		progressCb = func(delta int64) int64 {
-			total := bar.Add64(delta)
-			blocksEst := totalBlocks
-			if total < size && size > 0 {
-				blocksEst = int(int64(totalBlocks) * total / size)
-			}
-			fmt.Fprintf(gw.Err, "\033[A\033[2K\rBlocks: %d / %d\033[B", blocksEst, totalBlocks)
-			return total
-		}
+		defer bar.Set64(gw.Size)
+		progressCb = bar.Add64
 	}
 
 	extractor := &tar.Extractor{Path: fpath, Progress: progressCb}

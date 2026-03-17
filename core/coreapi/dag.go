@@ -2,15 +2,19 @@ package coreapi
 
 import (
 	"context"
+	"fmt"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipld/merkledag/traverse"
+	"github.com/ipfs/boxo/path"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	cid "github.com/ipfs/go-cid"
-	ipld "github.com/ipfs/go-ipld-format"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/ipfs/kubo/tracing"
+	ipld "github.com/ipfs/go-ipld-format"
 )
 
 type dagAPI struct {
@@ -66,6 +70,36 @@ func (api *dagAPI) Pinning() ipld.NodeAdder {
 
 func (api *dagAPI) Session(ctx context.Context) ipld.NodeGetter {
 	return dag.NewSession(ctx, api.DAGService)
+}
+
+func (api *dagAPI) Stat(ctx context.Context, p path.Path) (*coreiface.DagStatResult, error) {
+	rp, remainder, err := api.core.ResolvePath(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	if len(remainder) > 0 {
+		return nil, fmt.Errorf("cannot return size for anything other than a DAG with a root CID")
+	}
+	nodeGetter := dag.NewSession(ctx, api.DAGService)
+	obj, err := nodeGetter.Get(ctx, rp.RootCid())
+	if err != nil {
+		return nil, err
+	}
+	result := &coreiface.DagStatResult{}
+	err = traverse.Traverse(obj, traverse.Options{
+		DAG:   nodeGetter,
+		Order: traverse.DFSPre,
+		Func: func(current traverse.State) error {
+			result.Size += uint64(len(current.Node.RawData()))
+			result.NumBlocks++
+			return nil
+		},
+		SkipDuplicates: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error traversing DAG: %w", err)
+	}
+	return result, nil
 }
 
 var (
