@@ -3,23 +3,23 @@ package common
 import (
 	"testing"
 
-	"github.com/ipfs/kubo/thirdparty/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMapMergeDeepReturnsNew(t *testing.T) {
-	leftMap := make(map[string]interface{})
+	leftMap := make(map[string]any)
 	leftMap["A"] = "Hello World"
 
-	rightMap := make(map[string]interface{})
+	rightMap := make(map[string]any)
 	rightMap["A"] = "Foo"
 
 	MapMergeDeep(leftMap, rightMap)
 
-	assert.True(leftMap["A"] == "Hello World", t, "MapMergeDeep should return a new map instance")
+	require.Equal(t, "Hello World", leftMap["A"], "MapMergeDeep should return a new map instance")
 }
 
 func TestMapMergeDeepNewKey(t *testing.T) {
-	leftMap := make(map[string]interface{})
+	leftMap := make(map[string]any)
 	leftMap["A"] = "Hello World"
 	/*
 		leftMap
@@ -28,7 +28,7 @@ func TestMapMergeDeepNewKey(t *testing.T) {
 		}
 	*/
 
-	rightMap := make(map[string]interface{})
+	rightMap := make(map[string]any)
 	rightMap["B"] = "Bar"
 	/*
 		rightMap
@@ -46,15 +46,15 @@ func TestMapMergeDeepNewKey(t *testing.T) {
 		}
 	*/
 
-	assert.True(result["B"] == "Bar", t, "New keys in right map should exist in resulting map")
+	require.Equal(t, "Bar", result["B"], "New keys in right map should exist in resulting map")
 }
 
 func TestMapMergeDeepRecursesOnMaps(t *testing.T) {
-	leftMapA := make(map[string]interface{})
+	leftMapA := make(map[string]any)
 	leftMapA["B"] = "A value!"
 	leftMapA["C"] = "Another value!"
 
-	leftMap := make(map[string]interface{})
+	leftMap := make(map[string]any)
 	leftMap["A"] = leftMapA
 	/*
 		leftMap
@@ -66,10 +66,10 @@ func TestMapMergeDeepRecursesOnMaps(t *testing.T) {
 		}
 	*/
 
-	rightMapA := make(map[string]interface{})
+	rightMapA := make(map[string]any)
 	rightMapA["C"] = "A different value!"
 
-	rightMap := make(map[string]interface{})
+	rightMap := make(map[string]any)
 	rightMap["A"] = rightMapA
 	/*
 		rightMap
@@ -91,16 +91,16 @@ func TestMapMergeDeepRecursesOnMaps(t *testing.T) {
 		}
 	*/
 
-	resultA := result["A"].(map[string]interface{})
-	assert.True(resultA["B"] == "A value!", t, "Unaltered values should not change")
-	assert.True(resultA["C"] == "A different value!", t, "Nested values should be altered")
+	resultA := result["A"].(map[string]any)
+	require.Equal(t, "A value!", resultA["B"], "Unaltered values should not change")
+	require.Equal(t, "A different value!", resultA["C"], "Nested values should be altered")
 }
 
 func TestMapMergeDeepRightNotAMap(t *testing.T) {
-	leftMapA := make(map[string]interface{})
+	leftMapA := make(map[string]any)
 	leftMapA["B"] = "A value!"
 
-	leftMap := make(map[string]interface{})
+	leftMap := make(map[string]any)
 	leftMap["A"] = leftMapA
 	/*
 		origMap
@@ -111,7 +111,7 @@ func TestMapMergeDeepRightNotAMap(t *testing.T) {
 		}
 	*/
 
-	rightMap := make(map[string]interface{})
+	rightMap := make(map[string]any)
 	rightMap["A"] = "Not a map!"
 	/*
 		newMap
@@ -128,5 +128,5 @@ func TestMapMergeDeepRightNotAMap(t *testing.T) {
 		}
 	*/
 
-	assert.True(result["A"] == "Not a map!", t, "Right values that are not a map should be set on the result")
+	require.Equal(t, "Not a map!", result["A"], "Right values that are not a map should be set on the result")
 }

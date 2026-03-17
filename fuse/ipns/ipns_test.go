@@ -1,5 +1,4 @@
 //go:build !nofuse && !openbsd && !netbsd && !plan9
-// +build !nofuse,!openbsd,!netbsd,!plan9
 
 package ipns
 
@@ -402,11 +401,11 @@ func TestFSThrash(t *testing.T) {
 	wg := sync.WaitGroup{}
 
 	// Spawn off workers to make directories
-	for i := 0; i < ndirWorkers; i++ {
+	for i := range ndirWorkers {
 		wg.Add(1)
 		go func(worker int) {
 			defer wg.Done()
-			for j := 0; j < ndirs; j++ {
+			for j := range ndirs {
 				dirlock.RLock()
 				n := mrand.Intn(len(dirs))
 				dir := dirs[n]
@@ -426,11 +425,11 @@ func TestFSThrash(t *testing.T) {
 	}
 
 	// Spawn off workers to make files
-	for i := 0; i < nfileWorkers; i++ {
+	for i := range nfileWorkers {
 		wg.Add(1)
 		go func(worker int) {
 			defer wg.Done()
-			for j := 0; j < nfiles; j++ {
+			for j := range nfiles {
 				dirlock.RLock()
 				n := mrand.Intn(len(dirs))
 				dir := dirs[n]
@@ -479,7 +478,7 @@ func TestMultiWrite(t *testing.T) {
 	}
 
 	data := randBytes(1001)
-	for i := 0; i < len(data); i++ {
+	for i := range data {
 		n, err := fi.Write(data[i : i+1])
 		if err != nil {
 			t.Fatal(err)

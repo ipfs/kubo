@@ -38,10 +38,10 @@ type Repo interface {
 	SetConfig(*config.Config) error
 
 	// SetConfigKey sets the given key-value pair within the config and persists it to storage.
-	SetConfigKey(key string, value interface{}) error
+	SetConfigKey(key string, value any) error
 
 	// GetConfigKey reads the value for the given key from the configuration in storage.
-	GetConfigKey(key string) (interface{}, error)
+	GetConfigKey(key string) (any, error)
 
 	// Datastore returns a reference to the configured data storage backend.
 	Datastore() Datastore

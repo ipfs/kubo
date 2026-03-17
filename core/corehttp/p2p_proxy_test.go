@@ -5,9 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ipfs/kubo/thirdparty/assert"
-
 	protocol "github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/stretchr/testify/require"
 )
 
 type TestCase struct {
@@ -29,12 +28,10 @@ func TestParseRequest(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
 
 		parsed, err := parseRequest(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.True(parsed.httpPath == tc.path, t, "proxy request path")
-		assert.True(parsed.name == protocol.ID(tc.name), t, "proxy request name")
-		assert.True(parsed.target == tc.target, t, "proxy request peer-id")
+		require.NoError(t, err)
+		require.Equal(t, tc.path, parsed.httpPath, "proxy request path")
+		require.Equal(t, protocol.ID(tc.name), parsed.name, "proxy request name")
+		require.Equal(t, tc.target, parsed.target, "proxy request peer-id")
 	}
 }
 
@@ -49,8 +46,6 @@ func TestParseRequestInvalidPath(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
 
 		_, err := parseRequest(req)
-		if err == nil {
-			t.Fail()
-		}
+		require.Error(t, err)
 	}
 }

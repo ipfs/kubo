@@ -22,12 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
-          go-version: "1.23.x"
+          go-version-file: 'go.mod'
       - name: Check that go.mod is tidy
         uses: protocol/multiple-go-modules@v1.4
         with:
@@ -45,6 +45,15 @@ jobs:
           if [[ -n "$out" ]]; then
             echo "Files are not go-fmt-ed:"
             echo "$out"
+            exit 1
+          fi
+      - name: go fix
+        if: always() # run this step even if the previous one failed
+        run: |
+          go fix ./...
+          if [[ -n $(git diff --name-only) ]]; then
+            echo "go fix produced changes. Run 'go fix ./...' locally and commit the result."
+            git diff
             exit 1
           fi
       - name: go vet

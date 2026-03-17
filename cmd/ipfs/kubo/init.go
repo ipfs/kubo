@@ -88,11 +88,11 @@ environment variable:
 				if it.Err() != nil {
 					return it.Err()
 				}
-				return fmt.Errorf("file argument was nil")
+				return errors.New("file argument was nil")
 			}
 			file := files.FileFromEntry(it)
 			if file == nil {
-				return fmt.Errorf("expected a regular file")
+				return errors.New("expected a regular file")
 			}
 
 			conf = &config.Config{}
@@ -133,7 +133,7 @@ func applyProfiles(conf *config.Config, profiles string) error {
 		return nil
 	}
 
-	for _, profile := range strings.Split(profiles, ",") {
+	for profile := range strings.SplitSeq(profiles, ",") {
 		transformer, ok := config.Profiles[profile]
 		if !ok {
 			return fmt.Errorf("invalid configuration profile: %s", profile)

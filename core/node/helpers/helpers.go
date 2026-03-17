@@ -8,7 +8,7 @@ import (
 
 type MetricsCtx context.Context
 
-// LifecycleCtx creates a context which will be cancelled when lifecycle stops
+// LifecycleCtx creates a context which will be canceled when lifecycle stops
 //
 // This is a hack which we need because most of our services use contexts in a
 // wrong way

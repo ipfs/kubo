@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	p2pforge "github.com/ipshipyard/p2p-forge/client"
@@ -35,7 +36,7 @@ func AddrFilters(filters []string) func() (*ma.Filters, Libp2pOpts, error) {
 	}
 }
 
-func makeAddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string) (p2pbhost.AddrsFactory, error) {
+func makeAddrsFactory(announce []string, appendAnnounce []string, noAnnounce []string) (p2pbhost.AddrsFactory, error) {
 	var err error                     // To assign to the slice in the for loop
 	existing := make(map[string]bool) // To avoid duplicates
 
@@ -49,7 +50,7 @@ func makeAddrsFactory(announce []string, appendAnnouce []string, noAnnounce []st
 	}
 
 	var appendAnnAddrs []ma.Multiaddr
-	for _, addr := range appendAnnouce {
+	for _, addr := range appendAnnounce {
 		if existing[addr] {
 			// skip AppendAnnounce that is on the Announce list already
 			continue
@@ -98,14 +99,14 @@ func makeAddrsFactory(announce []string, appendAnnouce []string, noAnnounce []st
 	}, nil
 }
 
-func AddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string) interface{} {
+func AddrsFactory(announce []string, appendAnnounce []string, noAnnounce []string) any {
 	return func(params struct {
 		fx.In
 		ForgeMgr *p2pforge.P2PForgeCertMgr `optional:"true"`
 	},
 	) (opts Libp2pOpts, err error) {
 		var addrsFactory p2pbhost.AddrsFactory
-		announceAddrsFactory, err := makeAddrsFactory(announce, appendAnnouce, noAnnounce)
+		announceAddrsFactory, err := makeAddrsFactory(announce, appendAnnounce, noAnnounce)
 		if err != nil {
 			return opts, err
 		}
@@ -114,8 +115,8 @@ func AddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string
 		} else {
 			addrsFactory = func(multiaddrs []ma.Multiaddr) []ma.Multiaddr {
 				forgeProcessing := params.ForgeMgr.AddressFactory()(multiaddrs)
-				annouceProcessing := announceAddrsFactory(forgeProcessing)
-				return annouceProcessing
+				announceProcessing := announceAddrsFactory(forgeProcessing)
+				return announceProcessing
 			}
 		}
 		opts.Opts = append(opts.Opts, libp2p.AddrsFactory(addrsFactory))
@@ -123,7 +124,7 @@ func AddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string
 	}
 }
 
-func ListenOn(addresses []string) interface{} {
+func ListenOn(addresses []string) any {
 	return func() (opts Libp2pOpts) {
 		return Libp2pOpts{
 			Opts: []libp2p.Option{
@@ -133,20 +134,36 @@ func ListenOn(addresses []string) interface{} {
 	}
 }
 
-func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS) interface{} {
+func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEventLogger) any {
 	return func() (*p2pforge.P2PForgeCertMgr, error) {
 		storagePath := filepath.Join(repoPath, "p2p-forge-certs")
+		rawLogger := atlsLog.Desugar()
 
-		forgeLogger := logging.Logger("autotls").Desugar()
+		// TODO: this should not be necessary after
+		// https://github.com/ipshipyard/p2p-forge/pull/42 but keep it here for
+		// now to help tracking down any remaining conditions causing
+		// https://github.com/ipshipyard/p2p-forge/issues/8
+		certmagic.Default.Logger = rawLogger.Named("default_fixme")
+		certmagic.DefaultACME.Logger = rawLogger.Named("default_acme_client_fixme")
+
+		registrationDelay := cfg.RegistrationDelay.WithDefault(config.DefaultAutoTLSRegistrationDelay)
+		if cfg.Enabled == config.True && cfg.RegistrationDelay.IsDefault() {
+			// Skip delay if user explicitly enabled AutoTLS.Enabled in config
+			// and did not set custom AutoTLS.RegistrationDelay
+			registrationDelay = 0 * time.Second
+		}
+
 		certStorage := &certmagic.FileStorage{Path: storagePath}
 		certMgr, err := p2pforge.NewP2PForgeCertMgr(
-			p2pforge.WithLogger(forgeLogger.Sugar()),
+			p2pforge.WithLogger(rawLogger.Sugar()),
 			p2pforge.WithForgeDomain(cfg.DomainSuffix.WithDefault(config.DefaultDomainSuffix)),
 			p2pforge.WithForgeRegistrationEndpoint(cfg.RegistrationEndpoint.WithDefault(config.DefaultRegistrationEndpoint)),
+			p2pforge.WithRegistrationDelay(registrationDelay),
 			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),
 			p2pforge.WithForgeAuth(cfg.RegistrationToken.WithDefault(os.Getenv(p2pforge.ForgeAuthEnv))),
 			p2pforge.WithUserAgent(version.GetUserAgentVersion()),
 			p2pforge.WithCertificateStorage(certStorage),
+			p2pforge.WithShortForgeAddrs(cfg.ShortAddrs.WithDefault(config.DefaultAutoTLSShortAddrs)),
 		)
 		if err != nil {
 			return nil, err

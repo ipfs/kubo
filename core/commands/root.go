@@ -10,7 +10,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/pin"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("core/commands")
@@ -65,6 +65,7 @@ ADVANCED COMMANDS
   p2p           Libp2p stream mounting (experimental)
   filestore     Manage the filestore (experimental)
   mount         Mount an IPFS read-only mount point (experimental)
+  provide       Control providing operations
 
 NETWORK COMMANDS
   id            Show info about IPFS peers
@@ -133,6 +134,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"files":     FilesCmd,
 	"filestore": FileStoreCmd,
 	"get":       GetCmd,
+	"provide":   ProvideCmd,
 	"pubsub":    PubsubCmd,
 	"repo":      RepoCmd,
 	"stats":     StatsCmd,

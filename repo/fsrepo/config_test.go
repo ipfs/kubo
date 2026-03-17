@@ -123,7 +123,7 @@ func TestLevelDbConfig(t *testing.T) {
 	}
 	dir := t.TempDir()
 
-	spec := make(map[string]interface{})
+	spec := make(map[string]any)
 	err = json.Unmarshal(leveldbConfig, &spec)
 	if err != nil {
 		t.Fatal(err)
@@ -157,7 +157,7 @@ func TestFlatfsConfig(t *testing.T) {
 	}
 	dir := t.TempDir()
 
-	spec := make(map[string]interface{})
+	spec := make(map[string]any)
 	err = json.Unmarshal(flatfsConfig, &spec)
 	if err != nil {
 		t.Fatal(err)
@@ -191,7 +191,7 @@ func TestMeasureConfig(t *testing.T) {
 	}
 	dir := t.TempDir()
 
-	spec := make(map[string]interface{})
+	spec := make(map[string]any)
 	err = json.Unmarshal(measureConfig, &spec)
 	if err != nil {
 		t.Fatal(err)

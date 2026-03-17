@@ -61,10 +61,10 @@ type PinningService struct {
 }
 
 type Pin struct {
-	CID     string                 `json:"cid"`
-	Name    string                 `json:"name"`
-	Origins []string               `json:"origins"`
-	Meta    map[string]interface{} `json:"meta"`
+	CID     string         `json:"cid"`
+	Name    string         `json:"name"`
+	Origins []string       `json:"origins"`
+	Meta    map[string]any `json:"meta"`
 }
 
 type PinStatus struct {
@@ -74,17 +74,17 @@ type PinStatus struct {
 	Created   time.Time
 	Pin       Pin
 	Delegates []string
-	Info      map[string]interface{}
+	Info      map[string]any
 }
 
 func (p *PinStatus) MarshalJSON() ([]byte, error) {
 	type pinStatusJSON struct {
-		RequestID string                 `json:"requestid"`
-		Status    string                 `json:"status"`
-		Created   time.Time              `json:"created"`
-		Pin       Pin                    `json:"pin"`
-		Delegates []string               `json:"delegates"`
-		Info      map[string]interface{} `json:"info"`
+		RequestID string         `json:"requestid"`
+		Status    string         `json:"status"`
+		Created   time.Time      `json:"created"`
+		Pin       Pin            `json:"pin"`
+		Delegates []string       `json:"delegates"`
+		Info      map[string]any `json:"info"`
 	}
 	// lock the pin before marshaling it to protect against data races while marshaling
 	p.M.Lock()
@@ -155,10 +155,10 @@ func writeJSON(w http.ResponseWriter, val any, statusCode int) {
 }
 
 type AddPinRequest struct {
-	CID     string                 `json:"cid"`
-	Name    string                 `json:"name"`
-	Origins []string               `json:"origins"`
-	Meta    map[string]interface{} `json:"meta"`
+	CID     string         `json:"cid"`
+	Name    string         `json:"name"`
+	Origins []string       `json:"origins"`
+	Meta    map[string]any `json:"meta"`
 }
 
 func (p *PinningService) addPin(writer http.ResponseWriter, req *http.Request, params httprouter.Params) {
@@ -312,7 +312,7 @@ func (p *PinningService) listPins(writer http.ResponseWriter, req *http.Request,
 
 		// meta
 		if metaStr != "" {
-			meta := map[string]interface{}{}
+			meta := map[string]any{}
 			err := json.Unmarshal([]byte(metaStr), &meta)
 			if err != nil {
 				errResp(writer, fmt.Sprintf("parsing meta: %s", err), "", http.StatusBadRequest)

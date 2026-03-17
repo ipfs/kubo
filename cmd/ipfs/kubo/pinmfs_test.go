@@ -94,11 +94,24 @@ func TestPinMFSRootNodeError(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*testConfigPollInterval)
 	defer cancel()
 
+	// need at least one config to trigger
+	cfg := &config.Config{
+		Pinning: config.Pinning{
+			RemoteServices: map[string]config.RemotePinningService{
+				"A": {
+					Policies: config.RemotePinningServicePolicies{
+						MFS: config.RemotePinningServiceMFSPolicy{
+							Enable: false,
+						},
+					},
+				},
+			},
+		},
+	}
+
 	cctx := &testPinMFSContext{
 		ctx: ctx,
-		cfg: &config.Config{
-			Pinning: config.Pinning{},
-		},
+		cfg: cfg,
 		err: nil,
 	}
 	node := &testPinMFSNode{

@@ -45,8 +45,7 @@ func putDagPbNode(t *testing.T, ctx context.Context, api iface.CoreAPI, data str
 }
 
 func (tp *TestSuite) TestObjectAddLink(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
 
@@ -72,8 +71,7 @@ func (tp *TestSuite) TestObjectAddLink(t *testing.T) {
 }
 
 func (tp *TestSuite) TestObjectAddLinkCreate(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
 
@@ -102,8 +100,7 @@ func (tp *TestSuite) TestObjectAddLinkCreate(t *testing.T) {
 }
 
 func (tp *TestSuite) TestObjectRmLink(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
 
@@ -127,8 +124,7 @@ func (tp *TestSuite) TestObjectRmLink(t *testing.T) {
 }
 
 func (tp *TestSuite) TestDiffTest(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	api, err := tp.makeAPI(t, ctx)
 	require.NoError(t, err)
 

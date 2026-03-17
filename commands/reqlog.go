@@ -11,7 +11,7 @@ type ReqLogEntry struct {
 	EndTime   time.Time
 	Active    bool
 	Command   string
-	Options   map[string]interface{}
+	Options   map[string]any
 	Args      []string
 	ID        int
 

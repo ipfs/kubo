@@ -45,7 +45,7 @@ This gives a more Go-centric dependency updating flow to building a new binary w
 ## Bespoke Extension Points
 Certain Kubo functionality may have their own extension points. For example:
 
-* Kubo supports the [Routing v1](https://github.com/ipfs/specs/blob/main/routing/ROUTING_V1_HTTP.md) API for delegating content routing to external processes
+* Kubo supports the [Routing v1](https://specs.ipfs.tech/routing/http-routing-v1/) API for delegating content routing to external processes
 * Kubo supports the [Pinning Service API](https://github.com/ipfs/pinning-services-api-spec) for delegating pinning to external processes
 * Kubo supports [DNSLink](https://dnslink.dev/) for delegating name->CID mappings to DNS
 

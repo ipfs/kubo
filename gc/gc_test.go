@@ -34,7 +34,7 @@ func TestGC(t *testing.T) {
 	var expectedDiscarded []multihash.Multihash
 
 	// add some pins
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		// direct
 		root, _, err := daggen.MakeDagNode(dserv.Add, 0, 1)
 		require.NoError(t, err)
@@ -54,7 +54,7 @@ func TestGC(t *testing.T) {
 	require.NoError(t, err)
 
 	// add more dags to be GCed
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		_, allCids, err := daggen.MakeDagNode(dserv.Add, 5, 2)
 		require.NoError(t, err)
 		expectedDiscarded = append(expectedDiscarded, toMHs(allCids)...)
@@ -62,7 +62,7 @@ func TestGC(t *testing.T) {
 
 	// and some other as "best effort roots"
 	var bestEffortRoots []cid.Cid
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		root, allCids, err := daggen.MakeDagNode(dserv.Add, 5, 2)
 		require.NoError(t, err)
 		bestEffortRoots = append(bestEffortRoots, root)

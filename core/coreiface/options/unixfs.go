@@ -7,6 +7,8 @@ import (
 	"time"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
+	"github.com/ipfs/boxo/ipld/unixfs/io"
 	cid "github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -22,27 +24,38 @@ type UnixfsAddSettings struct {
 	CidVersion int
 	MhType     uint64
 
-	Inline       bool
-	InlineLimit  int
-	RawLeaves    bool
-	RawLeavesSet bool
+	Inline                bool
+	InlineLimit           int
+	RawLeaves             bool
+	RawLeavesSet          bool
+	MaxFileLinks          int
+	MaxFileLinksSet       bool
+	MaxDirectoryLinks     int
+	MaxDirectoryLinksSet  bool
+	MaxHAMTFanout         int
+	MaxHAMTFanoutSet      bool
+	SizeEstimationMode    *io.SizeEstimationMode
+	SizeEstimationModeSet bool
 
 	Chunker string
 	Layout  Layout
 
 	Pin      bool
+	PinName  string
 	OnlyHash bool
 	FsCache  bool
 	NoCopy   bool
 
-	Events   chan<- interface{}
+	Events   chan<- any
 	Silent   bool
 	Progress bool
 
-	PreserveMode  bool
-	PreserveMtime bool
-	Mode          os.FileMode
-	Mtime         time.Time
+	PreserveMode        bool
+	PreserveMtime       bool
+	Mode                os.FileMode
+	Mtime               time.Time
+	IncludeEmptyDirs    bool
+	IncludeEmptyDirsSet bool
 }
 
 type UnixfsLsSettings struct {
@@ -60,15 +73,22 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		CidVersion: -1,
 		MhType:     mh.SHA2_256,
 
-		Inline:       false,
-		InlineLimit:  32,
-		RawLeaves:    false,
-		RawLeavesSet: false,
+		Inline:               false,
+		InlineLimit:          32,
+		RawLeaves:            false,
+		RawLeavesSet:         false,
+		MaxFileLinks:         helpers.DefaultLinksPerBlock,
+		MaxFileLinksSet:      false,
+		MaxDirectoryLinks:    0,
+		MaxDirectoryLinksSet: false,
+		MaxHAMTFanout:        io.DefaultShardWidth,
+		MaxHAMTFanoutSet:     false,
 
 		Chunker: "size-262144",
 		Layout:  BalancedLayout,
 
 		Pin:      false,
+		PinName:  "",
 		OnlyHash: false,
 		FsCache:  false,
 		NoCopy:   false,
@@ -77,10 +97,12 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		Silent:   false,
 		Progress: false,
 
-		PreserveMode:  false,
-		PreserveMtime: false,
-		Mode:          0,
-		Mtime:         time.Time{},
+		PreserveMode:        false,
+		PreserveMtime:       false,
+		Mode:                0,
+		Mtime:               time.Time{},
+		IncludeEmptyDirs:    true, // default: include empty directories
+		IncludeEmptyDirsSet: false,
 	}
 
 	for _, opt := range opts {
@@ -190,6 +212,49 @@ func (unixfsOpts) RawLeaves(enable bool) UnixfsAddOption {
 	}
 }
 
+// MaxFileLinks specifies the maximum number of children for UnixFS file
+// nodes.
+func (unixfsOpts) MaxFileLinks(n int) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.MaxFileLinks = n
+		settings.MaxFileLinksSet = true
+		return nil
+	}
+}
+
+// MaxDirectoryLinks specifies the maximum number of children for UnixFS basic
+// directory nodes.
+func (unixfsOpts) MaxDirectoryLinks(n int) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.MaxDirectoryLinks = n
+		settings.MaxDirectoryLinksSet = true
+		return nil
+	}
+}
+
+// MaxHAMTFanout specifies the maximum width of the HAMT directory shards.
+// Per the UnixFS spec, the value must be a power of 2, minimum 8
+// (for byte-aligned bitfields), and maximum 1024.
+func (unixfsOpts) MaxHAMTFanout(n int) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		if n < 8 || n&(n-1) != 0 || n > 1024 {
+			return fmt.Errorf("HAMT fanout must be a power of 2, between 8 and 1024 (got %d)", n)
+		}
+		settings.MaxHAMTFanout = n
+		settings.MaxHAMTFanoutSet = true
+		return nil
+	}
+}
+
+// SizeEstimationMode specifies how directory size is estimated for HAMT sharding decisions.
+func (unixfsOpts) SizeEstimationMode(mode io.SizeEstimationMode) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.SizeEstimationMode = &mode
+		settings.SizeEstimationModeSet = true
+		return nil
+	}
+}
+
 // Inline tells the adder to inline small blocks into CIDs
 func (unixfsOpts) Inline(enable bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
@@ -237,9 +302,12 @@ func (unixfsOpts) Layout(layout Layout) UnixfsAddOption {
 }
 
 // Pin tells the adder to pin the file root recursively after adding
-func (unixfsOpts) Pin(pin bool) UnixfsAddOption {
+func (unixfsOpts) Pin(pin bool, pinName string) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Pin = pin
+		if pin {
+			settings.PinName = pinName
+		}
 		return nil
 	}
 }
@@ -257,7 +325,7 @@ func (unixfsOpts) HashOnly(hashOnly bool) UnixfsAddOption {
 // Add operation.
 //
 // Note that if this channel blocks it may slowdown the adder
-func (unixfsOpts) Events(sink chan<- interface{}) UnixfsAddOption {
+func (unixfsOpts) Events(sink chan<- any) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Events = sink
 		return nil
@@ -345,6 +413,15 @@ func (unixfsOpts) Mtime(seconds int64, nsecs uint32) UnixfsAddOption {
 			return errors.New("mtime nanoseconds must be in range [1, 999999999]")
 		}
 		settings.Mtime = time.Unix(seconds, int64(nsecs))
+		return nil
+	}
+}
+
+// IncludeEmptyDirs tells the adder to include empty directories in the DAG
+func (unixfsOpts) IncludeEmptyDirs(include bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.IncludeEmptyDirs = include
+		settings.IncludeEmptyDirsSet = true
 		return nil
 	}
 }

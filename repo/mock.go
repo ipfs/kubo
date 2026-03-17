@@ -44,11 +44,11 @@ func (m *Mock) BackupConfig(prefix string) (string, error) {
 	return "", errTODO
 }
 
-func (m *Mock) SetConfigKey(key string, value interface{}) error {
+func (m *Mock) SetConfigKey(key string, value any) error {
 	return errTODO
 }
 
-func (m *Mock) GetConfigKey(key string) (interface{}, error) {
+func (m *Mock) GetConfigKey(key string) (any, error) {
 	return nil, errTODO
 }
 

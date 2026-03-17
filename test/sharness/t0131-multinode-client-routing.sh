@@ -24,7 +24,7 @@ check_file_fetch() {
 
 run_single_file_test() {
   test_expect_success "add a file on node1" '
-    random 1000000 > filea &&
+    random-data -size=1000000 > filea &&
     FILEA_HASH=$(ipfsi 1 add -q filea)
   '
 
@@ -57,7 +57,7 @@ test_expect_success "connect up nodes" '
 '
 
 test_expect_success "add a file on a node in client mode" '
-  random 1000000 > filea &&
+  random-data -size=1000000 > filea &&
   FILE_HASH=$(ipfsi 8 add -q filea)
 '
 

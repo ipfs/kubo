@@ -20,4 +20,7 @@ type Ipns struct {
 
 	// Enable namesys pubsub (--enable-namesys-pubsub)
 	UsePubsub Flag `json:",omitempty"`
+
+	// Simplified configuration for delegated IPNS publishers
+	DelegatedPublishers []string
 }

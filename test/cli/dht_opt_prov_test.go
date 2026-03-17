@@ -3,9 +3,9 @@ package cli
 import (
 	"testing"
 
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
-	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,11 +17,14 @@ func TestDHTOptimisticProvide(t *testing.T) {
 
 		nodes[0].UpdateConfig(func(cfg *config.Config) {
 			cfg.Experimental.OptimisticProvide = true
+			// Optimistic provide only works with the legacy provider.
+			cfg.Provide.DHT.SweepEnabled = config.False
 		})
 
 		nodes.StartDaemons().Connect()
+		defer nodes.StopDaemons()
 
-		hash := nodes[0].IPFSAddStr(testutils.RandomStr(100))
+		hash := nodes[0].IPFSAddStr(string(random.Bytes(100)))
 		nodes[0].IPFS("routing", "provide", hash)
 
 		res := nodes[1].IPFS("routing", "findprovs", "--num-providers=1", hash)

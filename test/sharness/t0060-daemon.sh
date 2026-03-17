@@ -8,8 +8,8 @@ test_description="Test daemon command"
 
 . lib/test-lib.sh
 
-test_expect_success "create badger config" '
-  ipfs init --profile=badgerds,test > /dev/null &&
+test_expect_success "create pebble config" '
+  ipfs init --profile=pebbleds,test > /dev/null &&
   cp "$IPFS_PATH/config" init-config
 '
 
@@ -21,8 +21,8 @@ test_launch_ipfs_daemon --init --init-config="$(pwd)/init-config" --init-profile
 test_kill_ipfs_daemon
 
 test_expect_success "daemon initialization with existing config works" '
-  ipfs config "Datastore.Spec.child.path" >actual &&
-  test $(cat actual) = "badgerds" &&
+  ipfs config "Datastore.Spec.path" >actual &&
+  test $(cat actual) = "pebbleds" &&
   ipfs config Addresses > orig_addrs
 '
 
@@ -131,21 +131,21 @@ test_expect_success "ipfs help output looks good" '
 # check transport is encrypted by default and no plaintext is allowed
 
 test_expect_success SOCAT "default transport should support encryption (TLS, needs socat )" '
-  socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-tls &&
+  socat -s - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-tls &&
   grep -q "/tls" swarmnc &&
   test_must_fail grep -q "na" swarmnc ||
   test_fsh cat swarmnc
 '
 
 test_expect_success SOCAT "default transport should support encryption (Noise, needs socat )" '
-  socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-noise &&
+  socat -s - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-noise &&
   grep -q "/noise" swarmnc &&
   test_must_fail grep -q "na" swarmnc ||
   test_fsh cat swarmnc
 '
 
 test_expect_success SOCAT "default transport should not support plaintext (needs socat )" '
-  socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-plaintext &&
+  socat -s - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-plaintext &&
   grep -q "na" swarmnc &&
   test_must_fail grep -q "/plaintext" swarmnc ||
   test_fsh cat swarmnc
@@ -195,7 +195,7 @@ TEST_ULIMIT_PRESET=1
 test_launch_ipfs_daemon
 
 test_expect_success "daemon raised its fd limit" '
-  grep -v "setting file descriptor limit" actual_daemon > /dev/null
+  test_should_not_contain "setting file descriptor limit" actual_daemon
 '
 
 test_expect_success "daemon actually can handle 2048 file descriptors" '

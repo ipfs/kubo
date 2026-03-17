@@ -86,6 +86,13 @@ is useful when using the daemon in test environments.`,
 
 			c.Bootstrap = []string{}
 			c.Discovery.MDNS.Enabled = false
+			c.AutoTLS.Enabled = False
+			c.AutoConf.Enabled = False
+
+			// Explicitly set autoconf-controlled fields to empty when autoconf is disabled
+			c.DNS.Resolvers = map[string]string{}
+			c.Routing.DelegatedRouters = []string{}
+			c.Ipns.DelegatedPublishers = []string{}
 			return nil
 		},
 	},
@@ -96,14 +103,14 @@ Inverse profile of the test profile.`,
 		Transform: func(c *Config) error {
 			c.Addresses = addressesConfig()
 
-			bootstrapPeers, err := DefaultBootstrapPeers()
-			if err != nil {
-				return err
-			}
-			c.Bootstrap = appendSingle(c.Bootstrap, BootstrapPeerStrings(bootstrapPeers))
+			// Use AutoConf system for bootstrap peers
+			c.Bootstrap = []string{AutoPlaceholder}
+			c.AutoConf.Enabled = Default
+			c.AutoConf.URL = nil // Clear URL to use implicit default
 
 			c.Swarm.DisableNatPortMap = false
 			c.Discovery.MDNS.Enabled = true
+			c.AutoTLS.Enabled = Default
 			return nil
 		},
 	},
@@ -148,6 +155,20 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 			return nil
 		},
 	},
+	"flatfs-measure": {
+		Description: `Configures the node to use the flatfs datastore with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = flatfsSpecMeasure()
+			return nil
+		},
+	},
 	"pebbleds": {
 		Description: `Configures the node to use the pebble high-performance datastore.
 
@@ -174,8 +195,24 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 			return nil
 		},
 	},
+	"pebbleds-measure": {
+		Description: `Configures the node to use the pebble datastore with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile pebbleds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = pebbleSpecMeasure()
+			return nil
+		},
+	},
 	"badgerds": {
-		Description: `Configures the node to use the legacy badgerv1 datastore.
+		Description: `DEPRECATED: Configures the node to use the legacy badgerv1 datastore.
+This profile will be removed in a future Kubo release.
+New deployments should use 'flatfs' or 'pebbleds' instead.
 
 NOTE: this is badger 1.x, which has known bugs and is no longer supported by the upstream team.
 It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
@@ -190,6 +227,14 @@ Other caveats:
 * Good for medium-size datastores, but may run into performance issues
   if your dataset is bigger than a terabyte.
 
+To migrate: create a new IPFS_PATH with 'ipfs init --profile=flatfs',
+move pinned data via 'ipfs dag export/import' or 'ipfs pin ls -t recursive|add',
+and decommission the old badger-based node.
+When it comes to block storage, use experimental 'pebbleds' only if you are sure
+modern 'flatfs' does not serve your use case (most users will be perfectly fine
+with flatfs, it is also possible to keep flatfs for blocks and replace leveldb
+with pebble if preferred over leveldb).
+
 See configuration documentation at:
 https://github.com/ipfs/kubo/blob/master/docs/datastores.md#badgerds
 
@@ -200,6 +245,21 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 		InitOnly: true,
 		Transform: func(c *Config) error {
 			c.Datastore.Spec = badgerSpec()
+			return nil
+		},
+	},
+	"badgerds-measure": {
+		Description: `DEPRECATED: Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
+This profile will be removed in a future Kubo release.
+New deployments should use 'flatfs' or 'pebbleds' instead.
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile badgerds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = badgerSpecMeasure()
 			return nil
 		},
 	},
@@ -226,25 +286,25 @@ fetching may be degraded.
 		},
 	},
 	"announce-off": {
-		Description: `Disables Reprovide system (and announcing to Amino DHT).
+		Description: `Disables Provide system (announcing to Amino DHT).
 
 		USE WITH CAUTION:
 		The main use case for this is setups with manual Peering.Peers config.
 		Data from this node will not be announced on the DHT. This will make
-		DHT-based routing an data retrieval impossible if this node is the only
+		DHT-based routing and data retrieval impossible if this node is the only
 		one hosting it, and other peers are not already connected to it.
 `,
 		Transform: func(c *Config) error {
-			c.Reprovider.Interval = NewOptionalDuration(0) // 0 disables periodic reprovide
-			c.Experimental.StrategicProviding = true       // this is not a typo (the name is counter-intuitive)
+			c.Provide.Enabled = False
+			c.Provide.DHT.Interval = NewOptionalDuration(0) // 0 disables periodic reprovide
 			return nil
 		},
 	},
 	"announce-on": {
-		Description: `Re-enables Reprovide system (reverts announce-off profile).`,
+		Description: `Re-enables Provide system (reverts announce-off profile).`,
 		Transform: func(c *Config) error {
-			c.Reprovider.Interval = NewOptionalDuration(DefaultReproviderInterval) // have to apply explicit default because nil would be ignored
-			c.Experimental.StrategicProviding = false                              // this is not a typo (the name is counter-intuitive)
+			c.Provide.Enabled = True
+			c.Provide.DHT.Interval = NewOptionalDuration(DefaultProvideDHTInterval) // have to apply explicit default because nil would be ignored
 			return nil
 		},
 	},
@@ -263,25 +323,66 @@ fetching may be degraded.
 			return nil
 		},
 	},
-	"legacy-cid-v0": {
-		Description: `Makes UnixFS import produce legacy CIDv0 with no raw leaves, sha2-256 and 256 KiB chunks.`,
-
-		Transform: func(c *Config) error {
-			c.Import.CidVersion = *NewOptionalInteger(0)
-			c.Import.UnixFSRawLeaves = False
-			c.Import.UnixFSChunker = *NewOptionalString("size-262144")
-			c.Import.HashFunction = *NewOptionalString("sha2-256")
-			return nil
-		},
+	"unixfs-v0-2015": {
+		Description: `Legacy UnixFS import profile for backward-compatible CID generation.
+Produces CIDv0 with no raw leaves, sha2-256, 256 KiB chunks, and
+link-based HAMT size estimation. Use only when legacy CIDs are required.
+See https://specs.ipfs.tech/ipips/ipip-0499/. Alias: legacy-cid-v0`,
+		Transform: applyUnixFSv02015,
 	},
-	"test-cid-v1": {
-		Description: `Makes UnixFS import produce modern CIDv1 with raw leaves, sha2-256 and 1 MiB chunks.`,
-
+	"legacy-cid-v0": {
+		Description: `Alias for unixfs-v0-2015 profile.`,
+		Transform:   applyUnixFSv02015,
+	},
+	"unixfs-v1-2025": {
+		Description: `Recommended UnixFS import profile for cross-implementation CID determinism.
+Uses CIDv1, raw leaves, sha2-256, 1 MiB chunks, 1024 links per file node,
+256 HAMT fanout, and block-based size estimation for HAMT threshold.
+See https://specs.ipfs.tech/ipips/ipip-0499/`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
 			c.Import.UnixFSRawLeaves = True
-			c.Import.UnixFSChunker = *NewOptionalString("size-1048576")
+			c.Import.UnixFSChunker = *NewOptionalString("size-1048576") // 1 MiB
 			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
+			c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationBlock)
+			c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
+			return nil
+		},
+	},
+	"autoconf-on": {
+		Description: `Sets configuration to use implicit defaults from remote autoconf service.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to "auto".
+This profile requires AutoConf to be enabled and configured.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = []string{AutoPlaceholder}
+			c.DNS.Resolvers = map[string]string{
+				".": AutoPlaceholder,
+			}
+			c.Routing.DelegatedRouters = []string{AutoPlaceholder}
+			c.Ipns.DelegatedPublishers = []string{AutoPlaceholder}
+			c.AutoConf.Enabled = True
+			if c.AutoConf.URL == nil {
+				c.AutoConf.URL = NewOptionalString(DefaultAutoConfURL)
+			}
+			return nil
+		},
+	},
+	"autoconf-off": {
+		Description: `Disables AutoConf and sets networking fields to empty for manual configuration.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to empty.
+Use this when you want normal networking but prefer manual control over all endpoints.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = nil
+			c.DNS.Resolvers = nil
+			c.Routing.DelegatedRouters = nil
+			c.Ipns.DelegatedPublishers = nil
+			c.AutoConf.Enabled = False
 			return nil
 		},
 	},
@@ -332,4 +433,19 @@ func mapKeys(m map[string]struct{}) []string {
 		out = append(out, f)
 	}
 	return out
+}
+
+// applyUnixFSv02015 applies the legacy UnixFS v0 (2015) import settings.
+func applyUnixFSv02015(c *Config) error {
+	c.Import.CidVersion = *NewOptionalInteger(0)
+	c.Import.UnixFSRawLeaves = False
+	c.Import.UnixFSChunker = *NewOptionalString("size-262144") // 256 KiB
+	c.Import.HashFunction = *NewOptionalString("sha2-256")
+	c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
+	c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+	c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+	c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
+	c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationLinks)
+	c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
+	return nil
 }

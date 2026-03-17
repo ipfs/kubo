@@ -13,7 +13,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/go-cid"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("corerepo")
@@ -60,10 +60,7 @@ func NewGC(n *core.IpfsNode) (*GC, error) {
 
 	// calculate the slack space between StorageMax and StorageGCWatermark
 	// used to limit GC duration
-	slackGB := (storageMax - storageGC) / 10e9
-	if slackGB < 1 {
-		slackGB = 1
-	}
+	slackGB := max((storageMax-storageGC)/10e9, 1)
 
 	return &GC{
 		Node:       n,

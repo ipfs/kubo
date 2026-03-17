@@ -91,7 +91,7 @@ func (h *Harness) NewNode() *Node {
 
 func (h *Harness) NewNodes(count int) Nodes {
 	var newNodes []*Node
-	for i := 0; i < count; i++ {
+	for range count {
 		newNodes = append(newNodes, h.NewNode())
 	}
 	return newNodes

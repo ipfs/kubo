@@ -8,7 +8,7 @@ openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 > openssl_rsa.pem
 ```
 
 secp key used in the 'restrict import key' test.
-From: https://www.openssl.org/docs/man1.1.1/man1/openssl-genpkey.html
+From: https://docs.openssl.org/1.1.1/man1/genpkey/
 ```bash
 openssl genpkey -genparam -algorithm EC -out ecp.pem \
         -pkeyopt ec_paramgen_curve:secp384r1 \

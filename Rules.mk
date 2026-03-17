@@ -107,8 +107,8 @@ uninstall:
 .PHONY: uninstall
 
 supported:
-	@echo "Currently supported platforms:"
-	@for p in ${SUPPORTED_PLATFORMS}; do echo $$p; done
+	@echo "Currently supported platforms (from .github/build-platforms.yml):"
+	@grep '^  - ' .github/build-platforms.yml | sed 's/^  - //' || (echo "Error: .github/build-platforms.yml not found"; exit 1)
 .PHONY: supported
 
 help:
@@ -134,14 +134,14 @@ help:
 	@echo ''
 	@echo 'TESTING TARGETS:'
 	@echo ''
-	@echo '  test                    - Run all tests'
-	@echo '  test_short              - Run short go tests and short sharness tests'
-	@echo '  test_go_short           - Run short go tests'
-	@echo '  test_go_test            - Run all go tests'
-	@echo '  test_go_expensive       - Run all go tests and compile on all platforms'
-	@echo '  test_go_race            - Run go tests with the race detector enabled'
-	@echo '  test_go_lint            - Run the `golangci-lint` vetting tool'
+	@echo '  test                    - Run all tests (test_go_fmt, test_unit, test_cli, test_sharness)'
+	@echo '  test_short              - Run fast tests (test_go_fmt, test_unit)'
+	@echo '  test_unit               - Run unit tests with coverage (excludes test/cli)'
+	@echo '  test_cli                - Run CLI integration tests (requires built binary)'
+	@echo '  test_go_fmt             - Check Go source formatting'
+	@echo '  test_go_build           - Build kubo for all platforms from .github/build-platforms.yml'
+	@echo '  test_go_lint            - Run golangci-lint'
 	@echo '  test_sharness           - Run sharness tests'
-	@echo '  coverage     - Collects coverage info from unit tests and sharness'
+	@echo '  coverage                - Collect coverage info from unit tests and sharness'
 	@echo
 .PHONY: help

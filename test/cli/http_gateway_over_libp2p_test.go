@@ -32,6 +32,7 @@ func TestGatewayOverLibp2p(t *testing.T) {
 	p2pProxyNode := nodes[1]
 
 	nodes.StartDaemons().Connect()
+	defer nodes.StopDaemons()
 
 	// Add data to the gateway node
 	cidDataOnGatewayNode := cid.MustParse(gwNode.IPFSAddStr("Hello Worlds2!"))
@@ -65,6 +66,7 @@ func TestGatewayOverLibp2p(t *testing.T) {
 	// Enable the experimental feature and reconnect the nodes
 	gwNode.IPFS("config", "--json", "Experimental.GatewayOverLibp2p", "true")
 	gwNode.StopDaemon().StartDaemon()
+	t.Cleanup(func() { gwNode.StopDaemon() })
 	nodes.Connect()
 
 	// Note: the bare HTTP requests here assume that the gateway is mounted at `/`

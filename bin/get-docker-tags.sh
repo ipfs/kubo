@@ -29,12 +29,10 @@ GIT_BRANCH=${3:-$(git symbolic-ref -q --short HEAD || echo "unknown")}
 GIT_TAG=${4:-$(git describe --tags --exact-match 2> /dev/null || echo "")}
 
 IMAGE_NAME=${IMAGE_NAME:-ipfs/kubo}
-LEGACY_IMAGE_NAME=${LEGACY_IMAGE_NAME:-ipfs/go-ipfs}
 
 echoImageName () {
   local IMAGE_TAG=$1
   echo "$IMAGE_NAME:$IMAGE_TAG"
-  echo "$LEGACY_IMAGE_NAME:$IMAGE_TAG"
 }
 
 if [[ $GIT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc ]]; then
@@ -43,7 +41,7 @@ if [[ $GIT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc ]]; then
 elif [[ $GIT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echoImageName "$GIT_TAG"
   echoImageName "latest"
-  echoImageName "release" # see: https://github.com/ipfs/go-ipfs/issues/3999#issuecomment-742228981
+  echoImageName "release" # see: https://github.com/ipfs/kubo/issues/3999#issuecomment-742228981
 
 elif [[ $GIT_BRANCH =~ ^bifrost-.* ]]; then
   # sanitize the branch name since docker tags have stricter char limits than git branch names

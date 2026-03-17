@@ -35,8 +35,7 @@ func addTestObject(ctx context.Context, api coreiface.CoreAPI) (path.Path, error
 }
 
 func (tp *TestSuite) TestPublishResolve(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	init := func() (coreiface.CoreAPI, path.Path) {
 		apis, err := tp.MakeAPISwarm(t, ctx, 5)
 		require.NoError(t, err)
@@ -120,8 +119,7 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 }
 
 func (tp *TestSuite) TestBasicPublishResolveKey(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	require.NoError(t, err)
 	api := apis[0]
@@ -142,10 +140,7 @@ func (tp *TestSuite) TestBasicPublishResolveKey(t *testing.T) {
 }
 
 func (tp *TestSuite) TestBasicPublishResolveTimeout(t *testing.T) {
-	t.Skip("ValidTime doesn't appear to work at this time resolution")
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	apis, err := tp.MakeAPISwarm(t, ctx, 5)
 	require.NoError(t, err)
 	api := apis[0]
@@ -155,14 +150,25 @@ func (tp *TestSuite) TestBasicPublishResolveTimeout(t *testing.T) {
 	self, err := api.Key().Self(ctx)
 	require.NoError(t, err)
 
-	name, err := api.Name().Publish(ctx, p, opt.Name.ValidTime(time.Millisecond*100))
+	name, err := api.Name().Publish(ctx, p, opt.Name.ValidTime(time.Second*1))
 	require.NoError(t, err)
 	require.Equal(t, name.String(), ipns.NameFromPeer(self.ID()).String())
 
-	time.Sleep(time.Second)
-
-	_, err = api.Name().Resolve(ctx, name.String())
+	// First resolve should succeed (before expiration)
+	resPath, err := api.Name().Resolve(ctx, name.String())
 	require.NoError(t, err)
+	require.Equal(t, p.String(), resPath.String())
+
+	// Wait for record to expire (1 second ValidTime + buffer)
+	time.Sleep(time.Second * 2)
+
+	// Second resolve should now fail after ValidTime expiration (cached)
+	_, err = api.Name().Resolve(ctx, name.String())
+	require.Error(t, err, "IPNS resolution should fail after ValidTime expires (cached)")
+
+	// Third resolve should also fail after ValidTime expiration (non-cached)
+	_, err = api.Name().Resolve(ctx, name.String(), opt.Name.Cache(false))
+	require.Error(t, err, "IPNS resolution should fail after ValidTime expires (non-cached)")
 }
 
 // TODO: When swarm api is created, add multinode tests

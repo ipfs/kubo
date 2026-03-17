@@ -6,7 +6,7 @@
   <br>
 </h1>
 
-Kubo ships with built-in support for denylist format from [IPIP-383](https://github.com/ipfs/specs/pull/383).
+Kubo ships with built-in support for denylist format from [IPIP-383](https://specs.ipfs.tech/ipips/ipip-0383/).
 
 ## Default behavior
 
@@ -41,10 +41,10 @@ caused the request to be blocked.
 
 ## Denylist file format
 
-[NOpfs](https://github.com/ipfs-shipyard/nopfs) supports the format from [IPIP-383](https://github.com/ipfs/specs/pull/383).
+[NOpfs](https://github.com/ipfs-shipyard/nopfs) supports the format from [IPIP-383](https://specs.ipfs.tech/ipips/ipip-0383/).
 
 Clear-text rules are simple: just put content paths to block, one per line.
-Paths with unicode and whitespace need to be percend-encoded:
+Paths with unicode and whitespace need to be percent-encoded:
 
 ```
 /ipfs/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR
@@ -54,7 +54,7 @@ Paths with unicode and whitespace need to be percend-encoded:
 Sensitive content paths can be double-hashed to block without revealing them.
 Double-hashed list example: https://badbits.dwebops.pub/badbits.deny
 
-See [IPIP-383](https://github.com/ipfs/specs/pull/383) for detailed format specification and more examples.
+See [IPIP-383](https://specs.ipfs.tech/ipips/ipip-0383/) for detailed format specification and more examples.
 
 ## How to suspend blocking without removing denylists
 

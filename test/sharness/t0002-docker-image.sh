@@ -36,8 +36,8 @@ test_expect_success "docker image build succeeds" '
 '
 
 test_expect_success "write init scripts" '
-  echo "ipfs config Foo Bar" > 001.sh &&
-  echo "ipfs config Baz Qux" > 002.sh &&
+  echo "ipfs config Mounts.IPFS Bar" > 001.sh &&
+  echo "ipfs config Pubsub.Router Qux" > 002.sh &&
   chmod +x 002.sh
 '
 
@@ -65,10 +65,10 @@ test_expect_success "check that init scripts were run correctly and in the corre
 
 test_expect_success "check that init script configs were applied" '
   echo Bar > expected &&
-  docker exec "$DOC_ID" ipfs config Foo > actual &&
+  docker exec "$DOC_ID" ipfs config Mounts.IPFS > actual &&
   test_cmp actual expected &&
   echo Qux > expected &&
-  docker exec "$DOC_ID" ipfs config Baz > actual &&
+  docker exec "$DOC_ID" ipfs config Pubsub.Router > actual &&
   test_cmp actual expected
 '
 

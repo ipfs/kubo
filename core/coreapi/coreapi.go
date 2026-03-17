@@ -23,7 +23,6 @@ import (
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	pathresolver "github.com/ipfs/boxo/path/resolver"
 	pin "github.com/ipfs/boxo/pinning/pinner"
-	provider "github.com/ipfs/boxo/provider"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/kubo/config"
@@ -70,7 +69,8 @@ type CoreAPI struct {
 	ipldPathResolver   pathresolver.Resolver
 	unixFSPathResolver pathresolver.Resolver
 
-	provider provider.System
+	provider          node.DHTProvider
+	providingStrategy config.ProvideStrategy
 
 	pubSub *pubsub.PubSub
 
@@ -185,7 +185,8 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		ipldPathResolver:   n.IPLDPathResolver,
 		unixFSPathResolver: n.UnixFSPathResolver,
 
-		provider: n.Provider,
+		provider:          n.Provider,
+		providingStrategy: n.ProvidingStrategy,
 
 		pubSub: n.PubSub,
 
@@ -207,18 +208,18 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		return nil
 	}
 
-	if settings.Offline {
-		cfg, err := n.Repo.Config()
-		if err != nil {
-			return nil, err
-		}
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return nil, err
+	}
 
+	if settings.Offline {
 		cs := cfg.Ipns.ResolveCacheSize
 		if cs == 0 {
 			cs = node.DefaultIpnsCacheSize
 		}
 		if cs < 0 {
-			return nil, fmt.Errorf("cannot specify negative resolve cache size")
+			return nil, errors.New("cannot specify negative resolve cache size")
 		}
 
 		nsOptions := []namesys.Option{
@@ -235,8 +236,6 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 			return nil, fmt.Errorf("error constructing namesys: %w", err)
 		}
 
-		subAPI.provider = provider.NewNoopProvider()
-
 		subAPI.peerstore = nil
 		subAPI.peerHost = nil
 		subAPI.recordValidator = nil
@@ -244,7 +243,9 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 
 	if settings.Offline || !settings.FetchBlocks {
 		subAPI.exchange = offlinexch.Exchange(subAPI.blockstore)
-		subAPI.blocks = bserv.New(subAPI.blockstore, subAPI.exchange)
+		subAPI.blocks = bserv.New(subAPI.blockstore, subAPI.exchange,
+			bserv.WriteThrough(cfg.Datastore.WriteThrough.WithDefault(config.DefaultWriteThrough)),
+		)
 		subAPI.dag = dag.NewDAGService(subAPI.blocks)
 	}
 

@@ -2,13 +2,43 @@ package cli
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/ipfs/kubo/test/cli/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func waitUntilProvidesComplete(t *testing.T, n *harness.Node) {
+	getCidsCount := func(line string) int {
+		trimmed := strings.TrimSpace(line)
+		countStr := strings.SplitN(trimmed, " ", 2)[0]
+		count, err := strconv.Atoi(countStr)
+		require.NoError(t, err)
+		return count
+	}
+
+	queuedProvides, ongoingProvides := true, true
+	for queuedProvides || ongoingProvides {
+		res := n.IPFS("provide", "stat", "-a")
+		require.NoError(t, res.Err)
+		for _, line := range res.Stdout.Lines() {
+			if trimmed, ok := strings.CutPrefix(line, "  Provide queue:"); ok {
+				provideQueueSize := getCidsCount(trimmed)
+				queuedProvides = provideQueueSize > 0
+			}
+			if trimmed, ok := strings.CutPrefix(line, "  Ongoing provides:"); ok {
+				ongoingProvideCount := getCidsCount(trimmed)
+				ongoingProvides = ongoingProvideCount > 0
+			}
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
 
 func testRoutingDHT(t *testing.T, enablePubsub bool) {
 	t.Run(fmt.Sprintf("enablePubSub=%v", enablePubsub), func(t *testing.T) {
@@ -27,6 +57,7 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 		}
 
 		nodes.StartDaemons(daemonArgs...).Connect()
+		t.Cleanup(func() { nodes.StopDaemons() })
 
 		t.Run("ipfs routing findpeer", func(t *testing.T) {
 			t.Parallel()
@@ -56,7 +87,6 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 				t.Parallel()
 				keys := []string{"foo", "/pk/foo", "/ipns/foo"}
 				for _, key := range keys {
-					key := key
 					t.Run(key, func(t *testing.T) {
 						t.Parallel()
 						res := nodes[0].RunIPFS("routing", "put", key)
@@ -69,7 +99,6 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 
 			t.Run("get with bad keys (issue #4611)", func(t *testing.T) {
 				for _, key := range []string{"foo", "/pk/foo"} {
-					key := key
 					t.Run(key, func(t *testing.T) {
 						t.Parallel()
 						res := nodes[0].RunIPFS("routing", "get", key)
@@ -84,6 +113,7 @@ func testRoutingDHT(t *testing.T, enablePubsub bool) {
 		t.Run("ipfs routing findprovs", func(t *testing.T) {
 			t.Parallel()
 			hash := nodes[3].IPFSAddStr("some stuff")
+			waitUntilProvidesComplete(t, nodes[3])
 			res := nodes[4].IPFS("routing", "findprovs", hash)
 			assert.Equal(t, nodes[3].PeerID().String(), res.Stdout.Trimmed())
 		})
@@ -126,6 +156,7 @@ func testSelfFindDHT(t *testing.T) {
 		})
 
 		nodes.StartDaemons()
+		defer nodes.StopDaemons()
 
 		res := nodes[0].RunIPFS("dht", "findpeer", nodes[0].PeerID().String())
 		assert.Equal(t, 1, res.ExitCode())

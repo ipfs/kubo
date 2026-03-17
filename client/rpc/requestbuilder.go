@@ -18,10 +18,10 @@ type RequestBuilder interface {
 	BodyBytes(body []byte) RequestBuilder
 	Body(body io.Reader) RequestBuilder
 	FileBody(body io.Reader) RequestBuilder
-	Option(key string, value interface{}) RequestBuilder
+	Option(key string, value any) RequestBuilder
 	Header(name, value string) RequestBuilder
 	Send(ctx context.Context) (*Response, error)
-	Exec(ctx context.Context, res interface{}) error
+	Exec(ctx context.Context, res any) error
 }
 
 // encodedAbsolutePathVersion is the version from which the absolute path header in
@@ -83,7 +83,7 @@ func (r *requestBuilder) FileBody(body io.Reader) RequestBuilder {
 }
 
 // Option sets the given option.
-func (r *requestBuilder) Option(key string, value interface{}) RequestBuilder {
+func (r *requestBuilder) Option(key string, value any) RequestBuilder {
 	var s string
 	switch v := value.(type) {
 	case bool:
@@ -128,7 +128,7 @@ func (r *requestBuilder) Send(ctx context.Context) (*Response, error) {
 }
 
 // Exec sends the request a request and decodes the response.
-func (r *requestBuilder) Exec(ctx context.Context, res interface{}) error {
+func (r *requestBuilder) Exec(ctx context.Context, res any) error {
 	httpRes, err := r.Send(ctx)
 	if err != nil {
 		return err

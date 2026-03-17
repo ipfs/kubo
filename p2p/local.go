@@ -23,6 +23,7 @@ type localListener struct {
 	peer  peer.ID
 
 	listener manet.Listener
+	done     chan struct{}
 }
 
 // ForwardLocal creates new P2P stream to a remote listener.
@@ -32,6 +33,7 @@ func (p2p *P2P) ForwardLocal(ctx context.Context, peer peer.ID, proto protocol.I
 		p2p:   p2p,
 		proto: proto,
 		peer:  peer,
+		done:  make(chan struct{}),
 	}
 
 	maListener, err := manet.Listen(bindAddr)
@@ -98,6 +100,11 @@ func (l *localListener) setupStream(local manet.Conn) {
 
 func (l *localListener) close() {
 	l.listener.Close()
+	close(l.done)
+}
+
+func (l *localListener) Done() <-chan struct{} {
+	return l.done
 }
 
 func (l *localListener) Protocol() protocol.ID {

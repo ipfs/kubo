@@ -1,5 +1,4 @@
 //go:build !nofuse && !openbsd && !netbsd && !plan9
-// +build !nofuse,!openbsd,!netbsd,!plan9
 
 package readonly
 
@@ -142,15 +141,18 @@ func TestIpfsStressRead(t *testing.T) {
 	ndiriter := 50
 
 	// Make a bunch of objects
-	for i := 0; i < nobj; i++ {
+	for range nobj {
 		fi, _ := randObj(t, nd, rand.Int63n(50000))
 		nodes = append(nodes, fi)
 		paths = append(paths, fi.Cid().String())
 	}
 
 	// Now make a bunch of dirs
-	for i := 0; i < ndiriter; i++ {
-		db := uio.NewDirectory(nd.DAG)
+	for range ndiriter {
+		db, err := uio.NewDirectory(nd.DAG)
+		if err != nil {
+			t.Fatal(err)
+		}
 		for j := 0; j < 1+rand.Intn(10); j++ {
 			name := fmt.Sprintf("child%d", j)
 
@@ -178,13 +180,11 @@ func TestIpfsStressRead(t *testing.T) {
 	wg := sync.WaitGroup{}
 	errs := make(chan error)
 
-	for s := 0; s < 4; s++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 4 {
+		wg.Go(func() {
 
-			for i := 0; i < 2000; i++ {
-				item, err := path.NewPath(paths[rand.Intn(len(paths))])
+			for range 2000 {
+				item, err := path.NewPath("/ipfs/" + paths[rand.Intn(len(paths))])
 				if err != nil {
 					errs <- err
 					continue
@@ -218,7 +218,7 @@ func TestIpfsStressRead(t *testing.T) {
 					errs <- errors.New("incorrect read")
 				}
 			}
-		}()
+		})
 	}
 
 	go func() {
@@ -245,8 +245,11 @@ func TestIpfsBasicDirRead(t *testing.T) {
 	fi, data := randObj(t, nd, 10000)
 
 	// Make a directory and put that file in it
-	db := uio.NewDirectory(nd.DAG)
-	err := db.AddChild(nd.Context(), "actual", fi)
+	db, err := uio.NewDirectory(nd.DAG)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = db.AddChild(nd.Context(), "actual", fi)
 	if err != nil {
 		t.Fatal(err)
 	}

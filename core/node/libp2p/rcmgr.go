@@ -3,11 +3,15 @@ package libp2p
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/benbjohnson/clock"
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/repo"
+
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -16,19 +20,15 @@ import (
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/multiformats/go-multiaddr"
 	"go.uber.org/fx"
-
-	"github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/core/node/helpers"
-	"github.com/ipfs/kubo/repo"
 )
 
 var rcmgrLogger = logging.Logger("rcmgr")
 
 const NetLimitTraceFilename = "rcmgr.json.gz"
 
-var ErrNoResourceMgr = fmt.Errorf("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
+var ErrNoResourceMgr = errors.New("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
 
-func ResourceManager(repoPath string, cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimitConfig) interface{} {
+func ResourceManager(repoPath string, cfg config.SwarmConfig, userResourceOverrides rcmgr.PartialLimitConfig) any {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 		var manager network.ResourceManager
 		var opts Libp2pOpts
@@ -70,7 +70,6 @@ filled in with autocomputed defaults.`)
 			}
 
 			ropts := []rcmgr.Option{
-				rcmgr.WithMetrics(createRcmgrMetrics()),
 				rcmgr.WithTraceReporter(str),
 				rcmgr.WithLimitPerSubnet(
 					nil,
@@ -112,7 +111,6 @@ filled in with autocomputed defaults.`)
 				return nil, opts, fmt.Errorf("creating libp2p resource manager: %w", err)
 			}
 			lrm := &loggingResourceManager{
-				clock:    clock.New(),
 				logger:   &logging.Logger("resourcemanager").SugaredLogger,
 				delegate: manager,
 			}
@@ -233,8 +231,8 @@ func (u ResourceLimitsAndUsage) ToResourceLimits() rcmgr.ResourceLimits {
 type LimitsConfigAndUsage struct {
 	// This is duplicated from rcmgr.ResourceManagerStat but using ResourceLimitsAndUsage
 	// instead of network.ScopeStat.
-	System    ResourceLimitsAndUsage                 `json:",omitempty"`
-	Transient ResourceLimitsAndUsage                 `json:",omitempty"`
+	System    ResourceLimitsAndUsage
+	Transient ResourceLimitsAndUsage
 	Services  map[string]ResourceLimitsAndUsage      `json:",omitempty"`
 	Protocols map[protocol.ID]ResourceLimitsAndUsage `json:",omitempty"`
 	Peers     map[peer.ID]ResourceLimitsAndUsage     `json:",omitempty"`

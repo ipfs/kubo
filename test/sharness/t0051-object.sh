@@ -42,16 +42,16 @@ test_object_cmd() {
 
   test_expect_success "'ipfs object patch' check output block size" '
     DIR=$EMPTY_UNIXFS_DIR
-    for i in {1..13}
+    for i in {1..14}
     do
        DIR=$(ipfs object patch "$DIR" add-link "$DIR.jpg" "$DIR")
     done
-    # Fail when new block goes over the BS limit of 1MiB, but allow manual override
+    # Fail when new block goes over the BS limit of 2MiB, but allow manual override
     test_expect_code 1 ipfs object patch "$DIR" add-link "$DIR.jpg" "$DIR"  >patch_out 2>&1
   '
 
   test_expect_success "ipfs object patch add-link output has the correct error" '
-    grep "produced block is over 1MiB" patch_out
+    grep "produced block is over 2MiB" patch_out
   '
 
   test_expect_success "ipfs object patch --allow-big-block=true add-link works" '

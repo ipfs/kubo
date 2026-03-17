@@ -1,13 +1,27 @@
 package config
 
-import p2pforge "github.com/ipshipyard/p2p-forge/client"
+import (
+	"time"
+
+	p2pforge "github.com/ipshipyard/p2p-forge/client"
+)
 
 // AutoTLS includes optional configuration of p2p-forge client of service
 // for obtaining a domain and TLS certificate to improve connectivity for web
 // browser clients. More: https://github.com/ipshipyard/p2p-forge#readme
 type AutoTLS struct {
-	// Enables the p2p-forge feature
+	// Enables the p2p-forge feature and all related features.
 	Enabled Flag `json:",omitempty"`
+
+	// Optional, controls if Kubo should add /tls/sni/.../ws listener to every /tcp port if no explicit /ws is defined in Addresses.Swarm
+	AutoWSS Flag `json:",omitempty"`
+
+	// Optional, controls whether to skip network DNS lookups for p2p-forge domains.
+	// Applies to resolution via DNS.Resolvers, including /dns* multiaddrs in go-libp2p.
+	// When enabled (default), A/AAAA queries for *.libp2p.direct are resolved
+	// locally by parsing the IP directly from the hostname, avoiding network I/O.
+	// Set to false to always use network DNS (useful for debugging).
+	SkipDNSLookup Flag `json:",omitempty"`
 
 	// Optional override of the parent domain that will be used
 	DomainSuffix *OptionalString `json:",omitempty"`
@@ -18,13 +32,23 @@ type AutoTLS struct {
 	// Optional Authorization token, used with private/test instances of p2p-forge
 	RegistrationToken *OptionalString `json:",omitempty"`
 
+	// Optional registration delay used when AutoTLS.Enabled is not explicitly set to true in config
+	RegistrationDelay *OptionalDuration `json:",omitempty"`
+
 	// Optional override of CA ACME API used by p2p-forge system
 	CAEndpoint *OptionalString `json:",omitempty"`
+
+	// Optional, controls if features like AutoWSS should generate shorter /dnsX instead of /ipX/../sni/..
+	ShortAddrs Flag `json:",omitempty"`
 }
 
 const (
-	DefaultAutoTLSEnabled       = false // experimental, opt-in for now (https://github.com/ipfs/kubo/pull/10521)
-	DefaultDomainSuffix         = p2pforge.DefaultForgeDomain
-	DefaultRegistrationEndpoint = p2pforge.DefaultForgeEndpoint
-	DefaultCAEndpoint           = p2pforge.DefaultCAEndpoint
+	DefaultAutoTLSEnabled           = true // with DefaultAutoTLSRegistrationDelay, unless explicitly enabled  in config
+	DefaultDomainSuffix             = p2pforge.DefaultForgeDomain
+	DefaultRegistrationEndpoint     = p2pforge.DefaultForgeEndpoint
+	DefaultCAEndpoint               = p2pforge.DefaultCAEndpoint
+	DefaultAutoWSS                  = true // requires AutoTLS.Enabled
+	DefaultAutoTLSShortAddrs        = true // requires AutoTLS.Enabled
+	DefaultAutoTLSSkipDNSLookup     = true // skip network DNS for p2p-forge domains
+	DefaultAutoTLSRegistrationDelay = 1 * time.Hour
 )

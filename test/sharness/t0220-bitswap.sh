@@ -18,7 +18,6 @@ test_expect_success "'ipfs bitswap stat' succeeds" '
 test_expect_success "'ipfs bitswap stat' output looks good" '
   cat <<EOF | unexpand -t2 >expected &&
 bitswap status
-  provides buffer: 0 / 256
   blocks received: 0
   blocks sent: 0
   data received: 0
@@ -56,7 +55,6 @@ test_expect_success "'ipfs bitswap stat' succeeds" '
 test_expect_success "'ipfs bitswap stat' output looks good" '
   cat <<EOF | unexpand -t2 >expected &&
 bitswap status
-  provides buffer: 0 / 256
   blocks received: 0
   blocks sent: 0
   data received: 0
@@ -85,7 +83,6 @@ test_expect_success "'ipfs bitswap stat --human' succeeds" '
 test_expect_success "'ipfs bitswap stat --human' output looks good" '
   cat <<EOF | unexpand -t2 >expected &&
 bitswap status
-  provides buffer: 0 / 256
   blocks received: 0
   blocks sent: 0
   data received: 0 B

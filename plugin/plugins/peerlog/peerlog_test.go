@@ -5,7 +5,7 @@ import "testing"
 func TestExtractEnabled(t *testing.T) {
 	for _, c := range []struct {
 		name     string
-		config   interface{}
+		config   any
 		expected bool
 	}{
 		{
@@ -20,22 +20,22 @@ func TestExtractEnabled(t *testing.T) {
 		},
 		{
 			name:     "returns false when config has no Enabled field",
-			config:   map[string]interface{}{},
+			config:   map[string]any{},
 			expected: false,
 		},
 		{
 			name:     "returns false when config has a null Enabled field",
-			config:   map[string]interface{}{"Enabled": nil},
+			config:   map[string]any{"Enabled": nil},
 			expected: false,
 		},
 		{
 			name:     "returns false when config has a non-boolean Enabled field",
-			config:   map[string]interface{}{"Enabled": 1},
+			config:   map[string]any{"Enabled": 1},
 			expected: false,
 		},
 		{
 			name:     "returns the value of the Enabled field",
-			config:   map[string]interface{}{"Enabled": true},
+			config:   map[string]any{"Enabled": true},
 			expected: true,
 		},
 	} {

@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 
+	"github.com/dustin/go-humanize"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
@@ -16,10 +17,12 @@ import (
 )
 
 const (
-	pinRootsOptionName = "pin-roots"
-	progressOptionName = "progress"
-	silentOptionName   = "silent"
-	statsOptionName    = "stats"
+	pinRootsOptionName        = "pin-roots"
+	progressOptionName        = "progress"
+	silentOptionName          = "silent"
+	statsOptionName           = "stats"
+	fastProvideRootOptionName = "fast-provide-root"
+	fastProvideWaitOptionName = "fast-provide-wait"
 )
 
 // DagCmd provides a subset of commands for interacting with ipld dag objects
@@ -189,6 +192,18 @@ Note:
   currently present in the blockstore does not represent a complete DAG,
   pinning of that individual root will fail.
 
+FAST PROVIDE OPTIMIZATION:
+
+Root CIDs from CAR headers are immediately provided to the DHT in addition
+to the regular provide queue, allowing other peers to discover your content
+right away. This complements the sweep provider, which efficiently provides
+all blocks according to Provide.Strategy over time.
+
+By default, the provide happens in the background without blocking the
+command. Use --fast-provide-wait to wait for the provide to complete, or
+--fast-provide-root=false to skip it. Works even with --pin-roots=false.
+Automatically skipped when DHT is not available.
+
 Maximum supported CAR version: 2
 Specification of CAR formats: https://ipld.io/specs/transport/car/
 `,
@@ -200,6 +215,8 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CIDs to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes before returning. Default: Import.FastProvideWait"),
 		cmdutils.AllowBigBlockOption,
 	},
 	Type: CarImportOutput{},
@@ -259,6 +276,9 @@ Note that at present only single root selections / .car files are supported.
 The output of blocks happens in strict DAG-traversal, first-seen, order.
 CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 `,
+		HTTP: &cmds.HTTPHelpText{
+			ResponseContentType: "application/vnd.ipld.car",
+		},
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "CID of a root to recursively export").EnableStdin(),
@@ -274,9 +294,9 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 
 // DagStat is a dag stat command response
 type DagStat struct {
-	Cid       cid.Cid `json:",omitempty"`
-	Size      uint64  `json:",omitempty"`
-	NumBlocks int64   `json:",omitempty"`
+	Cid       cid.Cid
+	Size      uint64 `json:",omitempty"`
+	NumBlocks int64  `json:",omitempty"`
 }
 
 func (s *DagStat) String() string {
@@ -333,7 +353,11 @@ type DagStatSummary struct {
 }
 
 func (s *DagStatSummary) String() string {
-	return fmt.Sprintf("Total Size: %d\nUnique Blocks: %d\nShared Size: %d\nRatio: %f", s.TotalSize, s.UniqueBlocks, s.SharedSize, s.Ratio)
+	return fmt.Sprintf("Total Size: %d (%s)\nUnique Blocks: %d\nShared Size: %d (%s)\nRatio: %f",
+		s.TotalSize, humanize.Bytes(s.TotalSize),
+		s.UniqueBlocks,
+		s.SharedSize, humanize.Bytes(s.SharedSize),
+		s.Ratio)
 }
 
 func (s *DagStatSummary) incrementTotalSize(size uint64) {
@@ -368,7 +392,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 		cmds.StringArg("root", true, true, "CID of a DAG root to get statistics for").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(progressOptionName, "p", "Return progressive data while reading through the DAG").WithDefault(true),
+		cmds.BoolOption(progressOptionName, "p", "Show progress on stderr. Auto-detected if stderr is a terminal."),
 	},
 	Run:  dagStat,
 	Type: DagStatSummary{},

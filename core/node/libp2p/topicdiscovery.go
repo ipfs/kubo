@@ -12,7 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/routing"
 )
 
-func TopicDiscovery() interface{} {
+func TopicDiscovery() any {
 	return func(host host.Host, cr routing.ContentRouting) (service discovery.Discovery, err error) {
 		baseDisc := disc.NewRoutingDiscovery(cr)
 		minBackoff, maxBackoff := time.Second*60, time.Hour

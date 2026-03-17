@@ -25,7 +25,8 @@ test_expect_success "ipfs add succeeds with identity hash" '
 '
 
 test_expect_success "content not actually added" '
-  ipfs refs local | fgrep -q -v $HASH
+  ipfs refs local > locals &&
+  test_should_not_contain $HASH locals
 '
 
 test_expect_success "but can fetch it anyway" '
@@ -65,7 +66,7 @@ test_expect_success "ipfs add --inline --raw-leaves outputs the correct hash" '
 '
 
 test_expect_success "create 1000 bytes file and get its hash" '
-  random 1000 2 > 1000bytes &&
+  random-data -size=1000 -seed=2 > 1000bytes &&
   HASH0=$(ipfs add -q --raw-leaves --only-hash 1000bytes)
 '
 
@@ -98,7 +99,8 @@ test_expect_success "ipfs add succeeds with identity hash and --nocopy" '
 '
 
 test_expect_success "content not actually added (filestore enabled)" '
-  ipfs refs local | fgrep -q -v $HASH
+  ipfs refs local > locals &&
+  test_should_not_contain $HASH locals
 '
 
 test_expect_success "but can fetch it anyway (filestore enabled)" '

@@ -2,6 +2,8 @@ package libp2p
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/ipfs/kubo/config"
 	"github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p"
@@ -15,7 +17,7 @@ import (
 	"go.uber.org/fx"
 )
 
-func Transports(tptConfig config.Transports) interface{} {
+func Transports(tptConfig config.Transports) any {
 	return func(params struct {
 		fx.In
 		Fprint   PNetFingerprint         `optional:"true"`
@@ -24,16 +26,26 @@ func Transports(tptConfig config.Transports) interface{} {
 	) (opts Libp2pOpts, err error) {
 		privateNetworkEnabled := params.Fprint != nil
 
-		if tptConfig.Network.TCP.WithDefault(true) {
+		tcpEnabled := tptConfig.Network.TCP.WithDefault(true)
+		wsEnabled := tptConfig.Network.Websocket.WithDefault(true)
+		if tcpEnabled {
 			// TODO(9290): Make WithMetrics configurable
 			opts.Opts = append(opts.Opts, libp2p.Transport(tcp.NewTCPTransport, tcp.WithMetrics()))
 		}
 
-		if tptConfig.Network.Websocket.WithDefault(true) {
+		if wsEnabled {
 			if params.ForgeMgr == nil {
 				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New))
 			} else {
 				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New, websocket.WithTLSConfig(params.ForgeMgr.TLSConfig())))
+			}
+		}
+
+		if tcpEnabled && wsEnabled && os.Getenv("LIBP2P_TCP_MUX") != "false" {
+			if privateNetworkEnabled {
+				log.Error("libp2p.ShareTCPListener() is not supported in private networks, please disable Swarm.Transports.Network.Websocket or run with LIBP2P_TCP_MUX=false to make this message go away")
+			} else {
+				opts.Opts = append(opts.Opts, libp2p.ShareTCPListener())
 			}
 		}
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-cid"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -124,7 +123,7 @@ func (c *Composer) Bootstrap(ctx context.Context) error {
 	errgv := c.GetValueRouter.Bootstrap(ctx)
 	errpv := c.PutValueRouter.Bootstrap(ctx)
 	errp := c.ProvideRouter.Bootstrap(ctx)
-	err := multierror.Append(errfp, errfps, errgv, errpv, errp)
+	err := errors.Join(errfp, errfps, errgv, errpv, errp)
 	if err != nil {
 		log.Debug("composer: calling bootstrap error: ", err)
 	}

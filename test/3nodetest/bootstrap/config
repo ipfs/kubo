@@ -15,7 +15,8 @@
   },
   "Mounts": {
     "IPFS": "/ipfs",
-    "IPNS": "/ipns"
+    "IPNS": "/ipns",
+    "MFS": "/mfs"
   },
   "Version": {
     "Current": "0.1.7",

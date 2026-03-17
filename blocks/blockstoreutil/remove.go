@@ -34,10 +34,10 @@ type RmBlocksOpts struct {
 // It returns a channel where objects of type RemovedBlock are placed, when
 // not using the Quiet option. Block removal is asynchronous and will
 // skip any pinned blocks.
-func RmBlocks(ctx context.Context, blocks bs.GCBlockstore, pins pin.Pinner, cids []cid.Cid, opts RmBlocksOpts) (<-chan interface{}, error) {
+func RmBlocks(ctx context.Context, blocks bs.GCBlockstore, pins pin.Pinner, cids []cid.Cid, opts RmBlocksOpts) (<-chan any, error) {
 	// make the channel large enough to hold any result to avoid
 	// blocking while holding the GCLock
-	out := make(chan interface{}, len(cids))
+	out := make(chan any, len(cids))
 	go func() {
 		defer close(out)
 
@@ -75,7 +75,7 @@ func RmBlocks(ctx context.Context, blocks bs.GCBlockstore, pins pin.Pinner, cids
 // out channel, with an error which indicates that the Cid is pinned.
 // This function is used in RmBlocks to filter out any blocks which are not
 // to be removed (because they are pinned).
-func FilterPinned(ctx context.Context, pins pin.Pinner, out chan<- interface{}, cids []cid.Cid) []cid.Cid {
+func FilterPinned(ctx context.Context, pins pin.Pinner, out chan<- any, cids []cid.Cid) []cid.Cid {
 	stillOkay := make([]cid.Cid, 0, len(cids))
 	res, err := pins.CheckIfPinned(ctx, cids...)
 	if err != nil {

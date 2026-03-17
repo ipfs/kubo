@@ -13,7 +13,7 @@ test_expect_success "create a dataset" '
   random-files -seed=483 -depth=3 -dirs=4 -files=6 -filesize=1000000 somedir > /dev/null
 '
 
-EXPHASH="QmW4JLyeTxEWGwa4mkE9mHzdtAkyhMX2ToGFEKZNjCiJud"
+EXPHASH="QmXKtATsEt42CF5JoSsmzJstrvwEB5P89YQtdX4mdf9E3M"
 
 get_repo_size() {
   disk_usage "$IPFS_PATH"
@@ -63,7 +63,7 @@ test_filestore_adds() {
 
 init_ipfs_filestore() {
   test_expect_success "clean up old node" '
-    rm -rf "$IPFS_PATH" mountdir ipfs ipns
+    rm -rf "$IPFS_PATH" mountdir ipfs ipns mfs
   '
 
   test_init_ipfs

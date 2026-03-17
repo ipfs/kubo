@@ -159,4 +159,127 @@ func TestRPCAuth(t *testing.T) {
 
 		node.StopDaemon()
 	})
+
+	t.Run("Requests without Authorization header are rejected when auth is enabled", func(t *testing.T) {
+		t.Parallel()
+
+		node := makeAndStartProtectedNode(t, map[string]*config.RPCAuthScope{
+			"userA": {
+				AuthSecret:   "bearer:mytoken",
+				AllowedPaths: []string{"/api/v0"},
+			},
+		})
+
+		// Create client with NO auth
+		apiClient := node.APIClient() // Uses http.DefaultClient with no auth headers
+
+		// Should be denied without auth header
+		resp := apiClient.Post("/api/v0/id", nil)
+		assert.Equal(t, 403, resp.StatusCode)
+
+		// Should contain denial message
+		assert.Contains(t, resp.Body, rpcDeniedMsg)
+
+		node.StopDaemon()
+	})
+
+	t.Run("Version endpoint is always accessible even with limited AllowedPaths", func(t *testing.T) {
+		t.Parallel()
+
+		node := makeAndStartProtectedNode(t, map[string]*config.RPCAuthScope{
+			"userA": {
+				AuthSecret:   "bearer:mytoken",
+				AllowedPaths: []string{"/api/v0/id"}, // Only /id allowed
+			},
+		})
+
+		apiClient := node.APIClient()
+		apiClient.Client = &http.Client{
+			Transport: auth.NewAuthorizedRoundTripper("Bearer mytoken", http.DefaultTransport),
+		}
+
+		// Can access /version even though not in AllowedPaths
+		resp := apiClient.Post("/api/v0/version", nil)
+		assert.Equal(t, 200, resp.StatusCode)
+
+		node.StopDaemon()
+	})
+
+	t.Run("User cannot access API with another user's secret", func(t *testing.T) {
+		t.Parallel()
+
+		node := makeAndStartProtectedNode(t, map[string]*config.RPCAuthScope{
+			"alice": {
+				AuthSecret:   "bearer:alice-secret",
+				AllowedPaths: []string{"/api/v0/id"},
+			},
+			"bob": {
+				AuthSecret:   "bearer:bob-secret",
+				AllowedPaths: []string{"/api/v0/config"},
+			},
+		})
+
+		// Alice tries to use Bob's secret
+		apiClient := node.APIClient()
+		apiClient.Client = &http.Client{
+			Transport: auth.NewAuthorizedRoundTripper("Bearer bob-secret", http.DefaultTransport),
+		}
+
+		// Bob's secret should work for Bob's paths
+		resp := apiClient.Post("/api/v0/config/show", nil)
+		assert.Equal(t, 200, resp.StatusCode)
+
+		// But not for Alice's paths (Bob doesn't have access to /id)
+		resp = apiClient.Post("/api/v0/id", nil)
+		assert.Equal(t, 403, resp.StatusCode)
+
+		node.StopDaemon()
+	})
+
+	t.Run("Empty AllowedPaths denies all access except version", func(t *testing.T) {
+		t.Parallel()
+
+		node := makeAndStartProtectedNode(t, map[string]*config.RPCAuthScope{
+			"userA": {
+				AuthSecret:   "bearer:mytoken",
+				AllowedPaths: []string{}, // Empty!
+			},
+		})
+
+		apiClient := node.APIClient()
+		apiClient.Client = &http.Client{
+			Transport: auth.NewAuthorizedRoundTripper("Bearer mytoken", http.DefaultTransport),
+		}
+
+		// Should deny everything
+		resp := apiClient.Post("/api/v0/id", nil)
+		assert.Equal(t, 403, resp.StatusCode)
+
+		resp = apiClient.Post("/api/v0/config/show", nil)
+		assert.Equal(t, 403, resp.StatusCode)
+
+		// Except version
+		resp = apiClient.Post("/api/v0/version", nil)
+		assert.Equal(t, 200, resp.StatusCode)
+
+		node.StopDaemon()
+	})
+
+	t.Run("CLI commands fail without --api-auth when auth is enabled", func(t *testing.T) {
+		t.Parallel()
+
+		node := makeAndStartProtectedNode(t, map[string]*config.RPCAuthScope{
+			"userA": {
+				AuthSecret:   "bearer:mytoken",
+				AllowedPaths: []string{"/api/v0"},
+			},
+		})
+
+		// Try to run command without --api-auth flag
+		resp := node.RunIPFS("id") // No --api-auth flag
+		require.Error(t, resp.Err)
+		require.Contains(t, resp.Stderr.String(), rpcDeniedMsg)
+
+		node.StopDaemon()
+	})
 }

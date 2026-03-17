@@ -18,7 +18,7 @@ var (
 
 func makeResolver(t *testing.T, n uint8) *madns.Resolver {
 	results := make([]net.IPAddr, n)
-	for i := uint8(0); i < n; i++ {
+	for i := range n {
 		results[i] = net.IPAddr{IP: net.ParseIP(fmt.Sprintf("192.0.2.%d", i))}
 	}
 
