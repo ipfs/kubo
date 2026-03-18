@@ -2,6 +2,7 @@ package commands
 
 import (
 	"cmp"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -24,11 +25,12 @@ var CidCmd = &cmds.Command{
 		Tagline: "Convert and discover properties of CIDs",
 	},
 	Subcommands: map[string]*cmds.Command{
-		"format": cidFmtCmd,
-		"base32": base32Cmd,
-		"bases":  basesCmd,
-		"codecs": codecsCmd,
-		"hashes": hashesCmd,
+		"format":  cidFmtCmd,
+		"base32":  base32Cmd,
+		"bases":   basesCmd,
+		"codecs":  codecsCmd,
+		"hashes":  hashesCmd,
+		"inspect": inspectCmd,
 	},
 	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
@@ -398,6 +400,165 @@ var hashesCmd = &cmds.Command{
 	Encoders: codecsCmd.Encoders,
 	Type:     codecsCmd.Type,
 	Extra:    CreateCmdExtras(SetDoesNotUseRepo(true)),
+}
+
+// CidInspectRes represents the response from the inspect command.
+type CidInspectRes struct {
+	Cid        string            `json:"cid"`
+	Version    int               `json:"version"`
+	Multibase  *CidInspectBase   `json:"multibase,omitempty"`
+	Multicodec CidInspectCodec   `json:"multicodec"`
+	Multihash  CidInspectHash    `json:"multihash"`
+	CidV0      string            `json:"cidV0,omitempty"`
+	CidV1      string            `json:"cidV1"`
+	ErrorMsg   string            `json:"errorMsg,omitempty"`
+}
+
+type CidInspectBase struct {
+	Code rune   `json:"code"`
+	Name string `json:"name"`
+}
+
+type CidInspectCodec struct {
+	Code uint64 `json:"code"`
+	Name string `json:"name"`
+}
+
+type CidInspectHash struct {
+	Code   uint64 `json:"code"`
+	Name   string `json:"name"`
+	Length int    `json:"length"`
+	Digest string `json:"digest"`
+}
+
+var inspectCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Inspect and display detailed information about a CID.",
+		ShortDescription: `
+'ipfs cid inspect' breaks down a CID and displays its components:
+- CID version
+- Multibase encoding (for CIDv1)
+- Multicodec (content type)
+- Multihash (hash algorithm, length, and digest)
+- Equivalent CIDv0 and CIDv1 representations
+
+This is useful for debugging and understanding CID structure.
+`,
+		LongDescription: `
+'ipfs cid inspect' provides detailed information about CIDs.
+
+Example:
+  $ ipfs cid inspect QmcRD4wkPPi6dig81r5sLj9Zm1gDCL4zgpEj9CfuRrGbzF
+
+Output includes:
+  - CID: The original CID string
+  - Version: CID version (0 or 1)
+  - Multibase: The base encoding used (CIDv1 only)
+  - Multicodec: The content type codec
+  - Multihash: Hash function, digest length, and digest
+  - CIDv0/CIDv1: Equivalent representations (when applicable)
+
+Use --enc=json for machine-readable output.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("cid", true, false, "CID to inspect."),
+	},
+	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
+		cidStr := req.Arguments[0]
+
+		c, err := cid.Decode(cidStr)
+		if err != nil {
+			return cmds.EmitOnce(resp, &CidInspectRes{
+				Cid:      cidStr,
+				ErrorMsg: err.Error(),
+			})
+		}
+
+		res := &CidInspectRes{
+			Cid:     cidStr,
+			Version: int(c.Version()),
+		}
+
+		// Multibase (only for CIDv1)
+		if c.Version() == 1 {
+			baseCode, _ := cid.ExtractEncoding(cidStr)
+			baseName := mbase.EncodingToStr[baseCode]
+			res.Multibase = &CidInspectBase{
+				Code: rune(baseCode),
+				Name: baseName,
+			}
+		}
+
+		// Multicodec
+		codecCode := c.Type()
+		codecName := mc.Code(codecCode).String()
+		res.Multicodec = CidInspectCodec{
+			Code: codecCode,
+			Name: codecName,
+		}
+
+		// Multihash
+		dmh, err := mhash.Decode(c.Hash())
+		if err != nil {
+			return cmds.EmitOnce(resp, &CidInspectRes{
+				Cid:      cidStr,
+				ErrorMsg: fmt.Sprintf("failed to decode multihash: %s", err.Error()),
+			})
+		}
+		hashName := mhash.Codes[dmh.Code]
+		res.Multihash = CidInspectHash{
+			Code:   dmh.Code,
+			Name:   hashName,
+			Length: dmh.Length,
+			Digest: hex.EncodeToString(dmh.Digest),
+		}
+
+		// CIDv0 (only if dag-pb codec)
+		if c.Type() == cid.DagProtobuf {
+			v0 := cid.NewCidV0(c.Hash())
+			res.CidV0 = v0.String()
+		}
+
+		// CIDv1 (base32)
+		v1 := cid.NewCidV1(c.Type(), c.Hash())
+		v1Str, err := v1.StringOfBase(mbase.Base32)
+		if err != nil {
+			v1Str = v1.String()
+		}
+		res.CidV1 = v1Str
+
+		return cmds.EmitOnce(resp, res)
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, res *CidInspectRes) error {
+			if res.ErrorMsg != "" {
+				fmt.Fprintf(w, "Error: %s\n", res.ErrorMsg)
+				return nil
+			}
+
+			fmt.Fprintf(w, "CID:        %s\n", res.Cid)
+			fmt.Fprintf(w, "Version:    %d\n", res.Version)
+
+			if res.Multibase != nil {
+				fmt.Fprintf(w, "Multibase:  %s (%c)\n", res.Multibase.Name, res.Multibase.Code)
+			}
+
+			fmt.Fprintf(w, "Multicodec: %s (0x%x)\n", res.Multicodec.Name, res.Multicodec.Code)
+			fmt.Fprintf(w, "Multihash:  %s (0x%x)\n", res.Multihash.Name, res.Multihash.Code)
+			fmt.Fprintf(w, "  Length:   %d bytes\n", res.Multihash.Length)
+			fmt.Fprintf(w, "  Digest:   %s\n", res.Multihash.Digest)
+
+			if res.CidV0 != "" {
+				fmt.Fprintf(w, "CIDv0:      %s\n", res.CidV0)
+			}
+			fmt.Fprintf(w, "CIDv1:      %s\n", res.CidV1)
+
+			return nil
+		}),
+	},
+	Type:  CidInspectRes{},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 type multibaseSorter struct {
