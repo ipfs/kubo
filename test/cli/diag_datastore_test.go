@@ -132,6 +132,18 @@ func TestDiagDatastore(t *testing.T) {
 		assert.Contains(t, res.Stderr.String(), "key not found")
 	})
 
+	t.Run("diag datastore put and get roundtrip", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+
+		node.DatastorePut("/test/roundtrip", "hello world")
+		assert.True(t, node.DatastoreHasKey("/test/roundtrip"))
+		assert.Equal(t, []byte("hello world"), node.DatastoreGet("/test/roundtrip"))
+
+		count := node.DatastoreCount("/test/")
+		assert.Equal(t, int64(1), count)
+	})
+
 	t.Run("diag datastore commands require daemon to be stopped", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()

@@ -58,6 +58,10 @@ Inspecting pubsub seqno validator state:
   Hex Dump:
   00000000  18 81 81 c8 91 c0 ea f6  |........|
 
+Writing a test key (debugging only):
+
+  $ ipfs diag datastore put /test/mykey "hello"
+
 Inspecting provider keystore (requires SweepEnabled):
 
   $ ipfs diag datastore count /provider/keystore/0/
@@ -66,6 +70,7 @@ Inspecting provider keystore (requires SweepEnabled):
 	},
 	Subcommands: map[string]*cmds.Command{
 		"get":   diagDatastoreGetCmd,
+		"put":   diagDatastorePutCmd,
 		"count": diagDatastoreCountCmd,
 	},
 }
@@ -169,6 +174,42 @@ WARNING: FOR DEBUGGING/TESTING ONLY
 			_, err := w.Write(result.Value)
 			return err
 		}),
+	},
+}
+
+var diagDatastorePutCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Write a raw key-value pair to the datastore.",
+		ShortDescription: `
+Stores the given value at the specified datastore key.
+
+The daemon must not be running when using this command.
+
+WARNING: FOR DEBUGGING/TESTING ONLY
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "Datastore key (e.g., /test/mykey)"),
+		cmds.StringArg("value", true, false, "Value to store (as a string)"),
+	},
+	NoRemote: true,
+	PreRun:   DaemonNotRunning,
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		ds, closer, err := openDiagDatastore(env)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		key := datastore.NewKey(req.Arguments[0])
+		if err := ds.Put(req.Context, key, []byte(req.Arguments[1])); err != nil {
+			return fmt.Errorf("failed to put key: %w", err)
+		}
+		if err := ds.Sync(req.Context, key); err != nil {
+			return fmt.Errorf("failed to sync: %w", err)
+		}
+		return nil
 	},
 }
 

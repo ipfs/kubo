@@ -905,6 +905,59 @@ func TestProviderKeystoreDatastorePurge(t *testing.T) {
 	node.StopDaemon()
 }
 
+// TestProviderKeystoreMigrationPurge verifies that orphaned keystore data
+// left in the shared repo datastore by older Kubo versions is purged on
+// the first sweep-enabled daemon start. The migration is triggered by the
+// absence of the <repo>/provider-keystore/ directory.
+func TestProviderKeystoreMigrationPurge(t *testing.T) {
+	t.Parallel()
+
+	h := harness.NewT(t)
+	node := h.NewNode().Init()
+	node.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+	node.SetIPFSConfig("Provide.Enabled", true)
+	node.SetIPFSConfig("Bootstrap", []string{})
+
+	keystoreBase := filepath.Join(node.Dir, "provider-keystore")
+
+	// Pre-seed orphaned keystore data into the shared datastore, simulating
+	// the layout produced by older Kubo that stored keystore entries inline.
+	const numOrphans = 10
+	for i := range numOrphans {
+		node.DatastorePut(
+			fmt.Sprintf("/provider/keystore/%d/fake-key-%d", i%2, i),
+			fmt.Sprintf("orphan-%d", i),
+		)
+	}
+
+	// The orphaned keys should be visible via diag datastore.
+	count := node.DatastoreCount("/provider/keystore/")
+	require.Equal(t, int64(numOrphans), count, "orphaned keys should be present before migration")
+
+	// The provider-keystore directory must not exist yet (its absence
+	// triggers the migration).
+	require.False(t, dirExists(keystoreBase),
+		"provider-keystore/ should not exist before first sweep-enabled start")
+
+	// Start the daemon: this triggers the one-time migration purge.
+	node.StartDaemon()
+	node.StopDaemon()
+
+	// After migration the seeded orphaned keys should be gone from the
+	// shared datastore. The diag datastore count command mounts the
+	// separate provider-keystore datastores, so we check for the specific
+	// fake keys we seeded to confirm they were purged.
+	for i := range numOrphans {
+		key := fmt.Sprintf("/provider/keystore/%d/fake-key-%d", i%2, i)
+		assert.False(t, node.DatastoreHasKey(key),
+			"orphaned key %s should be purged after migration", key)
+	}
+
+	// The provider-keystore directory should now exist.
+	assert.True(t, dirExists(keystoreBase),
+		"provider-keystore/ should exist after sweep-enabled daemon ran")
+}
+
 func dirExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.IsDir()
