@@ -404,16 +404,18 @@ func findRootDatastoreSpec(spec map[string]any) map[string]any {
 			return spec
 		}
 		for _, m := range mounts {
-			mount, ok := m.(map[string]any)
+			mnt, ok := m.(map[string]any)
 			if !ok {
 				continue
 			}
-			if mount["mountpoint"] == "/" {
-				return findRootDatastoreSpec(mount)
+			if mnt["mountpoint"] == "/" {
+				return findRootDatastoreSpec(mnt)
 			}
 		}
-		// No root mount found, return as-is
-		return spec
+		// No root mount found; return nil so callers fall back gracefully
+		// (in-memory datastore or skip mounting) rather than passing a
+		// mount-type spec to openDatastoreAt which expects a leaf backend.
+		return nil
 	case "measure", "log":
 		if child, ok := spec["child"].(map[string]any); ok {
 			return findRootDatastoreSpec(child)
@@ -492,21 +494,40 @@ func copySpec(spec map[string]any) map[string]any {
 	}
 	cp := make(map[string]any, len(spec))
 	for k, v := range spec {
-		if m, ok := v.(map[string]any); ok {
-			cp[k] = copySpec(m)
-		} else {
+		switch val := v.(type) {
+		case map[string]any:
+			cp[k] = copySpec(val)
+		case []any:
+			s := make([]any, len(val))
+			for i, elem := range val {
+				if m, ok := elem.(map[string]any); ok {
+					s[i] = copySpec(m)
+				} else {
+					s[i] = elem
+				}
+			}
+			cp[k] = s
+		default:
 			cp[k] = v
 		}
 	}
 	return cp
 }
 
+// purgeBatchSize is the number of keys deleted per batch commit during
+// orphaned keystore cleanup. Each commit is a cancellation checkpoint.
+const purgeBatchSize = 1 << 12 // 4096
+
 // purgeOrphanedKeystoreData deletes all keys under /provider/keystore/ from the
 // shared repo datastore. These were written by older Kubo versions that stored
 // provider keystore data inline in the shared datastore. The new code uses
 // separate filesystem datastores under <repo>/{KeystoreDatastorePath}/ instead.
+//
+// The operation is idempotent and safe to interrupt: partial completion is
+// fine because already-deleted keys are no-ops on re-run.
 func purgeOrphanedKeystoreData(ctx context.Context, ds datastore.Batching) error {
 	orphanedPrefix := providerDatastoreKey.Child(keystoreDatastoreKey).String()
+	syncKey := datastore.NewKey(orphanedPrefix)
 
 	results, err := ds.Query(ctx, query.Query{
 		Prefix:   orphanedPrefix,
@@ -518,8 +539,11 @@ func purgeOrphanedKeystoreData(ctx context.Context, ds datastore.Batching) error
 	defer results.Close()
 
 	var batch datastore.Batch
-	count := 0
+	var count, pending int
 	for result := range results.Next() {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		if result.Error != nil {
 			return fmt.Errorf("iterating orphaned keystore data: %w", result.Error)
 		}
@@ -533,14 +557,27 @@ func purgeOrphanedKeystoreData(ctx context.Context, ds datastore.Batching) error
 			return fmt.Errorf("batch deleting orphaned key %s: %w", result.Key, err)
 		}
 		count++
+		pending++
+		if pending >= purgeBatchSize {
+			if err := batch.Commit(ctx); err != nil {
+				return fmt.Errorf("committing orphaned keystore cleanup batch: %w", err)
+			}
+			if err := ds.Sync(ctx, syncKey); err != nil {
+				return fmt.Errorf("syncing orphaned keystore cleanup: %w", err)
+			}
+			batch = nil
+			pending = 0
+		}
 	}
-	if count > 0 {
+	if pending > 0 {
 		if err := batch.Commit(ctx); err != nil {
 			return fmt.Errorf("committing orphaned keystore cleanup batch: %w", err)
 		}
-		if err := ds.Sync(ctx, datastore.NewKey(orphanedPrefix)); err != nil {
+		if err := ds.Sync(ctx, syncKey); err != nil {
 			return fmt.Errorf("syncing orphaned keystore cleanup: %w", err)
 		}
+	}
+	if count > 0 {
 		logger.Infow("purged orphaned provider keystore data from shared datastore", "keys", count)
 	}
 	return nil
@@ -552,6 +589,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		fx.In
 		DHT  routing.Routing `name:"dhtc"`
 		Repo repo.Repo
+		Lc   fx.Lifecycle
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *keystore.ResettableKeystore, error) {
 		ds := namespace.Wrap(in.Repo.Datastore(), providerDatastoreKey)
@@ -591,21 +629,42 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			return os.RemoveAll(filepath.Join(keystoreBasePath, suffix))
 		}
 
-		// One-time migration: purge orphaned keystore data from the shared repo
-		// datastore. Old Kubo versions stored keystore data at /provider/keystore/
-		// inside the shared monolithic datastore. New code uses separate
-		// filesystem datastores under <repo>/{KeystoreDatastorePath}/. On first
-		// start with the new code, detect the upgrade (dir doesn't exist yet) and
-		// delete the stale keys.
+		// One-time cleanup of stale keystore data left by older Kubo in the
+		// shared repo datastore under /provider/keystore/. New code stores
+		// bulk key data in separate filesystem datastores under
+		// <repo>/{KeystoreDatastorePath}/ while still using the same
+		// /provider/keystore/ namespace in the shared datastore for metadata.
 		//
-		// Safe against partial completion: this runs before createDs creates the
-		// keystoreBasePath directory, so if the process dies mid-purge, the
-		// directory won't exist and the purge re-runs on next start. The purge
-		// is idempotent (deleting already-deleted keys is a no-op).
+		// The absence of the keystoreBasePath directory signals a first run
+		// after upgrade: the directory is created later by createDs on first
+		// use, so it doubles as a "cleanup done" flag. If the process dies
+		// mid-purge the directory still won't exist and the cleanup re-runs
+		// on next start (it is idempotent). Must run synchronously before
+		// NewResettableKeystore to avoid racing with reads on the same
+		// namespace.
 		if _, statErr := os.Stat(keystoreBasePath); os.IsNotExist(statErr) {
-			if purgeErr := purgeOrphanedKeystoreData(context.Background(), in.Repo.Datastore()); purgeErr != nil {
-				logger.Warnw("failed to purge orphaned provider keystore data from shared datastore", "error", purgeErr)
+			logger.Infow("migrating provider keystore data from shared datastore to separate filesystem datastores", "path", keystoreBasePath)
+			// Create a cancellable context for the purge. The OnStop hook
+			// below calls purgeCancel when the node receives a shutdown
+			// signal (e.g., SIGINT), which interrupts the purge loop
+			// instead of blocking indefinitely.
+			purgeCtx, purgeCancel := context.WithCancel(context.Background())
+			in.Lc.Append(fx.Hook{
+				OnStop: func(_ context.Context) error {
+					purgeCancel()
+					return nil
+				},
+			})
+			if purgeErr := purgeOrphanedKeystoreData(purgeCtx, in.Repo.Datastore()); purgeErr != nil {
+				if purgeCtx.Err() != nil {
+					logger.Infow("provider keystore migration interrupted by shutdown, will resume on next start")
+				} else {
+					logger.Warnw("provider keystore migration failed, will retry on next start", "error", purgeErr)
+				}
+			} else {
+				logger.Infow("provider keystore migration completed")
 			}
+			purgeCancel()
 		}
 
 		keystoreDs := namespace.Wrap(ds, keystoreDatastoreKey)
