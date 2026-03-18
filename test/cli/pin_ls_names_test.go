@@ -509,6 +509,17 @@ func TestPinLsEdgeCases(t *testing.T) {
 		require.Contains(t, res.Stderr.String(), "must be one of {direct, indirect, recursive, all}")
 	})
 
+	t.Run("known but non-listable pin type returns error", func(t *testing.T) {
+		t.Parallel()
+		node := setupTestNode(t)
+
+		// "internal" is a valid pin.Mode in boxo but not a valid --type for pin ls.
+		// Before the fix, this caused a panic instead of returning an error.
+		res := node.RunIPFS("pin", "ls", "--type=internal")
+		require.NotEqual(t, 0, res.ExitCode())
+		require.Contains(t, res.Stderr.String(), "invalid type 'internal'")
+	})
+
 	t.Run("non-existent path returns proper error", func(t *testing.T) {
 		t.Parallel()
 		node := setupTestNode(t)

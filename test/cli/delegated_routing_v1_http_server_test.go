@@ -252,7 +252,9 @@ func TestRoutingV1Server(t *testing.T) {
 				// Wait for WAN DHT routing table to be populated.
 				// The server has a 30-second routing timeout, so we use 60 seconds
 				// per request to allow for network latency while preventing hangs.
-				// Total wait time is 2 minutes (locally passes in under 1 minute).
+				// Total wait time is 5 minutes to accommodate slow CI DHT bootstrapping.
+				// Passing runs finish in 8-48s; failures are total bootstrap failures,
+				// not slow convergence, so extra headroom doesn't waste time on success.
 				var records []*types.PeerRecord
 				require.EventuallyWithT(t, func(ct *assert.CollectT) {
 					ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -263,7 +265,7 @@ func TestRoutingV1Server(t *testing.T) {
 					}
 					records, err = iter.ReadAllResults(resultsIter)
 					assert.NoError(ct, err)
-				}, 2*time.Minute, 5*time.Second)
+				}, 5*time.Minute, 5*time.Second)
 
 				// Verify we got some peers back from WAN DHT
 				require.NotEmpty(t, records, "should return peers close to own peerid")

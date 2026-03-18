@@ -26,25 +26,25 @@ func TestValidateImportConfig_HAMTFanout(t *testing.T) {
 		{name: "valid 1024", fanout: 1024, wantErr: false},
 
 		// Invalid values - not powers of 2
-		{name: "invalid 7", fanout: 7, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 15", fanout: 15, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 100", fanout: 100, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 257", fanout: 257, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 1000", fanout: 1000, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
+		{name: "invalid 7", fanout: 7, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 15", fanout: 15, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 100", fanout: 100, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 257", fanout: 257, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 1000", fanout: 1000, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
 
-		// Invalid values - powers of 2 but not multiples of 8
-		{name: "invalid 1", fanout: 1, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 2", fanout: 2, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 4", fanout: 4, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
+		// Invalid values - powers of 2 but less than 8
+		{name: "invalid 1", fanout: 1, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 2", fanout: 2, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 4", fanout: 4, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
 
 		// Invalid values - exceeds 1024
-		{name: "invalid 2048", fanout: 2048, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 4096", fanout: 4096, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
+		{name: "invalid 2048", fanout: 2048, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 4096", fanout: 4096, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
 
 		// Invalid values - negative or zero
-		{name: "invalid 0", fanout: 0, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid -8", fanout: -8, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid -256", fanout: -256, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
+		{name: "invalid 0", fanout: 0, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid -8", fanout: -8, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid -256", fanout: -256, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
 	}
 
 	for _, tt := range tests {
