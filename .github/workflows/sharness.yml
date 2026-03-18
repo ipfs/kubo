@@ -90,7 +90,7 @@ jobs:
           destination: sharness.html
       - name: Upload one-page HTML report
         if: github.repository != 'ipfs/kubo' && (failure() || success())
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sharness.html
           path: kubo/test/sharness/test-results/sharness.html
@@ -110,7 +110,7 @@ jobs:
           destination: sharness-html/
       - name: Upload full HTML report
         if: github.repository != 'ipfs/kubo' && (failure() || success())
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sharness-html
           path: kubo/test/sharness/test-results/sharness-html

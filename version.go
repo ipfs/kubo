@@ -10,6 +10,12 @@ import (
 // CurrentCommit is the current git commit, this is set as a ldflag in the Makefile.
 var CurrentCommit string
 
+// taggedRelease is set via ldflag when building from a version-tagged commit
+// with a clean tree. When set, the commit hash is omitted from the libp2p
+// identify agent version and the HTTP user agent, since the version number
+// already identifies the exact source.
+var taggedRelease string
+
 // CurrentVersionNumber is the current application's version literal.
 const CurrentVersionNumber = "0.41.0-dev"
 
@@ -19,15 +25,20 @@ const ApiVersion = "/kubo/" + CurrentVersionNumber + "/" //nolint
 const RepoVersion = 18
 
 // GetUserAgentVersion is the libp2p user agent used by go-ipfs.
-//
-// Note: This will end in `/` when no commit is available. This is expected.
 func GetUserAgentVersion() string {
-	userAgent := "kubo/" + CurrentVersionNumber + "/" + CurrentCommit
+	// For tagged release builds with a clean tree, the commit hash is
+	// redundant since the version number identifies the exact source.
+	commit := CurrentCommit
+	if taggedRelease != "" {
+		commit = ""
+	}
+
+	userAgent := "kubo/" + CurrentVersionNumber
+	if commit != "" {
+		userAgent += "/" + commit
+	}
 	if userAgentSuffix != "" {
-		if CurrentCommit != "" {
-			userAgent += "/"
-		}
-		userAgent += userAgentSuffix
+		userAgent += "/" + userAgentSuffix
 	}
 	return cmdutils.CleanAndTrim(userAgent)
 }

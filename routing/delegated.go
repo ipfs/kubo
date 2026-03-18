@@ -160,12 +160,12 @@ func parse(visited map[string]bool,
 
 type ExtraHTTPParams struct {
 	PeerID        string
-	Addrs         []string
+	AddrFunc      func() []ma.Multiaddr // dynamic address resolver for provider records
 	PrivKeyB64    string
 	HTTPRetrieval bool
 }
 
-func ConstructHTTPRouter(endpoint string, peerID string, addrs []string, privKey string, httpRetrieval bool) (routing.Routing, error) {
+func ConstructHTTPRouter(endpoint string, peerID string, addrFunc func() []ma.Multiaddr, privKey string, httpRetrieval bool) (routing.Routing, error) {
 	return httpRoutingFromConfig(
 		config.Router{
 			Type: "http",
@@ -175,7 +175,7 @@ func ConstructHTTPRouter(endpoint string, peerID string, addrs []string, privKey
 		},
 		&ExtraHTTPParams{
 			PeerID:        peerID,
-			Addrs:         addrs,
+			AddrFunc:      addrFunc,
 			PrivKeyB64:    privKey,
 			HTTPRetrieval: httpRetrieval,
 		},
@@ -226,21 +226,28 @@ func httpRoutingFromConfig(conf config.Router, extraHTTP *ExtraHTTPParams) (rout
 		return nil, err
 	}
 
-	addrInfo, err := createAddrInfo(extraHTTP.PeerID, extraHTTP.Addrs)
+	protocols := config.DefaultHTTPRoutersFilterProtocols
+	if extraHTTP.HTTPRetrieval {
+		protocols = append(protocols, "transport-ipfs-gateway-http")
+	}
+
+	peerID, err := peer.Decode(extraHTTP.PeerID)
 	if err != nil {
 		return nil, err
 	}
 
-	protocols := config.DefaultHTTPRoutersFilterProtocols
-	if extraHTTP.HTTPRetrieval {
-		protocols = append(protocols, "transport-ipfs-gateway-http")
+	var providerInfoOpt drclient.Option
+	if extraHTTP.AddrFunc != nil {
+		providerInfoOpt = drclient.WithProviderInfoFunc(peerID, extraHTTP.AddrFunc)
+	} else {
+		providerInfoOpt = drclient.WithProviderInfo(peerID, nil)
 	}
 
 	cli, err := drclient.New(
 		params.Endpoint,
 		drclient.WithHTTPClient(delegateHTTPClient),
 		drclient.WithIdentity(key),
-		drclient.WithProviderInfo(addrInfo.ID, addrInfo.Addrs),
+		providerInfoOpt,
 		drclient.WithUserAgent(version.GetUserAgentVersion()),
 		drclient.WithProtocolFilter(protocols),
 		drclient.WithStreamResultsRequired(),       // https://specs.ipfs.tech/routing/http-routing-v1/#streaming
@@ -276,28 +283,6 @@ func decodePrivKey(keyB64 string) (ic.PrivKey, error) {
 	}
 
 	return ic.UnmarshalPrivateKey(pk)
-}
-
-func createAddrInfo(peerID string, addrs []string) (peer.AddrInfo, error) {
-	pID, err := peer.Decode(peerID)
-	if err != nil {
-		return peer.AddrInfo{}, err
-	}
-
-	var mas []ma.Multiaddr
-	for _, a := range addrs {
-		m, err := ma.NewMultiaddr(a)
-		if err != nil {
-			return peer.AddrInfo{}, err
-		}
-
-		mas = append(mas, m)
-	}
-
-	return peer.AddrInfo{
-		ID:    pID,
-		Addrs: mas,
-	}, nil
 }
 
 type ExtraDHTParams struct {

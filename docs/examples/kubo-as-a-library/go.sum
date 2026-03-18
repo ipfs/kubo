@@ -346,8 +346,8 @@ github.com/ipfs-shipyard/nopfs/ipfs v0.25.0 h1:OqNqsGZPX8zh3eFMO8Lf8EHRRnSGBMqcd
 github.com/ipfs-shipyard/nopfs/ipfs v0.25.0/go.mod h1:BxhUdtBgOXg1B+gAPEplkg/GpyTZY+kCMSfsJvvydqU=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.37.0 h1:2E3mZvydMI2t5IkAgtkmZ3sGsld0oS7o3I+xyzDk6uI=
-github.com/ipfs/boxo v0.37.0/go.mod h1:8yyiRn54F2CsW13n0zwXEPrVsZix/gFj9SYIRYMZ6KE=
+github.com/ipfs/boxo v0.37.1-0.20260317235537-851246983422 h1:yY3ot/DU1bqTzHDBARACM76Tbx9s4xzcRbzifG1e/es=
+github.com/ipfs/boxo v0.37.1-0.20260317235537-851246983422/go.mod h1:8yyiRn54F2CsW13n0zwXEPrVsZix/gFj9SYIRYMZ6KE=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-block-format v0.0.3/go.mod h1:4LmD4ZUw0mhO+JSKdpWwrzATiEfM7WWgQ8H5l6P8MVk=
@@ -401,8 +401,8 @@ github.com/ipfs/go-ipld-format v0.6.3 h1:9/lurLDTotJpZSuL++gh3sTdmcFhVkCwsgx2+rA
 github.com/ipfs/go-ipld-format v0.6.3/go.mod h1:74ilVN12NXVMIV+SrBAyC05UJRk0jVvGqdmrcYZvCBk=
 github.com/ipfs/go-ipld-git v0.1.1 h1:TWGnZjS0htmEmlMFEkA3ogrNCqWjIxwr16x1OsdhG+Y=
 github.com/ipfs/go-ipld-git v0.1.1/go.mod h1:+VyMqF5lMcJh4rwEppV0e6g4nCCHXThLYYDpKUkJubI=
-github.com/ipfs/go-ipld-legacy v0.2.2 h1:DThbqCPVLpWBcGtU23KDLiY2YRZZnTkXQyfz8aOfBkQ=
-github.com/ipfs/go-ipld-legacy v0.2.2/go.mod h1:hhkj+b3kG9b2BcUNw8IFYAsfeNo8E3U7eYlWeAOPyDU=
+github.com/ipfs/go-ipld-legacy v0.3.0 h1:7XhFKkRyCvP5upOlQfKUFIqL3S5DEZnbUE4bQmQ/tNE=
+github.com/ipfs/go-ipld-legacy v0.3.0/go.mod h1:Ukef9ARQiX+RVetwH2XiReLgJvQDEXcUPszrZ1KRjKI=
 github.com/ipfs/go-libdht v0.5.0 h1:ZN+eCqwahZvUeT0e4DsIxRtm78Mc9UR5tmZUiMsrGjQ=
 github.com/ipfs/go-libdht v0.5.0/go.mod h1:L3YiuFXecLeZZFuuVRM0hjg1GgVhARzUdahFsuqSa7w=
 github.com/ipfs/go-log v0.0.1/go.mod h1:kL1d2/hzSpI0thNYjiKfjanbVNU+IIGA/WnNESY9leM=

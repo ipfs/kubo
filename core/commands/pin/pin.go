@@ -570,7 +570,7 @@ func pinLsAll(req *cmds.Request, typeStr string, detailed bool, name string, api
 
 	opt, err := options.Pin.Ls.Type(typeStr)
 	if err != nil {
-		panic("unhandled pin type")
+		return err
 	}
 
 	pins := make(chan coreiface.Pin)

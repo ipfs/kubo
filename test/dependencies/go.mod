@@ -1,6 +1,6 @@
 module github.com/ipfs/kubo/test/dependencies
 
-go 1.26
+go 1.25.0
 
 replace github.com/ipfs/kubo => ../../
 
@@ -135,7 +135,7 @@ require (
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
-	github.com/ipfs/boxo v0.37.0 // indirect
+	github.com/ipfs/boxo v0.37.1-0.20260317235537-851246983422 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.3 // indirect
 	github.com/ipfs/go-cid v0.6.0 // indirect
@@ -145,7 +145,7 @@ require (
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
 	github.com/ipfs/go-ipld-format v0.6.3 // indirect
-	github.com/ipfs/go-ipld-legacy v0.2.2 // indirect
+	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-unixfsnode v1.10.3 // indirect
 	github.com/ipfs/kubo v0.31.0 // indirect

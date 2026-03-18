@@ -1,13 +1,13 @@
 module github.com/ipfs/kubo/examples/kubo-as-a-library
 
-go 1.26
+go 1.25.0
 
 // Used to keep this in sync with the current version of kubo. You should remove
 // this if you copy this example.
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.37.0
+	github.com/ipfs/boxo v0.37.1-0.20260317235537-851246983422
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.47.0
 	github.com/multiformats/go-multiaddr v0.16.1
@@ -92,7 +92,7 @@ require (
 	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
 	github.com/ipfs/go-ipld-format v0.6.3 // indirect
 	github.com/ipfs/go-ipld-git v0.1.1 // indirect
-	github.com/ipfs/go-ipld-legacy v0.2.2 // indirect
+	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
 	github.com/ipfs/go-libdht v0.5.0 // indirect
 	github.com/ipfs/go-log/v2 v2.9.1 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
