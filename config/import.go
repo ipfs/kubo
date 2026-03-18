@@ -102,10 +102,9 @@ func ValidateImportConfig(cfg *Import) error {
 	if !cfg.UnixFSHAMTDirectoryMaxFanout.IsDefault() {
 		fanout := cfg.UnixFSHAMTDirectoryMaxFanout.WithDefault(DefaultUnixFSHAMTDirectoryMaxFanout)
 
-		// Check all requirements: fanout < 8 covers both non-positive and non-multiple of 8
-		// Combined with power of 2 check and max limit, this ensures valid values: 8, 16, 32, 64, 128, 256, 512, 1024
+		// Valid values are powers of 2 between 8 and 1024: 8, 16, 32, 64, 128, 256, 512, 1024
 		if fanout < 8 || !isPowerOfTwo(fanout) || fanout > 1024 {
-			return fmt.Errorf("Import.UnixFSHAMTDirectoryMaxFanout must be a positive power of 2, multiple of 8, and not exceed 1024 (got %d)", fanout)
+			return fmt.Errorf("Import.UnixFSHAMTDirectoryMaxFanout must be a power of 2, between 8 and 1024 (got %d)", fanout)
 		}
 	}
 
