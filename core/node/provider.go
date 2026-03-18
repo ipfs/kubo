@@ -597,6 +597,11 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		// filesystem datastores under <repo>/{KeystoreDatastorePath}/. On first
 		// start with the new code, detect the upgrade (dir doesn't exist yet) and
 		// delete the stale keys.
+		//
+		// Safe against partial completion: this runs before createDs creates the
+		// keystoreBasePath directory, so if the process dies mid-purge, the
+		// directory won't exist and the purge re-runs on next start. The purge
+		// is idempotent (deleting already-deleted keys is a no-op).
 		if _, statErr := os.Stat(keystoreBasePath); os.IsNotExist(statErr) {
 			if purgeErr := purgeOrphanedKeystoreData(context.Background(), in.Repo.Datastore()); purgeErr != nil {
 				logger.Warnw("failed to purge orphaned provider keystore data from shared datastore", "error", purgeErr)
