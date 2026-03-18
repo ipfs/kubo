@@ -65,6 +65,17 @@ var (
 
 var errAcceleratedDHTNotReady = errors.New("AcceleratedDHTClient: routing table not ready")
 
+// validateKeystoreSuffix rejects any suffix other than "0" or "1".
+// The upstream library uses these two values as alternating namespace
+// identifiers. Validating here prevents accidental deletion of unrelated
+// directories via os.RemoveAll if the upstream ever changes its scheme.
+func validateKeystoreSuffix(suffix string) error {
+	if suffix != "0" && suffix != "1" {
+		return fmt.Errorf("unexpected keystore suffix %q, expected \"0\" or \"1\"", suffix)
+	}
+	return nil
+}
+
 // Interval between reprovide queue monitoring checks for slow reprovide alerts.
 // Used when Provide.DHT.SweepEnabled=true
 const reprovideAlertPollInterval = 15 * time.Minute
@@ -550,6 +561,9 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		keystoreBasePath := filepath.Join(repoPath, KeystoreDatastorePath)
 
 		createDs := func(suffix string) (datastore.Batching, error) {
+			if err := validateKeystoreSuffix(suffix); err != nil {
+				return nil, err
+			}
 			// When no datastore spec is configured (e.g., test/mock repos),
 			// fall back to an in-memory datastore.
 			if rootSpec == nil {
@@ -562,6 +576,9 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		}
 
 		destroyDs := func(suffix string) error {
+			if err := validateKeystoreSuffix(suffix); err != nil {
+				return err
+			}
 			return os.RemoveAll(filepath.Join(keystoreBasePath, suffix))
 		}
 
