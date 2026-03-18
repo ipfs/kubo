@@ -619,13 +619,19 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if err := os.MkdirAll(keystoreBasePath, 0o755); err != nil {
 				return nil, fmt.Errorf("creating keystore base directory: %w", err)
 			}
-			return openDatastoreAt(rootSpec, filepath.Join(keystoreBasePath, suffix))
+			ds, err := openDatastoreAt(rootSpec, filepath.Join(keystoreBasePath, suffix))
+			if err != nil {
+				return nil, err
+			}
+			logger.Infow("provider keystore: opened datastore", "suffix", suffix, "path", filepath.Join(keystoreBasePath, suffix))
+			return ds, nil
 		}
 
 		destroyDs := func(suffix string) error {
 			if err := validateKeystoreSuffix(suffix); err != nil {
 				return err
 			}
+			logger.Infow("provider keystore: removing datastore from disk", "suffix", suffix, "path", filepath.Join(keystoreBasePath, suffix))
 			return os.RemoveAll(filepath.Join(keystoreBasePath, suffix))
 		}
 
