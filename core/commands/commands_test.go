@@ -40,6 +40,7 @@ func TestCommands(t *testing.T) {
 		"/cid/codecs",
 		"/cid/format",
 		"/cid/hashes",
+		"/cid/inspect",
 		"/commands",
 		"/commands/completion",
 		"/commands/completion/bash",

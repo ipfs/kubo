@@ -404,14 +404,14 @@ var hashesCmd = &cmds.Command{
 
 // CidInspectRes represents the response from the inspect command.
 type CidInspectRes struct {
-	Cid        string            `json:"cid"`
-	Version    int               `json:"version"`
-	Multibase  *CidInspectBase   `json:"multibase,omitempty"`
-	Multicodec CidInspectCodec   `json:"multicodec"`
-	Multihash  CidInspectHash    `json:"multihash"`
-	CidV0      string            `json:"cidV0,omitempty"`
-	CidV1      string            `json:"cidV1"`
-	ErrorMsg   string            `json:"errorMsg,omitempty"`
+	Cid        string          `json:"cid"`
+	Version    int             `json:"version"`
+	Multibase  *CidInspectBase `json:"multibase,omitempty"`
+	Multicodec CidInspectCodec `json:"multicodec"`
+	Multihash  CidInspectHash  `json:"multihash"`
+	CidV0      string          `json:"cidV0,omitempty"`
+	CidV1      string          `json:"cidV1"`
+	ErrorMsg   string          `json:"errorMsg,omitempty"`
 }
 
 type CidInspectBase struct {
