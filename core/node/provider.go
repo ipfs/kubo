@@ -513,15 +513,17 @@ func purgeOrphanedKeystoreData(ctx context.Context, ds datastore.Batching) error
 	}
 	defer results.Close()
 
-	batch, err := ds.Batch(ctx)
-	if err != nil {
-		return fmt.Errorf("creating batch for orphaned keystore cleanup: %w", err)
-	}
-
+	var batch datastore.Batch
 	count := 0
 	for result := range results.Next() {
 		if result.Error != nil {
 			return fmt.Errorf("iterating orphaned keystore data: %w", result.Error)
+		}
+		if batch == nil {
+			batch, err = ds.Batch(ctx)
+			if err != nil {
+				return fmt.Errorf("creating batch for orphaned keystore cleanup: %w", err)
+			}
 		}
 		if err := batch.Delete(ctx, datastore.NewKey(result.Key)); err != nil {
 			return fmt.Errorf("batch deleting orphaned key %s: %w", result.Key, err)
