@@ -420,6 +420,10 @@ func findRootDatastoreSpec(spec map[string]any) map[string]any {
 		}
 		return spec
 	default:
+		if _, hasChild := spec["child"]; hasChild {
+			logger.Warnw("unrecognized datastore wrapper type, using as-is",
+				"type", spec["type"])
+		}
 		return spec
 	}
 }
