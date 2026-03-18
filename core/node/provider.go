@@ -450,6 +450,9 @@ func MountKeystoreDatastores(repo repo.Repo) ([]mount.Mount, func(), error) {
 		}
 		ds, err := openDatastoreAt(rootSpec, dir)
 		if err != nil {
+			for _, c := range closers {
+				c()
+			}
 			return nil, nil, err
 		}
 		prefix := providerDatastoreKey.Child(keystoreDatastoreKey).ChildString(suffix)
