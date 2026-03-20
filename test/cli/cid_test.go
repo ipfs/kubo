@@ -40,7 +40,7 @@ func testCidInspect(t *testing.T) {
 		assert.Contains(t, out, "Multicodec: dag-pb (0x70, implicit)")
 		assert.Contains(t, out, "Multihash:  sha2-256 (0x12, implicit)")
 		assert.Contains(t, out, "  Length:   32 bytes")
-		assert.Contains(t, out, "  Digest:   0xC3C4733EC8AFFD06CF9E9FF50FFC6BCD2EC85A6170004BB709669C31DE94391A")
+		assert.Contains(t, out, "  Digest:   c3c4733ec8affd06cf9e9ff50ffc6bcd2ec85a6170004bb709669c31de94391a")
 		assert.Contains(t, out, "CIDv0:      QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR")
 		assert.Contains(t, out, "CIDv1:      bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
 	})
@@ -55,7 +55,7 @@ func testCidInspect(t *testing.T) {
 		assert.Contains(t, out, "Multicodec: dag-pb (0x70)")
 		assert.Contains(t, out, "Multihash:  sha2-256 (0x12)")
 		assert.Contains(t, out, "  Length:   32 bytes")
-		assert.Contains(t, out, "  Digest:   0xC3C4733EC8AFFD06CF9E9FF50FFC6BCD2EC85A6170004BB709669C31DE94391A")
+		assert.Contains(t, out, "  Digest:   c3c4733ec8affd06cf9e9ff50ffc6bcd2ec85a6170004bb709669c31de94391a")
 		assert.NotContains(t, out, "implicit")
 		assert.Contains(t, out, "CIDv0:      QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR")
 		assert.Contains(t, out, "CIDv1:      bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
@@ -70,7 +70,7 @@ func testCidInspect(t *testing.T) {
 		assert.Contains(t, out, "Multicodec: raw (0x55)")
 		assert.Contains(t, out, "Multihash:  sha2-256 (0x12)")
 		assert.Contains(t, out, "  Length:   32 bytes")
-		assert.Contains(t, out, "  Digest:   0xC3C4733EC8AFFD06CF9E9FF50FFC6BCD2EC85A6170004BB709669C31DE94391A")
+		assert.Contains(t, out, "  Digest:   c3c4733ec8affd06cf9e9ff50ffc6bcd2ec85a6170004bb709669c31de94391a")
 		assert.Contains(t, out, "CIDv0:      not possible, requires dag-pb (0x70), got raw (0x55)")
 		assert.Contains(t, out, "CIDv1:      bafkreigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
 	})
@@ -82,7 +82,7 @@ func testCidInspect(t *testing.T) {
 		assert.Contains(t, out, "CID:        k2jmtxw8rjh1z69c6not3wtdxb0u3urbzhyll1t9jg6ox26dhi5sfi1m")
 		assert.Contains(t, out, "Multibase:  base36 (k)")
 		assert.Contains(t, out, "Multicodec: dag-pb (0x70)")
-		assert.Contains(t, out, "  Digest:   0xC3C4733EC8AFFD06CF9E9FF50FFC6BCD2EC85A6170004BB709669C31DE94391A")
+		assert.Contains(t, out, "  Digest:   c3c4733ec8affd06cf9e9ff50ffc6bcd2ec85a6170004bb709669c31de94391a")
 		assert.Contains(t, out, "CIDv0:      QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR")
 		assert.Contains(t, out, "CIDv1:      bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
 	})
@@ -119,7 +119,7 @@ func testCidInspect(t *testing.T) {
 	})
 
 	t.Run("identity multihash CID", func(t *testing.T) {
-		// raw codec + identity multihash: digest is the raw content ("test" = 0x74657374)
+		// raw codec + identity multihash: digest is the raw content ("test" = 74657374)
 		res := node.RunIPFS("cid", "inspect", "bafkqabdumvzxi")
 		assert.Equal(t, 0, res.ExitCode())
 		out := res.Stdout.String()
@@ -127,7 +127,7 @@ func testCidInspect(t *testing.T) {
 		assert.Contains(t, out, "Multicodec: raw (0x55)")
 		assert.Contains(t, out, "Multihash:  identity (0x0)")
 		assert.Contains(t, out, "  Length:   4 bytes")
-		assert.Contains(t, out, "  Digest:   0x74657374")
+		assert.Contains(t, out, "  Digest:   74657374")
 	})
 
 	t.Run("unknown codec", func(t *testing.T) {

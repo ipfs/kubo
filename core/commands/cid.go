@@ -511,7 +511,7 @@ Use --enc=json for machine-readable output same as the HTTP RPC API.
 			Code:   dmh.Code,
 			Name:   hashName,
 			Length: dmh.Length,
-			Digest: "0x" + strings.ToUpper(hex.EncodeToString(dmh.Digest)),
+			Digest: hex.EncodeToString(dmh.Digest),
 		}
 
 		// CIDv0: only possible with dag-pb + sha2-256-256
