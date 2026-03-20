@@ -52,10 +52,7 @@ func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blocks
 
 // Pinning creates new pinner which tells GC which blocks should be kept
 func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov DHTProvider) (pin.Pinner, error) {
-	// Parse strategy at function creation time (not inside the returned function)
-	// This happens before the provider is created, which is why we pass the strategy
-	// string and parse it here, rather than using fx-provided ProvidingStrategy.
-	strategyFlag := config.ParseProvideStrategy(strategy)
+	strategyFlag := config.MustParseProvideStrategy(strategy)
 
 	return func(bstore blockstore.Blockstore,
 		ds format.DAGService,
@@ -238,7 +235,7 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 		// strategy - it ensures all MFS content gets announced as it's added or
 		// modified. For non-mfs strategies, we set provider to nil to avoid
 		// unnecessary providing.
-		strategyFlag := config.ParseProvideStrategy(strategy)
+		strategyFlag := config.MustParseProvideStrategy(strategy)
 		if strategyFlag&config.ProvideStrategyMFS == 0 {
 			prov = nil
 		}

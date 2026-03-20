@@ -100,25 +100,55 @@ type ProvideDHT struct {
 	ResumeEnabled Flag `json:",omitempty"`
 }
 
-func ParseProvideStrategy(s string) ProvideStrategy {
+func ParseProvideStrategy(s string) (ProvideStrategy, error) {
 	var strategy ProvideStrategy
 	for part := range strings.SplitSeq(s, "+") {
 		switch part {
-		case "all", "flat", "": // special case, does not mix with others ("flat" is deprecated, maps to "all")
-			return ProvideStrategyAll
+		case "all", "flat":
+			strategy |= ProvideStrategyAll
+		case "":
+			// empty string (default config) maps to "all",
+			// but empty tokens from splitting (e.g. "pinned+") are invalid
+			if s == "" {
+				strategy |= ProvideStrategyAll
+			} else {
+				return 0, fmt.Errorf("invalid provide strategy: empty token in %q", s)
+			}
 		case "pinned":
 			strategy |= ProvideStrategyPinned
 		case "roots":
 			strategy |= ProvideStrategyRoots
 		case "mfs":
 			strategy |= ProvideStrategyMFS
+		default:
+			return 0, fmt.Errorf("unknown provide strategy token: %q in %q", part, s)
 		}
+	}
+	// "all" provides every block and cannot be combined with selective strategies
+	if strategy&ProvideStrategyAll != 0 && strategy != ProvideStrategyAll {
+		return 0, fmt.Errorf("\"all\" strategy cannot be combined with other strategies in %q", s)
+	}
+	return strategy, nil
+}
+
+// MustParseProvideStrategy is like ParseProvideStrategy but panics on error.
+// Use with strategy strings that have already been validated at startup.
+func MustParseProvideStrategy(s string) ProvideStrategy {
+	strategy, err := ParseProvideStrategy(s)
+	if err != nil {
+		panic(err)
 	}
 	return strategy
 }
 
 // ValidateProvideConfig validates the Provide configuration according to DHT requirements.
 func ValidateProvideConfig(cfg *Provide) error {
+	// Validate Provide.Strategy
+	strategy := cfg.Strategy.WithDefault(DefaultProvideStrategy)
+	if _, err := ParseProvideStrategy(strategy); err != nil {
+		return fmt.Errorf("Provide.Strategy: %w", err)
+	}
+
 	// Validate Provide.DHT.Interval
 	if !cfg.DHT.Interval.IsDefault() {
 		interval := cfg.DHT.Interval.WithDefault(DefaultProvideDHTInterval)
@@ -184,7 +214,7 @@ func ValidateProvideConfig(cfg *Provide) error {
 // ShouldProvideForStrategy determines if content should be provided based on the provide strategy
 // and content characteristics (pinned status, root status, MFS status).
 func ShouldProvideForStrategy(strategy ProvideStrategy, isPinned bool, isPinnedRoot bool, isMFS bool) bool {
-	if strategy == ProvideStrategyAll {
+	if strategy&ProvideStrategyAll != 0 {
 		// 'all' strategy: always provide
 		return true
 	}

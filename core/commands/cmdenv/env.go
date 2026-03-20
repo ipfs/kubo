@@ -156,7 +156,7 @@ func ExecuteFastProvide(
 
 	// Check if strategy allows providing this content
 	strategyStr := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
-	strategy := config.ParseProvideStrategy(strategyStr)
+	strategy := config.MustParseProvideStrategy(strategyStr)
 	shouldProvide := config.ShouldProvideForStrategy(strategy, isPinned, isPinnedRoot, isMFS)
 
 	if !shouldProvide {

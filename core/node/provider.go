@@ -1094,9 +1094,8 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 
 	providerStrategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 
-	strategyFlag := config.ParseProvideStrategy(providerStrategy)
-	if strategyFlag == 0 {
-		return fx.Error(fmt.Errorf("provider: unknown strategy %q", providerStrategy))
+	if _, err := config.ParseProvideStrategy(providerStrategy); err != nil {
+		return fx.Error(fmt.Errorf("provider: %w", err))
 	}
 
 	opts := []fx.Option{
@@ -1240,7 +1239,7 @@ func handleStrategyChange(strategy string, provider DHTProvider, ds datastore.Da
 }
 
 func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrategyOut {
-	strategyFlag := config.ParseProvideStrategy(strategy)
+	strategyFlag := config.MustParseProvideStrategy(strategy)
 
 	return func(in provStrategyIn) provStrategyOut {
 		// Create the appropriate key provider based on strategy
