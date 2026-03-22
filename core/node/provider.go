@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/ipfs/boxo/blockstore"
@@ -14,11 +16,13 @@ import (
 	"github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/mount"
 	"github.com/ipfs/go-datastore/namespace"
 	"github.com/ipfs/go-datastore/query"
 	log "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo/fsrepo"
 	irouting "github.com/ipfs/kubo/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/amino"
@@ -48,13 +52,29 @@ const (
 	// Datastore key used to store previous reprovide strategy.
 	reprovideStrategyKey = "/reprovideStrategy"
 
-	// Datastore namespace prefix for provider data.
-	providerDatastorePrefix = "provider"
-	// Datastore path for the provider keystore.
-	keystoreDatastorePath = "keystore"
+	// KeystoreDatastorePath is the base directory for the provider keystore datastores.
+	KeystoreDatastorePath = "provider-keystore"
+)
+
+var (
+	// Datastore namespace key for provider data.
+	providerDatastoreKey = datastore.NewKey("provider")
+	// Datastore namespace key for provider keystore data.
+	keystoreDatastoreKey = datastore.NewKey("keystore")
 )
 
 var errAcceleratedDHTNotReady = errors.New("AcceleratedDHTClient: routing table not ready")
+
+// validateKeystoreSuffix rejects any suffix other than "0" or "1".
+// The upstream library uses these two values as alternating namespace
+// identifiers. Validating here prevents accidental deletion of unrelated
+// directories via os.RemoveAll if the upstream ever changes its scheme.
+func validateKeystoreSuffix(suffix string) error {
+	if suffix != "0" && suffix != "1" {
+		return fmt.Errorf("unexpected keystore suffix %q, expected \"0\" or \"1\"", suffix)
+	}
+	return nil
+}
 
 // Interval between reprovide queue monitoring checks for slow reprovide alerts.
 // Used when Provide.DHT.SweepEnabled=true
@@ -369,19 +389,297 @@ type addrsFilter interface {
 	FilteredAddrs() []ma.Multiaddr
 }
 
+// findRootDatastoreSpec extracts the leaf datastore spec for the root ("/")
+// mount from the repo's Datastore.Spec config. It unwraps mount (picks the "/"
+// mountpoint), measure, and log wrappers to find the actual backend spec
+// (e.g., levelds, pebbleds).
+func findRootDatastoreSpec(spec map[string]any) map[string]any {
+	if spec == nil {
+		return nil
+	}
+	switch spec["type"] {
+	case "mount":
+		mounts, ok := spec["mounts"].([]any)
+		if !ok {
+			return spec
+		}
+		for _, m := range mounts {
+			mnt, ok := m.(map[string]any)
+			if !ok {
+				continue
+			}
+			if mnt["mountpoint"] == "/" {
+				return findRootDatastoreSpec(mnt)
+			}
+		}
+		// No root mount found; return nil so callers fall back gracefully
+		// (in-memory datastore or skip mounting) rather than passing a
+		// mount-type spec to openDatastoreAt which expects a leaf backend.
+		return nil
+	case "measure", "log":
+		if child, ok := spec["child"].(map[string]any); ok {
+			return findRootDatastoreSpec(child)
+		}
+		return spec
+	default:
+		if _, hasChild := spec["child"]; hasChild {
+			logger.Warnw("unrecognized datastore wrapper type, using as-is",
+				"type", spec["type"])
+		}
+		return spec
+	}
+}
+
+// MountKeystoreDatastores opens any provider keystore datastores that exist on
+// disk and returns them as mount.Mount entries ready to be combined with the
+// main repo datastore. The caller must call the returned cleanup function when
+// done. Returns nil mounts and a no-op closer if no keystores exist.
+func MountKeystoreDatastores(repo repo.Repo) ([]mount.Mount, func(), error) {
+	cfg, err := repo.Config()
+	if err != nil {
+		return nil, nil, fmt.Errorf("reading repo config: %w", err)
+	}
+
+	rootSpec := findRootDatastoreSpec(cfg.Datastore.Spec)
+	if rootSpec == nil {
+		return nil, func() {}, nil
+	}
+
+	keystoreBasePath := filepath.Join(repo.Path(), KeystoreDatastorePath)
+	var mounts []mount.Mount
+	var closers []func()
+
+	for _, suffix := range []string{"0", "1"} {
+		dir := filepath.Join(keystoreBasePath, suffix)
+		if _, err := os.Stat(dir); err != nil {
+			continue
+		}
+		ds, err := openDatastoreAt(rootSpec, dir)
+		if err != nil {
+			for _, c := range closers {
+				c()
+			}
+			return nil, nil, err
+		}
+		prefix := providerDatastoreKey.Child(keystoreDatastoreKey).ChildString(suffix)
+		mounts = append(mounts, mount.Mount{Prefix: prefix, Datastore: ds})
+		closers = append(closers, func() { ds.Close() })
+	}
+
+	closer := func() {
+		for _, c := range closers {
+			c()
+		}
+	}
+	return mounts, closer, nil
+}
+
+// openDatastoreAt opens a datastore using the given spec at the specified path.
+// It deep-copies the spec to avoid mutating the original.
+func openDatastoreAt(rootSpec map[string]any, path string) (datastore.Batching, error) {
+	spec := copySpec(rootSpec)
+	spec["path"] = path
+	dsc, err := fsrepo.AnyDatastoreConfig(spec)
+	if err != nil {
+		return nil, fmt.Errorf("creating datastore config for %s: %w", path, err)
+	}
+	return dsc.Create("")
+}
+
+// copySpec deep-copies a datastore spec map so modifications (e.g., changing
+// the path) don't affect the original.
+func copySpec(spec map[string]any) map[string]any {
+	if spec == nil {
+		return nil
+	}
+	cp := make(map[string]any, len(spec))
+	for k, v := range spec {
+		switch val := v.(type) {
+		case map[string]any:
+			cp[k] = copySpec(val)
+		case []any:
+			s := make([]any, len(val))
+			for i, elem := range val {
+				if m, ok := elem.(map[string]any); ok {
+					s[i] = copySpec(m)
+				} else {
+					s[i] = elem
+				}
+			}
+			cp[k] = s
+		default:
+			cp[k] = v
+		}
+	}
+	return cp
+}
+
+// purgeBatchSize is the number of keys deleted per batch commit during
+// orphaned keystore cleanup. Each commit is a cancellation checkpoint.
+const purgeBatchSize = 1 << 12 // 4096
+
+// purgeOrphanedKeystoreData deletes all keys under /provider/keystore/ from the
+// shared repo datastore. These were written by older Kubo versions that stored
+// provider keystore data inline in the shared datastore. The new code uses
+// separate filesystem datastores under <repo>/{KeystoreDatastorePath}/ instead.
+//
+// The operation is idempotent and safe to interrupt: partial completion is
+// fine because already-deleted keys are no-ops on re-run.
+func purgeOrphanedKeystoreData(ctx context.Context, ds datastore.Batching) error {
+	orphanedPrefix := providerDatastoreKey.Child(keystoreDatastoreKey).String()
+	syncKey := datastore.NewKey(orphanedPrefix)
+
+	results, err := ds.Query(ctx, query.Query{
+		Prefix:   orphanedPrefix,
+		KeysOnly: true,
+	})
+	if err != nil {
+		return fmt.Errorf("querying orphaned keystore data: %w", err)
+	}
+	defer results.Close()
+
+	var batch datastore.Batch
+	var count, pending int
+	for result := range results.Next() {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if result.Error != nil {
+			return fmt.Errorf("iterating orphaned keystore data: %w", result.Error)
+		}
+		if batch == nil {
+			batch, err = ds.Batch(ctx)
+			if err != nil {
+				return fmt.Errorf("creating batch for orphaned keystore cleanup: %w", err)
+			}
+		}
+		if err := batch.Delete(ctx, datastore.NewKey(result.Key)); err != nil {
+			return fmt.Errorf("batch deleting orphaned key %s: %w", result.Key, err)
+		}
+		count++
+		pending++
+		if pending >= purgeBatchSize {
+			if err := batch.Commit(ctx); err != nil {
+				return fmt.Errorf("committing orphaned keystore cleanup batch: %w", err)
+			}
+			if err := ds.Sync(ctx, syncKey); err != nil {
+				return fmt.Errorf("syncing orphaned keystore cleanup: %w", err)
+			}
+			batch = nil
+			pending = 0
+		}
+	}
+	if pending > 0 {
+		if err := batch.Commit(ctx); err != nil {
+			return fmt.Errorf("committing orphaned keystore cleanup batch: %w", err)
+		}
+		if err := ds.Sync(ctx, syncKey); err != nil {
+			return fmt.Errorf("syncing orphaned keystore cleanup: %w", err)
+		}
+	}
+	if count > 0 {
+		logger.Infow("purged orphaned provider keystore data from shared datastore", "keys", count)
+	}
+	return nil
+}
+
 func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
 	type providerInput struct {
 		fx.In
 		DHT  routing.Routing `name:"dhtc"`
 		Repo repo.Repo
+		Lc   fx.Lifecycle
 	}
 	sweepingReprovider := fx.Provide(func(in providerInput) (DHTProvider, *keystore.ResettableKeystore, error) {
-		ds := namespace.Wrap(in.Repo.Datastore(), datastore.NewKey(providerDatastorePrefix))
-		ks, err := keystore.NewResettableKeystore(ds,
-			keystore.WithPrefixBits(16),
-			keystore.WithDatastorePath(keystoreDatastorePath),
-			keystore.WithBatchSize(int(cfg.Provide.DHT.KeystoreBatchSize.WithDefault(config.DefaultProvideDHTKeystoreBatchSize))),
+		ds := namespace.Wrap(in.Repo.Datastore(), providerDatastoreKey)
+
+		// Get repo path and config to determine datastore type
+		repoPath := in.Repo.Path()
+		repoCfg, err := in.Repo.Config()
+		if err != nil {
+			return nil, nil, fmt.Errorf("getting repo config: %w", err)
+		}
+
+		// Find the root datastore type (levelds, pebbleds, etc.)
+		rootSpec := findRootDatastoreSpec(repoCfg.Datastore.Spec)
+
+		// Keystore datastores live at <repo>/{KeystoreDatastorePath}/<suffix>
+		keystoreBasePath := filepath.Join(repoPath, KeystoreDatastorePath)
+
+		createDs := func(suffix string) (datastore.Batching, error) {
+			if err := validateKeystoreSuffix(suffix); err != nil {
+				return nil, err
+			}
+			// When no datastore spec is configured (e.g., test/mock repos),
+			// fall back to an in-memory datastore.
+			if rootSpec == nil {
+				return datastore.NewMapDatastore(), nil
+			}
+			if err := os.MkdirAll(keystoreBasePath, 0o755); err != nil {
+				return nil, fmt.Errorf("creating keystore base directory: %w", err)
+			}
+			ds, err := openDatastoreAt(rootSpec, filepath.Join(keystoreBasePath, suffix))
+			if err != nil {
+				return nil, err
+			}
+			logger.Infow("provider keystore: opened datastore", "suffix", suffix, "path", filepath.Join(keystoreBasePath, suffix))
+			return ds, nil
+		}
+
+		destroyDs := func(suffix string) error {
+			if err := validateKeystoreSuffix(suffix); err != nil {
+				return err
+			}
+			logger.Infow("provider keystore: removing datastore from disk", "suffix", suffix, "path", filepath.Join(keystoreBasePath, suffix))
+			return os.RemoveAll(filepath.Join(keystoreBasePath, suffix))
+		}
+
+		// One-time cleanup of stale keystore data left by older Kubo in the
+		// shared repo datastore under /provider/keystore/. New code stores
+		// bulk key data in separate filesystem datastores under
+		// <repo>/{KeystoreDatastorePath}/ while still using the same
+		// /provider/keystore/ namespace in the shared datastore for metadata.
+		//
+		// The absence of the keystoreBasePath directory signals a first run
+		// after upgrade: the directory is created later by createDs on first
+		// use, so it doubles as a "cleanup done" flag. If the process dies
+		// mid-purge the directory still won't exist and the cleanup re-runs
+		// on next start (it is idempotent). Must run synchronously before
+		// NewResettableKeystore to avoid racing with reads on the same
+		// namespace.
+		if _, statErr := os.Stat(keystoreBasePath); os.IsNotExist(statErr) {
+			logger.Infow("migrating provider keystore data from shared datastore to separate filesystem datastores", "path", keystoreBasePath)
+			// Create a cancellable context for the purge. The OnStop hook
+			// below calls purgeCancel when the node receives a shutdown
+			// signal (e.g., SIGINT), which interrupts the purge loop
+			// instead of blocking indefinitely.
+			purgeCtx, purgeCancel := context.WithCancel(context.Background())
+			in.Lc.Append(fx.Hook{
+				OnStop: func(_ context.Context) error {
+					purgeCancel()
+					return nil
+				},
+			})
+			if purgeErr := purgeOrphanedKeystoreData(purgeCtx, in.Repo.Datastore()); purgeErr != nil {
+				if purgeCtx.Err() != nil {
+					logger.Infow("provider keystore migration interrupted by shutdown, will resume on next start")
+				} else {
+					logger.Warnw("provider keystore migration failed, will retry on next start", "error", purgeErr)
+				}
+			} else {
+				logger.Infow("provider keystore migration completed")
+			}
+			purgeCancel()
+		}
+
+		keystoreDs := namespace.Wrap(ds, keystoreDatastoreKey)
+		ks, err := keystore.NewResettableKeystore(keystoreDs,
+			keystore.WithDatastoreFactory(createDs, destroyDs),
+			keystore.KeystoreOption(
+				keystore.WithPrefixBits(16),
+				keystore.WithBatchSize(int(cfg.Provide.DHT.KeystoreBatchSize.WithDefault(config.DefaultProvideDHTKeystoreBatchSize))),
+			),
 		)
 		if err != nil {
 			return nil, nil, err
