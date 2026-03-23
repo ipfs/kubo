@@ -208,6 +208,56 @@ test_object_cmd() {
   test_expect_success "create bad path fails" '
     test_must_fail ipfs object patch $EMPTY add-link --create / $FILE
   '
+
+  # --- UnixFS validation for 'object patch rm-link' ---
+  # Same rationale as add-link: dagutils.Editor cannot update UnixFS metadata.
+
+  # 1) Bare dag-pb: rejected by default
+  test_expect_success "'ipfs object patch rm-link' rejects non-UnixFS dag-pb nodes" '
+    DAGPB_WITH_LINK=$(ipfs object patch $EMPTY_DIR add-link --allow-non-unixfs foo $EMPTY_UNIXFS_DIR) &&
+    test_expect_code 1 ipfs object patch $DAGPB_WITH_LINK rm-link foo 2>rmlink_dagpb_err
+  '
+
+  test_expect_success "rm-link error for non-UnixFS dag-pb has expected message" '
+    echo "Error: cannot remove links from a non-UnixFS dag-pb node; pass --allow-non-unixfs to skip validation" >rmlink_dagpb_expected &&
+    test_cmp rmlink_dagpb_expected rmlink_dagpb_err
+  '
+
+  test_expect_success "'ipfs object patch rm-link --allow-non-unixfs' works on dag-pb nodes" '
+    ipfs object patch $DAGPB_WITH_LINK rm-link --allow-non-unixfs foo
+  '
+
+  # 2) UnixFS File: rejected by default
+  test_expect_success "'ipfs object patch rm-link' rejects UnixFS File nodes" '
+    FILE_WITH_LINK=$(ipfs object patch $EMPTY_UNIXFS_FILE add-link --allow-non-unixfs foo $EMPTY_UNIXFS_DIR) &&
+    test_expect_code 1 ipfs object patch $FILE_WITH_LINK rm-link foo 2>rmlink_file_err
+  '
+
+  test_expect_success "rm-link error for UnixFS File has expected message" '
+    echo "Error: cannot remove links from a UnixFS File node, only Directory nodes support link removal at the dag-pb level (see https://specs.ipfs.tech/unixfs/)" >rmlink_file_expected &&
+    test_cmp rmlink_file_expected rmlink_file_err
+  '
+
+  test_expect_success "'ipfs object patch rm-link --allow-non-unixfs' bypasses check on File nodes" '
+    ipfs object patch $FILE_WITH_LINK rm-link --allow-non-unixfs foo
+  '
+
+  # 3) HAMTShard: rejected by default
+  test_expect_success "'ipfs object patch rm-link' rejects HAMTShard nodes" '
+    HAMT_WITH_LINK=$(ipfs object patch $EMPTY_HAMT add-link --allow-non-unixfs foo $EMPTY_UNIXFS_DIR) &&
+    test_expect_code 1 ipfs object patch $HAMT_WITH_LINK rm-link foo 2>rmlink_hamt_err
+  '
+
+  test_expect_success "rm-link error for HAMTShard has expected message" '
+    echo "Error: cannot remove links from a HAMTShard at the dag-pb level (would corrupt the HAMT bitfield); use '"'"'ipfs files rm'"'"' instead, or pass --allow-non-unixfs to override" >rmlink_hamt_expected &&
+    test_cmp rmlink_hamt_expected rmlink_hamt_err
+  '
+
+  test_expect_success "'ipfs object patch rm-link --allow-non-unixfs' bypasses check on HAMTShard" '
+    ipfs object patch $HAMT_WITH_LINK rm-link --allow-non-unixfs foo
+  '
+
+  # 4) UnixFS Directory: allowed (already tested above in existing rm-link tests)
 }
 
 # should work offline

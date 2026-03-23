@@ -54,12 +54,22 @@ var patchRmLinkCmd = &cmds.Command{
 		ShortDescription: `
 Remove a Merkle-link from the given object and return the hash of the result.
 
-DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
+DEPRECATED and provided for legacy reasons.
+
+This command operates at the dag-pb level and only supports removing links
+from small, flat UnixFS directories (not HAMTShard). Removing links from
+files or large sharded directories will produce invalid UnixFS structures.
+
+For working with any UnixFS directories (including large/sharded ones),
+use 'ipfs files rm' instead: 'ipfs files --help'.
 `,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "The hash of the node to modify."),
 		cmds.StringArg("name", true, false, "Name of the link to remove."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(allowNonUnixFSOptionName, "", "Skip UnixFS validation, allowing link removal on non-directory nodes."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -73,7 +83,9 @@ DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
 		}
 
 		name := req.Arguments[1]
-		p, err := api.Object().RmLink(req.Context, root, name)
+		allowNonUnixFS, _ := req.Options[allowNonUnixFSOptionName].(bool)
+		p, err := api.Object().RmLink(req.Context, root, name,
+			options.Object.RmLinkSkipUnixFSValidation(allowNonUnixFS))
 		if err != nil {
 			return err
 		}
