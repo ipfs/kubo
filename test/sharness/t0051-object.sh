@@ -33,20 +33,21 @@ test_object_cmd() {
   EMPTY_UNIXFS_DIR=$(echo '{"Data":{"/":{"bytes":"CAE"}},"Links":[]}' | ipfs dag put --store-codec dag-pb)
   # Empty UnixFS file (QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH)
   EMPTY_UNIXFS_FILE=$(echo -n | ipfs add -q)
+  # Empty HAMTShard (Type=HAMTShard, HashType=0x22, Fanout=256)
+  EMPTY_HAMT=$(echo '{"Data":{"/":{"bytes":"CAUoIjCAAg"}},"Links":[]}' | ipfs dag put --store-codec dag-pb)
 
   # --- UnixFS validation for 'object patch add-link' ---
-  # Only UnixFS Directory/HAMTShard nodes support named links per the spec:
+  # 'object patch' operates at the dag-pb level via dagutils.Editor, which
+  # only manipulates ProtoNode links without updating UnixFS metadata.
+  # Only plain UnixFS Directory nodes are safe to mutate this way.
   # https://specs.ipfs.tech/unixfs/#pbnode-links-name
-  #
-  # Adding named links to a File node silently produces an invalid DAG:
-  # 'ipfs cat' interprets the added links as file chunks, so the original
-  # file content is lost on read-back. This is the bug reported in:
   # https://github.com/ipfs/kubo/issues/7190
   #
-  # Three root node types tested below:
+  # Four root node types tested below:
   #   1) bare dag-pb (no UnixFS data)  -- rejected
   #   2) UnixFS File                   -- rejected (prevents data loss)
-  #   3) UnixFS Directory              -- allowed
+  #   3) HAMTShard                     -- rejected (corrupts HAMT bitfield)
+  #   4) UnixFS Directory              -- allowed
 
   # Reproduce https://github.com/ipfs/kubo/issues/7190:
   # adding a named link to a File node must be rejected to prevent data loss.
@@ -55,7 +56,8 @@ test_object_cmd() {
     ORIGINAL_CID=$(ipfs add -q original.txt) &&
     CHILD_CID=$(echo "child" | ipfs add -q) &&
     test_expect_code 1 ipfs object patch $ORIGINAL_CID add-link "child.txt" $CHILD_CID 2>patch_7190_err &&
-    grep "cannot add named links to a UnixFS File" patch_7190_err &&
+    echo "Error: cannot add named links to a UnixFS File node, only Directory nodes support link addition at the dag-pb level (see https://specs.ipfs.tech/unixfs/)" >patch_7190_expected &&
+    test_cmp patch_7190_expected patch_7190_err &&
     # verify the original file is still intact
     ipfs cat $ORIGINAL_CID > original_readback.txt &&
     test_cmp original.txt original_readback.txt
@@ -66,8 +68,9 @@ test_object_cmd() {
     test_expect_code 1 ipfs object patch $EMPTY_DIR add-link foo $EMPTY_UNIXFS_DIR 2>patch_dagpb_err
   '
 
-  test_expect_success "error mentions non-UnixFS dag-pb" '
-    grep "non-UnixFS dag-pb node" patch_dagpb_err
+  test_expect_success "add-link error for non-UnixFS dag-pb has expected message" '
+    echo "Error: cannot add named links to a non-UnixFS dag-pb node; pass --allow-non-unixfs to skip validation" >patch_dagpb_expected &&
+    test_cmp patch_dagpb_expected patch_dagpb_err
   '
 
   test_expect_success "'ipfs object patch add-link --allow-non-unixfs' works on dag-pb nodes" '
@@ -80,15 +83,30 @@ test_object_cmd() {
     test_expect_code 1 ipfs object patch $EMPTY_UNIXFS_FILE add-link foo $EMPTY_UNIXFS_DIR 2>patch_file_err
   '
 
-  test_expect_success "error mentions UnixFS type" '
-    grep "cannot add named links to a UnixFS" patch_file_err
+  test_expect_success "add-link error for UnixFS File has expected message" '
+    echo "Error: cannot add named links to a UnixFS File node, only Directory nodes support link addition at the dag-pb level (see https://specs.ipfs.tech/unixfs/)" >patch_file_expected &&
+    test_cmp patch_file_expected patch_file_err
   '
 
   test_expect_success "'ipfs object patch add-link --allow-non-unixfs' bypasses check on File nodes" '
     ipfs object patch $EMPTY_UNIXFS_FILE add-link --allow-non-unixfs foo $EMPTY_UNIXFS_DIR
   '
 
-  # 3) UnixFS Directory (QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn): allowed
+  # 3) HAMTShard: rejected (dag-pb level mutation corrupts HAMT bitfield)
+  test_expect_success "'ipfs object patch add-link' rejects HAMTShard nodes" '
+    test_expect_code 1 ipfs object patch $EMPTY_HAMT add-link foo $EMPTY_UNIXFS_DIR 2>patch_hamt_err
+  '
+
+  test_expect_success "add-link error for HAMTShard has expected message" '
+    echo "Error: cannot add links to a HAMTShard at the dag-pb level (would corrupt the HAMT bitfield); use '"'"'ipfs files'"'"' commands instead, or pass --allow-non-unixfs to override" >patch_hamt_expected &&
+    test_cmp patch_hamt_expected patch_hamt_err
+  '
+
+  test_expect_success "'ipfs object patch add-link --allow-non-unixfs' bypasses check on HAMTShard" '
+    ipfs object patch $EMPTY_HAMT add-link --allow-non-unixfs foo $EMPTY_UNIXFS_DIR
+  '
+
+  # 4) UnixFS Directory (QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn): allowed
   test_expect_success "'ipfs object patch add-link' works on UnixFS Directory nodes" '
     OUTPUT=$(ipfs object patch $EMPTY_UNIXFS_DIR add-link foo $EMPTY_UNIXFS_DIR) &&
     ipfs dag stat $OUTPUT

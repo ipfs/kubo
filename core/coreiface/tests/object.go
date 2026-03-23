@@ -129,17 +129,33 @@ func (tp *TestSuite) TestObjectAddLinkValidation(t *testing.T) {
 	filePath := path.FromCid(fileNode.Cid())
 
 	_, err = api.Object().AddLink(ctx, filePath, "foo", child)
-	require.ErrorContains(t, err, "cannot add named links to a UnixFS File")
+	require.ErrorContains(t, err, "cannot add named links to a UnixFS File node, only Directory nodes support link addition at the dag-pb level")
 
 	// UnixFS File with SkipUnixFSValidation: allowed (user takes responsibility)
 	_, err = api.Object().AddLink(ctx, filePath, "foo", child, opt.Object.SkipUnixFSValidation(true))
+	require.NoError(t, err)
+
+	// HAMTShard: rejected (dag-pb level mutation corrupts HAMT bitfield)
+	hamtData, err := ft.HAMTShardData(nil, 256, 0x22)
+	require.NoError(t, err)
+	hamtNode := new(dag.ProtoNode)
+	hamtNode.SetData(hamtData)
+	err = api.Dag().Add(ctx, hamtNode)
+	require.NoError(t, err)
+	hamtPath := path.FromCid(hamtNode.Cid())
+
+	_, err = api.Object().AddLink(ctx, hamtPath, "foo", child)
+	require.ErrorContains(t, err, "cannot add links to a HAMTShard at the dag-pb level (would corrupt the HAMT bitfield); use 'ipfs files' commands instead, or pass --allow-non-unixfs to override")
+
+	// HAMTShard with SkipUnixFSValidation: allowed
+	_, err = api.Object().AddLink(ctx, hamtPath, "foo", child, opt.Object.SkipUnixFSValidation(true))
 	require.NoError(t, err)
 
 	// Raw dag-pb (no UnixFS data): rejected
 	rawPb := putDagPbNode(t, ctx, api, "", nil)
 
 	_, err = api.Object().AddLink(ctx, rawPb, "foo", child)
-	require.ErrorContains(t, err, "non-UnixFS dag-pb node")
+	require.ErrorContains(t, err, "cannot add named links to a non-UnixFS dag-pb node; pass --allow-non-unixfs to skip validation")
 
 	// Raw dag-pb with SkipUnixFSValidation: allowed
 	_, err = api.Object().AddLink(ctx, rawPb, "foo", child, opt.Object.SkipUnixFSValidation(true))

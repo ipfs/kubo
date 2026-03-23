@@ -107,14 +107,19 @@ Add a Merkle-link to the given object and return the hash of the result.
 
 DEPRECATED and provided for legacy reasons.
 
-Use MFS and 'files' commands instead:
+This command operates at the dag-pb level and only supports adding links
+to small, flat UnixFS directories (not HAMTShard). Adding links to files
+or large sharded directories will produce invalid UnixFS structures.
+
+For working with any UnixFS directories (including large/sharded ones),
+use MFS and 'files' commands instead: 'ipfs files --help'.
 
   $ ipfs files cp /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn /some-dir
   $ ipfs files cp /ipfs/Qmayz4F4UzqcAMitTzU4zCSckDofvxstDuj3y7ajsLLEVs /some-dir/added-file.jpg
   $ ipfs files stat --hash /some-dir
 
   The above will add 'added-file.jpg' to the directory placed under /some-dir
-  and the CID of updated directory is returned by 'files stat'
+  and the CID of updated directory is returned by 'files stat'.
 
   'files cp' does not download the data, only the root block, which makes it
   possible to build arbitrary directory trees without fetching them in full to

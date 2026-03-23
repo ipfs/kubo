@@ -57,10 +57,11 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 		return path.ImmutablePath{}, dag.ErrNotProtobuf
 	}
 
-	// Only UnixFS Directory/HAMTShard nodes support named links per spec.
-	// Adding named links to a File node silently produces an invalid DAG:
-	// the original file content is lost because 'ipfs cat' interprets the
-	// added links as file chunks instead of the original data.
+	// This command operates at the dag-pb level via dagutils.Editor, which
+	// only manipulates ProtoNode links without updating UnixFS metadata.
+	// Only plain UnixFS Directory nodes are safe to mutate this way.
+	// File nodes: adding links corrupts Blocksizes, content lost on read-back.
+	// HAMTShard nodes: bitfield not updated, shard trie becomes inconsistent.
 	// https://specs.ipfs.tech/unixfs/#pbnode-links-name
 	// https://github.com/ipfs/kubo/issues/7190
 	if !options.SkipUnixFSValidation {
@@ -71,12 +72,17 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 					"pass --allow-non-unixfs to skip validation")
 		}
 		switch fsNode.Type() {
-		case ft.TDirectory, ft.THAMTShard:
-			// directories support named links, proceed
+		case ft.TDirectory:
+			// plain directories: safe, no link-count metadata to desync
+		case ft.THAMTShard:
+			return path.ImmutablePath{}, fmt.Errorf(
+				"cannot add links to a HAMTShard at the dag-pb level " +
+					"(would corrupt the HAMT bitfield); use 'ipfs files' " +
+					"commands instead, or pass --allow-non-unixfs to override")
 		default:
 			return path.ImmutablePath{}, fmt.Errorf(
 				"cannot add named links to a UnixFS %s node, "+
-					"only Directory and HAMTShard support named links "+
+					"only Directory nodes support link addition at the dag-pb level "+
 					"(see https://specs.ipfs.tech/unixfs/)",
 				fsNode.Type())
 		}
