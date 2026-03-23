@@ -24,6 +24,7 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 	var out objectOut
 	err = api.core().Request("object/patch/add-link", base.String(), name, child.String()).
 		Option("create", options.Create).
+		Option("allow-non-unixfs", options.SkipUnixFSValidation).
 		Exec(ctx, &out)
 	if err != nil {
 		return path.ImmutablePath{}, err

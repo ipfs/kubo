@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	ft "github.com/ipfs/boxo/ipld/unixfs"
 	"github.com/ipfs/boxo/path"
 	ipld "github.com/ipfs/go-ipld-format"
 	iface "github.com/ipfs/kubo/core/coreiface"
@@ -22,6 +23,7 @@ func (tp *TestSuite) TestObject(t *testing.T) {
 
 	t.Run("TestObjectAddLink", tp.TestObjectAddLink)
 	t.Run("TestObjectAddLinkCreate", tp.TestObjectAddLinkCreate)
+	t.Run("TestObjectAddLinkValidation", tp.TestObjectAddLinkValidation)
 	t.Run("TestObjectRmLink", tp.TestObjectRmLink)
 	t.Run("TestDiffTest", tp.TestDiffTest)
 }
@@ -58,7 +60,8 @@ func (tp *TestSuite) TestObjectAddLink(t *testing.T) {
 		},
 	})
 
-	p3, err := api.Object().AddLink(ctx, p2, "abc", p2)
+	// Raw dag-pb nodes require SkipUnixFSValidation since they have no UnixFS metadata
+	p3, err := api.Object().AddLink(ctx, p2, "abc", p2, opt.Object.SkipUnixFSValidation(true))
 	require.NoError(t, err)
 
 	nd, err := api.Dag().Get(ctx, p3.RootCid())
@@ -84,10 +87,11 @@ func (tp *TestSuite) TestObjectAddLinkCreate(t *testing.T) {
 		},
 	})
 
-	_, err = api.Object().AddLink(ctx, p2, "abc/d", p2)
+	// Raw dag-pb nodes require SkipUnixFSValidation since they have no UnixFS metadata
+	_, err = api.Object().AddLink(ctx, p2, "abc/d", p2, opt.Object.SkipUnixFSValidation(true))
 	require.ErrorContains(t, err, "no link by that name")
 
-	p3, err := api.Object().AddLink(ctx, p2, "abc/d", p2, opt.Object.Create(true))
+	p3, err := api.Object().AddLink(ctx, p2, "abc/d", p2, opt.Object.Create(true), opt.Object.SkipUnixFSValidation(true))
 	require.NoError(t, err)
 
 	nd, err := api.Dag().Get(ctx, p3.RootCid())
@@ -97,6 +101,49 @@ func (tp *TestSuite) TestObjectAddLinkCreate(t *testing.T) {
 	require.Len(t, links, 2)
 	require.Equal(t, "abc", links[0].Name)
 	require.Equal(t, "bar", links[1].Name)
+}
+
+// TestObjectAddLinkValidation verifies that AddLink rejects non-directory
+// nodes by default, preventing the data-loss bug in
+// https://github.com/ipfs/kubo/issues/7190
+func (tp *TestSuite) TestObjectAddLinkValidation(t *testing.T) {
+	ctx := t.Context()
+	api, err := tp.makeAPI(t, ctx)
+	require.NoError(t, err)
+
+	child := putDagPbNode(t, ctx, api, "child", nil)
+
+	// UnixFS Directory: allowed
+	dirNode := ft.EmptyDirNode()
+	err = api.Dag().Add(ctx, dirNode)
+	require.NoError(t, err)
+	dirPath := path.FromCid(dirNode.Cid())
+
+	_, err = api.Object().AddLink(ctx, dirPath, "foo", child)
+	require.NoError(t, err)
+
+	// UnixFS File: rejected (would cause data loss on read-back)
+	fileNode := ft.EmptyFileNode()
+	err = api.Dag().Add(ctx, fileNode)
+	require.NoError(t, err)
+	filePath := path.FromCid(fileNode.Cid())
+
+	_, err = api.Object().AddLink(ctx, filePath, "foo", child)
+	require.ErrorContains(t, err, "cannot add named links to a UnixFS File")
+
+	// UnixFS File with SkipUnixFSValidation: allowed (user takes responsibility)
+	_, err = api.Object().AddLink(ctx, filePath, "foo", child, opt.Object.SkipUnixFSValidation(true))
+	require.NoError(t, err)
+
+	// Raw dag-pb (no UnixFS data): rejected
+	rawPb := putDagPbNode(t, ctx, api, "", nil)
+
+	_, err = api.Object().AddLink(ctx, rawPb, "foo", child)
+	require.ErrorContains(t, err, "non-UnixFS dag-pb node")
+
+	// Raw dag-pb with SkipUnixFSValidation: allowed
+	_, err = api.Object().AddLink(ctx, rawPb, "foo", child, opt.Object.SkipUnixFSValidation(true))
+	require.NoError(t, err)
 }
 
 func (tp *TestSuite) TestObjectRmLink(t *testing.T) {

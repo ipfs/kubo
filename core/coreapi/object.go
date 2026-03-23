@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"fmt"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/merkledag/dagutils"
@@ -54,6 +55,31 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 	basePb, ok := baseNd.(*dag.ProtoNode)
 	if !ok {
 		return path.ImmutablePath{}, dag.ErrNotProtobuf
+	}
+
+	// Only UnixFS Directory/HAMTShard nodes support named links per spec.
+	// Adding named links to a File node silently produces an invalid DAG:
+	// the original file content is lost because 'ipfs cat' interprets the
+	// added links as file chunks instead of the original data.
+	// https://specs.ipfs.tech/unixfs/#pbnode-links-name
+	// https://github.com/ipfs/kubo/issues/7190
+	if !options.SkipUnixFSValidation {
+		fsNode, err := ft.FSNodeFromBytes(basePb.Data())
+		if err != nil {
+			return path.ImmutablePath{}, fmt.Errorf(
+				"cannot add named links to a non-UnixFS dag-pb node; " +
+					"pass --allow-non-unixfs to skip validation")
+		}
+		switch fsNode.Type() {
+		case ft.TDirectory, ft.THAMTShard:
+			// directories support named links, proceed
+		default:
+			return path.ImmutablePath{}, fmt.Errorf(
+				"cannot add named links to a UnixFS %s node, "+
+					"only Directory and HAMTShard support named links "+
+					"(see https://specs.ipfs.tech/unixfs/)",
+				fsNode.Type())
+		}
 	}
 
 	var createfunc func() *dag.ProtoNode

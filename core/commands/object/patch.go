@@ -94,7 +94,8 @@ DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
 }
 
 const (
-	createOptionName = "create"
+	createOptionName         = "create"
+	allowNonUnixFSOptionName = "allow-non-unixfs"
 )
 
 var patchAddLinkCmd = &cmds.Command{
@@ -127,6 +128,7 @@ Use MFS and 'files' commands instead:
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(createOptionName, "p", "Create intermediary nodes."),
+		cmds.BoolOption(allowNonUnixFSOptionName, "", "Skip UnixFS validation, allowing links on non-directory nodes."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -150,9 +152,11 @@ Use MFS and 'files' commands instead:
 		if err != nil {
 			return err
 		}
+		allowNonUnixFS, _ := req.Options[allowNonUnixFSOptionName].(bool)
 
 		p, err := api.Object().AddLink(req.Context, root, name, child,
-			options.Object.Create(create))
+			options.Object.Create(create),
+			options.Object.SkipUnixFSValidation(allowNonUnixFS))
 		if err != nil {
 			return err
 		}
