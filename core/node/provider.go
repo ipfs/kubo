@@ -1224,6 +1224,40 @@ func uniqueMFSProvider(mfsRoot *mfs.Root, bs blockstore.Blockstore, tracker walk
 	}
 }
 
+// mfsEntityRootsProvider is the +entities counterpart of
+// uniqueMFSProvider. It walks the MFS DAG using WalkEntityRoots,
+// emitting only entity roots (files, directories, HAMT shards) and
+// skipping internal file chunks.
+func mfsEntityRootsProvider(mfsRoot *mfs.Root, bs blockstore.Blockstore, tracker walker.VisitedTracker) provider.KeyChanFunc {
+	return func(ctx context.Context) (<-chan cid.Cid, error) {
+		if err := mfsRoot.FlushMemFree(ctx); err != nil {
+			return nil, fmt.Errorf("provider: error flushing MFS: %w", err)
+		}
+		rootNode, err := mfsRoot.GetDirectory().GetNode()
+		if err != nil {
+			return nil, fmt.Errorf("provider: error loading MFS root: %w", err)
+		}
+
+		ch := make(chan cid.Cid)
+		go func() {
+			defer close(ch)
+			fetch := walker.NodeFetcherFromBlockstore(bs)
+			locality := func(ctx context.Context, c cid.Cid) (bool, error) {
+				return bs.Has(ctx, c)
+			}
+			walker.WalkEntityRoots(ctx, rootNode.Cid(), fetch, func(c cid.Cid) bool {
+				select {
+				case ch <- c:
+					return true
+				case <-ctx.Done():
+					return false
+				}
+			}, walker.WithVisitedTracker(tracker), walker.WithLocality(locality))
+		}()
+		return ch, nil
+	}
+}
+
 // createKeyProvider creates the appropriate KeyChanFunc based on strategy.
 func createKeyProvider(strategyFlag config.ProvideStrategy, in provStrategyIn) provider.KeyChanFunc {
 	// +unique modifier: use bloom filter cross-DAG dedup
@@ -1256,6 +1290,18 @@ func createKeyProvider(strategyFlag config.ProvideStrategy, in provStrategyIn) p
 				return nil, fmt.Errorf("bloom tracker: %w", err)
 			}
 
+			useEntities := strategyFlag&config.ProvideStrategyEntities != 0
+
+			// select provider functions based on +entities modifier:
+			// +entities uses WalkEntityRoots (skips file chunks),
+			// +unique without +entities uses WalkDAG (all blocks).
+			makePinProv := dspinner.NewUniquePinnedProvider
+			makeMFSProv := uniqueMFSProvider
+			if useEntities {
+				makePinProv = dspinner.NewPinnedEntityRootsProvider
+				makeMFSProv = mfsEntityRootsProvider
+			}
+
 			var inner provider.KeyChanFunc
 			switch {
 			case basePinned && baseMFS:
@@ -1263,20 +1309,18 @@ func createKeyProvider(strategyFlag config.ProvideStrategy, in provStrategyIn) p
 				// NewConcatProvider (not NewPrioritizedProvider) because
 				// the shared bloom tracker already guarantees each CID
 				// is emitted at most once -- no need for a second dedup
-				// layer.
+				// layer. NewBufferedProvider decouples the pinned
+				// provider so the pinner lock is released promptly.
 				inner = provider.NewConcatProvider(
-					uniqueMFSProvider(in.MFSRoot, in.Blockstore, tracker),
-					// NewBufferedProvider decouples the pinned provider
-					// from the channel consumer so the pinner lock is
-					// released promptly.
+					makeMFSProv(in.MFSRoot, in.Blockstore, tracker),
 					provider.NewBufferedProvider(
-						dspinner.NewUniquePinnedProvider(in.Pinner, in.Blockstore, tracker)),
+						makePinProv(in.Pinner, in.Blockstore, tracker)),
 				)
 			case basePinned:
 				inner = provider.NewBufferedProvider(
-					dspinner.NewUniquePinnedProvider(in.Pinner, in.Blockstore, tracker))
+					makePinProv(in.Pinner, in.Blockstore, tracker))
 			case baseMFS:
-				inner = uniqueMFSProvider(in.MFSRoot, in.Blockstore, tracker)
+				inner = makeMFSProv(in.MFSRoot, in.Blockstore, tracker)
 			default:
 				return nil, fmt.Errorf("provider: +unique requires pinned and/or mfs")
 			}
