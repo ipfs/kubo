@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ipfs/boxo/blockstore"
+	"github.com/ipfs/boxo/dag/walker"
 	"github.com/ipfs/boxo/fetcher"
 	"github.com/ipfs/boxo/mfs"
 	pin "github.com/ipfs/boxo/pinning/pinner"
@@ -54,6 +56,11 @@ const (
 
 	// KeystoreDatastorePath is the base directory for the provider keystore datastores.
 	KeystoreDatastorePath = "provider-keystore"
+
+	// reprovideLastUniqueCountKey stores the unique CID count from
+	// the last +unique reprovide cycle, used to size the next cycle's
+	// bloom filter.
+	reprovideLastUniqueCountKey = "/reprovideLastUniqueCount"
 )
 
 var (
@@ -1161,13 +1168,151 @@ type provStrategyOut struct {
 	ProvidingKeyChanFunc provider.KeyChanFunc
 }
 
+// readLastUniqueCount reads the persisted unique CID count from the
+// previous +unique reprovide cycle. Returns 0 if not found or corrupt.
+func readLastUniqueCount(ds datastore.Datastore) uint64 {
+	val, err := ds.Get(context.Background(), datastore.NewKey(reprovideLastUniqueCountKey))
+	if err != nil {
+		return 0
+	}
+	if len(val) != 8 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(val)
+}
+
+// persistUniqueCount stores the unique CID count for the next cycle.
+func persistUniqueCount(ds datastore.Datastore, count uint64) {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, count)
+	if err := ds.Put(context.Background(), datastore.NewKey(reprovideLastUniqueCountKey), buf); err != nil {
+		logger.Errorf("failed to persist unique count: %s", err)
+	}
+}
+
+// uniqueMFSProvider is the +unique counterpart of mfsProvider. It
+// flushes the MFS root, then walks the MFS DAG using WalkDAG with a
+// shared VisitedTracker and a locality check (blockstore.Has) so only
+// locally-present blocks are emitted.
+func uniqueMFSProvider(mfsRoot *mfs.Root, bs blockstore.Blockstore, tracker walker.VisitedTracker) provider.KeyChanFunc {
+	return func(ctx context.Context) (<-chan cid.Cid, error) {
+		if err := mfsRoot.FlushMemFree(ctx); err != nil {
+			return nil, fmt.Errorf("provider: error flushing MFS: %w", err)
+		}
+		rootNode, err := mfsRoot.GetDirectory().GetNode()
+		if err != nil {
+			return nil, fmt.Errorf("provider: error loading MFS root: %w", err)
+		}
+
+		ch := make(chan cid.Cid)
+		go func() {
+			defer close(ch)
+			fetch := walker.LinksFetcherFromBlockstore(bs)
+			locality := func(ctx context.Context, c cid.Cid) (bool, error) {
+				return bs.Has(ctx, c)
+			}
+			walker.WalkDAG(ctx, rootNode.Cid(), fetch, func(c cid.Cid) bool {
+				select {
+				case ch <- c:
+					return true
+				case <-ctx.Done():
+					return false
+				}
+			}, walker.WithVisitedTracker(tracker), walker.WithLocality(locality))
+		}()
+		return ch, nil
+	}
+}
+
 // createKeyProvider creates the appropriate KeyChanFunc based on strategy.
-// Each strategy has different behavior:
-// - "roots": Only root CIDs of pinned content
-// - "pinned": All pinned content (roots + children)
-// - "mfs": Only MFS content
-// - "all": all blocks
 func createKeyProvider(strategyFlag config.ProvideStrategy, in provStrategyIn) provider.KeyChanFunc {
+	// +unique modifier: use bloom filter cross-DAG dedup
+	useUnique := strategyFlag&config.ProvideStrategyUnique != 0
+	if useUnique {
+		basePinned := strategyFlag&config.ProvideStrategyPinned != 0
+		baseMFS := strategyFlag&config.ProvideStrategyMFS != 0
+		ds := in.Repo.Datastore()
+
+		// return a KeyChanFunc that creates a fresh bloom each cycle
+		return func(ctx context.Context) (<-chan cid.Cid, error) {
+			count := readLastUniqueCount(ds)
+			// size the bloom from the previous cycle's count (with growth
+			// margin for repo changes between cycles), falling back to
+			// DefaultBloomInitialCapacity on the very first cycle. The
+			// bloom chain auto-grows if the repo exceeds this estimate.
+			expectedItems := max(
+				uint64(walker.DefaultBloomInitialCapacity),
+				uint64(float64(count)*walker.BloomGrowthMargin),
+			)
+			// the tracker is shared across all sub-walks (MFS, recursive
+			// pins, direct pins) within a single reprovide cycle. it
+			// detects duplicate sub-DAG branches across recursive pins
+			// that share content (e.g. append-only datasets where each
+			// version differs by a small delta). when a CID is already
+			// in the bloom, its entire subtree is skipped, reducing
+			// traversal from O(pins * total_blocks) to O(unique_blocks).
+			tracker, err := walker.NewBloomTracker(uint(expectedItems), walker.DefaultBloomFPRate)
+			if err != nil {
+				return nil, fmt.Errorf("bloom tracker: %w", err)
+			}
+
+			var inner provider.KeyChanFunc
+			switch {
+			case basePinned && baseMFS:
+				// MFS first: walk MFS (locality-filtered), then pinned.
+				// NewConcatProvider (not NewPrioritizedProvider) because
+				// the shared bloom tracker already guarantees each CID
+				// is emitted at most once -- no need for a second dedup
+				// layer.
+				inner = provider.NewConcatProvider(
+					uniqueMFSProvider(in.MFSRoot, in.Blockstore, tracker),
+					// NewBufferedProvider decouples the pinned provider
+					// from the channel consumer so the pinner lock is
+					// released promptly.
+					provider.NewBufferedProvider(
+						dspinner.NewUniquePinnedProvider(in.Pinner, in.Blockstore, tracker)),
+				)
+			case basePinned:
+				inner = provider.NewBufferedProvider(
+					dspinner.NewUniquePinnedProvider(in.Pinner, in.Blockstore, tracker))
+			case baseMFS:
+				inner = uniqueMFSProvider(in.MFSRoot, in.Blockstore, tracker)
+			default:
+				return nil, fmt.Errorf("provider: +unique requires pinned and/or mfs")
+			}
+
+			// wrap inner channel to persist bloom count on successful close
+			innerCh, err := inner(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			ch := make(chan cid.Cid)
+			go func() {
+				defer func() {
+					if ctx.Err() == nil {
+						persistUniqueCount(ds, tracker.Count())
+					}
+					close(ch)
+				}()
+				for c := range innerCh {
+					select {
+					case ch <- c:
+					case <-ctx.Done():
+						return
+					}
+				}
+			}()
+
+			logger.Infow("unique reprovide cycle started",
+				"expectedItems", expectedItems,
+				"previousCount", count,
+			)
+			return ch, nil
+		}
+	}
+
+	// non-unique strategies (unchanged)
 	switch strategyFlag {
 	case config.ProvideStrategyRoots:
 		return provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher))
