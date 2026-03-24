@@ -53,8 +53,10 @@ type AddPinOutput struct {
 }
 
 const (
-	pinRecursiveOptionName = "recursive"
-	pinProgressOptionName  = "progress"
+	pinRecursiveOptionName    = "recursive"
+	pinProgressOptionName     = "progress"
+	fastProvideRootOptionName = "fast-provide-root"
+	fastProvideWaitOptionName = "fast-provide-wait"
 )
 
 var addPinCmd = &cmds.Command{
@@ -90,6 +92,8 @@ It may take some time. Pass '--progress' to track the progress.
 		cmds.BoolOption(pinRecursiveOptionName, "r", "Recursively pin the object linked to by the specified object(s).").WithDefault(true),
 		cmds.StringOption(pinNameOptionName, "n", "An optional name for created pin(s)."),
 		cmds.BoolOption(pinProgressOptionName, "Show progress"),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CID to DHT after pinning. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes. Default: Import.FastProvideWait"),
 	},
 	Type: AddPinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -117,13 +121,17 @@ It may take some time. Pass '--progress' to track the progress.
 			return err
 		}
 
+		fpRoot, fpWait := resolveFastProvideFlags(req, env)
+
 		if !showProgress {
 			added, err := pinAddMany(req.Context, api, enc, req.Arguments, recursive, name)
 			if err != nil {
 				return err
 			}
 
-			fastProvideRootAfterPin(req, env, added)
+			if fpRoot {
+				fastProvideRootAfterPin(req, env, fpWait, added)
+			}
 			return cmds.EmitOnce(res, &AddPinOutput{Pins: added})
 		}
 
@@ -151,7 +159,9 @@ It may take some time. Pass '--progress' to track the progress.
 					return val.err
 				}
 
-				fastProvideRootAfterPin(req, env, val.pins)
+				if fpRoot {
+					fastProvideRootAfterPin(req, env, fpWait, val.pins)
+				}
 
 				if ps := v.ProgressStat(); ps.Nodes != 0 {
 					if err := res.Emit(&AddPinOutput{Progress: ps.Nodes, Bytes: ps.Bytes}); err != nil {
@@ -238,13 +248,29 @@ func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, 
 	return added, nil
 }
 
+// resolveFastProvideFlags resolves --fast-provide-root and
+// --fast-provide-wait from CLI flags, falling back to config defaults.
+func resolveFastProvideFlags(req *cmds.Request, env cmds.Environment) (root bool, wait bool) {
+	nd, err := cmdenv.GetNode(env)
+	if err != nil {
+		return config.DefaultFastProvideRoot, config.DefaultFastProvideWait
+	}
+	cfg, err := nd.Repo.Config()
+	if err != nil {
+		return config.DefaultFastProvideRoot, config.DefaultFastProvideWait
+	}
+	fpRoot, fpRootSet := req.Options[fastProvideRootOptionName].(bool)
+	fpWait, fpWaitSet := req.Options[fastProvideWaitOptionName].(bool)
+	root = config.ResolveBoolFromConfig(fpRoot, fpRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
+	wait = config.ResolveBoolFromConfig(fpWait, fpWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
+	return root, wait
+}
+
 // fastProvideRootAfterPin calls ExecuteFastProvideRoot for each
-// recently pinned CID, respecting Import.FastProvideRoot and
-// Import.FastProvideWait config (same options as ipfs add and ipfs dag
-// import). Content is always isPinned=true and isPinnedRoot=true since
-// this is called after a successful pin operation.
+// recently pinned CID. Content is always isPinned=true and
+// isPinnedRoot=true since this is called after a successful pin.
 // Best-effort: errors are logged but do not fail the pin command.
-func fastProvideRootAfterPin(req *cmds.Request, env cmds.Environment, encodedCIDs []string) {
+func fastProvideRootAfterPin(req *cmds.Request, env cmds.Environment, fastProvideWait bool, encodedCIDs []string) {
 	nd, err := cmdenv.GetNode(env)
 	if err != nil {
 		return
@@ -253,13 +279,6 @@ func fastProvideRootAfterPin(req *cmds.Request, env cmds.Environment, encodedCID
 	if err != nil {
 		return
 	}
-
-	fastProvideRoot := cfg.Import.FastProvideRoot.WithDefault(config.DefaultFastProvideRoot)
-	if !fastProvideRoot {
-		return
-	}
-	fastProvideWait := cfg.Import.FastProvideWait.WithDefault(config.DefaultFastProvideWait)
-
 	for _, s := range encodedCIDs {
 		c, err := cid.Decode(s)
 		if err != nil {
@@ -268,8 +287,8 @@ func fastProvideRootAfterPin(req *cmds.Request, env cmds.Environment, encodedCID
 		if err := cmdenv.ExecuteFastProvideRoot(
 			req.Context, nd, cfg, c,
 			fastProvideWait,
-			true,  // isPinned (always true after pin)
-			true,  // isPinnedRoot (always true after pin)
+			true,  // isPinned
+			true,  // isPinnedRoot
 			false, // isMFS
 		); err != nil {
 			log.Errorf("fast provide after pin: %s", err)
@@ -665,6 +684,8 @@ pin.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(pinUnpinOptionName, "Remove the old pin.").WithDefault(true),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide new root CID to DHT after update. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes. Default: Import.FastProvideWait"),
 	},
 	Type: PinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -705,8 +726,10 @@ pin.
 			return err
 		}
 
-		// fast-provide the new root CID
-		fastProvideRootAfterPin(req, env, []string{enc.Encode(to.RootCid())})
+		fpRoot, fpWait := resolveFastProvideFlags(req, env)
+		if fpRoot {
+			fastProvideRootAfterPin(req, env, fpWait, []string{enc.Encode(to.RootCid())})
+		}
 
 		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.RootCid()), enc.Encode(to.RootCid())}})
 	},
