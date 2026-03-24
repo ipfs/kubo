@@ -26,6 +26,14 @@ func TestParseProvideStrategy(t *testing.T) {
 			{"flat+all", ProvideStrategyAll},                           // redundant but valid
 			{"all+all", ProvideStrategyAll},                            // redundant but valid
 			{"mfs+pinned", ProvideStrategyMFS | ProvideStrategyPinned}, // order doesn't matter
+			// +unique and +entities modifiers
+			{"pinned+unique", ProvideStrategyPinned | ProvideStrategyUnique},
+			{"pinned+entities", ProvideStrategyPinned | ProvideStrategyEntities | ProvideStrategyUnique},
+			{"pinned+unique+entities", ProvideStrategyPinned | ProvideStrategyUnique | ProvideStrategyEntities},
+			{"mfs+unique", ProvideStrategyMFS | ProvideStrategyUnique},
+			{"mfs+entities", ProvideStrategyMFS | ProvideStrategyEntities | ProvideStrategyUnique},
+			{"pinned+mfs+unique", ProvideStrategyPinned | ProvideStrategyMFS | ProvideStrategyUnique},
+			{"pinned+mfs+entities", ProvideStrategyPinned | ProvideStrategyMFS | ProvideStrategyEntities | ProvideStrategyUnique},
 		}
 
 		for _, tt := range tests {
@@ -82,6 +90,22 @@ func TestParseProvideStrategy(t *testing.T) {
 			assert.Contains(t, err.Error(), "cannot be combined")
 		}
 	})
+
+	t.Run("+unique/+entities require base strategy", func(t *testing.T) {
+		tests := []string{
+			"unique",              // modifier alone
+			"entities",            // modifier alone
+			"unique+entities",     // modifiers without base
+			"roots+unique",        // roots is incompatible
+			"roots+entities",      // roots is incompatible
+			"roots+pinned+unique", // roots mixed with pinned+unique
+		}
+
+		for _, input := range tests {
+			_, err := ParseProvideStrategy(input)
+			require.Error(t, err, "ParseProvideStrategy(%q) should fail", input)
+		}
+	})
 }
 
 func TestMustParseProvideStrategy(t *testing.T) {
@@ -98,7 +122,8 @@ func TestMustParseProvideStrategy(t *testing.T) {
 
 func TestValidateProvideConfig_Strategy(t *testing.T) {
 	t.Run("valid strategies", func(t *testing.T) {
-		for _, s := range []string{"all", "pinned", "roots", "mfs", "pinned+mfs"} {
+		for _, s := range []string{"all", "pinned", "roots", "mfs", "pinned+mfs",
+			"pinned+unique", "pinned+entities", "pinned+mfs+entities"} {
 			cfg := &Provide{Strategy: NewOptionalString(s)}
 			require.NoError(t, ValidateProvideConfig(cfg), "strategy=%q", s)
 		}

@@ -36,6 +36,8 @@ const (
 	ProvideStrategyPinned
 	ProvideStrategyRoots
 	ProvideStrategyMFS
+	ProvideStrategyUnique   // bloom filter cross-DAG deduplication
+	ProvideStrategyEntities // entity-aware traversal (implies Unique)
 )
 
 // Provide configures both immediate CID announcements (provide operations) for new content
@@ -120,6 +122,10 @@ func ParseProvideStrategy(s string) (ProvideStrategy, error) {
 			strategy |= ProvideStrategyRoots
 		case "mfs":
 			strategy |= ProvideStrategyMFS
+		case "unique":
+			strategy |= ProvideStrategyUnique
+		case "entities":
+			strategy |= ProvideStrategyEntities | ProvideStrategyUnique
 		default:
 			return 0, fmt.Errorf("unknown provide strategy token: %q in %q", part, s)
 		}
@@ -127,6 +133,17 @@ func ParseProvideStrategy(s string) (ProvideStrategy, error) {
 	// "all" provides every block and cannot be combined with selective strategies
 	if strategy&ProvideStrategyAll != 0 && strategy != ProvideStrategyAll {
 		return 0, fmt.Errorf("\"all\" strategy cannot be combined with other strategies in %q", s)
+	}
+	// +unique/+entities require a base strategy that walks DAGs (pinned and/or mfs)
+	wantsDedup := strategy&(ProvideStrategyUnique|ProvideStrategyEntities) != 0
+	if wantsDedup {
+		walksDAGs := strategy&(ProvideStrategyPinned|ProvideStrategyMFS) != 0
+		if !walksDAGs {
+			return 0, fmt.Errorf("+unique/+entities must combine with pinned and/or mfs in %q", s)
+		}
+		if strategy&ProvideStrategyRoots != 0 {
+			return 0, fmt.Errorf("+unique/+entities is incompatible with roots in %q", s)
+		}
 	}
 	return strategy, nil
 }
