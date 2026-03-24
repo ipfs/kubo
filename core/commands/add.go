@@ -19,6 +19,7 @@ import (
 	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/boxo/verifcid"
+	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
@@ -652,7 +653,19 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 		hasRoot := lastRootCid != path.ImmutablePath{}
 
-		if fastProvideRoot && hasRoot {
+		if fastProvideDAG && hasRoot {
+			// DAG walk includes the root CID (DFS pre-order emits it
+			// first), so a separate root provide is not needed.
+			cmdenv.ExecuteFastProvideDAG(
+				req.Context,
+				[]cid.Cid{lastRootCid.RootCid()},
+				ipfsNode.ProvidingStrategy,
+				ipfsNode.Blockstore,
+				ipfsNode.Provider,
+				fastProvideWait,
+				0, // block count unknown here; bloom chain auto-grows
+			)
+		} else if fastProvideRoot && hasRoot {
 			cfg, err := ipfsNode.Repo.Config()
 			if err != nil {
 				return err
@@ -660,22 +673,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			if err := cmdenv.ExecuteFastProvideRoot(req.Context, ipfsNode, cfg, lastRootCid.RootCid(), fastProvideWait, dopin, dopin, toFilesSet); err != nil {
 				return err
 			}
-		} else if !fastProvideRoot {
-			if fastProvideWait {
-				log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config", "wait-flag-ignored", true)
-			} else {
-				log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
-			}
-		}
-
-		if fastProvideDAG && hasRoot {
-			cmdenv.ExecuteFastProvideDAG(
-				req.Context, lastRootCid.RootCid(),
-				ipfsNode.ProvidingStrategy,
-				ipfsNode.Blockstore,
-				ipfsNode.Provider,
-				0, // block count unknown here; bloom chain auto-grows
-			)
+		} else if !fastProvideRoot && !fastProvideDAG {
+			log.Debugw("fast-provide: skipped", "reason", "disabled by flag or config")
 		}
 
 		return nil

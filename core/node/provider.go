@@ -1190,45 +1190,34 @@ func persistUniqueCount(ds datastore.Datastore, count uint64) {
 	}
 }
 
+// walkFunc abstracts a DAG walk (WalkDAG or WalkEntityRoots) so the
+// MFS provider can be parameterized without duplicating the
+// flush+walk+channel boilerplate.
+type walkFunc func(ctx context.Context, root cid.Cid, emit func(cid.Cid) bool, opts ...walker.Option) error
+
 // uniqueMFSProvider is the +unique counterpart of mfsProvider. It
-// flushes the MFS root, then walks the MFS DAG using WalkDAG with a
-// shared VisitedTracker and a locality check (blockstore.Has) so only
+// flushes the MFS root, then walks the MFS DAG with a shared
+// VisitedTracker and a locality check (blockstore.Has) so only
 // locally-present blocks are emitted.
 func uniqueMFSProvider(mfsRoot *mfs.Root, bs blockstore.Blockstore, tracker walker.VisitedTracker) provider.KeyChanFunc {
-	return func(ctx context.Context) (<-chan cid.Cid, error) {
-		if err := mfsRoot.FlushMemFree(ctx); err != nil {
-			return nil, fmt.Errorf("provider: error flushing MFS: %w", err)
-		}
-		rootNode, err := mfsRoot.GetDirectory().GetNode()
-		if err != nil {
-			return nil, fmt.Errorf("provider: error loading MFS root: %w", err)
-		}
-
-		ch := make(chan cid.Cid)
-		go func() {
-			defer close(ch)
-			fetch := walker.LinksFetcherFromBlockstore(bs)
-			locality := func(ctx context.Context, c cid.Cid) (bool, error) {
-				return bs.Has(ctx, c)
-			}
-			walker.WalkDAG(ctx, rootNode.Cid(), fetch, func(c cid.Cid) bool {
-				select {
-				case ch <- c:
-					return true
-				case <-ctx.Done():
-					return false
-				}
-			}, walker.WithVisitedTracker(tracker), walker.WithLocality(locality))
-		}()
-		return ch, nil
+	walk := func(ctx context.Context, root cid.Cid, emit func(cid.Cid) bool, opts ...walker.Option) error {
+		return walker.WalkDAG(ctx, root, walker.LinksFetcherFromBlockstore(bs), emit, opts...)
 	}
+	return mfsWalkProvider(mfsRoot, bs, tracker, walk)
 }
 
-// mfsEntityRootsProvider is the +entities counterpart of
-// uniqueMFSProvider. It walks the MFS DAG using WalkEntityRoots,
-// emitting only entity roots (files, directories, HAMT shards) and
-// skipping internal file chunks.
+// mfsEntityRootsProvider is the +entities counterpart. It walks with
+// WalkEntityRoots, emitting only entity roots and skipping file chunks.
 func mfsEntityRootsProvider(mfsRoot *mfs.Root, bs blockstore.Blockstore, tracker walker.VisitedTracker) provider.KeyChanFunc {
+	walk := func(ctx context.Context, root cid.Cid, emit func(cid.Cid) bool, opts ...walker.Option) error {
+		return walker.WalkEntityRoots(ctx, root, walker.NodeFetcherFromBlockstore(bs), emit, opts...)
+	}
+	return mfsWalkProvider(mfsRoot, bs, tracker, walk)
+}
+
+// mfsWalkProvider builds a KeyChanFunc that flushes MFS, then walks
+// with the given walkFunc using a shared tracker and locality check.
+func mfsWalkProvider(mfsRoot *mfs.Root, bs blockstore.Blockstore, tracker walker.VisitedTracker, walk walkFunc) provider.KeyChanFunc {
 	return func(ctx context.Context) (<-chan cid.Cid, error) {
 		if err := mfsRoot.FlushMemFree(ctx); err != nil {
 			return nil, fmt.Errorf("provider: error flushing MFS: %w", err)
@@ -1241,11 +1230,10 @@ func mfsEntityRootsProvider(mfsRoot *mfs.Root, bs blockstore.Blockstore, tracker
 		ch := make(chan cid.Cid)
 		go func() {
 			defer close(ch)
-			fetch := walker.NodeFetcherFromBlockstore(bs)
 			locality := func(ctx context.Context, c cid.Cid) (bool, error) {
 				return bs.Has(ctx, c)
 			}
-			walker.WalkEntityRoots(ctx, rootNode.Cid(), fetch, func(c cid.Cid) bool {
+			_ = walk(ctx, rootNode.Cid(), func(c cid.Cid) bool {
 				select {
 				case ch <- c:
 					return true

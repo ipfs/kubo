@@ -194,58 +194,88 @@ func ExecuteFastProvideRoot(
 	return nil
 }
 
-// ExecuteFastProvideDAG walks the DAG rooted at root and provides CIDs
-// according to the active Provide.Strategy. Uses an unbuffered channel
-// for backpressure (walker pauses when StartProviding is slow).
+// ExecuteFastProvideDAG walks the DAGs rooted at roots and provides
+// CIDs according to the active Provide.Strategy. A single bloom
+// tracker is shared across all roots so shared sub-DAGs are
+// deduplicated. Uses an unbuffered channel for backpressure.
+//
+// When wait is true, blocks until all walks complete. When false,
+// runs in a background goroutine (best-effort, errors logged).
 //
 // blockCount sizes the bloom filter (pass 0 if unknown).
 func ExecuteFastProvideDAG(
 	ctx context.Context,
-	root cid.Cid,
+	roots []cid.Cid,
 	strategy config.ProvideStrategy,
 	bs blockstore.Blockstore,
 	prov node.DHTProvider,
+	wait bool,
 	blockCount uint,
 ) {
+	if len(roots) == 0 {
+		return
+	}
 	if (strategy&config.ProvideStrategyPinned) == 0 &&
 		(strategy&config.ProvideStrategyMFS) == 0 {
 		return
 	}
 
-	expectedItems := max(uint(walker.DefaultBloomInitialCapacity), blockCount)
-	tracker, err := walker.NewBloomTracker(expectedItems, walker.DefaultBloomFPRate)
-	if err != nil {
-		log.Errorf("fast-provide-dag: bloom tracker: %s", err)
-		return
-	}
+	do := func() {
+		expectedItems := max(uint(walker.DefaultBloomInitialCapacity), blockCount)
+		tracker, err := walker.NewBloomTracker(expectedItems, walker.DefaultBloomFPRate)
+		if err != nil {
+			log.Errorf("fast-provide-dag: bloom tracker: %s", err)
+			return
+		}
 
-	ch := make(chan cid.Cid) // unbuffered for backpressure
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		for c := range ch {
-			if err := prov.StartProviding(false, c.Hash()); err != nil {
-				log.Errorf("fast-provide-dag: %s: %s", c, err)
+		ch := make(chan cid.Cid) // unbuffered for backpressure
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			for c := range ch {
+				if err := prov.StartProviding(false, c.Hash()); err != nil {
+					log.Errorf("fast-provide-dag: %s: %s", c, err)
+				}
+			}
+		}()
+
+		emit := func(c cid.Cid) bool {
+			select {
+			case ch <- c:
+				return true
+			case <-ctx.Done():
+				return false
 			}
 		}
-	}()
 
-	emit := func(c cid.Cid) bool {
-		select {
-		case ch <- c:
-			return true
-		case <-ctx.Done():
-			return false
+		opts := []walker.Option{walker.WithVisitedTracker(tracker)}
+		useEntities := strategy&config.ProvideStrategyEntities != 0
+
+		if useEntities {
+			fetch := walker.NodeFetcherFromBlockstore(bs)
+			for _, root := range roots {
+				if ctx.Err() != nil {
+					break
+				}
+				_ = walker.WalkEntityRoots(ctx, root, fetch, emit, opts...)
+			}
+		} else {
+			fetch := walker.LinksFetcherFromBlockstore(bs)
+			for _, root := range roots {
+				if ctx.Err() != nil {
+					break
+				}
+				_ = walker.WalkDAG(ctx, root, fetch, emit, opts...)
+			}
 		}
+
+		close(ch)
+		<-done
 	}
 
-	opts := []walker.Option{walker.WithVisitedTracker(tracker)}
-	if strategy&config.ProvideStrategyEntities != 0 {
-		walker.WalkEntityRoots(ctx, root, walker.NodeFetcherFromBlockstore(bs), emit, opts...)
+	if wait {
+		do()
 	} else {
-		walker.WalkDAG(ctx, root, walker.LinksFetcherFromBlockstore(bs), emit, opts...)
+		go do()
 	}
-
-	close(ch)
-	<-done
 }
