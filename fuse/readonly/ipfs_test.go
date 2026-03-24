@@ -21,7 +21,6 @@ import (
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	coremock "github.com/ipfs/kubo/core/mock"
 
-	fstest "github.com/seaweedfs/fuse/fs/fstestutil"
 	chunker "github.com/ipfs/boxo/chunker"
 	"github.com/ipfs/boxo/files"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
@@ -31,6 +30,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-test/random"
 	ci "github.com/libp2p/go-libp2p-testing/ci"
+	fstest "github.com/seaweedfs/fuse/fs/fstestutil"
 )
 
 func maybeSkipFuseTests(t *testing.T) {

@@ -9,8 +9,6 @@ import (
 	"os"
 	"syscall"
 
-	fuse "github.com/seaweedfs/fuse"
-	fs "github.com/seaweedfs/fuse/fs"
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
@@ -21,6 +19,8 @@ import (
 	core "github.com/ipfs/kubo/core"
 	ipldprime "github.com/ipld/go-ipld-prime"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
+	fuse "github.com/seaweedfs/fuse"
+	fs "github.com/seaweedfs/fuse/fs"
 )
 
 var log = logging.Logger("fuse/ipfs")

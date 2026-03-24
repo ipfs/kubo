@@ -14,12 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seaweedfs/fuse"
-	"github.com/seaweedfs/fuse/fs"
-	"github.com/seaweedfs/fuse/fs/fstestutil"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/libp2p/go-libp2p-testing/ci"
+	"github.com/seaweedfs/fuse"
+	"github.com/seaweedfs/fuse/fs"
+	"github.com/seaweedfs/fuse/fs/fstestutil"
 )
 
 // Create an Ipfs.Node, a filesystem and a mount point.
