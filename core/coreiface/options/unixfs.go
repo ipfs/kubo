@@ -46,9 +46,10 @@ type UnixfsAddSettings struct {
 	FsCache  bool
 	NoCopy   bool
 
-	Events   chan<- any
-	Silent   bool
-	Progress bool
+	Events         chan<- any
+	Silent         bool
+	Progress       bool
+	FastProvideDAG bool
 
 	PreserveMode        bool
 	PreserveMtime       bool
@@ -364,6 +365,15 @@ func (unixfsOpts) FsCache(enable bool) UnixfsAddOption {
 func (unixfsOpts) Nocopy(enable bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.NoCopy = enable
+		return nil
+	}
+}
+
+// FastProvideDAG tells the adder to walk and provide the full DAG
+// according to Provide.Strategy immediately after add completes.
+func (unixfsOpts) FastProvideDAG(enable bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.FastProvideDAG = enable
 		return nil
 	}
 }

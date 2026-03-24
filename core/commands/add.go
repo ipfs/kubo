@@ -68,6 +68,7 @@ const (
 	mtimeOptionName           = "mtime"
 	mtimeNsecsOptionName      = "mtime-nsecs"
 	fastProvideRootOptionName = "fast-provide-root"
+	fastProvideDAGOptionName  = "fast-provide-dag"
 	fastProvideWaitOptionName = "fast-provide-wait"
 	emptyDirsOptionName       = "empty-dirs"
 )
@@ -265,6 +266,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		cmds.Int64Option(mtimeOptionName, "Custom POSIX modification time to store in created UnixFS entries (seconds before or after the Unix Epoch). WARNING: experimental, forces dag-pb for root block, disables raw-leaves"),
 		cmds.UintOption(mtimeNsecsOptionName, "Custom POSIX modification time (optional time fraction in nanoseconds)"),
 		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CID to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideDAGOptionName, "Walk and provide the full DAG according to Provide.Strategy immediately after add. Default: Import.FastProvideDAG"),
 		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes before returning. Default: Import.FastProvideWait"),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
@@ -338,6 +340,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		mtime, _ := req.Options[mtimeOptionName].(int64)
 		mtimeNsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
 		fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
+		fastProvideDAG, fastProvideDAGSet := req.Options[fastProvideDAGOptionName].(bool)
 		fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
 		emptyDirs, _ := req.Options[emptyDirsOptionName].(bool)
 
@@ -390,6 +393,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		sizeEstimationMode = cfg.Import.HAMTSizeEstimationMode()
 
 		fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
+		fastProvideDAG = config.ResolveBoolFromConfig(fastProvideDAG, fastProvideDAGSet, cfg.Import.FastProvideDAG, config.DefaultFastProvideDAG)
 		fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
 
 		// Storing optional mode or mtime (UnixFS 1.5) requires root block
@@ -486,6 +490,10 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 		// SizeEstimationMode is always set from config
 		opts = append(opts, options.Unixfs.SizeEstimationMode(sizeEstimationMode))
+
+		if fastProvideDAG {
+			opts = append(opts, options.Unixfs.FastProvideDAG(true))
+		}
 
 		if trickle {
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
@@ -642,8 +650,9 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			return fmt.Errorf("expected a file argument")
 		}
 
-		// Apply fast-provide-root if the flag is enabled
-		if fastProvideRoot && (lastRootCid != path.ImmutablePath{}) {
+		hasRoot := lastRootCid != path.ImmutablePath{}
+
+		if fastProvideRoot && hasRoot {
 			cfg, err := ipfsNode.Repo.Config()
 			if err != nil {
 				return err
@@ -657,6 +666,16 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			} else {
 				log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
 			}
+		}
+
+		if fastProvideDAG && hasRoot {
+			cmdenv.ExecuteFastProvideDAG(
+				req.Context, lastRootCid.RootCid(),
+				ipfsNode.ProvidingStrategy,
+				ipfsNode.Blockstore,
+				ipfsNode.Provider,
+				0, // block count unknown here; bloom chain auto-grows
+			)
 		}
 
 		return nil

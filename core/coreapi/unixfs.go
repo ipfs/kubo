@@ -110,16 +110,17 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 
 	var dserv ipld.DAGService = merkledag.NewDAGService(bserv)
 
-	// wrap the DAGService in a providingDAG service which provides every block written.
-	// note about strategies:
-	//   - "all" gets handled directly at the blockstore so no need to provide
-	//   - "roots" gets handled in the pinner
-	//   - "mfs" gets handled in mfs
-	// We need to provide the "pinned" cases only. Added blocks are not
-	// going to be provided by the blockstore (wrong strategy for that),
-	// nor by the pinner (the pinner doesn't traverse the pinned DAG itself, it only
-	// handles roots). This wrapping ensures all blocks of pinned content get provided.
-	if settings.Pin && !settings.OnlyHash &&
+	// Per-block providing during write (providingDagService).
+	//
+	// Only active when --fast-provide-dag is enabled (opt-in, default
+	// false). Without it, only the root CID is fast-provided after add
+	// (via ExecuteFastProvideRoot in the command handler), and the
+	// reprovide cycle handles the rest.
+	//
+	// Note: "all" strategy already provides every block at the
+	// blockstore level (blockstore.Provider hook), so this wrapping
+	// is not needed and settings.FastProvideDAG has no effect.
+	if settings.Pin && !settings.OnlyHash && settings.FastProvideDAG &&
 		(api.providingStrategy&config.ProvideStrategyPinned) != 0 {
 		dserv = &providingDagService{dserv, api.provider}
 	}
