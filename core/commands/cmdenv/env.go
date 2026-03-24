@@ -107,7 +107,7 @@ func provideCIDSync(ctx context.Context, router routing.Routing, c cid.Cid) erro
 	return router.Provide(ctx, c, true)
 }
 
-// ExecuteFastProvide immediately provides a root CID to the DHT, bypassing the regular
+// ExecuteFastProvideRoot immediately provides a root CID to the DHT, bypassing the regular
 // provide queue for faster content discovery. This function is reusable across commands
 // that add or import content, such as ipfs add and ipfs dag import.
 //
@@ -129,7 +129,7 @@ func provideCIDSync(ctx context.Context, router routing.Routing, c cid.Cid) erro
 // The function handles all precondition checks (Provide.Enabled, DHT availability,
 // strategy matching) and logs appropriately. In async mode, it launches a goroutine
 // with a detached context and timeout.
-func ExecuteFastProvide(
+func ExecuteFastProvideRoot(
 	ctx context.Context,
 	ipfsNode *core.IpfsNode,
 	cfg *config.Config,

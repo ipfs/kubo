@@ -648,7 +648,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			if err != nil {
 				return err
 			}
-			if err := cmdenv.ExecuteFastProvide(req.Context, ipfsNode, cfg, lastRootCid.RootCid(), fastProvideWait, dopin, dopin, toFilesSet); err != nil {
+			if err := cmdenv.ExecuteFastProvideRoot(req.Context, ipfsNode, cfg, lastRootCid.RootCid(), fastProvideWait, dopin, dopin, toFilesSet); err != nil {
 				return err
 			}
 		} else if !fastProvideRoot {
