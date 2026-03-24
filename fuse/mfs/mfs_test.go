@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"bazil.org/fuse"
-	"bazil.org/fuse/fs"
-	"bazil.org/fuse/fs/fstestutil"
+	"github.com/seaweedfs/fuse"
+	"github.com/seaweedfs/fuse/fs"
+	"github.com/seaweedfs/fuse/fs/fstestutil"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/libp2p/go-libp2p-testing/ci"

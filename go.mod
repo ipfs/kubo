@@ -3,7 +3,6 @@ module github.com/ipfs/kubo
 go 1.25.7
 
 require (
-	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
 	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239
 	github.com/blang/semver/v4 v4.0.0
@@ -70,6 +69,7 @@ require (
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/probe-lab/go-libdht v0.4.0
 	github.com/prometheus/client_golang v1.23.2
+	github.com/seaweedfs/fuse v1.2.3
 	github.com/stretchr/testify v1.11.1
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d
 	github.com/tidwall/gjson v1.18.0

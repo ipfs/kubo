@@ -18,8 +18,8 @@ import (
 	"github.com/ipfs/boxo/namesys"
 	"github.com/ipfs/boxo/path"
 
-	fuse "bazil.org/fuse"
-	fs "bazil.org/fuse/fs"
+	fuse "github.com/seaweedfs/fuse"
+	fs "github.com/seaweedfs/fuse/fs"
 	mfs "github.com/ipfs/boxo/mfs"
 	cid "github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
@@ -207,7 +207,7 @@ func (r *Root) Close() error {
 }
 
 // Forget is called when the filesystem is unmounted. probably.
-// see comments here: http://godoc.org/bazil.org/fuse/fs#FSDestroyer
+// see comments here: https://pkg.go.dev/github.com/seaweedfs/fuse/fs#FSDestroyer
 func (r *Root) Forget() {
 	err := r.Close()
 	if err != nil {

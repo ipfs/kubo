@@ -166,6 +166,13 @@ func tryGFV() (string, error) {
 	}
 	log.Debug(err)
 
+	// try reading the macFUSE version plist (macFUSE 4+)
+	ov, err = tryMacFUSEPlist()
+	if err == nil {
+		return ov, nil
+	}
+	log.Debug(err)
+
 	return tryGFVFromFuseVersion()
 }
 
@@ -176,6 +183,23 @@ func trySysctl() (string, error) {
 		return "", err
 	}
 	log.Debug("mount: sysctl osxfuse.version.number:", v)
+	return v, nil
+}
+
+// macFUSE 4+ no longer populates the osxfuse sysctl key. Read the version
+// from the bundle plist that the installer always writes.
+const macFUSEVersionPlist = "/Library/Filesystems/macfuse.fs/Contents/version.plist"
+
+func tryMacFUSEPlist() (string, error) {
+	cmd := exec.Command("plutil", "-extract", "CFBundleShortVersionString", "raw", macFUSEVersionPlist)
+	out := new(bytes.Buffer)
+	cmd.Stdout = out
+	if err := cmd.Run(); err != nil {
+		log.Debug("mount: macFUSE version plist: failed")
+		return "", err
+	}
+	v := strings.TrimSpace(out.String())
+	log.Debug("mount: macFUSE version plist:", v)
 	return v, nil
 }
 

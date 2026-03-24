@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"bazil.org/fuse"
+	"github.com/seaweedfs/fuse"
 
 	core "github.com/ipfs/kubo/core"
 	ipns "github.com/ipfs/kubo/fuse/ipns"

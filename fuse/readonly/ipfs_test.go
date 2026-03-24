@@ -15,13 +15,13 @@ import (
 	"sync"
 	"testing"
 
-	"bazil.org/fuse"
+	"github.com/seaweedfs/fuse"
 
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	coremock "github.com/ipfs/kubo/core/mock"
 
-	fstest "bazil.org/fuse/fs/fstestutil"
+	fstest "github.com/seaweedfs/fuse/fs/fstestutil"
 	chunker "github.com/ipfs/boxo/chunker"
 	"github.com/ipfs/boxo/files"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
