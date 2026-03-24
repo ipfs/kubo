@@ -2061,7 +2061,7 @@ Tells the provide system what should be announced. Valid strategies are:
 - `"all"` - announce all CIDs of stored blocks
 - `"pinned"` - only announce recursively pinned CIDs (`ipfs pin add -r`, both roots and child blocks)
   - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
-- `"roots"` - only announce the root block of explicitly pinned CIDs (`ipfs pin add`)
+- `"roots"` - only announce the top-level root CID of explicitly pinned DAGs (`ipfs pin add`). Does not traverse the DAG to discover sub-entity roots (files within directories, HAMT shards, etc.).
   - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
     It makes sense only for use cases where the entire DAG is fetched in full,
     and a graceful resume does not have to be guaranteed: the lack of child
@@ -2069,11 +2069,43 @@ Tells the provide system what should be announced. Valid strategies are:
     providers for the missing block in the middle of a file, unless the peer
     happens to already be connected to a provider and asks for child CID over
     bitswap.
+  - If you want to announce roots of files and directories within pinned DAGs (not just the top-level root), use `"pinned+entities"` instead.
 - `"mfs"` - announce only the local CIDs that are part of the MFS (`ipfs files`)
   - Note: MFS is lazy-loaded. Only the MFS blocks present in local datastore are announced.
 - `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
   - **ℹ️ NOTE:** This is the suggested strategy for users who run without GC and don't want to provide everything in cache.
   - Order: first `pinned` and then the locally available part of `mfs`.
+
+#### Strategy modifiers: `+unique` and `+entities`
+
+The `+unique` and `+entities` modifiers can be appended to `pinned`, `mfs`, or `pinned+mfs` strategies to optimize the reprovide cycle:
+
+- **`+unique`** -- uses a bloom filter to deduplicate CIDs across recursive
+  pins that share sub-DAGs. Without this, a node with 1000 pins that share 99%
+  of their content re-traverses the shared blocks for each pin. With `+unique`,
+  shared subtrees are detected and skipped, reducing traversal from
+  O(pins * total_blocks) to O(unique_blocks). The bloom filter uses ~4 bytes
+  per CID (vs ~75 bytes for an exact set), enabling dedup on repositories with
+  tens of millions of CIDs that were previously impractical due to memory
+  constraints.
+
+- **`+entities`** -- provides only entity roots (file roots, directory roots,
+  HAMT shard nodes) instead of every block. Internal file chunks are not
+  announced to the DHT. This significantly reduces the number of provider
+  records for repositories with large files while keeping all files and
+  directories discoverable. Implies `+unique`. For non-UnixFS content
+  (e.g. dag-cbor), every reachable CID is still announced.
+  - **⚠️ NOTE:** since internal file chunks are not announced, resuming
+    an interrupted download from a specific byte offset or requesting a
+    byte range may not work unless the client is smart enough to find
+    providers for the entity root CID instead of the chunk CID. This is
+    a work in progress; see [kubo#10251](https://github.com/ipfs/kubo/issues/10251).
+
+Example: `"pinned+mfs+entities"` combines pinned and MFS strategies with
+entity-aware traversal and cross-DAG bloom dedup.
+
+These modifiers are **incompatible** with `"all"` (which provides at the
+blockstore level) and `"roots"` (which only provides top-level root CIDs).
 
 **Strategy changes automatically clear the provide queue.** When you change `Provide.Strategy` and restart Kubo, the provide queue is automatically cleared to ensure only content matching your new strategy is announced. You can also manually clear the queue using `ipfs provide clear`.
 
@@ -2081,6 +2113,7 @@ Tells the provide system what should be announced. Valid strategies are:
 
 - Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million CIDs for reproviding to the Amino DHT.
 - This is due to the use of a buffered provider, which loads all CIDs into memory to avoid holding a lock on the entire pinset during the reprovide cycle.
+- With `+unique`, the bloom filter replaces the in-memory CID set, using ~4 bytes per CID instead of ~75. A node with 10 million CIDs uses ~40 MB (vs ~750 MB without `+unique`).
 
 Default: `"all"`
 
