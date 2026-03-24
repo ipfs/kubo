@@ -20,6 +20,7 @@ import (
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	options "github.com/ipfs/kubo/core/coreiface/options"
 
+	config "github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
@@ -122,6 +123,7 @@ It may take some time. Pass '--progress' to track the progress.
 				return err
 			}
 
+			fastProvideRootAfterPin(req, env, added)
 			return cmds.EmitOnce(res, &AddPinOutput{Pins: added})
 		}
 
@@ -148,6 +150,8 @@ It may take some time. Pass '--progress' to track the progress.
 				if val.err != nil {
 					return val.err
 				}
+
+				fastProvideRootAfterPin(req, env, val.pins)
 
 				if ps := v.ProgressStat(); ps.Nodes != 0 {
 					if err := res.Emit(&AddPinOutput{Progress: ps.Nodes, Bytes: ps.Bytes}); err != nil {
@@ -232,6 +236,45 @@ func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, 
 	}
 
 	return added, nil
+}
+
+// fastProvideRootAfterPin calls ExecuteFastProvideRoot for each
+// recently pinned CID, respecting Import.FastProvideRoot and
+// Import.FastProvideWait config (same options as ipfs add and ipfs dag
+// import). Content is always isPinned=true and isPinnedRoot=true since
+// this is called after a successful pin operation.
+// Best-effort: errors are logged but do not fail the pin command.
+func fastProvideRootAfterPin(req *cmds.Request, env cmds.Environment, encodedCIDs []string) {
+	nd, err := cmdenv.GetNode(env)
+	if err != nil {
+		return
+	}
+	cfg, err := nd.Repo.Config()
+	if err != nil {
+		return
+	}
+
+	fastProvideRoot := cfg.Import.FastProvideRoot.WithDefault(config.DefaultFastProvideRoot)
+	if !fastProvideRoot {
+		return
+	}
+	fastProvideWait := cfg.Import.FastProvideWait.WithDefault(config.DefaultFastProvideWait)
+
+	for _, s := range encodedCIDs {
+		c, err := cid.Decode(s)
+		if err != nil {
+			continue
+		}
+		if err := cmdenv.ExecuteFastProvideRoot(
+			req.Context, nd, cfg, c,
+			fastProvideWait,
+			true,  // isPinned (always true after pin)
+			true,  // isPinnedRoot (always true after pin)
+			false, // isMFS
+		); err != nil {
+			log.Errorf("fast provide after pin: %s", err)
+		}
+	}
 }
 
 var rmPinCmd = &cmds.Command{
@@ -661,6 +704,9 @@ pin.
 		if err != nil {
 			return err
 		}
+
+		// fast-provide the new root CID
+		fastProvideRootAfterPin(req, env, []string{enc.Encode(to.RootCid())})
 
 		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.RootCid()), enc.Encode(to.RootCid())}})
 	},
