@@ -505,7 +505,7 @@ being GC'ed.
 			return err
 		}
 
-		prefix, err := getPrefixNew(req, &cfg.Import)
+		prefix, err := getPrefix(req, &cfg.Import)
 		if err != nil {
 			return err
 		}
@@ -1060,7 +1060,7 @@ See '--to-files' in 'ipfs add --help' for more information.
 			rawLeaves = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
 		}
 
-		prefix, err := getPrefixNew(req, &cfg.Import)
+		prefix, err := getPrefix(req, &cfg.Import)
 		if err != nil {
 			return err
 		}
@@ -1444,45 +1444,6 @@ func removePath(filesRoot *mfs.Root, path string, force bool, dashr bool) error 
 	}
 
 	return pdir.Flush()
-}
-
-func getPrefixNew(req *cmds.Request, importCfg *config.Import) (cid.Builder, error) {
-	cidVer, cidVerSet := req.Options[filesCidVersionOptionName].(int)
-	hashFunStr, hashFunSet := req.Options[filesHashOptionName].(string)
-
-	// Fall back to Import config if CLI options not set
-	if !cidVerSet && importCfg != nil && !importCfg.CidVersion.IsDefault() {
-		cidVer = int(importCfg.CidVersion.WithDefault(config.DefaultCidVersion))
-		cidVerSet = true
-	}
-	if !hashFunSet && importCfg != nil && !importCfg.HashFunction.IsDefault() {
-		hashFunStr = importCfg.HashFunction.WithDefault(config.DefaultHashFunction)
-		hashFunSet = true
-	}
-
-	if !cidVerSet && !hashFunSet {
-		return nil, nil
-	}
-
-	if hashFunSet && cidVer == 0 {
-		cidVer = 1
-	}
-
-	prefix, err := dag.PrefixForCidVersion(cidVer)
-	if err != nil {
-		return nil, err
-	}
-
-	if hashFunSet {
-		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
-		if !ok {
-			return nil, fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
-		}
-		prefix.MhType = hashFunCode
-		prefix.MhLength = -1
-	}
-
-	return &prefix, nil
 }
 
 func getPrefix(req *cmds.Request, importCfg *config.Import) (cid.Builder, error) {
