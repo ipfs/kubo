@@ -122,8 +122,10 @@ func TestMustParseProvideStrategy(t *testing.T) {
 
 func TestValidateProvideConfig_Strategy(t *testing.T) {
 	t.Run("valid strategies", func(t *testing.T) {
-		for _, s := range []string{"all", "pinned", "roots", "mfs", "pinned+mfs",
-			"pinned+unique", "pinned+entities", "pinned+mfs+entities"} {
+		for _, s := range []string{
+			"all", "pinned", "roots", "mfs", "pinned+mfs",
+			"pinned+unique", "pinned+entities", "pinned+mfs+entities",
+		} {
 			cfg := &Provide{Strategy: NewOptionalString(s)}
 			require.NoError(t, ValidateProvideConfig(cfg), "strategy=%q", s)
 		}

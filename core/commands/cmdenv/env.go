@@ -11,14 +11,13 @@ import (
 	"github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log/v2"
-	routing "github.com/libp2p/go-libp2p/core/routing"
-
 	"github.com/ipfs/kubo/commands"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
-	"github.com/ipfs/kubo/core/node"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	options "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/core/node"
+	routing "github.com/libp2p/go-libp2p/core/routing"
 )
 
 var log = logging.Logger("core/commands/cmdenv")
