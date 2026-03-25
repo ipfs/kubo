@@ -739,6 +739,12 @@ func (n *Node) DatastoreCount(prefix string) int64 {
 	return count
 }
 
+// DatastorePut writes a key-value pair to the datastore.
+// Requires the daemon to be stopped.
+func (n *Node) DatastorePut(key, value string) {
+	n.IPFS("diag", "datastore", "put", key, value)
+}
+
 // DatastoreGet retrieves the value at the given key.
 // Requires the daemon to be stopped. Returns nil if key not found.
 func (n *Node) DatastoreGet(key string) []byte {
