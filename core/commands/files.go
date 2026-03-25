@@ -38,7 +38,6 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	iface "github.com/ipfs/kubo/core/coreiface"
-	mh "github.com/multiformats/go-multihash"
 )
 
 var flog = logging.Logger("cmds/files")
@@ -1450,22 +1449,14 @@ func getPrefix(req *cmds.Request, importCfg *config.Import) (cid.Builder, error)
 	cidVer, cidVerSet := req.Options[filesCidVersionOptionName].(int)
 	hashFunStr, hashFunSet := req.Options[filesHashOptionName].(string)
 
-	// Fall back to Import config if CLI options not set
-	if !cidVerSet && importCfg != nil && !importCfg.CidVersion.IsDefault() {
-		cidVer = int(importCfg.CidVersion.WithDefault(config.DefaultCidVersion))
-		cidVerSet = true
-	}
-	if !hashFunSet && importCfg != nil && !importCfg.HashFunction.IsDefault() {
-		hashFunStr = importCfg.HashFunction.WithDefault(config.DefaultHashFunction)
-		hashFunSet = true
-	}
-
-	if !cidVerSet && !hashFunSet {
-		return nil, nil
-	}
-
-	if hashFunSet && cidVer == 0 {
-		cidVer = 1
+	if !cidVerSet {
+		if hashFunSet {
+			cidVer = 1
+		} else if importCfg != nil {
+			return importCfg.CidBuilder()
+		} else {
+			return nil, nil
+		}
 	}
 
 	prefix, err := dag.PrefixForCidVersion(cidVer)
@@ -1473,14 +1464,12 @@ func getPrefix(req *cmds.Request, importCfg *config.Import) (cid.Builder, error)
 		return nil, err
 	}
 
-	if hashFunSet {
-		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
-		if !ok {
-			return nil, fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
-		}
-		prefix.MhType = hashFunCode
-		prefix.MhLength = -1
+	prefix.MhType, err = config.HashFuncCode(hashFunStr)
+	if err != nil {
+		return nil, err
 	}
+
+	prefix.MhLength = -1
 
 	return &prefix, nil
 }

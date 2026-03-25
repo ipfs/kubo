@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ipfs/go-cid"
 	chunk "github.com/ipfs/boxo/chunker"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/verifcid"
@@ -172,6 +174,18 @@ func ValidateImportConfig(cfg *Import) error {
 	return nil
 }
 
+// HashFuncCode returns the code for the given hash function name.
+func HashFuncCode(name string) (uint64, error) {
+	name = strings.ToLower(name)
+
+	code, ok := mh.Names[name]
+	if ok {
+		return code, nil
+	}
+
+	return 0, fmt.Errorf("unrecognized hash function: %s", name)
+}
+
 // isPowerOfTwo checks if a number is a power of 2
 func isPowerOfTwo(n int64) bool {
 	return n > 0 && (n&(n-1)) == 0
@@ -258,4 +272,25 @@ func (i *Import) UnixFSSplitterFunc() chunk.SplitterGen {
 		}
 		return s
 	}
+}
+
+// CidBuilder returns a cid.Builder based on Import.CidVersion and Import.HashFunction.
+func (i *Import) CidBuilder() (cid.Builder, error) {
+	cidVer := int(i.CidVersion.WithDefault(DefaultCidVersion))
+
+	prefix, err := dag.PrefixForCidVersion(cidVer)
+	if err != nil {
+		return nil, err
+	}
+
+	hashFuncName := i.HashFunction.WithDefault(DefaultHashFunction)
+
+	prefix.MhType, err = HashFuncCode(hashFuncName)
+	if err != nil {
+		return nil, err
+	}
+
+	prefix.MhLength = -1
+
+	return &prefix, nil
 }
