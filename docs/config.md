@@ -236,6 +236,7 @@ config file at runtime.
     - [`Import.UnixFSChunker`](#importunixfschunker)
     - [`Import.HashFunction`](#importhashfunction)
     - [`Import.FastProvideRoot`](#importfastprovideroot)
+    - [`Import.FastProvideDAG`](#importfastprovidedag)
     - [`Import.FastProvideWait`](#importfastprovidewait)
     - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
     - [`Import.BatchMaxSize`](#importbatchmaxsize)
@@ -2056,64 +2057,74 @@ Type: `flag`
 
 ### `Provide.Strategy`
 
-Tells the provide system what should be announced. Valid strategies are:
+Controls which CIDs are announced to the content routing system. Valid strategies are:
 
 - `"all"` - announce all CIDs of stored blocks
 - `"pinned"` - only announce recursively pinned CIDs (`ipfs pin add -r`, both roots and child blocks)
   - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
-- `"roots"` - only announce the top-level root CID of explicitly pinned DAGs (`ipfs pin add`). Does not traverse the DAG to discover sub-entity roots (files within directories, HAMT shards, etc.).
-  - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
+- `"roots"` - only announce the top-level root CID of explicitly pinned DAGs (`ipfs pin add`)
+  - **⚠️ BE CAREFUL:** a node with `roots` strategy will not announce child blocks.
     It makes sense only for use cases where the entire DAG is fetched in full,
     and a graceful resume does not have to be guaranteed: the lack of child
     announcements means an interrupted retrieval won't be able to find
     providers for the missing block in the middle of a file, unless the peer
     happens to already be connected to a provider and asks for child CID over
-    bitswap.
-  - If you want to announce roots of files and directories within pinned DAGs (not just the top-level root), use `"pinned+entities"` instead.
+    bitswap. Does not traverse the DAG to discover sub-entity roots
+    (files within directories, HAMT shards, etc.). If you want that, use
+    `"pinned+entities"` instead.
 - `"mfs"` - announce only the local CIDs that are part of the MFS (`ipfs files`)
   - Note: MFS is lazy-loaded. Only the MFS blocks present in local datastore are announced.
 - `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
-  - **ℹ️ NOTE:** This is the suggested strategy for users who run without GC and don't want to provide everything in cache.
   - Order: first `pinned` and then the locally available part of `mfs`.
 
 #### Strategy modifiers: `+unique` and `+entities`
 
-The `+unique` and `+entities` modifiers can be appended to `pinned`, `mfs`, or `pinned+mfs` strategies to optimize the reprovide cycle:
+The `+unique` and `+entities` modifiers can be appended to `pinned`, `mfs`, or `pinned+mfs` strategies to optimize the reprovide cycle. They are incompatible with `"all"` and `"roots"`.
 
 - **`+unique`** -- uses a bloom filter to deduplicate CIDs across recursive
   pins that share sub-DAGs. Without this, a node with 1000 pins that share 99%
   of their content re-traverses the shared blocks for each pin. With `+unique`,
   shared subtrees are detected and skipped, reducing traversal from
-  O(pins * total_blocks) to O(unique_blocks). The bloom filter uses ~4 bytes
-  per CID (vs ~75 bytes for an exact set), enabling dedup on repositories with
-  tens of millions of CIDs that were previously impractical due to memory
-  constraints.
-
-- **`+entities`** -- provides only entity roots (file roots, directory roots,
+  O(pins * total_blocks) to O(unique_blocks). This also significantly reduces
+  the amount of CIDs sent to the routing system when similar datasets are
+  pinned multiple times.
+- **`+entities`** -- announces only entity roots (file roots, directory roots,
   HAMT shard nodes) instead of every block. Internal file chunks are not
-  announced to the DHT. This significantly reduces the number of provider
-  records for repositories with large files while keeping all files and
-  directories discoverable. Implies `+unique`. For non-UnixFS content
-  (e.g. dag-cbor), every reachable CID is still announced.
-  - **⚠️ NOTE:** since internal file chunks are not announced, resuming
-    an interrupted download from a specific byte offset or requesting a
-    byte range may not work unless the client is smart enough to find
-    providers for the entity root CID instead of the chunk CID. This is
-    a work in progress; see [kubo#10251](https://github.com/ipfs/kubo/issues/10251).
+  announced. This significantly reduces the number of provider records for
+  repositories with large files while keeping all files and directories
+  discoverable. Implies `+unique`. Non-UnixFS content (e.g. dag-cbor) is
+  still fully announced.
+  - **⚠️ BE CAREFUL:** since internal file chunks are not announced, resuming
+    an interrupted download from a specific byte offset or requesting a byte
+    range may not work unless the client is smart enough to find providers
+    for the entity root CID instead of the chunk CID. This is a work in
+    progress; see [kubo#10251](https://github.com/ipfs/kubo/issues/10251).
 
-Example: `"pinned+mfs+entities"` combines pinned and MFS strategies with
-entity-aware traversal and cross-DAG bloom dedup.
+**Suggested configurations:**
 
-These modifiers are **incompatible** with `"all"` (which provides at the
-blockstore level) and `"roots"` (which only provides top-level root CIDs).
+- `"pinned+mfs+unique"` -- safe default for nodes with GC enabled, or desktop
+  users who don't want to announce all blocks cached in the local repository.
+  Handles pins of similar DAGs efficiently (e.g. versioned datasets where pins
+  are added and removed over time).
+- `"pinned+mfs+entities"` -- same as above, but also skips internal file chunks
+  for even fewer provider records. Use when the `+entities` trade-off (no
+  chunk-level discoverability) is acceptable.
+
+#### Memory during reprovide
+
+Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million CIDs. This is due to the use of a buffered provider, which loads all CIDs into memory to avoid holding a lock on the entire pinset during the reprovide cycle.
+
+With `+unique` or `+entities`, a bloom filter replaces the in-memory CID set, significantly reducing memory usage:
+
+- 2M CIDs: ~150 MB (default) vs ~8 MB (with `+unique` bloom filter)
+- 10M CIDs: ~750 MB (default) vs ~42 MB (with `+unique` bloom filter)
+- 100M CIDs: ~7.5 GB (default) vs ~713 MB (with `+unique` bloom filter)
+
+The bloom auto-scales: the first cycle starts small and grows as needed; subsequent cycles size correctly from the previous cycle's count.
+
+#### Notes
 
 **Strategy changes automatically clear the provide queue.** When you change `Provide.Strategy` and restart Kubo, the provide queue is automatically cleared to ensure only content matching your new strategy is announced. You can also manually clear the queue using `ipfs provide clear`.
-
-**Memory requirements:**
-
-- Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million CIDs for reproviding to the Amino DHT.
-- This is due to the use of a buffered provider, which loads all CIDs into memory to avoid holding a lock on the entire pinset during the reprovide cycle.
-- With `+unique`, the bloom filter replaces the in-memory CID set, using ~4 bytes per CID instead of ~75. A node with 10 million CIDs uses ~40 MB (vs ~750 MB without `+unique`).
 
 Default: `"all"`
 
@@ -3790,29 +3801,41 @@ Type: `optionalString`
 
 ### `Import.FastProvideRoot`
 
-Immediately provide root CIDs to the DHT in addition to the regular provide queue.
+Immediately provide root CIDs to the routing system in addition to the regular provide queue.
 
-This complements the sweep provider system: fast-provide handles the urgent case (root CIDs that users share and reference), while the sweep provider efficiently provides all blocks according to the `Provide.Strategy` over time. Together, they optimize for both immediate discoverability of newly imported content and efficient resource usage for complete DAG provides.
+This complements the reprovide system: fast-provide handles the urgent case (root CIDs that users share and reference), while the reprovide cycle provides all blocks according to the [`Provide.Strategy`](#providestrategy) over time.
 
-When disabled, only the sweep provider's queue is used.
+When disabled, only the reprovide cycle handles content announcement.
 
-This setting applies to both `ipfs add` and `ipfs dag import` commands and can be overridden per-command with the `--fast-provide-root` flag.
-
-Ignored when DHT is not available for routing (e.g., `Routing.Type=none` or delegated-only configurations).
+Applies to `ipfs add`, `ipfs dag import`, `ipfs pin add`, and `ipfs pin update`. Can be overridden per-command with the `--fast-provide-root` flag.
 
 Default: `true`
 
 Type: `flag`
 
+### `Import.FastProvideDAG`
+
+Walk and provide the full DAG immediately after content is added or pinned, using the active [`Provide.Strategy`](#providestrategy) to determine scope.
+
+When enabled with `+unique`, the DAG walk deduplicates via a bloom filter. When enabled with `+entities`, only entity roots (files, directories, HAMT shards) are provided.
+
+When disabled (default), only the root CID is provided immediately (via [`Import.FastProvideRoot`](#importfastprovideroot)) and child blocks are deferred to the reprovide cycle.
+
+Applies to `ipfs add`, `ipfs dag import`, `ipfs pin add`, and `ipfs pin update`. Can be overridden per-command with the `--fast-provide-dag` flag. Has no effect when `Provide.Strategy=all` (the blockstore already provides every block on write).
+
+Default: `false`
+
+Type: `flag`
+
 ### `Import.FastProvideWait`
 
-Wait for the immediate root CID provide to complete before returning.
+Wait for the immediate provide to complete before returning.
 
-When enabled, the command blocks until the provide completes, ensuring guaranteed discoverability before returning. When disabled (default), the provide happens asynchronously in the background without blocking the command.
+When enabled, the command blocks until the provide completes, ensuring guaranteed discoverability before returning. When disabled (default), the provide happens asynchronously in the background without blocking the command. Applies to both [`Import.FastProvideRoot`](#importfastprovideroot) and [`Import.FastProvideDAG`](#importfastprovidedag).
 
 Use this when you need certainty that content is discoverable before the command returns (e.g., sharing a link immediately after adding).
 
-This setting applies to both `ipfs add` and `ipfs dag import` commands and can be overridden per-command with the `--fast-provide-wait` flag.
+Applies to `ipfs add`, `ipfs dag import`, `ipfs pin add`, and `ipfs pin update`. Can be overridden per-command with the `--fast-provide-wait` flag.
 
 Ignored when DHT is not available for routing (e.g., `Routing.Type=none` or delegated-only configurations).
 
