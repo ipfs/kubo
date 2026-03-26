@@ -22,6 +22,7 @@ type Harness struct {
 	Runner    *Runner
 	NodesRoot string
 	Nodes     Nodes
+	stubPeers *stubPeerPool // ephemeral DHT peers for TEST_DHT_STUB mode
 }
 
 // TODO: use zaptest.NewLogger(t) instead
@@ -64,6 +65,17 @@ func New(options ...func(h *Harness)) *Harness {
 
 	h.NodesRoot = filepath.Join(h.Dir, ".nodes")
 
+	// Start ephemeral DHT peers when TEST_DHT_STUB is enabled.
+	// These provide a loopback-only DHT network for testing
+	// provide/findprovs/IPNS without the public swarm.
+	if os.Getenv("TEST_DHT_STUB") == "1" {
+		pool, err := newStubPeerPool(20)
+		if err != nil {
+			log.Panicf("creating stub peer pool: %s", err)
+		}
+		h.stubPeers = pool
+	}
+
 	// apply any customizations
 	// this should happen after all initialization
 	for _, o := range options {
@@ -71,6 +83,24 @@ func New(options ...func(h *Harness)) *Harness {
 	}
 
 	return h
+}
+
+// SetStubBootstrap configures each node to bootstrap from the
+// ephemeral DHT peers created for TEST_DHT_STUB mode. No-op when
+// the stub is not active. Call after Init() and before StartDaemon().
+func (h *Harness) SetStubBootstrap(nodes Nodes) {
+	if h.stubPeers == nil {
+		return
+	}
+	var addrs []string
+	for _, host := range h.stubPeers.hosts {
+		for _, addr := range host.Addrs() {
+			addrs = append(addrs, addr.String()+"/p2p/"+host.ID().String())
+		}
+	}
+	for _, node := range nodes {
+		node.SetIPFSConfig("Bootstrap", addrs)
+	}
 }
 
 func osEnviron() map[string]string {
@@ -183,7 +213,7 @@ func (h *Harness) Sh(expr string) *RunResult {
 func (h *Harness) Cleanup() {
 	log.Debugf("cleaning up cluster")
 	h.Nodes.StopDaemons()
-	// TODO: don't do this if test fails, not sure how?
+	h.stubPeers.Close()
 	log.Debugf("removing harness dir")
 	err := os.RemoveAll(h.Dir)
 	if err != nil {

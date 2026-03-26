@@ -227,7 +227,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			return err
 		}
 	} else {
-		log.Debugw("fast-provide: skipped", "reason", "disabled by flag or config")
+		log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
 	}
 
 	return nil

@@ -674,7 +674,10 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 				return err
 			}
 		} else if !fastProvideRoot && !fastProvideDAG {
-			log.Debugw("fast-provide: skipped", "reason", "disabled by flag or config")
+			log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
+			if fastProvideWait {
+				log.Debugw("fast-provide-root: wait-flag-ignored")
+			}
 		}
 
 		return nil

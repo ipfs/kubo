@@ -248,7 +248,7 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 		// Telemetry disabled by default in tests.
 		cfg.Plugins = config.Plugins{
 			Plugins: map[string]config.Plugin{
-				"telemetry": config.Plugin{
+				"telemetry": {
 					Disabled: true,
 				},
 			},
