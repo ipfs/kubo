@@ -357,6 +357,8 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	// new CIDs still announce via fast-provide-root and 'ipfs provide once'.
 	isProviderEnabled := cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled)
 
+	isOnDemandPinEnabled := cfg.Experimental.OnDemandPinningEnabled
+
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),
 		fx.Provide(Bitswap(isBitswapServerEnabled, isBitswapLibp2pEnabled, isHTTPRetrievalEnabled)),
@@ -373,6 +375,8 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		LibP2P(bcfg, cfg, userResourceOverrides),
 		OnlineProviders(isProviderEnabled, cfg),
+
+		maybeProvide(OnDemandPinChecker(cfg.OnDemandPinning), isOnDemandPinEnabled),
 	)
 }
 
@@ -466,6 +470,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		fx.Provide(BlockService(cfg)),
 		fx.Provide(Pinning(providerStrategy)),
 		fx.Provide(Files(providerStrategy)),
+		fx.Provide(OnDemandPinStore),
 		Core,
 	)
 }
