@@ -56,6 +56,7 @@ import (
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/fuse/mount"
+	"github.com/ipfs/kubo/ondemandpin"
 	"github.com/ipfs/kubo/p2p"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
@@ -75,6 +76,9 @@ type IpfsNode struct {
 	Mounts          Mounts                 `optional:"true"` // current mount state, if any.
 	PrivateKey      ic.PrivKey             `optional:"true"` // the local node's private Key
 	PNetFingerprint libp2p.PNetFingerprint `optional:"true"` // fingerprint of private network
+
+	OnDemandPinStore   *ondemandpin.Store
+	OnDemandPinChecker *ondemandpin.Checker `optional:"true"`
 
 	// Services
 	Peerstore                   pstore.Peerstore          `optional:"true"` // storage for other Peer instances

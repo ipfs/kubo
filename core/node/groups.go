@@ -350,6 +350,8 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	// Disabling is controlled by Provide.Enabled=false or setting Interval to 0.
 	isProviderEnabled := cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) && cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) != 0
 
+	isOnDemandPinEnabled := cfg.Experimental.OnDemandPinningEnabled
+
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),
 		fx.Provide(Bitswap(isBitswapServerEnabled, isBitswapLibp2pEnabled, isHTTPRetrievalEnabled)),
@@ -365,6 +367,8 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		LibP2P(bcfg, cfg, userResourceOverrides),
 		OnlineProviders(isProviderEnabled, cfg),
+
+		maybeProvide(OnDemandPinChecker(cfg.OnDemandPinning), isOnDemandPinEnabled),
 	)
 }
 
@@ -458,6 +462,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		fx.Provide(BlockService(cfg)),
 		fx.Provide(Pinning(providerStrategy)),
 		fx.Provide(Files(providerStrategy)),
+		fx.Provide(OnDemandPinStore),
 		Core,
 	)
 }
