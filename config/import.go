@@ -8,6 +8,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	chunk "github.com/ipfs/boxo/chunker"
+	"github.com/ipfs/boxo/mfs"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
@@ -293,4 +294,24 @@ func (i *Import) CidBuilder() (cid.Builder, error) {
 	prefix.MhLength = -1
 
 	return &prefix, nil
+}
+
+// MkdirOpts returns a mfs.MkdirOpts based on Import settings.
+func (i *Import) MkdirOpts() (mfs.MkdirOpts, error) {
+	opts := mfs.MkdirOpts{}
+
+	cidBuilder, err := i.CidBuilder();
+	if err != nil {
+		return opts, err
+	}
+
+	sizeEstimationMode := i.HAMTSizeEstimationMode()
+
+	opts.CidBuilder = cidBuilder
+	opts.MaxLinks = int(i.UnixFSDirectoryMaxLinks.WithDefault(DefaultUnixFSDirectoryMaxLinks))
+	opts.MaxHAMTFanout = int(i.UnixFSHAMTDirectoryMaxFanout.WithDefault(DefaultUnixFSHAMTDirectoryMaxFanout))
+	opts.SizeEstimationMode = &sizeEstimationMode
+	opts.Chunker = i.UnixFSSplitterFunc()
+
+	return opts, nil
 }

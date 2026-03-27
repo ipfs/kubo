@@ -248,19 +248,13 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 		if err != nil {
 			return nil, fmt.Errorf("failed to get config: %w", err)
 		}
-		chunkerGen := cfg.Import.UnixFSSplitterFunc()
-		maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
-		maxHAMTFanout := int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
-		hamtShardingSize := int(cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold))
-		sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
 
-		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov,
-			mfs.WithChunker(chunkerGen),
-			mfs.WithMaxLinks(maxDirLinks),
-			mfs.WithMaxHAMTFanout(maxHAMTFanout),
-			mfs.WithHAMTShardingSize(hamtShardingSize),
-			mfs.WithSizeEstimationMode(sizeEstimationMode),
-		)
+		mkdirOpts, err := cfg.Import.MkdirOpts()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get mkdir opts: %w", err)
+		}
+
+		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov, mkdirOpts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize MFS root from %s stored at %s: %w. "+
 				"If corrupted, use 'ipfs files chroot' to reset (see --help)", nd.Cid(), FilesRootDatastoreKey, err)

@@ -39,6 +39,7 @@ func (fs *FileSystem) Root() (fs.Node, error) {
 
 // FUSE Adapter for MFS directories.
 type Dir struct {
+	ipfs *core.IpfsNode
 	mfsDir *mfs.Directory
 }
 
@@ -100,11 +101,23 @@ func (dir *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 // Mkdir (mkdir) in MFS.
 func (dir *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
-	mfsDir, err := dir.mfsDir.Mkdir(req.Name)
+	cfg, err := dir.ipfs.Repo.Config()
 	if err != nil {
 		return nil, err
 	}
+
+	opts, err := cfg.Import.MkdirOpts()
+	if err != nil {
+		return nil, err
+	}
+
+	mfsDir, err := dir.mfsDir.MkdirWithOpts(req.Name, opts)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Dir{
+		ipfs: dir.ipfs,
 		mfsDir: mfsDir,
 	}, nil
 }
@@ -168,7 +181,18 @@ func (dir *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.N
 // Create (touch) an MFS file.
 func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
 	node := dag.NodeWithData(ft.FilePBData(nil, 0))
-	if err := node.SetCidBuilder(dir.mfsDir.GetCidBuilder()); err != nil {
+
+	cfg, err := dir.ipfs.Repo.Config()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	builder, err := cfg.Import.CidBuilder()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err := node.SetCidBuilder(builder); err != nil {
 		return nil, nil, err
 	}
 
@@ -371,6 +395,7 @@ func (fh *FileHandler) Release(ctx context.Context, req *fuse.ReleaseRequest) er
 func NewFileSystem(ipfs *core.IpfsNode) fs.FS {
 	return &FileSystem{
 		root: Dir{
+			ipfs:   ipfs,
 			mfsDir: ipfs.FilesRoot.GetDirectory(),
 		},
 	}

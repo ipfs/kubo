@@ -215,7 +215,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 			return path.ImmutablePath{}, err
 		}
 		// MFS root for OnlyHash mode: provider is nil since we're not storing/providing anything
-		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil, nil)
+		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil, nil, mfs.MkdirOpts{})
 		if err != nil {
 			return path.ImmutablePath{}, err
 		}
