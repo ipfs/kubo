@@ -13,12 +13,16 @@ import (
 )
 
 // stubPeerPool manages ephemeral in-process libp2p/DHT peers for
-// TEST_DHT_STUB mode. All peers share a single ProviderStore so
-// provider records are visible regardless of which peer is queried.
+// TEST_DHT_STUB mode.
 //
-// Kubo daemon processes bootstrap to these peers over loopback TCP.
-// All DHT operations (Provide, FindProviders, PutValue, GetValue)
-// go through real protocol messages.
+// All peers share a single in-memory ProviderStore. This store is
+// NOT shared with the kubo daemons; it lives in the test process.
+// When a kubo daemon sends ADD_PROVIDER to any ephemeral peer, the
+// record is stored in this shared store. When another kubo daemon
+// queries GET_PROVIDERS from any peer, it finds the record because
+// all peers see the same store. The kubo daemons communicate with
+// the ephemeral peers via real DHT protocol messages over loopback
+// TCP.
 type stubPeerPool struct {
 	hosts  []host.Host
 	dhts   []*dht.IpfsDHT
@@ -26,9 +30,13 @@ type stubPeerPool struct {
 	cancel context.CancelFunc
 }
 
-// newStubPeerPool creates count ephemeral DHT peers on loopback,
-// mesh-connects them, and writes their bootstrap addresses to
-// stubDir/bootstrap-peers.
+// stubDHTPeerCount is the number of ephemeral DHT peers to create.
+// Matches amino.DefaultBucketSize (K=20 in Kademlia), ensuring
+// GetClosestPeers always finds enough peers for provide replication.
+const stubDHTPeerCount = 20
+
+// newStubPeerPool creates count ephemeral DHT peers on loopback and
+// mesh-connects them.
 func newStubPeerPool(count int) (*stubPeerPool, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 

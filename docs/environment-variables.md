@@ -283,8 +283,8 @@ Filters removed on the WAN DHT when this variable is set:
 - `RoutingTablePeerDiversityFilter`: disabled (default caps same-IP peers to 3)
 
 The CLI test harness creates ephemeral in-process DHT peers on
-`127.0.0.1` when `TEST_DHT_STUB=1`. Tests call
-`h.SetStubBootstrap(nodes)` to point kubo daemons at them.
+`127.0.0.1` when this variable is set. Tests call
+`h.BootstrapWithStubDHT(nodes)` to point kubo daemons at them.
 
 Default: disabled (not set)
 

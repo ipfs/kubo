@@ -65,17 +65,6 @@ func New(options ...func(h *Harness)) *Harness {
 
 	h.NodesRoot = filepath.Join(h.Dir, ".nodes")
 
-	// Start ephemeral DHT peers when TEST_DHT_STUB is enabled.
-	// These provide a loopback-only DHT network for testing
-	// provide/findprovs/IPNS without the public swarm.
-	if os.Getenv("TEST_DHT_STUB") == "1" {
-		pool, err := newStubPeerPool(20)
-		if err != nil {
-			log.Panicf("creating stub peer pool: %s", err)
-		}
-		h.stubPeers = pool
-	}
-
 	// apply any customizations
 	// this should happen after all initialization
 	for _, o := range options {
@@ -85,12 +74,23 @@ func New(options ...func(h *Harness)) *Harness {
 	return h
 }
 
-// SetStubBootstrap configures each node to bootstrap from the
-// ephemeral DHT peers created for TEST_DHT_STUB mode. No-op when
-// the stub is not active. Call after Init() and before StartDaemon().
-func (h *Harness) SetStubBootstrap(nodes Nodes) {
-	if h.stubPeers == nil {
+// BootstrapWithStubDHT configures each node to bootstrap from
+// ephemeral in-process DHT peers on loopback instead of the public
+// swarm. Requires TEST_DHT_STUB to be set in the environment. No-op
+// when the env var is not set. Call after Init() and before StartDaemon().
+//
+// The stub DHT peers are created lazily on the first call and shared
+// across all nodes in this harness. They are shut down in Cleanup().
+func (h *Harness) BootstrapWithStubDHT(nodes Nodes) {
+	if os.Getenv("TEST_DHT_STUB") == "" {
 		return
+	}
+	if h.stubPeers == nil {
+		pool, err := newStubPeerPool(stubDHTPeerCount)
+		if err != nil {
+			log.Panicf("creating stub peer pool: %s", err)
+		}
+		h.stubPeers = pool
 	}
 	var addrs []string
 	for _, host := range h.stubPeers.hosts {

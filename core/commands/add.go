@@ -397,6 +397,14 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		fastProvideDAG = config.ResolveBoolFromConfig(fastProvideDAG, fastProvideDAGSet, cfg.Import.FastProvideDAG, config.DefaultFastProvideDAG)
 		fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
 
+		// --only-hash does not store data, so pinning and providing
+		// are meaningless.
+		if onlyHash {
+			dopin = false
+			fastProvideRoot = false
+			fastProvideDAG = false
+		}
+
 		// Storing optional mode or mtime (UnixFS 1.5) requires root block
 		// to always be 'dag-pb' and not 'raw'. Below adjusts raw-leaves setting, if possible.
 		if preserveMode || preserveMtime || mode != 0 || mtime != 0 {
