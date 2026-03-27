@@ -44,9 +44,12 @@ type Dir struct {
 
 // Directory attributes (stat).
 func (dir *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
+	attr.Valid = 0
 	attr.Mode = mfsDirMode
 	attr.Size = dirSize * blockSize
 	attr.Blocks = dirSize
+	attr.Uid = uint32(os.Getuid())
+	attr.Gid = uint32(os.Getgid())
 	return nil
 }
 
@@ -60,6 +63,8 @@ func (dir *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.
 	default:
 		return nil, err
 	}
+
+	resp.EntryValid = 0
 
 	switch mfsNode.Type() {
 	case mfs.TDir:
@@ -241,6 +246,8 @@ type File struct {
 
 // File attributes.
 func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
+	attr.Valid = 0
+
 	size, _ := file.mfsFile.Size()
 
 	attr.Size = uint64(size)
@@ -254,6 +261,8 @@ func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	attr.Mtime = mtime
 
 	attr.Mode = mfsFileMode
+	attr.Uid = uint32(os.Getuid())
+	attr.Gid = uint32(os.Getgid())
 	return nil
 }
 
@@ -281,9 +290,9 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 	}, nil
 }
 
-// Sync the file's contents to MFS.
+// no-op (actual data flushing happens in Flush)
 func (file *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
-	return file.mfsFile.Sync()
+	return nil
 }
 
 // List file xattr.
