@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"fmt"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/merkledag/dagutils"
@@ -56,6 +57,37 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 		return path.ImmutablePath{}, dag.ErrNotProtobuf
 	}
 
+	// This command operates at the dag-pb level via dagutils.Editor, which
+	// only manipulates ProtoNode links without updating UnixFS metadata.
+	// Only plain UnixFS Directory nodes are safe to mutate this way.
+	// File nodes: adding links corrupts Blocksizes, content lost on read-back.
+	// HAMTShard nodes: bitfield not updated, shard trie becomes inconsistent.
+	// https://specs.ipfs.tech/unixfs/#pbnode-links-name
+	// https://github.com/ipfs/kubo/issues/7190
+	if !options.SkipUnixFSValidation {
+		fsNode, err := ft.FSNodeFromBytes(basePb.Data())
+		if err != nil {
+			return path.ImmutablePath{}, fmt.Errorf(
+				"cannot add named links to a non-UnixFS dag-pb node; " +
+					"pass --allow-non-unixfs to skip validation")
+		}
+		switch fsNode.Type() {
+		case ft.TDirectory:
+			// plain directories: safe, no link-count metadata to desync
+		case ft.THAMTShard:
+			return path.ImmutablePath{}, fmt.Errorf(
+				"cannot add links to a HAMTShard at the dag-pb level " +
+					"(would corrupt the HAMT bitfield); use 'ipfs files' " +
+					"commands instead, or pass --allow-non-unixfs to override")
+		default:
+			return path.ImmutablePath{}, fmt.Errorf(
+				"cannot add named links to a UnixFS %s node, "+
+					"only Directory nodes support link addition at the dag-pb level "+
+					"(see https://specs.ipfs.tech/unixfs/)",
+				fsNode.Type())
+		}
+	}
+
 	var createfunc func() *dag.ProtoNode
 	if options.Create {
 		createfunc = ft.EmptyDirNode
@@ -76,12 +108,17 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 	return path.FromCid(nnode.Cid()), nil
 }
 
-func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (path.ImmutablePath, error) {
+func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string, opts ...caopts.ObjectRmLinkOption) (path.ImmutablePath, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.ObjectAPI", "RmLink", trace.WithAttributes(
 		attribute.String("base", base.String()),
 		attribute.String("link", link)),
 	)
 	defer span.End()
+
+	options, err := caopts.ObjectRmLinkOptions(opts...)
+	if err != nil {
+		return path.ImmutablePath{}, err
+	}
 
 	baseNd, err := api.core().ResolveNode(ctx, base)
 	if err != nil {
@@ -91,6 +128,32 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (
 	basePb, ok := baseNd.(*dag.ProtoNode)
 	if !ok {
 		return path.ImmutablePath{}, dag.ErrNotProtobuf
+	}
+
+	// Same validation as AddLink: dagutils.Editor operates at the dag-pb
+	// level and cannot update UnixFS metadata (HAMT bitfields, Blocksizes).
+	if !options.SkipUnixFSValidation {
+		fsNode, err := ft.FSNodeFromBytes(basePb.Data())
+		if err != nil {
+			return path.ImmutablePath{}, fmt.Errorf(
+				"cannot remove links from a non-UnixFS dag-pb node; " +
+					"pass --allow-non-unixfs to skip validation")
+		}
+		switch fsNode.Type() {
+		case ft.TDirectory:
+			// plain directories: safe, no link-count metadata to desync
+		case ft.THAMTShard:
+			return path.ImmutablePath{}, fmt.Errorf(
+				"cannot remove links from a HAMTShard at the dag-pb level " +
+					"(would corrupt the HAMT bitfield); use 'ipfs files rm' " +
+					"instead, or pass --allow-non-unixfs to override")
+		default:
+			return path.ImmutablePath{}, fmt.Errorf(
+				"cannot remove links from a UnixFS %s node, "+
+					"only Directory nodes support link removal at the dag-pb level "+
+					"(see https://specs.ipfs.tech/unixfs/)",
+				fsNode.Type())
+		}
 	}
 
 	e := dagutils.NewDagEditor(basePb, api.dag)
