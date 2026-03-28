@@ -71,6 +71,19 @@ func TestExternalUnmount(t *testing.T) {
 		t.Fatalf("error mounting: %v", err)
 	}
 
+	t.Cleanup(func() {
+		if node.Mounts.Mfs != nil && node.Mounts.Mfs.IsActive() {
+			if err := node.Mounts.Mfs.Unmount(); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if node.Mounts.Ipns != nil && node.Mounts.Ipns.IsActive() {
+			if err := node.Mounts.Ipns.Unmount(); err != nil {
+				t.Fatal(err)
+			}
+		}
+	})
+
 	// Run shell command to externally unmount the directory
 	cmd, err := mount.UnmountCmd(ipfsDir)
 	if err != nil {
