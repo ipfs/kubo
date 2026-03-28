@@ -76,15 +76,17 @@ func New(options ...func(h *Harness)) *Harness {
 
 // BootstrapWithStubDHT configures each node to bootstrap from
 // ephemeral in-process DHT peers on loopback instead of the public
-// swarm. Requires TEST_DHT_STUB to be set in the environment. No-op
-// when the env var is not set. Call after Init() and before StartDaemon().
+// swarm. Call after Init() and before StartDaemon().
 //
-// The stub DHT peers are created lazily on the first call and shared
-// across all nodes in this harness. They are shut down in Cleanup().
+// Creates 20 ephemeral DHT peers lazily on the first call, shared
+// across all nodes in this harness. Sets TEST_DHT_STUB on each
+// node's environment so the daemon lifts WAN DHT filters to accept
+// loopback peers. Peers are shut down in Cleanup().
+//
+// The sweep provider needs >=20 DHT peers to estimate the network
+// size (prefix length). Without enough peers it stays offline and
+// never provides.
 func (h *Harness) BootstrapWithStubDHT(nodes Nodes) {
-	if os.Getenv("TEST_DHT_STUB") == "" {
-		return
-	}
 	if h.stubPeers == nil {
 		pool, err := newStubPeerPool(stubDHTPeerCount)
 		if err != nil {
@@ -100,6 +102,9 @@ func (h *Harness) BootstrapWithStubDHT(nodes Nodes) {
 	}
 	for _, node := range nodes {
 		node.SetIPFSConfig("Bootstrap", addrs)
+		// Tell the daemon to lift WAN DHT filters so loopback
+		// ephemeral peers enter the WAN routing table.
+		node.Runner.Env["TEST_DHT_STUB"] = "1"
 	}
 }
 
