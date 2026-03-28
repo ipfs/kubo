@@ -269,8 +269,8 @@ elsewhere. For example, using openssl to get a PEM with public key:
 				outPath = filepath.Clean(outPath)
 			}
 
-			// create file
-			file, err := os.Create(outPath)
+			// create file with owner-only permissions to protect private key material
+			file, err := os.OpenFile(outPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 			if err != nil {
 				return err
 			}
