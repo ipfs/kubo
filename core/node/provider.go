@@ -1325,6 +1325,9 @@ func createKeyProvider(strategyFlag config.ProvideStrategy, in provStrategyIn) p
 					if ctx.Err() == nil {
 						persistUniqueCount(ds, tracker.Count())
 					}
+					logger.Infow("unique reprovide cycle finished",
+						"providedCIDs", tracker.Count(),
+						"skippedBranches", tracker.Deduplicated())
 					close(ch)
 				}()
 				for c := range innerCh {

@@ -270,6 +270,9 @@ func ExecuteFastProvideDAG(
 
 		close(ch)
 		<-done
+		log.Infow("fast-provide-dag: finished",
+			"providedCIDs", tracker.Count(),
+			"skippedBranches", tracker.Deduplicated())
 	}
 
 	if wait {

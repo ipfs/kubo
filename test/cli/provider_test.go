@@ -1036,6 +1036,117 @@ func TestProvider(t *testing.T) {
 	}
 }
 
+// TestProviderUniqueDedupLogging verifies that the +unique bloom filter
+// deduplication produces a "skippedBranches" log with a value > 0 when
+// two pins share content. Tests both the fast-provide-dag path (immediate
+// provide on pin add) and the reprovide cycle path.
+func TestProviderUniqueDedupLogging(t *testing.T) {
+	t.Parallel()
+
+	// Shared data that both pins will reference. Two pins containing
+	// the same file block give the bloom something to dedup.
+	sharedData := random.Bytes(10 * 1024) // 10 KiB, single block
+
+	t.Run("fast-provide-dag dedup across pins in single call", func(t *testing.T) {
+		t.Parallel()
+
+		h := harness.NewT(t)
+		node := h.NewNode().Init()
+		node.SetIPFSConfig("Provide.Strategy", "pinned+unique")
+		node.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+		node.SetIPFSConfig("Import.UnixFSChunker", "size-5120") // 5 KiB chunks
+		h.BootstrapWithStubDHT(harness.Nodes{node})
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					// dagwalker: bloom creation log
+					// core/commands/cmdenv: fast-provide-dag finished log
+					"GOLOG_LOG_LEVEL": "error,dagwalker=info,core/commands/cmdenv=info",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		// 10 KiB file with 5 KiB chunks = 1 file root + 2 chunks = 3 blocks.
+		// Two dirs each containing the file under different names:
+		//   dirA/fileA → same 3 blocks
+		//   dirB/fileB → same 3 blocks
+		// Pinning both in a single `pin add` shares one bloom tracker.
+		// Walking dirA: dirA + file root + chunk1 + chunk2 = 4 provided.
+		// Walking dirB: dirB + file root (bloom hit, skip subtree) = 1 provided, 1 skipped.
+		// Total: 5 provided, 1 skipped branch (file root in dirB; its
+		// 2 chunks are never visited because the parent was skipped).
+		cidFile := node.IPFSAdd(bytes.NewReader(sharedData), "-Q", "--pin=false")
+		node.IPFS("files", "mkdir", "-p", "/dirA")
+		node.IPFS("files", "cp", "/ipfs/"+cidFile, "/dirA/fileA")
+		cidDirA := node.IPFS("files", "stat", "--hash", "/dirA").Stdout.Trimmed()
+		node.IPFS("files", "mkdir", "-p", "/dirB")
+		node.IPFS("files", "cp", "/ipfs/"+cidFile, "/dirB/fileB")
+		cidDirB := node.IPFS("files", "stat", "--hash", "/dirB").Stdout.Trimmed()
+		require.NotEqual(t, cidDirA, cidDirB, "dirs must differ to test dedup")
+		// Single pin add with both CIDs shares one bloom.
+		node.IPFS("pin", "add", "--fast-provide-dag", "--fast-provide-wait", cidDirA, cidDirB)
+
+		daemonLog := node.Daemon.Stderr.String()
+		require.Contains(t, daemonLog, "bloom tracker created")
+		require.NotContains(t, daemonLog, "bloom tracker autoscaled")
+		require.Contains(t, daemonLog, `"providedCIDs": 5`)
+		require.Contains(t, daemonLog, `"skippedBranches": 1`)
+	})
+
+	t.Run("reprovide cycle dedup across pins", func(t *testing.T) {
+		t.Parallel()
+
+		h := harness.NewT(t)
+		nodes := h.NewNodes(2).Init()
+		for _, n := range nodes {
+			n.SetIPFSConfig("Provide.Strategy", "pinned+unique")
+			n.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-5120") // 5 KiB chunks
+		}
+		publisher := nodes[0]
+		publisher.SetIPFSConfig("Provide.DHT.Interval", "30s")
+		h.BootstrapWithStubDHT(nodes)
+
+		// Same file structure as fast-provide-dag test above.
+		// The reprovide cycle walks all recursive pins:
+		//   pin dirA: dirA + file root + chunk1 + chunk2 = 4 provided
+		//   pin empty MFS root (always present): 1 provided
+		//   pin dirB: dirB + file root (bloom hit, skip subtree) = 1 provided, 1 skipped
+		// Total: 6 provided, 1 skipped branch.
+		cidFile := publisher.IPFSAdd(bytes.NewReader(sharedData), "-Q", "--pin=false")
+		publisher.IPFS("files", "mkdir", "-p", "/dirA")
+		publisher.IPFS("files", "cp", "/ipfs/"+cidFile, "/dirA/fileA")
+		cidDirA := publisher.IPFS("files", "stat", "--hash", "/dirA").Stdout.Trimmed()
+		publisher.IPFS("pin", "add", cidDirA)
+		publisher.IPFS("files", "mkdir", "-p", "/dirB")
+		publisher.IPFS("files", "cp", "/ipfs/"+cidFile, "/dirB/fileB")
+		cidDirB := publisher.IPFS("files", "stat", "--hash", "/dirB").Stdout.Trimmed()
+		require.NotEqual(t, cidDirA, cidDirB, "dirs must differ to test dedup")
+		publisher.IPFS("pin", "add", cidDirB)
+
+		nodes[0].StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,dagwalker=info,core:constructor=info",
+				}),
+			},
+		}, "")
+		nodes[1].StartDaemon()
+		defer nodes.StopDaemons()
+		nodes.Connect()
+
+		waitForSweepReprovide(t, publisher, 90*time.Second, 6)
+
+		daemonLog := publisher.Daemon.Stderr.String()
+		require.Contains(t, daemonLog, "bloom tracker created")
+		require.NotContains(t, daemonLog, "bloom tracker autoscaled")
+		require.Contains(t, daemonLog, `"providedCIDs": 6`)
+		require.Contains(t, daemonLog, `"skippedBranches": 1`)
+	})
+}
+
 // TestHTTPOnlyProviderWithSweepEnabled tests that provider records are correctly
 // sent to HTTP routers when Routing.Type="custom" with only HTTP routers configured,
 // even when Provide.DHT.SweepEnabled=true (the default since v0.39).
