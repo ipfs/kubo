@@ -282,9 +282,10 @@ Filters removed on the WAN DHT when this variable is set:
 - `RoutingTableFilter`: accepts all peers (default rejects non-public)
 - `RoutingTablePeerDiversityFilter`: disabled (default caps same-IP peers to 3)
 
-The CLI test harness creates ephemeral in-process DHT peers on
-`127.0.0.1` when this variable is set. Tests call
-`h.BootstrapWithStubDHT(nodes)` to point kubo daemons at them.
+In the CLI test harness, `h.BootstrapWithStubDHT(nodes)` spawns a
+mini-DHT on the loopback interface and sets this variable on each
+node automatically, allowing the loopback DHT to serve as a WAN
+replacement. Tests do not need to set this variable externally.
 
 Default: disabled (not set)
 

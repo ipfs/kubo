@@ -84,26 +84,41 @@ var AddCmd = &cmds.Command{
 		ShortDescription: `
 Adds the content of <path> to IPFS. Use -r to add directories (recursively).
 
-FAST PROVIDE OPTIMIZATION:
+CONTENT DISCOVERABILITY:
 
-When you add content to IPFS, the sweep provider queues it for efficient
-DHT provides over time. While this is resource-efficient, other peers won't
-find your content immediately after 'ipfs add' completes.
+How quickly other peers can find your content depends on Provide.Strategy:
 
-To make sharing faster, 'ipfs add' does an immediate provide of the root CID
-to the DHT in addition to the regular queue. This complements the sweep provider:
-fast-provide handles the urgent case (root CIDs that users share and reference),
-while the sweep provider efficiently provides all blocks according to
-Provide.Strategy over time.
+  Provide.Strategy=all (default):
+    Every block is announced to the routing system as it is written to
+    the blockstore. Content is discoverable immediately.
 
-By default, this immediate provide runs in the background without blocking
-the command. If you need certainty that the root CID is discoverable before
-the command returns (e.g., sharing a link immediately), use --fast-provide-wait
-to wait for the provide to complete. Use --fast-provide-root=false to skip
-this optimization.
+  Selective strategies (pinned, mfs, pinned+mfs):
+    Only the root CID is announced immediately after 'ipfs add'.
+    Remaining blocks are announced during the next reprovide cycle
+    (Provide.DHT.Interval, default 22h).
 
-This works best with the sweep provider and accelerated DHT client.
-Automatically skipped when DHT is not available.
+FAST PROVIDE FLAGS:
+
+  --fast-provide-root (default: enabled)
+    Announce the root CID to the routing system immediately after add,
+    in addition to the regular provide queue. Runs in the background
+    without blocking. Set to false to skip extra provides and minimize
+    network overhead when importing a lot of data at once.
+
+  --fast-provide-dag (default: disabled)
+    Walk and provide the full DAG immediately after add, using the
+    active Provide.Strategy to determine scope. Useful with selective
+    strategies when all blocks need to be discoverable right away.
+    No effect with Provide.Strategy=all (blockstore already provides
+    every block on write).
+
+  --fast-provide-wait (default: disabled)
+    Block until the immediate provide completes before returning.
+    Use when you need certainty that content is discoverable before
+    the command returns (e.g., sharing a link immediately after adding).
+
+All fast-provide flags require an active DHT client. Skipped automatically
+when only HTTP delegated routing is configured.
 `,
 		LongDescription: `
 Adds the content of <path> to IPFS. Use -r to add directories.
