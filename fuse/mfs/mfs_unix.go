@@ -29,12 +29,29 @@ const (
 
 // FUSE filesystem mounted at /mfs.
 type FileSystem struct {
-	root Dir
+	root     Dir
+	repoPath string
 }
 
 // Get filesystem root.
 func (fs *FileSystem) Root() (fs.Node, error) {
 	return &fs.root, nil
+}
+
+// Filesystem statistics (statfs)
+func (fs *FileSystem) Statfs(ctx context.Context, req *fuse.StatfsRequest, resp *fuse.StatfsResponse) error {
+	var stat syscall.Statfs_t
+	if err := syscall.Statfs(fs.repoPath, &stat); err != nil {
+		return err
+	}
+	resp.Blocks = stat.Blocks
+	resp.Bfree = stat.Bfree
+	resp.Bavail = stat.Bavail
+	resp.Files = stat.Files
+	resp.Ffree = stat.Ffree
+	resp.Bsize = uint32(stat.Bsize)
+	resp.Namelen = 255
+	return nil
 }
 
 // FUSE Adapter for MFS directories.
@@ -373,8 +390,11 @@ func NewFileSystem(ipfs *core.IpfsNode) fs.FS {
 		root: Dir{
 			mfsDir: ipfs.FilesRoot.GetDirectory(),
 		},
+		repoPath: ipfs.Repo.Path(),
 	}
 }
+
+var _ fs.FSStatfser = (*FileSystem)(nil)
 
 // Check that our structs implement all the interfaces we want.
 type mfsDir interface {
