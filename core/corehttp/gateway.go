@@ -44,11 +44,10 @@ func GatewayOption(paths ...string) ServeOption {
 
 		handler := gateway.NewHandler(config, backend)
 		handler = gateway.NewHeaders(headers).ApplyCors().Wrap(handler)
-		var otelOpts []otelhttp.Option
 		if fn := newServerDomainAttrFn(n); fn != nil {
-			otelOpts = append(otelOpts, otelhttp.WithMetricAttributesFn(fn))
+			handler = withMetricLabels(handler, fn)
 		}
-		handler = otelhttp.NewHandler(handler, "Gateway", otelOpts...)
+		handler = otelhttp.NewHandler(handler, "Gateway")
 
 		for _, p := range paths {
 			mux.Handle(p+"/", handler)
@@ -75,11 +74,10 @@ func HostnameOption() ServeOption {
 		var handler http.Handler
 		handler = gateway.NewHostnameHandler(config, backend, childMux)
 		handler = gateway.NewHeaders(headers).ApplyCors().Wrap(handler)
-		var otelOpts []otelhttp.Option
 		if fn := newServerDomainAttrFn(n); fn != nil {
-			otelOpts = append(otelOpts, otelhttp.WithMetricAttributesFn(fn))
+			handler = withMetricLabels(handler, fn)
 		}
-		handler = otelhttp.NewHandler(handler, "HostnameGateway", otelOpts...)
+		handler = otelhttp.NewHandler(handler, "HostnameGateway")
 
 		mux.Handle("/", handler)
 		return childMux, nil
@@ -131,9 +129,7 @@ func Libp2pGatewayOption() ServeOption {
 		}
 
 		handler := gateway.NewHandler(gwConfig, &offlineGatewayErrWrapper{gwimpl: backend})
-		handler = otelhttp.NewHandler(handler, "Libp2p-Gateway",
-			otelhttp.WithMetricAttributesFn(staticServerDomainAttrFn("libp2p")),
-		)
+		handler = otelhttp.NewHandler(withMetricLabels(handler, staticServerDomainAttrFn("libp2p")), "Libp2p-Gateway")
 
 		mux.Handle("/ipfs/", handler)
 
@@ -272,6 +268,19 @@ var defaultPaths = []string{"/ipfs/", "/ipns/", "/p2p/"}
 // or "other".
 var serverDomainAttrKey = attribute.Key("server.domain")
 
+// withMetricLabels wraps a handler so that otelhttp metric attributes are
+// added via the request-scoped [otelhttp.Labeler] instead of the deprecated
+// [otelhttp.WithMetricAttributesFn] option. The wrapper must run inside
+// [otelhttp.NewHandler] (which injects the labeler into the context).
+func withMetricLabels(next http.Handler, fn func(*http.Request) []attribute.KeyValue) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if l, ok := otelhttp.LabelerFromContext(r.Context()); ok {
+			l.Add(fn(r)...)
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // staticServerDomainAttrFn returns a MetricAttributesFn that always returns
 // a fixed server.domain value. Use for handlers where the domain is known
 // statically (e.g. "api", "libp2p") to keep the label set consistent across
@@ -281,7 +290,7 @@ func staticServerDomainAttrFn(domain string) func(*http.Request) []attribute.Key
 	return func(*http.Request) []attribute.KeyValue { return attrs }
 }
 
-// newServerDomainAttrFn returns an otelhttp.WithMetricAttributesFn callback
+// newServerDomainAttrFn returns an attribute callback for [withMetricLabels]
 // that adds a server.domain attribute grouping requests by their matching
 // Gateway.PublicGateways hostname suffix (e.g. "dweb.link", "ipfs.io").
 // Requests that don't match any configured gateway get "other".
