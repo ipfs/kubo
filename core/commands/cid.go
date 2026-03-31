@@ -2,6 +2,7 @@ package commands
 
 import (
 	"cmp"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	cidutil "github.com/ipfs/go-cidutil"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipldmulticodec "github.com/ipld/go-ipld-prime/multicodec"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 	mbase "github.com/multiformats/go-multibase"
 	mc "github.com/multiformats/go-multicodec"
 	mhash "github.com/multiformats/go-multihash"
@@ -24,11 +26,12 @@ var CidCmd = &cmds.Command{
 		Tagline: "Convert and discover properties of CIDs",
 	},
 	Subcommands: map[string]*cmds.Command{
-		"format": cidFmtCmd,
-		"base32": base32Cmd,
-		"bases":  basesCmd,
-		"codecs": codecsCmd,
-		"hashes": hashesCmd,
+		"inspect": inspectCmd,
+		"format":  cidFmtCmd,
+		"base32":  base32Cmd,
+		"bases":   basesCmd,
+		"codecs":  codecsCmd,
+		"hashes":  hashesCmd,
 	},
 	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
@@ -45,6 +48,8 @@ var cidFmtCmd = &cmds.Command{
 		Tagline: "Format and convert a CID in various useful ways.",
 		LongDescription: `
 Format and converts <cid>'s in various useful ways.
+
+For a human-readable breakdown of a CID, see 'ipfs cid inspect'.
 
 The optional format string is a printf style format string:
 ` + cidutil.FormatRef,
@@ -398,6 +403,179 @@ var hashesCmd = &cmds.Command{
 	Encoders: codecsCmd.Encoders,
 	Type:     codecsCmd.Type,
 	Extra:    CreateCmdExtras(SetDoesNotUseRepo(true)),
+}
+
+// CidInspectRes represents the response from the inspect command.
+type CidInspectRes struct {
+	Cid        string          `json:"cid"`
+	Version    int             `json:"version"`
+	Multibase  CidInspectBase  `json:"multibase"`
+	Multicodec CidInspectCodec `json:"multicodec"`
+	Multihash  CidInspectHash  `json:"multihash"`
+	CidV0      string          `json:"cidV0,omitempty"`
+	CidV1      string          `json:"cidV1"`
+	ErrorMsg   string          `json:"errorMsg,omitempty"`
+}
+
+type CidInspectBase struct {
+	Prefix string `json:"prefix"`
+	Name   string `json:"name"`
+}
+
+type CidInspectCodec struct {
+	Code uint64 `json:"code"`
+	Name string `json:"name"`
+}
+
+type CidInspectHash struct {
+	Code   uint64 `json:"code"`
+	Name   string `json:"name"`
+	Length int    `json:"length"`
+	Digest string `json:"digest"`
+}
+
+var inspectCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Inspect and display detailed information about a CID.",
+		ShortDescription: `
+'ipfs cid inspect' breaks down a CID and displays its components:
+- CID version (0 or 1)
+- Multibase encoding (explicit for CIDv1, implicit for CIDv0)
+- Multicodec (DAG type)
+- Multihash (hash algorithm, length, and digest)
+- Equivalent CIDv0 and CIDv1 representations
+
+For CIDv0, multibase, multicodec, and multihash are marked as
+implicit because they are not explicitly encoded in the binary.
+
+If a PeerID string is provided instead of a CID, a helpful error
+with the equivalent CID representation is returned.
+
+Use --enc=json for machine-readable output same as the HTTP RPC API.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("cid", true, false, "CID to inspect.").EnableStdin(),
+	},
+	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
+		cidStr := req.Arguments[0]
+
+		c, err := cid.Decode(cidStr)
+		if err != nil {
+			errMsg := fmt.Sprintf("invalid CID: %s", err)
+			// PeerID fallback: try peer.Decode for legacy PeerIDs (12D3KooW..., Qm...)
+			if pid, pidErr := peer.Decode(cidStr); pidErr == nil {
+				pidCid := peer.ToCid(pid)
+				cidV1, _ := pidCid.StringOfBase(mbase.Base36)
+				errMsg += fmt.Sprintf("\nNote: the value is a PeerID; inspect its CID representation instead:\n  %s", cidV1)
+			}
+			return cmds.EmitOnce(resp, &CidInspectRes{Cid: cidStr, ErrorMsg: errMsg})
+		}
+
+		res := &CidInspectRes{
+			Cid:     cidStr,
+			Version: int(c.Version()),
+		}
+
+		// Multibase: always populated; CIDv0 uses implicit base58btc
+		if c.Version() == 0 {
+			res.Multibase = CidInspectBase{Prefix: "z", Name: "base58btc"}
+		} else {
+			baseCode, _ := cid.ExtractEncoding(cidStr)
+			res.Multibase = CidInspectBase{
+				Prefix: string(rune(baseCode)),
+				Name:   mbase.EncodingToStr[baseCode],
+			}
+		}
+
+		// Multicodec
+		codecName := mc.Code(c.Type()).String()
+		if codecName == "" || strings.HasPrefix(codecName, "Code(") {
+			codecName = "unknown"
+		}
+		res.Multicodec = CidInspectCodec{Code: c.Type(), Name: codecName}
+
+		// Multihash
+		dmh, err := mhash.Decode(c.Hash())
+		if err != nil {
+			return cmds.EmitOnce(resp, &CidInspectRes{
+				Cid:      cidStr,
+				ErrorMsg: fmt.Sprintf("failed to decode multihash: %s", err),
+			})
+		}
+		hashName := mhash.Codes[dmh.Code]
+		if hashName == "" {
+			hashName = "unknown"
+		}
+		res.Multihash = CidInspectHash{
+			Code:   dmh.Code,
+			Name:   hashName,
+			Length: dmh.Length,
+			Digest: hex.EncodeToString(dmh.Digest),
+		}
+
+		// CIDv0: only possible with dag-pb + sha2-256-256
+		if c.Type() == cid.DagProtobuf && dmh.Code == mhash.SHA2_256 && dmh.Length == 32 {
+			res.CidV0 = cid.NewCidV0(c.Hash()).String()
+		}
+
+		// CIDv1: use base36 for libp2p-key, base32 for everything else
+		v1 := cid.NewCidV1(c.Type(), c.Hash())
+		v1Base := mbase.Encoding(mbase.Base32)
+		if c.Type() == uint64(mc.Libp2pKey) {
+			v1Base = mbase.Base36
+		}
+		v1Str, err := v1.StringOfBase(v1Base)
+		if err != nil {
+			v1Str = v1.String()
+		}
+		res.CidV1 = v1Str
+
+		return cmds.EmitOnce(resp, res)
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, res *CidInspectRes) error {
+			if res.ErrorMsg != "" {
+				return fmt.Errorf("%s", res.ErrorMsg)
+			}
+
+			implicit := ""
+			if res.Version == 0 {
+				implicit = ", implicit"
+			}
+
+			fmt.Fprintf(w, "CID:        %s\n", res.Cid)
+			fmt.Fprintf(w, "Version:    %d\n", res.Version)
+			if res.Version == 0 {
+				fmt.Fprintf(w, "Multibase:  %s (implicit)\n", res.Multibase.Name)
+			} else {
+				fmt.Fprintf(w, "Multibase:  %s (%s)\n", res.Multibase.Name, res.Multibase.Prefix)
+			}
+			fmt.Fprintf(w, "Multicodec: %s (0x%x%s)\n", res.Multicodec.Name, res.Multicodec.Code, implicit)
+			fmt.Fprintf(w, "Multihash:  %s (0x%x%s)\n", res.Multihash.Name, res.Multihash.Code, implicit)
+			fmt.Fprintf(w, "  Length:   %d bytes\n", res.Multihash.Length)
+			fmt.Fprintf(w, "  Digest:   %s\n", res.Multihash.Digest)
+
+			if res.CidV0 != "" {
+				fmt.Fprintf(w, "CIDv0:      %s\n", res.CidV0)
+			} else if res.Multicodec.Code != cid.DagProtobuf {
+				fmt.Fprintf(w, "CIDv0:      not possible, requires dag-pb (0x70), got %s (0x%x)\n",
+					res.Multicodec.Name, res.Multicodec.Code)
+			} else if res.Multihash.Code != mhash.SHA2_256 {
+				fmt.Fprintf(w, "CIDv0:      not possible, requires sha2-256 (0x12), got %s (0x%x)\n",
+					res.Multihash.Name, res.Multihash.Code)
+			} else if res.Multihash.Length != 32 {
+				fmt.Fprintf(w, "CIDv0:      not possible, requires 32-byte digest, got %d\n",
+					res.Multihash.Length)
+			}
+
+			fmt.Fprintf(w, "CIDv1:      %s\n", res.CidV1)
+
+			return nil
+		}),
+	},
+	Type:  CidInspectRes{},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 type multibaseSorter struct {
