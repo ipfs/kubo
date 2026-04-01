@@ -46,9 +46,9 @@ func (fs *FileSystem) Statfs(ctx context.Context, req *fuse.StatfsRequest, resp 
 	}
 	resp.Blocks = stat.Blocks
 	resp.Bfree = stat.Bfree
-	resp.Bavail = stat.Bavail
+	resp.Bavail = uint64(stat.Bavail)
 	resp.Files = stat.Files
-	resp.Ffree = stat.Ffree
+	resp.Ffree = uint64(stat.Ffree)
 	resp.Bsize = uint32(stat.Bsize)
 	resp.Namelen = 255
 	return nil
