@@ -323,10 +323,7 @@ func (d *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		entries[i] = dirent
 	}
 
-	if len(entries) > 0 {
-		return entries, nil
-	}
-	return nil, syscall.Errno(syscall.ENOENT)
+	return entries, nil
 }
 
 func (fi *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {

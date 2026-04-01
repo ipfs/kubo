@@ -259,10 +259,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		return nil, err
 	}
 
-	if len(entries) > 0 {
-		return entries, nil
-	}
-	return nil, syscall.Errno(syscall.ENOENT)
+	return entries, nil
 }
 
 func (s *Node) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
