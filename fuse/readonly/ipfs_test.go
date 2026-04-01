@@ -78,6 +78,38 @@ func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 	return node, mnt
 }
 
+// Test that an empty directory can be listed without errors.
+func TestEmptyDirListing(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	nd, mnt := setupIpfsTest(t, nil)
+	defer mnt.Close()
+
+	// Create an empty UnixFS directory and add it to the DAG.
+	db, err := uio.NewDirectory(nd.DAG)
+	if err != nil {
+		t.Fatal(err)
+	}
+	emptyDir, err := db.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := nd.DAG.Add(nd.Context(), emptyDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// List it via FUSE.
+	dirPath := gopath.Join(mnt.Dir, emptyDir.Cid().String())
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty directory, got %d entries", len(entries))
+	}
+}
+
 // Test writing an object and reading it back through fuse.
 func TestIpfsBasicRead(t *testing.T) {
 	if testing.Short() {

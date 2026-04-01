@@ -155,6 +155,35 @@ func TestIpnsLocalLink(t *testing.T) {
 	}
 }
 
+// Test that empty directories can be listed without errors.
+func TestEmptyDirListing(t *testing.T) {
+	nd, mnt := setupIpnsTest(t, nil)
+	defer mnt.Close()
+
+	// The peer's IPNS directory starts empty.
+	peerDir := mnt.Dir + "/" + nd.Identity.String()
+	entries, err := os.ReadDir(peerDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty peer dir, got %d entries", len(entries))
+	}
+
+	// Create a subdirectory and list it while still empty.
+	subdir := peerDir + "/emptydir"
+	if err := os.Mkdir(subdir, os.ModeDir); err != nil {
+		t.Fatal(err)
+	}
+	entries, err = os.ReadDir(subdir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty subdirectory, got %d entries", len(entries))
+	}
+}
+
 // Test writing a file and reading it back.
 func TestIpnsBasicIO(t *testing.T) {
 	if testing.Short() {

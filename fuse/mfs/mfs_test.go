@@ -90,6 +90,34 @@ func TestReadWrite(t *testing.T) {
 	})
 }
 
+// Test that empty directories can be listed without errors.
+func TestEmptyDirListing(t *testing.T) {
+	_, mnt := setUp(t, nil)
+	defer mnt.Close()
+
+	// The MFS root starts empty.
+	entries, err := os.ReadDir(mnt.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty root, got %d entries", len(entries))
+	}
+
+	// Create a directory and list it while still empty.
+	dir := mnt.Dir + "/emptydir"
+	if err := os.Mkdir(dir, os.ModeDir); err != nil {
+		t.Fatal(err)
+	}
+	entries, err = os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty directory, got %d entries", len(entries))
+	}
+}
+
 // Test creating a directory.
 func TestMkdir(t *testing.T) {
 	_, mnt := setUp(t, nil)
