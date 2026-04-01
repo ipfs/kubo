@@ -5,11 +5,13 @@ package ipns
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	mrand "math/rand"
 	"os"
 	"sync"
+	"syscall"
 	"testing"
 
 	core "github.com/ipfs/kubo/core"
@@ -47,8 +49,27 @@ func writeFileOrFail(t *testing.T, size int, path string) []byte {
 
 func writeFile(size int, path string) ([]byte, error) {
 	data := randBytes(size)
-	err := os.WriteFile(path, data, 0o666)
-	return data, err
+	// Same flags as os.WriteFile: write-only, create if missing, truncate if exists.
+	// We open manually instead of using os.WriteFile so we can handle EINTR on close.
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
+	if err != nil {
+		return nil, err
+	}
+	_, err = f.Write(data)
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	// Go's goroutine preemption (SIGURG) can interrupt the FUSE FLUSH
+	// inside close(), returning EINTR. This is not a data loss: the write
+	// already succeeded and the kernel will still send RELEASE to the FUSE
+	// daemon. Go intentionally does not retry close() on EINTR because the
+	// fd is already closed on Linux and its state is undefined on other
+	// platforms, making retry unsafe.
+	if err := f.Close(); err != nil && !errors.Is(err, syscall.EINTR) {
+		return nil, err
+	}
+	return data, nil
 }
 
 func verifyFile(t *testing.T, path string, wantData []byte) {
