@@ -22,7 +22,7 @@ const dsPrefix = "/ondemand-pins/"
 
 type Record struct {
 	Cid cid.Cid `json:"Cid"`
-	// PinnedByUs tracks the on-demand pins only (does not inlcude standard pins).
+	// PinnedByUs tracks the on-demand pins only (does not include standard pins).
 	PinnedByUs      bool      `json:"IsPinned"`
 	LastAboveTarget time.Time `json:"LastAboveTarget,omitempty"`
 	CreatedAt       time.Time `json:"CreatedAt"`
