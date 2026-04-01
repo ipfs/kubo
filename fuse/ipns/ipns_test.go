@@ -12,22 +12,14 @@ import (
 	"sync"
 	"testing"
 
-	"bazil.org/fuse"
-
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 
 	fstest "bazil.org/fuse/fs/fstestutil"
 	racedet "github.com/ipfs/go-detect-race"
 	"github.com/ipfs/go-test/random"
-	ci "github.com/libp2p/go-libp2p-testing/ci"
+	"github.com/ipfs/kubo/fuse/fusetest"
 )
-
-func maybeSkipFuseTests(t *testing.T) {
-	if ci.NoFuse() {
-		t.Skip("Skipping FUSE tests")
-	}
-}
 
 func randBytes(size int) []byte {
 	b := make([]byte, size)
@@ -100,7 +92,7 @@ func (m *mountWrap) Close() error {
 
 func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWrap) {
 	t.Helper()
-	maybeSkipFuseTests(t)
+	fusetest.SkipUnlessFUSE(t)
 
 	var err error
 	if node == nil {
@@ -125,12 +117,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 		t.Fatal(err)
 	}
 	mnt, err := fstest.MountedT(t, fs, nil)
-	if err == fuse.ErrOSXFUSENotFound {
-		t.Skip(err)
-	}
-	if err != nil {
-		t.Fatalf("error mounting at temporary directory: %v", err)
-	}
+	fusetest.MountError(t, err)
 
 	return node, &mountWrap{
 		Mount: mnt,

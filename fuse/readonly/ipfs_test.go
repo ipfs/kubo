@@ -15,8 +15,6 @@ import (
 	"sync"
 	"testing"
 
-	"bazil.org/fuse"
-
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	coremock "github.com/ipfs/kubo/core/mock"
@@ -30,14 +28,8 @@ import (
 	"github.com/ipfs/boxo/path"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-test/random"
-	ci "github.com/libp2p/go-libp2p-testing/ci"
+	"github.com/ipfs/kubo/fuse/fusetest"
 )
-
-func maybeSkipFuseTests(t *testing.T) {
-	if ci.NoFuse() {
-		t.Skip("Skipping FUSE tests")
-	}
-}
 
 func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	buf := make([]byte, size)
@@ -56,7 +48,7 @@ func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 
 func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.Mount) {
 	t.Helper()
-	maybeSkipFuseTests(t)
+	fusetest.SkipUnlessFUSE(t)
 
 	var err error
 	if node == nil {
@@ -68,12 +60,7 @@ func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 
 	fs := NewFileSystem(node)
 	mnt, err := fstest.MountedT(t, fs, nil)
-	if err == fuse.ErrOSXFUSENotFound {
-		t.Skip(err)
-	}
-	if err != nil {
-		t.Fatalf("error mounting temporary directory: %v", err)
-	}
+	fusetest.MountError(t, err)
 
 	return node, mnt
 }

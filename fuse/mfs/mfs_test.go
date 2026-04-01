@@ -19,14 +19,12 @@ import (
 	"bazil.org/fuse/fs/fstestutil"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
-	"github.com/libp2p/go-libp2p-testing/ci"
+	"github.com/ipfs/kubo/fuse/fusetest"
 )
 
 // Create an Ipfs.Node, a filesystem and a mount point.
 func setUp(t *testing.T, ipfs *core.IpfsNode) (fs.FS, *fstestutil.Mount) {
-	if ci.NoFuse() {
-		t.Skip("Skipping FUSE tests")
-	}
+	fusetest.SkipUnlessFUSE(t)
 
 	if ipfs == nil {
 		var err error
@@ -38,12 +36,7 @@ func setUp(t *testing.T, ipfs *core.IpfsNode) (fs.FS, *fstestutil.Mount) {
 
 	fs := NewFileSystem(ipfs)
 	mnt, err := fstestutil.MountedT(t, fs, nil)
-	if err == fuse.ErrOSXFUSENotFound {
-		t.Skip(err)
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	fusetest.MountError(t, err)
 
 	return fs, mnt
 }
