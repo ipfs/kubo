@@ -205,7 +205,7 @@ func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.
 	flags := mfs.Flags{
 		Read:  accessMode == fuse.OpenReadOnly || accessMode == fuse.OpenReadWrite,
 		Write: accessMode == fuse.OpenWriteOnly || accessMode == fuse.OpenReadWrite,
-		Sync:  req.Flags|fuse.OpenSync > 0,
+		Sync:  true, // FUSE writes must propagate to the MFS root on close
 	}
 
 	fd, err := mfsFile.Open(flags)
@@ -274,7 +274,7 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 	flags := mfs.Flags{
 		Read:  accessMode == fuse.OpenReadOnly || accessMode == fuse.OpenReadWrite,
 		Write: accessMode == fuse.OpenWriteOnly || accessMode == fuse.OpenReadWrite,
-		Sync:  req.Flags|fuse.OpenSync > 0,
+		Sync:  true, // FUSE writes must propagate to the MFS root on close
 	}
 	fd, err := file.mfsFile.Open(flags)
 	if err != nil {
