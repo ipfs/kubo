@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"syscall"
+	"time"
 
 	fuse "bazil.org/fuse"
 	fs "bazil.org/fuse/fs"
@@ -24,6 +25,10 @@ import (
 )
 
 var log = logging.Logger("fuse/ipfs")
+
+// /ipfs paths are immutable (content-addressed by CID), so the kernel
+// can cache attributes and directory entries for as long as it wants.
+const immutableAttrCacheTime = 365 * 24 * time.Hour
 
 // FileSystem is the readonly IPFS Fuse Filesystem.
 type FileSystem struct {
@@ -47,7 +52,10 @@ type Root struct {
 
 // Attr returns file attributes.
 func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Valid = immutableAttrCacheTime
 	a.Mode = os.ModeDir | 0o111 // -rw+x
+	a.Uid = uint32(os.Getuid())
+	a.Gid = uint32(os.Getgid())
 	return nil
 }
 
@@ -142,6 +150,7 @@ func (s *Node) loadData() error {
 // Attr returns the attributes of a given node.
 func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Node attr")
+	a.Valid = immutableAttrCacheTime
 	a.Uid = uint32(os.Getuid())
 	a.Gid = uint32(os.Getgid())
 	if rawnd, ok := s.Nd.(*mdag.RawNode); ok {
