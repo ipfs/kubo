@@ -153,7 +153,10 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.K
 // Attr returns file attributes.
 func (r *Root) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Root Attr")
+	a.Valid = 0
 	a.Mode = os.ModeDir | 0o111 // -rw+x
+	a.Uid = uint32(os.Getuid())
+	a.Gid = uint32(os.Getgid())
 	return nil
 }
 
@@ -252,6 +255,7 @@ type File struct {
 // Attr returns the attributes of a given node.
 func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Directory Attr")
+	a.Valid = 0
 	a.Mode = os.ModeDir | 0o555
 	a.Uid = uint32(os.Getuid())
 	a.Gid = uint32(os.Getgid())
@@ -261,6 +265,7 @@ func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 // Attr returns the attributes of a given node.
 func (fi *FileNode) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("File Attr")
+	a.Valid = 0
 	size, err := fi.fi.Size()
 	if err != nil {
 		// In this case, the dag node in question may not be unixfs

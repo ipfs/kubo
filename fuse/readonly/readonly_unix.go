@@ -142,6 +142,8 @@ func (s *Node) loadData() error {
 // Attr returns the attributes of a given node.
 func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Node attr")
+	a.Uid = uint32(os.Getuid())
+	a.Gid = uint32(os.Getgid())
 	if rawnd, ok := s.Nd.(*mdag.RawNode); ok {
 		a.Mode = 0o444
 		a.Size = uint64(len(rawnd.RawData()))
