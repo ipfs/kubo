@@ -45,6 +45,7 @@ type Dir struct {
 // Directory attributes (stat).
 func (dir *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
 	attr.Valid = 0
+	// TODO: use Mode from UnixFS record if present
 	attr.Mode = mfsDirMode
 	attr.Size = dirSize * blockSize
 	attr.Blocks = dirSize
@@ -260,6 +261,7 @@ func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	mtime, _ := file.mfsFile.ModTime()
 	attr.Mtime = mtime
 
+	// TODO: use Mode from UnixFS record if present
 	attr.Mode = mfsFileMode
 	attr.Uid = uint32(os.Getuid())
 	attr.Gid = uint32(os.Getgid())

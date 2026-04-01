@@ -153,6 +153,7 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.K
 // Attr returns file attributes.
 func (r *Root) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Root Attr")
+	// TODO: wire TTL from IPNS record (capped at Ipns.MaxCacheTTL) here instead of 0
 	a.Valid = 0
 	a.Mode = os.ModeDir | 0o111 // -rw+x
 	a.Uid = uint32(os.Getuid())
@@ -255,7 +256,9 @@ type File struct {
 // Attr returns the attributes of a given node.
 func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Directory Attr")
+	// TODO: wire TTL from IPNS record (capped at Ipns.MaxCacheTTL) here instead of 0
 	a.Valid = 0
+	// TODO: use Mode from UnixFS record if present
 	a.Mode = os.ModeDir | 0o555
 	a.Uid = uint32(os.Getuid())
 	a.Gid = uint32(os.Getgid())
@@ -265,12 +268,14 @@ func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 // Attr returns the attributes of a given node.
 func (fi *FileNode) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("File Attr")
+	// TODO: wire TTL from IPNS record (capped at Ipns.MaxCacheTTL) here instead of 0
 	a.Valid = 0
 	size, err := fi.fi.Size()
 	if err != nil {
 		// In this case, the dag node in question may not be unixfs
 		return fmt.Errorf("fuse/ipns: failed to get file.Size(): %s", err)
 	}
+	// TODO: use Mode and Mtime from UnixFS record if present
 	a.Mode = os.FileMode(0o666)
 	a.Size = uint64(size)
 	a.Uid = uint32(os.Getuid())

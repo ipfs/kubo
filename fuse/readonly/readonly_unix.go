@@ -148,6 +148,7 @@ func (s *Node) loadData() error {
 }
 
 // Attr returns the attributes of a given node.
+// TODO: use Mode and Mtime from UnixFS record if present
 func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Node attr")
 	a.Valid = immutableAttrCacheTime
