@@ -18,10 +18,10 @@ var onDemandPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Manage on-demand pins.",
 		ShortDescription: `
-			On-demand pinning automatically pins content when few target providers exist in the DHT, 
-			and unpins when replication has been above target for a grace period.
-			Requires Experimental.OnDemandPinningEnabled = true.
-			`,
+On-demand pins when few DHT providers exist in the routing table; unpins after
+replication stays above target for a grace period. Requires config
+Experimental.OnDemandPinningEnabled.
+`,
 	},
 	Subcommands: map[string]*cmds.Command{
 		"add": addOnDemandPinCmd,
@@ -37,7 +37,7 @@ type OnDemandPinOutput struct {
 var addOnDemandPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Register CIDs for on-demand pinning.",
-		ShortDescription: `Adds the given CID(s) to the on-demand pin registry. The background checker will evaluate replication and pin if needed.`,
+		ShortDescription: `Registers CID(s) for on-demand pinning; checker pins when needed.`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("cid", true, true, "CID(s) to register."),
@@ -104,10 +104,10 @@ var rmOnDemandPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Remove CIDs from on-demand pinning.",
 		ShortDescription: `
-			Removes the given CID(s) from the on-demand pin registry. 
-			If the content was pinned by the checker, it is also unpinned.
-			Works even when on-demand pinning is disabled, to clean up previously registered CIDs.
-			`,
+Removes CID(s) from the registry. Checker-pinned content is unpinned.
+
+Works when on-demand pinning is disabled, to clear old registrations.
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("cid", true, true, "CID(s) to remove."),
@@ -180,9 +180,9 @@ var listOnDemandPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List on-demand pins.",
 		ShortDescription: `
-			Lists CIDs registered for on-demand pinning with their current state.
-			Use --live to include real-time provider counts from the DHT.
-			`,
+Lists CIDs registered for on-demand pinning with their current state.
+Use --live to include real-time provider counts from the DHT.
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("cid", false, true, "Optional CID(s) to filter."),
