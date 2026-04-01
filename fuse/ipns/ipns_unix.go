@@ -386,20 +386,14 @@ func (fi *File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fus
 	return nil
 }
 
-// Fsync flushes the content in the file to disk.
+// Fsync is a no-op. We can't flush here because mfs.File.Flush opens a new
+// write descriptor, which needs an exclusive lock (desclock) that the caller
+// already holds from Open. Attempting it deadlocks until the FUSE timeout,
+// then panics on Release. Data is flushed when the file is closed instead.
+// TODO: a proper fix needs changes in boxo/mfs to allow flushing from an
+// existing descriptor. Ideas welcome, but for now this is the best we can do.
 func (fi *FileNode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
-	// This needs to perform a *full* flush because, in MFS, a write isn't
-	// persisted until the root is updated.
-	errs := make(chan error, 1)
-	go func() {
-		errs <- fi.fi.Flush()
-	}()
-	select {
-	case err := <-errs:
-		return err
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 func (fi *File) Forget() {

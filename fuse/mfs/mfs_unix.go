@@ -290,7 +290,12 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 	}, nil
 }
 
-// no-op (actual data flushing happens in Flush)
+// Fsync is a no-op. We can't flush here because mfs.File.Flush opens a new
+// write descriptor, which needs an exclusive lock (desclock) that the caller
+// already holds from Open. Attempting it deadlocks until the FUSE timeout.
+// Data is flushed when the file is closed instead.
+// TODO: a proper fix needs changes in boxo/mfs to allow flushing from an
+// existing descriptor. Ideas welcome, but for now this is the best we can do.
 func (file *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	return nil
 }
