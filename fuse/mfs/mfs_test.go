@@ -322,6 +322,90 @@ func TestConcurrentRW(t *testing.T) {
 	})
 }
 
+// Test appending data to an existing file.
+func TestAppendFile(t *testing.T) {
+	_, mnt := setUp(t, nil)
+	defer mnt.Close()
+
+	path := mnt.Dir + "/appendfile"
+
+	initial := make([]byte, 1300)
+	if _, err := rand.Read(initial); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, initial, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	fi, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	extra := make([]byte, 500)
+	if _, err := rand.Read(extra); err != nil {
+		t.Fatal(err)
+	}
+
+	n, err := fi.Write(extra)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != len(extra) {
+		t.Fatalf("short write: %d != %d", n, len(extra))
+	}
+	if err := fi.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := append(initial, extra...)
+	if !bytes.Equal(got, want) {
+		t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(want))
+	}
+}
+
+// Test writing a file one byte at a time.
+func TestMultiWrite(t *testing.T) {
+	_, mnt := setUp(t, nil)
+	defer mnt.Close()
+
+	path := mnt.Dir + "/multiwrite"
+	fi, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := make([]byte, 1001)
+	if _, err := rand.Read(data); err != nil {
+		t.Fatal(err)
+	}
+
+	for i := range data {
+		n, err := fi.Write(data[i : i+1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != 1 {
+			t.Fatal("short write")
+		}
+	}
+	if err := fi.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Fatal("content mismatch")
+	}
+}
+
 // Test ipfs_cid extended attribute
 func TestMFSRootXattr(t *testing.T) {
 	ipfs, err := core.NewNode(context.Background(), &node.BuildCfg{})
