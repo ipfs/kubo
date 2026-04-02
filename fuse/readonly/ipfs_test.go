@@ -15,8 +15,6 @@ import (
 	"sync"
 	"testing"
 
-	"bazil.org/fuse"
-
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	coremock "github.com/ipfs/kubo/core/mock"
@@ -30,14 +28,9 @@ import (
 	"github.com/ipfs/boxo/path"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-test/random"
-	ci "github.com/libp2p/go-libp2p-testing/ci"
+	options "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/fuse/fusetest"
 )
-
-func maybeSkipFuseTests(t *testing.T) {
-	if ci.NoFuse() {
-		t.Skip("Skipping FUSE tests")
-	}
-}
 
 func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	buf := make([]byte, size)
@@ -56,7 +49,7 @@ func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 
 func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.Mount) {
 	t.Helper()
-	maybeSkipFuseTests(t)
+	fusetest.SkipUnlessFUSE(t)
 
 	var err error
 	if node == nil {
@@ -68,21 +61,146 @@ func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 
 	fs := NewFileSystem(node)
 	mnt, err := fstest.MountedT(t, fs, nil)
-	if err == fuse.ErrOSXFUSENotFound {
-		t.Skip(err)
-	}
-	if err != nil {
-		t.Fatalf("error mounting temporary directory: %v", err)
-	}
+	fusetest.MountError(t, err)
 
 	return node, mnt
 }
 
+// Test that an empty directory can be listed without errors.
+func TestEmptyDirListing(t *testing.T) {
+	nd, mnt := setupIpfsTest(t, nil)
+	defer mnt.Close()
+
+	// Create an empty UnixFS directory and add it to the DAG.
+	db, err := uio.NewDirectory(nd.DAG)
+	if err != nil {
+		t.Fatal(err)
+	}
+	emptyDir, err := db.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := nd.DAG.Add(nd.Context(), emptyDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// List it via FUSE.
+	dirPath := gopath.Join(mnt.Dir, emptyDir.Cid().String())
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty directory, got %d entries", len(entries))
+	}
+}
+
+// Test that a bare file CID can be read at the /ipfs mount root.
+func TestBareFileCID(t *testing.T) {
+	nd, mnt := setupIpfsTest(t, nil)
+	defer mnt.Close()
+
+	api, err := coreapi.NewCoreAPI(nd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content := []byte("bare file CID test content")
+
+	t.Run("CIDv0", func(t *testing.T) {
+		resolved, err := api.Unixfs().Add(t.Context(),
+			files.NewBytesFile(content),
+			options.Unixfs.CidVersion(0),
+			options.Unixfs.RawLeaves(false))
+		if err != nil {
+			t.Fatal(err)
+		}
+		cidStr := resolved.RootCid().String()
+		got, err := os.ReadFile(gopath.Join(mnt.Dir, cidStr))
+		if err != nil {
+			t.Fatalf("read %s via FUSE: %v", cidStr, err)
+		}
+		if !bytes.Equal(got, content) {
+			t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(content))
+		}
+	})
+
+	t.Run("CIDv1", func(t *testing.T) {
+		resolved, err := api.Unixfs().Add(t.Context(),
+			files.NewBytesFile(content),
+			options.Unixfs.CidVersion(1),
+			options.Unixfs.RawLeaves(true))
+		if err != nil {
+			t.Fatal(err)
+		}
+		cidStr := resolved.RootCid().String()
+		got, err := os.ReadFile(gopath.Join(mnt.Dir, cidStr))
+		if err != nil {
+			t.Fatalf("read %s via FUSE: %v", cidStr, err)
+		}
+		if !bytes.Equal(got, content) {
+			t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(content))
+		}
+	})
+}
+
+// Test reading a directory that contains both dag-pb and raw-leaf children.
+// This is the typical layout produced by `ipfs add --raw-leaves`: the
+// directory node is dag-pb, while file leaves are raw blocks.
+func TestMixedDAGDirectory(t *testing.T) {
+	nd, mnt := setupIpfsTest(t, nil)
+	defer mnt.Close()
+
+	api, err := coreapi.NewCoreAPI(nd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fileA := []byte("file in dag-pb leaf")
+	fileB := []byte("file in raw leaf")
+
+	dir := files.NewMapDirectory(map[string]files.Node{
+		"dagpb.txt": files.NewBytesFile(fileA),
+		"raw.txt":   files.NewBytesFile(fileB),
+	})
+
+	// CIDv1 with raw leaves: directory is dag-pb, file leaves are raw.
+	resolved, err := api.Unixfs().Add(t.Context(), dir,
+		options.Unixfs.CidVersion(1),
+		options.Unixfs.RawLeaves(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dirPath := gopath.Join(mnt.Dir, resolved.RootCid().String())
+
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(entries))
+	}
+
+	for _, tc := range []struct {
+		name string
+		want []byte
+	}{
+		{"dagpb.txt", fileA},
+		{"raw.txt", fileB},
+	} {
+		got, err := os.ReadFile(gopath.Join(dirPath, tc.name))
+		if err != nil {
+			t.Fatalf("read %s: %v", tc.name, err)
+		}
+		if !bytes.Equal(got, tc.want) {
+			t.Fatalf("%s: content mismatch: got %d bytes, want %d", tc.name, len(got), len(tc.want))
+		}
+	}
+}
+
 // Test writing an object and reading it back through fuse.
 func TestIpfsBasicRead(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
@@ -123,9 +241,6 @@ func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.ProtoNode) 
 
 // Perform a large number of concurrent reads to stress the system.
 func TestIpfsStressRead(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
@@ -235,9 +350,6 @@ func TestIpfsStressRead(t *testing.T) {
 
 // Test writing a file and reading it back.
 func TestIpfsBasicDirRead(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
@@ -289,9 +401,6 @@ func TestIpfsBasicDirRead(t *testing.T) {
 
 // Test to make sure the filesystem reports file sizes correctly.
 func TestFileSizeReporting(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 

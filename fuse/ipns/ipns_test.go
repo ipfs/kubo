@@ -5,14 +5,14 @@ package ipns
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	mrand "math/rand"
 	"os"
 	"sync"
+	"syscall"
 	"testing"
-
-	"bazil.org/fuse"
 
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
@@ -20,14 +20,8 @@ import (
 	fstest "bazil.org/fuse/fs/fstestutil"
 	racedet "github.com/ipfs/go-detect-race"
 	"github.com/ipfs/go-test/random"
-	ci "github.com/libp2p/go-libp2p-testing/ci"
+	"github.com/ipfs/kubo/fuse/fusetest"
 )
-
-func maybeSkipFuseTests(t *testing.T) {
-	if ci.NoFuse() {
-		t.Skip("Skipping FUSE tests")
-	}
-}
 
 func randBytes(size int) []byte {
 	b := make([]byte, size)
@@ -55,8 +49,27 @@ func writeFileOrFail(t *testing.T, size int, path string) []byte {
 
 func writeFile(size int, path string) ([]byte, error) {
 	data := randBytes(size)
-	err := os.WriteFile(path, data, 0o666)
-	return data, err
+	// Same flags as os.WriteFile: write-only, create if missing, truncate if exists.
+	// We open manually instead of using os.WriteFile so we can handle EINTR on close.
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
+	if err != nil {
+		return nil, err
+	}
+	_, err = f.Write(data)
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	// Go's goroutine preemption (SIGURG) can interrupt the FUSE FLUSH
+	// inside close(), returning EINTR. This is not a data loss: the write
+	// already succeeded and the kernel will still send RELEASE to the FUSE
+	// daemon. Go intentionally does not retry close() on EINTR because the
+	// fd is already closed on Linux and its state is undefined on other
+	// platforms, making retry unsafe.
+	if err := f.Close(); err != nil && !errors.Is(err, syscall.EINTR) {
+		return nil, err
+	}
+	return data, nil
 }
 
 func verifyFile(t *testing.T, path string, wantData []byte) {
@@ -100,7 +113,7 @@ func (m *mountWrap) Close() error {
 
 func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWrap) {
 	t.Helper()
-	maybeSkipFuseTests(t)
+	fusetest.SkipUnlessFUSE(t)
 
 	var err error
 	if node == nil {
@@ -125,12 +138,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 		t.Fatal(err)
 	}
 	mnt, err := fstest.MountedT(t, fs, nil)
-	if err == fuse.ErrOSXFUSENotFound {
-		t.Skip(err)
-	}
-	if err != nil {
-		t.Fatalf("error mounting at temporary directory: %v", err)
-	}
+	fusetest.MountError(t, err)
 
 	return node, &mountWrap{
 		Mount: mnt,
@@ -155,11 +163,37 @@ func TestIpnsLocalLink(t *testing.T) {
 	}
 }
 
+// Test that empty directories can be listed without errors.
+func TestEmptyDirListing(t *testing.T) {
+	nd, mnt := setupIpnsTest(t, nil)
+	defer mnt.Close()
+
+	// The peer's IPNS directory starts empty.
+	peerDir := mnt.Dir + "/" + nd.Identity.String()
+	entries, err := os.ReadDir(peerDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty peer dir, got %d entries", len(entries))
+	}
+
+	// Create a subdirectory and list it while still empty.
+	subdir := peerDir + "/emptydir"
+	if err := os.Mkdir(subdir, os.ModeDir); err != nil {
+		t.Fatal(err)
+	}
+	entries, err = os.ReadDir(subdir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty subdirectory, got %d entries", len(entries))
+	}
+}
+
 // Test writing a file and reading it back.
 func TestIpnsBasicIO(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpnsTest(t, nil)
 	defer closeMount(mnt)
 
@@ -186,11 +220,38 @@ func TestIpnsBasicIO(t *testing.T) {
 	}
 }
 
+// Test renaming a file within the same IPNS directory.
+func TestRenameFile(t *testing.T) {
+	nd, mnt := setupIpnsTest(t, nil)
+	defer closeMount(mnt)
+
+	peerDir := mnt.Dir + "/" + nd.Identity.String()
+	src := peerDir + "/before.txt"
+	dst := peerDir + "/after.txt"
+
+	data := writeFileOrFail(t, 500, src)
+
+	if err := os.Rename(src, dst); err != nil {
+		t.Fatal(err)
+	}
+
+	// Source must be gone.
+	if _, err := os.Stat(src); !os.IsNotExist(err) {
+		t.Fatalf("source still exists after rename: %v", err)
+	}
+
+	// Destination must have the original content.
+	got, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(data))
+	}
+}
+
 // Test to make sure file changes persist over mounts of ipns.
 func TestFilePersistence(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	node, mnt := setupIpnsTest(t, nil)
 
 	fname := "/local/atestfile"
@@ -251,9 +312,6 @@ func TestMultipleDirs(t *testing.T) {
 
 // Test to make sure the filesystem reports file sizes correctly.
 func TestFileSizeReporting(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -272,9 +330,6 @@ func TestFileSizeReporting(t *testing.T) {
 
 // Test to make sure you can't create multiple entries with the same name.
 func TestDoubleEntryFailure(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -291,9 +346,6 @@ func TestDoubleEntryFailure(t *testing.T) {
 }
 
 func TestAppendFile(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -332,9 +384,6 @@ func TestAppendFile(t *testing.T) {
 }
 
 func TestConcurrentWrites(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -381,9 +430,6 @@ func TestConcurrentWrites(t *testing.T) {
 func TestFSThrash(t *testing.T) {
 	files := make(map[string][]byte)
 
-	if testing.Short() {
-		t.SkipNow()
-	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -464,9 +510,6 @@ func TestFSThrash(t *testing.T) {
 
 // Test writing a medium sized file one byte at a time.
 func TestMultiWrite(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()

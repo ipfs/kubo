@@ -44,9 +44,13 @@ type Dir struct {
 
 // Directory attributes (stat).
 func (dir *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
+	attr.Valid = 0
+	// TODO: use Mode from UnixFS record if present
 	attr.Mode = mfsDirMode
 	attr.Size = dirSize * blockSize
 	attr.Blocks = dirSize
+	attr.Uid = uint32(os.Getuid())
+	attr.Gid = uint32(os.Getgid())
 	return nil
 }
 
@@ -60,6 +64,8 @@ func (dir *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.
 	default:
 		return nil, err
 	}
+
+	resp.EntryValid = 0
 
 	switch mfsNode.Type() {
 	case mfs.TDir:
@@ -136,29 +142,29 @@ func (dir *Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 
 // Move (mv) an MFS file.
 func (dir *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
-	file, err := dir.mfsDir.Child(req.OldName)
+	child, err := dir.mfsDir.Child(req.OldName)
 	if err != nil {
 		return err
 	}
-	node, err := file.GetNode()
+
+	nd, err := child.GetNode()
 	if err != nil {
 		return err
 	}
+
+	// Unlink the source first. For same-directory renames, this clears
+	// the old name from the directory's entry cache before AddChild
+	// repopulates it with the new name. Without this ordering, Flush
+	// would sync the stale cache entry back into the DAG.
+	if err := dir.mfsDir.Unlink(req.OldName); err != nil {
+		return err
+	}
+
 	targetDir := newDir.(*Dir)
-
-	// Remove file if exists
-	err = targetDir.mfsDir.Unlink(req.NewName)
-	if err != nil && err != os.ErrNotExist {
+	if err := targetDir.mfsDir.Unlink(req.NewName); err != nil && err != os.ErrNotExist {
 		return err
 	}
-
-	err = targetDir.mfsDir.AddChild(req.NewName, node)
-	if err != nil {
-		return err
-	}
-
-	err = dir.mfsDir.Unlink(req.OldName)
-	if err != nil {
+	if err := targetDir.mfsDir.AddChild(req.NewName, nd); err != nil {
 		return err
 	}
 
@@ -199,7 +205,7 @@ func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.
 	flags := mfs.Flags{
 		Read:  accessMode == fuse.OpenReadOnly || accessMode == fuse.OpenReadWrite,
 		Write: accessMode == fuse.OpenWriteOnly || accessMode == fuse.OpenReadWrite,
-		Sync:  req.Flags|fuse.OpenSync > 0,
+		Sync:  true, // FUSE writes must propagate to the MFS root on close
 	}
 
 	fd, err := mfsFile.Open(flags)
@@ -241,6 +247,8 @@ type File struct {
 
 // File attributes.
 func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
+	attr.Valid = 0
+
 	size, _ := file.mfsFile.Size()
 
 	attr.Size = uint64(size)
@@ -253,7 +261,10 @@ func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	mtime, _ := file.mfsFile.ModTime()
 	attr.Mtime = mtime
 
+	// TODO: use Mode from UnixFS record if present
 	attr.Mode = mfsFileMode
+	attr.Uid = uint32(os.Getuid())
+	attr.Gid = uint32(os.Getgid())
 	return nil
 }
 
@@ -263,7 +274,7 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 	flags := mfs.Flags{
 		Read:  accessMode == fuse.OpenReadOnly || accessMode == fuse.OpenReadWrite,
 		Write: accessMode == fuse.OpenWriteOnly || accessMode == fuse.OpenReadWrite,
-		Sync:  req.Flags|fuse.OpenSync > 0,
+		Sync:  true, // FUSE writes must propagate to the MFS root on close
 	}
 	fd, err := file.mfsFile.Open(flags)
 	if err != nil {
@@ -281,9 +292,14 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 	}, nil
 }
 
-// Sync the file's contents to MFS.
+// Fsync is a no-op. We can't flush here because mfs.File.Flush opens a new
+// write descriptor, which needs an exclusive lock (desclock) that the caller
+// already holds from Open. Attempting it deadlocks until the FUSE timeout.
+// Data is flushed when the file is closed instead.
+// TODO: a proper fix needs changes in boxo/mfs to allow flushing from an
+// existing descriptor. Ideas welcome, but for now this is the best we can do.
 func (file *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
-	return file.mfsFile.Sync()
+	return nil
 }
 
 // List file xattr.
