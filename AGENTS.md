@@ -93,6 +93,7 @@ The full test suite is composed of several targets:
 | `make test_short`    | fast subset (`test_go_fmt` + `test_unit`)                             |
 | `make test_unit`     | unit tests with coverage (excludes `test/cli`)                        |
 | `make test_cli`      | CLI integration tests (requires `make build` first)                   |
+| `make test_fuse`     | FUSE filesystem tests (requires `/dev/fuse` and `fusermount` in PATH) |
 | `make test_sharness` | legacy shell-based integration tests                                  |
 | `make test_go_fmt`   | checks Go source formatting                                          |
 | `make -O test_go_lint` | runs `golangci-lint`                                                |
@@ -120,6 +121,16 @@ export IPFS_PATH="$(mktemp -d)"
 - `IPFS_PATH`: isolates test data from `~/.ipfs` or other running nodes
 
 If you see "version (N) is lower than repos (M)", the `ipfs` binary in `PATH` is outdated. Rebuild with `make build` and verify `PATH`.
+
+### Running FUSE Tests
+
+FUSE tests require `/dev/fuse` and `fusermount` in `PATH`. On systems with only fuse3, create a symlink:
+
+```bash
+ln -s /usr/bin/fusermount3 /tmp/fusermount && PATH="/tmp:$PATH" make test_fuse
+```
+
+Set `TEST_FUSE=1` to make mount failures fatal (CI does this). Without it, tests auto-detect and skip when FUSE is unavailable.
 
 ### Running Sharness Tests
 

@@ -147,16 +147,16 @@ func (dir *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.N
 		return err
 	}
 
+	nd, err := child.GetNode()
+	if err != nil {
+		return err
+	}
+
 	// Unlink the source first. For same-directory renames, this clears
 	// the old name from the directory's entry cache before AddChild
 	// repopulates it with the new name. Without this ordering, Flush
 	// would sync the stale cache entry back into the DAG.
 	if err := dir.mfsDir.Unlink(req.OldName); err != nil {
-		return err
-	}
-
-	nd, err := child.GetNode()
-	if err != nil {
 		return err
 	}
 

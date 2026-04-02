@@ -503,6 +503,14 @@ func (d *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDir 
 		return err
 	}
 
+	nd, err := cur.GetNode()
+	if err != nil {
+		return err
+	}
+
+	// Unlink the source before adding to the destination. For
+	// same-directory renames, this clears the old name from the
+	// directory's entry cache before AddChild repopulates it.
 	err = d.dir.Unlink(req.OldName)
 	if err != nil {
 		return err
@@ -510,11 +518,6 @@ func (d *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDir 
 
 	switch newDir := newDir.(type) {
 	case *Directory:
-		nd, err := cur.GetNode()
-		if err != nil {
-			return err
-		}
-
 		err = newDir.dir.AddChild(req.NewName, nd)
 		if err != nil {
 			return err
