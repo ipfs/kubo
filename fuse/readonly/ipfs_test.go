@@ -28,6 +28,7 @@ import (
 	"github.com/ipfs/boxo/path"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-test/random"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/fuse/fusetest"
 )
 
@@ -95,6 +96,58 @@ func TestEmptyDirListing(t *testing.T) {
 	if len(entries) != 0 {
 		t.Fatalf("expected empty directory, got %d entries", len(entries))
 	}
+}
+
+// Test that a bare file CID can be read at the /ipfs mount root.
+func TestBareFileCID(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	nd, mnt := setupIpfsTest(t, nil)
+	defer mnt.Close()
+
+	api, err := coreapi.NewCoreAPI(nd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content := []byte("bare file CID test content")
+
+	t.Run("CIDv0", func(t *testing.T) {
+		resolved, err := api.Unixfs().Add(t.Context(),
+			files.NewBytesFile(content),
+			options.Unixfs.CidVersion(0),
+			options.Unixfs.RawLeaves(false))
+		if err != nil {
+			t.Fatal(err)
+		}
+		cidStr := resolved.RootCid().String()
+		got, err := os.ReadFile(gopath.Join(mnt.Dir, cidStr))
+		if err != nil {
+			t.Fatalf("read %s via FUSE: %v", cidStr, err)
+		}
+		if !bytes.Equal(got, content) {
+			t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(content))
+		}
+	})
+
+	t.Run("CIDv1", func(t *testing.T) {
+		resolved, err := api.Unixfs().Add(t.Context(),
+			files.NewBytesFile(content),
+			options.Unixfs.CidVersion(1),
+			options.Unixfs.RawLeaves(true))
+		if err != nil {
+			t.Fatal(err)
+		}
+		cidStr := resolved.RootCid().String()
+		got, err := os.ReadFile(gopath.Join(mnt.Dir, cidStr))
+		if err != nil {
+			t.Fatalf("read %s via FUSE: %v", cidStr, err)
+		}
+		if !bytes.Equal(got, content) {
+			t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(content))
+		}
+	})
 }
 
 // Test writing an object and reading it back through fuse.

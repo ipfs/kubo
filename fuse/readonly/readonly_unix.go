@@ -20,7 +20,6 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/ipfs/kubo/core"
-	ipldprime "github.com/ipld/go-ipld-prime"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 )
 
@@ -92,7 +91,8 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
-	// convert ipld-prime node to universal node
+	// Build a legacy ipld.Node from the raw block so the rest of the
+	// FUSE code (Attr, ReadDirAll, Read) can work with it.
 	blk, err := s.Ipfs.Blockstore.Get(ctx, cidLnk.Cid)
 	if err != nil {
 		log.Debugf("fuse failed to retrieve block: %v: %s", cidLnk, err)
@@ -102,13 +102,12 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	var fnd ipld.Node
 	switch cidLnk.Cid.Prefix().Codec {
 	case cid.DagProtobuf:
-		adl, ok := nd.(ipldprime.ADL)
-		if ok {
-			substrate := adl.Substrate()
-			fnd, err = mdag.ProtoNodeConverter(blk, substrate)
-		} else {
-			fnd, err = mdag.ProtoNodeConverter(blk, nd)
-		}
+		// Decode directly from block bytes. UnixFS files are
+		// represented as ADLs in ipld-prime, and their substrate
+		// type is not a dagpb.PBNode, so ProtoNodeConverter fails
+		// for them. Decoding from bytes works for all dag-pb blocks
+		// (files, directories, HAMT shards, symlinks, raw).
+		fnd, err = mdag.DecodeProtobuf(blk.RawData())
 	case cid.Raw:
 		fnd, err = mdag.RawNodeConverter(blk, nd)
 	default:
@@ -116,7 +115,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, syscall.Errno(syscall.ENOTSUP)
 	}
 	if err != nil {
-		log.Errorf("could not convert protobuf or raw node: %s", err)
+		log.Errorf("could not decode block as protobuf or raw node: %s", err)
 		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
