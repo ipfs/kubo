@@ -28,6 +28,7 @@ import (
 	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/internal/fusemount"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
@@ -202,7 +203,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 	}
 
 	subAPI.checkPublishAllowed = func(ctx context.Context) error {
-		if coreiface.IsMountPublish(ctx) {
+		if fusemount.IsPublish(ctx) {
 			return nil
 		}
 		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
