@@ -399,6 +399,41 @@ func TestMultiWrite(t *testing.T) {
 	}
 }
 
+// Test renaming a file within the same directory.
+func TestRenameFile(t *testing.T) {
+	_, mnt := setUp(t, nil)
+	defer mnt.Close()
+
+	src := mnt.Dir + "/before.txt"
+	dst := mnt.Dir + "/after.txt"
+
+	data := make([]byte, 500)
+	if _, err := rand.Read(data); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(src, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Rename(src, dst); err != nil {
+		t.Fatal(err)
+	}
+
+	// Source must be gone.
+	if _, err := os.Stat(src); !os.IsNotExist(err) {
+		t.Fatalf("source still exists after rename: %v", err)
+	}
+
+	// Destination must have the original content.
+	got, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(data))
+	}
+}
+
 // Test ipfs_cid extended attribute
 func TestMFSRootXattr(t *testing.T) {
 	ipfs, err := core.NewNode(context.Background(), &node.BuildCfg{})

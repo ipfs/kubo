@@ -142,29 +142,29 @@ func (dir *Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 
 // Move (mv) an MFS file.
 func (dir *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
-	file, err := dir.mfsDir.Child(req.OldName)
+	child, err := dir.mfsDir.Child(req.OldName)
 	if err != nil {
 		return err
 	}
-	node, err := file.GetNode()
+
+	// Unlink the source first. For same-directory renames, this clears
+	// the old name from the directory's entry cache before AddChild
+	// repopulates it with the new name. Without this ordering, Flush
+	// would sync the stale cache entry back into the DAG.
+	if err := dir.mfsDir.Unlink(req.OldName); err != nil {
+		return err
+	}
+
+	nd, err := child.GetNode()
 	if err != nil {
 		return err
 	}
+
 	targetDir := newDir.(*Dir)
-
-	// Remove file if exists
-	err = targetDir.mfsDir.Unlink(req.NewName)
-	if err != nil && err != os.ErrNotExist {
+	if err := targetDir.mfsDir.Unlink(req.NewName); err != nil && err != os.ErrNotExist {
 		return err
 	}
-
-	err = targetDir.mfsDir.AddChild(req.NewName, node)
-	if err != nil {
-		return err
-	}
-
-	err = dir.mfsDir.Unlink(req.OldName)
-	if err != nil {
+	if err := targetDir.mfsDir.AddChild(req.NewName, nd); err != nil {
 		return err
 	}
 

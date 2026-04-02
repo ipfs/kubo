@@ -223,6 +223,39 @@ func TestIpnsBasicIO(t *testing.T) {
 	}
 }
 
+// Test renaming a file within the same IPNS directory.
+func TestRenameFile(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	nd, mnt := setupIpnsTest(t, nil)
+	defer closeMount(mnt)
+
+	peerDir := mnt.Dir + "/" + nd.Identity.String()
+	src := peerDir + "/before.txt"
+	dst := peerDir + "/after.txt"
+
+	data := writeFileOrFail(t, 500, src)
+
+	if err := os.Rename(src, dst); err != nil {
+		t.Fatal(err)
+	}
+
+	// Source must be gone.
+	if _, err := os.Stat(src); !os.IsNotExist(err) {
+		t.Fatalf("source still exists after rename: %v", err)
+	}
+
+	// Destination must have the original content.
+	got, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(data))
+	}
+}
+
 // Test to make sure file changes persist over mounts of ipns.
 func TestFilePersistence(t *testing.T) {
 	if testing.Short() {
