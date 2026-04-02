@@ -74,7 +74,7 @@ type CoreAPI struct {
 
 	pubSub *pubsub.PubSub
 
-	checkPublishAllowed func() error
+	checkPublishAllowed func(ctx context.Context) error
 	checkOnline         func(allowOffline bool) error
 
 	// ONLY for re-applying options in WithOptions, DO NOT USE ANYWHERE ELSE
@@ -201,7 +201,10 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		return nil
 	}
 
-	subAPI.checkPublishAllowed = func() error {
+	subAPI.checkPublishAllowed = func(ctx context.Context) error {
+		if coreiface.IsMountPublish(ctx) {
+			return nil
+		}
 		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
 			return errors.New("cannot manually publish while IPNS is mounted")
 		}

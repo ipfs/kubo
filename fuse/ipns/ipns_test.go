@@ -111,6 +111,16 @@ func (m *mountWrap) Close() error {
 	return nil
 }
 
+// fakeMount is a minimal mount.Mount that reports itself as active.
+// This simulates the real daemon path where node.Mounts.Ipns is set
+// after the FUSE filesystem is mounted, ensuring that checkPublishAllowed
+// is actually exercised during tests (see issue #2168).
+type fakeMount struct{}
+
+func (fakeMount) MountPoint() string { return "/fake/ipns" }
+func (fakeMount) Unmount() error     { return nil }
+func (fakeMount) IsActive() bool     { return true }
+
 func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWrap) {
 	t.Helper()
 	fusetest.SkipUnlessFUSE(t)
@@ -139,6 +149,12 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 	}
 	mnt, err := fstest.MountedT(t, fs, nil)
 	fusetest.MountError(t, err)
+
+	// Simulate the real daemon: set node.Mounts.Ipns so that
+	// checkPublishAllowed sees an active IPNS mount. Before the
+	// context key fix (issue #2168), this would cause the MFS
+	// republisher's publishes to be silently rejected.
+	node.Mounts.Ipns = fakeMount{}
 
 	return node, &mountWrap{
 		Mount: mnt,
