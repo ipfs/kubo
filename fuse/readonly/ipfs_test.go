@@ -68,9 +68,6 @@ func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 
 // Test that an empty directory can be listed without errors.
 func TestEmptyDirListing(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
@@ -100,9 +97,6 @@ func TestEmptyDirListing(t *testing.T) {
 
 // Test that a bare file CID can be read at the /ipfs mount root.
 func TestBareFileCID(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
@@ -154,9 +148,6 @@ func TestBareFileCID(t *testing.T) {
 // This is the typical layout produced by `ipfs add --raw-leaves`: the
 // directory node is dag-pb, while file leaves are raw blocks.
 func TestMixedDAGDirectory(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
@@ -210,9 +201,6 @@ func TestMixedDAGDirectory(t *testing.T) {
 
 // Test writing an object and reading it back through fuse.
 func TestIpfsBasicRead(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
@@ -253,9 +241,6 @@ func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.ProtoNode) 
 
 // Perform a large number of concurrent reads to stress the system.
 func TestIpfsStressRead(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
@@ -365,9 +350,6 @@ func TestIpfsStressRead(t *testing.T) {
 
 // Test writing a file and reading it back.
 func TestIpfsBasicDirRead(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
@@ -419,9 +401,6 @@ func TestIpfsBasicDirRead(t *testing.T) {
 
 // Test to make sure the filesystem reports file sizes correctly.
 func TestFileSizeReporting(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 

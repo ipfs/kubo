@@ -23,9 +23,6 @@ func mkdir(t *testing.T, path string) {
 
 // Test externally unmounting, then trying to unmount in code.
 func TestExternalUnmount(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 
 	// TODO: needed?
 	fusetest.SkipUnlessFUSE(t)

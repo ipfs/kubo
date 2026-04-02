@@ -194,9 +194,6 @@ func TestEmptyDirListing(t *testing.T) {
 
 // Test writing a file and reading it back.
 func TestIpnsBasicIO(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpnsTest(t, nil)
 	defer closeMount(mnt)
 
@@ -225,9 +222,6 @@ func TestIpnsBasicIO(t *testing.T) {
 
 // Test renaming a file within the same IPNS directory.
 func TestRenameFile(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	nd, mnt := setupIpnsTest(t, nil)
 	defer closeMount(mnt)
 
@@ -258,9 +252,6 @@ func TestRenameFile(t *testing.T) {
 
 // Test to make sure file changes persist over mounts of ipns.
 func TestFilePersistence(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	node, mnt := setupIpnsTest(t, nil)
 
 	fname := "/local/atestfile"
@@ -321,9 +312,6 @@ func TestMultipleDirs(t *testing.T) {
 
 // Test to make sure the filesystem reports file sizes correctly.
 func TestFileSizeReporting(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -342,9 +330,6 @@ func TestFileSizeReporting(t *testing.T) {
 
 // Test to make sure you can't create multiple entries with the same name.
 func TestDoubleEntryFailure(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -361,9 +346,6 @@ func TestDoubleEntryFailure(t *testing.T) {
 }
 
 func TestAppendFile(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -402,9 +384,6 @@ func TestAppendFile(t *testing.T) {
 }
 
 func TestConcurrentWrites(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -451,9 +430,6 @@ func TestConcurrentWrites(t *testing.T) {
 func TestFSThrash(t *testing.T) {
 	files := make(map[string][]byte)
 
-	if testing.Short() {
-		t.SkipNow()
-	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -534,9 +510,6 @@ func TestFSThrash(t *testing.T) {
 
 // Test writing a medium sized file one byte at a time.
 func TestMultiWrite(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
