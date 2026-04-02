@@ -150,6 +150,64 @@ func TestBareFileCID(t *testing.T) {
 	})
 }
 
+// Test reading a directory that contains both dag-pb and raw-leaf children.
+// This is the typical layout produced by `ipfs add --raw-leaves`: the
+// directory node is dag-pb, while file leaves are raw blocks.
+func TestMixedDAGDirectory(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	nd, mnt := setupIpfsTest(t, nil)
+	defer mnt.Close()
+
+	api, err := coreapi.NewCoreAPI(nd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fileA := []byte("file in dag-pb leaf")
+	fileB := []byte("file in raw leaf")
+
+	dir := files.NewMapDirectory(map[string]files.Node{
+		"dagpb.txt": files.NewBytesFile(fileA),
+		"raw.txt":   files.NewBytesFile(fileB),
+	})
+
+	// CIDv1 with raw leaves: directory is dag-pb, file leaves are raw.
+	resolved, err := api.Unixfs().Add(t.Context(), dir,
+		options.Unixfs.CidVersion(1),
+		options.Unixfs.RawLeaves(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dirPath := gopath.Join(mnt.Dir, resolved.RootCid().String())
+
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(entries))
+	}
+
+	for _, tc := range []struct {
+		name string
+		want []byte
+	}{
+		{"dagpb.txt", fileA},
+		{"raw.txt", fileB},
+	} {
+		got, err := os.ReadFile(gopath.Join(dirPath, tc.name))
+		if err != nil {
+			t.Fatalf("read %s: %v", tc.name, err)
+		}
+		if !bytes.Equal(got, tc.want) {
+			t.Fatalf("%s: content mismatch: got %d bytes, want %d", tc.name, len(got), len(tc.want))
+		}
+	}
+}
+
 // Test writing an object and reading it back through fuse.
 func TestIpfsBasicRead(t *testing.T) {
 	if testing.Short() {
