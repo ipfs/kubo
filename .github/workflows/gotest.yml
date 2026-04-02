@@ -169,10 +169,12 @@ jobs:
           go-version-file: 'go.mod'
       - name: Install FUSE
         run: |
-          sudo apt-get update
-          sudo apt-get install -y fuse3
-          # bazil.org/fuse looks for "fusermount", fuse3 only ships "fusermount3"
-          sudo ln -s /usr/bin/fusermount3 /usr/local/bin/fusermount
+          if ! command -v fusermount &>/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y fuse3
+            # bazil.org/fuse looks for "fusermount", fuse3 only ships "fusermount3"
+            sudo ln -sf /usr/bin/fusermount3 /usr/local/bin/fusermount
+          fi
       - name: Run FUSE tests
         run: make test_fuse
 
