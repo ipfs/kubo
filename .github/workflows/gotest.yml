@@ -150,10 +150,11 @@ jobs:
         if: failure() || success()
 
   # FUSE filesystem tests (require /dev/fuse and fusermount)
+  # Runs both FUSE unit tests (./fuse/...) and CLI integration tests (./test/cli/fuse/...)
   fuse-tests:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       GOTRACEBACK: single
       TEST_FUSE: 1
