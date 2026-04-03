@@ -154,6 +154,9 @@ jobs:
   fuse-tests:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    concurrency:
+      group: fuse-tests-${{ github.repository }}
+      cancel-in-progress: false
     timeout-minutes: 10
     env:
       GOTRACEBACK: single
@@ -176,6 +179,16 @@ jobs:
             # bazil.org/fuse looks for "fusermount", fuse3 only ships "fusermount3"
             sudo ln -sf /usr/bin/fusermount3 /usr/local/bin/fusermount
           fi
+      - name: Clean up stale FUSE mounts
+        run: |
+          # Show any existing FUSE mounts for debugging
+          mount -t fuse -t fuse.ipfs -t fuse.bazil -t fusectl 2>/dev/null | grep -i fuse || echo "no active FUSE mounts"
+          ls -ld /tmp/fusetest* 2>/dev/null || echo "no stale fusetest dirs"
+          # Lazy-unmount any leftover mounts from previous runs on this runner
+          # (bazil.org/fuse/fs/fstestutil creates mount points under /tmp/fusetest*)
+          for mp in /tmp/fusetest*; do
+            [ -d "$mp" ] && fusermount -uz "$mp" 2>/dev/null || true
+          done
       - name: Run FUSE tests
         run: make test_fuse
 
