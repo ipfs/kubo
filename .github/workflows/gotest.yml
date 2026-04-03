@@ -176,8 +176,10 @@ jobs:
           if ! command -v fusermount &>/dev/null; then
             sudo apt-get update
             sudo apt-get install -y fuse3
-            # bazil.org/fuse looks for "fusermount", fuse3 only ships "fusermount3"
-            sudo ln -sf /usr/bin/fusermount3 /usr/local/bin/fusermount
+          fi
+          # bazil.org/fuse looks for "fusermount", but fuse3 only ships "fusermount3"
+          if ! command -v fusermount &>/dev/null && command -v fusermount3 &>/dev/null; then
+            sudo ln -sf "$(command -v fusermount3)" /usr/local/bin/fusermount
           fi
       - name: Clean up stale FUSE mounts
         run: |
