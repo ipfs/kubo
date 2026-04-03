@@ -502,11 +502,29 @@ func (d *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp *f
 }
 
 func (d *Directory) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
+	if req.Dir {
+		child, err := d.dir.Child(req.Name)
+		if err != nil {
+			return syscall.Errno(syscall.ENOENT)
+		}
+		dir, ok := child.(*mfs.Directory)
+		if !ok {
+			return syscall.Errno(syscall.ENOTDIR)
+		}
+		entries, err := dir.ListNames(ctx)
+		if err != nil {
+			return err
+		}
+		if len(entries) > 0 {
+			return syscall.Errno(syscall.ENOTEMPTY)
+		}
+	}
+
 	err := d.dir.Unlink(req.Name)
 	if err != nil {
 		return syscall.Errno(syscall.ENOENT)
 	}
-	return nil
+	return d.dir.Flush()
 }
 
 // Rename implements NodeRenamer.
@@ -542,7 +560,7 @@ func (d *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDir 
 		log.Error("Unknown node type for rename target dir!")
 		return errors.New("unknown fs node type")
 	}
-	return nil
+	return d.dir.Flush()
 }
 
 // to check that out Node implements all the interfaces we want.
