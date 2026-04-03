@@ -271,6 +271,55 @@ func TestRenameFile(t *testing.T) {
 	}
 }
 
+// Test removing a file.
+func TestRemoveFile(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+	defer closeMount(mnt)
+
+	fname := mnt.Dir + "/local/removeme"
+	writeFileOrFail(t, 200, fname)
+	checkExists(t, fname)
+
+	if err := os.Remove(fname); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(fname); !os.IsNotExist(err) {
+		t.Fatalf("file still exists after remove: %v", err)
+	}
+}
+
+// Test that removing a non-empty directory fails.
+func TestRemoveNonEmptyDirectory(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+	defer closeMount(mnt)
+
+	dir := mnt.Dir + "/local/mydir"
+	mkdir(t, dir)
+	writeFileOrFail(t, 100, dir+"/child")
+
+	// Removing a non-empty directory must fail.
+	err := syscall.Rmdir(dir)
+	if err == nil {
+		t.Fatal("expected error removing non-empty directory")
+	}
+
+	// The directory and its child must still exist.
+	checkExists(t, dir)
+	checkExists(t, dir+"/child")
+
+	// After removing the child, the directory can be removed.
+	if err := os.Remove(dir + "/child"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(dir); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatalf("directory still exists after remove: %v", err)
+	}
+}
+
 // Test to make sure file changes persist over mounts of ipns.
 func TestFilePersistence(t *testing.T) {
 	node, mnt := setupIpnsTest(t, nil)
