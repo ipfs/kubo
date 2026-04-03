@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 	"syscall"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
@@ -254,8 +255,12 @@ type FileNode struct {
 }
 
 // File is wrapper over an mfs file to satisfy the fuse fs interface.
+// All methods are serialized by mu because bazil/fuse dispatches each
+// FUSE request in its own goroutine and the underlying DagModifier
+// is not safe for concurrent use.
 type File struct {
 	fi mfs.FileDescriptor
+	mu sync.Mutex
 }
 
 // Attr returns the attributes of a given node.
@@ -332,6 +337,9 @@ func (d *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 }
 
 func (fi *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
+	fi.mu.Lock()
+	defer fi.mu.Unlock()
+
 	_, err := fi.fi.Seek(req.Offset, io.SeekStart)
 	if err != nil {
 		return err
@@ -355,6 +363,9 @@ func (fi *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.Read
 }
 
 func (fi *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
+	fi.mu.Lock()
+	defer fi.mu.Unlock()
+
 	// TODO: at some point, ensure that WriteAt here respects the context
 	wrote, err := fi.fi.WriteAt(req.Data, req.Offset)
 	if err != nil {
@@ -370,10 +381,16 @@ func (fi *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wr
 // subsequent Release call on the same file descriptor.
 // TODO: wire up ctx if boxo/mfs is ever rewritten to support cancellation.
 func (fi *File) Flush(ctx context.Context, req *fuse.FlushRequest) error {
+	fi.mu.Lock()
+	defer fi.mu.Unlock()
+
 	return fi.fi.Flush()
 }
 
 func (fi *File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
+	fi.mu.Lock()
+	defer fi.mu.Unlock()
+
 	if req.Valid.Size() {
 		cursize, err := fi.fi.Size()
 		if err != nil {
@@ -454,6 +471,9 @@ func (fi *FileNode) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.
 }
 
 func (fi *File) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
+	fi.mu.Lock()
+	defer fi.mu.Unlock()
+
 	return fi.fi.Close()
 }
 
