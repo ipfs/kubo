@@ -25,6 +25,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	options "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/internal/fusemount"
 )
 
 func init() {
@@ -86,6 +87,10 @@ type Root struct {
 
 func ipnsPubFunc(ipfs iface.CoreAPI, key iface.Key) mfs.PubFunc {
 	return func(ctx context.Context, c cid.Cid) error {
+		// Bypass the "cannot publish while IPNS is mounted" guard.
+		// Without this the mount's own publishes are blocked,
+		// causing silent data loss on daemon restart (issue #2168).
+		ctx = fusemount.ContextWithPublish(ctx)
 		_, err := ipfs.Name().Publish(ctx, path.FromCid(c), options.Name.Key(key.Name()), options.Name.AllowOffline(true))
 		return err
 	}
