@@ -416,14 +416,6 @@ func (fi *FileNode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	return nil
 }
 
-func (fi *File) Forget() {
-	// TODO(steb): this seems like a place where we should be *uncaching*, not flushing.
-	err := fi.fi.Flush()
-	if err != nil {
-		log.Debug("forget file error: ", err)
-	}
-}
-
 func (d *Directory) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
 	child, err := d.dir.Mkdir(req.Name)
 	if err != nil {
