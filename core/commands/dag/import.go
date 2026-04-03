@@ -113,7 +113,17 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 
 			var previous blocks.Block
 
-			car, err := gocarv2.NewBlockReader(file)
+			// Wrap the file to hide the io.Seeker interface.
+			// Over the HTTP API the underlying reader is a multipart stream
+			// that cannot seek, but boxo's ReaderFile advertises io.Seeker
+			// anyway and returns ErrNotSupported at runtime. Hiding the
+			// interface lets go-car fall back to sequential (forward-only)
+			// reading, which is all that CARv2 streaming needs.
+			// See https://github.com/ipfs/kubo/issues/9361
+			car, err := gocarv2.NewBlockReader(struct {
+				io.Reader
+				io.Closer
+			}{file, file})
 			if err != nil {
 				return err
 			}

@@ -25,6 +25,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	options "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/internal/fusemount"
 )
 
 func init() {
@@ -86,7 +87,11 @@ type Root struct {
 
 func ipnsPubFunc(ipfs iface.CoreAPI, key iface.Key) mfs.PubFunc {
 	return func(ctx context.Context, c cid.Cid) error {
-		_, err := ipfs.Name().Publish(ctx, path.FromCid(c), options.Name.Key(key.Name()))
+		// Bypass the "cannot publish while IPNS is mounted" guard.
+		// Without this the mount's own publishes are blocked,
+		// causing silent data loss on daemon restart (issue #2168).
+		ctx = fusemount.ContextWithPublish(ctx)
+		_, err := ipfs.Name().Publish(ctx, path.FromCid(c), options.Name.Key(key.Name()), options.Name.AllowOffline(true))
 		return err
 	}
 }
@@ -153,7 +158,11 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.K
 // Attr returns file attributes.
 func (r *Root) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Root Attr")
+	// TODO: wire TTL from IPNS record (capped at Ipns.MaxCacheTTL) here instead of 0
+	a.Valid = 0
 	a.Mode = os.ModeDir | 0o111 // -rw+x
+	a.Uid = uint32(os.Getuid())
+	a.Gid = uint32(os.Getgid())
 	return nil
 }
 
@@ -252,6 +261,9 @@ type File struct {
 // Attr returns the attributes of a given node.
 func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Directory Attr")
+	// TODO: wire TTL from IPNS record (capped at Ipns.MaxCacheTTL) here instead of 0
+	a.Valid = 0
+	// TODO: use Mode from UnixFS record if present
 	a.Mode = os.ModeDir | 0o555
 	a.Uid = uint32(os.Getuid())
 	a.Gid = uint32(os.Getgid())
@@ -261,11 +273,14 @@ func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 // Attr returns the attributes of a given node.
 func (fi *FileNode) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("File Attr")
+	// TODO: wire TTL from IPNS record (capped at Ipns.MaxCacheTTL) here instead of 0
+	a.Valid = 0
 	size, err := fi.fi.Size()
 	if err != nil {
 		// In this case, the dag node in question may not be unixfs
 		return fmt.Errorf("fuse/ipns: failed to get file.Size(): %s", err)
 	}
+	// TODO: use Mode and Mtime from UnixFS record if present
 	a.Mode = os.FileMode(0o666)
 	a.Size = uint64(size)
 	a.Uid = uint32(os.Getuid())
@@ -313,10 +328,7 @@ func (d *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		entries[i] = dirent
 	}
 
-	if len(entries) > 0 {
-		return entries, nil
-	}
-	return nil, syscall.Errno(syscall.ENOENT)
+	return entries, nil
 }
 
 func (fi *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
@@ -381,20 +393,14 @@ func (fi *File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fus
 	return nil
 }
 
-// Fsync flushes the content in the file to disk.
+// Fsync is a no-op. We can't flush here because mfs.File.Flush opens a new
+// write descriptor, which needs an exclusive lock (desclock) that the caller
+// already holds from Open. Attempting it deadlocks until the FUSE timeout,
+// then panics on Release. Data is flushed when the file is closed instead.
+// TODO: a proper fix needs changes in boxo/mfs to allow flushing from an
+// existing descriptor. Ideas welcome, but for now this is the best we can do.
 func (fi *FileNode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
-	// This needs to perform a *full* flush because, in MFS, a write isn't
-	// persisted until the root is updated.
-	errs := make(chan error, 1)
-	go func() {
-		errs <- fi.fi.Flush()
-	}()
-	select {
-	case err := <-errs:
-		return err
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 func (fi *File) Forget() {
@@ -502,6 +508,14 @@ func (d *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDir 
 		return err
 	}
 
+	nd, err := cur.GetNode()
+	if err != nil {
+		return err
+	}
+
+	// Unlink the source before adding to the destination. For
+	// same-directory renames, this clears the old name from the
+	// directory's entry cache before AddChild repopulates it.
 	err = d.dir.Unlink(req.OldName)
 	if err != nil {
 		return err
@@ -509,11 +523,6 @@ func (d *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDir 
 
 	switch newDir := newDir.(type) {
 	case *Directory:
-		nd, err := cur.GetNode()
-		if err != nil {
-			return err
-		}
-
 		err = newDir.dir.AddChild(req.NewName, nd)
 		if err != nil {
 			return err
