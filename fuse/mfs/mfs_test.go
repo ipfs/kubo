@@ -1,5 +1,10 @@
 //go:build !nofuse && !openbsd && !netbsd && !plan9
 
+// Unit tests for the mutable /mfs FUSE mount.
+// These test the filesystem implementation directly without a daemon.
+// End-to-end tests that exercise mount/unmount through a real daemon
+// live in test/cli/fuse/.
+
 package mfs
 
 import (
