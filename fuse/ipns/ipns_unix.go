@@ -472,8 +472,16 @@ func (fi *File) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
 func (d *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
 	// New 'empty' file
 	nd := dag.NodeWithData(ft.FilePBData(nil, 0))
+	if err := nd.SetCidBuilder(d.dir.GetCidBuilder()); err != nil {
+		return nil, nil, err
+	}
+
 	err := d.dir.AddChild(req.Name, nd)
 	if err != nil {
+		return nil, nil, err
+	}
+
+	if err := d.dir.Flush(); err != nil {
 		return nil, nil, err
 	}
 
