@@ -364,17 +364,13 @@ func (fi *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wr
 	return nil
 }
 
+// Flush persists buffered writes to the DAG. We intentionally ignore ctx
+// here: the underlying MFS flush cannot be safely canceled mid-operation,
+// and abandoning it would leak a background goroutine that races with the
+// subsequent Release call on the same file descriptor.
+// TODO: wire up ctx if boxo/mfs is ever rewritten to support cancellation.
 func (fi *File) Flush(ctx context.Context, req *fuse.FlushRequest) error {
-	errs := make(chan error, 1)
-	go func() {
-		errs <- fi.fi.Flush()
-	}()
-	select {
-	case err := <-errs:
-		return err
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return fi.fi.Flush()
 }
 
 func (fi *File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
