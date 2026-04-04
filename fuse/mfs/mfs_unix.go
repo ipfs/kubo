@@ -22,9 +22,8 @@ import (
 )
 
 const (
-	ipfsCIDXattr = "ipfs_cid"
-	blockSize    = 512
-	dirSize      = 8
+	blockSize = 512
+	dirSize   = 8
 )
 
 // FUSE filesystem mounted at /mfs.
@@ -228,14 +227,15 @@ func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.
 
 // List dir xattr.
 func (dir *Dir) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
-	resp.Append(ipfsCIDXattr)
+	resp.Append(fusemnt.XattrCID)
+	resp.Append(fusemnt.XattrCIDDeprecated)
 	return nil
 }
 
 // Get dir xattr.
 func (dir *Dir) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
 	switch req.Name {
-	case ipfsCIDXattr:
+	case fusemnt.XattrCID, fusemnt.XattrCIDDeprecated:
 		node, err := dir.mfsDir.GetNode()
 		if err != nil {
 			return err
@@ -347,14 +347,15 @@ func (file *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 
 // List file xattr.
 func (file *File) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
-	resp.Append(ipfsCIDXattr)
+	resp.Append(fusemnt.XattrCID)
+	resp.Append(fusemnt.XattrCIDDeprecated)
 	return nil
 }
 
 // Get file xattr.
 func (file *File) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
 	switch req.Name {
-	case ipfsCIDXattr:
+	case fusemnt.XattrCID, fusemnt.XattrCIDDeprecated:
 		node, err := file.mfsFile.GetNode()
 		if err != nil {
 			return err

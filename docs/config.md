@@ -1906,6 +1906,14 @@ Default: `"cache"`
 
 FUSE mount point configuration options.
 
+All mounts expose the `ipfs.cid` extended attribute on files and directories, returning the CID of the underlying DAG node:
+
+```console
+$ getfattr -n ipfs.cid /ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Cat
+# file: ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Cat
+ipfs.cid="bafybeihxislsmn7b2drh6m3vqz3ctcfae46al7ax3543umeso4f5jgij5e"
+```
+
 ### `Mounts.IPFS`
 
 Mountpoint for `/ipfs/`.

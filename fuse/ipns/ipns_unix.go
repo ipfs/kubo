@@ -305,6 +305,25 @@ func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 	return nil
 }
 
+func (d *Directory) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
+	resp.Append(fusemnt.XattrCID)
+	return nil
+}
+
+func (d *Directory) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
+	switch req.Name {
+	case fusemnt.XattrCID:
+		nd, err := d.dir.GetNode()
+		if err != nil {
+			return err
+		}
+		resp.Xattr = []byte(nd.Cid().String())
+		return nil
+	default:
+		return fuse.ErrNoXattr
+	}
+}
+
 // Attr returns the attributes of a given node.
 func (fi *FileNode) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("File Attr")
@@ -328,6 +347,25 @@ func (fi *FileNode) Attr(ctx context.Context, a *fuse.Attr) error {
 		a.Mtime = t
 	}
 	return nil
+}
+
+func (fi *FileNode) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
+	resp.Append(fusemnt.XattrCID)
+	return nil
+}
+
+func (fi *FileNode) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
+	switch req.Name {
+	case fusemnt.XattrCID:
+		nd, err := fi.fi.GetNode()
+		if err != nil {
+			return err
+		}
+		resp.Xattr = []byte(nd.Cid().String())
+		return nil
+	default:
+		return fuse.ErrNoXattr
+	}
 }
 
 // Lookup performs a lookup under this node.
@@ -646,6 +684,8 @@ type ipnsDirectory interface {
 	fs.HandleReadDirAller
 	fs.Node
 	fs.NodeCreater
+	fs.NodeGetxattrer
+	fs.NodeListxattrer
 	fs.NodeMkdirer
 	fs.NodeRemover
 	fs.NodeRenamer
@@ -664,6 +704,8 @@ type ipnsFile interface {
 type ipnsFileNode interface {
 	fs.Node
 	fs.NodeFsyncer
+	fs.NodeGetxattrer
+	fs.NodeListxattrer
 	fs.NodeOpener
 	fs.NodeSetattrer
 }

@@ -270,10 +270,19 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	return entries, nil
 }
 
-func (s *Node) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
-	// TODO: is nil the right response for 'bug off, we ain't got none' ?
-	resp.Xattr = nil
+func (s *Node) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
+	resp.Append(fusemnt.XattrCID)
 	return nil
+}
+
+func (s *Node) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
+	switch req.Name {
+	case fusemnt.XattrCID:
+		resp.Xattr = []byte(s.Nd.Cid().String())
+		return nil
+	default:
+		return fuse.ErrNoXattr
+	}
 }
 
 func (s *Node) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
@@ -321,6 +330,7 @@ type roNode interface {
 	fs.NodeStringLookuper
 	fs.NodeReadlinker
 	fs.NodeGetxattrer
+	fs.NodeListxattrer
 }
 
 var _ roNode = (*Node)(nil)

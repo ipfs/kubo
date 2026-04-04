@@ -25,6 +25,7 @@ import (
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	coremock "github.com/ipfs/kubo/core/mock"
 
+	fuse "bazil.org/fuse"
 	fstest "bazil.org/fuse/fs/fstestutil"
 	chunker "github.com/ipfs/boxo/chunker"
 	"github.com/ipfs/boxo/files"
@@ -473,4 +474,62 @@ func TestDefaultModeReadonly(t *testing.T) {
 	if finfo.Mode().Perm() != fusemnt.DefaultFileModeRO.Perm() {
 		t.Fatalf("expected default mode %04o, got %04o", fusemnt.DefaultFileModeRO.Perm(), finfo.Mode().Perm())
 	}
+}
+
+// Test that ipfs_cid xattr returns the correct CID for files and directories.
+func TestXattrCID(t *testing.T) {
+	nd, mnt := setupIpfsTest(t, nil)
+	defer mnt.Close()
+
+	t.Run("file", func(t *testing.T) {
+		obj, _ := randObj(t, nd, 100)
+		node := &Node{Ipfs: nd, Nd: obj}
+
+		listRes := fuse.ListxattrResponse{}
+		if err := node.Listxattr(t.Context(), &fuse.ListxattrRequest{}, &listRes); err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Contains(listRes.Xattr, []byte(fusemnt.XattrCID)) {
+			t.Fatal("ipfs_cid not listed")
+		}
+
+		getRes := fuse.GetxattrResponse{}
+		if err := node.Getxattr(t.Context(), &fuse.GetxattrRequest{Name: fusemnt.XattrCID}, &getRes); err != nil {
+			t.Fatal(err)
+		}
+		if string(getRes.Xattr) != obj.Cid().String() {
+			t.Fatalf("expected CID %s, got %s", obj.Cid().String(), string(getRes.Xattr))
+		}
+	})
+
+	t.Run("directory", func(t *testing.T) {
+		db, err := uio.NewDirectory(nd.DAG)
+		if err != nil {
+			t.Fatal(err)
+		}
+		dirNode, err := db.GetNode()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := nd.DAG.Add(nd.Context(), dirNode); err != nil {
+			t.Fatal(err)
+		}
+		node := &Node{Ipfs: nd, Nd: dirNode}
+
+		listRes := fuse.ListxattrResponse{}
+		if err := node.Listxattr(t.Context(), &fuse.ListxattrRequest{}, &listRes); err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Contains(listRes.Xattr, []byte(fusemnt.XattrCID)) {
+			t.Fatal("ipfs_cid not listed")
+		}
+
+		getRes := fuse.GetxattrResponse{}
+		if err := node.Getxattr(t.Context(), &fuse.GetxattrRequest{Name: fusemnt.XattrCID}, &getRes); err != nil {
+			t.Fatal(err)
+		}
+		if string(getRes.Xattr) != dirNode.Cid().String() {
+			t.Fatalf("expected CID %s, got %s", dirNode.Cid().String(), string(getRes.Xattr))
+		}
+	})
 }

@@ -22,3 +22,13 @@ const (
 // Execute-only: these are virtual namespaces where users traverse by
 // name (CID or IPNS key) but listing the full namespace is not possible.
 const NamespaceRootMode = os.ModeDir | 0o111
+
+// XattrCID is the extended attribute name for the node's CID.
+// Follows the convention used by CephFS (ceph.*), Btrfs (btrfs.*),
+// and GlusterFS (glusterfs.*) of using a project-specific namespace.
+const XattrCID = "ipfs.cid"
+
+// XattrCIDDeprecated is the old xattr name, kept for backward
+// compatibility on /mfs where it was previously shipped.
+// TODO: remove after 2 releases.
+const XattrCIDDeprecated = "ipfs_cid"

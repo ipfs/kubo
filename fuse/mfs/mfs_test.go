@@ -469,12 +469,12 @@ func TestMFSRootXattr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if slices.Compare(listRes.Xattr, []byte("ipfs_cid\x00")) != 0 {
-		t.Fatal("list xattr returns invalid value")
+	if !bytes.Contains(listRes.Xattr, []byte(fusemnt.XattrCID)) {
+		t.Fatalf("xattr list does not contain %s: %q", fusemnt.XattrCID, listRes.Xattr)
 	}
 
 	getReq := fuse.GetxattrRequest{
-		Name: "ipfs_cid",
+		Name: fusemnt.XattrCID,
 	}
 	getRes := fuse.GetxattrResponse{}
 	err = root.Getxattr(context.Background(), &getReq, &getRes)
@@ -540,7 +540,7 @@ func TestStoreMode(t *testing.T) {
 		if fi.Mode().Perm() != fusemnt.DefaultFileModeRW.Perm() {
 			t.Fatalf("expected default mode %04o, got %04o", fusemnt.DefaultFileModeRW.Perm(), fi.Mode().Perm())
 		}
-		os.Chmod(fname, 0o755)
+		_ = os.Chmod(fname, 0o755)
 		fi, err = os.Stat(fname)
 		if err != nil {
 			t.Fatal(err)

@@ -25,7 +25,9 @@ import (
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	fusemnt "github.com/ipfs/kubo/fuse/mount"
 
+	fuse "bazil.org/fuse"
 	fstest "bazil.org/fuse/fs/fstestutil"
+	mfs "github.com/ipfs/boxo/mfs"
 	racedet "github.com/ipfs/go-detect-race"
 	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/fuse/fusetest"
@@ -661,7 +663,7 @@ func TestStoreMode(t *testing.T) {
 			t.Fatalf("expected default mode %04o, got %04o", fusemnt.DefaultFileModeRW.Perm(), fi.Mode().Perm())
 		}
 		// chmod should be silently ignored.
-		os.Chmod(fname, 0o755)
+		_ = os.Chmod(fname, 0o755)
 		fi, err = os.Stat(fname)
 		if err != nil {
 			t.Fatal(err)
@@ -727,4 +729,65 @@ func TestNamespaceRootMode(t *testing.T) {
 	if fi.Mode() != fusemnt.NamespaceRootMode {
 		t.Fatalf("expected root mode %v, got %v", fusemnt.NamespaceRootMode, fi.Mode())
 	}
+}
+
+// Test that ipfs_cid xattr is available on files and directories.
+func TestXattrCID(t *testing.T) {
+	nd, mnt := setupIpnsTest(t, nil)
+	defer mnt.Close()
+
+	writeFileOrFail(t, 100, mnt.Dir+"/local/xattrfile")
+
+	fsRoot, err := mnt.Fs.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := fsRoot.(*Root)
+	peerDir, ok := root.LocalDirs[nd.Identity.String()]
+	if !ok {
+		t.Fatal("peer directory not found")
+	}
+	dir := peerDir.(*Directory)
+
+	t.Run("directory", func(t *testing.T) {
+		listRes := fuse.ListxattrResponse{}
+		if err := dir.Listxattr(t.Context(), &fuse.ListxattrRequest{}, &listRes); err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Contains(listRes.Xattr, []byte(fusemnt.XattrCID)) {
+			t.Fatal("ipfs_cid not listed")
+		}
+
+		getRes := fuse.GetxattrResponse{}
+		if err := dir.Getxattr(t.Context(), &fuse.GetxattrRequest{Name: fusemnt.XattrCID}, &getRes); err != nil {
+			t.Fatal(err)
+		}
+		if len(getRes.Xattr) == 0 {
+			t.Fatal("empty CID")
+		}
+	})
+
+	t.Run("file", func(t *testing.T) {
+		child, err := dir.dir.Child("xattrfile")
+		if err != nil {
+			t.Fatal(err)
+		}
+		fileNode := &FileNode{fi: child.(*mfs.File), fsys: dir.fsys}
+
+		listRes := fuse.ListxattrResponse{}
+		if err := fileNode.Listxattr(t.Context(), &fuse.ListxattrRequest{}, &listRes); err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Contains(listRes.Xattr, []byte(fusemnt.XattrCID)) {
+			t.Fatal("ipfs_cid not listed")
+		}
+
+		getRes := fuse.GetxattrResponse{}
+		if err := fileNode.Getxattr(t.Context(), &fuse.GetxattrRequest{Name: fusemnt.XattrCID}, &getRes); err != nil {
+			t.Fatal(err)
+		}
+		if len(getRes.Xattr) == 0 {
+			t.Fatal("empty CID")
+		}
+	})
 }
