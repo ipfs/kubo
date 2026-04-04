@@ -16,41 +16,53 @@ import (
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	"github.com/ipfs/boxo/mfs"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
 
 const (
 	ipfsCIDXattr = "ipfs_cid"
-	mfsDirMode   = os.ModeDir | 0755
-	mfsFileMode  = 0644
 	blockSize    = 512
 	dirSize      = 8
 )
 
 // FUSE filesystem mounted at /mfs.
 type FileSystem struct {
-	root Dir
+	root *Dir
+
+	// Write-side config (reads are always on).
+	storeMtime bool // persist mtime on create and open-for-write
+	storeMode  bool // persist mode on chmod
 }
 
 // Get filesystem root.
-func (fs *FileSystem) Root() (fs.Node, error) {
-	return &fs.root, nil
+func (fsys *FileSystem) Root() (fs.Node, error) {
+	return fsys.root, nil
 }
 
 // FUSE Adapter for MFS directories.
 type Dir struct {
 	mfsDir *mfs.Directory
+	fsys   *FileSystem
 }
 
 // Directory attributes (stat).
 func (dir *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
 	attr.Valid = 0
-	// TODO: use Mode from UnixFS record if present
-	attr.Mode = mfsDirMode
+	attr.Mode = fusemnt.DefaultDirModeRW
 	attr.Size = dirSize * blockSize
 	attr.Blocks = dirSize
 	attr.Uid = uint32(os.Getuid())
 	attr.Gid = uint32(os.Getgid())
+
+	// Use mode and mtime from UnixFS metadata when present.
+	if m, err := dir.mfsDir.Mode(); err == nil && m != 0 {
+		attr.Mode = m
+	}
+	if t, err := dir.mfsDir.ModTime(); err == nil && !t.IsZero() {
+		attr.Mtime = t
+	}
 	return nil
 }
 
@@ -69,15 +81,9 @@ func (dir *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.
 
 	switch mfsNode.Type() {
 	case mfs.TDir:
-		result := Dir{
-			mfsDir: mfsNode.(*mfs.Directory),
-		}
-		return &result, nil
+		return &Dir{mfsDir: mfsNode.(*mfs.Directory), fsys: dir.fsys}, nil
 	case mfs.TFile:
-		result := File{
-			mfsFile: mfsNode.(*mfs.File),
-		}
-		return &result, nil
+		return &File{mfsFile: mfsNode.(*mfs.File), fsys: dir.fsys}, nil
 	}
 
 	return nil, syscall.Errno(syscall.ENOENT)
@@ -110,9 +116,7 @@ func (dir *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, err
 	if err != nil {
 		return nil, err
 	}
-	return &Dir{
-		mfsDir: mfsDir,
-	}, nil
+	return &Dir{mfsDir: mfsDir, fsys: dir.fsys}, nil
 }
 
 // Remove (rm/rmdir) an MFS file.
@@ -190,14 +194,17 @@ func (dir *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := mfsNode.SetModTime(time.Now()); err != nil {
-		return nil, nil, err
+	if dir.fsys.storeMtime {
+		if err := mfsNode.SetModTime(time.Now()); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	mfsFile := mfsNode.(*mfs.File)
 
 	file := File{
 		mfsFile: mfsFile,
+		fsys:    dir.fsys,
 	}
 
 	// Read access flags and create a handler.
@@ -243,6 +250,7 @@ func (dir *Dir) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *f
 // FUSE adapter for MFS files.
 type File struct {
 	mfsFile *mfs.File
+	fsys    *FileSystem
 }
 
 // File attributes.
@@ -258,11 +266,14 @@ func (file *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 		attr.Blocks = uint64(size/blockSize + 1)
 	}
 
-	mtime, _ := file.mfsFile.ModTime()
-	attr.Mtime = mtime
-
-	// TODO: use Mode from UnixFS record if present
-	attr.Mode = mfsFileMode
+	// Use mode and mtime from UnixFS metadata when present.
+	if t, _ := file.mfsFile.ModTime(); !t.IsZero() {
+		attr.Mtime = t
+	}
+	attr.Mode = fusemnt.DefaultFileModeRW
+	if m, err := file.mfsFile.Mode(); err == nil && m != 0 {
+		attr.Mode = m
+	}
 	attr.Uid = uint32(os.Getuid())
 	attr.Gid = uint32(os.Getgid())
 	return nil
@@ -281,7 +292,7 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 		return nil, err
 	}
 
-	if flags.Write {
+	if flags.Write && file.fsys.storeMtime {
 		if err := file.mfsFile.SetModTime(time.Now()); err != nil {
 			return nil, err
 		}
@@ -290,6 +301,38 @@ func (file *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 	return &FileHandler{
 		mfsFD: fd,
 	}, nil
+}
+
+// Setattr handles chmod and explicit mtime changes (touch).
+//
+// Size changes (truncate, ftruncate) return ENOTSUP because MFS only
+// allows one writer at a time and we cannot safely open a second write
+// handle from inside Setattr. Truncation on file creation works via
+// the O_TRUNC flag in File.Open instead.
+func (file *File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
+	if req.Valid.Size() {
+		cursize, err := file.mfsFile.Size()
+		if err != nil {
+			return err
+		}
+		if cursize != int64(req.Size) {
+			// Reject actual size changes. MFS needs a write handle
+			// for truncation but only allows one at a time, so we
+			// cannot safely truncate from here. Use O_TRUNC on open.
+			return syscall.Errno(syscall.ENOTSUP)
+		}
+	}
+	if req.Valid.Mode() && file.fsys.storeMode {
+		if err := file.mfsFile.SetMode(req.Mode & os.ModePerm); err != nil {
+			return err
+		}
+	}
+	if req.Valid.Mtime() && file.fsys.storeMtime {
+		if err := file.mfsFile.SetModTime(req.Mtime); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Fsync is a no-op. We can't flush here because mfs.File.Flush opens a new
@@ -384,12 +427,13 @@ func (fh *FileHandler) Release(ctx context.Context, req *fuse.ReleaseRequest) er
 }
 
 // Create new filesystem.
-func NewFileSystem(ipfs *core.IpfsNode) fs.FS {
-	return &FileSystem{
-		root: Dir{
-			mfsDir: ipfs.FilesRoot.GetDirectory(),
-		},
+func NewFileSystem(ipfs *core.IpfsNode, cfg config.Mounts) fs.FS {
+	fsys := &FileSystem{
+		storeMtime: cfg.StoreMtime.WithDefault(config.DefaultStoreMtime),
+		storeMode:  cfg.StoreMode.WithDefault(config.DefaultStoreMode),
 	}
+	fsys.root = &Dir{mfsDir: ipfs.FilesRoot.GetDirectory(), fsys: fsys}
+	return fsys
 }
 
 // Check that our structs implement all the interfaces we want.
@@ -413,6 +457,7 @@ type mfsFile interface {
 	fs.NodeListxattrer
 	fs.NodeOpener
 	fs.NodeFsyncer
+	fs.NodeSetattrer
 }
 
 var _ mfsFile = (*File)(nil)

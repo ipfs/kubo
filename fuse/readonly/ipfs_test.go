@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
@@ -28,6 +29,7 @@ import (
 	chunker "github.com/ipfs/boxo/chunker"
 	"github.com/ipfs/boxo/files"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	ft "github.com/ipfs/boxo/ipld/unixfs"
 	importer "github.com/ipfs/boxo/ipld/unixfs/importer"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/path"
@@ -35,6 +37,7 @@ import (
 	"github.com/ipfs/go-test/random"
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/fuse/fusetest"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
 
 func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
@@ -421,5 +424,53 @@ func TestFileSizeReporting(t *testing.T) {
 
 	if finfo.Size() != int64(len(data)) {
 		t.Fatal("Read incorrect size from stat!")
+	}
+}
+
+// Test that mode and mtime stored in UnixFS metadata are reported in stat.
+func TestUnixFSMetadataInStat(t *testing.T) {
+	nd, mnt := setupIpfsTest(t, nil)
+	defer mnt.Close()
+
+	storedMode := os.FileMode(0o755)
+	storedMtime := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
+	content := []byte("file with metadata")
+
+	// Create a UnixFS node with explicit mode and mtime.
+	pbdata := ft.FilePBDataWithStat(content, uint64(len(content)), storedMode, storedMtime)
+	node := dag.NodeWithData(pbdata)
+	if err := nd.DAG.Add(nd.Context(), node); err != nil {
+		t.Fatal(err)
+	}
+
+	fpath := gopath.Join(mnt.Dir, node.Cid().String())
+	fi, err := os.Stat(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fi.Mode().Perm() != storedMode.Perm() {
+		t.Fatalf("expected mode %04o, got %04o", storedMode.Perm(), fi.Mode().Perm())
+	}
+	if !fi.ModTime().Equal(storedMtime) {
+		t.Fatalf("expected mtime %v, got %v", storedMtime, fi.ModTime())
+	}
+}
+
+// Test that files without UnixFS metadata get the read-only defaults.
+func TestDefaultModeReadonly(t *testing.T) {
+	nd, mnt := setupIpfsTest(t, nil)
+	defer mnt.Close()
+
+	// Create a plain UnixFS file (no mode/mtime metadata).
+	fi, _ := randObj(t, nd, 100)
+	fpath := gopath.Join(mnt.Dir, fi.Cid().String())
+
+	finfo, err := os.Stat(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if finfo.Mode().Perm() != fusemnt.DefaultFileModeRO.Perm() {
+		t.Fatalf("expected default mode %04o, got %04o", fusemnt.DefaultFileModeRO.Perm(), finfo.Mode().Perm())
 	}
 }

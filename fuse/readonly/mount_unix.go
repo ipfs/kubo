@@ -3,6 +3,7 @@
 package readonly
 
 import (
+	"github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	mount "github.com/ipfs/kubo/fuse/mount"
 )
@@ -13,7 +14,6 @@ func Mount(ipfs *core.IpfsNode, mountpoint string) (mount.Mount, error) {
 	if err != nil {
 		return nil, err
 	}
-	allowOther := cfg.Mounts.FuseAllowOther
 	fsys := NewFileSystem(ipfs)
-	return mount.NewMount(fsys, mountpoint, allowOther)
+	return mount.NewMount(fsys, mountpoint, cfg.Mounts.FuseAllowOther.WithDefault(config.DefaultFuseAllowOther))
 }

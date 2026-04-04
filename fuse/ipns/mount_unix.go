@@ -3,6 +3,7 @@
 package ipns
 
 import (
+	"github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	mount "github.com/ipfs/kubo/fuse/mount"
@@ -20,12 +21,10 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
 		return nil, err
 	}
 
-	allowOther := cfg.Mounts.FuseAllowOther
-
-	fsys, err := NewFileSystem(ipfs.Context(), coreAPI, ipfsmp, ipnsmp)
+	fsys, err := NewFileSystem(ipfs.Context(), coreAPI, ipfsmp, ipnsmp, cfg.Mounts)
 	if err != nil {
 		return nil, err
 	}
 
-	return mount.NewMount(fsys, ipnsmp, allowOther)
+	return mount.NewMount(fsys, ipnsmp, cfg.Mounts.FuseAllowOther.WithDefault(config.DefaultFuseAllowOther))
 }

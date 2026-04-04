@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
@@ -24,8 +25,10 @@ import (
 	mfs "github.com/ipfs/boxo/mfs"
 	cid "github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipfs/kubo/config"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	options "github.com/ipfs/kubo/core/coreiface/options"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 	"github.com/ipfs/kubo/internal/fusemount"
 )
 
@@ -43,10 +46,14 @@ var log = logging.Logger("fuse/ipns")
 type FileSystem struct {
 	Ipfs     iface.CoreAPI
 	RootNode *Root
+
+	// Write-side config (reads are always on).
+	storeMtime bool
+	storeMode  bool
 }
 
 // NewFileSystem constructs new fs using given core.IpfsNode instance.
-func NewFileSystem(ctx context.Context, ipfs iface.CoreAPI, ipfspath, ipnspath string) (*FileSystem, error) {
+func NewFileSystem(ctx context.Context, ipfs iface.CoreAPI, ipfspath, ipnspath string, cfg config.Mounts) (*FileSystem, error) {
 	key, err := ipfs.Key().Self(ctx)
 	if err != nil {
 		return nil, err
@@ -56,7 +63,21 @@ func NewFileSystem(ctx context.Context, ipfs iface.CoreAPI, ipfspath, ipnspath s
 		return nil, err
 	}
 
-	return &FileSystem{Ipfs: ipfs, RootNode: root}, nil
+	fsys := &FileSystem{
+		Ipfs:       ipfs,
+		RootNode:   root,
+		storeMtime: cfg.StoreMtime.WithDefault(config.DefaultStoreMtime),
+		storeMode:  cfg.StoreMode.WithDefault(config.DefaultStoreMode),
+	}
+
+	// Wire back-pointer so all nodes can access config.
+	for _, n := range root.LocalDirs {
+		if d, ok := n.(*Directory); ok {
+			d.fsys = fsys
+		}
+	}
+
+	return fsys, nil
 }
 
 // Root constructs the Root of the filesystem, a Root object.
@@ -161,7 +182,7 @@ func (r *Root) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Root Attr")
 	// TODO: wire TTL from IPNS record (capped at Ipns.MaxCacheTTL) here instead of 0
 	a.Valid = 0
-	a.Mode = os.ModeDir | 0o111 // -rw+x
+	a.Mode = fusemnt.NamespaceRootMode
 	a.Uid = uint32(os.Getuid())
 	a.Gid = uint32(os.Getgid())
 	return nil
@@ -247,11 +268,13 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 // Directory is wrapper over an mfs directory to satisfy the fuse fs interface.
 type Directory struct {
-	dir *mfs.Directory
+	dir  *mfs.Directory
+	fsys *FileSystem
 }
 
 type FileNode struct {
-	fi *mfs.File
+	fi   *mfs.File
+	fsys *FileSystem
 }
 
 // File is wrapper over an mfs file to satisfy the fuse fs interface.
@@ -268,10 +291,17 @@ func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Directory Attr")
 	// TODO: wire TTL from IPNS record (capped at Ipns.MaxCacheTTL) here instead of 0
 	a.Valid = 0
-	// TODO: use Mode from UnixFS record if present
-	a.Mode = os.ModeDir | 0o555
+	a.Mode = fusemnt.DefaultDirModeRW
 	a.Uid = uint32(os.Getuid())
 	a.Gid = uint32(os.Getgid())
+
+	// Use mode and mtime from UnixFS metadata when present.
+	if m, err := d.dir.Mode(); err == nil && m != 0 {
+		a.Mode = m
+	}
+	if t, err := d.dir.ModTime(); err == nil && !t.IsZero() {
+		a.Mtime = t
+	}
 	return nil
 }
 
@@ -285,11 +315,18 @@ func (fi *FileNode) Attr(ctx context.Context, a *fuse.Attr) error {
 		// In this case, the dag node in question may not be unixfs
 		return fmt.Errorf("fuse/ipns: failed to get file.Size(): %s", err)
 	}
-	// TODO: use Mode and Mtime from UnixFS record if present
-	a.Mode = os.FileMode(0o666)
+	a.Mode = fusemnt.DefaultFileModeRW
 	a.Size = uint64(size)
 	a.Uid = uint32(os.Getuid())
 	a.Gid = uint32(os.Getgid())
+
+	// Use mode and mtime from UnixFS metadata when present.
+	if m, err := fi.fi.Mode(); err == nil && m != 0 {
+		a.Mode = m
+	}
+	if t, err := fi.fi.ModTime(); err == nil && !t.IsZero() {
+		a.Mtime = t
+	}
 	return nil
 }
 
@@ -303,9 +340,9 @@ func (d *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 	switch child := child.(type) {
 	case *mfs.Directory:
-		return &Directory{dir: child}, nil
+		return &Directory{dir: child, fsys: d.fsys}, nil
 	case *mfs.File:
-		return &FileNode{fi: child}, nil
+		return &FileNode{fi: child, fsys: d.fsys}, nil
 	default:
 		// NB: if this happens, we do not want to continue, unpredictable behaviour
 		// may occur.
@@ -387,20 +424,33 @@ func (fi *File) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 	return fi.fi.Flush()
 }
 
-func (fi *File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
-	fi.mu.Lock()
-	defer fi.mu.Unlock()
-
+// Setattr handles chmod and explicit mtime changes (touch).
+//
+// Size changes (truncate, ftruncate) return ENOTSUP because MFS only
+// allows one writer at a time and we cannot safely open a second write
+// handle from inside Setattr. Truncation on file creation works via
+// the O_TRUNC flag in FileNode.Open instead.
+func (fi *FileNode) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
 	if req.Valid.Size() {
 		cursize, err := fi.fi.Size()
 		if err != nil {
 			return err
 		}
 		if cursize != int64(req.Size) {
-			err := fi.fi.Truncate(int64(req.Size))
-			if err != nil {
-				return err
-			}
+			// Reject actual size changes. MFS needs a write handle
+			// for truncation but only allows one at a time, so we
+			// cannot safely truncate from here. Use O_TRUNC on open.
+			return syscall.Errno(syscall.ENOTSUP)
+		}
+	}
+	if req.Valid.Mode() && fi.fsys.storeMode {
+		if err := fi.fi.SetMode(req.Mode & os.ModePerm); err != nil {
+			return err
+		}
+	}
+	if req.Valid.Mtime() && fi.fsys.storeMtime {
+		if err := fi.fi.SetModTime(req.Mtime); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -422,7 +472,7 @@ func (d *Directory) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 		return nil, err
 	}
 
-	return &Directory{dir: child}, nil
+	return &Directory{dir: child, fsys: d.fsys}, nil
 }
 
 func (fi *FileNode) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
@@ -455,6 +505,12 @@ func (fi *FileNode) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.
 		_, err := fd.Seek(0, io.SeekEnd)
 		if err != nil {
 			log.Error("seek reset failed: ", err)
+			return nil, err
+		}
+	}
+
+	if fi.fsys.storeMtime && (req.Flags.IsWriteOnly() || req.Flags.IsReadWrite()) {
+		if err := fi.fi.SetModTime(time.Now()); err != nil {
 			return nil, err
 		}
 	}
@@ -495,7 +551,13 @@ func (d *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp *f
 		return nil, nil, errors.New("child creation failed")
 	}
 
-	nodechild := &FileNode{fi: fi}
+	if d.fsys.storeMtime {
+		if err := fi.SetModTime(time.Now()); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	nodechild := &FileNode{fi: fi, fsys: d.fsys}
 
 	fd, err := fi.Open(mfs.Flags{
 		Read:  req.Flags.IsReadOnly() || req.Flags.IsReadWrite(),
@@ -603,6 +665,7 @@ type ipnsFileNode interface {
 	fs.Node
 	fs.NodeFsyncer
 	fs.NodeOpener
+	fs.NodeSetattrer
 }
 
 var (

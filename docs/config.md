@@ -1937,7 +1937,31 @@ Type: `string` (filesystem path)
 
 ### `Mounts.FuseAllowOther`
 
-Sets the 'FUSE allow-other' option on the mount point.
+Sets the FUSE `allow_other` mount option, letting users other than the mounter access the mounted filesystem.
+
+Default: `false`
+
+Type: `flag`
+
+### `Mounts.StoreMtime`
+
+When `true`, writable mounts (`/ipns` and `/mfs`) store the current time as mtime in [UnixFS](https://specs.ipfs.tech/unixfs/) metadata when creating a file or opening it for writing. This changes the resulting CID even when the file content is identical.
+
+Most data on IPFS does not include mtime. When mtime is present in the UnixFS metadata, it is always shown in stat responses on all mounts, regardless of this flag. When absent, mtime is reported as zero (epoch).
+
+Default: `false`
+
+Type: `flag`
+
+### `Mounts.StoreMode`
+
+When `true`, writable mounts (`/ipns` and `/mfs`) accept `chmod` requests and persist POSIX permission bits in [UnixFS](https://specs.ipfs.tech/unixfs/) metadata.
+
+Most data on IPFS does not include mode. When mode is present in the UnixFS metadata, it is always shown in stat responses on all mounts, regardless of this flag. When absent, a default mode is used (files: `0644` or `0666`, directories: `0755` or `0555`).
+
+Default: `false`
+
+Type: `flag`
 
 ## `Pinning`
 

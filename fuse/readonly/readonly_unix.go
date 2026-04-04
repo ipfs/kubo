@@ -20,6 +20,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/ipfs/kubo/core"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 )
 
@@ -52,7 +53,7 @@ type Root struct {
 // Attr returns file attributes.
 func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Valid = immutableAttrCacheTime
-	a.Mode = os.ModeDir | 0o111 // -rw+x
+	a.Mode = fusemnt.NamespaceRootMode
 	a.Uid = uint32(os.Getuid())
 	a.Gid = uint32(os.Getgid())
 	return nil
@@ -147,14 +148,13 @@ func (s *Node) loadData() error {
 }
 
 // Attr returns the attributes of a given node.
-// TODO: use Mode and Mtime from UnixFS record if present
 func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Node attr")
 	a.Valid = immutableAttrCacheTime
 	a.Uid = uint32(os.Getuid())
 	a.Gid = uint32(os.Getgid())
 	if rawnd, ok := s.Nd.(*mdag.RawNode); ok {
-		a.Mode = 0o444
+		a.Mode = fusemnt.DefaultFileModeRO
 		a.Size = uint64(len(rawnd.RawData()))
 		a.Blocks = 1
 		return nil
@@ -167,14 +167,14 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	}
 	switch s.cached.Type() {
 	case ft.TDirectory, ft.THAMTShard:
-		a.Mode = os.ModeDir | 0o555
+		a.Mode = fusemnt.DefaultDirModeRO
 	case ft.TFile:
 		size := s.cached.FileSize()
-		a.Mode = 0o444
+		a.Mode = fusemnt.DefaultFileModeRO
 		a.Size = uint64(size)
 		a.Blocks = uint64(len(s.Nd.Links()))
 	case ft.TRaw:
-		a.Mode = 0o444
+		a.Mode = fusemnt.DefaultFileModeRO
 		a.Size = uint64(len(s.cached.Data()))
 		a.Blocks = uint64(len(s.Nd.Links()))
 	case ft.TSymlink:
@@ -183,6 +183,15 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	default:
 		return fmt.Errorf("invalid data type - %s", s.cached.Type())
 	}
+
+	// Use mode and mtime from UnixFS metadata when present.
+	if m := s.cached.Mode(); m != 0 {
+		a.Mode = m
+	}
+	if t := s.cached.ModTime(); !t.IsZero() {
+		a.Mtime = t
+	}
+
 	return nil
 }
 

@@ -22,14 +22,21 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"bazil.org/fuse/fs/fstestutil"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
 	"github.com/ipfs/kubo/fuse/fusetest"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
 
 // Create an Ipfs.Node, a filesystem and a mount point.
-func setUp(t *testing.T, ipfs *core.IpfsNode) (fs.FS, *fstestutil.Mount) {
+func setUp(t *testing.T, ipfs *core.IpfsNode, cfgs ...config.Mounts) (fs.FS, *fstestutil.Mount) {
 	fusetest.SkipUnlessFUSE(t)
+
+	var cfg config.Mounts
+	if len(cfgs) > 0 {
+		cfg = cfgs[0]
+	}
 
 	if ipfs == nil {
 		var err error
@@ -39,7 +46,7 @@ func setUp(t *testing.T, ipfs *core.IpfsNode) (fs.FS, *fstestutil.Mount) {
 		}
 	}
 
-	fs := NewFileSystem(ipfs)
+	fs := NewFileSystem(ipfs, cfg)
 	mnt, err := fstestutil.MountedT(t, fs, nil)
 	fusetest.MountError(t, err)
 
@@ -482,5 +489,110 @@ func TestMFSRootXattr(t *testing.T) {
 
 	if slices.Compare(getRes.Xattr, []byte(ipldNode.Cid().String())) != 0 {
 		t.Fatal("xattr cid not equal to mfs root cid")
+	}
+}
+
+// Test that StoreMtime persists mtime in UnixFS metadata across remounts.
+// We verify persistence rather than stat output because the kernel tracks
+// write times in its own cache regardless of what the FUSE daemon stores.
+func TestStoreMtime(t *testing.T) {
+	before := time.Now().Add(-time.Second)
+	ipfs, err := core.NewNode(context.Background(), &node.BuildCfg{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, mnt := setUp(t, ipfs, config.Mounts{StoreMtime: config.True})
+
+	fname := mnt.Dir + "/withtime"
+	if err := os.WriteFile(fname, []byte("hello"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	mnt.Close()
+
+	// Remount with default config and verify the mtime survived.
+	_, mnt = setUp(t, ipfs)
+	defer mnt.Close()
+
+	fi, err := os.Stat(mnt.Dir + "/withtime")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fi.ModTime().After(before) {
+		t.Fatalf("mtime did not persist across remount: got %v", fi.ModTime())
+	}
+}
+
+// Test that the default file mode matches the shared constant and chmod
+// is ignored without StoreMode.
+func TestStoreMode(t *testing.T) {
+	t.Run("disabled", func(t *testing.T) {
+		_, mnt := setUp(t, nil)
+		defer mnt.Close()
+
+		fname := mnt.Dir + "/nomode"
+		if err := os.WriteFile(fname, []byte("hello"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		fi, err := os.Stat(fname)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fi.Mode().Perm() != fusemnt.DefaultFileModeRW.Perm() {
+			t.Fatalf("expected default mode %04o, got %04o", fusemnt.DefaultFileModeRW.Perm(), fi.Mode().Perm())
+		}
+		os.Chmod(fname, 0o755)
+		fi, err = os.Stat(fname)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fi.Mode().Perm() != fusemnt.DefaultFileModeRW.Perm() {
+			t.Fatalf("mode changed without StoreMode: got %04o", fi.Mode().Perm())
+		}
+	})
+
+	t.Run("enabled", func(t *testing.T) {
+		_, mnt := setUp(t, nil, config.Mounts{StoreMode: config.True})
+		defer mnt.Close()
+
+		fname := mnt.Dir + "/withmode"
+		if err := os.WriteFile(fname, []byte("hello"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		fi, err := os.Stat(fname)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fi.Mode().Perm() == 0o755 {
+			t.Fatal("new file already has 0755, cannot distinguish chmod effect")
+		}
+		if err := os.Chmod(fname, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		fi, err = os.Stat(fname)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fi.Mode().Perm() != 0o755 {
+			t.Fatalf("expected mode 0755 after chmod, got %04o", fi.Mode().Perm())
+		}
+	})
+}
+
+// Test that directories get the expected default mode.
+func TestDefaultDirMode(t *testing.T) {
+	_, mnt := setUp(t, nil)
+	defer mnt.Close()
+
+	dir := mnt.Dir + "/subdir"
+	if err := os.Mkdir(dir, os.ModeDir); err != nil {
+		t.Fatal(err)
+	}
+
+	fi, err := os.Stat(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Mode().Perm() != fusemnt.DefaultDirModeRW.Perm() {
+		t.Fatalf("expected dir mode %04o, got %04o", fusemnt.DefaultDirModeRW.Perm(), fi.Mode().Perm())
 	}
 }

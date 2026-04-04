@@ -18,9 +18,12 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 
+	"github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 
 	fstest "bazil.org/fuse/fs/fstestutil"
 	racedet "github.com/ipfs/go-detect-race"
@@ -126,9 +129,14 @@ func (fakeMount) MountPoint() string { return "/fake/ipns" }
 func (fakeMount) Unmount() error     { return nil }
 func (fakeMount) IsActive() bool     { return true }
 
-func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWrap) {
+func setupIpnsTest(t *testing.T, node *core.IpfsNode, cfgs ...config.Mounts) (*core.IpfsNode, *mountWrap) {
 	t.Helper()
 	fusetest.SkipUnlessFUSE(t)
+
+	var cfg config.Mounts
+	if len(cfgs) > 0 {
+		cfg = cfgs[0]
+	}
 
 	var err error
 	if node == nil {
@@ -148,7 +156,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 		t.Fatal(err)
 	}
 
-	fs, err := NewFileSystem(node.Context(), coreAPI, "", "")
+	fs, err := NewFileSystem(node.Context(), coreAPI, "", "", cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -609,5 +617,114 @@ func TestMultiWrite(t *testing.T) {
 
 	if !bytes.Equal(rbuf, data) {
 		t.Fatal("File on disk did not match bytes written")
+	}
+}
+
+// Test that StoreMtime persists mtime in UnixFS metadata across remounts.
+// We verify persistence rather than stat output because the kernel tracks
+// write times in its own cache regardless of what the FUSE daemon stores.
+func TestStoreMtime(t *testing.T) {
+	before := time.Now().Add(-time.Second)
+	node, mnt := setupIpnsTest(t, nil, config.Mounts{StoreMtime: config.True})
+
+	fname := mnt.Dir + "/local/withtime"
+	writeFileOrFail(t, 100, fname)
+	mnt.Close()
+
+	// Remount and verify the mtime survived.
+	_, mnt = setupIpnsTest(t, node)
+	defer mnt.Close()
+
+	fi, err := os.Stat(mnt.Dir + "/local/withtime")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fi.ModTime().After(before) {
+		t.Fatalf("mtime did not persist across remount: got %v", fi.ModTime())
+	}
+}
+
+// Test that the default file mode matches the shared constant and chmod
+// is ignored without StoreMode, but persists when StoreMode is enabled.
+func TestStoreMode(t *testing.T) {
+	t.Run("disabled", func(t *testing.T) {
+		_, mnt := setupIpnsTest(t, nil)
+		defer mnt.Close()
+
+		fname := mnt.Dir + "/local/nomode"
+		writeFileOrFail(t, 100, fname)
+		fi, err := os.Stat(fname)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fi.Mode().Perm() != fusemnt.DefaultFileModeRW.Perm() {
+			t.Fatalf("expected default mode %04o, got %04o", fusemnt.DefaultFileModeRW.Perm(), fi.Mode().Perm())
+		}
+		// chmod should be silently ignored.
+		os.Chmod(fname, 0o755)
+		fi, err = os.Stat(fname)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fi.Mode().Perm() != fusemnt.DefaultFileModeRW.Perm() {
+			t.Fatalf("mode changed without StoreMode: got %04o", fi.Mode().Perm())
+		}
+	})
+
+	t.Run("enabled", func(t *testing.T) {
+		_, mnt := setupIpnsTest(t, nil, config.Mounts{StoreMode: config.True})
+		defer mnt.Close()
+
+		fname := mnt.Dir + "/local/withmode"
+		writeFileOrFail(t, 100, fname)
+		fi, err := os.Stat(fname)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Sanity: starting mode should differ from our target.
+		if fi.Mode().Perm() == 0o755 {
+			t.Fatal("new file already has 0755, cannot distinguish chmod effect")
+		}
+		if err := os.Chmod(fname, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		fi, err = os.Stat(fname)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fi.Mode().Perm() != 0o755 {
+			t.Fatalf("expected mode 0755 after chmod, got %04o", fi.Mode().Perm())
+		}
+	})
+}
+
+// Test that directories get the expected default mode.
+func TestDefaultDirMode(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+	defer mnt.Close()
+
+	dir := mnt.Dir + "/local/subdir"
+	mkdir(t, dir)
+
+	fi, err := os.Stat(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Mode().Perm() != fusemnt.DefaultDirModeRW.Perm() {
+		t.Fatalf("expected dir mode %04o, got %04o", fusemnt.DefaultDirModeRW.Perm(), fi.Mode().Perm())
+	}
+}
+
+// Test that the /ipns/ root has the namespace root mode (execute-only).
+func TestNamespaceRootMode(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+	defer mnt.Close()
+
+	fi, err := os.Stat(mnt.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Mode() != fusemnt.NamespaceRootMode {
+		t.Fatalf("expected root mode %v, got %v", fusemnt.NamespaceRootMode, fi.Mode())
 	}
 }
