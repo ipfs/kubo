@@ -45,12 +45,12 @@ type FileSystem struct {
 }
 
 // NewFileSystem constructs new fs using given core.IpfsNode instance.
-func NewFileSystem(ctx context.Context, ipfs iface.CoreAPI, ipfspath, ipnspath string) (*FileSystem, error) {
+func NewFileSystem(ctx context.Context, ipfs iface.CoreAPI, ipfspath, ipnspath string, mfsOpts ...mfs.Option) (*FileSystem, error) {
 	key, err := ipfs.Key().Self(ctx)
 	if err != nil {
 		return nil, err
 	}
-	root, err := CreateRoot(ctx, ipfs, map[string]iface.Key{"local": key}, ipfspath, ipnspath)
+	root, err := CreateRoot(ctx, ipfs, map[string]iface.Key{"local": key}, ipfspath, ipnspath, mfsOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func ipnsPubFunc(ipfs iface.CoreAPI, key iface.Key) mfs.PubFunc {
 	}
 }
 
-func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key) (*mfs.Root, fs.Node, error) {
+func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key, mfsOpts ...mfs.Option) (*mfs.Root, fs.Node, error) {
 	node, err := ipfs.ResolveNode(ctx, key.Path())
 	switch err {
 	case nil:
@@ -115,7 +115,7 @@ func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key) (*mfs.Root
 	// We have no access to provider.System from the CoreAPI. The Routing
 	// part offers Provide through the router so it may be slow/risky
 	// to give that here to MFS. Therefore we leave as nil.
-	root, err := mfs.NewRoot(ctx, ipfs.Dag(), pbnode, ipnsPubFunc(ipfs, key), nil)
+	root, err := mfs.NewRoot(ctx, ipfs.Dag(), pbnode, ipnsPubFunc(ipfs, key), nil, mfsOpts...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -123,12 +123,12 @@ func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key) (*mfs.Root
 	return root, &Directory{dir: root.GetDirectory()}, nil
 }
 
-func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.Key, ipfspath, ipnspath string) (*Root, error) {
+func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.Key, ipfspath, ipnspath string, mfsOpts ...mfs.Option) (*Root, error) {
 	ldirs := make(map[string]fs.Node)
 	roots := make(map[string]*mfs.Root)
 	links := make(map[string]*Link)
 	for alias, k := range keys {
-		root, fsn, err := loadRoot(ctx, ipfs, k)
+		root, fsn, err := loadRoot(ctx, ipfs, k, mfsOpts...)
 		if err != nil {
 			return nil, err
 		}
