@@ -107,12 +107,7 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 	}
 
 	// Note, this adds it to DAGService already.
-	mr, err := mfs.NewEmptyRoot(adder.ctx, adder.dagService, nil, nil, mfs.MkdirOpts{
-		CidBuilder:         adder.CidBuilder,
-		MaxLinks:           adder.MaxDirectoryLinks,
-		MaxHAMTFanout:      adder.MaxHAMTFanout,
-		SizeEstimationMode: adder.SizeEstimationMode,
-	})
+	mr, err := mfs.NewEmptyRoot(adder.ctx, adder.dagService, nil, nil, adder.mkdirOpts()...)
 	if err != nil {
 		return nil, err
 	}
@@ -123,6 +118,20 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 // SetMfsRoot sets `r` as the root for Adder.
 func (adder *Adder) SetMfsRoot(r *mfs.Root) {
 	adder.mroot = r
+}
+
+// mkdirOpts returns MFS options derived from the adder's config,
+// with any additional options appended.
+func (adder *Adder) mkdirOpts(extra ...mfs.Option) []mfs.Option {
+	opts := []mfs.Option{
+		mfs.WithCidBuilder(adder.CidBuilder),
+		mfs.WithMaxLinks(adder.MaxDirectoryLinks),
+		mfs.WithMaxHAMTFanout(adder.MaxHAMTFanout),
+	}
+	if adder.SizeEstimationMode != nil {
+		opts = append(opts, mfs.WithSizeEstimationMode(*adder.SizeEstimationMode))
+	}
+	return append(opts, extra...)
 }
 
 // Constructs a node from reader's data, and adds it. Doesn't pin.
@@ -274,15 +283,8 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 
 	dir := gopath.Dir(path)
 	if dir != "." {
-		opts := mfs.MkdirOpts{
-			Mkparents:          true,
-			Flush:              false,
-			CidBuilder:         adder.CidBuilder,
-			MaxLinks:           adder.MaxDirectoryLinks,
-			MaxHAMTFanout:      adder.MaxHAMTFanout,
-			SizeEstimationMode: adder.SizeEstimationMode,
-		}
-		if err := mfs.Mkdir(mr, dir, opts); err != nil {
+		mkdirOpts := adder.mkdirOpts()
+		if err := mfs.Mkdir(mr, dir, mfs.MkdirOpts{Mkparents: true}, mkdirOpts...); err != nil {
 			return err
 		}
 	}
@@ -506,15 +508,8 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 
 	// if we need to store mode or modification time then create a new root which includes that data
 	if toplevel && (adder.FileMode != 0 || !adder.FileMtime.IsZero()) {
-		mr, err := mfs.NewEmptyRoot(ctx, adder.dagService, nil, nil,
-			mfs.MkdirOpts{
-				CidBuilder:         adder.CidBuilder,
-				MaxLinks:           adder.MaxDirectoryLinks,
-				MaxHAMTFanout:      adder.MaxHAMTFanout,
-				ModTime:            adder.FileMtime,
-				Mode:               adder.FileMode,
-				SizeEstimationMode: adder.SizeEstimationMode,
-			})
+		opts := adder.mkdirOpts(mfs.WithMode(adder.FileMode), mfs.WithModTime(adder.FileMtime))
+		mr, err := mfs.NewEmptyRoot(ctx, adder.dagService, nil, nil, opts...)
 		if err != nil {
 			return err
 		}
@@ -526,16 +521,8 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 		if err != nil {
 			return err
 		}
-		err = mfs.Mkdir(mr, path, mfs.MkdirOpts{
-			Mkparents:          true,
-			Flush:              false,
-			CidBuilder:         adder.CidBuilder,
-			Mode:               adder.FileMode,
-			ModTime:            adder.FileMtime,
-			MaxLinks:           adder.MaxDirectoryLinks,
-			MaxHAMTFanout:      adder.MaxHAMTFanout,
-			SizeEstimationMode: adder.SizeEstimationMode,
-		})
+		mkdirOpts := adder.mkdirOpts(mfs.WithMode(adder.FileMode), mfs.WithModTime(adder.FileMtime))
+		err = mfs.Mkdir(mr, path, mfs.MkdirOpts{Mkparents: true}, mkdirOpts...)
 		if err != nil {
 			return err
 		}

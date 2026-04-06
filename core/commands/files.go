@@ -28,7 +28,6 @@ import (
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
-	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
@@ -558,7 +557,11 @@ being GC'ed.
 		if mkParents {
 			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
 			sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
-			err := ensureContainingDirectoryExists(nd.FilesRoot, dst, prefix, maxDirLinks, &sizeEstimationMode)
+			err := ensureContainingDirectoryExists(nd.FilesRoot, dst,
+				mfs.WithCidBuilder(prefix),
+				mfs.WithMaxLinks(maxDirLinks),
+				mfs.WithSizeEstimationMode(sizeEstimationMode),
+			)
 			if err != nil {
 				return err
 			}
@@ -1073,7 +1076,11 @@ See '--to-files' in 'ipfs add --help' for more information.
 		if mkParents {
 			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
 			sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
-			err := ensureContainingDirectoryExists(nd.FilesRoot, path, prefix, maxDirLinks, &sizeEstimationMode)
+			err := ensureContainingDirectoryExists(nd.FilesRoot, path,
+				mfs.WithCidBuilder(prefix),
+				mfs.WithMaxLinks(maxDirLinks),
+				mfs.WithSizeEstimationMode(sizeEstimationMode),
+			)
 			if err != nil {
 				return err
 			}
@@ -1203,13 +1210,11 @@ Examples:
 		maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
 		sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
 
-		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{
-			Mkparents:          dashp,
-			Flush:              flush,
-			CidBuilder:         prefix,
-			MaxLinks:           maxDirLinks,
-			SizeEstimationMode: &sizeEstimationMode,
-		})
+		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{Mkparents: dashp, Flush: flush},
+			mfs.WithCidBuilder(prefix),
+			mfs.WithMaxLinks(maxDirLinks),
+			mfs.WithSizeEstimationMode(sizeEstimationMode),
+		)
 
 		return err
 	},
@@ -1524,19 +1529,14 @@ func getPrefix(req *cmds.Request, importCfg *config.Import) (cid.Builder, error)
 	return &prefix, nil
 }
 
-func ensureContainingDirectoryExists(r *mfs.Root, path string, builder cid.Builder, maxLinks int, sizeEstimationMode *uio.SizeEstimationMode) error {
+func ensureContainingDirectoryExists(r *mfs.Root, path string, opts ...mfs.Option) error {
 	dirtomake := gopath.Dir(path)
 
 	if dirtomake == "/" {
 		return nil
 	}
 
-	return mfs.Mkdir(r, dirtomake, mfs.MkdirOpts{
-		Mkparents:          true,
-		CidBuilder:         builder,
-		MaxLinks:           maxLinks,
-		SizeEstimationMode: sizeEstimationMode,
-	})
+	return mfs.Mkdir(r, dirtomake, mfs.MkdirOpts{Mkparents: true}, opts...)
 }
 
 func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (*mfs.File, error) {
