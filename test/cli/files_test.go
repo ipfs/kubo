@@ -848,6 +848,93 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory after exceeding size threshold")
 	})
 
+	// Regression tests for https://github.com/ipfs/boxo/pull/1125
+	// CidBuilder must be preserved across file mutations, directory
+	// creation, and daemon restarts. We use sha2-512 as a non-default
+	// hash so the assertion is meaningful even if CIDv1 becomes the
+	// default in the future.
+
+	t.Run("files write preserves hash function after modifying existing file", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+			cfg.Import.HashFunction = *config.NewOptionalString("sha2-512")
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Create initial file
+		tempFile := filepath.Join(node.Dir, "test.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte("hello world"), 0644))
+		node.IPFS("files", "write", "--create", "/test.txt", tempFile)
+
+		cidBefore := node.IPFS("files", "stat", "--hash", "/test.txt").Stdout.Trimmed()
+		hashBefore := node.IPFS("cid", "format", "-f", "%h", cidBefore).Stdout.Trimmed()
+		require.Equal(t, "sha2-512", hashBefore)
+
+		// Mutate file by writing at offset (triggers setNodeData in boxo)
+		patch := filepath.Join(node.Dir, "patch.txt")
+		require.NoError(t, os.WriteFile(patch, []byte("PATCHED"), 0644))
+		node.IPFS("files", "write", "--offset", "0", "/test.txt", patch)
+
+		cidAfter := node.IPFS("files", "stat", "--hash", "/test.txt").Stdout.Trimmed()
+		hashAfter := node.IPFS("cid", "format", "-f", "%h", cidAfter).Stdout.Trimmed()
+		require.Equal(t, "sha2-512", hashAfter, "hash function must survive file mutation")
+		require.NotEqual(t, cidBefore, cidAfter, "CID should change after mutation")
+	})
+
+	t.Run("files mkdir -p propagates hash function to intermediate directories", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+			cfg.Import.HashFunction = *config.NewOptionalString("sha2-512")
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		node.IPFS("files", "mkdir", "-p", "/a/b/c/d")
+
+		for _, dir := range []string{"/a", "/a/b", "/a/b/c", "/a/b/c/d"} {
+			cidStr := node.IPFS("files", "stat", "--hash", dir).Stdout.Trimmed()
+			hash := node.IPFS("cid", "format", "-f", "%h", cidStr).Stdout.Trimmed()
+			require.Equal(t, "sha2-512", hash, "expected sha2-512 for %s, got: %s", dir, hash)
+		}
+	})
+
+	t.Run("hash function persists across daemon restart", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+			cfg.Import.HashFunction = *config.NewOptionalString("sha2-512")
+		})
+		node.StartDaemon()
+
+		// Create file and directory before restart
+		tempFile := filepath.Join(node.Dir, "test.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte("hello"), 0644))
+		node.IPFS("files", "write", "--create", "/before.txt", tempFile)
+		node.IPFS("files", "mkdir", "/dir-before")
+
+		node.StopDaemon()
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Create new file and directory after restart
+		require.NoError(t, os.WriteFile(tempFile, []byte("world"), 0644))
+		node.IPFS("files", "write", "--create", "/after.txt", tempFile)
+		node.IPFS("files", "mkdir", "/dir-after")
+
+		// All CIDs must use sha2-512 (NewRoot must preserve CidBuilder)
+		for _, path := range []string{"/before.txt", "/after.txt", "/dir-before", "/dir-after"} {
+			cidStr := node.IPFS("files", "stat", "--hash", path).Stdout.Trimmed()
+			hash := node.IPFS("cid", "format", "-f", "%h", cidStr).Stdout.Trimmed()
+			require.Equal(t, "sha2-512", hash, "expected sha2-512 for %s after restart, got: %s", path, hash)
+		}
+	})
+
 	t.Run("config change takes effect after daemon restart", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()
