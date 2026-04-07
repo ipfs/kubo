@@ -1,4 +1,4 @@
-//go:build !openbsd && !nofuse && !netbsd && !plan9
+//go:build (linux || darwin || freebsd) && !nofuse
 
 package node
 

@@ -37,6 +37,13 @@ func NewMount(root fs.InodeEmbedder, mountpoint string, opts *fs.Options) (Mount
 		activeLock: &sync.RWMutex{},
 	}
 
+	// Detect external unmount (e.g. fusermount -u) so IsActive
+	// returns false and Unmount returns ErrNotMounted.
+	go func() {
+		server.Wait()
+		m.setActive(false)
+	}()
+
 	log.Infof("Mounted %s", mountpoint)
 	return m, nil
 }
