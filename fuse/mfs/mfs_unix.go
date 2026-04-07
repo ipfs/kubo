@@ -444,9 +444,8 @@ func (fh *FileHandle) Release(_ context.Context) syscall.Errno {
 }
 
 // Fsync flushes the write buffer through the open file descriptor.
-// This was previously a no-op with bazil.org/fuse because Fsync was
-// dispatched to the inode, which couldn't reach the open descriptor.
-// hanwen/go-fuse dispatches FileFsyncer to the handle directly.
+// Editors (vim, emacs) and databases call fsync after writing to
+// ensure data reaches persistent storage.
 func (fh *FileHandle) Fsync(_ context.Context, _ uint32) syscall.Errno {
 	fh.mu.Lock()
 	defer fh.mu.Unlock()

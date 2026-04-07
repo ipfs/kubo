@@ -892,11 +892,7 @@ func TestOverwriteExisting(t *testing.T) {
 // Test the exact save sequence vim uses: open with O_TRUNC, write
 // new content, fsync, then chmod to restore permissions.
 //
-// TODO: fsync between write and close triggers an early Flush that
-// interacts with the kernel's attr cache in a way that makes the
-// subsequent read see stale (empty) content.
 func TestVimSavePattern(t *testing.T) {
-	t.Skip("fsync + close + read needs investigation into kernel cache interaction")
 	_, mntDir := setUp(t, nil, config.Mounts{StoreMode: config.True})
 
 	fpath := mntDir + "/vimsave"
@@ -965,3 +961,5 @@ func TestRsyncPattern(t *testing.T) {
 		t.Fatalf("expected %q, got %q", "version 2", got)
 	}
 }
+
+
