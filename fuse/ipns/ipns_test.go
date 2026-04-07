@@ -948,11 +948,7 @@ func TestOpenTrunc(t *testing.T) {
 // Test the atomic-save pattern used by rsync (default mode) and many
 // editors: write to a temp file, then rename over the original.
 // This ensures the target is never left in a half-written state.
-//
-// TODO: IPNS Rename does not unlink the target before AddChild,
-// so rename-over-existing returns "directory already has entry".
 func TestTempFileRename(t *testing.T) {
-	t.Skip("IPNS rename-over-existing needs Unlink before AddChild")
 	_, mnt := setupIpnsTest(t, nil)
 
 	target := mnt.Dir + "/local/target.txt"
@@ -974,7 +970,7 @@ func TestTempFileRename(t *testing.T) {
 	}
 
 	if _, err := os.Stat(tmp); !os.IsNotExist(err) {
-		t.Fatalf("temp file still exists: %v", err)
+		t.Fatalf("temp file still exists after rename: %v", err)
 	}
 }
 
@@ -1093,10 +1089,7 @@ func TestVimSavePattern(t *testing.T) {
 // Test the exact save sequence rsync uses (default mode): create a
 // temp file with a dot prefix, write content, then rename over the
 // original. This is how rsync achieves atomic updates.
-//
-// TODO: same rename-over-existing issue as TestTempFileRename.
 func TestRsyncPattern(t *testing.T) {
-	t.Skip("IPNS rename-over-existing needs Unlink before AddChild")
 	_, mnt := setupIpnsTest(t, nil)
 
 	target := mnt.Dir + "/local/document.txt"

@@ -779,14 +779,7 @@ func TestOpenTrunc(t *testing.T) {
 	}
 }
 
-// Test the atomic-save pattern used by rsync (default mode) and many
-// editors: write to a temp file, then rename over the original.
-// This ensures the target is never left in a half-written state.
-//
-// TODO: rename-over-existing leaves a stale kernel entry cache for
-// the source name during the 1s EntryTimeout window.
 func TestTempFileRename(t *testing.T) {
-	t.Skip("rename-over-existing needs kernel entry invalidation")
 	_, mntDir := setUp(t, nil)
 
 	target := mntDir + "/target.txt"
@@ -811,9 +804,19 @@ func TestTempFileRename(t *testing.T) {
 		t.Fatalf("expected %q after rename, got %q", "new content", got)
 	}
 
-	// Temp file must be gone.
+	// After rename, the old name must not appear in directory listing
+	// and stat must return ENOENT.
+	entries, err := os.ReadDir(mntDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		if e.Name() == ".target.tmp" {
+			t.Fatal("source still appears in readdir after rename")
+		}
+	}
 	if _, err := os.Stat(tmp); !os.IsNotExist(err) {
-		t.Fatalf("temp file still exists: %v", err)
+		t.Fatalf("stat on old name should return ENOENT, got: %v", err)
 	}
 }
 

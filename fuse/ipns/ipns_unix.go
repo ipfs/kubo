@@ -611,6 +611,9 @@ func (d *Directory) Rename(_ context.Context, oldName string, newParent fs.Inode
 
 	switch target := newParent.EmbeddedInode().Operations().(type) {
 	case *Directory:
+		if err := target.dir.Unlink(newName); err != nil && err != os.ErrNotExist {
+			return fs.ToErrno(err)
+		}
 		if err := target.dir.AddChild(newName, nd); err != nil {
 			return fs.ToErrno(err)
 		}
