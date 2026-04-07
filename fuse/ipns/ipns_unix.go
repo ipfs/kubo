@@ -559,7 +559,7 @@ func (d *Directory) Create(ctx context.Context, name string, flags uint32, _ uin
 
 func (d *Directory) Unlink(_ context.Context, name string) syscall.Errno {
 	if err := d.dir.Unlink(name); err != nil {
-		return syscall.ENOENT
+		return fs.ToErrno(err)
 	}
 	return fs.ToErrno(d.dir.Flush())
 }
@@ -582,7 +582,7 @@ func (d *Directory) Rmdir(ctx context.Context, name string) syscall.Errno {
 	}
 
 	if err := d.dir.Unlink(name); err != nil {
-		return syscall.ENOENT
+		return fs.ToErrno(err)
 	}
 	return fs.ToErrno(d.dir.Flush())
 }
