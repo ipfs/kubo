@@ -309,7 +309,12 @@ func (fi *FileInode) Setattr(_ context.Context, fh fs.FileHandle, in *fuse.SetAt
 				return fs.ToErrno(err)
 			}
 		} else {
-			// truncate(path, size) without an open handle.
+			// truncate(path, size) without an open handle. MFS only
+			// allows one write descriptor at a time, so we can't open
+			// a second one here. We advertise CAP_ATOMIC_O_TRUNC so
+			// the kernel sends O_TRUNC in Open (handled there) instead
+			// of doing SETATTR first. This path handles the rare
+			// truncate(2) syscall (not open+O_TRUNC).
 			cursize, err := fi.mfsFile.Size()
 			if err != nil {
 				return fs.ToErrno(err)
@@ -415,28 +420,27 @@ func (fh *FileHandle) Write(_ context.Context, data []byte, off int64) (uint32, 
 	return uint32(n), 0
 }
 
-// Flush persists buffered writes to the DAG and tells the kernel
-// to drop cached attrs so the next stat sees the updated size.
+// Flush persists buffered writes to the DAG.
 func (fh *FileHandle) Flush(_ context.Context) syscall.Errno {
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
 
-	if err := fh.mfsFD.Flush(); err != nil {
-		return fs.ToErrno(err)
-	}
-	// Invalidate the kernel's cached content and attrs for this inode
-	// so readers opening the same path see the new data and size.
-	if fh.inode != nil {
-		_ = fh.inode.NotifyContent(0, 0)
-	}
-	return 0
+	return fs.ToErrno(fh.mfsFD.Flush())
 }
 
+// Release closes the descriptor and invalidates the kernel's cached
+// content and attrs so readers opening the same path see the new data.
+// Invalidation happens here (not in Flush) because mfsFD.Close commits
+// the final DAG node; Flush alone may not have the final size yet.
 func (fh *FileHandle) Release(_ context.Context) syscall.Errno {
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
 
-	return fs.ToErrno(fh.mfsFD.Close())
+	err := fh.mfsFD.Close()
+	if fh.inode != nil {
+		_ = fh.inode.NotifyContent(0, 0)
+	}
+	return fs.ToErrno(err)
 }
 
 // Fsync flushes the write buffer through the open file descriptor.

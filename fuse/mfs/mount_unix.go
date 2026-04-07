@@ -32,10 +32,11 @@ func Mount(ipfs *core.IpfsNode, mountpoint string) (fusemnt.Mount, error) {
 		EntryTimeout:    &mutableCacheTime,
 		AttrTimeout:     &mutableCacheTime,
 		MountOptions: fuse.MountOptions{
-			AllowOther:   cfg.Mounts.FuseAllowOther.WithDefault(config.DefaultFuseAllowOther),
-			FsName:       "mfs",
-			MaxReadAhead: fusemnt.MaxReadAhead,
-			Debug:        os.Getenv("IPFS_FUSE_DEBUG") != "",
+			AllowOther:        cfg.Mounts.FuseAllowOther.WithDefault(config.DefaultFuseAllowOther),
+			FsName:            "mfs",
+			MaxReadAhead:      fusemnt.MaxReadAhead,
+			Debug:             os.Getenv("IPFS_FUSE_DEBUG") != "",
+			ExtraCapabilities: fusemnt.WritableMountCapabilities,
 		},
 	}
 	return fusemnt.NewMount(root, mountpoint, opts)

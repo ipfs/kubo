@@ -180,7 +180,8 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode, cfgs ...config.Mounts) (*c
 		EntryTimeout:    &mutableCacheTime,
 		AttrTimeout:     &mutableCacheTime,
 		MountOptions: fuse.MountOptions{
-			MaxReadAhead: fusemnt.MaxReadAhead,
+			MaxReadAhead:      fusemnt.MaxReadAhead,
+			ExtraCapabilities: fusemnt.WritableMountCapabilities,
 		},
 	})
 	fusetest.MountError(t, err)
@@ -912,5 +913,207 @@ func TestUnknownXattr(t *testing.T) {
 	_, errno := peerDir.Getxattr(t.Context(), "user.bogus", dest)
 	if errno == 0 {
 		t.Fatal("expected error for unknown xattr, got success")
+	}
+}
+
+// Test opening an existing file with O_TRUNC to replace its content.
+// Editors like vim (with backupcopy=yes) use open(O_WRONLY|O_TRUNC)
+// to overwrite the file in place.
+func TestOpenTrunc(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+
+	fpath := mnt.Dir + "/local/truncopen"
+	writeFileOrFail(t, 100, fpath)
+
+	f, err := os.OpenFile(fpath, os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write([]byte("new")); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "new" {
+		t.Fatalf("expected %q, got %q", "new", got)
+	}
+}
+
+// Test the atomic-save pattern used by rsync (default mode) and many
+// editors: write to a temp file, then rename over the original.
+// This ensures the target is never left in a half-written state.
+//
+// TODO: IPNS Rename does not unlink the target before AddChild,
+// so rename-over-existing returns "directory already has entry".
+func TestTempFileRename(t *testing.T) {
+	t.Skip("IPNS rename-over-existing needs Unlink before AddChild")
+	_, mnt := setupIpnsTest(t, nil)
+
+	target := mnt.Dir + "/local/target.txt"
+	writeFileOrFail(t, 50, target)
+
+	tmp := mnt.Dir + "/local/.target.tmp"
+	newData := writeFileOrFail(t, 80, tmp)
+
+	if err := os.Rename(tmp, target); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, newData) {
+		t.Fatalf("content mismatch after rename: got %d bytes, want %d", len(got), len(newData))
+	}
+
+	if _, err := os.Stat(tmp); !os.IsNotExist(err) {
+		t.Fatalf("temp file still exists: %v", err)
+	}
+}
+
+// Test writing at an offset in the middle of a file. `rsync --inplace`
+// uses pwrite to update changed blocks without rewriting the whole file.
+func TestSeekAndWrite(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+
+	fpath := mnt.Dir + "/local/seekwrite"
+	writeFileOrFail(t, 0, fpath) // create the file
+
+	// Write 10 'a' bytes.
+	if err := os.WriteFile(fpath, []byte("aaaaaaaaaa"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := os.OpenFile(fpath, os.O_RDWR, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.WriteAt([]byte("XXXX"), 3); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "aaaXXXXaaa" {
+		t.Fatalf("expected %q, got %q", "aaaXXXXaaa", got)
+	}
+}
+
+// Test reopening an existing file and writing different content.
+// Log rotation, package managers, and CI artifacts overwrite files
+// by opening them O_WRONLY without O_TRUNC (relying on the new
+// content being the same size or followed by ftruncate).
+func TestOverwriteExisting(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+
+	fpath := mnt.Dir + "/local/overwrite"
+	writeFileOrFail(t, 13, fpath)
+
+	f, err := os.OpenFile(fpath, os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replacement := []byte("second ver.!!")
+	if _, err := f.Write(replacement); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Truncate(int64(len(replacement))); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(replacement) {
+		t.Fatalf("expected %q, got %q", replacement, got)
+	}
+}
+
+// Test the exact save sequence vim uses: open with O_TRUNC, write
+// new content, fsync, then chmod to restore permissions.
+//
+// TODO: fsync between write and close triggers an early Flush that
+// interacts with the kernel's attr cache.
+func TestVimSavePattern(t *testing.T) {
+	t.Skip("fsync + close + read needs investigation into kernel cache interaction")
+	_, mnt := setupIpnsTest(t, nil, config.Mounts{StoreMode: config.True})
+
+	fpath := mnt.Dir + "/local/vimsave"
+	writeFileOrFail(t, 50, fpath)
+
+	f, err := os.OpenFile(fpath, os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write([]byte("final version")); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(fpath, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "final version" {
+		t.Fatalf("expected %q, got %q", "final version", got)
+	}
+	fi, err := os.Stat(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Mode().Perm() != 0o644 {
+		t.Fatalf("expected mode 0644, got %04o", fi.Mode().Perm())
+	}
+}
+
+// Test the exact save sequence rsync uses (default mode): create a
+// temp file with a dot prefix, write content, then rename over the
+// original. This is how rsync achieves atomic updates.
+//
+// TODO: same rename-over-existing issue as TestTempFileRename.
+func TestRsyncPattern(t *testing.T) {
+	t.Skip("IPNS rename-over-existing needs Unlink before AddChild")
+	_, mnt := setupIpnsTest(t, nil)
+
+	target := mnt.Dir + "/local/document.txt"
+	writeFileOrFail(t, 50, target)
+
+	tmp := mnt.Dir + "/local/.document.txt.XXXXXX"
+	newData := writeFileOrFail(t, 80, tmp)
+
+	if err := os.Rename(tmp, target); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, newData) {
+		t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(newData))
 	}
 }

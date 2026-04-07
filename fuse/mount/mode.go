@@ -1,6 +1,10 @@
 package mount
 
-import "os"
+import (
+	"os"
+
+	"github.com/hanwen/go-fuse/v2/fuse"
+)
 
 // Default POSIX modes used by FUSE mounts when the UnixFS DAG node does
 // not contain explicit permission metadata. Most data on IPFS does not
@@ -29,6 +33,17 @@ const NamespaceRootMode = os.ModeDir | 0o111
 // the initial fetch. Network-backed reads are already chunked by the
 // DAG layer, so oversized readahead does not cause extra round-trips.
 const MaxReadAhead = 64 * 1024 * 1024
+
+// WritableMountCapabilities are FUSE capabilities requested for writable
+// mounts (/ipns, /mfs).
+//
+// CAP_ATOMIC_O_TRUNC tells the kernel to pass O_TRUNC to Open instead of
+// sending a separate SETATTR(size=0) before Open. Without this, the kernel
+// does SETATTR first, which requires opening a write descriptor inside
+// Setattr. MFS only allows one write descriptor at a time, so that
+// deadlocks. With this capability, O_TRUNC is handled inside Open where
+// we already hold the descriptor.
+const WritableMountCapabilities = fuse.CAP_ATOMIC_O_TRUNC
 
 // XattrCID is the extended attribute name for the node's CID.
 // Follows the convention used by CephFS (ceph.*), Btrfs (btrfs.*),

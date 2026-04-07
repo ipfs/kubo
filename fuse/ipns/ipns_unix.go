@@ -394,17 +394,12 @@ func (f *File) Write(_ context.Context, data []byte, off int64) (uint32, syscall
 // subsequent Release call on the same file descriptor.
 // Flush persists buffered writes to the DAG and tells the kernel
 // to drop cached attrs so the next stat sees the updated size.
+// Flush persists buffered writes to the DAG.
 func (f *File) Flush(_ context.Context) syscall.Errno {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	if err := f.fi.Flush(); err != nil {
-		return fs.ToErrno(err)
-	}
-	if f.inode != nil {
-		_ = f.inode.NotifyContent(0, 0)
-	}
-	return 0
+	return fs.ToErrno(f.fi.Flush())
 }
 
 // Setattr handles chmod, mtime changes (touch), and ftruncate.
@@ -423,7 +418,12 @@ func (fi *FileNode) Setattr(_ context.Context, fh fs.FileHandle, in *fuse.SetAtt
 				return fs.ToErrno(err)
 			}
 		} else {
-			// truncate(path, size) without an open handle.
+			// truncate(path, size) without an open handle. MFS only
+			// allows one write descriptor at a time, so we can't open
+			// a second one here. We advertise CAP_ATOMIC_O_TRUNC so
+			// the kernel sends O_TRUNC in Open (handled there) instead
+			// of doing SETATTR first. This path handles the rare
+			// truncate(2) syscall (not open+O_TRUNC).
 			cursize, err := fi.fi.Size()
 			if err != nil {
 				return fs.ToErrno(err)
@@ -502,11 +502,17 @@ func (fi *FileNode) Open(_ context.Context, flags uint32) (fs.FileHandle, uint32
 	return &File{inode: fi.EmbeddedInode(), fi: fd, append: flags&syscall.O_APPEND != 0}, 0, 0
 }
 
+// Release closes the descriptor and invalidates the kernel's cached
+// content and attrs so readers opening the same path see the new data.
 func (f *File) Release(_ context.Context) syscall.Errno {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	return fs.ToErrno(f.fi.Close())
+	err := f.fi.Close()
+	if f.inode != nil {
+		_ = f.inode.NotifyContent(0, 0)
+	}
+	return fs.ToErrno(err)
 }
 
 func (d *Directory) Create(ctx context.Context, name string, flags uint32, _ uint32, out *fuse.EntryOut) (*fs.Inode, fs.FileHandle, uint32, syscall.Errno) {

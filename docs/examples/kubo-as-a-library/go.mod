@@ -68,7 +68,7 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
 	github.com/guillaumemichel/reservedpool v0.3.0 // indirect
-	github.com/hanwen/go-fuse/v2 v2.9.0 // indirect
+	github.com/hanwen/go-fuse/v2 v2.9.1-0.20260323175136-8b5aa92e8e7c // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect

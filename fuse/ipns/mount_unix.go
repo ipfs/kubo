@@ -56,10 +56,11 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (fusemnt.Mount, error) {
 		EntryTimeout:    &mutableCacheTime,
 		AttrTimeout:     &mutableCacheTime,
 		MountOptions: fuse.MountOptions{
-			AllowOther:   cfg.Mounts.FuseAllowOther.WithDefault(config.DefaultFuseAllowOther),
-			FsName:       "ipns",
-			MaxReadAhead: fusemnt.MaxReadAhead,
-			Debug:        os.Getenv("IPFS_FUSE_DEBUG") != "",
+			AllowOther:        cfg.Mounts.FuseAllowOther.WithDefault(config.DefaultFuseAllowOther),
+			FsName:            "ipns",
+			MaxReadAhead:      fusemnt.MaxReadAhead,
+			Debug:             os.Getenv("IPFS_FUSE_DEBUG") != "",
+			ExtraCapabilities: fusemnt.WritableMountCapabilities,
 		},
 	}
 
