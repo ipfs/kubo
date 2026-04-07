@@ -483,10 +483,12 @@ func (fi *FileNode) Open(_ context.Context, flags uint32) (fs.FileHandle, uint32
 
 	if flags&syscall.O_TRUNC != 0 {
 		if !mfsFlags.Write {
+			fd.Close()
 			log.Error("tried to open a readonly file with truncate")
 			return nil, 0, syscall.EINVAL
 		}
 		if err := fd.Truncate(0); err != nil {
+			fd.Close()
 			return nil, 0, fs.ToErrno(err)
 		}
 	}
@@ -494,6 +496,7 @@ func (fi *FileNode) Open(_ context.Context, flags uint32) (fs.FileHandle, uint32
 
 	if mfsFlags.Write && fi.root.storeMtime {
 		if err := fi.fi.SetModTime(time.Now()); err != nil {
+			fd.Close()
 			return nil, 0, fs.ToErrno(err)
 		}
 	}
