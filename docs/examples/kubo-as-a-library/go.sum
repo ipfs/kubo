@@ -382,8 +382,8 @@ github.com/ipfs/go-ds-leveldb v0.5.2 h1:6nmxlQ2zbp4LCNdJVsmHfs9GP0eylfBNxpmY1csp
 github.com/ipfs/go-ds-leveldb v0.5.2/go.mod h1:2fAwmcvD3WoRT72PzEekHBkQmBDhc39DJGoREiuGmYo=
 github.com/ipfs/go-ds-measure v0.2.2 h1:4kwvBGbbSXNYe4ANlg7qTIYoZU6mNlqzQHdVqICkqGI=
 github.com/ipfs/go-ds-measure v0.2.2/go.mod h1:b/87ak0jMgH9Ylt7oH0+XGy4P8jHx9KG09Qz+pOeTIs=
-github.com/ipfs/go-ds-pebble v0.5.9 h1:D1FEuMxjbEmDADNqsyT74n9QHVAn12nv9i9Qa15AFYc=
-github.com/ipfs/go-ds-pebble v0.5.9/go.mod h1:XmUBN05l6B+tMg7mpMS75ZcKW/CX01uZMhhWw85imQA=
+github.com/ipfs/go-ds-pebble v0.5.10 h1:MsSPrq4ubtaWGaIvdE5+L227wEaoxs7nWEb6+lKojNE=
+github.com/ipfs/go-ds-pebble v0.5.10/go.mod h1:ShbyLsills0WD9TJavOHu7uEDj/LwDW1WW91G4+W4X8=
 github.com/ipfs/go-dsqueue v0.2.0 h1:MBi9w3oSiX98Xc+Y7NuJ9G8MI6mAT4IGdO9dHEMCZzU=
 github.com/ipfs/go-dsqueue v0.2.0/go.mod h1:8FfNQC4DMF/KkzBXRNB9Rb3MKDW0Sh98HMtXYl1mLQE=
 github.com/ipfs/go-fs-lock v0.1.1 h1:TecsP/Uc7WqYYatasreZQiP9EGRy4ZnKoG4yXxR33nw=
@@ -418,8 +418,8 @@ github.com/ipfs/go-metrics-interface v0.3.0 h1:YwG7/Cy4R94mYDUuwsBfeziJCVm9pBMJ6
 github.com/ipfs/go-metrics-interface v0.3.0/go.mod h1:OxxQjZDGocXVdyTPocns6cOLwHieqej/jos7H4POwoY=
 github.com/ipfs/go-peertaskqueue v0.8.3 h1:tBPpGJy+A92RqtRFq5amJn0Uuj8Pw8tXi0X3eHfHM8w=
 github.com/ipfs/go-peertaskqueue v0.8.3/go.mod h1:OqVync4kPOcXEGdj/LKvox9DCB5mkSBeXsPczCxLtYA=
-github.com/ipfs/go-test v0.2.3 h1:Z/jXNAReQFtCYyn7bsv/ZqUwS6E7iIcSpJ2CuzCvnrc=
-github.com/ipfs/go-test v0.2.3/go.mod h1:QW8vSKkwYvWFwIZQLGQXdkt9Ud76eQXRQ9Ao2H+cA1o=
+github.com/ipfs/go-test v0.3.0 h1:0Y4Uve3tp9HI+2lIJjfOliOrOgv/YpXg/l1y3P4DEYE=
+github.com/ipfs/go-test v0.3.0/go.mod h1:JK+U8pRpATZb7lsYNSJlCj3WYB3cFfWIbI6nWRM/GFk=
 github.com/ipfs/go-unixfsnode v1.10.3 h1:c8sJjuGNkxXAQH75P+f5ngPda/9T+DrboVA0TcDGvGI=
 github.com/ipfs/go-unixfsnode v1.10.3/go.mod h1:2Jlc7DoEwr12W+7l8Hr6C7XF4NHST3gIkqSArLhGSxU=
 github.com/ipld/go-car/v2 v2.16.0 h1:LWe0vmN/QcQmUU4tr34W5Nv5mNraW+G6jfN2s+ndBco=
