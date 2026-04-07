@@ -1469,7 +1469,7 @@ func getPrefix(req *cmds.Request, importCfg *config.Import) (cid.Builder, error)
 		if hashFunSet {
 			hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 			if !ok {
-				return nil, fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
+				return nil, fmt.Errorf("unrecognized hash function: %q", hashFunStr)
 			}
 			prefix.MhType = hashFunCode
 			prefix.MhLength = -1

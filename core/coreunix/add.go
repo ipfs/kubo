@@ -284,7 +284,7 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 	dir := gopath.Dir(path)
 	if dir != "." {
 		mkdirOpts := adder.mkdirOpts()
-		if err := mfs.Mkdir(mr, dir, mfs.MkdirOpts{Mkparents: true}, mkdirOpts...); err != nil {
+		if err := mfs.Mkdir(mr, dir, mfs.MkdirOpts{Mkparents: true, Flush: false}, mkdirOpts...); err != nil {
 			return err
 		}
 	}
@@ -522,7 +522,7 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 			return err
 		}
 		mkdirOpts := adder.mkdirOpts(mfs.WithMode(adder.FileMode), mfs.WithModTime(adder.FileMtime))
-		err = mfs.Mkdir(mr, path, mfs.MkdirOpts{Mkparents: true}, mkdirOpts...)
+		err = mfs.Mkdir(mr, path, mfs.MkdirOpts{Mkparents: true, Flush: false}, mkdirOpts...)
 		if err != nil {
 			return err
 		}
