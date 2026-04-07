@@ -27,6 +27,7 @@ var log = logging.Logger("fuse/ipfs")
 
 // /ipfs paths are immutable (content-addressed by CID), so the kernel
 // can cache attributes and directory entries for as long as it wants.
+// var (not const) because fs.Options needs a *time.Duration.
 var immutableAttrCacheTime = 365 * 24 * time.Hour
 
 // Root is the root object of the /ipfs filesystem tree.

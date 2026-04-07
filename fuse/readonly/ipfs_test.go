@@ -479,7 +479,7 @@ func TestDefaultModeReadonly(t *testing.T) {
 
 // Test that ipfs.cid xattr returns the correct CID for files and directories.
 func TestXattrCID(t *testing.T) {
-	nd, mntDir := setupIpfsTest(t, nil)
+	nd, _ := setupIpfsTest(t, nil)
 
 	t.Run("file", func(t *testing.T) {
 		obj, _ := randObj(t, nd, 100)
@@ -535,7 +535,6 @@ func TestXattrCID(t *testing.T) {
 		}
 	})
 
-	_ = mntDir // used for FUSE mount
 }
 
 // Test that symlinks in UnixFS are rendered via Readlink.

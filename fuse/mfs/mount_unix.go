@@ -13,11 +13,9 @@ import (
 	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
 
-// mutableCacheTime is how long the kernel caches Lookup and Getattr
-// results for writable mounts. 1 second matches the standard default
-// used by go-fuse's loopback, gocryptfs, and rclone. This avoids
-// re-traversing every path component on each syscall while keeping
-// the staleness window short enough for interactive use.
+// How long the kernel caches Lookup and Getattr results. 1 second
+// matches the go-fuse default and what gocryptfs/rclone use.
+// var (not const) because fs.Options needs a *time.Duration.
 var mutableCacheTime = time.Second
 
 // Mount mounts MFS at a given location, and returns a mount.Mount instance.

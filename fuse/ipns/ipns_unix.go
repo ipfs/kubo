@@ -127,10 +127,8 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.K
 }
 
 // Getattr returns the root directory attributes.
-// Timeout is 0 (no kernel caching) because IPNS records are mutable.
-// TODO: set out.SetTimeout() from the IPNS record TTL (capped at
-// Ipns.MaxCacheTTL) so the kernel can cache attrs for the record's
-// remaining validity period instead of re-asking on every stat.
+// TODO: for resolved IPNS names, override the mount-level 1s cache
+// with the record's cache TTL via out.SetTimeout().
 func (r *Root) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	log.Debug("Root Attr")
 	out.Attr.Mode = uint32(fusemnt.NamespaceRootMode.Perm())
