@@ -62,7 +62,7 @@ func ipnsPubFunc(ipfs iface.CoreAPI, key iface.Key) mfs.PubFunc {
 	}
 }
 
-func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key) (*mfs.Root, *Directory, error) {
+func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key, mfsOpts ...mfs.Option) (*mfs.Root, *Directory, error) {
 	node, err := ipfs.ResolveNode(ctx, key.Path())
 	switch err {
 	case nil:
@@ -78,7 +78,7 @@ func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key) (*mfs.Root
 		return nil, nil, dag.ErrNotProtobuf
 	}
 
-	root, err := mfs.NewRoot(ctx, ipfs.Dag(), pbnode, ipnsPubFunc(ipfs, key), nil)
+	root, err := mfs.NewRoot(ctx, ipfs.Dag(), pbnode, ipnsPubFunc(ipfs, key), nil, mfsOpts...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -86,12 +86,12 @@ func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key) (*mfs.Root
 	return root, &Directory{dir: root.GetDirectory()}, nil
 }
 
-func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.Key, ipfspath, ipnspath string, cfg config.Mounts) (*Root, error) {
+func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.Key, ipfspath, ipnspath string, cfg config.Mounts, mfsOpts ...mfs.Option) (*Root, error) {
 	ldirs := make(map[string]*Directory)
 	roots := make(map[string]*mfs.Root)
 	links := make(map[string]*Link)
 	for alias, k := range keys {
-		root, fsn, err := loadRoot(ctx, ipfs, k)
+		root, fsn, err := loadRoot(ctx, ipfs, k, mfsOpts...)
 		if err != nil {
 			return nil, err
 		}

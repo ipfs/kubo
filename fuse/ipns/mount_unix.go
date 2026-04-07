@@ -34,12 +34,17 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (fusemnt.Mount, error) {
 		return nil, err
 	}
 
+	mfsOpts, err := cfg.Import.MFSRootOptions()
+	if err != nil {
+		return nil, err
+	}
+
 	key, err := coreAPI.Key().Self(ipfs.Context())
 	if err != nil {
 		return nil, err
 	}
 
-	root, err := CreateRoot(ipfs.Context(), coreAPI, map[string]iface.Key{"local": key}, ipfsmp, ipnsmp, cfg.Mounts)
+	root, err := CreateRoot(ipfs.Context(), coreAPI, map[string]iface.Key{"local": key}, ipfsmp, ipnsmp, cfg.Mounts, mfsOpts...)
 	if err != nil {
 		return nil, err
 	}

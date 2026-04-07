@@ -848,6 +848,73 @@ func TestFilesMFSImportConfig(t *testing.T) {
 		require.Equal(t, ft.THAMTShard, fsType, "expected HAMT directory after exceeding size threshold")
 	})
 
+	// Regression tests for https://github.com/ipfs/boxo/pull/1125
+	// CidBuilder (CID version + hash function) must be preserved across
+	// file mutations, directory creation, and daemon restarts. We use
+	// CIDv1 + sha2-512 so assertions are meaningful even if CIDv1 or a
+	// different hash becomes the default in the future.
+
+	t.Run("CidBuilder preserved across file mutation and restart", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
+			cfg.Import.HashFunction = *config.NewOptionalString("sha2-512")
+		})
+		node.StartDaemon()
+
+		requireCidBuilder := func(mfsPath, context string) {
+			t.Helper()
+			cidStr := node.IPFS("files", "stat", "--hash", mfsPath).Stdout.Trimmed()
+			prefix := node.IPFS("cid", "format", "-f", "%V-%h", cidStr).Stdout.Trimmed()
+			require.Equal(t, "1-sha2-512", prefix, "%s: expected CIDv1+sha2-512 for %s, got %s (cid: %s)", context, mfsPath, prefix, cidStr)
+		}
+
+		// 1. files write --create: new file
+		tempFile := filepath.Join(node.Dir, "test.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte("hello world"), 0644))
+		node.IPFS("files", "write", "--create", "/test.txt", tempFile)
+		requireCidBuilder("/test.txt", "initial write")
+
+		// 2. files write --offset: mutate existing file (setNodeData)
+		cidBefore := node.IPFS("files", "stat", "--hash", "/test.txt").Stdout.Trimmed()
+		patch := filepath.Join(node.Dir, "patch.txt")
+		require.NoError(t, os.WriteFile(patch, []byte("PATCHED"), 0644))
+		node.IPFS("files", "write", "--offset", "0", "/test.txt", patch)
+		requireCidBuilder("/test.txt", "after offset write")
+		cidAfter := node.IPFS("files", "stat", "--hash", "/test.txt").Stdout.Trimmed()
+		require.NotEqual(t, cidBefore, cidAfter, "CID should change after mutation")
+
+		// 3. files mkdir -p: all intermediate directories
+		node.IPFS("files", "mkdir", "-p", "/a/b/c")
+		for _, dir := range []string{"/a", "/a/b", "/a/b/c"} {
+			requireCidBuilder(dir, "mkdir -p")
+		}
+
+		// 4. files write --create inside a subdirectory
+		node.IPFS("files", "write", "--create", "/a/b/nested.txt", tempFile)
+		requireCidBuilder("/a/b/nested.txt", "write in subdir")
+
+		// 5. root directory
+		requireCidBuilder("/", "root before restart")
+
+		// 6. daemon restart: NewRoot must preserve CidBuilder
+		node.StopDaemon()
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		requireCidBuilder("/", "root after restart")
+		requireCidBuilder("/test.txt", "file after restart")
+		requireCidBuilder("/a/b/c", "dir after restart")
+
+		// 7. new entries created after restart
+		require.NoError(t, os.WriteFile(tempFile, []byte("post-restart"), 0644))
+		node.IPFS("files", "write", "--create", "/post-restart.txt", tempFile)
+		node.IPFS("files", "mkdir", "/post-restart-dir")
+		requireCidBuilder("/post-restart.txt", "new file after restart")
+		requireCidBuilder("/post-restart-dir", "new dir after restart")
+	})
+
 	t.Run("config change takes effect after daemon restart", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()

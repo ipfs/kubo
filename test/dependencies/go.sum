@@ -426,8 +426,8 @@ github.com/hashicorp/go-uuid v1.0.1/go.mod h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/b
 github.com/hashicorp/go-uuid v1.0.3 h1:2gKiV6YVmrJ1i2CKKa9obLvRieoRGviZFL26PcT/Co8=
 github.com/hashicorp/go-uuid v1.0.3/go.mod h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/bN7x4byOro=
 github.com/hashicorp/go-version v1.2.1/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
-github.com/hashicorp/go-version v1.8.0 h1:KAkNb1HAiZd1ukkxDFGmokVZe1Xy9HG6NUp+bPle2i4=
-github.com/hashicorp/go-version v1.8.0/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
+github.com/hashicorp/go-version v1.9.0 h1:CeOIz6k+LoN3qX9Z0tyQrPtiB1DFYRPfCIBtaXPSCnA=
+github.com/hashicorp/go-version v1.9.0/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
 github.com/hashicorp/go.net v0.0.1/go.mod h1:hjKkEWcCURg++eb33jQU7oqQcI9XDCnUzHA0oac0k90=
 github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
@@ -452,8 +452,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
-github.com/ipfs/boxo v0.37.1-0.20260403224200-698786d9ccd7 h1:kxMJGzdt9TuWN5VSSFbfcA7wNv8XFQtbWtrp4pdHZfE=
-github.com/ipfs/boxo v0.37.1-0.20260403224200-698786d9ccd7/go.mod h1:9fqW+YoaAEnhdZgXQo1PmzNWNX5evTu8fmVEQV51ksE=
+github.com/ipfs/boxo v0.37.1-0.20260407154542-a9db6465a5ae h1:0MsWL16G8bSkke0364AJRYmSLc26JfVfWw01cVro+7Q=
+github.com/ipfs/boxo v0.37.1-0.20260407154542-a9db6465a5ae/go.mod h1:9fqW+YoaAEnhdZgXQo1PmzNWNX5evTu8fmVEQV51ksE=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-block-format v0.2.3 h1:mpCuDaNXJ4wrBJLrtEaGFGXkferrw5eqVvzaHhtFKQk=
@@ -490,8 +490,8 @@ github.com/ipfs/go-metrics-interface v0.3.0 h1:YwG7/Cy4R94mYDUuwsBfeziJCVm9pBMJ6
 github.com/ipfs/go-metrics-interface v0.3.0/go.mod h1:OxxQjZDGocXVdyTPocns6cOLwHieqej/jos7H4POwoY=
 github.com/ipfs/go-peertaskqueue v0.8.3 h1:tBPpGJy+A92RqtRFq5amJn0Uuj8Pw8tXi0X3eHfHM8w=
 github.com/ipfs/go-peertaskqueue v0.8.3/go.mod h1:OqVync4kPOcXEGdj/LKvox9DCB5mkSBeXsPczCxLtYA=
-github.com/ipfs/go-test v0.2.3 h1:Z/jXNAReQFtCYyn7bsv/ZqUwS6E7iIcSpJ2CuzCvnrc=
-github.com/ipfs/go-test v0.2.3/go.mod h1:QW8vSKkwYvWFwIZQLGQXdkt9Ud76eQXRQ9Ao2H+cA1o=
+github.com/ipfs/go-test v0.3.0 h1:0Y4Uve3tp9HI+2lIJjfOliOrOgv/YpXg/l1y3P4DEYE=
+github.com/ipfs/go-test v0.3.0/go.mod h1:JK+U8pRpATZb7lsYNSJlCj3WYB3cFfWIbI6nWRM/GFk=
 github.com/ipfs/go-unixfsnode v1.10.3 h1:c8sJjuGNkxXAQH75P+f5ngPda/9T+DrboVA0TcDGvGI=
 github.com/ipfs/go-unixfsnode v1.10.3/go.mod h1:2Jlc7DoEwr12W+7l8Hr6C7XF4NHST3gIkqSArLhGSxU=
 github.com/ipfs/hang-fds v0.1.0 h1:deBiFlWHsVGzJ0ZMaqscEqRM1r2O1rFZ59UiQXb1Xko=

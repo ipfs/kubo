@@ -7,7 +7,7 @@ go 1.25.7
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.37.1-0.20260403224200-698786d9ccd7
+	github.com/ipfs/boxo v0.37.1-0.20260407154542-a9db6465a5ae
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.48.0
 	github.com/multiformats/go-multiaddr v0.16.1
@@ -84,7 +84,7 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.6.0 // indirect
 	github.com/ipfs/go-ds-leveldb v0.5.2 // indirect
 	github.com/ipfs/go-ds-measure v0.2.2 // indirect
-	github.com/ipfs/go-ds-pebble v0.5.9 // indirect
+	github.com/ipfs/go-ds-pebble v0.5.10 // indirect
 	github.com/ipfs/go-dsqueue v0.2.0 // indirect
 	github.com/ipfs/go-fs-lock v0.1.1 // indirect
 	github.com/ipfs/go-ipfs-cmds v0.16.0 // indirect
@@ -99,7 +99,7 @@ require (
 	github.com/ipfs/go-log/v2 v2.9.1 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.3 // indirect
-	github.com/ipfs/go-test v0.2.3 // indirect
+	github.com/ipfs/go-test v0.3.0 // indirect
 	github.com/ipfs/go-unixfsnode v1.10.3 // indirect
 	github.com/ipld/go-car/v2 v2.16.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect

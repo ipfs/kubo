@@ -177,6 +177,7 @@ Run these steps in order before considering work complete:
 - after editing CLI help text in `core/commands/`, verify width: `go test ./test/cli/... -run TestCommandDocsWidth`
 - config options are documented in `docs/config.md`
 - changelogs in `docs/changelogs/`: only edit the Table of Contents and the Highlights section; the Changelog and Contributors sections are auto-generated and must not be modified
+- avoid unnecessary line wrapping in `docs/changelogs/*`; let lines be long
 - follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 - keep commit titles short and messages terse
 
