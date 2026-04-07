@@ -138,10 +138,19 @@ func (n *Node) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) sy
 	return 0
 }
 
-// Open is required by the kernel before Read can be called.
-// Returns nil handle since reads are served by NodeReader directly.
-func (n *Node) Open(_ context.Context, _ uint32) (fs.FileHandle, uint32, syscall.Errno) {
-	return nil, fuse.FOPEN_KEEP_CACHE, 0
+// Open creates a DagReader that is reused across sequential Read
+// calls, avoiding re-traversal of the DAG from the root on each read.
+func (n *Node) Open(ctx context.Context, _ uint32) (fs.FileHandle, uint32, syscall.Errno) {
+	r, err := uio.NewDagReader(ctx, n.nd, n.ipfs.DAG)
+	if err != nil {
+		return nil, 0, fs.ToErrno(err)
+	}
+	return &roFileHandle{r: r}, fuse.FOPEN_KEEP_CACHE, 0
+}
+
+// roFileHandle holds a DagReader for the lifetime of an open file.
+type roFileHandle struct {
+	r uio.DagReader
 }
 
 // fillAttr populates a fuse.Attr from this node's UnixFS metadata.
@@ -300,22 +309,21 @@ func (n *Node) Readlink(_ context.Context) ([]byte, syscall.Errno) {
 	return n.cached.Data(), 0
 }
 
-func (n *Node) Read(ctx context.Context, _ fs.FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
-	r, err := uio.NewDagReader(ctx, n.nd, n.ipfs.DAG)
-	if err != nil {
+func (fh *roFileHandle) Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+	if _, err := fh.r.Seek(off, io.SeekStart); err != nil {
 		return nil, fs.ToErrno(err)
 	}
-	_, err = r.Seek(off, io.SeekStart)
-	if err != nil {
-		return nil, fs.ToErrno(err)
-	}
-	nread, err := io.ReadFull(r, dest)
+	n, err := fh.r.CtxReadFull(ctx, dest)
 	switch err {
 	case nil, io.EOF, io.ErrUnexpectedEOF:
 	default:
 		return nil, fs.ToErrno(err)
 	}
-	return fuse.ReadResultData(dest[:nread]), 0
+	return fuse.ReadResultData(dest[:n]), 0
+}
+
+func (fh *roFileHandle) Release(_ context.Context) syscall.Errno {
+	return fs.ToErrno(fh.r.Close())
 }
 
 // stableAttrFor returns the StableAttr (file type bits) for a Node.
@@ -346,8 +354,10 @@ var (
 	_ fs.NodeLookuper    = (*Node)(nil)
 	_ fs.NodeOpener      = (*Node)(nil)
 	_ fs.NodeReaddirer   = (*Node)(nil)
-	_ fs.NodeReader      = (*Node)(nil)
 	_ fs.NodeReadlinker  = (*Node)(nil)
 	_ fs.NodeGetxattrer  = (*Node)(nil)
 	_ fs.NodeListxattrer = (*Node)(nil)
+
+	_ fs.FileReader   = (*roFileHandle)(nil)
+	_ fs.FileReleaser = (*roFileHandle)(nil)
 )

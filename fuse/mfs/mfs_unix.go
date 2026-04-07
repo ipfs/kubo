@@ -374,7 +374,7 @@ type FileHandle struct {
 	append bool // O_APPEND: writes always go to end of file
 }
 
-func (fh *FileHandle) Read(_ context.Context, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+func (fh *FileHandle) Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
 
@@ -382,7 +382,7 @@ func (fh *FileHandle) Read(_ context.Context, dest []byte, off int64) (fuse.Read
 		return nil, fs.ToErrno(err)
 	}
 
-	n, err := fh.mfsFD.Read(dest)
+	n, err := fh.mfsFD.CtxReadFull(ctx, dest)
 	switch err {
 	case nil, io.EOF, io.ErrUnexpectedEOF:
 		return fuse.ReadResultData(dest[:n]), 0
