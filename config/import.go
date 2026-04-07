@@ -281,14 +281,12 @@ func (i *Import) MFSRootOptions() ([]mfs.Option, error) {
 }
 
 // UnixFSCidBuilder returns a cid.Builder based on Import.CidVersion and
-// Import.HashFunction. Returns nil when both are at defaults (no override).
+// Import.HashFunction. Always builds an explicit prefix so that MFS
+// respects kubo defaults even when they differ from boxo's internal
+// CIDv0/sha2-256 default (see https://github.com/ipfs/kubo/issues/4143).
 func (i *Import) UnixFSCidBuilder() (cid.Builder, error) {
 	cidVer := int(i.CidVersion.WithDefault(DefaultCidVersion))
 	hashFunc := i.HashFunction.WithDefault(DefaultHashFunction)
-
-	if cidVer == DefaultCidVersion && hashFunc == DefaultHashFunction {
-		return nil, nil
-	}
 
 	if hashFunc != DefaultHashFunction && cidVer == 0 {
 		cidVer = 1
