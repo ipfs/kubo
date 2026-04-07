@@ -23,6 +23,13 @@ const (
 // name (CID or IPNS key) but listing the full namespace is not possible.
 const NamespaceRootMode = os.ModeDir | 0o111
 
+// MaxReadAhead tells the kernel how far ahead to read in a single FUSE
+// request. 64 MiB works well for sequential access (streaming, file
+// copies) because most data is served from the local blockstore after
+// the initial fetch. Network-backed reads are already chunked by the
+// DAG layer, so oversized readahead does not cause extra round-trips.
+const MaxReadAhead = 64 * 1024 * 1024
+
 // XattrCID is the extended attribute name for the node's CID.
 // Follows the convention used by CephFS (ceph.*), Btrfs (btrfs.*),
 // and GlusterFS (glusterfs.*) of using a project-specific namespace.

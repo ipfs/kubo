@@ -1,4 +1,4 @@
-//go:build !nofuse && !openbsd && !netbsd && !plan9
+//go:build (linux || darwin || freebsd) && !nofuse
 
 // Unit tests for the mutable /mfs FUSE mount.
 // These test the filesystem implementation directly without a daemon.
@@ -11,17 +11,16 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	"errors"
 	iofs "io/fs"
 	"os"
 	"slices"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
-	"bazil.org/fuse"
-	"bazil.org/fuse/fs"
-	"bazil.org/fuse/fs/fstestutil"
+	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
@@ -29,9 +28,20 @@ import (
 	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
 
+func testMount(t *testing.T, root fs.InodeEmbedder) string {
+	t.Helper()
+	return fusetest.TestMount(t, root, &fs.Options{
+		EntryTimeout: &mutableCacheTime,
+		AttrTimeout:  &mutableCacheTime,
+		MountOptions: fuse.MountOptions{
+			MaxReadAhead: fusemnt.MaxReadAhead,
+		},
+	})
+}
+
 // Create an Ipfs.Node, a filesystem and a mount point.
-func setUp(t *testing.T, ipfs *core.IpfsNode, cfgs ...config.Mounts) (fs.FS, *fstestutil.Mount) {
-	fusetest.SkipUnlessFUSE(t)
+func setUp(t *testing.T, ipfs *core.IpfsNode, cfgs ...config.Mounts) (*Dir, string) {
+	t.Helper()
 
 	var cfg config.Mounts
 	if len(cfgs) > 0 {
@@ -46,19 +56,17 @@ func setUp(t *testing.T, ipfs *core.IpfsNode, cfgs ...config.Mounts) (fs.FS, *fs
 		}
 	}
 
-	fs := NewFileSystem(ipfs, cfg)
-	mnt, err := fstestutil.MountedT(t, fs, nil)
-	fusetest.MountError(t, err)
+	root := NewFileSystem(ipfs, cfg)
+	mntDir := testMount(t, root)
 
-	return fs, mnt
+	return root, mntDir
 }
 
 // Test reading and writing a file.
 func TestReadWrite(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
+	_, mntDir := setUp(t, nil)
 
-	path := mnt.Dir + "/testrw"
+	path := mntDir + "/testrw"
 	content := make([]byte, 8196)
 	_, err := rand.Read(content)
 	if err != nil {
@@ -89,7 +97,7 @@ func TestReadWrite(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if bytes.Equal(content, buf[:l]) != true {
+		if !bytes.Equal(content, buf[:l]) {
 			t.Fatal("read and write not equal")
 		}
 	})
@@ -97,11 +105,10 @@ func TestReadWrite(t *testing.T) {
 
 // Test that empty directories can be listed without errors.
 func TestEmptyDirListing(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
+	_, mntDir := setUp(t, nil)
 
 	// The MFS root starts empty.
-	entries, err := os.ReadDir(mnt.Dir)
+	entries, err := os.ReadDir(mntDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +117,7 @@ func TestEmptyDirListing(t *testing.T) {
 	}
 
 	// Create a directory and list it while still empty.
-	dir := mnt.Dir + "/emptydir"
+	dir := mntDir + "/emptydir"
 	if err := os.Mkdir(dir, os.ModeDir); err != nil {
 		t.Fatal(err)
 	}
@@ -125,10 +132,9 @@ func TestEmptyDirListing(t *testing.T) {
 
 // Test creating a directory.
 func TestMkdir(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
+	_, mntDir := setUp(t, nil)
 
-	path := mnt.Dir + "/foo/bar/baz/qux/quux"
+	path := mntDir + "/foo/bar/baz/qux/quux"
 
 	t.Run("write", func(t *testing.T) {
 		err := os.MkdirAll(path, iofs.ModeDir)
@@ -161,9 +167,8 @@ func TestPersistence(t *testing.T) {
 	}
 
 	t.Run("write", func(t *testing.T) {
-		_, mnt := setUp(t, ipfs)
-		defer mnt.Close()
-		path := mnt.Dir + "/testpersistence"
+		_, mntDir := setUp(t, ipfs)
+		path := mntDir + "/testpersistence"
 
 		f, err := os.Create(path)
 		if err != nil {
@@ -177,9 +182,8 @@ func TestPersistence(t *testing.T) {
 		}
 	})
 	t.Run("read", func(t *testing.T) {
-		_, mnt := setUp(t, ipfs)
-		defer mnt.Close()
-		path := mnt.Dir + "/testpersistence"
+		_, mntDir := setUp(t, ipfs)
+		path := mntDir + "/testpersistence"
 
 		f, err := os.Open(path)
 		if err != nil {
@@ -192,7 +196,7 @@ func TestPersistence(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if bytes.Equal(content, buf[:l]) != true {
+		if !bytes.Equal(content, buf[:l]) {
 			t.Fatal("read and write not equal")
 		}
 	})
@@ -200,10 +204,9 @@ func TestPersistence(t *testing.T) {
 
 // Test getting the file attributes.
 func TestAttr(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
+	_, mntDir := setUp(t, nil)
 
-	path := mnt.Dir + "/testattr"
+	path := mntDir + "/testattr"
 	content := make([]byte, 8196)
 	_, err := rand.Read(content)
 	if err != nil {
@@ -232,13 +235,6 @@ func TestAttr(t *testing.T) {
 			t.Fatal("file is a directory")
 		}
 
-		if fi.ModTime().After(time.Now()) {
-			t.Fatal("future modtime")
-		}
-		if time.Since(fi.ModTime()) > time.Second {
-			t.Fatal("past modtime")
-		}
-
 		if fi.Name() != "testattr" {
 			t.Fatal("invalid filename")
 		}
@@ -249,16 +245,17 @@ func TestAttr(t *testing.T) {
 	})
 }
 
-// Test concurrent access to the filesystem.
+// Test concurrent access to the filesystem. Each file is written by
+// one goroutine; after all writes complete, multiple goroutines read
+// concurrently and verify the content.
 func TestConcurrentRW(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
+	_, mntDir := setUp(t, nil)
 
-	files := 5
-	fileWorkers := 5
+	nfiles := 5
+	readers := 5
 
-	path := mnt.Dir + "/testconcurrent"
-	content := make([][]byte, files)
+	path := mntDir + "/testconcurrent"
+	content := make([][]byte, nfiles)
 
 	for i := range content {
 		content[i] = make([]byte, 8196)
@@ -268,71 +265,46 @@ func TestConcurrentRW(t *testing.T) {
 		}
 	}
 
+	// Write phase: create all files and wait for Close (which flushes
+	// data to the DAG) before moving on to reads.
 	t.Run("write", func(t *testing.T) {
-		errs := make(chan (error), 1)
-		for i := range files {
-			go func() {
-				var err error
-				defer func() { errs <- err }()
-
-				f, err := os.Create(path + strconv.Itoa(i))
-				if err != nil {
-					return
+		var wg sync.WaitGroup
+		for i := range nfiles {
+			wg.Go(func() {
+				fname := path + strconv.Itoa(i)
+				if err := os.WriteFile(fname, content[i], 0o644); err != nil {
+					t.Error(err)
 				}
-				defer f.Close()
-
-				_, err = f.Write(content[i])
-				if err != nil {
-					return
-				}
-			}()
+			})
 		}
-		for range files {
-			err := <-errs
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
+		wg.Wait()
 	})
+
+	// Read phase: multiple goroutines read every file concurrently.
 	t.Run("read", func(t *testing.T) {
-		errs := make(chan (error), 1)
-		for i := 0; i < files*fileWorkers; i++ {
-			go func() {
-				var err error
-				defer func() { errs <- err }()
-
-				f, err := os.Open(path + strconv.Itoa(i/fileWorkers))
+		var wg sync.WaitGroup
+		for i := 0; i < nfiles*readers; i++ {
+			wg.Go(func() {
+				fname := path + strconv.Itoa(i/readers)
+				got, err := os.ReadFile(fname)
 				if err != nil {
+					t.Error(err)
 					return
 				}
-				defer f.Close()
-
-				buf := make([]byte, 8196)
-				l, err := f.Read(buf)
-				if err != nil {
-					return
+				if !bytes.Equal(content[i/readers], got) {
+					t.Error("read and write not equal")
 				}
-				if bytes.Equal(content[i/fileWorkers], buf[:l]) != true {
-					err = errors.New("read and write not equal")
-					return
-				}
-			}()
+			})
 		}
-		for range files {
-			err := <-errs
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
+		wg.Wait()
 	})
 }
 
 // Test appending data to an existing file.
 func TestAppendFile(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
+	_, mntDir := setUp(t, nil)
 
-	path := mnt.Dir + "/appendfile"
+	path := mntDir + "/appendfile"
 
 	initial := make([]byte, 1300)
 	if _, err := rand.Read(initial); err != nil {
@@ -375,10 +347,9 @@ func TestAppendFile(t *testing.T) {
 
 // Test writing a file one byte at a time.
 func TestMultiWrite(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
+	_, mntDir := setUp(t, nil)
 
-	path := mnt.Dir + "/multiwrite"
+	path := mntDir + "/multiwrite"
 	fi, err := os.Create(path)
 	if err != nil {
 		t.Fatal(err)
@@ -413,11 +384,10 @@ func TestMultiWrite(t *testing.T) {
 
 // Test renaming a file within the same directory.
 func TestRenameFile(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
+	_, mntDir := setUp(t, nil)
 
-	src := mnt.Dir + "/before.txt"
-	dst := mnt.Dir + "/after.txt"
+	src := mntDir + "/before.txt"
+	dst := mntDir + "/after.txt"
 
 	data := make([]byte, 500)
 	if _, err := rand.Read(data); err != nil {
@@ -446,40 +416,27 @@ func TestRenameFile(t *testing.T) {
 	}
 }
 
-// Test ipfs_cid extended attribute
+// Test ipfs.cid extended attribute.
 func TestMFSRootXattr(t *testing.T) {
 	ipfs, err := core.NewNode(context.Background(), &node.BuildCfg{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fs, mnt := setUp(t, ipfs)
-	defer mnt.Close()
+	root, _ := setUp(t, ipfs)
 
-	node, err := fs.Root()
-	if err != nil {
-		t.Fatal(err)
+	dest := make([]byte, 256)
+	sz, errno := root.Listxattr(context.Background(), dest)
+	if errno != 0 {
+		t.Fatalf("Listxattr: %v", errno)
+	}
+	if !bytes.Contains(dest[:sz], []byte(fusemnt.XattrCID)) {
+		t.Fatalf("xattr list does not contain %s: %q", fusemnt.XattrCID, dest[:sz])
 	}
 
-	root := node.(*Dir)
-
-	listReq := fuse.ListxattrRequest{}
-	listRes := fuse.ListxattrResponse{}
-	err = root.Listxattr(context.Background(), &listReq, &listRes)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Contains(listRes.Xattr, []byte(fusemnt.XattrCID)) {
-		t.Fatalf("xattr list does not contain %s: %q", fusemnt.XattrCID, listRes.Xattr)
-	}
-
-	getReq := fuse.GetxattrRequest{
-		Name: fusemnt.XattrCID,
-	}
-	getRes := fuse.GetxattrResponse{}
-	err = root.Getxattr(context.Background(), &getReq, &getRes)
-	if err != nil {
-		t.Fatal(err)
+	sz, errno = root.Getxattr(context.Background(), fusemnt.XattrCID, dest)
+	if errno != 0 {
+		t.Fatalf("Getxattr: %v", errno)
 	}
 
 	ipldNode, err := ipfs.FilesRoot.GetDirectory().GetNode()
@@ -487,49 +444,65 @@ func TestMFSRootXattr(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if slices.Compare(getRes.Xattr, []byte(ipldNode.Cid().String())) != 0 {
+	if slices.Compare(dest[:sz], []byte(ipldNode.Cid().String())) != 0 {
 		t.Fatal("xattr cid not equal to mfs root cid")
 	}
 }
 
-// Test that StoreMtime persists mtime in UnixFS metadata across remounts.
-// We verify persistence rather than stat output because the kernel tracks
-// write times in its own cache regardless of what the FUSE daemon stores.
+// Test StoreMtime behavior: when enabled, written files get a recent mtime
+// that persists across remounts. When disabled, mtime stays at zero/epoch.
 func TestStoreMtime(t *testing.T) {
-	before := time.Now().Add(-time.Second)
-	ipfs, err := core.NewNode(context.Background(), &node.BuildCfg{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, mnt := setUp(t, ipfs, config.Mounts{StoreMtime: config.True})
+	t.Run("disabled", func(t *testing.T) {
+		_, mntDir := setUp(t, nil)
 
-	fname := mnt.Dir + "/withtime"
-	if err := os.WriteFile(fname, []byte("hello"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	mnt.Close()
+		fname := mntDir + "/notime"
+		if err := os.WriteFile(fname, []byte("hello"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		// Without StoreMtime, the underlying UnixFS node has no mtime.
+		// Getattr returns zero, which the kernel shows as epoch.
+		fi, err := os.Stat(fname)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fi.ModTime().After(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)) {
+			t.Fatalf("expected epoch-ish mtime without StoreMtime, got %v", fi.ModTime())
+		}
+	})
 
-	// Remount with default config and verify the mtime survived.
-	_, mnt = setUp(t, ipfs)
-	defer mnt.Close()
+	t.Run("enabled", func(t *testing.T) {
+		before := time.Now().Add(-time.Second)
+		ipfs, err := core.NewNode(context.Background(), &node.BuildCfg{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, mntDir := setUp(t, ipfs, config.Mounts{StoreMtime: config.True})
 
-	fi, err := os.Stat(mnt.Dir + "/withtime")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !fi.ModTime().After(before) {
-		t.Fatalf("mtime did not persist across remount: got %v", fi.ModTime())
-	}
+		fname := mntDir + "/withtime"
+		if err := os.WriteFile(fname, []byte("hello"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		// Remount with default config and verify the mtime survived.
+		_, mntDir2 := setUp(t, ipfs)
+
+		fi, err := os.Stat(mntDir2 + "/withtime")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !fi.ModTime().After(before) {
+			t.Fatalf("mtime did not persist across remount: got %v", fi.ModTime())
+		}
+	})
 }
 
 // Test that the default file mode matches the shared constant and chmod
 // is ignored without StoreMode.
 func TestStoreMode(t *testing.T) {
 	t.Run("disabled", func(t *testing.T) {
-		_, mnt := setUp(t, nil)
-		defer mnt.Close()
+		_, mntDir := setUp(t, nil)
 
-		fname := mnt.Dir + "/nomode"
+		fname := mntDir + "/nomode"
 		if err := os.WriteFile(fname, []byte("hello"), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -551,10 +524,9 @@ func TestStoreMode(t *testing.T) {
 	})
 
 	t.Run("enabled", func(t *testing.T) {
-		_, mnt := setUp(t, nil, config.Mounts{StoreMode: config.True})
-		defer mnt.Close()
+		_, mntDir := setUp(t, nil, config.Mounts{StoreMode: config.True})
 
-		fname := mnt.Dir + "/withmode"
+		fname := mntDir + "/withmode"
 		if err := os.WriteFile(fname, []byte("hello"), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -580,10 +552,9 @@ func TestStoreMode(t *testing.T) {
 
 // Test that directories get the expected default mode.
 func TestDefaultDirMode(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
+	_, mntDir := setUp(t, nil)
 
-	dir := mnt.Dir + "/subdir"
+	dir := mntDir + "/subdir"
 	if err := os.Mkdir(dir, os.ModeDir); err != nil {
 		t.Fatal(err)
 	}
@@ -594,5 +565,183 @@ func TestDefaultDirMode(t *testing.T) {
 	}
 	if fi.Mode().Perm() != fusemnt.DefaultDirModeRW.Perm() {
 		t.Fatalf("expected dir mode %04o, got %04o", fusemnt.DefaultDirModeRW.Perm(), fi.Mode().Perm())
+	}
+}
+
+// Test removing an empty directory (rmdir). Tools like `rm -r` and
+// build systems remove directories bottom-up after deleting children.
+func TestRmdir(t *testing.T) {
+	_, mntDir := setUp(t, nil)
+
+	dir := mntDir + "/mydir"
+	if err := os.Mkdir(dir, os.ModeDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Put a file inside, then try to rmdir (should fail).
+	if err := os.WriteFile(dir+"/child", []byte("data"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(dir); err == nil {
+		t.Fatal("expected error removing non-empty directory")
+	}
+
+	// Remove the child, then rmdir should succeed.
+	if err := os.Remove(dir + "/child"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(dir); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatalf("directory still exists after rmdir: %v", err)
+	}
+}
+
+// Test fsync on an open file. Editors (vim, emacs) and databases call
+// fsync after writing to ensure data reaches persistent storage before
+// reporting success to the user.
+func TestFsync(t *testing.T) {
+	_, mntDir := setUp(t, nil)
+
+	fpath := mntDir + "/syncme"
+	f, err := os.Create(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write([]byte("fsync test data")); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Sync(); err != nil {
+		t.Fatalf("fsync failed: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "fsync test data" {
+		t.Fatalf("content after fsync: got %q", got)
+	}
+}
+
+// Test ftruncate(fd, size) on an open file. `rsync --inplace` and
+// database engines use ftruncate to shrink or grow files to exact
+// sizes without rewriting them.
+func TestFtruncate(t *testing.T) {
+	_, mntDir := setUp(t, nil)
+
+	fpath := mntDir + "/truncme"
+	original := make([]byte, 1000)
+	if _, err := rand.Read(original); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(fpath, original, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Open the file, truncate to 500 bytes via ftruncate.
+	f, err := os.OpenFile(fpath, os.O_RDWR, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Truncate(500); err != nil {
+		t.Fatalf("ftruncate failed: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 500 {
+		t.Fatalf("expected 500 bytes after ftruncate, got %d", len(got))
+	}
+	if !bytes.Equal(got, original[:500]) {
+		t.Fatal("content mismatch after ftruncate")
+	}
+}
+
+// Test writing and reading a file larger than the default UnixFS chunk
+// size (256 KiB), forcing a multi-block DAG. Streaming media playback
+// and file copies depend on multi-block reads working correctly.
+func TestLargeFile(t *testing.T) {
+	_, mntDir := setUp(t, nil)
+
+	fpath := mntDir + "/largefile"
+	size := 1024*1024 + 1 // 1 MiB + 1 byte, well above the 256 KiB chunk size
+	data := make([]byte, size)
+	if _, err := rand.Read(data); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(fpath, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Fatalf("large file content mismatch: got %d bytes, want %d", len(got), len(data))
+	}
+}
+
+// Test renaming a file from one directory to another. Package managers
+// and `mv` across directories use cross-directory rename.
+func TestCrossDirRename(t *testing.T) {
+	_, mntDir := setUp(t, nil)
+
+	srcDir := mntDir + "/srcdir"
+	dstDir := mntDir + "/dstdir"
+	if err := os.Mkdir(srcDir, os.ModeDir); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(dstDir, os.ModeDir); err != nil {
+		t.Fatal(err)
+	}
+
+	data := make([]byte, 500)
+	if _, err := rand.Read(data); err != nil {
+		t.Fatal(err)
+	}
+	src := srcDir + "/file.txt"
+	dst := dstDir + "/moved.txt"
+	if err := os.WriteFile(src, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Rename(src, dst); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(src); !os.IsNotExist(err) {
+		t.Fatalf("source still exists after cross-dir rename: %v", err)
+	}
+
+	got, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(data))
+	}
+}
+
+// Test that getxattr on an unknown attribute returns an error.
+// Tools like `cp -a` and `rsync -X` probe for xattrs and must handle
+// ENODATA gracefully.
+func TestUnknownXattr(t *testing.T) {
+	root, _ := setUp(t, nil)
+
+	dest := make([]byte, 256)
+	_, errno := root.Getxattr(context.Background(), "user.bogus", dest)
+	if errno == 0 {
+		t.Fatal("expected error for unknown xattr, got success")
 	}
 }

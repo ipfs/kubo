@@ -25,28 +25,28 @@ func fuseFlagFromEnv() string {
 // fuseAvailable checks whether FUSE is likely to work on this system
 // and skips with a helpful message if not.
 //
-// On Linux, bazil.org/fuse requires "fusermount" (not "fusermount3") in
-// PATH. Systems with only fuse3 installed need a symlink:
-//
-//	sudo ln -s /usr/bin/fusermount3 /usr/local/bin/fusermount
+// hanwen/go-fuse supports Linux, macOS, and FreeBSD. NetBSD and OpenBSD
+// are not supported: NetBSD uses PUFFS (a different protocol) and
+// OpenBSD's FUSE support is not compatible with go-fuse's mount mechanism.
 func fuseAvailable(t *testing.T) bool {
 	t.Helper()
 
 	switch runtime.GOOS {
-	case "linux", "darwin", "freebsd", "netbsd", "openbsd":
+	case "linux", "darwin", "freebsd":
 	default:
 		t.Skip("FUSE not supported on", runtime.GOOS)
 		return false
 	}
 
 	if runtime.GOOS == "linux" {
+		// go-fuse tries fusermount3 first, then fusermount.
 		if _, err := exec.LookPath("fusermount"); err == nil {
 			return true
 		}
 		if _, err := exec.LookPath("fusermount3"); err == nil {
-			t.Skip("fusermount3 found but bazil.org/fuse needs \"fusermount\"; create a symlink: sudo ln -s /usr/bin/fusermount3 /usr/local/bin/fusermount")
+			return true
 		}
-		t.Skip("fusermount not found in PATH")
+		t.Skip("neither fusermount nor fusermount3 found in PATH")
 		return false
 	}
 

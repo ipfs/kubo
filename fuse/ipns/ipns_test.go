@@ -1,4 +1,4 @@
-//go:build !nofuse && !openbsd && !netbsd && !plan9
+//go:build (linux || darwin || freebsd) && !nofuse
 
 // Unit tests for the mutable /ipns FUSE mount.
 // These test the filesystem implementation directly without a daemon.
@@ -20,17 +20,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/kubo/config"
-	core "github.com/ipfs/kubo/core"
-	coreapi "github.com/ipfs/kubo/core/coreapi"
-	fusemnt "github.com/ipfs/kubo/fuse/mount"
+	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
 
-	fuse "bazil.org/fuse"
-	fstest "bazil.org/fuse/fs/fstestutil"
 	mfs "github.com/ipfs/boxo/mfs"
 	racedet "github.com/ipfs/go-detect-race"
 	"github.com/ipfs/go-test/random"
+	"github.com/ipfs/kubo/config"
+	core "github.com/ipfs/kubo/core"
+	coreapi "github.com/ipfs/kubo/core/coreapi"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/fuse/fusetest"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
 
 func randBytes(size int) []byte {
@@ -59,8 +60,6 @@ func writeFileOrFail(t *testing.T, size int, path string) []byte {
 
 func writeFile(size int, path string) ([]byte, error) {
 	data := randBytes(size)
-	// Same flags as os.WriteFile: write-only, create if missing, truncate if exists.
-	// We open manually instead of using os.WriteFile so we can handle EINTR on close.
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
 	if err != nil {
 		return nil, err
@@ -73,9 +72,7 @@ func writeFile(size int, path string) ([]byte, error) {
 	// Go's goroutine preemption (SIGURG) can interrupt the FUSE FLUSH
 	// inside close(), returning EINTR. This is not a data loss: the write
 	// already succeeded and the kernel will still send RELEASE to the FUSE
-	// daemon. Go intentionally does not retry close() on EINTR because the
-	// fd is already closed on Linux and its state is undefined on other
-	// platforms, making retry unsafe.
+	// daemon.
 	if err := f.Close(); err != nil && !errors.Is(err, syscall.EINTR) {
 		return nil, err
 	}
@@ -102,23 +99,30 @@ func checkExists(t *testing.T, path string) {
 	}
 }
 
+type mountWrap struct {
+	Dir    string
+	Root   *Root
+	server *fuse.Server
+	closed bool
+}
+
+func (m *mountWrap) Close() {
+	if m.closed {
+		return
+	}
+	m.closed = true
+	if m.server != nil {
+		_ = m.server.Unmount()
+	}
+	_ = m.Root.Close()
+}
+
 func closeMount(mnt *mountWrap) {
 	if err := recover(); err != nil {
 		log.Error("Recovered panic")
 		log.Error(err)
 	}
 	mnt.Close()
-}
-
-type mountWrap struct {
-	*fstest.Mount
-	Fs *FileSystem
-}
-
-func (m *mountWrap) Close() error {
-	m.Fs.Destroy()
-	m.Mount.Close()
-	return nil
 }
 
 // fakeMount is a minimal mount.Mount that reports itself as active.
@@ -158,28 +162,41 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode, cfgs ...config.Mounts) (*c
 		t.Fatal(err)
 	}
 
-	fs, err := NewFileSystem(node.Context(), coreAPI, "", "", cfg)
+	key, err := coreAPI.Key().Self(node.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
-	mnt, err := fstest.MountedT(t, fs, nil)
+
+	root, err := CreateRoot(node.Context(), coreAPI, map[string]iface.Key{"local": key}, "", "", cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mntDir := t.TempDir()
+	server, err := fs.Mount(mntDir, root, &fs.Options{
+		NullPermissions: true,
+		UID:             uint32(os.Getuid()),
+		GID:             uint32(os.Getgid()),
+		EntryTimeout:    &mutableCacheTime,
+		AttrTimeout:     &mutableCacheTime,
+		MountOptions: fuse.MountOptions{
+			MaxReadAhead: fusemnt.MaxReadAhead,
+		},
+	})
 	fusetest.MountError(t, err)
 
+	mnt := &mountWrap{Dir: mntDir, Root: root, server: server}
+	t.Cleanup(mnt.Close)
+
 	// Simulate the real daemon: set node.Mounts.Ipns so that
-	// checkPublishAllowed sees an active IPNS mount. Before the
-	// context key fix (issue #2168), this would cause the MFS
-	// republisher's publishes to be silently rejected.
+	// checkPublishAllowed sees an active IPNS mount.
 	node.Mounts.Ipns = fakeMount{}
 
-	return node, &mountWrap{
-		Mount: mnt,
-		Fs:    fs,
-	}
+	return node, mnt
 }
 
 func TestIpnsLocalLink(t *testing.T) {
 	nd, mnt := setupIpnsTest(t, nil)
-	defer mnt.Close()
 	name := mnt.Dir + "/local"
 
 	checkExists(t, name)
@@ -197,7 +214,6 @@ func TestIpnsLocalLink(t *testing.T) {
 // Test that empty directories can be listed without errors.
 func TestEmptyDirListing(t *testing.T) {
 	nd, mnt := setupIpnsTest(t, nil)
-	defer mnt.Close()
 
 	// The peer's IPNS directory starts empty.
 	peerDir := mnt.Dir + "/" + nd.Identity.String()
@@ -337,11 +353,10 @@ func TestFilePersistence(t *testing.T) {
 	fname := "/local/atestfile"
 	data := writeFileOrFail(t, 127, mnt.Dir+fname)
 
-	mnt.Close()
+	mnt.Close() // flush MFS roots before remounting
 
-	t.Log("Closed, opening new fs")
+	// Remount with the same node.
 	_, mnt = setupIpnsTest(t, node)
-	defer mnt.Close()
 
 	rbuf, err := os.ReadFile(mnt.Dir + fname)
 	if err != nil {
@@ -377,8 +392,8 @@ func TestMultipleDirs(t *testing.T) {
 
 	verifyFile(t, mnt.Dir+dir1+"/dir2/file2", data2)
 
-	mnt.Close()
 	t.Log("closing mount, then restarting")
+	mnt.Close() // flush MFS roots before remounting
 
 	_, mnt = setupIpnsTest(t, node)
 
@@ -387,13 +402,11 @@ func TestMultipleDirs(t *testing.T) {
 	verifyFile(t, mnt.Dir+dir1+"/file1", data1)
 
 	verifyFile(t, mnt.Dir+dir1+"/dir2/file2", data2)
-	mnt.Close()
 }
 
 // Test to make sure the filesystem reports file sizes correctly.
 func TestFileSizeReporting(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil)
-	defer mnt.Close()
 
 	fname := mnt.Dir + "/local/sizecheck"
 	data := writeFileOrFail(t, 5555, fname)
@@ -411,7 +424,6 @@ func TestFileSizeReporting(t *testing.T) {
 // Test to make sure you can't create multiple entries with the same name.
 func TestDoubleEntryFailure(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil)
-	defer mnt.Close()
 
 	dname := mnt.Dir + "/local/thisisadir"
 	err := os.Mkdir(dname, 0o777)
@@ -427,7 +439,6 @@ func TestDoubleEntryFailure(t *testing.T) {
 
 func TestAppendFile(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil)
-	defer mnt.Close()
 
 	fname := mnt.Dir + "/local/file"
 	data := writeFileOrFail(t, 1300, fname)
@@ -465,7 +476,6 @@ func TestAppendFile(t *testing.T) {
 
 func TestConcurrentWrites(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil)
-	defer mnt.Close()
 
 	nactors := 4
 	filesPerActor := 400
@@ -511,7 +521,6 @@ func TestFSThrash(t *testing.T) {
 	files := make(map[string][]byte)
 
 	_, mnt := setupIpnsTest(t, nil)
-	defer mnt.Close()
 
 	base := mnt.Dir + "/local"
 	dirs := []string{base}
@@ -592,7 +601,6 @@ func TestFSThrash(t *testing.T) {
 func TestMultiWrite(t *testing.T) {
 
 	_, mnt := setupIpnsTest(t, nil)
-	defer mnt.Close()
 
 	fpath := mnt.Dir + "/local/file"
 	fi, err := os.Create(fpath)
@@ -622,28 +630,45 @@ func TestMultiWrite(t *testing.T) {
 	}
 }
 
-// Test that StoreMtime persists mtime in UnixFS metadata across remounts.
-// We verify persistence rather than stat output because the kernel tracks
-// write times in its own cache regardless of what the FUSE daemon stores.
+// Test StoreMtime behavior: when enabled, written files get a recent mtime
+// that persists across remounts. When disabled, mtime stays at zero/epoch.
 func TestStoreMtime(t *testing.T) {
-	before := time.Now().Add(-time.Second)
-	node, mnt := setupIpnsTest(t, nil, config.Mounts{StoreMtime: config.True})
+	t.Run("disabled", func(t *testing.T) {
+		_, mnt := setupIpnsTest(t, nil)
 
-	fname := mnt.Dir + "/local/withtime"
-	writeFileOrFail(t, 100, fname)
-	mnt.Close()
+		fname := mnt.Dir + "/local/notime"
+		writeFileOrFail(t, 100, fname)
+		// Without StoreMtime, the underlying UnixFS node has no mtime.
+		// Getattr returns zero, which the kernel shows as epoch.
+		fi, err := os.Stat(fname)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fi.ModTime().After(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)) {
+			t.Fatalf("expected epoch-ish mtime without StoreMtime, got %v", fi.ModTime())
+		}
+	})
 
-	// Remount and verify the mtime survived.
-	_, mnt = setupIpnsTest(t, node)
-	defer mnt.Close()
+	t.Run("enabled", func(t *testing.T) {
+		before := time.Now().Add(-time.Second)
+		node, mnt := setupIpnsTest(t, nil, config.Mounts{StoreMtime: config.True})
 
-	fi, err := os.Stat(mnt.Dir + "/local/withtime")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !fi.ModTime().After(before) {
-		t.Fatalf("mtime did not persist across remount: got %v", fi.ModTime())
-	}
+		fname := mnt.Dir + "/local/withtime"
+		writeFileOrFail(t, 100, fname)
+
+		mnt.Close() // flush MFS roots before remounting
+
+		// Remount and verify the mtime survived.
+		_, mnt = setupIpnsTest(t, node)
+
+		fi, err := os.Stat(mnt.Dir + "/local/withtime")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !fi.ModTime().After(before) {
+			t.Fatalf("mtime did not persist across remount: got %v", fi.ModTime())
+		}
+	})
 }
 
 // Test that the default file mode matches the shared constant and chmod
@@ -651,7 +676,6 @@ func TestStoreMtime(t *testing.T) {
 func TestStoreMode(t *testing.T) {
 	t.Run("disabled", func(t *testing.T) {
 		_, mnt := setupIpnsTest(t, nil)
-		defer mnt.Close()
 
 		fname := mnt.Dir + "/local/nomode"
 		writeFileOrFail(t, 100, fname)
@@ -675,7 +699,6 @@ func TestStoreMode(t *testing.T) {
 
 	t.Run("enabled", func(t *testing.T) {
 		_, mnt := setupIpnsTest(t, nil, config.Mounts{StoreMode: config.True})
-		defer mnt.Close()
 
 		fname := mnt.Dir + "/local/withmode"
 		writeFileOrFail(t, 100, fname)
@@ -703,7 +726,6 @@ func TestStoreMode(t *testing.T) {
 // Test that directories get the expected default mode.
 func TestDefaultDirMode(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil)
-	defer mnt.Close()
 
 	dir := mnt.Dir + "/local/subdir"
 	mkdir(t, dir)
@@ -720,7 +742,6 @@ func TestDefaultDirMode(t *testing.T) {
 // Test that the /ipns/ root has the namespace root mode (execute-only).
 func TestNamespaceRootMode(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil)
-	defer mnt.Close()
 
 	fi, err := os.Stat(mnt.Dir)
 	if err != nil {
@@ -731,63 +752,165 @@ func TestNamespaceRootMode(t *testing.T) {
 	}
 }
 
-// Test that ipfs_cid xattr is available on files and directories.
+// Test that ipfs.cid xattr is available on files and directories.
 func TestXattrCID(t *testing.T) {
 	nd, mnt := setupIpnsTest(t, nil)
-	defer mnt.Close()
 
 	writeFileOrFail(t, 100, mnt.Dir+"/local/xattrfile")
 
-	fsRoot, err := mnt.Fs.Root()
-	if err != nil {
-		t.Fatal(err)
-	}
-	root := fsRoot.(*Root)
-	peerDir, ok := root.LocalDirs[nd.Identity.String()]
+	peerDir, ok := mnt.Root.LocalDirs[nd.Identity.String()]
 	if !ok {
 		t.Fatal("peer directory not found")
 	}
-	dir := peerDir.(*Directory)
 
 	t.Run("directory", func(t *testing.T) {
-		listRes := fuse.ListxattrResponse{}
-		if err := dir.Listxattr(t.Context(), &fuse.ListxattrRequest{}, &listRes); err != nil {
-			t.Fatal(err)
+		dest := make([]byte, 256)
+		sz, errno := peerDir.Listxattr(t.Context(), dest)
+		if errno != 0 {
+			t.Fatalf("Listxattr: %v", errno)
 		}
-		if !bytes.Contains(listRes.Xattr, []byte(fusemnt.XattrCID)) {
-			t.Fatal("ipfs_cid not listed")
+		if !bytes.Contains(dest[:sz], []byte(fusemnt.XattrCID)) {
+			t.Fatal("ipfs.cid not listed")
 		}
 
-		getRes := fuse.GetxattrResponse{}
-		if err := dir.Getxattr(t.Context(), &fuse.GetxattrRequest{Name: fusemnt.XattrCID}, &getRes); err != nil {
-			t.Fatal(err)
+		sz, errno = peerDir.Getxattr(t.Context(), fusemnt.XattrCID, dest)
+		if errno != 0 {
+			t.Fatalf("Getxattr: %v", errno)
 		}
-		if len(getRes.Xattr) == 0 {
+		if sz == 0 {
 			t.Fatal("empty CID")
 		}
 	})
 
 	t.Run("file", func(t *testing.T) {
-		child, err := dir.dir.Child("xattrfile")
+		child, err := peerDir.dir.Child("xattrfile")
 		if err != nil {
 			t.Fatal(err)
 		}
-		fileNode := &FileNode{fi: child.(*mfs.File), fsys: dir.fsys}
+		fileNode := &FileNode{fi: child.(*mfs.File), root: mnt.Root}
 
-		listRes := fuse.ListxattrResponse{}
-		if err := fileNode.Listxattr(t.Context(), &fuse.ListxattrRequest{}, &listRes); err != nil {
-			t.Fatal(err)
+		dest := make([]byte, 256)
+		sz, errno := fileNode.Listxattr(t.Context(), dest)
+		if errno != 0 {
+			t.Fatalf("Listxattr: %v", errno)
 		}
-		if !bytes.Contains(listRes.Xattr, []byte(fusemnt.XattrCID)) {
-			t.Fatal("ipfs_cid not listed")
+		if !bytes.Contains(dest[:sz], []byte(fusemnt.XattrCID)) {
+			t.Fatal("ipfs.cid not listed")
 		}
 
-		getRes := fuse.GetxattrResponse{}
-		if err := fileNode.Getxattr(t.Context(), &fuse.GetxattrRequest{Name: fusemnt.XattrCID}, &getRes); err != nil {
-			t.Fatal(err)
+		sz, errno = fileNode.Getxattr(t.Context(), fusemnt.XattrCID, dest)
+		if errno != 0 {
+			t.Fatalf("Getxattr: %v", errno)
 		}
-		if len(getRes.Xattr) == 0 {
+		if sz == 0 {
 			t.Fatal("empty CID")
 		}
 	})
+}
+
+// Test fsync on an open file. Editors (vim, emacs) and databases call
+// fsync after writing to ensure data reaches persistent storage before
+// reporting success to the user.
+func TestFsync(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+
+	fpath := mnt.Dir + "/local/syncme"
+	f, err := os.Create(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write([]byte("fsync test data")); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Sync(); err != nil {
+		t.Fatalf("fsync failed: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "fsync test data" {
+		t.Fatalf("content after fsync: got %q", got)
+	}
+}
+
+// Test ftruncate(fd, size) on an open file. `rsync --inplace` and
+// database engines use ftruncate to shrink or grow files to exact
+// sizes without rewriting them.
+func TestFtruncate(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+
+	fpath := mnt.Dir + "/local/truncme"
+	writeFileOrFail(t, 1000, fpath)
+	original, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := os.OpenFile(fpath, os.O_RDWR, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Truncate(500); err != nil {
+		t.Fatalf("ftruncate failed: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 500 {
+		t.Fatalf("expected 500 bytes after ftruncate, got %d", len(got))
+	}
+	if !bytes.Equal(got, original[:500]) {
+		t.Fatal("content mismatch after ftruncate")
+	}
+}
+
+// Test writing and reading a file larger than the default UnixFS chunk
+// size (256 KiB), forcing a multi-block DAG. Streaming media playback
+// and file copies depend on multi-block reads working correctly.
+func TestLargeFile(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+
+	fpath := mnt.Dir + "/local/largefile"
+	data := randBytes(1024*1024 + 1) // 1 MiB + 1 byte
+
+	writeFileOrFail(t, 0, fpath) // create empty file
+	if err := os.WriteFile(fpath, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Fatalf("large file content mismatch: got %d bytes, want %d", len(got), len(data))
+	}
+}
+
+// Test that getxattr on an unknown attribute returns an error.
+// Tools like `cp -a` and `rsync -X` probe for xattrs and must handle
+// ENODATA gracefully.
+func TestUnknownXattr(t *testing.T) {
+	nd, mnt := setupIpnsTest(t, nil)
+
+	peerDir, ok := mnt.Root.LocalDirs[nd.Identity.String()]
+	if !ok {
+		t.Fatal("peer directory not found")
+	}
+
+	dest := make([]byte, 256)
+	_, errno := peerDir.Getxattr(t.Context(), "user.bogus", dest)
+	if errno == 0 {
+		t.Fatal("expected error for unknown xattr, got success")
+	}
 }

@@ -1,4 +1,4 @@
-//go:build !nofuse && !openbsd && !netbsd && !plan9
+//go:build (linux || darwin || freebsd) && !nofuse
 
 // Unit tests for the read-only /ipfs FUSE mount.
 // These test the filesystem implementation directly without a daemon.
@@ -21,12 +21,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
+
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	coremock "github.com/ipfs/kubo/core/mock"
 
-	fuse "bazil.org/fuse"
-	fstest "bazil.org/fuse/fs/fstestutil"
 	chunker "github.com/ipfs/boxo/chunker"
 	"github.com/ipfs/boxo/files"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
@@ -40,6 +41,17 @@ import (
 	"github.com/ipfs/kubo/fuse/fusetest"
 	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
+
+func testMount(t *testing.T, root fs.InodeEmbedder) string {
+	t.Helper()
+	return fusetest.TestMount(t, root, &fs.Options{
+		AttrTimeout:  &immutableAttrCacheTime,
+		EntryTimeout: &immutableAttrCacheTime,
+		MountOptions: fuse.MountOptions{
+			MaxReadAhead: fusemnt.MaxReadAhead,
+		},
+	})
+}
 
 func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	buf := make([]byte, size)
@@ -56,9 +68,8 @@ func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	return obj, buf
 }
 
-func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.Mount) {
+func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, string) {
 	t.Helper()
-	fusetest.SkipUnlessFUSE(t)
 
 	var err error
 	if node == nil {
@@ -68,17 +79,15 @@ func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 		}
 	}
 
-	fs := NewFileSystem(node)
-	mnt, err := fstest.MountedT(t, fs, nil)
-	fusetest.MountError(t, err)
+	root := NewRoot(node)
+	mntDir := testMount(t, root)
 
-	return node, mnt
+	return node, mntDir
 }
 
 // Test that an empty directory can be listed without errors.
 func TestEmptyDirListing(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	// Create an empty UnixFS directory and add it to the DAG.
 	db, err := uio.NewDirectory(nd.DAG)
@@ -94,7 +103,7 @@ func TestEmptyDirListing(t *testing.T) {
 	}
 
 	// List it via FUSE.
-	dirPath := gopath.Join(mnt.Dir, emptyDir.Cid().String())
+	dirPath := gopath.Join(mntDir, emptyDir.Cid().String())
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
 		t.Fatal(err)
@@ -106,8 +115,7 @@ func TestEmptyDirListing(t *testing.T) {
 
 // Test that a bare file CID can be read at the /ipfs mount root.
 func TestBareFileCID(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	api, err := coreapi.NewCoreAPI(nd)
 	if err != nil {
@@ -125,7 +133,7 @@ func TestBareFileCID(t *testing.T) {
 			t.Fatal(err)
 		}
 		cidStr := resolved.RootCid().String()
-		got, err := os.ReadFile(gopath.Join(mnt.Dir, cidStr))
+		got, err := os.ReadFile(gopath.Join(mntDir, cidStr))
 		if err != nil {
 			t.Fatalf("read %s via FUSE: %v", cidStr, err)
 		}
@@ -143,7 +151,7 @@ func TestBareFileCID(t *testing.T) {
 			t.Fatal(err)
 		}
 		cidStr := resolved.RootCid().String()
-		got, err := os.ReadFile(gopath.Join(mnt.Dir, cidStr))
+		got, err := os.ReadFile(gopath.Join(mntDir, cidStr))
 		if err != nil {
 			t.Fatalf("read %s via FUSE: %v", cidStr, err)
 		}
@@ -157,8 +165,7 @@ func TestBareFileCID(t *testing.T) {
 // This is the typical layout produced by `ipfs add --raw-leaves`: the
 // directory node is dag-pb, while file leaves are raw blocks.
 func TestMixedDAGDirectory(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	api, err := coreapi.NewCoreAPI(nd)
 	if err != nil {
@@ -181,7 +188,7 @@ func TestMixedDAGDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dirPath := gopath.Join(mnt.Dir, resolved.RootCid().String())
+	dirPath := gopath.Join(mntDir, resolved.RootCid().String())
 
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
@@ -210,12 +217,11 @@ func TestMixedDAGDirectory(t *testing.T) {
 
 // Test writing an object and reading it back through fuse.
 func TestIpfsBasicRead(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	fi, data := randObj(t, nd, 10000)
 	k := fi.Cid()
-	fname := gopath.Join(mnt.Dir, k.String())
+	fname := gopath.Join(mntDir, k.String())
 	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
@@ -250,8 +256,7 @@ func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.ProtoNode) 
 
 // Perform a large number of concurrent reads to stress the system.
 func TestIpfsStressRead(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	api, err := coreapi.NewCoreAPI(nd)
 	if err != nil {
@@ -315,7 +320,7 @@ func TestIpfsStressRead(t *testing.T) {
 				}
 
 				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
-				fname := gopath.Join(mnt.Dir, relpath)
+				fname := gopath.Join(mntDir, relpath)
 
 				rbuf, err := os.ReadFile(fname)
 				if err != nil {
@@ -359,8 +364,7 @@ func TestIpfsStressRead(t *testing.T) {
 
 // Test writing a file and reading it back.
 func TestIpfsBasicDirRead(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	// Make a 'file'
 	fi, data := randObj(t, nd, 10000)
@@ -385,7 +389,7 @@ func TestIpfsBasicDirRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dirname := gopath.Join(mnt.Dir, d1nd.Cid().String())
+	dirname := gopath.Join(mntDir, d1nd.Cid().String())
 	fname := gopath.Join(dirname, "actual")
 	rbuf, err := os.ReadFile(fname)
 	if err != nil {
@@ -410,13 +414,12 @@ func TestIpfsBasicDirRead(t *testing.T) {
 
 // Test to make sure the filesystem reports file sizes correctly.
 func TestFileSizeReporting(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	fi, data := randObj(t, nd, 10000)
 	k := fi.Cid()
 
-	fname := gopath.Join(mnt.Dir, k.String())
+	fname := gopath.Join(mntDir, k.String())
 
 	finfo, err := os.Stat(fname)
 	if err != nil {
@@ -430,8 +433,7 @@ func TestFileSizeReporting(t *testing.T) {
 
 // Test that mode and mtime stored in UnixFS metadata are reported in stat.
 func TestUnixFSMetadataInStat(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	storedMode := os.FileMode(0o755)
 	storedMtime := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
@@ -444,7 +446,7 @@ func TestUnixFSMetadataInStat(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fpath := gopath.Join(mnt.Dir, node.Cid().String())
+	fpath := gopath.Join(mntDir, node.Cid().String())
 	fi, err := os.Stat(fpath)
 	if err != nil {
 		t.Fatal(err)
@@ -460,12 +462,11 @@ func TestUnixFSMetadataInStat(t *testing.T) {
 
 // Test that files without UnixFS metadata get the read-only defaults.
 func TestDefaultModeReadonly(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	// Create a plain UnixFS file (no mode/mtime metadata).
 	fi, _ := randObj(t, nd, 100)
-	fpath := gopath.Join(mnt.Dir, fi.Cid().String())
+	fpath := gopath.Join(mntDir, fi.Cid().String())
 
 	finfo, err := os.Stat(fpath)
 	if err != nil {
@@ -476,29 +477,29 @@ func TestDefaultModeReadonly(t *testing.T) {
 	}
 }
 
-// Test that ipfs_cid xattr returns the correct CID for files and directories.
+// Test that ipfs.cid xattr returns the correct CID for files and directories.
 func TestXattrCID(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	t.Run("file", func(t *testing.T) {
 		obj, _ := randObj(t, nd, 100)
-		node := &Node{Ipfs: nd, Nd: obj}
+		node := &Node{ipfs: nd, nd: obj}
 
-		listRes := fuse.ListxattrResponse{}
-		if err := node.Listxattr(t.Context(), &fuse.ListxattrRequest{}, &listRes); err != nil {
-			t.Fatal(err)
+		dest := make([]byte, 256)
+		sz, errno := node.Listxattr(t.Context(), dest)
+		if errno != 0 {
+			t.Fatalf("Listxattr: %v", errno)
 		}
-		if !bytes.Contains(listRes.Xattr, []byte(fusemnt.XattrCID)) {
-			t.Fatal("ipfs_cid not listed")
+		if !bytes.Contains(dest[:sz], []byte(fusemnt.XattrCID)) {
+			t.Fatal("ipfs.cid not listed")
 		}
 
-		getRes := fuse.GetxattrResponse{}
-		if err := node.Getxattr(t.Context(), &fuse.GetxattrRequest{Name: fusemnt.XattrCID}, &getRes); err != nil {
-			t.Fatal(err)
+		sz, errno = node.Getxattr(t.Context(), fusemnt.XattrCID, dest)
+		if errno != 0 {
+			t.Fatalf("Getxattr: %v", errno)
 		}
-		if string(getRes.Xattr) != obj.Cid().String() {
-			t.Fatalf("expected CID %s, got %s", obj.Cid().String(), string(getRes.Xattr))
+		if string(dest[:sz]) != obj.Cid().String() {
+			t.Fatalf("expected CID %s, got %s", obj.Cid().String(), string(dest[:sz]))
 		}
 	})
 
@@ -514,22 +515,113 @@ func TestXattrCID(t *testing.T) {
 		if err := nd.DAG.Add(nd.Context(), dirNode); err != nil {
 			t.Fatal(err)
 		}
-		node := &Node{Ipfs: nd, Nd: dirNode}
+		node := &Node{ipfs: nd, nd: dirNode}
 
-		listRes := fuse.ListxattrResponse{}
-		if err := node.Listxattr(t.Context(), &fuse.ListxattrRequest{}, &listRes); err != nil {
-			t.Fatal(err)
+		dest := make([]byte, 256)
+		sz, errno := node.Listxattr(t.Context(), dest)
+		if errno != 0 {
+			t.Fatalf("Listxattr: %v", errno)
 		}
-		if !bytes.Contains(listRes.Xattr, []byte(fusemnt.XattrCID)) {
-			t.Fatal("ipfs_cid not listed")
+		if !bytes.Contains(dest[:sz], []byte(fusemnt.XattrCID)) {
+			t.Fatal("ipfs.cid not listed")
 		}
 
-		getRes := fuse.GetxattrResponse{}
-		if err := node.Getxattr(t.Context(), &fuse.GetxattrRequest{Name: fusemnt.XattrCID}, &getRes); err != nil {
-			t.Fatal(err)
+		sz, errno = node.Getxattr(t.Context(), fusemnt.XattrCID, dest)
+		if errno != 0 {
+			t.Fatalf("Getxattr: %v", errno)
 		}
-		if string(getRes.Xattr) != dirNode.Cid().String() {
-			t.Fatalf("expected CID %s, got %s", dirNode.Cid().String(), string(getRes.Xattr))
+		if string(dest[:sz]) != dirNode.Cid().String() {
+			t.Fatalf("expected CID %s, got %s", dirNode.Cid().String(), string(dest[:sz]))
 		}
 	})
+
+	_ = mntDir // used for FUSE mount
+}
+
+// Test that symlinks in UnixFS are rendered via Readlink.
+func TestReadlink(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	// Build a directory containing a symlink.
+	db, err := uio.NewDirectory(nd.DAG)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	target := "hello.txt"
+	slData, err := ft.SymlinkData(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	symlinkNode := dag.NodeWithData(slData)
+	if err := nd.DAG.Add(nd.Context(), symlinkNode); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.AddChild(nd.Context(), "link", symlinkNode); err != nil {
+		t.Fatal(err)
+	}
+
+	dirNode, err := db.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := nd.DAG.Add(nd.Context(), dirNode); err != nil {
+		t.Fatal(err)
+	}
+
+	linkPath := gopath.Join(mntDir, dirNode.Cid().String(), "link")
+	got, err := os.Readlink(linkPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != target {
+		t.Fatalf("expected readlink %q, got %q", target, got)
+	}
+}
+
+// Test reading a slice from the middle of a file, skipping both
+// the beginning and the end.
+func TestSeekRead(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	obj, data := randObj(t, nd, 10000)
+	fpath := gopath.Join(mntDir, obj.Cid().String())
+
+	f, err := os.Open(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	off := int64(3000)
+	readLen := 2000
+	if _, err := f.Seek(off, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+
+	buf := make([]byte, readLen)
+	n, err := io.ReadFull(f, buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != readLen {
+		t.Fatalf("short read: got %d, want %d", n, readLen)
+	}
+	if !bytes.Equal(buf, data[off:off+int64(readLen)]) {
+		t.Fatal("content mismatch for middle slice")
+	}
+}
+
+// Test that getxattr on an unknown attribute returns ENODATA (Linux) / ENOATTR.
+func TestUnknownXattr(t *testing.T) {
+	nd, _ := setupIpfsTest(t, nil)
+
+	obj, _ := randObj(t, nd, 100)
+	node := &Node{ipfs: nd, nd: obj}
+
+	dest := make([]byte, 256)
+	_, errno := node.Getxattr(t.Context(), "user.bogus", dest)
+	if errno == 0 {
+		t.Fatal("expected error for unknown xattr, got success")
+	}
 }

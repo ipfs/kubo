@@ -4,14 +4,13 @@ package readonly
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"syscall"
 	"time"
 
-	fuse "bazil.org/fuse"
-	fs "bazil.org/fuse/fs"
+	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
@@ -28,231 +27,229 @@ var log = logging.Logger("fuse/ipfs")
 
 // /ipfs paths are immutable (content-addressed by CID), so the kernel
 // can cache attributes and directory entries for as long as it wants.
-const immutableAttrCacheTime = 365 * 24 * time.Hour
+var immutableAttrCacheTime = 365 * 24 * time.Hour
 
-// FileSystem is the readonly IPFS Fuse Filesystem.
-type FileSystem struct {
-	Ipfs *core.IpfsNode
-}
-
-// NewFileSystem constructs new fs using given core.IpfsNode instance.
-func NewFileSystem(ipfs *core.IpfsNode) *FileSystem {
-	return &FileSystem{Ipfs: ipfs}
-}
-
-// Root constructs the Root of the filesystem, a Root object.
-func (f FileSystem) Root() (fs.Node, error) {
-	return &Root{Ipfs: f.Ipfs}, nil
-}
-
-// Root is the root object of the filesystem tree.
+// Root is the root object of the /ipfs filesystem tree.
 type Root struct {
-	Ipfs *core.IpfsNode
+	fs.Inode
+	ipfs *core.IpfsNode
 }
 
-// Attr returns file attributes.
-func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Valid = immutableAttrCacheTime
-	a.Mode = fusemnt.NamespaceRootMode
-	a.Uid = uint32(os.Getuid())
-	a.Gid = uint32(os.Getgid())
-	return nil
+// NewRoot constructs a new readonly root node.
+func NewRoot(ipfs *core.IpfsNode) *Root {
+	return &Root{ipfs: ipfs}
 }
 
-// Lookup performs a lookup under this node.
-func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
+func (*Root) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
+	out.Attr.Mode = uint32(fusemnt.NamespaceRootMode.Perm())
+	out.SetTimeout(immutableAttrCacheTime)
+	return 0
+}
+
+func (r *Root) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	log.Debugf("Root Lookup: '%s'", name)
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
-		// Just quiet some log noise on OS X.
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
 	p, err := path.NewPath("/ipfs/" + name)
 	if err != nil {
 		log.Debugf("fuse failed to parse path: %q: %s", name, err)
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
 	imPath, err := path.NewImmutablePath(p)
 	if err != nil {
 		log.Debugf("fuse failed to convert path: %q: %s", name, err)
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
-	nd, ndLnk, err := s.Ipfs.UnixFSPathResolver.ResolvePath(ctx, imPath)
+	nd, ndLnk, err := r.ipfs.UnixFSPathResolver.ResolvePath(ctx, imPath)
 	if err != nil {
-		// todo: make this error more versatile.
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
 	cidLnk, ok := ndLnk.(cidlink.Link)
 	if !ok {
 		log.Debugf("non-cidlink returned from ResolvePath: %v", ndLnk)
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
-	// Build a legacy ipld.Node from the raw block so the rest of the
-	// FUSE code (Attr, ReadDirAll, Read) can work with it.
-	blk, err := s.Ipfs.Blockstore.Get(ctx, cidLnk.Cid)
+	blk, err := r.ipfs.Blockstore.Get(ctx, cidLnk.Cid)
 	if err != nil {
 		log.Debugf("fuse failed to retrieve block: %v: %s", cidLnk, err)
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
 	var fnd ipld.Node
 	switch cidLnk.Cid.Prefix().Codec {
 	case cid.DagProtobuf:
-		// Decode directly from block bytes. UnixFS files are
-		// represented as ADLs in ipld-prime, and their substrate
-		// type is not a dagpb.PBNode, so ProtoNodeConverter fails
-		// for them. Decoding from bytes works for all dag-pb blocks
-		// (files, directories, HAMT shards, symlinks, raw).
 		fnd, err = mdag.DecodeProtobuf(blk.RawData())
 	case cid.Raw:
 		fnd, err = mdag.RawNodeConverter(blk, nd)
 	default:
 		log.Error("fuse node was not a supported type")
-		return nil, syscall.Errno(syscall.ENOTSUP)
+		return nil, syscall.ENOTSUP
 	}
 	if err != nil {
 		log.Errorf("could not decode block as protobuf or raw node: %s", err)
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	}
 
-	return &Node{Ipfs: s.Ipfs, Nd: fnd}, nil
+	child := &Node{ipfs: r.ipfs, nd: fnd}
+	stable := stableAttrFor(child)
+
+	// Fill attrs in the lookup response so the kernel doesn't cache zeros.
+	child.fillAttr(&out.Attr)
+	out.SetEntryTimeout(immutableAttrCacheTime)
+	out.SetAttrTimeout(immutableAttrCacheTime)
+	return r.NewInode(ctx, child, stable), 0
 }
 
-// ReadDirAll reads a particular directory. Disallowed for root.
-func (*Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	log.Debug("read Root")
-	return nil, syscall.Errno(syscall.EPERM)
+// Readdir on the namespace root is not allowed (execute-only).
+func (*Root) Readdir(_ context.Context) (fs.DirStream, syscall.Errno) {
+	return nil, syscall.EPERM
 }
 
 // Node is the core object representing a filesystem tree node.
 type Node struct {
-	Ipfs   *core.IpfsNode
-	Nd     ipld.Node
+	fs.Inode
+	ipfs   *core.IpfsNode
+	nd     ipld.Node
 	cached *ft.FSNode
 }
 
-func (s *Node) loadData() error {
-	if pbnd, ok := s.Nd.(*mdag.ProtoNode); ok {
+func (n *Node) loadData() error {
+	if pbnd, ok := n.nd.(*mdag.ProtoNode); ok {
 		fsn, err := ft.FSNodeFromBytes(pbnd.Data())
 		if err != nil {
 			return err
 		}
-		s.cached = fsn
+		n.cached = fsn
 	}
 	return nil
 }
 
-// Attr returns the attributes of a given node.
-func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
+func (n *Node) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	log.Debug("Node attr")
-	a.Valid = immutableAttrCacheTime
-	a.Uid = uint32(os.Getuid())
-	a.Gid = uint32(os.Getgid())
-	if rawnd, ok := s.Nd.(*mdag.RawNode); ok {
-		a.Mode = fusemnt.DefaultFileModeRO
+	out.SetTimeout(immutableAttrCacheTime)
+	n.fillAttr(&out.Attr)
+	return 0
+}
+
+// Open is required by the kernel before Read can be called.
+// Returns nil handle since reads are served by NodeReader directly.
+func (n *Node) Open(_ context.Context, _ uint32) (fs.FileHandle, uint32, syscall.Errno) {
+	return nil, fuse.FOPEN_KEEP_CACHE, 0
+}
+
+// fillAttr populates a fuse.Attr from this node's UnixFS metadata.
+// Used by both Getattr and Lookup (to fill EntryOut.Attr so the kernel
+// doesn't cache zero values for the entry timeout duration).
+func (n *Node) fillAttr(a *fuse.Attr) {
+	if rawnd, ok := n.nd.(*mdag.RawNode); ok {
+		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
 		a.Size = uint64(len(rawnd.RawData()))
 		a.Blocks = 1
-		return nil
+		return
 	}
 
-	if s.cached == nil {
-		if err := s.loadData(); err != nil {
-			return fmt.Errorf("readonly: loadData() failed: %s", err)
+	if n.cached == nil {
+		if err := n.loadData(); err != nil {
+			log.Errorf("readonly: loadData() failed: %s", err)
+			return
 		}
 	}
-	switch s.cached.Type() {
+
+	switch n.cached.Type() {
 	case ft.TDirectory, ft.THAMTShard:
-		a.Mode = fusemnt.DefaultDirModeRO
+		a.Mode = uint32(fusemnt.DefaultDirModeRO.Perm())
 	case ft.TFile:
-		size := s.cached.FileSize()
-		a.Mode = fusemnt.DefaultFileModeRO
-		a.Size = uint64(size)
-		a.Blocks = uint64(len(s.Nd.Links()))
+		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
+		a.Size = n.cached.FileSize()
+		a.Blocks = uint64(len(n.nd.Links()))
 	case ft.TRaw:
-		a.Mode = fusemnt.DefaultFileModeRO
-		a.Size = uint64(len(s.cached.Data()))
-		a.Blocks = uint64(len(s.Nd.Links()))
+		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
+		a.Size = uint64(len(n.cached.Data()))
+		a.Blocks = uint64(len(n.nd.Links()))
 	case ft.TSymlink:
-		a.Mode = 0o777 | os.ModeSymlink
-		a.Size = uint64(len(s.cached.Data()))
+		a.Mode = 0o777
+		a.Size = uint64(len(n.cached.Data()))
 	default:
-		return fmt.Errorf("invalid data type - %s", s.cached.Type())
+		log.Errorf("invalid data type: %s", n.cached.Type())
+		return
 	}
 
 	// Use mode and mtime from UnixFS metadata when present.
-	if m := s.cached.Mode(); m != 0 {
-		a.Mode = m
+	if m := n.cached.Mode(); m != 0 {
+		a.Mode = uint32(m) & 07777
 	}
-	if t := s.cached.ModTime(); !t.IsZero() {
-		a.Mtime = t
+	if t := n.cached.ModTime(); !t.IsZero() {
+		a.SetTimes(nil, &t, nil)
 	}
-
-	return nil
 }
 
-// Lookup performs a lookup under this node.
-func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
+func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	log.Debugf("Lookup '%s'", name)
-	link, _, err := uio.ResolveUnixfsOnce(ctx, s.Ipfs.DAG, s.Nd, []string{name})
+	link, _, err := uio.ResolveUnixfsOnce(ctx, n.ipfs.DAG, n.nd, []string{name})
 	switch err {
 	case os.ErrNotExist, mdag.ErrLinkNotFound:
-		// todo: make this error more versatile.
-		return nil, syscall.Errno(syscall.ENOENT)
+		return nil, syscall.ENOENT
 	case nil:
-		// noop
 	default:
 		log.Errorf("fuse lookup %q: %s", name, err)
-		return nil, syscall.Errno(syscall.EIO)
+		return nil, syscall.EIO
 	}
 
-	nd, err := s.Ipfs.DAG.Get(ctx, link.Cid)
+	nd, err := n.ipfs.DAG.Get(ctx, link.Cid)
 	if err != nil && !ipld.IsNotFound(err) {
 		log.Errorf("fuse lookup %q: %s", name, err)
-		return nil, err
+		return nil, syscall.EIO
 	}
 
-	return &Node{Ipfs: s.Ipfs, Nd: nd}, nil
+	child := &Node{ipfs: n.ipfs, nd: nd}
+	stable := stableAttrFor(child)
+
+	child.fillAttr(&out.Attr)
+	out.SetEntryTimeout(immutableAttrCacheTime)
+	out.SetAttrTimeout(immutableAttrCacheTime)
+	return n.NewInode(ctx, child, stable), 0
 }
 
-// ReadDirAll reads the link structure as directory entries.
-func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
+func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	log.Debug("Node ReadDir")
-	dir, err := uio.NewDirectoryFromNode(s.Ipfs.DAG, s.Nd)
+	dir, err := uio.NewDirectoryFromNode(n.ipfs.DAG, n.nd)
 	if err != nil {
-		return nil, err
+		return nil, fs.ToErrno(err)
 	}
 
-	var entries []fuse.Dirent
+	var entries []fuse.DirEntry
 	err = dir.ForEachLink(ctx, func(lnk *ipld.Link) error {
-		n := lnk.Name
-		if len(n) == 0 {
-			n = lnk.Cid.String()
+		name := lnk.Name
+		if len(name) == 0 {
+			name = lnk.Cid.String()
 		}
-		nd, err := s.Ipfs.DAG.Get(ctx, lnk.Cid)
+		nd, err := n.ipfs.DAG.Get(ctx, lnk.Cid)
 		if err != nil {
 			log.Warn("error fetching directory child node: ", err)
 		}
 
-		t := fuse.DT_Unknown
+		var mode uint32
 		switch nd := nd.(type) {
 		case *mdag.RawNode:
-			t = fuse.DT_File
+			// regular file (mode 0 = S_IFREG)
 		case *mdag.ProtoNode:
 			if fsn, err := ft.FSNodeFromBytes(nd.Data()); err != nil {
 				log.Warn("failed to unmarshal protonode data field:", err)
 			} else {
 				switch fsn.Type() {
 				case ft.TDirectory, ft.THAMTShard:
-					t = fuse.DT_Dir
+					mode = syscall.S_IFDIR
 				case ft.TFile, ft.TRaw:
-					t = fuse.DT_File
+					// regular file
 				case ft.TSymlink:
-					t = fuse.DT_Link
+					mode = syscall.S_IFLNK
 				case ft.TMetadata:
 					log.Error("metadata object in fuse should contain its wrapped type")
 				default:
@@ -260,77 +257,97 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 				}
 			}
 		}
-		entries = append(entries, fuse.Dirent{Name: n, Type: t})
+		entries = append(entries, fuse.DirEntry{Name: name, Mode: mode})
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fs.ToErrno(err)
 	}
 
-	return entries, nil
+	return fs.NewListDirStream(entries), 0
 }
 
-func (s *Node) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
-	resp.Append(fusemnt.XattrCID)
-	return nil
-}
-
-func (s *Node) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
-	switch req.Name {
-	case fusemnt.XattrCID:
-		resp.Xattr = []byte(s.Nd.Cid().String())
-		return nil
-	default:
-		return fuse.ErrNoXattr
+func (n *Node) Listxattr(_ context.Context, dest []byte) (uint32, syscall.Errno) {
+	// Null-terminated list of attribute names.
+	data := []byte(fusemnt.XattrCID + "\x00")
+	if len(dest) == 0 {
+		return uint32(len(data)), 0
 	}
-}
-
-func (s *Node) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
-	if s.cached == nil || s.cached.Type() != ft.TSymlink {
-		return "", fuse.Errno(syscall.EINVAL)
+	if len(dest) < len(data) {
+		return 0, syscall.ERANGE
 	}
-	return string(s.cached.Data()), nil
+	return uint32(copy(dest, data)), 0
 }
 
-func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	r, err := uio.NewDagReader(ctx, s.Nd, s.Ipfs.DAG)
+func (n *Node) Getxattr(_ context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
+	if attr != fusemnt.XattrCID {
+		return 0, fs.ENOATTR
+	}
+	data := []byte(n.nd.Cid().String())
+	if len(dest) == 0 {
+		return uint32(len(data)), 0
+	}
+	if len(dest) < len(data) {
+		return 0, syscall.ERANGE
+	}
+	return uint32(copy(dest, data)), 0
+}
+
+func (n *Node) Readlink(_ context.Context) ([]byte, syscall.Errno) {
+	if n.cached == nil || n.cached.Type() != ft.TSymlink {
+		return nil, syscall.EINVAL
+	}
+	return n.cached.Data(), 0
+}
+
+func (n *Node) Read(ctx context.Context, _ fs.FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+	r, err := uio.NewDagReader(ctx, n.nd, n.ipfs.DAG)
 	if err != nil {
-		return err
+		return nil, fs.ToErrno(err)
 	}
-	_, err = r.Seek(req.Offset, io.SeekStart)
+	_, err = r.Seek(off, io.SeekStart)
 	if err != nil {
-		return err
+		return nil, fs.ToErrno(err)
 	}
-	// Data has a capacity of Size
-	buf := resp.Data[:int(req.Size)]
-	n, err := io.ReadFull(r, buf)
-	resp.Data = buf[:n]
+	nread, err := io.ReadFull(r, dest)
 	switch err {
 	case nil, io.EOF, io.ErrUnexpectedEOF:
 	default:
-		return err
+		return nil, fs.ToErrno(err)
 	}
-	resp.Data = resp.Data[:n]
-	return nil // may be non-nil / not succeeded
+	return fuse.ReadResultData(dest[:nread]), 0
 }
 
-// to check that our Node implements all the interfaces we want.
-type roRoot interface {
-	fs.Node
-	fs.HandleReadDirAller
-	fs.NodeStringLookuper
+// stableAttrFor returns the StableAttr (file type bits) for a Node.
+func stableAttrFor(n *Node) fs.StableAttr {
+	if _, ok := n.nd.(*mdag.RawNode); ok {
+		return fs.StableAttr{} // S_IFREG
+	}
+	if n.cached == nil {
+		_ = n.loadData()
+	}
+	if n.cached != nil {
+		switch n.cached.Type() {
+		case ft.TDirectory, ft.THAMTShard:
+			return fs.StableAttr{Mode: syscall.S_IFDIR}
+		case ft.TSymlink:
+			return fs.StableAttr{Mode: syscall.S_IFLNK}
+		}
+	}
+	return fs.StableAttr{} // S_IFREG
 }
 
-var _ roRoot = (*Root)(nil)
-
-type roNode interface {
-	fs.HandleReadDirAller
-	fs.HandleReader
-	fs.Node
-	fs.NodeStringLookuper
-	fs.NodeReadlinker
-	fs.NodeGetxattrer
-	fs.NodeListxattrer
-}
-
-var _ roNode = (*Node)(nil)
+// Interface checks.
+var (
+	_ fs.NodeGetattrer   = (*Root)(nil)
+	_ fs.NodeLookuper    = (*Root)(nil)
+	_ fs.NodeReaddirer   = (*Root)(nil)
+	_ fs.NodeGetattrer   = (*Node)(nil)
+	_ fs.NodeLookuper    = (*Node)(nil)
+	_ fs.NodeOpener      = (*Node)(nil)
+	_ fs.NodeReaddirer   = (*Node)(nil)
+	_ fs.NodeReader      = (*Node)(nil)
+	_ fs.NodeReadlinker  = (*Node)(nil)
+	_ fs.NodeGetxattrer  = (*Node)(nil)
+	_ fs.NodeListxattrer = (*Node)(nil)
+)
