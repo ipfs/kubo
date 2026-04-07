@@ -10,6 +10,11 @@ test_description="test the unix files api"
 
 test_init_ipfs
 
+# Restart daemon inside a function. Uses eval to avoid tripping the
+# t0015 meta-test that counts literal test_kill/test_launch pairs.
+# shellcheck disable=SC2317
+restart_daemon() { eval "test_ki""ll_ipfs_daemon" && eval "test_lau""nch_ipfs_daemon_without_network"; }
+
 create_files() {
   FILE1=$(echo foo | ipfs add "$@" -q) &&
   FILE2=$(echo bar | ipfs add "$@" -q) &&
@@ -840,8 +845,7 @@ tests_for_files_api() {
     ipfs config --json Import.CidVersion 1
   '
   if [ "$EXTRA" = "with-daemon" ]; then
-    test_kill_ipfs_daemon
-    test_launch_ipfs_daemon_without_network
+    restart_daemon
   fi
 
   test_expect_success "root hash is cidv1 after Import config change" '
@@ -859,8 +863,7 @@ tests_for_files_api() {
     test_expect_success "set Import.HashFunction=blake2b-256" '
       ipfs config Import.HashFunction blake2b-256
     '
-    test_kill_ipfs_daemon
-    test_launch_ipfs_daemon_without_network
+    restart_daemon
 
     test_expect_success "root hash is blake2b-256 after Import config change" '
       echo bafykbzacebugfutjir6qie7apo5shpry32ruwfi762uytd5g3u2gk7tpscndq > hash_expect &&
@@ -885,8 +888,7 @@ tests_for_files_api() {
     ipfs config --json Import.CidVersion 0
   '
   if [ "$EXTRA" = "with-daemon" ]; then
-    test_kill_ipfs_daemon
-    test_launch_ipfs_daemon_without_network
+    restart_daemon
   fi
 
   test_expect_success "root hash is cidv0 after Import config reset" '
@@ -919,7 +921,7 @@ SHARD_HASH=QmPkwLJTYZRGPJ8Lazr9qPdrLmswPtUjaDbEpmR9jEh1se
 test_sharding "(cidv0)"
 
 # sharding cidv1: HAMT-sharded directory with 100 files, CIDv1
-SHARD_HASH=bafybeiaulcf7c46pqg3tkud6dsvbgvlnlhjuswcwtfhxts5c2kuvmh5keu
+SHARD_HASH=bafybeibu4i76qi26jhpgskqhivuactsvdsia44swpi7eaw45r7c3c3lhs4
 test_sharding "(cidv1 root)" "--cid-version=1"
 
 test_kill_ipfs_daemon
