@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"syscall"
+	"time"
 
 	fuse "bazil.org/fuse"
 	fs "bazil.org/fuse/fs"
@@ -19,11 +20,14 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/ipfs/kubo/core"
-	ipldprime "github.com/ipld/go-ipld-prime"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 )
 
 var log = logging.Logger("fuse/ipfs")
+
+// /ipfs paths are immutable (content-addressed by CID), so the kernel
+// can cache attributes and directory entries for as long as it wants.
+const immutableAttrCacheTime = 365 * 24 * time.Hour
 
 // FileSystem is the readonly IPFS Fuse Filesystem.
 type FileSystem struct {
@@ -47,7 +51,10 @@ type Root struct {
 
 // Attr returns file attributes.
 func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Valid = immutableAttrCacheTime
 	a.Mode = os.ModeDir | 0o111 // -rw+x
+	a.Uid = uint32(os.Getuid())
+	a.Gid = uint32(os.Getgid())
 	return nil
 }
 
@@ -84,7 +91,8 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
-	// convert ipld-prime node to universal node
+	// Build a legacy ipld.Node from the raw block so the rest of the
+	// FUSE code (Attr, ReadDirAll, Read) can work with it.
 	blk, err := s.Ipfs.Blockstore.Get(ctx, cidLnk.Cid)
 	if err != nil {
 		log.Debugf("fuse failed to retrieve block: %v: %s", cidLnk, err)
@@ -94,13 +102,12 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	var fnd ipld.Node
 	switch cidLnk.Cid.Prefix().Codec {
 	case cid.DagProtobuf:
-		adl, ok := nd.(ipldprime.ADL)
-		if ok {
-			substrate := adl.Substrate()
-			fnd, err = mdag.ProtoNodeConverter(blk, substrate)
-		} else {
-			fnd, err = mdag.ProtoNodeConverter(blk, nd)
-		}
+		// Decode directly from block bytes. UnixFS files are
+		// represented as ADLs in ipld-prime, and their substrate
+		// type is not a dagpb.PBNode, so ProtoNodeConverter fails
+		// for them. Decoding from bytes works for all dag-pb blocks
+		// (files, directories, HAMT shards, symlinks, raw).
+		fnd, err = mdag.DecodeProtobuf(blk.RawData())
 	case cid.Raw:
 		fnd, err = mdag.RawNodeConverter(blk, nd)
 	default:
@@ -108,7 +115,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, syscall.Errno(syscall.ENOTSUP)
 	}
 	if err != nil {
-		log.Errorf("could not convert protobuf or raw node: %s", err)
+		log.Errorf("could not decode block as protobuf or raw node: %s", err)
 		return nil, syscall.Errno(syscall.ENOENT)
 	}
 
@@ -140,8 +147,12 @@ func (s *Node) loadData() error {
 }
 
 // Attr returns the attributes of a given node.
+// TODO: use Mode and Mtime from UnixFS record if present
 func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Node attr")
+	a.Valid = immutableAttrCacheTime
+	a.Uid = uint32(os.Getuid())
+	a.Gid = uint32(os.Getgid())
 	if rawnd, ok := s.Nd.(*mdag.RawNode); ok {
 		a.Mode = 0o444
 		a.Size = uint64(len(rawnd.RawData()))
@@ -247,10 +258,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		return nil, err
 	}
 
-	if len(entries) > 0 {
-		return entries, nil
-	}
-	return nil, syscall.Errno(syscall.ENOENT)
+	return entries, nil
 }
 
 func (s *Node) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
