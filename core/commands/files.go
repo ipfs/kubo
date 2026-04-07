@@ -1269,10 +1269,15 @@ var filesChcidCmd = &cmds.Command{
 		Tagline: "Change the CID version or hash function of the root node of a given path.",
 		ShortDescription: `
 Change the CID version or hash function of the root node of a given path.
+
+Note: the MFS root ('/') CID format is controlled by Import.CidVersion and
+Import.HashFunction in the config and cannot be changed with this command.
+Use 'ipfs config' to modify these values instead. This command only works
+on subdirectories of the MFS root.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", false, false, "Path to change. Default: '/'."),
+		cmds.StringArg("path", true, false, "Path to change (must not be '/')."),
 	},
 	Options: []cmds.Option{
 		cidVersionOption,
@@ -1284,9 +1289,10 @@ Change the CID version or hash function of the root node of a given path.
 			return err
 		}
 
-		path := "/"
-		if len(req.Arguments) > 0 {
-			path = req.Arguments[0]
+		path := req.Arguments[0]
+		if path == "/" {
+			return fmt.Errorf("cannot change CID format of the MFS root; " +
+				"use 'ipfs config Import.CidVersion' and 'ipfs config Import.HashFunction' instead")
 		}
 
 		flush, _ := req.Options[filesFlushOptionName].(bool)
