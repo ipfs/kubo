@@ -4,6 +4,7 @@ package mount
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -27,7 +28,7 @@ type mount struct {
 func NewMount(root fs.InodeEmbedder, mountpoint string, opts *fs.Options) (Mount, error) {
 	server, err := fs.Mount(mountpoint, root, opts)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("mounting %s: %w", mountpoint, err)
 	}
 
 	m := &mount{
