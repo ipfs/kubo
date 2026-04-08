@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	goversion "github.com/hashicorp/go-version"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -25,6 +27,16 @@ const (
 	updatePreOptionName            = "pre"
 	updateCountOptionName          = "count"
 	updateAllowDowngradeOptionName = "allow-downgrade"
+
+	// updateDefaultTimeout is the fallback timeout for update operations
+	// when the user does not pass --timeout. One hour allows for slow
+	// connections downloading ~50 MB archives.
+	updateDefaultTimeout = 1 * time.Hour
+
+	// maxBinarySize caps the decompressed binary size to prevent zip/tar
+	// bombs. Current kubo binary is ~120 MB uncompressed; 1 GB leaves
+	// room for growth while catching decompression attacks.
+	maxBinarySize = 1 << 30
 )
 
 // UpdateCmd is the "ipfs update" command tree.
@@ -106,7 +118,8 @@ ENVIRONMENT VARIABLES
 	},
 	Type: UpdateCheckOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx := req.Context
+		ctx, cancel := updateContext(req)
+		defer cancel()
 		includePre, _ := req.Options[updatePreOptionName].(bool)
 
 		rel, err := githubLatestRelease(ctx, includePre)
@@ -166,7 +179,8 @@ running version is marked with an asterisk (*).
 	},
 	Type: UpdateVersionsOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx := req.Context
+		ctx, cancel := updateContext(req)
+		defer cancel()
 		count, _ := req.Options[updateCountOptionName].(int)
 		if count <= 0 {
 			count = 30
@@ -240,7 +254,8 @@ restored with 'ipfs update revert'.
 	},
 	Type: UpdateInstallOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx := req.Context
+		ctx, cancel := updateContext(req)
+		defer cancel()
 
 		if err := checkDaemonNotRunning(); err != nil {
 			return err
@@ -276,7 +291,7 @@ restored with 'ipfs update revert'.
 			return fmt.Errorf("version %s is older than current %s (use --allow-downgrade to force)", target, current)
 		}
 
-		// Find and download asset.
+		// Download, verify, and extract before touching the current binary.
 		fmt.Fprintf(os.Stderr, "Downloading Kubo %s...\n", target)
 
 		_, asset, err := findReleaseAsset(ctx, normalizeVersion(target))
@@ -289,13 +304,11 @@ restored with 'ipfs update revert'.
 			return err
 		}
 
-		// Verify checksum using .sha512 sidecar file.
 		if err := downloadAndVerifySHA512(ctx, data, asset.BrowserDownloadURL); err != nil {
 			return fmt.Errorf("checksum verification failed: %w", err)
 		}
 		fmt.Fprintln(os.Stderr, "Checksum verified (SHA-512).")
 
-		// Extract binary from archive.
 		binData, err := extractBinaryFromArchive(data)
 		if err != nil {
 			return fmt.Errorf("extracting binary: %w", err)
@@ -311,14 +324,13 @@ restored with 'ipfs update revert'.
 			return fmt.Errorf("resolving binary path: %w", err)
 		}
 
-		// Stash current binary.
+		// Stash current binary, then replace it.
 		stashedTo, err := stashBinary(binPath, current)
 		if err != nil {
 			return fmt.Errorf("backing up current binary: %w", err)
 		}
 		fmt.Fprintf(os.Stderr, "Backed up current binary to %s\n", stashedTo)
 
-		// Replace binary.
 		if err := replaceBinary(binPath, binData); err != nil {
 			// Permission error fallback: save to temp dir.
 			if errors.Is(err, os.ErrPermission) {
@@ -441,6 +453,18 @@ The backup is created automatically by 'ipfs update install'.
 
 // -- helpers --
 
+// updateContext returns a context for update operations. If the user
+// passed --timeout, req.Context already carries that deadline and is
+// returned as-is. Otherwise a fallback of updateDefaultTimeout is applied
+// so HTTP calls cannot hang indefinitely.
+func updateContext(req *cmds.Request) (context.Context, context.CancelFunc) {
+	ctx := req.Context
+	if _, ok := ctx.Deadline(); ok {
+		return ctx, func() {}
+	}
+	return context.WithTimeout(ctx, updateDefaultTimeout)
+}
+
 // currentVersion returns the version string used by update commands.
 // It defaults to version.CurrentVersionNumber but can be overridden by
 // setting IPFS_VERSION_FAKE, which is useful for testing update
@@ -462,6 +486,7 @@ func checkDaemonNotRunning() error {
 	locked, err := fsrepo.LockedByOtherProcess(repoPath)
 	if err != nil {
 		// Lock check failed (e.g. repo doesn't exist yet), not an error.
+		fmt.Fprintf(os.Stderr, "Warning: could not check daemon lock at %s: %v\n", repoPath, err)
 		return nil
 	}
 	if locked {
@@ -588,16 +613,18 @@ func replaceBinary(targetPath string, data []byte) error {
 func extractBinaryFromArchive(data []byte) ([]byte, error) {
 	binName := migrations.ExeName("ipfs")
 
-	// Try tar.gz first, then zip.
-	if result, err := extractFromTarGz(data, binName); err == nil {
+	// Try tar.gz first (Unix releases), then zip (Windows releases).
+	result, tarErr := extractFromTarGz(data, binName)
+	if tarErr == nil {
 		return result, nil
 	}
 
-	if result, err := extractFromZip(data, binName); err == nil {
+	result, zipErr := extractFromZip(data, binName)
+	if zipErr == nil {
 		return result, nil
 	}
 
-	return nil, errors.New("could not find ipfs binary in archive (expected kubo/ipfs)")
+	return nil, fmt.Errorf("could not find ipfs binary in archive (expected kubo/%s): tar.gz: %v, zip: %v", binName, tarErr, zipErr)
 }
 
 func extractFromTarGz(data []byte, binName string) ([]byte, error) {
@@ -618,7 +645,14 @@ func extractFromTarGz(data []byte, binName string) ([]byte, error) {
 			return nil, err
 		}
 		if hdr.Name == lookFor {
-			return io.ReadAll(tr)
+			result, readErr := io.ReadAll(io.LimitReader(tr, maxBinarySize+1))
+			if readErr != nil {
+				return nil, readErr
+			}
+			if int64(len(result)) > maxBinarySize {
+				return nil, fmt.Errorf("extracted binary exceeds maximum size of %d bytes", maxBinarySize)
+			}
+			return result, nil
 		}
 	}
 	return nil, fmt.Errorf("%s not found in tar.gz", lookFor)
@@ -639,9 +673,15 @@ func extractFromZip(data []byte, binName string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		result, err := io.ReadAll(rc)
+		result, err := io.ReadAll(io.LimitReader(rc, maxBinarySize+1))
 		rc.Close()
-		return result, err
+		if err != nil {
+			return nil, err
+		}
+		if int64(len(result)) > maxBinarySize {
+			return nil, fmt.Errorf("extracted binary exceeds maximum size of %d bytes", maxBinarySize)
+		}
+		return result, nil
 	}
 	return nil, fmt.Errorf("%s not found in zip", lookFor)
 }
