@@ -22,7 +22,12 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
 
 	allowOther := cfg.Mounts.FuseAllowOther
 
-	fsys, err := NewFileSystem(ipfs.Context(), coreAPI, ipfsmp, ipnsmp)
+	mfsOpts, err := cfg.Import.MFSRootOptions()
+	if err != nil {
+		return nil, err
+	}
+
+	fsys, err := NewFileSystem(ipfs.Context(), coreAPI, ipfsmp, ipnsmp, mfsOpts...)
 	if err != nil {
 		return nil, err
 	}

@@ -7,9 +7,12 @@ import (
 	"strings"
 
 	chunk "github.com/ipfs/boxo/chunker"
+	merkledag "github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
+	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/verifcid"
+	cid "github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -102,10 +105,9 @@ func ValidateImportConfig(cfg *Import) error {
 	if !cfg.UnixFSHAMTDirectoryMaxFanout.IsDefault() {
 		fanout := cfg.UnixFSHAMTDirectoryMaxFanout.WithDefault(DefaultUnixFSHAMTDirectoryMaxFanout)
 
-		// Check all requirements: fanout < 8 covers both non-positive and non-multiple of 8
-		// Combined with power of 2 check and max limit, this ensures valid values: 8, 16, 32, 64, 128, 256, 512, 1024
+		// Valid values are powers of 2 between 8 and 1024: 8, 16, 32, 64, 128, 256, 512, 1024
 		if fanout < 8 || !isPowerOfTwo(fanout) || fanout > 1024 {
-			return fmt.Errorf("Import.UnixFSHAMTDirectoryMaxFanout must be a positive power of 2, multiple of 8, and not exceed 1024 (got %d)", fanout)
+			return fmt.Errorf("Import.UnixFSHAMTDirectoryMaxFanout must be a power of 2, between 8 and 1024 (got %d)", fanout)
 		}
 	}
 
@@ -259,4 +261,48 @@ func (i *Import) UnixFSSplitterFunc() chunk.SplitterGen {
 		}
 		return s
 	}
+}
+
+// MFSRootOptions returns all MFS root options derived from Import config.
+func (i *Import) MFSRootOptions() ([]mfs.Option, error) {
+	cidBuilder, err := i.UnixFSCidBuilder()
+	if err != nil {
+		return nil, err
+	}
+	sizeEstimationMode := i.HAMTSizeEstimationMode()
+	return []mfs.Option{
+		mfs.WithCidBuilder(cidBuilder),
+		mfs.WithChunker(i.UnixFSSplitterFunc()),
+		mfs.WithMaxLinks(int(i.UnixFSDirectoryMaxLinks.WithDefault(DefaultUnixFSDirectoryMaxLinks))),
+		mfs.WithMaxHAMTFanout(int(i.UnixFSHAMTDirectoryMaxFanout.WithDefault(DefaultUnixFSHAMTDirectoryMaxFanout))),
+		mfs.WithHAMTShardingSize(int(i.UnixFSHAMTDirectorySizeThreshold.WithDefault(DefaultUnixFSHAMTDirectorySizeThreshold))),
+		mfs.WithSizeEstimationMode(sizeEstimationMode),
+	}, nil
+}
+
+// UnixFSCidBuilder returns a cid.Builder based on Import.CidVersion and
+// Import.HashFunction. Always builds an explicit prefix so that MFS
+// respects kubo defaults even when they differ from boxo's internal
+// CIDv0/sha2-256 default (see https://github.com/ipfs/kubo/issues/4143).
+func (i *Import) UnixFSCidBuilder() (cid.Builder, error) {
+	cidVer := int(i.CidVersion.WithDefault(DefaultCidVersion))
+	hashFunc := i.HashFunction.WithDefault(DefaultHashFunction)
+
+	if hashFunc != DefaultHashFunction && cidVer == 0 {
+		cidVer = 1
+	}
+
+	prefix, err := merkledag.PrefixForCidVersion(cidVer)
+	if err != nil {
+		return nil, err
+	}
+
+	hashCode, ok := mh.Names[strings.ToLower(hashFunc)]
+	if !ok {
+		return nil, fmt.Errorf("Import.HashFunction unrecognized: %q", hashFunc)
+	}
+	prefix.MhType = hashCode
+	prefix.MhLength = -1
+
+	return &prefix, nil
 }

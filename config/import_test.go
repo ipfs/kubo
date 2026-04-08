@@ -26,25 +26,25 @@ func TestValidateImportConfig_HAMTFanout(t *testing.T) {
 		{name: "valid 1024", fanout: 1024, wantErr: false},
 
 		// Invalid values - not powers of 2
-		{name: "invalid 7", fanout: 7, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 15", fanout: 15, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 100", fanout: 100, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 257", fanout: 257, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 1000", fanout: 1000, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
+		{name: "invalid 7", fanout: 7, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 15", fanout: 15, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 100", fanout: 100, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 257", fanout: 257, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 1000", fanout: 1000, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
 
-		// Invalid values - powers of 2 but not multiples of 8
-		{name: "invalid 1", fanout: 1, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 2", fanout: 2, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 4", fanout: 4, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
+		// Invalid values - powers of 2 but less than 8
+		{name: "invalid 1", fanout: 1, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 2", fanout: 2, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 4", fanout: 4, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
 
 		// Invalid values - exceeds 1024
-		{name: "invalid 2048", fanout: 2048, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid 4096", fanout: 4096, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
+		{name: "invalid 2048", fanout: 2048, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid 4096", fanout: 4096, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
 
 		// Invalid values - negative or zero
-		{name: "invalid 0", fanout: 0, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid -8", fanout: -8, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
-		{name: "invalid -256", fanout: -256, wantErr: true, errMsg: "must be a positive power of 2, multiple of 8, and not exceed 1024"},
+		{name: "invalid 0", fanout: 0, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid -8", fanout: -8, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
+		{name: "invalid -256", fanout: -256, wantErr: true, errMsg: "must be a power of 2, between 8 and 1024"},
 	}
 
 	for _, tt := range tests {
@@ -480,6 +480,95 @@ func TestValidateImportConfig_DAGLayout(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestImport_UnixFSCidBuilder(t *testing.T) {
+	defaultMhType := mh.Names[strings.ToLower(DefaultHashFunction)]
+
+	tests := []struct {
+		name       string
+		cfg        Import
+		wantCidVer uint64
+		wantMhType uint64
+	}{
+		{
+			name:       "CIDv1 explicit",
+			cfg:        Import{CidVersion: *NewOptionalInteger(1)},
+			wantCidVer: 1,
+			wantMhType: defaultMhType,
+		},
+		{
+			name:       "CIDv0 explicit",
+			cfg:        Import{CidVersion: *NewOptionalInteger(0)},
+			wantCidVer: 0,
+			wantMhType: defaultMhType,
+		},
+		{
+			name:       "non-default hash upgrades CIDv0 to CIDv1",
+			cfg:        Import{HashFunction: *NewOptionalString("sha2-512")},
+			wantCidVer: 1,
+			wantMhType: mh.SHA2_512,
+		},
+		{
+			name: "CIDv1 with sha2-512",
+			cfg: Import{
+				CidVersion:   *NewOptionalInteger(1),
+				HashFunction: *NewOptionalString("sha2-512"),
+			},
+			wantCidVer: 1,
+			wantMhType: mh.SHA2_512,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder, err := tt.cfg.UnixFSCidBuilder()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if builder == nil {
+				t.Fatal("expected non-nil builder")
+			}
+			c, err := builder.Sum([]byte("test"))
+			if err != nil {
+				t.Fatalf("builder.Sum failed: %v", err)
+			}
+			pref := c.Prefix()
+			if pref.Version != tt.wantCidVer {
+				t.Errorf("CID version = %d, want %d", pref.Version, tt.wantCidVer)
+			}
+			if pref.MhType != tt.wantMhType {
+				t.Errorf("multihash type = 0x%x, want 0x%x", pref.MhType, tt.wantMhType)
+			}
+		})
+	}
+}
+
+// TestImport_UnixFSCidBuilderDefaults verifies that UnixFSCidBuilder always
+// returns an explicit builder even when no config is set, so that MFS
+// respects kubo's DefaultCidVersion rather than relying on boxo's internal
+// CIDv0 default (relevant for https://github.com/ipfs/kubo/issues/4143).
+func TestImport_UnixFSCidBuilderDefaults(t *testing.T) {
+	cfg := &Import{}
+	builder, err := cfg.UnixFSCidBuilder()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if builder == nil {
+		t.Fatal("expected non-nil builder at defaults")
+	}
+	c, err := builder.Sum([]byte("test"))
+	if err != nil {
+		t.Fatalf("builder.Sum failed: %v", err)
+	}
+	pref := c.Prefix()
+	if pref.Version != uint64(DefaultCidVersion) {
+		t.Errorf("CID version = %d, want DefaultCidVersion (%d)", pref.Version, DefaultCidVersion)
+	}
+	wantMhType := mh.Names[strings.ToLower(DefaultHashFunction)]
+	if pref.MhType != wantMhType {
+		t.Errorf("multihash type = 0x%x, want 0x%x (DefaultHashFunction=%s)", pref.MhType, wantMhType, DefaultHashFunction)
 	}
 }
 

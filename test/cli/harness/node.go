@@ -248,7 +248,7 @@ func (n *Node) Init(ipfsArgs ...string) *Node {
 		// Telemetry disabled by default in tests.
 		cfg.Plugins = config.Plugins{
 			Plugins: map[string]config.Plugin{
-				"telemetry": config.Plugin{
+				"telemetry": {
 					Disabled: true,
 				},
 			},
@@ -737,6 +737,12 @@ func (n *Node) DatastoreCount(prefix string) int64 {
 	res := n.IPFS("diag", "datastore", "count", prefix)
 	count, _ := strconv.ParseInt(strings.TrimSpace(res.Stdout.String()), 10, 64)
 	return count
+}
+
+// DatastorePut writes a key-value pair to the datastore.
+// Requires the daemon to be stopped.
+func (n *Node) DatastorePut(key, value string) {
+	n.IPFS("diag", "datastore", "put", key, value)
 }
 
 // DatastoreGet retrieves the value at the given key.

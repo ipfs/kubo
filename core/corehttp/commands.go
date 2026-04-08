@@ -146,7 +146,7 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
 			cmdHandler = withAuthSecrets(authorizations, cmdHandler)
 		}
 
-		cmdHandler = otelhttp.NewHandler(cmdHandler, "corehttp.cmdsHandler")
+		cmdHandler = otelhttp.NewHandler(withMetricLabels(cmdHandler, staticServerDomainAttrFn("api")), "corehttp.cmdsHandler")
 		mux.Handle(APIPath+"/", cmdHandler)
 		return mux, nil
 	}
