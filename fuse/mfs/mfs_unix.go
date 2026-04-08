@@ -156,7 +156,10 @@ func (d *Dir) Rename(_ context.Context, oldName string, newParent fs.InodeEmbedd
 		return fs.ToErrno(err)
 	}
 
-	targetDir := newParent.EmbeddedInode().Operations().(*Dir)
+	targetDir, ok := newParent.EmbeddedInode().Operations().(*Dir)
+	if !ok {
+		return syscall.EINVAL
+	}
 	if err := targetDir.mfsDir.Unlink(newName); err != nil && err != os.ErrNotExist {
 		return fs.ToErrno(err)
 	}
