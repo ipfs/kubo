@@ -40,6 +40,7 @@ import (
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/fuse/fusetest"
 	fusemnt "github.com/ipfs/kubo/fuse/mount"
+	"github.com/stretchr/testify/require"
 )
 
 func testMount(t *testing.T, root fs.InodeEmbedder) string {
@@ -581,6 +582,47 @@ func TestReadlink(t *testing.T) {
 	if got != target {
 		t.Fatalf("expected readlink %q, got %q", target, got)
 	}
+}
+
+// Test that readdir reports symlinks with ModeSymlink so that
+// tools like ls -l and find -type l see the correct file type.
+func TestReaddirSymlink(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	db, err := uio.NewDirectory(nd.DAG)
+	require.NoError(t, err)
+
+	// Regular file child.
+	fileData := []byte("hello")
+	fileNode := dag.NodeWithData(ft.FilePBData(fileData, uint64(len(fileData))))
+	require.NoError(t, nd.DAG.Add(nd.Context(), fileNode))
+	require.NoError(t, db.AddChild(nd.Context(), "regular", fileNode))
+
+	// Symlink child.
+	slData, err := ft.SymlinkData("hello")
+	require.NoError(t, err)
+	symlinkNode := dag.NodeWithData(slData)
+	require.NoError(t, nd.DAG.Add(nd.Context(), symlinkNode))
+	require.NoError(t, db.AddChild(nd.Context(), "link", symlinkNode))
+
+	dirNode, err := db.GetNode()
+	require.NoError(t, err)
+	require.NoError(t, nd.DAG.Add(nd.Context(), dirNode))
+
+	entries, err := os.ReadDir(gopath.Join(mntDir, dirNode.Cid().String()))
+	require.NoError(t, err)
+
+	found := false
+	for _, e := range entries {
+		if e.Name() == "link" {
+			require.NotZero(t, e.Type()&os.ModeSymlink, "readdir should report symlink type")
+			found = true
+		}
+		if e.Name() == "regular" {
+			require.Zero(t, e.Type()&os.ModeSymlink, "regular file should not have symlink type")
+		}
+	}
+	require.True(t, found, "symlink entry not found in readdir")
 }
 
 // Test reading a slice from the middle of a file, skipping both

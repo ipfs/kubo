@@ -301,6 +301,33 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		require.Equal(t, "/some/target", got)
 	})
 
+	// Verify that readdir reports symlinks with ModeSymlink so that
+	// tools like ls -l and find -type l see the correct file type.
+	t.Run("SymlinkReaddir", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+
+		// Create a regular file and a symlink in the same directory.
+		WriteFileOrFail(t, 100, filepath.Join(dir, "regular"))
+		require.NoError(t, os.Symlink("/some/target", filepath.Join(dir, "mylink")))
+
+		entries, err := os.ReadDir(dir)
+		require.NoError(t, err)
+
+		found := false
+		for _, e := range entries {
+			if e.Name() == "mylink" {
+				require.Equal(t, os.ModeSymlink, e.Type()&os.ModeSymlink,
+					"readdir should report symlink type for mylink")
+				found = true
+			}
+			if e.Name() == "regular" {
+				require.Equal(t, os.FileMode(0), e.Type()&os.ModeSymlink,
+					"readdir should not report symlink type for regular file")
+			}
+		}
+		require.True(t, found, "symlink entry not found in readdir")
+	})
+
 	t.Run("SymlinkSetattr", func(t *testing.T) {
 		dir := mount(t, writable.Config{StoreMtime: true})
 		link := filepath.Join(dir, "mtimelink")

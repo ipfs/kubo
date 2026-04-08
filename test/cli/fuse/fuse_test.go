@@ -3,7 +3,7 @@
 //
 // These tests complement the unit tests in fuse/readonly/, fuse/ipns/,
 // and fuse/mfs/ which test the FUSE filesystem implementations directly
-// (without a daemon) via bazil.org/fuse/fs/fstestutil.
+// (without a daemon) via fusetest.TestMount.
 //
 // All tests here are gated by testutils.RequiresFUSE (TEST_FUSE env var).
 // CI runs them via `make test_fuse_cli` inside the fuse-tests job.

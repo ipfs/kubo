@@ -121,8 +121,16 @@ func (d *Dir) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	entries := make([]fuse.DirEntry, len(nodes))
 	for i, node := range nodes {
 		var mode uint32
-		if node.Type == int(mfs.TDir) {
+		switch {
+		case node.Type == int(mfs.TDir):
 			mode = syscall.S_IFDIR
+		case node.Type == int(mfs.TFile):
+			// MFS represents symlinks as TFile; check the DAG node.
+			if child, err := d.MFSDir.Child(node.Name); err == nil {
+				if f, ok := child.(*mfs.File); ok && SymlinkTarget(f) != "" {
+					mode = syscall.S_IFLNK
+				}
+			}
 		}
 		entries[i] = fuse.DirEntry{Name: node.Name, Mode: mode}
 	}
