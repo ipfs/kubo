@@ -260,20 +260,48 @@ func TestUpdateInstall(t *testing.T) {
 		"should confirm checksum passed")
 	assert.Contains(t, stderr, "Backed up current binary to",
 		"should report where the old binary was stashed")
-	assert.Contains(t, stderr, "Successfully updated Kubo 0.30.0 -> 0.99.0",
-		"should confirm the version change")
 
 	// Verify the stash: the original binary should be saved to
-	// $IPFS_PATH/old-bin/ipfs-0.30.0.
-	stashPath := filepath.Join(node.Dir, "old-bin", "ipfs-0.30.0")
+	// $IPFS_PATH/old-bin/ipfs-0.30.0 (with .exe on Windows).
+	stashName := "ipfs-0.30.0"
+	if runtime.GOOS == "windows" {
+		stashName += ".exe"
+	}
+	stashPath := filepath.Join(node.Dir, "old-bin", stashName)
 	_, err := os.Stat(stashPath)
 	require.NoError(t, err, "stash file should exist at %s", stashPath)
 
-	// Verify the binary was replaced with the fake binary from the archive.
-	got, err := os.ReadFile(tmpBinPath)
-	require.NoError(t, err)
-	assert.Equal(t, fakeBinary, got,
-		"binary at %s should contain the extracted archive content", tmpBinPath)
+	// On Windows the OS locks the executable of a running process, so
+	// atomicfile cannot rename over it. The install command falls back
+	// to saving the new binary to a temp path with manual move instructions.
+	if runtime.GOOS == "windows" && strings.Contains(stderr, "Move it manually") {
+		assert.Contains(t, stderr, "Could not replace",
+			"should explain why in-place replacement failed")
+		assert.Contains(t, stderr, "New binary saved to:",
+			"should print where the new binary was saved")
+
+		// Extract the temp path from stderr and verify the file exists
+		// with the expected content.
+		for line := range strings.SplitSeq(stderr, "\n") {
+			if savedPath, ok := strings.CutPrefix(line, "New binary saved to: "); ok {
+				savedPath = strings.TrimSpace(savedPath)
+				got, err := os.ReadFile(savedPath)
+				require.NoError(t, err, "new binary should exist at %s", savedPath)
+				assert.Equal(t, fakeBinary, got,
+					"binary at %s should contain the extracted archive content", savedPath)
+				break
+			}
+		}
+	} else {
+		// Non-Windows (or Windows where in-place replace succeeded):
+		// binary was replaced atomically.
+		assert.Contains(t, stderr, "Successfully updated Kubo 0.30.0 -> 0.99.0",
+			"should confirm the version change")
+		got, err := os.ReadFile(tmpBinPath)
+		require.NoError(t, err)
+		assert.Equal(t, fakeBinary, got,
+			"binary at %s should contain the extracted archive content", tmpBinPath)
+	}
 }
 
 // TestUpdateRevert exercises the full revert flow end-to-end: reading

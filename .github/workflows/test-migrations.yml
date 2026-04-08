@@ -83,6 +83,7 @@ jobs:
       - name: Run CLI update tests
         env:
           IPFS_PATH: ${{ runner.temp }}/ipfs-update-test
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           export PATH="${{ github.workspace }}/cmd/ipfs:$PATH"
           go test -run "TestUpdate" ./test/cli/...
