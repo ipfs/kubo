@@ -55,8 +55,14 @@ brew install --cask macfuse
 
 After installation, open **System Settings > Privacy & Security** and allow the macFUSE kernel extension to load. A reboot may be required.
 
+Kubo automatically sets `volname`, `noapplexattr`, and `noappledouble` mount options on macOS:
+
+- `volname` shows the filesystem name (ipfs, ipns, mfs) in Finder instead of the generic "macfuse Volume 0"
+- `noapplexattr` prevents Finder from probing Apple-private extended attributes on every file access, reducing unnecessary FUSE traffic on network-backed mounts
+- `noappledouble` prevents macOS from creating `._` resource fork sidecar files, which would pollute the DAG with macOS-only metadata
+
 > [!NOTE]
-> macOS has known FUSE limitations (no kernel NOTIFY support, frequent STATFS calls) that may affect performance. See the [`hanwen/go-fuse` macOS notes](https://github.com/hanwen/go-fuse#macos-support) for details.
+> macOS has known FUSE limitations (frequent STATFS calls, limited notification support) that may affect performance. See the [`hanwen/go-fuse` macOS notes](https://github.com/hanwen/go-fuse#macos-support) for details.
 
 #### FreeBSD
 
