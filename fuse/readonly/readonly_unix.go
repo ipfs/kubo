@@ -243,6 +243,7 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 		nd, err := n.ipfs.DAG.Get(ctx, lnk.Cid)
 		if err != nil {
 			log.Warn("error fetching directory child node: ", err)
+			return err
 		}
 
 		var mode uint32
