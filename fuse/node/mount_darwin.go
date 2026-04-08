@@ -1,4 +1,5 @@
-//go:build !nofuse && darwin
+// macFUSE/OSXFUSE availability check. Darwin only.
+//go:build darwin && !nofuse
 
 package node
 

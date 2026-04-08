@@ -1,3 +1,4 @@
+// Mount/unmount helpers for the /ipns FUSE mount. go-fuse only builds on linux, darwin, and freebsd.
 //go:build (linux || darwin || freebsd) && !nofuse
 
 package ipns

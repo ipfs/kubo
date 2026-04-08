@@ -1,3 +1,4 @@
+// Stub that skips xattr tests on non-Linux platforms.
 //go:build !linux
 
 package fuse

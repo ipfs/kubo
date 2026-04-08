@@ -1,3 +1,4 @@
+// go-fuse only builds on linux, darwin, and freebsd.
 //go:build (linux || darwin || freebsd) && !nofuse
 
 package node

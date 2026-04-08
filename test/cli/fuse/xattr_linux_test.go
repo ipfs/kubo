@@ -1,3 +1,4 @@
+// Uses unix.Getxattr which is only available on Linux.
 //go:build linux
 
 package fuse

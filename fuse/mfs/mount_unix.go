@@ -1,3 +1,4 @@
+// Mount/unmount helpers for the /mfs FUSE mount. go-fuse only builds on linux, darwin, and freebsd.
 //go:build (linux || darwin || freebsd) && !nofuse
 
 package mfs

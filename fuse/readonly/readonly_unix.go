@@ -1,3 +1,4 @@
+// FUSE filesystem for the read-only /ipfs mount. go-fuse only builds on linux, darwin, and freebsd.
 //go:build (linux || darwin || freebsd) && !nofuse
 
 package readonly

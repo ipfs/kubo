@@ -1,3 +1,4 @@
+// File descriptor counting via /proc/self/fd (linux) or lsof (darwin).
 //go:build linux || darwin
 
 package fd

@@ -1,3 +1,4 @@
+// Mounts all three FUSE filesystems (/ipfs, /ipns, /mfs). go-fuse only builds on linux, darwin, and freebsd.
 //go:build (linux || darwin || freebsd) && !nofuse
 
 package node

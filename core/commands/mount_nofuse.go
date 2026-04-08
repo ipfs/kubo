@@ -1,3 +1,6 @@
+// Stub for non-FUSE builds: the complement of mount_unix.go's
+// (linux || darwin || freebsd) && !nofuse, excluding windows
+// which has its own stub in mount_windows.go.
 //go:build !windows && (nofuse || !(linux || darwin || freebsd))
 
 package commands
