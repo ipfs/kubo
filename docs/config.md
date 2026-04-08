@@ -60,6 +60,7 @@ config file at runtime.
       - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
   - [`Experimental`](#experimental)
     - [`Experimental.Libp2pStreamMounting`](#experimentallibp2pstreammounting)
+    - [`Experimental.OnDemandPinningEnabled`](#experimentalondemandpinningenabled)
   - [`Gateway`](#gateway)
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
@@ -119,6 +120,11 @@ config file at runtime.
     - [`Mounts.IPNS`](#mountsipns)
     - [`Mounts.MFS`](#mountsmfs)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
+  - [`OnDemandPinning`](#ondemandpinning)
+    - [`OnDemandPinning.ReplicationTarget`](#ondemandpinningreplicationtarget)
+    - [`OnDemandPinning.CheckInterval`](#ondemandpinningcheckinterval)
+    - [`OnDemandPinning.UnpinGracePeriod`](#ondemandpinningunpingraceperiod)
+
   - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
       - [`Pinning.RemoteServices: API`](#pinningremoteservices-api)
@@ -1100,6 +1106,20 @@ in the [new mDNS implementation](https://github.com/libp2p/zeroconf#readme).
 
 Toggle and configure experimental features of Kubo. Experimental features are listed [here](./experimental-features.md).
 
+### `Experimental.OnDemandPinningEnabled`
+
+Enables on-demand pinning. When enabled, the node runs a background checker
+that periodically evaluates DHT provider counts for CIDs registered via
+`ipfs pin ondemand add`. CIDs with fewer providers than the replication target
+are pinned; pins are removed after replication stays above target for a grace
+period (default 24h).
+
+See [`OnDemandPinning`](#ondemandpinning) for configuration.
+
+Default: `false`
+
+Type: `bool`
+
 ### `Experimental.Libp2pStreamMounting`
 
 Enables the `ipfs p2p` commands for tunneling TCP connections through libp2p
@@ -2028,6 +2048,38 @@ If left empty, the default interval will be used. Values lower than `1m` will be
 Default: `"5m"`
 
 Type: `duration`
+
+## `OnDemandPinning`
+
+Configures the on-demand pinning system. Requires
+[`Experimental.OnDemandPinningEnabled`](#experimentalondemandpinningenabled).
+
+### `OnDemandPinning.ReplicationTarget`
+
+The minimum number of providers desired in the DHT (excluding the local node).
+When fewer providers are found, the node pins the content locally.
+
+Default: `5`
+
+Type: `optionalInteger`
+
+### `OnDemandPinning.CheckInterval`
+
+How often the background checker evaluates all on-demand pins.
+
+Default: `"10m"`
+
+Type: `optionalDuration`
+
+### `OnDemandPinning.UnpinGracePeriod`
+
+How long replication must stay above target before the local pin is removed.
+This prevents thrashing when provider counts fluctuate near the target
+boundary.
+
+Default: `"24h"`
+
+Type: `optionalDuration`
 
 ## `Provide`
 

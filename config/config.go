@@ -45,6 +45,8 @@ type Config struct {
 	Import        Import
 	Version       Version
 
+	OnDemandPinning OnDemandPinning
+
 	Internal Internal // experimental/unstable options
 
 	Bitswap Bitswap
