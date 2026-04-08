@@ -268,8 +268,8 @@ func (d *Dir) Listxattr(_ context.Context, dest []byte) (uint32, syscall.Errno) 
 
 func (d *Dir) Getxattr(_ context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
 	if attr == fusemnt.XattrCIDDeprecated {
-		log.Errorf("xattr %q is no longer supported, use %q instead", fusemnt.XattrCIDDeprecated, fusemnt.XattrCID)
-		return 0, fs.ENOATTR
+		log.Errorf("xattr %q is deprecated, use %q instead", fusemnt.XattrCIDDeprecated, fusemnt.XattrCID)
+		attr = fusemnt.XattrCID
 	}
 	if attr != fusemnt.XattrCID {
 		return 0, fs.ENOATTR
@@ -440,8 +440,8 @@ func (fi *FileInode) Listxattr(_ context.Context, dest []byte) (uint32, syscall.
 
 func (fi *FileInode) Getxattr(_ context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
 	if attr == fusemnt.XattrCIDDeprecated {
-		log.Errorf("xattr %q is no longer supported, use %q instead", fusemnt.XattrCIDDeprecated, fusemnt.XattrCID)
-		return 0, fs.ENOATTR
+		log.Errorf("xattr %q is deprecated, use %q instead", fusemnt.XattrCIDDeprecated, fusemnt.XattrCID)
+		attr = fusemnt.XattrCID
 	}
 	if attr != fusemnt.XattrCID {
 		return 0, fs.ENOATTR

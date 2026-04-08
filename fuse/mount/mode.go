@@ -43,7 +43,8 @@ const MaxReadAhead = 64 * 1024 * 1024
 // and GlusterFS (glusterfs.*) of using a project-specific namespace.
 const XattrCID = "ipfs.cid"
 
-// XattrCIDDeprecated is the old xattr name, kept for backward
-// compatibility on /mfs where it was previously shipped.
+// XattrCIDDeprecated is the old xattr name. Getxattr normalizes it
+// to XattrCID and logs a deprecation error so existing tooling keeps
+// working while users migrate.
 // TODO: remove after 2 releases.
 const XattrCIDDeprecated = "ipfs_cid"
