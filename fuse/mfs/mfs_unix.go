@@ -92,9 +92,8 @@ func (d *Dir) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.
 	case mfs.TFile:
 		mfsFile := mfsNode.(*mfs.File)
 		if target := symlinkTarget(mfsFile); target != "" {
-			child := &Symlink{target: target}
-			out.Attr.Mode = uint32(fusemnt.SymlinkMode.Perm())
-			out.Attr.Size = uint64(len(target))
+			child := &Symlink{targetPath: target, mfsFile: mfsFile, cfg: d.cfg}
+			child.fillAttr(&out.Attr)
 			return d.NewInode(ctx, child, fs.StableAttr{Mode: syscall.S_IFLNK}), 0
 		}
 		child := &FileInode{mfsFile: mfsFile, cfg: d.cfg}
@@ -523,20 +522,51 @@ func symlinkTarget(f *mfs.File) string {
 	return string(fsn.Data())
 }
 
-// Symlink is the FUSE adapter for UnixFS symlinks on writable mounts.
-// The target is resolved once at Lookup time and cached.
+// Symlink is the FUSE adapter for UnixFS TSymlink nodes on writable mounts.
+// targetPath is resolved once at Lookup/Create time and never changes
+// (POSIX symlinks are immutable; changing the target requires unlink + symlink).
 type Symlink struct {
 	fs.Inode
-	target string
+	targetPath string
+	mfsFile    *mfs.File // backing MFS node for mode/mtime persistence
+	cfg        *fileSystemConfig
 }
 
 func (s *Symlink) Readlink(_ context.Context) ([]byte, syscall.Errno) {
-	return []byte(s.target), 0
+	return []byte(s.targetPath), 0
+}
+
+func (s *Symlink) fillAttr(a *fuse.Attr) {
+	a.Mode = uint32(fusemnt.SymlinkMode.Perm())
+	a.Size = uint64(len(s.targetPath))
+	if s.mfsFile != nil {
+		if t, err := s.mfsFile.ModTime(); err == nil && !t.IsZero() {
+			a.SetTimes(nil, &t, nil)
+		}
+	}
 }
 
 func (s *Symlink) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
-	out.Attr.Mode = uint32(fusemnt.SymlinkMode.Perm())
-	out.Attr.Size = uint64(len(s.target))
+	s.fillAttr(&out.Attr)
+	return 0
+}
+
+// Setattr handles mtime changes on symlinks.
+// Tools like rsync call lutimes on symlinks after creating them and
+// treat ENOTSUP as an error. Every major FUSE filesystem (gocryptfs,
+// rclone, sshfs, s3fs) implements Setattr on symlinks for this reason.
+//
+// Mode is always 0777 per POSIX convention (access control uses the
+// target's mode), so chmod requests are silently accepted but not stored.
+func (s *Symlink) Setattr(_ context.Context, _ fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+	if s.mfsFile != nil {
+		if mtime, ok := in.GetMTime(); ok && s.cfg.storeMtime {
+			if err := s.mfsFile.SetModTime(mtime); err != nil {
+				return fs.ToErrno(err)
+			}
+		}
+	}
+	s.fillAttr(&out.Attr)
 	return 0
 }
 
@@ -557,9 +587,15 @@ func (d *Dir) Symlink(ctx context.Context, target, name string, out *fuse.EntryO
 		return nil, fs.ToErrno(err)
 	}
 
-	sym := &Symlink{target: target}
-	out.Attr.Mode = uint32(fusemnt.SymlinkMode.Perm())
-	out.Attr.Size = uint64(len(target))
+	// Retrieve the mfs.File so Setattr can persist mtime.
+	mfsNode, err := d.mfsDir.Child(name)
+	if err != nil {
+		return nil, fs.ToErrno(err)
+	}
+	mfsFile, _ := mfsNode.(*mfs.File)
+
+	sym := &Symlink{targetPath: target, mfsFile: mfsFile, cfg: d.cfg}
+	sym.fillAttr(&out.Attr)
 	return d.NewInode(ctx, sym, fs.StableAttr{Mode: syscall.S_IFLNK}), 0
 }
 
@@ -585,6 +621,7 @@ var (
 	_ fs.NodeListxattrer = (*FileInode)(nil)
 
 	_ fs.NodeGetattrer  = (*Symlink)(nil)
+	_ fs.NodeSetattrer  = (*Symlink)(nil)
 	_ fs.NodeReadlinker = (*Symlink)(nil)
 
 	_ fs.FileReader   = (*FileHandle)(nil)

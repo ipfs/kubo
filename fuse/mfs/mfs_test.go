@@ -21,6 +21,8 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"golang.org/x/sys/unix"
+
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
@@ -62,6 +64,15 @@ func setUp(t *testing.T, ipfs *core.IpfsNode, cfgs ...config.Mounts) (*Dir, stri
 	mntDir := testMount(t, root)
 
 	return root, mntDir
+}
+
+// lchtimes sets mtime on a symlink without following it (lutimes).
+// Go's os package has no Lchtimes, so we call utimensat directly.
+// The [2]Timespec array is [atime, mtime]; we set both to the same
+// value since IPFS has no concept of last-access time.
+func lchtimes(path string, mtime time.Time) error {
+	ts := unix.NsecToTimespec(mtime.UnixNano())
+	return unix.UtimesNanoAt(unix.AT_FDCWD, path, []unix.Timespec{ts, ts}, unix.AT_SYMLINK_NOFOLLOW)
 }
 
 // Test reading and writing a file.
@@ -1112,4 +1123,60 @@ func TestSymlink(t *testing.T) {
 	if fi.Mode()&os.ModeSymlink == 0 {
 		t.Fatal("Lstat should report a symlink")
 	}
+}
+
+// Test Setattr on symlinks. Mode is always 0777 per POSIX (Linux has
+// no lchmod), so chmod is silently accepted but never stored. Mtime
+// follows the same disabled/enabled pattern as files and directories.
+func TestSymlinkSetattr(t *testing.T) {
+	t.Run("disabled", func(t *testing.T) {
+		_, mntDir := setUp(t, nil)
+
+		target := mntDir + "/real.txt"
+		require.NoError(t, os.WriteFile(target, []byte("hello"), 0o644))
+
+		link := mntDir + "/link.txt"
+		require.NoError(t, os.Symlink("real.txt", link))
+
+		// chmod must not error, mode must stay 0777.
+		require.NoError(t, os.Chmod(link, 0o755))
+		fi, err := os.Lstat(link)
+		require.NoError(t, err)
+		require.NotZero(t, fi.Mode()&os.ModeSymlink, "should still be a symlink")
+		require.Equal(t, iofs.FileMode(0o777), fi.Mode().Perm(),
+			"symlink mode must remain 0777 after chmod")
+
+		// lutimes must not error, mtime stays at epoch without StoreMtime.
+		ts := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
+		require.NoError(t, lchtimes(link, ts))
+		fi, err = os.Lstat(link)
+		require.NoError(t, err)
+		require.Equal(t, time.Unix(0, 0), fi.ModTime(),
+			"without StoreMtime, symlink mtime should remain at epoch")
+	})
+
+	t.Run("enabled", func(t *testing.T) {
+		_, mntDir := setUp(t, nil, config.Mounts{StoreMtime: config.True})
+
+		target := mntDir + "/real.txt"
+		require.NoError(t, os.WriteFile(target, []byte("hello"), 0o644))
+
+		link := mntDir + "/link.txt"
+		require.NoError(t, os.Symlink("real.txt", link))
+
+		// chmod still ignored even with StoreMode: symlink mode is always 0777.
+		require.NoError(t, os.Chmod(link, 0o755))
+		fi, err := os.Lstat(link)
+		require.NoError(t, err)
+		require.Equal(t, iofs.FileMode(0o777), fi.Mode().Perm(),
+			"symlink mode must remain 0777 after chmod")
+
+		// lutimes persists mtime.
+		ts := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
+		require.NoError(t, lchtimes(link, ts))
+		fi, err = os.Lstat(link)
+		require.NoError(t, err)
+		require.Equal(t, ts.Unix(), fi.ModTime().Unix(),
+			"symlink mtime should persist when StoreMtime is enabled")
+	})
 }
