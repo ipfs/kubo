@@ -1953,7 +1953,7 @@ Type: `flag`
 
 ### `Mounts.StoreMtime`
 
-When `true`, writable mounts (`/ipns` and `/mfs`) store the current time as mtime in [UnixFS](https://specs.ipfs.tech/unixfs/) metadata when creating a file or opening it for writing. This changes the resulting CID even when the file content is identical.
+When `true`, writable mounts (`/ipns` and `/mfs`) store the current time as mtime in [UnixFS](https://specs.ipfs.tech/unixfs/) metadata when creating a file or opening it for writing. Setting mtime explicitly via `touch` works on both files and directories. This changes the resulting CID even when the file content is identical, because mtime is stored in the [root block of the UnixFS DAG](https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata).
 
 Most data on IPFS does not include mtime. When mtime is present in the UnixFS metadata, it is always shown in stat responses on all mounts, regardless of this flag. When absent, mtime is reported as zero (epoch).
 
@@ -1963,7 +1963,7 @@ Type: `flag`
 
 ### `Mounts.StoreMode`
 
-When `true`, writable mounts (`/ipns` and `/mfs`) accept `chmod` requests and persist POSIX permission bits in [UnixFS](https://specs.ipfs.tech/unixfs/) metadata.
+When `true`, writable mounts (`/ipns` and `/mfs`) accept `chmod` requests on both files and directories and persist POSIX permission bits in [UnixFS](https://specs.ipfs.tech/unixfs/) metadata. This changes the resulting CID because mode is stored in the [root block of the UnixFS DAG](https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata).
 
 Most data on IPFS does not include mode. When mode is present in the UnixFS metadata, it is always shown in stat responses on all mounts, regardless of this flag. When absent, a default mode is used (files: `0644` or `0666`, directories: `0755` or `0555`).
 
