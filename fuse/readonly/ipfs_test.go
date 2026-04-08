@@ -325,6 +325,7 @@ func TestIpfsStressRead(t *testing.T) {
 				rbuf, err := os.ReadFile(fname)
 				if err != nil {
 					errs <- err
+					continue
 				}
 
 				// nd.Context() is never closed which leads to
@@ -333,12 +334,16 @@ func TestIpfsStressRead(t *testing.T) {
 
 				read, err := api.Unixfs().Get(ctx, item)
 				if err != nil {
+					cancelFunc()
 					errs <- err
+					continue
 				}
 
 				data, err := io.ReadAll(read.(files.File))
 				if err != nil {
+					cancelFunc()
 					errs <- err
+					continue
 				}
 
 				cancelFunc()
