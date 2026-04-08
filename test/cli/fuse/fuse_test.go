@@ -366,10 +366,11 @@ func mountAll(t *testing.T, node *harness.Node) (ipfsMount, ipnsMount, mfsMount 
 	require.NoError(t, os.MkdirAll(ipnsMount, 0755))
 	require.NoError(t, os.MkdirAll(mfsMount, 0755))
 
-	// Clean up any stale mounts (non-fatal)
-	doUnmount(t, ipfsMount, false)
-	doUnmount(t, ipnsMount, false)
-	doUnmount(t, mfsMount, false)
+	// Lazy-unmount any stale mounts from a previous crashed run so
+	// the mountpoint is free. Non-fatal: the dir may not be mounted.
+	lazyUnmount(ipfsMount)
+	lazyUnmount(ipnsMount)
+	lazyUnmount(mfsMount)
 
 	result := node.IPFS("mount", "-f", ipfsMount, "-n", ipnsMount, "-m", mfsMount)
 
@@ -386,14 +387,34 @@ func mountAll(t *testing.T, node *harness.Node) (ipfsMount, ipnsMount, mfsMount 
 func doUnmount(t *testing.T, mountPoint string, failOnError bool) {
 	t.Helper()
 	var cmd *exec.Cmd
-	if runtime.GOOS == "linux" {
-		cmd = exec.Command("fusermount", "-u", mountPoint)
-	} else {
+	switch runtime.GOOS {
+	case "linux":
+		if _, err := exec.LookPath("fusermount3"); err == nil {
+			cmd = exec.Command("fusermount3", "-u", mountPoint)
+		} else {
+			cmd = exec.Command("fusermount", "-u", mountPoint)
+		}
+	default:
 		cmd = exec.Command("umount", mountPoint)
 	}
 
 	err := cmd.Run()
 	if err != nil && failOnError {
 		t.Fatalf("failed to unmount %s: %v", mountPoint, err)
+	}
+}
+
+// lazyUnmount detaches a mount point without waiting for open files
+// to close. Used to clean up stale mounts from crashed test runs.
+func lazyUnmount(mountPoint string) {
+	switch runtime.GOOS {
+	case "linux":
+		if _, err := exec.LookPath("fusermount3"); err == nil {
+			_ = exec.Command("fusermount3", "-uz", mountPoint).Run()
+		} else {
+			_ = exec.Command("fusermount", "-uz", mountPoint).Run()
+		}
+	default:
+		_ = exec.Command("umount", "-l", mountPoint).Run()
 	}
 }

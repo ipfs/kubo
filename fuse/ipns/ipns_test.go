@@ -180,6 +180,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode, cfgs ...config.Mounts) (*c
 		EntryTimeout:    &mutableCacheTime,
 		AttrTimeout:     &mutableCacheTime,
 		MountOptions: fuse.MountOptions{
+			FsName:            "kubo-test",
 			MaxReadAhead:      fusemnt.MaxReadAhead,
 			ExtraCapabilities: fusemnt.WritableMountCapabilities,
 		},

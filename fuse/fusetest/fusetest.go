@@ -44,6 +44,9 @@ func TestMount(t *testing.T, root fs.InodeEmbedder, opts *fs.Options) string {
 	opts.NullPermissions = true
 	opts.UID = uint32(os.Getuid())
 	opts.GID = uint32(os.Getgid())
+	if opts.MountOptions.FsName == "" {
+		opts.MountOptions.FsName = "kubo-test"
+	}
 	server, err := fs.Mount(mntDir, root, opts)
 	MountError(t, err)
 	t.Cleanup(func() { _ = server.Unmount() })
