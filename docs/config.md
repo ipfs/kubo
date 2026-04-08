@@ -1900,9 +1900,9 @@ Default: `"cache"`
 
 > [!CAUTION]
 > **EXPERIMENTAL:**
-> This feature is disabled by default, requires an explicit opt-in with  `ipfs mount` or `ipfs daemon --mount`.
+> This feature is disabled by default, requires an explicit opt-in with `ipfs mount` or `ipfs daemon --mount`.
 >
-> Read about current limitations at [fuse.md](./fuse.md).
+> See [fuse.md](./fuse.md) for setup instructions and platform-specific notes.
 
 FUSE mount point configuration options.
 
