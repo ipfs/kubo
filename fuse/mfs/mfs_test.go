@@ -552,6 +552,38 @@ func TestStoreMode(t *testing.T) {
 	})
 }
 
+// Verify that setuid/setgid/sticky bits are stripped.
+// The UnixFS spec supports all 12 permission bits, but boxo's MFS
+// layer exposes only the lower 9 (ugo-rwx). FUSE mounts are always
+// nosuid so these bits would have no execution effect anyway.
+func TestSetuidBitsStripped(t *testing.T) {
+	_, mntDir := setUp(t, nil, config.Mounts{StoreMode: config.True})
+
+	fname := mntDir + "/suidfile"
+	require.NoError(t, os.WriteFile(fname, []byte("hello"), 0o644))
+
+	// chmod with setuid: the rwx bits persist, setuid is dropped
+	require.NoError(t, os.Chmod(fname, os.ModeSetuid|0o755))
+	fi, err := os.Stat(fname)
+	require.NoError(t, err)
+	require.Zero(t, fi.Mode()&os.ModeSetuid, "setuid should be stripped")
+	require.Equal(t, iofs.FileMode(0o755), fi.Mode().Perm())
+
+	// chmod with setgid: dropped
+	require.NoError(t, os.Chmod(fname, os.ModeSetgid|0o755))
+	fi, err = os.Stat(fname)
+	require.NoError(t, err)
+	require.Zero(t, fi.Mode()&os.ModeSetgid, "setgid should be stripped")
+
+	// sticky on directory: dropped
+	dir := mntDir + "/stickydir"
+	require.NoError(t, os.Mkdir(dir, 0o755))
+	require.NoError(t, os.Chmod(dir, os.ModeSticky|0o755))
+	fi, err = os.Stat(dir)
+	require.NoError(t, err)
+	require.Zero(t, fi.Mode()&os.ModeSticky, "sticky should be stripped")
+}
+
 // Test that directory mtime can be set (tar and rsync do this).
 func TestDirMtime(t *testing.T) {
 	t.Run("disabled", func(t *testing.T) {

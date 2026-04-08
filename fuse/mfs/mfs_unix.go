@@ -14,6 +14,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
+	"github.com/ipfs/boxo/files"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	"github.com/ipfs/boxo/mfs"
@@ -41,7 +42,7 @@ type Dir struct {
 func (d *Dir) fillAttr(a *fuse.Attr) {
 	a.Mode = uint32(fusemnt.DefaultDirModeRW.Perm())
 	if m, err := d.mfsDir.Mode(); err == nil && m != 0 {
-		a.Mode = uint32(m) & 07777
+		a.Mode = files.ModePermsToUnixPerms(m)
 	}
 	if t, err := d.mfsDir.ModTime(); err == nil && !t.IsZero() {
 		a.SetTimes(nil, &t, nil)
@@ -56,13 +57,15 @@ func (d *Dir) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) sys
 // Setattr handles chmod and mtime changes on directories.
 // Tools like tar and rsync set directory timestamps after extraction.
 //
-// Mode stores the lower 9 permission bits (ugo-rwx). Setuid/setgid/sticky
-// are not meaningful on FUSE-mounted IPFS directories.
-// Mtime is stored as UnixFS optional metadata per
-// https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata
+// Mode and mtime are stored as UnixFS optional metadata.
+// The UnixFS spec supports all 12 permission bits, but boxo's MFS
+// layer exposes only the lower 9 (ugo-rwx); setuid/setgid/sticky
+// are silently dropped. FUSE mounts are always nosuid so these
+// bits would have no execution effect anyway.
+// See https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata
 func (d *Dir) Setattr(_ context.Context, _ fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
 	if mode, ok := in.GetMode(); ok && d.cfg.storeMode {
-		if err := d.mfsDir.SetMode(os.FileMode(mode) & os.ModePerm); err != nil {
+		if err := d.mfsDir.SetMode(files.UnixPermsToModePerms(mode)); err != nil {
 			return fs.ToErrno(err)
 		}
 	}
@@ -279,7 +282,7 @@ func (fi *FileInode) fillAttr(a *fuse.Attr) {
 	a.Size = uint64(size)
 	a.Mode = uint32(fusemnt.DefaultFileModeRW.Perm())
 	if m, err := fi.mfsFile.Mode(); err == nil && m != 0 {
-		a.Mode = uint32(m) & 07777
+		a.Mode = files.ModePermsToUnixPerms(m)
 	}
 	if t, _ := fi.mfsFile.ModTime(); !t.IsZero() {
 		a.SetTimes(nil, &t, nil)
@@ -328,10 +331,12 @@ func (fi *FileInode) Open(_ context.Context, flags uint32) (fs.FileHandle, uint3
 
 // Setattr handles chmod, mtime changes (touch), and ftruncate.
 //
-// Mode stores the lower 9 permission bits (ugo-rwx). Setuid/setgid/sticky
-// are not meaningful on FUSE-mounted IPFS files.
-// Mtime is stored as UnixFS optional metadata per
-// https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata
+// Mode and mtime are stored as UnixFS optional metadata.
+// The UnixFS spec supports all 12 permission bits, but boxo's MFS
+// layer exposes only the lower 9 (ugo-rwx); setuid/setgid/sticky
+// are silently dropped. FUSE mounts are always nosuid so these
+// bits would have no execution effect anyway.
+// See https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata
 //
 // With hanwen/go-fuse, the kernel passes the open file handle (fh) when
 // the caller uses ftruncate(fd, size). This lets us truncate through
@@ -363,7 +368,7 @@ func (fi *FileInode) Setattr(_ context.Context, fh fs.FileHandle, in *fuse.SetAt
 		}
 	}
 	if mode, ok := in.GetMode(); ok && fi.cfg.storeMode {
-		if err := fi.mfsFile.SetMode(os.FileMode(mode) & os.ModePerm); err != nil {
+		if err := fi.mfsFile.SetMode(files.UnixPermsToModePerms(mode)); err != nil {
 			return fs.ToErrno(err)
 		}
 	}

@@ -12,6 +12,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/ipfs/boxo/files"
 	mdag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
@@ -194,7 +195,7 @@ func (n *Node) fillAttr(a *fuse.Attr) {
 
 	// Use mode and mtime from UnixFS metadata when present.
 	if m := n.cached.Mode(); m != 0 {
-		a.Mode = uint32(m) & 07777
+		a.Mode = files.ModePermsToUnixPerms(m)
 	}
 	if t := n.cached.ModTime(); !t.IsZero() {
 		a.SetTimes(nil, &t, nil)
