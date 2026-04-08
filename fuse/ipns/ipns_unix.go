@@ -227,6 +227,28 @@ func (d *Directory) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOu
 	return 0
 }
 
+// Setattr handles chmod and mtime changes on directories.
+// Tools like tar and rsync set directory timestamps after extraction.
+//
+// Mode stores the lower 9 permission bits (ugo-rwx). Setuid/setgid/sticky
+// are not meaningful on FUSE-mounted IPFS directories.
+// Mtime is stored as UnixFS optional metadata per
+// https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata
+func (d *Directory) Setattr(_ context.Context, _ fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+	if mode, ok := in.GetMode(); ok && d.root.storeMode {
+		if err := d.dir.SetMode(os.FileMode(mode) & os.ModePerm); err != nil {
+			return fs.ToErrno(err)
+		}
+	}
+	if mtime, ok := in.GetMTime(); ok && d.root.storeMtime {
+		if err := d.dir.SetModTime(mtime); err != nil {
+			return fs.ToErrno(err)
+		}
+	}
+	d.fillAttr(&out.Attr)
+	return 0
+}
+
 func (d *Directory) Listxattr(_ context.Context, dest []byte) (uint32, syscall.Errno) {
 	data := []byte(fusemnt.XattrCID + "\x00")
 	if len(dest) == 0 {
@@ -409,6 +431,11 @@ func (f *File) Flush(_ context.Context) syscall.Errno {
 }
 
 // Setattr handles chmod, mtime changes (touch), and ftruncate.
+//
+// Mode stores the lower 9 permission bits (ugo-rwx). Setuid/setgid/sticky
+// are not meaningful on FUSE-mounted IPFS files.
+// Mtime is stored as UnixFS optional metadata per
+// https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata
 //
 // With hanwen/go-fuse, the kernel passes the open file handle (fh) when
 // the caller uses ftruncate(fd, size). This lets us truncate through
@@ -696,6 +723,7 @@ var (
 	_ fs.NodeReaddirer = (*Root)(nil)
 
 	_ fs.NodeGetattrer   = (*Directory)(nil)
+	_ fs.NodeSetattrer   = (*Directory)(nil)
 	_ fs.NodeLookuper    = (*Directory)(nil)
 	_ fs.NodeReaddirer   = (*Directory)(nil)
 	_ fs.NodeCreater     = (*Directory)(nil)

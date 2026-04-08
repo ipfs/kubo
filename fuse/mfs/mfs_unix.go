@@ -53,6 +53,28 @@ func (d *Dir) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) sys
 	return 0
 }
 
+// Setattr handles chmod and mtime changes on directories.
+// Tools like tar and rsync set directory timestamps after extraction.
+//
+// Mode stores the lower 9 permission bits (ugo-rwx). Setuid/setgid/sticky
+// are not meaningful on FUSE-mounted IPFS directories.
+// Mtime is stored as UnixFS optional metadata per
+// https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata
+func (d *Dir) Setattr(_ context.Context, _ fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+	if mode, ok := in.GetMode(); ok && d.cfg.storeMode {
+		if err := d.mfsDir.SetMode(os.FileMode(mode) & os.ModePerm); err != nil {
+			return fs.ToErrno(err)
+		}
+	}
+	if mtime, ok := in.GetMTime(); ok && d.cfg.storeMtime {
+		if err := d.mfsDir.SetModTime(mtime); err != nil {
+			return fs.ToErrno(err)
+		}
+	}
+	d.fillAttr(&out.Attr)
+	return 0
+}
+
 func (d *Dir) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	mfsNode, err := d.mfsDir.Child(name)
 	if err != nil {
@@ -306,6 +328,11 @@ func (fi *FileInode) Open(_ context.Context, flags uint32) (fs.FileHandle, uint3
 
 // Setattr handles chmod, mtime changes (touch), and ftruncate.
 //
+// Mode stores the lower 9 permission bits (ugo-rwx). Setuid/setgid/sticky
+// are not meaningful on FUSE-mounted IPFS files.
+// Mtime is stored as UnixFS optional metadata per
+// https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata
+//
 // With hanwen/go-fuse, the kernel passes the open file handle (fh) when
 // the caller uses ftruncate(fd, size). This lets us truncate through
 // the existing write descriptor without opening a second one.
@@ -534,6 +561,7 @@ func (d *Dir) Symlink(ctx context.Context, target, name string, out *fuse.EntryO
 // Interface checks.
 var (
 	_ fs.NodeGetattrer   = (*Dir)(nil)
+	_ fs.NodeSetattrer   = (*Dir)(nil)
 	_ fs.NodeLookuper    = (*Dir)(nil)
 	_ fs.NodeReaddirer   = (*Dir)(nil)
 	_ fs.NodeMkdirer     = (*Dir)(nil)

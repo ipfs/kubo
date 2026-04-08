@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	iofs "io/fs"
 	mrand "math/rand"
 	"os"
 	"sync"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/stretchr/testify/require"
 
 	mfs "github.com/ipfs/boxo/mfs"
 	racedet "github.com/ipfs/go-detect-race"
@@ -722,6 +724,72 @@ func TestStoreMode(t *testing.T) {
 		if fi.Mode().Perm() != 0o755 {
 			t.Fatalf("expected mode 0755 after chmod, got %04o", fi.Mode().Perm())
 		}
+	})
+}
+
+// Test that directory mtime can be set (tar and rsync do this).
+func TestDirMtime(t *testing.T) {
+	t.Run("disabled", func(t *testing.T) {
+		_, mnt := setupIpnsTest(t, nil)
+
+		dir := mnt.Dir + "/local/mtimedir"
+		mkdir(t, dir)
+
+		// utimensat must not error, but the value should not persist:
+		// without StoreMtime, fillAttr never calls SetTimes and the
+		// kernel reports epoch (Unix time 0).
+		target := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
+		require.NoError(t, os.Chtimes(dir, target, target))
+
+		fi, err := os.Stat(dir)
+		require.NoError(t, err)
+		require.Equal(t, time.Unix(0, 0), fi.ModTime(),
+			"without StoreMtime, directory mtime should remain at epoch")
+	})
+
+	t.Run("enabled", func(t *testing.T) {
+		_, mnt := setupIpnsTest(t, nil, config.Mounts{StoreMtime: config.True})
+
+		dir := mnt.Dir + "/local/mtimedir"
+		mkdir(t, dir)
+
+		target := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
+		require.NoError(t, os.Chtimes(dir, target, target))
+
+		fi, err := os.Stat(dir)
+		require.NoError(t, err)
+		require.Equal(t, target.Unix(), fi.ModTime().Unix(),
+			"directory mtime should match what was set via utimensat")
+	})
+}
+
+// Test that directory chmod works when StoreMode is enabled.
+func TestDirChmod(t *testing.T) {
+	t.Run("disabled", func(t *testing.T) {
+		_, mnt := setupIpnsTest(t, nil)
+
+		dir := mnt.Dir + "/local/modedir"
+		mkdir(t, dir)
+
+		// chmod must not error, but mode should stay at the default.
+		require.NoError(t, os.Chmod(dir, 0o700))
+		fi, err := os.Stat(dir)
+		require.NoError(t, err)
+		require.Equal(t, fusemnt.DefaultDirModeRW.Perm(), fi.Mode().Perm(),
+			"without StoreMode, directory mode should remain at fusemnt.DefaultDirModeRW")
+	})
+
+	t.Run("enabled", func(t *testing.T) {
+		_, mnt := setupIpnsTest(t, nil, config.Mounts{StoreMode: config.True})
+
+		dir := mnt.Dir + "/local/modedir"
+		mkdir(t, dir)
+
+		require.NoError(t, os.Chmod(dir, 0o700))
+		fi, err := os.Stat(dir)
+		require.NoError(t, err)
+		require.Equal(t, iofs.FileMode(0o700), fi.Mode().Perm(),
+			"directory mode should match what was set via chmod")
 	})
 }
 

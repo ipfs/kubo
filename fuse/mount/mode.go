@@ -5,6 +5,10 @@ import "os"
 // Default POSIX modes used by FUSE mounts when the UnixFS DAG node does
 // not contain explicit permission metadata. Most data on IPFS does not
 // include mode, so these apply to the majority of files and directories.
+//
+// Per the UnixFS spec, implementations may default to 0755 for directories
+// and 0644 for files when mode is absent.
+// See https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata
 
 // Writable mounts (/ipns, /mfs): standard POSIX defaults matching umask 022.
 const (
