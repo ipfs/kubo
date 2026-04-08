@@ -192,7 +192,7 @@ func TestFUSE(t *testing.T) {
 		testFile := filepath.Join(mfsMount, "testfile")
 		require.NoError(t, os.WriteFile(testFile, []byte("content"), 0644))
 
-		cid, err := getXattr(testFile, "ipfs_cid")
+		cid, err := getXattr(testFile, "ipfs.cid")
 		require.NoError(t, err)
 		require.NotEmpty(t, cid)
 

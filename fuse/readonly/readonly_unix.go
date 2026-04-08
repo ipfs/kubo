@@ -293,6 +293,10 @@ func (n *Node) Listxattr(_ context.Context, dest []byte) (uint32, syscall.Errno)
 }
 
 func (n *Node) Getxattr(_ context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
+	if attr == fusemnt.XattrCIDDeprecated {
+		log.Errorf("xattr %q is no longer supported, use %q instead", fusemnt.XattrCIDDeprecated, fusemnt.XattrCID)
+		return 0, fs.ENOATTR
+	}
 	if attr != fusemnt.XattrCID {
 		return 0, fs.ENOATTR
 	}
