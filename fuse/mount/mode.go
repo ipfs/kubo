@@ -23,6 +23,10 @@ const (
 // name (CID or IPNS key) but listing the full namespace is not possible.
 const NamespaceRootMode = os.ModeDir | 0o111
 
+// SymlinkMode is the POSIX permission bits for symlinks. Symlink
+// permissions are always 0777; access control uses the target's mode.
+const SymlinkMode = os.FileMode(0o777)
+
 // MaxReadAhead tells the kernel how far ahead to read in a single FUSE
 // request. 64 MiB works well for sequential access (streaming, file
 // copies) because most data is served from the local blockstore after

@@ -1107,3 +1107,36 @@ func TestRsyncPattern(t *testing.T) {
 		t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(newData))
 	}
 }
+
+// Test creating and reading a relative symlink. Package managers,
+// build systems, and tools like `ln -s` create symlinks inside the
+// filesystem. The target is stored as a UnixFS TSymlink node.
+func TestSymlink(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+
+	// Create a file and a symlink pointing to it.
+	target := mnt.Dir + "/local/real.txt"
+	writeFileOrFail(t, 10, target)
+
+	link := mnt.Dir + "/local/link.txt"
+	if err := os.Symlink("real.txt", link); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.Readlink(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "real.txt" {
+		t.Fatalf("readlink: expected %q, got %q", "real.txt", got)
+	}
+
+	// Lstat should show a symlink.
+	fi, err := os.Lstat(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Mode()&os.ModeSymlink == 0 {
+		t.Fatal("Lstat should report a symlink")
+	}
+}

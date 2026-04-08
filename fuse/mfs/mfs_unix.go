@@ -64,7 +64,14 @@ func (d *Dir) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.
 		child.fillAttr(&out.Attr)
 		return d.NewInode(ctx, child, fs.StableAttr{Mode: syscall.S_IFDIR}), 0
 	case mfs.TFile:
-		child := &FileInode{mfsFile: mfsNode.(*mfs.File), cfg: d.cfg}
+		mfsFile := mfsNode.(*mfs.File)
+		if target := symlinkTarget(mfsFile); target != "" {
+			child := &Symlink{target: target}
+			out.Attr.Mode = uint32(fusemnt.SymlinkMode.Perm())
+			out.Attr.Size = uint64(len(target))
+			return d.NewInode(ctx, child, fs.StableAttr{Mode: syscall.S_IFLNK}), 0
+		}
+		child := &FileInode{mfsFile: mfsFile, cfg: d.cfg}
 		child.fillAttr(&out.Attr)
 		return d.NewInode(ctx, child, fs.StableAttr{}), 0
 	}
@@ -462,6 +469,64 @@ func NewFileSystem(ipfs *core.IpfsNode, cfg config.Mounts) *Dir {
 	return &Dir{mfsDir: ipfs.FilesRoot.GetDirectory(), cfg: c}
 }
 
+// symlinkTarget extracts the symlink target from an MFS file, or
+// returns "" if the file is not a TSymlink node. MFS caches symlinks
+// as *mfs.File, so we check the DAG node's UnixFS type.
+func symlinkTarget(f *mfs.File) string {
+	nd, err := f.GetNode()
+	if err != nil {
+		return ""
+	}
+	fsn, err := ft.ExtractFSNode(nd)
+	if err != nil {
+		return ""
+	}
+	if fsn.Type() != ft.TSymlink {
+		return ""
+	}
+	return string(fsn.Data())
+}
+
+// Symlink is the FUSE adapter for UnixFS symlinks on writable mounts.
+// The target is resolved once at Lookup time and cached.
+type Symlink struct {
+	fs.Inode
+	target string
+}
+
+func (s *Symlink) Readlink(_ context.Context) ([]byte, syscall.Errno) {
+	return []byte(s.target), 0
+}
+
+func (s *Symlink) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
+	out.Attr.Mode = uint32(fusemnt.SymlinkMode.Perm())
+	out.Attr.Size = uint64(len(s.target))
+	return 0
+}
+
+// Symlink creates a new symlink in this directory.
+func (d *Dir) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
+	data, err := ft.SymlinkData(target)
+	if err != nil {
+		return nil, fs.ToErrno(err)
+	}
+	nd := dag.NodeWithData(data)
+	if err := nd.SetCidBuilder(d.mfsDir.GetCidBuilder()); err != nil {
+		return nil, fs.ToErrno(err)
+	}
+	if err := d.mfsDir.AddChild(name, nd); err != nil {
+		return nil, fs.ToErrno(err)
+	}
+	if err := d.mfsDir.Flush(); err != nil {
+		return nil, fs.ToErrno(err)
+	}
+
+	sym := &Symlink{target: target}
+	out.Attr.Mode = uint32(fusemnt.SymlinkMode.Perm())
+	out.Attr.Size = uint64(len(target))
+	return d.NewInode(ctx, sym, fs.StableAttr{Mode: syscall.S_IFLNK}), 0
+}
+
 // Interface checks.
 var (
 	_ fs.NodeGetattrer   = (*Dir)(nil)
@@ -472,6 +537,7 @@ var (
 	_ fs.NodeRmdirer     = (*Dir)(nil)
 	_ fs.NodeRenamer     = (*Dir)(nil)
 	_ fs.NodeCreater     = (*Dir)(nil)
+	_ fs.NodeSymlinker   = (*Dir)(nil)
 	_ fs.NodeGetxattrer  = (*Dir)(nil)
 	_ fs.NodeListxattrer = (*Dir)(nil)
 
@@ -480,6 +546,9 @@ var (
 	_ fs.NodeSetattrer   = (*FileInode)(nil)
 	_ fs.NodeGetxattrer  = (*FileInode)(nil)
 	_ fs.NodeListxattrer = (*FileInode)(nil)
+
+	_ fs.NodeGetattrer  = (*Symlink)(nil)
+	_ fs.NodeReadlinker = (*Symlink)(nil)
 
 	_ fs.FileReader   = (*FileHandle)(nil)
 	_ fs.FileWriter   = (*FileHandle)(nil)

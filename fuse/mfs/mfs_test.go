@@ -960,3 +960,57 @@ func TestRsyncPattern(t *testing.T) {
 		t.Fatalf("expected %q, got %q", "version 2", got)
 	}
 }
+
+// Test creating and reading a relative symlink. Package managers,
+// build systems, and tools like `ln -s` create symlinks inside the
+// filesystem. The target is stored as a UnixFS TSymlink node.
+func TestSymlink(t *testing.T) {
+	_, mntDir := setUp(t, nil)
+
+	// Create a file and a symlink pointing to it.
+	target := mntDir + "/real.txt"
+	if err := os.WriteFile(target, []byte("hello"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	link := mntDir + "/link.txt"
+	if err := os.Symlink("real.txt", link); err != nil {
+		t.Fatal(err)
+	}
+
+	// Readlink should return the target path.
+	got, err := os.Readlink(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "real.txt" {
+		t.Fatalf("readlink: expected %q, got %q", "real.txt", got)
+	}
+
+	// Reading through the symlink should return the file content.
+	data, err := os.ReadFile(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "hello" {
+		t.Fatalf("read via symlink: expected %q, got %q", "hello", data)
+	}
+
+	// Stat (not Lstat) should show a regular file (follows symlink).
+	fi, err := os.Stat(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Mode()&os.ModeSymlink != 0 {
+		t.Fatal("Stat should follow the symlink")
+	}
+
+	// Lstat should show a symlink.
+	fi, err = os.Lstat(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Mode()&os.ModeSymlink == 0 {
+		t.Fatal("Lstat should report a symlink")
+	}
+}

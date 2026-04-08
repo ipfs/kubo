@@ -184,7 +184,7 @@ func (n *Node) fillAttr(a *fuse.Attr) {
 		a.Size = uint64(len(n.cached.Data()))
 		a.Blocks = uint64(len(n.nd.Links()))
 	case ft.TSymlink:
-		a.Mode = 0o777
+		a.Mode = uint32(fusemnt.SymlinkMode.Perm())
 		a.Size = uint64(len(n.cached.Data()))
 	default:
 		log.Errorf("invalid data type: %s", n.cached.Type())
