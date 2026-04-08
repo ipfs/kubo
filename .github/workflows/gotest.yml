@@ -177,8 +177,25 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y fuse3
           fi
+      - name: Clean up stale FUSE mounts
+        run: |
+          # On shared self-hosted runners, leftover mounts from previous
+          # runs can exhaust the kernel FUSE mount limit (mount_max).
+          # Unit tests mount with FsName "kubo-test"; CLI tests mount
+          # under the harness temp dir (ipfs/ipns/mfs subdirectories).
+          awk '$1 == "kubo-test" || $2 ~ /\/tmp\/.*\/(ipfs|ipns|mfs)$/ { print $2 }' /proc/mounts 2>/dev/null \
+            | while read -r mp; do
+                fusermount3 -uz "$mp" 2>/dev/null || fusermount -uz "$mp" 2>/dev/null || true
+              done
       - name: Run FUSE tests
         run: make test_fuse
+      - name: Clean up FUSE mounts
+        if: always()
+        run: |
+          awk '$1 == "kubo-test" || $2 ~ /\/tmp\/.*\/(ipfs|ipns|mfs)$/ { print $2 }' /proc/mounts 2>/dev/null \
+            | while read -r mp; do
+                fusermount3 -uz "$mp" 2>/dev/null || fusermount -uz "$mp" 2>/dev/null || true
+              done
 
   # Example tests (kubo-as-a-library)
   example-tests:
