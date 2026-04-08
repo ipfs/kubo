@@ -19,14 +19,12 @@ import (
 	"bazil.org/fuse/fs/fstestutil"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
-	"github.com/libp2p/go-libp2p-testing/ci"
+	"github.com/ipfs/kubo/fuse/fusetest"
 )
 
 // Create an Ipfs.Node, a filesystem and a mount point.
 func setUp(t *testing.T, ipfs *core.IpfsNode) (fs.FS, *fstestutil.Mount) {
-	if ci.NoFuse() {
-		t.Skip("Skipping FUSE tests")
-	}
+	fusetest.SkipUnlessFUSE(t)
 
 	if ipfs == nil {
 		var err error
@@ -38,12 +36,7 @@ func setUp(t *testing.T, ipfs *core.IpfsNode) (fs.FS, *fstestutil.Mount) {
 
 	fs := NewFileSystem(ipfs)
 	mnt, err := fstestutil.MountedT(t, fs, nil)
-	if err == fuse.ErrOSXFUSENotFound {
-		t.Skip(err)
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	fusetest.MountError(t, err)
 
 	return fs, mnt
 }
@@ -88,6 +81,34 @@ func TestReadWrite(t *testing.T) {
 			t.Fatal("read and write not equal")
 		}
 	})
+}
+
+// Test that empty directories can be listed without errors.
+func TestEmptyDirListing(t *testing.T) {
+	_, mnt := setUp(t, nil)
+	defer mnt.Close()
+
+	// The MFS root starts empty.
+	entries, err := os.ReadDir(mnt.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty root, got %d entries", len(entries))
+	}
+
+	// Create a directory and list it while still empty.
+	dir := mnt.Dir + "/emptydir"
+	if err := os.Mkdir(dir, os.ModeDir); err != nil {
+		t.Fatal(err)
+	}
+	entries, err = os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty directory, got %d entries", len(entries))
+	}
 }
 
 // Test creating a directory.
@@ -292,6 +313,125 @@ func TestConcurrentRW(t *testing.T) {
 			}
 		}
 	})
+}
+
+// Test appending data to an existing file.
+func TestAppendFile(t *testing.T) {
+	_, mnt := setUp(t, nil)
+	defer mnt.Close()
+
+	path := mnt.Dir + "/appendfile"
+
+	initial := make([]byte, 1300)
+	if _, err := rand.Read(initial); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, initial, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	fi, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	extra := make([]byte, 500)
+	if _, err := rand.Read(extra); err != nil {
+		t.Fatal(err)
+	}
+
+	n, err := fi.Write(extra)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != len(extra) {
+		t.Fatalf("short write: %d != %d", n, len(extra))
+	}
+	if err := fi.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := append(initial, extra...)
+	if !bytes.Equal(got, want) {
+		t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(want))
+	}
+}
+
+// Test writing a file one byte at a time.
+func TestMultiWrite(t *testing.T) {
+	_, mnt := setUp(t, nil)
+	defer mnt.Close()
+
+	path := mnt.Dir + "/multiwrite"
+	fi, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := make([]byte, 1001)
+	if _, err := rand.Read(data); err != nil {
+		t.Fatal(err)
+	}
+
+	for i := range data {
+		n, err := fi.Write(data[i : i+1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != 1 {
+			t.Fatal("short write")
+		}
+	}
+	if err := fi.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Fatal("content mismatch")
+	}
+}
+
+// Test renaming a file within the same directory.
+func TestRenameFile(t *testing.T) {
+	_, mnt := setUp(t, nil)
+	defer mnt.Close()
+
+	src := mnt.Dir + "/before.txt"
+	dst := mnt.Dir + "/after.txt"
+
+	data := make([]byte, 500)
+	if _, err := rand.Read(data); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(src, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Rename(src, dst); err != nil {
+		t.Fatal(err)
+	}
+
+	// Source must be gone.
+	if _, err := os.Stat(src); !os.IsNotExist(err) {
+		t.Fatalf("source still exists after rename: %v", err)
+	}
+
+	// Destination must have the original content.
+	got, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(data))
+	}
 }
 
 // Test ipfs_cid extended attribute

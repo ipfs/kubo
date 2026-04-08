@@ -43,7 +43,7 @@ jobs:
           make test_unit &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         if: failure() || success()
         with:
           name: unittests
@@ -148,6 +148,35 @@ jobs:
       - name: Set summary
         run: cat test/cli/cli-tests.md >> $GITHUB_STEP_SUMMARY
         if: failure() || success()
+
+  # FUSE filesystem tests (require /dev/fuse and fusermount)
+  fuse-tests:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 5
+    env:
+      GOTRACEBACK: single
+      TEST_FUSE: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Install FUSE
+        run: |
+          if ! command -v fusermount &>/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y fuse3
+            # bazil.org/fuse looks for "fusermount", fuse3 only ships "fusermount3"
+            sudo ln -sf /usr/bin/fusermount3 /usr/local/bin/fusermount
+          fi
+      - name: Run FUSE tests
+        run: make test_fuse
 
   # Example tests (kubo-as-a-library)
   example-tests:

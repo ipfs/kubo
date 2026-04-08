@@ -69,6 +69,15 @@ test_cli: cmd/ipfs/ipfs test/bin/gotestsum $$(DEPS_GO)
 	PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/cli/cli-tests.json -- -v -timeout=$(TEST_CLI_TIMEOUT) ./test/cli/... ./test/integration/... ./client/rpc/...
 .PHONY: test_cli
 
+# FUSE unit tests (requires /dev/fuse and fusermount in PATH)
+# Set TEST_FUSE=1 to make mount failures fatal instead of skipping
+TEST_FUSE_TIMEOUT ?= 5m
+test_fuse: test/bin/gotestsum $$(DEPS_GO)
+	mkdir -p test/fuse
+	rm -f test/fuse/fuse-tests.json
+	TEST_FUSE=1 gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/fuse/fuse-tests.json -- -v -timeout=$(TEST_FUSE_TIMEOUT) ./fuse/...
+.PHONY: test_fuse
+
 # Example tests (docs/examples/kubo-as-a-library)
 # Tests against both published and current kubo versions
 # Uses timeout to ensure CI gets output before job-level timeout kills everything

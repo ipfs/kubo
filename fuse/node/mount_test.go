@@ -5,24 +5,14 @@ package node
 import (
 	"context"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
-	"bazil.org/fuse"
-
 	core "github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/fuse/fusetest"
 	ipns "github.com/ipfs/kubo/fuse/ipns"
 	mount "github.com/ipfs/kubo/fuse/mount"
-
-	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
-
-func maybeSkipFuseTests(t *testing.T) {
-	if ci.NoFuse() {
-		t.Skip("Skipping FUSE tests")
-	}
-}
 
 func mkdir(t *testing.T, path string) {
 	err := os.Mkdir(path, os.ModeDir|os.ModePerm)
@@ -33,12 +23,9 @@ func mkdir(t *testing.T, path string) {
 
 // Test externally unmounting, then trying to unmount in code.
 func TestExternalUnmount(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 
 	// TODO: needed?
-	maybeSkipFuseTests(t)
+	fusetest.SkipUnlessFUSE(t)
 
 	node, err := core.NewNode(context.Background(), &core.BuildCfg{})
 	if err != nil {
@@ -61,15 +48,20 @@ func TestExternalUnmount(t *testing.T) {
 	mkdir(t, mfsDir)
 
 	err = Mount(node, ipfsDir, ipnsDir, mfsDir)
-	if err != nil {
-		if strings.Contains(err.Error(), "unable to check fuse version") || err == fuse.ErrOSXFUSENotFound {
-			t.Skip(err)
-		}
-	}
+	fusetest.MountError(t, err)
 
-	if err != nil {
-		t.Fatalf("error mounting: %v", err)
-	}
+	t.Cleanup(func() {
+		if node.Mounts.Mfs != nil && node.Mounts.Mfs.IsActive() {
+			if err := node.Mounts.Mfs.Unmount(); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if node.Mounts.Ipns != nil && node.Mounts.Ipns.IsActive() {
+			if err := node.Mounts.Ipns.Unmount(); err != nil {
+				t.Fatal(err)
+			}
+		}
+	})
 
 	// Run shell command to externally unmount the directory
 	cmd, err := mount.UnmountCmd(ipfsDir)
