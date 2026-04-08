@@ -1,4 +1,4 @@
-//go:build !nofuse
+//go:build (linux || darwin || freebsd) && !nofuse
 
 // Package fusetest provides test helpers shared across FUSE test packages.
 package fusetest

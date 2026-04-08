@@ -891,7 +891,6 @@ func TestOverwriteExisting(t *testing.T) {
 
 // Test the exact save sequence vim uses: open with O_TRUNC, write
 // new content, fsync, then chmod to restore permissions.
-//
 func TestVimSavePattern(t *testing.T) {
 	_, mntDir := setUp(t, nil, config.Mounts{StoreMode: config.True})
 
@@ -961,5 +960,3 @@ func TestRsyncPattern(t *testing.T) {
 		t.Fatalf("expected %q, got %q", "version 2", got)
 	}
 }
-
-

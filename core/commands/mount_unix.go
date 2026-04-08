@@ -1,4 +1,4 @@
-//go:build !windows && !nofuse
+//go:build (linux || darwin || freebsd) && !nofuse
 
 package commands
 

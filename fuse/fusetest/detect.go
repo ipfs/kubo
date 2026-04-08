@@ -1,4 +1,4 @@
-//go:build !nofuse
+//go:build (linux || darwin || freebsd) && !nofuse
 
 package fusetest
 

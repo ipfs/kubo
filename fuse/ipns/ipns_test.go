@@ -1043,7 +1043,6 @@ func TestOverwriteExisting(t *testing.T) {
 
 // Test the exact save sequence vim uses: open with O_TRUNC, write
 // new content, fsync, then chmod to restore permissions.
-//
 func TestVimSavePattern(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil, config.Mounts{StoreMode: config.True})
 
