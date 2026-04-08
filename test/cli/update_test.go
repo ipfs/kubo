@@ -349,8 +349,14 @@ func copyBuiltBinary(t *testing.T, dst string) {
 	// Use a throwaway harness to resolve the default binary path,
 	// reusing the same project-root lookup the harness already has.
 	h := harness.NewT(t)
-	data, err := os.ReadFile(h.IPFSBin)
-	require.NoError(t, err, "failed to read built binary at %s (did you run 'make build'?)", h.IPFSBin)
+	srcBin := h.IPFSBin
+	// The harness hardcodes "ipfs" without .exe suffix, but on Windows
+	// the built binary is "ipfs.exe".
+	if runtime.GOOS == "windows" && !strings.HasSuffix(srcBin, ".exe") {
+		srcBin += ".exe"
+	}
+	data, err := os.ReadFile(srcBin)
+	require.NoError(t, err, "failed to read built binary at %s (did you run 'make build'?)", srcBin)
 	require.NoError(t, os.MkdirAll(filepath.Dir(dst), 0o755))
 	require.NoError(t, os.WriteFile(dst, data, 0o755))
 }
