@@ -350,7 +350,8 @@ func (d *Directory) Lookup(ctx context.Context, name string, out *fuse.EntryOut)
 		fileNode.fillAttr(&out.Attr)
 		return d.NewInode(ctx, fileNode, fs.StableAttr{}), 0
 	default:
-		panic("invalid type found under directory. programmer error.")
+		log.Errorf("unexpected MFS node type %T under directory", child)
+		return nil, syscall.EIO
 	}
 }
 
@@ -422,9 +423,6 @@ func (f *File) Write(_ context.Context, data []byte, off int64) (uint32, syscall
 // here: the underlying MFS flush cannot be safely canceled mid-operation,
 // and abandoning it would leak a background goroutine that races with the
 // subsequent Release call on the same file descriptor.
-// Flush persists buffered writes to the DAG and tells the kernel
-// to drop cached attrs so the next stat sees the updated size.
-// Flush persists buffered writes to the DAG.
 func (f *File) Flush(_ context.Context) syscall.Errno {
 	f.mu.Lock()
 	defer f.mu.Unlock()
