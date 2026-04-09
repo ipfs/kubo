@@ -85,6 +85,7 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.K
 	cfg := &writable.Config{
 		StoreMtime: mountsCfg.StoreMtime.WithDefault(config.DefaultStoreMtime),
 		StoreMode:  mountsCfg.StoreMode.WithDefault(config.DefaultStoreMode),
+		DAG:        ipfs.Dag(),
 	}
 
 	ldirs := make(map[string]*writable.Dir)

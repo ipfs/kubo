@@ -585,6 +585,38 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		wg.Wait()
 	})
 
+	// Simulate the rsync --inplace pattern: one goroutine holds a
+	// file open for reading while another opens it for writing.
+	// MFS's desclock blocks a write-open while a read descriptor
+	// exists. The FUSE layer avoids this by creating a DagReader
+	// for read-only opens instead of going through MFS.
+	t.Run("ConcurrentReadWrite", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		path := filepath.Join(dir, "concurrent_rw")
+
+		data := WriteFileOrFail(t, 50000, path)
+
+		// Hold the file open for reading (like rsync's generator).
+		reader, err := os.Open(path)
+		require.NoError(t, err)
+		defer reader.Close()
+
+		// Overwrite the file while the reader is still open
+		// (like rsync's receiver).
+		newData := RandBytes(60000)
+		require.NoError(t, os.WriteFile(path, newData, 0o644))
+
+		// The reader should still see the original snapshot.
+		got, err := io.ReadAll(reader)
+		require.NoError(t, err)
+		require.True(t, bytes.Equal(data, got), "reader should see original data")
+
+		// A fresh read should see the new data.
+		got2, err := os.ReadFile(path)
+		require.NoError(t, err)
+		require.True(t, bytes.Equal(newData, got2), "new reader should see updated data")
+	})
+
 	t.Run("FSThrash", func(t *testing.T) {
 		dir := mount(t, writable.Config{})
 		dirs := []string{dir}

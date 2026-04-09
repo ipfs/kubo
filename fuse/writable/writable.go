@@ -21,7 +21,9 @@ import (
 	"github.com/ipfs/boxo/files"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
+	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/mfs"
+	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
@@ -30,8 +32,9 @@ var log = logging.Logger("fuse/writable")
 
 // Config controls write-side behavior for writable mounts.
 type Config struct {
-	StoreMtime bool // persist mtime on create and open-for-write
-	StoreMode  bool // persist mode on chmod
+	StoreMtime bool            // persist mtime on create and open-for-write
+	StoreMode  bool            // persist mode on chmod
+	DAG        ipld.DAGService // for read-only opens that bypass MFS locking
 }
 
 // NewDir creates a Dir node backed by the given MFS directory.
@@ -341,8 +344,30 @@ func (fi *FileInode) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrO
 	return 0
 }
 
-func (fi *FileInode) Open(_ context.Context, flags uint32) (fs.FileHandle, uint32, syscall.Errno) {
+func (fi *FileInode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uint32, syscall.Errno) {
 	accessMode := flags & syscall.O_ACCMODE
+
+	// Read-only opens bypass MFS's desclock by creating a DagReader
+	// directly from the current DAG node. MFS holds desclock.RLock
+	// for the lifetime of a read descriptor, which blocks any
+	// concurrent write open on the same file (desclock.Lock). Tools
+	// like rsync --inplace open the destination for reading and
+	// writing simultaneously, deadlocking on MFS's lock. Creating
+	// a DagReader here avoids the lock entirely: the reader gets a
+	// snapshot of the file at open time, and writers proceed through
+	// MFS independently.
+	if accessMode == syscall.O_RDONLY && fi.Cfg.DAG != nil {
+		nd, err := fi.MFSFile.GetNode()
+		if err != nil {
+			return nil, 0, fs.ToErrno(err)
+		}
+		r, err := uio.NewDagReader(ctx, nd, fi.Cfg.DAG)
+		if err != nil {
+			return nil, 0, fs.ToErrno(err)
+		}
+		return &roFileHandle{r: r}, fuse.FOPEN_KEEP_CACHE, 0
+	}
+
 	mfsFlags := mfs.Flags{
 		Read:  accessMode == syscall.O_RDONLY || accessMode == syscall.O_RDWR,
 		Write: accessMode == syscall.O_WRONLY || accessMode == syscall.O_RDWR,
@@ -614,6 +639,36 @@ func (s *Symlink) Setattr(_ context.Context, _ fs.FileHandle, in *fuse.SetAttrIn
 	return 0
 }
 
+// roFileHandle is a read-only file handle backed by a DagReader.
+// Used for O_RDONLY opens to bypass MFS's desclock (see FileInode.Open).
+type roFileHandle struct {
+	r  uio.DagReader
+	mu sync.Mutex
+}
+
+func (fh *roFileHandle) Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+	fh.mu.Lock()
+	defer fh.mu.Unlock()
+
+	if _, err := fh.r.Seek(off, io.SeekStart); err != nil {
+		return nil, fs.ToErrno(err)
+	}
+	n, err := fh.r.CtxReadFull(ctx, dest)
+	switch err {
+	case nil, io.EOF, io.ErrUnexpectedEOF:
+	default:
+		return nil, fs.ToErrno(err)
+	}
+	return fuse.ReadResultData(dest[:n]), 0
+}
+
+func (fh *roFileHandle) Release(_ context.Context) syscall.Errno {
+	fh.mu.Lock()
+	defer fh.mu.Unlock()
+
+	return fs.ToErrno(fh.r.Close())
+}
+
 // SymlinkTarget extracts the symlink target from an MFS file, or
 // returns "" if the file is not a TSymlink node. MFS represents
 // symlinks as *mfs.File, so the DAG node's UnixFS type must be checked.
@@ -662,4 +717,7 @@ var (
 	_ fs.FileFlusher  = (*FileHandle)(nil)
 	_ fs.FileReleaser = (*FileHandle)(nil)
 	_ fs.FileFsyncer  = (*FileHandle)(nil)
+
+	_ fs.FileReader   = (*roFileHandle)(nil)
+	_ fs.FileReleaser = (*roFileHandle)(nil)
 )
