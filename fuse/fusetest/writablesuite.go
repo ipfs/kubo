@@ -268,7 +268,9 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 
 		got, err := os.ReadFile(path)
 		require.NoError(t, err)
-		require.True(t, bytes.Equal(want, got),
+		require.Equal(t, len(want), len(got),
+			"reader on fresh handle should see all bytes after fsync")
+		require.Equal(t, want, got,
 			"reader on a fresh handle should see data flushed by fsync")
 
 		require.NoError(t, w.Close())

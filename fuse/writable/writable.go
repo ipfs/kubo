@@ -621,14 +621,21 @@ func (fh *FileHandle) Release(_ context.Context) syscall.Errno {
 	return fs.ToErrno(err)
 }
 
-// Fsync flushes the write buffer through the open file descriptor.
+// Fsync flushes the write buffer through the open file descriptor and
+// invalidates the kernel's cached attrs and content for this inode.
 // Editors (vim, emacs) and databases call fsync after writing to
-// ensure data reaches persistent storage.
+// ensure data reaches persistent storage; a fresh reader on the same
+// path must see the synced bytes immediately, not the size the kernel
+// cached from the initial Create response.
 func (fh *FileHandle) Fsync(_ context.Context, _ uint32) syscall.Errno {
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
 
-	return fs.ToErrno(fh.fd.Flush())
+	err := fh.fd.Flush()
+	if fh.inode != nil {
+		_ = fh.inode.NotifyContent(0, 0)
+	}
+	return fs.ToErrno(err)
 }
 
 // Symlink is the FUSE adapter for UnixFS TSymlink nodes on writable mounts.
