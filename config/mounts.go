@@ -11,7 +11,9 @@ type Mounts struct {
 	// IPFS is the mountpoint for the read-only /ipfs/ namespace.
 	IPFS string
 
-	// IPNS is the mountpoint for the writable /ipns/ namespace.
+	// IPNS is the mountpoint for the /ipns/ namespace. Directories backed
+	// by keys this node holds are writable; all other names resolve through
+	// IPNS to read-only symlinks into the /ipfs mount.
 	IPNS string
 
 	// MFS is the mountpoint for the Mutable File System (ipfs files API).
